@@ -1,0 +1,19 @@
+   itime=       0
+     npp=    1557
+      ne=    5000
+      ni=    5000
+  npbeam=     300
+  config=       0
+  scheme=       4
+      xl=     0.30000
+      yl=     2.00000
+      zl=     2.00000
+ boxsize=     2.00000
+     eps=     0.30000
+   theta=     0.50000
+tlaser =      0.00000
+   trun=      0.00000
+   omega=     0.50000
+  lambda=     1.00000
+      Qs=     0.00020
+

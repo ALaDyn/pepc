@@ -1,0 +1,7 @@
+cp run1.h run.h
+llrun -p4 $HOME/tree/pepc/src/pepc2 
+ eval `cat runstamp |  awk '{ t = $1;  printf  "TEND=%s",t}'`
+cp energy.dat energy.$TEND
+cp run.out run.$TEND
+cp load.dat load.$TEND
+#llsubmit block2.job 
