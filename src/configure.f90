@@ -29,7 +29,7 @@ subroutine configure
      case(1)              ! Set up particles according to geometry
         call randion         
 
-        if (scheme<>5 .and. ramp) then
+        if (scheme /= 5 .and. ramp) then
            call add_ramp     ! add exponential ramp to target
         endif
 
