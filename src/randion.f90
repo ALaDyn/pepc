@@ -2,8 +2,10 @@
 !
 !                RANDION
 !
-!  Sets up 3D random distribution of particles
+!   $Revision: 1.5
 !
+!  Sets up 3D random distribution of particles
+! 
 ! ==============================================
 
 subroutine randion
@@ -31,17 +33,6 @@ subroutine randion
     !       4 = ellipsoid
 
     nsphere = npp
-    
-!!$    if (initial_config == 4) then
-!!$        s = (Vplas / ni)**(1. / 3.)
-!!$        nx = x_plasma / s
-!!$        ny = y_plasma / s
-!!$        if (nx * ny**2 /= ni .and. me == 0) then
-!!$            write(*, *) '# ions no good for crystal config - check ni or dimensions'
-!!$        end if
-!!$    else
-        dpx = x_plasma / npp
-!!$    end if
 
     p = 0
     do while (p < nsphere)
@@ -121,12 +112,13 @@ subroutine randion
     pepid(1:npp)         = me        ! processor ID
     pelabel(1:nep)       = me * nep + (/(i, i = 1, nep)/)      ! Electron labels
     pelabel(nep + 1:npp) = ne + me * nip + (/(i, i = 1, nip)/) ! Ion labels
+! zero fields
+  Ex(1:npp) = 0
+  Ey(1:npp) = 0
+  Ez(1:npp) = 0
+  pot(1:npp) = 0
+  work(1:npp) = 1.   ! set work load balanced initially
 
-    ! zero accelerations
-    ax(1:npp) = 0
-    ay(1:npp) = 0
-    az(1:npp) = 0
-    work(1:npp) = 1.   ! set work load balanced initially
 
 end subroutine randion
 
