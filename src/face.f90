@@ -1,5 +1,13 @@
 !
-! Description of convex faces descirbed 
+!   FACE
+!
+!  Function to set up bounded geometry targets in conjunction with 
+!  randion. 
+!  M. Hammes, U. Wuppertal
+!
+!  $Revision$
+!
+! Generalised description of convex faces described 
 ! by a function f(x, y, z) = 0. 
 ! Saves f(r) in c_status
 ! and means c_status > 0.: particle is out,
