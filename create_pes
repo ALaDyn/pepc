@@ -1,0 +1,34 @@
+#!/bin/ksh
+
+# Shell script to create new directories of
+# PEs listed in PE_list
+
+DATADIR=$1
+cd $DATADIR
+INC=$2   ## PE increment
+#
+echo "List of PEs:"; cat PE_list
+echo
+cp PE_list PE_newlist
+
+cat PE_list | while read PE
+do
+        A=${PE##*e}    ## strip 'pe' from string
+	B=`expr $A + 1000`
+	C=`expr $B + $INC`
+	NEWPE=pe${C#*1}
+#	echo $A $B $C $NEWPE
+	
+        if [ ! -d $NEWPE ]
+        then
+                echo "Creating $NEWPE"
+                mkdir $NEWPE
+                echo "$NEWPE" | cat >> PE_newlist
+        else
+                echo "Directory" $NEWPE" already exists"
+        fi
+
+done
+cp PE_newlist PE_list
+echo "New list in PE_list"
+
