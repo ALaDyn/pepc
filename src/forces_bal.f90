@@ -2,6 +2,8 @@
 !
 !                              FORCES
 !
+!   $Revision$
+!
 !   Calculate forces from interaction list:
 !     nterm(i) = terms
 !   Pseudoparticles are given by: intlist(j,i), j=1,nterm(i);
@@ -33,7 +35,7 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
   integer :: max_local,  timestamp
   real, dimension(nppm) :: fx, fy, fz
 
-  real :: fsx, fsy, fsz,  Ex, Ey, Ez, phi
+  real :: fsx, fsy, fsz, phi, Ex, Ey, Ez, phi_coul, ex_coul, ey_coul, ez_coul
   real :: Epon_x, Epon_y, Epon_z, Phipon
   real :: xd, yd, zd  ! positions relative to centre of laser spot
   logical :: force_debug=.false.
@@ -126,18 +128,43 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
      t_walk = t_walk + t2-t1
 
      do i = 1, nps
-        fsx=0. ! partial forces for particle p
-        fsy=0.
-        fsz=0.
+
         p = pshortlist(i)    ! local particle index
+        fx(p) = 0.
+        fy(p) = 0.
+        fz(p) = 0.
+        pot(p) = 0.
 
-        !  compute forces of particle p from its interaction list
-        call sum_force(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
+        if (coulomb) then
+           !  compute Coulomb forces and potential of particle p from its interaction list
+           call sum_force(p, nterm(i), nodelist( 1:nterm(i),i ), ex_coul, ey_coul, ez_coul, phi_coul )
 
-        pot(p) = force_const * phi
-        fx(p) = force_const * q(p) * fsx
-        fy(p) = force_const * q(p) * fsy
-        fz(p) = force_const * q(p) * fsz
+           pot(p) = pot(p) + force_const * phi_coul
+           fx(p) = fx(p) + force_const * q(p) * ex_coul
+           fy(p) = fy(p) + force_const * q(p) * ey_coul
+           fz(p) = fz(p) + force_const * q(p) * ez_coul
+        endif
+
+        if (bonds) then
+           !  compute short-range forces and potential of particle p from its interaction list
+           call sum_bond(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
+
+           pot(p) = pot(p) + bond_const * phi
+           fx(p) = fx(p) + bond_const * fsx
+           fy(p) = fy(p) + bond_const * fsy
+           fz(p) = fz(p) + bond_const * fsz
+        endif
+
+        if (lenjones) then
+           !  compute short-range Lennard-Jones forces and potential of particle p from its interaction list
+           call sum_lennardjones(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
+
+           pot(p) = pot(p) + 4*bond_const * phi
+           fx(p) = fx(p) + 4*bond_const * fsx
+           fy(p) = fy(p) + 4*bond_const * fsy
+           fz(p) = fz(p) + 4*bond_const * fsz
+        endif
+
         work(p) = nterm(i)        ! Should really compute this in sum_force to allow for leaf/twig terms
         work_local = work_local+nterm(i)
      end do
