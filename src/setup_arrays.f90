@@ -14,8 +14,8 @@ subroutine setup_arrays
   if (scheme==5 .or. target_dup) npartm=npartm*2  ! reserve extra space for electrons in ions-only mode
 	                                        ! or double-target config
 
-  nppm = 2.*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  nshortm = 2500    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nppm = 1.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+  nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
@@ -32,10 +32,11 @@ subroutine setup_arrays
 
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
-   npsize=2.5*nppm
-   size_tree = max(4*nintmax+npsize,2000)+1
-   maxaddress = size_tree
-   nbaddr = max(log(1.*maxaddress)/log(2.) + 2,18.)
+!   npsize=2.5*nppm
+   npsize=nppm
+   size_tree = max(4*nintmax+npsize,1000000)+1
+!   nbaddr = max(log(1.*size_tree)/log(2.) + 1,17.)
+   nbaddr = 19
    maxaddress = 2**nbaddr
    size_tree=maxaddress+1
    size_fetch = min(60*size_tree/num_pe,size_tree/2) 
@@ -44,8 +45,10 @@ subroutine setup_arrays
 !  maxaddress = 512
   hashconst = maxaddress-1
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
-
-
+  if (me==0) then
+    write(*,*) 'size_tree= ',size_tree
+    write(*,*) 'size_fetch= ',size_fetch
+  endif 
 
 
   ! array allocation
