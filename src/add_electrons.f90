@@ -41,9 +41,9 @@ subroutine add_electrons
   pelabel(1:nip) = pelabel(1:nip) + ni  ! Augment ion labels: ne+1 -> npart
 
   ! zero accelerations - should really compute these for electrons
-  ax(nip+1:npp) = 0.
-  ay(nip+1:npp) = 0.
-  az(nip+1:npp) = 0.
+  Ex(nip+1:npp) = 0.
+  Ey(nip+1:npp) = 0.
+  Ez(nip+1:npp) = 0.
   pot(nip+1:npp) = 0.
 
   work(1:npp) = 1.   ! set work load balanced initially
@@ -73,11 +73,3 @@ subroutine add_electrons
   uz(1:nip) = 0.
 
 end subroutine add_electrons
-
-
-
-
-
-
-
-
