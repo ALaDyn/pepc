@@ -2,8 +2,8 @@
 !
 !     3v particle pusher
 !
-!  TM fields only (s-pol):  (Ex,0,Ez)  (0,By,0)
-!  TE fields to follow (0,Ey,0) (Bx,0,Bz)
+!  TM fields only (s-pol):  (0,0,Ez)  (Bx,By,0)
+!  TE fields to follow (Ex,Ey,0) (0,0,Bz)
 !  ==============================================
 
 

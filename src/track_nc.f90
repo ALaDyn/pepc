@@ -57,6 +57,12 @@ subroutine track_nc
      xc1 = plasma_centre(1)-x_plasma/2.  
   endif
 
+! abort tracking if particle number too low
+  if (npart.le.100) then
+     x_crit=xc1
+     return
+  endif
+
  !  start indices
   icm = xc1/dx
   icp = icm+1

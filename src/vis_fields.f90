@@ -81,9 +81,10 @@ subroutine vis_fields
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond)
                  mvis(lcount) = phipond ! Pond potential
 
-              case(7) ! Standing wave fpond Ez, By, Az
-                 call empond(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipond)
-                 mvis(lcount) = by_em 
+              case(7) ! Oblique incidence fpond
+                 call emobliq(tlaser,tpulse,sigma,vosc,omega,theta_inc, &
+                      xd,yd,zd,epon_x,epon_y,epon_z,phipond)
+                 mvis(lcount) = phipond
 
               case(6) ! Plane wave
                  call emplane(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipond)

@@ -73,6 +73,7 @@ module physvars
   real :: vosc          ! pump strength    (c)
   real :: omega         ! frequency  (omega_p)
   real :: lambda        ! laser wavelength
+  real :: theta_inc     ! angle of incidence
   real :: focus(3)      ! centre of focal spot
   real :: tlaser        ! run time after laser switched on (1/omega_p)
   real :: elaser        ! deposited laser energy

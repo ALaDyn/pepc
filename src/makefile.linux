@@ -123,9 +123,9 @@ SOURCES.f90 =	treemp.f90 \
 		velocities.f90 \
 	 	energy_cons.f90 potenergy.f90 kinenergy.f90\
 		forces.f90 sum_lennardjones.f90\
-		fpond.f90 empond.f90 emplane.f90 laser_bullet.f90\
+		fpond.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90 \
 		push_em.f90 push_full3v.f90 \
-		push.f90 constrain.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
+		push.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
 		vis_parts.f90 vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
 		open_files.f90 close_files.f90	\
 		densities.f90 sum_fields.f90 dump_fields.f90 \

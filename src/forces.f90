@@ -221,6 +221,10 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_walkc, t_force)
               call fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
                 xd,yd,zd,epon_x,epon_y,epon_z,phipon)
 
+           case(7)  ! oblique incidence standing wave
+              call emobliq( tlaser, tpulse,sigma,vosc,omega,theta_inc,rho_upper, &
+                xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+
            case(5)  ! propagating fpond
               call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, & 
                    xd,yd,zd,epon_x,epon_y,epon_z,phipon)

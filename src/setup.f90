@@ -29,7 +29,7 @@ subroutine setup
        xl, yl, zl, displace, bond_const, fnn, rho_min, lolam, &
        beam_config, np_beam, idim, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
-       lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
+       theta_inc, lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
        nt, dt, mc_steps, idump, ivis, ivis_fields, iprot, itrack, nmerge, ngx, ngy, ngz, &
        vis_on, steering, domain_debug,  mc_init, restart, scheme, particle_bcs, &
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
@@ -98,6 +98,7 @@ subroutine setup
   tpulse = 10.
   vosc = 0.1
   omega = 0.5
+  theta_inc = 0.
   x_offset = 0.
   z_offset = 0.
   tlaser = 0.    ! time since laser switched on
