@@ -23,7 +23,6 @@ subroutine push_x(ips,ipf,delt)
      x(p)=x(p)+ux(p)/gamma*delt
      y(p)=y(p)+uy(p)/gamma*delt
      z(p)=z(p)+uz(p)/gamma*delt
-
   end do
 
 end subroutine push_x

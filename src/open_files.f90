@@ -18,7 +18,7 @@ subroutine openfiles
   !  must first create subdirectory 'peXXX' in run directory
 
   cme = achar(me/100+48) // achar(mod(me/10,10)+48) // achar(mod(me,10)+48)  ! Convert 3-digit PE number into character string
-  cfile="pe"//cme//"/dump.out"
+  cfile="pe"//cme//"/dump."//cme
   open(20,file=cfile)
   ipefile = 20
 

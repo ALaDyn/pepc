@@ -313,6 +313,14 @@ subroutine make_domains(xl,yl,zl)
   call pll_permute(nppm,npold,npnew,num_pe,me,work,wr2,wr3, &       ! workload
        indxl,irnkl,islen,irlen,fposts,gposts)
 
+  call pll_permute(nppm,npold,npnew,num_pe,me,ax,wr2,wr3, &       ! vec. pot 
+       indxl,irnkl,islen,irlen,fposts,gposts)
+
+  call pll_permute(nppm,npold,npnew,num_pe,me,ay,wr2,wr3, &       ! 
+       indxl,irnkl,islen,irlen,fposts,gposts)
+
+  call pll_permute(nppm,npold,npnew,num_pe,me,az,wr2,wr3, &       ! 
+       indxl,irnkl,islen,irlen,fposts,gposts)
 
   pepid(1:npp) = me  ! new owner
 
@@ -342,7 +350,7 @@ subroutine make_domains(xl,yl,zl)
   !  - if we don't do this, can get two particles on separate PEs 'sharing' a leaf
 
   ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
-   			  pekey(1), pelabel(1), pepid(1) )
+   ax(1),ay(1),az(1), pekey(1), pelabel(1), pepid(1) )
 
 !  write (*,'(9f12.3,z20,2i6)') ship_props
   
@@ -364,6 +372,9 @@ subroutine make_domains(xl,yl,zl)
      q(npp+1) = get_props%q
      m(npp+1) = get_props%m
      work(npp+1) = get_props%work
+     ax(npp+1) = get_props%ax
+     ay(npp+1) = get_props%ay
+     az(npp+1) = get_props%az
      pekey(npp+1) = get_props%key
      pelabel(npp+1) = get_props%label
      pepid(npp+1) = get_props%pid
@@ -373,7 +384,7 @@ subroutine make_domains(xl,yl,zl)
   ! Ship  end particle data to start of list of RH neighbour PE
   
   ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), m(npp), work(npp), &
-   			  pekey(npp), pelabel(npp), pepid(npp) )
+    ax(npp),ay(npp),az(npp), pekey(npp), pelabel(npp), pepid(npp) )
   
 if (me /= lastpe ) then
      call MPI_SEND( ship_props, 1, mpi_type_particle, me_plus_one, tag1, MPI_COMM_WORLD, ierr ) 
@@ -398,6 +409,9 @@ if (me /= lastpe ) then
      q(ind_recv) = get_props%q
      m(ind_recv) = get_props%m
      work(ind_recv) = get_props%work
+     ax(ind_recv) = get_props%ax
+     ay(ind_recv) = get_props%ay
+     az(ind_recv) = get_props%az
      pekey(ind_recv) = get_props%key
      pelabel(ind_recv) = get_props%label
      pepid(ind_recv) = get_props%pid

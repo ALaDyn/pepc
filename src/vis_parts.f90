@@ -42,12 +42,14 @@ subroutine vis_parts
   nbufi = 0
   nship=0
 
-
+! TODO:  separate interesting ions and electrons
   do i=1,npp
      u2=0.5*0.511*mass_ratio*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
-    if ((npart>100000 .and. (u2>uthresh .and. q(i)>0)) .or. (npart<100000 .and. mod(pelabel(i),nskip).eq.0)) then
+!    if ((npart>100000 .and. (u2>uthresh .and. q(i)>0)) .or. (npart<100000 .and. mod(pelabel(i),nskip).eq.0)) then
+    if ((npart>100000 .and. (u2>uthresh .and. q(i)<0)) .or. (npart<100000 .and. mod(pelabel(i),nskip).eq.0)) then
         nship=nship+1
-        nbufi=nbufi+1
+        nbufe=nbufe+1
+!        nbufi=nbufi+1
 
         !        else if (q(i)>0 .and. mod(pelabel(i),nskip).eq.0) then
         !           nbufi=nbufi+1

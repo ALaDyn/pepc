@@ -117,6 +117,15 @@ subroutine randion
   Ex(1:npp) = 0
   Ey(1:npp) = 0
   Ez(1:npp) = 0
+  Bx(1:npp) = 0
+  By(1:npp) = 0
+  Bz(1:npp) = 0
+  Ax(1:npp) = 0
+  Ay(1:npp) = 0
+  Az(1:npp) = 0
+  Axo(1:npp) = 0
+  Ayo(1:npp) = 0
+  Azo(1:npp) = 0
   pot(1:npp) = 0
   work(1:npp) = 1.   ! set work load balanced initially
 

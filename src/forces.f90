@@ -36,6 +36,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
   integer :: max_local,  timestamp
 
   real :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
+  real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
   real :: Epon_x, Epon_y, Epon_z, Phipon
   real :: xd, yd, zd  ! positions relative to centre of laser spot
   real :: work_local, load_average, load_integral, total_work, average_work
@@ -115,20 +116,45 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
      do i = 1, nps
 
         p = pshortlist(i)    ! local particle index
-
+! zero field sums
         Ex(p) = 0.
         Ey(p) = 0.
         Ez(p) = 0.
         pot(p) = 0.
+        Axo(p) = Ax(p)
+        Ayo(p) = Ay(p)
+        Azo(p) = Az(p)
+        Ax(p) = 0.
+        Ay(p) = 0.
+        Az(p) = 0.
+        Bx(p) = 0.
+        By(p) = 0.
+        Bz(p) = 0.
 
         if (coulomb) then
-           !  compute Coulomb forces and potential of particle p from its interaction list
+           !  compute Coulomb fields and potential of particle p from its interaction list
            call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul )
 
            pot(p) = pot(p) + force_const * phi_coul
            Ex(p) = Ex(p) + force_const * ex_coul
            Ey(p) = Ey(p) + force_const * ey_coul
            Ez(p) = Ez(p) + force_const * ez_coul
+        endif
+
+        if (bfield_on) then
+           !  compute magnetic fields and vector potential 
+           call sum_bfield(p, nterm(i), nodelist( 1:nterm(i),i), eps, bx_ind, by_ind, bz_ind, ax_ind, ay_ind, az_ind )
+
+           Ax(p) =  force_const * ax_ind
+           Ay(p) =  force_const * ay_ind
+           Az(p) =  force_const * az_ind
+           Bx(p) =  force_const * bx_ind
+           By(p) =  force_const * by_ind
+           Bz(p) =  force_const * bz_ind
+! Adjust E-field with inductive term
+	   Ex(p) = Ex(p) - (Ax(p)-Axo(p))/delta_t
+	   Ey(p) = Ey(p) - (Ay(p)-Ayo(p))/delta_t
+   	   Ez(p) = Ez(p) - (Az(p)-Azo(p))/delta_t
         endif
 
         if (bonds) then
@@ -211,11 +237,11 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
      do i=p_start,p_finish
         write (ipefile,102) pelabel(i), pepid(i), & 
-             q(i), m(i), Ex(i),  Ey(i), Ez(i)
+             q(i), m(i), ux(i), Ex(i),  Ax(i), Axo(i), Bx(i)
      end do
 
-101  format('Tree forces:'/'   p     owner    ax         ay      az  ',2f8.2)
-102  format(1x,2i7,5(1pe14.5))
+101  format('Tree forces:'/'   p     owner    ux   Ex         Ax      Axo      Bx  ',2f8.2)
+102  format(1x,2i7,7(1pe14.5))
 
   endif
 

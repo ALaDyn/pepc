@@ -43,6 +43,9 @@ module treevars
      real :: q     ! charge
      real :: m     ! mass
      real :: work  ! work load from force sum
+     real :: ax   ! vec. pot  
+     real :: ay
+     real :: az
      integer*8 :: key           ! Key
      integer :: label    ! label
      integer :: pid      ! owner
@@ -73,6 +76,12 @@ module treevars
      real :: xyquad
      real :: yzquad
      real :: zxquad
+     real :: jx        ! current
+     real :: jy
+     real :: jz
+     real :: magmx      ! magnetic moment
+     real :: magmy
+     real :: magmz
   end type multipole
 
   type (multipole), allocatable :: pack_child(:), get_child(:)
@@ -80,8 +89,8 @@ module treevars
 
 !  Associated MPI stuff
 
-  integer, parameter :: nprops_particle=12, &    ! # particle properties to ship
-  			nprops_multipole=18      ! Number of multipole properties to ship
+  integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
+  			nprops_multipole=24      ! Number of multipole properties to ship
   integer, dimension(nprops_multipole) :: blocklengths, displacements, types, address
   integer :: send_base, receive_base, mpi_type_particle, mpi_type_multipole
   
@@ -115,8 +124,9 @@ module treevars
                                xshift(:), yshift(:), zshift(:), &    ! shift vector
                                xdip(:), ydip(:), zdip(:), &          ! dipole moment
                                xxquad(:), yyquad(:), zzquad(:), &    ! quadrupole moment
-                               xyquad(:), yzquad(:), zxquad(:)       !
-
+                               xyquad(:), yzquad(:), zxquad(:), &    !
+                               magmx(:), magmy(:), magmz(:), &       ! magnetic dipole moment
+                               jx(:), jy(:), jz(:)                   ! current
   integer*8, allocatable ::    first_child(:)   ! key of first child
 
   integer, allocatable ::       n_children(:), &     ! # children
@@ -172,6 +182,7 @@ module treevars
   logical :: walk_balance=.false.  ! Controls balancing of shortlists in walk/force sum
   logical :: use_multipoles = .true.   ! Use of multipoles? 
   logical :: prefetch = .false.  ! Prefetch multipole info prior to walk
+  logical :: bfield_on = .false. ! Include self-induced B-field in force calculation
 
   ! Debugging switches (all off by default)
   logical :: tree_debug=.false.
@@ -190,8 +201,11 @@ module treevars
   real, allocatable :: x(:),  y(:),  z(:), &     ! position
                       ux(:), uy(:), uz(:), &     ! velocity
                               q(:),  m(:), &     ! charge and mass
-			Ex(:), Ey(:), Ez(:), &   ! fields
-			pot(:), &	         ! potential
+			Ex(:), Ey(:), Ez(:), &   ! E-field
+			pot(:), &	         ! scalar potential
+                        Axo(:), Ayo(:), Azo(:), &   ! vector potential
+                        Ax(:), Ay(:), Az(:), &   ! vector potential
+                        Bx(:), By(:), Bz(:), &   ! B-field
 			work(:)                  ! interaction work load 
 
   integer*8, allocatable ::   pekey(:), &  ! local particle keys                             
@@ -201,13 +215,5 @@ module treevars
                               nterm(:),  nodelist(:,:) ! interaction node-list
 
 end module treevars
-
-
-
-
-
-
-
-
 
 

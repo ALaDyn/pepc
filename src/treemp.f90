@@ -33,7 +33,8 @@ program treemp
 ! timing stuff
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_en, t_force
   real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot
-
+  integer :: tremain ! remaining wall_clock seconds
+  integer :: llwrem  ! function to enquire remaining wall_clock time
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -62,7 +63,7 @@ program treemp
      trun = trun + dt
      if (beam_config >= 4) tlaser = tlaser + dt  
      write(ipefile,'(//a,i8,a,f10.5)') 'Timestep ',itime,' t=',trun
-
+    
      if (tlaser<= 2*tpulse) then
         Tpon = 2*vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2) 
 ! * (sin(omega*tlaser))**2
@@ -74,6 +75,7 @@ program treemp
           ,' total run time = ',trun &
           ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
           ,' intensity= ',Tpon
+!     tremain=llwrem(0)
      if (me==0) then
         do ifile = 6,15,9
            write(ifile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/2(a,f9.3))') &
@@ -81,7 +83,8 @@ program treemp
                 ,' total run time = ',trun &
                 ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
                 ,' intensity= ',Tpon &
-                ,' x_crit= ',x_crit
+                ,' x_crit= ',x_crit 
+!                ,' remaining wall-clock time (s)= ',tremain 
            write(ifile,*) 'new npp: ',npp,' new npart: ',npart
            write (ifile,'(a,i8,a3,i8)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         end do

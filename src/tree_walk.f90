@@ -38,10 +38,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
 
   use treevars
   use utils
-  !VAMPINST include
-  !  INCLUDE 'VTcommon.h'
-  !  INTEGER VTIERR
-  !
+
 
   implicit none
 
@@ -214,7 +211,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
            if ( mac_ok .or. (walk_node >0 .and. .not.ignore ) ) then
               walk_key(i) = walk_next
 	      entry_next = nterm(p) + 1
- !             intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
+              intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
               nodelist( entry_next, p ) = walk_node   ! Node number for sum_force
               nterm(p) = entry_next
 
@@ -455,7 +452,13 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
                    zzquad( node_child(ic)), &
                    xyquad( node_child(ic)), &
                    yzquad( node_child(ic)), &
-                   zxquad( node_child(ic)) )
+                   zxquad( node_child(ic)), &
+                   jx( node_child(ic)), &
+                   jy( node_child(ic)), &
+                   jz( node_child(ic)), &
+                   magmx( node_child(ic)), &
+                   magmy( node_child(ic)), &
+                   magmz( node_child(ic)) )
 
            end do
 
@@ -547,6 +550,12 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
            xyquad( nodchild ) = get_child(ic)%xyquad
            yzquad( nodchild ) = get_child(ic)%yzquad
            zxquad( nodchild ) = get_child(ic)%zxquad
+           magmx( nodchild ) = get_child(ic)%magmx
+           magmy( nodchild ) = get_child(ic)%magmy
+           magmz( nodchild ) = get_child(ic)%magmz
+           jx( nodchild ) = get_child(ic)%jx
+           jy( nodchild ) = get_child(ic)%jy
+           jz( nodchild ) = get_child(ic)%jz
 
            ! Put last child onto list for post-traversal processing
            if (nxchild == -1) then

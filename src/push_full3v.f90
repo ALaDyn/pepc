@@ -33,30 +33,31 @@ subroutine push_full3v(p_start,p_finish,dts)
 
      if (beam_config.eq.7) then
 ! pond. standing wave on step-profile
-        call empond(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
+!        call empond(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
 
      else if (beam_config.eq.6) then
 ! s-pol plane wave with Gaussian spot
-        call emplane(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
+!        call emplane(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
      endif
 
-     !  Sum internal and external fields
+     !  Sum internal and external fields 
+
+!  TODO: need to include inductive dA/dt term in E-field (have to store prev. timestep of A(p))
+ 
      exi = ex(p)
      eyi = ey(p)
-     ezi = ez(p)+ez_em
-     bxi = bx_em
-     byi = by_em
-     bzi = 0.
+     ezi = ez(p)
+     bxi = bx(p)
+     byi = by(p)
+     bzi = bz(p)
 
-     ! transverse momentum from pz=az including thermal motion 
-     !	uzi = -q(p)/m(p)*az_em + uz(p)
 
 
      !   first half-accn
      uxm = ux(p) + beta*exi
      uym = uy(p) + beta*eyi
      uzm = uz(p) + beta*ezi
-     !     uzm = uz(p) - q(p)/m(p)*az_em
+
      !   rotation
      gam1=dsqrt(1.d0 + uxm**2 + uym**2 + uzm**2)
 
@@ -86,11 +87,4 @@ subroutine push_full3v(p_start,p_finish,dts)
 
 
 end subroutine push_full3v
-
-
-
-
-
-
-
 

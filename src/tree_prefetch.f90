@@ -301,7 +301,13 @@ subroutine tree_prefetch(itime)
              zzquad( ship_node), &
              xyquad( ship_node), &
              yzquad( ship_node), &
-             zxquad( ship_node) )
+             zxquad( ship_node), &
+             jx( ship_node), &
+             jy( ship_node), &
+             jz( ship_node), &
+             magmx( ship_node), &
+             magmy( ship_node), &
+             magmz( ship_node) )
      end do
   end do
 
@@ -372,6 +378,7 @@ subroutine tree_prefetch(itime)
         xdip( nodchild ) = get_child(recv_count)%xdip
         ydip( nodchild ) = get_child(recv_count)%ydip
         zdip( nodchild ) = get_child(recv_count)%zdip
+
         xxquad( nodchild ) = get_child(recv_count)%xxquad
         yyquad( nodchild ) = get_child(recv_count)%yyquad
         zzquad( nodchild ) = get_child(recv_count)%zzquad
@@ -379,7 +386,15 @@ subroutine tree_prefetch(itime)
         yzquad( nodchild ) = get_child(recv_count)%yzquad
         zxquad( nodchild ) = get_child(recv_count)%zxquad
 
-        ! Put last child onto list for post-traversal processing
+        jx( nodchild ) = get_child(recv_count)%jx
+        jy( nodchild ) = get_child(recv_count)%jy
+        jz( nodchild ) = get_child(recv_count)%jz
+
+        magmx( nodchild ) = get_child(recv_count)%magmx
+        magmy( nodchild ) = get_child(recv_count)%magmy
+        magmz( nodchild ) = get_child(recv_count)%magmz
+
+ ! Put last child onto list for post-traversal processing
         if (recv_next == -1) then
            nlast_child = nlast_child + 1
            last_child(nlast_child) = recv_key

@@ -4,7 +4,7 @@
 !
 !   Construct tree using particle keys
 !   
-!
+!   $Revision$
 ! ===========================================
 
 subroutine tree_build
@@ -44,17 +44,11 @@ subroutine tree_build
   if (build_debug) write(ipefile,'(//a)') 'TREE CONSTRUCTION'
 
 ! zero table: need list of 'live' addresses to speed up
-  do i=0,maxaddress
-    htable(i)%node = 0
-    htable(i)%link = -1
-    htable(i)%key = 0_8
-  end do
-
-!  htable%node = 0
-!  htable%leaves = 0
-!  htable%childcode = 0
-!  htable%link = -1
-!  htable%key = 0_8
+  htable%node = 0
+  htable%leaves = 0
+  htable%childcode = 0
+  htable%link = -1
+  htable%key = 0_8
 
   local_plist(1:npp+2) = pelabel(1:npp+2)       ! Particle (global) label for tracking purposes 
   local_key(1:npp+2) = pekey(1:npp+2)           ! Particle key

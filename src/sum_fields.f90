@@ -19,6 +19,7 @@ subroutine sum_fields
   character(5) :: cme
   character(6) :: cdump, cvis
   real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: g_ion, g_ele, ex_w, ey_w, ez_w
+  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bx_w, by_w, bz_w
 
   dx = xl/ngx
   dy = yl/ngy
@@ -30,6 +31,9 @@ subroutine sum_fields
   ex_w = 0.
   ey_w = 0.
   ez_w = 0.
+  bx_w = 0.
+  by_w = 0.
+  bz_w = 0.
   g_ion = 0.
   g_ele = 0.
   rhoi_loc = 0.
@@ -149,6 +153,7 @@ subroutine sum_fields
      ex_w(i1,j1,k1)=ex_w(i1,j1,k1) + Ex(i)/fr1**2
      ey_w(i1,j1,k1)=ey_w(i1,j1,k1) + Ey(i)/fr1**2
      ez_w(i1,j1,k1)=ez_w(i1,j1,k1) + Ez(i)/fr1**2
+     bz_w(i1,j1,k1)=bz_w(i1,j1,k1) + Bz(i)/fr1**2 ! B-field
 
      !        phig(i1,j1,k1)=phig(i1,j1,k1) + phi(i)/fr1
 
@@ -166,6 +171,7 @@ subroutine sum_fields
   Ex_loc = Ex_loc + ex_w/(g_ion+g_ele)/navcycle    ! Accumulate normalised fields
   Ey_loc = Ey_loc + ey_w/(g_ion+g_ele)/navcycle
   Ez_loc = Ez_loc + ez_w/(g_ion+g_ele)/navcycle
+  Bz_loc = bz_w/(g_ion+g_ele)  ! Instantaneous B
 
 ! laser fields
 

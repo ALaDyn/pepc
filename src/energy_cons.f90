@@ -18,11 +18,12 @@ subroutine energy_cons
   implicit none
 
   real :: tpon, epot, ekine, ekini, ebeam,  etot, Qplas, conv_kev
+  real :: emag
 
-  call potenergy(epot)
+  call potenergy(epot,emag)
   call kinenergy(ekine, ekini, ebeam)
 
-  etot = epot + ekine + ekini + ebeam
+  etot = epot + emag + ekine + ekini + ebeam
 
   if (ne>0) then
      Qplas = abs(qe)*ne
@@ -44,14 +45,20 @@ subroutine energy_cons
 
   if ( me == 0 ) then
      do ifile = 6,15,9
-        write (ifile,'(6(a20,1pe12.5/))') 'P.E. = ',epot,' Electron K.E. = ',ekine, &
-             ' Ion K.E. = ',ekini,' Beam K.E.  = ',ebeam,' Total: ',etot, &
+        write (ifile,'(7(a20,1pe12.5/))') &
+	     ' P.E. = ',epot, &
+	     ' Magnetic E. = ',emag, &
+	     ' Electron K.E. = ',ekine, &
+             ' Ion K.E. = ',ekini, &
+	     ' Beam K.E.  = ',ebeam, &
+	     ' Total: ',etot, &
              ' Laser energy = ',elaser
 
         write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',conv_kev*ekine,'Ti (keV):',conv_kev*ekini
      end do
 ! Write out to energy.dat file
-     write (75,'(f12.5,7(1pe12.3))') trun, conv_kev*epot, conv_kev*ekine, conv_kev*ekini,&
+if (itime.eq.0)  write(75,'(a)') '! time  Upot  Umag  Ukin_e Ukin_i Ukin_beam Utot Tpon xc'
+     write (75,'(f12.5,8(1pe12.3))') trun, conv_kev*epot, conv_kev*emag, conv_kev*ekine, conv_kev*ekini,&
 	 conv_kev*ebeam, conv_kev*etot,tpon,x_crit
   endif
 end subroutine energy_cons

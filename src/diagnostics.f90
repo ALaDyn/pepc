@@ -21,35 +21,37 @@ subroutine diagnostics
 
 
 
-! Interface to VISIT (Online visualisation)
+  ! Interface to VISIT (Online visualisation)
 
-  if ( vis_on .and. mod(itime,ivis*2)==0 .and. steering) call beam_control
 
   if (u_beam>0 .and. beam_config==3) scheme=1  ! Switch off Te control if beam on
 
   if ( vis_on ) then
      if ( mod(itime,ivis) ==0 ) call vis_parts       
-     if ( mod(itime,ivis_fields) ==0 ) call vis_fields       
+     if ( mod(itime,ivis*2)==0 .and. steering) call beam_control
+     if ( mod(itime,ivis_fields)==0 ) then
+        !     call pot_grid
+        call densities
+        call sum_fields
+        call vis_fields
+     endif
   endif
 
-  if (initial_config.eq.4) then
+!  if (initial_config.eq.4) then
     do i=1,npp
-	if (pelabel(i)==1) then
-  write (90,'(6f15.4)') x(i),y(i),z(i),ux(i),uy(i),uz(i)
+	if (pelabel(i)==60) then
+	if (itime.eq.0) write(90,'(a)') '! t x ux Ex Ax Axo -dA/dt Bx' 
+        write (90,'(8(1pe15.4))') itime*dt,x(i),ux(i),Ex(i),Ax(i),Axo(i),(Axo(i)-Ax(i))/dt,Bx(i)
 	endif
     enddo
-  endif
+!  endif
 
   if (mod(itime,idump) >= idump-navcycle) call sum_fields    ! Accumulate cycle-averaged fields on grid
 !  - assume for now that idump > navcycle
 
   if (beam_config == 4 .and. mod(itime,itrack)==0 ) call track_nc          ! Gather densities and track critical surface 
 
-  if (vis_on .and. mod(itime,ivis_fields)==0 ) then
-!     call pot_grid
-     call densities
-     call vis_fields
-  endif
+
 
   if (itime_start>0 .and. itime==0) return  ! Avoid over-writing restart data
   call energy_cons       ! Compute energy balance

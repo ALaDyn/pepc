@@ -22,7 +22,7 @@ subroutine setup
 
   namelist /pepcdata/ nep, nip, ne, ni, &
        theta, mass_ratio, q_factor, eps, &
-       initial_config, ispecial, &
+       plasma_config, target_geometry, ispecial, &
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
        xl, yl, zl, displace, bond_const, fnn, rho_min, lolam, &
@@ -34,7 +34,7 @@ subroutine setup
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
        dump_tree, perf_anal, coulomb, bonds, lenjones, target_dup, ramp, &
        prefetch, walk_summary, branch_debug, tree_debug, &
-       constrain_proof, len_tripod, use_multipoles, struct_step, uthresh
+       constrain_proof, len_tripod, use_multipoles, struct_step, uthresh, bfield_on
 
   !  Default input set
 
@@ -166,7 +166,7 @@ subroutine setup
   npp = nep + nip  ! total # particles per processor
   new_label = npart  ! Rezone label
 
-  geometry: select case(initial_config)
+  geometry: select case(target_geometry)
 
     case(0) ! slab
         Vplas = x_plasma * y_plasma * z_plasma
@@ -217,7 +217,7 @@ subroutine setup
         plasma_centre = (/xl / 2., yl / 2., zl / 2./)
         number_faces = 2
 
-    case(8) ! hollow hemishpere
+    case(8) ! hollow hemisphere
         Vplas = (4 * pi / 6.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
         focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
         plasma_centre = (/xl / 2., yl / 2., zl / 2./)

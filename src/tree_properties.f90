@@ -22,7 +22,7 @@ subroutine tree_properties
   integer, dimension(size_tree) ::  parent_node, parent_addr
   integer, dimension(size_tree) :: local_node
 
-  integer, parameter :: n_moments = 17  ! # property arrays
+  integer, parameter :: n_moments = 23  ! # property arrays
   real, dimension(n_moments*2*size_tree/num_pe) :: local_moments      ! local branch properties    - size depends on # moments          
   real, dimension(n_moments*size_tree/10) :: branch_moments   ! global branch properties
   integer, dimension(num_pe) :: nbranchmoments ! array containing total # multipole terms*branch list length
@@ -33,9 +33,9 @@ subroutine tree_properties
   integer, dimension(8) :: addr_child, node_child  !  child nodes
   real, dimension(8) :: xs, ys, zs   ! multipole shift vector
 
-  real :: xss, yss, zss
+  real :: xss, yss, zss, gamma, vx, vy, vz
   integer :: i, j, k, maxtwig, maxleaf, maxlevel, nchild, ncheck, ntwig_domain, nsearch, newsub, cchild 
-  integer :: node_b, nuniq, nsub, nparent, ilevel, ibr
+  integer :: node_b, nuniq, nsub, nparent, ilevel, ibr, pno, bno
   integer ::  addr_leaf, p_leaf, node_leaf       ! local leaf-nodes
 
   integer :: key2addr        ! Mapping function to get hash table address from key
@@ -47,52 +47,72 @@ subroutine tree_properties
 
   ! Zero multipole arrays
   do i=-ntwig_pw, nleaf_pw
-    charge(i) = 0.
-    abs_charge(i) = 0.
-    xcoc(i) = 0.
-    ycoc(i) = 0.
-    zcoc(i) = 0.
-    xdip(i) = 0.
-    ydip(i) = 0.
-    zdip(i) = 0.
-    xxquad(i) = 0.
-    yyquad(i) = 0.
-    zzquad(i) = 0.
-    xyquad(i) = 0.
-    yzquad(i) = 0.
-    zxquad(i) = 0.
+     charge(i) = 0.
+     abs_charge(i) = 0.
+     xcoc(i) = 0.
+     ycoc(i) = 0.
+     zcoc(i) = 0.
+     xdip(i) = 0.
+     ydip(i) = 0.
+     zdip(i) = 0.
+     xxquad(i) = 0.
+     yyquad(i) = 0.
+     zzquad(i) = 0.
+     xyquad(i) = 0.
+     yzquad(i) = 0.
+     zxquad(i) = 0.
+     magmx(i) = 0.
+     magmy(i) = 0.
+     magmz(i) = 0.
+     jx(i) = 0.
+     jy(i) = 0.
+     jz(i) = 0.
   end do
 
   !  Start with *local* leaf properties
 
   ! key_leaf(1:nleaf_me) =  pack(htable%key, mask = (htable%node > 0 .and. htable%owner == me) )  ! local leaf keys (could be predefined
   do i=1, nleaf_me
-    addr_leaf = key2addr( leaf_key(i) )   !  Table address
-    p_leaf = htable( addr_leaf )%node   !  Local particle index  - points to properties on PE
-    node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves 
+     addr_leaf = key2addr( leaf_key(i) )   !  Table address
+     p_leaf = htable( addr_leaf )%node   !  Local particle index  - points to properties on PE
+     node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves 
 
-    xcoc( node_leaf ) = x( p_leaf )         ! Centre of charge
-    ycoc( node_leaf ) = y( p_leaf )
-    zcoc( node_leaf ) = z( p_leaf )
+     xcoc( node_leaf ) = x( p_leaf )         ! Centre of charge
+     ycoc( node_leaf ) = y( p_leaf )
+     zcoc( node_leaf ) = z( p_leaf )
 
-    charge( node_leaf ) = q( p_leaf )       ! Charge
-    abs_charge( node_leaf ) = abs( q(p_leaf) )   ! Absolute charge (needed for c.o.c)
+     charge( node_leaf ) = q( p_leaf )       ! Charge
+     abs_charge( node_leaf ) = abs( q(p_leaf) )   ! Absolute charge (needed for c.o.c)
 
-    xdip( node_leaf ) = x(p_leaf) * q(p_leaf)   ! Dipole moment
-    ydip( node_leaf ) = y(p_leaf) * q(p_leaf) 
-    zdip( node_leaf ) = z(p_leaf) * q(p_leaf) 
+     xdip( node_leaf ) = x(p_leaf) * q(p_leaf)   ! Dipole moment
+     ydip( node_leaf ) = y(p_leaf) * q(p_leaf) 
+     zdip( node_leaf ) = z(p_leaf) * q(p_leaf) 
 
-    xxquad( node_leaf ) = q(p_leaf) * x(p_leaf)**2   ! Quadrupole moment
-    yyquad( node_leaf ) = q(p_leaf) * y(p_leaf)**2   
-    zzquad( node_leaf ) = q(p_leaf) * z(p_leaf)**2   
-    xyquad( node_leaf ) = q(p_leaf) * x(p_leaf) * y(p_leaf) 
-    yzquad( node_leaf ) = q(p_leaf) * y(p_leaf) * z(p_leaf)  
-    zxquad( node_leaf ) = q(p_leaf) * z(p_leaf) * x(p_leaf)   
+     xxquad( node_leaf ) = q(p_leaf) * x(p_leaf)**2   ! Quadrupole moment
+     yyquad( node_leaf ) = q(p_leaf) * y(p_leaf)**2   
+     zzquad( node_leaf ) = q(p_leaf) * z(p_leaf)**2   
+     xyquad( node_leaf ) = q(p_leaf) * x(p_leaf) * y(p_leaf) 
+     yzquad( node_leaf ) = q(p_leaf) * y(p_leaf) * z(p_leaf)  
+     zxquad( node_leaf ) = q(p_leaf) * z(p_leaf) * x(p_leaf)   
+  
+!  get true velocities from momenta
+     gamma = sqrt(1.0+ux(p_leaf)**2+uy(p_leaf)**2 + uz(p_leaf)**2)
+     vx = ux(p_leaf)/gamma
+     vy = uy(p_leaf)/gamma
+     vz = uz(p_leaf)/gamma
+     jx( node_leaf ) = vx * q(p_leaf)   ! Drift moment
+     jy( node_leaf ) = vy * q(p_leaf) 
+     jz( node_leaf ) = vz * q(p_leaf) 
 
-  !  Zero shift vector
-    xshift( node_leaf ) = 0.
-    yshift( node_leaf ) = 0.
-    zshift( node_leaf ) = 0.
+     magmx( node_leaf ) = 0.5*q(p_leaf) * ( y(p_leaf)*vz - z(p_leaf)*vy)  ! Magnetic dipole moment
+     magmy( node_leaf ) = 0.5*q(p_leaf) * ( z(p_leaf)*vx - x(p_leaf)*vz)  
+     magmz( node_leaf ) = 0.5*q(p_leaf) * ( x(p_leaf)*vy - y(p_leaf)*vx)  
+
+
+     !  Zero shift vector
+     xshift( node_leaf ) = 0.
+     yshift( node_leaf ) = 0.
+     zshift( node_leaf ) = 0.
   end do
 
 
@@ -197,6 +217,16 @@ subroutine tree_properties
           - zdip( node_child(1:nchild) )*ys(1:nchild) + charge( node_child(1:nchild) )*ys(1:nchild)*zs(1:nchild) )
      zxquad( node_twig(i) ) = SUM( zxquad( node_child(1:nchild) ) - zdip( node_child(1:nchild) )*xs(1:nchild) &
           - xdip( node_child(1:nchild) )*zs(1:nchild) + charge( node_child(1:nchild) )*zs(1:nchild)*xs(1:nchild) )
+
+     ! magnetic dipole moment
+     magmx( node_twig(i) ) = SUM( magmx( node_child(1:nchild) ) - 0.5*ys(1:nchild)*jz( node_child(1:nchild) )  - 0.5*zs(1:nchild)*jy( node_child(1:nchild) ))
+     magmy( node_twig(i) ) = SUM( magmy( node_child(1:nchild) ) - 0.5*zs(1:nchild)*jx( node_child(1:nchild) )  - 0.5*xs(1:nchild)*jz( node_child(1:nchild) ))
+     magmz( node_twig(i) ) = SUM( magmz( node_child(1:nchild) ) - 0.5*xs(1:nchild)*jy( node_child(1:nchild) )  - 0.5*ys(1:nchild)*jx( node_child(1:nchild) ))
+
+     jx( node_twig(i) ) = SUM( jx( node_child(1:nchild) ) )      ! Sum weighted drifts of child nodes
+     jy( node_twig(i) ) = SUM( jy( node_child(1:nchild) ) ) 
+     jz( node_twig(i) ) = SUM( jz( node_child(1:nchild) ) ) 
+
   end do
 
 
@@ -227,6 +257,12 @@ subroutine tree_properties
      local_moments(ibr+15) = xyquad( local_node(i) )
      local_moments(ibr+16) = yzquad( local_node(i) )
      local_moments(ibr+17) = zxquad( local_node(i) )
+     local_moments(ibr+18) = magmx( local_node(i) )
+     local_moments(ibr+19) = magmy( local_node(i) )
+     local_moments(ibr+20) = magmz( local_node(i) )
+     local_moments(ibr+21) = jx( local_node(i) )
+     local_moments(ibr+22) = jy( local_node(i) )
+     local_moments(ibr+23) = jz( local_node(i) )
   end do
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
@@ -268,6 +304,12 @@ subroutine tree_properties
         xyquad( node_b ) = branch_moments(ibr+15)  
         yzquad( node_b ) = branch_moments(ibr+16)  
         zxquad( node_b ) = branch_moments(ibr+17)  
+        magmx( node_b ) = branch_moments(ibr+18)  
+        magmy( node_b ) = branch_moments(ibr+19)  
+        magmz( node_b ) = branch_moments(ibr+20)  
+        jx( node_b ) = branch_moments(ibr+21)  
+        jy( node_b ) = branch_moments(ibr+22)  
+        jz( node_b ) = branch_moments(ibr+23)  
      endif
   end do
 
@@ -346,6 +388,14 @@ subroutine tree_properties
              - zdip( branch_node(i) )*yss + charge( branch_node(i) )*yss*zss
         zxquad( parent_node(i) ) = zxquad( parent_node(i) ) +  zxquad( branch_node(i) ) - zdip( branch_node(i) )*xss &
              - xdip( branch_node(i) )*zss + charge( branch_node(i) )*zss*xss
+
+        magmx( parent_node(i) ) = magmx( parent_node(i) ) + magmx( branch_node(i) ) - 0.5*yss*jz( branch_node(i) )  - 0.5*zss*jy( branch_node(i) ) 
+        magmy( parent_node(i) ) = magmy( parent_node(i) ) + magmy( branch_node(i) ) - 0.5*zss*jx( branch_node(i) )  - 0.5*xss*jz( branch_node(i) ) 
+        magmz( parent_node(i) ) = magmz( parent_node(i) ) + magmz( branch_node(i) ) - 0.5*xss*jy( branch_node(i) )  - 0.5*yss*jx( branch_node(i) ) 
+
+        jx( parent_node(i) ) = jx( parent_node(i) ) + jx( branch_node(i) )
+        jy( parent_node(i) ) = jy( parent_node(i) ) + jy( branch_node(i) )
+        jz( parent_node(i) ) = jz( parent_node(i) ) + jz( branch_node(i) )
      end do
 
 
@@ -353,15 +403,20 @@ subroutine tree_properties
   end do
 
   ! Rezero dipole and quadrupole sums of all local leaf nodes
-  xdip( 1:nleaf_pw ) = 0.
-  ydip( 1:nleaf_pw ) = 0.
-  zdip( 1:nleaf_pw ) = 0.
-  xxquad( 1:nleaf_pw ) = 0.
-  yyquad( 1:nleaf_pw ) = 0.
-  zzquad( 1:nleaf_pw ) = 0.
-  xyquad( 1:nleaf_pw ) = 0.
-  yzquad( 1:nleaf_pw ) = 0.
-  zxquad( 1:nleaf_pw ) = 0.
+  do i=1,nleaf_pw
+     xdip(i) = 0.
+     ydip(i) = 0.
+     zdip(i) = 0.
+     xxquad(i) = 0.
+     yyquad(i) = 0.
+     zzquad(i) = 0.
+     xyquad(i) = 0.
+     yzquad(i) = 0.
+     zxquad(i) = 0.
+     magmx(i) = 0.
+     magmy(i) = 0.
+     magmz(i) = 0.
+  end do
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 

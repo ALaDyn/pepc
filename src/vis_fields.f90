@@ -16,17 +16,22 @@ subroutine vis_fields
 
 
   real, dimension(ngx*ngy*ngz) :: qvis,mvis
+  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bzg
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max
   real :: box_max, az_em, ez_em, by_em, bx_em, phipond
   real :: epon_x, epon_y, epon_z, tpon, amp_las
   integer, parameter :: ngmax=100
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, iskip,itlas
   integer :: lvisit_active
-  integer :: npx, npy, npz
+  integer :: npx, npy, npz, ng
   integer :: iskip_x, iskip_y, iskip_z
 
   simtime = dt*(itime+itime_start)
   amp_las = vosc*min(1.,simtime/tpulse)
+
+  ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
+! Merge sums for Bz
+  call MPI_ALLREDUCE(bz_loc, bzg, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
   if (me==0 ) then
 
@@ -81,11 +86,12 @@ subroutine vis_fields
               end select laser
 
 !              qvis(lcount) = ez_em 
-              qvis(lcount) = rhoi(i,j,k)/omega**2   ! electron density /nc
+              mvis(lcount) = rhoi(i,j,k)/omega**2   ! electron density /nc
+              qvis(lcount) = 100*bzg(i,j,k)   ! Bz
            end do
         end do
      end do
-!     call flvisit_spk_check_connection(lvisit_active)
+     call flvisit_spk_check_connection(lvisit_active)
 !     call flvisit_spk_info_send(npart,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
         itlas=int(tlaser)
        
@@ -94,7 +100,8 @@ subroutine vis_fields
 !             ne,ni,npart,itlas)
 
 !     if (beam_config>=4) call flvisit_spk_3dfieldA_send(mvis,npx,npy,npz)  ! laser potential
-!     call flvisit_spk_3dfieldB_send(qvis,npx,npy,npz)  ! ion density
+      call flvisit_spk_3dfieldB_send(mvis,npx,npy,npz)  ! ion density 
+      call flvisit_spk_3dfieldA_send(qvis,npx,npy,npz)  ! ship selected field
   endif
 
 

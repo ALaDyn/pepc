@@ -51,7 +51,9 @@ subroutine setup_arrays
   ! array allocation
 
   allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
-       q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), work(nppm), &
+       q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), &
+       Ax(nppm), Ay(nppm), Az(nppm), Bx(nppm), By(nppm), Bz(nppm), work(nppm), &
+       Axo(nppm), Ayo(nppm), Azo(nppm), &
        pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
   allocate ( xslice(nppm), yslice(nppm), zslice(nppm), uxslice(nppm), uyslice(nppm), uzslice(nppm), & 
@@ -90,16 +92,18 @@ subroutine setup_arrays
        xshift(-maxtwig:maxleaf), yshift(-maxtwig:maxleaf), zshift(-maxtwig:maxleaf), &    ! shift vector
        xdip(-maxtwig:maxleaf), ydip(-maxtwig:maxleaf), zdip(-maxtwig:maxleaf), &          ! dipole moment
        xxquad(-maxtwig:maxleaf), yyquad(-maxtwig:maxleaf), zzquad(-maxtwig:maxleaf), &       ! quadrupole moment
-       xyquad(-maxtwig:maxleaf), yzquad(-maxtwig:maxleaf), zxquad(-maxtwig:maxleaf) )      !
+       xyquad(-maxtwig:maxleaf), yzquad(-maxtwig:maxleaf), zxquad(-maxtwig:maxleaf), &
+       jx(-maxtwig:maxleaf), jy(-maxtwig:maxleaf), jz(-maxtwig:maxleaf), &      ! current
+       magmx(-maxtwig:maxleaf), magmy(-maxtwig:maxleaf), magmz(-maxtwig:maxleaf) ) ! magnetic moment 
 
   allocate ( pack_child(size_tree), get_child(size_tree) )    ! Multipole shipping buffers
   allocate (rhoi(0:ngx+1,0:ngy+1,0:ngz+1),rhoe(0:ngx+1,0:ngy+1,0:ngz+1))  ! global field arrays
 
 ! local field arrays for cycle-averages
   allocate (rhoe_loc(0:ngx+1,0:ngy+1,0:ngz+1), rhoi_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
-      ex_loc(0:ngx+1,0:ngy+1,0:ngz+1), ey_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
-      ez_loc(0:ngx+1,0:ngy+1,0:ngz+1), jxe_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
-      jye_loc(0:ngx+1,0:ngy+1,0:ngz+1), jze_loc(0:ngx+1,0:ngy+1,0:ngz+1) )   
+      ex_loc(0:ngx+1,0:ngy+1,0:ngz+1), ey_loc(0:ngx+1,0:ngy+1,0:ngz+1),  ez_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
+      bx_loc(0:ngx+1,0:ngy+1,0:ngz+1), by_loc(0:ngx+1,0:ngy+1,0:ngz+1),  bz_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
+      jxe_loc(0:ngx+1,0:ngy+1,0:ngz+1), jye_loc(0:ngx+1,0:ngy+1,0:ngz+1), jze_loc(0:ngx+1,0:ngy+1,0:ngz+1) )   
 
 
   !  MPI stuff
@@ -114,14 +118,14 @@ subroutine setup_arrays
 
 
 
-  ! Create new contiguous datatype for shipping particle properties (12 arrays)
+  ! Create new contiguous datatype for shipping particle properties (15 arrays)
 
   blocklengths(1:nprops_particle) = 1   
 
 
-  types(1:9) = MPI_REAL8
-  types(10) = MPI_INTEGER8
-  types(11:12) = MPI_INTEGER
+  types(1:12) = MPI_REAL8
+  types(13) = MPI_INTEGER8
+  types(14:15) = MPI_INTEGER
 
   call MPI_ADDRESS( get_props%x, receive_base, ierr )  ! Base address for receive buffer
   call MPI_ADDRESS( ship_props%x, send_base, ierr )  ! Base address for send buffer
@@ -137,16 +141,19 @@ subroutine setup_arrays
   call MPI_ADDRESS( ship_props%q, address(7), ierr )
   call MPI_ADDRESS( ship_props%m, address(8), ierr )
   call MPI_ADDRESS( ship_props%work, address(9), ierr )
-  call MPI_ADDRESS( ship_props%key, address(10), ierr )
-  call MPI_ADDRESS( ship_props%label, address(11), ierr )
-  call MPI_ADDRESS( ship_props%pid, address(12), ierr )
+  call MPI_ADDRESS( ship_props%ax, address(10), ierr )
+  call MPI_ADDRESS( ship_props%ay, address(11), ierr )
+  call MPI_ADDRESS( ship_props%az, address(12), ierr )
+  call MPI_ADDRESS( ship_props%key, address(13), ierr )
+  call MPI_ADDRESS( ship_props%label, address(14), ierr )
+  call MPI_ADDRESS( ship_props%pid, address(15), ierr )
 
   displacements(1:nprops_particle) = address(1:nprops_particle) - send_base  !  Addresses relative to start of particle (receive) data
 
   call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_particle, ierr)
 
-  ! Create new contiguous datatype for shipping multipole properties (18 arrays)
+  ! Create new contiguous datatype for shipping multipole properties (24 arrays)
 
   blocklengths(1:nprops_multipole) = 1   
 
@@ -154,7 +161,7 @@ subroutine setup_arrays
   types(1) = MPI_INTEGER8
   types(2:3) = MPI_INTEGER
   types(4) = MPI_INTEGER8
-  types(5:18) = MPI_REAL8
+  types(5:24) = MPI_REAL8
 
   call MPI_ADDRESS( node_dummy%key, send_base, ierr )  ! Base address for send buffer
 
@@ -178,6 +185,12 @@ subroutine setup_arrays
   call MPI_ADDRESS( node_dummy%xyquad, address(16), ierr )
   call MPI_ADDRESS( node_dummy%yzquad, address(17), ierr )
   call MPI_ADDRESS( node_dummy%zxquad, address(18), ierr )
+  call MPI_ADDRESS( node_dummy%jx, address(19), ierr )
+  call MPI_ADDRESS( node_dummy%jy, address(20), ierr )
+  call MPI_ADDRESS( node_dummy%jz, address(21), ierr )
+  call MPI_ADDRESS( node_dummy%magmx, address(22), ierr )
+  call MPI_ADDRESS( node_dummy%magmy, address(23), ierr )
+  call MPI_ADDRESS( node_dummy%magmz, address(24), ierr )
 
   displacements(1:nprops_multipole) = address(1:nprops_multipole) - send_base   !  Addresses relative to start of particle (receive) data
 

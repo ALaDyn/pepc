@@ -25,7 +25,7 @@ subroutine velocities(p_start,p_finish,delta_t)
   integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
 
   integer p, i, ne_loc
-  real, dimension(nppm) :: uhx, uhy, uhz, ax, ay, az
+  real, dimension(nppm) :: uhx, uhy, uhz, accx, accy, accz
   real :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, Te0, Te_uncor, Ti0, Ti_uncor, chie, chii
   real :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm
   real :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_loc
@@ -39,9 +39,9 @@ subroutine velocities(p_start,p_finish,delta_t)
 
 ! Accelerations
   do i=1,npp
-     ax(i) = q(i)*ex(i)/m(i)
-     ay(i) = q(i)*ey(i)/m(i)
-     az(i) = q(i)*ez(i)/m(i)
+     accx(i) = q(i)*ex(i)/m(i)
+     accy(i) = q(i)*ey(i)/m(i)
+     accz(i) = q(i)*ez(i)/m(i)
   end do
 
   if (scheme == 2) then
@@ -65,9 +65,9 @@ subroutine velocities(p_start,p_finish,delta_t)
      sum_v2i=0.0
 
      do p=1,npp
-           uhx(p) = ux(p) + 0.5*delta_t*ax(p)
-           uhy(p) = uy(p) + 0.5*delta_t*ay(p)
-           uhz(p) = uz(p) + 0.5*delta_t*az(p)
+           uhx(p) = ux(p) + 0.5*delta_t*accx(p)
+           uhy(p) = uy(p) + 0.5*delta_t*accy(p)
+           uhz(p) = uz(p) + 0.5*delta_t*accz(p)
            gammah = sqrt(1.0 +uhx(p)**2 + uhy(p)**2 + uhz(p)**2) 
         if (pelabel(p)<=ne) then
            ! electrons
@@ -110,14 +110,14 @@ subroutine velocities(p_start,p_finish,delta_t)
 
      do p=1,npp
         if (pelabel(p)<=ne) then
-           ux(p) = (2*chie-1.)*ux(p) + chie*delta_t*ax(p)
-           uy(p) = (2*chie-1.)*uy(p) + chie*delta_t*ay(p)
-           uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*az(p)
+           ux(p) = (2*chie-1.)*ux(p) + chie*delta_t*accx(p)
+           uy(p) = (2*chie-1.)*uy(p) + chie*delta_t*accy(p)
+           uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*accz(p)
 
         elseif (pelabel(p)<=ne+ ni) then
-           ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*ax(p)
-           uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*ay(p)
-           uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*az(p)
+           ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*accx(p)
+           uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*accy(p)
+           uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*accz(p)
         endif
      end do
 
@@ -146,9 +146,9 @@ subroutine velocities(p_start,p_finish,delta_t)
         if (pelabel(p)<=ne) then
            ! electrons
            ne_loc = ne_loc + 1
-           uhx(p) = ux(p) + 0.5*delta_t*ax(p)
-           uhy(p) = uy(p) + 0.5*delta_t*ay(p)
-           uhz(p) = uz(p) + 0.5*delta_t*az(p)
+           uhx(p) = ux(p) + 0.5*delta_t*accx(p)
+           uhy(p) = uy(p) + 0.5*delta_t*accy(p)
+           uhz(p) = uz(p) + 0.5*delta_t*accz(p)
            gammah = sqrt(1.0 +uhx(p)**2 + uhy(p)**2 + uhz(p)**2) 
            sum_vxe  = sum_vxe  + uhx(p)/gammah
            sum_vye  = sum_vye  + uhy(p)/gammah
@@ -176,9 +176,9 @@ subroutine velocities(p_start,p_finish,delta_t)
 
      do p=1,npp
         if (pelabel(p)<=ne) then
-           ux(p) = (2*chie-1.)*ux(p) + chie*delta_t*ax(p)
-           uy(p) = (2*chie-1.)*uy(p) + chie*delta_t*ay(p)
-           uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*az(p)
+           ux(p) = (2*chie-1.)*ux(p) + chie*delta_t*accx(p)
+           uy(p) = (2*chie-1.)*uy(p) + chie*delta_t*accy(p)
+           uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*accz(p)
         endif
      end do
 
@@ -202,9 +202,9 @@ subroutine velocities(p_start,p_finish,delta_t)
         if (pelabel(p)<=ne) then
            ! electrons
            ne_loc = ne_loc+1  
-           uhx(p) = ux(p) + 0.5*delta_t*ax(p)
-           uhy(p) = uy(p) + 0.5*delta_t*ay(p)
-           uhz(p) = uz(p) + 0.5*delta_t*az(p)
+           uhx(p) = ux(p) + 0.5*delta_t*accx(p)
+           uhy(p) = uy(p) + 0.5*delta_t*accy(p)
+           uhz(p) = uz(p) + 0.5*delta_t*accz(p)
            gammah = sqrt(1.0 +uhx(p)**2 + uhy(p)**2 + uhz(p)**2) 
            sum_vxe  = sum_vxe  + uhx(p)/gammah
            sum_vye  = sum_vye  + uhy(p)/gammah
@@ -231,9 +231,9 @@ subroutine velocities(p_start,p_finish,delta_t)
 
      do p=1,npp
         if (pelabel(p)<=ne) then
-           ux(p) = (2*chie-1.)*ux(p) + chie*delta_t*ax(p)
-           uy(p) = (2*chie-1.)*uy(p) + chie*delta_t*ay(p)
-           uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*az(p)
+           ux(p) = (2*chie-1.)*ux(p) + chie*delta_t*accx(p)
+           uy(p) = (2*chie-1.)*uy(p) + chie*delta_t*accy(p)
+           uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*accz(p)
         endif
      end do
 
@@ -250,9 +250,9 @@ subroutine velocities(p_start,p_finish,delta_t)
      sum_v2i=0.0
 
      do p=1,npp
-           uhx(p) = ux(p) + 0.5*delta_t*ax(p)
-           uhy(p) = uy(p) + 0.5*delta_t*ay(p)
-           uhz(p) = uz(p) + 0.5*delta_t*az(p)
+           uhx(p) = ux(p) + 0.5*delta_t*accx(p)
+           uhy(p) = uy(p) + 0.5*delta_t*accy(p)
+           uhz(p) = uz(p) + 0.5*delta_t*accz(p)
 
         if (pelabel(p)>=ne) then
            ! ions
@@ -280,9 +280,9 @@ subroutine velocities(p_start,p_finish,delta_t)
 
         if (pelabel(p)>=ne) then
        ! make ions lighter for eqm phase
-           ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*mass_i/mass_eqm*ax(p)
-           uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*mass_i/mass_eqm*ay(p)
-           uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*mass_i/mass_eqm*az(p)
+           ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*mass_i/mass_eqm*accx(p)
+           uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*mass_i/mass_eqm*accy(p)
+           uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*mass_i/mass_eqm*accz(p)
         endif
      end do
      delta_Ti = 2*Ti0*(1.0/chii**2-1.0)       !  heating
@@ -295,9 +295,9 @@ subroutine velocities(p_start,p_finish,delta_t)
      ! unconstrained motion by default (scheme=1)
 
      do p = p_start, p_finish
-	ux(p) = ux(p) + delta_t * ax(p)
-	uy(p) = uy(p) + delta_t * ay(p)
-	uz(p) = uz(p) + delta_t * az(p)
+	ux(p) = ux(p) + delta_t * accx(p)
+	uy(p) = uy(p) + delta_t * accy(p)
+	uz(p) = uz(p) + delta_t * accz(p)
      end do
 
   endif
