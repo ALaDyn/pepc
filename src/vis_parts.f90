@@ -49,8 +49,8 @@ subroutine vis_parts
 
   if (me.eq.0) then
      call flvisit_spk_check_connection(lvisit_active)
-     call flvisit_spk_info_send(npart/nskip,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
-     call flvisit_spk_particles_send(simtime,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart/nskip)
+     call flvisit_spk_info_send(npart,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
+     call flvisit_spk_particles_send(simtime,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart)
      ! ship branch nodes to show domains
      do j=1,nbranch_sum
         ilev = log( 1.*branch_key(j) )/log(2.**idim)

@@ -236,6 +236,7 @@ module treevars
   integer :: initial_config = 4  ! Switch for initial configuration (positions, velocities)
   integer :: beam_config = 0 ! Switch for particle beam mode
   integer :: ensemble = 1 ! Canonical ensemble switch: 2= const. Te dynamics
+  integer :: particle_bcs = 1 ! Particle BC switch: 1=open, 2=reflective
    real :: dt             ! timestep
    real :: trun           ! total run time including restarts
    real :: convert_fs     ! conversion factor from wp^-1 to fs

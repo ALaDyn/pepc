@@ -135,7 +135,7 @@ subroutine randion
   m(nep+1:npp) = mass_i      ! ion mass
   pepid(1:npp) = me                ! processor ID
   pelabel(1:nep) = me*nep + (/ (i,i=1,nep) /)     ! Electron labels
-  pelabel(nep+1:npp) = ne + pelabel(1:nip)       ! Ion labels
+  pelabel(nep+1:npp) = ne + me*nip + (/ (i,i=1,nip) /)       ! Ion labels
 
 ! zero accelerations
   ax(1:npp) = 0

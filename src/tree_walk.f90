@@ -513,8 +513,8 @@ subroutine tree_walk(pshort,npshort)
         write (ipefile,*) 'Summary for traversal # ',ntraversals,' :'
         write (ipefile,*) ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass
         write (ipefile,*) ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops
-        write (ipefile,*) 'local children shipped: ',nchild_ship,', global max:',max_pack
-        write (ipefile,*) 'non-local children fetched: ',nplace,', global max:',max_nplace
+        write (ipefile,*) ' # local children shipped: ',nchild_ship,', global max:',max_pack
+        write (ipefile,*) ' # non-local children fetched: ',nplace,', global max:',max_nplace
         write (ipefile,*) 'array limit',npackm
      endif
      if (walk_debug) then

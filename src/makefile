@@ -22,7 +22,7 @@ HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
 #MPITRACE=/home/test/pospiech/tools/power4_trace/mpi_trace64.o
 MPITRACE=
-FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  -O3 -g -Q -qarch=pwr4 -qtune=pwr4 $(IPA) -I.
+FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  -O3 -g -Q -qarch=pwr4 -qtune=pwr4 -I.
 # $(PG) $(HPM)
 
 FFLAGS =  $(FFLAGS1) -qsclk=micro 
