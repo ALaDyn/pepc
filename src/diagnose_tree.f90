@@ -99,8 +99,8 @@ subroutine diagnose_tree
   owner_leaf(1:nleaf_me) = pack(htable%owner,mask=(htable%node>0 .and. htable%owner == me))   ! who owns leaf node
 
 
-  write (ipefile,'(/a/a/(3i5,2i10,2o15,z21,2f11.4,f6.2,f11.4))') 'Local leaves from hash-table:', &
-       '    i   owner  plab  i-leaf    lev         key    parent         pkey          x      y      q', &
+  write (ipefile,'(/a/3a5,2a10,2a15,a25,4a11/(3i5,2i10,2o15,o25,2f11.4,2f11.4))') 'Local leaves from hash-table:', &
+       'i','owner','plab','i-leaf','lev','key','parent','pkey','x','y','q','dip', &
        (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),node_level(ind_leaf(i)),key_leaf(i), &
         ishft( key_leaf(i),-idim ), &      ! parent
         pekey(ind_leaf(i)), &  ! particle key
