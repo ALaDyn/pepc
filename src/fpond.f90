@@ -31,7 +31,7 @@ subroutine fpond(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,epon
   if (t <= 2*tpulse) then 
     intensity = a02*max(0.,sin(pi*t/2./tpulse)**2) 
   else
-    Tpon = 0.
+    intensity = 0.
   endif
 
   rho0_up = rho_upper*omega**2   ! Effective density of shelf above xc normalised to rho0
