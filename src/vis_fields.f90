@@ -58,13 +58,13 @@ subroutine vis_fields
                  phipond=0
               end select laser_model
 
-              mvis(lcount) = 10*phipond/vosc**2  
+              mvis(lcount) = sqrt(abs(phipond))  
  !             qvis(lcount) = 10*phi_g(i,j,k)   ! potential
               exvis(lcount) = 10*ex_g(i,j,k)
               eyvis(lcount)  = 10*ey_g(i,j,k)
               ezvis(lcount)  = 10*ez_g(i,j,k)
               cvis(lcount) = -1.
-              qvis(lcount) = 10*(rhoi(i,j,k) + rhoe(i,j,k)) ! delta-n/n
+              qvis(lcount) = rhoi(i,j,k) + rhoe(i,j,k) ! delta-n/n
            end do
         end do
      end do
