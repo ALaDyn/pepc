@@ -13,7 +13,7 @@ subroutine vis_parts
   use treevars
   implicit none   
 
-  integer, parameter :: npart_visit_max = 50000  ! Max 250k data points for VIS
+  integer, parameter :: npart_visit_max = 100000  ! Max 250k data points for VIS
 
   real, dimension(npart_visit_max) :: xvis,yvis,zvis,vx,vy,vz,qvis,mvis
   integer, dimension(npart_visit_max) :: ppid, plabel
@@ -44,7 +44,7 @@ subroutine vis_parts
 
   do i=1,npp
      u2=0.5*0.511*mass_ratio*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
-    if (u2>uthresh .and. q(i)>0) then
+    if ((npart>100000 .and. (u2>uthresh .and. q(i)>0)) .or. (npart<100000 .and. mod(pelabel(i),nskip).eq.0)) then
         nship=nship+1
         nbufi=nbufi+1
 
