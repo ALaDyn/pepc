@@ -47,8 +47,8 @@ subroutine vis_fields
      end do
      call flvisit_spk_check_connection(lvisit_active)
      call flvisit_spk_info_send(npart,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
-     if (beam_config==4) call flvisit_spk_3dfieldB_send(mvis,npx,npy,npz)  ! laser potential
-     call flvisit_spk_3dfieldA_send(qvis,npx,npy,npz)  ! ion density
+!     if (beam_config==4) call flvisit_spk_3dfieldB_send(mvis,npx,npy,npz)  ! laser potential
+!     call flvisit_spk_3dfieldA_send(qvis,npx,npy,npz)  ! ion density
   endif
 
 

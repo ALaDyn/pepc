@@ -74,11 +74,6 @@ subroutine fpond(t,tpulse,sigma0,vosc,omega,x,y,z,epon_x,epon_y,epon_z,phipon)
   Epon_y = a02*Tpon*Xpon**2/gamma*yf*atten
   Epon_z = a02*Tpon*Xpon**2/gamma*zf*atten
 !  phipon = sqrt(1.+abs(phipon)/2.) ! 
-  Epon_y=0.
-  Epon_z=0.
+!  Epon_y=0.
+!  Epon_z=0.
 end subroutine fpond
-
-
-
-
-

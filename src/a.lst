@@ -1,4 +1,4 @@
-1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    07/03/2003 11:49:11   Page 1
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/18/2003 19:38:53   Page 1
 
                                      * * * * *   P r o l o g   * * * * *
 
@@ -7,80 +7,2050 @@
     Compiler options. . . . . . . : 
 
                               * * * * *   E n d   O f   P r o l o g   * * * * *
-1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    07/03/2003 11:49:11   Page 2
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/18/2003 19:38:53   Page 2
 
                             * * * * *   O b j e c t   F i l e   M a p   * * * * *
 
 *Origin  IPA  File ID  File Name
    P      Y        1   /lib/crt0_64.o
-   P      Y        2   /home/zam/zdv036/tree/spkvisit/liblvisit_spk.a
-   P      Y        3   /home/admin/beta/visit-2.0b/lvisit/lib/liblvisit.a
-   P      Y        4   /home/admin/beta/visit-2.0b/lib/libvisit.a
-   P      Y        5   treemp.o
-   P      Y        6   setup.o
-   P      Y        7   configure.o
-   P      Y        8   randion.o
-   P      Y        9   predef_parts.o
-   P      Y       10   maxwell1.o
-   P      Y       11   cold_start.o
-   P      Y       12   scramble_v.o
-   P      Y       13   reset_ions.o
-   P      Y       14   beam.o
-   P      Y       15   beam_control.o
-   P      Y       16   mc_config.o
-   P      Y       17   make_domains.o
-   P      Y       18   tree_build.o
-   P      Y       19   make_branches.o
-   P      Y       20   tree_fill.o
-   P      Y       21   tree_properties.o
-   P      Y       22   tree_walk.o
-   P      Y       23   energy_cons.o
-   P      Y       24   potenergy.o
-   P      Y       25   sumpot.o
-   P      Y       26   kinenergy.o
-   P      Y       27   forces.o
-   P      Y       28   forces_bal.o
-   P      Y       29   sum_force.o
-   P      Y       30   fpond.o
-   P      Y       31   velocities.o
-   P      Y       32   push.o
-   P      Y       33   constrain.o
-   P      Y       34   make_hashentry.o
-   P      Y       35   get_address.o
-   P      Y       36   get_node.o
-   P      Y       37   diagnostics.o
-   P      Y       38   diagnose_tree.o
-   P      Y       39   check_table.o
-   P      Y       40   draw_domains.o
-   P      Y       41   draw_tree2d.o
-   P      Y       42   draw_lists.o
-   P      Y       43   vis_parts.o
-   P      Y       44   vis_fields.o
-   P      Y       45   dump.o
-   P      Y       46   visit_dump.o
-   P      Y       47   open_files.o
-   P      Y       48   close_files.o
-   P      Y       49   densities.o
-   P      Y       50   track_nc.o
-   P      Y       51   my_mpidefs.o
-   P      Y       52   treevars.o
-   P      Y       53   utils.o
-   P      Y       54   /lib/liblapi_r.a
-   P      Y       55   /usr/lpp/ppe.poe/lib/libmpi_r.a
-   P      Y       56   /usr/lpp/ppe.poe/lib/libvtd_r.a
-   P      Y       57   /lib/threads/libxlf90.a
-   P      Y       58   /lib/libxlopt.a
-   P      Y       59   /lib/libxlf.a
-   P      Y       60   /lib/libxlomp_ser.a
-   P      Y       61   /lib/libpthreads.a
-   P      Y       62   /lib/libm_r.a
-   P      Y       63   /lib/libm.a
-   P      Y       64   /usr/lpp/ppe.poe/lib/libc_r.a
-   P      Y       65   /usr/lpp/ppe.poe/lib/threads/libc.a
-   P      Y       66   /usr/lpp/ppe.poe/lib/libc.a
+   P      Y        2   /home4/jzam04/jzam0401/visit/spkvisit/liblvisit_spk.a
+   P      Y        3   /home4/jzam04/jzam0401/visit/lib/liblvisit.a
+   P      Y        4   /home4/jzam04/jzam0401/visit/lib/libvisit.a
+   P      Y        5   /home/admin/beta/MP_profiler-1.0.0/LOCALlib/libmpiprof.a
+   P      Y        6   treemp.o
+   P      Y        7   setup.o
+   P      Y        8   configure.o
+   P      Y        9   randion.o
+   P      Y       10   predef_parts.o
+   P      Y       11   maxwell1.o
+   P      Y       12   cold_start.o
+   P      Y       13   scramble_v.o
+   P      Y       14   reset_ions.o
+   P      Y       15   add_electrons.o
+   P      Y       16   double_target.o
+   P      Y       17   beam.o
+   P      Y       18   beam_control.o
+   P      Y       19   mc_config.o
+   P      Y       20   make_domains.o
+   P      Y       21   tree_build.o
+   P      Y       22   make_branches.o
+   P      Y       23   tree_fill.o
+   P      Y       24   tree_properties.o
+   P      Y       25   tree_walk.o
+   P      Y       26   tree_prefetch.o
+   P      Y       27   energy_cons.o
+   P      Y       28   potenergy.o
+   P      Y       29   sumpot.o
+   P      Y       30   kinenergy.o
+   P      Y       31   forces.o
+   P      Y       32   forces_bal.o
+   P      Y       33   sum_force.o
+   P      Y       34   sum_lennardjones.o
+   P      Y       35   fpond.o
+   P      Y       36   velocities.o
+   P      Y       37   push.o
+   P      Y       38   constrain.o
+   P      Y       39   reinject.o
+   P      Y       40   earth_plate.o
+   P      Y       41   make_hashentry.o
+   P      Y       42   get_address.o
+   P      Y       43   get_node.o
+   P      Y       44   key_test.o
+   P      Y       45   get_next_node.o
+   P      Y       46   diagnostics.o
+   P      Y       47   diagnose_tree.o
+   P      Y       48   check_table.o
+   P      Y       49   draw_domains.o
+   P      Y       50   draw_tree2d.o
+   P      Y       51   draw_lists.o
+   P      Y       52   vis_parts.o
+   P      Y       53   vis_fields.o
+   P      Y       54   dump.o
+   P      Y       55   visit_dump.o
+   P      Y       56   open_files.o
+   P      Y       57   close_files.o
+   P      Y       58   densities.o
+   P      Y       59   slices.o
+   P      Y       60   track_nc.o
+   P      Y       61   my_mpidefs.o
+   P      Y       62   treevars.o
+   P      Y       63   utils.o
+   P      Y       64   /lib/liblapi_r.a
+   P      Y       65   /usr/lpp/ppe.poe/lib/libmpi_r.a
+   P      Y       66   /usr/lpp/ppe.poe/lib/libvtd_r.a
+   P      Y       67   /lib/threads/libxlf90.a
+   P      Y       68   /lib/libxlopt.a
+   P      Y       69   /lib/libxlf.a
+   P      Y       70   /lib/libxlomp_ser.a
+   P      Y       71   /lib/libpthreads.a
+   P      Y       72   /lib/libm_r.a
+   P      Y       73   /lib/libm.a
+   P      Y       74   /usr/lpp/ppe.poe/lib/libc_r.a
+   P      Y       75   /usr/lpp/ppe.poe/lib/threads/libc.a
+   P      Y       76   /usr/lpp/ppe.poe/lib/libc.a
 
 ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN=internal
          A=automatic call     U=Upcase automatic call   R=Rename card          L=C Library
 
                      * * * * *   E n d   O f   O b j e c t   F i l e   M a p   * * * * *
-1586-494 (U) INTERNAL COMPILER ERROR: Signal 11.
+1586-311 (I) External subprogram "key2node" not found.  Could not mark as "inline".
+1586-311 (I) External subprogram "ext_node" not found.  Could not mark as "inline".
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/18/2003 19:38:53   Page 3
+
+                              * * * * *   I n l i n e   R e p o r t    * * * * *
+
+                    IPA Inline Report (Summary)
+
+ Reason:    P : #pragma noinline was specified for this routine
+            F : #pragma inline was specified for this routine
+            A : Automatic inlining
+            C : Partition conflict
+            N : Not IPA Object
+            - : No reason
+ Action:    I : Routine is inlined at least once
+            L : Routine is initially too large to be inlined
+            T : Routine expands too large to be inlined
+            C : Candidate for inlining but not inlined
+            N : No direct calls to routine are found in file (no action)
+            U : Some calls not inlined due to recursion or parameter mismatch
+            - : No action
+ Status:    D : Internal routine is discarded
+            R : A direct call remains to internal routine (cannot discard)
+            A : Routine has its address taken (cannot discard)
+            E : External routine (cannot discard)
+            - : Status unchanged
+ Calls/I      : Number of calls to defined routines / Number inline
+ Called/I     : Number of times called / Number of times inlined
+
+ Reason  Action  Status   Size (init)    Calls/I   Called/I     Name
+
+    A      I       D      0 (144)          0         2/2        @63@sift_down
+    N      -       E      0                0         7/0        __dcbz
+    N      -       E      0                0         94/0       __free
+    N      -       E      0                0         176/0      __malloc
+    N      -       E      0                0         45/0       __memcpy
+    N      -       E      0                0         10/0       __memset
+    A      -       -      120              2/0       3/0        __utils_MOD_blankn
+    A      I       -      36               1/0       18/8       __utils_MOD_cput
+    A      I       D      0 (44)           0         4/4        __utils_MOD_genran
+    A      I       D      0 (392)          0         1/1        __utils_MOD_indsort_i
+    A      -       -      2988             2/0       1/0        __utils_MOD_nwaymrg
+    A      I       D      0 (192)          0         2/2        __utils_MOD_phase
+    A      -       -      228              1/0       2/0        __utils_MOD_psrsperm_i4
+    A      -       -      228              1/0       1/0        __utils_MOD_psrsperm_i8
+    A      -       -      228              1/0       9/0        __utils_MOD_psrsperm_r8
+    A      -       -      4124 (3732)      50/1      1/0        __utils_MOD_pswssort
+    A      -       -      1216 (1040)      38/4      34/0       __utils_MOD_rano
+    A      -       -      512 (204)        3/3       8/0        __utils_MOD_sort_i
+    A      I       D      0 (20)           0         1/1        __utils_MOD_swap_ab
+    N      -       E      0                0         206/0      _alloca
+    N      -       E      0                0         89/0       _concat
+    N      -       E      0                0         650/0      _dconcat
+    N      -       E      0                0         1/0        _qsqrt
+    N      -       E      0                0         5/0        _trap
+    N      -       E      0                0         1/0        _xldctime
+    N      -       E      0                0         342/0      _xlfBeginIO
+    N      -       E      0                0         341/0      _xlfEndIO
+    N      -       E      0                0         134/0      _xlfErrorExit
+    N      -       E      0                0         5/0        _xlfExit
+    N      -       E      0                0         53/0       _xlfIOCmd
+    N      -       E      0                0         2/0        _xlfPause
+    N      -       E      0                0         18/0       _xlfReadFmt
+    N      -       E      0                0         6/0        _xlfReadLDInt
+    N      -       E      0                0         36/0       _xlfReadLDReal
+    N      -       E      0                0         900/0      _xlfWriteFmt
+    N      -       E      0                0         9/0        _xlfWriteFmtArray
+    N      -       E      0                0         10/0       _xlfWriteLDArray
+    N      -       E      0                0         204/0      _xlfWriteLDChar
+    N      -       E      0                0         107/0      _xlfWriteLDInt
+    N      -       E      0                0         43/0       _xlfWriteLDReal
+    N      -       E      0                0         2/0        _xlisclkg
+    A      -       -      3436 (1896)      21/5      1/0        add_electrons
+    A      I       D      0 (620)          2/0       1/1        beam
+    A      -       -      2528             61/0      3/0        beam_control
+    A      -       -      2540             88/0      4/0        check_table
+    A      I       -      208              6/0       3/1        closefiles
+    A      I       D      0 (168)          0         3/3        cold_start
+    A      -       -      5344 (1140)      45/12     1/0        configure
+    A      -       -      1616 (1232)      2/2       1/0        constrain
+    A      -       -      1576             5/0       1/0        densities
+    A      -       -      13656 (6408)     171/6     1/0        diagnose_tree
+    A      I       -      504              12/0      2/1        diagnostics
+    A      -       -      1944             35/0      1/0        double_target
+    A      -       -      5764             132/0     1/0        draw_domains
+    A      -       -      5552 (4344)      111/1     1/0        draw_lists
+    A      -       -      6288             155/0     1/0        draw_tree2d
+    A      -       -      5264             199/0     3/0        dump
+    A      -       -      1596 (1072)      5/1       1/0        earth_plate
+    A      -       -      3540 (1856)      67/2      1/0        energy_cons
+    N      -       E      0                0         1/0        flvisit_spk_beam_param_recv
+    N      -       E      0                0         1/0        flvisit_spk_beam_paraminit_send
+    N      -       E      0                0         5/0        flvisit_spk_check_connection
+    N      -       E      0                0         1/0        flvisit_spk_close
+    N      -       E      0                0         1/0        flvisit_spk_domains_send
+    N      -       E      0                0         3/0        flvisit_spk_info_send
+    N      -       E      0                0         1/0        flvisit_spk_init
+    N      -       E      0                0         2/0        flvisit_spk_particles_send
+    A      -       -      7304 (6468)      86/5      1/0        forces
+    A      -       -      7252 (5932)      103/6     2/0        forces_bal
+    A      I       D      0 (692)          0         4/4        fpond
+    A      I       D      0 (1000)         31/1      46/46      key2addr
+    A      I       D      0 (116)          0         3/3        key_local
+    A      I       D      0 (784)          6/0       1/1        kinenergy
+    A      -       -      19848 (7100)     119/10    4/0        make_branches
+    A      -       -      10232            210/0     4/0        make_domains
+    A      I       D      0 (1876)         52/0      4/4        make_hashentry
+    A      I       D      0 (284)          0         9/9        maxwell1
+    A      -       -      5024 (3224)      93/2      1/0        mc_config
+    N      -       E      0                0         3/0        mpi_abort
+    N      -       E      0                0         33/0       mpi_address
+    N      -       E      0                0         4/0        mpi_allgather
+    N      -       E      0                0         5/0        mpi_allgatherv
+    N      -       E      0                0         26/0       mpi_allreduce
+    N      -       E      0                0         5/0        mpi_alltoall
+    N      -       E      0                0         8/0        mpi_alltoallv
+    N      -       E      0                0         18/0       mpi_barrier
+    N      -       E      0                0         18/0       mpi_bcast
+    N      -       E      0                0         1/0        mpi_comm_rank
+    N      -       E      0                0         1/0        mpi_comm_size
+    N      -       E      0                0         1/0        mpi_finalize
+    N      -       E      0                0         4/0        mpi_gather
+    N      -       E      0                0         9/0        mpi_gatherv
+    N      -       E      0                0         1/0        mpi_init
+    N      -       E      0                0         2/0        mpi_irecv
+    N      -       E      0                0         2/0        mpi_isend
+    N      -       E      0                0         3/0        mpi_recv
+    N      -       E      0                0         2/0        mpi_request_free
+    N      -       E      0                0         5/0        mpi_send
+    N      -       E      0                0         2/0        mpi_type_commit
+    N      -       E      0                0         2/0        mpi_type_struct
+    N      -       E      0                0         2/0        mpi_waitany
+    A      -       -      4904 (1280)      5/3       3/0        next_node
+    A      -       -      576              10/0      1/0        openfiles
+    A      I       D      0 (900)          20/0      3/3        potenergy
+    A      -       -      7428             214/0     1/0        predef_parts
+    A      -       -      276              0         1/0        push
+    A      -       -      2320             25/0      2/0        randion
+    A      I       D      0 (524)          4/0       1/1        reinject
+    A      I       D      0 (520)          10/0      3/3        scramble_v
+    A      -       -      25708            497/0     1/0        setup
+    A      -       -      4840 (4148)      55/1      1/0        slices
+    A      -       -      1324             0         2/0        sum_force
+    A      I       D      0 (484)          0         1/1        sum_lennardjones
+    A      -       -      2932             17/0      1/0        track_nc
+    A      -       -      10076 (8868)     142/1     4/0        tree_build
+    A      -       -      11812 (5104)     68/5      4/0        tree_fill
+    A      -       -      23164 (13692)    191/10    1/0        tree_prefetch
+    A      -       -      25956 (15084)    90/9      4/0        tree_properties
+    A      -       -      25056 (14724)    228/8     2/0        tree_walk
+    A      N       -      8576             306/0     0          treemp
+    A      -       -      5372             75/0      1/0        velocities
+    A      -       -      1344 (652)       5/1       1/0        vis_fields
+    A      -       -      2080             27/0      3/0        vis_parts
+ Mode = AUTO     Inlining Threshold =    1024    Expansion Limit =    8192
+
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/18/2003 19:38:53   Page 4
+
+                    IPA Inline Report (Call Structure)
+
+ Defined Subprogram    : treemp
+     Calls To(306,0)   : forces_bal(1,0)
+                         constrain(1,0)
+                         earth_plate(1,0)
+                         diagnostics(1,0)
+                         push(1,0)
+                         velocities(1,0)
+                         forces(1,0)
+                         tree_prefetch(1,0)
+                         tree_properties(1,0)
+                         tree_fill(1,0)
+                         make_branches(1,0)
+                         tree_build(1,0)
+                         make_domains(1,0)
+                         __utils_MOD_cput(10,0)
+                         dump(1,0)
+                         add_electrons(1,0)
+                         closefiles(1,0)
+                         configure(1,0)
+                         setup(1,0)
+                         openfiles(1,0)
+                         flvisit_spk_init(1,0)
+                         _xlfEndIO(38,0)
+                         _xlfWriteFmt(128,0)
+                         _dconcat(53,0)
+                         _xlfBeginIO(38,0)
+                         _xlfWriteLDInt(4,0)
+                         _xlfWriteLDChar(5,0)
+                         _xlfWriteLDReal(1,0)
+                         mpi_barrier(2,0)
+                         flvisit_spk_close(1,0)
+                         _trap(1,0)
+                         _xlfExit(1,0)
+                         mpi_finalize(1,0)
+                         mpi_comm_size(1,0)
+                         mpi_comm_rank(1,0)
+                         mpi_init(1,0)
+  Called From          : 0
+
+ Defined Subprogram    : mpi_init
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : mpi_comm_rank
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : mpi_comm_size
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : _concat
+     Calls To          : 0
+  Called From(89,0)    : draw_domains(12,0)
+                         draw_lists(6,0)
+                         draw_tree2d(7,0)
+                         diagnose_tree(1,0)
+                         slices(6,0)
+                         predef_parts(18,0)
+                         forces_bal(8,0)
+                         forces(8,0)
+                         tree_prefetch(9,0)
+                         __utils_MOD_pswssort(2,0)
+                         dump(9,0)
+                         openfiles(3,0)
+
+ Defined Subprogram    : __malloc
+     Calls To          : 0
+  Called From(176,0)   : vis_parts(4,0)
+                         draw_domains(7,0)
+                         draw_lists(4,0)
+                         draw_tree2d(8,0)
+                         diagnose_tree(3,0)
+                         tree_walk(10,0)
+                         next_node(1,0)
+                         double_target(17,0)
+                         tree_prefetch(10,0)
+                         tree_properties(13,0)
+                         tree_fill(8,0)
+                         make_branches(1,0)
+                         tree_build(8,0)
+                         make_domains(8,0)
+                         add_electrons(7,0)
+                         setup(67,0)
+
+ Defined Subprogram    : beam_control
+     Calls To(61,0)    : flvisit_spk_beam_paraminit_send(1,0)
+                         flvisit_spk_check_connection(2,0)
+                         flvisit_spk_beam_param_recv(1,0)
+                         _xlfEndIO(6,0)
+                         _xlfWriteLDChar(13,0)
+                         _dconcat(13,0)
+                         _xlfBeginIO(6,0)
+                         _xlfWriteLDInt(2,0)
+                         _xlfWriteLDReal(8,0)
+                         __utils_MOD_rano(2,0)
+                         mpi_bcast(6,0)
+                         mpi_barrier(1,0)
+  Called From(3,0)     : configure(2,0)
+                         diagnostics(1,0)
+
+ Defined Subprogram    : add_electrons
+     Calls To(21,5)    : scramble_v(1,1)
+                         maxwell1(3,3)
+                         cold_start(1,1)
+                         __utils_MOD_rano(3,0)
+                         __malloc(7,0)
+                         __free(6,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : mpi_finalize
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : _xlfExit
+     Calls To          : 0
+  Called From(5,0)     : key2addr(1,0)
+                         predef_parts(1,0)
+                         tree_build(1,0)
+                         __utils_MOD_rano(1,0)
+                         treemp(1,0)
+
+ Defined Subprogram    : _trap
+     Calls To          : 0
+  Called From(5,0)     : key2addr(1,0)
+                         predef_parts(1,0)
+                         tree_build(1,0)
+                         __utils_MOD_rano(1,0)
+                         treemp(1,0)
+
+ Defined Subprogram    : flvisit_spk_close
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : __free
+     Calls To          : 0
+  Called From(94,0)    : vis_parts(4,0)
+                         draw_domains(7,0)
+                         draw_lists(3,0)
+                         draw_tree2d(8,0)
+                         diagnose_tree(3,0)
+                         tree_walk(7,0)
+                         next_node(1,0)
+                         double_target(18,0)
+                         tree_prefetch(7,0)
+                         tree_properties(10,0)
+                         tree_fill(7,0)
+                         make_branches(1,0)
+                         tree_build(4,0)
+                         make_domains(8,0)
+                         add_electrons(6,0)
+
+ Defined Subprogram    : _xlfBeginIO
+     Calls To          : 0
+  Called From(342,0)   : potenergy(2,0)
+                         track_nc(2,0)
+                         draw_domains(13,0)
+                         draw_lists(17,0)
+                         draw_tree2d(17,0)
+                         diagnose_tree(10,0)
+                         slices(3,0)
+                         energy_cons(5,0)
+                         tree_walk(18,0)
+                         make_hashentry(5,0)
+                         check_table(12,0)
+                         key2addr(4,0)
+                         predef_parts(19,0)
+                         scramble_v(1,0)
+                         mc_config(9,0)
+                         beam_control(6,0)
+                         randion(2,0)
+                         forces_bal(10,0)
+                         velocities(6,0)
+                         forces(7,0)
+                         tree_prefetch(19,0)
+                         tree_properties(3,0)
+                         tree_fill(4,0)
+                         make_branches(8,0)
+                         tree_build(13,0)
+                         make_domains(19,0)
+                         __utils_MOD_pswssort(5,0)
+                         __utils_MOD_blankn(1,0)
+                         __utils_MOD_rano(5,0)
+                         dump(5,0)
+                         configure(3,0)
+                         setup(51,0)
+                         treemp(38,0)
+
+ Defined Subprogram    : _dconcat
+     Calls To          : 0
+  Called From(650,0)   : potenergy(4,0)
+                         track_nc(4,0)
+                         draw_domains(30,0)
+                         draw_lists(20,0)
+                         draw_tree2d(32,0)
+                         diagnose_tree(28,0)
+                         slices(12,0)
+                         energy_cons(16,0)
+                         tree_walk(35,0)
+                         make_hashentry(14,0)
+                         check_table(24,0)
+                         key2addr(6,0)
+                         predef_parts(40,0)
+                         scramble_v(2,0)
+                         mc_config(15,0)
+                         beam_control(13,0)
+                         randion(2,0)
+                         forces_bal(18,0)
+                         velocities(19,0)
+                         forces(13,0)
+                         tree_prefetch(26,0)
+                         tree_properties(5,0)
+                         tree_fill(9,0)
+                         make_branches(22,0)
+                         tree_build(26,0)
+                         make_domains(27,0)
+                         __utils_MOD_pswssort(9,0)
+                         __utils_MOD_rano(7,0)
+                         dump(59,0)
+                         configure(5,0)
+                         setup(53,0)
+                         openfiles(2,0)
+                         treemp(53,0)
+
+ Defined Subprogram    : _xlfWriteFmt
+     Calls To          : 0
+  Called From(900,0)   : potenergy(11,0)
+                         draw_domains(37,0)
+                         draw_lists(35,0)
+                         draw_tree2d(53,0)
+                         diagnose_tree(93,0)
+                         slices(20,0)
+                         energy_cons(39,0)
+                         tree_walk(35,0)
+                         make_hashentry(3,0)
+                         check_table(16,0)
+                         key2addr(9,0)
+                         predef_parts(6,0)
+                         mc_config(24,0)
+                         randion(4,0)
+                         forces_bal(17,0)
+                         forces(16,0)
+                         tree_prefetch(40,0)
+                         tree_properties(1,0)
+                         tree_fill(1,0)
+                         make_branches(37,0)
+                         tree_build(27,0)
+                         make_domains(54,0)
+                         __utils_MOD_pswssort(2,0)
+                         __utils_MOD_rano(2,0)
+                         dump(112,0)
+                         configure(8,0)
+                         setup(70,0)
+                         treemp(128,0)
+
+ Defined Subprogram    : _xlfEndIO
+     Calls To          : 0
+  Called From(341,0)   : potenergy(2,0)
+                         track_nc(2,0)
+                         draw_domains(13,0)
+                         draw_lists(17,0)
+                         draw_tree2d(17,0)
+                         diagnose_tree(10,0)
+                         slices(3,0)
+                         energy_cons(5,0)
+                         tree_walk(18,0)
+                         make_hashentry(5,0)
+                         check_table(12,0)
+                         key2addr(4,0)
+                         predef_parts(19,0)
+                         scramble_v(1,0)
+                         mc_config(9,0)
+                         beam_control(6,0)
+                         randion(2,0)
+                         forces_bal(10,0)
+                         velocities(6,0)
+                         forces(7,0)
+                         tree_prefetch(19,0)
+                         tree_properties(3,0)
+                         tree_fill(4,0)
+                         make_branches(8,0)
+                         tree_build(13,0)
+                         make_domains(18,0)
+                         __utils_MOD_pswssort(5,0)
+                         __utils_MOD_blankn(1,0)
+                         __utils_MOD_rano(5,0)
+                         dump(5,0)
+                         configure(3,0)
+                         setup(51,0)
+                         treemp(38,0)
+
+ Defined Subprogram    : mpi_barrier
+     Calls To          : 0
+  Called From(18,0)    : vis_parts(1,0)
+                         tree_walk(1,0)
+                         predef_parts(1,0)
+                         mc_config(1,0)
+                         beam_control(1,0)
+                         tree_properties(2,0)
+                         tree_fill(1,0)
+                         make_branches(2,0)
+                         tree_build(1,0)
+                         make_domains(4,0)
+                         dump(1,0)
+                         treemp(2,0)
+
+ Defined Subprogram    : tree_build
+     Calls To(142,1)   : key2addr(1,1)
+                         _xlfEndIO(13,0)
+                         _xlfWriteFmt(27,0)
+                         _dconcat(26,0)
+                         _xlfBeginIO(13,0)
+                         __memset(1,0)
+                         _xlfWriteLDChar(12,0)
+                         _xlfWriteLDInt(8,0)
+                         __malloc(8,0)
+                         __memcpy(4,0)
+                         __free(4,0)
+                         _xlfWriteLDArray(1,0)
+                         _trap(1,0)
+                         _xlfExit(1,0)
+                         mpi_abort(1,0)
+                         closefiles(1,0)
+                         _xlfWriteFmtArray(1,0)
+                         mpi_barrier(1,0)
+                         _alloca(18,0)
+  Called From(4,0)     : mc_config(2,0)
+                         treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : check_table
+     Calls To(88,0)    : _xlfEndIO(12,0)
+                         _xlfWriteLDChar(16,0)
+                         _dconcat(24,0)
+                         _xlfBeginIO(12,0)
+                         _xlfWriteLDInt(8,0)
+                         _xlfWriteFmt(16,0)
+  Called From(4,0)     : make_branches(2,0)
+                         tree_fill(2,0)
+
+ Defined Subprogram    : make_hashentry
+     Calls To(52,0)    : _xlfPause(2,0)
+                         _xlfEndIO(5,0)
+                         _xlfWriteLDInt(10,0)
+                         _xlfWriteLDChar(12,0)
+                         _dconcat(14,0)
+                         _xlfBeginIO(5,0)
+                         mpi_abort(1,0)
+                         _xlfWriteFmt(3,0)
+  Called From(4,4)     : tree_walk(1,1)
+                         make_branches(1,1)
+                         tree_fill(1,1)
+                         tree_prefetch(1,1)
+
+ Defined Subprogram    : key_local
+     Calls To          : 0
+  Called From(3,3)     : tree_prefetch(3,3)
+
+ Defined Subprogram    : tree_prefetch
+     Calls To(191,10)  : key_local(3,3)
+                         next_node(1,0)
+                         make_hashentry(1,1)
+                         key2addr(6,6)
+                         _xlfEndIO(19,0)
+                         _xlfWriteFmt(40,0)
+                         _dconcat(26,0)
+                         _xlfBeginIO(19,0)
+                         _xlfWriteLDInt(3,0)
+                         _xlfWriteLDChar(3,0)
+                         __utils_MOD_sort_i(3,0)
+                         __malloc(10,0)
+                         __memcpy(8,0)
+                         __free(7,0)
+                         _xlfWriteFmtArray(5,0)
+                         _concat(9,0)
+                         mpi_alltoallv(4,0)
+                         mpi_alltoall(3,0)
+                         _alloca(21,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : fpond
+     Calls To          : 0
+  Called From(4,4)     : vis_fields(1,1)
+                         slices(1,1)
+                         forces(1,1)
+                         forces_bal(1,1)
+
+ Defined Subprogram    : mpi_gather
+     Calls To          : 0
+  Called From(4,0)     : forces_bal(2,0)
+                         forces(2,0)
+
+ Defined Subprogram    : push
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : diagnostics
+     Calls To(12,0)    : vis_parts(1,0)
+                         vis_fields(1,0)
+                         densities(1,0)
+                         track_nc(1,0)
+                         draw_domains(1,0)
+                         draw_lists(1,0)
+                         draw_tree2d(1,0)
+                         diagnose_tree(1,0)
+                         slices(1,0)
+                         energy_cons(1,0)
+                         beam_control(1,0)
+                         dump(1,0)
+  Called From(2,1)     : treemp(1,0)
+                         configure(1,1)
+
+ Defined Subprogram    : _qsqrt
+     Calls To          : 0
+  Called From(1,0)     : reinject(1,0)
+
+ Defined Subprogram    : forces_bal
+     Calls To(103,6)   : sum_lennardjones(1,1)
+                         sum_force(1,0)
+                         tree_walk(1,0)
+                         fpond(1,1)
+                         __dcbz(1,0)
+                         __memset(1,0)
+                         _xlfEndIO(10,0)
+                         _xlfWriteLDChar(10,0)
+                         _dconcat(18,0)
+                         _xlfBeginIO(10,0)
+                         _xlfWriteLDInt(8,0)
+                         _xlfWriteLDArray(1,0)
+                         __utils_MOD_cput(4,4)
+                         _concat(8,0)
+                         _xlfWriteFmt(17,0)
+                         _xlfIOCmd(2,0)
+                         mpi_gather(2,0)
+                         mpi_allreduce(1,0)
+                         _alloca(6,0)
+  Called From(2,0)     : treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : potenergy
+     Calls To(20,0)    : _xlfEndIO(2,0)
+                         _xlfWriteFmt(11,0)
+                         _dconcat(4,0)
+                         _xlfBeginIO(2,0)
+                         mpi_allreduce(1,0)
+  Called From(3,3)     : mc_config(2,2)
+                         energy_cons(1,1)
+
+ Defined Subprogram    : _xlfWriteLDChar
+     Calls To          : 0
+  Called From(204,0)   : track_nc(4,0)
+                         tree_walk(19,0)
+                         make_hashentry(12,0)
+                         check_table(16,0)
+                         key2addr(2,0)
+                         predef_parts(18,0)
+                         scramble_v(2,0)
+                         mc_config(5,0)
+                         beam_control(13,0)
+                         randion(1,0)
+                         forces_bal(10,0)
+                         velocities(19,0)
+                         forces(6,0)
+                         tree_prefetch(3,0)
+                         tree_properties(4,0)
+                         tree_fill(6,0)
+                         make_branches(5,0)
+                         tree_build(12,0)
+                         make_domains(9,0)
+                         __utils_MOD_pswssort(6,0)
+                         __utils_MOD_rano(7,0)
+                         configure(1,0)
+                         setup(19,0)
+                         treemp(5,0)
+
+ Defined Subprogram    : _xlfWriteLDReal
+     Calls To          : 0
+  Called From(43,0)    : track_nc(4,0)
+                         predef_parts(2,0)
+                         mc_config(3,0)
+                         beam_control(8,0)
+                         velocities(19,0)
+                         __utils_MOD_pswssort(1,0)
+                         __utils_MOD_rano(3,0)
+                         setup(2,0)
+                         treemp(1,0)
+
+ Defined Subprogram    : _xlfWriteLDInt
+     Calls To          : 0
+  Called From(107,0)   : tree_walk(13,0)
+                         make_hashentry(10,0)
+                         check_table(8,0)
+                         key2addr(1,0)
+                         predef_parts(9,0)
+                         scramble_v(1,0)
+                         beam_control(2,0)
+                         forces_bal(8,0)
+                         forces(6,0)
+                         tree_prefetch(3,0)
+                         tree_properties(2,0)
+                         tree_fill(4,0)
+                         make_branches(5,0)
+                         tree_build(8,0)
+                         make_domains(6,0)
+                         __utils_MOD_pswssort(4,0)
+                         __utils_MOD_rano(3,0)
+                         setup(10,0)
+                         treemp(4,0)
+
+ Defined Subprogram    : flvisit_spk_init
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : openfiles
+     Calls To(10,0)    : _xlfIOCmd(5,0)
+                         _dconcat(2,0)
+                         _concat(3,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : _xlfIOCmd
+     Calls To          : 0
+  Called From(53,0)    : draw_domains(6,0)
+                         draw_lists(2,0)
+                         draw_tree2d(4,0)
+                         slices(4,0)
+                         key2addr(1,0)
+                         predef_parts(10,0)
+                         mc_config(2,0)
+                         forces_bal(2,0)
+                         forces(2,0)
+                         dump(8,0)
+                         closefiles(6,0)
+                         setup(1,0)
+                         openfiles(5,0)
+
+ Defined Subprogram    : setup
+     Calls To(497,0)   : _xlfEndIO(51,0)
+                         _xlfWriteFmt(70,0)
+                         _dconcat(53,0)
+                         _xlfBeginIO(51,0)
+                         _xlfWriteLDChar(19,0)
+                         _xlfWriteLDInt(10,0)
+                         _xlfWriteLDReal(2,0)
+                         _xlfErrorExit(134,0)
+                         __memset(2,0)
+                         mpi_type_commit(2,0)
+                         mpi_type_struct(2,0)
+                         mpi_address(33,0)
+                         __malloc(67,0)
+                         _xlfIOCmd(1,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : mpi_address
+     Calls To          : 0
+  Called From(33,0)    : setup(33,0)
+
+ Defined Subprogram    : mpi_type_struct
+     Calls To          : 0
+  Called From(2,0)     : setup(2,0)
+
+ Defined Subprogram    : mpi_type_commit
+     Calls To          : 0
+  Called From(2,0)     : setup(2,0)
+
+ Defined Subprogram    : _xlfErrorExit
+     Calls To          : 0
+  Called From(134,0)   : setup(134,0)
+
+ Defined Subprogram    : __memset
+     Calls To          : 0
+  Called From(10,0)    : tree_walk(5,0)
+                         forces_bal(1,0)
+                         forces(1,0)
+                         tree_build(1,0)
+                         setup(2,0)
+
+ Defined Subprogram    : configure
+     Calls To(45,12)   : predef_parts(1,0)
+                         scramble_v(2,2)
+                         maxwell1(6,6)
+                         cold_start(2,2)
+                         double_target(1,0)
+                         mc_config(1,0)
+                         beam(1,1)
+                         beam_control(2,0)
+                         randion(2,0)
+                         forces_bal(1,0)
+                         diagnostics(1,1)
+                         tree_properties(1,0)
+                         tree_fill(1,0)
+                         make_branches(1,0)
+                         tree_build(1,0)
+                         make_domains(1,0)
+                         _xlfEndIO(3,0)
+                         _xlfWriteLDChar(1,0)
+                         _dconcat(5,0)
+                         _xlfBeginIO(3,0)
+                         _xlfWriteFmt(8,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : flvisit_spk_check_connection
+     Calls To          : 0
+  Called From(5,0)     : vis_parts(2,0)
+                         vis_fields(1,0)
+                         beam_control(2,0)
+
+ Defined Subprogram    : mc_config
+     Calls To(93,2)    : potenergy(2,2)
+                         vis_parts(2,0)
+                         _xlfEndIO(9,0)
+                         _xlfWriteFmt(24,0)
+                         _xlfBeginIO(9,0)
+                         _xlfIOCmd(2,0)
+                         _xlfWriteLDReal(3,0)
+                         _xlfWriteLDChar(5,0)
+                         _dconcat(15,0)
+                         __utils_MOD_rano(6,0)
+                         _xlisclkg(2,0)
+                         tree_fill(2,0)
+                         make_branches(2,0)
+                         tree_build(2,0)
+                         make_domains(2,0)
+                         mpi_bcast(2,0)
+                         tree_properties(2,0)
+                         mpi_barrier(1,0)
+                         dump(1,0)
+  Called From(1,0)     : configure(1,0)
+
+ Defined Subprogram    : kinenergy
+     Calls To(6,0)     : mpi_allreduce(3,0)
+                         _alloca(3,0)
+  Called From(1,1)     : energy_cons(1,1)
+
+ Defined Subprogram    : cold_start
+     Calls To          : 0
+  Called From(3,3)     : configure(2,2)
+                         add_electrons(1,1)
+
+ Defined Subprogram    : maxwell1
+     Calls To          : 0
+  Called From(9,9)     : configure(6,6)
+                         add_electrons(3,3)
+
+ Defined Subprogram    : scramble_v
+     Calls To(10,0)    : __utils_MOD_rano(3,0)
+                         _xlfEndIO(1,0)
+                         _xlfWriteLDChar(2,0)
+                         _dconcat(2,0)
+                         _xlfWriteLDInt(1,0)
+                         _xlfBeginIO(1,0)
+  Called From(3,3)     : configure(2,2)
+                         add_electrons(1,1)
+
+ Defined Subprogram    : predef_parts
+     Calls To(214,0)   : _xlfEndIO(19,0)
+                         _xlfWriteLDChar(18,0)
+                         _dconcat(40,0)
+                         _xlfBeginIO(19,0)
+                         _xlfWriteLDInt(9,0)
+                         _trap(1,0)
+                         _xlfExit(1,0)
+                         _xlfWriteFmt(6,0)
+                         _xlfIOCmd(10,0)
+                         _xlfReadFmt(18,0)
+                         _xlfReadLDInt(6,0)
+                         _xlfReadLDReal(36,0)
+                         _concat(18,0)
+                         _xlfWriteLDReal(2,0)
+                         mpi_bcast(10,0)
+                         mpi_barrier(1,0)
+  Called From(1,0)     : configure(1,0)
+
+ Defined Subprogram    : _xlfReadFmt
+     Calls To          : 0
+  Called From(18,0)    : predef_parts(18,0)
+
+ Defined Subprogram    : closefiles
+     Calls To(6,0)     : _xlfIOCmd(6,0)
+  Called From(3,1)     : key2addr(1,1)
+                         tree_build(1,0)
+                         treemp(1,0)
+
+ Defined Subprogram    : __utils_MOD_cput
+     Calls To(1,0)     : _xldctime(1,0)
+  Called From(18,8)    : forces_bal(4,4)
+                         forces(4,4)
+                         treemp(10,0)
+
+ Defined Subprogram    : dump
+     Calls To(199,0)   : _xlfEndIO(5,0)
+                         _xlfWriteFmt(112,0)
+                         _dconcat(59,0)
+                         _xlfBeginIO(5,0)
+                         _xlfIOCmd(8,0)
+                         mpi_barrier(1,0)
+                         _concat(9,0)
+  Called From(3,0)     : mc_config(1,0)
+                         diagnostics(1,0)
+                         treemp(1,0)
+
+ Defined Subprogram    : __utils_MOD_phase
+     Calls To          : 0
+  Called From(2,2)     : constrain(2,2)
+
+ Defined Subprogram    : __utils_MOD_genran
+     Calls To          : 0
+  Called From(4,4)     : __utils_MOD_rano(4,4)
+
+ Defined Subprogram    : __utils_MOD_rano
+     Calls To(38,4)    : __utils_MOD_genran(4,4)
+                         _xlfWriteFmt(2,0)
+                         _trap(1,0)
+                         _xlfExit(1,0)
+                         _xlfEndIO(5,0)
+                         _xlfBeginIO(5,0)
+                         _xlfWriteLDReal(3,0)
+                         _xlfWriteLDChar(7,0)
+                         _dconcat(7,0)
+                         _xlfWriteLDInt(3,0)
+  Called From(34,0)    : reinject(3,0)
+                         scramble_v(3,0)
+                         mc_config(6,0)
+                         beam(2,0)
+                         beam_control(2,0)
+                         randion(11,0)
+                         earth_plate(4,0)
+                         add_electrons(3,0)
+
+ Defined Subprogram    : __utils_MOD_blankn
+     Calls To(2,0)     : _xlfEndIO(1,0)
+                         _xlfBeginIO(1,0)
+  Called From(3,0)     : make_domains(3,0)
+
+ Defined Subprogram    : __utils_MOD_swap_ab
+     Calls To          : 0
+  Called From(1,1)     : __utils_MOD_sort_i(1,1)
+
+ Defined Subprogram    : __utils_MOD_indsort_i
+     Calls To          : 0
+  Called From(1,1)     : __utils_MOD_pswssort(1,1)
+
+ Defined Subprogram    : __utils_MOD_sort_i
+     Calls To(3,3)     : @63@sift_down(2,2)
+                         __utils_MOD_swap_ab(1,1)
+  Called From(8,0)     : tree_prefetch(3,0)
+                         tree_properties(2,0)
+                         tree_fill(2,0)
+                         make_branches(1,0)
+
+ Defined Subprogram    : @63@sift_down
+     Calls To          : 0
+  Called From(2,2)     : __utils_MOD_sort_i(2,2)
+
+ Defined Subprogram    : __utils_MOD_nwaymrg
+     Calls To(2,0)     : __dcbz(2,0)
+  Called From(1,0)     : __utils_MOD_pswssort(1,0)
+
+ Defined Subprogram    : __utils_MOD_pswssort
+     Calls To(50,1)    : _xlfEndIO(5,0)
+                         _xlfWriteLDInt(4,0)
+                         _xlfWriteLDChar(6,0)
+                         _dconcat(9,0)
+                         _xlfBeginIO(5,0)
+                         _xlfWriteLDReal(1,0)
+                         _xlfWriteFmtArray(2,0)
+                         _xlfWriteFmt(2,0)
+                         mpi_allreduce(4,0)
+                         _concat(2,0)
+                         _xlfWriteLDArray(1,0)
+                         __dcbz(1,0)
+                         __memcpy(1,0)
+                         __utils_MOD_nwaymrg(1,0)
+                         mpi_alltoallv(1,0)
+                         mpi_alltoall(1,0)
+                         __utils_MOD_indsort_i(1,1)
+                         _alloca(3,0)
+  Called From(1,0)     : make_domains(1,0)
+
+ Defined Subprogram    : __utils_MOD_psrsperm_r8
+     Calls To(1,0)     : mpi_alltoallv(1,0)
+  Called From(9,0)     : make_domains(9,0)
+
+ Defined Subprogram    : __utils_MOD_psrsperm_i8
+     Calls To(1,0)     : mpi_alltoallv(1,0)
+  Called From(1,0)     : make_domains(1,0)
+
+ Defined Subprogram    : __utils_MOD_psrsperm_i4
+     Calls To(1,0)     : mpi_alltoallv(1,0)
+  Called From(2,0)     : make_domains(2,0)
+
+ Defined Subprogram    : _xldctime
+     Calls To          : 0
+  Called From(1,0)     : __utils_MOD_cput(1,0)
+
+ Defined Subprogram    : __dcbz
+     Calls To          : 0
+  Called From(7,0)     : forces_bal(1,0)
+                         forces(3,0)
+                         __utils_MOD_pswssort(1,0)
+                         __utils_MOD_nwaymrg(2,0)
+
+ Defined Subprogram    : _alloca
+     Calls To          : 0
+  Called From(206,0)   : kinenergy(3,0)
+                         vis_parts(1,0)
+                         vis_fields(2,0)
+                         densities(3,0)
+                         track_nc(1,0)
+                         draw_domains(7,0)
+                         draw_lists(5,0)
+                         draw_tree2d(9,0)
+                         diagnose_tree(14,0)
+                         slices(6,0)
+                         tree_walk(27,0)
+                         randion(3,0)
+                         forces_bal(6,0)
+                         velocities(3,0)
+                         forces(6,0)
+                         tree_prefetch(21,0)
+                         tree_properties(24,0)
+                         tree_fill(9,0)
+                         make_branches(11,0)
+                         tree_build(18,0)
+                         make_domains(24,0)
+                         __utils_MOD_pswssort(3,0)
+
+ Defined Subprogram    : mpi_allreduce
+     Calls To          : 0
+  Called From(26,0)    : kinenergy(3,0)
+                         potenergy(1,0)
+                         densities(2,0)
+                         tree_walk(4,0)
+                         forces_bal(1,0)
+                         velocities(3,0)
+                         forces(2,0)
+                         make_domains(6,0)
+                         __utils_MOD_pswssort(4,0)
+
+ Defined Subprogram    : mpi_alltoall
+     Calls To          : 0
+  Called From(5,0)     : tree_walk(1,0)
+                         tree_prefetch(3,0)
+                         __utils_MOD_pswssort(1,0)
+
+ Defined Subprogram    : mpi_alltoallv
+     Calls To          : 0
+  Called From(8,0)     : tree_prefetch(4,0)
+                         __utils_MOD_psrsperm_i4(1,0)
+                         __utils_MOD_psrsperm_i8(1,0)
+                         __utils_MOD_psrsperm_r8(1,0)
+                         __utils_MOD_pswssort(1,0)
+
+ Defined Subprogram    : __memcpy
+     Calls To          : 0
+  Called From(45,0)    : draw_lists(1,0)
+                         diagnose_tree(3,0)
+                         tree_walk(7,0)
+                         tree_prefetch(8,0)
+                         tree_properties(10,0)
+                         tree_fill(5,0)
+                         make_branches(1,0)
+                         tree_build(4,0)
+                         make_domains(5,0)
+                         __utils_MOD_pswssort(1,0)
+
+ Defined Subprogram    : _xlfWriteLDArray
+     Calls To          : 0
+  Called From(10,0)    : tree_walk(6,0)
+                         forces_bal(1,0)
+                         tree_properties(1,0)
+                         tree_build(1,0)
+                         __utils_MOD_pswssort(1,0)
+
+ Defined Subprogram    : _xlfWriteFmtArray
+     Calls To          : 0
+  Called From(9,0)     : tree_walk(1,0)
+                         tree_prefetch(5,0)
+                         tree_build(1,0)
+                         __utils_MOD_pswssort(2,0)
+
+ Defined Subprogram    : mpi_bcast
+     Calls To          : 0
+  Called From(18,0)    : predef_parts(10,0)
+                         mc_config(2,0)
+                         beam_control(6,0)
+
+ Defined Subprogram    : mpi_recv
+     Calls To          : 0
+  Called From(3,0)     : make_domains(3,0)
+
+ Defined Subprogram    : mpi_send
+     Calls To          : 0
+  Called From(5,0)     : tree_walk(2,0)
+                         make_domains(3,0)
+
+ Defined Subprogram    : make_domains
+     Calls To(210,0)   : __free(8,0)
+                         __malloc(8,0)
+                         _xlfWriteFmt(54,0)
+                         __utils_MOD_blankn(3,0)
+                         _xlfEndIO(18,0)
+                         _dconcat(27,0)
+                         _xlfBeginIO(19,0)
+                         _xlfWriteLDInt(6,0)
+                         _xlfWriteLDChar(9,0)
+                         __memcpy(5,0)
+                         mpi_send(3,0)
+                         mpi_recv(3,0)
+                         mpi_barrier(4,0)
+                         __utils_MOD_psrsperm_r8(9,0)
+                         __utils_MOD_psrsperm_i4(2,0)
+                         __utils_MOD_psrsperm_i8(1,0)
+                         __utils_MOD_pswssort(1,0)
+                         mpi_allreduce(6,0)
+                         _alloca(24,0)
+  Called From(4,0)     : mc_config(2,0)
+                         treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : mpi_abort
+     Calls To          : 0
+  Called From(3,0)     : make_hashentry(1,0)
+                         key2addr(1,0)
+                         tree_build(1,0)
+
+ Defined Subprogram    : make_branches
+     Calls To(119,10)  : make_hashentry(1,1)
+                         check_table(2,0)
+                         key2addr(9,9)
+                         _xlfEndIO(8,0)
+                         _xlfWriteFmt(37,0)
+                         _dconcat(22,0)
+                         _xlfBeginIO(8,0)
+                         __free(1,0)
+                         __malloc(1,0)
+                         __memcpy(1,0)
+                         __utils_MOD_sort_i(1,0)
+                         _xlfWriteLDInt(5,0)
+                         _xlfWriteLDChar(5,0)
+                         mpi_barrier(2,0)
+                         mpi_allgatherv(4,0)
+                         mpi_allgather(1,0)
+                         _alloca(11,0)
+  Called From(4,0)     : mc_config(2,0)
+                         treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : mpi_allgather
+     Calls To          : 0
+  Called From(4,0)     : vis_parts(1,0)
+                         tree_walk(2,0)
+                         make_branches(1,0)
+
+ Defined Subprogram    : mpi_allgatherv
+     Calls To          : 0
+  Called From(5,0)     : tree_properties(1,0)
+                         make_branches(4,0)
+
+ Defined Subprogram    : _xlfPause
+     Calls To          : 0
+  Called From(2,0)     : make_hashentry(2,0)
+
+ Defined Subprogram    : tree_fill
+     Calls To(68,5)    : next_node(1,0)
+                         make_hashentry(1,1)
+                         check_table(2,0)
+                         key2addr(4,4)
+                         _xlfEndIO(4,0)
+                         _xlfWriteFmt(1,0)
+                         _dconcat(9,0)
+                         _xlfBeginIO(4,0)
+                         __memcpy(5,0)
+                         __malloc(8,0)
+                         _xlfWriteLDChar(6,0)
+                         _xlfWriteLDInt(4,0)
+                         __free(7,0)
+                         __utils_MOD_sort_i(2,0)
+                         mpi_barrier(1,0)
+                         _alloca(9,0)
+  Called From(4,0)     : mc_config(2,0)
+                         treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : tree_properties
+     Calls To(90,9)    : key2addr(9,9)
+                         _xlfEndIO(3,0)
+                         _xlfWriteFmt(1,0)
+                         _dconcat(5,0)
+                         _xlfBeginIO(3,0)
+                         __memcpy(10,0)
+                         __free(10,0)
+                         __malloc(13,0)
+                         _xlfWriteLDChar(4,0)
+                         _xlfWriteLDInt(2,0)
+                         _xlfWriteLDArray(1,0)
+                         __utils_MOD_sort_i(2,0)
+                         mpi_barrier(2,0)
+                         mpi_allgatherv(1,0)
+                         _alloca(24,0)
+  Called From(4,0)     : mc_config(2,0)
+                         treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : forces
+     Calls To(86,5)    : sum_force(1,0)
+                         tree_walk(1,0)
+                         fpond(1,1)
+                         __dcbz(3,0)
+                         __memset(1,0)
+                         _xlfEndIO(7,0)
+                         _xlfWriteLDInt(6,0)
+                         _xlfWriteLDChar(6,0)
+                         _dconcat(13,0)
+                         _xlfBeginIO(7,0)
+                         __utils_MOD_cput(4,4)
+                         _concat(8,0)
+                         _xlfWriteFmt(16,0)
+                         _xlfIOCmd(2,0)
+                         mpi_gather(2,0)
+                         mpi_allreduce(2,0)
+                         _alloca(6,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : tree_walk
+     Calls To(228,8)   : _xlfEndIO(18,0)
+                         _xlfWriteFmt(35,0)
+                         _dconcat(35,0)
+                         _xlfBeginIO(18,0)
+                         __memset(5,0)
+                         key2addr(7,7)
+                         __malloc(10,0)
+                         __memcpy(7,0)
+                         __free(7,0)
+                         _xlfWriteLDArray(6,0)
+                         _xlfWriteLDChar(19,0)
+                         _xlfWriteLDInt(13,0)
+                         mpi_irecv(2,0)
+                         mpi_send(2,0)
+                         mpi_request_free(2,0)
+                         mpi_isend(2,0)
+                         _xlfWriteFmtArray(1,0)
+                         mpi_waitany(2,0)
+                         make_hashentry(1,1)
+                         mpi_allreduce(4,0)
+                         mpi_allgather(2,0)
+                         mpi_alltoall(1,0)
+                         mpi_barrier(1,0)
+                         next_node(1,0)
+                         _alloca(27,0)
+  Called From(2,0)     : forces(1,0)
+                         forces_bal(1,0)
+
+ Defined Subprogram    : mpi_waitany
+     Calls To          : 0
+  Called From(2,0)     : tree_walk(2,0)
+
+ Defined Subprogram    : energy_cons
+     Calls To(67,2)    : kinenergy(1,1)
+                         potenergy(1,1)
+                         _xlfEndIO(5,0)
+                         _xlfWriteFmt(39,0)
+                         _xlfBeginIO(5,0)
+                         _dconcat(16,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : velocities
+     Calls To(75,0)    : _xlfEndIO(6,0)
+                         _xlfWriteLDReal(19,0)
+                         _xlfWriteLDChar(19,0)
+                         _dconcat(19,0)
+                         _xlfBeginIO(6,0)
+                         mpi_allreduce(3,0)
+                         _alloca(3,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : diagnose_tree
+     Calls To(171,6)   : _dconcat(28,0)
+                         _xlfEndIO(10,0)
+                         _xlfWriteFmt(93,0)
+                         _xlfBeginIO(10,0)
+                         key2addr(6,6)
+                         __memcpy(3,0)
+                         __free(3,0)
+                         __malloc(3,0)
+                         _concat(1,0)
+                         _alloca(14,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : draw_tree2d
+     Calls To(155,0)   : _xlfEndIO(17,0)
+                         _xlfWriteFmt(53,0)
+                         _dconcat(32,0)
+                         _xlfBeginIO(17,0)
+                         _concat(7,0)
+                         _xlfIOCmd(4,0)
+                         __free(8,0)
+                         __malloc(8,0)
+                         _alloca(9,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : draw_lists
+     Calls To(111,1)   : key2addr(1,1)
+                         __malloc(4,0)
+                         __memcpy(1,0)
+                         _xlfEndIO(17,0)
+                         _xlfWriteFmt(35,0)
+                         _dconcat(20,0)
+                         _xlfBeginIO(17,0)
+                         __free(3,0)
+                         _xlfIOCmd(2,0)
+                         _concat(6,0)
+                         _alloca(5,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : draw_domains
+     Calls To(132,0)   : _xlfEndIO(13,0)
+                         _xlfWriteFmt(37,0)
+                         _dconcat(30,0)
+                         _xlfBeginIO(13,0)
+                         _concat(12,0)
+                         _xlfIOCmd(6,0)
+                         __free(7,0)
+                         __malloc(7,0)
+                         _alloca(7,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : track_nc
+     Calls To(17,0)    : _xlfEndIO(2,0)
+                         _xlfWriteLDReal(4,0)
+                         _xlfWriteLDChar(4,0)
+                         _dconcat(4,0)
+                         _xlfBeginIO(2,0)
+                         _alloca(1,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : densities
+     Calls To(5,0)     : mpi_allreduce(2,0)
+                         _alloca(3,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : vis_fields
+     Calls To(5,1)     : fpond(1,1)
+                         flvisit_spk_info_send(1,0)
+                         flvisit_spk_check_connection(1,0)
+                         _alloca(2,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : flvisit_spk_info_send
+     Calls To          : 0
+  Called From(3,0)     : vis_parts(2,0)
+                         vis_fields(1,0)
+
+ Defined Subprogram    : flvisit_spk_domains_send
+     Calls To          : 0
+  Called From(1,0)     : vis_parts(1,0)
+
+ Defined Subprogram    : earth_plate
+     Calls To(5,1)     : reinject(1,1)
+                         __utils_MOD_rano(4,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : constrain
+     Calls To(2,2)     : __utils_MOD_phase(2,2)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : randion
+     Calls To(25,0)    : _xlfEndIO(2,0)
+                         _xlfWriteLDChar(1,0)
+                         _dconcat(2,0)
+                         _xlfBeginIO(2,0)
+                         __utils_MOD_rano(11,0)
+                         _xlfWriteFmt(4,0)
+                         _alloca(3,0)
+  Called From(2,0)     : configure(2,0)
+
+ Defined Subprogram    : flvisit_spk_beam_param_recv
+     Calls To          : 0
+  Called From(1,0)     : beam_control(1,0)
+
+ Defined Subprogram    : flvisit_spk_beam_paraminit_send
+     Calls To          : 0
+  Called From(1,0)     : beam_control(1,0)
+
+ Defined Subprogram    : beam
+     Calls To(2,0)     : __utils_MOD_rano(2,0)
+  Called From(1,1)     : configure(1,1)
+
+ Defined Subprogram    : _xlisclkg
+     Calls To          : 0
+  Called From(2,0)     : mc_config(2,0)
+
+ Defined Subprogram    : double_target
+     Calls To(35,0)    : __free(18,0)
+                         __malloc(17,0)
+  Called From(1,0)     : configure(1,0)
+
+ Defined Subprogram    : _xlfReadLDReal
+     Calls To          : 0
+  Called From(36,0)    : predef_parts(36,0)
+
+ Defined Subprogram    : _xlfReadLDInt
+     Calls To          : 0
+  Called From(6,0)     : predef_parts(6,0)
+
+ Defined Subprogram    : key2addr
+     Calls To(31,1)    : _xlfEndIO(4,0)
+                         _xlfWriteFmt(9,0)
+                         _xlfBeginIO(4,0)
+                         _trap(1,0)
+                         _xlfExit(1,0)
+                         mpi_abort(1,0)
+                         closefiles(1,1)
+                         _xlfIOCmd(1,0)
+                         _xlfWriteLDChar(2,0)
+                         _dconcat(6,0)
+                         _xlfWriteLDInt(1,0)
+  Called From(46,46)   : draw_lists(1,1)
+                         diagnose_tree(6,6)
+                         tree_walk(7,7)
+                         next_node(3,3)
+                         tree_build(1,1)
+                         make_branches(9,9)
+                         tree_fill(4,4)
+                         tree_properties(9,9)
+                         tree_prefetch(6,6)
+
+ Defined Subprogram    : next_node
+     Calls To(5,3)     : __free(1,0)
+                         __malloc(1,0)
+                         key2addr(3,3)
+  Called From(3,0)     : tree_walk(1,0)
+                         tree_fill(1,0)
+                         tree_prefetch(1,0)
+
+ Defined Subprogram    : mpi_isend
+     Calls To          : 0
+  Called From(2,0)     : tree_walk(2,0)
+
+ Defined Subprogram    : mpi_request_free
+     Calls To          : 0
+  Called From(2,0)     : tree_walk(2,0)
+
+ Defined Subprogram    : mpi_irecv
+     Calls To          : 0
+  Called From(2,0)     : tree_walk(2,0)
+
+ Defined Subprogram    : sum_force
+     Calls To          : 0
+  Called From(2,0)     : forces(1,0)
+                         forces_bal(1,0)
+
+ Defined Subprogram    : slices
+     Calls To(55,1)    : _xlfEndIO(3,0)
+                         _xlfWriteFmt(20,0)
+                         _xlfBeginIO(3,0)
+                         fpond(1,1)
+                         _xlfIOCmd(4,0)
+                         _dconcat(12,0)
+                         _concat(6,0)
+                         _alloca(6,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : vis_parts
+     Calls To(27,0)    : flvisit_spk_info_send(2,0)
+                         flvisit_spk_check_connection(2,0)
+                         flvisit_spk_particles_send(2,0)
+                         mpi_gatherv(9,0)
+                         __free(4,0)
+                         __malloc(4,0)
+                         mpi_allgather(1,0)
+                         flvisit_spk_domains_send(1,0)
+                         mpi_barrier(1,0)
+                         _alloca(1,0)
+  Called From(3,0)     : diagnostics(1,0)
+                         mc_config(2,0)
+
+ Defined Subprogram    : flvisit_spk_particles_send
+     Calls To          : 0
+  Called From(2,0)     : vis_parts(2,0)
+
+ Defined Subprogram    : mpi_gatherv
+     Calls To          : 0
+  Called From(9,0)     : vis_parts(9,0)
+
+ Defined Subprogram    : reinject
+     Calls To(4,0)     : __utils_MOD_rano(3,0)
+                         _qsqrt(1,0)
+  Called From(1,1)     : earth_plate(1,1)
+
+ Defined Subprogram    : sum_lennardjones
+     Calls To          : 0
+  Called From(1,1)     : forces_bal(1,1)
+
+
+                       * * * * *   E n d   O f   I n l i n e   R e p o r t   * * * * *
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/18/2003 19:38:53   Page 5
+
+                         * * * * *   G l o b a l   S y m b o l s   M a p   * * * * *
+
+   Definition            Output
+    File:Line      ESD Name    Offset      Input name
+      14:-           @COAL0         0      &&@my_mpidefs
+      45:-           @COAL0        80      &&treevars
+      14:-           @COAL0      3616      &&@treevars
+      44:-           @COAL0      4928      &&my_mpidefs
+       1:-           @COAL0      5520      @32@|101
+       1:-           @COAL0      5560      @32@|102
+       3:-           @COAL0      5600      @31@|101
+       3:-           @COAL0      5640      @31@|102
+      30:-           @COAL0      5680      @51@colors
+      51:-           @COAL0      5752      @50@colors
+      42:-           @COAL0      5824      @7@configs
+      42:-           @COAL0      5904      @7@beam_configs
+      42:-           @COAL0      5976      @7@ensembles
+      13:-           @COAL0      6012      @49@colors
+       9:-           @COAL1         0      @63@|100
+       9:-           @COAL1        40      @63@v
+
+                  * * * * *   E n d   O f   G l o b a l   S y m b o l s   M a p   * * * * *
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 0                    10/18/2003 19:38:53   Page 6
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 0
+
+Partition Description:
+   Initialization data partition
+
+Compiler Options for Partition 0:
+
+
+Symbols in Partition 0:
+
+ *Type     File ID    Symbol
+    D           9     @63@d2p31m
+    D           9     @63@d2p31
+    D          10     @40@iseed1
+    D          10     @40@iseed2
+    D          47     @18@beam_on
+    D          47     @18@beam_debug
+    D           6     @35@pi
+    D          31     @47@isnap
+    D          11     @39@idum
+    D          11     @39@isamp
+    D          20     @8@idummy
+    D          43     @54@icall
+    D          43     @54@idummy
+    D           9     @63@iff
+    D           9     @63@dseed
+    D           9     @63@j
+    D           9     @63@dum
+    D           9     @63@y
+    D           9     @63@icall
+    D           9     @63@i
+    D           9     @63@debug
+    D          19     @20@boundary_debug
+    D          19     @20@key_debug
+    D          38     @21@build_debug
+    D          47     @18@np_beam_dt
+    D          28     @25@walk_summary
+    D          28     @25@sum_nhops
+    D          28     @25@sum_inner_pass
+    D          28     @25@sum_nhops_old
+    D          28     @25@emulate_blocking
+    D          28     @25@sum_inner_old
+    D           7     @59@idummy
+    D          30     @51@write_keys
+    D          11     @39@usamp
+    D          11     @39@i2
+    D          11     @39@theta
+    D          34     @28@pot_debug
+    D           -     @COAL0
+    D           -     @COAL1
+    F           1     forces_bal
+    F          52     track_nc
+    F           3     forces
+    F          17     tree_prefetch
+    F           9     __utils_MOD_sort_i
+    F          36     tree_fill
+    F          48     double_target
+
+  Type:  F=function     D=data
+
+Source Files for Partition 0:
+
+ *Origin     File ID     Source File Name
+     P            1      forces_bal.f90
+     P            2      sum_lennardjones.f90
+     P            3      forces.f90
+     P            4      sum_force.f90
+     P            6      fpond.f90
+     P            7      slices.f90
+     P            9      utils.f90
+     P           10      earth_plate.f90
+     P           11      reinject.f90
+     P           14      treemp.f90
+     P           17      tree_prefetch.f90
+     P           18      key_test.f90
+     P           19      make_domains.f90
+     P           20      configure.f90
+     P           25      close_files.f90
+     P           26      get_address.f90
+     P           27      get_next_node.f90
+     P           28      tree_walk.f90
+     P           29      make_hashentry.f90
+     P           30      draw_lists.f90
+     P           31      diagnose_tree.f90
+     P           34      potenergy.f90
+     P           36      tree_fill.f90
+     P           38      tree_build.f90
+     P           43      dump.f90
+     P           47      beam_control.f90
+     P           48      double_target.f90
+     P           52      track_nc.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 1                    10/18/2003 19:38:53   Page 7
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 1 of 5
+
+Partition Size:
+   Actual: 1032708
+    Limit: 1048576
+
+Partition Description:
+   Primary partition
+
+Compiler Options for Partition 1:
+
+
+Symbols in Partition 1:
+
+ *Type     File ID    Symbol
+    F           8     constrain
+    F          13     draw_domains
+    F          51     draw_tree2d
+    F          31     diagnose_tree
+    F          15     push
+    F          16     velocities
+    F          38     tree_build
+    F          25     closefiles
+    F          19     make_domains
+    F           9     __utils_MOD_cput
+    F          49     predef_parts
+    F          42     setup
+    F          41     openfiles
+
+  Type:  F=function     D=data
+
+Source Files for Partition 1:
+
+ *Origin     File ID     Source File Name
+     P            8      constrain.f90
+     P            9      utils.f90
+     P           13      draw_domains.f90
+     P           15      push.f90
+     P           16      velocities.f90
+     P           19      make_domains.f90
+     P           25      close_files.f90
+     P           26      get_address.f90
+     P           31      diagnose_tree.f90
+     P           38      tree_build.f90
+     P           41      open_files.f90
+     P           42      setup.f90
+     P           49      predef_parts.f90
+     P           51      draw_tree2d.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 2                    10/18/2003 19:38:53   Page 8
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 2 of 5
+
+Partition Size:
+   Actual: 1029768
+    Limit: 1048576
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 2:
+
+
+Symbols in Partition 2:
+
+ *Type     File ID    Symbol
+    F          10     earth_plate
+    F          12     diagnostics
+    F          43     dump
+    F          35     tree_properties
+    F          50     check_table
+    F          37     make_branches
+    F          22     add_electrons
+    F          20     configure
+
+  Type:  F=function     D=data
+
+Source Files for Partition 2:
+
+ *Origin     File ID     Source File Name
+     P            5      vis_fields.f90
+     P            6      fpond.f90
+     P            7      slices.f90
+     P            9      utils.f90
+     P           10      earth_plate.f90
+     P           11      reinject.f90
+     P           12      diagnostics.f90
+     P           20      configure.f90
+     P           21      scramble_v.f90
+     P           22      add_electrons.f90
+     P           23      maxwell1.f90
+     P           24      cold_start.f90
+     P           25      close_files.f90
+     P           26      get_address.f90
+     P           29      make_hashentry.f90
+     P           30      draw_lists.f90
+     P           32      kinenergy.f90
+     P           33      energy_cons.f90
+     P           34      potenergy.f90
+     P           35      tree_properties.f90
+     P           37      make_branches.f90
+     P           39      mc_config.f90
+     P           40      beam.f90
+     P           43      dump.f90
+     P           46      randion.f90
+     P           47      beam_control.f90
+     P           50      check_table.f90
+     P           54      vis_parts.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 3                    10/18/2003 19:38:53   Page 9
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 3 of 5
+
+Partition Size:
+   Actual: 94104
+    Limit: 1048576
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 3:
+
+
+Symbols in Partition 3:
+
+ *Type     File ID    Symbol
+    F          53     densities
+
+  Type:  F=function     D=data
+
+Source Files for Partition 3:
+
+ *Origin     File ID     Source File Name
+     P           53      densities.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/18/2003 19:38:53   Page 10
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 4 of 5
+
+Partition Size:
+   Actual: 74712
+    Limit: 1048576
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 4:
+
+
+Symbols in Partition 4:
+
+ *Type     File ID    Symbol
+    F          14     treemp
+
+  Type:  F=function     D=data
+
+Source Files for Partition 4:
+
+ *Origin     File ID     Source File Name
+     P           14      treemp.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/18/2003 19:38:53   Page 11
+
+                            * * * * *   S o u r c e   F i l e   M a p   * * * * *
+
+            Object      Source
+ *Origin   File ID     File ID     Source File Name
+     P         32           1      forces_bal.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:40 
+     P         34           2      sum_lennardjones.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:41 
+     P         31           3      forces.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:39 
+     P         33           4      sum_force.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:41 
+     P         53           5      vis_fields.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:55:03 
+     P         35           6      fpond.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:42 
+     P         59           7      slices.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:55 
+     P         38           8      constrain.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:43 
+     P         63           9      utils.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:01 
+     P         40          10      earth_plate.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:44 
+     P         39          11      reinject.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:44 
+     P         46          12      diagnostics.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:46 
+     P         49          13      draw_domains.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:47 
+     P          6          14      treemp.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:03 
+     P         37          15      push.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:43 
+     P         36          16      velocities.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:42 
+     P         26          17      tree_prefetch.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:34 
+     P         44          18      key_test.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:45 
+     P         20          19      make_domains.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:17 
+     P          8          20      configure.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:12 
+     P         13          21      scramble_v.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:14 
+     P         15          22      add_electrons.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:15 
+     P         11          23      maxwell1.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:13 
+     P         12          24      cold_start.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:14 
+     P         57          25      close_files.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:53 
+     P         42          26      get_address.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:45 
+     P         45          27      get_next_node.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:45 
+     P         25          28      tree_walk.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:30 
+     P         41          29      make_hashentry.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:44 
+     P         51          30      draw_lists.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:50 
+     P         47          31      diagnose_tree.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:46 
+     P         30          32      kinenergy.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:38 
+     P         27          33      energy_cons.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:37 
+     P         28          34      potenergy.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:38 
+     P         24          35      tree_properties.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:23 
+     P         23          36      tree_fill.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:22 
+     P         22          37      make_branches.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:21 
+     P         21          38      tree_build.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:19 
+     P         19          39      mc_config.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:17 
+     P         17          40      beam.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:16 
+     P         56          41      open_files.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:53 
+     P          7          42      setup.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 19:38:45 
+     P         54          43      dump.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 19:34:14 
+     P         61          44      my_mpidefs.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:00 
+     P         62          45      treevars.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:01 
+     P          9          46      randion.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:12 
+     P         18          47      beam_control.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:16 
+     P         16          48      double_target.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:15 
+     P         10          49      predef_parts.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:13 
+     P         48          50      check_table.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:47 
+     P         50          51      draw_tree2d.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:48 
+     P         60          52      track_nc.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:55 
+     P         58          53      densities.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:53 
+     P         52          54      vis_parts.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/18/2003 12:51:50 
+
+ Origin:  P=primary input     PI=primary Include
+
+                     * * * * *   E n d   O f   S o u r c e   F i l e   M a p   * * * * *
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/18/2003 19:38:53   Page 12
+
+                                   * * * * *   M e s s a g e s   * * * * *
+
+ Message Code   Page   Message Text
+
+                            Informational
+ 1586-311 (I)      2   External subprogram "key2node" not found.  Could not mark as "inline".
+ 
+ 1586-311 (I)      2   External subprogram "ext_node" not found.  Could not mark as "inline".
+ 
+                            * * * * *   E n d   O f   M e s s a g e s   * * * * *
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/18/2003 19:38:53   Page 13
+
+                            * * * * *   M e s s a g e   S u m m a r y   * * * * *
+
+Total   Unrecoverable  Severe       Error     Warning    Informational
+               (U)       (S)         (E)        (W)          (I)
+    2           0         0           0          0            2
+
+                     * * * * *   E n d   O f   M e s s a g e   S u m m a r y   * * * * *
+
+                         * * * * *   E n d   O f   C o m p i l a t i o n   * * * * *

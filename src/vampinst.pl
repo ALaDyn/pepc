@@ -2,11 +2,11 @@
 
 @Ffiles=`ls *.f90`;
 
-$TRACETOOL="vampir";
-$outdir="./vamp";
+#$TRACETOOL="vampir";
+#$outdir="./vamp";
 
-#$TRACETOOL="hpm";
-#$outdir="./hpm";
+$TRACETOOL="hpm";
+$outdir="./hpm";
 
 $i=0;
 $num_symb=1;

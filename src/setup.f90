@@ -277,20 +277,22 @@ subroutine setup
         write (ifile,*) ' Plasma config: ',configs(initial_config)
         write (ifile,*) ' Laser config: ',beam_configs(beam_config)
         write (ifile,*) ' Ensemble: ',ensembles(ensemble)
-        write (ifile,'(a,1pe12.3)') ' Plasma volume: ',Vplas
-        write (ifile,'(a,1pe12.3)') ' Sphere radius: ',r_sphere
-        write (ifile,'(a,1pe12.3)') ' Plasma length: ',x_plasma
-        write (ifile,'(a,1pe12.3)') ' Plasma width: ',y_plasma
-        write (ifile,'(a,1pe12.3)') ' Plasma height: ',z_plasma
-        write (ifile,'(a,1pe12.3)') ' Electron charge: ',qe
-        write (ifile,'(a,1pe12.3)') ' Electron mass: ',mass_e
-        write (ifile,'(a,1pe12.3)') ' Ion mass: ',mass_i
-        write (ifile,'(a,1pe12.3)') ' Te: ',Te_keV
-        write (ifile,'(a,1pe12.3)') ' Ti: ',Ti_keV
-        write (ifile,'(a,1pe12.3)') ' Ion spacing: ',a_ii
-        write (ifile,'(a,1pe12.3)') ' Cutoff radius: ',eps
-        write (ifile,'(a,1pe12.3)') ' Neighbour search radius: ',r_neighbour
-        write (ifile,'(a,1pe12.3)') ' MAC theta: ',theta
+        write (ifile,'(a20,1pe12.3)') ' Plasma volume: ',Vplas
+        write (ifile,'(a20,1pe12.3)') ' Sphere radius: ',r_sphere
+        write (ifile,'(a20,1pe12.3)') ' Plasma length: ',x_plasma
+        write (ifile,'(a20,1pe12.3)') ' Plasma width: ',y_plasma
+        write (ifile,'(a20,1pe12.3)') ' Plasma height: ',z_plasma
+        write (ifile,'(a20,1pe12.3)') ' Electron charge: ',qe
+        write (ifile,'(a20,1pe12.3)') ' Electron mass: ',mass_e
+        write (ifile,'(a20,1pe12.3)') ' Ion mass: ',mass_i
+        write (ifile,'(a20,1pe12.3)') ' Te: ',Te_keV
+        write (ifile,'(a20,1pe12.3)') ' Ti: ',Ti_keV
+        write (ifile,'(a20,1pe12.3)') ' Ion spacing: ',a_ii
+        write (ifile,'(a20,1pe12.3)') ' Cutoff radius: ',eps
+        write (ifile,'(a20,1pe12.3)') ' Max timestep: ',0.45*sqrt(3.)*eps**2/abs(qe)*vte
+        write (ifile,'(a20,1pe12.3)') ' Neighbour search radius: ',r_neighbour
+        write (ifile,'(a20,1pe12.3)') ' MAC theta: ',theta
+        write (ifile,'(a20,1pe12.3)') ' Particle # ratio: ',4e6*lambda*omega*abs(qe)
 
         write (ifile,'(a,f9.2,a3,f9.2,a3,f9.2/)') ' Graphics box: ',xl,' x ',yl,' x ',zl
 

@@ -239,7 +239,7 @@ module treevars
   real :: lambda        ! laser wavelength
   real :: focus(3)      ! centre of focal spot
   real :: tlaser        ! run time after laser switched on (1/omega_p)
-  
+  real :: elaser        ! deposited laser energy
   
 ! Control stuff
   logical :: vis_on=.true.  ! online visualisation on/off

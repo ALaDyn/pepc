@@ -28,7 +28,7 @@ FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90
 TUNE= -qarch=pwr4 -qtune=pwr4 -qhot $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) $(DB)  $(TUNE) 
+FFLAGS =  $(FFLAGS1) $(DB) $(TUNE) 
 
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -37,9 +37,9 @@ FFLAGS =  $(FFLAGS1) $(DB)  $(TUNE)
 # cray
 #VISITLIBS=-L /usr/local/visit/lvisit/apis/spk2 -llvisit_spk -L/usr/local/visit/lvisit/lib -llvisit -L/usr/local/visit/visit20/lib -lvisit 
 # JUMP
-VISITLIBS=-L/home/admin/beta/visit-2.0b/lvisit/apis/spk3 -llvisit_spk -L/home/admin/beta/visit-2.0b/lvisit/lib -llvisit -L/home/admin/beta/visit-2.0b/lib -lvisit
+#VISITLIBS=-L/home/admin/beta/visit-2.0b/lvisit/apis/spk3 -llvisit_spk -L/home/admin/beta/visit-2.0b/lvisit/lib -llvisit -L/home/admin/beta/visit-2.0b/lib -lvisit
 # Local
-#VISITLIBS= -L$(HOME)/visit/spkvisit -llvisit_spk -L$(HOME)/visit/lib -llvisit -L$(HOME)/visit/lib -lvisit
+VISITLIBS= -L$(HOME)/visit/spkvisit -llvisit_spk -L$(HOME)/visit/lib -llvisit -L$(HOME)/visit/lib -lvisit
 
 LDFLAGS = $(VISITLIBS) $(MPITRACE)
 

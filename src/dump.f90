@@ -38,12 +38,13 @@ subroutine dump(timestamp)
 
 
   open (60,file=cfile)    
-  write(60,'(7(a9,i8/),7(a9,f12.5/))')  &    ! info block
+  write(60,'(7(a9,i8/),10(a9,f12.5/))')  &    ! info block
        'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
        'ensemble=',ensemble, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
-       'eps=', eps, 'theta=',theta,'tlaser = ',tlaser   
+       'eps=', eps, 'theta=',theta,' tlaser= ',tlaser, &
+       'omega=',omega,'lambda=',lambda,'Qs=',abs(qe)
 
   if (me.eq.0) then
 
@@ -60,12 +61,13 @@ subroutine dump(timestamp)
     write(62,'(a)') cdump(1:6)
     close (62)
 
-    write(6,'(//a/7(a9,i8/),7(a9,f12.5/))') 'PARTICLE DUMP:', &    ! info block
+    write(6,'(//a/7(a9,i8/),10(a9,f12.5/))') 'PARTICLE DUMP:', &    ! info block
        'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
        'ensemble=',ensemble, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
-       'eps=', eps, 'theta=',theta,'tlaser = ',tlaser   
+       'eps=', eps, 'theta=',theta,'tlaser = ',tlaser, &
+       'omega=',omega,'lambda=',lambda,'Qs=',abs(qe)   
   endif
   close(60)
 
