@@ -2,12 +2,15 @@
  nmerge = 1
  !perf_anal=.true.
  domain_debug=.false.
+ build_debug=.false.
+ tree_debug=.true.
+ dump_tree=.true.
  load_balance=.false.
  walk_balance=.true.
  !walk_debug=.true.
 ! particles
-  ne =0
-  ni = 200 
+  ne = 300
+  ni = 300 
 
  plasma_config = 1
  ! initial_config = 1   ! sphere
@@ -31,16 +34,16 @@
   Ti_keV =0.5 
   mass_ratio = 100.
   q_factor = 1.
-  coulomb = .false.
+  coulomb = .true.
   lenjones = .false.
   bond_const = 2.e-5
   r_sphere = 3
-  x_plasma = 6    ! plasma disc thickness/ wire length
-  y_plasma = 6.     ! plasma width (slab target)
-  z_plasma = 6.     ! plasma width (slab target)
+  x_plasma = 1    ! plasma disc thickness/ wire length
+  y_plasma = 1.     ! plasma width (slab target)
+  z_plasma = .01     ! plasma width (slab target)
   xl = 6  ! graphics box size
   yl =6 
-  zl =6 
+  zl = 1
 
 
 ! beam
@@ -68,12 +71,12 @@
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =2000
+  nt =200
   dt = 1
-  eps = 0.2
+  eps = 0.5
  restart = .false.
-  vis_on = .true.
- ivis =  2
+  vis_on = .false.
+ ivis =  5
  ivis_fields = 500
   mc_init = .false.
   mc_steps = 1000

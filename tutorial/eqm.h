@@ -6,16 +6,16 @@
  walk_balance=.true.
  !walk_debug=.true.
 ! particles
-  ne = 1000
-  ni = 1000 
+  ne = 10000
+  ni = 10000 
 
+ plasma_config = 1  ! set up plasma target
  ! initial_config = 1   ! sphere
-   initial_config = 2         ! random disc
+ !   initial_config=7   ! hollow sphere
+   target_geometry = 2         ! random disc
  !   initial_config=3   ! wire
  !  initial_config = 0         ! rectangular slab
   !  initial_config = 10     ! read from parts_all.in
- !   initial_config=7   ! hollow sphere
-
 
 ! physics stuff
 
@@ -63,10 +63,10 @@
   ! control
   nt =4000
   dt = 0.5
-  eps = 0.5
+  eps = 2.5
  restart = .false.
-  vis_on = .true.
- ivis = 2 
+  vis_on = .false.
+ ivis = 5 
  ivis_fields = 5000
   mc_init = .false.
   mc_steps = 1000
@@ -74,5 +74,5 @@
   iprot=20
   itrack=300
   particle_bcs = 1
-  scheme = 4 /
+  scheme = 1 /
 
