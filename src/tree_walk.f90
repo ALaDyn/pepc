@@ -34,7 +34,7 @@
 !
 ! ===========================================
 
-subroutine tree_walk(pshort,npshort)
+subroutine tree_walk(pshort,npshort,pass)
 
   use treevars
   use utils
@@ -46,24 +46,24 @@ subroutine tree_walk(pshort,npshort)
   implicit none
 
   integer, intent(in) :: npshort
-  integer, intent(in) :: pshort(nshortm)
+  integer, intent(in) :: pshort(npshort)
 
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
 
   ! Key arrays (64-bit)
 
-  integer*8,  dimension(nshortm) :: walk_key, walk_last 
+  integer*8,  dimension(npshort) :: walk_key, walk_last 
   integer*8, dimension(size_tree)  :: request_key, ask_key, process_key
   integer*8, dimension(size_tree,0:num_pe-1) ::  ship_key
   integer*8, dimension(8) :: sub_key, key_child, next_child
-  integer*8, dimension(nintmax,nshortm) :: defer_list, walk_list
+  integer*8, dimension(nintmax,npshort) :: defer_list, walk_list
   integer*8, dimension(size_tree) :: last_child   ! List of 'last' children fetched from remote PEs
 
-  integer, dimension(nshortm) :: plist
+  integer, dimension(npshort) :: plist
 
   integer ::  walk_addr, walk_node 
-  integer, dimension(nshortm) :: nlocal, ndefer,  nwalk, defer_ctr
+  integer, dimension(npshort) :: nlocal, ndefer,  nwalk, defer_ctr
 
 
   integer, dimension(size_tree) ::  process_addr, request_owner
@@ -73,7 +73,7 @@ subroutine tree_walk(pshort,npshort)
   real, dimension(8) :: xcoc_child, ycoc_child, zcoc_child
 
   real, dimension(0:nlev) :: boxlength
-  logical, dimension(nshortm) :: finished, requested
+  logical, dimension(npshort) :: finished, requested
   integer :: hops(21) ! array to control max # iterations in single traversal 
   integer, dimension(num_pe) ::   nactives
   integer, dimension(0:num_pe-1) :: ntoship, &              ! # keys needed
@@ -86,7 +86,7 @@ subroutine tree_walk(pshort,npshort)
   integer*8 :: node_key, add_key, walk_next, kchild, kparent, search_key,  nxchild
 
   integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops          ! loop counters
-  integer :: p
+  integer :: p,pass
   integer :: nnew, nshare, newrequest, nreqs, i1, i2, ioff, ipack
   integer :: nchild, newleaf, newtwig, nactive, maxactive, ntraversals, own
   integer :: ic1, ic2, ihand, nchild_ship_tot, nplace_max
@@ -100,7 +100,7 @@ subroutine tree_walk(pshort,npshort)
   ! stuff for tree-patch after traversals complete
   integer ::  node_addr, parent_addr, parent_node, child_byte
   integer :: jmatch(1)
-  logical :: resolved, keymatch(8), emulate_blocking=.false., walk_summary=.false.
+  logical :: resolved, keymatch(8), emulate_blocking=.false.
   logical :: ignore, mac_ok
 
   integer :: nrest, ndef
@@ -114,8 +114,8 @@ subroutine tree_walk(pshort,npshort)
   nchild_shipm = size_tree
   !walk_debug = .false.
   ! ipefile = 6
-  if (walk_debug .or. walk_summary) write(ipefile,'(/a,i6)') 'TREE WALK for timestep ',itime
-  !  if (walk_debug) write(*,'(/a,i6)') 'TREE WALK for timestep ',itime
+  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK for timestep ',itime,' pass ',pass
+  if (me.eq.0 .and. walk_summary) write(*,'(/2(a,i6))') 'TREE WALK for timestep ',itime,' pass ',pass
 
   sbox = boxsize
 
@@ -605,7 +605,8 @@ subroutine tree_walk(pshort,npshort)
              'New twigs: ',newtwig, &
              'New leaves:',newleaf, &
              'New list length: ',nlist, &
-             '# remaining active particles on each PE: ',(i,nactives(i+1),i=0,num_pe-1)
+             '# remaining active particles on each PE: ',SUM(nactives),MAXVAL(nactives)
+!             '# remaining active particles on each PE: ',(i,nactives(i+1),i=0,num_pe-1)
         !        write(ipefile,'(a/(2i5))') 'New shortlist: ',(plist(i),pshort(plist(i)),i=1,nlist)
 
      endif
