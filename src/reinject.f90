@@ -14,7 +14,7 @@
 
  implicit none
  real, parameter :: pi=3.14159265
- integer, parameter :: nsamp=30000
+ integer, parameter :: nsamp=300000
  integer :: idir
  real, save :: usamp(nsamp+1)
  real  :: uxi, uyi
