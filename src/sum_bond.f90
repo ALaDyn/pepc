@@ -1,12 +1,12 @@
 !  ===================================================================
 !
-!                              SUM_BONDING_FORCE
+!                              SUM_BOND
 !
 !   Calculate SHO bonding forces of particle from interaction list
 !
 !  ===================================================================
 
-subroutine sum_bonding_force( p, n, inode, sumfx, sumfy, sumfz, sumphi )
+subroutine sum_bond( p, n, inode, sumfx, sumfy, sumfz, sumphi )
   use treevars
 
   integer, intent(in) :: p  ! particle number
@@ -53,4 +53,4 @@ subroutine sum_bonding_force( p, n, inode, sumfx, sumfy, sumfz, sumphi )
   end do
 
 
-end subroutine sum_bonding_force
+end subroutine sum_bond
