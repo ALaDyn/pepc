@@ -22,8 +22,8 @@ subroutine randion
     real, dimension(1:3) :: r_temp
 
     iseed1 = -11 - me      ! Select seed depending on PE
-    iseed2 = -10011 - me
-    iseed3 = -30013 - me
+    iseed2 = -1001 - me      ! Select seed depending on PE
+    iseed3 = -2111 - me      ! Select seed depending on PE
     write (ipefile, '(a,3i8)') 'Seeds: ', iseed1, iseed2, iseed3
     
     !  Initialise particles according to target geometry
@@ -44,33 +44,33 @@ subroutine randion
         geometry: select case (target_geometry)
         case(0, 5) ! slab or wedge 
             xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
-            yt = .5 * y_plasma * (2 * rano(iseed2) - 1.) + plasma_centre(2)         
-            zt = .5 * z_plasma * (2 * rano(iseed3) - 1.) + plasma_centre(3)
+            yt = .5 * y_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
+            zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
  
         case(1, 7) ! sphere and hollow sphere
             xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
-            yt = r_sphere * (2 * rano(iseed2) - 1.) + plasma_centre(2)        
-            zt = r_sphere * (2 * rano(iseed3) - 1.) + plasma_centre(3)
+            yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)        
+            zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
             
         case(2) ! disc
             xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
-            yt = r_sphere * (2 * rano(iseed2) - 1.) + plasma_centre(2)         
-            zt = r_sphere * (2 * rano(iseed3) - 1.) + plasma_centre(3)
+            yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
+            zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
             
         case(3) ! wire
             xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)         
-            yt = r_sphere * (2 * rano(iseed2) - 1.) + plasma_centre(2)
-            zt = .5 * z_plasma * (2 * rano(iseed3) - 1.) + plasma_centre(3)
+            yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)
+            zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
             
         case(4) ! ellipsoid
             xt = r_sphere * (2 * rano(iseed1) - 1.) * x_plasma + plasma_centre(1)
-            yt = r_sphere * (2 * rano(iseed2) - 1.) * y_plasma + plasma_centre(2)
-            zt = r_sphere * (2 * rano(iseed3) - 1.) * z_plasma + plasma_centre(3)
+            yt = r_sphere * (2 * rano(iseed1) - 1.) * y_plasma + plasma_centre(2)
+            zt = r_sphere * (2 * rano(iseed1) - 1.) * z_plasma + plasma_centre(3)
 
         case(6, 8) ! hemisphere and hollow hemisphere
             xt = .5 * r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
-            yt = r_sphere * (2 * rano(iseed2) - 1.) + plasma_centre(2)
-            zt = r_sphere * (2 * rano(iseed3) - 1.) + plasma_centre(3)
+            yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)
+            zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
 
         end select geometry
             
