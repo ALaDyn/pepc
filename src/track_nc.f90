@@ -30,7 +30,7 @@ subroutine track_nc
 
   jfoc = focus(2)/dy
   kfoc = focus(3)/dz
-  rho1d(1:ngx) = 0.
+  rho1d(0:ngx+1) = 0.
   do k=kfoc-2,kfoc+2
      do j=jfoc-2,jfoc+2
         rho1d(1:ngx) = rho1d(1:ngx)+rhoi(1:ngx,j,k)/25./omega**2  
