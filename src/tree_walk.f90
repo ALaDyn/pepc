@@ -2,7 +2,7 @@
 !
 !           TREE_WALK
 !
-!   $Revision$
+!   $ Revision: 1.19 $
 !
 !   Perform tree walk for all local particles
 !
@@ -34,7 +34,7 @@
 !
 ! ===========================================
 
-subroutine tree_walk(pshort,npshort,pass,theta,itime)
+subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
 
   use treevars
   use utils
@@ -45,7 +45,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
   real, intent(in) :: theta
   integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
-
+  integer, intent(in) :: beam_config
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
 
@@ -177,10 +177,6 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
      inner_pass = 0
      nhops = 0
 
-     !VAMPINST subroutine_start
-     !    CALL VTENTER(IF_tree_walk,VTNOSCL,VTIERR)
-     !      write(*,*) 'VT: tree_walk S>',VTIERR,
-     !     *    IF_tree_walk,ICLASSH
 
      do while (nlist>0 .and. nhops <= hops(ntraversals) )        ! Inner loop - single hop in tree walk
         inner_pass = inner_pass+1        ! statistics
@@ -196,8 +192,6 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
 
            cbyte = htable( walk_addr )%childcode        ! Children byte-code
 
-           ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
-           ignore =  ( pshort(p) == htable( walk_addr )%node )
 
            ! children of local/non-local parents already fetched: HERE flag
 
@@ -209,13 +203,20 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
            s2 = boxlength2( node_level(walk_node) )
            dist2 = theta2*(dx**2+dy**2+dz**2)
            mac_ok = ( s2 < dist2 )             ! Preprocess MAC
- 
+
+           ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
+           ignore =  ( pshort(p) == htable( walk_addr )%node )
+
+! Wakefield QSA condition: prevent forward transmission of pw info
+           if (beam_config==5) ignore = (ignore .or. dx<0) 
+
            add_key = walk_key(i)                                ! Remember current key
 
            ! Possible courses of action:
 
 
            ! 1) MAC test OK, so put cell on interaction list and find next node for tree walk
+
            if ( mac_ok .or. (walk_node >0 .and. .not.ignore ) ) then
               walk_key(i) = walk_next
 	      entry_next = nterm(p) + 1
@@ -224,18 +225,20 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
               nterm(p) = entry_next
 
 
-              ! 2) MAC fails at node for which children present, so resolve cell & put 1st child on walk_list
+           ! 2) MAC fails at node for which children present, so resolve cell & put 1st child on walk_list
+
            else  if ( .not.mac_ok .and. walk_node < 0 .and. btest(cbyte,9) ) then
               ! if local put 1st child node on walk_list
               walk_key(i) = first_child( walk_node )
 
 
-              ! 3) MAC fails at node for which children _absent_, so put node on REQUEST list (flag with add=2)
+           ! 3) MAC fails at node for which children _absent_, so put node on REQUEST list (flag with add=2)
+
            else if ( .not.mac_ok .and. walk_node < 0 .and.  .not. btest(cbyte,9) ) then
               walk_key(i) = walk_next  ! Continue with walk for now
               ndefer(p) = ndefer(p) + 1
               defer_list( ndefer( p), p ) = add_key  ! Deferred list of nodes to search, pending request
-              ! for data from nonlocal PEs
+                                                     ! for data from nonlocal PEs
               if (.not. BTEST( htable(walk_addr)%childcode, 8 ) ) then  ! Check if node already requested
                  nshare = nshare + 1
 
