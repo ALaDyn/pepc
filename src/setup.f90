@@ -115,7 +115,9 @@ subroutine setup
   ngx = 100   ! Grid size for plots
   ngy = 50
   ngz = 50
+
   ! Read actual inputs from namelist file
+ 
   open(10,file='run.h')
   read (10,NML=pepcdata)
 
@@ -210,10 +212,12 @@ subroutine setup
   if ( beam_config ==4 ) then
      rho_beam= vosc
      r_beam=sigma
+
   else if (ensemble == 5) then
   ! ion crystal eqm mode
      r_beam = a_ii
      u_beam = Ti_keV
+     rho_beam = log(bond_const)
   endif
 
 

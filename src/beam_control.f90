@@ -154,7 +154,9 @@ subroutine beam_control
   ! ion crystal eqm  mode:
   !  r_beam is mean ion spacing
   !  u_beam is ion temperature (eV)
+  !  rho_beam is potential constant
      a_ii = r_beam
      Ti_kev = u_beam
+     bond_const = 10**(rho_beam)
   endif
 end subroutine beam_control
