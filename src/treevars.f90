@@ -183,7 +183,7 @@ module treevars
   real, allocatable :: x(:),  y(:),  z(:), &     ! position
                       ux(:), uy(:), uz(:), &     ! velocity
                               q(:),  m(:), &     ! charge and mass
-			ax(:), ay(:), az(:), &      ! accelerations
+			Ex(:), Ey(:), Ez(:), &   ! fields
 			pot(:), &	         ! potential
 			work(:)                  ! interaction work load 
 
@@ -193,8 +193,10 @@ module treevars
   integer, allocatable ::     pepid(:), & ! owner
                               nterm(:),  nodelist(:,:) ! interaction node-list
 
-  real, allocatable ::  rhoe(:,:,:), rhoi(:,:,:), phi_g(:,:,:), &  ! field arrays
-       Ex_g(:,:,:),   Ey_g(:,:,:),  Ez_g(:,:,:)
+  real, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:)  ! field arrays for time-averages
+  real, allocatable ::  rhoi(:,:,:)
+  real, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  ! E-field 
+  real, allocatable ::  jxe_loc(:,:,:), jye_loc(:,:,:), jze_loc(:,:,:)  ! elec current
 
   real, allocatable :: xslice(:),  yslice(:),  zslice(:), &     ! Rezoning slice
                       uxslice(:), uyslice(:), uzslice(:), &     ! velocity
@@ -260,8 +262,9 @@ module treevars
   logical :: target_dup = .false. ! Target duplication switch
   integer :: mc_steps
   integer :: initial_config = 4  ! Switch for initial configuration (positions, velocities)
+  integer :: ispecial = 1  ! Special, user-defined electron config (special_config)
   integer :: beam_config = 0 ! Switch for particle beam mode
-  integer :: ensemble = 1 ! Canonical ensemble switch: 2-4= const. Te dynamics
+  integer :: scheme = 1 ! Integrator scheme switch: 2-4= const. Te dynamics, 6=EM
   integer :: particle_bcs = 1 ! Particle BC switch: 1=open, 2=reflective
   
    real :: dt             ! timestep
@@ -274,7 +277,8 @@ module treevars
    integer :: iprot=1       ! protocoll frequency
    integer :: ivis        ! frequency for particle shipping to VISIT
    integer :: ivis_fields    !  frequency for field shipping to VISIT
-   integer :: idens       ! frequency for computing densities (tracking) 
+   integer :: itrack       ! frequency for computing ion density (tracking)
+   integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
 
 end module treevars
