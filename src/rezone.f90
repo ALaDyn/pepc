@@ -140,7 +140,7 @@ subroutine rezone
 
      pelabel(npp+1:npp+nslice) =  spent_label(nslice+1:2*nslice)  ! Electron labels: 1->ne copied from ions
 
-     ! zero accelerations - should really compute these for electrons
+     ! zero potentials - should really compute these for electrons
      ax(npp+1:npp+nslice) = 0.
      ay(npp+1:npp+nslice) = 0.
      az(npp+1:npp+nslice) = 0.

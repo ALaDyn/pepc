@@ -120,4 +120,3 @@ subroutine configure
   if (.not. perf_anal) call diagnostics
 end subroutine configure
 
-

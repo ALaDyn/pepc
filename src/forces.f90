@@ -110,7 +110,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
      ! tree walk returns intlist(1:nps), nodelist(1:nps) for particles on short list
 
      call cputime(t1)
-     call tree_walk(pshortlist,nps,jpass,theta,itime)
+     call tree_walk(pshortlist,nps,jpass,theta,itime,beam_config)
      call cputime(t2)
      t_walk = t_walk + t2-t1
 
