@@ -103,6 +103,7 @@ subroutine tree_walk(pshort,npshort)
   !walk_debug = .false.
  ! ipefile = 6
   if (walk_debug) write(ipefile,'(/a,i6)') 'TREE WALK for timestep ',itime
+!  if (walk_debug) write(*,'(/a,i6)') 'TREE WALK for timestep ',itime
 
   sbox = boxsize
 
@@ -118,8 +119,10 @@ subroutine tree_walk(pshort,npshort)
   nactive = npshort
   !  Find global max active particles - necessary if some PEs enter walk on dummy pass
 
-  call MPI_ALLREDUCE( nactive, maxactive, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
+!  call MPI_ALLREDUCE( nactive, maxactive, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
+     call MPI_ALLGATHER( nactive, one, MPI_INTEGER, nactives, one, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
+     maxactive = maxval(nactives)
 
   ntraversals = 0
   nlast_child = 0
@@ -132,6 +135,7 @@ subroutine tree_walk(pshort,npshort)
 
      ntraversals = ntraversals + 1  ! # Tree-walks
      if (walk_debug) write(ipefile,'(a,i6)') 'Start of traversal ',ntraversals
+!     if (walk_debug) write(*,'(a,i6)') 'Start of traversal ',ntraversals
 
      finished(1:nlist) = .false.  ! label all particles not finished
      ndefer(1:npshort) = 0          ! Zero # deferrals (absolute particle number)

@@ -15,7 +15,7 @@ function key2addr(keyin)
 
   implicit none
   integer*8  :: keyin
-  integer :: cell_addr, link_addr, ires
+  integer :: cell_addr, link_addr, ires,i
   logical :: resolved
 
   integer :: key2addr 
@@ -41,9 +41,14 @@ function key2addr(keyin)
      ! Not resolved - something wrong: invalid key or #-table wrong
      write (*,*) 'Key not resolved in KEY2ADDR: check #-table and key list for PE ',me
      write (*,'(a5,o20,a2,i10,a1,a12,i15)') 'Key #: ',keyin,' (',keyin,')',' Address: ',cell_addr
+     write (ipefile,*) 'Keys in table:'
+     do i=0,maxaddress
+        if (htable(i)%key/=0) write(ipefile,'(i8,o21)') i,htable(i)%key
+     end do
+
 !     call diagnose_tree
 close(75)     
-close(ipefile)
+     call closefiles
 !     pause
      call MPI_ABORT(MPI_COMM_WORLD,ierr)
      stop

@@ -27,7 +27,7 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
 
   integer, parameter :: npassm=100000 ! Max # passes - will need npp/nshortm
 
-  integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list
+  integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe
   real :: t_walk, t_force, t1, t2, t3  ! timing integrals
   integer pshortlist(nshortm),nshort(npassm),pstart(npassm)
   real :: work_loads(num_pe)  ! Load balance array
@@ -38,10 +38,9 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
   real :: fsx, fsy, fsz, phi, Ex, Ey, Ez, phi_coul, ex_coul, ey_coul, ez_coul
   real :: Epon_x, Epon_y, Epon_z, Phipon
   real :: xd, yd, zd  ! positions relative to centre of laser spot
-  logical :: force_debug=.false.
   real :: work_local, load_average, load_integral, total_work, average_work
   integer :: total_parts
-  character(30) :: cfile
+  character(30) :: cfile, ccol1, ccol2
   character(4) :: cme
 
   Ex = 0.
@@ -92,30 +91,20 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
      endif
   endif
 
-
-
   if (force_debug)   write (ipefile,*) 'Shortlists: ',(nshort(j),j=1,npass+1)
 
   max_npass = npass
 
-  ! determine global max # passes (npass need not be the same across PEs if npp varies)
-  !  call MPI_ALLREDUCE(npass, max_npass, 1, MPI_INTEGER, MPI_MAX,  MPI_COMM_WORLD, ierr )
-
-  !  if (npass < max_npass) then
-  !     do j=npass, max_npass-1
-  !	nshort(j) = 0  ! zero # particles for dummy passes
-  !     end do
-  !  endif
-
   ip1 = 1
-  do jpass = 1,max_npass
+
+ do jpass = 1,max_npass
      !  make short-list
      nps = nshort(jpass)
      ip1 = pstart(jpass)
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
 
-     if (force_debug) then
-        !	write(*,*) 'pass ',jpass,' # parts ',ip1,' to ',ip1+nps-1
+     if (walk_debug) then
+        !	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
         write(ipefile,*) 'pass ',jpass,' # parts ',ip1,' to ',ip1+nps-1
      endif
 
@@ -159,10 +148,10 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
            !  compute short-range Lennard-Jones forces and potential of particle p from its interaction list
            call sum_lennardjones(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
 
-           pot(p) = pot(p) + 4*bond_const * phi
-           fx(p) = fx(p) + 4*bond_const * fsx
-           fy(p) = fy(p) + 4*bond_const * fsy
-           fz(p) = fz(p) + 4*bond_const * fsz
+           pot(p) = pot(p) + bond_const * phi
+           fx(p) = fx(p) + bond_const * fsx
+           fy(p) = fy(p) + bond_const * fsy
+           fz(p) = fz(p) + bond_const * fsz
         endif
 
         work(p) = nterm(i)        ! Should really compute this in sum_force to allow for leaf/twig terms
@@ -208,10 +197,11 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
   call MPI_GATHER(work_local, 1, MPI_REAL8, work_loads, 1, MPI_REAL8, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
   call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
 
+  timestamp = itime + itime_start
+
   if (me ==0 .and. mod(itime,idump)==0) then
      total_work = SUM(work_loads)
      average_work = total_work/num_pe
-     timestamp = itime + itime_start
      cme = achar(timestamp/1000+48) // achar(mod(timestamp/100,10)+48) &
           // achar(mod(timestamp/10,10)+48) // achar(mod(timestamp,10)+48) 
      cfile="load_"//cme//".dat"
@@ -235,7 +225,9 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
 
 101  format('Tree forces:'/'   p     owner    ax         ay      az  ',2f8.2)
 102  format(1x,2i7,3(1pe14.5))
+
   endif
+
 
 
 end subroutine forces_bal

@@ -53,6 +53,7 @@ subroutine make_domains
   real, dimension(nppm) :: wr1, wr2, wr3 ! Scratch for real array permute
   integer*8 :: tmp
 
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
 
   ! Find limits of local simulation region
@@ -220,8 +221,9 @@ subroutine make_domains
 
   do i=2,npp
      if (pekey(i) == pekey(i-1)) then
-        write(*,*) 'WARNING: identical keys found - increase max # levels'
+        write(*,'(a,o21)') 'WARNING: identical keys found:  ',pekey(i)
         pekey(i) = pekey(i) + 1  ! Augment higher key
+        write(*,'(a,o21)') 'Upper key increased to:  ',pekey(i)
      endif
   end do
 

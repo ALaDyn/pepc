@@ -22,9 +22,10 @@ subroutine add_electrons
 
   ! Double # particles/PE
   ne = ni
+  nip = npp
   nep = nip
   npart = ni+ne
-  npp = nip + nep
+  npp = nep+nip
 
   !  now have nep=nip;  ions (1:nip); electrons  (nip+1:npp) 
   !  reverse of usual order, but get mixed up by sorting later
@@ -36,8 +37,8 @@ subroutine add_electrons
   pepid(nip+1:npp) = me                ! processor ID
 
 
-  pelabel(nip+1:npp) = me*nep + (/ (i,i=1,nep) /)  ! Electron labels: 1->ne
-  pelabel(1:nip) = pelabel(1:nip) + ni             ! Augment ion labels: ne+1 -> npart
+  pelabel(nip+1:npp) =  pelabel(1:nip)  ! Electron labels: 1->ne copied from ions
+  pelabel(1:nip) = pelabel(1:nip) + ni  ! Augment ion labels: ne+1 -> npart
 
   ! zero accelerations - should really compute these for electrons
   ax(nip+1:npp) = 0.

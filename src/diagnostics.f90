@@ -36,7 +36,7 @@ subroutine diagnostics
 
   endif
 
-  if (vis_on .and. steering) call beam_control
+  if ( mod(itime,ivis)==0 .and. steering) call beam_control
 
   if (vis_on .and. mod(itime,ivis_fields)==0 ) then
      !     call vis_fields

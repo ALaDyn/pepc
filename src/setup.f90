@@ -36,7 +36,8 @@ subroutine setup
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
        nt, dt, mc_steps, idump, ivis, ivis_fields, nmerge, ngx, ngy, ngz, &
        vis_on, steering, domain_debug,  mc_init, restart, ensemble, particle_bcs, &
-       load_balance, walk_balance, walk_debug, dump_tree, perf_anal, coulomb, bonds, lenjones
+       load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
+       dump_tree, perf_anal, coulomb, bonds, lenjones
 
 
 
@@ -226,7 +227,10 @@ subroutine setup
   !  npartm = npart + nt*np_beam  ! Max # particles permitted
   npartm = 2*npart  ! allow 50% fluctuation
   nppm = max(npartm/num_pe,1000)
-  nshortm = 800    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+
+  if (ensemble==5) nppm=nppm*2  ! reserve extra space for electrons in ions-only mode
+
+  nshortm = 1800    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
@@ -245,10 +249,11 @@ subroutine setup
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
 
-  size_tree = max(2*nintmax+5*nppm,1000)+1
+  size_tree = max(2*nintmax+5*nppm,2000)+1
   maxaddress = size_tree
   nbaddr = log(1.*maxaddress)/log(2.) + 1
   maxaddress = 2**nbaddr
+!  maxaddress = 512
   hashconst = maxaddress-1
 
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
@@ -333,7 +338,8 @@ subroutine setup
        nbranches(num_pe+2), igap(num_pe+3), &
        treekey(size_tree), branch_key(size_tree), branch_owner(size_tree), &
        pebranch(size_tree), &
-       requested_keys(size_tree, num_pe), fetched_keys(size_tree, num_pe) )
+       requested_keys(size_tree, 0:num_pe-1), fetched_keys(size_tree, 0:num_pe-1), &
+       nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
 
   all_addr = (/ (k,k=0,maxaddress) /)      ! List of all possible # table addresses
   htable%node = 0
@@ -346,6 +352,9 @@ subroutine setup
 
   maxtwig = size_tree
   maxleaf = size_tree
+
+  nreqs_total(0:num_pe-1) = 0   ! Zero cumulative fetch/ship counters for non-local nodes
+  nfetch_total(0:num_pe-1) = 0  
 
   allocate ( first_child(-maxtwig:maxleaf), n_children(-maxtwig:maxleaf), node_level(-maxtwig:maxleaf) )
 

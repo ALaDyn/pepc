@@ -42,7 +42,6 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
   real :: fsx, fsy, fsz,  Ex, Ey, Ez, phi
   real :: Epon_x, Epon_y, Epon_z, Phipon
   real :: xd, yd, zd  ! positions relative to centre of laser spot
-  logical :: force_debug=.false.
 
   !  Sum forces:  uses interaction list from INTLIST
   !  ------------------------------------------------

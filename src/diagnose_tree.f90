@@ -47,7 +47,7 @@ subroutine diagnose_tree
   do i=0,maxaddress
      collision=" "
      if (htable(i)%node/=0 .and. htable(i)%link/= -1 ) collision="C"
-     if (htable(i)%node /= 0 .and. htable(i)%next >=0) write (ipefile,'(3i10,4o15,i5,z4,4x,a1)') &
+     if (htable(i)%node /= 0 .and. htable(i)%next >=0) write (ipefile,'(3i10,3o15,i8,i5,z4,4x,a1)') &
 	  i,htable(i)%owner,htable(i)%node,htable(i)%key,ishft( htable(i)%key,-idim ), htable(i)%next, &
           htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
      if (htable(i)%node /= 0 .and. htable(i)%next <0) write (ipefile,'(3i10,2o15,i15,i15,i5,z4,4x,a1)') &

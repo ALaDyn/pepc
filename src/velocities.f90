@@ -265,7 +265,7 @@ subroutine velocities(p_start,p_finish,delta_t)
 
 
      chii = sqrt(abs(Ti0/Ti_uncor)) 
-     chii = min(1.1,max(chii,0.9))  ! Set bounds of +- 50%
+     chii = min(1.2,max(chii,0.8))  ! Set bounds of +- 50%
 
 
      !  3)  Complete full step

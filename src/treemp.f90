@@ -25,7 +25,7 @@ program treemp
   use utils
 
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_en, t_force
-  real :: t_push, t_diag, t_start_push
+  real :: t_push, t_diag, t_start_push, t_prefetch
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -72,6 +72,8 @@ program treemp
      call cputime(t_fill)
      call tree_properties ! Compute multipole moments for local tree
      call cputime(t_props)
+     call tree_prefetch
+     call cputime(t_prefetch)
 
 
      if (walk_balance) then
@@ -106,10 +108,11 @@ program treemp
         write(ifile,'(a20,2f12.3,a1)') 'Branches: ',t_branch-t_build,100*(t_branch-t_build)/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Fill: ',t_fill-t_branch,100*(t_fill-t_branch)/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Props: ',t_props-t_fill,100*(t_props-t_fill)/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Prefetch: ',t_prefetch-t_props,100*(t_prefetch-t_props)/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Walk: ',t_walk,100*t_walk/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Forces: ',t_force,100*t_force/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Keys+domains: ',t_domain-t0,100*(t_domain-t0)/ttot
-        write(ifile,'(a20,2f12.3,a1)') 'Build+props: ',t_props-t_domain,100*(t_props-t_domain)/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Build+props: ',t_prefetch-t_domain,100*(t_prefetch-t_domain)/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Pusher: ',t_push-t_start_push,100*(t_push-t_start_push)/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag-t_push,100*(t_diag-t_push)/ttot
 
@@ -124,7 +127,7 @@ program treemp
   if (ensemble ==5 ) then
 !  ion eqm mode: add electrons before dumping particle positions
      call add_electrons
-     call dump(nt)
+     call dump(nt+itime_start)
   endif
 
   call closefiles      ! Tidy up O/P files

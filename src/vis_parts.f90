@@ -13,14 +13,14 @@ subroutine vis_parts
   use treevars
   implicit none   
 
-  integer, parameter :: npart_visit_max = 120000  ! Max 25k data points for VIS
+  integer, parameter :: npart_visit_max = 150000  ! Max 25k data points for VIS
 
   real, dimension(npart_visit_max) :: xvis,yvis,zvis,vx,vy,vz,qvis,mvis
   integer, dimension(npart_visit_max) :: ppid, plabel
 
   integer, dimension(num_pe) :: nparts_pe  ! array of npp on each PE
   integer :: icolour(npart_visit_max)
-  integer :: lvisit_active, nskip
+  integer :: lvisit_active, nskip, nproot
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount
 
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max, box_max, epondx, epondy, epondz,phipond
@@ -63,6 +63,7 @@ subroutine vis_parts
   else
      ! Just send particles on root
      if (me==0) then
+        nproot = 0.8*npart/num_pe ! fixed # parts close to npp
         call flvisit_spk_check_connection(lvisit_active)
         call flvisit_spk_info_send(npp,xl,yl,zl,zl,nep,nip,np_beam,itime+itime_start)
         call flvisit_spk_particles_send(simtime,x,y,z,ux,uy,uz,q,pepid,pelabel,npp)

@@ -78,6 +78,6 @@ subroutine configure
 !  call MPI_FINALIZE(ierr)
 !  call closefiles
  ! stop
-  call forces(1,npp,dt,t_walk,t_force)          ! Calculate initial potentials and forces
+  call forces_bal(1,npp,dt,t_walk,t_force)          ! Calculate initial potentials and forces
   call diagnostics
 end subroutine configure

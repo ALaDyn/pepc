@@ -89,9 +89,12 @@ module treevars
   !  tree variables
 
   integer*8, allocatable :: &
+                                requested_keys(:,:), &  ! Local multipole nodes required elsewhere
+                                fetched_keys(:,:), &  ! Remote nodes fetched during tree walk
                                 treekey(:), &       ! keys of all twig and leaf nodes
                                 branch_key(:), &    ! keys of branch nodes covering all domains
                                 pebranch(:)         ! keys of branch nodes covering local domain
+
 
   integer, allocatable :: &
                                 nbranches(:), &       ! # branches in local domain
@@ -100,8 +103,9 @@ module treevars
                                 all_addr(:), &  ! List of all possible #table addresses
                                 free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
                                 point_free(:), &   ! Pointer to free address index
-                                requested_keys(:,:), &  ! Local multipole nodes required elsewhere
-                                fetched_keys(:,:)  ! Remote nodes fetched during tree walk
+
+                                nreqs_total(:), &    ! total # nodes requested from local PE during tree walk
+                                nfetch_total(:)   ! total # non-local nodes fetched during tree walk 
 
   real, allocatable  :: &                ! Tree node properties:
                                charge(:), &                          ! charge
@@ -165,7 +169,9 @@ module treevars
   logical :: tree_debug=.false.
   logical :: domain_debug = .false.
   logical :: branch_debug=.false.
+  logical :: prefetch_debug=.false.
   logical :: walk_debug=.false.
+  logical :: force_debug=.false.
   logical :: dump_tree=.false.
   logical :: perf_anal=.false.  ! Performance analysis mode: turns off all diagnostic routines
 
