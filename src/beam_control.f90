@@ -23,7 +23,7 @@ subroutine beam_control
   ! First check for VISIT connection
 
   if (me==0)   call flvisit_spk_check_connection(lvisit_active)
-  call MPI_BCAST( lvisit_active, one, MPI_INTEGER8, root, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( lvisit_active, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
 
   if (lvisit_active==0 )then
      if (me==0) write(*,*) ' No Connection to Visualization'
@@ -75,7 +75,7 @@ subroutine beam_control
 
   ! Broadcast beam parameters to all other PEs
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
-  call MPI_BCAST( lvisit_active, one, MPI_INTEGER8, root, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( lvisit_active, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
   if (lvisit_active /= 0) then
      call MPI_BCAST( theta_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
      call MPI_BCAST( phi_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
@@ -99,20 +99,20 @@ subroutine beam_control
 !     rho_beam = max(abs(rho_beam),0.5)
 !     r_beam = max(abs(r_beam),0.1)
 
-     if (vosc/u_beam > 0.5 .and. vosc/u_beam < 2.0) then
+     if (u_beam/vosc <10.0 .and. u_beam/vosc > 0.1) then
         vosc=u_beam ! limit amplitude change
         if (me==0 .and. vosc /= vosc_old) write(*,*) 'Laser amplitude changed'
      else
         if (me==0) write(*,*) 'Amplitude change too big - readjust!'
      endif
 
-     if (sigma/rho_beam > 0.5 .and. sigma/rho_beam < 2.0) then
+     if (sigma/rho_beam > 0.1 .and. sigma/rho_beam < 10.0) then
         sigma=rho_beam
         if (me==0 .and. sigma /= sigma_old) write(*,*) 'Laser spot size changed'
      else
         if (me==0) write(*,*) 'Spot size change too big - readjust!'
      endif
-     if (tpulse/r_beam > 0.5 .and. tpulse/r_beam < 2.0) then
+     if (tpulse/r_beam > 0.1 .and. tpulse/r_beam < 10.0) then
         tpulse=r_beam
      else
         if (me==0) write(*,*) 'Pulse length change too big - readjust!'
