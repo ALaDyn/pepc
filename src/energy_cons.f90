@@ -20,7 +20,13 @@ subroutine energy_cons
   call kinenergy(ekine, ekini, ebeam)
 
   etot = epot + ekine + ekini + ebeam
-  Qplas = abs(qe)*ne
+
+  if (ne>0) then
+     Qplas = abs(qe)*ne
+  else
+     Qplas = abs(qi)*ni
+  endif
+
   conv_kev = 2./3./Qplas*511
 
   if ( me == 0 ) then

@@ -33,7 +33,7 @@ subroutine setup
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
        nt, dt, mc_steps, idump, ivis, ivis_fields, nmerge, ngx, ngy, ngz, &
-       vis_on, domain_debug,  mc_init, restart, ensemble, &
+       vis_on, domain_debug,  mc_init, restart, ensemble, particle_bcs, &
        load_balance, walk_balance, walk_debug, dump_tree, perf_anal
 
 
@@ -183,32 +183,24 @@ subroutine setup
 
 
   vte = sqrt(Te_keV/511.)  ! convert from keV to /c
-  qe = -Vplas*rho0/ne
-  qi = -qe*q_factor
-  mass_e = -qe
+  if (ne > 0) then
+     qe = -Vplas*rho0/ne
+     qi = -qe*q_factor
+     mass_e = -qe
+  else
+     ! ions only
+     qi = Vplas*rho0/ni
+     qe = -qi
+     mass_e = qi
+  endif
+
+  vti = sqrt(Ti_keV/511./mass_ratio)
+  mass_i = mass_e*mass_ratio
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
 
-  if ( ensemble == 2 ) then
-     ! special case for velocity-clamp mode: set ion mass = 100*electron mass
-     vti = sqrt(Ti_keV/511./100.)
-     mass_i = 100*mass_e
-     if (beam_config==4) then 
-        if (me==0) write(*,*) 'Constant-Te mode: turning laser off'
-        beam_config=0
-     endif
-
-  else if (ensemble == 3) then
-     vti = sqrt(Ti_keV/511./mass_ratio)
-     mass_i = mass_e*mass_ratio
-     if (beam_config==4) then 
-        if (me==0) write(*,*) 'Constant-Te mode: turning laser off'
-        beam_config=0
-     endif
-
-  else
-     ! default is to use actual, user-defined mass ratio
-     vti = sqrt(Ti_keV/511./mass_ratio)
-     mass_i = mass_e*mass_ratio
+  if (ensemble > 1 .and. beam_config<>0) then
+     if (me==0) write(*,*) 'Constant-Te mode: turning beam off'
+     beam_config=0
   endif
 
   if ( beam_config ==4 ) then
@@ -221,7 +213,7 @@ subroutine setup
   npartm = 2*npart  ! allow 50% fluctuation
   nppm = max(npartm/num_pe,1000)
   nshortm = 800    ! Max shortlist length: leave safety factor for nshort_list in FORCES
-  
+
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
      nintmax = 2.5*24*log(1.*npartm)/theta**2
@@ -235,13 +227,13 @@ subroutine setup
   idim = 3               ! # dimensions (2 or 3)
   nlev = 20                     ! max refinement level
   iplace = 2_8**(idim*nlev)           ! place holder bit
-!  nbaddr = 15                  ! # bits for cell address in hash-table
+  !  nbaddr = 15                  ! # bits for cell address in hash-table
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
 
   size_tree = max(2*nintmax+5*nppm,1000)+1
   maxaddress = size_tree
-   nbaddr = log(1.*maxaddress)/log(2.) + 1
+  nbaddr = log(1.*maxaddress)/log(2.) + 1
   maxaddress = 2**nbaddr
   hashconst = maxaddress-1
 
@@ -249,7 +241,7 @@ subroutine setup
 
 
 
-! Some MPI constants
+  ! Some MPI constants
   lastpe = num_pe - 1          ! # of last PE
   me_minus_one = me - 1
   me_plus_one = me + 1
@@ -341,20 +333,20 @@ subroutine setup
   allocate (rhoe(0:ngx+1,0:ngy+1,0:ngz+1), rhoi(0:ngx+1,0:ngy+1,0:ngz+1) )   ! Field arrays
 
 
-!  MPI stuff
+  !  MPI stuff
 
   allocate (send_counts(num_pe+2), send_strides(num_pe+3), recv_counts(num_pe+2), recv_strides(num_pe+3) )  ! buf lengths and strides
   allocate ( stat_pe(MPI_STATUS_SIZE, num_pe), & ! status
-                         pe_handle(2*num_pe), &  ! Handles for non-blocking comm  2*num_pe
-                         send_key_handle(num_pe), &  ! (num_pe)
-                         recv_key_handle(num_pe), &
-                         send_child_handle(num_pe), & ! (num_pe)
-                         recv_child_handle(num_pe) )
+       pe_handle(2*num_pe), &  ! Handles for non-blocking comm  2*num_pe
+       send_key_handle(num_pe), &  ! (num_pe)
+       recv_key_handle(num_pe), &
+       send_child_handle(num_pe), & ! (num_pe)
+       recv_child_handle(num_pe) )
 
 
 
- ! Create new contiguous datatype for shipping particle properties (12 arrays)
- 
+  ! Create new contiguous datatype for shipping particle properties (12 arrays)
+
   blocklengths(1:nprops_particle) = 1   
 
 
@@ -385,8 +377,8 @@ subroutine setup
   call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_particle, ierr)
 
- ! Create new contiguous datatype for shipping multipole properties (18 arrays)
- 
+  ! Create new contiguous datatype for shipping multipole properties (18 arrays)
+
   blocklengths(1:nprops_multipole) = 1   
 
 
@@ -417,11 +409,11 @@ subroutine setup
   call MPI_ADDRESS( node_dummy%xyquad, address(16), ierr )
   call MPI_ADDRESS( node_dummy%yzquad, address(17), ierr )
   call MPI_ADDRESS( node_dummy%zxquad, address(18), ierr )
-  
+
   displacements(1:nprops_multipole) = address(1:nprops_multipole) - send_base   !  Addresses relative to start of particle (receive) data
 
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
-  
+
 
 end subroutine setup

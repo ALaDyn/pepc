@@ -29,7 +29,7 @@ subroutine velocities(p_start,p_finish,delta_t)
 
 
   if (ensemble == 2) then
-     ! Conserve kinetic energy of electrons (initial Te const)
+     ! Conserve kinetic energies of electrons and ions (initial Te const)
      ! adapted from
      !  Allen and Tildesley p230, Brown & Clark, Mol. Phys. 51, 1243 (1984)
 
@@ -223,6 +223,55 @@ subroutine velocities(p_start,p_finish,delta_t)
 
      delta_Ti=0.
      delta_Te = 2*Te0*(1.0/chie**2-1.0)       !  heating
+
+
+  else if (ensemble == 5) then
+     ! Conserve kinetic energy of ions only (initial Ti const)
+
+     sum_vxi=0.0  ! partial sums (ions)
+     sum_vyi=0.0
+     sum_vzi=0.0
+     sum_v2i=0.0
+
+     do p=1,npp
+           uhx(p) = ux(p) + 0.5*delta_t*ax(p)
+           uhy(p) = uy(p) + 0.5*delta_t*ay(p)
+           uhz(p) = uz(p) + 0.5*delta_t*az(p)
+
+        if (pelabel(p)>=ne) then
+           ! ions
+           sum_vxi  = sum_vxi  + uhx(p)
+           sum_vyi  = sum_vyi  + uhy(p)
+           sum_vzi  = sum_vzi  + uhz(p)
+           sum_v2i = sum_v2i + 0.5*(uhx(p)**2+uhy(p)**2+uhz(p)**2)
+        endif
+     end do
+     sum_2vi = sum_vxi**2 + sum_vyi**2 + sum_vzi**2
+
+     ! Find global KE sums
+     call MPI_ALLREDUCE(sum_v2i, global_v2i, one, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+     Ti_uncor = 511*mass_i/mass_e*2./3.*global_v2i/ni  ! This should equal 3/2 kT for 3v Maxwellian
+     Ti0 = Ti_keV  ! normalised electron temp
+
+
+     chii = sqrt(abs(Ti0/Ti_uncor)) 
+     chii = min(1.25,max(chii,0.75))  ! Set bounds of +- 50%
+
+
+     !  3)  Complete full step
+
+     do p=1,npp
+
+        if (pelabel(p)>=ne) then
+           ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*ax(p)
+           uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*ay(p)
+           uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*az(p)
+        endif
+     end do
+     delta_Ti = 2*Ti0*(1.0/chii**2-1.0)       !  heating
+     if (me==0)	write (*,*) 'Ti_unc ',Ti_uncor,' Ti0 ', Ti0, ' chii ',chii,' heating:',delta_Ti
+
+
 
   else
 
