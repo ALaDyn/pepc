@@ -15,6 +15,15 @@ To run PEPC,  first enter or create a run directory.  This is where all the
 main output will appear.  A number of subdirectories pe000, pe001, ... pe<P-1> must
 exist or be created prior to the run, depending on the number of CPUs requested (P).
 
+Sample run scripts (.sh) and parameter files (.h) can be found in the directory 'tutorial':
+
+eqm.h 		Creates ion 'crystal' using artificial lennard-jones potential
+clamp.h puts 	Electrons in thermodynamic eqm using NVT ensemble
+billiards.h	Inter-particle forces switched off; reflective boundaries for 
+		various geometries 
+dust.h		Dust particle inserted into plasma slab (steering demo)
+
+
 The main control options are read from a file run.h.  To introduce a new parameter, it
 must be defined in treevars.f90 and included in the NAMELIST in routine setup.f90.
 
