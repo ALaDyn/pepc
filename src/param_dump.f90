@@ -97,6 +97,7 @@ subroutine param_dump
         write (ifile,*) 'Local tree size ',size_tree
         write (ifile,*) 'Max address in #-table: ',maxaddress
         write (ifile,*) 'Max # branches: ',nbranch_max
+        write (ifile,*) 'Max # multipole fetches: ',size_fetch
         machinebits = bit_size(1_8)    ! # bits in integer variable (hardware) 
         write (ifile,*) 'Machine bit-size = ',machinebits
         write (ifile,*) 'Max permitted particles / PE: ', nppm

@@ -15,7 +15,7 @@ subroutine vis_parts
   implicit none   
 
   integer, parameter :: npart_visit_max = 100000  ! Max 250k data points for VIS
-
+  integer, parameter :: ship_max = 10000
   real, dimension(npart_visit_max) :: xvis,yvis,zvis,vx,vy,vz,qvis,mvis
   integer, dimension(npart_visit_max) :: ppid, plabel
   real, dimension(nppm) :: xv, yv, zv, uxv,uyv,uzv,qv,mv
@@ -33,7 +33,7 @@ subroutine vis_parts
   convert_mu=1.
   simtime = dt*(itime+itime_start)
 
-  nskip = npart/npart_visit_max + 1
+  nskip = npart/ship_max + 1
   if (beam_config==4) then
      amp_las = vosc*min(1.,simtime/tpulse)
   else 
@@ -65,7 +65,7 @@ subroutine vis_parts
   do i=1,npp
      u2=0.5*0.511*mass_ratio*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
 !    if ((npart>100000 .and. (u2>uthresh .and. q(i)>0)) .or. (npart<100000 .and. mod(pelabel(i),nskip).eq.0)) then
-    if ((npart>100000 .and. (u2>uthresh .and. q(i)<0)) .or. (npart<100000 .and. mod(pelabel(i),nskip).eq.0)) then
+    if ((npart>=100000 .and. (u2>uthresh .and. q(i)<0)) .or. (npart<100000 .and. mod(pelabel(i),nskip).eq.0)) then
         nship=nship+1
         nbufe=nbufe+1
 !        nbufi=nbufi+1
@@ -93,12 +93,14 @@ subroutine vis_parts
   call MPI_ALLREDUCE( nbufe, ne_buf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
   call MPI_ALLREDUCE( nbufi, ni_buf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
 
-  if (me==0) write(*,*) '# particles shipped ',npart_buf
-
-  if (npart_buf>0 .and. npart_buf < npart_visit_max) then
+  if (me==0) then 
+	write(*,*) '# particles shipped ',npart_buf
+	write(*,*) 'u_thresh: (MeV)     ',uthresh
+  endif
+  if (npart_buf>0 .and. npart_buf < 2*ship_max) then
      ! send  particle data from all PEs
      ! increase momentum threshold if close to max ship # 
-     if (1.0*npart_buf/npart_visit_max > 0.9) uthresh=uthresh*1.1
+     if (1.0*npart_buf/ship_max > 0.9) uthresh=uthresh*1.1
      if (me==0) then
         call flvisit_spk_check_connection(lvisit_active)
 ! spk version2
@@ -140,7 +142,7 @@ subroutine vis_parts
   else
      ! Just send particles on root
      if (me==0) then
-        if (npart_buf>npart_visit_max) then
+        if (npart_buf>2*ship_max) then
            write(*,*) 'Too many particles to ship - sending ones on root'
            uthresh = uthresh*2
            write(*,*) 'Increasing momentum threshold to: ',sqrt(abs(uthresh))

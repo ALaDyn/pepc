@@ -19,8 +19,8 @@ FZJ = -lllapi -lfzj
 
 IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 
-PG=-pg -g -qfullpath
-#DB= -g -qfullpath -qcheck
+PG=-pg
+DB= -g -qfullpath -qcheck
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
 #MPITRACE= -L/usr/local/beta/lib -lmpitrace
@@ -28,17 +28,17 @@ LISTING=-qreport -qlist -qlistopt -qsource
 #MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
 #MPITRACE= -lmpitrace
 #MPITRACE= -lmpiprof
-MPITRACE= -lsummary -lpmapi
+#MPITRACE= -lsummary -lpmapi
 #MPITRACE=  -lmpihpm -lpmapi
 Q64=-q64
 FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
 TUNE= -qarch=pwr4 -qtune=pwr4 -O5 $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG)
-#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) ## $(PG) 
-#FFLAGS =   $(FFLAGS1) $(DB) $(Q64) $(TUNE)
-TFLAGS = $(FFLAGS) $(TUNE)
+#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG)
+#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) ##$(PG) 
+FFLAGS =   $(FFLAGS1) $(DB) $(Q64) $(TUNE)
+#TFLAGS = $(FFLAGS) $(TUNE)
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
 
@@ -104,13 +104,13 @@ SOURCES.f90 =	treemp.f90 \
 		velocities.f90 \
 	 	energy_cons.f90 potenergy.f90 kinenergy.f90\
 		forces.f90 sum_lennardjones.f90\
-		fpond.f90 empond.f90 emplane.f90 \
+		fpond.f90 empond.f90 emplane.f90 laser_bullet.f90 laser.f90 \
 		push_em.f90 push_full3v.f90 \
 		push.f90 constrain.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
 		vis_parts.f90 vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
 		open_files.f90 close_files.f90	\
 		densities.f90 sum_fields.f90 dump_fields.f90 \
-		track_nc.f90		
+		track_nc.f90 rezone.f90		
 
 
 # -------------------------------------------------------------------------------------------
@@ -130,6 +130,11 @@ all: mods pepc
 #  targets
 
 pepc:	$(appobjs) $(appmods) $(pepcmods) $(pepclib)
+	@echo "\n Creating pepc application binary ...\n"
+	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) -o $@ $(appobjs) $(appmods) $(pepcmods)
+	@echo "... done\n"
+
+pepc2:	$(appobjs) $(appmods) $(pepcmods) $(pepclib)
 	@echo "\n Creating pepc application binary ...\n"
 	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) -o $@ $(appobjs) $(appmods) $(pepcmods)
 	@echo "... done\n"

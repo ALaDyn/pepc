@@ -5,8 +5,8 @@ subroutine setup_arrays
   implicit none
 
   integer :: ibig, machinebits, maxleaf, maxtwig,k
-  integer :: ierr
-  integer :: mem_parts, mem_multipoles, mem_fields, mem_tree
+  integer :: ierr,npsize
+  integer :: mem_parts, mem_multipoles, mem_fields, mem_tree, mem_prefetch
 
   !  npartm = npart + nt*np_beam  ! Max # particles permitted
   npartm = npart + np_beam  ! allow 50% fluctuation
@@ -15,11 +15,11 @@ subroutine setup_arrays
 	                                        ! or double-target config
 
   nppm = 2.*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nshortm = 2500    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
-     nintmax = 2.5*24*log(2.*npartm)/theta**2
+     nintmax = 2.*24*log(2.*npartm)/theta**2
   else
      nintmax = npartm
   endif
@@ -32,10 +32,11 @@ subroutine setup_arrays
 
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
-
-   size_tree = max(4*nintmax+8*nppm,2000)+1
+   npsize=2.5*nppm
+   size_tree = max(4*nintmax+npsize,2000)+1
    maxaddress = size_tree
-   nbranch_max = size_tree/10
+   nbranch_max = size_tree/20
+   size_fetch = 60*size_tree/num_pe 
    nbaddr = log(1.*maxaddress)/log(2.) + 2
    maxaddress = 2**nbaddr
 !  maxaddress = 512
@@ -66,13 +67,13 @@ subroutine setup_arrays
   allocate ( htable(0:maxaddress), all_addr(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
        nbranches(num_pe+2), igap(num_pe+3), &
        treekey(size_tree), branch_key(nbranch_max), branch_owner(nbranch_max), &
-       pebranch(nbranch_max), leaf_key(nppm), twig_key(nppm), &
-       requested_keys(size_tree/num_pe, 0:num_pe-1), fetched_keys(size_tree/num_pe, 0:num_pe-1), &
+       pebranch(nbranch_max), leaf_key(size_tree), twig_key(size_tree), &
+       requested_keys(size_fetch, 0:num_pe-1), fetched_keys(size_fetch, 0:num_pe-1), &
        nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
 
   mem_tree = mem_tree + maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
-                      + num_pe * (4+4+4+4) + size_tree*(3*8) & ! request stuff
-                      + nppm * (2*8) & ! keys
+                      + num_pe * (4+4+4+4) + 2*size_fetch*num_pe*8 & ! request stuff
+                      + size_tree * (3*8) & ! keys
                       + nbranch_max * (8 + 4 + 8)  ! branches
 
   all_addr = (/ (k,k=0,maxaddress) /)      ! List of all possible # table addresses
@@ -195,12 +196,13 @@ subroutine setup_arrays
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
-
+  mem_prefetch = size_fetch*(2*8*num_pe + 5*8) + num_pe*4*11 + size_fetch*(8+4)
 
   if (me==0) then
      write(*,'(//a/)') 'Initial memory allocation:'
-     write(*,'(4(a15,f12.3,a3/)/)') 'Particles: ',mem_parts/1.e6,' MB', &
+     write(*,'(5(a15,f12.3,a3/)/)') 'Particles: ',mem_parts/1.e6,' MB', &
                                'Tree:',mem_tree/1.e6,' MB', &
+                               'Prefetch:',mem_prefetch/1.e6,' MB', &
                                'Multipoles:',mem_multipoles/1.e6,' MB', &
                                'Fields:',mem_fields/1.e6,' MB'
   endif

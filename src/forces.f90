@@ -15,7 +15,7 @@
 !  ===================================================================
 
 
-subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
+subroutine forces(p_start,p_finish,delta_t, t_walk, t_walkc, t_force)
 
   use physvars
   use treevars
@@ -28,7 +28,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
   integer, parameter :: npassm=100000 ! Max # passes - will need npp/nshortm
 
   integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe
-  real :: t_walk, t_force, t1, t2, t3  ! timing integrals
+  real :: t_walk, t_walkc, t_force, ttrav, tfetch, t1, t2, t3  ! timing integrals
   integer :: pshortlist(nshortm),nodlist(nintmax),nshort(npassm),pstart(npassm)
   integer :: hashaddr ! Key address 
   real :: work_loads(num_pe)  ! Load balance array
@@ -48,9 +48,18 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
 
   t_walk=0.
+  t_walkc=0.
   t_force=0.
   max_local = 0   ! max length of interaction list
   work_local = 0  ! total workload
+  maxtraverse=0   ! max # traversals
+  maxships=0      ! max # multipole shipments/traversal
+  sumships=0      ! total # multipole shipments/iteration
+ 
+  if (.not.prefetch) then
+	nfetch_total=0     ! Zero key fetch counters if prefetch mode off
+	nreqs_total=0
+  endif
 
   !  # passes needed to process all particles
   nshort_list =nshortm/4 
@@ -95,6 +104,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
   ip1 = 1
 
+
  do jpass = 1,max_npass
      !  make short-list
      nps = nshort(jpass)
@@ -109,11 +119,11 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
      !  build interaction list: 
      ! tree walk returns intlist(1:nps), nodelist(1:nps) for particles on short list
 
-     call cputime(t1)
-     call tree_walk(pshortlist,nps,jpass,theta,itime,beam_config)
-     call cputime(t2)
-     t_walk = t_walk + t2-t1
+     call tree_walk(pshortlist,nps,jpass,theta,itime,beam_config,ttrav,tfetch)
+     t_walk = t_walk + ttrav  ! traversal time (serial)
+     t_walkc = t_walkc + tfetch  ! multipole swaps
 
+     call cputime(t2)   ! timing
      do i = 1, nps
 
         p = pshortlist(i)    ! local particle index

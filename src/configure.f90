@@ -13,7 +13,7 @@ subroutine configure
   use utils
   implicit none
   integer :: i, ipe, idummy=0, ierr
-  real :: t_walk, t_force
+  real :: t_walk, t_walkc, t_force
 
   if (restart) then
 
@@ -115,8 +115,13 @@ subroutine configure
 !    call closefiles
 !   stop
   if (coulomb .or. lenjones) then
-     call forces(1,npp,dt,t_walk,t_force)          ! Calculate initial potentials and forces
+     call forces(1,npp,dt,t_walk,t_walkc,t_force)          ! Calculate initial potentials and forces
   endif
-  if (.not. perf_anal) call diagnostics
+!  if (.not. perf_anal) call diagnostics
+! move particles for prefetch test
+if (prefetch_debug) then
+  call velocities(1,npp,dt)
+  call push_x(1,npp,1*dt)
+endif
 end subroutine configure
 

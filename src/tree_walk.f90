@@ -34,7 +34,7 @@
 !
 ! ===========================================
 
-subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
+subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config,twalk,tfetch)
 
   use treevars
   use utils
@@ -48,6 +48,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
   integer, intent(in) :: beam_config
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
+  real :: twalk, tfetch, tw1, tw2, tc1, tf1, tf2
 
   ! Key arrays (64-bit)
 
@@ -112,6 +113,9 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
 
 
   !
+  twalk=0.
+  tfetch=0.
+
   npackm = size_tree
   nchild_shipm = size_tree
   !walk_debug = .false.
@@ -148,7 +152,6 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
 
   ntraversals = 0
   nlast_child = 0
-  nchild_ship = 0
   sum_nhops = 0
   sum_inner_pass = 0
   if (sum_nhops_old < 0) then
@@ -163,6 +166,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
   do while (maxactive > 0)        ! Outer loop over 'active' traversals
 
 
+  call cputime(tw1)
      ntraversals = ntraversals + 1  ! # Tree-walks
      if (walk_debug) write(ipefile,'(a,i6)') 'Start of traversal ',ntraversals
      !     if (walk_debug) write(*,'(a,i6)') 'Start of traversal ',ntraversals
@@ -172,6 +176,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
 
      nshare = 0                   ! Total number of requests for nonlocal keys
      nplace = 0                   ! Total # non-local children to be fetched
+     nchild_ship = 0              ! Total # local children to be shipped
      newleaf = 0
      newtwig = 0                  ! local bookkeeping
      inner_pass = 0
@@ -312,18 +317,11 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
 
      end do
 
+   call cputime(tw2)
+   twalk=twalk+tw2-tw1
 
 
-     !VAMPINST subroutine_end
-     !CALL VTLEAVE(ICLASSH,VTIERR)
-     !      write(*,*) 'VT: tree_walk S<',VTIERR,ICLASSH
-     !
-
-     !CALL VTENTER(IF_tree_nlswap,VTNOSCL,VTIERR)
-     !      write(*,*) 'VT: tree_walk S>',VTIERR,
-     !     *    IF_tree_walk,ICLASSH
      if (walk_debug) then
-
         write(ipefile,'(a/(o15,i7))') 'Shared request list: ',(request_key(i),htable( key2addr( request_key(i) ) )%owner,i=1,nshare)
         !        if (me==2) then
         !           write(*,'(a/(o15,i7))') 'Shared request list: ',(request_key(i),htable( key2addr( request_key(i) ) )%owner,i=1,nshare)
@@ -345,7 +343,6 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
      call MPI_ALLTOALL( ntoship, 1, MPI_INTEGER, nrequested, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
      if (walk_debug) then
-        write (ipefile,*) 
         write (ipefile,*) 'PE ',me,': Keys to request: ',ntoship(0:num_pe-1),' to process: ',nrequested(0:num_pe-1)
      endif
 
@@ -418,11 +415,10 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
         i1 = istart(ipe)
         i2 = istart(ipe) + nrequested(ipe) - 1
         if (walk_debug) then
-           write(ipefile,'(a,i4,a,3i7/(i7))') 'PE ',me,' received request from: ',ipe,nrequested(ipe),istart(ipe),process_key(i1:i2) 
+           write(ipefile,'(a,i4,a,3i7/(o12))') 'PE ',me,' received request from: ',ipe,nrequested(ipe),istart(ipe),process_key(i1:i2) 
         endif
         process_addr(1:nreqs) = (/( key2addr( process_key(j) ),j=i1,i2)/)    ! get htable addresses
         childbyte(1:nreqs) = htable( process_addr(1:nreqs) )%childcode        !  Children byte-code
-        nchild_ship(ipe) = 0
 
 
         ! For each key in the request list, fetch and package tree info for children
@@ -473,10 +469,12 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
 
            end do
 
-           !  Keep record of requested keys
-!           requested_keys( nreqs_total(ipe)+1:nreqs_total(ipe)+nchild,ipe ) = key_child(1:nchild)
+           !  Keep record of requested child keys
+           requested_keys( nreqs_total(ipe)+1:nreqs_total(ipe)+nchild,ipe ) = key_child(1:nchild)
            nreqs_total(ipe) = nreqs_total(ipe) + nchild  ! Record cumulative total of # children requested 
-
+	   if (walk_debug) then
+             write(ipefile,'(a,i4,i7/(o12))') 'Keys requested from: ',ipe,nchild,key_child(1:nchild) 
+           endif	
 	end do
 
         ! Ship child data back to PE that requested it
@@ -576,7 +574,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
 
            !  Add child key to list of fetched nodes
            nfetch_total(ipe) = nfetch_total(ipe) + 1
- !          fetched_keys( nfetch_total(ipe),ipe ) = kchild
+           fetched_keys( nfetch_total(ipe),ipe ) = kchild
 
         end do
      end do
@@ -605,39 +603,37 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
      call MPI_ALLGATHER( nactive, 1, MPI_INTEGER, nactives, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
      maxactive = maxval(nactives)
-     nplace_max = maxval(nplace)
-     nchild_ship_tot = maxval(nchild_ship)
-
-     ! cumulative totals
-
-     !     nfetch_total = nfetch_total + nplace
-
+     nplace_max = SUM(nplace)
+     nchild_ship_tot = SUM(nchild_ship)
+     call MPI_ALLREDUCE( nchild_ship_tot, max_pack, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )  
+     maxships = max(maxships,max_pack)  ! Max # shipments/traversal
+     sumships = sumships + max_pack ! Total # shipments/iteration
 
      if (walk_summary ) then
         write (ipefile,'(/a,i8,a2)') 'Summary for traversal # ',ntraversals,' :'
         ! Determine global max
-        call MPI_ALLREDUCE( nchild_ship_tot, max_pack, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
-        call MPI_ALLREDUCE( nplace_max, max_nplace, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
-        write (ipefile,*) ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass,' previous ave: ',sum_inner_old
-        write (ipefile,*) ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops,' previous: ',sum_nhops_old
-        write (ipefile,*) ' # local children shipped: ',nchild_ship,', global max:',max_pack
-        write (ipefile,*) ' cumulative total shipped: ',nreqs_total
-        write (ipefile,*) ' # non-local children fetched: ',nplace,', global max:',max_nplace
-        write (ipefile,*) ' cumulative total fetched: ',nfetch_total
+        call MPI_ALLREDUCE( nplace_max, max_nplace, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
+        write (ipefile,'(a30,i8,a7,i8,a12,i8)') ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass,' previous ave: ',sum_inner_old
+        write (ipefile,'(a30,i8,a7,i8,a12,i8)') ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops,' previous: ',sum_nhops_old
+        write (ipefile,*) ' # local children shipped:     ',nchild_ship,', traversal sum:',max_pack
+        write (ipefile,*) ' # non-local children fetched: ',nplace,', traversal sum:',max_nplace
+        write (ipefile,*) ' cumulative # requested keys:  ',nreqs_total
+        write (ipefile,*) ' cumulative # fetched keys:    ',nfetch_total
 
-        write (ipefile,*) 'array limit',npackm
+        write (ipefile,*) 'array limit',size_fetch
 
         write (ipefile,'(3(/a30,i6)/a/(2i5))') &
              'New twigs: ',newtwig, &
              'New leaves:',newleaf, &
              'New list length: ',nlist, &
              '# remaining active particles on each PE: ',SUM(nactives),MAXVAL(nactives)
-!             '# remaining active particles on each PE: ',(i,nactives(i+1),i=0,num_pe-1)
+  !           '# remaining active particles on each CPU: ',(i,nactives(i+1),i=0,num_pe-1)
         !        write(ipefile,'(a/(2i5))') 'New shortlist: ',(plist(i),pshort(plist(i)),i=1,nlist)
 
      endif
 
-     !     CALL VTLEAVE(ICLASSH,VTIERR)
+    call cputime(tc1)
+    tfetch=tfetch+tc1-tw2  ! timing for 2nd half of walk
 
   end do
 
@@ -659,5 +655,6 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config)
   call MPI_ALLREDUCE( sum_inner_pass, sum_inner_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
   sum_nhops_old = sum_nhops_old/num_pe
   sum_inner_old = sum_inner_old/num_pe
+  maxtraverse = max(maxtraverse,ntraversals)
 
 end subroutine tree_walk

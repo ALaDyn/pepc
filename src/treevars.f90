@@ -167,6 +167,11 @@ module treevars
              max_list_length, & ! current max list length
              maxaddress, &     ! max address allowed in #table
              size_tree, &      ! array space needed for local tree
+             size_fetch, &      ! array space needed for fetch/request arrays 
+             maxtraverse, &      ! max # traversals per iteration 
+             maxships, &      ! max # multipole ships per traversal 
+             sumships, &      ! total # multipole ships per iteration in tree_walk 
+             sumprefetches, &      ! total # multipole ships per prefetch 
              nbranch_max, &    ! array space needed for branches
              free_lo, &        ! min address allowed for resolving collisions
 	     tablehigh, &      ! highest current address in #table 

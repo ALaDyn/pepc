@@ -158,7 +158,8 @@ subroutine tree_properties
   call sort(key_twig(1:ntwig_domain))
 
   if (tree_debug) then
-     write (ipefile,*) 'Twigs contained in local branch list: ',key_twig(1:ntwig_domain)
+!     write (ipefile,*) 'Twigs contained in local branch list: ',key_twig(1:ntwig_domain)
+     write (ipefile,*) '# Twigs contained in local branch list: ',ntwig_domain
      write (ipefile,*) 'Found ',ncheck,' out of ',nleaf,' leaves'
   endif
 

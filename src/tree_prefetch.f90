@@ -20,8 +20,8 @@ subroutine tree_prefetch(itime)
   integer, intent(in) :: itime
   ! Key arrays (64-bit)
 
-  integer*8, dimension(size_tree/2,0:num_pe-1) :: remove_keys, nofetch_keys ! List of deleted keys
-  integer*8, dimension(size_tree) :: req_parent, req_compress, fetch_parent, fetch_comp, absent   ! work arrays
+  integer*8, dimension(size_fetch,0:num_pe-1) :: remove_keys, nofetch_keys ! List of deleted keys
+  integer*8, dimension(size_fetch) :: req_parent, req_compress, fetch_parent, fetch_comp, absent   ! work arrays
 
   integer*8, dimension(8) :: sub_key, key_child, child_sub, child_key, next_child, siblings
 
@@ -36,9 +36,9 @@ subroutine tree_prefetch(itime)
        nplace,&                ! # children (new entries) to place in table
        nchild_ship       ! # children shipped to others
   integer :: ierr
-  integer*8, dimension(size_tree) :: last_child   ! List of 'last' children fetched from remote PEs
+  integer*8, dimension(size_fetch) :: last_child   ! List of 'last' children fetched from remote PEs
 
-  logical, dimension(size_tree) :: key_present, duplicate
+  logical, dimension(size_fetch) :: key_present, duplicate
 
   ! Key working vars
   integer :: ship_byte, ship_leaves, ship_node, ship_address
@@ -49,7 +49,8 @@ subroutine tree_prefetch(itime)
   integer :: nodchild, nlast_child, newtwig, newleaf, hashaddr, nuniq, npar, nabsent
   integer :: cchild, nchild, node_addr, addr_parent, child_byte
   integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops, nreqs_new, nreqs_old, nfetch_new         ! loop counters
-  integer :: size_remove, nreq_max, nfetch_max, timestamp, send_prop_count, recv_count, nnot_local
+  integer :: iofile
+  integer :: size_remove, nreq_max, nfetch_max, sumfetches, timestamp, send_prop_count, recv_count, nnot_local
   character*1 :: ctick
   character(30) :: cfile, ccol1, ccol2, ccol0
 
@@ -57,19 +58,23 @@ subroutine tree_prefetch(itime)
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
+  logical :: prefetch_summary=.false.
 
+  iofile = ipefile
   !
-  if (prefetch_debug) write(ipefile,'(/a,i6)') 'TREE PREFETCH for timestep ',itime
+  if (prefetch_debug) write(iofile,'(/a,i6)') 'TREE PREFETCH for timestep ',itime
   ! if (walk_debug) write(*,'(/a,i6)') 'TREE PREFETCH for timestep ',itime
   timestamp=itime
 
 
   ! -------------------------------------------------------------------------
-  ! PASS 1:  examine fetched-key lists to check whether parents exist locally
+  ! PASS 1:  
+  !   Recursively examine fetched-key lists to check whether parents exist locally
+  !   Add absent parents to fetched-key lists for re-copy
   ! -------------------------------------------------------------------------
 
   do ipe = 0,num_pe-1
-     if (prefetch_debug) write(ipefile,*) 'PASS 1: Fetches from PE ',ipe
+     if (prefetch_debug) write(iofile,*) 'PASS 1: Fetches from PE ',ipe
      npar = nfetch_total(ipe)
      fetch_comp(1:npar) = fetched_keys(1:npar,ipe)  ! Work array
      nfetch_new = npar  ! New list length
@@ -77,38 +82,46 @@ subroutine tree_prefetch(itime)
      do while (npar>0)  ! Loop recursively back up tree until all absent ancestors identified
 
         if (prefetch_debug) call sort(fetch_comp(1:npar))   ! Sort key list for debugging
-        fetch_parent(1:npar) = ishft( fetch_comp(1:npar),-3)  ! Parent keys of fetch-list
-        key_present(1:npar) = (/ (key_local( fetch_parent(i) ),i=1,npar) /) ! Check whether parent node present locally
-        nnot_local = count(mask = .not.key_present(1:npar))     ! Count absentees
-        if (prefetch_debug) write(ipefile,'(a,i6/(2o15,l3))') &
-	'Old fetch list   Parents    Present ',npar,(fetch_comp(i),fetch_parent(i),key_present(i),i=1,npar)
+        nnot_local = 0
+        do i=1,npar
+           fetch_parent(i) = ishft( fetch_comp(i),-3)  ! Parent keys of fetch-list
+           key_present(i) = key_local( fetch_parent(i) ) ! Check whether parent node present locally
+           if( .not.key_present(i)) then
+              nnot_local=nnot_local+1! Count absentees
+              absent(nnot_local) = fetch_parent(i) ! Make list of absent parents
+           endif
+        end do
 
-        absent(1:nnot_local) = &
-             pack( fetch_parent(1:npar), mask = .not.key_present(1:npar) ) ! Make list of absent parents
+!        if (prefetch_debug) write(iofile,'(a,i6/(2o15,l3))') &
+!	'Old fetch list   Parents    Present ',npar,(fetch_comp(i),fetch_parent(i),key_present(i),i=1,npar)
 
         call sort(absent(1:nnot_local))   ! Sort absentee list
 
         absent(nnot_local+1) = 0 ! dummy at end
-        duplicate(1:nnot_local) = (/ (absent(i) /= absent(i+1), i=1,nnot_local) /)  ! Identify unique keys     
-        nabsent= count(mask = duplicate(1:nnot_local))          ! Count them
-        absent(1:nabsent) = pack(absent(1:nnot_local), mask = duplicate(1:nnot_local))   ! Store compressed list
+
+        call unique(absent,nnot_local) ! Identify unique keys and compress list
+        nabsent=nnot_local
+
         fetch_comp(1:nabsent) = absent(1:nabsent) ! buffer for next level up
+
         npar = nabsent
         fetched_keys(nfetch_new+1:nfetch_new+nabsent,ipe) = absent(1:nabsent)  ! Add absent keys to list
         nfetch_new = nfetch_new + nabsent
 
      end do
 
+     call sort(fetched_keys(1:nfetch_new,ipe))   ! Sort augmented list
+     fetched_keys(nfetch_new+1,ipe) = 0 ! dummy at end
+     call unique(fetched_keys(1:nfetch_new,ipe),nfetch_new) ! Remove duplicates
 
-!     if (prefetch_debug) write(ipefile,'(a,i6/(o15))') 'New fetch list: ',nfetch_new,(fetched_keys(i,ipe),i=1,nfetch_new)
-
+     if (prefetch_debug) write(iofile,'(a,i6/(o15))') 'New fetch list: ',nfetch_new,(fetched_keys(i,ipe),i=1,nfetch_new)
      nfetch_total(ipe) = nfetch_new   ! New # keys to fetch
 
   end do
 
   !  Get fence posts for key swap
 
-  sstrides = (/ (i*size_tree,i=0,num_pe-1) /)
+  sstrides = (/ (i*size_fetch,i=0,num_pe-1) /)
   rstrides = sstrides
 
   !  Send new fetch-list totals to destination PEs
@@ -121,16 +134,21 @@ subroutine tree_prefetch(itime)
 
 
   ! -------------------------------------------------------------------------
-  ! PASS 2:  - compare request lists with actual local tree nodes
+  ! PASS 2:  - compare request lists with new local tree nodes
   !          - flag and remove keys which no longer exist
   ! -------------------------------------------------------------------------
 
+  if (prefetch_debug) write(iofile,'(/a)') '-----------------------'
+
   do ipe = 0,num_pe-1
      nremove(ipe) = 0
-     if (prefetch_debug) write(ipefile,*) 'PASS 2: Requests from PE ',ipe
+     nreqs_new=0
+     if (prefetch_debug) write(iofile,*) 'PASS 2: Requests from PE ',ipe
      do i=1,nreqs_total(ipe)
         key_present(i) = key_local(requested_keys(i,ipe))
         if (key_present(i)) then
+           nreqs_new=nreqs_new+1
+           req_compress(nreqs_new)=requested_keys(i,ipe)
            ctick = ''
         else
            ! tag key as non existent and add to remove list
@@ -138,20 +156,17 @@ subroutine tree_prefetch(itime)
            remove_keys(nremove(ipe),ipe) = requested_keys(i,ipe)
            ctick = 'N'
         endif
-        if (prefetch_debug)  write(ipefile,'(o15,2x,a1)') requested_keys(i,ipe),ctick
+        if (prefetch_debug)  write(iofile,'(o15,2x,a1)') requested_keys(i,ipe),ctick
      end do
-     write(ipefile,*)
-
+     write(iofile,*)
 
      ! remove non-existent keys
      ! could do something more sophisticated here, like suggesting alternative key
      ! but for now let tree_walk routine deal with missing keys
 
-     nreqs_new = count(mask = key_present(1:nreqs_total(ipe)))     ! Count them
-     req_compress(1:nreqs_new) = &
-          pack(requested_keys(1:nreqs_total(ipe),ipe), mask = key_present(1:nreqs_total(ipe)))        ! Compress list
+
      nreqs_total(ipe) = nreqs_new
-     if (prefetch_debug) write(ipefile,'(a,i8/(o15))') 'Keys removed: ', nremove(ipe),(remove_keys(i,ipe),i=1,nremove(ipe))
+     if (prefetch_summary) write(iofile,'(a,i8/(o15))') 'Keys removed: ', nremove(ipe),(remove_keys(i,ipe),i=1,nremove(ipe))
 
      ! TODO: Check that sibling sets complete so that parent's 'HERE' flag can be set in childcode.
      ! Need this so that tree_walk MAC options still function as-is
@@ -162,13 +177,12 @@ subroutine tree_prefetch(itime)
      call sort(req_compress(1:nreqs_new))   ! Sort key list
      req_parent(1:nreqs_new) = ishft( req_compress(1:nreqs_new),-3)
 
-     if (prefetch_debug) write(ipefile,'(a,i6/(2o15))') & 
+     if (prefetch_debug) write(iofile,'(a,i6/(2o15))') & 
 	'Compressed list   Parents ',nreqs_new,(req_compress(i),req_parent(i),i=1,nreqs_new)
      req_parent(nreqs_new+1) = 0
-     duplicate(1:nreqs_new) = (/ (req_parent(i) /= req_parent(i+1), i=1,nreqs_new) /)  ! Identify unique keys     
-     nuniq= count(mask = duplicate(1:nreqs_new))            ! Count them
-     req_parent(1:nuniq) = pack(req_parent(1:nreqs_new), mask = duplicate(1:nreqs_new))   ! Compress list
-     if (prefetch_debug) write(ipefile,'(a,i6/(o15))') 'Unique parents ',nuniq,(req_parent(i),i=1,nuniq)
+     call unique(req_parent(1:nreqs_new),nreqs_new)     ! Remove duplicates
+     nuniq= nreqs_new         ! Count them
+     if (prefetch_debug) write(iofile,'(a,i6/(o15))') 'Unique parents ',nuniq,(req_parent(i),i=1,nuniq)
 
 
  ! Make new list of requested children from parent list
@@ -189,6 +203,10 @@ subroutine tree_prefetch(itime)
   end do
 
 
+!    call MPI_FINALIZE(ierr)
+!    call closefiles
+!   stop
+
   !  Send new request-list totals to requesting PEs
   call MPI_ALLTOALL( nreqs_total, 1, MPI_INTEGER, nfetch_total, 1, MPI_INTEGER, MPI_COMM_WORLD,ierr)
 
@@ -202,14 +220,16 @@ subroutine tree_prefetch(itime)
   !         might have been created locally during tree_fill.
   ! -------------------------------------------------------------------------
 
-  do ipe = 0,num_pe-1
+  if (prefetch_debug) write(iofile,'(/a)') '-----------------------'
+
+   do ipe = 0,num_pe-1
      if (ipe /= me) then
-        if (prefetch_debug) write(ipefile,*) 'PASS 3: Fetches from PE ',ipe
+        if (prefetch_debug) write(iofile,*) 'PASS 3: Fetches from PE ',ipe
         npar = nfetch_total(ipe)
         fetch_comp(1:npar) = fetched_keys(1:npar,ipe)  ! Work array
         key_present(1:npar) = (/ (key_local( fetch_comp(i) ),i=1,npar) /) ! Check whether node already present locally
         nnot_local = count(mask = .not.key_present(1:npar))     ! Count absentees
-        if (prefetch_debug) write(ipefile,'(a,i6/(o15,l3))') 'Fetch list  Present ',npar,(fetch_comp(i),key_present(i),i=1,npar)
+        if (prefetch_debug) write(iofile,'(a,i6/(o15,l3))') 'Fetch list  Present ',npar,(fetch_comp(i),key_present(i),i=1,npar)
         nfetch_new = nnot_local
         fetched_keys(1:nfetch_new,ipe) = &
              pack( fetch_comp(1:npar), mask = .not.key_present(1:npar) ) ! Make list of absent keys
@@ -227,7 +247,7 @@ subroutine tree_prefetch(itime)
        MPI_COMM_WORLD, ierr)
 
 
-  if (walk_debug) then
+  if (prefetch_summary.or.prefetch_debug) then
      nreq_max=maxval(nreqs_total)
      nfetch_max=maxval(nfetch_total)
      ! Insert dummy values
@@ -238,26 +258,28 @@ subroutine tree_prefetch(itime)
 
      ! formatting for fetch/request lists
      if (num_pe<10) then
-        ccol0='(//a,i7/3('//achar(mod(num_pe,10)+48)//'i15/),a/)'
+        ccol0='(//a,i7/3(a15,'//achar(mod(num_pe,10)+48)//'i15/),a/)'
         ccol1='(//a,i7/'//achar(mod(num_pe,10)+48)//'i15/a/)'
         ccol2='('//achar(mod(num_pe,10)+48)//'o15)'
      else
-        ccol0='(//a,i7/3('//achar(num_pe/10+48)//achar(mod(num_pe,10)+48)//'i15/),a/)'
+        ccol0='(//a,i7/3(a15,'//achar(num_pe/10+48)//achar(mod(num_pe,10)+48)//'i15/),a/)'
         ccol1='(//a,i7/'//achar(num_pe/10+48)//achar(mod(num_pe,10)+48)//'i15/a/)'
         ccol2='('//achar(num_pe/10+48)//achar(mod(num_pe,10)+48)//'o15)'
      endif
 
-     write(ipefile,ccol0) 'Keys requested/removed/added at timestep ', &
-	timestamp,nreqs_total(0:num_pe-1),nremove(0:num_pe-1),nadd(0:num_pe-1), &
-        '------------------------------------------------------------'
+     write(iofile,ccol0) 'Key prefetch at timestep ', &
+	timestamp,'requested:',nreqs_total(0:num_pe-1),'removed:',nremove(0:num_pe-1),'added:',nadd(0:num_pe-1), &
+        '--------------------------------------------------------------------------------'
+  endif
+  if (prefetch_debug) then
      do i=1,nreq_max
-        write(ipefile,ccol2) (requested_keys(i,ipe),ipe=0,num_pe-1)
+        write(iofile,ccol2) (requested_keys(i,ipe),ipe=0,num_pe-1)
      end do
 
-     write(ipefile,ccol1) 'Keys fetched at timestep ',timestamp,nfetch_total(0:num_pe-1), &
+     write(iofile,ccol1) 'Keys fetched at timestep ',timestamp,nfetch_total(0:num_pe-1), &
           '------------------------------------------------------------'
      do i=1,nfetch_max
-        write(ipefile,ccol2) (fetched_keys(i,ipe),ipe=0,num_pe-1)
+        write(iofile,ccol2) (fetched_keys(i,ipe),ipe=0,num_pe-1)
      end do
   endif
 
@@ -322,7 +344,7 @@ subroutine tree_prefetch(itime)
   sstrides = (/ 0, nreqs_total(0), ( SUM( nreqs_total(0:i-1) ),i=2,num_pe-1 ) /)
   rstrides = (/ 0, nfetch_total(0), ( SUM( nfetch_total(0:i-1) ),i=2,num_pe-1 ) /)
 
-  ! write (ipefile,'((2i8))') (sstrides(i), rstrides(i), i=0,num_pe-1) 
+  ! write (iofile,'((2i8))') (sstrides(i), rstrides(i), i=0,num_pe-1) 
 
   ! Ship multipole data
 
@@ -362,7 +384,7 @@ subroutine tree_prefetch(itime)
            first_child( nodchild ) = IOR( ishft( recv_key,3), sub_key(1) )              ! Construct key of 1st (grand)child
 
         else
-           write(ipefile,'(a,o15,a,i7)') '# leaves <=0 for received child node ',recv_key,' from PE ',ipe
+           write(iofile,'(a,o15,a,i7)') '# leaves <=0 for received child node ',recv_key,' from PE ',ipe
         endif
 
 
@@ -407,7 +429,7 @@ subroutine tree_prefetch(itime)
            last_child(nlast_child) = recv_key
         endif
 
-        if (prefetch_debug) write(ipefile,'(a,o15,a,i7,a,o13)') &
+        if (prefetch_debug) write(iofile,'(a,o15,a,i7,a,o13)') &
              'Prefetch: ',recv_key,' from ',ipe,' parent key ',recv_parent
 
      end do
@@ -424,6 +446,9 @@ subroutine tree_prefetch(itime)
      htable( node_addr )%next = next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
   end do
 
+! Get total # multipole ships from prefetch 
+ sumfetches = SUM(nfetch_total)
+ call MPI_ALLREDUCE( sumfetches, sumprefetches, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr ) 
 
 end subroutine tree_prefetch
 

@@ -38,6 +38,10 @@ module utils
      module procedure swap_ab
   end interface
 
+  interface unique
+     module procedure uniq8
+  end interface
+
   interface blank
      module procedure blankn, blank6
   end interface
@@ -369,7 +373,7 @@ contains
 
     integer, intent(in) :: nppm,np,nprocs,iproc
     integer, intent(out) :: npnew
-    integer, parameter :: binmult=40000
+    integer, parameter :: binmult=2000000
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    w1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
@@ -764,8 +768,28 @@ contains
   end subroutine swap_ab
 
 
+
+
+! Removes duplicate entries from key list
+ 
+  subroutine uniq8(key, ntot)
+    integer :: ntot, nu
+    integer*8, dimension(ntot+1) :: key
+    nu=0
+    do i=1,ntot
+       if (key(i) /= key(i+1) ) then
+          nu=nu+1
+          key(nu) = key(i) ! pack
+       endif
+    end do
+    ntot=nu
+  end subroutine uniq8
+
+
+
+
   subroutine blankn(ichan)
-  integer :: ichan
+    integer :: ichan
     write(ichan,'(/)')
   end subroutine blankn
 

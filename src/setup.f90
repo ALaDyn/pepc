@@ -114,6 +114,7 @@ subroutine setup
   ivis_fields = 1
   itime_start = 0
   itrack = 10
+  sumprefetches = 0
 
   ngx = 25   ! Grid size for plots
   ngy = 25

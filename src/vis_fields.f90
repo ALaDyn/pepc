@@ -62,10 +62,10 @@ subroutine vis_fields
         do j=1,ngy,iskip_y
            do i=1,ngx,iskip_x
               lcount=lcount+1
-!              xd = (i-0.5)*dx - focus(1) ! position relative to laser focus
+              xd = (i-0.5)*dx - focus(1) ! position relative to laser focus
               yd = (j-0.5)*dy - focus(2)
               zd = (k-0.5)*dz - focus(3)
-              xd = (i-0.5)*dx - 50.
+!              xd = (i-0.5)*dx - 50.
 
               laser: select case(beam_config)
 
@@ -115,8 +115,4 @@ subroutine vis_fields
 
 
 end subroutine vis_fields
-
-
-
-
 
