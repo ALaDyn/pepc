@@ -152,21 +152,21 @@ subroutine make_branches
   ! now collect partial arrays together on each PE
   ! using gather-to-all: nbranches and igap already defined locally
 
-  nbuf = nbranch
-  recv_counts = nbranches  ! receive buffer lengths and placement
-  recv_strides = igap
+!  nbuf = nbranch
+!  recv_counts = nbranches  ! receive buffer lengths and placement
+!  recv_strides = igap
 
-  call mpi_allgatherv( pebranch, nbuf, MPI_INTEGER8, branch_key, &
-                       recv_counts, recv_strides, MPI_INTEGER8, MPI_COMM_WORLD, ierr )
+  call mpi_allgatherv( pebranch, nbranch, MPI_INTEGER8, branch_key, &
+                       nbranches, igap, MPI_INTEGER8, MPI_COMM_WORLD, ierr )
 
-  call mpi_allgatherv( local_node, nbuf, MPI_INTEGER, branch_node, &
-                       recv_counts, recv_strides,  MPI_INTEGER, MPI_COMM_WORLD, ierr )
+  call mpi_allgatherv( local_node, nbranch, MPI_INTEGER, branch_node, &
+                       nbranches, igap,  MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
-  call mpi_allgatherv( local_code, nbuf, MPI_INTEGER, branch_code, &
-                       recv_counts, recv_strides, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+  call mpi_allgatherv( local_code, nbranch, MPI_INTEGER, branch_code, &
+                       nbranches, igap, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
-  call mpi_allgatherv( local_leaves, nbuf, MPI_INTEGER, branch_leaves, &
-                       recv_counts,recv_strides , MPI_INTEGER, MPI_COMM_WORLD, ierr )
+  call mpi_allgatherv( local_leaves, nbranch, MPI_INTEGER, branch_leaves, &
+                       nbranches, igap, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
   !  need to keep track of owners too
   do i=1,num_pe
