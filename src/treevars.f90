@@ -1,6 +1,8 @@
 !
-!   header module for treemp: global arrays and variables
-!  All key variables defined 64 bit (8 byte)
+!   Header module for treemp: global arrays and variables
+!
+!   $ Revision:   $ 
+!   All key variables defined 64 bit (8 byte)
 !
  
 module treevars
@@ -193,6 +195,7 @@ module treevars
   real :: vte, vti       ! electron, ion thermal velocities
   real :: Te_keV, Ti_keV ! electron, ion emperatures in keV
   real :: force_const    ! force constant depending on unit system
+  real :: bond_const     ! bonding force constant for ion crystal
   real :: mass_ratio     ! ion:electron mass ratio
   real :: qe, qi         ! electron, ion charge
   real :: mass_e, mass_i   ! electron, ion mass
@@ -232,11 +235,14 @@ module treevars
   logical :: vis_on=.true.  ! online visualisation on/off
   logical :: mc_init = .false. ! MC initialisation switch
   logical :: restart = .false.  ! Restart switch: config read from parts_all.in
+  logical :: coulomb = .true.  ! Compute Coulomb forces
+  logical :: bonds = .false. ! Include SHO bonding potential for ions
   integer :: mc_steps
   integer :: initial_config = 4  ! Switch for initial configuration (positions, velocities)
   integer :: beam_config = 0 ! Switch for particle beam mode
   integer :: ensemble = 1 ! Canonical ensemble switch: 2= const. Te dynamics
   integer :: particle_bcs = 1 ! Particle BC switch: 1=open, 2=reflective
+  
    real :: dt             ! timestep
    real :: trun           ! total run time including restarts
    real :: convert_fs     ! conversion factor from wp^-1 to fs
