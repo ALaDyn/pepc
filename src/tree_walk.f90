@@ -2,6 +2,8 @@
 !
 !           TREE_WALK
 !
+!   $Revision$
+!
 !   Perform tree walk for all local particles
 !
 !  Algorithm follows Warren & Salmon's 'latency-hiding' concept,
@@ -52,7 +54,7 @@ subroutine tree_walk(pshort,npshort)
   integer*8, dimension(nppm,0:num_pe-1) ::  ship_key
   integer*8, dimension(8) :: sub_key, key_child, next_child
   integer*8, dimension(nintmax,nshortm) :: defer_list, walk_list
-  integer*8, dimension(size_tree) :: last_child                      ! List of 'last' children fetched from remote PEs
+  integer*8, dimension(size_tree) :: last_child   ! List of 'last' children fetched from remote PEs
 
   integer, dimension(nshortm) :: plist
 
@@ -79,10 +81,10 @@ subroutine tree_walk(pshort,npshort)
   integer*8 :: node_key, kchild, kparent, search_key,  nxchild
 
   integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops          ! loop counters
-  integer :: nnew, nshare, newrequest, nreqs, i1, i2, ioff, ipack, source_id
+  integer :: nnew, nshare, newrequest, nreqs, i1, i2, ioff, ipack
   integer :: nchild, newleaf, newtwig, nactive, maxactive, ntraversals, own
   integer :: ic1, ic2, ihand, nchild_ship_tot, nplace_max, sum_nhops, sum_inner_pass
-  integer :: request_count, rec_child_count, send_prop_count  ! buffer counters
+  integer :: request_count, fetch_pe_count, send_prop_count  ! buffer counters
 
   integer ::  bchild, nodchild, lchild, hashaddr, nlast_child
   integer :: max_nplace, max_pack
@@ -94,6 +96,7 @@ subroutine tree_walk(pshort,npshort)
   logical :: resolved, keymatch(8), emulate_blocking=.false.
 
   integer :: key2addr        ! Mapping function to get hash table address from key
+  integer*8 :: next_node   ! Function to get next node key for local tree walk
 
   npackm = size_tree
   nchild_shipm = size_tree
@@ -120,6 +123,7 @@ subroutine tree_walk(pshort,npshort)
 
   ntraversals = 0
   nlast_child = 0
+  nchild_ship = 0
   sum_nhops = 0
   sum_inner_pass = 0
 
@@ -290,18 +294,18 @@ subroutine tree_walk(pshort,npshort)
      !   the recipients already know how many requests to expect.
 
      i1=1
-     rec_child_count = 0
+     fetch_pe_count = 0
 
      do ipe = 0,num_pe-1 
 
         if ( ipe /= me .and. ntoship(ipe) > 0 ) then   ! avoid shipping to oneself and shipping nothing
 
            ic_start(ipe) = i1        ! fencepost
-           rec_child_count = rec_child_count + 1  ! receive counter
+           fetch_pe_count = fetch_pe_count + 1  ! receive counter
 
      ! First initiate receives for returning child info
            call MPI_IRECV( get_child(i1), nplace(ipe), MPI_type_multipole, ipe, tag1, &
-                MPI_COMM_WORLD, recv_child_handle(rec_child_count), ierr)
+                MPI_COMM_WORLD, recv_child_handle(fetch_pe_count), ierr)
            i1 = i1+nplace(ipe)
 
      ! Extract sub-list of keys to request according to location - don't overwrite buffer!
@@ -313,8 +317,8 @@ subroutine tree_walk(pshort,npshort)
                 MPI_COMM_WORLD,  ierr ) ! Ship to data location
            else
               call MPI_ISEND(ship_key(1,ipe), ntoship(ipe), MPI_INTEGER8, ipe, tag1, &
-                   MPI_COMM_WORLD, send_key_handle(rec_child_count), ierr ) ! Ship to data location
-              call MPI_REQUEST_FREE( send_key_handle(rec_child_count), ierr)
+                   MPI_COMM_WORLD, send_key_handle(fetch_pe_count), ierr ) ! Ship to data location
+              call MPI_REQUEST_FREE( send_key_handle(fetch_pe_count), ierr)
            endif
 
         endif
@@ -385,6 +389,11 @@ subroutine tree_walk(pshort,npshort)
                    zxquad( node_child(ic)) )
 
            end do
+
+!  Keep record of requested keys
+           requested_keys( nreqs_total(ipe)+1:nreqs_total(ipe)+nchild,ipe ) = key_child(1:nchild)
+           nreqs_total(ipe) = nreqs_total(ipe) + nchild  ! Record cumulative total of # children requested 
+
 	end do
 
         ! Ship child data back to PE that requested it
@@ -408,12 +417,12 @@ subroutine tree_walk(pshort,npshort)
 
      ! Wait for data to arrive
 
-     do i=1, rec_child_count  ! loop over # requests originally sent out
+     do i=1, fetch_pe_count  ! loop over # PEs originally sent requests
 
-        call MPI_WAITANY( rec_child_count, recv_child_handle, ihand, status, ierr)  ! Wait for one of receives to complete
-        source_id = status(MPI_SOURCE)   ! which PE?
-        ic1 = ic_start(source_id)         ! fenceposts
-        ic2 = ic1 + nplace(source_id) -1
+        call MPI_WAITANY( fetch_pe_count, recv_child_handle, ihand, status, ierr)  ! Wait for one of receives to complete
+        ipe = status(MPI_SOURCE)   ! which PE?
+        ic1 = ic_start(ipe)         ! fenceposts
+        ic2 = ic1 + nplace(ipe) -1
         do ic = ic1, ic2
            kchild = get_child(ic)%key
            kparent = ishft( kchild,-idim )
@@ -438,15 +447,15 @@ subroutine tree_walk(pshort,npshort)
               first_child( nodchild ) = IOR( ishft( kchild,idim), sub_key(1) )              ! Construct key of 1st (grand)child
 
            else
-              write(ipefile,'(a,o15,a,i7)') '# leaves <=0 for received child node ',kchild,' from PE ',source_id
+              write(ipefile,'(a,o15,a,i7)') '# leaves <=0 for received child node ',kchild,' from PE ',ipe
            endif
 
            if (walk_debug) write(ipefile,'(a,o15,a,i7,a,o13)') &
-                'Child data arrived:',kchild,' from ',source_id,' requested for key ',kparent
+                'Child data arrived:',kchild,' from ',ipe,' requested for key ',kparent
 
            ! Insert new node into local #-table
 
-           call make_hashentry( kchild, nodchild, lchild, bchild, source_id, hashaddr, ierr )
+           call make_hashentry( kchild, nodchild, lchild, bchild, ipe, hashaddr, ierr )
 
            htable(hashaddr)%next = nxchild           ! Fill in special next-node pointer for non-local children
            htable( key2addr( kparent) )%childcode = IBSET(  htable( key2addr( kparent) )%childcode, 9) ! Set children_HERE flag for parent node
@@ -475,6 +484,11 @@ subroutine tree_walk(pshort,npshort)
               nlast_child = nlast_child + 1
               last_child(nlast_child) = kchild
            endif
+
+!  Add child key to list of fetched nodes
+           nfetch_total(ipe) = nfetch_total(ipe) + 1
+           fetched_keys( nfetch_total(ipe),ipe ) = kchild
+
         end do
      end do
 
@@ -495,7 +509,7 @@ subroutine tree_walk(pshort,npshort)
 
      nactive = count( mask = nwalk(1:npshort) /= 0 )     ! Count remaining 'active' particles - those still with deferred nodes to search
 
-  !   call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
+     call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
 
      ! Broadcast # remaining particles to other PEs
 
@@ -505,20 +519,27 @@ subroutine tree_walk(pshort,npshort)
      nplace_max = maxval(nplace)
      nchild_ship_tot = maxval(nchild_ship)
 
+! cumulative totals
+
+!     nfetch_total = nfetch_total + nplace
+
      ! Determine global max
      call MPI_ALLREDUCE( nchild_ship_tot, max_pack, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
      call MPI_ALLREDUCE( nplace_max, max_nplace, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
 
-     if (walk_debug .and. mod(itime,idump)==0 ) then
-        write (ipefile,*) 'Summary for traversal # ',ntraversals,' :'
+     if (walk_debug ) then
+        write (ipefile,'(/a,i8,a2)') 'Summary for traversal # ',ntraversals,' :'
         write (ipefile,*) ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass
         write (ipefile,*) ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops
         write (ipefile,*) ' # local children shipped: ',nchild_ship,', global max:',max_pack
+        write (ipefile,*) ' cumulative total shipped: ',nreqs_total
         write (ipefile,*) ' # non-local children fetched: ',nplace,', global max:',max_nplace
+        write (ipefile,*) ' cumulative total fetched: ',nfetch_total
+
         write (ipefile,*) 'array limit',npackm
-     endif
-     if (walk_debug) then
-        write (ipefile,'(3(/a30,i6)/a/(2i5))') 'New twigs: ',newtwig, &
+    
+        write (ipefile,'(3(/a30,i6)/a/(2i5))') &
+             'New twigs: ',newtwig, &
              'New leaves:',newleaf, &
              'New list length: ',nlist, &
              '# remaining active particles on each PE: ',(i,nactives(i+1),i=0,num_pe-1)
@@ -533,41 +554,11 @@ subroutine tree_walk(pshort,npshort)
   !  This  ensures that traversals in next pass treat already-fetched nodes as local,
   !  avoiding deferral list completely.
 
-  ! ** TODO:  Put this in separate routine FIND_NEXTNODE
 
   do i = 1,nlast_child
-
      search_key = last_child(i)                   
-     node_key = search_key                     ! keep key, address of node 
      node_addr = key2addr(search_key)
-     resolved = .false.
-
-     !   Search for next sibling, uncle, great-uncle etc
-
-     do while (.not. resolved .and. search_key > 1)
-        kparent =  ishft(search_key,-idim)                 ! parent
-	parent_addr = key2addr( kparent)
-        parent_node = htable( parent_addr )%node   ! parent node pointer
-
-        child_byte = htable( parent_addr )%childcode                           !  Children byte-code
-        nchild = SUM( (/ (ibits(child_byte,j,1),j=0,2**idim-1) /) )                   ! # children = sum of bits in byte-code
-        sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(child_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
-        key_child(1:nchild) = IOR( ishft(kparent,idim), sub_key(1:nchild) )         ! Construct keys of children
-
-        keymatch=.false.
-        keymatch(1:nchild) = (/ (key_child(j) == search_key,j=1,nchild) /)
-        jmatch = pack(bitarr, mask = keymatch ) + 1                                  ! Pick out position of current search key in family
-
-        if (jmatch(1) < nchild ) then                                                ! if search_key has 'elder' sibling then
-           htable( node_addr )%next  = key_child(jmatch(1)+1)                        ! store next_node as sibling of parent/grandparent
-           resolved = .true.
-        else
-           search_key = ishft(search_key, -idim)                                     ! Go up one level 
-        endif
-     end do
-
-     if (.not. resolved .and. search_key == 1)  htable( node_addr )%next  = 1        ! Top-right corner reached: set pointer=root
-
+     htable( node_addr )%next = next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
   end do
 
 end subroutine tree_walk

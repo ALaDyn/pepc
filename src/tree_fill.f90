@@ -29,7 +29,7 @@ subroutine tree_fill
   integer ::  node_addr, jmatch(1),  parent_node, parent_level, nodtwig
   logical :: duplicate(size_tree), resolved, keymatch(8)
   integer :: key2addr        ! Mapping function to get hash table address from key
-
+  integer*8 :: next_node   ! Function to get next node key for local tree walk
 
 
   if (tree_debug) write(ipefile,'(/a)') 'TREE FILL'
@@ -136,38 +136,9 @@ subroutine tree_fill
   !  - already have (approx) sorted key list for twig nodes from leaf count above.
 
   do i = nnodes,2,-1
-
      search_key = treekey(i)                   
-     node_key = treekey(i)                     ! keep key, address of node 
      node_addr = cell_addr(i)
-     resolved = .false.
-
-     !   Search for next sibling, uncle, great-uncle etc
-
-     do while (.not. resolved .and. search_key > 1)
-        parent =  ishft(search_key,-idim)                 ! parent
-        parent_node = htable( key2addr( parent ) )%node   ! parent node pointer
-
-        child_byte = htable( key2addr( parent ) )%childcode                           !  Children byte-code
-        nchild = SUM( (/ (ibits(child_byte,j,1),j=0,2**idim-1) /) )                   ! # children = sum of bits in byte-code
-        child_sub(1:nchild) = pack( bitarr, mask=(/ (btest(child_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
-	child_top = ishft(parent,idim)  
-      child_key(1:nchild) = IOR( child_top, child_sub(1:nchild) )         ! Construct keys of children
-
-        keymatch=.false.
-        keymatch(1:nchild) = (/ (child_key(j) == search_key,j=1,nchild) /)
-        jmatch = pack(bitarr, mask = keymatch ) + 1                                  ! Pick out position of current search key in family
-
-        if (jmatch(1) < nchild ) then                                                ! if search_key has 'elder' sibling then
-           htable( node_addr )%next  = child_key(jmatch(1)+1)                        ! store next_node as sibling of parent/grandparent
-           resolved = .true.
-        else
-           search_key = ishft(search_key, -idim)                                     ! Go up one level 
-        endif
-     end do
-
-     if (.not. resolved .and. search_key == 1)  htable( node_addr )%next  = 1        ! Top-right corner reached: set pointer=root
-
+     htable( node_addr )%next = next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
   end do
 
 
