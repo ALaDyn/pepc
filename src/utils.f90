@@ -334,6 +334,8 @@ contains
 
   end subroutine psrssort
 
+
+
   subroutine pswssort(nppm,np,npnew,nprocs,iproc,keys,indxl,irnkl, islen,irlen,fposts,gposts,w1,wload,balance)
 
    use my_mpidefs
@@ -368,7 +370,7 @@ contains
     integer, dimension(nprocs+1) :: fposts, gposts !  fencepost index and key values for shuffle
     integer, parameter :: maxprocs = 1024
     integer :: itabr(maxprocs), itabl(maxprocs+1)
-    real, dimension(20*nppm)  :: f_local, f_global
+    real, dimension(4*nppm)  :: f_local, f_global
     integer*8 :: fpval(maxprocs+1)
     integer*8 :: lmax, lmin, key_min, key_max, step  ! Key mins and maxes and step size
     integer :: ak, nbin, ibin, npost
@@ -377,6 +379,8 @@ contains
     integer ::  i,j,k, fd, nsamp
     character(13) :: cfmt
     logical :: debug=.false., balance
+
+    nbin = nppm*4  ! must correspond to array size
 
 !    fd = iproc+10
     fd=20
@@ -401,8 +405,7 @@ contains
     call MPI_ALLREDUCE(lmax, key_max, one, MPI_INTEGER8, MPI_MAX,  MPI_COMM_WORLD, ierr )
     call MPI_ALLREDUCE(lmin, key_min, one, MPI_INTEGER8, MPI_MIN,  MPI_COMM_WORLD, ierr )
 
-    !     Choose bin size for key distribution.
-    nbin = 20*nppm  ! # bins - may want to refine this for very large N
+
     step=(key_max - key_min)/nbin + 1
 
     if (debug) write (fd,*) 'keymax: ',key_max,' keymin: ',key_min,' nbin ',nbin+1,' step', step
@@ -420,7 +423,7 @@ contains
     enddo
 
     if (debug) then
-       cfmt = "(/a15,"//achar(mod(nbin/10,10)+48) // achar(mod(nbin,10)+48) // "(f12.4))"
+       cfmt = "(/a15,"//achar(mod(nbin/100,10)+48)//achar(mod(nbin/10,10)+48) // achar(mod(nbin,10)+48) // "(f12.4))"
        write(fd,cfmt) 'Local key distrib: ',(f_local(i),i=1,nbin)
     endif
 
