@@ -13,8 +13,8 @@ subroutine add_electrons
 
   use treevars
 
-  integer :: i,p
-  real :: ratio_clamp  ! mass ratio used for NVT dynamics
+  integer :: i,p, iseed1
+  real :: xt, yt, zt
 
 
 
@@ -45,14 +45,17 @@ subroutine add_electrons
   pot(nip+1:npp) = 0.
 
   work(1:npp) = 1.   ! set work load balanced initially
+  iseed1 = -7901-me
 
+  !  Place electrons within 1/10 of ave. ion spaceing in vicinity of ions
+  xt = .1*a_ii*(2*rano(iseed1)-1.)
+  yt = .1*a_ii*(2*rano(iseed1)-1.)          
+  zt = .1*a_ii*(2*rano(iseed1)-1.)  
+  x(nip+1:npp) = x(1:nip)+xt
+  y(nip+1:npp) = y(1:nip)+yt
+  z(nip+1:npp) = z(1:nip)+zt
 
-!  Place electrons on top of ions
-  x(nip+1:npp) = x(1:nip)
-  y(nip+1:npp) = y(1:nip)
-  z(nip+1:npp) = z(1:nip)
-
-!  Set up thermal distribution
+  !  Set up thermal distribution
   if (vte > 0) then
      call maxwell1(ux,nppm,nip+1,nep,vte)
      call maxwell1(uy,nppm,nip+1,nep,vte)
@@ -62,7 +65,7 @@ subroutine add_electrons
      call cold_start(nip+1,nep)
   endif
 
-!  Set ion velocities to zero
+  !  Set ion velocities to zero
   ux(1:nip) = 0.
   uy(1:nip) = 0.
   uz(1:nip) = 0.
