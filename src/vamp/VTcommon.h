@@ -1,6 +1,7 @@
         COMMON /VTdefsC/ ICLASSH, &
         VTNOSCL, &
-       IF_beam,&
+       IF_add_electrons,&
+	IF_beam,&
 	IF_beam_control,&
 	IF_blank6,&
 	IF_blankn,&
@@ -10,6 +11,7 @@
 	IF_configure,&
 	IF_constrain,&
 	IF_cput,&
+	IF_densities,&
 	IF_diagnose_tree,&
 	IF_diagnostics,&
 	IF_draw2d,&
@@ -28,13 +30,14 @@
 	IF_indsort_i,&
 	IF_key2addr,&
 	IF_key2node,&
-	IF_keytest,&
+	IF_key_local,&
 	IF_kinenergy,&
 	IF_make_branches,&
 	IF_make_domains,&
 	IF_make_hashentry,&
 	IF_maxwell1,&
 	IF_mc_config,&
+	IF_next_node,&
 	IF_nwaymrg,&
 	IF_openfiles,&
 	IF_phase,&
@@ -53,20 +56,27 @@
 	IF_scramble_v,&
 	IF_setup,&
 	IF_sift_down,&
+	IF_slices,&
 	IF_sort_i,&
+	IF_sum_bond,&
 	IF_sum_force,&
+	IF_sum_lennardjones,&
 	IF_sumpot,&
 	IF_swap_ab,&
 	IF_times2,&
 	IF_track_nc,&
 	IF_tree_build,&
 	IF_tree_fill,&
+	IF_tree_prefetch,&
 	IF_tree_properties,&
 	IF_tree_walk,&
+	IF_tree_nlswap, &
 	IF_treemp,&
 	IF_velocities,&
-	IF_visit_dump,&
-	IF_visualize
+	IF_vis_fields,&
+	IF_vis_parts,&
+	IF_visit_dump
+        INTEGER*4 IF_add_electrons
         INTEGER*4 IF_beam
         INTEGER*4 IF_beam_control
         INTEGER*4 IF_blank6
@@ -77,6 +87,7 @@
         INTEGER*4 IF_configure
         INTEGER*4 IF_constrain
         INTEGER*4 IF_cput
+        INTEGER*4 IF_densities
         INTEGER*4 IF_diagnose_tree
         INTEGER*4 IF_diagnostics
         INTEGER*4 IF_draw2d
@@ -95,13 +106,14 @@
         INTEGER*4 IF_indsort_i
         INTEGER*4 IF_key2addr
         INTEGER*4 IF_key2node
-        INTEGER*4 IF_keytest
+        INTEGER*4 IF_key_local
         INTEGER*4 IF_kinenergy
         INTEGER*4 IF_make_branches
         INTEGER*4 IF_make_domains
         INTEGER*4 IF_make_hashentry
         INTEGER*4 IF_maxwell1
         INTEGER*4 IF_mc_config
+        INTEGER*4 IF_next_node
         INTEGER*4 IF_nwaymrg
         INTEGER*4 IF_openfiles
         INTEGER*4 IF_phase
@@ -120,19 +132,25 @@
         INTEGER*4 IF_scramble_v
         INTEGER*4 IF_setup
         INTEGER*4 IF_sift_down
+        INTEGER*4 IF_slices
         INTEGER*4 IF_sort_i
+        INTEGER*4 IF_sum_bond
         INTEGER*4 IF_sum_force
+        INTEGER*4 IF_sum_lennardjones
         INTEGER*4 IF_sumpot
         INTEGER*4 IF_swap_ab
         INTEGER*4 IF_times2
         INTEGER*4 IF_track_nc
         INTEGER*4 IF_tree_build
         INTEGER*4 IF_tree_fill
+        INTEGER*4 IF_tree_prefetch
         INTEGER*4 IF_tree_properties
         INTEGER*4 IF_tree_walk
+	INTEGER*4 IF_tree_nlswap
         INTEGER*4 IF_treemp
         INTEGER*4 IF_velocities
+        INTEGER*4 IF_vis_fields
+        INTEGER*4 IF_vis_parts
         INTEGER*4 IF_visit_dump
-        INTEGER*4 IF_visualize
         INTEGER*4 ICLASSH
         INTEGER*4 VTNOSCL
