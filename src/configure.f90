@@ -51,10 +51,10 @@ subroutine configure
 
   if ( beam_config ==1 .and. np_beam> 0) then
      call beam
-     call beam_control   ! Display default parameters
+     if (vis_on .and. steering) call beam_control   ! Display default parameters
   else if (beam_config ==2 .or. beam_config==5) then
 
-     call beam_control
+     if (vis_on .and. steering) call beam_control
   endif
 
   ! Do tree-build for initial P.E. value

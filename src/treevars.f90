@@ -191,7 +191,8 @@ module treevars
   integer, allocatable ::     pepid(:), & ! owner
                               nterm(:),  nodelist(:,:) ! interaction node-list
 
-  real, allocatable ::  rhoe(:,:,:), rhoi(:,:,:), phi_g(:,:,:)  ! field arrays
+  real, allocatable ::  rhoe(:,:,:), rhoi(:,:,:), phi_g(:,:,:), &  ! field arrays
+       Ex_g(:,:,:),   Ey_g(:,:,:),  Ez_g(:,:,:)
 
   !  physics data
 

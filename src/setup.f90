@@ -381,7 +381,8 @@ subroutine setup
   allocate ( pack_child(size_tree), get_child(size_tree) )    ! Multipole shipping buffers
 
   allocate (rhoe(0:ngx+1,0:ngy+1,0:ngz+1), rhoi(0:ngx+1,0:ngy+1,0:ngz+1), &
-       phi_g(0:ngx+1,0:ngy+1,0:ngz+1) )   ! Field arrays
+       phi_g(0:ngx+1,0:ngy+1,0:ngz+1),Ex_g(0:ngx+1,0:ngy+1,0:ngz+1), &
+       Ey_g(0:ngx+1,0:ngy+1,0:ngz+1),Ez_g(0:ngx+1,0:ngy+1,0:ngz+1) )! Field arrays
 
 
   !  MPI stuff
