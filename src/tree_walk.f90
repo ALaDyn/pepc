@@ -95,7 +95,7 @@ subroutine tree_walk(pshort,npshort)
 
   integer ::  bchild, nodchild, lchild, hashaddr, nlast_child, cbyte
   integer :: max_nplace, max_pack
-  real :: sbox, theta2, dx, dy, dz, s2
+  real :: sbox, theta2, theta2_ion, dx, dy, dz, s2
 
   ! stuff for tree-patch after traversals complete
   integer ::  node_addr, parent_addr, parent_node, child_byte
@@ -121,6 +121,7 @@ subroutine tree_walk(pshort,npshort)
 
 
   theta2 = theta**2               ! Clumping parameter**2 for MAC
+  theta2_ion = min(1.0,2*theta2)  ! Ion MAC 50% larger than electron MAC
 
   boxlength(0:nlev) = (/ (sbox/2**i, i=0,nlev ) /)  ! Preprocessed box sizes for each level
 
@@ -189,7 +190,7 @@ subroutine tree_walk(pshort,npshort)
 
            cbyte = htable( walk_addr )%childcode        ! Children byte-code
 
-           ! set ignore flag if leaf node corresponds to particle itself
+           ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
            ignore =  ( pshort(p) == htable( walk_addr )%node )
 
            ! children of local/non-local parents already fetched: HERE flag
@@ -200,8 +201,13 @@ subroutine tree_walk(pshort,npshort)
            dz = z( pshort(p) ) - zcoc( walk_node )
 
            s2 = boxlength( node_level(walk_node) )**2
-           mac_ok = ( s2 < theta2*(dx**2+dy**2+dz**2 ) )             ! Preprocess MAC
-
+ 
+           if (q(pshort(p))<0) then
+              mac_ok = ( s2 < theta2*(dx**2+dy**2+dz**2 ) )             ! Preprocess electron MAC
+           else
+              mac_ok = ( s2 < theta2_ion*(dx**2+dy**2+dz**2 ) )      ! Ion MAC
+           endif
+ 
            add_key = walk_key(i)                                ! Remember current key
 
            ! Possible courses of action:

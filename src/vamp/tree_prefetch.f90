@@ -14,10 +14,10 @@ subroutine tree_prefetch
 
   use treevars
   use utils
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
+  !VAMPINST include
+  INCLUDE 'VTcommon.h'
+  INTEGER VTIERR
+  !
 
   implicit none
 
@@ -61,22 +61,20 @@ subroutine tree_prefetch
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
 
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_tree_prefetch,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: tree_prefetch S>',VTIERR,
-!     *    IF_tree_prefetch,ICLASSH
-!
+  !VAMPINST subroutine_start
+  CALL VTENTER(IF_tree_prefetch,VTNOSCL,VTIERR)
+  !      write(*,*) 'VT: tree_prefetch S>',VTIERR,
+  !     *    IF_tree_prefetch,ICLASSH
+  !
   if (prefetch_debug) write(ipefile,'(/a,i6)') 'TREE PREFETCH for timestep ',itime
   ! if (walk_debug) write(*,'(/a,i6)') 'TREE PREFETCH for timestep ',itime
   timestamp=itime+itime_start
 
 
-!  call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
-
 
   ! First examine fetched-key lists to check whether parents exist locally
   do ipe = 0,num_pe-1
-     if (prefetch_debug) write(ipefile,*) 'Fetches from PE ',ipe
+     if (prefetch_debug) write(ipefile,*) 'PASS 1: Fetches from PE ',ipe
      npar = nfetch_total(ipe)
      fetch_comp(1:npar) = fetched_keys(1:npar,ipe)  ! Work array
      nfetch_new = npar  ! New list length
@@ -106,7 +104,7 @@ subroutine tree_prefetch
      end do
 
 
-     if (prefetch_debug) write(ipefile,'(a,i6/(o15))') 'New fetch list: ',nfetch_new,(fetched_keys(i,ipe),i=1,nuniq)
+!     if (prefetch_debug) write(ipefile,'(a,i6/(o15))') 'New fetch list: ',nfetch_new,(fetched_keys(i,ipe),i=1,nfetch_new)
 
      nfetch_total(ipe) = nfetch_new   ! New # keys to fetch
 
@@ -132,7 +130,7 @@ subroutine tree_prefetch
 
   do ipe = 0,num_pe-1
      nremove(ipe) = 0
-     if (prefetch_debug) write(ipefile,*) 'Requests from PE ',ipe
+     if (prefetch_debug) write(ipefile,*) 'PASS 2: Requests from PE ',ipe
      do i=1,nreqs_total(ipe)
         key_present(i) = key_local(requested_keys(i,ipe))
         if (key_present(i)) then
@@ -196,6 +194,33 @@ subroutine tree_prefetch
        fetched_keys, nfetch_total, rstrides, MPI_INTEGER8, &
        MPI_COMM_WORLD, ierr)
 
+  ! Final sweep of fetched-key lists to eliminate nodes which might have been 
+  ! created locally during tree_fill.
+
+  do ipe = 0,num_pe-1
+     if (ipe<>me) then
+        if (prefetch_debug) write(ipefile,*) 'PASS 3: Fetches from PE ',ipe
+        npar = nfetch_total(ipe)
+        fetch_comp(1:npar) = fetched_keys(1:npar,ipe)  ! Work array
+        key_present(1:npar) = (/ (key_local( fetch_comp(i) ),i=1,npar) /) ! Check whether node already present locally
+        nnot_local = count(mask = .not.key_present(1:npar))     ! Count absentees
+        if (prefetch_debug) write(ipefile,'(a,i6/(o15,l3))') 'Fetch list  Present ',npar,(fetch_comp(i),key_present(i),i=1,npar)
+        nfetch_new = nnot_local
+        fetched_keys(1:nfetch_new,ipe) = &
+             pack( fetch_comp(1:npar), mask = .not.key_present(1:npar) ) ! Make list of absent keys
+        nfetch_total(ipe) = nfetch_new   ! New # keys to fetch
+     endif
+  end do
+
+
+  !  Send new fetch-list totals to destination PEs
+  call MPI_ALLTOALL( nfetch_total, 1, MPI_INTEGER, nreqs_total, 1, MPI_INTEGER, MPI_COMM_WORLD,ierr)
+
+  !  Do key-swap to update request lists
+  call MPI_ALLTOALLV( fetched_keys,   nfetch_total, sstrides, MPI_INTEGER8, &
+       requested_keys, nreqs_total, rstrides, MPI_INTEGER8, &
+       MPI_COMM_WORLD, ierr)
+
 
   if (walk_debug) then
      nreq_max=maxval(nreqs_total)
@@ -230,7 +255,7 @@ subroutine tree_prefetch
      end do
   endif
 
-  !return
+ !  return
   ! Now ready for all-to-all multipole swap
 
   ! Prepare send buffer: pack multipole info together as in tree_walk.
@@ -382,9 +407,9 @@ subroutine tree_prefetch
   end do
 
 
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: tree_prefetch S<',VTIERR,ICLASSH
-!
+  !VAMPINST subroutine_end
+  CALL VTLEAVE(ICLASSH,VTIERR)
+  !      write(*,*) 'VT: tree_prefetch S<',VTIERR,ICLASSH
+  !
 end subroutine tree_prefetch
 

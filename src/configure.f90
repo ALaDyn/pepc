@@ -70,6 +70,8 @@ subroutine configure
      end do
   endif
 
+! Initial tree construction and force computation
+
   call make_domains    ! Domain decomposition: allocate particle keys to PEs
   call tree_build      ! Build trees from local particle lists
   call make_branches   ! Determine and concatenate branch nodes

@@ -41,7 +41,6 @@ subroutine diagnostics
 
   if ( mod(itime,ivis) ==0 ) then
      if (vis_on) call vis_parts       ! Interface to VISIT
-     !     call visit_dump(itime+itime_start) ! Dump particle data (visit format)
   endif
 
 

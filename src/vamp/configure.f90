@@ -84,11 +84,9 @@ subroutine configure
   call make_branches   ! Determine and concatenate branch nodes
   call tree_fill       ! Fill in remainder of local tree
   call tree_properties ! Compute multipole moments for local tree
-!  call MPI_FINALIZE(ierr)
-!  call closefiles
- ! stop
+
   call forces_bal(1,npp,dt,t_walk,t_force)          ! Calculate initial potentials and forces
-  call diagnostics
+!  call diagnostics
 !VAMPINST subroutine_end
        CALL VTLEAVE(ICLASSH,VTIERR)
 !      write(*,*) 'VT: configure S<',VTIERR,ICLASSH

@@ -17,6 +17,10 @@
 !   February 2003: Parallel sort with load-balancing
 !   March 2003:    Ported to IBM p690 cluster
 !   April 2003:    tree_walk improved by collating multipole info before shipping 
+!   July 2003:     Prefetch added to cut barrier-time in tree_walk
+!
+!  See README.compile for summary of program units
+!
 !  ==============================================================
 
 program treemp

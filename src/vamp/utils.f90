@@ -55,10 +55,6 @@ contains
   subroutine psrsperm_i4(nppm,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
 
     use my_mpidefs
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
 
     integer :: nppm,np,npnew,nprocs,iproc
 
@@ -71,11 +67,6 @@ contains
 
     save
 
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_psrsperm_i4,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: psrsperm_i4 S>',VTIERR,
-!     *    IF_psrsperm_i4,ICLASSH
-!
     do i=1,np
        w1(i) = array(indxl(i))
     enddo
@@ -88,10 +79,6 @@ contains
        array(irnkl(i)) = w2(i)
     enddo
 
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: psrsperm_i4 S<',VTIERR,ICLASSH
-!
   end subroutine psrsperm_i4
 
 
@@ -102,10 +89,6 @@ contains
   subroutine psrsperm_i8(nppm,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
 
     use my_mpidefs
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
 
     integer :: nppm,np,npnew,nprocs,iproc
 
@@ -118,11 +101,6 @@ contains
 
     save
 
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_psrsperm_i8,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: psrsperm_i8 S>',VTIERR,
-!     *    IF_psrsperm_i8,ICLASSH
-!
     do i=1,np
        w1(i) = array(indxl(i))
     enddo
@@ -135,10 +113,6 @@ contains
        array(irnkl(i)) = w2(i)
     enddo
 
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: psrsperm_i8 S<',VTIERR,ICLASSH
-!
   end subroutine psrsperm_i8
 
 
@@ -149,10 +123,6 @@ contains
   subroutine psrsperm_r8(nppm,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
 
     use my_mpidefs
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
 
     integer :: nppm,np,npnew,nprocs,iproc
 
@@ -166,11 +136,6 @@ contains
 
     save
 
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_psrsperm_r8,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: psrsperm_r8 S>',VTIERR,
-!     *    IF_psrsperm_r8,ICLASSH
-!
     do i=1,np
        w1(i) = array(indxl(i))
     enddo
@@ -184,20 +149,12 @@ contains
        array(irnkl(i)) = w2(i)
     enddo
 
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: psrsperm_r8 S<',VTIERR,ICLASSH
-!
   end subroutine psrsperm_r8
 
 
   subroutine psrssort(nppm,np,npnew,nprocs,iproc,keys,indxl,irnkl,islen,irlen,fposts,gposts,w1)
 
     use my_mpidefs
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
 
     ! Xiaobo Li, Paul Lu, Jonathan Schaeffer,
     ! John Shillington, Pok Sze Wong, Hanmao Shi,
@@ -239,11 +196,6 @@ contains
     integer :: fd, nsamp
     character(13) :: cfmt
 
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_psrssort,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: psrssort S>',VTIERR,
-!     *    IF_psrssort,ICLASSH
-!
     fd = 20
 
     tag1=0
@@ -380,19 +332,11 @@ contains
     !     Merge the segments within each bin.
     call nwaymerge(nppm,npnew,nprocs,keys,irnkl,itabl,itabr)
 
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: psrssort S<',VTIERR,ICLASSH
-!
   end subroutine psrssort
 
   subroutine pswssort(nppm,np,npnew,nprocs,iproc,keys,indxl,irnkl, islen,irlen,fposts,gposts,w1,wload,balance)
 
    use my_mpidefs
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
 
     ! P. Gibbon
     !
@@ -435,11 +379,6 @@ contains
     logical :: debug=.false., balance
 
 !    fd = iproc+10
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_pswssort,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: pswssort S>',VTIERR,
-!     *    IF_pswssort,ICLASSH
-!
     fd=20
     itag=0
 
@@ -567,18 +506,10 @@ contains
     !     Merge the segments within each bin.
     call nwaymerge(nppm,npnew,nprocs,keys,irnkl,itabl,itabr)
 
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: pswssort S<',VTIERR,ICLASSH
-!
   end subroutine pswssort
 
 
   subroutine nwaymrg(nppm,np,nprocs,keys,irnkl,itabl,itabr)
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
 
     implicit none
     integer :: nppm,np,nprocs
@@ -591,11 +522,6 @@ contains
     integer :: i,j,k,il,ir,ij,irnkj(maxprocs),jprocs
 
     !     Make sure that the indicies are "one" baised.
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_nwaymrg,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: nwaymrg S>',VTIERR,
-!     *    IF_nwaymrg,ICLASSH
-!
     if (itabl(1) .ne. 1) then
        do i=nprocs+1,1,-1
           itabl(i) = itabl(i) - itabl(1) + 1
@@ -678,10 +604,6 @@ contains
        endif
     enddo
 
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: nwaymrg S<',VTIERR,ICLASSH
-!
   end subroutine nwaymrg
 
 
@@ -696,19 +618,10 @@ contains
   !  ================================
 
   subroutine sort_i(iarr)
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
     implicit none
     integer*8, intent(inout) :: iarr(:)
     integer :: i,n
 
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_sort_i,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: sort_i S>',VTIERR,
-!     *    IF_sort_i,ICLASSH
-!
     n = size(iarr)
 
 
@@ -722,25 +635,12 @@ contains
        call sift_down( 1,i-1)
     end do
 
-!VAMPINST return
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: sort_i S<',VTIERR,ICLASSH
-!
   contains
     subroutine sift_down(l,r)        ! Carry out the sift-down on element arr(l) to maintain 
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
       integer, intent(in) :: l,r     ! the heap structure
       integer :: j,jold    ! index
       integer*8 :: a
 
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_sift_down,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: sift_down S>',VTIERR,
-!     *    IF_sift_down,ICLASSH
-!
       a = iarr(l)
 
       jold = l
@@ -757,21 +657,12 @@ contains
       end do
       iarr(jold) = a                  ! Put a into its slot
 
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: sift_down S<',VTIERR,ICLASSH
-!
     end subroutine sift_down
-
 
   end subroutine sort_i
 
 
   subroutine indsort_i(iarr,list,n,nppm)
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
     implicit none
 
     integer, intent(in) :: n,nppm
@@ -781,20 +672,9 @@ contains
     integer :: i, indxt, ir, l, j
     integer*8 :: q
 
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_indsort_i,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: indsort_i S>',VTIERR,
-!     *    IF_indsort_i,ICLASSH
-!
     list(1:n) =  (/ (i,i=1,n) /)  
 
-    if(n==1)  Then
-!VAMPINST return
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: indsort_i S<',VTIERR,ICLASSH
-!
-      RETURN
-      END IF
+    if(n==1) return
     l= n/2 + 1
     ir = n
 
@@ -810,10 +690,6 @@ contains
           ir = ir - 1
           if (ir == 1) then
              list(1) = indxt
-!VAMPINST return
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: indsort_i S<',VTIERR,ICLASSH
-!
              return
           endif
        endif
@@ -835,86 +711,30 @@ contains
        list(i) = indxt
     end do
 
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: indsort_i S<',VTIERR,ICLASSH
-!
   end subroutine indsort_i
 
   subroutine swap_ab(p,q)
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
     integer*8 :: p,q, dum
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_swap_ab,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: swap_ab S>',VTIERR,
-!     *    IF_swap_ab,ICLASSH
-!
     dum = p
     p=q
     q = dum
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: swap_ab S<',VTIERR,ICLASSH
-!
   end subroutine swap_ab
 
 
   subroutine blankn(ichan)
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_blankn,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: blankn S>',VTIERR,
-!     *    IF_blankn,ICLASSH
-!
     write(ichan,'(/)')
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: blankn S<',VTIERR,ICLASSH
-!
   end subroutine blankn
 
   subroutine blank6
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_blank6,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: blank6 S>',VTIERR,
-!     *    IF_blank6,ICLASSH
-!
     write(6,'(/)')
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: blank6 S<',VTIERR,ICLASSH
-!
   end subroutine blank6
 
   subroutine cput(sec)
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
     real :: sec
     integer :: ic1, ir1, im1
     !    CALL SYSTEM_CLOCK(COUNT=IC1, COUNT_RATE=IR1, COUNT_MAX=IM1)
     !    sec = 1.*ic1/ir1
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_cput,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: cput S>',VTIERR,
-!     *    IF_cput,ICLASSH
-!
     call cpu_time(sec)
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: cput S<',VTIERR,ICLASSH
-!
   end subroutine cput
 
   ! Random number scrambler
@@ -947,21 +767,12 @@ contains
   ! - routine taken from Numerical Recipies, p195
   !
   real function rano(idum)
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
     implicit none
     integer :: idum
     real, save :: dseed, dum
     real, save :: v(97), y
     integer, save :: iff, icall, i, j
     data iff,icall/0,0/
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_rano,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: rano S>',VTIERR,
-!     *    IF_rano,ICLASSH
-!
     if (idum.lt.0.or.iff.eq.0) then
        !  first call generates new sequence
        iff = 1
@@ -987,10 +798,6 @@ contains
        write (6,*) 'dummy =',dum,' dseed=',dseed
        write (6,100) (i,v(i),i=1,97)
 100    format (i4,f10.6)
-!VAMPINST stop
-!      CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: rano S<',VTIERR,ICLASSH
-!
        stop
     endif
     !  get next variate and generate new one to fill gap
@@ -1000,23 +807,11 @@ contains
     v(j)=genran(dseed)
     icall = icall + 1
 
-!VAMPINST return
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: rano S<',VTIERR,ICLASSH
-!
     return
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: rano S<',VTIERR,ICLASSH
-!
   end function rano
 
 
   real function genran (dseed)                                      
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
     !                                  specifications for arguments         
     real ::  dseed                                          
     !                                  specifications for local variables   
@@ -1027,22 +822,9 @@ contains
     data               d2p31m/2147483647.0/                          
     data               d2p31 /2147483648.0/                          
     !                                  first executable statement           
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_genran,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: genran S>',VTIERR,
-!     *    IF_genran,ICLASSH
-!
     dseed = mod(16807.0*dseed,d2p31m)                               
     genran = dseed / d2p31                                            
-!VAMPINST return
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: genran S<',VTIERR,ICLASSH
-!
     return                                                            
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: genran S<',VTIERR,ICLASSH
-!
   end function genran
 
   !  ========================================
@@ -1054,20 +836,11 @@ contains
   !  ========================================
 
   real function phase(x,y)
-!VAMPINST include
-      INCLUDE 'VTcommon.h'
-      INTEGER VTIERR
-!
     implicit none
     real, parameter :: pi=3.1415926536
     real, intent(in) :: x,y
     integer :: sx,sy,itx
 
-!VAMPINST subroutine_start
-       CALL VTENTER(IF_phase,VTNOSCL,VTIERR)
-!      write(*,*) 'VT: phase S>',VTIERR,
-!     *    IF_phase,ICLASSH
-!
     sx=sign(1.,x)
     sy=sign(1.,y)
     itx = (1-sx)/2  ! 0 or 1
@@ -1083,10 +856,6 @@ contains
        phase = atan(y/x)+itx*sy*pi
     endif
 
-!VAMPINST subroutine_end
-       CALL VTLEAVE(ICLASSH,VTIERR)
-!      write(*,*) 'VT: phase S<',VTIERR,ICLASSH
-!
   end function phase
 
 

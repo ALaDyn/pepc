@@ -27,7 +27,7 @@ subroutine diagnostics
   if (itime_start>0 .and. itime==0) return  ! Avoid over-writing restart data
 
   call energy_cons       ! Compute energy balance
-  call densities    ! Compute electron, ion densities for diagnostics
+!  call densities    ! Compute electron, ion densities for diagnostics
 
   if (beam_config == 4) call track_nc          ! Gather densities and track critical surface 
   if (perf_anal)  Then

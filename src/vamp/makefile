@@ -6,7 +6,7 @@
 
 
 #DBFLAGS = -g -Rabp -ev  -q64 -qrealsize=8  -qsuffix=f=f90 -qcheck
-#LDFLAGS = -q64 -qrealsize=8  -g 
+LDFLAGS = -q64 -qrealsize=8  -g 
 # For apprentice
 #FFLAGS =   -eA -m4 -O2,inline4
 #LDFLAGS = -lpmpi -Xm -lapp
@@ -24,11 +24,11 @@ VAMP = -L$(PAL_ROOT)/lib -lVT
 LISTING=-qreport -qlist -qlistopt -qsource 
 #MPITRACE=/home/test/pospiech/tools/power4_trace/mpi_trace64.o
 #MPITRACE=
-FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
+FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90 -qsclk=micro 
 TUNE= -qarch=pwr4 -qtune=pwr4 -qhot $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) $(PG) $(DB) $(VAMP) ## $(TUNE)
+FFLAGS =  $(FFLAGS1)  $(VAMP) 
 
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -99,15 +99,6 @@ all: mods pepc
 #  compile mode
 .f90.o:   
 	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) $<
-
-tree_properties.o:   tree_properties.f90
-	$(FC) -c $(FFLAGS1) $(DBFLAGS) $<
-
-diagnose_tree.o:   diagnose_tree.f90
-	$(FC) -c $(FFLAGS1) $(DBFLAGS) $<
-
-tree_walk.o:   tree_walk.f90
-	$(FC) -c $(FFLAGS1) $(DBFLAGS) $<
 
 # -----------------------------------------------------------------------------------------
 #  targets

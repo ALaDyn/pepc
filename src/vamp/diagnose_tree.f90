@@ -133,12 +133,12 @@ subroutine diagnose_tree
 
 ! Interaction lists
   
-!  write(ipefile,'(//a)') 'Interaction lists'
-!  do i=1,npp
-!     write(ipefile,'(//a,i5,a,i5)') 'Particle ',pelabel(i),' # terms: ',nterm(i)
-!     write(ipefile,'(a/(3i7))') 'List: ',(intlist(j,i),htable( key2addr( intlist(j,i) ) )%owner &
-!          ,htable( key2addr( intlist(j,i) ) )%node,j=1,nterm(i))
-!  end do
+  write(ipefile,'(//a)') 'Interaction lists'
+  do i=1,npp
+     write(ipefile,'(//a,i5,a,i5)') 'Particle ',pelabel(i),' # terms: ',nterm(i)
+     write(ipefile,'(a/(3i7))') 'List: ',(intlist(j,i),htable( key2addr( intlist(j,i) ) )%owner &
+          ,htable( key2addr( intlist(j,i) ) )%node,j=1,nterm(i))
+  end do
 
 
 

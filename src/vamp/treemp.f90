@@ -101,7 +101,7 @@ program treemp
      call cputime(t_push)
      
 
- !    call diagnostics
+     call diagnostics
      call cputime(t_diag)
 
 
@@ -129,7 +129,7 @@ program treemp
         write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag-t_push,100*(t_diag-t_push)/ttot
 
         write(ifile,'(a20,2f12.3,a1)') 'Total: ',ttot,100.
-        write(ifile,'(a20,i4,5f12.3)') 'Timing format: ',num_pe,t_domain-t0,t_props-t_domain,t_walk,t_force,ttot
+        write(ifile,'(a20,i4,5f12.3)') 'Timing format: ',num_pe,t_domain-t0,t_prefetch-t_domain,t_walk,t_force,ttot
 
      endif
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up

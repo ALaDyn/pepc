@@ -51,7 +51,7 @@ subroutine track_nc
   icm = xc1/dx
   icp = icm+1
   found = .false.
-  rho_track = 1.0   ! tracking density
+  rho_track = 1.5   ! tracking density
 
 !  sweep down
   i = icm

@@ -167,8 +167,8 @@ subroutine tree_fill
   first_child(1:nleaf) = treekey(ntwig+1:ntwig+nleaf) 
   n_children(1:nleaf) = 0
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 
+!  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 
 
 !VAMPINST subroutine_end

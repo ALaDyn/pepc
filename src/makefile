@@ -16,16 +16,18 @@
 ## Optimised
 #FFLAGS =  -q64 -qrealsize=8 -qsuffix=f=f90  -O4 -Q -qipa -qarch=pwr4 -qstrict -qreport  -qlist -qsource -I/usr/local/include 
 
-IPA=-qipa=list=long:inline=key2addr:inline=make_hashentry
-PG=-pg -g -qfullpath
+IPA=-qipa=list=long:inline=key2addr:inline=make_hashentry:inline=key2node:inline=next_node:inline=key_local
+PG=-pg -qfullpath
+DB= -g
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
-#MPITRACE=/home/test/pospiech/tools/power4_trace/mpi_trace64.o
-MPITRACE=
-FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  -O3 -g -Q -qarch=pwr4 -qtune=pwr4 -I.
+MPITRACE=/home/ibm/pospiech/tools/power4_trace/mpi_trace64.o
+#MPITRACE=
+FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
+TUNE= -qarch=pwr4 -qtune=pwr4 -qhot $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) -qsclk=micro 
+FFLAGS =  $(FFLAGS1) $(TUNE) 
 
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -33,16 +35,15 @@ FFLAGS =  $(FFLAGS1) -qsclk=micro
 # Visit libraries
 # cray
 #VISITLIBS=-L /usr/local/visit/lvisit/apis/spk2 -llvisit_spk -L/usr/local/visit/lvisit/lib -llvisit -L/usr/local/visit/visit20/lib -lvisit 
-# JUPP
-#VISITLIBS=-L/home/admin/beta/visit-2.0b/lvisit/apis/spk3 -llvisit_spk -L/home/admin/beta/visit-2.0b/lvisit/lib -llvisit -L/home/admin/beta/visit-2.0b/lib -lvisit 
-VISITLIBS= -L/home/zam/zdv036/tree/spkvisit -llvisit_spk -L/home/admin/beta/visit-2.0b/lvisit/lib -llvisit -L/home/admin/beta/visit-2.0b/lib -lvisit 
+# JUMP
+VISITLIBS=-L/home/admin/beta/visit-2.0b/lvisit/apis/spk3 -llvisit_spk -L/home/admin/beta/visit-2.0b/lvisit/lib -llvisit -L/home/admin/beta/visit-2.0b/lib -lvisit
+# Local
+#VISITLIBS= -L$(HOME)/visit/spkvisit -llvisit_spk -L$(HOME)/visit/lib -llvisit -L$(HOME)/visit/lib -lvisit
 
 LDFLAGS = $(VISITLIBS) 
+
 .SUFFIXES: .f90
 
-sum_force=sum_force.f90
-#sum_force=sum_force_explicit.f90
-#sum_force=sum_force_static.f90
 
 FC = /usr/bin/mpxlf90_r
 
@@ -55,24 +56,24 @@ MODULES.f90 =  my_mpidefs.f90 treevars.f90 utils.f90
 SOURCES.f90 =	treemp.f90 \
 		setup.f90 \
 		configure.f90 randion.f90 predef_parts.f90 maxwell1.f90 cold_start.f90 \
-		scramble_v.f90 reset_ions.f90 \
+		scramble_v.f90 reset_ions.f90 add_electrons.f90\
 		beam.f90 beam_control.f90 \
 		mc_config.f90 \
 	 	make_domains.f90 \
 		tree_build.f90  make_branches.f90 tree_fill.f90 tree_properties.f90 \
-		tree_walk.f90 \
+		tree_walk.f90	tree_prefetch.f90 \
 		energy_cons.f90 potenergy.f90 sumpot.f90 kinenergy.f90\
-		forces.f90 forces_bal.f90 $(sum_force) \
+		forces.f90 forces_bal.f90 sum_force.f90 \
 		fpond.f90 \
 		velocities.f90 \
 		push.f90 constrain.f90 \
-		make_hashentry.f90 get_address.f90  get_node.f90 \
+		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 		diagnostics.f90 \
 	        diagnose_tree.f90 check_table.f90 \
 		draw_domains.f90 draw_tree2d.f90 draw_lists.f90\
 		vis_parts.f90 vis_fields.f90 dump.f90 visit_dump.f90\
 		open_files.f90 close_files.f90	\
-		densities.f90 \
+		densities.f90 slices.f90 \
 		track_nc.f90		
 
 # -------------------------------------------------------------------------------------------
@@ -98,15 +99,6 @@ all: mods pepc
 #  compile mode
 .f90.o:   
 	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) $<
-
-tree_properties.o:   tree_properties.f90
-	$(FC) -c $(FFLAGS1) $(DBFLAGS) $<
-
-diagnose_tree.o:   diagnose_tree.f90
-	$(FC) -c $(FFLAGS1) $(DBFLAGS) $<
-
-tree_walk.o:   tree_walk.f90
-	$(FC) -c $(FFLAGS1) $(DBFLAGS) $<
 
 # -----------------------------------------------------------------------------------------
 #  targets
@@ -164,23 +156,22 @@ close_files.o: treevars.o
 cold_start.o: treevars.o utils.o
 configure.o: treevars.o utils.o
 constrain.o: treevars.o utils.o
+densities.o: treevars.o
 diagnose_tree.o: treevars.o
 diagnostics.o: treevars.o utils.o
 draw2d.o: treevars.o
 draw2d_hash.o: treevars.o
 draw_domains.o: treevars.o
 draw_lists.o: treevars.o
+draw_map.o: treevars.o
 draw_tree2d.o: treevars.o
 driver.o: utils.o
 dump.o: treevars.o
 energy_cons.o: treevars.o utils.o
 forces.o: treevars.o utils.o
 forces_bal.o: treevars.o utils.o
-forces_new.o: treevars.o utils.o
-forces_nobal.o: treevars.o utils.o
 get_address.o: treevars.o utils.o
 get_node.o: treevars.o utils.o
-keytest.o: treevars.o
 kinenergy.o: treevars.o
 make_branches.o: treevars.o utils.o
 make_domains.o: treevars.o utils.o
@@ -196,6 +187,7 @@ scramble_v.o: treevars.o utils.o
 setup.o: treevars.o utils.o
 sum_force.o: treevars.o
 sumpot.o: treevars.o
+track_nc.o: treevars.o
 tree_build.o: treevars.o utils.o
 tree_fill.o: treevars.o utils.o
 tree_properties.o: treevars.o utils.o
@@ -204,7 +196,8 @@ treemp.o: treevars.o utils.o
 treevars.o: my_mpidefs.o
 utils.o: my_mpidefs.o
 velocities.o: treevars.o utils.o
+vis_fields.o: treevars.o
+vis_parts.o: treevars.o
 visit_dump.o: treevars.o
-visualize.o: treevars.o
 
 

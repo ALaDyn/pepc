@@ -236,7 +236,7 @@ subroutine tree_properties
      local_moments(ibr+17) = zxquad( local_node(i) )
   end do
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
+!  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 
   !  Collect multipole properties
 
@@ -370,7 +370,6 @@ subroutine tree_properties
   yzquad( 1:nleaf_pw ) = 0.
   zxquad( 1:nleaf_pw ) = 0.
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 
 !VAMPINST subroutine_end
        CALL VTLEAVE(ICLASSH,VTIERR)
