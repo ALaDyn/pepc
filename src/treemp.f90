@@ -191,7 +191,7 @@ program treemp
         write(ifile,'(a20,2f12.3,a1)') 'Walk comm: ',t_walkc,100*t_walkc/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Forces: ',t_force,100*t_force/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Keys+domains: ',t_domain-t0,100*(t_domain-t0)/ttot
-        write(ifile,'(a20,2f12.3,a1)') 'Build+props: ',t_prefetch-t_domain,100*(t_prefetch-t_domain)/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Build+props: ',t_props-t_domain,100*(t_props-t_domain)/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Pusher: ',t_push-t_start_push,100*(t_push-t_start_push)/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag-t_push,100*(t_diag-t_push)/ttot
 

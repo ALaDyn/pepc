@@ -39,6 +39,9 @@ subroutine make_domains(xl,yl,zl)
   integer status(MPI_STATUS_SIZE), ierr, tag1
 
   ! arrays for parallel sort
+
+  type (particle) :: ship_parts(nppm), get_parts(nppm)
+
   integer*8 :: xarray(nppm),keys(nppm),w1(nppm),wi2(nppm),wi3(nppm)
   integer :: indxl(nppm),irnkl(nppm)
 
@@ -306,48 +309,83 @@ subroutine make_domains(xl,yl,zl)
   source_pe(1:npold) = pepid(1:npold)   ! where particle came from
 
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,source_pe,w2,w3, &   ! source PE
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,source_pe,w2,w3, &   ! source PE
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,pelabel,w2,w3, &   ! label
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,pelabel,w2,w3, &   ! label
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
   ! Should ship these as one big vector
-  call pll_permute(nppm,npold,npnew,num_pe,me,x,wr2,wr3, &       ! coords
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,x,wr2,wr3, &       ! coords
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,y,wr2,wr3, &       !  
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,y,wr2,wr3, &       !  
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,z,wr2,wr3, &       !  
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,z,wr2,wr3, &       !  
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,ux,wr2,wr3, &       ! velocities
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,ux,wr2,wr3, &       ! velocities
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,uy,wr2,wr3, &       !
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,uy,wr2,wr3, &       !
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,uz,wr2,wr3, &       ! 
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,uz,wr2,wr3, &       ! 
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,q,wr2,wr3, &       ! charge
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,q,wr2,wr3, &       ! charge
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,m,wr2,wr3, &       ! mass
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,m,wr2,wr3, &       ! mass
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,work,wr2,wr3, &       ! workload
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,work,wr2,wr3, &       ! workload
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,ax,wr2,wr3, &       ! vec. pot 
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,ax,wr2,wr3, &       ! vec. pot 
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,ay,wr2,wr3, &       ! 
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,ay,wr2,wr3, &       ! 
+!       indxl,irnkl,islen,irlen,fposts,gposts)
 
-  call pll_permute(nppm,npold,npnew,num_pe,me,az,wr2,wr3, &       ! 
-       indxl,irnkl,islen,irlen,fposts,gposts)
+!  call pll_permute(nppm,npold,npnew,num_pe,me,az,wr2,wr3, &       ! 
+!       indxl,irnkl,islen,irlen,fposts,gposts)
+
+
+! Set up particle structure - keys and source_pe are dummies
+! ( pekey is already sorted)
+
+    do i=1,npold
+       ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
+        ux(indxl(i)), uy(indxl(i)), uz(indxl(i)), &
+        q(indxl(i)), m(indxl(i)), work(indxl(i)), &
+        ax(indxl(i)), ay(indxl(i)), az(indxl(i)), &
+        keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
+    enddo
+
+
+! perform permute
+    call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_particle, &
+         get_parts, irlen, gposts, mpi_type_particle, &
+         MPI_COMM_WORLD,ierr)
+
+    do i=1,npp
+       x(irnkl(i)) = get_parts(i)%x
+       y(irnkl(i)) = get_parts(i)%y
+       z(irnkl(i)) = get_parts(i)%z
+       ux(irnkl(i)) = get_parts(i)%ux
+       uy(irnkl(i)) = get_parts(i)%uy
+       uz(irnkl(i)) = get_parts(i)%uz
+       q(irnkl(i)) = get_parts(i)%q
+       m(irnkl(i)) = get_parts(i)%m
+       work(irnkl(i)) = get_parts(i)%work
+       ax(irnkl(i)) = get_parts(i)%ax
+       ay(irnkl(i)) = get_parts(i)%ay
+       az(irnkl(i)) = get_parts(i)%az
+       pelabel(irnkl(i)) = get_parts(i)%label
+    enddo
+
 
   pepid(1:npp) = me  ! new owner
 
