@@ -19,7 +19,7 @@ subroutine diagnostics
 
 
   if ( mod(itime,ivis) ==0 ) then
-!     if (vis_on) call vis_parts       ! Interface to VISIT
+     if (vis_on) call vis_parts       ! Interface to VISIT
   endif
 
 

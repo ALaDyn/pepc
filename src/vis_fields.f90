@@ -77,11 +77,11 @@ subroutine vis_fields
      if (beam_config==4 .or. beam_config ==5) then
         call flvisit_spk_3dfieldB_send(mvis,ngx,ngy,ngz)  ! laser potential
      endif
-!     call flvisit_spk_3dfieldA_send(qvis,npx,npy,npz)  ! electron density
+     call flvisit_spk_3dfieldA_send(qvis,ngx,ngy,ngz)  ! electron density
 
 ! Ship electric field as particle data
-     call flvisit_spk_particles_send(tlaser*convert_fs,xvis,yvis,zvis, & 
-     exvis,eyvis,ezvis,cvis,idvis,labvis,ng)
+!     call flvisit_spk_particles_send(tlaser*convert_fs,xvis,yvis,zvis, & 
+!     exvis,eyvis,ezvis,cvis,idvis,labvis,ng)
 
   endif
 

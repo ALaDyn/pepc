@@ -12,7 +12,7 @@ subroutine beam_control
   use utils
   implicit none
   integer :: i, p, iseed1, iseed2
-  real :: Volb, dpx, yt, zt, vosc_old, sigma_old
+  real :: Volb, dpx, yt, zt, vosc_old, sigma_old, tpulse_old
   integer :: lvisit_active
   real :: ct, st, cp, sp, vx_beam, vy_beam, vz_beam, xb, yb, zb
   logical :: beam_on = .true.
@@ -36,8 +36,10 @@ subroutine beam_control
   if (beam_config == 4 .or. beam_config == 5) then
 ! Define beam from laser parameters
      vosc_old = vosc
+     sigma_old = sigma
      u_beam = vosc
      rho_beam = sigma
+     r_beam = tpulse
   endif
 
   if (itime == 0 .and. me==0 )  then
@@ -83,8 +85,11 @@ subroutine beam_control
  ! laser standing wave
      vosc = u_beam
      sigma = max(abs(rho_beam),0.5)
+     tpulse = max(abs(r_beam),0.1)
+
      if (me==0 .and. vosc /= vosc_old) write(*,*) 'Laser amplitude changed'
-     if (me==0 .and. sigma /= sigma_old) write(*,*) 'Laser amplitude changed'
+     if (me==0 .and. sigma /= sigma_old) write(*,*) 'Laser spot size changed'
+     if (me==0 .and. tpulse /= tpulse_old) write(*,*) 'Laser pulse length changed'
 
   else if (beam_config ==2) then
      nb_pe = np_beam_dt/num_pe  ! # beam particles to load per PE

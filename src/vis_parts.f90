@@ -34,7 +34,7 @@ subroutine vis_parts
  ! Filter out particles for shipping
   nbuf = 0
   do i=1,npp
-     if (q(i)<0 .and. y(i)<yl/2.) then  ! 1/2 box of electrons
+!     if (q(i)<0 .and. y(i)<yl/2.) then  ! 1/2 box of electrons
         nbuf=nbuf+1
         ! scaled coordinates
         xv(nbuf) = convert_mu*x(i)
@@ -47,7 +47,7 @@ subroutine vis_parts
 !        mv(nbuf) = m(i)
         pepidv(nbuf) = pepid(i)
         pelabelv(nbuf) = pelabel(i)
-     endif
+!     endif
   end do
 
   call MPI_ALLGATHER( nbuf, 1, MPI_INTEGER, nparts_pe,1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
@@ -80,7 +80,7 @@ subroutine vis_parts
 
      if (me.eq.0) then
 
-!        call flvisit_spk_particles_send(tlaser*convert_fs,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart_buf)
+        call flvisit_spk_particles_send(tlaser*convert_fs,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart_buf)
      endif
 
   else
