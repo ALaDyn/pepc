@@ -131,14 +131,14 @@ subroutine face(r, c_status, face_nr)
     case (8) ! hollow semisphere
         select case (face_nr)
         case(1) ! outer semisphere
-            r_diff = r + (/r_sphere / 2., 0., 0./) - plasma_centre
+            r_diff = r + (/r_sphere/2., 0., 0./) - plasma_centre
             c_status = dot_product(r_diff, r_diff) - r_sphere**2
         case(2) ! inner semisphere
-            r_diff = r + (/r_sphere / 2., 0., 0./) - plasma_centre
+            r_diff = r + (/r_sphere/2., 0., 0./) - plasma_centre
             c_status = (r_sphere - x_plasma)**2 - dot_product(r_diff, r_diff)
         case(3) ! y-z-plane
-            normal_vector = (/+1., 0., 0./)
-            offset_vector = (/-r_sphere / 2., 0., 0./) + plasma_centre
+            normal_vector = (/-1., 0., 0./)
+            offset_vector = (/r_sphere/2., 0., 0./) + plasma_centre
             c_status = dot_product(normal_vector, offset_vector - r)
         end select
     end select

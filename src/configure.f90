@@ -69,7 +69,9 @@ subroutine configure
 
   if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config
 
-  beamconf: select case(beam_config)
+
+
+  beamconf: select case(beam_config)  ! Configure laser or particle beam
 
   case(1)
      call beam           ! Fixed beam
@@ -77,15 +79,19 @@ subroutine configure
 
   case(2)
      call beam_control   ! Constant particle source
+     if (me==0) write(*,'(//a)') '===> Particle beam switched on' 
 
   case(8)
      call beam_dust   ! Dust particle
 
   case(3:6) ! laser on
 
-     if (me==0) write(*,*) '===> Laser switched on' 
- 
+     if (me==0) write(*,'(//a)') '===> Laser switched on' 
+     call beam_control 
+
   end select beamconf
+
+
 
   ! Do tree-build for initial P.E. value
 

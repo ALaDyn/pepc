@@ -112,12 +112,12 @@ subroutine velocities(p_start,p_finish,delta_t)
         if (pelabel(p)<=ne) then
            ux(p) = (2*chie-1.)*ux(p) + chie*delta_t*accx(p)
            uy(p) = (2*chie-1.)*uy(p) + chie*delta_t*accy(p)
-           uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*accz(p)
+           if (idim==3) uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*accz(p)
 
         elseif (pelabel(p)<=ne+ ni) then
            ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*accx(p)
            uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*accy(p)
-           uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*accz(p)
+           if (idim==3) uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*accz(p)
         endif
      end do
 
@@ -178,7 +178,7 @@ subroutine velocities(p_start,p_finish,delta_t)
         if (pelabel(p)<=ne) then
            ux(p) = (2*chie-1.)*ux(p) + chie*delta_t*accx(p)
            uy(p) = (2*chie-1.)*uy(p) + chie*delta_t*accy(p)
-           uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*accz(p)
+           if (idim==3) uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*accz(p)
         endif
      end do
 
@@ -233,7 +233,7 @@ subroutine velocities(p_start,p_finish,delta_t)
         if (pelabel(p)<=ne) then
            ux(p) = (2*chie-1.)*ux(p) + chie*delta_t*accx(p)
            uy(p) = (2*chie-1.)*uy(p) + chie*delta_t*accy(p)
-           uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*accz(p)
+           if (idim==3) uz(p) = (2*chie-1.)*uz(p) + chie*delta_t*accz(p)
         endif
      end do
 
@@ -282,7 +282,7 @@ subroutine velocities(p_start,p_finish,delta_t)
        ! make ions lighter for eqm phase
            ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*mass_i/mass_eqm*accx(p)
            uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*mass_i/mass_eqm*accy(p)
-           uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*mass_i/mass_eqm*accz(p)
+           if (idim==3) uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*mass_i/mass_eqm*accz(p)
         endif
      end do
      delta_Ti = 2*Ti0*(1.0/chii**2-1.0)       !  heating
@@ -297,9 +297,13 @@ subroutine velocities(p_start,p_finish,delta_t)
      do p = p_start, p_finish
 	ux(p) = ux(p) + delta_t * accx(p)
 	uy(p) = uy(p) + delta_t * accy(p)
-	uz(p) = uz(p) + delta_t * accz(p)
+	if (idim==3) uz(p) = uz(p) + delta_t * accz(p)
      end do
 
   endif
 
 end subroutine velocities
+
+
+
+

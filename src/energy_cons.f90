@@ -9,7 +9,7 @@
 !  ================================
 
 
-subroutine energy_cons
+subroutine energy_cons(ekine,ekini,emag,ebeam)
 
   use physvars
   use treevars
@@ -17,7 +17,7 @@ subroutine energy_cons
 
   implicit none
 
-  real :: tpon, epot, ekine, ekini, ebeam,  etot, Qplas, conv_kev
+  real :: tpon, epot, ekine, ekini, ebeam,  etot, Qplas
   real :: emag
 
   call potenergy(epot,emag)
@@ -25,13 +25,7 @@ subroutine energy_cons
 
   etot = epot + emag + ekine + ekini + ebeam
 
-  if (ne>0) then
-     Qplas = abs(qe)*ne
-  else
-     Qplas = abs(qi)*ni
-  endif
 
-  conv_kev = 2./3./Qplas*511
 
 
   laser_energy: select case(beam_config)
@@ -54,12 +48,12 @@ subroutine energy_cons
 	     ' Total: ',etot, &
              ' Laser energy = ',elaser
 
-        write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',conv_kev*ekine,'Ti (keV):',conv_kev*ekini
+        write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',convert_kev*ekine,'Ti (keV):',convert_kev*ekini
      end do
 ! Write out to energy.dat file
 if (itime.eq.0)  write(75,'(a)') '! time  Upot  Umag  Ukin_e Ukin_i Ukin_beam Utot Tpon xc'
-     write (75,'(f12.5,8(1pe12.3))') trun, conv_kev*epot, conv_kev*emag, conv_kev*ekine, conv_kev*ekini,&
-	 conv_kev*ebeam, conv_kev*etot,tpon,x_crit
+     write (75,'(f12.5,8(1pe12.3))') trun, convert_kev*epot, convert_kev*emag, convert_kev*ekine, convert_kev*ekini,&
+	 convert_kev*ebeam, convert_kev*etot,tpon,x_crit
   endif
 end subroutine energy_cons
 

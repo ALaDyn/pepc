@@ -45,7 +45,10 @@ module physvars
   real :: lolam          ! L/lambda density scale-length
   real :: q_factor       ! Charge factor
   real :: fnn            ! Near-neighbour factor
-
+  real :: Ukine          ! Electron kinetic energy
+  real :: Ukini          ! Ion kinetic energy
+  real :: Umagnetic           ! Magnetic energy
+  real :: Ubeam          ! Beam energy
 
   real :: nu_ei ! norm. collision frequency
   real :: sigma_e ! electrical conductivity
@@ -75,7 +78,8 @@ module physvars
   real :: elaser        ! deposited laser energy
   real :: propag_laser  ! distance travelled by laser after rezoning
   real :: intensity     ! normalised intensity = 0.5*vosc^2*omega^2
-
+  real :: window_min    ! start of wakefield plasma
+  real :: rezone_frac=0.75     ! Fraction of box to cross before rezoning switched on
 
 ! Control stuff
   logical :: vis_on=.true.  ! online visualisation on/off
@@ -90,16 +94,18 @@ module physvars
   integer :: mc_steps
   integer :: plasma_config = 1  ! Switch for initial configuration (positions, velocities)
   integer :: target_geometry = 0  ! Geometry for plasma target
-
+  integer :: idim=3  ! # dimensions (velocity and position updates)
   integer :: beam_config = 0 ! Switch to include particle or laser beam 
   integer :: ispecial       ! Switch to select special electron configs 
   integer :: scheme = 1 ! Integrator scheme switch: 2-4= const. Te dynamics, 6=EM
   integer :: particle_bcs = 1 ! Particle BC switch: 1=open, 2=reflective
   integer :: debug_level =0 ! Debug level for printed O/P
+
    real :: dt             ! timestep
    real :: trun           ! total run time including restarts
    real :: convert_fs     ! conversion factor from wp^-1 to fs
    real :: convert_mu     ! conversion factor from c/wp to microns
+   real :: convert_keV     ! conversion factor from norm energy to keV/particle
    integer :: nt, itime   ! # timesteps and current timestep
    integer :: itime_start ! restart time stamp
    integer :: idump       ! output frequency (timesteps)

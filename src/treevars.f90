@@ -188,7 +188,6 @@ module treevars
   real :: ymin, ymax  
   real :: zmin, zmax
   real :: boxsize       ! length of box
-  real :: window_min   ! start of display window for rezoning
 
  ! Force control
   logical :: load_balance=.true.   ! Balances particles in || sort according to work load

@@ -27,13 +27,32 @@ subroutine vis_parts
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, wfdatai
 
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max, box_max, epondx, epondy, epondz,phipond
-  real :: xl_mu, yl_mu, zl_mu, t_fs, wfdatar, u2, amp_las
+  real :: plasma1, plasma2, plasma3, t_display, wfdatar, u2, amp_las
   integer :: nship, ierr
 
   convert_mu=1.
   simtime = dt*(itime+itime_start)
+
   nskip = npart/npart_visit_max + 1
-  amp_las = vosc*min(1.,simtime/tpulse)
+  if (beam_config==4) then
+     amp_las = vosc*min(1.,simtime/tpulse)
+  else 
+     amp_las = vosc
+  endif
+
+  if (beam_config>=3 .and. beam_config<=5) then
+     t_display = tlaser*convert_fs
+  else
+     t_display = simtime
+  endif
+
+  if (beam_config<=3) then
+     plasma1 = Ukine*convert_keV
+     plasma2 = Ukini*convert_keV
+  else
+     plasma1=sigma
+     plasma2=tpulse
+  endif
 
   if (nskip>1 .and. uthresh==-1) uthresh=vte**2
 
@@ -84,10 +103,10 @@ subroutine vis_parts
         call flvisit_spk_check_connection(lvisit_active)
 ! spk version2
         !       call flvisit_spk_info_send(npart_buf,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
-        wfdatai=int(tlaser)
-        wfdatar=tlaser
-        call flvisit_spk_info_send(npart_buf,xl,yl,zl, zl, &
-             x_crit, amp_las, sigma, tpulse, &
+        wfdatai=int(t_display)
+        wfdatar=t_display
+        call flvisit_spk_info_send(npart_buf,xl,yl,zl, xl, &
+             t_display, amp_las, plasma1, plasma2, &
              ne,ni,npart,wfdatai)
 
      endif
@@ -115,7 +134,7 @@ subroutine vis_parts
  
      if (me.eq.0) then
 
-        call flvisit_spk_particles_send(tlaser,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart_buf)
+        call flvisit_spk_particles_send(t_display,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart_buf)
      endif
 
   else
@@ -135,11 +154,11 @@ subroutine vis_parts
            !        call flvisit_spk_info_send(npp,xl,yl,zl,zl,nep,nip,np_beam,itime+itime_start)
            wfdatai=int(tlaser)
            wfdatar=tlaser
-           call flvisit_spk_info_send(nproot,xl,yl,zl, zl, &
+           call flvisit_spk_info_send(nproot,xl,yl,zl, t_display, &
                 x_crit, amp_las, sigma, tpulse, &
                 ne,ni,npart,wfdatai)
 
-           call flvisit_spk_particles_send(tlaser,x,y,z,ux,uy,uz,q,pepid,pelabel,npp)
+           call flvisit_spk_particles_send(t_display,x,y,z,ux,uy,uz,q,pepid,pelabel,npp)
 
         endif
      endif

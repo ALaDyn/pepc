@@ -24,9 +24,9 @@ subroutine laser
 
         call rezone
         !        window_min = window_min + dt
-        propag_laser=propag_laser + dt
      else
         focus(1) = focus(1) + dt  ! propagate forward by c*dt - can include v_g here
+        propag_laser=propag_laser + dt
      endif
 
   case default

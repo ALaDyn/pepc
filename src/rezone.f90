@@ -9,9 +9,11 @@
 subroutine rezone
 
   use treevars
+  use physvars
   use utils
   implicit none
-  integer :: i, p, iseed2, iseed3, n1, j, k
+
+  integer :: i, p, iseed2, iseed3, n1, j, k, ierr
   real :: Vdisc, qe_disc, qi_disc, me_disc, mi_disc, dpx, yt, zt, xb, yb, zb, xt
   integer recv_strides(num_pe)
   integer :: lvisit_active
@@ -20,7 +22,7 @@ subroutine rezone
   integer, dimension(npp) :: spent_label, spent_loc  ! local lists for reset
   integer, dimension(num_pe) :: nelec_pe, nremove_pe
   logical, dimension(npp) :: remove
-  integer :: iseed1
+  integer, save :: iseed1
 
   remove = .false.
   ! Find 'spent' particles
@@ -83,25 +85,36 @@ subroutine rezone
 
   ! Add new slice of particles to LAST CPU - domain closest to new particles
 
-  nslice = pi*r_sphere**2*dt/qi  ! # ions to load per slice
+  if (idim==3) then
+     nslice = pi*r_sphere**2*dt/qi  ! # ions to load per disc
+  else
+     nslice = y_plasma*dt/qi
+     zt = 0.
+  endif
+
+  if (me==0) write(*,*) 'total # particles added ',2*nslice
 
   if (me==num_pe-1) then
-     iseed1 = 17-itime
+     iseed1=-17999-itime
 
+     ! initialize new ion disc
 
-     ! ions
      do i=1,nslice
         xt = dt*rano(iseed1)
         yt=r_sphere
         zt=r_sphere
         do while (yt**2 + zt**2 > r_sphere**2) 
-           yt = r_sphere*(2*rano(iseed2)-1.)          
+           yt = r_sphere*(2*rano(iseed1)-1.)          
            zt = r_sphere*(2*rano(iseed1)-1.)  
         end do
         !        write(*,*) 'seed, delta-r:',iseed1,xt,yt,zt
         x(npp+i) = window_min + x_plasma + xt 
         y(npp+i) = plasma_centre(2) + yt 
-        z(npp+i) = plasma_centre(3) + zt 
+        if (idim==3) then
+           z(npp+i) = plasma_centre(3) + zt 
+        else
+           z(npp+i)=0.
+        endif
      end do
 
      ux(npp+1:npp+nslice) = 0. 
@@ -134,7 +147,7 @@ subroutine rezone
      pot(npp+1:npp+nslice) = 0.
 
 
-
+!  Initialize new electrons
 
      do i=1,nslice
         xt = .2*a_ii*(2*rano(iseed1)-1.)
@@ -150,7 +163,11 @@ subroutine rezone
            zb = z(npp-nslice+i)+zt 
 !        end do
         y(npp+i) = yb 
-        z(npp+i) = zb 
+        if (idim==3) then
+           z(npp+i) = zb
+        else
+           z(npp+i) = z(npp-nslice+i)  ! 2D
+        endif
      end do
 
 
@@ -180,7 +197,6 @@ subroutine rezone
   call MPI_ALLREDUCE( npp, npart, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
   call MPI_ALLREDUCE( nep, ne, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
   call MPI_ALLREDUCE( nip, ni, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
-  if (me==0) write(*,*) 'total # particles added ',2*nslice
 
 end subroutine rezone
 

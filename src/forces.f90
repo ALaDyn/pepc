@@ -190,10 +190,10 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
   end do
 
 
+  if (itime>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
 
   ! Include force from laser on electrons - ES scheme
   if (beam_config >= 3 .and. beam_config <=5 ) then
-     if (itime>0) focus(1) = x_crit  ! laser tracks n_c
      do p = p_start, p_finish
         if (q(p)<0) then
            xd = x(p)-focus(1)

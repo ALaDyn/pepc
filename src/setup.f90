@@ -17,6 +17,7 @@ subroutine setup
 
   implicit none
   integer :: k, npb_pe
+  real :: Qplas, Aplas
 
 
 
@@ -26,7 +27,7 @@ subroutine setup
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
        xl, yl, zl, displace, bond_const, fnn, rho_min, lolam, &
-       beam_config, np_beam, &
+       beam_config, np_beam, idim, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
        nt, dt, mc_steps, idump, ivis, ivis_fields, iprot, itrack, nmerge, ngx, ngy, ngz, &
@@ -114,9 +115,9 @@ subroutine setup
   itime_start = 0
   itrack = 10
 
-  ngx = 10   ! Grid size for plots
-  ngy = 10
-  ngz = 10
+  ngx = 25   ! Grid size for plots
+  ngy = 25
+  ngz = 25
   ! constrain
 !!$    len_tripod = .001
   constrain_proof = .001
@@ -168,87 +169,121 @@ subroutine setup
   geometry: select case(target_geometry)
 
   case(0) ! slab
-     Vplas = x_plasma * y_plasma * z_plasma
-     focus = (/xl / 2., yl / 2., zl / 2./) ! Centre of laser focal spot
+     Vplas = x_plasma * y_plasma * z_plasma  ! plasma volume
+     Aplas = x_plasma * y_plasma ! plasma area
+     focus = (/xl / 2 + x_offset, yl / 2., zl / 2./) ! Centre of laser focal spot
      plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 6
 
   case(1) ! sphere
      Vplas = 4 * pi * r_sphere**3 / 3.
-
+     Aplas = pi*r_sphere**2
      focus = (/xl / 2. - r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
      plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 1
 
   case(2) ! disc
      Vplas = pi * r_sphere**2 * x_plasma
+     Aplas = x_plasma*y_plasma
      focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./) ! Centre of laser focal spot
      plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma        
      number_faces = 3
 
   case(3) ! wire
      Vplas = pi * r_sphere**2 * z_plasma
+     Aplas = pi*r_sphere**2
      focus = (/xl / 2. - r_sphere + x_offset, yl / 2., zl / 2. + z_offset/) ! Centre of laser focal spot
      plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 3
 
   case(4) ! ellipsoid
-     Vplas = 4 * pi * x_plasma * y_plasma * z_plasma * r_sphere**3 / 3.
+     Vplas = 4 * pi * x_plasma * y_plasma * z_plasma / 3.
+     Aplas = pi*x_plasma*y_plasma*2
      focus = (/xl / 2. - x_plasma * r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
      plasma_centre = (/xl / 2., yl / 2., zl / 2./) 
      number_faces = 1
 
   case(5) ! wedge
      Vplas = .5 * x_plasma * y_plasma * z_plasma
+     Aplas = .5*x_plasma*y_plasma
      focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./)
      plasma_centre = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 5
 
   case(6) ! hemisphere
      Vplas = 4 * pi * r_sphere**3 / 6.
+     Aplas = pi*r_sphere**2/2.
      focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
      plasma_centre = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 2
 
   case(7) ! hollow sphere
      Vplas = (4 * pi / 3.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
+     Aplas = pi*(r_sphere**2-(r_sphere-x_plasma)**2)
      focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
      plasma_centre = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 2
 
   case(8) ! hollow hemisphere
      Vplas = (4 * pi / 6.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
+     Aplas = pi/2.*(r_sphere**2-(r_sphere-x_plasma)**2)
      focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
      plasma_centre = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 3
 
   end select geometry
 
+  window_min = plasma_centre(1) - x_plasma/2.
+  propag_laser=focus(1)
+
   if (plasma_config==2) then ! Electrons only user-defined config (special_start)
      Vplas = x_plasma * y_plasma * z_plasma
+     Aplas = x_plasma * y_plasma
      focus = (/xl /4., yl / 2., zl / 2./) ! Centre of laser focal spot
      plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 6  
   endif
 
   vte = sqrt(Te_keV/511.)  ! convert from keV to /c
-  if (ne > 0) then
-     qe = -Vplas*rho0/ne
-     qi = -qe*q_factor
-     mass_e = -qe
-  else
-     ! ions only
-     qi = Vplas*rho0/ni
-     qe = -qi
-     mass_e = qi
+
+
+  if (idim==3) then    ! 3D
+     if (ne > 0) then
+        qe = -Vplas*rho0/ne
+        qi = -qe*q_factor
+        mass_e = -qe
+        Qplas = abs(qe)*ne
+     else
+        ! ions only
+        qi = Vplas*rho0/ni
+        qe = -qi
+        mass_e = qi
+        Qplas = abs(qi)*ni
+     endif
+     a_ii = (Vplas/ni)**(1./3.)
+
+  else                ! 2D - use areal density instead of volume
+     if (ne > 0) then
+        qe = -Aplas*rho0/ne
+        qi = -qe*q_factor
+        mass_e = -qe
+        Qplas = abs(qe)*ne
+     else
+        ! ions only
+        qi = Aplas*rho0/ni
+        qe = -qi
+        mass_e = qi
+        Qplas = abs(qi)*ni
+     endif
+     a_ii = (Aplas/ni)**(1./2.) ! assume 2D slab mode
   endif
 
-  a_ii = (Vplas/ni)**(1./3.)
   vti = sqrt(Ti_keV/511./mass_ratio)
   mass_i = mass_e*mass_ratio
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
   convert_mu = omega/2./pi*lambda          ! convert from c/wp to microns
   lolam = lolam*2.*pi/omega  ! normalise scale-length
+  convert_keV = 2./3./Qplas*511     ! convert from code energy units to keV/particle
 
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
 

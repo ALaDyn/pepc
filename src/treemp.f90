@@ -30,9 +30,9 @@ program treemp
   use utils
   implicit none
 
-! timing stuff
+  ! timing stuff
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_en, t_force
-  real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot
+  real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot, t_laser
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
   integer :: ierr
@@ -46,7 +46,7 @@ program treemp
   ! Get the number of MPI tasks
   call MPI_COMM_size(MPI_COMM_WORLD, num_pe, ierr)
 
-! Time stamp
+  ! Time stamp
   if (me==0) call stamp(6,1)
   if (me==0) call stamp(15,1)
 
@@ -64,21 +64,23 @@ program treemp
      trun = trun + dt
      if (beam_config >= 3) tlaser = tlaser + dt  
      write(ipefile,'(//a,i8,a,f10.5)') 'Timestep ',itime,' t=',trun
-    
+
      if (beam_config==4 .and. tlaser<= 2*tpulse) then
         Tpon = 2*vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2) 
-! * (sin(omega*tlaser))**2
+        ! * (sin(omega*tlaser))**2
      else if (beam_config==3) then
         Tpon = vosc**2
      else
 	Tpon = 0.
      endif
      write(ipefile,*) 'Laser intensity: ',Tpon
-     write(ipefile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
+     write(ipefile,'(//a,i8,(3x,a20,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
           ,' total run time = ',trun &
           ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
-          ,' intensity= ',Tpon
-!     tremain=llwrem(0)
+          ,' Laser intensity  = ',Tpon
+
+
+     !     tremain=llwrem(0)
      if (me==0) then
         do ifile = 6,15,9
            write(ifile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/2(a,f9.3))') &
@@ -87,10 +89,16 @@ program treemp
                 ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
                 ,' intensity= ',Tpon &
                 ,' x_crit= ',x_crit 
-!                ,' remaining wall-clock time (s)= ',tremain 
+           !                ,' remaining wall-clock time (s)= ',tremain 
            write(ifile,*) 'new npp: ',npp,' new npart: ',npart
            write (ifile,'(a,i8,a3,i8)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         end do
+        if (beam_config==5) then 
+           write(6,'(4(a,f8.2/))') 'Laser amplitude =',vosc &
+                , 'Pulse length',tpulse &
+                , 'Pulse width', sigma &
+                , 'Focal position',focus(1)
+        endif
      endif
 
      call cputime(t0)
@@ -134,10 +142,13 @@ program treemp
 
      case default
         ! do nothing
+
      end select boundaries
 
      call cputime(t_push)
 
+     call laser            ! laser propagation according to beam_config
+     call cputime(t_laser)
 
      if (.not. perf_anal) call diagnostics
      call cputime(t_diag)
@@ -190,11 +201,13 @@ program treemp
   if (me ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
 
 
-! Time stamp
+  ! Time stamp
   if (me==0) call stamp(6,2)
   if (me==0) call stamp(15,2)
   ! End the MPI run
   call MPI_FINALIZE(ierr)
+
+
 end program treemp
 
 

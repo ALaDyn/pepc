@@ -104,8 +104,12 @@ subroutine dump_fields(timestamp)
      ex_slice = 0.
      jxe_slice = 0.
 
+     if (ngz<=5) then
+        nave=0
+     else
+        nave = min(3,ngz/2)
+     endif
 
-     nave = 3
      norm = (2*nave+1)**2
      rhonorm = norm*omega**2
      

@@ -147,13 +147,13 @@ subroutine predef_parts
         do i=1,npp
            read(60,*) x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i), &
                 axdum,aydum,azdum,phidum, idummy,pelabel(i)
-!           if (beam_config.eq.5 .and. q(i)>0 .and. x(i) < window_min+dt .and. x(i) > window_min) then
+           if (beam_config.eq.5 .and. q(i)>0 .and. x(i) < window_min+dt .and. x(i) > window_min) then
   ! create rezoning slice for wakefield mode - first few blocks should be sufficient
-!              nslice = nslice+1
-!              xslice(nslice) = x(i)+x_plasma ! Include offset for new slice
-!              yslice(nslice) = y(i)
-!              zslice(nslice) = z(i)
-!           endif
+              nslice = nslice+1
+              xslice(nslice) = x(i)+x_plasma ! Include offset for new slice
+              yslice(nslice) = y(i)
+              zslice(nslice) = z(i)
+           endif
         end do
      end do
 
