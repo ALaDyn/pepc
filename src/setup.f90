@@ -33,7 +33,7 @@ subroutine setup
        vis_on, steering, domain_debug,  mc_init, restart, scheme, particle_bcs, &
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
        dump_tree, perf_anal, coulomb, bonds, lenjones, target_dup, ramp, &
-       prefetch, walk_summary, branch_debug, tree_debug, &
+       prefetch, walk_summary, branch_debug, tree_debug, build_debug, &
        constrain_proof, len_tripod, use_multipoles, struct_step, uthresh, bfield_on
 
   !  Default input set

@@ -190,6 +190,7 @@ module treevars
 
   ! Debugging switches (all off by default)
   logical :: tree_debug=.false.
+  logical :: build_debug=.false.
   logical :: domain_debug = .false.
   logical :: branch_debug=.false.
   logical :: prefetch_debug=.false.

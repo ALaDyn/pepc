@@ -38,7 +38,7 @@ subroutine tree_build
 
   character*1 :: collision(0:maxaddress)
   real :: s
-  logical :: resolved, build_debug=.false.
+  logical :: resolved
 
 
   if (build_debug) write(ipefile,'(//a)') 'TREE CONSTRUCTION'
