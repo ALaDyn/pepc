@@ -200,6 +200,7 @@ module treevars
   real :: xl, yl, zl, theta
   real :: vte, vti       ! electron, ion thermal velocities
   real :: Te_keV, Ti_keV ! electron, ion emperatures in keV
+  real :: T_scale = 1       ! factor for rescaling Te after restart 
   real :: force_const    ! force constant depending on unit system
   real :: bond_const     ! bonding force constant for ion crystal
   real :: mass_ratio     ! ion:electron mass ratio
@@ -250,7 +251,7 @@ module treevars
   integer :: mc_steps
   integer :: initial_config = 4  ! Switch for initial configuration (positions, velocities)
   integer :: beam_config = 0 ! Switch for particle beam mode
-  integer :: ensemble = 1 ! Canonical ensemble switch: 2= const. Te dynamics
+  integer :: ensemble = 1 ! Canonical ensemble switch: 2-4= const. Te dynamics
   integer :: particle_bcs = 1 ! Particle BC switch: 1=open, 2=reflective
   
    real :: dt             ! timestep
@@ -259,8 +260,19 @@ module treevars
    integer :: nt, itime   ! # timesteps and current timestep
    integer :: itime_start ! restart time stamp
    integer :: idump       ! output frequency (timesteps)
+   integer :: iprot=1       ! protocoll frequency
    integer :: ivis        ! frequency for particle shipping to VISIT
    integer :: ivis_fields    !  frequency for field shipping to VISIT
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
 
 end module treevars
+
+
+
+
+
+
+
+
+
+

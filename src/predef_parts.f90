@@ -186,7 +186,19 @@ subroutine predef_parts
   az(1:npp) = 0.
   work(1:npp) = 1.
 
-
+ ! Rescale velocities if different temperature required 
+  if (T_scale /= 1) then
+    if (me==0) write(*,*) 'Rescaling temperature by ',T_scale,' to ',Te_keV
+    do i=1,npp
+       if (q(i)<0) then
+          ux(i) = ux(i)*sqrt(T_scale)
+          uy(i) = uy(i)*sqrt(T_scale)
+          uz(i) = uz(i)*sqrt(T_scale)
+       endif
+    end do
+  endif
 
 end subroutine predef_parts
+
+
 

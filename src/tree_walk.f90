@@ -285,7 +285,7 @@ subroutine tree_walk(pshort,npshort)
            defer_list(ndef+1:ndef+nrest,i) = walk_list(defer_ctr(i):nwalk(i),i)
            ndefer(i) = ndefer(i) + nrest
         endif
-        if (walk_last(i) <> 1) then
+        if (walk_last(i) /= 1) then
            defer_list(ndef+nrest+1,i) = walk_last(i)  ! Tack on key where local walk was interrupted
            ndefer(i) = ndefer(i) + 1
         endif

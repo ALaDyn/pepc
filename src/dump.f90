@@ -44,7 +44,14 @@ subroutine dump(timestamp)
        'ensemble=',ensemble, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
        'eps=', eps, 'theta=',theta,'tlaser = ',tlaser   
-
+  if (me.eq.0) then
+  write(6,'(//a/7(a9,i8/),7(a9,f12.5/))') 'PARTICLE DUMP:', &    ! info block
+       'itime=',timestamp, 'npp=',npp, &
+       'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
+       'ensemble=',ensemble, &
+       'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
+       'eps=', eps, 'theta=',theta,'tlaser = ',tlaser   
+  endif
   close(60)
 
 
@@ -62,3 +69,9 @@ subroutine dump(timestamp)
   icall = icall + 1
 
 end subroutine dump
+
+
+
+
+
+

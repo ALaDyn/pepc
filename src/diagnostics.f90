@@ -30,17 +30,14 @@ subroutine diagnostics
      call draw_domains(itime+itime_start)   ! Domains
   endif
 
-  if (mod(itime,idump)==0 .or. itime==nt ) then
+  if ((mod(itime,idump)==0 .or. itime==nt) ) then
      call dump(itime+itime_start)     ! Dump complete set of particle data
-     call slices(itime+itime_start)  ! 1D lineouts
+!     call slices(itime+itime_start)  ! 1D lineouts
 
   endif
 
   if ( mod(itime,ivis)==0 .and. steering) call beam_control
 
-  if (vis_on .and. mod(itime,ivis_fields)==0 ) then
-     !     call vis_fields
-  endif
 
   if ( mod(itime,ivis) ==0 ) then
      if (vis_on) call vis_parts       ! Interface to VISIT
@@ -48,4 +45,7 @@ subroutine diagnostics
   endif
 
 
+  if (vis_on .and. mod(itime,ivis_fields)==0 ) then
+          call vis_fields
+  endif
 end subroutine diagnostics

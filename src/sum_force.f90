@@ -8,15 +8,15 @@
 
 subroutine sum_force( p, n, inode, sumfx, sumfy, sumfz, sumphi )
   use treevars
-
+  implicit none
   integer, intent(in) :: p  ! particle label 
   integer, intent(in) :: n  !  # terms on interaction list
   integer, dimension(1:n) ::  inode
-  integer :: jnode
+  integer :: jnode, i
 
-  !  real, dimension(1:n) :: dx,dy,dz,d,dx2,dy2,dz2 
-  !  real, dimension(1:n) :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
- !  real, dimension(1:n) :: fsx,fsy,fsz,phi
+  real :: dx,dy,dz,d,dx2,dy2,dz2 
+ real :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
+ real :: fsx,fsy,fsz,phi
 
   real, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
   real :: eps2

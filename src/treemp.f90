@@ -25,7 +25,7 @@ program treemp
   use utils
 
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_en, t_force
-  real :: t_push, t_diag, t_start_push, t_prefetch
+  real :: t_push, t_diag, t_start_push, t_prefetch, Tpon
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -50,10 +50,13 @@ program treemp
      write(ipefile,'(//a,i8,a,f10.5)') 'Timestep ',itime,' t=',itime*dt
 
      if (me==0) then
+        Tpon = 2*vosc**2*min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
+        write(6,*) 'Laser intensity: ',Tpon
         do ifile = 6,15,9
-           write(ifile,'(//a,i8,3(3x,a,f8.2),a4)') 'Timestep ',itime+itime_start &
-	    ,' total run time = ',trun &
-             ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)'
+           write(ifile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
+                ,' total run time = ',trun &
+                ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
+                ,' intensity= ',Tpon
            write(ifile,*) 'new npp: ',npp,' new npart: ',npart
            write (ifile,'(a,i8,a3,i8)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         end do
@@ -87,7 +90,7 @@ program treemp
      call push(1,npp,dt)
      if ( particle_bcs == 2 ) call constrain   ! relective particle bcs for temperature-clamp mode
      call cputime(t_push)
-     
+
 
      call diagnostics
      call cputime(t_diag)
@@ -97,7 +100,7 @@ program treemp
      if (me==0) then
         ttot = t_push-t0 ! total loop time without diags
 
-        if (itime ==1 ) then
+        if (itime ==1 .or. mod(itime,iprot).eq.0) then
            ifile = 6
         else 
            ifile = 15
@@ -125,14 +128,14 @@ program treemp
   end do
 
   if (ensemble ==5 ) then
-!  ion eqm mode: add electrons before dumping particle positions
+     !  ion eqm mode: add electrons before dumping particle positions
      call add_electrons
      call dump(nt+itime_start)
   endif
 
   call closefiles      ! Tidy up O/P files
 
- if (me ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
+  if (me ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
 
   ! End the MPI run
   call MPI_FINALIZE(ierr)

@@ -24,17 +24,20 @@ subroutine setup
   character*7 :: beam_configs(0:9)=(/ &
        'eqm    ','beam   ','i-beam ','laser-u','fpond  ', &
        '       ','       ','       ','       ','       ' /)
+  character*7 :: ensembles(1:5)=(/ &
+       'const U','Te, Ti ','glob Te','loc  Te','Ti only' /)
+
 
   namelist /pepcdata/ nep, nip, ne, ni, &
        theta, mass_ratio, q_factor, eps, &
        initial_config, &
-       Te_keV, Ti_keV, &
+       Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, delta_mc, &
        xl, yl, zl, displace, bond_const, fnn, &
        beam_config, np_beam, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
-       nt, dt, mc_steps, idump, ivis, ivis_fields, nmerge, ngx, ngy, ngz, &
+       nt, dt, mc_steps, idump, ivis, ivis_fields, iprot, nmerge, ngx, ngy, ngz, &
        vis_on, steering, domain_debug,  mc_init, restart, ensemble, particle_bcs, &
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
        dump_tree, perf_anal, coulomb, bonds, lenjones
@@ -207,7 +210,7 @@ subroutine setup
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
 
-  if (ensemble > 1 .and. beam_config<>0) then
+  if (ensemble > 1 .and. beam_config /= 0) then
      if (me==0) write(*,*) 'Constant-Te mode: turning beam off'
      beam_config=0
   endif
@@ -270,6 +273,7 @@ subroutine setup
 
         write (ifile,*) ' Plasma config: ',configs(initial_config)
         write (ifile,*) ' Laser config: ',beam_configs(beam_config)
+        write (ifile,*) ' Ensemble: ',ensembles(ensemble)
         write (ifile,'(a,1pe12.3)') ' Plasma volume: ',Vplas
         write (ifile,'(a,1pe12.3)') ' Sphere radius: ',r_sphere
         write (ifile,'(a,1pe12.3)') ' Plasma length: ',x_plasma

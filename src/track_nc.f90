@@ -51,7 +51,7 @@ subroutine track_nc
   icm = xc1/dx
   icp = icm+1
   found = .false.
-  rho_track = 1.5   ! tracking density
+  rho_track = 1.0   ! tracking density
 
 !  sweep down
   i = icm
@@ -73,10 +73,13 @@ subroutine track_nc
      i = i+1
   end do
 
-  if (.not.found) x_crit=xc1
+  if (.not.found) x_crit=x_crit + dt  ! vacuum propagation
+!  if (.not.found .and. itime>0) beam_config=0 ! switch off laser
  
 if (me==0) then
    write(*,*) 'plasma edge: ',xc1, ' x_crit: ',x_crit
+   write(15,*) 'plasma edge: ',xc1, ' x_crit: ',x_crit
+
 endif
 
 

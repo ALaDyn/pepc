@@ -14,10 +14,6 @@ subroutine tree_prefetch
 
   use treevars
   use utils
-  !VAMPINST include
-  INCLUDE 'VTcommon.h'
-  INTEGER VTIERR
-  !
 
   implicit none
 
@@ -61,10 +57,6 @@ subroutine tree_prefetch
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
 
-  !VAMPINST subroutine_start
-  CALL VTENTER(IF_tree_prefetch,VTNOSCL,VTIERR)
-  !      write(*,*) 'VT: tree_prefetch S>',VTIERR,
-  !     *    IF_tree_prefetch,ICLASSH
   !
   if (prefetch_debug) write(ipefile,'(/a,i6)') 'TREE PREFETCH for timestep ',itime
   ! if (walk_debug) write(*,'(/a,i6)') 'TREE PREFETCH for timestep ',itime
@@ -85,7 +77,8 @@ subroutine tree_prefetch
         fetch_parent(1:npar) = ishft( fetch_comp(1:npar),-idim)  ! Parent keys of fetch-list
         key_present(1:npar) = (/ (key_local( fetch_parent(i) ),i=1,npar) /) ! Check whether parent node present locally
         nnot_local = count(mask = .not.key_present(1:npar))     ! Count absentees
-        if (prefetch_debug) write(ipefile,'(a,i6/(2o15,l3))') 'Old fetch list   Parents    Present ',npar,(fetch_comp(i),fetch_parent(i),key_present(i),i=1,npar)
+        if (prefetch_debug) write(ipefile,'(a,i6/(2o15,l3))') &
+	'Old fetch list   Parents    Present ',npar,(fetch_comp(i),fetch_parent(i),key_present(i),i=1,npar)
 
         absent(1:nnot_local) = &
              pack( fetch_parent(1:npar), mask = .not.key_present(1:npar) ) ! Make list of absent parents
@@ -163,7 +156,8 @@ subroutine tree_prefetch
      call sort(req_compress(1:nreqs_new))   ! Sort key list
      req_parent(1:nreqs_new) = ishft( req_compress(1:nreqs_new),-idim)
 
-     if (prefetch_debug) write(ipefile,'(a,i6/(2o15))') 'Compressed list   Parents ',nreqs_new,(req_compress(i),req_parent(i),i=1,nreqs_new)
+     if (prefetch_debug) write(ipefile,'(a,i6/(2o15))') & 
+	'Compressed list   Parents ',nreqs_new,(req_compress(i),req_parent(i),i=1,nreqs_new)
      req_parent(nreqs_new+1) = 0
      duplicate(1:nreqs_new) = (/ (req_parent(i) /= req_parent(i+1), i=1,nreqs_new) /)  ! Identify unique keys     
      nuniq= count(mask = duplicate(1:nreqs_new))            ! Count them
@@ -198,7 +192,7 @@ subroutine tree_prefetch
   ! created locally during tree_fill.
 
   do ipe = 0,num_pe-1
-     if (ipe<>me) then
+     if (ipe /= me) then
         if (prefetch_debug) write(ipefile,*) 'PASS 3: Fetches from PE ',ipe
         npar = nfetch_total(ipe)
         fetch_comp(1:npar) = fetched_keys(1:npar,ipe)  ! Work array
@@ -242,8 +236,9 @@ subroutine tree_prefetch
         ccol2='('//achar(num_pe/10+48)//achar(mod(num_pe,10)+48)//'o15)'
      endif
 
-     write(ipefile,ccol0) 'Keys requested/removed/added at timestep ',timestamp,nreqs_total(0:num_pe-1),nremove(0:num_pe-1),nadd(0:num_pe-1), &
-          '------------------------------------------------------------'
+     write(ipefile,ccol0) 'Keys requested/removed/added at timestep ', &
+	timestamp,nreqs_total(0:num_pe-1),nremove(0:num_pe-1),nadd(0:num_pe-1), &
+        '------------------------------------------------------------'
      do i=1,nreq_max
         write(ipefile,ccol2) (requested_keys(i,ipe),ipe=0,num_pe-1)
      end do
@@ -407,9 +402,5 @@ subroutine tree_prefetch
   end do
 
 
-  !VAMPINST subroutine_end
-  CALL VTLEAVE(ICLASSH,VTIERR)
-  !      write(*,*) 'VT: tree_prefetch S<',VTIERR,ICLASSH
-  !
 end subroutine tree_prefetch
 

@@ -162,9 +162,9 @@ subroutine velocities(p_start,p_finish,delta_t)
      Te_loc = 511*2./3.*sum_v2e/ne_loc
      Te0 = Te_keV  ! normalised electron temp
      chie = sqrt(abs(Te0/Te_uncor))     ! multipliers from Temperature ratio - reset once every cycle
-     chie = min(1.,max(chie,0.5))
-     if (me==0)	write (*,*) 'Te_unc ',Te_uncor,' Te0 ', Te0, ' chie ',chie
-     write(*,*) 'Tloc ',Te_loc
+     chie = min(1.25,max(chie,0.75))  ! Set bounds of +- 50%
+
+     if (me==0) write (*,*) 'Te_unc ',Te_uncor,' Te0 ', Te0, ' chie ',chie
 
      !  3)  Complete full step
 
