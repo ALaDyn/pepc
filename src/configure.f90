@@ -16,6 +16,10 @@ subroutine configure
 
   if (restart) then
      call predef_parts    ! Predefined particle properties read from peXX/parts_dump.NNNNNN
+!  Find critical/shelf densities
+
+     if (beam_config ==4 )call track_nc 
+
   else
      config: select case(initial_config)
 
