@@ -20,21 +20,30 @@ subroutine beam_control
 
   integer, save :: np_beam_dt  ! current # beam particles
 
+  ! First check for VISIT connection
+
+  if (me==0)   call flvisit_spk_check_connection(lvisit_active)
+  call MPI_BCAST( lvisit_active, one, MPI_INTEGER8, root, MPI_COMM_WORLD,ierr)
+
+  if (lvisit_active==0 )then
+     if (me==0) write(*,*) ' No Connection to Visualization'
+     return
+  endif
 
   if (itime == 0) then
      np_beam_dt = np_beam  ! initial # beam particles to introduce per timestep
   endif
 
-!  if (.not. beam_on) return
+  !  if (.not. beam_on) return
 
-!  if (npart + np_beam_dt > npartm .or. max_list_length > nintmax-20) then
-!     if (me==0) write(*,*) 'Array limit reached: switching off beam'
-!     beam_on = .false.
-!     return
-!  endif
+  !  if (npart + np_beam_dt > npartm .or. max_list_length > nintmax-20) then
+  !     if (me==0) write(*,*) 'Array limit reached: switching off beam'
+  !     beam_on = .false.
+  !     return
+  !  endif
 
   if (beam_config == 4 .or. beam_config == 5) then
-! Define beam from laser parameters
+     ! Define beam from laser parameters
      vosc_old = vosc
      sigma_old = sigma
      u_beam = vosc
@@ -43,9 +52,8 @@ subroutine beam_control
   endif
 
   if (itime == 0 .and. me==0 )  then
-
-     ! Specify default parameters at beginning of run
      call flvisit_spk_check_connection(lvisit_active)
+     ! Specify default parameters at beginning of run
      call flvisit_spk_beam_paraminit_send(theta_beam,phi_beam,r_beam,rho_beam,u_beam)
   endif
 
@@ -55,24 +63,28 @@ subroutine beam_control
      call flvisit_spk_check_connection(lvisit_active)
 
      ! Fetch real-time, user-specified control parameters
-     if (lvisit_active /= 0) call flvisit_spk_beam_param_recv( theta_beam,phi_beam,r_beam,rho_beam,u_beam)
+     if (lvisit_active /= 0) then 
+        call flvisit_spk_beam_param_recv( theta_beam,phi_beam,r_beam,rho_beam,u_beam)
+     else
+        write(*,*) ' No Connection to Visualization'
+        return
+     endif
+
   endif
 
 
   ! Broadcast beam parameters to all other PEs
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
-
-  call MPI_BCAST( theta_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( phi_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( r_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( rho_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( u_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-
   call MPI_BCAST( lvisit_active, one, MPI_INTEGER8, root, MPI_COMM_WORLD,ierr)
-
-  if (lvisit_active==0 )then
+  if (lvisit_active /= 0) then
+     call MPI_BCAST( theta_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( phi_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( r_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( rho_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( u_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
+  else
      if (me==0) write(*,*) ' No Connection to Visualization'
-     !     return
+     return
   endif
 
   if (rho_beam==0 )then
@@ -81,15 +93,31 @@ subroutine beam_control
      return
   endif
 
-  if (beam_config == 4 .or. beam_config ==5) then
- ! laser standing wave
-     vosc = u_beam
-     sigma = max(abs(rho_beam),0.5)
-     tpulse = max(abs(r_beam),0.1)
+  if (beam_config == 4 .or. beam_config ==5 ) then
+     ! laser standing wave
+!     u_beam = max(abs(u_beam),0.1)
+!     rho_beam = max(abs(rho_beam),0.5)
+!     r_beam = max(abs(r_beam),0.1)
 
-     if (me==0 .and. vosc /= vosc_old) write(*,*) 'Laser amplitude changed'
-     if (me==0 .and. sigma /= sigma_old) write(*,*) 'Laser spot size changed'
-     if (me==0 .and. tpulse /= tpulse_old) write(*,*) 'Laser pulse length changed'
+     if (vosc/u_beam > 0.5 .and. vosc/u_beam < 2.0) then
+        vosc=u_beam ! limit amplitude change
+        if (me==0 .and. vosc /= vosc_old) write(*,*) 'Laser amplitude changed'
+     else
+        if (me==0) write(*,*) 'Amplitude change too big - readjust!'
+     endif
+
+     if (sigma/rho_beam > 0.5 .and. sigma/rho_beam < 2.0) then
+        sigma=rho_beam
+        if (me==0 .and. sigma /= sigma_old) write(*,*) 'Laser spot size changed'
+     else
+        if (me==0) write(*,*) 'Spot size change too big - readjust!'
+     endif
+     if (tpulse/r_beam > 0.5 .and. tpulse/r_beam < 2.0) then
+        tpulse=r_beam
+     else
+        if (me==0) write(*,*) 'Pulse length change too big - readjust!'
+        if (me==0 .and. tpulse /= tpulse_old) write(*,*) 'Laser pulse length changed'
+     endif
 
   else if (beam_config ==2) then
      nb_pe = np_beam_dt/num_pe  ! # beam particles to load per PE
@@ -165,10 +193,10 @@ subroutine beam_control
      npart = npart + np_beam_dt
 
   else if (ensemble == 5) then
-  ! ion crystal eqm  mode:
-  !  r_beam is mean ion spacing
-  !  u_beam is ion temperature (eV)
-  !  rho_beam is potential constant
+     ! ion crystal eqm  mode:
+     !  r_beam is mean ion spacing
+     !  u_beam is ion temperature (eV)
+     !  rho_beam is potential constant
      a_ii = r_beam
      Ti_kev = u_beam
      bond_const = 10**(rho_beam)
