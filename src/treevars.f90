@@ -157,6 +157,7 @@ module treevars
              nslice, &            ! # particles in rezoning slice (determined in predef)
              new_label         ! Rezone label 
 
+
   real :: xmin, xmax    ! box limits
   real :: ymin, ymax  
   real :: zmin, zmax
@@ -166,6 +167,7 @@ module treevars
  ! Force control
   logical :: load_balance=.true.   ! Balances particles in || sort according to work load
   logical :: walk_balance=.false.  ! Controls balancing of shortlists in walk/force sum
+  logical :: use_multipoles = .true.   ! Use of multipoles? 
 
   ! Debugging switches (all off by default)
   logical :: tree_debug=.false.
@@ -251,6 +253,7 @@ module treevars
   real :: elaser        ! deposited laser energy
   real :: propag_laser  ! distance travelled by laser after rezoning
   
+  
 ! Control stuff
   logical :: vis_on=.true.  ! online visualisation on/off
   logical :: mc_init = .false. ! MC initialisation switch
@@ -281,10 +284,12 @@ module treevars
    integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
 
+   ! constrain
+   real :: constrain_proof ! quality of getting crossing points
+   real :: len_tripod      ! length of tripod
+   real :: number_faces    ! # faces to constrain the particles in
+   integer :: struct_step
 end module treevars
-
-
-
 
 
 
