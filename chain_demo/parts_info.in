@@ -1,0 +1,15 @@
+   itime=      20
+     npp=    5553
+      ne=   10000
+      ni=   10000
+  npbeam=       0
+  config=       1
+ensemble=       1
+      xl=     2.00000
+      yl=     2.00000
+      zl=     2.00000
+ boxsize=     2.00000
+     eps=     1.00000
+   theta=     0.50000
+tlaser =     10.00000
+

@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Shell script to clean directories of
+# arbitrary number of PEs
+
+DATADIR=$1
+cd $DATADIR
+
+#
+#echo "List of PEs:"; cat PE_list
+echo
+
+cat PE_list | while read PE
+do
+	if [ -d $PE ]
+	then
+		echo Cleaning $PE
+  		rm $PE/*
+	else
+  		echo "No directory" $PE
+	fi 
+done
+rm coredir.*/core
+rm wf_* field_* *.dat list_* *.gle

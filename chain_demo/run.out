@@ -1,0 +1,300 @@
+  Plasma config: sphere 
+  Laser config: fpond  
+  Ensemble: const U
+ Plasma volume:    4.189E+00
+ Sphere radius:    1.000E+00
+ Plasma length:    1.000E+00
+ Plasma width:    2.000E+00
+ Plasma height:    1.000E+00
+ Electron charge:   -4.189E-04
+ Electron mass:    4.189E-04
+ Ion mass:    8.378E-02
+ Te:    5.000E-01
+ Ti:    2.000E-01
+ Ion spacing:    7.482E-02
+ Cutoff radius:    1.000E+00
+ Neighbour search radius:    3.741E-01
+ MAC theta:    5.000E-01
+ Graphics box:      2.00 x      2.00 x      2.00
+
+  Electrons:  10000
+  Ions:  10000
+  Beam particles:  0
+  Beam angles  0.000000000000000000E+00 0.000000000000000000E+00
+  Particles per PE:  5000
+
+ Switches:
+--------
+    Coulomb forces:   T
+ Lennard-Jones force  F
+      load balance:   T
+      walk balance:   T
+           restart:   T
+      domain debug:   F
+        walk debug:   F
+         dump tree:   F
+ performance anal.:   F
+             visit:   F
+          steering:   F
+
+ Max address in #-table:  65535
+ Machine bit-size =  64
+ Max permitted particles / PE:  10000
+ Max size of interaction lists:  2543
+ Shortlist length:  1800
+ Memory needed for lists =  139  Mbytes
+
+Other inputs:
+ &PEPCDATA
+ NEP=2500, NIP=2500, NE=10000, NI=10000, THETA=0.500000000000000000, MASS_RATIO=
+ 200.000000000000000, Q_FACTOR=1.00000000000000000, EPS=1.00000000000000000, 
+ INITIAL_CONFIG=1, TE_KEV=0.500000000000000000, TI_KEV=0.200000000000000011, 
+ T_SCALE=1.00000000000000000, R_SPHERE=1.00000000000000000, X_PLASMA=
+ 1.00000000000000000, Y_PLASMA=2.00000000000000000, Z_PLASMA=1.00000000000000000
+ DELTA_MC=0.100000000000000006, XL=2.00000000000000000, YL=2.00000000000000000, 
+ ZL=2.00000000000000000, DISPLACE=0.000000000000000000E+00, 
+ 0.000000000000000000E+00, 0.000000000000000000E+00, BOND_CONST=
+ 0.100000000000000006, FNN=5.00000000000000000, BEAM_CONFIG=4, NP_BEAM=0, 
+ R_BEAM=6.00000000000000000, U_BEAM=0.200000000000000011, THETA_BEAM=
+ 0.000000000000000000E+00, PHI_BEAM=0.000000000000000000E+00, X_BEAM=
+ 0.400000000000000008E-01, START_BEAM=-0.100000000000000006, RHO_BEAM=
+ 6.00000000000000000, MASS_BEAM=5.00000000000000000, LAMBDA=1.00000000000000000, 
+ SIGMA=6.00000000000000000, TPULSE=20.0000000000000000, VOSC=6.00000000000000000
+ OMEGA=0.500000000000000000, FOCUS=0.000000000000000000E+00, 1.00000000000000000
+ 1.00000000000000000, X_OFFSET=0.000000000000000000E+00, Z_OFFSET=
+ 0.000000000000000000E+00, NT=10, DT=0.500000000000000000, MC_STEPS=1000, IDUMP=
+ 10, IVIS=10, IVIS_FIELDS=50, IPROT=5, NMERGE=1, NGX=100, NGY=50, NGZ=50, 
+ VIS_ON=F, STEERING=F, DOMAIN_DEBUG=F, MC_INIT=F, RESTART=T, ENSEMBLE=1, 
+ PARTICLE_BCS=1, LOAD_BALANCE=T, WALK_BALANCE=T, WALK_DEBUG=F, FORCE_DEBUG=F, 
+ PREFETCH_DEBUG=F, DUMP_TREE=F, PERF_ANAL=F, COULOMB=T, BONDS=F, LENJONES=F, 
+ IDENS=1, TARGET_DUP=F
+ /
+
+
+Timestep        0 t=   0.00000
+
+
+Timestep       11    total run time =     5.50
+    tlaser =     5.50 (    1.46 fs)
+ intensity=     2.884
+ new npp:  5000  new npart:  20000
+Max length of all interaction lists:      916 /     2543
+P.E. =  4.20586E-01 elec K.E. =  1.41875E-01 Ions  5.54750E-03 Beam =  0.00000E+00 Total:  5.68009E-01
+Plasma Te, 1.15384E+01 4.51168E-01 keV
+ plasma edge:  0.000000000000000000E+00  x_crit:  0.196610827004804131E-01
+
+
+Timestep       12    total run time =     6.00
+    tlaser =     6.00 (    1.59 fs)
+ intensity=     0.430
+ new npp:  5370  new npart:  20000
+Max length of all interaction lists:      916 /     2543
+P.E. =  3.89124E-01 elec K.E. =  1.70290E-01 Ions  7.10056E-03 Beam =  0.00000E+00 Total:  5.66515E-01
+Plasma Te, 1.38494E+01 5.77476E-01 keV
+ plasma edge:  0.000000000000000000E+00  x_crit:  0.188896486484599821E-01
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.030       2.778
+             Build:        0.020       1.852
+          Branches:        0.010       0.926
+              Fill:        0.030       2.778
+             Props:        0.010       0.926
+          Prefetch:        0.010       0.926
+              Walk:        0.420      38.889
+            Forces:        0.550      50.926
+      Keys+domains:        0.030       2.778
+       Build+props:        0.080       7.407
+            Pusher:        0.000       0.000
+       Diagnostics:        0.040       3.704
+             Total:        1.080     100.000
+     Timing format:    4       0.030       0.070       0.420       0.550       1.080
+
+
+Timestep       13    total run time =     6.50
+    tlaser =     6.50 (    1.72 fs)
+ intensity=     0.274
+ new npp:  5288  new npart:  20000
+Max length of all interaction lists:      914 /     2543
+P.E. =  3.19344E-01 elec K.E. =  2.30827E-01 Ions  8.78570E-03 Beam =  0.00000E+00 Total:  5.58957E-01
+Plasma Te, 1.87728E+01 7.14525E-01 keV
+ plasma edge:  0.000000000000000000E+00  x_crit:  0.178177379407187218E-01
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.020       1.869
+             Build:        0.020       1.869
+          Branches:        0.010       0.935
+              Fill:        0.030       2.804
+             Props:        0.020       1.869
+          Prefetch:        0.010       0.935
+              Walk:        0.430      40.187
+            Forces:        0.520      48.598
+      Keys+domains:        0.020       1.869
+       Build+props:        0.090       8.411
+            Pusher:        0.000       0.000
+       Diagnostics:        0.030       2.804
+             Total:        1.070     100.000
+     Timing format:    4       0.020       0.080       0.430       0.520       1.070
+
+
+Timestep       14    total run time =     7.00
+    tlaser =     7.00 (    1.86 fs)
+ intensity=     3.101
+ new npp:  5183  new npart:  20000
+Max length of all interaction lists:      943 /     2543
+P.E. =  2.43050E-01 elec K.E. =  2.78376E-01 Ions  1.04033E-02 Beam =  0.00000E+00 Total:  5.31829E-01
+Plasma Te, 2.26398E+01 8.46081E-01 keV
+ plasma edge:  0.000000000000000000E+00  x_crit:  0.163691768661801233E-01
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.030       2.752
+             Build:        0.020       1.835
+          Branches:        0.010       0.917
+              Fill:        0.030       2.752
+             Props:        0.010       0.917
+          Prefetch:        0.010       0.917
+              Walk:        0.420      38.532
+            Forces:        0.560      51.376
+      Keys+domains:        0.030       2.752
+       Build+props:        0.080       7.339
+            Pusher:        0.000       0.000
+       Diagnostics:        0.040       3.670
+             Total:        1.090     100.000
+     Timing format:    4       0.030       0.070       0.420       0.560       1.090
+
+
+Timestep       15    total run time =     7.50
+    tlaser =     7.50 (    1.99 fs)
+ intensity=     8.820
+ new npp:  5186  new npart:  20000
+Max length of all interaction lists:      970 /     2543
+P.E. =  1.86411E-01 elec K.E. =  2.63760E-01 Ions  1.17917E-02 Beam =  0.00000E+00 Total:  4.61963E-01
+Plasma Te, 2.14511E+01 9.59000E-01 keV
+ plasma edge:  0.000000000000000000E+00  x_crit:  0.144271199115024833E-01
+
+
+Timestep       16    total run time =     8.00
+    tlaser =     8.00 (    2.12 fs)
+ intensity=    16.495
+ new npp:  5136  new npart:  20000
+Max length of all interaction lists:      992 /     2543
+P.E. =  1.56041E-01 elec K.E. =  1.84676E-01 Ions  1.28905E-02 Beam =  0.00000E+00 Total:  3.53608E-01
+Plasma Te, 1.50194E+01 1.04836E+00 keV
+ plasma edge:  0.000000000000000000E+00  x_crit:  0.118113795342344296E-01
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.020       1.786
+             Build:        0.020       1.786
+          Branches:        0.010       0.893
+              Fill:        0.030       2.679
+             Props:        0.010       0.893
+          Prefetch:        0.010       0.893
+              Walk:        0.460      41.071
+            Forces:        0.560      50.000
+      Keys+domains:        0.020       1.786
+       Build+props:        0.080       7.143
+            Pusher:        0.000       0.000
+       Diagnostics:        0.030       2.679
+             Total:        1.120     100.000
+     Timing format:    4       0.020       0.070       0.460       0.560       1.120
+
+
+Timestep       17    total run time =     8.50
+    tlaser =     8.50 (    2.25 fs)
+ intensity=    24.511
+ new npp:  5134  new npart:  20000
+Max length of all interaction lists:     1011 /     2543
+P.E. =  1.37273E-01 elec K.E. =  1.43733E-01 Ions  1.37408E-02 Beam =  0.00000E+00 Total:  2.94747E-01
+Plasma Te, 1.16896E+01 1.11751E+00 keV
+ plasma edge:  0.000000000000000000E+00  x_crit:  0.132631356348000221E-01
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.030       2.542
+             Build:        0.010       0.847
+          Branches:        0.010       0.847
+              Fill:        0.030       2.542
+             Props:        0.020       1.695
+          Prefetch:        0.010       0.847
+              Walk:        0.500      42.373
+            Forces:        0.570      48.305
+      Keys+domains:        0.030       2.542
+       Build+props:        0.080       6.780
+            Pusher:        0.000       0.000
+       Diagnostics:        0.030       2.542
+             Total:        1.180     100.000
+     Timing format:    4       0.030       0.070       0.500       0.570       1.180
+
+
+Timestep       18    total run time =     9.00
+    tlaser =     9.00 (    2.39 fs)
+ intensity=    30.960
+ new npp:  5140  new npart:  20000
+Max length of all interaction lists:     1025 /     2543
+P.E. =  1.18031E-01 elec K.E. =  2.31375E-01 Ions  1.44566E-02 Beam =  0.00000E+00 Total:  3.63863E-01
+Plasma Te, 1.88173E+01 1.17573E+00 keV
+ plasma edge:  0.000000000000000000E+00  x_crit:  0.123335400585527014E-01
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.030       2.479
+             Build:        0.020       1.653
+          Branches:        0.010       0.826
+              Fill:        0.030       2.479
+             Props:        0.020       1.653
+          Prefetch:        0.010       0.826
+              Walk:        0.490      40.496
+            Forces:        0.600      49.587
+      Keys+domains:        0.030       2.479
+       Build+props:        0.090       7.438
+            Pusher:        0.000       0.000
+       Diagnostics:        0.030       2.479
+             Total:        1.210     100.000
+     Timing format:    4       0.030       0.080       0.490       0.600       1.210
+
+
+Timestep       19    total run time =     9.50
+    tlaser =     9.50 (    2.52 fs)
+ intensity=    34.152
+ new npp:  5157  new npart:  20000
+Max length of all interaction lists:     1165 /     2543
+P.E. =  1.11821E-01 elec K.E. =  3.78486E-01 Ions  1.52309E-02 Beam =  0.00000E+00 Total:  5.05538E-01
+Plasma Te, 3.07815E+01 1.23870E+00 keV
+ plasma edge:  0.000000000000000000E+00  x_crit:  0.114856423330649184E-01
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.030       2.479
+             Build:        0.020       1.653
+          Branches:        0.010       0.826
+              Fill:        0.020       1.653
+             Props:        0.020       1.653
+          Prefetch:        0.010       0.826
+              Walk:        0.490      40.496
+            Forces:        0.600      49.587
+      Keys+domains:        0.030       2.479
+       Build+props:        0.080       6.612
+            Pusher:        0.010       0.826
+       Diagnostics:        0.030       2.479
+             Total:        1.210     100.000
+     Timing format:    4       0.030       0.070       0.490       0.600       1.210
+
+
+Timestep       20    total run time =    10.00
+    tlaser =    10.00 (    2.65 fs)
+ intensity=    33.103
+ new npp:  5255  new npart:  20000
+Max length of all interaction lists:     1283 /     2543
+P.E. =  1.38909E-01 elec K.E. =  4.73640E-01 Ions  1.63159E-02 Beam =  0.00000E+00 Total:  6.28866E-01
+Plasma Te, 3.85203E+01 1.32694E+00 keV
+ plasma edge:  0.000000000000000000E+00  x_crit:  0.107056157219859605E-01

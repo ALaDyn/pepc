@@ -1,0 +1,10 @@
+# LoadLeveler interactive job
+# @job_type = parallel
+# @class= small 
+# @resources = ConsumableCpus(1)
+
+# Job size
+# @node = 1
+# @total_tasks =8 
+# @node_usage = shared
+# @queue
