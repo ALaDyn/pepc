@@ -208,7 +208,8 @@ module treevars
   real :: mass_e, mass_i   ! electron, ion mass
   real :: r_sphere       ! initial radius of plasma sphere
   real :: x_plasma       ! initial plasma length (slab or disc targets)
-  real :: y_plasma       ! initial plasma width (slab)
+  real :: y_plasma       ! initial plasma y-width (slab)
+  real :: z_plasma       ! initial plasma z-width (slab)
   real :: plasma_centre(3) ! vector defining centre of plasma target
   real :: x_crit         ! critical surface
   real :: rho0           ! electron density (1)
@@ -263,6 +264,7 @@ module treevars
    integer :: iprot=1       ! protocoll frequency
    integer :: ivis        ! frequency for particle shipping to VISIT
    integer :: ivis_fields    !  frequency for field shipping to VISIT
+   integer :: idens       ! frequency for computing densities (tracking) 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
 
 end module treevars

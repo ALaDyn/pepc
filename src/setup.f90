@@ -32,7 +32,7 @@ subroutine setup
        theta, mass_ratio, q_factor, eps, &
        initial_config, &
        Te_keV, Ti_keV, T_scale, &
-       r_sphere, x_plasma, y_plasma, delta_mc, &
+       r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
        xl, yl, zl, displace, bond_const, fnn, &
        beam_config, np_beam, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
@@ -40,7 +40,7 @@ subroutine setup
        nt, dt, mc_steps, idump, ivis, ivis_fields, iprot, nmerge, ngx, ngy, ngz, &
        vis_on, steering, domain_debug,  mc_init, restart, ensemble, particle_bcs, &
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
-       dump_tree, perf_anal, coulomb, bonds, lenjones
+       dump_tree, perf_anal, coulomb, bonds, lenjones, idens
 
 
 
@@ -79,6 +79,7 @@ subroutine setup
   r_sphere = 0.5
   x_plasma = 0.1    ! plasma disc thickness (2) or wire length (3)
   y_plasma = 1.     ! plasma width (slab target)
+  z_plasma = 1.     ! plasma width (slab target)
   eps = 0.1
   fnn = 5  ! Neighbour search radius multiplier (x a_ii)
   delta_mc = r_sphere/5.
@@ -117,6 +118,7 @@ subroutine setup
   ivis = 1
   ivis_fields = 1
   itime_start = 0
+  idens=1
   ngx = 100   ! Grid size for plots
   ngy = 50
   ngz = 50
@@ -185,7 +187,7 @@ subroutine setup
 
   else
      ! slab
-     Vplas = x_plasma*y_plasma**2
+     Vplas = x_plasma*y_plasma*z_plasma
      focus = (/ xl/2.-x_plasma/2., yl/2., zl/2. /) ! Centre of laser focal spot
      plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
 
@@ -278,6 +280,7 @@ subroutine setup
         write (ifile,'(a,1pe12.3)') ' Sphere radius: ',r_sphere
         write (ifile,'(a,1pe12.3)') ' Plasma length: ',x_plasma
         write (ifile,'(a,1pe12.3)') ' Plasma width: ',y_plasma
+        write (ifile,'(a,1pe12.3)') ' Plasma height: ',z_plasma
         write (ifile,'(a,1pe12.3)') ' Electron charge: ',qe
         write (ifile,'(a,1pe12.3)') ' Electron mass: ',mass_e
         write (ifile,'(a,1pe12.3)') ' Ion mass: ',mass_i

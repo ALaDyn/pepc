@@ -23,8 +23,16 @@ subroutine draw_domains(timestamp)
   character(1) :: csnap
   character(3) :: cme
   character(6) :: cvisit
-  character(7), parameter :: colors(0:9) = (/"orange ", "cyan   ", "magenta", "blue   ", "green  ", &
-       "red    ","yellow ","grey20 ","violet ","brown  "/) 
+  character(15), parameter :: colors(0:9) = (/"red           ", &
+                                              "bright_gold   ", &
+                                              "lime_green    ", &
+                                              "medium_blue   ", &
+                                              "magenta       ", &
+                                              "brass         ", &
+                                              "orange        ", &
+                                              "aqua          ", &
+                                              "violet_red    ", &
+                                              "yellow_green  "/) 
 
 
   integer :: i, ip, j, ilev, isnap, ibt, ix, iy, iz, nbits
@@ -50,7 +58,7 @@ subroutine draw_domains(timestamp)
 	  , 'set lwidth 0.001 lstyle 1' &
 	  , 'psize=0.04' &
 	  , 'begin scale ',15./boxsize,15./boxsize &
-	  , 'begin translate ',.01*boxsize,.01*boxsize
+	  , 'begin translate ',.05*boxsize,.05*boxsize
 
 !     write (61,'(a/a,2f13.4)') 'amove 0 0','box ',boxsize,boxsize
 
@@ -79,7 +87,7 @@ subroutine draw_domains(timestamp)
   node_twig = pack(htable%node,mask=htable%node<0)         ! twig index
 
 
-  !  write (60,'(a/a,a7)') 'set lwidth .001','set color ',colors( mod(me,10) )
+  !  write (60,'(a/a,a15)') 'set lwidth .001','set color ',colors( mod(me,10) )
   write (60,'(a/a)') 'set lwidth .001','set color black'
 
   do j=2,ntwig
@@ -102,7 +110,7 @@ subroutine draw_domains(timestamp)
 
   ! Branch nodes
 
-  write (60,'(a)') 'set lwidth .001 color white'
+  write (60,'(a)') 'set lwidth .02 color white'
 
  ! Dump domain data in VISIT format
 
@@ -133,7 +141,7 @@ subroutine draw_domains(timestamp)
      write (60,'(a)') 'set color white'
      write (60,'(a,2f13.4)') 'amove ',xt,yt
      if (branch_owner(j) == me ) then
-        write (60,'(a,2f13.4,a,a7)') 'box ',s,s,' fill ',colors( mod(me,10) )
+        write (60,'(a,2f13.4,a,a15)') 'box ',s,s,' fill ',colors( mod(me,10) )
      else
 !        write (60,'(a,2f13.4,a)') 'box ',s,s,' fill grey5'
      endif
@@ -164,7 +172,7 @@ subroutine draw_domains(timestamp)
      xt=ix*s + xmin
      yt=iy*s + ymin
      !     write (60,'(a/a)') 'set color black','set lwidth .002'
-     write (60,'(a,2f13.4)') 'amove ',xt,yt
+!     write (60,'(a,2f13.4)') 'amove ',xt,yt
      !     write (60,'(a,2f13.4)') 'box ',s,s
      ! keys
      !     write (60,'(a,2f13.4)') 'amove ',xt,yt
@@ -178,9 +186,9 @@ subroutine draw_domains(timestamp)
 
 
   do i=1,npp
-     write (60,'(a,2f13.4)') 'amove ',x(i),y(i)
+!     write (60,'(a,2f13.4)') 'amove ',x(i),y(i)
      !     write (60,'(2a)') 'circle .002 fill ',colors( mod(me,8) )
-     write (60,'(2a)') 'circle psize fill black'
+ !    write (60,'(2a)') 'circle psize fill black'
   end do
 
 

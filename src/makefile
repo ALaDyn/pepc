@@ -21,13 +21,14 @@ PG=-pg -qfullpath
 DB= -g
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
-MPITRACE=/home/ibm/pospiech/tools/power4_trace/mpi_trace64.o
-#MPITRACE=
+#MPITRACE= -lmpitrace
+MPITRACE= -lmpiprof
+#MPITRACE=  -lmpihpm -lpmapi
 FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
 TUNE= -qarch=pwr4 -qtune=pwr4 -qhot $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) $(TUNE) 
+FFLAGS =  $(FFLAGS1) $(DB) $(TUNE) 
 
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -40,7 +41,7 @@ VISITLIBS=-L/home/admin/beta/visit-2.0b/lvisit/apis/spk3 -llvisit_spk -L/home/ad
 # Local
 #VISITLIBS= -L$(HOME)/visit/spkvisit -llvisit_spk -L$(HOME)/visit/lib -llvisit -L$(HOME)/visit/lib -lvisit
 
-LDFLAGS = $(VISITLIBS) 
+LDFLAGS = $(VISITLIBS) $(MPITRACE)
 
 .SUFFIXES: .f90
 
@@ -63,7 +64,7 @@ SOURCES.f90 =	treemp.f90 \
 		tree_build.f90  make_branches.f90 tree_fill.f90 tree_properties.f90 \
 		tree_walk.f90	tree_prefetch.f90 \
 		energy_cons.f90 potenergy.f90 sumpot.f90 kinenergy.f90\
-		forces.f90 forces_bal.f90 sum_force.f90 \
+		forces.f90 forces_bal.f90 sum_force.f90 sum_lennardjones.f90\
 		fpond.f90 \
 		velocities.f90 \
 		push.f90 constrain.f90 \
@@ -106,7 +107,10 @@ all: mods pepc
 mods:   $(MODS) 
 
 pepc:	$(OBJECTS) 
-	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MODS) $(MPITRACE)
+	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MODS)
+
+pepc2:	$(OBJECTS) 
+	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MODS)
 
 debug:	$(OBJECTS)
 	@echo "Loading object files using flags $(DBFLAGS)"

@@ -73,8 +73,9 @@ subroutine track_nc
      i = i+1
   end do
 
-  if (.not.found) x_crit=x_crit + dt  ! vacuum propagation
 !  if (.not.found .and. itime>0) beam_config=0 ! switch off laser
+  if (.not.found) x_crit=xc1  ! original plasma edge 
+!  if (.not.found) x_crit=x_crit + dt  ! vacuum propagation
  
 if (me==0) then
    write(*,*) 'plasma edge: ',xc1, ' x_crit: ',x_crit

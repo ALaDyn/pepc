@@ -146,12 +146,12 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
 
         if (lenjones) then
            !  compute short-range Lennard-Jones forces and potential of particle p from its interaction list
-!           call sum_fshort(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
+           call sum_lennardjones(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
 
-!           pot(p) = pot(p) + bond_const * phi
-!           fx(p) = fx(p) + bond_const * fsx
-!           fy(p) = fy(p) + bond_const * fsy
-!           fz(p) = fz(p) + bond_const * fsz
+           pot(p) = pot(p) + bond_const * phi
+           fx(p) = fx(p) + bond_const * fsx
+           fy(p) = fy(p) + bond_const * fsy
+           fz(p) = fz(p) + bond_const * fsz
         endif
 
         work(p) = nterm(i)        ! Should really compute this in sum_force to allow for leaf/twig terms

@@ -100,7 +100,7 @@ subroutine randion
         p=p+1
         x(p) = x_plasma*rano(iseed1) + plasma_centre(1) -x_plasma/2.
         y(p) = y_plasma*rano(iseed2) + plasma_centre(2) -y_plasma/2.         
-        z(p) = y_plasma*rano(iseed3) + plasma_centre(3) -y_plasma/2. 
+        z(p) = z_plasma*rano(iseed3) + plasma_centre(3) -z_plasma/2. 
 
      endif
 

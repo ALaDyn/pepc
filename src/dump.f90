@@ -44,8 +44,23 @@ subroutine dump(timestamp)
        'ensemble=',ensemble, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
        'eps=', eps, 'theta=',theta,'tlaser = ',tlaser   
+
   if (me.eq.0) then
-  write(6,'(//a/7(a9,i8/),7(a9,f12.5/))') 'PARTICLE DUMP:', &    ! info block
+
+    cfile="parts_info.in"     ! copy to default restart block
+    open (61,file=cfile)    
+    write(61,'(7(a9,i8/),7(a9,f12.5/))')  &    ! info block
+       'itime=',timestamp, 'npp=',npp, &
+       'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
+       'ensemble=',ensemble, &
+       'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
+       'eps=', eps, 'theta=',theta,'tlaser = ',tlaser   
+    close (61)
+    open (62,file="runstamp")  ! time stamp 
+    write(62,'(a)') cdump(1:6)
+    close (62)
+
+    write(6,'(//a/7(a9,i8/),7(a9,f12.5/))') 'PARTICLE DUMP:', &    ! info block
        'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
        'ensemble=',ensemble, &
