@@ -1,4 +1,4 @@
-service=wake_pg 
+service=wake 
 passwd=spk
 doconnect=1
 StepTestConfig=2
