@@ -35,10 +35,12 @@ subroutine setup_arrays
    npsize=2.5*nppm
    size_tree = max(4*nintmax+npsize,2000)+1
    maxaddress = size_tree
-   nbranch_max = size_tree/20
-   size_fetch = 60*size_tree/num_pe 
-   nbaddr = log(1.*maxaddress)/log(2.) + 2
+   nbaddr = max(log(1.*maxaddress)/log(2.) + 2,18.)
    maxaddress = 2**nbaddr
+   size_tree=maxaddress+1
+   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
+   nbranch_max = size_tree/20
+   if (num_pe==1) size_fetch=size_tree
 !  maxaddress = 512
   hashconst = maxaddress-1
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)

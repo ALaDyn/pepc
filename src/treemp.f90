@@ -154,7 +154,7 @@ program treemp
      call cputime(t_laser)
 
      if (.not. perf_anal) call diagnostics
-      if (me.eq.0) then
+      if (me.eq.0 .and. .not. perf_anal) then
         do ifile = 6,15,9
 	   write(ifile,'(/a)') 'Tree stats:'
            write(ifile,'(a50,2i8,a3,i8,a1)') 'new npp, npart, (max): ',npp,npart,'(',nppm,')'
