@@ -76,21 +76,21 @@ subroutine cutvector(r_in, face_nr, n, r_out)
         r_out = r_out + plasma_centre
         
     case (5) ! prism
-        gamma = atan(z_plasma / (2 * x_plasma))
+        gamma = atan(y_plasma / (2 * x_plasma))
         select case (face_nr)
-        case (1, 2) ! x-z-planes
-            n = (/0., -1., 0./)
+        case (1, 2) ! x-y-planes
+            n = (/0., 0.,-1./)
             if (face_nr == 2) n = -n
-            r_affin = .5 * y_plasma * r_affin / abs(dot_product(r_affin, n))
+            r_affin = .5 * z_plasma * r_affin / abs(dot_product(r_affin, n))
         case (3) ! y-z-plane
             n = (/1., 0., 0./)
             r_affin = .5 * x_plasma * r_affin / abs(dot_product(r_affin, n))
         case (4, 5) ! the other planes
-            n = (/-sin(gamma), 0., +cos(gamma)/)
-            r_affin(3) = tan(gamma) * r_affin(1) - z_plasma / 4.
+            n = (/-sin(gamma), +cos(gamma),0./)
+            r_affin(2) = tan(gamma) * r_affin(1) - y_plasma / 4.
             if (face_nr == 5) then
-                n(3) = -n(3)
-                r_affin(3) = -r_affin(3)
+                n(2) = -n(2)
+                r_affin(2) = -r_affin(2)
             end if
         end select
         r_out = r_affin + plasma_centre
