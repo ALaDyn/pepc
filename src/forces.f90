@@ -17,6 +17,7 @@
 
 subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
+  use physvars
   use treevars
   use utils
   implicit none
@@ -105,7 +106,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
      ! tree walk returns intlist(1:nps), nodelist(1:nps) for particles on short list
 
      call cputime(t1)
-     call tree_walk(pshortlist,nps,jpass)
+     call tree_walk(pshortlist,nps,jpass,theta,itime)
      call cputime(t2)
      t_walk = t_walk + t2-t1
 
@@ -119,7 +120,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
         if (coulomb) then
            !  compute Coulomb forces and potential of particle p from its interaction list
-           call sum_force(p, nterm(i), nodelist( 1:nterm(i),i ), ex_coul, ey_coul, ez_coul, phi_coul )
+           call sum_force(p, nterm(i), nodelist( 1:nterm(i),i ), eps, ex_coul, ey_coul, ez_coul, phi_coul )
 
            pot(p) = pot(p) + force_const * phi_coul
            Ex(p) = Ex(p) + force_const * ex_coul

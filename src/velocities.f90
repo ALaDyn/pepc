@@ -16,6 +16,7 @@
 subroutine velocities(p_start,p_finish,delta_t)
 
 
+  use physvars
   use treevars
   use utils
 

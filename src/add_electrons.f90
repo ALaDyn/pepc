@@ -11,6 +11,7 @@
 
 subroutine add_electrons
 
+  use physvars
   use treevars
   use utils
 

@@ -11,6 +11,7 @@
 
 subroutine diagnostics
 
+  use physvars
   use treevars
   use utils
 
@@ -18,7 +19,6 @@ subroutine diagnostics
   integer :: i,lvisit_active
 
 
-  if (perf_anal) return
 
 
 ! Interface to VISIT (Online visualisation)
@@ -56,7 +56,7 @@ subroutine diagnostics
 
   if ( dump_tree .and. mod(itime,idump) ==0 ) then
      call diagnose_tree   ! Printed tree info (htable etc)
-     call draw_tree2d     ! Draw PE-trees
+     call draw_tree2d(xl,yl)     ! Draw PE-trees
      call draw_lists      ! Draw interaction lists
      call draw_domains(itime+itime_start)   ! Domains
   endif
@@ -64,7 +64,7 @@ subroutine diagnostics
   if ((mod(itime,idump)==0 .or. itime==nt) ) then
      call dump(itime+itime_start)     ! Dump complete set of particle data
      call dump_fields(itime+itime_start)  ! Field data
-!     if (vis_on)  call vis_fields
+     if (vis_on)  call vis_fields
   endif
 
 

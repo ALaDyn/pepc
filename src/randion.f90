@@ -10,6 +10,7 @@
 
 subroutine randion
 
+    use physvars
     use treevars
     use utils
 

@@ -7,6 +7,7 @@
 !  ===================================================================
 
 subroutine sum_bond( p, n, inode, sumfx, sumfy, sumfz, sumphi )
+  use physvars
   use treevars
 
   integer, intent(in) :: p  ! particle number

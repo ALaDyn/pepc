@@ -9,6 +9,7 @@
 
 subroutine push_x(ips,ipf,delt)
 
+  use physvars
   use treevars
   integer, intent(in) :: ips, ipf  ! 1st and last particle numbers
   real, intent(in) :: delt

@@ -10,6 +10,7 @@
 
 subroutine add_ramp
 
+    use physvars
     use treevars
     use utils
 

@@ -8,6 +8,7 @@
 
 subroutine track_nc
 
+  use physvars
   use treevars
 
   implicit none

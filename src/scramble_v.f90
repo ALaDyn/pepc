@@ -8,6 +8,7 @@
 
 subroutine scramble_v(i1,n)
 
+  use physvars
   use treevars
   use utils
   implicit none

@@ -38,7 +38,7 @@ subroutine make_branches
 
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
-  call check_table('after treebuild     ')
+  if (branch_debug) call check_table('after treebuild     ')
 
   if (branch_debug) write(ipefile,'(///a)') 'BRANCHES'
 
@@ -119,7 +119,7 @@ subroutine make_branches
      write(*,*) 'Checksum ',ncheck,' /= # leaves on PE ',me
   endif
 
-  call check_table('after local branches')
+  if (branch_debug) call check_table('after local branches')
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 

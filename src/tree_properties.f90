@@ -14,12 +14,10 @@ subroutine tree_properties
 
   implicit none
 
-  integer*8, dimension(nppm) :: key_leaf
   integer*8, dimension(size_tree) ::  search_key, resolve_key, parent_key, sum_key, key_twig
   integer*8, dimension(8) :: sub_key, key_child
 
   integer, dimension(0:maxaddress) ::  cell_addr
-  integer, dimension(nppm) ::  addr_leaf, p_leaf, node_leaf       ! local leaf-nodes
   integer, dimension(size_tree) ::  addr_twig, node_twig, child_twig    ! all twig-nodes, including branches and base nodes
   integer, dimension(size_tree) ::  parent_node, parent_addr
   integer, dimension(size_tree) :: local_node
@@ -38,6 +36,7 @@ subroutine tree_properties
   real :: xss, yss, zss
   integer :: i, j, k, maxtwig, maxleaf, maxlevel, nchild, ncheck, ntwig_domain, nsearch, newsub, cchild 
   integer :: node_b, nuniq, nsub, nparent, ilevel, ibr
+  integer ::  addr_leaf, p_leaf, node_leaf       ! local leaf-nodes
 
   integer :: key2addr        ! Mapping function to get hash table address from key
 
@@ -47,52 +46,55 @@ subroutine tree_properties
 
 
   ! Zero multipole arrays
-
-  charge(-ntwig_pw:nleaf_pw) = 0.
-  abs_charge(-ntwig_pw:nleaf_pw) = 0.
-  xcoc(-ntwig_pw:nleaf_pw) = 0.
-  ycoc(-ntwig_pw:nleaf_pw) = 0.
-  zcoc(-ntwig_pw:nleaf_pw) = 0.
-  xdip(-ntwig_pw:nleaf_pw) = 0.
-  ydip(-ntwig_pw:nleaf_pw) = 0.
-  zdip(-ntwig_pw:nleaf_pw) = 0.
-  xxquad(-ntwig_pw:nleaf_pw) = 0.
-  yyquad(-ntwig_pw:nleaf_pw) = 0.
-  zzquad(-ntwig_pw:nleaf_pw) = 0.
-  xyquad(-ntwig_pw:nleaf_pw) = 0.
-  yzquad(-ntwig_pw:nleaf_pw) = 0.
-  zxquad(-ntwig_pw:nleaf_pw) = 0.
+  do i=-ntwig_pw, nleaf_pw
+    charge(i) = 0.
+    abs_charge(i) = 0.
+    xcoc(i) = 0.
+    ycoc(i) = 0.
+    zcoc(i) = 0.
+    xdip(i) = 0.
+    ydip(i) = 0.
+    zdip(i) = 0.
+    xxquad(i) = 0.
+    yyquad(i) = 0.
+    zzquad(i) = 0.
+    xyquad(i) = 0.
+    yzquad(i) = 0.
+    zxquad(i) = 0.
+  end do
 
   !  Start with *local* leaf properties
 
-  key_leaf(1:nleaf_me) =  pack(htable%key, mask = (htable%node > 0 .and. htable%owner == me) )  ! local leaf keys (could be predefined
+  ! key_leaf(1:nleaf_me) =  pack(htable%key, mask = (htable%node > 0 .and. htable%owner == me) )  ! local leaf keys (could be predefined
+  do i=1, nleaf_me
+    addr_leaf = key2addr( leaf_key(i) )   !  Table address
+    p_leaf = htable( addr_leaf )%node   !  Local particle index  - points to properties on PE
+    node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves 
 
-  addr_leaf(1:nleaf_me) = (/( key2addr( key_leaf(i) ),i=1,nleaf_me)/)   !  Table address
-  p_leaf(1:nleaf_me) = htable( addr_leaf(1:nleaf_me) )%node   !  Local particle index  - points to properties on PE
-  node_leaf(1:nleaf_me) = p_leaf(1:nleaf_me)   !  Leaf node index is identical to particle index for *local* leaves 
+    xcoc( node_leaf ) = x( p_leaf )         ! Centre of charge
+    ycoc( node_leaf ) = y( p_leaf )
+    zcoc( node_leaf ) = z( p_leaf )
 
-  xcoc( node_leaf(1:nleaf_me) ) = x( p_leaf(1:nleaf_me) )         ! Centre of charge
-  ycoc( node_leaf(1:nleaf_me) ) = y( p_leaf(1:nleaf_me) )
-  zcoc( node_leaf(1:nleaf_me) ) = z( p_leaf(1:nleaf_me) )
+    charge( node_leaf ) = q( p_leaf )       ! Charge
+    abs_charge( node_leaf ) = abs( q(p_leaf) )   ! Absolute charge (needed for c.o.c)
 
-  charge( node_leaf(1:nleaf_me) ) = q( p_leaf(1:nleaf_me) )       ! Charge
-  abs_charge( node_leaf(1:nleaf_me) ) = abs( q( p_leaf(1:nleaf_me) ) )   ! Absolute charge (needed for c.o.c)
+    xdip( node_leaf ) = x(p_leaf) * q(p_leaf)   ! Dipole moment
+    ydip( node_leaf ) = y(p_leaf) * q(p_leaf) 
+    zdip( node_leaf ) = z(p_leaf) * q(p_leaf) 
 
-  xdip( node_leaf(1:nleaf_me) ) = x(p_leaf(1:nleaf_me)) * q(p_leaf(1:nleaf_me))   ! Dipole moment
-  ydip( node_leaf(1:nleaf_me) ) = y(p_leaf(1:nleaf_me)) * q(p_leaf(1:nleaf_me)) 
-  zdip( node_leaf(1:nleaf_me) ) = z(p_leaf(1:nleaf_me)) * q(p_leaf(1:nleaf_me)) 
-
-  xxquad( node_leaf(1:nleaf_me) ) = q(p_leaf(1:nleaf_me)) * x(p_leaf(1:nleaf_me))**2   ! Quadrupole moment
-  yyquad( node_leaf(1:nleaf_me) ) = q(p_leaf(1:nleaf_me)) * y(p_leaf(1:nleaf_me))**2   
-  zzquad( node_leaf(1:nleaf_me) ) = q(p_leaf(1:nleaf_me)) * z(p_leaf(1:nleaf_me))**2   
-  xyquad( node_leaf(1:nleaf_me) ) = q(p_leaf(1:nleaf_me)) * x(p_leaf(1:nleaf_me)) * y(p_leaf(1:nleaf_me)) 
-  yzquad( node_leaf(1:nleaf_me) ) = q(p_leaf(1:nleaf_me)) * y(p_leaf(1:nleaf_me)) * z(p_leaf(1:nleaf_me))  
-  zxquad( node_leaf(1:nleaf_me) ) = q(p_leaf(1:nleaf_me)) * z(p_leaf(1:nleaf_me)) * x(p_leaf(1:nleaf_me))   
+    xxquad( node_leaf ) = q(p_leaf) * x(p_leaf)**2   ! Quadrupole moment
+    yyquad( node_leaf ) = q(p_leaf) * y(p_leaf)**2   
+    zzquad( node_leaf ) = q(p_leaf) * z(p_leaf)**2   
+    xyquad( node_leaf ) = q(p_leaf) * x(p_leaf) * y(p_leaf) 
+    yzquad( node_leaf ) = q(p_leaf) * y(p_leaf) * z(p_leaf)  
+    zxquad( node_leaf ) = q(p_leaf) * z(p_leaf) * x(p_leaf)   
 
   !  Zero shift vector
-  xshift( node_leaf(1:nleaf_me) ) = 0.
-  yshift( node_leaf(1:nleaf_me) ) = 0.
-  zshift( node_leaf(1:nleaf_me) ) = 0.
+    xshift( node_leaf ) = 0.
+    yshift( node_leaf ) = 0.
+    zshift( node_leaf ) = 0.
+  end do
+
 
   !  Accumulate local twig properties
 

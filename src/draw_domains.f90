@@ -41,7 +41,6 @@ subroutine draw_domains(timestamp)
   integer :: icall
   integer, intent(in) :: timestamp
 
-  icall = timestamp/ivis
 
   !  Header file written out by root PE: does box and includes particle O/P from all PEs
   if ( me==0 ) then
@@ -112,19 +111,6 @@ subroutine draw_domains(timestamp)
 
   write (60,'(a)') 'set lwidth .02 color white'
 
- ! Dump domain data in VISIT format
-
-  if (me.eq.0) then
-     do i=0,4
-	cvisit(6-i:6-i) =  achar(mod(icall/10**i,10) + 48)
-     end do
-     cvisit(1:1) = achar(icall/10**5 + 48)
-
-     cfile="wf_domain."//cvisit
-     open (61,file=cfile) 
-     write(61,'(f12.5)')  dt*timestamp
-
-  endif 
 
 !  branch_owner = (/ ( htable( key2addr( branch_key(j) ) )%owner, j=1,nbranch_sum) /)         ! Owner-PE of branch
 
@@ -216,7 +202,6 @@ subroutine draw_domains(timestamp)
 
   close(60)
   close(61)
-  icall = icall + 1
 
 end subroutine draw_domains
 

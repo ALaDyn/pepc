@@ -17,9 +17,9 @@
 #FFLAGS =  -q64 -qrealsize=8 -qsuffix=f=f90  -O4 -Q -qipa -qarch=pwr4 -qstrict -qreport  -qlist -qsource -I/usr/local/include 
 
 
-IPA=-qipa=inline=key2addr:inline=make_hashentry:inline=key2node:inline=next_node
+IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 
-PG=-pg -qfullpath
+PG=-pg -g -qfullpath
 #DB= -g -qfullpath -qcheck
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
@@ -28,26 +28,34 @@ LISTING=-qreport -qlist -qlistopt -qsource
 #MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
 #MPITRACE= -lmpitrace
 #MPITRACE= -lmpiprof
+MPITRACE= -lsummary -lpmapi
 #MPITRACE=  -lmpihpm -lpmapi
 Q64=-q64
 FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
-TUNE= -qarch=pwr4 -qtune=pwr4 -qhot $(IPA) 
+TUNE= -qarch=pwr4 -qtune=pwr4 -O5 $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(TUNE) 
-
+#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
+#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
+FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(TUNE)
+TFLAGS = $(FFLAGS) $(TUNE)
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
 
 # Visit libraries
 # JUMP
 
-#VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
+VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
 #VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 
 #VISITLIBS=-L/home4/jzam04/jzam0401/tree/pepc/src  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 
 LDFLAGS = $(VISITLIBS) $(MPITRACE)
+RANLIB  = ranlib
+libdir  = .
+AR      = ar -X64
+LIBPEPC = -L$(libdir) -llpepc
+pepclib = liblpepc.a
 
 .SUFFIXES: .f90
 
@@ -59,10 +67,32 @@ FC = mpxlf90_r
 #FC = kinst mpxlf90_r
 
 # -------------------------------------------------------------------------------------------
+
 # Source files
 
-MODULES.f90 =  my_mpidefs.f90 treevars.f90 utils.f90
+#-------------------------------------------------------------------------------------------
+# Pepc library
 
+PEPCMOD.f90 =  treevars.f90 utils.f90 my_mpidefs.f90
+PEPCSRC.f90 =  make_domains.f90 setup_arrays.f90 \
+		tree_build.f90  make_branches.f90 tree_fill.f90 tree_properties.f90 \
+		tree_walk.f90	tree_prefetch.f90 sum_force.f90 \
+		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
+	        diagnose_tree.f90 check_table.f90 \
+		draw_domains.f90 draw_tree2d.f90 draw_lists.f90
+
+pepcobjs = $(PEPCSRC.f90:.f90=.o)
+pepcmods =  $(PEPCMOD.f90:.f90=.o)
+
+#  compile mode for PEPC routines 
+#
+$(pepcmods):   
+	$(FC) -c $(FFLAGS)  $<
+$(pepcobjs):   
+	$(FC) -c $(FFLAGS)  $<
+
+# -------------------------------------------------------------------------------------------
+MODULES.f90 =   physvars.f90 
 
 SOURCES.f90 =	treemp.f90 \
 		setup.f90 stamp.f90 \
@@ -71,46 +101,25 @@ SOURCES.f90 =	treemp.f90 \
 		scramble_v.f90 reset_ions.f90 add_electrons.f90 double_target.f90 \
 		beam.f90 beam_control.f90 beam_dust.f90 \
 		mc_config.f90 \
-	 	make_domains.f90 \
-		tree_build.f90  make_branches.f90 tree_fill.f90 tree_properties.f90 \
-		tree_walk.f90	tree_prefetch.f90 \
-		energy_cons.f90 potenergy.f90 sumpot.f90 kinenergy.f90\
-		forces.f90 sum_force.f90 sum_lennardjones.f90\
-		fpond.f90 empond.f90 emplane.f90 \
-		velocities.f90 push_em.f90 push_full3v.f90 \
-		push.f90 constrain.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
-		forces.f90 sum_force.f90 sum_lennardjones.f90\
-		fpond.f90 \
 		velocities.f90 \
-		push.f90 reinject.f90 earth_plate.f90 \
-		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
-		diagnostics.f90 \
-	        diagnose_tree.f90 check_table.f90 \
-		draw_domains.f90 draw_tree2d.f90 draw_lists.f90\
-		vis_parts.f90 vis_fields.f90 dump.f90 \
+	 	energy_cons.f90 potenergy.f90 kinenergy.f90\
+		forces.f90 sum_lennardjones.f90\
+		fpond.f90 empond.f90 emplane.f90 \
+		push_em.f90 push_full3v.f90 \
+		push.f90 constrain.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
+		vis_parts.f90 vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
 		open_files.f90 close_files.f90	\
 		densities.f90 sum_fields.f90 dump_fields.f90 \
 		track_nc.f90		
 
 
 # -------------------------------------------------------------------------------------------
-# Source combinations
 
-SOURCES = $(MODULES.f90) \
-	  $(SOURCES.f90) 
+# Names of application object files derived from sources
 
-SRCKEY = $(MODULES.f90) \
-	 $(SRCKRY.f90) 
-
-# Dependencies
-
-###$(SOURCES.f90): $(MODULES.f90)
-
-# Names of object files derived from sources
-
-OBJECTS = $(SOURCES.f90:.f90=.o)
-MODS =  $(MODULES.f90:.f90=.o)
-
+appobjs = $(SOURCES.f90:.f90=.o)
+appmods =  $(MODULES.f90:.f90=.o)
+mods = $(appmods) $(pepcmods)
 all: mods pepc
 
 #  compile mode
@@ -120,10 +129,21 @@ all: mods pepc
 # -----------------------------------------------------------------------------------------
 #  targets
 
+pepc:	$(appobjs) $(appmods) $(pepcmods) $(pepclib)
+	@echo "\n Creating pepc application binary ...\n"
+	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) -o $@ $(appobjs) $(appmods) $(pepcmods)
+	@echo "... done\n"
+
+$(pepclib): lpepc
+lpepc:  $(pepcobjs) $(pepcmods)
+	@echo "\n Creating PEPC library ...\n"
+	rm -f liblpepc.a
+	$(AR) q liblpepc.a $(pepcobjs)
+	$(RANLIB) liblpepc.a
+	@echo "... done\n"
+
 mods:   $(MODS) 
 
-pepc:	$(OBJECTS) 
-	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MODS)
 
 pepck:	$(OBJECTS) 
 	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MODS) 
@@ -143,11 +163,7 @@ clean:
 cleanbin: /bin/rm -r pepc debug core
 
 cleancore: 	
-	/bin/rm  make_domains.o treebuild.o  make_branches.o \
-		tree_fill.o tree_properties.o tree_walk.o \
-		energy_cons.o potenergy.o sumpot.o kinenergy.o \
-		forces.o sum_force.o \
-		fpond.o push.o make_hashentry.o get_address.o  get_node.o 
+	/bin/rm $(pepcobjs) 
 
 cleandata: 
 	/bin/rm -f fort.* *.dat *.out *.gle 
@@ -167,20 +183,22 @@ my_mpidefs.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 
 #--- Module-Dependencies
 
-add_electrons.o: treevars.o utils.o
-beam.o: treevars.o utils.o
-beam_control.o: treevars.o utils.o
-beam_dust.o: treevars.o utils.o
-boundaries.o: treevars.o
+add_electrons.o: physvars.o treevars.o utils.o
+add_ramp.o: physvars.o treevars.o utils.o
+beam.o: physvars.o treevars.o utils.o
+beam_control.o: physvars.o treevars.o utils.o
+beam_dust.o: physvars.o treevars.o utils.o
+boundaries.o: physvars.o treevars.o
 check_table.o: treevars.o utils.o
 close_files.o: treevars.o
 cold_start.o: treevars.o utils.o
-configure.o: treevars.o utils.o
-constrain.o: treevars.o utils.o
-densities.o: treevars.o
+configure.o: physvars.o treevars.o utils.o
+constrain.o: physvars.o treevars.o utils.o
+cutvector.o: physvars.o treevars.o
+densities.o: physvars.o treevars.o
 diagnose_tree.o: treevars.o
-diagnostics.o: treevars.o utils.o
-double_target.o: treevars.o utils.o
+diagnostics.o: physvars.o treevars.o utils.o
+double_target.o: physvars.o treevars.o utils.o
 draw2d.o: treevars.o
 draw2d_hash.o: treevars.o
 draw_domains.o: treevars.o
@@ -188,47 +206,51 @@ draw_lists.o: treevars.o
 draw_map.o: treevars.o
 draw_tree2d.o: treevars.o
 driver.o: utils.o my_mpidefs.o
-dump.o: treevars.o
-dump_fields.o: treevars.o
-earth_plate.o: treevars.o utils.o
-energy_cons.o: treevars.o utils.o
-forces.o: treevars.o utils.o
-forces_bal.o: treevars.o utils.o
+dump.o: physvars.o treevars.o
+dump_fields.o: physvars.o treevars.o
+earth_plate.o: physvars.o treevars.o utils.o
+energy_cons.o: physvars.o treevars.o utils.o
+face.o: physvars.o treevars.o utils.o
+forces.o: physvars.o treevars.o utils.o
 get_address.o: treevars.o utils.o
 get_next_node.o: treevars.o utils.o
 get_node.o: treevars.o utils.o
 key_test.o: treevars.o utils.o
-kinenergy.o: treevars.o
+kinenergy.o: physvars.o treevars.o
 make_branches.o: treevars.o utils.o
 make_domains.o: treevars.o utils.o
 make_hashentry.o: treevars.o utils.o
-mc_config.o: treevars.o utils.o
+mc_config.o: physvars.o treevars.o utils.o
 open_files.o: treevars.o
-potenergy.o: treevars.o utils.o
-predef_parts.o: treevars.o utils.o
-push.o: treevars.o
-randion.o: treevars.o utils.o
+param_dump.o: physvars.o treevars.o utils.o
+potenergy.o: physvars.o treevars.o utils.o
+predef_parts.o: physvars.o treevars.o utils.o
+push.o: physvars.o treevars.o
+push_em.o: physvars.o treevars.o
+push_full3v.o: physvars.o treevars.o
+randion.o: physvars.o treevars.o utils.o
 reinject.o: utils.o
-reset_ions.o: treevars.o
-scramble_v.o: treevars.o utils.o
-setup.o: treevars.o utils.o
-slices.o: treevars.o
-sum_bond.o: treevars.o
-sum_fields.o: treevars.o
+reset_ions.o: physvars.o treevars.o
+scramble_v.o: physvars.o treevars.o utils.o
+setup.o: physvars.o treevars.o utils.o
+setup_arrays.o: utils.o treevars.o physvars.o
+special_start.o: physvars.o treevars.o utils.o
+sum_bond.o: physvars.o treevars.o
+sum_fields.o: physvars.o treevars.o
 sum_force.o: treevars.o
-sum_lennardjones.o: treevars.o
-sumpot.o: treevars.o
-track_nc.o: treevars.o
+sum_lennardjones.o: physvars.o treevars.o
+track_nc.o: physvars.o treevars.o
 tree_build.o: treevars.o utils.o
 tree_fill.o: treevars.o utils.o
 tree_prefetch.o: treevars.o utils.o
 tree_properties.o: treevars.o utils.o
 tree_walk.o: treevars.o utils.o
-treemp.o: treevars.o utils.o
+tree_walk_async.o: treevars.o utils.o
+treemp.o: physvars.o treevars.o utils.o
 treevars.o: my_mpidefs.o
 utils.o: my_mpidefs.o
-velocities.o: treevars.o utils.o
-vis_fields.o: treevars.o
-vis_parts.o: treevars.o
+velocities.o: physvars.o treevars.o utils.o
+vis_fields.o: physvars.o treevars.o
+vis_parts.o: physvars.o treevars.o
 
 

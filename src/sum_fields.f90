@@ -5,6 +5,7 @@
 
 subroutine sum_fields
 
+  use physvars
   use treevars
 
   implicit none

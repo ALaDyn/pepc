@@ -10,6 +10,7 @@
 subroutine vis_fields
 
 
+  use physvars
   use treevars
   implicit none   
 

@@ -9,6 +9,7 @@
 
 subroutine mc_config
 
+  use physvars
   use treevars
   use utils
   implicit none

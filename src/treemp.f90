@@ -25,10 +25,12 @@
 
 program treemp
 
+  use physvars
   use treevars
   use utils
   implicit none
 
+! timing stuff
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_en, t_force
   real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot
 
@@ -46,12 +48,14 @@ program treemp
   if (me==0) call stamp(6,1)
   if (me==0) call stamp(15,1)
 
-!  if (me ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
+  if (me ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
 
   call openfiles       ! Set up O/P files
 
 
   call setup           ! Each PE gets copy of initial data
+  call setup_arrays    ! Allocate array space
+  call param_dump      ! Dump initial data
   call configure       ! Set up particles
 
   do itime = 1,nt
@@ -85,7 +89,7 @@ program treemp
 
      call cputime(t0)
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-     call make_domains    ! Domain decomposition: allocate particle keys to PEs
+     call make_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
 
      call cputime(t_domain)
      call tree_build      ! Build trees from local particle lists
@@ -96,7 +100,7 @@ program treemp
      call cputime(t_fill)
      call tree_properties ! Compute multipole moments for local tree
      call cputime(t_props)
-     if (num_pe>1 .and. prefetch) call tree_prefetch
+     if (num_pe>1 .and. prefetch) call tree_prefetch(itime)
      call cputime(t_prefetch)
 
      if (coulomb .or. lenjones) then
@@ -129,7 +133,7 @@ program treemp
      call cputime(t_push)
 
 
-!     call diagnostics
+     if (.not. perf_anal) call diagnostics
      call cputime(t_diag)
 
 
@@ -177,7 +181,7 @@ program treemp
 
   call closefiles      ! Tidy up O/P files
 
-!  if (me ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
+  if (me ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
 
 
 ! Time stamp

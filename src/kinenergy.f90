@@ -9,6 +9,7 @@
 !  ===================================================================
 
 subroutine kinenergy(ekine,ekini,ebeam)
+  use physvars
   use treevars
 
   implicit none

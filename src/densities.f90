@@ -6,6 +6,7 @@
 
 subroutine densities
 
+  use physvars
   use treevars
 
   implicit none

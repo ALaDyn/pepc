@@ -7,6 +7,7 @@
 !  ===================================================================
 
 subroutine sum_lennardjones( p, n, inode, sumfx, sumfy, sumfz, sumphi )
+  use physvars
   use treevars
   implicit none
   integer, intent(in) :: p  ! particle number

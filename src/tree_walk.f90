@@ -34,7 +34,7 @@
 !
 ! ===========================================
 
-subroutine tree_walk(pshort,npshort,pass)
+subroutine tree_walk(pshort,npshort,pass,theta,itime)
 
   use treevars
   use utils
@@ -45,7 +45,8 @@ subroutine tree_walk(pshort,npshort,pass)
 
   implicit none
 
-  integer, intent(in) :: npshort
+  real, intent(in) :: theta
+  integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
 
   integer :: npackm   ! Max # children shipped
@@ -62,7 +63,7 @@ subroutine tree_walk(pshort,npshort,pass)
 
   integer, dimension(npshort) :: plist
 
-  integer ::  walk_addr, walk_node 
+  integer ::  walk_addr, walk_node, entry_next 
   integer, dimension(npshort) :: nlocal, ndefer,  nwalk, defer_ctr
 
 
@@ -202,11 +203,7 @@ subroutine tree_walk(pshort,npshort,pass)
 
            s2 = boxlength( node_level(walk_node) )**2
  
-           if (q(pshort(p))<0) then
-              mac_ok = ( s2 < theta2*(dx**2+dy**2+dz**2 ) )             ! Preprocess electron MAC
-           else
-              mac_ok = ( s2 < theta2_ion*(dx**2+dy**2+dz**2 ) )      ! Ion MAC
-           endif
+           mac_ok = ( s2 < theta2*(dx**2+dy**2+dz**2 ) )             ! Preprocess MAC
  
            add_key = walk_key(i)                                ! Remember current key
 
@@ -216,9 +213,10 @@ subroutine tree_walk(pshort,npshort,pass)
            ! 1) MAC test OK, so put cell on interaction list and find next node for tree walk
            if ( mac_ok .or. (walk_node >0 .and. .not.ignore ) ) then
               walk_key(i) = walk_next
-              nterm(p) = nterm(p) + 1
-              intlist( nterm( p), p ) = add_key      ! Augment interaction list
-              nodelist( nterm( p), p ) = walk_node   ! Node number
+	      entry_next = nterm(p) + 1
+              intlist( entry_next, p ) = add_key      ! Augment interaction list
+              nodelist( entry_next, p ) = walk_node   ! Node number
+              nterm(p) = entry_next
 
 
               ! 2) MAC fails at node for which children present, so resolve cell & put 1st child on walk_list
@@ -271,11 +269,19 @@ subroutine tree_walk(pshort,npshort,pass)
            endif
         end do
 
-        nnew = count( mask = .not.finished(1:nlist) )            ! Count remaining particles
+!        nnew = count( mask = .not.finished(1:nlist) )            ! Count remaining particles
 
-        plist(1:nnew) =  pack( plist(1:nlist), mask = .not.finished(1:nlist) )    ! Compress particle index list
-        walk_key(1:nnew) =  pack( walk_key(1:nlist), mask = .not.finished(1:nlist) )       ! Compress walk lists etc.
-
+!        plist(1:nnew) =  pack( plist(1:nlist), mask = .not.finished(1:nlist) )    ! Compress particle index list
+!        walk_key(1:nnew) =  pack( walk_key(1:nlist), mask = .not.finished(1:nlist) )       ! Compress walk lists etc.
+	nnew=0
+	do i=1,nlist
+	  if (.not.finished(i)) then
+	    nnew=nnew+1
+	    plist(nnew) = plist(i)
+	    walk_key(nnew) = walk_key(i)
+	  endif
+        end do
+  
         nlist = nnew
 
      end do   ! END DO_WHILE

@@ -8,6 +8,7 @@
 
 
 subroutine push_em(p_start,p_finish,dts)
+  use physvars
   use treevars
   implicit none
   integer, intent(in) :: p_start, p_finish

@@ -12,6 +12,7 @@
 
 subroutine double_target
 
+  use physvars
   use treevars
   use utils
 

@@ -12,6 +12,7 @@
 subroutine dump_fields(timestamp)
 
 
+  use physvars
   use treevars
   implicit none   
 

@@ -9,6 +9,7 @@
 
 subroutine reset_ions
 
+  use physvars
   use treevars
 
   integer :: i,p

@@ -8,6 +8,7 @@
 
 subroutine beam_dust
 
+  use physvars
   use treevars
   use utils
   implicit none

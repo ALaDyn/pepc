@@ -14,6 +14,7 @@
 ! c_status < 0.: particle is in.
 !
 subroutine face(r, c_status, face_nr)
+    use physvars
     use treevars
     use utils
 

@@ -34,7 +34,7 @@ subroutine tree_fill
 
   if (tree_debug) write(ipefile,'(/a)') 'TREE FILL'
 
-  call check_table('after make_branches ')
+  if (tree_debug) call check_table('after make_branches ')
 
   ! get levels of branch nodes
 
@@ -83,6 +83,7 @@ subroutine tree_fill
         else if (ierr == 0 ) then
            ntwig = ntwig + 1
            ntwig_me = ntwig_me+1               ! # local twigs
+	   twig_key(ntwig_me) = htable( hashaddr)%key  ! add to list of local twigs
 
         else
            write (ipefile,*) 'Key number ',i,' not resolved'
@@ -94,7 +95,7 @@ subroutine tree_fill
   end do
 
 
-  call check_table('End of tree-fill    ')
+  if (tree_debug) call check_table('End of tree-fill    ')
 
   !  Go through twig nodes and fix # leaves in #table to include non-local branch nodes
   !  - put this stuff in tree_properties for correct array sizes
@@ -105,26 +106,48 @@ subroutine tree_fill
   ntwig_pw = ntwig     ! - need for re-calculating moments using same tree-structure
   nleaf_pw = nleaf
 
-  treekey(1:ntwig_me) = pack(htable%key,mask = ( htable%owner == me .and. htable%node <0))  ! list of locally owned twigs
-  cell_addr(1:ntwig_me) = (/( key2addr( treekey(i) ),i=1,ntwig_me) /)                       !  Table address
+!  treekey(1:ntwig_me) = pack(htable%key,mask = ( htable%owner == me .and. htable%node <0))  ! list of locally owned twigs
+!  treekey(1:ntwig_me) = twig_key(1:ntwig_me)   ! list of locally owned twigs
+!  cell_addr(1:ntwig_me) = (/( key2addr( treekey(i) ),i=1,ntwig_me) /)                       !  Table address
+!  cell_addr(1:ntwig_me) = (/( key2addr( treekey(i) ),i=1,ntwig_me) /)                       !  Table address
+!  htable( cell_addr(1:ntwig_me) )%leaves = 0                                                ! Reset # leaves to zero for recount including non-local branches
+!  htable( cell_addr(1:ntwig_me) )%childcode =  IBSET( htable( cell_addr(1:ntwig_me) )%childcode,9 ) ! Set children_HERE flag for all local twig nodes
 
-  htable( cell_addr(1:ntwig_me) )%leaves = 0                                                ! Reset # leaves to zero for recount including non-local branches
-  htable( cell_addr(1:ntwig_me) )%childcode =  IBSET( htable( cell_addr(1:ntwig_me) )%childcode,9 ) ! Set children_HERE flag for all local twig nodes
+  do i=1,ntwig_me
+    hashaddr = key2addr( twig_key(i) )                         !  Table address
+    htable( hashaddr )%leaves = 0                                                ! Reset # leaves to zero for recount including non-local branches
+    htable( hashaddr )%childcode =  IBSET( htable( hashaddr )%childcode,9 ) ! Set children_HERE flag for all local twig nodes
+  end do
+
 
   treekey(1:ntwig) = pack(htable%key,mask = htable%node < 0)                                ! list of all twig keys excluding root
   call sort(treekey(1:ntwig))                                                               ! Sort keys
 
   treekey(ntwig+1:ntwig+nleaf) = pack(htable%key,mask = htable%node > 0)                    ! add list of leaf keys
 
-  cell_addr(1:nnodes) = (/( key2addr( treekey(i) ),i=1,nnodes) /)                           ! table address
-  tree_node(1:nnodes) = (/ (htable( cell_addr(i) )%node, i=1,nnodes) /)                     ! node property pointers
+!  cell_addr(1:nnodes) = (/( key2addr( treekey(i) ),i=1,nnodes) /)                           ! table address
+!  tree_node(1:nnodes) = (/ (htable( cell_addr(i) )%node, i=1,nnodes) /)                     ! node property pointers
 
-  parent_key(2:nnodes) = ishft(treekey(2:nnodes),-idim )                                    ! Parent keys, skipping root
-  parent_addr(2:nnodes) = (/( key2addr( parent_key(i) ),i=2,nnodes) /)                      ! parents' #table addresses
+!  parent_key(2:nnodes) = ishft(treekey(2:nnodes),-idim )                                    ! Parent keys, skipping root
+!  parent_addr(2:nnodes) = (/( key2addr( parent_key(i) ),i=2,nnodes) /)                      ! parents' #table addresses
+
+  tree_node(1) = -1  ! root node #
+  cell_addr(1) = key2addr(1_8)
+
+  do i=2,nnodes
+    hashaddr = key2addr( treekey(i) )
+    cell_addr(i) = hashaddr 
+    tree_node(i) =  htable( hashaddr )%node                     ! node property pointers
+    parent_key(i) = ishft(treekey(i),-idim )                    ! Parent keys, skipping root
+    parent_addr(i) =  key2addr( parent_key(i) )                 ! parents' #table addresses
+  end do
+
+
+!  Sweep back up, and augment leaf count of parent nodes
 
   do i=nnodes,2,-1
      if (htable( parent_addr(i) )%owner == me ) then
-        htable( parent_addr(i) )%leaves = htable( parent_addr(i) )%leaves + htable(cell_addr(i) )%leaves    ! Augment leaf count of parent nodes 
+        htable( parent_addr(i) )%leaves = htable( parent_addr(i) )%leaves + htable(cell_addr(i) )%leaves 
      endif
   end do
 

@@ -8,6 +8,7 @@
 
 subroutine predef_parts
 
+  use physvars
   use treevars
   use utils
   implicit none

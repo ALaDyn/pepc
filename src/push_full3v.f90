@@ -8,6 +8,7 @@
 
 
 subroutine push_full3v(p_start,p_finish,dts)
+  use physvars
   use treevars
   implicit none
   integer, intent(in) :: p_start, p_finish

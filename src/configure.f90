@@ -8,6 +8,7 @@
 
 subroutine configure
 
+  use physvars
   use treevars
   use utils
   implicit none
@@ -87,7 +88,7 @@ subroutine configure
 
   ! Initial tree construction and force computation
 
-  call make_domains    ! Domain decomposition: allocate particle keys to PEs
+  call make_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
   call tree_build      ! Build trees from local particle lists
   call make_branches   ! Determine and concatenate branch nodes
 !  if (me>=250) call  diagnose_tree

@@ -8,6 +8,7 @@
 
 subroutine special_start(iconf)
 
+  use physvars
   use treevars
   use utils
   implicit none

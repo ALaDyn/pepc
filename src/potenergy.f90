@@ -12,6 +12,7 @@
 !  ===================================================================
 
 subroutine potenergy(epot_total)
+  use physvars
   use treevars
   use utils
   implicit none

@@ -8,13 +8,14 @@
 !
 ! ======================
 
-subroutine draw_tree2d
+subroutine draw_tree2d(xl,yl)
 
 
   use treevars
 
   implicit none
 
+  real, intent(in) :: xl,yl
   integer*8 :: key_twig(ntwig), key_leaf(nleaf)
 
   integer, dimension(ntwig) :: level_twig, node_twig, owner_twig       ! twig-nodes

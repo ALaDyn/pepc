@@ -1,4 +1,5 @@
 subroutine constrain
+    use physvars
     use treevars
     use utils
 

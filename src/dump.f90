@@ -10,6 +10,7 @@
 subroutine dump(timestamp)
 
 
+  use physvars
   use treevars
   implicit none   
 

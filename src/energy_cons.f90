@@ -11,6 +11,7 @@
 
 subroutine energy_cons
 
+  use physvars
   use treevars
   use utils
 

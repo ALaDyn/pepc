@@ -11,14 +11,15 @@
 !  ================================
 
 
-subroutine make_domains
+subroutine make_domains(xl,yl,zl)
+
 
   use treevars
   use utils
 
   implicit none
-
-
+  
+  real, intent(in) :: xl,yl,zl  ! initial box limits
   integer*8, dimension(nppm) :: ix, iy, iz
   integer*8, dimension(nppm) :: ixd, iyd, izd
   integer*8, dimension(nppm) :: local_key

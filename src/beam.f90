@@ -8,6 +8,7 @@
 
 subroutine beam
  
+  use physvars
   use treevars
   use utils
   implicit none
