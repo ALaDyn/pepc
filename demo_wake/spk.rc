@@ -1,0 +1,5 @@
+service=wake_pg 
+passwd=spk
+doconnect=1
+StepTestConfig=2
+
