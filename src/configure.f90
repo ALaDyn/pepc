@@ -78,11 +78,12 @@ subroutine configure
   case(2)
      call beam_control   ! Constant particle source
 
-  case(3)
+  case(8)
      call beam_dust   ! Dust particle
 
-  case(4:) ! laser on
-     if (me==0) write(*,*) 'Laser switched on' 
+  case(3:6) ! laser on
+
+     if (me==0) write(*,*) '===> Laser switched on' 
  
   end select beamconf
 

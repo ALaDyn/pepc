@@ -260,12 +260,12 @@ subroutine setup
 
   intensity = 0.2*vosc**2*omega**2  ! normalised laser intensity
 
-!  if (scheme > 1 .and. beam_config >= 4) then
+!  if (scheme > 1 .and. beam_config >= 3) then
 !     if (me==0) write(*,*) 'Constant-Te mode: turning beam off'
 !     beam_config=0
 !  endif
 
-  if ( beam_config ==4 .or. beam_config==6) then
+  if ( beam_config >=3 .and. beam_config<=6) then
      rho_beam= vosc
      r_beam=sigma
 
@@ -279,3 +279,7 @@ subroutine setup
 
 
 end subroutine setup
+
+
+
+

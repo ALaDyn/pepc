@@ -95,7 +95,7 @@ module physvars
   integer :: ispecial       ! Switch to select special electron configs 
   integer :: scheme = 1 ! Integrator scheme switch: 2-4= const. Te dynamics, 6=EM
   integer :: particle_bcs = 1 ! Particle BC switch: 1=open, 2=reflective
-  
+  integer :: debug_level =0 ! Debug level for printed O/P
    real :: dt             ! timestep
    real :: trun           ! total run time including restarts
    real :: convert_fs     ! conversion factor from wp^-1 to fs
@@ -125,7 +125,7 @@ module physvars
        'hemisphere','hollow sph','hollow hsp','          ','special   ' /)
   character*7 :: beam_configs(0:9)=(/ &
        'eqm    ','beam   ','i-beam ','laser-u','ES pond','LWFA   ', &
-       'EMplane','EM pond','       ','       ' /)
+       'EMplane','EM pond',' dust  ','       ' /)
   character*7 :: schemes(1:6)=(/ &
        'const U','Te, Ti ','glob Te','loc  Te','Ti only','Full 3V' /)
 

@@ -62,12 +62,14 @@ program treemp
 
   do itime = 1,nt
      trun = trun + dt
-     if (beam_config >= 4) tlaser = tlaser + dt  
+     if (beam_config >= 3) tlaser = tlaser + dt  
      write(ipefile,'(//a,i8,a,f10.5)') 'Timestep ',itime,' t=',trun
     
-     if (tlaser<= 2*tpulse) then
+     if (beam_config==4 .and. tlaser<= 2*tpulse) then
         Tpon = 2*vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2) 
 ! * (sin(omega*tlaser))**2
+     else if (beam_config==3) then
+        Tpon = vosc**2
      else
 	Tpon = 0.
      endif

@@ -23,7 +23,7 @@ subroutine beam_control
 
   ! First check for VISIT connection
 
-!  if (me==0)   call flvisit_spk_check_connection(lvisit_active)
+  if (me==0)   call flvisit_spk_check_connection(lvisit_active)
   call MPI_BCAST( lvisit_active, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
 
   if (lvisit_active==0 )then
@@ -43,7 +43,7 @@ subroutine beam_control
   !     return
   !  endif
 
-  if (beam_config == 4 .or. beam_config == 5) then
+  if (beam_config >= 3 .and. beam_config <= 5) then
      ! Define beam from laser parameters
      vosc_old = vosc
      sigma_old = sigma
@@ -64,7 +64,7 @@ subroutine beam_control
      u_beam = Ti_keV
      rho_beam = log10(bond_const)
 
-  else if (beam_config==3) then
+  else if (beam_config==8) then ! dust particle
      u_old = u_beam
      theta_old = theta_beam
      phi_old = phi_beam
@@ -112,12 +112,13 @@ subroutine beam_control
 !     return
 !  endif
 
-  if (beam_config == 4 .or. beam_config ==5 ) then
+  if (beam_config >= 3 .and. beam_config <=5 ) then
      ! laser standing wave or pond bullet
+
      !     u_beam = max(abs(u_beam),0.1)
      !     rho_beam = max(abs(rho_beam),0.5)
      !     r_beam = max(abs(r_beam),0.1)
-
+     
      if (u_beam/vosc <10.0 .and. u_beam/vosc > 0.1) then
         vosc=u_beam ! limit amplitude change
         if (me==0 .and. vosc /= vosc_old) write(*,*) 'Laser amplitude changed'
@@ -220,7 +221,7 @@ subroutine beam_control
      npart = npart + np_beam_dt
 
 
-  else if (beam_config ==3) then
+  else if (beam_config ==8) then
      ! Dust particle - # beam particles constant; infinite mass
 
      if (me==0 .and. u_beam /= u_old) write(*,*) 'Beam velocity changed'

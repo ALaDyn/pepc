@@ -191,8 +191,8 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
 
 
-  ! Include ponderomotive force from laser on electrons - ES scheme
-  if (beam_config == 4 ) then
+  ! Include force from laser on electrons - ES scheme
+  if (beam_config >= 3 .and. beam_config <=5 ) then
      if (itime>0) focus(1) = x_crit  ! laser tracks n_c
      do p = p_start, p_finish
         if (q(p)<0) then
@@ -200,8 +200,28 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
            yd = y(p)-focus(2)
            zd = z(p)-focus(3)
 
-           call fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
+           laser_model: select case(beam_config)
+
+           case(3)  ! Uniform sinusoid in z (s-pol)
+              Epon_x = 0.
+              Epon_y = 0.
+              Epon_z = vosc*omega*sin(omega*tlaser)
+
+           case(4)  ! standing wave fpond
+              call fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
                 xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+
+           case(5)  ! propagating fpond
+              call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, & 
+                   xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+
+           case default  ! no laser
+              Epon_x=0
+              Epon_y=0
+              Epon_z=0
+
+           end select laser_model
+
 
            Ex(p) = Ex(p) + Epon_x
            Ey(p) = Ey(p) + Epon_y

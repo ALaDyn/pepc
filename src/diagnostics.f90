@@ -28,7 +28,7 @@ subroutine diagnostics
 
   if ( vis_on ) then
      if ( mod(itime,ivis) ==0 ) call vis_parts       
-     if ( mod(itime,ivis*2)==0 .and. steering) call beam_control
+     if ( mod(itime,ivis)==0 .and. steering) call beam_control
      if ( mod(itime,ivis_fields)==0 ) then
         !     call pot_grid
         call densities

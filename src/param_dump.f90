@@ -104,8 +104,14 @@ subroutine param_dump
 	write (ifile,*) 'Shortlist length: ',nshortm
         write (ifile,*) 'Memory needed for lists = ',4*nintmax*nshortm*8/2**20,' Mbytes'
 
-        write (ifile,'(/a)') 'Other inputs:'
-	write(ifile,NML=pepcdata)
+        if (debug_level>=1) then
+           write (ifile,'(/a)') 'Other inputs:'
+           write(ifile,NML=pepcdata)
+        else 
+           write (15,'(/a)') 'Other inputs:'
+           write(15,NML=pepcdata)
+        endif
+
 
         !  ibig = 2**63 - 1
         !  write (*,'(i20,b64/o24,z20)') ibig,ibig,ibig,ibig
