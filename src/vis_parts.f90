@@ -150,10 +150,10 @@ subroutine vis_parts
            iyd = SUM( (/ (2**i*ibits( branch_key(j),idim*i+1,1 ), i=0,ilev-1) /) )
            izd = SUM( (/ (2**i*ibits( branch_key(j),idim*i+2,1 ), i=0,ilev-1) /) )
            mvis(j) = boxsize/2**(ilev)          !  box length
-           xvis(j)=(xmin + ixd*mvis(j))*convert_mu ! centres?
-           yvis(j)=(ymin + iyd*mvis(j))*convert_mu
-           zvis(j)=(zmin + izd*mvis(j))*convert_mu 
-           mvis(j) = mvis(j)*0.8
+           xvis(j)=(xmin + (ixd+0.02)*mvis(j))*convert_mu ! corners?
+           yvis(j)=(ymin + (iyd+0.02)*mvis(j))*convert_mu
+           zvis(j)=(zmin + (izd+0.02)*mvis(j))*convert_mu 
+           mvis(j) = mvis(j)*0.96
         end do
         call flvisit_spk_domains_send( tlaser, xvis,yvis,zvis,mvis,branch_owner,xvis,nbranch_sum)
 
