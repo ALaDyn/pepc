@@ -73,11 +73,11 @@ subroutine vis_parts
         yl_mu = int(yl*convert_mu*100)/100.
         zl_mu = int(zl*convert_mu*100)/100.
         call flvisit_spk_check_connection(lvisit_active)
-        call flvisit_spk_info_send(npart_buf,xl_mu,yl_mu,zl_mu,zl_mu,ne_buf,ni_buf,np_beam,itime+itime_start)
+!        call flvisit_spk_info_send(npart_buf,xl_mu,yl_mu,zl_mu,zl_mu,ne_buf,ni_buf,np_beam,itime+itime_start)
 
-!        call flvisit_spk_info_send(npart_buf,xl_mu,yl_mu,zl_mu, zl_mu, &
-!             propag_laser*convert_mu, vosc, sigma, tpulse, &
-!             ne_buf,ni_buf,npart_buf,int(tlaser))
+        call flvisit_spk_info_send(npart_buf,xl_mu,yl_mu,zl_mu, zl_mu, &
+             propag_laser*convert_mu, vosc, sigma, tpulse, &
+             ne_buf,ni_buf,npart_buf,int(tlaser))
      endif
 !
 ! visit info block format in spk4
