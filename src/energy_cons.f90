@@ -40,10 +40,10 @@ subroutine energy_cons
 
   if ( me == 0 ) then
      do ifile = 6,15,9
-        write (ifile,'(7(a20,1pe12.5/))') 'P.E. = ',epot,' Electron K.E. = ',ekine, &
+        write (ifile,'(6(a20,1pe12.5/))') 'P.E. = ',epot,' Electron K.E. = ',ekine, &
              ' Ion K.E. = ',ekini,' Beam K.E.  = ',ebeam,' Total: ',etot, &
-             ' Laser energy = ',elaser, &
-             ' Laser focus = ',focus(1)
+             ' Laser energy = ',elaser
+
         write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',conv_kev*ekine,'Ti (keV):',conv_kev*ekini
      end do
      write (75,'(f12.5,6(1pe12.3))') (itime+itime_start)*dt, conv_kev*epot, conv_kev*ekine, conv_kev*ekini, conv_kev*ebeam, conv_kev*etot,x_crit

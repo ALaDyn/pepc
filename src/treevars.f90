@@ -153,13 +153,15 @@ module treevars
              nppm, &           ! max # particles/PE
              nshortm, &        ! shortlist length
              iused, &          ! counter for collision resolution array free_addr()
-  	     nmerge = 1        ! merge factor for data sets
-
+  	     nmerge = 1, &        ! merge factor for data sets
+             nslice, &            ! # particles in rezoning slice (determined in predef)
+             new_label         ! Rezone label 
 
   real :: xmin, xmax    ! box limits
   real :: ymin, ymax  
   real :: zmin, zmax
   real :: boxsize       ! length of box
+  real :: window_min   ! start of display window for rezoning
 
  ! Force control
   logical :: load_balance=.true.   ! Balances particles in || sort according to work load
@@ -193,6 +195,10 @@ module treevars
 
   real, allocatable ::  rhoe(:,:,:), rhoi(:,:,:), phi_g(:,:,:), &  ! field arrays
        Ex_g(:,:,:),   Ey_g(:,:,:),  Ez_g(:,:,:)
+
+  real, allocatable :: xslice(:),  yslice(:),  zslice(:), &     ! Rezoning slice
+                      uxslice(:), uyslice(:), uzslice(:), &     ! velocity
+                              qslice(:),  mslice(:)    ! charge and mass
 
   !  physics data
 
@@ -241,6 +247,7 @@ module treevars
   real :: focus(3)      ! centre of focal spot
   real :: tlaser        ! run time after laser switched on (1/omega_p)
   real :: elaser        ! deposited laser energy
+  real :: propag_laser  ! distance travelled by laser after rezoning
   
 ! Control stuff
   logical :: vis_on=.true.  ! online visualisation on/off
@@ -271,4 +278,16 @@ module treevars
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
 
 end module treevars
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -29,7 +29,7 @@ program treemp
   use utils
 
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_en, t_force
-  real :: t_push, t_diag, t_start_push, t_prefetch, Tpon
+  real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, go
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -55,7 +55,10 @@ program treemp
 
      if (me==0) then
         Tpon = 2*vosc**2*min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
-        write(6,'(/3(a20,f8.3/))') 'Laser amplitude: ',vosc, ' Spot size: ',sigma,' Pulse length: ',tpulse
+        write(6,'(/4(a20,f8.3/))') 'Laser amplitude: ',vosc, &
+                                   ' Spot size: ',sigma, &
+                                   ' Pulse length: ',tpulse, &
+                                   ' Focal position: ',propag_laser
         do ifile = 6,15,9
            write(ifile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
                 ,' total run time = ',trun &
@@ -100,9 +103,37 @@ program treemp
 
      call cputime(t_push)
 
-
      call diagnostics
      call cputime(t_diag)
+
+
+     !  Laser focal position and rezoning
+
+     laser_focus: select case(beam_config)
+
+     case(4)  ! standing wave fpond
+        if (itime>0) focus(1) = x_crit  ! laser tracks n_c
+     case(5)  ! propagating fpond
+        !  Trigger rezoning if laser 3/4 through plasma
+        ! - Only works after restart at present
+        if (restart .and. beam_config ==5 .and. focus(1) >= window_min + x_plasma*.75) then
+           if (me==0) then 
+              write (*,*) 'REZONE'
+              !           read (*,*) go
+           endif
+           call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+
+           call rezone
+           !        window_min = window_min + dt
+           propag_laser=propag_laser + dt
+        else
+           focus(1) = focus(1) + dt  ! propagate forward by c*dt - can include v_g here
+        endif
+     case default
+        ! leave focal point unchanged
+     end select laser_focus
+
+
 
 
 
@@ -139,6 +170,8 @@ program treemp
   if (ensemble ==5 ) then
      !  ion eqm mode: add electrons before dumping particle positions
      call add_electrons
+     call dump(nt+itime_start)
+  else
      call dump(nt+itime_start)
   endif
 

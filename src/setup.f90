@@ -164,7 +164,7 @@ subroutine setup
 
   npart = ni+ne
   npp = nep + nip  ! total # particles per processor
-
+  new_label = npart  ! Rezone label
 
   if (initial_config ==1) then
      ! sphere
@@ -193,6 +193,8 @@ subroutine setup
 
   endif
 
+  window_min = plasma_centre(1)-x_plasma/2.  ! Initial LH edge of plasma
+  propag_laser= 0.
 
   vte = sqrt(Te_keV/511.)  ! convert from keV to /c
   if (ne > 0) then
@@ -342,6 +344,9 @@ subroutine setup
   allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
        q(nppm), m(nppm), ax(nppm), ay(nppm), az(nppm), pot(nppm), work(nppm), &
        pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
+
+  allocate ( xslice(nppm), yslice(nppm), zslice(nppm), uxslice(nppm), uyslice(nppm), uzslice(nppm), & 
+       qslice(nppm), mslice(nppm) )    ! Reserve slice particle array space N/NPE
 
   allocate ( nterm(nshortm), intlist(nintmax,nshortm), nodelist(nintmax,nshortm) )      ! Space for interaction lists
 

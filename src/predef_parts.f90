@@ -20,7 +20,7 @@ subroutine predef_parts
   real :: epsr, thetar, xlr, ylr, zlr, boxr
   real :: axdum, aydum, azdum,phidum
   integer :: ioffset, i1, i2, npp_partial, npp_total, ipass, me_read, j, nrest, nadd
-
+  integer :: nslice_e, nslice_i
 
   if (me == 0) then 
 
@@ -120,17 +120,31 @@ subroutine predef_parts
 
 
      !  Skip dummy blocks up to previous PEs 
+     nslice_e=0
+     nslice_i = 0
+     nslice = 0
      do j=0,mod(me,nmerge)-1
         write(ipefile,*) 'skip pass ',j
-        read(60,*) (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),axdum,aydum,azdum,phidum, &
-	            idummy,pelabel(i),i=1,npp)
+        do i=1,npp
+           read(60,*) x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i), &
+                axdum,aydum,azdum,phidum, idummy,pelabel(i)
+           if (beam_config.eq.5 .and. q(i)>0 .and. x(i) < window_min+dt .and. x(i) > window_min) then
+  ! create rezoning slice for wakefield mode - first few blocks should be sufficient
+              nslice = nslice+1
+              xslice(nslice) = x(i)+x_plasma ! Include offset for new slice
+              yslice(nslice) = y(i)
+              zslice(nslice) = z(i)
+           endif
+        end do
      end do
 
      !  Now read in particles to keep
      read(60,*) (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),axdum,aydum,azdum,phidum, &
-	         idummy,pelabel(i),i=1,npp+nadd)
+          idummy,pelabel(i),i=1,npp+nadd)
      close (60)
 
+     if (me==num_pe-1)  write(ipefile,'(a,i8/3(f15.5))') 'Slice  ions:', nslice, &
+          (xslice(i),yslice(i),zslice(i),i=1,nslice)
      npp = npp+nadd
 
   else
@@ -167,7 +181,7 @@ subroutine predef_parts
 
         !  Initialise particles: read from file
         read(60,*) (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),axdum,aydum,azdum,phidum, &
-	            idummy,pelabel(i),i=i1,i2)
+             idummy,pelabel(i),i=i1,i2)
 
         close (60)
 
@@ -176,11 +190,12 @@ subroutine predef_parts
      enddo
 
   endif
+  call MPI_BCAST( nslice, 1, MPI_INTEGER, num_pe-1, MPI_COMM_WORLD,ierr)
 
   ! add displacement vector
-!  x(1:npp) = x(1:npp) + displace(1)
-!  y(1:npp) = y(1:npp) + displace(2)
-!  z(1:npp) = z(1:npp) + displace(3)
+  !  x(1:npp) = x(1:npp) + displace(1)
+  !  y(1:npp) = y(1:npp) + displace(2)
+  !  z(1:npp) = z(1:npp) + displace(3)
 
   pepid(1:npp) = me                ! processor ID
 
@@ -189,16 +204,16 @@ subroutine predef_parts
   az(1:npp) = 0.
   work(1:npp) = 1.
 
- ! Rescale velocities if different temperature required 
+  ! Rescale velocities if different temperature required 
   if (T_scale /= 1) then
-    if (me==0) write(*,*) 'Rescaling temperature by ',T_scale,' to ',Te_keV
-    do i=1,npp
-       if (q(i)<0) then
-          ux(i) = ux(i)*sqrt(T_scale)
-          uy(i) = uy(i)*sqrt(T_scale)
-          uz(i) = uz(i)*sqrt(T_scale)
-       endif
-    end do
+     if (me==0) write(*,*) 'Rescaling temperature by ',T_scale,' to ',Te_keV
+     do i=1,npp
+        if (q(i)<0) then
+           ux(i) = ux(i)*sqrt(T_scale)
+           uy(i) = uy(i)*sqrt(T_scale)
+           uz(i) = uz(i)*sqrt(T_scale)
+        endif
+     end do
   endif
 
 end subroutine predef_parts

@@ -59,12 +59,12 @@ subroutine vis_fields
               end select laser_model
 
               mvis(lcount) = 10*phipond/vosc**2  
-              qvis(lcount) = 10*phi_g(i,j,k)   ! potential
+ !             qvis(lcount) = 10*phi_g(i,j,k)   ! potential
               exvis(lcount) = 10*ex_g(i,j,k)
               eyvis(lcount)  = 10*ey_g(i,j,k)
               ezvis(lcount)  = 10*ez_g(i,j,k)
               cvis(lcount) = -1.
- !             qvis(lcount) = 10*(rhoi(i,j,k) + rhoe(i,j,k)) ! delta-n/n
+              qvis(lcount) = 10*(rhoi(i,j,k) + rhoe(i,j,k)) ! delta-n/n
            end do
         end do
      end do
@@ -72,14 +72,13 @@ subroutine vis_fields
      ng = ngx*ngy*ngz
 
      call flvisit_spk_check_connection(lvisit_active)
-     call flvisit_spk_info_send(ng,xl*convert_mu,yl*convert_mu,zl*convert_mu, &
-         zl*convert_mu,ng,0,np_beam,itime+itime_start)
+
      if (beam_config==4 .or. beam_config ==5) then
-!        call flvisit_spk_3dfieldB_send(mvis,ngx,ngy,ngz)  ! laser potential
-         call flvisit_3dfieldB_send(mvis,ngx,ngy,ngz)  ! laser potential
+        call flvisit_spk_3dfieldB_send(mvis,ngx,ngy,ngz)  ! laser potential
+!         call flvisit_3dfieldB_send(mvis,ngx,ngy,ngz)  ! laser potential
     endif
-!     call flvisit_spk_3dfieldA_send(qvis,ngx,ngy,ngz)  ! electron density
-     call flvisit_3dfieldA_send(qvis,ngx,ngy,ngz)  ! electron density
+     call flvisit_spk_3dfieldA_send(qvis,ngx,ngy,ngz)  ! electron density
+!     call flvisit_3dfieldA_send(qvis,ngx,ngy,ngz)  ! electron density
 
 ! Ship electric field as particle data
 !     call flvisit_spk_particles_send(tlaser*convert_fs,xvis,yvis,zvis, & 

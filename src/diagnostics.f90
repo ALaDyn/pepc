@@ -24,8 +24,8 @@ subroutine diagnostics
 
 
   if (vis_on .and. mod(itime,ivis_fields)==0 ) then
-     call pot_grid
-!     call densities
+!     call pot_grid
+     call densities
      call vis_fields
   endif
 
@@ -43,10 +43,13 @@ subroutine diagnostics
      call draw_domains(itime+itime_start)   ! Domains
   endif
 
-  if ((mod(itime,idump)==0 .or. itime==nt) ) then
+  if ((mod(itime,idump)==0 ) ) then
      if (itime.ne.0) call dump(itime+itime_start)     ! Dump complete set of particle data
      call slices(itime+itime_start)  ! 1D lineouts
 
   endif
 
 end subroutine diagnostics
+
+
+

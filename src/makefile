@@ -75,7 +75,7 @@ SOURCES.f90 =	treemp.f90 \
 		vis_parts.f90 vis_fields.f90 dump.f90 visit_dump.f90\
 		open_files.f90 close_files.f90	\
 		densities.f90 pot_grid.f90 slices.f90 \
-		track_nc.f90		
+		track_nc.f90 rezone.f90		
 
 # -------------------------------------------------------------------------------------------
 # Source combinations

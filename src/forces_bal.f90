@@ -170,16 +170,6 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
   ! Include ponderomotive force from laser on electrons 
   ! - select either standing wave (overdense) or propagating (underdense) fpond
 
-  laser_focus: select case(beam_config)
-
-           case(4)  ! standing wave fpond
-              if (itime>0) focus(1) = x_crit  ! laser tracks n_c
-           case(5)  ! propagating fpond
-              focus(1) = focus(1) + dt  ! propagate forward by c*dt - can include v_g here
-           case default
-              ! leave focal point unchanged
-           end select laser_focus
-
 
   if (beam_config ==4 .or. beam_config ==5) then
      do p = p_start, p_finish
