@@ -1,4 +1,4 @@
-1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/18/2003 19:38:53   Page 1
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/21/2003 15:39:34   Page 1
 
                                      * * * * *   P r o l o g   * * * * *
 
@@ -7,95 +7,99 @@
     Compiler options. . . . . . . : 
 
                               * * * * *   E n d   O f   P r o l o g   * * * * *
-1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/18/2003 19:38:53   Page 2
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/21/2003 15:39:34   Page 2
 
                             * * * * *   O b j e c t   F i l e   M a p   * * * * *
 
 *Origin  IPA  File ID  File Name
    P      Y        1   /lib/crt0_64.o
-   P      Y        2   /home4/jzam04/jzam0401/visit/spkvisit/liblvisit_spk.a
-   P      Y        3   /home4/jzam04/jzam0401/visit/lib/liblvisit.a
-   P      Y        4   /home4/jzam04/jzam0401/visit/lib/libvisit.a
-   P      Y        5   /home/admin/beta/MP_profiler-1.0.0/LOCALlib/libmpiprof.a
-   P      Y        6   treemp.o
-   P      Y        7   setup.o
-   P      Y        8   configure.o
-   P      Y        9   randion.o
-   P      Y       10   predef_parts.o
-   P      Y       11   maxwell1.o
-   P      Y       12   cold_start.o
-   P      Y       13   scramble_v.o
-   P      Y       14   reset_ions.o
-   P      Y       15   add_electrons.o
-   P      Y       16   double_target.o
-   P      Y       17   beam.o
-   P      Y       18   beam_control.o
-   P      Y       19   mc_config.o
-   P      Y       20   make_domains.o
-   P      Y       21   tree_build.o
-   P      Y       22   make_branches.o
-   P      Y       23   tree_fill.o
-   P      Y       24   tree_properties.o
-   P      Y       25   tree_walk.o
-   P      Y       26   tree_prefetch.o
-   P      Y       27   energy_cons.o
-   P      Y       28   potenergy.o
-   P      Y       29   sumpot.o
-   P      Y       30   kinenergy.o
-   P      Y       31   forces.o
-   P      Y       32   forces_bal.o
-   P      Y       33   sum_force.o
-   P      Y       34   sum_lennardjones.o
-   P      Y       35   fpond.o
-   P      Y       36   velocities.o
-   P      Y       37   push.o
-   P      Y       38   constrain.o
-   P      Y       39   reinject.o
-   P      Y       40   earth_plate.o
-   P      Y       41   make_hashentry.o
-   P      Y       42   get_address.o
-   P      Y       43   get_node.o
-   P      Y       44   key_test.o
-   P      Y       45   get_next_node.o
-   P      Y       46   diagnostics.o
-   P      Y       47   diagnose_tree.o
-   P      Y       48   check_table.o
-   P      Y       49   draw_domains.o
-   P      Y       50   draw_tree2d.o
-   P      Y       51   draw_lists.o
-   P      Y       52   vis_parts.o
-   P      Y       53   vis_fields.o
-   P      Y       54   dump.o
-   P      Y       55   visit_dump.o
-   P      Y       56   open_files.o
-   P      Y       57   close_files.o
-   P      Y       58   densities.o
-   P      Y       59   slices.o
-   P      Y       60   track_nc.o
-   P      Y       61   my_mpidefs.o
-   P      Y       62   treevars.o
-   P      Y       63   utils.o
-   P      Y       64   /lib/liblapi_r.a
-   P      Y       65   /usr/lpp/ppe.poe/lib/libmpi_r.a
-   P      Y       66   /usr/lpp/ppe.poe/lib/libvtd_r.a
-   P      Y       67   /lib/threads/libxlf90.a
-   P      Y       68   /lib/libxlopt.a
-   P      Y       69   /lib/libxlf.a
-   P      Y       70   /lib/libxlomp_ser.a
-   P      Y       71   /lib/libpthreads.a
-   P      Y       72   /lib/libm_r.a
-   P      Y       73   /lib/libm.a
-   P      Y       74   /usr/lpp/ppe.poe/lib/libc_r.a
-   P      Y       75   /usr/lpp/ppe.poe/lib/threads/libc.a
-   P      Y       76   /usr/lpp/ppe.poe/lib/libc.a
+   P      Y        2   /home/admin/beta/visit-2.0b/lvisit/apis/spk3/liblvisit_spk.a
+   P      Y        3   /home/admin/beta/visit-2.0b/lvisit/lib/liblvisit.a
+   P      Y        4   /home/admin/beta/visit-2.0b/lib/libvisit.a
+   P      Y        5   /home/admin/beta/MP_profiler-1.0.0/LOCALlib/libmpihpm.a
+   P      Y        6   /lib/libpmapi.a
+   P      Y        7   treemp.o
+   P      Y        8   setup.o
+   P      Y        9   configure.o
+   P      Y       10   randion.o
+   P      Y       11   predef_parts.o
+   P      Y       12   maxwell1.o
+   P      Y       13   cold_start.o
+   P      Y       14   scramble_v.o
+   P      Y       15   reset_ions.o
+   P      Y       16   add_electrons.o
+   P      Y       17   double_target.o
+   P      Y       18   beam.o
+   P      Y       19   beam_control.o
+   P      Y       20   mc_config.o
+   P      Y       21   make_domains.o
+   P      Y       22   tree_build.o
+   P      Y       23   make_branches.o
+   P      Y       24   tree_fill.o
+   P      Y       25   tree_properties.o
+   P      Y       26   tree_walk.o
+   P      Y       27   tree_prefetch.o
+   P      Y       28   energy_cons.o
+   P      Y       29   potenergy.o
+   P      Y       30   sumpot.o
+   P      Y       31   kinenergy.o
+   P      Y       32   forces.o
+   P      Y       33   forces_bal.o
+   P      Y       34   sum_force.o
+   P      Y       35   sum_lennardjones.o
+   P      Y       36   fpond.o
+   P      Y       37   laser_bullet.o
+   P      Y       38   velocities.o
+   P      Y       39   push.o
+   P      Y       40   constrain.o
+   P      Y       41   reinject.o
+   P      Y       42   earth_plate.o
+   P      Y       43   make_hashentry.o
+   P      Y       44   get_address.o
+   P      Y       45   get_node.o
+   P      Y       46   key_test.o
+   P      Y       47   get_next_node.o
+   P      Y       48   diagnostics.o
+   P      Y       49   diagnose_tree.o
+   P      Y       50   check_table.o
+   P      Y       51   draw_domains.o
+   P      Y       52   draw_tree2d.o
+   P      Y       53   draw_lists.o
+   P      Y       54   vis_parts.o
+   P      Y       55   vis_fields.o
+   P      Y       56   dump.o
+   P      Y       57   visit_dump.o
+   P      Y       58   open_files.o
+   P      Y       59   close_files.o
+   P      Y       60   densities.o
+   P      Y       61   pot_grid.o
+   P      Y       62   slices.o
+   P      Y       63   track_nc.o
+   P      Y       64   my_mpidefs.o
+   P      Y       65   treevars.o
+   P      Y       66   utils.o
+   P      Y       67   /lib/liblapi_r.a
+   P      Y       68   /usr/lpp/ppe.poe/lib/libmpi_r.a
+   P      Y       69   /usr/lpp/ppe.poe/lib/libvtd_r.a
+   P      Y       70   /lib/threads/libxlf90.a
+   P      Y       71   /lib/libxlopt.a
+   P      Y       72   /lib/libxlf.a
+   P      Y       73   /lib/libxlomp_ser.a
+   P      Y       74   /lib/libpthreads.a
+   P      Y       75   /lib/libm_r.a
+   P      Y       76   /lib/libm.a
+   P      Y       77   /usr/lpp/ppe.poe/lib/libc_r.a
+   P      Y       78   /usr/lpp/ppe.poe/lib/threads/libc.a
+   P      Y       79   /usr/lpp/ppe.poe/lib/libc.a
 
 ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN=internal
          A=automatic call     U=Upcase automatic call   R=Rename card          L=C Library
 
                      * * * * *   E n d   O f   O b j e c t   F i l e   M a p   * * * * *
+1586-311 (I) External subprogram "aser_bullet" not found.  Could not mark as "inline".
 1586-311 (I) External subprogram "key2node" not found.  Could not mark as "inline".
 1586-311 (I) External subprogram "ext_node" not found.  Could not mark as "inline".
-1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/18/2003 19:38:53   Page 3
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/21/2003 15:39:34   Page 3
 
                               * * * * *   I n l i n e   R e p o r t    * * * * *
 
@@ -124,10 +128,10 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
 
  Reason  Action  Status   Size (init)    Calls/I   Called/I     Name
 
-    A      I       D      0 (144)          0         2/2        @63@sift_down
+    A      I       D      0 (144)          0         2/2        @66@sift_down
     N      -       E      0                0         7/0        __dcbz
     N      -       E      0                0         94/0       __free
-    N      -       E      0                0         176/0      __malloc
+    N      -       E      0                0         177/0      __malloc
     N      -       E      0                0         45/0       __memcpy
     N      -       E      0                0         10/0       __memset
     A      -       -      120              2/0       3/0        __utils_MOD_blankn
@@ -143,46 +147,48 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
     A      -       -      1216 (1040)      38/4      34/0       __utils_MOD_rano
     A      -       -      512 (204)        3/3       8/0        __utils_MOD_sort_i
     A      I       D      0 (20)           0         1/1        __utils_MOD_swap_ab
-    N      -       E      0                0         206/0      _alloca
+    N      -       E      0                0         218/0      _alloca
     N      -       E      0                0         89/0       _concat
-    N      -       E      0                0         650/0      _dconcat
+    N      -       E      0                0         655/0      _dconcat
     N      -       E      0                0         1/0        _qsqrt
     N      -       E      0                0         5/0        _trap
     N      -       E      0                0         1/0        _xldctime
-    N      -       E      0                0         342/0      _xlfBeginIO
-    N      -       E      0                0         341/0      _xlfEndIO
-    N      -       E      0                0         134/0      _xlfErrorExit
+    N      -       E      0                0         343/0      _xlfBeginIO
+    N      -       E      0                0         342/0      _xlfEndIO
+    N      -       E      0                0         136/0      _xlfErrorExit
     N      -       E      0                0         5/0        _xlfExit
     N      -       E      0                0         53/0       _xlfIOCmd
     N      -       E      0                0         2/0        _xlfPause
     N      -       E      0                0         18/0       _xlfReadFmt
     N      -       E      0                0         6/0        _xlfReadLDInt
     N      -       E      0                0         36/0       _xlfReadLDReal
-    N      -       E      0                0         900/0      _xlfWriteFmt
+    N      -       E      0                0         904/0      _xlfWriteFmt
     N      -       E      0                0         9/0        _xlfWriteFmtArray
     N      -       E      0                0         10/0       _xlfWriteLDArray
-    N      -       E      0                0         204/0      _xlfWriteLDChar
+    N      -       E      0                0         207/0      _xlfWriteLDChar
     N      -       E      0                0         107/0      _xlfWriteLDInt
-    N      -       E      0                0         43/0       _xlfWriteLDReal
+    N      -       E      0                0         45/0       _xlfWriteLDReal
     N      -       E      0                0         2/0        _xlisclkg
     A      -       -      3436 (1896)      21/5      1/0        add_electrons
     A      I       D      0 (620)          2/0       1/1        beam
-    A      -       -      2528             61/0      3/0        beam_control
+    A      -       -      2640             65/0      3/0        beam_control
     A      -       -      2540             88/0      4/0        check_table
     A      I       -      208              6/0       3/1        closefiles
     A      I       D      0 (168)          0         3/3        cold_start
-    A      -       -      5344 (1140)      45/12     1/0        configure
+    A      -       -      5360 (1148)      45/12     1/0        configure
     A      -       -      1616 (1232)      2/2       1/0        constrain
-    A      -       -      1576             5/0       1/0        densities
+    A      -       -      1600             5/0       1/0        densities
     A      -       -      13656 (6408)     171/6     1/0        diagnose_tree
-    A      I       -      504              12/0      2/1        diagnostics
+    A      I       -      512              13/0      2/1        diagnostics
     A      -       -      1944             35/0      1/0        double_target
     A      -       -      5764             132/0     1/0        draw_domains
     A      -       -      5552 (4344)      111/1     1/0        draw_lists
     A      -       -      6288             155/0     1/0        draw_tree2d
     A      -       -      5264             199/0     3/0        dump
     A      -       -      1596 (1072)      5/1       1/0        earth_plate
-    A      -       -      3540 (1856)      67/2      1/0        energy_cons
+    A      -       -      3756 (2072)      73/2      1/0        energy_cons
+    N      -       E      0                0         1/0        flvisit_spk_3dfielda_send
+    N      -       E      0                0         1/0        flvisit_spk_3dfieldb_send
     N      -       E      0                0         1/0        flvisit_spk_beam_param_recv
     N      -       E      0                0         1/0        flvisit_spk_beam_paraminit_send
     N      -       E      0                0         5/0        flvisit_spk_check_connection
@@ -192,11 +198,12 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
     N      -       E      0                0         1/0        flvisit_spk_init
     N      -       E      0                0         2/0        flvisit_spk_particles_send
     A      -       -      7304 (6468)      86/5      1/0        forces
-    A      -       -      7252 (5932)      103/6     2/0        forces_bal
+    A      -       -      7796 (6096)      104/7     2/0        forces_bal
     A      I       D      0 (692)          0         4/4        fpond
     A      I       D      0 (1000)         31/1      46/46      key2addr
     A      I       D      0 (116)          0         3/3        key_local
     A      I       D      0 (784)          6/0       1/1        kinenergy
+    A      I       D      0 (380)          0         3/3        laser_bullet
     A      -       -      19848 (7100)     119/10    4/0        make_branches
     A      -       -      10232            210/0     4/0        make_domains
     A      I       D      0 (1876)         52/0      4/4        make_hashentry
@@ -206,10 +213,10 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
     N      -       E      0                0         33/0       mpi_address
     N      -       E      0                0         4/0        mpi_allgather
     N      -       E      0                0         5/0        mpi_allgatherv
-    N      -       E      0                0         26/0       mpi_allreduce
+    N      -       E      0                0         24/0       mpi_allreduce
     N      -       E      0                0         5/0        mpi_alltoall
     N      -       E      0                0         8/0        mpi_alltoallv
-    N      -       E      0                0         18/0       mpi_barrier
+    N      -       E      0                0         19/0       mpi_barrier
     N      -       E      0                0         18/0       mpi_bcast
     N      -       E      0                0         1/0        mpi_comm_rank
     N      -       E      0                0         1/0        mpi_comm_size
@@ -220,6 +227,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
     N      -       E      0                0         2/0        mpi_irecv
     N      -       E      0                0         2/0        mpi_isend
     N      -       E      0                0         3/0        mpi_recv
+    N      -       E      0                0         3/0        mpi_reduce
     N      -       E      0                0         2/0        mpi_request_free
     N      -       E      0                0         5/0        mpi_send
     N      -       E      0                0         2/0        mpi_type_commit
@@ -227,34 +235,35 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
     N      -       E      0                0         2/0        mpi_waitany
     A      -       -      4904 (1280)      5/3       3/0        next_node
     A      -       -      576              10/0      1/0        openfiles
+    A      -       -      1600             3/0       1/0        pot_grid
     A      I       D      0 (900)          20/0      3/3        potenergy
     A      -       -      7428             214/0     1/0        predef_parts
     A      -       -      276              0         1/0        push
     A      -       -      2320             25/0      2/0        randion
     A      I       D      0 (524)          4/0       1/1        reinject
     A      I       D      0 (520)          10/0      3/3        scramble_v
-    A      -       -      25708            497/0     1/0        setup
-    A      -       -      4840 (4148)      55/1      1/0        slices
+    A      -       -      25936            500/0     1/0        setup
+    A      -       -      5380 (4308)      56/2      1/0        slices
     A      -       -      1324             0         2/0        sum_force
     A      I       D      0 (484)          0         1/1        sum_lennardjones
-    A      -       -      2932             17/0      1/0        track_nc
+    A      -       -      2976             17/0      1/0        track_nc
     A      -       -      10076 (8868)     142/1     4/0        tree_build
     A      -       -      11812 (5104)     68/5      4/0        tree_fill
     A      -       -      23164 (13692)    191/10    1/0        tree_prefetch
     A      -       -      25956 (15084)    90/9      4/0        tree_properties
-    A      -       -      25056 (14724)    228/8     2/0        tree_walk
-    A      N       -      8576             306/0     0          treemp
+    A      -       -      25076 (14744)    229/8     2/0        tree_walk
+    A      N       -      8696             312/0     0          treemp
     A      -       -      5372             75/0      1/0        velocities
-    A      -       -      1344 (652)       5/1       1/0        vis_fields
-    A      -       -      2080             27/0      3/0        vis_parts
+    A      -       -      1992 (920)       8/2       1/0        vis_fields
+    A      -       -      2660             37/0      3/0        vis_parts
  Mode = AUTO     Inlining Threshold =    1024    Expansion Limit =    8192
 
-1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/18/2003 19:38:53   Page 4
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/21/2003 15:39:34   Page 4
 
                     IPA Inline Report (Call Structure)
 
  Defined Subprogram    : treemp
-     Calls To(306,0)   : forces_bal(1,0)
+     Calls To(312,0)   : forces_bal(1,0)
                          constrain(1,0)
                          earth_plate(1,0)
                          diagnostics(1,0)
@@ -277,11 +286,11 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          flvisit_spk_init(1,0)
                          _xlfEndIO(38,0)
                          _xlfWriteFmt(128,0)
-                         _dconcat(53,0)
+                         _dconcat(55,0)
                          _xlfBeginIO(38,0)
                          _xlfWriteLDInt(4,0)
-                         _xlfWriteLDChar(5,0)
-                         _xlfWriteLDReal(1,0)
+                         _xlfWriteLDChar(7,0)
+                         _xlfWriteLDReal(3,0)
                          mpi_barrier(2,0)
                          flvisit_spk_close(1,0)
                          _trap(1,0)
@@ -321,7 +330,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
 
  Defined Subprogram    : __malloc
      Calls To          : 0
-  Called From(176,0)   : vis_parts(4,0)
+  Called From(177,0)   : vis_parts(4,0)
                          draw_domains(7,0)
                          draw_lists(4,0)
                          draw_tree2d(8,0)
@@ -336,16 +345,16 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          tree_build(8,0)
                          make_domains(8,0)
                          add_electrons(7,0)
-                         setup(67,0)
+                         setup(68,0)
 
  Defined Subprogram    : beam_control
-     Calls To(61,0)    : flvisit_spk_beam_paraminit_send(1,0)
+     Calls To(65,0)    : flvisit_spk_beam_paraminit_send(1,0)
                          flvisit_spk_check_connection(2,0)
                          flvisit_spk_beam_param_recv(1,0)
-                         _xlfEndIO(6,0)
-                         _xlfWriteLDChar(13,0)
-                         _dconcat(13,0)
-                         _xlfBeginIO(6,0)
+                         _xlfEndIO(7,0)
+                         _xlfWriteLDChar(14,0)
+                         _dconcat(14,0)
+                         _xlfBeginIO(7,0)
                          _xlfWriteLDInt(2,0)
                          _xlfWriteLDReal(8,0)
                          __utils_MOD_rano(2,0)
@@ -407,7 +416,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
 
  Defined Subprogram    : _xlfBeginIO
      Calls To          : 0
-  Called From(342,0)   : potenergy(2,0)
+  Called From(343,0)   : potenergy(2,0)
                          track_nc(2,0)
                          draw_domains(13,0)
                          draw_lists(17,0)
@@ -422,7 +431,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          predef_parts(19,0)
                          scramble_v(1,0)
                          mc_config(9,0)
-                         beam_control(6,0)
+                         beam_control(7,0)
                          randion(2,0)
                          forces_bal(10,0)
                          velocities(6,0)
@@ -443,14 +452,14 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
 
  Defined Subprogram    : _dconcat
      Calls To          : 0
-  Called From(650,0)   : potenergy(4,0)
+  Called From(655,0)   : potenergy(4,0)
                          track_nc(4,0)
                          draw_domains(30,0)
                          draw_lists(20,0)
                          draw_tree2d(32,0)
                          diagnose_tree(28,0)
                          slices(12,0)
-                         energy_cons(16,0)
+                         energy_cons(18,0)
                          tree_walk(35,0)
                          make_hashentry(14,0)
                          check_table(24,0)
@@ -458,7 +467,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          predef_parts(40,0)
                          scramble_v(2,0)
                          mc_config(15,0)
-                         beam_control(13,0)
+                         beam_control(14,0)
                          randion(2,0)
                          forces_bal(18,0)
                          velocities(19,0)
@@ -475,17 +484,17 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          configure(5,0)
                          setup(53,0)
                          openfiles(2,0)
-                         treemp(53,0)
+                         treemp(55,0)
 
  Defined Subprogram    : _xlfWriteFmt
      Calls To          : 0
-  Called From(900,0)   : potenergy(11,0)
+  Called From(904,0)   : potenergy(11,0)
                          draw_domains(37,0)
                          draw_lists(35,0)
                          draw_tree2d(53,0)
                          diagnose_tree(93,0)
                          slices(20,0)
-                         energy_cons(39,0)
+                         energy_cons(43,0)
                          tree_walk(35,0)
                          make_hashentry(3,0)
                          check_table(16,0)
@@ -510,7 +519,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
 
  Defined Subprogram    : _xlfEndIO
      Calls To          : 0
-  Called From(341,0)   : potenergy(2,0)
+  Called From(342,0)   : potenergy(2,0)
                          track_nc(2,0)
                          draw_domains(13,0)
                          draw_lists(17,0)
@@ -525,7 +534,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          predef_parts(19,0)
                          scramble_v(1,0)
                          mc_config(9,0)
-                         beam_control(6,0)
+                         beam_control(7,0)
                          randion(2,0)
                          forces_bal(10,0)
                          velocities(6,0)
@@ -546,8 +555,8 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
 
  Defined Subprogram    : mpi_barrier
      Calls To          : 0
-  Called From(18,0)    : vis_parts(1,0)
-                         tree_walk(1,0)
+  Called From(19,0)    : vis_parts(1,0)
+                         tree_walk(2,0)
                          predef_parts(1,0)
                          mc_config(1,0)
                          beam_control(1,0)
@@ -650,8 +659,9 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
   Called From(1,0)     : treemp(1,0)
 
  Defined Subprogram    : diagnostics
-     Calls To(12,0)    : vis_parts(1,0)
+     Calls To(13,0)    : vis_parts(1,0)
                          vis_fields(1,0)
+                         pot_grid(1,0)
                          densities(1,0)
                          track_nc(1,0)
                          draw_domains(1,0)
@@ -670,7 +680,8 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
   Called From(1,0)     : reinject(1,0)
 
  Defined Subprogram    : forces_bal
-     Calls To(103,6)   : sum_lennardjones(1,1)
+     Calls To(104,7)   : sum_lennardjones(1,1)
+                         laser_bullet(1,1)
                          sum_force(1,0)
                          tree_walk(1,0)
                          fpond(1,1)
@@ -692,18 +703,13 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
   Called From(2,0)     : treemp(1,0)
                          configure(1,0)
 
- Defined Subprogram    : potenergy
-     Calls To(20,0)    : _xlfEndIO(2,0)
-                         _xlfWriteFmt(11,0)
-                         _dconcat(4,0)
-                         _xlfBeginIO(2,0)
-                         mpi_allreduce(1,0)
-  Called From(3,3)     : mc_config(2,2)
-                         energy_cons(1,1)
+ Defined Subprogram    : sum_lennardjones
+     Calls To          : 0
+  Called From(1,1)     : forces_bal(1,1)
 
  Defined Subprogram    : _xlfWriteLDChar
      Calls To          : 0
-  Called From(204,0)   : track_nc(4,0)
+  Called From(207,0)   : track_nc(4,0)
                          tree_walk(19,0)
                          make_hashentry(12,0)
                          check_table(16,0)
@@ -711,7 +717,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          predef_parts(18,0)
                          scramble_v(2,0)
                          mc_config(5,0)
-                         beam_control(13,0)
+                         beam_control(14,0)
                          randion(1,0)
                          forces_bal(10,0)
                          velocities(19,0)
@@ -726,11 +732,11 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          __utils_MOD_rano(7,0)
                          configure(1,0)
                          setup(19,0)
-                         treemp(5,0)
+                         treemp(7,0)
 
  Defined Subprogram    : _xlfWriteLDReal
      Calls To          : 0
-  Called From(43,0)    : track_nc(4,0)
+  Called From(45,0)    : track_nc(4,0)
                          predef_parts(2,0)
                          mc_config(3,0)
                          beam_control(8,0)
@@ -738,7 +744,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          __utils_MOD_pswssort(1,0)
                          __utils_MOD_rano(3,0)
                          setup(2,0)
-                         treemp(1,0)
+                         treemp(3,0)
 
  Defined Subprogram    : _xlfWriteLDInt
      Calls To          : 0
@@ -789,19 +795,19 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          openfiles(5,0)
 
  Defined Subprogram    : setup
-     Calls To(497,0)   : _xlfEndIO(51,0)
+     Calls To(500,0)   : _xlfEndIO(51,0)
                          _xlfWriteFmt(70,0)
                          _dconcat(53,0)
                          _xlfBeginIO(51,0)
                          _xlfWriteLDChar(19,0)
                          _xlfWriteLDInt(10,0)
                          _xlfWriteLDReal(2,0)
-                         _xlfErrorExit(134,0)
+                         _xlfErrorExit(136,0)
                          __memset(2,0)
                          mpi_type_commit(2,0)
                          mpi_type_struct(2,0)
                          mpi_address(33,0)
-                         __malloc(67,0)
+                         __malloc(68,0)
                          _xlfIOCmd(1,0)
   Called From(1,0)     : treemp(1,0)
 
@@ -819,7 +825,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
 
  Defined Subprogram    : _xlfErrorExit
      Calls To          : 0
-  Called From(134,0)   : setup(134,0)
+  Called From(136,0)   : setup(136,0)
 
  Defined Subprogram    : __memset
      Calls To          : 0
@@ -995,14 +1001,14 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
   Called From(1,1)     : __utils_MOD_pswssort(1,1)
 
  Defined Subprogram    : __utils_MOD_sort_i
-     Calls To(3,3)     : @63@sift_down(2,2)
+     Calls To(3,3)     : @66@sift_down(2,2)
                          __utils_MOD_swap_ab(1,1)
   Called From(8,0)     : tree_prefetch(3,0)
                          tree_properties(2,0)
                          tree_fill(2,0)
                          make_branches(1,0)
 
- Defined Subprogram    : @63@sift_down
+ Defined Subprogram    : @66@sift_down
      Calls To          : 0
   Called From(2,2)     : __utils_MOD_sort_i(2,2)
 
@@ -1056,9 +1062,10 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
 
  Defined Subprogram    : _alloca
      Calls To          : 0
-  Called From(206,0)   : kinenergy(3,0)
-                         vis_parts(1,0)
+  Called From(218,0)   : kinenergy(3,0)
+                         vis_parts(11,0)
                          vis_fields(2,0)
+                         pot_grid(2,0)
                          densities(3,0)
                          track_nc(1,0)
                          draw_domains(7,0)
@@ -1081,9 +1088,8 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
 
  Defined Subprogram    : mpi_allreduce
      Calls To          : 0
-  Called From(26,0)    : kinenergy(3,0)
+  Called From(24,0)    : kinenergy(3,0)
                          potenergy(1,0)
-                         densities(2,0)
                          tree_walk(4,0)
                          forces_bal(1,0)
                          velocities(3,0)
@@ -1277,7 +1283,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
   Called From(1,0)     : treemp(1,0)
 
  Defined Subprogram    : tree_walk
-     Calls To(228,8)   : _xlfEndIO(18,0)
+     Calls To(229,8)   : _xlfEndIO(18,0)
                          _xlfWriteFmt(35,0)
                          _dconcat(35,0)
                          _xlfBeginIO(18,0)
@@ -1298,8 +1304,8 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          make_hashentry(1,1)
                          mpi_allreduce(4,0)
                          mpi_allgather(2,0)
+                         mpi_barrier(2,0)
                          mpi_alltoall(1,0)
-                         mpi_barrier(1,0)
                          next_node(1,0)
                          _alloca(27,0)
   Called From(2,0)     : forces(1,0)
@@ -1310,12 +1316,12 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
   Called From(2,0)     : tree_walk(2,0)
 
  Defined Subprogram    : energy_cons
-     Calls To(67,2)    : kinenergy(1,1)
+     Calls To(73,2)    : kinenergy(1,1)
                          potenergy(1,1)
                          _xlfEndIO(5,0)
-                         _xlfWriteFmt(39,0)
+                         _xlfWriteFmt(43,0)
                          _xlfBeginIO(5,0)
-                         _dconcat(16,0)
+                         _dconcat(18,0)
   Called From(1,0)     : diagnostics(1,0)
 
  Defined Subprogram    : velocities
@@ -1389,12 +1395,20 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
   Called From(1,0)     : diagnostics(1,0)
 
  Defined Subprogram    : densities
-     Calls To(5,0)     : mpi_allreduce(2,0)
+     Calls To(5,0)     : mpi_reduce(2,0)
                          _alloca(3,0)
   Called From(1,0)     : diagnostics(1,0)
 
+ Defined Subprogram    : mpi_reduce
+     Calls To          : 0
+  Called From(3,0)     : pot_grid(1,0)
+                         densities(2,0)
+
  Defined Subprogram    : vis_fields
-     Calls To(5,1)     : fpond(1,1)
+     Calls To(8,2)     : laser_bullet(1,1)
+                         fpond(1,1)
+                         flvisit_spk_3dfielda_send(1,0)
+                         flvisit_spk_3dfieldb_send(1,0)
                          flvisit_spk_info_send(1,0)
                          flvisit_spk_check_connection(1,0)
                          _alloca(2,0)
@@ -1417,6 +1431,15 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
  Defined Subprogram    : constrain
      Calls To(2,2)     : __utils_MOD_phase(2,2)
   Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : potenergy
+     Calls To(20,0)    : _xlfEndIO(2,0)
+                         _xlfWriteFmt(11,0)
+                         _dconcat(4,0)
+                         _xlfBeginIO(2,0)
+                         mpi_allreduce(1,0)
+  Called From(3,3)     : mc_config(2,2)
+                         energy_cons(1,1)
 
  Defined Subprogram    : randion
      Calls To(25,0)    : _xlfEndIO(2,0)
@@ -1505,7 +1528,8 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          forces_bal(1,0)
 
  Defined Subprogram    : slices
-     Calls To(55,1)    : _xlfEndIO(3,0)
+     Calls To(56,2)    : laser_bullet(1,1)
+                         _xlfEndIO(3,0)
                          _xlfWriteFmt(20,0)
                          _xlfBeginIO(3,0)
                          fpond(1,1)
@@ -1515,8 +1539,21 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          _alloca(6,0)
   Called From(1,0)     : diagnostics(1,0)
 
+ Defined Subprogram    : pot_grid
+     Calls To(3,0)     : mpi_reduce(1,0)
+                         _alloca(2,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : flvisit_spk_3dfieldb_send
+     Calls To          : 0
+  Called From(1,0)     : vis_fields(1,0)
+
+ Defined Subprogram    : flvisit_spk_3dfielda_send
+     Calls To          : 0
+  Called From(1,0)     : vis_fields(1,0)
+
  Defined Subprogram    : vis_parts
-     Calls To(27,0)    : flvisit_spk_info_send(2,0)
+     Calls To(37,0)    : flvisit_spk_info_send(2,0)
                          flvisit_spk_check_connection(2,0)
                          flvisit_spk_particles_send(2,0)
                          mpi_gatherv(9,0)
@@ -1525,7 +1562,7 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          mpi_allgather(1,0)
                          flvisit_spk_domains_send(1,0)
                          mpi_barrier(1,0)
-                         _alloca(1,0)
+                         _alloca(11,0)
   Called From(3,0)     : diagnostics(1,0)
                          mc_config(2,0)
 
@@ -1542,37 +1579,39 @@ ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN
                          _qsqrt(1,0)
   Called From(1,1)     : earth_plate(1,1)
 
- Defined Subprogram    : sum_lennardjones
+ Defined Subprogram    : laser_bullet
      Calls To          : 0
-  Called From(1,1)     : forces_bal(1,1)
+  Called From(3,3)     : forces_bal(1,1)
+                         slices(1,1)
+                         vis_fields(1,1)
 
 
                        * * * * *   E n d   O f   I n l i n e   R e p o r t   * * * * *
-1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/18/2003 19:38:53   Page 5
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    10/21/2003 15:39:34   Page 5
 
                          * * * * *   G l o b a l   S y m b o l s   M a p   * * * * *
 
    Definition            Output
     File:Line      ESD Name    Offset      Input name
-      14:-           @COAL0         0      &&@my_mpidefs
-      45:-           @COAL0        80      &&treevars
-      14:-           @COAL0      3616      &&@treevars
-      44:-           @COAL0      4928      &&my_mpidefs
-       1:-           @COAL0      5520      @32@|101
-       1:-           @COAL0      5560      @32@|102
-       3:-           @COAL0      5600      @31@|101
-       3:-           @COAL0      5640      @31@|102
-      30:-           @COAL0      5680      @51@colors
-      51:-           @COAL0      5752      @50@colors
-      42:-           @COAL0      5824      @7@configs
-      42:-           @COAL0      5904      @7@beam_configs
-      42:-           @COAL0      5976      @7@ensembles
-      13:-           @COAL0      6012      @49@colors
-       9:-           @COAL1         0      @63@|100
-       9:-           @COAL1        40      @63@v
+      15:-           @COAL0         0      &&@my_mpidefs
+      46:-           @COAL0        80      &&treevars
+      15:-           @COAL0      3728      &&@treevars
+      45:-           @COAL0      5056      &&my_mpidefs
+       1:-           @COAL0      5648      @33@|101
+       1:-           @COAL0      5688      @33@|102
+       6:-           @COAL0      5728      @32@|101
+       6:-           @COAL0      5768      @32@|102
+      31:-           @COAL0      5808      @53@colors
+      52:-           @COAL0      5880      @52@colors
+      43:-           @COAL0      5952      @8@configs
+      43:-           @COAL0      6032      @8@beam_configs
+      43:-           @COAL0      6104      @8@ensembles
+      14:-           @COAL0      6140      @51@colors
+      10:-           @COAL1         0      @66@|100
+      10:-           @COAL1        40      @66@v
 
                   * * * * *   E n d   O f   G l o b a l   S y m b o l s   M a p   * * * * *
-1586 V1 R1 M00 IBM IPA/AIX                                      Partition 0                    10/18/2003 19:38:53   Page 6
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 0                    10/21/2003 15:39:34   Page 6
 
                               * * * * *   P a r t i t i o n   M a p    * * * * *
 
@@ -1587,52 +1626,53 @@ Compiler Options for Partition 0:
 Symbols in Partition 0:
 
  *Type     File ID    Symbol
-    D           9     @63@d2p31m
-    D           9     @63@d2p31
-    D          10     @40@iseed1
-    D          10     @40@iseed2
-    D          47     @18@beam_on
-    D          47     @18@beam_debug
-    D           6     @35@pi
-    D          31     @47@isnap
-    D          11     @39@idum
-    D          11     @39@isamp
-    D          20     @8@idummy
-    D          43     @54@icall
-    D          43     @54@idummy
-    D           9     @63@iff
-    D           9     @63@dseed
-    D           9     @63@j
-    D           9     @63@dum
-    D           9     @63@y
-    D           9     @63@icall
-    D           9     @63@i
-    D           9     @63@debug
-    D          19     @20@boundary_debug
-    D          19     @20@key_debug
-    D          38     @21@build_debug
-    D          47     @18@np_beam_dt
-    D          28     @25@walk_summary
-    D          28     @25@sum_nhops
-    D          28     @25@sum_inner_pass
-    D          28     @25@sum_nhops_old
-    D          28     @25@emulate_blocking
-    D          28     @25@sum_inner_old
-    D           7     @59@idummy
-    D          30     @51@write_keys
-    D          11     @39@usamp
-    D          11     @39@i2
-    D          11     @39@theta
-    D          34     @28@pot_debug
+    D          10     @66@d2p31m
+    D          10     @66@d2p31
+    D          11     @42@iseed1
+    D          11     @42@iseed2
+    D          48     @19@beam_debug
+    D           8     @36@pi
+    D          32     @49@isnap
+    D          12     @41@idum
+    D          12     @41@isamp
+    D           4     @37@pi
+    D          21     @9@idummy
+    D          44     @56@icall
+    D          44     @56@idummy
+    D          10     @66@iff
+    D          10     @66@dseed
+    D          10     @66@j
+    D          10     @66@dum
+    D          10     @66@y
+    D          10     @66@icall
+    D          10     @66@i
+    D          10     @66@debug
+    D          20     @21@boundary_debug
+    D          20     @21@key_debug
+    D          39     @22@build_debug
+    D          48     @19@np_beam_dt
+    D          48     @19@beam_on
+    D          29     @26@walk_summary
+    D          29     @26@sum_nhops
+    D          29     @26@sum_inner_pass
+    D          29     @26@sum_nhops_old
+    D          29     @26@emulate_blocking
+    D          29     @26@sum_inner_old
+    D           5     @62@idummy
+    D          31     @53@write_keys
+    D          12     @41@usamp
+    D          12     @41@i2
+    D          12     @41@theta
+    D          35     @29@pot_debug
     D           -     @COAL0
     D           -     @COAL1
     F           1     forces_bal
-    F          52     track_nc
-    F           3     forces
-    F          17     tree_prefetch
-    F           9     __utils_MOD_sort_i
-    F          36     tree_fill
-    F          48     double_target
+    F          53     track_nc
+    F           6     forces
+    F          18     tree_prefetch
+    F          10     __utils_MOD_sort_i
+    F          37     tree_fill
+    F          49     double_target
 
   Type:  F=function     D=data
 
@@ -1641,45 +1681,46 @@ Source Files for Partition 0:
  *Origin     File ID     Source File Name
      P            1      forces_bal.f90
      P            2      sum_lennardjones.f90
-     P            3      forces.f90
-     P            4      sum_force.f90
-     P            6      fpond.f90
-     P            7      slices.f90
-     P            9      utils.f90
-     P           10      earth_plate.f90
-     P           11      reinject.f90
-     P           14      treemp.f90
-     P           17      tree_prefetch.f90
-     P           18      key_test.f90
-     P           19      make_domains.f90
-     P           20      configure.f90
-     P           25      close_files.f90
-     P           26      get_address.f90
-     P           27      get_next_node.f90
-     P           28      tree_walk.f90
-     P           29      make_hashentry.f90
-     P           30      draw_lists.f90
-     P           31      diagnose_tree.f90
-     P           34      potenergy.f90
-     P           36      tree_fill.f90
-     P           38      tree_build.f90
-     P           43      dump.f90
-     P           47      beam_control.f90
-     P           48      double_target.f90
-     P           52      track_nc.f90
+     P            4      laser_bullet.f90
+     P            5      slices.f90
+     P            6      forces.f90
+     P            7      sum_force.f90
+     P            8      fpond.f90
+     P           10      utils.f90
+     P           11      earth_plate.f90
+     P           12      reinject.f90
+     P           15      treemp.f90
+     P           18      tree_prefetch.f90
+     P           19      key_test.f90
+     P           20      make_domains.f90
+     P           21      configure.f90
+     P           26      close_files.f90
+     P           27      get_address.f90
+     P           28      get_next_node.f90
+     P           29      tree_walk.f90
+     P           30      make_hashentry.f90
+     P           31      draw_lists.f90
+     P           32      diagnose_tree.f90
+     P           35      potenergy.f90
+     P           37      tree_fill.f90
+     P           39      tree_build.f90
+     P           44      dump.f90
+     P           48      beam_control.f90
+     P           49      double_target.f90
+     P           53      track_nc.f90
 
  Origin:  P=primary input     PI=primary Include
 
                        * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
 
-1586 V1 R1 M00 IBM IPA/AIX                                      Partition 1                    10/18/2003 19:38:53   Page 7
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 1                    10/21/2003 15:39:34   Page 7
 
                               * * * * *   P a r t i t i o n   M a p    * * * * *
 
 Partition 1 of 5
 
 Partition Size:
-   Actual: 1032708
+   Actual: 1040784
     Limit: 1048576
 
 Partition Description:
@@ -1691,52 +1732,62 @@ Compiler Options for Partition 1:
 Symbols in Partition 1:
 
  *Type     File ID    Symbol
-    F           8     constrain
-    F          13     draw_domains
-    F          51     draw_tree2d
-    F          31     diagnose_tree
-    F          15     push
-    F          16     velocities
-    F          38     tree_build
-    F          25     closefiles
-    F          19     make_domains
-    F           9     __utils_MOD_cput
-    F          49     predef_parts
-    F          42     setup
-    F          41     openfiles
+    F           9     constrain
+    F          11     earth_plate
+    F          13     diagnostics
+    F          44     dump
+    F          36     tree_properties
+    F          23     add_electrons
+    F          21     configure
 
   Type:  F=function     D=data
 
 Source Files for Partition 1:
 
  *Origin     File ID     Source File Name
-     P            8      constrain.f90
-     P            9      utils.f90
-     P           13      draw_domains.f90
-     P           15      push.f90
-     P           16      velocities.f90
-     P           19      make_domains.f90
-     P           25      close_files.f90
-     P           26      get_address.f90
-     P           31      diagnose_tree.f90
-     P           38      tree_build.f90
-     P           41      open_files.f90
-     P           42      setup.f90
-     P           49      predef_parts.f90
-     P           51      draw_tree2d.f90
+     P            3      vis_fields.f90
+     P            4      laser_bullet.f90
+     P            5      slices.f90
+     P            8      fpond.f90
+     P            9      constrain.f90
+     P           10      utils.f90
+     P           11      earth_plate.f90
+     P           12      reinject.f90
+     P           13      diagnostics.f90
+     P           21      configure.f90
+     P           22      scramble_v.f90
+     P           23      add_electrons.f90
+     P           24      maxwell1.f90
+     P           25      cold_start.f90
+     P           26      close_files.f90
+     P           27      get_address.f90
+     P           31      draw_lists.f90
+     P           33      kinenergy.f90
+     P           34      energy_cons.f90
+     P           35      potenergy.f90
+     P           36      tree_properties.f90
+     P           40      mc_config.f90
+     P           41      beam.f90
+     P           44      dump.f90
+     P           47      randion.f90
+     P           48      beam_control.f90
+     P           52      draw_tree2d.f90
+     P           54      densities.f90
+     P           55      pot_grid.f90
+     P           56      vis_parts.f90
 
  Origin:  P=primary input     PI=primary Include
 
                        * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
 
-1586 V1 R1 M00 IBM IPA/AIX                                      Partition 2                    10/18/2003 19:38:53   Page 8
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 2                    10/21/2003 15:39:34   Page 8
 
                               * * * * *   P a r t i t i o n   M a p    * * * * *
 
 Partition 2 of 5
 
 Partition Size:
-   Actual: 1029768
+   Actual: 1037448
     Limit: 1048576
 
 Partition Description:
@@ -1748,61 +1799,51 @@ Compiler Options for Partition 2:
 Symbols in Partition 2:
 
  *Type     File ID    Symbol
-    F          10     earth_plate
-    F          12     diagnostics
-    F          43     dump
-    F          35     tree_properties
-    F          50     check_table
-    F          37     make_branches
-    F          22     add_electrons
-    F          20     configure
+    F          14     draw_domains
+    F          16     push
+    F          17     velocities
+    F          51     check_table
+    F          38     make_branches
+    F          39     tree_build
+    F          26     closefiles
+    F          20     make_domains
+    F          10     __utils_MOD_cput
+    F          50     predef_parts
+    F          43     setup
+    F          42     openfiles
 
   Type:  F=function     D=data
 
 Source Files for Partition 2:
 
  *Origin     File ID     Source File Name
-     P            5      vis_fields.f90
-     P            6      fpond.f90
-     P            7      slices.f90
-     P            9      utils.f90
-     P           10      earth_plate.f90
-     P           11      reinject.f90
-     P           12      diagnostics.f90
-     P           20      configure.f90
-     P           21      scramble_v.f90
-     P           22      add_electrons.f90
-     P           23      maxwell1.f90
-     P           24      cold_start.f90
-     P           25      close_files.f90
-     P           26      get_address.f90
-     P           29      make_hashentry.f90
-     P           30      draw_lists.f90
-     P           32      kinenergy.f90
-     P           33      energy_cons.f90
-     P           34      potenergy.f90
-     P           35      tree_properties.f90
-     P           37      make_branches.f90
-     P           39      mc_config.f90
-     P           40      beam.f90
-     P           43      dump.f90
-     P           46      randion.f90
-     P           47      beam_control.f90
-     P           50      check_table.f90
-     P           54      vis_parts.f90
+     P           10      utils.f90
+     P           14      draw_domains.f90
+     P           16      push.f90
+     P           17      velocities.f90
+     P           20      make_domains.f90
+     P           26      close_files.f90
+     P           27      get_address.f90
+     P           30      make_hashentry.f90
+     P           38      make_branches.f90
+     P           39      tree_build.f90
+     P           42      open_files.f90
+     P           43      setup.f90
+     P           50      predef_parts.f90
+     P           51      check_table.f90
 
  Origin:  P=primary input     PI=primary Include
 
                        * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
 
-1586 V1 R1 M00 IBM IPA/AIX                                      Partition 3                    10/18/2003 19:38:53   Page 9
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 3                    10/21/2003 15:39:34   Page 9
 
                               * * * * *   P a r t i t i o n   M a p    * * * * *
 
 Partition 3 of 5
 
 Partition Size:
-   Actual: 94104
+   Actual: 138936
     Limit: 1048576
 
 Partition Description:
@@ -1814,27 +1855,29 @@ Compiler Options for Partition 3:
 Symbols in Partition 3:
 
  *Type     File ID    Symbol
-    F          53     densities
+    F          32     diagnose_tree
 
   Type:  F=function     D=data
 
 Source Files for Partition 3:
 
  *Origin     File ID     Source File Name
-     P           53      densities.f90
+     P           26      close_files.f90
+     P           27      get_address.f90
+     P           32      diagnose_tree.f90
 
  Origin:  P=primary input     PI=primary Include
 
                        * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
 
-1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/18/2003 19:38:53   Page 10
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/21/2003 15:39:34   Page 10
 
                               * * * * *   P a r t i t i o n   M a p    * * * * *
 
 Partition 4 of 5
 
 Partition Size:
-   Actual: 74712
+   Actual: 75792
     Limit: 1048576
 
 Partition Description:
@@ -1846,210 +1889,218 @@ Compiler Options for Partition 4:
 Symbols in Partition 4:
 
  *Type     File ID    Symbol
-    F          14     treemp
+    F          15     treemp
 
   Type:  F=function     D=data
 
 Source Files for Partition 4:
 
  *Origin     File ID     Source File Name
-     P           14      treemp.f90
+     P           15      treemp.f90
 
  Origin:  P=primary input     PI=primary Include
 
                        * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
 
-1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/18/2003 19:38:53   Page 11
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/21/2003 15:39:34   Page 11
 
                             * * * * *   S o u r c e   F i l e   M a p   * * * * *
 
             Object      Source
  *Origin   File ID     File ID     Source File Name
-     P         32           1      forces_bal.f90
+     P         33           1      forces_bal.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:40 
-     P         34           2      sum_lennardjones.f90
+                                                on 10/21/2003 15:39:16 
+     P         35           2      sum_lennardjones.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:41 
-     P         31           3      forces.f90
+                                                on 10/21/2003 15:39:18 
+     P         55           3      vis_fields.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:39 
-     P         33           4      sum_force.f90
+                                                on 10/21/2003 15:39:28 
+     P         37           4      laser_bullet.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:41 
-     P         53           5      vis_fields.f90
+                                                on 10/21/2003 15:39:19 
+     P         62           5      slices.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:55:03 
-     P         35           6      fpond.f90
+                                                on 10/21/2003 15:39:33 
+     P         32           6      forces.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:42 
-     P         59           7      slices.f90
+                                                on 10/21/2003 15:39:15 
+     P         34           7      sum_force.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:55 
-     P         38           8      constrain.f90
+                                                on 10/21/2003 15:39:17 
+     P         36           8      fpond.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:43 
-     P         63           9      utils.f90
+                                                on 10/21/2003 15:39:18 
+     P         40           9      constrain.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:01 
-     P         40          10      earth_plate.f90
+                                                on 10/21/2003 15:39:20 
+     P         66          10      utils.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:44 
-     P         39          11      reinject.f90
+                                                on 10/21/2003 15:38:37 
+     P         42          11      earth_plate.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:44 
-     P         46          12      diagnostics.f90
+                                                on 10/21/2003 15:39:21 
+     P         41          12      reinject.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:46 
-     P         49          13      draw_domains.f90
+                                                on 10/21/2003 15:39:20 
+     P         48          13      diagnostics.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:47 
-     P          6          14      treemp.f90
+                                                on 10/21/2003 15:39:23 
+     P         51          14      draw_domains.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:03 
-     P         37          15      push.f90
+                                                on 10/21/2003 15:39:25 
+     P          7          15      treemp.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:43 
-     P         36          16      velocities.f90
+                                                on 10/21/2003 15:38:39 
+     P         39          16      push.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:42 
-     P         26          17      tree_prefetch.f90
+                                                on 10/21/2003 15:39:20 
+     P         38          17      velocities.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:34 
-     P         44          18      key_test.f90
+                                                on 10/21/2003 15:39:19 
+     P         27          18      tree_prefetch.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:45 
-     P         20          19      make_domains.f90
+                                                on 10/21/2003 15:39:11 
+     P         46          19      key_test.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:17 
-     P          8          20      configure.f90
+                                                on 10/21/2003 15:39:22 
+     P         21          20      make_domains.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:12 
-     P         13          21      scramble_v.f90
+                                                on 10/21/2003 15:38:54 
+     P          9          21      configure.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:14 
-     P         15          22      add_electrons.f90
+                                                on 10/21/2003 15:38:48 
+     P         14          22      scramble_v.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:15 
-     P         11          23      maxwell1.f90
+                                                on 10/21/2003 15:38:50 
+     P         16          23      add_electrons.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:13 
-     P         12          24      cold_start.f90
+                                                on 10/21/2003 15:38:51 
+     P         12          24      maxwell1.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:14 
-     P         57          25      close_files.f90
+                                                on 10/21/2003 15:38:50 
+     P         13          25      cold_start.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:53 
-     P         42          26      get_address.f90
+                                                on 10/21/2003 15:38:50 
+     P         59          26      close_files.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:45 
-     P         45          27      get_next_node.f90
+                                                on 10/21/2003 15:39:30 
+     P         44          27      get_address.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:45 
-     P         25          28      tree_walk.f90
+                                                on 10/21/2003 15:39:22 
+     P         47          28      get_next_node.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:30 
-     P         41          29      make_hashentry.f90
+                                                on 10/21/2003 15:39:22 
+     P         26          29      tree_walk.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:44 
-     P         51          30      draw_lists.f90
+                                                on 10/21/2003 15:39:06 
+     P         43          30      make_hashentry.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:50 
-     P         47          31      diagnose_tree.f90
+                                                on 10/21/2003 15:39:21 
+     P         53          31      draw_lists.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:46 
-     P         30          32      kinenergy.f90
+                                                on 10/21/2003 15:39:27 
+     P         49          32      diagnose_tree.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:38 
-     P         27          33      energy_cons.f90
+                                                on 10/21/2003 15:39:23 
+     P         31          33      kinenergy.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:37 
-     P         28          34      potenergy.f90
+                                                on 10/21/2003 15:39:15 
+     P         28          34      energy_cons.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:38 
-     P         24          35      tree_properties.f90
+                                                on 10/21/2003 15:39:14 
+     P         29          35      potenergy.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:23 
-     P         23          36      tree_fill.f90
+                                                on 10/21/2003 15:39:14 
+     P         25          36      tree_properties.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:22 
-     P         22          37      make_branches.f90
+                                                on 10/21/2003 15:39:00 
+     P         24          37      tree_fill.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:21 
-     P         21          38      tree_build.f90
+                                                on 10/21/2003 15:38:59 
+     P         23          38      make_branches.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:19 
-     P         19          39      mc_config.f90
+                                                on 10/21/2003 15:38:57 
+     P         22          39      tree_build.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:17 
-     P         17          40      beam.f90
+                                                on 10/21/2003 15:38:55 
+     P         20          40      mc_config.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:16 
-     P         56          41      open_files.f90
+                                                on 10/21/2003 15:38:53 
+     P         18          41      beam.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:53 
-     P          7          42      setup.f90
+                                                on 10/21/2003 15:38:52 
+     P         58          42      open_files.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 19:38:45 
-     P         54          43      dump.f90
+                                                on 10/21/2003 15:39:30 
+     P          8          43      setup.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 19:34:14 
-     P         61          44      my_mpidefs.f90
+                                                on 10/21/2003 15:38:40 
+     P         56          44      dump.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:00 
-     P         62          45      treevars.f90
+                                                on 10/21/2003 15:39:28 
+     P         64          45      my_mpidefs.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:01 
-     P          9          46      randion.f90
+                                                on 10/21/2003 15:38:36 
+     P         65          46      treevars.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:12 
-     P         18          47      beam_control.f90
+                                                on 10/21/2003 15:38:36 
+     P         10          47      randion.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:16 
-     P         16          48      double_target.f90
+                                                on 10/21/2003 15:38:48 
+     P         19          48      beam_control.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:15 
-     P         10          49      predef_parts.f90
+                                                on 10/21/2003 15:38:53 
+     P         17          49      double_target.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:13 
-     P         48          50      check_table.f90
+                                                on 10/21/2003 15:38:52 
+     P         11          50      predef_parts.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:47 
-     P         50          51      draw_tree2d.f90
+                                                on 10/21/2003 15:38:49 
+     P         50          51      check_table.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:48 
-     P         60          52      track_nc.f90
+                                                on 10/21/2003 15:39:24 
+     P         52          52      draw_tree2d.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:55 
-     P         58          53      densities.f90
+                                                on 10/21/2003 15:39:26 
+     P         63          53      track_nc.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:53 
-     P         52          54      vis_parts.f90
+                                                on 10/21/2003 15:39:33 
+     P         60          54      densities.f90
                                      - Compiled by XL Fortran for AIX Version 08.01.0001.0000
-                                                on 10/18/2003 12:51:50 
+                                                on 10/21/2003 15:39:31 
+     P         61          55      pot_grid.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/21/2003 15:39:32 
+     P         54          56      vis_parts.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0001.0000
+                                                on 10/21/2003 15:39:27 
 
  Origin:  P=primary input     PI=primary Include
 
                      * * * * *   E n d   O f   S o u r c e   F i l e   M a p   * * * * *
-1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/18/2003 19:38:53   Page 12
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/21/2003 15:39:34   Page 12
 
                                    * * * * *   M e s s a g e s   * * * * *
 
  Message Code   Page   Message Text
 
                             Informational
+ 1586-311 (I)      2   External subprogram "aser_bullet" not found.  Could not mark as "inline".
+ 
  1586-311 (I)      2   External subprogram "key2node" not found.  Could not mark as "inline".
  
  1586-311 (I)      2   External subprogram "ext_node" not found.  Could not mark as "inline".
  
                             * * * * *   E n d   O f   M e s s a g e s   * * * * *
-1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/18/2003 19:38:53   Page 13
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    10/21/2003 15:39:34   Page 13
 
                             * * * * *   M e s s a g e   S u m m a r y   * * * * *
 
 Total   Unrecoverable  Severe       Error     Warning    Informational
                (U)       (S)         (E)        (W)          (I)
-    2           0         0           0          0            2
+    3           0         0           0          0            3
 
                      * * * * *   E n d   O f   M e s s a g e   S u m m a r y   * * * * *
 

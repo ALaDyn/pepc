@@ -12,7 +12,7 @@ subroutine beam_control
   use utils
   implicit none
   integer :: i, p, iseed1, iseed2
-  real :: Volb, dpx, yt, zt
+  real :: Volb, dpx, yt, zt, vosc_old, sigma_old
   integer :: lvisit_active
   real :: ct, st, cp, sp, vx_beam, vy_beam, vz_beam, xb, yb, zb
   logical :: beam_on = .true.
@@ -25,12 +25,19 @@ subroutine beam_control
      np_beam_dt = np_beam  ! initial # beam particles to introduce per timestep
   endif
 
-  if (.not. beam_on) return
+!  if (.not. beam_on) return
 
-  if (npart + np_beam_dt > npartm .or. max_list_length > nintmax-20) then
-     if (me==0) write(*,*) 'Array limit reached: switching off beam'
-     beam_on = .false.
-     return
+!  if (npart + np_beam_dt > npartm .or. max_list_length > nintmax-20) then
+!     if (me==0) write(*,*) 'Array limit reached: switching off beam'
+!     beam_on = .false.
+!     return
+!  endif
+
+  if (beam_config == 4 .or. beam_config == 5) then
+! Define beam from laser parameters
+     vosc_old = vosc
+     u_beam = vosc
+     rho_beam = sigma
   endif
 
   if (itime == 0 .and. me==0 )  then
@@ -72,10 +79,12 @@ subroutine beam_control
      return
   endif
 
-  if (beam_config == 4) then
+  if (beam_config == 4 .or. beam_config ==5) then
  ! laser standing wave
-     vosc = rho_beam
-     sigma = r_beam
+     vosc = u_beam
+     sigma = max(abs(rho_beam),0.5)
+     if (me==0 .and. vosc /= vosc_old) write(*,*) 'Laser amplitude changed'
+     if (me==0 .and. sigma /= sigma_old) write(*,*) 'Laser amplitude changed'
 
   else if (beam_config ==2) then
      nb_pe = np_beam_dt/num_pe  ! # beam particles to load per PE

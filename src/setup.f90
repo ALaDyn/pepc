@@ -176,7 +176,7 @@ subroutine setup
   else if (initial_config ==2) then
      ! disc
      Vplas = pi*r_sphere**2*x_plasma
-     focus = (/ xl/2.-x_plasma/2., yl/2., zl/2. /) ! Centre of laser focal spot
+     focus = (/ xl/2.-x_plasma/2.+x_offset, yl/2., zl/2. /) ! Centre of laser focal spot
      plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
 
   else if (initial_config ==3) then
@@ -210,6 +210,8 @@ subroutine setup
   vti = sqrt(Ti_keV/511./mass_ratio)
   mass_i = mass_e*mass_ratio
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
+  convert_mu = omega/2./pi*lambda          ! convert from c/wp to microns
+
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
 
   if (ensemble > 1 .and. beam_config /= 0) then
@@ -378,7 +380,8 @@ subroutine setup
 
   allocate ( pack_child(size_tree), get_child(size_tree) )    ! Multipole shipping buffers
 
-  allocate (rhoe(0:ngx+1,0:ngy+1,0:ngz+1), rhoi(0:ngx+1,0:ngy+1,0:ngz+1) )   ! Field arrays
+  allocate (rhoe(0:ngx+1,0:ngy+1,0:ngz+1), rhoi(0:ngx+1,0:ngy+1,0:ngz+1), &
+       phi_g(0:ngx+1,0:ngy+1,0:ngz+1) )   ! Field arrays
 
 
   !  MPI stuff

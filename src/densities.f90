@@ -89,8 +89,8 @@ subroutine densities
   end do
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
-  call MPI_ALLREDUCE(rhoi_loc, rhoi, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-
-  call MPI_ALLREDUCE(rhoe_loc, rhoe, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+! gather on root
+  call MPI_REDUCE(rhoi_loc, rhoi, ng, MPI_REAL8, MPI_SUM, root,  MPI_COMM_WORLD, ierr)
+  call MPI_REDUCE(rhoe_loc, rhoe, ng, MPI_REAL8, MPI_SUM, root,  MPI_COMM_WORLD, ierr)
 
 end subroutine densities

@@ -28,13 +28,22 @@ subroutine energy_cons
   endif
 
   conv_kev = 2./3./Qplas*511
-  elaser = 3./8.*omega**2*sigma**2*vosc**2*tlaser
+
+  laser_energy: select case(beam_config)
+  case(4)
+     elaser = 3./8.*omega**2*sigma**2*vosc**2*tlaser
+  case(5)
+     elaser = 3./8.*omega**2*sigma**2*vosc**2*tpulse
+  case default
+     elaser = 0
+  end select laser_energy
 
   if ( me == 0 ) then
      do ifile = 6,15,9
-        write (ifile,'(5(a,1pe12.5/))') 'P.E. = ',epot,' elec K.E. = ',ekine, &
-             ' Ions ',ekini,' Beam = ',ebeam,' Total: ',etot, &
-             ' Deposited laser energy = ',elaser 
+        write (ifile,'(7(a20,1pe12.5/))') 'P.E. = ',epot,' Electron K.E. = ',ekine, &
+             ' Ion K.E. = ',ekini,' Beam K.E.  = ',ebeam,' Total: ',etot, &
+             ' Laser energy = ',elaser, &
+             ' Laser focus = ',focus(1)
         write (ifile,'(a10,2(1pe12.5),a4)') 'Plasma Te, Ti ',conv_kev*ekine,conv_kev*ekini,' keV'
      end do
      write (75,'(f12.5,6(1pe12.3))') (itime+itime_start)*dt, conv_kev*epot, conv_kev*ekine, conv_kev*ekini, conv_kev*ebeam, conv_kev*etot,x_crit

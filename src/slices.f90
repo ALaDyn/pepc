@@ -85,8 +85,21 @@ subroutine slices(timestamp)
         xd=i*dx-focus(1)
         yd=sigma/2.
         zd=sigma/2.
-        call fpond(1.57/omega,1.0,sigma,vosc,omega,xd,yd,zd,ex_pond(i),ey_pond(i), &
-             ez_pond(i), phi_pond(i))
+        laser_model: select case(beam_config)
+
+        case(4)  ! standing wave fpond
+           call fpond(1.57/omega,1.0,sigma,vosc,omega,xd,yd,zd,ex_pond(i),ey_pond(i), &
+                ez_pond(i), phi_pond(i))
+        case(5)  ! propagating fpond
+           call laser_bullet( 1., xl/2., tpulse,sigma,vosc,omega, & 
+                xd,yd,zd,ex_pond(i),ey_pond(i),ez_pond(i),phi_pond(i))
+        case default
+           ex_pond(i)=0
+           ey_pond(i)=0
+           ez_pond(i)=0
+           phi_pond(i)=0
+        end select laser_model
+
      end do
 
      write(62,'(7f13.5)') (i*dx,work1(i),work2(i), &

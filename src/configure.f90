@@ -36,26 +36,26 @@ subroutine configure
         else
            call cold_start(nep+1,nip)
         endif
-        
+
      else
         call randion         ! Random by default
      endif
   endif
 
   if (target_dup) then
-	if (me==0) write(*,*) 'DOUBLE-TARGET CONFIGURATION' 
-	call double_target   ! Special target-duplication mode
+     if (me==0) write(*,*) 'DOUBLE-TARGET CONFIGURATION' 
+     call double_target   ! Special target-duplication mode
   endif
-	
-     if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config
 
-     if ( beam_config ==1 .and. np_beam> 0) then
-        call beam
-        call beam_control   ! Display default parameters
-     else if (beam_config ==2) then
+  if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config
 
-        call beam_control
-     endif
+  if ( beam_config ==1 .and. np_beam> 0) then
+     call beam
+     call beam_control   ! Display default parameters
+  else if (beam_config ==2 .or. beam_config==5) then
+
+     call beam_control
+  endif
 
   ! Do tree-build for initial P.E. value
 
@@ -65,16 +65,16 @@ subroutine configure
      end do
   endif
 
-! Initial tree construction and force computation
+  ! Initial tree construction and force computation
 
   call make_domains    ! Domain decomposition: allocate particle keys to PEs
   call tree_build      ! Build trees from local particle lists
   call make_branches   ! Determine and concatenate branch nodes
   call tree_fill       ! Fill in remainder of local tree
   call tree_properties ! Compute multipole moments for local tree
-!  call MPI_FINALIZE(ierr)
-!  call closefiles
- ! stop
+  !  call MPI_FINALIZE(ierr)
+  !  call closefiles
+  ! stop
   call forces_bal(1,npp,dt,t_walk,t_force)          ! Calculate initial potentials and forces
   call diagnostics
 end subroutine configure

@@ -191,7 +191,7 @@ module treevars
   integer, allocatable ::     pepid(:), & ! owner
                               nterm(:),  nodelist(:,:) ! interaction node-list
 
-  real, allocatable ::  rhoe(:,:,:), rhoi(:,:,:)  ! field arrays
+  real, allocatable ::  rhoe(:,:,:), rhoi(:,:,:), phi_g(:,:,:)  ! field arrays
 
   !  physics data
 
@@ -259,6 +259,7 @@ module treevars
    real :: dt             ! timestep
    real :: trun           ! total run time including restarts
    real :: convert_fs     ! conversion factor from wp^-1 to fs
+   real :: convert_mu     ! conversion factor from c/wp to microns
    integer :: nt, itime   ! # timesteps and current timestep
    integer :: itime_start ! restart time stamp
    integer :: idump       ! output frequency (timesteps)

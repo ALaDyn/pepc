@@ -572,7 +572,7 @@ subroutine tree_walk(pshort,npshort)
 
      nactive = count( mask = nwalk(1:npshort) /= 0 )     ! Count remaining 'active' particles - those still with deferred nodes to search
 
-     !call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
+     call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
 
      ! Broadcast # remaining particles to other PEs
 

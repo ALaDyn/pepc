@@ -97,7 +97,7 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
 
   ip1 = 1
 
- do jpass = 1,max_npass
+  do jpass = 1,max_npass
      !  make short-list
      nps = nshort(jpass)
      ip1 = pstart(jpass)
@@ -136,12 +136,12 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
 
         if (bonds) then
            !  compute short-range forces and potential of particle p from its interaction list
- !          call sum_bond(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
+           !          call sum_bond(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
 
- !          pot(p) = pot(p) + bond_const * phi
- !          fx(p) = fx(p) + bond_const * fsx
- !          fy(p) = fy(p) + bond_const * fsy
- !          fz(p) = fz(p) + bond_const * fsz
+           !          pot(p) = pot(p) + bond_const * phi
+           !          fx(p) = fx(p) + bond_const * fsx
+           !          fy(p) = fy(p) + bond_const * fsy
+           !          fz(p) = fz(p) + bond_const * fsz
         endif
 
         if (lenjones) then
@@ -167,16 +167,40 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
 
 
 
-  ! Include ponderomotive force from laser on electrons
-  if (beam_config ==4 ) then
-     if (itime>0) focus(1) = x_crit  ! laser tracks n_c
+  ! Include ponderomotive force from laser on electrons 
+  ! - select either standing wave (overdense) or propagating (underdense) fpond
+
+  laser_focus: select case(beam_config)
+
+           case(4)  ! standing wave fpond
+              if (itime>0) focus(1) = x_crit  ! laser tracks n_c
+           case(5)  ! propagating fpond
+              focus(1) = focus(1) + dt  ! propagate forward by c*dt - can include v_g here
+           case default
+              ! leave focal point unchanged
+           end select laser_focus
+
+
+  if (beam_config ==4 .or. beam_config ==5) then
      do p = p_start, p_finish
         if (q(p)<0) then
-           xd = x(p)-focus(1)
+           xd = x(p)-focus(1)   ! position relative to laser focus
            yd = y(p)-focus(2)
            zd = z(p)-focus(3)
 
-           call fpond( tlaser, tpulse,sigma,vosc,omega,xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+           laser_model: select case(beam_config)
+
+           case(4)  ! standing wave fpond
+              call fpond( tlaser, tpulse,sigma,vosc,omega,xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+           case(5)  ! propagating fpond
+              call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, & 
+                   xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+           case default
+              Epon_x=0
+              Epon_y=0
+              Epon_z=0
+
+           end select laser_model
 
            fx(p) = fx(p) + q(p) * Epon_x
            fy(p) = fy(p) + q(p) * Epon_y

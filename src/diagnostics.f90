@@ -19,12 +19,14 @@ subroutine diagnostics
 
 
   if ( mod(itime,ivis) ==0 ) then
-     if (vis_on) call vis_parts       ! Interface to VISIT
+!     if (vis_on) call vis_parts       ! Interface to VISIT
   endif
 
 
   if (vis_on .and. mod(itime,ivis_fields)==0 ) then
-          call vis_fields
+     call pot_grid
+!     call densities
+     call vis_fields
   endif
 
   if (itime_start>0 .and. itime==0) return  ! Avoid over-writing restart data

@@ -16,19 +16,19 @@
 ## Optimised
 #FFLAGS =  -q64 -qrealsize=8 -qsuffix=f=f90  -O4 -Q -qipa -qarch=pwr4 -qstrict -qreport  -qlist -qsource -I/usr/local/include 
 
-IPA=-qipa=list=long:inline=key2addr:inline=make_hashentry:inline=key2node:inline=next_node:inline=key_local
+IPA=-qipa=inline=laser_bullet:inline=key2addr:inline=make_hashentry:inline=key2node:inline=next_node:inline=key_local
 PG=-pg -qfullpath
 DB= -g
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
 #MPITRACE= -lmpitrace
-MPITRACE= -lmpiprof
-#MPITRACE=  -lmpihpm -lpmapi
+#MPITRACE= -lmpiprof
+MPITRACE=  -lmpihpm -lpmapi
 FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
 TUNE= -qarch=pwr4 -qtune=pwr4 -qhot $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) $(DB) $(TUNE) 
+FFLAGS =  $(FFLAGS1) $(DB)  $(TUNE) 
 
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -37,9 +37,9 @@ FFLAGS =  $(FFLAGS1) $(DB) $(TUNE)
 # cray
 #VISITLIBS=-L /usr/local/visit/lvisit/apis/spk2 -llvisit_spk -L/usr/local/visit/lvisit/lib -llvisit -L/usr/local/visit/visit20/lib -lvisit 
 # JUMP
-#VISITLIBS=-L/home/admin/beta/visit-2.0b/lvisit/apis/spk3 -llvisit_spk -L/home/admin/beta/visit-2.0b/lvisit/lib -llvisit -L/home/admin/beta/visit-2.0b/lib -lvisit
+VISITLIBS=-L/home/admin/beta/visit-2.0b/lvisit/apis/spk3 -llvisit_spk -L/home/admin/beta/visit-2.0b/lvisit/lib -llvisit -L/home/admin/beta/visit-2.0b/lib -lvisit
 # Local
-VISITLIBS= -L$(HOME)/visit/spkvisit -llvisit_spk -L$(HOME)/visit/lib -llvisit -L$(HOME)/visit/lib -lvisit
+#VISITLIBS= -L$(HOME)/visit/spkvisit -llvisit_spk -L$(HOME)/visit/lib -llvisit -L$(HOME)/visit/lib -lvisit
 
 LDFLAGS = $(VISITLIBS) $(MPITRACE)
 
@@ -65,7 +65,7 @@ SOURCES.f90 =	treemp.f90 \
 		tree_walk.f90	tree_prefetch.f90 \
 		energy_cons.f90 potenergy.f90 sumpot.f90 kinenergy.f90\
 		forces.f90 forces_bal.f90 sum_force.f90 sum_lennardjones.f90\
-		fpond.f90 \
+		fpond.f90 laser_bullet.f90 \
 		velocities.f90 \
 		push.f90 constrain.f90 reinject.f90 earth_plate.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
@@ -74,7 +74,7 @@ SOURCES.f90 =	treemp.f90 \
 		draw_domains.f90 draw_tree2d.f90 draw_lists.f90\
 		vis_parts.f90 vis_fields.f90 dump.f90 visit_dump.f90\
 		open_files.f90 close_files.f90	\
-		densities.f90 slices.f90 \
+		densities.f90 pot_grid.f90 slices.f90 \
 		track_nc.f90		
 
 # -------------------------------------------------------------------------------------------
