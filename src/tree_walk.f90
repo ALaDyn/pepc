@@ -55,7 +55,7 @@ subroutine tree_walk(pshort,npshort,pass)
 
   integer*8,  dimension(npshort) :: walk_key, walk_last 
   integer*8, dimension(size_tree)  :: request_key, ask_key, process_key
-  integer*8, dimension(size_tree,0:num_pe-1) ::  ship_key
+  integer*8, dimension(size_tree/3,0:num_pe-1) ::  ship_key
   integer*8, dimension(8) :: sub_key, key_child, next_child
   integer*8, dimension(nintmax,npshort) :: defer_list, walk_list
   integer*8, dimension(size_tree) :: last_child   ! List of 'last' children fetched from remote PEs
@@ -454,7 +454,7 @@ subroutine tree_walk(pshort,npshort,pass)
            end do
 
            !  Keep record of requested keys
-           requested_keys( nreqs_total(ipe)+1:nreqs_total(ipe)+nchild,ipe ) = key_child(1:nchild)
+!           requested_keys( nreqs_total(ipe)+1:nreqs_total(ipe)+nchild,ipe ) = key_child(1:nchild)
            nreqs_total(ipe) = nreqs_total(ipe) + nchild  ! Record cumulative total of # children requested 
 
 	end do
@@ -550,7 +550,7 @@ subroutine tree_walk(pshort,npshort,pass)
 
            !  Add child key to list of fetched nodes
            nfetch_total(ipe) = nfetch_total(ipe) + 1
-           fetched_keys( nfetch_total(ipe),ipe ) = kchild
+ !          fetched_keys( nfetch_total(ipe),ipe ) = kchild
 
         end do
      end do

@@ -187,7 +187,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
   timestamp = itime + itime_start
 
-  if (me ==0 .and. mod(itime,idump)==0) then
+  if (me ==0 .and. mod(itime,iprot)==0) then
      total_work = SUM(work_loads)
      average_work = total_work/num_pe
      cme = achar(timestamp/1000+48) // achar(mod(timestamp/100,10)+48) &

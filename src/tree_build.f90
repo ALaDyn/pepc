@@ -14,11 +14,11 @@ subroutine tree_build
 
   implicit none
 
-  integer*8, dimension(3*nppm) :: subcell, par_key, res_key        ! All key arrays 64-bit
+  integer*8, dimension(size_tree) :: subcell, par_key, res_key        ! All key arrays 64-bit
   integer*8, dimension(nppm+2) :: local_key
   integer*8, dimension(8) :: sub_key   ! Child partial key
 
-  integer, dimension(3*nppm) :: ix, iy, res_addr, res_node, res_child, res_owner, &
+  integer, dimension(size_tree) :: ix, iy, res_addr, res_node, res_child, res_owner, &
        newentry, treelevel
   integer, dimension(nppm+2)  :: local_plist, local_ind, local_owner
   integer, dimension(0:maxaddress) ::  cell_addr

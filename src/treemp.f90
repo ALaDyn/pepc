@@ -96,7 +96,7 @@ program treemp
      call cputime(t_fill)
      call tree_properties ! Compute multipole moments for local tree
      call cputime(t_props)
-     call tree_prefetch
+!     if (num_pe>1) call tree_prefetch
      call cputime(t_prefetch)
 
      if (coulomb .or. lenjones) then

@@ -19,7 +19,7 @@ subroutine tree_prefetch
 
   ! Key arrays (64-bit)
 
-  integer*8, dimension(size_tree/10,0:num_pe-1) :: remove_keys, nofetch_keys ! List of deleted keys
+  integer*8, dimension(size_tree/2,0:num_pe-1) :: remove_keys, nofetch_keys ! List of deleted keys
   integer*8, dimension(size_tree) :: req_parent, req_compress, fetch_parent, fetch_comp, absent   ! work arrays
 
   integer*8, dimension(8) :: sub_key, key_child, child_sub, child_key, next_child, siblings

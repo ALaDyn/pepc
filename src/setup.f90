@@ -297,7 +297,7 @@ subroutine setup
   if (scheme==5 .or. target_dup) npartm=npartm*2  ! reserve extra space for electrons in ions-only mode
 	                                        ! or double-target config
 
-  nppm = 2.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+  nppm = 2.*max(npartm/num_pe,1000) ! allow 50% fluctuation
   nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
@@ -317,7 +317,7 @@ subroutine setup
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
 
-  size_tree = max(4*nintmax+4*nppm,2000)+1
+  size_tree = max(4*nintmax+8*nppm,2000)+1
   maxaddress = size_tree
   nbaddr = log(1.*maxaddress)/log(2.) + 1
   maxaddress = 2**nbaddr
@@ -405,6 +405,7 @@ subroutine setup
         write (ifile,'(a20,l3)') ' performance anal.: ',perf_anal
         write (ifile,'(a20,l3)') ' visit: ',vis_on
         write (ifile,'(a20,l3/)') ' steering: ',steering
+        write (ifile,*) 'Local tree size ',size_tree
         write (ifile,*) 'Max address in #-table: ',2**nbaddr-1
         machinebits = bit_size(1_8)    ! # bits in integer variable (hardware) 
         write (ifile,*) 'Machine bit-size = ',machinebits

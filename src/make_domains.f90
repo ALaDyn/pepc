@@ -22,6 +22,7 @@ subroutine make_domains
   integer*8, dimension(nppm) :: ix, iy, iz
   integer*8, dimension(nppm) :: ixd, iyd, izd
   integer*8, dimension(nppm) :: local_key
+  integer*8, dimension(2) :: ixbox, iybox, izbox, key_box
 
   integer ::  source_pe(nppm)
   integer :: i, j, ind_recv, inc
@@ -52,6 +53,7 @@ subroutine make_domains
   integer, dimension(nppm) ::  w2, w3 ! scratch arrays for integer*4 permute
   real, dimension(nppm) :: wr1, wr2, wr3 ! Scratch for real array permute
   integer*8 :: tmp
+  logical :: sort_debug=.false.
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
@@ -103,12 +105,47 @@ subroutine make_domains
           SUM( (/ (8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) ),i=0,nbits-1) /) )
   end do
 
+!  Find keys corresponding to corners of graphics box (initial target container)
+  if (xmin<0) then
+     ixbox(1) = -xmin/s
+     ixbox(2) = (xl - xmin)/s
+  else
+     ixbox(1) = 0
+     ixbox(2) = (xmax-xmin)/s
+  endif
 
-  if (domain_debug) then
+  if (ymin<0) then
+     iybox(1) = -ymin/s
+     iybox(2) = (yl - ymin)/s
+  else
+     iybox(1) = 0
+     iybox(2) = (ymax - ymin)/s
+  endif
 
-     write (ipefile,'(/a/a/(z21,i8,5f12.4))') 'Particle list before key sort:', &
+  if (zmin<0) then
+     izbox(1) =-zmin/s
+     izbox(2) = (zl - zmin)/s
+  else
+     izbox(1) = 0
+     izbox(2) = (zmax - zmin)/s
+  endif
+
+  do j=1,2
+     key_box(j) = iplace + &
+          SUM( (/ (8_8**i*(4_8*ibits( izbox(j),i,1) &
+                         + 2_8*ibits( iybox(j),i,1 ) &
+                         + 1_8*ibits( ixbox(j),i,1) ),i=0,nbits-1) /) )
+  end do
+
+ 
+  if (domain_debug.and.me==50) then
+     write (ipefile,'(a,2z20)') 'Box keys:', key_box(1),key_box(2)
+     write (ipefile,'(/a/a/(z21,i8,5f12.4))') 'Particle list before key sort (1st 10):', &
           '  key,             label   coords     q ', &
-          (local_key(i),pelabel(i),x(i),y(i),z(i),q(i),work(i),i=1,npp) 
+          (local_key(i),pelabel(i),x(i),y(i),z(i),q(i),work(i),i=1,10) 
+     write (ipefile,'(/a/a/(z21,i8,5f12.4))') '(last 10):', &
+          '  key,             label   coords     q ', &
+          (local_key(i),pelabel(i),x(i),y(i),z(i),q(i),work(i),i=npp-10,npp) 
 
      call blankn(ipefile)
   endif
@@ -117,11 +154,11 @@ subroutine make_domains
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
 
-  if (domain_debug) then
-     write (ipefile,*) 'MPI psrssort() commencing'
-     write (ipefile,*) 'iproc=',me
-     write (ipefile,*) 'num_pe=',num_pe
-     write (ipefile,*) 'npp=',npp
+  if (domain_debug.and.me==50) then
+     write (*,*) 'MPI psrssort() commencing'
+     write (*,*) 'iproc=',me
+     write (*,*) 'num_pe=',num_pe
+     write (*,*) 'npp=',npp
   endif
 
   iteration = 0
@@ -154,25 +191,33 @@ subroutine make_domains
         enddo
      endif
 
-  if (domain_debug) then
-          write (ipefile,'(a/(i5,z20))') 'input array:  ',(i,keys(i),i=1,npold)
-          write (ipefile,*) 'npold=',npold
+  if (domain_debug.and.me==50) then
+          write (*,'(a/(i5,z20))') 'input array (1st 10):  ',(i,keys(i),i=1,10)
+          write (*,'(a/(i5,z20))') 'input array (last 10):  ',(i,keys(i),i=npold-10,npold)
+         write (ipefile,*) 'npold=',npold
  endif
 
      ! perform index sort on keys
      call pll_weightsort(nppm,npold,npnew,num_pe,me,keys,indxl,irnkl, &
-          islen,irlen,fposts,gposts,w1,work,load_balance)
+          islen,irlen,fposts,gposts,w1,work,load_balance,key_box,sort_debug)
 
 
      do i=1,npold
         w1(i) = xarray(i)
      enddo
 
+     ! permute keys according to sorted indices
      call pll_permute(nppm,npold,npnew,num_pe,me,w1,wi2,wi3, &
           indxl,irnkl,islen,irlen,fposts,gposts)
 
   if (domain_debug) then
-          write (ipefile,'(a/(i5,z20))') 'output array: ',(i,w1(i),i=1,npnew)
+          write (*,*) 'npnew=',npnew,' on ',me
+ !         write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
+ !         write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
+          if (me.eq.50) then
+          write (*,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
+          write (*,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
+          endif
           write (ipefile,*) 'npnew=',npnew
   endif
 
@@ -197,9 +242,10 @@ subroutine make_domains
         call MPI_RECV(tmp, one, MPI_INTEGER8, me_plus_one, tag1, MPI_COMM_WORLD, status, ierr)
      endif
 
-     if (me .ne. num_pe-1) then
+ !    if (me .ne. num_pe-1) then
+     if (me == 50 ) then
         if (domain_debug .and. tmp .lt. w1(npnew)) then          ! still something to sort
-           write (ipefile,'(a,i3,a1,2z20)') 'w1(npnew), w1(1) from',me+1, '=',w1(npnew),tmp
+           write (*,'(a,i3,a1,2z20)') 'w1(npnew), w1(1) from',me+1, '=',w1(npnew),tmp
            errcount = errcount + 1  
         endif
      endif
