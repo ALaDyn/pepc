@@ -1,0 +1,38 @@
+#
+# WorkShop Project File
+#
+# This file is machine generated, do not modify
+#
+
+projectid "/net/crayfs/usr_FZJ/jzam04/jzam0401/tree/src_v2/treemp.prd";
+projectver 6.0;
+
+project_t cset_hvwyQ6rl1IL29N3965si = {
+
+    entities = {
+        {
+            name = "treemp";
+            type = NONE;
+            builder = Makefile_Builder;
+            options = {
+                Makefile_Builder<picklistname>.value="keytest",
+                Makefile_Builder<command>.value="make",
+                Makefile_Builder<dir>.value="/home/zam/gibbon/tree/treemp/src",
+                Makefile_Builder<target>.value="key";
+            };
+        };
+    };
+
+    gendata = {
+        {
+            tag = projecttype;
+            type = string_t;
+            value ="makefile";
+        },
+        {
+            tag = projectdir;
+            type = string_t;
+            value ="/home/zam/gibbon/tree/treemp/src";
+        };
+    };
+};

@@ -1,0 +1,1 @@
+scp gibbon@zam471:/usr/local/zam/spkview/data/$1 $2

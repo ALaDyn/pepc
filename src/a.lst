@@ -1,0 +1,2406 @@
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    07/02/2003 12:35:43   Page 1
+
+                                     * * * * *   P r o l o g   * * * * *
+
+ Command options:
+    Primary input name. . . . . . : /lib/crt0_64.o
+    Compiler options. . . . . . . : 
+
+                              * * * * *   E n d   O f   P r o l o g   * * * * *
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    07/02/2003 12:35:43   Page 2
+
+                            * * * * *   O b j e c t   F i l e   M a p   * * * * *
+
+*Origin  IPA  File ID  File Name
+   P      Y        1   /lib/crt0_64.o
+   P      Y        2   /home/zam/zdv036/tree/spkvisit/liblvisit_spk.a
+   P      Y        3   /home/admin/beta/visit-2.0b/lvisit/lib/liblvisit.a
+   P      Y        4   /home/admin/beta/visit-2.0b/lib/libvisit.a
+   P      Y        5   treemp.o
+   P      Y        6   setup.o
+   P      Y        7   configure.o
+   P      Y        8   randion.o
+   P      Y        9   predef_parts.o
+   P      Y       10   maxwell1.o
+   P      Y       11   cold_start.o
+   P      Y       12   scramble_v.o
+   P      Y       13   reset_ions.o
+   P      Y       14   beam.o
+   P      Y       15   beam_control.o
+   P      Y       16   mc_config.o
+   P      Y       17   make_domains.o
+   P      Y       18   tree_build.o
+   P      Y       19   make_branches.o
+   P      Y       20   tree_fill.o
+   P      Y       21   tree_properties.o
+   P      Y       22   tree_walk.o
+   P      Y       23   energy_cons.o
+   P      Y       24   potenergy.o
+   P      Y       25   sumpot.o
+   P      Y       26   kinenergy.o
+   P      Y       27   forces.o
+   P      Y       28   forces_bal.o
+   P      Y       29   sum_force.o
+   P      Y       30   fpond.o
+   P      Y       31   velocities.o
+   P      Y       32   push.o
+   P      Y       33   constrain.o
+   P      Y       34   make_hashentry.o
+   P      Y       35   get_address.o
+   P      Y       36   get_node.o
+   P      Y       37   diagnostics.o
+   P      Y       38   diagnose_tree.o
+   P      Y       39   check_table.o
+   P      Y       40   draw_domains.o
+   P      Y       41   draw_tree2d.o
+   P      Y       42   draw_lists.o
+   P      Y       43   vis_parts.o
+   P      Y       44   vis_fields.o
+   P      Y       45   dump.o
+   P      Y       46   visit_dump.o
+   P      Y       47   open_files.o
+   P      Y       48   close_files.o
+   P      Y       49   densities.o
+   P      Y       50   track_nc.o
+   P      Y       51   my_mpidefs.o
+   P      Y       52   treevars.o
+   P      Y       53   utils.o
+   P      Y       54   /lib/liblapi_r.a
+   P      Y       55   /usr/lpp/ppe.poe/lib/libmpi_r.a
+   P      Y       56   /usr/lpp/ppe.poe/lib/libvtd_r.a
+   P      Y       57   /lib/threads/libxlf90.a
+   P      Y       58   /lib/libxlopt.a
+   P      Y       59   /lib/libxlf.a
+   P      Y       60   /lib/libxlomp_ser.a
+   P      Y       61   /lib/libpthreads.a
+   P      Y       62   /lib/libm_r.a
+   P      Y       63   /lib/libm.a
+   P      Y       64   /usr/lpp/ppe.poe/lib/libc_r.a
+   P      Y       65   /usr/lpp/ppe.poe/lib/threads/libc.a
+   P      Y       66   /usr/lpp/ppe.poe/lib/libc.a
+
+ORIGIN:  P=primary input     PI=primary Include        SI=secondary Include   IN=internal
+         A=automatic call     U=Upcase automatic call   R=Rename card          L=C Library
+
+                     * * * * *   E n d   O f   O b j e c t   F i l e   M a p   * * * * *
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    07/02/2003 12:35:43   Page 3
+
+                              * * * * *   I n l i n e   R e p o r t    * * * * *
+
+                    IPA Inline Report (Summary)
+
+ Reason:    P : #pragma noinline was specified for this routine
+            F : #pragma inline was specified for this routine
+            A : Automatic inlining
+            C : Partition conflict
+            N : Not IPA Object
+            - : No reason
+ Action:    I : Routine is inlined at least once
+            L : Routine is initially too large to be inlined
+            T : Routine expands too large to be inlined
+            C : Candidate for inlining but not inlined
+            N : No direct calls to routine are found in file (no action)
+            U : Some calls not inlined due to recursion or parameter mismatch
+            - : No action
+ Status:    D : Internal routine is discarded
+            R : A direct call remains to internal routine (cannot discard)
+            A : Routine has its address taken (cannot discard)
+            E : External routine (cannot discard)
+            - : Status unchanged
+ Calls/I      : Number of calls to defined routines / Number inline
+ Called/I     : Number of times called / Number of times inlined
+
+ Reason  Action  Status   Size (init)    Calls/I   Called/I     Name
+
+    A      I       D      0 (140)          0         2/2        @53@sift_down
+    N      -       E      0                0         65/0       __free
+    N      -       E      0                0         73/0       __malloc
+    N      -       E      0                0         38/0       __memcpy
+    N      -       E      0                0         7/0        __memset
+    A      -       -      120              2/0       3/0        __utils_MOD_blankn
+    A      I       D      0 (36)           1/0       21/21      __utils_MOD_cput
+    A      I       D      0 (48)           0         4/4        __utils_MOD_genran
+    A      I       D      0 (396)          0         1/1        __utils_MOD_indsort_i
+    A      -       -      996              0         1/0        __utils_MOD_nwaymrg
+    A      I       D      0 (196)          0         2/2        __utils_MOD_phase
+    A      -       -      236              1/0       2/0        __utils_MOD_psrsperm_i4
+    A      -       -      236              1/0       1/0        __utils_MOD_psrsperm_i8
+    A      -       -      236              1/0       9/0        __utils_MOD_psrsperm_r8
+    A      -       -      3340 (2944)      50/1      1/0        __utils_MOD_pswssort
+    A      -       -      1240 (1048)      38/4      24/0       __utils_MOD_rano
+    A      -       -      504 (204)        3/3       5/0        __utils_MOD_sort_i
+    A      I       D      0 (20)           0         1/1        __utils_MOD_swap_ab
+    N      -       E      0                0         65/0       __xlf61allocg
+    N      -       E      0                0         186/0      _alloca
+    N      -       E      0                0         89/0       _concat
+    N      -       E      0                0         566/0      _dconcat
+    N      -       E      0                0         5/0        _trap
+    N      -       E      0                0         1/0        _xldctime
+    N      -       E      0                0         301/0      _xlfBeginIO
+    N      -       E      0                0         300/0      _xlfEndIO
+    N      -       E      0                0         5/0        _xlfExit
+    N      -       E      0                0         59/0       _xlfIOCmd
+    N      -       E      0                0         2/0        _xlfPause
+    N      -       E      0                0         18/0       _xlfReadFmt
+    N      -       E      0                0         6/0        _xlfReadLDInt
+    N      -       E      0                0         36/0       _xlfReadLDReal
+    N      -       E      0                0         776/0      _xlfWriteFmt
+    N      -       E      0                0         2/0        _xlfWriteFmtArray
+    N      -       E      0                0         7/0        _xlfWriteLDArray
+    N      -       E      0                0         194/0      _xlfWriteLDChar
+    N      -       E      0                0         110/0      _xlfWriteLDInt
+    N      -       E      0                0         32/0       _xlfWriteLDReal
+    N      -       E      0                0         2/0        _xlisclkmug
+    A      I       D      0 (640)          2/0       2/2        beam
+    A      -       -      2220             50/0      4/0        beam_control
+    A      -       -      2632             88/0      4/0        check_table
+    A      -       -      208              6/0       2/0        closefiles
+    A      I       D      0 (212)          0         2/2        cold_start
+    A      -       -      5920 (1104)      44/13     1/0        configure
+    A      -       -      1304 (912)       2/2       1/0        constrain
+    A      -       -      1608             5/0       1/0        densities
+    A      -       -      8496 (5632)      128/4     1/0        diagnose_tree
+    A      I       -      368              10/0      2/1        diagnostics
+    A      -       -      6628             144/0     1/0        draw_domains
+    A      -       -      4912 (4196)      106/1     1/0        draw_lists
+    A      -       -      6660             155/0     1/0        draw_tree2d
+    A      -       -      2656             83/0      3/0        dump
+    A      -       -      3348 (1656)      61/2      1/0        energy_cons
+    N      -       E      0                0         1/0        flvisit_3dfielda_send
+    N      -       E      0                0         1/0        flvisit_3dfieldb_send
+    N      -       E      0                0         1/0        flvisit_spk_beam_param_recv
+    N      -       E      0                0         1/0        flvisit_spk_beam_paraminit_send
+    N      -       E      0                0         4/0        flvisit_spk_check_connection
+    N      -       E      0                0         1/0        flvisit_spk_close
+    N      -       E      0                0         1/0        flvisit_spk_domains_send
+    N      -       E      0                0         2/0        flvisit_spk_info_send
+    N      -       E      0                0         1/0        flvisit_spk_init
+    N      -       E      0                0         1/0        flvisit_spk_particles_send
+    A      -       -      5580 (5032)      87/7      2/0        forces
+    A      -       -      6276 (5728)      105/7     1/0        forces_bal
+    A      I       -      332              0         4/3        fpond
+    A      I       D      0 (716)          23/0      38/38      key2addr
+    A      I       D      0 (796)          6/0       1/1        kinenergy
+    A      -       -      15544 (7232)     130/10    4/0        make_branches
+    A      -       -      9732             197/0     4/0        make_domains
+    A      I       D      0 (1868)         52/0      3/3        make_hashentry
+    A      I       D      0 (292)          0         6/6        maxwell1
+    A      -       -      5028 (3236)      93/2      2/0        mc_config
+    N      -       E      0                0         3/0        mpi_abort
+    N      -       E      0                0         33/0       mpi_address
+    N      -       E      0                0         3/0        mpi_allgather
+    N      -       E      0                0         5/0        mpi_allgatherv
+    N      -       E      0                0         27/0       mpi_allreduce
+    N      -       E      0                0         3/0        mpi_alltoall
+    N      -       E      0                0         4/0        mpi_alltoallv
+    N      -       E      0                0         18/0       mpi_barrier
+    N      -       E      0                0         18/0       mpi_bcast
+    N      -       E      0                0         1/0        mpi_comm_rank
+    N      -       E      0                0         1/0        mpi_comm_size
+    N      -       E      0                0         1/0        mpi_finalize
+    N      -       E      0                0         4/0        mpi_gather
+    N      -       E      0                0         9/0        mpi_gatherv
+    N      -       E      0                0         1/0        mpi_init
+    N      -       E      0                0         2/0        mpi_irecv
+    N      -       E      0                0         2/0        mpi_isend
+    N      -       E      0                0         3/0        mpi_recv
+    N      -       E      0                0         2/0        mpi_request_free
+    N      -       E      0                0         5/0        mpi_send
+    N      -       E      0                0         2/0        mpi_type_commit
+    N      -       E      0                0         2/0        mpi_type_struct
+    N      -       E      0                0         2/0        mpi_waitany
+    A      -       -      576              10/0      1/0        openfiles
+    A      I       D      0 (896)          20/0      3/3        potenergy
+    A      -       -      7500             222/0     1/0        predef_parts
+    A      -       -      276              0         1/0        push
+    A      -       -      2464             27/0      2/0        randion
+    A      -       -      228              0         1/0        reset_ions
+    A      I       D      0 (496)          10/0      2/2        scramble_v
+    A      -       -      18312            292/0     1/0        setup
+    A      -       -      1168             0         4/0        sum_force
+    A      -       -      2964             9/0       1/0        track_nc
+    A      -       -      9560 (8844)      142/1     4/0        tree_build
+    A      -       -      12980 (6816)     71/7      4/0        tree_fill
+    A      -       -      20920 (14476)    86/9      4/0        tree_properties
+    A      -       -      26312 (18716)    226/9     4/0        tree_walk
+    A      N       -      8152 (7828)      280/9     0          treemp
+    A      -       -      4324             66/0      1/0        velocities
+    A      -       -      1044 (712)       7/1       1/0        vis_fields
+    A      -       -      2032             24/0      2/0        vis_parts
+    A      -       -      7976             151/0     1/0        visit_dump
+ Mode = AUTO     Inlining Threshold =    1024    Expansion Limit =    8192
+
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    07/02/2003 12:35:43   Page 4
+
+                    IPA Inline Report (Call Structure)
+
+ Defined Subprogram    : treemp
+     Calls To(280,9)   : forces_bal(1,0)
+                         constrain(1,0)
+                         diagnostics(1,0)
+                         push(1,0)
+                         velocities(1,0)
+                         forces(1,0)
+                         tree_properties(1,0)
+                         tree_fill(1,0)
+                         make_branches(1,0)
+                         tree_build(1,0)
+                         make_domains(1,0)
+                         __utils_MOD_cput(9,9)
+                         dump(1,0)
+                         reset_ions(1,0)
+                         closefiles(1,0)
+                         configure(1,0)
+                         setup(1,0)
+                         openfiles(1,0)
+                         flvisit_spk_init(1,0)
+                         _xlfEndIO(35,0)
+                         _xlfWriteFmt(118,0)
+                         _dconcat(48,0)
+                         _xlfBeginIO(35,0)
+                         _xlfWriteLDInt(4,0)
+                         _xlfWriteLDChar(4,0)
+                         mpi_barrier(2,0)
+                         flvisit_spk_close(1,0)
+                         _trap(1,0)
+                         _xlfExit(1,0)
+                         mpi_finalize(1,0)
+                         mpi_comm_size(1,0)
+                         mpi_comm_rank(1,0)
+                         mpi_init(1,0)
+  Called From          : 0
+
+ Defined Subprogram    : mpi_init
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : mpi_comm_rank
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : mpi_comm_size
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : _concat
+     Calls To          : 0
+  Called From(89,0)    : draw_domains(12,0)
+                         draw_lists(6,0)
+                         draw_tree2d(7,0)
+                         diagnose_tree(1,0)
+                         visit_dump(15,0)
+                         predef_parts(18,0)
+                         forces_bal(8,0)
+                         forces(8,0)
+                         __utils_MOD_pswssort(2,0)
+                         dump(9,0)
+                         openfiles(3,0)
+
+ Defined Subprogram    : __xlf61allocg
+     Calls To          : 0
+  Called From(65,0)    : setup(65,0)
+
+ Defined Subprogram    : cold_start
+     Calls To          : 0
+  Called From(2,2)     : configure(2,2)
+
+ Defined Subprogram    : reset_ions
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : mpi_finalize
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : _xlfExit
+     Calls To          : 0
+  Called From(5,0)     : key2addr(1,0)
+                         predef_parts(1,0)
+                         tree_build(1,0)
+                         __utils_MOD_rano(1,0)
+                         treemp(1,0)
+
+ Defined Subprogram    : _trap
+     Calls To          : 0
+  Called From(5,0)     : key2addr(1,0)
+                         predef_parts(1,0)
+                         tree_build(1,0)
+                         __utils_MOD_rano(1,0)
+                         treemp(1,0)
+
+ Defined Subprogram    : flvisit_spk_close
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : dump
+     Calls To(83,0)    : _xlfWriteFmt(42,0)
+                         mpi_barrier(1,0)
+                         _xlfIOCmd(4,0)
+                         _xlfEndIO(2,0)
+                         _xlfBeginIO(2,0)
+                         _dconcat(23,0)
+                         _concat(9,0)
+  Called From(3,0)     : mc_config(1,0)
+                         diagnostics(1,0)
+                         treemp(1,0)
+
+ Defined Subprogram    : _xlfBeginIO
+     Calls To          : 0
+  Called From(301,0)   : potenergy(2,0)
+                         track_nc(1,0)
+                         draw_domains(15,0)
+                         draw_lists(16,0)
+                         draw_tree2d(17,0)
+                         diagnose_tree(7,0)
+                         visit_dump(7,0)
+                         energy_cons(5,0)
+                         tree_walk(17,0)
+                         make_hashentry(5,0)
+                         check_table(12,0)
+                         key2addr(2,0)
+                         predef_parts(19,0)
+                         scramble_v(1,0)
+                         mc_config(9,0)
+                         beam_control(5,0)
+                         randion(2,0)
+                         forces_bal(10,0)
+                         velocities(6,0)
+                         forces(7,0)
+                         tree_properties(3,0)
+                         tree_fill(4,0)
+                         make_branches(9,0)
+                         tree_build(13,0)
+                         make_domains(18,0)
+                         __utils_MOD_pswssort(5,0)
+                         __utils_MOD_blankn(1,0)
+                         __utils_MOD_rano(5,0)
+                         dump(2,0)
+                         configure(2,0)
+                         setup(39,0)
+                         treemp(35,0)
+
+ Defined Subprogram    : _dconcat
+     Calls To          : 0
+  Called From(566,0)   : potenergy(4,0)
+                         track_nc(2,0)
+                         draw_domains(32,0)
+                         draw_lists(19,0)
+                         draw_tree2d(32,0)
+                         diagnose_tree(13,0)
+                         visit_dump(33,0)
+                         energy_cons(14,0)
+                         tree_walk(32,0)
+                         make_hashentry(14,0)
+                         check_table(24,0)
+                         key2addr(5,0)
+                         predef_parts(43,0)
+                         scramble_v(2,0)
+                         mc_config(15,0)
+                         beam_control(10,0)
+                         randion(2,0)
+                         forces_bal(18,0)
+                         velocities(16,0)
+                         forces(13,0)
+                         tree_properties(5,0)
+                         tree_fill(9,0)
+                         make_branches(25,0)
+                         tree_build(26,0)
+                         make_domains(26,0)
+                         __utils_MOD_pswssort(9,0)
+                         __utils_MOD_rano(7,0)
+                         dump(23,0)
+                         configure(4,0)
+                         setup(39,0)
+                         openfiles(2,0)
+                         treemp(48,0)
+
+ Defined Subprogram    : _xlfWriteFmt
+     Calls To          : 0
+  Called From(776,0)   : potenergy(11,0)
+                         draw_domains(43,0)
+                         draw_lists(34,0)
+                         draw_tree2d(53,0)
+                         diagnose_tree(73,0)
+                         visit_dump(67,0)
+                         energy_cons(35,0)
+                         tree_walk(35,0)
+                         make_hashentry(3,0)
+                         check_table(16,0)
+                         key2addr(7,0)
+                         predef_parts(6,0)
+                         mc_config(24,0)
+                         randion(4,0)
+                         forces_bal(17,0)
+                         forces(16,0)
+                         tree_properties(1,0)
+                         tree_fill(1,0)
+                         make_branches(37,0)
+                         tree_build(27,0)
+                         make_domains(50,0)
+                         __utils_MOD_pswssort(4,0)
+                         __utils_MOD_rano(2,0)
+                         dump(42,0)
+                         configure(8,0)
+                         setup(42,0)
+                         treemp(118,0)
+
+ Defined Subprogram    : _xlfEndIO
+     Calls To          : 0
+  Called From(300,0)   : potenergy(2,0)
+                         track_nc(1,0)
+                         draw_domains(15,0)
+                         draw_lists(16,0)
+                         draw_tree2d(17,0)
+                         diagnose_tree(7,0)
+                         visit_dump(7,0)
+                         energy_cons(5,0)
+                         tree_walk(17,0)
+                         make_hashentry(5,0)
+                         check_table(12,0)
+                         key2addr(2,0)
+                         predef_parts(19,0)
+                         scramble_v(1,0)
+                         mc_config(9,0)
+                         beam_control(5,0)
+                         randion(2,0)
+                         forces_bal(10,0)
+                         velocities(6,0)
+                         forces(7,0)
+                         tree_properties(3,0)
+                         tree_fill(4,0)
+                         make_branches(9,0)
+                         tree_build(13,0)
+                         make_domains(17,0)
+                         __utils_MOD_pswssort(5,0)
+                         __utils_MOD_blankn(1,0)
+                         __utils_MOD_rano(5,0)
+                         dump(2,0)
+                         configure(2,0)
+                         setup(39,0)
+                         treemp(35,0)
+
+ Defined Subprogram    : mpi_barrier
+     Calls To          : 0
+  Called From(18,0)    : vis_parts(1,0)
+                         visit_dump(1,0)
+                         tree_walk(1,0)
+                         predef_parts(1,0)
+                         mc_config(1,0)
+                         beam_control(1,0)
+                         tree_properties(2,0)
+                         tree_fill(1,0)
+                         make_branches(2,0)
+                         tree_build(1,0)
+                         make_domains(3,0)
+                         dump(1,0)
+                         treemp(2,0)
+
+ Defined Subprogram    : __malloc
+     Calls To          : 0
+  Called From(73,0)    : vis_parts(4,0)
+                         draw_domains(7,0)
+                         draw_lists(3,0)
+                         draw_tree2d(8,0)
+                         diagnose_tree(3,0)
+                         visit_dump(3,0)
+                         tree_walk(11,0)
+                         randion(1,0)
+                         tree_properties(10,0)
+                         tree_fill(9,0)
+                         make_branches(1,0)
+                         tree_build(8,0)
+                         make_domains(5,0)
+
+ Defined Subprogram    : check_table
+     Calls To(88,0)    : _xlfEndIO(12,0)
+                         _xlfWriteLDChar(16,0)
+                         _dconcat(24,0)
+                         _xlfBeginIO(12,0)
+                         _xlfWriteLDInt(8,0)
+                         _xlfWriteFmt(16,0)
+  Called From(4,0)     : make_branches(2,0)
+                         tree_fill(2,0)
+
+ Defined Subprogram    : make_hashentry
+     Calls To(52,0)    : _xlfPause(2,0)
+                         _xlfEndIO(5,0)
+                         _xlfWriteLDInt(10,0)
+                         _xlfWriteLDChar(12,0)
+                         _dconcat(14,0)
+                         _xlfBeginIO(5,0)
+                         mpi_abort(1,0)
+                         _xlfWriteFmt(3,0)
+  Called From(3,3)     : tree_walk(1,1)
+                         make_branches(1,1)
+                         tree_fill(1,1)
+
+ Defined Subprogram    : tree_properties
+     Calls To(86,9)    : key2addr(9,9)
+                         _xlfEndIO(3,0)
+                         _xlfWriteFmt(1,0)
+                         _dconcat(5,0)
+                         _xlfBeginIO(3,0)
+                         __memcpy(10,0)
+                         __free(9,0)
+                         __malloc(10,0)
+                         _xlfWriteLDChar(4,0)
+                         _xlfWriteLDInt(2,0)
+                         _xlfWriteLDArray(1,0)
+                         __utils_MOD_sort_i(2,0)
+                         mpi_barrier(2,0)
+                         mpi_allgatherv(1,0)
+                         _alloca(24,0)
+  Called From(4,0)     : mc_config(2,0)
+                         treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : forces
+     Calls To(87,7)    : sum_force(2,0)
+                         tree_walk(2,0)
+                         fpond(1,1)
+                         __memset(1,0)
+                         __utils_MOD_cput(6,6)
+                         _xlfEndIO(7,0)
+                         _xlfWriteLDInt(6,0)
+                         _xlfWriteLDChar(6,0)
+                         _dconcat(13,0)
+                         _xlfBeginIO(7,0)
+                         _concat(8,0)
+                         _xlfWriteFmt(16,0)
+                         _xlfIOCmd(2,0)
+                         mpi_gather(2,0)
+                         mpi_allreduce(2,0)
+                         _alloca(6,0)
+  Called From(2,0)     : treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : mpi_gather
+     Calls To          : 0
+  Called From(4,0)     : forces_bal(2,0)
+                         forces(2,0)
+
+ Defined Subprogram    : push
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : diagnostics
+     Calls To(10,0)    : track_nc(1,0)
+                         draw_domains(1,0)
+                         draw_lists(1,0)
+                         draw_tree2d(1,0)
+                         diagnose_tree(1,0)
+                         vis_fields(1,0)
+                         visit_dump(1,0)
+                         densities(1,0)
+                         energy_cons(1,0)
+                         dump(1,0)
+  Called From(2,1)     : treemp(1,0)
+                         configure(1,1)
+
+ Defined Subprogram    : forces_bal
+     Calls To(105,7)   : sum_force(2,0)
+                         tree_walk(2,0)
+                         fpond(1,1)
+                         __memset(1,0)
+                         _xlfEndIO(10,0)
+                         _xlfWriteLDChar(10,0)
+                         _dconcat(18,0)
+                         _xlfBeginIO(10,0)
+                         _xlfWriteLDInt(9,0)
+                         __utils_MOD_cput(6,6)
+                         _concat(8,0)
+                         _xlfWriteFmt(17,0)
+                         _xlfIOCmd(2,0)
+                         mpi_gather(2,0)
+                         mpi_allreduce(1,0)
+                         _alloca(6,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : _xlfWriteLDChar
+     Calls To          : 0
+  Called From(194,0)   : track_nc(2,0)
+                         tree_walk(17,0)
+                         make_hashentry(12,0)
+                         check_table(16,0)
+                         key2addr(1,0)
+                         predef_parts(21,0)
+                         scramble_v(2,0)
+                         mc_config(5,0)
+                         beam_control(10,0)
+                         randion(1,0)
+                         forces_bal(10,0)
+                         velocities(16,0)
+                         forces(6,0)
+                         tree_properties(4,0)
+                         tree_fill(6,0)
+                         make_branches(8,0)
+                         tree_build(12,0)
+                         make_domains(10,0)
+                         __utils_MOD_pswssort(6,0)
+                         __utils_MOD_rano(7,0)
+                         setup(18,0)
+                         treemp(4,0)
+
+ Defined Subprogram    : _xlfWriteLDInt
+     Calls To          : 0
+  Called From(110,0)   : tree_walk(12,0)
+                         make_hashentry(10,0)
+                         check_table(8,0)
+                         key2addr(1,0)
+                         predef_parts(12,0)
+                         scramble_v(1,0)
+                         beam_control(2,0)
+                         forces_bal(9,0)
+                         forces(6,0)
+                         tree_properties(2,0)
+                         tree_fill(4,0)
+                         make_branches(8,0)
+                         tree_build(8,0)
+                         make_domains(6,0)
+                         __utils_MOD_pswssort(4,0)
+                         __utils_MOD_rano(3,0)
+                         setup(10,0)
+                         treemp(4,0)
+
+ Defined Subprogram    : flvisit_spk_init
+     Calls To          : 0
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : openfiles
+     Calls To(10,0)    : _xlfIOCmd(5,0)
+                         _dconcat(2,0)
+                         _concat(3,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : _xlfIOCmd
+     Calls To          : 0
+  Called From(59,0)    : draw_domains(6,0)
+                         draw_lists(2,0)
+                         draw_tree2d(4,0)
+                         visit_dump(12,0)
+                         key2addr(2,0)
+                         predef_parts(11,0)
+                         mc_config(2,0)
+                         forces_bal(2,0)
+                         forces(2,0)
+                         dump(4,0)
+                         closefiles(6,0)
+                         setup(1,0)
+                         openfiles(5,0)
+
+ Defined Subprogram    : setup
+     Calls To(292,0)   : _xlfEndIO(39,0)
+                         _xlfWriteFmt(42,0)
+                         _dconcat(39,0)
+                         _xlfBeginIO(39,0)
+                         _xlfWriteLDChar(18,0)
+                         _xlfWriteLDInt(10,0)
+                         _xlfWriteLDReal(2,0)
+                         mpi_type_commit(2,0)
+                         mpi_type_struct(2,0)
+                         mpi_address(33,0)
+                         __xlf61allocg(65,0)
+                         _xlfIOCmd(1,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : mpi_address
+     Calls To          : 0
+  Called From(33,0)    : setup(33,0)
+
+ Defined Subprogram    : mpi_type_struct
+     Calls To          : 0
+  Called From(2,0)     : setup(2,0)
+
+ Defined Subprogram    : mpi_type_commit
+     Calls To          : 0
+  Called From(2,0)     : setup(2,0)
+
+ Defined Subprogram    : _xlfWriteLDReal
+     Calls To          : 0
+  Called From(32,0)    : track_nc(2,0)
+                         mc_config(3,0)
+                         beam_control(5,0)
+                         velocities(16,0)
+                         __utils_MOD_pswssort(1,0)
+                         __utils_MOD_rano(3,0)
+                         setup(2,0)
+
+ Defined Subprogram    : configure
+     Calls To(44,13)   : predef_parts(1,0)
+                         scramble_v(2,2)
+                         maxwell1(6,6)
+                         mc_config(2,0)
+                         beam(2,2)
+                         beam_control(4,0)
+                         cold_start(2,2)
+                         randion(2,0)
+                         diagnostics(1,1)
+                         forces(1,0)
+                         tree_properties(1,0)
+                         tree_fill(1,0)
+                         make_branches(1,0)
+                         tree_build(1,0)
+                         make_domains(1,0)
+                         _xlfEndIO(2,0)
+                         _xlfWriteFmt(8,0)
+                         _dconcat(4,0)
+                         _xlfBeginIO(2,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : beam_control
+     Calls To(50,0)    : flvisit_spk_beam_paraminit_send(1,0)
+                         flvisit_spk_check_connection(2,0)
+                         flvisit_spk_beam_param_recv(1,0)
+                         _xlfEndIO(5,0)
+                         _xlfWriteLDChar(10,0)
+                         _dconcat(10,0)
+                         _xlfBeginIO(5,0)
+                         _xlfWriteLDInt(2,0)
+                         _xlfWriteLDReal(5,0)
+                         __utils_MOD_rano(2,0)
+                         mpi_bcast(6,0)
+                         mpi_barrier(1,0)
+  Called From(4,0)     : configure(4,0)
+
+ Defined Subprogram    : flvisit_spk_check_connection
+     Calls To          : 0
+  Called From(4,0)     : vis_parts(1,0)
+                         vis_fields(1,0)
+                         beam_control(2,0)
+
+ Defined Subprogram    : mc_config
+     Calls To(93,2)    : vis_parts(2,0)
+                         potenergy(2,2)
+                         _xlfEndIO(9,0)
+                         _xlfWriteFmt(24,0)
+                         _xlfBeginIO(9,0)
+                         _xlfIOCmd(2,0)
+                         _xlfWriteLDReal(3,0)
+                         _xlfWriteLDChar(5,0)
+                         _dconcat(15,0)
+                         __utils_MOD_rano(6,0)
+                         _xlisclkmug(2,0)
+                         tree_fill(2,0)
+                         make_branches(2,0)
+                         tree_build(2,0)
+                         make_domains(2,0)
+                         mpi_bcast(2,0)
+                         tree_properties(2,0)
+                         mpi_barrier(1,0)
+                         dump(1,0)
+  Called From(2,0)     : configure(2,0)
+
+ Defined Subprogram    : vis_parts
+     Calls To(24,0)    : __free(4,0)
+                         __malloc(4,0)
+                         flvisit_spk_domains_send(1,0)
+                         flvisit_spk_particles_send(1,0)
+                         flvisit_spk_info_send(1,0)
+                         flvisit_spk_check_connection(1,0)
+                         mpi_barrier(1,0)
+                         mpi_gatherv(9,0)
+                         mpi_allgather(1,0)
+                         _alloca(1,0)
+  Called From(2,0)     : mc_config(2,0)
+
+ Defined Subprogram    : scramble_v
+     Calls To(10,0)    : __utils_MOD_rano(3,0)
+                         _xlfEndIO(1,0)
+                         _xlfWriteLDChar(2,0)
+                         _dconcat(2,0)
+                         _xlfWriteLDInt(1,0)
+                         _xlfBeginIO(1,0)
+  Called From(2,2)     : configure(2,2)
+
+ Defined Subprogram    : predef_parts
+     Calls To(222,0)   : _xlfEndIO(19,0)
+                         _xlfWriteLDChar(21,0)
+                         _dconcat(43,0)
+                         _xlfBeginIO(19,0)
+                         _xlfWriteLDInt(12,0)
+                         _trap(1,0)
+                         _xlfExit(1,0)
+                         _xlfWriteFmt(6,0)
+                         _xlfIOCmd(11,0)
+                         _xlfReadFmt(18,0)
+                         _xlfReadLDInt(6,0)
+                         _xlfReadLDReal(36,0)
+                         _concat(18,0)
+                         mpi_bcast(10,0)
+                         mpi_barrier(1,0)
+  Called From(1,0)     : configure(1,0)
+
+ Defined Subprogram    : _xlfReadFmt
+     Calls To          : 0
+  Called From(18,0)    : predef_parts(18,0)
+
+ Defined Subprogram    : closefiles
+     Calls To(6,0)     : _xlfIOCmd(6,0)
+  Called From(2,0)     : tree_build(1,0)
+                         treemp(1,0)
+
+ Defined Subprogram    : __utils_MOD_phase
+     Calls To          : 0
+  Called From(2,2)     : constrain(2,2)
+
+ Defined Subprogram    : __utils_MOD_genran
+     Calls To          : 0
+  Called From(4,4)     : __utils_MOD_rano(4,4)
+
+ Defined Subprogram    : __utils_MOD_rano
+     Calls To(38,4)    : __utils_MOD_genran(4,4)
+                         _xlfWriteFmt(2,0)
+                         _trap(1,0)
+                         _xlfExit(1,0)
+                         _xlfEndIO(5,0)
+                         _xlfBeginIO(5,0)
+                         _xlfWriteLDReal(3,0)
+                         _xlfWriteLDChar(7,0)
+                         _dconcat(7,0)
+                         _xlfWriteLDInt(3,0)
+  Called From(24,0)    : scramble_v(3,0)
+                         mc_config(6,0)
+                         beam(2,0)
+                         beam_control(2,0)
+                         randion(11,0)
+
+ Defined Subprogram    : __utils_MOD_cput
+     Calls To(1,0)     : _xldctime(1,0)
+  Called From(21,21)   : forces_bal(6,6)
+                         forces(6,6)
+                         treemp(9,9)
+
+ Defined Subprogram    : __utils_MOD_blankn
+     Calls To(2,0)     : _xlfEndIO(1,0)
+                         _xlfBeginIO(1,0)
+  Called From(3,0)     : make_domains(3,0)
+
+ Defined Subprogram    : __utils_MOD_swap_ab
+     Calls To          : 0
+  Called From(1,1)     : __utils_MOD_sort_i(1,1)
+
+ Defined Subprogram    : __utils_MOD_indsort_i
+     Calls To          : 0
+  Called From(1,1)     : __utils_MOD_pswssort(1,1)
+
+ Defined Subprogram    : __utils_MOD_sort_i
+     Calls To(3,3)     : @53@sift_down(2,2)
+                         __utils_MOD_swap_ab(1,1)
+  Called From(5,0)     : tree_properties(2,0)
+                         tree_fill(2,0)
+                         make_branches(1,0)
+
+ Defined Subprogram    : @53@sift_down
+     Calls To          : 0
+  Called From(2,2)     : __utils_MOD_sort_i(2,2)
+
+ Defined Subprogram    : __utils_MOD_nwaymrg
+     Calls To          : 0
+  Called From(1,0)     : __utils_MOD_pswssort(1,0)
+
+ Defined Subprogram    : __utils_MOD_pswssort
+     Calls To(50,1)    : _xlfEndIO(5,0)
+                         _xlfWriteLDInt(4,0)
+                         _xlfWriteLDChar(6,0)
+                         _dconcat(9,0)
+                         _xlfBeginIO(5,0)
+                         _xlfWriteFmt(4,0)
+                         _xlfWriteLDReal(1,0)
+                         mpi_allreduce(4,0)
+                         _concat(2,0)
+                         _xlfWriteLDArray(1,0)
+                         mpi_alltoall(2,0)
+                         __memcpy(1,0)
+                         __utils_MOD_nwaymrg(1,0)
+                         mpi_alltoallv(1,0)
+                         __utils_MOD_indsort_i(1,1)
+                         _alloca(3,0)
+  Called From(1,0)     : make_domains(1,0)
+
+ Defined Subprogram    : __utils_MOD_psrsperm_r8
+     Calls To(1,0)     : mpi_alltoallv(1,0)
+  Called From(9,0)     : make_domains(9,0)
+
+ Defined Subprogram    : __utils_MOD_psrsperm_i8
+     Calls To(1,0)     : mpi_alltoallv(1,0)
+  Called From(1,0)     : make_domains(1,0)
+
+ Defined Subprogram    : __utils_MOD_psrsperm_i4
+     Calls To(1,0)     : mpi_alltoallv(1,0)
+  Called From(2,0)     : make_domains(2,0)
+
+ Defined Subprogram    : _xldctime
+     Calls To          : 0
+  Called From(1,0)     : __utils_MOD_cput(1,0)
+
+ Defined Subprogram    : _alloca
+     Calls To          : 0
+  Called From(186,0)   : kinenergy(3,0)
+                         vis_parts(1,0)
+                         track_nc(1,0)
+                         draw_domains(7,0)
+                         draw_lists(5,0)
+                         draw_tree2d(9,0)
+                         diagnose_tree(14,0)
+                         vis_fields(2,0)
+                         visit_dump(2,0)
+                         densities(3,0)
+                         tree_walk(32,0)
+                         randion(3,0)
+                         forces_bal(6,0)
+                         velocities(3,0)
+                         forces(6,0)
+                         tree_properties(24,0)
+                         tree_fill(9,0)
+                         make_branches(11,0)
+                         tree_build(18,0)
+                         make_domains(24,0)
+                         __utils_MOD_pswssort(3,0)
+
+ Defined Subprogram    : mpi_allreduce
+     Calls To          : 0
+  Called From(27,0)    : kinenergy(3,0)
+                         potenergy(1,0)
+                         densities(2,0)
+                         tree_walk(5,0)
+                         forces_bal(1,0)
+                         velocities(3,0)
+                         forces(2,0)
+                         make_domains(6,0)
+                         __utils_MOD_pswssort(4,0)
+
+ Defined Subprogram    : mpi_alltoall
+     Calls To          : 0
+  Called From(3,0)     : tree_walk(1,0)
+                         __utils_MOD_pswssort(2,0)
+
+ Defined Subprogram    : mpi_alltoallv
+     Calls To          : 0
+  Called From(4,0)     : __utils_MOD_psrsperm_i4(1,0)
+                         __utils_MOD_psrsperm_i8(1,0)
+                         __utils_MOD_psrsperm_r8(1,0)
+                         __utils_MOD_pswssort(1,0)
+
+ Defined Subprogram    : __memcpy
+     Calls To          : 0
+  Called From(38,0)    : draw_lists(1,0)
+                         diagnose_tree(3,0)
+                         tree_walk(8,0)
+                         tree_properties(10,0)
+                         tree_fill(5,0)
+                         make_branches(1,0)
+                         tree_build(4,0)
+                         make_domains(5,0)
+                         __utils_MOD_pswssort(1,0)
+
+ Defined Subprogram    : _xlfWriteLDArray
+     Calls To          : 0
+  Called From(7,0)     : tree_walk(4,0)
+                         tree_properties(1,0)
+                         tree_build(1,0)
+                         __utils_MOD_pswssort(1,0)
+
+ Defined Subprogram    : mpi_bcast
+     Calls To          : 0
+  Called From(18,0)    : predef_parts(10,0)
+                         mc_config(2,0)
+                         beam_control(6,0)
+
+ Defined Subprogram    : mpi_recv
+     Calls To          : 0
+  Called From(3,0)     : make_domains(3,0)
+
+ Defined Subprogram    : mpi_send
+     Calls To          : 0
+  Called From(5,0)     : tree_walk(2,0)
+                         make_domains(3,0)
+
+ Defined Subprogram    : make_domains
+     Calls To(197,0)   : __free(5,0)
+                         __malloc(5,0)
+                         _xlfWriteFmt(50,0)
+                         __utils_MOD_blankn(3,0)
+                         _xlfEndIO(17,0)
+                         _dconcat(26,0)
+                         _xlfBeginIO(18,0)
+                         _xlfWriteLDInt(6,0)
+                         _xlfWriteLDChar(10,0)
+                         __memcpy(5,0)
+                         mpi_send(3,0)
+                         mpi_recv(3,0)
+                         mpi_barrier(3,0)
+                         __utils_MOD_psrsperm_r8(9,0)
+                         __utils_MOD_psrsperm_i4(2,0)
+                         __utils_MOD_psrsperm_i8(1,0)
+                         __utils_MOD_pswssort(1,0)
+                         mpi_allreduce(6,0)
+                         _alloca(24,0)
+  Called From(4,0)     : mc_config(2,0)
+                         treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : __free
+     Calls To          : 0
+  Called From(65,0)    : vis_parts(4,0)
+                         draw_domains(7,0)
+                         draw_lists(3,0)
+                         draw_tree2d(8,0)
+                         diagnose_tree(3,0)
+                         visit_dump(3,0)
+                         tree_walk(9,0)
+                         randion(1,0)
+                         tree_properties(9,0)
+                         tree_fill(8,0)
+                         make_branches(1,0)
+                         tree_build(4,0)
+                         make_domains(5,0)
+
+ Defined Subprogram    : tree_build
+     Calls To(142,1)   : key2addr(1,1)
+                         _xlfEndIO(13,0)
+                         _xlfWriteFmt(27,0)
+                         _dconcat(26,0)
+                         _xlfBeginIO(13,0)
+                         __memset(1,0)
+                         _xlfWriteLDChar(12,0)
+                         _xlfWriteLDInt(8,0)
+                         __malloc(8,0)
+                         __memcpy(4,0)
+                         __free(4,0)
+                         _xlfWriteLDArray(1,0)
+                         _trap(1,0)
+                         _xlfExit(1,0)
+                         mpi_abort(1,0)
+                         closefiles(1,0)
+                         _xlfWriteFmtArray(1,0)
+                         mpi_barrier(1,0)
+                         _alloca(18,0)
+  Called From(4,0)     : mc_config(2,0)
+                         treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : _xlfWriteFmtArray
+     Calls To          : 0
+  Called From(2,0)     : tree_walk(1,0)
+                         tree_build(1,0)
+
+ Defined Subprogram    : mpi_abort
+     Calls To          : 0
+  Called From(3,0)     : make_hashentry(1,0)
+                         key2addr(1,0)
+                         tree_build(1,0)
+
+ Defined Subprogram    : __memset
+     Calls To          : 0
+  Called From(7,0)     : tree_walk(4,0)
+                         forces_bal(1,0)
+                         forces(1,0)
+                         tree_build(1,0)
+
+ Defined Subprogram    : make_branches
+     Calls To(130,10)  : make_hashentry(1,1)
+                         check_table(2,0)
+                         key2addr(9,9)
+                         _xlfEndIO(9,0)
+                         _xlfWriteFmt(37,0)
+                         _dconcat(25,0)
+                         _xlfBeginIO(9,0)
+                         __free(1,0)
+                         __malloc(1,0)
+                         __memcpy(1,0)
+                         __utils_MOD_sort_i(1,0)
+                         _xlfWriteLDInt(8,0)
+                         _xlfWriteLDChar(8,0)
+                         mpi_barrier(2,0)
+                         mpi_allgatherv(4,0)
+                         mpi_allgather(1,0)
+                         _alloca(11,0)
+  Called From(4,0)     : mc_config(2,0)
+                         treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : mpi_allgather
+     Calls To          : 0
+  Called From(3,0)     : vis_parts(1,0)
+                         tree_walk(1,0)
+                         make_branches(1,0)
+
+ Defined Subprogram    : mpi_allgatherv
+     Calls To          : 0
+  Called From(5,0)     : tree_properties(1,0)
+                         make_branches(4,0)
+
+ Defined Subprogram    : _xlfPause
+     Calls To          : 0
+  Called From(2,0)     : make_hashentry(2,0)
+
+ Defined Subprogram    : tree_fill
+     Calls To(71,7)    : make_hashentry(1,1)
+                         check_table(2,0)
+                         key2addr(6,6)
+                         _xlfEndIO(4,0)
+                         _xlfWriteFmt(1,0)
+                         _dconcat(9,0)
+                         _xlfBeginIO(4,0)
+                         __memcpy(5,0)
+                         __free(8,0)
+                         __malloc(9,0)
+                         _xlfWriteLDChar(6,0)
+                         _xlfWriteLDInt(4,0)
+                         __utils_MOD_sort_i(2,0)
+                         mpi_barrier(1,0)
+                         _alloca(9,0)
+  Called From(4,0)     : mc_config(2,0)
+                         treemp(1,0)
+                         configure(1,0)
+
+ Defined Subprogram    : tree_walk
+     Calls To(226,9)   : _xlfEndIO(17,0)
+                         _xlfWriteFmt(35,0)
+                         _dconcat(32,0)
+                         _xlfBeginIO(17,0)
+                         __memset(4,0)
+                         key2addr(8,8)
+                         __memcpy(8,0)
+                         __malloc(11,0)
+                         __free(9,0)
+                         _xlfWriteLDArray(4,0)
+                         _xlfWriteLDChar(17,0)
+                         _xlfWriteLDInt(12,0)
+                         mpi_irecv(2,0)
+                         mpi_send(2,0)
+                         mpi_request_free(2,0)
+                         mpi_isend(2,0)
+                         _xlfWriteFmtArray(1,0)
+                         mpi_waitany(2,0)
+                         make_hashentry(1,1)
+                         mpi_allreduce(5,0)
+                         mpi_allgather(1,0)
+                         mpi_alltoall(1,0)
+                         mpi_barrier(1,0)
+                         _alloca(32,0)
+  Called From(4,0)     : forces(2,0)
+                         forces_bal(2,0)
+
+ Defined Subprogram    : mpi_waitany
+     Calls To          : 0
+  Called From(2,0)     : tree_walk(2,0)
+
+ Defined Subprogram    : energy_cons
+     Calls To(61,2)    : kinenergy(1,1)
+                         potenergy(1,1)
+                         _xlfEndIO(5,0)
+                         _xlfWriteFmt(35,0)
+                         _xlfBeginIO(5,0)
+                         _dconcat(14,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : velocities
+     Calls To(66,0)    : _xlfEndIO(6,0)
+                         _xlfWriteLDReal(16,0)
+                         _xlfWriteLDChar(16,0)
+                         _dconcat(16,0)
+                         _xlfBeginIO(6,0)
+                         mpi_allreduce(3,0)
+                         _alloca(3,0)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : visit_dump
+     Calls To(151,0)   : _xlfEndIO(7,0)
+                         _xlfWriteFmt(67,0)
+                         _xlfBeginIO(7,0)
+                         fpond(1,0)
+                         __free(3,0)
+                         __malloc(3,0)
+                         _xlfIOCmd(12,0)
+                         _dconcat(33,0)
+                         mpi_barrier(1,0)
+                         _concat(15,0)
+                         _alloca(2,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : vis_fields
+     Calls To(7,1)     : fpond(1,1)
+                         flvisit_3dfieldb_send(1,0)
+                         flvisit_3dfielda_send(1,0)
+                         flvisit_spk_info_send(1,0)
+                         flvisit_spk_check_connection(1,0)
+                         _alloca(2,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : flvisit_spk_info_send
+     Calls To          : 0
+  Called From(2,0)     : vis_parts(1,0)
+                         vis_fields(1,0)
+
+ Defined Subprogram    : draw_tree2d
+     Calls To(155,0)   : _xlfEndIO(17,0)
+                         _xlfWriteFmt(53,0)
+                         _dconcat(32,0)
+                         _xlfBeginIO(17,0)
+                         _concat(7,0)
+                         _xlfIOCmd(4,0)
+                         __free(8,0)
+                         __malloc(8,0)
+                         _alloca(9,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : draw_lists
+     Calls To(106,1)   : key2addr(1,1)
+                         __memcpy(1,0)
+                         _xlfEndIO(16,0)
+                         _xlfWriteFmt(34,0)
+                         _dconcat(19,0)
+                         _xlfBeginIO(16,0)
+                         __free(3,0)
+                         __malloc(3,0)
+                         _xlfIOCmd(2,0)
+                         _concat(6,0)
+                         _alloca(5,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : draw_domains
+     Calls To(144,0)   : _xlfEndIO(15,0)
+                         _xlfWriteFmt(43,0)
+                         _dconcat(32,0)
+                         _xlfBeginIO(15,0)
+                         _concat(12,0)
+                         _xlfIOCmd(6,0)
+                         __free(7,0)
+                         __malloc(7,0)
+                         _alloca(7,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : track_nc
+     Calls To(9,0)     : _xlfEndIO(1,0)
+                         _xlfWriteLDReal(2,0)
+                         _xlfWriteLDChar(2,0)
+                         _dconcat(2,0)
+                         _xlfBeginIO(1,0)
+                         _alloca(1,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : potenergy
+     Calls To(20,0)    : _xlfEndIO(2,0)
+                         _xlfWriteFmt(11,0)
+                         _dconcat(4,0)
+                         _xlfBeginIO(2,0)
+                         mpi_allreduce(1,0)
+  Called From(3,3)     : mc_config(2,2)
+                         energy_cons(1,1)
+
+ Defined Subprogram    : constrain
+     Calls To(2,2)     : __utils_MOD_phase(2,2)
+  Called From(1,0)     : treemp(1,0)
+
+ Defined Subprogram    : randion
+     Calls To(27,0)    : _xlfEndIO(2,0)
+                         _xlfWriteLDChar(1,0)
+                         _dconcat(2,0)
+                         _xlfBeginIO(2,0)
+                         __utils_MOD_rano(11,0)
+                         __free(1,0)
+                         __malloc(1,0)
+                         _xlfWriteFmt(4,0)
+                         _alloca(3,0)
+  Called From(2,0)     : configure(2,0)
+
+ Defined Subprogram    : flvisit_spk_beam_param_recv
+     Calls To          : 0
+  Called From(1,0)     : beam_control(1,0)
+
+ Defined Subprogram    : flvisit_spk_beam_paraminit_send
+     Calls To          : 0
+  Called From(1,0)     : beam_control(1,0)
+
+ Defined Subprogram    : beam
+     Calls To(2,0)     : __utils_MOD_rano(2,0)
+  Called From(2,2)     : configure(2,2)
+
+ Defined Subprogram    : mpi_gatherv
+     Calls To          : 0
+  Called From(9,0)     : vis_parts(9,0)
+
+ Defined Subprogram    : _xlisclkmug
+     Calls To          : 0
+  Called From(2,0)     : mc_config(2,0)
+
+ Defined Subprogram    : maxwell1
+     Calls To          : 0
+  Called From(6,6)     : configure(6,6)
+
+ Defined Subprogram    : _xlfReadLDReal
+     Calls To          : 0
+  Called From(36,0)    : predef_parts(36,0)
+
+ Defined Subprogram    : _xlfReadLDInt
+     Calls To          : 0
+  Called From(6,0)     : predef_parts(6,0)
+
+ Defined Subprogram    : key2addr
+     Calls To(23,0)    : _trap(1,0)
+                         _xlfExit(1,0)
+                         mpi_abort(1,0)
+                         _xlfIOCmd(2,0)
+                         _xlfEndIO(2,0)
+                         _xlfWriteFmt(7,0)
+                         _dconcat(5,0)
+                         _xlfBeginIO(2,0)
+                         _xlfWriteLDInt(1,0)
+                         _xlfWriteLDChar(1,0)
+  Called From(38,38)   : draw_lists(1,1)
+                         diagnose_tree(4,4)
+                         tree_walk(8,8)
+                         tree_build(1,1)
+                         make_branches(9,9)
+                         tree_fill(6,6)
+                         tree_properties(9,9)
+
+ Defined Subprogram    : fpond
+     Calls To          : 0
+  Called From(4,3)     : vis_fields(1,1)
+                         visit_dump(1,0)
+                         forces(1,1)
+                         forces_bal(1,1)
+
+ Defined Subprogram    : mpi_isend
+     Calls To          : 0
+  Called From(2,0)     : tree_walk(2,0)
+
+ Defined Subprogram    : mpi_request_free
+     Calls To          : 0
+  Called From(2,0)     : tree_walk(2,0)
+
+ Defined Subprogram    : mpi_irecv
+     Calls To          : 0
+  Called From(2,0)     : tree_walk(2,0)
+
+ Defined Subprogram    : sum_force
+     Calls To          : 0
+  Called From(4,0)     : forces(2,0)
+                         forces_bal(2,0)
+
+ Defined Subprogram    : densities
+     Calls To(5,0)     : mpi_allreduce(2,0)
+                         _alloca(3,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : flvisit_3dfielda_send
+     Calls To          : 0
+  Called From(1,0)     : vis_fields(1,0)
+
+ Defined Subprogram    : flvisit_3dfieldb_send
+     Calls To          : 0
+  Called From(1,0)     : vis_fields(1,0)
+
+ Defined Subprogram    : diagnose_tree
+     Calls To(128,4)   : _dconcat(13,0)
+                         _xlfEndIO(7,0)
+                         _xlfWriteFmt(73,0)
+                         _xlfBeginIO(7,0)
+                         key2addr(4,4)
+                         __memcpy(3,0)
+                         __free(3,0)
+                         __malloc(3,0)
+                         _concat(1,0)
+                         _alloca(14,0)
+  Called From(1,0)     : diagnostics(1,0)
+
+ Defined Subprogram    : flvisit_spk_particles_send
+     Calls To          : 0
+  Called From(1,0)     : vis_parts(1,0)
+
+ Defined Subprogram    : flvisit_spk_domains_send
+     Calls To          : 0
+  Called From(1,0)     : vis_parts(1,0)
+
+ Defined Subprogram    : kinenergy
+     Calls To(6,0)     : mpi_allreduce(3,0)
+                         _alloca(3,0)
+  Called From(1,1)     : energy_cons(1,1)
+
+
+                       * * * * *   E n d   O f   I n l i n e   R e p o r t   * * * * *
+1586 V1 R1 M00 IBM IPA/AIX                                   /lib/crt0_64.o                    07/02/2003 12:35:43   Page 5
+
+                         * * * * *   G l o b a l   S y m b o l s   M a p   * * * * *
+
+   Definition            Output
+    File:Line      ESD Name    Offset      Input name
+       8:-           @COAL0         0      &&@my_mpidefs
+      39:-           @COAL0        80      &&treevars
+       8:-           @COAL0      3456      &&@treevars
+      38:-           @COAL0      4736      &&my_mpidefs
+       3:-           @COAL0      5328      @28@|101
+       3:-           @COAL0      5368      @28@|102
+       1:-           @COAL0      5408      @27@|101
+       1:-           @COAL0      5448      @27@|102
+      12:-           @COAL0      5488      @40@colors
+      26:-           @COAL0      5560      @42@colors
+      45:-           @COAL0      5632      @41@colors
+      36:-           @COAL0      5704      @6@beam_configs
+      36:-           @COAL0      5776      @6@configs
+      10:-           @COAL1         0      @53@|100
+      10:-           @COAL1        40      @53@v
+
+                  * * * * *   E n d   O f   G l o b a l   S y m b o l s   M a p   * * * * *
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 0                    07/02/2003 12:35:43   Page 6
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 0
+
+Partition Description:
+   Initialization data partition
+
+Compiler Options for Partition 0:
+
+
+Symbols in Partition 0:
+
+ *Type     File ID    Symbol
+    D          10     @53@d2p31m
+    D          10     @53@d2p31
+    D          41     @15@beam_on
+    D          41     @15@beam_debug
+    D          25     @38@isnap
+    D          15     @7@idummy
+    D          37     @45@icall
+    D          37     @45@idummy
+    D          10     @53@iff
+    D          10     @53@dseed
+    D          10     @53@j
+    D          10     @53@dum
+    D          10     @53@y
+    D          10     @53@icall
+    D          10     @53@i
+    D          10     @53@debug
+    D          16     @17@boundary_debug
+    D          16     @17@key_debug
+    D          24     @18@build_debug
+    D           1     @27@force_debug
+    D           3     @28@force_debug
+    D          41     @15@np_beam_dt
+    D           4     @22@emulate_blocking
+    D           7     @46@idummy
+    D          26     @42@write_keys
+    D          30     @24@pot_debug
+    D           -     @COAL0
+    D           -     @COAL1
+    F           3     forces_bal
+    F           2     sum_force
+    F           5     vis_fields
+    F          10     __utils_MOD_blankn
+
+  Type:  F=function     D=data
+
+Source Files for Partition 0:
+
+ *Origin     File ID     Source File Name
+     P            1      forces.f90
+     P            2      sum_force.f90
+     P            3      forces_bal.f90
+     P            4      tree_walk.f90
+     P            5      vis_fields.f90
+     P            6      fpond.f90
+     P            7      visit_dump.f90
+     P            8      treemp.f90
+     P           10      utils.f90
+     P           15      configure.f90
+     P           16      make_domains.f90
+     P           24      tree_build.f90
+     P           25      diagnose_tree.f90
+     P           26      draw_lists.f90
+     P           30      potenergy.f90
+     P           37      dump.f90
+     P           41      beam_control.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 1                    07/02/2003 12:35:43   Page 7
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 1 of 21
+
+Partition Size:
+   Actual: 291708
+    Limit: 102400
+
+Partition Description:
+   Primary partition
+
+Compiler Options for Partition 1:
+
+
+Symbols in Partition 1:
+
+ *Type     File ID    Symbol
+    F           4     tree_walk
+
+  Type:  F=function     D=data
+
+Source Files for Partition 1:
+
+ *Origin     File ID     Source File Name
+     P            4      tree_walk.f90
+     P           20      get_address.f90
+     P           27      make_hashentry.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+1586-321 (I) The minimum size of partition 1 exceeds the partition size limit.
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 2                    07/02/2003 12:35:43   Page 8
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 2 of 21
+
+Partition Size:
+   Actual: 80040
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 2:
+
+
+Symbols in Partition 2:
+
+ *Type     File ID    Symbol
+    F           9     constrain
+    F          13     push
+    F          14     velocities
+    F          33     reset_ions
+    F          35     openfiles
+
+  Type:  F=function     D=data
+
+Source Files for Partition 2:
+
+ *Origin     File ID     Source File Name
+     P            9      constrain.f90
+     P           10      utils.f90
+     P           13      push.f90
+     P           14      velocities.f90
+     P           33      reset_ions.f90
+     P           35      open_files.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 3                    07/02/2003 12:35:43   Page 9
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 3 of 21
+
+Partition Size:
+   Actual: 92196
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 3:
+
+
+Symbols in Partition 3:
+
+ *Type     File ID    Symbol
+    F          11     diagnostics
+    F          44     densities
+    F          37     dump
+
+  Type:  F=function     D=data
+
+Source Files for Partition 3:
+
+ *Origin     File ID     Source File Name
+     P           11      diagnostics.f90
+     P           37      dump.f90
+     P           44      densities.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 4                    07/02/2003 12:35:43   Page 10
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 4 of 21
+
+Partition Size:
+   Actual: 89928
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 4:
+
+
+Symbols in Partition 4:
+
+ *Type     File ID    Symbol
+    F          46     track_nc
+    F          26     draw_lists
+
+  Type:  F=function     D=data
+
+Source Files for Partition 4:
+
+ *Origin     File ID     Source File Name
+     P           20      get_address.f90
+     P           26      draw_lists.f90
+     P           46      track_nc.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 5                    07/02/2003 12:35:43   Page 11
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 5 of 21
+
+Partition Size:
+   Actual: 71196
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 5:
+
+
+Symbols in Partition 5:
+
+ *Type     File ID    Symbol
+    F          12     draw_domains
+
+  Type:  F=function     D=data
+
+Source Files for Partition 5:
+
+ *Origin     File ID     Source File Name
+     P           12      draw_domains.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 6                    07/02/2003 12:35:43   Page 12
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 6 of 21
+
+Partition Size:
+   Actual: 94068
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 6:
+
+
+Symbols in Partition 6:
+
+ *Type     File ID    Symbol
+    F          45     draw_tree2d
+    F          41     beam_control
+
+  Type:  F=function     D=data
+
+Source Files for Partition 6:
+
+ *Origin     File ID     Source File Name
+     P           41      beam_control.f90
+     P           45      draw_tree2d.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 7                    07/02/2003 12:35:43   Page 13
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 7 of 21
+
+Partition Size:
+   Actual: 96492
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 7:
+
+
+Symbols in Partition 7:
+
+ *Type     File ID    Symbol
+    F          25     diagnose_tree
+
+  Type:  F=function     D=data
+
+Source Files for Partition 7:
+
+ *Origin     File ID     Source File Name
+     P           20      get_address.f90
+     P           25      diagnose_tree.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 8                    07/02/2003 12:35:43   Page 14
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 8 of 21
+
+Partition Size:
+   Actual: 94152
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 8:
+
+
+Symbols in Partition 8:
+
+ *Type     File ID    Symbol
+    F           7     visit_dump
+
+  Type:  F=function     D=data
+
+Source Files for Partition 8:
+
+ *Origin     File ID     Source File Name
+     P            6      fpond.f90
+     P            7      visit_dump.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                      Partition 9                    07/02/2003 12:35:43   Page 15
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 9 of 21
+
+Partition Size:
+   Actual: 101388
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 9:
+
+
+Symbols in Partition 9:
+
+ *Type     File ID    Symbol
+    F          29     energy_cons
+    F          15     configure
+
+  Type:  F=function     D=data
+
+Source Files for Partition 9:
+
+ *Origin     File ID     Source File Name
+     P           11      diagnostics.f90
+     P           15      configure.f90
+     P           17      scramble_v.f90
+     P           18      maxwell1.f90
+     P           19      cold_start.f90
+     P           28      kinenergy.f90
+     P           29      energy_cons.f90
+     P           30      potenergy.f90
+     P           34      beam.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 10                    07/02/2003 12:35:43   Page 16
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 10 of 21
+
+Partition Size:
+   Actual: 87048
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 10:
+
+
+Symbols in Partition 10:
+
+ *Type     File ID    Symbol
+    F           1     forces
+    F          47     vis_parts
+
+  Type:  F=function     D=data
+
+Source Files for Partition 10:
+
+ *Origin     File ID     Source File Name
+     P            1      forces.f90
+     P            6      fpond.f90
+     P           10      utils.f90
+     P           47      vis_parts.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 11                    07/02/2003 12:35:43   Page 17
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 11 of 21
+
+Partition Size:
+   Actual: 274068
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 11:
+
+
+Symbols in Partition 11:
+
+ *Type     File ID    Symbol
+    F          22     tree_properties
+
+  Type:  F=function     D=data
+
+Source Files for Partition 11:
+
+ *Origin     File ID     Source File Name
+     P           20      get_address.f90
+     P           22      tree_properties.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+1586-321 (I) The minimum size of partition 11 exceeds the partition size limit.
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 12                    07/02/2003 12:35:43   Page 18
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 12 of 21
+
+Partition Size:
+   Actual: 101688
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 12:
+
+
+Symbols in Partition 12:
+
+ *Type     File ID    Symbol
+    F          10     __utils_MOD_sort_i
+    F          43     check_table
+    F          32     closefiles
+    F          10     __utils_MOD_psrsperm_r8
+    F          10     __utils_MOD_psrsperm_i4
+    F          10     __utils_MOD_psrsperm_i8
+    F          10     __utils_MOD_pswssort
+
+  Type:  F=function     D=data
+
+Source Files for Partition 12:
+
+ *Origin     File ID     Source File Name
+     P           10      utils.f90
+     P           32      close_files.f90
+     P           43      check_table.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 13                    07/02/2003 12:35:43   Page 19
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 13 of 21
+
+Partition Size:
+   Actual: 149604
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 13:
+
+
+Symbols in Partition 13:
+
+ *Type     File ID    Symbol
+    F          21     tree_fill
+
+  Type:  F=function     D=data
+
+Source Files for Partition 13:
+
+ *Origin     File ID     Source File Name
+     P           20      get_address.f90
+     P           21      tree_fill.f90
+     P           27      make_hashentry.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+1586-321 (I) The minimum size of partition 13 exceeds the partition size limit.
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 14                    07/02/2003 12:35:43   Page 20
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 14 of 21
+
+Partition Size:
+   Actual: 165288
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 14:
+
+
+Symbols in Partition 14:
+
+ *Type     File ID    Symbol
+    F          23     make_branches
+
+  Type:  F=function     D=data
+
+Source Files for Partition 14:
+
+ *Origin     File ID     Source File Name
+     P           20      get_address.f90
+     P           23      make_branches.f90
+     P           27      make_hashentry.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+1586-321 (I) The minimum size of partition 14 exceeds the partition size limit.
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 15                    07/02/2003 12:35:43   Page 21
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 15 of 21
+
+Partition Size:
+   Actual: 119040
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 15:
+
+
+Symbols in Partition 15:
+
+ *Type     File ID    Symbol
+    F          24     tree_build
+
+  Type:  F=function     D=data
+
+Source Files for Partition 15:
+
+ *Origin     File ID     Source File Name
+     P           20      get_address.f90
+     P           24      tree_build.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 16                    07/02/2003 12:35:43   Page 22
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 16 of 21
+
+Partition Size:
+   Actual: 112044
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 16:
+
+
+Symbols in Partition 16:
+
+ *Type     File ID    Symbol
+    F          16     make_domains
+
+  Type:  F=function     D=data
+
+Source Files for Partition 16:
+
+ *Origin     File ID     Source File Name
+     P           16      make_domains.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 17                    07/02/2003 12:35:43   Page 23
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 17 of 21
+
+Partition Size:
+   Actual: 90516
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 17:
+
+
+Symbols in Partition 17:
+
+ *Type     File ID    Symbol
+    F          10     __utils_MOD_rano
+    F          31     mc_config
+    F          40     randion
+
+  Type:  F=function     D=data
+
+Source Files for Partition 17:
+
+ *Origin     File ID     Source File Name
+     P           10      utils.f90
+     P           30      potenergy.f90
+     P           31      mc_config.f90
+     P           40      randion.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 18                    07/02/2003 12:35:43   Page 24
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 18 of 21
+
+Partition Size:
+   Actual: 76068
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 18:
+
+
+Symbols in Partition 18:
+
+ *Type     File ID    Symbol
+    F          42     predef_parts
+
+  Type:  F=function     D=data
+
+Source Files for Partition 18:
+
+ *Origin     File ID     Source File Name
+     P           42      predef_parts.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 19                    07/02/2003 12:35:43   Page 25
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 19 of 21
+
+Partition Size:
+   Actual: 150240
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 19:
+
+
+Symbols in Partition 19:
+
+ *Type     File ID    Symbol
+    F          36     setup
+
+  Type:  F=function     D=data
+
+Source Files for Partition 19:
+
+ *Origin     File ID     Source File Name
+     P           36      setup.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+1586-321 (I) The minimum size of partition 19 exceeds the partition size limit.
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 20                    07/02/2003 12:35:43   Page 26
+
+                              * * * * *   P a r t i t i o n   M a p    * * * * *
+
+Partition 20 of 21
+
+Partition Size:
+   Actual: 70104
+    Limit: 102400
+
+Partition Description:
+   Additional partition
+
+Compiler Options for Partition 20:
+
+
+Symbols in Partition 20:
+
+ *Type     File ID    Symbol
+    F           8     treemp
+
+  Type:  F=function     D=data
+
+Source Files for Partition 20:
+
+ *Origin     File ID     Source File Name
+     P            8      treemp.f90
+     P           10      utils.f90
+
+ Origin:  P=primary input     PI=primary Include
+
+                       * * * * *   E n d   O f   P a r t i t i o n   M a p   * * * * *
+
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 20                    07/02/2003 12:35:43   Page 27
+
+                            * * * * *   S o u r c e   F i l e   M a p   * * * * *
+
+            Object      Source
+ *Origin   File ID     File ID     Source File Name
+     P         27           1      forces.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:23 
+     P         29           2      sum_force.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:26 
+     P         28           3      forces_bal.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:24 
+     P         22           4      tree_walk.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:17 
+     P         44           5      vis_fields.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:37 
+     P         30           6      fpond.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:26 
+     P         46           7      visit_dump.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:38 
+     P          5           8      treemp.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:34:54 
+     P         33           9      constrain.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:28 
+     P         53          10      utils.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:34:52 
+     P         37          11      diagnostics.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:30 
+     P         40          12      draw_domains.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:33 
+     P         32          13      push.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:28 
+     P         31          14      velocities.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:27 
+     P          7          15      configure.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:34:58 
+     P         17          16      make_domains.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:05 
+     P         12          17      scramble_v.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:02 
+     P         10          18      maxwell1.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:01 
+     P         11          19      cold_start.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:01 
+     P         35          20      get_address.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:29 
+     P         20          21      tree_fill.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:10 
+     P         21          22      tree_properties.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:12 
+     P         19          23      make_branches.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:09 
+     P         18          24      tree_build.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:07 
+     P         38          25      diagnose_tree.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:31 
+     P         42          26      draw_lists.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:35 
+     P         34          27      make_hashentry.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:29 
+     P         26          28      kinenergy.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:23 
+     P         23          29      energy_cons.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:21 
+     P         24          30      potenergy.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:21 
+     P         16          31      mc_config.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:04 
+     P         48          32      close_files.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:40 
+     P         13          33      reset_ions.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:02 
+     P         14          34      beam.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:03 
+     P         47          35      open_files.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:40 
+     P          6          36      setup.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:34:55 
+     P         45          37      dump.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:37 
+     P         51          38      my_mpidefs.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:34:50 
+     P         52          39      treevars.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:34:51 
+     P          8          40      randion.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:34:59 
+     P         15          41      beam_control.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:04 
+     P          9          42      predef_parts.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:00 
+     P         39          43      check_table.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:32 
+     P         49          44      densities.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:41 
+     P         41          45      draw_tree2d.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:34 
+     P         50          46      track_nc.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:41 
+     P         43          47      vis_parts.f90
+                                     - Compiled by XL Fortran for AIX Version 08.01.0000.0003
+                                                on 07/02/2003 12:35:36 
+
+ Origin:  P=primary input     PI=primary Include
+
+                     * * * * *   E n d   O f   S o u r c e   F i l e   M a p   * * * * *
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 20                    07/02/2003 12:35:43   Page 28
+
+                                   * * * * *   M e s s a g e s   * * * * *
+
+ Message Code   Page   Message Text
+
+                            Informational
+ 1586-321 (I)      7   The minimum size of partition 1 exceeds the partition size limit.
+ 
+ 1586-321 (I)     17   The minimum size of partition 11 exceeds the partition size limit.
+ 
+ 1586-321 (I)     19   The minimum size of partition 13 exceeds the partition size limit.
+ 
+ 1586-321 (I)     20   The minimum size of partition 14 exceeds the partition size limit.
+ 
+ 1586-321 (I)     25   The minimum size of partition 19 exceeds the partition size limit.
+ 
+                            * * * * *   E n d   O f   M e s s a g e s   * * * * *
+1586 V1 R1 M00 IBM IPA/AIX                                     Partition 20                    07/02/2003 12:35:43   Page 29
+
+                            * * * * *   M e s s a g e   S u m m a r y   * * * * *
+
+Total   Unrecoverable  Severe       Error     Warning    Informational
+               (U)       (S)         (E)        (W)          (I)
+    5           0         0           0          0            5
+
+                     * * * * *   E n d   O f   M e s s a g e   S u m m a r y   * * * * *
+
+                         * * * * *   E n d   O f   C o m p i l a t i o n   * * * * *
