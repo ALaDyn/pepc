@@ -175,6 +175,7 @@ module treevars
   logical :: branch_debug=.false.
   logical :: prefetch_debug=.false.
   logical :: walk_debug=.false.
+  logical :: walk_summary=.false.
   logical :: force_debug=.false.
   logical :: dump_tree=.false.
   logical :: perf_anal=.false.  ! Performance analysis mode: turns off all diagnostic routines
