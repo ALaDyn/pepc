@@ -22,12 +22,13 @@ subroutine vis_parts
 
   integer, dimension(num_pe) :: nparts_pe  ! array of npp on each PE
   integer :: icolour(npart_visit_max)
-  integer :: lvisit_active, nskip, nproot, npart_buf, ne_buf, ni_buf, nbufe, nbufi
+  integer :: lvisit_active, nskip, nproot
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, wfdatai
 
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max, box_max, epondx, epondy, epondz,phipond
-  real :: xl_mu, yl_mu, zl_mu, t_fs, wfdatar
+  real :: xl_mu, yl_mu, zl_mu, t_fs, wfdatar, convert_mu
 
+  convert_mu=1.
   simtime = dt*(itime+itime_start)
   nskip = npart/npart_visit_max + 1
   !  nbuf = npp/nskip
@@ -70,21 +71,14 @@ subroutine vis_parts
   if (npart_buf<npart_visit_max) then
      ! send  particle data from all PEs
      if (me==0) then
-        xl_mu = int(xl*convert_mu*100)/100.
-        yl_mu = int(yl*convert_mu*100)/100.
-        zl_mu = int(zl*convert_mu*100)/100.
-        call flvisit_spk_check_connection(lvisit_active)
-!        call flvisit_spk_info_send(npart_buf,xl_mu,yl_mu,zl_mu,zl_mu,ne_buf,ni_buf,np_beam,itime+itime_start)
-
+       call flvisit_spk_check_connection(lvisit_active)
+!       call flvisit_spk_info_send(npart,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
         wfdatai=int(tlaser)
-        wfdatar=propag_laser*convert_mu
-        call flvisit_spk_info_send(npart_buf,xl_mu,yl_mu,zl_mu, zl_mu, &
-             wfdatar, vosc, sigma, tpulse, &
-             ne_buf,ni_buf,npart_buf,wfdatai)
+        wfdatar=tlaser
+        call flvisit_spk_info_send(npart,xl,yl,zl, zl, &
+             x_crit, vosc, sigma, tpulse, &
+             ne,ni,npart,wfdatai)
 
-!        call flvisit_spk_info_send(npart_buf,xl_mu,yl_mu,zl_mu, zl_mu, &
-!             propag_laser*convert_mu, vosc, sigma, tpulse, &
-!             ne_buf,ni_buf,npart_buf,int(tlaser))
      endif
 !
 ! visit info block format in spk4
@@ -110,16 +104,18 @@ subroutine vis_parts
 
      if (me.eq.0) then
 
-        call flvisit_spk_particles_send(tlaser*convert_fs,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart_buf)
+        call flvisit_spk_particles_send(tlaser,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart_buf)
      endif
 
   else
      ! Just send particles on root
      if (me==0) then
         nproot = 0.8*npart/num_pe ! fixed # parts close to npp
+
         call flvisit_spk_check_connection(lvisit_active)
 !        call flvisit_spk_info_send(npp,xl,yl,zl,zl,nep,nip,np_beam,itime+itime_start)
         call flvisit_spk_particles_send(simtime,x,y,z,ux,uy,uz,q,pepid,pelabel,npp)
+
      endif
   endif
 
@@ -138,7 +134,7 @@ subroutine vis_parts
         zvis(j)=(zmin + izd*mvis(j))*convert_mu 
 
      end do
-     !     call flvisit_spk_domains_send( simtime*convert_fs, xvis,yvis,zvis,mvis,branch_owner,xvis,nbranch_sum)
+     call flvisit_spk_domains_send( tlaser, xvis,yvis,zvis,mvis,branch_owner,xvis,nbranch_sum)
 
   endif
 
