@@ -1,0 +1,17 @@
+# LoadLeveler batch job
+# @job_type = parallel
+# @resources = ConsumableCpus(1)
+# @notification = complete
+# @notify_user = p.gibbon@fz-juelich.de
+# @wall_clock_limit = 00:30:00
+# @output = sphere.out
+# @error = sphere.log
+# @node_usage = shared
+# Job size
+# @node = 1
+# @total_tasks = 8
+
+# @queue
+RUN=$HOME/pepc/demo_sphere   ## run directory
+cd $RUN
+poe ../src/pepc -shared_memory yes 

@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# Shell script to concatenate graphical and text output from 
+# arbitrary number of PEs sharing a series of timestamps
+
+DATADIR=$1
+WFNAME=visdata
+
+# Find timestep list
+cd $DATADIR/pe000
+ls parts_info.* |  sed -e 's/parts_info.//g' > ../timesteps
+cd ..
+
+# Find PEs
+ls -d pe* > PE_list
+
+echo "List of timestamps:"; cat timesteps
+echo "List of PEs:"; cat PE_list
+echo
+
+cat timesteps | while read TIMESTAMP
+do
+	echo "Concatenating $WFNAME.$TIMESTAMP:"
+	cat PE_list | while read GNAME
+	do
+		echo "Adding $GNAME"
+		cat $GNAME/parts_dump.$TIMESTAMP >> parts_dump.$TIMESTAMP
+
+	done
+	# make copy of info block
+	cp pe000/parts_info.$TIMESTAMP parts_info.$TIMESTAMP
+	echo
+done
+
