@@ -20,7 +20,7 @@
 IPA=-qipa=inline=laser_bullet:inline=key2addr:inline=make_hashentry:inline=key2node:inline=next_node:inline=key_local
 
 PG=-pg -qfullpath
-DB= -g
+DB= -g -qfullpath -qcheck
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
 #MPITRACE= -L/usr/local/beta/lib -lmpitrace
@@ -28,24 +28,24 @@ LISTING=-qreport -qlist -qlistopt -qsource
 MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
 #MPITRACE= -lmpitrace
 #MPITRACE= -lmpiprof
-MPITRACE=  -lmpihpm -lpmapi
-
-FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
+#MPITRACE=  -lmpihpm -lpmapi
+Q64=-q64
+FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
 TUNE= -qarch=pwr4 -qtune=pwr4 -qhot ## $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) $(DB)  $(TUNE) 
+FFLAGS =  $(FFLAGS1) $(DB) $(Q64)  $(TUNE) 
 
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
 
 # Visit libraries
-# cray
-#VISITLIBS=-L /usr/local/visit/lvisit/apis/spk2 -llvisit_spk -L/usr/local/visit/lvisit/lib -llvisit -L/usr/local/visit/visit20/lib -lvisit 
 # JUMP
 
 VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
+#VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 
+#VISITLIBS=-L/home4/jzam04/jzam0401/tree/pepc/src  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 
 LDFLAGS = $(VISITLIBS) $(MPITRACE)
 
