@@ -67,16 +67,16 @@ subroutine tree_walk(pshort,npshort)
   real, dimension(8) :: xcoc_child, ycoc_child, zcoc_child
 
   real, dimension(0:nlev) :: boxlength
-  logical, dimension(nshortm) :: finished, ignore, mac_ok, requested, nn
+  logical, dimension(nshortm) :: finished, ignore, mac_ok, requested
 
   integer, dimension(num_pe) ::   nactives
   integer, dimension(0:num_pe-1) :: ntoship, &              ! # keys needed
-       nrequested, &           ! # keys requested from elsewhere
-       istart, ic_start, &     ! # fenceposts
-       nplace,&                ! # children (new entries) to place in table
-       nchild_ship       ! # children shipped to others
+                                    nrequested, &           ! # keys requested from elsewhere
+                                    istart, ic_start, &     ! # fenceposts
+                                    nplace,&                ! # children (new entries) to place in table
+                                    nchild_ship       ! # children shipped to others
   ! Key working vars
-  integer*8 :: node_key, kchild, kparent, search_key,  nxchild, cell1
+  integer*8 :: node_key, kchild, kparent, search_key,  nxchild
 
   integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops          ! loop counters
   integer :: nnew, nshare, newrequest, nreqs, i1, i2, ioff, ipack, source_id
@@ -89,16 +89,16 @@ subroutine tree_walk(pshort,npshort)
   real :: sbox, theta2, dx, dy, dz, s2
 
   ! stuff for tree-patch after traversals complete
-  integer ::  node_addr, parent_addr, parent_node, child_byte, level_match, ibit
+  integer ::  node_addr, parent_addr, parent_node, child_byte
   integer :: jmatch(1)
-  logical :: resolved, keymatch(8), emulate_blocking=.false., contained
+  logical :: resolved, keymatch(8), emulate_blocking=.false.
 
   integer :: key2addr        ! Mapping function to get hash table address from key
 
   npackm = size_tree
   nchild_shipm = size_tree
   !walk_debug = .false.
-  ! ipefile = 6
+ ! ipefile = 6
   if (walk_debug) write(ipefile,'(/a,i6)') 'TREE WALK for timestep ',itime
 
   sbox = boxsize
@@ -165,17 +165,6 @@ subroutine tree_walk(pshort,npshort)
 
            s2 = boxlength( node_level(walk_node(i)) )**2
            mac_ok(i) = ( s2 < theta2*(dx**2+dy**2+dz**2 ) )             ! Preprocess MAC
-           level_match =  log(1.*walk_key(i))/log(2.**idim)  ! node level
-
-           ibit = nlev-level_match               ! bit shift factor 
-
-           cell1 = ishft( pekey(pshort(plist(i))), -idim*ibit )    ! strip lowest order bits of particle key
-           contained = (cell1 == walk_key(i))  ! particle sits inside node if keys match at this level
-           if (.not. coulomb .and. .not. contained) then
-              nn(i) = (dx**2+dy**2+dz**2 < r_neighbour**2)   ! Neighbour sphere
-           else
-              nn(i) = .true.  ! always include if Coulomb switched on
-           endif
         end do
         add_key(1:nlist) = walk_key(1:nlist)                                ! Remember current key
 
@@ -186,13 +175,8 @@ subroutine tree_walk(pshort,npshort)
         do i=1,nlist
 
 
-           if (.not. nn(i) ) then
-              !  Additional case for short-range forces - only search within NN sphere
-              walk_key(i) = walk_next(i)
-
-
-              ! 1) MAC test OK, so put cell on interaction list and find next node for tree walk
-           else if ( mac_ok(i) .or. (walk_node(i) >0 .and. .not.ignore(i) ) ) then
+           ! 1) MAC test OK, so put cell on interaction list and find next node for tree walk
+           if ( mac_ok(i) .or. (walk_node(i) >0 .and. .not.ignore(i) ) ) then
               walk_key(i) = walk_next(i)
               nterm(plist(i)) = nterm(plist(i)) + 1
               intlist( nterm( plist(i)), plist(i) ) = add_key(i)      ! Augment interaction list
@@ -315,18 +299,18 @@ subroutine tree_walk(pshort,npshort)
            ic_start(ipe) = i1        ! fencepost
            rec_child_count = rec_child_count + 1  ! receive counter
 
-           ! First initiate receives for returning child info
+     ! First initiate receives for returning child info
            call MPI_IRECV( get_child(i1), nplace(ipe), MPI_type_multipole, ipe, tag1, &
                 MPI_COMM_WORLD, recv_child_handle(rec_child_count), ierr)
            i1 = i1+nplace(ipe)
 
-           ! Extract sub-list of keys to request according to location - don't overwrite buffer!
+     ! Extract sub-list of keys to request according to location - don't overwrite buffer!
 
            ship_key(1:ntoship(ipe),ipe) = pack(request_key(1:nshare), mask = request_owner(1:nshare) == ipe )
 
            if (emulate_blocking) then
               call MPI_SEND(ship_key(1,ipe), ntoship(ipe), MPI_INTEGER8, ipe, tag1, &
-                   MPI_COMM_WORLD,  ierr ) ! Ship to data location
+                MPI_COMM_WORLD,  ierr ) ! Ship to data location
            else
               call MPI_ISEND(ship_key(1,ipe), ntoship(ipe), MPI_INTEGER8, ipe, tag1, &
                    MPI_COMM_WORLD, send_key_handle(rec_child_count), ierr ) ! Ship to data location
@@ -511,7 +495,7 @@ subroutine tree_walk(pshort,npshort)
 
      nactive = count( mask = nwalk(1:npshort) /= 0 )     ! Count remaining 'active' particles - those still with deferred nodes to search
 
-     !   call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
+  !   call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
 
      ! Broadcast # remaining particles to other PEs
 
