@@ -7,18 +7,18 @@
  !walk_debug=.true.
 ! particles
   ne =0
-  ni = 1000 
+  ni = 100 
 
  ! initial_config = 1   ! sphere
  !  initial_config = 2         ! random disc
   !  initial_config=3   ! wire
- !  initial_config = 0         ! rectangular slab
+   initial_config = 0         ! rectangular slab
   !  initial_config = 10     ! read from parts_all.in
 ! initial_config = 4 ! ellipsoid
 ! initial_config = 5 ! wedge
 ! initial_config = 6 ! hemisphere
 ! initial_config = 7 ! hollow sphere
- initial_config = 8 ! hollow semisphere
+! initial_config = 8 ! hollow semisphere
 
 
 ! physics stuff
@@ -32,9 +32,9 @@
   lenjones = .false.
   bond_const = 2.e-5
   r_sphere = 3
-  x_plasma = .5    ! plasma disc thickness/ wire length
-  y_plasma = 1.     ! plasma width (slab target)
-  z_plasma = 2.     ! plasma width (slab target)
+  x_plasma = 6    ! plasma disc thickness/ wire length
+  y_plasma = 6.     ! plasma width (slab target)
+  z_plasma = 6.     ! plasma width (slab target)
   xl = 6  ! graphics box size
   yl =6 
   zl =6 
@@ -65,7 +65,7 @@
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =400
+  nt =2000
   dt = 1
   eps = 0.2
  restart = .false.
