@@ -148,4 +148,35 @@ list_NNNIII.gle   Interaction list of particle III on CPU NNN.
 		   
 		   http://www.uark.edu/misc/vlabella/gle/gle.html
 
+-------------------------------------------------
 
+ Visualization
+---------------
+
+Online/interactive visualisation for PEPC is available through a separate AVS application.
+By default, this is in the directory:
+
+$HOME/demo/spkview
+
+To use the visualisation, go to this directory and start the AVS application (.v files):
+
+cd $HOME/demo/spkview
+./callxp -ne eqm.v 
+
+You should see AVS come up with 4 seperate windows: 
+1. Mail AVS/Express panel 
+2. VISIT application/steering panel
+3. Options (ExampleApplication) panel
+4. Scene viewer
+
+Now go to the run directory on JUMP and edit the .h input deck, for example:
+
+	vis_on = .true.	         ! switch on visualisation
+	ivis = 5                 ! data transmission rate (timesteps) 
+
+Start the PEPC script:
+
+./eqm.sh
+
+If all is well, packets of particle/field data should be sent to the vis. application at
+regular intervals and start to appear in the Scene panel.
