@@ -29,18 +29,15 @@ subroutine make_domains(xl,yl,zl)
   integer :: i, j, ind_recv, inc
 
 
-  integer :: i1, i2, i3, ibegin, rec_count, iwait, ipack, ipe, source_id, send_count, nplace, insert_loc
-  integer :: send_part_count, n_reqs
-  integer :: ixc, iyc, izc, nbits
+  integer :: nbits
 
 
   real :: s
   real :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
-  logical :: boundary_debug=.false., key_debug=.false.
+  logical :: boundary_debug=.false. 
 
 
   ! arrays for parallel sort
-  integer :: npg, mp
   integer*8 :: xarray(nppm),keys(nppm),w1(nppm),wi2(nppm),wi3(nppm)
   integer :: indxl(nppm),irnkl(nppm)
 
@@ -52,7 +49,7 @@ subroutine make_domains(xl,yl,zl)
   integer :: errcount
 
   integer, dimension(nppm) ::  w2, w3 ! scratch arrays for integer*4 permute
-  real, dimension(nppm) :: wr1, wr2, wr3 ! Scratch for real array permute
+  real, dimension(nppm) :: wr2, wr3 ! Scratch for real array permute
   integer*8 :: tmp
   logical :: sort_debug=.false.
 
@@ -139,7 +136,7 @@ subroutine make_domains(xl,yl,zl)
   end do
 
  
-  if (domain_debug.and.me==50) then
+  if (domain_debug) then
      write (ipefile,'(a,2z20)') 'Box keys:', key_box(1),key_box(2)
      write (ipefile,'(/a/a/(z21,i8,5f12.4))') 'Particle list before key sort (1st 10):', &
           '  key,             label   coords     q ', &
@@ -155,7 +152,7 @@ subroutine make_domains(xl,yl,zl)
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
 
-  if (domain_debug.and.me==50) then
+  if (domain_debug) then
      write (*,*) 'MPI psrssort() commencing'
      write (*,*) 'iproc=',me
      write (*,*) 'num_pe=',num_pe
@@ -166,6 +163,7 @@ subroutine make_domains(xl,yl,zl)
   niterations = 3  ! Max # iterations
   errcount = 1
   npold = npp
+  npnew = npp
 
 
   ! start permutation of local key list
@@ -192,15 +190,15 @@ subroutine make_domains(xl,yl,zl)
         enddo
      endif
 
-  if (domain_debug.and.me==50) then
-          write (*,'(a/(i5,z20))') 'input array (1st 10):  ',(i,keys(i),i=1,10)
-          write (*,'(a/(i5,z20))') 'input array (last 10):  ',(i,keys(i),i=npold-10,npold)
-         write (ipefile,*) 'npold=',npold
+  if (domain_debug.and.me==0) then
+          write (*,'(a/(i5,z20,f15.3))') 'input array (1st 10):  ',(i,keys(i),work(i),i=1,10)
+          write (*,'(a/(i5,z20,f15.3))') 'input array (last 10):  ',(i,keys(i),work(i),i=npold-10,npold)
+         write (*,*) 'npold=',npold
  endif
 
      ! perform index sort on keys
-     call pll_weightsort(nppm,npold,npnew,num_pe,me,keys,indxl,irnkl, &
-          islen,irlen,fposts,gposts,w1,work,load_balance,key_box,sort_debug)
+     call pll_weightsort(nppm,npold,npnew,num_pe,me,keys, &
+          indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
 
 
      do i=1,npold
@@ -243,8 +241,8 @@ subroutine make_domains(xl,yl,zl)
         call MPI_RECV(tmp, one, MPI_INTEGER8, me_plus_one, tag1, MPI_COMM_WORLD, status, ierr)
      endif
 
- !    if (me .ne. num_pe-1) then
-     if (me == 50 ) then
+     if (me .ne. num_pe-1) then
+ !    if (me == 50 ) then
         if (domain_debug .and. tmp .lt. w1(npnew)) then          ! still something to sort
            write (*,'(a,i3,a1,2z20)') 'w1(npnew), w1(1) from',me+1, '=',w1(npnew),tmp
            errcount = errcount + 1  

@@ -336,7 +336,8 @@ contains
 
 
 
-  subroutine pswssort(nppm,np,npnew,nprocs,iproc,keys,indxl,irnkl, islen,irlen,fposts,gposts,w1,wload,balance,key_box,debug)
+  subroutine pswssort(nppm,np,npnew,nprocs,iproc,keys, &
+       indxl,irnkl, islen,irlen,fposts,gposts,w1,wload,key_box,balance,debug)
 
    use my_mpidefs
 
@@ -361,25 +362,26 @@ contains
     !     Clark.Mobarry@gsfc.nasa.gov, {mobarry,crawford}@maxwell.gsfc.nasa.gov
 
     implicit  none
-    logical, intent(in) :: debug, balance
-    integer :: nppm,np,npnew,nprocs,iproc
-    integer, parameter :: binmult=40000
+    integer, intent(in) :: nppm,np,nprocs,iproc
+    integer, intent(out) :: npnew
+    integer, parameter :: binmult=10000
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    w1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
+    logical :: debug, balance
     real :: wload(nppm), w2(nppm)
     integer*8, dimension(2) :: key_box
     integer, dimension(nprocs) :: islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts !  fencepost index and key values for shuffle
-    integer, parameter :: maxprocs = 1024
-    integer :: itabr(maxprocs), itabl(maxprocs+1)
+!    integer, parameter :: maxprocs = 1024
+    integer :: itabr(nprocs), itabl(nprocs+1)
     real, dimension(binmult*nprocs)  :: f_local, f_global
-    integer*8 :: fpval(maxprocs+1)
-    integer*8 :: lmax, lmin, key_min, key_max, gkey_min, gkey_max, step, step_old  ! Key mins and maxes and step size
-    integer :: ak, nbin, ibin, npost, itag
+    integer*8 :: fpval(nprocs+1)
+    integer*8 :: lmax, lmin, key_min, key_max, gkey_min, gkey_max, step ! Key mins and maxes and step size
+    integer*8 :: step_reduced
+    integer :: nbin, ibin, itag
     real :: ave_work, f_integral
-    integer :: buf(maxprocs)
-    integer ::  i,j,k, fd, nsamp, nfill
+    integer ::  i,k, fd, nfill
     character(13) :: cfmt
 
     nbin = binmult*nprocs  ! must correspond to array size
@@ -410,7 +412,7 @@ contains
 
 
     step=(gkey_max - gkey_min)/nbin + 1
-!!    step = (key_box(2) - key_box(1))/nbin + 1
+    step_reduced = (key_box(2) - key_box(1))/nbin + 1
 
 ! Set min/max limits
 !    key_min = key_box(1)
@@ -758,6 +760,7 @@ contains
 
 
   subroutine blankn(ichan)
+  integer :: ichan
     write(ichan,'(/)')
   end subroutine blankn
 
