@@ -58,6 +58,7 @@ subroutine track_nc
  !  start indices
   icm = xc1/dx
   icp = icm+1
+  icrit = icm
   found = .false.
   rho_track = 1.5   ! tracking density
 

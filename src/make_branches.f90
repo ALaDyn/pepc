@@ -226,9 +226,10 @@ subroutine make_branches
 
   end do
 
-  if ( branch_debug) write (ipefile,'(2(/a20,i6,a1,i6))') 'New twigs: ',newtwig,'/',ntwig+newtwig, &
-       'New leaves:',newleaf,'/',nleaf+newleaf
-
+  if ( branch_debug) then
+     write (ipefile,'(2(/a20,i6,a1,i6))') 'New twigs: ',newtwig,'/',ntwig+newtwig, 'New leaves:',newleaf,'/',nleaf+newleaf
+     write (ipefile,*) 'Total # branches = ',nbranch_sum
+  endif
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
   nleaf = nleaf + newleaf  ! Total # leaves/twigs in local #table

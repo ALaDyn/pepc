@@ -17,24 +17,24 @@
 #FFLAGS =  -q64 -qrealsize=8 -qsuffix=f=f90  -O4 -Q -qipa -qarch=pwr4 -qstrict -qreport  -qlist -qsource -I/usr/local/include 
 
 
-IPA=-qipa=inline=laser_bullet:inline=key2addr:inline=make_hashentry:inline=key2node:inline=next_node:inline=key_local
+IPA=-qipa=inline=key2addr:inline=make_hashentry:inline=key2node:inline=next_node
 
 PG=-pg -qfullpath
-DB= -g -qfullpath -qcheck
+#DB= -g -qfullpath -qcheck
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
 #MPITRACE= -L/usr/local/beta/lib -lmpitrace
 #MPITRACE= -L/usr/local/beta/lib -lmpiprof
-MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
+#MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
 #MPITRACE= -lmpitrace
 #MPITRACE= -lmpiprof
 #MPITRACE=  -lmpihpm -lpmapi
 Q64=-q64
 FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
-TUNE= -qarch=pwr4 -qtune=pwr4 -qhot ## $(IPA) 
+TUNE= -qarch=pwr4 -qtune=pwr4 -qhot $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) $(DB) $(Q64)  $(TUNE) 
+FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(TUNE) 
 
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -42,7 +42,7 @@ FFLAGS =  $(FFLAGS1) $(DB) $(Q64)  $(TUNE)
 # Visit libraries
 # JUMP
 
-VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
+#VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
 #VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 
 #VISITLIBS=-L/home4/jzam04/jzam0401/tree/pepc/src  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
@@ -52,7 +52,11 @@ LDFLAGS = $(VISITLIBS) $(MPITRACE)
 .SUFFIXES: .f90
 
 
-FC = /usr/bin/mpxlf90_r
+FC = mpxlf90_r
+
+# KOJAK instrumentation
+#FC = mpxlf90_r -qdebug=function_trace
+#FC = kinst mpxlf90_r
 
 # -------------------------------------------------------------------------------------------
 # Source files
@@ -78,7 +82,7 @@ SOURCES.f90 =	treemp.f90 \
 		forces.f90 sum_force.f90 sum_lennardjones.f90\
 		fpond.f90 \
 		velocities.f90 \
-		push.f90 constrain.f90 reinject.f90 earth_plate.f90 \
+		push.f90 reinject.f90 earth_plate.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 		diagnostics.f90 \
 	        diagnose_tree.f90 check_table.f90 \
@@ -121,8 +125,8 @@ mods:   $(MODS)
 pepc:	$(OBJECTS) 
 	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MODS)
 
-pepc2:	$(OBJECTS) 
-	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MODS)
+pepck:	$(OBJECTS) 
+	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MODS) 
 
 debug:	$(OBJECTS)
 	@echo "Loading object files using flags $(DBFLAGS)"
@@ -134,7 +138,7 @@ rand:	 rantest.o
 
 
 clean:
-	/bin/rm -f bin/*.o  *% *~ bin/key rand *.o *.pif core pepc *.mod 
+	/bin/rm -f bin/*.o  *% *~ bin/key rand *.o *.pif core *.mod 
 
 cleanbin: /bin/rm -r pepc debug core
 

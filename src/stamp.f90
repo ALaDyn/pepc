@@ -18,10 +18,10 @@ subroutine stamp(istream,ibegin)
 
         write(istream,'(//a20,a12/a20,a12/a20,a12//)') 'PEPC run on ' & 
              ,cdate(7:8)//'/'//cdate(5:6)//'/'//cdate(1:4) &
-             ,'Time: ',ctime(1:2)//':'//ctime(3:4),' GMT+',czone
+             ,'Time: ',ctime(1:2)//':'//ctime(3:4)//':'//ctime(5:6),' GMT+',czone
 
      else 
-        write(istream,'(a,a6)') 'Finished run at time: ',ctime(1:2)//':'//ctime(3:4)
+        write(istream,'(a,a9)') 'Finished run at time: ',ctime(1:2)//':'//ctime(3:4)//':'//ctime(5:6)
      endif
 end subroutine stamp
 

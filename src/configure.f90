@@ -1,4 +1,4 @@
-! ==============================================
+! =============================================
 !
 !                CONFIGURE
 !
@@ -90,15 +90,18 @@ subroutine configure
   call make_domains    ! Domain decomposition: allocate particle keys to PEs
   call tree_build      ! Build trees from local particle lists
   call make_branches   ! Determine and concatenate branch nodes
+!  if (me>=250) call  diagnose_tree
+!  close(ipefile)
   call tree_fill       ! Fill in remainder of local tree
+
   call tree_properties ! Compute multipole moments for local tree
-  !  call MPI_FINALIZE(ierr)
-  !  call closefiles
-  ! stop
+!    call MPI_FINALIZE(ierr)
+!    call closefiles
+!   stop
   if (coulomb .or. lenjones) then
      call forces(1,npp,dt,t_walk,t_force)          ! Calculate initial potentials and forces
   endif
-  call diagnostics
+  if (.not. perf_anal) call diagnostics
 end subroutine configure
 
 

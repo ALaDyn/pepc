@@ -78,13 +78,13 @@ subroutine vis_parts
      ! increase momentum threshold if close to max ship # 
      if (1.0*npart_buf/npart_visit_max > 0.9) uthresh=uthresh*1.1
      if (me==0) then
-        call flvisit_spk_check_connection(lvisit_active)
+!        call flvisit_spk_check_connection(lvisit_active)
         !       call flvisit_spk_info_send(npart_buf,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
         wfdatai=int(tlaser)
         wfdatar=tlaser
-        call flvisit_spk_info_send(npart_buf,xl,yl,zl, zl, &
-             x_crit, amp_las, sigma, tpulse, &
-             ne,ni,npart,wfdatai)
+!        call flvisit_spk_info_send(npart_buf,xl,yl,zl, zl, &
+!             x_crit, amp_las, sigma, tpulse, &
+!             ne,ni,npart,wfdatai)
 
      endif
      !
@@ -111,7 +111,7 @@ subroutine vis_parts
  
      if (me.eq.0) then
 
-        call flvisit_spk_particles_send(tlaser,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart_buf)
+!        call flvisit_spk_particles_send(tlaser,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart_buf)
      endif
 
   else
@@ -127,15 +127,15 @@ subroutine vis_parts
         endif
            nproot = 0.8*npart/num_pe ! fixed # parts close to npp
 
-           call flvisit_spk_check_connection(lvisit_active)
+!           call flvisit_spk_check_connection(lvisit_active)
            !        call flvisit_spk_info_send(npp,xl,yl,zl,zl,nep,nip,np_beam,itime+itime_start)
            wfdatai=int(tlaser)
            wfdatar=tlaser
-           call flvisit_spk_info_send(nproot,xl,yl,zl, zl, &
-                x_crit, amp_las, sigma, tpulse, &
-                ne,ni,npart,wfdatai)
+!           call flvisit_spk_info_send(nproot,xl,yl,zl, zl, &
+!                x_crit, amp_las, sigma, tpulse, &
+!                ne,ni,npart,wfdatai)
 
-           call flvisit_spk_particles_send(tlaser,x,y,z,ux,uy,uz,q,pepid,pelabel,npp)
+!           call flvisit_spk_particles_send(tlaser,x,y,z,ux,uy,uz,q,pepid,pelabel,npp)
 
         endif
      endif
@@ -155,7 +155,7 @@ subroutine vis_parts
            zvis(j)=(zmin + (izd+0.05)*mvis(j))*convert_mu 
            mvis(j) = mvis(j)*0.9
         end do
-        call flvisit_spk_domains_send( tlaser, xvis,yvis,zvis,mvis,branch_owner,xvis,nbranch_sum)
+!        call flvisit_spk_domains_send( tlaser, xvis,yvis,zvis,mvis,branch_owner,xvis,nbranch_sum)
 
      endif
 

@@ -22,7 +22,7 @@ subroutine beam_control
 
   ! First check for VISIT connection
 
-  if (me==0)   call flvisit_spk_check_connection(lvisit_active)
+!  if (me==0)   call flvisit_spk_check_connection(lvisit_active)
   call MPI_BCAST( lvisit_active, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
 
   if (lvisit_active==0 )then
@@ -70,19 +70,19 @@ subroutine beam_control
   endif
 
   if (itime == 0 .and. me==0 )  then
-     call flvisit_spk_check_connection(lvisit_active)
+!     call flvisit_spk_check_connection(lvisit_active)
      ! Specify default parameters at beginning of run
-     call flvisit_spk_beam_paraminit_send(theta_beam,phi_beam,r_beam,rho_beam,u_beam)
+!     call flvisit_spk_beam_paraminit_send(theta_beam,phi_beam,r_beam,rho_beam,u_beam)
   endif
 
 
 
   if (me==0) then
-     call flvisit_spk_check_connection(lvisit_active)
+!     call flvisit_spk_check_connection(lvisit_active)
 
      ! Fetch real-time, user-specified control parameters
      if (lvisit_active /= 0) then 
-        call flvisit_spk_beam_param_recv( theta_beam,phi_beam,r_beam,rho_beam,u_beam)
+!        call flvisit_spk_beam_param_recv( theta_beam,phi_beam,r_beam,rho_beam,u_beam)
      else
         write(*,*) ' No Connection to Visualization'
         return

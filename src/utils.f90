@@ -363,7 +363,7 @@ contains
     implicit  none
     logical, intent(in) :: debug, balance
     integer :: nppm,np,npnew,nprocs,iproc
-    integer, parameter :: binmult=10000
+    integer, parameter :: binmult=40000
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    w1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
@@ -409,12 +409,15 @@ contains
     call MPI_ALLREDUCE(lmin, gkey_min, one, MPI_INTEGER8, MPI_MIN,  MPI_COMM_WORLD, ierr )
 
 
-    step_old=(gkey_max - gkey_min)/nbin + 1
-    step = (key_box(2) - key_box(1))/nbin + 1
+    step=(gkey_max - gkey_min)/nbin + 1
+!!    step = (key_box(2) - key_box(1))/nbin + 1
 
 ! Set min/max limits
-    key_min = key_box(1)
-    key_max = key_box(2)
+!    key_min = key_box(1)
+!    key_max = key_box(2)
+    key_min = gkey_min
+    key_max = gkey_max
+    
     if (debug.and.iproc==0) write (*,'(3(a12,z20,a12,z20/),a12,i8,a12,z20)') &
          'local min: ',lmin,' local max: ',lmax, &
          'global min: ',gkey_min,' global max: ',gkey_max, &

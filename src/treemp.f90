@@ -46,7 +46,7 @@ program treemp
   if (me==0) call stamp(6,1)
   if (me==0) call stamp(15,1)
 
-  if (me ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
+!  if (me ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
 
   call openfiles       ! Set up O/P files
 
@@ -96,7 +96,7 @@ program treemp
      call cputime(t_fill)
      call tree_properties ! Compute multipole moments for local tree
      call cputime(t_props)
-!     if (num_pe>1) call tree_prefetch
+     if (num_pe>1 .and. prefetch) call tree_prefetch
      call cputime(t_prefetch)
 
      if (coulomb .or. lenjones) then
@@ -129,7 +129,7 @@ program treemp
      call cputime(t_push)
 
 
-     call diagnostics
+!     call diagnostics
      call cputime(t_diag)
 
 
@@ -157,7 +157,7 @@ program treemp
         write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag-t_push,100*(t_diag-t_push)/ttot
 
         write(ifile,'(a20,2f12.3,a1)') 'Total: ',ttot,100.
-        write(ifile,'(a20,i4,5f12.3)') 'Timing format: ',num_pe,t_domain-t0,t_props-t_domain,t_walk,t_force,ttot
+        write(ifile,'(a20,i4,6f12.3)') 'Timing format: ',num_pe,t_domain-t0,t_props-t_domain,t_prefetch-t_props,t_walk,t_force,ttot
 
      endif
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
@@ -177,15 +177,14 @@ program treemp
 
   call closefiles      ! Tidy up O/P files
 
-  if (me ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
+!  if (me ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
 
-  ! End the MPI run
-  call MPI_FINALIZE(ierr)
 
 ! Time stamp
   if (me==0) call stamp(6,2)
   if (me==0) call stamp(15,2)
-  stop
+  ! End the MPI run
+  call MPI_FINALIZE(ierr)
 end program treemp
 
 

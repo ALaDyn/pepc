@@ -48,7 +48,7 @@ subroutine setup
        vis_on, steering, domain_debug,  mc_init, restart, scheme, particle_bcs, &
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
        dump_tree, perf_anal, coulomb, bonds, lenjones, target_dup, ramp, &
-       walk_summary, &
+       prefetch, walk_summary, branch_debug, tree_debug, &
        constrain_proof, len_tripod, use_multipoles, struct_step, uthresh
 
   !  Default input set
@@ -319,7 +319,7 @@ subroutine setup
 
   size_tree = max(4*nintmax+8*nppm,2000)+1
   maxaddress = size_tree
-  nbaddr = log(1.*maxaddress)/log(2.) + 1
+  nbaddr = log(1.*maxaddress)/log(2.) + 2
   maxaddress = 2**nbaddr
 !  maxaddress = 512
   hashconst = maxaddress-1

@@ -84,16 +84,16 @@ subroutine vis_fields
            end do
         end do
      end do
-     call flvisit_spk_check_connection(lvisit_active)
+!     call flvisit_spk_check_connection(lvisit_active)
 !     call flvisit_spk_info_send(npart,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
         itlas=int(tlaser)
        
-        call flvisit_spk_info_send(npart,xl,yl,zl, zl, &
-             x_crit, amp_las, sigma, tpulse, &
-             ne,ni,npart,itlas)
+!        call flvisit_spk_info_send(npart,xl,yl,zl, zl, &
+!             x_crit, amp_las, sigma, tpulse, &
+!             ne,ni,npart,itlas)
 
-     if (beam_config>=4) call flvisit_spk_3dfieldA_send(mvis,npx,npy,npz)  ! laser potential
-     call flvisit_spk_3dfieldB_send(qvis,npx,npy,npz)  ! ion density
+!     if (beam_config>=4) call flvisit_spk_3dfieldA_send(mvis,npx,npy,npz)  ! laser potential
+!     call flvisit_spk_3dfieldB_send(qvis,npx,npy,npz)  ! ion density
   endif
 
 
