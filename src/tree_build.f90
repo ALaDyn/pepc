@@ -31,7 +31,7 @@ subroutine tree_build
        level, ilev, ibit, newleaf, nbound, nlistnew, ipart, ilist, ipoint, &
        childbyte, parent_addr, &
        level_top, level_match, level_diff, iend, &
-       i1, i2
+       i1, i2, ierr
 
   integer :: key2addr        ! Mapping function to get hash table address from key
 
@@ -66,7 +66,7 @@ subroutine tree_build
  level_top = 1
 ! RH neighbour PE
 
-  if ( me /= lastpe ) then
+  if ( me /= num_pe-1 ) then
 ! First find level shared by last particle pair in list
      key_lo = ieor( pekey(npp), pekey(npp-1) )   ! Picks out 1st position where keys differ
      level_diff =  log(1.*key_lo)/log(2.**idim) 
@@ -89,7 +89,7 @@ subroutine tree_build
 
   if ( me /= 0 ) then
      iend = npp+2
-     if ( me == lastpe ) iend = npp+1         ! End node only has one boundary particle
+     if ( me == num_pe-1 ) iend = npp+1         ! End node only has one boundary particle
 ! First find level shared by first particle pair in list
      key_lo = ieor( pekey(1), pekey(2)  )   ! Picks out lower order bits where keys differ
      level_diff =  log(1.0*key_lo)/log(2.0**idim) 

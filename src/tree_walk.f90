@@ -102,6 +102,10 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
   logical :: ignore, mac_ok
 
   integer :: nrest, ndef
+  integer :: ierr, nbuf, status(MPI_STATUS_SIZE)
+  integer :: tag1=40
+  integer, dimension(num_pe) :: send_key_handle, recv_key_handle
+  integer, dimension(2*nppm) :: send_child_handle, recv_child_handle
 
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
@@ -133,8 +137,8 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
 
   !  Find global max active particles - necessary if some PEs enter walk on dummy pass
 
-  !  call MPI_ALLREDUCE( nactive, maxactive, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
-  call MPI_ALLGATHER( nactive, one, MPI_INTEGER, nactives, one, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+  !  call MPI_ALLREDUCE( nactive, maxactive, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
+  call MPI_ALLGATHER( nactive, 1, MPI_INTEGER, nactives, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
   maxactive = maxval(nactives)
 
@@ -591,7 +595,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
 
      ! Broadcast # remaining particles to other PEs
 
-     call MPI_ALLGATHER( nactive, one, MPI_INTEGER, nactives, one, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+     call MPI_ALLGATHER( nactive, 1, MPI_INTEGER, nactives, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
      maxactive = maxval(nactives)
      nplace_max = maxval(nplace)
@@ -605,8 +609,8 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
      if (walk_summary ) then
         write (ipefile,'(/a,i8,a2)') 'Summary for traversal # ',ntraversals,' :'
         ! Determine global max
-        call MPI_ALLREDUCE( nchild_ship_tot, max_pack, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
-        call MPI_ALLREDUCE( nplace_max, max_nplace, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE( nchild_ship_tot, max_pack, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+        call MPI_ALLREDUCE( nplace_max, max_nplace, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
         write (ipefile,*) ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass,' previous ave: ',sum_inner_old
         write (ipefile,*) ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops,' previous: ',sum_nhops_old
         write (ipefile,*) ' # local children shipped: ',nchild_ship,', global max:',max_pack
@@ -644,8 +648,8 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
   end do
 
   sum_inner_old = sum_inner_pass
-  call MPI_ALLREDUCE( sum_nhops, sum_nhops_old, one, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
-  call MPI_ALLREDUCE( sum_inner_pass, sum_inner_old, one, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
+  call MPI_ALLREDUCE( sum_nhops, sum_nhops_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
+  call MPI_ALLREDUCE( sum_inner_pass, sum_inner_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
   sum_nhops_old = sum_nhops_old/num_pe
   sum_inner_old = sum_inner_old/num_pe
 

@@ -35,7 +35,7 @@ subroutine tree_prefetch(itime)
        istart, ic_start, &     ! # fenceposts
        nplace,&                ! # children (new entries) to place in table
        nchild_ship       ! # children shipped to others
-
+  integer :: ierr
   integer*8, dimension(size_tree) :: last_child   ! List of 'last' children fetched from remote PEs
 
   logical, dimension(size_tree) :: key_present, duplicate

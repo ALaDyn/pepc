@@ -15,7 +15,7 @@ function key2addr(keyin)
 
   implicit none
   integer*8  :: keyin
-  integer :: cell_addr, link_addr, ires,i
+  integer :: cell_addr, link_addr, ires,i, ierr
   logical :: resolved
 
   integer :: key2addr 

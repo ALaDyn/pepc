@@ -54,7 +54,8 @@ contains
 
   subroutine psrsperm_i4(nppm,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
 
-    use my_mpidefs
+    implicit none
+    include 'mpif.h'
 
     integer :: nppm,np,npnew,nprocs,iproc
 
@@ -63,7 +64,7 @@ contains
     integer, dimension(nprocs) ::  islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts
 
-    integer :: i
+    integer :: i,ierr
 
     save
 
@@ -88,7 +89,9 @@ contains
 
   subroutine psrsperm_i8(nppm,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
 
-    use my_mpidefs
+
+    implicit none
+    include 'mpif.h'
 
     integer :: nppm,np,npnew,nprocs,iproc
 
@@ -97,7 +100,7 @@ contains
     integer, dimension(nprocs) ::  islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts
 
-    integer :: i
+    integer :: i,ierr
 
     save
 
@@ -122,7 +125,9 @@ contains
 
   subroutine psrsperm_r8(nppm,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
 
-    use my_mpidefs
+
+    implicit none
+    include 'mpif.h'
 
     integer :: nppm,np,npnew,nprocs,iproc
 
@@ -132,7 +137,7 @@ contains
     integer, dimension(nprocs+1) :: fposts, gposts
 
 
-    integer :: i
+    integer :: i,ierr
 
     save
 
@@ -154,7 +159,6 @@ contains
 
   subroutine psrssort(nppm,np,npnew,nprocs,iproc,keys,indxl,irnkl,islen,irlen,fposts,gposts,w1)
 
-    use my_mpidefs
 
     ! Xiaobo Li, Paul Lu, Jonathan Schaeffer,
     ! John Shillington, Pok Sze Wong, Hanmao Shi,
@@ -172,6 +176,9 @@ contains
     !     Written by C. Mobarry and J. Crawford
     !     NASA/GSFC Code 934, Greenbelt MD, 20771
     !     Clark.Mobarry@gsfc.nasa.gov, {mobarry,crawford}@maxwell.gsfc.nasa.gov
+
+    implicit none
+    include 'mpif.h'
 
     integer :: nppm,np,npnew,nprocs,iproc
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
@@ -191,8 +198,8 @@ contains
 
     integer*8 :: buf(maxprocs)
 
-    integer :: i,j,k,step
-
+    integer :: i,j,k,step, tag1, ierr
+    integer :: status(MPI_STATUS_SIZE)
     integer :: fd, nsamp
     character(13) :: cfmt
 
@@ -230,14 +237,12 @@ contains
 
     tag1 = tag1 + 1
 
-    nbuf = nprocs
 
     if (iproc .ne. 0) then
-       call MPI_SEND(work, nbuf, MPI_integer8, root, tag1, MPI_COMM_WORLD, ierr)
+       call MPI_SEND(work, nprocs, MPI_INTEGER8, 0, tag1, MPI_COMM_WORLD, ierr)
     else
        do i=1,nprocs-1
-          nbuf = nprocs
-          call MPI_RECV(buf, nbuf, MPI_integer8, MPI_ANY_SOURCE, tag1, MPI_COMM_WORLD, status, ierr)
+          call MPI_RECV(buf, nprocs, MPI_INTEGER8, MPI_ANY_SOURCE, tag1, MPI_COMM_WORLD, status, ierr)
           do j=1,nprocs
              work(status(MPI_SOURCE)*nprocs+j) = buf(j)
           enddo
@@ -270,8 +275,7 @@ contains
        enddo
     endif
 
-    nbuf = nprocs+1
-    call MPI_BCAST(fpval, nbuf, MPI_integer8, root,  MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(fpval, nprocs+1, MPI_INTEGER8, 0,  MPI_COMM_WORLD, ierr)
 
 
     fpval(nprocs+1) = lmax+1
@@ -303,8 +307,8 @@ contains
        islen(i) = fposts(i+1) - fposts(i)
     enddo
 
-    call MPI_ALLTOALL( islen,one,MPI_INTEGER, &
-                       irlen,one,MPI_INTEGER, &
+    call MPI_ALLTOALL( islen,1,MPI_INTEGER, &
+                       irlen,1,MPI_INTEGER, &
                        MPI_COMM_WORLD,ierr)
 
 
@@ -339,7 +343,6 @@ contains
   subroutine pswssort(nppm,np,npnew,nprocs,iproc,keys, &
        indxl,irnkl, islen,irlen,fposts,gposts,w1,wload,key_box,balance,debug)
 
-   use my_mpidefs
 
     ! P. Gibbon
     !
@@ -362,9 +365,11 @@ contains
     !     Clark.Mobarry@gsfc.nasa.gov, {mobarry,crawford}@maxwell.gsfc.nasa.gov
 
     implicit  none
+    include 'mpif.h'
+
     integer, intent(in) :: nppm,np,nprocs,iproc
     integer, intent(out) :: npnew
-    integer, parameter :: binmult=10000
+    integer, parameter :: binmult=40000
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    w1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
@@ -380,6 +385,7 @@ contains
     integer*8 :: lmax, lmin, key_min, key_max, gkey_min, gkey_max, step ! Key mins and maxes and step size
     integer*8 :: step_reduced
     integer :: nbin, ibin, itag
+    integer :: status(MPI_STATUS_SIZE),ierr
     real :: ave_work, f_integral
     integer ::  i,k, fd, nfill
     character(13) :: cfmt
@@ -406,9 +412,9 @@ contains
 
     ! Determine global min,max
 
-    call MPI_ALLREDUCE(lmax, gkey_max, one, MPI_INTEGER8, MPI_MAX,  MPI_COMM_WORLD, ierr )
+    call MPI_ALLREDUCE(lmax, gkey_max, 1, MPI_INTEGER8, MPI_MAX,  MPI_COMM_WORLD, ierr )
 
-    call MPI_ALLREDUCE(lmin, gkey_min, one, MPI_INTEGER8, MPI_MIN,  MPI_COMM_WORLD, ierr )
+    call MPI_ALLREDUCE(lmin, gkey_min, 1, MPI_INTEGER8, MPI_MIN,  MPI_COMM_WORLD, ierr )
 
 
     step=(gkey_max - gkey_min)/nbin + 1
@@ -446,8 +452,7 @@ contains
     endif
 
     ! Global distrib
-    nbuf = nbin
-    call MPI_ALLREDUCE(f_local, f_global, nbuf, MPI_REAL8, MPI_SUM,  MPI_COMM_WORLD, ierr )
+    call MPI_ALLREDUCE(f_local, f_global, nbin, MPI_REAL8, MPI_SUM,  MPI_COMM_WORLD, ierr )
 
     if (debug) then
        write(fd,'(a15/(f12.3))') 'Global key distrib: ',(f_global(i),i=1,nbin,nbin/10)
@@ -507,8 +512,8 @@ contains
        islen(i) = fposts(i+1) - fposts(i)
     enddo
 
-    call MPI_ALLTOALL( islen,one,MPI_INTEGER, &
-                       irlen,one,MPI_INTEGER, &
+    call MPI_ALLTOALL( islen,1,MPI_INTEGER, &
+                       irlen,1,MPI_INTEGER, &
                        MPI_COMM_WORLD,ierr)
 
 

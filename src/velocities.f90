@@ -24,7 +24,7 @@ subroutine velocities(p_start,p_finish,delta_t)
   real, intent(in) :: delta_t
   integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
 
-  integer p, i, ne_loc
+  integer p, i, ne_loc, ierr
   real, dimension(nppm) :: uhx, uhy, uhz, accx, accy, accz
   real :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, Te0, Te_uncor, Ti0, Ti_uncor, chie, chii
   real :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm
@@ -88,8 +88,8 @@ subroutine velocities(p_start,p_finish,delta_t)
      sum_2vi = sum_vxi**2 + sum_vyi**2 + sum_vzi**2
 
      ! Find global KE sums
-     call MPI_ALLREDUCE(sum_v2e, global_v2e, one, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-     call MPI_ALLREDUCE(sum_v2i, global_v2i, one, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+     call MPI_ALLREDUCE(sum_v2e, global_v2e, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+     call MPI_ALLREDUCE(sum_v2i, global_v2i, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
 
     ! Te_uncor = 0.5*(global_v2/ne - global_2v/ne**2)      !  uncorrected temperature
@@ -160,7 +160,7 @@ subroutine velocities(p_start,p_finish,delta_t)
      sum_2ve = sum_vxe**2 + sum_vye**2 + sum_vze**2
 
      ! Find global KE sums
-     call MPI_ALLREDUCE(sum_v2e, global_v2e, one, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+     call MPI_ALLREDUCE(sum_v2e, global_v2e, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
 
     ! Te_uncor = 0.5*(global_v2/ne - global_2v/ne**2)      !  uncorrected temperature
@@ -265,7 +265,7 @@ subroutine velocities(p_start,p_finish,delta_t)
      sum_2vi = sum_vxi**2 + sum_vyi**2 + sum_vzi**2
 
      ! Find global KE sums
-!     call MPI_ALLREDUCE(sum_v2i, global_v2i, one, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+!     call MPI_ALLREDUCE(sum_v2i, global_v2i, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
      Ti_uncor = 511*mass_eqm*2./3.*sum_v2i/npp  ! This should equal 3/2 kT for 3v Maxwellian
      Ti0 = Ti_keV  ! normalised electron temp
 

@@ -18,7 +18,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
   integer*8, intent(in) :: keyin
   integer, intent(in) :: nodein, leavesin, codein, ownerin      ! call input parameters
   integer, intent(out) :: newentry  ! address in # table returned to calling routine
-
+  integer :: ierr
   integer :: link_addr, cell_addr, ierror, k, free, addr_count
   logical :: resolved
 

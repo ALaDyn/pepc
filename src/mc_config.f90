@@ -14,7 +14,7 @@ subroutine mc_config
   use utils
   implicit none
 
-  integer :: nmove,i, ipar, j, pe_move
+  integer :: nmove,i, ipar, j, pe_move, ierr
   integer :: iseed0, i_count, i_rate, i_max, mc_dump
   real :: epot, etrial, delta_E, prob1, epold, r 
   real :: xold, yold, zold, xt, yt, zt, xs, ys, zs
@@ -67,7 +67,7 @@ subroutine mc_config
 	pe_move = max(0,min(num_pe,pe_move))
      endif
 
-     call MPI_BCAST(pe_move,one,MPI_INTEGER,root,MPI_COMM_WORLD,ierr)  ! Pass result to other PEs
+     call MPI_BCAST(pe_move, 1, MPI_INTEGER, 0,MPI_COMM_WORLD,ierr)  ! Pass result to other PEs
 
      if (pe_move == me) then
 	i = npp*rano(iseed0)+1  ! select particle
@@ -133,7 +133,7 @@ subroutine mc_config
 
      prob1=exp(-amin1(delta_E/Tplas, 30.))
      r = rano(iseed0)
-     call MPI_BCAST(r,one,MPI_REAL8,root,MPI_COMM_WORLD,ierr)  ! Pass random no. to other PEs
+     call MPI_BCAST(r,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)  ! Pass random no. to other PEs
 
      if (Te_keV == 0.) prob1=0.
 

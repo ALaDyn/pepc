@@ -1,9 +1,11 @@
 subroutine setup_arrays
-  use utils
   use treevars
   use physvars
+  use utils
   implicit none
+
   integer :: ibig, machinebits, maxleaf, maxtwig,k
+  integer :: ierr
 
   !  npartm = npart + nt*np_beam  ! Max # particles permitted
   npartm = npart + np_beam  ! allow 50% fluctuation
@@ -41,11 +43,6 @@ subroutine setup_arrays
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
 
 
-
-  ! Some MPI constants
-  lastpe = num_pe - 1          ! # of last PE
-  me_minus_one = me - 1
-  me_plus_one = me + 1
 
 
   ! array allocation
@@ -104,17 +101,6 @@ subroutine setup_arrays
       ex_loc(0:ngx+1,0:ngy+1,0:ngz+1), ey_loc(0:ngx+1,0:ngy+1,0:ngz+1),  ez_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
       bx_loc(0:ngx+1,0:ngy+1,0:ngz+1), by_loc(0:ngx+1,0:ngy+1,0:ngz+1),  bz_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
       jxe_loc(0:ngx+1,0:ngy+1,0:ngz+1), jye_loc(0:ngx+1,0:ngy+1,0:ngz+1), jze_loc(0:ngx+1,0:ngy+1,0:ngz+1) )   
-
-
-  !  MPI stuff
-
-  allocate (send_counts(num_pe+2), send_strides(num_pe+3), recv_counts(num_pe+2), recv_strides(num_pe+3) )  ! buf lengths and strides
-  allocate ( stat_pe(MPI_STATUS_SIZE, num_pe), & ! status
-       pe_handle(2*num_pe), &  ! Handles for non-blocking comm  2*num_pe
-       send_key_handle(num_pe), &  ! (num_pe)
-       recv_key_handle(num_pe), &
-       send_child_handle(num_pe), & ! (num_pe)
-       recv_child_handle(num_pe) )
 
 
 

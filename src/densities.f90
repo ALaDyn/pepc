@@ -14,6 +14,7 @@ subroutine densities
   real :: rdx, rdy, rdz, dx, dy, dz, cweight
   real :: fx1, fx2, fy1, fy2, fz1, fz2, xa, ya, za
   integer :: i, j, k, ng, i1, i2, j1, j2, k1, k2, jfoc, kfoc
+  integer :: ierr
   character(30) :: cfile
   character(5) :: cme
   character(6) :: cdump, cvis
@@ -79,7 +80,7 @@ subroutine densities
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
 ! gather on root
-  call MPI_REDUCE(rhoi_loc, rhoi, ng, MPI_REAL8, MPI_SUM, root,  MPI_COMM_WORLD, ierr)
-  call MPI_REDUCE(rhoe_loc, rhoe, ng, MPI_REAL8, MPI_SUM, root,  MPI_COMM_WORLD, ierr)
+  call MPI_REDUCE(rhoi_loc, rhoi, ng, MPI_REAL8, MPI_SUM, 0,  MPI_COMM_WORLD, ierr)
+  call MPI_REDUCE(rhoe_loc, rhoe, ng, MPI_REAL8, MPI_SUM, 0,  MPI_COMM_WORLD, ierr)
 
 end subroutine densities

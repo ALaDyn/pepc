@@ -19,7 +19,7 @@ subroutine dump(timestamp)
   character(6) :: cdump
   character(5) :: cme
   integer, intent(in) :: timestamp
-  integer :: i, j, ioffset, idummy=0
+  integer :: i, j, ioffset, idummy=0, ierr
   integer, save :: icall=0
   real :: simtime
 

@@ -24,6 +24,7 @@ subroutine track_nc
   real :: xc1, dx, dy, dz
 
   integer :: icm, icp, nover
+  integer :: ierr
 
   call densities  ! Compute local ion density rhoi_loc on 3D grid
 

@@ -186,7 +186,7 @@ subroutine draw_tree2d(xl,yl)
   end do
 
   !  boundary links
-  if (me /= lastpe) then
+  if (me /= num_pe-1) then
      !     write (60,'(a)') 'set color grey50'
      !     write (60,'(a,2f13.4)') 'aline ',x(npp+1),y(npp+1)
   endif

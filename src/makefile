@@ -15,7 +15,7 @@
 #FFLAGS = -g -q64 -qrealsize=8 -qsuffix=f=f90 -qcheck  
 ## Optimised
 #FFLAGS =  -q64 -qrealsize=8 -qsuffix=f=f90  -O4 -Q -qipa -qarch=pwr4 -qstrict -qreport  -qlist -qsource -I/usr/local/include 
-
+FZJ = -lllapi -lfzj
 
 IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 
@@ -35,9 +35,9 @@ FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90
 TUNE= -qarch=pwr4 -qtune=pwr4 -O5 $(IPA) 
 # $(PG) $(HPM)
 
-#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
-#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
-FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(TUNE)
+FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG)
+#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) ## $(PG) 
+#FFLAGS =   $(FFLAGS1) $(DB) $(Q64) $(TUNE)
 TFLAGS = $(FFLAGS) $(TUNE)
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -73,10 +73,10 @@ FC = mpxlf90_r
 #-------------------------------------------------------------------------------------------
 # Pepc library
 
-PEPCMOD.f90 =  treevars.f90 utils.f90 my_mpidefs.f90
+PEPCMOD.f90 =  treevars.f90 utils.f90 
 PEPCSRC.f90 =  make_domains.f90 setup_arrays.f90 \
 		tree_build.f90  make_branches.f90 tree_fill.f90 tree_properties.f90 \
-		tree_walk.f90	tree_prefetch.f90 sum_force.f90 \
+		tree_walk.f90	tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 	        diagnose_tree.f90 check_table.f90 \
 		draw_domains.f90 draw_tree2d.f90 draw_lists.f90
@@ -178,7 +178,7 @@ default: treemp
 
 #--- Include-Dependencies
 
-my_mpidefs.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+treevars.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 
 
 #--- Module-Dependencies

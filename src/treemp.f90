@@ -35,6 +35,7 @@ program treemp
   real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
+  integer :: ierr
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)

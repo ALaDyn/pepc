@@ -30,7 +30,7 @@ subroutine dump_fields(timestamp)
   character(6) :: cdump, cvis
   integer, intent(in) :: timestamp
   integer :: i, j, k, ioffset, idummy=0, ilev, ixd, iyd, izd, npx, npz, npy
-  integer :: icall, lcount
+  integer :: icall, lcount, ierr
   integer :: jfoc, kfoc, ng, nave
 
   icall = timestamp/ivis

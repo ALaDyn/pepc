@@ -28,7 +28,7 @@ subroutine make_branches
   integer*8 ::  keymin, keymax
   integer :: i, j, k, level, nsubset, ncheck, cchild, nchild, newsub, &
        link_addr, ncoll, nres, nbound, newleaf, newtwig, hashaddr
-  integer :: nleaf_check, ntwig_check, nleaf_check2
+  integer :: nleaf_check, ntwig_check, nleaf_check2, ierr
   logical :: resolved
 
   ! Global arrays used:
@@ -132,7 +132,7 @@ subroutine make_branches
   ! first need to find number of branches to be gathered from each PE:
   ! do this by first collecting nbranch values on root.
 
-  call mpi_allgather( nbranch, one, MPI_INTEGER, nbranches, one, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+  call mpi_allgather( nbranch, 1, MPI_INTEGER, nbranches, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
 
   ! work out stride lengths so that partial arrays placed sequentially in global array

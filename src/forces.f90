@@ -34,6 +34,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
   real :: work_loads(num_pe)  ! Load balance array
   integer :: npps(num_pe)  ! Particle distrib amoung PEs
   integer :: max_local,  timestamp
+  integer :: ierr
 
   real :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
   real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind

@@ -12,7 +12,7 @@ subroutine predef_parts
   use treevars
   use utils
   implicit none
-  integer (kind=4) :: i, ipe, idummy
+  integer :: i, ipe, idummy, ierr
 
   character(30) :: cinfile, cdump, cfile
   character(9) :: ct
@@ -81,18 +81,18 @@ subroutine predef_parts
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
 
-  call MPI_BCAST( xl, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( yl, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( zl, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( boxsize, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( theta, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( eps, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( trun, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( tlaser, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( ne, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( ni, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( npart, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( itime_start, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( xl, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( yl, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( zl, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( boxsize, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( theta, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( eps, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( trun, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( tlaser, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( ne, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( ni, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( npart, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( itime_start, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
 
   if (nmerge < 0 ) then
 

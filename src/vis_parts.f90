@@ -21,14 +21,14 @@ subroutine vis_parts
   real, dimension(nppm) :: xv, yv, zv, uxv,uyv,uzv,qv,mv
   integer, dimension(nppm) :: pepidv, pelabelv
 
-  integer, dimension(num_pe) :: nparts_pe  ! array of npp on each PE
+  integer, dimension(num_pe) :: nparts_pe, recv_strides  ! array of npp on each PE
   integer :: icolour(npart_visit_max)
   integer :: lvisit_active, nskip, nproot, ne_buf, ni_buf, npart_buf, nbufe, nbufi
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, wfdatai
 
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max, box_max, epondx, epondy, epondz,phipond
   real :: xl_mu, yl_mu, zl_mu, t_fs, wfdatar, u2, amp_las
-  integer :: nship
+  integer :: nship, ierr
 
   convert_mu=1.
   simtime = dt*(itime+itime_start)
@@ -100,17 +100,17 @@ subroutine vis_parts
 
 
      ! Gather particle data onto root PE
-     call MPI_GATHERV( pepidv, nship, MPI_INTEGER, ppid, nparts_pe, recv_strides, MPI_INTEGER, root, MPI_COMM_WORLD, ierr )
-     !     call MPI_GATHERV( pelabelv, nship, MPI_INTEGER, plabel, nparts_pe, recv_strides, MPI_INTEGER, root, MPI_COMM_WORLD, ierr) 
+     call MPI_GATHERV( pepidv, nship, MPI_INTEGER, ppid, nparts_pe, recv_strides, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr )
+     !     call MPI_GATHERV( pelabelv, nship, MPI_INTEGER, plabel, nparts_pe, recv_strides, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr) 
      plabel(1:npart_buf) = (/ (i,i=1,npart_buf) /) ! Relabel 
-     call MPI_GATHERV( xv, nship, MPI_REAL8, xvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
-     call MPI_GATHERV( yv, nship, MPI_REAL8, yvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
-     call MPI_GATHERV( zv, nship, MPI_REAL8, zvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( xv, nship, MPI_REAL8, xvis, nparts_pe, recv_strides, MPI_REAL8, 0, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( yv, nship, MPI_REAL8, yvis, nparts_pe, recv_strides, MPI_REAL8, 0, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( zv, nship, MPI_REAL8, zvis, nparts_pe, recv_strides, MPI_REAL8, 0, MPI_COMM_WORLD, ierr )
 
-     call MPI_GATHERV( uxv, nship, MPI_REAL8, vx, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
-     call MPI_GATHERV( uyv, nship, MPI_REAL8, vy, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
-     call MPI_GATHERV( uzv, nship, MPI_REAL8, vz, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
-     call MPI_GATHERV( qv, nship, MPI_REAL8, qvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( uxv, nship, MPI_REAL8, vx, nparts_pe, recv_strides, MPI_REAL8, 0, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( uyv, nship, MPI_REAL8, vy, nparts_pe, recv_strides, MPI_REAL8, 0, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( uzv, nship, MPI_REAL8, vz, nparts_pe, recv_strides, MPI_REAL8, 0, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( qv, nship, MPI_REAL8, qvis, nparts_pe, recv_strides, MPI_REAL8, 0, MPI_COMM_WORLD, ierr )
 
  
      if (me.eq.0) then
@@ -164,7 +164,7 @@ subroutine vis_parts
      endif
 
 ! Make sure everyone else knows about new momentum threshold
-     call MPI_BCAST( uthresh, 1, MPI_REAL, root, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( uthresh, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
 
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 

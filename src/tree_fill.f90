@@ -30,7 +30,7 @@ subroutine tree_fill
   logical :: duplicate(size_tree), resolved, keymatch(8)
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
-
+  integer :: ierr
 
   if (tree_debug) write(ipefile,'(/a)') 'TREE FILL'
 

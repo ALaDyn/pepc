@@ -16,7 +16,7 @@ subroutine potenergy(epot_total,emag_total)
   implicit none
   integer :: key2addr        ! Mapping function to get hash table address from key
 
-  integer :: p, i, j 
+  integer :: p, i, j, ierr 
 
   real :: upartial, umag, gamma
   real, intent(out) :: epot_total, emag_total

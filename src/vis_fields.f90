@@ -22,7 +22,7 @@ subroutine vis_fields
   real :: epon_x, epon_y, epon_z, tpon, amp_las
   integer, parameter :: ngmax=100
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, iskip,itlas
-  integer :: lvisit_active
+  integer :: lvisit_active, ierr
   integer :: npx, npy, npz, ng
   integer :: iskip_x, iskip_y, iskip_z
 

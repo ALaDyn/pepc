@@ -7,7 +7,8 @@
  
 module treevars
 
-  use my_mpidefs          ! Machine-specific MPI defs (4-byte IBM, 8-byte Cray)
+  implicit none
+  include 'mpif.h'
 
  ! Constants
 
@@ -88,6 +89,9 @@ module treevars
   type (multipole) :: node_dummy
 
 !  Associated MPI stuff
+
+  integer :: me       ! Rank of current task
+  integer :: num_pe   ! # cpus used by program
 
   integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
   			nprops_multipole=24      ! Number of multipole properties to ship

@@ -12,7 +12,7 @@ subroutine beam_control
   use treevars
   use utils
   implicit none
-  integer :: i, p, iseed1, iseed2
+  integer :: i, p, iseed1, iseed2, ierr
   real :: Volb, dpx, yt, zt, vosc_old, sigma_old, tpulse_old, u_old, theta_old, phi_old
   integer :: lvisit_active
   real :: ct, st, cp, sp, vx_beam, vy_beam, vz_beam, xb, yb, zb
@@ -24,7 +24,7 @@ subroutine beam_control
   ! First check for VISIT connection
 
 !  if (me==0)   call flvisit_spk_check_connection(lvisit_active)
-  call MPI_BCAST( lvisit_active, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( lvisit_active, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
 
   if (lvisit_active==0 )then
      if (me==0) write(*,*) ' No Connection to Visualization'
@@ -94,13 +94,13 @@ subroutine beam_control
 
   ! Broadcast beam parameters to all other PEs
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
-  call MPI_BCAST( lvisit_active, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( lvisit_active, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   if (lvisit_active /= 0) then
-     call MPI_BCAST( theta_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-     call MPI_BCAST( phi_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-     call MPI_BCAST( r_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-     call MPI_BCAST( rho_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
-     call MPI_BCAST( u_beam, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( theta_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( phi_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( r_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( rho_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( u_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
   else
      if (me==0) write(*,*) ' No Connection to Visualization'
      return

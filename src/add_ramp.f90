@@ -16,7 +16,7 @@ subroutine add_ramp
 
     implicit none
 
-    integer              :: i, j
+    integer              :: i, j, ierr
     integer              :: idum, iseed1, iseed2, iseed3, i1, n1,p, k, nramp, nx, ny
     real                 :: qtot, qramp, s, xi, xedge, rind
 

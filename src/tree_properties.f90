@@ -26,7 +26,7 @@ subroutine tree_properties
   real, dimension(n_moments*2*size_tree/num_pe) :: local_moments      ! local branch properties    - size depends on # moments          
   real, dimension(n_moments*size_tree/10) :: branch_moments   ! global branch properties
   integer, dimension(num_pe) :: nbranchmoments ! array containing total # multipole terms*branch list length
-
+  integer, dimension(num_pe) :: recv_strides, recv_counts
   integer, dimension(size_tree) :: bindex, branch_addr, branch_node, branch_level
   logical :: duplicate(size_tree)
 
@@ -37,7 +37,7 @@ subroutine tree_properties
   integer :: i, j, k, maxtwig, maxleaf, maxlevel, nchild, ncheck, ntwig_domain, nsearch, newsub, cchild 
   integer :: node_b, nuniq, nsub, nparent, ilevel, ibr, pno, bno
   integer ::  addr_leaf, p_leaf, node_leaf       ! local leaf-nodes
-
+  integer :: ierr, nbuf
   integer :: key2addr        ! Mapping function to get hash table address from key
 
 

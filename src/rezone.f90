@@ -13,6 +13,7 @@ subroutine rezone
   implicit none
   integer :: i, p, iseed2, iseed3, n1, j, k
   real :: Vdisc, qe_disc, qi_disc, me_disc, mi_disc, dpx, yt, zt, xb, yb, zb, xt
+  integer recv_strides(num_pe)
   integer :: lvisit_active
   integer :: ne_reset, ni_reset ! total # electrons, ions to rezone
   integer :: ne_rez, ni_rez, npp_new, nremove, nremove_tot ! local rezone totals
