@@ -32,6 +32,7 @@ subroutine diagnostics
 
   if (mod(itime,idump)==0 .or. itime==nt ) then
      call dump(itime+itime_start)     ! Dump complete set of particle data
+     call slices(itime+itime_start)  ! 1D lineouts
 
   endif
 

@@ -26,7 +26,7 @@ subroutine velocities(p_start,p_finish,delta_t)
   integer p, i, ne_loc
   real, dimension(nppm) :: uhx, uhy, uhz
   real :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, Te0, Te_uncor, Ti0, Ti_uncor, chie, chii
-  real :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi
+  real :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm
   real :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_loc
 
 !  Available ensemble modes
@@ -237,7 +237,7 @@ subroutine velocities(p_start,p_finish,delta_t)
 
   else if (ensemble == 5) then
      ! Conserve kinetic energy of ions only (initial Ti const)
-
+     mass_eqm = 20.  ! artificial ion mass for eqm stage
      sum_vxi=0.0  ! partial sums (ions)
      sum_vyi=0.0
      sum_vzi=0.0
@@ -260,12 +260,12 @@ subroutine velocities(p_start,p_finish,delta_t)
 
      ! Find global KE sums
 !     call MPI_ALLREDUCE(sum_v2i, global_v2i, one, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-     Ti_uncor = 511*mass_ratio*2./3.*sum_v2i/npp  ! This should equal 3/2 kT for 3v Maxwellian
+     Ti_uncor = 511*mass_eqm*2./3.*sum_v2i/npp  ! This should equal 3/2 kT for 3v Maxwellian
      Ti0 = Ti_keV  ! normalised electron temp
 
 
      chii = sqrt(abs(Ti0/Ti_uncor)) 
-     chii = min(1.5,max(chii,0.5))  ! Set bounds of +- 50%
+     chii = min(1.1,max(chii,0.9))  ! Set bounds of +- 50%
 
 
      !  3)  Complete full step
@@ -273,9 +273,10 @@ subroutine velocities(p_start,p_finish,delta_t)
      do p=1,npp
 
         if (pelabel(p)>=ne) then
-           ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*ax(p)
-           uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*ay(p)
-           uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*az(p)
+       ! make ions lighter for eqm phase
+           ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*mass_i/mass_eqm*ax(p)
+           uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*mass_i/mass_eqm*ay(p)
+           uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*mass_i/mass_eqm*az(p)
         endif
      end do
      delta_Ti = 2*Ti0*(1.0/chii**2-1.0)       !  heating

@@ -207,6 +207,7 @@ module treevars
   real :: rho0           ! electron density (1)
   real :: Vplas          ! plasma volume
   real :: a_ii           ! mean ion spacing
+  real :: r_neighbour    ! nearest-neighbour search radius
   real :: eps            ! potential/force law cutoff
   real :: delta_mc       ! step size for MC config
   real :: displace(3)    ! particle displacement vector for restart (change of view box)

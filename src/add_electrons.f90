@@ -12,6 +12,7 @@
 subroutine add_electrons
 
   use treevars
+  use utils
 
   integer :: i,p, iseed1
   real :: xt, yt, zt

@@ -17,8 +17,8 @@ subroutine sum_lennardjones( p, n, inode, sumfx, sumfy, sumfz, sumphi )
   real, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
   real :: a_bond, d2, dlj2, flj, eps2
 
-!  a_bond = 1.1*(Vplas/ni)**(1./3.)  ! mean interparticle spacing - slightly bigger to push particles onto boundaries
-  a_bond=a_ii*1.05
+ ! mean interparticle spacing - slightly bigger to push particles onto boundaries
+  a_bond=a_ii*sqrt(2.)
   eps2 = (a_bond/4)**2 ! cutoff
   sumfx = 0
   sumfy = 0

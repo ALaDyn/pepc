@@ -17,7 +17,7 @@ subroutine setup
 
   implicit none
   integer :: ibig, machinebits, maxleaf, maxtwig,k, npb_pe
-  real :: q_factor, x_offset, z_offset
+  real :: q_factor, x_offset, z_offset, fnn
   character*7 :: configs(0:10)= (/   'default', &
        'sphere ','disc   ','wire   ','slab   ','       ', &
        '       ','       ','       ','       ','restart' /)
@@ -30,7 +30,7 @@ subroutine setup
        initial_config, &
        Te_keV, Ti_keV, &
        r_sphere, x_plasma, y_plasma, delta_mc, &
-       xl, yl, zl, displace, bond_const, &
+       xl, yl, zl, displace, bond_const, fnn, &
        beam_config, np_beam, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
@@ -76,6 +76,7 @@ subroutine setup
   x_plasma = 0.1    ! plasma disc thickness (2) or wire length (3)
   y_plasma = 1.     ! plasma width (slab target)
   eps = 0.1
+  fnn = 5  ! Neighbour search radius multiplier (x a_ii)
   delta_mc = r_sphere/5.
   displace(1:3) = (/0.,0.,0./)
   ! beam
@@ -203,6 +204,7 @@ subroutine setup
   vti = sqrt(Ti_keV/511./mass_ratio)
   mass_i = mass_e*mass_ratio
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
+  r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
 
   if (ensemble > 1 .and. beam_config<>0) then
      if (me==0) write(*,*) 'Constant-Te mode: turning beam off'
@@ -260,40 +262,54 @@ subroutine setup
 
   if (me==0) then
      do ifile = 6,15,9
+
+        write (ifile,*) ' Plasma config: ',configs(initial_config)
+        write (ifile,*) ' Laser config: ',beam_configs(beam_config)
+        write (ifile,'(a,1pe12.3)') ' Plasma volume: ',Vplas
+        write (ifile,'(a,1pe12.3)') ' Sphere radius: ',r_sphere
+        write (ifile,'(a,1pe12.3)') ' Plasma length: ',x_plasma
+        write (ifile,'(a,1pe12.3)') ' Plasma width: ',y_plasma
+        write (ifile,'(a,1pe12.3)') ' Electron charge: ',qe
+        write (ifile,'(a,1pe12.3)') ' Electron mass: ',mass_e
+        write (ifile,'(a,1pe12.3)') ' Ion mass: ',mass_i
+        write (ifile,'(a,1pe12.3)') ' Te: ',Te_keV
+        write (ifile,'(a,1pe12.3)') ' Ti: ',Ti_keV
+        write (ifile,'(a,1pe12.3)') ' Ion spacing: ',a_ii
+        write (ifile,'(a,1pe12.3)') ' Cutoff radius: ',eps
+        write (ifile,'(a,1pe12.3)') ' Neighbour search radius: ',r_neighbour
+        write (ifile,'(a,1pe12.3)') ' MAC theta: ',theta
+
+        write (ifile,'(a,f9.2,a3,f9.2,a3,f9.2/)') ' Graphics box: ',xl,' x ',yl,' x ',zl
+
+
+        write (ifile,*) ' Electrons: ', ne
+        write (ifile,*) ' Ions: ', ni
+        write (ifile,*) ' Beam particles: ', np_beam
+ 	write (ifile,*) ' Beam angles ',theta_beam, phi_beam
+        write (ifile,*) ' Particles per PE: ', npp
+
+
+        write (ifile,'(/a/a)') ' Switches:','--------'
+        write (ifile,'(a20,l3)') ' Coulomb forces: ',coulomb
+        write (ifile,'(a20,l3)') ' Lennard-Jones forces: ',lenjones
+
+        write (ifile,'(a20,l3)') ' load balance: ',load_balance
+        write (ifile,'(a20,l3)') ' walk balance: ',walk_balance
+        write (ifile,'(a20,l3)') ' restart: ',restart
+
+        write (ifile,'(a20,l3)') ' domain debug: ',domain_debug
+        write (ifile,'(a20,l3)') ' walk debug: ',walk_debug
+        write (ifile,'(a20,l3)') ' dump tree: ',dump_tree
+        write (ifile,'(a20,l3)') ' performance anal.: ',perf_anal
+        write (ifile,'(a20,l3)') ' visit: ',vis_on
+        write (ifile,'(a20,l3/)') ' steering: ',steering
         write (ifile,*) 'Max address in #-table: ',2**nbaddr-1
         machinebits = bit_size(1_8)    ! # bits in integer variable (hardware) 
         write (ifile,*) 'Machine bit-size = ',machinebits
         write (ifile,*) 'Max permitted particles / PE: ', nppm
         write (ifile,*) 'Max size of interaction lists: ', nintmax
 	write (ifile,*) 'Shortlist length: ',nshortm
-        write (ifile,*) 'Electrons: ', ne
-        write (ifile,*) 'Ions: ', ni
-        write (ifile,*) 'Beam particles: ', np_beam
- 	write (ifile,*) 'Beam angles ',theta_beam, phi_beam
-        write (ifile,*) 'Particles per PE: ', npp
         write (ifile,*) 'Memory needed for lists = ',4*nintmax*nshortm*8/2**20,' Mbytes'
-        write (ifile,*) 'Plasma config: ',configs(initial_config)
-        write (ifile,*) 'Laser config: ',beam_configs(beam_config)
-        write (ifile,'(a,1pe12.3)') 'Plasma volume: ',Vplas
-        write (ifile,'(a,1pe12.3)') 'Ion spacing: ',a_ii
-        write (ifile,'(a,1pe12.3)') 'Sphere radius: ',r_sphere
-        write (ifile,'(a,1pe12.3)') 'Electron charge: ',qe
-        write (ifile,'(a,1pe12.3)') 'Electron mass: ',mass_e
-        write (ifile,'(a,1pe12.3)') 'Ion mass: ',mass_i
-        write (ifile,'(a,1pe12.3)') 'Te: ',Te_keV
-        write (ifile,'(a,1pe12.3)') 'Ti: ',Ti_keV
-
-        write (ifile,'(a,1pe12.3)') 'Cutoff radius: ',eps
-        write (ifile,'(/a/a)') 'Switches:','--------'
-        write (ifile,'(a20,l3)') 'load balance: ',load_balance
-        write (ifile,'(a20,l3)') 'walk balance: ',walk_balance
-        write (ifile,'(a20,l3)') 'restart: ',restart
-
-        write (ifile,'(a20,l3)') 'domain debug: ',domain_debug
-        write (ifile,'(a20,l3)') 'walk debug: ',walk_debug
-        write (ifile,'(a20,l3)') 'dump tree: ',dump_tree
-        write (ifile,'(a20,l3)') 'performance anal.: ',perf_anal
-        write (ifile,'(a20,l3)') 'visit: ',vis_on
 
         write (ifile,'(/a)') 'Other inputs:'
 	write(ifile,NML=pepcdata)

@@ -158,5 +158,6 @@ subroutine beam_control
      a_ii = r_beam
      Ti_kev = u_beam
      bond_const = 10**(rho_beam)
+     if (me==0) write(*,*) 'Steering pars: a_i=',a_ii,' Ti=',Ti_kev,' Pot strength=',bond_const
   endif
 end subroutine beam_control
