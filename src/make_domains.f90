@@ -26,7 +26,7 @@ subroutine make_domains(xl,yl,zl)
   integer*8, dimension(2) :: ixbox, iybox, izbox, key_box
 
   integer ::  source_pe(nppm)
-  integer :: i, j, ind_recv, inc
+  integer :: i, j, ind_recv, inc, prev, next, handle(4)
 
 
   integer :: nbits
@@ -36,6 +36,7 @@ subroutine make_domains(xl,yl,zl)
   real :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
   logical :: boundary_debug=.false. 
 
+  integer status(MPI_STATUS_SIZE), ierr, tag1
 
   ! arrays for parallel sort
   integer*8 :: xarray(nppm),keys(nppm),w1(nppm),wi2(nppm),wi3(nppm)
@@ -47,7 +48,7 @@ subroutine make_domains(xl,yl,zl)
   integer :: npnew,npold
   integer :: iteration, niterations
   integer :: errcount
-
+ 
   integer, dimension(nppm) ::  w2, w3 ! scratch arrays for integer*4 permute
   real, dimension(nppm) :: wr2, wr3 ! Scratch for real array permute
   integer*8 :: tmp
@@ -66,12 +67,12 @@ subroutine make_domains(xl,yl,zl)
 
   ! Find global limits
 
-  call MPI_ALLREDUCE(xmin_local, xmin, one, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
-  call MPI_ALLREDUCE(xmax_local, xmax, one, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
-  call MPI_ALLREDUCE(ymin_local, ymin, one, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
-  call MPI_ALLREDUCE(ymax_local, ymax, one, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
-  call MPI_ALLREDUCE(zmin_local, zmin, one, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
-  call MPI_ALLREDUCE(zmax_local, zmax, one, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
+  call MPI_ALLREDUCE(xmin_local, xmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
+  call MPI_ALLREDUCE(xmax_local, xmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
+  call MPI_ALLREDUCE(ymin_local, ymin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
+  call MPI_ALLREDUCE(ymax_local, ymax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
+  call MPI_ALLREDUCE(zmin_local, zmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
+  call MPI_ALLREDUCE(zmax_local, zmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
 
 
   boxsize = max(xmax-xmin, ymax-ymin, zmax-zmin)
@@ -231,15 +232,29 @@ subroutine make_domains(xl,yl,zl)
         endif
      enddo
 
+! Define wraps for ring network  0 -> 1 -> 2 -> ... ... -> num_pe-1 -> 0 ...
+  if (me == 0) then
+    prev = num_pe - 1
+  else
+    prev = me-1
+  endif
+
+  if (me == num_pe-1 ) then
+     next = 0
+  else
+     next = me+1
+  endif
 
      ! swap end items
-     if (me .ne. 0) then
-        call MPI_SEND(w1, one, MPI_INTEGER8, me_minus_one, tag1, MPI_COMM_WORLD, ierr)
-     endif
+  if (me .ne. 0) then
+    call MPI_ISEND(w1, 1, MPI_INTEGER8, prev, 1, MPI_COMM_WORLD, handle(1), ierr)
+    call MPI_REQUEST_FREE(handle(1),ierr)
+  endif
 
-     if (me .ne. num_pe-1) then
-        call MPI_RECV(tmp, one, MPI_INTEGER8, me_plus_one, tag1, MPI_COMM_WORLD, status, ierr)
-     endif
+  if (me .ne. num_pe-1) then
+    call MPI_RECV(tmp, 1, MPI_INTEGER8, next, 1, MPI_COMM_WORLD, status, ierr)
+  endif
+
 
      if (me .ne. num_pe-1) then
  !    if (me == 50 ) then
@@ -347,7 +362,8 @@ subroutine make_domains(xl,yl,zl)
   ! Copy boundary particles to adjacent PEs to ensure proper tree construction
   !  - if we don't do this, can get two particles on separate PEs 'sharing' a leaf
 
-  ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
+
+ ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
    ax(1),ay(1),az(1), pekey(1), pelabel(1), pepid(1) )
 
 !  write (*,'(9f12.3,z20,2i6)') ship_props
@@ -355,12 +371,14 @@ subroutine make_domains(xl,yl,zl)
   ! Ship 1st particle data to end of list of LH neighbour PE
 
   if (me /= 0 ) then
-     call MPI_SEND( ship_props, 1, mpi_type_particle, me_minus_one, tag1, MPI_COMM_WORLD, ierr ) 
+     call MPI_ISEND( ship_props, 1, mpi_type_particle, prev, 1, MPI_COMM_WORLD, handle(1), ierr ) 
+     call MPI_REQUEST_FREE(handle(1),ierr) 
   endif
 
   ! Place incoming data at end of array
-  if ( me /= lastpe) then
-     call MPI_RECV( get_props, 1, mpi_type_particle, me_plus_one, tag1,  MPI_COMM_WORLD, status, ierr )
+  if ( me /= num_pe-1) then
+!     call MPI_IRECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, handle(2), ierr )
+     call MPI_RECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, status, ierr )
      x(npp+1) = get_props%x
      y(npp+1) = get_props%y
      z(npp+1) = get_props%z
@@ -379,25 +397,32 @@ subroutine make_domains(xl,yl,zl)
   endif
 
 
-  ! Ship  end particle data to start of list of RH neighbour PE
+ 
+     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+!  if (me /= num_pe-1) call MPI_WAIT(handle(2),status,ierr)
+
+
+ ! Ship  end particle data to start of list of RH neighbour PE
   
   ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), m(npp), work(npp), &
     ax(npp),ay(npp),az(npp), pekey(npp), pelabel(npp), pepid(npp) )
   
-if (me /= lastpe ) then
-     call MPI_SEND( ship_props, 1, mpi_type_particle, me_plus_one, tag1, MPI_COMM_WORLD, ierr ) 
+ if (me /= num_pe-1 ) then
+     call MPI_ISEND( ship_props, 1, mpi_type_particle, next, 2, MPI_COMM_WORLD, handle(3), ierr )
+     call MPI_REQUEST_FREE(handle(3),ierr) 
   endif
 
   ! Place incoming data at end of array
   
-  if (me == lastpe) then
+  if (me == num_pe-1) then
      ind_recv = npp+1   ! PEn array hasn't yet received boundary value
   else
      ind_recv = npp+2
   endif
 
   if ( me /= 0) then
-     call MPI_RECV( get_props, 1, mpi_type_particle, me_minus_one, tag1,  MPI_COMM_WORLD, status, ierr )
+!     call MPI_IRECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, handle(4), ierr )
+     call MPI_RECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, status, ierr )
      x(ind_recv) = get_props%x
      y(ind_recv) = get_props%y
      z(ind_recv) = get_props%z
@@ -416,9 +441,10 @@ if (me /= lastpe ) then
   endif
 
 
+!  if (me /= 0) call MPI_WAIT(handle(4),status,ierr)
 
   if (boundary_debug) then
-     if (me /= 0 .and. me /= lastpe) then
+     if (me /= 0 .and. me /= num_pe-1) then
         inc = 1
      else
         inc = 0
