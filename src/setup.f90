@@ -48,6 +48,7 @@ subroutine setup
        vis_on, steering, domain_debug,  mc_init, restart, scheme, particle_bcs, &
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
        dump_tree, perf_anal, coulomb, bonds, lenjones, target_dup, ramp, &
+       walk_summary, &
        constrain_proof, len_tripod, use_multipoles, struct_step, uthresh
 
   !  Default input set
@@ -291,17 +292,17 @@ subroutine setup
 
 
   !  npartm = npart + nt*np_beam  ! Max # particles permitted
-  npartm = 3*npart  ! allow 50% fluctuation
+  npartm = npart  ! allow 50% fluctuation
 
   if (scheme==5 .or. target_dup) npartm=npartm*2  ! reserve extra space for electrons in ions-only mode
 	                                        ! or double-target config
 
-  nppm = max(npartm/num_pe,1000)
-  nshortm = 3000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nppm = 2.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+  nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
-     nintmax = 3*24*log(1.*npartm)/theta**2
+     nintmax = 2.5*24*log(2.*npartm)/theta**2
   else
      nintmax = npartm
   endif
@@ -316,7 +317,7 @@ subroutine setup
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
 
-  size_tree = max(2*nintmax+5*nppm,2000)+1
+  size_tree = max(4*nintmax+4*nppm,2000)+1
   maxaddress = size_tree
   nbaddr = log(1.*maxaddress)/log(2.) + 1
   maxaddress = 2**nbaddr
