@@ -75,7 +75,7 @@ subroutine tree_prefetch(itime)
      do while (npar>0)  ! Loop recursively back up tree until all absent ancestors identified
 
         if (prefetch_debug) call sort(fetch_comp(1:npar))   ! Sort key list for debugging
-        fetch_parent(1:npar) = ishft( fetch_comp(1:npar),-idim)  ! Parent keys of fetch-list
+        fetch_parent(1:npar) = ishft( fetch_comp(1:npar),-3)  ! Parent keys of fetch-list
         key_present(1:npar) = (/ (key_local( fetch_parent(i) ),i=1,npar) /) ! Check whether parent node present locally
         nnot_local = count(mask = .not.key_present(1:npar))     ! Count absentees
         if (prefetch_debug) write(ipefile,'(a,i6/(2o15,l3))') &
@@ -155,7 +155,7 @@ subroutine tree_prefetch(itime)
      ! First make list of parent keys from compressed list
 
      call sort(req_compress(1:nreqs_new))   ! Sort key list
-     req_parent(1:nreqs_new) = ishft( req_compress(1:nreqs_new),-idim)
+     req_parent(1:nreqs_new) = ishft( req_compress(1:nreqs_new),-3)
 
      if (prefetch_debug) write(ipefile,'(a,i6/(2o15))') & 
 	'Compressed list   Parents ',nreqs_new,(req_compress(i),req_parent(i),i=1,nreqs_new)
@@ -173,7 +173,7 @@ subroutine tree_prefetch(itime)
         cchild = htable( key2addr( req_parent(i) ) )%childcode   !  Children byte-code
         nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
         sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code           
-        requested_keys(nreqs_new+1:nreqs_new+nchild,ipe) = IOR( ishft(req_parent(i),idim ), sub_key(1:nchild) ) ! New siblings of original requested key
+        requested_keys(nreqs_new+1:nreqs_new+nchild,ipe) = IOR( ishft(req_parent(i),3 ), sub_key(1:nchild) ) ! New siblings of original requested key
         nreqs_new = nreqs_new + nchild
      end do
      nreqs_total(ipe) = nreqs_new
@@ -269,12 +269,12 @@ subroutine tree_prefetch(itime)
         ship_leaves = htable( ship_address )%leaves                    ! # contained leaves
 
         !  Need to reset ship_next=-1 if node is last of children
-        kparent = ishft(ship_key ,-idim )
+        kparent = ishft(ship_key ,-3 )
         addr_parent = key2addr(kparent)
         child_byte = htable( addr_parent )%childcode            !  Children byte-code
         nchild = SUM( (/ (ibits(child_byte,j,1),j=0,7) /) )       ! # children = sum of bits in byte-code
         child_sub(1:nchild) = pack( bitarr, mask=(/ (btest(child_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
-        child_key(1:nchild) = IOR( ishft(kparent,idim), child_sub(1:nchild) )         ! Construct keys of children
+        child_key(1:nchild) = IOR( ishft(kparent,3), child_sub(1:nchild) )         ! Construct keys of children
 
         if (ship_key == child_key(nchild) ) then   
            ship_next = -1      ! last of siblings or only child
@@ -333,7 +333,7 @@ subroutine tree_prefetch(itime)
      do i=1, nfetch_total(ipe)
         recv_count=recv_count+1
         recv_key = get_child(recv_count)%key
-        recv_parent = ishft( recv_key,-idim )
+        recv_parent = ishft( recv_key,-3 )
         recv_byte = get_child(recv_count)%byte
         recv_leaves = get_child(recv_count)%leaves
         recv_next = get_child(recv_count)%next
@@ -352,7 +352,7 @@ subroutine tree_prefetch(itime)
            nchild = SUM( (/ (ibits(recv_byte,j,1),j=0,7) /) )   ! Get # children
            n_children( nodchild ) = nchild       
            sub_key(1:nchild) = pack( bitarr(0:7), mask=(/ (btest(recv_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
-           first_child( nodchild ) = IOR( ishft( recv_key,idim), sub_key(1) )              ! Construct key of 1st (grand)child
+           first_child( nodchild ) = IOR( ishft( recv_key,3), sub_key(1) )              ! Construct key of 1st (grand)child
 
         else
            write(ipefile,'(a,o15,a,i7)') '# leaves <=0 for received child node ',recv_key,' from PE ',ipe
@@ -366,7 +366,7 @@ subroutine tree_prefetch(itime)
         htable(hashaddr)%next = recv_next           ! Fill in special next-node pointer for non-local children
         htable( key2addr( recv_parent) )%childcode = IBSET(  htable( key2addr( recv_parent) )%childcode, 9) ! Set children_HERE flag for parent node
 
-        node_level( nodchild ) = log(1.*recv_key)/log(2.**idim)  ! get level from keys and prestore as node property
+        node_level( nodchild ) = log(1.*recv_key)/log(8.)  ! get level from keys and prestore as node property
 
         ! Physical properties
 

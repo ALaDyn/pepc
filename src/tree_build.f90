@@ -13,14 +13,14 @@ subroutine tree_build
   use utils
 
   implicit none
-
   integer*8, dimension(size_tree) :: subcell, par_key, res_key        ! All key arrays 64-bit
   integer*8, dimension(nppm+2) :: local_key
-!  integer*8, dimension(2*nppm) :: leaf_key, twig_key
+
+ ! integer*8, dimension(2*nppm) :: leaf_key, twig_key
   integer*8, dimension(8) :: sub_key   ! Child partial key
 
   integer, dimension(size_tree) :: ix, iy, res_addr, res_node, res_child, res_owner, &
-       newentry, treelevel
+        newentry, treelevel
   integer, dimension(nppm+2)  :: local_plist, local_ind, local_owner
   integer, dimension(0:maxaddress) ::  cell_addr
   logical, dimension(nppm+2) :: part_done            ! finished flag for leaf nodes
@@ -41,18 +41,20 @@ subroutine tree_build
   logical :: resolved
 
 
-  if (build_debug) write(ipefile,'(//a)') 'TREE CONSTRUCTION'
+  if (tree_debug) write(ipefile,'(/a)') 'TREE BUILD'
 
-! zero table: need list of 'live' addresses to speed up
+  ! zero table: need list of 'live' addresses to speed up
   htable%node = 0
   htable%leaves = 0
   htable%childcode = 0
   htable%link = -1
   htable%key = 0_8
 
-  local_plist(1:npp+2) = pelabel(1:npp+2)       ! Particle (global) label for tracking purposes 
-  local_key(1:npp+2) = pekey(1:npp+2)           ! Particle key
-  local_owner(1:npp+2) = pepid(1:npp+2)
+  do i=1,npp+2
+     local_plist(i) = pelabel(i)       ! Particle (global) label for tracking purposes 
+     local_key(i) = pekey(i)           ! Particle key
+     local_owner(i) = pepid(i)
+  end do
   i=0                     ! List of free (unused #table-addresses)
 
 
@@ -62,19 +64,19 @@ subroutine tree_build
   !  in tree construction.
 
   nlist = npp
-!  level_top = log(1.*npp) / log(2.**idim)   ! Min level for 'same cell' test 
+!  level_top = log(1.*npp) / log(8.)   ! Min level for 'same cell' test 
  level_top = 1
 ! RH neighbour PE
 
   if ( me /= num_pe-1 ) then
 ! First find level shared by last particle pair in list
      key_lo = ieor( pekey(npp), pekey(npp-1) )   ! Picks out 1st position where keys differ
-     level_diff =  log(1.*key_lo)/log(2.**idim) 
+     level_diff =  log(1.*key_lo)/log(8.) 
      level_match = max( nlev - level_diff, level_top )    ! Excludes low-level end-cells for discontinuous domains
      ibit = nlev-level_match               ! bit shift factor 
 
-     cell1 = ishft( pekey(npp), -idim*ibit )    ! Subcell number of RH boundary particle
-     cell2 = ishft( pekey(npp+1), -idim*ibit )    ! Subcell number of LH boundary particle of neighbouring PE
+     cell1 = ishft( pekey(npp), -3*ibit )    ! Subcell number of RH boundary particle
+     cell2 = ishft( pekey(npp+1), -3*ibit )    ! Subcell number of LH boundary particle of neighbouring PE
      if (cell1 == cell2) then
         nlist = nlist+1                    ! If keys match at this level then include boundary particle in local tree
         local_plist(nlist) = pelabel(npp+1)
@@ -92,13 +94,13 @@ subroutine tree_build
      if ( me == num_pe-1 ) iend = npp+1         ! End node only has one boundary particle
 ! First find level shared by first particle pair in list
      key_lo = ieor( pekey(1), pekey(2)  )   ! Picks out lower order bits where keys differ
-     level_diff =  log(1.0*key_lo)/log(2.0**idim) 
+     level_diff =  log(1.0*key_lo)/log(8.) 
 
      level_match = max( nlev - level_diff, level_top )    ! Excludes low-level end-cells for discontinuous domains
      ibit = nlev-level_match               ! bit shift factor 
 
-     cell1 = ishft( pekey(1), -idim*ibit )    ! Subcell number of LH boundary particle
-     cell2 = ishft( pekey(iend), -idim*ibit )    ! Subcell number of RH boundary particle of neighbouring PE
+     cell1 = ishft( pekey(1), -3*ibit )    ! Subcell number of LH boundary particle
+     cell2 = ishft( pekey(iend), -3*ibit )    ! Subcell number of RH boundary particle of neighbouring PE
      if (cell1 == cell2) then
         nlist = nlist+1         ! If keys match at this level then include boundary particle in local tree
         local_plist(nlist) = pelabel(iend)
@@ -147,15 +149,18 @@ subroutine tree_build
      nbound=0                            ! # boundary particles located (max 2)
      ! Determine subcell # from key
      ! At a given level, these will be unique
+     
+     do i=1,nlist
+        subcell(i) = ishft( local_key(i), -3_8*ibit )    
 
-     subcell(1:nlist) = ishft( local_key(1:nlist), -idim*ibit )    
-
-     ! cell address hash function
-     cell_addr(1:nlist) = IAND( subcell(1:nlist), hashconst)
+        ! cell address hash function
+        cell_addr(i) = IAND( subcell(i), hashconst)
+     end do
 
      if (build_debug) then
-        write (ipefile,'(/a//a,i5/)') '---------------','Starting level ',level
-        write (ipefile,*) 'index,   p,             key,                             subcell key,    cell_addr'
+        write (ipefile,'(/a//a,i5,a5,i5,a5,z20/)') '---------------','Starting level ',level, &
+             ' ibit',ibit,' iplace',iplace
+        write (ipefile,*) 'i,   p,     key,           owner     cell_key,    cell_addr'
         write (ipefile,'(2i4,z20,i3,o20,i6)') &
              (i,local_plist(i),local_key(i),local_owner(i),subcell(i),cell_addr(i),i=1,nlist) 
      endif
@@ -293,7 +298,7 @@ subroutine tree_build
             ipoint =  htable( newentry(i) )%node         ! local pointer
             local_plist( ipoint ) = 0                    ! label as done - removes particle from list
             htable( newentry(i) )%node = 0               ! remove node from #table
-            htable( newentry(i) )%key = -1               ! but retain %link to dummy entry 
+            htable( newentry(i) )%key = -1_8               ! but retain %link to dummy entry 
 	                                                 ! in case it's in the middle of a chain
             htable( newentry(i) )%leaves = 0
             htable( newentry(i) )%childcode = 0 
@@ -324,7 +329,7 @@ subroutine tree_build
         do i=0,tablehigh
            if ( collision(i) == "X") collision(i) = "c" 
            if (htable(i)%node/=0 .and. htable(i)%link/= -1 .and. collision(i)/="c") collision(i)="X"
-           if (htable(i)%node /=0 ) write (ipefile,'(5i10,4x,a1)') &
+           if (htable(i)%node /=0 ) write (ipefile,'(2i10,o10,2i10,4x,a1)') &
                 i,htable(i)%node,htable(i)%key,htable(i)%link,htable(i)%leaves,collision(i)
         end do
      endif
@@ -346,13 +351,6 @@ subroutine tree_build
 
      end do
 
-!  Pack function v. slow on IBM
-!     if (nlistnew<nlist) then	
-!     local_key(1:nlistnew) = pack( local_key(1:nlist), mask=.not.part_done(1:nlist) )      ! compress key array with mask
-!     local_ind(1:nlistnew) = pack( local_ind(1:nlist), mask=.not.part_done(1:nlist) )      ! compress index array with mask
-!     local_plist(1:nlistnew) = pack(local_plist(1:nlist), mask=.not.part_done(1:nlist) )  ! compress particle array with 'finished' mask
-!     local_owner(1:nlistnew) = pack(local_owner(1:nlist), mask=.not.part_done(1:nlist) )  ! compress owner array with 'finished' mask
-!     endif
      
      nlist = nlistnew
 
@@ -369,21 +367,15 @@ subroutine tree_build
 
   nnodes = nleaf + ntwig  ! total number of local tree nodes
 
-  ! List of twig entries
-  ! cell_addr(1:ntwig) = pack(all_addr,mask = htable%node<0)
-  ! htable(cell_addr(1:ntwig))%childcode = 0  ! Zero children byte-code in twig nodes
-
-  ! List of all keys in #-table: leaves first, then twigs
-!  treekey(1:nleaf) = pack(htable%key,mask = htable%node>0 )
-!  treekey(nleaf+1:nnodes-1) = pack(htable%key,mask = htable%node<-1 )  ! exclude root node
 
   treekey(1:nleaf) = leaf_key(1:nleaf)
   twig_key(ntwig) = 1  ! add root for later
   treekey(nleaf+1:nnodes) = twig_key(1:ntwig)  ! add twigs to list 
+!  write (*,*) 'Keys on :',me,nnodes,(treekey(i),i=1,nnodes)
 
   do i=1,nnodes-1
      childbyte = IAND( treekey(i), hashchild)    ! extract last 3 bits from key
-     parent_key = ishft( treekey(i),-idim )      ! parent key
+     parent_key = ishft( treekey(i),-3 )      ! parent key
      parent_addr = key2addr(parent_key)
      ! Construct children byte-code (8 settable bits indicating which children nodes present)
      htable(parent_addr)%childcode = ibset( htable(parent_addr)%childcode, childbyte )
@@ -411,3 +403,10 @@ subroutine tree_build
 
 
 end subroutine tree_build
+
+
+
+
+
+
+

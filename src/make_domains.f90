@@ -18,7 +18,7 @@ subroutine make_domains(xl,yl,zl)
   use utils
 
   implicit none
-  
+  integer, parameter :: nkmax=100
   real, intent(in) :: xl,yl,zl  ! initial box limits
   integer*8, dimension(nppm) :: ix, iy, iz
   integer*8, dimension(nppm) :: ixd, iyd, izd
@@ -53,6 +53,7 @@ subroutine make_domains(xl,yl,zl)
   real, dimension(nppm) :: wr2, wr3 ! Scratch for real array permute
   integer*8 :: tmp
   logical :: sort_debug=.false.
+  real*8 xboxsize, yboxsize, zboxsize
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
@@ -75,17 +76,25 @@ subroutine make_domains(xl,yl,zl)
   call MPI_ALLREDUCE(zmax_local, zmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
 
 
-  boxsize = max(xmax-xmin, ymax-ymin, zmax-zmin)
+  xboxsize = xmax-xmin
+  yboxsize = ymax-ymin
+  zboxsize = zmax-zmin
 
   ! Safety margin - put buffer region around particles
-  xmax = xmax + boxsize/1000.
-  xmin = xmin - boxsize/1000.
-  ymax = ymax + boxsize/1000.
-  ymin = ymin - boxsize/1000.
-  zmax = zmax + boxsize/1000.
-  zmin = zmin - boxsize/1000.
+  xmax = xmax + xboxsize/10000.
+  xmin = xmin - xboxsize/10000.
+  ymax = ymax + yboxsize/10000.
+  ymin = ymin - yboxsize/10000.
+  zmax = zmax + zboxsize/10000.
+  zmin = zmin - zboxsize/10000.
 
   boxsize = max(xmax-xmin, ymax-ymin, zmax-zmin)
+
+  if (domain_debug) write (ipefile,'(4(a15,f12.4/))') &
+       'xmin = ',xmin,'xmax = ',xmax, &
+       'ymin = ',ymin,'ymax = ',ymax, &
+       'zmin = ',zmin,'zmax = ',zmax, &
+       'boxsize = ',boxsize
 
   s=boxsize/2**nlev       ! refinement length
 
@@ -100,8 +109,13 @@ subroutine make_domains(xl,yl,zl)
 
   nbits = nlev+1
   do j = 1,npp
-     local_key(j) = iplace + &
-          SUM( (/ (8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) ),i=0,nbits-1) /) )
+!     local_key(j) = iplace + &
+!          SUM( (/ (8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) ),i=0,nbits-1) /) )
+     local_key(j) = iplace
+     do i=0,nbits-1
+        local_key(j) = local_key(j) &
+             + 8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) )
+     end do
   end do
 
 !  Find keys corresponding to corners of graphics box (initial target container)
@@ -139,12 +153,12 @@ subroutine make_domains(xl,yl,zl)
  
   if (domain_debug) then
      write (ipefile,'(a,2z20)') 'Box keys:', key_box(1),key_box(2)
-     write (ipefile,'(/a/a/(z21,i8,5f12.4))') 'Particle list before key sort (1st 10):', &
+     write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort (1st 10):', &
           '  key,             label   coords     q ', &
-          (local_key(i),pelabel(i),x(i),y(i),z(i),q(i),work(i),i=1,10) 
-     write (ipefile,'(/a/a/(z21,i8,5f12.4))') '(last 10):', &
-          '  key,             label   coords     q ', &
-          (local_key(i),pelabel(i),x(i),y(i),z(i),q(i),work(i),i=npp-10,npp) 
+          (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=1,min(10,npp)) 
+ !    write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8))') '(last 10):', &
+ !         '  key,                  label        coords              q ', &
+ !         (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=max(1,npp-10),npp) 
 
      call blankn(ipefile)
   endif
@@ -192,13 +206,13 @@ subroutine make_domains(xl,yl,zl)
      endif
 
   if (domain_debug.and.me==0) then
-          write (*,'(a/(i5,z20,f15.3))') 'input array (1st 10):  ',(i,keys(i),work(i),i=1,10)
-          write (*,'(a/(i5,z20,f15.3))') 'input array (last 10):  ',(i,keys(i),work(i),i=npold-10,npold)
+          write (*,'(a/(i5,z20,f15.3))') 'input array (1st 10):  ',(i,keys(i),work(i),i=1,min(10,npold))
+          write (*,'(a/(i5,z20,f15.3))') 'input array (last 10):  ',(i,keys(i),work(i),i=max(1,npold-10),npold)
          write (*,*) 'npold=',npold
  endif
 
      ! perform index sort on keys
-     call pll_weightsort(nppm,npold,npnew,num_pe,me,keys, &
+     call pswssort(nppm,npold,npnew,num_pe,me,keys, &
           indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
 
 
@@ -215,8 +229,8 @@ subroutine make_domains(xl,yl,zl)
  !         write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
  !         write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
           if (me.eq.50) then
-          write (*,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
-          write (*,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
+          write (*,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,min(10,npnew))
+          write (*,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=max(1,npnew-10),npnew)
           endif
           write (ipefile,*) 'npnew=',npnew
   endif

@@ -6,6 +6,7 @@ subroutine setup_arrays
 
   integer :: ibig, machinebits, maxleaf, maxtwig,k
   integer :: ierr
+  integer :: mem_parts, mem_multipoles, mem_fields, mem_tree
 
   !  npartm = npart + nt*np_beam  ! Max # particles permitted
   npartm = npart + np_beam  ! allow 50% fluctuation
@@ -26,20 +27,19 @@ subroutine setup_arrays
 
   ! tree stuff
 
-  idim = 3               ! # dimensions (2 or 3)
   nlev = 20                     ! max refinement level
-  iplace = 2_8**(idim*nlev)           ! place holder bit
-  !  nbaddr = 15                  ! # bits for cell address in hash-table
+  iplace = 2_8**(3*nlev)           ! place holder bit
+
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
 
-  size_tree = max(4*nintmax+8*nppm,2000)+1
-  maxaddress = size_tree
-  nbaddr = log(1.*maxaddress)/log(2.) + 2
-  maxaddress = 2**nbaddr
+   size_tree = max(4*nintmax+8*nppm,2000)+1
+   maxaddress = size_tree
+   nbranch_max = size_tree/10
+   nbaddr = log(1.*maxaddress)/log(2.) + 2
+   maxaddress = 2**nbaddr
 !  maxaddress = 512
   hashconst = maxaddress-1
-
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
 
 
@@ -53,18 +53,27 @@ subroutine setup_arrays
        Axo(nppm), Ayo(nppm), Azo(nppm), &
        pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
+  mem_parts = nppm*(22*8 + 2*4 + 8)
+
   allocate ( xslice(nppm), yslice(nppm), zslice(nppm), uxslice(nppm), uyslice(nppm), uzslice(nppm), & 
        qslice(nppm), mslice(nppm) )    ! Reserve slice particle array space N/NPE
 
-  allocate ( nterm(nshortm), intlist(nintmax,nshortm), nodelist(nintmax,nshortm) )      ! Space for interaction lists
+  mem_parts = mem_parts + nppm*(8*8)
 
+  allocate ( nterm(nshortm), intlist(nintmax,nshortm), nodelist(nintmax,nshortm) )      ! Space for interaction lists
+  mem_tree = nshortm + nshortm*nintmax*(8+4)
 
   allocate ( htable(0:maxaddress), all_addr(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
        nbranches(num_pe+2), igap(num_pe+3), &
-       treekey(size_tree), branch_key(size_tree), branch_owner(size_tree), &
-       pebranch(size_tree), leaf_key(nppm), twig_key(nppm), &
-       requested_keys(size_tree, 0:num_pe-1), fetched_keys(size_tree, 0:num_pe-1), &
+       treekey(size_tree), branch_key(nbranch_max), branch_owner(nbranch_max), &
+       pebranch(nbranch_max), leaf_key(nppm), twig_key(nppm), &
+       requested_keys(size_tree/num_pe, 0:num_pe-1), fetched_keys(size_tree/num_pe, 0:num_pe-1), &
        nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
+
+  mem_tree = mem_tree + maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
+                      + num_pe * (4+4+4+4) + size_tree*(3*8) & ! request stuff
+                      + nppm * (2*8) & ! keys
+                      + nbranch_max * (8 + 4 + 8)  ! branches
 
   all_addr = (/ (k,k=0,maxaddress) /)      ! List of all possible # table addresses
   htable%node = 0
@@ -94,6 +103,9 @@ subroutine setup_arrays
        magmx(-maxtwig:maxleaf), magmy(-maxtwig:maxleaf), magmz(-maxtwig:maxleaf) ) ! magnetic moment 
 
   allocate ( pack_child(size_tree), get_child(size_tree) )    ! Multipole shipping buffers
+
+  mem_multipoles = 2*size_tree * (8+2*4 + 23*8 + 8) 
+ 
   allocate (rhoi(0:ngx+1,0:ngy+1,0:ngz+1),rhoe(0:ngx+1,0:ngy+1,0:ngz+1))  ! global field arrays
 
 ! local field arrays for cycle-averages
@@ -102,7 +114,7 @@ subroutine setup_arrays
       bx_loc(0:ngx+1,0:ngy+1,0:ngz+1), by_loc(0:ngx+1,0:ngy+1,0:ngz+1),  bz_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
       jxe_loc(0:ngx+1,0:ngy+1,0:ngz+1), jye_loc(0:ngx+1,0:ngy+1,0:ngz+1), jze_loc(0:ngx+1,0:ngy+1,0:ngz+1) )   
 
-
+  mem_fields = ngx*ngy*ngz * (8*13)
 
   ! Create new contiguous datatype for shipping particle properties (15 arrays)
 
@@ -183,4 +195,20 @@ subroutine setup_arrays
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
+
+
+  if (me==0) then
+     write(*,'(//a/)') 'Initial memory allocation:'
+     write(*,'(4(a15,f12.3,a3/)/)') 'Particles: ',mem_parts/1.e6,' MB', &
+                               'Tree:',mem_tree/1.e6,' MB', &
+                               'Multipoles:',mem_multipoles/1.e6,' MB', &
+                               'Fields:',mem_fields/1.e6,' MB'
+  endif
+
 end subroutine setup_arrays
+
+
+
+
+
+

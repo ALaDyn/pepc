@@ -114,9 +114,9 @@ subroutine setup
   itime_start = 0
   itrack = 10
 
-  ngx = 100   ! Grid size for plots
-  ngy = 50
-  ngz = 50
+  ngx = 10   ! Grid size for plots
+  ngy = 10
+  ngz = 10
   ! constrain
 !!$    len_tripod = .001
   constrain_proof = .001

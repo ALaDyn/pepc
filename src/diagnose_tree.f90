@@ -25,7 +25,7 @@ subroutine diagnose_tree
   character(1) :: csnap, collision
   integer ic(5),jc(5),lc(5)
 
-  integer :: i, ip, j, ilev, isnap, ibt
+  integer :: i, ip, j, ilev, isnap, ibt,ierr
   real :: s, xt, yt
 
   save isnap
@@ -34,12 +34,12 @@ subroutine diagnose_tree
   csnap=achar(mod(isnap,10)+48)
 
 
-
+  if (me==0) write (*,*) 'DIAGNOSE TREE'
 
   ! output hash table
 
   write (ipefile,'(/a/8x,a/8x,a)') 'Final hash table ', &
-       'entry,    owner    node,            key        parent       next       link   # leaves  childcode  collision', &
+       'entry,    owner    node,            key_8     key_10        parent       next       link   # leaves  childcode  collision', &
        '----------------------------------------------------------------------------------------------- '
 
   ! flag  collisions
@@ -47,11 +47,11 @@ subroutine diagnose_tree
   do i=0,maxaddress
      collision=" "
      if (htable(i)%node/=0 .and. htable(i)%link/= -1 ) collision="C"
-     if (htable(i)%node /= 0 .and. htable(i)%next >=0) write (ipefile,'(3i10,3o15,i8,i5,z4,4x,a1)') &
-	  i,htable(i)%owner,htable(i)%node,htable(i)%key,ishft( htable(i)%key,-idim ), htable(i)%next, &
+     if (htable(i)%node /= 0 .and. htable(i)%next >=0) write (ipefile,'(3i10,o22,i10,2o22,i8,i5,z4,4x,a1)') &
+	  i,htable(i)%owner,htable(i)%node,htable(i)%key,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
           htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
      if (htable(i)%node /= 0 .and. htable(i)%next <0) write (ipefile,'(3i10,2o15,i15,i15,i5,z4,4x,a1)') &
-	  i,htable(i)%owner,htable(i)%node,htable(i)%key,ishft( htable(i)%key,-idim ), htable(i)%next, &
+	  i,htable(i)%owner,htable(i)%node,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
           htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
   end do
 
@@ -59,7 +59,6 @@ subroutine diagnose_tree
 
  ! get keys of twig nodes from hash table
   key_twig(1:ntwig)  = pack(htable(0:maxaddress)%key,mask=htable(0:maxaddress)%node<0)
-  
  ! get levels of twigs
   addr_twig(1:ntwig) = (/( key2addr( key_twig(i) ),i=1,ntwig)/)   !  Table address
   child_twig(1:ntwig) = (/( htable( key2addr( key_twig(i) ) )%childcode,i=1,ntwig )/)   !  Children byte-code
@@ -74,7 +73,7 @@ subroutine diagnose_tree
        '    i  level  owner   key    parent-key    #     node     code    #c  1st child    #leaves ', &
        (i,node_level(ind_twig(i)), &              !  index, level
          htable( key2addr( key_twig(i) ) )%owner, &                            ! Owner-PE of node
-         key_twig(i),ishft( key_twig(i),-idim ), &                             ! key, parent key
+         key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
          addr_twig(i), ind_twig(i), &    ! Table address and node number
          child_twig(i), &                         ! Children byte-code 
          n_children( ind_twig(i) ), &
@@ -106,7 +105,7 @@ subroutine diagnose_tree
   write (ipefile,'(/a/3a5,2a10,2a15,a25,4a11/(3i5,2i10,2o15,o25,2f11.4,2f11.4))') 'Local leaves from hash-table:', &
        'i','owner','plab','i-leaf','lev','key','parent','pkey','x','y','q','jx', &
        (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),node_level(ind_leaf(i)),key_leaf(i), &
-        ishft( key_leaf(i),-idim ), &      ! parent
+        ishft( key_leaf(i),-3 ), &      ! parent
         pekey(ind_leaf(i)), &  ! particle key
         x(ind_leaf(i)),y(ind_leaf(i)), q(ind_leaf(i)), jx(ind_leaf(i)), &
 	i=1,nleaf_me)
@@ -121,7 +120,7 @@ subroutine diagnose_tree
   write (ipefile,'(//a/a/(4i5,2o15,i5,2f11.4,f6.1,f11.4))') 'Non-local leaves from hash-table:', &
        '    i   owner    i-leaf    lev    key    parent  plabel  xcoc  ycoc  charge      ', &
        (i,owner_leaf(i),ind_leaf(i),node_level(ind_leaf(i)),key_leaf(i), &
-        ishft( key_leaf(i),-idim ), &      ! parent
+        ishft( key_leaf(i),-3 ), &      ! parent
         plist_leaf(i), & ! global particle label
         xcoc(ind_leaf(i)),ycoc(ind_leaf(i)), charge(ind_leaf(i)), xdip(ind_leaf(i)), &
 	i=1,nleaf-nleaf_me)

@@ -74,8 +74,8 @@ subroutine draw2d_hash
   do j=1,ntwig
      ! get coords from keys
      nbits = level_twig(j)
-     ix(j) = SUM( (/ (2**i*ibits( key_twig(j),idim*i,1 ), i=0,nbits-1) /) )
-     iy(j) = SUM( (/ (2**i*ibits( key_twig(j),idim*i+1,1 ), i=0,nbits-1) /) )
+     ix(j) = SUM( (/ (2**i*ibits( key_twig(j),3*i,1 ), i=0,nbits-1) /) )
+     iy(j) = SUM( (/ (2**i*ibits( key_twig(j),3*i+1,1 ), i=0,nbits-1) /) )
 
      s = xl/2**(level_twig(j))          !  box length
      xt=ix(j)*s
@@ -107,8 +107,8 @@ subroutine draw2d_hash
   do j=1,nleaf
      ! get box coords from keys
      nbits = level_leaf(j)    ! # bits per ordinate
-     ix(j) = SUM( (/ (2**i*ibits( key_leaf(j),idim*i,1 ), i=0,nbits-1) /) )
-     iy(j) = SUM( (/ (2**i*ibits( key_leaf(j),idim*i+1,1 ), i=0,nbits-1) /) )
+     ix(j) = SUM( (/ (2**i*ibits( key_leaf(j),3*i,1 ), i=0,nbits-1) /) )
+     iy(j) = SUM( (/ (2**i*ibits( key_leaf(j),3*i+1,1 ), i=0,nbits-1) /) )
 
      s = xl/2**(level_leaf(j))          !  box length
      xt=ix(j)*s

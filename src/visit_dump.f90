@@ -161,10 +161,10 @@ subroutine visit_dump(timestamp)
 
         ! ship branch nodes to show domains
         do j=1,nbranch_sum
-           ilev = log( 1.*branch_key(j) )/log(2.**idim)
-           ixd = SUM( (/ (2**i*ibits( branch_key(j),idim*i,1 ), i=0,ilev-1) /) )
-           iyd = SUM( (/ (2**i*ibits( branch_key(j),idim*i+1,1 ), i=0,ilev-1) /) )
-           izd = SUM( (/ (2**i*ibits( branch_key(j),idim*i+2,1 ), i=0,ilev-1) /) )
+           ilev = log( 1.*branch_key(j) )/log(8.)
+           ixd = SUM( (/ (2**i*ibits( branch_key(j),3*i,1 ), i=0,ilev-1) /) )
+           iyd = SUM( (/ (2**i*ibits( branch_key(j),3*i+1,1 ), i=0,ilev-1) /) )
+           izd = SUM( (/ (2**i*ibits( branch_key(j),3*i+2,1 ), i=0,ilev-1) /) )
            mvis(j) = boxsize/2**(ilev)          !  box length
            xvis(j)=ixd*mvis(j) + xmin
            yvis(j)=iyd*mvis(j) + ymin

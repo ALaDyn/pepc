@@ -380,7 +380,7 @@ contains
     integer, dimension(nprocs+1) :: fposts, gposts !  fencepost index and key values for shuffle
 !    integer, parameter :: maxprocs = 1024
     integer :: itabr(nprocs), itabl(nprocs+1)
-    real, dimension(binmult*nprocs)  :: f_local, f_global
+    real, dimension(binmult)  :: f_local, f_global
     integer*8 :: fpval(nprocs+1)
     integer*8 :: lmax, lmin, key_min, key_max, gkey_min, gkey_max, step ! Key mins and maxes and step size
     integer*8 :: step_reduced
@@ -390,7 +390,7 @@ contains
     integer ::  i,k, fd, nfill
     character(13) :: cfmt
 
-    nbin = binmult*nprocs  ! must correspond to array size
+    nbin = binmult  ! must correspond to array size
 
 !    fd = iproc+10
     fd=20

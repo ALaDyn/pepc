@@ -12,7 +12,7 @@ subroutine configure
   use treevars
   use utils
   implicit none
-  integer :: i, ipe, idummy=0
+  integer :: i, ipe, idummy=0, ierr
   real :: t_walk, t_force
 
   if (restart) then
@@ -97,13 +97,13 @@ subroutine configure
   ! Initial tree construction and force computation
 
   call make_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   call tree_build      ! Build trees from local particle lists
   call make_branches   ! Determine and concatenate branch nodes
-!  if (me>=250) call  diagnose_tree
-!  close(ipefile)
   call tree_fill       ! Fill in remainder of local tree
-
   call tree_properties ! Compute multipole moments for local tree
+
+!  call diagnose_tree
 !    call MPI_FINALIZE(ierr)
 !    call closefiles
 !   stop

@@ -84,8 +84,8 @@ subroutine draw_tree2d(xl,yl)
      write (60,'(a/a,a7)') 'set hei .02','set color ',colors( mod(owner_twig(j),10) )
      ! get coords from keys
      nbits = level_twig(j)
-     ix = SUM( (/ (2**i*ibits( key_twig(j),idim*i,1 ), i=0,nbits-1) /) )
-     iy = SUM( (/ (2**i*ibits( key_twig(j),idim*i+1,1 ), i=0,nbits-1) /) )
+     ix = SUM( (/ (2**i*ibits( key_twig(j),3*i,1 ), i=0,nbits-1) /) )
+     iy = SUM( (/ (2**i*ibits( key_twig(j),3*i+1,1 ), i=0,nbits-1) /) )
  
      s = boxsize/2**(level_twig(j))          !  box length
      xt=ix*s + xmin
@@ -123,8 +123,8 @@ subroutine draw_tree2d(xl,yl)
   do j=1,nleaf
      ! get box coords from keys
      nbits = level_leaf(j)    ! # bits per ordinate
-     ix = SUM( (/ (2**i*ibits( key_leaf(j),idim*i,1 ), i=0,nbits-1) /) )
-     iy = SUM( (/ (2**i*ibits( key_leaf(j),idim*i+1,1 ), i=0,nbits-1) /) )
+     ix = SUM( (/ (2**i*ibits( key_leaf(j),3*i,1 ), i=0,nbits-1) /) )
+     iy = SUM( (/ (2**i*ibits( key_leaf(j),3*i+1,1 ), i=0,nbits-1) /) )
 
      s = boxsize/2**(level_leaf(j))          !  box length
      xt=ix*s + xmin

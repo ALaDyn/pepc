@@ -17,20 +17,21 @@ subroutine tree_properties
   integer*8, dimension(size_tree) ::  search_key, resolve_key, parent_key, sum_key, key_twig
   integer*8, dimension(8) :: sub_key, key_child
 
-  integer, dimension(0:maxaddress) ::  cell_addr
-  integer, dimension(size_tree) ::  addr_twig, node_twig, child_twig    ! all twig-nodes, including branches and base nodes
+  integer, dimension(size_tree) ::  node_twig, child_twig    ! all twig-nodes, including branches and base nodes
   integer, dimension(size_tree) ::  parent_node, parent_addr
   integer, dimension(size_tree) :: local_node
+  integer :: addr_twig
 
   integer, parameter :: n_moments = 23  ! # property arrays
-  real, dimension(n_moments*2*size_tree/num_pe) :: local_moments      ! local branch properties    - size depends on # moments          
-  real, dimension(n_moments*size_tree/10) :: branch_moments   ! global branch properties
+  real, dimension(n_moments*nbranch_max/num_pe) :: local_moments      ! local branch properties    - size depends on # moments          
+  real, dimension(n_moments*nbranch_max) :: branch_moments   ! global branch properties
   integer, dimension(num_pe) :: nbranchmoments ! array containing total # multipole terms*branch list length
   integer, dimension(num_pe) :: recv_strides, recv_counts
-  integer, dimension(size_tree) :: bindex, branch_addr, branch_node, branch_level
+  integer, dimension(nbranch_max) :: bindex, branch_addr, branch_node, branch_level
   logical :: duplicate(size_tree)
 
-  integer, dimension(8) :: addr_child, node_child  !  child nodes
+  integer :: addr_child
+  integer, dimension(8) :: node_child  !  child nodes
   real, dimension(8) :: xs, ys, zs   ! multipole shift vector
 
   real :: xss, yss, zss, gamma, vx, vy, vz
@@ -94,8 +95,8 @@ subroutine tree_properties
      xyquad( node_leaf ) = q(p_leaf) * x(p_leaf) * y(p_leaf) 
      yzquad( node_leaf ) = q(p_leaf) * y(p_leaf) * z(p_leaf)  
      zxquad( node_leaf ) = q(p_leaf) * z(p_leaf) * x(p_leaf)   
-  
-!  get true velocities from momenta
+
+     !  get true velocities from momenta
      gamma = sqrt(1.0+ux(p_leaf)**2+uy(p_leaf)**2 + uz(p_leaf)**2)
      vx = ux(p_leaf)/gamma
      vy = uy(p_leaf)/gamma
@@ -140,10 +141,10 @@ subroutine tree_properties
            key_twig(ntwig_domain) = search_key(i)
 
            cchild = htable( key2addr( search_key(i) ) )%childcode   !  Children byte-code
-           nchild = SUM( (/ (ibits(cchild,j,1),j=0,2**idim-1) /) ) ! # children = sum of bits in byte-code
+           nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
            sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code
 
-           resolve_key(newsub+1:newsub+nchild) = IOR( ishft( search_key(i),idim ), sub_key(1:nchild) ) ! Add keys of children to new search list
+           resolve_key(newsub+1:newsub+nchild) = IOR( ishft( search_key(i),3 ), sub_key(1:nchild) ) ! Add keys of children to new search list
            newsub = newsub + nchild
 
         endif
@@ -161,33 +162,42 @@ subroutine tree_properties
      write (ipefile,*) 'Found ',ncheck,' out of ',nleaf,' leaves'
   endif
 
-
-  addr_twig(1:ntwig_domain) = (/( key2addr( key_twig(i) ),i=1,ntwig_domain)/)   !  Table address
-  node_twig(1:ntwig_domain) = htable( addr_twig(1:ntwig_domain) )%node   !  Twig node index  
-  child_twig(1:ntwig_domain) = htable( addr_twig(1:ntwig_domain) )%childcode   !  Twig children byte-code 
-
+  do i=1,ntwig_domain
+     addr_twig = key2addr( key_twig(i) )   !  Table address
+     node_twig(i) = htable( addr_twig )%node   !  Twig node index  
+     child_twig(i) = htable( addr_twig )%childcode   !  Twig children byte-code 
+  end do
 
   ! Go up through tree, starting at deepest level (largest key first)
   ! and accumulate multipole moments onto twig nodes
 
   do i = ntwig_domain,1,-1
-     nchild = SUM( (/ (ibits(child_twig(i),j,1),j=0,2**idim-1) /) )                 ! Get # children
+     nchild = SUM( (/ (ibits(child_twig(i),j,1),j=0,7) /) )                 ! Get # children
      sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(child_twig(i),j),j=0,7) /) )  ! Extract sub key from byte code
-     key_child(1:nchild) = IOR( ishft( key_twig(i),idim ), sub_key(1:nchild) )      ! Construct keys of children
-     addr_child(1:nchild) = (/( key2addr( key_child(j) ),j=1,nchild)/)              ! Table address of children
-     node_child(1:nchild) = htable( addr_child(1:nchild) )%node                     ! Child node index  
+
+     do j=1,nchild
+        key_child(j) = IOR( ishft( key_twig(i),3 ), sub_key(j) )      ! Construct keys of children
+        addr_child = key2addr( key_child(j) )             ! Table address of children
+        node_child(j) = htable( addr_child )%node                     ! Child node index  
+     end do
 
      charge( node_twig(i) ) = SUM( charge( node_child(1:nchild) ) )                 ! Sum charge of child nodes and place
      ! result with parent node
      abs_charge( node_twig(i) ) = SUM( abs_charge( node_child(1:nchild) ) )                 ! Sum |q|
 
      ! Centres of charge
-     xcoc( node_twig(i) ) = SUM( xcoc( node_child(1:nchild) ) * abs_charge( node_child(1:nchild) ) ) &
-          / abs_charge( node_twig(i) )
-     ycoc( node_twig(i) ) = SUM( ycoc( node_child(1:nchild) ) * abs_charge( node_child(1:nchild) ) ) &
-          / abs_charge( node_twig(i) )
-     zcoc( node_twig(i) ) = SUM( zcoc( node_child(1:nchild) ) * abs_charge( node_child(1:nchild) ) ) &
-          / abs_charge( node_twig(i) )
+     xcoc( node_twig(i) ) = 0.
+     ycoc( node_twig(i) ) = 0.
+     zcoc( node_twig(i) ) = 0.
+
+     do j=1,nchild
+        xcoc( node_twig(i) ) = xcoc( node_twig(i) ) + ( xcoc(node_child(j)) * abs_charge(node_child(j))) &
+             / abs_charge( node_twig(i) )
+        ycoc( node_twig(i) ) = ycoc( node_twig(i) ) + ( ycoc(node_child(j)) * abs_charge(node_child(j))) &
+             / abs_charge( node_twig(i) )
+        zcoc( node_twig(i) ) = zcoc( node_twig(i) ) + ( zcoc(node_child(j)) * abs_charge(node_child(j))) &
+             / abs_charge( node_twig(i) )
+     end do
 
      ! Shifts and multipole moments
      xs(1:nchild) = xcoc( node_twig(i) ) - xshift( node_child(1:nchild) )     ! Shift vector for current node
@@ -198,35 +208,39 @@ subroutine tree_properties
      yshift( node_twig(i) ) = ycoc( node_twig(i) ) 
      zshift( node_twig(i) ) = zcoc( node_twig(i) ) 
 
-     ! dipole moment
-     xdip( node_twig(i) ) = SUM( xdip( node_child(1:nchild) ) - charge( node_child(1:nchild) )*xs(1:nchild) )
-     ydip( node_twig(i) ) = SUM( ydip( node_child(1:nchild) ) - charge( node_child(1:nchild) )*ys(1:nchild) )
-     zdip( node_twig(i) ) = SUM( zdip( node_child(1:nchild) ) - charge( node_child(1:nchild) )*zs(1:nchild) )
 
-     ! quadrupole moment
-     xxquad( node_twig(i) ) = SUM( xxquad( node_child(1:nchild) ) - 2*xdip( node_child(1:nchild) )*xs(1:nchild) &
-          + charge( node_child(1:nchild) )*xs(1:nchild)**2 )
-     yyquad( node_twig(i) ) = SUM( yyquad( node_child(1:nchild) ) - 2*ydip( node_child(1:nchild) )*ys(1:nchild) &
-          + charge( node_child(1:nchild) )*ys(1:nchild)**2 )
-     zzquad( node_twig(i) ) = SUM( zzquad( node_child(1:nchild) ) - 2*zdip( node_child(1:nchild) )*zs(1:nchild) &
-          + charge( node_child(1:nchild) )*zs(1:nchild)**2 )
 
-     xyquad( node_twig(i) ) = SUM( xyquad( node_child(1:nchild) ) - xdip( node_child(1:nchild) )*ys(1:nchild) &
-          - ydip( node_child(1:nchild) )*xs(1:nchild) + charge( node_child(1:nchild) )*xs(1:nchild)*ys(1:nchild) )
-     yzquad( node_twig(i) ) = SUM( yzquad( node_child(1:nchild) ) - ydip( node_child(1:nchild) )*zs(1:nchild) &
-          - zdip( node_child(1:nchild) )*ys(1:nchild) + charge( node_child(1:nchild) )*ys(1:nchild)*zs(1:nchild) )
-     zxquad( node_twig(i) ) = SUM( zxquad( node_child(1:nchild) ) - zdip( node_child(1:nchild) )*xs(1:nchild) &
-          - xdip( node_child(1:nchild) )*zs(1:nchild) + charge( node_child(1:nchild) )*zs(1:nchild)*xs(1:nchild) )
+     do j = 1,nchild
+        ! dipole moment
 
-     ! magnetic dipole moment
-     magmx( node_twig(i) ) = SUM( magmx( node_child(1:nchild) ) - 0.5*ys(1:nchild)*jz( node_child(1:nchild) )  - 0.5*zs(1:nchild)*jy( node_child(1:nchild) ))
-     magmy( node_twig(i) ) = SUM( magmy( node_child(1:nchild) ) - 0.5*zs(1:nchild)*jx( node_child(1:nchild) )  - 0.5*xs(1:nchild)*jz( node_child(1:nchild) ))
-     magmz( node_twig(i) ) = SUM( magmz( node_child(1:nchild) ) - 0.5*xs(1:nchild)*jy( node_child(1:nchild) )  - 0.5*ys(1:nchild)*jx( node_child(1:nchild) ))
+        xdip( node_twig(i) ) = xdip( node_twig(i) ) + xdip( node_child(j) ) - charge( node_child(j) )*xs(j) 
+        ydip( node_twig(i) ) = ydip( node_twig(i) ) + ydip( node_child(j) ) - charge( node_child(j) )*ys(j) 
+        zdip( node_twig(i) ) = zdip( node_twig(i) ) + zdip( node_child(j) ) - charge( node_child(j) )*zs(j) 
 
-     jx( node_twig(i) ) = SUM( jx( node_child(1:nchild) ) )      ! Sum weighted drifts of child nodes
-     jy( node_twig(i) ) = SUM( jy( node_child(1:nchild) ) ) 
-     jz( node_twig(i) ) = SUM( jz( node_child(1:nchild) ) ) 
+        ! quadrupole moment
+        xxquad( node_twig(i) ) = xxquad( node_twig(i) ) + xxquad( node_child(j) ) - 2*xdip( node_child(j) )*xs(j) &
+             + charge( node_child(j) )*xs(j)**2 
+        yyquad( node_twig(i) ) = yyquad( node_twig(i) ) + yyquad( node_child(j) ) - 2*ydip( node_child(j) )*ys(j) &
+             + charge( node_child(j) )*ys(j)**2 
+        zzquad( node_twig(i) ) = zzquad( node_twig(i) ) + zzquad( node_child(j) ) - 2*zdip( node_child(j) )*zs(j) &
+             + charge( node_child(j) )*zs(j)**2 
 
+        xyquad( node_twig(i) ) = xyquad( node_twig(i) ) + xyquad( node_child(j) ) - xdip( node_child(j) )*ys(j) &
+             - ydip( node_child(j) )*xs(j) + charge( node_child(j) )*xs(j)*ys(j) 
+        yzquad( node_twig(i) ) = yzquad( node_twig(i) ) + yzquad( node_child(j) ) - ydip( node_child(j) )*zs(j) &
+             - zdip( node_child(j) )*ys(j) + charge( node_child(j) )*ys(j)*zs(j) 
+        zxquad( node_twig(i) ) = zxquad( node_twig(i) ) + zxquad( node_child(j) ) - zdip( node_child(j) )*xs(j) &
+             - xdip( node_child(j) )*zs(j) + charge( node_child(j) )*zs(j)*xs(j) 
+
+        ! magnetic dipole moment
+        magmx( node_twig(i) ) = magmx( node_twig(i) ) + magmx( node_child(j) ) - 0.5*ys(j)*jz( node_child(j) )  - 0.5*zs(j)*jy( node_child(j) )
+        magmy( node_twig(i) ) = magmy( node_twig(i) ) + magmy( node_child(j) ) - 0.5*zs(j)*jx( node_child(j) )  - 0.5*xs(j)*jz( node_child(j) )
+        magmz( node_twig(i) ) = magmz( node_twig(i) ) + magmz( node_child(j) ) - 0.5*xs(j)*jy( node_child(j) )  - 0.5*ys(j)*jx( node_child(j) )
+
+        jx( node_twig(i) ) = jx( node_twig(i) ) + jx( node_child(j) )       ! Sum currents of child nodes
+        jy( node_twig(i) ) = jy( node_twig(i) ) + jy( node_child(j) )  
+        jz( node_twig(i) ) = jz( node_twig(i) ) + jz( node_child(j) )  
+     end do
   end do
 
 
@@ -315,9 +329,12 @@ subroutine tree_properties
 
   ! Fill up top levels with tree properties: same algorithm as TREE_FILL
 
+  maxlevel = 0
+  do i=1,nbranch_sum
+     branch_level(i) = log(1.*branch_key(i))/log(8.)       ! Get levels of branch nodes
+     maxlevel = max( maxlevel,branch_level(i) )                                    ! Find maximum level
+  end do
 
-  branch_level(1:nbranch_sum) = log(1.*branch_key(1:nbranch_sum))/log(2.**idim)       ! Get levels of branch nodes
-  maxlevel = maxval( branch_level(1:nbranch_sum) )                                    ! Find maximum level
   nparent = 0
 
   do ilevel = maxlevel,1,-1                                           ! Start at deepest branch level and work up to root
@@ -333,13 +350,14 @@ subroutine tree_properties
      nuniq= count(mask = duplicate(1:nsub))                            ! Count them
      sum_key(1:nuniq) = pack(sum_key(1:nsub), mask = duplicate(1:nsub))        ! Compress list
 
+     do i=1,nuniq
+        branch_addr(i) = key2addr( sum_key(i) )   !  branches' #table addresses
+        branch_node(i) =  htable( branch_addr(i ) )%node
 
-     branch_addr(1:nuniq) = (/( key2addr( sum_key(i) ),i=1,nuniq) /)   !  branches' #table addresses
-     branch_node(1:nuniq) =  htable( branch_addr(1:nuniq ) )%node
-
-     parent_key(1:nuniq) = ISHFT( sum_key(1:nuniq),-idim )                ! parent keys
-     parent_addr(1:nuniq) = (/( key2addr( parent_key(i) ),i=1,nuniq) /)   ! parents' #table addresses
-     parent_node(1:nuniq) =  htable( parent_addr(1:nuniq) )%node          ! parents' node numbers
+        parent_key(i) = ISHFT( sum_key(i),-3 )                ! parent keys
+        parent_addr(i) = key2addr( parent_key(i) )   ! parents' #table addresses
+        parent_node(i) =  htable( parent_addr(i) )%node          ! parents' node numbers
+     end do
 
      ! Compute parent properties from children
      do i=nuniq,1,-1

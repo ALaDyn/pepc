@@ -38,13 +38,13 @@ function next_node(keyin)
   !   Search for next sibling, uncle, great-uncle etc
 
   do while (.not. resolved .and. search_key > 1)
-     parent =  ishft(search_key,-idim)                 ! parent
+     parent =  ishft(search_key,-3)                 ! parent
      parent_node = htable( key2addr( parent ) )%node   ! parent node pointer
 
      child_byte = htable( key2addr( parent ) )%childcode                           !  Children byte-code
-     nchild = SUM( (/ (ibits(child_byte,j,1),j=0,2**idim-1) /) )                   ! # children = sum of bits in byte-code
+     nchild = SUM( (/ (ibits(child_byte,j,1),j=0,7) /) )                   ! # children = sum of bits in byte-code
      child_sub(1:nchild) = pack( bitarr, mask=(/ (btest(child_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
-     child_top = ishft(parent,idim)  
+     child_top = ishft(parent,3)  
      child_key(1:nchild) = IOR( child_top, child_sub(1:nchild) )         ! Construct keys of children
 
      keymatch=.false.
@@ -55,7 +55,7 @@ function next_node(keyin)
         next_node  = child_key(jmatch(1)+1)                        ! store next_node as sibling of parent/grandparent
         resolved = .true.
      else
-        search_key = ishft(search_key, -idim)                                     ! Go up one level 
+        search_key = ishft(search_key, -3)                                     ! Go up one level 
      endif
   end do
 

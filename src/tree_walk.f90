@@ -53,7 +53,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
 
   integer*8,  dimension(npshort) :: walk_key, walk_last 
   integer*8, dimension(size_tree)  :: request_key, ask_key, process_key
-  integer*8, dimension(size_tree/3,0:num_pe-1) ::  ship_key
+  integer*8, dimension(size_tree/num_pe,0:num_pe-1) ::  ship_key
   integer*8, dimension(8) :: sub_key, key_child, next_child
   integer*8, dimension(nintmax,npshort) :: defer_list, walk_list
   integer*8, dimension(size_tree) :: last_child   ! List of 'last' children fetched from remote PEs
@@ -125,7 +125,10 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
   theta2 = theta**2               ! Clumping parameter**2 for MAC
 !  theta2_ion = min(1.0,2*theta2)  ! Ion MAC 50% larger than electron MAC
   theta2_ion=theta2
-  boxlength2(0:nlev) = (/ ((sbox/2**i)**2, i=0,nlev ) /)  ! Preprocessed box sizes for each level
+  boxlength2(0)=sbox**2
+  do i=1,nlev
+    boxlength2(i) =  boxlength2(i-1)/4.  ! Preprocessed box sizes for each level
+  end do
 
   walk_key(1:npshort) = 1                    ! initial walk list starts at root
   nwalk(1:npshort) = 0   ! # keys on deferred list
@@ -137,7 +140,8 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
 
   !  Find global max active particles - necessary if some PEs enter walk on dummy pass
 
-  !  call MPI_ALLREDUCE( nactive, maxactive, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
+
   call MPI_ALLGATHER( nactive, 1, MPI_INTEGER, nactives, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
   maxactive = maxval(nactives)
@@ -423,11 +427,11 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
         do i=1,nreqs
            ipack = i1+i-1   ! Request number: this needs to be unique for each SEND, otherwise buffer pack_child(..,ipack)
            ! may get overwritten before send actually completes
-           nchild = SUM( (/ (ibits(childbyte(i),j,1),j=0,2**idim-1) /) )                     ! Get # children
+           nchild = SUM( (/ (ibits(childbyte(i),j,1),j=0,7) /) )                     ! Get # children
            nchild_ship(ipe) = nchild_ship(ipe) + nchild  ! Total # children to be shipped
 
            sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(childbyte(i),j),j=0,7) /) )      ! Extract sub key from byte code
-           key_child(1:nchild) = IOR( ishft( process_key(ipack),idim ), sub_key(1:nchild) ) ! Construct keys of children
+           key_child(1:nchild) = IOR( ishft( process_key(ipack),3 ), sub_key(1:nchild) ) ! Construct keys of children
            addr_child(1:nchild) = (/( key2addr( key_child(j) ),j=1,nchild)/)                 ! Table address of children
            node_child(1:nchild) = htable( addr_child(1:nchild) )%node                        ! Child node index  
            byte_child(1:nchild) = IAND( htable( addr_child(1:nchild) )%childcode,255 )        ! Catch lowest 8 bits of childbyte - filter off requested and here flags 
@@ -501,7 +505,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
         ic2 = ic1 + nplace(ipe) -1
         do ic = ic1, ic2
            kchild = get_child(ic)%key
-           kparent = ishft( kchild,-idim )
+           kparent = ishft( kchild,-3 )
            bchild = get_child(ic)%byte
            lchild = get_child(ic)%leaves
            nxchild = get_child(ic)%next
@@ -517,10 +521,10 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
               newtwig = newtwig + 1
               ntwig = ntwig + 1
               nodchild = -ntwig
-              nchild = SUM( (/ (ibits(bchild,j,1),j=0,2**idim-1) /) )   ! Get # children
+              nchild = SUM( (/ (ibits(bchild,j,1),j=0,7) /) )   ! Get # children
               n_children( nodchild ) = nchild       
               sub_key(1:nchild) = pack( bitarr(0:7), mask=(/ (btest(bchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code
-              first_child( nodchild ) = IOR( ishft( kchild,idim), sub_key(1) )              ! Construct key of 1st (grand)child
+              first_child( nodchild ) = IOR( ishft( kchild,3), sub_key(1) )              ! Construct key of 1st (grand)child
 
            else
               write(ipefile,'(a,o15,a,i7)') '# leaves <=0 for received child node ',kchild,' from PE ',ipe
@@ -536,7 +540,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
            htable(hashaddr)%next = nxchild           ! Fill in special next-node pointer for non-local children
            htable( key2addr( kparent) )%childcode = IBSET(  htable( key2addr( kparent) )%childcode, 9) ! Set children_HERE flag for parent node
 
-           node_level( nodchild ) = log(1.*kchild)/log(2.**idim)  ! get level from keys and prestore as node property
+           node_level( nodchild ) = log(1.*kchild)/log(8.)  ! get level from keys and prestore as node property
 
            ! Physical properties
 

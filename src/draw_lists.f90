@@ -81,8 +81,8 @@ subroutine draw_lists
     write (60,'(a,a7)') 'set color ',colors( mod(owner_list(j),10) )
      ! get box coords from keys
      nbits = level_list(j)
-     ix = SUM( (/ (2**i*ibits( key_list(j),idim*i,1 ), i=0,nbits-1) /) )
-     iy = SUM( (/ (2**i*ibits( key_list(j),idim*i+1,1 ), i=0,nbits-1) /) )
+     ix = SUM( (/ (2**i*ibits( key_list(j),3*i,1 ), i=0,nbits-1) /) )
+     iy = SUM( (/ (2**i*ibits( key_list(j),3*i+1,1 ), i=0,nbits-1) /) )
 
      s = boxsize/2**(level_list(j))          !  box length
      xt=ix*s + xmin

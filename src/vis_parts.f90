@@ -149,10 +149,10 @@ subroutine vis_parts
 
         ! ship branch nodes to show domains
         do j=1,nbranch_sum
-           ilev = log( 1.*branch_key(j) )/log(2.**idim)
-           ixd = SUM( (/ (2**i*ibits( branch_key(j),idim*i,1 ), i=0,ilev-1) /) )
-           iyd = SUM( (/ (2**i*ibits( branch_key(j),idim*i+1,1 ), i=0,ilev-1) /) )
-           izd = SUM( (/ (2**i*ibits( branch_key(j),idim*i+2,1 ), i=0,ilev-1) /) )
+           ilev = log( 1.*branch_key(j) )/log(8.)
+           ixd = SUM( (/ (2**i*ibits( branch_key(j),3*i,1 ), i=0,ilev-1) /) )
+           iyd = SUM( (/ (2**i*ibits( branch_key(j),3*i+1,1 ), i=0,ilev-1) /) )
+           izd = SUM( (/ (2**i*ibits( branch_key(j),3*i+2,1 ), i=0,ilev-1) /) )
            mvis(j) = boxsize/2**(ilev)          !  box length
            xvis(j)=(xmin + (ixd+0.05)*mvis(j))*convert_mu ! corners?
            yvis(j)=(ymin + (iyd+0.05)*mvis(j))*convert_mu
@@ -164,7 +164,7 @@ subroutine vis_parts
      endif
 
 ! Make sure everyone else knows about new momentum threshold
-     call MPI_BCAST( uthresh, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( uthresh, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
 
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 

@@ -10,12 +10,19 @@ module treevars
   implicit none
   include 'mpif.h'
 
+
+! fixed array sizes for debugging
+!  integer, parameter :: size_tree = 10000, &
+!                        maxaddress=32768, &
+!                        nppm=2000, &
+!                        nbranch_max=size_tree/10
+
  ! Constants
 
   real, parameter :: pi=3.141592654
   integer, dimension(0:7) :: bitarr = (/ 0,1,2,3,4,5,6,7 /)    ! Array of bit positions
 
- ! Hash table datatype
+ ! Hash table datatype - 36 bytes per entry
  
   type hash
      integer   :: node          ! Address of particle/pseudoparticle data
@@ -138,10 +145,10 @@ module treevars
  
 
   integer*8 ::  hashconst, &   ! hashing constants
-	        hashchild=7, &
+	        hashchild=7_8, &
                 iplace         ! value of place holder bit = 2^(2*nlev)
 
-  integer :: idim, &           ! # dimensions (2, 3)
+  integer :: &
              nlev, &           ! max refinement level
              nbaddr, &         ! # bits in hashing function
              nleaf, &          ! total # leaf nodes in local #table 
@@ -160,6 +167,7 @@ module treevars
              max_list_length, & ! current max list length
              maxaddress, &     ! max address allowed in #table
              size_tree, &      ! array space needed for local tree
+             nbranch_max, &    ! array space needed for branches
              free_lo, &        ! min address allowed for resolving collisions
 	     tablehigh, &      ! highest current address in #table 
              sum_unused, &     ! # free addresses
@@ -173,6 +181,7 @@ module treevars
   	     nmerge = 1, &        ! merge factor for data sets
              nslice, &            ! # particles in rezoning slice (determined in predef)
              new_label         ! Rezone label 
+
 
 
   real :: xmin, xmax    ! box limits

@@ -95,7 +95,8 @@ subroutine param_dump
         write (ifile,'(a20,l3)') ' visit: ',vis_on
         write (ifile,'(a20,l3/)') ' steering: ',steering
         write (ifile,*) 'Local tree size ',size_tree
-        write (ifile,*) 'Max address in #-table: ',2**nbaddr-1
+        write (ifile,*) 'Max address in #-table: ',maxaddress
+        write (ifile,*) 'Max # branches: ',nbranch_max
         machinebits = bit_size(1_8)    ! # bits in integer variable (hardware) 
         write (ifile,*) 'Machine bit-size = ',machinebits
         write (ifile,*) 'Max permitted particles / PE: ', nppm

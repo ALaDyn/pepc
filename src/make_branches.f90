@@ -15,15 +15,13 @@ subroutine make_branches
   use utils
 
   implicit none
-
+!  integer, parameter :: size_t=1000
   integer*8, dimension(size_tree) ::  resolve_key, search_key
   integer*8, dimension(8) :: sub_key   ! Child partial key
 
-  integer, dimension(size_tree) ::newentry, local_node, local_code, local_leaves  ! local branch data
-  integer, dimension(size_tree) :: branch_node, branch_code, branch_leaves  ! global htable data for branches
-  integer, dimension(size_tree) :: treelevel
-
-  integer, dimension(0:maxaddress) :: cell_addr
+  integer, dimension(nbranch_max/num_pe) ::  local_node, local_code, local_leaves  ! local branch data
+  integer, dimension(nbranch_max) :: newentry, branch_node, branch_code, branch_leaves  ! global htable data for branches
+  integer :: treelevel
 
   integer*8 ::  keymin, keymax
   integer :: i, j, k, level, nsubset, ncheck, cchild, nchild, newsub, &
@@ -38,9 +36,9 @@ subroutine make_branches
 
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
-  if (branch_debug) call check_table('after treebuild     ')
+  if (tree_debug) call check_table('after treebuild     ')
 
-  if (branch_debug) write(ipefile,'(///a)') 'BRANCHES'
+  if (tree_debug) write(ipefile,'(/a)') 'TREE BRANCHES'
 
 
   ! Determine minimum set of branch nodes making up local domain
@@ -49,11 +47,15 @@ subroutine make_branches
   nbranch = 0
   newsub = 0
   level = 1
-  treelevel(1:nnodes)  = log(1.*treekey(1:nnodes))/log(2.**idim)     ! node levels
+  nsubset=0
+  do i=1,nnodes
+     treelevel  = log(1.*treekey(i))/log(8.)     ! node levels
 
-  nsubset = COUNT( mask = treelevel(1:nnodes) == 1)  ! # nodes at level 1
-  search_key(1:nsubset) = pack( treekey(1:nnodes), mask = treelevel(1:nnodes) == 1 )   ! Subset of nodes at same level
-
+     if (treelevel==1) then
+        nsubset = nsubset+1  ! # nodes at level 1
+        search_key(nsubset) = treekey(i)   ! Subset of nodes at same level
+     endif
+  end do
 
   do while ( ncheck < nleaf )
 
@@ -65,8 +67,8 @@ subroutine make_branches
         ! domain, causing 'gaps' in branch list
         ! =>  Compute from particle keys for given level instead.
 
-        !        keymin = ishft( pekey(1),-idim*(nlev-level) )      ! recover min, max twig keys from particle keys at this level
-        !        keymax = ishft( pekey(nlist),-idim*(nlev-level) )      ! recover min, max twig keys from particle keys at this level
+        !        keymin = ishft( pekey(1),-3*(nlev-level) )      ! recover min, max twig keys from particle keys at this level
+        !        keymax = ishft( pekey(nlist),-3*(nlev-level) )      ! recover min, max twig keys from particle keys at this level
 
         do i=1,nsubset
            if ( (search_key(i) > keymin .and. search_key(i) < keymax ) .or. ( htable( key2addr( search_key(i) ) )%node > 0 )) then
@@ -79,10 +81,12 @@ subroutine make_branches
               ! end node: check for complete twigs; otherwise subdivide
               cchild = htable( key2addr( search_key(i) ) )%childcode   !  Children byte-code
 
-              nchild = SUM( (/ (ibits(cchild,j,1),j=0,2**idim-1) /) ) ! # children = sum of bits in byte-code
+              nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
               sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract sub key from byte code
 
-              resolve_key(newsub+1:newsub+nchild) = IOR( ishft( search_key(i),idim ), sub_key(1:nchild) ) ! Construct keys of children
+              do j=1,nchild
+                 resolve_key(newsub+j) = IOR( ishft( search_key(i),3 ), sub_key(j) ) ! Construct keys of children
+              end do
               newsub = newsub + nchild
 
            endif
@@ -119,7 +123,7 @@ subroutine make_branches
      write(*,*) 'Checksum ',ncheck,' /= # leaves on PE ',me
   endif
 
-  if (branch_debug) call check_table('after local branches')
+  if (tree_debug) call check_table('after local branches')
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 

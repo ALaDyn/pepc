@@ -82,7 +82,7 @@ subroutine draw_domains(timestamp)
   key_twig = pack(htable%key,mask=htable%node<0)
 
   ! get levels of twigs
-  level_twig = log( 1.*key_twig )/log(2.**idim)
+  level_twig = log( 1.*key_twig )/log(8.)
   node_twig = pack(htable%node,mask=htable%node<0)         ! twig index
 
 
@@ -92,8 +92,8 @@ subroutine draw_domains(timestamp)
   do j=2,ntwig
      ! get coords from keys
      nbits = level_twig(j)
-     ix = SUM( (/ (2**i*ibits( key_twig(j),idim*i,1 ), i=0,nbits-1) /) )
-     iy = SUM( (/ (2**i*ibits( key_twig(j),idim*i+1,1 ), i=0,nbits-1) /) )
+     ix = SUM( (/ (2**i*ibits( key_twig(j),3*i,1 ), i=0,nbits-1) /) )
+     iy = SUM( (/ (2**i*ibits( key_twig(j),3*i+1,1 ), i=0,nbits-1) /) )
 
      s = boxsize/2**(level_twig(j))          !  box length
      xt=ix*s + xmin
@@ -115,10 +115,10 @@ subroutine draw_domains(timestamp)
 !  branch_owner = (/ ( htable( key2addr( branch_key(j) ) )%owner, j=1,nbranch_sum) /)         ! Owner-PE of branch
 
   do j=1,nbranch_sum
-     ilev = log( 1.*branch_key(j) )/log(2.**idim)
-     ix = SUM( (/ (2**i*ibits( branch_key(j),idim*i,1 ), i=0,ilev-1) /) )
-     iy = SUM( (/ (2**i*ibits( branch_key(j),idim*i+1,1 ), i=0,ilev-1) /) )
-     iz = SUM( (/ (2**i*ibits( branch_key(j),idim*i+2,1 ), i=0,ilev-1) /) )
+     ilev = log( 1.*branch_key(j) )/log(8.)
+     ix = SUM( (/ (2**i*ibits( branch_key(j),3*i,1 ), i=0,ilev-1) /) )
+     iy = SUM( (/ (2**i*ibits( branch_key(j),3*i+1,1 ), i=0,ilev-1) /) )
+     iz = SUM( (/ (2**i*ibits( branch_key(j),3*i+2,1 ), i=0,ilev-1) /) )
 
      s = boxsize/2**(ilev)          !  box length
      xt=ix*s + xmin
@@ -144,15 +144,15 @@ subroutine draw_domains(timestamp)
   plist_leaf(1:nleaf) = pack(htable%childcode,mask=htable%node>0)   ! particle label
 
   ! get levels of leaves
-  level_leaf(1:nleaf) = log(1.*key_leaf(1:nleaf))/log(2.**idim)
+  level_leaf(1:nleaf) = log(1.*key_leaf(1:nleaf))/log(8.)
 
   write (60,'(a)') 'set lwidth .001 color black'
 
   do j=1,nleaf
      ! get box coords from keys
      nbits = level_leaf(j)    ! # bits per ordinate
-     ix = SUM( (/ (2**i*ibits( key_leaf(j),idim*i,1 ), i=0,nbits-1) /) )
-     iy = SUM( (/ (2**i*ibits( key_leaf(j),idim*i+1,1 ), i=0,nbits-1) /) )
+     ix = SUM( (/ (2**i*ibits( key_leaf(j),3*i,1 ), i=0,nbits-1) /) )
+     iy = SUM( (/ (2**i*ibits( key_leaf(j),3*i+1,1 ), i=0,nbits-1) /) )
 
      s = boxsize/2**(level_leaf(j))          !  box length
      xt=ix*s + xmin

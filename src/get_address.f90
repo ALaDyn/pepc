@@ -14,7 +14,7 @@ function key2addr(keyin)
   use utils
 
   implicit none
-  integer*8  :: keyin
+  integer*8, intent(in)  :: keyin
   integer :: cell_addr, link_addr, ires,i, ierr
   logical :: resolved
 
@@ -32,6 +32,14 @@ function key2addr(keyin)
 
      do while (  .not. resolved .and. ires <= maxaddress )       ! Repeat until keys match or run out of links
         link_addr = htable(link_addr)%link    ! Next linked entry
+        if (link_addr == -1 ) then
+           write(*,*) 'Bad address'
+           write(*,'(a15,o20)') 'Key = ',keyin
+           write(*,*) 'Initial address =',cell_addr
+           write(*,*) '# const =',hashconst
+          write(*,*) 'ires =',ires
+           exit
+        endif
         ires = ires + 1
         if ( htable( link_addr )%key == keyin ) then
            key2addr = link_addr      ! Keys match -> found entry
@@ -40,10 +48,10 @@ function key2addr(keyin)
      end do
      ! Not resolved - something wrong: invalid key or #-table wrong
      write (*,*) 'Key not resolved in KEY2ADDR: check #-table and key list for PE ',me
-     write (*,'(a5,o20,a2,i10,a1,a12,i15)') 'Key #: ',keyin,' (',keyin,')',' Address: ',cell_addr
+     write (*,'(a5,o20,a2,i16,a1,a12,i15)') 'Key #: ',keyin,' (',keyin,')',' Address: ',cell_addr
      write (ipefile,*) 'Keys in table:'
      do i=0,maxaddress
-        if (htable(i)%key/=0) write(ipefile,'(i8,o21)') i,htable(i)%key
+        if (htable(i)%key/=0) write(ipefile,'(i8,o25,i10)') i,htable(i)%key,htable(i)%link
      end do
 
 !     call diagnose_tree
