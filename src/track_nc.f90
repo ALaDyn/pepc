@@ -50,7 +50,7 @@ subroutine track_nc
   ! Determine position of critical density along laser axis
  
 ! initial leading edge of plasma
-  if (initial_config == 1 .or.initial_config ==3) then
+  if (target_geometry == 1 .or. target_geometry ==3) then
      xc1 = plasma_centre(1)-r_sphere 
   else
      xc1 = plasma_centre(1)-x_plasma/2.  

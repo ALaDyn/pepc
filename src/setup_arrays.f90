@@ -6,7 +6,7 @@ subroutine setup_arrays
   integer :: ibig, machinebits, maxleaf, maxtwig,k
 
   !  npartm = npart + nt*np_beam  ! Max # particles permitted
-  npartm = npart  ! allow 50% fluctuation
+  npartm = npart + np_beam  ! allow 50% fluctuation
 
   if (scheme==5 .or. target_dup) npartm=npartm*2  ! reserve extra space for electrons in ions-only mode
 	                                        ! or double-target config

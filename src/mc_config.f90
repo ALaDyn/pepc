@@ -99,13 +99,13 @@ subroutine mc_config
 	      y_limit = y_plasma/2.
 	   endif
 
-	   if (initial_config==1) then
+	   if (target_geometry==1) then
 	      ! sphere
 	      constrained = (xt**2 + yt**2 + zt**2 <= r_limit**2) 
-	   else if (initial_config==2) then
+	   else if (target_geometry==2) then
 	      ! disc
 	      constrained = (xt >= -x_limit .and. xt<= x_limit .and. yt**2 + zt**2 <= r_limit**2) 
-	   else if (initial_config==3) then
+	   else if (target_geometry==3) then
 	      ! wire
 	      constrained = (zt >= -x_limit .and. zt<= x_limit .and. yt**2 + xt**2 <= r_limit**2)   
 	   else

@@ -31,7 +31,7 @@ subroutine face(r, c_status, face_nr)
     ! matrix for the ellipsoid
     real, dimension(1:3, 1:3)       :: A
 
-    select case (initial_config)
+    select case (target_geometry)
     case (0) ! slab
         select case (face_nr)
         case(1) ! x-y-plane, negative z

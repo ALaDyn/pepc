@@ -71,19 +71,19 @@ subroutine beam_control
   endif
 
   if (itime == 0 .and. me==0 )  then
-!     call flvisit_spk_check_connection(lvisit_active)
+     call flvisit_spk_check_connection(lvisit_active)
      ! Specify default parameters at beginning of run
-!     call flvisit_spk_beam_paraminit_send(theta_beam,phi_beam,r_beam,rho_beam,u_beam)
+     call flvisit_spk_beam_paraminit_send(theta_beam,phi_beam,r_beam,rho_beam,u_beam)
   endif
 
 
 
   if (me==0) then
-!     call flvisit_spk_check_connection(lvisit_active)
+     call flvisit_spk_check_connection(lvisit_active)
 
      ! Fetch real-time, user-specified control parameters
      if (lvisit_active /= 0) then 
-!        call flvisit_spk_beam_param_recv( theta_beam,phi_beam,r_beam,rho_beam,u_beam)
+        call flvisit_spk_beam_param_recv( theta_beam,phi_beam,r_beam,rho_beam,u_beam)
      else
         write(*,*) ' No Connection to Visualization'
         return
@@ -203,7 +203,14 @@ subroutine beam_control
            Ex(p) = 0.
            Ey(p) = 0.
            Ez(p) = 0.
+           Bx(p) = 0.
+           By(p) = 0.
+           Bz(p) = 0.
+           Ax(p) = 0.
+           Ay(p) = 0.
+           Az(p) = 0.
            pot(p) =0.
+           work(p) =0.
         endif
      end do
 

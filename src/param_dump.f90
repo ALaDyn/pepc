@@ -7,7 +7,7 @@ subroutine param_dump
   integer :: ibig, machinebits
   namelist /pepcdata/ nep, nip, ne, ni, &
        theta, mass_ratio, q_factor, eps, &
-       initial_config, ispecial, &
+       plasma_config, target_geometry, ispecial, &
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
        xl, yl, zl, displace, bond_const, fnn, rho_min, lolam, &
@@ -24,8 +24,9 @@ subroutine param_dump
   if (me==0) then
      do ifile = 6,15,9
 
-        write (ifile,'(a20,i4,a10)') ' Plasma config: ',initial_config,configs(initial_config)
-        write (ifile,'(a20,i4,a8)') ' Laser config: ',beam_config,beam_configs(beam_config)
+        write (ifile,'(a20,i4,a11)') ' Plasma config: ',plasma_config,plasma_configs(plasma_config)
+        write (ifile,'(a20,i4,a11)') ' Target geometry: ',target_geometry,geometries(target_geometry)
+        write (ifile,'(a20,i4,a8)') ' Beam config: ',beam_config,beam_configs(beam_config)
         write (ifile,'(a20,i4,a8)') ' Scheme: ',scheme,schemes(scheme)
         write (ifile,'(a20,1pe12.3)') ' Plasma volume: ',Vplas
         write (ifile,'(a20,f12.3)') ' Sphere radius: ',r_sphere

@@ -21,6 +21,7 @@ subroutine beam
 
   !  evaluate system constants  from inputs:
   !  beam cylinder volume:  r_beam is radius
+  
 
   if (me.eq.0) then
    Volb = pi*r_beam**2*x_beam
@@ -65,6 +66,21 @@ subroutine beam
   endif
 
   npart = npart + np_beam  ! Augment particle numbers for all CPUs
+! zero fields
+  Ex(1:npp) = 0
+  Ey(1:npp) = 0
+  Ez(1:npp) = 0
+  Bx(1:npp) = 0
+  By(1:npp) = 0
+  Bz(1:npp) = 0
+  Ax(1:npp) = 0
+  Ay(1:npp) = 0
+  Az(1:npp) = 0
+  Axo(1:npp) = 0
+  Ayo(1:npp) = 0
+  Azo(1:npp) = 0
+  pot(1:npp) = 0
+  work(1:npp) = 1.   ! set work load balanced initially
 
 end subroutine beam
 

@@ -48,7 +48,7 @@ subroutine predef_parts
 	  '# electrons: ', ner, &
           '# ions: ', nir, & 
           '# beam: ', np_beamr, &
-          'Config: ', iconf, & 
+          'Geom  : ', iconf, & 
           'Scheme: ', iens, &
 	  'Box_x: ',xlr,&
           'Box_y: ', ylr, &
@@ -71,9 +71,9 @@ subroutine predef_parts
         write(*,*) '*** Warning: MAC changed - check inputs'
      endif
 
-     if (iconf /= initial_config) then
-        write(*,*) '*** Warning: Initial config in restart file ',iconf, &
-             ' does not match value ',initial_config,' in run.h - check inputs'
+     if (iconf /= target_geometry) then
+        write(*,*) '*** Warning: Target geometry in restart file ',iconf, &
+             ' does not match value ',target_geometry,' in run.h - check inputs'
      endif
   endif
 

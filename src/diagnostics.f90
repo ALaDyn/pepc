@@ -37,7 +37,7 @@ subroutine diagnostics
      endif
   endif
 
-!  if (initial_config.eq.4) then
+!  if (target_geometry.eq.4) then
     do i=1,npp
 	if (pelabel(i)==60) then
 	if (itime.eq.0) write(90,'(a)') '! t x ux Ex Ax Axo -dA/dt Bx' 

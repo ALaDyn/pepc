@@ -41,7 +41,7 @@ subroutine dump(timestamp)
   open (60,file=cfile)    
   write(60,'(7(a9,i8/),11(a9,f12.5/))')  &    ! info block
        'itime=',timestamp, 'npp=',npp, &
-       'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
+       'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
        'scheme=',scheme, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
        'eps=', eps, 'theta=',theta,' tlaser= ',tlaser,' trun= ',trun, &
@@ -53,7 +53,7 @@ subroutine dump(timestamp)
     open (61,file=cfile)    
     write(61,'(7(a9,i8/),11(a9,f12.5/))')  &    ! info block
        'itime=',timestamp, 'npp=',npp, &
-       'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
+       'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
        'scheme=',scheme, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
        'eps=', eps, 'theta=',theta,'tlaser = ',tlaser,' trun= ', trun, &   
@@ -65,7 +65,7 @@ subroutine dump(timestamp)
 
     write(6,'(//a/7(a9,i8/),11(a9,f12.5/))') 'PARTICLE DUMP:', &    ! info block
        'itime=',timestamp, 'npp=',npp, &
-       'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
+       'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
        'scheme=',scheme, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
        'eps=', eps, 'theta=',theta,'tlaser = ',tlaser, 'trun= ',trun, &

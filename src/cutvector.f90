@@ -16,7 +16,7 @@ subroutine cutvector(r_in, face_nr, n, r_out)
     real                              :: c_status, phi, psi, gamma
 
     r_affin = r_in - plasma_centre
-    select case (initial_config) 
+    select case (target_geometry) 
     case (0) ! slab
         select case (face_nr)
         case (1, 2) ! x-y-planes

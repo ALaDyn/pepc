@@ -32,9 +32,10 @@ subroutine potenergy(epot_total,emag_total)
 
   do p=1, npp
      upartial = upartial + 0.5*q(p)*pot(p)
-     gamma = sqrt(1.0+ux(p)**2+uy(p)**2+uz(p)**2)
-     umag = umag + 0.5*q(p)/gamma*( ux(p)*ax(p) + uy(p)*ay(p) + uz(p)*az(p) )
-
+     if (bfield_on) then
+        gamma = sqrt(1.0+ux(p)**2+uy(p)**2+uz(p)**2)
+        umag = umag + 0.5*q(p)/gamma*( ux(p)*ax(p) + uy(p)*ay(p) + uz(p)*az(p) )
+     endif
      if (pot_debug) then
         write (ipefile,'(a,i5,a,i5,3f10.3,a,f12.4,a,3f12.5)') & 
 	'local particle ',p,' label ',pelabel(p),x(p),y(p),q(p),' pot ',pot(p),' mag ',ax(p), ay(p), az(p)

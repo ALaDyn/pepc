@@ -32,14 +32,14 @@ subroutine earth_plate
      x_limit = x_plasma/2.
      y_limit = y_plasma/2.
 
-     if (initial_config==1) then
+     if (target_geometry==1) then
         ! sphere
         !	      constrained = (xt**2 + yt**2 + zt**2 <= r_limit**2) 
 
 
-     else if (initial_config==2) then
+     else if (target_geometry==2) then
 
-     else if (initial_config==3) then
+     else if (target_geometry==3) then
         ! wire
 
         if ( q(p)>0 .and. zt < -x_limit ) then

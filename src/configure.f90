@@ -16,19 +16,21 @@ subroutine configure
   real :: t_walk, t_force
 
   if (restart) then
-     call predef_parts    ! Predefined particle properties read from peXX/parts_dump.NNNNNN
-!  Find critical/shelf densities
 
-     if (beam_config ==4 )call track_nc 
+     call predef_parts    ! Predefined particle properties read from peXX/parts_dump.NNNNNN
+     !  Find critical/shelf densities if laser switched on
+
+     if (beam_config ==4 ) call track_nc 
+
 
   else
-     config: select case(initial_config)
+     config: select case(plasma_config)
 
-     case(:8)
-        call randion         ! Set up particles according to geometry
+     case(1)              ! Set up particles according to geometry
+        call randion         
 
         if (scheme<>5 .and. ramp) then
-           call add_ramp     ! add exponential ramp
+           call add_ramp     ! add exponential ramp to target
         endif
 
         if (vte > 0) then
@@ -49,11 +51,13 @@ subroutine configure
            call cold_start(nep+1,nip)
         endif
      
-     case(10)
+     case(2)
         call special_start(ispecial)
 
-     case default
-        call randion         ! Random by default
+     case default     ! Default = 0 - no plasma target
+        if (me==0) write (6,*) 'Warning: no plasma set up'
+        npart=0
+        npp = 0
      end select config
 
   endif
@@ -76,6 +80,10 @@ subroutine configure
 
   case(3)
      call beam_dust   ! Dust particle
+
+  case(4:) ! laser on
+     if (me==0) write(*,*) 'Laser switched on' 
+ 
   end select beamconf
 
   ! Do tree-build for initial P.E. value

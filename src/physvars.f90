@@ -88,9 +88,11 @@ module physvars
   logical :: target_dup = .false. ! Target duplication switch
   logical :: ramp = .false.  ! profile-ramp switch
   integer :: mc_steps
-  integer :: initial_config = 4  ! Switch for initial configuration (positions, velocities)
-  integer :: ispecial = 1  ! Special, user-defined electron config (special_config)
-  integer :: beam_config = 0 ! Switch for particle beam mode
+  integer :: plasma_config = 1  ! Switch for initial configuration (positions, velocities)
+  integer :: target_geometry = 0  ! Geometry for plasma target
+
+  integer :: beam_config = 0 ! Switch to include particle or laser beam 
+  integer :: ispecial       ! Switch to select special electron configs 
   integer :: scheme = 1 ! Integrator scheme switch: 2-4= const. Te dynamics, 6=EM
   integer :: particle_bcs = 1 ! Particle BC switch: 1=open, 2=reflective
   
@@ -114,7 +116,10 @@ module physvars
    real :: number_faces    ! # faces to constrain the particles in
    integer :: struct_step
 
-  character*10 :: configs(0:10)= (/ &
+  character*10 :: plasma_configs(0:2)= (/ &
+       'no plasma ','plasma    ','special   ' /)
+
+  character*10 :: geometries(0:10)= (/ &
        'slab      ', & 
        'sphere    ','disc      ','wire      ','ellipsoid ','wedge     ', &
        'hemisphere','hollow sph','hollow hsp','          ','special   ' /)

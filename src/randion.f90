@@ -26,18 +26,22 @@ subroutine randion
     iseed3 = -30013 - me
     write (ipefile, '(a,3i8)') 'Seeds: ', iseed1, iseed2, iseed3
     
-    !  Initialise particles according to initial_config
+    !  Initialise particles according to target geometry
     !       0 = random slab
     !       1 = random sphere
     !       2 = random disc
     !       3 = random wire
     !       4 = ellipsoid
+    !       5 = wedge
+    !       6 = hemisphere
+    !       7 = hollow sphere
+    !       8 = hollow hemisphere
 
     nsphere = npp
 
     p = 0
     do while (p < nsphere)
-        select case (initial_config)
+        geometry: select case (target_geometry)
         case(0, 5) ! slab or wedge 
             xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
             yt = .5 * y_plasma * (2 * rano(iseed2) - 1.) + plasma_centre(2)         
@@ -63,12 +67,12 @@ subroutine randion
             yt = r_sphere * (2 * rano(iseed2) - 1.) * y_plasma + plasma_centre(2)
             zt = r_sphere * (2 * rano(iseed3) - 1.) * z_plasma + plasma_centre(3)
 
-        case(6, 8) ! semisphere and hollow semisphere
+        case(6, 8) ! hemisphere and hollow hemisphere
             xt = .5 * r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
             yt = r_sphere * (2 * rano(iseed2) - 1.) + plasma_centre(2)
             zt = r_sphere * (2 * rano(iseed3) - 1.) + plasma_centre(3)
 
-        end select
+        end select geometry
             
         ! check if the new particle is in
         ! and if yes then add it

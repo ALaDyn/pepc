@@ -18,7 +18,7 @@ subroutine setup
   implicit none
   integer :: k, npb_pe
 
- 
+
 
   namelist /pepcdata/ nep, nip, ne, ni, &
        theta, mass_ratio, q_factor, eps, &
@@ -41,10 +41,9 @@ subroutine setup
   ! switches
   tree_debug = .false.
   domain_debug = .false.
-  initial_config = 1         ! random sphere
-  ! initial_config = 2         ! random disc
-  !    initial_config = 3         ! rectangular slab
-  !  initial_config = 10     ! read from parts_all.in
+  plasma_config = 1  ! plasma target
+  target_geometry = 1         ! random sphere
+
 
   ! particles
   nep = 0 ! # plasma electrons per PE
@@ -118,13 +117,13 @@ subroutine setup
   ngx = 100   ! Grid size for plots
   ngy = 50
   ngz = 50
-    ! constrain
+  ! constrain
 !!$    len_tripod = .001
-    constrain_proof = .001
-    struct_step = 0
-    
+  constrain_proof = .001
+  struct_step = 0
+
   ! Read actual inputs from namelist file
- 
+
   open(10,file='run.h')
   read (10,NML=pepcdata)
 
@@ -142,7 +141,7 @@ subroutine setup
      npp = nep+nip
   endif
 
-!  npb_pe = np_beam/num_pe
+  !  npb_pe = np_beam/num_pe
   if (.not. restart) then
      if (nip*num_pe /= ni .or. nep*num_pe /= ne ) then
         ne = (nep+1)*num_pe
@@ -152,83 +151,85 @@ subroutine setup
            write(*,'(//a//)') '*** Warning: number each particle species (ne, ni) must be divisible by # processors ***'
            write(*,'(a,i6)') '*** Resetting to ',ne,ni
         endif
-!     else if (npb_pe*num_pe /= np_beam) then 
-!        np_beam = (npb_pe+1)*num_pe
-!        if (me==0) then
-!           write(*,'(//a)') '*** Warning: number of beam particles must be divisible by # processors ***'
-!           write(*,'(a,i6)') '*** Resetting to ',np_beam
-!        endif
+        !     else if (npb_pe*num_pe /= np_beam) then 
+        !        np_beam = (npb_pe+1)*num_pe
+        !        if (me==0) then
+        !           write(*,'(//a)') '*** Warning: number of beam particles must be divisible by # processors ***'
+        !           write(*,'(a,i6)') '*** Resetting to ',np_beam
+        !        endif
 
      endif
   endif
 
   npart = ni+ne
-  npp = nep + nip  ! total # particles per processor
+  npp = npart/num_pe  ! total # particles per processor
   new_label = npart  ! Rezone label
 
   geometry: select case(target_geometry)
 
-    case(0) ! slab
-        Vplas = x_plasma * y_plasma * z_plasma
-        focus = (/xl / 2., yl / 2., zl / 2./) ! Centre of laser focal spot
-        plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
-        number_faces = 6
-     
-    case(1) ! sphere
-        Vplas = 4 * pi * r_sphere**3 / 3.
-        
-        focus = (/xl / 2. - r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
-        plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
-        number_faces = 1
-        
-    case(2) ! disc
-        Vplas = pi * r_sphere**2 * x_plasma
-        focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./) ! Centre of laser focal spot
-        plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma        
-        number_faces = 3
+  case(0) ! slab
+     Vplas = x_plasma * y_plasma * z_plasma
+     focus = (/xl / 2., yl / 2., zl / 2./) ! Centre of laser focal spot
+     plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     number_faces = 6
 
-    case(3) ! wire
-        Vplas = pi * r_sphere**2 * z_plasma
-        focus = (/xl / 2. - r_sphere + x_offset, yl / 2., zl / 2. + z_offset/) ! Centre of laser focal spot
-        plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
-        number_faces = 3
-        
-    case(4) ! ellipsoid
-        Vplas = 4 * pi * x_plasma * y_plasma * z_plasma * r_sphere**3 / 3.
-        focus = (/xl / 2. - x_plasma * r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
-        plasma_centre = (/xl / 2., yl / 2., zl / 2./) 
-        number_faces = 1
+  case(1) ! sphere
+     Vplas = 4 * pi * r_sphere**3 / 3.
 
-    case(5) ! wedge
-        Vplas = .5 * x_plasma * y_plasma * z_plasma
-        focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./)
-        plasma_centre = (/xl / 2., yl / 2., zl / 2./)
-        number_faces = 5
+     focus = (/xl / 2. - r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     number_faces = 1
 
-    case(6) ! hemisphere
-        Vplas = 4 * pi * r_sphere**3 / 6.
-        focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
-        plasma_centre = (/xl / 2., yl / 2., zl / 2./)
-        number_faces = 2
+  case(2) ! disc
+     Vplas = pi * r_sphere**2 * x_plasma
+     focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./) ! Centre of laser focal spot
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma        
+     number_faces = 3
 
-    case(7) ! hollow sphere
-        Vplas = (4 * pi / 3.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
-        focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
-        plasma_centre = (/xl / 2., yl / 2., zl / 2./)
-        number_faces = 2
+  case(3) ! wire
+     Vplas = pi * r_sphere**2 * z_plasma
+     focus = (/xl / 2. - r_sphere + x_offset, yl / 2., zl / 2. + z_offset/) ! Centre of laser focal spot
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     number_faces = 3
 
-    case(8) ! hollow hemisphere
-        Vplas = (4 * pi / 6.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
-        focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
-        plasma_centre = (/xl / 2., yl / 2., zl / 2./)
-        number_faces = 3
+  case(4) ! ellipsoid
+     Vplas = 4 * pi * x_plasma * y_plasma * z_plasma * r_sphere**3 / 3.
+     focus = (/xl / 2. - x_plasma * r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./) 
+     number_faces = 1
 
-     case(10) ! Electrons only user-defined config (special_start)
-        Vplas = x_plasma * y_plasma * z_plasma
-        focus = (/xl /4., yl / 2., zl / 2./) ! Centre of laser focal spot
-        plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
-        number_faces = 6  
-    end select geometry
+  case(5) ! wedge
+     Vplas = .5 * x_plasma * y_plasma * z_plasma
+     focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./)
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+     number_faces = 5
+
+  case(6) ! hemisphere
+     Vplas = 4 * pi * r_sphere**3 / 6.
+     focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+     number_faces = 2
+
+  case(7) ! hollow sphere
+     Vplas = (4 * pi / 3.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
+     focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+     number_faces = 2
+
+  case(8) ! hollow hemisphere
+     Vplas = (4 * pi / 6.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
+     focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+     number_faces = 3
+
+  end select geometry
+
+  if (plasma_config==2) then ! Electrons only user-defined config (special_start)
+     Vplas = x_plasma * y_plasma * z_plasma
+     focus = (/xl /4., yl / 2., zl / 2./) ! Centre of laser focal spot
+     plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     number_faces = 6  
+  endif
 
   vte = sqrt(Te_keV/511.)  ! convert from keV to /c
   if (ne > 0) then
