@@ -1,106 +1,87 @@
- 
-!  ===============================================================
-!
-!                           CONSTRAIN
-!
-!   Constrain particle movement to pre-defined geometry
-!
-!  ===============================================================
-
 subroutine constrain
+    use treevars
+    use utils
 
-  use treevars
-  use utils
-  implicit none
+    implicit none
 
-  integer :: i,p
-  real :: gamma, hx, hy, hz, phi, delta_r
-  real :: x_limit, y_limit, z_limit, r_limit, xt, yt, zt
+    real, dimension(1:3)		:: r_new, r_old, r_test, v
+    real 				:: c_status		! particle in or out?
+    integer 			        :: p, face_nr
 
-  do p=1,npp
-     xt = x(p) - plasma_centre(1)  ! shift origin to target centre
-     yt = y(p) - plasma_centre(2)
-     zt = z(p) - plasma_centre(3)
+    ! bisections
+    real, dimension(1:3)		:: r_d, temp	        ! crossing point of particle
+    real				:: p_new, p_old, diff
 
+    ! reflection plane
+    real, dimension(1:3)		:: n
 
-     r_limit = r_sphere
-     x_limit = x_plasma/2.
-     y_limit = y_plasma/2.
+    ! new direction of v
+    real, dimension(1:3)                :: c
 
-     if (initial_config==1) then
-        ! sphere
-        !	      constrained = (xt**2 + yt**2 + zt**2 <= r_limit**2) 
+    ! file id
+    integer                             :: c_file = 76, nr_out
 
+    write(c_file, *) 'in constrain'
 
-     else if (initial_config==2) then
-        ! disc
-        if ( yt**2 + zt**2 > r_limit**2) then
-           phi = phase(yt,zt)
-           hy = cos(phi) ! direction cosine
-           hz = sin(phi)
-           delta_r = sqrt(yt**2+zt**2)-r_limit
-           y(p) = y(p) - 2*hy*delta_r  ! reflect particle back into circle
-           z(p) = z(p) - 2*hz*delta_r
-           uy(p) = -uy(p)
-           uz(p) = -uz(p)
-        endif
-        if ( xt < -x_limit ) then
-           x(p) = x(p) + 2*(-x_limit - xt)
-           ux(p) = -ux(p)
-        else if ( xt >  x_limit ) then
-           x(p) = x(p) - 2*(xt - x_limit)
-           ux(p) = -ux(p)
-        endif
+    ! walk through all particles
+    nr_out = 0
+    do p = 1, npp
+        r_new = (/x(p), y(p), z(p)/)
+        v = (/ux(p), uy(p), uz(p)/)
 
-     else if (initial_config==3) then
-        ! wire
+        do face_nr = 1, number_faces ! walk through all faces
+            call face(r_new, c_status, face_nr)
+            if (c_status .ge. 0.) then
+                nr_out = nr_out + 1
 
-        if ( yt**2 + xt**2 > r_limit**2) then
-           phi = phase(xt,yt)
-           hx = cos(phi) ! direction cosine
-           hy = sin(phi)
-           delta_r = sqrt(xt**2+yt**2)-r_limit
-           x(p) = x(p) - 2*hx*delta_r  ! reflect particle back into circle
-           y(p) = y(p) - 2*hy*delta_r
-           ux(p) = -ux(p)
-           uy(p) = -uy(p)
-        endif
-        if ( zt < -x_limit ) then
-           z(p) = z(p) + 2*(-x_limit - zt)! reflect back into column
-           uz(p) = -uz(p)
-        else if ( zt >  x_limit ) then 
-           z(p) = z(p) - 2*(zt - x_limit)
-           uz(p) = -uz(p)
+                ! get a good r_old
+                r_test = r_new - dt * v
+                call face(r_test, c_status, face_nr) 
+                if (c_status .gt. 0.) then
+                    call cutvector(r_test, face_nr, n, r_old)
+                    temp = r_new - r_old
+                    v = sqrt(dot_product(v, v)) * temp / sqrt(dot_product(temp, temp))
+                else
+                    r_old = r_test
+                end if
+        
+                ! besection for the particle
+                p_new = 1.
+                p_old = 0.
+                r_test = r_old + p_new * (r_new - r_old)
+                call face(r_test, c_status, face_nr)
+                do while (abs(c_status) .gt. constrain_proof)
+                    diff = abs(p_new - p_old) / 2.
+                    p_old = p_new
+                    if (c_status .gt. 0.) then
+                        p_new = p_new - diff
+                    else
+                        p_new = p_new + diff
+                    end if
+                    r_test = r_old + p_new * (r_new - r_old)
+                    call face(r_test, c_status, face_nr)
+                end do
+                write(c_file, *) 'Bisection for particle done.'
+                call cutvector(r_test, face_nr, n, r_d)
 
-        endif
-
-
-     else
-        ! slab: reflective
-        if ( xt < -x_limit ) then
-           x(p) = x(p) + 2*(-x_limit-xt)
-           ux(p) = -ux(p)
-        else if ( xt >  x_limit ) then
-           x(p) = x(p) - 2*(xt-x_limit)
-           ux(p) = -ux(p)
-        endif
-
-        if ( yt < -y_limit ) then
-           y(p) = y(p) + 2*(-y_limit-yt) 
-           uy(p) = -uy(p)
-        else if ( yt >  y_limit ) then
-           y(p) = y(p) - 2*(yt-y_limit)
-           uy(p) = -uy(p)
-        endif
-        if ( zt < -y_limit )then
-           z(p) = z(p) + 2*(-y_limit-zt)
-           uz(p) = -uz(p)
-        else if ( zt >  y_limit ) then
-           z(p) = z(p) - 2*(zt-y_limit)
-           uz(p) = -uz(p)
-        endif
-     endif
-
-  end do
-
+                ! Reflect
+                write(c_file, *) 'Reflecting particle.'
+                v = v - 2. * dot_product(v, n) * n
+                write(c_file, *) 'New v: v     = ', v(1:3)
+                c = v / sqrt(dot_product(v, v))
+                r_new = r_d + sqrt(dot_product(r_d - r_new, r_d - r_new)) * c
+                x(p) = r_new(1)
+                y(p) = r_new(2)
+                z(p) = r_new(3)
+                ux(p) = v(1)
+                uy(p) = v(2)
+                uz(p) = v(3)
+                write(c_file, *) 'Reflection done.'
+                write(c_file, *) 'Bisection for particle nr ', p, ' done.'
+                write(c_file, *) ''
+            end if
+        end do
+    end do
+    write(c_file, *) 'Number of reflections: ', nr_out
+ 
 end subroutine constrain
