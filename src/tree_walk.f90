@@ -121,8 +121,8 @@ subroutine tree_walk(pshort,npshort)
 
 
   theta2 = theta**2               ! Clumping parameter**2 for MAC
-  theta2_ion = min(1.0,2*theta2)  ! Ion MAC 50% larger than electron MAC
-
+!  theta2_ion = min(1.0,2*theta2)  ! Ion MAC 50% larger than electron MAC
+  theta2_ion=theta2
   boxlength(0:nlev) = (/ (sbox/2**i, i=0,nlev ) /)  ! Preprocessed box sizes for each level
 
   walk_key(1:npshort) = 1                    ! initial walk list starts at root

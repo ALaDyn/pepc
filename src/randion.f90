@@ -37,7 +37,7 @@ subroutine randion
     p = 0
     do while (p < nsphere)
         select case (initial_config)
-        case(0, 5) ! slab 
+        case(0, 5) ! slab or wedge 
             xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
             yt = .5 * y_plasma * (2 * rano(iseed2) - 1.) + plasma_centre(2)         
             zt = .5 * z_plasma * (2 * rano(iseed3) - 1.) + plasma_centre(3)

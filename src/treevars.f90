@@ -196,7 +196,7 @@ module treevars
                               nterm(:),  nodelist(:,:) ! interaction node-list
 
   real, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:)  ! field arrays for time-averages
-  real, allocatable ::  rhoi(:,:,:)
+  real, allocatable ::  rhoi(:,:,:), rhoe(:,:,:)
   real, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  ! E-field 
   real, allocatable ::  jxe_loc(:,:,:), jye_loc(:,:,:), jze_loc(:,:,:)  ! elec current
 
@@ -223,13 +223,19 @@ module treevars
   real :: z_plasma       ! initial plasma z-width (slab)
   real :: plasma_centre(3) ! vector defining centre of plasma target
   real :: x_crit         ! critical surface
+  real :: x_offset       ! coordinate offset
   real :: rho0           ! electron density (1)
+  real :: rho_track      ! tracking density for x_crit (/nc)
+  real :: rho_upper      ! shelf/profile density above x_crit (/nc)
   real :: Vplas          ! plasma volume
   real :: a_ii           ! mean ion spacing
   real :: r_neighbour    ! nearest-neighbour search radius
   real :: eps            ! potential/force law cutoff
   real :: delta_mc       ! step size for MC config
   real :: displace(3)    ! particle displacement vector for restart (change of view box)
+  real :: uthresh        ! velocity (u^2) threshold for vis_parts
+  real :: rho_min        ! min density for exponential ramp
+  real :: lolam          ! L/lambda density scale-length
 
   ! particle beam stuff
   integer :: np_beam    ! # beam particles
@@ -252,7 +258,8 @@ module treevars
   real :: tlaser        ! run time after laser switched on (1/omega_p)
   real :: elaser        ! deposited laser energy
   real :: propag_laser  ! distance travelled by laser after rezoning
-  
+  real :: intensity     ! normalised intensity = 0.5*vosc^2*omega^2
+
   
 ! Control stuff
   logical :: vis_on=.true.  ! online visualisation on/off
@@ -263,6 +270,7 @@ module treevars
   logical :: lenjones = .false. ! Include short-range Lennard-Jones potential
   logical :: steering = .false.  ! VISIT steering switch
   logical :: target_dup = .false. ! Target duplication switch
+  logical :: ramp = .false.  ! profile-ramp switch
   integer :: mc_steps
   integer :: initial_config = 4  ! Switch for initial configuration (positions, velocities)
   integer :: ispecial = 1  ! Special, user-defined electron config (special_config)

@@ -17,33 +17,38 @@ subroutine setup
 
   implicit none
   integer :: ibig, machinebits, maxleaf, maxtwig,k, npb_pe
-  real :: q_factor, x_offset, z_offset, fnn
-  character*7 :: configs(0:10)= (/   'default', &
-       'sphere ','disc   ','wire   ','slab   ','       ', &
-       '       ','       ','       ','       ','restart' /)
+  real :: q_factor, z_offset, fnn
+  character*10 :: configs(0:10)= (/ &
+       'slab      ', & 
+       'sphere    ','disc      ','wire      ','ellipsoid ','wedge     ', &
+       'hemisphere','hollow sph','hollow hsp','          ','special   ' /)
   character*7 :: beam_configs(0:9)=(/ &
-       'eqm    ','beam   ','i-beam ','laser-u','fpond  ', &
-       '       ','       ','       ','       ','       ' /)
-  character*7 :: ensembles(1:5)=(/ &
-       'const U','Te, Ti ','glob Te','loc  Te','Ti only' /)
+       'eqm    ','beam   ','i-beam ','laser-u','ES pond','LWFA   ', &
+       'EMplane','EM pond','       ','       ' /)
+  character*7 :: schemes(1:6)=(/ &
+       'const U','Te, Ti ','glob Te','loc  Te','Ti only','Full 3V' /)
 
+  real :: nu_ei ! norm. collision frequency
+  real :: sigma_e ! electrical conductivity
+  real :: range_hot ! hot electron range
+  real :: t_sat ! saturation time for n_hot
+  real :: t_foil ! traversal time of hot e front
+ 
 
   namelist /pepcdata/ nep, nip, ne, ni, &
        theta, mass_ratio, q_factor, eps, &
-       initial_config, &
+       initial_config, ispecial, &
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
-       xl, yl, zl, displace, bond_const, fnn, &
+       xl, yl, zl, displace, bond_const, fnn, rho_min, lolam, &
        beam_config, np_beam, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
-       nt, dt, mc_steps, idump, ivis, ivis_fields, iprot, nmerge, ngx, ngy, ngz, &
-       vis_on, steering, domain_debug,  mc_init, restart, ensemble, particle_bcs, &
+       nt, dt, mc_steps, idump, ivis, ivis_fields, iprot, itrack, nmerge, ngx, ngy, ngz, &
+       vis_on, steering, domain_debug,  mc_init, restart, scheme, particle_bcs, &
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
-       dump_tree, perf_anal, coulomb, bonds, lenjones, idens, target_dup
-
-
-
+       dump_tree, perf_anal, coulomb, bonds, lenjones, target_dup, ramp, &
+       constrain_proof, len_tripod, use_multipoles, struct_step, uthresh
 
   !  Default input set
 
@@ -75,6 +80,7 @@ subroutine setup
   Ti_keV = Te_keV/10.
   mass_ratio = 10.
   q_factor = 1.
+  uthresh = -1.
 
   r_sphere = 0.5
   x_plasma = 0.1    ! plasma disc thickness (2) or wire length (3)
@@ -110,6 +116,9 @@ subroutine setup
   z_offset = 0.
   tlaser = 0.    ! time since laser switched on
   lambda = 1.0
+  rho_track = 1.5
+  lolam = 0.1
+  rho_min = 0.1
 
   ! control
   nt = 600
@@ -118,11 +127,16 @@ subroutine setup
   ivis = 1
   ivis_fields = 1
   itime_start = 0
-  idens=1
+  itrack = 10
+
   ngx = 100   ! Grid size for plots
   ngy = 50
   ngz = 50
-
+    ! constrain
+!!$    len_tripod = .001
+    constrain_proof = .001
+    struct_step = 0
+    
   ! Read actual inputs from namelist file
  
   open(10,file='run.h')
@@ -142,7 +156,7 @@ subroutine setup
      npp = nep+nip
   endif
 
-  npb_pe = np_beam/num_pe
+!  npb_pe = np_beam/num_pe
   if (.not. restart) then
      if (nip*num_pe /= ni .or. nep*num_pe /= ne ) then
         ne = (nep+1)*num_pe
@@ -152,12 +166,12 @@ subroutine setup
            write(*,'(//a//)') '*** Warning: number each particle species (ne, ni) must be divisible by # processors ***'
            write(*,'(a,i6)') '*** Resetting to ',ne,ni
         endif
-     else if (npb_pe*num_pe /= np_beam) then 
-        np_beam = (npb_pe+1)*num_pe
-        if (me==0) then
-           write(*,'(//a)') '*** Warning: number of beam particles must be divisible by # processors ***'
-           write(*,'(a,i6)') '*** Resetting to ',np_beam
-        endif
+!     else if (npb_pe*num_pe /= np_beam) then 
+!        np_beam = (npb_pe+1)*num_pe
+!        if (me==0) then
+!           write(*,'(//a)') '*** Warning: number of beam particles must be divisible by # processors ***'
+!           write(*,'(a,i6)') '*** Resetting to ',np_beam
+!        endif
 
      endif
   endif
@@ -166,35 +180,69 @@ subroutine setup
   npp = nep + nip  ! total # particles per processor
   new_label = npart  ! Rezone label
 
-  if (initial_config ==1) then
-     ! sphere
-     Vplas = 4*pi/3.*r_sphere**3
+  geometry: select case(initial_config)
 
-     focus = (/ xl/2.-r_sphere,yl/2.,zl/2. /) ! Centre of laser focal spot
-     plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+    case(0) ! slab
+        Vplas = x_plasma * y_plasma * z_plasma
+        focus = (/xl / 2., yl / 2., zl / 2./) ! Centre of laser focal spot
+        plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+        number_faces = 6
+     
+    case(1) ! sphere
+        Vplas = 4 * pi * r_sphere**3 / 3.
+        
+        focus = (/xl / 2. - r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
+        plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+        number_faces = 1
+        
+    case(2) ! disc
+        Vplas = pi * r_sphere**2 * x_plasma
+        focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./) ! Centre of laser focal spot
+        plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma        
+        number_faces = 3
 
-  else if (initial_config ==2) then
-     ! disc
-     Vplas = pi*r_sphere**2*x_plasma
-     focus = (/ xl/2.-x_plasma/2.+x_offset, yl/2., zl/2. /) ! Centre of laser focal spot
-     plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+    case(3) ! wire
+        Vplas = pi * r_sphere**2 * z_plasma
+        focus = (/xl / 2. - r_sphere + x_offset, yl / 2., zl / 2. + z_offset/) ! Centre of laser focal spot
+        plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+        number_faces = 3
+        
+    case(4) ! ellipsoid
+        Vplas = 4 * pi * x_plasma * y_plasma * z_plasma * r_sphere**3 / 3.
+        focus = (/xl / 2. - x_plasma * r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
+        plasma_centre = (/xl / 2., yl / 2., zl / 2./) 
+        number_faces = 1
 
-  else if (initial_config ==3) then
-     ! wire
-     Vplas = pi*r_sphere**2*x_plasma
-     focus = (/ xl/2.-r_sphere+x_offset, yl/2., zl/2.+z_offset  /) ! Centre of laser focal spot
-     plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+    case(5) ! wedge
+        Vplas = .5 * x_plasma * y_plasma * z_plasma
+        focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./)
+        plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+        number_faces = 5
 
-  else
-     ! slab
-     Vplas = x_plasma*y_plasma*z_plasma
-     focus = (/ xl/2.-x_plasma/2., yl/2., zl/2. /) ! Centre of laser focal spot
-     plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+    case(6) ! hemisphere
+        Vplas = 4 * pi * r_sphere**3 / 6.
+        focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
+        plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+        number_faces = 2
 
-  endif
+    case(7) ! hollow sphere
+        Vplas = (4 * pi / 3.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
+        focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
+        plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+        number_faces = 2
 
-  window_min = plasma_centre(1)-x_plasma/2.  ! Initial LH edge of plasma
-  propag_laser= 0.
+    case(8) ! hollow hemishpere
+        Vplas = (4 * pi / 6.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
+        focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
+        plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+        number_faces = 3
+
+     case(10) ! Electrons only user-defined config (special_start)
+        Vplas = x_plasma * y_plasma * z_plasma
+        focus = (/xl /4., yl / 2., zl / 2./) ! Centre of laser focal spot
+        plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+        number_faces = 6  
+    end select geometry
 
   vte = sqrt(Te_keV/511.)  ! convert from keV to /c
   if (ne > 0) then
@@ -213,19 +261,28 @@ subroutine setup
   mass_i = mass_e*mass_ratio
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
   convert_mu = omega/2./pi*lambda          ! convert from c/wp to microns
+  lolam = lolam*2.*pi/omega  ! normalise scale-length
 
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
 
-  if (ensemble > 1 .and. beam_config /= 0) then
-     if (me==0) write(*,*) 'Constant-Te mode: turning beam off'
-     beam_config=0
-  endif
+  navcycle = 2*pi/dt/omega  ! # timesteps in a laser cycle
 
-  if ( beam_config ==4 ) then
+  nu_ei = 1./40./pi*a_ii**3/vte/eps**2  ! collision frequency (fit to Okuda & Birdsall)
+
+  sigma_e = 1./nu_ei   ! Spitzer conductivity
+
+  intensity = 0.2*vosc**2*omega**2  ! normalised laser intensity
+
+!  if (scheme > 1 .and. beam_config >= 4) then
+!     if (me==0) write(*,*) 'Constant-Te mode: turning beam off'
+!     beam_config=0
+!  endif
+
+  if ( beam_config ==4 .or. beam_config==6) then
      rho_beam= vosc
      r_beam=sigma
 
-  else if (ensemble == 5) then
+  else if (scheme == 5) then
   ! ion crystal eqm mode
      r_beam = a_ii
      u_beam = Ti_keV
@@ -234,17 +291,17 @@ subroutine setup
 
 
   !  npartm = npart + nt*np_beam  ! Max # particles permitted
-  npartm = 2*npart  ! allow 50% fluctuation
+  npartm = 3*npart  ! allow 50% fluctuation
 
-  if (ensemble==5 .or. target_dup) npartm=npartm*2  ! reserve extra space for electrons in ions-only mode
+  if (scheme==5 .or. target_dup) npartm=npartm*2  ! reserve extra space for electrons in ions-only mode
 	                                        ! or double-target config
 
   nppm = max(npartm/num_pe,1000)
-  nshortm = 1800    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nshortm = 3000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
-     nintmax = 2.5*24*log(1.*npartm)/theta**2
+     nintmax = 3*24*log(1.*npartm)/theta**2
   else
      nintmax = npartm
   endif
@@ -278,27 +335,51 @@ subroutine setup
   if (me==0) then
      do ifile = 6,15,9
 
-        write (ifile,*) ' Plasma config: ',configs(initial_config)
-        write (ifile,*) ' Laser config: ',beam_configs(beam_config)
-        write (ifile,*) ' Ensemble: ',ensembles(ensemble)
+        write (ifile,'(a20,i4,a10)') ' Plasma config: ',initial_config,configs(initial_config)
+        write (ifile,'(a20,i4,a8)') ' Laser config: ',beam_config,beam_configs(beam_config)
+        write (ifile,'(a20,i4,a8)') ' Scheme: ',scheme,schemes(scheme)
         write (ifile,'(a20,1pe12.3)') ' Plasma volume: ',Vplas
-        write (ifile,'(a20,1pe12.3)') ' Sphere radius: ',r_sphere
-        write (ifile,'(a20,1pe12.3)') ' Plasma length: ',x_plasma
-        write (ifile,'(a20,1pe12.3)') ' Plasma width: ',y_plasma
-        write (ifile,'(a20,1pe12.3)') ' Plasma height: ',z_plasma
+        write (ifile,'(a20,f12.3)') ' Sphere radius: ',r_sphere
+        write (ifile,'(a20,f12.3)') ' Plasma length: ',x_plasma
+        write (ifile,'(a20,f12.3)') ' Plasma width: ',y_plasma
+        write (ifile,'(a20,f12.3)') ' Plasma height: ',z_plasma
         write (ifile,'(a20,1pe12.3)') ' Electron charge: ',qe
         write (ifile,'(a20,1pe12.3)') ' Electron mass: ',mass_e
         write (ifile,'(a20,1pe12.3)') ' Ion mass: ',mass_i
-        write (ifile,'(a20,1pe12.3)') ' Te: ',Te_keV
-        write (ifile,'(a20,1pe12.3)') ' Ti: ',Ti_keV
-        write (ifile,'(a20,1pe12.3)') ' Ion spacing: ',a_ii
-        write (ifile,'(a20,1pe12.3)') ' Cutoff radius: ',eps
-        write (ifile,'(a20,1pe12.3)') ' Max timestep: ',0.45*sqrt(3.)*eps**2/abs(qe)*vte
+        write (ifile,'(a20,f12.3)') ' Te: ',Te_keV
+        write (ifile,'(a20,f12.3)') ' Ti: ',Ti_keV
+        write (ifile,'(a20,1pe12.3)') ' Debye length: ',vte
+        write (ifile,'(a20,f12.3)') ' n_e/n_c: ',1./omega**2
+        if (ramp) then
+           write (ifile,'(a20,f12.3)') ' n_min: ', rho_min
+           write (ifile,'(a20,f12.3)') ' k_p L: ', lolam
+           write (ifile,'(a20,f12.3)') ' x_sol: ', plasma_centre(1)-x_plasma/2.+lolam*(1-rho_min)
+
+        endif
+
+        write (ifile,'(a20,f12.4)') ' Ion spacing a: ',a_ii
+        write (ifile,'(a20,f12.3)') ' Cloud radius R: ',eps
+        
+        write (ifile,'(a20,f12.3)') ' Collision freq.: ',nu_ei
+        write (ifile,'(a20,f12.3)') ' Conductivity: ',sigma_e
+        write (ifile,'(a20,f12.3)') ' Laser amplitude: ',vosc
+        write (ifile,'(a20,f12.3)') ' Laser intensity: ',intensity
+
+
+        write (ifile,'(a20,i12)') ' # dt per cycle: ',navcycle
+
+        write (ifile,'(a20,1pe12.3)') ' N_D: ',4*pi/3.*(vte/a_ii)**3
+        write (ifile,'(a20,f12.3)') ' N_c: ',4*pi/3.*(eps/a_ii)**3
+        write (ifile,'(a20,f12.3)') ' R/lambda_De: ',eps/vte
+        write (ifile,'(a20,f12.3)') ' Timestep: ',dt
+        write (ifile,'(a20,f12.3)') ' Max timestep: ',0.45*sqrt(3.)*eps**2/abs(qe)*vte
+
         write (ifile,'(a20,1pe12.3)') ' Neighbour search radius: ',r_neighbour
-        write (ifile,'(a20,1pe12.3)') ' MAC theta: ',theta
-        write (ifile,'(a20,1pe12.3)') ' Particle # ratio: ',4e6*lambda*omega*abs(qe)
+        write (ifile,'(a20,f12.3)') ' MAC theta: ',theta
+        write (ifile,'(a20,1pe12.3)') ' Particle # ratio: ',4.e6*lambda*omega*abs(qe)
 
         write (ifile,'(a,f9.2,a3,f9.2,a3,f9.2/)') ' Graphics box: ',xl,' x ',yl,' x ',zl
+        write (ifile,'(a,3f9.2/)') ' Laser focus: ',focus(1:3)
 
 
         write (ifile,*) ' Electrons: ', ne
@@ -315,6 +396,7 @@ subroutine setup
         write (ifile,'(a20,l3)') ' load balance: ',load_balance
         write (ifile,'(a20,l3)') ' walk balance: ',walk_balance
         write (ifile,'(a20,l3)') ' restart: ',restart
+        write (ifile,'(a20,l3)') ' ramp: ',ramp
 
         write (ifile,'(a20,l3)') ' domain debug: ',domain_debug
         write (ifile,'(a20,l3)') ' walk debug: ',walk_debug
@@ -342,7 +424,7 @@ subroutine setup
   ! array allocation
 
   allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
-       q(nppm), m(nppm), ax(nppm), ay(nppm), az(nppm), pot(nppm), work(nppm), &
+       q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), work(nppm), &
        pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
   allocate ( xslice(nppm), yslice(nppm), zslice(nppm), uxslice(nppm), uyslice(nppm), uzslice(nppm), & 
@@ -384,10 +466,13 @@ subroutine setup
        xyquad(-maxtwig:maxleaf), yzquad(-maxtwig:maxleaf), zxquad(-maxtwig:maxleaf) )      !
 
   allocate ( pack_child(size_tree), get_child(size_tree) )    ! Multipole shipping buffers
+  allocate (rhoi(0:ngx+1,0:ngy+1,0:ngz+1),rhoe(0:ngx+1,0:ngy+1,0:ngz+1))  ! global field arrays
 
-  allocate (rhoe(0:ngx+1,0:ngy+1,0:ngz+1), rhoi(0:ngx+1,0:ngy+1,0:ngz+1), &
-       phi_g(0:ngx+1,0:ngy+1,0:ngz+1),Ex_g(0:ngx+1,0:ngy+1,0:ngz+1), &
-       Ey_g(0:ngx+1,0:ngy+1,0:ngz+1),Ez_g(0:ngx+1,0:ngy+1,0:ngz+1) )! Field arrays
+! local field arrays for cycle-averages
+  allocate (rhoe_loc(0:ngx+1,0:ngy+1,0:ngz+1), rhoi_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
+      ex_loc(0:ngx+1,0:ngy+1,0:ngz+1), ey_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
+      ez_loc(0:ngx+1,0:ngy+1,0:ngz+1), jxe_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
+      jye_loc(0:ngx+1,0:ngy+1,0:ngz+1), jze_loc(0:ngx+1,0:ngy+1,0:ngz+1) )   
 
 
   !  MPI stuff

@@ -24,7 +24,7 @@ subroutine velocities(p_start,p_finish,delta_t)
   integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
 
   integer p, i, ne_loc
-  real, dimension(nppm) :: uhx, uhy, uhz
+  real, dimension(nppm) :: uhx, uhy, uhz, ax, ay, az
   real :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, Te0, Te_uncor, Ti0, Ti_uncor, chie, chii
   real :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm
   real :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_loc
@@ -36,9 +36,14 @@ subroutine velocities(p_start,p_finish,delta_t)
 !      4 = local NVT: each PE keeps Te clamped; ions frozen
 !      5 = local NVT, ions only; electrons added at end of run
 
+! Accelerations
+  do i=1,npp
+     ax(i) = q(i)*ex(i)/m(i)
+     ay(i) = q(i)*ey(i)/m(i)
+     az(i) = q(i)*ez(i)/m(i)
+  end do
 
-
-  if (ensemble == 2) then
+  if (scheme == 2) then
      ! Conserve kinetic energies of electrons and ions (initial Te const)
      ! adapted from
      !  Allen and Tildesley p230, Brown & Clark, Mol. Phys. 51, 1243 (1984)
@@ -125,7 +130,7 @@ subroutine velocities(p_start,p_finish,delta_t)
      !     heate = heate + delta_Te
 
 
-  else if (ensemble ==3) then
+  else if (scheme ==3) then
 
 ! electrons clamped, ions frozen
 
@@ -179,7 +184,7 @@ subroutine velocities(p_start,p_finish,delta_t)
      delta_Ti=0.
      delta_Te = 2*Te0*(1.0/chie**2-1.0)       !  heating
 
-  else if (ensemble ==4) then
+  else if (scheme ==4) then
 
 
 ! electrons clamped locally, ions frozen
@@ -235,7 +240,7 @@ subroutine velocities(p_start,p_finish,delta_t)
      delta_Te = 2*Te0*(1.0/chie**2-1.0)       !  heating
 
 
-  else if (ensemble == 5) then
+  else if (scheme == 5) then
      ! Conserve kinetic energy of ions only (initial Ti const)
      mass_eqm = 20.  ! artificial ion mass for eqm stage
      sum_vxi=0.0  ! partial sums (ions)
@@ -286,7 +291,7 @@ subroutine velocities(p_start,p_finish,delta_t)
 
   else
 
-     ! unconstrained motion by default
+     ! unconstrained motion by default (scheme=1)
 
      do p = p_start, p_finish
 	ux(p) = ux(p) + delta_t * ax(p)

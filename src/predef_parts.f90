@@ -32,16 +32,15 @@ subroutine predef_parts
 
      ! Root reads info block in run directory to check that run parameters correct
 
-     read(80,'(7(9x,i8/),7(9x,f12.5/))')  &    ! info block - skip variable names
+     read(80,'(7(9x,i8/),8(9x,f12.5/))')  &    ! info block - skip variable names
           itime_start, npartr, &
 	  ner, nir, np_beamr, iconf, iens, &
 	  xlr, ylr, zlr, boxr, &
   	  epsr, thetar, &
-          tlaser   
+          tlaser, trun   
      close(80)
      write(6,'(/a/a/a,i5)') 'RESTART:','Reading run data from info block: parts_info.in','Timestep:',itime_start
 
-     trun = itime_start*dt
 
      if (ner /= ne .or. nir /= ni) then
         write(*,*) '*** Particle nos. in input deck do not match those in restart file parts_info.in'
@@ -72,17 +71,21 @@ subroutine predef_parts
   call MPI_BCAST( boxsize, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( theta, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( eps, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( trun, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( tlaser, one, MPI_REAL8, root, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( ne, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( ni, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( npart, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( itime_start, one, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
 
   if (nmerge < 0 ) then
+
      ! num_pe > # data sets, so carve up restart data
+
      if (nmerge == -1) then
-        nmerge = num_pe  ! automatic splitting
+        nmerge = num_pe  ! automatic splitting of single data set
      else
-        nmerge = -nmerge
+        nmerge = -nmerge  ! split several sets
      endif
 
      if (me==0) write (*,*) 'Splitting sets by 1:',nmerge
@@ -128,13 +131,13 @@ subroutine predef_parts
         do i=1,npp
            read(60,*) x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i), &
                 axdum,aydum,azdum,phidum, idummy,pelabel(i)
-           if (beam_config.eq.5 .and. q(i)>0 .and. x(i) < window_min+dt .and. x(i) > window_min) then
+!           if (beam_config.eq.5 .and. q(i)>0 .and. x(i) < window_min+dt .and. x(i) > window_min) then
   ! create rezoning slice for wakefield mode - first few blocks should be sufficient
-              nslice = nslice+1
-              xslice(nslice) = x(i)+x_plasma ! Include offset for new slice
-              yslice(nslice) = y(i)
-              zslice(nslice) = z(i)
-           endif
+!              nslice = nslice+1
+!              xslice(nslice) = x(i)+x_plasma ! Include offset for new slice
+!              yslice(nslice) = y(i)
+!              zslice(nslice) = z(i)
+!           endif
         end do
      end do
 
@@ -143,8 +146,8 @@ subroutine predef_parts
           idummy,pelabel(i),i=1,npp+nadd)
      close (60)
 
-     if (me==num_pe-1)  write(ipefile,'(a,i8/3(f15.5))') 'Slice  ions:', nslice, &
-          (xslice(i),yslice(i),zslice(i),i=1,nslice)
+!     if (me==num_pe-1)  write(ipefile,'(a,i8/3(f15.5))') 'Slice  ions:', nslice, &
+!          (xslice(i),yslice(i),zslice(i),i=1,nslice)
      npp = npp+nadd
 
   else
@@ -199,9 +202,9 @@ subroutine predef_parts
 
   pepid(1:npp) = me                ! processor ID
 
-  ax(1:npp) = 0.       ! zero accelerations until first force comp.
-  ay(1:npp) = 0.
-  az(1:npp) = 0.
+  Ex(1:npp) = 0.       ! zero fields until first force comp.
+  Ey(1:npp) = 0.
+  Ez(1:npp) = 0.
   work(1:npp) = 1.
 
   ! Rescale velocities if different temperature required 

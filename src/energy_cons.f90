@@ -4,6 +4,8 @@
 !
 !     Find potential, kinetic energies
 !
+!  $Revision 1.6$
+!
 !  ================================
 
 
@@ -14,7 +16,7 @@ subroutine energy_cons
 
   implicit none
 
-  real :: epot, ekine, ekini, ebeam,  etot, Qplas, conv_kev
+  real :: tpon, epot, ekine, ekini, ebeam,  etot, Qplas, conv_kev
 
   call potenergy(epot)
   call kinenergy(ekine, ekini, ebeam)
@@ -28,6 +30,7 @@ subroutine energy_cons
   endif
 
   conv_kev = 2./3./Qplas*511
+
 
   laser_energy: select case(beam_config)
   case(4)
@@ -46,7 +49,9 @@ subroutine energy_cons
 
         write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',conv_kev*ekine,'Ti (keV):',conv_kev*ekini
      end do
-     write (75,'(f12.5,6(1pe12.3))') (itime+itime_start)*dt, conv_kev*epot, conv_kev*ekine, conv_kev*ekini, conv_kev*ebeam, conv_kev*etot,x_crit
+! Write out to energy.dat file
+     write (75,'(f12.5,7(1pe12.3))') trun, conv_kev*epot, conv_kev*ekine, conv_kev*ekini,&
+	 conv_kev*ebeam, conv_kev*etot,tpon,x_crit
   endif
 end subroutine energy_cons
 

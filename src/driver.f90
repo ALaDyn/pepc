@@ -2,9 +2,9 @@
 program driver
 
   use utils
+  use my_mpidefs
 
   implicit none
-  include 'mpif.h'
 
   integer, parameter :: mprocs=3, &
        !       nbits = 6, &

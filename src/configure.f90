@@ -17,8 +17,15 @@ subroutine configure
   if (restart) then
      call predef_parts    ! Predefined particle properties read from peXX/parts_dump.NNNNNN
   else
-     if (initial_config <= 4) then
-        call randion         ! Set up particles: work gets divided in randion
+     config: select case(initial_config)
+
+     case(:8)
+        call randion         ! Set up particles according to geometry
+
+        if (scheme<>5 .and. ramp) then
+           call add_ramp     ! add exponential ramp
+        endif
+
         if (vte > 0) then
            call maxwell1(ux,nppm,1,nep,vte)
            call maxwell1(uy,nppm,1,nep,vte)
@@ -36,10 +43,14 @@ subroutine configure
         else
            call cold_start(nep+1,nip)
         endif
+     
+     case(10)
+        call special_start(ispecial)
 
-     else
+     case default
         call randion         ! Random by default
-     endif
+     end select config
+
   endif
 
   if (target_dup) then
@@ -49,13 +60,18 @@ subroutine configure
 
   if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config
 
-  if ( beam_config ==1 .and. np_beam> 0) then
-     call beam
-     if (vis_on .and. steering) call beam_control   ! Display default parameters
-  else if (beam_config ==2 .or. beam_config==5) then
+  beamconf: select case(beam_config)
 
-     if (vis_on .and. steering) call beam_control
-  endif
+  case(1)
+     call beam           ! Fixed beam
+     call beam_control   ! Display default parameters
+
+  case(2)
+     call beam_control   ! Constant particle source
+
+  case(3)
+     call beam_dust   ! Dust particle
+  end select beamconf
 
   ! Do tree-build for initial P.E. value
 
@@ -75,6 +91,10 @@ subroutine configure
   !  call MPI_FINALIZE(ierr)
   !  call closefiles
   ! stop
-  call forces_bal(1,npp,dt,t_walk,t_force)          ! Calculate initial potentials and forces
+  if (coulomb .or. lenjones) then
+     call forces(1,npp,dt,t_walk,t_force)          ! Calculate initial potentials and forces
+  endif
   call diagnostics
 end subroutine configure
+
+

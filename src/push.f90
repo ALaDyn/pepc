@@ -7,7 +7,7 @@
 !
 !  ===============================================================
 
-subroutine push(ips,ipf,delt)
+subroutine push_x(ips,ipf,delt)
 
   use treevars
   integer, intent(in) :: ips, ipf  ! 1st and last particle numbers
@@ -25,4 +25,4 @@ subroutine push(ips,ipf,delt)
 
   end do
 
-end subroutine push
+end subroutine push_x

@@ -12,7 +12,7 @@ subroutine beam_control
   use utils
   implicit none
   integer :: i, p, iseed1, iseed2
-  real :: Volb, dpx, yt, zt, vosc_old, sigma_old, tpulse_old
+  real :: Volb, dpx, yt, zt, vosc_old, sigma_old, tpulse_old, u_old, theta_old, phi_old
   integer :: lvisit_active
   real :: ct, st, cp, sp, vx_beam, vy_beam, vz_beam, xb, yb, zb
   logical :: beam_on = .true.
@@ -49,6 +49,24 @@ subroutine beam_control
      u_beam = vosc
      rho_beam = sigma
      r_beam = tpulse
+
+  else if (scheme==4 .and. .not. (beam_config<=3 .and. beam_config>0)) then
+     ! Temperature clamp mode - laser should be off
+     u_beam = Te_kev
+
+  else if (scheme == 5) then
+     ! ion crystal eqm  mode:
+     !  r_beam is mean ion spacing
+     !  u_beam is ion temperature (eV)
+     !  rho_beam is potential constant
+     r_beam = a_ii
+     u_beam = Ti_keV
+     rho_beam = log10(bond_const)
+
+  else if (beam_config==3) then
+     u_old = u_beam
+     theta_old = theta_beam
+     phi_old = phi_beam
   endif
 
   if (itime == 0 .and. me==0 )  then
@@ -87,17 +105,17 @@ subroutine beam_control
      return
   endif
 
-  if (rho_beam==0 )then
-     if (me==0) write(*,*) ' Switching off beam'
-
-     return
-  endif
+!  if (rho_beam==0 )then
+!     if (me==0) write(*,*) ' Switching off beam'
+!
+!     return
+!  endif
 
   if (beam_config == 4 .or. beam_config ==5 ) then
-     ! laser standing wave
-!     u_beam = max(abs(u_beam),0.1)
-!     rho_beam = max(abs(rho_beam),0.5)
-!     r_beam = max(abs(r_beam),0.1)
+     ! laser standing wave or pond bullet
+     !     u_beam = max(abs(u_beam),0.1)
+     !     rho_beam = max(abs(rho_beam),0.5)
+     !     r_beam = max(abs(r_beam),0.1)
 
      if (u_beam/vosc <10.0 .and. u_beam/vosc > 0.1) then
         vosc=u_beam ! limit amplitude change
@@ -181,9 +199,10 @@ subroutine beam_control
            uz(p)=vz_beam
            pepid(p) = me                ! processor ID
            pelabel(p) = npart+me*nb_pe+i  ! labels
-           ax(p) = 0.
-           ay(p) = 0.
-           az(p) = 0.
+           Ex(p) = 0.
+           Ey(p) = 0.
+           Ez(p) = 0.
+           pot(p) =0.
         endif
      end do
 
@@ -192,14 +211,49 @@ subroutine beam_control
      np_beam = np_beam + np_beam_dt
      npart = npart + np_beam_dt
 
-  else if (ensemble == 5) then
+
+  else if (beam_config ==3) then
+     ! Dust particle - # beam particles constant; infinite mass
+
+     if (me==0 .and. u_beam /= u_old) write(*,*) 'Beam velocity changed'
+
+     if (me ==0 .and. beam_debug) then
+        write(*,*) ' theta ',theta_beam,' phi ', phi_beam,' u ',u_beam
+     endif
+     ! dust particle velocity rotated by theta, phi
+     ! beam particles could be sitting anywhere now
+     Volb = 4*pi/3.*r_beam**3
+     qeb = Volb*rho_beam/np_beam    ! new charge
+     ct = cos(theta_beam)
+     st = sin(theta_beam)
+     cp = cos(phi_beam)
+     sp = sin(phi_beam)
+     vy_beam = u_beam*st*cp*vte*10   ! Scale by thermal velocity
+     vx_beam = u_beam*st*sp*vte*10
+     vz_beam = u_beam*ct*vte*10
+     do i=1,npp
+        if (pelabel(i)>ne+ni) then
+           ux(i) = vx_beam
+           uy(i) = vy_beam
+           uz(i) = vz_beam
+	   q(i) = qeb
+        endif
+
+     end do
+
+  else if (scheme == 5) then
      ! ion crystal eqm  mode:
      !  r_beam is mean ion spacing
      !  u_beam is ion temperature (eV)
      !  rho_beam is potential constant
-     a_ii = r_beam
-     Ti_kev = u_beam
-     bond_const = 10**(rho_beam)
+!     a_ii = r_beam
+!     Ti_kev = u_beam
+!     bond_const = 10**(rho_beam)
      if (me==0) write(*,*) 'Steering pars: a_i=',a_ii,' Ti=',Ti_kev,' Pot strength=',bond_const
+  else if (scheme==4) then
+     ! Electron temp clamp
+     Te_kev = u_beam
   endif
+
+
 end subroutine beam_control

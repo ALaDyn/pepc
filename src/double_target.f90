@@ -39,9 +39,9 @@ subroutine double_target
   pelabel(npp+1:2*npp) =  pelabel(1:npp) + npart  ! labels: electrons_1, ions_1, electrons_2, ions_2 
 
   ! zero accelerations - should really compute these for electrons
-  ax(npp+1:2*npp) = 0.
-  ay(npp+1:2*npp) = 0.
-  az(npp+1:2*npp) = 0.
+  Ex(npp+1:2*npp) = 0.
+  Ey(npp+1:2*npp) = 0.
+  Ez(npp+1:2*npp) = 0.
   pot(npp+1:2*npp) = 0.
 
   work(1:2*npp) = 1.   ! set work load balanced initially

@@ -24,9 +24,10 @@ subroutine kinenergy(ekine,ekini,ebeam)
 
 
   do p=1, npp
-    uhx(p) = ux(p)-dt*ax(p)/2.   ! Velocities at previous 1/2-step to synch with P.E.
-    uhy(p) = uy(p)-dt*ay(p)/2.
-    uhz(p) = uz(p)-dt*az(p)/2.
+  ! Velocities at previous 1/2-step to synch with P.E.
+    uhx(p) = ux(p)-dt*q(p)*Ex(p)/m(p)/2. 
+    uhy(p) = uy(p)-dt*q(p)*Ey(p)/m(p)/2.
+    uhz(p) = uz(p)-dt*q(p)*Ez(p)/m(p)/2.
     gamma = sqrt(1.0 + uhx(p)**2 + uhy(p)**2 + uhz(p)**2)
     if (pelabel(p) <= ne) then
      !  Sum local plasma electron kinetic energy
@@ -49,3 +50,6 @@ subroutine kinenergy(ekine,ekini,ebeam)
 
 
 end subroutine kinenergy
+
+
+

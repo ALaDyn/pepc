@@ -4,6 +4,8 @@
 !
 !     Perform diagnostics
 !
+!  $Revision 1.15$
+!
 !  ================================
 
 
@@ -13,15 +15,35 @@ subroutine diagnostics
   use utils
 
   implicit none
-  integer :: lvisit_active
+  integer :: i,lvisit_active
+
+
+  if (perf_anal) return
+
+
+! Interface to VISIT (Online visualisation)
 
   if ( vis_on .and. mod(itime,ivis*2)==0 .and. steering) call beam_control
 
+  if (u_beam>0 .and. beam_config==3) scheme=1  ! Switch off Te control if beam on
 
-  if ( mod(itime,ivis) ==0 ) then
-     if (vis_on) call vis_parts       ! Interface to VISIT
+  if ( vis_on ) then
+     if ( mod(itime,ivis) ==0 ) call vis_parts       
+     if ( mod(itime,ivis_fields) ==0 ) call vis_fields       
   endif
 
+  if (initial_config.eq.4) then
+    do i=1,npp
+	if (pelabel(i)==1) then
+  write (90,'(6f15.4)') x(i),y(i),z(i),ux(i),uy(i),uz(i)
+	endif
+    enddo
+  endif
+
+  if (mod(itime,idump) >= idump-navcycle) call sum_fields    ! Accumulate cycle-averaged fields on grid
+!  - assume for now that idump > navcycle
+
+  if (beam_config == 4 .and. mod(itime,itrack)==0 ) call track_nc          ! Gather densities and track critical surface 
 
   if (vis_on .and. mod(itime,ivis_fields)==0 ) then
 !     call pot_grid
@@ -31,10 +53,6 @@ subroutine diagnostics
 
   if (itime_start>0 .and. itime==0) return  ! Avoid over-writing restart data
   call energy_cons       ! Compute energy balance
-  if (mod(itime,idens) == 0) call densities    ! Compute electron, ion densities for diagnostics
-
-  if (beam_config == 4 .and. mod(itime,idens)==0 ) call track_nc          ! Gather densities and track critical surface 
-  if (perf_anal) return
 
   if ( dump_tree .and. mod(itime,idump) ==0 ) then
      call diagnose_tree   ! Printed tree info (htable etc)
@@ -43,13 +61,13 @@ subroutine diagnostics
      call draw_domains(itime+itime_start)   ! Domains
   endif
 
-  if ((mod(itime,idump)==0 ) ) then
-     if (itime.ne.0) call dump(itime+itime_start)     ! Dump complete set of particle data
-     call slices(itime+itime_start)  ! 1D lineouts
-
+  if ((mod(itime,idump)==0 .or. itime==nt) ) then
+     call dump(itime+itime_start)     ! Dump complete set of particle data
+     call dump_fields(itime+itime_start)  ! Field data
+!     if (vis_on)  call vis_fields
   endif
 
+
+
 end subroutine diagnostics
-
-
 

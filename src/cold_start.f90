@@ -19,5 +19,4 @@ subroutine cold_start(i1,n)
   uy(i1:i1+n) = 0.
   uz(i1:i1+n) = 0.
 
-
 end subroutine cold_start

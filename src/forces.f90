@@ -76,7 +76,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
 
   if (jpass-1 > npass ) then
-     if (force_debug)     write(*,*) 'PE',me,' missed some:',nshort(npass+1)
+     write(*,*) 'PE',me,' missed some:',nshort(npass+1)
      if (nshort(npass) + nshort(npass+1) <= nshortm) then
         nshort(npass) = nshort(npass) + nshort(npass+1)
      else
@@ -160,8 +160,8 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
 
 
-  ! Include ponderomotive force from laser on electrons - old ES scheme
-  if (beam_config == 104 ) then
+  ! Include ponderomotive force from laser on electrons - ES scheme
+  if (beam_config == 4 ) then
      if (itime>0) focus(1) = x_crit  ! laser tracks n_c
      do p = p_start, p_finish
         if (q(p)<0) then
@@ -169,7 +169,8 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
            yd = y(p)-focus(2)
            zd = z(p)-focus(3)
 
-           call fpond( tlaser, tpulse,sigma,vosc,omega,xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+           call fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
+                xd,yd,zd,epon_x,epon_y,epon_z,phipon)
 
            Ex(p) = Ex(p) + Epon_x
            Ey(p) = Ey(p) + Epon_y

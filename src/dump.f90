@@ -38,35 +38,36 @@ subroutine dump(timestamp)
 
 
   open (60,file=cfile)    
-  write(60,'(7(a9,i8/),10(a9,f12.5/))')  &    ! info block
+  write(60,'(7(a9,i8/),11(a9,f12.5/))')  &    ! info block
        'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
-       'ensemble=',ensemble, &
+       'scheme=',scheme, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
-       'eps=', eps, 'theta=',theta,' tlaser= ',tlaser, &
+       'eps=', eps, 'theta=',theta,' tlaser= ',tlaser,' trun= ',trun, &
        'omega=',omega,'lambda=',lambda,'Qs=',abs(qe)
 
   if (me.eq.0) then
 
     cfile="parts_info.in"     ! copy to default restart block
     open (61,file=cfile)    
-    write(61,'(7(a9,i8/),7(a9,f12.5/))')  &    ! info block
+    write(61,'(7(a9,i8/),11(a9,f12.5/))')  &    ! info block
        'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
-       'ensemble=',ensemble, &
+       'scheme=',scheme, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
-       'eps=', eps, 'theta=',theta,'tlaser = ',tlaser   
+       'eps=', eps, 'theta=',theta,'tlaser = ',tlaser,' trun= ', trun, &   
+       'omega=',omega,'lambda=',lambda,'Qs=',abs(qe)
     close (61)
     open (62,file="runstamp")  ! time stamp 
     write(62,'(a)') cdump(1:6)
     close (62)
 
-    write(6,'(//a/7(a9,i8/),10(a9,f12.5/))') 'PARTICLE DUMP:', &    ! info block
+    write(6,'(//a/7(a9,i8/),11(a9,f12.5/))') 'PARTICLE DUMP:', &    ! info block
        'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'config=', initial_config, &
-       'ensemble=',ensemble, &
+       'scheme=',scheme, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
-       'eps=', eps, 'theta=',theta,'tlaser = ',tlaser, &
+       'eps=', eps, 'theta=',theta,'tlaser = ',tlaser, 'trun= ',trun, &
        'omega=',omega,'lambda=',lambda,'Qs=',abs(qe)   
   endif
   close(60)
@@ -77,7 +78,7 @@ subroutine dump(timestamp)
   open (60,file=cfile) 
   write(60,'((12(1pe14.5),2i9))')  &
        (x(i), y(i), z(i), ux(i), uy(i), uz(i), q(i), m(i), &
-        ax(i)*m(i)/q(i), ay(i)*m(i)/q(i), az(i)*m(i)/q(i), &  ! electric field = m.a/q
+        Ex(i), Ey(i), Ez(i), &  ! electric field
         pot(i), &  ! potential
         pepid(i), pelabel(i),i=1,npp)
   close(60)
@@ -86,6 +87,8 @@ subroutine dump(timestamp)
   icall = icall + 1
 
 end subroutine dump
+
+
 
 
 

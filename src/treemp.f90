@@ -27,9 +27,11 @@ program treemp
 
   use treevars
   use utils
+  implicit none
 
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_en, t_force
-  real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, go
+  real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot
+
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -39,6 +41,10 @@ program treemp
 
   ! Get the number of MPI tasks
   call MPI_COMM_size(MPI_COMM_WORLD, num_pe, ierr)
+
+! Time stamp
+  if (me==0) call stamp(6,1)
+  if (me==0) call stamp(15,1)
 
   if (me ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
 
@@ -50,20 +56,28 @@ program treemp
 
   do itime = 1,nt
      trun = trun + dt
-     if (beam_config == 4) tlaser = tlaser + dt  
-     write(ipefile,'(//a,i8,a,f10.5)') 'Timestep ',itime,' t=',itime*dt
+     if (beam_config >= 4) tlaser = tlaser + dt  
+     write(ipefile,'(//a,i8,a,f10.5)') 'Timestep ',itime,' t=',trun
 
+     if (tlaser<= 2*tpulse) then
+        Tpon = 2*vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2) 
+! * (sin(omega*tlaser))**2
+     else
+	Tpon = 0.
+     endif
+     write(ipefile,*) 'Laser intensity: ',Tpon
+     write(ipefile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
+          ,' total run time = ',trun &
+          ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
+          ,' intensity= ',Tpon
      if (me==0) then
-        Tpon = 2*vosc**2*min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
-        write(6,'(/4(a20,f8.3/))') 'Laser amplitude: ',vosc, &
-                                   ' Spot size: ',sigma, &
-                                   ' Pulse length: ',tpulse, &
-                                   ' Focal position: ',propag_laser
         do ifile = 6,15,9
-           write(ifile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
+           write(ifile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/2(a,f9.3))') &
+                ' Timestep ',itime+itime_start &
                 ,' total run time = ',trun &
                 ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
-                ,' intensity= ',Tpon
+                ,' intensity= ',Tpon &
+                ,' x_crit= ',x_crit
            write(ifile,*) 'new npp: ',npp,' new npart: ',npart
            write (ifile,'(a,i8,a3,i8)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         end do
@@ -85,55 +99,38 @@ program treemp
      call tree_prefetch
      call cputime(t_prefetch)
 
-
-     if (walk_balance) then
-     	call forces_bal(1,npp,dt,t_walk,t_force)   ! Compute force with balanced shortlists
-     else    
-     	call forces(1,npp,dt,t_walk,t_force)   ! Compute forces with partial or no balancing
+     if (coulomb .or. lenjones) then
+        call forces(1,npp,dt,t_walk,t_force)   ! Compute forces with load balancing
      endif
-
      call cputime(t_start_push)
-     call velocities(1,npp,dt)
-     call push(1,npp,dt)
-     if ( particle_bcs == 2 ) then 
-	call constrain   ! relective particle bcs for temperature-clamp mode
-     else if (particle_bcs == 3) then
-	call earth_plate  ! special bcs for grounded target end 
+
+     ! Integrator
+     if (scheme == 6 ) then
+        call push_full3v(1,npp,dt)  ! full EM pusher (all E, B components)
+     else
+        call velocities(1,npp,dt)  ! pure ES, NVT ensembles
      endif
+
+     call push_x(1,npp,dt)  ! update positions
+
+
+     boundaries: select case(particle_bcs)
+
+     case(2)
+	call constrain   ! relective particle bcs for temperature-clamp mode
+
+     case(3)
+	call earth_plate  ! special bcs for grounded target end 
+
+     case default
+        ! do nothing
+     end select boundaries
 
      call cputime(t_push)
 
+
      call diagnostics
      call cputime(t_diag)
-
-
-     !  Laser focal position and rezoning
-
-     laser_focus: select case(beam_config)
-
-     case(4)  ! standing wave fpond
-        if (itime>0) focus(1) = x_crit  ! laser tracks n_c
-     case(5)  ! propagating fpond
-        !  Trigger rezoning if laser 3/4 through plasma
-        ! - Only works after restart at present
-        if (restart .and. beam_config ==5 .and. focus(1) >= window_min + x_plasma*.75) then
-           if (me==0) then 
-              write (*,*) 'REZONE'
-              !           read (*,*) go
-           endif
-           call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-
-           call rezone
-           !        window_min = window_min + dt
-           propag_laser=propag_laser + dt
-        else
-           focus(1) = focus(1) + dt  ! propagate forward by c*dt - can include v_g here
-        endif
-     case default
-        ! leave focal point unchanged
-     end select laser_focus
-
-
 
 
 
@@ -167,13 +164,16 @@ program treemp
 
   end do
 
-  if (ensemble ==5 ) then
+
+
+  if (scheme ==5 ) then
+
+     if (ramp) call add_ramp  ! add exponential ramp to front of target
      !  ion eqm mode: add electrons before dumping particle positions
      call add_electrons
      call dump(nt+itime_start)
-  else
-     call dump(nt+itime_start)
   endif
+
 
   call closefiles      ! Tidy up O/P files
 
@@ -182,5 +182,12 @@ program treemp
   ! End the MPI run
   call MPI_FINALIZE(ierr)
 
+! Time stamp
+  if (me==0) call stamp(6,2)
+  if (me==0) call stamp(15,2)
   stop
 end program treemp
+
+
+
+

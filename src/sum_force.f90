@@ -65,7 +65,7 @@ subroutine sum_force( p, n, inode, sumfx, sumfy, sumfz, sumphi )
           ! 
      + (dx*xdip( jnode ) + dy*ydip( jnode ) + dz*zdip( jnode ))*rd3  &    !  dipole 
           -0.5*fd1*xxquad( jnode ) - 0.5*fd2*yyquad( jnode ) - 0.5*fd3*zzquad( jnode )  &  !  quadrupole
-          - fd4*xyquad( jnode ) + fd5*yzquad( jnode ) + fd6*zxquad( jnode )      
+          + fd4*xyquad( jnode ) + fd5*yzquad( jnode ) + fd6*zxquad( jnode )      
 
 
      !  forces
