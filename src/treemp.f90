@@ -55,7 +55,7 @@ program treemp
 
      if (me==0) then
         Tpon = 2*vosc**2*min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
-        write(6,*) 'Laser intensity: ',Tpon, ' Amplitude: ',vosc, ' Spot size: ',sigma
+        write(6,'(/3(a20,f8.3/))') 'Laser amplitude: ',vosc, ' Spot size: ',sigma,' Pulse length: ',tpulse
         do ifile = 6,15,9
            write(ifile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
                 ,' total run time = ',trun &
