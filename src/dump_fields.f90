@@ -73,7 +73,7 @@ subroutine dump_fields(timestamp)
               write(62,'(8e13.3)') rhoe(i,j,k)/omega**2,rhoi(i,j,k)/omega**2, &
                    jxeg(i,j,k), jyeg(i,j,k), jzeg(i,j,k), &
                    exg(i,j,k),  eyg(i,j,k), ezg(i,j,k)
-              xd = (i-0.5)*dx - focus(1) ! position relative to laser focus
+              xd = (i-0.5)*dx - 49. ! position relative to laser focus
               yd = (j-0.5)*dy - focus(2)
               zd = (k-0.5)*dz - focus(3)
 
