@@ -85,10 +85,9 @@ Example run.h:
   restart = .false.			! restart switch
   vis_on = .false.			! VISIT switch
   ivis = 20 				! frequency to ship VISIT stuff (timesteps)
-  scheme = 1 				! Ensemble switch - see velocities routine
+  ensemble = 1 				! Ensemble switch - see velocities routine
   idump = 100				! particle dump frequency
   iprot=1				! run protocol frequency
-  itrack = 1				! density tracking frequency (laser on)
   mc_init = .false.			! MC mode switch
   mc_steps = 1000			! # steps for MC initialisation
 

@@ -71,7 +71,7 @@ The main routines are as follows (arranged approximately according to program st
   tree_prefetch		Prefetch nonlocal nodes needed for force calculation: at present uses
 			  best guess based on interaction lists at previous timestep.
 
-  forces		Compute forces with load-balanced groups of particles:
+  forces_bal		Compute forces with load-balanced groups of particles:
 	
 	tree_walk	Construct interaction lists for particle group (shortlist).
 	sum_force	Compute Coulomb forces and potential for single particle 
