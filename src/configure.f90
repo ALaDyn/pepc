@@ -15,17 +15,7 @@ subroutine configure
   real :: t_walk, t_force
 
   if (restart) then
-     call predef_parts    ! Predefined coordinates read from parts_all.in
-     if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config
-
-     if ( beam_config ==1 .and. np_beam> 0) then
-        call beam
-        call beam_control   ! Display default parameters
-     else if (beam_config ==2) then
-
-        call beam_control
-     endif
-
+     call predef_parts    ! Predefined particle properties read from peXX/parts_dump.NNNNNN
   else
      if (initial_config <= 4) then
         call randion         ! Set up particles: work gets divided in randion
@@ -47,20 +37,25 @@ subroutine configure
            call cold_start(nep+1,nip)
         endif
         
-        if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config
-
-        if ( beam_config ==1 .and. np_beam> 0) then
-           call beam
-           call beam_control   ! Display default parameters
-        else if (beam_config ==2) then
-
-           call beam_control
-        endif
-
      else
         call randion         ! Random by default
      endif
   endif
+
+  if (target_dup) then
+	if (me==0) write(*,*) 'DOUBLE-TARGET CONFIGURATION' 
+	call double_target   ! Special target-duplication mode
+  endif
+	
+     if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config
+
+     if ( beam_config ==1 .and. np_beam> 0) then
+        call beam
+        call beam_control   ! Display default parameters
+     else if (beam_config ==2) then
+
+        call beam_control
+     endif
 
   ! Do tree-build for initial P.E. value
 

@@ -50,12 +50,10 @@ subroutine predef_parts
 
      if (epsr /= eps) then
         write(*,*) '*** Warning: potential cutoff eps changed - check inputs'
-        !        eps = epsr
      endif
 
      if (thetar /= theta) then
         write(*,*) '*** Warning: MAC changed - check inputs'
-        !        theta = thetar
      endif
 
      if (iconf /= initial_config) then
@@ -175,9 +173,9 @@ subroutine predef_parts
   endif
 
   ! add displacement vector
-  x(1:npp) = x(1:npp) + displace(1)
-  y(1:npp) = y(1:npp) + displace(2)
-  z(1:npp) = z(1:npp) + displace(3)
+!  x(1:npp) = x(1:npp) + displace(1)
+!  y(1:npp) = y(1:npp) + displace(2)
+!  z(1:npp) = z(1:npp) + displace(3)
 
   pepid(1:npp) = me                ! processor ID
 

@@ -28,7 +28,7 @@ FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90
 TUNE= -qarch=pwr4 -qtune=pwr4 -qhot $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) $(DB) $(TUNE) 
+FFLAGS =  $(FFLAGS1) $(DB) ## $(TUNE) 
 
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -57,7 +57,7 @@ MODULES.f90 =  my_mpidefs.f90 treevars.f90 utils.f90
 SOURCES.f90 =	treemp.f90 \
 		setup.f90 \
 		configure.f90 randion.f90 predef_parts.f90 maxwell1.f90 cold_start.f90 \
-		scramble_v.f90 reset_ions.f90 add_electrons.f90\
+		scramble_v.f90 reset_ions.f90 add_electrons.f90 double_target.f90 \
 		beam.f90 beam_control.f90 \
 		mc_config.f90 \
 	 	make_domains.f90 \
@@ -67,7 +67,7 @@ SOURCES.f90 =	treemp.f90 \
 		forces.f90 forces_bal.f90 sum_force.f90 sum_lennardjones.f90\
 		fpond.f90 \
 		velocities.f90 \
-		push.f90 constrain.f90 \
+		push.f90 constrain.f90 reinject.f90 earth_plate.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 		diagnostics.f90 \
 	        diagnose_tree.f90 check_table.f90 \

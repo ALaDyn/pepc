@@ -249,6 +249,7 @@ module treevars
   logical :: bonds = .false. ! Include SHO bonding potential for ions
   logical :: lenjones = .false. ! Include short-range Lennard-Jones potential
   logical :: steering = .false.  ! VISIT steering switch
+  logical :: target_dup = .false. ! Target duplication switch
   integer :: mc_steps
   integer :: initial_config = 4  ! Switch for initial configuration (positions, velocities)
   integer :: beam_config = 0 ! Switch for particle beam mode
@@ -268,13 +269,4 @@ module treevars
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
 
 end module treevars
-
-
-
-
-
-
-
-
-
 

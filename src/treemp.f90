@@ -92,7 +92,12 @@ program treemp
      call cputime(t_start_push)
      call velocities(1,npp,dt)
      call push(1,npp,dt)
-     if ( particle_bcs == 2 ) call constrain   ! relective particle bcs for temperature-clamp mode
+     if ( particle_bcs == 2 ) then 
+	call constrain   ! relective particle bcs for temperature-clamp mode
+     else if (particle_bcs == 3) then
+	call earth_plate  ! special bcs for grounded target end 
+     endif
+
      call cputime(t_push)
 
 

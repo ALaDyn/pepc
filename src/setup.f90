@@ -40,7 +40,7 @@ subroutine setup
        nt, dt, mc_steps, idump, ivis, ivis_fields, iprot, nmerge, ngx, ngy, ngz, &
        vis_on, steering, domain_debug,  mc_init, restart, ensemble, particle_bcs, &
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
-       dump_tree, perf_anal, coulomb, bonds, lenjones, idens
+       dump_tree, perf_anal, coulomb, bonds, lenjones, idens, target_dup
 
 
 
@@ -231,10 +231,11 @@ subroutine setup
 
   !  npartm = npart + nt*np_beam  ! Max # particles permitted
   npartm = 2*npart  ! allow 50% fluctuation
+
+  if (ensemble==5 .or. target_dup) npartm=npartm*2  ! reserve extra space for electrons in ions-only mode
+	                                        ! or double-target config
+
   nppm = max(npartm/num_pe,1000)
-
-  if (ensemble==5) nppm=nppm*2  ! reserve extra space for electrons in ions-only mode
-
   nshortm = 1800    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
