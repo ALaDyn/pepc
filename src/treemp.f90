@@ -82,7 +82,7 @@ program treemp
      call cputime(t_start_push)
      call velocities(1,npp,dt)
      call push(1,npp,dt)
-     if (ensemble ==2 ) call constrain   ! special bcs for temperature-clamp mode
+     if ( particle_bcs == 2 ) call constrain   ! relective particle bcs for temperature-clamp mode
      call cputime(t_push)
      
 
