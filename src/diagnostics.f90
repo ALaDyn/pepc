@@ -15,7 +15,7 @@ subroutine diagnostics
   implicit none
   integer :: lvisit_active
 
-  if ( vis_on .and. mod(itime,ivis)==0 .and. steering) call beam_control
+  if ( vis_on .and. mod(itime,ivis*2)==0 .and. steering) call beam_control
 
 
   if ( mod(itime,ivis) ==0 ) then
