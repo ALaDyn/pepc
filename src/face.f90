@@ -81,24 +81,24 @@ subroutine face(r, c_status, face_nr)
         A = reshape((/1 / x_plasma, 0., 0., 0., 1 / y_plasma, 0., 0., 0., 1 / z_plasma/), (/3, 3/))
         r_diff = matmul(A, r - plasma_centre)
         c_status = dot_product(r_diff, r_diff) - r_sphere**2
-    case (5) ! prism
-        gamma = atan(z_plasma / (2 * x_plasma))
+    case (5) ! prism in x-y plane
+        gamma = atan(y_plasma / (2 * x_plasma))
         select case (face_nr)
-        case(1) ! x-z-plane, positive y
-            normal_vector = (/0., -1., 0./)
-            offset_vector = (/0., +y_plasma / 2., 0./) + plasma_centre
-        case(2) ! x-z-plane, negative y
-            normal_vector = (/0., +1., 0./)
-            offset_vector = (/0., -y_plasma / 2., 0./) + plasma_centre
+        case(1) ! x-y-plane, positive z
+            normal_vector = (/0., 0., -1./)
+            offset_vector = (/0., 0., +z_plasma / 2./) + plasma_centre
+        case(2) ! x-y-plane, negative z
+            normal_vector = (/0., 0., +1./)
+            offset_vector = (/0., 0., -z_plasma / 2./) + plasma_centre
         case(3) ! y-z-plane, negative x
             normal_vector = (/+1., 0., 0./)
             offset_vector = (/-x_plasma / 2., 0., 0./) + plasma_centre
-        case(4) ! negative z
-            normal_vector = (/-sin(gamma), 0., +cos(gamma)/)
-            offset_vector = (/-x_plasma / 2., 0., -z_plasma / 2./) + plasma_centre
-        case(5) ! positive z
-            normal_vector = (/-sin(gamma), 0., -cos(gamma)/)
-            offset_vector = (/-x_plasma / 2., 0., +z_plasma / 2./) + plasma_centre
+        case(4) ! negative y
+            normal_vector = (/-sin(gamma), +cos(gamma), 0./)
+            offset_vector = (/-x_plasma / 2., -y_plasma / 2., 0./) + plasma_centre
+        case(5) ! positive y
+            normal_vector = (/-sin(gamma), -cos(gamma), 0./)
+            offset_vector = (/-x_plasma / 2., +y_plasma / 2.,0./) + plasma_centre
         end select
         c_status = dot_product(normal_vector, offset_vector - r)
     case (6) ! semisphere
