@@ -2,6 +2,8 @@
 !
 !                              VELOCITIES
 !
+!   $Revision$
+!
 !   Calculate velocities from accelerations
 ! 
 !   apply thermodynamic constraint according to ensemble
@@ -26,6 +28,14 @@ subroutine velocities(p_start,p_finish,delta_t)
   real :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, Te0, Te_uncor, Ti0, Ti_uncor, chie, chii
   real :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi
   real :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_loc
+
+!  Available ensemble modes
+!      1 = NVE - total energy conserved
+!      2 = NVT - global Te, Ti conserved
+!      3 = global NVT electron Te conserved; ions frozen
+!      4 = local NVT: each PE keeps Te clamped; ions frozen
+!      5 = local NVT, ions only; electrons added at end of run
+
 
 
   if (ensemble == 2) then
