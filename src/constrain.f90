@@ -41,10 +41,16 @@ subroutine constrain
            delta_r = sqrt(yt**2+zt**2)-r_limit
            y(p) = y(p) - 2*hy*delta_r  ! reflect particle back into circle
            z(p) = z(p) - 2*hz*delta_r
+           uy(p) = -uy(p)
+           uz(p) = -uz(p)
         endif
-        if ( xt < -x_limit ) x(p) = x(p) + 2*(-x_limit - xt) 
-        if ( xt >  x_limit ) x(p) = x(p) - 2*(xt - x_limit)
-
+        if ( xt < -x_limit ) then
+           x(p) = x(p) + 2*(-x_limit - xt)
+           ux(p) = -ux(p)
+        else if ( xt >  x_limit ) then
+           x(p) = x(p) - 2*(xt - x_limit)
+           ux(p) = -ux(p)
+        endif
 
      else if (initial_config==3) then
         ! wire
@@ -70,7 +76,7 @@ subroutine constrain
 
 
      else
-        ! slab: periodic
+        ! slab: reflective
         if ( xt < -x_limit ) then
            x(p) = x(p) + 2*(-x_limit-xt)
            ux(p) = -ux(p)
