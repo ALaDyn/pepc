@@ -137,10 +137,11 @@ subroutine randion
   pelabel(1:nep) = me*nep + (/ (i,i=1,nep) /)     ! Electron labels
   pelabel(nep+1:npp) = ne + me*nip + (/ (i,i=1,nip) /)       ! Ion labels
 
-! zero accelerations
-  ax(1:npp) = 0
-  ay(1:npp) = 0
-  az(1:npp) = 0
+! zero fields
+  Ex(1:npp) = 0
+  Ey(1:npp) = 0
+  Ez(1:npp) = 0
+  pot(1:npp) = 0
   work(1:npp) = 1.   ! set work load balanced initially
 
 end subroutine randion
