@@ -38,6 +38,10 @@ subroutine tree_walk(pshort,npshort)
 
   use treevars
   use utils
+  !VAMPINST include
+  INCLUDE 'VTcommon.h'
+  INTEGER VTIERR
+  !
 
   implicit none
 
@@ -49,7 +53,7 @@ subroutine tree_walk(pshort,npshort)
 
   ! Key arrays (64-bit)
 
-  integer*8,  dimension(nshortm) :: walk_key, add_key, walk_next 
+  integer*8,  dimension(nshortm) :: walk_key, add_key, walk_next, walk_last 
   integer*8, dimension(size_tree*2)  :: request_key, ask_key, process_key
   integer*8, dimension(nppm,0:num_pe-1) ::  ship_key
   integer*8, dimension(8) :: sub_key, key_child, next_child
@@ -71,19 +75,21 @@ subroutine tree_walk(pshort,npshort)
   real, dimension(0:nlev) :: boxlength
   logical, dimension(nshortm) :: finished, ignore, mac_ok, requested
 
+  integer :: hops(21) ! array to control max # iterations in single traversal 
   integer, dimension(num_pe) ::   nactives
   integer, dimension(0:num_pe-1) :: ntoship, &              ! # keys needed
-                                    nrequested, &           ! # keys requested from elsewhere
-                                    istart, ic_start, &     ! # fenceposts
-                                    nplace,&                ! # children (new entries) to place in table
-                                    nchild_ship       ! # children shipped to others
+       nrequested, &           ! # keys requested from elsewhere
+       istart, ic_start, &     ! # fenceposts
+       nplace,&                ! # children (new entries) to place in table
+       nchild_ship       ! # children shipped to others
   ! Key working vars
   integer*8 :: node_key, kchild, kparent, search_key,  nxchild
 
   integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops          ! loop counters
   integer :: nnew, nshare, newrequest, nreqs, i1, i2, ioff, ipack
   integer :: nchild, newleaf, newtwig, nactive, maxactive, ntraversals, own
-  integer :: ic1, ic2, ihand, nchild_ship_tot, nplace_max, sum_nhops, sum_inner_pass
+  integer :: ic1, ic2, ihand, nchild_ship_tot, nplace_max
+  integer, save ::  sum_nhops, sum_inner_pass, sum_nhops_old=0, sum_inner_old=0
   integer :: request_count, fetch_pe_count, send_prop_count  ! buffer counters
 
   integer ::  bchild, nodchild, lchild, hashaddr, nlast_child
@@ -93,17 +99,21 @@ subroutine tree_walk(pshort,npshort)
   ! stuff for tree-patch after traversals complete
   integer ::  node_addr, parent_addr, parent_node, child_byte
   integer :: jmatch(1)
-  logical :: resolved, keymatch(8), emulate_blocking=.false.
+  logical :: resolved, keymatch(8), emulate_blocking=.false., walk_summary=.false.
+
+  integer :: nrest, ndef
 
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
 
+
+  !
   npackm = size_tree
   nchild_shipm = size_tree
   !walk_debug = .false.
- ! ipefile = 6
-  if (walk_debug) write(ipefile,'(/a,i6)') 'TREE WALK for timestep ',itime
-!  if (walk_debug) write(*,'(/a,i6)') 'TREE WALK for timestep ',itime
+  ! ipefile = 6
+  if (walk_debug .or. walk_summary) write(ipefile,'(/a,i6)') 'TREE WALK for timestep ',itime
+  !  if (walk_debug) write(*,'(/a,i6)') 'TREE WALK for timestep ',itime
 
   sbox = boxsize
 
@@ -113,29 +123,40 @@ subroutine tree_walk(pshort,npshort)
   boxlength(0:nlev) = (/ (sbox/2**i, i=0,nlev ) /)  ! Preprocessed box sizes for each level
 
   walk_key(1:npshort) = 1                    ! initial walk list starts at root
+  nwalk(1:npshort) = 0   ! # keys on deferred list
+  defer_ctr(1:npshort) = 1   ! Deferral counter
   nlist = npshort                 ! Inner loop list length
   plist(1:npshort) = (/ (i,i=1,npshort) /)       ! initial local particle indices 
   nterm = 0
   nactive = npshort
+
   !  Find global max active particles - necessary if some PEs enter walk on dummy pass
 
-!  call MPI_ALLREDUCE( nactive, maxactive, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
-     call MPI_ALLGATHER( nactive, one, MPI_INTEGER, nactives, one, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+  !  call MPI_ALLREDUCE( nactive, maxactive, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
+  call MPI_ALLGATHER( nactive, one, MPI_INTEGER, nactives, one, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
-     maxactive = maxval(nactives)
+  maxactive = maxval(nactives)
 
   ntraversals = 0
   nlast_child = 0
   nchild_ship = 0
   sum_nhops = 0
   sum_inner_pass = 0
+  if (sum_nhops_old < 0) then
+     hops(1) = sum_nhops_old*0.9 
+     hops(2:4) = hops(1:3)*0.2
+     hops(5:21) = 2**30
+  else
+     hops = 2**30    ! First time round set infinite - finish all traversals
+     !     hops(1) = 500
+  endif
 
   do while (maxactive > 0)        ! Outer loop over 'active' traversals
 
 
      ntraversals = ntraversals + 1  ! # Tree-walks
      if (walk_debug) write(ipefile,'(a,i6)') 'Start of traversal ',ntraversals
-!     if (walk_debug) write(*,'(a,i6)') 'Start of traversal ',ntraversals
+     !     if (walk_debug) write(*,'(a,i6)') 'Start of traversal ',ntraversals
 
      finished(1:nlist) = .false.  ! label all particles not finished
      ndefer(1:npshort) = 0          ! Zero # deferrals (absolute particle number)
@@ -147,8 +168,12 @@ subroutine tree_walk(pshort,npshort)
      inner_pass = 0
      nhops = 0
 
-     do while (nlist > 0 )        ! Inner loop - tree walk
+     !VAMPINST subroutine_start
+     CALL VTENTER(IF_tree_walk,VTNOSCL,VTIERR)
+     !      write(*,*) 'VT: tree_walk S>',VTIERR,
+     !     *    IF_tree_walk,ICLASSH
 
+     do while (nlist>0 .and. nhops <= hops(ntraversals) )        ! Inner loop - single hop in tree walk
         inner_pass = inner_pass+1        ! statistics
         nhops = nhops + nlist
         sum_nhops = sum_nhops + nlist
@@ -223,22 +248,29 @@ subroutine tree_walk(pshort,npshort)
         end do
 
 
-
+        ! Trap condition for last of nonlocal children - fetch next deferred node from walk_list
         do i=1,nlist
-           if (walk_key(i) == -1 )  then         ! Trap condition for last of nonlocal children - skip to next deferred node
+           if (walk_key(i) == -1 )  then       
               defer_ctr(plist(i)) = defer_ctr(plist(i)) + 1
               walk_key(i) = walk_list (defer_ctr(plist(i)),plist(i) ) ! Select next deferred node from walk list for particle plist(i)
            endif
+
+           walk_last(plist(i)) = walk_key(i)  ! Store last reached in traversal
+
         end do
 
-        where ( walk_key(1:nlist) == 1 ) 
-           finished(1:nlist) = .true.    ! Flag particles whose walks are complete
-        elsewhere
-           finished(1:nlist) = .false.  ! label all particles not finished
+        ! Check for completed traversals
+        do i=1,nlist
+           if ( walk_key(i) == 1 )  then  ! Reached root  
+              finished(i) = .true.    ! Flag particles whose local walks are complete
+              defer_ctr(plist(i)) = defer_ctr(plist(i)) + 1
 
-        end where
+           else 
+              finished(i) = .false. 
+           endif
+        end do
 
-        nnew = count( mask = .not.finished(1:nlist) )                       ! Count remaining particles
+        nnew = count( mask = .not.finished(1:nlist) )            ! Count remaining particles
 
         plist(1:nnew) =  pack( plist(1:nlist), mask = .not.finished(1:nlist) )    ! Compress particle index list
         walk_key(1:nnew) =  pack( walk_key(1:nlist), mask = .not.finished(1:nlist) )       ! Compress walk lists etc.
@@ -247,8 +279,34 @@ subroutine tree_walk(pshort,npshort)
 
      end do   ! END DO_WHILE
 
+     ! For remaining unfinished particles, need to copy rest of walk_list (still not inspected)
+     ! back onto defer list.
+
+     do i=1,npshort
+        ndef = ndefer(i)  ! # new deferrals added to defer_list during traversal
+        nrest = nwalk(i)-defer_ctr(i) + 1  ! # unprocessed deferrals from previous fetch
+        if (nrest>0) then  
+ ! Augment defer list with rest of walk_list
+           defer_list(ndef+1:ndef+nrest,i) = walk_list(defer_ctr(i):nwalk(i),i)
+           ndefer(i) = ndefer(i) + nrest
+        endif
+        if (walk_last(i) <> 1) then
+           defer_list(ndef+nrest+1,i) = walk_last(i)  ! Tack on key where local walk was interrupted
+           ndefer(i) = ndefer(i) + 1
+        endif
+
+     end do
 
 
+
+     !VAMPINST subroutine_end
+     CALL VTLEAVE(ICLASSH,VTIERR)
+     !      write(*,*) 'VT: tree_walk S<',VTIERR,ICLASSH
+     !
+
+     CALL VTENTER(IF_tree_nlswap,VTNOSCL,VTIERR)
+     !      write(*,*) 'VT: tree_walk S>',VTIERR,
+     !     *    IF_tree_walk,ICLASSH
      if (walk_debug) then
 
         write(ipefile,'(a/(o15,i7))') 'Shared request list: ',(request_key(i),htable( key2addr( request_key(i) ) )%owner,i=1,nshare)
@@ -307,18 +365,18 @@ subroutine tree_walk(pshort,npshort)
            ic_start(ipe) = i1        ! fencepost
            fetch_pe_count = fetch_pe_count + 1  ! receive counter
 
-     ! First initiate receives for returning child info
+           ! First initiate receives for returning child info
            call MPI_IRECV( get_child(i1), nplace(ipe), MPI_type_multipole, ipe, tag1, &
                 MPI_COMM_WORLD, recv_child_handle(fetch_pe_count), ierr)
            i1 = i1+nplace(ipe)
 
-     ! Extract sub-list of keys to request according to location - don't overwrite buffer!
+           ! Extract sub-list of keys to request according to location - don't overwrite buffer!
 
            ship_key(1:ntoship(ipe),ipe) = pack(request_key(1:nshare), mask = request_owner(1:nshare) == ipe )
 
            if (emulate_blocking) then
               call MPI_SEND(ship_key(1,ipe), ntoship(ipe), MPI_INTEGER8, ipe, tag1, &
-                MPI_COMM_WORLD,  ierr ) ! Ship to data location
+                   MPI_COMM_WORLD,  ierr ) ! Ship to data location
            else
               call MPI_ISEND(ship_key(1,ipe), ntoship(ipe), MPI_INTEGER8, ipe, tag1, &
                    MPI_COMM_WORLD, send_key_handle(fetch_pe_count), ierr ) ! Ship to data location
@@ -394,7 +452,7 @@ subroutine tree_walk(pshort,npshort)
 
            end do
 
-!  Keep record of requested keys
+           !  Keep record of requested keys
            requested_keys( nreqs_total(ipe)+1:nreqs_total(ipe)+nchild,ipe ) = key_child(1:nchild)
            nreqs_total(ipe) = nreqs_total(ipe) + nchild  ! Record cumulative total of # children requested 
 
@@ -489,7 +547,7 @@ subroutine tree_walk(pshort,npshort)
               last_child(nlast_child) = kchild
            endif
 
-!  Add child key to list of fetched nodes
+           !  Add child key to list of fetched nodes
            nfetch_total(ipe) = nfetch_total(ipe) + 1
            fetched_keys( nfetch_total(ipe),ipe ) = kchild
 
@@ -498,14 +556,14 @@ subroutine tree_walk(pshort,npshort)
 
 
      ! Copy defer lists to new walk lists for next tree-walk iteration
-
+     nlist = 0
      do i=1,npshort
-        nwalk(i) = ndefer(i)
+        nwalk(i) = ndefer(i)   ! # deferrals still to process
         if (nwalk(i) /= 0) then
            nlist = nlist + 1
-           walk_list( 1:nwalk(i), i ) = defer_list( 1:nwalk(i), i )
-           walk_list( nwalk(i) + 1, i ) = 1        ! Last node root for correct 'next-node'
-           walk_key(nlist) = defer_list(1, i)       ! Start node for next walk
+           walk_list( 1:nwalk(i), i ) = defer_list( 1:nwalk(i), i )  ! Walk list to inspect
+           walk_list( nwalk(i)+1, i ) = 1        ! Last node root for correct 'next-node'
+           walk_key(nlist) = walk_list(1, i)       ! Start node for next walk
            plist(nlist) = i                        ! Particle index
            defer_ctr(i) = 1                        ! Deferral counter (1 ... nwalk)
         endif
@@ -523,33 +581,36 @@ subroutine tree_walk(pshort,npshort)
      nplace_max = maxval(nplace)
      nchild_ship_tot = maxval(nchild_ship)
 
-! cumulative totals
+     ! cumulative totals
 
-!     nfetch_total = nfetch_total + nplace
+     !     nfetch_total = nfetch_total + nplace
 
      ! Determine global max
      call MPI_ALLREDUCE( nchild_ship_tot, max_pack, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
      call MPI_ALLREDUCE( nplace_max, max_nplace, one, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )
 
-     if (walk_debug ) then
+     if (walk_summary ) then
         write (ipefile,'(/a,i8,a2)') 'Summary for traversal # ',ntraversals,' :'
-        write (ipefile,*) ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass
-        write (ipefile,*) ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops
+        write (ipefile,*) ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass,' previous ave: ',sum_inner_old
+        write (ipefile,*) ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops,' previous: ',sum_nhops_old
         write (ipefile,*) ' # local children shipped: ',nchild_ship,', global max:',max_pack
         write (ipefile,*) ' cumulative total shipped: ',nreqs_total
         write (ipefile,*) ' # non-local children fetched: ',nplace,', global max:',max_nplace
         write (ipefile,*) ' cumulative total fetched: ',nfetch_total
 
         write (ipefile,*) 'array limit',npackm
-    
+
         write (ipefile,'(3(/a30,i6)/a/(2i5))') &
              'New twigs: ',newtwig, &
              'New leaves:',newleaf, &
              'New list length: ',nlist, &
              '# remaining active particles on each PE: ',(i,nactives(i+1),i=0,num_pe-1)
-        write(ipefile,'(a/(2i5))') 'New shortlist: ',(plist(i),pshort(plist(i)),i=1,nlist)
+        !        write(ipefile,'(a/(2i5))') 'New shortlist: ',(plist(i),pshort(plist(i)),i=1,nlist)
 
      endif
+
+     CALL VTLEAVE(ICLASSH,VTIERR)
+
   end do
 
 
@@ -564,5 +625,11 @@ subroutine tree_walk(pshort,npshort)
      node_addr = key2addr(search_key)
      htable( node_addr )%next = next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
   end do
+
+  sum_inner_old = sum_inner_pass
+  call MPI_ALLREDUCE( sum_nhops, sum_nhops_old, one, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
+  call MPI_ALLREDUCE( sum_inner_pass, sum_inner_old, one, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
+  sum_nhops_old = sum_nhops_old/num_pe
+  sum_inner_old = sum_inner_old/num_pe
 
 end subroutine tree_walk
