@@ -47,12 +47,6 @@ subroutine dump(timestamp)
 
   close(60)
 
-! Special case for ions-only mode: set all velocities to zero
-  if (ensemble == 5) then
-     ux(1:npp) = 0.
-     uy(1:npp) = 0.
-     uz(1:npp) = 0.
-  endif
 
   
   cfile=cme//"/parts_dump."//cdump(1:6)

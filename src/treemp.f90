@@ -121,8 +121,9 @@ program treemp
 
   end do
 
-  if (ensemble ==2 ) then
-     call reset_ions
+  if (ensemble ==5 ) then
+!  ion eqm mode: add electrons before dumping particle positions
+     call add_electrons
      call dump(nt)
   endif
 
