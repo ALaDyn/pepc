@@ -13,7 +13,7 @@ subroutine vis_parts
   use treevars
   implicit none   
 
-  integer, parameter :: npart_visit_max = 250000  ! Max 250k data points for VIS
+  integer, parameter :: npart_visit_max = 350000  ! Max 250k data points for VIS
 
   real, dimension(npart_visit_max) :: xvis,yvis,zvis,vx,vy,vz,qvis,mvis
   integer, dimension(npart_visit_max) :: ppid, plabel
@@ -23,10 +23,10 @@ subroutine vis_parts
   integer, dimension(num_pe) :: nparts_pe  ! array of npp on each PE
   integer :: icolour(npart_visit_max)
   integer :: lvisit_active, nskip, nproot, npart_buf, ne_buf, ni_buf, nbufe, nbufi
-  integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount
+  integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, wfdatai
 
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max, box_max, epondx, epondy, epondz,phipond
-  real :: xl_mu, yl_mu, zl_mu, t_fs
+  real :: xl_mu, yl_mu, zl_mu, t_fs, wfdatar
 
   simtime = dt*(itime+itime_start)
   nskip = npart/npart_visit_max + 1
@@ -37,7 +37,8 @@ subroutine vis_parts
   nbufi = 0
   nbuf=0
   do i=1,npp
-     if (q(i)<0 .or. (q(i)>0 .and. mod(itime,ivis*10).eq.0)) then  !  pick out even labels
+     if (q(i)<0 ) then  !  pick out even labels
+!      if (mod(pelabel(i),5).eq.0) then    ! select 1:5
         nbuf=nbuf+1
         if (q(i)<0) then
            nbufe=nbufe+1
@@ -75,9 +76,15 @@ subroutine vis_parts
         call flvisit_spk_check_connection(lvisit_active)
 !        call flvisit_spk_info_send(npart_buf,xl_mu,yl_mu,zl_mu,zl_mu,ne_buf,ni_buf,np_beam,itime+itime_start)
 
+        wfdatai=int(tlaser)
+        wfdatar=propag_laser*convert_mu
         call flvisit_spk_info_send(npart_buf,xl_mu,yl_mu,zl_mu, zl_mu, &
-             propag_laser*convert_mu, vosc, sigma, tpulse, &
-             ne_buf,ni_buf,npart_buf,int(tlaser))
+             wfdatar, vosc, sigma, tpulse, &
+             ne_buf,ni_buf,npart_buf,wfdatai)
+
+!        call flvisit_spk_info_send(npart_buf,xl_mu,yl_mu,zl_mu, zl_mu, &
+!             propag_laser*convert_mu, vosc, sigma, tpulse, &
+!             ne_buf,ni_buf,npart_buf,int(tlaser))
      endif
 !
 ! visit info block format in spk4
@@ -140,9 +147,4 @@ subroutine vis_parts
 
 
 end subroutine vis_parts
-
-
-
-
-
 
