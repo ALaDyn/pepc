@@ -35,17 +35,15 @@ subroutine diagnostics
 
   endif
 
+  if (vis_on .and. steering) call beam_control
 
   if (vis_on .and. mod(itime,ivis_fields)==0 ) then
-
- !    if (beam_config == 2 .or. beam_config==4) call beam_control
-!     call vis_fields
-
+     !     call vis_fields
   endif
 
   if ( mod(itime,ivis) ==0 ) then
      if (vis_on) call vis_parts       ! Interface to VISIT
-     call visit_dump(itime+itime_start) ! Dump particle data (visit format)
+     !     call visit_dump(itime+itime_start) ! Dump particle data (visit format)
   endif
 
 

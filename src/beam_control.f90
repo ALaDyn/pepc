@@ -45,7 +45,7 @@ subroutine beam_control
   if (me==0) then
      call flvisit_spk_check_connection(lvisit_active)
 
-     ! Fetch real-time, user-specified beam parameters
+     ! Fetch real-time, user-specified control parameters
      if (lvisit_active /= 0) call flvisit_spk_beam_param_recv( theta_beam,phi_beam,r_beam,rho_beam,u_beam)
   endif
 
@@ -74,8 +74,8 @@ subroutine beam_control
 
   if (beam_config == 4) then
  ! laser standing wave
-!     vosc = rho_beam
- !    sigma = r_beam
+     vosc = rho_beam
+     sigma = r_beam
 
   else if (beam_config ==2) then
      nb_pe = np_beam_dt/num_pe  ! # beam particles to load per PE
@@ -149,6 +149,12 @@ subroutine beam_control
      npp = npp+nb_pe
      np_beam = np_beam + np_beam_dt
      npart = npart + np_beam_dt
-  else
+
+  else if (ensemble == 5) then
+  ! ion crystal eqm  mode:
+  !  r_beam is mean ion spacing
+  !  u_beam is ion temperature (eV)
+     a_ii = r_beam
+     Ti_kev = u_beam
   endif
 end subroutine beam_control

@@ -6,10 +6,11 @@
 !
 !    Parallel Electrostatic Plasma Tree Code 
 !
-!   Version 1.2
+!   $Revision $
 !   Based on Hashed Oct Tree method of Warren & Salmon
 !    plus chunks of vectorised f90 SPK code.
 !
+!  Major changes:
 !   Juelich 27 September 2001: Development begun
 !   October 2002:  Completed asynchronous, latency-hiding tree traversal
 !   November 2002: Incorporated real-time VISIT interface for beam-plasma system (Wolgang Frings)

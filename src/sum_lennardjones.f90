@@ -17,8 +17,9 @@ subroutine sum_lennardjones( p, n, inode, sumfx, sumfy, sumfz, sumphi )
   real, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
   real :: a_bond, d2, dlj2, flj, eps2
 
-  a_bond = Vplas**(1./3.)  ! mean interparticle spacing
-  eps2 = (a_bond/100)**2 ! cutoff
+!  a_bond = 1.1*(Vplas/ni)**(1./3.)  ! mean interparticle spacing - slightly bigger to push particles onto boundaries
+  a_bond=a_ii*1.05
+  eps2 = (a_bond/4)**2 ! cutoff
   sumfx = 0
   sumfy = 0
   sumfz = 0
@@ -32,15 +33,17 @@ subroutine sum_lennardjones( p, n, inode, sumfx, sumfy, sumfz, sumphi )
      dy = y(p) - ycoc( jnode )
      dz = z(p) - zcoc( jnode ) 
 
-     d2 = dx**2+dy**2+dz**2+eps2
+     d2 = dx**2+dy**2+dz**2
      dlj2 = d2/a_bond**2  ! reduced distance
+     plj = (1./dlj2**6 - 1./dlj2**3)
      flj = (2./dlj2**6 - 1./dlj2**3)
-
+     plj = min(plj,100.)
+     flj = max(min(flj,100.),-100.)
      !   natoms = abs_charge( jnode) / qi    ! # particles in monopole cluster
 
 
      ! potential
-     sumphi = sumphi + flj
+     sumphi = sumphi + plj
 
      !  forces
 

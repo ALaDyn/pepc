@@ -249,13 +249,13 @@ subroutine velocities(p_start,p_finish,delta_t)
      sum_2vi = sum_vxi**2 + sum_vyi**2 + sum_vzi**2
 
      ! Find global KE sums
-     call MPI_ALLREDUCE(sum_v2i, global_v2i, one, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-     Ti_uncor = 511*mass_i/mass_e*2./3.*global_v2i/ni  ! This should equal 3/2 kT for 3v Maxwellian
+!     call MPI_ALLREDUCE(sum_v2i, global_v2i, one, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+     Ti_uncor = 511*mass_ratio*2./3.*sum_v2i/npp  ! This should equal 3/2 kT for 3v Maxwellian
      Ti0 = Ti_keV  ! normalised electron temp
 
 
      chii = sqrt(abs(Ti0/Ti_uncor)) 
-     chii = min(1.25,max(chii,0.75))  ! Set bounds of +- 50%
+     chii = min(1.5,max(chii,0.5))  ! Set bounds of +- 50%
 
 
      !  3)  Complete full step

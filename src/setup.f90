@@ -2,6 +2,8 @@
 !
 !         SETUP
 !
+!   $Revision$
+!
 !     Initialise constants and 
 !      simulation variables
 !
@@ -28,13 +30,13 @@ subroutine setup
        initial_config, &
        Te_keV, Ti_keV, &
        r_sphere, x_plasma, y_plasma, delta_mc, &
-       xl, yl, zl, displace, &
+       xl, yl, zl, displace, bond_const, &
        beam_config, np_beam, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
        nt, dt, mc_steps, idump, ivis, ivis_fields, nmerge, ngx, ngy, ngz, &
-       vis_on, domain_debug,  mc_init, restart, ensemble, particle_bcs, &
-       load_balance, walk_balance, walk_debug, dump_tree, perf_anal
+       vis_on, steering, domain_debug,  mc_init, restart, ensemble, particle_bcs, &
+       load_balance, walk_balance, walk_debug, dump_tree, perf_anal, coulomb, bonds, lenjones
 
 
 
@@ -62,6 +64,7 @@ subroutine setup
 
   ! physics stuff
   force_const = 1./3.
+  bond_const = 0.1
   rho0 = 1.0
   theta = 0.8
   Te_keV = 1.
@@ -194,6 +197,7 @@ subroutine setup
      mass_e = qi
   endif
 
+  a_ii = (Vplas/ni)**(1./3.)
   vti = sqrt(Ti_keV/511./mass_ratio)
   mass_i = mass_e*mass_ratio
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
@@ -206,6 +210,10 @@ subroutine setup
   if ( beam_config ==4 ) then
      rho_beam= vosc
      r_beam=sigma
+  else if (ensemble == 5) then
+  ! ion crystal eqm mode
+     r_beam = a_ii
+     u_beam = Ti_keV
   endif
 
 
@@ -263,6 +271,7 @@ subroutine setup
         write (ifile,*) 'Plasma config: ',configs(initial_config)
         write (ifile,*) 'Laser config: ',beam_configs(beam_config)
         write (ifile,'(a,1pe12.3)') 'Plasma volume: ',Vplas
+        write (ifile,'(a,1pe12.3)') 'Ion spacing: ',a_ii
         write (ifile,'(a,1pe12.3)') 'Sphere radius: ',r_sphere
         write (ifile,'(a,1pe12.3)') 'Electron charge: ',qe
         write (ifile,'(a,1pe12.3)') 'Electron mass: ',mass_e

@@ -28,7 +28,7 @@ subroutine tree_properties
   real, dimension(n_moments*2*size_tree/num_pe) :: local_moments      ! local branch properties    - size depends on # moments          
   real, dimension(n_moments*size_tree) :: branch_moments   ! global branch properties
   integer, dimension(num_pe) :: nbranchmoments ! array containing total # multipole terms*branch list length
-                                
+
   integer, dimension(size_tree) :: bindex, branch_addr, branch_node, branch_level
   logical :: duplicate(size_tree)
 
