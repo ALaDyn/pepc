@@ -29,7 +29,8 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
   integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe
   real :: t_walk, t_force, t1, t2, t3  ! timing integrals
-  integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm)
+  integer :: pshortlist(nshortm),nodlist(nintmax),nshort(npassm),pstart(npassm)
+  integer :: hashaddr ! Key address 
   real :: work_loads(num_pe)  ! Load balance array
   integer :: npps(num_pe)  ! Particle distrib amoung PEs
   integer :: max_local,  timestamp
@@ -41,6 +42,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
   integer :: total_parts
   character(30) :: cfile, ccol1, ccol2
   character(4) :: cme
+  integer :: key2addr        ! Mapping function to get hash table address from key
 
 
   t_walk=0.
@@ -113,6 +115,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
      do i = 1, nps
 
         p = pshortlist(i)    ! local particle index
+
         Ex(p) = 0.
         Ey(p) = 0.
         Ez(p) = 0.
@@ -120,7 +123,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
         if (coulomb) then
            !  compute Coulomb forces and potential of particle p from its interaction list
-           call sum_force(p, nterm(i), nodelist( 1:nterm(i),i ), eps, ex_coul, ey_coul, ez_coul, phi_coul )
+           call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul )
 
            pot(p) = pot(p) + force_const * phi_coul
            Ex(p) = Ex(p) + force_const * ex_coul
