@@ -16,14 +16,20 @@
 ## Optimised
 #FFLAGS =  -q64 -qrealsize=8 -qsuffix=f=f90  -O4 -Q -qipa -qarch=pwr4 -qstrict -qreport  -qlist -qsource -I/usr/local/include 
 
+
 IPA=-qipa=inline=laser_bullet:inline=key2addr:inline=make_hashentry:inline=key2node:inline=next_node:inline=key_local
+
 PG=-pg -qfullpath
 DB= -g
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
+#MPITRACE= -L/usr/local/beta/lib -lmpitrace
+#MPITRACE= -L/usr/local/beta/lib -lmpiprof
+MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
 #MPITRACE= -lmpitrace
 #MPITRACE= -lmpiprof
 MPITRACE=  -lmpihpm -lpmapi
+
 FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
 TUNE= -qarch=pwr4 -qtune=pwr4 -qhot ## $(IPA) 
 # $(PG) $(HPM)
@@ -37,9 +43,9 @@ FFLAGS =  $(FFLAGS1) $(DB)  $(TUNE)
 # cray
 #VISITLIBS=-L /usr/local/visit/lvisit/apis/spk2 -llvisit_spk -L/usr/local/visit/lvisit/lib -llvisit -L/usr/local/visit/visit20/lib -lvisit 
 # JUMP
-VISITLIBS=-L/home/admin/beta/visit-2.0b/lvisit/apis/spk3 -llvisit_spk -L/home/admin/beta/visit-2.0b/lvisit/lib -llvisit -L/home/admin/beta/visit-2.0b/lib -lvisit
-# Local
-#VISITLIBS= -L$(HOME)/visit/spkvisit -llvisit_spk -L$(HOME)/visit/lib -llvisit -L$(HOME)/visit/lib -lvisit
+
+VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
+
 
 LDFLAGS = $(VISITLIBS) $(MPITRACE)
 
@@ -55,27 +61,33 @@ MODULES.f90 =  my_mpidefs.f90 treevars.f90 utils.f90
 
 
 SOURCES.f90 =	treemp.f90 \
-		setup.f90 \
+		setup.f90 stamp.f90 \
 		configure.f90 randion.f90 predef_parts.f90 maxwell1.f90 cold_start.f90 \
+		special_start.f90 constrain.f90 cutvector.f90 face.f90 \
 		scramble_v.f90 reset_ions.f90 add_electrons.f90 double_target.f90 \
-		beam.f90 beam_control.f90 \
+		beam.f90 beam_control.f90 beam_dust.f90 \
 		mc_config.f90 \
 	 	make_domains.f90 \
 		tree_build.f90  make_branches.f90 tree_fill.f90 tree_properties.f90 \
 		tree_walk.f90	tree_prefetch.f90 \
 		energy_cons.f90 potenergy.f90 sumpot.f90 kinenergy.f90\
-		forces.f90 forces_bal.f90 sum_force.f90 sum_lennardjones.f90\
-		fpond.f90 laser_bullet.f90 \
+		forces.f90 sum_force.f90 sum_lennardjones.f90\
+		fpond.f90 empond.f90 emplane.f90 \
+		velocities.f90 push_em.f90 push_full3v.f90 \
+		push.f90 constrain.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
+		forces.f90 sum_force.f90 sum_lennardjones.f90\
+		fpond.f90 \
 		velocities.f90 \
 		push.f90 constrain.f90 reinject.f90 earth_plate.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 		diagnostics.f90 \
 	        diagnose_tree.f90 check_table.f90 \
 		draw_domains.f90 draw_tree2d.f90 draw_lists.f90\
-		vis_parts.f90 vis_fields.f90 dump.f90 visit_dump.f90\
+		vis_parts.f90 vis_fields.f90 dump.f90 \
 		open_files.f90 close_files.f90	\
-		densities.f90 pot_grid.f90 slices.f90 \
-		track_nc.f90 rezone.f90		
+		densities.f90 sum_fields.f90 dump_fields.f90 \
+		track_nc.f90		
+
 
 # -------------------------------------------------------------------------------------------
 # Source combinations
@@ -137,7 +149,7 @@ cleandata:
 	/bin/rm -f fort.* *.dat *.out *.gle 
 
 depend:
-	./f90depend -u -I/usr/lpp/ppe.poe/include *.f90
+	./f90depend -u -I/usr/lpp/ppe.poe/include/thread *.f90
 default: treemp
 
 ### DO NOT DELETE OR EDIT THIS LINE
@@ -146,14 +158,15 @@ default: treemp
 
 #--- Include-Dependencies
 
-driver.o: /usr/lpp/ppe.poe/include/mpif.h
-my_mpidefs.o: /usr/lpp/ppe.poe/include/mpif.h
+my_mpidefs.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 
 
 #--- Module-Dependencies
 
+add_electrons.o: treevars.o utils.o
 beam.o: treevars.o utils.o
 beam_control.o: treevars.o utils.o
+beam_dust.o: treevars.o utils.o
 boundaries.o: treevars.o
 check_table.o: treevars.o utils.o
 close_files.o: treevars.o
@@ -163,19 +176,24 @@ constrain.o: treevars.o utils.o
 densities.o: treevars.o
 diagnose_tree.o: treevars.o
 diagnostics.o: treevars.o utils.o
+double_target.o: treevars.o utils.o
 draw2d.o: treevars.o
 draw2d_hash.o: treevars.o
 draw_domains.o: treevars.o
 draw_lists.o: treevars.o
 draw_map.o: treevars.o
 draw_tree2d.o: treevars.o
-driver.o: utils.o
+driver.o: utils.o my_mpidefs.o
 dump.o: treevars.o
+dump_fields.o: treevars.o
+earth_plate.o: treevars.o utils.o
 energy_cons.o: treevars.o utils.o
 forces.o: treevars.o utils.o
 forces_bal.o: treevars.o utils.o
 get_address.o: treevars.o utils.o
+get_next_node.o: treevars.o utils.o
 get_node.o: treevars.o utils.o
+key_test.o: treevars.o utils.o
 kinenergy.o: treevars.o
 make_branches.o: treevars.o utils.o
 make_domains.o: treevars.o utils.o
@@ -186,14 +204,20 @@ potenergy.o: treevars.o utils.o
 predef_parts.o: treevars.o utils.o
 push.o: treevars.o
 randion.o: treevars.o utils.o
+reinject.o: utils.o
 reset_ions.o: treevars.o
 scramble_v.o: treevars.o utils.o
 setup.o: treevars.o utils.o
+slices.o: treevars.o
+sum_bond.o: treevars.o
+sum_fields.o: treevars.o
 sum_force.o: treevars.o
+sum_lennardjones.o: treevars.o
 sumpot.o: treevars.o
 track_nc.o: treevars.o
 tree_build.o: treevars.o utils.o
 tree_fill.o: treevars.o utils.o
+tree_prefetch.o: treevars.o utils.o
 tree_properties.o: treevars.o utils.o
 tree_walk.o: treevars.o utils.o
 treemp.o: treevars.o utils.o
@@ -202,6 +226,5 @@ utils.o: my_mpidefs.o
 velocities.o: treevars.o utils.o
 vis_fields.o: treevars.o
 vis_parts.o: treevars.o
-visit_dump.o: treevars.o
 
 
