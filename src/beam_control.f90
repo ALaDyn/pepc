@@ -15,7 +15,7 @@ subroutine beam_control
   integer :: i, p, iseed1, iseed2, ierr
   real :: Volb, dpx, yt, zt, vosc_old, sigma_old, tpulse_old, u_old, theta_old, phi_old
   integer :: lvisit_active
-  real :: ct, st, cp, sp, vx_beam, vy_beam, vz_beam, xb, yb, zb
+  real :: ct, st, cp, sp, vx_beam, vy_beam, vz_beam, th_beam, xb, yb, zb
   logical :: beam_on = .true.
   logical :: beam_debug = .true.
 
@@ -43,13 +43,22 @@ subroutine beam_control
   !     return
   !  endif
 
-  if (beam_config >= 3 .and. beam_config <= 5) then
-     ! Define beam from laser parameters
+  if ( beam_config == 5) then
+      ! Define beam from laser parameters
      vosc_old = vosc
      sigma_old = sigma
      u_beam = vosc
      rho_beam = sigma
-     r_beam = tpulse
+     r_beam = tpulse  
+
+  else if ( beam_config >=3 .and. beam_config <=4) then
+      ! Define beam from laser parameters
+     vosc_old = vosc
+     sigma_old = sigma
+     u_beam = vosc
+     rho_beam = sigma
+     th_beam = theta_beam  ! incidence angle instead of pulse duration
+     theta_old = th_beam
 
   else if (scheme==4 .and. .not. (beam_config<=3 .and. beam_config>0)) then
      ! Temperature clamp mode - laser should be off
@@ -73,7 +82,7 @@ subroutine beam_control
   if (itime == 0 .and. me==0 )  then
      call flvisit_spk_check_connection(lvisit_active)
      ! Specify default parameters at beginning of run
-     call flvisit_spk_beam_paraminit_send(theta_beam,phi_beam,r_beam,rho_beam,u_beam)
+     call flvisit_spk_beam_paraminit_send(th_beam,phi_beam,r_beam,rho_beam,u_beam)
   endif
 
 
@@ -83,7 +92,7 @@ subroutine beam_control
 
      ! Fetch real-time, user-specified control parameters
      if (lvisit_active /= 0) then 
-        call flvisit_spk_beam_param_recv( theta_beam,phi_beam,r_beam,rho_beam,u_beam)
+        call flvisit_spk_beam_param_recv( th_beam,phi_beam,r_beam,rho_beam,u_beam)
      else
         write(*,*) ' No Connection to Visualization'
         return
@@ -96,7 +105,7 @@ subroutine beam_control
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
   call MPI_BCAST( lvisit_active, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   if (lvisit_active /= 0) then
-     call MPI_BCAST( theta_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( th_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
      call MPI_BCAST( phi_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
      call MPI_BCAST( r_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
      call MPI_BCAST( rho_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
@@ -137,6 +146,11 @@ subroutine beam_control
      else
         if (me==0) write(*,*) 'Pulse length change too big - readjust!'
         if (me==0 .and. tpulse /= tpulse_old) write(*,*) 'Laser pulse length changed'
+     endif
+
+     if (th_beam /= theta_beam) then
+        theta_beam=th_beam
+        if (me==0 .and. theta_beam /= theta_old) write(*,*) 'Incidence angle changed'
      endif
 
   else if (beam_config ==2) then

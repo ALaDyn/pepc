@@ -27,9 +27,9 @@ subroutine setup
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
        xl, yl, zl, displace, bond_const, fnn, rho_min, lolam, &
-       beam_config, np_beam, idim, &
+       beam_config_in, np_beam, idim, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
-       theta_inc, lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
+       lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
        nt, dt, mc_steps, idump, ivis, ivis_fields, iprot, itrack, nmerge, ngx, ngy, ngz, &
        vis_on, steering, domain_debug,  mc_init, restart, scheme, particle_bcs, &
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
@@ -80,7 +80,7 @@ subroutine setup
 
   !  beam_config = 1  ! fixed beam, initialised at start
   ! beam_config = 2  ! user-controlled, real-time particle source
-  beam_config = 0 ! beam off
+  beam_config_in = 0 ! beam off
   ! beam_config = 4  ! laser ponderomotive force
 
   r_beam = 0.15
@@ -297,6 +297,8 @@ subroutine setup
 
   intensity = 0.2*vosc**2*omega**2  ! normalised laser intensity
 
+  beam_config=mod(beam_config_in,10)  ! derived config from s,p variations
+
 !  if (scheme > 1 .and. beam_config >= 3) then
 !     if (me==0) write(*,*) 'Constant-Te mode: turning beam off'
 !     beam_config=0
@@ -305,7 +307,7 @@ subroutine setup
   if ( beam_config >=3 .and. beam_config<=6) then
      rho_beam= vosc
      r_beam=sigma
-
+   
   else if (scheme == 5) then
   ! ion crystal eqm mode
      r_beam = a_ii

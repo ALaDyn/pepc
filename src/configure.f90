@@ -71,7 +71,7 @@ subroutine configure
 
 
 
-  beamconf: select case(beam_config)  ! Configure laser or particle beam
+  beamconf: select case(mod(beam_config,10))  ! Configure laser or particle beam
 
   case(1)
      call beam           ! Fixed beam

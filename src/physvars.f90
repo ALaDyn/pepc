@@ -96,7 +96,8 @@ module physvars
   integer :: plasma_config = 1  ! Switch for initial configuration (positions, velocities)
   integer :: target_geometry = 0  ! Geometry for plasma target
   integer :: idim=3  ! # dimensions (velocity and position updates)
-  integer :: beam_config = 0 ! Switch to include particle or laser beam 
+  integer :: beam_config_in = 0 ! Particle or laser beam switch including variations 
+  integer :: beam_config = 0 ! Reduced switch for particle or laser beam 
   integer :: ispecial       ! Switch to select special electron configs 
   integer :: scheme = 1 ! Integrator scheme switch: 2-4= const. Te dynamics, 6=EM
   integer :: particle_bcs = 1 ! Particle BC switch: 1=open, 2=reflective

@@ -38,7 +38,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_walkc, t_force)
 
   real :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
   real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
-  real :: Epon_x, Epon_y, Epon_z, Phipon
+  real :: Epon_x, Epon_y, Epon_z, Phipon, ex_em, ey_em, ez_em, bx_em, by_em, bz_em
   real :: xd, yd, zd  ! positions relative to centre of laser spot
   real :: work_local, load_average, load_integral, total_work, average_work
   integer :: total_parts
@@ -210,7 +210,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_walkc, t_force)
            yd = y(p)-focus(2)
            zd = z(p)-focus(3)
 
-           laser_model: select case(beam_config)
+           laser_model: select case(beam_config_in)
 
            case(3)  ! Uniform sinusoid in z (s-pol)
               Epon_x = 0.
@@ -221,9 +221,9 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_walkc, t_force)
               call fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
                 xd,yd,zd,epon_x,epon_y,epon_z,phipon)
 
-           case(7)  ! oblique incidence standing wave
-              call emobliq( tlaser, tpulse,sigma,vosc,omega,theta_inc,rho_upper, &
-                xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+           case(14)  ! oblique incidence standing wave, s-pol
+              call emobliq( tlaser, tpulse,sigma,vosc,omega,theta_beam,rho_upper, &
+                xd,yd,zd,epon_x,epon_y,epon_z,phipon,ez_em,bx_em,by_em)
 
            case(5)  ! propagating fpond
               call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, & 

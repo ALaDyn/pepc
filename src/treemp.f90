@@ -83,12 +83,14 @@ program treemp
      !     tremain=llwrem(0)
      if (me==0) then
         do ifile = 6,15,9
-           write(ifile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/2(a,f9.3))') &
+           write(ifile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
                 ' Timestep ',itime+itime_start &
                 ,' total run time = ',trun &
                 ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
                 ,' intensity= ',Tpon &
-                ,' x_crit= ',x_crit 
+                ,' x_crit= ',x_crit &
+                ,' spot size= ',sigma & 
+                ,' theta =  ',theta_beam 
            !                ,' remaining wall-clock time (s)= ',tremain 
         end do
         if (beam_config==5) then 

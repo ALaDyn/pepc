@@ -18,7 +18,7 @@ subroutine vis_fields
   real, dimension(ngx*ngy*ngz) :: qvis,mvis
   real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bzg
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max
-  real :: box_max, az_em, ez_em, by_em, bx_em, phipond
+  real :: box_max, az_em, ez_em, by_em, bx_em, bz_em, ex_em, ey_em, phipond
   real :: epon_x, epon_y, epon_z, tpon, amp_las
   integer, parameter :: ngmax=100
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, iskip,itlas
@@ -67,7 +67,7 @@ subroutine vis_fields
               zd = (k-0.5)*dz - focus(3)
 !              xd = (i-0.5)*dx - 50.
 
-              laser: select case(beam_config)
+              laser: select case(beam_config_in)
 
               case(4)
                  call fpond( 1.57/omega, tpulse,sigma,vosc,omega, rho_upper, &
@@ -81,10 +81,10 @@ subroutine vis_fields
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond)
                  mvis(lcount) = phipond ! Pond potential
 
-              case(7) ! Oblique incidence fpond
-                 call emobliq(tlaser,tpulse,sigma,vosc,omega,theta_inc, &
-                      xd,yd,zd,epon_x,epon_y,epon_z,phipond)
-                 mvis(lcount) = phipond
+              case(14) ! Oblique incidence fpond, s-pol
+                 call emobliq(tlaser,tpulse,sigma,vosc,omega,theta_beam, rho_upper, &
+                      xd,yd,zd,epon_x,epon_y,epon_z,phipond,ez_em,bx_em,by_em)
+                 mvis(lcount) = ez_em**2
 
               case(6) ! Plane wave
                  call emplane(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipond)
@@ -111,7 +111,7 @@ subroutine vis_fields
 
      !     if (beam_config>=4) call flvisit_spk_3dfieldA_send(mvis,npx,npy,npz)  ! laser potential
      call flvisit_spk_3dfieldB_send(mvis,npx,npy,npz)  ! ion density 
-     call flvisit_spk_3dfieldA_send(qvis,npx,npy,npz)  ! ship selected field
+!     call flvisit_spk_3dfieldA_send(qvis,npx,npy,npz)  ! ship selected field
   endif
 
 

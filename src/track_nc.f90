@@ -59,7 +59,9 @@ subroutine track_nc
 
 ! abort tracking if particle number too low
   if (npart.le.100) then
+	write(*,*) 'fixing xcrit at ',xc1
      x_crit=xc1
+     rho_upper=1.0
      return
   endif
 

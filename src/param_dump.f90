@@ -53,6 +53,10 @@ subroutine param_dump
         write (ifile,'(a20,f12.3)') ' Collision freq.: ',nu_ei
         write (ifile,'(a20,f12.3)') ' Conductivity: ',sigma_e
         write (ifile,'(a20,f12.3)') ' Laser amplitude: ',vosc
+        write (ifile,'(a20,f12.3)') ' Pulse width: ',sigma
+        write (ifile,'(a20,f12.3)') ' Pulse duration: ',tpulse
+        write (ifile,'(a20,f12.3)') ' Wavelength: ',lambda
+        write (ifile,'(a20,f12.3)') ' Incidence angle: ',theta_beam
         write (ifile,'(a20,f12.3)') ' Laser intensity: ',intensity
 
 
