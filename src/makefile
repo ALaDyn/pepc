@@ -28,7 +28,7 @@ FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90
 TUNE= -qarch=pwr4 -qtune=pwr4 -qhot $(IPA) 
 # $(PG) $(HPM)
 
-FFLAGS =  $(FFLAGS1) $(DB) ## $(TUNE) 
+FFLAGS =  $(FFLAGS1) $(DB)  $(TUNE) 
 
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld

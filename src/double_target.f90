@@ -55,6 +55,6 @@ subroutine double_target
   ni = 2*ni
   ne = 2*ne
   npart = ni+ne
-  npp = nep+nip
+  npp = 2*npp
 end subroutine double_target
 

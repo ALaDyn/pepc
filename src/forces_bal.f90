@@ -176,7 +176,7 @@ subroutine forces_bal(p_start,p_finish,delta_t, t_walk, t_force)
            yd = y(p)-focus(2)
            zd = z(p)-focus(3)
 
-           call fpond( tlaser, tpulse,sigma,vosc,omega,-xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+           call fpond( tlaser, tpulse,sigma,vosc,omega,xd,yd,zd,epon_x,epon_y,epon_z,phipon)
 
            fx(p) = fx(p) + q(p) * Epon_x
            fy(p) = fy(p) + q(p) * Epon_y

@@ -368,7 +368,7 @@ contains
     integer, dimension(nprocs+1) :: fposts, gposts !  fencepost index and key values for shuffle
     integer, parameter :: maxprocs = 1024
     integer :: itabr(maxprocs), itabl(maxprocs+1)
-    real, dimension(8*nppm)  :: f_local, f_global
+    real, dimension(20*nppm)  :: f_local, f_global
     integer*8 :: fpval(maxprocs+1)
     integer*8 :: lmax, lmin, key_min, key_max, step  ! Key mins and maxes and step size
     integer :: ak, nbin, ibin, npost
@@ -402,7 +402,7 @@ contains
     call MPI_ALLREDUCE(lmin, key_min, one, MPI_INTEGER8, MPI_MIN,  MPI_COMM_WORLD, ierr )
 
     !     Choose bin size for key distribution.
-    nbin = 8*nppm  ! # bins - may want to refine this for very large N
+    nbin = 20*nppm  ! # bins - may want to refine this for very large N
     step=(key_max - key_min)/nbin + 1
 
     if (debug) write (fd,*) 'keymax: ',key_max,' keymin: ',key_min,' nbin ',nbin+1,' step', step

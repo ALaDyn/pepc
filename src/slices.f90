@@ -16,7 +16,7 @@ subroutine slices(timestamp)
   implicit none   
 
   real, dimension(ngx) :: work1, work2
-
+  real, dimension(ngx) :: phi_pond, ex_pond, ey_pond, ez_pond
   real :: dx, dz, dy, xd, yd, zd, dummy, simtime, epondx, epondy, epondz, phipond, epond_max, box_max
   real :: Qtot, Qbox
 
@@ -81,10 +81,22 @@ subroutine slices(timestamp)
         end do
      end do
 
-     write(62,'(3f13.5)') (i*dx,work1(i),work2(i),i=1,ngx)
+     do i=1,ngx
+        xd=i*dx-focus(1)
+        yd=sigma/2.
+        zd=sigma/2.
+        call fpond(1.57/omega,1.0,sigma,vosc,omega,xd,yd,zd,ex_pond(i),ey_pond(i), &
+             ez_pond(i), phi_pond(i))
+     end do
+
+     write(62,'(7f13.5)') (i*dx,work1(i),work2(i), &
+          phi_pond(i),ex_pond(i), ey_pond(i), ez_pond(i),i=1,ngx)
      close(62)
 
   endif
   icall = icall + 1
 
 end subroutine slices
+
+
+

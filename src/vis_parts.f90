@@ -13,7 +13,7 @@ subroutine vis_parts
   use treevars
   implicit none   
 
-  integer, parameter :: npart_visit_max = 50000  ! Max 25k data points for VIS
+  integer, parameter :: npart_visit_max = 250000  ! Max 250k data points for VIS
 
   real, dimension(npart_visit_max) :: xvis,yvis,zvis,vx,vy,vz,qvis,mvis
   integer, dimension(npart_visit_max) :: ppid, plabel
