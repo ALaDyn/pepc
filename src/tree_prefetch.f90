@@ -64,8 +64,10 @@ subroutine tree_prefetch(itime)
   timestamp=itime
 
 
+  ! -------------------------------------------------------------------------
+  ! PASS 1:  examine fetched-key lists to check whether parents exist locally
+  ! -------------------------------------------------------------------------
 
-  ! First examine fetched-key lists to check whether parents exist locally
   do ipe = 0,num_pe-1
      if (prefetch_debug) write(ipefile,*) 'PASS 1: Fetches from PE ',ipe
      npar = nfetch_total(ipe)
@@ -118,9 +120,10 @@ subroutine tree_prefetch(itime)
        MPI_COMM_WORLD, ierr)
 
 
-
-  ! Now compare request lists with actual local tree nodes:
-  !  - flag and remove keys which no longer exist
+  ! -------------------------------------------------------------------------
+  ! PASS 2:  - compare request lists with actual local tree nodes
+  !          - flag and remove keys which no longer exist
+  ! -------------------------------------------------------------------------
 
   do ipe = 0,num_pe-1
      nremove(ipe) = 0
@@ -139,6 +142,7 @@ subroutine tree_prefetch(itime)
      end do
      write(ipefile,*)
 
+
      ! remove non-existent keys
      ! could do something more sophisticated here, like suggesting alternative key
      ! but for now let tree_walk routine deal with missing keys
@@ -151,6 +155,7 @@ subroutine tree_prefetch(itime)
 
      ! TODO: Check that sibling sets complete so that parent's 'HERE' flag can be set in childcode.
      ! Need this so that tree_walk MAC options still function as-is
+
 
      ! First make list of parent keys from compressed list
 
@@ -165,7 +170,10 @@ subroutine tree_prefetch(itime)
      req_parent(1:nuniq) = pack(req_parent(1:nreqs_new), mask = duplicate(1:nreqs_new))   ! Compress list
      if (prefetch_debug) write(ipefile,'(a,i6/(o15))') 'Unique parents ',nuniq,(req_parent(i),i=1,nuniq)
 
-     ! Make new list of requested children from parent list
+
+ ! Make new list of requested children from parent list
+ !  - this may include nodes created by tree_fill
+
      nreqs_old = nreqs_new
      nreqs_new = 0
 
@@ -189,8 +197,10 @@ subroutine tree_prefetch(itime)
        fetched_keys, nfetch_total, rstrides, MPI_INTEGER8, &
        MPI_COMM_WORLD, ierr)
 
-  ! Final sweep of fetched-key lists to eliminate nodes which might have been 
-  ! created locally during tree_fill.
+  ! -------------------------------------------------------------------------
+  ! PASS 3: final sweep of fetched-key lists to eliminate nodes which 
+  !         might have been created locally during tree_fill.
+  ! -------------------------------------------------------------------------
 
   do ipe = 0,num_pe-1
      if (ipe /= me) then
@@ -251,7 +261,7 @@ subroutine tree_prefetch(itime)
      end do
   endif
 
- !  return
+
   ! Now ready for all-to-all multipole swap
 
   ! Prepare send buffer: pack multipole info together as in tree_walk.
@@ -282,8 +292,6 @@ subroutine tree_prefetch(itime)
            ship_next = htable( ship_address )%next   ! Node has elder siblings
         endif
 
-
-
         pack_child(send_prop_count) =  multipole ( ship_key, &
              ship_byte, &
              ship_leaves, &
@@ -312,7 +320,6 @@ subroutine tree_prefetch(itime)
   end do
 
   sstrides = (/ 0, nreqs_total(0), ( SUM( nreqs_total(0:i-1) ),i=2,num_pe-1 ) /)
-
   rstrides = (/ 0, nfetch_total(0), ( SUM( nfetch_total(0:i-1) ),i=2,num_pe-1 ) /)
 
   ! write (ipefile,'((2i8))') (sstrides(i), rstrides(i), i=0,num_pe-1) 
