@@ -41,6 +41,21 @@ subroutine predef_parts
      close(80)
      write(6,'(/a/a/a,i5)') 'RESTART:','Reading run data from info block: parts_info.in','Timestep:',itime_start
 
+     if (me==0) write(*,'(7(a12,i12/),7(a12,f12.5/))')  &    ! info block - skip variable names
+          'Start time: ', itime_start, & 
+          '# particles: ', npartr, &
+	  '# electrons: ', ner, &
+          '# ions: ', nir, & 
+          '# beam: ', np_beamr, &
+          'Config: ', iconf, & 
+          'Scheme: ', iens, &
+	  'Box_x: ',xlr,&
+          'Box_y: ', ylr, &
+          'Box_z: ', zlr, &
+          'eps: ', eps,  &
+  	  'theta: ', thetar, &
+          'tlaser: ',tlaser, &
+          'trun: ',trun  
 
      if (ner /= ne .or. nir /= ni) then
         write(*,*) '*** Particle nos. in input deck do not match those in restart file parts_info.in'
@@ -218,6 +233,8 @@ subroutine predef_parts
         endif
      end do
   endif
+
+
 
 end subroutine predef_parts
 
