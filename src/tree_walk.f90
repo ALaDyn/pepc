@@ -73,7 +73,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
 
   real, dimension(8) :: xcoc_child, ycoc_child, zcoc_child
 
-  real, dimension(0:nlev) :: boxlength
+  real, dimension(0:nlev) :: boxlength2
   logical, dimension(npshort) :: finished, requested
   integer :: hops(21) ! array to control max # iterations in single traversal 
   integer, dimension(num_pe) ::   nactives
@@ -96,7 +96,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
 
   integer ::  bchild, nodchild, lchild, hashaddr, nlast_child, cbyte
   integer :: max_nplace, max_pack
-  real :: sbox, theta2, theta2_ion, dx, dy, dz, s2
+  real :: sbox, theta2, theta2_ion, dx, dy, dz, s2, dist2
 
   ! stuff for tree-patch after traversals complete
   integer ::  node_addr, parent_addr, parent_node, child_byte
@@ -124,7 +124,7 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
   theta2 = theta**2               ! Clumping parameter**2 for MAC
 !  theta2_ion = min(1.0,2*theta2)  ! Ion MAC 50% larger than electron MAC
   theta2_ion=theta2
-  boxlength(0:nlev) = (/ (sbox/2**i, i=0,nlev ) /)  ! Preprocessed box sizes for each level
+  boxlength2(0:nlev) = (/ ((sbox/2**i)**2, i=0,nlev ) /)  ! Preprocessed box sizes for each level
 
   walk_key(1:npshort) = 1                    ! initial walk list starts at root
   nwalk(1:npshort) = 0   ! # keys on deferred list
@@ -201,9 +201,9 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
            dy = y( pshort(p) ) - ycoc( walk_node )
            dz = z( pshort(p) ) - zcoc( walk_node )
 
-           s2 = boxlength( node_level(walk_node) )**2
- 
-           mac_ok = ( s2 < theta2*(dx**2+dy**2+dz**2 ) )             ! Preprocess MAC
+           s2 = boxlength2( node_level(walk_node) )
+           dist2 = theta2*(dx**2+dy**2+dz**2)
+           mac_ok = ( s2 < dist2 )             ! Preprocess MAC
  
            add_key = walk_key(i)                                ! Remember current key
 
@@ -214,8 +214,8 @@ subroutine tree_walk(pshort,npshort,pass,theta,itime)
            if ( mac_ok .or. (walk_node >0 .and. .not.ignore ) ) then
               walk_key(i) = walk_next
 	      entry_next = nterm(p) + 1
-              intlist( entry_next, p ) = add_key      ! Augment interaction list
-              nodelist( entry_next, p ) = walk_node   ! Node number
+ !             intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
+              nodelist( entry_next, p ) = walk_node   ! Node number for sum_force
               nterm(p) = entry_next
 
 
