@@ -13,7 +13,7 @@ subroutine vis_parts
   use treevars
   implicit none   
 
-  integer, parameter :: npart_visit_max = 12000  ! Max 25k data points for VIS
+  integer, parameter :: npart_visit_max = 120000  ! Max 25k data points for VIS
 
   real, dimension(npart_visit_max) :: xvis,yvis,zvis,vx,vy,vz,qvis,mvis
   integer, dimension(npart_visit_max) :: ppid, plabel
@@ -29,28 +29,49 @@ subroutine vis_parts
   nskip = npart/npart_visit_max + 1
   nbuf = npp/nskip
 
-  call MPI_ALLGATHER( nbuf, 1, MPI_INTEGER, nparts_pe,1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
-  ! work out stride lengths so that partial arrays placed sequentially in global array
+  if (npart<npart_visit_max) then
+     ! send  particle data from all PEs
+     if (me==0) then
+       call flvisit_spk_check_connection(lvisit_active)
+       call flvisit_spk_info_send(npart,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
+     endif
+     call MPI_ALLGATHER( nbuf, 1, MPI_INTEGER, nparts_pe,1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
-  recv_strides(1:num_pe) = (/ 0,( SUM( nparts_pe(1:i-1) ),i=2,num_pe ) /)
+     ! work out stride lengths so that partial arrays placed sequentially in global array
 
-  ! Gather particle data onto root PE
-  call MPI_GATHERV( pepid, nbuf, MPI_INTEGER, ppid, nparts_pe, recv_strides, MPI_INTEGER, root, MPI_COMM_WORLD, ierr )
-  call MPI_GATHERV( pelabel, nbuf, MPI_INTEGER, plabel, nparts_pe, recv_strides, MPI_INTEGER, root, MPI_COMM_WORLD, ierr) 
-  call MPI_GATHERV( x, nbuf, MPI_REAL8, xvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
-  call MPI_GATHERV( y, nbuf, MPI_REAL8, yvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
-  call MPI_GATHERV( z, nbuf, MPI_REAL8, zvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
+     recv_strides(1:num_pe) = (/ 0,( SUM( nparts_pe(1:i-1) ),i=2,num_pe ) /)
 
-  call MPI_GATHERV( ux, nbuf, MPI_REAL8, vx, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
-  call MPI_GATHERV( uy, nbuf, MPI_REAL8, vy, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
-  call MPI_GATHERV( uz, nbuf, MPI_REAL8, vz, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
-  call MPI_GATHERV( q, nbuf, MPI_REAL8, qvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
+     ! Gather particle data onto root PE
+     call MPI_GATHERV( pepid, nbuf, MPI_INTEGER, ppid, nparts_pe, recv_strides, MPI_INTEGER, root, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( pelabel, nbuf, MPI_INTEGER, plabel, nparts_pe, recv_strides, MPI_INTEGER, root, MPI_COMM_WORLD, ierr) 
+     call MPI_GATHERV( x, nbuf, MPI_REAL8, xvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( y, nbuf, MPI_REAL8, yvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( z, nbuf, MPI_REAL8, zvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
 
-  if (me.eq.0) then
-     call flvisit_spk_check_connection(lvisit_active)
-     call flvisit_spk_info_send(npart,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
-     call flvisit_spk_particles_send(simtime,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart)
+     call MPI_GATHERV( ux, nbuf, MPI_REAL8, vx, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( uy, nbuf, MPI_REAL8, vy, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( uz, nbuf, MPI_REAL8, vz, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
+     call MPI_GATHERV( q, nbuf, MPI_REAL8, qvis, nparts_pe, recv_strides, MPI_REAL8, root, MPI_COMM_WORLD, ierr )
+
+
+     if (me.eq.0) then
+
+        call flvisit_spk_particles_send(simtime,xvis,yvis,zvis,vx,vy,vz,qvis,ppid,plabel,npart)
+     endif
+
+  else
+     ! Just send particles on root
+     if (me==0) then
+        call flvisit_spk_check_connection(lvisit_active)
+        call flvisit_spk_info_send(npp,xl,yl,zl,zl,nep,nip,np_beam,itime+itime_start)
+        call flvisit_spk_particles_send(simtime,x,y,z,ux,uy,uz,q,pepid,pelabel,npp)
+     endif
+  endif
+
+
+  if (me==0) then
+
      ! ship branch nodes to show domains
      do j=1,nbranch_sum
         ilev = log( 1.*branch_key(j) )/log(2.**idim)
@@ -66,8 +87,6 @@ subroutine vis_parts
      call flvisit_spk_domains_send( simtime, xvis,yvis,zvis,mvis,branch_owner,xvis,nbranch_sum)
 
   endif
-
-
 
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
