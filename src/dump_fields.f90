@@ -19,11 +19,11 @@ subroutine dump_fields(timestamp)
   real, dimension(ngx) :: work1, work2
   real, dimension(ngx) :: phi_pond, ex_pond, ey_pond, ez_pond
   real, dimension(0:ngx+1) :: rhoi_slice, rhoe_slice, ex_slice, ey_slice, ez_slice
-  real, dimension(0:ngx+1) :: jxe_slice, jye_slice, jze_slice
+  real, dimension(0:ngx+1) :: jxe_slice, jye_slice, jze_slice 
   real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: exg, eyg, ezg, jxeg, jyeg, jzeg
 
-  real :: dx, dz, dy, xd, yd, zd, dummy, simtime, epondx, epondy, epondz, phipond, epond_max, box_max
-  real :: Qtot, Qbox, norm, rhonorm
+  real :: dx, dz, dy, xd, yd, zd, dummy, simtime, epon_x, epon_y, epon_z, phipond, epond_max, box_max
+  real :: Qtot, Qbox, norm, rhonorm, tpon, bx_em, by_em, az_em,ez_em
 
   character(30) :: cfile
   character(5) :: cme
@@ -36,7 +36,7 @@ subroutine dump_fields(timestamp)
   icall = timestamp/ivis
   simtime = timestamp*dt
 
-! Gather locally accumulated averages
+  ! Gather locally accumulated averages
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
 
   call MPI_ALLREDUCE(rhoe_loc, rhoe, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
@@ -56,11 +56,12 @@ subroutine dump_fields(timestamp)
 
   if (me==0) then
      write(*,'(//a/a,f10.1,a1,f10.1,a1,f10.1)') 'Cycle-average field dump:', &
-     'writing out densities, fields on grid ',xl,'*',yl,'*',zl
+          'writing out densities, fields on grid ',xl,'*',yl,'*',zl
      ! dump electron and ion densities, electron currents, DC fields within xl*yl*zl
      cfile = "fields/"//cdump//".xyz"
      open (62,file=cfile)
-
+     cfile = "fields/laser_"//cdump//".xyz"
+     open (63,file=cfile)
      dx = xl/ngx
      dy = yl/ngy
      dz = zl/ngz
@@ -72,6 +73,33 @@ subroutine dump_fields(timestamp)
               write(62,'(8e13.3)') rhoe(i,j,k)/omega**2,rhoi(i,j,k)/omega**2, &
                    jxeg(i,j,k), jyeg(i,j,k), jzeg(i,j,k), &
                    exg(i,j,k),  eyg(i,j,k), ezg(i,j,k)
+              xd = (i-0.5)*dx - focus(1) ! position relative to laser focus
+              yd = (j-0.5)*dy - focus(2)
+              zd = (k-0.5)*dz - focus(3)
+
+              laser: select case(beam_config)
+
+              case(4)
+                 call fpond( 1.57/omega, tpulse,sigma,vosc,omega, rho_upper, &
+                      xd,yd,zd,epon_x,epon_y,epon_z,phipond)
+                 Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
+                 !                 mvis(lcount) = epon_x/omega ! Pond field, EM norm
+
+              case(5)  ! propagating fpond
+                 call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, &
+                      xd,yd,zd,epon_x,epon_y,epon_z,phipond)
+
+              case(7) ! Standing wave fpond Ez, By, Az
+                 call empond(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipond)
+
+              case(6) ! Plane wave
+                 call emplane(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipond)
+
+              case default ! Propagating fpond
+                 phipond = 0  
+
+              end select laser
+              write(63,'(4e13.3)') phipond,epon_x,epon_y,epon_z
            end do
         end do
      end do
@@ -88,12 +116,12 @@ subroutine dump_fields(timestamp)
           'Initial charge Q_s*Ne = rho0*Vplas = ',Vplas*rho0
 
      close(62)
-
+     close(63)
 
      cfile = "fields/xslice."//cdump
      open (62,file=cfile)
 
- ! x-slices along laser axis
+     ! x-slices along laser axis
      jfoc = focus(2)/dy
      kfoc = focus(3)/dz
 
@@ -112,7 +140,7 @@ subroutine dump_fields(timestamp)
 
      norm = (2*nave+1)**2
      rhonorm = norm*omega**2
-     
+
      do k=kfoc-nave,kfoc+nave
         do j=jfoc-nave,jfoc+nave
 
@@ -124,18 +152,18 @@ subroutine dump_fields(timestamp)
         end do
      end do
 
-! Laser fields on axis
+     ! Laser fields on axis
      do i=1,ngx
         xd=i*dx-focus(1)
-!        yd=sigma/2.
-!        zd=sigma/2.
+        !        yd=sigma/2.
+        !        zd=sigma/2.
         yd = 0.
         zd = 0.
         call fpond(1.57/omega,1.0,sigma,vosc,omega,rho_upper,xd,yd,zd,ex_pond(i),ey_pond(i), &
              ez_pond(i), phi_pond(i))
      end do
 
-! Renormalise to EM units
+     ! Renormalise to EM units
      write(62,'((9(1pe12.4)))') &
           (i*dx+x_offset,rhoe_slice(i)/omega**2, rhoi_slice(i)/omega**2, ex_slice(i)/omega,&
           jxe_slice(i), phi_pond(i),ex_pond(i)/omega, ey_pond(i)/omega, ez_pond(i)/omega,i=1,ngx)
@@ -144,7 +172,7 @@ subroutine dump_fields(timestamp)
   endif
   icall = icall + 1
 
-! Rezero local fields
+  ! Rezero local fields
   rhoe_loc = 0.
 
   ex_loc = 0.
