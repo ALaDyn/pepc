@@ -28,7 +28,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
   integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe
   real :: t_walk, t_force, t1, t2, t3  ! timing integrals
-  integer pshortlist(nshortm),nshort(npassm),pstart(npassm)
+  integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm)
   real :: work_loads(num_pe)  ! Load balance array
   integer :: npps(num_pe)  ! Particle distrib amoung PEs
   integer :: max_local,  timestamp
@@ -48,7 +48,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
   work_local = 0  ! total workload
 
   !  # passes needed to process all particles
-  nshort_list =nshortm/5 
+  nshort_list =nshortm/4 
   npass = max(1,npart/num_pe/nshort_list)   ! ave(npp)/nshort_list   - make nshort_list a power of 2
   load_average = SUM(work(1:npp))/npass   ! Ave. workload per pass: same for all PEs if already load balanced
   nshort(1:npass+1) = 0
@@ -97,7 +97,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
 
      if (walk_debug) then
-        !	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
+       	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
         write(ipefile,*) 'pass ',jpass,' # parts ',ip1,' to ',ip1+nps-1
      endif
 
@@ -105,7 +105,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
      ! tree walk returns intlist(1:nps), nodelist(1:nps) for particles on short list
 
      call cputime(t1)
-     call tree_walk(pshortlist,nps)
+     call tree_walk(pshortlist,nps,jpass)
      call cputime(t2)
      t_walk = t_walk + t2-t1
 
@@ -207,11 +207,11 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_force)
 
      do i=p_start,p_finish
         write (ipefile,102) pelabel(i), pepid(i), & 
-             q(i)*Ex(i)/m(i),  q(i)*Ey(i)/m(i), q(i)*Ez(i)/m(i)
+             q(i), m(i), Ex(i),  Ey(i), Ez(i)
      end do
 
 101  format('Tree forces:'/'   p     owner    ax         ay      az  ',2f8.2)
-102  format(1x,2i7,3(1pe14.5))
+102  format(1x,2i7,5(1pe14.5))
 
   endif
 
