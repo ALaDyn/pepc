@@ -79,7 +79,12 @@ subroutine predef_parts
 
   if (nmerge < 0 ) then
      ! num_pe > # data sets, so carve up restart data
-     nmerge = -nmerge
+     if (nmerge == -1) then
+        nmerge = num_pe  ! automatic splitting
+     else
+        nmerge = -nmerge
+     endif
+
      if (me==0) write (*,*) 'Splitting sets by 1:',nmerge
 
      ! Filename (directory) prefix
