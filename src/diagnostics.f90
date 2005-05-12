@@ -27,7 +27,8 @@ subroutine diagnostics
   if (u_beam>0 .and. beam_config==3) scheme=1  ! Switch off Te control if beam on
 
   if ( vis_on ) then
-     if ( mod(itime,ivis) ==0 ) call vis_parts       
+!     if ( mod(itime,ivis) ==0 ) call vis_parts       
+     if ( mod(itime,ivis) ==0 ) call vis_parts_nbody       
      if ( mod(itime,ivis)==0 .and. steering) call beam_control
      if ( mod(itime,ivis_fields)==0 ) then
         !     call pot_grid

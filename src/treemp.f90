@@ -50,7 +50,8 @@ program treemp
   if (me==0) call stamp(6,1)
   if (me==0) call stamp(15,1)
 
-  if (me ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
+!  if (me ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
+  if (vis_on) call flvisit_nbody2_init ! Start up VISIT interface to xnbody
 
   call openfiles       ! Set up O/P files
 
@@ -216,8 +217,8 @@ program treemp
 
   call closefiles      ! Tidy up O/P files
 
-  if (me ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
-
+!  if (me ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
+  if (me==0 .and. vis_on) call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
 
   ! Time stamp
   if (me==0) call stamp(6,2)
