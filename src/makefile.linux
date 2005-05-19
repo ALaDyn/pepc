@@ -55,8 +55,17 @@ TFLAGS = $(FFLAGS) $(TUNE)
 
 # Visit libraries
 # JUMP
+VPREFIX=/tmp/demo/xnb
+APISDIR=$(VPREFIX)/apis
 
-VISITLIBS=-L/tmp/demo/apis/spk5 -llvisit_spk -L/tmp/demo/lvisit/lib -llvisit -L/tmp/demo/visit/lib -lvisit
+VISITLIBS=-L$(VPREFIX)/apis/nbody2 -llvisit_nbody2 -L$(VPREFIX)/lvisit/lib -llvisit -L$(VPREFIX)/visit/lib -lvisit
+
+VISITFLAGS2 = -DVISIT2 -DVISIT
+#VISITLD2 = -L$(APISDIR)/nbody2 -llvisit_nbody2 -L$(LVISITLIB) -llvisit -L$(VISIT20INST)/lib -lvisit
+#VISITFLAGS1 = -DVISIT1
+#VISITLD1 = -L $(APISDIR)/nbody1 -llvisit_nbody1 -L$(LVISITLIB) -llvisit -L$(VISIT20INST)/lib -lvisit
+NETCDF = -lnetcdf
+#VISITLIBS=-L/tmp/demo/apis/spk5 -llvisit_spk -L/tmp/demo/lvisit/lib -llvisit -L/tmp/demo/visit/lib -lvisit
 #VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 
 #VISITLIBS=-L/home4/jzam04/jzam0401/tree/pepc/src  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
@@ -126,7 +135,7 @@ SOURCES.f90 =	treemp.f90 \
 		fpond.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90 \
 		push_em.f90 push_full3v.f90 \
 		push.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
-		vis_parts.f90 vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
+		vis_parts_nbody.f90 vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
 		open_files.f90 close_files.f90	\
 		densities.f90 sum_fields.f90 dump_fields.f90 \
 		track_nc.f90		

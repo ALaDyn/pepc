@@ -34,7 +34,7 @@ subroutine mc_config
   call tree_fill       ! Fill in remainder of local tree
   call tree_properties ! Compute multipole moments for local tree
   call potenergy(epot) ! Compute potential energy
-  call vis_parts
+!  call vis_parts
 
 
   if (me==0) then
@@ -168,7 +168,7 @@ subroutine mc_config
 		' P.E.=',epot/Qplas*511.,' dE ', delta_E/Qplas*511.,' prob ',prob1	
 	enddo
      endif
-     if (vis_on .and. mod(j,mc_steps/10) == 0 )  call vis_parts
+!     if (vis_on .and. mod(j,mc_steps/10) == 0 )  call vis_parts
 
      if (mod(j,mc_dump)==0) then
 	call system_clock(i_count,i_rate,i_max)

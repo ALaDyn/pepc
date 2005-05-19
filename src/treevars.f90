@@ -177,6 +177,7 @@ module treevars
 	     tablehigh, &      ! highest current address in #table 
              sum_unused, &     ! # free addresses
              ifile, ipefile, &             ! local O/P stream
+             db_level = 1, &   ! printed o/p debug level
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
              nppm, &           ! max # particles/PE
@@ -186,7 +187,7 @@ module treevars
   	     nmerge = 1, &        ! merge factor for data sets
              nslice, &            ! # particles in rezoning slice (determined in predef)
              new_label         ! Rezone label 
-
+  
 
 
   real :: xmin, xmax    ! box limits

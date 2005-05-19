@@ -37,7 +37,7 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
      elaser = 0
   end select laser_energy
 
-  if ( me == 0 ) then
+  if ( me == 0 .and. db_level.ge.1 ) then
      do ifile = 6,15,9
         write (ifile,'(7(a20,1pe12.5/))') &
 	     ' P.E. = ',epot, &

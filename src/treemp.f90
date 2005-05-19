@@ -35,7 +35,7 @@ program treemp
   real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot, t_laser
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
-  integer :: ierr
+  integer :: ierr, lvisit_active
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -51,8 +51,10 @@ program treemp
   if (me==0) call stamp(15,1)
 
 !  if (me ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
-  if (vis_on) call flvisit_nbody2_init ! Start up VISIT interface to xnbody
-
+  if (vis_on) then
+     call flvisit_nbody2_init ! Start up VISIT interface to xnbody
+     call flvisit_nbody2_check_connection(lvisit_active)
+  endif
   call openfiles       ! Set up O/P files
 
 
@@ -82,12 +84,13 @@ program treemp
 
 
      !     tremain=llwrem(0)
-     if (me==0) then
+     if (me==0 ) then
         do ifile = 6,15,9
-           write(ifile,'(//a,i8,(3x,a,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
+           write(ifile,'(//a,i8,(3x,a,f8.2))') &
                 ' Timestep ',itime+itime_start &
-                ,' total run time = ',trun &
-                ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
+                ,' total run time = ',trun 
+          if (db_level.ge.1)  write(ifile,'(//(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
+               ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
                 ,' intensity= ',Tpon &
                 ,' x_crit= ',x_crit &
                 ,' spot size= ',sigma & 
@@ -155,7 +158,7 @@ program treemp
      call cputime(t_laser)
 
      if (.not. perf_anal) call diagnostics
-      if (me.eq.0 .and. .not. perf_anal) then
+      if (me.eq.0 .and. db_level.ge.2) then
         do ifile = 6,15,9
 	   write(ifile,'(/a)') 'Tree stats:'
            write(ifile,'(a50,2i8,a3,i8,a1)') 'new npp, npart, (max): ',npp,npart,'(',nppm,')'
@@ -173,7 +176,7 @@ program treemp
 
 
 
-     if (me==0) then
+     if (me==0 .and. db_level .ge.1) then
         ttot = t_push-t0 ! total loop time without diags
 
         if (itime ==1 .or. mod(itime,iprot).eq.0) then
