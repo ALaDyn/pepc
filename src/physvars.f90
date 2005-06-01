@@ -112,8 +112,9 @@ module physvars
    integer :: itime_start ! restart time stamp
    integer :: idump       ! output frequency (timesteps)
    integer :: iprot=1       ! protocoll frequency
-   integer :: ivis        ! frequency for particle shipping to VISIT
-   integer :: ivis_fields    !  frequency for field shipping to VISIT
+   integer :: ivis=5        ! frequency for particle shipping to VISIT
+   integer :: ivis_fields=10    !  frequency for field shipping to VISIT
+   integer :: ivis_domains=10    !  frequency for domain shipping to VISIT
    integer :: itrack       ! frequency for computing ion density (tracking)
    integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions

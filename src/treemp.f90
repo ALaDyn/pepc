@@ -51,7 +51,7 @@ program treemp
   if (me==0) call stamp(15,1)
 
 !  if (me ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
-  if (vis_on) then
+  if (me ==0 .and. vis_on) then
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
   endif
@@ -89,13 +89,15 @@ program treemp
            write(ifile,'(//a,i8,(3x,a,f8.2))') &
                 ' Timestep ',itime+itime_start &
                 ,' total run time = ',trun 
-          if (db_level.ge.1)  write(ifile,'(//(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
-               ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
-                ,' intensity= ',Tpon &
-                ,' x_crit= ',x_crit &
-                ,' spot size= ',sigma & 
-                ,' theta =  ',theta_beam 
-           !                ,' remaining wall-clock time (s)= ',tremain 
+!          if (db_level >= 1)  then
+!	    write(ifile,'(//(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
+!             ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
+!             ,' intensity= ',Tpon &
+!             ,' x_crit= ',x_crit &
+!             ,' spot size= ',sigma & 
+!             ,' theta =  ',theta_beam 
+!           !                ,' remaining wall-clock time (s)= ',tremain 
+!	endif
         end do
         if (beam_config==5) then 
            write(6,'(4(a,f8.2/))') 'Laser amplitude =',vosc &

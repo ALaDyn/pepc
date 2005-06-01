@@ -30,7 +30,7 @@ subroutine setup
        beam_config_in, np_beam, idim, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
-       nt, dt, mc_steps, idump, ivis, ivis_fields, iprot, itrack, nmerge, ngx, ngy, ngz, &
+       nt, dt, mc_steps, idump, ivis, ivis_fields, ivis_domains, iprot, itrack, nmerge, ngx, ngy, ngz, &
        vis_on, steering, domain_debug,  mc_init, restart, scheme, particle_bcs, &
        load_balance, walk_balance, walk_debug, force_debug, prefetch_debug, &
        dump_tree, perf_anal, coulomb, bonds, lenjones, target_dup, ramp, &
@@ -114,6 +114,7 @@ subroutine setup
   trun = 0.
   ivis = 1
   ivis_fields = 1
+  ivis_domains = 1
   itime_start = 0
   itrack = 10
   sumprefetches = 0

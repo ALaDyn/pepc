@@ -31,8 +31,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_walkc, t_force)
   real :: t_walk, t_walkc, t_force, ttrav, tfetch, t1, t2, t3  ! timing integrals
   integer :: pshortlist(nshortm),nodlist(nintmax),nshort(npassm),pstart(npassm)
   integer :: hashaddr ! Key address 
-  real :: work_loads(num_pe)  ! Load balance array
-  integer :: npps(num_pe)  ! Particle distrib amoung PEs
+
   integer :: max_local,  timestamp
   integer :: ierr
 

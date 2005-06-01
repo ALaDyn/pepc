@@ -96,12 +96,12 @@ subroutine vis_parts_nbody
      vbuf_local(11,nship) = 0.
      vbuf_local(12,nship) = 0.
      vbuf_local(13,nship) = 0.
-     vbuf_local(14,nship) = pepid(i)
-     vbuf_local(15,nship) = pelabel(i)
+     vbuf_local(14,nship) = pelabel(i)
+     vbuf_local(15,nship) = 0.
      vbuf_local(16,nship) = type ! particle type
      vbuf_local(17,nship) = q(i)
      vbuf_local(18,nship) = m(i)
-     vbuf_local(19,nship) = 0.
+     vbuf_local(19,nship) = pepid(i)
      vbuf_local(20,nship) = 0.
      vbuf_local(21,nship) = 0.
      !   endif
@@ -128,17 +128,17 @@ subroutine vis_parts_nbody
      ! send  particle data from all PEs
      ! increase momentum threshold if close to max ship # 
      if (1.0*npart_buf/ship_max > 0.9) uthresh=uthresh*1.1
-     if (me==0) then
+!     if (me==0) then
 
         ! 20 real info parameters
-        call flvisit_nbody2_check_connection(lvisit_active)
+!        call flvisit_nbody2_check_connection(lvisit_active)
 
-        call flvisit_nbody2_info_send(t_display,xl,yl,zl, xl, &
-             t_display, amp_las, plasma1, plasma2, xl, &
-             xl, xl, xl, xl, xl, & 
-             xl, xl, xl, xl, xl )
+!        call flvisit_nbody2_info_send(t_display,xl,yl,zl, xl, &
+!             t_display, amp_las, plasma1, plasma2, xl, &
+!             xl, xl, xl, xl, xl, & 
+!             xl, xl, xl, xl, xl )
 
-     endif
+!     endif
 
      ! Gather nship particle data onto root PE
      write (*,'((i15)/)') nship*attrib_max, nparts_pe, nbuf_pe, recv_strides

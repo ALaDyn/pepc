@@ -233,6 +233,8 @@ module treevars
   integer, allocatable ::     pepid(:), & ! owner
                               nterm(:),  nodelist(:,:) ! interaction node-list
 
+  real, allocatable ::  work_loads(:)  ! Load balance array
+  integer, allocatable :: npps(:)  ! Particle distrib amoung PEs
 end module treevars
 
 

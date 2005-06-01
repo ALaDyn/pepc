@@ -29,6 +29,7 @@ subroutine diagnostics
   if ( vis_on ) then
 !     if ( mod(itime,ivis) ==0 ) call vis_parts       
      if ( mod(itime,ivis) ==0 ) call vis_parts_nbody       
+     if ( mod(itime,ivis_domains) ==0 ) call vis_domains_nbody       
      if ( mod(itime,ivis)==0 .and. steering) call beam_control
      if ( mod(itime,ivis_fields)==0 ) then
         !     call pot_grid
@@ -73,15 +74,6 @@ subroutine diagnostics
 
 
 end subroutine diagnostics
-
-
-
-
-
-
-
-
-
 
 
 

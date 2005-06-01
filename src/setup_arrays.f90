@@ -34,12 +34,13 @@ subroutine setup_arrays
   !  TODO: need good estimate for max # branches
 !   npsize=2.5*nppm
    npsize=nppm
-   size_tree = max(4*nintmax+npsize,1000000)+1
+!   size_tree = max(4*nintmax+npsize,1000000)+1
 !   nbaddr = max(log(1.*size_tree)/log(2.) + 1,17.)
-   nbaddr = 19
+   nbaddr = 18   ! fixed address range
    maxaddress = 2**nbaddr
    size_tree=maxaddress+1
-   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
+!   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
+   size_fetch=size_tree
    nbranch_max = size_tree/20
    if (num_pe==1) size_fetch=size_tree
 !  maxaddress = 512
@@ -119,6 +120,9 @@ subroutine setup_arrays
       ex_loc(0:ngx+1,0:ngy+1,0:ngz+1), ey_loc(0:ngx+1,0:ngy+1,0:ngz+1),  ez_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
       bx_loc(0:ngx+1,0:ngy+1,0:ngz+1), by_loc(0:ngx+1,0:ngy+1,0:ngz+1),  bz_loc(0:ngx+1,0:ngy+1,0:ngz+1), &
       jxe_loc(0:ngx+1,0:ngy+1,0:ngz+1), jye_loc(0:ngx+1,0:ngy+1,0:ngz+1), jze_loc(0:ngx+1,0:ngy+1,0:ngz+1) )   
+
+! work balance arrays
+  allocate  (work_loads(num_pe),npps(num_pe))  ! Work load & Particle distrib amoung PEs
 
   mem_fields = ngx*ngy*ngz * (8*13)
 
