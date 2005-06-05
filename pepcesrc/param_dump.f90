@@ -12,18 +12,17 @@ subroutine param_dump
         write (ifile,'(a20,i4,a11)') ' System config: ',system_config,plasma_configs(system_config)
         write (ifile,'(a20,i4,a11)') ' Target geometry: ',target_geometry,geometries(target_geometry)
         write (ifile,'(a20,i4,a8)') ' Scheme: ',scheme,schemes(scheme)
-        write (ifile,'(a20,1pe12.3)') ' Plasma volume: ',Vplas
+        write (ifile,'(a20,1pe12.3)') ' System volume: ',Vplas
         write (ifile,'(a20,f12.3)') ' Sphere radius: ',r_sphere
-        write (ifile,'(a20,f12.3)') ' Plasma length: ',x_plasma
-        write (ifile,'(a20,f12.3)') ' Plasma width: ',y_plasma
-        write (ifile,'(a20,f12.3)') ' Plasma height: ',z_plasma
+        write (ifile,'(a20,f12.3)') ' System length: ',x_plasma
+        write (ifile,'(a20,f12.3)') ' System width: ',y_plasma
+        write (ifile,'(a20,f12.3)') ' System height: ',z_plasma
         write (ifile,'(a20,1pe12.3)') ' Electron charge: ',qe
         write (ifile,'(a20,1pe12.3)') ' Electron mass: ',mass_e
         write (ifile,'(a20,1pe12.3)') ' Ion mass: ',mass_i
         write (ifile,'(a20,f12.3)') ' Te: ',Te_keV
         write (ifile,'(a20,f12.3)') ' Ti: ',Ti_keV
         write (ifile,'(a20,1pe12.3)') ' Debye length: ',vte
-        write (ifile,'(a20,f12.3)') ' n_e/n_c: ',1./omega**2
         if (ramp) then
            write (ifile,'(a20,f12.3)') ' n_min: ', rho_min
            write (ifile,'(a20,f12.3)') ' k_p L: ', lolam
@@ -33,16 +32,7 @@ subroutine param_dump
 
         write (ifile,'(a20,f12.4)') ' Ion spacing a: ',a_ii
         write (ifile,'(a20,f12.3)') ' Cloud radius R: ',eps
-        
-        write (ifile,'(a20,f12.3)') ' Collision freq.: ',nu_ei
-        write (ifile,'(a20,f12.3)') ' Conductivity: ',sigma_e
-        write (ifile,'(a20,f12.3)') ' Laser amplitude: ',vosc
-        write (ifile,'(a20,f12.3)') ' Pulse width: ',sigma
-        write (ifile,'(a20,f12.3)') ' Pulse duration: ',tpulse
-        write (ifile,'(a20,f12.3)') ' Wavelength: ',lambda
-        write (ifile,'(a20,f12.3)') ' Incidence angle: ',theta_beam
-        write (ifile,'(a20,f12.3)') ' Laser intensity: ',intensity
-
+       
 
         write (ifile,'(a20,i12)') ' # dt per cycle: ',navcycle
 
@@ -57,13 +47,12 @@ subroutine param_dump
         write (ifile,'(a20,1pe12.3)') ' Particle # ratio: ',4.e6*lambda*omega*abs(qe)
 
         write (ifile,'(a,f9.2,a3,f9.2,a3,f9.2/)') ' Graphics box: ',xl,' x ',yl,' x ',zl
-        write (ifile,'(a,3f9.2/)') ' Laser focus: ',focus(1:3)
 
 
         write (ifile,*) ' Electrons: ', ne
         write (ifile,*) ' Ions: ', ni
-        write (ifile,*) ' Beam particles: ', np_beam
- 	write (ifile,*) ' Beam angles ',theta_beam, phi_beam
+ !       write (ifile,*) ' Beam particles: ', np_beam
+ !	write (ifile,*) ' Beam angles ',theta_beam, phi_beam
         write (ifile,*) ' Particles per PE: ', npp
 
 

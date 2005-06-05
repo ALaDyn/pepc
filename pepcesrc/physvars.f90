@@ -50,6 +50,7 @@ module physvars
   real :: a_ii           ! mean ion spacing
   real :: r_neighbour    ! nearest-neighbour search radius
   real :: eps            ! potential/force law cutoff
+  real :: err_f          ! user-specified force error tolerance
   real :: delta_mc       ! step size for MC config
   real :: displace(3)    ! particle displacement vector for restart (change of view box)
   real :: uthresh        ! velocity (u^2) threshold for vis_parts

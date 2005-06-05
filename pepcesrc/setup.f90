@@ -53,10 +53,11 @@ subroutine setup
   zl = 2
 
   ! physics stuff
-  force_const = 1./3.
+  force_const = 1.
   bond_const = 0.1
   rho0 = 1.0
-  theta = 0.8
+  theta = 0.5
+  err_f = 0.01   ! force error tolerance
   Te_keV = 1.
   Ti_keV = Te_keV/10.
   mass_ratio = 10.
@@ -253,7 +254,7 @@ subroutine setup
   ! array allocation
 
   allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
-       q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), pelabel(nppm) )
+       q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), pelabel(nppm), work(nppm) )
 
 end subroutine setup
 
