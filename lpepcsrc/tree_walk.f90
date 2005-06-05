@@ -34,7 +34,7 @@
 !
 ! ===========================================
 
-subroutine tree_walk(pshort,npshort,nintm, nodelist, pass,theta,itime,beam_config,twalk,tfetch)
+subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
   use treevars
   use tree_utils
@@ -43,10 +43,10 @@ subroutine tree_walk(pshort,npshort,nintm, nodelist, pass,theta,itime,beam_confi
   include 'mpif.h'
 
   real, intent(in) :: theta
-  integer, intent(in) :: npshort,itime, nintm
+  integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
-  integer, intent(in) :: beam_config
-  integer, intent(out) :: nodelist(nintm, npshort)
+  integer, intent(in) :: mac
+ ! integer, intent(out) :: nodelist(nintm, npshort)
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
   real :: twalk, tfetch, tw1, tw2, tc1, tf1, tf2
@@ -213,8 +213,8 @@ subroutine tree_walk(pshort,npshort,nintm, nodelist, pass,theta,itime,beam_confi
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
            ignore =  ( pshort(p) == htable( walk_addr )%node )
 
-! Wakefield QSA condition: prevent forward transmission of pw info
-           if (beam_config==5) ignore = (ignore .or. dx<0) 
+! Wakefield QSA mac condition: prevent forward transmission of pw info
+           if (mac==5) ignore = (ignore .or. dx<0) 
 
            add_key = walk_key(i)                                ! Remember current key
 

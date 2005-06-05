@@ -214,11 +214,11 @@ module treevars
   real, allocatable :: x(:),  y(:),  z(:), &     ! position
                       ux(:), uy(:), uz(:), &     ! velocity
                               q(:),  m(:), &     ! charge and mass
-			Ex(:), Ey(:), Ez(:), &   ! E-field
-			pot(:), &	         ! scalar potential
-                        Axo(:), Ayo(:), Azo(:), &   ! vector potential
+!			Ex(:), Ey(:), Ez(:), &   ! E-field
+!			pot(:), &	         ! scalar potential
+!                        Axo(:), Ayo(:), Azo(:), &   ! vector potential
                         Ax(:), Ay(:), Az(:), &   ! vector potential
-                        Bx(:), By(:), Bz(:), &   ! B-field
+!                        Bx(:), By(:), Bz(:), &   ! B-field
 			work(:)                  ! interaction work load 
 
   integer*8, allocatable ::   pekey(:), &  ! local particle keys                             
@@ -226,7 +226,8 @@ module treevars
 
   integer, allocatable ::     pepid(:), & ! owner
                               pelabel(:), &   ! particle label
-                              nterm(:)  ! # interactions 
+                              nterm(:), &  ! # interactions 
+                              nodelist(:,:) ! interaction key-list
 
   real, allocatable ::  work_loads(:)  ! Load balance array
   integer, allocatable :: npps(:)  ! Particle distrib amoung PEs

@@ -1,4 +1,4 @@
-subroutine setup_treearrays(my_rank,n_cpu,npart_total,theta)
+subroutine pepc_setup(my_rank,n_cpu,npart_total,theta)
   use treevars
   implicit none
   include 'mpif.h'
@@ -64,15 +64,17 @@ subroutine setup_treearrays(my_rank,n_cpu,npart_total,theta)
   ! array allocation
 
   allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
-       q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), &
-       Ax(nppm), Ay(nppm), Az(nppm), Bx(nppm), By(nppm), Bz(nppm), work(nppm), &
-       Axo(nppm), Ayo(nppm), Azo(nppm), &
+       q(nppm), m(nppm), work(nppm), &
+! Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), &
+       Ax(nppm), Ay(nppm), Az(nppm), &
+! Bx(nppm), By(nppm), Bz(nppm),  &
+!       Axo(nppm), Ayo(nppm), Azo(nppm), &
        pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
   mem_parts = nppm*(22*8 + 2*4 + 8)
 
 
-  allocate ( nterm(nshortm), intlist(nintmax,nshortm) )      ! Space for interaction lists
+  allocate ( nterm(nshortm), intlist(nintmax,nshortm), nodelist(nintmax,nshortm) )! interaction key-, node-lists
   mem_tree = nshortm + nshortm*nintmax*(8+4)
 
   allocate ( htable(0:maxaddress), all_addr(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
@@ -220,7 +222,7 @@ subroutine setup_treearrays(my_rank,n_cpu,npart_total,theta)
 
   sumprefetches = 0
 
-end subroutine setup_treearrays
+end subroutine pepc_setup
 
 
 

@@ -50,6 +50,7 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
     mult(i+9) = zxquad(jnode)
   end do
 
+!  write(*,*) p,' x_p=',x(p)
   do j=1,n
      
   !  preprocess distances
@@ -121,6 +122,8 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
           + ( 15.*dx*dy*dz*rd7 )*mult(i+7) &
           + ( -3.*dz*rd5 + 15.*dz*dy2*rd7 )*0.5*mult(i+5) &
           + ( -3.*dz*rd5 + 15.*dz*dx2*rd7 )*0.5*mult(i+4) 
+
+!     write(*,'(i5,a5,f12.3,a5,f12.3,a5,f12.3)') jnode,' q_j=',charge(jnode),' x_j=',xcoc(jnode),' d=',d
 
   end do
 
