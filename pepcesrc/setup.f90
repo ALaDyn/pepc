@@ -20,7 +20,7 @@ subroutine setup
 
 
   namelist /pepcdata/ nep, nip, ne, ni, &
-       theta, mass_ratio, q_factor, eps, &
+       mac, theta, mass_ratio, q_factor, eps, &
        system_config, target_geometry, ispecial, &
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
@@ -56,6 +56,7 @@ subroutine setup
   force_const = 1.
   bond_const = 0.1
   rho0 = 1.0
+  mac = 0        ! Multipole acceptance criterion (BH by default)
   theta = 0.5
   err_f = 0.01   ! force error tolerance
   Te_keV = 1.
@@ -88,7 +89,6 @@ subroutine setup
   ngy = 25
   ngz = 25
   ! constrain
-!!$    len_tripod = .001
   constrain_proof = .001
   struct_step = 0
 

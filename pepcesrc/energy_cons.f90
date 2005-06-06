@@ -38,10 +38,10 @@ subroutine energy_cons(ekine,ekini)
 
      end do
      ! Write out to energy.dat file
-     if (itime.eq.0)  write(75,'(a)') '! time  Upot  Ukin_e Ukin_i Utot Tpon xc'
-     write (75,'(f12.5,6(1pe12.3))') trun, convert_kev*epot, convert_kev*ekine, convert_kev*ekini,&
-          convert_kev*etot,tpon,x_crit
+     if (itime.eq.0)  write(75,'(a)') '! time  Upot  Ukin_e Ukin_i Utot '
+     write (75,'(f12.5,4(1pe12.4))') trun, epot, ekine, ekini,etot
   endif
 end subroutine energy_cons
+
 
 

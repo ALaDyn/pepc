@@ -29,7 +29,7 @@ program pepce
   real :: t_walk=0., t_walkc=0., t_en, t_force=0.
   real :: t_push, t_diag, t_start_push, t_prefetch=0., Tpon, ttot, t_laser
   integer :: tremain ! remaining wall_clock seconds
-  integer :: ierr, lvisit_active, ifile, mac
+  integer :: ierr, lvisit_active, ifile, debug
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -49,7 +49,8 @@ program pepce
 
   call setup           ! Each CPU gets copy of initial data
 
-  call pepc_setup(my_rank,n_cpu,npart_total,theta)  ! Allocate array space for tree
+  debug=0
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug)  ! Allocate array space for tree
 
   call param_dump      ! Dump initial data
   call configure       ! Set up particles
@@ -67,7 +68,6 @@ program pepce
         end do
 
      endif
-     mac=0
      call cputime(t0)
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
@@ -79,8 +79,8 @@ program pepce
 
 ! TODO: need proper mac selection instead of beam_config
 
-     call error_test(npp)
-     stop
+!     call error_test(npp)
+!     stop
      ! Integrator
      call cputime(t_start_push)
 
@@ -108,10 +108,10 @@ program pepce
            ifile = 15
         endif
         write(ifile,'(//a/)') 'Timing:  Routine   time(s)  percentage'
-        write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain-t0,100*(t_domain-t0)/ttot
-        write(ifile,'(a20,2f12.3,a1)') 'Build: ',t_build-t_domain,100*(t_build-t_domain)/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain,100*t_domain/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Build: ',t_build,100*t_build/ttot
 
-        write(ifile,'(a20,2f12.3,a1)') 'Prefetch: ',t_prefetch-t_props,100*(t_prefetch-t_build)/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Prefetch: ',t_prefetch,100*t_prefetch/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Walk serial: ',t_walk,100*t_walk/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Walk comm: ',t_walkc,100*t_walkc/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Forces: ',t_force,100*t_force/ttot

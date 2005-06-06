@@ -26,7 +26,7 @@ module physvars
 
   integer :: ni, ne       !  # ions, electrons
   integer :: nep, nip     ! # particles/electrons/ions per PE
-  real :: xl, yl, zl, theta
+  real :: xl, yl, zl      ! box size
   real :: vte, vti       ! electron, ion thermal velocities
   real :: Te_keV, Ti_keV ! electron, ion emperatures in keV
   real :: T_scale = 1       ! factor for rescaling Te after restart 
@@ -68,6 +68,10 @@ module physvars
   real :: range_hot ! hot electron range
   real :: t_sat ! saturation time for n_hot
   real :: t_foil ! traversal time of hot e front
+
+ ! tree stuff
+  real :: theta       ! Clumping parameter
+  integer :: mac = 0  ! MAC (default=BH)
 
   ! particle beam stuff
   integer :: np_beam    ! # beam particles
