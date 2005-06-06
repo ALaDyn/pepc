@@ -5,22 +5,24 @@
  load_balance=.true.
  walk_balance=.true.
  walk_summary=.false.
+ force_debug=.true.
+ dump_tree=.true.
  db_level = 2
 ! particles
-  ne = 500
-  ni = 500 
+  ne = 10
+  ni = 10 
 
  plasma_config = 1  ! set up plasma target
  ! initial_config = 1   ! sphere
  !   initial_config=7   ! hollow sphere
-   target_geometry = 2         ! random disc
+   target_geometry = 0         ! random disc
  !   initial_config=3   ! wire
  !  initial_config = 0         ! rectangular slab
   !  initial_config = 10     ! read from parts_all.in
 
 ! physics stuff
 
-  theta = 0.5
+  theta = 0.0
   Te_keV = 0.5 ! Temperatures in keV
   Ti_keV =0. 
   mass_ratio = 2000.
@@ -30,8 +32,8 @@
   bond_const = 2.e-3
   r_sphere = 4
   x_plasma = 1.    ! plasma disc thickness/ wire length
-  y_plasma = 2.     ! plasma width (slab target)
-  z_plasma = 2.     ! plasma width (slab target)
+  y_plasma = 1.     ! plasma width (slab target)
+  z_plasma = 1.     ! plasma width (slab target)
   xl = 3  ! graphics box size
   yl =8 
   zl =8 
@@ -62,18 +64,18 @@
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =400
+  nt =1
   dt = 0.5
-  eps = 2.5
+  eps = 0
  restart = .false.
-  vis_on = .true.
+  vis_on = .false.
  ivis = 2
  ivis_domains = 5000 
  ivis_fields = 5000
   mc_init = .false.
   mc_steps = 1000
   idump = 4000
-  iprot=20
+  iprot=1
   itrack=300
   particle_bcs = 1
   scheme = 1 /

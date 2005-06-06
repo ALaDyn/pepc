@@ -7,34 +7,37 @@
  !walk_debug=.true.
 ! particles
   ne =0
-  ni = 1000 
+  ni = 2000 
 
+ plasma_config=1
  ! initial_config = 1   ! sphere
  !  initial_config = 2         ! random disc
  !   initial_config=3   ! wire
  !  initial_config = 0         ! rectangular slab
   !  initial_config = 10     ! read from parts_all.in
-    initial_config=7   ! hollow sphere
+    target_geometry=8   ! hollow sphere
 
 
 ! physics stuff
 
-  theta = 0.5
+  theta = 0.6
   Te_keV = 0.1 ! Temperatures in keV
-  Ti_keV =0. 
+  Ti_keV =0.0 
   mass_ratio = 2000.
   q_factor = 1.
   coulomb = .false.
   lenjones = .true.
-  bond_const = 2.e-3
+  bond_const = 3.e-3
   r_sphere = 4
   x_plasma = 1.    ! plasma disc thickness/ wire length
   y_plasma = 2.     ! plasma width (slab target)
   z_plasma = 2.     ! plasma width (slab target)
-  xl = 8  ! graphics box size
-  yl =8 
-  zl =8 
-
+  xl = 10  ! graphics box size
+  yl =10 
+  zl =10 
+ ngx = 31
+ ngy = 31
+ ngz = 31
 
 ! beam
   !  beam_config = 1  ! fixed beam, initialised at start
@@ -54,7 +57,7 @@
 
   np_beam = 0 ! initial # beam particles/ dt
 
-  vosc = 6.0
+  vosc = 0.001
   omega = 0.5
   sigma = 6.
   tpulse = 20.
@@ -66,8 +69,8 @@
   eps = 0.2
  restart = .false.
   vis_on = .true.
- ivis = 20 
- ivis_fields = 50
+ ivis = 5
+ ivis_fields = 10
   mc_init = .false.
   mc_steps = 1000
   idump = 4000

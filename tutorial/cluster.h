@@ -4,43 +4,43 @@
  domain_debug=.false.
  load_balance=.true.
  walk_balance=.true.
- walk_summary=.false.
- db_level = 2
+ !walk_debug=.true.
 ! particles
-  ne = 500
-  ni = 500 
+  ne = 4000
+  ni = 4000 
 
  plasma_config = 1  ! set up plasma target
- ! initial_config = 1   ! sphere
+ target_geometry = 1   ! sphere
  !   initial_config=7   ! hollow sphere
-   target_geometry = 2         ! random disc
+ !  target_geometry = 2         ! random disc
  !   initial_config=3   ! wire
  !  initial_config = 0         ! rectangular slab
   !  initial_config = 10     ! read from parts_all.in
 
 ! physics stuff
 
-  theta = 0.5
+  theta = 0.7
   Te_keV = 0.5 ! Temperatures in keV
   Ti_keV =0. 
-  mass_ratio = 2000.
+  mass_ratio = 500.
   q_factor = 1.
   coulomb = .true.
   lenjones = .false.
   bond_const = 2.e-3
-  r_sphere = 4
+  r_sphere = 2
   x_plasma = 1.    ! plasma disc thickness/ wire length
   y_plasma = 2.     ! plasma width (slab target)
   z_plasma = 2.     ! plasma width (slab target)
-  xl = 3  ! graphics box size
-  yl =8 
-  zl =8 
+  xl = 5  ! graphics box size
+  yl =5 
+  zl =5 
 
 
 ! beam
   !  beam_config = 1  ! fixed beam, initialised at start
  ! beam_config = 2  ! user-controlled, real-time particle source
-   beam_config_in = 0 ! beam off
+  beam_config=3  ! uniform, sinusoid
+ !  beam_config = 0 ! beam off
 !  beam_config=4  ! laser fpond
  
 
@@ -55,20 +55,20 @@
 
   np_beam = 0 ! initial # beam particles/ dt
 
-  vosc = 6.0
+  vosc = 0.01
   omega = 0.5
   sigma = 6.
   tpulse = 20.
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =400
-  dt = 0.5
+  nt =4000
+  dt = 0.3
   eps = 2.5
  restart = .false.
   vis_on = .true.
- ivis = 2
- ivis_domains = 5000 
+ steering = .true.
+ ivis = 2 
  ivis_fields = 5000
   mc_init = .false.
   mc_steps = 1000
