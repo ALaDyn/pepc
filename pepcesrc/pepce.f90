@@ -71,7 +71,8 @@ program pepce
      call cputime(t0)
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
-     call pepc_fields(npp,x(1:npp),y(1:npp),z(1:npp), ux(1:npp),uy(1:npp),uz(1:npp), &
+     call pepc_fields(npp,x(1:npp),y(1:npp),z(1:npp), &
+! ux(1:npp),uy(1:npp),uz(1:npp), &   ! will eventually need velocities for B-fields -> 2nd interface
                  q(1:npp),m(1:npp),work(1:npp),pelabel(1:npp), &
                  ex(1:npp),ey(1:npp),ez(1:npp),pot(1:npp), &
                  mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
@@ -119,7 +120,7 @@ program pepce
         write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag-t_push,100*(t_diag-t_push)/ttot
 
         write(ifile,'(a20,2f12.3,a1)') 'Total: ',ttot,100.
-        write(ifile,'(a20,i4,6f12.3)') 'Timing format: ',n_cpu,t_domain-t0,t_build-t_domain,t_prefetch-t_props,t_walk+t_walkc,t_force,ttot
+        write(ifile,'(a20,i4,6f12.3)') 'Timing format: ',n_cpu,t_domain,t_build,t_prefetch,t_walk+t_walkc,t_force,ttot
 
      endif
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
