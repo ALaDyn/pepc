@@ -24,6 +24,7 @@ machine and edit options accordingly, eg:
 	cd lpepcsrc   (from pepc install directory)
 	cp makefile.linux makefile
 
+	(make clean)
 	make lpepc
 
 
@@ -35,6 +36,7 @@ This will create a binary liblpepc.a
 ------------------------
 
 	cd pepcesrc
+	(make clean)
 	make pepce
 
 Assumes lpepc already compiled (see 1.) and liblpepc.a resides in
@@ -53,5 +55,11 @@ Linux PC:	./mddemo
 
 
 
+TODO:
+----
 
+1. Generalise interface 'fields' to parallel mode - currently only works
+for single CPU because of particle resorting.
 
+2. Alternative interface utilising internal particle arrays in lpepc
+   (avoiding resort) - need this for PEGS application (astro). 
