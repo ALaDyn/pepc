@@ -1,0 +1,121 @@
+
+Other inputs:
+     System config:    1 plasma    
+   Target geometry:    0 slab      
+            Scheme:    1 const U
+     System volume:    1.000E+00
+     Sphere radius:        4.000
+     System length:        1.000
+      System width:        1.000
+     System height:        1.000
+   Electron charge:   -2.000E-02
+     Electron mass:    2.000E-02
+          Ion mass:    4.000E+01
+                Te:        0.500
+                Ti:        0.100
+      Debye length:    3.128E-02
+     Ion spacing a:       0.2714
+    Cloud radius R:        1.000
+    # dt per cycle:            0
+               N_D:    6.410E-03
+               N_c:      209.440
+       R/lambda_De:       31.969
+          Timestep:        0.500
+      Max timestep:        1.219
+ Neighbour search ra   1.357E+00
+         MAC theta:        0.500
+  Particle # ratio:    0.000E+00
+ Graphics box:      3.00 x      8.00 x      8.00
+
+  Electrons:           50
+  Ions:           50
+  Particles per PE:          100
+
+ Switches:
+--------
+    Coulomb forces:   T
+ Lennard-Jones force  F
+
+Other inputs:
+ scrambling           50  particles
+ scrambling           50  particles
+
+
+ Timestep        1    total run time =     0.50
+             P.E. = -1.85515E-02
+    Electron K.E. =  1.43632E-03
+         Ion K.E. =  2.85088E-04
+             Total:  1.65585E-01
+
+
+
+ Timestep        2    total run time =     1.00
+             P.E. = -1.86845E-02
+    Electron K.E. =  1.56591E-03
+         Ion K.E. =  2.84818E-04
+             Total:  1.65582E-01
+
+
+
+ Timestep        3    total run time =     1.50
+             P.E. = -1.88798E-02
+    Electron K.E. =  1.79772E-03
+         Ion K.E. =  2.84640E-04
+             Total:  1.65618E-01
+
+
+
+ Timestep        4    total run time =     2.00
+             P.E. = -1.91706E-02
+    Electron K.E. =  2.04868E-03
+         Ion K.E. =  2.84532E-04
+             Total:  1.65578E-01
+
+
+
+ Timestep        5    total run time =     2.50
+             P.E. = -1.93979E-02
+    Electron K.E. =  2.23319E-03
+         Ion K.E. =  2.84468E-04
+             Total:  1.65535E-01
+
+
+
+ Timestep        6    total run time =     3.00
+             P.E. = -1.94286E-02
+    Electron K.E. =  2.29476E-03
+         Ion K.E. =  2.84428E-04
+             Total:  1.65566E-01
+
+
+
+ Timestep        7    total run time =     3.50
+             P.E. = -1.93839E-02
+    Electron K.E. =  2.22440E-03
+         Ion K.E. =  2.84414E-04
+             Total:  1.65540E-01
+
+
+
+ Timestep        8    total run time =     4.00
+             P.E. = -1.92235E-02
+    Electron K.E. =  2.05976E-03
+         Ion K.E. =  2.84445E-04
+             Total:  1.65536E-01
+
+
+
+ Timestep        9    total run time =     4.50
+             P.E. = -1.90309E-02
+    Electron K.E. =  1.86667E-03
+         Ion K.E. =  2.84546E-04
+             Total:  1.65536E-01
+
+
+
+ Timestep       10    total run time =     5.00
+             P.E. = -1.89094E-02
+    Electron K.E. =  1.71316E-03
+         Ion K.E. =  2.84736E-04
+             Total:  1.65504E-01
+
