@@ -10,9 +10,9 @@
 subroutine tree_build
 
   use treevars
-  use utils
-
   implicit none
+  include 'mpif.h'
+
   integer*8, dimension(size_tree) :: subcell, par_key, res_key        ! All key arrays 64-bit
   integer*8, dimension(nppm+2) :: local_key
 
@@ -396,10 +396,6 @@ subroutine tree_build
     endif
  enddo
     
-
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-
- 
 
 
 end subroutine tree_build

@@ -1,8 +1,8 @@
 subroutine laser
 
   use physvars
-  use treevars
   implicit none
+
   integer :: ierr
 
   !  Laser focal position and rezoning
@@ -17,11 +17,10 @@ subroutine laser
      !  Trigger rezoning if laser rezone_frac of the way through plasma
      ! - Only works after restart at present
      if (restart .and. beam_config ==5 .and. focus(1) >= window_min + x_plasma*rezone_frac) then
-        if (me==0) then
+        if (my_rank==0) then
            write (*,*) 'REZONE'
            !           read (*,*) go
         endif
-        call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
         call rezone
         !        window_min = window_min + dt
@@ -36,3 +35,9 @@ subroutine laser
   end select laser_focus
 
 end subroutine laser
+
+
+
+
+
+

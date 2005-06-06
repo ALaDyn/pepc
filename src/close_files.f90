@@ -1,7 +1,7 @@
 subroutine closefiles
-  use treevars
+  use physvars
 
-  if (me == 0) then
+  if (my_rank == 0) then
      close(15)
      close(81)  ! particle dump 
      close(70)

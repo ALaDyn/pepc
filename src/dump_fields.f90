@@ -13,8 +13,9 @@ subroutine dump_fields(timestamp)
 
 
   use physvars
-  use treevars
-  implicit none   
+!  use treevars
+  implicit none 
+  include 'mpif.h'
 
   real, dimension(ngx) :: work1, work2
   real, dimension(ngx) :: phi_pond, ex_pond, ey_pond, ez_pond
@@ -54,7 +55,7 @@ subroutine dump_fields(timestamp)
   end do
   cdump(1:1) = achar(timestamp/10**5 + 48)
 
-  if (me==0) then
+  if (my_rank==0) then
      write(*,'(//a/a,f10.1,a1,f10.1,a1,f10.1)') 'Cycle-average field dump:', &
           'writing out densities, fields on grid ',xl,'*',yl,'*',zl
      ! dump electron and ion densities, electron currents, DC fields within xl*yl*zl
@@ -106,7 +107,7 @@ subroutine dump_fields(timestamp)
         end do
      end do
      Qtot = SUM(rhoe)*dx*dy*dz  ! including ghost cells
-     write(ipefile,'(4(a,f14.5/))') &
+     write(ifile_cpu,'(4(a,f14.5/))') &
           'Total charge on grid:',Qbox, &
           '         ghost cells:',Qtot-Qbox, &
           '                 sum:',Qtot, &

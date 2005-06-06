@@ -13,8 +13,9 @@ subroutine mc_config
   use treevars
   use utils
   implicit none
+  include 'mpif.h'
 
-  integer :: nmove,i, ipar, j, pe_move, ierr
+  integer :: nmove,i, ipar, j, pe_move, ierr, ifile
   integer :: iseed0, i_count, i_rate, i_max, mc_dump
   real :: epot, etrial, delta_E, prob1, epold, r 
   real :: xold, yold, zold, xt, yt, zt, xs, ys, zs
@@ -28,9 +29,9 @@ subroutine mc_config
   !  epot is p.e. of current configuration
   !  etrial is p.e. of new trial config
 
-  call make_domains    ! Domain decomposition: allocate particle keys to PEs
+  call tree_domains    ! Domain decomposition: allocate particle keys to PEs
   call tree_build      ! Build trees from local particle lists
-  call make_branches   ! Determine and concatenate branch nodes
+  call tree_branches   ! Determine and concatenate branch nodes
   call tree_fill       ! Fill in remainder of local tree
   call tree_properties ! Compute multipole moments for local tree
   call potenergy(epot) ! Compute potential energy
@@ -140,9 +141,9 @@ subroutine mc_config
      if ( delta_E < 0 .or.  r < prob1 ) then
         ! accept move either i) if it decreases pot. energy 
         !               or   ii) if it increases with random prob exp(-delta_E/kT)
-        call make_domains    ! rebuild tree from scratch
+        call tree_domains    ! rebuild tree from scratch
         call tree_build     
-        call make_branches   
+        call tree_branches   
         call tree_fill  
 !	call tree_properties   ! rebuild multipole moments 
 !	call potenergy(epot) ! Compute new (accurate) potential energy

@@ -12,11 +12,12 @@
 subroutine energy_cons(ekine,ekini,emag,ebeam)
 
   use physvars
-  use treevars
+!  use treevars
   use utils
 
   implicit none
 
+  integer :: ifile
   real :: tpon, epot, ekine, ekini, ebeam,  etot, Qplas
   real :: emag
 
@@ -37,7 +38,7 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
      elaser = 0
   end select laser_energy
 
-  if ( me == 0 .and. db_level.ge.1 ) then
+  if ( my_rank == 0 .and. db_level.ge.1 ) then
      do ifile = 6,15,9
         write (ifile,'(7(a20,1pe12.5/))') &
 	     ' P.E. = ',epot, &

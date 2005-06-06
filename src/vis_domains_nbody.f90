@@ -14,7 +14,6 @@ subroutine vis_domains_nbody
   use treevars
   implicit none   
 
-
   integer, parameter :: npart_visit_max = 10000  ! Max data points for VIS
   integer, parameter :: ship_max = 10000, attrib_max=22
   real*4, dimension(0:attrib_max-1,npart_visit_max) :: vbuffer

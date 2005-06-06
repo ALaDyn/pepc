@@ -1,8 +1,8 @@
 subroutine setup_arrays
   use treevars
   use physvars
-  use utils
   implicit none
+  include 'mpif.h'
 
   integer :: ibig, machinebits, maxleaf, maxtwig,k
   integer :: ierr,npsize

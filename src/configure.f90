@@ -10,9 +10,11 @@ subroutine configure
 
   use physvars
   use treevars
-  use utils
+!  use utils
   implicit none
-  integer :: i, ipe, idummy=0, ierr
+  include 'mpif.h'
+ 
+  integer :: i, ipe, idummy=0, ierr, ifile
   real :: t_walk, t_walkc, t_force
 
   if (restart) then
@@ -103,20 +105,20 @@ subroutine configure
 
   ! Initial tree construction and force computation
 
-  call make_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
   call tree_build      ! Build trees from local particle lists
-  call make_branches   ! Determine and concatenate branch nodes
+  call tree_branches   ! Determine and concatenate branch nodes
   call tree_fill       ! Fill in remainder of local tree
   call tree_properties ! Compute multipole moments for local tree
 
-!  call diagnose_tree
 !    call MPI_FINALIZE(ierr)
 !    call closefiles
 !   stop
   if (coulomb .or. lenjones) then
      call forces(1,npp,dt,t_walk,t_walkc,t_force)          ! Calculate initial potentials and forces
   endif
+!  if (dump_tree) call diagnose_tree
+! stop
 !  if (.not. perf_anal) call diagnostics
 ! move particles for prefetch test
 if (prefetch_debug) then

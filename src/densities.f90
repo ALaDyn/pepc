@@ -10,6 +10,7 @@ subroutine densities
   use treevars
 
   implicit none
+  include 'mpif.h'
 
   real :: rdx, rdy, rdz, dx, dy, dz, cweight
   real :: fx1, fx2, fy1, fy2, fz1, fz2, xa, ya, za

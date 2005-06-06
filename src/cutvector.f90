@@ -4,7 +4,6 @@ subroutine cutvector(r_in, face_nr, n, r_out)
     ! and optionally puts out thr normal vector
     !
     use physvars
-    use treevars
 
     implicit none
     

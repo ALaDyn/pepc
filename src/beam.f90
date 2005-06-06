@@ -23,7 +23,7 @@ subroutine beam
   !  beam cylinder volume:  r_beam is radius
   
 
-  if (me.eq.0) then
+  if (my_rank.eq.0) then
    Volb = pi*r_beam**2*x_beam
    qeb = Volb*rho_beam/np_beam    ! charge
    dpx=x_beam/np_beam           ! x-axis spacing

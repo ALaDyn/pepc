@@ -12,9 +12,11 @@
 subroutine tree_fill
 
   use treevars
-  use utils
+  use tree_utils
 
   implicit none
+  include 'mpif.h'
+
 !  integer, parameter :: size_t=1000
 
  integer*8, dimension(size_tree) :: sub_key, parent_key

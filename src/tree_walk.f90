@@ -37,10 +37,10 @@
 subroutine tree_walk(pshort,npshort,pass,theta,itime,beam_config,twalk,tfetch)
 
   use treevars
+  use tree_utils
   use utils
-
-
   implicit none
+  include 'mpif.h'
 
   real, intent(in) :: theta
   integer, intent(in) :: npshort,itime

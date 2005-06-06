@@ -21,6 +21,7 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_walkc, t_force)
   use treevars
   use utils
   implicit none
+  include 'mpif.h'
 
   real, intent(in) :: delta_t
   integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
@@ -271,11 +272,11 @@ subroutine forces(p_start,p_finish,delta_t, t_walk, t_walkc, t_force)
 
      do i=p_start,p_finish
         write (ipefile,102) pelabel(i), pepid(i), & 
-             q(i), m(i), ux(i), Ex(i),  Ax(i), Axo(i), Bx(i)
+             q(i), m(i),  pot(i), ex(i),  Ax(i),  Bx(i)
      end do
 
-101  format('Tree forces:'/'   p     owner    ux   Ex         Ax      Axo      Bx  ',2f8.2)
-102  format(1x,2i7,7(1pe14.5))
+101  format('Tree forces:'/'   p     owner    q, m,  pot  Ex         Ax       Bx  ',2f8.2)
+102  format(1x,2i7,6(1pe14.5))
 
   endif
 

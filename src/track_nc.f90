@@ -9,10 +9,9 @@
 subroutine track_nc
 
   use physvars
-  use treevars
 
   implicit none
-
+  include 'mpif.h'
 
   real, dimension(0:ngx+1) :: rho1d
 
@@ -58,7 +57,7 @@ subroutine track_nc
   endif
 
 ! abort tracking if particle number too low
-  if (npart.le.100) then
+  if (npart_total.le.100) then
 	write(*,*) 'fixing xcrit at ',xc1
      x_crit=xc1
      rho_upper=1.0
@@ -96,7 +95,7 @@ subroutine track_nc
 
   if (.not.found .and. itime>0) then 
 	beam_config=0 ! switch off laser
-	if (me==0) write(15,*) 'Target burnt through - switching off laser'
+	if (my_rank==0) write(15,*) 'Target burnt through - switching off laser'
   endif
 
   rho_upper=0.
@@ -111,7 +110,7 @@ subroutine track_nc
 !  if (.not.found) x_crit=xc1  ! original plasma edge 
 !  if (.not.found) x_crit=x_crit + dt  ! vacuum propagation
  
-if (me==0) then
+if (my_rank==0) then
    write(*,'(/a15,f10.3,a15,f10.3,a15,f10.3)') &
         'plasma edge: ',xc1, ' x_crit: ',x_crit,' n_upper: ',rho_upper
    write(15,*) 'plasma edge: ',xc1, ' x_crit: ',x_crit

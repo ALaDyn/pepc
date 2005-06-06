@@ -1,5 +1,7 @@
 module physvars
 
+  real, parameter :: pi=3.141592654
+
   real, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:)  ! field arrays for time-averages
   real, allocatable ::  rhoi(:,:,:), rhoe(:,:,:)
   real, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  ! E-field 
@@ -82,6 +84,16 @@ module physvars
   real :: window_min    ! start of wakefield plasma
   real :: rezone_frac=0.75     ! Fraction of box to cross before rezoning switched on
 
+
+
+!  Variables needing 'copy' for tree routines
+  integer :: npart_total  ! Total # particles (npart)
+
+!  Associated MPI stuff
+
+  integer :: my_rank       ! Rank of current task
+  integer :: n_cpu   ! # cpus used by program
+
 ! Control stuff
   logical :: vis_on=.true.  ! online visualisation on/off
   logical :: mc_init = .false. ! MC initialisation switch
@@ -111,6 +123,7 @@ module physvars
    integer :: nt, itime   ! # timesteps and current timestep
    integer :: itime_start ! restart time stamp
    integer :: idump       ! output frequency (timesteps)
+   integer :: db_level = 1  ! printed o/p debug level
    integer :: iprot=1       ! protocoll frequency
    integer :: ivis=5        ! frequency for particle shipping to VISIT
    integer :: ivis_fields=10    !  frequency for field shipping to VISIT
@@ -118,6 +131,7 @@ module physvars
    integer :: itrack       ! frequency for computing ion density (tracking)
    integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
+   integer :: ifile_cpu    ! O/P stream
 
    ! constrain
    real :: constrain_proof ! quality of getting crossing points

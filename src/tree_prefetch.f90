@@ -13,9 +13,9 @@
 subroutine tree_prefetch(itime)
 
   use treevars
-  use utils
-
+  use tree_utils
   implicit none
+  include 'mpif.h'
 
   integer, intent(in) :: itime
   ! Key arrays (64-bit)

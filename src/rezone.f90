@@ -12,6 +12,7 @@ subroutine rezone
   use physvars
   use utils
   implicit none
+  include 'mpif.h'
 
   integer :: i, p, iseed2, iseed3, n1, j, k, ierr
   real :: Vdisc, qe_disc, qi_disc, me_disc, mi_disc, dpx, yt, zt, xb, yb, zb, xt

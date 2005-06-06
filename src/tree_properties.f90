@@ -10,9 +10,10 @@
 subroutine tree_properties
 
   use treevars
-  use utils
+  use tree_utils
 
   implicit none
+  include 'mpif.h'
 
   integer*8, dimension(size_tree) ::  search_key, resolve_key, parent_key, sum_key, key_twig
   integer*8, dimension(8) :: sub_key, key_child

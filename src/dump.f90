@@ -13,7 +13,7 @@ subroutine dump(timestamp)
   use physvars
   use treevars
   implicit none   
-
+  include 'mpif.h'
 
   character(30) :: cfile
   character(6) :: cdump
@@ -84,7 +84,6 @@ subroutine dump(timestamp)
         pepid(i), pelabel(i),i=1,npp)
   close(60)
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   icall = icall + 1
 
 end subroutine dump

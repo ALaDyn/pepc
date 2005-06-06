@@ -7,8 +7,7 @@
  
 module treevars
 
-  implicit none
-  include 'mpif.h'
+!  implicit none
 
 
 ! fixed array sizes for debugging
@@ -19,8 +18,12 @@ module treevars
 
  ! Constants
 
-  real, parameter :: pi=3.141592654
   integer, dimension(0:7) :: bitarr = (/ 0,1,2,3,4,5,6,7 /)    ! Array of bit positions
+
+!  Associated MPI stuff
+
+  integer :: me       ! Rank of current task
+  integer :: num_pe   ! # cpus used by program
 
  ! Hash table datatype - 36 bytes per entry
  
@@ -94,11 +97,6 @@ module treevars
 
   type (multipole), allocatable :: pack_child(:), get_child(:)
   type (multipole) :: node_dummy
-
-!  Associated MPI stuff
-
-  integer :: me       ! Rank of current task
-  integer :: num_pe   ! # cpus used by program
 
   integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
   			nprops_multipole=24      ! Number of multipole properties to ship
@@ -176,8 +174,7 @@ module treevars
              free_lo, &        ! min address allowed for resolving collisions
 	     tablehigh, &      ! highest current address in #table 
              sum_unused, &     ! # free addresses
-             ifile, ipefile, &             ! local O/P stream
-             db_level = 1, &   ! printed o/p debug level
+             ipefile, &             ! local O/P stream
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
              nppm, &           ! max # particles/PE
@@ -216,7 +213,6 @@ module treevars
 
   !  particle data - dimensions filled in when #PEs known
 
-  integer, allocatable :: pelabel(:)             ! particle label
   real, allocatable :: x(:),  y(:),  z(:), &     ! position
                       ux(:), uy(:), uz(:), &     ! velocity
                               q(:),  m(:), &     ! charge and mass
@@ -231,6 +227,7 @@ module treevars
                               intlist(:,:) ! interaction key-list
 
   integer, allocatable ::     pepid(:), & ! owner
+                              pelabel(:), &   ! particle label
                               nterm(:),  nodelist(:,:) ! interaction node-list
 
   real, allocatable ::  work_loads(:)  ! Load balance array

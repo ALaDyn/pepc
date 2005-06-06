@@ -10,8 +10,9 @@ subroutine predef_parts
 
   use physvars
   use treevars
-  use utils
   implicit none
+  include 'mpif.h'
+
   integer :: i, ipe, idummy, ierr
 
   character(30) :: cinfile, cdump, cfile

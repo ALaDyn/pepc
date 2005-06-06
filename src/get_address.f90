@@ -11,9 +11,9 @@
 function key2addr(keyin)
 
   use treevars
-  use utils
-
   implicit none
+  include 'mpif.h'
+
   integer*8, intent(in)  :: keyin
   integer :: cell_addr, link_addr, ires,i, ierr
   logical :: resolved

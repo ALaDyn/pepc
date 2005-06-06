@@ -4,7 +4,8 @@ subroutine param_dump
   use treevars
   use utils
   implicit none
-  integer :: ibig, machinebits
+  integer :: ibig, machinebits, ifile
+
   namelist /pepcdata/ nep, nip, ne, ni, &
        theta, mass_ratio, q_factor, eps, &
        plasma_config, target_geometry, ispecial, &

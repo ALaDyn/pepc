@@ -13,7 +13,7 @@
 !  Major changes:
 !   Juelich 27 September 2001: Development begun
 !   October 2002:  Completed asynchronous, latency-hiding tree traversal
-!   November 2002: Incorporated real-time VISIT interface for beam-plasma system (Wolgang Frings)
+!   November 2002: Incorporated real-time VISIT interface for beam-plasma system (Wolfgang Frings)
 !   February 2003: Parallel sort with load-balancing
 !   March 2003:    Ported to IBM p690 cluster
 !   April 2003:    tree_walk improved by collating multipole info before shipping 
@@ -25,33 +25,34 @@
 
 program treemp
 
-  use physvars
   use treevars
+  use physvars
   use utils
   implicit none
+  include 'mpif.h'
 
   ! timing stuff
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_walkc, t_en, t_force
   real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot, t_laser
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
-  integer :: ierr, lvisit_active
+  integer :: ierr, lvisit_active, ifile
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
 
   ! Get the id number of the current task
-  call MPI_COMM_RANK(MPI_COMM_WORLD, me, ierr)
+  call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
 
   ! Get the number of MPI tasks
-  call MPI_COMM_size(MPI_COMM_WORLD, num_pe, ierr)
+  call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
 
   ! Time stamp
-  if (me==0) call stamp(6,1)
-  if (me==0) call stamp(15,1)
+  if (my_rank==0) call stamp(6,1)
+  if (my_rank==0) call stamp(15,1)
 
-!  if (me ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
-  if (me ==0 .and. vis_on) then
+!  if (my_rank ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
+  if (my_rank ==0 .and. vis_on) then
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
   endif
@@ -84,7 +85,7 @@ program treemp
 
 
      !     tremain=llwrem(0)
-     if (me==0 ) then
+     if (my_rank==0 ) then
         do ifile = 6,15,9
            write(ifile,'(//a,i8,(3x,a,f8.2))') &
                 ' Timestep ',itime+itime_start &
@@ -109,19 +110,19 @@ program treemp
 
      call cputime(t0)
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-     call make_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
+     call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
 
      call cputime(t_domain)
      call tree_build      ! Build trees from local particle lists
      call cputime(t_build)
-     call make_branches   ! Determine and concatenate branch nodes
+     call tree_branches   ! Determine and concatenate branch nodes
      call cputime(t_branch)
      call tree_fill       ! Fill in remainder of local tree
      call cputime(t_fill)
      call tree_properties ! Compute multipole moments for local tree
      call cputime(t_props)
 !     call diagnose_tree
-     if (num_pe>1 .and. prefetch) call tree_prefetch(itime)
+     if (n_cpu>1 .and. prefetch) call tree_prefetch(itime)
      call cputime(t_prefetch)
 !     call MPI_FINALIZE(ierr)
 !     call closefiles
@@ -159,8 +160,8 @@ program treemp
      call laser            ! laser propagation according to beam_config
      call cputime(t_laser)
 
-     if (.not. perf_anal) call diagnostics
-      if (me.eq.0 .and. db_level.ge.2) then
+     if (.not. perf_anal) call diagnostics(dump_tree)
+      if (my_rank.eq.0 .and. db_level.ge.2) then
         do ifile = 6,15,9
 	   write(ifile,'(/a)') 'Tree stats:'
            write(ifile,'(a50,2i8,a3,i8,a1)') 'new npp, npart, (max): ',npp,npart,'(',nppm,')'
@@ -171,14 +172,14 @@ program treemp
            write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
            write (ifile,'(a50,i8,a3,i8,a1)') 'Max # multipole ships/traversal, (size_fetch):',maxships,'(',size_fetch,')'
            write (ifile,'(a50,i8)') 'Total # multipole ships/iteration ',sumships
-           write (ifile,'(a50,i8,a3,i8,a1)') 'Total # multipole ships/prefetch, (numpe*size_fetch): ',sumprefetches,'(',num_pe*size_fetch,')'
+           write (ifile,'(a50,i8,a3,i8,a1)') 'Total # multipole ships/prefetch, (numpe*size_fetch): ',sumprefetches,'(',n_cpu*size_fetch,')'
         end do
       endif
      call cputime(t_diag)
 
 
 
-     if (me==0 .and. db_level .ge.1) then
+     if (my_rank==0 .and. db_level .ge.1) then
         ttot = t_push-t0 ! total loop time without diags
 
         if (itime ==1 .or. mod(itime,iprot).eq.0) then
@@ -202,7 +203,7 @@ program treemp
         write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag-t_push,100*(t_diag-t_push)/ttot
 
         write(ifile,'(a20,2f12.3,a1)') 'Total: ',ttot,100.
-        write(ifile,'(a20,i4,6f12.3)') 'Timing format: ',num_pe,t_domain-t0,t_props-t_domain,t_prefetch-t_props,t_walk+t_walkc,t_force,ttot
+        write(ifile,'(a20,i4,6f12.3)') 'Timing format: ',n_cpu,t_domain-t0,t_props-t_domain,t_prefetch-t_props,t_walk+t_walkc,t_force,ttot
 
      endif
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
@@ -222,12 +223,12 @@ program treemp
 
   call closefiles      ! Tidy up O/P files
 
-!  if (me ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
-  if (me==0 .and. vis_on) call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
+!  if (my_rank ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
+  if (my_rank==0 .and. vis_on) call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
 
   ! Time stamp
-  if (me==0) call stamp(6,2)
-  if (me==0) call stamp(15,2)
+  if (my_rank==0) call stamp(6,2)
+  if (my_rank==0) call stamp(15,2)
   ! End the MPI run
   call MPI_FINALIZE(ierr)
 

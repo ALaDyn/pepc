@@ -13,9 +13,8 @@
 subroutine setup
   use physvars
   use treevars
-  use utils
-
   implicit none
+
   integer :: k, npb_pe
   real :: Qplas, Aplas
 
@@ -137,28 +136,28 @@ subroutine setup
 
   if (nep > 0) then
      ! particles specified per processor in input file
-     ne = nep*num_pe  ! total # electrons
-     ni = nip*num_pe  ! total # ions
+     ne = nep*n_cpu  ! total # electrons
+     ni = nip*n_cpu  ! total # ions
   else
      ! total # particles specified in input file 
-     nep = ne/num_pe
-     nip = ni/num_pe
+     nep = ne/n_cpu
+     nip = ni/n_cpu
      npp = nep+nip
   endif
 
   !  npb_pe = np_beam/num_pe
   if (.not. restart) then
-     if (nip*num_pe /= ni .or. nep*num_pe /= ne ) then
-        ne = (nep+1)*num_pe
-        ni = (nip+1)*num_pe
+     if (nip*n_cpu /= ni .or. nep*n_cpu /= ne ) then
+        ne = (nep+1)*n_cpu
+        ni = (nip+1)*n_cpu
 
-        if (me==0) then
+        if (my_rank==0) then
            write(*,'(//a//)') '*** Warning: number each particle species (ne, ni) must be divisible by # processors ***'
            write(*,'(a,i6)') '*** Resetting to ',ne,ni
         endif
-        !     else if (npb_pe*num_pe /= np_beam) then 
-        !        np_beam = (npb_pe+1)*num_pe
-        !        if (me==0) then
+        !     else if (npb_pe*n_cpu /= np_beam) then 
+        !        np_beam = (npb_pe+1)*n_cpu
+        !        if (my_rank==0) then
         !           write(*,'(//a)') '*** Warning: number of beam particles must be divisible by # processors ***'
         !           write(*,'(a,i6)') '*** Resetting to ',np_beam
         !        endif
@@ -166,9 +165,9 @@ subroutine setup
      endif
   endif
 
-  npart = ni+ne
-  npp = npart/num_pe  ! total # particles per processor
-  new_label = npart  ! Rezone label
+  npart_total = ni+ne
+  npp = npart_total/n_cpu  ! total # particles per processor
+  new_label = npart_total  ! Rezone label
 
   geometry: select case(target_geometry)
 
@@ -302,7 +301,7 @@ subroutine setup
   beam_config=mod(beam_config_in,10)  ! derived config from s,p variations
 
 !  if (scheme > 1 .and. beam_config >= 3) then
-!     if (me==0) write(*,*) 'Constant-Te mode: turning beam off'
+!     if (my_rank==0) write(*,*) 'Constant-Te mode: turning beam off'
 !     beam_config=0
 !  endif
 
@@ -318,6 +317,11 @@ subroutine setup
   endif
 
 
+! phys -> tree variables (eventually goes into interface)
+  me = my_rank
+  num_pe = n_cpu
+  ipefile = ifile_cpu
+  npart = npart_total
 
 end subroutine setup
 

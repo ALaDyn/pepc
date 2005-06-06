@@ -15,8 +15,7 @@
 !
 subroutine face(r, c_status, face_nr)
     use physvars
-    use treevars
-    use utils
+
 
     implicit none 
 

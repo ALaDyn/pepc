@@ -9,14 +9,13 @@
 !  ================================
 
 
-subroutine diagnostics
+subroutine diagnostics(dump_tree)
 
   use physvars
-  use treevars
-  use utils
 
   implicit none
   integer :: i,lvisit_active
+  logical :: dump_tree
 
 
 
@@ -40,12 +39,12 @@ subroutine diagnostics
   endif
 
 !  if (target_geometry.eq.4) then
-    do i=1,npp
-	if (pelabel(i)==60) then
-	if (itime.eq.0) write(90,'(a)') '! t x ux Ex Ax Axo -dA/dt Bx' 
-        write (90,'(8(1pe15.4))') itime*dt,x(i),ux(i),Ex(i),Ax(i),Axo(i),(Axo(i)-Ax(i))/dt,Bx(i)
-	endif
-    enddo
+!    do i=1,npp
+!	if (pelabel(i)==60) then
+!	if (itime.eq.0) write(90,'(a)') '! t x ux Ex Ax Axo -dA/dt Bx' 
+ !       write (90,'(8(1pe15.4))') itime*dt,x(i),ux(i),Ex(i),Ax(i),Axo(i),(Axo(i)-Ax(i))/dt,Bx(i)
+!	endif
+!    enddo
 !  endif
 
   if (mod(itime,idump) >= idump-navcycle) call sum_fields    ! Accumulate cycle-averaged fields on grid
@@ -58,7 +57,7 @@ subroutine diagnostics
   if (itime_start>0 .and. itime==0) return  ! Avoid over-writing restart data
   call energy_cons(Ukine,Ukini,Umagnetic,Ubeam)       ! Compute energy balance
 
-  if ( dump_tree .and. mod(itime,idump) ==0 ) then
+  if ( dump_tree .and. mod(itime,iprot) ==0 ) then
      call diagnose_tree   ! Printed tree info (htable etc)
      call draw_tree2d(xl,yl)     ! Draw PE-trees
      call draw_lists      ! Draw interaction lists

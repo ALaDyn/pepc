@@ -13,6 +13,7 @@ subroutine kinenergy(ekine,ekini,ebeam)
   use treevars
 
   implicit none
+  include 'mpif.h'
 
   integer :: p,i,ierr
   real :: ekine, ekini, ebeam, sum_plas_e, sum_plas_i, sum_beam, gamma

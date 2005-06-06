@@ -13,6 +13,7 @@ subroutine vis_parts
   use physvars
   use treevars
   implicit none   
+  include 'mpif.h'
 
   integer, parameter :: npart_visit_max = 100000  ! Max 250k data points for VIS
   integer, parameter :: ship_max = 10000

@@ -12,8 +12,9 @@
 subroutine potenergy(epot_total,emag_total)
   use physvars
   use treevars
-  use utils
   implicit none
+  include 'mpif.h'
+
   integer :: key2addr        ! Mapping function to get hash table address from key
 
   integer :: p, i, j, ierr 
