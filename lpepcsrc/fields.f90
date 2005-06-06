@@ -13,7 +13,7 @@
 !  ===================================================================
 
 
-subroutine pepc_fields(np_local, p_x, p_y, p_z, p_vx, p_vy, p_vz, p_q, p_m, p_w, p_label, &
+subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      Ex, Ey, Ez, pot, &
      mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force)
@@ -33,7 +33,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_vx, p_vy, p_vz, p_q, p_m, p_w,
   integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: mac  ! choice of mac
   real, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
-  real, intent(in),  dimension(np_local) :: p_vx, p_vy, p_vz  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
+!  real, intent(in),  dimension(np_local) :: p_vx, p_vy, p_vz  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
   real, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
   real, dimension(np_local) :: p_w ! work loads
   integer, intent(in), dimension(np_local) :: p_label  ! particle label 
@@ -76,16 +76,19 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_vx, p_vy, p_vz, p_q, p_m, p_w,
   
   if (force_debug) then
      write (*,'(a7,a40,2i5,4f15.2)') 'PEPC | ','Params itime, mac, theta, eps, force_const, err:',itime, mac, theta, eps, force_const, err_f
-     write (*,'(a7,a20/(i16,5f15.3))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_vx(i), p_q(i),i=1,npp) 
+     write (*,'(a7,a20/(i16,4f15.3))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i),i=1,npp) 
   endif
 
  ! Copy particle buffers to tree arrays
   x(1:npp) = p_x(1:npp)
   y(1:npp) = p_y(1:npp)
   z(1:npp) = p_z(1:npp)
-  ux(1:npp) = p_vx(1:npp)
-  uy(1:npp) = p_vy(1:npp)
-  uz(1:npp) = p_vz(1:npp)
+!  ux(1:npp) = p_vx(1:npp)
+!  uy(1:npp) = p_vy(1:npp)
+!  uz(1:npp) = p_vz(1:npp)
+  ux(1:npp) = 0.  ! No B-fields for now
+  uy(1:npp) = 0.
+  uz(1:npp) = 0.
   q(1:npp) = p_q(1:npp)
   m(1:npp) = p_m(1:npp)
   pelabel(1:npp) = p_label(1:npp)
