@@ -63,15 +63,15 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_vx, p_vy, p_vz, p_q, p_m, p_w,
   character(4) :: cme
   integer :: key2addr        ! Mapping function to get hash table address from key
 
-  force_debug=.true.
-  tree_debug=.false.
-  build_debug=.false.
-  domain_debug = .false.
-  branch_debug=.false.
-  prefetch_debug=.false.
-  walk_debug=.false.
-  walk_summary=.true.
-  dump_tree=.true.
+!  force_debug=.true.
+!  tree_debug=.false.
+!  build_debug=.false.
+!  domain_debug = .false.
+!  branch_debug=.false.
+!  prefetch_debug=.false.
+!  walk_debug=.false.
+!  walk_summary=.true.
+!  dump_tree=.true.
   npp = np_local  ! assumed lists matched for now
   
   if (force_debug) then
@@ -113,7 +113,11 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_vx, p_vy, p_vz, p_q, p_m, p_w,
 
   t_domain = tb1-td1
   t_build = tp1-tb1
-  t_prefetch = tp2-tp1
+  if (num_pe>1) then
+     t_prefetch = tp2-tp1
+  else
+     t_prefetch = 0.
+  endif
   t_walk=0.
   t_walkc=0.
   t_force=0.

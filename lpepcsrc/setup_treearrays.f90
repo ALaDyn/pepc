@@ -1,4 +1,4 @@
-subroutine pepc_setup(my_rank,n_cpu,npart_total,theta)
+subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level)
   use treevars
   implicit none
   include 'mpif.h'
@@ -7,7 +7,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta)
   integer, intent(in) :: my_rank  ! MPI cpu rank
   integer, intent(in) :: n_cpu  ! MPI # CPUs
   integer, intent(in) :: npart_total  ! total (max) # simulation particles
-
+  integer, intent(in) :: db_level
 
   integer :: ibig, machinebits, maxleaf, maxtwig,k
   integer :: ierr,npsize
@@ -21,6 +21,24 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta)
   num_pe = n_cpu
   npart = npart_total
 
+  if (db_level==1) then
+      tree_debug=.true.
+      force_debug=.true.
+      walk_summary=.true.
+
+  else if (db_level==2) then
+     tree_debug=.true.
+     build_debug=.true.
+     domain_debug = .true.
+     branch_debug=.false.
+     prefetch_debug=.false.
+     walk_debug=.true.
+     walk_summary=.true.
+     force_debug=.true.
+     dump_tree=.true.
+  else
+! all off by default
+  endif
 
   npartm = npart 
   nppm = 1.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
