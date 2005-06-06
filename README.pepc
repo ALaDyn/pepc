@@ -3,132 +3,53 @@
 =
 =	PEPC -  Pretty Efficient Parallel Coulomb-solver
 =
-=	Author:    Paul Gibbon
+=       Instructions for compiling library lpepc and 
+=       associated 'driver' programs, currently:
+=		   pepce   -  simple electrostatic MD program
 =
+=	Author:    Paul Gibbon
+=                  Juelich, June 2005
 =======================================================
 
 
 
-Compiling PEPC 
-----------------
+1. Compiling lpepc 
+------------------
 
-The source code (fortran-90) resides in directory src/.
-To compile, just do:
-
-	cd src
-	make pepc
-
-
-This will create an executable 'pepc'
-
-Compiler options can be changed (e.g. for debugging, optimisation and performance 
-analysis) in the makefile.
-
-
-
-The main routines are as follows (arranged approximately according to program structure):
-
-  treemp.f90  	Main program.
-
-  treevars.f90	Include file: common arrays and variables.
-  my_mpidefs.f90  Definitions for MPI routines (probably redundant).
-  utils.f90       Utility routines (eg sorting) and functions.
- 
-
-
-			INITIALISATION
-			--------------
-
-  openfiles		Set up O/P files
-  flvisit_spk_init	Start up VISIT visualisation
-  setup			Initialise variables, read input data and allocate main array space.
-
-  configure		Set up particles according to geometry, thermal distribution and type of run:
-		
-	predef_parts	Read in complete set of particle data from restart file
-			(x,y,z,ux,uy,uz,q,m,Ex,Ey,Ez,Phi,owner,label).
-	randion		Randomly placed ions & electrons according to geometry (initial_config).
-	maxwell1	Initialise 1D Maxwellian velocity distribution.
-	scramble_v	Remove correlations from velocities.
-	cold_start	Initialise particles with T=0.
-
-	mc_config	Perform MC initialisation: iterate positions to find minimum P.E.
+The source code (fortran-90) resides in directory lpepcsrc.
+Assumes mpich (MPI) installed locally.
+To compile, first select the makefile most appropriate to your
+machine and edit options accordingly, eg:
 	
-	beam		Add particle beam.
-	beam_control	Online control of beam parameters (density, angle, charge).
+	cd lpepcsrc   (from pepc install directory)
+	cp makefile.linux makefile
+
+	make lpepc
 
 
-			MAIN LOOP
-			---------
-
-  make_domains		Domain decomposition: key construction & sorting;
-			  particle swaps among CPUs, load balancing.
-  tree_build		Construct trees as far as possible from local particle lists.
-  make_branches		Construct branch nodes; broadcast to other domains.
-  tree_fill		Fill in top levels of tree using non-local branches.
-  tree_properties	Compute multipole moments for local tree:
-			  centre of charge, monopole, dipole, quadrupole.
-  tree_prefetch		Prefetch nonlocal nodes needed for force calculation: at present uses
-			  best guess based on interaction lists at previous timestep.
-
-  forces		Compute forces with load-balanced groups of particles:
-	
-	tree_walk	Construct interaction lists for particle group (shortlist).
-	sum_force	Compute Coulomb forces and potential for single particle 
-			  from its interaction list (fx, fy, fz, pot).
-	sum_fshort	Add short-range force (TODO!).
-	fpond		Add ponderomotive force from laser.
-
-  forces		Compute forces without load-balancing.
-
-  velocities		Update particle velocities according to integrator scheme (ensemble):
-			      1 = NVE - total energy conserved
-			      2 = NVT - global Te, Ti conserved
-			      3 = global NVT electron Te conserved; ions frozen
-			      4 = local NVT: each PE keeps Te clamped; ions frozen
-			      5 = local NVT, ions only; electrons added at end of run
-  
-  push			Update particle postitions (relativistic).
-
-  constrain		Impose reflective particle boundaries for temperature-clamp mode.
-
-
-			DIAGNOSTICS
-			-----------
-
-  diagnostics		Perform major diagnostics: energies, particle dumps, visualisation:
-
-	energy_cons	Energy balance - kinetic and potential energies.
-	densities	Compute electron, ion densities on 3D grid.
-	track_nc	Gather densities and track critical surface (laser on).
-
-	diagnose_tree	Printed tree info (hash table etc. - BIG: use for debugging only!).
-	draw_tree2d	Writes out data for making 2D plot of trees using GLE.
-	draw_lists	Writes out selected interation lists for plotting with GLE.
-	draw_domains	Write out domain branches in GLE format.
-
-	dump		Write out complete particle dump: 
-			  (x,y,z,ux,uy,uz,q,m,Ex,Ey,Ez,phi,owner,label) 
-	slices		Compute some 1D slices (density, fields etc.)
-
-	beam_control	Online steering of particle beam, laser, configuration using VISIT.
-	vis_parts	Ship particle data to VISIT server for online visualisation.
-	vis_fields	Ship field data (densities and laser) for surface vis. 
-
-			CLEAN UP
-			--------
-  add_electrons		Add electrons to 'ions-only' equilibrium run
-  closefiles	 	Tidy up O/P files
-  flvisit_spk_close	Tidy up VISIT
+This will create a binary liblpepc.a
 
 
 
+2. Compiling application: PEPC-E (electrostatics)
+------------------------
+
+	cd pepcesrc
+	make pepce
+
+Assumes lpepc already compiled (see 1.) and liblpepc.a resides in
+../lpepcsrc.
 
 
+3.  Running application
+-----------------------
 
+	cd  demo_md
 
-
-
+	edit input deck 'eqm.indata'
+	start run script:
+On JUMP:	./md.sh
+Linux PC:	./mddemo
 
 
 
