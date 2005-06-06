@@ -28,7 +28,7 @@ LISTING=-qreport -qlist -qlistopt -qsource
 #MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
 #MPITRACE= -lmpitrace
 #MPITRACE= -lmpiprof
-#MPITRACE= -lsummary -lpmapi
+MPITRACE= -lsummary -lpmapi
 #MPITRACE=  -lmpihpm -lpmapi
 Q64=-q64
 FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
@@ -50,9 +50,9 @@ VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/loca
 
 #VISITLIBS=-L/home4/jzam04/jzam0401/tree/pepc/src  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 
-LDFLAGS = $(MPITRACE)
+LDFLAGS = $(VISITLIBS) $(MPITRACE)
 RANLIB  = ranlib
-libdir  = .
+libdir  = ../lpepcsrc
 AR      = ar -X64
 LIBPEPC = -L$(libdir) -llpepc
 pepclib = liblpepc.a
@@ -70,23 +70,30 @@ FC = mpxlf90_r
 
 # Source files
 
-#-------------------------------------------------------------------------------------------
-# Pepc library
 
-PEPCMOD.f90 =  treevars.f90 tree_utils.f90 utils.f90 
-PEPCSRC.f90 =  fields.f90 tree_domains.f90 setup_treearrays.f90 \
-		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
-		tree_walk.f90	tree_prefetch.f90 sum_force.f90 \
-		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
-	        diagnose_tree.f90 check_table.f90 \
-		draw_domains.f90 draw_tree2d.f90 draw_lists.f90
+# -------------------------------------------------------------------------------------------
 
-pepcobjs = $(PEPCSRC.f90:.f90=.o)
-pepcmods =  $(PEPCMOD.f90:.f90=.o)
+MODULES.f90 =   physvars.f90 utils.f90
 
-#  compile mode for PEPC routines 
-#
-all: pepcmods pepc
+SOURCES.f90 =	pepce.f90 \
+		setup.f90 stamp.f90 \
+		configure.f90 face.f90 cutvector.f90 \
+		randion.f90 maxwell1.f90 special_start.f90 cold_start.f90 scramble_v.f90 \
+		forces.f90 \
+		velocities.f90 push.f90 \
+	 	energy_cons.f90 potenergy.f90 kinenergy.f90\
+		param_dump.f90 \
+		open_files.f90 close_files.f90
+
+# -------------------------------------------------------------------------------------------
+
+# Names of application object files derived from sources
+APPOBJS = $(SOURCES.f90:.f90=.o)
+APPMODS =  $(MODULES.f90:.f90=.o)
+#PMODS = ../lpepcsrc/tree_utils.o
+MODS = $(APPMODS) $(PMODS)
+
+all: MODS pepce
 
 #  compile mode
 .f90.o:   
@@ -94,16 +101,11 @@ all: pepcmods pepc
 
 # -----------------------------------------------------------------------------------------
 #  targets
+pepce:	$(APPMODS) $(APPOBJS)
+	@echo "Creating pepc application binary ..."
+	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(APPOBJS) $(MODS) $(LIBPEPC) $(LIBMPI)
+	@echo "... done"
 
-$(pepclib): lpepc
-lpepc:  $(pepcobjs) $(pepcmods)
-	@echo "\n Creating PEPC library ...\n"
-	rm -f liblpepc.a
-	$(AR) q liblpepc.a $(pepcobjs) $(pepcmods)
-	$(RANLIB) liblpepc.a
-	@echo "... done\n"
-
-mods:   $(MODS) 
 
 debug:	$(OBJECTS)
 	@echo "Loading object files using flags $(DBFLAGS)"
@@ -135,47 +137,33 @@ default: treemp
 
 #--- Include-Dependencies
 
-fields.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-get_address.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-setup_treearrays.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-tree_branches.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-tree_build.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-tree_domains.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-tree_fill.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-tree_prefetch.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-tree_properties.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-tree_utils.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-tree_walk.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+configure.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+forces.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+kinenergy.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+pepce.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+potenergy.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+velocities.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 
 
 #--- Module-Dependencies
 
-check_table.o: treevars.o utils.o
-diagnose_tree.o: treevars.o
-draw2d.o: treevars.o
-draw2d_hash.o: treevars.o
-draw_domains.o: treevars.o
-draw_lists.o: treevars.o
-draw_map.o: treevars.o
-draw_tree2d.o: treevars.o
-driver.o: utils.o
-fields.o: treevars.o utils.o
-get_address.o: treevars.o
-get_next_node.o: treevars.o utils.o
-get_node.o: treevars.o utils.o
-key_test.o: treevars.o utils.o
-make_hashentry.o: treevars.o utils.o
-setup_treearrays.o: treevars.o
-sum_bfield.o: treevars.o
-sum_bond.o: treevars.o
-sum_force.o: treevars.o
-sum_lennardjones.o: treevars.o
-tree_branches.o: treevars.o tree_utils.o
-tree_build.o: treevars.o
-tree_domains.o: treevars.o tree_utils.o utils.o
-tree_fill.o: treevars.o tree_utils.o
-tree_prefetch.o: treevars.o tree_utils.o
-tree_properties.o: treevars.o tree_utils.o
-tree_walk.o: treevars.o tree_utils.o utils.o
+close_files.o: physvars.o
+cold_start.o: physvars.o utils.o
+configure.o: physvars.o
+cutvector.o: physvars.o
+energy_cons.o: physvars.o utils.o
+face.o: physvars.o
+forces.o: physvars.o utils.o
+kinenergy.o: physvars.o
+open_files.o: physvars.o
+param_dump.o: physvars.o utils.o
+pepce.o: physvars.o utils.o
+potenergy.o: physvars.o
+push.o: physvars.o
+randion.o: physvars.o utils.o
+scramble_v.o: physvars.o utils.o
+setup.o: physvars.o
+special_start.o: physvars.o utils.o
+velocities.o: physvars.o utils.o
 
 
