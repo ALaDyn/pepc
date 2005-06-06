@@ -24,7 +24,7 @@ subroutine energy_cons(ekine,ekini)
   call potenergy(epot)
   call kinenergy(ekine, ekini)
 
-  etot = epot + emag + ekine + ekini + ebeam
+  etot = epot + emag + ekine + ekini
 
 
 
@@ -39,7 +39,7 @@ subroutine energy_cons(ekine,ekini)
      end do
      ! Write out to energy.dat file
      if (itime.eq.0)  write(75,'(a)') '! time  Upot  Ukin_e Ukin_i Utot '
-     write (75,'(f12.5,4(1pe12.4))') trun, epot, ekine, ekini,etot
+     write (75,'(f12.5,4(1pe13.4))') trun, epot, ekine, ekini, etot
   endif
 end subroutine energy_cons
 
