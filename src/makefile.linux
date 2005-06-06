@@ -106,9 +106,9 @@ F90LINKER   = mpif90
 #-------------------------------------------------------------------------------------------
 # Pepc library
 
-PEPCMOD.f90 =  treevars.f90 utils.f90
-PEPCSRC.f90 =  make_domains.f90 setup_arrays.f90 \
-		tree_build.f90  make_branches.f90 tree_fill.f90 tree_properties.f90 \
+PEPCMOD.f90 =  treevars.f90 tree_utils.f90
+PEPCSRC.f90 =  tree_domains.f90 setup_arrays.f90 \
+		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
 		tree_walk.f90	tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 	        diagnose_tree.f90 check_table.f90 \
@@ -120,7 +120,7 @@ PMODS =  $(PEPCMOD.f90:.f90=.o)
 
 # -------------------------------------------------------------------------------------------
 
-MODULES.f90 =   physvars.f90 
+MODULES.f90 =   physvars.f90 utils.f90
 
 SOURCES.f90 =	treemp.f90 \
 		setup.f90 stamp.f90 \
@@ -135,7 +135,7 @@ SOURCES.f90 =	treemp.f90 \
 		fpond.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90 \
 		push_em.f90 push_full3v.f90 \
 		push.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
-		vis_parts_nbody.f90 vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
+		vis_parts_nbody.f90 vis_domains_nbody.f90 vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
 		open_files.f90 close_files.f90	\
 		densities.f90 sum_fields.f90 dump_fields.f90 \
 		track_nc.f90		
@@ -238,8 +238,8 @@ get_next_node.o: treevars.o utils.o
 get_node.o: treevars.o utils.o
 key_test.o: treevars.o utils.o
 kinenergy.o: physvars.o treevars.o
-make_branches.o: treevars.o utils.o
-make_domains.o: treevars.o utils.o
+tree_branches.o: treevars.o utils.o
+tree_domains.o: treevars.o tree_utils.o utils.o
 make_hashentry.o: treevars.o utils.o
 mc_config.o: physvars.o treevars.o utils.o
 open_files.o: treevars.o
