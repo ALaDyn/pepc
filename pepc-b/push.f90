@@ -1,0 +1,28 @@
+ 
+!  ===============================================================
+!
+!                           PMOVE
+!
+!   Update particle positions - used with leap-frog scheme
+!
+!  ===============================================================
+
+subroutine push_x(ips,ipf,delt)
+
+  use physvars
+  use treevars
+  integer, intent(in) :: ips, ipf  ! 1st and last particle numbers
+  real, intent(in) :: delt
+  integer :: i,p
+  real :: gamma
+
+  !  relativistic particle push in space
+
+  do p=ips,ipf
+     gamma = sqrt(1.0 + ux(p)**2 + uy(p)**2 + uz(p)**2)
+     x(p)=x(p)+ux(p)/gamma*delt
+     y(p)=y(p)+uy(p)/gamma*delt
+     if (idim==3) z(p)=z(p)+uz(p)/gamma*delt
+  end do
+
+end subroutine push_x
