@@ -1,10 +1,10 @@
 !  ===================================================================
 !
-!                              FIELDS
+!                              FIELDS - internal parallel version
 !
 !   $Revision$
 !
-!   Calculate fields and potential from coordinates x,y,z:
+!   Calculate fields and potential from INTERNAL coordinates x,y,z, ux, uy, uz in treevars module:
 !
 !
 !   ** Returns fields Ex, Ey, Ez and potential pot excluding external terms **
@@ -13,12 +13,10 @@
 !  ===================================================================
 
 
-subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
-     p_Ex, p_Ey, p_Ez, p_pot, &
-     mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
+subroutine pepc_fields_p(np_local, mac, theta, eps, force_const, bond_const, err_f, delta_t,  xl, yl, zl, itime, &
+     coulomb, bfield_on, bonds, lenjones, &
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force)
 
-  ! use physvars
   use treevars
   use utils
   implicit none
@@ -27,17 +25,16 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   integer, intent(in) :: np_local  ! # particles on this CPU
   real, intent(in) :: theta       ! multipole opening angle
   real, intent(in) :: err_f       ! max tolerated force error (rms)
-  real, intent(in) :: force_const       ! scaling factor for fields & potential
+  real, intent(in) :: delta_t       ! timestep 
+  real, intent(in) :: force_const, bond_const       ! scaling factors for Coulomb/Len-Jones fields & potential
   real, intent(in) :: eps         ! potential softening distance
+  logical, intent(in) :: coulomb  ! Compute Coulomb fields
+  logical, intent(in) :: bfield_on  ! Switch for including B-fields
+  logical, intent(in) :: bonds  ! Include bond forces
+  logical, intent(in) :: lenjones ! Include Lennard-Jones potential
   real, intent(in) :: xl, yl, zl         ! box dimensions
   integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: mac  ! choice of mac
-  real, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
-!  real, intent(in),  dimension(np_local) :: p_vx, p_vy, p_vz  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
-  real, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
-  real, dimension(np_local) :: p_w ! work loads
-  integer, intent(in), dimension(np_local) :: p_label  ! particle label 
-  real, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
 
 
 
@@ -63,45 +60,29 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   character(4) :: cme
   integer :: key2addr        ! Mapping function to get hash table address from key
 
-!  force_debug=.true.
-!  tree_debug=.false.
-!  build_debug=.false.
-!  domain_debug = .false.
-!  branch_debug=.false.
-!  prefetch_debug=.false.
-!  walk_debug=.false.
-!  walk_summary=.true.
-!  dump_tree=.true.
+  !  force_debug=.true.
+  !  tree_debug=.false.
+  !  build_debug=.false.
+  !  domain_debug = .false.
+  !  branch_debug=.false.
+  !  prefetch_debug=.false.
+  !  walk_debug=.false.
+  !  walk_summary=.true.
+  !  dump_tree=.true.
   npp = np_local  ! assumed lists matched for now
-  
+
   if (force_debug) then
      write (*,'(a7,a40,2i5,4f15.2)') 'PEPC | ','Params itime, mac, theta, eps, force_const, err:',itime, mac, theta, eps, force_const, err_f
-     write (*,'(a7,a20/(i16,4f15.3))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i),i=1,npp) 
+     write (*,'(a7,a20/(i16,4f15.3))') 'PEPC | ','Initial buffers: ',(pelabel(i), x(i), y(i), z(i), q(i),i=1,npp) 
   endif
 
- ! Copy particle buffers to tree arrays
-  x(1:npp) = p_x(1:npp)
-  y(1:npp) = p_y(1:npp)
-  z(1:npp) = p_z(1:npp)
 
-  ux(1:npp) = 0.  ! No B-fields for now
-  uy(1:npp) = 0.
-  uz(1:npp) = 0.
-  q(1:npp) = p_q(1:npp)
-  m(1:npp) = p_m(1:npp)
-  pelabel(1:npp) = p_label(1:npp)
-  pepid(1:npp) = me
-  work(1:npp) = p_w(1:npp)
-  ax(1:npp) = 0.
-  ay(1:npp) = 0.
-  az(1:npp) = 0.
- 
   call cputime(td1)
   call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
 
-! particles now sorted according to keys assigned in tree_domains.
-! Serial mode: incoming labels can serve to restore order - now kept in pelabel 
-! Parallel mode: have to retain sort vectors from tree_domains
+  ! particles now sorted according to keys assigned in tree_domains.
+  ! Serial mode: incoming labels can serve to restore order - now kept in pelabel 
+  ! Parallel mode: have to retain sort vectors from tree_domains
 
   call cputime(tb1)
   call tree_build      ! Build trees from local particle lists
@@ -199,19 +180,68 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 
         p = pshortlist(i)    ! local particle index
 
+        ! zero field sums
+        Ex(p) = 0.
+        Ey(p) = 0.
+        Ez(p) = 0.
+        pot(p) = 0.
+        Axo(p) = Ax(p)
+        Ayo(p) = Ay(p)
+        Azo(p) = Az(p)
+        Ax(p) = 0.
+        Ay(p) = 0.
+        Az(p) = 0.
+        Bx(p) = 0.
+        By(p) = 0.
+        Bz(p) = 0.
 
-        !  compute Coulomb fields and potential of particle p from its interaction list
-        call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
+        if (coulomb) then
+           !  compute Coulomb fields and potential of particle p from its interaction list
+           call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
 
-! restore initial particle order specified by calling routine
-! - ONLY WORKS FOR SERIAL MODE AT PRESENT
- 
-        p_pot(pelabel(p)) = force_const * phi_coul
-        p_Ex(pelabel(p)) = force_const * ex_coul
-        p_Ey(pelabel(p)) = force_const * ey_coul
-        p_Ez(pelabel(p)) = force_const * ez_coul
-        p_w(pelabel(p)) = work(p)  ! send back work load for next iteration
 
+           pot(p) = pot(p) + force_const * phi_coul
+           Ex(p) = Ex(p) + force_const * ex_coul
+           Ey(p) = Ey(p) + force_const * ey_coul
+           Ez(p) = Ez(p) + force_const * ez_coul
+        endif
+
+        if (bfield_on) then
+           !  compute magnetic fields and vector potential 
+           call sum_bfield(p, nterm(i), nodelist( 1:nterm(i),i), eps, bx_ind, by_ind, bz_ind, ax_ind, ay_ind, az_ind )
+
+           Ax(p) =  force_const * ax_ind
+           Ay(p) =  force_const * ay_ind
+           Az(p) =  force_const * az_ind
+           Bx(p) =  force_const * bx_ind
+           By(p) =  force_const * by_ind
+           Bz(p) =  force_const * bz_ind
+           ! Adjust E-field with inductive term
+	   Ex(p) = Ex(p) - (Ax(p)-Axo(p))/delta_t
+	   Ey(p) = Ey(p) - (Ay(p)-Ayo(p))/delta_t
+   	   Ez(p) = Ez(p) - (Az(p)-Azo(p))/delta_t
+        endif
+        if (bonds) then
+           !  compute short-range forces and potential of particle p from its interaction list
+           !          call sum_bond(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
+
+           !          pot(p) = pot(p) + bond_const * phi
+           !          fx(p) = fx(p) + bond_const * fsx
+           !          fy(p) = fy(p) + bond_const * fsy
+           !          fz(p) = fz(p) + bond_const * fsz
+        endif
+
+        if (lenjones) then
+           !  compute short-range Lennard-Jones forces and potential of particle p from its interaction list
+           call sum_lennardjones(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
+
+           pot(p) = pot(p) + bond_const * phi
+           Ex(p) = Ex(p) + bond_const * fsx
+           Ey(p) = Ey(p) + bond_const * fsy
+           Ez(p) = Ez(p) + bond_const * fsz
+        endif
+
+        work(p) = nterm(i)        ! Should really compute this in sum_force to allow for leaf/twig terms
         work_local = work_local+nterm(i)
      end do
 
@@ -220,7 +250,6 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 
      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
-     if (dump_tree) call diagnose_tree
 
   end do
 
@@ -232,7 +261,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   call MPI_GATHER(work_local, 1, MPI_REAL8, work_loads, 1, MPI_REAL8, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
   call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
 
-!  timestamp = itime + itime_start
+  !  timestamp = itime + itime_start
   timestamp = itime
 
   if (me ==0 .and. mod(itime,iprot)==0) then
@@ -256,9 +285,9 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 
      do i=1,npp
         write (ipefile,102) pelabel(i), & 
-             q(i), m(i), ux(i), p_pot(i), p_ex(i)
+             q(i), m(i), ux(i), pot(i), ex(i)
         write (*,102) pelabel(i), x(i), & 
-             q(i), m(i), ux(i), p_pot(i)
+             q(i), m(i), ux(i), pot(i)
      end do
 
 101  format('Tree forces:'/'   p    q   m   ux   pot  ',f8.2)
@@ -266,7 +295,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 
   endif
 
-end subroutine pepc_fields
+end subroutine pepc_fields_p
 
 
 
