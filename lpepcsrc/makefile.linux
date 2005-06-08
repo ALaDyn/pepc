@@ -93,10 +93,12 @@ F90LINKER   = mpif90
 PEPCMOD.f90 =  treevars.f90 tree_utils.f90
 PEPCSRC.f90 =  tree_domains.f90 setup_treearrays.f90 \
 		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
-		tree_walk.f90	tree_prefetch.f90 fields.f90 sum_force.f90 sum_bfield.f90 \
+		tree_walk.f90	tree_prefetch.f90  \
+		sum_force.f90 sum_bfield.f90 sum_lennardjones.f90 sum_bond.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 	        diagnose_tree.f90 check_table.f90 \
-		draw_domains.f90 draw_tree2d.f90 draw_lists.f90 
+		draw_domains.f90 draw_tree2d.f90 draw_lists.f90 \
+		fields.f90 fields_p.f90
 
 POBJS = $(PEPCSRC.f90:.f90=.o)
 PMODS =  $(PEPCMOD.f90:.f90=.o)
@@ -199,10 +201,9 @@ scramble_v.o: physvars.o treevars.o utils.o
 setup.o: physvars.o treevars.o utils.o
 setup_arrays.o: utils.o treevars.o physvars.o
 special_start.o: physvars.o treevars.o utils.o
-sum_bond.o: physvars.o treevars.o
-sum_fields.o: physvars.o treevars.o
+sum_bond.o: treevars.o
 sum_force.o: treevars.o
-sum_lennardjones.o: physvars.o treevars.o
+sum_lennardjones.o: treevars.o
 track_nc.o: physvars.o treevars.o
 tree_build.o: treevars.o utils.o
 tree_fill.o: treevars.o utils.o
