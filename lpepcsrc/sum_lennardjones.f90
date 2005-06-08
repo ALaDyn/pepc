@@ -6,21 +6,22 @@
 !
 !  ===================================================================
 
-subroutine sum_lennardjones( p, n, inode, sumfx, sumfy, sumfz, sumphi )
-  use physvars
+subroutine sum_lennardjones( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi )
+
   use treevars
   implicit none
   integer, intent(in) :: p  ! particle number
   integer, intent(in) :: n  !  # terms on interaction list
   integer, dimension(1:n) ::  inode
+  real, intent(in) :: eps
   integer :: jnode, i
 
   real, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
   real :: a_bond, d2, d, dlj2, dlj, flj, epsc, plj, dx, dy, dz
 
- ! mean interparticle spacing - slightly bigger to push particles onto boundaries
-  a_bond=a_ii*sqrt(2.)
-  epsc = 0.8 ! cutoff
+
+!  eps = 0.8 ! cutoff
+  a_bond=1.
   sumfx = 0
   sumfy = 0
   sumfz = 0
@@ -38,15 +39,15 @@ subroutine sum_lennardjones( p, n, inode, sumfx, sumfy, sumfz, sumphi )
      d = sqrt(d2) 
      dlj = d/a_bond
 
-     if (dlj >= epsc) then 
+     if (dlj >= eps) then 
        plj = 4*(1./dlj**12 - 1./dlj**6)
        flj = 24./a_bond*(2./dlj**13 - 1./dlj**7)
 !     else if (dlj >= 0.5) then
 !       plj = 48./pi*cos(pi*dlj/2.) 
  !      flj = 24./a_bond*sin(pi*dlj/2.)
      else
-       plj = 4*(1./epsc**12 - 1./epsc**6)
-       flj = 24./a_bond*(2./epsc**13-1./epsc**7)
+       plj = 4*(1./epsc**12 - 1./eps**6)
+       flj = 24./a_bond*(2./eps**13-1./eps**7)
      endif
      !   natoms = abs_charge( jnode) / qi    ! # particles in monopole cluster
 

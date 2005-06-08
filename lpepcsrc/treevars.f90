@@ -180,10 +180,7 @@ module treevars
              nppm, &           ! max # particles/PE
              npp, &            !  actual  # particles/PE
              nshortm, &        ! shortlist length
-             iused, &          ! counter for collision resolution array free_addr()
-  	     nmerge = 1, &        ! merge factor for data sets
-             nslice, &            ! # particles in rezoning slice (determined in predef)
-             new_label         ! Rezone label 
+             iused          ! counter for collision resolution array free_addr()
   
 
   real :: xmin, xmax    ! box limits

@@ -13,7 +13,7 @@
 !  ===================================================================
 
 
-subroutine pepc_fields_p(np_local, mac, theta, eps, force_const, bond_const, err_f, delta_t,  xl, yl, zl, itime, &
+subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, force_const, bond_const, delta_t,  xl, yl, zl, itime, &
      coulomb, bfield_on, bonds, lenjones, &
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force)
 
@@ -22,7 +22,7 @@ subroutine pepc_fields_p(np_local, mac, theta, eps, force_const, bond_const, err
   implicit none
   include 'mpif.h'
 
-  integer, intent(in) :: np_local  ! # particles on this CPU
+  integer :: np_local        ! # particles on CPU - can be changed in tree_domains
   real, intent(in) :: theta       ! multipole opening angle
   real, intent(in) :: err_f       ! max tolerated force error (rms)
   real, intent(in) :: delta_t       ! timestep 
@@ -52,8 +52,6 @@ subroutine pepc_fields_p(np_local, mac, theta, eps, force_const, bond_const, err
 
   real :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
   real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
-  real :: Epon_x, Epon_y, Epon_z, Phipon, ex_em, ey_em, ez_em, bx_em, by_em, bz_em
-  real :: xd, yd, zd  ! positions relative to centre of laser spot
   real :: work_local, load_average, load_integral, total_work, average_work
   integer :: total_parts
   character(30) :: cfile, ccol1, ccol2
@@ -69,10 +67,13 @@ subroutine pepc_fields_p(np_local, mac, theta, eps, force_const, bond_const, err
   !  walk_debug=.false.
   !  walk_summary=.true.
   !  dump_tree=.true.
-  npp = np_local  ! assumed lists matched for now
+!  npp = np_local  ! assumed lists matched for now
 
   if (force_debug) then
-     write (*,'(a7,a40,2i5,4f15.2)') 'PEPC | ','Params itime, mac, theta, eps, force_const, err:',itime, mac, theta, eps, force_const, err_f
+     write (*,*)
+     write (*,'(a7,a60/a7,2i5,6f15.2)') 'PEPC | ','Params itime, mac, theta, eps, force_const, bond_const, err, delta_t:', &
+              'PEPC | ',itime, mac, theta, eps, force_const, bond_const, err_f, delta_t
+     write (*,'(a7,a20,4l4)') 'PEPC | ','Force switches: ',coulomb,bfield_on,lenjones,bonds
      write (*,'(a7,a20/(i16,4f15.3))') 'PEPC | ','Initial buffers: ',(pelabel(i), x(i), y(i), z(i), q(i),i=1,npp) 
   endif
 
@@ -233,7 +234,7 @@ subroutine pepc_fields_p(np_local, mac, theta, eps, force_const, bond_const, err
 
         if (lenjones) then
            !  compute short-range Lennard-Jones forces and potential of particle p from its interaction list
-           call sum_lennardjones(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
+           call sum_lennardjones(p, nterm(i), nodelist( 1:nterm(i),i ), eps, fsx, fsy, fsz, phi )
 
            pot(p) = pot(p) + bond_const * phi
            Ex(p) = Ex(p) + bond_const * fsx
@@ -294,6 +295,8 @@ subroutine pepc_fields_p(np_local, mac, theta, eps, force_const, bond_const, err
 102  format(1x,i7,5(1pe14.5))
 
   endif
+
+  np_local = npp   ! reset local # particles for calling routine
 
 end subroutine pepc_fields_p
 

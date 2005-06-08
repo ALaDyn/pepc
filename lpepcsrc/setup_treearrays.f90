@@ -83,10 +83,10 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level)
 
   allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
        q(nppm), m(nppm), work(nppm), &
-! Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), &
+       Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), &
        Ax(nppm), Ay(nppm), Az(nppm), &
-! Bx(nppm), By(nppm), Bz(nppm),  &
-!       Axo(nppm), Ayo(nppm), Azo(nppm), &
+       Bx(nppm), By(nppm), Bz(nppm),  &
+       Axo(nppm), Ayo(nppm), Azo(nppm), &
        pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
   mem_parts = nppm*(22*8 + 2*4 + 8)

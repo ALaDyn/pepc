@@ -6,19 +6,18 @@
 !
 !  ===================================================================
 
-subroutine sum_bond( p, n, inode, sumfx, sumfy, sumfz, sumphi )
-  use physvars
+subroutine sum_bond( p, n, inode, a_bond, sumfx, sumfy, sumfz, sumphi )
+
   use treevars
 
   integer, intent(in) :: p  ! particle number
   integer, intent(in) :: n  !  # terms on interaction list
   integer, dimension(1:n) ::  inode
+  real, intent(in) :: a_bond
   integer :: jnode
 
   real, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
-  real :: a_bond
 
-  a_bond = Vplas**(1./3.)  ! mean interparticle spacing
   sumfx = 0
   sumfy = 0
   sumfz = 0
@@ -34,7 +33,6 @@ subroutine sum_bond( p, n, inode, sumfx, sumfy, sumfz, sumphi )
 
      d = sqrt(dx**2+dy**2+dz**2)
 
-!   natoms = abs_charge( jnode) / qi    ! # particles in monopole cluster
 
      if ( d <= 2*a_bond) then
         ! potential
