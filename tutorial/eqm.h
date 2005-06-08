@@ -2,18 +2,20 @@
  nmerge = 1
  !perf_anal=.true.
  domain_debug=.false.
- load_balance=.true.
+ load_balance=.false.
  walk_balance=.true.
+ !walk_debug=.true.
+ db_level = 0
  walk_summary=.false.
- db_level = 2
 ! particles
   ne = 500
   ni = 500 
 
  plasma_config = 1  ! set up plasma target
  ! initial_config = 1   ! sphere
+ ! target_geometry =7   ! hollow sphere
+   target_geometry = 6         ! random disc
  !   initial_config=7   ! hollow sphere
-   target_geometry = 2         ! random disc
  !   initial_config=3   ! wire
  !  initial_config = 0         ! rectangular slab
   !  initial_config = 10     ! read from parts_all.in
@@ -28,13 +30,13 @@
   coulomb = .true.
   lenjones = .false.
   bond_const = 2.e-3
-  r_sphere = 4
+  r_sphere = 1
   x_plasma = 1.    ! plasma disc thickness/ wire length
   y_plasma = 2.     ! plasma width (slab target)
   z_plasma = 2.     ! plasma width (slab target)
-  xl = 3  ! graphics box size
-  yl =8 
-  zl =8 
+  xl = 2  ! graphics box size
+  yl =2 
+  zl =2 
 
 
 ! beam
@@ -67,9 +69,9 @@
   eps = 2.5
  restart = .false.
   vis_on = .true.
- ivis = 2
- ivis_domains = 5000 
+ ivis = 5 
  ivis_fields = 5000
+ ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
   idump = 4000

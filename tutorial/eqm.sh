@@ -1,4 +1,4 @@
-echo "Starting eqm  .."
+echo "Starting PEPC run: clamped eqm ..."
 cp eqm.h run.h
 llrun -p4 ../src/pepc 
 cp energy.dat energy.$TEND

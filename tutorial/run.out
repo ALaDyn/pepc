@@ -1,121 +1,1334 @@
 
 Other inputs:
-     System config:    1 plasma    
-   Target geometry:    0 slab      
+ &PEPCDATA
+ NEP=125, NIP=125, NE=500, NI=500, THETA=0.500000000000000000, MASS_RATIO=
+ 2000.00000000000000, Q_FACTOR=1.00000000000000000, EPS=2.50000000000000000, 
+ PLASMA_CONFIG=1, TARGET_GEOMETRY=6, ISPECIAL=0, TE_KEV=0.500000000000000000, 
+ TI_KEV=0.000000000000000000E+00, T_SCALE=1.00000000000000000, R_SPHERE=
+ 1.00000000000000000, X_PLASMA=1.00000000000000000, Y_PLASMA=2.00000000000000000
+ Z_PLASMA=2.00000000000000000, DELTA_MC=0.100000000000000006, XL=
+ 2.00000000000000000, YL=2.00000000000000000, ZL=2.00000000000000000, DISPLACE=
+ 0.000000000000000000E+00, 0.000000000000000000E+00, 0.000000000000000000E+00, 
+ BOND_CONST=0.200000000000000004E-02, FNN=5.00000000000000000, RHO_MIN=
+ 0.100000000000000006, LOLAM=1.25663706160000022, BEAM_CONFIG=0, NP_BEAM=0, 
+ R_BEAM=0.500000000000000028E-01, U_BEAM=0.200000000000000011, THETA_BEAM=
+ 0.000000000000000000E+00, PHI_BEAM=0.000000000000000000E+00, X_BEAM=
+ 0.400000000000000008E-01, START_BEAM=-0.100000000000000006, RHO_BEAM=
+ -1.00000000000000000, MASS_BEAM=5.00000000000000000, LAMBDA=1.00000000000000000
+ SIGMA=6.00000000000000000, TPULSE=20.0000000000000000, VOSC=6.00000000000000000
+ OMEGA=0.500000000000000000, FOCUS=0.500000000000000000, 1.00000000000000000, 
+ 1.00000000000000000, X_OFFSET=0.000000000000000000E+00, Z_OFFSET=
+ 0.000000000000000000E+00, NT=400, DT=0.500000000000000000, MC_STEPS=1000, 
+ IDUMP=4000, IVIS=5, IVIS_FIELDS=5000, IPROT=20, ITRACK=300, NMERGE=1, NGX=25, 
+ NGY=25, NGZ=25, VIS_ON=T, STEERING=F, DOMAIN_DEBUG=F, MC_INIT=F, RESTART=F, 
+ SCHEME=1, PARTICLE_BCS=1, LOAD_BALANCE=F, WALK_BALANCE=T, WALK_DEBUG=F, 
+ FORCE_DEBUG=F, PREFETCH_DEBUG=F, DUMP_TREE=F, PERF_ANAL=F, COULOMB=T, BONDS=F, 
+ LENJONES=F, TARGET_DUP=F, RAMP=F, PREFETCH=F, WALK_SUMMARY=F, BRANCH_DEBUG=F, 
+ TREE_DEBUG=F, CONSTRAIN_PROOF=0.100000000000000002E-02, LEN_TRIPOD=
+ 0.000000000000000000E+00, USE_MULTIPOLES=T, STRUCT_STEP=0, UTHRESH=
+ -1.00000000000000000
+ /
+     Plasma config:    1 plasma    
+   Target geometry:    6 hemisphere
+       Beam config:    0 eqm    
             Scheme:    1 const U
-     System volume:    1.000E+00
-     Sphere radius:        4.000
-     System length:        1.000
-      System width:        1.000
-     System height:        1.000
-   Electron charge:   -2.000E-02
-     Electron mass:    2.000E-02
-          Ion mass:    4.000E+01
+     Plasma volume:    2.094E+00
+     Sphere radius:        1.000
+     Plasma length:        1.000
+      Plasma width:        2.000
+     Plasma height:        2.000
+   Electron charge:   -4.189E-03
+     Electron mass:    4.189E-03
+          Ion mass:    8.378E+00
                 Te:        0.500
-                Ti:        0.100
+                Ti:        0.000
       Debye length:    3.128E-02
-     Ion spacing a:       0.2714
-    Cloud radius R:        1.000
-    # dt per cycle:            0
-               N_D:    6.410E-03
-               N_c:      209.440
-       R/lambda_De:       31.969
+           n_e/n_c:        4.000
+     Ion spacing a:       0.1612
+    Cloud radius R:        2.500
+   Collision freq.:        0.000
+      Conductivity:     5865.105
+   Laser amplitude:        6.000
+       Pulse width:        6.000
+    Pulse duration:       20.000
+        Wavelength:        1.000
+   Incidence angle:        0.000
+   Laser intensity:        1.800
+    # dt per cycle:           25
+               N_D:    3.061E-02
+               N_c:    15625.000
+       R/lambda_De:       79.922
           Timestep:        0.500
-      Max timestep:        1.219
- Neighbour search ra   1.357E+00
+      Max timestep:       36.378
+ Neighbour search ra   8.060E-01
          MAC theta:        0.500
-  Particle # ratio:    0.000E+00
- Graphics box:      3.00 x      8.00 x      8.00
+  Particle # ratio:    8.378E+03
+ Graphics box:      2.00 x      2.00 x      2.00
 
-  Electrons:           50
-  Ions:           50
-  Particles per PE:          100
+ Laser focus:      0.50     1.00     1.00
+
+  Electrons:  500
+  Ions:  500
+  Beam particles:  0
+  Beam angles  0.000000000000000000E+00 0.000000000000000000E+00
+  Particles per PE:  250
 
  Switches:
 --------
     Coulomb forces:   T
  Lennard-Jones force  F
+      load balance:   F
+      walk balance:   T
+           restart:   F
+              ramp:   F
+      domain debug:   F
+        walk debug:   F
+      walk summary:   F
+         dump tree:   F
+ performance anal.:   F
+             visit:   T
+          steering:   F
+
+ Local tree size  262145
+ Max address in #-table:  262144
+ Max # branches:  13107
+ Max # multipole fetches:  262145
+ Machine bit-size =  64
+ Max permitted particles / PE:  1500
+ Max size of interaction lists:  1459
+ Shortlist length:  2000
+ Memory needed for lists =  89  Mbytes
 
 Other inputs:
- scrambling           50  particles
- scrambling           50  particles
+ &PEPCDATA
+ NEP=125, NIP=125, NE=500, NI=500, THETA=0.500000000000000000, MASS_RATIO=
+ 2000.00000000000000, Q_FACTOR=1.00000000000000000, EPS=2.50000000000000000, 
+ PLASMA_CONFIG=1, TARGET_GEOMETRY=6, ISPECIAL=0, TE_KEV=0.500000000000000000, 
+ TI_KEV=0.000000000000000000E+00, T_SCALE=1.00000000000000000, R_SPHERE=
+ 1.00000000000000000, X_PLASMA=1.00000000000000000, Y_PLASMA=2.00000000000000000
+ Z_PLASMA=2.00000000000000000, DELTA_MC=0.100000000000000006, XL=
+ 2.00000000000000000, YL=2.00000000000000000, ZL=2.00000000000000000, DISPLACE=
+ 0.000000000000000000E+00, 0.000000000000000000E+00, 0.000000000000000000E+00, 
+ BOND_CONST=0.200000000000000004E-02, FNN=5.00000000000000000, RHO_MIN=
+ 0.100000000000000006, LOLAM=1.25663706160000022, BEAM_CONFIG=0, NP_BEAM=0, 
+ R_BEAM=0.500000000000000028E-01, U_BEAM=0.200000000000000011, THETA_BEAM=
+ 0.000000000000000000E+00, PHI_BEAM=0.000000000000000000E+00, X_BEAM=
+ 0.400000000000000008E-01, START_BEAM=-0.100000000000000006, RHO_BEAM=
+ -1.00000000000000000, MASS_BEAM=5.00000000000000000, LAMBDA=1.00000000000000000
+ SIGMA=6.00000000000000000, TPULSE=20.0000000000000000, VOSC=6.00000000000000000
+ OMEGA=0.500000000000000000, FOCUS=0.500000000000000000, 1.00000000000000000, 
+ 1.00000000000000000, X_OFFSET=0.000000000000000000E+00, Z_OFFSET=
+ 0.000000000000000000E+00, NT=400, DT=0.500000000000000000, MC_STEPS=1000, 
+ IDUMP=4000, IVIS=5, IVIS_FIELDS=5000, IPROT=20, ITRACK=300, NMERGE=1, NGX=25, 
+ NGY=25, NGZ=25, VIS_ON=T, STEERING=F, DOMAIN_DEBUG=F, MC_INIT=F, RESTART=F, 
+ SCHEME=1, PARTICLE_BCS=1, LOAD_BALANCE=F, WALK_BALANCE=T, WALK_DEBUG=F, 
+ FORCE_DEBUG=F, PREFETCH_DEBUG=F, DUMP_TREE=F, PERF_ANAL=F, COULOMB=T, BONDS=F, 
+ LENJONES=F, TARGET_DUP=F, RAMP=F, PREFETCH=F, WALK_SUMMARY=F, BRANCH_DEBUG=F, 
+ TREE_DEBUG=F, CONSTRAIN_PROOF=0.100000000000000002E-02, LEN_TRIPOD=
+ 0.000000000000000000E+00, USE_MULTIPOLES=T, STRUCT_STEP=0, UTHRESH=
+ -1.00000000000000000
+ /
+ scrambling  124  particles
+
+
+Timestep        0 t=   0.00000
 
 
  Timestep        1    total run time =     0.50
-             P.E. = -1.85515E-02
-    Electron K.E. =  1.43632E-03
-         Ion K.E. =  2.85088E-04
-             Total:  1.65585E-01
-
 
 
  Timestep        2    total run time =     1.00
-             P.E. = -1.86845E-02
-    Electron K.E. =  1.56591E-03
-         Ion K.E. =  2.84818E-04
-             Total:  1.65582E-01
-
 
 
  Timestep        3    total run time =     1.50
-             P.E. = -1.88798E-02
-    Electron K.E. =  1.79772E-03
-         Ion K.E. =  2.84640E-04
-             Total:  1.65618E-01
-
 
 
  Timestep        4    total run time =     2.00
-             P.E. = -1.91706E-02
-    Electron K.E. =  2.04868E-03
-         Ion K.E. =  2.84532E-04
-             Total:  1.65578E-01
-
 
 
  Timestep        5    total run time =     2.50
-             P.E. = -1.93979E-02
-    Electron K.E. =  2.23319E-03
-         Ion K.E. =  2.84468E-04
-             Total:  1.65535E-01
-
 
 
  Timestep        6    total run time =     3.00
-             P.E. = -1.94286E-02
-    Electron K.E. =  2.29476E-03
-         Ion K.E. =  2.84428E-04
-             Total:  1.65566E-01
-
 
 
  Timestep        7    total run time =     3.50
-             P.E. = -1.93839E-02
-    Electron K.E. =  2.22440E-03
-         Ion K.E. =  2.84414E-04
-             Total:  1.65540E-01
-
 
 
  Timestep        8    total run time =     4.00
-             P.E. = -1.92235E-02
-    Electron K.E. =  2.05976E-03
-         Ion K.E. =  2.84445E-04
-             Total:  1.65536E-01
-
 
 
  Timestep        9    total run time =     4.50
-             P.E. = -1.90309E-02
-    Electron K.E. =  1.86667E-03
-         Ion K.E. =  2.84546E-04
-             Total:  1.65536E-01
-
 
 
  Timestep       10    total run time =     5.00
-             P.E. = -1.89094E-02
-    Electron K.E. =  1.71316E-03
-         Ion K.E. =  2.84736E-04
-             Total:  1.65504E-01
 
+
+ Timestep       11    total run time =     5.50
+
+
+ Timestep       12    total run time =     6.00
+
+
+ Timestep       13    total run time =     6.50
+
+
+ Timestep       14    total run time =     7.00
+
+
+ Timestep       15    total run time =     7.50
+
+
+ Timestep       16    total run time =     8.00
+
+
+ Timestep       17    total run time =     8.50
+
+
+ Timestep       18    total run time =     9.00
+
+
+ Timestep       19    total run time =     9.50
+
+
+ Timestep       20    total run time =    10.00
+
+
+ Timestep       21    total run time =    10.50
+
+
+ Timestep       22    total run time =    11.00
+
+
+ Timestep       23    total run time =    11.50
+
+
+ Timestep       24    total run time =    12.00
+
+
+ Timestep       25    total run time =    12.50
+
+
+ Timestep       26    total run time =    13.00
+
+
+ Timestep       27    total run time =    13.50
+
+
+ Timestep       28    total run time =    14.00
+
+
+ Timestep       29    total run time =    14.50
+
+
+ Timestep       30    total run time =    15.00
+
+
+ Timestep       31    total run time =    15.50
+
+
+ Timestep       32    total run time =    16.00
+
+
+ Timestep       33    total run time =    16.50
+
+
+ Timestep       34    total run time =    17.00
+
+
+ Timestep       35    total run time =    17.50
+
+
+ Timestep       36    total run time =    18.00
+
+
+ Timestep       37    total run time =    18.50
+
+
+ Timestep       38    total run time =    19.00
+
+
+ Timestep       39    total run time =    19.50
+
+
+ Timestep       40    total run time =    20.00
+
+
+ Timestep       41    total run time =    20.50
+
+
+ Timestep       42    total run time =    21.00
+
+
+ Timestep       43    total run time =    21.50
+
+
+ Timestep       44    total run time =    22.00
+
+
+ Timestep       45    total run time =    22.50
+
+
+ Timestep       46    total run time =    23.00
+
+
+ Timestep       47    total run time =    23.50
+
+
+ Timestep       48    total run time =    24.00
+
+
+ Timestep       49    total run time =    24.50
+
+
+ Timestep       50    total run time =    25.00
+
+
+ Timestep       51    total run time =    25.50
+
+
+ Timestep       52    total run time =    26.00
+
+
+ Timestep       53    total run time =    26.50
+
+
+ Timestep       54    total run time =    27.00
+
+
+ Timestep       55    total run time =    27.50
+
+
+ Timestep       56    total run time =    28.00
+
+
+ Timestep       57    total run time =    28.50
+
+
+ Timestep       58    total run time =    29.00
+
+
+ Timestep       59    total run time =    29.50
+
+
+ Timestep       60    total run time =    30.00
+
+
+ Timestep       61    total run time =    30.50
+
+
+ Timestep       62    total run time =    31.00
+
+
+ Timestep       63    total run time =    31.50
+
+
+ Timestep       64    total run time =    32.00
+
+
+ Timestep       65    total run time =    32.50
+
+
+ Timestep       66    total run time =    33.00
+
+
+ Timestep       67    total run time =    33.50
+
+
+ Timestep       68    total run time =    34.00
+
+
+ Timestep       69    total run time =    34.50
+
+
+ Timestep       70    total run time =    35.00
+
+
+ Timestep       71    total run time =    35.50
+
+
+ Timestep       72    total run time =    36.00
+
+
+ Timestep       73    total run time =    36.50
+
+
+ Timestep       74    total run time =    37.00
+
+
+ Timestep       75    total run time =    37.50
+
+
+ Timestep       76    total run time =    38.00
+
+
+ Timestep       77    total run time =    38.50
+
+
+ Timestep       78    total run time =    39.00
+
+
+ Timestep       79    total run time =    39.50
+
+
+ Timestep       80    total run time =    40.00
+
+
+ Timestep       81    total run time =    40.50
+
+
+ Timestep       82    total run time =    41.00
+
+
+ Timestep       83    total run time =    41.50
+
+
+ Timestep       84    total run time =    42.00
+
+
+ Timestep       85    total run time =    42.50
+
+
+ Timestep       86    total run time =    43.00
+
+
+ Timestep       87    total run time =    43.50
+
+
+ Timestep       88    total run time =    44.00
+
+
+ Timestep       89    total run time =    44.50
+
+
+ Timestep       90    total run time =    45.00
+
+
+ Timestep       91    total run time =    45.50
+
+
+ Timestep       92    total run time =    46.00
+
+
+ Timestep       93    total run time =    46.50
+
+
+ Timestep       94    total run time =    47.00
+
+
+ Timestep       95    total run time =    47.50
+
+
+ Timestep       96    total run time =    48.00
+
+
+ Timestep       97    total run time =    48.50
+
+
+ Timestep       98    total run time =    49.00
+
+
+ Timestep       99    total run time =    49.50
+
+
+ Timestep      100    total run time =    50.00
+
+
+ Timestep      101    total run time =    50.50
+
+
+ Timestep      102    total run time =    51.00
+
+
+ Timestep      103    total run time =    51.50
+
+
+ Timestep      104    total run time =    52.00
+
+
+ Timestep      105    total run time =    52.50
+
+
+ Timestep      106    total run time =    53.00
+
+
+ Timestep      107    total run time =    53.50
+
+
+ Timestep      108    total run time =    54.00
+
+
+ Timestep      109    total run time =    54.50
+
+
+ Timestep      110    total run time =    55.00
+
+
+ Timestep      111    total run time =    55.50
+
+
+ Timestep      112    total run time =    56.00
+
+
+ Timestep      113    total run time =    56.50
+
+
+ Timestep      114    total run time =    57.00
+
+
+ Timestep      115    total run time =    57.50
+
+
+ Timestep      116    total run time =    58.00
+
+
+ Timestep      117    total run time =    58.50
+
+
+ Timestep      118    total run time =    59.00
+
+
+ Timestep      119    total run time =    59.50
+
+
+ Timestep      120    total run time =    60.00
+
+
+ Timestep      121    total run time =    60.50
+
+
+ Timestep      122    total run time =    61.00
+
+
+ Timestep      123    total run time =    61.50
+
+
+ Timestep      124    total run time =    62.00
+
+
+ Timestep      125    total run time =    62.50
+
+
+ Timestep      126    total run time =    63.00
+
+
+ Timestep      127    total run time =    63.50
+
+
+ Timestep      128    total run time =    64.00
+
+
+ Timestep      129    total run time =    64.50
+
+
+ Timestep      130    total run time =    65.00
+
+
+ Timestep      131    total run time =    65.50
+
+
+ Timestep      132    total run time =    66.00
+
+
+ Timestep      133    total run time =    66.50
+
+
+ Timestep      134    total run time =    67.00
+
+
+ Timestep      135    total run time =    67.50
+
+
+ Timestep      136    total run time =    68.00
+
+
+ Timestep      137    total run time =    68.50
+
+
+ Timestep      138    total run time =    69.00
+
+
+ Timestep      139    total run time =    69.50
+
+
+ Timestep      140    total run time =    70.00
+
+
+ Timestep      141    total run time =    70.50
+
+
+ Timestep      142    total run time =    71.00
+
+
+ Timestep      143    total run time =    71.50
+
+
+ Timestep      144    total run time =    72.00
+
+
+ Timestep      145    total run time =    72.50
+
+
+ Timestep      146    total run time =    73.00
+
+
+ Timestep      147    total run time =    73.50
+
+
+ Timestep      148    total run time =    74.00
+
+
+ Timestep      149    total run time =    74.50
+
+
+ Timestep      150    total run time =    75.00
+
+
+ Timestep      151    total run time =    75.50
+
+
+ Timestep      152    total run time =    76.00
+
+
+ Timestep      153    total run time =    76.50
+
+
+ Timestep      154    total run time =    77.00
+
+
+ Timestep      155    total run time =    77.50
+
+
+ Timestep      156    total run time =    78.00
+
+
+ Timestep      157    total run time =    78.50
+
+
+ Timestep      158    total run time =    79.00
+
+
+ Timestep      159    total run time =    79.50
+
+
+ Timestep      160    total run time =    80.00
+
+
+ Timestep      161    total run time =    80.50
+
+
+ Timestep      162    total run time =    81.00
+
+
+ Timestep      163    total run time =    81.50
+
+
+ Timestep      164    total run time =    82.00
+
+
+ Timestep      165    total run time =    82.50
+
+
+ Timestep      166    total run time =    83.00
+
+
+ Timestep      167    total run time =    83.50
+
+
+ Timestep      168    total run time =    84.00
+
+
+ Timestep      169    total run time =    84.50
+
+
+ Timestep      170    total run time =    85.00
+
+
+ Timestep      171    total run time =    85.50
+
+
+ Timestep      172    total run time =    86.00
+
+
+ Timestep      173    total run time =    86.50
+
+
+ Timestep      174    total run time =    87.00
+
+
+ Timestep      175    total run time =    87.50
+
+
+ Timestep      176    total run time =    88.00
+
+
+ Timestep      177    total run time =    88.50
+
+
+ Timestep      178    total run time =    89.00
+
+
+ Timestep      179    total run time =    89.50
+
+
+ Timestep      180    total run time =    90.00
+
+
+ Timestep      181    total run time =    90.50
+
+
+ Timestep      182    total run time =    91.00
+
+
+ Timestep      183    total run time =    91.50
+
+
+ Timestep      184    total run time =    92.00
+
+
+ Timestep      185    total run time =    92.50
+
+
+ Timestep      186    total run time =    93.00
+
+
+ Timestep      187    total run time =    93.50
+
+
+ Timestep      188    total run time =    94.00
+
+
+ Timestep      189    total run time =    94.50
+
+
+ Timestep      190    total run time =    95.00
+
+
+ Timestep      191    total run time =    95.50
+
+
+ Timestep      192    total run time =    96.00
+
+
+ Timestep      193    total run time =    96.50
+
+
+ Timestep      194    total run time =    97.00
+
+
+ Timestep      195    total run time =    97.50
+
+
+ Timestep      196    total run time =    98.00
+
+
+ Timestep      197    total run time =    98.50
+
+
+ Timestep      198    total run time =    99.00
+
+
+ Timestep      199    total run time =    99.50
+
+
+ Timestep      200    total run time =   100.00
+
+
+ Timestep      201    total run time =   100.50
+
+
+ Timestep      202    total run time =   101.00
+
+
+ Timestep      203    total run time =   101.50
+
+
+ Timestep      204    total run time =   102.00
+
+
+ Timestep      205    total run time =   102.50
+
+
+ Timestep      206    total run time =   103.00
+
+
+ Timestep      207    total run time =   103.50
+
+
+ Timestep      208    total run time =   104.00
+
+
+ Timestep      209    total run time =   104.50
+
+
+ Timestep      210    total run time =   105.00
+
+
+ Timestep      211    total run time =   105.50
+
+
+ Timestep      212    total run time =   106.00
+
+
+ Timestep      213    total run time =   106.50
+
+
+ Timestep      214    total run time =   107.00
+
+
+ Timestep      215    total run time =   107.50
+
+
+ Timestep      216    total run time =   108.00
+
+
+ Timestep      217    total run time =   108.50
+
+
+ Timestep      218    total run time =   109.00
+
+
+ Timestep      219    total run time =   109.50
+
+
+ Timestep      220    total run time =   110.00
+
+
+ Timestep      221    total run time =   110.50
+
+
+ Timestep      222    total run time =   111.00
+
+
+ Timestep      223    total run time =   111.50
+
+
+ Timestep      224    total run time =   112.00
+
+
+ Timestep      225    total run time =   112.50
+
+
+ Timestep      226    total run time =   113.00
+
+
+ Timestep      227    total run time =   113.50
+
+
+ Timestep      228    total run time =   114.00
+
+
+ Timestep      229    total run time =   114.50
+
+
+ Timestep      230    total run time =   115.00
+
+
+ Timestep      231    total run time =   115.50
+
+
+ Timestep      232    total run time =   116.00
+
+
+ Timestep      233    total run time =   116.50
+
+
+ Timestep      234    total run time =   117.00
+
+
+ Timestep      235    total run time =   117.50
+
+
+ Timestep      236    total run time =   118.00
+
+
+ Timestep      237    total run time =   118.50
+
+
+ Timestep      238    total run time =   119.00
+
+
+ Timestep      239    total run time =   119.50
+
+
+ Timestep      240    total run time =   120.00
+
+
+ Timestep      241    total run time =   120.50
+
+
+ Timestep      242    total run time =   121.00
+
+
+ Timestep      243    total run time =   121.50
+
+
+ Timestep      244    total run time =   122.00
+
+
+ Timestep      245    total run time =   122.50
+
+
+ Timestep      246    total run time =   123.00
+
+
+ Timestep      247    total run time =   123.50
+
+
+ Timestep      248    total run time =   124.00
+
+
+ Timestep      249    total run time =   124.50
+
+
+ Timestep      250    total run time =   125.00
+
+
+ Timestep      251    total run time =   125.50
+
+
+ Timestep      252    total run time =   126.00
+
+
+ Timestep      253    total run time =   126.50
+
+
+ Timestep      254    total run time =   127.00
+
+
+ Timestep      255    total run time =   127.50
+
+
+ Timestep      256    total run time =   128.00
+
+
+ Timestep      257    total run time =   128.50
+
+
+ Timestep      258    total run time =   129.00
+
+
+ Timestep      259    total run time =   129.50
+
+
+ Timestep      260    total run time =   130.00
+
+
+ Timestep      261    total run time =   130.50
+
+
+ Timestep      262    total run time =   131.00
+
+
+ Timestep      263    total run time =   131.50
+
+
+ Timestep      264    total run time =   132.00
+
+
+ Timestep      265    total run time =   132.50
+
+
+ Timestep      266    total run time =   133.00
+
+
+ Timestep      267    total run time =   133.50
+
+
+ Timestep      268    total run time =   134.00
+
+
+ Timestep      269    total run time =   134.50
+
+
+ Timestep      270    total run time =   135.00
+
+
+ Timestep      271    total run time =   135.50
+
+
+ Timestep      272    total run time =   136.00
+
+
+ Timestep      273    total run time =   136.50
+
+
+ Timestep      274    total run time =   137.00
+
+
+ Timestep      275    total run time =   137.50
+
+
+ Timestep      276    total run time =   138.00
+
+
+ Timestep      277    total run time =   138.50
+
+
+ Timestep      278    total run time =   139.00
+
+
+ Timestep      279    total run time =   139.50
+
+
+ Timestep      280    total run time =   140.00
+
+
+ Timestep      281    total run time =   140.50
+
+
+ Timestep      282    total run time =   141.00
+
+
+ Timestep      283    total run time =   141.50
+
+
+ Timestep      284    total run time =   142.00
+
+
+ Timestep      285    total run time =   142.50
+
+
+ Timestep      286    total run time =   143.00
+
+
+ Timestep      287    total run time =   143.50
+
+
+ Timestep      288    total run time =   144.00
+
+
+ Timestep      289    total run time =   144.50
+
+
+ Timestep      290    total run time =   145.00
+
+
+ Timestep      291    total run time =   145.50
+
+
+ Timestep      292    total run time =   146.00
+
+
+ Timestep      293    total run time =   146.50
+
+
+ Timestep      294    total run time =   147.00
+
+
+ Timestep      295    total run time =   147.50
+
+
+ Timestep      296    total run time =   148.00
+
+
+ Timestep      297    total run time =   148.50
+
+
+ Timestep      298    total run time =   149.00
+
+
+ Timestep      299    total run time =   149.50
+
+
+ Timestep      300    total run time =   150.00
+
+
+ Timestep      301    total run time =   150.50
+
+
+ Timestep      302    total run time =   151.00
+
+
+ Timestep      303    total run time =   151.50
+
+
+ Timestep      304    total run time =   152.00
+
+
+ Timestep      305    total run time =   152.50
+
+
+ Timestep      306    total run time =   153.00
+
+
+ Timestep      307    total run time =   153.50
+
+
+ Timestep      308    total run time =   154.00
+
+
+ Timestep      309    total run time =   154.50
+
+
+ Timestep      310    total run time =   155.00
+
+
+ Timestep      311    total run time =   155.50
+
+
+ Timestep      312    total run time =   156.00
+
+
+ Timestep      313    total run time =   156.50
+
+
+ Timestep      314    total run time =   157.00
+
+
+ Timestep      315    total run time =   157.50
+
+
+ Timestep      316    total run time =   158.00
+
+
+ Timestep      317    total run time =   158.50
+
+
+ Timestep      318    total run time =   159.00
+
+
+ Timestep      319    total run time =   159.50
+
+
+ Timestep      320    total run time =   160.00
+
+
+ Timestep      321    total run time =   160.50
+
+
+ Timestep      322    total run time =   161.00
+
+
+ Timestep      323    total run time =   161.50
+
+
+ Timestep      324    total run time =   162.00
+
+
+ Timestep      325    total run time =   162.50
+
+
+ Timestep      326    total run time =   163.00
+
+
+ Timestep      327    total run time =   163.50
+
+
+ Timestep      328    total run time =   164.00
+
+
+ Timestep      329    total run time =   164.50
+
+
+ Timestep      330    total run time =   165.00
+
+
+ Timestep      331    total run time =   165.50
+
+
+ Timestep      332    total run time =   166.00
+
+
+ Timestep      333    total run time =   166.50
+
+
+ Timestep      334    total run time =   167.00
+
+
+ Timestep      335    total run time =   167.50
+
+
+ Timestep      336    total run time =   168.00
+
+
+ Timestep      337    total run time =   168.50
+
+
+ Timestep      338    total run time =   169.00
+
+
+ Timestep      339    total run time =   169.50
+
+
+ Timestep      340    total run time =   170.00
+
+
+ Timestep      341    total run time =   170.50
+
+
+ Timestep      342    total run time =   171.00
+
+
+ Timestep      343    total run time =   171.50
+
+
+ Timestep      344    total run time =   172.00
+
+
+ Timestep      345    total run time =   172.50
+
+
+ Timestep      346    total run time =   173.00
+
+
+ Timestep      347    total run time =   173.50
+
+
+ Timestep      348    total run time =   174.00
+
+
+ Timestep      349    total run time =   174.50
+
+
+ Timestep      350    total run time =   175.00
+
+
+ Timestep      351    total run time =   175.50
+
+
+ Timestep      352    total run time =   176.00
+
+
+ Timestep      353    total run time =   176.50
+
+
+ Timestep      354    total run time =   177.00
+
+
+ Timestep      355    total run time =   177.50
+
+
+ Timestep      356    total run time =   178.00
+
+
+ Timestep      357    total run time =   178.50
+
+
+ Timestep      358    total run time =   179.00
+
+
+ Timestep      359    total run time =   179.50
+
+
+ Timestep      360    total run time =   180.00
+
+
+ Timestep      361    total run time =   180.50
+
+
+ Timestep      362    total run time =   181.00
+
+
+ Timestep      363    total run time =   181.50
+
+
+ Timestep      364    total run time =   182.00
+
+
+ Timestep      365    total run time =   182.50
+
+
+ Timestep      366    total run time =   183.00
+
+
+ Timestep      367    total run time =   183.50
+
+
+ Timestep      368    total run time =   184.00
+
+
+ Timestep      369    total run time =   184.50
+
+
+ Timestep      370    total run time =   185.00
+
+
+ Timestep      371    total run time =   185.50
+
+
+ Timestep      372    total run time =   186.00
+
+
+ Timestep      373    total run time =   186.50
+
+
+ Timestep      374    total run time =   187.00
+
+
+ Timestep      375    total run time =   187.50
+
+
+ Timestep      376    total run time =   188.00
+
+
+ Timestep      377    total run time =   188.50
+
+
+ Timestep      378    total run time =   189.00
+
+
+ Timestep      379    total run time =   189.50
+
+
+ Timestep      380    total run time =   190.00
+
+
+ Timestep      381    total run time =   190.50
+
+
+ Timestep      382    total run time =   191.00
+
+
+ Timestep      383    total run time =   191.50
+
+
+ Timestep      384    total run time =   192.00
+
+
+ Timestep      385    total run time =   192.50
+
+
+ Timestep      386    total run time =   193.00
+
+
+ Timestep      387    total run time =   193.50
+
+
+ Timestep      388    total run time =   194.00
+
+
+ Timestep      389    total run time =   194.50
+
+
+ Timestep      390    total run time =   195.00
+
+
+ Timestep      391    total run time =   195.50
+
+
+ Timestep      392    total run time =   196.00
+
+
+ Timestep      393    total run time =   196.50
+
+
+ Timestep      394    total run time =   197.00
+
+
+ Timestep      395    total run time =   197.50
+
+
+ Timestep      396    total run time =   198.00
+
+
+ Timestep      397    total run time =   198.50
+
+
+ Timestep      398    total run time =   199.00
+
+
+ Timestep      399    total run time =   199.50
+
+
+ Timestep      400    total run time =   200.00

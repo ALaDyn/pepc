@@ -35,12 +35,12 @@
   lenjones = .false.
   bond_const = 2.e-5
   r_sphere = 3
-  x_plasma = 6    ! plasma disc thickness/ wire length
-  y_plasma = 6.     ! plasma width (slab target)
-  z_plasma = 6.     ! plasma width (slab target)
-  xl = 6  ! graphics box size
-  yl =6 
-  zl =6 
+  x_plasma = 5    ! plasma disc thickness/ wire length
+  y_plasma = 5.     ! plasma width (slab target)
+  z_plasma = 3.     ! plasma width (slab target)
+  xl = 5  ! graphics box size
+  yl =5 
+  zl =3 
 
 
 ! beam
