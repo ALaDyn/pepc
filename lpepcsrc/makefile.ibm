@@ -65,7 +65,7 @@ pepclib = liblpepc.a
 .SUFFIXES: .f90
 
 
-#FC = mpxlf90_r
+FC = mpxlf90_r
 #FC = ifort
 # MPICH wrappers
 # full MPI path usually something like /usr/local/mpich/bin
@@ -112,7 +112,7 @@ all: pepcmods pepc
 
 #  compile mode
 .f90.o:   
-	$(F90) -c $(FFLAGS) $(INCLUDE) $(DBFLAGS) $<
+	$(FC) -c $(FFLAGS) $(INCLUDE) $(DBFLAGS) $<
 
 $(pepclib): lpepc
 lpepc:  $(POBJS) $(PMODS) 
@@ -126,7 +126,7 @@ mods:   $(MODS)
 
 debug:	$(OBJECTS)
 	@echo "Loading object files using flags $(DBFLAGS)"
-	$(F90) $(LDFLAGS)  $(VISITLIBS) $(DBFLAGS)  -o $@ $(OBJECTS)
+	$(FC) $(LDFLAGS)  $(VISITLIBS) $(DBFLAGS)  -o $@ $(OBJECTS)
 
 clean:
 	/bin/rm -f bin/*.o  *% *~ bin/key rand *.o *.pif core *.mod 
