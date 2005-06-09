@@ -32,26 +32,47 @@ This will create a binary liblpepc.a
 
 
 
-2. Compiling application: PEPC-E (electrostatics)
-------------------------
-
-	cd pepcesrc
+2.  Application: PEPC-E (electrostatics)
+----------------------------------------
+Compile:
+	cd pepc-e
 	(make clean)
-	make pepce
+	make all 
 
 Assumes lpepc already compiled (see 1.) and liblpepc.a resides in
 ../lpepcsrc.
 
 
-3.  Running application
------------------------
-
+Run:
 	cd  demo_md
 
 	edit input deck 'eqm.indata'
 	start run script:
 On JUMP:	./md.sh
 Linux PC:	./mddemo
+
+
+3.  Application: PEPC-B (laser-plasma + magnetic fields)
+-------------------------------------------------------
+Compile:
+	cd pepc-b
+	(make clean)
+	make all 
+
+or: 	make lpepc  (links to headers and library)
+	make pepcb
+
+Assumes lpepc already compiled (see 1.) and liblpepc.a resides in
+../lpepcsrc.
+
+
+Run:
+	cd  tutorial
+
+	edit input deck 'eqm.h'
+	start run script:
+On JUMP:	./eqm.sh
+Linux PC:	./eqm_linux.sh
 
 
 
