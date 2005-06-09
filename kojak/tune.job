@@ -1,0 +1,17 @@
+# @job_name = tuning
+# @job_type = parallel
+# @wall_clock_limit = 00:05:00
+# @notify_user = p.gibbon@fz-juelich.de
+# @notification = complete
+# @output = 60k.out
+# @error = err.$(jobid)
+# @node = 1
+# @total_tasks = 1
+# @node_usage = not_shared 
+# @resources = ConsumableCpus(1)
+# @ initialdir = ~/tree/kojak
+# @queue
+
+export OMP_NUM_THREADS=1
+cp tune_run.h run.h
+poe /home4/jzam04/jzam0401/tree/src/pepc_tune
