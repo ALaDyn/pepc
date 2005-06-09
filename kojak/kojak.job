@@ -6,14 +6,13 @@
 # @output = kojak_prefetch.out
 # @error = err.$(jobid)
 # @node = 1
-# @total_tasks = 8
-# @node_usage = not_shared 
+# @total_tasks = 4
+# @node_usage = shared 
 # @resources = ConsumableCpus(1)
-# @ initialdir = ~/tree/kojak
 # @queue
-module load kojak-2.1xl
-export ELG_BLACKLIST=a.blist
+module load kojak-2.2b2
+export ELG_BLACKLIST=blist
 export OMP_NUM_THREADS=1
 cp kojak.h run.h
-poe /home4/jzam04/jzam0401/tree/pepc/src_tune/pepc
+poe ../pepc-b/pepck
 expert a.elg
