@@ -19,8 +19,8 @@ LDFLAGS = -q64 -qrealsize=8  -g
 
 IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 
-PG=-pg -g -qfullpath
-#DB= -g -qfullpath -qcheck
+#PG=-pg -g -qfullpath
+DB= -g -qfullpath -qcheck
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
 #MPITRACE= -L/usr/local/beta/lib -lmpitrace
@@ -61,7 +61,7 @@ pepclib = liblpepc.a
 .SUFFIXES: .f90
 
 
-FC = mpxlf90_r
+#FC = mpxlf90_r
 #FC = ifort
 # MPICH wrappers
 # full MPI path usually something like /usr/local/mpich/bin
@@ -77,7 +77,7 @@ F90LINKER   = mpif90
 
 # KOJAK instrumentation
 #FC = mpxlf90_r -qdebug=function_trace
-#FC = kinst mpxlf90_r
+FC = kinst mpxlf90_r
 
 # -------------------------------------------------------------------------------------------
 
