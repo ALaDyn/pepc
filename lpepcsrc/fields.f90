@@ -18,7 +18,6 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force)
 
-  ! use physvars
   use treevars
   use utils
   implicit none
