@@ -18,10 +18,11 @@
 
 
 	cd lpepcsrc   (from pepc install directory)
-	cp makefile.ibm makefile
+	(cp makefile.ibm makefile)
 
-Make sure compiler changed to:
+Check/adjust following variables:
 	FC = kinst mpxlf90_r
+	PREFIX=$HOME/pepc  (pepc install directory)
 
 	make clean
 	make lpepc
@@ -38,13 +39,13 @@ Application:
 	make all 
 
 or: 	make lpepc  (links to headers and library)
-	make pepcb
+	make pepck
 
 
 Run:
 	cd  tutorial
 
-Edit input deck 'run.h'
+Edit input deck 'kojak.h'  (gets copied to run.h)
 Start run script:
 On JUMP:	./run.sh
 
