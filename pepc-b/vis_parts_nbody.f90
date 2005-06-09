@@ -142,7 +142,7 @@ subroutine vis_parts_nbody
 !     endif
 
      ! Gather nship particle data onto root PE
-     write (*,'((i15)/)') nship*attrib_max, nparts_pe, nbuf_pe, recv_strides
+!     write (*,'((i15)/)') nship*attrib_max, nparts_pe, nbuf_pe, recv_strides
      call MPI_GATHERV( vbuf_local, nship*attrib_max, MPI_REAL, vbuffer, nbuf_pe, recv_strides, MPI_REAL, 0, MPI_COMM_WORLD, ierr )
 
 
@@ -179,8 +179,8 @@ subroutine vis_parts_nbody
         do i=1,nship
 !        write (90,*) 'local',i
 !        write (90,'((22(f12.5/)//))') vbuf_local(0:attrib_max-1,i)
-        write (90,*) 'global',i
-        write (90,'((22(f15.8/)//))') vbuffer(0:attrib_max-1,i)
+!        write (90,*) 'global',i
+!        write (90,'((22(f15.8/)//))') vbuffer(0:attrib_max-1,i)
 !        write (90,*) vbuffer(0:attrib_max-1,i)
         end do
         call flvisit_nbody2_check_connection(lvisit_active)
@@ -218,24 +218,6 @@ subroutine vis_parts_nbody
      endif
   endif
 
-
-  if (me==0) then
-
-     ! ship branch nodes to show domains
-     do j=1,nbranch_sum
-        ilev = log( 1.*branch_key(j) )/log(8.)
-        ixd = SUM( (/ (2**i*ibits( branch_key(j),3*i,1 ), i=0,ilev-1) /) )
-        iyd = SUM( (/ (2**i*ibits( branch_key(j),3*i+1,1 ), i=0,ilev-1) /) )
-        izd = SUM( (/ (2**i*ibits( branch_key(j),3*i+2,1 ), i=0,ilev-1) /) )
-        !           mvis(j) = boxsize/2**(ilev)          !  box length
-        !           xvis(j)=(xmin + (ixd+0.05)*mvis(j))*convert_mu ! corners?
-        !           yvis(j)=(ymin + (iyd+0.05)*mvis(j))*convert_mu
-        !           zvis(j)=(zmin + (izd+0.05)*mvis(j))*convert_mu 
-        !           mvis(j) = mvis(j)*0.9
-     end do
-     !        call flvisit_spk_domains_send( tlaser, xvis,yvis,zvis,mvis,branch_owner,xvis,nbranch_sum)
-
-  endif
 
   ! Make sure everyone else knows about new momentum threshold
   call MPI_BCAST( uthresh, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
