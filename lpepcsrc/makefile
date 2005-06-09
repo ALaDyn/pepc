@@ -91,7 +91,7 @@ PEPCSRC.f90 =  tree_domains.f90 setup_treearrays.f90 \
 		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
 		tree_walk.f90	tree_prefetch.f90 fields.f90 sum_force.f90 sum_bfield.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
-	        diagnose_tree.f90 check_table.f90 sum_lennardjones.90 \
+	        diagnose_tree.f90 check_table.f90 sum_lennardjones.f90 \
 		draw_domains.f90 draw_tree2d.f90 draw_lists.f90 \
 		fields.f90 fields_p.f90
 
