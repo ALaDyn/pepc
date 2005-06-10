@@ -62,11 +62,11 @@ pepclib = liblpepc.a
 .SUFFIXES: .f90
 
 
-#FC = mpxlf90_r
+FC = mpxlf90_r
 
 # KOJAK instrumentation
 #FC = mpxlf90_r -qdebug=function_trace
-FC = kinst mpxlf90_r
+#FC = kinst mpxlf90_r
 
 # -------------------------------------------------------------------------------------------
 
