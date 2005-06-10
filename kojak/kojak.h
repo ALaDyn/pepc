@@ -2,6 +2,7 @@
  ncpu_merge = 1
  debug_level = 2
  debug_tree = 0
+ mac=0
 ! particles
   ne = 4000
   ni = 4000 
@@ -70,7 +71,7 @@
   mc_init = .false.
   mc_steps = 1000
   idump = 4000
-  iprot=20
+  iprot=1
   itrack=300
   particle_bcs = 1
   scheme = 1 /

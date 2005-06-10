@@ -7,8 +7,8 @@
  walk_balance=.true.
  !walk_debug=.true.
 ! particles
-  ne = 30000
-  ni = 30000 
+  ne = 3000
+  ni = 3000 
 
  ! initial_config = 1   ! sphere
  !  initial_config = 2         ! random disc
