@@ -1,0 +1,14 @@
+# @job_name = wire 
+# @job_type = parallel
+# @wall_clock_limit = 00:25:00
+# @notify_user = p.gibbon@fz-juelich.de
+# @notification = complete
+# @output = wire.out
+# @error = wire.err
+# @node = 1
+# @total_tasks = 16
+# @node_usage = shared 
+# @resources = ConsumableCpus(1)
+# @queue
+cp wire.h run.h
+poe ../pepc-b/pepcb
