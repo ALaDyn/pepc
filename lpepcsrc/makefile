@@ -28,10 +28,10 @@ LISTING=-qreport -qlist -qlistopt -qsource
 #MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
 #MPITRACE= -lmpitrace
 #MPITRACE= -lmpiprof
-#MPITRACE= -lsummary -lpmapi
+MPITRACE= -lsummary -lpmapi
 #MPITRACE=  -lmpihpm -lpmapi
 Q64=-q64
-FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90 
+FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  -qsave
 #
 
 
@@ -43,8 +43,8 @@ TUNE= -qarch=pwr4 -qtune=pwr4 -O5 $(IPA)
 # $(PG) $(HPM)
 
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
-FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
-#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(TUNE)
+#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
+FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(TUNE)
 TFLAGS = $(FFLAGS) $(TUNE)
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld

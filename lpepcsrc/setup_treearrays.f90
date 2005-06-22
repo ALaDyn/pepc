@@ -1,4 +1,4 @@
-subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level)
+subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
   use treevars
   implicit none
   include 'mpif.h'
@@ -8,6 +8,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level)
   integer, intent(in) :: n_cpu  ! MPI # CPUs
   integer, intent(in) :: npart_total  ! total (max) # simulation particles
   integer, intent(in) :: db_level
+  integer, intent(in) :: np_mult ! particle array size multiplication factor (1.5)
 
   integer :: ibig, machinebits, maxleaf, maxtwig,k
   integer :: ierr,npsize
@@ -25,6 +26,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level)
       tree_debug=.true.
       force_debug=.true.
       walk_summary=.true.
+      prefetch_debug=.true. 
 
   else if (db_level==2) then
      tree_debug=.true.
@@ -41,7 +43,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level)
   endif
 
   npartm = npart 
-  nppm = 1.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+  nppm = np_mult*1.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
   nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression

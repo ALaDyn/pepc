@@ -70,11 +70,11 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, force_const, bond_cons
 !  npp = np_local  ! assumed lists matched for now
 
   if (force_debug) then
-     write (*,*)
-     write (*,'(a7,a60/a7,2i5,6f15.2)') 'PEPC | ','Params itime, mac, theta, eps, force_const, bond_const, err, delta_t:', &
-              'PEPC | ',itime, mac, theta, eps, force_const, bond_const, err_f, delta_t
-     write (*,'(a7,a20,4l4)') 'PEPC | ','Force switches: ',coulomb,bfield_on,lenjones,bonds
-     write (*,'(a7,a20/(i16,4f15.3))') 'PEPC | ','Initial buffers: ',(pelabel(i), x(i), y(i), z(i), q(i),i=1,npp) 
+     if (me==0) write (*,*)
+     if (me==0) write (*,'(a8,a60/a7,2i5,6f15.2)') 'LPEPC | ','Params itime, mac, theta, eps, force_const, bond_const, err, delta_t:', &
+              'LPEPC | ',itime, mac, theta, eps, force_const, bond_const, err_f, delta_t
+     if (me==0) write (*,'(a8,a20,4l4)') 'LPEPC | ','Force switches: ',coulomb,bfield_on,lenjones,bonds
+     write (ipefile,'(a8,a20/(i16,4f15.3))') 'LPEPC | ','Initial buffers: ',(pelabel(i), x(i), y(i), z(i), q(i),i=1,npp) 
   endif
 
 
@@ -91,16 +91,12 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, force_const, bond_cons
   call tree_fill       ! Fill in remainder of local tree
   call tree_properties ! Compute multipole moments for local tree
   call cputime(tp1)
-  if (num_pe>1) call tree_prefetch(itime)
+  if (mac==1 .and. num_pe>1) call tree_prefetch(itime)
   call cputime(tp2)
 
   t_domain = tb1-td1
   t_build = tp1-tb1
-  if (num_pe>1) then
-     t_prefetch = tp2-tp1
-  else
-     t_prefetch = 0.
-  endif
+  t_prefetch = tp2-tp1
   t_walk=0.
   t_walkc=0.
   t_force=0.
@@ -165,8 +161,8 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, force_const, bond_cons
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
 
      if (force_debug) then
-       	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
-        write(ipefile,*) 'pass ',jpass,' # parts ',ip1,' to ',ip1+nps-1
+       	if (me==0) write(*,*) 'LPEPC |  pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
+        write(ipefile,*) 'LPEPC |  pass ',jpass,' # parts ',ip1,' to ',ip1+nps-1
      endif
 
      !  build interaction list: 
@@ -280,18 +276,17 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, force_const, bond_cons
   endif
 
   if (force_debug) then
-     write (ipefile,101)
-     write (*,101)
+     if (me==0) write (*,101) force_const
      write (ipefile,101) force_const
 
      do i=1,npp
         write (ipefile,102) pelabel(i), & 
              q(i), m(i), ux(i), pot(i), ex(i)
-        write (*,102) pelabel(i), x(i), & 
-             q(i), m(i), ux(i), pot(i)
+!        if (me==0) write (*,102) pelabel(i), x(i), & 
+!             q(i), m(i), ux(i), pot(i)
      end do
 
-101  format('Tree forces:'/'   p    q   m   ux   pot  ',f8.2)
+101  format('LPEPC | Tree forces:'/'   p    q   m   ux   pot  ',f8.2)
 102  format(1x,i7,5(1pe14.5))
 
   endif
@@ -299,11 +294,6 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, force_const, bond_cons
   np_local = npp   ! reset local # particles for calling routine
 
 end subroutine pepc_fields_p
-
-
-
-
-
 
 
 

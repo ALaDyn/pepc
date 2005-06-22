@@ -50,15 +50,16 @@ subroutine tree_prefetch(itime)
   integer :: cchild, nchild, node_addr, addr_parent, child_byte
   integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops, nreqs_new, nreqs_old, nfetch_new         ! loop counters
   integer :: iofile
-  integer :: size_remove, nreq_max, nfetch_max, sumfetches, timestamp, send_prop_count, recv_count, nnot_local
+  integer :: size_remove, nreq_max, nfetch_max,  timestamp, send_prop_count, recv_count, nnot_local
   character*1 :: ctick
   character(30) :: cfile, ccol1, ccol2, ccol0
+  integer, save :: sumfetches
 
   ! external functions
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
-  logical :: prefetch_summary=.false.
+  logical :: prefetch_summary=.true.
 
   iofile = ipefile
   !
