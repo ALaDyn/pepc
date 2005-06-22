@@ -44,6 +44,9 @@ subroutine double_target
   Ey(npp+1:2*npp) = 0.
   Ez(npp+1:2*npp) = 0.
   pot(npp+1:2*npp) = 0.
+  Ax(1:2*npp)  = 0.
+  Ay(1:2*npp)  = 0.
+  Az(1:2*npp)  = 0.
 
   work(1:2*npp) = 1.   ! set work load balanced initially
   iseed1 = -7901-me

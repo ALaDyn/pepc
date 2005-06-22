@@ -89,7 +89,7 @@ module physvars
 !  Variables needing 'copy' for tree routines
   integer :: npart_total  ! Total # particles (npart)
   integer :: np_local  ! Local # particles (npart)
-
+  integer :: np_mult=1.5   ! particle array safety margin
 !  Associated MPI stuff
 
   integer :: my_rank       ! Rank of current task

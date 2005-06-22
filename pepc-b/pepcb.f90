@@ -61,7 +61,7 @@ program pepcb
 
   call setup           ! Read input deck, setup plasma config
   call setup_arrays    ! Set up field arrays
-  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree)  ! Allocate array space for tree
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult)  ! Allocate array space for tree
 
   call param_dump      ! Dump initial data
 

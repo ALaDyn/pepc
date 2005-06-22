@@ -117,6 +117,7 @@ subroutine setup
   nep = ne/n_cpu  ! local # electrons and ions - may be adjusted later
   nip = ni/n_cpu
   new_label = npart_total  ! Rezone label
+  if (target_dup) np_mult = np_mult*2  ! double up particle array size if necessary
 
   geometry: select case(target_geometry)
 

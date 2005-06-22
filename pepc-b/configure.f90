@@ -96,6 +96,7 @@ subroutine configure
 
 
   np_local = npp
-
+  npart_total = npart
+ 
 end subroutine configure
 

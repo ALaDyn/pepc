@@ -20,7 +20,7 @@
 IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 
 #PG=-pg -g -qfullpath
-#DB= -g -qfullpath -qcheck
+DB= -g -qfullpath -qcheck
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
 #MPITRACE= -L/usr/local/beta/lib -lmpitrace
@@ -31,7 +31,7 @@ LISTING=-qreport -qlist -qlistopt -qsource
 MPITRACE= -lsummary -lpmapi
 #MPITRACE=  -lmpihpm -lpmapi
 Q64=-q64
-FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  
+FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90 -qsave 
 TUNE= -qarch=pwr4 -qtune=pwr4 -O5 $(IPA) 
 # $(PG) $(HPM)
 

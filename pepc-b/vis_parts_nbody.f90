@@ -15,8 +15,8 @@ subroutine vis_parts_nbody
   implicit none
   include 'mpif.h'
 
-  integer, parameter :: npart_visit_max = 10000  ! Max 250k data points for VIS
-  integer, parameter :: ship_max = 10000, attrib_max=22
+  integer, parameter :: npart_visit_max = 2000000  ! Max 250k data points for VIS
+  integer, parameter :: ship_max = 2000000, attrib_max=22
   real*4, dimension(0:attrib_max-1,npart_visit_max) :: vbuffer
   real*4, dimension(0:attrib_max-1,nppm) :: vbuf_local
 
