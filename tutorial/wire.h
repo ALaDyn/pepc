@@ -4,8 +4,8 @@
  debug_tree = 0
  mac=0
 ! particles
-  ne = 50000
-  ni = 50000 
+  ne = 20000
+  ni = 20000 
 
  plasma_config = 1  ! set up plasma target
  ! target_geometry =7   ! hollow sphere
@@ -21,10 +21,10 @@
   coulomb = .true.
   lenjones = .false.
   bond_const = 2.e-3
-  r_sphere = 2
-  x_plasma = 20.    ! plasma disc thickness/ wire length
+  r_sphere = 3
+  x_plasma = 3.    ! plasma disc thickness
   y_plasma = 4.     ! plasma width (slab target)
-  z_plasma = 4.     ! plasma width (slab target)
+  z_plasma = 10.     ! plasma width (slab target) / wire length
   xl = 1  ! graphics box size
   yl =1 
   zl =8 
@@ -58,7 +58,7 @@
   ! control
   nt =100
   dt = 0.2
-  eps = 2.
+  eps = 3.
  restart = .false.
   vis_on = .true.
  steering=.false.
