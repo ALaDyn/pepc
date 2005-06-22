@@ -14,6 +14,7 @@ subroutine vis_domains_nbody
   use treevars
   implicit none   
 
+
   integer, parameter :: npart_visit_max = 10000  ! Max data points for VIS
   integer, parameter :: ship_max = 10000, attrib_max=22
   real*4, dimension(0:attrib_max-1,npart_visit_max) :: vbuffer
@@ -41,13 +42,12 @@ subroutine vis_domains_nbody
         ixd = SUM( (/ (2**i*ibits( branch_key(j),3*i,1 ), i=0,ilev-1) /) )
         iyd = SUM( (/ (2**i*ibits( branch_key(j),3*i+1,1 ), i=0,ilev-1) /) )
         izd = SUM( (/ (2**i*ibits( branch_key(j),3*i+2,1 ), i=0,ilev-1) /) )
-        lbox = boxsize/2**(ilev)*0.9          !  box length
+        lbox = boxsize/2**(ilev)          !  box length
         ! Store attributes for visualizing
         vbuffer(0,j) = t_display
-
-        vbuffer(1,j)= xmin + (ixd+0.05)*lbox ! corners?
-        vbuffer(2,j)= ymin + (iyd+0.05)*lbox
-        vbuffer(3,j)= zmin + (izd+0.05)*lbox 
+        vbuffer(1,j)= xmin + ixd*lbox + lbox/2 ! corners?
+        vbuffer(2,j)= ymin + lbox*(iyd+.5)
+        vbuffer(3,j)= zmin + lbox*(izd+.5) 
         vbuffer(4,j) = lbox
         vbuffer(5,j) = branch_owner(j)  ! cpu id of branch node
         cpuid = branch_owner(j)+1
@@ -71,7 +71,29 @@ subroutine vis_domains_nbody
         write (*,'(7f13.4)') vbuffer(1,j),vbuffer(2,j), vbuffer(4,j), vbuffer(5,j), & 
              vbuffer(6,j), vbuffer(7,j), vbuffer(17,j)
      end do
-
+! root box
+     j=nbranch_sum+1  
+        vbuffer(0,j) = t_display
+        vbuffer(1,j)= xmin + boxsize/2! corners?
+        vbuffer(2,j)= ymin + boxsize/2
+        vbuffer(3,j)= zmin + boxsize/2 
+        vbuffer(4,j) = boxsize
+        vbuffer(5,j) = 0  ! cpu id of branch node
+        cpuid = branch_owner(j)+1
+        vbuffer(6,j) = 1.   ! total work load of branch node/cpu
+        vbuffer(7,j) = npart ! total # particles on cpu
+        vbuffer(8,j) = 0.
+        vbuffer(9,j) = 0.
+        vbuffer(10,j) = 0.
+        vbuffer(11,j) = 0.
+        vbuffer(12,j) = 0.
+        vbuffer(13,j) = 0.
+        vbuffer(14,j) = 0.
+        vbuffer(15,j) = 0.
+        vbuffer(16,j) = 16    ! Domain type
+        vbuffer(17,j) = nbranch_sum+1  ! Total # branch nodes
+        vbuffer(18,j) = 0.
+     
      call flvisit_nbody2_check_connection(lvisit_active)
 
      call flvisit_nbody2_partstep_send(vbuffer,nbranch_sum,attrib_max)
