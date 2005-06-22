@@ -49,7 +49,7 @@
 
   np_beam = 0 ! initial # beam particles/ dt
 
-  vosc = 2.0
+  vosc = 3.0
   omega = 0.5
   sigma = 3.
   tpulse = 100.
@@ -61,7 +61,8 @@
   eps = 2.
  restart = .false.
   vis_on = .true.
- ivis = 10 
+ steering=.false.
+ ivis =  5
  ivis_fields = 5000
  ivis_domains = 5000
   mc_init = .false.
