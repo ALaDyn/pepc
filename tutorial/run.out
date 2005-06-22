@@ -1,84 +1,53 @@
-
-Other inputs:
- &PEPCDATA
- NEP=125, NIP=125, NE=500, NI=500, THETA=0.500000000000000000, MASS_RATIO=
- 2000.00000000000000, Q_FACTOR=1.00000000000000000, EPS=2.50000000000000000, 
- PLASMA_CONFIG=1, TARGET_GEOMETRY=6, ISPECIAL=0, TE_KEV=0.500000000000000000, 
- TI_KEV=0.000000000000000000E+00, T_SCALE=1.00000000000000000, R_SPHERE=
- 1.00000000000000000, X_PLASMA=1.00000000000000000, Y_PLASMA=2.00000000000000000
- Z_PLASMA=2.00000000000000000, DELTA_MC=0.100000000000000006, XL=
- 2.00000000000000000, YL=2.00000000000000000, ZL=2.00000000000000000, DISPLACE=
- 0.000000000000000000E+00, 0.000000000000000000E+00, 0.000000000000000000E+00, 
- BOND_CONST=0.200000000000000004E-02, FNN=5.00000000000000000, RHO_MIN=
- 0.100000000000000006, LOLAM=1.25663706160000022, BEAM_CONFIG=0, NP_BEAM=0, 
- R_BEAM=0.500000000000000028E-01, U_BEAM=0.200000000000000011, THETA_BEAM=
- 0.000000000000000000E+00, PHI_BEAM=0.000000000000000000E+00, X_BEAM=
- 0.400000000000000008E-01, START_BEAM=-0.100000000000000006, RHO_BEAM=
- -1.00000000000000000, MASS_BEAM=5.00000000000000000, LAMBDA=1.00000000000000000
- SIGMA=6.00000000000000000, TPULSE=20.0000000000000000, VOSC=6.00000000000000000
- OMEGA=0.500000000000000000, FOCUS=0.500000000000000000, 1.00000000000000000, 
- 1.00000000000000000, X_OFFSET=0.000000000000000000E+00, Z_OFFSET=
- 0.000000000000000000E+00, NT=400, DT=0.500000000000000000, MC_STEPS=1000, 
- IDUMP=4000, IVIS=5, IVIS_FIELDS=5000, IPROT=20, ITRACK=300, NMERGE=1, NGX=25, 
- NGY=25, NGZ=25, VIS_ON=T, STEERING=F, DOMAIN_DEBUG=F, MC_INIT=F, RESTART=F, 
- SCHEME=1, PARTICLE_BCS=1, LOAD_BALANCE=F, WALK_BALANCE=T, WALK_DEBUG=F, 
- FORCE_DEBUG=F, PREFETCH_DEBUG=F, DUMP_TREE=F, PERF_ANAL=F, COULOMB=T, BONDS=F, 
- LENJONES=F, TARGET_DUP=F, RAMP=F, PREFETCH=F, WALK_SUMMARY=F, BRANCH_DEBUG=F, 
- TREE_DEBUG=F, CONSTRAIN_PROOF=0.100000000000000002E-02, LEN_TRIPOD=
- 0.000000000000000000E+00, USE_MULTIPOLES=T, STRUCT_STEP=0, UTHRESH=
- -1.00000000000000000
- /
      Plasma config:    1 plasma    
-   Target geometry:    6 hemisphere
-       Beam config:    0 eqm    
+   Target geometry:    3 wire      
+       Beam config:    4 ES pond
             Scheme:    1 const U
-     Plasma volume:    2.094E+00
-     Sphere radius:        1.000
-     Plasma length:        1.000
-      Plasma width:        2.000
-     Plasma height:        2.000
-   Electron charge:   -4.189E-03
-     Electron mass:    4.189E-03
-          Ion mass:    8.378E+00
+     Plasma volume:    2.827E+02
+     Sphere radius:        3.000
+     Plasma length:        3.000
+      Plasma width:        4.000
+     Plasma height:       10.000
+   Electron charge:   -1.414E-01
+     Electron mass:    1.414E-01
+          Ion mass:    2.827E+02
                 Te:        0.500
                 Ti:        0.000
       Debye length:    3.128E-02
            n_e/n_c:        4.000
-     Ion spacing a:       0.1612
-    Cloud radius R:        2.500
-   Collision freq.:        0.000
-      Conductivity:     5865.105
-   Laser amplitude:        6.000
-       Pulse width:        6.000
-    Pulse duration:       20.000
+     Ion spacing a:       0.5209
+    Cloud radius R:        3.000
+   Collision freq.:        0.004
+      Conductivity:      250.244
+   Laser amplitude:        3.000
+       Pulse width:        3.000
+    Pulse duration:      100.000
         Wavelength:        1.000
    Incidence angle:        0.000
-   Laser intensity:        1.800
-    # dt per cycle:           25
-               N_D:    3.061E-02
-               N_c:    15625.000
-       R/lambda_De:       79.922
-          Timestep:        0.500
-      Max timestep:       36.378
- Neighbour search ra   8.060E-01
-         MAC theta:        0.500
-  Particle # ratio:    8.378E+03
- Graphics box:      2.00 x      2.00 x      2.00
+   Laser intensity:        0.450
+    # dt per cycle:           62
+               N_D:    9.069E-04
+               N_c:      800.000
+       R/lambda_De:       95.906
+          Timestep:        0.200
+      Max timestep:        1.552
+ Neighbour search ra   2.605E+00
+         MAC theta:        0.600
+  Particle # ratio:    2.827E+05
+ Graphics box:      1.00 x      1.00 x      8.00
 
- Laser focus:      0.50     1.00     1.00
+ Laser focus:     -2.50     0.50     4.00
 
-  Electrons:  500
-  Ions:  500
+  Electrons:  2000
+  Ions:  2000
   Beam particles:  0
   Beam angles  0.000000000000000000E+00 0.000000000000000000E+00
-  Particles per PE:  250
+  Particles per PE:  0
 
  Switches:
 --------
     Coulomb forces:   T
  Lennard-Jones force  F
-      load balance:   F
-      walk balance:   T
+      load balance:   T
            restart:   F
               ramp:   F
       domain debug:   F
@@ -95,1240 +64,1286 @@ Other inputs:
  Max # multipole fetches:  262145
  Machine bit-size =  64
  Max permitted particles / PE:  1500
- Max size of interaction lists:  1459
+ Max size of interaction lists:  1198
  Shortlist length:  2000
- Memory needed for lists =  89  Mbytes
+ Memory needed for lists =  73  Mbytes
 
 Other inputs:
  &PEPCDATA
- NEP=125, NIP=125, NE=500, NI=500, THETA=0.500000000000000000, MASS_RATIO=
- 2000.00000000000000, Q_FACTOR=1.00000000000000000, EPS=2.50000000000000000, 
- PLASMA_CONFIG=1, TARGET_GEOMETRY=6, ISPECIAL=0, TE_KEV=0.500000000000000000, 
- TI_KEV=0.000000000000000000E+00, T_SCALE=1.00000000000000000, R_SPHERE=
- 1.00000000000000000, X_PLASMA=1.00000000000000000, Y_PLASMA=2.00000000000000000
- Z_PLASMA=2.00000000000000000, DELTA_MC=0.100000000000000006, XL=
- 2.00000000000000000, YL=2.00000000000000000, ZL=2.00000000000000000, DISPLACE=
- 0.000000000000000000E+00, 0.000000000000000000E+00, 0.000000000000000000E+00, 
- BOND_CONST=0.200000000000000004E-02, FNN=5.00000000000000000, RHO_MIN=
- 0.100000000000000006, LOLAM=1.25663706160000022, BEAM_CONFIG=0, NP_BEAM=0, 
- R_BEAM=0.500000000000000028E-01, U_BEAM=0.200000000000000011, THETA_BEAM=
- 0.000000000000000000E+00, PHI_BEAM=0.000000000000000000E+00, X_BEAM=
- 0.400000000000000008E-01, START_BEAM=-0.100000000000000006, RHO_BEAM=
- -1.00000000000000000, MASS_BEAM=5.00000000000000000, LAMBDA=1.00000000000000000
- SIGMA=6.00000000000000000, TPULSE=20.0000000000000000, VOSC=6.00000000000000000
- OMEGA=0.500000000000000000, FOCUS=0.500000000000000000, 1.00000000000000000, 
- 1.00000000000000000, X_OFFSET=0.000000000000000000E+00, Z_OFFSET=
- 0.000000000000000000E+00, NT=400, DT=0.500000000000000000, MC_STEPS=1000, 
- IDUMP=4000, IVIS=5, IVIS_FIELDS=5000, IPROT=20, ITRACK=300, NMERGE=1, NGX=25, 
- NGY=25, NGZ=25, VIS_ON=T, STEERING=F, DOMAIN_DEBUG=F, MC_INIT=F, RESTART=F, 
- SCHEME=1, PARTICLE_BCS=1, LOAD_BALANCE=F, WALK_BALANCE=T, WALK_DEBUG=F, 
- FORCE_DEBUG=F, PREFETCH_DEBUG=F, DUMP_TREE=F, PERF_ANAL=F, COULOMB=T, BONDS=F, 
- LENJONES=F, TARGET_DUP=F, RAMP=F, PREFETCH=F, WALK_SUMMARY=F, BRANCH_DEBUG=F, 
- TREE_DEBUG=F, CONSTRAIN_PROOF=0.100000000000000002E-02, LEN_TRIPOD=
- 0.000000000000000000E+00, USE_MULTIPOLES=T, STRUCT_STEP=0, UTHRESH=
- -1.00000000000000000
+ NEP=200, NIP=200, NE=2000, NI=2000, THETA=0.599999999999999978, MAC=0, 
+ MASS_RATIO=2000.00000000000000, Q_FACTOR=1.00000000000000000, EPS=
+ 3.00000000000000000, PLASMA_CONFIG=1, TARGET_GEOMETRY=3, ISPECIAL=0, TE_KEV=
+ 0.500000000000000000, TI_KEV=0.000000000000000000E+00, T_SCALE=
+ 1.00000000000000000, R_SPHERE=3.00000000000000000, X_PLASMA=3.00000000000000000
+ Y_PLASMA=4.00000000000000000, Z_PLASMA=10.0000000000000000, DELTA_MC=
+ 0.100000000000000006, XL=1.00000000000000000, YL=1.00000000000000000, ZL=
+ 8.00000000000000000, DISPLACE=10.0000000000000000, 10.0000000000000000, 
+ 0.000000000000000000E+00, BOND_CONST=0.200000000000000004E-02, FNN=
+ 5.00000000000000000, RHO_MIN=0.100000000000000006, LOLAM=1.25663706160000022, 
+ BEAM_CONFIG_IN=4, NP_BEAM=0, IDIM=3, R_BEAM=3.00000000000000000, U_BEAM=
+ 0.200000000000000011, THETA_BEAM=0.000000000000000000E+00, PHI_BEAM=
+ 0.000000000000000000E+00, X_BEAM=0.400000000000000008E-01, START_BEAM=
+ -0.100000000000000006, RHO_BEAM=3.00000000000000000, MASS_BEAM=
+ 5.00000000000000000, LAMBDA=1.00000000000000000, SIGMA=3.00000000000000000, 
+ TPULSE=100.000000000000000, VOSC=3.00000000000000000, OMEGA=
+ 0.500000000000000000, FOCUS=-2.50000000000000000, 0.500000000000000000, 
+ 4.00000000000000000, X_OFFSET=0.000000000000000000E+00, Z_OFFSET=
+ 0.000000000000000000E+00, NT=50, DT=0.200000000000000011, MC_STEPS=1000, IDUMP=
+ 4000, IVIS=5, IVIS_FIELDS=5000, IVIS_DOMAINS=5000, IPROT=1, ITRACK=300, 
+ NCPU_MERGE=1, NGX=25, NGY=25, NGZ=25, VIS_ON=T, STEERING=F, MC_INIT=F, RESTART=
+ F, SCHEME=1, PARTICLE_BCS=1, COULOMB=T, BFIELDS=F, BONDS=F, LENJONES=F, 
+ TARGET_DUP=F, RAMP=F, DEBUG_LEVEL=2, DEBUG_TREE=0, NCPU_MERGE=1, BALANCE=1, 
+ CONSTRAIN_PROOF=0.100000000000000002E-02, LEN_TRIPOD=0.000000000000000000E+00, 
+ STRUCT_STEP=0, UTHRESH=-1.00000000000000000
  /
- scrambling  124  particles
-
-
-Timestep        0 t=   0.00000
-
-
- Timestep        1    total run time =     0.50
-
-
- Timestep        2    total run time =     1.00
-
-
- Timestep        3    total run time =     1.50
-
-
- Timestep        4    total run time =     2.00
-
-
- Timestep        5    total run time =     2.50
-
-
- Timestep        6    total run time =     3.00
-
-
- Timestep        7    total run time =     3.50
-
-
- Timestep        8    total run time =     4.00
-
-
- Timestep        9    total run time =     4.50
-
-
- Timestep       10    total run time =     5.00
-
-
- Timestep       11    total run time =     5.50
-
-
- Timestep       12    total run time =     6.00
-
-
- Timestep       13    total run time =     6.50
-
-
- Timestep       14    total run time =     7.00
-
-
- Timestep       15    total run time =     7.50
-
-
- Timestep       16    total run time =     8.00
-
-
- Timestep       17    total run time =     8.50
-
-
- Timestep       18    total run time =     9.00
-
-
- Timestep       19    total run time =     9.50
-
-
- Timestep       20    total run time =    10.00
-
-
- Timestep       21    total run time =    10.50
-
-
- Timestep       22    total run time =    11.00
-
-
- Timestep       23    total run time =    11.50
-
-
- Timestep       24    total run time =    12.00
-
-
- Timestep       25    total run time =    12.50
-
-
- Timestep       26    total run time =    13.00
-
-
- Timestep       27    total run time =    13.50
-
-
- Timestep       28    total run time =    14.00
-
-
- Timestep       29    total run time =    14.50
-
-
- Timestep       30    total run time =    15.00
-
-
- Timestep       31    total run time =    15.50
-
-
- Timestep       32    total run time =    16.00
-
-
- Timestep       33    total run time =    16.50
-
-
- Timestep       34    total run time =    17.00
-
-
- Timestep       35    total run time =    17.50
-
-
- Timestep       36    total run time =    18.00
-
-
- Timestep       37    total run time =    18.50
-
-
- Timestep       38    total run time =    19.00
-
-
- Timestep       39    total run time =    19.50
-
-
- Timestep       40    total run time =    20.00
-
-
- Timestep       41    total run time =    20.50
-
-
- Timestep       42    total run time =    21.00
-
-
- Timestep       43    total run time =    21.50
-
-
- Timestep       44    total run time =    22.00
-
-
- Timestep       45    total run time =    22.50
-
-
- Timestep       46    total run time =    23.00
-
-
- Timestep       47    total run time =    23.50
-
-
- Timestep       48    total run time =    24.00
-
-
- Timestep       49    total run time =    24.50
-
-
- Timestep       50    total run time =    25.00
-
-
- Timestep       51    total run time =    25.50
-
-
- Timestep       52    total run time =    26.00
-
-
- Timestep       53    total run time =    26.50
-
-
- Timestep       54    total run time =    27.00
-
-
- Timestep       55    total run time =    27.50
-
-
- Timestep       56    total run time =    28.00
-
-
- Timestep       57    total run time =    28.50
-
-
- Timestep       58    total run time =    29.00
-
-
- Timestep       59    total run time =    29.50
-
-
- Timestep       60    total run time =    30.00
-
-
- Timestep       61    total run time =    30.50
-
-
- Timestep       62    total run time =    31.00
-
-
- Timestep       63    total run time =    31.50
-
-
- Timestep       64    total run time =    32.00
-
-
- Timestep       65    total run time =    32.50
-
-
- Timestep       66    total run time =    33.00
-
-
- Timestep       67    total run time =    33.50
-
-
- Timestep       68    total run time =    34.00
-
-
- Timestep       69    total run time =    34.50
-
-
- Timestep       70    total run time =    35.00
-
-
- Timestep       71    total run time =    35.50
-
-
- Timestep       72    total run time =    36.00
-
-
- Timestep       73    total run time =    36.50
-
-
- Timestep       74    total run time =    37.00
-
-
- Timestep       75    total run time =    37.50
-
-
- Timestep       76    total run time =    38.00
-
-
- Timestep       77    total run time =    38.50
-
-
- Timestep       78    total run time =    39.00
-
-
- Timestep       79    total run time =    39.50
-
-
- Timestep       80    total run time =    40.00
-
-
- Timestep       81    total run time =    40.50
-
-
- Timestep       82    total run time =    41.00
-
-
- Timestep       83    total run time =    41.50
-
-
- Timestep       84    total run time =    42.00
-
-
- Timestep       85    total run time =    42.50
-
-
- Timestep       86    total run time =    43.00
-
-
- Timestep       87    total run time =    43.50
-
-
- Timestep       88    total run time =    44.00
-
-
- Timestep       89    total run time =    44.50
-
-
- Timestep       90    total run time =    45.00
-
-
- Timestep       91    total run time =    45.50
-
-
- Timestep       92    total run time =    46.00
-
-
- Timestep       93    total run time =    46.50
-
-
- Timestep       94    total run time =    47.00
-
-
- Timestep       95    total run time =    47.50
-
-
- Timestep       96    total run time =    48.00
-
-
- Timestep       97    total run time =    48.50
-
-
- Timestep       98    total run time =    49.00
-
-
- Timestep       99    total run time =    49.50
-
-
- Timestep      100    total run time =    50.00
-
-
- Timestep      101    total run time =    50.50
-
-
- Timestep      102    total run time =    51.00
-
-
- Timestep      103    total run time =    51.50
-
-
- Timestep      104    total run time =    52.00
-
-
- Timestep      105    total run time =    52.50
-
-
- Timestep      106    total run time =    53.00
-
-
- Timestep      107    total run time =    53.50
-
-
- Timestep      108    total run time =    54.00
-
-
- Timestep      109    total run time =    54.50
-
-
- Timestep      110    total run time =    55.00
-
-
- Timestep      111    total run time =    55.50
-
-
- Timestep      112    total run time =    56.00
-
-
- Timestep      113    total run time =    56.50
-
-
- Timestep      114    total run time =    57.00
-
-
- Timestep      115    total run time =    57.50
-
-
- Timestep      116    total run time =    58.00
-
-
- Timestep      117    total run time =    58.50
-
-
- Timestep      118    total run time =    59.00
-
-
- Timestep      119    total run time =    59.50
-
-
- Timestep      120    total run time =    60.00
-
-
- Timestep      121    total run time =    60.50
-
-
- Timestep      122    total run time =    61.00
-
-
- Timestep      123    total run time =    61.50
-
-
- Timestep      124    total run time =    62.00
-
-
- Timestep      125    total run time =    62.50
-
-
- Timestep      126    total run time =    63.00
-
-
- Timestep      127    total run time =    63.50
-
-
- Timestep      128    total run time =    64.00
-
-
- Timestep      129    total run time =    64.50
-
-
- Timestep      130    total run time =    65.00
-
-
- Timestep      131    total run time =    65.50
-
-
- Timestep      132    total run time =    66.00
-
-
- Timestep      133    total run time =    66.50
-
-
- Timestep      134    total run time =    67.00
-
-
- Timestep      135    total run time =    67.50
-
-
- Timestep      136    total run time =    68.00
-
-
- Timestep      137    total run time =    68.50
-
-
- Timestep      138    total run time =    69.00
-
-
- Timestep      139    total run time =    69.50
-
-
- Timestep      140    total run time =    70.00
-
-
- Timestep      141    total run time =    70.50
-
-
- Timestep      142    total run time =    71.00
-
-
- Timestep      143    total run time =    71.50
-
-
- Timestep      144    total run time =    72.00
-
-
- Timestep      145    total run time =    72.50
-
-
- Timestep      146    total run time =    73.00
-
-
- Timestep      147    total run time =    73.50
-
-
- Timestep      148    total run time =    74.00
-
-
- Timestep      149    total run time =    74.50
-
-
- Timestep      150    total run time =    75.00
-
-
- Timestep      151    total run time =    75.50
-
-
- Timestep      152    total run time =    76.00
-
-
- Timestep      153    total run time =    76.50
-
-
- Timestep      154    total run time =    77.00
-
-
- Timestep      155    total run time =    77.50
-
-
- Timestep      156    total run time =    78.00
-
-
- Timestep      157    total run time =    78.50
-
-
- Timestep      158    total run time =    79.00
-
-
- Timestep      159    total run time =    79.50
-
-
- Timestep      160    total run time =    80.00
-
-
- Timestep      161    total run time =    80.50
-
-
- Timestep      162    total run time =    81.00
-
-
- Timestep      163    total run time =    81.50
-
-
- Timestep      164    total run time =    82.00
-
-
- Timestep      165    total run time =    82.50
-
-
- Timestep      166    total run time =    83.00
-
-
- Timestep      167    total run time =    83.50
-
-
- Timestep      168    total run time =    84.00
-
-
- Timestep      169    total run time =    84.50
-
-
- Timestep      170    total run time =    85.00
-
-
- Timestep      171    total run time =    85.50
-
-
- Timestep      172    total run time =    86.00
-
-
- Timestep      173    total run time =    86.50
-
-
- Timestep      174    total run time =    87.00
-
-
- Timestep      175    total run time =    87.50
-
-
- Timestep      176    total run time =    88.00
-
-
- Timestep      177    total run time =    88.50
-
-
- Timestep      178    total run time =    89.00
-
-
- Timestep      179    total run time =    89.50
-
-
- Timestep      180    total run time =    90.00
-
-
- Timestep      181    total run time =    90.50
-
-
- Timestep      182    total run time =    91.00
-
-
- Timestep      183    total run time =    91.50
-
-
- Timestep      184    total run time =    92.00
-
-
- Timestep      185    total run time =    92.50
-
-
- Timestep      186    total run time =    93.00
-
-
- Timestep      187    total run time =    93.50
-
-
- Timestep      188    total run time =    94.00
-
-
- Timestep      189    total run time =    94.50
-
-
- Timestep      190    total run time =    95.00
-
-
- Timestep      191    total run time =    95.50
-
-
- Timestep      192    total run time =    96.00
-
-
- Timestep      193    total run time =    96.50
-
-
- Timestep      194    total run time =    97.00
-
-
- Timestep      195    total run time =    97.50
-
-
- Timestep      196    total run time =    98.00
-
-
- Timestep      197    total run time =    98.50
-
-
- Timestep      198    total run time =    99.00
-
-
- Timestep      199    total run time =    99.50
-
-
- Timestep      200    total run time =   100.00
-
-
- Timestep      201    total run time =   100.50
-
-
- Timestep      202    total run time =   101.00
-
-
- Timestep      203    total run time =   101.50
-
-
- Timestep      204    total run time =   102.00
-
-
- Timestep      205    total run time =   102.50
-
-
- Timestep      206    total run time =   103.00
-
-
- Timestep      207    total run time =   103.50
-
-
- Timestep      208    total run time =   104.00
-
-
- Timestep      209    total run time =   104.50
-
-
- Timestep      210    total run time =   105.00
-
-
- Timestep      211    total run time =   105.50
-
-
- Timestep      212    total run time =   106.00
-
-
- Timestep      213    total run time =   106.50
-
-
- Timestep      214    total run time =   107.00
-
-
- Timestep      215    total run time =   107.50
-
-
- Timestep      216    total run time =   108.00
-
-
- Timestep      217    total run time =   108.50
-
-
- Timestep      218    total run time =   109.00
-
-
- Timestep      219    total run time =   109.50
-
-
- Timestep      220    total run time =   110.00
-
-
- Timestep      221    total run time =   110.50
-
-
- Timestep      222    total run time =   111.00
-
-
- Timestep      223    total run time =   111.50
-
-
- Timestep      224    total run time =   112.00
-
-
- Timestep      225    total run time =   112.50
-
-
- Timestep      226    total run time =   113.00
-
-
- Timestep      227    total run time =   113.50
-
-
- Timestep      228    total run time =   114.00
-
-
- Timestep      229    total run time =   114.50
-
-
- Timestep      230    total run time =   115.00
-
-
- Timestep      231    total run time =   115.50
-
-
- Timestep      232    total run time =   116.00
-
-
- Timestep      233    total run time =   116.50
-
-
- Timestep      234    total run time =   117.00
-
-
- Timestep      235    total run time =   117.50
-
-
- Timestep      236    total run time =   118.00
-
-
- Timestep      237    total run time =   118.50
-
-
- Timestep      238    total run time =   119.00
-
-
- Timestep      239    total run time =   119.50
-
-
- Timestep      240    total run time =   120.00
-
-
- Timestep      241    total run time =   120.50
-
-
- Timestep      242    total run time =   121.00
-
-
- Timestep      243    total run time =   121.50
-
-
- Timestep      244    total run time =   122.00
-
-
- Timestep      245    total run time =   122.50
-
-
- Timestep      246    total run time =   123.00
-
-
- Timestep      247    total run time =   123.50
-
-
- Timestep      248    total run time =   124.00
-
-
- Timestep      249    total run time =   124.50
-
-
- Timestep      250    total run time =   125.00
-
-
- Timestep      251    total run time =   125.50
-
-
- Timestep      252    total run time =   126.00
-
-
- Timestep      253    total run time =   126.50
-
-
- Timestep      254    total run time =   127.00
-
-
- Timestep      255    total run time =   127.50
-
-
- Timestep      256    total run time =   128.00
-
-
- Timestep      257    total run time =   128.50
-
-
- Timestep      258    total run time =   129.00
-
-
- Timestep      259    total run time =   129.50
-
-
- Timestep      260    total run time =   130.00
-
-
- Timestep      261    total run time =   130.50
-
-
- Timestep      262    total run time =   131.00
-
-
- Timestep      263    total run time =   131.50
-
-
- Timestep      264    total run time =   132.00
-
-
- Timestep      265    total run time =   132.50
-
-
- Timestep      266    total run time =   133.00
-
-
- Timestep      267    total run time =   133.50
-
-
- Timestep      268    total run time =   134.00
-
-
- Timestep      269    total run time =   134.50
-
-
- Timestep      270    total run time =   135.00
-
-
- Timestep      271    total run time =   135.50
-
-
- Timestep      272    total run time =   136.00
-
-
- Timestep      273    total run time =   136.50
-
-
- Timestep      274    total run time =   137.00
-
-
- Timestep      275    total run time =   137.50
-
-
- Timestep      276    total run time =   138.00
-
-
- Timestep      277    total run time =   138.50
-
-
- Timestep      278    total run time =   139.00
-
-
- Timestep      279    total run time =   139.50
-
-
- Timestep      280    total run time =   140.00
-
-
- Timestep      281    total run time =   140.50
-
-
- Timestep      282    total run time =   141.00
-
-
- Timestep      283    total run time =   141.50
-
-
- Timestep      284    total run time =   142.00
-
-
- Timestep      285    total run time =   142.50
-
-
- Timestep      286    total run time =   143.00
-
-
- Timestep      287    total run time =   143.50
-
-
- Timestep      288    total run time =   144.00
-
-
- Timestep      289    total run time =   144.50
-
-
- Timestep      290    total run time =   145.00
-
-
- Timestep      291    total run time =   145.50
-
-
- Timestep      292    total run time =   146.00
-
-
- Timestep      293    total run time =   146.50
-
-
- Timestep      294    total run time =   147.00
-
-
- Timestep      295    total run time =   147.50
-
-
- Timestep      296    total run time =   148.00
-
-
- Timestep      297    total run time =   148.50
-
-
- Timestep      298    total run time =   149.00
-
-
- Timestep      299    total run time =   149.50
-
-
- Timestep      300    total run time =   150.00
-
-
- Timestep      301    total run time =   150.50
-
-
- Timestep      302    total run time =   151.00
-
-
- Timestep      303    total run time =   151.50
-
-
- Timestep      304    total run time =   152.00
-
-
- Timestep      305    total run time =   152.50
-
-
- Timestep      306    total run time =   153.00
-
-
- Timestep      307    total run time =   153.50
-
-
- Timestep      308    total run time =   154.00
-
-
- Timestep      309    total run time =   154.50
-
-
- Timestep      310    total run time =   155.00
-
-
- Timestep      311    total run time =   155.50
-
-
- Timestep      312    total run time =   156.00
-
-
- Timestep      313    total run time =   156.50
-
-
- Timestep      314    total run time =   157.00
-
-
- Timestep      315    total run time =   157.50
-
-
- Timestep      316    total run time =   158.00
-
-
- Timestep      317    total run time =   158.50
-
-
- Timestep      318    total run time =   159.00
-
-
- Timestep      319    total run time =   159.50
-
-
- Timestep      320    total run time =   160.00
-
-
- Timestep      321    total run time =   160.50
-
-
- Timestep      322    total run time =   161.00
-
-
- Timestep      323    total run time =   161.50
-
-
- Timestep      324    total run time =   162.00
-
-
- Timestep      325    total run time =   162.50
-
-
- Timestep      326    total run time =   163.00
-
-
- Timestep      327    total run time =   163.50
-
-
- Timestep      328    total run time =   164.00
-
-
- Timestep      329    total run time =   164.50
-
-
- Timestep      330    total run time =   165.00
-
-
- Timestep      331    total run time =   165.50
-
-
- Timestep      332    total run time =   166.00
-
-
- Timestep      333    total run time =   166.50
-
-
- Timestep      334    total run time =   167.00
-
-
- Timestep      335    total run time =   167.50
-
-
- Timestep      336    total run time =   168.00
-
-
- Timestep      337    total run time =   168.50
-
-
- Timestep      338    total run time =   169.00
-
-
- Timestep      339    total run time =   169.50
-
-
- Timestep      340    total run time =   170.00
-
-
- Timestep      341    total run time =   170.50
-
-
- Timestep      342    total run time =   171.00
-
-
- Timestep      343    total run time =   171.50
-
-
- Timestep      344    total run time =   172.00
-
-
- Timestep      345    total run time =   172.50
-
-
- Timestep      346    total run time =   173.00
-
-
- Timestep      347    total run time =   173.50
-
-
- Timestep      348    total run time =   174.00
-
-
- Timestep      349    total run time =   174.50
-
-
- Timestep      350    total run time =   175.00
-
-
- Timestep      351    total run time =   175.50
-
-
- Timestep      352    total run time =   176.00
-
-
- Timestep      353    total run time =   176.50
-
-
- Timestep      354    total run time =   177.00
-
-
- Timestep      355    total run time =   177.50
-
-
- Timestep      356    total run time =   178.00
-
-
- Timestep      357    total run time =   178.50
-
-
- Timestep      358    total run time =   179.00
-
-
- Timestep      359    total run time =   179.50
-
-
- Timestep      360    total run time =   180.00
-
-
- Timestep      361    total run time =   180.50
-
-
- Timestep      362    total run time =   181.00
-
-
- Timestep      363    total run time =   181.50
-
-
- Timestep      364    total run time =   182.00
-
-
- Timestep      365    total run time =   182.50
-
-
- Timestep      366    total run time =   183.00
-
-
- Timestep      367    total run time =   183.50
-
-
- Timestep      368    total run time =   184.00
-
-
- Timestep      369    total run time =   184.50
-
-
- Timestep      370    total run time =   185.00
-
-
- Timestep      371    total run time =   185.50
-
-
- Timestep      372    total run time =   186.00
-
-
- Timestep      373    total run time =   186.50
-
-
- Timestep      374    total run time =   187.00
-
-
- Timestep      375    total run time =   187.50
-
-
- Timestep      376    total run time =   188.00
-
-
- Timestep      377    total run time =   188.50
-
-
- Timestep      378    total run time =   189.00
-
-
- Timestep      379    total run time =   189.50
-
-
- Timestep      380    total run time =   190.00
-
-
- Timestep      381    total run time =   190.50
-
-
- Timestep      382    total run time =   191.00
-
-
- Timestep      383    total run time =   191.50
-
-
- Timestep      384    total run time =   192.00
-
-
- Timestep      385    total run time =   192.50
-
-
- Timestep      386    total run time =   193.00
-
-
- Timestep      387    total run time =   193.50
-
-
- Timestep      388    total run time =   194.00
-
-
- Timestep      389    total run time =   194.50
-
-
- Timestep      390    total run time =   195.00
-
-
- Timestep      391    total run time =   195.50
-
-
- Timestep      392    total run time =   196.00
-
-
- Timestep      393    total run time =   196.50
-
-
- Timestep      394    total run time =   197.00
-
-
- Timestep      395    total run time =   197.50
-
-
- Timestep      396    total run time =   198.00
-
-
- Timestep      397    total run time =   198.50
-
-
- Timestep      398    total run time =   199.00
-
-
- Timestep      399    total run time =   199.50
-
-
- Timestep      400    total run time =   200.00
+ scrambling  200  particles
+
+
+ Timestep        1    total run time =     0.20
+             P.E. = -2.80605E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  4.17851E-01
+         Ion K.E. =  3.05888E-06
+       Beam K.E.  =  0.00000E+00
+             Total: -2.38819E+00
+     Laser energy =  1.51875E+00
+
+    Plasma Te (keV):     0.50345
+           Ti (keV):     0.00000
+
+
+Tree stats:
+                           new npp, npart, (max):      400    4000  (    1500)
+                           local # leaves, twigs:      400     229
+        final # leaves, twigs, keys, (size_tree):      811     726    1537  (  262145)
+                 local, global # branches, (max):       18     183  (   13107)
+             Max length of all interaction lists:      344 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4502  (  262145)
+                Total # multipole ships/iteration    11607
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep        2    total run time =     0.40
+             P.E. = -2.85855E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  4.67196E-01
+         Ion K.E. =  2.71384E-05
+       Beam K.E.  =  0.00000E+00
+             Total: -2.39132E+00
+     Laser energy =  3.03750E+00
+
+    Plasma Te (keV):     0.56291
+           Ti (keV):     0.00003
+
+
+Tree stats:
+                           new npp, npart, (max):      457    4000  (    1500)
+                           local # leaves, twigs:      457     254
+        final # leaves, twigs, keys, (size_tree):      898     782    1680  (  262145)
+                 local, global # branches, (max):       24     191  (   13107)
+             Max length of all interaction lists:      344 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4258  (  262145)
+                Total # multipole ships/iteration    11543
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep        3    total run time =     0.60
+             P.E. = -2.96213E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  5.61055E-01
+         Ion K.E. =  7.32768E-05
+       Beam K.E.  =  0.00000E+00
+             Total: -2.40101E+00
+     Laser energy =  4.55625E+00
+
+    Plasma Te (keV):     0.67599
+           Ti (keV):     0.00009
+
+
+Tree stats:
+                           new npp, npart, (max):      455    4000  (    1500)
+                           local # leaves, twigs:      455     255
+        final # leaves, twigs, keys, (size_tree):      921     785    1706  (  262145)
+                 local, global # branches, (max):       25     193  (   13107)
+             Max length of all interaction lists:      349 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4524  (  262145)
+                Total # multipole ships/iteration    11643
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep        4    total run time =     0.80
+             P.E. = -3.08197E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  6.91856E-01
+         Ion K.E. =  1.37786E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.38998E+00
+     Laser energy =  6.07500E+00
+
+    Plasma Te (keV):     0.83359
+           Ti (keV):     0.00017
+
+
+Tree stats:
+                           new npp, npart, (max):      455    4000  (    1500)
+                           local # leaves, twigs:      455     253
+        final # leaves, twigs, keys, (size_tree):      923     777    1700  (  262145)
+                 local, global # branches, (max):       23     186  (   13107)
+             Max length of all interaction lists:      355 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4567  (  262145)
+                Total # multipole ships/iteration    11731
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep        5    total run time =     1.00
+             P.E. = -3.24820E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  8.49089E-01
+         Ion K.E. =  2.15568E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.39890E+00
+     Laser energy =  7.59375E+00
+
+    Plasma Te (keV):     1.02304
+           Ti (keV):     0.00026
+
+
+Tree stats:
+                           new npp, npart, (max):      456    4000  (    1500)
+                           local # leaves, twigs:      456     255
+        final # leaves, twigs, keys, (size_tree):      908     786    1694  (  262145)
+                 local, global # branches, (max):       17     187  (   13107)
+             Max length of all interaction lists:      355 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4544  (  262145)
+                Total # multipole ships/iteration    11696
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep        6    total run time =     1.20
+             P.E. = -3.41285E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.02015E+00
+         Ion K.E. =  3.00538E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.39239E+00
+     Laser energy =  9.11250E+00
+
+    Plasma Te (keV):     1.22915
+           Ti (keV):     0.00036
+
+
+Tree stats:
+                           new npp, npart, (max):      457    4000  (    1500)
+                           local # leaves, twigs:      457     256
+        final # leaves, twigs, keys, (size_tree):      912     809    1721  (  262145)
+                 local, global # branches, (max):       19     190  (   13107)
+             Max length of all interaction lists:      347 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4377  (  262145)
+                Total # multipole ships/iteration    11783
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep        7    total run time =     1.40
+             P.E. = -3.59632E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.19170E+00
+         Ion K.E. =  3.86300E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.40424E+00
+     Laser energy =  1.06312E+01
+
+    Plasma Te (keV):     1.43584
+           Ti (keV):     0.00047
+
+
+Tree stats:
+                           new npp, npart, (max):      457    4000  (    1500)
+                           local # leaves, twigs:      457     264
+        final # leaves, twigs, keys, (size_tree):      917     812    1729  (  262145)
+                 local, global # branches, (max):       22     200  (   13107)
+             Max length of all interaction lists:      354 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4432  (  262145)
+                Total # multipole ships/iteration    11919
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep        8    total run time =     1.60
+             P.E. = -3.76508E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.35074E+00
+         Ion K.E. =  4.66668E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.41387E+00
+     Laser energy =  1.21500E+01
+
+    Plasma Te (keV):     1.62745
+           Ti (keV):     0.00056
+
+
+Tree stats:
+                           new npp, npart, (max):      457    4000  (    1500)
+                           local # leaves, twigs:      457     271
+        final # leaves, twigs, keys, (size_tree):      910     828    1738  (  262145)
+                 local, global # branches, (max):       23     201  (   13107)
+             Max length of all interaction lists:      355 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4467  (  262145)
+                Total # multipole ships/iteration    11916
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep        9    total run time =     1.80
+             P.E. = -3.91077E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.48577E+00
+         Ion K.E. =  5.36179E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.42447E+00
+     Laser energy =  1.36687E+01
+
+    Plasma Te (keV):     1.79015
+           Ti (keV):     0.00065
+
+
+Tree stats:
+                           new npp, npart, (max):      458    4000  (    1500)
+                           local # leaves, twigs:      458     272
+        final # leaves, twigs, keys, (size_tree):      897     849    1746  (  262145)
+                 local, global # branches, (max):       24     198  (   13107)
+             Max length of all interaction lists:      356 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4437  (  262145)
+                Total # multipole ships/iteration    11978
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       10    total run time =     2.00
+             P.E. = -4.03044E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.58738E+00
+         Ion K.E. =  5.90316E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.44247E+00
+     Laser energy =  1.51875E+01
+
+    Plasma Te (keV):     1.91257
+           Ti (keV):     0.00071
+
+
+Tree stats:
+                           new npp, npart, (max):      459    4000  (    1500)
+                           local # leaves, twigs:      459     269
+        final # leaves, twigs, keys, (size_tree):      906     845    1751  (  262145)
+                 local, global # branches, (max):       24     195  (   13107)
+             Max length of all interaction lists:      357 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4491  (  262145)
+                Total # multipole ships/iteration    12035
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       11    total run time =     2.20
+             P.E. = -4.10353E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.65011E+00
+         Ion K.E. =  6.26346E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.45279E+00
+     Laser energy =  1.67062E+01
+
+    Plasma Te (keV):     1.98815
+           Ti (keV):     0.00075
+
+
+Tree stats:
+                           new npp, npart, (max):      458    4000  (    1500)
+                           local # leaves, twigs:      458     269
+        final # leaves, twigs, keys, (size_tree):      913     820    1733  (  262145)
+                 local, global # branches, (max):       17     192  (   13107)
+             Max length of all interaction lists:      357 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4549  (  262145)
+                Total # multipole ships/iteration    12092
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       12    total run time =     2.40
+             P.E. = -4.13601E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.67266E+00
+         Ion K.E. =  6.43363E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.46270E+00
+     Laser energy =  1.82250E+01
+
+    Plasma Te (keV):     2.01532
+           Ti (keV):     0.00078
+
+
+Tree stats:
+                           new npp, npart, (max):      459    4000  (    1500)
+                           local # leaves, twigs:      459     271
+        final # leaves, twigs, keys, (size_tree):      919     819    1738  (  262145)
+                 local, global # branches, (max):       17     192  (   13107)
+             Max length of all interaction lists:      364 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4699  (  262145)
+                Total # multipole ships/iteration    12126
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       13    total run time =     2.60
+             P.E. = -4.13615E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.65757E+00
+         Ion K.E. =  6.42078E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.47793E+00
+     Laser energy =  1.97438E+01
+
+    Plasma Te (keV):     1.99715
+           Ti (keV):     0.00077
+
+
+Tree stats:
+                           new npp, npart, (max):      462    4000  (    1500)
+                           local # leaves, twigs:      462     271
+        final # leaves, twigs, keys, (size_tree):      945     824    1769  (  262145)
+                 local, global # branches, (max):       19     195  (   13107)
+             Max length of all interaction lists:      363 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4772  (  262145)
+                Total # multipole ships/iteration    12222
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       14    total run time =     2.80
+             P.E. = -4.10071E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.61096E+00
+         Ion K.E. =  6.24655E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.48913E+00
+     Laser energy =  2.12625E+01
+
+    Plasma Te (keV):     1.94098
+           Ti (keV):     0.00075
+
+
+Tree stats:
+                           new npp, npart, (max):      467    4000  (    1500)
+                           local # leaves, twigs:      467     269
+        final # leaves, twigs, keys, (size_tree):      941     822    1763  (  262145)
+                 local, global # branches, (max):       25     193  (   13107)
+             Max length of all interaction lists:      361 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4838  (  262145)
+                Total # multipole ships/iteration    12289
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       15    total run time =     3.00
+             P.E. = -4.04165E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.54187E+00
+         Ion K.E. =  5.94491E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.49918E+00
+     Laser energy =  2.27813E+01
+
+    Plasma Te (keV):     1.85775
+           Ti (keV):     0.00072
+
+
+Tree stats:
+                           new npp, npart, (max):      467    4000  (    1500)
+                           local # leaves, twigs:      467     273
+        final # leaves, twigs, keys, (size_tree):      939     822    1761  (  262145)
+                 local, global # branches, (max):       21     199  (   13107)
+             Max length of all interaction lists:      367 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4890  (  262145)
+                Total # multipole ships/iteration    12340
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       16    total run time =     3.20
+             P.E. = -3.99051E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.46112E+00
+         Ion K.E. =  5.55739E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.52884E+00
+     Laser energy =  2.43000E+01
+
+    Plasma Te (keV):     1.76044
+           Ti (keV):     0.00067
+
+
+Tree stats:
+                           new npp, npart, (max):      464    4000  (    1500)
+                           local # leaves, twigs:      464     268
+        final # leaves, twigs, keys, (size_tree):      913     816    1729  (  262145)
+                 local, global # branches, (max):       22     202  (   13107)
+             Max length of all interaction lists:      374 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4875  (  262145)
+                Total # multipole ships/iteration    12314
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       17    total run time =     3.40
+             P.E. = -3.92258E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.37965E+00
+         Ion K.E. =  5.12646E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.54242E+00
+     Laser energy =  2.58188E+01
+
+    Plasma Te (keV):     1.66229
+           Ti (keV):     0.00062
+
+
+Tree stats:
+                           new npp, npart, (max):      460    4000  (    1500)
+                           local # leaves, twigs:      460     268
+        final # leaves, twigs, keys, (size_tree):      921     816    1737  (  262145)
+                 local, global # branches, (max):       20     202  (   13107)
+             Max length of all interaction lists:      373 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4876  (  262145)
+                Total # multipole ships/iteration    12277
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       18    total run time =     3.60
+             P.E. = -3.85637E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.30788E+00
+         Ion K.E. =  4.69461E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.54802E+00
+     Laser energy =  2.73375E+01
+
+    Plasma Te (keV):     1.57581
+           Ti (keV):     0.00057
+
+
+Tree stats:
+                           new npp, npart, (max):      462    4000  (    1500)
+                           local # leaves, twigs:      462     260
+        final # leaves, twigs, keys, (size_tree):      911     795    1706  (  262145)
+                 local, global # branches, (max):       21     189  (   13107)
+             Max length of all interaction lists:      367 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4862  (  262145)
+                Total # multipole ships/iteration    12352
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       19    total run time =     3.80
+             P.E. = -3.81178E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.25380E+00
+         Ion K.E. =  4.29744E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.55755E+00
+     Laser energy =  2.88563E+01
+
+    Plasma Te (keV):     1.51066
+           Ti (keV):     0.00052
+
+
+Tree stats:
+                           new npp, npart, (max):      461    4000  (    1500)
+                           local # leaves, twigs:      461     263
+        final # leaves, twigs, keys, (size_tree):      899     813    1712  (  262145)
+                 local, global # branches, (max):       24     198  (   13107)
+             Max length of all interaction lists:      360 /     1198
+                                 Max # traversals        6
+    Max # multipole ships/traversal, (size_fetch):    4883  (  262145)
+                Total # multipole ships/iteration    12340
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       20    total run time =     4.00
+             P.E. = -3.77239E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.22204E+00
+         Ion K.E. =  3.95961E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.54995E+00
+     Laser energy =  3.03750E+01
+
+    Plasma Te (keV):     1.47239
+           Ti (keV):     0.00048
+
+
+Tree stats:
+                           new npp, npart, (max):      461    4000  (    1500)
+                           local # leaves, twigs:      461     257
+        final # leaves, twigs, keys, (size_tree):      881     801    1682  (  262145)
+                 local, global # branches, (max):       24     197  (   13107)
+             Max length of all interaction lists:      366 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4882  (  262145)
+                Total # multipole ships/iteration    12334
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       21    total run time =     4.20
+             P.E. = -3.74836E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.21339E+00
+         Ion K.E. =  3.69409E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.53461E+00
+     Laser energy =  3.18938E+01
+
+    Plasma Te (keV):     1.46196
+           Ti (keV):     0.00045
+
+
+Tree stats:
+                           new npp, npart, (max):      461    4000  (    1500)
+                           local # leaves, twigs:      461     263
+        final # leaves, twigs, keys, (size_tree):      881     818    1699  (  262145)
+                 local, global # branches, (max):       26     201  (   13107)
+             Max length of all interaction lists:      362 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4929  (  262145)
+                Total # multipole ships/iteration    12365
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       22    total run time =     4.40
+             P.E. = -3.73800E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.22500E+00
+         Ion K.E. =  3.50222E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.51265E+00
+     Laser energy =  3.34125E+01
+
+    Plasma Te (keV):     1.47596
+           Ti (keV):     0.00042
+
+
+Tree stats:
+                           new npp, npart, (max):      459    4000  (    1500)
+                           local # leaves, twigs:      459     256
+        final # leaves, twigs, keys, (size_tree):      859     819    1678  (  262145)
+                 local, global # branches, (max):       28     194  (   13107)
+             Max length of all interaction lists:      362 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4983  (  262145)
+                Total # multipole ships/iteration    12478
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       23    total run time =     4.60
+             P.E. = -3.73608E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.25088E+00
+         Ion K.E. =  3.37590E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.48486E+00
+     Laser energy =  3.49313E+01
+
+    Plasma Te (keV):     1.50714
+           Ti (keV):     0.00041
+
+
+Tree stats:
+                           new npp, npart, (max):      459    4000  (    1500)
+                           local # leaves, twigs:      459     260
+        final # leaves, twigs, keys, (size_tree):      860     833    1693  (  262145)
+                 local, global # branches, (max):       30     198  (   13107)
+             Max length of all interaction lists:      376 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4950  (  262145)
+                Total # multipole ships/iteration    12375
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       24    total run time =     4.80
+             P.E. = -3.74101E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.28291E+00
+         Ion K.E. =  3.30062E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.45777E+00
+     Laser energy =  3.64500E+01
+
+    Plasma Te (keV):     1.54573
+           Ti (keV):     0.00040
+
+
+Tree stats:
+                           new npp, npart, (max):      459    4000  (    1500)
+                           local # leaves, twigs:      459     256
+        final # leaves, twigs, keys, (size_tree):      891     819    1710  (  262145)
+                 local, global # branches, (max):       31     209  (   13107)
+             Max length of all interaction lists:      369 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4843  (  262145)
+                Total # multipole ships/iteration    12273
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       25    total run time =     5.00
+             P.E. = -3.73051E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.31225E+00
+         Ion K.E. =  3.25798E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.41793E+00
+     Laser energy =  3.79688E+01
+
+    Plasma Te (keV):     1.58108
+           Ti (keV):     0.00039
+
+
+Tree stats:
+                           new npp, npart, (max):      457    4000  (    1500)
+                           local # leaves, twigs:      457     264
+        final # leaves, twigs, keys, (size_tree):      881     831    1712  (  262145)
+                 local, global # branches, (max):       29     207  (   13107)
+             Max length of all interaction lists:      368 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4851  (  262145)
+                Total # multipole ships/iteration    12330
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       26    total run time =     5.20
+             P.E. = -3.73181E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.33080E+00
+         Ion K.E. =  3.23020E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.40068E+00
+     Laser energy =  3.94875E+01
+
+    Plasma Te (keV):     1.60343
+           Ti (keV):     0.00039
+
+
+Tree stats:
+                           new npp, npart, (max):      457    4000  (    1500)
+                           local # leaves, twigs:      457     255
+        final # leaves, twigs, keys, (size_tree):      858     816    1674  (  262145)
+                 local, global # branches, (max):       31     203  (   13107)
+             Max length of all interaction lists:      376 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4703  (  262145)
+                Total # multipole ships/iteration    12216
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       27    total run time =     5.40
+             P.E. = -3.71081E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.33275E+00
+         Ion K.E. =  3.20478E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.37774E+00
+     Laser energy =  4.10063E+01
+
+    Plasma Te (keV):     1.60578
+           Ti (keV):     0.00039
+
+
+Tree stats:
+                           new npp, npart, (max):      455    4000  (    1500)
+                           local # leaves, twigs:      455     245
+        final # leaves, twigs, keys, (size_tree):      857     798    1655  (  262145)
+                 local, global # branches, (max):       32     198  (   13107)
+             Max length of all interaction lists:      363 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4790  (  262145)
+                Total # multipole ships/iteration    12270
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       28    total run time =     5.60
+             P.E. = -3.67300E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.31520E+00
+         Ion K.E. =  3.17587E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.35748E+00
+     Laser energy =  4.25250E+01
+
+    Plasma Te (keV):     1.58463
+           Ti (keV):     0.00038
+
+
+Tree stats:
+                           new npp, npart, (max):      455    4000  (    1500)
+                           local # leaves, twigs:      455     248
+        final # leaves, twigs, keys, (size_tree):      857     809    1666  (  262145)
+                 local, global # branches, (max):       33     207  (   13107)
+             Max length of all interaction lists:      362 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4751  (  262145)
+                Total # multipole ships/iteration    12168
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       29    total run time =     5.80
+             P.E. = -3.62871E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.27863E+00
+         Ion K.E. =  3.14657E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.34977E+00
+     Laser energy =  4.40438E+01
+
+    Plasma Te (keV):     1.54057
+           Ti (keV):     0.00038
+
+
+Tree stats:
+                           new npp, npart, (max):      454    4000  (    1500)
+                           local # leaves, twigs:      454     264
+        final # leaves, twigs, keys, (size_tree):      883     822    1705  (  262145)
+                 local, global # branches, (max):       33     237  (   13107)
+             Max length of all interaction lists:      364 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4676  (  262145)
+                Total # multipole ships/iteration    11842
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       30    total run time =     6.00
+             P.E. = -3.58090E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.22696E+00
+         Ion K.E. =  3.12816E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.35363E+00
+     Laser energy =  4.55625E+01
+
+    Plasma Te (keV):     1.47832
+           Ti (keV):     0.00038
+
+
+Tree stats:
+                           new npp, npart, (max):      452    4000  (    1500)
+                           local # leaves, twigs:      452     248
+        final # leaves, twigs, keys, (size_tree):      894     810    1704  (  262145)
+                 local, global # branches, (max):       11     194  (   13107)
+             Max length of all interaction lists:      362 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4751  (  262145)
+                Total # multipole ships/iteration    12055
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       31    total run time =     6.20
+             P.E. = -3.51435E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.16676E+00
+         Ion K.E. =  3.13863E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.34728E+00
+     Laser energy =  4.70813E+01
+
+    Plasma Te (keV):     1.40578
+           Ti (keV):     0.00038
+
+
+Tree stats:
+                           new npp, npart, (max):      451    4000  (    1500)
+                           local # leaves, twigs:      451     251
+        final # leaves, twigs, keys, (size_tree):      875     809    1684  (  262145)
+                 local, global # branches, (max):       11     191  (   13107)
+             Max length of all interaction lists:      367 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4714  (  262145)
+                Total # multipole ships/iteration    12036
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       32    total run time =     6.40
+             P.E. = -3.46266E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.10606E+00
+         Ion K.E. =  3.20101E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.35628E+00
+     Laser energy =  4.86000E+01
+
+    Plasma Te (keV):     1.33265
+           Ti (keV):     0.00039
+
+
+Tree stats:
+                           new npp, npart, (max):      448    4000  (    1500)
+                           local # leaves, twigs:      448     251
+        final # leaves, twigs, keys, (size_tree):      874     810    1684  (  262145)
+                 local, global # branches, (max):       33     208  (   13107)
+             Max length of all interaction lists:      371 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4598  (  262145)
+                Total # multipole ships/iteration    12120
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       33    total run time =     6.60
+             P.E. = -3.41109E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.05287E+00
+         Ion K.E. =  3.33833E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.35789E+00
+     Laser energy =  5.01188E+01
+
+    Plasma Te (keV):     1.26856
+           Ti (keV):     0.00040
+
+
+Tree stats:
+                           new npp, npart, (max):      447    4000  (    1500)
+                           local # leaves, twigs:      447     257
+        final # leaves, twigs, keys, (size_tree):      889     812    1701  (  262145)
+                 local, global # branches, (max):       32     206  (   13107)
+             Max length of all interaction lists:      371 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4552  (  262145)
+                Total # multipole ships/iteration    12116
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       34    total run time =     6.80
+             P.E. = -3.37729E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.01319E+00
+         Ion K.E. =  3.57034E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.36375E+00
+     Laser energy =  5.16375E+01
+
+    Plasma Te (keV):     1.22075
+           Ti (keV):     0.00043
+
+
+Tree stats:
+                           new npp, npart, (max):      447    4000  (    1500)
+                           local # leaves, twigs:      447     255
+        final # leaves, twigs, keys, (size_tree):      889     830    1719  (  262145)
+                 local, global # branches, (max):       33     203  (   13107)
+             Max length of all interaction lists:      372 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4595  (  262145)
+                Total # multipole ships/iteration    12193
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       35    total run time =     7.00
+             P.E. = -3.34455E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  9.90505E-01
+         Ion K.E. =  3.91237E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.35365E+00
+     Laser energy =  5.31563E+01
+
+    Plasma Te (keV):     1.19342
+           Ti (keV):     0.00047
+
+
+Tree stats:
+                           new npp, npart, (max):      446    4000  (    1500)
+                           local # leaves, twigs:      446     251
+        final # leaves, twigs, keys, (size_tree):      877     814    1691  (  262145)
+                 local, global # branches, (max):       33     192  (   13107)
+             Max length of all interaction lists:      374 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4621  (  262145)
+                Total # multipole ships/iteration    12133
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       36    total run time =     7.20
+             P.E. = -3.34733E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  9.85429E-01
+         Ion K.E. =  4.37201E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.36146E+00
+     Laser energy =  5.46750E+01
+
+    Plasma Te (keV):     1.18731
+           Ti (keV):     0.00053
+
+
+Tree stats:
+                           new npp, npart, (max):      444    4000  (    1500)
+                           local # leaves, twigs:      444     242
+        final # leaves, twigs, keys, (size_tree):      879     805    1684  (  262145)
+                 local, global # branches, (max):       30     199  (   13107)
+             Max length of all interaction lists:      375 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4489  (  262145)
+                Total # multipole ships/iteration    12030
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       37    total run time =     7.40
+             P.E. = -3.35999E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  9.95400E-01
+         Ion K.E. =  4.94796E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.36410E+00
+     Laser energy =  5.61938E+01
+
+    Plasma Te (keV):     1.19932
+           Ti (keV):     0.00060
+
+
+Tree stats:
+                           new npp, npart, (max):      443    4000  (    1500)
+                           local # leaves, twigs:      443     245
+        final # leaves, twigs, keys, (size_tree):      883     800    1683  (  262145)
+                 local, global # branches, (max):       31     196  (   13107)
+             Max length of all interaction lists:      382 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4529  (  262145)
+                Total # multipole ships/iteration    12073
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       38    total run time =     7.60
+             P.E. = -3.39127E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.01582E+00
+         Ion K.E. =  5.63226E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.37489E+00
+     Laser energy =  5.77125E+01
+
+    Plasma Te (keV):     1.22393
+           Ti (keV):     0.00068
+
+
+Tree stats:
+                           new npp, npart, (max):      445    4000  (    1500)
+                           local # leaves, twigs:      445     246
+        final # leaves, twigs, keys, (size_tree):      896     810    1706  (  262145)
+                 local, global # branches, (max):       32     195  (   13107)
+             Max length of all interaction lists:      381 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4497  (  262145)
+                Total # multipole ships/iteration    12098
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       39    total run time =     7.80
+             P.E. = -3.43331E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.04150E+00
+         Ion K.E. =  6.41184E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.39117E+00
+     Laser energy =  5.92313E+01
+
+    Plasma Te (keV):     1.25486
+           Ti (keV):     0.00077
+
+
+Tree stats:
+                           new npp, npart, (max):      445    4000  (    1500)
+                           local # leaves, twigs:      445     243
+        final # leaves, twigs, keys, (size_tree):      882     801    1683  (  262145)
+                 local, global # branches, (max):       27     194  (   13107)
+             Max length of all interaction lists:      376 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4501  (  262145)
+                Total # multipole ships/iteration    12082
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       40    total run time =     8.00
+             P.E. = -3.47643E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.06806E+00
+         Ion K.E. =  7.27084E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.40764E+00
+     Laser energy =  6.07500E+01
+
+    Plasma Te (keV):     1.28687
+           Ti (keV):     0.00088
+
+
+Tree stats:
+                           new npp, npart, (max):      446    4000  (    1500)
+                           local # leaves, twigs:      446     251
+        final # leaves, twigs, keys, (size_tree):      895     815    1710  (  262145)
+                 local, global # branches, (max):       28     200  (   13107)
+             Max length of all interaction lists:      383 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4480  (  262145)
+                Total # multipole ships/iteration    12085
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       41    total run time =     8.20
+             P.E. = -3.52772E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.09313E+00
+         Ion K.E. =  8.19222E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.43377E+00
+     Laser energy =  6.22688E+01
+
+    Plasma Te (keV):     1.31708
+           Ti (keV):     0.00099
+
+
+Tree stats:
+                           new npp, npart, (max):      444    4000  (    1500)
+                           local # leaves, twigs:      444     248
+        final # leaves, twigs, keys, (size_tree):      883     809    1692  (  262145)
+                 local, global # branches, (max):       29     186  (   13107)
+             Max length of all interaction lists:      380 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4655  (  262145)
+                Total # multipole ships/iteration    12171
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       42    total run time =     8.40
+             P.E. = -3.56599E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.11704E+00
+         Ion K.E. =  9.15996E-04
+       Beam K.E.  =  0.00000E+00
+             Total: -2.44803E+00
+     Laser energy =  6.37875E+01
+
+    Plasma Te (keV):     1.34588
+           Ti (keV):     0.00110
+
+
+Tree stats:
+                           new npp, npart, (max):      444    4000  (    1500)
+                           local # leaves, twigs:      444     244
+        final # leaves, twigs, keys, (size_tree):      902     808    1710  (  262145)
+                 local, global # branches, (max):       27     197  (   13107)
+             Max length of all interaction lists:      378 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4702  (  262145)
+                Total # multipole ships/iteration    12190
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       43    total run time =     8.60
+             P.E. = -3.60297E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.14310E+00
+         Ion K.E. =  1.01632E-03
+       Beam K.E.  =  0.00000E+00
+             Total: -2.45885E+00
+     Laser energy =  6.53063E+01
+
+    Plasma Te (keV):     1.37727
+           Ti (keV):     0.00122
+
+
+Tree stats:
+                           new npp, npart, (max):      444    4000  (    1500)
+                           local # leaves, twigs:      444     264
+        final # leaves, twigs, keys, (size_tree):      915     850    1765  (  262145)
+                 local, global # branches, (max):       24     208  (   13107)
+             Max length of all interaction lists:      387 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4743  (  262145)
+                Total # multipole ships/iteration    12310
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       44    total run time =     8.80
+             P.E. = -3.63362E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.17689E+00
+         Ion K.E. =  1.11979E-03
+       Beam K.E.  =  0.00000E+00
+             Total: -2.45561E+00
+     Laser energy =  6.68250E+01
+
+    Plasma Te (keV):     1.41799
+           Ti (keV):     0.00135
+
+
+Tree stats:
+                           new npp, npart, (max):      449    4000  (    1500)
+                           local # leaves, twigs:      449     255
+        final # leaves, twigs, keys, (size_tree):      903     831    1734  (  262145)
+                 local, global # branches, (max):       29     193  (   13107)
+             Max length of all interaction lists:      397 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4968  (  262145)
+                Total # multipole ships/iteration    12484
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       45    total run time =     9.00
+             P.E. = -3.64973E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.22497E+00
+         Ion K.E. =  1.22703E-03
+       Beam K.E.  =  0.00000E+00
+             Total: -2.42353E+00
+     Laser energy =  6.83438E+01
+
+    Plasma Te (keV):     1.47592
+           Ti (keV):     0.00148
+
+
+Tree stats:
+                           new npp, npart, (max):      448    4000  (    1500)
+                           local # leaves, twigs:      448     254
+        final # leaves, twigs, keys, (size_tree):      915     821    1736  (  262145)
+                 local, global # branches, (max):       27     201  (   13107)
+             Max length of all interaction lists:      394 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4971  (  262145)
+                Total # multipole ships/iteration    12500
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       46    total run time =     9.20
+             P.E. = -3.65832E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.29313E+00
+         Ion K.E. =  1.33961E-03
+       Beam K.E.  =  0.00000E+00
+             Total: -2.36386E+00
+     Laser energy =  6.98625E+01
+
+    Plasma Te (keV):     1.55804
+           Ti (keV):     0.00161
+
+
+Tree stats:
+                           new npp, npart, (max):      448    4000  (    1500)
+                           local # leaves, twigs:      448     257
+        final # leaves, twigs, keys, (size_tree):      904     806    1710  (  262145)
+                 local, global # branches, (max):       28     205  (   13107)
+             Max length of all interaction lists:      384 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    5098  (  262145)
+                Total # multipole ships/iteration    12400
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       47    total run time =     9.40
+             P.E. = -3.65945E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.38452E+00
+         Ion K.E. =  1.46014E-03
+       Beam K.E.  =  0.00000E+00
+             Total: -2.27348E+00
+     Laser energy =  7.13812E+01
+
+    Plasma Te (keV):     1.66815
+           Ti (keV):     0.00176
+
+
+Tree stats:
+                           new npp, npart, (max):      450    4000  (    1500)
+                           local # leaves, twigs:      450     252
+        final # leaves, twigs, keys, (size_tree):      914     808    1722  (  262145)
+                 local, global # branches, (max):       27     197  (   13107)
+             Max length of all interaction lists:      384 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4971  (  262145)
+                Total # multipole ships/iteration    12497
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       48    total run time =     9.60
+             P.E. = -3.61612E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.49784E+00
+         Ion K.E. =  1.59260E-03
+       Beam K.E.  =  0.00000E+00
+             Total: -2.11668E+00
+     Laser energy =  7.29000E+01
+
+    Plasma Te (keV):     1.80470
+           Ti (keV):     0.00192
+
+
+Tree stats:
+                           new npp, npart, (max):      450    4000  (    1500)
+                           local # leaves, twigs:      450     244
+        final # leaves, twigs, keys, (size_tree):      899     800    1699  (  262145)
+                 local, global # branches, (max):       25     196  (   13107)
+             Max length of all interaction lists:      384 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    5023  (  262145)
+                Total # multipole ships/iteration    12457
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       49    total run time =     9.80
+             P.E. = -3.53638E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.62697E+00
+         Ion K.E. =  1.74206E-03
+       Beam K.E.  =  0.00000E+00
+             Total: -1.90767E+00
+     Laser energy =  7.44187E+01
+
+    Plasma Te (keV):     1.96027
+           Ti (keV):     0.00210
+
+
+Tree stats:
+                           new npp, npart, (max):      448    4000  (    1500)
+                           local # leaves, twigs:      448     250
+        final # leaves, twigs, keys, (size_tree):      913     803    1716  (  262145)
+                 local, global # branches, (max):       29     202  (   13107)
+             Max length of all interaction lists:      378 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4926  (  262145)
+                Total # multipole ships/iteration    12430
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)
+
+
+ Timestep       50    total run time =    10.00
+             P.E. = -3.43925E+00
+      Magnetic E. =  0.00000E+00
+    Electron K.E. =  1.76094E+00
+         Ion K.E. =  1.91474E-03
+       Beam K.E.  =  0.00000E+00
+             Total: -1.67640E+00
+     Laser energy =  7.59375E+01
+
+    Plasma Te (keV):     2.12169
+           Ti (keV):     0.00231
+
+
+Tree stats:
+                           new npp, npart, (max):      450    4000  (    1500)
+                           local # leaves, twigs:      450     236
+        final # leaves, twigs, keys, (size_tree):      920     792    1712  (  262145)
+                 local, global # branches, (max):       26     195  (   13107)
+             Max length of all interaction lists:      382 /     1198
+                                 Max # traversals        7
+    Max # multipole ships/traversal, (size_fetch):    4924  (  262145)
+                Total # multipole ships/iteration    12407
+Total # multipole ships/prefetch, (numpe*size_fetc       0  ( 2621450)

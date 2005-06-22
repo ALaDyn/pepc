@@ -121,7 +121,8 @@ program pepcb
 ! Uses internal particle arrays from library (setup up in configure step)
 ! # particles on CPU may change due to resort
  
-     call pepc_fields_p(np_local, mac, theta, eps, force_tolerance, force_const, bond_const, dt, xl, yl, zl, itime, &
+     call pepc_fields_p(np_local, mac, theta, eps, force_tolerance, balance, force_const, bond_const, &
+	         dt, xl, yl, zl, itime, &
                  coulomb, bfields, bonds, lenjones, &
                  t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force)   
 

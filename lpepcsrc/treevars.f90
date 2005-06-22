@@ -190,7 +190,6 @@ module treevars
 
  ! Force control
   logical :: load_balance=.true.   ! Balances particles in || sort according to work load
-  logical :: walk_balance=.false.  ! Controls balancing of shortlists in walk/force sum
   logical :: use_multipoles = .true.   ! Use of multipoles? 
   logical :: prefetch = .false.  ! Prefetch multipole info prior to walk
 

@@ -2,10 +2,11 @@
  ncpu_merge = 1
  debug_level = 2
  debug_tree = 0
+ balance=0 ! load balance switch
  mac=0
 ! particles
-  ne = 20000
-  ni = 20000 
+  ne = 10000
+  ni = 10000 
 
  plasma_config = 1  ! set up plasma target
  ! target_geometry =7   ! hollow sphere
@@ -56,7 +57,7 @@
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =100
+  nt =350
   dt = 0.2
   eps = 3.
  restart = .false.
@@ -64,11 +65,11 @@
  steering=.false.
  ivis =  5
  ivis_fields = 5000
- ivis_domains = 5000
+ ivis_domains = 5
   mc_init = .false.
   mc_steps = 1000
   idump = 4000
-  iprot=1
+  iprot=10
   itrack=300
   particle_bcs = 1
   scheme = 1 /

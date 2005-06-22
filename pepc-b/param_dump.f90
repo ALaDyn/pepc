@@ -76,7 +76,6 @@ subroutine param_dump
         write (ifile,'(a20,l3)') ' Lennard-Jones forces: ',lenjones
 
         write (ifile,'(a20,l3)') ' load balance: ',load_balance
-        write (ifile,'(a20,l3)') ' walk balance: ',walk_balance
         write (ifile,'(a20,l3)') ' restart: ',restart
         write (ifile,'(a20,l3)') ' ramp: ',ramp
 

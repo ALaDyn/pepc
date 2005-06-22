@@ -13,7 +13,8 @@
 !  ===================================================================
 
 
-subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, force_const, bond_const, delta_t,  xl, yl, zl, itime, &
+subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, balance, force_const, bond_const, &
+	delta_t,  xl, yl, zl, itime, &
      coulomb, bfield_on, bonds, lenjones, &
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force)
 
@@ -35,6 +36,7 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, force_const, bond_cons
   real, intent(in) :: xl, yl, zl         ! box dimensions
   integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: mac  ! choice of mac
+  integer, intent(in) :: balance  ! choice of mac
 
 
 
@@ -68,6 +70,13 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, force_const, bond_cons
   !  walk_summary=.true.
   !  dump_tree=.true.
 !  npp = np_local  ! assumed lists matched for now
+
+  loadbal: select case(balance)
+	case(1)
+	  load_balance=.true.
+        case default
+	  load_balance=.false.
+  end select loadbal 
 
   if (force_debug) then
      if (me==0) write (*,*)

@@ -1,28 +1,20 @@
  &pepcdata
- nmerge = 1
- !perf_anal=.true.
- domain_debug=.false.
- load_balance=.false.
- walk_balance=.true.
- !walk_debug=.true.
- db_level = 0
- walk_summary=.false.
+ ncpu_merge = 1
+ debug_level = 2
+ debug_tree = 0
+ balance=1 ! load balance switch
+ mac=0
 ! particles
-  ne = 500
-  ni = 500 
+  ne = 2000
+  ni = 2000 
 
  plasma_config = 1  ! set up plasma target
- ! initial_config = 1   ! sphere
  ! target_geometry =7   ! hollow sphere
-   target_geometry = 6         ! random disc
- !   initial_config=7   ! hollow sphere
- !   initial_config=3   ! wire
- !  initial_config = 0         ! rectangular slab
-  !  initial_config = 10     ! read from parts_all.in
+   target_geometry = 3         !  wire
 
 ! physics stuff
 
-  theta = 0.5
+  theta = 0.6
   Te_keV = 0.5 ! Temperatures in keV
   Ti_keV =0. 
   mass_ratio = 2000.
@@ -30,19 +22,20 @@
   coulomb = .true.
   lenjones = .false.
   bond_const = 2.e-3
-  r_sphere = 1
-  x_plasma = 1.    ! plasma disc thickness/ wire length
-  y_plasma = 2.     ! plasma width (slab target)
-  z_plasma = 2.     ! plasma width (slab target)
-  xl = 2  ! graphics box size
-  yl =2 
-  zl =2 
-
+  r_sphere = 3
+  x_plasma = 3.    ! plasma disc thickness
+  y_plasma = 4.     ! plasma width (slab target)
+  z_plasma = 10.     ! plasma width (slab target) / wire length
+  xl = 1  ! graphics box size
+  yl =1 
+  zl =8 
+  target_dup = .false.
+  displace = 10.,10.,0.
 
 ! beam
   !  beam_config = 1  ! fixed beam, initialised at start
  ! beam_config = 2  ! user-controlled, real-time particle source
-   beam_config_in = 0 ! beam off
+   beam_config_in = 4 ! laser fpond 
 !  beam_config=4  ! laser fpond
  
 
@@ -57,25 +50,26 @@
 
   np_beam = 0 ! initial # beam particles/ dt
 
-  vosc = 6.0
+  vosc = 3.0
   omega = 0.5
-  sigma = 6.
-  tpulse = 20.
+  sigma = 3.
+  tpulse = 100.
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =400
-  dt = 0.5
-  eps = 2.5
+  nt =50
+  dt = 0.2
+  eps = 3.
  restart = .false.
   vis_on = .true.
- ivis = 5 
+ steering=.false.
+ ivis =  5
  ivis_fields = 5000
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
   idump = 4000
-  iprot=20
+  iprot=1
   itrack=300
   particle_bcs = 1
   scheme = 1 /
