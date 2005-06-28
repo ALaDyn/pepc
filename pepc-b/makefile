@@ -44,18 +44,19 @@ TFLAGS = $(FFLAGS) $(TUNE)
 
 # Visit libraries
 # JUMP
-
+NETCDFLIB = -lnetcdf
 VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
 #VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 
 #VISITLIBS=-L/home4/jzam04/jzam0401/tree/pepc/src  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 XNBODYLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody2  -llvisit_nbody2
 
-LDFLAGS = $(XNBODYLIBS) $(VISITLIBS) $(MPITRACE)
+LDFLAGS = $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) $(MPITRACE)
+CFLAGS = -I/usr/local/include
 RANLIB  = ranlib
 libdir  = .
 AR      = ar -X64
-PREFIX = ~/tree/pepc
+PREFIX = $(HOME)/tree/pepc
 LIBPEPC = -L../lpepcsrc -llpepc
 pepclib = liblpepc.a
 
@@ -63,6 +64,7 @@ pepclib = liblpepc.a
 
 
 FC = mpxlf90_r
+CC = xlc
 
 # KOJAK instrumentation
 #FC = mpxlf90_r -qdebug=function_trace
@@ -98,7 +100,7 @@ SOURCES.f90 =   pepcb.f90 \
 
 # Names of application object files derived from sources
 
-appobjs = $(SOURCES.f90:.f90=.o)
+appobjs = $(SOURCES.f90:.f90=.o) ncnbody.o
 appmods =  $(MODULES.f90:.f90=.o)
 mods = $(appmods) $(pepcmods)
 
@@ -108,6 +110,8 @@ pkojak: lpepc pepck
 #  compile mode
 .f90.o:   
 	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) $<
+.c.o:   
+	$(CC) -c $(CFLAGS) -q64 $<
 
 # -----------------------------------------------------------------------------------------
 #  targets

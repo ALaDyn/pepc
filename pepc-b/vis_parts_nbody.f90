@@ -29,6 +29,7 @@ subroutine vis_parts_nbody
   real :: plasma1, plasma2, plasma3, t_display, wfdatar, u2, amp_las
   integer :: nship, ierr
   integer :: type
+  integer :: vbufcols = 22, incdf
 
   convert_mu=1.
   simtime = dt*(itime+itime_start)
@@ -186,6 +187,8 @@ subroutine vis_parts_nbody
         call flvisit_nbody2_check_connection(lvisit_active)
 
         call flvisit_nbody2_partstep_send(vbuffer,npart_buf,attrib_max)
+        call ncnbody_put(ncid,vbuffer,npart_buf,vbufcols,incdf)
+
      endif
 
   else

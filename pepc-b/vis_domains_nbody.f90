@@ -68,8 +68,8 @@ subroutine vis_domains_nbody
         vbuffer(20,j) = 0.
         vbuffer(21,j) = 0.
 
-        write (*,'(7f13.4)') vbuffer(1,j),vbuffer(2,j), vbuffer(4,j), vbuffer(5,j), & 
-             vbuffer(6,j), vbuffer(7,j), vbuffer(17,j)
+!        write (*,'(7f13.4)') vbuffer(1,j),vbuffer(2,j), vbuffer(4,j), vbuffer(5,j), & 
+!             vbuffer(6,j), vbuffer(7,j), vbuffer(17,j)
      end do
 ! root box
      j=nbranch_sum+1  

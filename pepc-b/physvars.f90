@@ -137,6 +137,7 @@ module physvars
    integer :: itrack       ! frequency for computing ion density (tracking)
    integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
+   integer :: ncid         ! NetCDF id
 
    ! constrain
    real :: constrain_proof ! quality of getting crossing points

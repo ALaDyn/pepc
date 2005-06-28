@@ -40,7 +40,8 @@ program pepcb
   real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot, t_laser
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
-  integer :: ierr, lvisit_active, ifile
+  integer :: ierr, lvisit_active, ifile, incdf
+  integer :: vbufcols = 22
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -69,6 +70,7 @@ program pepcb
   if (my_rank ==0 .and. vis_on) then
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
+     call ncnbody_open(npart_total,vbufcols,ncid,incdf)
   endif
 
  call configure       ! Set up particles
@@ -185,7 +187,10 @@ program pepcb
   call closefiles      ! Tidy up O/P files
 
 !  if (my_rank ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
-  if (my_rank==0 .and. vis_on) call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
+  if (my_rank==0 .and. vis_on) then 
+    call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
+    call ncnbody_close(ncid,incdf)
+ endif
 
   ! Time stamp
   if (my_rank==0) call stamp(6,2)
