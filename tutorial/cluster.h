@@ -1,10 +1,6 @@
  &pepcdata
- nmerge = 1
- !perf_anal=.true.
- domain_debug=.false.
- load_balance=.true.
- walk_balance=.true.
- !walk_debug=.true.
+! nmerge = 1
+ mac=0
 ! particles
   ne = 4000
   ni = 4000 
@@ -27,7 +23,7 @@
   coulomb = .true.
   lenjones = .false.
   bond_const = 2.e-3
-  r_sphere = 2
+  r_sphere = 4
   x_plasma = 1.    ! plasma disc thickness/ wire length
   y_plasma = 2.     ! plasma width (slab target)
   z_plasma = 2.     ! plasma width (slab target)
@@ -39,7 +35,7 @@
 ! beam
   !  beam_config = 1  ! fixed beam, initialised at start
  ! beam_config = 2  ! user-controlled, real-time particle source
-  beam_config=3  ! uniform, sinusoid
+  beam_config_in=3  ! uniform, sinusoid
  !  beam_config = 0 ! beam off
 !  beam_config=4  ! laser fpond
  
@@ -55,21 +51,22 @@
 
   np_beam = 0 ! initial # beam particles/ dt
 
-  vosc = 0.01
+  vosc = 0.1
   omega = 0.5
   sigma = 6.
   tpulse = 20.
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =4000
+  nt =40
   dt = 0.3
   eps = 2.5
  restart = .false.
   vis_on = .true.
  steering = .true.
- ivis = 2 
+ ivis = 1 
  ivis_fields = 5000
+ ivis_domains = 1
   mc_init = .false.
   mc_steps = 1000
   idump = 4000
