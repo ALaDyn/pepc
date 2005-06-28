@@ -138,6 +138,8 @@ module physvars
    integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
    integer :: ncid         ! NetCDF id
+   integer :: nbuf_max     ! Max buffer size
+   integer :: ndom_max     ! Max # domains
 
    ! constrain
    real :: constrain_proof ! quality of getting crossing points
