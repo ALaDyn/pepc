@@ -43,12 +43,12 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
   endif
 
   npartm = npart 
-  nppm = np_mult*1.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+  nppm = np_mult*1.9*max(npartm/num_pe,1000) ! allow 50% fluctuation
   nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
-     nintmax = 2.*24*log(2.*npartm)/theta**2
+     nintmax = max(2.*24*log(2.*npartm)/theta**2,2000.)
   else
      nintmax = npartm
   endif

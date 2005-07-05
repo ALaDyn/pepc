@@ -35,6 +35,7 @@ subroutine tree_branches
   !   treekey
 
   integer :: key2addr        ! Mapping function to get hash table address from key
+  integer :: startlevel = 2  ! Min permitted branch level
 
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
@@ -50,6 +51,7 @@ subroutine tree_branches
   newsub = 0
   level = 1
   nsubset=0
+
   do i=1,nnodes
      treelevel  = log(1.*treekey(i))/log(8.)     ! node levels
 
@@ -73,7 +75,8 @@ subroutine tree_branches
         !        keymax = ishft( pekey(nlist),-3*(nlev-level) )      ! recover min, max twig keys from particle keys at this level
 
         do i=1,nsubset
-           if ( (search_key(i) > keymin .and. search_key(i) < keymax ) .or. ( htable( key2addr( search_key(i) ) )%node > 0 )) then
+           treelevel  = log(1.*search_key(i))/log(8.)     ! node levels
+           if ( (search_key(i) > keymin .and. search_key(i) < keymax .and. treelevel>=startlevel) .or. ( htable( key2addr( search_key(i) ) )%node > 0 )) then
               !  either middle node (complete twig),  or leaf:  so add to domain list
               nbranch = nbranch + 1
               pebranch(nbranch) = search_key(i)
