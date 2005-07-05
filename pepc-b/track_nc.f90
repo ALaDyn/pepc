@@ -22,7 +22,7 @@ subroutine track_nc
   logical :: found
   real :: xc1, dx, dy, dz
 
-  integer :: icm, icp, nover
+  integer :: icm, icp, ixc, nover
   integer :: ierr
 
   call densities  ! Compute local ion density rhoi_loc on 3D grid
@@ -64,8 +64,9 @@ subroutine track_nc
      return
   endif
 
- !  start indices
-  icm = xc1/dx
+ !  start indice
+  ixc = xc1/dx
+  icm = min(max(ixc,1),ngx-1)
   icp = icm+1
   icrit = icm
   found = .false.

@@ -127,6 +127,7 @@ module physvars
    real :: convert_fs     ! conversion factor from wp^-1 to fs
    real :: convert_mu     ! conversion factor from c/wp to microns
    real :: convert_keV     ! conversion factor from norm energy to keV/particle
+   real :: domain_cut
    integer :: nt, itime   ! # timesteps and current timestep
    integer :: itime_start ! restart time stamp
    integer :: idump       ! output frequency (timesteps)

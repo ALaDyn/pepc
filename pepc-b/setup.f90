@@ -37,7 +37,7 @@ subroutine setup
   xl = 2
   yl = 2
   zl = 2
-
+  
   ! physics stuff
   force_const = 1./3.
   bond_const = 0.1
@@ -98,6 +98,7 @@ subroutine setup
   ivis_domains = 1
   itime_start = 0
   itrack = 10
+  domain_cut = zl
 
   ngx = 25   ! Grid size for plots
   ngy = 25
@@ -117,7 +118,8 @@ subroutine setup
   nep = ne/n_cpu  ! local # electrons and ions - may be adjusted later
   nip = ni/n_cpu
   new_label = npart_total  ! Rezone label
-  if (target_dup) np_mult = np_mult*2  ! double up particle array size if necessary
+
+  if (target_dup .or. scheme==5) np_mult = np_mult*2  ! double up particle array size if multi-target or ion config mode 
 
   geometry: select case(target_geometry)
 

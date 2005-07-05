@@ -15,10 +15,10 @@ subroutine vis_parts_nbody
   implicit none
   include 'mpif.h'
 
-  integer, parameter :: npart_visit_max = 20000  ! Max 250k data points for VIS
-  integer, parameter :: ship_max = 20000, attrib_max=22
+  integer, parameter :: npart_visit_max = 80000  ! Max 250k data points for VIS
+  integer, parameter :: ship_max = 80000, attrib_max=22
   real*4, dimension(0:attrib_max-1,npart_visit_max) :: vbuffer
-!  real*4, dimension(0:attrib_max-1,npart_total) :: vbuffer
+  !  real*4, dimension(0:attrib_max-1,npart_total) :: vbuffer
   real*4, dimension(0:attrib_max-1,nppm) :: vbuf_local
 
   integer, dimension(num_pe) :: nparts_pe, recv_strides, nbuf_pe  ! array of npp on each PE
@@ -27,10 +27,10 @@ subroutine vis_parts_nbody
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, wfdatai
 
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max, box_max, epondx, epondy, epondz,phipond
-  real :: plasma1, plasma2, plasma3, t_display, wfdatar, u2, amp_las
+  real :: plasma1, plasma2, plasma3, t_display, wfdatar, u2, amp_las, box_x, box_y, box_z
   integer :: nship, ierr, cpuid
   integer :: type
-  integer :: vbufcols = 22, incdf
+  integer :: vbufcols = 22, incdf, ndom_vis, ivisdom
   real :: lbox, work_ave
 
   convert_mu=1.
@@ -43,11 +43,11 @@ subroutine vis_parts_nbody
      amp_las = vosc
   endif
 
-  if (beam_config>=3 .and. beam_config<=5) then
-     t_display = tlaser*convert_fs
-  else
-     t_display = simtime
-  endif
+  !  if (beam_config>=3 .and. beam_config<=5) then
+  !     t_display = tlaser*convert_fs
+  !  else
+  t_display = simtime
+  !  endif
 
   if (beam_config<=3) then
      plasma1 = Ukine*convert_keV
@@ -165,92 +165,98 @@ subroutine vis_parts_nbody
               vbuffer(19,1) = 0.
               vbuffer(20,1) = 0.
               vbuffer(21,1) = 0.
-              !              do i=1,nship
+
+              work_ave=SUM(work_loads)/num_pe
+
+
+              ! ship branch nodes to show domains
+              ndom_vis=0
+
+! First count how many to be shipped
+
+              do k=1,nbranch_sum
+             
+                 ilev = log( 1.*branch_key(k) )/log(8.)
+                 ixd = SUM( (/ (2**i*ibits( branch_key(k),3*i,1 ), i=0,ilev-1) /) )
+                 iyd = SUM( (/ (2**i*ibits( branch_key(k),3*i+1,1 ), i=0,ilev-1) /) )
+                 izd = SUM( (/ (2**i*ibits( branch_key(k),3*i+2,1 ), i=0,ilev-1) /) )
+                 lbox = boxsize/2**(ilev)          !  box length
+                 box_x =  xmin + lbox*(ixd+.5) ! box centres
+                 box_y =  ymin + lbox*(iyd+.5) ! box centres
+                 box_z =  zmin + lbox*(izd+.5) ! box centres
+
+                 if (box_z < domain_cut) ndom_vis=ndom_vis+1
+              end do
+
+              ivisdom = 0
+              do k=1,nbranch_sum
+             
+                 ilev = log( 1.*branch_key(k) )/log(8.)
+                 ixd = SUM( (/ (2**i*ibits( branch_key(k),3*i,1 ), i=0,ilev-1) /) )
+                 iyd = SUM( (/ (2**i*ibits( branch_key(k),3*i+1,1 ), i=0,ilev-1) /) )
+                 izd = SUM( (/ (2**i*ibits( branch_key(k),3*i+2,1 ), i=0,ilev-1) /) )
+                 lbox = boxsize/2**(ilev)          !  box length
+                 box_x =  xmin + lbox*(ixd+.5) ! box centres
+                 box_y =  ymin + lbox*(iyd+.5) ! box centres
+                 box_z =  zmin + lbox*(izd+.5) ! box centres
+
+                 if (box_z < domain_cut) then   ! only show domains below z=domain_cut
+                    ivisdom=ivisdom+1
+                    j=npart_buf+1+ivisdom
+                    ! Store attributes for visualizing
+                    vbuffer(0,j) = t_display
+                    vbuffer(1,j)= box_x
+                    vbuffer(2,j)= box_y
+                    vbuffer(3,j)= box_z 
+                    vbuffer(4,j) = lbox
+                    vbuffer(5,j) = branch_owner(k)  ! cpu id of branch node
+                    cpuid = branch_owner(k)+1
+                    vbuffer(6,j) = work_loads(cpuid)/work_ave   ! total work load of branch node/cpu
+                    vbuffer(7,j) = npps(cpuid) ! total # particles on cpu
+                    vbuffer(8,j) = 0.
+                    vbuffer(9,j) = 0.
+                    vbuffer(10,j) = 0.
+                    vbuffer(11,j) = 0.
+                    vbuffer(12,j) = 0.
+                    vbuffer(13,j) = 0.
+                    vbuffer(14,j) = 0.
+                    vbuffer(15,j) = 0.
+                    vbuffer(16,j) = 16    ! Domain type
+                    vbuffer(17,j) = ndom_vis  ! Total # branch nodes
+                    vbuffer(18,j) = 0.
+                    vbuffer(19,j) = 0.
+                    vbuffer(20,j) = 0.
+                    vbuffer(21,j) = 0.
+                 endif
+                 !        write (*,'(7f13.4)') vbuffer(1,j),vbuffer(2,j), vbuffer(4,j), vbuffer(5,j), & 
+                 !             vbuffer(6,j), vbuffer(7,j), vbuffer(17,j)
+              end do
+
+! Fill out dummy values for netcdf
+              do j=npart_buf+1+ndom_vis,nbuf_max
+                 vbuffer(0:attrib_max-1,j) = 0.
+              end do
+
+!     if (me==0) then 
+        write(*,*) '# particles shipped ',npart_buf,nship
+        write(*,*) '# branches shipped ',ndom_vis, '/', nbranch_sum
+        write(*,*) 'Total # objects shipped :',nbranch_sum+1+npart_buf,' /',nbuf_max
+        write(*,*) 'u_thresh: (MeV)     ',uthresh
+!     endif
+
+              call flvisit_nbody2_check_connection(lvisit_active)
+! send particles and branch boxes together
+              call flvisit_nbody2_partstep_send(vbuffer,npart_buf+ndom_vis+1,attrib_max)
+! netcdf needs fixed buffer size, so take max used for initialisation
+
+             call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
+              !
               !        write (90,*) 'local',i
               !        write (90,'((22(f12.5/)//))') vbuf_local(0:attrib_max-1,i)
               !        write (90,*) 'global',i
               !        write (90,'((22(f15.8/)//))') vbuffer(0:attrib_max-1,i)
               !        write (90,*) vbuffer(0:attrib_max-1,i)
               !              end do
-
-              work_ave=SUM(work_loads)/num_pe
-
-
-              ! ship branch nodes to show domains
-              do j=npart_buf+2,npart_buf+1+nbranch_sum
-                 ilev = log( 1.*branch_key(j) )/log(8.)
-                 ixd = SUM( (/ (2**i*ibits( branch_key(j),3*i,1 ), i=0,ilev-1) /) )
-                 iyd = SUM( (/ (2**i*ibits( branch_key(j),3*i+1,1 ), i=0,ilev-1) /) )
-                 izd = SUM( (/ (2**i*ibits( branch_key(j),3*i+2,1 ), i=0,ilev-1) /) )
-                 lbox = boxsize/2**(ilev)          !  box length
-                 ! Store attributes for visualizing
-                 vbuffer(0,j) = t_display
-                 vbuffer(1,j)= xmin + ixd*lbox + lbox/2 ! corners?
-                 vbuffer(2,j)= ymin + lbox*(iyd+.5)
-                 vbuffer(3,j)= zmin + lbox*(izd+.5) 
-                 vbuffer(4,j) = lbox
-                 vbuffer(5,j) = branch_owner(j)  ! cpu id of branch node
-                 cpuid = branch_owner(j)+1
-                 vbuffer(6,j) = work_loads(cpuid)/work_ave   ! total work load of branch node/cpu
-                 vbuffer(7,j) = npps(cpuid) ! total # particles on cpu
-                 vbuffer(8,j) = 0.
-                 vbuffer(9,j) = 0.
-                 vbuffer(10,j) = 0.
-                 vbuffer(11,j) = 0.
-                 vbuffer(12,j) = 0.
-                 vbuffer(13,j) = 0.
-                 vbuffer(14,j) = 0.
-                 vbuffer(15,j) = 0.
-                 vbuffer(16,j) = 16    ! Domain type
-                 vbuffer(17,j) = nbranch_sum  ! Total # branch nodes
-                 vbuffer(18,j) = 0.
-                 vbuffer(19,j) = 0.
-                 vbuffer(20,j) = 0.
-                 vbuffer(21,j) = 0.
-
-                 !        write (*,'(7f13.4)') vbuffer(1,j),vbuffer(2,j), vbuffer(4,j), vbuffer(5,j), & 
-                 !             vbuffer(6,j), vbuffer(7,j), vbuffer(17,j)
-              end do
-              ! root box (for testing)
-              j=npart_buf+1+nbranch_sum+1  
-              vbuffer(0,j) = t_display
-              vbuffer(1,j)= xmin + boxsize/2! corners?
-              vbuffer(2,j)= ymin + boxsize/2
-              vbuffer(3,j)= zmin + boxsize/2 
-              vbuffer(4,j) = boxsize
-              vbuffer(5,j) = 0  ! cpu id of branch node
-              cpuid = branch_owner(j)+1
-              vbuffer(6,j) = 1.   ! total work load of branch node/cpu
-              vbuffer(7,j) = npart ! total # particles on cpu
-              vbuffer(8,j) = 0.
-              vbuffer(9,j) = 0.
-              vbuffer(10,j) = 0.
-              vbuffer(11,j) = 0.
-              vbuffer(12,j) = 0.
-              vbuffer(13,j) = 0.
-              vbuffer(14,j) = 0.
-              vbuffer(15,j) = 0.
-              vbuffer(16,j) = 16    ! Domain type
-              vbuffer(17,j) = nbranch_sum+1  ! Total # branch nodes
-              vbuffer(18,j) = 0.
-
-! Fill out dummy values for netcdf
-              do j=npart_buf+2+nbranch_sum,nbuf_max
-                 vbuffer(0:attrib_max-1,j) = 0.
-              end do
-
-     if (me==0) then 
-        write(*,*) '# particles shipped ',npart_buf,nship
-        write(*,*) '# branches shipped ',nbranch_sum
-        write(*,*) 'Total # objects shipped :',nbranch_sum+1+npart_buf,' /',nbuf_max
-        write(*,*) 'u_thresh: (MeV)     ',uthresh
-     endif
-
-              call flvisit_nbody2_check_connection(lvisit_active)
-! send particles and branch boxes together
-              call flvisit_nbody2_partstep_send(vbuffer,npart_buf+nbranch_sum+1,attrib_max)
-! netcdf needs fixed buffer size, so take max used for initialisation
-              call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
 
            endif
 

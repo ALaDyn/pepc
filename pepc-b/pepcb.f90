@@ -66,7 +66,7 @@ program pepcb
 
   call param_dump      ! Dump initial data
 
- !  if (my_rank ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
+  !  if (my_rank ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
   if (my_rank ==0 .and. vis_on) then
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
@@ -75,7 +75,7 @@ program pepcb
      call ncnbody_open(nbuf_max,vbufcols,ncid,incdf)
   endif
 
- call configure       ! Set up particles
+  call configure       ! Set up particles
 
   do itime = 1,nt
      trun = trun + dt
@@ -103,15 +103,15 @@ program pepcb
            write(ifile,'(//a,i8,(3x,a,f8.2))') &
                 ' Timestep ',itime+itime_start &
                 ,' total run time = ',trun 
-!          if (db_level >= 1)  then
-!	    write(ifile,'(//(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
-!             ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
-!             ,' intensity= ',Tpon &
-!             ,' x_crit= ',x_crit &
-!             ,' spot size= ',sigma & 
-!             ,' theta =  ',theta_beam 
-!           !                ,' remaining wall-clock time (s)= ',tremain 
-!	endif
+           if (debug_level >= 1)  then
+              write(ifile,'(//(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
+                    ' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
+                   ,' intensity= ',Tpon &
+                   ,' x_crit= ',x_crit &
+                   ,' spot size= ',sigma & 
+                   ,' theta =  ',theta_beam 
+              !                ,' remaining wall-clock time (s)= ',tremain 
+           endif
         end do
         if (beam_config==5) then 
            write(6,'(4(a,f8.2/))') 'Laser amplitude =',vosc &
@@ -121,14 +121,14 @@ program pepcb
         endif
      endif
 
-! Compute E, B-fields and pot using lpepc
-! Uses internal particle arrays from library (setup up in configure step)
-! # particles on CPU may change due to resort
- 
+     ! Compute E, B-fields and pot using lpepc
+     ! Uses internal particle arrays from library (setup up in configure step)
+     ! # particles on CPU may change due to resort
+
      call pepc_fields_p(np_local, mac, theta, eps, force_tolerance, balance, force_const, bond_const, &
-	         dt, xl, yl, zl, itime, &
-                 coulomb, bfields, bonds, lenjones, &
-                 t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force)   
+          dt, xl, yl, zl, itime, &
+          coulomb, bfields, bonds, lenjones, &
+          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force)   
 
      call force_laser(1,np_local)
 
@@ -188,11 +188,11 @@ program pepcb
 
   call closefiles      ! Tidy up O/P files
 
-!  if (my_rank ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
+  !  if (my_rank ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
   if (my_rank==0 .and. vis_on) then 
-    call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
-    call ncnbody_close(ncid,incdf)
- endif
+     call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
+     call ncnbody_close(ncid,incdf)
+  endif
 
   ! Time stamp
   if (my_rank==0) call stamp(6,2)

@@ -78,10 +78,10 @@ subroutine configure
 
   case(1)
      call beam           ! Fixed beam
-     call beam_control   ! Display default parameters
+     if (steering) call beam_control   ! Display default parameters
 
   case(2)
-     call beam_control   ! Constant particle source
+     if (steering) call beam_control   ! Constant particle source
      if (me==0) write(*,'(//a)') '===> Particle beam switched on' 
 
   case(8)
@@ -90,7 +90,7 @@ subroutine configure
   case(3:6) ! laser on
 
      if (me==0) write(*,'(//a)') '===> Laser switched on' 
-     call beam_control 
+     if (steering) call beam_control 
 
   end select beamconf
 
