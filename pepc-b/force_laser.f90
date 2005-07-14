@@ -50,8 +50,8 @@ subroutine force_laser(p_start,p_finish)
            case(94)  ! standing wave fpond with transverse fields artificially reduced
               call fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
                 xd,yd,zd,epon_x,epon_y,epon_z,phipon)
-              epon_y=epon_y/10.
-              epon_z=epon_z/10.
+              epon_y=epon_y/100.
+              epon_z=epon_z/100.
 
            case(14)  ! oblique incidence standing wave, s-pol
               call emobliq( tlaser, tpulse,sigma,vosc,omega,theta_beam,rho_upper, &

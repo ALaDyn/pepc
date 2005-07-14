@@ -70,7 +70,7 @@ program pepcb
   if (my_rank ==0 .and. vis_on) then
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
-     ndom_max = 500  ! Should be set to nbranch_amx
+     ndom_max = 1000  ! Should be set to nbranch_amx
      nbuf_max = npart_total+ndom_max
      call ncnbody_open(nbuf_max,vbufcols,ncid,incdf)
   endif
@@ -79,8 +79,15 @@ program pepcb
 
   do itime = 1,nt
      trun = trun + dt
+     if (my_rank==0 ) then
+        do ifile = 6,15,9
+           write(ifile,'(/a)') '========================================================================'
+        end do
+           write(ifile_cpu,'(/a)') '========================================================================'
+     endif
+
+
      if (beam_config >= 3) tlaser = tlaser + dt  
-     write(ifile_cpu,'(//a,i8,a,f10.5)') 'Timestep ',itime,' t=',trun
 
      if (beam_config==4 .and. tlaser<= 2*tpulse) then
         Tpon = 2*vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2) 
@@ -90,7 +97,7 @@ program pepcb
      else
 	Tpon = 0.
      endif
-     write(ifile_cpu,*) 'Laser intensity: ',Tpon
+
      write(ifile_cpu,'(//a,i8,(3x,a20,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
           ,' total run time = ',trun &
           ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
@@ -103,7 +110,7 @@ program pepcb
            write(ifile,'(//a,i8,(3x,a,f8.2))') &
                 ' Timestep ',itime+itime_start &
                 ,' total run time = ',trun 
-           if (debug_level >= 1)  then
+           if (debug_level >= 2)  then
               write(ifile,'(//(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
                     ' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
                    ,' intensity= ',Tpon &
@@ -125,7 +132,7 @@ program pepcb
      ! Uses internal particle arrays from library (setup up in configure step)
      ! # particles on CPU may change due to resort
 
-     call pepc_fields_p(np_local, mac, theta, eps, force_tolerance, balance, force_const, bond_const, &
+     call pepc_fields_p(np_local, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
           dt, xl, yl, zl, itime, &
           coulomb, bfields, bonds, lenjones, &
           t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force)   

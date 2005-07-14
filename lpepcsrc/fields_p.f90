@@ -13,8 +13,8 @@
 !  ===================================================================
 
 
-subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, balance, force_const, bond_const, &
-	delta_t,  xl, yl, zl, itime, &
+subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, force_const, bond_const, &
+     delta_t,  xl, yl, zl, itime, &
      coulomb, bfield_on, bonds, lenjones, &
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force)
 
@@ -37,6 +37,7 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, balance, force_const, 
   integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: mac  ! choice of mac
   integer, intent(in) :: balance  ! choice of mac
+  integer :: ifreeze
 
 
 
@@ -69,42 +70,75 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, balance, force_const, 
   !  walk_debug=.false.
   !  walk_summary=.true.
   !  dump_tree=.true.
-!  npp = np_local  ! assumed lists matched for now
+  !  npp = np_local  ! assumed lists matched for now
+
+  if (mac<>2) ifreeze=1
 
   loadbal: select case(balance)
-	case(1)
-	  load_balance=.true.
-        case default
-	  load_balance=.false.
-  end select loadbal 
+  case(1)
+     load_balance=.true.
+  case default
+     load_balance=.false.
+  end select loadbal
+
 
   if (force_debug) then
      if (me==0) write (*,*)
-     if (me==0) write (*,'(a8,a60/a7,2i5,6f15.2)') 'LPEPC | ','Params itime, mac, theta, eps, force_const, bond_const, err, delta_t:', &
-              'LPEPC | ',itime, mac, theta, eps, force_const, bond_const, err_f, delta_t
-     if (me==0) write (*,'(a8,a20,4l4)') 'LPEPC | ','Force switches: ',coulomb,bfield_on,lenjones,bonds
+     if (me==0) write (*,'(a8,a60/a7,2i5,6f11.2)') 'LPEPC | ','Params itime, mac, theta, eps, force_const, bond_const, err, delta_t:', &
+          'LPEPC | ',itime, mac, theta, eps, force_const, bond_const, err_f, delta_t
+     if (me==0) write (*,'(a8,a17,4l4)') 'LPEPC | ','Force switches: ',coulomb,bfield_on,lenjones,bonds
      write (ipefile,'(a8,a20/(i16,4f15.3))') 'LPEPC | ','Initial buffers: ',(pelabel(i), x(i), y(i), z(i), q(i),i=1,npp) 
   endif
 
+  if (mod(itime-1,ifreeze)==0) then
+     if (me==0) write (*,'(a23)') 'LPEPC | REBUILDING TREE'
+     call cputime(td1)
+     call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
 
-  call cputime(td1)
-  call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
+     ! particles now sorted according to keys assigned in tree_domains.
 
-  ! particles now sorted according to keys assigned in tree_domains.
-  ! Serial mode: incoming labels can serve to restore order - now kept in pelabel 
-  ! Parallel mode: have to retain sort vectors from tree_domains
+     call cputime(tb1)
 
-  call cputime(tb1)
-  call tree_build      ! Build trees from local particle lists
-  call tree_branches   ! Determine and concatenate branch nodes
-  call tree_fill       ! Fill in remainder of local tree
+
+     call tree_build      ! Build trees from local particle lists
+     call tree_branches   ! Determine and concatenate branch nodes
+     call tree_fill       ! Fill in remainder of local tree
+     call cputime(tp1)
+     t_domain = tb1-td1
+     t_build = tp1-tb1
+
+  else 
+     if (me==0) write (*,'(a19)') 'LPEPC | FREEZE MODE'
+     t_domain=0.
+     t_build=0.
+  endif
+
   call tree_properties ! Compute multipole moments for local tree
   call cputime(tp1)
-  if (mac==1 .and. num_pe>1) call tree_prefetch(itime)
+
+
+  if (mac==2) then
+     if (mod(itime-1,ifreeze)<>0) then
+        ! freeze mode - re-fetch nonlocal multipole info
+        call tree_update(itime)
+     else
+        ! tree just rebuilt so check for missing nodes before re-fetching
+        call tree_prefetch(itime)
+     endif
+
+  else if (mac==1 .and. num_pe>1) then
+     call tree_prefetch(itime)
+
+  else
+! fully asynch. mode
+     nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
+     nreqs_total=0
+  endif
+
+
   call cputime(tp2)
 
-  t_domain = tb1-td1
-  t_build = tp1-tb1
+
   t_prefetch = tp2-tp1
   t_walk=0.
   t_walkc=0.
@@ -116,8 +150,6 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, balance, force_const, 
   maxships=0      ! max # multipole shipments/traversal
   sumships=0      ! total # multipole shipments/iteration
 
-  nfetch_total=0     ! Zero key fetch counters if prefetch mode off
-  nreqs_total=0
 
   !  # passes needed to process all particles
   nshort_list =nshortm/4 
@@ -170,14 +202,16 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, balance, force_const, 
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
 
      if (force_debug) then
-       	if (me==0) write(*,*) 'LPEPC |  pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
-        write(ipefile,*) 'LPEPC |  pass ',jpass,' # parts ',ip1,' to ',ip1+nps-1
+       	if (me==0) write(*,'(a14,i4,a4,i4,a20,i8,a4,i8)') &
+             'LPEPC |  pass ',jpass,' of ',max_npass,': # particles ',ip1,' to ',ip1+nps-1
+        write(ipefile,*) 'LPEPC |  pass ',jpass,' # particles ',ip1,' to ',ip1+nps-1
      endif
 
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
 
      call tree_walk(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 
@@ -285,17 +319,17 @@ subroutine pepc_fields_p(np_local,mac, theta, eps, err_f, balance, force_const, 
   endif
 
   if (force_debug) then
-     if (me==0) write (*,101) force_const
-     write (ipefile,101) force_const
+!     if (me==0) write (*,101) force_const
+     write (ipefile,101) 'LPEPC | Tree forces:','   p    q   m   ux   pot  ',force_const
 
      do i=1,npp
         write (ipefile,102) pelabel(i), & 
              q(i), m(i), ux(i), pot(i), ex(i)
-!        if (me==0) write (*,102) pelabel(i), x(i), & 
-!             q(i), m(i), ux(i), pot(i)
+        !        if (me==0) write (*,102) pelabel(i), x(i), & 
+        !             q(i), m(i), ux(i), pot(i)
      end do
 
-101  format('LPEPC | Tree forces:'/'   p    q   m   ux   pot  ',f8.2)
+101  format(a/a,f8.2)
 102  format(1x,i7,5(1pe14.5))
 
   endif

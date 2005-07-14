@@ -79,9 +79,13 @@ subroutine diagnostics
         write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
         write (ifile,'(a50,i8,a3,i8,a1)') 'Max # multipole ships/traversal, (size_fetch):',maxships,'(',size_fetch,')'
         write (ifile,'(a50,i8)') 'Total # multipole ships/iteration ',sumships
-        write (ifile,'(a50,i8,a3,i8,a1)') 'Total # multipole ships/prefetch, (numpe*size_fetch): ',sumprefetches,'(',n_cpu*size_fetch,')'
+        write (ifile,'(a55,i8,a3,i8,a1)') 'Total # multipole ships/prefetch, (numpe*size_fetch): ',sumprefetches,'(',n_cpu*size_fetch,')'
+        write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
+        write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
+
      end do
   endif
+
 
 end subroutine diagnostics
 

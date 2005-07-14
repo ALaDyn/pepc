@@ -62,9 +62,11 @@ subroutine tree_prefetch(itime)
   logical :: prefetch_summary=.true.
 
   iofile = ipefile
+!  iofile = 6
+!  if (me<>0) prefetch_debug=.false.
   !
-  if (prefetch_debug) write(iofile,'(/a,i6)') 'TREE PREFETCH for timestep ',itime
-  ! if (walk_debug) write(*,'(/a,i6)') 'TREE PREFETCH for timestep ',itime
+  if (prefetch_debug) write(iofile,'(a,i6)') 'TREE PREFETCH for timestep ',itime
+  if (me.eq.0 .and. walk_summary) write(*,'(a,i6)') 'LPEPC | TREE PREFETCH for timestep ',itime
   timestamp=itime
 
 
@@ -125,6 +127,7 @@ subroutine tree_prefetch(itime)
   sstrides = (/ (i*size_fetch,i=0,num_pe-1) /)
   rstrides = sstrides
 
+!  call MPI_BARRIER( MPI_COMM_WORLD, ierr)
   !  Send new fetch-list totals to destination PEs
   call MPI_ALLTOALL( nfetch_total, 1, MPI_INTEGER, nreqs_total, 1, MPI_INTEGER, MPI_COMM_WORLD,ierr)
 
@@ -167,6 +170,8 @@ subroutine tree_prefetch(itime)
 
 
      nreqs_total(ipe) = nreqs_new
+     nreqs_old = nreqs_new
+
      if (prefetch_summary) write(iofile,'(a,i8/(o15))') 'Keys removed: ', nremove(ipe),(remove_keys(i,ipe),i=1,nremove(ipe))
 
      ! TODO: Check that sibling sets complete so that parent's 'HERE' flag can be set in childcode.
@@ -181,15 +186,15 @@ subroutine tree_prefetch(itime)
      if (prefetch_debug) write(iofile,'(a,i6/(2o15))') & 
 	'Compressed list   Parents ',nreqs_new,(req_compress(i),req_parent(i),i=1,nreqs_new)
      req_parent(nreqs_new+1) = 0
-     call unique(req_parent(1:nreqs_new),nreqs_new)     ! Remove duplicates
      nuniq= nreqs_new         ! Count them
+     call unique(req_parent(1:nuniq),nuniq)     ! Remove duplicates
      if (prefetch_debug) write(iofile,'(a,i6/(o15))') 'Unique parents ',nuniq,(req_parent(i),i=1,nuniq)
 
 
  ! Make new list of requested children from parent list
  !  - this may include nodes created by tree_fill
 
-     nreqs_old = nreqs_new
+
      nreqs_new = 0
 
      do i=1,nuniq
@@ -203,11 +208,7 @@ subroutine tree_prefetch(itime)
      nadd(ipe) = nreqs_new-nreqs_old
   end do
 
-
-!    call MPI_FINALIZE(ierr)
-!    call closefiles
-!   stop
-
+!  call MPI_BARRIER( MPI_COMM_WORLD, ierr)
   !  Send new request-list totals to requesting PEs
   call MPI_ALLTOALL( nreqs_total, 1, MPI_INTEGER, nfetch_total, 1, MPI_INTEGER, MPI_COMM_WORLD,ierr)
 
@@ -238,7 +239,7 @@ subroutine tree_prefetch(itime)
      endif
   end do
 
-
+!  call MPI_BARRIER( MPI_COMM_WORLD, ierr)
   !  Send new fetch-list totals to destination PEs
   call MPI_ALLTOALL( nfetch_total, 1, MPI_INTEGER, nreqs_total, 1, MPI_INTEGER, MPI_COMM_WORLD,ierr)
 
@@ -259,7 +260,7 @@ subroutine tree_prefetch(itime)
 
      ! formatting for fetch/request lists
      if (num_pe<10) then
-        ccol0='(//a,i7/3(a15,'//achar(mod(num_pe,10)+48)//'i15/),a/)'
+        ccol0='(//a3,i5,a,i7/3(a15,'//achar(mod(num_pe,10)+48)//'i15/),a/)'
         ccol1='(//a,i7/'//achar(mod(num_pe,10)+48)//'i15/a/)'
         ccol2='('//achar(mod(num_pe,10)+48)//'o15)'
      else
@@ -268,7 +269,7 @@ subroutine tree_prefetch(itime)
         ccol2='('//achar(num_pe/10+48)//achar(mod(num_pe,10)+48)//'o15)'
      endif
 
-     write(iofile,ccol0) 'Key prefetch at timestep ', &
+     write(iofile,ccol0) 'CPU ',me,': Key prefetch at timestep ', &
 	timestamp,'requested:',nreqs_total(0:num_pe-1),'removed:',nremove(0:num_pe-1),'added:',nadd(0:num_pe-1), &
         '--------------------------------------------------------------------------------'
   endif

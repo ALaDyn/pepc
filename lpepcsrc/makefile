@@ -20,7 +20,8 @@ LDFLAGS = -q64 -qrealsize=8  -g
 IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 
 #PG=-pg -g -qfullpath
-DB= -g -qfullpath -qcheck
+#DB= -g -qfullpath -qcheck
+DB= -g -qfullpath
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
 #MPITRACE= -L/usr/local/beta/lib -lmpitrace
@@ -44,7 +45,7 @@ TUNE= -qarch=pwr4 -qtune=pwr4 -O5 $(IPA)
 
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
-FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(TUNE)
+FFLAGS =  $(FFLAGS1) $(Q64) $(TUNE)
 TFLAGS = $(FFLAGS) $(TUNE)
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -90,6 +91,7 @@ PEPCMOD.f90 =  treevars.f90 tree_utils.f90
 PEPCSRC.f90 =  tree_domains.f90 setup_treearrays.f90 \
 		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
 		tree_walk.f90	tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \
+	        tree_update.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 	        diagnose_tree.f90 check_table.f90 sum_lennardjones.f90 sum_bond.f90 \
 		draw_domains.f90 draw_tree2d.f90 draw_lists.f90 \

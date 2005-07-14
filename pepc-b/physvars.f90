@@ -153,6 +153,7 @@ module physvars
   real :: force_tolerance=1.      ! Permitted error in force calculation
   integer :: mac = 0  ! MAC (default=BH)
   integer :: balance = 1  ! Load balancing switch
+  integer :: ifreeze = 1  ! Tree-freezing control
 
   character*10 :: plasma_configs(0:2)= (/ &
        'no plasma ','plasma    ','special   ' /)

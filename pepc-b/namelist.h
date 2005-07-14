@@ -13,5 +13,5 @@
        nt, dt, mc_steps, idump, ivis, ivis_fields, ivis_domains, iprot, itrack, ncpu_merge, ngx, ngy, ngz, &
        vis_on, steering,  mc_init, restart, scheme, particle_bcs, &
        coulomb,  bfields,  bonds, lenjones, target_dup, ramp, &
-       debug_level, debug_tree, ncpu_merge, &
-       constrain_proof, len_tripod, struct_step, uthresh
+       debug_level, debug_tree, ncpu_merge, balance, ifreeze, &
+    constrain_proof, len_tripod, struct_step, uthresh, domain_cut

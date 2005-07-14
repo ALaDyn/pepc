@@ -122,7 +122,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   !walk_debug = .false.
   ! ipefile = 6
   if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK for timestep ',itime,' pass ',pass
-  if (me.eq.0 .and. walk_summary) write(*,'(/2(a,i6))') 'TREE WALK for timestep ',itime,' pass ',pass
+  if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK for timestep ',itime,' pass ',pass
 
   sbox = boxsize
 
@@ -611,11 +611,11 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      sumships = sumships + max_pack ! Total # shipments/iteration
 
      if (walk_summary ) then
-        write (ipefile,'(/a,i8,a2)') 'Summary for traversal # ',ntraversals,' :'
+        write (ipefile,'(/a,i8,a2)') 'LPEPC | Summary for traversal # ',ntraversals,' :'
         ! Determine global max
         call MPI_ALLREDUCE( nplace_max, max_nplace, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
-        write (ipefile,'(a30,i8,a7,i8,a12,i8)') ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass,' previous ave: ',sum_inner_old
-        write (ipefile,'(a30,i8,a7,i8,a12,i8)') ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops,' previous: ',sum_nhops_old
+        write (ipefile,'(a40,i8,a7,i8,a12,i8)') ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass,' previous ave: ',sum_inner_old
+        write (ipefile,'(a40,i8,a7,i8,a12,i8)') ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops,' previous: ',sum_nhops_old
         write (ipefile,*) ' # local children shipped:     ',nchild_ship,', traversal sum:',max_pack
         write (ipefile,*) ' # non-local children fetched: ',nplace,', traversal sum:',max_nplace
         write (ipefile,*) ' cumulative # requested keys:  ',nreqs_total

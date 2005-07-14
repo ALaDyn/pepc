@@ -24,9 +24,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
   if (db_level==1) then
       tree_debug=.true.
-      force_debug=.true.
+      force_debug=.false.
       walk_summary=.true.
-      prefetch_debug=.true. 
+      prefetch_debug=.false. 
 
   else if (db_level==2) then
      tree_debug=.true.
@@ -70,6 +70,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
    size_tree=maxaddress+1
 !   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
    size_fetch=size_tree
+!   size_fetch=200
    nbranch_max = size_tree/20
    if (num_pe==1) size_fetch=size_tree
 !  maxaddress = 512

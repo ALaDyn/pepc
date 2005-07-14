@@ -20,7 +20,8 @@
 IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 
 #PG=-pg -g -qfullpath
-DB= -g -qfullpath -qcheck
+#DB= -g -qfullpath -qcheck 
+DB= -g -qfullpath 
 HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
 #MPITRACE= -L/usr/local/beta/lib -lmpitrace
@@ -36,8 +37,8 @@ TUNE= -qarch=pwr4 -qtune=pwr4 -O5 $(IPA)
 # $(PG) $(HPM)
 
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
-FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
-#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(TUNE)
+#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
+FFLAGS =  $(FFLAGS1) $(DB) $(Q64) ## $(TUNE)
 TFLAGS = $(FFLAGS) $(TUNE)
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -121,8 +122,9 @@ pepcb:	$(appobjs) $(appmods) $(pepcmods) $(pepclib)
 	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) -o $@ $(appobjs) $(appmods) $(pepcmods)
 	@echo "... done\n"
 
-# PEPC header
+# Update PEPC library and headers
 lpepc:
+	cd ../lpepcsrc; make lpepc; cd ../pepc-b
 	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.o $(PREFIX)/pepc-b/treevars.o
 	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-b/treevars.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/liblpepc.a $(PREFIX)/pepc-b/liblpepc.a
