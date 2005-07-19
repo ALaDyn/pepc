@@ -43,6 +43,18 @@ Example run.h:
  !  initial_config=3   			! wire, r_sphere (x,y) * x_plasma (z)
  !  initial_config = 0         		! rectangular slab, x_plasma * y_plasma * y_plasma (default)
 
+! Currently available geometries:
+  0  slab
+  1  sphere
+  2  disc
+  3  wire
+  4  ellipsoid
+  5  wedge
+  6  hemisphere
+  7  hollow sphere
+  8  hollow hemisphere
+  10 special
+
   r_sphere = 1				! Sphere/disc/wire radius
   x_plasma = 1.    			! plasma slab/disc thickness/ wire length
   y_plasma = 2.     			! plasma width (slab target)

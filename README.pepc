@@ -56,6 +56,10 @@ Linux PC:	./mddemo
 -------------------------------------------------------
 Compile:
 	cd pepc-b
+
+Edit makefile:
+	PREFIX = $HOME/<pepc install directory>
+
 	(make clean)
 	make all 
 
