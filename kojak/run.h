@@ -1,24 +1,25 @@
  &pepcdata
  ncpu_merge = 1
- debug_level = 2
- debug_tree = 0
+ debug_level = 1
+ debug_tree =0
  mac=0
+ ifreeze=5
 ! particles
-  ne = 4000
-  ni = 4000 
+  ne = 8000
+  ni = 8000 
 
  plasma_config = 1  ! set up plasma target
  ! initial_config = 1   ! sphere
- ! target_geometry =7   ! hollow sphere
-   target_geometry = 3         ! random disc
- !   initial_config=7   ! hollow sphere
+  target_geometry =5   ! hollow sphere
+ !  target_geometry = 1         ! random disc
+!   initial_config=7   ! hollow sphere
  !   initial_config=3   ! wire
  !  initial_config = 0         ! rectangular slab
   !  initial_config = 10     ! read from parts_all.in
 
 ! physics stuff
 
-  theta = 0.5
+  theta = 0.3
   Te_keV = 0.5 ! Temperatures in keV
   Ti_keV =0. 
   mass_ratio = 2000.
@@ -27,13 +28,14 @@
   lenjones = .false.
   bond_const = 2.e-3
   r_sphere = 1.
-  x_plasma = 8.    ! plasma disc thickness/ wire length
+  x_plasma = 5    ! plasma disc thickness/ wire length
   y_plasma = 2.     ! plasma width (slab target)
-  z_plasma = 2.     ! plasma width (slab target)
+  z_plasma = 1. ! plasma width (slab target)
   xl = 2  ! graphics box size
   yl =2 
   zl =2 
-
+  target_dup=.false.
+  displace = 10.,10.,0.
 
 ! beam
   !  beam_config = 1  ! fixed beam, initialised at start
@@ -62,10 +64,10 @@
   ! control
   nt =10
   dt = 0.2
-  eps = 2.
+  eps = .5
  restart = .false.
   vis_on = .false.
- ivis = 2 
+ ivis = 1 
  ivis_fields = 5000
  ivis_domains = 5000
   mc_init = .false.

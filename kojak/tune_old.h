@@ -7,8 +7,8 @@
  walk_balance=.true.
  !walk_debug=.true.
 ! particles
-  ne = 3000
-  ni = 3000 
+  ne = 30000
+  ni = 30000 
 
  ! initial_config = 1   ! sphere
  !  initial_config = 2         ! random disc
@@ -59,7 +59,7 @@
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =5
+  nt =10
   dt = 0.1
   eps = 0.5
  restart = .false.
@@ -69,6 +69,6 @@
   mc_init = .false.
   mc_steps = 1000
   idump = 200
-  iprot=20
+  iprot=10
   itrack=300
   scheme = 1 /
