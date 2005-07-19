@@ -11,7 +11,6 @@
 function key_local(keyin)
 
   use treevars
-  use utils
 
   implicit none
   integer*8  :: keyin

@@ -72,7 +72,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   !  dump_tree=.true.
   !  npp = np_local  ! assumed lists matched for now
 
-  if (mac<>2) ifreeze=1
+  if (mac /= 2) ifreeze=1
 
   loadbal: select case(balance)
   case(1)
@@ -93,16 +93,19 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   if (mod(itime-1,ifreeze)==0) then
      if (me==0) write (*,'(a23)') 'LPEPC | REBUILDING TREE'
      call cputime(td1)
+!POMP$ INST BEGIN(domains)
      call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
+!POMP$ INST END(domains)
 
      ! particles now sorted according to keys assigned in tree_domains.
 
      call cputime(tb1)
 
-
+!POMP$ INST BEGIN(build)
      call tree_build      ! Build trees from local particle lists
      call tree_branches   ! Determine and concatenate branch nodes
      call tree_fill       ! Fill in remainder of local tree
+!POMP$ INST END(build)
      call cputime(tp1)
      t_domain = tb1-td1
      t_build = tp1-tb1
@@ -113,21 +116,31 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      t_build=0.
   endif
 
+!POMP$ INST BEGIN(properties)
   call tree_properties ! Compute multipole moments for local tree
+!POMP$ INST END(properties)
   call cputime(tp1)
 
 
   if (mac==2) then
-     if (mod(itime-1,ifreeze)<>0) then
+     if (mod(itime-1,ifreeze) /= 0) then
         ! freeze mode - re-fetch nonlocal multipole info
+!POMP$ INST BEGIN(update)
         call tree_update(itime)
+!POMP$ INST END(update)
+
      else
         ! tree just rebuilt so check for missing nodes before re-fetching
+!POMP$ INST BEGIN(prefetch)
         call tree_prefetch(itime)
+!POMP$ INST END(prefetch)
+
      endif
 
   else if (mac==1 .and. num_pe>1) then
+!POMP$ INST BEGIN(prefetch)
      call tree_prefetch(itime)
+!POMP$ INST END(prefetch)
 
   else
 ! fully asynch. mode
@@ -215,6 +228,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 
+!POMP$ INST BEGIN(force)
      call cputime(t2)   ! timing
      do i = 1, nps
 
@@ -286,6 +300,8 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      end do
 
      call cputime(t3)   ! timing
+!POMP$ INST END(force)
+     
      t_force = t_force + t3-t2
 
      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list

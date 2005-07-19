@@ -40,9 +40,9 @@ FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  -qsave
 
 #DB = -g -check bounds -traceback
 #FFLAGS1 = -r8  ## -O3
-TUNE= -qarch=pwr4 -qtune=pwr4 -O5 $(IPA) 
-# $(PG) $(HPM)
 
+TUNE= -qarch=pwr4 -qtune=pwr4 -qhot ## -O5 $(IPA) 
+# $(PG) $(HPM)
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
 FFLAGS =  $(FFLAGS1) $(Q64) $(TUNE)
@@ -58,11 +58,12 @@ AR      = ar -X64
 #AR      = ar 
 LIBPEPC = -L$(LIBDIR) -llpepc
 pepclib = liblpepc.a
+PREFIX = $(HOME)/tree/pepc
 
 .SUFFIXES: .f90
 
 
-FC = mpxlf90_r
+#FC = mpxlf90_r
 #FC = ifort
 # MPICH wrappers
 # full MPI path usually something like /usr/local/mpich/bin
@@ -79,6 +80,7 @@ F90LINKER   = mpif90
 # KOJAK instrumentation
 #FC = mpxlf90_r -qdebug=function_trace
 #FC = kinst mpxlf90_r
+FC = kinst-pomp -rcfile $(PREFIX)/pepc-b/opari.rc -- mpxlf90_r
 
 # -------------------------------------------------------------------------------------------
 
@@ -87,7 +89,7 @@ F90LINKER   = mpif90
 #-------------------------------------------------------------------------------------------
 # Pepc library
 
-PEPCMOD.f90 =  treevars.f90 tree_utils.f90
+PEPCMOD.f90 =  treevars.f90 utils.f90 tree_utils.f90
 PEPCSRC.f90 =  tree_domains.f90 setup_treearrays.f90 \
 		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
 		tree_walk.f90	tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \
@@ -95,7 +97,7 @@ PEPCSRC.f90 =  tree_domains.f90 setup_treearrays.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 	        diagnose_tree.f90 check_table.f90 sum_lennardjones.f90 sum_bond.f90 \
 		draw_domains.f90 draw_tree2d.f90 draw_lists.f90 \
-		fields.f90 fields_p.f90
+		fields.f90 fields_p.f90 
 
 POBJS = $(PEPCSRC.f90:.f90=.o)
 PMODS =  $(PEPCMOD.f90:.f90=.o)
@@ -148,6 +150,7 @@ default: treemp
 #--- Include-Dependencies
 
 fields.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+fields_p.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 get_address.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 setup_treearrays.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 tree_branches.o: /usr/lpp/ppe.poe/include/thread/mpif.h
@@ -156,13 +159,14 @@ tree_domains.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 tree_fill.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 tree_prefetch.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 tree_properties.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+tree_update.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 tree_utils.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 tree_walk.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 
 
 #--- Module-Dependencies
 
-check_table.o: treevars.o utils.o
+check_table.o: treevars.o
 diagnose_tree.o: treevars.o
 draw2d.o: treevars.o
 draw2d_hash.o: treevars.o
@@ -170,12 +174,13 @@ draw_domains.o: treevars.o
 draw_lists.o: treevars.o
 draw_map.o: treevars.o
 draw_tree2d.o: treevars.o
-fields.o: treevars.o utils.o
+fields.o: treevars.o
+fields_p.o: treevars.o utils.o
 get_address.o: treevars.o
-get_next_node.o: treevars.o utils.o
-get_node.o: treevars.o utils.o
-key_test.o: treevars.o utils.o
-make_hashentry.o: treevars.o utils.o
+get_next_node.o: treevars.o
+get_node.o: treevars.o
+key_test.o: treevars.o
+make_hashentry.o: treevars.o
 setup_treearrays.o: treevars.o
 sum_bfield.o: treevars.o
 sum_bond.o: treevars.o
@@ -187,6 +192,7 @@ tree_domains.o: treevars.o tree_utils.o utils.o
 tree_fill.o: treevars.o tree_utils.o
 tree_prefetch.o: treevars.o tree_utils.o
 tree_properties.o: treevars.o tree_utils.o
+tree_update.o: treevars.o tree_utils.o
 tree_walk.o: treevars.o tree_utils.o utils.o
 
 

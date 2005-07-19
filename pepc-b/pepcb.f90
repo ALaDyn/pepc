@@ -43,6 +43,9 @@ program pepcb
   integer :: ierr, lvisit_active, ifile, incdf
   integer :: vbufcols = 22
 
+!POMP$ INST INIT
+!POMP$ INST BEGIN(pepcb)
+
   ! Initialize the MPI system
   call MPI_INIT(ierr)
 
@@ -132,24 +135,27 @@ program pepcb
      ! Uses internal particle arrays from library (setup up in configure step)
      ! # particles on CPU may change due to resort
 
+!POMP$ INST BEGIN(fields)
      call pepc_fields_p(np_local, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
           dt, xl, yl, zl, itime, &
           coulomb, bfields, bonds, lenjones, &
           t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force)   
+!POMP$ INST END(fields)
 
      call force_laser(1,np_local)
 
      call cputime(t_start_push)
 
+!POMP$ INST BEGIN(integ)
      call integrator
-
+!POMP$ INST END(integ)
      call cputime(t_push)
 
      call laser            ! laser propagation according to beam_config
      call cputime(t_laser)
-
+!POMP$ INST BEGIN(diagno)
      call diagnostics
-
+!POMP$ INST END(diagno)
      call cputime(t_diag)
 
      t_diag = t_diag - t_laser
@@ -206,7 +212,7 @@ program pepcb
   if (my_rank==0) call stamp(15,2)
   ! End the MPI run
   call MPI_FINALIZE(ierr)
-
+!POMP$ INST END(pepcb)
 
 end program pepcb
 

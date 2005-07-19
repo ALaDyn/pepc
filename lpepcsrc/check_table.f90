@@ -11,7 +11,6 @@
 subroutine check_table(callpoint)
 
   use treevars
-  use utils
 
   implicit none
   character*20 :: callpoint

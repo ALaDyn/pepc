@@ -368,7 +368,7 @@ contains
 
     integer, intent(in) :: nppm,np,nprocs,iproc
     integer, intent(out) :: npnew
-    integer, parameter :: binmult=2000000
+    integer, parameter :: binmult=3000000
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    w1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 

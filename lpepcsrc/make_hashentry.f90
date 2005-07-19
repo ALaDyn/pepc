@@ -11,7 +11,6 @@
 subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, ierror)
 
   use treevars
-  use utils
 
   implicit none
 

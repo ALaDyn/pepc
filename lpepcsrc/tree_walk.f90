@@ -166,6 +166,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
   do while (maxactive > 0)        ! Outer loop over 'active' traversals
 
+!POMP$ INST BEGIN(walk_local)
 
   call cputime(tw1)
      ntraversals = ntraversals + 1  ! # Tree-walks
@@ -320,6 +321,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
    call cputime(tw2)
    twalk=twalk+tw2-tw1
+!POMP$ INST END(walk_local)
 
 
      if (walk_debug) then
@@ -335,6 +337,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      ! First find out how many requests are to be sent to each PE.
 
      ntoship(0:num_pe-1) = (/ (count( mask = request_owner(1:nshare) == ipe ), ipe=0,num_pe-1) /)
+
+!POMP$ INST BEGIN(exchange)
 
      call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
 
@@ -635,6 +639,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
     call cputime(tc1)
     tfetch=tfetch+tc1-tw2  ! timing for 2nd half of walk
+!POMP$ INST END(exchange)
 
   end do
 

@@ -60,6 +60,8 @@ subroutine tree_domains(xl,yl,zl)
   logical :: sort_debug=.false.
   real*8 xboxsize, yboxsize, zboxsize
 
+!POMP$ INST BEGIN(keys)
+
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
 
@@ -167,6 +169,10 @@ subroutine tree_domains(xl,yl,zl)
 
      call blankn(ipefile)
   endif
+
+!POMP$ INST END(keys)
+
+!POMP$ INST BEGIN(sort)
 
   ! Use Parallel Sort by Regular Sampling (PSRS) 
 
@@ -513,5 +519,6 @@ subroutine tree_domains(xl,yl,zl)
      call blankn(ipefile)
   endif
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+!POMP$ INST END(sort)
 
 end subroutine tree_domains

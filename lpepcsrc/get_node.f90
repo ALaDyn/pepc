@@ -11,7 +11,6 @@
 function key2node(keyin)
 
   use treevars
-  use utils
 
   implicit none
   integer :: key2node

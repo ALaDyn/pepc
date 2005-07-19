@@ -19,7 +19,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force)
 
   use treevars
-  use utils
+!  use utils
   implicit none
   include 'mpif.h'
 
@@ -79,22 +79,36 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   endif
 
  ! Copy particle buffers to tree arrays
-  x(1:npp) = p_x(1:npp)
-  y(1:npp) = p_y(1:npp)
-  z(1:npp) = p_z(1:npp)
+  do i=1,npp
+     x(i) = p_x(i)
+     y(i) = p_y(i)
+     z(i) = p_z(i)
 
-  ux(1:npp) = 0.  ! No B-fields for now
-  uy(1:npp) = 0.
-  uz(1:npp) = 0.
-  q(1:npp) = p_q(1:npp)
-  m(1:npp) = p_m(1:npp)
-  pelabel(1:npp) = p_label(1:npp)
-  pepid(1:npp) = me
-  work(1:npp) = p_w(1:npp)
-  ax(1:npp) = 0.
-  ay(1:npp) = 0.
-  az(1:npp) = 0.
- 
+     ux(i) = 0.  ! No B-fields for now
+     uy(i) = 0.
+     uz(i) = 0.
+     q(i) = p_q(i)
+     m(i) = p_m(i)
+     if (p_label(i) <=0) then
+        ! Trap bad particle labels
+        write (*,*) '*** Error: particle labels must be positive integers (1,2,3,...)! '
+        write (*,*) p_label(1:20)
+        call MPI_ABORT(ierr)
+        stop
+     else
+        pelabel(i) = p_label(i)     
+     endif
+     pepid(i) = me
+     if (num_pe==1 .or. p_w(i)==0) then
+! Fix work loads
+        work(i) = 1.
+     else
+        work(i) = p_w(i)
+     endif
+     ax(i) = 0.
+     ay(i) = 0.
+     az(i) = 0.
+  end do
   call cputime(td1)
   call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
 

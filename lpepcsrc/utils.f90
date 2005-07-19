@@ -37,7 +37,9 @@ contains
 !    call cpu_time(sec)
 
 !  timef returns elapsed wall-clock time in ms
-      sec=1.e-3*timef()
+!      sec=1.e-3*timef()
+!  IBM function rtc returns elapsed wall-clock time in micro-s - compile with -lxlf90
+    sec = rtc()
 
   end subroutine cput
 

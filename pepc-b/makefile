@@ -33,12 +33,12 @@ MPITRACE= -lsummary -lpmapi
 #MPITRACE=  -lmpihpm -lpmapi
 Q64=-q64
 FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90 -qsave 
-TUNE= -qarch=pwr4 -qtune=pwr4 -O5 $(IPA) 
+TUNE= -qarch=pwr4 -qtune=pwr4 -qhot ## -O5 $(IPA) 
 # $(PG) $(HPM)
 
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
-FFLAGS =  $(FFLAGS1) $(DB) $(Q64) ## $(TUNE)
+FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(TUNE)
 TFLAGS = $(FFLAGS) $(TUNE)
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
@@ -51,32 +51,33 @@ VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/loca
 
 #VISITLIBS=-L/home4/jzam04/jzam0401/tree/pepc/src  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 XNBODYLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody2  -llvisit_nbody2
-
-LDFLAGS = $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) $(MPITRACE)
+LMAP = -bnoquiet
+LDFLAGS =  $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) $(MPITRACE)
 CFLAGS = -I/usr/local/include
 RANLIB  = ranlib
 libdir  = .
 AR      = ar -X64
 PREFIX = $(HOME)/tree/pepc
 LIBPEPC = -L../lpepcsrc -llpepc
+IBMLIB = -lxlf90
 pepclib = liblpepc.a
 
 .SUFFIXES: .f90
 
 
-FC = mpxlf90_r
+#FC = mpxlf90_r
 CC = xlc
 
 # KOJAK instrumentation
 #FC = mpxlf90_r -qdebug=function_trace
-#FC = kinst mpxlf90_r
+FC = kinst-pomp -rcfile $(PREFIX)/pepc-b/opari.rc -- mpxlf90_r
 
 # -------------------------------------------------------------------------------------------
 
 # Source files
 
 # -------------------------------------------------------------------------------------------
-MODULES.f90 =   physvars.f90 utils.f90
+MODULES.f90 =   physvars.f90 
 
 SOURCES.f90 =   pepcb.f90 \
                 setup.f90 setup_arrays.f90 stamp.f90 \
@@ -117,17 +118,20 @@ pkojak: lpepc pepck
 # -----------------------------------------------------------------------------------------
 #  targets
 
-pepcb:	$(appobjs) $(appmods) $(pepcmods) $(pepclib)
-	@echo "\n Creating pepc application binary ...\n"
-	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) -o $@ $(appobjs) $(appmods) $(pepcmods)
+pepcb:	$(appobjs) $(appmods) lpepc
+	@echo "\n Creating pepcb ...\n"
+	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) $(IBMLIB) -o $@ $(appobjs) $(appmods) $(pepcmods)
 	@echo "... done\n"
 
 # Update PEPC library and headers
-lpepc:
+lpepc:  $(pepclib)
 	cd ../lpepcsrc; make lpepc; cd ../pepc-b
 	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.o $(PREFIX)/pepc-b/treevars.o
 	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-b/treevars.mod
+	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.o $(PREFIX)/pepc-b/utils.o
+	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.mod $(PREFIX)/pepc-b/utils.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/liblpepc.a $(PREFIX)/pepc-b/liblpepc.a
+	/bin/ln -sf $(PREFIX)/lpepcsrc/*.opari.inc $(PREFIX)/pepc-b/.
 
 
 pepck:	$(appobjs) $(appmods) $(pepcmods) $(pepclib)
@@ -146,9 +150,10 @@ rand:	 rantest.o
 
 
 clean:
-	/bin/rm -f bin/*.o  *% *~ bin/key rand *.o *.pif core *.mod 
+	/bin/rm -f bin/*.o  *% *~ bin/key rand *.o *.pif core *.mod opari.rc *.mod.F90 *.opari.inc
 
-cleanbin: /bin/rm -r pepc debug core
+cleanlib: 
+	cd ../lpepcsrc;	/bin/rm -f *.o *.mod.F90 *.opari.inc; cd -
 
 cleancore: 	
 	/bin/rm $(pepcobjs) 
@@ -191,50 +196,48 @@ vis_parts_nbody.o: /usr/lpp/ppe.poe/include/thread/mpif.h
 
 #--- Module-Dependencies
 
-add_electrons.o: physvars.o utils.o
-add_ramp.o: physvars.o utils.o
-beam.o: physvars.o utils.o
-beam_control.o: physvars.o utils.o
-beam_dust.o: physvars.o utils.o
+add_electrons.o: physvars.o
+add_ramp.o: physvars.o
+beam.o: physvars.o
+beam_control.o: physvars.o
+beam_dust.o: physvars.o
 boundaries.o: physvars.o
 close_files.o: physvars.o
-cold_start.o: utils.o
 configure.o: physvars.o
-constrain.o: physvars.o utils.o
+constrain.o: physvars.o
 cutvector.o: physvars.o
 densities.o: physvars.o
 diagnostics.o: physvars.o
-double_target.o: physvars.o utils.o
+double_target.o: physvars.o
 dump.o: physvars.o
 dump_fields.o: physvars.o
-earth_plate.o: physvars.o utils.o
-energy_cons.o: physvars.o utils.o
+earth_plate.o: physvars.o
+energy_cons.o: physvars.o
 face.o: physvars.o
-force_laser.o: physvars.o utils.o
-forces.o: physvars.o utils.o
+force_laser.o: physvars.o
+forces.o: physvars.o
 integrator.o: physvars.o
 kinenergy.o: physvars.o
 laser.o: physvars.o
-mc_config.o: physvars.o utils.o
+mc_config.o: physvars.o
 open_files.o: physvars.o
-param_dump.o: physvars.o utils.o
-pepcb.o: physvars.o utils.o
+param_dump.o: physvars.o
+pepcb.o: physvars.o
 potenergy.o: physvars.o
 predef_parts.o: physvars.o
 push.o: physvars.o
 push_em.o: physvars.o
 push_full3v.o: physvars.o
-randion.o: physvars.o utils.o
-reinject.o: utils.o
+randion.o: physvars.o
 reset_ions.o: physvars.o
-rezone.o: physvars.o utils.o
-scramble_v.o: physvars.o utils.o
+rezone.o: physvars.o
+scramble_v.o: physvars.o
 setup.o: physvars.o
 setup_arrays.o: physvars.o
-special_start.o: physvars.o utils.o
+special_start.o: physvars.o
 sum_fields.o: physvars.o
 track_nc.o: physvars.o
-velocities.o: physvars.o utils.o
+velocities.o: physvars.o
 vis_domains_nbody.o: physvars.o
 vis_fields.o: physvars.o
 vis_parts.o: physvars.o

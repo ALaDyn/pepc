@@ -12,7 +12,6 @@
 function next_node(keyin)
 
   use treevars
-  use utils
 
   implicit none
   integer*8 :: next_node
