@@ -89,7 +89,7 @@ subroutine diagnostics
         write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
 
         write (ifile,'(a50,i8)') 'Max # multipole ships/iteration ',max_fetches
-        write (ifile,'(a50,i8)') 'Max # multipole ships/prefetch ',sumprefetches
+        write (ifile,'(a50,i8)') 'Max # multipole ships/prefetch ',max_prefetches
         write (ifile,'(a50,i8)') 'Array limit ',size_fetch
         write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
         write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
