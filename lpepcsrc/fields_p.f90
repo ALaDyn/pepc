@@ -51,7 +51,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
   integer :: max_local,  timestamp
   integer :: ierr
-  integer :: iprot = 50  ! frequency for load balance dump
+  integer :: iprot = 40  ! frequency for load balance dump
 
   real :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
   real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
@@ -93,19 +93,19 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   if (mod(itime-1,ifreeze)==0) then
      if (me==0) write (*,'(a23)') 'LPEPC | REBUILDING TREE'
      call cputime(td1)
-!POMP$ INST BEGIN(domains)
+     !POMP$ INST BEGIN(domains)
      call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
-!POMP$ INST END(domains)
+     !POMP$ INST END(domains)
 
      ! particles now sorted according to keys assigned in tree_domains.
 
      call cputime(tb1)
 
-!POMP$ INST BEGIN(build)
+     !POMP$ INST BEGIN(build)
      call tree_build      ! Build trees from local particle lists
      call tree_branches   ! Determine and concatenate branch nodes
      call tree_fill       ! Fill in remainder of local tree
-!POMP$ INST END(build)
+     !POMP$ INST END(build)
      call cputime(tp1)
      t_domain = tb1-td1
      t_build = tp1-tb1
@@ -116,34 +116,34 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      t_build=0.
   endif
 
-!POMP$ INST BEGIN(properties)
+  !POMP$ INST BEGIN(properties)
   call tree_properties ! Compute multipole moments for local tree
-!POMP$ INST END(properties)
+  !POMP$ INST END(properties)
   call cputime(tp1)
 
 
   if (mac==2) then
      if (mod(itime-1,ifreeze) /= 0) then
         ! freeze mode - re-fetch nonlocal multipole info
-!POMP$ INST BEGIN(update)
+        !POMP$ INST BEGIN(update)
         call tree_update(itime)
-!POMP$ INST END(update)
+        !POMP$ INST END(update)
 
      else
         ! tree just rebuilt so check for missing nodes before re-fetching
-!POMP$ INST BEGIN(prefetch)
+        !POMP$ INST BEGIN(prefetch)
         call tree_prefetch(itime)
-!POMP$ INST END(prefetch)
+        !POMP$ INST END(prefetch)
 
      endif
 
   else if (mac==1 .and. num_pe>1) then
-!POMP$ INST BEGIN(prefetch)
+     !POMP$ INST BEGIN(prefetch)
      call tree_prefetch(itime)
-!POMP$ INST END(prefetch)
+     !POMP$ INST END(prefetch)
 
   else
-! fully asynch. mode
+     ! fully asynch. mode
      nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
      nreqs_total=0
   endif
@@ -228,7 +228,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 
-!POMP$ INST BEGIN(force)
+     !POMP$ INST BEGIN(force)
      call cputime(t2)   ! timing
      do i = 1, nps
 
@@ -300,8 +300,8 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      end do
 
      call cputime(t3)   ! timing
-!POMP$ INST END(force)
-     
+     !POMP$ INST END(force)
+
      t_force = t_force + t3-t2
 
      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
@@ -313,25 +313,29 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
 
 
-  call MPI_ALLREDUCE(max_local, max_list_length, 1, MPI_INTEGER, MPI_MAX,  MPI_COMM_WORLD, ierr )
-  call MPI_GATHER(work_local, 1, MPI_REAL8, work_loads, 1, MPI_REAL8, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
-  call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
+
 
   !  timestamp = itime + itime_start
   timestamp = itime
+  if (mod(itime,iprot)==0) then
+     !  call MPI_ALLREDUCE(max_local, max_list_length, 1, MPI_INTEGER, MPI_MAX,  MPI_COMM_WORLD, ierr )
+     call MPI_GATHER(work_local, 1, MPI_REAL8, work_loads, 1, MPI_REAL8, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
+     call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
 
-  if (me ==0 .and. mod(itime,iprot)==0) then
-     total_work = SUM(work_loads)
-     average_work = total_work/num_pe
-     cme = achar(timestamp/1000+48) // achar(mod(timestamp/100,10)+48) &
-          // achar(mod(timestamp/10,10)+48) // achar(mod(timestamp,10)+48) 
-     cfile="load_"//cme//".dat"
-     total_parts=SUM(npps)
-     open(60, file=cfile)
-     write(60,'(a/a,i8,2(a,1pe15.6))')  '! Full balancing','Parts: ',total_parts,' Work: ',total_work, &
-          ' Ave. work:',average_work        
-     write(60,'(2i8,f12.3))')  (i-1,npps(i),work_loads(i)/average_work,i=1,num_pe)
-     close(60)
+     if (me ==0 ) then
+
+        total_work = SUM(work_loads)
+        average_work = total_work/num_pe
+        cme = achar(timestamp/1000+48) // achar(mod(timestamp/100,10)+48) &
+             // achar(mod(timestamp/10,10)+48) // achar(mod(timestamp,10)+48) 
+        cfile="load_"//cme//".dat"
+        total_parts=SUM(npps)
+        open(60, file=cfile)
+        write(60,'(a/a,i8,2(a,1pe15.6))')  '! Full balancing','Parts: ',total_parts,' Work: ',total_work, &
+             ' Ave. work:',average_work        
+        write(60,'(2i8,f12.3))')  (i-1,npps(i),work_loads(i)/average_work,i=1,num_pe)
+        close(60)
+     endif
   endif
 
   if (force_debug) then

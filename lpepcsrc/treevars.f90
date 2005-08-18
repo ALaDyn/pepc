@@ -169,7 +169,7 @@ module treevars
              maxtraverse, &      ! max # traversals per iteration 
              maxships, &      ! max # multipole ships per traversal 
              sumships, &      ! total # multipole ships per iteration in tree_walk 
-             sumprefetches, &      ! total # multipole ships per prefetch 
+             max_prefetches, &      ! total # multipole ships per prefetch 
              nbranch_max, &    ! array space needed for branches
              free_lo, &        ! min address allowed for resolving collisions
 	     tablehigh, &      ! highest current address in #table 

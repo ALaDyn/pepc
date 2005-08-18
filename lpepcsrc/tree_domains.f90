@@ -62,7 +62,7 @@ subroutine tree_domains(xl,yl,zl)
 
 !POMP$ INST BEGIN(keys)
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+!  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
 
   ! Find limits of local simulation region

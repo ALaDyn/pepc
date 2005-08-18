@@ -13,10 +13,11 @@ subroutine diagnostics
 
   use treevars
   use physvars
+  include 'mpif.h'
 
   implicit none
-  integer :: i,lvisit_active, ifile
-
+  integer :: i,lvisit_active, ifile, ierr
+  integer :: max_fetches, max_reqs, max_local_f, max_local_r
 
   ! Interface to VISIT (Online visualisation)
 
@@ -68,7 +69,16 @@ subroutine diagnostics
      if (vis_on)  call vis_fields
   endif
 
+  if (debug_level.ge.2) then
+     max_local_f =  maxval(nfetch_total)
+     max_local_r =  maxval(nreqs_total)  
+     call MPI_ALLREDUCE(max_local_f, max_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+!     call MPI_ALLREDUCE(max_local_r, max_reqs, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+! max_reqs, max_fetches should be equal
+  endif
+
   if (my_rank.eq.0 .and. debug_level.ge.2) then
+
      do ifile = 6,15,9
         write(ifile,'(/a)') 'Tree stats:'
         write(ifile,'(a50,2i8,a3,i8,a1)') 'new npp, npart, (max): ',npp,npart,'(',nppm,')'
@@ -77,9 +87,10 @@ subroutine diagnostics
         write(ifile,'(a50,2i8,a3,i8,a1)') 'local, global # branches, (max): ',nbranch,nbranch_sum,'(',nbranch_max,')'
         write (ifile,'(a50,i8,a3,i8)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
-        write (ifile,'(a50,i8,a3,i8,a1)') 'Max # multipole ships/traversal, (size_fetch):',maxships,'(',size_fetch,')'
-        write (ifile,'(a50,i8)') 'Total # multipole ships/iteration ',sumships
-        write (ifile,'(a55,i8,a3,i8,a1)') 'Total # multipole ships/prefetch, (numpe*size_fetch): ',sumprefetches,'(',n_cpu*size_fetch,')'
+
+        write (ifile,'(a50,i8)') 'Max # multipole ships/iteration ',max_fetches
+        write (ifile,'(a50,i8)') 'Max # multipole ships/prefetch ',sumprefetches
+        write (ifile,'(a50,i8)') 'Array limit ',size_fetch
         write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
         write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
 

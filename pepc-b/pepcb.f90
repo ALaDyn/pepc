@@ -154,7 +154,9 @@ program pepcb
      call laser            ! laser propagation according to beam_config
      call cputime(t_laser)
 !POMP$ INST BEGIN(diagno)
-     call diagnostics
+     if (debug_level>=1) then
+        call diagnostics
+     endif
 !POMP$ INST END(diagno)
      call cputime(t_diag)
 
@@ -163,13 +165,8 @@ program pepcb
      t_push = t_push - t_start_push
      ttot = t_domain+t_build+t_prefetch+t_walkc+t_walk+t_force + t_push + t_laser
 
-     if (my_rank==0 .and. debug_level .ge.1) then
-
-        if (itime ==1 .or. mod(itime,iprot).eq.0) then
-           ifile = 6
-        else 
-           ifile = 15
-        endif
+     if (my_rank==0 .and. debug_level .ge.0 .and. mod(itime,iprot).eq.0) then
+        ifile = 6
         write(ifile,'(//a/)') 'Timing:  Routine   time(s)  percentage'
         write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain,100*t_domain/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Build: ',t_build,100*t_build/ttot
@@ -184,7 +181,6 @@ program pepcb
         write(ifile,'(a20,i4,6f12.3)') 'Timing format: ',n_cpu,t_domain,t_build,t_prefetch,t_walk+t_walkc,t_force,ttot
 
      endif
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
   end do
 

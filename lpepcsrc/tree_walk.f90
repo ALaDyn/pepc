@@ -89,7 +89,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   integer :: p,pass
   integer :: nnew, nshare, newrequest, nreqs, i1, i2, ioff, ipack
   integer :: nchild, newleaf, newtwig, nactive, maxactive, ntraversals, own
-  integer :: ic1, ic2, ihand, nchild_ship_tot, nplace_max
+  integer :: ic1, ic2, ihand, nchild_ship_tot, nplace_max, sum_pack
   integer, save ::  sum_nhops, sum_inner_pass, sum_nhops_old=0, sum_inner_old=0
   integer :: request_count, fetch_pe_count, send_prop_count  ! buffer counters
 
@@ -610,9 +610,10 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      maxactive = maxval(nactives)
      nplace_max = SUM(nplace)
      nchild_ship_tot = SUM(nchild_ship)
-     call MPI_ALLREDUCE( nchild_ship_tot, max_pack, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )  
-     maxships = max(maxships,max_pack)  ! Max # shipments/traversal
-     sumships = sumships + max_pack ! Total # shipments/iteration
+!     call MPI_ALLREDUCE( nchild_ship_tot, max_pack, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+!     call MPI_ALLREDUCE( nchild_ship_tot, sum_pack, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )  
+     maxships = max(maxships,nplace_max)  ! Max # shipments/traversal/cpu
+     sumships = sumships + nchild_ship_tot ! Total # shipments/iteration
 
      if (walk_summary ) then
         write (ipefile,'(/a,i8,a2)') 'LPEPC | Summary for traversal # ',ntraversals,' :'

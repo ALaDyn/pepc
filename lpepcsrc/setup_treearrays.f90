@@ -63,15 +63,16 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
   !  TODO: need good estimate for max # branches
 !   npsize=2.5*nppm
    npsize=nppm
-!   size_tree = max(4*nintmax+npsize,1000000)+1
-!   nbaddr = max(log(1.*size_tree)/log(2.) + 1,17.)
-   nbaddr = 18   ! fixed address range
+   size_tree = max(4*nintmax+npsize,100000)+1
+   nbaddr = max(log(1.*size_tree)/log(2.) + 1,17.)
+!   nbaddr = 17   ! fixed address range
    maxaddress = 2**nbaddr
-   size_tree=maxaddress+1
+!   size_tree=max(maxaddress+1,2*npsize)
 !   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
-   size_fetch=size_tree
+!   size_fetch=size_tree/(num_pe/5)
+    size_fetch = 8*nintmax
 !   size_fetch=200
-   nbranch_max = size_tree/20
+   nbranch_max = size_tree/10
    if (num_pe==1) size_fetch=size_tree
 !  maxaddress = 512
   hashconst = maxaddress-1
@@ -241,7 +242,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
   open(ipefile,file=cfile)
 
 
-  sumprefetches = 0
+  max_prefetches = 0
 
 end subroutine pepc_setup
 

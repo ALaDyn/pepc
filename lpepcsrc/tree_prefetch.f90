@@ -448,9 +448,9 @@ subroutine tree_prefetch(itime)
      htable( node_addr )%next = next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
   end do
 
-! Get total # multipole ships from prefetch 
- sumfetches = SUM(nfetch_total)
- call MPI_ALLREDUCE( sumfetches, sumprefetches, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr ) 
+! Get max # multipole ships from prefetch 
+ sumfetches = MAXVAL(nfetch_total)
+ call MPI_ALLREDUCE( sumfetches, max_prefetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr ) 
 
 end subroutine tree_prefetch
 

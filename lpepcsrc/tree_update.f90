@@ -188,7 +188,7 @@ subroutine tree_update(itime)
 
 ! Get total # multipole ships from prefetch 
  sumfetches = SUM(nfetch_total)
- call MPI_ALLREDUCE( sumfetches, sumprefetches, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr ) 
+ call MPI_ALLREDUCE( sumfetches, max_prefetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr ) 
 
 end subroutine tree_update
 
