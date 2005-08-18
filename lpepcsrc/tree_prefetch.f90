@@ -59,7 +59,7 @@ subroutine tree_prefetch(itime)
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
-  logical :: prefetch_summary=.true.
+  logical :: prefetch_summary=.false.
 
   iofile = ipefile
 !  iofile = 6
