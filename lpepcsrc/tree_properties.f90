@@ -24,7 +24,7 @@ subroutine tree_properties
   integer :: addr_twig
 
   integer, parameter :: n_moments = 23  ! # property arrays
-  real, dimension(n_moments*nbranch_max/num_pe) :: local_moments      ! local branch properties    - size depends on # moments          
+  real, dimension(4*n_moments*nbranch_max/num_pe) :: local_moments      ! local branch properties    - size depends on # moments          
   real, dimension(n_moments*nbranch_max) :: branch_moments   ! global branch properties
   integer, dimension(num_pe) :: nbranchmoments ! array containing total # multipole terms*branch list length
   integer, dimension(num_pe) :: recv_strides, recv_counts

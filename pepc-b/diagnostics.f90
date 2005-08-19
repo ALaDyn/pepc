@@ -17,7 +17,7 @@ subroutine diagnostics
 
   implicit none
   integer :: i,lvisit_active, ifile, ierr
-  integer :: max_fetches, max_reqs, max_local_f, max_local_r
+  integer :: max_fetches, max_reqs, max_sum_fetches, max_local_f, max_local_r, sum_local_f
 
   ! Interface to VISIT (Online visualisation)
 
@@ -71,9 +71,9 @@ subroutine diagnostics
 
   if (debug_level.ge.2) then
      max_local_f =  maxval(nfetch_total)
-     max_local_r =  maxval(nreqs_total)  
+     sum_local_f =  sum(nfetch_total)  
      call MPI_ALLREDUCE(max_local_f, max_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
-!     call MPI_ALLREDUCE(max_local_r, max_reqs, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+     call MPI_ALLREDUCE(sum_local_f, max_sum_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
 ! max_reqs, max_fetches should be equal
   endif
 
@@ -82,14 +82,16 @@ subroutine diagnostics
      do ifile = 6,15,9
         write(ifile,'(/a)') 'Tree stats:'
         write(ifile,'(a50,2i8,a3,i8,a1)') 'new npp, npart, (max): ',npp,npart,'(',nppm,')'
-        write(ifile,'(a50,2i8)') 'local # leaves, twigs: ',nleaf_me,ntwig_me
-        write(ifile,'(a50,3i8,a3,i8,a1)') 'final # leaves, twigs, keys, (size_tree): ',nleaf,ntwig,nleaf+ntwig,'(',size_tree,')'
+        write(ifile,'(a50,3i8)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
+        write(ifile,'(a50,3i8,f12.1,a6,i8)') 'final # leaves, twigs, keys, (size_tree): ',nleaf,ntwig,nleaf+ntwig, &
+             (nleaf+ntwig)/(1.*size_tree),' % of ',size_tree
         write(ifile,'(a50,2i8,a3,i8,a1)') 'local, global # branches, (max): ',nbranch,nbranch_sum,'(',nbranch_max,')'
         write (ifile,'(a50,i8,a3,i8)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
 
         write (ifile,'(a50,i8)') 'Max # multipole ships/iteration ',max_fetches
         write (ifile,'(a50,i8)') 'Max # multipole ships/prefetch ',max_prefetches
+        write (ifile,'(a50,i8)') 'Max sum multipole ships/prefetch ',max_sum_fetches
         write (ifile,'(a50,i8)') 'Array limit ',size_fetch
         write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
         write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
