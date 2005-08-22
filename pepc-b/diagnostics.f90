@@ -77,29 +77,36 @@ subroutine diagnostics
 ! max_reqs, max_fetches should be equal
   endif
 
-  if (my_rank.eq.0 .and. debug_level.ge.2) then
+  if (my_rank.eq.debug_rank .and. debug_level.ge.2) then
 
      do ifile = 6,15,9
-        write(ifile,'(/a)') 'Tree stats:'
+        write(ifile,'(/a,i4)') 'Tree stats for CPU ',debug_rank
         write(ifile,'(a50,2i8,a3,i8,a1)') 'new npp, npart, (max): ',npp,npart,'(',nppm,')'
         write(ifile,'(a50,3i8)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
-        write(ifile,'(a50,3i8,f12.1,a6,i8)') 'final # leaves, twigs, keys, (size_tree): ',nleaf,ntwig,nleaf+ntwig, &
-             (nleaf+ntwig)/(1.*size_tree),' % of ',size_tree
+        write(ifile,'(a50,3i8)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
+        write(ifile,'(a50,3i8,f12.1,a6,i8)') 'final # leaves, twigs, keys, (max): ',nleaf,ntwig,nleaf+ntwig, &
+             (nleaf+ntwig)/(.01*size_tree),' % of ',maxaddress
         write(ifile,'(a50,2i8,a3,i8,a1)') 'local, global # branches, (max): ',nbranch,nbranch_sum,'(',nbranch_max,')'
         write (ifile,'(a50,i8,a3,i8)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
 
-        write (ifile,'(a50,i8)') 'Max # multipole ships/iteration ',max_fetches
-        write (ifile,'(a50,i8)') 'Max # multipole ships/prefetch ',max_prefetches
-        write (ifile,'(a50,i8)') 'Max sum multipole ships/prefetch ',max_sum_fetches
+        write (ifile,'(a50,i8)') 'Max # multipole ships/cpu/iteration ',max_fetches
+        write (ifile,'(a50,i8)') 'Max # multipole ships/cpu/prefetch ',max_prefetches
         write (ifile,'(a50,i8)') 'Array limit ',size_fetch
+        write (ifile,'(a50,2i8)') 'Total multipole ships/prefetch, global max ',sum_local_f,max_sum_fetches
         write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
         write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
 
      end do
   endif
 
-
+! Array bound check
+  if (nleaf+ntwig > .9*maxaddress) then
+     write (6,'(/a,i4)') '*** WARNING:  hash table >90% full on CPU ',my_rank 
+  endif
+  if (max_local_f > .9*size_fetch) then
+     write (6,'(/a,i4)') '*** WARNING:  # fetches >90% max on CPU ',my_rank 
+  endif
 end subroutine diagnostics
 
 

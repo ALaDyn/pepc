@@ -244,12 +244,13 @@ subroutine vis_parts_nbody
         write(*,*) 'u_thresh: (MeV)     ',uthresh
 !     endif
 
-              call flvisit_nbody2_check_connection(lvisit_active)
+!              call flvisit_nbody2_check_connection(lvisit_active)
 ! send particles and branch boxes together
-              call flvisit_nbody2_partstep_send(vbuffer,npart_buf+ndom_vis+1,attrib_max)
+!              call flvisit_nbody2_partstep_send(vbuffer,npart_buf+ndom_vis+1,attrib_max)
 ! netcdf needs fixed buffer size, so take max used for initialisation
 
-             call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
+!             call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
+
               !
               !        write (90,*) 'local',i
               !        write (90,'((22(f12.5/)//))') vbuf_local(0:attrib_max-1,i)
@@ -274,7 +275,7 @@ subroutine vis_parts_nbody
               nproot = 0.8*npart/num_pe ! fixed # parts close to npp
 
               !           call flvisit_spk_check_connection(lvisit_active)
-              call flvisit_nbody2_check_connection(lvisit_active)
+!              call flvisit_nbody2_check_connection(lvisit_active)
               !        call flvisit_spk_info_send(npp,xl,yl,zl,zl,nep,nip,np_beam,itime+itime_start)
               wfdatai=int(tlaser)
               wfdatar=tlaser

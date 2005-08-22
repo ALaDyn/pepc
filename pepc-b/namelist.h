@@ -14,4 +14,5 @@
        vis_on, steering,  mc_init, restart, scheme, particle_bcs, &
        coulomb,  bfields,  bonds, lenjones, target_dup, ramp, &
        debug_level, debug_tree, ncpu_merge, balance, ifreeze, &
-    constrain_proof, len_tripod, struct_step, uthresh, domain_cut
+      constrain_proof, len_tripod, struct_step, uthresh, domain_cut, &
+       debug_rank

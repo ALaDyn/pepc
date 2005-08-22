@@ -69,8 +69,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
    maxaddress = 2**nbaddr
 !   size_tree=max(maxaddress+1,2*npsize)
 !   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
-   size_fetch=25*size_tree/num_pe
-!    size_fetch = 8*nintmax
+!    size_fetch = 25*size_tree/num_pe
+    size_fetch = 10*nintmax
 !   size_fetch=200
    nbranch_max = size_tree/10
    if (num_pe==1) size_fetch=size_tree
@@ -138,9 +138,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
        jx(-maxtwig:maxleaf), jy(-maxtwig:maxleaf), jz(-maxtwig:maxleaf), &      ! current
        magmx(-maxtwig:maxleaf), magmy(-maxtwig:maxleaf), magmz(-maxtwig:maxleaf) ) ! magnetic moment 
 
-  allocate ( pack_child(size_tree), get_child(size_tree) )    ! Multipole shipping buffers
+  allocate ( pack_child(maxaddress), get_child(maxaddress) )    ! Multipole shipping buffers
 
-  mem_multipoles = 2*size_tree * (8+2*4 + 23*8 + 8) 
+  mem_multipoles = 2*maxaddress * (8+2*4 + 23*8 + 8) 
  
 
 ! work balance arrays

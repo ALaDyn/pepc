@@ -38,6 +38,7 @@ program pepcb
   ! timing stuff
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_walkc, t_en, t_force
   real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot, t_laser
+  real :: t_loop, t_start_loop
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
   integer :: ierr, lvisit_active, ifile, incdf
@@ -71,14 +72,16 @@ program pepcb
 
   !  if (my_rank ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
   if (my_rank ==0 .and. vis_on) then
-     call flvisit_nbody2_init ! Start up VISIT interface to xnbody
-     call flvisit_nbody2_check_connection(lvisit_active)
+!     call flvisit_nbody2_init ! Start up VISIT interface to xnbody
+!     call flvisit_nbody2_check_connection(lvisit_active)
      ndom_max = 1000  ! Should be set to nbranch_amx
      nbuf_max = npart_total+ndom_max
-     call ncnbody_open(nbuf_max,vbufcols,ncid,incdf)
+!     call ncnbody_open(nbuf_max,vbufcols,ncid,incdf)
   endif
 
   call configure       ! Set up particles
+
+  call cputime(t_start_loop)
 
   do itime = 1,nt
      trun = trun + dt
@@ -183,8 +186,13 @@ program pepcb
      endif
 
   end do
-
-
+  
+     call cputime(t_loop)
+  t_loop=t_loop-t_start_loop
+  if (my_rank==0) then
+	
+     write(*,'(a20,2f12.3)') 'Loop total, average: ',t_loop, t_loop/nt
+  endif 
 
   if (scheme ==5 ) then
 
@@ -199,8 +207,8 @@ program pepcb
 
   !  if (my_rank ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
   if (my_rank==0 .and. vis_on) then 
-     call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
-     call ncnbody_close(ncid,incdf)
+ !    call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
+ !    call ncnbody_close(ncid,incdf)
   endif
 
   ! Time stamp

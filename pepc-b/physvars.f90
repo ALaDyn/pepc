@@ -95,6 +95,7 @@ module physvars
   integer :: my_rank       ! Rank of current task
   integer :: n_cpu   ! # cpus used by program
   integer :: ifile_cpu    ! O/P stream
+  integer :: debug_rank=0 ! CPU # for printed debug IO
 
 ! Control stuff
   logical :: vis_on=.true.  ! online visualisation on/off
