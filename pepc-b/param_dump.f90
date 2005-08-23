@@ -95,7 +95,6 @@ subroutine param_dump
         write (ifile,*) 'Max permitted particles / PE: ', nppm
         write (ifile,*) 'Max size of interaction lists: ', nintmax
 	write (ifile,*) 'Shortlist length: ',nshortm
-        write (ifile,*) 'Memory needed for lists = ',4*nintmax*nshortm*8/2**20,' Mbytes'
 
         if (debug_level>=1) then
            write (ifile,'(/a)') 'Other inputs:'

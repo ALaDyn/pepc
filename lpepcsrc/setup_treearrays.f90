@@ -12,9 +12,10 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
   integer :: ibig, machinebits, maxleaf, maxtwig,k
   integer :: ierr,npsize
-  integer :: mem_parts, mem_multipoles, mem_fields, mem_tree, mem_prefetch, mem_tot
+  integer :: mem_parts, mem_multipoles, mem_fields, mem_tree, mem_prefetch, mem_tot, mem_lists
   character(3) :: cme
   character(30) :: cfile
+  real, parameter :: mb=2.**20
 
 ! copy call parameters to treevars module
 
@@ -44,7 +45,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
   npartm = npart 
   nppm = np_mult*1.9*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nshortm = 200    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
@@ -97,7 +98,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
 
   allocate ( nterm(nshortm), intlist(nintmax,nshortm), nodelist(nintmax,nshortm) )! interaction key-, node-lists
-  mem_tree = nshortm + nshortm*nintmax*(8+4)
+  mem_lists = nshortm + nshortm*nintmax*(2*8+4)
 
   allocate ( htable(0:maxaddress), all_addr(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
        nbranches(num_pe+2), igap(num_pe+3), &
@@ -106,9 +107,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
        requested_keys(size_fetch, 0:num_pe-1), fetched_keys(size_fetch, 0:num_pe-1), &
        nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
 
-  mem_tree = mem_tree + maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
-                      + num_pe * (4+4+4+4) + 2*size_fetch*num_pe*8 & ! request stuff
-                      + size_tree * (3*8) & ! keys
+  mem_tree =  maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
+                      + num_pe * (4+4+4+4)  & ! request stuff
+                      + maxaddress * (3*8) & ! keys
                       + nbranch_max * (8 + 4 + 8)  ! branches
 
   all_addr = (/ (k,k=0,maxaddress) /)      ! List of all possible # table addresses
@@ -120,8 +121,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
   ! Allocate memory for tree node properties
 
-  maxtwig = size_tree
-  maxleaf = size_tree
+  maxtwig = maxaddress/2
+  maxleaf = maxaddress/2
 
   nreqs_total(0:num_pe-1) = 0   ! Zero cumulative fetch/ship counters for non-local nodes
   nfetch_total(0:num_pe-1) = 0  
@@ -140,7 +141,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
   allocate ( pack_child(maxaddress), get_child(maxaddress) )    ! Multipole shipping buffers
 
-  mem_multipoles = 2*maxaddress * (8+2*4 + 23*8 + 8) 
+  mem_multipoles = maxaddress * (8+2*4 + 23*8 + 8) 
  
 
 ! work balance arrays
@@ -226,16 +227,16 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
-  mem_prefetch = size_fetch*(2*8*num_pe + 5*8) + num_pe*4*11 + size_fetch*(8+4)
-  mem_tot = mem_parts+mem_tree+mem_prefetch+mem_multipoles
-
+  mem_prefetch = size_fetch*(2*8*num_pe + 5*8) + num_pe*4 *11 + size_fetch*(8+4)
+  mem_tot = mem_parts+mem_tree+mem_prefetch+mem_multipoles+mem_lists
   if (me==0) then
      write(*,'(//a/)') 'Initial memory allocation:'
-     write(*,'(5(a15,f12.3,a3/)/)') 'Particles: ',mem_parts/1.e6,' MB', &
-                               'Tree:',mem_tree/1.e6,' MB', &
-                               'Prefetch:',mem_prefetch/1.e6,' MB', &
-                               'Multipoles:',mem_multipoles/1.e6,' MB', &
-                               'TOTAL: ',mem_tot/1.e6,' MB'
+     write(*,'(6(a15,f12.3,a3/)/)') 'Particles: ',mem_parts/mb,' MB', &
+                               'Tree:',mem_tree/mb,' MB', &
+                               'Lists:',mem_lists/mb,' MB', &
+                               'Prefetch:',mem_prefetch/mb,' MB', &
+                               'Multipoles:',mem_multipoles/mb,' MB', &
+                               'TOTAL: ',mem_tot/mb,' MB'
   endif
 
   cme = achar(me/100+48) // achar(mod(me/10,10)+48) // achar(mod(me,10)+48)  ! Convert 3-digit PE number into character string

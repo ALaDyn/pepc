@@ -85,7 +85,7 @@ subroutine diagnostics
         write(ifile,'(a50,3i8)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
         write(ifile,'(a50,3i8)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
         write(ifile,'(a50,3i8,f12.1,a6,i8)') 'final # leaves, twigs, keys, (max): ',nleaf,ntwig,nleaf+ntwig, &
-             (nleaf+ntwig)/(.01*size_tree),' % of ',maxaddress
+             (nleaf+ntwig)/(.01*maxaddress),' % of ',maxaddress
         write(ifile,'(a50,2i8,a3,i8,a1)') 'local, global # branches, (max): ',nbranch,nbranch_sum,'(',nbranch_max,')'
         write (ifile,'(a50,i8,a3,i8)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse

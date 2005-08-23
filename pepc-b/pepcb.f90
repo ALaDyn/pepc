@@ -142,7 +142,7 @@ program pepcb
      call pepc_fields_p(np_local, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
           dt, xl, yl, zl, itime, &
           coulomb, bfields, bonds, lenjones, &
-          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force)   
+          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot)   
 !POMP$ INST END(fields)
 
      call force_laser(1,np_local)

@@ -16,7 +16,7 @@
 subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, force_const, bond_const, &
      delta_t,  xl, yl, zl, itime, &
      coulomb, bfield_on, bonds, lenjones, &
-     t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force)
+     t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force, iprot)
 
   use treevars
   use utils
@@ -51,7 +51,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
   integer :: max_local,  timestamp
   integer :: ierr
-  integer :: iprot = 40  ! frequency for load balance dump
+  integer :: iprot  ! frequency for load balance dump
 
   real :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
   real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
