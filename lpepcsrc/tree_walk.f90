@@ -54,11 +54,11 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   ! Key arrays (64-bit)
 
   integer*8,  dimension(npshort) :: walk_key, walk_last 
-  integer*8, dimension(size_tree)  :: request_key, ask_key, process_key
-  integer*8, dimension(size_tree/num_pe,0:num_pe-1) ::  ship_key
+  integer*8, dimension(maxaddress)  :: request_key, ask_key, process_key
+  integer*8, dimension(maxaddress/num_pe,0:num_pe-1) ::  ship_key
   integer*8, dimension(8) :: sub_key, key_child, next_child
   integer*8, dimension(nintmax,npshort) :: defer_list, walk_list
-  integer*8, dimension(size_tree) :: last_child   ! List of 'last' children fetched from remote PEs
+  integer*8, dimension(maxaddress) :: last_child   ! List of 'last' children fetched from remote PEs
 
   integer, dimension(npshort) :: plist
 
@@ -66,8 +66,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   integer, dimension(npshort) :: nlocal, ndefer,  nwalk, defer_ctr
 
 
-  integer, dimension(size_tree) ::  process_addr, request_owner
-  integer, dimension(size_tree) :: childbyte
+  integer, dimension(maxaddress) ::  process_addr, request_owner
+  integer, dimension(maxaddress) :: childbyte
   integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child
 
   real, dimension(8) :: xcoc_child, ycoc_child, zcoc_child

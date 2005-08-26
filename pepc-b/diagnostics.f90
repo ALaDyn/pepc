@@ -63,7 +63,7 @@ subroutine diagnostics
      call draw_domains(itime+itime_start)   ! Domains
   endif
 
-  if ((mod(itime+itime_start,idump)==0 .or. itime==nt) ) then
+  if ( idump>0 .and. (mod(itime+itime_start,idump)==0 .or. itime==nt) ) then
      call dump(itime+itime_start)     ! Dump complete set of particle data
      call dump_fields(itime+itime_start)  ! Field data
      if (vis_on)  call vis_fields

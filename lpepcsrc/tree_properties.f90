@@ -15,12 +15,12 @@ subroutine tree_properties
   implicit none
   include 'mpif.h'
 
-  integer*8, dimension(size_tree) ::  search_key, resolve_key, parent_key, sum_key, key_twig
+  integer*8, dimension(maxaddress) ::  search_key, resolve_key, parent_key, sum_key, key_twig
   integer*8, dimension(8) :: sub_key, key_child
 
-  integer, dimension(size_tree) ::  node_twig, child_twig    ! all twig-nodes, including branches and base nodes
-  integer, dimension(size_tree) ::  parent_node, parent_addr
-  integer, dimension(size_tree) :: local_node
+  integer, dimension(maxaddress) ::  node_twig, child_twig    ! all twig-nodes, including branches and base nodes
+  integer, dimension(maxaddress) ::  parent_node, parent_addr
+  integer, dimension(maxaddress) :: local_node
   integer :: addr_twig
 
   integer, parameter :: n_moments = 23  ! # property arrays
@@ -29,7 +29,7 @@ subroutine tree_properties
   integer, dimension(num_pe) :: nbranchmoments ! array containing total # multipole terms*branch list length
   integer, dimension(num_pe) :: recv_strides, recv_counts
   integer, dimension(nbranch_max) :: bindex, branch_addr, branch_node, branch_level
-  logical :: duplicate(size_tree)
+  logical :: duplicate(maxaddress)
 
   integer :: addr_child
   integer, dimension(8) :: node_child  !  child nodes

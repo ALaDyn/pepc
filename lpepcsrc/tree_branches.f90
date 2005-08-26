@@ -18,7 +18,7 @@ subroutine tree_branches
   include 'mpif.h'
 
 !  integer, parameter :: size_t=1000
-  integer*8, dimension(size_tree) ::  resolve_key, search_key
+  integer*8, dimension(maxaddress) ::  resolve_key, search_key
   integer*8, dimension(8) :: sub_key   ! Child partial key
 
   integer, dimension(4*nbranch_max/num_pe) ::  local_node, local_code, local_leaves  ! local branch data

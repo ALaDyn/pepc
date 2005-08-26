@@ -13,13 +13,13 @@ subroutine tree_build
   implicit none
   include 'mpif.h'
 
-  integer*8, dimension(size_tree) :: subcell, par_key, res_key        ! All key arrays 64-bit
+  integer*8, dimension(maxaddress) :: subcell, par_key, res_key        ! All key arrays 64-bit
   integer*8, dimension(nppm+2) :: local_key
 
  ! integer*8, dimension(2*nppm) :: leaf_key, twig_key
   integer*8, dimension(8) :: sub_key   ! Child partial key
 
-  integer, dimension(size_tree) :: ix, iy, res_addr, res_node, res_child, res_owner, &
+  integer, dimension(maxaddress) :: ix, iy, res_addr, res_node, res_child, res_owner, &
         newentry, treelevel
   integer, dimension(nppm+2)  :: local_plist, local_ind, local_owner
   integer, dimension(0:maxaddress) ::  cell_addr

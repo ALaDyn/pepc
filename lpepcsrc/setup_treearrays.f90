@@ -8,7 +8,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
   integer, intent(in) :: n_cpu  ! MPI # CPUs
   integer, intent(in) :: npart_total  ! total (max) # simulation particles
   integer, intent(in) :: db_level
-  integer, intent(in) :: np_mult ! particle array size multiplication factor (1.5)
+  real, intent(in) :: np_mult ! particle array size multiplication factor (1.5)
 
   integer :: ibig, machinebits, maxleaf, maxtwig,k
   integer :: ierr,npsize
@@ -45,7 +45,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
   npartm = npart 
   nppm = np_mult*1.9*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  nshortm = 200    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nshortm = 800    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
@@ -67,20 +67,21 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
    size_tree = max(4*nintmax+npsize,100000)+1
    nbaddr = max(log(1.*size_tree)/log(2.) + 1,17.)
 !   nbaddr = 17   ! fixed address range
-   maxaddress = 2**nbaddr
+   maxaddress = np_mult*2**nbaddr
 !   size_tree=max(maxaddress+1,2*npsize)
 !   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
 !    size_fetch = 25*size_tree/num_pe
-    size_fetch = 10*nintmax
+    size_fetch = 2*nintmax
 !   size_fetch=200
-   nbranch_max = size_tree/10
+   nbranch_max = maxaddress/5
    if (num_pe==1) size_fetch=size_tree
 !  maxaddress = 512
-  hashconst = maxaddress-1
+  hashconst = 2**nbaddr-1
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
   if (me==0) then
     write(*,*) 'size_tree= ',size_tree
     write(*,*) 'size_fetch= ',size_fetch
+    write(*,*) 'np_mult= ',np_mult
   endif 
 
 
@@ -102,8 +103,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
   allocate ( htable(0:maxaddress), all_addr(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
        nbranches(num_pe+2), igap(num_pe+3), &
-       treekey(size_tree), branch_key(nbranch_max), branch_owner(nbranch_max), &
-       pebranch(nbranch_max), leaf_key(size_tree), twig_key(size_tree), &
+       treekey(maxaddress), branch_key(nbranch_max), branch_owner(nbranch_max), &
+       pebranch(nbranch_max), leaf_key(maxaddress), twig_key(maxaddress), &
        requested_keys(size_fetch, 0:num_pe-1), fetched_keys(size_fetch, 0:num_pe-1), &
        nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
 

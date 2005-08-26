@@ -19,18 +19,18 @@ subroutine tree_fill
 
 !  integer, parameter :: size_t=1000
 
- integer*8, dimension(size_tree) :: sub_key, parent_key
+ integer*8, dimension(maxaddress) :: sub_key, parent_key
  integer*8, dimension(8) :: child_key, child_sub
 
   integer, dimension(nbranch_max) :: branch_level
-  integer, dimension(size_tree) :: twig_addr, twig_code,  cell_addr, tree_node, parent_addr
+  integer, dimension(maxaddress) :: twig_addr, twig_code,  cell_addr, tree_node, parent_addr
   integer, dimension(8) :: child_addr !  children nodes
 
   integer*8 :: node_key, search_key, parent,  child_top
   integer :: maxlevel, ilevel, nsub,i,j,k, nparent, nuniq, child_byte, child_bit, nchild, link_addr, hashaddr
   integer :: maxtwig, maxleaf, nleaf_check, ntwig_check
   integer ::  node_addr, jmatch(1),  parent_node, parent_level, nodtwig
-  logical :: duplicate(size_tree), resolved, keymatch(8)
+  logical :: duplicate(maxaddress), resolved, keymatch(8)
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   integer :: ierr
