@@ -22,6 +22,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
   me = my_rank
   num_pe = n_cpu
   npart = npart_total
+  ipefile = 20
 
   if (db_level==1) then
       tree_debug=.true.
@@ -45,7 +46,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
   npartm = npart 
   nppm = np_mult*1.9*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  nshortm = 2500    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nshortm = 500    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
@@ -239,11 +240,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
                                'Multipoles:',mem_multipoles/mb,' MB', &
                                'TOTAL: ',mem_tot/mb,' MB'
   endif
-
-  cme = achar(me/100+48) // achar(mod(me/10,10)+48) // achar(mod(me,10)+48)  ! Convert 3-digit PE number into character string
-  cfile="pe"//cme//"/dump."//cme
-  ipefile = 20
-  open(ipefile,file=cfile)
 
 
   max_prefetches = 0

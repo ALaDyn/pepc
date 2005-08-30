@@ -92,6 +92,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
   if (mod(itime-1,ifreeze)==0) then
      if (me==0) write (*,'(a23)') 'LPEPC | REBUILDING TREE'
+     stop
      call cputime(td1)
      !POMP$ INST BEGIN(domains)
      call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs

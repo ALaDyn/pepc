@@ -17,7 +17,7 @@ subroutine predef_parts
 
   character(30) :: cinfile, cdump, cfile
   character(9) :: ct
-  character(5) :: cme
+  character(6) :: cme
   integer :: ner, nir, np_beamr, npartr, iconf, iens, timestamp
   real :: epsr, thetar, xlr, ylr, zlr, boxr
   real :: axdum, aydum, azdum,phidum
@@ -109,7 +109,11 @@ subroutine predef_parts
 
      ! Filename (directory) prefix
      me_read = me/ncpu_merge
-     cme = "pe"// achar(me_read/100+48) // achar(mod(me_read/10,10)+48) // achar(mod(me_read,10)+48)  
+     cme = "data/pe" &   
+       // achar(me_read/1000+48) &
+       // achar(mod(me_read/100,10)+48) &
+       // achar(mod(me_read/10,10)+48) &
+       // achar(mod(me_read,10)+48)  ! Convert 4-digit PE number into character string
 
      ! get filename suffix from dump counter
      do i=0,4
@@ -177,7 +181,12 @@ subroutine predef_parts
      do ipass = 0, ncpu_merge-1
         me_read = me*ncpu_merge + ipass
         ! Filename (directory) prefix
-        cme = "pe"// achar(me_read/100+48) // achar(mod(me_read/10,10)+48) // achar(mod(me_read,10)+48)  
+        cme = "data/pe" &   
+       // achar(me_read/1000+48) &
+       // achar(mod(me_read/100,10)+48) &
+       // achar(mod(me_read/10,10)+48) &
+       // achar(mod(me_read,10)+48)  ! Convert 4-digit PE number into character string
+
         write(*,'(a,a)') 'Reading from ',cme
         ! get filename suffix from dump counter
         do i=0,4

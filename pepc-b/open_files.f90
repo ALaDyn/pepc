@@ -3,7 +3,6 @@ subroutine openfiles
   use physvars
   character(30) :: cfile
   character(1) :: csnap
-  character(3) :: cme
 
   if (my_rank == 0) then
      !  master diagnostics output
@@ -15,10 +14,14 @@ subroutine openfiles
   endif
 
   !  stdout for PE my_rank
-  !  must first create subdirectory 'peXXX' in run directory
+  !  must first create subdirectory 'data/peXXXX' in run directory
 
-  cme = achar(my_rank/100+48) // achar(mod(my_rank/10,10)+48) // achar(mod(my_rank,10)+48)  ! Convert 3-digit PE number into character string
-  cfile="pe"//cme//"/dump."//cme
+  csubme =   achar(my_rank/1000+48) &
+       // achar(mod(my_rank/100,10)+48) &
+       // achar(mod(my_rank/10,10)+48) &
+       // achar(mod(my_rank,10)+48)  ! Convert 4-digit PE number into character string
+  cfile="data/pe"//csubme//"/dump."//csubme
+  write (*,'(a3,i6,a15,a30)') 'PE ',my_rank,' opening ',cfile
   open(20,file=cfile)
   ifile_cpu = 20
 
