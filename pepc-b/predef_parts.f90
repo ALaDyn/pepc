@@ -127,7 +127,7 @@ subroutine predef_parts
      open (60,file=cfile)    
      read(60,'(2(9x,i8/))')  timestamp,npp_total  ! Find # particles to be read 
      close(60)
-
+     npp_total = ner+nir+np_beamr  ! Override total # in splitting mode
      npp = npp_total/ncpu_merge
      nrest = mod(npp_total,ncpu_merge)  ! Remainder
 
