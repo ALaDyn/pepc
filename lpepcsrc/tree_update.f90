@@ -52,6 +52,7 @@ subroutine tree_update(itime)
 
   ! external functions
   integer :: key2addr        ! Mapping function to get hash table address from key
+  integer :: key2addr_db        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
 !  logical :: update_debug=.true.
@@ -72,14 +73,14 @@ subroutine tree_update(itime)
      do i=1,nreqs_total(ipe)
         send_prop_count = send_prop_count + 1
         ship_key = requested_keys(i,ipe)
-        ship_address = key2addr(ship_key)  ! # address
+        ship_address = key2addr_db(ship_key,'UPDATE: pack1 ')  ! # address
         ship_node = htable(ship_address)%node
         ship_byte = IAND( htable( ship_address )%childcode,255 ) ! Catch lowest 8 bits of childbyte - filter off requested and here flags 
         ship_leaves = htable( ship_address )%leaves                    ! # contained leaves
 
         !  Need to reset ship_next=-1 if node is last of children
         kparent = ishft(ship_key ,-3 )
-        addr_parent = key2addr(kparent)
+        addr_parent = key2addr_db(kparent,'UPDATE: pack2 ')
         child_byte = htable( addr_parent )%childcode            !  Children byte-code
         nchild = SUM( (/ (ibits(child_byte,j,1),j=0,7) /) )       ! # children = sum of bits in byte-code
         child_sub(1:nchild) = pack( bitarr, mask=(/ (btest(child_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
@@ -124,7 +125,7 @@ subroutine tree_update(itime)
   ! write (iofile,'((2i8))') (sstrides(i), rstrides(i), i=0,num_pe-1) 
 
   ! Ship multipole data
-
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr )
   call MPI_ALLTOALLV( pack_child,   nreqs_total, sstrides, MPI_TYPE_MULTIPOLE, &
        get_child, nfetch_total, rstrides, MPI_TYPE_MULTIPOLE, &
        MPI_COMM_WORLD, ierr)
@@ -149,7 +150,7 @@ subroutine tree_update(itime)
 !        call make_hashentry( recv_key, nodchild, recv_leaves, recv_byte, ipe, hashaddr, ierr )
 !	key_present = key_local(recv_key)
 
-     	node_addr = key2addr(recv_key)
+     	node_addr = key2addr_db(recv_key,'UPDATE: MNHE ')
 	nodchild = htable(node_addr)%node
 
         ! Physical properties

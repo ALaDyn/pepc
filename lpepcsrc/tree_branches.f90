@@ -41,7 +41,8 @@ subroutine tree_branches
   ntwig_me = ntwig
   if (tree_debug) call check_table('after treebuild     ')
 
-  if (tree_debug) write(ipefile,'(/a)') 'TREE BRANCHES'
+  if (tree_debug) write(ipefile,'(a)') 'TREE BRANCHES'
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | BRANCHES'
 
 
   ! Determine minimum set of branch nodes making up local domain

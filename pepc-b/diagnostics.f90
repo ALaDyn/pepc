@@ -107,6 +107,10 @@ subroutine diagnostics
   if (max_local_f > .9*size_fetch) then
      write (6,'(/a,i4)') '*** WARNING:  # fetches >90% max on CPU ',my_rank 
   endif
+  if (npp > nppm) then
+     write (6,'(/a,i4)') '*** WARNING:  particle arrays full on CPU ',my_rank 
+     write (6,'(/a,i4)') '*** WARNING:  npp, nppm:',npp, nppm 
+  endif
 end subroutine diagnostics
 
 

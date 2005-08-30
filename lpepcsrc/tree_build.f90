@@ -42,6 +42,7 @@ subroutine tree_build
 
 
   if (tree_debug) write(ipefile,'(/a)') 'TREE BUILD'
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | LOCAL BUILD'
 
   ! zero table: need list of 'live' addresses to speed up
   htable%node = 0

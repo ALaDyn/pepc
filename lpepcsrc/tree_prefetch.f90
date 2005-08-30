@@ -49,7 +49,7 @@ subroutine tree_prefetch(itime)
   integer :: nodchild, nlast_child, newtwig, newleaf, hashaddr, nuniq, npar, nabsent
   integer :: cchild, nchild, node_addr, addr_parent, child_byte
   integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops, nreqs_new, nreqs_old, nfetch_new         ! loop counters
-  integer :: iofile
+  integer :: iofile,pe_1
   integer :: size_remove, nreq_max, nfetch_max,  timestamp, send_prop_count, recv_count, nnot_local
   character*1 :: ctick
   character(30) :: cfile, ccol1, ccol2, ccol0
@@ -57,13 +57,14 @@ subroutine tree_prefetch(itime)
 
   ! external functions
   integer :: key2addr        ! Mapping function to get hash table address from key
+  integer :: key2addr_db        ! Debug version
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
   logical :: prefetch_summary=.false.
 
   iofile = ipefile
 !  iofile = 6
-!  if (me<>0) prefetch_debug=.false.
+! prefetch_debug=.true.
   !
   if (prefetch_debug) write(iofile,'(a,i6)') 'TREE PREFETCH for timestep ',itime
   if (me.eq.0 .and. walk_summary) write(*,'(a,i6)') 'LPEPC | TREE PREFETCH for timestep ',itime
@@ -162,7 +163,6 @@ subroutine tree_prefetch(itime)
         endif
         if (prefetch_debug)  write(iofile,'(o15,2x,a1)') requested_keys(i,ipe),ctick
      end do
-     write(iofile,*)
 
      ! remove non-existent keys
      ! could do something more sophisticated here, like suggesting alternative key
@@ -198,7 +198,7 @@ subroutine tree_prefetch(itime)
      nreqs_new = 0
 
      do i=1,nuniq
-        cchild = htable( key2addr( req_parent(i) ) )%childcode   !  Children byte-code
+        cchild = htable( key2addr_db( req_parent(i), 'PREFETCH: pass 2') )%childcode   !  Children byte-code
         nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
         sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code           
         requested_keys(nreqs_new+1:nreqs_new+nchild,ipe) = IOR( ishft(req_parent(i),3 ), sub_key(1:nchild) ) ! New siblings of original requested key
@@ -263,25 +263,30 @@ subroutine tree_prefetch(itime)
         ccol0='(//a3,i5,a,i7/3(a15,'//achar(mod(num_pe,10)+48)//'i15/),a/)'
         ccol1='(//a,i7/'//achar(mod(num_pe,10)+48)//'i15/a/)'
         ccol2='('//achar(mod(num_pe,10)+48)//'o15)'
+	pe_1 = 0
      else
         ccol0='(//a,i7/3(a15,'//achar(num_pe/10+48)//achar(mod(num_pe,10)+48)//'i15/),a/)'
         ccol1='(//a,i7/'//achar(num_pe/10+48)//achar(mod(num_pe,10)+48)//'i15/a/)'
         ccol2='('//achar(num_pe/10+48)//achar(mod(num_pe,10)+48)//'o15)'
+        pe_1=num_pe-10
      endif
-
-     write(iofile,ccol0) 'CPU ',me,': Key prefetch at timestep ', &
-	timestamp,'requested:',nreqs_total(0:num_pe-1),'removed:',nremove(0:num_pe-1),'added:',nadd(0:num_pe-1), &
+!     write(iofile,ccol0) 'CPU ',me,': Key prefetch at timestep ', &
+      write(iofile,*) 'CPU ',me,': Key prefetch at timestep ', &
+	timestamp,'requested:',nreqs_total(pe_1:num_pe-1),'removed:',nremove(pe_1:num_pe-1),'added:',nadd(pe_1:num_pe-1), &
         '--------------------------------------------------------------------------------'
   endif
   if (prefetch_debug) then
      do i=1,nreq_max
-        write(iofile,ccol2) (requested_keys(i,ipe),ipe=0,num_pe-1)
+!        write(iofile,ccol2) (requested_keys(i,ipe),ipe=pe_1,num_pe-1)
+        write(iofile,*) (requested_keys(i,ipe),ipe=pe_1,num_pe-1)
      end do
 
-     write(iofile,ccol1) 'Keys fetched at timestep ',timestamp,nfetch_total(0:num_pe-1), &
+!     write(iofile,ccol1) 'Keys fetched at timestep ',timestamp,nfetch_total(pe_1:num_pe-1), &
+     write(iofile,*) 'Keys fetched at timestep ',timestamp,nfetch_total(pe_1:num_pe-1), &
           '------------------------------------------------------------'
      do i=1,nfetch_max
-        write(iofile,ccol2) (fetched_keys(i,ipe),ipe=0,num_pe-1)
+!        write(iofile,ccol2) (fetched_keys(i,ipe),ipe=pe_1,num_pe-1)
+        write(iofile,*) (fetched_keys(i,ipe),ipe=pe_1,num_pe-1)
      end do
   endif
 
@@ -297,14 +302,14 @@ subroutine tree_prefetch(itime)
      do i=1,nreqs_total(ipe)
         send_prop_count = send_prop_count + 1
         ship_key = requested_keys(i,ipe)
-        ship_address = key2addr(ship_key)  ! # address
+        ship_address = key2addr_db(ship_key,'PREFETCH: preship')  ! # address
         ship_node = htable(ship_address)%node
         ship_byte = IAND( htable( ship_address )%childcode,255 ) ! Catch lowest 8 bits of childbyte - filter off requested and here flags 
         ship_leaves = htable( ship_address )%leaves                    ! # contained leaves
 
         !  Need to reset ship_next=-1 if node is last of children
         kparent = ishft(ship_key ,-3 )
-        addr_parent = key2addr(kparent)
+        addr_parent = key2addr(kparent,'PREFETCH: parent  ')
         child_byte = htable( addr_parent )%childcode            !  Children byte-code
         nchild = SUM( (/ (ibits(child_byte,j,1),j=0,7) /) )       ! # children = sum of bits in byte-code
         child_sub(1:nchild) = pack( bitarr, mask=(/ (btest(child_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
@@ -349,7 +354,7 @@ subroutine tree_prefetch(itime)
   ! write (iofile,'((2i8))') (sstrides(i), rstrides(i), i=0,num_pe-1) 
 
   ! Ship multipole data
-
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr )
   call MPI_ALLTOALLV( pack_child,   nreqs_total, sstrides, MPI_TYPE_MULTIPOLE, &
        get_child, nfetch_total, rstrides, MPI_TYPE_MULTIPOLE, &
        MPI_COMM_WORLD, ierr)
@@ -395,7 +400,8 @@ subroutine tree_prefetch(itime)
         call make_hashentry( recv_key, nodchild, recv_leaves, recv_byte, ipe, hashaddr, ierr )
 
         htable(hashaddr)%next = recv_next           ! Fill in special next-node pointer for non-local children
-        htable( key2addr( recv_parent) )%childcode = IBSET(  htable( key2addr( recv_parent) )%childcode, 9) ! Set children_HERE flag for parent node
+        node_addr =  key2addr_db( recv_parent,'PREFETCH: MNHE ')
+      htable( node_addr )%childcode = IBSET(  htable( node_addr )%childcode, 9) ! Set children_HERE flag for parent node
 
         node_level( nodchild ) = log(1.*recv_key)/log(8.)  ! get level from keys and prestore as node property
 
@@ -444,7 +450,7 @@ subroutine tree_prefetch(itime)
 
   do i = 1,nlast_child
      search_key = last_child(i)                   
-     node_addr = key2addr(search_key)
+     node_addr = key2addr_db(search_key,'PREFETCH: NN search ')
      htable( node_addr )%next = next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
   end do
 

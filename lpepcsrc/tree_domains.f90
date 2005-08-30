@@ -53,16 +53,18 @@ subroutine tree_domains(xl,yl,zl)
   integer :: npnew,npold
   integer :: iteration, niterations
   integer :: errcount
- 
+
   integer, dimension(nppm) ::  w2, w3 ! scratch arrays for integer*4 permute
   real, dimension(nppm) :: wr2, wr3 ! Scratch for real array permute
   integer*8 :: tmp
   logical :: sort_debug=.false.
   real*8 xboxsize, yboxsize, zboxsize
 
-!POMP$ INST BEGIN(keys)
+  !POMP$ INST BEGIN(keys)
 
-!  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+    call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | DOMAINS'
 
 
   ! Find limits of local simulation region
@@ -116,8 +118,8 @@ subroutine tree_domains(xl,yl,zl)
 
   nbits = nlev+1
   do j = 1,npp
-!     local_key(j) = iplace + &
-!          SUM( (/ (8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) ),i=0,nbits-1) /) )
+     !     local_key(j) = iplace + &
+     !          SUM( (/ (8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) ),i=0,nbits-1) /) )
      local_key(j) = iplace
      do i=0,nbits-1
         local_key(j) = local_key(j) &
@@ -125,7 +127,7 @@ subroutine tree_domains(xl,yl,zl)
      end do
   end do
 
-!  Find keys corresponding to corners of graphics box (initial target container)
+  !  Find keys corresponding to corners of graphics box (initial target container)
   if (xmin<0) then
      ixbox(1) = -xmin/s
      ixbox(2) = (xl - xmin)/s
@@ -153,26 +155,26 @@ subroutine tree_domains(xl,yl,zl)
   do j=1,2
      key_box(j) = iplace + &
           SUM( (/ (8_8**i*(4_8*ibits( izbox(j),i,1) &
-                         + 2_8*ibits( iybox(j),i,1 ) &
-                         + 1_8*ibits( ixbox(j),i,1) ),i=0,nbits-1) /) )
+          + 2_8*ibits( iybox(j),i,1 ) &
+          + 1_8*ibits( ixbox(j),i,1) ),i=0,nbits-1) /) )
   end do
 
- 
+
   if (domain_debug) then
      write (ipefile,'(a,2z20)') 'Box keys:', key_box(1),key_box(2)
      write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort (1st 10):', &
           '  key,             label   coords     q ', &
           (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=1,min(10,npp)) 
- !    write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8))') '(last 10):', &
- !         '  key,                  label        coords              q ', &
- !         (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=max(1,npp-10),npp) 
+     !    write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8))') '(last 10):', &
+     !         '  key,                  label        coords              q ', &
+     !         (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=max(1,npp-10),npp) 
 
      call blankn(ipefile)
   endif
 
-!POMP$ INST END(keys)
+  !POMP$ INST END(keys)
 
-!POMP$ INST BEGIN(sort)
+  !POMP$ INST BEGIN(sort)
 
   ! Use Parallel Sort by Regular Sampling (PSRS) 
 
@@ -216,11 +218,11 @@ subroutine tree_domains(xl,yl,zl)
         enddo
      endif
 
-  if (domain_debug.and.me==0) then
-          write (*,'(a/(i5,z20,f15.3))') 'input array (1st 10):  ',(i,keys(i),work(i),i=1,min(10,npold))
-          write (*,'(a/(i5,z20,f15.3))') 'input array (last 10):  ',(i,keys(i),work(i),i=max(1,npold-10),npold)
-         write (*,*) 'npold=',npold
- endif
+     if (domain_debug.and.me==0) then
+        write (*,'(a/(i5,z20,f15.3))') 'input array (1st 10):  ',(i,keys(i),work(i),i=1,min(10,npold))
+        write (*,'(a/(i5,z20,f15.3))') 'input array (last 10):  ',(i,keys(i),work(i),i=max(1,npold-10),npold)
+        write (*,*) 'npold=',npold
+     endif
 
      ! perform index sort on keys
      call pswssort(nppm,npold,npnew,num_pe,me,keys, &
@@ -235,16 +237,16 @@ subroutine tree_domains(xl,yl,zl)
      call pll_permute(nppm,npold,npnew,num_pe,me,w1,wi2,wi3, &
           indxl,irnkl,islen,irlen,fposts,gposts)
 
-  if (domain_debug) then
-          write (*,*) 'npnew=',npnew,' on ',me
- !         write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
- !         write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
-          if (me.eq.50) then
-          write (*,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,min(10,npnew))
-          write (*,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=max(1,npnew-10),npnew)
-          endif
-          write (ipefile,*) 'npnew=',npnew
-  endif
+     if (domain_debug) then
+        write (*,*) 'npnew=',npnew,' on ',me
+        !         write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
+        !         write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
+        if (me.eq.50) then
+           write (*,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,min(10,npnew))
+           write (*,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=max(1,npnew-10),npnew)
+        endif
+        write (ipefile,*) 'npnew=',npnew
+     endif
 
      ! Check if sort finished
      errcount = 0
@@ -257,32 +259,32 @@ subroutine tree_domains(xl,yl,zl)
         endif
      enddo
 
-! Define wraps for ring network  0 -> 1 -> 2 -> ... ... -> num_pe-1 -> 0 ...
-  if (me == 0) then
-    prev = num_pe - 1
-  else
-    prev = me-1
-  endif
+     ! Define wraps for ring network  0 -> 1 -> 2 -> ... ... -> num_pe-1 -> 0 ...
+     if (me == 0) then
+        prev = num_pe - 1
+     else
+        prev = me-1
+     endif
 
-  if (me == num_pe-1 ) then
-     next = 0
-  else
-     next = me+1
-  endif
+     if (me == num_pe-1 ) then
+        next = 0
+     else
+        next = me+1
+     endif
 
      ! swap end items
-  if (me .ne. 0) then
-    call MPI_ISEND(w1, 1, MPI_INTEGER8, prev, 1, MPI_COMM_WORLD, handle(1), ierr)
-    call MPI_REQUEST_FREE(handle(1),ierr)
-  endif
+     if (me .ne. 0) then
+        call MPI_ISEND(w1, 1, MPI_INTEGER8, prev, 1, MPI_COMM_WORLD, handle(1), ierr)
+        call MPI_REQUEST_FREE(handle(1),ierr)
+     endif
 
-  if (me .ne. num_pe-1) then
-    call MPI_RECV(tmp, 1, MPI_INTEGER8, next, 1, MPI_COMM_WORLD, status, ierr)
-  endif
+     if (me .ne. num_pe-1) then
+        call MPI_RECV(tmp, 1, MPI_INTEGER8, next, 1, MPI_COMM_WORLD, status, ierr)
+     endif
 
 
      if (me .ne. num_pe-1) then
- !    if (me == 50 ) then
+        !    if (me == 50 ) then
         if (domain_debug .and. tmp .lt. w1(npnew)) then          ! still something to sort
            write (*,'(a,i3,a1,2z20)') 'w1(npnew), w1(1) from',me+1, '=',w1(npnew),tmp
            errcount = errcount + 1  
@@ -317,82 +319,82 @@ subroutine tree_domains(xl,yl,zl)
   source_pe(1:npold) = pepid(1:npold)   ! where particle came from
 
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,source_pe,w2,w3, &   ! source PE
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,source_pe,w2,w3, &   ! source PE
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,pelabel,w2,w3, &   ! label
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,pelabel,w2,w3, &   ! label
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
   ! Should ship these as one big vector
-!  call pll_permute(nppm,npold,npnew,num_pe,me,x,wr2,wr3, &       ! coords
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,x,wr2,wr3, &       ! coords
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,y,wr2,wr3, &       !  
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,y,wr2,wr3, &       !  
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,z,wr2,wr3, &       !  
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,z,wr2,wr3, &       !  
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,ux,wr2,wr3, &       ! velocities
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,ux,wr2,wr3, &       ! velocities
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,uy,wr2,wr3, &       !
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,uy,wr2,wr3, &       !
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,uz,wr2,wr3, &       ! 
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,uz,wr2,wr3, &       ! 
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,q,wr2,wr3, &       ! charge
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,q,wr2,wr3, &       ! charge
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,m,wr2,wr3, &       ! mass
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,m,wr2,wr3, &       ! mass
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,work,wr2,wr3, &       ! workload
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,work,wr2,wr3, &       ! workload
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,ax,wr2,wr3, &       ! vec. pot 
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,ax,wr2,wr3, &       ! vec. pot 
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,ay,wr2,wr3, &       ! 
-!       indxl,irnkl,islen,irlen,fposts,gposts)
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,ay,wr2,wr3, &       ! 
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
-!  call pll_permute(nppm,npold,npnew,num_pe,me,az,wr2,wr3, &       ! 
-!       indxl,irnkl,islen,irlen,fposts,gposts)
-
-
-! Set up particle structure - keys and source_pe are dummies
-! ( pekey is already sorted)
-
-    do i=1,npold
-       ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
-        ux(indxl(i)), uy(indxl(i)), uz(indxl(i)), &
-        q(indxl(i)), m(indxl(i)), work(indxl(i)), &
-        ax(indxl(i)), ay(indxl(i)), az(indxl(i)), &
-        keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
-    enddo
+  !  call pll_permute(nppm,npold,npnew,num_pe,me,az,wr2,wr3, &       ! 
+  !       indxl,irnkl,islen,irlen,fposts,gposts)
 
 
-! perform permute
-    call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_particle, &
-         get_parts, irlen, gposts, mpi_type_particle, &
-         MPI_COMM_WORLD,ierr)
+  ! Set up particle structure - keys and source_pe are dummies
+  ! ( pekey is already sorted)
 
-    do i=1,npp
-       x(irnkl(i)) = get_parts(i)%x
-       y(irnkl(i)) = get_parts(i)%y
-       z(irnkl(i)) = get_parts(i)%z
-       ux(irnkl(i)) = get_parts(i)%ux
-       uy(irnkl(i)) = get_parts(i)%uy
-       uz(irnkl(i)) = get_parts(i)%uz
-       q(irnkl(i)) = get_parts(i)%q
-       m(irnkl(i)) = get_parts(i)%m
-       work(irnkl(i)) = get_parts(i)%work
-       ax(irnkl(i)) = get_parts(i)%ax
-       ay(irnkl(i)) = get_parts(i)%ay
-       az(irnkl(i)) = get_parts(i)%az
-       pelabel(irnkl(i)) = get_parts(i)%label
-    enddo
+  do i=1,npold
+     ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
+          ux(indxl(i)), uy(indxl(i)), uz(indxl(i)), &
+          q(indxl(i)), m(indxl(i)), work(indxl(i)), &
+          ax(indxl(i)), ay(indxl(i)), az(indxl(i)), &
+          keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
+  enddo
+
+
+  ! perform permute
+  call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_particle, &
+       get_parts, irlen, gposts, mpi_type_particle, &
+       MPI_COMM_WORLD,ierr)
+
+  do i=1,npp
+     x(irnkl(i)) = get_parts(i)%x
+     y(irnkl(i)) = get_parts(i)%y
+     z(irnkl(i)) = get_parts(i)%z
+     ux(irnkl(i)) = get_parts(i)%ux
+     uy(irnkl(i)) = get_parts(i)%uy
+     uz(irnkl(i)) = get_parts(i)%uz
+     q(irnkl(i)) = get_parts(i)%q
+     m(irnkl(i)) = get_parts(i)%m
+     work(irnkl(i)) = get_parts(i)%work
+     ax(irnkl(i)) = get_parts(i)%ax
+     ay(irnkl(i)) = get_parts(i)%ay
+     az(irnkl(i)) = get_parts(i)%az
+     pelabel(irnkl(i)) = get_parts(i)%label
+  enddo
 
 
   pepid(1:npp) = me  ! new owner
@@ -423,11 +425,11 @@ subroutine tree_domains(xl,yl,zl)
   !  - if we don't do this, can get two particles on separate PEs 'sharing' a leaf
 
 
- ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
-   ax(1),ay(1),az(1), pekey(1), pelabel(1), pepid(1) )
+  ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
+       ax(1),ay(1),az(1), pekey(1), pelabel(1), pepid(1) )
 
-!  write (*,'(9f12.3,z20,2i6)') ship_props
-  
+  !  write (*,'(9f12.3,z20,2i6)') ship_props
+
   ! Ship 1st particle data to end of list of LH neighbour PE
 
   if (me /= 0 ) then
@@ -437,7 +439,7 @@ subroutine tree_domains(xl,yl,zl)
 
   ! Place incoming data at end of array
   if ( me /= num_pe-1) then
-!     call MPI_IRECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, handle(2), ierr )
+     !     call MPI_IRECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, handle(2), ierr )
      call MPI_RECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, status, ierr )
      x(npp+1) = get_props%x
      y(npp+1) = get_props%y
@@ -457,23 +459,23 @@ subroutine tree_domains(xl,yl,zl)
   endif
 
 
- 
-     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!  if (me /= num_pe-1) call MPI_WAIT(handle(2),status,ierr)
+
+  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  !  if (me /= num_pe-1) call MPI_WAIT(handle(2),status,ierr)
 
 
- ! Ship  end particle data to start of list of RH neighbour PE
-  
+  ! Ship  end particle data to start of list of RH neighbour PE
+
   ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), m(npp), work(npp), &
-    ax(npp),ay(npp),az(npp), pekey(npp), pelabel(npp), pepid(npp) )
-  
- if (me /= num_pe-1 ) then
+       ax(npp),ay(npp),az(npp), pekey(npp), pelabel(npp), pepid(npp) )
+
+  if (me /= num_pe-1 ) then
      call MPI_ISEND( ship_props, 1, mpi_type_particle, next, 2, MPI_COMM_WORLD, handle(3), ierr )
      call MPI_REQUEST_FREE(handle(3),ierr) 
   endif
 
   ! Place incoming data at end of array
-  
+
   if (me == num_pe-1) then
      ind_recv = npp+1   ! PEn array hasn't yet received boundary value
   else
@@ -481,7 +483,7 @@ subroutine tree_domains(xl,yl,zl)
   endif
 
   if ( me /= 0) then
-!     call MPI_IRECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, handle(4), ierr )
+     !     call MPI_IRECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, handle(4), ierr )
      call MPI_RECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, status, ierr )
      x(ind_recv) = get_props%x
      y(ind_recv) = get_props%y
@@ -501,7 +503,7 @@ subroutine tree_domains(xl,yl,zl)
   endif
 
 
-!  if (me /= 0) call MPI_WAIT(handle(4),status,ierr)
+  !  if (me /= 0) call MPI_WAIT(handle(4),status,ierr)
 
   if (boundary_debug) then
      if (me /= 0 .and. me /= num_pe-1) then
@@ -519,6 +521,6 @@ subroutine tree_domains(xl,yl,zl)
      call blankn(ipefile)
   endif
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-!POMP$ INST END(sort)
+  !POMP$ INST END(sort)
 
 end subroutine tree_domains

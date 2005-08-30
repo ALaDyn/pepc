@@ -43,7 +43,8 @@ subroutine tree_properties
   integer :: key2addr        ! Mapping function to get hash table address from key
 
 
-  if (tree_debug) write(ipefile,'(/a)') 'TREE PROPERTIES'
+  if (tree_debug) write(ipefile,'(a)') 'TREE PROPERTIES'
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | PROPERTIES'
 
 
 
