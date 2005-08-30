@@ -17,7 +17,7 @@ subroutine predef_parts
 
   character(30) :: cinfile, cdump, cfile
   character(9) :: ct
-  character(6) :: cme
+  character(11) :: cme
   integer :: ner, nir, np_beamr, npartr, iconf, iens, timestamp
   real :: epsr, thetar, xlr, ylr, zlr, boxr
   real :: axdum, aydum, azdum,phidum
