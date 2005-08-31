@@ -19,7 +19,7 @@ subroutine vis_parts_nbody
   integer, parameter :: ship_max = 100000, attrib_max=22
   real*4, dimension(0:attrib_max-1,npart_visit_max) :: vbuffer
   !  real*4, dimension(0:attrib_max-1,npart_total) :: vbuffer
-  real*4, dimension(0:attrib_max-1,nppm) :: vbuf_local
+  real*4, dimension(0:attrib_max-1,npart_visit_max) :: vbuf_local
 
   integer, dimension(num_pe) :: nparts_pe, recv_strides, nbuf_pe  ! array of npp on each PE
   integer :: icolour(npart_visit_max)
