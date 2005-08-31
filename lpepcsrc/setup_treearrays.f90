@@ -85,6 +85,27 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
     write(*,*) 'np_mult= ',np_mult
   endif 
 
+! Memory estimate
+  mem_parts = nppm*(22*8 + 2*4 + 8)
+  mem_lists = nshortm + nshortm*nintmax*(2*8+4)
+  mem_tree =  maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
+                      + num_pe * (4+4+4+4)  & ! request stuff
+                      + maxaddress * (3*8) & ! keys
+                      + nbranch_max * (8 + 4 + 8)  ! branches
+  mem_multipoles = maxaddress * (8+2*4 + 23*8 + 8) 
+  mem_prefetch = size_fetch*(4*8*num_pe + 5*8) + num_pe*4 *11 + size_fetch*(8+4)
+  mem_tot = mem_parts+mem_tree+mem_prefetch+mem_multipoles+mem_lists
+
+  if (me==0) then
+     write(*,'(//a/)') 'Initial memory allocation:'
+     write(*,'(6(a15,f12.3,a3/)/)') 'Particles: ',mem_parts/mb,' MB', &
+                               'Tree:',mem_tree/mb,' MB', &
+                               'Lists:',mem_lists/mb,' MB', &
+                               'Prefetch:',mem_prefetch/mb,' MB', &
+                               'Multipoles:',mem_multipoles/mb,' MB', &
+                               'TOTAL: ',mem_tot/mb,' MB'
+  endif
+
 
   ! array allocation
 
@@ -96,11 +117,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
        Axo(nppm), Ayo(nppm), Azo(nppm), &
        pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
-  mem_parts = nppm*(22*8 + 2*4 + 8)
 
 
   allocate ( nterm(nshortm), intlist(nintmax,nshortm), nodelist(nintmax,nshortm) )! interaction key-, node-lists
-  mem_lists = nshortm + nshortm*nintmax*(2*8+4)
 
   allocate ( htable(0:maxaddress), all_addr(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
        nbranches(num_pe+2), igap(num_pe+3), &
@@ -109,10 +128,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
        requested_keys(size_fetch, 0:num_pe-1), fetched_keys(size_fetch, 0:num_pe-1), &
        nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
 
-  mem_tree =  maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
-                      + num_pe * (4+4+4+4)  & ! request stuff
-                      + maxaddress * (3*8) & ! keys
-                      + nbranch_max * (8 + 4 + 8)  ! branches
+
 
   all_addr = (/ (k,k=0,maxaddress) /)      ! List of all possible # table addresses
   htable%node = 0
@@ -143,7 +159,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
   allocate ( pack_child(maxaddress), get_child(maxaddress) )    ! Multipole shipping buffers
 
-  mem_multipoles = maxaddress * (8+2*4 + 23*8 + 8) 
  
 
 ! work balance arrays
@@ -228,18 +243,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
-
-  mem_prefetch = size_fetch*(4*8*num_pe + 5*8) + num_pe*4 *11 + size_fetch*(8+4)
-  mem_tot = mem_parts+mem_tree+mem_prefetch+mem_multipoles+mem_lists
-  if (me==0) then
-     write(*,'(//a/)') 'Initial memory allocation:'
-     write(*,'(6(a15,f12.3,a3/)/)') 'Particles: ',mem_parts/mb,' MB', &
-                               'Tree:',mem_tree/mb,' MB', &
-                               'Lists:',mem_lists/mb,' MB', &
-                               'Prefetch:',mem_prefetch/mb,' MB', &
-                               'Multipoles:',mem_multipoles/mb,' MB', &
-                               'TOTAL: ',mem_tot/mb,' MB'
-  endif
 
 
   max_prefetches = 0
