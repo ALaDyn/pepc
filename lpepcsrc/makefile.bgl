@@ -5,6 +5,7 @@
 #
 
 
+PREFIX = $(HOME)/pepc
 
 #DBFLAGS = -g -Rabp -ev  -q64 -qrealsize=8  -qsuffix=f=f90 -qcheck
 # For apprentice
@@ -53,7 +54,6 @@ LIBDIR  = .
 AR      = ar 
 LIBPEPC = -L$(LIBDIR) -llpepc
 pepclib = liblpepc.a
-PREFIX = $(HOME)/tree/pepc
 
 
 
