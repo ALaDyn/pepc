@@ -3,7 +3,7 @@
 #
 #  Makefile for treemp and test programs
 #
-PREFIX = $(HOME)/pepc
+PREFIX = ..
 
 
 #DBFLAGS = -g -Rabp -ev  -q64 -qrealsize=8  -qsuffix=f=f90 -qcheck
