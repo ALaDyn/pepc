@@ -1,4 +1,4 @@
-subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
+subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult)
   use treevars
   implicit none
   include 'mpif.h'
@@ -9,6 +9,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
   integer, intent(in) :: npart_total  ! total (max) # simulation particles
   integer, intent(in) :: db_level
   real, intent(in) :: np_mult ! particle array size multiplication factor (1.5)
+  integer, intent(in) :: fetch_mult ! fetch array size multiplication factor (10)
 
   integer :: ibig, machinebits, maxleaf, maxtwig,k
   integer :: ierr,npsize
@@ -72,7 +73,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 !   size_tree=max(maxaddress+1,2*npsize)
 !   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
 !    size_fetch = 25*size_tree/num_pe
-    size_fetch = nintmax
+    size_fetch = fetch_mult*nintmax
 !   size_fetch=200
    nbranch_max = maxaddress/5
    if (num_pe==1) size_fetch=size_tree
@@ -91,6 +92,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
   mem_tree =  maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
                       + num_pe * (4+4+4+4)  & ! request stuff
                       + maxaddress * (3*8) & ! keys
+                      + size_fetch * (8*num_pe) & ! ship_key
                       + nbranch_max * (8 + 4 + 8)  ! branches
   mem_multipoles = maxaddress * (8+2*4 + 23*8 + 8) 
   mem_prefetch = size_fetch*(4*8*num_pe + 5*8) + num_pe*4 *11 + size_fetch*(8+4)

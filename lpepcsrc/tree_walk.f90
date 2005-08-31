@@ -55,7 +55,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
   integer*8,  dimension(npshort) :: walk_key, walk_last 
   integer*8, dimension(maxaddress)  :: request_key, ask_key, process_key
-  integer*8, dimension(maxaddress/num_pe,0:num_pe-1) ::  ship_key
+  integer*8, dimension(size_fetch,0:num_pe-1) ::  ship_key
   integer*8, dimension(8) :: sub_key, key_child, next_child
   integer*8, dimension(nintmax,npshort) :: defer_list, walk_list
   integer*8, dimension(maxaddress) :: last_child   ! List of 'last' children fetched from remote PEs
