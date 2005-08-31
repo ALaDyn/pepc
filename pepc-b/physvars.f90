@@ -90,6 +90,7 @@ module physvars
   integer :: npart_total  ! Total # particles (npart)
   integer :: np_local  ! Local # particles (npart)
   real :: np_mult=1.5   ! particle array safety margin
+  integer :: fetch_mult=8 ! fetch array factor
 !  Associated MPI stuff
 
   integer :: my_rank       ! Rank of current task
