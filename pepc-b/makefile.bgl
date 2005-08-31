@@ -87,7 +87,7 @@ FC = /opt/ibmcmp/xlf/9.1/bin/blrts_xlf90
 QTUNE = -qarch=440d -qtune=440 
 CFLAGS= -O3 -g -I$(BGLSYS)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
 FFLAGS= -O3 -g $(FFLAGS1) -I$(BGLSYS)/include -L$(BGLSYS)/lib $(QTUNE)
-DBFLAGS= ## -g -qfullpath
+DBFLAGS= -qcheck -qfullpath
 #
 #MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
 #MPITRACE= -lmpitrace
