@@ -67,7 +67,6 @@ program pepcb
   call setup           ! Read input deck, setup plasma config
   call setup_arrays    ! Set up field arrays
   call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult)  ! Allocate array space for tree
-
   call param_dump      ! Dump initial data
 
   !  if (my_rank ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT

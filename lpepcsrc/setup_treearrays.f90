@@ -51,7 +51,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
-     nintmax = max(2.*24*log(2.*npartm)/theta**2,2000.)
+     nintmax = max(1.*24*log(2.*npartm)/theta**2,2000.)
   else
      nintmax = npartm
   endif
@@ -107,7 +107,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
                                'Multipoles:',mem_multipoles/mb,' MB', &
                                'TOTAL: ',mem_tot/mb,' MB'
   endif
-
 
   ! array allocation
 
