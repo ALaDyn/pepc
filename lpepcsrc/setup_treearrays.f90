@@ -72,7 +72,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
 !   size_tree=max(maxaddress+1,2*npsize)
 !   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
 !    size_fetch = 25*size_tree/num_pe
-    size_fetch = 5*nintmax
+    size_fetch = nintmax
 !   size_fetch=200
    nbranch_max = maxaddress/5
    if (num_pe==1) size_fetch=size_tree
@@ -229,7 +229,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult)
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
-  mem_prefetch = size_fetch*(2*8*num_pe + 5*8) + num_pe*4 *11 + size_fetch*(8+4)
+  mem_prefetch = size_fetch*(4*8*num_pe + 5*8) + num_pe*4 *11 + size_fetch*(8+4)
   mem_tot = mem_parts+mem_tree+mem_prefetch+mem_multipoles+mem_lists
   if (me==0) then
      write(*,'(//a/)') 'Initial memory allocation:'
