@@ -55,7 +55,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
   integer*8,  dimension(npshort) :: walk_key, walk_last 
   integer*8, dimension(maxaddress)  :: request_key, ask_key, process_key
-  integer*8, dimension(size_fetch,0:num_pe-1) ::  ship_key
+!  integer*8, dimension(size_fetch,0:num_pe-1) ::  ship_key
   integer*8, dimension(8) :: sub_key, key_child, next_child
   integer*8, dimension(nintmax,npshort) :: defer_list, walk_list
   integer*8, dimension(maxaddress) :: last_child   ! List of 'last' children fetched from remote PEs
@@ -118,8 +118,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   twalk=0.
   tfetch=0.
 
-  npackm = size_tree
-  nchild_shipm = size_tree
+  npackm = maxaddress
+  nchild_shipm = maxaddress
   !walk_debug = .false.
   ! ipefile = 6
   if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK for timestep ',itime,' pass ',pass
@@ -390,13 +390,13 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
            ! Extract sub-list of keys to request according to location - don't overwrite buffer!
 
-           ship_key(1:ntoship(ipe),ipe) = pack(request_key(1:nshare), mask = request_owner(1:nshare) == ipe )
+           ship_keys(1:ntoship(ipe),ipe) = pack(request_key(1:nshare), mask = request_owner(1:nshare) == ipe )
 
            if (emulate_blocking) then
-              call MPI_SEND(ship_key(1,ipe), ntoship(ipe), MPI_INTEGER8, ipe, tag1, &
+              call MPI_SEND(ship_keys(1,ipe), ntoship(ipe), MPI_INTEGER8, ipe, tag1, &
                    MPI_COMM_WORLD,  ierr ) ! Ship to data location
            else
-              call MPI_ISEND(ship_key(1,ipe), ntoship(ipe), MPI_INTEGER8, ipe, tag1, &
+              call MPI_ISEND(ship_keys(1,ipe), ntoship(ipe), MPI_INTEGER8, ipe, tag1, &
                    MPI_COMM_WORLD, send_key_handle(fetch_pe_count), ierr ) ! Ship to data location
               call MPI_REQUEST_FREE( send_key_handle(fetch_pe_count), ierr)
            endif

@@ -122,7 +122,6 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   !POMP$ INST END(properties)
   call cputime(tp1)
 
-
   if (mac==2) then
      if (mod(itime-1,ifreeze) /= 0) then
         ! freeze mode - re-fetch nonlocal multipole info
@@ -148,7 +147,6 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
      nreqs_total=0
   endif
-
 
   call cputime(tp2)
 
@@ -306,7 +304,6 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      t_force = t_force + t3-t2
 
      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
-
 
   end do
 

@@ -64,10 +64,10 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
-!   npsize=2.5*nppm
+   npsize=3*nppm
    npsize=nppm
-   size_tree = max(4*nintmax+npsize,100000)+1
-   nbaddr = max(log(1.*size_tree)/log(2.) + 1,17.)
+   size_tree = max(4*nintmax+npsize,10000)
+   nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
 !   nbaddr = 17   ! fixed address range
    maxaddress = np_mult*2**nbaddr
 !   size_tree=max(maxaddress+1,2*npsize)
@@ -82,8 +82,10 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
   if (me==0) then
     write(*,*) 'size_tree= ',size_tree
+    write(*,*) 'max address = ',maxaddress
     write(*,*) 'size_fetch= ',size_fetch
     write(*,*) 'np_mult= ',np_mult
+    write(*,*) 'fetch_mult= ',fetch_mult
   endif 
 
 ! Memory estimate
@@ -92,7 +94,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   mem_tree =  maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
                       + num_pe * (4+4+4+4)  & ! request stuff
                       + maxaddress * (3*8) & ! keys
-                      + size_fetch * (8*num_pe) & ! ship_key
+                      + size_fetch * (8*num_pe) & ! ship_keys
                       + nbranch_max * (8 + 4 + 8)  ! branches
   mem_multipoles = maxaddress * (8+2*4 + 23*8 + 8) 
   mem_prefetch = size_fetch*(4*8*num_pe + 5*8) + num_pe*4 *11 + size_fetch*(8+4)
@@ -106,6 +108,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
                                'Prefetch:',mem_prefetch/mb,' MB', &
                                'Multipoles:',mem_multipoles/mb,' MB', &
                                'TOTAL: ',mem_tot/mb,' MB'
+     write(*,'(a)') 'Allocating particle and tree arrays ...'
   endif
 
   ! array allocation
@@ -127,7 +130,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
        treekey(maxaddress), branch_key(nbranch_max), branch_owner(nbranch_max), &
        pebranch(nbranch_max), leaf_key(maxaddress), twig_key(maxaddress), &
        requested_keys(size_fetch, 0:num_pe-1), fetched_keys(size_fetch, 0:num_pe-1), &
-       nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
+       ship_keys(size_fetch, 0:num_pe-1), nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
 
 
 
@@ -245,7 +248,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
-
+  if (me==0) write(*,*) '... done'
   max_prefetches = 0
 
 end subroutine pepc_setup

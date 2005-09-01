@@ -109,6 +109,7 @@ module treevars
   integer*8, allocatable :: &
                                 requested_keys(:,:), &  ! Local multipole nodes required elsewhere
                                 fetched_keys(:,:), &  ! Remote nodes fetched during tree walk
+                                ship_keys(:,:), &  ! Remote nodes fetched during tree walk
                                 treekey(:), &       ! keys of all twig and leaf nodes
                                 branch_key(:), &    ! keys of branch nodes covering all domains
                                 pebranch(:), &	    ! keys of branch nodes covering local domain
