@@ -143,7 +143,6 @@ program pepcb
           coulomb, bfields, bonds, lenjones, &
           t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot)   
 !POMP$ INST END(fields)
- call abort
      call force_laser(1,np_local)
 
      call cputime(t_start_push)
