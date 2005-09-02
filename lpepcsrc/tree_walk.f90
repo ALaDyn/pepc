@@ -640,6 +640,16 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
      endif
 
+ ! Array bound checks
+	if (nleaf>.9*maxaddress/2) then
+	   write (0,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
+	   write (0,*) 'LPEPC | nleaf = ',nleaf,' / ',maxaddress/2
+	endif
+	if (ntwig>.9*maxaddress/2) then
+	   write (0,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
+	   write (0,*) 'LPEPC | ntwig = ',ntwig,' / ',maxaddress/2
+	endif
+
     call cputime(tc1)
     tfetch=tfetch+tc1-tw2  ! timing for 2nd half of walk
 !POMP$ INST END(exchange)

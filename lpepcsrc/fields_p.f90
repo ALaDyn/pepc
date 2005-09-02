@@ -120,8 +120,9 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   !POMP$ INST BEGIN(properties)
   call tree_properties ! Compute multipole moments for local tree
   !POMP$ INST END(properties)
-  call cputime(tp1)
 
+
+  call cputime(tp1)
   if (mac==2) then
      if (mod(itime-1,ifreeze) /= 0) then
         ! freeze mode - re-fetch nonlocal multipole info

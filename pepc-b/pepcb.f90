@@ -68,7 +68,6 @@ program pepcb
   call setup_arrays    ! Set up field arrays
   call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult)  ! Allocate array space for tree
   call param_dump      ! Dump initial data
-
   !  if (my_rank ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
   if (my_rank ==0 .and. vis_on) then
 !     call flvisit_nbody2_init ! Start up VISIT interface to xnbody
@@ -171,14 +170,15 @@ program pepcb
         write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain,100*t_domain/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Build: ',t_build,100*t_build/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Prefetch: ',t_prefetch,100*t_prefetch/ttot
-        write(ifile,'(a20,2f12.3,a1)') 'Walk serial: ',t_walk,100*t_walk/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Walk local: ',t_walk,100*t_walk/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Walk comm: ',t_walkc,100*t_walkc/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Forces: ',t_force,100*t_force/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Pusher: ',t_push,100*t_push/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag,100*t_diag/ttot
 
         write(ifile,'(a20,2f12.3,a1)') 'Total: ',ttot,100.
-        write(ifile,'(a20,i4,6f12.3)') 'Timing format: ',n_cpu,t_domain,t_build,t_prefetch,t_walk+t_walkc,t_force,ttot
+        write(ifile,'(a50/i4,7f12.3)') 'Timing format: #CPU domains build prefetch walk-local walk-comm force tot' &
+	  ,n_cpu,t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force,ttot
 
      endif
 
