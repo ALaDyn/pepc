@@ -29,7 +29,8 @@ module tree_utils
   end interface
 
   interface indexsort
-     module procedure indsort_i
+     module procedure indsort_i8
+     module procedure indsort_i4
   end interface
 
   interface swap
@@ -704,7 +705,9 @@ contains
   end subroutine sort_i
 
 
-  subroutine indsort_i(iarr,list,n,nppm)
+!  Index sort for 8-byte integer list
+
+  subroutine indsort_i8(iarr,list,n,nppm)
     implicit none
 
     integer, intent(in) :: n,nppm
@@ -753,7 +756,63 @@ contains
        list(i) = indxt
     end do
 
-  end subroutine indsort_i
+  end subroutine indsort_i8
+
+
+!  Index sort for 4-byte integer list
+
+  subroutine indsort_i4(iarr,list,n,nppm)
+    implicit none
+
+    integer, intent(in) :: n,nppm
+
+    integer*4, dimension(nppm), intent(in) :: iarr
+    integer, dimension(nppm), intent(inout) :: list
+    integer :: i, indxt, ir, l, j
+    integer*4 :: q
+
+    list(1:n) =  (/ (i,i=1,n) /)  
+
+    if(n==1) return
+    l= n/2 + 1
+    ir = n
+
+    do
+       if (l>1) then
+          l=l-1
+          indxt = list(l)
+          q = iarr(indxt)
+       else
+          indxt = list(ir)
+          q = iarr(indxt)
+          list(ir) = list(1)
+          ir = ir - 1
+          if (ir == 1) then
+             list(1) = indxt
+             return
+          endif
+       endif
+
+       i = l
+       j = l+l
+       do while (j <= ir)
+          if (j < ir) then
+             if (iarr(list(j)) < iarr(list(j+1)) ) j=j+1
+          endif
+          if (q < iarr(list(j)) ) then
+             list(i) = list(j)
+             i=j
+             j=j+j
+          else
+             j = ir+1
+          endif
+       end do
+       list(i) = indxt
+    end do
+
+  end subroutine indsort_i4
+
+
 
   subroutine swap_ab(p,q)
     integer*8 :: p,q, dum

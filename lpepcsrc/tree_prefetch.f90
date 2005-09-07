@@ -25,8 +25,7 @@ subroutine tree_prefetch(itime)
 
   integer*8, dimension(8) :: sub_key, key_child, child_sub, child_key, next_child, siblings
 
-  integer, dimension(0:num_pe-1) :: ntoship, &              ! # keys needed
-       nrequested, &           ! # keys requested from elsewhere
+  integer, dimension(0:num_pe-1) :: &
        nremove, &              ! # keys deleted from request list
        nadd, &                 ! # new ones added
        nnofetch, &             ! # keys to delete from fetch list

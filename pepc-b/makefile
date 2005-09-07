@@ -154,7 +154,7 @@ pepcb:	$(appmods) $(appobjs) lpepc
 
 # Update PEPC library and headers
 lpepc:  
-	cd ../lpepcsrc; rm *.mod treevars.o utils.o; make lpepc; cd ../pepc-b
+	cd ../lpepcsrc; rm *.mod treevars.o utils.o tree_utils.o; make lpepc; cd ../pepc-b
 	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.o $(PREFIX)/pepc-b/treevars.o
 	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-b/treevars.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.o $(PREFIX)/pepc-b/utils.o

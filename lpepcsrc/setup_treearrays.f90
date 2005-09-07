@@ -47,7 +47,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   npartm = npart 
   nppm = np_mult*1.9*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  nshortm = 400    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nshortm = 500    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
@@ -73,9 +73,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 !   size_tree=max(maxaddress+1,2*npsize)
 !   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
 !    size_fetch = 25*size_tree/num_pe
-    size_fetch = 1.5*fetch_mult*nintmax
+    size_fetch = fetch_mult*6*nintmax/log(1.*num_pe)
 !   size_fetch=200
-   nbranch_max = maxaddress/5
+   nbranch_max = maxaddress/10
    if (num_pe==1) size_fetch=size_tree
 !  maxaddress = 512
   hashconst = 2**nbaddr-1
@@ -83,6 +83,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   if (me==0) then
     write(*,*) 'size_tree= ',size_tree
     write(*,*) 'max address = ',maxaddress
+    write(*,*) 'max branches = ',nbranch_max
     write(*,*) 'size_fetch= ',size_fetch
     write(*,*) 'np_mult= ',np_mult
     write(*,*) 'fetch_mult= ',fetch_mult
@@ -97,7 +98,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
                       + size_fetch * (8*num_pe) & ! ship_keys
                       + nbranch_max * (8 + 4 + 8)  ! branches
   mem_multipoles = maxaddress * (8+2*4 + 23*8 + 8) 
-  mem_prefetch = size_fetch*(4*8*num_pe + 5*8) + num_pe*4 *11 + size_fetch*(8+4)
+  mem_prefetch = size_fetch*(4*8*num_pe + 5*8) + num_pe*4 *11 + size_fetch*(8+4) + maxaddress*8*2*2
   mem_tot = mem_parts+mem_tree+mem_prefetch+mem_multipoles+mem_lists
 
   if (me==0) then
@@ -161,7 +162,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
        jx(-maxtwig:maxleaf), jy(-maxtwig:maxleaf), jz(-maxtwig:maxleaf), &      ! current
        magmx(-maxtwig:maxleaf), magmy(-maxtwig:maxleaf), magmz(-maxtwig:maxleaf) ) ! magnetic moment 
 
-  allocate ( pack_child(maxaddress), get_child(maxaddress) )    ! Multipole shipping buffers
+  allocate ( pack_child(2*maxaddress), get_child(2*maxaddress) )    ! Multipole shipping buffers
 
  
 

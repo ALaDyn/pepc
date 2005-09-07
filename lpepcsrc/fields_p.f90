@@ -223,7 +223,9 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
 
-     call tree_walk(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+!     call tree_walk(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+
+     call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
 
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps

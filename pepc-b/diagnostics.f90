@@ -69,47 +69,51 @@ subroutine diagnostics
      if (vis_on)  call vis_fields
   endif
 
-  if (debug_level.ge.2) then
+!  if (debug_level.ge.2) then
      max_local_f =  maxval(nfetch_total)
      sum_local_f =  sum(nfetch_total)  
      call MPI_ALLREDUCE(max_local_f, max_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
      call MPI_ALLREDUCE(sum_local_f, max_sum_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
 ! max_reqs, max_fetches should be equal
-  endif
+!  endif
 
   if (my_rank.eq.debug_rank .and. debug_level.ge.2) then
 
      do ifile = 6,15,9
         write(ifile,'(/a,i4)') 'Tree stats for CPU ',debug_rank
-        write(ifile,'(a50,2i8,a3,i8,a1)') 'new npp, npart, (max): ',npp,npart,'(',nppm,')'
+        write(ifile,'(a50,2i8,a3,i8)') 'new npp, npart, (max): ',npp,npart,'/',nppm
         write(ifile,'(a50,3i8)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
         write(ifile,'(a50,3i8)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
         write(ifile,'(a50,3i8,f12.1,a6,i8)') 'final # leaves, twigs, keys, (max): ',nleaf,ntwig,nleaf+ntwig, &
              (nleaf+ntwig)/(.01*maxaddress),' % of ',maxaddress
-        write(ifile,'(a50,2i8,a3,i8,a1)') 'local, global # branches, (max): ',nbranch,nbranch_sum,'(',nbranch_max,')'
-        write (ifile,'(a50,i8,a3,i8)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
+        write(ifile,'(a50,2i8,a3,i7)') 'local, global # branches, (max): ',nbranch,nbranch_sum,'/',nbranch_max
+        write (ifile,'(a50,i8,a3,i7)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
 
-        write (ifile,'(a50,i8)') 'Max # multipole ships/cpu/iteration ',max_fetches
+        write (ifile,'(a50,i8)') 'Max # multipole ships/cpu/walk ',max_fetches-max_prefetches
         write (ifile,'(a50,i8)') 'Max # multipole ships/cpu/prefetch ',max_prefetches
-        write (ifile,'(a50,i8)') 'Array limit ',size_fetch
+        write (ifile,'(a50,i8,a3,i7)') 'Max # multipole ships/cpu/iteration / limit',max_fetches,'/',size_fetch
         write (ifile,'(a50,2i8)') 'Total multipole ships/prefetch, global max ',sum_local_f,max_sum_fetches
-        write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
-        write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
+!        write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
+!        write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
 
      end do
   endif
 
 ! Array bound check
-  if (nleaf+ntwig > .9*maxaddress) then
-     write (6,'(/a,i4)') '*** WARNING:  hash table >90% full on CPU ',my_rank 
+
+  if (nleaf+ntwig > .95*maxaddress) then
+     write (6,'(a,i4)') '*** WARNING:  hash table >95% full on CPU ',my_rank 
+     call cleanup
   endif
-  if (max_local_f > .9*size_fetch) then
-     write (6,'(/a,i4)') '*** WARNING:  # fetches >90% max on CPU ',my_rank 
+  if (max_local_f > .95*size_fetch) then
+     write (6,'(a,i4,a1,i8,a3,i8)') '*** WARNING:  # fetches >95% max on CPU ',my_rank,':',max_local_f,'/',size_fetch 
+     call cleanup
   endif
   if (npp > nppm) then
-     write (6,'(/a,i4)') '*** WARNING:  particle arrays full on CPU ',my_rank 
-     write (6,'(/a,i4)') '*** WARNING:  npp, nppm:',npp, nppm 
+     write (6,'(a,i4)') '*** WARNING:  particle arrays full on CPU ',my_rank 
+     write (6,'(a,i4)') '*** WARNING:  npp, nppm:',npp, nppm 
+     call cleanup
   endif
 end subroutine diagnostics
 

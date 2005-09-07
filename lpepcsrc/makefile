@@ -89,9 +89,9 @@ FC = /opt/ibmcmp/xlf/9.1/bin/blrts_xlf90
 #  (SIMDization requires at least -O3)
 # use -qlist -qsource with 440d and look for Parallel ASM instructions.
 #
-QTUNE = -qarch=440d -qtune=440 
+QTUNE = -O3 -qarch=440d -qtune=440 
 CFLAGS= -O3 -g -I$(BGLSYS)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
-FFLAGS= -O3 $(FFLAGS1) -I$(BGLSYS)/include -L$(BGLSYS)/lib  $(QTUNE)
+FFLAGS= $(FFLAGS1) -I$(BGLSYS)/include -L$(BGLSYS)/lib ## $(QTUNE)
 DBFLAGS= -g -qfullpath
 #
 LIBS_MPI = -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
@@ -109,7 +109,7 @@ LIBSF_MPI = -lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
 PEPCMOD.f90 =  treevars.f90 utils.f90 tree_utils.f90
 PEPCSRC.f90 =  tree_domains.f90 setup_treearrays.f90 \
 		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
-		tree_walk.f90	tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \
+		tree_aswalk.f90 tree_cowalk.f90 tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \
 	        tree_update.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 	        diagnose_tree.f90 check_table.f90 sum_lennardjones.f90 sum_bond.f90 \

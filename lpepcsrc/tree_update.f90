@@ -20,11 +20,7 @@ subroutine tree_update(itime)
   integer, intent(in) :: itime
   integer*8, dimension(8) :: sub_key, key_child, child_sub, child_key, next_child, siblings
   
-  integer, dimension(0:num_pe-1) :: ntoship, &              ! # keys needed
-       nrequested, &           ! # keys requested from elsewhere
-       nremove, &              ! # keys deleted from request list
-       nadd, &                 ! # new ones added
-       nnofetch, &             ! # keys to delete from fetch list
+  integer, dimension(0:num_pe-1) ::  & 
        sstrides, &              ! fence posts for remove lists
        rstrides, &              ! fence posts for remove lists
        istart, ic_start, &     ! # fenceposts
