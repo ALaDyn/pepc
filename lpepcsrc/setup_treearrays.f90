@@ -95,10 +95,10 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   mem_tree =  maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
                       + num_pe * (4+4+4+4)  & ! request stuff
                       + maxaddress * (3*8) & ! keys
-                      + size_fetch * (8*num_pe) & ! ship_keys
+                      + size_fetch * 2*(22*8+2*4) & ! get_child, pack_child buffers
                       + nbranch_max * (8 + 4 + 8)  ! branches
   mem_multipoles = maxaddress * (8+2*4 + 23*8 + 8) 
-  mem_prefetch = size_fetch*(4*8*num_pe + 5*8) + num_pe*4 *11 + size_fetch*(8+4) + maxaddress*8*2*2
+  mem_prefetch = size_fetch*(8 + 4) + num_pe*4 *11 + maxaddress*8*2*2
   mem_tot = mem_parts+mem_tree+mem_prefetch+mem_multipoles+mem_lists
 
   if (me==0) then
@@ -130,8 +130,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
        nbranches(num_pe+2), igap(num_pe+3), &
        treekey(maxaddress), branch_key(nbranch_max), branch_owner(nbranch_max), &
        pebranch(nbranch_max), leaf_key(maxaddress), twig_key(maxaddress), &
-       requested_keys(size_fetch, 0:num_pe-1), fetched_keys(size_fetch, 0:num_pe-1), &
-       ship_keys(size_fetch, 0:num_pe-1), nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
+       fetched_owner(size_fetch), fetched_keys(size_fetch), requested_keys(size_fetch), &
+       nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
 
 
 

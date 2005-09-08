@@ -17,7 +17,7 @@ subroutine diagnostics
 
   implicit none
   integer :: i,lvisit_active, ifile, ierr
-  integer :: max_fetches, max_reqs, max_sum_fetches, max_local_f, max_local_r, sum_local_f
+  integer :: max_fetches, max_reqs, max_sum_fetches, max_sum_ships,max_local_f, max_local_r, sum_local_f
 
   ! Interface to VISIT (Online visualisation)
 
@@ -70,10 +70,10 @@ subroutine diagnostics
   endif
 
 !  if (debug_level.ge.2) then
-     max_local_f =  maxval(nfetch_total)
      sum_local_f =  sum(nfetch_total)  
-     call MPI_ALLREDUCE(max_local_f, max_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
-     call MPI_ALLREDUCE(sum_local_f, max_sum_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+     call MPI_ALLREDUCE(sum_fetches, max_sum_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+     call MPI_ALLREDUCE(sum_ships, max_sum_ships, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+     call MPI_ALLREDUCE(sum_local_f, max_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
 ! max_reqs, max_fetches should be equal
 !  endif
 
@@ -90,12 +90,13 @@ subroutine diagnostics
         write (ifile,'(a50,i8,a3,i7)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
 
-        write (ifile,'(a50,i8)') 'Max # multipole ships/cpu/walk ',max_fetches-max_prefetches
-        write (ifile,'(a50,i8)') 'Max # multipole ships/cpu/prefetch ',max_prefetches
-        write (ifile,'(a50,i8,a3,i7)') 'Max # multipole ships/cpu/iteration / limit',max_fetches,'/',size_fetch
-        write (ifile,'(a50,2i8)') 'Total multipole ships/prefetch, global max ',sum_local_f,max_sum_fetches
-!        write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
-!        write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
+        write (ifile,'(a50,i8)') 'Max # multipole fetches/cpu/walk ',max_fetches-max_prefetches
+        write (ifile,'(a50,i8)') 'Max # multipole prefetches/cpu/prefetch ',max_prefetches
+        write (ifile,'(a50,2i8)') 'Local #  multipole fetches & ships/iteration ',sum_fetches,sum_ships
+        write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
+        write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
+        write (ifile,'(a50,i8,a3,i7)') 'Max # multipole fetches/cpu/iteration / limit',max_sum_fetches,'/',size_fetch
+        write (ifile,'(a50,i8,a3,i7)') 'Max # multipole ships/cpu/iteration / limit',max_sum_ships,'/',size_fetch
 
      end do
   endif
@@ -106,10 +107,10 @@ subroutine diagnostics
      write (6,'(a,i4)') '*** WARNING:  hash table >95% full on CPU ',my_rank 
      call cleanup
   endif
-  if (max_local_f > .95*size_fetch) then
-     write (6,'(a,i4,a1,i8,a3,i8)') '*** WARNING:  # fetches >95% max on CPU ',my_rank,':',max_local_f,'/',size_fetch 
-     call cleanup
-  endif
+!  if (max_local_f > .95*size_fetch) then
+!     write (6,'(a,i4,a1,i8,a3,i8)') '*** WARNING:  # fetches >95% max on CPU ',my_rank,':',max_local_f,'/',size_fetch 
+!     call cleanup
+!  endif
   if (npp > nppm) then
      write (6,'(a,i4)') '*** WARNING:  particle arrays full on CPU ',my_rank 
      write (6,'(a,i4)') '*** WARNING:  npp, nppm:',npp, nppm 

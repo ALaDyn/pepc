@@ -73,6 +73,7 @@ module treevars
      integer   :: byte    ! byte code
      integer   :: leaves  ! # leaves contained
      integer*8 :: next    ! next key on walk
+!     integer :: owner    ! owner where multipole resides
      real :: q    	! net charge sum
      real :: absq  	!  absolute charge sum
      real :: xcoc  	! centre of charge
@@ -107,9 +108,8 @@ module treevars
   !  tree variables
 
   integer*8, allocatable :: &
-                                requested_keys(:,:), &  ! Local multipole nodes required elsewhere
-                                fetched_keys(:,:), &  ! Remote nodes fetched during tree walk
-                                ship_keys(:,:), &  ! Remote nodes fetched during tree walk
+                                requested_keys(:), &  ! Remote nodes requested during tree walk/prefetch
+                                fetched_keys(:), &  ! Remote nodes fetched during tree walk/prefetch
                                 treekey(:), &       ! keys of all twig and leaf nodes
                                 branch_key(:), &    ! keys of branch nodes covering all domains
                                 pebranch(:), &	    ! keys of branch nodes covering local domain
@@ -123,7 +123,7 @@ module treevars
                                 all_addr(:), &  ! List of all possible #table addresses
                                 free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
                                 point_free(:), &   ! Pointer to free address index
-
+				fetched_owner(:), & ! Owners of nonlocal keys fetched
                                 nreqs_total(:), &    ! total # nodes requested from local PE during tree walk
                                 nfetch_total(:)   ! total # non-local nodes fetched during tree walk 
 
@@ -168,8 +168,9 @@ module treevars
              size_tree, &      ! array space needed for local tree
              size_fetch, &      ! array space needed for fetch/request arrays 
              maxtraverse, &      ! max # traversals per iteration 
-             maxships, &      ! max # multipole ships per traversal 
-             sumships, &      ! total # multipole ships per iteration in tree_walk 
+             maxships, &       ! max # multipole ships per traversal 
+             sum_ships, &      ! total # multipole ships per iteration  
+             sum_fetches, &    ! total # key fetches  per iteration  
              max_prefetches, &      ! total # multipole ships per prefetch 
              nbranch_max, &    ! array space needed for branches
              free_lo, &        ! min address allowed for resolving collisions

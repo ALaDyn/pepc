@@ -369,7 +369,7 @@ contains
 
     integer, intent(in) :: nppm,np,nprocs,iproc
     integer, intent(out) :: npnew
-    integer, parameter :: binmult=500000   !TODO: need to reduce size of f() arrays
+    integer, parameter :: binmult=2000000   !TODO: need to reduce size of f() arrays
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    w1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
@@ -766,10 +766,10 @@ contains
 
     integer, intent(in) :: n,nppm
 
-    integer*4, dimension(nppm), intent(in) :: iarr
+    integer, dimension(nppm), intent(in) :: iarr
     integer, dimension(nppm), intent(inout) :: list
     integer :: i, indxt, ir, l, j
-    integer*4 :: q
+    integer :: q
 
     list(1:n) =  (/ (i,i=1,n) /)  
 

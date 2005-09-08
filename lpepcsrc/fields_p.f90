@@ -67,12 +67,12 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   !  domain_debug = .false.
   !  branch_debug=.false.
   !  prefetch_debug=.false.
-  !  walk_debug=.false.
+  !  walk_debug=.true.
   !  walk_summary=.true.
   !  dump_tree=.true.
   !  npp = np_local  ! assumed lists matched for now
 
-  if (mac /= 2) ifreeze=1
+  if (mac /= 3) ifreeze=1
 
   loadbal: select case(balance)
   case(1)
@@ -123,7 +123,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
 
   call cputime(tp1)
-  if (mac==2) then
+  if (mac==3) then
      if (mod(itime-1,ifreeze) /= 0) then
         ! freeze mode - re-fetch nonlocal multipole info
         !POMP$ INST BEGIN(update)
@@ -138,13 +138,13 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
      endif
 
-  else if (mac==1 .and. num_pe>1) then
+  else if (mac==2 .and. num_pe>1) then
      !POMP$ INST BEGIN(prefetch)
      call tree_prefetch(itime)
      !POMP$ INST END(prefetch)
 
-  else
-     ! fully asynch. mode
+  else 
+     ! fresh walk in asynch. or collective mode
      nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
      nreqs_total=0
   endif
@@ -160,8 +160,8 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   max_list_length = 0
   work_local = 0  ! total workload
   maxtraverse=0   ! max # traversals
-  maxships=0      ! max # multipole shipments/traversal
-  sumships=0      ! total # multipole shipments/iteration
+  sum_fetches=0      ! total # multipole fetches/iteration
+  sum_ships=0      ! total # multipole shipments/iteration
 
 
   !  # passes needed to process all particles
@@ -223,9 +223,13 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
 
-!     call tree_walk(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
-
-     call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+     if (mac==2 .or. mac==1) then
+   ! collective walk
+        call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+    else
+   ! asynchronous walk
+       call tree_walk(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+    endif
 
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
@@ -309,11 +313,6 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
   end do
-
-
-
-
-
 
 
   !  timestamp = itime + itime_start

@@ -73,7 +73,7 @@ subroutine setup
   start_beam = 0.4
   rho_beam = -5.
   mass_beam = 3.
-  np_beam = 64 ! initial # beam particles/ dt
+  np_beam = 0 ! initial # beam particles/ dt
 
   ! laser stuff
   sigma = 1.

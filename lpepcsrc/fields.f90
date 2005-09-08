@@ -139,8 +139,8 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   max_list_length = 0
   work_local = 0  ! total workload
   maxtraverse=0   ! max # traversals
-  maxships=0      ! max # multipole shipments/traversal
-  sumships=0      ! total # multipole shipments/iteration
+  sum_fetches=0      ! total # multipole fetches/iteration
+  sum_ships=0      ! total # multipole shipments/iteration
 
   nfetch_total=0     ! Zero key fetch counters if prefetch mode off
   nreqs_total=0

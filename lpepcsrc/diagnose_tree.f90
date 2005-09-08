@@ -35,10 +35,11 @@ subroutine diagnose_tree
 
 
   if (me==0) write (*,*) 'DIAGNOSE TREE'
+  write (ipefile,*) 'DIAGNOSE TREE'
 
   ! output hash table
 
-  write (ipefile,'(/a/8x,a/8x,a)') 'Final hash table ', &
+  write (ipefile,'(/a/8x,a/8x,a)') 'Hash table ', &
        'entry,    owner    node,            key_8     key_10        parent       next       link   # leaves  childcode  collision', &
        '----------------------------------------------------------------------------------------------- '
 

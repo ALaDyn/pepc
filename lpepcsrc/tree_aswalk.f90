@@ -55,7 +55,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
   integer*8,  dimension(npshort) :: walk_key, walk_last 
   integer*8, dimension(maxaddress)  :: request_key, ask_key, process_key
-!  integer*8, dimension(size_fetch,0:num_pe-1) ::  ship_key
+  integer*8, dimension(size_fetch,0:num_pe-1) ::  ship_keys
   integer*8, dimension(8) :: sub_key, key_child, next_child
   integer*8, dimension(nintmax,npshort) :: defer_list, walk_list
   integer*8, dimension(maxaddress) :: last_child   ! List of 'last' children fetched from remote PEs
@@ -475,8 +475,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
            end do
 
-           !  Keep record of requested child keys
-           requested_keys( nreqs_total(ipe)+1:nreqs_total(ipe)+nchild,ipe ) = key_child(1:nchild)
+           !  Keep record of # requested child keys
            nreqs_total(ipe) = nreqs_total(ipe) + nchild  ! Record cumulative total of # children requested 
 	   if (walk_debug) then
              write(ipefile,'(a,i4,i7/(o12))') 'Keys requested from: ',ipe,nchild,key_child(1:nchild) 
@@ -581,7 +580,9 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
            !  Add child key to list of fetched nodes
            nfetch_total(ipe) = nfetch_total(ipe) + 1
-           fetched_keys( nfetch_total(ipe),ipe ) = kchild
+	   sum_fetches=sum_fetches+1
+           fetched_keys( sum_fetches ) = kchild
+           fetched_owner( sum_fetches ) = ipe
 
         end do
      end do
@@ -614,8 +615,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      nchild_ship_tot = SUM(nchild_ship)
 !     call MPI_ALLREDUCE( nchild_ship_tot, max_pack, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
 !     call MPI_ALLREDUCE( nchild_ship_tot, sum_pack, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )  
-     maxships = max(maxships,nplace_max)  ! Max # shipments/traversal/cpu
-     sumships = sumships + nchild_ship_tot ! Total # shipments/iteration
+!     sum_fetches = sum_fetches + nplace_max  ! Total # fetches/iteration
+     sum_ships = sum_ships + nchild_ship_tot ! Total # shipments/iteration
 
      if (walk_summary ) then
         write (ipefile,'(/a,i8,a2)') 'LPEPC | Summary for traversal # ',ntraversals,' :'
@@ -623,8 +624,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
         call MPI_ALLREDUCE( nplace_max, max_nplace, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
         write (ipefile,'(a40,i8,a7,i8,a12,i8)') ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass,' previous ave: ',sum_inner_old
         write (ipefile,'(a40,i8,a7,i8,a12,i8)') ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops,' previous: ',sum_nhops_old
-        write (ipefile,*) ' # local children shipped:     ',nchild_ship,', traversal sum:',max_pack
-        write (ipefile,*) ' # non-local children fetched: ',nplace,', traversal sum:',max_nplace
+        write (ipefile,*) ' # local children shipped:     ',nchild_ship,', traversal sum:',nchild_ship_tot
+        write (ipefile,*) ' # non-local children fetched: ',nplace,', traversal sum:',nplace_max,' total fetches ',sum_fetches
         write (ipefile,*) ' cumulative # requested keys:  ',nreqs_total
         write (ipefile,*) ' cumulative # fetched keys:    ',nfetch_total
 

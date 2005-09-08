@@ -20,8 +20,9 @@ subroutine tree_prefetch(itime)
   integer, intent(in) :: itime
   ! Key arrays (64-bit)
 
-  integer*8, dimension(size_fetch,0:num_pe-1) :: remove_keys, nofetch_keys ! List of deleted keys
+  integer*8, dimension(size_fetch) :: sort_key, remove_keys, nofetch_keys ! List of deleted keys
   integer*8, dimension(size_fetch) :: req_parent, req_compress, fetch_parent, fetch_comp, absent   ! work arrays
+  integer, dimension(size_fetch) :: fetch_owner, sort_owner, indx   ! work arrays
 
   integer*8, dimension(8) :: sub_key, key_child, child_sub, child_key, next_child, siblings
 
@@ -49,7 +50,7 @@ subroutine tree_prefetch(itime)
   integer :: cchild, nchild, node_addr, addr_parent, child_byte
   integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops, nreqs_new, nreqs_old, nfetch_new         ! loop counters
   integer :: iofile,pe_1
-  integer :: size_remove, nreq_max, nfetch_max,  timestamp, send_prop_count, recv_count, nnot_local
+  integer :: size_remove, sum_reqs, nreq_max, nfetch_max,  timestamp, send_prop_count, recv_count, nnot_local
   character*1 :: ctick
   character(30) :: cfile, ccol1, ccol2, ccol0
   integer, save :: sumfetches
@@ -63,7 +64,7 @@ subroutine tree_prefetch(itime)
 
   iofile = ipefile
 !  iofile = 6
-! prefetch_debug=.true.
+  if (me==255) prefetch_debug=.true.
   !
   if (prefetch_debug) write(iofile,'(a,i6)') 'TREE PREFETCH for timestep ',itime
   if (me.eq.0 .and. walk_summary) write(*,'(a,i6)') 'LPEPC | TREE PREFETCH for timestep ',itime
@@ -76,10 +77,18 @@ subroutine tree_prefetch(itime)
   !   Add absent parents to fetched-key lists for re-copy
   ! -------------------------------------------------------------------------
 
-  do ipe = 0,num_pe-1
-     if (prefetch_debug) write(iofile,*) 'PASS 1: Fetches from PE ',ipe
-     npar = nfetch_total(ipe)
-     fetch_comp(1:npar) = fetched_keys(1:npar,ipe)  ! Work array
+      ! Sort complete prefetch list according to owner
+      if (sum_fetches>0) call indexsort(fetched_owner, indx, sum_fetches, maxaddress)
+
+     do i=1,sum_fetches
+         sort_key(i)=fetched_keys(indx(i))
+         sort_owner(i)=fetched_owner(indx(i))
+     end do
+
+  do ipe=0,num_pe-1
+     if (prefetch_debug) write(iofile,*) 'PASS 1: Fetches for PE ',ipe
+     npar = nfetch_total(ipe) 
+     fetch_comp(1:npar) = fetched_keys(1:npar)  ! Work array - owner order not important here
      nfetch_new = npar  ! New list length
 
      do while (npar>0)  ! Loop recursively back up tree until all absent ancestors identified
@@ -108,18 +117,17 @@ subroutine tree_prefetch(itime)
         fetch_comp(1:nabsent) = absent(1:nabsent) ! buffer for next level up
 
         npar = nabsent
-        fetched_keys(nfetch_new+1:nfetch_new+nabsent,ipe) = absent(1:nabsent)  ! Add absent keys to list
+        fetched_keys(nfetch_new+1:nfetch_new+nabsent) = absent(1:nabsent)  ! Add absent keys to list
         nfetch_new = nfetch_new + nabsent
 
      end do
 
-     call sort(fetched_keys(1:nfetch_new,ipe))   ! Sort augmented list
-     fetched_keys(nfetch_new+1,ipe) = 0 ! dummy at end
-     call unique(fetched_keys(1:nfetch_new,ipe),nfetch_new) ! Remove duplicates
+     call sort(fetched_keys(1:nfetch_new))   ! Sort augmented list
+     fetched_keys(nfetch_new+1) = 0 ! dummy at end
+     call unique(fetched_keys(1:nfetch_new),nfetch_new) ! Remove duplicates
 
-     if (prefetch_debug) write(iofile,'(a,i6/(o15))') 'New fetch list: ',nfetch_new,(fetched_keys(i,ipe),i=1,nfetch_new)
+     if (prefetch_debug) write(iofile,'(a,i6/(o15))') 'New fetch list: ',nfetch_new,(fetched_keys(i),i=1,nfetch_new)
      nfetch_total(ipe) = nfetch_new   ! New # keys to fetch
-
   end do
 
   !  Get fence posts for key swap
@@ -130,10 +138,11 @@ subroutine tree_prefetch(itime)
 !  call MPI_BARRIER( MPI_COMM_WORLD, ierr)
   !  Send new fetch-list totals to destination PEs
   call MPI_ALLTOALL( nfetch_total, 1, MPI_INTEGER, nreqs_total, 1, MPI_INTEGER, MPI_COMM_WORLD,ierr)
+  sum_reqs = SUM(nreqs_total)
 
   !  Do key-swap to update request lists
-  call MPI_ALLTOALLV( fetched_keys,   nfetch_total, sstrides, MPI_INTEGER8, &
-       requested_keys, nreqs_total, rstrides, MPI_INTEGER8, &
+  call MPI_ALLTOALLV( fetched_keys,   nfetch_new, sstrides, MPI_INTEGER8, &
+       requested_keys, sum_reqs, rstrides, MPI_INTEGER8, &
        MPI_COMM_WORLD, ierr)
 
 
@@ -149,18 +158,18 @@ subroutine tree_prefetch(itime)
      nreqs_new=0
      if (prefetch_debug) write(iofile,*) 'PASS 2: Requests from PE ',ipe
      do i=1,nreqs_total(ipe)
-        key_present(i) = key_local(requested_keys(i,ipe))
+        key_present(i) = key_local(requested_keys(i))
         if (key_present(i)) then
            nreqs_new=nreqs_new+1
-           req_compress(nreqs_new)=requested_keys(i,ipe)
+           req_compress(nreqs_new)=requested_keys(i)
            ctick = ''
         else
            ! tag key as non existent and add to remove list
            nremove(ipe) = nremove(ipe) + 1
-           remove_keys(nremove(ipe),ipe) = requested_keys(i,ipe)
+           remove_keys(nremove(ipe)) = requested_keys(i)
            ctick = 'N'
         endif
-        if (prefetch_debug)  write(iofile,'(o15,2x,a1)') requested_keys(i,ipe),ctick
+        if (prefetch_debug)  write(iofile,'(o15,2x,a1)') requested_keys(i),ctick
      end do
 
      ! remove non-existent keys
@@ -171,7 +180,7 @@ subroutine tree_prefetch(itime)
      nreqs_total(ipe) = nreqs_new
      nreqs_old = nreqs_new
 
-     if (prefetch_summary) write(iofile,'(a,i8/(o15))') 'Keys removed: ', nremove(ipe),(remove_keys(i,ipe),i=1,nremove(ipe))
+     if (prefetch_summary) write(iofile,'(a,i8/(o15))') 'Keys removed: ', nremove(ipe),(remove_keys(i),i=1,nremove(ipe))
 
      ! TODO: Check that sibling sets complete so that parent's 'HERE' flag can be set in childcode.
      ! Need this so that tree_walk MAC options still function as-is
@@ -200,7 +209,7 @@ subroutine tree_prefetch(itime)
         cchild = htable( key2addr_db( req_parent(i), 'PREFETCH: pass 2') )%childcode   !  Children byte-code
         nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
         sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code           
-        requested_keys(nreqs_new+1:nreqs_new+nchild,ipe) = IOR( ishft(req_parent(i),3 ), sub_key(1:nchild) ) ! New siblings of original requested key
+        requested_keys(nreqs_new+1:nreqs_new+nchild) = IOR( ishft(req_parent(i),3 ), sub_key(1:nchild) ) ! New siblings of original requested key
         nreqs_new = nreqs_new + nchild
      end do
      nreqs_total(ipe) = nreqs_new
@@ -211,9 +220,11 @@ subroutine tree_prefetch(itime)
   !  Send new request-list totals to requesting PEs
   call MPI_ALLTOALL( nreqs_total, 1, MPI_INTEGER, nfetch_total, 1, MPI_INTEGER, MPI_COMM_WORLD,ierr)
 
+  sum_reqs = SUM(nreqs_total)
+  sum_fetches = SUM(nfetch_total)
 
-  call MPI_ALLTOALLV( requested_keys,   nreqs_total, sstrides, MPI_INTEGER8, &
-       fetched_keys, nfetch_total, rstrides, MPI_INTEGER8, &
+  call MPI_ALLTOALLV( requested_keys, sum_reqs,   sstrides, MPI_INTEGER8, &
+       fetched_keys, sum_fetches, rstrides, MPI_INTEGER8, &
        MPI_COMM_WORLD, ierr)
 
   ! -------------------------------------------------------------------------
@@ -227,12 +238,12 @@ subroutine tree_prefetch(itime)
      if (ipe /= me) then
         if (prefetch_debug) write(iofile,*) 'PASS 3: Fetches from PE ',ipe
         npar = nfetch_total(ipe)
-        fetch_comp(1:npar) = fetched_keys(1:npar,ipe)  ! Work array
+        fetch_comp(1:npar) = fetched_keys(1:npar)  ! Work array
         key_present(1:npar) = (/ (key_local( fetch_comp(i) ),i=1,npar) /) ! Check whether node already present locally
         nnot_local = count(mask = .not.key_present(1:npar))     ! Count absentees
         if (prefetch_debug) write(iofile,'(a,i6/(o15,l3))') 'Fetch list  Present ',npar,(fetch_comp(i),key_present(i),i=1,npar)
         nfetch_new = nnot_local
-        fetched_keys(1:nfetch_new,ipe) = &
+        fetched_keys(1:nfetch_new) = &
              pack( fetch_comp(1:npar), mask = .not.key_present(1:npar) ) ! Make list of absent keys
         nfetch_total(ipe) = nfetch_new   ! New # keys to fetch
      endif
@@ -242,9 +253,11 @@ subroutine tree_prefetch(itime)
   !  Send new fetch-list totals to destination PEs
   call MPI_ALLTOALL( nfetch_total, 1, MPI_INTEGER, nreqs_total, 1, MPI_INTEGER, MPI_COMM_WORLD,ierr)
 
+  sum_reqs = SUM(nreqs_total)
+  sum_fetches = SUM(nfetch_total)
   !  Do key-swap to update request lists
-  call MPI_ALLTOALLV( fetched_keys,   nfetch_total, sstrides, MPI_INTEGER8, &
-       requested_keys, nreqs_total, rstrides, MPI_INTEGER8, &
+  call MPI_ALLTOALLV( fetched_keys,   sum_fetches, sstrides, MPI_INTEGER8, &
+       requested_keys, sum_reqs, rstrides, MPI_INTEGER8, &
        MPI_COMM_WORLD, ierr)
 
 
@@ -253,8 +266,8 @@ subroutine tree_prefetch(itime)
      nfetch_max=maxval(nfetch_total)
      ! Insert dummy values
      do ipe=0,num_pe-1
-        requested_keys(nreqs_total(ipe)+1:nreq_max,ipe) = 0
-        fetched_keys(nfetch_total(ipe)+1:nfetch_max,ipe) = 0
+        requested_keys(nreqs_total(ipe)+1:nreq_max) = 0
+        fetched_keys(nfetch_total(ipe)+1:nfetch_max) = 0
      end do
 
      ! formatting for fetch/request lists
@@ -276,16 +289,15 @@ subroutine tree_prefetch(itime)
   endif
   if (prefetch_debug) then
      do i=1,nreq_max
-!        write(iofile,ccol2) (requested_keys(i,ipe),ipe=pe_1,num_pe-1)
-        write(iofile,*) (requested_keys(i,ipe),ipe=pe_1,num_pe-1)
+        write(iofile,*) 'Keys requested at timestep ',timestamp
+        write(iofile,*) (requested_keys(i))
      end do
 
 !     write(iofile,ccol1) 'Keys fetched at timestep ',timestamp,nfetch_total(pe_1:num_pe-1), &
      write(iofile,*) 'Keys fetched at timestep ',timestamp,nfetch_total(pe_1:num_pe-1), &
           '------------------------------------------------------------'
      do i=1,nfetch_max
-!        write(iofile,ccol2) (fetched_keys(i,ipe),ipe=pe_1,num_pe-1)
-        write(iofile,*) (fetched_keys(i,ipe),ipe=pe_1,num_pe-1)
+        write(iofile,*) (fetched_owner(i),fetched_keys(i))
      end do
   endif
 
@@ -300,7 +312,7 @@ subroutine tree_prefetch(itime)
      !     sstrides(ipe) = send_prop_count  ! prestore fencepost
      do i=1,nreqs_total(ipe)
         send_prop_count = send_prop_count + 1
-        ship_key = requested_keys(i,ipe)
+        ship_key = requested_keys(i)
         ship_address = key2addr_db(ship_key,'PREFETCH: preship')  ! # address
         ship_node = htable(ship_address)%node
         ship_byte = IAND( htable( ship_address )%childcode,255 ) ! Catch lowest 8 bits of childbyte - filter off requested and here flags 
@@ -351,6 +363,18 @@ subroutine tree_prefetch(itime)
   rstrides = (/ 0, nfetch_total(0), ( SUM( nfetch_total(0:i-1) ),i=2,num_pe-1 ) /)
 
   ! write (iofile,'((2i8))') (sstrides(i), rstrides(i), i=0,num_pe-1) 
+  if (prefetch_debug) then
+     pe_1=245
+     send_prop_count=1
+     write (*,*) 'Shipping buffer from ',255
+     do ipe=pe_1,num_pe-1
+        write(*,*) 'To ',ipe
+        do i=1,nreqs_total(ipe)
+           write (*,'(2i5,o25,i10)') i,send_prop_count,pack_child(send_prop_count)%key,pack_child(send_prop_count)%leaves
+           send_prop_count=send_prop_count+1
+        end do
+     end do
+  endif
 
   ! Ship multipole data
   call MPI_BARRIER( MPI_COMM_WORLD, ierr )
@@ -390,19 +414,24 @@ subroutine tree_prefetch(itime)
            first_child( nodchild ) = IOR( ishft( recv_key,3), sub_key(1) )              ! Construct key of 1st (grand)child
 
         else
-           write(iofile,'(a,o15,a,i7)') '# leaves <=0 for received child node ',recv_key,' from PE ',ipe
+	   write(*,'(a,i5,a,i5)') 'LPEPC | PREFETCH on ',me,' Bad twig received from PE ',ipe
+           write(*,'(a,o25)') '# leaves <=0 for received child node ',recv_key
+           write(*,'(a,2i10)') 'recv count, i ',recv_count,i
+           write(*,'(a,i10)') '# leaves ',recv_leaves
+           write(*,*) get_child(recv_count)
+	   write(*,'(a,i5)') 'LPEPC | ... key will be ignored' 
         endif
 
-
+        if (recv_leaves>=1 .and. recv_leaves<=10*npp) then   ! insert valid keys
         ! Insert new node into local #-table
 
-        call make_hashentry( recv_key, nodchild, recv_leaves, recv_byte, ipe, hashaddr, ierr )
+         call make_hashentry( recv_key, nodchild, recv_leaves, recv_byte, ipe, hashaddr, ierr )
 
-        htable(hashaddr)%next = recv_next           ! Fill in special next-node pointer for non-local children
-        node_addr =  key2addr_db( recv_parent,'PREFETCH: MNHE ')
-      htable( node_addr )%childcode = IBSET(  htable( node_addr )%childcode, 9) ! Set children_HERE flag for parent node
+         htable(hashaddr)%next = recv_next           ! Fill in special next-node pointer for non-local children
+         node_addr =  key2addr_db( recv_parent,'PREFETCH: MNHE ')
+         htable( node_addr )%childcode = IBSET(  htable( node_addr )%childcode, 9) ! Set children_HERE flag for parent node
 
-        node_level( nodchild ) = log(1.*recv_key)/log(8.)  ! get level from keys and prestore as node property
+         node_level( nodchild ) = log(1.*recv_key)/log(8.)  ! get level from keys and prestore as node property
 
         ! Physical properties
 
@@ -429,7 +458,7 @@ subroutine tree_prefetch(itime)
         magmx( nodchild ) = get_child(recv_count)%magmx
         magmy( nodchild ) = get_child(recv_count)%magmy
         magmz( nodchild ) = get_child(recv_count)%magmz
-
+	endif
  ! Put last child onto list for post-traversal processing
         if (recv_next == -1) then
            nlast_child = nlast_child + 1

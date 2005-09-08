@@ -40,7 +40,7 @@ subroutine tree_update(itime)
   integer :: nodchild, nlast_child, newtwig, newleaf, hashaddr, nuniq, npar, nabsent
   integer :: cchild, nchild, node_addr, addr_parent, child_byte
   integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops, nreqs_new, nreqs_old, nfetch_new         ! loop counters
-  integer :: iofile
+  integer :: iofile, sum_reqs, sum_fetch
   integer :: size_remove, nreq_max, nfetch_max,  timestamp, send_prop_count, recv_count, nnot_local
   character*1 :: ctick
   character(30) :: cfile, ccol1, ccol2, ccol0
@@ -58,7 +58,7 @@ subroutine tree_update(itime)
   !
   if (prefetch_debug) write(iofile,'(/a,i6)') 'TREE NONLOCAL UPDATE for timestep ',itime
 
-
+! TODO prepare buffers as in walk: requested_keys 1D; needs sorting first
 
   ! Prepare send buffer: pack multipole info together as in tree_walk.
   send_prop_count = 0
@@ -68,7 +68,7 @@ subroutine tree_update(itime)
      !     sstrides(ipe) = send_prop_count  ! prestore fencepost
      do i=1,nreqs_total(ipe)
         send_prop_count = send_prop_count + 1
-        ship_key = requested_keys(i,ipe)
+        ship_key = requested_keys(i)
         ship_address = key2addr_db(ship_key,'UPDATE: pack1 ')  ! # address
         ship_node = htable(ship_address)%node
         ship_byte = IAND( htable( ship_address )%childcode,255 ) ! Catch lowest 8 bits of childbyte - filter off requested and here flags 
@@ -118,12 +118,15 @@ subroutine tree_update(itime)
   sstrides = (/ 0, nreqs_total(0), ( SUM( nreqs_total(0:i-1) ),i=2,num_pe-1 ) /)
   rstrides = (/ 0, nfetch_total(0), ( SUM( nfetch_total(0:i-1) ),i=2,num_pe-1 ) /)
 
+ sum_reqs=SUM(nreqs_total)
+ sum_fetch=SUM(nfetch_total)
+
   ! write (iofile,'((2i8))') (sstrides(i), rstrides(i), i=0,num_pe-1) 
 
   ! Ship multipole data
   call MPI_BARRIER( MPI_COMM_WORLD, ierr )
-  call MPI_ALLTOALLV( pack_child,   nreqs_total, sstrides, MPI_TYPE_MULTIPOLE, &
-       get_child, nfetch_total, rstrides, MPI_TYPE_MULTIPOLE, &
+  call MPI_ALLTOALLV( pack_child,   sum_reqs, sstrides, MPI_TYPE_MULTIPOLE, &
+       get_child, sum_fetch, rstrides, MPI_TYPE_MULTIPOLE, &
        MPI_COMM_WORLD, ierr)
 
   ! Make new hash entries with newly-fetched nodes
