@@ -341,7 +341,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
 !POMP$ INST BEGIN(exchange)
 
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
+ !    call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
 
 
      ! Exchange numbers of keys to be shipped and requested
@@ -605,7 +605,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
      nactive = count( mask = nwalk(1:npshort) /= 0 )     ! Count remaining 'active' particles - those still with deferred nodes to search
 
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
+!     call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
 
      ! Broadcast # remaining particles to other PEs
 
@@ -672,8 +672,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   end do
 
   sum_inner_old = sum_inner_pass
-  call MPI_ALLREDUCE( sum_nhops, sum_nhops_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
-  call MPI_ALLREDUCE( sum_inner_pass, sum_inner_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
+!  call MPI_ALLREDUCE( sum_nhops, sum_nhops_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
+!  call MPI_ALLREDUCE( sum_inner_pass, sum_inner_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
   sum_nhops_old = sum_nhops_old/num_pe
   sum_inner_old = sum_inner_old/num_pe
   maxtraverse = max(maxtraverse,ntraversals)

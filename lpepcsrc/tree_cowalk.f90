@@ -521,7 +521,6 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      ! Ship multipole data of children
 ! Problem here if nplace_sum=0 - send dummy to  self
 
-!     call MPI_BARRIER( MPI_COMM_WORLD, ierr )
      call MPI_ALLTOALLV( pack_child,   nchild_ship, sstrides, MPI_TYPE_MULTIPOLE, &
           get_child, nplace, rstrides, MPI_TYPE_MULTIPOLE, &
           MPI_COMM_WORLD, ierr)
@@ -537,7 +536,7 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      do i=1,nplace_sum
         if (i>ipost) then
            ipe=ipe+1
- !          if (ipe==me) ipe=ipe+1  ! Skip self
+!           if (ipe==me) ipe=ipe+1  ! Skip self
            ipost=ipost+nplace(ipe)
         endif
         fetch_owner(i)=ipe
