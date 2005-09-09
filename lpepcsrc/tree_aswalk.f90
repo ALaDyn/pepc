@@ -478,6 +478,10 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
            !  Keep record of # requested child keys
            nreqs_total(ipe) = nreqs_total(ipe) + nchild  ! Record cumulative total of # children requested 
+           requested_keys(sum_ships+1:sum_ships+nchild) = key_child(1:nchild)  ! Keep record of multipole ships
+           requested_owner(sum_ships+1:sum_ships+nchild) = ipe  ! where requests came from
+           sum_ships = sum_ships + nchild
+
 	   if (walk_debug) then
              write(ipefile,'(a,i4,i7/(o12))') 'Keys requested from: ',ipe,nchild,key_child(1:nchild) 
            endif	
@@ -617,7 +621,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 !     call MPI_ALLREDUCE( nchild_ship_tot, max_pack, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
 !     call MPI_ALLREDUCE( nchild_ship_tot, sum_pack, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )  
 !     sum_fetches = sum_fetches + nplace_max  ! Total # fetches/iteration
-     sum_ships = sum_ships + nchild_ship_tot ! Total # shipments/iteration
+!     sum_ships = sum_ships + nchild_ship_tot ! Total # shipments/iteration
 
      if (walk_summary ) then
         write (ipefile,'(/a,i8,a2)') 'LPEPC | Summary for traversal # ',ntraversals,' :'

@@ -133,8 +133,12 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      else
         ! tree just rebuilt so check for missing nodes before re-fetching
         !POMP$ INST BEGIN(prefetch)
-        call tree_prefetch(itime)
+!        call tree_prefetch(itime)
         !POMP$ INST END(prefetch)
+        nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
+        nreqs_total=0
+        sum_fetches=0      ! total current # multipole fetches (per tree update)
+        sum_ships=0      ! total current # multipole shipments
 
      endif
 
@@ -147,6 +151,8 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      ! fresh walk in asynch. (mac=0)  or collective mode (mac=1)
      nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
      nreqs_total=0
+     sum_fetches=0      ! total current # multipole fetches (per tree update)
+     sum_ships=0      ! total current # multipole shipments
   endif
 
   call cputime(tp2)
@@ -160,8 +166,6 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   max_list_length = 0
   work_local = 0  ! total workload
   maxtraverse=0   ! max # traversals
-  sum_fetches=0      ! total # multipole fetches/iteration
-  sum_ships=0      ! total # multipole shipments/iteration
 
 
   !  # passes needed to process all particles
@@ -227,7 +231,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
    ! collective walk
         call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
     else
-   ! asynchronous walk
+   ! asynchronous walk  (0,3)
        call tree_walk(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
     endif
 

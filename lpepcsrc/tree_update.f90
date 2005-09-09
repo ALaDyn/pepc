@@ -65,7 +65,6 @@ subroutine tree_update(itime)
 ! nreqs_total(ipe) contains the # key requests
 
 
-     !POMP$ INST BEGIN(update)
 
      call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
 
@@ -85,25 +84,30 @@ subroutine tree_update(itime)
         sort_fetchowner(i)=fetched_owner(indxf(i))
      end do
 
+     ! Derive strides needed for all2all
+
+     sstrides = (/ 0, nfetch_total(0), ( SUM( nfetch_total(0:i-1) ),i=2,num_pe-1 ) /)
+     rstrides = (/ 0, nreqs_total(0), ( SUM( nreqs_total(0:i-1) ),i=2,num_pe-1 ) /)
+
      if (update_debug) then
-        write (ipefile,*) '# keys to ship: ',nreqs_total(0:num_pe-1)
+        write (ipefile,*) '# keys to ship: ',sum_ships,nreqs_total(0:num_pe-1)
         write (ipefile,*) ' ship strides: ',rstrides(0:num_pe-1)
-        write(ipefile,'(a/(i5,i20))') 'unsorted: ',(requested_owner(i),requested_keys(i),i=1,sum_ships)
-        write(ipefile,'(a/(i5,o15))') 'sorted: ',(sort_reqowner(i),work_key(i),i=1,sum_ships)
-        write (ipefile,*) ' # fetches: ',nfetch_total(0:num_pe-1)
+!        write(ipefile,'(a/(i5,i20))') 'unsorted: ',(requested_owner(i),requested_keys(i),i=1,sum_ships)
+        write(ipefile,'(a/(i5,o15))') 'sorted: ',(sort_reqowner(i),sort_reqs(i),i=1,sum_ships)
+        write (ipefile,*) ' # fetches: ',sum_fetches,nfetch_total(0:num_pe-1)
         write (ipefile,*) ' fetch strides: ',sstrides(0:num_pe-1)
         write(ipefile,'(a/(2i5,o15))') 'fetches ',(i,sort_fetchowner(i),sort_fetch(i),i=1,sum_fetches)
      endif
 
-
+!if (itime==4) call cleanup
      ! Now have complete list of requests from all PEs in rank order.
      ! -- ready for all-to-all multipole swap
 
 
-  ! Prepare send buffer: pack multipole info together as in tree_walk.
+  ! Prepare send buffer with sorted shipping list: pack multipole info together as in tree_walk.
 
   do i=1,sum_ships
-        ship_key = requested_keys(i)
+        ship_key = sort_reqs(i)
         ship_address = key2addr_db(ship_key,'UPDATE: pack1 ')  ! # address
         ship_node = htable(ship_address)%node
         ship_byte = IAND( htable( ship_address )%childcode,255 ) ! Catch lowest 8 bits of childbyte - filter off requested and here flags 
@@ -150,19 +154,15 @@ subroutine tree_update(itime)
    end do
 
 
-     ! Derive strides needed for all2all
-
-     sstrides = (/ 0, nfetch_total(0), ( SUM( nfetch_total(0:i-1) ),i=2,num_pe-1 ) /)
-     rstrides = (/ 0, nreqs_total(0), ( SUM( nreqs_total(0:i-1) ),i=2,num_pe-1 ) /)
-
   ! Ship multipole data
-  call MPI_ALLTOALLV( pack_child,   sum_ships, rstrides, MPI_TYPE_MULTIPOLE, &
-       get_child, sum_fetches, sstrides, MPI_TYPE_MULTIPOLE, &
+  call MPI_ALLTOALLV( pack_child,  nreqs_total, rstrides, MPI_TYPE_MULTIPOLE, &
+       get_child, nfetch_total, sstrides, MPI_TYPE_MULTIPOLE, &
        MPI_COMM_WORLD, ierr)
 
   ! Update hash entries with refreshed multipole data 
 
      do i=1, sum_fetches
+	ipe=sort_fetchowner(i)
         recv_key = get_child(i)%key
         recv_parent = ishft( recv_key,-3 )
         recv_byte = get_child(i)%byte
@@ -204,12 +204,10 @@ subroutine tree_update(itime)
         magmz( nodchild ) = get_child(i)%magmz
 
 
-        if (prefetch_debug) write(iofile,'(a,o15,a,i7,a,o13)') &
+        if (update_debug) write(iofile,'(a,o15,a,i7,a,o13)') &
              'Prefetch: ',recv_key,' from ',ipe,' parent key ',recv_parent
 
      end do
 
-
-    !POMP$ INST END(update)
 end subroutine tree_update
 
