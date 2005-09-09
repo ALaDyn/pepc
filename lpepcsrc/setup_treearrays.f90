@@ -47,7 +47,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   npartm = npart 
   nppm = np_mult*1.9*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  nshortm = 500    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nshortm = 400    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
@@ -70,12 +70,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
    nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
 !   nbaddr = 17   ! fixed address range
    maxaddress = np_mult*2**nbaddr
-!   size_tree=max(maxaddress+1,2*npsize)
-!   size_fetch = min(60*size_tree/num_pe,size_tree/2) 
-!    size_fetch = 25*size_tree/num_pe
-    size_fetch = fetch_mult*6*nintmax/log(1.*num_pe)
-!   size_fetch=200
-   nbranch_max = maxaddress/10
+   size_fetch = fetch_mult*max(npartm/10,size_tree)
+   nbranch_max = maxaddress/2
    if (num_pe==1) size_fetch=size_tree
 !  maxaddress = 512
   hashconst = 2**nbaddr-1
@@ -162,7 +158,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
        jx(-maxtwig:maxleaf), jy(-maxtwig:maxleaf), jz(-maxtwig:maxleaf), &      ! current
        magmx(-maxtwig:maxleaf), magmy(-maxtwig:maxleaf), magmz(-maxtwig:maxleaf) ) ! magnetic moment 
 
-  allocate ( pack_child(2*maxaddress), get_child(2*maxaddress) )    ! Multipole shipping buffers
+  allocate ( pack_child(size_fetch),get_child(size_fetch) )    ! Multipole shipping buffers
 
  
 
