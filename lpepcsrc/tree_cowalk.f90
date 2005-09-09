@@ -486,7 +486,10 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
         !  Keep record of requested child keys - exclude dummy
 	if (key_child(1)<>0) then
-         nreqs_total(ipe) = nreqs_total(ipe) + nchild  ! Cummulative total of # children shipped
+          nreqs_total(ipe) = nreqs_total(ipe) + nchild  ! Cummulative total of # children shipped
+	  requested_keys(sum_ships+1:sum_ships+nchild) = key_child(1:nchild)  ! Keep record of multipole ships
+	  requested_owner(sum_ships+1:sum_ships+nchild) = ipe  ! where requests came from
+    	  sum_ships = sum_ships + nchild
 	endif
 
         if (walk_debug) then
@@ -654,7 +657,7 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      maxactive = maxval(nactives)
 
 !     sum_fetches = sum_fetches + nplace_sum  ! Total # fetches/iteration
-     sum_ships = sum_ships + nchild_ship_sum ! Total # shipments/iteration
+!     sum_ships = sum_ships + nchild_ship_sum ! Total # shipments/iteration
 
      if (walk_summary ) then
         write (ipefile,'(/a,i8,a2)') 'LPEPC | Summary for traversal # ',ntraversals,' :'

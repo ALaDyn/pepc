@@ -130,7 +130,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
        nbranches(num_pe+2), igap(num_pe+3), &
        treekey(maxaddress), branch_key(nbranch_max), branch_owner(nbranch_max), &
        pebranch(nbranch_max), leaf_key(maxaddress), twig_key(maxaddress), &
-       fetched_owner(size_fetch), fetched_keys(size_fetch), requested_keys(size_fetch), &
+       fetched_owner(size_fetch), fetched_keys(size_fetch), requested_owner(size_fetch), requested_keys(size_fetch), &
        nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
 
 

@@ -123,7 +123,8 @@ module treevars
                                 all_addr(:), &  ! List of all possible #table addresses
                                 free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
                                 point_free(:), &   ! Pointer to free address index
-				fetched_owner(:), & ! Owners of nonlocal keys fetched
+   				fetched_owner(:), & ! Owners of nonlocal keys fetched
+   				requested_owner(:), & ! Recipients of multipole ships 
                                 nreqs_total(:), &    ! total # nodes requested from local PE during tree walk
                                 nfetch_total(:)   ! total # non-local nodes fetched during tree walk 
 

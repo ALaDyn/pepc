@@ -27,8 +27,9 @@ subroutine tree_update(itime)
        nplace,&                ! # children (new entries) to place in table
        nchild_ship       ! # children shipped to others
   integer :: ierr
-  integer*8, dimension(size_fetch) :: last_child   ! List of 'last' children fetched from remote PEs
-
+  integer*8, dimension(size_fetch) :: work_key, last_child   ! List of 'last' children fetched from remote PEs
+  integer*8, dimension(size_fetch) :: sort_reqs, sort_fetch
+  integer, dimension(size_fetch) :: indxr, indxf, sort_reqowner, sort_fetchowner
   logical, dimension(size_fetch) :: key_present, duplicate
 
   ! Key working vars
@@ -51,23 +52,57 @@ subroutine tree_update(itime)
   integer :: key2addr_db        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
-!  logical :: update_debug=.true.
+  logical :: update_debug=.true.
 
   iofile = ipefile
 !  iofile = 6
   !
-  if (prefetch_debug) write(iofile,'(/a,i6)') 'TREE NONLOCAL UPDATE for timestep ',itime
+  if (update_debug) write(iofile,'(/a,i6)') 'TREE NONLOCAL UPDATE for timestep ',itime
 
 ! TODO prepare buffers as in walk: requested_keys 1D; needs sorting first
 
-  ! Prepare send buffer: pack multipole info together as in tree_walk.
-  send_prop_count = 0
-  nlast_child = 0
+! nfetch_total(ipe) contains the # key fetches
+! nreqs_total(ipe) contains the # key requests
 
-  do ipe=0,num_pe-1
-     !     sstrides(ipe) = send_prop_count  ! prestore fencepost
-     do i=1,nreqs_total(ipe)
-        send_prop_count = send_prop_count + 1
+
+     !POMP$ INST BEGIN(update)
+
+     call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
+
+
+     ! Sort fetched and requested_keys according to owner
+
+     if (sum_ships>0) call indexsort(requested_owner, indxr, sum_ships, maxaddress)
+     if (sum_fetches>0) call indexsort(fetched_owner, indxf, sum_fetches, maxaddress)
+
+     do i=1,sum_ships
+        sort_reqs(i)=requested_keys(indxr(i))
+        sort_reqowner(i)=requested_owner(indxr(i))
+     end do
+
+     do i=1,sum_fetches
+        sort_fetch(i)=fetched_keys(indxf(i))
+        sort_fetchowner(i)=fetched_owner(indxf(i))
+     end do
+
+     if (update_debug) then
+        write (ipefile,*) '# keys to ship: ',nreqs_total(0:num_pe-1)
+        write (ipefile,*) ' ship strides: ',rstrides(0:num_pe-1)
+        write(ipefile,'(a/(i5,i20))') 'unsorted: ',(requested_owner(i),requested_keys(i),i=1,sum_ships)
+        write(ipefile,'(a/(i5,o15))') 'sorted: ',(sort_reqowner(i),work_key(i),i=1,sum_ships)
+        write (ipefile,*) ' # fetches: ',nfetch_total(0:num_pe-1)
+        write (ipefile,*) ' fetch strides: ',sstrides(0:num_pe-1)
+        write(ipefile,'(a/(2i5,o15))') 'fetches ',(i,sort_fetchowner(i),sort_fetch(i),i=1,sum_fetches)
+     endif
+
+
+     ! Now have complete list of requests from all PEs in rank order.
+     ! -- ready for all-to-all multipole swap
+
+
+  ! Prepare send buffer: pack multipole info together as in tree_walk.
+
+  do i=1,sum_ships
         ship_key = requested_keys(i)
         ship_address = key2addr_db(ship_key,'UPDATE: pack1 ')  ! # address
         ship_node = htable(ship_address)%node
@@ -88,7 +123,7 @@ subroutine tree_update(itime)
            ship_next = htable( ship_address )%next   ! Node has elder siblings
         endif
 
-        pack_child(send_prop_count) =  multipole ( ship_key, &
+        pack_child(i) =  multipole ( ship_key, &
              ship_byte, &
              ship_leaves, &
              ship_next, &
@@ -112,37 +147,27 @@ subroutine tree_update(itime)
              magmx( ship_node), &
              magmy( ship_node), &
              magmz( ship_node) )
-     end do
-  end do
+   end do
 
-  sstrides = (/ 0, nreqs_total(0), ( SUM( nreqs_total(0:i-1) ),i=2,num_pe-1 ) /)
-  rstrides = (/ 0, nfetch_total(0), ( SUM( nfetch_total(0:i-1) ),i=2,num_pe-1 ) /)
 
- sum_reqs=SUM(nreqs_total)
- sum_fetch=SUM(nfetch_total)
+     ! Derive strides needed for all2all
 
-  ! write (iofile,'((2i8))') (sstrides(i), rstrides(i), i=0,num_pe-1) 
+     sstrides = (/ 0, nfetch_total(0), ( SUM( nfetch_total(0:i-1) ),i=2,num_pe-1 ) /)
+     rstrides = (/ 0, nreqs_total(0), ( SUM( nreqs_total(0:i-1) ),i=2,num_pe-1 ) /)
 
   ! Ship multipole data
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr )
-  call MPI_ALLTOALLV( pack_child,   sum_reqs, sstrides, MPI_TYPE_MULTIPOLE, &
-       get_child, sum_fetch, rstrides, MPI_TYPE_MULTIPOLE, &
+  call MPI_ALLTOALLV( pack_child,   sum_ships, rstrides, MPI_TYPE_MULTIPOLE, &
+       get_child, sum_fetches, sstrides, MPI_TYPE_MULTIPOLE, &
        MPI_COMM_WORLD, ierr)
 
-  ! Make new hash entries with newly-fetched nodes
-  recv_count = 0
-  nlast_child = 0
-  newleaf = 0
-  newtwig = 0
+  ! Update hash entries with refreshed multipole data 
 
-  do ipe=0,num_pe-1
-     do i=1, nfetch_total(ipe)
-        recv_count=recv_count+1
-        recv_key = get_child(recv_count)%key
+     do i=1, sum_fetches
+        recv_key = get_child(i)%key
         recv_parent = ishft( recv_key,-3 )
-        recv_byte = get_child(recv_count)%byte
-        recv_leaves = get_child(recv_count)%leaves
-        recv_next = get_child(recv_count)%next
+        recv_byte = get_child(i)%byte
+        recv_leaves = get_child(i)%leaves
+        recv_next = get_child(i)%next
 
         ! Check new node exists in local #-table
 
@@ -154,41 +179,37 @@ subroutine tree_update(itime)
 
         ! Physical properties
 
-        charge( nodchild ) = get_child(recv_count)%q
-        abs_charge( nodchild ) = get_child(recv_count)%absq
-        xcoc( nodchild ) = get_child(recv_count)%xcoc
-        ycoc( nodchild ) = get_child(recv_count)%ycoc
-        zcoc( nodchild ) = get_child(recv_count)%zcoc
-        xdip( nodchild ) = get_child(recv_count)%xdip
-        ydip( nodchild ) = get_child(recv_count)%ydip
-        zdip( nodchild ) = get_child(recv_count)%zdip
+        charge( nodchild ) = get_child(i)%q
+        abs_charge( nodchild ) = get_child(i)%absq
+        xcoc( nodchild ) = get_child(i)%xcoc
+        ycoc( nodchild ) = get_child(i)%ycoc
+        zcoc( nodchild ) = get_child(i)%zcoc
+        xdip( nodchild ) = get_child(i)%xdip
+        ydip( nodchild ) = get_child(i)%ydip
+        zdip( nodchild ) = get_child(i)%zdip
 
-        xxquad( nodchild ) = get_child(recv_count)%xxquad
-        yyquad( nodchild ) = get_child(recv_count)%yyquad
-        zzquad( nodchild ) = get_child(recv_count)%zzquad
-        xyquad( nodchild ) = get_child(recv_count)%xyquad
-        yzquad( nodchild ) = get_child(recv_count)%yzquad
-        zxquad( nodchild ) = get_child(recv_count)%zxquad
+        xxquad( nodchild ) = get_child(i)%xxquad
+        yyquad( nodchild ) = get_child(i)%yyquad
+        zzquad( nodchild ) = get_child(i)%zzquad
+        xyquad( nodchild ) = get_child(i)%xyquad
+        yzquad( nodchild ) = get_child(i)%yzquad
+        zxquad( nodchild ) = get_child(i)%zxquad
 
-        jx( nodchild ) = get_child(recv_count)%jx
-        jy( nodchild ) = get_child(recv_count)%jy
-        jz( nodchild ) = get_child(recv_count)%jz
+        jx( nodchild ) = get_child(i)%jx
+        jy( nodchild ) = get_child(i)%jy
+        jz( nodchild ) = get_child(i)%jz
 
-        magmx( nodchild ) = get_child(recv_count)%magmx
-        magmy( nodchild ) = get_child(recv_count)%magmy
-        magmz( nodchild ) = get_child(recv_count)%magmz
+        magmx( nodchild ) = get_child(i)%magmx
+        magmy( nodchild ) = get_child(i)%magmy
+        magmz( nodchild ) = get_child(i)%magmz
 
 
         if (prefetch_debug) write(iofile,'(a,o15,a,i7,a,o13)') &
              'Prefetch: ',recv_key,' from ',ipe,' parent key ',recv_parent
 
      end do
-  end do
 
 
-! Get total # multipole ships from prefetch 
- sumfetches = MAXVAL(nfetch_total)
- call MPI_ALLREDUCE( sumfetches, max_prefetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr ) 
-
+    !POMP$ INST END(update)
 end subroutine tree_update
 
