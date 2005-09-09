@@ -55,7 +55,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
   integer*8,  dimension(npshort) :: walk_key, walk_last 
   integer*8, dimension(maxaddress)  :: request_key, ask_key, process_key
-  integer*8, dimension(size_fetch,0:num_pe-1) ::  ship_keys
+  integer*8, dimension(size_fetch) ::  ship_keys
   integer*8, dimension(8) :: sub_key, key_child, next_child
   integer*8, dimension(nintmax,npshort) :: defer_list, walk_list
   integer*8, dimension(maxaddress) :: last_child   ! List of 'last' children fetched from remote PEs
@@ -89,7 +89,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   integer :: p,pass
   integer :: nnew, nshare, newrequest, nreqs, i1, i2, ioff, ipack
   integer :: nchild, newleaf, newtwig, nactive, maxactive, ntraversals, own
-  integer :: ic1, ic2, ihand, nchild_ship_tot, nplace_max, sum_pack
+  integer :: ic1, ic2, iship1, ihand, nchild_ship_tot, nplace_max, sum_pack
   integer, save ::  sum_nhops, sum_inner_pass, sum_nhops_old=0, sum_inner_old=0
   integer :: request_count, fetch_pe_count, send_prop_count  ! buffer counters
 
@@ -375,6 +375,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
      i1=1
      fetch_pe_count = 0
+     iship1=1
 
      do ipe = 0,num_pe-1 
 
@@ -390,17 +391,17 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
            ! Extract sub-list of keys to request according to location - don't overwrite buffer!
 
-           ship_keys(1:nfetches(ipe),ipe) = pack(request_key(1:nshare), mask = request_owner(1:nshare) == ipe )
+           ship_keys(iship1:iship1+nfetches(ipe)) = pack(request_key(1:nshare), mask = request_owner(1:nshare) == ipe )
 
            if (emulate_blocking) then
-              call MPI_SEND(ship_keys(1,ipe), nfetches(ipe), MPI_INTEGER8, ipe, tag1, &
+              call MPI_SEND(ship_keys(iship1), nfetches(ipe), MPI_INTEGER8, ipe, tag1, &
                    MPI_COMM_WORLD,  ierr ) ! Ship to data location
            else
-              call MPI_ISEND(ship_keys(1,ipe), nfetches(ipe), MPI_INTEGER8, ipe, tag1, &
+              call MPI_ISEND(ship_keys(iship1), nfetches(ipe), MPI_INTEGER8, ipe, tag1, &
                    MPI_COMM_WORLD, send_key_handle(fetch_pe_count), ierr ) ! Ship to data location
               call MPI_REQUEST_FREE( send_key_handle(fetch_pe_count), ierr)
            endif
-
+	   iship1=iship1 + nfetches(ipe)  ! Increment buffer marker
         endif
      end do
 
