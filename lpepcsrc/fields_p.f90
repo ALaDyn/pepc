@@ -144,7 +144,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      !POMP$ INST END(prefetch)
 
   else 
-     ! fresh walk in asynch. or collective mode
+     ! fresh walk in asynch. (mac=0)  or collective mode (mac=1)
      nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
      nreqs_total=0
   endif
