@@ -39,10 +39,11 @@ program pepcb
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_walkc, t_en, t_force
   real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot, t_laser
   real :: t_loop, t_start_loop
+  real :: t_record(10000)
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
   integer :: ierr, lvisit_active, ifile, incdf
-  integer :: vbufcols = 22
+  integer :: vbufcols = 22, irecord=0
 
 !POMP$ INST INIT
 !POMP$ INST BEGIN(pepcb)
@@ -142,9 +143,9 @@ program pepcb
           coulomb, bfields, bonds, lenjones, &
           t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot)   
 !POMP$ INST END(fields)
+     call cputime(t_start_push)
      call force_laser(1,np_local)
 
-     call cputime(t_start_push)
 
 !POMP$ INST BEGIN(integ)
      call integrator
@@ -165,6 +166,7 @@ program pepcb
      ttot = t_domain+t_build+t_prefetch+t_walkc+t_walk+t_force + t_push + t_laser
 
      if (my_rank==0 .and. debug_level .ge.0 .and. mod(itime,iprot).eq.0) then
+        irecord = irecord+1
         ifile = 6
         write(ifile,'(//a/)') 'Timing:  Routine   time(s)  percentage'
         write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain,100*t_domain/ttot
@@ -179,16 +181,16 @@ program pepcb
         write(ifile,'(a20,2f12.3,a1)') 'Total: ',ttot,100.
         write(ifile,'(a50/i4,7f12.3)') 'Timing format: #CPU domains build prefetch walk-local walk-comm force tot' &
 	  ,n_cpu,t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force,ttot
-
+        t_record(irecord) = ttot
      endif
 
   end do
   
      call cputime(t_loop)
-  t_loop=t_loop-t_start_loop
+  t_loop=SUM(t_record(1:irecord))
   if (my_rank==0) then
 	
-     write(*,'(a20,2f12.3)') 'Loop total, average: ',t_loop, t_loop/nt
+     write(*,'(a20,2f12.3)') 'Loop total, average: ',t_loop, t_loop/irecord
   endif 
 
   if (scheme ==5 ) then
