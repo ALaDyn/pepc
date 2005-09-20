@@ -14,7 +14,7 @@ subroutine setup
   use physvars
   implicit none
 
-  integer :: k, npb_pe
+  integer :: k, npb_pe, ne_rest, ni_rest
   real :: Qplas, Aplas
 
   include 'namelist.h' 
@@ -114,9 +114,20 @@ subroutine setup
   read (10,NML=pepcdata)
 
   npart_total = ni+ne
-  np_local = npart_total/n_cpu  ! total # particles on this CPU
-  nep = ne/n_cpu  ! local # electrons and ions - may be adjusted later
-  nip = ni/n_cpu
+
+! Adjust local numbers if total non-multiple of # PEs
+  if (my_rank==0) then 
+     ne_rest = mod(ne,n_cpu)
+     ni_rest = mod(ni,n_cpu)
+  else
+     ne_rest = 0
+     ni_rest = 0
+  endif
+
+  np_local = npart_total/n_cpu + ne_rest + ni_rest  ! total # particles on this CPU
+  nep = ne/n_cpu + ne_rest ! local # electrons and ions - may be adjusted later
+  nip = ni/n_cpu + ni_rest
+
   new_label = npart_total  ! Rezone label
 
   if (target_dup .or. scheme==5) np_mult = np_mult*2  ! double up particle array size if multi-target or ion config mode 
