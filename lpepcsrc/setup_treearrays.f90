@@ -99,7 +99,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   if (me==0) then
      write(*,'(//a/)') 'Initial memory allocation:'
-     write(*,'(6(a15,f12.3,a3/)/)') 'Particles: ',mem_parts/mb,' MB', &
+     write(*,'(6(a15,f14.3,a3/)/)') 'Particles: ',mem_parts/mb,' MB', &
                                'Tree:',mem_tree/mb,' MB', &
                                'Lists:',mem_lists/mb,' MB', &
                                'Prefetch:',mem_prefetch/mb,' MB', &

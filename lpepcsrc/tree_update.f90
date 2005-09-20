@@ -52,7 +52,7 @@ subroutine tree_update(itime)
   integer :: key2addr_db        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
-  logical :: update_debug=.true.
+  logical :: update_debug=.false.
 
   iofile = ipefile
 !  iofile = 6
