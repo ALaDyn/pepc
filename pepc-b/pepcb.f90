@@ -179,7 +179,8 @@ program pepcb
         write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag,100*t_diag/ttot
 
         write(ifile,'(a20,2f12.3,a1)') 'Total: ',ttot,100.
-        write(ifile,'(a50/i4,7f12.3)') 'Timing format: #CPU domains build prefetch walk-local walk-comm force tot' &
+        write(ifile,'(a20/a5,7a12/i5,7f12.3)') 'Timing format:', &
+             ' #CPU','domains','build',' prefetch','walk-local','walk-comm','force','tot' &
 	  ,n_cpu,t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force,ttot
         t_record(irecord) = ttot
      endif
