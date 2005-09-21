@@ -34,7 +34,8 @@ contains
     integer :: ic1, ir1, im1
     !    CALL SYSTEM_CLOCK(COUNT=IC1, COUNT_RATE=IR1, COUNT_MAX=IM1)
     !    sec = 1.*ic1/ir1
-    call cpu_time(sec)
+!    call cpu_time(sec)
+    sec = 1.e-6*rtc()
   end subroutine cput
 
 

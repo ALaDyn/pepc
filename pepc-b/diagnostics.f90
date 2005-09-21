@@ -81,7 +81,7 @@ subroutine diagnostics
 
      do ifile = 6,15,9
         write(ifile,'(/a,i4)') 'Tree stats for CPU ',debug_rank
-        write(ifile,'(a50,2i8,a3,i8)') 'new npp, npart, (max): ',npp,npart,'/',nppm
+        write(ifile,'(a50,2i10,a3,i8)') 'new npp, npart, (max): ',npp,npart,'/',nppm
         write(ifile,'(a50,3i8)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
         write(ifile,'(a50,3i8)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
         write(ifile,'(a50,3i8,f12.1,a6,i8)') 'final # leaves, twigs, keys, (max): ',nleaf,ntwig,nleaf+ntwig, &

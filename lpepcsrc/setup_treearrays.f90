@@ -47,7 +47,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   npartm = npart 
   nppm = np_mult*1.9*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  nshortm = 400    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
@@ -71,7 +71,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 !   nbaddr = 17   ! fixed address range
    maxaddress = np_mult*2**nbaddr
    size_fetch = fetch_mult*max(npartm/10,size_tree)
-   nbranch_max = maxaddress/2
+!   nbranch_max = maxaddress/2
+   nbranch_max = 5*nintmax*num_pe
    if (num_pe==1) size_fetch=size_tree
 !  maxaddress = 512
   hashconst = 2**nbaddr-1
@@ -92,7 +93,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
                       + num_pe * (4+4+4+4)  & ! request stuff
                       + maxaddress * (3*8) & ! keys
                       + size_fetch * 2*(22*8+2*4) & ! get_child, pack_child buffers
-                      + nbranch_max * (8 + 4 + 8)  ! branches
+                      + nbranch_max * (8 + 4 + 8 + 8*23)  ! branches
   mem_multipoles = maxaddress * (8+2*4 + 23*8 + 8) 
   mem_prefetch = size_fetch*(8 + 4) + num_pe*4 *11 + maxaddress*8*2*2
   mem_tot = mem_parts+mem_tree+mem_prefetch+mem_multipoles+mem_lists

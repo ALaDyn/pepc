@@ -38,7 +38,7 @@ program pepcb
   ! timing stuff
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_walkc, t_en, t_force
   real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot, t_laser
-  real :: t_loop, t_start_loop
+  real :: t_loop, t_start_loop, t_end_loop, t_start_prog, t_end_prog
   real :: t_record(10000)
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
@@ -50,6 +50,8 @@ program pepcb
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
+
+  call cputime(t_start_prog)
 
   ! Get the id number of the current task
   call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -187,12 +189,9 @@ program pepcb
 
   end do
   
-     call cputime(t_loop)
+  call cputime(t_end_loop)
   t_loop=SUM(t_record(1:irecord))
-  if (my_rank==0) then
-	
-     write(*,'(a20,2f12.3)') 'Loop total, average: ',t_loop, t_loop/irecord
-  endif 
+
 
   if (scheme ==5 ) then
 
@@ -214,6 +213,15 @@ program pepcb
   ! Time stamp
   if (my_rank==0) call stamp(6,2)
   if (my_rank==0) call stamp(15,2)
+
+  call cputime(t_end_prog)
+
+  if (my_rank==0) then
+	
+     write(*,'(a20,2f12.3)') 'Loop total, average: ',t_loop, t_loop/irecord
+     write(*,'(a20,2f12.3)') 'Loop+diags: ',t_end_loop-t_start_loop
+     write (*,'(a20,f14.4)') 'Total run time: ',t_end_prog-t_start_prog
+  endif 
   ! End the MPI run
   call MPI_FINALIZE(ierr)
 !POMP$ INST END(pepcb)

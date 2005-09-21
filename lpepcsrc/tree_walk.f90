@@ -228,7 +228,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
            if ( mac_ok .or. (walk_node >0 .and. .not.ignore ) ) then
               walk_key(i) = walk_next
 	      entry_next = nterm(p) + 1
-              intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
+!              intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
               nodelist( entry_next, p ) = walk_node   ! Node number for sum_force
               nterm(p) = entry_next
 
