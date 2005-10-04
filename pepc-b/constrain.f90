@@ -21,8 +21,9 @@ subroutine constrain
 
     ! file id
     integer                             :: c_file = 76, nr_out
+    logical :: constrain_debug=.false.
 
-    write(c_file, *) 'in constrain'
+    if (constrain_debug) write(*, *) 'in constrain'
 
     ! walk through all particles
     nr_out = 0
@@ -46,7 +47,7 @@ subroutine constrain
                     r_old = r_test
                 end if
         
-                ! besection for the particle
+                ! bisection for the particle
                 p_new = 1.
                 p_old = 0.
                 r_test = r_old + p_new * (r_new - r_old)
@@ -62,13 +63,12 @@ subroutine constrain
                     r_test = r_old + p_new * (r_new - r_old)
                     call face(r_test, c_status, face_nr)
                 end do
-                write(c_file, *) 'Bisection for particle done.'
+!                if (constrain_debug) write(*, *) 'Bisection for particle done.'
                 call cutvector(r_test, face_nr, n, r_d)
 
                 ! Reflect
-                write(c_file, *) 'Reflecting particle.'
                 v = v - 2. * dot_product(v, n) * n
-                write(c_file, *) 'New v: v     = ', v(1:3)
+                if (constrain_debug) write(*, *) 'Reflecting .. new v: v     = ', v(1:3)
                 c = v / sqrt(dot_product(v, v))
                 r_new = r_d + sqrt(dot_product(r_d - r_new, r_d - r_new)) * c
                 x(p) = r_new(1)
@@ -77,12 +77,9 @@ subroutine constrain
                 ux(p) = v(1)
                 uy(p) = v(2)
                 uz(p) = v(3)
-                write(c_file, *) 'Reflection done.'
-                write(c_file, *) 'Bisection for particle nr ', p, ' done.'
-                write(c_file, *) ''
             end if
         end do
     end do
-    write(c_file, *) 'Number of reflections: ', nr_out
+ if (constrain_debug)    write(*, *) 'Number of reflections: ', nr_out
  
 end subroutine constrain

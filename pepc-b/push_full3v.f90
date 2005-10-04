@@ -29,16 +29,6 @@ subroutine push_full3v(p_start,p_finish,dts)
      yd = y(p)-focus(2)
      zd = z(p)-focus(3)
 
-     ! evaluate external fields at particle positions
-
-     if (beam_config.eq.7) then
-! pond. standing wave on step-profile
-!        call empond(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
-
-     else if (beam_config.eq.6) then
-! s-pol plane wave with Gaussian spot
-!        call emplane(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
-     endif
 
      !  Sum internal and external fields 
 

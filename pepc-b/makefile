@@ -3,8 +3,8 @@
 #
 #  Makefile for treemp and test programs
 #
-PREFIX = ..
 
+PREFIX = ..
 
 #DBFLAGS = -g -Rabp -ev  -q64 -qrealsize=8  -qsuffix=f=f90 -qcheck
 #LDFLAGS = -q64 -qrealsize=8  -g 
@@ -18,7 +18,7 @@ PREFIX = ..
 #FFLAGS =  -q64 -qrealsize=8 -qsuffix=f=f90  -O4 -Q -qipa -qarch=pwr4 -qstrict -qreport  -qlist -qsource -I/usr/local/include 
 
 
-IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
+IPA=-qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 
 #PG=-pg -g -qfullpath
 #DB= -g -qfullpath -qcheck 
@@ -30,30 +30,40 @@ LISTING=-qreport -qlist -qlistopt -qsource
 #MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
 #MPITRACE= -lmpitrace
 #MPITRACE= -lmpiprof
-#MPITRACE= -lsummary -lpmapi
+MPITRACE= -lsummary -lpmapi
 #MPITRACE=  -lmpihpm -lpmapi
-#Q64=-q64
-FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90 -qnosave 
-TUNE= -qarch=pwr4 -qtune=pwr4 -qhot ## -O5 $(IPA) 
+Q64=-q64
+FFLAGS1 = -qrealsize=8 -qsuffix=f=f90:cpp=F90 -qnosave 
+TUNE= -qarch=pwr4 -qtune=pwr4 -O4 $(IPA) 
 # $(PG) $(HPM)
 
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
-FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(TUNE)
-TFLAGS = $(FFLAGS) $(TUNE)
+FFLAGS =  $(FFLAGS1) $(Q64) $(TUNE)
+DFLAGS = $(FFLAGS1) $(DB) $(Q64)
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
 
+# Setup flags for C-preprocessor
+# Use VISIT routines with XNBODY visualisation
+ 
+
+PREPROC = -WF,-DVISIT_NBODY
+#PREPROC=
+PPFLAGS = -d  $(PREPROC)
+
 # Visit libraries
 # JUMP
-#NETCDFLIB = -lnetcdf
-#VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
+NETCDFLIB = -lnetcdf
+VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
 #VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 
 #VISITLIBS=-L/home4/jzam04/jzam0401/tree/pepc/src  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
-#XNBODYLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody2  -llvisit_nbody2
+XNBODYLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody2  -llvisit_nbody2
+
+
 LMAP = -bnoquiet
-LDFLAGS =  $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) 
+LDFLAGS =  $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) $(MPITRACE)
 CFLAGS = -I/usr/local/include
 RANLIB  = ranlib
 libdir  = .
@@ -62,9 +72,11 @@ LIBPEPC = -L../lpepcsrc -llpepc
 IBMLIB = -lxlf90
 pepclib = liblpepc.a
 
+.SUFFIXES: .f90 .F90
 
 
-#FC = mpxlf90_r
+FC = mpxlf90_r
+FCPP = 
 CC = xlc
 
 # KOJAK instrumentation
@@ -72,48 +84,22 @@ CC = xlc
 #FC = kinst-pomp -rcfile $(PREFIX)/pepc-b/opari.rc -- mpxlf90_r
 
 # -------------------------------------------------------------------------------------------
-# BlueGene Light
-# -------------------------------------------------------------------------------------------
-BGLSYS = /bgl/BlueLight/ppcfloor/bglsys
-
-CC = /opt/ibmcmp/vac/7.0/bin/blrts_xlc
-CPPC = /opt/ibmcmp/vacpp/7.0/bin/blrts_xlc
-FC = /opt/ibmcmp/xlf/9.1/bin/blrts_xlf90
-
-# try -qarch=440 first, then use -qarch=440d for 2nd FPU later on
-#  (SIMDization requires at least -O3)
-# use -qlist -qsource with 440d and look for Parallel ASM instructions.
-#
-QTUNE = -qarch=440d -qtune=440 
-CFLAGS= -O3 -g -I$(BGLSYS)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
-FFLAGS= -O -g $(FFLAGS1) -I$(BGLSYS)/include -L$(BGLSYS)/lib ## $(QTUNE)
-#DBFLAGS= -qcheck -qfullpath
-DBFLAGS= -qfullpath
-#
-#MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
-#MPITRACE= -lmpitrace
-#MPITRACE= -lmpiprof
-#MPITRACE= -lsummary -lpmapi
-TRACE = -L/bgl/local/lib -lmpitrace_f  #for MPI information only
-#TRACE = -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts #for MPI+HPM information 
-LIBS_MPI = $(TRACE) -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
-LIBSF_MPI = -lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
-
-.SUFFIXES: .f90
-
-# -------------------------------------------------------------------------------------------
 
 # Source files
 
 # -------------------------------------------------------------------------------------------
+
+PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 beam_control.F90
+
+
 MODULES.f90 =   physvars.f90 
 
-SOURCES.f90 =   pepcb.f90 \
+SOURCES.f90 =    \
                 setup.f90 setup_arrays.f90 stamp.f90 \
                 configure.f90 randion.f90 predef_parts.f90 maxwell1.f90 cold_start.f90 \
                 special_start.f90 constrain.f90 cutvector.f90 face.f90 \
                 scramble_v.f90 reset_ions.f90 add_electrons.f90 double_target.f90 \
-                laser.f90 beam.f90 beam_control.f90 beam_dust.f90 rezone.f90\
+                laser.f90 beam.f90 beam_dust.f90 rezone.f90\
                 mc_config.f90 \
                 velocities.f90 \
                 energy_cons.f90 potenergy.f90 kinenergy.f90\
@@ -121,7 +107,7 @@ SOURCES.f90 =   pepcb.f90 \
                 fpond.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90 \
                 push_em.f90 push_full3v.f90 \
                 push.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
-                vis_parts_nbody.f90 vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
+                vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
                 open_files.f90 close_files.f90  \
                 densities.f90 sum_fields.f90 dump_fields.f90 \
                 track_nc.f90 \
@@ -131,42 +117,64 @@ SOURCES.f90 =   pepcb.f90 \
 
 # Names of application object files derived from sources
 
-appobjs = $(SOURCES.f90:.f90=.o) ## ncnbody.o
+appobjs = $(PPSRC.F90:.F90=.o) $(SOURCES.f90:.f90=.o) ncnbody.o
 appmods =  $(MODULES.f90:.f90=.o)
 mods = $(appmods) $(pepcmods)
 
 default: lpepc pepcb
+pkojak: lpepc pepck  
 
-#  compile mode
-.f90.o:   
+
+#  preprocessor rules
+
+.F90.o: $(PPSRC.F90) 
+	@echo "Preprocessing $<"
+	$(FC) -c $(FFLAGS) $< $(PPFLAGS)
+
+#  compile rules
+
+.f90.o: $(SOURCES.f90)  
 	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) $<
 .c.o:   
-	$(CC) -c $(CFLAGS)  $<
+	$(CC) -c $(CFLAGS) -q64 $<
+
+
 
 # -----------------------------------------------------------------------------------------
 #  targets
 
+pepcb:	$(appobjs) $(appmods) lpepc
+	@echo "\n Creating pepcb ...\n"
+	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) $(IBMLIB) -o $@ $(appobjs) $(appmods) 
+	@echo "... done\n"
 
-pepcb:	$(appmods) $(appobjs) lpepc
-	@echo "Creating pepcb ..."
-	$(FC)  $(FFLAGS) $(LDFLAGS) $(DBFLAGS) -o $@ $(appobjs) $(appmods) $(pepcmods)  $(LIBPEPC)  $(IBMLIB) $(LIBS_MPI) $(LIBSF_MPI)
-	@echo "... done"
+debug: $(appobjs) $(appmods) lpepc
+	@echo "\n Creating pepc_debug ...\n"
+	$(FC)  $(DFLAGS) $(LDFLAGS) $(LIBPEPC) $(IBMLIB) -o pepc_debug $(appobjs) $(appmods) 
+	@echo "... done\n"
+
+pepcb_prod:	$(appobjs) $(appmods) lpepc
+	@echo "\n Creating pepcb ...\n"
+	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) $(IBMLIB) -o $@ $(appobjs) $(appmods)
+	@echo "... done\n"
 
 # Update PEPC library and headers
 lpepc:  
-	cd ../lpepcsrc; rm *.mod treevars.o utils.o tree_utils.o; make lpepc; cd ../pepc-b
-	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.o $(PREFIX)/pepc-b/treevars.o
-	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-b/treevars.mod
-	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.o $(PREFIX)/pepc-b/utils.o
-	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.mod $(PREFIX)/pepc-b/utils.mod
+	cd ../lpepcsrc; make lpepc; cd ../pepc-b
 	/bin/ln -sf $(PREFIX)/lpepcsrc/liblpepc.a $(PREFIX)/pepc-b/liblpepc.a
 	/bin/ln -sf $(PREFIX)/lpepcsrc/*.opari.inc $(PREFIX)/pepc-b/.
+	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-b/treevars.mod
+	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.mod $(PREFIX)/pepc-b/utils.mod
+
+#	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.o $(PREFIX)/pepc-b/treevars.o
+#	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.o $(PREFIX)/pepc-b/utils.o
+
+pepck:	$(appobjs) $(appmods) $(pepcmods) $(pepclib)
+	@echo "\n Creating pepc application binary ...\n"
+	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) -o $@ $(appobjs) $(appmods) $(pepcmods)
+	@echo "... done\n"
 
 
-
-debug:	$(OBJECTS)
-	@echo "Loading object files using flags $(DBFLAGS)"
-	$(FC) $(LDFLAGS)  $(VISITLIBS) $(DBFLAGS)  -o $@ $(OBJECTS)
 
 
 rand:	 rantest.o
@@ -174,13 +182,10 @@ rand:	 rantest.o
 
 
 clean:
-	/bin/rm -f bin/*.o  *% *~ bin/key rand *.o *.pif core *.a *.mod opari.rc *.mod.F90 *.opari.inc
+	/bin/rm -f bin/*.o  F* *% *~ bin/key rand *.o *.pif core *.a *.mod opari.rc *.mod.F90 *.opari.inc
 
 cleanlib: 
-	cd ../lpepcsrc;	/bin/rm -f *.o *.mod *.mod.F90 *.opari.inc; cd -
-
-cleanmod:
-	rm -f physvars.o physvars.mod
+	cd ../lpepcsrc;	/bin/rm -f *.o *.mod.F90 *.opari.inc; cd -
 
 cleancore: 	
 	/bin/rm $(pepcobjs) 
@@ -196,3 +201,76 @@ depend:
 # so do NOT add any translation rules below here.
 
 #--- Include-Dependencies
+
+beam_control.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+configure.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+densities.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+dump.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+dump_fields.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+force_laser.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+kinenergy.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+mc_config.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+param_dump.o: namelist.h
+pepcb.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+potenergy.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+predef_parts.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+rezone.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+setup.o: namelist.h
+setup_arrays.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+track_nc.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+velocities.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+vis_fields.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+vis_parts.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+vis_parts_nbody.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+
+
+#--- Module-Dependencies
+
+add_electrons.o: physvars.o
+add_ramp.o: physvars.o
+beam.o: physvars.o
+beam_control.o: physvars.o
+beam_dust.o: physvars.o
+boundaries.o: physvars.o
+close_files.o: physvars.o
+configure.o: physvars.o
+constrain.o: physvars.o
+cutvector.o: physvars.o
+densities.o: physvars.o
+diagnostics.o: physvars.o
+double_target.o: physvars.o
+dump.o: physvars.o
+dump_fields.o: physvars.o
+earth_plate.o: physvars.o
+energy_cons.o: physvars.o
+face.o: physvars.o
+force_laser.o: physvars.o
+forces.o: physvars.o
+integrator.o: physvars.o
+kinenergy.o: physvars.o
+laser.o: physvars.o
+mc_config.o: physvars.o
+open_files.o: physvars.o
+param_dump.o: physvars.o
+pepcb.o: physvars.o
+potenergy.o: physvars.o
+predef_parts.o: physvars.o
+push.o: physvars.o
+push_em.o: physvars.o
+push_full3v.o: physvars.o
+randion.o: physvars.o
+reset_ions.o: physvars.o
+rezone.o: physvars.o
+scramble_v.o: physvars.o
+setup.o: physvars.o
+setup_arrays.o: physvars.o
+special_start.o: physvars.o
+sum_fields.o: physvars.o
+track_nc.o: physvars.o
+velocities.o: physvars.o
+vis_domains_nbody.o: physvars.o
+vis_fields.o: physvars.o
+vis_parts.o: physvars.o
+vis_parts_nbody.o: physvars.o
+
+
