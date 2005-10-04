@@ -130,6 +130,7 @@ subroutine tree_update(itime)
         pack_child(i) =  multipole ( ship_key, &
              ship_byte, &
              ship_leaves, &
+	     me, &
              ship_next, &
              charge( ship_node ), &
              abs_charge( ship_node ), &

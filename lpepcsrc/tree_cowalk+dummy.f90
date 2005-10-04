@@ -33,7 +33,7 @@
 !
 ! ===========================================
 
-subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
+subroutine tree_walkcdum(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
   use treevars
   use tree_utils
@@ -99,17 +99,17 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
   integer ::  bchild, nodchild, lchild, hashaddr, nlast_child, cbyte
   integer :: max_nplace, max_pack
-  real :: dum=0.,sbox, theta2, theta2_ion, dx, dy, dz, s2, dist2
+  real :: sbox, theta2, theta2_ion, dx, dy, dz, s2, dist2
 
   ! stuff for tree-patch after traversals complete
   integer ::  node_addr, parent_addr, parent_node, child_byte
   integer :: jmatch(1)
   logical :: resolved, keymatch(8), emulate_blocking=.false.
-  logical :: ignore, mac_ok, dummies=.false.
+  logical :: ignore, mac_ok
 
   integer :: nrest, ndef
   integer :: ierr, nbuf, status(MPI_STATUS_SIZE)
-  integer :: tag1=40, iofile,ndelay
+  integer :: tag1=40, iofile
 
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: key2addr_db        ! Mapping function to get hash table address from key
@@ -119,15 +119,13 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   !
   twalk=0.
   tfetch=0.
-!  iofile = ipefile
-  iofile = 6
-  ndelay=1000000
+
   npackm = maxaddress
   nchild_shipm = maxaddress
 !  walk_debug = .true.
   ! ipefile = 6
-  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK (CO, ND) for timestep ',itime,' pass ',pass
-  if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (CO, ND) for timestep ',itime,' pass ',pass
+  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK for timestep ',itime,' pass ',pass
+  if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK for timestep ',itime,' pass ',pass
 
   sbox = boxsize
 
@@ -175,7 +173,7 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
      call cputime(tw1)
      ntraversals = ntraversals + 1  ! # Tree-walks
-     if (walk_summary .and. me==0) write(iofile,'(a,i6)') 'WALK-CO: Start of traversal ',ntraversals
+     if (walk_debug) write(ipefile,'(/a,i6)') 'WALK-CO: Start of traversal ',ntraversals
      !     if (walk_debug) write(*,'(a,i6)') 'Start of traversal ',ntraversals
 
      finished(1:nlist) = .false.  ! label all particles not finished
@@ -341,14 +339,12 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      ! First find out how many requests are to be sent to each PE 
  
 ! Create dummy keys to prevent zero length buffer in all2allv
-  if (dummies) then
    do i=1,num_pe
      nfetch_sum=nfetch_sum+1 
      fetch_key(nfetch_sum)=0
      fetch_owner(nfetch_sum) = i-1
      nplace(i-1) = nplace(i-1)+1 
   enddo
-endif
 
      nfetches(0:num_pe-1) = (/ (count( mask = fetch_owner(1:nfetch_sum) == ipe ), ipe=0,num_pe-1) /)
 
@@ -379,11 +375,10 @@ endif
      end do
 
      if (walk_debug) then
-        write (iofile,*) 'T',ntraversals,'N1, PE ',me,': # keys to fetch: ',nfetches(0:num_pe-1)
-!        write (iofile,*) 'PE ',me,': fetch strides: ',sstrides(0:num_pe-1)
+        write (ipefile,*) '# keys to fetch: ',nfetches(0:num_pe-1)
+        write (ipefile,*) ' fetch strides: ',sstrides(0:num_pe-1)
 !        write(ipefile,'(a/(i5,i20))') 'unsorted: ',(fetch_owner(i),fetch_key(i),i=1,nfetch_sum) 
-!	write(iofile,'(a/(i5,o15))') 'sorted: ',(sort_owner(i),work_key(i),i=1,nfetch_sum) 
-!	write(iofile,*) 'sorted owners: ',(sort_owner(i),i=1,nfetch_sum) 
+	write(ipefile,'(a/(i5,o15))') 'sorted: ',(sort_owner(i),work_key(i),i=1,nfetch_sum) 
      endif
 
      ! Exchange key lists
@@ -391,26 +386,26 @@ endif
      call MPI_ALLTOALLV( work_key,   nfetches, sstrides, MPI_INTEGER8, &
           request_key, nrequests, rstrides, MPI_INTEGER8, &
           MPI_COMM_WORLD, ierr)
- 
-!  Exchange owners
-     do i=1,nfetch_sum
-        fetch_owner(i)=me
-     end do
-
-     call MPI_ALLTOALLV( fetch_owner,   nfetches, sstrides, MPI_INTEGER, &
-          request_owner, nrequests, rstrides, MPI_INTEGER, &
-          MPI_COMM_WORLD, ierr)
 
      nreqs_sum = SUM(nrequests)
 
+     ! Recover ownership from # requests - should be neater way of doing this
+     ipe=0
+     ipost=nrequests(0)
+     do i=1,nreqs_sum
+        if (i>ipost) then
+           ipe=ipe+1
+!           if (ipe==me) ipe=ipe+1  ! Skip self
+           ipost=ipost+nrequests(ipe)
+        endif
+        request_owner(i)=ipe
+     end do
+
      if (walk_debug) then
-	call delay(me,ndelay)
-        write (iofile,*) 'T',ntraversals,'N2, PE ',me,': # requested: ',nrequests(0:num_pe-1)
-!        write (iofile,*) 'PE ',me,': req strides: ',rstrides(0:num_pe-1)
-!        write(iofile,'(a/(2i5,o15))') 'requests ',(i,request_owner(i),request_key(i),i=1,nreqs_sum) 
-!        write(iofile,*) 'request owners',(request_owner(i),i=1,nreqs_sum) 
-	call delay(me,ndelay)
-!        write(iofile,'(a2,i4,a7,i4,a/(2i5,o15))') 'T',ntraversals,'N2, PE ',me,'  request list ',(i,request_owner(i),request_key(i),i=1,nreqs_sum) 
+
+        write (ipefile,*) ' # requested: ',nrequests(0:num_pe-1)
+        write (ipefile,*) ' req strides: ',rstrides(0:num_pe-1)
+        write(ipefile,'(a/(2i5,o15))') 'requests ',(i,request_owner(i),request_key(i),i=1,nreqs_sum) 
      endif
 
      ! Now have complete list of requests from all PEs in rank order. 
@@ -425,8 +420,19 @@ endif
 
      do i=1,nreqs_sum
 
+        if (request_key(i)==0) then
+! Setup dummy node
+	  nchild=1
+	  key_child(1)=0_8
+	  next_child(1)=0_8
+	  leaves_child(1)=1
+	  byte_child(1)=1
+	  node_child(1)=1  ! Root node
+	  ipe=request_owner(i)  ! Owner 	
+          nchild_ship(ipe) = nchild_ship(ipe) + nchild  ! Total # children to be shipped back to this PE
+	else
 
-     ! For each key in the request list, fetch and package tree info for children
+        ! For each key in the request list, fetch and package tree info for children
         ship_address = key2addr_db(request_key(i),'WALK-COL: preship')  ! # address
         ship_node = htable(ship_address)%node
         ship_byte = htable( ship_address )%childcode   ! child byte code
@@ -445,6 +451,7 @@ endif
         next_child(1:nchild-1) = htable( addr_child(1:nchild-1) )%next                    ! # next-node pointer
         next_child(nchild) = -1                             ! Last child gets pointed back to _parent_ for non-local nodes
         ! This is used to distinguish particles' walks during 'defer' phase
+       endif
 
         ! Package children properties into user-defined multipole array for shipping
 
@@ -453,7 +460,7 @@ endif
            pack_child(ship_count) = multipole ( key_child(ic), &
                 byte_child(ic), &
                 leaves_child(ic), &
-		me, &
+ 	 	me, &
                 next_child(ic), &
                 charge( node_child(ic) ), &
                 abs_charge( node_child(ic) ), &
@@ -504,32 +511,42 @@ endif
      rstrides = (/ 0, nplace(0), ( SUM( nplace(0:i-1) ),i=2,num_pe-1 ) /)
 
      if (walk_debug) then
-        call delay(me,ndelay)
-        write (iofile,*) 'T',ntraversals,'N4, PE ',me,': # children to insert:  ',nplace(0:num_pe-1)
-        call delay(me,ndelay)
-        write (iofile,*) 'T',ntraversals,'N3, PE ',me,': # children to ship back: ',nchild_ship(0:num_pe-1)
+        write (ipefile,*) '# children to ship back: ',nchild_ship(0:num_pe-1)
+        write (ipefile,*) ' ship strides: ',sstrides(0:num_pe-1)
+        write (ipefile,*) '# children to insert:  ',nplace(0:num_pe-1)
      endif
 
      nplace_sum = SUM(nplace)
      nchild_ship_sum = SUM(nchild_ship)
 
-
      ! Ship multipole data of children
+! Problem here if nplace_sum=0 - send dummy to  self
 
      call MPI_ALLTOALLV( pack_child,   nchild_ship, sstrides, MPI_TYPE_MULTIPOLE, &
           get_child, nplace, rstrides, MPI_TYPE_MULTIPOLE, &
           MPI_COMM_WORLD, ierr)
 
-! if (ntraversals==2) call cleanup
+! if (ntraversals==3) call cleanup
      ! Make new hash entries with newly-fetched nodes
      newleaf = 0
      newtwig = 0
 
+     ! Recover ownership from # requests - should be neater way of doing this
+     ipe=0
+     ipost=nplace(0)
+     do i=1,nplace_sum
+        if (i>ipost) then
+           ipe=ipe+1
+!           if (ipe==me) ipe=ipe+1  ! Skip self
+           ipost=ipost+nplace(ipe)
+        endif
+        fetch_owner(i)=ipe
+     end do
 
      do i=1, nplace_sum
-        ipe = get_child(i)%owner  
-        fetch_owner(i) = ipe
+        ipe = fetch_owner(i)  
         recv_key = get_child(i)%key
+	if (recv_key<>0) then   ! Skip dummies
         recv_parent = ishft( recv_key,-3 )
         recv_byte = get_child(i)%byte
         recv_leaves = get_child(i)%leaves
@@ -609,10 +626,14 @@ endif
         fetched_keys(sum_fetches) = recv_key
         if (walk_debug) write(ipefile,'(a6,i6,o15,a6,i7,a9,o15,a6,i15)') &
              'Walk: ',sum_fetches,recv_key,' from ',ipe,' parent ',recv_parent,' next ',recv_next
+	endif
      end do
 
+! Correct sums for dummies
+    nplace_sum=nplace_sum-num_pe
+    nchild_ship_sum=nchild_ship_sum-num_pe
 
-   ! Copy defer lists to new walk lists for next tree-walk iteration
+     ! Copy defer lists to new walk lists for next tree-walk iteration
      nlist = 0
      do i=1,npshort
         nwalk(i) = ndefer(i)   ! # deferrals still to process
@@ -701,19 +722,4 @@ endif
   sum_inner_old = sum_inner_old/num_pe
   maxtraverse = max(maxtraverse,ntraversals)
 
-end subroutine tree_walkc
-
-subroutine delay(me,ndelay)
-real :: dum=0.
-integer :: i
-integer :: ndelay,me
-  do i=1,ndelay
-     dum=dum+sqrt(1.*i)  
-  end do
- if (me==0) write(*,'(/a/)') '-----------'
-  do i=1,ndelay
-     dum=dum+sqrt(1.*i)  
-  end do
-return
-end subroutine delay
-
+end subroutine tree_walkcdum

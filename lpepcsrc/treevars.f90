@@ -72,8 +72,8 @@ module treevars
      integer*8 :: key     ! key
      integer   :: byte    ! byte code
      integer   :: leaves  ! # leaves contained
+     integer :: owner    ! owner where multipole resides
      integer*8 :: next    ! next key on walk
-!     integer :: owner    ! owner where multipole resides
      real :: q    	! net charge sum
      real :: absq  	!  absolute charge sum
      real :: xcoc  	! centre of charge
@@ -100,7 +100,7 @@ module treevars
   type (multipole) :: node_dummy
 
   integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
-  			nprops_multipole=24      ! Number of multipole properties to ship
+  			nprops_multipole=25      ! Number of multipole properties to ship
   integer, dimension(nprops_multipole) :: blocklengths, displacements, types, address
   integer :: send_base, receive_base, mpi_type_particle, mpi_type_multipole
   

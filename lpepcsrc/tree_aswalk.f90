@@ -122,8 +122,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   nchild_shipm = maxaddress
   !walk_debug = .false.
   ! ipefile = 6
-  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK for timestep ',itime,' pass ',pass
-  if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK for timestep ',itime,' pass ',pass
+  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK (AS) for timestep ',itime,' pass ',pass
+  if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (AS) for timestep ',itime,' pass ',pass
 
   sbox = boxsize
 
@@ -452,6 +452,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
               pack_child(send_prop_count) = multipole ( key_child(ic), &
                    byte_child(ic), &
                    leaves_child(ic), &
+	           me, &
                    next_child(ic), &
                    charge( node_child(ic) ), &
                    abs_charge( node_child(ic) ), &

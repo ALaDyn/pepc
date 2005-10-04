@@ -335,6 +335,7 @@ subroutine tree_prefetch(itime)
         pack_child(send_prop_count) =  multipole ( ship_key, &
              ship_byte, &
              ship_leaves, &
+ 	     me, &
              ship_next, &
              charge( ship_node ), &
              abs_charge( ship_node ), &
