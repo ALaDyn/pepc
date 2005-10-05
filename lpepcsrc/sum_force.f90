@@ -34,10 +34,10 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
   do j=1,n
     jnode=inode(j)
     i = (j-1)*10+1
-!    k = (j-1)*3+1
-!    coc(k) = xcoc(jnode)
-!    coc(k+1) = ycoc(jnode)
-!    coc(k+2) = zcoc(jnode)
+    k = (j-1)*3+1
+    coc(k) = xcoc(jnode)
+    coc(k+1) = ycoc(jnode)
+    coc(k+2) = zcoc(jnode)
     mult(i) = charge(jnode)
     mult(i+1) = xdip(jnode)
     mult(i+2) = ydip(jnode)
@@ -50,16 +50,20 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
     mult(i+9) = zxquad(jnode)
   end do
 
+  call delay(me,0)
 !  write(*,*) p,' x_p=',x(p)
   do j=1,n
      
   !  preprocess distances
      i = 10*(j-1) + 1  ! multipole index
-!     k = 3*(j-1) + 1  ! coc index
-     jnode=inode(j)
-     dx = x(p) - xcoc(jnode)
-     dy = y(p) - ycoc(jnode)
-     dz = z(p) - zcoc(jnode) 
+     k = 3*(j-1) + 1  ! coc index
+!     jnode=inode(j)
+!     dx = x(p) - xcoc(jnode)
+!     dy = y(p) - ycoc(jnode)
+!     dz = z(p) - zcoc(jnode) 
+     dx = x(p) - coc(k)
+     dy = y(p) - coc(k+1)
+     dz = z(p) - coc(k+2) 
 
      d = sqrt(dx**2+dy**2+dz**2+eps2)
      rd = 1./d

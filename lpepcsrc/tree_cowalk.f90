@@ -710,7 +710,7 @@ integer :: ndelay,me
   do i=1,ndelay
      dum=dum+sqrt(1.*i)  
   end do
- if (me==0) write(*,'(/a/)') '-----------'
+! if (me==0) write(*,'(/a/)') '-----------'
   do i=1,ndelay
      dum=dum+sqrt(1.*i)  
   end do
