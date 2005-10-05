@@ -18,7 +18,6 @@ PREFIX = ..
 #FFLAGS =  -q64 -qrealsize=8 -qsuffix=f=f90  -O4 -Q -qipa -qarch=pwr4 -qstrict -qreport  -qlist -qsource -I/usr/local/include 
 
 
-IPA=-qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 
 #PG=-pg -g -qfullpath
 #DB= -g -qfullpath -qcheck 
@@ -34,6 +33,7 @@ MPITRACE= -lsummary -lpmapi
 #MPITRACE=  -lmpihpm -lpmapi
 Q64=-q64
 FFLAGS1 = -qrealsize=8 -qsuffix=f=f90:cpp=F90 -qnosave 
+IPA=-qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 TUNE= -qarch=pwr4 -qtune=pwr4 -O4 $(IPA) 
 # $(PG) $(HPM)
 
@@ -111,7 +111,8 @@ SOURCES.f90 =    \
                 open_files.f90 close_files.f90  \
                 densities.f90 sum_fields.f90 dump_fields.f90 \
                 track_nc.f90 \
-                integrator.f90 abort.f90
+                integrator.f90 abort.f90 \
+	        error_test.f90 force_direct.f90
 
 # -------------------------------------------------------------------------------------------
 
@@ -133,7 +134,7 @@ pkojak: lpepc pepck
 
 #  compile rules
 
-.f90.o: $(SOURCES.f90)  
+.f90.o:   
 	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) $<
 .c.o:   
 	$(CC) -c $(CFLAGS) -q64 $<

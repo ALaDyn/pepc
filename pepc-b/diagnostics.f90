@@ -53,6 +53,7 @@ subroutine diagnostics
 
 
   if (itime_start>0 .and. itime==0) return  ! Avoid over-writing restart data
+
   call energy_cons(Ukine,Ukini,Umagnetic,Ubeam)       ! Compute energy balance
 
   if ( dump_tree .and. mod(itime,iprot) ==0 ) then

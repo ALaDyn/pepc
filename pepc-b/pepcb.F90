@@ -146,7 +146,7 @@ program pepcb
 
      ! Compute E, B-fields and pot using lpepc
      ! Uses internal particle arrays from library (setup up in configure step)
-     ! # particles on CPU may change due to resort
+     ! # particles on CPU may change due to re-sort
 
 !POMP$ INST BEGIN(fields)
      call pepc_fields_p(np_local, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
@@ -157,6 +157,7 @@ program pepcb
      call cputime(t_start_push)
      call force_laser(1,np_local)
 
+	if (np_error>0 .and. itime==1) call error_test(np_error)
 
 !POMP$ INST BEGIN(integ)
      call integrator

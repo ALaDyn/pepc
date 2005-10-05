@@ -123,6 +123,7 @@ module physvars
   integer :: ncpu_merge=1  ! Restart control: -1= split data amoung all CPUs 
   integer :: new_label  ! Rezone parameter
   integer :: nslice            ! # particles in rezoning slice (determined in predef)
+  integer :: np_error=1            ! # particles in error test sample
   
   character*4 csubme   ! Character string of data subdirectory 'data/peXXXX'
 
