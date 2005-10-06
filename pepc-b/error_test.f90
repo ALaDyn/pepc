@@ -46,8 +46,8 @@
         dfx2 = dfx2 + (exd(i) - ex(listerr(i)))**2
         dfy2 = dfy2 + (eyd(i) - ey(listerr(i)))**2
         dfz2 = dfz2 + (ezd(i) - ez(listerr(i)))**2
-        dpot = dpot + potd(i) - pot(listerr(i))
-	spot = spot+ potd(i)
+        dpot = dpot + (potd(i) - pot(listerr(i)))**2
+	spot = spot+ potd(i)**2
         fxs = fxs + exd(i)**2
         fys = fys + eyd(i)**2
         fzs = fzs + ezd(i)**2
@@ -55,7 +55,7 @@
 
       write (*,*) '  i   list pot_t    pot_d    ex_t    ex_d'
       write (*,'((2i8,4(1pe14.4)))') (i,listerr(i),pot(listerr(i)),potd(i),ex(listerr(i)),exd(i),i=1,ntest)
-      err_pot = dpot/spot
+      err_pot = sqrt(dpot/spot)
       errfx = sqrt(dfx2/fxs)
       errfy = sqrt(dfy2/fys)
       errfz = sqrt(dfz2/fzs)
