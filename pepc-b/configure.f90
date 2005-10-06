@@ -12,9 +12,9 @@ subroutine configure
   use treevars
   implicit none
   include 'mpif.h'
- 
+
   integer :: i, ipe, idummy=0, ierr, ifile
-  real :: t_walk, t_walkc, t_force
+  real :: t_walk, t_walkc, t_force, t_domain,t_build,t_prefetch
 
   npp = nep+nip  ! initial # particles on this CPU
 
@@ -53,9 +53,13 @@ subroutine configure
         else
            call cold_start(nep+1,nip)
         endif
-     
+
      case(2)
-        call special_start(ispecial)
+        if (me==0) then
+           call special_start(ispecial)
+        else
+           npp=0
+        endif
 
      case default     ! Default = 0 - no plasma target
         if (me==0) write (6,*) 'Warning: no plasma set up'
@@ -94,9 +98,22 @@ subroutine configure
 
   end select beamconf
 
-
+! local and global # particles for  main routine
   np_local = npp
   npart_total = npart
- 
+
+! Compute initial field values - need these to get vec. pots consistent with velocities
+
+  if (me==0) write(*,*) 'Computing initial fields'
+  call pepc_fields_p(np_local, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
+          dt, xl, yl, zl, 0, &
+          coulomb, bfields, bonds, lenjones, &
+          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot)   
+
+!  Initialise vec. pots. to avoid jump in induced E-field
+  Axo(1:npp) = Ax(1:npp)
+  Ayo(1:npp) = Ay(1:npp)
+  Azo(1:npp) = Az(1:npp)
+
 end subroutine configure
 

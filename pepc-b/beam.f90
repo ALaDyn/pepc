@@ -24,6 +24,8 @@ subroutine beam
   
 
   if (my_rank.eq.0) then
+
+     write(*,*) 'Setting up particle beam ',r_beam,' x ',x_beam
    Volb = pi*r_beam**2*x_beam
    qeb = Volb*rho_beam/np_beam    ! charge
    dpx=x_beam/np_beam           ! x-axis spacing
@@ -62,8 +64,9 @@ subroutine beam
         pelabel(p) = npart+np_beam+i  ! labels
      endif
    end do
-   npp = npp + np_beam
   endif
+
+  npp = npp + np_beam
 
   npart = npart + np_beam  ! Augment particle numbers for all CPUs
 ! zero fields

@@ -113,6 +113,7 @@ subroutine setup
   open(10,file='run.h')
   read (10,NML=pepcdata)
 
+
   npart_total = ni+ne
 
 ! Adjust local numbers if total non-multiple of # PEs

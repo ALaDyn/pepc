@@ -16,14 +16,15 @@ subroutine special_start(iconf)
   integer, intent(in) :: iconf
   integer :: i,iseed=-17
   real :: rs,v0,gamma0,vt,xt,yt,zt,thetvel,phivel
-
-  r_beam=sigma/2.
-  gamma0=sqrt(1+vosc**2/2.)
+  real :: dpx, vx_beam, vy_beam, vz_beam, st, ct, sp, cp, volb
+  integer :: npb, p
 
   config: select case(iconf)
   case(1)  
 
      ! electron disc at x=0 with 2pi phase spread
+     r_beam=sigma/2.
+     gamma0=sqrt(1+vosc**2/2.)
 
      do while (i < nep)
         yt = r_beam*(2*rano(iseed)-1.)
@@ -46,6 +47,9 @@ subroutine special_start(iconf)
   case(2) 
 
      ! electron disc at laser focus with 2pi phase spread
+     r_beam=sigma/2.
+     gamma0=sqrt(1+vosc**2/2.)
+
 
      x_crit = focus(1)
      do while (i < nep)
@@ -109,6 +113,44 @@ subroutine special_start(iconf)
      dt=0.
      close(30)
 
+  case(5)
+
+     write (*,*) 'Preparing particle beam'
+     ! beam initialised along x-axis and rotated by theta, phi
+     npb = max(ni,ne)  ! Take whichever species switched on
+     np_beam=0 ! Discard normal beam mode (plasma+beam)
+
+     ct = cos(theta_beam)
+     st = sin(theta_beam)
+     cp = cos(phi_beam)
+     sp = sin(phi_beam)
+     vz_beam = u_beam*st
+     vx_beam = u_beam*ct*cp
+     vy_beam = u_beam*ct*sp
+     Volb = pi*r_beam**2*x_beam
+     qeb = Volb*rho_beam/npb    ! charge
+     dpx=x_beam/npb           ! x-axis spacing
+     i=0
+     do while (i < npp)
+        yt = r_beam*(2*rano(iseed)-1.)
+        zt = r_beam*(2*rano(iseed)-1.)
+
+        if (yt**2 + zt**2 <= r_beam**2 ) then
+           i = i+1
+           x(i)= start_beam + dpx*i
+           y(i) = yt + focus(2)
+           z(i) = zt + focus(3)
+           ux(i) = vx_beam
+           uy(i) = vy_beam
+           uz(i) = vz_beam
+
+        endif
+     end do
+     q(1:npp) = qeb           ! plasma electrons
+     m(1:npp) = abs(qeb*mass_beam)  ! electron mass
+
+!     write (*,'(a30/(5f13.5))') 'Beam config:', &
+!          (x(i),y(i),z(i),q(i),m(i),i=1,npp)
   end select config
 
   ex(1:npp) = 0.
