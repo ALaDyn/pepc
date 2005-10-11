@@ -32,7 +32,7 @@ subroutine diagnostics
         !     call pot_grid
         call densities
         call sum_fields
-        call vis_fields
+        call vis_fields_nbody
      endif
   endif
 

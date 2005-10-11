@@ -154,10 +154,12 @@ program pepcb
           coulomb, bfields, bonds, lenjones, &
           t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot)   
 !POMP$ INST END(fields)
+
+	if (np_error>0 .and. itime==1) call error_test(np_error)
+
      call cputime(t_start_push)
      call force_laser(1,np_local)
 
-	if (np_error>0 .and. itime==1) call error_test(np_error)
 
 !POMP$ INST BEGIN(integ)
      call integrator
