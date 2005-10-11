@@ -34,19 +34,20 @@ MPITRACE= -lsummary -lpmapi
 Q64=-q64
 FFLAGS1 = -qrealsize=8 -qsuffix=f=f90:cpp=F90 -qnosave 
 IPA=-qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
+#IPA=
 TUNE= -qarch=pwr4 -qtune=pwr4 -O4 $(IPA) 
 # $(PG) $(HPM)
 
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
-#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
-FFLAGS =  $(FFLAGS1) $(Q64) $(TUNE)
+FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
+#FFLAGS =  $(FFLAGS1) $(Q64) $(TUNE)
 DFLAGS = $(FFLAGS1) $(DB) $(Q64)
 
 #ANALYS = -lpmpi -Xm -lpat pat.cld
 
 # Setup flags for C-preprocessor
 # Use VISIT routines with XNBODY visualisation
- 
+
 
 PREPROC = -WF,-DVISIT_NBODY
 #PREPROC=
@@ -59,7 +60,7 @@ VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/loca
 #VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 
 #VISITLIBS=-L/home4/jzam04/jzam0401/tree/pepc/src  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
-XNBODYLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody2  -llvisit_nbody2
+XNBODYLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3  -llvisit_nbody2
 
 
 LMAP = -bnoquiet
@@ -89,7 +90,7 @@ CC = xlc
 
 # -------------------------------------------------------------------------------------------
 
-PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 beam_control.F90
+PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 vis_fields_nbody.F90 beam_control.F90
 
 
 MODULES.f90 =   physvars.f90 
@@ -128,7 +129,7 @@ pkojak: lpepc pepck
 
 #  preprocessor rules
 
-.F90.o: $(PPSRC.F90) 
+.F90.o: 
 	@echo "Preprocessing $<"
 	$(FC) -c $(FFLAGS) $< $(PPFLAGS)
 
