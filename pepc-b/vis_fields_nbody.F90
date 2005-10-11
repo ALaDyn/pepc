@@ -31,13 +31,13 @@ subroutine vis_fields_nbody
   amp_las = vosc*min(1.,simtime/tpulse)
 
 ! Default config
-  if (itime==1)  then
+  if (itime==1 .and. me==0)  then
 	fselect1=1
 	fselect2=0
 	fselect3=0
 	fselect4=0
         call flvisit_nbody2_check_connection(lvisit_active)
-	call flvisit_nbody2_selectfields_send(fselect1,fselect2,fselect3,fselect4)
+	call flvisit_nbody2_selectedfields_send(fselect1,fselect2,fselect3,fselect4)
   endif	
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
