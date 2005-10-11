@@ -30,14 +30,11 @@ subroutine vis_fields_nbody
   simtime = dt*(itime+itime_start)
   amp_las = vosc*min(1.,simtime/tpulse)
 
-! Default config
-  if (itime==1 .and. me==0)  then
-	fselect1=1
-	fselect2=0
-	fselect3=0
-	fselect4=0
+! Fetch user-selected config from vis
+
+  if (me==0)  then
         call flvisit_nbody2_check_connection(lvisit_active)
-	call flvisit_nbody2_selectedfields_send(fselect1,fselect2,fselect3,fselect4)
+        call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
   endif	
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
@@ -114,9 +111,9 @@ subroutine vis_fields_nbody
 
       call flvisit_nbody2_check_connection(lvisit_active)
 
-! Check for new field selections
-      call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
+! Tell vis which fields are coming
 
+	call flvisit_nbody2_selectedfields_send(fselect1,fselect2,fselect3,fselect4)
 
       if (fselect1>0) then
          call flvisit_nbody2_field1_send(field1,npx,npy,npz)  ! ion density 
