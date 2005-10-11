@@ -14,10 +14,12 @@ subroutine special_start(iconf)
   implicit none
 
   integer, intent(in) :: iconf
-  integer :: i,iseed=-17
+  integer :: i,iseed
   real :: rs,v0,gamma0,vt,xt,yt,zt,thetvel,phivel
   real :: dpx, vx_beam, vy_beam, vz_beam, st, ct, sp, cp, volb
   integer :: npb, p
+
+  iseed = -17-me
 
   config: select case(iconf)
   case(1)  
@@ -111,6 +113,7 @@ subroutine special_start(iconf)
      end do
      force_const=1.
      dt=0.
+     eps=0.
      close(30)
 
   case(5)
@@ -119,6 +122,7 @@ subroutine special_start(iconf)
      ! beam initialised along x-axis and rotated by theta, phi
      npb = max(ni,ne)  ! Take whichever species switched on
      np_beam=0 ! Discard normal beam mode (plasma+beam)
+     npp = max(nep,nip)
 
      ct = cos(theta_beam)
      st = sin(theta_beam)
@@ -137,7 +141,7 @@ subroutine special_start(iconf)
 
         if (yt**2 + zt**2 <= r_beam**2 ) then
            i = i+1
-           x(i)= start_beam + dpx*i
+           x(i)= start_beam + x_beam*rano(iseed)
            y(i) = yt + focus(2)
            z(i) = zt + focus(3)
            ux(i) = vx_beam

@@ -55,11 +55,7 @@ subroutine configure
         endif
 
      case(2)
-        if (me==0) then
-           call special_start(ispecial)
-        else
-           npp=0
-        endif
+        call special_start(ispecial)
 
      case default     ! Default = 0 - no plasma target
         if (me==0) write (6,*) 'Warning: no plasma set up'
