@@ -5,15 +5,19 @@
 #
 
 
-PREFIX = ..
 
 #DBFLAGS = -g -Rabp -ev  -q64 -qrealsize=8  -qsuffix=f=f90 -qcheck
+LDFLAGS = -q64 -qrealsize=8
 # For apprentice
 #FFLAGS =   -eA -m4 -O2,inline4
 #LDFLAGS = -lpmpi -Xm -lapp
 
+
+
 # For IBM AIX compiler
-IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
+
+
+IPA=-qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 
 #PG=-pg -g -qfullpath
 #DB= -g -qfullpath -qcheck
@@ -37,7 +41,7 @@ FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  -qnosave
 #DB = -g -check bounds -traceback
 #FFLAGS1 = -r8  ## -O3
 
-TUNE= -qarch=pwr4 -qtune=pwr4 ## -qhot ## -O5 $(IPA) 
+TUNE= -qarch=pwr4 -qtune=pwr4 -O4  $(IPA) 
 # $(PG) $(HPM)
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
 #FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
@@ -50,14 +54,16 @@ TFLAGS = $(FFLAGS) $(TUNE)
 LDFLAGS = $(MPITRACE)
 RANLIB  = ranlib
 LIBDIR  = .
-#AR      = ar -X64
-AR      = ar 
+AR      = ar -X64
+#AR      = ar 
 LIBPEPC = -L$(LIBDIR) -llpepc
 pepclib = liblpepc.a
+PREFIX = $(HOME)/tree/pepc
+
+.SUFFIXES: .f90
 
 
-
-#FC = mpxlf90_r
+FC = mpxlf90_r
 #FC = ifort
 # MPICH wrappers
 # full MPI path usually something like /usr/local/mpich/bin
@@ -77,29 +83,6 @@ F90LINKER   = mpif90
 #FC = kinst-pomp -rcfile $(PREFIX)/pepc-b/opari.rc -- mpxlf90_r
 
 # -------------------------------------------------------------------------------------------
-# BlueGene Light
-# -------------------------------------------------------------------------------------------
-BGLSYS = /bgl/BlueLight/ppcfloor/bglsys
-
-CC = /opt/ibmcmp/vac/7.0/bin/blrts_xlc
-CPPC = /opt/ibmcmp/vacpp/7.0/bin/blrts_xlc
-FC = /opt/ibmcmp/xlf/9.1/bin/blrts_xlf90
-
-# try -qarch=440 first, then use -qarch=440d for 2nd FPU later on
-#  (SIMDization requires at least -O3)
-# use -qlist -qsource with 440d and look for Parallel ASM instructions.
-#
-QTUNE = -O3 -qarch=440d -qtune=440 
-CFLAGS= -O3 -g -I$(BGLSYS)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
-FFLAGS= $(FFLAGS1) -I$(BGLSYS)/include -L$(BGLSYS)/lib ## $(QTUNE)
-DBFLAGS= -g -qfullpath
-#
-LIBS_MPI = -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
-LIBSF_MPI = -lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
-
-
-.SUFFIXES: .f90
-
 
 # Source files
 
@@ -109,8 +92,8 @@ LIBSF_MPI = -lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
 PEPCMOD.f90 =  treevars.f90 utils.f90 tree_utils.f90
 PEPCSRC.f90 =  tree_domains.f90 setup_treearrays.f90 \
 		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
-		tree_aswalk.f90 tree_cowalk.f90 tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \
-	        tree_update.f90 \
+		tree_aswalk.f90	tree_cowalk.f90 tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \
+	        tree_update.f90  sum_force_split.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 	        diagnose_tree.f90 check_table.f90 sum_lennardjones.f90 sum_bond.f90 \
 		draw_domains.f90 draw_tree2d.f90 draw_lists.f90 \
@@ -124,28 +107,28 @@ PMODS =  $(PEPCMOD.f90:.f90=.o)
 
 #  compile mode for PEPC routines 
 #
-default: lpepc
+all: pepcmods pepc
 
 #  compile mode
 .f90.o:   
 	$(FC) -c $(FFLAGS) $(INCLUDE) $(DBFLAGS) $<
 
 $(pepclib): lpepc
-lpepc:   $(PMODS) $(POBJS)
+lpepc:  $(POBJS) $(PMODS) 
 	@echo "Creating PEPC library ..."
 	rm -f liblpepc.a
 	$(AR) q liblpepc.a $(POBJS) $(PMODS)
 	$(RANLIB) liblpepc.a
 	@echo "... done"
 
-mods:   $(PMODS)
+mods:   $(MODS) 
 
 debug:	$(OBJECTS)
 	@echo "Loading object files using flags $(DBFLAGS)"
 	$(FC) $(LDFLAGS)  $(VISITLIBS) $(DBFLAGS)  -o $@ $(OBJECTS)
 
 clean:
-	/bin/rm -f liblpepc.a bin/*.o  *% *~ bin/key rand *.o *.pif core *.mod *.mod.F90 *.opari.inc 
+	/bin/rm -f liblpepc.a bin/*.o  *% *~ bin/key rand *.o *.pif core *.mod 
 
 cleanbin: /bin/rm -r pepc debug core
 
@@ -165,3 +148,51 @@ default: treemp
 # so do NOT add any translation rules below here.
 
 #--- Include-Dependencies
+
+fields.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+fields_p.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+get_address.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+setup_treearrays.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+tree_branches.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+tree_build.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+tree_domains.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+tree_fill.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+tree_prefetch.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+tree_properties.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+tree_update.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+tree_utils.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+tree_walk.o: /usr/lpp/ppe.poe/include/thread/mpif.h
+
+
+#--- Module-Dependencies
+
+check_table.o: treevars.o
+diagnose_tree.o: treevars.o
+draw2d.o: treevars.o
+draw2d_hash.o: treevars.o
+draw_domains.o: treevars.o
+draw_lists.o: treevars.o
+draw_map.o: treevars.o
+draw_tree2d.o: treevars.o
+fields.o: treevars.o
+fields_p.o: treevars.o utils.o
+get_address.o: treevars.o
+get_next_node.o: treevars.o
+get_node.o: treevars.o
+key_test.o: treevars.o
+make_hashentry.o: treevars.o
+setup_treearrays.o: treevars.o
+sum_bfield.o: treevars.o
+sum_bond.o: treevars.o
+sum_force.o: treevars.o
+sum_lennardjones.o: treevars.o
+tree_branches.o: treevars.o tree_utils.o
+tree_build.o: treevars.o
+tree_domains.o: treevars.o tree_utils.o utils.o
+tree_fill.o: treevars.o tree_utils.o
+tree_prefetch.o: treevars.o tree_utils.o
+tree_properties.o: treevars.o tree_utils.o
+tree_update.o: treevars.o tree_utils.o
+tree_walk.o: treevars.o tree_utils.o utils.o
+
+

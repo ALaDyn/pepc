@@ -280,11 +280,15 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
            Bx(p) =  force_const * bx_ind
            By(p) =  force_const * by_ind
            Bz(p) =  force_const * bz_ind
-           ! Adjust E-field with inductive term
+	endif
+
+        if (coulomb .and. bfield_on) then
+           ! Adjust E-field with inductive term if ES fields on
 	   Ex(p) = Ex(p) - (Ax(p)-Axo(p))/delta_t
 	   Ey(p) = Ey(p) - (Ay(p)-Ayo(p))/delta_t
    	   Ez(p) = Ez(p) - (Az(p)-Azo(p))/delta_t
         endif
+
         if (bonds) then
            !  compute short-range forces and potential of particle p from its interaction list
            !          call sum_bond(p, nterm(i), nodelist( 1:nterm(i),i ), fsx, fsy, fsz, phi )
