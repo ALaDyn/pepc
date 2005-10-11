@@ -40,7 +40,7 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
 
   if ( my_rank == 0 .and. debug_level.ge.1 ) then
      do ifile = 6,15,9
-        write (ifile,'(7(a20,1pe12.5/))') &
+        write (ifile,'(7(a20,1pe18.8/))') &
 	     ' P.E. = ',epot, &
 	     ' Magnetic E. = ',emag, &
 	     ' Electron K.E. = ',ekine, &
