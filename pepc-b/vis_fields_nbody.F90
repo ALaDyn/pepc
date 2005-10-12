@@ -15,7 +15,7 @@ subroutine vis_fields_nbody
   implicit none   
   include 'mpif.h'
 
-  real, dimension(ngx*ngy*ngz) :: field1, field2, field3, field4
+  real*4, dimension(ngx*ngy*ngz) :: field1, field2, field3, field4
   real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bzg
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max
   real :: box_max, az_em, ez_em, by_em, bx_em, bz_em, ex_em, ey_em, phipond
@@ -26,6 +26,7 @@ subroutine vis_fields_nbody
   integer :: npx, npy, npz, ng
   integer :: iskip_x, iskip_y, iskip_z
   integer :: fselect1,fselect2,fselect3,fselect4
+  real*4 :: grid_pars(24)  ! origins and mesh sizes of vis fields
 
   simtime = dt*(itime+itime_start)
   amp_las = vosc*min(1.,simtime/tpulse)
@@ -66,6 +67,8 @@ subroutine vis_fields_nbody
      dx = xl/ngx
      dz = zl/ngz
      dy = yl/ngy
+
+
      do k=1,ngz,iskip_z
         do j=1,ngy,iskip_y
            do i=1,ngx,iskip_x
@@ -115,6 +118,16 @@ subroutine vis_fields_nbody
 
 	call flvisit_nbody2_selectedfields_send(fselect1,fselect2,fselect3,fselect4)
 
+!  Set up vis field grid
+   do i=0,3
+     grid_pars(6*i+1:6*i+3) = 0.
+     grid_pars(6*i+4) = dx
+     grid_pars(6*i+5) = dy
+     grid_pars(6*i+6) = dz
+   end do
+
+   call flvisit_nbody2_fielddesc_send(grid_pars,4,6)
+   write(*,*) 'Grids: ',grid_pars
       if (fselect1>0) then
          call flvisit_nbody2_field1_send(field1,npx,npy,npz)  ! ion density 
       endif
