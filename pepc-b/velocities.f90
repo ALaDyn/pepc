@@ -29,7 +29,7 @@ subroutine velocities(p_start,p_finish,delta_t)
   real, dimension(nppm) :: uhx, uhy, uhz, accx, accy, accz
   real :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, Te0, Te_uncor, Ti0, Ti_uncor, chie, chii
   real :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm
-  real :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_loc
+  real :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_local
 
 !  Available ensemble modes
 !      1 = NVE - total energy conserved
@@ -166,7 +166,7 @@ subroutine velocities(p_start,p_finish,delta_t)
 
     ! Te_uncor = 0.5*(global_v2/ne - global_2v/ne**2)      !  uncorrected temperature
      Te_uncor = 511*2./3.*global_v2e/ne  ! This should equal 3/2 kT for 3v Maxwellian
-     Te_loc = 511*2./3.*sum_v2e/ne_loc
+     Te_local = 511*2./3.*sum_v2e/ne_loc
      Te0 = Te_keV  ! normalised electron temp
      chie = sqrt(abs(Te0/Te_uncor))     ! multipliers from Temperature ratio - reset once every cycle
      chie = min(1.25,max(chie,0.75))  ! Set bounds of +- 50%

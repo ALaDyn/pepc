@@ -227,7 +227,7 @@ subroutine setup
         mass_e = qi
         Qplas = abs(qi)*ni
      endif
-     a_ii = (Vplas/ni)**(1./3.)
+     a_ii = (Vplas/max(1,ni))**(1./3.)
 
   else                ! 2D - use areal density instead of volume
      if (ne > 0) then
@@ -242,7 +242,7 @@ subroutine setup
         mass_e = qi
         Qplas = abs(qi)*ni
      endif
-     a_ii = (Aplas/ni)**(1./2.) ! assume 2D slab mode
+     a_ii = (Aplas/max(1,ni))**(1./2.) ! assume 2D slab mode
   endif
 
   vti = sqrt(Ti_keV/511./mass_ratio)

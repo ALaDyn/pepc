@@ -76,6 +76,8 @@ subroutine densities
         rhoi_loc(i2,j1,k2)=rhoi_loc(i2,j1,k2) + cweight*fx2*fy1*fz2
         rhoi_loc(i1,j2,k2)=rhoi_loc(i1,j2,k2) + cweight*fx1*fy2*fz2
         rhoi_loc(i2,j2,k2)=rhoi_loc(i2,j2,k2) + cweight*fx2*fy2*fz2
+     else
+
      endif
   end do
 

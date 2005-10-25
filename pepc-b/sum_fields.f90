@@ -80,7 +80,7 @@ subroutine sum_fields
      jxweight = cweight*ux(i)/gamma/navcycle
      jyweight = cweight*uy(i)/gamma/navcycle
      jzweight = cweight*uz(i)/gamma/navcycle
-     tweight = (gamma-1.)/navcycle  ! K.E. of particle in keV
+     tweight = (gamma-1.)  ! K.E. of particle in keV
      fr1 = sqrt(fx1**2+fy1**2+fz1**2+eps**2)
      fr2 = sqrt(fx2**2+fy2**2+fz2**2+eps**2)
 
@@ -130,6 +130,16 @@ subroutine sum_fields
         jze_loc(i2,j1,k2)=jze_loc(i2,j1,k2) + jzweight*fx2*fy1*fz2
         jze_loc(i1,j2,k2)=jze_loc(i1,j2,k2) + jzweight*fx1*fy2*fz2
         jze_loc(i2,j2,k2)=jze_loc(i2,j2,k2) + jzweight*fx2*fy2*fz2
+
+        Te_loc(i1,j1,k1)=Te_loc(i1,j1,k1) + tweight*fx1*fy1*fz1
+        Te_loc(i2,j1,k1)=Te_loc(i2,j1,k1) + tweight*fx2*fy1*fz1
+        Te_loc(i1,j2,k1)=Te_loc(i1,j2,k1) + tweight*fx1*fy2*fz1
+        Te_loc(i2,j2,k1)=Te_loc(i2,j2,k1) + tweight*fx2*fy2*fz1
+        Te_loc(i1,j1,k2)=Te_loc(i1,j1,k2) + tweight*fx1*fy1*fz2
+        Te_loc(i2,j1,k2)=Te_loc(i2,j1,k2) + tweight*fx2*fy1*fz2
+        Te_loc(i1,j2,k2)=Te_loc(i1,j2,k2) + tweight*fx1*fy2*fz2
+        Te_loc(i2,j2,k2)=Te_loc(i2,j2,k2) + tweight*fx2*fy2*fz2
+
      else
        	g_ion(i1,j1,k1)=g_ion(i1,j1,k1) + fx1*fy1*fz1  ! weighted # ions
 	g_ion(i2,j1,k1)=g_ion(i2,j1,k1) + fx2*fy1*fz1
@@ -148,6 +158,16 @@ subroutine sum_fields
         rhoi_loc(i2,j1,k2)=rhoi_loc(i2,j1,k2) + cweight*fx2*fy1*fz2
         rhoi_loc(i1,j2,k2)=rhoi_loc(i1,j2,k2) + cweight*fx1*fy2*fz2
         rhoi_loc(i2,j2,k2)=rhoi_loc(i2,j2,k2) + cweight*fx2*fy2*fz2
+       ! ion temp
+        Ti_loc(i1,j1,k1)=Ti_loc(i1,j1,k1) + tweight*fx1*fy1*fz1
+        Ti_loc(i2,j1,k1)=Ti_loc(i2,j1,k1) + tweight*fx2*fy1*fz1
+        Ti_loc(i1,j2,k1)=Ti_loc(i1,j2,k1) + tweight*fx1*fy2*fz1
+        Ti_loc(i2,j2,k1)=Ti_loc(i2,j2,k1) + tweight*fx2*fy2*fz1
+        Ti_loc(i1,j1,k2)=Ti_loc(i1,j1,k2) + tweight*fx1*fy1*fz2
+        Ti_loc(i2,j1,k2)=Ti_loc(i2,j1,k2) + tweight*fx2*fy1*fz2
+        Ti_loc(i1,j2,k2)=Ti_loc(i1,j2,k2) + tweight*fx1*fy2*fz2
+        Ti_loc(i2,j2,k2)=Ti_loc(i2,j2,k2) + tweight*fx2*fy2*fz2
+
      endif
      ! Electric field - use ngp, softened 1/r^2 weight
      ex_w(i1,j1,k1)=ex_w(i1,j1,k1) + Ex(i)/fr1**2
@@ -165,12 +185,13 @@ subroutine sum_fields
   write(ipefile,*) 'density integrals: ',nelecs, nions
   g_ele = max(1.,g_ele)
   g_ion = max(1.,g_ion)
-  !  Te = .511*Te/g_ele   ! Temperature in MeV (KE per particle)
-  !  Ti = .511*mass_ratio*Ti/g_ion   ! K.E. in MeV
+  Te_loc = .511*Te_loc/g_ele   ! Temperature in MeV (KE per particle)
+  Ti_loc = .511*mass_ratio*Ti_loc/g_ion   ! K.E. in MeV
 
   Ex_loc = Ex_loc + ex_w/(g_ion+g_ele)/navcycle    ! Accumulate normalised fields
   Ey_loc = Ey_loc + ey_w/(g_ion+g_ele)/navcycle
   Ez_loc = Ez_loc + ez_w/(g_ion+g_ele)/navcycle
+
   Bz_loc = bz_w/(g_ion+g_ele)  ! Instantaneous B
 
 ! laser fields

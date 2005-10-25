@@ -7,6 +7,7 @@ module physvars
   real, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  ! E-field 
   real, allocatable ::  bx_loc(:,:,:), by_loc(:,:,:), bz_loc(:,:,:)  ! B-field 
   real, allocatable ::  jxe_loc(:,:,:), jye_loc(:,:,:), jze_loc(:,:,:)  ! elec current
+  real, allocatable ::  Te_loc(:,:,:), Ti_loc(:,:,:) ! local temps
 
   real, allocatable :: xslice(:),  yslice(:),  zslice(:), &     ! Rezoning slice
                       uxslice(:), uyslice(:), uzslice(:), &     ! velocity

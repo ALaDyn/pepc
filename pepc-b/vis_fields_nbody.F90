@@ -16,10 +16,10 @@ subroutine vis_fields_nbody
   include 'mpif.h'
 
   real*4, dimension(ngx*ngy*ngz) :: field1, field2, field3, field4
-  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bzg
+  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bzg, Telec, Tion
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max
   real :: box_max, az_em, ez_em, by_em, bx_em, bz_em, ex_em, ey_em, phipond
-  real :: epon_x, epon_y, epon_z, tpon, amp_las
+  real :: epon_x, epon_y, epon_z, tpon, amp_las, field_laser
   integer, parameter :: ngmax=100
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, iskip,itlas
   integer :: lvisit_active, ierr 
@@ -41,6 +41,10 @@ subroutine vis_fields_nbody
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
   ! Merge sums for Bz
   call MPI_ALLREDUCE(bz_loc, bzg, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(rhoe_loc, rhoe, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(rhoi_loc, rhoi, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(Te_loc, Telec, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(Ti_loc, Tion, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
   if (me==0 ) then
 
@@ -85,29 +89,80 @@ subroutine vis_fields_nbody
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond)
                  Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
                  !                 mvis(lcount) = epon_x/omega ! Pond field, EM norm
-                 field4(lcount) = phipond ! Pond potential
+                 field_laser = phipond ! Pond potential
 
               case(5)  ! propagating fpond
                  call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, &
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond)
-                 field4(lcount) = phipond ! Pond potential
+                 field_laser = phipond ! Pond potential
 
               case(14) ! Oblique incidence fpond, s-pol
                  call emobliq(tlaser,tpulse,sigma,vosc,omega,theta_beam, rho_upper, &
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond,ez_em,bx_em,by_em)
-                 field4(lcount) = ez_em**2
+                 field_laser = ez_em**2
 
               case(6) ! Plane wave
                  call emplane(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipond)
-                 field4(lcount) = by_em 
+                 field_laser = by_em 
 
               case default ! No laser
                  phipond = 0  
-                 field4(lcount) = 0.
+                 field_laser = 0.
               end select laser
 
-              field1(lcount) = rhoi(i,j,k)/omega**2   ! ion density /nc
-              field2(lcount) = 100*bzg(i,j,k)   ! Bz
+ ! Vis field selection
+              f1: select case(fselect1)
+	      case(1)  ! ion density / nc 
+                field1(lcount) = rhoi(i,j,k)/omega**2   
+	      case(2)  ! electron density / nc 
+                field1(lcount) = rhoe(i,j,k)/omega**2 
+	      case(3)  ! Ion temperature  / MeV 
+                field1(lcount) = Tion(i,j,k) 
+	      case(4)  ! Electron temperature  / MeV 
+                field1(lcount) = Telec(i,j,k) 
+	      case(5)  ! laser 
+                field1(lcount) = field_laser 
+	      end select f1
+
+              f2: select case(fselect2)
+	      case(1)  ! ion density / nc 
+                field2(lcount) = rhoi(i,j,k)/omega**2   
+	      case(2)  ! electron density / nc 
+                field2(lcount) = rhoe(i,j,k)/omega**2 
+	      case(3)  ! Ion temperature  / MeV 
+                field2(lcount) = Tion(i,j,k) 
+	      case(4)  ! Electron temperature  / MeV 
+                field2(lcount) = Telec(i,j,k) 
+	      case(5)  ! laser 
+                field2(lcount) = field_laser 
+	      end select f2
+
+              f3: select case(fselect3)
+	      case(1)  ! ion density / nc 
+                field3(lcount) = rhoi(i,j,k)/omega**2   
+	      case(2)  ! electron density / nc 
+                field3(lcount) = rhoe(i,j,k)/omega**2 
+	      case(3)  ! Ion temperature  / MeV 
+                field3(lcount) = Tion(i,j,k) 
+	      case(4)  ! Electron temperature  / MeV 
+                field3(lcount) = Telec(i,j,k) 
+	      case(5)  ! laser 
+                field3(lcount) = field_laser 
+	      end select f3
+
+              f4: select case(fselect4)
+	      case(1)  ! ion density / nc 
+                field4(lcount) = rhoi(i,j,k)/omega**2   
+	      case(2)  ! electron density / nc 
+                field4(lcount) = rhoe(i,j,k)/omega**2 
+	      case(3)  ! Ion temperature  / MeV 
+                field4(lcount) = Tion(i,j,k) 
+	      case(4)  ! Electron temperature  / MeV 
+                field4(lcount) = Telec(i,j,k) 
+	      case(5)  ! laser 
+                field4(lcount) = field_laser 
+	      end select f4
+  
            end do
         end do
      end do
@@ -127,9 +182,22 @@ subroutine vis_fields_nbody
    end do
 
    call flvisit_nbody2_fielddesc_send(grid_pars,4,6)
-   write(*,*) 'Grids: ',grid_pars
+!   write(*,*) 'Grids: ',grid_pars
       if (fselect1>0) then
-         call flvisit_nbody2_field1_send(field1,npx,npy,npz)  ! ion density 
+       	 write (*,*) "VIS_NBODY | Shipping field 1"
+         call flvisit_nbody2_field1_send(field1,npx,npy,npz)   
+      endif
+      if (fselect2>0) then
+       	 write (*,*) "VIS_NBODY | Shipping field 2"
+         call flvisit_nbody2_field1_send(field2,npx,npy,npz)   
+      endif
+      if (fselect3>0) then
+       	 write (*,*) "VIS_NBODY | Shipping field 3"
+         call flvisit_nbody2_field1_send(field3,npx,npy,npz)  
+      endif
+      if (fselect4>0) then
+       	 write (*,*) "VIS_NBODY | Shipping field 4"
+         call flvisit_nbody2_field1_send(field4,npx,npy,npz)
       endif
 
   endif
