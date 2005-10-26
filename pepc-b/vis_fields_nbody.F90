@@ -22,7 +22,7 @@ subroutine vis_fields_nbody
   real :: epon_x, epon_y, epon_z, tpon, amp_las, field_laser
   integer, parameter :: ngmax=100
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, iskip,itlas
-  integer :: lvisit_active, ierr 
+  integer :: lvisit_active=0, ierr 
   integer :: npx, npy, npz, ng
   integer :: iskip_x, iskip_y, iskip_z
   integer :: fselect1,fselect2,fselect3,fselect4
@@ -31,12 +31,22 @@ subroutine vis_fields_nbody
   simtime = dt*(itime+itime_start)
   amp_las = vosc*min(1.,simtime/tpulse)
 
-! Fetch user-selected config from vis
+#ifdef VISIT_NBODY
+  if (me==0)   call flvisit_nbody2_check_connection(lvisit_active)
+  call MPI_BCAST( lvisit_active, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+#endif
 
-  if (me==0)  then
-        call flvisit_nbody2_check_connection(lvisit_active)
-        call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
-  endif	
+  if (lvisit_active==0 )then
+     if (me==0) write(*,*) 'VIS_NBODY | No connection to visualization'
+     return
+  endif
+
+! Connected to vis, so proceed with field select & gather
+
+#ifdef VISIT_NBODY
+! Fetch user-selected config from vis
+  if (me==0) call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
+#endif
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
   ! Merge sums for Bz
@@ -167,11 +177,13 @@ subroutine vis_fields_nbody
         end do
      end do
 
+
+#ifdef VISIT_NBODY
       call flvisit_nbody2_check_connection(lvisit_active)
 
 ! Tell vis which fields are coming
 
-	call flvisit_nbody2_selectedfields_send(fselect1,fselect2,fselect3,fselect4)
+   call flvisit_nbody2_selectedfields_send(fselect1,fselect2,fselect3,fselect4)
 
 !  Set up vis field grid
    do i=0,3
@@ -189,16 +201,17 @@ subroutine vis_fields_nbody
       endif
       if (fselect2>0) then
        	 write (*,*) "VIS_NBODY | Shipping field 2"
-         call flvisit_nbody2_field1_send(field2,npx,npy,npz)   
+         call flvisit_nbody2_field2_send(field2,npx,npy,npz)   
       endif
       if (fselect3>0) then
        	 write (*,*) "VIS_NBODY | Shipping field 3"
-         call flvisit_nbody2_field1_send(field3,npx,npy,npz)  
+         call flvisit_nbody2_field3_send(field3,npx,npy,npz)  
       endif
       if (fselect4>0) then
        	 write (*,*) "VIS_NBODY | Shipping field 4"
-         call flvisit_nbody2_field1_send(field4,npx,npy,npz)
+         call flvisit_nbody2_field4_send(field4,npx,npy,npz)
       endif
+#endif
 
   endif
 
