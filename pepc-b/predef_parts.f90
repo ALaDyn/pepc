@@ -20,7 +20,7 @@ subroutine predef_parts
   character(11) :: cme
   integer :: ner, nir, np_beamr, npartr, iconf, iens, timestamp
   real :: epsr, thetar, xlr, ylr, zlr, boxr
-  real :: axdum, aydum, azdum,phidum
+  real :: axdum, aydum, azdum,phidum, bdum
   integer :: ioffset, i1, i2, npp_partial, npp_total, ipass, me_read, j, nrest, nadd
   integer :: nslice_e, nslice_i
 
@@ -151,7 +151,7 @@ subroutine predef_parts
         write(ipefile,*) 'skip pass ',j
         do i=1,npp
            read(60,*) x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i), &
-                axdum,aydum,azdum,phidum, idummy,pelabel(i)
+                axdum,aydum,azdum,phidum,bdum, idummy,pelabel(i)
            if (beam_config.eq.5 .and. q(i)>0 .and. x(i) < window_min+dt .and. x(i) > window_min) then
   ! create rezoning slice for wakefield mode - first few blocks should be sufficient
               nslice = nslice+1
@@ -163,7 +163,7 @@ subroutine predef_parts
      end do
 
      !  Now read in particles to keep
-     read(60,*) (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),axdum,aydum,azdum,phidum, &
+     read(60,*) (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),axdum,aydum,azdum,phidum,bdum, &
           idummy,pelabel(i),i=1,npp+nadd)
      close (60)
 
@@ -209,7 +209,7 @@ subroutine predef_parts
         i2 = ioffset + npp_partial
 
         !  Initialise particles: read from file
-        read(60,*) (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),axdum,aydum,azdum,phidum, &
+        read(60,*) (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),axdum,aydum,azdum,phidum,bdum, &
              idummy,pelabel(i),i=i1,i2)
 
         close (60)
