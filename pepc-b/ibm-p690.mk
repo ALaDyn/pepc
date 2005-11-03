@@ -1,0 +1,94 @@
+#  --------------------------------------------------------
+#
+#  Makefile Compiler and Library options for JUMP (IBM-p690)
+#
+#  ---------------------------------------------------------
+
+
+#  Compilers
+
+FC = mpxlf90_r
+FCPP = 
+CC = xlc
+
+# For KOJAK instrumentation
+#FC = mpxlf90_r -qdebug=function_trace
+#FC = kinst mpxlf90_r
+#FC = kinst-pomp -rcfile $(PREFIX)/pepc-b/opari.rc -- mpxlf90_r
+
+#  Library Archiver commands
+RANLIB  = ranlib
+AR      = ar -X64
+#AR      = ar 
+
+# Setup flags for C-preprocessor
+# Use VISIT routines with XNBODY visualisation
+
+PREPROC = -WF,-DVISIT_NBODY
+#PREPROC=
+
+
+
+#  Profiler information
+#PG=-pg -g -qfullpath
+#  Debug mode
+#DB= -g -qfullpath -qcheck 
+DB= -g -qfullpath 
+#  Hardware performance counter
+HPM = -lhpm
+#  Compiler listing
+LISTING=-qreport -qlist -qlistopt -qsource 
+
+Q64=-q64
+FFLAGS1 = -qrealsize=8 -qsuffix=f=f90:cpp=F90 -qnosave 
+#IPA= -qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
+#IPA=
+TUNE= -qarch=pwr4 -qtune=pwr4 -O4 $(IPA) 
+CFLAGS1 = -O3
+
+#  Symbol tables
+LMAP = -bnoquiet
+
+CFLAGS = -I/usr/local/include
+
+#  Auto dependency command for f90
+F90DEP=./f90depend -u -I/usr/lpp/ppe.poe/include/thread *.f90 *.F90
+
+
+#   	LIBRARIES
+#   ---------------------
+
+
+#  Where the PEPC library sits
+
+LIBPEPC = -L../lpepcsrc -llpepc
+
+
+#  MPI libs contained in mpxlf compiler wrappers
+
+LIBS_MPI =
+LIBSF_MPI =
+
+#  IBM library for timing routines
+
+IBMLIB = -lxlf90
+
+
+#  MPI performance library
+
+#MPITRACE= -L/usr/local/beta/lib -lmpitrace
+#MPITRACE= -L/usr/local/beta/lib -lmpiprof
+#MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
+#MPITRACE= -lmpitrace
+#MPITRACE= -lmpiprof
+MPITRACE= -lsummary -lpmapi
+#MPITRACE=  -lmpihpm -lpmapi
+
+
+# Visit libraries
+
+NETCDFLIB = -lnetcdf
+VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
+#VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
+
+XNBODYLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3  -llvisit_nbody2
