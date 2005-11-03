@@ -1,92 +1,29 @@
-# 64-bit hardware
-
 #
-#  Makefile for treemp and test programs
+#  Makefile for PEPC library kernel
 #
+#  --------------------------------
 
+#  Machine-dependent options defined in program source directory
+#  (eg: copied from pepc-b/ibm-p690.mk - see top-level makefile there)
 
+include arch.mk
 
-#DBFLAGS = -g -Rabp -ev  -q64 -qrealsize=8  -qsuffix=f=f90 -qcheck
-LDFLAGS = -q64 -qrealsize=8
-# For apprentice
-#FFLAGS =   -eA -m4 -O2,inline4
-#LDFLAGS = -lpmpi -Xm -lapp
-
-
-
-# For IBM AIX compiler
-
-
-IPA=-qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
-
-#PG=-pg -g -qfullpath
-#DB= -g -qfullpath -qcheck
-DB= -g -qfullpath
-HPM = -lhpm
-LISTING=-qreport -qlist -qlistopt -qsource 
-#MPITRACE= -L/usr/local/beta/lib -lmpitrace
-#MPITRACE= -L/usr/local/beta/lib -lmpiprof
-#MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
-#MPITRACE= -lmpitrace
-#MPITRACE= -lmpiprof
-MPITRACE= -lsummary -lpmapi
-#MPITRACE=  -lmpihpm -lpmapi
-Q64=-q64
-FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  -qnosave
-#
-
-
-# Intel compiler - must promote all floating point to real*8 or MPI will fail
-
-#DB = -g -check bounds -traceback
-#FFLAGS1 = -r8  ## -O3
-
-TUNE= -qarch=pwr4 -qtune=pwr4 -O4  $(IPA) 
-# $(PG) $(HPM)
-#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
-#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
 FFLAGS =  $(FFLAGS1) $(Q64) $(TUNE)
-TFLAGS = $(FFLAGS) $(TUNE)
-
-#ANALYS = -lpmpi -Xm -lpat pat.cld
-
-
+DBFLAGS = $(DB)
 LDFLAGS = $(MPITRACE)
-RANLIB  = ranlib
-LIBDIR  = .
-AR      = ar -X64
-#AR      = ar 
-LIBPEPC = -L$(LIBDIR) -llpepc
+
 pepclib = liblpepc.a
-PREFIX = $(HOME)/tree/pepc
 
 .SUFFIXES: .f90
 
 
-FC = mpxlf90_r
-#FC = ifort
-# MPICH wrappers
-# full MPI path usually something like /usr/local/mpich/bin
-CC          = mpicc
-CCC         = mpicxx
-F77         = mpif77
-CLINKER     = mpicc
-CCLINKER    = mpicxx
-FLINKER     = mpif77
-F90         = mpif90
-F90LINKER   = mpif90	  
-
-
-# KOJAK instrumentation
-#FC = mpxlf90_r -qdebug=function_trace
-#FC = kinst mpxlf90_r
-#FC = kinst-pomp -rcfile $(PREFIX)/pepc-b/opari.rc -- mpxlf90_r
 
 # -------------------------------------------------------------------------------------------
 
 # Source files
 
 #-------------------------------------------------------------------------------------------
+
 # Pepc library
 
 PEPCMOD.f90 =  treevars.f90 utils.f90 tree_utils.f90
@@ -103,29 +40,31 @@ POBJS = $(PEPCSRC.f90:.f90=.o)
 PMODS =  $(PEPCMOD.f90:.f90=.o)
 
 
-
+# --------------------------------------------------
 
 #  compile mode for PEPC routines 
 #
-all: pepcmods pepc
 
 #  compile mode
 .f90.o:   
 	$(FC) -c $(FFLAGS) $(INCLUDE) $(DBFLAGS) $<
 
 $(pepclib): lpepc
-lpepc:  $(POBJS) $(PMODS) 
+
+lpepc:  $(POBJS) $(PMODS) arch.mk
 	@echo "Creating PEPC library ..."
 	rm -f liblpepc.a
 	$(AR) q liblpepc.a $(POBJS) $(PMODS)
 	$(RANLIB) liblpepc.a
 	@echo "... done"
 
-mods:   $(MODS) 
+mods:   $(PMODS) 
 
 debug:	$(OBJECTS)
 	@echo "Loading object files using flags $(DBFLAGS)"
 	$(FC) $(LDFLAGS)  $(VISITLIBS) $(DBFLAGS)  -o $@ $(OBJECTS)
+
+default: lpepc
 
 clean:
 	/bin/rm -f liblpepc.a bin/*.o  *% *~ bin/key rand *.o *.pif core *.mod 
@@ -139,7 +78,7 @@ cleandata:
 	/bin/rm -f fort.* *.dat *.out *.gle 
 
 depend:
-	./f90depend -u -I/usr/lpp/ppe.poe/include/thread *.f90
+	$(F90DEP)
 
 default: treemp
 
