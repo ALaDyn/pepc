@@ -3,7 +3,7 @@
 #  Makefile Compiler and Library options for JUBL (BlueGene/L)
 #
 #  ---------------------------------------------------------
-
+ 
 #  Compilers
 
 BGLSYS = /bgl/BlueLight/ppcfloor/bglsys
@@ -20,21 +20,19 @@ FC = /opt/ibmcmp/xlf/9.1/bin/blrts_xlf90
 
 #  Library Archiver commands
 RANLIB  = ranlib
-AR      = ar -X64
+AR      = ar
 
 
 # try -qarch=440 first, then use -qarch=440d for 2nd FPU later on
 #  (SIMDization requires at least -O3)
 # use -qlist -qsource with 440d and look for Parallel ASM instructions.
 #
-QTUNE = -O3 -qarch=440d -qtune=440 
-CFLAGS1= -O3 -g -I$(BGLSYS)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
+#QTUNE = -O3  -qtune=440 -qarch=440d
+CFLAGS1= -O3 -g -I/opt/ibmcmp/vac/7.0/include -I/usr/include -I$(BGLSYS)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
 BGLFLAGS= -I$(BGLSYS)/include -L$(BGLSYS)/lib $(QTUNE)
 FFLAGS1 = $(BGLFLAGS) -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  -qnosave
 IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 DB= -g -qfullpath
-#
-Q64=-q64
 #
 
 #   	LIBRARIES

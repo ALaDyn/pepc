@@ -6,9 +6,9 @@ PREFIX = ..
 
 #  Get machine-dependent flags
 
-ARCH = ibm-p690
-# ARCH = linux
-# ARCH = bgl
+#ARCH = ibm-p690
+#ARCH = linux
+ARCH = bgl
 
 include $(ARCH).mk
 
@@ -19,10 +19,10 @@ include $(ARCH).mk
 #
 #  -----------------------------------------------------------------------------------------
 
-FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
-DFLAGS = $(FFLAGS1) $(DB) $(Q64)
+FFLAGS =  $(FFLAGS1) $(DB) $(PG) 
+DFLAGS = $(FFLAGS1) $(DB) 
 PPFLAGS = -d  $(PREPROC)
-LDFLAGS =  $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) $(MPITRACE) $(LIBS_MPI) $(LIBSF_MPI)
+LDFLAGS =  $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) $(MPITRACE) 
 CFLAGS = $(CFLAGS1)
 
 .SUFFIXES: .f90 .F90
@@ -63,9 +63,10 @@ SOURCES.f90 =    \
 
 # Names of application object files derived from sources
 
-appobjs = $(PPSRC.F90:.F90=.o) $(SOURCES.f90:.f90=.o) ncnbody.o
+appobjs = $(PPSRC.F90:.F90=.o) $(SOURCES.f90:.f90=.o) 
+ncobjs = ncnbody.o
 appmods =  $(MODULES.f90:.f90=.o)
-mods = $(appmods) $(pepcmods)
+mods = $(appmods)
 
 default: lpepc pepcb
 pkojak: lpepc pepck  
@@ -81,6 +82,11 @@ pkojak: lpepc pepck
 
 .f90.o:   
 	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) $<
+
+#  explicit rules for f90 modules to avoid conflict with built-in ones
+physvars.o: 
+	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) physvars.f90
+
 .c.o:   
 	$(CC) -c $(CFLAGS) -q64 $<
 
@@ -89,19 +95,19 @@ pkojak: lpepc pepck
 # -----------------------------------------------------------------------------------------
 #  targets
 
-pepcb:	$(appobjs) $(appmods) lpepc
+pepcb:	$(appmods) $(appobjs) lpepc
 	@echo "\n Creating pepcb ...\n"
-	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) $(IBMLIB) -o $@ $(appobjs) $(appmods) 
+	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LIBSF_MPI) 
 	@echo "... done\n"
 
-debug: $(appobjs) $(appmods) lpepc
+debug: $(appmods) $(appobjs) lpepc
 	@echo "\n Creating pepc_debug ...\n"
-	$(FC)  $(DFLAGS) $(LDFLAGS) $(LIBPEPC) $(IBMLIB) -o pepc_debug $(appobjs) $(appmods) 
-	@echo "... done\n"
+	$(FC)  $(DFLAGS) $(LDFLAGS) -o pepc_debug $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LIBSF_MPI) 
+	 @echo "... done\n"
 
-pepcb_prod:	$(appobjs) $(appmods) lpepc
+pepcb_prod:	$(appmods) $(appobjs) lpepc
 	@echo "\n Creating pepcb ...\n"
-	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) $(IBMLIB) -o $@ $(appobjs) $(appmods)
+	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LIBSF_MPI)  
 	@echo "... done\n"
 
 # Update PEPC library and headers
@@ -147,76 +153,4 @@ depend:
 # so do NOT add any translation rules below here.
 
 #--- Include-Dependencies
-
-beam_control.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-configure.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-densities.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-dump.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-dump_fields.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-force_laser.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-kinenergy.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-mc_config.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-param_dump.o: namelist.h
-pepcb.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-potenergy.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-predef_parts.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-rezone.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-setup.o: namelist.h
-setup_arrays.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-track_nc.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-velocities.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-vis_fields.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-vis_parts.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-vis_parts_nbody.o: /usr/lpp/ppe.poe/include/thread/mpif.h
-
-
-#--- Module-Dependencies
-
-add_electrons.o: physvars.o
-add_ramp.o: physvars.o
-beam.o: physvars.o
-beam_control.o: physvars.o
-beam_dust.o: physvars.o
-boundaries.o: physvars.o
-close_files.o: physvars.o
-configure.o: physvars.o
-constrain.o: physvars.o
-cutvector.o: physvars.o
-densities.o: physvars.o
-diagnostics.o: physvars.o
-double_target.o: physvars.o
-dump.o: physvars.o
-dump_fields.o: physvars.o
-earth_plate.o: physvars.o
-energy_cons.o: physvars.o
-face.o: physvars.o
-force_laser.o: physvars.o
-forces.o: physvars.o
-integrator.o: physvars.o
-kinenergy.o: physvars.o
-laser.o: physvars.o
-mc_config.o: physvars.o
-open_files.o: physvars.o
-param_dump.o: physvars.o
-pepcb.o: physvars.o
-potenergy.o: physvars.o
-predef_parts.o: physvars.o
-push.o: physvars.o
-push_em.o: physvars.o
-push_full3v.o: physvars.o
-randion.o: physvars.o
-reset_ions.o: physvars.o
-rezone.o: physvars.o
-scramble_v.o: physvars.o
-setup.o: physvars.o
-setup_arrays.o: physvars.o
-special_start.o: physvars.o
-sum_fields.o: physvars.o
-track_nc.o: physvars.o
-velocities.o: physvars.o
-vis_domains_nbody.o: physvars.o
-vis_fields.o: physvars.o
-vis_parts.o: physvars.o
-vis_parts_nbody.o: physvars.o
-
 
