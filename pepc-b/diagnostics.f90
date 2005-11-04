@@ -13,9 +13,9 @@ subroutine diagnostics
 
   use treevars
   use physvars
+  implicit none
   include 'mpif.h'
 
-  implicit none
   integer :: i,lvisit_active, ifile, ierr
   integer :: max_fetches, max_reqs, max_sum_fetches, max_sum_ships,max_local_f, max_local_r, sum_local_f
 
