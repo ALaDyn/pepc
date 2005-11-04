@@ -83,8 +83,6 @@ Linux PC:	./eqm_linux.sh
 TODO:
 ----
 
-1. Generalise interface 'fields' to parallel mode - currently only works
-for single CPU because of particle resorting.
 
 2. Alternative interface utilising internal particle arrays in lpepc
    (avoiding resort) - need this for PEGS application (astro). 

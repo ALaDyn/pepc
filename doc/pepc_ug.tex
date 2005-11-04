@@ -1,0 +1,69 @@
+
+Input parameters and switches
+-----------------------------
+
+Plasma configuration:  plasma_config
+--------------------
+ 0   no plasma
+ 
+ 1   plasma with randomly placed particles according to geometry
+
+ 2    special  - user-defined particle positions/velo specified through 
+    special_start(ispecial)
+                1,2=disc;
+	        3=box with velocities in x,y plane (B test)
+		4=config from file for FMM comparisons (x,y,z,q)
+		5=particle beam with np_beam=max(ne,ni)
+
+Geometries:  target_geometry
+----------
+       'slab      ', &
+       'sphere    ','disc      ','wire      ','ellipsoid ','wedge     ', &
+       'hemisphere','hollow sph','hollow hsp','          ','special   ' /)
+
+Integrator schemes:  scheme
+------------------
+ 1 'const U'
+ 2 'Te, Ti '
+ 3 'global Te'
+ 4  'local  Te'i
+ 5  'Ti only'i
+ 6  'Full 3V' 
+
+
+Particle, laser beam or external fields:   beam_config_in
+---------------------------------------------------------
+  External field selected in routine force_laser
+  after internal fields computed in pepc_fields
+
+ default:  
+ 0	 beam/external fields off
+
+ 1    Fixed cylindrical beam
+
+ 2    Constant particle source
+
+ 8    Dust particle
+
+ laser model: 3-5
+
+ 3   Uniform sinusoid in z (s-pol)
+       Epon_z = vosc*omega*sin(omega*tlaser)
+
+ 4   Standing wave ponderomotive force
+        fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper )
+
+     Special cases:
+  	94   standing wave fpond with transverse fields artificially reduced
+              epon_y=epon_y/100.
+              epon_z=epon_z/100.
+
+        14   oblique incidence standing wave, s-pol
+             emobliq( tlaser, tpulse,sigma,vosc,omega,theta_beam,rho_upper)
+
+TODO:   24   oblique incidence standing wave, p-pol
+
+ 5  Propagating fpond - wakefield mode
+        laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega)
+
+6   Uniform Bz
