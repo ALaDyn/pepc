@@ -6,9 +6,9 @@ PREFIX = ..
 
 #  Get machine-dependent flags
 
-#ARCH = ibm-p690
+ARCH = ibm-p690
 #ARCH = linux
-ARCH = bgl
+#ARCH = bgl
 
 include $(ARCH).mk
 

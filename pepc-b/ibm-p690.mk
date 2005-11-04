@@ -24,8 +24,7 @@ AR      = ar -X64
 # Setup flags for C-preprocessor
 # Use VISIT routines with XNBODY visualisation
 
-PREPROC = -WF,-DVISIT_NBODY
-#PREPROC=
+#PREPROC = -WF,-DVISIT_NBODY
 
 
 
@@ -39,11 +38,10 @@ HPM = -lhpm
 #  Compiler listing
 LISTING=-qreport -qlist -qlistopt -qsource 
 
-Q64=-q64
-FFLAGS1 = -qrealsize=8 -qsuffix=f=f90:cpp=F90 -qnosave 
+FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90:cpp=F90 -qnosave 
 #IPA= -qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 #IPA=
-TUNE= -qarch=pwr4 -qtune=pwr4 -O4 $(IPA) 
+#TUNE= -qarch=pwr4 -qtune=pwr4 -O4 $(IPA) 
 CFLAGS1 = -O3
 
 #  Symbol tables
