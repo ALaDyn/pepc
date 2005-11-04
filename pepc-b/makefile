@@ -6,8 +6,8 @@ PREFIX = ..
 
 #  Get machine-dependent flags
 
-ARCH = ibm-p690
-#ARCH = linux
+#ARCH = ibm-p690
+ARCH = linux
 #ARCH = bgl
 
 include $(ARCH).mk
@@ -95,19 +95,19 @@ physvars.o:
 # -----------------------------------------------------------------------------------------
 #  targets
 
-pepcb:	$(appmods) $(appobjs) lpepc
+pepcb:	$(appmods) $(appobjs) liblpepc.a
 	@echo "\n Creating pepcb ...\n"
-	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LIBSF_MPI) 
+	$(FC)  $(FFLAGS)  -o $@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI) 
 	@echo "... done\n"
 
 debug: $(appmods) $(appobjs) lpepc
 	@echo "\n Creating pepc_debug ...\n"
-	$(FC)  $(DFLAGS) $(LDFLAGS) -o pepc_debug $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LIBSF_MPI) 
+	$(FC)  $(DFLAGS)  -o pepc_debug $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI) 
 	 @echo "... done\n"
 
 pepcb_prod:	$(appmods) $(appobjs) lpepc
 	@echo "\n Creating pepcb ...\n"
-	$(FC)  $(FFLAGS) $(LDFLAGS) -o $@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LIBSF_MPI)  
+	$(FC)  $(FFLAGS)  -o $@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI)  
 	@echo "... done\n"
 
 # Update PEPC library and headers
