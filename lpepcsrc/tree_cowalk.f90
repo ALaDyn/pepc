@@ -479,7 +479,7 @@ endif
         end do
 
         !  Keep record of requested child keys - exclude dummy
-	if (key_child(1)<>0) then
+	if (key_child(1) .ne. 0) then
           nreqs_total(ipe) = nreqs_total(ipe) + nchild  ! Cummulative total of # children shipped
 	  requested_keys(sum_ships+1:sum_ships+nchild) = key_child(1:nchild)  ! Keep record of multipole ships
 	  requested_owner(sum_ships+1:sum_ships+nchild) = ipe  ! where requests came from
