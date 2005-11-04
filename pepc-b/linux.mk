@@ -16,7 +16,7 @@ FLINKER     = mpif77
 F90         = mpif90
 F90LINKER   = mpif90	  
 FC = $(F90)
-
+CPP = /usr/bin/cpp
 
 # KOJAK instrumentation
 #FC = mpxlf90_r -qdebug=function_trace
@@ -29,7 +29,7 @@ AR      = ar
 
 #  Put compiler optimisation in here
 QTUNE = -O3 
-CFLAGS1= -O3 -g 
+CFLAGS1= -O3 -g -I/usr/local/include 
 FFLAGS1 = $(QTUNE) -r8 
 #  Debug options
 #DB = -g -check bounds -traceback

@@ -8,7 +8,7 @@
 #  Compilers
 
 FC = mpxlf90_r
-FCPP = 
+CPP = /usr/lib/cpp 
 CC = xlc
 
 # For KOJAK instrumentation
@@ -25,6 +25,7 @@ AR      = ar -X64
 # Use VISIT routines with XNBODY visualisation
 
 #PREPROC = -WF,-DVISIT_NBODY
+PREPROC = -DVISIT_NBODY
 
 
 
@@ -42,12 +43,11 @@ FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90:cpp=F90 -qnosave
 #IPA= -qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 #IPA=
 #TUNE= -qarch=pwr4 -qtune=pwr4 -O4 $(IPA) 
-CFLAGS1 = -O3
+CFLAGS1 = -O3 -I/usr/local/include
 
 #  Symbol tables
 LMAP = -bnoquiet
 
-CFLAGS = -I/usr/local/include
 
 #  Auto dependency command for f90
 F90DEP=./f90depend -u -I/usr/lpp/ppe.poe/include/thread *.f90 *.F90

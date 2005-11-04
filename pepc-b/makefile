@@ -6,8 +6,8 @@ PREFIX = ..
 
 #  Get machine-dependent flags
 
-#ARCH = ibm-p690
-ARCH = linux
+ARCH = ibm-p690
+#ARCH = linux
 #ARCH = bgl
 
 include $(ARCH).mk
@@ -21,7 +21,7 @@ include $(ARCH).mk
 
 FFLAGS =  $(FFLAGS1) $(DB) $(PG) 
 DFLAGS = $(FFLAGS1) $(DB) 
-PPFLAGS = -d  $(PREPROC)
+PPFLAGS = $(PREPROC)
 LDFLAGS =  $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) $(MPITRACE) 
 CFLAGS = $(CFLAGS1)
 
@@ -35,11 +35,11 @@ CFLAGS = $(CFLAGS1)
 # -------------------------------------------------------------------------------------------
 
 PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 vis_fields_nbody.F90 beam_control.F90
-
+PPSRC.f90 = $(PPSRC.F90:.F90=.f90) # processed source files 
 
 MODULES.f90 =   physvars.f90 
 
-SOURCES.f90 =    \
+SOURCES.f90 =   \
                 setup.f90 setup_arrays.f90 stamp.f90 \
                 configure.f90 randion.f90 predef_parts.f90 maxwell1.f90 cold_start.f90 \
                 special_start.f90 constrain.f90 cutvector.f90 face.f90 \
@@ -63,8 +63,8 @@ SOURCES.f90 =    \
 
 # Names of application object files derived from sources
 
-appobjs = $(PPSRC.F90:.F90=.o) $(SOURCES.f90:.f90=.o) 
 ncobjs = ncnbody.o
+appobjs = $(PPSRC.F90:.F90=.o) $(SOURCES.f90:.f90=.o) $(ncobjs) 
 appmods =  $(MODULES.f90:.f90=.o)
 mods = $(appmods)
 
@@ -74,9 +74,9 @@ pkojak: lpepc pepck
 
 #  preprocessor rules
 
-.F90.o: 
+.F90.f90: 
 	@echo "Preprocessing $<"
-	$(FC) -c $(FFLAGS) $< $(PPFLAGS)
+	$(CPP)  $(PPFLAGS) $< $@
 
 #  compile rules
 
@@ -134,7 +134,8 @@ rand:	 rantest.o
 
 
 clean:
-	/bin/rm -f bin/*.o  F* *% *~ bin/key rand *.o *.pif core *.a *.mod opari.rc *.mod.F90 *.opari.inc
+	@echo "Cleaning binaries .."; /bin/rm -f bin/*.o   *% *~ bin/key rand *.o *.pif core *.a *.mod opari.rc *.mod.F90 *.opari.inc
+	@echo "Cleaning postprocessed sources .."; /bin/rm -f  $(PPSRC.f90)
 
 cleanlib: 
 	cd ../lpepcsrc;	/bin/rm -f *.o *.mod.F90 *.opari.inc; cd -
