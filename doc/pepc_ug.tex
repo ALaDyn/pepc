@@ -1,69 +1,475 @@
+\documentclass[12pt,psfig]{article}
+\setlength{\textheight}{21.80cm}
+\setlength{\textwidth}{15.20cm}
+\setlength{\oddsidemargin}{0cm}
+\usepackage{graphicx}
+%\usepackage{graphics}
+\usepackage{longtable}
+\usepackage{dcolumn}% Align table columns on decimal point
+\usepackage{color}
+\usepackage{underscore}
 
-Input parameters and switches
------------------------------
+\renewcommand{\theequation}{\thesection.\arabic{equation}}
+\renewcommand{\baselinestretch}{1.1}
+ %  MACROS:
 
-Plasma configuration:  plasma_config
---------------------
- 0   no plasma
+\def\mco{\multicolumn}
+\def\epp{\epsilon^{\prime}}
+\def\vep{\varepsilon}
+\def\ra{\rightarrow}
+\def\ppg{\pi^+\pi^-\gamma}
+\def\vp{{\bf p}}
+
+\def\be{\begin{equation}}
+\def\ee{\end{equation}}
+\def\bi{\begin{enumerate}}
+\def\ei{\end{enumerate}}
+\def\bes{\[}
+\def\ees{\]}
+\def\bea{\begin{eqnarray}}
+\def\eea{\end{eqnarray}}
+\def\bar{\begin{eqnarray*}}
+\def\ear{\end{eqnarray*}}
+\def\CPbar{\hbox{{\rm CP}\hskip-1.80em{/}}}%temp replacement due to no font
+
+\newcommand{\pepc}{{\sc pepc}}
+\newcommand{\bm}[1]{\mbox{\boldmath$#1$}}
+\newcommand{\dbyd}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\dd}[2]{\frac{d #1}{d #2}}
+\newcommand{\ddt}[1]{\frac{d #1}{d t}}
+\newcommand{\curl}{\nabla\bm{\times}}
+\newcommand{\half}{{1/2}}
+\newcommand{\third}{{1/3}}
+\newcommand{\quarter}{{1/4}}
+\newcommand{\fhalf}{\frac{1}{2}}
+\newcommand{\fthreehalf}{\frac{3}{2}}
+\newcommand{\fthird}{\frac{1}{3}}
+\newcommand{\threehalf}{{3/2}}
+\newcommand{\fourthirdpi}{\frac{4\pi}{3}}
+\newcommand{\rootpi}{\pi^{\half}}
+\newcommand{\Dx}{\Delta x}
+\newcommand{\Dt}{\Delta t}
+\newcommand{\rij}{\bm{r}_{ij}}
+
+\newcommand{\onemd}{(1-\delta^2)^{\frac{1}{2}}}
+\newcommand{\omp}{$\omega_{p}$}
+\newcommand{\ompom}{$\omega_{p}/\omega_{0}$}
+\newcommand{\cop}{$c/\omega_{p}$}
+\newcommand{\Lola}{$L/\lambda$}
+\newcommand{\lola}{$L/\lambda$}
+\newcommand{\Ilam}{$I\lambda^{2}$}
+\newcommand{\Wcmu}{~Wcm$^{-2}\mu$m$^{2}$}
+\newcommand{\Wcm}{~Wcm$^{-2}$}
+\newcommand{\wcm}{~Wcm$^{-2}$}
+\newcommand{\Weight}{$10^{18}$~Wcm$^{-2}$}
+\newcommand{\Wnine}{$10^{19}$~Wcm$^{-2}$}
+\newcommand{\Jcm}{~Jcm$^{-2}$}
+\newcommand{\nonc}{$n_{e}/n_{c}$}
+\newcommand{\voc}{$v_{os}/c$}
+\newcommand{\vteoc}{$v_{te}/c$}
+\newcommand{\vte}{$v_{te}$}
+\newcommand{\cmcub}{~cm$^{-3}$}
+\newcommand{\gcm}{~gcm$^{-3}$}
+\newcommand{\mum}{~$\mu$m}
+\newcommand{\cross}{\bm{\times}}
+\newcommand{\crossb}{\bm{\times}}
+\newcommand{\vcrossb}{$\bm{v\times B}$}
+
+
+\newcommand{\etal}{\textit{et al.}}
+\newcommand{\eq}[1]{Eq.~(\ref{#1})}
+\newcommand{\vxB}{\bm{v\times B}}
+\newcommand{\jxB}{\bm{j\times B}}
+%\newcommand{\deg}{$^\circ$}
+\newcommand{\kalpha}{K$_\alpha$}
+\newcommand{\eminus}{e$^{-}$}
+
+\newcommand{\upbox}[1]{^{\mbox{\scriptsize\rm #1}}}
+\newcommand{\downbox}[1]{_{\mbox{\scriptsize\rm #1}}}
+\newcommand{\nph}{^{n+\frac{1}{2}}}
+\newcommand{\nmh}{^{n-\frac{1}{2}}}
+\newcommand{\np}{^{n+1}}
+\newcommand{\nm}{^{n-1}}
+\newcommand{\mpo}{^{m+1}}
+\newcommand{\mmo}{^{m-1}}
+\newcommand{\mph}{^{m+\frac{1}{2}}}
+\newcommand{\mmh}{^{m-\frac{1}{2}}}
+\newcommand{\ip}{_{i+1}}
+\newcommand{\im}{_{i-1}}
+\newcommand{\jp}{_{j+1}}
+\newcommand{\jm}{_{j-1}}
+\newcommand{\iph}{_{i+\frac{1}{2}}}
+\newcommand{\imh}{_{i-\frac{1}{2}}}
+\newcommand{\jph}{_{j+\frac{1}{2}}}
+\newcommand{\jmh}{_{j-\frac{1}{2}}}
+\newcommand{\hs}[1]{\hspace{#1 cm}}
+\newenvironment{cols}[9]{
+\begin{tabbing}
+\hspace{.5cm} \= \hspace{3.5cm} \= \hspace{3.5cm} \= \\ \> \texttt{#1} \> \texttt{#2} \> \texttt{#3} \\ \> \texttt{#4} \> \texttt{#5} \> \texttt{#6} \\ \> \texttt{#7} \> \texttt{#8} \> \texttt{#9}}
+{\end{tabbing}}
+
+\title{PEPC User Guide\\}
+\author{\\ Paul Gibbon \\ \\ \\
+John von Neumann Institute for Computing, ZAM,\\
+Forschungszentrum J\"ulich GmbH, D--52425 J\"ulich, Germany\\ \\  {\tt p.gibbon@fz-juelich.de} \\\\
+}
+
+
+\begin{document}
+
+\maketitle
+\pagebreak
+
+\begin{tableofcontents}
+%%%%% Need not to input any data here. 
+%%%%% System will input automatically.
+\end{tableofcontents}
+
+\pagebreak
+
+\section{Introduction}
+\normalsize
+PEPC --- Pretty Efficient Parallel Coulomb-solver --- is a parallel tree-code 
+for rapid computation of long-range Coulomb forces, based on the original
+Barnes-Hut (sequential) algorithm and using concepts taken from the
+Warren-Salmon `Hashed Oct Tree' scheme.  A description of the algorithm can be
+found in the technical report pepc\_alg.ps and some recent variations of the parallel tree
+traversal routine in parco05.pdf, a reprint from the ParCo 2005 conference proceedings.
+
+\medskip\noindent
+The public version is divided into kernel routines and `front-end'
+applications, which after unpacking the tarball and going to the installation
+directory (e.g.: {\tt \$HOME/pepc}) should be structured as follows:
+\begin{tabbing}
+\hspace{1cm} \= \hspace{4cm} \= \hspace{1cm} \\
+\> \texttt{lpepcsrc} \> kernel library routines for {\tt lpepc}\\
+\> \texttt{pepc-b} \> source code for laser-plasma application \\
+\> \texttt{tutorial} \> example run directory for {\tt pepcb}\\
+\> \texttt{pepc-e} \> source code for simple MD demo program \\
+\> \texttt{doc} \> documentation
+\end{tabbing}
+
+\noindent 
+The physical model for the laser-plasma application is described in the Physics of Plasmas reprint pop04.pdf.
+
+
+\section{Compiling {\sc pepc}} 
+
+The source code for the tree kernel routines (fortran-90) resides in directory
+lpepcsrc, but is designed to be compiled from the application directory where
+all the machine-dependent options are determined.
+
+\medskip\noindent
+To build the laser-plasma application {\tt pepcb}, first go to the directory
+{\tt pepc-b} and edit the {\tt makefile} to choose the {\tt ARCH} macro closest to your machine:
+
+\begin{tabbing}
+\hspace{1cm} \= \hspace{3cm} \= \hspace{1cm} \=\\
+\> \texttt{linux.mk} \> ... \> Linux-based PC\\
+\> \texttt{ibm-p690.mk} \> ... \> IBM p690 Regatta (Power4)\\
+\> \texttt{bgl.mk} \> ... \> BlueGene/L 
+\end{tabbing}
+
+\noindent
+You will also probably need to change the compilers (FC, CC) and flags
+(FFLAGS1), and turn libraries on/off as needed.
+Once you are satisfied with the compiler options and libraries, do:
+
+\begin{verbatim}
+   > make clean cleanlib
+   > make
+\end{verbatim}
+
+\noindent
+The library and front end can also be compiled individually with:
+\begin{verbatim}
+   > make lpepc
+   > make pepcb
+\end{verbatim}
  
+\noindent
+The library should always be compiled first because header files are needed by
+{\tt pepcb}, and this step ensures that these are copied over (or freshly
+linked) from the {\tt lpepcsrc} directory.
+
+\medskip\noindent
+At this point there may well be linker errors because of missing
+libraries, such as MPI or from VISIT/XNBODY, the visualisation packages.  MPI is
+currently a prerequisite, even if the code is run on a single processor.  For
+single-CPU Linux users, this means installing the {\tt mpich} package first, available on
+most distributions.  The compiler `wrappers' (mpif90 etc.) may need tweeking
+after installation to select the right compiler (must be F90).
+
+\medskip\noindent
+If the VISIT or XNBODY libraries are not installed or are not needed, they can
+be turned off by commenting out the PREPROC and VISITLIBS macros in the arch.mk file.
+
+
+
+\section{Running the code}
+
+Before running \textsc{pepc} you need to create a run directory with a
+particular structure to accommodate the output data produced.  One such run
+directory {\tt tutorial} is supplied, which can be copied to create new
+projects. Because the
+code is designed with very large $(P>1000)$ numbers of processors in mind,
+each CPU has its own subdirectory for dumping particle data and placing
+diagnostic output.  These are in the {\tt data} subdirectory with labels
+{\tt pe0000, pe0001} etc., so that a listing will look something like this:
+\begin{verbatim}
+   > cd  $(PEPC_HOME)/tutorial
+   > ls -l data
+   total 2176
+   -rw-------   1 jzam0401 jzam04          112 Nov 04 10:35 PE_list
+   -rw-------   1 jzam0401 jzam04          112 Nov 04 10:35 PE_newlist
+   drwx------   2 jzam0401 jzam04        32768 Nov 04 10:35 pe0000
+   drwx------   2 jzam0401 jzam04        32768 Nov 04 10:35 pe0001
+   drwx------   2 jzam0401 jzam04        32768 Nov 04 10:35 pe0002
+   drwx------   2 jzam0401 jzam04        32768 Nov 04 10:35 pe0003
+   drwx------   2 jzam0401 jzam04        32768 Nov 04 10:35 pe0004
+   drwx------   2 jzam0401 jzam04        32768 Nov 04 10:35 pe0005
+   drwx------   2 jzam0401 jzam04        32768 Nov 04 10:35 pe0006
+   drwx------   2 jzam0401 jzam04        32768 Nov 04 10:35 pe0007
+\end{verbatim}
+
+\noindent 
+The file {\tt PE\_list}, also to be found in the run directory itself, contains
+a list of subdirectories.  This is used by bookkeeping scripts to assist in handling the
+output data and maintain the file structure (see Sec.~\ref{output}).
+ 
+\medskip\noindent
+Input parameters are currently read in via a Fortran namelist, whose members
+are given in {\tt pepc-b/namelist.h} and defined in pepc-b/physvars.f90.  This has the advantage of relatively
+flexible formatting of the variables, not all of which have to be present.
+Many of the switches have default settings such that they can be ignored if
+not needed.  A full explanation of the input parameters is given in
+Sec.~\ref{inputs}. The input deck itself, e.g.: {\tt eqm.h}, looks something
+like this:
+\small
+\begin{verbatim}
+ &pepcdata
+
+! particles
+  ne = 4000
+  ni = 4000
+
+ plasma_config = 1  ! set up plasma target
+ target_geometry = 1   ! sphere
+
+! physics stuff
+
+  theta = 0.5
+  Te_keV = 0.5 ! Temperatures in keV
+  Ti_keV =0.
+  mass_ratio = 500.
+  q_factor = 1.
+  coulomb = .true.
+  lenjones = .false.
+  bond_const = 2.e-3
+  r_sphere = 4
+  x_plasma = 1.    ! plasma disc thickness/ wire length
+  y_plasma = 2.     ! plasma width (slab target)
+  z_plasma = 2.     ! plasma width (slab target)
+  xl = 5  ! graphics box size
+  yl =5
+  zl =5
+
+! beam
+  beam_config_in=0  ! uniform, sinusoid
+  vosc = 0.1
+  omega = 0.5
+  sigma = 6.
+  tpulse = 20.
+  lambda = 1.0   ! Wavelength in microns
+
+! control
+  nt =500
+  dt = 0.3
+  eps = 2.5
+  restart = .false.
+  vis_on = .false.
+  steering = .false.
+  ivis = 5
+  ivis_fields = 5000
+  idump = 4000
+  iprot=2
+  itrack=300
+  particle_bcs = 1
+  scheme = 1 /
+\end{verbatim}
+
+\normalsize
+
+\noindent
+To start the run script:
+\begin{verbatim}
+   > ./eqm.sh
+\end{verbatim}
+
+\noindent
+This example will set up a random plasma sphere of radius 2 $c/\omega_p$ comprising 4000 electrons and
+4000 ions, having initial temperatures of 500~eV and 0~eV respectively. The
+ion mass is 2000 times larger than the electron mass, or more correctly:
+$Zm_e/m_i = 1/2000$.  The laser/particle beam is switched off, so the system
+will simply adjust until the electrons are in thermal equilibrium.
+
+\section{Input parameters and switches \label{inputs}}
+
+\subsection{Plasma configuration:  {\tt plasma\_config}}
+\begin{verbatim}
+ 0   no plasma
  1   plasma with randomly placed particles according to geometry
-
  2    special  - user-defined particle positions/velo specified through 
-    special_start(ispecial)
+      call to special_start(ispecial), where ispecial means:
                 1,2=disc;
-	        3=box with velocities in x,y plane (B test)
-		4=config from file for FMM comparisons (x,y,z,q)
-		5=particle beam with np_beam=max(ne,ni)
+                3=box with velocities in x,y plane (B test)
+                4=config from file for FMM comparisons (x,y,z,q)
+                5=particle beam with np_beam=max(ne,ni)
+\end{verbatim}
 
-Geometries:  target_geometry
-----------
-       'slab      ', &
-       'sphere    ','disc      ','wire      ','ellipsoid ','wedge     ', &
-       'hemisphere','hollow sph','hollow hsp','          ','special   ' /)
+\subsection{Geometries:  {\tt target\_geometry}}
+\begin{verbatim}
+    0  slab with dimensions:   x_plasma * y_plasma * z_plasma
+    1  sphere radius r_sphere
+    2  disc, radius r_sphere, thickness x_plasma
+    3  wire, radius r_sphere, length z_plasma
+    4  ellipsoid, radii x_plasma, y_plasma, z_plasma
+    5  wedge, flat side y_plasma * z_plasma, depth x_plasma
+    6  hemisphere, radius r_sphere
+    7  spherical shell,  radius r_sphere, thickness x_plasma
+    8  hemispherical shell, radius r_sphere, thickness x_plasma
+    9  not defined
+   10  not defined 
+\end{verbatim}
 
-Integrator schemes:  scheme
-------------------
- 1 'const U'
- 2 'Te, Ti '
- 3 'global Te'
- 4  'local  Te'i
- 5  'Ti only'i
- 6  'Full 3V' 
+\subsection{Integrator schemes:  {\tt scheme}}
+\begin{verbatim}
+    1  conserve total energy
+    2  constant Te and Ti 
+    3  global Te conserved
+    4  local  Te conserved
+    5  Ion temperature Ti moderated (for artificial Lennard-Jones mode) 
+    6  Full 3V electromagnetic Boris pusher  
+\end{verbatim}
 
+\subsection{Particle, laser beam or external fields:   {\tt beam\_config\_in}}
+  External field selected in routine {\tt force\_laser}
+  after internal fields computed in {\tt pepc\_fields}
 
-Particle, laser beam or external fields:   beam_config_in
----------------------------------------------------------
-  External field selected in routine force_laser
-  after internal fields computed in pepc_fields
+\begin{verbatim}
 
  default:  
- 0	 beam/external fields off
-
- 1    Fixed cylindrical beam
-
- 2    Constant particle source
-
- 8    Dust particle
+     0    beam/external fields off
+     1    Fixed cylindrical particle beam
+     2    Constant particle source
+     8    Dust particle
 
  laser model: 3-5
 
- 3   Uniform sinusoid in z (s-pol)
-       Epon_z = vosc*omega*sin(omega*tlaser)
-
- 4   Standing wave ponderomotive force
-        fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper )
-
-     Special cases:
-  	94   standing wave fpond with transverse fields artificially reduced
+      3   Uniform sinusoid in z (s-pol)
+                Epon_z = vosc*omega*sin(omega*tlaser)
+      4   Standing wave ponderomotive force, normally incident
+                function call: fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper )
+                tpulse  FWHM sin^2 pulse duration (in wp**-1)
+                sigma   FWHM spot size (c/omega_p**-1)
+                vosc    pump strength p_osc/m_e c
+                omega   normalized laser frequency omega_0/omega_p
+ 
+    Special cases:
+     94   standing wave fpond with transverse fields artificially reduced
               epon_y=epon_y/100.
               epon_z=epon_z/100.
 
-        14   oblique incidence standing wave, s-pol
+     14   oblique incidence standing wave, s-pol
              emobliq( tlaser, tpulse,sigma,vosc,omega,theta_beam,rho_upper)
 
-TODO:   24   oblique incidence standing wave, p-pol
+TODO: 24   oblique incidence standing wave, p-pol
 
- 5  Propagating fpond - wakefield mode
-        laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega)
+      5  Propagating fpond - wakefield mode
+            laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega)
+      6   Uniform Bz
 
-6   Uniform Bz
+\end{verbatim}
+
+\subsection{Run control: I/O switches}
+
+\begin{verbatim}
+
+  restart       (.false.)   restart switch: config read from parts_all.in
+  coulomb       (.true.)    compute Coulomb forces
+  bfields       (.false.)   include magnetic fields - not yet implemented
+  lenjones      (.false.)   include short-range Lennard-Jones potential
+  vis_on        (.true.)    online visualisation on/off
+  steering      (.false.)   VISIT steering switch
+  target_dup    (.false.)   target duplication switch
+  ramp          (.false.)   profile-ramp switch
+  mc_init       (.false.)   MC initialisation switch
+
+
+  idim=3  ! # dimensions (velocity and position updates)
+
+  scheme =      (1)  integrator scheme switch: 2-4= const. Te dynamics, 6=EM
+  particle_bcs  (1)  particle BC switch: 1=open, 2=reflective
+  debug_level   (1)  debug level for printed O/P
+  debug_tree    (0)  debug level for tree diagnostics O/P
+  ncpu_merge    (1)  restart control: -1 = split single particle data file amoung all CPUs
+                                       1 = 1 file/CPU
+                                       N = merge N files per CPU
+  np_error      (1)   # particles in error test sample
+  mc_steps      (1)   # steps in MC mode
+
+
+   dt                   timestep
+   nt                   # timesteps 
+   idump                particle dump output frequency (timesteps)
+   iprot        (1)     protocoll frequency
+   ivis         (5)     frequency for particle shipping to VISIT
+   ivis_fields  (10)    frequency for field shipping to VISIT
+   ivis_domains (10)    frequency for domain shipping to VISIT
+   itrack               frequency for computing ion density (tracking)
+   ngx, ngy, ngz        grid dimensions for field dumps
+
+ ! tree stuff
+   theta                (0.5)   clumping parameter
+   force_tolerance      (1.)    permitted error in force calculation (not yet implemented)
+   mac                  (0)     tree walk switch:  0 = asynchronous  (see ParCo paper)
+                                                   1 = collective
+                                                   2 = prefetch
+                                                   3 = freeze mode
+   balance              (1)     load balancing switch:  0 = balance # particles
+                                                        1 = balance interaction lists
+   ifreeze              (1)     tree-rebuild frequency in freeze mode (mac=3)
+
+
+\end{verbatim}
+
+
+
+\section{Handling the output data \label{output}}
+
+\subsection{Global histories}
+
+\subsection{Particle data checkpoints}
+
+\subsection{Gridded data}
+
+\section{Using the GMT imaging software for 2D plots}
+
+\section{Online visualization with the VISIT and XNBODY}
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+%%% Local Variables: 
+%%% mode: plain-tex
+%%% TeX-master: t
+%%% End: 
+
