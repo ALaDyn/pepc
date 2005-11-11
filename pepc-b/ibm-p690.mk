@@ -41,7 +41,6 @@ LISTING=-qreport -qlist -qlistopt -qsource
 
 FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90:cpp=F90 -qnosave 
 #IPA= -qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
-#IPA=
 #TUNE= -qarch=pwr4 -qtune=pwr4 -O4 $(IPA) 
 CFLAGS1 = -O3 -I/usr/local/include
 
@@ -85,7 +84,8 @@ MPITRACE= -lsummary -lpmapi
 
 # Visit libraries
 
-NETCDFLIB = -lnetcdf
+NETCDFLIB = -lnetcdf 
+NCOBJS=ncnbody.o
 VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
 #VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
 

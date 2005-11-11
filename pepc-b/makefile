@@ -19,7 +19,7 @@ include $(ARCH).mk
 #
 #  -----------------------------------------------------------------------------------------
 
-FFLAGS =  $(FFLAGS1) $(DB) $(PG) 
+FFLAGS =  $(FFLAGS1) $(DB) $(PG) $(TUNE)
 DFLAGS = $(FFLAGS1) $(DB) 
 PPFLAGS = $(PREPROC)
 LDFLAGS =  $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) $(MPITRACE) 
@@ -34,7 +34,7 @@ CFLAGS = $(CFLAGS1)
 
 # -------------------------------------------------------------------------------------------
 
-PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 vis_fields_nbody.F90 beam_control.F90
+PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90
 PPSRC.f90 = $(PPSRC.F90:.F90=.f90) # processed source files 
 
 MODULES.f90 =   physvars.f90 
@@ -63,8 +63,7 @@ SOURCES.f90 =   \
 
 # Names of application object files derived from sources
 
-ncobjs = ncnbody.o
-appobjs = $(PPSRC.F90:.F90=.o) $(SOURCES.f90:.f90=.o) $(ncobjs) 
+appobjs = $(PPSRC.F90:.F90=.o) $(SOURCES.f90:.f90=.o) $(NCOBJS)
 appmods =  $(MODULES.f90:.f90=.o)
 mods = $(appmods)
 
@@ -132,12 +131,14 @@ pepck:	$(appobjs) $(appmods) $(pepcmods) liblpepc.a
 rand:	 rantest.o
 	$(FC) $(FFLAGS) -o rand rantest.o
 
+clean:  cleanapp cleanlib
 
-clean:
-	@echo "Cleaning binaries .."; /bin/rm -f bin/*.o   *% *~ bin/key rand *.o *.pif core *.a *.mod opari.rc *.mod.F90 *.opari.inc
+cleanapp:
+	@echo "Cleaning application binaries .."; /bin/rm -f bin/*.o   *% *~ bin/key rand *.o *.pif core *.a *.mod opari.rc *.mod.F90 *.opari.inc
 	@echo "Cleaning postprocessed sources .."; /bin/rm -f  $(PPSRC.f90)
 
-cleanlib: 
+cleanlib:
+	@echo "Cleaning lpepc library .." 
 	cd ../lpepcsrc;	/bin/rm -f *.o *.mod.F90 *.opari.inc; cd -
 
 cleancore: 	

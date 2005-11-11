@@ -38,7 +38,15 @@ subroutine force_laser(p_start,p_finish)
 
            laser_model: select case(beam_config_in)
 
-           case(3)  ! Uniform sinusoid in z (s-pol)
+           case(3)  ! Uniform sinusoid in x (s-pol)
+              Epon_z = 0.
+              Epon_y = 0.
+              Epon_x = vosc*omega*sin(omega*tlaser)
+	      Bx_em = 0.
+	      By_em = 0.
+	      Bz_em = 0.
+
+           case(23)  ! Uniform sinusoid in z (s-pol)
               Epon_x = 0.
               Epon_y = 0.
               Epon_z = vosc*omega*sin(omega*tlaser)
