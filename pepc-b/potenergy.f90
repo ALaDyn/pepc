@@ -21,7 +21,7 @@ subroutine potenergy(epot_total,emag_total)
 
   real :: upartial, umag, gamma
   real, intent(out) :: epot_total, emag_total
-  logical :: pot_debug=.false.
+  logical :: pot_debug=.true.
 
   epot_total = 0.  ! Global potential energy
   emag_total = 0.  ! Global magnetic energy

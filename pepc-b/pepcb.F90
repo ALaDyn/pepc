@@ -79,8 +79,6 @@ program pepcb
   if (my_rank ==0 .and. vis_on) then
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
-     ndom_max = 1000  ! Should be set to nbranch_amx
-     nbuf_max = npart_total+ndom_max
      call ncnbody_open(nbuf_max,vbufcols,ncid,incdf)
   endif
 #else

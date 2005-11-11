@@ -12,6 +12,7 @@ module physvars
   real, allocatable :: xslice(:),  yslice(:),  zslice(:), &     ! Rezoning slice
                       uxslice(:), uyslice(:), uzslice(:), &     ! velocity
                               qslice(:),  mslice(:)    ! charge and mass
+  real*4, allocatable :: vbuffer(:,:), vbuf_local(:,:)
 
   !  physics data
 
@@ -145,8 +146,9 @@ module physvars
    integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
    integer :: ncid         ! NetCDF id
-   integer :: nbuf_max     ! Max buffer size
-   integer :: ndom_max     ! Max # domains
+   integer :: nbuf_max=10000     ! Max vis buffer size
+   integer :: ndom_max=1000     ! Max # domains
+   integer :: attrib_max = 22 ! max # attributes for vis buffer
 
    ! constrain
    real :: constrain_proof ! quality of getting crossing points

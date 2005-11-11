@@ -16,7 +16,7 @@ subroutine sum_bfield( p, n, inode, eps, sumbx, sumby, sumbz, sumax, sumay, suma
   integer :: jnode, i,j,k 
 
   real :: rd,dx,dy,dz,d,dx2,dy2,dz2 
- real :: dx3,dy3,dz3,rd3,rd5,rdotm
+ real :: dx3,dy3,dz3,rd3,rd5,rdotj,rdotm
  real :: fsx,fsy,fsz,phi
  real, dimension(n*10) :: mult 
  real, dimension(n*3) :: coc
@@ -61,15 +61,19 @@ subroutine sum_bfield( p, n, inode, eps, sumbx, sumby, sumbz, sumax, sumay, suma
      rd = 1./d
      rd3 = rd**3
      rd5 = rd**5
+
      rdotm = dx*magmx(jnode) + dy*magmy(jnode) + dz*magmz(jnode)
+     rdotj = dx*jx(jnode) + dy*jy(jnode) + dz*jz(jnode)
 
-     ! vector potential
+     ! vector potential (magnetoinductive)
 
-     sumax = sumax + jx(jnode)*rd                               !  monopole term
+     sumax = sumax + 0.5*jx(jnode)*rd + 0.5*dx*rdotj*rd3        !  monopole term
 !     + ( dz*magmy(jnode) - dy*magmz(jnode) )*rd3   !  dipole 
-     sumay = sumay + jy(jnode)*rd                               !  monopole term
+
+     sumay = sumay + 0.5*jy(jnode)*rd + 0.5*dy*rdotj*rd3          !  monopole term
 !     + ( dx*magmz(jnode) - dz*magmx(jnode) )*rd3  !  dipole 
-     sumaz = sumaz + jz(jnode)*rd                               !  monopole term
+
+     sumaz = sumaz + 0.5*jz(jnode)*rd + 0.5*dz*rdotj*rd3         !  monopole term
 !     + ( dy*magmx(jnode) - dx*magmy(jnode) )*rd3  !  dipole 
 
 

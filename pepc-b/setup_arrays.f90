@@ -20,6 +20,11 @@ subroutine setup_arrays
       jxe_loc(0:ngx+1,0:ngy+1,0:ngz+1), jye_loc(0:ngx+1,0:ngy+1,0:ngz+1), jze_loc(0:ngx+1,0:ngy+1,0:ngz+1) )
   mem_fields = mem_fields + ngx*ngy*ngz * (8*13)
 
+
+! particle buffers for visualisation
+
+  allocate (vbuffer(0:attrib_max-1,nbuf_max), vbuf_local(0:attrib_max-1,nbuf_max))
+
   if (my_rank==0) then
      write(*,'(//a/)') 'Initial memory allocation:'
      write(*,'(1(a15,f12.3,a3/)/)') 'Fields:',mem_fields/1.e6,' MB'

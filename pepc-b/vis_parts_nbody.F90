@@ -15,14 +15,10 @@ subroutine vis_parts_nbody
   implicit none
   include 'mpif.h'
 
-  integer, parameter :: npart_visit_max = 300000  ! Max 250k data points for VIS
-  integer, parameter :: ship_max = 300000, attrib_max=22
-  real*4, dimension(0:attrib_max-1,npart_visit_max) :: vbuffer
-  !  real*4, dimension(0:attrib_max-1,npart_total) :: vbuffer
-  real*4, dimension(0:attrib_max-1,npart_visit_max) :: vbuf_local
+! Buffer arrays vbuffer, vbuf_local allocated in setup_arrays 
 
   integer, dimension(num_pe) :: nparts_pe, recv_strides, nbuf_pe  ! array of npp on each PE
-  integer :: icolour(npart_visit_max)
+  integer :: icolour(nbuf_max)
   integer :: lvisit_active, nskip, nproot, ne_buf, ni_buf, npart_buf, nbufe, nbufi
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, wfdatai
 
@@ -36,7 +32,17 @@ subroutine vis_parts_nbody
   convert_mu=1.
   simtime = dt*(itime+itime_start)
 
-  nskip = npart/ship_max + 1
+  if ( npart > nbuf_max) then
+        nskip = npart/nbuf_max + 1
+  else
+	nskip = 1
+  endif
+
+  if (me==0 .and. npart> nbuf_max) then
+	write(*,*) "VISNB | # particles > vis nbuf_max - reducing number shipped"
+	write(*,*) "VISNB | nbuf_max=",nbuf_max," nskip=",nskip
+  endif
+
   if (beam_config==4) then
      amp_las = vosc*min(1.,simtime/tpulse)
   else 
@@ -72,16 +78,16 @@ subroutine vis_parts_nbody
   type = 1
      ! TODO:  separate interesting ions and electrons
      do i=1,npp
-        u2=0.5*0.511*mass_ratio*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
+        u2=0.5*0.511*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
 
-        !    if ((npart>=100000 .and. (u2>uthresh .and. q(i)<0)) .or. (npart<100000 .and. mod(pelabel(i),nskip).eq.0)) then
+      if ( (npart > nbuf_max .and. u2>uthresh .and. q(i)<0) .or. ( q(i)>0 .and. mod(pelabel(i),nskip).eq.0)) then
         nship=nship+1
-        nbufe=nbufe+1
-        !        nbufi=nbufi+1
+        if (q(i)<0) then
+	  nbufe=nbufe+1
+        else
+          nbufi=nbufi+1
+        endif
 
-        !        else if (q(i)>0 .and. mod(pelabel(i),nskip).eq.0) then
-        !           nbufi=nbufi+1
-        !          nship=nship+1
         ! Store attributes for visualizing
         vbuf_local(0,nship) = t_display
         vbuf_local(1,nship) = dt
@@ -108,7 +114,7 @@ subroutine vis_parts_nbody
         vbuf_local(19,nship) = pepid(i)
         vbuf_local(20,nship) = 0.
         vbuf_local(21,nship) = 0.
-        !   endif
+       endif
      end do
 
      ! Find # particles to collect from each cpu
@@ -125,10 +131,10 @@ subroutine vis_parts_nbody
      call MPI_ALLREDUCE( nbufi, ni_buf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
 
 
-     if (npart_buf>0 .and. npart_buf < ship_max) then
+     if (npart_buf>0 .and. npart_buf +1000 < nbuf_max) then
         ! send  particle data from all PEs
         ! increase momentum threshold if close to max ship # 
-        if (1.0*npart_buf/ship_max > 0.9) uthresh=uthresh*1.1
+        if (1.0*npart_buf/nbuf_max > 0.9) uthresh=uthresh*1.1
 
         call MPI_GATHERV( vbuf_local, nship*attrib_max, MPI_REAL, vbuffer, nbuf_pe, recv_strides, MPI_REAL, 0, MPI_COMM_WORLD, ierr )
 
@@ -243,10 +249,10 @@ subroutine vis_parts_nbody
 #ifdef VISIT_NBODY
 
      if (me==0) then 
-        write(*,*) '# particles shipped ',npart_buf,nship
-        write(*,*) '# branches shipped ',ndom_vis, '/', nbranch_sum
-        write(*,*) 'Total # objects shipped :',nbranch_sum+1+npart_buf,' /',nbuf_max
-        write(*,*) 'u_thresh: (MeV)     ',uthresh
+        write(*,*) 'VISNB | # particles shipped ',npart_buf,nship
+        write(*,*) 'VISNB | # branches shipped ',ndom_vis, '/', nbranch_sum
+        write(*,*) 'VISNB | Total # objects shipped :',nbranch_sum+1+npart_buf,' /',nbuf_max
+        write(*,*) 'VISNB | u_thresh: (MeV)     ',uthresh
      endif
 
               call flvisit_nbody2_check_connection(lvisit_active)
@@ -276,13 +282,13 @@ subroutine vis_parts_nbody
 ! TODO: this needs removing or fixing
 
            if (me==0) then
-              if (npart_buf>ship_max) then
-                 write(*,*) 'Too many particles to ship - reduce numbers'
+              if (npart_buf>nbuf_max) then
+                 write(*,*) 'VISNB | Too many particles to ship: npart_buf= ',npart_buf,'/',nbuf_max
                  uthresh = uthresh*2
-                 write(*,*) 'Increasing momentum threshold to: ',sqrt(abs(uthresh))
+                 write(*,*) 'VISNB | Increasing momentum threshold to: ',sqrt(abs(uthresh))
               else if (npart_buf==0 .and. ne > 0) then
                  uthresh = vte*2
-                 write(*,*) 'Reducing momentum threshold to: ',sqrt(abs(uthresh))
+                 write(*,*) 'VISNB | Reducing momentum threshold to: ',sqrt(abs(uthresh))
               endif
               nproot = 0.8*npart/num_pe ! fixed # parts close to npp
 
