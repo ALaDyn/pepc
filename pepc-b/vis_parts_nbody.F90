@@ -80,7 +80,7 @@ subroutine vis_parts_nbody
      do i=1,npp
         u2=0.5*0.511*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
 
-      if ( (npart > nbuf_max .and. u2>uthresh .and. q(i)<0) .or. ( q(i)>0 .and. mod(pelabel(i),nskip).eq.0)) then
+      if ( npart<nbuf_max .or. (npart > nbuf_max .and. mod(pelabel(i),nskip).eq.0)) then
         nship=nship+1
         if (q(i)<0) then
 	  nbufe=nbufe+1
