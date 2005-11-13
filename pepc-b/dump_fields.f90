@@ -162,7 +162,7 @@ subroutine dump_fields(timestamp)
         !        zd=sigma/2.
         yd = 0.
         zd = 0.
-        call fpond(1.57/omega,1.0,sigma,vosc,omega,rho_upper,xd,yd,zd,ex_pond(i),ey_pond(i), &
+        call fpond( 1.57/omega,1.0,sigma,vosc,omega,rho_upper,xd,yd,zd,ex_pond(i),ey_pond(i), &
              ez_pond(i), phi_pond(i))
      end do
 

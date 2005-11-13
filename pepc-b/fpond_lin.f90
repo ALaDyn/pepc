@@ -3,11 +3,11 @@
 !
 !                        PONDEROMOTIVE FORCE
 !
-!  Compute relativistic fpond for standing wave field
+!  Compute relativistic fpond for standing wave field, linear rise-time
 !
 ! ==================================================================
 
-subroutine fpond(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,epon_z,phipon)
+subroutine fpond_lin(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,epon_z,phipon)
 
   implicit none
   real, intent(in) :: t ! time
@@ -28,11 +28,7 @@ subroutine fpond(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,epon
 
   ! intensity envelope
   a02 = vosc**2
-  if (t <= 2*tpulse) then 
-   intensity = a02*max(0.,sin(pi*t/2./tpulse)**2) 
-  else 
-    intensity = 0.
-  endif
+  intensity = a02*min(1.,t/tpulse) 
 
   rho0_up = rho_upper*omega**2   ! Effective density of shelf above xc normalised to rho0
 
@@ -96,4 +92,4 @@ subroutine fpond(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,epon
   Epon_z = f2d*2*intensity*Tpon*Xpon**2/gamma*zf*atten
 !  Epon_z = 0.   
 
-end subroutine fpond
+end subroutine fpond_lin

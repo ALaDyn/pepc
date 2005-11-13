@@ -82,7 +82,7 @@ subroutine vis_fields_nbody
      dz = zl/ngz
      dy = yl/ngy
 
-
+  if (itime>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
      do k=1,ngz,iskip_z
         do j=1,ngy,iskip_y
            do i=1,ngx,iskip_x
@@ -100,13 +100,19 @@ subroutine vis_fields_nbody
                  Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
                  !                 mvis(lcount) = epon_x/omega ! Pond field, EM norm
                  field_laser = phipond ! Pond potential
+              case(14)
+                 call fpond_lin( tlaser, tpulse,sigma,vosc,omega, rho_upper, &
+                      xd,yd,zd,epon_x,epon_y,epon_z,phipond)
+                 Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
+                 !                 mvis(lcount) = epon_x/omega ! Pond field, EM norm
+                 field_laser = phipond ! Pond potential
 
               case(5)  ! propagating fpond
                  call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, &
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond)
                  field_laser = phipond ! Pond potential
 
-              case(14) ! Oblique incidence fpond, s-pol
+              case(24) ! Oblique incidence fpond, s-pol
                  call emobliq(tlaser,tpulse,sigma,vosc,omega,theta_beam, rho_upper, &
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond,ez_em,bx_em,by_em)
                  field_laser = ez_em**2

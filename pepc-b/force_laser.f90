@@ -55,9 +55,18 @@ subroutine force_laser(p_start,p_finish)
 	      Bz_em = 0.
 
  	      
-           case(4)  ! standing wave fpond
+           case(4)  ! standing wave fpond, sin2 pulse
               call fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
                 xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+	      Bx_em = 0.
+	      By_em = 0.
+	      Bz_em = 0.
+
+           case(14)  ! standing wave fpond, linear rise-time
+              call fpond_lin( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
+                xd,yd,zd,epon_x,epon_y,epon_z,phipon)
+              epon_y=epon_y/100.
+              epon_z=epon_z/100.
 	      Bx_em = 0.
 	      By_em = 0.
 	      Bz_em = 0.
@@ -71,7 +80,7 @@ subroutine force_laser(p_start,p_finish)
 	      By_em = 0.
 	      Bz_em = 0.
 
-           case(14)  ! oblique incidence standing wave, s-pol
+           case(24)  ! oblique incidence standing wave, s-pol
               call emobliq( tlaser, tpulse,sigma,vosc,omega,theta_beam,rho_upper, &
                 xd,yd,zd,epon_x,epon_y,epon_z,phipon,ez_em,bx_em,by_em)
 	      Bz_em = 0.

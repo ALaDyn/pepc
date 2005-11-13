@@ -49,7 +49,7 @@ SOURCES.f90 =   \
                 velocities.f90 \
                 energy_cons.f90 potenergy.f90 kinenergy.f90\
                 force_laser.f90 \
-                fpond.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90 \
+                fpond.f90 fpond_lin.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90 \
                 push_em.f90 push_full3v.f90 \
                 push.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
                 vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
