@@ -72,7 +72,15 @@ subroutine configure
 
   if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config
 
+  if (te_pert) then
+     call perturb_temp    ! Impose perturbation on Te for transport test
+     if ( vis_on ) then
+        call densities
+        call sum_fields
+        call vis_fields_nbody(itime+itime_start)
+     endif
 
+  endif
 
   beamconf: select case(mod(beam_config,10))  ! Configure laser or particle beam
 

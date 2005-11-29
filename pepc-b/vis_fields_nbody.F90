@@ -7,7 +7,7 @@
 !
 ! ======================
 
-subroutine vis_fields_nbody
+subroutine vis_fields_nbody(timestamp)
 
 
   use physvars
@@ -16,17 +16,23 @@ subroutine vis_fields_nbody
   include 'mpif.h'
 
   real*4, dimension(ngx*ngy*ngz) :: field1, field2, field3, field4
-  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bzg, Telec, Tion
+  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bzg, Telec, Tion, ggelec,ggion
+  real, dimension(0:ngx+1) :: te_slice 
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max
   real :: box_max, az_em, ez_em, by_em, bx_em, bz_em, ex_em, ey_em, phipond
   real :: epon_x, epon_y, epon_z, tpon, amp_las, field_laser
   integer, parameter :: ngmax=100
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, iskip,itlas
+  integer, intent(in) :: timestamp
   integer :: lvisit_active=0, ierr 
-  integer :: npx, npy, npz, ng
+  integer :: npx, npy, npz, ng, jfoc, kfoc, nave
+  real :: norm
   integer :: iskip_x, iskip_y, iskip_z
   integer :: fselect1,fselect2,fselect3,fselect4
   real*4 :: grid_pars(24)  ! origins and mesh sizes of vis fields
+  character(30) :: cfile
+  character(5) :: cme
+  character(6) :: cdump, cvis
 
   simtime = dt*(itime+itime_start)
   amp_las = vosc*min(1.,simtime/tpulse)
@@ -38,15 +44,20 @@ subroutine vis_fields_nbody
 
   if (lvisit_active==0 )then
      if (me==0) write(*,*) 'VIS_NBODY | No connection to visualization'
-     return
   endif
 
 ! Connected to vis, so proceed with field select & gather
 
 #ifdef VISIT_NBODY
 ! Fetch user-selected config from vis
-  if (me==0) call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
+  if (me==0 .and. lvisit_active.ne.0) call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
 #endif
+
+  ! get filename suffix from dump counter
+  do i=0,4
+     cdump(6-i:6-i) =  achar(mod(timestamp/10**i,10) + 48)  
+  end do
+  cdump(1:1) = achar(timestamp/10**5 + 48)
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
   ! Merge sums for Bz
@@ -55,6 +66,12 @@ subroutine vis_fields_nbody
   call MPI_ALLREDUCE(rhoi_loc, rhoi, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(Te_loc, Telec, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(Ti_loc, Tion, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(g_ele, ggelec, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(g_ion, ggion, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+! Normalise temperatures & convert to keV
+  Telec = 2./3.*1000*Telec/ggelec
+  Tion = 2./3.*1000*Tion/ggion
 
   if (me==0 ) then
 
@@ -189,7 +206,8 @@ subroutine vis_fields_nbody
 
 ! Tell vis which fields are coming
 
-   call flvisit_nbody2_selectedfields_send(fselect1,fselect2,fselect3,fselect4)
+if (lvisit_active.ne.0) then
+	 call flvisit_nbody2_selectedfields_send(fselect1,fselect2,fselect3,fselect4)
 
 !  Set up vis field grid
    do i=0,3
@@ -217,8 +235,41 @@ subroutine vis_fields_nbody
        	 write (*,*) "VIS_NBODY | Shipping field 4"
          call flvisit_nbody2_field4_send(field4,npx,npy,npz)
       endif
+endif
 #endif
 
+
+
+     cfile = "fields/tslice."//cdump
+     open (62,file=cfile)
+
+     ! x-slices along laser axis
+     jfoc = focus(2)/dy
+     kfoc = focus(3)/dz
+
+     ! temperature average line-out along laser axis: nave*nave average, converted to n/nc
+
+     te_slice = 0.
+
+
+     if (ngz<=5) then
+        nave=0
+     else
+        nave = ngz/3
+     endif
+
+     norm = (2*nave+1)**2  ! convert Temp to keV
+
+     do k=kfoc-nave,kfoc+nave
+        do j=jfoc-nave,jfoc+nave
+
+           te_slice(1:ngx) = te_slice(1:ngx)+telec(1:ngx,j,k)/norm  ! slice along laser axis: 5x5 average
+
+        end do
+     end do
+     write(62,'((2(1pe12.4)))') &
+          (i*dx+x_offset,te_slice(i),i=1,ngx)
+     close(62)
   endif
 
 

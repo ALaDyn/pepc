@@ -25,18 +25,18 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   npart = npart_total
   ipefile = 20
 
-  if (db_level==1) then
+  if (db_level==2) then
       tree_debug=.true.
       force_debug=.false.
       walk_summary=.true.
       prefetch_debug=.false. 
 
-  else if (db_level==2) then
+  else if (db_level==3) then
      tree_debug=.true.
      build_debug=.true.
      domain_debug = .true.
-     branch_debug=.false.
-     prefetch_debug=.false.
+     branch_debug=.true.
+     prefetch_debug=.true.
      walk_debug=.true.
      walk_summary=.true.
      force_debug=.true.

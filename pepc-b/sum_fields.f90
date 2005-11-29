@@ -18,7 +18,7 @@ subroutine sum_fields
   character(30) :: cfile
   character(5) :: cme
   character(6) :: cdump, cvis
-  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: g_ion, g_ele, ex_w, ey_w, ez_w
+  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: ex_w, ey_w, ez_w
   real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bx_w, by_w, bz_w
 
   dx = xl/ngx
@@ -37,6 +37,8 @@ subroutine sum_fields
   g_ion = 0.
   g_ele = 0.
   rhoi_loc = 0.
+  te_loc = 0.
+  ti_loc = 0.
 
   !  field box limits: (0-xl, 0-yl, 0-zl)
   !  Any particle outside gets put in ghost cells 0, ngx+1
@@ -183,10 +185,10 @@ subroutine sum_fields
   nelecs = SUM(g_ele(1:ngx,1:ngy,1:ngz))
   nions = SUM(g_ion(1:ngx,1:ngy,1:ngz))
   write(ipefile,*) 'density integrals: ',nelecs, nions
-  g_ele = max(1.,g_ele)
-  g_ion = max(1.,g_ion)
-  Te_loc = .511*Te_loc/g_ele   ! Temperature in MeV (KE per particle)
-  Ti_loc = .511*mass_ratio*Ti_loc/g_ion   ! K.E. in MeV
+  g_ele = max(1.e-3,g_ele)
+  g_ion = max(1.e-3,g_ion)
+  Te_loc = .511*Te_loc   ! Temperature in MeV (KE per particle)
+  Ti_loc = .511*mass_ratio*Ti_loc   ! K.E. in MeV
 
   Ex_loc = Ex_loc + ex_w/(g_ion+g_ele)/navcycle    ! Accumulate normalised fields
   Ey_loc = Ey_loc + ey_w/(g_ion+g_ele)/navcycle

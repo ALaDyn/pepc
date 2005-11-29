@@ -4,6 +4,7 @@ module physvars
 
   real, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:)  ! field arrays for time-averages
   real, allocatable ::  rhoi(:,:,:), rhoe(:,:,:)
+  real, allocatable ::  g_ele(:,:,:), g_ion(:,:,:)  ! particle counts (weights for T)
   real, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  ! E-field 
   real, allocatable ::  bx_loc(:,:,:), by_loc(:,:,:), bz_loc(:,:,:)  ! B-field 
   real, allocatable ::  jxe_loc(:,:,:), jye_loc(:,:,:), jze_loc(:,:,:)  ! elec current
@@ -111,6 +112,7 @@ module physvars
   logical :: steering = .false.  ! VISIT steering switch
   logical :: target_dup = .false. ! Target duplication switch
   logical :: ramp = .false.  ! profile-ramp switch
+  logical :: te_pert = .false.  ! Temperature perturbation switch
   integer :: mc_steps
   integer :: plasma_config = 1  ! Switch for initial configuration (positions, velocities)
   integer :: target_geometry = 0  ! Geometry for plasma target

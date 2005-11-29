@@ -32,7 +32,7 @@ subroutine diagnostics
         !     call pot_grid
         call densities
         call sum_fields
-        call vis_fields_nbody
+        call vis_fields_nbody(itime+itime_start)
      endif
   endif
 
@@ -66,7 +66,6 @@ subroutine diagnostics
   if ( idump>0 .and. (mod(itime+itime_start,idump)==0 .or. itime==nt) ) then
      call dump(itime+itime_start)     ! Dump complete set of particle data
      call dump_fields(itime+itime_start)  ! Field data
-     if (vis_on)  call vis_fields
   endif
 
 !  if (debug_level.ge.2) then
@@ -77,7 +76,7 @@ subroutine diagnostics
 ! max_reqs, max_fetches should be equal
 !  endif
 
-  if (my_rank.eq.debug_rank .and. debug_level.ge.2) then
+  if (my_rank.eq.debug_rank .and. debug_tree > 0) then
 
      do ifile = 6,15,9
         write(ifile,'(/a,i4)') 'Tree stats for CPU ',debug_rank

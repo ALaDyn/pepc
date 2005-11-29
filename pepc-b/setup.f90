@@ -250,7 +250,7 @@ subroutine setup
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
   convert_mu = omega/2./pi*lambda          ! convert from c/wp to microns
   lolam = lolam*2.*pi/omega  ! normalise scale-length
-  convert_keV = 2./3./Qplas*511     ! convert from code energy units to keV/particle
+  convert_keV = 2./3./Qplas*511     ! convert from code energy units to keV/particle (Temperature)
 
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
 

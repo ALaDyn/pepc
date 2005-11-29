@@ -22,7 +22,7 @@
 !   April 2003:    tree_walk improved by collating multipole info before shipping 
 !   July 2003:     Prefetch added to cut barrier-time in tree_walk
 !   June 2005:     Separation of tree routines (now in lpepc) from physics applications
-!                  currently include: pepc-e (electrostatics), pepc-b and pepc-g (gravitation)
+!                  currently include: pepc-e (serial electrostatic version), pepc-b and pepc-g (gravitation)
 !
 !  See README.compile for summary of program units
 !

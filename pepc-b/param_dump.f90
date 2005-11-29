@@ -38,6 +38,7 @@ subroutine param_dump
         write (ifile,'(a20,f12.3)') ' Cloud radius R: ',eps
         
         write (ifile,'(a20,f12.3)') ' Collision freq.: ',nu_ei
+        write (ifile,'(a20,f12.3)') ' Electron mfp: ',vte/nu_ei
         write (ifile,'(a20,f12.3)') ' Conductivity: ',sigma_e
         write (ifile,'(a20,f12.3)') ' Laser amplitude: ',vosc
         write (ifile,'(a20,f12.3)') ' Pulse width: ',sigma
