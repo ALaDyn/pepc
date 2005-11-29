@@ -46,7 +46,7 @@ SOURCES.f90 =   \
                 scramble_v.f90 reset_ions.f90 add_electrons.f90 double_target.f90 \
                 laser.f90 beam.f90 beam_dust.f90 rezone.f90\
                 mc_config.f90 \
-                velocities.f90 \
+                velocities.f90 perturb_temp.f90 \
                 energy_cons.f90 potenergy.f90 kinenergy.f90\
                 force_laser.f90 \
                 fpond.f90 fpond_lin.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90 \
