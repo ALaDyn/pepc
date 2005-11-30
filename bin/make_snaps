@@ -12,8 +12,9 @@ echo $MYDIR
 RUN=$1
 RUNPP=$2
 DOPLOT=$3
+PEPC=~/tree/pepc
 # Slice postprocessor
-PP=~/tree/pp/slicepp
+PP=$PEPC/tools/slicer
 
 # Find timestamp list
 

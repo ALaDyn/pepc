@@ -74,7 +74,7 @@ program ppfields
   real :: utnsa, ufront, ublow, rear_edge, front_edge, ub_max, uf_max, ur_max
 
   ! Determine grid and particle dimensions for postprocessing 
-  cfile = 'grid_defs.data'
+  cfile = 'grid_defs.in'
   write(*,*) 'Reading grid definitions from ',cfile
   open(20,file=cfile)
   read(20,'(8(9x,i10/))') n, ngx, ngy, ngz, ngux, nguy, nguz, nalpha
@@ -163,9 +163,9 @@ program ppfields
   write(10,*)
 
   cfile = 'dumps/parts_dump.'//cdump
-  write(*,*) 'Reading data from ',cfile
+  write(*,*) 'Reading data from ',cfile  ! original ES format
   open(20,file=cfile)
-  read(20,*) (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),ex(i),ey(i),ez(i),bz(i),phi(i),own(i),label(i),i=1,n)
+  read(20,*) (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),ex(i),ey(i),ez(i),phi(i),own(i),label(i),i=1,n)
   close(20)
 
 
