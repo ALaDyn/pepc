@@ -75,9 +75,9 @@ subroutine dump(timestamp)
   
   cfile="data/pe"//csubme//"/parts_dump."//cdump(1:6)
   open (60,file=cfile) 
-  write(60,'((13(1pe14.5),2i9))')  &
+  write(60,'((12(1pe14.5),2i9))')  &
        (x(i), y(i), z(i), ux(i), uy(i), uz(i), q(i), m(i), &
-        Ex(i), Ey(i), Ez(i), Bz(i), &  ! electric field
+        Ex(i), Ey(i), Ez(i), &  ! electric field
         pot(i), &  ! potential
         pepid(i), pelabel(i),i=1,npp)
   close(60)

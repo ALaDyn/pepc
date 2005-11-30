@@ -25,7 +25,7 @@ subroutine perturb_temp
 
 Te0=Te_keV
 xpert=xl*0.8
-lambdaT = xpert/4
+lambdaT = xpert/2
 k_therm = 2*pi/lambdaT   ! Perturbation wavenumber - leave 10% buffer at either end 
 deltaT0 = Te0/2.  ! 50% temperature variation 
 if (me==0) then 
