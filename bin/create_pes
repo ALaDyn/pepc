@@ -1,0 +1,63 @@
+#!/bin/ksh
+
+# Shell script to create new directories of
+# PEs listed in PE_list
+
+if [ $# = 0 -o "$1" = "-h" -o "$1" = "-help" -o "$1" = "-?" ]; then
+    echo "Creates new PE subdirectories based on PE_list"
+    echo "Usage: ../create_pes <# new PEs> "
+    exit
+fi
+
+INC=$1   ## PE increment
+#
+
+
+# Place all dumps in data subdirectory - create first if necessary
+if [ ! -d data ] 
+then
+    mkdir data
+    mv PE_list data/.
+fi
+cd data
+echo "List of PEs:"; cat PE_list
+echo
+cp PE_list PE_newlist
+
+# Check whether run directory completely empty
+
+if [ ! -d pe0000 ]
+
+then
+    cat PE_list | while read PE
+    do 
+       echo "Creating $PE"
+       mkdir $PE
+    done
+
+else
+    echo "Sub directories in " $PE_list" already exist"
+
+    cat PE_list | while read PE
+    do
+        A=${PE##*e}    ## strip 'pe' from string
+	B=`expr $A + 10000`
+	C=`expr $B + $INC`
+	NEWPE=pe${C#*1}
+#	echo $A $B $C $NEWPE
+	
+        if [ ! -d $NEWPE ]
+        then
+                echo "Creating data/$NEWPE"
+                mkdir $NEWPE
+                echo "$NEWPE" | cat >> PE_newlist
+        else
+                echo "Directory" $NEWPE" already exists"
+        fi
+
+    done
+fi
+cp PE_newlist PE_list
+cp PE_list ../.
+echo "New list in PE_list"
+
