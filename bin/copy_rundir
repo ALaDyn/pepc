@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# Shell script to create new run directories 
+# PEs listed in PE_list
+
+DATADIR=$1
+NEWDIR=$2
+STAMP=$3
+if [ ! -d $NEWDIR ]; then
+  mkdir $NEWDIR
+  echo "Making new run directory $NEWDIR"
+fi
+
+#
+echo "Creating PE subdirectories"
+echo
+mkdir $NEWDIR/data
+cat $DATADIR/data/PE_list | while read PE
+do
+	if [ ! -d $NEWDIR/data/$PE ]
+	then
+		echo "Creating $PE"
+		mkdir $NEWDIR/data/$PE
+	else
+  		echo "Directory" $PE" already exists"
+	fi
+
+done
+echo "Copying parameter files"
+cd $DATADIR
+cp data/PE_list ../$NEWDIR/data
+cp *.job *.h *.rc *.sh *.cpt data/PE_list grid_defs.data ../$NEWDIR/.
+cd ../$NEWDIR
+mkdir fields fields_pp dumps log
+echo "Copying particle config data for timestamp $STAMP"
+cp ../$DATADIR/dumps/parts_*.$STAMP dumps/
+echo "..done"
