@@ -12,12 +12,33 @@ fi
 INC=$1   ## PE increment
 #
 
+# Create fields and log directories if necessary
+if [ ! -d fields ] 
+then
+    mkdir fields 
+fi
+if [ ! -d log ] 
+then
+    mkdir log 
+fi
+if [ ! -d dumps ] 
+then
+    mkdir dumps 
+fi
 
 # Place all dumps in data subdirectory - create first if necessary
 if [ ! -d data ] 
 then
     mkdir data
-    mv PE_list data/.
+    if [ ! -f PE_list ]; then 
+	cat << EOF > PE_list
+pe0000
+pe0001
+pe0002
+pe0003
+EOF
+    fi
+    cp PE_list data/.
 fi
 cd data
 echo "List of PEs:"; cat PE_list
@@ -36,7 +57,6 @@ then
     done
 
 else
-    echo "Sub directories in " $PE_list" already exist"
 
     cat PE_list | while read PE
     do
@@ -58,6 +78,7 @@ else
     done
 fi
 cp PE_newlist PE_list
+rm PE_newlist
 cp PE_list ../.
 echo "New list in PE_list"
 
