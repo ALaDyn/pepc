@@ -57,11 +57,11 @@ subroutine densities
      k2 = min(max(0,k2),ngz+1)
 
      !  linear weighting
-     fx1=i1-xa
+     fx1=min(max(i1-xa,0.),1.)  ! Prevent overflow/negative weighting for particles outside box
      fx2=1.-fx1
-     fy1=j1-ya
+     fy1=min(max(j1-ya,0.),1.)
      fy2=1.-fy1
-     fz1=k1-za
+     fz1=min(max(k1-za,0.),1.)
      fz2=1.-fz1
 
      !  gather charge at nearest grid points
@@ -83,7 +83,7 @@ subroutine densities
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
 ! gather on root
-  call MPI_REDUCE(rhoi_loc, rhoi, ng, MPI_REAL8, MPI_SUM, 0,  MPI_COMM_WORLD, ierr)
-  call MPI_REDUCE(rhoe_loc, rhoe, ng, MPI_REAL8, MPI_SUM, 0,  MPI_COMM_WORLD, ierr)
+  call MPI_REDUCE(rhoi_loc, rhoi, ng, MPI_REAL, MPI_SUM, 0,  MPI_COMM_WORLD, ierr)
+  call MPI_REDUCE(rhoe_loc, rhoe, ng, MPI_REAL, MPI_SUM, 0,  MPI_COMM_WORLD, ierr)
 
 end subroutine densities

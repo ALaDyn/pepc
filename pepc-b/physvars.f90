@@ -2,13 +2,13 @@ module physvars
 
   real, parameter :: pi=3.141592654
 
-  real, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:)  ! field arrays for time-averages
-  real, allocatable ::  rhoi(:,:,:), rhoe(:,:,:)
-  real, allocatable ::  g_ele(:,:,:), g_ion(:,:,:)  ! particle counts (weights for T)
-  real, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  ! E-field 
-  real, allocatable ::  bx_loc(:,:,:), by_loc(:,:,:), bz_loc(:,:,:)  ! B-field 
-  real, allocatable ::  jxe_loc(:,:,:), jye_loc(:,:,:), jze_loc(:,:,:)  ! elec current
-  real, allocatable ::  Te_loc(:,:,:), Ti_loc(:,:,:) ! local temps
+  real*4, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:)  ! field arrays for time-averages
+  real*4, allocatable ::  rhoi(:,:,:), rhoe(:,:,:)
+  real*4, allocatable ::  g_ele(:,:,:), g_ion(:,:,:)  ! particle counts (weights for T)
+  real*4, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  ! E-field 
+  real*4, allocatable ::  bx_loc(:,:,:), by_loc(:,:,:), bz_loc(:,:,:)  ! B-field 
+  real*4, allocatable ::  jxe_loc(:,:,:), jye_loc(:,:,:), jze_loc(:,:,:)  ! elec current
+  real*4, allocatable ::  Te_loc(:,:,:), Ti_loc(:,:,:) ! local temps
 
   real, allocatable :: xslice(:),  yslice(:),  zslice(:), &     ! Rezoning slice
                       uxslice(:), uyslice(:), uzslice(:), &     ! velocity

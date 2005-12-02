@@ -18,8 +18,9 @@ subroutine sum_fields
   character(30) :: cfile
   character(5) :: cme
   character(6) :: cdump, cvis
-  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: ex_w, ey_w, ez_w
-  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bx_w, by_w, bz_w
+  real*4, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: ex_w, ey_w, ez_w
+  real*4, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bx_w, by_w, bz_w
+  real*4 :: gmin=1.e-3
 
   dx = xl/ngx
   dy = yl/ngy
@@ -68,13 +69,12 @@ subroutine sum_fields
      k2 = min(max(0,k2),ngz+1)
 
      !  linear weighting
-     fx1=i1-xa
+     fx1=min(max(i1-xa,0.),1.)  ! Prevent overflow/negative weighting for particles outside box
      fx2=1.-fx1
-     fy1=j1-ya
+     fy1=min(max(j1-ya,0.),1.)
      fy2=1.-fy1
-     fz1=k1-za
+     fz1=min(max(k1-za,0.),1.)
      fz2=1.-fz1
-
      !  gather charge at nearest grid points
      gamma = sqrt(1.0+ux(i)**2+uy(i)**2+uz(i)**2)
      cweight = abs(q(i))*rdx*rdy*rdz/navcycle       ! charge weighting factor
@@ -185,8 +185,8 @@ subroutine sum_fields
   nelecs = SUM(g_ele(1:ngx,1:ngy,1:ngz))
   nions = SUM(g_ion(1:ngx,1:ngy,1:ngz))
   write(ipefile,*) 'density integrals: ',nelecs, nions
-  g_ele = max(1.e-3,g_ele)
-  g_ion = max(1.e-3,g_ion)
+  g_ele = max(gmin,g_ele)
+  g_ion = max(gmin,g_ion)
   Te_loc = .511*Te_loc   ! Temperature in MeV (KE per particle)
   Ti_loc = .511*mass_ratio*Ti_loc   ! K.E. in MeV
 

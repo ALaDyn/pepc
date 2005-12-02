@@ -29,7 +29,7 @@ subroutine track_nc
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
 
-  call MPI_ALLREDUCE(rhoi_loc, rhoi, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(rhoi_loc, rhoi, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
 
   dy = yl/ngy
   dz = zl/ngz

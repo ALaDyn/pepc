@@ -16,7 +16,7 @@ subroutine vis_fields_nbody(timestamp)
   include 'mpif.h'
 
   real*4, dimension(ngx*ngy*ngz) :: field1, field2, field3, field4
-  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bzg, Telec, Tion, ggelec,ggion
+  real*4, dimension(ngx,ngy,ngz) :: bzg, rhoeg, rhoig, Telec, Tion, ggelec,ggion
   real, dimension(0:ngx+1) :: te_slice 
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max
   real :: box_max, az_em, ez_em, by_em, bx_em, bz_em, ex_em, ey_em, phipond
@@ -28,7 +28,7 @@ subroutine vis_fields_nbody(timestamp)
   integer :: npx, npy, npz, ng, jfoc, kfoc, nave
   real :: norm
   integer :: iskip_x, iskip_y, iskip_z
-  integer :: fselect1,fselect2,fselect3,fselect4
+  integer :: fselect1=0,fselect2=0,fselect3=0,fselect4=0
   real*4 :: grid_pars(24)  ! origins and mesh sizes of vis fields
   character(30) :: cfile
   character(5) :: cme
@@ -59,15 +59,16 @@ subroutine vis_fields_nbody(timestamp)
   end do
   cdump(1:1) = achar(timestamp/10**5 + 48)
 
-  ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
-  ! Merge sums for Bz
-  call MPI_ALLREDUCE(bz_loc, bzg, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(rhoe_loc, rhoe, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(rhoi_loc, rhoi, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(Te_loc, Telec, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(Ti_loc, Tion, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(g_ele, ggelec, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(g_ion, ggion, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  ng = ngx*ngy*ngz                         ! total # gridpoints
+  ! Merge sums for gridded fields 
+
+  call MPI_ALLREDUCE(bz_loc(1:ngx,1:ngy,1:ngz), bzg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(rhoe_loc(1:ngx,1:ngy,1:ngz), rhoeg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(rhoi_loc(1:ngx,1:ngy,1:ngz), rhoig, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(Te_loc(1:ngx,1:ngy,1:ngz), Telec, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(Ti_loc(1:ngx,1:ngy,1:ngz), Tion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(g_ele(1:ngx,1:ngy,1:ngz), ggelec, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(g_ion(1:ngx,1:ngy,1:ngz), ggion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
 
 ! Normalise temperatures & convert to keV
   Telec = 2./3.*1000*Telec/ggelec
@@ -155,6 +156,8 @@ subroutine vis_fields_nbody(timestamp)
                 field1(lcount) = Telec(i,j,k) 
 	      case(5)  ! laser 
                 field1(lcount) = field_laser 
+	      case(0) 
+	        field1(lcount) = 0
 	      end select f1
 
               f2: select case(fselect2)
@@ -168,6 +171,8 @@ subroutine vis_fields_nbody(timestamp)
                 field2(lcount) = Telec(i,j,k) 
 	      case(5)  ! laser 
                 field2(lcount) = field_laser 
+              case(0)
+                field2(lcount) = 0
 	      end select f2
 
               f3: select case(fselect3)
@@ -181,6 +186,8 @@ subroutine vis_fields_nbody(timestamp)
                 field3(lcount) = Telec(i,j,k) 
 	      case(5)  ! laser 
                 field3(lcount) = field_laser 
+              case(0)
+                field3(lcount) = 0
 	      end select f3
 
               f4: select case(fselect4)
@@ -194,8 +201,12 @@ subroutine vis_fields_nbody(timestamp)
                 field4(lcount) = Telec(i,j,k) 
 	      case(5)  ! laser 
                 field4(lcount) = field_laser 
+              case(0)
+                field4(lcount) = 0
 	      end select f4
-  
+ 	   if (field1(lcount)<0) then
+	    write(*,*) 'field -ve ',field1(lcount),' at i=',i,' j=',j,' k=',k
+  	   endif
            end do
         end do
      end do
@@ -220,7 +231,8 @@ if (lvisit_active.ne.0) then
    call flvisit_nbody2_fielddesc_send(grid_pars,4,6)
 !   write(*,*) 'Grids: ',grid_pars
       if (fselect1>0) then
-       	 write (*,*) "VIS_NBODY | Shipping field 1"
+       	 write (*,*) "VIS_NBODY | Shipping field 1: min/max =", &
+	minval(field1),maxval(field1)
          call flvisit_nbody2_field1_send(field1,npx,npy,npz)   
       endif
       if (fselect2>0) then

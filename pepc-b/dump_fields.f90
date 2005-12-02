@@ -21,7 +21,7 @@ subroutine dump_fields(timestamp)
   real, dimension(ngx) :: phi_pond, ex_pond, ey_pond, ez_pond
   real, dimension(0:ngx+1) :: rhoi_slice, rhoe_slice, ex_slice, ey_slice, ez_slice
   real, dimension(0:ngx+1) :: jxe_slice, jye_slice, jze_slice 
-  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: exg, eyg, ezg, jxeg, jyeg, jzeg
+  real*4, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: exg, eyg, ezg, jxeg, jyeg, jzeg
 
   real :: dx, dz, dy, xd, yd, zd, dummy, simtime, epon_x, epon_y, epon_z, phipond, epond_max, box_max
   real :: Qtot, Qbox, norm, rhonorm, tpon, bx_em, by_em, az_em,ez_em
@@ -40,14 +40,14 @@ subroutine dump_fields(timestamp)
   ! Gather locally accumulated averages
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
 
-  call MPI_ALLREDUCE(rhoe_loc, rhoe, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(rhoi_loc, rhoi, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(jxe_loc, jxeg, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(jye_loc, jyeg, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(jze_loc, jzeg, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(ex_loc, exg, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(ey_loc, eyg, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(ez_loc, ezg, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(rhoe_loc, rhoe, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(rhoi_loc, rhoi, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(jxe_loc, jxeg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(jye_loc, jyeg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(jze_loc, jzeg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(ex_loc, exg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(ey_loc, eyg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(ez_loc, ezg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
 
   ! get filename suffix from dump counter
   do i=0,4
