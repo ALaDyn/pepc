@@ -34,12 +34,12 @@ contains
     integer :: ic1, ir1, im1
     !    CALL SYSTEM_CLOCK(COUNT=IC1, COUNT_RATE=IR1, COUNT_MAX=IM1)
     !    sec = 1.*ic1/ir1
-!    call cpu_time(sec)
+    call cpu_time(sec)
 
 !  timef returns elapsed wall-clock time in ms
 !      sec=1.e-3*timef()
 !  IBM function rtc returns elapsed wall-clock time in micro-s - compile with -lxlf90
-    sec = rtc()
+!    sec = rtc()
 
   end subroutine cput
 
