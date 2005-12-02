@@ -1,27 +1,21 @@
- &pepcdata
- nmerge = 1
- !perf_anal=.true.
- domain_debug=.false.
- load_balance=.false.
- walk_balance=.true.
- !walk_debug=.true.
+!  Input deck for billiards example
+!  Forces switched off; reflective container walls
+
+&pepcdata
 ! particles
   ne =0
   ni = 200 
 
  plasma_config = 1
- ! initial_config = 1   ! sphere
- !  initial_config = 2         ! random disc
-  !  initial_config=3   ! wire
-!   initial_config = 0         ! rectangular slab
-  !  initial_config = 10     ! read from parts_all.in
-! initial_config = 4 ! ellipsoid
-! initial_config = 5 ! wedge
-! initial_config = 6 ! hemisphere
-! initial_config = 7 ! hollow sphere
-! target_geometry = 1 ! sphere
- target_geometry = 0 ! slab
-! target_geometry = 8 ! hollow semisphere
+! target_geometry = 0 ! slab
+! target_geometry = 1   ! sphere
+! target_geometry = 2  ! random disc
+! target_geometry = 3  ! wire
+! target_geometry = 4  ! ellipsoid
+! target_geometry = 5  ! wedge
+! target_geometry = 6  ! hemisphere
+! target_geometry = 7  ! hollow sphere
+target_geometry = 8  ! hollow hemisphere
 
 
 ! physics stuff
@@ -34,8 +28,8 @@
   coulomb = .false.
   lenjones = .false.
   bond_const = 2.e-5
-  r_sphere = 3
-  x_plasma = 5    ! plasma disc thickness/ wire length
+  r_sphere = 5
+  x_plasma = 1    ! plasma disc thickness/ wire length
   y_plasma = 5.     ! plasma width (slab target)
   z_plasma = 3.     ! plasma width (slab target)
   xl = 5  ! graphics box size
@@ -44,22 +38,7 @@
 
 
 ! beam
-  !  beam_config = 1  ! fixed beam, initialised at start
- ! beam_config = 2  ! user-controlled, real-time particle source
-   beam_config = 0 ! beam off
-!  beam_config=4  ! laser fpond
- 
-
-  r_beam = 0.05
-  u_beam = 0.2
-  theta_beam = 0.0
-  phi_beam = 0.0
-  x_beam = .04
-  start_beam = -0.1
-  mass_beam = 5.
-  rho_beam = -1.
-
-  np_beam = 0 ! initial # beam particles/ dt
+   beam_config_in = 0 ! beam off
 
   vosc = 6.0
   omega = 0.5
@@ -81,5 +60,6 @@
   iprot=10
   itrack=300
   particle_bcs = 2
+  ncpu_merge = 1
   scheme = 1 /
 

@@ -2,16 +2,11 @@
 ! nmerge = 1
  mac=0
 ! particles
-  ne = 4000
-  ni = 4000 
+  ne = 4200
+  ni = 4200 
 
  plasma_config = 1  ! set up plasma target
  target_geometry = 1   ! sphere
- !   initial_config=7   ! hollow sphere
- !  target_geometry = 2         ! random disc
- !   initial_config=3   ! wire
- !  initial_config = 0         ! rectangular slab
-  !  initial_config = 10     ! read from parts_all.in
 
 ! physics stuff
 
@@ -33,22 +28,8 @@
 
 
 ! beam
-  !  beam_config = 1  ! fixed beam, initialised at start
- ! beam_config = 2  ! user-controlled, real-time particle source
-  beam_config_in=3  ! uniform, sinusoid
- !  beam_config = 0 ! beam off
-!  beam_config=4  ! laser fpond
+ beam_config_in=3  ! uniform, sinusoid
  
-
-  r_beam = 0.05
-  u_beam = 0.2
-  theta_beam = 0.0
-  phi_beam = 0.0
-  x_beam = .04
-  start_beam = -0.1
-  mass_beam = 5.
-  rho_beam = -1.
-
   np_beam = 0 ! initial # beam particles/ dt
 
   vosc = 0.1
@@ -58,19 +39,18 @@
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =40
+  nt =500
   dt = 0.3
   eps = 2.5
  restart = .false.
-  vis_on = .true.
- steering = .true.
- ivis = 1 
+  vis_on = .false.
+ steering = .false.
+ ivis = 5
  ivis_fields = 5000
- ivis_domains = 1
   mc_init = .false.
   mc_steps = 1000
   idump = 4000
-  iprot=20
+  iprot=2
   itrack=300
   particle_bcs = 1
   scheme = 1 /

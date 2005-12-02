@@ -1,4 +1,4 @@
-service=pepc
+service=pepc_tut
 passwd=charon
 doconnect=1
 StepTestConfig=1

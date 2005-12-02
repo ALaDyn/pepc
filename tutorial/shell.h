@@ -5,12 +5,14 @@
  balance=0 ! load balance switch
  mac=0
 ! particles
-  ne = 4000
-  ni = 4000 
+  ne = 40000
+  ni = 40000 
 
  plasma_config = 1  ! set up plasma target
- ! target_geometry =7   ! hollow sphere
-   target_geometry = 3         !  wire
+ target_geometry =1   ! hollow sphere
+ ramp = .false.  ! add ramp
+ lolam = 0.2   ! L/lambda
+ rho_min = 0.1  ! min density
 
 ! physics stuff
 
@@ -22,22 +24,23 @@
   coulomb = .true.
   lenjones = .false.
   bond_const = 2.e-3
-  r_sphere = 4
-  x_plasma = 3.    ! plasma disc thickness
-  y_plasma = 4.     ! plasma width (slab target)
-  z_plasma = 20.     ! plasma width (slab target) / wire length
+  r_sphere = 2
+  x_plasma = 2    ! plasma disc thickness
+  y_plasma = 2.     ! plasma width (slab target)
+  z_plasma = 2.     ! plasma width (slab target) / wire length
   domain_cut = 6.
-  xl = 1  ! graphics box size
-  yl =1 
-  zl =20 
+  xl = 12  ! graphics box size
+  yl =4 
+  zl =4
+  ngx=90
+  ngy=30
+  ngz=30
   target_dup = .false.
-  displace = 10.,10.,0.
+  displace = 0.,0.,0.
 
 ! beam
-  !  beam_config = 1  ! fixed beam, initialised at start
- ! beam_config = 2  ! user-controlled, real-time particle source
-   beam_config_in = 14 ! laser fpond with reduced transverse fields 
-!  beam_config=4  ! laser fpond
+    beam_config_in = 0  ! fixed beam, initialised at start
+   beam_config_in = 94 ! laser fpond with reduced transverse fields 
  
 
   r_beam = 0.05
@@ -51,21 +54,21 @@
 
   np_beam = 0 ! initial # beam particles/ dt
 
-  vosc = 1.0
-  omega = 0.3
-  sigma = 2.
-  tpulse = 200.
+  vosc = 0.3
+  omega = 0.5
+  sigma = 1.
+  tpulse = 30.
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =500
+  nt =400
   dt = 0.2
   eps = 3.
  restart = .false.
   vis_on = .true.
  steering=.false.
- ivis =  5
- ivis_fields = 5000
+ ivis =  1000
+ ivis_fields = 5
   mc_init = .false.
   mc_steps = 1000
   idump = 4000

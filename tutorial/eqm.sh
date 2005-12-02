@@ -1,4 +1,4 @@
-echo "Starting PEPC-B: clamped eqm ..."
+echo "Starting PEPC-B: plasma sphere"
 cp eqm.h run.h
-llrun  -p16 ../pepc-b/pepcb 
+llrun  -p2 ../bin/pepcb 
 echo "... done" 

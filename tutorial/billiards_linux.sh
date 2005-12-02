@@ -1,6 +1,4 @@
 echo "Starting billiard mode ..."
 cp billiards.h run.h
-mpirun -np 5 ../src/pepc 
-cp energy.dat log/energy.$TEND
-cp run.out log/run.$TEND
+mpirun -np 5 ../bin/pepcb 
 echo "... done"
