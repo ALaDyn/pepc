@@ -6,16 +6,17 @@ PREFIX = ..
 
 #  Get machine-dependent flags
 
-ARCH = ibm-p690
-#ARCH = linux
-#ARCH = bgl
+ARCH = ibm-p690.mk
+#ARCH = linux.mk
+#ARCH = bgl.mk
+#ARCH = arc-icl.mk
 
-include $(ARCH).mk
+include $(ARCH)
 
 
 #  -----------------------------------------------------------------------------------------
 #  You shouldn't need to edit anything below here unless you're adding new source code
-#   - change machine/compiler options in the ARCH.mk file
+#   - change machine/compiler options in the $ARCH file
 #
 #  -----------------------------------------------------------------------------------------
 
@@ -97,22 +98,20 @@ physvars.o:
 pepcb:	$(appmods) $(appobjs) liblpepc.a
 	@echo "\n Creating pepcb ...\n"
 	$(FC)  $(FFLAGS)  -o $@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI) 
+	/bin/ln -sf $(PREFIX)/pepc-b/pepcb $(PREFIX)/bin/pepcb
 	@echo "... done\n"
 
 debug: $(appmods) $(appobjs) lpepc
 	@echo "\n Creating pepc_debug ...\n"
 	$(FC)  $(DFLAGS)  -o pepc_debug $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI) 
+	cp pepc_debug ../bin/.
 	 @echo "... done\n"
 
-pepcb_prod:	$(appmods) $(appobjs) lpepc
-	@echo "\n Creating pepcb ...\n"
-	$(FC)  $(FFLAGS)  -o $@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI)  
-	@echo "... done\n"
 
 # Update PEPC library and headers
 lpepc:  
-	@echo 'Copying machine options from $(ARCH).mk'
-	cp $(ARCH).mk ../lpepcsrc/arch.mk
+	@echo 'Copying machine options from $(ARCH)'
+	cp $(ARCH) ../lpepcsrc/arch.mk
 	cd ../lpepcsrc; make lpepc; cd ../pepc-b
 	/bin/ln -sf $(PREFIX)/lpepcsrc/liblpepc.a $(PREFIX)/pepc-b/liblpepc.a
 	/bin/ln -sf $(PREFIX)/lpepcsrc/*.opari.inc $(PREFIX)/pepc-b/.

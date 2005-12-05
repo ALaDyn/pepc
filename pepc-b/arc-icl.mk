@@ -69,8 +69,7 @@ PREPROC = -UVISIT_NBODY
 VPREFIX=/tmp/demo/xnbody
 APISDIR=$(VPREFIX)/apis
 
-#VISITLIBS=-L$(VPREFIX)/apis/nbody3 -llvisit_nbody2 -L$(VPREFIX)/lvisit/lib -llvisit -L$(VPREFI
-X)/visit/lib -lvisit
+#VISITLIBS=-L$(VPREFIX)/apis/nbody3 -llvisit_nbody2 -L$(VPREFIX)/lvisit/lib -llvisit -L$(VPREFIX)/visit/lib -lvisit
 #NETCDFLIB = -lnetcdf
 
 

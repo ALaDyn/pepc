@@ -40,8 +40,8 @@ HPM = -lhpm
 LISTING=-qreport -qlist -qlistopt -qsource 
 
 FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90:cpp=F90 -qnosave 
-#IPA= -qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
-#TUNE= -qarch=pwr4 -qtune=pwr4 -O4 $(IPA) 
+IPA= -qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
+TUNE= -qarch=pwr4 -qtune=pwr4 -O4 ## $(IPA) 
 CFLAGS1 = -O3 -I/usr/local/include
 
 #  Symbol tables
