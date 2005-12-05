@@ -7,19 +7,32 @@
   ne = 0
   ni = 10000 
  nbuf_max=20000
- plasma_config = 1  ! set up plasma target
- ! initial_config = 1   ! sphere
-  target_geometry =7   ! hollow sphere
- !  target_geometry = 3         ! random disc
- !   initial_config=7   ! hollow sphere
- !   initial_config=3   ! wire
- !  initial_config = 0         ! rectangular slab
-  !  initial_config = 10     ! read from parts_all.in
+! set up plasma target
+ plasma_config = 1  
+
+! sphere
+! initial_config = 1   
+
+! hollow sphere
+  target_geometry =7 
+ 
+! disc
+!  target_geometry = 2       
+
+! hollow hemisphere
+ ! target_geometry =8
+
+! wire
+!   initial_config=3   
+
+! rectangular slab
+!  initial_config = 0        
 
 ! physics stuff
 
   theta = 0.5
-  Te_keV = 0.5 ! Temperatures in keV
+ ! Temperatures in keV
+  Te_keV = 0.5
   Ti_keV =.1 
   mass_ratio = 2000.
   q_factor = 1.
@@ -27,25 +40,36 @@
   lenjones = .true.
   bond_const = 3.e-3
   r_sphere = 10.
-  x_plasma = .1    ! plasma disc thickness/ wire length
-  y_plasma = 2.     ! plasma width (slab target)
-  z_plasma = 2.     ! plasma width (slab target)
-  xl = 2  ! graphics box size
+! plasma disc thickness/ wire length
+  x_plasma = .1   
+! plasma width (slab target)
+  y_plasma = 2.    
+! plasma width (slab target)
+  z_plasma = 2.    
+! graphics box size
+  xl = 2 
   yl =2 
   zl =2 
 
 
 ! beam
-  !  beam_config = 1  ! fixed beam, initialised at start
- ! beam_config = 2  ! user-controlled, real-time particle source
-   beam_config_in = 0 ! beam off
-!  beam_config=4  ! laser fpond
+ ! fixed beam, initialised at start
+ !  beam_config_in = 1 
+
+ ! user-controlled, real-time particle source
+ ! beam_config_in = 2 
+
+! beam off
+   beam_config_in = 0 
+
+! laser fpond
+!  beam_config_in=4 
  
   vosc = 6.0
   omega = 0.5
   sigma = 6.
   tpulse = 20.
-  lambda = 1.0   ! Wavelength in microns
+  lambda = 1.0  
 
   ! control
   nt =200

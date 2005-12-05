@@ -6,13 +6,13 @@
   ni = 300 
 
  plasma_config = 1
- target_geometry = 0 ! slab
+ target_geometry = 0
 
 
 ! physics stuff
 
   theta = 0.5
-  Te_keV = 0.1 ! Temperatures in keV
+  Te_keV = 0.1 
   Ti_keV =0.5 
   mass_ratio = 100.
   q_factor = 1.
@@ -20,22 +20,22 @@
   lenjones = .false.
   bond_const = 2.e-5
   r_sphere = 3
-  x_plasma = 1    ! plasma disc thickness/ wire length
-  y_plasma = 1.     ! plasma width (slab target)
-  z_plasma = .01     ! plasma width (slab target)
-  xl = 6  ! graphics box size
+  x_plasma = 1    
+  y_plasma = 1.    
+  z_plasma = .01    
+  xl = 6  
   yl =6 
   zl = 1
 
 
 ! beam
-   beam_config_in = 0 ! beam off
+   beam_config_in = 0 
  
   vosc = 6.0
   omega = 0.5
   sigma = 6.
   tpulse = 20.
-  lambda = 1.0   ! Wavelength in microns
+  lambda = 1.0   
 
   ! control
   nt =1

@@ -7,21 +7,31 @@
   ni = 200 
 
  plasma_config = 1
-! target_geometry = 0 ! slab
-! target_geometry = 1   ! sphere
-! target_geometry = 2  ! random disc
-! target_geometry = 3  ! wire
-! target_geometry = 4  ! ellipsoid
-! target_geometry = 5  ! wedge
-! target_geometry = 6  ! hemisphere
-! target_geometry = 7  ! hollow sphere
-target_geometry = 8  ! hollow hemisphere
+! slab
+! target_geometry = 0 
+! sphere
+! target_geometry = 1   
+! random disc
+! target_geometry = 2  
+! wire
+! target_geometry = 3  
+! ellipsoid
+! target_geometry = 4  
+! wedge
+! target_geometry = 5  
+! hemisphere
+! target_geometry = 6  
+! hollow sphere
+! target_geometry = 7  
+! hollow hemisphere
+target_geometry = 8  
 
 
 ! physics stuff
 
   theta = 0.5
-  Te_keV = 0.1 ! Temperatures in keV
+! Temperatures in keV
+  Te_keV = 0.1 
   Ti_keV =0.5 
   mass_ratio = 100.
   q_factor = 1.
@@ -29,22 +39,27 @@ target_geometry = 8  ! hollow hemisphere
   lenjones = .false.
   bond_const = 2.e-5
   r_sphere = 5
-  x_plasma = 1    ! plasma disc thickness/ wire length
-  y_plasma = 5.     ! plasma width (slab target)
-  z_plasma = 3.     ! plasma width (slab target)
-  xl = 5  ! graphics box size
+! plasma disc thickness/ wire length
+  x_plasma = 1    
+! plasma width (slab target)
+  y_plasma = 5.     
+! plasma width (slab target)
+  z_plasma = 3.    
+! graphics box size
+  xl = 5  
   yl =5 
   zl =3 
 
 
-! beam
-   beam_config_in = 0 ! beam off
+! beam (off)
+   beam_config_in = 0 
 
   vosc = 6.0
   omega = 0.5
   sigma = 6.
   tpulse = 20.
-  lambda = 1.0   ! Wavelength in microns
+! Wavelength in microns
+  lambda = 1.0   
 
   ! control
   nt =2000
