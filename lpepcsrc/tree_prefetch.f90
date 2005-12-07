@@ -53,7 +53,7 @@ subroutine tree_prefetch(itime)
   integer :: size_remove, sum_reqs, nreq_max, nfetch_max,  timestamp, send_prop_count, recv_count, nnot_local
   character*1 :: ctick
   character(30) :: cfile, ccol1, ccol2, ccol0
-  integer, save :: sumfetches
+  integer :: sumfetches
 
   ! external functions
   integer :: key2addr        ! Mapping function to get hash table address from key

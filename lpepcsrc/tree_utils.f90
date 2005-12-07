@@ -61,8 +61,6 @@ contains
 
     integer :: i,ierr
 
-    save
-
     do i=1,np
        w1(i) = array(indxl(i))
     enddo
@@ -97,7 +95,6 @@ contains
 
     integer :: i,ierr
 
-    save
 
     do i=1,np
        w1(i) = array(indxl(i))
@@ -134,7 +131,6 @@ contains
 
     integer :: i,ierr
 
-    save
 
     do i=1,np
        w1(i) = array(indxl(i))
