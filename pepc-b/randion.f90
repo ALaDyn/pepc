@@ -18,7 +18,8 @@ subroutine randion
 
     integer              :: i, j, face_nr
     integer              :: idum, iseed1, iseed2, iseed3, i1, n1,p, k, nsphere, nx, ny
-    real                 :: r(npp), phi(npp), the(npp), xt, yt, zt, radius, dpx, s, c_status
+    real*8               :: xt, yt, zt, radius, dpx, s
+    real*8 :: c_status
     real, dimension(1:3) :: r_temp
 
     iseed1 = -11 - me      ! Select seed depending on PE

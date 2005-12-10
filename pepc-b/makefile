@@ -88,7 +88,7 @@ physvars.o:
 	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) physvars.f90
 
 .c.o:   
-	$(CC) -c $(CFLAGS) -q64 $<
+	$(CC) -c $(CFLAGS) $<
 
 
 

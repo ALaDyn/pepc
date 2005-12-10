@@ -9,7 +9,7 @@
 
 FC = mpxlf90_r
 CPP = /usr/lib/cpp 
-CC = xlc
+CC = xlc_r
 
 # For KOJAK instrumentation
 #FC = mpxlf90_r -qdebug=function_trace
@@ -39,10 +39,11 @@ HPM = -lhpm
 #  Compiler listing
 LISTING=-qreport -qlist -qlistopt -qsource 
 
-FFLAGS1 = -q64 -qrealsize=8 -qsuffix=f=f90:cpp=F90 -qnosave 
+FFLAGS1 = -q64 -qsuffix=f=f90:cpp=F90 -qnosave 
+#FFLAGS1 = -qsuffix=f=f90:cpp=F90 -qnosave 
 IPA= -qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
-TUNE= -qarch=pwr4 -qtune=pwr4 -O4 ## $(IPA) 
-CFLAGS1 = -O3 -I/usr/local/include
+TUNE= -qarch=pwr4 -qtune=pwr4 ## -O4 ## $(IPA) 
+CFLAGS1 = -q64 -O3 -I/usr/local/include
 
 #  Symbol tables
 LMAP = -bnoquiet
@@ -78,7 +79,7 @@ IBMLIB = -lxlf90
 #MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
 #MPITRACE= -lmpitrace
 #MPITRACE= -lmpiprof
-MPITRACE= -lsummary -lpmapi
+#MPITRACE= -lsummary -lpmapi
 #MPITRACE=  -lmpihpm -lpmapi
 
 
@@ -86,7 +87,9 @@ MPITRACE= -lsummary -lpmapi
 
 NETCDFLIB = -lnetcdf 
 NCOBJS=ncnbody.o
-VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk4 -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit
-#VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
+VISIT_DIST=/usr/local/beta/visit-2.0b
 
-XNBODYLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3  -llvisit_nbody2
+VISITLIBS= -L$(VISIT_DIST)/lvisit/lib -llvisit -L$(VISIT_DIST)/lib -lvisit
+XNBODYLIBS=-L$(VISIT_DIST)/lvisit/apis/nbody3  -llvisit_nbody2 -bloadmap:aa
+#VISITLIBS=-L$(HOME)/vis/lvisit/lib -llvisit -L$(HOME)/vis/visit/lib -lvisit 
+#XNBODYLIBS=-L$(HOME)/vis/apis/nbody3  -llvisit_nbody2 -bloadmap:aa

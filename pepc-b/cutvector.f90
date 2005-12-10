@@ -7,12 +7,12 @@ subroutine cutvector(r_in, face_nr, n, r_out)
 
     implicit none
     
-    real, dimension(1:3), intent(in)  :: r_in
-    real, dimension(1:3), intent(out) :: n, r_out
-    real, dimension(1:3)              :: r_affin, temp
+    real*8, dimension(1:3), intent(in)  :: r_in
+    real*8, dimension(1:3), intent(out) :: n, r_out
+    real*8, dimension(1:3)              :: r_affin, temp
     integer, intent(in)               :: face_nr
-    real, dimension(1:3, 1:3)	      :: T
-    real                              :: c_status, phi, psi, gamma
+    real*8, dimension(1:3, 1:3)	      :: T
+    real*8                              :: c_status, phi, psi, gamma
 
     r_affin = r_in - plasma_centre
     select case (target_geometry) 
@@ -40,7 +40,7 @@ subroutine cutvector(r_in, face_nr, n, r_out)
     case (2) ! disc
         select case (face_nr)
         case (1) ! zylinder
-            n = (/0., -r_affin(2), -r_affin(3)/)
+            n = (/0.d0, -r_affin(2), -r_affin(3)/)
             n = n / sqrt(dot_product(n, n))
             r_affin = r_sphere * r_affin / abs(dot_product(r_affin, n))
         case (2, 3) ! y-z-planes
@@ -53,7 +53,7 @@ subroutine cutvector(r_in, face_nr, n, r_out)
     case (3) ! wire
         select case (face_nr)
         case (1) ! zylinder
-            n = (/-r_affin(1), -r_affin(2), 0./)
+            n = (/-r_affin(1), -r_affin(2), 0.d0/)
             n = n / sqrt(dot_product(n, n))
             r_affin = r_sphere * r_affin / abs(dot_product(r_affin, n))
         case (2, 3) ! x-y-planes
@@ -86,7 +86,7 @@ subroutine cutvector(r_in, face_nr, n, r_out)
             n = (/1., 0., 0./)
             r_affin = .5 * x_plasma * r_affin / abs(dot_product(r_affin, n))
         case (4, 5) ! the other planes
-            n = (/-sin(gamma), +cos(gamma),0./)
+            n = (/-sin(gamma), +cos(gamma),0.d0/)
             r_affin(2) = tan(gamma) * r_affin(1) - y_plasma / 4.
             if (face_nr == 5) then
                 n(2) = -n(2)
@@ -96,12 +96,12 @@ subroutine cutvector(r_in, face_nr, n, r_out)
         r_out = r_affin + plasma_centre
         
     case (6) ! semisphere
-        temp = r_affin - (/-r_sphere / 2., 0., 0./)
+        temp = r_affin - (/-r_sphere / 2.d0, 0.d0, 0.d0/)
         select case (face_nr)
         case (1) ! semisphere
             n = -temp
             n = n / sqrt(dot_product(n, n))
-            r_affin = r_sphere * temp / abs(dot_product(temp, n)) + (/-r_sphere / 2., 0., 0./)
+            r_affin = r_sphere * temp / abs(dot_product(temp, n)) + (/-r_sphere / 2.d0, 0.d0, 0.d0/)
         case (2) ! plane
             n = (/-1., 0., 0./)
             r_affin = .5 * r_sphere * r_affin / abs(dot_product(r_affin, n))
@@ -122,7 +122,7 @@ subroutine cutvector(r_in, face_nr, n, r_out)
         r_out = r_affin + plasma_centre
         
     case (8) ! hollow semisphere
-        temp = r_affin - (/-r_sphere / 2., 0., 0./)
+        temp = r_affin - (/-r_sphere / 2.d0, 0.d0, 0.d0/)
         select case (face_nr)
         case (1) ! outer semisphere
             n = -temp
@@ -148,15 +148,15 @@ contains
     ! ellipsoid)
     !
     subroutine rotate(phi, v_in, v_out)
-        real				:: phi
-        real, dimension(1:3)		:: v_in, v_out
-        real				:: c, s
-        real, dimension(1:3, 1:3)	:: R
+        real*8				:: phi
+        real*8, dimension(1:3)		:: v_in, v_out
+        real*8				:: c, s
+        real*8, dimension(1:3, 1:3)	:: R
 
         c = cos(phi)
         s = sin(phi)
 
-        R = reshape((/1., 0., 0., 0., c, s, 0., -s, c/), (/3, 3/))
+        R = reshape((/1.d0, 0.d0, 0.d0, 0.d0, c, s, 0.d0, -s, c/), (/3, 3/))
         v_out = matmul(R, v_in)
     end subroutine rotate
 

@@ -46,9 +46,9 @@ subroutine kinenergy(ekine,ekini,ebeam)
 
 ! Gather partial sums together for global energies
  
-  call MPI_ALLREDUCE(sum_plas_e, ekine, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(sum_plas_i, ekini, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(sum_beam, ebeam, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(sum_plas_e, ekine, 1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(sum_plas_i, ekini, 1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(sum_beam, ebeam, 1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
 
 
 end subroutine kinenergy

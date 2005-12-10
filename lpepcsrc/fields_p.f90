@@ -97,7 +97,6 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      !POMP$ INST BEGIN(domains)
      call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
      !POMP$ INST END(domains)
-
      ! particles now sorted according to keys assigned in tree_domains.
 
      call cputime(tb1)
@@ -327,7 +326,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   timestamp = itime
   if (mod(itime,iprot)==0) then
      !  call MPI_ALLREDUCE(max_local, max_list_length, 1, MPI_INTEGER, MPI_MAX,  MPI_COMM_WORLD, ierr )
-     call MPI_GATHER(work_local, 1, MPI_REAL8, work_loads, 1, MPI_REAL8, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
+     call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
      call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
 
      if (me ==0 ) then

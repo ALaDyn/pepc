@@ -28,6 +28,7 @@ subroutine vis_parts_nbody
   integer :: type
   integer :: vbufcols = 22, incdf, ndom_vis, ivisdom
   real :: lbox, work_ave
+  logical :: vis_debug=.false.
 
   convert_mu=1.
   simtime = dt*(itime+itime_start)
@@ -253,6 +254,13 @@ subroutine vis_parts_nbody
         write(*,*) 'VISNB | # branches shipped ',ndom_vis, '/', nbranch_sum
         write(*,*) 'VISNB | Total # objects shipped :',nbranch_sum+1+npart_buf,' /',nbuf_max
         write(*,*) 'VISNB | u_thresh: (MeV)     ',uthresh
+	if (vis_debug) then
+          write(*,*) 'VISNB | t,1,x,y,z,q,label,owner,type :'
+          do j=1,npart_buf
+                 write (*,'(i6,6f12.4,2i5,3i6)') j,vbuffer(0,j),vbuffer(1,j),vbuffer(2,j), vbuffer(3,j), vbuffer(4,j), &
+                     vbuffer(17,j), int(vbuffer(14,j)),int(vbuffer(19,j)),int(vbuffer(16,j))
+          end do
+	endif
      endif
 
               call flvisit_nbody2_check_connection(lvisit_active)
@@ -311,7 +319,7 @@ subroutine vis_parts_nbody
 
 
         ! Make sure everyone else knows about new momentum threshold
-        call MPI_BCAST( uthresh, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+        call MPI_BCAST( uthresh, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
 
         call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 

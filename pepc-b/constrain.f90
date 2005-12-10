@@ -5,19 +5,19 @@ subroutine constrain
 
     implicit none
 
-    real, dimension(1:3)		:: r_new, r_old, r_test, v
-    real 				:: c_status		! particle in or out?
+    real*8, dimension(1:3)		:: r_new, r_old, r_test, v
+    real*8 				:: c_status		! particle in or out?
     integer 			        :: p, face_nr
 
     ! bisections
-    real, dimension(1:3)		:: r_d, temp	        ! crossing point of particle
-    real				:: p_new, p_old, diff
+    real*8, dimension(1:3)		:: r_d, temp	        ! crossing point of particle
+    real*8				:: p_new, p_old, diff
 
     ! reflection plane
-    real, dimension(1:3)		:: n
+    real*8, dimension(1:3)		:: n
 
     ! new direction of v
-    real, dimension(1:3)                :: c
+    real*8, dimension(1:3)                :: c
 
     ! file id
     integer                             :: c_file = 76, nr_out

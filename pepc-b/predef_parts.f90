@@ -82,14 +82,14 @@ subroutine predef_parts
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
 
-  call MPI_BCAST( xl, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( yl, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( zl, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( boxsize, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( theta, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( eps, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( trun, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( tlaser, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( xl, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( yl, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( zl, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( boxsize, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( theta, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( eps, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( trun, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( tlaser, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( ne, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( ni, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( npart, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)

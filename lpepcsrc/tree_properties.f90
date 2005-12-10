@@ -24,8 +24,8 @@ subroutine tree_properties
   integer :: addr_twig
 
   integer, parameter :: n_moments = 23  ! # property arrays
-  real, dimension(4*n_moments*nbranch_max/num_pe) :: local_moments      ! local branch properties    - size depends on # moments          
-  real, dimension(n_moments*nbranch_max) :: branch_moments   ! global branch properties
+  real*8, dimension(4*n_moments*nbranch_max/num_pe) :: local_moments      ! local branch properties    - size depends on # moments          
+  real*8, dimension(n_moments*nbranch_max) :: branch_moments   ! global branch properties
   integer, dimension(num_pe) :: nbranchmoments ! array containing total # multipole terms*branch list length
   integer, dimension(num_pe) :: recv_strides, recv_counts
   integer, dimension(nbranch_max) :: bindex, branch_addr, branch_node, branch_level
@@ -33,9 +33,9 @@ subroutine tree_properties
 
   integer :: addr_child
   integer, dimension(8) :: node_child  !  child nodes
-  real, dimension(8) :: xs, ys, zs   ! multipole shift vector
+  real*8, dimension(8) :: xs, ys, zs   ! multipole shift vector
 
-  real :: xss, yss, zss, gamma, vx, vy, vz
+  real*8 :: xss, yss, zss, gamma, vx, vy, vz
   integer :: i, j, k, maxtwig, maxleaf, maxlevel, nchild, ncheck, ntwig_domain, nsearch, newsub, cchild 
   integer :: node_b, nuniq, nsub, nparent, ilevel, ibr, pno, bno
   integer ::  addr_leaf, p_leaf, node_leaf       ! local leaf-nodes

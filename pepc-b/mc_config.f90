@@ -134,7 +134,7 @@ subroutine mc_config
 
      prob1=exp(-amin1(delta_E/Tplas, 30.))
      r = rano(iseed0)
-     call MPI_BCAST(r,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)  ! Pass random no. to other PEs
+     call MPI_BCAST(r,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)  ! Pass random no. to other PEs
 
      if (Te_keV == 0.) prob1=0.
 

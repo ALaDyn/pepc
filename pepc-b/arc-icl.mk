@@ -33,7 +33,7 @@ AR      = ar
 #  Lahey/Fujitsu compiler
 QTUNE = -O
 CFLAGS1= -O3 -g
-FFLAGS1 = --dbl $(QTUNE)
+FFLAGS1 =  $(QTUNE)
 #  Debug options
 #DB = -g --trace --ap
 

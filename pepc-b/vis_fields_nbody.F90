@@ -71,8 +71,8 @@ subroutine vis_fields_nbody(timestamp)
   call MPI_ALLREDUCE(g_ion(1:ngx,1:ngy,1:ngz), ggion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
 
 ! Normalise temperatures & convert to keV
-  Telec = 2./3.*1000*Telec/ggelec
-  Tion = 2./3.*1000*Tion/ggion
+  Telec = 2./3.*Telec/ggelec
+  Tion = 2./3.*Tion/ggion
 
   if (me==0 ) then
 
@@ -147,9 +147,9 @@ subroutine vis_fields_nbody(timestamp)
  ! Vis field selection
               f1: select case(fselect1)
 	      case(1)  ! ion density / nc 
-                field1(lcount) = rhoi(i,j,k)/omega**2   
+                field1(lcount) = rhoig(i,j,k)/omega**2   
 	      case(2)  ! electron density / nc 
-                field1(lcount) = rhoe(i,j,k)/omega**2 
+                field1(lcount) = rhoeg(i,j,k)/omega**2 
 	      case(3)  ! Ion temperature  / MeV 
                 field1(lcount) = Tion(i,j,k) 
 	      case(4)  ! Electron temperature  / MeV 
@@ -162,9 +162,9 @@ subroutine vis_fields_nbody(timestamp)
 
               f2: select case(fselect2)
 	      case(1)  ! ion density / nc 
-                field2(lcount) = rhoi(i,j,k)/omega**2   
+                field2(lcount) = rhoig(i,j,k)/omega**2   
 	      case(2)  ! electron density / nc 
-                field2(lcount) = rhoe(i,j,k)/omega**2 
+                field2(lcount) = rhoeg(i,j,k)/omega**2 
 	      case(3)  ! Ion temperature  / MeV 
                 field2(lcount) = Tion(i,j,k) 
 	      case(4)  ! Electron temperature  / MeV 
@@ -177,9 +177,9 @@ subroutine vis_fields_nbody(timestamp)
 
               f3: select case(fselect3)
 	      case(1)  ! ion density / nc 
-                field3(lcount) = rhoi(i,j,k)/omega**2   
+                field3(lcount) = rhoig(i,j,k)/omega**2   
 	      case(2)  ! electron density / nc 
-                field3(lcount) = rhoe(i,j,k)/omega**2 
+                field3(lcount) = rhoeg(i,j,k)/omega**2 
 	      case(3)  ! Ion temperature  / MeV 
                 field3(lcount) = Tion(i,j,k) 
 	      case(4)  ! Electron temperature  / MeV 
@@ -192,9 +192,9 @@ subroutine vis_fields_nbody(timestamp)
 
               f4: select case(fselect4)
 	      case(1)  ! ion density / nc 
-                field4(lcount) = rhoi(i,j,k)/omega**2   
+                field4(lcount) = rhoig(i,j,k)/omega**2   
 	      case(2)  ! electron density / nc 
-                field4(lcount) = rhoe(i,j,k)/omega**2 
+                field4(lcount) = rhoeg(i,j,k)/omega**2 
 	      case(3)  ! Ion temperature  / MeV 
                 field4(lcount) = Tion(i,j,k) 
 	      case(4)  ! Electron temperature  / MeV 

@@ -123,7 +123,7 @@ contains
 
     integer :: nppm,np,npnew,nprocs,iproc
 
-    real, dimension(nppm) ::  array, w1, w2
+    real*8, dimension(nppm) ::  array, w1, w2
     integer, dimension(nppm) ::  indxl, irnkl
     integer, dimension(nprocs) ::  islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts
@@ -364,17 +364,17 @@ contains
     include 'mpif.h'
 
     integer, intent(in) :: nppm,np,nprocs,iproc
+    real*8, intent(in) :: wload(nppm)  ! particle work loads
     integer, intent(out) :: npnew
-    integer, parameter :: binmult=1000000   !TODO: need to reduce size of f() arrays
+    integer, parameter :: binmult=500000   !TODO: need to reduce size of f() arrays
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    w1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
     logical :: debug, balance
-    real :: wload(nppm), w2(nppm)
+    real :: w2(nppm)
     integer*8, dimension(2) :: key_box
     integer, dimension(nprocs) :: islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts !  fencepost index and key values for shuffle
-!    integer, parameter :: maxprocs = 1024
     integer :: itabr(nprocs), itabl(nprocs+1)
     real, dimension(binmult)  :: f_local, f_global
     integer*8 :: fpval(nprocs+1)
@@ -448,7 +448,7 @@ contains
     endif
 
     ! Global distrib
-    call MPI_ALLREDUCE(f_local, f_global, nbin, MPI_REAL8, MPI_SUM,  MPI_COMM_WORLD, ierr )
+    call MPI_ALLREDUCE(f_local, f_global, nbin, MPI_REAL, MPI_SUM,  MPI_COMM_WORLD, ierr )
 
     if (debug) then
        write(fd,'(a15/(f12.3))') 'Global key distrib: ',(f_global(i),i=1,nbin,nbin/10)

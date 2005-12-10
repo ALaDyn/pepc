@@ -15,11 +15,12 @@
  implicit none
  real, parameter :: pi=3.14159265
  integer, parameter :: nsamp=300000
- integer :: idir
- real, save :: usamp(nsamp+1)
- real  :: uxi, uyi
- real, save :: theta
- real :: df,f0,A,u,du,g,uzi,g0,rs
+ integer :: idir, ntrial
+ real*8, save :: usamp(nsamp+1)
+ real*8  :: uxi, uyi
+ real*8, save :: theta
+ real*8 :: df,f0,A,u,du,g,uzi,g0
+ real :: rs
  real :: ute,  pio2, umax
  real, intent(in) :: vt
  integer, save :: idum=-13
@@ -65,13 +66,14 @@
 !  Flux in x-dirn: invert Int (vx f(ux) dux) directly
      
       rs=rano(idum)
-      g0 = dmax1(1.d0,1.d0-ute*alog(rs))
+      g0 = max(1.0,1.0-ute*alog(rs))
       uzi = idir*sqrt(g0**2-1.d0)
 
 !  pick random  u from sample:  
 !  usamp contains integrated momentum flux Int(u f(u) du)
       if (mod(isamp,2).eq.1) then
-       i2=min(1.*nsamp,nsamp*rano(idum)+1)
+	ntrial = nsamp*rano(idum)+1
+       i2=min(nsamp,ntrial)
 !  components for uy,uz
        theta=2*pi*rano(idum)
        uxi = usamp(i2)*cos(theta)

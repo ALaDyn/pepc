@@ -21,6 +21,8 @@ subroutine vis_control
   logical :: beam_on = .true.
   logical :: beam_debug = .true.
   integer :: isteer1 = 0, isteer2 =0, isteer3=0, isteer4=0
+  real*8 :: dsteer1, dsteer2, dsteer3, dsteer4
+
  
   integer, save :: np_beam_dt  ! current # beam particles
 
@@ -75,9 +77,9 @@ subroutine vis_control
      !  r_beam is mean ion spacing
      !  u_beam is ion temperature (eV)
      !  rho_beam is potential constant
-     r_beam = a_ii
      u_beam = Ti_keV
-     rho_beam = log10(bond_const)
+     r_beam = dt 
+     rho_beam = eps
 
   else if (beam_config==8) then ! dust particle
      u_old = u_beam
@@ -90,6 +92,11 @@ subroutine vis_control
 !     call flvisit_spk_check_connection(lvisit_active)
      call flvisit_nbody2_check_connection(lvisit_active)
   ! Specify default parameters at beginning of run
+        dsteer1 = th_beam
+        dsteer2 = u_beam
+        dsteer3 = r_beam
+        dsteer4 = rho_beam
+
 !     call flvisit_spk_beam_paraminit_send(th_beam,phi_beam,r_beam,rho_beam,u_beam)
   endif
 
@@ -101,7 +108,11 @@ subroutine vis_control
      ! Fetch real-time, user-specified control parameters
      if (lvisit_active /= 0) then 
 !  TODO:  Need XNBODY equivalent here
-        call flvisit_nbody2_steering_recv( th_beam,u_beam,r_beam,rho_beam,isteer1,isteer2,isteer3,isteer4)
+        call flvisit_nbody2_steering_recv( dsteer1,dsteer2,dsteer3, dsteer4,isteer1,isteer2,isteer3,isteer4)
+	th_beam = dsteer1
+	u_beam = dsteer2
+	r_beam = dsteer3
+	rho_beam = dsteer4
         if (beam_debug) then
 	   write(*,*) 'VISNB | th_beam = ',th_beam
 	   write(*,*) 'VISNB | u_beam = ',u_beam
@@ -122,11 +133,11 @@ subroutine vis_control
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
   call MPI_BCAST( lvisit_active, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   if (lvisit_active /= 0) then
-     call MPI_BCAST( th_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-     call MPI_BCAST( phi_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-     call MPI_BCAST( r_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-     call MPI_BCAST( rho_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
-     call MPI_BCAST( u_beam, 1, MPI_REAL8, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( th_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( phi_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( r_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( rho_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( u_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   else
      if (me==0) write(*,*) ' No Connection to Visualization'
      return
@@ -145,11 +156,16 @@ subroutine vis_control
      !     rho_beam = max(abs(rho_beam),0.5)
      !     r_beam = max(abs(r_beam),0.1)
      
-     if (u_beam/vosc <10.0 .and. u_beam/vosc > 0.1) then
-        vosc=u_beam ! limit amplitude change
+     if (u_beam>0 ) then
+      if ((u_beam-vosc)/u_beam <5.0 ) then
+        vosc=u_beam ! limit amplitude change but allow switch-off
         if (me==0 .and. vosc /= vosc_old) write(*,*) 'VISNB | Laser amplitude changed'
-     else
+      else
         if (me==0) write(*,*) 'VISNB | Amplitude change too big - readjust!'
+      endif
+     else
+	vosc=0.
+        if (me==0) write(*,*) 'VISNB | Laser switched off'
      endif
 
      if (sigma/rho_beam > 0.1 .and. sigma/rho_beam < 10.0) then
@@ -285,10 +301,10 @@ subroutine vis_control
      ! ion crystal eqm  mode:
      !  r_beam is mean ion spacing
      !  u_beam is ion temperature (eV)
-     !  rho_beam is potential constant
-!     a_ii = r_beam
-!     Ti_kev = u_beam
-!     bond_const = 10**(rho_beam)
+     !  rho_beam is dt 
+     Ti_kev = u_beam
+     eps = rho_beam
+     dt = r_beam 
      if (me==0) write(*,*) 'VISNB | Steering pars: a_i=',a_ii,' Ti=',Ti_kev,' Pot strength=',bond_const
   else if (scheme==4) then
      ! Electron temp clamp

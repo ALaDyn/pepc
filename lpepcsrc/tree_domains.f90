@@ -34,8 +34,8 @@ subroutine tree_domains(xl,yl,zl)
   integer :: nbits
 
 
-  real :: s
-  real :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
+  real*8 :: s
+  real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
   logical :: boundary_debug=.false. 
 
   integer status(MPI_STATUS_SIZE), ierr, tag1
@@ -162,9 +162,9 @@ subroutine tree_domains(xl,yl,zl)
 
   if (domain_debug) then
      write (ipefile,'(a,2z20)') 'Box keys:', key_box(1),key_box(2)
-     write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort (1st 10):', &
+     write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort:', &
           '  key,             label   coords     q ', &
-          (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=1,min(10,npp)) 
+          (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=1,npp) 
      !    write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8))') '(last 10):', &
      !         '  key,                  label        coords              q ', &
      !         (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=max(1,npp-10),npp) 
@@ -225,6 +225,7 @@ subroutine tree_domains(xl,yl,zl)
      endif
 
      ! perform index sort on keys
+
      call pswssort(nppm,npold,npnew,num_pe,me,keys, &
           indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
 
@@ -317,51 +318,6 @@ subroutine tree_domains(xl,yl,zl)
   ! Now permute remaining particle properties : x,y,z; vx,vy,vz; q,m, label, load
 
   source_pe(1:npold) = pepid(1:npold)   ! where particle came from
-
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,source_pe,w2,w3, &   ! source PE
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,pelabel,w2,w3, &   ! label
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  ! Should ship these as one big vector
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,x,wr2,wr3, &       ! coords
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,y,wr2,wr3, &       !  
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,z,wr2,wr3, &       !  
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,ux,wr2,wr3, &       ! velocities
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,uy,wr2,wr3, &       !
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,uz,wr2,wr3, &       ! 
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,q,wr2,wr3, &       ! charge
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,m,wr2,wr3, &       ! mass
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,work,wr2,wr3, &       ! workload
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,ax,wr2,wr3, &       ! vec. pot 
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,ay,wr2,wr3, &       ! 
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  !  call pll_permute(nppm,npold,npnew,num_pe,me,az,wr2,wr3, &       ! 
-  !       indxl,irnkl,islen,irlen,fposts,gposts)
-
 
   ! Set up particle structure - keys and source_pe are dummies
   ! ( pekey is already sorted)

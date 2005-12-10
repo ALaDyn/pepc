@@ -26,10 +26,11 @@ subroutine velocities(p_start,p_finish,delta_t)
   integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
 
   integer p, i, ne_loc, ierr
-  real, dimension(nppm) :: uhx, uhy, uhz, accx, accy, accz
-  real :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, Te0, Te_uncor, Ti0, Ti_uncor, chie, chii
-  real :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm
-  real :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_local
+  real*8, dimension(nppm) :: uhx, uhy, uhz, accx, accy, accz
+  real*8 :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve
+  real :: Te0, Te_uncor, Ti0, Ti_uncor, chie, chii
+  real*8 :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm
+  real*8 :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_local
 
 !  Available ensemble modes
 !      1 = NVE - total energy conserved
@@ -287,8 +288,8 @@ subroutine velocities(p_start,p_finish,delta_t)
         endif
      end do
      delta_Ti = 2*Ti0*(1.0/chii**2-1.0)       !  heating
-     if (me==0)	write (*,*) 'Ti_unc ',Ti_uncor,' Ti0 ', Ti0, ' chii ',chii,' heating:',delta_Ti
-
+     if (me==0)	write (*,*) 'Ti_unc ',Ti_uncor,' Ti0 ', Ti0, ' chii ',chii,' heating:',delta_Ti,' bond',bond_const
+     if (Ti_uncor>1000) bond_const=bond_const*.8
 
 
   else
@@ -304,7 +305,3 @@ subroutine velocities(p_start,p_finish,delta_t)
   endif
 
 end subroutine velocities
-
-
-
-

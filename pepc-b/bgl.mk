@@ -30,7 +30,7 @@ AR      = ar
 #QTUNE = -O3  -qtune=440 -qarch=440d
 CFLAGS1= -O3 -g -I/opt/ibmcmp/vac/7.0/include -I/usr/include -I$(BGLSYS)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
 BGLFLAGS= -I$(BGLSYS)/include -L$(BGLSYS)/lib $(QTUNE)
-FFLAGS1 = $(BGLFLAGS) -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90  -qnosave
+FFLAGS1 = $(BGLFLAGS) -qsuffix=f=f90 -qsuffix=cpp=F90  -qnosave
 IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 DB= -g -qfullpath
 #

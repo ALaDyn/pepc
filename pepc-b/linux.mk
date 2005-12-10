@@ -30,7 +30,7 @@ AR      = ar
 #  Put compiler optimisation in here
 QTUNE = -O3 
 CFLAGS1= -O3 -g -I/usr/local/include 
-FFLAGS1 = $(QTUNE) -r8 
+FFLAGS1 = $(QTUNE)  
 #  Debug options
 #DB = -g -check bounds -traceback
 

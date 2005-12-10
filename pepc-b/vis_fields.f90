@@ -31,7 +31,7 @@ subroutine vis_fields
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
   ! Merge sums for Bz
-  call MPI_ALLREDUCE(bz_loc, bzg, ng, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(bz_loc, bzg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
 
   if (me==0 ) then
 

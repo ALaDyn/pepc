@@ -74,11 +74,11 @@ contains
 
   ! - routine taken from Numerical Recipies, p195
   !
-  real function rano(idum)
+  real*8 function rano(idum)
     implicit none
     integer :: idum
-    real, save :: dseed, dum
-    real, save :: v(97), y
+    real*8, save :: dseed, dum
+    real*8, save :: v(97), y
     integer, save :: iff, icall, i, j
     data iff,icall/0,0/
     if (idum.lt.0.or.iff.eq.0) then
@@ -119,12 +119,12 @@ contains
   end function rano
 
 
-  real function genran (dseed)                                      
+  real*8 function genran (dseed)                                      
     !                                  specifications for arguments         
-    real ::  dseed                                          
+    real*8 ::  dseed                                          
     !                                  specifications for local variables   
     !    real ::  d2p31m,d2p31                                   
-    real ::  d2p31m,d2p31    
+    real*8 ::  d2p31m,d2p31    
     !                                  d2p31m=(2**31) - 1                   
     !                                  d2p31 =(2**31)(or an adjusted value) 
     data               d2p31m/2147483647.0/                          

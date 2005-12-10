@@ -75,7 +75,7 @@ program pepcb
 ! ---- Preprocess VISIT setup -----------
  
 #ifdef VISIT_NBODY
-  if (my_rank ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
+!  if (my_rank ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
   if (my_rank ==0 .and. vis_on) then
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
@@ -218,7 +218,7 @@ program pepcb
 ! ---- Preprocess VISIT setup -----------
  
 #ifdef VISIT_NBODY
-if (my_rank ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
+! if (my_rank ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
 if (my_rank==0 .and. vis_on) then 
   call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
   call ncnbody_close(ncid,incdf)

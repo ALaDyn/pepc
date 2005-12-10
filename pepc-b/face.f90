@@ -19,13 +19,14 @@ subroutine face(r, c_status, face_nr)
 
     implicit none 
 
-    real, dimension(1:3)	    :: r, r_diff
-    real			    :: c_status
-    integer                         :: face_nr
+    real*8, intent(in), dimension(1:3)	    :: r
+    real*8, intent(out)			    :: c_status
+    integer, intent(in)                     :: face_nr
 
     ! vectors and other values for the slab
-    real, dimension(1:3)            :: normal_vector, offset_vector
-    real                            :: gamma
+    real*8, dimension(1:3)	    :: r_diff
+    real*8, dimension(1:3)            :: normal_vector, offset_vector
+    real*8                            :: gamma
 
     ! matrix for the ellipsoid
     real, dimension(1:3, 1:3)       :: A
@@ -102,10 +103,10 @@ subroutine face(r, c_status, face_nr)
             normal_vector = (/+1., 0., 0./)
             offset_vector = (/-x_plasma / 2., 0., 0./) + plasma_centre
         case(4) ! negative y
-            normal_vector = (/-sin(gamma), +cos(gamma), 0./)
-            offset_vector = (/-x_plasma / 2., -y_plasma / 2., 0./) + plasma_centre
+            normal_vector = (/-sin(gamma), +cos(gamma), 0.d0/)
+            offset_vector = (/-x_plasma / 2.0, -y_plasma / 2.0, 0.0/) + plasma_centre
         case(5) ! positive y
-            normal_vector = (/-sin(gamma), -cos(gamma), 0./)
+            normal_vector = (/-sin(gamma), -cos(gamma), 0.d0/)
             offset_vector = (/-x_plasma / 2., +y_plasma / 2.,0./) + plasma_centre
         end select
         c_status = dot_product(normal_vector, offset_vector - r)

@@ -45,18 +45,18 @@ module treevars
  ! Data structure for shipping single particles
   
   type particle
-     real :: x    ! coords
-     real :: y
-     real :: z
-     real :: ux    ! momenta
-     real :: uy
-     real :: uz 
-     real :: q     ! charge
-     real :: m     ! mass
-     real :: work  ! work load from force sum
-     real :: ax   ! vec. pot  
-     real :: ay
-     real :: az
+     real*8 :: x    ! coords
+     real*8 :: y
+     real*8 :: z
+     real*8 :: ux    ! momenta
+     real*8 :: uy
+     real*8 :: uz 
+     real*8 :: q     ! charge
+     real*8 :: m     ! mass
+     real*8 :: work  ! work load from force sum
+     real*8 :: ax   ! vec. pot  
+     real*8 :: ay
+     real*8 :: az
      integer*8 :: key           ! Key
      integer :: label    ! label
      integer :: pid      ! owner
@@ -74,26 +74,26 @@ module treevars
      integer   :: leaves  ! # leaves contained
      integer :: owner    ! owner where multipole resides
      integer*8 :: next    ! next key on walk
-     real :: q    	! net charge sum
-     real :: absq  	!  absolute charge sum
-     real :: xcoc  	! centre of charge
-     real :: ycoc    
-     real :: zcoc
-     real :: xdip  	! dipole moment
-     real :: ydip
-     real :: zdip
-     real :: xxquad  	! quadrupole moment
-     real :: yyquad  
-     real :: zzquad
-     real :: xyquad
-     real :: yzquad
-     real :: zxquad
-     real :: jx        ! current
-     real :: jy
-     real :: jz
-     real :: magmx      ! magnetic moment
-     real :: magmy
-     real :: magmz
+     real*8 :: q    	! net charge sum
+     real*8 :: absq  	!  absolute charge sum
+     real*8 :: xcoc  	! centre of charge
+     real*8 :: ycoc    
+     real*8 :: zcoc
+     real*8 :: xdip  	! dipole moment
+     real*8 :: ydip
+     real*8 :: zdip
+     real*8 :: xxquad  	! quadrupole moment
+     real*8 :: yyquad  
+     real*8 :: zzquad
+     real*8 :: xyquad
+     real*8 :: yzquad
+     real*8 :: zxquad
+     real*8 :: jx        ! current
+     real*8 :: jy
+     real*8 :: jz
+     real*8 :: magmx      ! magnetic moment
+     real*8 :: magmy
+     real*8 :: magmz
   end type multipole
 
   type (multipole), allocatable :: pack_child(:), get_child(:)
@@ -128,7 +128,7 @@ module treevars
                                 nreqs_total(:), &    ! total # nodes requested from local PE during tree walk
                                 nfetch_total(:)   ! total # non-local nodes fetched during tree walk 
 
-  real, allocatable  :: &                ! Tree node properties:
+  real*8, allocatable  :: &                ! Tree node properties:
                                charge(:), &                          ! charge
                                abs_charge(:), &                      ! absolute charge
                                xcoc(:), ycoc(:), zcoc(:), &          ! centre of charge 
@@ -186,10 +186,10 @@ module treevars
              iused          ! counter for collision resolution array free_addr()
   
 
-  real :: xmin, xmax    ! box limits
-  real :: ymin, ymax  
-  real :: zmin, zmax
-  real :: boxsize       ! length of box
+  real*8 :: xmin, xmax    ! box limits
+  real*8 :: ymin, ymax  
+  real*8 :: zmin, zmax
+  real*8 :: boxsize       ! length of box
 
  ! Force control
   logical :: load_balance=.true.   ! Balances particles in || sort according to work load
@@ -210,7 +210,7 @@ module treevars
 
   !  particle data - dimensions filled in when #PEs known
 
-  real, allocatable :: x(:),  y(:),  z(:), &     ! position
+  real*8, allocatable :: x(:),  y(:),  z(:), &     ! position
                       ux(:), uy(:), uz(:), &     ! velocity
                               q(:),  m(:), &     ! charge and mass
 			Ex(:), Ey(:), Ez(:), &   ! E-field
