@@ -33,7 +33,7 @@
   theta = 0.5
  ! Temperatures in keV
   Te_keV = 0.5
-  Ti_keV =.1 
+  Ti_keV = 1
   mass_ratio = 2000.
   q_factor = 1.
   coulomb = .false.
@@ -41,7 +41,7 @@
   bond_const = 3.e-3
   r_sphere = 10.
 ! plasma disc thickness/ wire length
-  x_plasma = .1   
+  x_plasma = .05   
 ! plasma width (slab target)
   y_plasma = 2.    
 ! plasma width (slab target)
@@ -72,18 +72,18 @@
   lambda = 1.0  
 
   ! control
-  nt =200
+  nt =500
   dt = 0.1
   eps = .3
  restart = .false.
   vis_on = .true.
- ivis = 10 
+ ivis = 20 
  ivis_fields = 5000
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
   idump = 4000
-  iprot=1
+  iprot=20
   itrack=300
   particle_bcs = 2
   scheme = 5 /
