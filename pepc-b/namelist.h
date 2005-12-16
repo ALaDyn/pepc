@@ -15,4 +15,4 @@
        coulomb,  bfields,  bonds, lenjones, target_dup, ramp, &
        debug_level, debug_tree, ncpu_merge, balance, ifreeze, &
       constrain_proof, len_tripod, struct_step, uthresh, domain_cut, &
-      debug_rank, np_mult, fetch_mult,nbuf_max, te_pert
+      debug_rank, np_mult, fetch_mult,nbuf_max, te_perturb, tpert, kpert

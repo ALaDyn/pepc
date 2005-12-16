@@ -25,9 +25,9 @@ subroutine perturb_temp
 
 Te0=Te_keV
 xpert=xl*0.8
-lambdaT = xpert/2
+lambdaT = xpert/kpert
 k_therm = 2*pi/lambdaT   ! Perturbation wavenumber - leave 10% buffer at either end 
-deltaT0 = Te0/2.  ! 50% temperature variation 
+deltaT0 = tpert*Te0  ! 50% temperature variation 
 if (me==0) then 
   write(*,*) 'PEPC-B | Doing electron temperature perturbation'
   write(*,*) 'PEPC-B | Wavelength: ',lambdaT

@@ -72,7 +72,7 @@ subroutine configure
 
   if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config
 
-  if (te_pert) then
+  if (te_perturb) then
      call perturb_temp    ! Impose perturbation on Te for transport test
      if ( vis_on ) then
         call densities

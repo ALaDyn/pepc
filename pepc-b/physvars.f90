@@ -54,6 +54,8 @@ module physvars
   real :: Ukini          ! Ion kinetic energy
   real :: Umagnetic           ! Magnetic energy
   real :: Ubeam          ! Beam energy
+  real :: tpert=0.1	         ! Temperature perturbation in transport test
+  real :: kpert=2 	 ! normalised wave number Lx/lambda
 
   real :: nu_ei ! norm. collision frequency
   real :: sigma_e ! electrical conductivity
@@ -93,7 +95,7 @@ module physvars
   integer :: npart_total  ! Total # particles (npart)
   integer :: np_local  ! Local # particles (npart)
   real :: np_mult=1.5   ! particle array safety margin
-  integer :: fetch_mult=8 ! fetch array factor
+  integer :: fetch_mult=3 ! fetch array factor
 !  Associated MPI stuff
 
   integer :: my_rank       ! Rank of current task
@@ -112,7 +114,7 @@ module physvars
   logical :: steering = .false.  ! VISIT steering switch
   logical :: target_dup = .false. ! Target duplication switch
   logical :: ramp = .false.  ! profile-ramp switch
-  logical :: te_pert = .false.  ! Temperature perturbation switch
+  logical :: te_perturb = .false.  ! Temperature perturbation switch
   integer :: mc_steps
   integer :: plasma_config = 1  ! Switch for initial configuration (positions, velocities)
   integer :: target_geometry = 0  ! Geometry for plasma target
