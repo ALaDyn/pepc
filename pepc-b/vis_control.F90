@@ -51,35 +51,35 @@ subroutine vis_control
   !     return
   !  endif
 
-  if ( beam_config == 5) then
+  if ( beam_config == 5 .or. beam_config==6) then
       ! Define beam from laser parameters
      vosc_old = vosc
      sigma_old = sigma
      u_beam = vosc
-     rho_beam = sigma
-     r_beam = tpulse  
+     rho_beam = tpulse
+!     r_beam = sigma  
 
   else if ( beam_config >=3 .and. beam_config <=4) then
       ! Define beam from laser parameters
      vosc_old = vosc
      sigma_old = sigma
-     u_beam = vosc
-     rho_beam = sigma
-     th_beam = theta_beam  ! incidence angle instead of pulse duration
+     dsteer1 = vosc
+     dsteer2 = sigma
+     dsteer3 = theta_beam  ! incidence angle instead of pulse duration
      theta_old = th_beam
 
   else if (scheme==4 .and. .not. (beam_config<=3 .and. beam_config>0)) then
      ! Temperature clamp mode - laser should be off
-     u_beam = Te_kev
+     dsteer1 = Te_kev
 
   else if (scheme == 5) then
      ! ion crystal eqm  mode:
      !  r_beam is mean ion spacing
      !  u_beam is ion temperature (eV)
      !  rho_beam is potential constant
-     u_beam = Ti_keV
-     r_beam = dt 
-     rho_beam = eps
+     dsteer2 = Ti_keV
+     dsteer3 = dt 
+     dsteer4 = eps
 
   else if (beam_config==8) then ! dust particle
      u_old = u_beam
@@ -92,10 +92,7 @@ subroutine vis_control
 !     call flvisit_spk_check_connection(lvisit_active)
      call flvisit_nbody2_check_connection(lvisit_active)
   ! Specify default parameters at beginning of run
-        dsteer1 = th_beam
-        dsteer2 = u_beam
-        dsteer3 = r_beam
-        dsteer4 = rho_beam
+
 
 !     call flvisit_spk_beam_paraminit_send(th_beam,phi_beam,r_beam,rho_beam,u_beam)
   endif
@@ -111,13 +108,15 @@ subroutine vis_control
         call flvisit_nbody2_steering_recv( dsteer1,dsteer2,dsteer3, dsteer4,isteer1,isteer2,isteer3,isteer4)
 	th_beam = dsteer1
 	u_beam = dsteer2
-	r_beam = dsteer3
-	rho_beam = dsteer4
+	r_beam = dsteer4
+	rho_beam = dsteer3
+!	ivis=max(isteer2,1)
+!	ivis_fields=max(isteer3,2)
         if (beam_debug) then
-	   write(*,*) 'VISNB | th_beam = ',th_beam
-	   write(*,*) 'VISNB | u_beam = ',u_beam
-	   write(*,*) 'VISNB | r_beam = ',r_beam
-	   write(*,*) 'VISNB | rho_beam = ',rho_beam
+	   write(*,*) 'VISNB | steer1 = ',dsteer1
+	   write(*,*) 'VISNB | steer2 = ',dsteer2
+	   write(*,*) 'VISNB | steer3 = ',dsteer3
+	   write(*,*) 'VISNB | steer4 = ',dsteer4
 	   write(*,*) 'VISNB | switches = ',isteer1,isteer2,isteer3,isteer4
 	endif
      else
@@ -138,6 +137,8 @@ subroutine vis_control
      call MPI_BCAST( r_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
      call MPI_BCAST( rho_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
      call MPI_BCAST( u_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+!     call MPI_BCAST( ivis, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+!     call MPI_BCAST( ivis_fields, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   else
      if (me==0) write(*,*) ' No Connection to Visualization'
      return
@@ -149,7 +150,7 @@ subroutine vis_control
 !     return
 !  endif
 
-  if (beam_config >= 3 .and. beam_config <=5 ) then
+  if (beam_config >= 3 .and. beam_config <=6 ) then
      ! laser standing wave or pond bullet
 
      !     u_beam = max(abs(u_beam),0.1)
@@ -303,9 +304,9 @@ subroutine vis_control
      !  u_beam is ion temperature (eV)
      !  rho_beam is dt 
      Ti_kev = u_beam
-     eps = rho_beam
-     dt = r_beam 
-     if (me==0) write(*,*) 'VISNB | Steering pars: a_i=',a_ii,' Ti=',Ti_kev,' Pot strength=',bond_const
+     eps = r_beam
+     dt = rho_beam 
+     if (me==0) write(*,*) 'VISNB | Steering pars: eps=',eps,' Ti=',Ti_kev,' dt=',dt
   else if (scheme==4) then
      ! Electron temp clamp
      Te_kev = u_beam
