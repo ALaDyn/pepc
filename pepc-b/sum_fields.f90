@@ -18,9 +18,9 @@ subroutine sum_fields
   character(30) :: cfile
   character(5) :: cme
   character(6) :: cdump, cvis
-  real*4, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: ex_w, ey_w, ez_w
-  real*4, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bx_w, by_w, bz_w
-  real*4 :: gmin=1.e-3
+  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: ex_w, ey_w, ez_w
+  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bx_w, by_w, bz_w
+  real :: gmin=1.e-3
 
   dx = xl/ngx
   dy = yl/ngy
@@ -38,6 +38,7 @@ subroutine sum_fields
   g_ion = 0.
   g_ele = 0.
   rhoi_loc = 0.
+  rhoe_loc = 0.
   te_loc = 0.
   ti_loc = 0.
 

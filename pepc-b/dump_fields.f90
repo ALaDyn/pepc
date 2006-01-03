@@ -21,7 +21,7 @@ subroutine dump_fields(timestamp)
   real, dimension(ngx) :: phi_pond, ex_pond, ey_pond, ez_pond
   real, dimension(0:ngx+1) :: rhoi_slice, rhoe_slice, ex_slice, ey_slice, ez_slice
   real, dimension(0:ngx+1) :: jxe_slice, jye_slice, jze_slice 
-  real*4, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: exg, eyg, ezg, jxeg, jyeg, jzeg
+  real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: exg, eyg, ezg, jxeg, jyeg, jzeg
 
   real :: dx, dz, dy, xd, yd, zd, dummy, simtime, epon_x, epon_y, epon_z, phipond, epond_max, box_max
   real :: Qtot, Qbox, norm, rhonorm, tpon, bx_em, by_em, az_em,ez_em

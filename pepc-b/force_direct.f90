@@ -11,8 +11,8 @@ subroutine force_direct(n,ntest,x,y,z,q, list, eps, const, ex, ey, ez, pot)
   real, intent(in) :: eps, const
   integer, intent(in) :: n, ntest
   integer, intent(in), dimension(n) :: list 
-  real, intent(in), dimension(n) :: x, y, z, q  ! coords and charge 
-  real,  dimension(ntest) :: ex, ey, ez, pot  ! fields and potential to return
+  real*8, intent(in), dimension(n) :: x, y, z, q  ! coords and charge 
+  real*8,  dimension(ntest) :: ex, ey, ez, pot  ! fields and potential to return
 
   real :: eps2, d, d3, dx, dy, dz
   integer :: i,j,k
