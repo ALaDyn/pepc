@@ -210,7 +210,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   types(1) = MPI_INTEGER8
   types(2:4) = MPI_INTEGER
   types(5) = MPI_INTEGER8
-  types(5:25) = MPI_REAL8
+  types(6:25) = MPI_REAL8
 
   call MPI_ADDRESS( node_dummy%key, send_base, ierr )  ! Base address for send buffer
 

@@ -366,7 +366,7 @@ contains
     integer, intent(in) :: nppm,np,nprocs,iproc
     real*8, intent(in) :: wload(nppm)  ! particle work loads
     integer, intent(out) :: npnew
-    integer, parameter :: binmult=500000   !TODO: need to reduce size of f() arrays
+    integer, parameter :: binmult=1000000   !TODO: need to reduce size of f() arrays
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    w1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 

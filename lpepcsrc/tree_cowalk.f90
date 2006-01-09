@@ -67,8 +67,6 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   integer, dimension(maxaddress) ::  request_owner, fetch_owner, sort_owner, indx
   integer, dimension(8) :: addr_child, node_child, leaves_child, byte_child
 
-  real, dimension(8) :: xcoc_child, ycoc_child, zcoc_child
-
   real, dimension(0:nlev) :: boxlength2
   logical, dimension(npshort) :: finished, requested
   integer :: hops(21) ! array to control max # iterations in single traversal 

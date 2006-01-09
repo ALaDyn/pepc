@@ -16,8 +16,8 @@ subroutine sum_lennardjones( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi )
   real, intent(in) :: eps
   integer :: jnode, i
 
-  real, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
-  real :: a_bond, d2, d, dlj2, dlj, flj, epsc, plj, dx, dy, dz
+  real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
+  real*8 :: a_bond, d2, d, dlj2, dlj, flj, epsc, plj, dx, dy, dz
 
 
   epsc = eps/20. ! cutoff

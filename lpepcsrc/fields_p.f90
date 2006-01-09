@@ -53,8 +53,8 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   integer :: ierr
   integer :: iprot  ! frequency for load balance dump
 
-  real :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
-  real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
+  real*8 :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
+  real*8 :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
   real :: work_local, load_average, load_integral, total_work, average_work
   integer :: total_parts
   character(30) :: cfile, ccol1, ccol2
@@ -196,7 +196,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
 
   if (jpass-1 > npass ) then
-     write(*,*) 'PE',me,' missed some:',nshort(npass+1)
+     write(*,*) 'LPEPC | PE',me,' missed some:',nshort(npass+1)
      if (nshort(npass) + nshort(npass+1) <= nshortm) then
         nshort(npass) = nshort(npass) + nshort(npass+1)
      else

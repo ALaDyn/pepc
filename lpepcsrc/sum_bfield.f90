@@ -15,12 +15,12 @@ subroutine sum_bfield( p, n, inode, eps, sumbx, sumby, sumbz, sumax, sumay, suma
   real, intent(in) :: eps ! smoothing parameter
   integer :: jnode, i,j,k 
 
-  real :: rd,dx,dy,dz,d,dx2,dy2,dz2 
- real :: dx3,dy3,dz3,rd3,rd5,rdotj,rdotm
- real :: fsx,fsy,fsz,phi
+  real*8 :: rd,dx,dy,dz,d,dx2,dy2,dz2 
+ real*8 :: dx3,dy3,dz3,rd3,rd5,rdotj,rdotm
+ real*8 :: fsx,fsy,fsz,phi
  real, dimension(n*10) :: mult 
  real, dimension(n*3) :: coc
-  real, intent(out) ::  sumax,sumay,sumaz,sumbx, sumby, sumbz 
+  real*8, intent(out) ::  sumax,sumay,sumaz,sumbx, sumby, sumbz 
   real :: eps2
 
   eps2=eps**2

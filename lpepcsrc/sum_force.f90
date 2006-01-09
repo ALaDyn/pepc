@@ -16,19 +16,19 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
   real, intent(out) :: load ! work load for particle p
   integer :: jnode, i,j,k 
 
-  real :: rd,dx,dy,dz,d,dx2,dy2,dz2 
- real :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
- real :: fsx,fsy,fsz,phi
- real, dimension(n*10) :: mult 
- real, dimension(n*3) :: coc
-  real, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
+  real*8 :: rd,dx,dy,dz,d,dx2,dy2,dz2 
+ real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
+ real*8 :: fsx,fsy,fsz,phi
+ real*8, dimension(n*10) :: mult 
+ real*8, dimension(n*3) :: coc
+  real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
   real :: eps2
 
   eps2=eps**2
-  sumfx = 0
-  sumfy = 0
-  sumfz = 0
-  sumphi = 0
+  sumfx = 0.
+  sumfy = 0.
+  sumfz = 0.
+  sumphi = 0.
 
 ! copy multipole moments into stride 1 array
   do j=1,n

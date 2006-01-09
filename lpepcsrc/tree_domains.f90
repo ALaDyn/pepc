@@ -55,10 +55,9 @@ subroutine tree_domains(xl,yl,zl)
   integer :: errcount
 
   integer, dimension(nppm) ::  w2, w3 ! scratch arrays for integer*4 permute
-  real, dimension(nppm) :: wr2, wr3 ! Scratch for real array permute
   integer*8 :: tmp
   logical :: sort_debug=.false.
-  real*8 xboxsize, yboxsize, zboxsize
+  real*8 :: xboxsize, yboxsize, zboxsize
 
   !POMP$ INST BEGIN(keys)
 

@@ -46,7 +46,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
   integer, intent(in) :: mac
- ! integer, intent(out) :: nodelist(nintm, npshort)
+  ! integer, intent(out) :: nodelist(nintm, npshort)
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
   real :: twalk, tfetch, tw1, tw2, tc1, tf1, tf2
@@ -66,11 +66,11 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   integer, dimension(npshort) :: nlocal, ndefer,  nwalk, defer_ctr
 
 
-  integer, dimension(maxaddress) ::  process_addr, request_owner
+  integer, dimension(maxaddress) ::  process_addr, request_owner, reqlist
   integer, dimension(maxaddress) :: childbyte
   integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child
 
-  real, dimension(8) :: xcoc_child, ycoc_child, zcoc_child
+  real*8, dimension(8) :: xcoc_child, ycoc_child, zcoc_child
 
   real, dimension(0:nlev) :: boxlength2
   logical, dimension(npshort) :: finished, requested
@@ -120,7 +120,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
   npackm = maxaddress
   nchild_shipm = maxaddress
-  !walk_debug = .false.
+  !  walk_debug = .false.
   ! ipefile = 6
   if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK (AS) for timestep ',itime,' pass ',pass
   if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (AS) for timestep ',itime,' pass ',pass
@@ -129,11 +129,11 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
 
   theta2 = theta**2               ! Clumping parameter**2 for MAC
-!  theta2_ion = min(1.0,2*theta2)  ! Ion MAC 50% larger than electron MAC
+  !  theta2_ion = min(1.0,2*theta2)  ! Ion MAC 50% larger than electron MAC
   theta2_ion=theta2
   boxlength2(0)=sbox**2
   do i=1,nlev
-    boxlength2(i) =  boxlength2(i-1)/4.  ! Preprocessed box sizes for each level
+     boxlength2(i) =  boxlength2(i-1)/4.  ! Preprocessed box sizes for each level
   end do
 
   walk_key(1:npshort) = 1                    ! initial walk list starts at root
@@ -167,9 +167,9 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
   do while (maxactive > 0)        ! Outer loop over 'active' traversals
 
-!POMP$ INST BEGIN(walk_local)
+     !POMP$ INST BEGIN(walk_local)
 
-  call cputime(tw1)
+     call cputime(tw1)
      ntraversals = ntraversals + 1  ! # Tree-walks
      if (walk_debug) write(ipefile,'(a,i6)') 'Start of traversal ',ntraversals
      !     if (walk_debug) write(*,'(a,i6)') 'Start of traversal ',ntraversals
@@ -215,7 +215,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
            ignore =  ( pshort(p) == htable( walk_addr )%node )
 
-! Wakefield QSA mac condition: prevent forward transmission of pw info
+           ! Wakefield QSA mac condition: prevent forward transmission of pw info
            if (mac==5) ignore = (ignore .or. dx<0) 
 
            add_key = walk_key(i)                                ! Remember current key
@@ -228,25 +228,25 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
            if ( mac_ok .or. (walk_node >0 .and. .not.ignore ) ) then
               walk_key(i) = walk_next
 	      entry_next = nterm(p) + 1
-!              intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
+              !              intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
               nodelist( entry_next, p ) = walk_node   ! Node number for sum_force
               nterm(p) = entry_next
 
 
-           ! 2) MAC fails at node for which children present, so resolve cell & put 1st child on walk_list
+              ! 2) MAC fails at node for which children present, so resolve cell & put 1st child on walk_list
 
            else  if ( .not.mac_ok .and. walk_node < 0 .and. btest(cbyte,9) ) then
               ! if local put 1st child node on walk_list
               walk_key(i) = first_child( walk_node )
 
 
-           ! 3) MAC fails at node for which children _absent_, so put node on REQUEST list (flag with add=2)
+              ! 3) MAC fails at node for which children _absent_, so put node on REQUEST list (flag with add=2)
 
            else if ( .not.mac_ok .and. walk_node < 0 .and.  .not. btest(cbyte,9) ) then
               walk_key(i) = walk_next  ! Continue with walk for now
               ndefer(p) = ndefer(p) + 1
               defer_list( ndefer( p), p ) = add_key  ! Deferred list of nodes to search, pending request
-                                                     ! for data from nonlocal PEs
+              ! for data from nonlocal PEs
               if (.not. BTEST( htable(walk_addr)%childcode, 8 ) ) then  ! Check if node already requested
                  nshare = nshare + 1
 
@@ -285,19 +285,19 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
            endif
         end do
 
-!        nnew = count( mask = .not.finished(1:nlist) )            ! Count remaining particles
+        !        nnew = count( mask = .not.finished(1:nlist) )            ! Count remaining particles
 
-!        plist(1:nnew) =  pack( plist(1:nlist), mask = .not.finished(1:nlist) )    ! Compress particle index list
-!        walk_key(1:nnew) =  pack( walk_key(1:nlist), mask = .not.finished(1:nlist) )       ! Compress walk lists etc.
+        !        plist(1:nnew) =  pack( plist(1:nlist), mask = .not.finished(1:nlist) )    ! Compress particle index list
+        !        walk_key(1:nnew) =  pack( walk_key(1:nlist), mask = .not.finished(1:nlist) )       ! Compress walk lists etc.
 	nnew=0
 	do i=1,nlist
-	  if (.not.finished(i)) then
-	    nnew=nnew+1
-	    plist(nnew) = plist(i)
-	    walk_key(nnew) = walk_key(i)
-	  endif
+           if (.not.finished(i)) then
+              nnew=nnew+1
+              plist(nnew) = plist(i)
+              walk_key(nnew) = walk_key(i)
+           endif
         end do
-  
+
         nlist = nnew
 
      end do   ! END DO_WHILE
@@ -320,9 +320,9 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
      end do
 
-   call cputime(tw2)
-   twalk=twalk+tw2-tw1
-!POMP$ INST END(walk_local)
+     call cputime(tw2)
+     twalk=twalk+tw2-tw1
+     !POMP$ INST END(walk_local)
 
 
      if (walk_debug) then
@@ -339,9 +339,9 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
      nfetches(0:num_pe-1) = (/ (count( mask = request_owner(1:nshare) == ipe ), ipe=0,num_pe-1) /)
 
-!POMP$ INST BEGIN(exchange)
+     !POMP$ INST BEGIN(exchange)
 
- !    call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
+     !    call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
 
 
      ! Exchange numbers of keys to be shipped and requested
@@ -376,6 +376,17 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      i1=1
      fetch_pe_count = 0
      iship1=1
+     if (nshare>0) then
+        !  Sort according to PE
+        call indexsort(request_owner,reqlist,nshare,maxaddress)
+        do i=1,nshare
+           ship_keys(i) = request_key(reqlist(i))
+        end do
+     endif
+
+     if (walk_debug) then
+        write(ipefile,'(a/(o15,i7))') 'Sorted request list: ',(ship_keys(i),request_owner(reqlist(i)),i=1,nshare)
+     endif
 
      do ipe = 0,num_pe-1 
 
@@ -391,7 +402,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
            ! Extract sub-list of keys to request according to location - don't overwrite buffer!
 
-           ship_keys(iship1:iship1+nfetches(ipe)) = pack(request_key(1:nshare), mask = request_owner(1:nshare) == ipe )
+           !           ship_keys(iship1:iship1+nfetches(ipe)) = pack(request_key(1:nshare), mask = request_owner(1:nshare) == ipe )
 
            if (emulate_blocking) then
               call MPI_SEND(ship_keys(iship1), nfetches(ipe), MPI_INTEGER8, ipe, tag1, &
@@ -484,8 +495,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
            sum_ships = sum_ships + nchild
 
 	   if (walk_debug) then
-             write(ipefile,'(a,i4,i7/(o12))') 'Keys requested from: ',ipe,nchild,key_child(1:nchild) 
-           endif	
+              write(ipefile,'(a,i4,i7/(o12))') 'Keys requested from: ',ipe,nchild,key_child(1:nchild) 
+           endif
 	end do
 
         ! Ship child data back to PE that requested it
@@ -610,7 +621,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
      nactive = count( mask = nwalk(1:npshort) /= 0 )     ! Count remaining 'active' particles - those still with deferred nodes to search
 
-!     call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
+     !     call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
 
      ! Broadcast # remaining particles to other PEs
 
@@ -619,10 +630,10 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      maxactive = maxval(nactives)
      nplace_max = SUM(nplace)
      nchild_ship_tot = SUM(nchild_ship)
-!     call MPI_ALLREDUCE( nchild_ship_tot, max_pack, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
-!     call MPI_ALLREDUCE( nchild_ship_tot, sum_pack, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )  
-!     sum_fetches = sum_fetches + nplace_max  ! Total # fetches/iteration
-!     sum_ships = sum_ships + nchild_ship_tot ! Total # shipments/iteration
+     !     call MPI_ALLREDUCE( nchild_ship_tot, max_pack, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+     !     call MPI_ALLREDUCE( nchild_ship_tot, sum_pack, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )  
+     !     sum_fetches = sum_fetches + nplace_max  ! Total # fetches/iteration
+     !     sum_ships = sum_ships + nchild_ship_tot ! Total # shipments/iteration
 
      if (walk_summary ) then
         write (ipefile,'(/a,i8,a2)') 'LPEPC | Summary for traversal # ',ntraversals,' :'
@@ -642,24 +653,24 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
              'New leaves:',newleaf, &
              'New list length: ',nlist, &
              '# remaining active particles on each PE: ',SUM(nactives),MAXVAL(nactives)
-  !           '# remaining active particles on each CPU: ',(i,nactives(i+1),i=0,num_pe-1)
+        !           '# remaining active particles on each CPU: ',(i,nactives(i+1),i=0,num_pe-1)
         !        write(ipefile,'(a/(2i5))') 'New shortlist: ',(plist(i),pshort(plist(i)),i=1,nlist)
 
      endif
 
- ! Array bound checks
-	if (nleaf>.9*maxaddress/2) then
-	   write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
-	   write (6,*) 'LPEPC | nleaf = ',nleaf,' / ',maxaddress/2
-	endif
-	if (ntwig>.9*maxaddress/2) then
-	   write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
-	   write (6,*) 'LPEPC | ntwig = ',ntwig,' / ',maxaddress/2
-	endif
+     ! Array bound checks
+     if (nleaf>.9*maxaddress/2) then
+        write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
+        write (6,*) 'LPEPC | nleaf = ',nleaf,' / ',maxaddress/2
+     endif
+     if (ntwig>.9*maxaddress/2) then
+        write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
+        write (6,*) 'LPEPC | ntwig = ',ntwig,' / ',maxaddress/2
+     endif
 
-    call cputime(tc1)
-    tfetch=tfetch+tc1-tw2  ! timing for 2nd half of walk
-!POMP$ INST END(exchange)
+     call cputime(tc1)
+     tfetch=tfetch+tc1-tw2  ! timing for 2nd half of walk
+     !POMP$ INST END(exchange)
 
   end do
 
@@ -677,8 +688,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   end do
 
   sum_inner_old = sum_inner_pass
-!  call MPI_ALLREDUCE( sum_nhops, sum_nhops_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
-!  call MPI_ALLREDUCE( sum_inner_pass, sum_inner_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
+  !  call MPI_ALLREDUCE( sum_nhops, sum_nhops_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
+  !  call MPI_ALLREDUCE( sum_inner_pass, sum_inner_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
   sum_nhops_old = sum_nhops_old/num_pe
   sum_inner_old = sum_inner_old/num_pe
   maxtraverse = max(maxtraverse,ntraversals)
