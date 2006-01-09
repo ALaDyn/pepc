@@ -2,7 +2,7 @@
 !
 !                SPECIAL_START
 !
-!  Initialise set of particles with zero velocity
+!  Initialise set of particles for special test configs
 !
 ! ==============================================
 
@@ -21,10 +21,21 @@ subroutine special_start(iconf)
 
   iseed = -17-me
 
-  config: select case(iconf)
-  case(1)  
+! Define default container parameters in absence of plasma target
+     Vplas = x_plasma * y_plasma * z_plasma
+     Aplas = x_plasma * y_plasma
+     focus = (/ xl/4., yl/2., zl/2. /) ! Centre of laser focal spot
+     plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+     Qplas = ne
 
-     ! electron disc at x=0 with 2pi phase spread
+  config: select case(iconf)
+
+  case(1)        ! electron disc at x=0 with 2pi phase spread
+     qe=-1.0
+     mass_e=1.0
+     qi=1.0
+     mass_i=mass_ratio
+
      r_beam=sigma/2.
      gamma0=sqrt(1+vosc**2/2.)
 
@@ -46,9 +57,13 @@ subroutine special_start(iconf)
      q(1:nep) = qe           ! plasma electrons
      m(1:nep) = mass_e            ! electron mass
 
-  case(2) 
+  case(2)        ! electron disc at laser focus with 2pi phase spread
 
-     ! electron disc at laser focus with 2pi phase spread
+     qe=-1.0
+     mass_e=1.0
+     qi=1.0
+     mass_i=mass_ratio
+
      r_beam=sigma/2.
      gamma0=sqrt(1+vosc**2/2.)
 
@@ -73,7 +88,13 @@ subroutine special_start(iconf)
      m(1:nep) = mass_e            ! electron mass
 
 
-  case(3)  ! random placement in box with vte in x,y plane for B test 
+  case(3)       ! random placement in box with vte in x,y plane for B test 
+
+     qe=-1.0
+     mass_e=1.0
+     qi=1.0
+     mass_i=mass_ratio
+
      do i=1,npp
         if (i<=nep) then
            vt=vte
@@ -100,9 +121,7 @@ subroutine special_start(iconf)
         uz(i) = v0*cos(phivel)
      end do
 
-  case(4)
-
-     !  Special config for FMM comparison
+  case(4)      !  Special config for FMM comparison
      open(30,file='fmm_config.data')
      do i=1,npp
         read(30,*) x(i), y(i), z(i), q(i)
@@ -116,10 +135,10 @@ subroutine special_start(iconf)
      eps=0.
      close(30)
 
-  case(5)
+  case(5)     ! beam initialised along x-axis and rotated by theta, phi
+
 
      write (*,*) 'Preparing particle beam'
-     ! beam initialised along x-axis and rotated by theta, phi
      npb = max(ni,ne)  ! Take whichever species switched on
      np_beam=0 ! Discard normal beam mode (plasma+beam)
      npp = max(nep,nip)
@@ -132,7 +151,10 @@ subroutine special_start(iconf)
      vx_beam = u_beam*ct*cp
      vy_beam = u_beam*ct*sp
      Volb = pi*r_beam**2*x_beam
-     qeb = Volb*rho_beam/npb    ! charge
+     qe = Volb*rho_beam/npb    ! charge
+     mass_e = mass_beam
+     mass_i = mass_beam
+     qi=-qe
      dpx=x_beam/npb           ! x-axis spacing
      i=0
      do while (i < npp)
@@ -150,8 +172,8 @@ subroutine special_start(iconf)
 
         endif
      end do
-     q(1:npp) = qeb           ! plasma electrons
-     m(1:npp) = abs(qeb*mass_beam)  ! electron mass
+     q(1:npp) = qe           ! plasma electrons
+     m(1:npp) = abs(qe*mass_beam)  ! electron mass
 
 !     write (*,'(a30/(5f13.5))') 'Beam config:', &
 !          (x(i),y(i),z(i),q(i),m(i),i=1,npp)

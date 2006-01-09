@@ -20,7 +20,7 @@ include $(ARCH)
 #
 #  -----------------------------------------------------------------------------------------
 
-FFLAGS =  $(FFLAGS1) $(DB) $(PG) $(TUNE)
+FFLAGS =  $(FFLAGS1) $(DB) $(LISTING) $(PG) $(TUNE)
 DFLAGS = $(FFLAGS1) $(DB) 
 PPFLAGS = $(PREPROC)
 LDFLAGS =  $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) $(MPITRACE) 
@@ -42,9 +42,9 @@ MODULES.f90 =   physvars.f90
 
 SOURCES.f90 =   \
                 setup.f90 setup_arrays.f90 stamp.f90 \
-                configure.f90 randion.f90 predef_parts.f90 maxwell1.f90 cold_start.f90 \
+                configure.f90 plasma_start.f90 predef_parts.f90 maxwell1.f90 cold_start.f90 \
                 special_start.f90 constrain.f90 cutvector.f90 face.f90 \
-                scramble_v.f90 reset_ions.f90 add_electrons.f90 double_target.f90 \
+                scramble_v.f90 reset_ions.f90 add_electrons.f90 \
                 laser.f90 beam.f90 beam_dust.f90 rezone.f90\
                 mc_config.f90 \
                 velocities.f90 perturb_temp.f90 \
@@ -53,7 +53,7 @@ SOURCES.f90 =   \
                 fpond.f90 fpond_lin.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90 \
                 push_em.f90 push_full3v.f90 \
                 push.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
-                vis_fields.f90 dump.f90 param_dump.f90 diagnostics.f90 \
+                dump.f90 param_dump.f90 diagnostics.f90 \
                 open_files.f90 close_files.f90  \
                 densities.f90 sum_fields.f90 dump_fields.f90 \
                 track_nc.f90 \
@@ -91,14 +91,13 @@ physvars.o:
 	$(CC) -c $(CFLAGS) $<
 
 
-
 # -----------------------------------------------------------------------------------------
 #  targets
 
 pepcb:	$(appmods) $(appobjs) liblpepc.a
 	@echo "\n Creating pepcb ...\n"
-	$(FC)  $(FFLAGS)  -o $@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI) 
-	/bin/ln -sf $(PREFIX)/pepc-b/pepcb $(PREFIX)/bin/pepcb
+	$(FC)  $(FFLAGS)  -o ../bin/$@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI) 
+#	/bin/ln -sf $(PREFIX)/pepc-b/pepcb $(PREFIX)/bin/pepcb
 	@echo "... done\n"
 
 debug: $(appmods) $(appobjs) lpepc
@@ -133,12 +132,16 @@ rand:	 rantest.o
 clean:  cleanapp cleanlib
 
 cleanapp:
-	@echo "Cleaning application binaries .."; /bin/rm -f bin/*.o   *% *~ bin/key rand *.o *.pif core *.a *.mod opari.rc *.mod.F90 *.opari.inc
+	@echo "Cleaning application binaries .."; /bin/rm -f bin/*.o   *% *~ bin/key rand *.o *.pif core *.lst *.a *.mod opari.rc *.mod.F90 *.opari.inc
 	@echo "Cleaning postprocessed sources .."; /bin/rm -f  $(PPSRC.f90)
 
 cleanlib:
 	@echo "Cleaning lpepc library .." 
-	cd ../lpepcsrc;	/bin/rm -f *.o *.mod.F90 *.opari.inc; cd -
+	cd ../lpepcsrc;	/bin/rm -f *.o *.mod.F90 *.lst *.opari.inc; cd -
+
+cleanpre: 
+	@echo "Cleaning pre-processed .f90 files .."
+	/bin/rm -f pepcb.f90 vis_*.f90
 
 cleancore: 	
 	/bin/rm $(pepcobjs) 
@@ -154,4 +157,6 @@ depend:
 # so do NOT add any translation rules below here.
 
 #--- Include-Dependencies
-
+# Special dependencies
+setup.o:	namelist.h
+param_dump.o:   namelist.h

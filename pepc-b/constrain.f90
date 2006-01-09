@@ -32,13 +32,16 @@ subroutine constrain
         v = (/ux(p), uy(p), uz(p)/)
 
         do face_nr = 1, number_faces ! walk through all faces
-            call face(r_new, c_status, face_nr)
+            call face(r_new, c_status, face_nr, & 
+              target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
+
             if (c_status .ge. 0.) then
                 nr_out = nr_out + 1
 
                 ! get a good r_old
                 r_test = r_new - dt * v
-                call face(r_test, c_status, face_nr) 
+                call face(r_test, c_status, face_nr, & 
+                  target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                 if (c_status .gt. 0.) then
                     call cutvector(r_test, face_nr, n, r_old)
                     temp = r_new - r_old
@@ -51,7 +54,8 @@ subroutine constrain
                 p_new = 1.
                 p_old = 0.
                 r_test = r_old + p_new * (r_new - r_old)
-                call face(r_test, c_status, face_nr)
+                call face(r_test, c_status, face_nr, &
+                  target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                 do while (abs(c_status) .gt. constrain_proof)
                     diff = abs(p_new - p_old) / 2.
                     p_old = p_new
@@ -61,7 +65,8 @@ subroutine constrain
                         p_new = p_new + diff
                     end if
                     r_test = r_old + p_new * (r_new - r_old)
-                    call face(r_test, c_status, face_nr)
+                    call face(r_test, c_status, face_nr, &
+                       target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                 end do
 !                if (constrain_debug) write(*, *) 'Bisection for particle done.'
                 call cutvector(r_test, face_nr, n, r_d)

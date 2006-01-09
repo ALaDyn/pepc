@@ -15,8 +15,8 @@ subroutine cold_start(i1,n)
 
   integer :: i1,n
 
-  ux(i1:i1+n) = 0.
-  uy(i1:i1+n) = 0.
-  uz(i1:i1+n) = 0.
+  ux(i1:i1+n-1) = 0.
+  uy(i1:i1+n-1) = 0.
+  uz(i1:i1+n-1) = 0.
 
 end subroutine cold_start

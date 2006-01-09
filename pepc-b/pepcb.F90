@@ -69,8 +69,10 @@ program pepcb
 
   call setup           ! Read input deck, setup plasma config
   call setup_arrays    ! Set up field arrays
-  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult)  ! Allocate array space for tree
-  call param_dump      ! Dump initial data
+
+! Allocate array space for tree
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult) 
+ 
 
 ! ---- Preprocess VISIT setup -----------
  
@@ -147,10 +149,12 @@ program pepcb
      ! # particles on CPU may change due to re-sort
 
 !POMP$ INST BEGIN(fields)
+
      call pepc_fields_p(np_local, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
           dt, xl, yl, zl, itime, &
           coulomb, bfields, bonds, lenjones, &
-          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot)   
+          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot) 
+  
 !POMP$ INST END(fields)
 
 	if (np_error>0 .and. itime==1) call error_test(np_error)
@@ -160,16 +164,23 @@ program pepcb
 
 
 !POMP$ INST BEGIN(integ)
+
      call integrator
+
 !POMP$ INST END(integ)
+
      call cputime(t_push)
      call laser            ! laser propagation according to beam_config
      call cputime(t_laser)
+
 !POMP$ INST BEGIN(diagno)
+
      if (debug_level>=1) then
         call diagnostics
      endif
+
 !POMP$ INST END(diagno)
+
      call cputime(t_diag)
 
      t_diag = t_diag - t_laser
@@ -240,8 +251,10 @@ endif
      write(*,'(a20,2f12.3)') 'Loop+diags: ',t_end_loop-t_start_loop
      write (*,'(a20,f14.4)') 'Total run time: ',t_end_prog-t_start_prog
   endif 
+
   ! End the MPI run
   call MPI_FINALIZE(ierr)
+
 !POMP$ INST END(pepcb)
 
 end program pepcb

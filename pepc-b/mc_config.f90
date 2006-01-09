@@ -19,7 +19,7 @@ subroutine mc_config
   integer :: iseed0, i_count, i_rate, i_max, mc_dump
   real :: epot, etrial, delta_E, prob1, epold, r 
   real :: xold, yold, zold, xt, yt, zt, xs, ys, zs
-  real :: Qplas, Tplas
+  real :: Tplas
   real :: r_limit, x_limit, y_limit
   logical :: constrained
 
@@ -47,7 +47,6 @@ subroutine mc_config
      write(76,'(i6,1pe14.5)') 0,epot   ! Initial PE
   endif
 
-     Qplas = abs(qe)*ne  ! Norm factor for plasma kinetic energy
      Tplas = Te_keV/511.*Qplas  ! convert temperature to code units
 
   call system_clock(i_count,i_rate,i_max)

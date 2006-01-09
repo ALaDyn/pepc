@@ -5,7 +5,7 @@
 !
 !   $Revision$
 !
-!   Add secondary target shifted by displacement vector displace(1:3) 
+!   Add temperature perturbation to isotropic thermal distrib. 
 !
 !  ===============================================================
 

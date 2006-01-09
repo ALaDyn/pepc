@@ -1,0 +1,271 @@
+! ==============================================
+!
+!                PLASMA_START
+!
+!   $Revision: 1.5  (Previously: randion)
+!
+!  Sets up 3D random distribution of plasma particles
+!  according to target_geometry
+! 
+! ==============================================
+
+subroutine plasma_start(i1, n, label_off, target_geometry, velocity_config, idim, &
+     rho0, Zion, mass_ratio, vt, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+     number_faces, Vplas, Aplas, Qplas, q_part, m_part, a_ave )
+
+  use treevars
+  use utils
+
+  implicit none
+
+  integer, intent(in) :: i1 ! particle index start
+  integer, intent(in) :: n  ! # particles to set up
+  integer, intent(in) :: label_off ! offset for pelabel
+  integer, intent(in) :: target_geometry ! geometry
+  integer, intent(in) :: velocity_config ! Maxwellian/cold start switch
+  integer, intent(in) :: idim ! # dimensions
+  real, intent(in) :: rho0 ! plasma density
+  real, intent(in) :: Zion ! particle atomic charge (-1, Zion)
+  real, intent(in) :: vt ! thermal or drift velocity
+  real, intent(in) :: mass_ratio ! mass ratio (m_q/m_e)
+  real, intent(in) :: x_plasma, y_plasma, z_plasma, r_sphere ! container params
+  real, intent(in) :: plasma_centre(3) ! target offset vector
+  real, intent(out) :: Vplas, Aplas, Qplas ! Plasma volume, area, charge
+  real, intent(out) :: q_part, m_part, a_ave ! Derived particle charge, mass, spacing
+  integer, intent(out) :: number_faces   ! # faces of target container
+
+  integer              :: i, j, face_nr, n1
+  integer              :: idum, iseed1, iseed2, iseed3, p, k, nx, ny
+  real*8               :: xt, yt, zt, radius, dpx, s
+  real*8 :: c_status
+  real, dimension(1:3) :: r_temp
+  real :: pi=3.141
+  logical :: start_debug=.true.
+
+  iseed1 = -11 - me -i1      ! Select seed depending on PE and offset
+  iseed2 = -1001 - me -i1      ! Select seed depending on PE
+  iseed3 = -2111 - me -i1     ! Select seed depending on PE
+  if (start_debug) then
+    write (ipefile, '(a,3i8)') 'Seeds: ', iseed1, iseed2, iseed3
+    write(*,'(a/a20,6i8/a20,8f12.3)') "Call parameters:", &
+	"indices, switches:",i1,n,label_off,target_geometry,velocity_config,idim, &
+	"plasma:",rho0,zion,vt,mass_ratio,x_plasma,y_plasma,z_plasma,r_sphere
+  endif
+
+  !  Predefined geometries:
+  !  ---------------------
+  !       0 = random slab
+  !       1 = random sphere
+  !       2 = random disc
+  !       3 = random wire
+  !       4 = ellipsoid
+  !       5 = wedge
+  !       6 = hemisphere
+  !       7 = hollow sphere
+  !       8 = hollow hemisphere
+
+
+  !  Define target container parameters: volume, area, centre, # faces
+
+  geom_container: select case(target_geometry)
+
+  case(0) ! slab
+     Vplas = x_plasma * y_plasma * z_plasma  ! plasma volume
+     Aplas = x_plasma * y_plasma ! plasma area
+     number_faces = 6
+
+  case(1) ! sphere
+     Vplas = 4 * pi * r_sphere**3 / 3.
+     Aplas = pi*r_sphere**2
+     number_faces = 1
+
+  case(2) ! disc
+     Vplas = pi * r_sphere**2 * x_plasma
+     Aplas = x_plasma*y_plasma
+     number_faces = 3
+
+  case(3) ! wire
+     Vplas = pi * r_sphere**2 * z_plasma
+     Aplas = pi*r_sphere**2
+     number_faces = 3
+
+  case(4) ! ellipsoid
+     Vplas = 4 * pi * x_plasma * y_plasma * z_plasma / 3.
+     Aplas = pi*x_plasma*y_plasma*2
+     number_faces = 1
+
+  case(5) ! wedge
+     Vplas = .5 * x_plasma * y_plasma * z_plasma
+     Aplas = .5*x_plasma*y_plasma
+     number_faces = 5
+
+  case(6) ! hemisphere
+     Vplas = 4 * pi * r_sphere**3 / 6.
+     Aplas = pi*r_sphere**2/2.
+     number_faces = 2
+
+  case(7) ! hollow sphere
+     Vplas = (4 * pi / 3.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
+     Aplas = pi*(r_sphere**2-(r_sphere-x_plasma)**2)
+     number_faces = 2
+
+  case(8) ! hollow hemisphere
+     Vplas = (4 * pi / 6.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
+     Aplas = pi/2.*(r_sphere**2-(r_sphere-x_plasma)**2)
+     number_faces = 3
+
+  end select geom_container
+
+  !  Initialise particles according to target geometry
+
+
+ i=0 
+
+  do while (i < n)
+
+     geom_parts: select case (target_geometry)
+     case(0, 5) ! slab or wedge 
+        xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
+        yt = .5 * y_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
+        zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
+
+     case(1, 7) ! sphere and hollow sphere
+        xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
+        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)        
+        zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
+
+     case(2) ! disc
+        xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
+        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
+        zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
+
+     case(3) ! wire
+        xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)         
+        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)
+        zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
+
+     case(4) ! ellipsoid
+        xt = r_sphere * (2 * rano(iseed1) - 1.) * x_plasma + plasma_centre(1)
+        yt = r_sphere * (2 * rano(iseed1) - 1.) * y_plasma + plasma_centre(2)
+        zt = r_sphere * (2 * rano(iseed1) - 1.) * z_plasma + plasma_centre(3)
+
+     case(6, 8) ! hemisphere and hollow hemisphere
+        xt = .5 * r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
+        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)
+        zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
+
+     end select geom_parts
+
+     ! check if the new particle is inside container
+     ! - if so then add it
+
+     do face_nr = 1, number_faces
+        call face((/xt, yt, zt/), c_status, face_nr, &
+	   target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
+
+        if (c_status .ge. 0.) exit
+     end do
+     if (c_status .lt. 0) then
+	i=i+1
+        p=i+i1-1
+        z(p) = zt 
+        y(p) = yt
+        x(p) = xt
+     end if
+  end do
+
+  ! scramble indices to remove correlations
+  iseed3 = -17 - 4 * me -i1
+  n1 = n
+
+  !  exclude odd one out
+  if (mod(n,2) .ne. 0) then
+     n1 = n1 - 1
+  end if
+
+  do i = 1, n1
+     p = i + i1-1
+     k = n1 * rano(iseed3) + i1
+     xt = x(p)
+     yt = y(p)
+     zt = z(p)
+     x(p) = x(k)
+     y(p) = y(k)
+     z(p) = z(k)
+     x(k) = xt
+     y(k) = yt
+     z(k) = zt
+  end do
+
+
+  ! Derive electron/ion charges and masses from target parameters
+
+  if (idim==3) then    ! 3D
+
+     Qplas = Vplas*rho0      ! total target charge
+     q_part = Qplas/n   ! particle charge
+     m_part = mass_ratio*abs(q_part) ! particle mass
+     a_ave = (Vplas/max(1,n))**(1./3.)  ! ave. spacing
+
+  else        ! 2D - use areal density instead of volume
+
+     Qplas = Aplas*rho0
+     q_part = Qplas/n   ! particle charge
+     m_part = mass_ratio*abs(q_part) ! particle mass
+     a_ave = (Aplas/max(1,n))**(1./2.) ! ave spacing
+  endif
+
+
+  q(i1:i1+n-1)       = q_part     ! charge
+  m(i1:i1+n-1)       = m_part     ! mass
+  pepid(i1:i1+n-1)   = me    ! processor ID
+  pelabel(i1:i1+n-1) = label_off + me * n + (/(i, i = 1, n)/) ! unique labels
+
+
+
+  velocities: select case (velocity_config)
+
+  case(0) ! Default is cold start
+     call cold_start(i1,n)
+
+  case(1) ! isotropic Maxwellian
+
+     if (vt > 0) then
+        call maxwell1(ux,nppm,i1,n,vt)
+        call maxwell1(uy,nppm,i1,n,vt)
+        call maxwell1(uz,nppm,i1,n,vt)
+        call scramble_v(i1,n)   ! remove x,y,z correlations
+     else
+        call cold_start(i1,n)
+     endif
+
+  case(2)  ! electrons drifting with vt
+	ux(i1:i1+n-1) = vt
+	uy(i1:i1+n-1) = 0.
+	uz(i1:i1+n-1) = 0.
+
+
+  end select velocities
+
+  ! zero fields
+  Ex(i1:i1+n-1) = 0
+  Ey(i1:i1+n-1) = 0
+  Ez(i1:i1+n-1) = 0
+  Bx(i1:i1+n-1) = 0
+  By(i1:i1+n-1) = 0
+  Bz(i1:i1+n-1) = 0
+  Ax(i1:i1+n-1) = 0
+  Ay(i1:i1+n-1) = 0
+  Az(i1:i1+n-1) = 0
+  Axo(i1:i1+n-1) = 0
+  Ayo(i1:i1+n-1) = 0
+  Azo(i1:i1+n-1) = 0
+  pot(i1:i1+n-1) = 0
+  work(i1:i1+n-1) = 1.   ! set work load balanced initially
+
+  if (start_debug) then
+	write(*,'(a/(8f15.5,i6))') "Initial particle positions, velocities:", &
+	  (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),pelabel(i),i=i1,i1+n-1)
+  endif
+end subroutine plasma_start
+

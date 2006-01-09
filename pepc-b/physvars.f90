@@ -15,8 +15,9 @@ module physvars
                               qslice(:),  mslice(:)    ! charge and mass
   real*4, allocatable :: vbuffer(:,:), vbuf_local(:,:)
 
-  !  physics data
+  !  physics, target data
 
+  integer, parameter :: maxlayers=10
   integer :: ni, ne       !  # ions, electrons
   integer :: nep, nip     ! # particles/electrons/ions per PE
   real :: xl, yl, zl     ! simulation box dimensions
@@ -33,6 +34,10 @@ module physvars
   real :: y_plasma       ! initial plasma y-width (slab)
   real :: z_plasma       ! initial plasma z-width (slab)
   real :: plasma_centre(3) ! vector defining centre of plasma target
+  real :: displace(3)    ! particle displacement vector for restart or 2nd target
+  integer :: n_layer(maxlayers)=0   ! Additional target parameters
+  real, dimension(maxlayers) :: rho_layer, Zion_layer, mratio_layer, x_layer, y_layer, z_layer, r_layer
+
   real :: x_crit         ! critical surface
   real :: x_offset       ! coordinate offset
   real :: z_offset       ! coordinate offset
@@ -40,15 +45,17 @@ module physvars
   real :: rho_track      ! tracking density for x_crit (/nc)
   real :: rho_upper      ! shelf/profile density above x_crit (/nc)
   real :: Vplas          ! plasma volume
+  real :: Aplas          ! plasma area
+  real :: Qplas          ! plasma charge
   real :: a_ii           ! mean ion spacing
+  real :: a_ee           ! mean electron spacing
   real :: r_neighbour    ! nearest-neighbour search radius
   real :: eps            ! potential/force law cutoff
   real :: delta_mc       ! step size for MC config
-  real :: displace(3)    ! particle displacement vector for restart (change of view box)
   real :: uthresh        ! velocity (u^2) threshold for vis_parts
   real :: rho_min        ! min density for exponential ramp
   real :: lolam          ! L/lambda density scale-length
-  real :: q_factor       ! Charge factor
+  real :: Zion           ! Ionic charge
   real :: fnn            ! Near-neighbour factor
   real :: Ukine          ! Electron kinetic energy
   real :: Ukini          ! Ion kinetic energy
@@ -92,10 +99,12 @@ module physvars
 
 
 !  Variables needing 'copy' for tree routines
+
   integer :: npart_total  ! Total # particles (npart)
   integer :: np_local  ! Local # particles (npart)
   real :: np_mult=1.5   ! particle array safety margin
   integer :: fetch_mult=3 ! fetch array factor
+
 !  Associated MPI stuff
 
   integer :: my_rank       ! Rank of current task
@@ -112,12 +121,12 @@ module physvars
   logical :: bonds = .false. ! Include SHO bonding potential for ions
   logical :: lenjones = .false. ! Include short-range Lennard-Jones potential
   logical :: steering = .false.  ! VISIT steering switch
-  logical :: target_dup = .false. ! Target duplication switch
   logical :: ramp = .false.  ! profile-ramp switch
   logical :: te_perturb = .false.  ! Temperature perturbation switch
   integer :: mc_steps
   integer :: plasma_config = 1  ! Switch for initial configuration (positions, velocities)
   integer :: target_geometry = 0  ! Geometry for plasma target
+  integer :: velocity_config = 1  ! Velocity distrib. (Maxw) 
   integer :: idim=3  ! # dimensions (velocity and position updates)
   integer :: beam_config_in = 0 ! Particle or laser beam switch including variations 
   integer :: beam_config = 0 ! Reduced switch for particle or laser beam 
@@ -157,8 +166,8 @@ module physvars
    ! constrain
    real :: constrain_proof ! quality of getting crossing points
    real :: len_tripod      ! length of tripod
-   real :: number_faces    ! # faces to constrain the particles in
    integer :: struct_step
+   integer :: number_faces ! # faces in target container
 
  ! tree stuff
   real :: theta       ! Clumping parameter
@@ -179,5 +188,9 @@ module physvars
        'EMplane','EM pond',' dust  ','       ' /)
   character*7 :: schemes(1:6)=(/ &
        'const U','Te, Ti ','glob Te','loc  Te','Ti only','Full 3V' /)
+
+!  Redundant variables retained for namelist compatibility
+  real :: q_factor=1.0
+  logical :: target_dup = .false.  
 
 end module physvars

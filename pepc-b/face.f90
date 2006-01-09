@@ -2,7 +2,7 @@
 !   FACE
 !
 !  Function to set up bounded geometry targets in conjunction with 
-!  randion. 
+!  PLASMA_START. 
 !  M. Hammes, U. Wuppertal
 !
 !  $Revision$
@@ -12,16 +12,18 @@
 ! Saves f(r) in c_status
 ! and means c_status > 0.: particle is out,
 ! c_status < 0.: particle is in.
-!
-subroutine face(r, c_status, face_nr)
-    use physvars
 
+subroutine face(r, c_status, face_nr, &
+	target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
 
     implicit none 
 
     real*8, intent(in), dimension(1:3)	    :: r
     real*8, intent(out)			    :: c_status
     integer, intent(in)                     :: face_nr
+    integer, intent(in)	                    :: target_geometry
+    real, intent(in) :: x_plasma, y_plasma, z_plasma, r_sphere
+    real, intent(in) :: plasma_centre(3)
 
     ! vectors and other values for the slab
     real*8, dimension(1:3)	    :: r_diff
@@ -55,9 +57,11 @@ subroutine face(r, c_status, face_nr)
         end select
 
         c_status = dot_product(normal_vector, offset_vector - r)
+
     case(1) ! sphere
         r_diff = r - plasma_centre
         c_status = dot_product(r_diff, r_diff) - r_sphere**2
+
     case(2) ! disc
         select case (face_nr)
         case(1) ! the tube in x-direction
@@ -72,6 +76,7 @@ subroutine face(r, c_status, face_nr)
             offset_vector = (/+x_plasma / 2., 0., 0./) + plasma_centre
             c_status = dot_product(normal_vector, offset_vector - r)
         end select
+
     case(3)  ! wire
         select case (face_nr)
         case(1) ! the tube in z-direction
@@ -86,10 +91,12 @@ subroutine face(r, c_status, face_nr)
             offset_vector = (/0., 0., +z_plasma / 2./) + plasma_centre
             c_status = dot_product(normal_vector, offset_vector - r)
         end select
+
     case (4) ! ellipsoid
         A = reshape((/1 / x_plasma, 0., 0., 0., 1 / y_plasma, 0., 0., 0., 1 / z_plasma/), (/3, 3/))
         r_diff = matmul(A, r - plasma_centre)
         c_status = dot_product(r_diff, r_diff) - r_sphere**2
+
     case (5) ! prism in x-y plane
         gamma = atan(y_plasma / (2 * x_plasma))
         select case (face_nr)
@@ -110,6 +117,7 @@ subroutine face(r, c_status, face_nr)
             offset_vector = (/-x_plasma / 2., +y_plasma / 2.,0./) + plasma_centre
         end select
         c_status = dot_product(normal_vector, offset_vector - r)
+
     case (6) ! semisphere
         select case (face_nr)
         case(1) ! semisphere
@@ -120,6 +128,7 @@ subroutine face(r, c_status, face_nr)
             offset_vector = (/-r_sphere / 2., 0., 0./) + plasma_centre
             c_status = dot_product(normal_vector, offset_vector - r)
         end select
+
     case (7) ! hollow sphere
         r_diff = r - plasma_centre
         select case (face_nr)
@@ -128,12 +137,13 @@ subroutine face(r, c_status, face_nr)
         case(2) ! inner_sphere
             c_status = (r_sphere - x_plasma)**2 - dot_product(r_diff, r_diff)
         end select
-    case (8) ! hollow semisphere
+
+    case (8) ! hollow hemisphere
         select case (face_nr)
-        case(1) ! outer semisphere
+        case(1) ! outer hemisphere
             r_diff = r + (/r_sphere/2., 0., 0./) - plasma_centre
             c_status = dot_product(r_diff, r_diff) - r_sphere**2
-        case(2) ! inner semisphere
+        case(2) ! inner hemisphere
             r_diff = r + (/r_sphere/2., 0., 0./) - plasma_centre
             c_status = (r_sphere - x_plasma)**2 - dot_product(r_diff, r_diff)
         case(3) ! y-z-plane

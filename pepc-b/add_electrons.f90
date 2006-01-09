@@ -49,7 +49,7 @@ subroutine add_electrons
   work(1:npp) = 1.   ! set work load balanced initially
   iseed1 = -7901-me
 
-  !  Place electrons within 1/10 of ave. ion spaceing in vicinity of ions
+  !  Place electrons within 1/10 of ave. ion spacing in vicinity of ions
   xt = .1*a_ii*(2*rano(iseed1)-1.)
   yt = .1*a_ii*(2*rano(iseed1)-1.)          
   zt = .1*a_ii*(2*rano(iseed1)-1.)  

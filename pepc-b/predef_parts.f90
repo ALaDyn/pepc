@@ -20,6 +20,7 @@ subroutine predef_parts
   character(11) :: cme
   integer :: ner, nir, np_beamr, npartr, iconf, iens, timestamp
   real :: epsr, thetar, xlr, ylr, zlr, boxr
+  real :: omegar, lambdar
   real :: axdum, aydum, azdum,phidum, bdum
   integer :: ioffset, i1, i2, npp_partial, npp_total, ipass, me_read, j, nrest, nadd
   integer :: nslice_e, nslice_i
@@ -34,16 +35,18 @@ subroutine predef_parts
 
      ! Root reads info block in run directory to check that run parameters correct
 
-     read(80,'(7(9x,i8/),8(9x,f12.5/))')  &    ! info block - skip variable names
+     read(80,'(7(9x,i8/),10(9x,f12.5/),9(9x,1pe12.5/),2(9x,3f12.5/))')  &    ! info block - skip variable names
           itime_start, npartr, &
 	  ner, nir, np_beamr, iconf, iens, &
 	  xlr, ylr, zlr, boxr, &
   	  epsr, thetar, &
-          tlaser, trun   
+          tlaser, trun, omegar, lambdar, &
+          qe, qi, mass_e, mass_i, Zion, a_ii, Vplas, Aplas, Qplas, &
+          plasma_centre(1:3), focus(1:3)
      close(80)
      write(6,'(/a/a/a,i5)') 'RESTART:','Reading run data from info block: parts_info.in','Timestep:',itime_start
 
-     if (me==0) write(*,'(7(a12,i12/),7(a12,f12.5/))')  &    ! info block - skip variable names
+     if (me==0) write(*,'(7(a12,i12/),18(a12,f12.5/),2(a12,3f12.5/))')  &    ! info block - skip variable names
           'Start time: ', itime_start, & 
           '# particles: ', npartr, &
 	  '# electrons: ', ner, &
@@ -57,7 +60,20 @@ subroutine predef_parts
           'eps: ', eps,  &
   	  'theta: ', thetar, &
           'tlaser: ',tlaser, &
-          'trun: ',trun  
+          'trun: ',trun, &
+          'omega:',omegar, &
+          'lambda:', lambdar, &
+          'qe:',qe, &
+          'qi:',qi, &
+          'mass_e:',mass_e, &
+          'mass_i:',mass_i, &
+          'Zion:',Zion, &
+          'a_ii:', a_ii, &
+          'Vplas: ',Vplas, &
+          'Aplas: ',Aplas, &
+          'Qplas: ',Qplas, &
+          'centre: ',plasma_centre(1:3), &
+          'focus: ',focus(1:3)
 
      if (ner /= ne .or. nir /= ni) then
         write(*,*) '*** Particle nos. in input deck do not match those in restart file parts_info.in'
@@ -90,6 +106,17 @@ subroutine predef_parts
   call MPI_BCAST( eps, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( trun, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( tlaser, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( qe, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( qi, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( mass_e, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( mass_i, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( Zion, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( a_ii, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( Vplas, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( Aplas, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( Qplas, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( plasma_centre, 3, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( focus, 3, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( ne, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( ni, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( npart, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)

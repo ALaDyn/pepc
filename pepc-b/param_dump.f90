@@ -22,6 +22,9 @@ subroutine param_dump
         write (ifile,'(a20,f12.3)') ' Plasma height: ',z_plasma
         write (ifile,'(a20,1pe12.3)') ' Electron charge: ',qe
         write (ifile,'(a20,1pe12.3)') ' Electron mass: ',mass_e
+        write (ifile,'(a20,1pe12.3)') ' Ion Z:',Zion
+        write (ifile,'(a20,1pe12.3)') ' Ion m_i/m_p:',mass_ratio
+        write (ifile,'(a20,1pe12.3)') ' Ion charge: ',qi
         write (ifile,'(a20,1pe12.3)') ' Ion mass: ',mass_i
         write (ifile,'(a20,f12.3)') ' Te: ',Te_keV
         write (ifile,'(a20,f12.3)') ' Ti: ',Ti_keV
@@ -52,7 +55,7 @@ subroutine param_dump
 
         write (ifile,'(a20,1pe12.3)') ' N_D: ',4*pi/3.*(vte/a_ii)**3
         write (ifile,'(a20,f12.3)') ' N_c: ',4*pi/3.*(eps/a_ii)**3
-        write (ifile,'(a20,f12.3)') ' R/lambda_De: ',eps/vte
+        write (ifile,'(a20,f12.3)') ' R/lambda_De: ',eps/(max(vte,1.e-8))
         write (ifile,'(a20,f12.3)') ' Timestep: ',dt
         write (ifile,'(a20,f12.3)') ' Max timestep: ',0.45*sqrt(3.)*eps**2/abs(qe)*vte
 

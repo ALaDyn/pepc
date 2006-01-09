@@ -8,18 +8,15 @@
 
 subroutine scramble_v(i1,n)
 
-  use physvars
   use treevars
   use utils
   implicit none
 
  integer :: dum1, dum2, dum3  
-real :: uxt, uyt, uzt
+  real :: uxt, uyt, uzt
   integer :: i, j, k, kk, p, i1, n, n1
 
-  dum1 = -71 - 10*me
   dum2 = -113301 - 10*me
-  dum3 = -8651 - 10*me
   !  exclude odd one out
   if (mod(n,2).ne.0) then
      n1=n-1
@@ -30,9 +27,9 @@ real :: uxt, uyt, uzt
   !  scramble indices to remove correlation between ux,uy,uz
   do i=1,n1
      p=i+i1-1
-     j=n1*rano(dum1)+i1
+     j=n1*rano(dum2)+i1
      k=n1*rano(dum2)+i1
-     kk=n1*rano(dum3)+i1
+     kk=n1*rano(dum2)+i1
      uxt=ux(p)
      uyt=uy(p)
      uzt=uz(p)

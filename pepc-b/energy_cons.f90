@@ -18,7 +18,7 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
   implicit none
 
   integer :: ifile
-  real :: tpon, epot, ekine, ekini, ebeam,  etot, Qplas
+  real :: tpon, epot, ekine, ekini, ebeam,  etot
   real :: emag
 
   call potenergy(epot,emag)
