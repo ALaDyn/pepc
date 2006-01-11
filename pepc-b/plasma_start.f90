@@ -9,7 +9,7 @@
 ! 
 ! ==============================================
 
-subroutine plasma_start(i1, n, label_off, target_geometry, velocity_config, idim, &
+subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_config, idim, &
      rho0, Zion, mass_ratio, vt, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
      number_faces, Vplas, Aplas, Qplas, q_part, m_part, a_ave )
 
@@ -20,6 +20,7 @@ subroutine plasma_start(i1, n, label_off, target_geometry, velocity_config, idim
 
   integer, intent(in) :: i1 ! particle index start
   integer, intent(in) :: n  ! # particles to set up
+  integer, intent(in) :: nglobal  ! global # particles of this species (determining charge weight)
   integer, intent(in) :: label_off ! offset for pelabel
   integer, intent(in) :: target_geometry ! geometry
   integer, intent(in) :: velocity_config ! Maxwellian/cold start switch
@@ -36,11 +37,11 @@ subroutine plasma_start(i1, n, label_off, target_geometry, velocity_config, idim
 
   integer              :: i, j, face_nr, n1
   integer              :: idum, iseed1, iseed2, iseed3, p, k, nx, ny
-  real*8               :: xt, yt, zt, radius, dpx, s
+  real*8               :: xt, yt, zt, radius, dpx, s, rt
   real*8 :: c_status
   real, dimension(1:3) :: r_temp
-  real :: pi=3.141
-  logical :: start_debug=.true.
+  real :: pi=3.141592654
+  logical :: start_debug=.false.
 
   iseed1 = -11 - me -i1      ! Select seed depending on PE and offset
   iseed2 = -1001 - me -i1      ! Select seed depending on PE
@@ -203,16 +204,16 @@ subroutine plasma_start(i1, n, label_off, target_geometry, velocity_config, idim
   if (idim==3) then    ! 3D
 
      Qplas = Vplas*rho0      ! total target charge
-     q_part = Qplas/n   ! particle charge
+     q_part = Qplas/nglobal   ! particle charge
      m_part = mass_ratio*abs(q_part) ! particle mass
-     a_ave = (Vplas/max(1,n))**(1./3.)  ! ave. spacing
+     a_ave = (Vplas/max(1,nglobal))**(1./3.)  ! ave. spacing
 
   else        ! 2D - use areal density instead of volume
 
      Qplas = Aplas*rho0
-     q_part = Qplas/n   ! particle charge
+     q_part = Qplas/nglobal   ! particle charge
      m_part = mass_ratio*abs(q_part) ! particle mass
-     a_ave = (Aplas/max(1,n))**(1./2.) ! ave spacing
+     a_ave = (Aplas/max(1,nglobal))**(1./2.) ! ave spacing
   endif
 
 
@@ -239,11 +240,24 @@ subroutine plasma_start(i1, n, label_off, target_geometry, velocity_config, idim
         call cold_start(i1,n)
      endif
 
-  case(2)  ! electrons drifting with vt
+  case(2)  ! drift with vt
 	ux(i1:i1+n-1) = vt
 	uy(i1:i1+n-1) = 0.
 	uz(i1:i1+n-1) = 0.
 
+  case(3)  ! radial velocity spread
+     do i = 1, n
+        p = i + i1-1
+        xt = x(p)-plasma_centre(1)
+        yt = y(p)-plasma_centre(2)
+        zt = z(p)-plasma_centre(3)
+
+        rt = sqrt(xt**2 + yt**2 + zt**2)
+! Set velocity direction according to position vector from plasma centre
+        ux(p) = vt*xt/rt
+        uy(p) = vt*yt/rt
+        uz(p) = vt*zt/rt
+     end do
 
   end select velocities
 

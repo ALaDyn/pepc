@@ -70,12 +70,12 @@ subroutine sum_fields
      k2 = min(max(0,k2),ngz+1)
 
      !  linear weighting
-     fx1=min(max(i1-xa,0.),1.)  ! Prevent overflow/negative weighting for particles outside box
-     fx2=1.-fx1
-     fy1=min(max(j1-ya,0.),1.)
-     fy2=1.-fy1
-     fz1=min(max(k1-za,0.),1.)
-     fz2=1.-fz1
+     fx2=min(max(i1-xa,0.),1.)  ! Prevent overflow/negative weighting for particles outside box
+     fx1=1.-fx2
+     fy2=min(max(j1-ya,0.),1.)
+     fy1=1.-fy2
+     fz2=min(max(k1-za,0.),1.)
+     fz1=1.-fz2
      !  gather charge at nearest grid points
      gamma = sqrt(1.0+ux(i)**2+uy(i)**2+uz(i)**2)
      cweight = abs(q(i))*rdx*rdy*rdz/navcycle       ! charge weighting factor

@@ -68,6 +68,10 @@ subroutine diagnostics
      call dump_fields(itime+itime_start)  ! Field data
   endif
 
+  if( mod(itime,ivis_fields)==0 .and. target_geometry==1) then
+     call sum_radial(itime+itime_start)  ! Radial moments
+  endif
+
 !  if (debug_level.ge.2) then
      sum_local_f =  sum(nfetch_total)  
      call MPI_ALLREDUCE(sum_fetches, max_sum_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  

@@ -52,12 +52,12 @@ subroutine configure
 
      velocity_config=1
  ! Electrons 
-        call plasma_start( 1, nep, 0, target_geometry, velocity_config, idim, &
+        call plasma_start( 1, nep, ne, 0, target_geometry, velocity_config, idim, &
                -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
 write (*,*) 'Electrons Vplas, Qplas:',Vplas, Qplas
  ! Ions
-        call plasma_start( nep+1, nip, ne, target_geometry, velocity_config, idim, &
+        call plasma_start( nep+1, nip, ni, ne, target_geometry, velocity_config, idim, &
                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
      
@@ -72,18 +72,36 @@ write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
      case(3)        ! Spatially separated ion and electron slabs
 
 	target_geometry=0
-        velocity_config=2   ! Ions cold, electrons with vx=vte
+        velocity_config=2   ! Ions cold, electrons with vx=vosc
         plasma_centre =  (/ xl/4., yl/2., zl/2. /) ! Centre of plasma
  ! Ions
-        call plasma_start( 1, nip, 0, target_geometry, velocity_config, idim, &
+        call plasma_start( 1, nip, ni, 0, target_geometry, 0, idim, &
                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
  ! Electrons shifted by displace vector 
-        call plasma_start( nip+1, nep, ni, target_geometry, velocity_config, idim, &
-               -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
+        call plasma_start( nip+1, nep, ne, ni, target_geometry, velocity_config, idim, &
+               -rho0, -1.0, 1.0, vosc, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
+               number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
+
+     case(4)        ! Spherical Coulomb explosion
+
+	target_geometry=1
+        velocity_config=3   ! Ions cold, electrons with radial v0=vosc
+!        plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+        plasma_centre =  (/ 0., 0., 0. /) ! Centre of plasma
+
+ ! Electrons can be shifted by displace vector 
+        call plasma_start( 1, nep, ne, 0, target_geometry, velocity_config, idim, &
+               -rho0, -1.0, 1.0, vosc, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
  
+ ! Ions
+        call plasma_start( nep+1, nip, ni, ne, target_geometry, 0, idim, &
+               rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
+
+
      case(10)  ! Add proton layer to slab
 
      target_geometry=0
@@ -91,11 +109,11 @@ write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
      plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
 
  ! Electrons 
-        call plasma_start( 1, nep, 0, target_geometry, velocity_config, idim, &
+        call plasma_start( 1, nep, ne, 0, target_geometry, velocity_config, idim, &
                -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
  ! Ions
-        call plasma_start( nep+1, nip, ne, target_geometry, velocity_config, idim, &
+        call plasma_start( nep+1, nip, ni, ne, target_geometry, velocity_config, idim, &
                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
@@ -114,13 +132,13 @@ write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
 ! Place on front of main slab 
 	displace = plasma_centre - (/ x_plasma/2.+x_layer(1)/2,0.,0. /)
 
-        call plasma_start( ipstart, nlayp, label_offset, target_geometry, velocity_config, idim, &
+        call plasma_start( ipstart, nlayp, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
                rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), displace, &
                faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), a_layer(1) )
 
  ! Equal number of neutralising electrons 
 	label_offset = ne+ni+n_layer(1)  
-        call plasma_start( ipstart+nlayp, nlayp, label_offset, target_geometry, velocity_config, idim, &
+        call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
                -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), displace, &
                faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
@@ -178,7 +196,7 @@ write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
   convert_mu = omega/2./pi*lambda          ! convert from c/wp to microns
   lolam = lolam*2.*pi/omega  ! normalise scale-length
-  convert_keV = 2./3./Qplas*511     ! convert from code energy units to keV/particle (Temperature)
+  convert_keV = 2./3./abs(Qplas)*511     ! convert from code energy units to keV/particle (Temperature)
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
   navcycle = 2*pi/dt/omega  ! # timesteps in a laser cycle
   nu_ei = 1./40./pi*a_ii**3/max(vte,1.e-8)/eps**2  ! collision frequency (fit to Okuda & Birdsall)

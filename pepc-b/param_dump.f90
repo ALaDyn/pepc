@@ -100,7 +100,7 @@ subroutine param_dump
         write (ifile,*) 'Max size of interaction lists: ', nintmax
 	write (ifile,*) 'Shortlist length: ',nshortm
 
-        if (debug_level>=1) then
+        if (debug_level>=2) then
            write (ifile,'(/a)') 'Other inputs:'
            write(ifile,NML=pepcdata)
         else 
