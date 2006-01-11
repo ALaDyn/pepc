@@ -55,7 +55,7 @@ SOURCES.f90 =   \
                 push.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
                 dump.f90 param_dump.f90 diagnostics.f90 \
                 open_files.f90 close_files.f90  \
-                densities.f90 sum_fields.f90 dump_fields.f90 \
+                densities.f90 sum_fields.f90 dump_fields.f90 sum_radial.f90 \
                 track_nc.f90 \
                 integrator.f90 abort.f90 \
 	        error_test.f90 force_direct.f90
