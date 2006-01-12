@@ -81,7 +81,7 @@ program pepcb
   if (my_rank ==0 .and. vis_on) then
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
-     call ncnbody_open(nbuf_max,vbufcols,ncid,incdf)
+!     call ncnbody_open(nbuf_max,vbufcols,ncid,incdf)
   endif
 #else
 !  ---- No VISIT installed ---------
@@ -90,6 +90,7 @@ program pepcb
 ! ---- end of preprocess -------------
 
   call configure       ! Set up particles
+  call diagnostics     ! Initial config
 
   call cputime(t_start_loop)
 
@@ -136,7 +137,7 @@ program pepcb
               !                ,' remaining wall-clock time (s)= ',tremain 
            endif
         end do
-        if (beam_config==5) then 
+        if (beam_config==5 .or. beam_config==6) then 
            write(6,'(4(a,f8.2/))') 'Laser amplitude =',vosc &
                 , 'Pulse length',tpulse &
                 , 'Pulse width', sigma &
@@ -232,7 +233,7 @@ program pepcb
 ! if (my_rank ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
 if (my_rank==0 .and. vis_on) then 
   call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
-  call ncnbody_close(ncid,incdf)
+!  call ncnbody_close(ncid,incdf)
 endif
 #else
 !  ---- No VISIT installed ---------

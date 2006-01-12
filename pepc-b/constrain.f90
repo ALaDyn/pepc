@@ -43,8 +43,9 @@ subroutine constrain
                 call face(r_test, c_status, face_nr, & 
                   target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                 if (c_status .gt. 0.) then
-                    call cutvector(r_test, face_nr, n, r_old)
-                    temp = r_new - r_old
+                    call cutvector(r_test, face_nr, n, r_old, &
+                        target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
+                   temp = r_new - r_old
                     v = sqrt(dot_product(v, v)) * temp / sqrt(dot_product(temp, temp))
                 else
                     r_old = r_test
@@ -69,8 +70,8 @@ subroutine constrain
                        target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                 end do
 !                if (constrain_debug) write(*, *) 'Bisection for particle done.'
-                call cutvector(r_test, face_nr, n, r_d)
-
+                call cutvector(r_test, face_nr, n, r_d, & 
+                  target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                 ! Reflect
                 v = v - 2. * dot_product(v, n) * n
                 if (constrain_debug) write(*, *) 'Reflecting .. new v: v     = ', v(1:3)

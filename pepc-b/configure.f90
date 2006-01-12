@@ -216,6 +216,10 @@ write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
 
   endif
 
+! Ion config - make sure potential repulsive
+  if (scheme==5) then
+     eps = a_ii*2
+  endif
 
   beamconf: select case(beam_config)  ! Configure laser or particle beam
 

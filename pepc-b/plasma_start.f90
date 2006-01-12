@@ -117,6 +117,14 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
 
   end select geom_container
 
+! ensure soft exit if particle # = zero
+  if (n==0) then
+     q_part=1.
+     m_part=1.
+     a_ave=1.
+     return
+  endif
+
   !  Initialise particles according to target geometry
 
 

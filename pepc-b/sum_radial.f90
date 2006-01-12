@@ -23,6 +23,7 @@ subroutine sum_radial(timestamp)
   character(6) :: cdump, cvis
   real, dimension(0:ngx+1) :: ve_loc, vi_loc, Er_loc, ni_loc, ne_loc, ge_loc, gi_loc
   real, dimension(0:ngx+1) :: ve_glob, vi_glob, Er_glob, ni_glob, ne_glob, ge_glob, gi_glob
+  real, dimension(0:ngx+1) :: volume
   real :: gmin=1.e-3
 
   icall = timestamp/ivis_fields
@@ -80,11 +81,10 @@ subroutine sum_radial(timestamp)
      !  linear weighting
      fr2=ra-i1  ! Prevent overflow/negative weighting for particles outside box
      fr1=1.-fr1
-!  use mid-point for vol weighting
-     rhalf=dr*(i1+0.5)
+
      !  gather charge at nearest grid points
      gamma = sqrt(1.0+ux(i)**2+uy(i)**2+uz(i)**2)
-     cweight = q(i)/dr/(4*pi*rhalf**2)    ! spherical charge density weighting factor 
+     cweight = q(i)    !  charge weighting factor - densities computed later 
      vweight = sqrt(ux(i)**2+uy(i)**2+uz(i)**2)
      erweight =  sqrt(ex(i)**2+ey(i)**2+ez(i)**2)
 
@@ -120,11 +120,19 @@ subroutine sum_radial(timestamp)
 
   ge_loc = max(gmin,ge_loc)
   gi_loc = max(gmin,gi_loc)
+  volume(1:ngr+1) = (/ (4*pi*(i*dr)**2*dr, i=1,ngr+1) /)
+!  ni_loc(1) = ni_loc(1) + ni_loc(0)  ! Fold charge at r=0 onto r=dr
+!  ne_loc(1) = ne_loc(1) + ne_loc(0)
+  volume(0) = 4*pi*(dr/2)**2*dr  ! 1/2-vol weight for r=0
+
+!  Renormalise charge densities with volume-weighting
+  ni_loc = ni_loc/volume
+  ne_loc = ne_loc/volume
 
   Er_loc = Er_loc/(ge_loc+gi_loc)    ! Normalised radial field
 
 
-! Gather partial sums together to get global moments
+! Gather partial sums together to get global moments - arrays run from (0:ngr)
  
   call MPI_ALLREDUCE(ge_loc, ge_glob, ngr+1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(gi_loc, gi_glob, ngr+1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
@@ -153,7 +161,7 @@ subroutine sum_radial(timestamp)
      open (60,file=cfile)
      write(60,'(8(a12))') '!   r      ','ne    ','ni   ','rhoe   ','rhoi   ','ve   ','vi   ','er'
      write(60,'((8(1pe12.4)))') &
-          (i*dr, ge_glob(i)/ne, gi_glob(i)/ni, ne_glob(i), ni_glob(i), ve_glob(i), vi_glob(i), er_glob(i), i=0,ngr)
+          (i*dr, ge_glob(i)/max(1,ne), gi_glob(i)/max(1,ni), ne_glob(i), ni_glob(i), ve_glob(i), vi_glob(i), er_glob(i), i=0,ngr)
      close(60)
 
   endif

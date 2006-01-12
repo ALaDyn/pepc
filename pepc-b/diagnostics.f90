@@ -49,6 +49,9 @@ subroutine diagnostics
   !  - assume for now that idump > navcycle
 
   if (beam_config == 4 .and. mod(itime,itrack)==0 ) call track_nc          ! Gather densities and track critical surface 
+  if( mod(itime,ivis_fields)==0 .and. target_geometry==1) then
+     call sum_radial(itime+itime_start)  ! Radial moments
+  endif
 
 
 
@@ -68,9 +71,6 @@ subroutine diagnostics
      call dump_fields(itime+itime_start)  ! Field data
   endif
 
-  if( mod(itime,ivis_fields)==0 .and. target_geometry==1) then
-     call sum_radial(itime+itime_start)  ! Radial moments
-  endif
 
 !  if (debug_level.ge.2) then
      sum_local_f =  sum(nfetch_total)  

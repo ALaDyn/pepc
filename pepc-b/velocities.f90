@@ -273,7 +273,7 @@ subroutine velocities(p_start,p_finish,delta_t)
 
 
      chii = sqrt(abs(Ti0/Ti_uncor)) 
-     chii = min(1.2,max(chii,0.7))  ! Set bounds of +- 50%
+     chii = min(1.2,max(chii,0.6))  ! Set bounds of +- 50%
 
 
      !  3)  Complete full step
@@ -285,11 +285,15 @@ subroutine velocities(p_start,p_finish,delta_t)
            ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*mass_i/mass_eqm*accx(p)
            uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*mass_i/mass_eqm*accy(p)
            if (idim==3) uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*mass_i/mass_eqm*accz(p)
+!           ux(p) = ux(p)*sqrt(Ti0/Ti_uncor)
+!           uy(p) = uy(p)*sqrt(Ti0/Ti_uncor)
+!           uz(p) = uz(p)*sqrt(Ti0/Ti_uncor)
+
         endif
      end do
      delta_Ti = 2*Ti0*(1.0/chii**2-1.0)       !  heating
      if (me==0)	write (*,*) 'Ti_unc ',Ti_uncor,' Ti0 ', Ti0, ' chii ',chii,' heating:',delta_Ti,' bond',bond_const
-     if (Ti_uncor>1000) bond_const=bond_const*.8
+     
 
 
   else
@@ -305,3 +309,11 @@ subroutine velocities(p_start,p_finish,delta_t)
   endif
 
 end subroutine velocities
+
+
+
+
+
+
+
+
