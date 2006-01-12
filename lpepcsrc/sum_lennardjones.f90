@@ -20,7 +20,7 @@ subroutine sum_lennardjones( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi )
   real*8 :: a_bond, d2, d, dlj2, dlj, flj, epsc, plj, dx, dy, dz
 
 
-  epsc = eps/20. ! cutoff
+  epsc = .5 ! cutoff (norm to eps)
   a_bond=eps
   sumfx = 0
   sumfy = 0
@@ -39,15 +39,15 @@ subroutine sum_lennardjones( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi )
      d = sqrt(d2) 
      dlj = d/a_bond
 
-     if (dlj >= eps) then 
+     if (dlj >= epsc) then 
        plj = 4*(1./dlj**12 - 1./dlj**6)
        flj = 24./a_bond*(2./dlj**13 - 1./dlj**7)
 !     else if (dlj >= 0.5) then
 !       plj = 48./pi*cos(pi*dlj/2.) 
  !      flj = 24./a_bond*sin(pi*dlj/2.)
      else
-       plj = 4*(1./eps**12-1./eps**6) 
-       flj = 24./a_bond*(2./eps**13-1/eps**7 )
+       plj = 4*(1./epsc**12-1./epsc**6) 
+       flj = 24./a_bond*(2./epsc**13-1/epsc**7 )
      endif
      !   natoms = abs_charge( jnode) / qi    ! # particles in monopole cluster
 
