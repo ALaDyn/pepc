@@ -123,13 +123,11 @@ subroutine sum_radial(timestamp)
   volume(1:ngr+1) = (/ (4./3.*pi*((i*dr+.5*dr)**3-(i*dr-.5*dr)**3), i=1,ngr+1) /)
 !  ni_loc(1) = ni_loc(1) + ni_loc(0)  ! Fold charge at r=0 onto r=dr
 !  ne_loc(1) = ne_loc(1) + ne_loc(0)
-  volume(0) = 2./3.*pi*dr**3  ! 1/2-vol weight for r=0
+  volume(0) = 4./3.*pi*dr**3  ! 1/2-vol weight for r=0
 
 !  Renormalise charge densities with volume-weighting
   ni_loc = ni_loc/volume
   ne_loc = ne_loc/volume
-
-  Er_loc = Er_loc/(ge_loc+gi_loc)    ! Normalised radial field
 
 
 ! Gather partial sums together to get global moments - arrays run from (0:ngr)
