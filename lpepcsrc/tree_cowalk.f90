@@ -211,7 +211,7 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
            s2 = boxlength2( node_level(walk_node) )
            dist2 = theta2*(dx**2+dy**2+dz**2)
-           mac_ok = ( s2 < dist2 )             ! Preprocess MAC
+           mac_ok = ( s2 < dist2 .and. walk_key(i)>1 )     ! Preprocess MAC - reject root node
 
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
            ignore =  ( pshort(p) == htable( walk_addr )%node )

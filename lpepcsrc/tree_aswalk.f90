@@ -121,7 +121,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   npackm = maxaddress
   nchild_shipm = maxaddress
   !  walk_debug = .false.
-  ! ipefile = 6
+   ipefile = 6
   if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK (AS) for timestep ',itime,' pass ',pass
   if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (AS) for timestep ',itime,' pass ',pass
 
@@ -141,7 +141,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   defer_ctr(1:npshort) = 1   ! Deferral counter
   nlist = npshort                 ! Inner loop list length
   plist(1:npshort) = (/ (i,i=1,npshort) /)       ! initial local particle indices 
-  nterm = 0
+  nterm(1:npshort) = 0
   nactive = npshort
 
   !  Find global max active particles - necessary if some PEs enter walk on dummy pass
@@ -191,7 +191,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
         nhops = nhops + nlist
         sum_nhops = sum_nhops + nlist
         sum_inner_pass = sum_inner_pass + 1
-
+!        write (*,*) 'inner_pass',inner_pass,'nlist=',nlist
         do i=1,nlist
            p = plist(i)  ! particle index
            walk_addr =  key2addr_db( walk_key(i),'WALK: local ' )     ! get htable address
@@ -208,9 +208,12 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
            dy = y( pshort(p) ) - ycoc( walk_node )
            dz = z( pshort(p) ) - zcoc( walk_node )
 
+!           write (*,'(a,4i8,o15,f12.3)') 'particle i,p,pshort(p),nterm,kwalk,x', &
+!                i,p,pshort(p),nterm(p),walk_key(i),x(pshort(p))
+
            s2 = boxlength2( node_level(walk_node) )
            dist2 = theta2*(dx**2+dy**2+dz**2)
-           mac_ok = ( s2 < dist2 )             ! Preprocess MAC
+           mac_ok = ( s2 < dist2 .and. walk_key(i)>1 )   ! Preprocess MAC - always reject root node
 
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
            ignore =  ( pshort(p) == htable( walk_addr )%node )
@@ -224,7 +227,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
 
            ! 1) MAC test OK, so put cell on interaction list and find next node for tree walk
-
+           !    - reject self
            if ( mac_ok .or. (walk_node >0 .and. .not.ignore ) ) then
               walk_key(i) = walk_next
 	      entry_next = nterm(p) + 1
