@@ -54,6 +54,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   integer :: iprot  ! frequency for load balance dump
 
   real*8 :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
+  real*8 :: fljmax
   real*8 :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
   real :: work_local, load_average, load_integral, total_work, average_work
   integer :: total_parts
@@ -209,7 +210,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   max_npass = npass
 
   ip1 = 1
-
+  fljmax = 0.
 
   do jpass = 1,max_npass
      !  make short-list
@@ -301,13 +302,13 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
         if (lenjones) then
            !  compute short-range Lennard-Jones forces and potential of particle p from its interaction list
            call sum_lennardjones(p, nterm(i), nodelist( 1:nterm(i),i ), eps, fsx, fsy, fsz, phi )
-
+	   fljmax=max(fljmax,sqrt(fsx**2+fsy**2+fsz**2))
            pot(p) = pot(p) + bond_const * phi
            Ex(p) = Ex(p) + bond_const * fsx
            Ey(p) = Ey(p) + bond_const * fsy
            Ez(p) = Ez(p) + bond_const * fsz
         endif
-
+	
         work(p) = nterm(i)        ! Should really compute this in sum_force to allow for leaf/twig terms
         work_local = work_local+nterm(i)
      end do
@@ -345,6 +346,9 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      endif
   endif
 
+  if (lenjones) then
+	write(*,*) 'Max force: ',fljmax
+  endif
   if (force_debug) then
 !     if (me==0) write (*,101) force_const
      write (ipefile,101) 'LPEPC | Tree forces:','   p    q   m   ux   pot  ',force_const

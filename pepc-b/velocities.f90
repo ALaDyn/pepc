@@ -27,8 +27,8 @@ subroutine velocities(p_start,p_finish,delta_t)
 
   integer p, i, ne_loc, ierr
   real*8, dimension(nppm) :: uhx, uhy, uhz, accx, accy, accz
-  real*8 :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve
-  real :: Te0, Te_uncor, Ti0, Ti_uncor, chie, chii
+  real*8 :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, acmax
+  real :: Te0, Te_uncor, Ti0, Ti_uncor, chie, chii, delta_u
   real*8 :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm
   real*8 :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_local
 
@@ -40,11 +40,15 @@ subroutine velocities(p_start,p_finish,delta_t)
 !      5 = local NVT, ions only; electrons added at end of run
 
 ! Accelerations
+  acmax=0.
   do i=1,npp
      accx(i) = q(i)*ex(i)/m(i)
      accy(i) = q(i)*ey(i)/m(i)
      accz(i) = q(i)*ez(i)/m(i)
+     acmax = max(abs(accx(i)),abs(accy(i)),abs(accz(i)),acmax)
   end do
+
+  delta_u = acmax*delta_t
 
   if (scheme == 2) then
      ! Conserve kinetic energies of electrons and ions (initial Te const)
@@ -250,6 +254,12 @@ subroutine velocities(p_start,p_finish,delta_t)
      sum_vyi=0.0
      sum_vzi=0.0
      sum_v2i=0.0
+!  Scale down accelerations if too big
+     do p=1,npp
+	accx(p)=accx(p)/max(1.d0,acmax)
+	accy(p)=accy(p)/max(1.d0,acmax)
+	accz(p)=accz(p)/max(1.d0,acmax)
+     end do
 
      do p=1,npp
            uhx(p) = ux(p) + 0.5*delta_t*accx(p)
@@ -268,7 +278,7 @@ subroutine velocities(p_start,p_finish,delta_t)
 
      ! Find global KE sums
 !     call MPI_ALLREDUCE(sum_v2i, global_v2i, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-     Ti_uncor = 511*mass_eqm*2./3.*sum_v2i/npp  ! This should equal 3/2 kT for 3v Maxwellian
+     Ti_uncor = 511*2./3.*sum_v2i/npp  ! This should equal 3/2 kT for 3v Maxwellian
      Ti0 = Ti_keV  ! normalised electron temp
 
 
@@ -282,9 +292,9 @@ subroutine velocities(p_start,p_finish,delta_t)
 
         if (pelabel(p)>=ne) then
        ! make ions lighter for eqm phase
-           ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*mass_i/mass_eqm*accx(p)
-           uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*mass_i/mass_eqm*accy(p)
-           if (idim==3) uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*mass_i/mass_eqm*accz(p)
+           ux(p) = (2*chii-1.)*ux(p) + chii*delta_t*accx(p)
+           uy(p) = (2*chii-1.)*uy(p) + chii*delta_t*accy(p)
+           if (idim==3) uz(p) = (2*chii-1.)*uz(p) + chii*delta_t*accz(p)
 !           ux(p) = ux(p)*sqrt(Ti0/Ti_uncor)
 !           uy(p) = uy(p)*sqrt(Ti0/Ti_uncor)
 !           uz(p) = uz(p)*sqrt(Ti0/Ti_uncor)
@@ -292,8 +302,10 @@ subroutine velocities(p_start,p_finish,delta_t)
         endif
      end do
      delta_Ti = 2*Ti0*(1.0/chii**2-1.0)       !  heating
-     if (me==0)	write (*,*) 'Ti_unc ',Ti_uncor,' Ti0 ', Ti0, ' chii ',chii,' heating:',delta_Ti,' bond',bond_const
-     
+     if (me==0)	then
+	write (*,*) 'Ti_unc ',Ti_uncor,' Ti0 ', Ti0, ' chii ',chii,' heating:',delta_Ti,' bond',bond_const
+        write (*,*) 'Max delta-ux: ',delta_u
+     endif
 
 
   else

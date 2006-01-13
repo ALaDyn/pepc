@@ -20,7 +20,7 @@ subroutine sum_lennardjones( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi )
   real*8 :: a_bond, d2, d, dlj2, dlj, flj, epsc, plj, dx, dy, dz
 
 
-  epsc = .5 ! cutoff (norm to eps)
+  epsc = .3 ! cutoff (norm to eps)
   a_bond=eps
   sumfx = 0
   sumfy = 0
