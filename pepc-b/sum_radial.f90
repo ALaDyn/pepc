@@ -15,15 +15,18 @@ subroutine sum_radial(timestamp)
   integer, intent(in) :: timestamp
   real :: rdr, dr, vweight, jweight, cweight
   real :: tweight, erweight, rhalf
-
+  real :: xpdum, ypdum, zpdum
   real :: fr1, fr2, ra, gamma, xt, yt, zt, rt
-  integer :: i, j, k, ng, i1, i2, nelecs, nions, ngr, icall, ierr
+  real :: ttrav, tfetch
+  integer :: i, j, k, ng, i1, i2, nelecs, nions, ngr, icall, ierr, p
   character(30) :: cfile
   character(5) :: cme
   character(6) :: cdump, cvis
   real, dimension(0:ngx+1) :: ve_loc, vi_loc, Er_loc, ni_loc, ne_loc, ge_loc, gi_loc
   real, dimension(0:ngx+1) :: ve_glob, vi_glob, Er_glob, ni_glob, ne_glob, ge_glob, gi_glob
   real, dimension(0:ngx+1) :: volume
+  real*8, dimension(0:ngx+1) :: ex_g, ey_g, ez_g, phi_g, w_g
+  integer, dimension(ngx+1) :: pshortl
   real :: gmin=1.e-3
 
   icall = timestamp/ivis_fields
@@ -111,9 +114,6 @@ subroutine sum_radial(timestamp)
         gi_loc(i2) = gi_loc(i2) + fr2
 
      endif
-     ! Electric field - use ngp, softened 1/r^2 weight
-     er_loc(i1) = er_loc(i1) + fr1*erweight
-     er_loc(i2) = er_loc(i2) + fr2*erweight
 
   end do
 
@@ -138,7 +138,6 @@ subroutine sum_radial(timestamp)
   call MPI_ALLREDUCE(vi_loc, vi_glob, ngr+1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(ne_loc, ne_glob, ngr+1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(ni_loc, ni_glob, ngr+1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(er_loc, er_glob, ngr+1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
 
   ge_glob = max(gmin,ge_glob)
   gi_glob = max(gmin,gi_glob)
@@ -147,9 +146,34 @@ subroutine sum_radial(timestamp)
   nelecs = SUM(ge_glob(1:ngr))
   nions = SUM(gi_glob(1:ngr))
 
+  if (me==0) then
+! Radial fields - set up dummy particles & find forces directly from tree
+! Dummies set up at end of particle arrays on root to ensure unique labelling
+     do i=1,ngr+1
+        
+        p = npp+i   !index
+        pshortl(i) = p   !index
+        x(p) = (i-1)*dr + plasma_centre(1)   ! radius - include r=0
+        y(p) = plasma_centre(2)
+        z(p) = plasma_centre(3)
+     end do
+         
+! Get interaction lists
+     write (*,*) 'Doing lists for dummy particles'
+     write (*,'((i8,f12.3))') (pshortl(i),x(pshortl(i)),i=1,ngr+1)
 
-  Er_glob = Er_glob/(ge_glob+gi_glob)    ! Normalised radial field
+     call tree_walk(pshortl(1:ngr+1),ngr+1,1,theta,itime,mac,ttrav,tfetch)
+!subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
+! Fields
+     do i=1,ngr+1
+        p=pshortl(i)
+        call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, &
+             ex_g(i-1), ey_g(i-1), ez_g(i-1), phi_g(i-1), w_g(i-1))
+     end do
+ 
+     Er_glob(0:ngr) = Ex_g(0:ngr)    !  Radial field
+  endif
 
 ! Write out to file
 
@@ -158,8 +182,8 @@ subroutine sum_radial(timestamp)
      cfile = "fields/radial."//cdump
      open (60,file=cfile)
      write(60,'(8(a12))') '!   r      ','ne    ','ni   ','rhoe   ','rhoi   ','ve   ','vi   ','er'
-     write(60,'((8(1pe12.4)))') &
-          (i*dr, ge_glob(i)/max(1,ne), gi_glob(i)/max(1,ni), ne_glob(i), ni_glob(i), ve_glob(i), vi_glob(i), er_glob(i), i=0,ngr)
+     write(60,'((9(1pe12.4)))') &
+          (i*dr, ge_glob(i)/max(1,ne), gi_glob(i)/max(1,ni), ne_glob(i), ni_glob(i), ve_glob(i), vi_glob(i), er_glob(i), phi_g(i), i=0,ngr)
      close(60)
 
   endif
