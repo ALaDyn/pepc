@@ -120,10 +120,10 @@ subroutine sum_radial(timestamp)
 
   ge_loc = max(gmin,ge_loc)
   gi_loc = max(gmin,gi_loc)
-  volume(1:ngr+1) = (/ (4*pi*(i*dr)**2*dr, i=1,ngr+1) /)
+  volume(1:ngr+1) = (/ (4./3.*pi*((i*dr+.5*dr)**3-(i*dr-.5*dr)**3), i=1,ngr+1) /)
 !  ni_loc(1) = ni_loc(1) + ni_loc(0)  ! Fold charge at r=0 onto r=dr
 !  ne_loc(1) = ne_loc(1) + ne_loc(0)
-  volume(0) = 4*pi*(dr/2)**2*dr  ! 1/2-vol weight for r=0
+  volume(0) = 2./3.*pi*dr**3  ! 1/2-vol weight for r=0
 
 !  Renormalise charge densities with volume-weighting
   ni_loc = ni_loc/volume
