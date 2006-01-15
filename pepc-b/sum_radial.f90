@@ -75,16 +75,18 @@ subroutine sum_radial(timestamp)
      ra = rt*rdr
 
 !  indices - include zero for r=0
-     i1=ra
+     i1=ra+.5
      i2=i1+1
 
      i1 = min(i1,ngr+1)
      i2 = min(i2,ngr+1)
 
      !  linear weighting
-     fr2=ra-i1  ! Prevent overflow/negative weighting for particles outside box
-     fr1=1.-fr1
-
+!     fr2=ra-i1  ! Prevent overflow/negative weighting for particles outside box
+!     fr1=1.-fr1
+    ! NGP
+     fr2=0.
+     fr1=1.
      !  gather charge at nearest grid points
      gamma = sqrt(1.0+ux(i)**2+uy(i)**2+uz(i)**2)
      cweight = q(i)    !  charge weighting factor - densities computed later 
@@ -123,7 +125,7 @@ subroutine sum_radial(timestamp)
   volume(1:ngr+1) = (/ (4./3.*pi*((i*dr+.5*dr)**3-(i*dr-.5*dr)**3), i=1,ngr+1) /)
 !  ni_loc(1) = ni_loc(1) + ni_loc(0)  ! Fold charge at r=0 onto r=dr
 !  ne_loc(1) = ne_loc(1) + ne_loc(0)
-  volume(0) = 4./3.*pi*dr**3  ! 1/2-vol weight for r=0
+  volume(0) = 4./3.*pi*(dr/2.)**3  ! 1/2-vol weight for r=0
 
 !  Renormalise charge densities with volume-weighting
   ni_loc = ni_loc/volume
