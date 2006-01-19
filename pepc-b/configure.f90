@@ -19,10 +19,17 @@ subroutine configure
   integer :: faces(maxlayers)
   real ::  V_layer(maxlayers), A_layer(maxlayers), Q_layer(maxlayers)
   real ::  qpart_layer(maxlayers), mass_layer(maxlayers), ai_layer(maxlayers)
-  integer :: ipstart, nlayp, np_rest
+  integer :: ipstart, nlayp, np_rest, ne_rest, ni_rest, nep0, nip0
 
   npp = nep+nip  ! initial # particles on this CPU
-
+  nep0 = nep
+  nip0 = nip
+ !  Make particle numbers on root known (in case of unequal particle #s - need for label offset)
+  call MPI_BCAST( nep0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( nip0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+  ne_rest = nep0-nep
+  ni_rest = nip0-nip
+ 
 
   if (restart) then
 
@@ -45,23 +52,23 @@ subroutine configure
 
      case(1)        ! Set up single neutral plasma target according to geometry
 
-     if (debug_level==2) then
+     if (debug_level==2 .and. me==0) then
 	write(*,*) "Setting up single plasma target"
      endif
      plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
 
      velocity_config=1
  ! Electrons 
-        call plasma_start( 1, nep, ne, 0, target_geometry, velocity_config, idim, &
+        call plasma_start( 1, nep, ne, ne_rest, target_geometry, velocity_config, idim, &
                -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
-write (*,*) 'Electrons Vplas, Qplas:',Vplas, Qplas
+!write (*,*) 'Electrons Vplas, Qplas:',Vplas, Qplas
  ! Ions
-        call plasma_start( nep+1, nip, ni, ne, target_geometry, velocity_config, idim, &
+        call plasma_start( nep+1, nip, ni, ne+ni_rest, target_geometry, velocity_config, idim, &
                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
      
-write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
+!write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
         if (scheme /= 5 .and. ramp) then
            call add_ramp     ! add exponential ramp to target (stretch container)
         endif
@@ -75,12 +82,12 @@ write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
         velocity_config=2   ! Ions cold, electrons with vx=vosc
         plasma_centre =  (/ xl/4., yl/2., zl/2. /) ! Centre of plasma
  ! Ions
-        call plasma_start( 1, nip, ni, 0, target_geometry, 0, idim, &
+        call plasma_start( 1, nip, ni, ni_rest, target_geometry, 0, idim, &
                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
  ! Electrons shifted by displace vector 
-        call plasma_start( nip+1, nep, ne, ni, target_geometry, velocity_config, idim, &
+        call plasma_start( nip+1, nep, ne, ni+ne_rest, target_geometry, velocity_config, idim, &
                -rho0, -1.0, 1.0, vosc, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
 
@@ -92,12 +99,12 @@ write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
         plasma_centre =  (/ 0., 0., 0. /) ! Centre of plasma
 
  ! Electrons can be shifted by displace vector 
-        call plasma_start( 1, nep, ne, 0, target_geometry, velocity_config, idim, &
+        call plasma_start( 1, nep, ne, ne_rest, target_geometry, velocity_config, idim, &
                -rho0, -1.0, 1.0, vosc, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
  
  ! Ions
-        call plasma_start( nep+1, nip, ni, ne, target_geometry, 0, idim, &
+        call plasma_start( nep+1, nip, ni, ne+ni_rest, target_geometry, 0, idim, &
                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
@@ -109,11 +116,11 @@ write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
      plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
 
  ! Electrons 
-        call plasma_start( 1, nep, ne, 0, target_geometry, velocity_config, idim, &
+        call plasma_start( 1, nep, ne, ne_rest, target_geometry, velocity_config, idim, &
                -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
  ! Ions
-        call plasma_start( nep+1, nip, ni, ne, target_geometry, velocity_config, idim, &
+        call plasma_start( nep+1, nip, ni, ne+ni_rest, target_geometry, velocity_config, idim, &
                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 

@@ -150,7 +150,7 @@ module physvars
    real :: domain_cut
    integer :: nt, itime   ! # timesteps and current timestep
    integer :: itime_start ! restart time stamp
-   integer :: idump       ! output frequency (timesteps)
+   integer :: idump=100      ! output frequency (timesteps)
    integer :: iprot=1       ! protocoll frequency
    integer :: ivis=5        ! frequency for particle shipping to VISIT
    integer :: ivis_fields=10    !  frequency for field shipping to VISIT

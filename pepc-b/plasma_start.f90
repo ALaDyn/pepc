@@ -37,18 +37,18 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
 
   integer              :: i, j, face_nr, n1
   integer              :: idum, iseed1, iseed2, iseed3, p, k, nx, ny
+  integer :: nep0, nip0
   real*8               :: xt, yt, zt, radius, dpx, s, rt
   real*8 :: c_status
   real, dimension(1:3) :: r_temp
   real :: pi=3.141592654
-  logical :: start_debug=.false.
+  logical :: start_debug=.true.
 
-  iseed1 = -11 - me -i1      ! Select seed depending on PE and offset
-  iseed2 = -1001 - me -i1      ! Select seed depending on PE
-  iseed3 = -2111 - me -i1     ! Select seed depending on PE
+  iseed1 = -1 - 100*me - label_off      ! Select seed depending on PE and offset
+
   if (start_debug) then
-    write (ipefile, '(a,3i8)') 'Seeds: ', iseed1, iseed2, iseed3
-    write(*,'(a/a20,6i8/a20,8f12.3)') "Call parameters:", &
+    write (ipefile, '(a,3i8)') 'Seed: ', iseed1
+    write(ipefile,'(a,i5/a20,6i8/a20,8f12.3)') "Call parameters on PE ",me, &
 	"indices, switches:",i1,n,label_off,target_geometry,velocity_config,idim, &
 	"plasma:",rho0,zion,vt,mass_ratio,x_plasma,y_plasma,z_plasma,r_sphere
   endif
@@ -286,7 +286,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   work(i1:i1+n-1) = 1.   ! set work load balanced initially
 
   if (start_debug) then
-	write(*,'(a/(8f15.5,i6))') "Initial particle positions, velocities:", &
+	write(ipefile,'(a/(8f15.5,i6))') "Initial particle positions, velocities:", &
 	  (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),pelabel(i),i=i1,i1+n-1)
   endif
 end subroutine plasma_start

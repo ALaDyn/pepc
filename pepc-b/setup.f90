@@ -108,7 +108,6 @@ subroutine setup
   struct_step = 0
 
   ! Read actual inputs from namelist file
-
   open(10,file='run.h')
   read (10,NML=pepcdata)
 

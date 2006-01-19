@@ -18,7 +18,7 @@ subroutine sum_radial(timestamp)
   real :: xpdum, ypdum, zpdum
   real :: fr1, fr2, ra, gamma, xt, yt, zt, rt
   real :: ttrav, tfetch
-  integer :: i, j, k, ng, i1, i2, nelecs, nions, ngr, icall, ierr, p
+  integer :: ndum, i, j, k, ng, i1, i2, nelecs, nions, ngr, icall, ierr, p
   character(30) :: cfile
   character(5) :: cme
   character(6) :: cdump, cvis
@@ -120,8 +120,6 @@ subroutine sum_radial(timestamp)
   end do
 
 
-  ge_loc = max(gmin,ge_loc)
-  gi_loc = max(gmin,gi_loc)
   volume(1:ngr+1) = (/ (4./3.*pi*((i*dr+.5*dr)**3-(i*dr-.5*dr)**3), i=1,ngr+1) /)
 !  ni_loc(1) = ni_loc(1) + ni_loc(0)  ! Fold charge at r=0 onto r=dr
 !  ne_loc(1) = ne_loc(1) + ne_loc(0)
@@ -147,11 +145,13 @@ subroutine sum_radial(timestamp)
   ! normalise averaged quantities
   nelecs = SUM(ge_glob(1:ngr))
   nions = SUM(gi_glob(1:ngr))
+  ve_glob = ve_glob/ge_glob
+  vi_glob = vi_glob/gi_glob
 
-  if (me==0) then
 ! Radial fields - set up dummy particles & find forces directly from tree
 ! Dummies set up at end of particle arrays on root to ensure unique labelling
-     do i=1,ngr+1
+    if (my_rank==0) then
+    do i=1,ngr+1
         
         p = npp+i   !index
         pshortl(i) = p   !index
@@ -159,14 +159,19 @@ subroutine sum_radial(timestamp)
         y(p) = plasma_centre(2)
         z(p) = plasma_centre(3)
      end do
-         
 ! Get interaction lists
-     write (*,*) 'Doing lists for dummy particles'
-     write (*,'((i8,f12.3))') (pshortl(i),x(pshortl(i)),i=1,ngr+1)
+!     write (*,*) 'Doing lists for dummy particles'
+!     write (*,'((i8,f12.3))') (pshortl(i),x(pshortl(i)),i=1,ngr+1)
+     ndum = ngr+1
+   else
+     ndum=0      
+   endif  
 
-     call tree_walk(pshortl(1:ngr+1),ngr+1,1,theta,itime,mac,ttrav,tfetch)
-!subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
+! all PEs must call walk
 
+   call tree_walk(pshortl(1:ndum),ndum,1,theta,itime,mac,ttrav,tfetch)
+
+   if (my_rank==0) then
 ! Fields
      do i=1,ngr+1
         p=pshortl(i)

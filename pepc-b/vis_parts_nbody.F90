@@ -268,7 +268,7 @@ subroutine vis_parts_nbody
               call flvisit_nbody2_partstep_send(vbuffer,npart_buf+ndom_vis+1,attrib_max)
 ! netcdf needs fixed buffer size, so take max used for initialisation
 
-             call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
+!             call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
 
               !
               !        write (90,*) 'local',i
