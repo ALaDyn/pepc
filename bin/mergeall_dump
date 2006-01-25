@@ -1,0 +1,57 @@
+#!/bin/sh
+
+# Shell script to concatenate graphical and text output from 
+# arbitrary number of PEs sharing a series of timestamps
+
+DATADIR=data
+WFNAME=parts_dump
+# Find PEs
+#ls -d pe* > PE_list
+cd $DATADIR/pe0000
+# Find timestep list
+if [ ! -f ../timestamps ]
+  then
+    echo "Making fresh timestamp list from data directory.."
+    ls parts_info.* |  sed -e 's/parts_info.//g' > ../timestamps
+  else
+    echo "Found timestamp file"
+fi
+
+cd ..
+# Find PEs
+ls -d pe* > PE_list
+#echo "Checking for migrated data"
+#cat PE_list | while read GNAME
+#do 
+#   echo "Recalling $GNAME"
+#   dsmrecall $GNAME/* 
+#done
+
+echo "List of timestamps:"; cat timestamps
+
+cat timestamps | while read TIMESTAMP
+do
+  DUMPFILE=../dumps/parts_dump.$TIMESTAMP
+
+  if [ ! -f $DUMPFILE.gz -a ! -f $DUMPFILE  ]; then
+#  No existing dump file, so make new one 
+	echo "Concatenating $WFNAME.$TIMESTAMP:"
+	cat PE_list | while read GNAME
+	do 
+	   echo "Adding $GNAME"
+	   cat $GNAME/parts_dump.$TIMESTAMP >> $DUMPFILE
+	done
+	# make copy of info block
+	cp pe0000/parts_info.$TIMESTAMP ../dumps/parts_info.$TIMESTAMP
+	echo
+        echo "Compressing ..."
+       gzip $DUMPFILE
+  else
+	echo "Dump $TIMESTAMP already exists"
+        if [ -f $DUMPFILE ]; then
+	   echo "Compressing .."
+	   gzip $DUMPFILE
+ 	fi
+  fi 
+done
+echo "... done"

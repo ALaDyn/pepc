@@ -29,7 +29,7 @@ done
 echo "Copying parameter files"
 cd $DATADIR
 cp data/PE_list ../$NEWDIR/data
-cp *.job *.h *.rc *.sh *.cpt data/PE_list grid_defs.data ../$NEWDIR/.
+cp *.job *.h *.rc *.sh *.cpt data/PE_list grid_defs.in ../$NEWDIR/.
 cd ../$NEWDIR
 mkdir fields fields_pp dumps log
 echo "Copying particle config data for timestamp $STAMP"

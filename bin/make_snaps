@@ -14,7 +14,7 @@ RUNPP=$2
 DOPLOT=$3
 PEPC=~/tree/pepc
 # Slice postprocessor
-PP=$PEPC/tools/slicer
+PP=$PEPC/bin/slicer
 
 # Find timestamp list
 
@@ -30,7 +30,7 @@ fi
 
 if [ ! -f timestamps ]; then
     echo "Making plots for timestep ";cat runstamp
-	cd data/pe000
+	cd data/pe0000
     ls parts_dump.* |  sed -e 's/parts_dump.//g' > ../../timestamps
 	cd ../..
 #    cat runstamp > timestamps
@@ -39,7 +39,7 @@ fi
     cat timestamps | while read TIMESTAMP
     do
 	if [ ! -f dumps/parts_dump.$TIMESTAMP ]; then
-	    ../merge1_dump  $TIMESTAMP ## Merge particle data from PE directories
+	    merge1_dump  $TIMESTAMP ## Merge particle data from PE directories
 	else
 	    echo "Data for $TIMESTAMP OK"
 	fi

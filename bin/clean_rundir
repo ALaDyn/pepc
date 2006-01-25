@@ -19,5 +19,8 @@ do
 	fi 
 done
 cd ..
+rm -f dumps/*
+rm -f log/*
+rm -f fields/*
 rm -fr coredir.*
 rm -f *.nc mpi_* load_* run.00* energy.00* *.out
