@@ -301,12 +301,12 @@ program ppfields
      k2 = min(max(0,k2),ngz+1)
 
      !  linear weighting
-     fx1=i1-xa
-     fx2=1.-fx1
-     fy1=j1-ya
-     fy2=1.-fy1
-     fz1=k1-za
-     fz2=1.-fz1
+     fx2=i1-xa
+     fx1=1.-fx2
+     fy2=j1-ya
+     fy1=1.-fy2
+     fz2=k1-za
+     fz1=1.-fz2
 
      !  gather charge at nearest grid points
 

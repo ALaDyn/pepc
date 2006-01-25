@@ -36,7 +36,7 @@ OBJECTS = $(SOURCES:.f90=.o)
 
 slicer: slicer.o
 	$(FC)  $(FFLAGS) -o $@ slicer.o 
-	cp slicer ../bin/.
+	mv slicer ../bin/.
 
 clean:
 	/bin/rm -f *.o  ../bin/slicer *% *~ rand *.o *.pif core 
