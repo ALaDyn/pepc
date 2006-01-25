@@ -176,8 +176,12 @@ module physvars
   integer :: balance = 1  ! Load balancing switch
   integer :: ifreeze = 1  ! Tree-freezing control
 
-  character*10 :: plasma_configs(0:2)= (/ &
-       'no plasma ','plasma    ','special   ' /)
+  character*10 :: plasma_configs(0:20)= (/ &
+       'no plasma ','plasma    ','special   ','i+e slab  ','i+e sphere', &
+       '          ','          ','          ','          ','          ', &
+       '          ','          ','          ','          ','          ', &
+       '          ','          ','          ','          ','          ', &
+       '          '  /)
 
   character*10 :: geometries(0:10)= (/ &
        'slab      ', & 

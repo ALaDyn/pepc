@@ -71,7 +71,7 @@ program pepcb
   call setup_arrays    ! Set up field arrays
 
 ! Allocate array space for tree
-  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult) 
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,debug_rank) 
  
 
 ! ---- Preprocess VISIT setup -----------
@@ -217,7 +217,7 @@ program pepcb
 
   if (scheme ==5 ) then
 
-     if (ramp) call add_ramp  ! add exponential ramp to front of target
+     if (ramp) call add_ramp(x_plasma)  ! add exponential ramp to front of target
      !  ion eqm mode: add electrons before dumping particle positions
      call add_electrons
      call dump(nt+itime_start)

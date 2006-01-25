@@ -48,9 +48,22 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
 
   if (start_debug) then
     write (ipefile, '(a,3i8)') 'Seed: ', iseed1
-    write(ipefile,'(a,i5/a20,6i8/a20,8f12.3)') "Call parameters on PE ",me, &
-	"indices, switches:",i1,n,label_off,target_geometry,velocity_config,idim, &
-	"plasma:",rho0,zion,vt,mass_ratio,x_plasma,y_plasma,z_plasma,r_sphere
+    write(ipefile,'(a,i5/6(a20,i8/),8(a20,f12.3/),a20,3f12.3)') "Call parameters on PE ",me, &
+	"start index:",i1, &
+	"# parts:",n, &
+	"label offset:",label_off, &
+	"geometry:",target_geometry, &
+	"vel. config:",velocity_config,&
+	"dimensions:",idim, &
+	"density:",rho0, &
+	"Z:",zion, &
+	"vthermal:",vt,&
+	"mass ratio:",mass_ratio, &
+	"xplas:",x_plasma,&
+	"yplas:",y_plasma,&
+	"zplas:",z_plasma,&
+	"radius:",r_sphere,&
+	"centre:",plasma_centre
   endif
 
   !  Predefined geometries:
@@ -228,7 +241,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   q(i1:i1+n-1)       = q_part     ! charge
   m(i1:i1+n-1)       = m_part     ! mass
   pepid(i1:i1+n-1)   = me    ! processor ID
-  pelabel(i1:i1+n-1) = label_off + me * n + (/(i, i = 1, n)/) ! unique labels
+  pelabel(i1:i1+n-1) = label_off + (/(i, i = 1, n)/) ! unique labels
 
 
 

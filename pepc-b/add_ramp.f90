@@ -8,7 +8,7 @@
 ! 
 ! ==============================================
 
-subroutine add_ramp
+subroutine add_ramp(d_layer)
 
     use physvars
     use treevars
@@ -16,6 +16,7 @@ subroutine add_ramp
 
     implicit none
 
+    real, intent(in) :: d_layer
     integer              :: i, j, ierr
     integer              :: idum, iseed1, iseed2, iseed3, i1, n1,p, k, nramp, nx, ny
     real                 :: qtot, qramp, s, xi, xedge, rind
@@ -24,11 +25,11 @@ subroutine add_ramp
 ! Transform particles in layer at front of target
 ! to form exponential density ramp
 
-    qtot = rho0*x_plasma ! total line density
+    qtot = rho0*d_layer ! total line density
     s = lolam*(1-rho_min)  ! required layer thickness for stretching
     qramp = rho0*s
-    nramp = npart*s/x_plasma
-    xedge = plasma_centre(1)-x_plasma/2.  ! leading edge (slab & disc)
+    nramp = npart*s/d_layer
+    xedge = plasma_centre(1)-d_layer/2.  ! leading edge (slab & disc)
 
     do i=1,npp
        if (x(i).le.xedge+s) then
@@ -41,10 +42,5 @@ subroutine add_ramp
 
 
 end subroutine add_ramp
-
-
-
-
-
 
 

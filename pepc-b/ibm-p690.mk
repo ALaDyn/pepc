@@ -32,17 +32,18 @@ PREPROC = -DVISIT_NBODY
 #  Profiler information
 #PG=-pg -g -qfullpath
 #  Debug mode
-#DB= -g -qfullpath -qcheck 
-DB= -g -qfullpath 
+#DB= -g -qfullpath  
+#DB= -g -qfullpath  
+DB= -qcheck -g -qfullpath
 #  Hardware performance counter
 HPM = -lhpm
 #  Compiler listing
-LISTING=-qreport -qlist -qlistopt -qsource 
+#LISTING=-qreport -qlist -qlistopt -qsource 
 
 FFLAGS1 = -q64 -qsuffix=f=f90:cpp=F90 -qnosave 
 #FFLAGS1 = -qsuffix=f=f90:cpp=F90 -qnosave 
 IPA= -qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
-TUNE= -qarch=pwr4 -qtune=pwr4 ## -O4 ## $(IPA) 
+TUNE= -qarch=pwr4 -qtune=pwr4 -qstrict -O3 ## $(IPA) 
 CFLAGS1 = -q64 -O3 -I/usr/local/include
 
 #  Symbol tables

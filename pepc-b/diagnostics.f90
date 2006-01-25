@@ -95,8 +95,8 @@ subroutine diagnostics
         write (ifile,'(a50,i8)') 'Max # multipole fetches/cpu/walk ',max_fetches-max_prefetches
         write (ifile,'(a50,i8)') 'Max # multipole prefetches/cpu/prefetch ',max_prefetches
         write (ifile,'(a50,2i8)') 'Local #  multipole fetches & ships/iteration ',sum_fetches,sum_ships
-        write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
-        write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
+        if (debug_tree.ge.3) write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
+        if (debug_tree.ge.3) write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
         write (ifile,'(a50,i8,a3,i7)') 'Max # multipole fetches/cpu/iteration / limit',max_sum_fetches,'/',size_fetch
         write (ifile,'(a50,i8,a3,i7)') 'Max # multipole ships/cpu/iteration / limit',max_sum_ships,'/',size_fetch
 

@@ -37,7 +37,7 @@ subroutine dump(timestamp)
 
 
   open (60,file=cfile)    
-  write(60,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3f12.5/))')  &    ! info block
+  write(60,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))')  &    ! info block
        'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
        'scheme=',scheme, &
@@ -53,7 +53,7 @@ subroutine dump(timestamp)
 
     cfile="parts_info.in"     ! copy to default restart block
     open (61,file=cfile)    
-    write(61,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3f12.5/))')  &    ! info block
+    write(61,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))')  &    ! info block
        'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
        'scheme=',scheme, &
@@ -69,7 +69,7 @@ subroutine dump(timestamp)
     write(62,'(a)') cdump(1:6)
     close (62)
 
-  write(6,'(//a/7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3f12.5/))') 'PARTICLE DUMP:', &    ! info block
+  write(6,'(//a/7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))') 'PARTICLE DUMP:', &    ! info block
        'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
        'scheme=',scheme, &

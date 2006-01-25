@@ -46,7 +46,7 @@ subroutine predef_parts
      close(80)
      write(6,'(/a/a/a,i5)') 'RESTART:','Reading run data from info block: parts_info.in','Timestep:',itime_start
 
-     if (me==0) write(*,'(7(a12,i12/),18(a12,f12.5/),2(a12,3f12.5/))')  &    ! info block - skip variable names
+     if (me==0) write(*,'(7(a12,i12/),9(a12,f12.5/),9(a12,1pe12.5/),2(a12,3(1pe12.5)/))')  &    ! info block - skip variable names
           'Start time: ', itime_start, & 
           '# particles: ', npartr, &
 	  '# electrons: ', ner, &

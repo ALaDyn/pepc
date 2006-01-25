@@ -100,9 +100,9 @@ pepcb:	$(appmods) $(appobjs) liblpepc.a
 #	/bin/ln -sf $(PREFIX)/pepc-b/pepcb $(PREFIX)/bin/pepcb
 	@echo "... done\n"
 
-debug: $(appmods) $(appobjs) lpepc
+debug: $(appmods) $(appobjs) liblpepc.a
 	@echo "\n Creating pepc_debug ...\n"
-	$(FC)  $(DFLAGS)  -o pepc_debug $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI) 
+	$(FC)  $(FFLAGS)  -o pepc_debug $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI) 
 	cp pepc_debug ../bin/.
 	 @echo "... done\n"
 
@@ -137,7 +137,7 @@ cleanapp:
 
 cleanlib:
 	@echo "Cleaning lpepc library .." 
-	cd ../lpepcsrc;	/bin/rm -f *.o *.mod.F90 *.lst *.opari.inc; cd -
+	cd ../lpepcsrc;	/bin/rm -f liblpepc.a *.o *.mod.F90 *.lst *.opari.inc; cd -
 
 cleanpre: 
 	@echo "Cleaning pre-processed .f90 files .."
