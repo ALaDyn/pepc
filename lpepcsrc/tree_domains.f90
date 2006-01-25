@@ -52,16 +52,18 @@ subroutine tree_domains(xl,yl,zl)
 
   integer :: npnew,npold
   integer :: iteration, niterations
-  integer :: errcount
+  integer :: errcount, proc_debug
 
   integer, dimension(nppm) ::  w2, w3 ! scratch arrays for integer*4 permute
   integer*8 :: tmp
-  logical :: sort_debug=.false.
+  logical :: sort_debug
   real*8 :: xboxsize, yboxsize, zboxsize
 
   !POMP$ INST BEGIN(keys)
 
     call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  sort_debug=domain_debug
+  proc_debug=5
 
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | DOMAINS'
 
@@ -179,7 +181,7 @@ subroutine tree_domains(xl,yl,zl)
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
 
-  if (domain_debug) then
+  if (domain_debug .and. me==proc_debug) then
      write (*,*) 'MPI psrssort() commencing'
      write (*,*) 'iproc=',me
      write (*,*) 'num_pe=',num_pe
@@ -218,9 +220,9 @@ subroutine tree_domains(xl,yl,zl)
      endif
 
      if (domain_debug.and.me==0) then
-        write (*,'(a/(i5,z20,f15.3))') 'input array (1st 10):  ',(i,keys(i),work(i),i=1,min(10,npold))
-        write (*,'(a/(i5,z20,f15.3))') 'input array (last 10):  ',(i,keys(i),work(i),i=max(1,npold-10),npold)
-        write (*,*) 'npold=',npold
+        write (ipefile,'(a/(i5,z20,i8))') 'input array (1st 10):  ',(i,keys(i),pelabel(i),i=1,min(10,npold))
+        write (ipefile,'(a/(i5,z20,i8))') 'input array (last 10):  ',(i,keys(i),pelabel(i),i=max(1,npold-10),npold)
+        write (ipefile,*) 'npold=',npold
      endif
 
      ! perform index sort on keys
@@ -238,13 +240,13 @@ subroutine tree_domains(xl,yl,zl)
           indxl,irnkl,islen,irlen,fposts,gposts)
 
      if (domain_debug) then
-        write (*,*) 'npnew=',npnew,' on ',me
+        write (ipefile,*) 'npnew=',npnew,' on ',me
         !         write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
         !         write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
-        if (me.eq.50) then
-           write (*,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,min(10,npnew))
-           write (*,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=max(1,npnew-10),npnew)
-        endif
+!        if (me.eq.50) then
+           write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,min(10,npnew))
+           write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=max(1,npnew-10),npnew)
+!        endif
         write (ipefile,*) 'npnew=',npnew
      endif
 
@@ -308,9 +310,10 @@ subroutine tree_domains(xl,yl,zl)
 
   do i=2,npp
      if (pekey(i) == pekey(i-1)) then
-        write(*,'(a,o21)') 'WARNING: identical keys found:  ',pekey(i)
+        write(*,'(a15,i5,a30,2i8)') 'LPEPC | PE ',me,' WARNING: identical keys found for particles  ',pelabel(i),pelabel(i-1)
+        
         pekey(i) = pekey(i) + 1  ! Augment higher key
-        write(*,'(a,o21)') 'Upper key increased to:  ',pekey(i)
+        write(*,'(a,o21)') 'LPEPC | Upper key increased to:  ',pekey(i)
      endif
   end do
 

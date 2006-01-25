@@ -156,6 +156,7 @@ subroutine tree_fill
   if (htable(1)%leaves /= npart) then
      write(*,*) 'Problem with tree on PE ',me
      write(*,*) 'Leaf checksum (',htable(1)%leaves,')  does not match # particles (',npart,')'
+	call diagnose_tree
   endif
 
 

@@ -337,7 +337,7 @@ contains
 
 
   subroutine pswssort(nppm,np,npnew,nprocs,iproc,keys, &
-       indxl,irnkl, islen,irlen,fposts,gposts,w1,wload,key_box,balance,debug)
+       indxl,irnkl, islen,irlen,fposts,gposts,kw1,wload,key_box,balance,debug)
 
 
     ! P. Gibbon
@@ -368,7 +368,7 @@ contains
     integer, intent(out) :: npnew
     integer, parameter :: binmult=1000000   !TODO: need to reduce size of f() arrays
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
-                                   w1       ! work array
+                                   kw1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
     logical :: debug, balance
     real :: w2(nppm)
@@ -383,28 +383,29 @@ contains
     integer :: nbin, ibin, itag
     integer :: status(MPI_STATUS_SIZE),ierr
     real :: ave_work, f_integral
-    integer ::  i,k, fd, nfill
+    integer ::  i,k, fd, nfill, proc_debug
     character(13) :: cfmt
 
     nbin = binmult  ! must correspond to array size
 
 !    fd = iproc+10
-    fd=20
+    fd=6
     itag=0
+    proc_debug = 5
 
     !     Independent s  !     Note that indx() is a local index on the process.
     call indexsort( keys,indxl, np, nppm )   ! Index sort from Num. Rec.
 
     do i=1,np
-       w1(i) = keys(indxl(i))
+       kw1(i) = keys(indxl(i))
        w2(i) = wload(indxl(i))  ! apply sort to work loads too
     enddo
 
-    !     w1 now contains the sorted keys; w2 the sorted loads
+    !     kw1 now contains the sorted keys; w2 the sorted loads
     !     indxl is now the local indexes for the sort.
 
-    lmax = w1(np)   ! local max
-    lmin = w1(1)    ! local min
+    lmax = kw1(np)   ! local max
+    lmin = kw1(1)    ! local min
 
     ! Determine global min,max
 
@@ -422,7 +423,7 @@ contains
     key_min = gkey_min
     key_max = gkey_max
     
-    if (debug.and.iproc==0) write (*,'(3(a12,z20,a12,z20/),a12,i8,a12,z20)') &
+    if (debug.and.iproc==proc_debug) write (*,'(3(a12,z20,a12,z20/),a12,i8,a12,z20)') &
          'local min: ',lmin,' local max: ',lmax, &
          'global min: ',gkey_min,' global max: ',gkey_max, &
          ' box_min: ',key_min,' box_max: ',key_max, &
@@ -433,7 +434,7 @@ contains
     ! Find local key distribution
     do k=1,np
           ! bin inside container limits
-          ibin = (w1(k)-key_min)/step + 1
+          ibin = (kw1(k)-key_min)/step + 1
           ibin = max(min(ibin,nbin),1)
        if (balance) then
           f_local(ibin) = f_local(ibin) + w2(k)  ! Can include actual force load on particle here
@@ -442,7 +443,7 @@ contains
        endif
     enddo
 
-    if (debug) then
+    if (debug .and. iproc==proc_debug) then
        cfmt = "(/a15,"//achar(mod(nbin/100,10)+48)//achar(mod(nbin/10,10)+48) // achar(mod(nbin,10)+48) // "(f12.4))"
        write(fd,'(a15/(f12.3))') 'Local key distrib: ',(f_local(i),i=1,nbin,nbin/10)
     endif
@@ -450,7 +451,7 @@ contains
     ! Global distrib
     call MPI_ALLREDUCE(f_local, f_global, nbin, MPI_REAL, MPI_SUM,  MPI_COMM_WORLD, ierr )
 
-    if (debug) then
+    if (debug .and. iproc==proc_debug) then
        write(fd,'(a15/(f12.3))') 'Global key distrib: ',(f_global(i),i=1,nbin,nbin/10)
        write(fd,*) 'Checksum, N=SUM(f)=',SUM(f_global(1:nbin))
     endif
@@ -476,10 +477,14 @@ contains
        endif
     end do
 
-    if (debug) then
+    fpval(nprocs+1) = gkey_max+1  ! Set absolute highest pivot
+
+    if (debug .and. iproc==proc_debug) then
        write (fd,*) 'Ave work: ',ave_work
        write (fd,*) 'f_Integral: ',f_integral
-       write (fd,'(a10/(z20))') 'Pivots: ',fpval(1:nprocs+1)
+       write (fd,'(a10,z20/)') 'key_min:',gkey_min
+       write (fd,'(a10/(10x,i5,z20))') 'Pivots: ',(i,fpval(i),i=1,nprocs+1)
+       write (fd,'(/a10,z20)') 'key_max:',gkey_max
     endif
 
     !     Determine segment boundaries. Within each bin, fposts(i) is the
@@ -489,9 +494,14 @@ contains
     do i=1,np
        !        The first element may be greater than several fencepost values,
        !        so we must use a do-while loop.
-       do while (w1(i) .ge. fpval(k) .and. w1(i).le.key_max)
+       do while (kw1(i) .ge. fpval(k) .and. kw1(i).le.key_max)
           fposts(k) = i
           k = k + 1
+	  if (k>nprocs+1) then
+	    write(*,*) 'post not found'
+	    write(*,'(a5,o20)') 'key = ',i
+	    write(*,'(a5,o20)') 'fp = ',fpval(k)
+	  endif
        enddo
     enddo
 
@@ -525,7 +535,7 @@ contains
     npnew = gposts(nprocs+1)
 
 
-    call MPI_ALLTOALLV(  w1  ,islen,fposts,MPI_INTEGER8, &
+    call MPI_ALLTOALLV(  kw1  ,islen,fposts,MPI_INTEGER8, &
                          keys,irlen,gposts,MPI_INTEGER8, &
                          MPI_COMM_WORLD,ierr)
     if (debug .and. iproc==57) then

@@ -178,6 +178,7 @@ module treevars
 	     tablehigh, &      ! highest current address in #table 
              sum_unused, &     ! # free addresses
              ipefile, &             ! local O/P stream
+             pe_debug, &       ! rank for debug O/P
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
              nppm, &           ! max # particles/PE

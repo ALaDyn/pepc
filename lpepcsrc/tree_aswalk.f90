@@ -121,7 +121,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   npackm = maxaddress
   nchild_shipm = maxaddress
   !  walk_debug = .false.
-   ipefile = 6
+  ! ipefile = 6
   if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK (AS) for timestep ',itime,' pass ',pass
   if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (AS) for timestep ',itime,' pass ',pass
 
@@ -662,11 +662,11 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      endif
 
      ! Array bound checks
-     if (nleaf>.9*maxaddress/2) then
+     if (nleaf>.95*maxaddress/2 .and. mod(me,100).eq.0) then
         write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
         write (6,*) 'LPEPC | nleaf = ',nleaf,' / ',maxaddress/2
      endif
-     if (ntwig>.9*maxaddress/2) then
+     if (ntwig>.95*maxaddress/2 .and. mod(me,100).eq.0) then
         write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
         write (6,*) 'LPEPC | ntwig = ',ntwig,' / ',maxaddress/2
      endif
