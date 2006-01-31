@@ -2,7 +2,7 @@
 
 
   namelist /pepcdata/ nep, nip, ne, ni, &
-       theta, mac, mass_ratio, eps, &
+       theta, mac, mass_ratio, eps, force_tolerance, &
        plasma_config, target_geometry, velocity_config, ispecial, &
        Te_keV, Ti_keV, T_scale, Zion, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, force_const, &
