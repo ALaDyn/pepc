@@ -16,20 +16,20 @@ subroutine sum_force_split( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load 
   real, intent(out) :: load ! work load for particle p
   integer :: jnode, i,j,k, nq, nm 
 
-  real :: rd,dx,dy,dz,d,dx2,dy2,dz2 
-  real :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
-  real :: fsx,fsy,fsz,phi
-  real, dimension(n*10) :: mult
-  real, dimension(n) :: qmon
-  real, dimension(n*3) :: xmon, xquad
-  real, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
+  real*8 :: rd,dx,dy,dz,d,dx2,dy2,dz2 
+  real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
+  real*8 :: fsx,fsy,fsz,phi
+  real*8, dimension(n*10) :: mult
+  real*8, dimension(n) :: qmon
+  real*8, dimension(n*3) :: xmon, xquad
+  real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
   real :: eps2
 
   eps2=eps**2
-  sumfx = 0
-  sumfy = 0
-  sumfz = 0
-  sumphi = 0
+  sumfx = 0.
+  sumfy = 0.
+  sumfz = 0.
+  sumphi = 0.
 
   ! copy multipole moments into stride 1 arrays
   nm=0
@@ -64,7 +64,7 @@ subroutine sum_force_split( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load 
      endif
   end do
 
-  call delay(me,0)
+!  call delay(me,0)
 !  write(*,*) p,' x_p=',x(p)
 
 ! monopoles
@@ -77,7 +77,12 @@ subroutine sum_force_split( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load 
      dz = z(p) - xmon(k+2) 
 
      d = sqrt(dx**2+dy**2+dz**2+eps2)
+     rd = 1./d
+     rd3 = rd**3
      sumphi = sumphi + qmon(j)*rd
+     sumfx = sumfx + qmon(j)*dx*rd3
+     sumfy = sumfy + qmon(j)*dy*rd3
+     sumfz = sumfz + qmon(j)*dz*rd3
   end do
 
 ! Multipoles
