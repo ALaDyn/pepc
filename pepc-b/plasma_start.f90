@@ -299,8 +299,8 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   work(i1:i1+n-1) = 1.   ! set work load balanced initially
 
   if (start_debug) then
-	write(ipefile,'(a/(8f15.5,i6))') "Initial particle positions, velocities:", &
-	  (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),pelabel(i),i=i1,i1+n-1)
+	write(ipefile,'(a/(i6,8f15.5,i6))') "Initial particle positions, velocities:", &
+	  (i,x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),pelabel(i),i=i1,i1+n-1)
   endif
 end subroutine plasma_start
 
