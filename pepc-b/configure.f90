@@ -22,6 +22,7 @@ subroutine configure
   integer :: ipstart, ipstart_e, offset_e, ipstart_i, offset_i, nlayp, np_rest, ne_rest, ni_rest, nep0, nip0
 ! foam stuff
   integer :: nshell, ne_shell, ni_shell, ishell, jshell, kshell, nshell_x, nshell_y, nshell_z
+  integer :: nep_shell, nip_shell
   real :: Vshell, Ashell, Qshell, qe_shell, mass_e_shell, a_ee_shell, qi_shell, mass_i_shell, a_ii_shell
 
   npp = nep+nip  ! initial # particles on this CPU
@@ -54,6 +55,7 @@ subroutine configure
      new_config: select case(plasma_config)
 
      case(1)        ! Set up single neutral plasma target according to geometry
+!     =========================================================================
 
      if (debug_level==2 .and. me==0) then
 	write(*,*) "Setting up single plasma target"
@@ -75,6 +77,7 @@ subroutine configure
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
      
 !write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
+
       if (scheme /= 5 .and. ramp) then
            call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
       endif
@@ -100,8 +103,14 @@ subroutine configure
                -rho0, -1.0, 1.0, vosc, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
 
-     case(4)        ! Spherical Coulomb explosion
 
+     case(4)        ! Spherical Coulomb explosion
+!    ============================================
+
+
+     if (debug_level==2 .and. me==0) then
+	write(*,*) "Setting up ion sphere"
+     endif
 	target_geometry=1
         velocity_config=3   ! Ions cold, electrons with radial v0=vosc
 !        plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
@@ -120,8 +129,12 @@ subroutine configure
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
 
+      if (scheme /= 5 .and. ramp) then
+           call stretch_sphere(r_sphere)     ! create spherically symmetric density profile 
+      endif
 
      case(5)        ! Foam: array of spherical shells 
+!    ================================================
 
 	target_geometry=7
         velocity_config=1   ! Ions, electrons thermal
@@ -130,8 +143,10 @@ subroutine configure
 	nshell_y=3
 	nshell_x=2
 	nshell = nshell_x * nshell_y * nshell_z
-	ne_shell = nep/nshell
-	ni_shell = nip/nshell
+	ne_shell = ne/nshell
+	ni_shell = ni/nshell
+	nep_shell = nep/nshell
+	nip_shell = nip/nshell
         ipstart_e = 1
         ipstart_i = nep+1
 	offset_e = me*nep
@@ -144,20 +159,20 @@ subroutine configure
 
  ! Electrons 
 
-        call plasma_start( ipstart_e, ne_shell, ne_shell, offset_e, target_geometry, velocity_config, idim, &
+        call plasma_start( ipstart_e, nep_shell, ne_shell, offset_e, target_geometry, velocity_config, idim, &
                -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
                number_faces, Vshell, Ashell, Qshell, qe_shell, mass_e_shell, a_ee_shell )
 
-	ipstart_e = ipstart_e + ne_shell  ! index start
-	offset_e = offset_e + ne_shell  ! label offset
+	ipstart_e = ipstart_e + nep_shell  ! index start
+	offset_e = offset_e + nep_shell  ! label offset
  
  ! Ions
-        call plasma_start( ipstart_i, ni_shell, ni_shell, offset_i, target_geometry, 0, idim, &
+        call plasma_start( ipstart_i, nip_shell, ni_shell, offset_i, target_geometry, 0, idim, &
                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
                number_faces, Vshell, Ashell, Qshell, qi_shell, mass_i_shell, a_ii_shell )
 
-	ipstart_i = ipstart_i + ni_shell  ! index start
-	offset_i = offset_i + ni_shell  ! label offset
+	ipstart_i = ipstart_i + nip_shell  ! index start
+	offset_i = offset_i + nip_shell  ! label offset
 
 	end do
 	end do
@@ -175,7 +190,9 @@ subroutine configure
      mass_e = mass_e_shell
      a_ee = a_ee_shell
 
+
      case(10)  ! Add proton layer to slab
+!    ====================================
 
      target_geometry=0
      velocity_config=1
@@ -225,6 +242,151 @@ subroutine configure
       if (scheme /= 5 .and. ramp) then
            call add_ramp(x_plasma+x_layer(1))     ! add exponential ramp to target (stretch container)
       endif
+
+
+
+     case(15)  ! 2-layer slab with foam
+!    ==================================
+
+     target_geometry=0
+     velocity_config=1
+     plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
+     offset_e = me*nep + ne_rest
+     offset_i = ne + me*nip + ni_rest
+
+!  Main block
+     write(ipefile,'(/a/)') "Setting up main slab"
+
+ ! Electrons 
+        call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
+               -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
+ ! Ions
+        call plasma_start( nep+1, nip, ni, offset_i, target_geometry, velocity_config, idim, &
+               rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
+
+ ! Protons
+      write(ipefile,'(/a/)') "Setting up proton layer"
+
+! Adjust local numbers if total non-multiple of # PEs
+  	if (my_rank==0) then
+     		np_rest = mod(n_layer(1),n_cpu)
+   	else
+     		np_rest = 0
+  	endif
+
+  	nlayp = n_layer(1)/n_cpu + np_rest  ! total # protons on this CPU
+
+  	ipstart = nep+nip+1  ! local index
+	label_offset = ne+ni+me*nlayp ! global label
+
+! Place on front of main slab 
+!	displace = plasma_centre - (/ x_plasma/2.+x_layer(1)/2,0.,0. /)
+
+        call plasma_start( ipstart, nlayp, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+               rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+               faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), a_layer(1) )
+
+ ! Equal number of neutralising electrons 
+	label_offset = ne+ni+n_layer(1) +me*nlayp 
+        call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+               -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+               faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+
+       npp=npp + 2*nlayp  ! Total # local particles
+       ne = ne + n_layer(1)  ! Global # particles
+       ni = ni + n_layer(1)  ! Global # particles
+       npart = ni+ne
+
+      if (scheme /= 5 .and. ramp) then
+           call add_ramp(x_plasma+x_layer(1))     ! add exponential ramp to target (stretch container)
+      endif
+
+
+!  Add foam layer (2) to rear side
+
+     write(ipefile,'(/a/)') "Setting up foam layer"
+
+	target_geometry=7
+        velocity_config=1   ! Ions, electrons thermal
+        plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+        plasma_centre=plasma_centre+displace+r_layer(2) ! centre of 1st shell 
+
+
+	nshell_z=1
+	nshell_y=1
+	nshell_x=2
+	nshell = nshell_x * nshell_y * nshell_z
+	ne_shell = n_layer(2)/nshell  ! # particles allocated to foam array must be exact multiple
+	ni_shell = n_layer(2)/nshell  ! of # electrons or ions per cell
+
+! Adjust local numbers if total non-multiple of # PEs
+  	if (my_rank==0) then
+     		ne_rest = mod(ne_shell,n_cpu)
+     		ni_rest = mod(ni_shell,n_cpu)
+   	else
+     		ne_rest = 0
+     		ni_rest = 0
+  	endif
+  	nep_shell = ne_shell/n_cpu + ne_rest  ! # electrons per shell allocated to this CPU
+	nip_shell = ni_shell/n_cpu + ni_rest 
+        nlayp = (nep_shell+nip_shell)*nshell  ! total # particles in foam on this CPU 
+
+        nep0 = nep_shell
+  	nip0 = nip_shell
+ !  Make particle numbers on root known (in case of unequal particle #s - need for label offset)
+  	call MPI_BCAST( nep0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+  	call MPI_BCAST( nip0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+  	ne_rest = nep0-nep_shell
+  	ni_rest = nip0-nip_shell
+  
+        ipstart_e = npp + 1  ! local index, electrons
+        ipstart_i = ipstart_e + nep_shell*nshell  ! local index, ions
+	offset_e = npart + me*ne_shell + ne_rest  ! Global label 
+! TODO: - may need to change this later to have sequentially numbered species
+	offset_i = npart + n_layer(2) + me*ni_shell + ni_rest
+
+	do ishell = 0,nshell_z-1
+	do jshell = 0,nshell_y-1
+	do kshell = 0,nshell_x-1
+	  displace = (/ 2*ishell*r_sphere, 2*jshell*r_sphere, 2*kshell*r_sphere /)
+
+ ! Electrons 
+
+        call plasma_start( ipstart_e, nep_shell, ne_shell, offset_e, target_geometry, velocity_config, idim, &
+               -rho_layer(2), -1.0, 1.0, vte, x_layer(2), y_layer(2), z_layer(2), r_layer(2), plasma_centre+displace, &
+               faces(2), V_layer(2), A_layer(2), Q_layer(2), qpart_layer(2), mass_layer(2), a_layer(2) )
+
+	ipstart_e = ipstart_e + nep_shell  ! index start
+	offset_e = offset_e + nep_shell  ! label offset
+ 
+ ! Ions
+        call plasma_start( ipstart_i, nip_shell, ni_shell, offset_i, target_geometry, 0, idim, &
+               rho_layer(2), 1.0, mratio_layer(2), vti, x_layer(2), y_layer(2), z_layer(2), r_layer(2), plasma_centre+displace, &
+               faces(2), V_layer(2), A_layer(2), Q_layer(2), qpart_layer(2), mass_layer(2), a_layer(2) )
+
+	ipstart_i = ipstart_i + nip_shell  ! index start
+	offset_i = offset_i + nip_shell  ! label offset
+
+	end do
+	end do
+! shift for FCC
+	if (mod(ishell,2)==0) then
+	 plasma_centre = plasma_centre +  r_layer(2)/sqrt(2.)*(/ -1., 1., 1. /)
+	else
+	 plasma_centre = plasma_centre +  r_layer(2)/sqrt(2.)*(/ -1., -1., -1. /)
+	endif
+      end do
+
+
+       npp=npp + nlayp  ! Total # local particles
+       ne = ne + n_layer(2)  ! Global # particles
+       ni = ni + n_layer(2)  ! Global # particles
+       npart = ni+ne
+     if (debug_level==2) then
+        write(*,*)  "# particles increased to (cpu, global):",npp,npart
+	endif
 
      case default     ! Default = 0 - no plasma target
         if (me==0) write (6,*) 'Warning: no plasma set up'

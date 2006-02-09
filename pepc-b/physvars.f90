@@ -37,6 +37,7 @@ module physvars
   real :: displace(3)    ! particle displacement vector for restart or 2nd target
   integer :: n_layer(maxlayers)=0   ! Additional target parameters
   real, dimension(maxlayers) :: rho_layer, Zion_layer, mratio_layer, x_layer, y_layer, z_layer, r_layer
+  integer :: foam_geom(3) = (/1,1,1/)
 
   real :: x_crit         ! critical surface
   real :: x_offset       ! coordinate offset

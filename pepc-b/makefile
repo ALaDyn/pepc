@@ -44,7 +44,7 @@ SOURCES.f90 =   \
                 setup.f90 setup_arrays.f90 stamp.f90 \
                 configure.f90 plasma_start.f90 predef_parts.f90 maxwell1.f90 cold_start.f90 \
                 special_start.f90 constrain.f90 cutvector.f90 face.f90 \
-                scramble_v.f90 reset_ions.f90 add_electrons.f90 \
+                scramble_v.f90 reset_ions.f90 add_electrons.f90 stretch_sphere.f90 \
                 laser.f90 beam.f90 beam_dust.f90 rezone.f90\
                 mc_config.f90 \
                 velocities.f90 perturb_temp.f90 \
