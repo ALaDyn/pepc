@@ -26,20 +26,20 @@ subroutine vis_parts_nbody
   real :: plasma1, plasma2, plasma3, t_display, wfdatar, u2, amp_las, box_x, box_y, box_z
   integer :: nship, ierr, cpuid
   integer :: type
-  integer :: vbufcols = 22, incdf, ndom_vis, ivisdom
+  integer :: vbufcols = 22, incdf, ndom_vis, ivisdom, ndomain_vis=1000
   real :: lbox, work_ave
   logical :: vis_debug=.false.
 
   convert_mu=1.
   simtime = dt*(itime+itime_start)
 
-  if ( npart > nbuf_max) then
+  if ( npart > nbuf_max-ndomain_vis) then
         nskip = npart/nbuf_max + 1
   else
 	nskip = 1
   endif
 
-  if (me==0 .and. npart> nbuf_max) then
+  if (me==0 .and. npart> nbuf_max-ndomain_vis) then
 	write(*,*) "VISNB | # particles > vis nbuf_max - reducing number shipped"
 	write(*,*) "VISNB | nbuf_max=",nbuf_max," nskip=",nskip
   endif
@@ -81,7 +81,9 @@ subroutine vis_parts_nbody
      do i=1,npp
         u2=0.5*0.511*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
 
-      if ( npart<nbuf_max .or. (npart > nbuf_max .and. mod(pelabel(i),nskip).eq.0)) then
+!      if ( npart<nbuf_max .or. (npart > nbuf_max .and. mod(pelabel(i),nskip).eq.0)) then
+      if (  mod(pelabel(i),nskip).eq.0 ) then
+!	if (pelabel(i)>npart-n_layer(1)) then ! pick out proton disc
         nship=nship+1
         if (q(i)<0) then
 	  nbufe=nbufe+1
@@ -132,7 +134,7 @@ subroutine vis_parts_nbody
      call MPI_ALLREDUCE( nbufi, ni_buf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
 
 
-     if (npart_buf>0 .and. npart_buf +1000 < nbuf_max) then
+     if (npart_buf>0 .and. npart_buf < nbuf_max-ndomain_vis) then
         ! send  particle data from all PEs
         ! increase momentum threshold if close to max ship # 
         if (1.0*npart_buf/nbuf_max > 0.9) uthresh=uthresh*1.1
@@ -177,8 +179,8 @@ subroutine vis_parts_nbody
 
 
              ! Add branch nodes to show domains
-
               ndom_vis=0
+	      if (ndomain_vis>0) then
 
 ! First count how many to be shipped
 
@@ -240,11 +242,12 @@ subroutine vis_parts_nbody
                  !             vbuffer(6,j), vbuffer(7,j), vbuffer(17,j)
               end do
 
+	      endif
+
 ! Fill out dummy values for netcdf
               do j=npart_buf+1+ndom_vis,nbuf_max
                  vbuffer(0:attrib_max-1,j) = 0.
               end do
-
 
 ! ---- Preprocess VISIT setup -----------
 #ifdef VISIT_NBODY
@@ -252,7 +255,7 @@ subroutine vis_parts_nbody
      if (me==0) then 
         write(*,*) 'VISNB | # particles shipped ',npart_buf,nship
         write(*,*) 'VISNB | # branches shipped ',ndom_vis, '/', nbranch_sum
-        write(*,*) 'VISNB | Total # objects shipped :',nbranch_sum+1+npart_buf,' /',nbuf_max
+        write(*,*) 'VISNB | Total # objects shipped :',ndom_vis+1+npart_buf,' /',nbuf_max
         write(*,*) 'VISNB | u_thresh: (MeV)     ',uthresh
 	if (vis_debug) then
           write(*,*) 'VISNB | t,1,x,y,z,q,label,owner,type :'
@@ -290,7 +293,7 @@ subroutine vis_parts_nbody
 ! TODO: this needs removing or fixing
 
            if (me==0) then
-              if (npart_buf>nbuf_max) then
+              if (npart_buf>nbuf_max-1000) then
                  write(*,*) 'VISNB | Too many particles to ship: npart_buf= ',npart_buf,'/',nbuf_max
                  uthresh = uthresh*2
                  write(*,*) 'VISNB | Increasing momentum threshold to: ',sqrt(abs(uthresh))
