@@ -60,7 +60,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
         if (htable(free)%node /= 0 ) then
            write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
            write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
-           pause
+	  call MPI_ABORT(ierr)
         endif
         htable( free )%node = nodein                     
         htable( free )%key = keyin
@@ -110,7 +110,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
               if (htable(free)%node /= 0 ) then
                  write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
                  write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
-                 pause
+	         call MPI_ABORT(ierr)
               endif
 
               htable( free )%node = nodein                     
