@@ -191,7 +191,7 @@ program pepcb
 
      if (my_rank==0 .and. debug_level .ge.0 .and. mod(itime,iprot).eq.0) then
         irecord = irecord+1
-        ifile = 6
+        do ifile = 6,15,9
         write(ifile,'(//a/)') 'Timing:  Routine   time(s)  percentage'
         write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain,100*t_domain/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Build: ',t_build,100*t_build/ttot
@@ -206,6 +206,7 @@ program pepcb
         write(ifile,'(a20/a5,7a12/i5,7f12.3)') 'Timing format:', &
              ' #CPU','domains','build',' prefetch','walk-local','walk-comm','force','tot' &
 	  ,n_cpu,t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force,ttot
+	end do
         t_record(irecord) = ttot
      endif
 
