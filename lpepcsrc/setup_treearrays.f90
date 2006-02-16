@@ -40,6 +40,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
      walk_debug=.true.
      walk_summary=.true.
      force_debug=.true.
+ else if (db_level==4) then
      dump_tree=.true.
   else
 ! all off by default
@@ -47,11 +48,11 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   npartm = npart 
   nppm = np_mult*1.9*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  nshortm = 2500    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nshortm = 800    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
-     nintmax = max(1.*24*log(2.*npartm)/theta**2,2500.)
+     nintmax = max(1.*24*log(2.*npartm)/theta**2,2200.)
   else
      nintmax = npartm
   endif
@@ -68,14 +69,14 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
    npsize=nppm
    size_tree = max(4*nintmax+npsize,10000)
    nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
-!   nbaddr = 17   ! fixed address range
-   maxaddress = np_mult*2**nbaddr
-   size_fetch = fetch_mult*max(npartm/10,size_tree)
+!   nbaddr = 18   ! fixed address range
+   maxaddress = 2**nbaddr
+   size_fetch = fetch_mult*size_tree
 !   nbranch_max = maxaddress/2
-   nbranch_max = nintmax*num_pe
+   nbranch_max = 4*nintmax*max(1.,log(1.*num_pe))
    if (num_pe==1) size_fetch=size_tree
 !  maxaddress = 512
-  hashconst = 2**nbaddr-1
+   hashconst = 2**nbaddr-1
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
   if (me==0) then
     write(*,*) 'size_tree= ',size_tree
@@ -88,7 +89,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
 ! Memory estimate
   mem_parts = nppm*(22*8 + 2*4 + 8)
-  mem_lists = nshortm + nshortm*nintmax*(2*8+4)
+  mem_lists = nshortm + nshortm*nintmax*(8+4)
   mem_tree =  maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
                       + num_pe * (4+4+4+4)  & ! request stuff
                       + maxaddress * (3*8) & ! keys
@@ -121,7 +122,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
 
 
-  allocate ( nterm(nshortm), intlist(nintmax,nshortm), nodelist(nintmax,nshortm) )! interaction key-, node-lists
+  allocate ( nterm(nshortm), intlist(1,1), nodelist(nintmax,nshortm) )! interaction key-, node-lists
 
   allocate ( htable(0:maxaddress), all_addr(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
        nbranches(num_pe+2), igap(num_pe+3), &
@@ -141,8 +142,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   ! Allocate memory for tree node properties
 
-  maxtwig = maxaddress/2
-  maxleaf = maxaddress/2
+  maxleaf = maxaddress/3
+  maxtwig = 2*maxleaf
 
   nreqs_total(0:num_pe-1) = 0   ! Zero cumulative fetch/ship counters for non-local nodes
   nfetch_total(0:num_pe-1) = 0  

@@ -353,12 +353,6 @@ contains
     ! http://www.lpac.ac.uk/SEL-HPC/Articles/GeneratedHtml/hpc.sort.html
     !
     !
-    !     (C. Mobarry/GSFC, J. Crawford/VSEP)
-    !
-    !     Convex SPP-1000 Exemplar MPI implementation
-    !     Written by C. Mobarry and J. Crawford
-    !     NASA/GSFC Code 934, Greenbelt MD, 20771
-    !     Clark.Mobarry@gsfc.nasa.gov, {mobarry,crawford}@maxwell.gsfc.nasa.gov
 
     implicit  none
     include 'mpif.h'
@@ -366,7 +360,7 @@ contains
     integer, intent(in) :: nppm,np,nprocs,iproc
     real*8, intent(in) :: wload(nppm)  ! particle work loads
     integer, intent(out) :: npnew
-    integer, parameter :: binmult=1000000   !TODO: need to reduce size of f() arrays
+    integer, parameter :: binmult=1200000   !TODO: need to reduce size of f() arrays
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    kw1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
@@ -376,7 +370,7 @@ contains
     integer, dimension(nprocs) :: islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts !  fencepost index and key values for shuffle
     integer :: itabr(nprocs), itabl(nprocs+1)
-    real, dimension(binmult)  :: f_local, f_global
+    real, save, dimension(binmult)  :: f_local, f_global
     integer*8 :: fpval(nprocs+1)
     integer*8 :: lmax, lmin, key_min, key_max, gkey_min, gkey_max, step ! Key mins and maxes and step size
     integer*8 :: step_reduced
@@ -391,7 +385,7 @@ contains
 !    fd = iproc+10
     fd=6
     itag=0
-    proc_debug = 5
+    proc_debug = -5
 
     !     Independent s  !     Note that indx() is a local index on the process.
     call indexsort( keys,indxl, np, nppm )   ! Index sort from Num. Rec.
