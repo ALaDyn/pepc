@@ -102,6 +102,15 @@ subroutine force_laser(p_start,p_finish)
 
            end select laser_model
 
+ 	else    ! (q>0)
+!  ions assumed not to feel laser, so zero fields
+          Epon_x=0
+          Epon_y=0
+          Epon_z=0
+	  Bx_em = 0.
+	  By_em = 0.
+	  Bz_em = 0.
+
         endif
 
 	if (beam_config_in==6)  then ! Constant B in z-direction - either charge
