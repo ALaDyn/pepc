@@ -320,7 +320,7 @@ subroutine configure
            call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
       endif
 
-
+      if (me==0) write(*,'(a30,2f15.3)') "Proton charge,mass: ",qpart_layer(1),mass_layer(1)
 
      case(15)  ! 2-layer slab with foam
 !    ==================================
