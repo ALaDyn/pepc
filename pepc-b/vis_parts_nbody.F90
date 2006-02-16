@@ -82,8 +82,9 @@ subroutine vis_parts_nbody
         u2=0.5*0.511*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
 
 !      if ( npart<nbuf_max .or. (npart > nbuf_max .and. mod(pelabel(i),nskip).eq.0)) then
-      if (  mod(pelabel(i),nskip).eq.0 ) then
+!      if (  mod(pelabel(i),nskip).eq.0 ) then
 !	if (pelabel(i)>npart-n_layer(1)) then ! pick out proton disc
+	if (ux(i)>0. .and. u2>uthresh) then
         nship=nship+1
         if (q(i)<0) then
 	  nbufe=nbufe+1
@@ -150,7 +151,8 @@ subroutine vis_parts_nbody
            type=8
 
               vbuffer(0,1) = t_display
-              vbuffer(1,1) = npart_buf-1
+!              vbuffer(1,1) = npart_buf-1
+              vbuffer(1,1) = npart
               ! scaled coordinates
               vbuffer(2,1) = t_display
               vbuffer(3,1) = 0
