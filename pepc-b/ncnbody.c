@@ -1,23 +1,49 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <netcdf.h>
+#include <time.h>
 
 #define ROWS 200
 #define COLS 18
 
 /* rank (number of dimensions) for each variable */
-#  define RANK_data 3
-#  define RANK_mintime 1
+#  define RANK_data 3   /* time, col, row */
+#  define RANK_time 2  /* time, (exec-time, sim-time, index_field, index_particles) */ 
+#  define RANK_field 4  /* time, x, y, z */
+#  define RANK_fielddesc 3 /* time, field, desc */
+#  define RANK_selfields 3
+
 
 
    /* variable ids */
 static int data_id=-1;
-static int mintime_id=-1;
+/* static int mintime_id=-1; */
+static int time_id;
 static int timeid_start=0;
+static int field_id1 = -1;
+static int field_id2 = -1;
+static int field_id3 = -1;
+static int field_id4 = -1;
+
+static int field_desc_id = -1;
+
+static int sel_fields_id = -1;
+
+static int timeid_start_particles=0;
+static int timeid_start_fields = 0;
+
+
   /* dimension lengths */
 static  size_t cols_len = -1;
 static  size_t rows_len = -1;
 static  size_t timeid_len = NC_UNLIMITED;
+static  size_t x_len = -1;
+static  size_t y_len = -1;
+static  size_t z_len = -1;
+static  size_t field_desc_len = -1;
+
+
+static time_t begin;
 
 
 void check_err(const int stat, const int line, const char *file) {
@@ -29,20 +55,44 @@ void check_err(const int stat, const int line, const char *file) {
 
 
 /*---------------------------------------------------------------------------------------*/
-int _ncnbody_open(int rows, int cols, int *pncid) {
+int _ncnbody_open(int rows, int cols, int x, int y, int z, int *pncid) {
+  
   int  ncid;			/* netCDF id */
 
   /* dimension ids */
   int cols_dim;
   int rows_dim;
   int timeid_dim;
+  int time_and_indices_dim;
 
+  /* field dims */
+  int xdim;
+  int ydim;
+  int zdim;
+  
+  /* fielddescdim */
+  int fielddesc_dim;
+  int fieldnr_dim;
+
+  int selfield_dim;
+  
   /* variable shapes */
   int data_dims[RANK_data];
-  int mintime_dims[RANK_mintime];
-
+/*   int mintime_dims[RANK_mintime]; */
+  int time_dims[RANK_time];
+  /*field*/
+  int field_dims[RANK_field];
+  int field_desc_dims[RANK_fielddesc];
+  int sel_field_dims[RANK_selfields];
+  
+  begin = time(NULL); 
   cols_len=cols;
   rows_len=rows;
+  
+  x_len = x;
+  y_len = y;
+  z_len = z;
+
   printf("WF ncnbody_open: rows=%d, cols=%d\n",cols_len,rows_len);
 
   /* enter define mode */
@@ -56,6 +106,23 @@ int _ncnbody_open(int rows, int cols, int *pncid) {
   check_err(stat,__LINE__,__FILE__);
   stat = nc_def_dim(ncid, "timeid", timeid_len, &timeid_dim);
   check_err(stat,__LINE__,__FILE__);
+  stat =  nc_def_dim(ncid, "time_and_indices", 4, &time_and_indices_dim);
+
+  /* field */
+  stat = nc_def_dim( ncid, "xdim", x_len, &xdim );
+  check_err(stat,__LINE__,__FILE__);
+  stat = nc_def_dim( ncid, "ydim", y_len, &ydim );
+  check_err(stat,__LINE__,__FILE__);
+  stat = nc_def_dim( ncid, "zdim", z_len, &zdim );
+  check_err(stat,__LINE__,__FILE__);
+  /* field desc */
+  stat = nc_def_dim( ncid, "fielddesc_dim", 6, &fielddesc_dim );
+  check_err(stat,__LINE__,__FILE__);
+  stat = nc_def_dim( ncid, "fieldnr_dim", 4, &fieldnr_dim );
+  check_err(stat,__LINE__,__FILE__);
+
+  stat = nc_def_dim( ncid, "selfield_dim", 1, &selfield_dim );
+  check_err(stat,__LINE__,__FILE__);
 
   /* define variables */
 
@@ -65,8 +132,45 @@ int _ncnbody_open(int rows, int cols, int *pncid) {
   stat = nc_def_var(ncid, "data", NC_FLOAT, RANK_data, data_dims, &data_id);
   check_err(stat,__LINE__,__FILE__);
 
-  mintime_dims[0] = timeid_dim;
-  stat = nc_def_var(ncid, "mintime", NC_FLOAT, RANK_mintime, mintime_dims, &mintime_id);
+  field_dims[0] = timeid_dim;
+  field_dims[1] = xdim;
+  field_dims[2] = ydim;
+  field_dims[3] = zdim;
+
+  field_desc_dims[0] = timeid_dim;
+  field_desc_dims[1] = fieldnr_dim;
+  field_desc_dims[2] = fielddesc_dim;
+
+  sel_field_dims[0] = timeid_dim;
+  sel_field_dims[1] = fieldnr_dim;
+  sel_field_dims[2] = selfield_dim;
+
+
+  stat = nc_def_var( ncid, "field1", NC_FLOAT, RANK_field, field_dims, &field_id1 );
+  check_err(stat,__LINE__,__FILE__);
+
+  stat = nc_def_var( ncid, "field2", NC_FLOAT, RANK_field, field_dims, &field_id2 );
+  check_err(stat,__LINE__,__FILE__);
+
+  stat = nc_def_var( ncid, "field3", NC_FLOAT, RANK_field, field_dims, &field_id3 );
+  check_err(stat,__LINE__,__FILE__);
+
+  stat = nc_def_var( ncid, "field4", NC_FLOAT, RANK_field, field_dims, &field_id4 );
+  check_err(stat,__LINE__,__FILE__);
+
+  stat = nc_def_var( ncid, "fielddesc", NC_FLOAT, RANK_fielddesc, field_desc_dims, &field_desc_id );
+  check_err(stat,__LINE__,__FILE__);
+
+  stat = nc_def_var( ncid, "sel_fields", NC_INT, RANK_selfields, sel_field_dims, &sel_fields_id );
+  check_err(stat,__LINE__,__FILE__);
+  
+
+  
+/*   mintime_dims[0] = timeid_dim; */
+  time_dims[0] = timeid_dim;
+  time_dims[1] = time_and_indices_dim;
+  
+  stat = nc_def_var(ncid, "time_and_indices", NC_FLOAT, RANK_time, time_dims, &time_id);
   check_err(stat,__LINE__,__FILE__);
 
   /* leave define mode */
@@ -74,51 +178,59 @@ int _ncnbody_open(int rows, int cols, int *pncid) {
   check_err(stat,__LINE__,__FILE__);
   printf("WF ncnbody_open: rows=%d, cols=%d ready ncid=%d\n",cols_len,rows_len,ncid);
 
-  timeid_start=0;   
+  timeid_start=0;  
+  timeid_start_particles = 0;
+  timeid_start_fields = 0;
+  
   *pncid=ncid;
   return(1); 
 }
 
-void *ncnbody_open_(int *rows, int *cols, int *ncid, int *ret) {
-  *ret=_ncnbody_open(*rows,*cols,ncid);
+void *ncnbody_open_(int *rows, int *cols, int *x, int *y, int *z, int *ncid, int *ret) {
+  *ret=_ncnbody_open(*rows,*cols,*x, *y, *z, ncid);
   return;
 }
 
-void *ncnbody_open__(int *rows, int *cols, int *ncid, int *ret) {
-  *ret=_ncnbody_open(*rows,*cols,ncid);
+void *ncnbody_open__(int *rows, int *cols, int *x, int *y, int *z, int *ncid, int *ret) {
+  *ret=_ncnbody_open(*rows,*cols,*x, *y, *z,ncid);
   return;
 }
 
-void *ncnbody_open(int *rows, int *cols, int *ncid, int *ret) {
-  *ret=_ncnbody_open(*rows,*cols,ncid);
+void *ncnbody_open(int *rows, int *cols, int *x, int *y, int *z, int *ncid, int *ret) {
+  *ret=_ncnbody_open(*rows,*cols,*x, *y, *z,ncid);
   return;
 }
 
 /*---------------------------------------------------------------------------------------*/
 int _ncnbody_put(int ncid,float *vbuffer,int lstored,int vbufcols) {
   int stat;
-  static size_t mintime_start[RANK_mintime];
-  static size_t mintime_count[RANK_mintime];
+  static size_t time_start[RANK_time];
+  static size_t time_count[RANK_time];
   static size_t data_start[RANK_data];
   static size_t data_count[RANK_data];
-  static float mintime[1];
+  static float time[4];
   size_t timeid_len;
-
+  time_t now = time(NULL);
+  
 /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d\n",ncid,lstored,vbufcols); */
   
-  /* store mintime */
-  timeid_len = 1;		
-  mintime_start[0] = timeid_start;
-  mintime_count[0] = timeid_len;
-  mintime[0]=vbuffer[0];	/* first value of first record */
-  /* printf("parm=%d %d\n",ncid, mintime_id);  */
-  stat = nc_put_vara_float(ncid, mintime_id, mintime_start, mintime_count, mintime);
-  /* printf("stat=%d\n",stat); */
+  /* store time */
+  timeid_len = 4;		
+  time_start[0] = timeid_start;
+  time_start[1] = 0;
+  time_count[0] = timeid_len;
+  time_count[1] = 4;
+  time[0] = vbuffer[0];	/* simtime, first value of first record */   
+  time[1] = (float)(now - begin ); /* exectime */
+  time[2] = timeid_start_fields;
+  time[3] = timeid_start_particles;
+
+  stat = nc_put_vara_float(ncid, time_id, time_start, time_count, time);
   check_err(stat,__LINE__,__FILE__);
 
   
   timeid_len = 1;			/* number of records of data data */
-  data_start[0] = timeid_start;
+  data_start[0] = timeid_start_particles;
   data_start[1] = 0;
   data_start[2] = 0;
   data_count[0] = timeid_len;
@@ -130,9 +242,10 @@ int _ncnbody_put(int ncid,float *vbuffer,int lstored,int vbufcols) {
 /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d ready stat=%d\n",ncid,lstored,vbufcols,stat); */
   nc_sync(ncid);
 /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d sync ready stat=%d\n",ncid,lstored,vbufcols,stat); */
-
-  timeid_start++;
   
+  timeid_start++;
+  timeid_start_particles++;
+
   return(stat);
 }
 
@@ -148,6 +261,183 @@ void* ncnbody_put__(int *ncid,float *vbuffer,int *lstored,int *vbufcols, int *rc
 
 void* ncnbody_put(int *ncid,float *vbuffer,int *lstored,int *vbufcols, int *rc) {
   *rc=_ncnbody_put(*ncid,vbuffer, *lstored, *vbufcols);
+  return;
+}
+
+/*---------------------------------------------------------------------------------------*/
+int _ncnbody_putfield(int ncid,int fieldnr, int xdim, int ydim, int zdim, float *vbuffer) {
+  int stat;
+
+  static size_t field_start[RANK_field];
+  static size_t field_count[RANK_field];
+ 
+
+
+  field_start[1] = 0;
+  field_start[2] = 0;
+  field_start[3] = 0;
+  
+  field_count[0] = 1;
+  field_count[1] = xdim;
+  field_count[2] = ydim;
+  field_count[3] = zdim;
+  
+  switch( fieldnr ){
+  case 1:
+    field_start[0] = timeid_start_fields-1; 
+    stat = nc_put_vara_float(ncid, field_id1, field_start, field_count, vbuffer);
+    check_err(stat,__LINE__,__FILE__);
+    break;
+  case 2: 
+    field_start[0] = timeid_start_fields-1; 
+    stat = nc_put_vara_float(ncid, field_id2, field_start, field_count, vbuffer);
+    check_err(stat,__LINE__,__FILE__);
+    break;
+  case 3: 
+    field_start[0] = timeid_start_fields-1; 
+    stat = nc_put_vara_float(ncid, field_id3, field_start, field_count, vbuffer);
+    check_err(stat,__LINE__,__FILE__);
+    break;
+  case 4: 
+    field_start[0] = timeid_start_fields-1; 
+    stat = nc_put_vara_float(ncid, field_id4, field_start, field_count, vbuffer);
+    check_err(stat,__LINE__,__FILE__);
+    break;
+
+  }
+  /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d ready stat=%d\n",ncid,lstored,vbufcols,stat); */
+  nc_sync(ncid);
+  /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d sync ready stat=%d\n",ncid,lstored,vbufcols,stat); */
+  
+  return(stat);
+}
+
+void* ncnbody_putfield_(int *ncid,int *fieldnr, int *xdim, int *ydim, int *zdim, float *vbuffer, int *rc) {
+  *rc=_ncnbody_putfield(*ncid, *fieldnr, *xdim, *ydim, *zdim, vbuffer);
+  return;
+}
+
+void* ncnbody_putfield__(int *ncid,int *fieldnr, int *xdim, int *ydim, int *zdim,float *vbuffer, int *rc) {
+  *rc=_ncnbody_putfield(*ncid, *fieldnr, *xdim, *ydim, *zdim, vbuffer);
+  return;
+}
+
+void* ncnbody_putfield(int *ncid,int *fieldnr, int *xdim, int *ydim, int *zdim,float *vbuffer, int *rc) {
+  *rc=_ncnbody_putfield(*ncid, *fieldnr, *xdim, *ydim, *zdim, vbuffer);
+  return;
+}
+/*---------------------------------------------------------------------------------------*/
+int _ncnbody_putfielddesc(int ncid, float *vbuffer) {
+  int stat;
+  int i, j;
+  static size_t fielddesc_start[RANK_fielddesc];
+  static size_t fielddesc_count[RANK_fielddesc] = {1, 4, 6};
+
+  fielddesc_start[0] = timeid_start_fields-1; 
+  fielddesc_start[1] = 0;
+  fielddesc_start[2] = 0;
+  
+   printf("WF _ncnbody_putfielddesc: ncid=%d\n",ncid);
+   for( i = 0; i < 4; i++ ){
+     printf( "field%d : ", i );
+     for( j = 0; j < 6; j++ ){
+       printf( "%f ", vbuffer[6*i+j] );
+     }
+     printf( "\n" );
+   }
+
+  stat = nc_put_vara_float(ncid, field_desc_id, fielddesc_start, fielddesc_count, vbuffer);
+  check_err(stat,__LINE__,__FILE__);
+
+  /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d ready stat=%d\n",ncid,lstored,vbufcols,stat); */
+  nc_sync(ncid);
+  /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d sync ready stat=%d\n",ncid,lstored,vbufcols,stat); */
+  
+  printf("WF _ncnbody_putfielddesc: ncid=%d ready, stat = %d\n",ncid, stat); 
+  return(stat);
+}
+
+void* ncnbody_putfielddesc_(int *ncid, float *vbuffer, int *rc) {
+  *rc=_ncnbody_putfielddesc(*ncid, vbuffer);
+  return;
+}
+
+void* ncnbody_putfielddesc__(int *ncid,float *vbuffer, int *rc) {
+  *rc=_ncnbody_putfielddesc(*ncid, vbuffer );
+  return;
+}
+
+void* ncnbody_putfielddesc(int *ncid,float *vbuffer, int *rc) {
+  *rc=_ncnbody_putfielddesc(*ncid, vbuffer);
+  return;
+}
+/*---------------------------------------------------------------------------------------*/
+int _ncnbody_putselfield(int ncid, float simtime, int selfield1, int selfield2, int selfield3, int selfield4 ) {
+  int stat;
+  int selfield[4];
+
+  static size_t time_start[RANK_time];
+  static size_t time_count[RANK_time];
+  static size_t selfield_start[3];
+  static size_t selfield_count[3] = {1, 4, 1};
+
+  static float time[4];
+  size_t timeid_len;
+/*   time_t now = time(NULL); */
+
+  timeid_len = 4;		
+  time_start[0] = timeid_start;
+  time_start[1] = 0;
+  time_count[0] = timeid_len;
+  time_count[1] = 4;
+  
+  time[0] = simtime;
+  time[1] = 0.1;   /*(float) ( now - begin );  exectime */
+  time[2] = timeid_start_fields;
+  time[3] = timeid_start_particles;
+
+  stat = nc_put_vara_float(ncid, time_id, time_start, time_count, time);
+  check_err(stat,__LINE__,__FILE__);
+  
+  
+  selfield[0] = selfield1;
+  selfield[1] = selfield2;
+  selfield[2] = selfield3;
+  selfield[3] = selfield4;
+  
+  selfield_start[0] = timeid_start_fields; 
+  selfield_start[1] = 0;
+  selfield_start[2] = 0;
+  
+
+  printf("WF _ncnbody_putselfield: ncid=%d, selfields=%d, %d, %d, %d\n",ncid,selfield1, selfield2, selfield3, selfield4); 
+
+  stat = nc_put_vara_int(ncid, sel_fields_id, selfield_start, selfield_count, selfield);
+  check_err(stat,__LINE__,__FILE__);
+  printf("WF _ncnbody_putselfield: ncid=%d, selfields=%d, %d, %d, %d ready stat = %d\n",ncid,selfield1, selfield2, selfield3, selfield4, stat); 
+
+ /*     printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d ready stat=%d\n",ncid,lstored,vbufcols,stat); */
+  nc_sync(ncid);
+  /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d sync ready stat=%d\n",ncid,lstored,vbufcols,stat); */
+  
+  timeid_start_fields++;
+  timeid_start++;
+  printf("WF _ncnbody_putselfield ready\n" );
+  return(stat);
+}
+
+void* ncnbody_putselfield_(int *ncid, float *simtime, int *selfield1, int *selfield2, int *selfield3, int *selfield4, int *rc) {
+  *rc=_ncnbody_putselfield(*ncid, *simtime, *selfield1, *selfield2, *selfield3, *selfield4 );
+  return;
+}
+ 
+void* ncnbody_putselfield__(int *ncid, float *simtime, int *selfield1, int *selfield2, int *selfield3, int *selfield4, int *rc) {
+  *rc=_ncnbody_putselfield(*ncid, *simtime, *selfield1, *selfield2, *selfield3, *selfield4 );
+  return;
+}
+
+void* ncnbody_putselfield(int *ncid, float *simtime, int *selfield1, int *selfield2, int *selfield3, int *selfield4, int *rc) {
+  *rc=_ncnbody_putselfield(*ncid, *simtime, *selfield1, *selfield2, *selfield3, *selfield4 );
   return;
 }
 
