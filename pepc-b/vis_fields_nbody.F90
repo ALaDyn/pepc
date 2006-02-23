@@ -29,6 +29,7 @@ subroutine vis_fields_nbody(timestamp)
   real :: norm
   integer :: iskip_x, iskip_y, iskip_z
   integer :: fselect1=0,fselect2=0,fselect3=0,fselect4=0
+  integer :: incdf
   real*4 :: grid_pars(24)  ! origins and mesh sizes of vis fields
   character(30) :: cfile
   character(5) :: cme
@@ -122,8 +123,13 @@ subroutine vis_fields_nbody(timestamp)
                  call fpond_lin( tlaser, tpulse,sigma,vosc,omega, rho_upper, &
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond)
                  Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
-                 !                 mvis(lcount) = epon_x/omega ! Pond field, EM norm
-                 field_laser = phipond ! Pond potential
+                 field_laser = phipond*Tpon ! Pond potential
+
+           case(94)  ! standing wave fpond with transverse fields artificially reduced
+              call fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
+                xd,yd,zd,epon_x,epon_y,epon_z,phipond)
+                 Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
+                 field_laser = phipond*Tpon ! Pond potential
 
               case(5)  ! propagating fpond
                  call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, &
@@ -220,6 +226,11 @@ subroutine vis_fields_nbody(timestamp)
 if (lvisit_active.ne.0) then
 	 call flvisit_nbody2_selectedfields_send(fselect1,fselect2,fselect3,fselect4)
 
+#ifdef NETCDFLIB
+! Netcdf write
+         call ncnbody_putselfield( ncid, simtime, fselect1, fselect2, fselect3, fselect4, incdf )
+#endif
+
 !  Set up vis field grid
    do i=0,3
      grid_pars(6*i+1:6*i+3) = 0.
@@ -229,23 +240,39 @@ if (lvisit_active.ne.0) then
    end do
 
    call flvisit_nbody2_fielddesc_send(grid_pars,4,6)
+#ifdef NETCDFLIB
+   call ncnbody_putfielddesc( ncid, simtime, grid_pars, incdf )
+#endif
+
 !   write(*,*) 'Grids: ',grid_pars
       if (fselect1>0) then
        	 write (*,*) "VIS_NBODY | Shipping field 1: min/max =", &
 	minval(field1),maxval(field1)
          call flvisit_nbody2_field1_send(field1,npx,npy,npz)   
+#ifdef NETCDFLIB
+         call ncnbody_putfield( ncid, simtime, 1, npx, npy, npz, field1, incdf )
+#endif
       endif
       if (fselect2>0) then
        	 write (*,*) "VIS_NBODY | Shipping field 2"
          call flvisit_nbody2_field2_send(field2,npx,npy,npz)   
+#ifdef NETCDFLIB
+         call ncnbody_putfield( ncid, simtime, 2, npx, npy, npz, field2, incdf )
+#endif
       endif
       if (fselect3>0) then
        	 write (*,*) "VIS_NBODY | Shipping field 3"
          call flvisit_nbody2_field3_send(field3,npx,npy,npz)  
+#ifdef NETCDFLIB
+         call ncnbody_putfield( ncid, simtime,3, npx, npy, npz, field3, incdf )
+#endif
       endif
       if (fselect4>0) then
        	 write (*,*) "VIS_NBODY | Shipping field 4"
          call flvisit_nbody2_field4_send(field4,npx,npy,npz)
+#ifdef NETCDFLIB
+         call ncnbody_putfield( ncid, simtime, 4, npx, npy, npz, field4, incdf )
+#endif
       endif
 endif
 #endif

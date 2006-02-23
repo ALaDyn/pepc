@@ -29,17 +29,27 @@ subroutine vis_parts_nbody
   integer :: vbufcols = 22, incdf, ndom_vis, ivisdom, ndomain_vis=1000
   real :: lbox, work_ave
   logical :: vis_debug=.false.
+  logical :: pick=.false.
 
   convert_mu=1.
   simtime = dt*(itime+itime_start)
 
-  if ( npart > nbuf_max-ndomain_vis) then
-        nskip = npart/nbuf_max + 1
+  pick_particles: select case(vis_select)
+  case(1,3) 
+    nproot = npart
+  case(2)
+    nproot = n_layer(1)
+  case default
+    nproot=0
+  end select pick_particles
+ 
+  if ( nproot > nbuf_max-ndomain_vis) then
+        nskip = nproot/nbuf_max + 2
   else
 	nskip = 1
   endif
 
-  if (me==0 .and. npart> nbuf_max-ndomain_vis) then
+  if (me==0 .and. nproot> nbuf_max-ndomain_vis) then
 	write(*,*) "VISNB | # particles > vis nbuf_max - reducing number shipped"
 	write(*,*) "VISNB | nbuf_max=",nbuf_max," nskip=",nskip
   endif
@@ -50,11 +60,11 @@ subroutine vis_parts_nbody
      amp_las = vosc
   endif
 
-  !  if (beam_config>=3 .and. beam_config<=5) then
-  !     t_display = tlaser*convert_fs
-  !  else
-  t_display = simtime
-  !  endif
+    if (beam_config>=3 .and. beam_config<=6) then
+       t_display = tlaser*convert_fs
+    else
+       t_display = simtime
+    endif
 
   if (beam_config<=3) then
      plasma1 = Ukine*convert_keV
@@ -81,10 +91,18 @@ subroutine vis_parts_nbody
      do i=1,npp
         u2=0.5*0.511*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
 
-!      if ( npart<nbuf_max .or. (npart > nbuf_max .and. mod(pelabel(i),nskip).eq.0)) then
-!      if (  mod(pelabel(i),nskip).eq.0 ) then
-!	if (pelabel(i)>npart-n_layer(1)) then ! pick out proton disc
-	if (ux(i)>0. .and. u2>uthresh) then
+       pick_part: select case(vis_select)
+	case(1)  ! select from bulk
+	  pick = ( npart<nbuf_max .or. (npart > nbuf_max .and. mod(pelabel(i),nskip).eq.0)) 
+	case(2)  ! select from 2nd layer
+          pick = (  mod(pelabel(i),nskip).eq.0 .and. pelabel(i)>npart-n_layer(1))
+	case(3)  ! select above energy threshold 
+  	  pick = (u2>uthresh)
+	case default
+	  pick = .false.
+	end select pick_part
+
+      if (pick) then 
         nship=nship+1
         if (q(i)<0) then
 	  nbufe=nbufe+1
@@ -259,6 +277,7 @@ subroutine vis_parts_nbody
         write(*,*) 'VISNB | # branches shipped ',ndom_vis, '/', nbranch_sum
         write(*,*) 'VISNB | Total # objects shipped :',ndom_vis+1+npart_buf,' /',nbuf_max
         write(*,*) 'VISNB | u_thresh: (MeV)     ',uthresh
+        write(*,*) 'VISNB | vis_select=  ',vis_select
 	if (vis_debug) then
           write(*,*) 'VISNB | t,1,x,y,z,q,label,owner,type :'
           do j=1,npart_buf
@@ -272,8 +291,9 @@ subroutine vis_parts_nbody
 ! send particles and branch boxes together
               call flvisit_nbody2_partstep_send(vbuffer,npart_buf+ndom_vis+1,attrib_max)
 ! netcdf needs fixed buffer size, so take max used for initialisation
-
-!             call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
+#ifdef NETCDFLIB
+	      call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
+#endif
 
               !
               !        write (90,*) 'local',i
