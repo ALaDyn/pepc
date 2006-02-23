@@ -81,7 +81,10 @@ program pepcb
   if (my_rank ==0 .and. vis_on) then
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
-!     call ncnbody_open(nbuf_max,vbufcols,ncid,incdf)
+#ifdef NETCDFLIB
+     call ncnbody_open(nbuf_max,vbufcols,ngx, ngy, ngz,ncid,incdf)
+#endif
+
   endif
 #else
 !  ---- No VISIT installed ---------
@@ -90,7 +93,7 @@ program pepcb
 ! ---- end of preprocess -------------
 
   call configure       ! Set up particles
-  call diagnostics     ! Initial config
+  if (debug_level >0) call diagnostics     ! Initial config
 
   call cputime(t_start_loop)
 
@@ -104,16 +107,27 @@ program pepcb
      endif
 
 
+
      if (beam_config >= 3) tlaser = tlaser + dt  
 
-     if (beam_config==4 .and. tlaser<= 2*tpulse) then
-        Tpon = 2*vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2) 
+     laser_model: select case(beam_config_in)
+
+     case(4)
+	if (tlaser<2*tpulse)  then
+           Tpon = 2*vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2)
         ! * (sin(omega*tlaser))**2
-     else if (beam_config==3) then
+	else
+	   Tpon=0.
+	endif
+     case(14) 
+           Tpon = 2*vosc**2*min(1.,tlaser/tpulse)
+     case(3) 
         Tpon = vosc**2
-     else
+     case(6) 
+        Tpon = vosc**2*min(1.,tlaser/tpulse)
+     case default
 	Tpon = 0.
-     endif
+     end select laser_model
 
      write(ifile_cpu,'(//a,i8,(3x,a20,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
           ,' total run time = ',trun &
@@ -234,7 +248,9 @@ program pepcb
 ! if (my_rank ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
 if (my_rank==0 .and. vis_on) then 
   call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
-!  call ncnbody_close(ncid,incdf)
+#ifdef NETCDFLIB
+  call ncnbody_close(ncid,incdf)
+#endif
 endif
 #else
 !  ---- No VISIT installed ---------
