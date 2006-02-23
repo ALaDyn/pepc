@@ -14,6 +14,7 @@ subroutine param_dump
         write (ifile,'(a20,i4,a11)') ' Plasma config: ',plasma_config,plasma_configs(plasma_config)
         write (ifile,'(a20,i4,a11)') ' Target geometry: ',target_geometry,geometries(target_geometry)
         write (ifile,'(a20,i4,a8)') ' Beam config: ',beam_config,beam_configs(beam_config)
+        write (ifile,'(a20,i4)') ' type: ',beam_config_in
         write (ifile,'(a20,i4,a8)') ' Scheme: ',scheme,schemes(scheme)
         write (ifile,'(a20,1pe12.3)') ' Plasma volume: ',Vplas
         write (ifile,'(a20,f12.3)') ' Sphere radius: ',r_sphere

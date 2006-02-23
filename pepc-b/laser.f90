@@ -9,7 +9,7 @@ subroutine laser
 
   laser_focus: select case(beam_config)
 
-  case(4,7)  ! standing wave fpond
+  case(4)  ! standing wave fpond
      if (itime>0) focus(1) = x_crit  ! laser tracks n_c
 
 

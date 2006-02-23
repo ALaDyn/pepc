@@ -68,12 +68,12 @@ subroutine configure
 
  ! Electrons 
         call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
-               -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
 !write (*,*) 'Electrons Vplas, Qplas:',Vplas, Qplas
  ! Ions
         call plasma_start( nep+1, nip, ni, offset_i, target_geometry, velocity_config, idim, &
-               rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
      
 !write (*,*) 'ions Vplas, Qplas:',Vplas, Qplas
@@ -112,9 +112,9 @@ subroutine configure
 	write(*,*) "Setting up ion sphere"
      endif
 	target_geometry=1
-        velocity_config=3   ! Ions cold, electrons with radial v0=vosc
-!        plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
-        plasma_centre =  (/ 0., 0., 0. /) ! Centre of plasma
+        velocity_config=0   ! Ions cold, electrons with radial v0=vosc
+        plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+!        plasma_centre =  (/ 0., 0., 0. /) ! Centre of plasma
 	offset_e = me*nep + ne_rest
 	offset_i = ne + me*nip + ni_rest
 
@@ -320,7 +320,7 @@ subroutine configure
            call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
       endif
 
-      if (me==0) write(*,'(a30,2f15.3)') "Proton charge,mass: ",qpart_layer(1),mass_layer(1)
+
 
      case(15)  ! 2-layer slab with foam
 !    ==================================
@@ -391,9 +391,9 @@ subroutine configure
         plasma_centre=plasma_centre+displace+r_layer(2) ! centre of 1st shell 
 
 
-	nshell_z=1
-	nshell_y=1
-	nshell_x=2
+	nshell_z=foam_geom(3)
+	nshell_y=foam_geom(2)
+	nshell_x=foam_geom(1)
 	nshell = nshell_x * nshell_y * nshell_z
 	ne_shell = n_layer(2)/nshell  ! # particles allocated to foam array must be exact multiple
 	ni_shell = n_layer(2)/nshell  ! of # electrons or ions per cell

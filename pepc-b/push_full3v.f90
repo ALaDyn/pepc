@@ -30,10 +30,7 @@ subroutine push_full3v(p_start,p_finish,dts)
      zd = z(p)-focus(3)
 
 
-     !  Sum internal and external fields 
 
-!  TODO: need to include inductive dA/dt term in E-field (have to store prev. timestep of A(p))
- 
      exi = ex(p)
      eyi = ey(p)
      ezi = ez(p)

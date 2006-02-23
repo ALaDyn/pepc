@@ -34,10 +34,9 @@ module physvars
   real :: y_plasma       ! initial plasma y-width (slab)
   real :: z_plasma       ! initial plasma z-width (slab)
   real :: plasma_centre(3) ! vector defining centre of plasma target
-  real :: displace(3)    ! particle displacement vector for restart or 2nd target
+  real :: displace(3)=0.    ! particle displacement vector for restart or 2nd target
   integer :: n_layer(maxlayers)=0   ! Additional target parameters
   real, dimension(maxlayers) :: rho_layer, Zion_layer, mratio_layer, x_layer, y_layer, z_layer, r_layer
-  integer :: foam_geom(3) = (/1,1,1/)
 
   real :: x_crit         ! critical surface
   real :: x_offset       ! coordinate offset
@@ -128,6 +127,7 @@ module physvars
   integer :: plasma_config = 1  ! Switch for initial configuration (positions, velocities)
   integer :: target_geometry = 0  ! Geometry for plasma target
   integer :: velocity_config = 1  ! Velocity distrib. (Maxw) 
+  integer :: foam_geom(3) = (/1,0,0/) ! Foam geometry
   integer :: idim=3  ! # dimensions (velocity and position updates)
   integer :: beam_config_in = 0 ! Particle or laser beam switch including variations 
   integer :: beam_config = 0 ! Reduced switch for particle or laser beam 
@@ -156,6 +156,7 @@ module physvars
    integer :: ivis=5        ! frequency for particle shipping to VISIT
    integer :: ivis_fields=10    !  frequency for field shipping to VISIT
    integer :: ivis_domains=10    !  frequency for domain shipping to VISIT
+   integer :: vis_select = 1  ! select switch for particles
    integer :: itrack       ! frequency for computing ion density (tracking)
    integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
