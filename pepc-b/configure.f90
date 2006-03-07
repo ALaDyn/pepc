@@ -16,7 +16,7 @@ subroutine configure
   integer :: i, ipe, idummy=0, ierr, ifile
   real :: t_walk, t_walkc, t_force, t_domain,t_build,t_prefetch
   integer :: label_offset
-  integer :: faces(maxlayers), layer_geometry
+  integer :: faces(maxlayers)
   real ::  V_layer(maxlayers), A_layer(maxlayers), Q_layer(maxlayers)
   real ::  qpart_layer(maxlayers), mass_layer(maxlayers), ai_layer(maxlayers)
   integer :: ipstart, ipstart_e, offset_e, ipstart_i, offset_i, nlayp, np_rest, ne_rest, ni_rest, nep0, nip0
@@ -299,7 +299,7 @@ subroutine configure
  
 ! Place on rear of main slab 
 	displace = (/ x_plasma/2.+x_layer(1)/2,0.,0. /)
-	layer_geometry = 2  ! disc
+!	layer_geometry = 2  ! disc
 
         call plasma_start( ipstart, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
                rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
@@ -391,9 +391,9 @@ subroutine configure
         plasma_centre=plasma_centre+displace+r_layer(2) ! centre of 1st shell 
 
 
-	nshell_z=foam_geom(3)
-	nshell_y=foam_geom(2)
-	nshell_x=foam_geom(1)
+	nshell_z=1
+	nshell_y=1
+	nshell_x=2
 	nshell = nshell_x * nshell_y * nshell_z
 	ne_shell = n_layer(2)/nshell  ! # particles allocated to foam array must be exact multiple
 	ni_shell = n_layer(2)/nshell  ! of # electrons or ions per cell
@@ -577,11 +577,11 @@ subroutine configure
 ! Compute initial field values - need these to get vec. pots consistent with velocities
 
   if (me==0) write(*,*) 'Computing initial fields'
-  call pepc_fields_p(np_local, mac, theta, ifreeze, eps, force_tolerance, balance,&
+  call pepc_fields_p(np_local,  walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance,&
           force_const, bond_const, &
           dt, xl, yl, zl, 0, &
           coulomb, bfields, bonds, lenjones, &
-          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot)   
+          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot, work_tot)   
 
 !  Initialise vec. pots. to avoid jump in induced E-field
   Axo(1:npp) = Ax(1:npp)

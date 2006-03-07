@@ -27,7 +27,7 @@ subroutine vis_parts_nbody
   integer :: nship, ierr, cpuid
   integer :: type
   integer :: vbufcols = 22, incdf, ndom_vis, ivisdom, ndomain_vis=1000
-  real :: lbox, work_ave
+  real :: lbox, work_ave, upmax, uproton_max, uxmax
   logical :: vis_debug=.false.
   logical :: pick=.false.
 
@@ -87,15 +87,17 @@ subroutine vis_parts_nbody
 
   ! Filter out particles for shipping
   type = 1
+  upmax = 0.
+  uxmax = 0.
+  uproton_max=0.
      ! TODO:  separate interesting ions and electrons
      do i=1,npp
-        u2=0.5*0.511*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
-
+        u2=0.5*0.511*mratio_layer(1)*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
        pick_part: select case(vis_select)
 	case(1)  ! select from bulk
 	  pick = ( npart<nbuf_max .or. (npart > nbuf_max .and. mod(pelabel(i),nskip).eq.0)) 
 	case(2)  ! select from 2nd layer
-          pick = (  mod(pelabel(i),nskip).eq.0 .and. pelabel(i)>npart-n_layer(1))
+          pick = (  mod(pelabel(i),nskip).eq.0 .and. pelabel(i)>npart-n_layer(1) )
 	case(3)  ! select above energy threshold 
   	  pick = (u2>uthresh)
 	case default
@@ -110,6 +112,8 @@ subroutine vis_parts_nbody
           nbufi=nbufi+1
         endif
 
+	  upmax = max(upmax,u2)
+	  uxmax = max(1.d0*uxmax,ux(i))
         ! Store attributes for visualizing
         vbuf_local(0,nship) = t_display
         vbuf_local(1,nship) = dt
@@ -141,6 +145,7 @@ subroutine vis_parts_nbody
 
      ! Find # particles to collect from each cpu
      call MPI_ALLGATHER( nship, 1, MPI_INTEGER, nparts_pe,1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+     call MPI_ALLREDUCE( upmax, uproton_max, 1, MPI_REAL, MPI_MAX, MPI_COMM_WORLD, ierr )
 
      ! Total buffer lengths/pe
      nbuf_pe=nparts_pe*attrib_max
@@ -177,10 +182,9 @@ subroutine vis_parts_nbody
               vbuffer(4,1) = 1
               ! velocities
               vbuffer(5,1) = npart_buf-1
-              vbuffer(6,1) = 0.
-              vbuffer(7,1) = 0.
-              ! E-field
-              vbuffer(8,1) = 0.
+              vbuffer(6,1) = npart
+              vbuffer(7,1) = ops_per_sec
+              vbuffer(8,1) = uproton_max
               vbuffer(9,1) = 0.
               vbuffer(10,1) = 0.
               vbuffer(11,1) = 0.
@@ -277,6 +281,7 @@ subroutine vis_parts_nbody
         write(*,*) 'VISNB | # branches shipped ',ndom_vis, '/', nbranch_sum
         write(*,*) 'VISNB | Total # objects shipped :',ndom_vis+1+npart_buf,' /',nbuf_max
         write(*,*) 'VISNB | u_thresh: (MeV)     ',uthresh
+        write(*,*) 'VISNB | ux, up_max: (MeV)     ',uxmax, upmax, uproton_max
         write(*,*) 'VISNB | vis_select=  ',vis_select
 	if (vis_debug) then
           write(*,*) 'VISNB | t,1,x,y,z,q,label,owner,type :'
@@ -292,7 +297,7 @@ subroutine vis_parts_nbody
               call flvisit_nbody2_partstep_send(vbuffer,npart_buf+ndom_vis+1,attrib_max)
 ! netcdf needs fixed buffer size, so take max used for initialisation
 #ifdef NETCDFLIB
-	      call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
+	      if (netcdf) call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
 #endif
 
               !

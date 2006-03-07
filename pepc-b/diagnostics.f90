@@ -99,7 +99,8 @@ subroutine diagnostics
         if (debug_tree.ge.3) write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
         write (ifile,'(a50,i8,a3,i7)') 'Max # multipole fetches/cpu/iteration / limit',max_sum_fetches,'/',size_fetch
         write (ifile,'(a50,i8,a3,i7)') 'Max # multipole ships/cpu/iteration / limit',max_sum_ships,'/',size_fetch
-
+	write (ifile,'(a50,3f12.3)') 'Load imbalance ave,min,max: ',work_imbal,work_imbal_min,work_imbal_max
+	write (ifile,'(a50,f15.3,2i15)') 'Particle imbalance ave,min,max: ',part_imbal,part_imbal_min,part_imbal_max
      end do
   endif
 

@@ -82,7 +82,7 @@ program pepcb
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
 #ifdef NETCDFLIB
-     call ncnbody_open(nbuf_max,vbufcols,ngx, ngy, ngz,ncid,incdf)
+     if (netcdf) call ncnbody_open(nbuf_max,vbufcols,ngx, ngy, ngz,ncid,incdf)
 #endif
 
   endif
@@ -164,11 +164,10 @@ program pepcb
      ! # particles on CPU may change due to re-sort
 
 !POMP$ INST BEGIN(fields)
-
-     call pepc_fields_p(np_local, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
+     call pepc_fields_p(np_local, walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
           dt, xl, yl, zl, itime, &
           coulomb, bfields, bonds, lenjones, &
-          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot) 
+          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot) 
   
 !POMP$ INST END(fields)
 
@@ -202,6 +201,7 @@ program pepcb
      t_laser = t_laser - t_push
      t_push = t_push - t_start_push
      ttot = t_domain+t_build+t_prefetch+t_walkc+t_walk+t_force + t_push + t_laser
+     ops_per_sec = work_tot/ttot
 
      if (my_rank==0 .and. debug_level .ge.0 .and. mod(itime,iprot).eq.0) then
         irecord = irecord+1
@@ -249,7 +249,7 @@ program pepcb
 if (my_rank==0 .and. vis_on) then 
   call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
 #ifdef NETCDFLIB
-  call ncnbody_close(ncid,incdf)
+  if (netcdf) call ncnbody_close(ncid,incdf)
 #endif
 endif
 #else

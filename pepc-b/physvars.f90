@@ -95,7 +95,7 @@ module physvars
   real :: intensity     ! normalised intensity = 0.5*vosc^2*omega^2
   real :: window_min    ! start of wakefield plasma
   real :: rezone_frac=0.75     ! Fraction of box to cross before rezoning switched on
-
+  real :: glue_radius=2.0 ! multiple of box size to catch escaping particles at
 
 
 !  Variables needing 'copy' for tree routines
@@ -114,6 +114,7 @@ module physvars
 
 ! Control stuff
   logical :: vis_on=.true.  ! online visualisation on/off
+  logical :: netcdf=.false.  ! netcdf write off
   logical :: mc_init = .false. ! MC initialisation switch
   logical :: restart = .false.  ! Restart switch: config read from parts_all.in
   logical :: coulomb = .true.  ! Compute Coulomb forces
@@ -126,8 +127,8 @@ module physvars
   integer :: mc_steps
   integer :: plasma_config = 1  ! Switch for initial configuration (positions, velocities)
   integer :: target_geometry = 0  ! Geometry for plasma target
+  integer :: layer_geometry = 0  ! Geometry for 2nd layer
   integer :: velocity_config = 1  ! Velocity distrib. (Maxw) 
-  integer :: foam_geom(3) = (/1,0,0/) ! Foam geometry
   integer :: idim=3  ! # dimensions (velocity and position updates)
   integer :: beam_config_in = 0 ! Particle or laser beam switch including variations 
   integer :: beam_config = 0 ! Reduced switch for particle or laser beam 
@@ -164,6 +165,8 @@ module physvars
    integer :: nbuf_max=10000     ! Max vis buffer size
    integer :: ndom_max=1000     ! Max # domains
    integer :: attrib_max = 22 ! max # attributes for vis buffer
+   real :: ops_per_sec = 0.  ! Work load (interactions per sec)
+   real :: work_tot = 0.  ! Integrated work load (npart*nlist)
 
    ! constrain
    real :: constrain_proof ! quality of getting crossing points
@@ -175,6 +178,7 @@ module physvars
   real :: theta       ! Clumping parameter
   real :: force_tolerance=1.      ! Permitted error in force calculation
   integer :: mac = 0  ! MAC (default=BH)
+  integer :: walk_scheme = 0  ! Asynch/Collective walk algorithm 
   integer :: balance = 1  ! Load balancing switch
   integer :: ifreeze = 1  ! Tree-freezing control
 

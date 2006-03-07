@@ -63,7 +63,7 @@ subroutine vis_fields_nbody(timestamp)
   ng = ngx*ngy*ngz                         ! total # gridpoints
   ! Merge sums for gridded fields 
 
-  call MPI_ALLREDUCE(bz_loc(1:ngx,1:ngy,1:ngz), bzg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+!  call MPI_ALLREDUCE(bz_loc(1:ngx,1:ngy,1:ngz), bzg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(rhoe_loc(1:ngx,1:ngy,1:ngz), rhoeg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(rhoi_loc(1:ngx,1:ngy,1:ngz), rhoig, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(Te_loc(1:ngx,1:ngy,1:ngz), Telec, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
@@ -73,7 +73,7 @@ subroutine vis_fields_nbody(timestamp)
 
 ! Normalise temperatures & convert to keV
   Telec = 2./3.*Telec/ggelec
-  Tion = 2./3.*Tion/ggion
+!  Tion = 2./3.*Tion/ggion
 
   if (me==0 ) then
 
@@ -119,15 +119,17 @@ subroutine vis_fields_nbody(timestamp)
                  Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
                  !                 mvis(lcount) = epon_x/omega ! Pond field, EM norm
                  field_laser = phipond ! Pond potential
-              case(14)
+
+              case(14)  ! linear build-up
                  call fpond_lin( tlaser, tpulse,sigma,vosc,omega, rho_upper, &
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond)
-                 Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
+!                 Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
+                 Tpon = min(1.,tlaser/tpulse) * sin(omega*tlaser-omega*xd)
                  field_laser = phipond*Tpon ! Pond potential
 
-           case(94)  ! standing wave fpond with transverse fields artificially reduced
-              call fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
-                xd,yd,zd,epon_x,epon_y,epon_z,phipond)
+              case(94)  ! standing wave fpond with transverse fields artificially reduced
+                 call fpond( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
+                 xd,yd,zd,epon_x,epon_y,epon_z,phipond)
                  Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
                  field_laser = phipond*Tpon ! Pond potential
 
@@ -228,7 +230,7 @@ if (lvisit_active.ne.0) then
 
 #ifdef NETCDFLIB
 ! Netcdf write
-         call ncnbody_putselfield( ncid, simtime, fselect1, fselect2, fselect3, fselect4, incdf )
+         if (netcdf) call ncnbody_putselfield( ncid, simtime, fselect1, fselect2, fselect3, fselect4, incdf )
 #endif
 
 !  Set up vis field grid
@@ -241,7 +243,7 @@ if (lvisit_active.ne.0) then
 
    call flvisit_nbody2_fielddesc_send(grid_pars,4,6)
 #ifdef NETCDFLIB
-   call ncnbody_putfielddesc( ncid, simtime, grid_pars, incdf )
+   if (netcdf) call ncnbody_putfielddesc( ncid, simtime, grid_pars, incdf )
 #endif
 
 !   write(*,*) 'Grids: ',grid_pars
@@ -250,28 +252,28 @@ if (lvisit_active.ne.0) then
 	minval(field1),maxval(field1)
          call flvisit_nbody2_field1_send(field1,npx,npy,npz)   
 #ifdef NETCDFLIB
-         call ncnbody_putfield( ncid, simtime, 1, npx, npy, npz, field1, incdf )
+         if (netcdf) call ncnbody_putfield( ncid, simtime, 1, npx, npy, npz, field1, incdf )
 #endif
       endif
       if (fselect2>0) then
        	 write (*,*) "VIS_NBODY | Shipping field 2"
          call flvisit_nbody2_field2_send(field2,npx,npy,npz)   
 #ifdef NETCDFLIB
-         call ncnbody_putfield( ncid, simtime, 2, npx, npy, npz, field2, incdf )
+         if (netcdf) call ncnbody_putfield( ncid, simtime, 2, npx, npy, npz, field2, incdf )
 #endif
       endif
       if (fselect3>0) then
        	 write (*,*) "VIS_NBODY | Shipping field 3"
          call flvisit_nbody2_field3_send(field3,npx,npy,npz)  
 #ifdef NETCDFLIB
-         call ncnbody_putfield( ncid, simtime,3, npx, npy, npz, field3, incdf )
+         if (netcdf) call ncnbody_putfield( ncid, simtime,3, npx, npy, npz, field3, incdf )
 #endif
       endif
       if (fselect4>0) then
        	 write (*,*) "VIS_NBODY | Shipping field 4"
          call flvisit_nbody2_field4_send(field4,npx,npy,npz)
 #ifdef NETCDFLIB
-         call ncnbody_putfield( ncid, simtime, 4, npx, npy, npz, field4, incdf )
+         if (netcdf) call ncnbody_putfield( ncid, simtime, 4, npx, npy, npz, field4, incdf )
 #endif
       endif
 endif

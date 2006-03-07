@@ -65,8 +65,8 @@ subroutine force_laser(p_start,p_finish)
            case(14)  ! standing wave fpond, linear rise-time, fields reduced
               call fpond_lin( tlaser, tpulse,sigma,vosc,omega,rho_upper, &
                 xd,yd,zd,epon_x,epon_y,epon_z,phipon)
-              epon_y=epon_y/10.
-              epon_z=epon_z/10.
+              epon_y=epon_y/50.
+              epon_z=epon_z/50.
 	      Bx_em = 0.
 	      By_em = 0.
 	      Bz_em = 0.

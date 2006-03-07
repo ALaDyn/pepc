@@ -110,8 +110,8 @@ subroutine vis_control
 	u_beam = dsteer2
 	r_beam = dsteer4
 	rho_beam = dsteer3
-!	ivis=max(isteer2,1)
-!	ivis_fields=max(isteer3,2)
+	ivis=max(isteer2,2)
+	ivis_fields=max(isteer3,2)
         if (beam_debug) then
 	   write(*,*) 'VISNB | steer1 = ',dsteer1
 	   write(*,*) 'VISNB | steer2 = ',dsteer2
@@ -137,8 +137,8 @@ subroutine vis_control
      call MPI_BCAST( r_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
      call MPI_BCAST( rho_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
      call MPI_BCAST( u_beam, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
-!     call MPI_BCAST( ivis, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
-!     call MPI_BCAST( ivis_fields, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( ivis, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+     call MPI_BCAST( ivis_fields, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   else
      if (me==0) write(*,*) ' No Connection to Visualization'
      return

@@ -22,6 +22,7 @@ subroutine fpond_lin(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,
   real :: xf, yf, zf, Tpon, Rpon, Xpon, Ypon, Zpon, intensity, gamma, sigma, atten, theta
   real :: r, pi=3.141592654, phi, chi, a02, sigma0
   real :: rho0_up, wp_r, ls_r, gamma_s, f2d
+  real :: Xprop
 
   ! fast oscillations 
  Tpon = (sin(omega*t))**2
@@ -54,11 +55,12 @@ subroutine fpond_lin(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,
      xf = omega*sin(2*chi)
      Xpon = sin(chi)    ! laser 'Ez'
      sigma = sigma0*sqrt(1.+abs(x)**2/10./sigma0**2) ! take Rayleigh length 4*sigma0
-
+     Xprop = 1.
   else
      xf = -2/ls_r*sin(phi)**2*exp(-2*x/ls_r)
      Xpon = sin(phi)*exp(-x/ls_r)    ! laser Ez inside
      sigma = sigma0  ! Don't expand spot inside target
+     Xprop = exp(-5*x/ls_r)
   endif
 
   r = sqrt(y**2+z**2)
@@ -83,7 +85,8 @@ subroutine fpond_lin(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,
 
 
   atten = sigma0**2/sigma**2
-  phipon = 4*Xpon**2*Rpon*atten*intensity  ! intensity, including attenuation factor
+!  phipon = 4*Xpon**2*Rpon*atten*intensity  ! intensity, including attenuation factor
+  phipon = Xprop*Rpon*atten*intensity  ! intensity for 'demo' display, including attenuation factor
 
   gamma = sqrt(1.+abs(phipon*Tpon))  ! relativistic phi_pond
 
