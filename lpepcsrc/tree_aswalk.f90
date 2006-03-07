@@ -34,7 +34,7 @@
 !
 ! ===========================================
 
-subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
+subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
 
   use treevars
   use tree_utils
@@ -42,7 +42,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   implicit none
   include 'mpif.h'
 
-  real, intent(in) :: theta
+  real, intent(in) :: theta, eps
   integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
   integer, intent(in) :: mac
@@ -212,15 +212,19 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 !                i,p,pshort(p),nterm(p),walk_key(i),x(pshort(p))
 
            s2 = boxlength2( node_level(walk_node) )
-           dist2 = theta2*(dx**2+dy**2+dz**2)
-           mac_ok = ( s2 < dist2 .and. walk_key(i)>1 )   ! Preprocess MAC - always reject root node
+           dist2 = dx**2+dy**2+dz**2
+           mac_ok = ( s2 < dist2*theta2 .and. walk_key(i)>1 )   ! Preprocess MAC - always reject root node
 
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
            ignore =  ( pshort(p) == htable( walk_addr )%node )
 
            ! Wakefield QSA mac condition: prevent forward transmission of pw info
-           if (mac==5) ignore = (ignore .or. dx<0) 
-
+           if (mac==5) then
+	     ignore = (ignore .or. dx<0) 
+	   else if (mac==1) then
+	     ignore = (ignore .or. dist2 > 25*eps**2) ! impose cutoff at 5*eps
+	   endif
+	
            add_key = walk_key(i)                                ! Remember current key
 
            ! Possible courses of action:
@@ -662,13 +666,13 @@ subroutine tree_walk(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      endif
 
      ! Array bound checks
-     if (nleaf>.95*maxaddress/2 .and. mod(me,100).eq.0) then
+     if (nleaf>.95*maxaddress/3 .and. mod(me,100).eq.0) then
         write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
-        write (6,*) 'LPEPC | nleaf = ',nleaf,' / ',maxaddress/2
+        write (6,*) 'LPEPC | nleaf = ',nleaf,' / ',maxaddress/3
      endif
-     if (ntwig>.95*maxaddress/2 .and. mod(me,100).eq.0) then
+     if (ntwig>.95*maxaddress*2/3. .and. mod(me,100).eq.0) then
         write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
-        write (6,*) 'LPEPC | ntwig = ',ntwig,' / ',maxaddress/2
+        write (6,*) 'LPEPC | ntwig = ',ntwig,' / ',maxaddress*2/3
      endif
 
      call cputime(tc1)

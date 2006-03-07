@@ -20,7 +20,6 @@ subroutine tree_domains(xl,yl,zl)
   implicit none
   include 'mpif.h'
 
-  integer, parameter :: nkmax=100
   real, intent(in) :: xl,yl,zl  ! initial box limits
   integer*8, dimension(nppm) :: ix, iy, iz
   integer*8, dimension(nppm) :: ixd, iyd, izd
@@ -65,7 +64,7 @@ subroutine tree_domains(xl,yl,zl)
   sort_debug=domain_debug
   proc_debug=5
 
-  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | DOMAINS'
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | DOMAINS..'
 
 
   ! Find limits of local simulation region
@@ -228,8 +227,9 @@ subroutine tree_domains(xl,yl,zl)
      ! perform index sort on keys
 
      call pswssort(nppm,npold,npnew,num_pe,me,keys, &
-          indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
-
+        indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
+!     call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
+!          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
 
      do i=1,npold
         w1(i) = xarray(i)
@@ -328,7 +328,8 @@ subroutine tree_domains(xl,yl,zl)
      ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
           ux(indxl(i)), uy(indxl(i)), uz(indxl(i)), &
           q(indxl(i)), m(indxl(i)), work(indxl(i)), &
-          ax(indxl(i)), ay(indxl(i)), az(indxl(i)), &
+!          ax(indxl(i)), ay(indxl(i)), az(indxl(i)), &
+          ex(indxl(i)), ey(indxl(i)), ez(indxl(i)), &
           keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
   enddo
 
@@ -348,9 +349,12 @@ subroutine tree_domains(xl,yl,zl)
      q(irnkl(i)) = get_parts(i)%q
      m(irnkl(i)) = get_parts(i)%m
      work(irnkl(i)) = get_parts(i)%work
-     ax(irnkl(i)) = get_parts(i)%ax
-     ay(irnkl(i)) = get_parts(i)%ay
-     az(irnkl(i)) = get_parts(i)%az
+!     ax(irnkl(i)) = get_parts(i)%ax
+!     ay(irnkl(i)) = get_parts(i)%ay
+!     az(irnkl(i)) = get_parts(i)%az
+     ex(irnkl(i)) = get_parts(i)%ax
+     ey(irnkl(i)) = get_parts(i)%ay
+     ez(irnkl(i)) = get_parts(i)%az
      pelabel(irnkl(i)) = get_parts(i)%label
   enddo
 
@@ -383,6 +387,9 @@ subroutine tree_domains(xl,yl,zl)
   !  - if we don't do this, can get two particles on separate PEs 'sharing' a leaf
 
 
+!  ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
+!       ax(1),ay(1),az(1), pekey(1), pelabel(1), pepid(1) )
+
   ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
        ax(1),ay(1),az(1), pekey(1), pelabel(1), pepid(1) )
 
@@ -408,9 +415,12 @@ subroutine tree_domains(xl,yl,zl)
      q(npp+1) = get_props%q
      m(npp+1) = get_props%m
      work(npp+1) = get_props%work
-     ax(npp+1) = get_props%ax
-     ay(npp+1) = get_props%ay
-     az(npp+1) = get_props%az
+     ex(npp+1) = get_props%ax
+     ey(npp+1) = get_props%ay
+     ez(npp+1) = get_props%az
+!     ax(npp+1) = get_props%ax
+!     ay(npp+1) = get_props%ay
+!     az(npp+1) = get_props%az
      pekey(npp+1) = get_props%key
      pelabel(npp+1) = get_props%label
      pepid(npp+1) = get_props%pid
@@ -424,8 +434,11 @@ subroutine tree_domains(xl,yl,zl)
 
   ! Ship  end particle data to start of list of RH neighbour PE
 
+!  ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), m(npp), work(npp), &
+!       ax(npp),ay(npp),az(npp), pekey(npp), pelabel(npp), pepid(npp) )
+
   ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), m(npp), work(npp), &
-       ax(npp),ay(npp),az(npp), pekey(npp), pelabel(npp), pepid(npp) )
+       ex(npp),ey(npp),ez(npp), pekey(npp), pelabel(npp), pepid(npp) )
 
   if (me /= num_pe-1 ) then
      call MPI_ISEND( ship_props, 1, mpi_type_particle, next, 2, MPI_COMM_WORLD, handle(3), ierr )
@@ -452,9 +465,12 @@ subroutine tree_domains(xl,yl,zl)
      q(ind_recv) = get_props%q
      m(ind_recv) = get_props%m
      work(ind_recv) = get_props%work
-     ax(ind_recv) = get_props%ax
-     ay(ind_recv) = get_props%ay
-     az(ind_recv) = get_props%az
+!     ax(ind_recv) = get_props%ax
+!     ay(ind_recv) = get_props%ay
+!     az(ind_recv) = get_props%az
+     ex(ind_recv) = get_props%ax
+     ey(ind_recv) = get_props%ay
+     ez(ind_recv) = get_props%az
      pekey(ind_recv) = get_props%key
      pelabel(ind_recv) = get_props%label
      pepid(ind_recv) = get_props%pid
@@ -479,6 +495,7 @@ subroutine tree_domains(xl,yl,zl)
      call blankn(ipefile)
   endif
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | ..done'
   !POMP$ INST END(sort)
 
 end subroutine tree_domains

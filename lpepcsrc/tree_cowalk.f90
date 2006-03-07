@@ -195,7 +195,7 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
         do i=1,nlist
            p = plist(i)  ! particle index
-           walk_addr =  key2addr_db( walk_key(i),'WALK: local ' )     ! get htable address
+           walk_addr =  key2addr_db( walk_key(i),'CO-WALK: local ' )     ! get htable address
            walk_node = htable( walk_addr )%node             ! Walk node index - points to multipole moments  
            walk_next = htable( walk_addr )%next             ! Next node pointer 
 
@@ -229,7 +229,7 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
            if ( mac_ok .or. (walk_node >0 .and. .not.ignore ) ) then
               walk_key(i) = walk_next
 	      entry_next = nterm(p) + 1
-              intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
+!              intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
               nodelist( entry_next, p ) = walk_node   ! Node number for sum_force
               nterm(p) = entry_next
 
@@ -425,7 +425,7 @@ endif
 
 
      ! For each key in the request list, fetch and package tree info for children
-        ship_address = key2addr_db(request_key(i),'WALK-COL: preship')  ! # address
+        ship_address = key2addr_db(request_key(i),'CO-WALK: preship')  ! # address
         ship_node = htable(ship_address)%node
         ship_byte = htable( ship_address )%childcode   ! child byte code
         ship_leaves = htable( ship_address )%leaves                    ! # contained leaves
@@ -436,7 +436,7 @@ endif
 
         sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(ship_byte,j),j=0,7) /) )      ! Extract sub key from byte code
         key_child(1:nchild) = IOR( ishft( request_key(i),3 ), sub_key(1:nchild) ) ! Construct keys of children
-        addr_child(1:nchild) = (/( key2addr_db( key_child(j),'WALK-COL: ship child ' ),j=1,nchild)/)                 ! Table address of children
+        addr_child(1:nchild) = (/( key2addr_db( key_child(j),'CO-WALK: ship child ' ),j=1,nchild)/)                 ! Table address of children
         node_child(1:nchild) = htable( addr_child(1:nchild) )%node                        ! Child node index  
         byte_child(1:nchild) = IAND( htable( addr_child(1:nchild) )%childcode,255 )        ! Catch lowest 8 bits of childbyte - filter off requested and here flags 
         leaves_child(1:nchild) = htable( addr_child(1:nchild) )%leaves                    ! # contained leaves
@@ -564,7 +564,7 @@ endif
         call make_hashentry( recv_key, nodchild, recv_leaves, recv_byte, ipe, hashaddr, ierr )
 
         htable(hashaddr)%next = recv_next           ! Fill in special next-node pointer for non-local children
-        node_addr =  key2addr_db( recv_parent,'WALK-CO: MNHE ')
+        node_addr =  key2addr_db( recv_parent,'CO-WALK: MNHE ')
         htable( node_addr )%childcode = IBSET(  htable( node_addr )%childcode, 9) ! Set children_HERE flag for parent node
 
         node_level( nodchild ) = log(1.*recv_key)/log(8.)  ! get level from keys and prestore as node property
@@ -685,7 +685,7 @@ endif
 
   do i = 1,nlast_child
      search_key = last_child(i)                   
-     node_addr = key2addr_db(search_key,'WALK: NN search ')
+     node_addr = key2addr_db(search_key,'CO-WALK: NN search ')
      htable( node_addr )%next = next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
 !  if (walk_debug) then
 !	write(ipefile,'(a,o15,a4,o15)') 'Changed next node for ',search_key,' to ',htable(node_addr)%next

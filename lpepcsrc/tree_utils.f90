@@ -14,6 +14,10 @@ module tree_utils
      module procedure pswssort
   end interface
 
+  interface pll_balsort
+     module procedure pbalsort
+  end interface
+
   interface pll_permute
      module procedure psrsperm_i4
      module procedure psrsperm_i8
@@ -335,6 +339,354 @@ contains
   end subroutine psrssort
 
 
+!  ===================================================================================================
+
+
+
+  subroutine pbalsort(nppm,np,npnew,nprocs,iproc,keys, &
+       indxl,irnkl, islen,irlen,fposts,gposts,pivot,kw1,wload,key_box,balance,debug,work_local)
+
+
+    ! P. Gibbon
+    !
+    ! Adapted from: Xiaobo Li, et al.,
+    ! "On the versatility of parallel sorting by regular sampling",
+    ! Parallel Computing, volume 19, 1079--1103, Oct 1993.
+    ! http://www.cs.utoronto.ca/~paullu/Papers/psrs.ps.Z
+    !
+    !  Selects pivots according to key distribution across whole range
+    !
+    ! sorting articles:
+    ! http://www.lpac.ac.uk/SEL-HPC/Articles/GeneratedHtml/hpc.sort.html
+    !
+    !
+
+    implicit  none
+    include 'mpif.h'
+
+    integer, intent(in) :: nppm,np,nprocs,iproc
+    real*8, intent(in) :: wload(nppm)  ! particle work loads
+    integer, intent(out) :: npnew
+    real, intent(in) :: work_local  ! total local work load
+    integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
+                                   kw1,kw2,kred      ! work arrays
+    integer :: pbin(nppm)
+    logical :: finished(nppm)
+    integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
+    logical, intent(in) :: debug
+    integer, intent(in) :: balance
+    integer*8 :: pivot(nprocs+1)
+    real :: work1(nppm), work2(nppm)
+    integer*8, dimension(2) :: key_box
+    integer, dimension(nprocs) :: islen, irlen
+    integer, dimension(nprocs+1) :: fposts, gposts !  fencepost index and key values for shuffle
+    integer :: itabr(nprocs), itabl(nprocs+1)
+    real :: work_loads(nprocs)
+    real :: load_correct(nprocs)
+    integer*8 :: lmax, lmin, key_min, key_max, gkey_min, gkey_max, step ! Key mins and maxes and step size
+    integer*8 :: step_reduced, key_reduce, pshift
+    integer*8, parameter :: iplace=8**20
+!    integer*8, parameter :: iplace=0
+    integer ::  ibin, itag
+    integer :: status(MPI_STATUS_SIZE),ierr
+    real :: alpha, load_sum, ave_work, f_integral, work_average, load_adjust
+    integer ::  i,j,k,ipe, iset,fd, nfill, proc_debug, nbin
+    integer :: level_dist=8, nlev=20, level_strip
+    integer, parameter :: lev_map=4 ! max level for key distrib
+    integer :: maxbox
+    integer, parameter :: maxbin=50000  ! Max # bins for key distrib
+    real, dimension(maxbin)  :: f_local, f_global, f_final
+    integer, dimension(maxbin) ::  search_list, retain_list, bin_list, index_bin
+    integer :: ilev, p, np_left, new_bins, nfbins
+    character(13) :: cfmt
+    integer, save :: icall
+    data icall/0/
+
+
+!    fd = iproc+10
+    fd=6
+    itag=0
+    proc_debug = 0
+
+!  Make key map for binning - need to put in setup routine 
+maxbox=8**lev_map
+search_list = 8**lev_map  ! place holder
+
+! Sort local keys
+    !     Independent s  !     Note that indx() is a local index on the process.
+    call indexsort( keys,indxl, np, nppm )   ! Index sort from Num. Rec.
+
+    do i=1,np
+       kw1(i) = keys(indxl(i))
+       work1(i) = wload(indxl(i))  ! apply sort to work loads too
+	kw2(i) = kw1(i)   ! duplicate work arrays
+	work2(i) = work1(i)
+	
+    enddo
+
+    !     kw1 now contains the sorted keys; work1 the sorted loads
+    !     kw2 the reduced keys
+    !     indxl is now the local indexes for the sort.
+
+    lmax = kw1(np)   ! local max
+    lmin = kw1(1)    ! local min
+
+
+
+    ! Determine global min,max
+
+    call MPI_ALLREDUCE(lmax, gkey_max, 1, MPI_INTEGER8, MPI_MAX,  MPI_COMM_WORLD, ierr )
+    call MPI_ALLREDUCE(lmin, gkey_min, 1, MPI_INTEGER8, MPI_MIN,  MPI_COMM_WORLD, ierr )
+
+!  Get actual work loads from previous step
+!    call MPI_ALLGATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
+!    ave_work=SUM(work_loads(1:nprocs))
+
+
+! Set min/max limits
+    key_min = gkey_min
+    key_max = gkey_max
+    
+    if (debug.and.iproc==proc_debug) then
+	write (*,'(2(a12,o30,a12,o30/))') &
+         'local min: ',lmin,' local max: ',lmax, &
+         'global min: ',gkey_min,' global max: ',gkey_max
+
+    endif
+
+!  place 8 level 1 boxes on search list
+   do k = 1,8
+      search_list(k) = search_list(k) + 8**(lev_map-1)*(k-1)
+      finished(k)=.false.
+   end do
+
+   np_left = np
+   nbin = 8
+   nfbins = 0  ! Final # bins
+   ilev = 1
+
+!   alpha = 1.*nprocs/maxbin  ! load fraction for bins
+  alpha = 0.1
+
+   do while (ilev <= lev_map)
+
+
+! Find local key distribution within current list of boxes (to level lev_map)
+! Keys reduced to same level as boxes, so just need to count # with same key.
+
+    level_strip = nlev-ilev
+
+    if (debug .and. iproc==proc_debug ) write(*,*) 'ilev, level_strip: ',ilev, level_strip
+     f_local(1:nbin) = 0.  ! reuse work array
+     ibin = 1    
+     p=1
+     step = 1  ! bin size - keys have been reduced to same level as boxes 
+
+     do while (p .le. np_left .and. ibin .le. nbin)
+
+        key_reduce = 8_8**(lev_map-ilev)*ishft( kw2(p), -3_8*level_strip )   ! Strip off lower order bits of particle key to match box level 
+
+
+	if (key_reduce == search_list(ibin)) then
+    if (debug .and. iproc==proc_debug ) then
+       write(fd,'(a30,2o30)') 'key, reduced key ',kw2(p), key_reduce
+    endif
+! keys match - update bin count and move on to next particle
+!	  f_local(ibin) = f_local(ibin) + work2(p) 
+	  f_local(ibin) = f_local(ibin) + 1
+	  pbin(p) = ibin ! remember bin number 
+	  p=p+1
+	else
+! no match - try next bin
+	  ibin=ibin+1
+	endif
+      end do
+
+
+    ! Global distrib
+    call MPI_ALLREDUCE(f_local, f_global, nbin, MPI_REAL, MPI_SUM,  MPI_COMM_WORLD, ierr )
+
+    if (ilev==1) ave_work=SUM(f_global(1:nbin))/nprocs
+
+    if (debug .and. iproc==proc_debug ) then
+       write(fd,*) 'Particles left:',np_left
+       write(fd,*) 'Bins left:',nbin
+       write(fd,'(a30/(i8,o30,f12.1))') 'search list distrib: ',(i,search_list(i),f_global(i),i=1,nbin)
+       write(fd,*) 'Average bin weight',ave_work
+       write(fd,*) 'Threshold bin weight',ave_work*alpha
+    endif
+
+
+!  Analyse global distribution on search list
+    new_bins=0
+    ilev=ilev+1  ! New refinement level
+
+    do ibin=1,nbin
+
+	if (f_global(ibin) > ave_work*alpha .and. ilev<=lev_map) then
+	   ! bin too heavy: put 8 sub-boxes on new search list
+	    do k=0,7
+	      new_bins=new_bins+1
+              retain_list(new_bins) = search_list(ibin) + 8**(lev_map-ilev)*k
+	    end do
+
+	else if (f_global(ibin) <> 0) then
+	   nfbins=nfbins+1   ! Copy bin onto 'final' list here 
+	   bin_list(nfbins) = search_list(ibin)
+	   f_final(nfbins) = f_global(ibin)
+	   finished(ibin)=.true.
+        else
+!  discard bin if f_global = 0
+	endif
+    end do
+
+! Make new key list from incompleted bins: pack operation
+    k=0
+    do p=1,np_left
+	if ( .not. finished(pbin(p)) ) then
+	   k=k+1
+	   kw2(k)=kw2(p)
+	   work2(k)=work2(p)
+        endif
+    end do
+    np_left = k
+
+!  Make new search list
+    search_list(1:new_bins) = retain_list(1:new_bins)
+   finished(1:new_bins)=.false.
+    nbin = new_bins
+
+  end do 
+
+  nbin = nfbins
+
+    call indexsort( bin_list,index_bin, nbin, maxbin )   ! Index sort from Num. Rec.
+
+    do i=1,nbin
+       retain_list(i) = bin_list(index_bin(i))
+       f_global(i) = f_final(index_bin(i))
+    enddo
+
+    !     kw1 now contains the sorted keys; work1 the sorted loads
+    if (debug .and. iproc==proc_debug ) then
+       write(fd,*) 'Final # bins:',nbin
+       write(fd,'(a30/(i8,o10,f12.1))') 'final bin list ',(i,retain_list(i),f_global(i),i=1,nbin)
+       write(fd,*) 'Average bin weight',ave_work
+       write(fd,*) 'Threshold bin weight',ave_work*alpha
+       write(fd,*) 'Checksum:',SUM(f_final(1:nbin))
+    endif
+
+! Do cumulative integral of f(ibin) and set pivots where int(f) = iproc/nprocs*N
+
+    f_integral = 0.
+!    ave_work = SUM(f_global(1:nbin))/nprocs  ! Average # particles/PE
+
+    ipe=1
+    pivot(1) = ishft(gkey_min,-3_8*(nlev-lev_map))  ! absolute lowest pivot
+
+    do ibin = 1,nbin
+       f_integral = f_integral + f_global(ibin)
+       if (f_integral >= ipe*ave_work ) then  ! If int(f) exceeds multiple of work average, set pivot
+          ipe=ipe+1
+          pivot(ipe) = retain_list(ibin)  ! Set next pivot
+	endif
+   end do
+
+    pivot(nprocs+1) = ishft(gkey_max,-3_8*(nlev-lev_map))+1  ! absolute highest pivot
+
+
+    if (debug .and. iproc==proc_debug ) then
+       write (fd,'(a20/(10x,i5,o20))') 'Pivots: ',(i,pivot(i),i=1,nprocs+1)
+    endif
+
+  if (icall==1 .and. iproc==0) then
+	write(*,*) 'Writing key dist..'
+	open(90,file='fglobal.data')
+       write(90,'(a30/(i6,o18,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
+	call close(90)
+  endif
+
+
+    !     Determine segment boundaries. Within each bin, fposts(i) is the
+    !     start of the ith shuffle segment.
+    ! need reduced keys here
+
+    fposts(1) = 1
+    k = 2
+
+    do i=1,np
+       key_reduce = ishft(kw1(i),-3_8*(nlev-lev_map))  ! reduced keys
+       !        The first element may be greater than several fencepost values,
+       !        so we must use a do-while loop.
+       do while (key_reduce .ge. pivot(k) .and. key_reduce .le. pivot(nprocs+1))
+          fposts(k) = i
+          k = k + 1
+	  if (k>nprocs+1) then
+	    write(*,*) 'post not found'
+	    write(*,'(a5,o20)') 'key = ',i
+	    write(*,'(a5,o20)') 'fp = ',pivot(k)
+	  endif
+       enddo
+    enddo
+
+    !     The last element may not be greater than the last fencepost value, so
+    !     we must assign an appropriate value to every fencepost past the last.
+
+    do i=k,nprocs+1
+       fposts(i) = np+1
+    enddo
+
+    !     Every process needs fposts() values from every other process, so we will
+    !     give each process a copy of all the fposts()s
+
+    do i=1,nprocs
+       islen(i) = fposts(i+1) - fposts(i)
+    enddo
+
+    call MPI_ALLTOALL( islen,1,MPI_INTEGER, &
+                       irlen,1,MPI_INTEGER, &
+                       MPI_COMM_WORLD,ierr)
+
+
+    !     Make sure that "fposts" and "gposts" are zero based for MPI_ALLTOALLV.
+    !     fposts and gposts are the addresses of the segment boundaries.
+    fposts(1) = 0
+    gposts(1) = 0
+    do i=1,nprocs
+       fposts(i+1) = fposts(i) + islen(i)
+       gposts(i+1) = gposts(i) + irlen(i)
+    enddo
+
+    npnew = gposts(nprocs+1)
+
+
+!  Use full keys for swap
+ call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+    call MPI_ALLTOALLV(  kw1  ,islen,fposts,MPI_INTEGER8, &
+                         keys,irlen,gposts,MPI_INTEGER8, &
+                         MPI_COMM_WORLD,ierr)
+    if (debug .and. iproc==proc_debug) then
+
+       write (*,'(a10,i7/a10/(4i12))') 'npnew: ',npnew, &
+       'posts: ',(fposts(i),gposts(i),islen(i),irlen(i),i=1,nprocs)
+    endif
+
+
+    !     Set up the information for the merge:
+    do i=1,nprocs+1
+       itabl(i) = gposts(i)
+    enddo
+
+    !     Merge the segments within each bin.
+    call nwaymerge(nppm,npnew,nprocs,keys,irnkl,itabl(1:nprocs+1),itabr(1:nprocs),iproc)
+
+    icall = icall + 1          ! update call count
+  end subroutine pbalsort
+
+
+
+! ========================================================================
+
 
   subroutine pswssort(nppm,np,npnew,nprocs,iproc,keys, &
        indxl,irnkl, islen,irlen,fposts,gposts,kw1,wload,key_box,balance,debug)
@@ -360,11 +712,12 @@ contains
     integer, intent(in) :: nppm,np,nprocs,iproc
     real*8, intent(in) :: wload(nppm)  ! particle work loads
     integer, intent(out) :: npnew
-    integer, parameter :: binmult=1200000   !TODO: need to reduce size of f() arrays
+    integer, parameter :: binmult=6000000   !TODO: need to reduce size of f() arrays
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    kw1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
-    logical :: debug, balance
+    logical :: debug
+    integer, intent(in) :: balance
     real :: w2(nppm)
     integer*8, dimension(2) :: key_box
     integer, dimension(nprocs) :: islen, irlen
@@ -377,7 +730,7 @@ contains
     integer :: nbin, ibin, itag
     integer :: status(MPI_STATUS_SIZE),ierr
     real :: ave_work, f_integral
-    integer ::  i,k, fd, nfill, proc_debug
+    integer ::  i,j,k, fd, nfill, proc_debug
     character(13) :: cfmt
 
     nbin = binmult  ! must correspond to array size
@@ -385,7 +738,7 @@ contains
 !    fd = iproc+10
     fd=6
     itag=0
-    proc_debug = -5
+    proc_debug = 0
 
     !     Independent s  !     Note that indx() is a local index on the process.
     call indexsort( keys,indxl, np, nppm )   ! Index sort from Num. Rec.
@@ -430,7 +783,7 @@ contains
           ! bin inside container limits
           ibin = (kw1(k)-key_min)/step + 1
           ibin = max(min(ibin,nbin),1)
-       if (balance) then
+       if (balance==1) then
           f_local(ibin) = f_local(ibin) + w2(k)  ! Can include actual force load on particle here
        else
           f_local(ibin) = f_local(ibin) + 1  ! No load balancing - try to get equal # particles  
@@ -462,9 +815,15 @@ contains
        if (f_integral >= i*ave_work ) then  ! If int(f) exceeds multiple of work average, set pivot
 	  nfill = (f_integral-i*ave_work)/ave_work
 	  if (nfill>0) then 
-	        write (*,*) 'Problem on Processor ',iproc
-		write (*,*) 'integral jumps by more than work average: nfill= ',nfill
-                write (*,*) 'increment = ', f_global(ibin), ' ave= ',ave_work
+	        write (*,'(a20,i8/a40,i8/a10,f12.3,a10,f12.3)') 'Problem on Processor ',iproc &
+		, 'integral jumps by more than work average: nfill= ',nfill &
+                , 'increment = ', f_global(ibin), ' ave= ',ave_work
+!		open(90,file='fglobal.data')
+!		write (90,'((i8,f12.2))') (j,f_global(j),j=1,nbin)
+!	       close(90)
+	       call closefiles
+	       call MPI_ABORT(MPI_COMM_WORLD,ierr)
+         	stop
           endif
           i=i+1
           fpval(i) = key_min + ibin*step  ! Set next highest pivot

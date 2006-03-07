@@ -54,7 +54,7 @@ module treevars
      real*8 :: q     ! charge
      real*8 :: m     ! mass
      real*8 :: work  ! work load from force sum
-     real*8 :: ax   ! vec. pot  
+     real*8 :: ax   ! 'forces' 
      real*8 :: ay
      real*8 :: az
      integer*8 :: key           ! Key
@@ -185,15 +185,18 @@ module treevars
              npp, &            !  actual  # particles/PE
              nshortm, &        ! shortlist length
              iused          ! counter for collision resolution array free_addr()
-  
-
+  real :: work_imbal=0.
+  real :: part_imbal=0.
+  real :: work_imbal_max, work_imbal_min  ! load stats
+  integer ::  part_imbal_max, part_imbal_min
+  real :: work_local ! Total local work load (=sum of interaction lists)
   real*8 :: xmin, xmax    ! box limits
   real*8 :: ymin, ymax  
   real*8 :: zmin, zmax
   real*8 :: boxsize       ! length of box
 
  ! Force control
-  logical :: load_balance=.true.   ! Balances particles in || sort according to work load
+  integer :: load_balance   ! Balances particles in || sort according to work load
   logical :: use_multipoles = .true.   ! Use of multipoles? 
   logical :: prefetch = .false.  ! Prefetch multipole info prior to walk
 
@@ -231,6 +234,7 @@ module treevars
 
   real, allocatable ::  work_loads(:)  ! Load balance array
   integer, allocatable :: npps(:)  ! Particle distrib amoung PEs
+  integer*8, allocatable ::  pivots(:)  ! Pivot buffer for sort
 
 end module treevars
 

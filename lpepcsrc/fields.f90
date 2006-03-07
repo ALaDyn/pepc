@@ -56,7 +56,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
   real :: Epon_x, Epon_y, Epon_z, Phipon, ex_em, ey_em, ez_em, bx_em, by_em, bz_em
   real :: xd, yd, zd  ! positions relative to centre of laser spot
-  real :: work_local, load_average, load_integral, total_work, average_work
+  real :: load_average, load_integral, total_work, average_work
   integer :: total_parts
   character(30) :: cfile, ccol1, ccol2
   character(4) :: cme

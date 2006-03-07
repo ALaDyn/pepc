@@ -47,7 +47,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   endif
 
   npartm = npart 
-  nppm = np_mult*1.9*max(npartm/num_pe,1000) ! allow 50% fluctuation
+  nppm = abs(np_mult)*5*max(npartm/num_pe,1000) ! allow 50% fluctuation
   nshortm = 800    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
@@ -68,9 +68,13 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
    npsize=5*nppm
    npsize=nppm
    size_tree = max(4*nintmax+npsize,10000)
-   nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
-!   nbaddr = 18   ! fixed address range
-   maxaddress = 2**nbaddr
+   if (np_mult>0) then
+     nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
+     maxaddress = 2**nbaddr
+   else
+     nbaddr = 16   ! fixed address range
+     maxaddress = abs(np_mult)*10000
+   endif
    size_fetch = fetch_mult*size_tree
 !   nbranch_max = maxaddress/2
    nbranch_max = 4*nintmax*max(1.,log(1.*num_pe))
@@ -86,6 +90,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
     write(*,*) 'np_mult= ',np_mult
     write(*,*) 'fetch_mult= ',fetch_mult
   endif 
+
+  work_local = 1 ! Initial value for local load
 
 ! Memory estimate
   mem_parts = nppm*(22*8 + 2*4 + 8)
@@ -165,7 +171,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
  
 
 ! work balance arrays
-  allocate  (work_loads(num_pe),npps(num_pe))  ! Work load & Particle distrib amoung PEs
+  allocate  (work_loads(num_pe),npps(num_pe),pivots(num_pe+1))  ! Work load & Particle distrib amoung PEs
 
 
   ! Create new contiguous datatype for shipping particle properties (15 arrays)

@@ -13,10 +13,10 @@
 !  ===================================================================
 
 
-subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, force_const, bond_const, &
+subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, balance, force_const, bond_const, &
      delta_t,  xl, yl, zl, itime, &
      coulomb, bfield_on, bonds, lenjones, &
-     t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force, iprot)
+     t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force, iprot,total_work)
 
   use treevars
   use utils
@@ -35,8 +35,9 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   logical, intent(in) :: lenjones ! Include Lennard-Jones potential
   real, intent(in) :: xl, yl, zl         ! box dimensions
   integer, intent(in) :: itime  ! timestep
-  integer, intent(in) :: mac  ! choice of mac
-  integer, intent(in) :: balance  ! choice of mac
+  integer, intent(in) :: walk_scheme  ! choice of tree walk 
+  integer, intent(in) :: mac  ! choice of tree walk 
+  integer, intent(in) :: balance  ! balancing
   integer :: ifreeze
 
 
@@ -56,7 +57,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   real*8 :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
   real*8 :: fljmax
   real*8 :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
-  real :: work_local, load_average, load_integral, total_work, average_work
+  real ::  load_average, load_integral, total_work, average_work
   integer :: total_parts
   character(30) :: cfile, ccol1, ccol2
   character(4) :: cme
@@ -73,20 +74,15 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
   !  dump_tree=.true.
   !  npp = np_local  ! assumed lists matched for now
 
-  if (mac /= 3) ifreeze=1
+  if (walk_scheme /= 3) ifreeze=1
 
-  loadbal: select case(balance)
-  case(1)
-     load_balance=.true.
-  case default
-     load_balance=.false.
-  end select loadbal
+  load_balance=balance
 
 
   if (force_debug) then
      if (me==0) write (*,*)
-     if (me==0) write (*,'(a8,a60/a7,2i5,6f11.2)') 'LPEPC | ','Params itime, mac, theta, eps, force_const, bond_const, err, delta_t:', &
-          'LPEPC | ',itime, mac, theta, eps, force_const, bond_const, err_f, delta_t
+     if (me==0) write (*,'(a8,a60/a7,2i5,6f11.2)') 'LPEPC | ','Params itime, walk_scheme, theta, eps, force_const, bond_const, err, delta_t:', &
+          'LPEPC | ',itime, walk_scheme, theta, eps, force_const, bond_const, err_f, delta_t
      if (me==0) write (*,'(a8,a17,4l4)') 'LPEPC | ','Force switches: ',coulomb,bfield_on,lenjones,bonds
      write (ipefile,'(a8,a20/(i16,4f15.3))') 'LPEPC | ','Initial buffers: ',(pelabel(i), x(i), y(i), z(i), q(i),i=1,npp) 
   endif
@@ -123,7 +119,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
 
   call cputime(tp1)
-  if (mac==3) then
+  if (walk_scheme==3) then
      if (mod(itime-1,ifreeze) /= 0) then
         ! freeze mode - re-fetch nonlocal multipole info
         !POMP$ INST BEGIN(update)
@@ -142,13 +138,13 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
      endif
 
-  else if (mac==2 .and. num_pe>1) then
+  else if (walk_scheme==2 .and. num_pe>1) then
      !POMP$ INST BEGIN(prefetch)
      call tree_prefetch(itime)
      !POMP$ INST END(prefetch)
 
   else 
-     ! fresh walk in asynch. (mac=0)  or collective mode (mac=1)
+     ! fresh walk in asynch. (walk_scheme=0)  or collective mode (walk_scheme=1)
      nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
      nreqs_total=0
      sum_fetches=0      ! total current # multipole fetches (per tree update)
@@ -169,7 +165,7 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
 
   !  # passes needed to process all particles
-  nshort_list =nshortm/5 
+  nshort_list =nshortm/8 
   npass = max(1,npart/num_pe/nshort_list)   ! ave(npp)/nshort_list   - make nshort_list a power of 2
   load_average = SUM(work(1:npp))/npass   ! Ave. workload per pass: same for all PEs if already load balanced
   nshort(1:npass+1) = 0
@@ -227,12 +223,12 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
 
-     if (mac==2 .or. mac==1) then
+     if (walk_scheme==2 .or. walk_scheme==1) then
    ! collective walk
         call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
     else
    ! asynchronous walk  (0,3)
-       call tree_walk(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+       call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
     endif
 
      t_walk = t_walk + ttrav  ! traversal time (serial)
@@ -261,11 +257,9 @@ subroutine pepc_fields_p(np_local,mac, theta, ifreeze, eps, err_f, balance, forc
 
         if (coulomb) then
            !  compute Coulomb fields and potential of particle p from its interaction list
-           if (err_f.eq.1) then
-            call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
-           else
-            call sum_force_split(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
-           endif
+           call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
+!           call sum_force_split(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
+
            pot(p) = pot(p) + force_const * phi_coul
            Ex(p) = Ex(p) + force_const * ex_coul
            Ey(p) = Ey(p) + force_const * ey_coul
