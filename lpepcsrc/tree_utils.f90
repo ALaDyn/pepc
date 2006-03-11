@@ -392,9 +392,9 @@ contains
     real :: alpha, load_sum, ave_work, f_integral, work_average, load_adjust
     integer ::  i,j,k,ipe, iset,fd, nfill, proc_debug, nbin
     integer :: level_dist=8, nlev=20, level_strip
-    integer, parameter :: lev_map=4 ! max level for key distrib
+    integer, parameter :: lev_map=8 ! max level for key distrib
     integer :: maxbox
-    integer, parameter :: maxbin=50000  ! Max # bins for key distrib
+    integer, parameter :: maxbin=500000  ! Max # bins for key distrib
     real, dimension(maxbin)  :: f_local, f_global, f_final
     integer, dimension(maxbin) ::  search_list, retain_list, bin_list, index_bin
     integer :: ilev, p, np_left, new_bins, nfbins
@@ -466,7 +466,7 @@ search_list = 8**lev_map  ! place holder
    ilev = 1
 
 !   alpha = 1.*nprocs/maxbin  ! load fraction for bins
-  alpha = 0.1
+  alpha = 0.05
 
    do while (ilev <= lev_map)
 
@@ -476,7 +476,7 @@ search_list = 8**lev_map  ! place holder
 
     level_strip = nlev-ilev
 
-    if (debug .and. iproc==proc_debug ) write(*,*) 'ilev, level_strip: ',ilev, level_strip
+    if (debug .and. iproc==proc_debug ) write(*,*) 'ilev, level_strip, nbin: ',ilev, level_strip,nbin
      f_local(1:nbin) = 0.  ! reuse work array
      ibin = 1    
      p=1
@@ -488,12 +488,15 @@ search_list = 8**lev_map  ! place holder
 
 
 	if (key_reduce == search_list(ibin)) then
-    if (debug .and. iproc==proc_debug ) then
-       write(fd,'(a30,2o30)') 'key, reduced key ',kw2(p), key_reduce
-    endif
+!    if (debug .and. iproc==proc_debug ) then
+!       write(fd,'(a30,2o30)') 'key, reduced key ',kw2(p), key_reduce
+!    endif
 ! keys match - update bin count and move on to next particle
-!	  f_local(ibin) = f_local(ibin) + work2(p) 
+ 	if (balance==1) then
+	  f_local(ibin) = f_local(ibin) + work2(p) 
+	else
 	  f_local(ibin) = f_local(ibin) + 1
+	endif
 	  pbin(p) = ibin ! remember bin number 
 	  p=p+1
 	else
@@ -508,13 +511,13 @@ search_list = 8**lev_map  ! place holder
 
     if (ilev==1) ave_work=SUM(f_global(1:nbin))/nprocs
 
-    if (debug .and. iproc==proc_debug ) then
-       write(fd,*) 'Particles left:',np_left
-       write(fd,*) 'Bins left:',nbin
-       write(fd,'(a30/(i8,o30,f12.1))') 'search list distrib: ',(i,search_list(i),f_global(i),i=1,nbin)
-       write(fd,*) 'Average bin weight',ave_work
-       write(fd,*) 'Threshold bin weight',ave_work*alpha
-    endif
+!    if (debug .and. iproc==proc_debug ) then
+!       write(fd,*) 'Particles left:',np_left
+!       write(fd,*) 'Bins left:',nbin
+!       write(fd,'(a30/(i8,o30,f12.1))') 'search list distrib: ',(i,search_list(i),f_global(i),i=1,nbin)
+!       write(fd,*) 'Average bin weight',ave_work
+!       write(fd,*) 'Threshold bin weight',ave_work*alpha
+!    endif
 
 
 !  Analyse global distribution on search list
@@ -569,11 +572,12 @@ search_list = 8**lev_map  ! place holder
 
     !     kw1 now contains the sorted keys; work1 the sorted loads
     if (debug .and. iproc==proc_debug ) then
-       write(fd,*) 'Final # bins:',nbin
-       write(fd,'(a30/(i8,o10,f12.1))') 'final bin list ',(i,retain_list(i),f_global(i),i=1,nbin)
+       write(fd,*) 'Final # bins/max/level:',nbin,maxbin,lev_map
+       if (icall==18) write(fd,'(a30/(i8,o10,f12.1))') 'final bin list ',(i,retain_list(i),f_global(i),i=1,nbin)
        write(fd,*) 'Average bin weight',ave_work
        write(fd,*) 'Threshold bin weight',ave_work*alpha
-       write(fd,*) 'Checksum:',SUM(f_final(1:nbin))
+       write(fd,*) 'Total work',ave_work*nprocs
+       write(fd,*) 'Final checksum:',SUM(f_final(1:nbin))
     endif
 
 ! Do cumulative integral of f(ibin) and set pivots where int(f) = iproc/nprocs*N
@@ -596,7 +600,7 @@ search_list = 8**lev_map  ! place holder
 
 
     if (debug .and. iproc==proc_debug ) then
-       write (fd,'(a20/(10x,i5,o20))') 'Pivots: ',(i,pivot(i),i=1,nprocs+1)
+!       write (fd,'(a20/(10x,i5,o20))') 'Pivots: ',(i,pivot(i),i=1,nprocs+1)
     endif
 
   if (icall==1 .and. iproc==0) then
@@ -665,11 +669,10 @@ search_list = 8**lev_map  ! place holder
     call MPI_ALLTOALLV(  kw1  ,islen,fposts,MPI_INTEGER8, &
                          keys,irlen,gposts,MPI_INTEGER8, &
                          MPI_COMM_WORLD,ierr)
-    if (debug .and. iproc==proc_debug) then
-
-       write (*,'(a10,i7/a10/(4i12))') 'npnew: ',npnew, &
-       'posts: ',(fposts(i),gposts(i),islen(i),irlen(i),i=1,nprocs)
-    endif
+!    if (debug .and. iproc==proc_debug) then
+ !      write (*,'(a10,i7/a10/(4i12))') 'npnew: ',npnew, &
+ !      'posts: ',(fposts(i),gposts(i),islen(i),irlen(i),i=1,nprocs)
+ !   endif
 
 
     !     Set up the information for the merge:

@@ -325,14 +325,22 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
      call MPI_ALLREDUCE(max_local, max_list_length, 1, MPI_INTEGER, MPI_MAX,  MPI_COMM_WORLD, ierr )
      call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
      call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
-
+     part_imbal_max = MAXVAL(npps) 
+     part_imbal_min = MINVAL(npps)
+     part_imbal = (part_imbal_max-part_imbal_min)/1.0/npart*num_pe	
+     total_work = SUM(work_loads)
+     average_work = total_work/num_pe
+     work_imbal_max = MAXVAL(work_loads)/average_work
+     work_imbal_min = MINVAL(work_loads)/average_work
+     work_imbal = 0.
+     do i=1,num_pe
+	work_imbal = work_imbal + abs(work_loads(i) - average_work)/average_work/num_pe
+     end do
      if (me ==0 ) then
 
-        total_work = SUM(work_loads)
-        average_work = total_work/num_pe
         cme = achar(timestamp/1000+48) // achar(mod(timestamp/100,10)+48) &
              // achar(mod(timestamp/10,10)+48) // achar(mod(timestamp,10)+48) 
-        cfile="load_"//cme//".dat"
+        cfile="log/load_"//cme//".dat"
         total_parts=SUM(npps)
         open(60, file=cfile)
         write(60,'(a/a,i8,2(a,1pe15.6))')  '! Full balancing','Parts: ',total_parts,' Work: ',total_work, &

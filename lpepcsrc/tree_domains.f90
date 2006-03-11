@@ -226,10 +226,10 @@ subroutine tree_domains(xl,yl,zl)
 
      ! perform index sort on keys
 
-     call pswssort(nppm,npold,npnew,num_pe,me,keys, &
-        indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
-!     call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
-!          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
+!     call pswssort(nppm,npold,npnew,num_pe,me,keys, &
+!        indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
+     call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
+          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
 
      do i=1,npold
         w1(i) = xarray(i)
