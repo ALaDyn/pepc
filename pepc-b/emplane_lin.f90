@@ -9,7 +9,7 @@
 !     ==================================
 
 
-subroutine emplane(t,tpulse,sigma0,a0,w0,x,y,z,ez,by,bx,az,phipon)
+subroutine emplane_lin(t,tpulse,sigma0,a0,w0,x,y,z,ez,by,bx,az,phipon)
 
   implicit none
   real, intent(in) :: t ! time
@@ -30,12 +30,7 @@ subroutine emplane(t,tpulse,sigma0,a0,w0,x,y,z,ez,by,bx,az,phipon)
   gamma0 = sqrt(1 + a0**2/2)  ! Sarachik & Schappert gamma
   
   k0=w0
- if (t <= 2*tpulse) then
-   tenv = max(0.,sin(pi*t/2./tpulse)**2)
-  else
-   tenv= 0.
-  endif
-
+  tenv = min(1.,t/tpulse)
 !  tenv = 1.
   phase = w0*t - k0*x
   r2 = y**2+z**2
