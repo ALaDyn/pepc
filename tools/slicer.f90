@@ -28,7 +28,7 @@ program ppfields
   real, allocatable :: uang_ion(:,:)
 
   real, allocatable :: x(:),y(:),z(:),ux(:),uy(:),uz(:),q(:),m(:),ex(:),ey(:),ez(:),bz(:),phi(:)
-  integer, allocatable :: own(:), label(:)
+  integer, allocatable :: own(:), label(:), index(:)
   real, allocatable :: aveni(:),avene(:),avejxi(:),avejxe(:),aveex(:),aveti(:),avete(:),avephi(:)
   real, allocatable :: fhote(:), fhoti_for(:), fhoti_back(:), avenhot(:)
 
@@ -95,7 +95,7 @@ program ppfields
   cfile = 'grid_defs.gmt'
   open(50,file=cfile)
 
-  allocate ( x(n), y(n), z(n), ux(n), uy(n), uz(n), q(n), m(n), ex(n), ey(n), ez(n), bz(n), phi(n), own(n), label(n) )
+  allocate ( x(n), y(n), z(n), ux(n), uy(n), uz(n), q(n), m(n), ex(n), ey(n), ez(n), bz(n), phi(n), own(n), label(n), index(n) )
   allocate ( rho_ion(0:ngx+1,0:ngy+1,0:ngz+1), rho_ele(0:ngx+1,0:ngy+1,0:ngz+1), &
        jx_ele(0:ngx+1,0:ngy+1,0:ngz+1), jx_ion(0:ngx+1,0:ngy+1,0:ngz+1), &
        jz_ele(0:ngx+1,0:ngy+1,0:ngz+1), jz_ion(0:ngx+1,0:ngy+1,0:ngz+1), &
@@ -168,6 +168,17 @@ program ppfields
   read(20,*) (x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i),ex(i),ey(i),ez(i),phi(i),own(i),label(i),i=1,n)
   close(20)
 
+
+
+! Do label check
+  write (*,*) 'Doing label check ..'
+  open(22,file="sorted.labels")
+  call indsort(label,index,n)
+  do i=1,n
+     write(22,'(3i9)') i,label(i),label(index(i))
+  end do
+  close(22)
+  write(*,*) '.. done'
 
   ! Dump for AVS-EXPRESS
   cfile = 'ions_dump.'//cdump
@@ -1280,3 +1291,69 @@ program ppfields
   ! Close protocol/info file
   close(10)
 end program ppfields
+
+
+
+!  Index sort for 4-byte integer list
+
+  subroutine indsort(iarr,list,n)
+    implicit none
+
+    integer, intent(in) :: n
+
+    integer, dimension(n), intent(in) :: iarr
+    integer, dimension(n), intent(inout) :: list
+    integer :: i, indxt, ir, l, j
+    integer :: q
+
+    list(1:n) =  (/ (i,i=1,n) /)  
+
+    if(n==1) return
+    l= n/2 + 1
+    ir = n
+
+    do
+       if (l>1) then
+          l=l-1
+          indxt = list(l)
+          q = iarr(indxt)
+       else
+          indxt = list(ir)
+          q = iarr(indxt)
+          list(ir) = list(1)
+          ir = ir - 1
+          if (ir == 1) then
+             list(1) = indxt
+             return
+          endif
+       endif
+
+       i = l
+       j = l+l
+       do while (j <= ir)
+          if (j < ir) then
+             if (iarr(list(j)) < iarr(list(j+1)) ) j=j+1
+          endif
+          if (q < iarr(list(j)) ) then
+             list(i) = list(j)
+             i=j
+             j=j+j
+          else
+             j = ir+1
+          endif
+       end do
+       list(i) = indxt
+    end do
+
+  end subroutine indsort
+
+
+
+  subroutine swap_ab(p,q)
+    integer*8 :: p,q, dum
+    dum = p
+    p=q
+    q = dum
+  end subroutine swap_ab
+
+
