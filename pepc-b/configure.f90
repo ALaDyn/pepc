@@ -193,6 +193,38 @@ subroutine configure
      a_ee = a_ee_shell
 
 
+     case(6)        ! Spherical cluster with Andreev profile
+!    ============================================
+!  r_sphere is radius of equivalent uniform sphere
+!  - used to define particle charges before stretching outer portion
+
+     if (debug_level==2 .and. me==0) then
+	write(*,*) "Setting up Andreev cluster"
+     endif
+
+	target_geometry=1
+        velocity_config=1   ! Ions cold, electrons with vte
+        plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+!        plasma_centre =  (/ 0., 0., 0. /) ! Centre of plasma
+	offset_e = me*nep + ne_rest
+	offset_i = ne + me*nip + ni_rest
+
+! Electrons
+        call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
+               -rho0, -1.0, 1.0, vosc, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
+ 
+ ! Ions
+        call plasma_start( nep+1, nip, ni, offset_i, target_geometry, 0, idim, &
+               rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
+
+! create spherically symmetric cluster with Andreev profile
+! r_layer(1) is characteristic radius r0
+      
+        call cluster_sa(r_layer(1))     
+
+
      case(10)  ! Add proton layer to slab
 !    ====================================
 
