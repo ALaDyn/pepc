@@ -198,7 +198,7 @@ subroutine configure
 !  r_sphere is radius of equivalent uniform sphere
 !  - used to define particle charges before stretching outer portion
 
-     if (debug_level==2 .and. me==0) then
+     if (debug_level>=1 .and. me==0) then
 	write(*,*) "Setting up Andreev cluster"
      endif
 
