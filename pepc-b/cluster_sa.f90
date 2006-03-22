@@ -24,8 +24,8 @@ subroutine cluster_sa(r0)
     real*8 :: rt, xt, yt, zt, s
     real :: r_c, Q_c, Q_s
     integer :: N_c, N_s, npi_c, npi_s, nbin
-    real :: zeta, dzeta, a_const, b_const, Qt
-    real :: ch, sh, sh2, th, ch2, rp, integ, nom, dom
+    real*8 :: zeta, dzeta, a_const, b_const, Qt
+    real*8 :: ch, sh, sh2, th, ch2, rp, integ, nom, dom
     
 ! Andreev cluster:
 ! uniform up to r=0.1 r0
