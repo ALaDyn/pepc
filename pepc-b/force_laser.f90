@@ -98,6 +98,12 @@ subroutine force_laser(p_start,p_finish)
 	      Epon_y=0.
 	      Bz_em=0.
  
+           case(16) ! plane wave with Gaussian spot
+              call emplane_lin(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,Epon_z,By_em,Bx_em,az_em,phipon)
+	      Epon_x=0.
+	      Epon_y=0.
+	      Bz_em=0.
+
            case default  ! no laser
               Epon_x=0
               Epon_y=0

@@ -55,7 +55,7 @@ subroutine emplane_lin(t,tpulse,sigma0,a0,w0,x,y,z,ez,by,bx,az,phipon)
 
   phipon = Az**2
 
-end subroutine emplane
+end subroutine emplane_lin
 
 
 

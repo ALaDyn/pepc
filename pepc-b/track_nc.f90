@@ -53,7 +53,7 @@ subroutine track_nc
   if (target_geometry == 1 .or. target_geometry ==3) then
      xc1 = plasma_centre(1)-r_sphere 
   else
-     xc1 = plasma_centre(1)-x_plasma/2.  
+     xc1 = plasma_centre(1)-x_plasma - x_layer(1)  
   endif
 
 ! abort tracking if particle number too low
