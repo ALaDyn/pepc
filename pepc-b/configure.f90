@@ -225,10 +225,9 @@ subroutine configure
         call cluster_sa(r_layer(1))     
 
 
-     case(10)  ! Add proton layer to slab
-!    ====================================
+     case(10)  ! Add proton layer to primary target - arbitrary geometry for both layers
+!    =====================================================================
 
-     target_geometry=0
      velocity_config=1
      plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
      offset_e = me*nep + ne_rest
@@ -260,16 +259,16 @@ subroutine configure
 
   	ipstart = nep+nip+1
 ! Place on rear of main slab 
-	displace = (/ x_plasma/2.+x_layer(1)/2,0.,0. /)
+!	displace = (/ x_plasma/2.+x_layer(1)/2,0.,0. /)
 	label_offset = ne+ni+me*nlayp+ni_rest 
 
  ! Equal number of neutralising electrons 
-        call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+        call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
                -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
 	label_offset = ne+ni+n_layer(1) +me*nlayp + ne_rest 
-        call plasma_start( ipstart, nlayp, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+        call plasma_start( ipstart, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
                rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
       
@@ -288,6 +287,8 @@ subroutine configure
       if (scheme /= 5 .and. ramp) then
            call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
       endif
+
+
 !####################################################################################################
 case(12)  ! A.P.L.R's set-up (8th March 2006)
 !=====================================================
@@ -647,6 +648,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
   convert_mu = omega/2./pi*lambda          ! convert from c/wp to microns
   lolam = lolam*2.*pi/omega  ! normalise scale-length
   convert_keV = 2./3./abs(Qplas)*511     ! convert from code energy units to keV/particle (Temperature)
+  convert_erg = 1.e-8/qi
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
   navcycle = 2*pi/dt/omega  ! # timesteps in a laser cycle
   nu_ei = 1./40./pi*a_ii**3/max(vte,1.e-8)/eps**2  ! collision frequency (fit to Okuda & Birdsall)
