@@ -19,8 +19,8 @@ subroutine potenergy(epot_total,emag_total)
 
   integer :: p, i, j, ierr 
 
-  real :: upartial, umag, gamma
-  real, intent(out) :: epot_total, emag_total
+  real*8 :: upartial, umag, gamma
+  real*8, intent(out) :: epot_total, emag_total
   logical :: pot_debug=.false.
 
   epot_total = 0.  ! Global potential energy
@@ -46,8 +46,8 @@ subroutine potenergy(epot_total,emag_total)
   if (pot_debug) write (ipefile,'(a,1pe11.4)') 'partial PE sum',upartial
 
 
-  call MPI_ALLREDUCE(upartial, epot_total,1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(umag, emag_total, 1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(upartial, epot_total,1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(umag, emag_total, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
 
 end subroutine potenergy

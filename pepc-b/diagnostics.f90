@@ -48,7 +48,7 @@ subroutine diagnostics
   !  - assume for now that idump > navcycle
 
   if (beam_config == 4 .and. mod(itime,itrack)==0 ) call track_nc          ! Gather densities and track critical surface 
-  if( mod(itime,ivis_fields)==0 .and. target_geometry==1) then
+  if( mod(itime+itime_start,ivis_fields)==0 .and. target_geometry==1) then
      call sum_radial(itime+itime_start)  ! Radial moments
   endif
 
@@ -104,7 +104,7 @@ subroutine diagnostics
      end do
   endif
 
-  if (part_imbal>2 .or. work_imbal_min < 0.5) then
+  if (part_imbal>5 .or. work_imbal_min < 0.1) then
    if (my_rank.eq.debug_rank) write(ifile,'(a)') 'WARNING: Load imbalance too large - switching to debug mode'
    debug_tree = 2
   endif

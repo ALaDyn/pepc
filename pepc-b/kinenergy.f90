@@ -16,8 +16,8 @@ subroutine kinenergy(ekine,ekini,ebeam)
   include 'mpif.h'
 
   integer :: p,i,ierr
-  real :: ekine, ekini, ebeam, sum_plas_e, sum_plas_i, sum_beam, gamma
-  real, dimension(nppm) :: uhx, uhy, uhz
+  real*8 :: ekine, ekini, ebeam, sum_plas_e, sum_plas_i, sum_beam, gamma
+  real*8, dimension(nppm) :: uhx, uhy, uhz
 
   sum_plas_e = 0.
   sum_plas_i = 0.
@@ -46,9 +46,9 @@ subroutine kinenergy(ekine,ekini,ebeam)
 
 ! Gather partial sums together for global energies
  
-  call MPI_ALLREDUCE(sum_plas_e, ekine, 1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(sum_plas_i, ekini, 1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(sum_beam, ebeam, 1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(sum_plas_e, ekine, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(sum_plas_i, ekini, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(sum_beam, ebeam, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
 
 end subroutine kinenergy

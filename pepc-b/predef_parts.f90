@@ -98,6 +98,7 @@ subroutine predef_parts
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
 
+  call MPI_BCAST( itime_start, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( xl, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( yl, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( zl, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
@@ -120,7 +121,6 @@ subroutine predef_parts
   call MPI_BCAST( ne, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( ni, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( npart, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( itime_start, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
 
   if (ncpu_merge < 0 ) then
 
@@ -214,7 +214,7 @@ subroutine predef_parts
        // achar(mod(me_read/10,10)+48) &
        // achar(mod(me_read,10)+48)  ! Convert 4-digit PE number into character string
 
-        write(*,'(a,a)') 'Reading from ',cme
+        write(*,'(a,a,a6,i8)') 'Reading from ',cme,'itime',itime_start
         ! get filename suffix from dump counter
         do i=0,4
            cdump(6-i:6-i) =  achar(mod(itime_start/10**i,10) + 48)  

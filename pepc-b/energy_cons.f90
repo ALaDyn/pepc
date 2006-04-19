@@ -18,8 +18,8 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
   implicit none
 
   integer :: ifile
-  real :: tpon, epot, ekine, ekini, ebeam,  etot
-  real :: emag
+  real*8 :: tpon, epot, ekine, ekini, ebeam,  etot
+  real*8 :: emag
 
   call potenergy(epot,emag)
   call kinenergy(ekine, ekini, ebeam)
@@ -40,16 +40,17 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
 
   if ( my_rank == 0 .and. debug_level.ge.1 ) then
      do ifile = 6,15,9
-        write (ifile,'(7(a20,1pe18.8/))') &
-	     ' P.E. = ',epot, &
-	     ' Magnetic E. = ',emag, &
-	     ' Electron K.E. = ',ekine, &
-             ' Ion K.E. = ',ekini, &
-	     ' Beam K.E.  = ',ebeam, &
-	     ' Total: ',etot, &
+        write (ifile,'(20x,3a20/6(a20,1pe18.8,8x,1pe12.5,8x,1pe12.5/),a20,1pe18.8)') &
+	     'norm  ','keV ','erg ', &
+	     ' P.E. = ',epot, epot*convert_keV, epot*convert_erg, &
+	     ' Magnetic E. = ',emag, emag*convert_keV, emag*convert_erg, &
+	     ' Electron K.E. norm/erg: ',ekine, ekine*convert_keV, ekine*convert_erg, &
+             ' Ion K.E. norm/erg: ',ekini, ekini*convert_keV, ekini*convert_erg, &
+	     ' Beam K.E.  = ',ebeam, ebeam*convert_keV, ebeam*convert_erg, &
+	     ' Total: ',etot, etot*convert_keV, etot*convert_erg, &
              ' Laser energy = ',elaser
 
-        write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',convert_kev*ekine,'Ti (keV):',convert_kev*ekini
+        write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',.67*convert_kev*ekine/max(1,ne),'Ti (keV):',.67*convert_kev*ekini/max(1,ni)
      end do
      ! Write out to energy.dat file
      if (itime.eq.1)  write(75,'(a)') '! time  Upot  Umag  Ukin_e Ukin_i Ukin_beam Utot Tpon xc'
