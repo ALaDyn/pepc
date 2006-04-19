@@ -7,6 +7,7 @@
 #  Compilers
 
 BGLSYS = /bgl/BlueLight/ppcfloor/bglsys
+BGLLOC = /bgl/local
 
 CC = /opt/ibmcmp/vac/7.0/bin/blrts_xlc
 #CPP = /opt/ibmcmp/vacpp/7.0/bin/blrts_xlc
@@ -26,12 +27,12 @@ AR      = ar
 #  (SIMDization requires at least -O3)
 # use -qlist -qsource with 440d and look for Parallel ASM instructions.
 #
-QTUNE = -O3 -qtune=440 -qarch=440d
-CFLAGS1= -O3 -g -I/opt/ibmcmp/vac/7.0/include -I/usr/include -I$(BGLSYS)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
-BGLFLAGS= -I$(BGLSYS)/include -L$(BGLSYS)/lib $(QTUNE)
-FFLAGS1 = $(BGLFLAGS) -qsuffix=f=f90 -qsuffix=cpp=F  -qnosave
-##IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
-DB= -g -qfullpath -qcheck
+IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
+QTUNE = -O4 -qtune=440 -qarch=440d $(IPA)
+CFLAGS1= -O3 -g -I/opt/ibmcmp/vac/7.0/include -I/usr/include -I$(BGLSYS)/include -I$(BGLLOC)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
+BGLFLAGS= -I$(BGLSYS)/include -I$(BGLLOC)/include -L$(BGLSYS)/lib  $(QTUNE) 
+FFLAGS1 = $(BGLFLAGS) -qsuffix=f=f90 -qsuffix=cpp=F  -qnosave 
+DB= -g -qfullpath ##-qcheck
 #DB= -g
 #
 
@@ -52,18 +53,21 @@ LIBS_MPI = -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
 LIBSF_MPI = -lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
 
 #MPITRACE = -L/bgl/local/lib -lmpitrace_f  #for MPI information only
-MPITRACE = -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts #for MPI+HPM information
+#MPITRACE = -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts #for MPI+HPM information
+#MPITRACE = -qdebug=function_trace -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts #for per function MPI+HPM information
 
 
 # Visit libraries
 
 # Setup flags for C-preprocessor
 # Use VISIT routines with XNBODY visualisation
-PREPROC = -WF,-DVISIT_NBODY
+PREPROC = -WF,-DVISIT_NBODY,-DNETCDFLIB
+#PREPROC = -WF,-DVISIT_NBODY
 #PREPROC =
 
-#NETCDFLIB = -lnetcdf
-NETCDFLIB=
+NETCDFLIB = -L/bgl/local/lib -lnetcdf
+NCOBJS=ncnbody.o
+
 VISITDIR=/bgl/local/visit.rts
 VISITLIBS= -L$(VISITDIR)/lvisit/lib -llvisit -L$(VISITDIR)/lib -lvisit
 
