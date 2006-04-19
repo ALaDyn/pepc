@@ -57,10 +57,10 @@ module physvars
   real :: lolam          ! L/lambda density scale-length
   real :: Zion           ! Ionic charge
   real :: fnn            ! Near-neighbour factor
-  real :: Ukine          ! Electron kinetic energy
-  real :: Ukini          ! Ion kinetic energy
-  real :: Umagnetic           ! Magnetic energy
-  real :: Ubeam          ! Beam energy
+  real*8 :: Ukine          ! Electron kinetic energy
+  real*8 :: Ukini          ! Ion kinetic energy
+  real*8 :: Umagnetic           ! Magnetic energy
+  real*8 :: Ubeam          ! Beam energy
   real :: tpert=0.1	         ! Temperature perturbation in transport test
   real :: kpert=2 	 ! normalised wave number Lx/lambda
 
@@ -95,7 +95,7 @@ module physvars
   real :: intensity     ! normalised intensity = 0.5*vosc^2*omega^2
   real :: window_min    ! start of wakefield plasma
   real :: rezone_frac=0.75     ! Fraction of box to cross before rezoning switched on
-  real :: glue_radius=2.0 ! multiple of box size to catch escaping particles at
+  real :: glue_radius=2.e6 ! multiple of box size to catch escaping particles at
 
 
 !  Variables needing 'copy' for tree routines
@@ -149,6 +149,7 @@ module physvars
    real :: convert_fs     ! conversion factor from wp^-1 to fs
    real :: convert_mu     ! conversion factor from c/wp to microns
    real :: convert_keV     ! conversion factor from norm energy to keV/particle
+   real :: convert_erg     ! conversion factor from norm energy to ergs
    real :: domain_cut
    integer :: nt, itime   ! # timesteps and current timestep
    integer :: itime_start ! restart time stamp
@@ -158,6 +159,7 @@ module physvars
    integer :: ivis_fields=10    !  frequency for field shipping to VISIT
    integer :: ivis_domains=10    !  frequency for domain shipping to VISIT
    integer :: vis_select = 1  ! select switch for particles
+   integer :: field_select(1:4) = 0.
    integer :: itrack       ! frequency for computing ion density (tracking)
    integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions

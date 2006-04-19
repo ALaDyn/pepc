@@ -13,7 +13,7 @@ subroutine configure
   implicit none
   include 'mpif.h'
 
-  integer :: i, ipe, idummy=0, ierr, ifile
+  integer :: i, ipe, jion, idummy=0, ierr, ifile
   real :: t_walk, t_walkc, t_force, t_domain,t_build,t_prefetch
   integer :: label_offset
   integer :: faces(maxlayers)
@@ -114,15 +114,15 @@ subroutine configure
 	write(*,*) "Setting up ion sphere"
      endif
 	target_geometry=1
-        velocity_config=0   ! Ions cold, electrons with radial v0=vosc
+        velocity_config=0   ! Ions cold, electrons with vte
         plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
 !        plasma_centre =  (/ 0., 0., 0. /) ! Centre of plasma
 	offset_e = me*nep + ne_rest
 	offset_i = ne + me*nip + ni_rest
 
  ! Electrons can be shifted by displace vector 
-        call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
-               -rho0, -1.0, 1.0, vosc, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
+        call plasma_start( 1, nep, ne, offset_e, target_geometry, 1, idim, &
+               -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
  
  ! Ions
@@ -209,10 +209,6 @@ subroutine configure
 	offset_e = me*nep + ne_rest
 	offset_i = ne + me*nip + ni_rest
 
-! Electrons
-        call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
-               -rho0, -1.0, 1.0, vosc, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
-               number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
  
  ! Ions
         call plasma_start( nep+1, nip, ni, offset_i, target_geometry, 0, idim, &
@@ -222,8 +218,23 @@ subroutine configure
 ! create spherically symmetric cluster with Andreev profile
 ! r_layer(1) is characteristic radius r0
       
-        call cluster_sa(r_layer(1))     
+        call cluster_sa(nep+1,nip,r_layer(1),r_sphere,qi,Qplas,plasma_centre)
+   
 
+! Electrons: use same geometry but reduced charge density
+! - should get qe=-qi
+ 
+        call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
+               -rho0*ne/ni, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Q_layer(1), qe, mass_e, a_ee )
+
+! Stretch electron positions to match ions
+	do i=1,nep
+	   jion=min(nep+nip/nep*i,nep+nip)
+	   x(i) = x(jion)+eps
+	   y(i) = y(jion)+ eps
+	   z(i) = z(jion) + eps
+        end do
 
      case(10)  ! Add proton layer to primary target - arbitrary geometry for both layers
 !    =====================================================================
@@ -647,8 +658,13 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
   convert_mu = omega/2./pi*lambda          ! convert from c/wp to microns
   lolam = lolam*2.*pi/omega  ! normalise scale-length
-  convert_keV = 2./3./abs(Qplas)*511     ! convert from code energy units to keV/particle (Temperature)
-  convert_erg = 1.e-8/qi
+  if (ne>0) then
+	convert_keV = 511./abs(qe)     ! convert from code energy units to keV
+  	convert_erg = 8.16e-7/abs(qe)
+  else
+	convert_keV = 511./abs(qi)
+  	convert_erg = 8.16e-7/qi
+  endif 
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
   navcycle = 2*pi/dt/omega  ! # timesteps in a laser cycle
   nu_ei = 1./40./pi*a_ii**3/max(vte,1.e-8)/eps**2  ! collision frequency (fit to Okuda & Birdsall)
