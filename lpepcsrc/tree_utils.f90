@@ -390,13 +390,15 @@ contains
     integer ::  ibin, itag
     integer :: status(MPI_STATUS_SIZE),ierr
     real :: alpha, load_sum, ave_work, f_integral, work_average, load_adjust
+    integer :: total_work, checksum
     integer ::  i,j,k,ipe, iset,fd, nfill, proc_debug, nbin
     integer :: level_dist=8, nlev=20, level_strip
-    integer, parameter :: lev_map=8 ! max level for key distrib
-    integer :: maxbox
+    integer, parameter :: lev_map=15 ! max level for key distrib
+    integer*8 :: maxbox
     integer, parameter :: maxbin=500000  ! Max # bins for key distrib
     real, dimension(maxbin)  :: f_local, f_global, f_final
-    integer, dimension(maxbin) ::  search_list, retain_list, bin_list, index_bin
+    integer*8, dimension(maxbin) ::  search_list, retain_list, bin_list
+    integer, dimension(maxbin) :: index_bin
     integer :: ilev, p, np_left, new_bins, nfbins
     character(13) :: cfmt
     integer, save :: icall
@@ -409,8 +411,9 @@ contains
     proc_debug = 0
 
 !  Make key map for binning - need to put in setup routine 
-maxbox=8**lev_map
-search_list = 8**lev_map  ! place holder
+search_list = 8_8**lev_map  ! place holder
+!   alpha = 1.*nprocs/maxbin  ! load fraction for bins
+  alpha = 0.03
 
 ! Sort local keys
     !     Independent s  !     Note that indx() is a local index on the process.
@@ -456,7 +459,7 @@ search_list = 8**lev_map  ! place holder
 
 !  place 8 level 1 boxes on search list
    do k = 1,8
-      search_list(k) = search_list(k) + 8**(lev_map-1)*(k-1)
+      search_list(k) = search_list(k) + 8_8**(lev_map-1)*(k-1)
       finished(k)=.false.
    end do
 
@@ -465,8 +468,6 @@ search_list = 8**lev_map  ! place holder
    nfbins = 0  ! Final # bins
    ilev = 1
 
-!   alpha = 1.*nprocs/maxbin  ! load fraction for bins
-  alpha = 0.05
 
    do while (ilev <= lev_map)
 
@@ -476,7 +477,10 @@ search_list = 8**lev_map  ! place holder
 
     level_strip = nlev-ilev
 
-    if (debug .and. iproc==proc_debug ) write(*,*) 'ilev, level_strip, nbin: ',ilev, level_strip,nbin
+    if (debug .and. iproc==proc_debug ) then
+!    if (debug ) then
+	write(*,'(a4,i4,a40,4i10)') 'PE',iproc,'ilev, level_strip, nbin, np_left: ',ilev, level_strip,nbin,np_left
+    endif
      f_local(1:nbin) = 0.  ! reuse work array
      ibin = 1    
      p=1
@@ -484,10 +488,12 @@ search_list = 8**lev_map  ! place holder
 
      do while (p .le. np_left .and. ibin .le. nbin)
 
-        key_reduce = 8_8**(lev_map-ilev)*ishft( kw2(p), -3_8*level_strip )   ! Strip off lower order bits of particle key to match box level 
+  ! Strip off lower order bits of particle key to match box level 
+        key_reduce = 8_8**(lev_map-ilev)*ishft( kw2(p), -3_8*level_strip ) 
 
 
 	if (key_reduce == search_list(ibin)) then
+
 !    if (debug .and. iproc==proc_debug ) then
 !       write(fd,'(a30,2o30)') 'key, reduced key ',kw2(p), key_reduce
 !    endif
@@ -506,7 +512,8 @@ search_list = 8**lev_map  ! place holder
       end do
 
 
-    ! Global distrib
+    ! Global distrib - must make sure all CPUs participate, even if locally finished
+
     call MPI_ALLREDUCE(f_local, f_global, nbin, MPI_REAL, MPI_SUM,  MPI_COMM_WORLD, ierr )
 
     if (ilev==1) ave_work=SUM(f_global(1:nbin))/nprocs
@@ -526,11 +533,11 @@ search_list = 8**lev_map  ! place holder
 
     do ibin=1,nbin
 
-	if (f_global(ibin) > ave_work*alpha .and. ilev<=lev_map) then
+	if (f_global(ibin) > ave_work*alpha .and. ilev<lev_map) then
 	   ! bin too heavy: put 8 sub-boxes on new search list
 	    do k=0,7
 	      new_bins=new_bins+1
-              retain_list(new_bins) = search_list(ibin) + 8**(lev_map-ilev)*k
+              retain_list(new_bins) = search_list(ibin) + 8_8**(lev_map-ilev)*k
 	    end do
 
 	else if (f_global(ibin) <> 0) then
@@ -558,7 +565,6 @@ search_list = 8**lev_map  ! place holder
     search_list(1:new_bins) = retain_list(1:new_bins)
    finished(1:new_bins)=.false.
     nbin = new_bins
-
   end do 
 
   nbin = nfbins
@@ -571,14 +577,28 @@ search_list = 8**lev_map  ! place holder
     enddo
 
     !     kw1 now contains the sorted keys; work1 the sorted loads
+    checksum = SUM(f_final(1:nbin))
+    total_work=ave_work*nprocs
+
     if (debug .and. iproc==proc_debug ) then
        write(fd,*) 'Final # bins/max/level:',nbin,maxbin,lev_map
-       if (icall==18) write(fd,'(a30/(i8,o10,f12.1))') 'final bin list ',(i,retain_list(i),f_global(i),i=1,nbin)
        write(fd,*) 'Average bin weight',ave_work
        write(fd,*) 'Threshold bin weight',ave_work*alpha
-       write(fd,*) 'Total work',ave_work*nprocs
-       write(fd,*) 'Final checksum:',SUM(f_final(1:nbin))
+       write(fd,*) 'Total work',total_work
+       write(fd,*) 'Final checksum:',checksum
     endif
+
+       if (balance==0 .and. checksum<>total_work) then
+	 if (iproc==proc_debug) then
+	   write(fd,*) 'Problem with binning - writing out list to bin.out'
+	   open(90,file='bin.out')
+	   write(90,'(a30/(i8,o30,f12.1))') 'final bin list ',(i,retain_list(i),f_global(i),i=1,nbin)
+	   close(90)
+         endif
+	 call closefiles
+	 call MPI_FINALIZE(ierr)
+         stop
+       endif
 
 ! Do cumulative integral of f(ibin) and set pivots where int(f) = iproc/nprocs*N
 
@@ -600,13 +620,14 @@ search_list = 8**lev_map  ! place holder
 
 
     if (debug .and. iproc==proc_debug ) then
-!       write (fd,'(a20/(10x,i5,o20))') 'Pivots: ',(i,pivot(i),i=1,nprocs+1)
+       write (fd,'(a20/(10x,i5,o20))') 'Pivots: ',(i,pivot(i),i=1,nprocs+1)
     endif
 
-  if (icall==1 .and. iproc==0) then
-	write(*,*) 'Writing key dist..'
-	open(90,file='fglobal.data')
-       write(90,'(a30/(i6,o18,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
+!  if (debug .and. icall==0 .and. iproc==proc_debug) then
+  if (debug .and. icall==0 ) then
+!	write(*,*) 'PE ',iproc,'Writing key dist'
+        open(90,file='fglobal.data')
+       write(20,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
 	call close(90)
   endif
 

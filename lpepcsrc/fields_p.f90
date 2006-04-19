@@ -173,11 +173,15 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
   load_integral = 0.
   jpass = 1
   pstart(jpass) = 1
+  if (domain_debug) write(*,*) 'PE ',me,': npp',npp
+
   do i=1,npp
      load_integral = load_integral + work(i)   ! integrate workload
 
      if (i-pstart(jpass) + 1 == nshortm) then ! Need to check that nshort < nshortm
         write(*,*) 'Warning from PE: ',me,' # parts on pass ',jpass,' in shortlist exceeds array limit ',nshortm
+        write(*,*) 'Load=',load_integral
+	write(*,*) 'npp=',npp
         write(*,*) 'Putting spill-over into following pass'
         nshort(jpass) = nshortm
         jpass = jpass + 1

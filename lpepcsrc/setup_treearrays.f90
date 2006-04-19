@@ -26,7 +26,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   ipefile = 20
 
   if (db_level==1) then
-      domain_debug = .true.
+!      domain_debug = .true.
 	
   else if (db_level==2) then
       tree_debug=.true.
