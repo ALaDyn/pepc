@@ -1,0 +1,58 @@
+##-------------------------------------------
+MPICH=/usr/local/mpich.ifort
+
+OPT      = -O3 #-O5
+FF       = $(MPICH)/bin/mpif90 
+MODDIR   = @abs_top_builddir@/modules
+FFLAGSX  = -r8 -I$(MPICH)/include -module $(MODDIR)
+
+#PEPCSRC=\
+#./check_table.f90    ./key_test.f90          ./tree_build.f90 \
+#./diagnose_tree.f90  ./make_hashentry.f90 \
+#./tree_domains.f90   ./tree_walk.f90         ./fields.f90         \
+#./setup_treearrays.f90  ./tree_fill.f90      \
+#./get_address.f90    ./sum_bfield.f90        ./tree_prefetch.f90\
+#./get_next_node.f90  ./sum_force.f90         ./tree_properties.f90\
+#./get_node.f90       ./tree_branches.f90     
+
+PEPCMOD=\
+./treevars.f90 ./utils.f90 ./tree_utils.f90
+
+PEPCSRC=\
+./tree_domains.f90     ./setup_treearrays.f90  ./tree_build.f90  \
+./tree_branches.f90    ./tree_fill.f90         ./tree_properties.f90 \
+./tree_aswalk.f90      ./tree_cowalk.f90       ./tree_prefetch.f90 \
+./sum_force.f90        ./sum_bfield.f90        ./tree_update.f90 \
+./sum_force_split.f90  ./sum_soft.f90          ./fields.f90 \
+./get_address.f90      ./get_node.f90          ./key_test.f90 \
+./get_next_node.f90    ./diagnose_tree.f90     ./check_table.f90 \
+./sum_lennardjones.f90 ./sum_bond.f90          ./fields_p.f90\
+./make_hashentry.f90
+
+#draw_tree2d.f90 draw_lists.f90 draw_domains.f90 
+
+OBJS = $(PEPCMOD:.f90=.o) $(PEPCSRC:.f90=.o)
+
+#
+all: $(OBJS)  
+
+
+%.o:%.f90
+	$(FF) $(FFLAGS) $(FFLAGSX) -c $<
+
+# 
+clean:
+	rm -f $(OBJS) *~
+
+distclean:
+	/bin/rm -f Makefile config.h config.status config.cache config.log
+
+
+
+
+
+
+
+
+
+

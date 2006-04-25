@@ -141,7 +141,7 @@ subroutine tree_build
      if (level>nlev) then
        write(*,*) 'Problem with tree on PE ',me,' - no more levels '
        write(*,'(a/(z20))') 'Remaining keys: ',local_key(1:nlist)
-       call closefiles
+!       call closefiles
        call MPI_ABORT(MPI_COMM_WORLD,ierr)
        stop
      endif

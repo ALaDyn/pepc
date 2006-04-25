@@ -556,7 +556,7 @@ endif
            write(*,'(a,i10)') '# leaves ',recv_leaves
            write(*,*) get_child(recv_count)
            !           write(*,'(a,i5)') 'LPEPC | ... key will be ignored' 
-           call cleanup  ! Abort
+!           call cleanup  ! Abort
         endif
 
         ! Insert new node into local #-table
@@ -663,12 +663,12 @@ endif
      if (nleaf>.95*maxaddress/2) then
         write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
         write (6,*) 'LPEPC | nleaf = ',nleaf,' / ',maxaddress/2
-        call cleanup
+!        call cleanup
      endif
      if (ntwig>.95*maxaddress/2) then
         write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
         write (6,*) 'LPEPC | ntwig = ',ntwig,' / ',maxaddress/2
-        call cleanup
+!        call cleanup
      endif
 
      call cputime(tc1)

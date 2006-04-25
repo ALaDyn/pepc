@@ -56,7 +56,7 @@ function key2addr(keyin)
 
 !     call diagnose_tree
 close(75)     
-     call closefiles
+!     call closefiles
 !     pause
      call MPI_ABORT(MPI_COMM_WORLD,ierr)
      stop
@@ -112,7 +112,7 @@ function key2addr_db(keyin,cmark)
 
 !     call diagnose_tree
 close(75)     
-     call closefiles
+!     call closefiles
 !     pause
      call MPI_ABORT(MPI_COMM_WORLD,ierr)
      stop

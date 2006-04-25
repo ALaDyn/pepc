@@ -540,7 +540,7 @@ search_list = 8_8**lev_map  ! place holder
               retain_list(new_bins) = search_list(ibin) + 8_8**(lev_map-ilev)*k
 	    end do
 
-	else if (f_global(ibin) <> 0) then
+	else if (f_global(ibin) /= 0) then
 	   nfbins=nfbins+1   ! Copy bin onto 'final' list here 
 	   bin_list(nfbins) = search_list(ibin)
 	   f_final(nfbins) = f_global(ibin)
@@ -588,14 +588,14 @@ search_list = 8_8**lev_map  ! place holder
        write(fd,*) 'Final checksum:',checksum
     endif
 
-       if (balance==0 .and. checksum<>total_work) then
+       if (balance==0 .and. checksum/=total_work) then
 	 if (iproc==proc_debug) then
 	   write(fd,*) 'Problem with binning - writing out list to bin.out'
 	   open(90,file='bin.out')
 	   write(90,'(a30/(i8,o30,f12.1))') 'final bin list ',(i,retain_list(i),f_global(i),i=1,nbin)
 	   close(90)
          endif
-	 call closefiles
+!	 call closefiles
 	 call MPI_FINALIZE(ierr)
          stop
        endif
@@ -628,7 +628,7 @@ search_list = 8_8**lev_map  ! place holder
 !	write(*,*) 'PE ',iproc,'Writing key dist'
         open(90,file='fglobal.data')
        write(20,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
-	call close(90)
+!	call close(90)
   endif
 
 
@@ -845,7 +845,7 @@ search_list = 8_8**lev_map  ! place holder
 !		open(90,file='fglobal.data')
 !		write (90,'((i8,f12.2))') (j,f_global(j),j=1,nbin)
 !	       close(90)
-	       call closefiles
+!	       call closefiles
 	       call MPI_ABORT(MPI_COMM_WORLD,ierr)
          	stop
           endif

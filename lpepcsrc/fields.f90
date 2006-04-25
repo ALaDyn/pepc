@@ -19,7 +19,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force)
 
   use treevars
-!  use utils
+  use utils
   implicit none
   include 'mpif.h'
 
