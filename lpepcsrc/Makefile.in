@@ -1,5 +1,5 @@
 ##-------------------------------------------
-MPICH=/usr/local/mpich.ifort
+MPICH=@MPICH@
 
 OPT      = -O3 #-O5
 FF       = $(MPICH)/bin/mpif90 
