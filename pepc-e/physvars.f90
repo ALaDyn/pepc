@@ -3,7 +3,7 @@ module physvars
   real, parameter :: pi=3.141592654
 
 ! particle arrays
-  real, allocatable :: x(:),  y(:),  z(:), &     ! position
+  real*8, allocatable :: x(:),  y(:),  z(:), &     ! position
                       ux(:), uy(:), uz(:), &     ! velocity
                               q(:),  m(:), &     ! charge and mass
 			Ex(:), Ey(:), Ez(:), &   ! E-field
@@ -59,9 +59,9 @@ module physvars
   real :: q_factor       ! Charge factor
   real :: fnn            ! Near-neighbour factor
   real :: Ukine          ! Electron kinetic energy
-  real :: Ukini          ! Ion kinetic energy
-  real :: Umagnetic           ! Magnetic energy
-  real :: Ubeam          ! Beam energy
+  real*8 :: Ukini          ! Ion kinetic energy
+  real*8 :: Umagnetic           ! Magnetic energy
+  real*8 :: Ubeam          ! Beam energy
 
   real :: nu_ei ! norm. collision frequency
   real :: sigma_e ! electrical conductivity
@@ -105,6 +105,8 @@ module physvars
   integer :: npart_total  ! Total # particles (npart)
   integer :: npp  ! Total # particles (npart)
   integer :: nppm  ! Total # particles (npart)
+  real :: np_mult=1.5
+  integer :: fetch_mult=2
 
 !  Associated MPI stuff
 

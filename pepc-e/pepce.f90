@@ -49,8 +49,9 @@ program pepce
 
   call setup           ! Each CPU gets copy of initial data
 
-  debug=0
-  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug)  ! Allocate array space for tree
+!  debug=2
+
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult)  ! Allocate array space for tree
 
   call param_dump      ! Dump initial data
   call configure       ! Set up particles
@@ -80,8 +81,8 @@ program pepce
 
 ! TODO: need proper mac selection instead of beam_config
 
-!     call error_test(npp)
-!     stop
+     call error_test(npp)
+     stop
      ! Integrator
      call cputime(t_start_push)
 

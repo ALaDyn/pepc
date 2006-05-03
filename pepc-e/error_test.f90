@@ -10,9 +10,9 @@
       implicit none
 !      integer, parameter :: ntest = 3
       integer ntest
-      real, dimension(ntest) ::  potd, exd, eyd, ezd
-      real :: dfx2, dfy2, dfz2, fxs, fys, fzs, dpot
-      real :: errfx, errfy, errfz
+      real*8, dimension(ntest) ::  potd, exd, eyd, ezd
+      real*8 :: dfx2, dfy2, dfz2, fxs, fys, fzs, dpot
+      real*8 :: errfx, errfy, errfz
       integer :: i
 
 

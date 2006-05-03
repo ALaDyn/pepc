@@ -1,108 +1,40 @@
-# 64-bit hardware
-
 #
-#  Makefile for treemp and test programs
+#  Makefile for pepc-e
 #
 
+PREFIX = ..
+
+#  Get machine-dependent flags
+
+ARCH = linux.mk
+#ARCH = ibm-p690.mk
+#ARCH = bgl.mk
+#ARCH = arc-icl.mk
+
+include $(ARCH)
 
 
-#DBFLAGS = -g -Rabp -ev  -q64 -qrealsize=8  -qsuffix=f=f90 -qcheck
-#LDFLAGS = -q64 -qrealsize=8  -g 
-# For apprentice
-#FFLAGS =   -eA -m4 -O2,inline4
-#LDFLAGS = -lpmpi -Xm -lapp
-
-
-
-# For IBM AIX compiler
-
-#FFLAGS = -g -q64 -qrealsize=8 -qsuffix=f=f90 -qcheck  
-## Optimised
-#FFLAGS =  -q64 -qrealsize=8 -qsuffix=f=f90  -O4 -Q -qipa -qarch=pwr4 -qstrict -qreport  -qlist -qsource -I/usr/local/include 
-
-
-IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
-
-PG=-pg -g -qfullpath
-#DB= -g -qfullpath -qcheck
-HPM = -lhpm
-LISTING=-qreport -qlist -qlistopt -qsource 
-#MPITRACE= -L/usr/local/beta/lib -lmpitrace
-#MPITRACE= -L/usr/local/beta/lib -lmpiprof
-#MPITRACE=  -L/usr/local/beta/lib -lmpihpm -lpmapi
-#MPITRACE= -lmpitrace
-#MPITRACE= -lmpiprof
-#MPITRACE= -lsummary -lpmapi
-#MPITRACE=  -lmpihpm -lpmapi
-#Q64=-q64
-#FFLAGS1 = -qrealsize=8 -qsuffix=f=f90 -qsuffix=cpp=F90 
+#  -----------------------------------------------------------------------------------------
+#  You shouldn't need to edit anything below here unless you're adding new source code
+#   - change machine/compiler options in the $ARCH file
 #
+#  -----------------------------------------------------------------------------------------
 
+FFLAGS =  $(FFLAGS1) $(DB) $(LISTING) $(PG) $(TUNE)
+DFLAGS = $(FFLAGS1) $(DB) 
+PPFLAGS = $(PREPROC)
+LDFLAGS =  $(XNBODYLIBS) $(VISITLIBS) $(NETCDFLIB) $(MPITRACE) 
+CFLAGS = $(CFLAGS1)
 
-# Intel compiler - must promote all floating point to real*8 or MPI will fail
+.SUFFIXES: .f90 .F90
 
-DB = -g -check bounds -traceback
-FFLAGS1 = -r8  ## -O3
-TUNE= -qarch=pwr4 -qtune=pwr4 -O5 $(IPA) 
-# $(PG) $(HPM)
-
-#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) -qhot
-#FFLAGS =  $(FFLAGS1) $(DB) $(Q64) $(PG) 
-FFLAGS =  $(FFLAGS1) $(DB) ## $(Q64) $(TUNE)
-TFLAGS = $(FFLAGS) $(TUNE)
-
-#ANALYS = -lpmpi -Xm -lpat pat.cld
-
-# Visit libraries
-# JUMP
-VPREFIX=/tmp/demo/xnb
-APISDIR=$(VPREFIX)/apis
-
-VISITLIBS=-L$(VPREFIX)/apis/nbody2 -llvisit_nbody2 -L$(VPREFIX)/lvisit/lib -llvisit -L$(VPREFIX)/visit/lib -lvisit
-
-VISITFLAGS2 = -DVISIT2 -DVISIT
-#VISITLD2 = -L$(APISDIR)/nbody2 -llvisit_nbody2 -L$(LVISITLIB) -llvisit -L$(VISIT20INST)/lib -lvisit
-#VISITFLAGS1 = -DVISIT1
-#VISITLD1 = -L $(APISDIR)/nbody1 -llvisit_nbody1 -L$(LVISITLIB) -llvisit -L$(VISIT20INST)/lib -lvisit
-NETCDF = -lnetcdf
-#VISITLIBS=-L/tmp/demo/apis/spk5 -llvisit_spk -L/tmp/demo/lvisit/lib -llvisit -L/tmp/demo/visit/lib -lvisit
-#VISITLIBS=-L/usr/local/beta/visit-2.0b/lvisit/apis/spk5  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
-
-#VISITLIBS=-L/home4/jzam04/jzam0401/tree/pepc/src  -llvisit_spk -L/usr/local/beta/visit-2.0b/lvisit/lib -llvisit -L/usr/local/beta/visit-2.0b/lib -lvisit -bloadmap:aa
-
-LDFLAGS = $(MPITRACE)
-RANLIB  = ranlib
-LIBDIR  = /home/gibbon/visit/demo/pepc/lpepcsrc
-#LIBDIR = ./
-#AR      = ar -X64
-AR      = ar 
-LIBPEPC = -L$(LIBDIR) -llpepc
-pepclib = liblpepc.a
-
-.SUFFIXES: .f90
-
-
-#FC = mpxlf90_r
-#FC = ifort
-# MPICH wrappers
-# full MPI path usually something like /usr/local/mpich/bin
-CC          = mpicc
-CCC         = mpicxx
-F77         = mpif77
-CLINKER     = mpicc
-CCLINKER    = mpicxx
-FLINKER     = mpif77
-F90         = mpif90
-F90LINKER   = mpif90	  
-
-
-# KOJAK instrumentation
-#FC = mpxlf90_r -qdebug=function_trace
-#FC = kinst mpxlf90_r
 
 # -------------------------------------------------------------------------------------------
 
 # Source files
+
+# -------------------------------------------------------------------------------------------
+
 
 MODULES.f90 =   physvars.f90 utils.f90
 
@@ -121,53 +53,76 @@ SOURCES.f90 =	pepce.f90 \
 
 # Names of application object files derived from sources
 
-APPOBJS = $(SOURCES.f90:.f90=.o)
-APPMODS =  $(MODULES.f90:.f90=.o)
-#PMODS = ../lpepcsrc/tree_utils.o
-MODS = $(APPMODS) $(PMODS)
+appobjs = $(SOURCES.f90:.f90=.o) 
+appmods =  $(MODULES.f90:.f90=.o)
+mods = $(appmods)
 
-all: MODS pepce
+default: lpepc pepce
 
-#  compile mode
+
+#  compile rules
+
 .f90.o:   
-	$(F90) -c $(FFLAGS) $(INCLUDE) $(DBFLAGS) $<
+	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) $<
+
+#  explicit rules for f90 modules to avoid conflict with built-in ones
+physvars.o: 
+	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) physvars.f90
+
+.c.o:   
+	$(CC) -c $(CFLAGS) $<
+
 
 # -----------------------------------------------------------------------------------------
 #  targets
 
-pepce:	$(APPMODS) $(APPOBJS)
-	@echo "Creating pepc application binary ..."
-	$(F90)  $(FFLAGS) $(LDFLAGS) -o $@ $(APPOBJS) $(MODS) $(LIBPEPC) $(LIBMPI)
-	@echo "... done"
+pepce:	$(appmods) $(appobjs) liblpepc.a
+	@echo "\n Creating ../bin/pepce ...\n"
+	$(FC)  $(FFLAGS)  -o ../bin/$@ $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI) 
+	@echo "... done\n"
+
+debug: $(appmods) $(appobjs) liblpepc.a
+	@echo "\n Creating pepc_debug ...\n"
+	$(FC)  $(FFLAGS)  -o pepc_debug $(appobjs) $(appmods) $(LIBPEPC) $(IBMLIB) $(LDFLAGS) $(LIBSF_MPI) 
+	cp pepc_debug ../bin/.
+	 @echo "... done\n"
 
 
+# Update PEPC library and headers
+lpepc:  
+	@echo 'Copying machine options from $(ARCH)'
+	cp $(ARCH) ../lpepcsrc/arch.mk
+	cd ../lpepcsrc; make lpepc; cd ../pepc-e
+	/bin/ln -sf $(PREFIX)/lpepcsrc/liblpepc.a $(PREFIX)/pepc-e/liblpepc.a
+	/bin/ln -sf $(PREFIX)/lpepcsrc/*.opari.inc $(PREFIX)/pepc-e/.
+	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-e/treevars.mod
+	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.mod $(PREFIX)/pepc-e/utils.mod
 
-pepck:	$(OBJECTS) 
-	$(F90)  $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MODS) 
 
-debug:	$(OBJECTS)
-	@echo "Loading object files using flags $(DBFLAGS)"
-	$(F90) $(LDFLAGS)  $(VISITLIBS) $(DBFLAGS)  -o $@ $(OBJECTS)
+clean:  cleanapp cleanlib
 
-clean:
-	/bin/rm -f bin/*.o  *% *~ bin/key rand *.o *.pif core *.mod 
+cleanapp:
+	@echo "Cleaning application binaries .."; /bin/rm -f bin/*.o   *% *~ bin/key rand *.o *.pif core *.lst *.a *.mod opari.rc *.mod.F90 *.opari.inc
+	@echo "Cleaning postprocessed sources .."; /bin/rm -f  $(PPSRC.f90)
 
-cleanbin: /bin/rm -r pepc debug core
+cleanlib:
+	@echo "Cleaning lpepc library .." 
+	cd ../lpepcsrc;	/bin/rm -f liblpepc.a *.o *.mod.F90 *.lst *.opari.inc; cd -
 
 cleancore: 	
-	/bin/rm $(POBJS) 
+	/bin/rm $(pepcobjs) 
 
 cleandata: 
 	/bin/rm -f fort.* *.dat *.out *.gle 
 
 depend:
-	./f90depend -u -I/usr/lpp/ppe.poe/include/thread *.f90
-
-default: treemp
+	$(F90DEP)
 
 ### DO NOT DELETE OR EDIT THIS LINE
 # Everything from here on down is generated by f90depend
 # so do NOT add any translation rules below here.
 
-
-#--- Module-Dependencies
+#--- Include-Dependencies
+# Special dependencies
+#setup.o:	namelist.h
+#param_dump.o:   namelist.h

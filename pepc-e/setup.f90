@@ -40,6 +40,7 @@ subroutine setup
   system_config = 1  ! plasma target
   target_geometry = 1         ! random sphere
 
+  db_level=1
 
   ! particles
   nep = 0 ! # plasma electrons per PE

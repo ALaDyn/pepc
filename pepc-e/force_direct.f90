@@ -10,10 +10,10 @@ subroutine force_direct(n,x,y,z,q, eps, const, ex, ey, ez, pot)
   implicit none
   real, intent(in) :: eps, const
   integer, intent(in) :: n
-  real, intent(in), dimension(n) :: x, y, z, q  ! coords and charge 
-  real,  dimension(n) :: ex, ey, ez, pot  ! fields and potential to return
+  real*8, intent(in), dimension(n) :: x, y, z, q  ! coords and charge 
+  real*8,  dimension(n) :: ex, ey, ez, pot  ! fields and potential to return
 
-  real :: eps2, d, d3, dx, dy, dz
+  real*8 :: eps2, d, d3, dx, dy, dz
   integer :: i,j
 !  write (*,*) 'Direct sum params: ',eps,const
 !  write (*,'(a10,a20/(i6,4f15.3))') 'DIRECT | ','Initial buffers: ',(i, x(i), y(i), z(i), q(i),i=1,n) 
