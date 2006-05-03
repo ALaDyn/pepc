@@ -31,12 +31,12 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   real, intent(in) :: xl, yl, zl         ! box dimensions
   integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: mac  ! choice of mac
-  real, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
-!  real, intent(in),  dimension(np_local) :: p_vx, p_vy, p_vz  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
-  real, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
-  real, dimension(np_local) :: p_w ! work loads
+  real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
+!  real*8, intent(in),  dimension(np_local) :: p_vx, p_vy, p_vz  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
+  real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
+  real*8, dimension(np_local) :: p_w ! work loads
   integer, intent(in), dimension(np_local) :: p_label  ! particle label 
-  real, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
+  real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
 
 
 
@@ -52,7 +52,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   integer :: ierr
   integer :: iprot = 50  ! frequency for load balance dump
 
-  real :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
+  real*8 :: phi_coul, ex_coul, ey_coul, ez_coul ! partial forces/pot
   real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
   real :: Epon_x, Epon_y, Epon_z, Phipon, ex_em, ey_em, ez_em, bx_em, by_em, bz_em
   real :: xd, yd, zd  ! positions relative to centre of laser spot
@@ -74,8 +74,8 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   npp = np_local  ! assumed lists matched for now
   
   if (force_debug) then
-     write (*,'(a7,a40,2i5,4f15.2)') 'PEPC | ','Params itime, mac, theta, eps, force_const, err:',itime, mac, theta, eps, force_const, err_f
-     write (*,'(a7,a20/(i16,4f15.3))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i),i=1,npp) 
+     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const, err:',itime, mac, theta, eps, force_const, err_f
+     write (*,'(a7,a20/(i16,4f15.3,i8))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i), p_label(i),i=1,npp) 
   endif
 
  ! Copy particle buffers to tree arrays
@@ -203,7 +203,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
 
-     call tree_walk(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 

@@ -87,7 +87,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 !  maxaddress = 512
    hashconst = 2**nbaddr-1
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
-  if (me==0) then
+  if (me==0 .and. db_level>0) then
     write(*,*) 'size_tree= ',size_tree
     write(*,*) 'max address = ',maxaddress
     write(*,*) 'max branches = ',nbranch_max
@@ -110,7 +110,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   mem_prefetch = size_fetch*(8 + 4) + num_pe*4 *11 + maxaddress*8*2*2
   mem_tot = mem_parts+mem_tree+mem_prefetch+mem_multipoles+mem_lists
 
-  if (me==0) then
+  if (me==0 .and. db_level>0) then
      write(*,'(//a/)') 'Initial memory allocation:'
      write(*,'(6(a15,f14.3,a3/)/)') 'Particles: ',mem_parts/mb,' MB', &
                                'Tree:',mem_tree/mb,' MB', &
@@ -259,7 +259,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
-  if (me==0) write(*,*) '... done'
+  if (me==0 .and. db_level>0) write(*,*) '... done'
   max_prefetches = 0
 
 end subroutine pepc_setup
