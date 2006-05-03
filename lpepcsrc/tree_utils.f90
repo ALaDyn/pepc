@@ -355,9 +355,9 @@ contains
     ! http://www.cs.utoronto.ca/~paullu/Papers/psrs.ps.Z
     !
     !  Selects pivots according to key distribution across whole range
+    !  Keys subdivided according to oct-tree structure, avoiding jumps when crossing
+    !  octant boundaries.
     !
-    ! sorting articles:
-    ! http://www.lpac.ac.uk/SEL-HPC/Articles/GeneratedHtml/hpc.sort.html
     !
     !
 
@@ -412,8 +412,6 @@ contains
 
 !  Make key map for binning - need to put in setup routine 
 search_list = 8_8**lev_map  ! place holder
-!   alpha = 1.*nprocs/maxbin  ! load fraction for bins
-  alpha = 0.03
 
 ! Sort local keys
     !     Independent s  !     Note that indx() is a local index on the process.
@@ -450,6 +448,13 @@ search_list = 8_8**lev_map  ! place holder
     key_min = gkey_min
     key_max = gkey_max
     
+! Shortcut parallel sort if only 1 CPU by raising particles/bin threshold
+    if (nprocs==1) then
+       alpha=1.
+    else
+       alpha=0.03
+    endif
+
     if (debug.and.iproc==proc_debug) then
 	write (*,'(2(a12,o30,a12,o30/))') &
          'local min: ',lmin,' local max: ',lmax, &
