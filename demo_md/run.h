@@ -1,5 +1,5 @@
  &pepcdata
-  db_level = 2
+  db_level = 0
 ! particles
   ne = 100 
   ni = 100
@@ -13,7 +13,7 @@
 
 ! physics stuff
 
-  theta = 0.5
+  theta = 0.6
   mac=0
   Te_keV = 0.5 ! Temperatures in keV
   Ti_keV =0.1 
@@ -33,13 +33,13 @@
   ! control
   nt =10
   dt = 0.5
-  eps = 1.
+  eps = 0.
   restart = .false.
   vis_on = .false.
  ivis = 2
  ivis_domains = 5000 
  ivis_fields = 5000
-  idump = 4000
+  idump = 1
   iprot=1
   particle_bcs = 1
   scheme = 1 /
