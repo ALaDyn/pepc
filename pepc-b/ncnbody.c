@@ -210,7 +210,7 @@ int _ncnbody_put(int ncid,float *vbuffer,int lstored,int vbufcols) {
   static size_t data_count[RANK_data];
   static float time[4];
   size_t timeid_len;
-  time_t now = time(NULL);
+/*   time_t now = time(NULL); */
   
 /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d\n",ncid,lstored,vbufcols); */
   
@@ -221,7 +221,7 @@ int _ncnbody_put(int ncid,float *vbuffer,int lstored,int vbufcols) {
   time_count[0] = timeid_len;
   time_count[1] = 4;
   time[0] = vbuffer[0];	/* simtime, first value of first record */   
-  time[1] = (float)(now - begin ); /* exectime */
+/*  time[1] = (float)(now - begin );  exectime */
   time[2] = timeid_start_fields;
   time[3] = timeid_start_particles;
 

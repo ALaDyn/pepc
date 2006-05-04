@@ -28,11 +28,11 @@ RANLIB  = ranlib
 AR      = ar
 
 #  Put compiler optimisation in here
-QTUNE = -O3 
+#QTUNE = -O3 
 CFLAGS1= -O3 -g -I/usr/local/include 
 FFLAGS1 = $(QTUNE)  
 #  Debug options
-#DB = -g -check bounds -traceback
+DB = -g -check bounds -traceback
 
 
 #   	LIBRARIES
