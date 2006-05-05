@@ -35,7 +35,7 @@ CFLAGS = $(CFLAGS1)
 
 # -------------------------------------------------------------------------------------------
 
-PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90
+PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90 vis_vecfields_nbody.F90
 PPSRC.f90 = $(PPSRC.F90:.F90=.f90) # processed source files 
 
 MODULES.f90 =   physvars.f90 

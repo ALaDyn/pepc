@@ -2,7 +2,7 @@
 !
 !   VIS_FIELDS
 !
-!   Send field data to VISIT for surface visualisation
+!   Send field data to VISIT for visualisation of scalar volumetric data
 !
 !
 ! ======================

@@ -60,8 +60,8 @@ MPITRACE =
 
 # Setup flags for C-preprocessor
 # Use VISIT routines with XNBODY visualisation
-#PREPROC = -DVISIT_NBODY
-PREPROC =
+PREPROC = -DVISIT_NBODY
+#PREPROC =
 
 VPREFIX=/tmp/demo/xnbody
 APISDIR=$(VPREFIX)/apis

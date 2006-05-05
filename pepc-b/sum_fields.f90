@@ -29,18 +29,27 @@ subroutine sum_fields
   rdy = 1./dy
   rdz = 1./dz
 
-  ex_w = 0.
-  ey_w = 0.
-  ez_w = 0.
-  bx_w = 0.
-  by_w = 0.
-  bz_w = 0.
-  g_ion = 0.
-  g_ele = 0.
-  rhoi_loc = 0.
-  rhoe_loc = 0.
-  te_loc = 0.
-  ti_loc = 0.
+  do k=1,ngz
+     do j=1,ngy
+        do i=1,ngx
+           ex_w(i,j,k) = 0.
+           ey_w(i,j,k) = 0.
+           ez_w(i,j,k) = 0.
+           bx_w(i,j,k) = 0.
+           by_w(i,j,k) = 0.
+           bz_w(i,j,k) = 0.
+           g_ion(i,j,k) = 0.
+           g_ele(i,j,k) = 0.
+           rhoi_loc(i,j,k) = 0.
+           rhoe_loc(i,j,k) = 0.
+           jxe_loc(i,j,k)=0.
+           jye_loc(i,j,k)=0.
+           jze_loc(i,j,k)=0.
+           te_loc(i,j,k) = 0.
+           ti_loc(i,j,k) = 0.
+        end do
+     end do
+  end do
 
   !  field box limits: (0-xl, 0-yl, 0-zl)
   !  Any particle outside gets put in ghost cells 0, ngx+1
