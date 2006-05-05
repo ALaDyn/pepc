@@ -56,7 +56,7 @@ exist or be created prior to the run, depending on the number of CPUs requested 
 Sample run scripts (.sh) and parameter files (.h) can be found in the directory 'tutorial':
 
 eqm.h 		Creates ion 'crystal' using artificial lennard-jones potential
-clamp.h puts 	Electrons in thermodynamic eqm using NVT ensemble
+clamp.h  	Puts electrons in thermodynamic eqm using NVT ensemble
 billiards.h	Inter-particle forces switched off; reflective boundaries for various geometries 
 dust.h		Dust particle inserted into plasma slab (steering demo)
 

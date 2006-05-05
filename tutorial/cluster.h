@@ -53,14 +53,14 @@
   dt = 0.3
   eps = 2.5
  restart = .false.
-  vis_on = .false.
+  vis_on = .true.
  steering = .false.
  ivis = 5
- ivis_fields = 5000
+ ivis_fields = 5
   mc_init = .false.
   mc_steps = 1000
   idump = 4000
-  iprot=2
+  iprot=5
   itrack=300
   particle_bcs = 1
   scheme = 1 /

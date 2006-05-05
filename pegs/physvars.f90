@@ -71,7 +71,7 @@ module physvars
 
   ! Control
 
-  logical :: balance=.true.   ! Balances particles in || sort according to work load
+  integer  :: balance=1 ! Balances particles in || sort according to work load
   logical :: walk_balance=.true.   ! Does detailed balancing of particle groups
   logical :: restart = .false.  ! Restart switch: config read from parts_all.in
   logical :: coulomb = .true.  ! Compute Coulomb forces

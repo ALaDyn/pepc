@@ -84,13 +84,3 @@ IBMLIB = -lxlf90
 #MPITRACE=  -lmpihpm -lpmapi
 
 
-# Visit libraries
-
-NETCDFLIB = -lnetcdf 
-NCOBJS=ncnbody.o
-VISIT_DIST=/usr/local/beta/visit-2.0b
-
-VISITLIBS= -L$(VISIT_DIST)/lvisit/lib -llvisit -L$(VISIT_DIST)/lib -lvisit
-XNBODYLIBS=-L$(VISIT_DIST)/lvisit/apis/nbody3  -llvisit_nbody2 -bloadmap:aa
-#VISITLIBS=-L$(HOME)/vis/lvisit/lib -llvisit -L$(HOME)/vis/visit/lib -lvisit 
-#XNBODYLIBS=-L$(HOME)/vis/apis/nbody3  -llvisit_nbody2 -bloadmap:aa

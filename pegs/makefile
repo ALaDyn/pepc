@@ -6,8 +6,8 @@ PREFIX = ..
 
 #  Get machine-dependent flags
 
-ARCH = linux.mk
-#ARCH = ibm-p690.mk
+#ARCH = linux.mk
+ARCH = ibm-p690.mk
 #ARCH = bgl.mk
 #ARCH = arc-icl.mk
 

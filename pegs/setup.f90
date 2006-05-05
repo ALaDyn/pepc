@@ -42,7 +42,7 @@ subroutine setup
   perf_anal = .false.
   tree_debug = .false.
   domain_debug = .false.
-  load_balance = .true.
+  load_balance =1
   walk_balance = .true.
   walk_debug = .false.
   coulomb = .true.
@@ -375,7 +375,7 @@ subroutine setup
         write (ifile,'(/a/a)') ' Switches:','--------'
         write (ifile,'(a20,l3)') ' Gravitational forces: ',coulomb
 
-        write (ifile,'(a20,l3)') ' load balance: ',load_balance
+        write (ifile,'(a20,i3)') ' load balance: ',load_balance
         write (ifile,'(a20,l3)') ' walk balance: ',walk_balance
         write (ifile,'(a20,l3)') ' restart: ',restart
 

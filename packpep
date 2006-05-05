@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+#  Script to produce PEPC tarball 
+#  - resolves symbolic links and reports file sizes
+#
+if [ $# = 0 -o "$1" = "-h" -o "$1" = "-help" -o "$1" = "-?" ]; then
+    echo "Call parameters: Version#"
+    exit
+fi
+
+cd ..
+VERSION=$1
+rm -f pepc$VERSION.tar.gz
+tar vcfh - \
+	pepc/lpepcsrc \
+	pepc/pepc-b \
+	pepc/pepc-e \
+	pepc/tutorial \
+	pepc/demo_mixed \
+	pepc/doc \
+	pepc/tools \
+	pepc/bin/*_pes pepc/bin/*_dump pepc/bin/make_* pepc/bin/copy_* \
+	pepc/README pepc/README.* pepc/DISCLAIMER pepc/TODO pepc/CHANGES \
+	 | gzip > pepc/pepc$VERSION.tar.gz
+# Publish
+cd pepc
+scp README jzam0403@jump:.
+scp pepc$VERSION.tar.gz jzam0403@jump:.
+
