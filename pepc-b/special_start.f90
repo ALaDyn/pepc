@@ -18,7 +18,7 @@ subroutine special_start(iconf)
   real :: rs,v0,gamma0,vt,xt,yt,zt,thetvel,phivel
   real :: dpx, vx_beam, vy_beam, vz_beam, st, ct, sp, cp, volb
   integer :: npb, p
-
+ 
   iseed = -17-me
 
 ! Define default container parameters in absence of plasma target
