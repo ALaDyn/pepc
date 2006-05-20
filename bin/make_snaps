@@ -12,7 +12,7 @@ echo $MYDIR
 RUN=$1
 RUNPP=$2
 DOPLOT=$3
-PEPC=~/tree/pepc
+PEPC=~/pepc
 # Slice postprocessor
 PP=$PEPC/bin/slicer
 
