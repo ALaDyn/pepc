@@ -61,7 +61,7 @@ subroutine slices(timestamp)
           'Total charge on grid:',Qbox, &
           '         ghost cells:',Qtot-Qbox, &
           '                 sum:',Qtot, &
-          'Initial charge Q_s*Ne = rho0*V = ',Vplas*rho0
+          'Initial charge Q_s*Ne = rho0*V = ',Vdisc*rho0
 
      close(62)
 

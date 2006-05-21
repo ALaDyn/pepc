@@ -1,0 +1,334 @@
+!  ===================================================================
+!
+!                              FORCES_P
+!
+!   $Revision$
+!
+!   Calculate fields and potential from INTERNAL coordinates x,y,z, ux, uy, uz in treevars module:
+!
+!
+!   ** Returns fields Ex, Ey, Ez and potential pot excluding external terms **
+!
+!
+!  ===================================================================
+
+
+subroutine forces(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, balance, force_const, bond_const, &
+     delta_t,  xl, yl, zl, itime, &
+     t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force, iprot,total_work)
+
+  use treevars
+
+  use utils
+  implicit none
+  include 'mpif.h'
+
+  integer :: np_local        ! # particles on CPU - can be changed in tree_domains
+  real, intent(in) :: theta       ! multipole opening angle
+  real, intent(in) :: err_f       ! max tolerated force error (rms)
+  real, intent(in) :: delta_t       ! timestep 
+  real, intent(in) :: force_const, bond_const       ! scaling factors for Coulomb/Len-Jones fields & potential
+  real, intent(in) :: eps         ! potential softening distance
+  !  logical, intent(in) :: coulomb  ! Compute Coulomb fields
+  !  logical, intent(in) :: bfield_on  ! Switch for including B-fields
+  !  logical, intent(in) :: bonds  ! Include bond forces
+  !  logical, intent(in) :: lenjones ! Include Lennard-Jones potential
+  real, intent(in) :: xl, yl, zl         ! box dimensions
+  integer, intent(in) :: itime  ! timestep
+  integer, intent(in) :: walk_scheme  ! choice of tree walk 
+  integer, intent(in) :: mac  ! choice of tree walk 
+  integer, intent(in) :: balance  ! balancing
+  integer :: ifreeze
+
+
+
+  integer, parameter :: npassm=100000 ! Max # passes - will need npp/nshortm
+
+  integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe
+  real :: t_domain, t_build, t_prefetch, t_walk, t_walkc, t_force, ttrav, tfetch, t1, t2, t3  ! timing integrals
+  real :: tb1, tb2, td1, td2, tp1, tp2
+  integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm) ! work balance arrays
+  integer :: hashaddr ! Key address 
+
+  integer :: max_local,  timestamp
+  integer :: ierr
+  integer :: iprot  ! frequency for load balance dump
+
+  real*8 :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
+  real*8 :: fljmax
+  real*8 :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
+  real ::  load_average, load_integral, total_work, average_work
+  integer :: total_parts
+  character(30) :: cfile, ccol1, ccol2
+  character(4) :: cme
+  integer :: key2addr        ! Mapping function to get hash table address from key
+
+    force_debug=.true.
+  !  tree_debug=.false.
+  !  build_debug=.false.
+  !  domain_debug = .false.
+  !  branch_debug=.false.
+  !  prefetch_debug=.false.
+  !  walk_debug=.true.
+  !  walk_summary=.true.
+  !  dump_tree=.true.
+  !  npp = np_local  ! assumed lists matched for now
+
+  if (walk_scheme /= 3) ifreeze=1
+
+  load_balance=balance
+
+
+  if (force_debug) then
+     if (me==0) write (*,*)
+     if (me==0) write (*,'(a8,a60/a7,2i5,6f11.2)') 'LPEPC | ','Params itime, walk_scheme, theta, eps, force_const, bond_const, err, delta_t:', &
+          'LPEPC | ',itime, walk_scheme, theta, eps, force_const, bond_const, err_f, delta_t
+     write (ipefile,'(a8,a20/(i16,4f15.3))') 'LPEPC | ','Initial buffers: ',(pelabel(i), x(i), y(i), z(i), q(i),i=1,npp) 
+  endif
+
+  if (mod(itime-1,ifreeze)==0) then
+     if (me==0) write (*,'(a23)') 'LPEPC | REBUILDING TREE'
+     !    stop
+     call cputime(td1)
+
+     call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
+     ! particles now sorted according to keys assigned in tree_domains.
+
+     call cputime(tb1)
+
+     call tree_build      ! Build trees from local particle lists
+     call tree_branches   ! Determine and concatenate branch nodes
+     call tree_fill       ! Fill in remainder of local tree
+
+     call cputime(tp1)
+     t_domain = tb1-td1
+     t_build = tp1-tb1
+
+  else 
+     if (me==0) write (*,'(a19)') 'LPEPC | FREEZE MODE'
+     t_domain=0.
+     t_build=0.
+  endif
+
+  call tree_properties ! Compute multipole moments for local tree
+
+
+  call cputime(tp1)
+  if (walk_scheme==3) then
+     if (mod(itime-1,ifreeze) /= 0) then
+        ! freeze mode - re-fetch nonlocal multipole info
+        call tree_update(itime)
+
+     else
+        ! tree just rebuilt so check for missing nodes before re-fetching
+        !        call tree_prefetch(itime)
+        nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
+        nreqs_total=0
+        sum_fetches=0      ! total current # multipole fetches (per tree update)
+        sum_ships=0      ! total current # multipole shipments
+
+     endif
+
+  else if (walk_scheme==2 .and. num_pe>1) then
+     call tree_prefetch(itime)
+
+  else 
+     ! fresh walk in asynch. (walk_scheme=0)  or collective mode (walk_scheme=1)
+     nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
+     nreqs_total=0
+     sum_fetches=0      ! total current # multipole fetches (per tree update)
+     sum_ships=0      ! total current # multipole shipments
+  endif
+
+  call cputime(tp2)
+
+
+  t_prefetch = tp2-tp1
+  t_walk=0.
+  t_walkc=0.
+  t_force=0.
+  max_local = 0   ! max length of interaction list
+  max_list_length = 0
+  work_local = 0  ! total workload
+  maxtraverse=0   ! max # traversals
+
+
+  !  # passes needed to process all particles
+  nshort_list =nshortm/8 
+  npass = max(1,npart/num_pe/nshort_list)   ! ave(npp)/nshort_list   - make nshort_list a power of 2
+  load_average = SUM(work(1:npp))/npass   ! Ave. workload per pass: same for all PEs if already load balanced
+  nshort(1:npass+1) = 0
+
+  load_integral = 0.
+  jpass = 1
+  pstart(jpass) = 1
+  if (domain_debug) write(*,*) 'PE ',me,': npp',npp
+
+  do i=1,npp
+     load_integral = load_integral + work(i)   ! integrate workload
+
+     if (i-pstart(jpass) + 1 == nshortm) then ! Need to check that nshort < nshortm
+        write(*,*) 'Warning from PE: ',me,' # parts on pass ',jpass,' in shortlist exceeds array limit ',nshortm
+        write(*,*) 'Load=',load_integral
+	write(*,*) 'npp=',npp
+        write(*,*) 'Putting spill-over into following pass'
+        nshort(jpass) = nshortm
+        jpass = jpass + 1
+        pstart(jpass) = i+1
+
+     else if (load_integral >= load_average * jpass .or. i==npp ) then
+        nshort(jpass) = i-pstart(jpass) + 1
+        jpass = jpass + 1
+        pstart(jpass) = i+1
+
+     endif
+  end do
+
+
+  if (jpass-1 > npass ) then
+     write(*,*) 'LPEPC | PE',me,' missed some:',nshort(npass+1)
+     if (nshort(npass) + nshort(npass+1) <= nshortm) then
+        nshort(npass) = nshort(npass) + nshort(npass+1)
+     else
+        npass = npass+1
+     endif
+  endif
+
+  if (force_debug)   write (ipefile,*) 'Shortlists: ',(nshort(j),j=1,npass+1)
+
+  max_npass = npass
+
+  ip1 = 1
+  fljmax = 0.
+
+  do jpass = 1,max_npass
+     !  make short-list
+     nps = nshort(jpass)
+     ip1 = pstart(jpass)
+     pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
+
+     if (force_debug) then
+       	if (me==0) write(*,'(a14,i4,a4,i4,a20,i8,a4,i8)') &
+             'LPEPC |  pass ',jpass,' of ',max_npass,': # particles ',ip1,' to ',ip1+nps-1
+        write(ipefile,*) 'LPEPC |  pass ',jpass,' # particles ',ip1,' to ',ip1+nps-1
+     endif
+
+     !  build interaction list: 
+     ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
+
+     if (walk_scheme==2 .or. walk_scheme==1) then
+        ! collective walk
+        call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+     else
+        ! asynchronous walk  (0,3)
+        call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
+     endif
+
+     t_walk = t_walk + ttrav  ! traversal time (serial)
+     t_walkc = t_walkc + tfetch  ! multipole swaps
+
+     call cputime(t2)   ! timing
+     do i = 1, nps
+
+        p = pshortlist(i)    ! local particle index
+
+        ! zero field sums
+        Ex(p) = 0.
+        Ey(p) = 0.
+        Ez(p) = 0.
+        pot(p) = 0.
+        Axo(p) = Ax(p)
+        Ayo(p) = Ay(p)
+        Azo(p) = Az(p)
+        Ax(p) = 0.
+        Ay(p) = 0.
+        Az(p) = 0.
+        Bx(p) = 0.
+        By(p) = 0.
+        Bz(p) = 0.
+
+        !  compute Coulomb fields and potential of particle p from its interaction list
+
+        call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
+
+        !           call sum_force_split(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
+
+        pot(p) = pot(p) - force_const * phi_coul
+        Ex(p) = Ex(p) - force_const * ex_coul
+        Ey(p) = Ey(p) - force_const * ey_coul
+        Ez(p) = Ez(p) - force_const * ez_coul
+
+
+        work(p) = nterm(i)        ! Should really compute this in sum_force to allow for leaf/twig terms
+        work_local = work_local+nterm(i)
+     end do
+
+
+
+
+     call cputime(t3)   ! timing
+
+     t_force = t_force + t3-t2
+
+     max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
+
+  end do
+
+
+
+
+  !  timestamp = itime + itime_start
+  timestamp = itime
+  if (mod(itime,iprot)==0) then
+     call MPI_ALLREDUCE(max_local, max_list_length, 1, MPI_INTEGER, MPI_MAX,  MPI_COMM_WORLD, ierr )
+     call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
+     call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
+     part_imbal_max = MAXVAL(npps) 
+     part_imbal_min = MINVAL(npps)
+     part_imbal = (part_imbal_max-part_imbal_min)/1.0/npart*num_pe	
+     total_work = SUM(work_loads)
+     average_work = total_work/num_pe
+     work_imbal_max = MAXVAL(work_loads)/average_work
+     work_imbal_min = MINVAL(work_loads)/average_work
+     work_imbal = 0.
+     do i=1,num_pe
+	work_imbal = work_imbal + abs(work_loads(i) - average_work)/average_work/num_pe
+     end do
+     if (me ==0 ) then
+
+        cme = achar(timestamp/1000+48) // achar(mod(timestamp/100,10)+48) &
+             // achar(mod(timestamp/10,10)+48) // achar(mod(timestamp,10)+48) 
+        cfile="log/load_"//cme//".dat"
+        total_parts=SUM(npps)
+        open(60, file=cfile)
+        write(60,'(a/a,i8,2(a,1pe15.6))')  '! Full balancing','Parts: ',total_parts,' Work: ',total_work, &
+             ' Ave. work:',average_work        
+        write(60,'(2i8,f12.3))')  (i-1,npps(i),work_loads(i)/average_work,i=1,num_pe)
+        close(60)
+     endif
+  endif
+
+
+  if (force_debug) then
+     !     if (me==0) write (*,101) force_const
+     write (ipefile,101) 'LPEPC | Tree forces:','   p    q   m   ux   pot  ',force_const
+
+     do i=1,npp
+        write (ipefile,102) pelabel(i), & 
+             q(i), m(i), ux(i), pot(i), ex(i)
+        !        if (me==0) write (*,102) pelabel(i), x(i), & 
+        !             q(i), m(i), ux(i), pot(i)
+     end do
+
+101  format(a/a,f8.2)
+102  format(1x,i7,5(1pe14.5))
+
+  endif
+
+  np_local = npp   ! reset local # particles for calling routine
+
+end subroutine forces
+
+
+
+

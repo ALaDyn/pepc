@@ -46,7 +46,7 @@ subroutine potenergy(epot_dust,epot_star)
   call MPI_ALLREDUCE(upartial, epot_dust, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
   epot_star = 0. 
-  do i=1, ni
+  do i=1, nstar
      epot_star = epot_star + 0.5*m_star(i)*pot_star(i)
   end do
 

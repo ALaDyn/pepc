@@ -1,9 +1,11 @@
 subroutine openfiles
 
   use physvars
+  implicit none
+
   character(30) :: cfile
   character(1) :: csnap
-  character(6) :: csubme
+  character(4) :: csubme
 
   if (my_rank == 0) then
      !  master diagnostics output

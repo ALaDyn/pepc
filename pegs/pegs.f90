@@ -7,7 +7,7 @@
 !    Pretty Efficient Gravity Solver
 !
 !    Parallel Gravity Tree code 
-!    Uses tree-code library lpepc to solve for gravitational forces
+!    Uses tree-code library lpepc to compute gravitational forces
 !
 !
 !  See README.compile for summary of program units
@@ -21,8 +21,12 @@ program pegs
   use utils
   use physvars
 
+  implicit none
+  include 'mpif.h'
+
+  integer :: ierr, ifile
   real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_en, t_force
-  real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, go,tend
+  real :: t_push, t_diag, t_start_push, t_prefetch, t_walkc, go,tend, ttot
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -37,41 +41,42 @@ program pegs
 
   call openfiles       ! Set up O/P files
 
+  call setup           ! Initialise simulation parameters from parts_info.in
 
-  call setup           ! Each PE gets copy of initial data
-  call configure       ! Set up particles
+! Allocate array space for tree
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,debug_rank) 
+
+! Read/setup disc particles
+  call setup_particles
+
+! Read/setup stars
+  call setup_stars
+
+  call dump_inputs
 
   do itime = 1,nt
      trun = trun + dt
-     if (me==0 .and. mod(itime,iprot)==0) then
+     if (my_rank==0 .and. mod(itime,iprot)==0) then
         do ifile=6,15,9
            write(ifile,'(//a,i8,a,f10.5)') 'Timestep ',itime+itime_start,' t=',(itime_start+itime)*dt
         end do
      endif
-     write(ipefile,'(//a,i8,a,f10.5)') 'Timestep ',itime+itime_start,' t=',(itime+itime_start)*dt
 
-     call cputime(t0)
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-     call tree_domains    ! Domain decomposition: allocate particle keys to PEs
+     ! Compute fields (accelerations) and potential of dust particles
+     ! Uses internal particle arrays from library (defined in pepc_setup)
+     ! # particles and labelling on CPU may change due to re-sort
 
-     call cputime(t_domain)
-     call tree_build      ! Build trees from local particle lists
-     call cputime(t_build)
-     call tree_branches   ! Determine and concatenate branch nodes
-     call cputime(t_branch)
-     call tree_fill       ! Fill in remainder of local tree
-     call cputime(t_fill)
-     call tree_properties ! Compute multipole moments for local tree
-     call cputime(t_props)
-     call tree_prefetch
-     call cputime(t_prefetch)
+     call forces(np_local, walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance, gamma, bond_const, &
+          dt, xl, yl, zl, itime, &
+          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot) 
 
-     call forces(1,npp,dt,t_walk,t_force)   ! Compute force with balanced shortlists
 
-     call cputime(t_start_push)
-     call velocities(1,npp,dt)
-     call push(1,npp,dt)
+     if (my_rank==0) write(*,*) 'Computing star forces ...'
      call stars(dt)
+     if (my_rank==0) write(*,*) '... done'
+     call cputime(t_start_push)
+     call velocities(1,np_local,dt)
+     call push(1,np_local,dt)
 
      call cputime(t_push)
 
@@ -80,7 +85,7 @@ program pegs
      call cputime(tend)
      ttot=tend-t0
 
-     if (me==0 .and. mod(itime,iprot)==0) then
+     if (my_rank==0 .and. mod(itime,iprot)==0) then
         do ifile=6,15,9
            write(ifile,'(//a/)') 'Timing:  Routine   time(s)  percentage'
            write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain-t0,100*(t_domain-t0)/ttot
@@ -97,7 +102,7 @@ program pegs
            write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag-t_push,100*(t_diag-t_push)/ttot
 
            write(ifile,'(a20,2f12.4,a1)') 'Total: ',ttot,100.
-           write(ifile,'(a20,i4,5f12.3)') 'Timing format: ',num_pe,t_domain-t0,t_props-t_domain,t_walk,t_force,ttot
+           write(ifile,'(a20,i4,5f12.3)') 'Timing format: ',n_cpu,t_domain-t0,t_props-t_domain,t_walk,t_force,ttot
         end do
      endif
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up

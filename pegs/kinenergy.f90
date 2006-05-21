@@ -30,7 +30,7 @@ subroutine kinenergy(ekin_dust,ekin_star)
     sum_dust = sum_dust + 0.5*m(p)*u2
   end do
 
-  do i=1,ni
+  do i=1,nstar
      u2 = ux_star(i)**2+uy_star(i)**2+uz_star(i)**2
      sum_star = sum_star + 0.5*m_star(i)*u2
   end do

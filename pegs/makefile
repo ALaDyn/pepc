@@ -41,10 +41,10 @@ MODULES.f90 =   physvars.f90
 
 
 SOURCES.f90 =	pegs.f90 \
-		setup.f90 \
-		configure.f90  \
+		setup.f90 setup_particles.f90 setup_stars.f90 \
+		dump_inputs.f90 \
 		energy_cons.f90 potenergy.f90 kinenergy.f90\
-		forces.f90 \
+		forces_p.f90 \
 		velocities.f90 push.f90 \
 		diagnostics.f90 dump.f90 \
 		densities.f90 pot_grid.f90 slices.f90 \
@@ -73,7 +73,7 @@ default: lpepc pegs
 	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) $<
 
 #  explicit rules for f90 modules to avoid conflict with built-in ones
-physvars.o: 
+physvars.o: physvars.f90
 	$(FC) -c $(FFLAGS) $(VISITLIBS) $(DBFLAGS) physvars.f90
 
 .c.o:   

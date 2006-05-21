@@ -1,5 +1,6 @@
 subroutine closefiles
   use physvars
+  implicit none
 
   if (my_rank == 0) then
      close(15)

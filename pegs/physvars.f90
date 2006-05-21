@@ -33,31 +33,28 @@ module physvars
 
   real :: mdisc          ! disc mass
 
-  integer :: ni,ne, np_beam
-  integer :: nep, nip     ! # particles/electrons/ions per PE
-  real :: vte, vti       ! electron, ion thermal velocities
-  real :: Te_keV, Ti_keV ! electron, ion emperatures in keV
+  integer :: ndisc   ! # particles in disc
+  integer :: nstar   ! # stars
+
   real :: T_scale = 1       ! factor for rescaling Te after restart 
   real :: bond_const     ! bonding force constant for ion crystal
-  real :: mass_ratio     ! ion:electron mass ratio
   real :: qe, qi         ! electron, ion charge
   real :: mass_e, mass_i   ! electron, ion mass
   real :: r_sphere       ! initial radius of plasma sphere
-  real :: x_plasma       ! initial plasma length (slab or disc targets)
-  real :: y_plasma       ! initial plasma y-width (slab)
-  real :: z_plasma       ! initial plasma z-width (slab)
+  real :: Vdisc          ! volume of disc
+  real :: boxmax         ! max box dimesion
   real :: box_centre(3) ! vector defining centre of plasma target
   real :: x_crit         ! critical surface
   real :: rho0           ! electron density (1)
-  real :: Vplas          ! plasma volume
-  real :: a_ii           ! mean ion spacing
+
+  real :: a_ii           ! mean particle spacing
   real :: r_neighbour    ! nearest-neighbour search radius
 
 
  
   real :: xl, yl, zl    ! initial simulation region side lengths
-  real ::  theta  ! clumping parameter
-  real :: force_const    ! force constant depending on unit system
+
+  real :: force_const=1.    ! force constant depending on unit system
   real :: eps            ! potential/force law cutoff
   real :: displace(3)    ! particle displacement vector for restart (change of view box)
 
@@ -71,7 +68,6 @@ module physvars
 
   ! Control
 
-  integer  :: balance=1 ! Balances particles in || sort according to work load
   logical :: walk_balance=.true.   ! Does detailed balancing of particle groups
   logical :: restart = .false.  ! Restart switch: config read from parts_all.in
   logical :: coulomb = .true.  ! Compute Coulomb forces
@@ -92,8 +88,25 @@ module physvars
   real :: trun           ! total run time including restarts
 
   integer :: my_rank
+  integer :: debug_rank
   integer :: n_cpu
-  integer :: np_mult = 1
+  integer :: np_local
+  integer :: npart_total
+  integer :: ifile_cpu
+
+
+! tree stuff
+  integer :: walk_scheme=0
+  integer :: mac=0
+  integer :: ifreeze=1
+  integer :: balance=1
+  real ::  theta  ! clumping parameter
+  real :: force_tolerance=1.      ! Permitted error in force calculation
+  logical :: bfields=.false.
+  logical :: bonds=.false.
+  logical :: lenjones=.false.
+  real :: work_tot
+  real :: np_mult = 2.0
   integer :: fetch_mult = 1
 
 end module physvars

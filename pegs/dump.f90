@@ -51,9 +51,9 @@ subroutine dump(timestamp)
 
      open (60,file=cfile)    
      write(60,'(i12,a20)') timestamp,'!itime'
-     write(60,'(i12,a20)') npart,      '!npart  '
-     write(60,'(i12,a20)') ne,       '!ndust   '
-     write(60,'(i12,a20)') ni,       '!nstar   '
+     write(60,'(i12,a20)') npart_total,'!npart  '
+     write(60,'(i12,a20)') ndisc,       '!ndust   '
+     write(60,'(i12,a20)') nstar,       '!nstar   '
      write(60,'(i12,a20)') scheme,   '!scheme'
      write(60,'(f12.3,a20)') mdisc,  '!mdisc'
      write(60,'(f12.3,a20)') xl,     '!xl'
@@ -76,8 +76,8 @@ subroutine dump(timestamp)
      write(6,'(i8,a20)')timestamp,'itime'
      write(6,'(i8,a20)')npart,      'npart'
      write(6,'(i8,a20)')npp,      'npp'
-     write(6,'(i8,a20)')ne,       'ndust'
-     write(6,'(i8,a20)')ni,       'nstar'
+     write(6,'(i8,a20)')ndisc,       'ndust'
+     write(6,'(i8,a20)')nstar,       'nstar'
 
 
   endif
@@ -90,8 +90,8 @@ subroutine dump(timestamp)
   open (60,file=cfile)    
   write(60,'(i8,a20)')timestamp,'     !itime'
   write(60,'(i8,a18)')npp,      '     !npp  '
-  write(60,'(i8,a17)')ne,       '     !ne   '
-  write(60,'(i8,a17)')ni,       '     !ni   '
+  write(60,'(i8,a17)')ndisc,       '     !ndisc   '
+  write(60,'(i8,a17)')nstar,       '     !nstar   '
   close(60)
 
   !  Dump particles
@@ -113,13 +113,13 @@ subroutine dump(timestamp)
      open (81,file=cfile)
 !     write(81,'(i12,a20)') timestamp,'!itime'
  
-     do i=1,ni
+     do i=1,nstar
         write(81,'(f15.5,10x,a20,i2)') m_star(i),  '  ! mass of star ',i
      end do
-     do i=1,ni
+     do i=1,nstar
         write(81,'(3f15.5,a20,i2)')x_star(i),y_star(i),z_star(i),'  ! position of star ',i
      end do
-     do i=1,ni
+     do i=1,nstar
         write(81,'(3f15.5,a20,i2)')ux_star(i),uy_star(i),uz_star(i),'  ! velocity of star ',i
      end do
 

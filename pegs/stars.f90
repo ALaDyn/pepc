@@ -10,10 +10,27 @@ subroutine stars(delta_t)
 
   real, intent(in) :: delta_t
   real :: dxstar,dystar,dzstar,dr,dxpart,dypart,dzpart,drpart
+  real :: distx, disty, distz, dists
   real, dimension(2) :: ax_star, ay_star, az_star
   real :: ax_partial, ay_partial, az_partial, pot_partial  ! partial sums
   real :: ax_sum, ay_sum, az_sum, pot_sum  ! global sums
   integer :: i,j,p, ierr
+
+
+  ! Forces from star on dust particles
+    
+     do p = 1,npp     
+      do j=1,nstar
+       distx=x(p)-x_star(j)
+       disty=y(p)-y_star(j)
+       distz=z(p)-z_star(j)
+       dists=sqrt(distx*distx+disty*disty+distz*distz+eps**2)
+       ex(p)=ex(p)-gamma*m_star(j)*distx/(dists**3)
+       ey(p)=ey(p)-gamma*m_star(j)*disty/(dists**3)
+       ez(p)=ez(p)-gamma*m_star(j)*distz/(dists**3)
+       pot(p) = pot(p)-gamma*m_star(j)/dists  ! potential contribution
+      end do
+     end do
 
   !
   ! STAR  STAR  STAR  STAR  STAR  STAR  STAR  STAR  STAR  STAR 
@@ -27,8 +44,8 @@ subroutine stars(delta_t)
 
 !  write (*,*) 'CPU ',me,' star sep',dr
   !   Accelerations:
-  do i=1,ni
-     do j=1,ni              
+  do i=1,nstar
+     do j=1,nstar              
         if(i.ne.j) then
            ax_star(i) = (-1)**i*gamma*(m_star(j)*dxstar/(dr**3))
            ay_star(i) = (-1)**i*gamma*(m_star(j)*dystar/(dr**3)) 
@@ -50,7 +67,7 @@ subroutine stars(delta_t)
 
 
 
-  do i=1,ni
+  do i=1,nstar
      ax_partial = 0.
      ay_partial = 0.
      az_partial = 0.
@@ -94,7 +111,7 @@ subroutine stars(delta_t)
 
   !  Velocities
 
-  do i = 1,ni
+  do i = 1,nstar
      ux_star(i) = ux_star(i) + delta_t * ax_star(i)
      uy_star(i) = uy_star(i) + delta_t * ay_star(i)
      uz_star(i) = uz_star(I) + delta_t * az_star(i)
@@ -102,12 +119,15 @@ subroutine stars(delta_t)
 
   !  star push in space
 
-  do p=1,ni
+  do p=1,nstar
      x_star(p) = x_star(p) + ux_star(p)*delta_t
      y_star(p) = y_star(p) + uy_star(p)*delta_t
      z_star(p) = z_star(p) + uz_star(p)*delta_t
   end do
   !  write(16,*)x_star(1),y_star(1),z_star(1),x_star(2),y_star(2),z_star(2)
+
+
+
 
 
 end subroutine stars
