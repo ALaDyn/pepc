@@ -201,7 +201,6 @@ subroutine tree_domains(xl,yl,zl)
 
   do while (errcount /= 0 .or. iteration == niterations)
      iteration = iteration + 1
-     write (ipefile,*) ' '
 
      if (iteration .lt. niterations) then
         do i=1,npold
