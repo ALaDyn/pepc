@@ -61,9 +61,9 @@ subroutine diagnose_tree
  ! get keys of twig nodes from hash table
   key_twig(1:ntwig)  = pack(htable(0:maxaddress)%key,mask=htable(0:maxaddress)%node<0)
  ! get levels of twigs
-  addr_twig(1:ntwig) = (/( key2addr( key_twig(i) ),i=1,ntwig)/)   !  Table address
-  child_twig(1:ntwig) = (/( htable( key2addr( key_twig(i) ) )%childcode,i=1,ntwig )/)   !  Children byte-code
-  ind_twig(1:ntwig) = (/( htable( key2addr( key_twig(i) ) )%node,i=1,ntwig )/)   !  Twig node pointers
+  addr_twig(1:ntwig) = (/( key2addr( key_twig(i),'DIAGNOSE_TREE' ),i=1,ntwig)/)   !  Table address
+  child_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%childcode,i=1,ntwig )/)   !  Children byte-code
+  ind_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%node,i=1,ntwig )/)   !  Twig node pointers
 
 
 

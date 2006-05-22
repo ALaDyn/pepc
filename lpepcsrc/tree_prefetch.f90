@@ -57,7 +57,6 @@ subroutine tree_prefetch(itime)
 
   ! external functions
   integer :: key2addr        ! Mapping function to get hash table address from key
-  integer :: key2addr_db        ! Debug version
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
   logical :: prefetch_summary=.false.
@@ -206,7 +205,7 @@ subroutine tree_prefetch(itime)
      nreqs_new = 0
 
      do i=1,nuniq
-        cchild = htable( key2addr_db( req_parent(i), 'PREFETCH: pass 2') )%childcode   !  Children byte-code
+        cchild = htable( key2addr( req_parent(i), 'PREFETCH: pass 2') )%childcode   !  Children byte-code
         nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
         sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code           
         requested_keys(nreqs_new+1:nreqs_new+nchild) = IOR( ishft(req_parent(i),3 ), sub_key(1:nchild) ) ! New siblings of original requested key
@@ -313,7 +312,7 @@ subroutine tree_prefetch(itime)
      do i=1,nreqs_total(ipe)
         send_prop_count = send_prop_count + 1
         ship_key = requested_keys(i)
-        ship_address = key2addr_db(ship_key,'PREFETCH: preship')  ! # address
+        ship_address = key2addr(ship_key,'PREFETCH: preship')  ! # address
         ship_node = htable(ship_address)%node
         ship_byte = IAND( htable( ship_address )%childcode,255 ) ! Catch lowest 8 bits of childbyte - filter off requested and here flags 
         ship_leaves = htable( ship_address )%leaves                    ! # contained leaves
@@ -429,7 +428,7 @@ subroutine tree_prefetch(itime)
          call make_hashentry( recv_key, nodchild, recv_leaves, recv_byte, ipe, hashaddr, ierr )
 
          htable(hashaddr)%next = recv_next           ! Fill in special next-node pointer for non-local children
-         node_addr =  key2addr_db( recv_parent,'PREFETCH: MNHE ')
+         node_addr =  key2addr( recv_parent,'PREFETCH: MNHE ')
          htable( node_addr )%childcode = IBSET(  htable( node_addr )%childcode, 9) ! Set children_HERE flag for parent node
 
          node_level( nodchild ) = log(1.*recv_key)/log(8.)  ! get level from keys and prestore as node property
@@ -479,7 +478,7 @@ subroutine tree_prefetch(itime)
 
   do i = 1,nlast_child
      search_key = last_child(i)                   
-     node_addr = key2addr_db(search_key,'PREFETCH: NN search ')
+     node_addr = key2addr(search_key,'PREFETCH: NN search ')
      htable( node_addr )%next = next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
   end do
 
