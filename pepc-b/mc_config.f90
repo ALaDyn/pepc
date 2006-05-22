@@ -54,7 +54,7 @@ subroutine mc_config
 
   !  maximum step size as fraction of inter-particle spacing
   !      delta_l=0.5*min(aii,aee)
-  write(ipefile,*) 'MC step length ',delta_mc
+  if (debug_level>0) write(ipefile,*) 'MC step length ',delta_mc
 
 
   do j=1, mc_steps

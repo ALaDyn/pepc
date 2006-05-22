@@ -1,5 +1,6 @@
 subroutine closefiles
   use physvars
+  implicit none
 
   if (my_rank == 0) then
      close(15)
@@ -7,7 +8,7 @@ subroutine closefiles
      close(70)
      close(75)
   endif
-  close(20)
+  if (debug_level>1) close(20)
   close(80)  ! initial particle data
 
 

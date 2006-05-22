@@ -35,7 +35,7 @@ CFLAGS = $(CFLAGS1)
 
 # -------------------------------------------------------------------------------------------
 
-PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90
+PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90 vis_vecfields_nbody.F90
 PPSRC.F = $(PPSRC.F90:.F90=.F) # linked source files 
 PPSRC.f90 = $(PPSRC.F90:.F90=.f90) # preprocessed source files 
 
@@ -91,6 +91,10 @@ vis_parts_nbody.f90:	vis_parts_nbody.F
 	$(CPP)  $(PPFLAGS) $< $@
 
 vis_fields_nbody.f90:	vis_fields_nbody.F 
+	@echo "Preprocessing with flags $(PPFLAGS) $<"
+	$(CPP)  $(PPFLAGS) $< $@
+
+vis_vecfields_nbody.f90:	vis_vecfields_nbody.F 
 	@echo "Preprocessing with flags $(PPFLAGS) $<"
 	$(CPP)  $(PPFLAGS) $< $@
 

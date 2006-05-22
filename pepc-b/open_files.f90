@@ -1,6 +1,7 @@
 subroutine openfiles
 
   use physvars
+  implicit none
   character(30) :: cfile
   character(1) :: csnap
 
@@ -22,7 +23,7 @@ subroutine openfiles
        // achar(mod(my_rank,10)+48)  ! Convert 4-digit PE number into character string
   cfile="data/pe"//csubme//"/dump."//csubme
 !  write (*,'(a3,i6,a15,a30)') 'PE ',my_rank,' opening ',cfile
-  open(20,file=cfile)
+  if (debug_level>1) open(20,file=cfile) ! suppress I/O for debug=0
   ifile_cpu = 20
 
 end subroutine openfiles

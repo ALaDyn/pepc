@@ -395,7 +395,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
      case(11)  ! Add proton disc to slab
 !    ====================================
 
-   write(ipefile,'(/a/)') "Setting up main slab"
+   if (debug_level>1) write(ipefile,'(/a/)') "Setting up main slab"
 
      target_geometry=0
      velocity_config=1
@@ -414,7 +414,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
 
  ! Proton disc 
 
-     write(ipefile,'(/a/)') "Setting up proton disc"
+     if(debug_level>1) write(ipefile,'(/a/)') "Setting up proton disc"
 
 ! Adjust local numbers if total non-multiple of # PEs
   	if (my_rank==0) then
@@ -468,7 +468,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
      offset_i = ne + me*nip + ni_rest
 
 !  Main block
-     write(ipefile,'(/a/)') "Setting up main slab"
+     if (debug_level>1) write(ipefile,'(/a/)') "Setting up main slab"
 
  ! Electrons 
         call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
@@ -480,7 +480,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
  ! Protons
-      write(ipefile,'(/a/)') "Setting up proton layer"
+      if (debug_level>1) write(ipefile,'(/a/)') "Setting up proton layer"
 
 ! Adjust local numbers if total non-multiple of # PEs
   	if (my_rank==0) then
@@ -519,7 +519,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
 
 !  Add foam layer (2) to rear side
 
-     write(ipefile,'(/a/)') "Setting up foam layer"
+     if (debug_level>1) write(ipefile,'(/a/)') "Setting up foam layer"
 
 	target_geometry=7
         velocity_config=1   ! Ions, electrons thermal

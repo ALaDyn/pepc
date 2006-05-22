@@ -194,7 +194,7 @@ subroutine sum_fields
   ! normalise averaged quantities
   nelecs = SUM(g_ele(1:ngx,1:ngy,1:ngz))
   nions = SUM(g_ion(1:ngx,1:ngy,1:ngz))
-  write(ipefile,*) 'density integrals: ',nelecs, nions
+  if (debug_level>1) write(ipefile,*) 'density integrals: ',nelecs, nions
   g_ele = max(gmin,g_ele)
   g_ion = max(gmin,g_ion)
   Te_loc = .511*Te_loc   ! Temperature in MeV (KE per particle)

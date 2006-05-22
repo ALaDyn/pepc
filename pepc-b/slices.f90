@@ -55,7 +55,7 @@ subroutine slices(timestamp)
         end do
      end do
      Qtot = SUM(rhoe)*dx*dy*dz  ! including ghost cells
-     write(ipefile,'(4(a,f14.5/))') &
+     if (debug_level>1) write(ipefile,'(4(a,f14.5/))') &
           'Total charge on grid:',Qbox, &
           '         ghost cells:',Qtot-Qbox, &
           '                 sum:',Qtot, &

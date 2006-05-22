@@ -175,7 +175,7 @@ subroutine predef_parts
      nslice_i = 0
      nslice = 0
      do j=0,mod(me,ncpu_merge)-1
-        write(ipefile,*) 'skip pass ',j
+        if (debug_level>0) write(ipefile,*) 'skip pass ',j
         do i=1,npp
            read(60,*) x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i), &
                 axdum,aydum,azdum,phidum, idummy,pelabel(i)
@@ -194,7 +194,7 @@ subroutine predef_parts
           idummy,pelabel(i),i=1,npp+nadd)
      close (60)
 
-!     if (me==num_pe-1)  write(ipefile,'(a,i8/3(f15.5))') 'Slice  ions:', nslice, &
+!     if (me==num_pe-1 .and. debug>0)  write(ipefile,'(a,i8/3(f15.5))') 'Slice  ions:', nslice, &
 !          (xslice(i),yslice(i),zslice(i),i=1,nslice)
      npp = npp+nadd
 

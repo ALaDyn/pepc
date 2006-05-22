@@ -42,7 +42,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   real*8 :: c_status
   real, dimension(1:3) :: r_temp
   real :: pi=3.141592654
-  logical :: start_debug=.true.
+  logical :: start_debug=.false.
 
   iseed1 = -1 - label_off      ! Select seed depending on PE and offset
 

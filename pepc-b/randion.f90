@@ -25,7 +25,7 @@ subroutine randion
     iseed1 = -11 - me      ! Select seed depending on PE
     iseed2 = -1001 - me      ! Select seed depending on PE
     iseed3 = -2111 - me      ! Select seed depending on PE
-    write (ipefile, '(a,3i8)') 'Seeds: ', iseed1, iseed2, iseed3
+    if (debug_level>1) write (ipefile, '(a,3i8)') 'Seeds: ', iseed1, iseed2, iseed3
     
     !  Initialise particles according to target geometry
     !       0 = random slab
