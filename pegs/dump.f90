@@ -29,13 +29,14 @@ subroutine dump(timestamp)
   simtime = dt*timestamp
 
   ! Filename (directory) prefix
-  cme = "pe"// achar(me/100+48) // achar(mod(me/10,10)+48) // achar(mod(me,10)+48)  
-
   ! get filename suffix from dump counter
   do i=0,4
      cdump(6-i:6-i) =  achar(mod(timestamp/10**i,10) + 48)  
   end do
   cdump(1:1) = achar(timestamp/10**5 + 48)
+
+
+
 
 
 
@@ -85,7 +86,7 @@ subroutine dump(timestamp)
 
   ! Write particle header local CPU
 
-  cfile=cme//"/parts_info."//cdump(1:6)
+  cfile="data/pe"//csubme//"/parts_info."//cdump(1:6)
 
   open (60,file=cfile)    
   write(60,'(i8,a20)')timestamp,'     !itime'
@@ -96,7 +97,8 @@ subroutine dump(timestamp)
 
   !  Dump particles
 
-  cfile=cme//"/parts_dump."//cdump(1:6)
+  cfile="data/pe"//csubme//"/parts_dump."//cdump(1:6)
+
   open (60,file=cfile) 
   write(60,'((12(1pe14.5),2i9))')  &
        (x(i), y(i), z(i), ux(i), uy(i), uz(i), q(i), m(i), &

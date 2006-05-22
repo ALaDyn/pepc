@@ -63,7 +63,7 @@ subroutine forces(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, balance
   character(4) :: cme
   integer :: key2addr        ! Mapping function to get hash table address from key
 
-    force_debug=.true.
+  !  force_debug=.true.
   !  tree_debug=.false.
   !  build_debug=.false.
   !  domain_debug = .false.

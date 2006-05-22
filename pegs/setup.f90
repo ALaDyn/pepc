@@ -36,7 +36,7 @@ subroutine setup
 
   ! switches
 
-  debug_tree=2
+  debug_tree=1
   initial_config = 1         ! random sphere
 
   ! particles
@@ -109,8 +109,12 @@ subroutine setup
      !    write(*,'(3(a9,f12.2))') "mdisc ",mdisc,"  eps ",eps,"  theta",theta
      close(80)
 
-   write(6,'(/a/a/a,i5)') 'RESTART:','Read run data from info block: parts_info.in','Timestep:',itime_start
-
+     if (itime_start==0) then
+        nmerge=-1
+        write(6,'(/a/a/a,i5)') 'NEW RUN:','Read run data from info block: parts_info.in','Timestep:',itime_start
+     else
+        write(6,'(/a/a/a,i5)') 'RESTART:','Read run data from info block: parts_info.in','Timestep:',itime_start
+     endif
      trun = itime_start*dt
 
   endif
@@ -142,6 +146,12 @@ subroutine setup
   call MPI_BCAST( iprot, 1, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( nmerge, 1, MPI_INTEGER, root, MPI_COMM_WORLD,ierr)
 
+
+
+! Field arrays
+  allocate (rhoe(0:ngx+1,0:ngy+1,0:ngz+1), rhoi(0:ngx+1,0:ngy+1,0:ngz+1), &
+       phi_g(0:ngx+1,0:ngy+1,0:ngz+1),Ex_g(0:ngx+1,0:ngy+1,0:ngz+1), &
+       Ey_g(0:ngx+1,0:ngy+1,0:ngz+1),Ez_g(0:ngx+1,0:ngy+1,0:ngz+1) )
 
 
 end subroutine setup

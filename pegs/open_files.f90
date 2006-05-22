@@ -5,7 +5,6 @@ subroutine openfiles
 
   character(30) :: cfile
   character(1) :: csnap
-  character(4) :: csubme
 
   if (my_rank == 0) then
      !  master diagnostics output
@@ -23,6 +22,7 @@ subroutine openfiles
        // achar(mod(my_rank/100,10)+48) &
        // achar(mod(my_rank/10,10)+48) &
        // achar(mod(my_rank,10)+48)  ! Convert 4-digit PE number into character string
+
   cfile="data/pe"//csubme//"/dump."//csubme
 !  write (*,'(a3,i6,a15,a30)') 'PE ',my_rank,' opening ',cfile
   open(20,file=cfile)

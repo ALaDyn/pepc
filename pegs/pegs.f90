@@ -53,6 +53,7 @@ program pegs
   call setup_stars
 
   call dump_inputs
+  call cputime(t0)
 
   do itime = 1,nt
      trun = trun + dt
@@ -71,9 +72,9 @@ program pegs
           t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot) 
 
 
-     if (my_rank==0) write(*,*) 'Computing star forces ...'
+!     if (my_rank==0) write(*,*) 'Computing star forces ...'
      call stars(dt)
-     if (my_rank==0) write(*,*) '... done'
+!     if (my_rank==0) write(*,*) '... done'
      call cputime(t_start_push)
      call velocities(1,np_local,dt)
      call push(1,np_local,dt)
@@ -83,26 +84,24 @@ program pegs
      call diagnostics
      call cputime(t_diag)
      call cputime(tend)
-     ttot=tend-t0
+     t_diag=t_diag-t_push
+     t_push=t_push-t_start_push
+     ttot=t_domain+t_build+t_walk+t_walkc+t_prefetch+t_force+t_push+t_diag
 
      if (my_rank==0 .and. mod(itime,iprot)==0) then
         do ifile=6,15,9
            write(ifile,'(//a/)') 'Timing:  Routine   time(s)  percentage'
-           write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain-t0,100*(t_domain-t0)/ttot
-           write(ifile,'(a20,2f12.3,a1)') 'Build: ',t_build-t_domain,100*(t_build-t_domain)/ttot
-           write(ifile,'(a20,2f12.3,a1)') 'Branches: ',t_branch-t_build,100*(t_branch-t_build)/ttot
-           write(ifile,'(a20,2f12.3,a1)') 'Fill: ',t_fill-t_branch,100*(t_fill-t_branch)/ttot
-           write(ifile,'(a20,2f12.3,a1)') 'Props: ',t_props-t_fill,100*(t_props-t_fill)/ttot
-           write(ifile,'(a20,2f12.3,a1)') 'Prefetch: ',t_prefetch-t_props,100*(t_prefetch-t_props)/ttot
-           write(ifile,'(a20,2f12.3,a1)') 'Walk: ',t_walk,100*t_walk/ttot
+           write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain,100*(t_domain)/ttot
+           write(ifile,'(a20,2f12.3,a1)') 'Build: ',t_build,100*t_build/ttot
+           write(ifile,'(a20,2f12.3,a1)') 'Walk local: ',t_walk,100*t_walk/ttot
+           write(ifile,'(a20,2f12.3,a1)') 'Walk comm: ',t_walkc,100*t_walkc/ttot
+           write(ifile,'(a20,2f12.3,a1)') 'Prefetch: ',t_prefetch,100*t_prefetch/ttot
            write(ifile,'(a20,2f12.3,a1)') 'Forces: ',t_force,100*t_force/ttot
-           write(ifile,'(a20,2f12.3,a1)') 'Keys+domains: ',t_domain-t0,100*(t_domain-t0)/ttot
-           write(ifile,'(a20,2f12.3,a1)') 'Build+props: ',t_prefetch-t_domain,100*(t_prefetch-t_domain)/ttot
-           write(ifile,'(a20,2f12.3,a1)') 'Pusher: ',t_push-t_start_push,100*(t_push-t_start_push)/ttot
-           write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag-t_push,100*(t_diag-t_push)/ttot
+           write(ifile,'(a20,2f12.3,a1)') 'Pusher: ',t_push,100*t_push/ttot
+           write(ifile,'(a20,2f12.3,a1)') 'Diagnostics: ',t_diag,100*t_diag/ttot
 
            write(ifile,'(a20,2f12.4,a1)') 'Total: ',ttot,100.
-           write(ifile,'(a20,i4,5f12.3)') 'Timing format: ',n_cpu,t_domain-t0,t_props-t_domain,t_walk,t_force,ttot
+           write(ifile,'(a20,i4,7f12.3)') 'Timing format: ',n_cpu,t_domain,t_build,t_walk,t_walkc,t_prefetch,t_force,ttot
         end do
      endif
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up

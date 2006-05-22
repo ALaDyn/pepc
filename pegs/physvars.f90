@@ -93,7 +93,7 @@ module physvars
   integer :: np_local
   integer :: npart_total
   integer :: ifile_cpu
-
+  character*4 :: csubme ! Character string of particle data subdirectory 'data/peNNNN'
 
 ! tree stuff
   integer :: walk_scheme=0
