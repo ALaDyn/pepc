@@ -57,13 +57,13 @@ program pegs
 
   do itime = 1,nt
      trun = trun + dt
-     if (my_rank==0 .and. mod(itime,iprot)==0) then
+     if (my_rank==0) then
         do ifile=6,15,9
-           write(ifile,'(//a,i8,a,f10.5)') 'Timestep ',itime+itime_start,' t=',(itime_start+itime)*dt
+           write(ifile,'(/a,i8,a,f10.5)') 'Timestep ',itime+itime_start,' t=',(itime_start+itime)*dt
         end do
      endif
 
-     ! Compute fields (accelerations) and potential of dust particles
+     ! Compute fields Ex(p),Ey(p),Ez(p) and potential pot(p) of dust particles
      ! Uses internal particle arrays from library (defined in pepc_setup)
      ! # particles and labelling on CPU may change due to re-sort
 

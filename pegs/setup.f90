@@ -36,7 +36,7 @@ subroutine setup
 
   ! switches
 
-  debug_tree=1
+  debug_tree=0
   initial_config = 1         ! random sphere
 
   ! particles

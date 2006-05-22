@@ -17,7 +17,7 @@ subroutine stars(delta_t)
   integer :: i,j,p, ierr
 
 
-  ! Forces from star on dust particles
+  ! Forces from star on dust particles: add to field sums from disc self-forces
     
      do p = 1,npp     
       do j=1,nstar
@@ -31,6 +31,7 @@ subroutine stars(delta_t)
        pot(p) = pot(p)-gamma*m_star(j)/dists  ! potential contribution
       end do
      end do
+
 
   !
   ! STAR  STAR  STAR  STAR  STAR  STAR  STAR  STAR  STAR  STAR 
@@ -58,14 +59,13 @@ subroutine stars(delta_t)
 
  !         write(6,*)"star1 without",ax_star(1),ay_star(1),az_star(1),pot_star(1)
  !         write(6,*)"star2 without",ax_star(2),ay_star(2),az_star(2),pot_star(2)
+
+
   !
   ! DISC  DISC  DISC  DISC  DISC  DISC  DISC  DISC  DISC  DISC  DISC 
   !
   ! Distance between star and particle
-
   ! initialise partial sums over own disc particles: 1..npp
-
-
 
   do i=1,nstar
      ax_partial = 0.
@@ -109,7 +109,7 @@ subroutine stars(delta_t)
   !        write(6,*)"star2",ax_star(2),ay_star(2),az_star(2),pot_star(2)
   !        stop
 
-  !  Velocities
+  !  Star velocities
 
   do i = 1,nstar
      ux_star(i) = ux_star(i) + delta_t * ax_star(i)
@@ -125,9 +125,6 @@ subroutine stars(delta_t)
      z_star(p) = z_star(p) + uz_star(p)*delta_t
   end do
   !  write(16,*)x_star(1),y_star(1),z_star(1),x_star(2),y_star(2),z_star(2)
-
-
-
 
 
 end subroutine stars

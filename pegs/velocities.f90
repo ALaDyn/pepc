@@ -26,9 +26,9 @@ subroutine velocities(p_start,p_finish,delta_t)
      ! unconstrained motion by default
 
      do p = p_start, p_finish
-	ux(p) = ux(p) + delta_t * ax(p)
-	uy(p) = uy(p) + delta_t * ay(p)
-	uz(p) = uz(p) + delta_t * az(p)
+	ux(p) = ux(p) + delta_t * ex(p)
+	uy(p) = uy(p) + delta_t * ey(p)
+	uz(p) = uz(p) + delta_t * ez(p)
      end do
 
 

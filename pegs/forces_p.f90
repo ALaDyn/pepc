@@ -87,7 +87,7 @@ subroutine forces(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, balance
   endif
 
   if (mod(itime-1,ifreeze)==0) then
-     if (me==0) write (*,'(a23)') 'LPEPC | REBUILDING TREE'
+     if (me==0 .and. walk_summary) write (*,'(a23)') 'LPEPC | REBUILDING TREE'
      !    stop
      call cputime(td1)
 
@@ -105,7 +105,7 @@ subroutine forces(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, balance
      t_build = tp1-tb1
 
   else 
-     if (me==0) write (*,'(a19)') 'LPEPC | FREEZE MODE'
+     if (me==0 .and. walk_summary) write (*,'(a19)') 'LPEPC | FREEZE MODE'
      t_domain=0.
      t_build=0.
   endif
@@ -237,15 +237,6 @@ subroutine forces(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, balance
         Ey(p) = 0.
         Ez(p) = 0.
         pot(p) = 0.
-        Axo(p) = Ax(p)
-        Ayo(p) = Ay(p)
-        Azo(p) = Az(p)
-        Ax(p) = 0.
-        Ay(p) = 0.
-        Az(p) = 0.
-        Bx(p) = 0.
-        By(p) = 0.
-        Bz(p) = 0.
 
         !  compute Coulomb fields and potential of particle p from its interaction list
 
