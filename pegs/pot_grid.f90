@@ -89,10 +89,10 @@ subroutine pot_grid
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
   ! Gather sum on root
-  call MPI_REDUCE(phi_loc, phi_g, ng, MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr)
-  call MPI_REDUCE(Egx_loc, Ex_g, ng, MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr)
-  call MPI_REDUCE(Egy_loc, Ey_g, ng, MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr)
-  call MPI_REDUCE(Egz_loc, Ez_g, ng, MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr)
+  call MPI_REDUCE(phi_loc, phi_g, ng, MPI_REAL, MPI_SUM, root, MPI_COMM_WORLD, ierr)
+  call MPI_REDUCE(Egx_loc, Ex_g, ng, MPI_REAL, MPI_SUM, root, MPI_COMM_WORLD, ierr)
+  call MPI_REDUCE(Egy_loc, Ey_g, ng, MPI_REAL, MPI_SUM, root, MPI_COMM_WORLD, ierr)
+  call MPI_REDUCE(Egz_loc, Ez_g, ng, MPI_REAL, MPI_SUM, root, MPI_COMM_WORLD, ierr)
 
 
 end subroutine pot_grid

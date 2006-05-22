@@ -15,7 +15,7 @@ subroutine energy_cons
 
   implicit none
 
-  real :: epot_dust, epot_star, ekin_dust, ekin_star,  etot, Qplas, conv_e
+  real*8 :: epot_dust, epot_star, ekin_dust, ekin_star,  etot, conv_e
   integer :: ifile
 
   call potenergy(epot_dust,epot_star)

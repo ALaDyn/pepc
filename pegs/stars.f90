@@ -9,11 +9,11 @@ subroutine stars(delta_t)
 
 
   real, intent(in) :: delta_t
-  real :: dxstar,dystar,dzstar,dr,dxpart,dypart,dzpart,drpart
-  real :: distx, disty, distz, dists
-  real, dimension(2) :: ax_star, ay_star, az_star
-  real :: ax_partial, ay_partial, az_partial, pot_partial  ! partial sums
-  real :: ax_sum, ay_sum, az_sum, pot_sum  ! global sums
+  real*8 :: dxstar,dystar,dzstar,dr,dxpart,dypart,dzpart,drpart
+  real*8 :: distx, disty, distz, dists
+  real*8, dimension(2) :: ax_star, ay_star, az_star
+  real*8 :: ax_partial, ay_partial, az_partial, pot_partial  ! partial sums
+  real*8 :: ax_sum, ay_sum, az_sum, pot_sum  ! global sums
   integer :: i,j,p, ierr
 
 

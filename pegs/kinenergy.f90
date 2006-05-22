@@ -16,8 +16,8 @@ subroutine kinenergy(ekin_dust,ekin_star)
   include 'mpif.h'
 
   integer :: p,i, ierr
-  real :: ekin_dust, ekin_star, sum_dust, sum_star, u2
-  real, dimension(nppm) :: uhx, uhy, uhz
+  real*8 :: ekin_dust, ekin_star, sum_dust, sum_star, u2
+  real*8, dimension(nppm) :: uhx, uhy, uhz
 
   sum_dust = 0.
   sum_star = 0.

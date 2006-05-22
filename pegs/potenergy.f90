@@ -23,7 +23,7 @@ subroutine potenergy(epot_dust,epot_star)
 
   integer :: p, i, j, ierr 
 
-  real :: upartial, epot_dust, epot_total, epot_star
+  real*8 :: upartial, epot_dust, epot_total, epot_star
   logical :: pot_debug=.false.
 
   epot_total = 0.  ! Global potential energy
