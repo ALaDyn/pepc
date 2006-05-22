@@ -81,6 +81,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
        istart, ic_start, &     ! # fenceposts
        nplace,&                ! # children (new entries) to place in table
        nchild_ship       ! # children shipped to others
+  integer, dimension(num_pe) :: send_key_handle, recv_key_handle
+  integer, dimension(size_fetch) :: send_child_handle, recv_child_handle
 
   ! Key working vars
   integer*8 :: node_key, add_key, walk_next, kchild, kparent, search_key,  nxchild
@@ -106,8 +108,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
   integer :: nrest, ndef
   integer :: ierr, nbuf, status(MPI_STATUS_SIZE)
   integer :: tag1=40
-  integer, dimension(num_pe) :: send_key_handle, recv_key_handle
-  integer, dimension(2*nppm) :: send_child_handle, recv_child_handle
 
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: key2addr_db        ! Mapping function to get hash table address from key

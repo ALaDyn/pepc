@@ -371,7 +371,6 @@ contains
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    kw1,kw2,kred      ! work arrays
     integer :: pbin(nppm)
-    logical :: finished(nppm)
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
     logical, intent(in) :: debug
     integer, intent(in) :: balance
@@ -399,6 +398,7 @@ contains
     real, dimension(maxbin)  :: f_local, f_global, f_final
     integer*8, dimension(maxbin) ::  search_list, retain_list, bin_list
     integer, dimension(maxbin) :: index_bin
+    logical :: finished(maxbin)
     integer :: ilev, p, np_left, new_bins, nfbins
     character(13) :: cfmt
     integer, save :: icall
@@ -452,7 +452,7 @@ search_list = 8_8**lev_map  ! place holder
     if (nprocs==1) then
        alpha=1.
     else
-       alpha=0.03
+       alpha=0.05
     endif
 
     if (debug.and.iproc==proc_debug) then
@@ -741,7 +741,7 @@ search_list = 8_8**lev_map  ! place holder
     integer, intent(in) :: nppm,np,nprocs,iproc
     real*8, intent(in) :: wload(nppm)  ! particle work loads
     integer, intent(out) :: npnew
-    integer, parameter :: binmult=6000000   !TODO: need to reduce size of f() arrays
+    integer, parameter :: binmult=100000   !TODO: need to reduce size of f() arrays
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    kw1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 

@@ -51,8 +51,13 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   endif
 
-  npartm = npart 
-  nppm = abs(np_mult)*5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+  npartm = npart
+  if (np_mult>0) then 
+    nppm = abs(np_mult)*5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+  else
+    nppm = 3*max(npartm/num_pe,1000) ! allow 50% fluctuation
+  endif
+  
   nshortm = 800    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
@@ -70,17 +75,16 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
-   npsize=5*nppm
    npsize=nppm
    size_tree = max(4*nintmax+npsize,10000)
    if (np_mult>0) then
      nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
      maxaddress = 2**nbaddr
    else
-     nbaddr = 16   ! fixed address range
+     nbaddr = 17   ! fixed address range
      maxaddress = abs(np_mult)*10000
    endif
-   size_fetch = fetch_mult*size_tree
+   size_fetch = fetch_mult*size_tree/2
 !   nbranch_max = maxaddress/2
    nbranch_max = 4*nintmax*max(1.,log(1.*num_pe))
    if (num_pe==1) size_fetch=size_tree
