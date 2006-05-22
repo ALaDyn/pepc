@@ -73,7 +73,7 @@ subroutine diagnose_tree
   write (ipefile,'(/a/a/(3i5,2o15,2i8,z4,i2,o15,i5,10(1pe15.4)))') 'Twigs from hash-table:', &
        '    i  level  owner   key    parent-key    #     node     code    #c  1st child    #leaves ', &
        (i,node_level(ind_twig(i)), &              !  index, level
-         htable( key2addr( key_twig(i) ) )%owner, &                            ! Owner-PE of node
+         htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%owner, &                            ! Owner-PE of node
          key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
          addr_twig(i), ind_twig(i), &    ! Table address and node number
          child_twig(i), &                         ! Children byte-code 
@@ -131,8 +131,8 @@ subroutine diagnose_tree
   write(ipefile,'(//a)') 'Interaction lists'
   do i=1,npp
      write(ipefile,'(//a,i5,a,i5)') 'Particle ',pelabel(i),' # terms: ',nterm(i)
-     write(ipefile,'(a/(4i7))') 'List: key,owner,node',(intlist(j,i),htable( key2addr( intlist(j,i) ) )%owner &
-          ,htable( key2addr( intlist(j,i) ) )%node,nodelist(j,i),j=1,nterm(i))
+     write(ipefile,'(a/(4i7))') 'List: key,owner,node',(intlist(j,i),htable( key2addr( intlist(j,i),'DIAGNOSE_TREE' ) )%owner &
+          ,htable( key2addr( intlist(j,i),'DIAGNOSE_TREE' ) )%node,nodelist(j,i),j=1,nterm(i))
   end do
 
 

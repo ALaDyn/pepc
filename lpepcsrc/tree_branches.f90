@@ -77,15 +77,15 @@ subroutine tree_branches
 
         do i=1,nsubset
            treelevel  = log(1.*search_key(i))/log(8.)     ! node levels
-           if ( (search_key(i) > keymin .and. search_key(i) < keymax .and. treelevel>=startlevel) .or. ( htable( key2addr( search_key(i) ) )%node > 0 )) then
+           if ( (search_key(i) > keymin .and. search_key(i) < keymax .and. treelevel>=startlevel) .or. ( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
               !  either middle node (complete twig),  or leaf:  so add to domain list
               nbranch = nbranch + 1
               pebranch(nbranch) = search_key(i)
-              ncheck = ncheck +  htable( key2addr( search_key(i) ) )%leaves  ! Augment checksum
+              ncheck = ncheck +  htable( key2addr( search_key(i),'BRANCHES: ncheck' ) )%leaves  ! Augment checksum
 
            else 
               ! end node: check for complete twigs; otherwise subdivide
-              cchild = htable( key2addr( search_key(i) ) )%childcode   !  Children byte-code
+              cchild = htable( key2addr( search_key(i),'BRANCHES: cchild' ) )%childcode   !  Children byte-code
 
               nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
               sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract sub key from byte code
@@ -102,9 +102,9 @@ subroutine tree_branches
            write (ipefile,'(/a,i7,a,i7/a/(i5,o16,i6,z5,i8))') 'Branches at level:',level, ' Checksum: ',ncheck, &
                 '    i      key         node     code     #leaves', &
                 (i,search_key(i), &
-                htable( key2addr( search_key(i) ) )%node, &                         ! Node #
-                htable( key2addr( search_key(i) ) )%childcode, &                         ! Children byte-code 
-                htable( key2addr( search_key(i) ) )%leaves, &                           ! # leaves contained in branch 
+                htable( key2addr( search_key(i),'BRANCHES: debug' ) )%node, &                         ! Node #
+                htable( key2addr( search_key(i),'BRANCHES: debug' ) )%childcode, &                         ! Children byte-code 
+                htable( key2addr( search_key(i),'BRANCHES:debug' ) )%leaves, &                           ! # leaves contained in branch 
                 i=1,nsubset)
         endif
 
@@ -120,9 +120,9 @@ subroutine tree_branches
   ! Extract info about branches
 
   do i=1, nbranch
-     local_node(i) = htable( key2addr( pebranch(i) ) )%node                       ! Node #
-     local_code(i) =  htable( key2addr( pebranch(i) ) )%childcode               ! Children byte-code 
-     local_leaves(i) = htable( key2addr( pebranch(i) ) )%leaves             ! # leaves contained in branch 
+     local_node(i) = htable( key2addr( pebranch(i),'BRANCHES: info' ) )%node                       ! Node #
+     local_code(i) =  htable( key2addr( pebranch(i),'BRANCHES: info' ) )%childcode               ! Children byte-code 
+     local_leaves(i) = htable( key2addr( pebranch(i),'BRANCHES: info' ) )%leaves             ! # leaves contained in branch 
   end do
 
   if (ncheck > nleaf) then

@@ -19,12 +19,12 @@ function key2addr(keyin,cmark)
   integer :: cell_addr, link_addr, ires,i, ierr, iret
   logical :: resolved
   character*20 cmark
-  integer :: key2addr_db 
+  integer :: key2addr
 
   cell_addr = IAND( keyin, hashconst)     ! cell address hash function
 
   if ( htable( cell_addr )%key == keyin ) then
-     key2addr_db = cell_addr       ! Keys match -> found entry
+     key2addr = cell_addr       ! Keys match -> found entry
      return
   else
      resolved = .false.
@@ -45,7 +45,7 @@ function key2addr(keyin,cmark)
         endif
         ires = ires + 1
         if ( htable( link_addr )%key == keyin ) then
-           key2addr_db = link_addr      ! Keys match -> found entry
+           key2addr = link_addr      ! Keys match -> found entry
            return
         endif
      end do

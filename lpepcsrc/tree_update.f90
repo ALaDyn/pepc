@@ -49,7 +49,6 @@ subroutine tree_update(itime)
 
   ! external functions
   integer :: key2addr        ! Mapping function to get hash table address from key
-  integer :: key2addr_db        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
   logical :: update_debug=.false.
@@ -108,14 +107,14 @@ subroutine tree_update(itime)
 
   do i=1,sum_ships
         ship_key = sort_reqs(i)
-        ship_address = key2addr_db(ship_key,'UPDATE: pack1 ')  ! # address
+        ship_address = key2addr(ship_key,'UPDATE: pack1 ')  ! # address
         ship_node = htable(ship_address)%node
         ship_byte = IAND( htable( ship_address )%childcode,255 ) ! Catch lowest 8 bits of childbyte - filter off requested and here flags 
         ship_leaves = htable( ship_address )%leaves                    ! # contained leaves
 
         !  Need to reset ship_next=-1 if node is last of children
         kparent = ishft(ship_key ,-3 )
-        addr_parent = key2addr_db(kparent,'UPDATE: pack2 ')
+        addr_parent = key2addr(kparent,'UPDATE: pack2 ')
         child_byte = htable( addr_parent )%childcode            !  Children byte-code
         nchild = SUM( (/ (ibits(child_byte,j,1),j=0,7) /) )       ! # children = sum of bits in byte-code
         child_sub(1:nchild) = pack( bitarr, mask=(/ (btest(child_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
@@ -175,7 +174,7 @@ subroutine tree_update(itime)
 !        call make_hashentry( recv_key, nodchild, recv_leaves, recv_byte, ipe, hashaddr, ierr )
 !	key_present = key_local(recv_key)
 
-     	node_addr = key2addr_db(recv_key,'UPDATE: MNHE ')
+     	node_addr = key2addr(recv_key,'UPDATE: MNHE ')
 	nodchild = htable(node_addr)%node
 
         ! Physical properties

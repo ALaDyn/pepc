@@ -377,7 +377,7 @@ subroutine tree_build
   do i=1,nnodes-1
      childbyte = IAND( treekey(i), hashchild)    ! extract last 3 bits from key
      parent_key = ishft( treekey(i),-3 )      ! parent key
-     parent_addr = key2addr(parent_key)
+     parent_addr = key2addr(parent_key,'BUILD: childbyte')
      ! Construct children byte-code (8 settable bits indicating which children nodes present)
      htable(parent_addr)%childcode = ibset( htable(parent_addr)%childcode, childbyte )
 ! This is equivalent to:

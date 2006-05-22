@@ -85,7 +85,7 @@ subroutine tree_fill
         if ( ierr == 1 ) then     
            ! keys match, so node already exists locally
            ! Set child-bit in existing parent byte-code
-           hashaddr = key2addr( parent_key(i) )
+           hashaddr = key2addr( parent_key(i),'FILL: sweep1'  )
            htable( hashaddr )%childcode = IBSET( htable( hashaddr )%childcode, child_bit )
 
         else if (ierr == 0 ) then
@@ -117,7 +117,7 @@ subroutine tree_fill
 
 
   do i=1,ntwig_me
-    hashaddr = key2addr( twig_key(i) )                         !  Table address
+    hashaddr = key2addr( twig_key(i),'FILL: twigs' )                         !  Table address
     htable( hashaddr )%leaves = 0                                                ! Reset # leaves to zero for recount including non-local branches
     htable( hashaddr )%childcode =  IBSET( htable( hashaddr )%childcode,9 ) ! Set children_HERE flag for all local twig nodes
   end do
@@ -130,14 +130,14 @@ subroutine tree_fill
 
 
   tree_node(1) = -1  ! root node #
-  cell_addr(1) = key2addr(1_8)
+  cell_addr(1) = key2addr(1_8,'FILL: root')
 
   do i=2,nnodes
-    hashaddr = key2addr( treekey(i) )
+    hashaddr = key2addr( treekey(i),'FILL: nodes' )
     cell_addr(i) = hashaddr 
     tree_node(i) =  htable( hashaddr )%node                     ! node property pointers
     parent_key(i) = ishft(treekey(i),-3 )                    ! Parent keys, skipping root
-    parent_addr(i) =  key2addr( parent_key(i) )                 ! parents' #table addresses
+    parent_addr(i) =  key2addr( parent_key(i),'FILL: node par' )                 ! parents' #table addresses
   end do
 
 

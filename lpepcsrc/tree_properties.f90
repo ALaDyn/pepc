@@ -76,7 +76,7 @@ subroutine tree_properties
 
   ! key_leaf(1:nleaf_me) =  pack(htable%key, mask = (htable%node > 0 .and. htable%owner == me) )  ! local leaf keys (could be predefined
   do i=1, nleaf_me
-     addr_leaf = key2addr( leaf_key(i) )   !  Table address
+     addr_leaf = key2addr( leaf_key(i),'PROPERTIES: local' )   !  Table address
      p_leaf = htable( addr_leaf )%node   !  Local particle index  - points to properties on PE
      node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves 
 
@@ -133,7 +133,7 @@ subroutine tree_properties
   do while ( ncheck < nleaf_me )     ! Repeat until all local leaves found
 
      do i=1,nsearch
-        if (  htable( key2addr( search_key(i) ) )%node > 0 ) then
+        if (  htable( key2addr( search_key(i),'PROPERTIES: twigs' ) )%node > 0 ) then
            !  leaf,  so skip and increment checksum
            ncheck = ncheck +  1  
 
@@ -142,7 +142,7 @@ subroutine tree_properties
            ntwig_domain = ntwig_domain + 1
            key_twig(ntwig_domain) = search_key(i)
 
-           cchild = htable( key2addr( search_key(i) ) )%childcode   !  Children byte-code
+           cchild = htable( key2addr( search_key(i),'PROPERTIES: tw2' ) )%childcode   !  Children byte-code
            nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
            sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code
 
@@ -166,7 +166,7 @@ subroutine tree_properties
   endif
 
   do i=1,ntwig_domain
-     addr_twig = key2addr( key_twig(i) )   !  Table address
+     addr_twig = key2addr( key_twig(i),'PROPERTIES: domain' )   !  Table address
      node_twig(i) = htable( addr_twig )%node   !  Twig node index  
      child_twig(i) = htable( addr_twig )%childcode   !  Twig children byte-code 
   end do
@@ -180,7 +180,7 @@ subroutine tree_properties
 
      do j=1,nchild
         key_child(j) = IOR( ishft( key_twig(i),3 ), sub_key(j) )      ! Construct keys of children
-        addr_child = key2addr( key_child(j) )             ! Table address of children
+        addr_child = key2addr( key_child(j),'PROPERTIES: domain2' )             ! Table address of children
         node_child(j) = htable( addr_child )%node                     ! Child node index  
      end do
 
@@ -251,7 +251,7 @@ subroutine tree_properties
   ! By definition, this is complete: each branch node is self-contained.
   ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
 
-  local_node(1:nbranch) =  (/ ( htable( key2addr( pebranch(i) ) )%node, i=1,nbranch ) /)    ! Node #s of local branches
+  local_node(1:nbranch) =  (/ ( htable( key2addr( pebranch(i),'PROPERTIES: branch' ) )%node, i=1,nbranch ) /)    ! Node #s of local branches
 
   ! Prepare properties for broadcast
 
@@ -303,7 +303,7 @@ subroutine tree_properties
   do i=1,nbranch_sum
      ibr = (i-1)*n_moments
      if (branch_owner(i) /= me) then
-        node_b = htable( key2addr( branch_key(i) ))%node   !  branch node index: already defined in MAKE_BRANCHES
+        node_b = htable( key2addr( branch_key(i),'PROPERTIES: branch copy' ))%node   !  branch node index: already defined in MAKE_BRANCHES
         charge( node_b ) = branch_moments(ibr+1)      ! Copy collected remote branch props into main arrays
         abs_charge( node_b ) = branch_moments(ibr+2)  
         xcoc( node_b ) = branch_moments(ibr+3)  
@@ -354,11 +354,11 @@ subroutine tree_properties
      sum_key(1:nuniq) = pack(sum_key(1:nsub), mask = duplicate(1:nsub))        ! Compress list
 
      do i=1,nuniq
-        branch_addr(i) = key2addr( sum_key(i) )   !  branches' #table addresses
+        branch_addr(i) = key2addr( sum_key(i),'PROPERTIES: fill' )   !  branches' #table addresses
         branch_node(i) =  htable( branch_addr(i ) )%node
 
         parent_key(i) = ISHFT( sum_key(i),-3 )                ! parent keys
-        parent_addr(i) = key2addr( parent_key(i) )   ! parents' #table addresses
+        parent_addr(i) = key2addr( parent_key(i),'PROPERTIES:fill' )   ! parents' #table addresses
         parent_node(i) =  htable( parent_addr(i) )%node          ! parents' node numbers
      end do
 

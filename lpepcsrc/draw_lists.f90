@@ -67,7 +67,7 @@ subroutine draw_lists
 
   ! get keys of twig nodes from hash table
   key_list(1:nlist) = intlist(1:nlist,ip)
-  addr_list(1:nlist) = (/ ( key2addr( key_list(i) ),i=1,nlist) /)   !  Table address
+  addr_list(1:nlist) = (/ ( key2addr( key_list(i),'DRAW_LISTS' ),i=1,nlist) /)   !  Table address
 
   ! get levels of twigs
   level_list(1:nlist) = log( 1.*key_list(1:nlist) )/log(8.)
