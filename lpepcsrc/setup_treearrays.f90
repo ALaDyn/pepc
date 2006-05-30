@@ -85,8 +85,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
      maxaddress = abs(np_mult)*10000
    endif
    size_fetch = fetch_mult*size_tree/2
-!   nbranch_max = maxaddress/2
-   nbranch_max = 4*nintmax*max(1.,log(1.*num_pe))
+   nbranch_max = maxaddress/2
+!   nbranch_max = 4*nintmax*max(1.,log(1.*num_pe))
    if (num_pe==1) size_fetch=size_tree
 !  maxaddress = 512
    hashconst = 2**nbaddr-1

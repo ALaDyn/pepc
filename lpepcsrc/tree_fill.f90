@@ -25,16 +25,17 @@ subroutine tree_fill
   integer, dimension(nbranch_max) :: branch_level
   integer, dimension(maxaddress) :: twig_addr, twig_code,  cell_addr, tree_node, parent_addr
   integer, dimension(8) :: child_addr !  children nodes
+  logical :: duplicate(maxaddress), resolved, keymatch(8)
 
   integer*8 :: node_key, search_key, parent,  child_top
   integer :: maxlevel, ilevel, nsub,i,j,k, nparent, nuniq, child_byte, child_bit, nchild, link_addr, hashaddr
   integer :: maxtwig, maxleaf, nleaf_check, ntwig_check
   integer ::  node_addr, jmatch(1),  parent_node, parent_level, nodtwig
-  logical :: duplicate(maxaddress), resolved, keymatch(8)
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   integer :: ierr
 
+  tree_debug=.true.
   if (tree_debug) write(ipefile,'(/a)') 'TREE FILL'
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | FILL'
 
@@ -124,13 +125,26 @@ subroutine tree_fill
 
 
   treekey(1:ntwig) = pack(htable%key,mask = htable%node < 0)                                ! list of all twig keys excluding root
-  call sort(treekey(1:ntwig))                                                               ! Sort keys
+  if (me==1756) then 
+     do i=1,nnodes
+	write(*,'(i8,o20)') i,treekey(i)
+    end do
+  endif
 
+  call sort(treekey(1:ntwig))                                                               ! Sort keys
   treekey(ntwig+1:ntwig+nleaf) = pack(htable%key,mask = htable%node > 0)                    ! add list of leaf keys
 
-
+  if (me==1756) then 
+	write(*,*) 'After sort'
+     do i=1,nnodes
+	write(*,'(i8,o20)') i,treekey(i)
+    end do
+  endif
+call MPI_FINALIZE(ierr)
+  stop
   tree_node(1) = -1  ! root node #
   cell_addr(1) = key2addr(1_8,'FILL: root')
+ 
 
   do i=2,nnodes
     hashaddr = key2addr( treekey(i),'FILL: nodes' )

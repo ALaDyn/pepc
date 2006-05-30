@@ -20,8 +20,9 @@ subroutine tree_branches
 !  integer, parameter :: size_t=1000
   integer*8, dimension(nbranch_max) ::  resolve_key, search_key
   integer*8, dimension(8) :: sub_key   ! Child partial key
-
-  integer, dimension(5*nbranch_max/num_pe) ::  local_node, local_code, local_leaves  ! local branch data
+  integer, parameter :: nbranch_local_max=10000
+  integer, dimension(max(5*nbranch_max/num_pe,nbranch_local_max)) ::  local_node, local_code, local_leaves  ! local branch data
+!  integer, dimension(nbranch_max) ::  local_node, local_code, local_leaves  ! local branch data
   integer, dimension(nbranch_max) :: newentry, branch_node, branch_code, branch_leaves  ! global htable data for branches
   integer :: treelevel
 
@@ -37,6 +38,7 @@ subroutine tree_branches
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: startlevel = 2  ! Min permitted branch level
 
+  branch_debug=.true.
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
   if (tree_debug) call check_table('after treebuild     ')
