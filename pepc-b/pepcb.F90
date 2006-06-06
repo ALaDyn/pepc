@@ -36,7 +36,7 @@ program pepcb
   include 'mpif.h'
 
   ! timing stuff
-  real :: t0, t_key, t_domain, t_build, t_branch, t_fill, t_props, t_walk, t_walkc, t_en, t_force
+  real :: t0, t_key, t_domain, t_build(4), t_branch, t_fill, t_props, t_walk, t_walkc, t_en, t_force
   real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot, t_laser
   real :: t_loop, t_start_loop, t_end_loop, t_start_prog, t_end_prog
   real :: t_record(10000)
@@ -200,7 +200,7 @@ program pepcb
      t_diag = t_diag - t_laser
      t_laser = t_laser - t_push
      t_push = t_push - t_start_push
-     ttot = t_domain+t_build+t_prefetch+t_walkc+t_walk+t_force + t_push + t_laser
+     ttot = t_domain+SUM(t_build)+t_prefetch+t_walkc+t_walk+t_force + t_push + t_laser
      ops_per_sec = work_tot/ttot
 
      if (my_rank==0 .and. debug_level .ge.0 .and. mod(itime,iprot).eq.0) then
@@ -208,7 +208,10 @@ program pepcb
         do ifile = 6,15,9
         write(ifile,'(//a/)') 'Timing:  Routine   time(s)  percentage'
         write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain,100*t_domain/ttot
-        write(ifile,'(a20,2f12.3,a1)') 'Build: ',t_build,100*t_build/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Tree-build: ',t_build(1),100*t_build(1)/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Branches: ',t_build(2),100*t_build(2)/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Fill: ',t_build(3),100*t_build(3)/ttot
+        write(ifile,'(a20,2f12.3,a1)') 'Props: ',t_build(4),100*t_build(4)/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Prefetch: ',t_prefetch,100*t_prefetch/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Walk local: ',t_walk,100*t_walk/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Walk comm: ',t_walkc,100*t_walkc/ttot
@@ -219,7 +222,7 @@ program pepcb
         write(ifile,'(a20,2f12.3,a1)') 'Total: ',ttot,100.
         write(ifile,'(a20/a5,7a12/i5,7f12.3)') 'Timing format:', &
              ' #CPU','domains','build',' prefetch','walk-local','walk-comm','force','tot' &
-	  ,n_cpu,t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force,ttot
+	  ,n_cpu,t_domain,SUM(t_build),t_prefetch,t_walk,t_walkc,t_force,ttot
 	end do
         t_record(irecord) = ttot
      endif

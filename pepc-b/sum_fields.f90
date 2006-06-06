@@ -87,11 +87,11 @@ subroutine sum_fields
      fz1=1.-fz2
      !  gather charge at nearest grid points
      gamma = sqrt(1.0+ux(i)**2+uy(i)**2+uz(i)**2)
-     cweight = abs(q(i))*rdx*rdy*rdz/navcycle       ! charge weighting factor
+     cweight = abs(q(i))*rdx*rdy*rdz       ! charge weighting factor
 
-     jxweight = cweight*ux(i)/gamma/navcycle
-     jyweight = cweight*uy(i)/gamma/navcycle
-     jzweight = cweight*uz(i)/gamma/navcycle
+     jxweight = cweight*ux(i)/gamma
+     jyweight = cweight*uy(i)/gamma
+     jzweight = cweight*uz(i)/gamma
      tweight = (gamma-1.)  ! K.E. of particle in keV
      fr1 = sqrt(fx1**2+fy1**2+fz1**2+eps**2)
      fr2 = sqrt(fx2**2+fy2**2+fz2**2+eps**2)

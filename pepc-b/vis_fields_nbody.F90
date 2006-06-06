@@ -24,7 +24,7 @@ subroutine vis_fields_nbody(timestamp)
   integer, parameter :: ngmax=100
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, iskip,itlas
   integer, intent(in) :: timestamp
-  integer :: lvisit_active=0, ierr 
+  integer :: lvisit_active, ierr 
   integer :: npx, npy, npz, ng, jfoc, kfoc, nave
   real :: norm
   integer :: iskip_x, iskip_y, iskip_z
@@ -51,7 +51,15 @@ subroutine vis_fields_nbody(timestamp)
 
 #ifdef VISIT_NBODY
 ! Fetch user-selected config from vis
-  if (me==0 .and. lvisit_active.ne.0) call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
+  if (me==0 .and. lvisit_active.ne.0) then
+	call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
+  	write(*,*) 'Selection:',fselect1,fselect2,fselect3,fselect4
+	fselect1=1
+	fselect2=4
+	fselect3=5
+	fselect4=0
+
+  endif
 #endif
 
   ! get filename suffix from dump counter
@@ -64,12 +72,12 @@ subroutine vis_fields_nbody(timestamp)
   ! Merge sums for gridded fields 
 
 !  call MPI_ALLREDUCE(bz_loc(1:ngx,1:ngy,1:ngz), bzg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(rhoe_loc(1:ngx,1:ngy,1:ngz), rhoeg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+!  call MPI_ALLREDUCE(rhoe_loc(1:ngx,1:ngy,1:ngz), rhoeg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(rhoi_loc(1:ngx,1:ngy,1:ngz), rhoig, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(Te_loc(1:ngx,1:ngy,1:ngz), Telec, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(Ti_loc(1:ngx,1:ngy,1:ngz), Tion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+!  call MPI_ALLREDUCE(Ti_loc(1:ngx,1:ngy,1:ngz), Tion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(g_ele(1:ngx,1:ngy,1:ngz), ggelec, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLREDUCE(g_ion(1:ngx,1:ngy,1:ngz), ggion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+!  call MPI_ALLREDUCE(g_ion(1:ngx,1:ngy,1:ngz), ggion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
 
 ! Normalise temperatures & convert to keV
   Telec = 2./3.*Telec/ggelec
@@ -97,6 +105,7 @@ subroutine vis_fields_nbody(timestamp)
      npy = ngy
      npz = ngz
 
+  !   xl_laser = focus(1) + x_plasma/2. ! Reduced box size for laser
      dx = xl/ngx
      dz = zl/ngz
      dy = yl/ngy
@@ -221,6 +230,7 @@ subroutine vis_fields_nbody(timestamp)
 
 
 #ifdef VISIT_NBODY
+	write(*,*) 'VIS  confirm field select'
       call flvisit_nbody2_check_connection(lvisit_active)
 
 ! Tell vis which fields are coming

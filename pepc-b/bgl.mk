@@ -28,7 +28,7 @@ AR      = ar
 # use -qlist -qsource with 440d and look for Parallel ASM instructions.
 #
 #IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
-QTUNE = -O5 -qtune=440 -qarch=440d $(IPA)
+QTUNE = -O5 -qtune=440 -qarch=440d ## $(IPA)
 CFLAGS1= -O3 -g -I/opt/ibmcmp/vac/7.0/include -I/usr/include -I$(BGLSYS)/include -I$(BGLLOC)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
 BGLFLAGS= -I$(BGLSYS)/include -I$(BGLLOC)/include -L$(BGLSYS)/lib  $(QTUNE) 
 FFLAGS1 = $(BGLFLAGS) -qsuffix=f=f90 -qsuffix=cpp=F  -qnosave 

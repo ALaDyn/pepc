@@ -16,7 +16,7 @@ subroutine vis_control
 
   integer :: i, p, iseed1, iseed2, ierr
   real :: Volb, dpx, yt, zt, vosc_old, sigma_old, tpulse_old, u_old, theta_old, phi_old
-  integer :: lvisit_active=0
+  integer :: lvisit_active
   real :: ct, st, cp, sp, vx_beam, vy_beam, vz_beam, th_beam, xb, yb, zb
   logical :: beam_on = .true.
   logical :: beam_debug = .true.

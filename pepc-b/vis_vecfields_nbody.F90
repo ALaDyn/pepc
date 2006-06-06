@@ -50,6 +50,8 @@ subroutine vis_vecfields_nbody(timestamp)
 !  if (me==0 .and. lvisit_active.ne.0) call flvisit_nbody2_selectvector_recv(fselect)
 #endif
 
+  fselect=1  ! Manual select
+
   ! get filename suffix from dump counter
   do i=0,4
      cdump(6-i:6-i) =  achar(mod(timestamp/10**i,10) + 48)  
@@ -134,7 +136,7 @@ subroutine vis_vecfields_nbody(timestamp)
      grid_pars(6*i+6) = dz
 !   end do
 
-   call flvisit_nbody2_vecfielddesc_send(grid_pars,1,6)
+  call flvisit_nbody2_vecfielddesc_send(grid_pars,1,6)
 
 #ifdef NETCDFLIB
 !   if (netcdf) call ncnbody_putvecfielddesc( ncid, simtime, grid_pars, incdf )
@@ -146,7 +148,7 @@ subroutine vis_vecfields_nbody(timestamp)
        	 write (*,*) "VIS_NBODY | Shipping vector field 1: min/max =", &
 	minval(field1),maxval(field1)
 
-         call flvisit_nbody2_vecfield1_send(field1,3,npx,npy,npz)   
+       call flvisit_nbody2_vecfield1_send(field1,npx,npy,npz,3)   
 
 #ifdef NETCDFLIB
 !         if (netcdf) call ncnbody_putvecfield( ncid, simtime, 1, npx, npy, npz, field1, incdf )
