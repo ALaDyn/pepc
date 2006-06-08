@@ -13,7 +13,7 @@ subroutine configure
   implicit none
   include 'mpif.h'
 
-  integer :: i, ipe, jion, idummy=0, ierr, ifile
+  integer :: i, ipe, idummy=0, ierr, ifile
   real :: t_walk, t_walkc, t_force, t_domain,t_build,t_prefetch
   integer :: label_offset
   integer :: faces(maxlayers)
@@ -114,15 +114,15 @@ subroutine configure
 	write(*,*) "Setting up ion sphere"
      endif
 	target_geometry=1
-        velocity_config=0   ! Ions cold, electrons with vte
+        velocity_config=0   ! Ions cold, electrons with radial v0=vosc
         plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
 !        plasma_centre =  (/ 0., 0., 0. /) ! Centre of plasma
 	offset_e = me*nep + ne_rest
 	offset_i = ne + me*nip + ni_rest
 
  ! Electrons can be shifted by displace vector 
-        call plasma_start( 1, nep, ne, offset_e, target_geometry, 1, idim, &
-               -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
+        call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
+               -rho0, -1.0, 1.0, vosc, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
  
  ! Ions
@@ -193,52 +193,10 @@ subroutine configure
      a_ee = a_ee_shell
 
 
-     case(6)        ! Spherical cluster with Andreev profile
-!    ============================================
-!  r_sphere is radius of equivalent uniform sphere
-!  - used to define particle charges before stretching outer portion
+     case(10)  ! Add proton layer to slab
+!    ====================================
 
-     if (debug_level>=1 .and. me==0) then
-	write(*,*) "Setting up Andreev cluster"
-     endif
-
-	target_geometry=1
-        velocity_config=1   ! Ions cold, electrons with vte
-        plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
-!        plasma_centre =  (/ 0., 0., 0. /) ! Centre of plasma
-	offset_e = me*nep + ne_rest
-	offset_i = ne + me*nip + ni_rest
-
- 
- ! Ions
-        call plasma_start( nep+1, nip, ni, offset_i, target_geometry, 0, idim, &
-               rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
-               number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
-
-! create spherically symmetric cluster with Andreev profile
-! r_layer(1) is characteristic radius r0
-      
-        call cluster_sa(nep+1,nip,r_layer(1),r_sphere,qi,Qplas,plasma_centre)
-   
-
-! Electrons: use same geometry but reduced charge density
-! - should get qe=-qi
- 
-        call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
-               -rho0*ne/ni, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
-               number_faces, Vplas, Aplas, Q_layer(1), qe, mass_e, a_ee )
-
-! Stretch electron positions to match ions
-	do i=1,nep
-	   jion=min(nep+nip/nep*i,nep+nip)
-	   x(i) = x(jion)+eps
-	   y(i) = y(jion)+ eps
-	   z(i) = z(jion) + eps
-        end do
-
-     case(10)  ! Add proton layer to primary target - arbitrary geometry for both layers
-!    =====================================================================
-
+     target_geometry=0
      velocity_config=1
      plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
      offset_e = me*nep + ne_rest
@@ -270,16 +228,80 @@ subroutine configure
 
   	ipstart = nep+nip+1
 ! Place on rear of main slab 
-!	displace = (/ x_plasma/2.+x_layer(1)/2,0.,0. /)
+	displace = (/ x_plasma/2.+x_layer(1)/2,0.,0. /)
 	label_offset = ne+ni+me*nlayp+ni_rest 
 
  ! Equal number of neutralising electrons 
-        call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
+        call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
                -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
 	label_offset = ne+ni+n_layer(1) +me*nlayp + ne_rest 
-        call plasma_start( ipstart, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
+        call plasma_start( ipstart, nlayp, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+               rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+               faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+      
+    	if (debug_level==2 .and. me==0) then
+	  write(*,*) "proton charge ",qpart_layer(1)
+	  write(*,*) "proton mass ",mass_layer(1)
+	  write(*,*) "spacing",ai_layer(1)
+	endif
+
+
+       npp=npp + 2*nlayp  ! Total # local particles
+       ne = ne + n_layer(1)  ! Global # particles
+       ni = ni + n_layer(1)  ! Global # particles
+	npart = ni+ne
+
+      if (scheme /= 5 .and. ramp) then
+           call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
+      endif
+!********************************************************************************************
+     case(13)  ! Add proton layer to slab INSIDE the target
+!    ====================================
+
+     target_geometry=0
+     velocity_config=1
+     plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
+     offset_e = me*nep + ne_rest
+     offset_i = ne + me*nip + ni_rest
+
+ ! Electrons 
+        call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
+               -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
+ ! Ions
+        call plasma_start( nep+1, nip, ni, offset_i, target_geometry, velocity_config, idim, &
+               rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
+
+ ! Protons 
+! Adjust local numbers if total non-multiple of # PEs
+  	if (my_rank==0) then
+     		np_rest = mod(n_layer(1),n_cpu)
+   	else
+     		np_rest = 0
+  	endif
+
+  	nlayp = n_layer(1)/n_cpu + np_rest  ! total # protons on this CPU
+        nep0 = nlayp
+ !  Make particle numbers on root known (in case of unequal particle #s - need for label offset)
+  	call MPI_BCAST( nep0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+  	ne_rest = nep0-nlayp
+  	ni_rest = nep0-nlayp
+
+  	ipstart = nep+nip+1
+! Place on rear of main slab 
+	displace = (/ x_plasma/2.-x_layer(1)/2,0.,0. /)
+	label_offset = ne+ni+me*nlayp+ni_rest 
+
+ ! Equal number of neutralising electrons 
+        call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+               -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+               faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+
+	label_offset = ne+ni+n_layer(1) +me*nlayp + ne_rest 
+        call plasma_start( ipstart, nlayp, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
                rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
       
@@ -395,7 +417,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
      case(11)  ! Add proton disc to slab
 !    ====================================
 
-   if (debug_level>1) write(ipefile,'(/a/)') "Setting up main slab"
+   write(ipefile,'(/a/)') "Setting up main slab"
 
      target_geometry=0
      velocity_config=1
@@ -414,7 +436,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
 
  ! Proton disc 
 
-     if(debug_level>1) write(ipefile,'(/a/)') "Setting up proton disc"
+     write(ipefile,'(/a/)') "Setting up proton disc"
 
 ! Adjust local numbers if total non-multiple of # PEs
   	if (my_rank==0) then
@@ -456,39 +478,40 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
            call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
       endif
 
-!###########################################################################################################
-     case(21)  ! Add proton disc to slab
-!    ====================================
+case(32)  ! A.P.L.R's SECOND set-up (8th March 2006)
+!=====================================================
 
-   if (debug_level>1) write(ipefile,'(/a/)') "Setting up main slab"
-
-!     target_geometry=0
+     target_geometry=0
      velocity_config=1
      plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
      offset_e = me*nep + ne_rest
      offset_i = ne + me*nip + ni_rest
 
- ! Electrons 
+        ! Electrons 
         call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
                -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
- ! Ions
+        ! Ions
         call plasma_start( nep+1, nip, ni, offset_i, target_geometry, velocity_config, idim, &
                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
- ! Proton disc 
-
-     if(debug_level>1) write(ipefile,'(/a/)') "Setting up proton disc"
-
-! Adjust local numbers if total non-multiple of # PEs
-  	if (my_rank==0) then
-     		np_rest = mod(n_layer(1),n_cpu)
-   	else
+    ! Protons 
+    ! Adjust local numbers if total non-multiple of # PEs
+  	if (my_rank == 0) then
+     		!np_rest = mod(n_layer(1),n_cpu)
+   			np_rest = mod(n_layer(1),n_cpu) !2 layers = twice the no. of protons
+   	
+	else
      		np_rest = 0
   	endif
 
-  	nlayp = n_layer(1)/n_cpu + np_rest  ! total # protons on this CPU
+  	!nlayp = n_layer(1)/n_cpu + np_rest  ! total # protons on this CPU
+    nlayp = 2*(n_layer(1)/n_cpu + np_rest)  !2 layers = twice the number of protons
+    !nlayp = total # of protons in both layers
+    !assume that np_rest << n_layer(1)
+    nlaypfront = n_layer(1)/n_cpu + np_rest
+    nlaypback = n_layer(1)/n_cpu + np_rest
         nep0 = nlayp
  !  Make particle numbers on root known (in case of unequal particle #s - need for label offset)
   	call MPI_BCAST( nep0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
@@ -496,25 +519,138 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
   	ni_rest = nep0-nlayp
 
   	ipstart = nep+nip+1
-	label_offset = ne+ni+me*nlayp +n_layer(1) + ni_rest
- 
-! Place on rear of main slab 
-	displace = displace + (/ x_plasma/2.,0.,0. /)
-!	layer_geometry = 2  ! disc
+    ! Place on rear of main slab INSIDE THE TARGET
+    !-------------------------------------------------
+	displace = (/ x_plasma/2.-x_layer(1)/2,0.,0. /)
+	label_offset = ne+ni+me*nlaypback+ni_rest 
 
-        call plasma_start( ipstart, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
-               rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
-               faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
-
- ! Equal number of neutralising electrons 
-	label_offset = ne+ni+me*nlayp + ne_rest 
-        call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
+ 		! Equal number of neutralising electrons 
+        call plasma_start( ipstart+nlaypback, nlaypback, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
                -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+		
+		!And now for the protons:
+		label_offset = ne+ni+n_layer(1) + me*nlaypback + ne_rest 
+        call plasma_start( ipstart, nlaypback, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+               rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+               faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+      
+      !We also need a layer on the front of the main slab:
+      !INSIDE THE TARGET
+      !--------------------------------------------------------
+      displace = (/ -x_plasma/2.+x_layer(1)/2,0.,0. /)
+	  label_offset = ne+ni+2*n_layer(1)+ni_rest+me*nlaypfront
+		! Equal number of neutralising electrons 
+        call plasma_start( ipstart+2*nlaypback+nlaypfront, nlaypfront, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+               -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+               faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+		
+		!And now for the protons:
+		label_offset = ne+ni+3*n_layer(1) +me*nlaypfront + ne_rest 
+        call plasma_start( ipstart+2*nlaypback, nlaypfront, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+               rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+               faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+      
+      
+    	if (debug_level==2 .and. me==0) then
+	  write(*,*) "proton charge ",qpart_layer(1)
+	  write(*,*) "proton mass ",mass_layer(1)
+	  write(*,*) "spacing",ai_layer(1)
+	endif
+
 
        npp=npp + 2*nlayp  ! Total # local particles
-       ne = ne + n_layer(1)  ! Global # particles
-       ni = ni + n_layer(1)  ! Global # particles
+       ne = ne + 2*n_layer(1)  ! Global # particles
+       ni = ni + 2*n_layer(1)  ! Global # particles
+	npart = ni+ne
+
+      if (scheme /= 5 .and. ramp) then
+           call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
+      endif
+
+case(35)  ! A.P.L.R's third set-up (19th May 2006)
+!=====================================================
+
+     target_geometry=0
+     velocity_config=1
+     plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
+     offset_e = me*nep + ne_rest
+     offset_i = ne + me*nip + ni_rest
+
+        ! Electrons 
+        call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
+               -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
+        ! Ions
+        call plasma_start( nep+1, nip, ni, offset_i, target_geometry, velocity_config, idim, &
+               rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
+
+    ! Protons 
+    ! Adjust local numbers if total non-multiple of # PEs
+  	if (my_rank == 0) then
+     		!np_rest = mod(n_layer(1),n_cpu)
+   			np_rest = mod(n_layer(1),n_cpu) !2 layers = twice the no. of protons
+   	
+	else
+     		np_rest = 0
+  	endif
+
+  	!nlayp = n_layer(1)/n_cpu + np_rest  ! total # protons on this CPU
+    nlayp = 2*(n_layer(1)/n_cpu + np_rest)  !2 layers = twice the number of protons
+    !nlayp = total # of protons in both layers
+    !assume that np_rest << n_layer(1)
+    nlaypfront = n_layer(1)/n_cpu + np_rest
+    nlaypback = n_layer(1)/n_cpu + np_rest
+        nep0 = nlayp
+ !  Make particle numbers on root known (in case of unequal particle #s - need for label offset)
+  	call MPI_BCAST( nep0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+  	ne_rest = nep0-nlayp
+  	ni_rest = nep0-nlayp
+
+  	ipstart = nep+nip+1
+    ! Place on rear of main slab 
+    !-------------------------------------------------
+	displace = (/ x_plasma/2.+x_layer(1)/2,0.,0. /)
+	label_offset = ne+ni+me*nlaypback+ni_rest 
+
+ 		! Equal number of neutralising electrons 
+        call plasma_start( ipstart+nlaypback, nlaypback, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+               -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+               faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+		
+		!And now for the protons:
+		label_offset = ne+ni+n_layer(1) + me*nlaypback + ne_rest 
+        call plasma_start( ipstart, nlaypback, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+               rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+               faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+      
+      !We also need a another layer in the same place
+      !--------------------------------------------------------
+      displace = (/ x_plasma/2.+x_layer(2)/2,0.,0. /)
+	  label_offset = ne+ni+2*n_layer(2)+ni_rest+me*nlaypfront
+		! Equal number of neutralising electrons 
+        call plasma_start( ipstart+2*nlaypback+nlaypfront, nlaypfront, n_layer(2), label_offset, target_geometry, velocity_config, idim, &
+               -rho_layer(2), -1.0, 1.0, vte, x_layer(2), y_layer(2), z_layer(2), r_layer(2), plasma_centre+displace, &
+               faces(2), V_layer(2), A_layer(2), Q_layer(2), qpart_layer(2), mass_layer(2), ai_layer(2) )
+		
+		!And now for the protons:
+		label_offset = ne+ni+3*n_layer(2) +me*nlaypfront + ne_rest 
+        call plasma_start( ipstart+2*nlaypback, nlaypfront, n_layer(2), label_offset, target_geometry, velocity_config, idim, &
+               rho_layer(2), 1.0, mratio_layer(2), vti, x_layer(2), y_layer(2), z_layer(2), r_layer(2), plasma_centre+displace, &
+               faces(2), V_layer(2), A_layer(2), Q_layer(2), qpart_layer(2), mass_layer(2), ai_layer(2) )
+      
+      
+    	if (debug_level==2 .and. me==0) then
+	  write(*,*) "proton charge ",qpart_layer(1)
+	  write(*,*) "proton mass ",mass_layer(1)
+	  write(*,*) "spacing",ai_layer(1)
+	endif
+
+
+       npp=npp + 2*nlayp  ! Total # local particles
+       ne = ne + 2*n_layer(1)  ! Global # particles
+       ni = ni + 2*n_layer(1)  ! Global # particles
 	npart = ni+ne
 
       if (scheme /= 5 .and. ramp) then
@@ -522,7 +658,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
       endif
 
 
-
+!###########################################################################################################
 
      case(15)  ! 2-layer slab with foam
 !    ==================================
@@ -534,7 +670,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
      offset_i = ne + me*nip + ni_rest
 
 !  Main block
-     if (debug_level>1) write(ipefile,'(/a/)') "Setting up main slab"
+     write(ipefile,'(/a/)') "Setting up main slab"
 
  ! Electrons 
         call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
@@ -546,7 +682,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
  ! Protons
-      if (debug_level>1) write(ipefile,'(/a/)') "Setting up proton layer"
+      write(ipefile,'(/a/)') "Setting up proton layer"
 
 ! Adjust local numbers if total non-multiple of # PEs
   	if (my_rank==0) then
@@ -585,7 +721,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
 
 !  Add foam layer (2) to rear side
 
-     if (debug_level>1) write(ipefile,'(/a/)') "Setting up foam layer"
+     write(ipefile,'(/a/)') "Setting up foam layer"
 
 	target_geometry=7
         velocity_config=1   ! Ions, electrons thermal
@@ -724,13 +860,7 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
   convert_mu = omega/2./pi*lambda          ! convert from c/wp to microns
   lolam = lolam*2.*pi/omega  ! normalise scale-length
-  if (ne>0) then
-	convert_keV = 511./abs(qe)     ! convert from code energy units to keV
-  	convert_erg = 8.16e-7/abs(qe)
-  else
-	convert_keV = 511./abs(qi)
-  	convert_erg = 8.16e-7/qi
-  endif 
+  convert_keV = 2./3./abs(Qplas)*511     ! convert from code energy units to keV/particle (Temperature)
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
   navcycle = 2*pi/dt/omega  ! # timesteps in a laser cycle
   nu_ei = 1./40./pi*a_ii**3/max(vte,1.e-8)/eps**2  ! collision frequency (fit to Okuda & Birdsall)
