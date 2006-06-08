@@ -394,7 +394,7 @@ contains
     integer :: level_dist=8, nlev=20, level_strip
     integer, parameter :: lev_map=15 ! max level for key distrib
     integer*8 :: maxbox
-    integer, parameter :: maxbin=500000  ! Max # bins for key distrib
+    integer, parameter :: maxbin=1000000  ! Max # bins for key distrib
     real, dimension(maxbin)  :: f_local, f_global, f_final
     integer*8, dimension(maxbin) ::  search_list, retain_list, bin_list
     integer, dimension(maxbin) :: index_bin
@@ -452,7 +452,7 @@ search_list = 8_8**lev_map  ! place holder
     if (nprocs==1) then
        alpha=1.
     else
-       alpha=0.05
+       alpha=0.03
     endif
 
     if (debug.and.iproc==proc_debug) then
@@ -586,6 +586,7 @@ search_list = 8_8**lev_map  ! place holder
     total_work=ave_work*nprocs
 
     if (debug .and. iproc==proc_debug ) then
+!    if (iproc==proc_debug ) then
        write(fd,*) 'Final # bins/max/level:',nbin,maxbin,lev_map
        write(fd,*) 'Average bin weight',ave_work
        write(fd,*) 'Threshold bin weight',ave_work*alpha
@@ -741,7 +742,8 @@ search_list = 8_8**lev_map  ! place holder
     integer, intent(in) :: nppm,np,nprocs,iproc
     real*8, intent(in) :: wload(nppm)  ! particle work loads
     integer, intent(out) :: npnew
-    integer, parameter :: binmult=100000   !TODO: need to reduce size of f() arrays
+    integer, parameter :: binmult=1000000   !TODO: need to reduce size of f() arrays
+!    integer, parameter :: binmult=100000   !TODO: need to reduce size of f() arrays
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    kw1       ! work array
     integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
