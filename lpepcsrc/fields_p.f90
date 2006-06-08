@@ -45,8 +45,8 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
   integer, parameter :: npassm=100000 ! Max # passes - will need npp/nshortm
 
   integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe
-  real :: t_domain, t_build, t_prefetch, t_walk, t_walkc, t_force, ttrav, tfetch, t1, t2, t3  ! timing integrals
-  real :: tb1, tb2, td1, td2, tp1, tp2
+  real :: t_domain, t_build(4), t_prefetch, t_walk, t_walkc, t_force, ttrav, tfetch, t1, t2, t3  ! timing integrals
+  real :: tb1, tb2, tb3, tb4, td1, td2, tp1, tp2
   integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm) ! work balance arrays
   integer :: hashaddr ! Key address 
 
@@ -100,12 +100,16 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
 
      !POMP$ INST BEGIN(build)
      call tree_build      ! Build trees from local particle lists
+     call cputime(tb2)
      call tree_branches   ! Determine and concatenate branch nodes
+     call cputime(tb3)
      call tree_fill       ! Fill in remainder of local tree
      !POMP$ INST END(build)
-     call cputime(tp1)
+     call cputime(tb4)
      t_domain = tb1-td1
-     t_build = tp1-tb1
+     t_build(1) = tb2-tb1
+     t_build(2) = tb3-tb2
+     t_build(3) = tb4-tb3
 
   else 
      if (me==0) write (*,'(a19)') 'LPEPC | FREEZE MODE'
@@ -113,10 +117,12 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
      t_build=0.
   endif
 
+     call cputime(tp1)
   !POMP$ INST BEGIN(properties)
   call tree_properties ! Compute multipole moments for local tree
   !POMP$ INST END(properties)
-
+     call cputime(tp2)
+	t_build(4) = tp2-tp1
 
   call cputime(tp1)
   if (walk_scheme==3) then
