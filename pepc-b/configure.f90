@@ -24,7 +24,7 @@ subroutine configure
   integer :: nlaypfront,nlaypback
 ! foam stuff
   integer :: nshell, ne_shell, ni_shell, ishell, jshell, kshell, nshell_x, nshell_y, nshell_z
-  integer :: nep_shell, nip_shell
+  integer :: nep_shell, nip_shell, jion
   real :: Vshell, Ashell, Qshell, qe_shell, mass_e_shell, a_ee_shell, qi_shell, mass_i_shell, a_ii_shell
 
   npp = nep+nip  ! initial # particles on this CPU
@@ -55,6 +55,9 @@ subroutine configure
     vti = sqrt(Ti_keV/511./mass_ratio)
 
      new_config: select case(plasma_config)
+
+
+
 
      case(1)        ! Set up single neutral plasma target according to geometry
 !     =========================================================================
@@ -106,6 +109,8 @@ subroutine configure
                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
 
 
+
+
      case(4)        ! Spherical Coulomb explosion
 !    ============================================
 
@@ -134,6 +139,9 @@ subroutine configure
       if (scheme /= 5 .and. ramp) then
            call stretch_sphere(r_sphere)     ! create spherically symmetric density profile 
       endif
+
+
+
 
      case(5)        ! Foam: array of spherical shells 
 !    ================================================
@@ -191,6 +199,54 @@ subroutine configure
      qe=qe_shell
      mass_e = mass_e_shell
      a_ee = a_ee_shell
+
+
+
+
+     case(6)        ! Spherical cluster with Andreev profile
+!    ============================================
+!  r_sphere is radius of equivalent uniform sphere
+!  - used to define particle charges before stretching outer portion
+
+     if (debug_level>=1 .and. me==0) then
+	write(*,*) "Setting up Andreev cluster"
+     endif
+
+	target_geometry=1
+        velocity_config=1   ! Ions cold, electrons with vte
+        plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+!        plasma_centre =  (/ 0., 0., 0. /) ! Centre of plasma
+	offset_e = me*nep + ne_rest
+	offset_i = ne + me*nip + ni_rest
+
+ 
+
+        call plasma_start( nep+1, nip, ni, offset_i, target_geometry, 0, idim, &
+                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
+ 
+! create spherically symmetric cluster with Andreev profile
+! r_layer(1) is characteristic radius r0
+
+        call cluster_sa(nep+1,nip,r_layer(1),r_sphere,qi,Qplas,plasma_centre)
+   
+ 
+! Electrons: use same geometry but reduced charge density
+! - should get qe=-qi
+ 
+        call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
+               -rho0*ne/ni, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+               number_faces, Vplas, Aplas, Q_layer(1), qe, mass_e, a_ee )
+ 
+! Stretch electron positions to match ions
+	do i=1,nep
+	   jion=min(nep+nip/nep*i,nep+nip)
+	   x(i) = x(jion)+eps
+	   y(i) = y(jion)+ eps
+	   z(i) = z(jion) + eps
+        end do
+
+ 
 
 
      case(10)  ! Add proton layer to slab
@@ -257,6 +313,10 @@ subroutine configure
            call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
       endif
 !********************************************************************************************
+
+
+
+
      case(13)  ! Add proton layer to slab INSIDE the target
 !    ====================================
 
@@ -320,6 +380,8 @@ subroutine configure
       if (scheme /= 5 .and. ramp) then
            call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
       endif
+
+
 
 
 !####################################################################################################
@@ -413,6 +475,8 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
       endif
 
 
+
+
 !###########################################################################################################
      case(11)  ! Add proton disc to slab
 !    ====================================
@@ -477,6 +541,9 @@ case(12)  ! A.P.L.R's set-up (8th March 2006)
       if (scheme /= 5 .and. ramp) then
            call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
       endif
+
+
+
 
 case(32)  ! A.P.L.R's SECOND set-up (8th March 2006)
 !=====================================================
@@ -567,6 +634,9 @@ case(32)  ! A.P.L.R's SECOND set-up (8th March 2006)
       if (scheme /= 5 .and. ramp) then
            call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
       endif
+
+
+
 
 case(35)  ! A.P.L.R's third set-up (19th May 2006)
 !=====================================================
@@ -659,6 +729,8 @@ case(35)  ! A.P.L.R's third set-up (19th May 2006)
 
 
 !###########################################################################################################
+
+
 
      case(15)  ! 2-layer slab with foam
 !    ==================================

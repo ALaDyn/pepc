@@ -167,7 +167,7 @@ rand:	 rantest.o
 clean:  cleanapp cleanlib
 
 cleanapp:
-	@echo "Cleaning application binaries .."; /bin/rm -f bin/*.o   *% *~ bin/key rand *.o *.pif core *.lst *.a *.mod opari.rc *.mod.F90 *.opari.inc
+	@echo "Cleaning application binaries .."; /bin/rm -f bin/*.o   *% *~ bin/key rand *.o *.pif core *.lst *.a *.mod *.mod.F90 *.opari.inc
 	@echo "Cleaning postprocessed sources .."; /bin/rm -f  $(PPSRC.f90)
 
 cleanlib:

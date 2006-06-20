@@ -96,8 +96,8 @@ subroutine sum_radial(timestamp)
      tweight = (gamma-1.)  ! K.E. of particle in keV
 
      if (q(i)<0) then
-        ve_loc(i1) = ve_loc(i1) + fr1*vweight
-        ve_loc(i2) = ve_loc(i2) + fr2*vweight
+        ve_loc(i1) = ve_loc(i1) + fr1*vweight    
+        ve_loc(i2) = ve_loc(i2) + fr2*vweight  
 
         ne_loc(i1) = ne_loc(i1) + fr1*cweight
         ne_loc(i2) = ne_loc(i2) + fr2*cweight
@@ -106,8 +106,8 @@ subroutine sum_radial(timestamp)
         ge_loc(i2) = ge_loc(i2) + fr2
 
      else
-        vi_loc(i1) = vi_loc(i1) + fr1*vweight
-        vi_loc(i2) = vi_loc(i2) + fr2*vweight
+        vi_loc(i1) = vi_loc(i1) + fr1*vweight  ! TODO: This won't give multi-valued vel
+        vi_loc(i2) = vi_loc(i2) + fr2*vweight  ! beyond shock front - need phase space!
 
         ni_loc(i1) = ni_loc(i1) + fr1*cweight
         ni_loc(i2) = ni_loc(i2) + fr2*cweight

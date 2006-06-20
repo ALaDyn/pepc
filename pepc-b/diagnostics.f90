@@ -4,7 +4,6 @@
 !
 !     Perform diagnostics
 !
-!  $Revision 1.15$
 !
 !  ================================
 

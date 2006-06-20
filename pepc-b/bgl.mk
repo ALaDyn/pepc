@@ -54,7 +54,7 @@ LIBS_MPI = -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
 LIBSF_MPI = -lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts
 
 #MPITRACE = -L/bgl/local/lib -lmpitrace_f  #for MPI information only
-#MPITRACE = -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts #for MPI+HPM information
+MPITRACE = -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts #for MPI+HPM information
 #MPITRACE = -qdebug=function_trace -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts #for per function MPI+HPM information
 
 
