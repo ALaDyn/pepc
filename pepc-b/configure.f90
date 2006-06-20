@@ -932,12 +932,19 @@ case(35)  ! A.P.L.R's third set-up (19th May 2006)
   convert_fs = 10.*omega*lambda/(6*pi)     ! convert from wp^-1 to fs
   convert_mu = omega/2./pi*lambda          ! convert from c/wp to microns
   lolam = lolam*2.*pi/omega  ! normalise scale-length
-  convert_keV = 2./3./abs(Qplas)*511     ! convert from code energy units to keV/particle (Temperature)
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
   navcycle = 2*pi/dt/omega  ! # timesteps in a laser cycle
   nu_ei = 1./40./pi*a_ii**3/max(vte,1.e-8)/eps**2  ! collision frequency (fit to Okuda & Birdsall)
   sigma_e = 1./nu_ei   ! Spitzer conductivity
   intensity = 0.2*vosc**2*omega**2  ! normalised laser intensity
+
+  if (ne>0) then
+       convert_keV = 511./abs(qe)     ! convert from code energy units to keV
+       convert_erg = 8.16e-7/abs(qe)
+  else
+       convert_keV = 511./abs(qi)
+       convert_erg = 8.16e-7/qi
+  endif
 
 
   if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config
