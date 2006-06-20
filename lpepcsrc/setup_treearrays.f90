@@ -81,7 +81,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
      nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
      maxaddress = 2**nbaddr
    else
-     nbaddr = 17   ! fixed address range
+     nbaddr = 18   ! fixed address range
      maxaddress = abs(np_mult)*10000
    endif
    size_fetch = fetch_mult*size_tree/2
@@ -157,8 +157,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   ! Allocate memory for tree node properties
 
-  maxleaf = maxaddress/3
-  maxtwig = 2*maxleaf
+  maxleaf = maxaddress/4
+  maxtwig = 3*maxleaf
 
   nreqs_total(0:num_pe-1) = 0   ! Zero cumulative fetch/ship counters for non-local nodes
   nfetch_total(0:num_pe-1) = 0  
