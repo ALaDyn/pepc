@@ -432,13 +432,16 @@ TODO: 24   oblique incidence standing wave, p-pol
 tree stuff:
    theta                (0.5)   clumping parameter
    force_tolerance      (1.)    permitted error in force calculation (not yet implemented)
-   mac                  (0)     tree walk switch:  0 = asynchronous  (see ParCo paper)
-                                                   1 = collective
+   walk_scheme          (0)     tree walk switch:  0 = asynchronous multipole exchange
+                                                   1 = collective exchange
                                                    2 = prefetch
-                                                   3 = freeze mode
+                                                   3 = tree-freeze mode
+   mac                  (0)     Multipole acceptance criterion:
+                                                   0 = Barnes-Hut s/d<theta
+
    balance              (1)     load balancing switch:  0 = balance # particles
                                                         1 = balance interaction lists
-   ifreeze              (1)     tree-rebuild frequency in freeze mode (mac=3)
+   ifreeze              (1)     tree-rebuild frequency in freeze mode (walk_scheme=3)
 
 
 \end{verbatim}
