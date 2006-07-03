@@ -27,16 +27,16 @@ subroutine cluster_sa(i1,nip,r0,r_sphere,qi,Qplas,plasma_centre)
     integer              :: i, j, ierr
     integer              :: p, k, nramp, nx, ny
     real*8 :: rt, xt, yt, zt, s, pi, xi
-    real*8 :: r_c, Q_c, Q_s
+    real*8 :: r_c, Q_c, Q_s, dens
     integer :: nitot, N_c, N_s, npi_c, npi_s, nbin, np_rest, offset
-    real*8 :: zeta, dzeta, a_const, b_const, Qt
-    real*8 :: ch, sh, sh2, th, ch2, rp, integ, nom, dom
+    real*8 :: zeta_max, zeta, dzeta, t_start, a_const, b_const, Qt
+    real*8 :: SZ, T, ch, sh, sh2, th, ch2, rp, integ, nom, dom
     
 ! Andreev cluster:
 ! uniform up to r=0.1125 r0
 ! tapered from r=0.1125 r0 to 2.5 r0
     pi = 2.*asin(1.d0)
-    zeta = 0.23  ! start point r(0.23)=0.1125
+    zeta_max = 0.23  ! start point r(0.23)=0.1125
 ! # ions in central region
     r_c = 0.1125*r0
     Q_c = 4*pi/3.*r_c**3 ! (rho=1)
@@ -82,26 +82,31 @@ subroutine cluster_sa(i1,nip,r0,r_sphere,qi,Qplas,plasma_centre)
 
 ! # Integrate outer zone numerically, according to Andreev parametric form
 ! # Each CPU will place particles in different segments of integrated shell
-     nbin = 300*N_s
-     dzeta = -zeta/nbin
+!     nbin = 30*N_s
+     nbin = 100000
+     dzeta = -zeta_max/nbin
+     zeta=zeta_max
      Qt = 0.
-     a_const = 4.805*4*pi/3./Q_s
-     b_const = 0.05
+     t_start = 0.05  
      j = offset + 1  ! Global starting index of ions
      i = npi_c+i1 ! Local index
+        if(me==0) write (*,*) 'zeta_max, dzeta, nbin',zeta_max,dzeta,nbin
 
-    do while (zeta>0.0001 .and. j<=offset + npi_s)
+    do while (zeta>0.005 .and. j<=offset + npi_s)
 
 ! Integrand
         sh2 = sinh(2*zeta)
         th = tanh(zeta)
         ch2 = cosh(2*zeta)
         ch = cosh(zeta)
-        integ = a_const*b_const**3/(1.-zeta*th) * ( ( sh2*(.5*sh2 + zeta) ) - ch**2*(ch2 + 1) ) &
-             / (.5*sh2 + zeta)**2
-        Qt = Qt + integ*N_s*dzeta
-        rp = b_const*ch**2/(sh2/2. + zeta)  ! Radius associated with zeta
-!         write (*,'(9f12.5)') rp,zeta,ch,sh2,ch2,nom,dom,integ,Qt
+        SZ = sh2/2. + zeta
+        T = 1.-zeta*th
+
+	dens = 1./3./t_start**2*SZ**2/(ch**4*(1.-zeta*th))
+        integ =  (sh2*S - ch**2*(ch2 + 1)) / (T*SZ**2) 
+        Qt = Qt + integ*t_start*dzeta*N_s
+        rp = t_start*ch**2/SZ ! Radius associated with zeta
+!        if(me==0) write (*,'(8f12.5)') rp,zeta,integ,Qt
 
         if (Qt > j) then      
 ! place particle
@@ -109,7 +114,8 @@ subroutine cluster_sa(i1,nip,r0,r_sphere,qi,Qplas,plasma_centre)
           yt = y(i)-plasma_centre(2)
           zt = z(i)-plasma_centre(3)
           rt = sqrt(xt**2+yt**2+zt**2)
-         write (ipefile,'(i6,a23,4f15.5)') i,'r/r0, zeta, integ, Qt',rp,zeta,integ,Qt
+!         write (ipefile,'(i6,a23,4f15.5)') i,'r/r0, zeta, integ, Qt',rp,zeta,integ,Qt
+         write (*,'(i6,a23,5f15.5)') i,'r/r0, zeta, dens, integ, Qt',rp,zeta,dens,integ,Qt
 
           x(i) = plasma_centre(1) + xt/rt*rp*r0  ! scale by sphere radius 
           y(i) = plasma_centre(2) + yt/rt*rp*r0
