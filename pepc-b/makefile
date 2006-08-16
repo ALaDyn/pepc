@@ -7,8 +7,8 @@ PREFIX = ..
 #  Get machine-dependent flags
 
 #ARCH = linux.mk
-#ARCH = ibm-p690.mk
-ARCH = bgl.mk
+ARCH = ibm-p690.mk
+#ARCH = bgl.mk
 #ARCH = arc-icl.mk
 
 include $(ARCH)
@@ -35,7 +35,9 @@ CFLAGS = $(CFLAGS1)
 
 # -------------------------------------------------------------------------------------------
 
-PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90 vis_vecfields_nbody.F90
+PPSRC.F90 = pepcb.F90 vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90 \
+	    vis_vecfields_nbody.F90 vis_config.F90
+
 PPSRC.f90 = $(PPSRC.F90:.F90=.f90) # processed source files 
 
 MODULES.f90 =   physvars.f90 
@@ -141,7 +143,7 @@ cleanlib:
 
 cleanpre: 
 	@echo "Cleaning pre-processed .f90 files .."
-	/bin/rm -f pepcb.f90 vis_*.f90
+	/bin/rm -f pepcb.f90 vis_*.f90 *.F
 
 cleancore: 	
 	/bin/rm $(pepcobjs) 

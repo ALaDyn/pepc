@@ -54,10 +54,11 @@ subroutine vis_fields_nbody(timestamp)
   if (me==0 .and. lvisit_active.ne.0) then
 	call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
   	write(*,*) 'Selection:',fselect1,fselect2,fselect3,fselect4
-	fselect1=1
-	fselect2=4
-	fselect3=5
-	fselect4=0
+! Override selection 
+!	fselect1=1
+!	fselect2=4
+!	fselect3=5
+!	fselect4=0
 
   endif
 #endif
@@ -72,12 +73,12 @@ subroutine vis_fields_nbody(timestamp)
   ! Merge sums for gridded fields 
 
 !  call MPI_ALLREDUCE(bz_loc(1:ngx,1:ngy,1:ngz), bzg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
-!  call MPI_ALLREDUCE(rhoe_loc(1:ngx,1:ngy,1:ngz), rhoeg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(rhoe_loc(1:ngx,1:ngy,1:ngz), rhoeg, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(rhoi_loc(1:ngx,1:ngy,1:ngz), rhoig, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(Te_loc(1:ngx,1:ngy,1:ngz), Telec, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
-!  call MPI_ALLREDUCE(Ti_loc(1:ngx,1:ngy,1:ngz), Tion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(Ti_loc(1:ngx,1:ngy,1:ngz), Tion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLREDUCE(g_ele(1:ngx,1:ngy,1:ngz), ggelec, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
-!  call MPI_ALLREDUCE(g_ion(1:ngx,1:ngy,1:ngz), ggion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(g_ion(1:ngx,1:ngy,1:ngz), ggion, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
 
 ! Normalise temperatures & convert to keV
   Telec = 2./3.*Telec/ggelec
@@ -240,6 +241,7 @@ if (lvisit_active.ne.0) then
 
 #ifdef NETCDFLIB
 ! Netcdf write
+	write(*,*) 'VIS  confirm field select - netcdf'
          if (netcdf) call ncnbody_putselfield( ncid, simtime, fselect1, fselect2, fselect3, fselect4, incdf )
 #endif
 
@@ -253,6 +255,7 @@ if (lvisit_active.ne.0) then
 
    call flvisit_nbody2_fielddesc_send(grid_pars,4,6)
 #ifdef NETCDFLIB
+	write(*,*) 'VIS  grid-pars - netcdf'
    if (netcdf) call ncnbody_putfielddesc( ncid, simtime, grid_pars, incdf )
 #endif
 
@@ -262,6 +265,7 @@ if (lvisit_active.ne.0) then
 	minval(field1),maxval(field1)
          call flvisit_nbody2_field1_send(field1,npx,npy,npz)   
 #ifdef NETCDFLIB
+       	 write (*,*) "VIS_NBODY | Writing field 1 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime, 1, npx, npy, npz, field1, incdf )
 #endif
       endif
@@ -269,6 +273,7 @@ if (lvisit_active.ne.0) then
        	 write (*,*) "VIS_NBODY | Shipping field 2"
          call flvisit_nbody2_field2_send(field2,npx,npy,npz)   
 #ifdef NETCDFLIB
+       	 write (*,*) "VIS_NBODY | Writing field 2 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime, 2, npx, npy, npz, field2, incdf )
 #endif
       endif
@@ -276,6 +281,7 @@ if (lvisit_active.ne.0) then
        	 write (*,*) "VIS_NBODY | Shipping field 3"
          call flvisit_nbody2_field3_send(field3,npx,npy,npz)  
 #ifdef NETCDFLIB
+       	 write (*,*) "VIS_NBODY | Writing field 3 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime,3, npx, npy, npz, field3, incdf )
 #endif
       endif
@@ -283,6 +289,7 @@ if (lvisit_active.ne.0) then
        	 write (*,*) "VIS_NBODY | Shipping field 4"
          call flvisit_nbody2_field4_send(field4,npx,npy,npz)
 #ifdef NETCDFLIB
+       	 write (*,*) "VIS_NBODY | Writing field 4 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime, 4, npx, npy, npz, field4, incdf )
 #endif
       endif

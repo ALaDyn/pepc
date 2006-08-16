@@ -43,7 +43,7 @@ HPM = -lhpm
 FFLAGS1 = -q64 -qsuffix=f=f90:cpp=F90 -qnosave 
 #FFLAGS1 = -qsuffix=f=f90:cpp=F90 -qnosave 
 IPA= -qipa=inline=key2addr_db -qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
-TUNE= -qarch=pwr4 -qtune=pwr4 ## -O3 ## $(IPA) 
+TUNE= -qarch=pwr4 -qtune=pwr4 -O3 ## $(IPA) 
 CFLAGS1 = -q64 -O3 -I/usr/local/include
 
 #  Symbol tables
@@ -88,9 +88,9 @@ MPITRACE= -lsummary -lpmapi
 
 NETCDFLIB = -lnetcdf 
 NCOBJS=ncnbody.o
-VISIT_DIST=/usr/local/beta/visit-2.0b
-
-VISITLIBS= -L$(VISIT_DIST)/lvisit/lib -llvisit -L$(VISIT_DIST)/lib -lvisit
-XNBODYLIBS=-L$(VISIT_DIST)/lvisit/apis/nbody3  -llvisit_nbody2 -bloadmap:aa
+VISIT_DIST0=/usr/local/beta/visit-2.0b
+VISIT_DIST2=/usr/local/beta/visit-2.2
+VISITLIBS= -L$(VISIT_DIST2)/lvisit/lib -llvisit -L$(VISIT_DIST2)/lib -lvisit
+XNBODYLIBS=-L$(VISIT_DIST0)/lvisit/apis/nbody3  -llvisit_nbody2 -bloadmap:aa
 #VISITLIBS=-L$(HOME)/vis/lvisit/lib -llvisit -L$(HOME)/vis/visit/lib -lvisit 
 #XNBODYLIBS=-L$(HOME)/vis/apis/nbody3  -llvisit_nbody2 -bloadmap:aa

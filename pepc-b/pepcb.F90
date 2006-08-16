@@ -43,7 +43,7 @@ program pepcb
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
   integer :: ierr, lvisit_active, ifile, incdf
-  integer :: vbufcols = 22, irecord=0
+  integer :: vbufcols = 22, irecord=0, ico
 
 !POMP$ INST INIT
 !POMP$ INST BEGIN(pepcb)
@@ -91,7 +91,27 @@ program pepcb
 
 ! ---- end of preprocess -------------
 
-  call configure       ! Set up particles
+
+  if (launch) then
+    call configure       ! Set up particles
+
+  else
+    ico=1
+    do while (.not. launch)
+	call configure
+	call vis_config
+     	if ( mod(ico,ivis) ==0 ) call vis_parts_nbody       
+     	if ( mod(ico,ivis_fields)==0 ) then
+        !     call pot_grid
+          call densities
+          call sum_fields
+          call vis_fields_nbody(0)
+       endif
+       ico=ico+1
+    end do
+  endif
+
+
   if (debug_level >0) call diagnostics     ! Initial config
 
   call cputime(t_start_loop)
@@ -151,10 +171,11 @@ program pepcb
            endif
         end do
         if (beam_config==5 .or. beam_config==6) then 
-           write(6,'(4(a,f8.2/))') 'Laser amplitude =',vosc &
+           write(6,'(5(a,f8.2/))') 'Laser amplitude =',vosc &
                 , 'Pulse length',tpulse &
                 , 'Pulse width', sigma &
-                , 'Focal position',focus(1)
+                , 'Focal position',focus(1) &
+                , 'Elapsed',tlaser 
         endif
      endif
 

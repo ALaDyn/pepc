@@ -113,6 +113,7 @@ module physvars
   integer :: debug_rank=0 ! CPU # for printed debug IO
 
 ! Control stuff
+  logical :: launch = .true. ! Start simulation immediately after setup
   logical :: vis_on=.true.  ! online visualisation on/off
   logical :: netcdf=.false.  ! netcdf write off
   logical :: mc_init = .false. ! MC initialisation switch

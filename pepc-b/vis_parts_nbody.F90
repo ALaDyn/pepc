@@ -30,6 +30,7 @@ subroutine vis_parts_nbody
   real :: lbox, work_ave, upmax, uproton_max, uxmax
   logical :: vis_debug=.false.
   logical :: pick=.false.
+  integer, save :: vcount=0
 
   convert_mu=1.
   simtime = dt*(itime+itime_start)
@@ -60,7 +61,9 @@ subroutine vis_parts_nbody
      amp_las = vosc
   endif
 
-    if (beam_config>=3 .and. beam_config<=6) then
+    if (.not. launch) then
+       t_display = vcount
+    else if (beam_config>=3 .and. beam_config<=6) then
        t_display = tlaser*convert_fs
     else
        t_display = simtime
@@ -297,7 +300,10 @@ subroutine vis_parts_nbody
               call flvisit_nbody2_partstep_send(vbuffer,npart_buf+ndom_vis+1,attrib_max)
 ! netcdf needs fixed buffer size, so take max used for initialisation
 #ifdef NETCDFLIB
-	      if (netcdf) call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
+	      if (netcdf) then
+		call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
+	        write(*,*) "VIS_PARTS | Writing particles to netcdf"
+          	endif
 #endif
 
               !
@@ -353,6 +359,7 @@ subroutine vis_parts_nbody
 
         call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
+	vcount=vcount+1
 
       end subroutine vis_parts_nbody
 
