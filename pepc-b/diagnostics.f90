@@ -17,6 +17,7 @@ subroutine diagnostics
 
   integer :: i,lvisit_active, ifile, ierr
   integer :: max_fetches, max_reqs, max_sum_fetches, max_sum_ships,max_local_f, max_local_r, sum_local_f
+  integer :: vcount=0
 
   ! Interface to VISIT (Online visualisation)
 
@@ -24,7 +25,10 @@ subroutine diagnostics
 
   if ( vis_on ) then
      !     if ( mod(itime,ivis) ==0 ) call vis_parts       
-     if ( mod(itime,ivis) ==0 ) call vis_parts_nbody       
+     if ( mod(itime,ivis) ==0 ) then
+        call vis_parts_nbody(vcount)
+        vcount = vcount + 1
+     endif
      if ( mod(itime,min(ivis,ivis_fields))==0 .and. steering) call vis_control
      if ( mod(itime,ivis_fields)==0 ) then
         !     call pot_grid
@@ -33,6 +37,7 @@ subroutine diagnostics
         call vis_fields_nbody(itime+itime_start)
 !        call vis_vecfields_nbody(itime+itime_start)
      endif
+
   endif
 
   !  if (target_geometry.eq.4) then

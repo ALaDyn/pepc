@@ -157,6 +157,12 @@ subroutine vis_fields_nbody(timestamp)
                  call emplane(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipond)
                  field_laser = by_em 
 
+              case(16) ! plane wave with Gaussian spot, linear rise-time
+                 call emplane_lin(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,Epon_z,By_em,Bx_em,az_em,phipond)
+	         Epon_x=0.
+	         Epon_y=0.
+	         field_laser = by_em
+
               case default ! No laser
                  phipond = 0  
                  field_laser = 0.

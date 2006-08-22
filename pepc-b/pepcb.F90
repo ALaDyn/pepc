@@ -100,7 +100,7 @@ program pepcb
     do while (.not. launch)
 	call configure
 	call vis_config
-     	if ( mod(ico,ivis) ==0 ) call vis_parts_nbody       
+     	if ( mod(ico,ivis) ==0 ) call vis_parts_nbody(ico)       
      	if ( mod(ico,ivis_fields)==0 ) then
         !     call pot_grid
           call densities

@@ -25,8 +25,7 @@ AR      = ar -X64
 # Use VISIT routines with XNBODY visualisation
 
 #PREPROC = -WF,-DVISIT_NBODY
-PREPROC = -DVISIT_NBODY
-
+PREPROC = -DVISIT_NBODY -DNETCDFLIB
 
 
 #  Profiler information
@@ -85,8 +84,7 @@ MPITRACE= -lsummary -lpmapi
 
 
 # Visit libraries
-
-NETCDFLIB = -lnetcdf 
+NETCDFLIB=-lnetcdf 
 NCOBJS=ncnbody.o
 VISIT_DIST0=/usr/local/beta/visit-2.0b
 VISIT_DIST2=/usr/local/beta/visit-2.2

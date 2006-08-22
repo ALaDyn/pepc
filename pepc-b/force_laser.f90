@@ -92,13 +92,13 @@ subroutine force_laser(p_start,p_finish)
 	      By_em = 0.
 	      Bz_em = 0.
 
-           case(6) ! plane wave with Gaussian spot
+           case(6) ! plane wave with Gaussian spot, sin^2 pulse
               call emplane(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,Epon_z,By_em,Bx_em,az_em,phipon)
 	      Epon_x=0.
 	      Epon_y=0.
 	      Bz_em=0.
  
-           case(16) ! plane wave with Gaussian spot
+           case(16) ! plane wave with Gaussian spot, linear rise-time
               call emplane_lin(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,Epon_z,By_em,Bx_em,az_em,phipon)
 	      Epon_x=0.
 	      Epon_y=0.

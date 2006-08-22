@@ -7,7 +7,7 @@
 !
 ! ======================
 
-subroutine vis_parts_nbody
+subroutine vis_parts_nbody(vcount)
 
 
   use physvars
@@ -30,7 +30,8 @@ subroutine vis_parts_nbody
   real :: lbox, work_ave, upmax, uproton_max, uxmax
   logical :: vis_debug=.false.
   logical :: pick=.false.
-  integer, save :: vcount=0
+  integer :: vcount
+
 
   convert_mu=1.
   simtime = dt*(itime+itime_start)
@@ -61,13 +62,13 @@ subroutine vis_parts_nbody
      amp_las = vosc
   endif
 
-    if (.not. launch) then
+!    if (.not. launch) then
        t_display = vcount
-    else if (beam_config>=3 .and. beam_config<=6) then
-       t_display = tlaser*convert_fs
-    else
-       t_display = simtime
-    endif
+!    else if (beam_config>=3 .and. beam_config<=6) then
+!       t_display = tlaser*convert_fs
+!    else
+!      t_display = simtime
+!    endif
 
   if (beam_config<=3) then
      plasma1 = Ukine*convert_keV
@@ -280,6 +281,7 @@ subroutine vis_parts_nbody
 #ifdef VISIT_NBODY
 
      if (me==0) then 
+        write(*,*) 'VISNB | Display time/count ',t_display
         write(*,*) 'VISNB | # particles shipped ',npart_buf,nship
         write(*,*) 'VISNB | # branches shipped ',ndom_vis, '/', nbranch_sum
         write(*,*) 'VISNB | Total # objects shipped :',ndom_vis+1+npart_buf,' /',nbuf_max
