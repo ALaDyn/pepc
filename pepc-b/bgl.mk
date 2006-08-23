@@ -9,9 +9,9 @@
 BGLSYS = /bgl/BlueLight/ppcfloor/bglsys
 BGLLOC = /bgl/local
 
-CC = /opt/ibmcmp/vac/7.0/bin/blrts_xlc
-#CPP = /opt/ibmcmp/vacpp/7.0/bin/blrts_xlc
-FC = /opt/ibmcmp/xlf/9.1/bin/blrts_xlf90
+CC = /usr/local/bin/mpcc
+CCP = /usr/local/bin/mpCC
+FC = /usr/local/bin/mpxlf90
 
 # KOJAK instrumentation
 #FC = mpxlf90_r -qdebug=function_trace
@@ -30,7 +30,7 @@ AR      = ar
 #IPA=-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node
 #QTUNE = -O5 -qtune=440 -qarch=440d ## $(IPA)
 QTUNE = -O3 -qtune=440 -qarch=440d ## $(IPA)
-CFLAGS1= -O3 -g -I/opt/ibmcmp/vac/7.0/include -I/usr/include -I$(BGLSYS)/include -I$(BGLLOC)/include -L$(BGLSYS)/lib -qarch=440 -qtune=440
+CFLAGS1= -O3 -g -I/bgl/local/include -qarch=440 -qtune=440
 BGLFLAGS= -I$(BGLSYS)/include -I$(BGLLOC)/include -L$(BGLSYS)/lib  $(QTUNE) 
 FFLAGS1 = $(BGLFLAGS) -qsuffix=f=f90 -qsuffix=cpp=F  -qnosave 
 DB= -g -qfullpath ##-qcheck
