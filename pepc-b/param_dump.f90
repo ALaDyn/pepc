@@ -12,7 +12,7 @@ subroutine param_dump
      do ifile = 6,15,9
 
         write (ifile,'(a20,i4,a11)') ' Plasma config: ',plasma_config,plasma_configs(plasma_config)
-        write (ifile,'(a20,i4,a11)') ' Target geometry: ',target_geometry,geometries(target_geometry)
+        write (ifile,'(a20,i4,a11)') ' Target geometry: ',target_geometry,geometries(mod(target_geometry,10))
         write (ifile,'(a20,i4,a8)') ' Beam config: ',beam_config,beam_configs(beam_config)
         write (ifile,'(a20,i4)') ' type: ',beam_config_in
         write (ifile,'(a20,i4,a8)') ' Scheme: ',scheme,schemes(scheme)

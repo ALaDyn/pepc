@@ -898,7 +898,7 @@ case(35)  ! A.P.L.R's third set-up (19th May 2006)
 
         case(1,3,4)
 ! Centre of laser focal spot
-        laser_focus: select case(target_geometry)
+laser_focus: select case(target_geometry)
 
           case(0) ! slab
            focus = (/ xl/2. + x_offset, yl/2., zl/2. /) 
@@ -912,7 +912,7 @@ case(35)  ! A.P.L.R's third set-up (19th May 2006)
            focus = (/ xl/2.-x_plasma*r_sphere, yl/2., zl/2. /) 
           case(5) ! wedge
            focus = (/ xl/2.-x_plasma/2., yl/2., zl/2. /)
-          case(6) ! hemisphere
+          case(6,16) ! hemisphere
            focus = (/ xl/2.-r_sphere/2., yl/2., zl/2. /)
           case(7) ! hollow sphere
            focus = (/ xl/2.-r_sphere/2., yl/2., zl/2. /)

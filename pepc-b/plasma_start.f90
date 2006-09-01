@@ -74,7 +74,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   !       3 = random wire
   !       4 = ellipsoid
   !       5 = wedge
-  !       6 = hemisphere
+  !       6, 16 = hemisphere
   !       7 = hollow sphere
   !       8 = hollow hemisphere
 
@@ -113,7 +113,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
      Aplas = .5*x_plasma*y_plasma
      number_faces = 5
 
-  case(6) ! hemisphere
+  case(6,16) ! hemisphere
      Vplas = 4 * pi * r_sphere**3 / 6.
      Aplas = pi*r_sphere**2/2.
      number_faces = 2
@@ -171,7 +171,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
         yt = r_sphere * (2 * rano(iseed1) - 1.) * y_plasma + plasma_centre(2)
         zt = r_sphere * (2 * rano(iseed1) - 1.) * z_plasma + plasma_centre(3)
 
-     case(6, 8) ! hemisphere and hollow hemisphere
+     case(6, 16, 8) ! hemisphere and hollow hemisphere
         xt = .5 * r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
         yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)
         zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
@@ -182,11 +182,12 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
      ! - if so then add it
 
      do face_nr = 1, number_faces
-        call face((/xt, yt, zt/), c_status, face_nr, &
-	   target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
+        call face(  (/xt, yt, zt/), c_status, face_nr, &
+	            target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
 
-        if (c_status .ge. 0.) exit
+        if (c_status .ge. 0.) exit ! particle outside
      end do
+
      if (c_status .lt. 0) then
 	i=i+1
         p=i+i1-1

@@ -118,14 +118,25 @@ subroutine face(r, c_status, face_nr, &
         end select
         c_status = dot_product(normal_vector, offset_vector - r)
 
-    case (6) ! semisphere
+    case (6) ! hemisphere: flat side facing laser
         select case (face_nr)
-        case(1) ! semisphere
+        case(1) ! hemisphere
             r_diff = r + (/r_sphere / 2., 0., 0./) - plasma_centre
             c_status = dot_product(r_diff, r_diff) - r_sphere**2
         case(2) ! y-z-plane
             normal_vector = (/+1., 0., 0./)
             offset_vector = (/-r_sphere / 2., 0., 0./) + plasma_centre
+            c_status = dot_product(normal_vector, offset_vector - r)
+        end select
+
+    case (16) ! flipped hemisphere: curved side facing laser
+        select case (face_nr)
+        case(1) ! hemisphere
+            r_diff = r - (/ r_sphere/2., 0., 0. /) - plasma_centre
+            c_status = dot_product(r_diff, r_diff) - r_sphere**2
+        case(2) ! y-z-plane
+            normal_vector = (/-1., 0., 0./)
+            offset_vector = (/ +r_sphere/2., 0., 0./) + plasma_centre
             c_status = dot_product(normal_vector, offset_vector - r)
         end select
 

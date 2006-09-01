@@ -37,8 +37,8 @@ subroutine track_nc
 
 ! density average line-out along laser axis: 5x5 average, converted to n/nc
 
-  jfoc = focus(2)/dy
-  kfoc = focus(3)/dz
+  jfoc = max(2.0,focus(2)/dy) ! ensure index>=0
+  kfoc = max(2.0,focus(3)/dz)
   rho1d(0:ngx+1) = 0.
   do k=kfoc-2,kfoc+2
      do j=jfoc-2,jfoc+2
