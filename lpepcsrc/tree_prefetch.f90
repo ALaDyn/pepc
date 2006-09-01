@@ -53,17 +53,17 @@ subroutine tree_prefetch(itime)
   integer :: size_remove, sum_reqs, nreq_max, nfetch_max,  timestamp, send_prop_count, recv_count, nnot_local
   character*1 :: ctick
   character(30) :: cfile, ccol1, ccol2, ccol0
-  integer :: sumfetches
+  integer :: sum_prefetches
 
   ! external functions
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   logical :: key_local   ! Tests whether key present in local # table
-  logical :: prefetch_summary=.false.
+  logical :: prefetch_summary=.true.
 
   iofile = ipefile
-!  iofile = 6
-  if (me==255) prefetch_debug=.true.
+  iofile = 6
+!  if (me==255) prefetch_debug=.true.
   !
   if (prefetch_debug) write(iofile,'(a,i6)') 'TREE PREFETCH for timestep ',itime
   if (me.eq.0 .and. walk_summary) write(*,'(a,i6)') 'LPEPC | TREE PREFETCH for timestep ',itime
@@ -77,7 +77,12 @@ subroutine tree_prefetch(itime)
   ! -------------------------------------------------------------------------
 
       ! Sort complete prefetch list according to owner
-      if (sum_fetches>0) call indexsort(fetched_owner, indx, sum_fetches, maxaddress)
+      if (sum_fetches>0) then
+	call indexsort(fetched_owner, indx, sum_fetches, maxaddress)
+      else
+! nothing to do
+	return
+      endif
 
      do i=1,sum_fetches
          sort_key(i)=fetched_keys(indx(i))
@@ -483,8 +488,8 @@ subroutine tree_prefetch(itime)
   end do
 
 ! Get max # multipole ships from prefetch 
- sumfetches = MAXVAL(nfetch_total)
- call MPI_ALLREDUCE( sumfetches, max_prefetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr ) 
+ sum_prefetches = MAXVAL(nfetch_total)
+ call MPI_ALLREDUCE( sum_prefetches, max_prefetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr ) 
 
 end subroutine tree_prefetch
 
