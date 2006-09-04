@@ -74,9 +74,9 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   !       3 = random wire
   !       4 = ellipsoid
   !       5 = wedge
-  !       6, 16 = hemisphere
-  !       7 = hollow sphere
-  !       8 = hollow hemisphere
+  !       6, 26 = hemisphere
+  !       11 = hollow sphere
+  !       16, 36 = hollow hemisphere
 
 
   !  Define target container parameters: volume, area, centre, # faces
@@ -93,15 +93,30 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
      Aplas = pi*r_sphere**2
      number_faces = 1
 
+  case(11) ! hollow sphere
+     Vplas = (4 * pi / 3.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
+     Aplas = pi*(r_sphere**2-(r_sphere-x_plasma)**2)
+     number_faces = 2
+
   case(2) ! disc
      Vplas = pi * r_sphere**2 * x_plasma
      Aplas = x_plasma*y_plasma
      number_faces = 3
 
+  case(12) ! hollow tube
+     Vplas = pi * (r_sphere**2 - (r_sphere-z_plasma)**2) * x_plasma
+     Aplas = pi*(r_sphere**2 - (r_sphere-z_plasma)**2)
+     number_faces = 4
+
   case(3) ! wire
      Vplas = pi * r_sphere**2 * z_plasma
      Aplas = pi*r_sphere**2
      number_faces = 3
+
+  case(13) ! hollow wire
+     Vplas = pi * (r_sphere**2 - (r_sphere-x_plasma)**2) * z_plasma
+     Aplas = pi*(r_sphere**2 - (r_sphere-x_plasma)**2)
+     number_faces = 4
 
   case(4) ! ellipsoid
      Vplas = 4 * pi * x_plasma * y_plasma * z_plasma / 3.
@@ -113,20 +128,21 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
      Aplas = .5*x_plasma*y_plasma
      number_faces = 5
 
-  case(6,16) ! hemisphere
+  case(6,26) ! hemisphere
      Vplas = 4 * pi * r_sphere**3 / 6.
      Aplas = pi*r_sphere**2/2.
      number_faces = 2
 
-  case(7) ! hollow sphere
-     Vplas = (4 * pi / 3.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
-     Aplas = pi*(r_sphere**2-(r_sphere-x_plasma)**2)
-     number_faces = 2
 
-  case(8) ! hollow hemisphere
+  case(16,36) ! hollow hemisphere
      Vplas = (4 * pi / 6.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
      Aplas = pi/2.*(r_sphere**2-(r_sphere-x_plasma)**2)
      number_faces = 3
+
+  case default ! slab
+     Vplas = x_plasma * y_plasma * z_plasma  ! plasma volume
+     Aplas = x_plasma * y_plasma ! plasma area
+     number_faces = 6
 
   end select geom_container
 
@@ -151,17 +167,17 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
         yt = .5 * y_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
         zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
 
-     case(1, 7) ! sphere and hollow sphere
+     case(1, 11) ! sphere and hollow sphere
         xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
         yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)        
         zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
 
-     case(2) ! disc
+     case(2,12) ! disc, tube
         xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
         yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
         zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
 
-     case(3) ! wire
+     case(3,13) ! wire
         xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)         
         yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)
         zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
@@ -171,7 +187,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
         yt = r_sphere * (2 * rano(iseed1) - 1.) * y_plasma + plasma_centre(2)
         zt = r_sphere * (2 * rano(iseed1) - 1.) * z_plasma + plasma_centre(3)
 
-     case(6, 16, 8) ! hemisphere and hollow hemisphere
+     case(6, 16, 26, 36) ! hemisphere and hollow hemisphere
         xt = .5 * r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
         yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)
         zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)

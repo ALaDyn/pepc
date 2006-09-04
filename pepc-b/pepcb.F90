@@ -112,7 +112,9 @@ program pepcb
   endif
 
 
-  if (debug_level >0) call diagnostics     ! Initial config
+  if (debug_level >0) then
+	call diagnostics     ! Initial config
+  endif
 
   call cputime(t_start_loop)
 
@@ -138,7 +140,7 @@ program pepcb
 	else
 	   Tpon=0.
 	endif
-     case(14) 
+     case(14,94) 
            Tpon = 2*vosc**2*min(1.,tlaser/tpulse)
      case(3) 
         Tpon = vosc**2

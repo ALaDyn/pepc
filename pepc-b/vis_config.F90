@@ -49,14 +49,25 @@ subroutine vis_config
 
 	ivis = isteer2
 	ivis_fields=isteer3
-	target_geometry = min(max(isteer4,0),8)  ! Target geom 0-8
+	target_geometry = max(isteer4,0)  ! Target geom 0-8
 
         stretch: select case(target_geometry)
 
         case(0,5) ! slab & wedge
            x_plasma = dsteer4 
-        case(1,2,3,4,6,7,8) ! spherical/cylindrical
-           r_sphere = dsteer4 
+
+        case(1,11,2,3,13,4,6,16,26,36) ! spherical/cylindrical
+           r_sphere = dsteer4
+	   x_plasma = min(dsteer4/2.,dsteer3)
+
+	case(12) ! tube
+	   r_sphere = dsteer4
+ 	   z_plasma = min(dsteer4/2.,dsteer3)
+
+	case default
+	   r_sphere = dsteer4
+	   x_plasma = dsteer3
+
         end select stretch
 
 	if (isteer1 == 1) launch = .true.  ! Start simulation if launch box clicked.
