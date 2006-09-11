@@ -36,7 +36,7 @@ subroutine tree_properties
   real*8, dimension(8) :: xs, ys, zs   ! multipole shift vector
 
   real*8 :: xss, yss, zss, gamma, vx, vy, vz
-  integer :: i, j, k, maxtwig, maxleaf, maxlevel, nchild, ncheck, ntwig_domain, nsearch, newsub, cchild 
+  integer :: i, j, k, maxlevel, nchild, ncheck, ntwig_domain, nsearch, newsub, cchild 
   integer :: node_b, nuniq, nsub, nparent, ilevel, ibr, pno, bno
   integer ::  addr_leaf, p_leaf, node_leaf       ! local leaf-nodes
   integer :: ierr, nbuf

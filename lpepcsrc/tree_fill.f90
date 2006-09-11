@@ -29,7 +29,7 @@ subroutine tree_fill
 
   integer*8 :: node_key, search_key, parent,  child_top
   integer :: maxlevel, ilevel, nsub,i,j,k, nparent, nuniq, child_byte, child_bit, nchild, link_addr, hashaddr
-  integer :: maxtwig, maxleaf, nleaf_check, ntwig_check
+  integer :: nleaf_check, ntwig_check
   integer ::  node_addr, jmatch(1),  parent_node, parent_level, nodtwig
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk

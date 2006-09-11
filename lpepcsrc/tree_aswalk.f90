@@ -665,13 +665,13 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
      endif
 
      ! Array bound checks
-     if (nleaf>.95*maxaddress/3 .and. mod(me,100).eq.0) then
-        write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
-        write (6,*) 'LPEPC | nleaf = ',nleaf,' / ',maxaddress/3
+     if (nleaf>.95*maxleaf .and. mod(me,100).eq.0) then
+        write (6,*) 'LPEPC | WARNING: tree arrays >95% full on CPU ',me
+        write (6,*) 'LPEPC | nleaf = ',nleaf,' / ',maxleaf
      endif
-     if (ntwig>.95*maxaddress*2/3. .and. mod(me,100).eq.0) then
-        write (6,*) 'LPEPC | WARNING: tree arrays >90% full on CPU ',me
-        write (6,*) 'LPEPC | ntwig = ',ntwig,' / ',maxaddress*2/3
+     if (ntwig>.95*maxtwig .and. mod(me,100).eq.0) then
+        write (6,*) 'LPEPC | WARNING: tree arrays >95% full on CPU ',me
+        write (6,*) 'LPEPC | ntwig = ',ntwig,' / ',maxtwig
      endif
 
      call cputime(tc1)

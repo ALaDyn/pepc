@@ -309,10 +309,10 @@ subroutine tree_domains(xl,yl,zl)
 
   do i=2,npp
      if (pekey(i) == pekey(i-1)) then
-        write(*,'(a15,i5,a30,2i8)') 'LPEPC | PE ',me,' WARNING: identical keys found for particles  ',pelabel(i),pelabel(i-1)
+!        write(*,'(a15,i5,a30,2i8)') 'LPEPC | PE ',me,' WARNING: identical keys found for particles  ',pelabel(i),pelabel(i-1)
         
         pekey(i) = pekey(i) + 1  ! Augment higher key
-        write(*,'(a,o21)') 'LPEPC | Upper key increased to:  ',pekey(i)
+!        write(ipefile,'(a,o21)') 'LPEPC | Upper key increased to:  ',pekey(i)
      endif
   end do
 

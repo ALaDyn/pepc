@@ -166,6 +166,8 @@ module treevars
              nintmax, &        ! max # terms allowed in interaction list
              max_list_length, & ! current max list length
              maxaddress, &     ! max address allowed in #table
+             maxleaf, &     ! max leaf allowed in #table
+             maxtwig, &     ! max twig allowed in #table
              size_tree, &      ! array space needed for local tree
              size_fetch, &      ! array space needed for fetch/request arrays 
              maxtraverse, &      ! max # traversals per iteration 
