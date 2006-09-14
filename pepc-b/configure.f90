@@ -515,6 +515,82 @@ subroutine configure
             endif
 
 
+        case(21)  ! disc + tube: tincan target, 50:50 ion, proton mix
+            !    ====================================
+
+            write(ipefile,'(/a/)') "Setting up flange"
+
+            target_geometry=2
+            velocity_config=1
+            plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
+            offset_e = me*nep + ne_rest
+            offset_i = ne + me*nip + ni_rest
+
+            ! Electrons 
+            call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
+                -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+                number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
+            ! Ions
+            call plasma_start( nep+1, nip, ni, offset_i, target_geometry, velocity_config, idim, &
+                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
+
+!  Turn 1/2 of ions into protons - assumes 50:50 mix @ same density
+            do i=nep+1,nep+nip,2
+                m(i) = m(i)/mass_ratio*1836
+            end do
+
+            if (scheme /= 5 .and. ramp) then
+                call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
+            endif
+
+            ! Tube = cylinder with inset
+
+            write(ipefile,'(/a/)') "Setting up tube"
+
+            ! Adjust local numbers if total non-multiple of # PEs
+            if (my_rank==0) then
+     		np_rest = mod(n_layer(1),n_cpu)
+            else
+     		np_rest = 0
+            endif
+
+            nlayp = n_layer(1)/n_cpu + np_rest  ! total # ions on this CPU
+            nep0 = nlayp
+            !  Make particle numbers on root known (in case of unequal particle #s - need for label offset)
+            call MPI_BCAST( nep0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+            ne_rest = nep0-nlayp
+            ni_rest = nep0-nlayp
+
+            ipstart = nep+nip+1
+            label_offset = ne+ni+me*nlayp +n_layer(1) + ni_rest
+
+            ! Place on rear of front disc
+            displace = (/ x_plasma/2.+x_layer(1)/2.,0.,0. /)
+            layer_geometry = 12  ! tube
+
+            call plasma_start( ipstart, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
+                rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+                faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+
+!  Turn 1/2 of ions into protons - assumes 50:50 mix @ same density
+            do i=ipstart,ipstart+nlayp,2
+                m(i) = m(i)/mass_ratio*1836
+            end do
+
+            ! Equal number of neutralising electrons 
+            label_offset = ne+ni+me*nlayp + ne_rest 
+            call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
+                -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+                faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+
+            npp=npp + 2*nlayp  ! Total # local particles
+            ne = ne + n_layer(1)  ! Global # particles
+            ni = ni + n_layer(1)  ! Global # particles
+            npart = ni+ne
+
+
+
 
 
             !####################################################################################################
