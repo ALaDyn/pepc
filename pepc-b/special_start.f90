@@ -18,15 +18,16 @@ subroutine special_start(iconf)
   real :: rs,v0,gamma0,vt,xt,yt,zt,thetvel,phivel
   real :: dpx, vx_beam, vy_beam, vz_beam, st, ct, sp, cp, volb
   integer :: npb, p
- 
+  real :: gamma, Ndebye
+
   iseed = -17-me
 
-! Define default container parameters in absence of plasma target
-     Vplas = x_plasma * y_plasma * z_plasma
-     Aplas = x_plasma * y_plasma
-     focus = (/ xl/4., yl/2., zl/2. /) ! Centre of laser focal spot
-     plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
-     Qplas = ne
+  ! Define default container parameters in absence of plasma target
+  Vplas = x_plasma * y_plasma * z_plasma
+  Aplas = x_plasma * y_plasma
+  focus = (/ xl/4., yl/2., zl/2. /) ! Centre of laser focal spot
+  plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+  Qplas = ne
 
   config: select case(iconf)
 
@@ -175,8 +176,76 @@ subroutine special_start(iconf)
      q(1:npp) = qe           ! plasma electrons
      m(1:npp) = abs(qe*mass_beam)  ! electron mass
 
-!     write (*,'(a30/(5f13.5))') 'Beam config:', &
-!          (x(i),y(i),z(i),q(i),m(i),i=1,npp)
+     !     write (*,'(a30/(5f13.5))') 'Beam config:', &
+     !          (x(i),y(i),z(i),q(i),m(i),i=1,npp)
+
+
+  case(6)       ! random placement in box xl*xl*xl for periodic system 
+
+     ! Use Debye units 
+     ! - lengths normalized to lambda_De
+     ! - velocities to v_te
+     ! - time to wpe^-1
+     ! Effective density adjusted via box length
+     ! TODO:   gamma, Ndebye need to be made global (physvars.f90)
+
+     yl=xl
+     zl=xl
+     qe=-1.0
+     mass_e=1.0
+     qi=1.0
+     mass_i=mass_ratio
+     !  Inter-electron spacing
+     a_ee = xl/(4*pi/3.*ne)**(1./3.)
+     !  Inter-ion spacing
+     a_ii = a_ee*Zion**(1./3.) 
+
+     !  Renormalise softening parameter
+     eps = eps * a_ee
+
+     !  Equivalent Gamma
+     gamma= a_ee**2/3.
+     !  # electrons in Debye sphere
+     Ndebye = (3*gamma)**(-1.5)
+     !  Adjust force constant
+     force_const = 1./3./Ndebye
+
+     write (*,*) "Ewald Setup:"
+     write (*,'(5(a30,f15.5/))') "Particle spacing ",a_ee, &
+          "Softening parameter:",eps, &
+          "Gamma:",gamma, &
+          "# electrons in Debye sphere:",Ndebye, &
+          "force const:",force_const
+
+     do i=1,npp
+        if (i<=nep) then
+           q(i) = qe        ! plasma electrons
+           m(i) = mass_e 
+        else
+           q(i) = qi        ! plasma ions (need Z* here)
+           m(i) = mass_i    ! ion mass
+
+        endif
+        xt =  xl * rano(iseed) 
+        yt =  xl * rano(iseed)
+        zt =  xl * rano(iseed)
+        x(i) = xt
+        y(i) = yt
+        z(i) = zt
+     end do
+
+
+     ! Setup 3v Maxwellian electrons
+     ! TODO: max random seed processor-dependent
+
+     call maxwell1(ux,nppm,1,nep,vte)
+     call maxwell1(uy,nppm,1,nep,vte)
+     call maxwell1(uz,nppm,1,nep,vte)
+     call scramble_v(1,nep)   ! remove x,y,z correlations
+     ! Ions cold    
+     call cold_start(nep+1,nip)
+
+
   end select config
 
   ex(1:npp) = 0.
