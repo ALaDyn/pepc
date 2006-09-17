@@ -1,0 +1,92 @@
+
+Running PEPC on the BlueGene/L machine JuBL
+
+===========================================
+
+1. Rack reservation
+===================
+
+Racks or midplanes (1/2-racks) can be reserved using 
+
+sched_bgl -[options]
+
+For an overview of the next week's usage & to see what's free, use:
+
+llview
+
+(needs patience over non-local connection).
+The grey blocks are either free or '2nd level' (= reserved by users who have double-booked or
+used up their quota), and can be overwritten.
+
+The current jobs and those about to start can be listed with: 
+
+llstat
+
+
+For example, to reserve rack R10 on the 22 Sept for 1 hour from 1300-1400, use:
+
+sched_bgl -a  2006.09.22_13:00  2006.09.22_14:00  R10
+
+sched_bgl -h     gives further examples & rules
+
+
+2. Job submission
+=================
+
+The .bgl scripts in the run directories do the necessary book-keeping for batch jobs.
+
+This will look something like:
+
+--------------------
+#!/bin/sh
+#
+#mpirun -h
+if [ $# = 0 -o "$1" = "-h" -o "$1" = "-help" -o "$1" = "-?" ]; then
+    echo "Pre-allocated partition"
+    echo "Usage: ./mypart.sh #cpu "
+    exit
+fi
+
+TASKS=$1  			 #  change to desired number of MPI tasks (here input as parameter to script)
+MODE=CO      			 # Co-processor mode (max 512 MB/CPU)
+#MODE=VN     			 # Virtual node mode (max 256 MB/CPU)
+TOP=TORUS  			 # Topology - MESH or TORUS
+MAP=TXYZ			 # Processor mapping sequence 
+PEPC=../bin/pepcb.rts   	 # Binary location
+#PARTITION=R000_N4567  		 # change to your partition name
+PARTITION=R21  			 # change to your partition name
+export VISITRC=~/.visitrc_jubl   # for xnbody
+cp canmixed.h run.h              # parameter file
+echo "Running $PEPC on $PARTITION"
+mpirun -nofree  -partition $PARTITION -np $TASKS -mode $MODE -verbose 1 -exe `/bin/pwd`/$PEPC -cwd `/bin/pwd`
+-------------------
+
+To launch, use
+
+./tincan.bgl 1024 > tincan.out &
+
+The latter redirect ensures that the protocol is logged to a file for later inspection/post-mortems!
+
+For restarts, change the ne, ni particle numbers to their respective totals (sum of target layers)
+and set restart=.true.
+
+The array sizes may also need tweaking with np_mult and fetch_mult.
+
+ 
+
+3. Postprocessing
+=================
+
+
+Merge the distributed particle data with 
+
+../bin/merge1_dump <snapshot>
+
+eg
+
+../bin/merge1_dump 003000
+
+This will collect data from all 1024 (or 2048) subdirectories, placing it in 
+dumps/parts_dump.003000
+
+ 
