@@ -29,6 +29,8 @@ sched_bgl -a  2006.09.22_13:00  2006.09.22_14:00  R10
 
 sched_bgl -h     gives further examples & rules
 
+sched_bgl -l | grep jzam0403	 lists own reservations
+
 
 2. Job submission
 =================
