@@ -78,54 +78,54 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
      dy3 = dy**3
      dz3 = dz**3
 
-     fd1 = -3.*dx2*rd5 + rd3
-     fd2 = -3.*dy2*rd5 + rd3
-     fd3 = -3.*dz2*rd5 + rd3
-     fd4 = -3.*dx*dy*rd5
-     fd5 = -3.*dy*dz*rd5
-     fd6 = -3.*dx*dz*rd5
+     fd1 = 3.*dx2*rd5 - rd3
+     fd2 = 3.*dy2*rd5 - rd3
+     fd3 = 3.*dz2*rd5 - rd3
+     fd4 = 3.*dx*dy*rd5
+     fd5 = 3.*dy*dz*rd5
+     fd6 = 3.*dx*dz*rd5
 
      ! potential
 
      sumphi = sumphi + mult(i)*rd    &                           !  monopole term
           ! 
      + (dx*mult(i+1) + dy*mult(i+2) + dz*mult(i+3))*rd3  &    !  dipole 
-     !        Dx             Dy            Dz
-          -0.5*fd1*mult(i+4) - 0.5*fd2*mult(i+5) - 0.5*fd3*mult(i+6)  &  !  quadrupole
-          !           Qxx                 Qyy                 Qzz
-          + fd4*mult(i+7) + fd5*mult(i+8) + fd6*mult(i+9)      
-     !             Qxy            Qyz             Qzx
+        !     Dx             Dy            Dz
+     + 0.5*fd1*mult(i+4) + 0.5*fd2*mult(i+5) + 0.5*fd3*mult(i+6)  &  !  quadrupole
+        !           Qxx                 Qyy                 Qzz
+     + fd4*mult(i+7) + fd5*mult(i+8) + fd6*mult(i+9)      
+           !   Qxy            Qyz             Qzx
 
      !  forces
 
      sumfx = sumfx + mult(i)*dx*rd3 &      ! monopole term
           !
-     - ( fd1*mult(i+1) + fd4*mult(i+2) + fd6*mult(i+3) )  &   !  dipole term
+          + fd1*mult(i+1) + fd4*mult(i+2) + fd6*mult(i+3)   &   !  dipole term
           !
-     + ( -9.*dx*rd5 + 15.*dx3*rd7 )*0.5*mult(i+4) &
-          + ( -3.*dy*rd5 + 15.*dy*dx2*rd7 )*mult(i+7) &
-          + ( -3.*dz*rd5 + 15.*dz*dx2*rd7 )*mult(i+9) &   !   quadrupole term
-          + ( 15*dx*dy*dz*rd7 )*mult(i+8) &
-          + ( -3.*dx*rd5 + 15.*dx*dy2*rd7 )*0.5*mult(i+5) &
-          + ( -3.*dx*rd5 + 15.*dx*dz2*rd7 )*0.5*mult(i+6) 
+          + (15.*dx3*rd7 - 9.*dx*rd5 )*0.5*mult(i+4) &     !
+          + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*mult(i+7) &     !
+          + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*mult(i+9) &     !   quadrupole term
+          + ( 15*dx*dy*dz*rd7 )*mult(i+8) &                ! 
+          + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*0.5*mult(i+5) & !
+          + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*0.5*mult(i+6)   !
 
      sumfy = sumfy + mult(i)*dy*rd3 &
-          - ( fd2*mult(i+2) + fd4*mult(i+1) + fd5*mult(i+3) ) &
-          + ( -9.*dy*rd5 + 15.*dy3*rd7 )*0.5*mult(i+5) &
-          + ( -3.*dx*rd5 + 15.*dx*dy2*rd7 )*mult(i+7) &
-          + ( -3.*dz*rd5 + 15.*dz*dy2*rd7 )*mult(i+8) &
+          + fd2*mult(i+2) + fd4*mult(i+1) + fd5*mult(i+3)  &
+          + ( 15.*dy3*rd7 - 9.*dy*rd5 )*0.5*mult(i+5) &
+          + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*mult(i+7) &
+          + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*mult(i+8) &
           + ( 15.*dx*dy*dz*rd7 )*mult(i+9) &
-          + ( -3.*dy*rd5 + 15.*dy*dx2*rd7 )*0.5*mult(i+4) &
-          + ( -3.*dy*rd5 + 15.*dy*dz2*rd7 )*0.5*mult(i+6) 
+          + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*0.5*mult(i+4) &
+          + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*0.5*mult(i+6) 
 
      sumfz = sumfz + mult(i)*dz*rd3 &
-          - ( fd3*mult(i+3) + fd5*mult(i+2) + fd6*mult(i+1) ) &
-          + ( -9.*dz*rd5 + 15.*dz3*rd7 )*0.5*mult(i+6) &
-          + ( -3.*dx*rd5 + 15.*dx*dz2*rd7 )*mult(i+9) &
-          + ( -3.*dy*rd5 + 15.*dy*dz2*rd7 )*mult(i+8) &
+          + fd3*mult(i+3) + fd5*mult(i+2) + fd6*mult(i+1)  &
+          + ( 15.*dz3*rd7 - 9.*dz*rd5 )*0.5*mult(i+6) &
+          + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*mult(i+9) &
+          + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*mult(i+8) &
           + ( 15.*dx*dy*dz*rd7 )*mult(i+7) &
-          + ( -3.*dz*rd5 + 15.*dz*dy2*rd7 )*0.5*mult(i+5) &
-          + ( -3.*dz*rd5 + 15.*dz*dx2*rd7 )*0.5*mult(i+4) 
+          + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*0.5*mult(i+5) &
+          + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*0.5*mult(i+4) 
 
 !     write(*,'(i5,a5,f12.3,a5,f12.3,a5,f12.3)') jnode,' q_j=',charge(jnode),' x_j=',xcoc(jnode),' d=',d
 
