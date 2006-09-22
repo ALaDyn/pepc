@@ -19,6 +19,18 @@ subroutine diagnostics
   integer :: max_nnodes, max_fetches, max_reqs, max_sum_fetches, max_sum_ships,max_local_f, max_local_r, sum_local_f
   integer :: vcount=0
 
+! Tree diagnostics
+! If interaction lists needed, must ensure that intlist() is large enough to contain all lists
+! - will otherwise just get last pass of tree walk
+
+  if ( dump_tree .and. mod(itime,iprot) ==0 ) then
+     call diagnose_tree   ! Printed tree info (htable etc)
+     call draw_tree2d(xl,yl)     ! Draw PE-trees
+     call draw_lists      ! Draw interaction lists
+     call draw_domains(itime+itime_start)   ! Domains
+  endif
+
+
   ! Interface to VISIT (Online visualisation)
 
   if (u_beam>0 .and. beam_config==3) scheme=1  ! Switch off Te control if beam on
@@ -51,6 +63,8 @@ subroutine diagnostics
 
   if (mod(itime,idump) >= idump-navcycle) call sum_fields    ! Accumulate cycle-averaged fields on grid
   !  - assume for now that idump > navcycle
+  !  - should really use running average to be compatible with online vis.
+
 
   if (beam_config == 4 .and. mod(itime,itrack)==0 ) call track_nc          ! Gather densities and track critical surface 
   if( mod(itime+itime_start,ivis_fields)==0 .and. target_geometry==1) then
@@ -58,17 +72,10 @@ subroutine diagnostics
   endif
 
 
-
   if (itime_start>0 .and. itime==0) return  ! Avoid over-writing restart data
 
   call energy_cons(Ukine,Ukini,Umagnetic,Ubeam)       ! Compute energy balance
 
-  if ( dump_tree .and. mod(itime,iprot) ==0 ) then
-     call diagnose_tree   ! Printed tree info (htable etc)
-     call draw_tree2d(xl,yl)     ! Draw PE-trees
-     call draw_lists      ! Draw interaction lists
-     call draw_domains(itime+itime_start)   ! Domains
-  endif
 
   if ( idump>0 .and. (mod(itime+itime_start,idump)==0 .or. itime==nt) ) then
      call dump(itime+itime_start)     ! Dump complete set of particle data
