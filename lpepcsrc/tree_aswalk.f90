@@ -215,6 +215,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
            mac_ok = ( s2 < dist2*theta2 .and. walk_key(i)>1 )   ! Preprocess MAC - always reject root node
 
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
+           ! NB: this uses local leaf #, not global particle label
+
            ignore =  ( pshort(p) == htable( walk_addr )%node )
 
            ! Wakefield QSA mac condition: prevent forward transmission of pw info
@@ -227,14 +229,14 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
            add_key = walk_key(i)                                ! Remember current key
 
            ! Possible courses of action:
-
-
+           
            ! 1) MAC test OK, so put cell on interaction list and find next node for tree walk
            !    - reject self
-           if ( mac_ok .or. (walk_node >0 .and. .not.ignore ) ) then
+
+           if ( (mac_ok .or. walk_node >0) .and. .not.ignore) then
               walk_key(i) = walk_next
 	      entry_next = nterm(p) + 1
-              !              intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
+              intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
               nodelist( entry_next, p ) = walk_node   ! Node number for sum_force
               nterm(p) = entry_next
 

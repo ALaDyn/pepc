@@ -44,7 +44,19 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
      walk_debug=.true.
      walk_summary=.true.
      force_debug=.true.
- else if (db_level==4) then
+
+  else if (db_level==4) then
+     dump_tree=.true.
+
+  else if (db_level==5) then
+     tree_debug=.true.
+     domain_debug = .true.
+     build_debug=.true.
+     branch_debug=.true.
+     prefetch_debug=.true.
+     walk_debug=.true.
+     walk_summary=.true.
+     force_debug=.true.
      dump_tree=.true.
   else
 ! all off by default
@@ -58,7 +70,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
     nppm = 5*max(npartm/num_pe,1000) ! allow 50% fluctuation
   endif
   
-  nshortm = 800    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+  nshortm = 1000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
@@ -137,7 +149,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
 
 
-  allocate ( nterm(nshortm), intlist(1,1), nodelist(nintmax,nshortm) )! interaction key-, node-lists
+  allocate ( nterm(nshortm), intlist(nintmax,nshortm), nodelist(nintmax,nshortm) )! interaction key-, node-lists
 
   allocate ( htable(0:maxaddress), all_addr(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
        nbranches(num_pe+2), igap(num_pe+3), &

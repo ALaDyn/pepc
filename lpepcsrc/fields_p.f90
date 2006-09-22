@@ -171,7 +171,7 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
 
 
   !  # passes needed to process all particles
-  nshort_list =nshortm/8 
+  nshort_list =nshortm/5 
   npass = max(1,npart/num_pe/nshort_list)   ! ave(npp)/nshort_list   - make nshort_list a power of 2
   load_average = SUM(work(1:npp))/npass   ! Ave. workload per pass: same for all PEs if already load balanced
   nshort(1:npass+1) = 0

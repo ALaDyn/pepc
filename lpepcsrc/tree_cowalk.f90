@@ -226,7 +226,7 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
            ! 1) MAC test OK, so put cell on interaction list and find next node for tree walk
 
-           if ( mac_ok .or. (walk_node >0 .and. .not.ignore ) ) then
+           if ( (mac_ok .or. walk_node >0) .and. .not.ignore) then
               walk_key(i) = walk_next
 	      entry_next = nterm(p) + 1
 !              intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
