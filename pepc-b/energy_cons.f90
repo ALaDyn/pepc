@@ -54,9 +54,9 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
      end do
      ! Write out to energy.dat file
      if (itime.eq.1)  write(75,'(a)') '! time  Upot  Umag  Ukin_e Ukin_i Ukin_beam Utot Tpon xc'
-     write (75,'(f12.5,5(1pe12.3),1pe13.5,2(1pe12.3))') &
+     write (75,'(f12.5,5(1pe12.3),1pe13.5)') &
           trun, convert_kev*epot, convert_kev*emag, convert_kev*ekine, convert_kev*ekini,&
-          convert_kev*ebeam, convert_kev*etot,tpon,x_crit
+          convert_kev*ebeam, convert_kev*etot
   endif
 end subroutine energy_cons
 
