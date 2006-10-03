@@ -91,7 +91,7 @@ subroutine dump_fields(timestamp)
                  call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, &
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond)
 
-              case(7) ! Standing wave fpond Ez, By, Az
+              case(24) ! Standing wave fpond Ez, By, Az
                  call emobliq(tlaser,tpulse,sigma,vosc,omega,theta_inc, &
                       xd,yd,zd,epon_x,epon_y,epon_z,phipond)
 
