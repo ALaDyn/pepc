@@ -28,7 +28,7 @@ RANLIB  = ranlib
 AR      = ar
 
 #  Put compiler optimisation in here
-#QTUNE = -O3 
+QTUNE = -O3 
 CFLAGS1= -O3 -g -I/usr/local/include 
 FFLAGS1 = $(QTUNE)  
 #  Debug options
@@ -63,10 +63,10 @@ MPITRACE =
 PREPROC = -DVISIT_NBODY
 #PREPROC =
 
-VPREFIX=/tmp/demo/xnbody
+VPREFIX=/tmp/xnbody
 APISDIR=$(VPREFIX)/apis
 
-#VISITLIBS=-L$(VPREFIX)/apis/nbody3 -llvisit_nbody2 -L$(VPREFIX)/lvisit/lib -llvisit -L$(VPREFIX)/visit/lib -lvisit
+VISITLIBS=-L$(VPREFIX)/xnbody_qt4/apis/nbody3 -llvisit_nbody2 -L$(VPREFIX)/lvisit/lib -llvisit -L$(VPREFIX)/visit_dist/lib -lvisit
 #NETCDFLIB = -lnetcdf
 
 
