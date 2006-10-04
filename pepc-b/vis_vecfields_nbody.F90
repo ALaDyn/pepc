@@ -19,11 +19,12 @@ subroutine vis_vecfields_nbody(timestamp)
   real*4, dimension(3*ngx*ngy*ngz) :: field1
   real*4, dimension(ngx,ngy,ngz) :: jelec_x,jelec_y,jelec_z
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max
+  real :: xt, yt, zt, rt
   integer, parameter :: ngmax=100
   integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, iskip,itlas
   integer :: lvisit_active=0, ierr 
   integer :: npx, npy, npz, ng, jfoc, kfoc, nave
-  real :: norm
+  real :: norm,j0
   integer :: iskip_x, iskip_y, iskip_z
   integer :: fselect=0 ! field selector
   integer :: incdf
@@ -91,6 +92,7 @@ subroutine vis_vecfields_nbody(timestamp)
      dz = zl/ngz
      dy = yl/ngy
 
+     j0 = 1.0
 
      do k=1,ngz,iskip_z
         do j=1,ngy,iskip_y
@@ -103,15 +105,29 @@ subroutine vis_vecfields_nbody(timestamp)
                 field1(lcount) = jelec_x(i,j,k)  
                 field1(lcount+1) = jelec_y(i,j,k)  
                 field1(lcount+2) = jelec_z(i,j,k)  
+!	     field1(lcount+1)=0.
+!	     field1(lcount+2)=0.
 
 	      case(0) 
-	        field1(lcount:lcount+2) = 0
+		xt = dx*i
+		yt = dy*j-yl/2.
+		zt = dz*k-zl/2.
+		rt = sqrt(yt**2+zt**2)
+!		norm = rt*exp(-2*rt/yl)*xt/xl
+ 		norm = 1.
+		field1(lcount) = j0/3.
+!		field1(lcount) = 0.
+		field1(lcount+1) = -norm*zt/yl
+		field1(lcount+2) = norm*yt/zl
+
 	      end select f1
 	      lcount=lcount+3
-
            end do
         end do
      end do
+
+!	write (*,*) 'Max currents:',maxval(jelec_x),maxval(jelec_y),maxval(jelec_z)
+	write (*,*) 'Min/Max current:',minval(field1),maxval(field1)
 
 
 #ifdef VISIT_NBODY
@@ -144,7 +160,7 @@ subroutine vis_vecfields_nbody(timestamp)
 
 !   write(*,*) 'Grids: ',grid_pars
 
-      if (fselect>0) then
+!      if (fselect>0) then
        	 write (*,*) "VIS_NBODY | Shipping vector field 1: min/max =", &
 	minval(field1),maxval(field1)
 
@@ -154,7 +170,7 @@ subroutine vis_vecfields_nbody(timestamp)
 !         if (netcdf) call ncnbody_putvecfield( ncid, simtime, 1, npx, npy, npz, field1, incdf )
 #endif
 
-      endif
+!      endif
   endif
 #endif
 
