@@ -1200,7 +1200,6 @@ subroutine configure
 
         call param_dump
 
-
         ! Compute initial field values - need these to get vec. pots consistent with velocities
 
         if (me==0) write(*,*) 'Computing initial fields'

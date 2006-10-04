@@ -51,7 +51,7 @@ subroutine vis_vecfields_nbody(timestamp)
 !  if (me==0 .and. lvisit_active.ne.0) call flvisit_nbody2_selectvector_recv(fselect)
 #endif
 
-  fselect=1  ! Manual select
+  fselect=2  ! Manual select - B-field
 
   ! get filename suffix from dump counter
   do i=0,4
@@ -109,9 +109,9 @@ subroutine vis_vecfields_nbody(timestamp)
 !	     field1(lcount+2)=0.
 
 	      case(0) 
-		xt = dx*i
-		yt = dy*j-yl/2.
-		zt = dz*k-zl/2.
+		xt = dx*(i-0.5)
+		yt = dy*(j-0.5)-yl/2.
+		zt = dz*(k-0.5)-zl/2.
 		rt = sqrt(yt**2+zt**2)
 !		norm = rt*exp(-2*rt/yl)*xt/xl
  		norm = 1.
@@ -120,6 +120,35 @@ subroutine vis_vecfields_nbody(timestamp)
 		field1(lcount+1) = -norm*zt/yl
 		field1(lcount+2) = norm*yt/zl
 
+	      case(2) 
+
+		if (beam_config_in==7)  then ! Constant B in z-direction - either charge
+	  	  field1(lcount) = 0.
+		  field1(lcount+1) = 0.
+		  field1(lcount+2) = vosc
+
+		else if (beam_config_in==17)  then !  Z-pinch: circular B in x,y
+		  xt = dx*(i-0.5) - plasma_centre(1)
+		  yt = dy*(j-0.5) - plasma_centre(2)
+           	  rt = sqrt(xt**2+yt**2)
+ 		  field1(lcount) = -vosc*yt/rt
+		  field1(lcount+1) =  vosc*xt/rt
+		  field1(lcount+2) = 0.
+
+		else if (beam_config_in==37)  then !  Mirror in Bz
+		  xt = dx*(i-0.5) - plasma_centre(1)
+		  yt = dy*(j-0.5) - plasma_centre(2)
+           	  rt = sqrt(xt**2+yt**2)
+ 	 	  zt = dz*(k-0.5)-zl/2.
+           	  if (zt>-zl/2. .and. zt<zl/2.) then
+ 		    field1(lcount) = -vosc/5.*xt/rt*(2*zt/zl)
+		    field1(lcount+1) = -vosc/5.*yt/rt*(2*zt/zl)
+		    field1(lcount+2) = vosc*(2*zt/zl)**2+vosc/5.
+	          else
+		    field1(lcount:lcount+2) = 0.
+	
+          	  endif
+		endif
 	      end select f1
 	      lcount=lcount+3
            end do

@@ -51,13 +51,22 @@ subroutine vis_control
   !     return
   !  endif
 
-  if ( beam_config == 5 .or. beam_config==6) then
+
+!  if (beam_config==7) 
+!  Constant Bz
+!     dsteer1 = vosc
+!     dsteer2 = sigma
+!     dsteer3 = tpulse
+
+  if ( beam_config >=5 .and. beam_config <=7) then
+
+!  else if ( beam_config == 5 .or. beam_config==6) then
       ! Define beam from laser parameters
      vosc_old = vosc
      sigma_old = sigma
-     u_beam = vosc
-     rho_beam = tpulse
-!     r_beam = sigma  
+     dsteer1 = vosc
+     dsteer2 = sigma
+     dsteer3 = tpulse  ! incidence angle instead of pulse duration
 
   else if ( beam_config >=3 .and. beam_config <=4) then
       ! Define beam from laser parameters
@@ -89,22 +98,19 @@ subroutine vis_control
 
 #ifdef VISIT_NBODY
   if (itime == 0 .and. me==0 )  then
-!     call flvisit_spk_check_connection(lvisit_active)
      call flvisit_nbody2_check_connection(lvisit_active)
   ! Specify default parameters at beginning of run
-
 
 !     call flvisit_spk_beam_paraminit_send(th_beam,phi_beam,r_beam,rho_beam,u_beam)
   endif
 
 
   if (me==0) then
-!     call flvisit_spk_check_connection(lvisit_active)
      call flvisit_nbody2_check_connection(lvisit_active)
 
      ! Fetch real-time, user-specified control parameters
+
      if (lvisit_active /= 0) then 
-!  TODO:  Need XNBODY equivalent here
         call flvisit_nbody2_steering_recv( dsteer1,dsteer2,dsteer3, dsteer4,isteer1,isteer2,isteer3,isteer4)
 	th_beam = dsteer1
 	u_beam = dsteer2
@@ -150,7 +156,10 @@ subroutine vis_control
 !     return
 !  endif
 
-  if (beam_config >= 3 .and. beam_config <=6 ) then
+  if (beam_config ==7) then
+	vosc = u_beam
+
+  else if (beam_config >= 3 .and. beam_config <=6 ) then
      ! laser standing wave or pond bullet
 
      !     u_beam = max(abs(u_beam),0.1)

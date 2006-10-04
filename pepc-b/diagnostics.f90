@@ -47,7 +47,7 @@ subroutine diagnostics
         call densities
         call sum_fields
         call vis_fields_nbody(itime+itime_start)
-!        call vis_vecfields_nbody(itime+itime_start)
+        call vis_vecfields_nbody(itime+itime_start)
      endif
 
   endif

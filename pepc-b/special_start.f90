@@ -109,7 +109,8 @@ subroutine special_start(iconf)
         endif
         xt =  xl * rano(iseed) 
         yt =  yl * rano(iseed)
-        zt =  zl * rano(iseed)
+!        zt =  zl * rano(iseed)
+        zt = zl*i/1./npp
         x(i) = xt
         y(i) = yt
         z(i) = zt
@@ -119,6 +120,7 @@ subroutine special_start(iconf)
         phivel = pi*rano(iseed)
         ux(i) = v0*cos(thetvel)
         uy(i) = v0*sin(thetvel)
+!        uz(i) = v0/10.
         uz(i) = v0*cos(phivel)
      end do
 
