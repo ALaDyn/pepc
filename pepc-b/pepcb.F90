@@ -144,7 +144,7 @@ program pepcb
            Tpon = 2*vosc**2*min(1.,tlaser/tpulse)
      case(3) 
         Tpon = vosc**2
-     case(6) 
+     case(6,16) 
         Tpon = vosc**2*min(1.,tlaser/tpulse)
      case default
 	Tpon = 0.
