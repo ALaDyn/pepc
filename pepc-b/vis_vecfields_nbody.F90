@@ -48,10 +48,11 @@ subroutine vis_vecfields_nbody(timestamp)
 
 #ifdef VISIT_NBODY
 ! Fetch user-selected config from vis (TODO)
-!  if (me==0 .and. lvisit_active.ne.0) call flvisit_nbody2_selectvector_recv(fselect)
+!  if (me==0 .and. lvisit_active.ne.0) call flvisit_nbody2_selectvecfields_recv(fselect)
+       	 write (*,*) "VIS_NBODY | Selected vector field",fselect
 #endif
 
-  fselect=2  ! Manual select - B-field
+!  fselect=2  ! Manual select - B-field
 
   ! get filename suffix from dump counter
   do i=0,4
@@ -165,7 +166,7 @@ subroutine vis_vecfields_nbody(timestamp)
 ! Tell vis which fields are coming
 
   if (lvisit_active.ne.0) then
-!	 call flvisit_nbody2_selectedvector_send(fselect)
+!     call flvisit_nbody2_selectedvecfields_send(fselect)
 
 #ifdef NETCDFLIB
 ! Netcdf write
@@ -190,7 +191,7 @@ subroutine vis_vecfields_nbody(timestamp)
 !   write(*,*) 'Grids: ',grid_pars
 
 !      if (fselect>0) then
-       	 write (*,*) "VIS_NBODY | Shipping vector field 1: min/max =", &
+       	 write (*,*) "VIS_NBODY | Shipping vector field",fselect," min/max =", &
 	minval(field1),maxval(field1)
 
        call flvisit_nbody2_vecfield1_send(field1,npx,npy,npz,3)   
