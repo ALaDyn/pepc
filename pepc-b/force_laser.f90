@@ -146,7 +146,7 @@ subroutine force_laser(p_start,p_finish)
            By_em = vosc*xt/rt
            Bz_em = 0.
 
-	else if (beam_config_in==27)  then !  Tokamak: circular B in x,y + const Bz
+	else if (beam_config_in==27)  then !  Tokamak: circular B in theta + const Bz
            xt=x(p) - plasma_centre(1)
            yt=y(p) - plasma_centre(2)
            zt=z(p) - plasma_centre(3)
