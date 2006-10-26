@@ -6,8 +6,8 @@ PREFIX = ..
 
 #  Get machine-dependent flags
 
-#ARCH = linux.mk
-ARCH = ibm-p690.mk
+ARCH = linux.mk
+#ARCH = ibm-p690.mk
 #ARCH = bgl.mk
 #ARCH = arc-icl.mk
 
@@ -115,7 +115,6 @@ lpepc:
 	cp $(ARCH) ../lpepcsrc/arch.mk
 	cd ../lpepcsrc; make lpepc; cd ../pepc-b
 	/bin/ln -sf $(PREFIX)/lpepcsrc/liblpepc.a $(PREFIX)/pepc-b/liblpepc.a
-	/bin/ln -sf $(PREFIX)/lpepcsrc/*.opari.inc $(PREFIX)/pepc-b/.
 	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-b/treevars.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.mod $(PREFIX)/pepc-b/utils.mod
 
@@ -124,7 +123,6 @@ pepck:	$(appobjs) $(appmods) $(pepcmods) liblpepc.a
 	@echo "\n Creating pepc application binary ...\n"
 	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBPEPC) -o $@ $(appobjs) $(appmods) $(pepcmods)
 	@echo "... done\n"
-
 
 
 
