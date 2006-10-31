@@ -9,6 +9,7 @@ lpepc:
 	cd lpepcsrc && make
 
 pepc-b: 
+	cd lpepcsrc && make 
 	cd pepc-b && make
 
 clean:
