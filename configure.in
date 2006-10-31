@@ -193,7 +193,8 @@ AC_SUBST(AR)
 
 ###
 
-AC_CONFIG_FILES([lpepcsrc/makefile
+AC_CONFIG_FILES([makefile
+                 lpepcsrc/makefile
                  pepc-b/makefile
                  pepc-e/makefile
                  ])
