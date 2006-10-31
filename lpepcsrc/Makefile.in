@@ -1,19 +1,9 @@
-##-------------------------------------------
-MPICH=@MPICH@
+# this makefile is used for fcs library 
+MPI_DIR=@MPI_DIR@
 
-OPT      = -O3 #-O5
-FF       = $(MPICH)/bin/mpif90 
+FF       = @MPIF90@
 MODDIR   = @abs_top_builddir@/modules
-FFLAGSX  = -r8 -I$(MPICH)/include -module $(MODDIR)
-
-#PEPCSRC=\
-#./check_table.f90    ./key_test.f90          ./tree_build.f90 \
-#./diagnose_tree.f90  ./make_hashentry.f90 \
-#./tree_domains.f90   ./tree_walk.f90         ./fields.f90         \
-#./setup_treearrays.f90  ./tree_fill.f90      \
-#./get_address.f90    ./sum_bfield.f90        ./tree_prefetch.f90\
-#./get_next_node.f90  ./sum_force.f90         ./tree_properties.f90\
-#./get_node.f90       ./tree_branches.f90     
+FFLAGS   = @FFLAGS@ @FFLAGS_OS@ @OPT@ @REAL8_FLAG@ -I$(MODDIR) @MODULE_FLAG@$(MODDIR)
 
 PEPCMOD=\
 ./treevars.f90 ./utils.f90 ./tree_utils.f90
@@ -32,14 +22,14 @@ PEPCSRC=\
 #draw_tree2d.f90 draw_lists.f90 draw_domains.f90 
 
 OBJS = $(PEPCMOD:.f90=.o) $(PEPCSRC:.f90=.o)
+.SUFFIXES: .c .f90 
 
 #
 all: $(OBJS)  
 
 
-%.o:%.f90
-	$(FF) $(FFLAGS) $(FFLAGSX) -c $<
-
+.f90.o:  
+	$(FF) $(FFLAGS) -c $<
 # 
 clean:
 	rm -f $(OBJS) *~
@@ -47,7 +37,45 @@ clean:
 distclean:
 	/bin/rm -f Makefile config.h config.status config.cache config.log
 
-
+## to specify the dependencies, the corresponding object file is used 
+## instead of the module file
+## (can be automatically generated with "makedepf90 *.f90 -I../../modules")
+check_table.o : check_table.f90 treevars.o
+diagnose_tree.o : diagnose_tree.f90 treevars.o
+draw2d.o : draw2d.f90 treevars.o
+draw2d_hash.o : draw2d_hash.f90 treevars.o
+draw_domains.o : draw_domains.f90 treevars.o
+draw_lists.o : draw_lists.f90 treevars.o
+draw_map.o : draw_map.f90 treevars.o
+draw_tree2d.o : draw_tree2d.f90 treevars.o
+fields.o : fields.f90 utils.o treevars.o
+fields_p.o : fields_p.f90 utils.o treevars.o
+get_address.o : get_address.f90 treevars.o
+get_next_node.o : get_next_node.f90 treevars.o
+get_node.o : get_node.f90 treevars.o
+key_test.o : key_test.f90 treevars.o
+make_hashentry.o : make_hashentry.f90 treevars.o
+setup_treearrays.o : setup_treearrays.f90 treevars.o
+sum_bfield.o : sum_bfield.f90 treevars.o
+sum_bond.o : sum_bond.f90 treevars.o
+sum_force.o : sum_force.f90 treevars.o
+sum_force_split.o : sum_force_split.f90 treevars.o
+sum_lennardjones.o : sum_lennardjones.f90 treevars.o
+sum_soft.o : sum_soft.f90 treevars.o
+tree_aswalk.o : tree_aswalk.f90 utils.o tree_utils.o treevars.o
+tree_branches.o : tree_branches.f90 tree_utils.o treevars.o
+tree_build.o : tree_build.f90 treevars.o
+tree_cowalk+dummy.o : tree_cowalk+dummy.f90 utils.o tree_utils.o treevars.o
+tree_cowalk.o : tree_cowalk.f90 utils.o tree_utils.o treevars.o
+tree_domains.o : tree_domains.f90 utils.o tree_utils.o treevars.o
+tree_fill.o : tree_fill.f90 tree_utils.o treevars.o
+tree_prefetch.o : tree_prefetch.f90 tree_utils.o treevars.o
+tree_properties.o : tree_properties.f90 tree_utils.o treevars.o
+tree_update.o : tree_update.f90 tree_utils.o treevars.o
+tree_utils.o : tree_utils.f90
+treevars.o : treevars.f90
+tree_walk.o : tree_walk.f90 utils.o tree_utils.o treevars.o
+utils.o : utils.f90
 
 
 

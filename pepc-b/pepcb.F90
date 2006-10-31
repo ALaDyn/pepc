@@ -99,13 +99,17 @@ program pepcb
     ico=1
     do while (.not. launch)
 	call configure
+#ifdef VISIT_NBODY
 	call vis_config
      	if ( mod(ico,ivis) ==0 ) call vis_parts_nbody(ico)       
+#endif
      	if ( mod(ico,ivis_fields)==0 ) then
         !     call pot_grid
           call densities
           call sum_fields
+#ifdef VISIT_NBODY
           call vis_fields_nbody(0)
+#endif
        endif
        ico=ico+1
     end do

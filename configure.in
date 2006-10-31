@@ -1,0 +1,220 @@
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+#
+m4_include([acx_mpi.m4]) dnl MPI support
+
+AC_PREREQ(2.59)
+AC_INIT(pepc, 1.4, P.Gibbon@fz-juelich.de)
+AC_CONFIG_SRCDIR([config.h.in])
+AC_CONFIG_HEADER([config.h])
+
+AC_CONFIG_AUX_DIR([src-config])
+
+#######################################################################
+# special paths for systems in juelich
+#######################################################################
+CFLAGS="$CFLAGS -I/usr/local/include"
+
+if [[ `uname -n` = "jubl" ]] # jubl in Juelich
+then
+ CFLAGS="$CFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
+ LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib"
+fi
+#if [[ `uname -m` = "00223C3B4C00" ]] # jump in Juelich
+
+#######################################################################
+# determine host type and write to stdout
+# set system specific options
+#######################################################################
+AC_CANONICAL_HOST  dnl get $host value
+ 
+case "$host" in
+#----------------------------------------------------------
+powerpc64-unknown-linux-gnu) # jubl
+ AC_MSG_RESULT(** setting options for powerpc64 host **)
+ CFLAGS_OS="-DJUMP -DAIX_XLF -qarch=440 -qtune=440 -qlibansi -qnoinfo "
+ FFLAGS_f77_f90="-WF,-DJUMP,-DAIX_XLF -qarch=440 -qtune=440 -qnosave -qextname"
+ FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
+ REAL8_FLAG=-qrealsize=8
+ MODULE_FLAG="-qmoddir="
+ F77FLAGS="$FFLAGS_f77_f90 -qsuffix=f -qfixed -qspillsize=32000"
+ FLINK_FLAGS="-qarch=440 -qtune=440"
+ CLINK_FLAGS="-qarch=440 -qtune=440"
+ if [[ -z "$OPT" ]]; then OPT=-O2; fi
+ AR="ar -q"
+ # 
+ IPA="-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node"
+ TUNE="-qarch=pwr4 -qtune=pwr4"
+  ;;
+#----------------------------------------------------------
+*-*-aix*)
+ AC_MSG_RESULT(** setting options for Aix host **)
+ CFLAGS_OS="-DJUMP -DAIX_XLF -q64 -qlibansi -qnoinfo "
+ FFLAGS_OS="-WF,-DJUMP,-DAIX_XLF -q64 "
+ REAL8_FLAG=-qrealsize=8
+ MODULE_FLAG="-qmoddir="
+ F77FLAGS="$FFLAGS_OS -qfixed -qspillsize=32000"
+ FLINK_FLAGS="-q64"
+ CLINK_FLAGS="-q64"
+ if [[ -z "$OPT" ]]; then OPT=-O2; fi
+ AR="ar -q -X64"
+  ;;
+#----------------------------------------------------------
+*-*-linux-gnu*)
+ AC_MSG_RESULT(** setting options for Linux host with ifort compiler **)
+ CFLAGS_OS="-Wall -Wno-unused"
+ REAL8_FLAG="-r8"
+ MODULE_FLAG="-module "
+ F77FLAGS="$FFLAGS_OS"
+ FLINK_FLAGS="-nofor_main"
+ CLINK_FLAGS=""
+ if [[ -z "$OPT" ]]; then OPT=-O3; fi
+ AR="ar -q"
+  ;;
+*)
+ AC_MSG_ERROR(** unknown host: $host **)
+   ;;
+esac
+
+#######################################################################
+# extra configure options
+#######################################################################
+AC_LANG(C)
+#AC_PROG_FC
+#AC_LANG(Fortran) dnl error, no fortran???
+
+# set mpi path manually
+AC_ARG_WITH(mpi,  [  --with-mpi=DIR          path to mpi installation directory],        
+[                                                                  
+   MPI_DIR=${withval} 
+])
+AC_SUBST(MPI_DIR) 
+
+# default for visit is no
+AC_ARG_WITH(visit,[  --with-visit            use visit libraries (no)],
+  case "$withval" in
+  yes[)]
+    VISIT=-DVISIT_NBODY
+    OPT="-g"
+    ;;
+  *[)]
+    VISIT=
+    ;;
+  esac
+,VISIT=
+)
+AC_SUBST(VISITDEF)
+
+# search mpi installation
+ACX_MPI(,AC_MSG_ERROR(mpi is not available => use --with-mpi=DIR))
+
+# set path to visit
+AC_ARG_WITH(visit,
+	[  --with-visit=DIR        path to visit library], 
+	[VISIT=${withval} -lvisit])
+AC_SUBST(VISIT) 
+# set path to lvisit
+AC_ARG_WITH(lvisit,
+	[  --with-lvisit=DIR       path to lvisit library], 
+	[LVISIT=${withval} -llvisit])
+AC_SUBST(LVISIT) 
+# set path to xnbody
+AC_ARG_WITH(xnbody,
+	[  --with-xnbody=DIR       path to xnbody library], 
+	[XNBODY=${withval} -llvisit_nbody2])
+AC_SUBST(XNBODY) 
+
+# default for netcdf is no
+AC_ARG_WITH(netcdf,[  --with-netcdf           use netcdf library (no)],
+  if test "$withval" = yes ; then
+    NETCDF=-lnetcdf
+  fi
+)
+AC_ARG_WITH(netcdf,
+	[  --with-netcdf=DIR       path to netcdf library], 
+	[NETCDF=-L${withval} -lnetcdf])
+AC_SUBST(NETCDF) 
+
+# set optimization options
+AC_ARG_WITH(opt,
+	[  --with-opt=options      compiler optimization options], 
+	[OPT=${withval}])
+AC_SUBST(OPT) 
+
+# default for debug is no
+AC_ARG_WITH(debug,[  --with-debug            produce debug library (no)],
+  case "$withval" in
+  yes[)]
+    DEBUGDEF=-DDEBUG 
+    OPT="-g"
+    ;;
+  *[)]
+    DEBUGDEF=
+    ;;
+  esac
+  ,DEBUGDEF=
+)
+AC_SUBST(DEBUGDEF)
+
+#######################################################################
+
+# Checks for programs.
+AC_PROG_CC
+AC_PROG_MAKE_SET
+
+# Checks for libraries.
+AC_CHECK_LIB([fftw3], [fftw_malloc],[],AC_MSG_ERROR(fftw3 is missing))
+AC_CHECK_LIB([m], [sqrt])
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS([fftw3.h float.h inttypes.h limits.h stddef.h stdlib.h string.h strings.h unistd.h],[],[AC_MSG_ERROR(include file is missing)])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_CHECK_FUNCS([atexit floor memset pow rint sqrt])
+
+AC_SUBST(FFLAGS)
+AC_SUBST(CFLAGS_OS)
+AC_SUBST(FFLAGS_OS)
+AC_SUBST(MODULE_FLAG)
+AC_SUBST(REAL8_FLAG)
+AC_SUBST(F77FLAGS)
+AC_SUBST(FLINK_FLAGS)
+AC_SUBST(CLINK_FLAGS)
+AC_SUBST(OPT)
+AC_SUBST(AR)
+
+###
+
+AC_CONFIG_FILES([lpepcsrc/makefile
+                 pepc-b/makefile
+                 pepc-c/makefile
+                 ])
+AC_OUTPUT
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

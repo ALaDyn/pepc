@@ -1,0 +1,16 @@
+#
+#  Makefile for pepc
+#
+.PHONY : lpepc pepc-b
+
+all: lpepc 
+
+lpepc:  
+	cd lpepcsrc && make
+
+pepc-b: 
+	cd pepc-b && make
+
+clean:
+	cd lpepcsrc && make clean && cd ..
+	cd pepc-b && make clean

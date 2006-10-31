@@ -1159,11 +1159,13 @@ subroutine configure
 
     if (te_perturb) then
         call perturb_temp    ! Impose perturbation on Te for transport test
+#ifdef VISIT
         if ( vis_on ) then
             call densities
             call sum_fields
             call vis_fields_nbody(itime+itime_start)
         endif
+#endif
 
     endif
 
@@ -1182,10 +1184,13 @@ subroutine configure
 
         case(1)
             call beam           ! Fixed beam
+#ifdef VISIT
             if (steering) call vis_control   ! Display default parameters
-
+#endif
         case(2)
+#ifdef VISIT
             if (steering) call vis_control   ! Constant particle source
+#endif
             if (me==0) write(*,'(//a)') '===> Particle beam switched on' 
 
         case(8)
@@ -1194,7 +1199,9 @@ subroutine configure
         case(3:6) ! laser on
 
             if (me==0) write(*,'(//a)') '===> Laser switched on' 
+#ifdef VISIT
             if (steering) call vis_control 
+#endif
 
         end select beamconf
 

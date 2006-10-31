@@ -35,6 +35,7 @@ subroutine diagnostics
 
   if (u_beam>0 .and. beam_config==3) scheme=1  ! Switch off Te control if beam on
 
+#ifdef VISIT
   if ( vis_on ) then
      !     if ( mod(itime,ivis) ==0 ) call vis_parts       
      if ( mod(itime,ivis) ==0 ) then
@@ -51,7 +52,7 @@ subroutine diagnostics
      endif
 
   endif
-
+#endif
   !  if (target_geometry.eq.4) then
   !    do i=1,npp
   !	if (pelabel(i)==60) then
