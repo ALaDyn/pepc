@@ -195,7 +195,7 @@ AC_SUBST(AR)
 
 AC_CONFIG_FILES([lpepcsrc/makefile
                  pepc-b/makefile
-                 pepc-c/makefile
+                 pepc-e/makefile
                  ])
 AC_OUTPUT
 
