@@ -10,7 +10,8 @@
 #  define RANK_fielddesc 3 /* time, field, desc */
 #  define RANK_selfields 3
 #  define RANK_vecField 5 /*time, x, y, z, components */
-
+#  define RANK_vecFielddesc 2 /* time, desc */
+#  define RANK_selVecField 2
 
    /* variable ids */
 static int data_id=-1;
@@ -27,6 +28,8 @@ static int field_desc_id = -1;
 static int sel_fields_id = -1;
 
 static int vecField_id = -1;
+static int vecField_desc_id = -1;
+static int sel_vecField_id = -1;
 
 static int timeid_start_particles=0;
 static int timeid_start_fielddesc = 0;
@@ -35,7 +38,7 @@ static int timeid_start_field2 = 0;
 static int timeid_start_field3 = 0;
 static int timeid_start_field4 = 0;
 static int timeid_start_vecField = 0; 
-
+static int timeid_start_vecFielddesc = 0;
 
   /* dimension lengths */
 static  size_t cols_len = -1;
@@ -44,7 +47,6 @@ static  size_t timeid_len = NC_UNLIMITED;
 static  size_t x_len = -1;
 static  size_t y_len = -1;
 static  size_t z_len = -1;
-static  size_t field_desc_len = -1;
 
 static size_t component_len = -1; 
 
@@ -76,12 +78,13 @@ int _ncnbody_open(int rows, int cols, int x, int y, int z, int *pncid) {
   int zdim;
   int compdim;
 
-  /* fielddescdim */
   int fielddesc_dim;
   int fieldnr_dim;
-
   int selfield_dim;
   
+  int vecFielddesc_dim;
+  int selvecField_dim;
+
   /* variable shapes */
   int data_dims[RANK_data];
 /*   int mintime_dims[RANK_mintime]; */
@@ -90,7 +93,11 @@ int _ncnbody_open(int rows, int cols, int x, int y, int z, int *pncid) {
   int field_dims[RANK_field];
   int field_desc_dims[RANK_fielddesc];
   int sel_field_dims[RANK_selfields];
+
+  /*vecField*/
   int vecField_dims[RANK_vecField];
+  int vecFielddesc_dims[RANK_vecFielddesc];
+  int selVecField_dims[RANK_selVecField];
 
 
   begin = time(NULL); 
@@ -115,7 +122,7 @@ int _ncnbody_open(int rows, int cols, int x, int y, int z, int *pncid) {
   check_err(stat,__LINE__,__FILE__);
   stat = nc_def_dim(ncid, "timeid", timeid_len, &timeid_dim);
   check_err(stat,__LINE__,__FILE__);
-  stat =  nc_def_dim(ncid, "time_and_indices", 9, &time_and_indices_dim);
+  stat =  nc_def_dim(ncid, "time_and_indices", 10, &time_and_indices_dim);
 
   /* field, vecField */
   stat = nc_def_dim( ncid, "xdim", x_len, &xdim );
@@ -133,9 +140,19 @@ int _ncnbody_open(int rows, int cols, int x, int y, int z, int *pncid) {
   stat = nc_def_dim( ncid, "fieldnr_dim", 4, &fieldnr_dim );
   check_err(stat,__LINE__,__FILE__);
 
+  /* field selection */
   stat = nc_def_dim( ncid, "selfield_dim", 1, &selfield_dim );
   check_err(stat,__LINE__,__FILE__);
 
+  /* vecField desc */
+  stat = nc_def_dim( ncid, "vecFielddesc_dims", 6, &vecFielddesc_dim );
+  check_err(stat,__LINE__,__FILE__);
+  
+  /* vecField selection */
+  stat = nc_def_dim( ncid, "selVecField_dims", 1, &selvecField_dim );
+  check_err(stat,__LINE__,__FILE__);
+ 
+ 
   /* define variables */
 
   data_dims[0] = timeid_dim;
@@ -148,13 +165,7 @@ int _ncnbody_open(int rows, int cols, int x, int y, int z, int *pncid) {
   field_dims[1] = xdim;
   field_dims[2] = ydim;
   field_dims[3] = zdim;
-  
-  vecField_dims[0] = timeid_dim; 
-  vecField_dims[1] = xdim; 
-  vecField_dims[2] = ydim;
-  vecField_dims[3] = zdim;
-  vecField_dims[4] = compdim;
-
+ 
   field_desc_dims[0] = timeid_dim;
   field_desc_dims[1] = fieldnr_dim;
   field_desc_dims[2] = fielddesc_dim;
@@ -163,6 +174,18 @@ int _ncnbody_open(int rows, int cols, int x, int y, int z, int *pncid) {
   sel_field_dims[1] = fieldnr_dim;
   sel_field_dims[2] = selfield_dim;
 
+  vecField_dims[0] = timeid_dim; 
+  vecField_dims[1] = xdim; 
+  vecField_dims[2] = ydim;
+  vecField_dims[3] = zdim;
+  vecField_dims[4] = compdim;
+
+  vecFielddesc_dims[0] = timeid_dim;
+  vecFielddesc_dims[1] = vecFielddesc_dim;
+  
+  selVecField_dims[0] = timeid_dim;
+  selVecField_dims[1] = selvecField_dim;
+ 
 
   stat = nc_def_var( ncid, "field1", NC_FLOAT, RANK_field, field_dims, &field_id1 );
   check_err(stat,__LINE__,__FILE__);
@@ -176,16 +199,21 @@ int _ncnbody_open(int rows, int cols, int x, int y, int z, int *pncid) {
   stat = nc_def_var( ncid, "field4", NC_FLOAT, RANK_field, field_dims, &field_id4 );
   check_err(stat,__LINE__,__FILE__);
 
-  stat = nc_def_var( ncid, "vecField1", NC_FLOAT, RANK_field, vecField_dims, &vecField_id );
-  check_err(stat,__LINE__,__FILE__);
-
   stat = nc_def_var( ncid, "fielddesc", NC_FLOAT, RANK_fielddesc, field_desc_dims, &field_desc_id );
   check_err(stat,__LINE__,__FILE__);
 
   stat = nc_def_var( ncid, "sel_fields", NC_INT, RANK_selfields, sel_field_dims, &sel_fields_id );
   check_err(stat,__LINE__,__FILE__);
-  
 
+  
+  stat = nc_def_var( ncid, "vecField1", NC_FLOAT, RANK_vecField, vecField_dims, &vecField_id );
+  check_err(stat,__LINE__,__FILE__);
+
+  stat = nc_def_var( ncid, "vecFielddesc", NC_FLOAT, RANK_vecFielddesc, vecFielddesc_dims, &vecField_desc_id );
+  check_err(stat,__LINE__,__FILE__);
+
+  stat = nc_def_var( ncid, "sel_vecFields", NC_INT, RANK_selVecField, selVecField_dims, &sel_vecField_id );
+  check_err(stat,__LINE__,__FILE__);
   
 /*   mintime_dims[0] = timeid_dim; */
   time_dims[0] = timeid_dim;
@@ -208,7 +236,8 @@ int _ncnbody_open(int rows, int cols, int x, int y, int z, int *pncid) {
   static int timeid_start_field4 = 0;
   
   static int timeid_start_vecField = 0;
-  
+  timeid_start_vecFielddesc = 0;
+
   *pncid=ncid;
   return(1); 
 }
@@ -235,14 +264,14 @@ int _ncnbody_put(int ncid,float *vbuffer,int lstored,int vbufcols) {
   static size_t time_count[RANK_time];
   static size_t data_start[RANK_data];
   static size_t data_count[RANK_data];
-  static float time[9];
+  static float time[10];
   size_t time_len;
 /*   time_t now = time(NULL); */
   
 /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d\n",ncid,lstored,vbufcols); */
   
   /* store time */
-  time_len = 9;		
+  time_len = 10;		
   time_start[0] = timeid_start;
   time_start[1] = 0;
   time_count[0] = 1;
@@ -256,6 +285,7 @@ int _ncnbody_put(int ncid,float *vbuffer,int lstored,int vbufcols) {
   time[6] = timeid_start_field4;
   time[7] = timeid_start_particles;
   time[8] = timeid_start_vecField;
+  time[9] = timeid_start_vecFielddesc;
 
   stat = nc_put_vara_float(ncid, time_id, time_start, time_count, time);
   check_err(stat,__LINE__,__FILE__);
@@ -306,14 +336,14 @@ int _ncnbody_putfield(int ncid, float simtime, int fieldnr, int xdim, int ydim, 
   static size_t field_count[RANK_field];
  
 
-  static float time[9];
+  static float time[10];
   size_t time_len;
 /*   time_t now = time(NULL); */
   
 /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d\n",ncid,lstored,vbufcols); */
   
   /* store time */
-  time_len = 9;		
+  time_len = 10;		
   time_start[0] = timeid_start;
   time_start[1] = 0;
   time_count[0] = 1;
@@ -327,6 +357,7 @@ int _ncnbody_putfield(int ncid, float simtime, int fieldnr, int xdim, int ydim, 
   time[6] = timeid_start_field4;
   time[7] = timeid_start_particles;
   time[8] = timeid_start_vecField;
+  time[9] = timeid_start_vecFielddesc;
 
   stat = nc_put_vara_float(ncid, time_id, time_start, time_count, time);
   check_err(stat,__LINE__,__FILE__);
@@ -389,7 +420,7 @@ void* ncnbody_putfield(int *ncid, float *simtime, int *fieldnr, int *xdim, int *
   return;
 }
 /*---------------------------------------------------------------------------------------*/
-int _ncnbody_putVecField(int ncid, float simtime, int xdim, int ydim, int zdim, float *vbuffer) {
+int _ncnbody_putvecfield(int ncid, float simtime, int xdim, int ydim, int zdim, float *vbuffer) {
   int stat;
 
   static size_t time_start[RANK_time];
@@ -398,14 +429,14 @@ int _ncnbody_putVecField(int ncid, float simtime, int xdim, int ydim, int zdim, 
   static size_t field_count[RANK_vecField];
   int compdim = 3;
 
-  static float time[9];
+  static float time[10];
   size_t time_len;
 /*   time_t now = time(NULL); */
   
 /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d\n",ncid,lstored,vbufcols); */
   
   /* store time */
-  time_len = 9;		
+  time_len = 10;		
   time_start[0] = timeid_start;
   time_start[1] = 0;
   time_count[0] = 1;
@@ -419,6 +450,7 @@ int _ncnbody_putVecField(int ncid, float simtime, int xdim, int ydim, int zdim, 
   time[6] = timeid_start_field4;
   time[7] = timeid_start_particles;
   time[8] = timeid_start_vecField;
+  time[9] = timeid_start_vecFielddesc;
 
   stat = nc_put_vara_float(ncid, time_id, time_start, time_count, time);
   check_err(stat,__LINE__,__FILE__);
@@ -447,38 +479,35 @@ int _ncnbody_putVecField(int ncid, float simtime, int xdim, int ydim, int zdim, 
   return(stat);
 }
 
-/* void* ncnbody_putVecField_(int *ncid, float *simtime, int *xdim, int *ydim, int *zdim, float *vbuffer, int *rc) { */
-/*   *rc=_ncnbody_putfield(*ncid, *simtime, *xdim, *ydim, *zdim, vbuffer); */
-/*   return; */
-/* } */
+void* ncnbody_putvecfield_(int *ncid, float *simtime, int *xdim, int *ydim, int *zdim, float *vbuffer, int *rc) {
+  *rc=_ncnbody_putvecfield(*ncid, *simtime, *xdim, *ydim, *zdim, vbuffer);
+  return;
+}
 
-/* void* ncnbody_putVecField__(int *ncid, float *simtime, int *xdim, int *ydim, int *zdim,float *vbuffer, int *rc) { */
-/*   *rc=_ncnbody_putfield(*ncid, *simtime, *xdim, *ydim, *zdim, vbuffer); */
-/*   return; */
-/* } */
+void* ncnbody_putvecfield__(int *ncid, float *simtime, int *xdim, int *ydim, int *zdim,float *vbuffer, int *rc) {
+  *rc=_ncnbody_putvecfield(*ncid, *simtime, *xdim, *ydim, *zdim, vbuffer);
+  return;
+}
 
-/* void* ncnbody_putVecField(int *ncid, float *simtime, int *xdim, int *ydim, int *zdim,float *vbuffer, int *rc) { */
-/*   *rc=_ncnbody_putfield(*ncid, *simtime, *xdim, *ydim, *zdim, vbuffer); */
-/*   return; */
-/* } */
-/*---------------------------------------------------------------------------------------*/
-int _ncnbody_putfielddesc(int ncid, float simtime, float *vbuffer ) {
+void* ncnbody_putvecfield(int *ncid, float *simtime, int *xdim, int *ydim, int *zdim,float *vbuffer, int *rc) {
+  *rc=_ncnbody_putvecfield(*ncid, *simtime, *xdim, *ydim, *zdim, vbuffer);
+  return;
+}/*---------------------------------------------------------------------------------------*/
+int _ncnbody_putvecfielddesc(int ncid, float simtime, float *vbuffer ) {
   int stat;
   int i, j;
   static size_t time_start[RANK_time];
   static size_t time_count[RANK_time];
-  static size_t fielddesc_start[RANK_fielddesc];
-  static size_t fielddesc_count[RANK_fielddesc] = {1, 4, 6};
-
+  static size_t vecFielddesc_start[RANK_vecFielddesc];
+  static size_t vecFielddesc_count[RANK_vecFielddesc] = {1,6};
   
-  static float time[9];
+  static float time[10];
   size_t time_len;
   /*   time_t now = time(NULL); */
   
-  fielddesc_start[0] = timeid_start_fielddesc-1; 
-  fielddesc_start[1] = 0;
-  fielddesc_start[2] = 0;
-  time_len = 9;		
+  vecFielddesc_start[0] = timeid_start_vecFielddesc-1; 
+  vecFielddesc_start[1] = 0;
+  time_len = 10;		
   time_start[0] = timeid_start;
   time_start[1] = 0;
   time_count[0] = 1;
@@ -493,6 +522,140 @@ int _ncnbody_putfielddesc(int ncid, float simtime, float *vbuffer ) {
   time[6] = timeid_start_field4;
   time[7] = timeid_start_particles;
   time[8] = timeid_start_vecField;
+  time[9] = timeid_start_vecFielddesc;
+
+  stat = nc_put_vara_float(ncid, time_id, time_start, time_count, time);
+  check_err(stat,__LINE__,__FILE__);
+   printf("WF _ncnbody_putvecfielddesc: ncid=%d\n",ncid);
+   for( j = 0; j < vecFielddesc_count[1]; j++ ){
+     printf( "%f ", vbuffer[j] );
+   }
+   printf( "\n" );
+   
+   
+  stat = nc_put_vara_float(ncid, vecField_desc_id, vecFielddesc_start, vecFielddesc_count, vbuffer);
+  check_err(stat,__LINE__,__FILE__);
+
+  /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d ready stat=%d\n",ncid,lstored,vbufcols,stat); */
+  nc_sync(ncid);
+  /*   printf("WF _ncnbody_put: ncid=%d, lstored=%d vbufcols=%d sync ready stat=%d\n",ncid,lstored,vbufcols,stat); */
+  
+  printf("WF _ncnbody_putvecfielddesc: ncid=%d ready, stat = %d\n",ncid, stat); 
+  return(stat);
+}
+
+void* ncnbody_putvecfielddesc_(int *ncid, float *simtime, float *vbuffer, int *rc) {
+  *rc=_ncnbody_putvecfielddesc(*ncid, *simtime, vbuffer);
+  return;
+}
+
+void* ncnbody_putvecfielddesc__(int *ncid, float *simtime, float *vbuffer, int *rc) {
+  *rc=_ncnbody_putvecfielddesc(*ncid, *simtime, vbuffer );
+  return;
+}
+
+void* ncnbody_putvecfielddesc(int *ncid, float *simtime, float *vbuffer, int *rc) {
+  *rc=_ncnbody_putvecfielddesc(*ncid, *simtime, vbuffer);
+  return;
+}
+/*---------------------------------------------------------------------------------------*/
+int _ncnbody_putselvecfield(int ncid, float simtime, int selVecField ) {
+  int stat;
+
+  static size_t time_start[RANK_time];
+  static size_t time_count[RANK_time];
+  static size_t selVecField_start[2];
+  static size_t selVecField_count[2] = {1, 1};
+
+  static float time[10];
+  size_t time_len;
+/*   time_t now = time(NULL); */
+
+  time_len = 10;		
+  time_start[0] = timeid_start;
+  time_start[1] = 0;
+  time_count[0] = 1;
+  time_count[1] = time_len;
+  
+  time[0] = simtime;
+  time[1] = 0.1;   /*(float) ( now - begin );  exectime */
+  time[2] = timeid_start_fielddesc;
+  time[3] = timeid_start_field1;
+  time[4] = timeid_start_field2;
+  time[5] = timeid_start_field3;
+  time[6] = timeid_start_field4;
+  time[7] = timeid_start_particles;
+  time[8] = timeid_start_vecField;
+  time[9] = timeid_start_vecFielddesc;
+
+  stat = nc_put_vara_float(ncid, time_id, time_start, time_count, time);
+  check_err(stat,__LINE__,__FILE__);
+  
+ 
+  selVecField_start[0] = timeid_start_fielddesc; 
+  selVecField_start[1] = 0;
+
+  printf("WF _ncnbody_putselvecfield: ncid=%d, selVecfield=%d\n",ncid,selVecField); 
+
+  stat = nc_put_vara_int(ncid, sel_vecField_id, selVecField_start, selVecField_count, &selVecField);
+  check_err(stat,__LINE__,__FILE__);
+  printf("WF _ncnbody_putselvecfield: ncid=%d, selVecfield=%d, ready stat = %d\n",ncid,selVecField, stat); 
+  nc_sync(ncid);
+  
+  timeid_start_vecFielddesc++;
+  timeid_start++;
+  printf("WF _ncnbody_putselvecfield ready\n" );
+  return(stat);
+}
+
+void* ncnbody_putselvecfield_(int *ncid, float *simtime, int *selfield, int *rc) {
+  *rc=_ncnbody_putselvecfield(*ncid, *simtime, *selfield );
+  return;
+}
+ 
+void* ncnbody_putselvecfield__(int *ncid, float *simtime, int *selfield, int *rc) {
+  *rc=_ncnbody_putselvecfield(*ncid, *simtime, *selfield );
+  return;
+}
+
+void* ncnbody_putselvecfield(int *ncid, float *simtime, int *selfield, int *rc) {
+  *rc=_ncnbody_putselvecfield(*ncid, *simtime, *selfield );
+  return;
+}
+
+/*---------------------------------------------------------------------------------------*/
+int _ncnbody_putfielddesc(int ncid, float simtime, float *vbuffer ) {
+  int stat;
+  int i, j;
+  static size_t time_start[RANK_time];
+  static size_t time_count[RANK_time];
+  static size_t fielddesc_start[RANK_fielddesc];
+  static size_t fielddesc_count[RANK_fielddesc] = {1, 4, 6};
+
+  
+  static float time[10];
+  size_t time_len;
+  /*   time_t now = time(NULL); */
+  
+  fielddesc_start[0] = timeid_start_fielddesc-1; 
+  fielddesc_start[1] = 0;
+  fielddesc_start[2] = 0;
+  time_len = 10;		
+  time_start[0] = timeid_start;
+  time_start[1] = 0;
+  time_count[0] = 1;
+  time_count[1] = time_len;
+  
+  time[0] = simtime;
+  time[1] = 0.1;   /*(float) ( now - begin );  exectime */
+  time[2] = timeid_start_fielddesc-1;
+  time[3] = timeid_start_field1;
+  time[4] = timeid_start_field2;
+  time[5] = timeid_start_field3;
+  time[6] = timeid_start_field4;
+  time[7] = timeid_start_particles;
+  time[8] = timeid_start_vecField;
+  time[9] = timeid_start_vecFielddesc;
 
   stat = nc_put_vara_float(ncid, time_id, time_start, time_count, time);
   check_err(stat,__LINE__,__FILE__);
@@ -540,11 +703,11 @@ int _ncnbody_putselfield(int ncid, float simtime, int selfield1, int selfield2, 
   static size_t selfield_start[3];
   static size_t selfield_count[3] = {1, 4, 1};
 
-  static float time[9];
+  static float time[10];
   size_t time_len;
 /*   time_t now = time(NULL); */
 
-  time_len = 9;		
+  time_len = 10;		
   time_start[0] = timeid_start;
   time_start[1] = 0;
   time_count[0] = 1;
@@ -559,6 +722,7 @@ int _ncnbody_putselfield(int ncid, float simtime, int selfield1, int selfield2, 
   time[6] = timeid_start_field4;
   time[7] = timeid_start_particles;
   time[8] = timeid_start_vecField;
+  time[9] = timeid_start_vecFielddesc;
 
   stat = nc_put_vara_float(ncid, time_id, time_start, time_count, time);
   check_err(stat,__LINE__,__FILE__);
