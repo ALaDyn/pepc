@@ -36,10 +36,8 @@ LIBS      = $(LIBPEPC) $(LIBVISIT) $(LIBNETCDF)
 
 # -------------------------------------------------------------------------------------------
 
-ifdef VISIT
 VISIT.F90   =   vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90 vis_vecfields_nbody.F90
-endif
-PPSRC.F90   =   pepcb.F90 $(VISIT.F90)
+PPSRC.F90   =   pepcb.F90 
 MODULES.f90 =   physvars.f90 
 
 SOURCES.f90 =   \
@@ -67,11 +65,11 @@ SOURCES.f90 =   \
 # Names of application object files derived from sources
 
 appobjs = $(PPSRC.F90:.F90=.o) $(SOURCES.f90:.f90=.o) $(NCOBJS)
+visitobjs = $(VISIT.F90:.F90=.o) 
 appmods =  $(MODULES.f90:.f90=.o)
 mods = $(appmods)
 
-default: lpepc pepcb
-pkojak: lpepc pepck  
+all: @TARGETS@
 
 #  compile rules
 
@@ -92,9 +90,15 @@ physvars.o:
 # -----------------------------------------------------------------------------------------
 #  targets
 
-pepcb:	$(appmods) $(appobjs) liblpepc.a
+pepc:	$(appmods) $(appobjs) liblpepc.a
 	@echo "\n Creating ../bin/pepcb ...\n"
-	$(FC)  $(FFLAGS)  -o ../bin/$@ $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
+	$(FC)  $(FFLAGS)  -o ../bin/pepcb $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
+#$(FC)  $(FFLAGS)  -o ../bin/$@ $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
+	@echo "... done\n"
+
+pepc-visit: $(appmods) $(appobjs) $(visitobjs) liblpepc.a
+	@echo "\n Creating ../bin/pepcb ...\n"
+	$(FC)  $(FFLAGS)  -o ../bin/pepcb $(appobjs) $(appmods) $(visitobjs) $(LIBS) $(LDFLAGS) 
 	@echo "... done\n"
 
 # Update PEPC library and headers

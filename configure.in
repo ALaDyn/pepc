@@ -92,18 +92,16 @@ AC_SUBST(MPI_DIR)
 
 # default for visit is no
 AC_ARG_WITH(visit,[  --with-visit            use visit libraries (no)],
-  case "$withval" in
-  yes[)]
-    VISIT=-DVISIT_NBODY
-    OPT="-g"
-    ;;
-  *[)]
-    VISIT=
-    ;;
-  esac
-,VISIT=
+  if test "$withval" = yes ; then
+     VISIT=-DVISIT_NBODY
+     TARGETS=pepc-visit
+  else 
+     TARGETS=pepc
+  fi
+  ,TARGETS=pepc
 )
 AC_SUBST(VISITDEF)
+AC_SUBST(TARGETS)
 
 # search mpi installation
 ACX_MPI(,AC_MSG_ERROR(mpi is not available => use --with-mpi=DIR))

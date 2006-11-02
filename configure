@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MPI_DIR VISITDEF MPICC MPIF90 CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MPILIBS VISIT LVISIT XNBODY NETCDF OPT DEBUGDEF SET_MAKE CPP EGREP LIBOBJS FFLAGS CFLAGS_OS FFLAGS_OS MODULE_FLAG REAL8_FLAG F77FLAGS FLINK_FLAGS CLINK_FLAGS AR LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MPI_DIR VISITDEF TARGETS MPICC MPIF90 CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MPILIBS VISIT LVISIT XNBODY NETCDF OPT DEBUGDEF SET_MAKE CPP EGREP LIBOBJS FFLAGS CFLAGS_OS FFLAGS_OS MODULE_FLAG REAL8_FLAG F77FLAGS FLINK_FLAGS CLINK_FLAGS AR LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1507,20 +1507,18 @@ fi;
 # Check whether --with-visit or --without-visit was given.
 if test "${with_visit+set}" = set; then
   withval="$with_visit"
-  case "$withval" in
-  yes)
-    VISIT=-DVISIT_NBODY
-    OPT="-g"
-    ;;
-  *)
-    VISIT=
-    ;;
-  esac
+  if test "$withval" = yes ; then
+     VISIT=-DVISIT_NBODY
+     TARGETS=pepc-visit
+  else
+     TARGETS=pepc
+  fi
 
 else
-  VISIT=
+  TARGETS=pepc
 
 fi;
+
 
 
 # search mpi installation
@@ -6046,6 +6044,7 @@ s,@host_vendor@,$host_vendor,;t t
 s,@host_os@,$host_os,;t t
 s,@MPI_DIR@,$MPI_DIR,;t t
 s,@VISITDEF@,$VISITDEF,;t t
+s,@TARGETS@,$TARGETS,;t t
 s,@MPICC@,$MPICC,;t t
 s,@MPIF90@,$MPIF90,;t t
 s,@CC@,$CC,;t t
