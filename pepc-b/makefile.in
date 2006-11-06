@@ -89,13 +89,13 @@ physvars.o:
 # -----------------------------------------------------------------------------------------
 #  targets
 
-pepc:	$(appmods) $(appobjs) liblpepc.a
+pepc:	lpepc $(appmods) $(appobjs) 
 	@echo "\n Creating ../bin/pepcb ...\n"
 	$(FC)  $(FFLAGS)  -o ../bin/pepcb $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
 #$(FC)  $(FFLAGS)  -o ../bin/$@ $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
 	@echo "... done\n"
 
-pepc-visit: $(appmods) $(appobjs) $(visitobjs) liblpepc.a
+pepc-visit: lpepc $(appmods) $(appobjs) $(visitobjs) 
 	@echo "\n Creating ../bin/pepcb ...\n"
 	$(FC)  $(FFLAGS)  -o ../bin/pepcb $(appobjs) $(appmods) $(visitobjs) $(LIBS) $(LDFLAGS) 
 	@echo "... done\n"
@@ -103,7 +103,6 @@ pepc-visit: $(appmods) $(appobjs) $(visitobjs) liblpepc.a
 # Update PEPC library and headers
 lpepc:  ../lpepcsrc/liblpepc.a
 	cd ../lpepcsrc; make lpepc; cd ../pepc-b
-	/bin/ln -sf $(PREFIX)/lpepcsrc/liblpepc.a $(PREFIX)/pepc-b/liblpepc.a
 	/bin/ln -sf $(PREFIX)/lpepcsrc/*.opari.inc $(PREFIX)/pepc-b/.
 	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-b/treevars.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.mod $(PREFIX)/pepc-b/utils.mod
