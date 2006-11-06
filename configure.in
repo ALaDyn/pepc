@@ -92,46 +92,50 @@ AC_SUBST(MPI_DIR)
 
 # default for visit is no
 AC_ARG_WITH(visit,[  --with-visit            use visit libraries (no)],
-  if test "$withval" = yes ; then
-     VISIT=-DVISIT_NBODY
-     TARGETS=pepc-visit
+  if test "$withval" != "no" ; then
+     VISITDEF=-DVISIT_NBODY
+     VISITLIBS="-lvisit -llvisit -llvisit_nbody2"
+     TARGETS=pepc-visit 
+     if test "$withval" != "yes" ; then
+       VISIT=-L${withval}
+     fi
   else 
      TARGETS=pepc
   fi
   ,TARGETS=pepc
 )
+AC_SUBST(VISIT) 
 AC_SUBST(VISITDEF)
+AC_SUBST(VISITLIBS)
 AC_SUBST(TARGETS)
 
 # search mpi installation
 ACX_MPI(,AC_MSG_ERROR(mpi is not available => use --with-mpi=DIR))
 
-# set path to visit
-AC_ARG_WITH(visit,
-	[  --with-visit=DIR        path to visit library], 
-	[VISIT=${withval} -lvisit])
-AC_SUBST(VISIT) 
+# set path to visit (only show option, do nothing)
+AC_ARG_WITH(visit,[  --with-visit=DIR        path to visit library],[])
 # set path to lvisit
 AC_ARG_WITH(lvisit,
 	[  --with-lvisit=DIR       path to lvisit library], 
-	[LVISIT=${withval} -llvisit])
+	[LVISIT=-L${withval}])
 AC_SUBST(LVISIT) 
 # set path to xnbody
 AC_ARG_WITH(xnbody,
 	[  --with-xnbody=DIR       path to xnbody library], 
-	[XNBODY=${withval} -llvisit_nbody2])
+	[XNBODY=-L${withval}])
 AC_SUBST(XNBODY) 
 
 # default for netcdf is no
 AC_ARG_WITH(netcdf,[  --with-netcdf           use netcdf library (no)],
-  if test "$withval" = yes ; then
-    NETCDF=-lnetcdf
+  if test "$withval" != "no" ; then
+    NETCDFLIB=-lnetcdf
+    if test "$withval" != "yes" ; then
+       NETCDFLIB="-L${withval} -lnetcdf"
+    fi
   fi
 )
-AC_ARG_WITH(netcdf,
-	[  --with-netcdf=DIR       path to netcdf library], 
-	[NETCDF=-L${withval} -lnetcdf])
-AC_SUBST(NETCDF) 
+AC_SUBST(NETCDFLIB) 
+AC_ARG_WITH(netcdf,[  --with-netcdf=DIR       path to netcdf library],[])
 
 # set optimization options
 AC_ARG_WITH(opt,

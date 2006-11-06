@@ -14,8 +14,7 @@ PREFIX = ..
 #   - or modify configure.in 
 #  --------------------------------------------------------------------------------------
 
-VISIT   = @VISIT@
-DEFINES = @VISIT@
+DEFINES = @VISITDEF@
 
 FC      = @MPIF90@
 CC      = @MPICC@
@@ -23,8 +22,8 @@ FFLAGS  = @FFLAGS@ @FFLAGS_OS@ @OPT@
 LDFLAGS = @LDFLAGS@
 
 LIBPEPC   = -L../lpepcsrc -llpepc
-LIBVISIT  = @VISIT@ @LVISIT@ @XNBODY@
-LIBNETCDF = @NETCDF@
+LIBVISIT  = @VISIT@ @LVISIT@ @XNBODY@ @VISITLIBS@ 
+LIBNETCDF = @NETCDFLIB@
 LIBS      = $(LIBPEPC) $(LIBVISIT) $(LIBNETCDF) 
 
 .SUFFIXES: .f90 .F90

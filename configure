@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MPI_DIR VISITDEF TARGETS MPICC MPIF90 CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MPILIBS VISIT LVISIT XNBODY NETCDF OPT DEBUGDEF SET_MAKE CPP EGREP LIBOBJS FFLAGS CFLAGS_OS FFLAGS_OS MODULE_FLAG REAL8_FLAG F77FLAGS FLINK_FLAGS CLINK_FLAGS AR LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MPI_DIR VISIT VISITDEF VISITLIBS TARGETS MPICC MPIF90 CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MPILIBS LVISIT XNBODY NETCDFLIB OPT DEBUGDEF SET_MAKE CPP EGREP LIBOBJS FFLAGS CFLAGS_OS FFLAGS_OS MODULE_FLAG REAL8_FLAG F77FLAGS FLINK_FLAGS CLINK_FLAGS AR LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1507,9 +1507,13 @@ fi;
 # Check whether --with-visit or --without-visit was given.
 if test "${with_visit+set}" = set; then
   withval="$with_visit"
-  if test "$withval" = yes ; then
-     VISIT=-DVISIT_NBODY
+  if test "$withval" != "no" ; then
+     VISITDEF=-DVISIT_NBODY
+     VISITLIBS="-lvisit -llvisit -llvisit_nbody2"
      TARGETS=pepc-visit
+     if test "$withval" != "yes" ; then
+       VISIT=-L${withval}
+     fi
   else
      TARGETS=pepc
   fi
@@ -1518,6 +1522,8 @@ else
   TARGETS=pepc
 
 fi;
+
+
 
 
 
@@ -2954,20 +2960,19 @@ _ACEOF
 fi
 
 
-# set path to visit
+# set path to visit (only show option, do nothing)
 
 # Check whether --with-visit or --without-visit was given.
 if test "${with_visit+set}" = set; then
   withval="$with_visit"
-  VISIT=${withval} -lvisit
-fi;
 
+fi;
 # set path to lvisit
 
 # Check whether --with-lvisit or --without-lvisit was given.
 if test "${with_lvisit+set}" = set; then
   withval="$with_lvisit"
-  LVISIT=${withval} -llvisit
+  LVISIT=-L${withval}
 fi;
 
 # set path to xnbody
@@ -2975,7 +2980,7 @@ fi;
 # Check whether --with-xnbody or --without-xnbody was given.
 if test "${with_xnbody+set}" = set; then
   withval="$with_xnbody"
-  XNBODY=${withval} -llvisit_nbody2
+  XNBODY=-L${withval}
 fi;
 
 
@@ -2984,18 +2989,21 @@ fi;
 # Check whether --with-netcdf or --without-netcdf was given.
 if test "${with_netcdf+set}" = set; then
   withval="$with_netcdf"
-  if test "$withval" = yes ; then
-    NETCDF=-lnetcdf
+  if test "$withval" != "no" ; then
+    NETCDFLIB=-lnetcdf
+    if test "$withval" != "yes" ; then
+       NETCDFLIB="-L${withval} -lnetcdf"
+    fi
   fi
 
 fi;
 
+
 # Check whether --with-netcdf or --without-netcdf was given.
 if test "${with_netcdf+set}" = set; then
   withval="$with_netcdf"
-  NETCDF=-L${withval} -lnetcdf
-fi;
 
+fi;
 
 # set optimization options
 
@@ -6043,7 +6051,9 @@ s,@host_cpu@,$host_cpu,;t t
 s,@host_vendor@,$host_vendor,;t t
 s,@host_os@,$host_os,;t t
 s,@MPI_DIR@,$MPI_DIR,;t t
+s,@VISIT@,$VISIT,;t t
 s,@VISITDEF@,$VISITDEF,;t t
+s,@VISITLIBS@,$VISITLIBS,;t t
 s,@TARGETS@,$TARGETS,;t t
 s,@MPICC@,$MPICC,;t t
 s,@MPIF90@,$MPIF90,;t t
@@ -6055,10 +6065,9 @@ s,@ac_ct_CC@,$ac_ct_CC,;t t
 s,@EXEEXT@,$EXEEXT,;t t
 s,@OBJEXT@,$OBJEXT,;t t
 s,@MPILIBS@,$MPILIBS,;t t
-s,@VISIT@,$VISIT,;t t
 s,@LVISIT@,$LVISIT,;t t
 s,@XNBODY@,$XNBODY,;t t
-s,@NETCDF@,$NETCDF,;t t
+s,@NETCDFLIB@,$NETCDFLIB,;t t
 s,@OPT@,$OPT,;t t
 s,@DEBUGDEF@,$DEBUGDEF,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
