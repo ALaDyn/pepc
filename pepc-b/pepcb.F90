@@ -148,7 +148,7 @@ program pepcb
            Tpon = 2*vosc**2*min(1.,tlaser/tpulse)
      case(3) 
         Tpon = vosc**2
-     case(6,16) 
+     case(6) 
         Tpon = vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2)
      case(16)
         Tpon = vosc**2*min(1.,tlaser/tpulse)
