@@ -246,6 +246,7 @@ subroutine predef_parts
      enddo
 
   endif
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
   call MPI_BCAST( nslice, 1, MPI_INTEGER, num_pe-1, MPI_COMM_WORLD,ierr)
 
   ! add displacement vector
@@ -272,7 +273,7 @@ subroutine predef_parts
      end do
   endif
 
-
+if (me==0) write(*,*) "Finished reading in particle data" 
 
 end subroutine predef_parts
 

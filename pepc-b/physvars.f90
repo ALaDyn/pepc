@@ -130,6 +130,7 @@ module physvars
   integer :: target_geometry = 0  ! Geometry for plasma target
   integer :: layer_geometry = 0  ! Geometry for 2nd layer
   integer :: velocity_config = 1  ! Velocity distrib. (Maxw) 
+  integer :: foam_geom(1:3) = (/1,1,1/)
   integer :: idim=3  ! # dimensions (velocity and position updates)
   integer :: beam_config_in = 0 ! Particle or laser beam switch including variations 
   integer :: beam_config = 0 ! Reduced switch for particle or laser beam 

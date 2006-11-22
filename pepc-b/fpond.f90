@@ -22,6 +22,7 @@ subroutine fpond(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,epon
   real :: xf, yf, zf, Tpon, Rpon, Xpon, Ypon, Zpon, intensity, gamma, sigma, atten, theta
   real :: r, pi=3.141592654, phi, chi, a02, sigma0
   real :: rho0_up, wp_r, ls_r, gamma_s, f2d
+  real :: Z_R  ! Rayleigh length
 
   ! fast oscillations 
  Tpon = (sin(omega*t))**2
@@ -47,6 +48,9 @@ subroutine fpond(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,epon
 !  Standing wave in vacuum; evanescent in overdense plasma
 !  Use standard solution of Helmholtz equation for step profile
 
+ ! Normalised Rayleigh length k_p Z_R = omega_0/omega_p * (k_p sigma0)^2
+  Z_R = omega*sigma0**2
+
   gamma_s = sqrt(1.+4*intensity/rho_upper)  ! gamma factor for EM solution at x=xc
   wp_r = sqrt(rho0_up/gamma_s)  ! effective plasma frequency of upper shelf
   ls_r = 1./wp_r   ! rel. skin depth
@@ -57,7 +61,7 @@ subroutine fpond(t,tpulse,sigma_in,vosc,omega,rho_upper,x,y,z,epon_x,epon_y,epon
   if (x.le.0) then
      xf = omega*sin(2*chi)
      Xpon = sin(chi)    ! laser 'Ez'
-     sigma = sigma0*sqrt(1.+abs(x)**2/10./sigma0**2) ! take Rayleigh length 4*sigma0
+     sigma = sigma0*sqrt(1.+abs(x)**2/Z_R**2)  ! Vacuum spot size for Gaussian beam
 
   else
      xf = -2/ls_r*sin(phi)**2*exp(-2*x/ls_r)

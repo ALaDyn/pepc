@@ -86,6 +86,12 @@ subroutine force_laser(p_start,p_finish)
                    xd,yd,zd,epon_x,epon_y,epon_z,phipon,ez_em,bx_em,by_em)
 	      Bz_em = 0.
 
+           case(34) ! fpond with fully EM components Gaussian spot, sin^2 pulse
+              call empond(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,Epon_z,By_em,Bx_em,az_em,phipon)
+	      Epon_x=0.
+	      Epon_y=0.
+	      Bz_em=0.
+
            case(5)  ! propagating fpond
               call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, & 
                    xd,yd,zd,epon_x,epon_y,epon_z,phipon)

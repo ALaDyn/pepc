@@ -24,6 +24,7 @@ subroutine empond(t,tpulse,sigma0,a0,w0,x,y,z,ez,by,bx,az,phipon)
   real :: tenv, Rpon, dRpon, gamma, sigma, atten, theta
   real :: r, pi=3.141592654, phi, chi, phase
   real :: k0, lskin, gamma_c, f_helm, g_helm, wp_r, nonc
+  real :: Z_R  ! Rayleigh length
 
   !     linear rise
 
@@ -40,6 +41,9 @@ subroutine empond(t,tpulse,sigma0,a0,w0,x,y,z,ez,by,bx,az,phipon)
   wp_r = 1./sqrt(gamma_c)
   lskin = 1./wp_r   ! Rel. skin depth in EM units
 
+ ! Normalised Rayleigh length k_p Z_R = omega_0/omega_p * (k_p sigma0)^2
+  Z_R = w0*sigma0**2
+
   !   Phase factor given by tan(phi) = -k0 * l_s = k0 * c/wp
   phi = atan(-1./wp_r)   
   r = sqrt(y**2+z**2)
@@ -50,7 +54,7 @@ subroutine empond(t,tpulse,sigma0,a0,w0,x,y,z,ez,by,bx,az,phipon)
      chi = k0*x + phi      ! Vacuum phase 
      f_helm = sin(chi)     ! laser 'Ez'
      g_helm = cos(chi)     ! laser 'By'
-     sigma = sigma0*sqrt(1.+abs(x)**2/4./sigma0**2) ! take Rayleigh length 4*sigma0
+     sigma = sigma0*sqrt(1.+abs(x)**2/Z_R**2)  ! Vacuum spot size for Gaussian beam
 
   else
      !   evanescent wave - need Sudan solution here

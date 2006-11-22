@@ -146,25 +146,34 @@ subroutine configure
         case(5)        ! Foam: array of spherical shells 
             !    ================================================
 
-            target_geometry=7
             velocity_config=1   ! Ions, electrons thermal
-            plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
-            nshell_z=5
-            nshell_y=3
-            nshell_x=2
+            nshell_z=foam_geom(3)
+            nshell_y=foam_geom(2)
+            nshell_x=foam_geom(1)
             nshell = nshell_x * nshell_y * nshell_z
             ne_shell = ne/nshell
             ni_shell = ni/nshell
             nep_shell = nep/nshell
             nip_shell = nip/nshell
+	    if (me==0) then
+	      write(*,*) "Particles/sphere/cpu: ",nep_shell
+	      write(*,*) "Particles/sphere: ",ne_shell
+	    endif
             ipstart_e = 1
             ipstart_i = nep+1
             offset_e = me*nep
             offset_i = ne + me*nip
 
-            do ishell = 0,nshell_z-1
+! Physical transverse extent of target
+	    
+	    y_plasma = 2*r_sphere*nshell_y
+	    z_plasma = 2*r_sphere*nshell_z
+            plasma_centre =  (/ xl/2., yl/2.-y_plasma/2., zl/2.-z_plasma/2. /) ! Centre of first sphere 
+
+            do ishell = 0,nshell_x-1
                 do jshell = 0,nshell_y-1
-                    do kshell = 0,nshell_x-1
+                    do kshell = 0,nshell_z-1
+                        ! offset for next sphere
                         displace = (/ 2*ishell*r_sphere, 2*jshell*r_sphere, 2*kshell*r_sphere /)
 
                         ! Electrons 
@@ -199,6 +208,9 @@ subroutine configure
             qe=qe_shell
             mass_e = mass_e_shell
             a_ee = a_ee_shell
+            qi=qi_shell
+            mass_i = mass_i_shell
+            a_ii = a_ii_shell
 
 
 
@@ -249,10 +261,10 @@ subroutine configure
 
 
 
-        case(10)  ! slab with 2 overlapping ion species
+        case(10)  ! 2 overlapping ion species
             !    ===============================================
 
-            target_geometry=0
+!            target_geometry=0
             velocity_config=1
             plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
             offset_e = me*nep + ne_rest
@@ -574,9 +586,9 @@ subroutine configure
                 faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
 !  Turn 1/2 of ions into protons - assumes 50:50 mix @ same density
-            do i=ipstart,ipstart+nlayp,2
-                m(i) = m(i)/mass_ratio*1836
-            end do
+!            do i=ipstart,ipstart+nlayp,2
+!                m(i) = m(i)/mratio_layer(1)*1836
+!            end do
 
             ! Equal number of neutralising electrons 
             label_offset = ne+ni+me*nlayp + ne_rest 

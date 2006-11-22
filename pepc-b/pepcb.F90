@@ -137,7 +137,7 @@ program pepcb
 
      laser_model: select case(beam_config_in)
 
-     case(4)
+     case(4,34)
 	if (tlaser<2*tpulse)  then
            Tpon = 2*vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2)
         ! * (sin(omega*tlaser))**2
@@ -149,6 +149,8 @@ program pepcb
      case(3) 
         Tpon = vosc**2
      case(6,16) 
+        Tpon = vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2)
+     case(16)
         Tpon = vosc**2*min(1.,tlaser/tpulse)
      case default
 	Tpon = 0.
@@ -177,7 +179,7 @@ program pepcb
            endif
         end do
         if (beam_config==5 .or. beam_config==6) then 
-           write(6,'(5(a,f8.2/))') 'Laser amplitude =',vosc &
+           write(6,'(5(a,f8.2/))') 'Laser amplitude =',sqrt(Tpon) &
                 , 'Pulse length',tpulse &
                 , 'Pulse width', sigma &
                 , 'Focal position',focus(1) &
