@@ -179,7 +179,7 @@ subroutine sum_radial(timestamp)
              ex_g(i-1), ey_g(i-1), ez_g(i-1), phi_g(i-1), w_g(i-1))
      end do
  
-     Er_glob(0:ngr) = Ex_g(0:ngr)    !  Radial field
+     Er_glob(0:ngr) = force_const*Ex_g(0:ngr)    !  Radial field
   endif
 
 ! Write out to file
