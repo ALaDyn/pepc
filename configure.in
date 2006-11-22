@@ -35,7 +35,6 @@ powerpc64-unknown-linux-gnu) # jubl
  CFLAGS_OS="-DJUMP -DAIX_XLF -qarch=440 -qtune=440 -qlibansi -qnoinfo "
  FFLAGS_f77_f90="-WF,-DJUMP,-DAIX_XLF -qarch=440 -qtune=440 -qnosave -qextname"
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
- REAL8_FLAG=-qrealsize=8
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_f77_f90 -qsuffix=f -qfixed -qspillsize=32000"
  FLINK_FLAGS="-qarch=440 -qtune=440"
@@ -50,10 +49,10 @@ powerpc64-unknown-linux-gnu) # jubl
 *-*-aix*)
  AC_MSG_RESULT(** setting options for Aix host **)
  CFLAGS_OS="-DJUMP -DAIX_XLF -q64 -qlibansi -qnoinfo "
- FFLAGS_OS="-WF,-DJUMP,-DAIX_XLF -q64 "
- REAL8_FLAG=-qrealsize=8
+# FFLAGS_OS="-WF,-DJUMP,-DAIX_XLF -q64 "
+ FFLAGS_OS="-q64 "
  MODULE_FLAG="-qmoddir="
- F77FLAGS="$FFLAGS_OS -qfixed -qspillsize=32000"
+ F77FLAGS="$FFLAGS_OS -qnosave -qspillsize=32000"
  FLINK_FLAGS="-q64"
  CLINK_FLAGS="-q64"
  if [[ -z "$OPT" ]]; then OPT=-O2; fi
@@ -63,7 +62,6 @@ powerpc64-unknown-linux-gnu) # jubl
 *-*-linux-gnu*)
  AC_MSG_RESULT(** setting options for Linux host with ifort compiler **)
  CFLAGS_OS="-Wall -Wno-unused"
- REAL8_FLAG="-r8"
  MODULE_FLAG="-module "
  F77FLAGS="$FFLAGS_OS"
  FLINK_FLAGS="-nofor_main"
@@ -94,7 +92,8 @@ AC_SUBST(MPI_DIR)
 AC_ARG_WITH(visit,[  --with-visit            use visit libraries (no)],
   if test "$withval" != "no" ; then
      VISITDEF=-DVISIT_NBODY
-     VISITLIBS="-lvisit -llvisit -llvisit_nbody2"
+# visit, xnbody path defaults 
+     VISITLIBS="-L/usr/local/beta/visit-2.2/lvisit/lib -L/usr/local/beta/visit-2.2/lib -L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3 -lvisit -llvisit -llvisit_nbody2"
      TARGETS=pepc-visit 
      if test "$withval" != "yes" ; then
        VISIT=-L${withval}
@@ -165,12 +164,13 @@ AC_PROG_CC
 AC_PROG_MAKE_SET
 
 # Checks for libraries.
-AC_CHECK_LIB([fftw3], [fftw_malloc],[],AC_MSG_ERROR(fftw3 is missing))
+# AC_CHECK_LIB([fftw3], [fftw_malloc],[],AC_MSG_ERROR(fftw3 is missing))
 AC_CHECK_LIB([m], [sqrt])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([fftw3.h float.h inttypes.h limits.h stddef.h stdlib.h string.h strings.h unistd.h],[],[AC_MSG_ERROR(include file is missing)])
+#AC_CHECK_HEADERS([fftw3.h float.h inttypes.h limits.h stddef.h stdlib.h string.h strings.h unistd.h],[],[AC_MSG_ERROR(include file is missing)])
+#AC_CHECK_HEADERS([float.h inttypes.h limits.h stddef.h stdlib.h string.h strings.h unistd.h],[],[AC_MSG_ERROR(include file is missing)])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -186,7 +186,6 @@ AC_SUBST(FFLAGS)
 AC_SUBST(CFLAGS_OS)
 AC_SUBST(FFLAGS_OS)
 AC_SUBST(MODULE_FLAG)
-AC_SUBST(REAL8_FLAG)
 AC_SUBST(F77FLAGS)
 AC_SUBST(FLINK_FLAGS)
 AC_SUBST(CLINK_FLAGS)
