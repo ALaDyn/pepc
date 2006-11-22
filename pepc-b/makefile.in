@@ -36,12 +36,12 @@ LIBS      = $(LIBPEPC) $(LIBVISIT) $(LIBNETCDF)
 # -------------------------------------------------------------------------------------------
 
 VISIT.F90   =   vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90 vis_vecfields_nbody.F90
-PPSRC.F90   =   pepcb.F90 
+PPSRC.F90   =   pepcb.F90 configure.F90 diagnostics.F90 
 MODULES.f90 =   physvars.f90 
 
 SOURCES.f90 =   \
                 setup.f90 setup_arrays.f90 stamp.f90 \
-                configure.F90 plasma_start.f90 predef_parts.f90 maxwell1.f90 cold_start.f90 \
+                plasma_start.f90 predef_parts.f90 maxwell1.f90 cold_start.f90 \
                 special_start.f90 constrain.f90 cutvector.f90 face.f90 \
                 scramble_v.f90 reset_ions.f90 add_electrons.f90 stretch_sphere.f90 \
                 cluster_sa.f90 laser.f90 beam.f90 beam_dust.f90 rezone.f90\
@@ -52,7 +52,7 @@ SOURCES.f90 =   \
                 fpond.f90 fpond_lin.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90 \
                 push_em.f90 push_full3v.f90 \
                 push.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
-                dump.f90 param_dump.f90 diagnostics.F90 \
+                dump.f90 param_dump.f90 \
                 open_files.f90 close_files.f90  \
                 densities.f90 sum_fields.f90 dump_fields.f90 sum_radial.f90 \
                 track_nc.f90 \
@@ -103,7 +103,6 @@ pepc-visit: lpepc $(appmods) $(appobjs) $(visitobjs)
 # Update PEPC library and headers
 lpepc:  ../lpepcsrc/liblpepc.a
 	cd ../lpepcsrc; make lpepc; cd ../pepc-b
-	/bin/ln -sf $(PREFIX)/lpepcsrc/*.opari.inc $(PREFIX)/pepc-b/.
 	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-b/treevars.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.mod $(PREFIX)/pepc-b/utils.mod
 
