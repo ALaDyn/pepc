@@ -11,16 +11,16 @@ ALL: default
 
 
 ## Intel compiler
-# FC = ifort
-#FFLAGS = -g -O3
+ FC = ifort
+FFLAGS = -g -O3
 
 ## IBM compiler 
-FC = /usr/bin/xlf90
-FFLAGS = -g -O -q64 -qsuffix=f=f90
+#FC = /usr/bin/xlf90
+#FFLAGS = -g -O -q64 -qsuffix=f=f90
 
 # Source files
 
-SOURCES.f90 =	slicer.f90 
+SOURCES.f90 =	slicer.f90 split_dump.f90
 
 
 # Names of object files derived from sources
@@ -38,6 +38,9 @@ slicer: slicer.o
 	$(FC)  $(FFLAGS) -o $@ slicer.o 
 	mv slicer ../bin/.
 
+splitter: split_dump.o
+	$(FC)  $(FFLAGS) -o $@ split_dump.o 
+	mv splitter ../bin/.
 clean:
 	/bin/rm -f *.o  ../bin/slicer *% *~ rand *.o *.pif core 
 
