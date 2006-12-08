@@ -9,7 +9,7 @@
 ! 
 ! ==============================================
 
-subroutine cluster_sa(i1,nip,r0,r_sphere,qi,Qplas,plasma_centre)
+subroutine cluster_sa(i1,nip,r0,r_sphere,qi,Qplas,plasma_centre,miome)
 
     use treevars
     use utils
@@ -21,13 +21,14 @@ subroutine cluster_sa(i1,nip,r0,r_sphere,qi,Qplas,plasma_centre)
     real, intent(in) :: r_sphere ! equivalent sphere radius for qi 
     real, intent(in) :: qi ! particle charge
     real, intent(in) :: Qplas ! total plasma charge
+    real, intent(in) :: miome ! mass ratio
 
     integer, intent(in) :: i1  ! index offset
     integer, intent(in) :: nip ! # particles to set up
     integer              :: i, j, ierr
     integer              :: p, k, nramp, nx, ny
     real*8 :: rt, xt, yt, zt, pi, xi
-    real*8 :: r_c, Q_c, Q_s, dens, Qnorm, dens0
+    real*8 :: r_c, Q_c, Q_s, dens, Qnorm, dens0, v_max
     integer :: nitot, N_c, N_s, npi_c, npi_s, nbin, np_rest, offset
     real*8 :: zeta_max, zeta, dzeta, t_start, a_const, b_const, Qt
     real*8 :: SZ, T, ch, sh, sh2, th, ch2, rp, integ, nom, dom
@@ -42,9 +43,11 @@ subroutine cluster_sa(i1,nip,r0,r_sphere,qi,Qplas,plasma_centre)
 ! # ions in central region
     r_c = 0.1125*r0
     dens0 = 1./3./t_start**2*(sinh(2*zeta_max)/2. + zeta_max)**2/(cosh(zeta_max)**4*(1.-zeta_max*tanh(zeta_max)))
+ 
+    v_max = sqrt(2./3.)/sqrt(dens0)/sqrt(miome)*r0
 
   ! # ions in central, self-sim regions
-    Q_c = dens0*4*pi/3.*r_c**3  ! Keep density=nmax in centre
+    Q_c = 4*pi/3.*dens0*r_c**3  ! Keep density=nmax in centre
     N_c = Q_c/qi
     nitot = Qplas/qi
 
@@ -66,7 +69,7 @@ subroutine cluster_sa(i1,nip,r0,r_sphere,qi,Qplas,plasma_centre)
 
     if (me==0) then
       write(*,'(a30,3i12)') "Total ions, in centre/outside:",nitot,N_c,N_s
-      write(*,'(a30,3i12)') "Local ions in centre/outside:",npi_c,npi_s
+      write(*,'(a42,3i12)') "Local ions in centre/outside:",npi_c,npi_s
       write(*,'(a30,3f12.4)') "Radii r_eff, r_c, r0:", r_sphere, r_c, r0
       write(*,'(a30,3f12.4)') "Charge Q_tot, Q_c, Q_s",Qplas, Q_c, Q_s
     endif
@@ -83,6 +86,7 @@ subroutine cluster_sa(i1,nip,r0,r_sphere,qi,Qplas,plasma_centre)
         x(p) = plasma_centre(1) + xt/rt*r_c*xi  ! keep direction vector; scale by inner sphere radius 
 	y(p) = plasma_centre(2) + yt/rt*r_c*xi
 	z(p) = plasma_centre(3) + zt/rt*r_c*xi
+
         write (ipefile,'(i6,a8,f15.5)') j,'r/r0, ',r_c*xi/r0
      end do
 
@@ -126,6 +130,10 @@ subroutine cluster_sa(i1,nip,r0,r_sphere,qi,Qplas,plasma_centre)
           x(i) = plasma_centre(1) + xt/rt*rp*r0  ! scale by sphere radius 
           y(i) = plasma_centre(2) + yt/rt*rp*r0
           z(i) = plasma_centre(3) + zt/rt*rp*r0
+! Scale velocities according to ss value at radius rp 
+!          ux(i) = v_max*th*xt/rt
+!          uy(i) = v_max*th*yt/rt
+!          uz(i) = v_max*th*zt/rt
           j=j+1
           i=i+1
        endif

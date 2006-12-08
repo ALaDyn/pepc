@@ -232,22 +232,21 @@ subroutine configure
             offset_i = ne + me*nip + ni_rest
 
 
-
+! Ion mass set to unity to define CE timescale (omega_pi^-1)
             call plasma_start( nep+1, nip, ni, offset_i, target_geometry, 0, idim, &
-                rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+                rho0, 1.0, 1.0, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                 number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
             ! create spherically symmetric cluster with Andreev profile
             ! r_layer(1) is characteristic radius r0
 
-            call cluster_sa(nep+1,nip,r_layer(1),r_sphere,qi,Qplas,plasma_centre)
-
+            call cluster_sa(nep+1,nip,r_layer(1),r_sphere,qi,Qplas,plasma_centre,mass_ratio)
 
             ! Electrons: use same geometry but reduced charge density
-            ! - should get qe=-qi
+            ! - should get qe=-qi; masses reduced by miome
 
             call plasma_start( 1, nep, ne, offset_e, target_geometry, velocity_config, idim, &
-                -rho0*ne/ni, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+                -rho0*ne/ni, -1.0, 1.0/mass_ratio, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                 number_faces, Vplas, Aplas, Q_layer(1), qe, mass_e, a_ee )
 
             ! Stretch electron positions to match ions
@@ -257,7 +256,6 @@ subroutine configure
                 y(i) = y(jion)+ eps
                 z(i) = z(jion) + eps
             end do
-
 
 
 

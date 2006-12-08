@@ -145,6 +145,9 @@ subroutine sum_radial(timestamp)
   ! normalise averaged quantities
   nelecs = SUM(ge_glob(1:ngr))
   nions = SUM(gi_glob(1:ngr))
+ if (my_rank==0) then
+	write(*,*) "Charge check:",nelecs,nions
+ endif
   ve_glob = ve_glob/ge_glob
   vi_glob = vi_glob/gi_glob
 
