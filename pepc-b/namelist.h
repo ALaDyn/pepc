@@ -17,4 +17,4 @@
        debug_level, debug_tree, ncpu_merge, balance, ifreeze, walk_scheme, &
        constrain_proof, len_tripod, struct_step, uthresh, domain_cut, glue_radius, &
        debug_rank, np_mult, fetch_mult,nbuf_max, te_perturb, tpert, kpert, &
-       q_factor, netcdf, launch
+       q_factor, netcdf, launch, foam_geom

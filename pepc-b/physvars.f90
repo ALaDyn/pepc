@@ -2,7 +2,8 @@ module physvars
 
   real, parameter :: pi=3.141592654
 
-  real*4, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:)  ! field arrays for time-averages
+  real*4, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:), & ! field arrays for time-averages
+                          ex_ave(:), ey_ave(:), ez_ave(:)      ! time-ave field 
   real*4, allocatable ::  rhoi(:,:,:), rhoe(:,:,:)
   real*4, allocatable ::  g_ele(:,:,:), g_ion(:,:,:)  ! particle counts (weights for T)
   real*4, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  ! E-field 

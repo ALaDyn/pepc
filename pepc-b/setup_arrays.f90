@@ -8,6 +8,7 @@ subroutine setup_arrays
   allocate ( xslice(npmax), yslice(npmax), zslice(npmax), uxslice(npmax), uyslice(npmax), uzslice(npmax), & 
        qslice(npmax), mslice(npmax) )    ! Reserve slice particle array space N/NPE
 
+
   mem_fields = npmax*(8*8)
 
   allocate (rhoi(0:ngx+1,0:ngy+1,0:ngz+1),rhoe(0:ngx+1,0:ngy+1,0:ngz+1))  ! global field arrays
@@ -19,6 +20,8 @@ subroutine setup_arrays
       Te_loc(0:ngx+1,0:ngy+1,0:ngz+1), Ti_loc(0:ngx+1,0:ngy+1,0:ngz+1),  &
       g_ele(0:ngx+1,0:ngy+1,0:ngz+1), g_ion(0:ngx+1,0:ngy+1,0:ngz+1),  &
       jxe_loc(0:ngx+1,0:ngy+1,0:ngz+1), jye_loc(0:ngx+1,0:ngy+1,0:ngz+1), jze_loc(0:ngx+1,0:ngy+1,0:ngz+1) )
+  allocate (ex_ave(0:ngx+1),ey_ave(0:ngx+1),ez_ave(0:ngx+1))
+
   mem_fields = mem_fields + ngx*ngy*ngz * (8*13)
 
 
@@ -30,6 +33,10 @@ subroutine setup_arrays
      write(*,'(//a/)') 'Initial memory allocation:'
      write(*,'(1(a15,f12.3,a3/)/)') 'Fields:',mem_fields/1.e6,' MB'
   endif
+
+  ex_ave=0.
+  ey_ave=0.
+  ez_ave=0.
 
 end subroutine setup_arrays
 

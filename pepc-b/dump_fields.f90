@@ -121,8 +121,6 @@ subroutine dump_fields(timestamp)
      close(62)
      close(63)
 
-     cfile = "fields/xslice."//cdump
-     open (62,file=cfile)
 
      ! x-slices along laser axis
      jfoc = focus(2)/dy
@@ -167,10 +165,23 @@ subroutine dump_fields(timestamp)
      end do
 
      ! Renormalise to EM units
+     cfile = "fields/xslice."//cdump
+     open (62,file=cfile)
      write(62,'((9(1pe12.4)))') &
           (i*dx+x_offset,rhoe_slice(i)/omega**2, rhoi_slice(i)/omega**2, ex_slice(i)/omega,&
           jxe_slice(i), phi_pond(i),ex_pond(i)/omega, ey_pond(i)/omega, ez_pond(i)/omega,i=1,ngx)
      close(62)
+
+! Write out time-averaged E-field profiles to file
+! this has to go in dump_fields once time-averages taken
+     write(*,'(a40,a10)') 'Cycle-averaged lineouts at',cdump
+     dx = (xl-x_offset)/ngx ! spacing for time-ave grid
+     cfile = "fields/linave."//cdump
+     open (60,file=cfile)
+     write(60,'(2(a12))') '!   x      ',' ex  '
+     write(60,'((2(1pe12.4)))') &
+          (i*dx+x_offset, ex_ave(i), i=0,ngx)
+     close(60)
 
   endif
   icall = icall + 1
@@ -178,6 +189,7 @@ subroutine dump_fields(timestamp)
   ! Rezero local fields
   rhoe_loc = 0.
 
+  ex_ave = 0.
   ex_loc = 0.
   ey_loc = 0.
   ez_loc = 0.
