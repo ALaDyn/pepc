@@ -33,7 +33,7 @@ program ppfields
 
     real, allocatable :: x(:),y(:),z(:),ux(:),uy(:),uz(:),q(:),m(:),ex(:),ey(:),ez(:),bz(:),phi(:)
     integer, allocatable :: own(:), label(:), index(:)
-    real, allocatable :: aveni(:),avene(:),avejxi(:),avejxe(:),aveex(:),aveti(:),avete(:),avephi(:)
+    real, allocatable :: aveni(:),avene(:),avenp(:),avejxi(:),avejxe(:),aveex(:),aveti(:),avete(:),avephi(:)
     real, allocatable :: fhote(:), fhoti_for(:), fhoti_back(:), fhotp(:), avenhot(:)
 
     real, dimension(10) :: xslice, yslice, zslice
@@ -123,7 +123,7 @@ program ppfields
         fang_back(0:nalpha+1,0:nalpha+1), fang_ion1(0:nalpha+1,0:nalpha+1), &
         uang_ion(0:nalpha+1,0:nalpha+1), &
         fhote(0:ngux+1), fhoti_for(0:ngux+1), fhoti_back(0:ngux+1), fhotp(0:ngux+1) )
-    allocate ( aveni(ngx),avene(ngx),avejxi(ngx),avejxe(ngx),aveex(ngx),aveti(ngx), & 
+    allocate ( aveni(ngx),avene(ngx),avenp(ngx),avejxi(ngx),avejxe(ngx),aveex(ngx),aveti(ngx), & 
         avete(ngx),avephi(ngx), avenhot(ngx) )
 
     ! input data file
@@ -187,48 +187,6 @@ program ppfields
     !  close(22)
     !  write(*,*) '.. done'
 
-    ! Dump for AVS-EXPRESS
-    cfile = 'dumps/ions_dump.'//cdump
-    cfile1 = 'dumps/elecs_dump.'//cdump
-    cfile2 = 'dumps/protons_dump.'//cdump
-
-    write(*,*) 'Writing ions to ',cfile
-    write(*,*) 'Writing electrons to ',cfile1
-    write(*,*) 'Writing protons to ',cfile2
-    open(20,file=cfile)
-    open(21,file=cfile1)
-    open(22,file=cfile2)
-    nsel=0
-    do i=1,n
-        gamma = sqrt(1.0+ux(i)**2+uy(i)**2+uz(i)**2)
-        umev  = .511*(gamma-1.0)
-        if (q(i)>0 .and. m(i)/q(i)>1850. ) then
-            nsel=nsel+1
-            write(20,'(8(1pe12.4))') x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i)  ! ions
-        else if (q(i)>0.) then
-            write(22,'(8(1pe12.4))') x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i)  ! protons
-        else
-            write(21,'(8(1pe12.4))') x(i),y(i),z(i),ux(i),uy(i),uz(i),q(i),m(i)  ! electrons
-        endif
-    end do
-
-    close(20)
-    close(21)
-    close(22)
-    ! write AVS field record
-    open(60,file='elecs.fld',position='append')
-    write(60,'(3a)') 'time file='//cfile1//' filetype=ascii'
-    write(60,'(a,i8)') 'dim1=',nsel
-    write(60,'(3a)') 'coord 1 file='//cfile1//' filetype=ascii offset=0 stride=7'
-    write(60,'(3a)') 'coord 2 file='//cfile1//' filetype=ascii offset=1 stride=7'
-    write(60,'(3a)') 'coord 3 file='//cfile1//' filetype=ascii offset=2 stride=7'
-    write(60,'(3a)') 'variable 1 file='//cfile1//' filetype=ascii offset=3 stride=7'
-    write(60,'(3a)') 'variable 2 file='//cfile1//' filetype=ascii offset=4 stride=7'
-    write(60,'(3a)') 'variable 3 file='//cfile1//' filetype=ascii offset=5 stride=7'
-    write(60,'(3a)') 'variable 4 file='//cfile1//' filetype=ascii offset=6 stride=7'
-    write(60,'(a3)') 'EOT'
-    close(60)
-    ! stop
     ! COORDINATE SPACE
     ! box limits 
     xl = xmax-xmin
@@ -538,15 +496,18 @@ program ppfields
             Ti(i1,j2,k2)=Ti(i1,j2,k2) + tweight*fx1*fy2*fz2
             Ti(i2,j2,k2)=Ti(i2,j2,k2) + tweight*fx2*fy2*fz2
 
-            ! electric fields
-            Egx(i1,j1,k1)=Egx(i1,j1,k1) + ex(i)/fr1**2
-
-            Egy(i1,j1,k1)=Egy(i1,j1,k1) + ey(i)/fr1**2
-            Egz(i1,j1,k1)=Egz(i1,j1,k1) + ez(i)/fr1**2
-
-            phig(i1,j1,k1)=phig(i1,j1,k1) + phi(i)/fr1
 
         endif
+
+!        if (q(i)>0) then
+
+        ! electric fields - include all ion species
+        Egx(i1,j1,k1)=Egx(i1,j1,k1) + ex(i)/fr1**2
+        Egy(i1,j1,k1)=Egy(i1,j1,k1) + ey(i)/fr1**2
+        Egz(i1,j1,k1)=Egz(i1,j1,k1) + ez(i)/fr1**2
+        ! potential
+        phig(i1,j1,k1)=phig(i1,j1,k1) + phi(i)/fr1
+!        endif
     end do
 
     ! normalise averaged quantities
@@ -561,11 +522,16 @@ program ppfields
     Ti = .511*mass_ratio*Ti/g_ion   ! Ion K.E. in MeV
     Tp = .511*1836*Tp/g_pro   ! Proton K.E. in MeV
 
-    Egx = Egx/(g_ion)    ! Normalise fields/potential
-    Egy = Egy/(g_ion)
-    Egz = Egz/(g_ion)
-    phig = phig/(g_ion)
-
+    do k=0,ngz+1
+        do j=0,ngy+1
+            do i=0,ngx+1
+                Egx(i,j,k) = Egx(i,j,k)/(g_ion(i,j,k)+g_pro(i,j,k)+g_ele(i,j,k))    ! Normalise fields/potential
+                Egy(i,j,k) = Egy(i,j,k)/(g_ion(i,j,k)+g_pro(i,j,k)+g_ele(i,j,k))    ! Normalise fields/potential
+                Egz(i,j,k) = Egz(i,j,k)/(g_ion(i,j,k)+g_pro(i,j,k)+g_ele(i,j,k))    ! Normalise fields/potential
+                phig(i,j,k) = phig(i,j,k)/(g_ion(i,j,k)+g_pro(i,j,k)+g_ele(i,j,k))    ! Normalise fields/potential
+            end do
+        end do
+    end do
 
 
     ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
@@ -605,9 +571,9 @@ program ppfields
 
 
     kslice = (zslice(1)-zmin)*rdz
-    !  sigma = 40.
-    !  kmax = sigma*rdz/4    ! average over 1/4 laser spot\
-    kmax=2
+    sigma = 2.5
+!    kmax = sigma*rdz    ! average over 1/8 laser spot\
+    kmax=1  ! 3-point average for slice
     nk = 2*kmax+1
     do j=1,ngy
         do i=1,ngx
@@ -620,8 +586,8 @@ program ppfields
             write(23,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(jy_ele(i,j,kslice-1:kslice+1))/3.
             write(24,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(jx_ion(i,j,kslice-1:kslice+1))/3.
             write(25,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(jy_ion(i,j,kslice-1:kslice+1))/3.
-            write(26,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(te(i,j,kslice-1:kslice+1))/3.
-            write(27,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(ti(i,j,kslice-1:kslice+1))/3.
+            write(26,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(te(i,j,kslice-kmax:kslice+kmax))/nk
+            write(27,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(ti(i,j,kslice-kmax:kslice+kmax))/nk
             write(28,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(Egx(i,j,kslice-1:kslice+1))/3.
             write(29,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(Egy(i,j,kslice-1:kslice+1))/3.
             write(30,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, phig(i,j,kslice)
@@ -630,7 +596,7 @@ program ppfields
             write(33,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(jy_hot(i,j,kslice-1:kslice+1))/3.
             write(34,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, jz_hot(i,j,kslice)
             write(35,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, SUM(rho_pro(i,j,kslice-kmax:kslice+kmax))/nk
-            write(36,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(ti(i,j,kslice-1:kslice+1))/3.
+            write(36,'(2f13.4,f16.6)') i*dx+xmin, j*dy+ymin, sum(tp(i,j,kslice-kmax:kslice+kmax))/nk
 
         end do
     end do
@@ -702,18 +668,21 @@ program ppfields
     kslice = (zslice(1)-zmin)*rdz
     avene = 0.
     aveni = 0.
+    avenp = 0.
     avenhot = 0.
     avejxi = 0.
     avejxe = 0.
     aveti = 0.
     avete = 0.
     aveex = 0.
-    nave = 5
+    sigma = 2.5
+!    nave = sigma*rdz    ! average over shell radius\
+    nave = 3
     norm = (2*nave+1)**2
     do k=kslice-nave,kslice+nave
         do j=jslice-nave,jslice+nave
             avene(1:ngx) = avene(1:ngx) + rho_ele(1:ngx,j,k)/norm
-            avenhot(1:ngx) = avenhot(1:ngx) + abs(rho_hot(1:ngx,j,k)/norm)
+            avenp(1:ngx) = avenp(1:ngx) + rho_pro(1:ngx,j,k)/norm
             aveni(1:ngx) = aveni(1:ngx) + rho_ion(1:ngx,j,k)/norm
             avejxi(1:ngx) = avejxi(1:ngx) + jx_ion(1:ngx,j,k)/norm
             avejxe(1:ngx) = avejxe(1:ngx) + jx_ele(1:ngx,j,k)/norm
@@ -723,50 +692,50 @@ program ppfields
             avephi(1:ngx) = avephi(1:ngx) + phig(1:ngx,j,k)/norm
         end do
     end do
-    write(20,'(10(1pe16.4))') (i*dx+xmin, abs(avene(i)), aveni(i), avejxe(i), avejxi(i), aveex(i), &
-        max(avete(i),1.e-5), max(aveti(i),1.e-5), avephi(i), avenhot(i), i=1,ngx )
+    write(20,'(10(1pe16.4))') (i*dx+xmin, abs(avene(i)), aveni(i), avenp(i), avejxe(i), avejxi(i), aveex(i), &
+        max(avete(i),1.e-5), max(aveti(i),1.e-5), avephi(i), i=1,ngx )
     close(20)
 
     cfout(1) = 'fields_pp/mesh.xyz'
     cfout(2) = 'fields_pp/'//cdump//'.xyz'
 
 
-    !  write(*,'(2a)') 'Writing 3D dump ',cfout(2)
-    !  open(20,file=cfout(1))
-    !  open(21,file=cfout(2))
+    write(*,'(2a)') 'Writing 3D dump ',cfout(2)
+    open(20,file=cfout(1))
+    open(21,file=cfout(2))
 
     ! write AVS field record
-    !  open(60,file='fields3d.fld',position='append')
-    !  write(60,'(3a)') 'time file='//cfout(2)//' filetype=ascii'
-    !  write(60,'(3a)') 'variable 1 file='//cfout(2)//' filetype=ascii offset=0 stride=7'
-    !  write(60,'(3a)') 'variable 2 file='//cfout(2)//' filetype=ascii offset=1 stride=7'
-    !  write(60,'(3a)') 'variable 3 file='//cfout(2)//' filetype=ascii offset=2 stride=7'
-    !  write(60,'(3a)') 'variable 4 file='//cfout(2)//' filetype=ascii offset=3 stride=7'
-    !  write(60,'(3a)') 'variable 5 file='//cfout(2)//' filetype=ascii offset=4 stride=7'
-    !  write(60,'(3a)') 'variable 6 file='//cfout(2)//' filetype=ascii offset=5 stride=7'
-    !  write(60,'(3a)') 'variable 7 file='//cfout(2)//' filetype=ascii offset=6 stride=7'
-    !  write(60,'(a3)') 'EOT'
+      open(60,file='fields3d.fld',position='append')
+      write(60,'(3a)') 'time file='//cfout(2)//' filetype=ascii'
+      write(60,'(3a)') 'variable 1 file='//cfout(2)//' filetype=ascii offset=0 stride=7'
+      write(60,'(3a)') 'variable 2 file='//cfout(2)//' filetype=ascii offset=1 stride=7'
+      write(60,'(3a)') 'variable 3 file='//cfout(2)//' filetype=ascii offset=2 stride=7'
+      write(60,'(3a)') 'variable 4 file='//cfout(2)//' filetype=ascii offset=3 stride=7'
+      write(60,'(3a)') 'variable 5 file='//cfout(2)//' filetype=ascii offset=4 stride=7'
+      write(60,'(3a)') 'variable 6 file='//cfout(2)//' filetype=ascii offset=5 stride=7'
+      write(60,'(3a)') 'variable 7 file='//cfout(2)//' filetype=ascii offset=6 stride=7'
+      write(60,'(a3)') 'EOT'
 1   close(60)
-    !  iskip3d = 2
-    !  write(20,'(3i6)') ngx/iskip3d,ngy/iskip3d,ngz/iskip3d
+      iskip3d = 2
+      write(20,'(3i6)') ngx/iskip3d,ngy/iskip3d,ngz/iskip3d
 
-    !  do k=1,ngz,iskip3d
-    !     do j=1,ngy,iskip3d
-    !       do i=1,ngx,iskip3d
-    !           write(20,'(3f7.2)') i*dx+xmin, j*dy+ymin, k*dz+zmin
-    !           write(21,'(7(1pe10.2))') & 
-    !                abs(SUM(rho_ele(i:i+iskip3d-1,j,k))+SUM(rho_hot(i:i+iskip3d-1,j,k)))/iskip3d, &
-    !                SUM(rho_ion(i:i+iskip3d-1,j,k))/iskip3d, &
-    !                SUM(jx_ion(i:i+iskip3d-1,j,k))/iskip3d, &
-    !                SUM(jy_ion(i:i+iskip3d-1,j,k))/iskip3d, &
-    !                SUM(jz_ion(i:i+iskip3d-1,j,k))/iskip3d, & 
-    !                SUM(Te(i:i+iskip3d-1,j,k))/iskip3d, & 
-    !                SUM(Ti(i:i+iskip3d-1,j,k))/iskip3d 
-    !        end do
-    !     end do
-    !  end do
-    !  close(20)
-    !  close(21)
+      do k=1,ngz,iskip3d
+         do j=1,ngy,iskip3d
+           do i=1,ngx,iskip3d
+              write(20,'(3f7.2)') i*dx+xmin, j*dy+ymin, k*dz+zmin
+               write(21,'(7(1pe10.2))') & 
+                    abs(SUM(rho_ele(i:i+iskip3d-1,j,k))+SUM(rho_hot(i:i+iskip3d-1,j,k)))/iskip3d, &
+                    SUM(rho_ion(i:i+iskip3d-1,j,k))/iskip3d, &
+                    SUM(jx_ion(i:i+iskip3d-1,j,k))/iskip3d, &
+                    SUM(jy_ion(i:i+iskip3d-1,j,k))/iskip3d, &
+                    SUM(jz_ion(i:i+iskip3d-1,j,k))/iskip3d, & 
+                    SUM(Te(i:i+iskip3d-1,j,k))/iskip3d, & 
+                    SUM(Ti(i:i+iskip3d-1,j,k))/iskip3d 
+            end do
+         end do
+     end do
+     close(20)
+     close(21)
 
     ! ====================================================================================
     !
@@ -1103,7 +1072,7 @@ program ppfields
 
     dx = xl/ngx
     dy = yl/ngy
-    du =  uimevmax/.511/mass_ratio/ngux  ! Bin size for energy spectra
+    du =  uimevmax/ngux  ! Bin size for energy spectra
     !  aimax=90.
     !  aimin=-90.
     dalpha = 2*aimax/nalpha ! Bin size for angular distrib.
@@ -1198,7 +1167,7 @@ program ppfields
                 gamma = sqrt(1.0+ux(i)**2+uy(i)**2+uz(i)**2)
                 umev  = .511*mass_ratio*(gamma-1.0)
 
-                iu = (gamma-1.0)/du+1  ! Energy bin
+                iu = umev/du+1  ! Energy bin
                 iu = min(max(0,iu),ngux+1)  ! limits
                 if (ux(i)>0 .and. umev > 1. ) then     ! Forward ions > 1MeV
                     alphay=atan(uy(i)/ux(i))*180./pi  ! convert to degrees
@@ -1267,13 +1236,13 @@ program ppfields
                 endif
 
             else
-                ! protons
+                ! forward protons
                 fpxx_pro(ii1,i1)=fpxx_pro(ii1,i1) + 1
                 gamma = sqrt(1.0+ux(i)**2+uy(i)**2+uz(i)**2)
                 umev  = .511*1836.*(gamma-1.0)
-                iu = (gamma-1.0)/du+1  ! Energy bin
+                iu = umev/du+1  ! Energy bin
                 iu = min(max(0,iu),ngux+1)  ! limits
-                fhotp(iu) = fhotp(iu) + 1
+                if (ux(i)>0) fhotp(iu) = fhotp(iu) + 1
             endif
 
         endif
@@ -1319,7 +1288,7 @@ program ppfields
     fpxpz_ion = max(fpxpz_ion,0.9)
     fpxx_ion = max(fpxx_ion,0.9)
     fpzx_ion = max(fpzx_ion,0.9)
-    fpxx_pro = max(fpzx_ion,0.9)
+    fpxx_pro = max(fpxx_pro,0.9)
     fpyy_ion = max(fpyy_ion,0.9)
 
     do j=1,nguy
@@ -1350,10 +1319,11 @@ program ppfields
 
     fhoti_for = max(fhoti_for,0.1)
     fhoti_back = max(fhoti_back,0.1)
+    fhotp = max(fhotp,0.1)
 
-    write(24,'((f13.4,f16.6))') (i*du*0.511*mass_ratio, fhoti_for(i), i=1,ngux)
-    write(25,'((f13.4,f16.6))') (i*du*0.511*mass_ratio, fhoti_back(i), i=1,ngux)
-    write(31,'((f13.4,f16.6))') (i*du*0.511*mass_ratio, fhotp(i), i=1,ngux)
+    write(24,'((f13.4,f16.6))') (i*du, fhoti_for(i), i=1,ngux)
+    write(25,'((f13.4,f16.6))') (i*du, fhoti_back(i), i=1,ngux)
+    write(31,'((f13.4,f16.6))') (i*du, fhotp(i), i=1,ngux)
 
     ! far-field y-z angular distribution
     do j=1,nalpha
