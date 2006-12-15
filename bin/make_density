@@ -9,9 +9,9 @@ fi
 MYDIR=`pwd`
 echo $MYDIR
 # Slice postprocessor
-PP=~/tree/pp/slicepp
+PP=~/pepc/bin/slicer
 RUNPP=$1
-DATADIR=block_eps3
+DATADIR=$MYDIR
 TIMESTAMP=$2
 ARROW=0.05c/0.2c/0.05cn0.25i  ## width/headlength/headwidth
 rm -f $(DATADIR)/*.ps 
@@ -65,7 +65,7 @@ fi
      SSRHO=1
 # Make colour maps
 
-      makecpt -Crelief -T${RHOMAP} > dens.cpt
+#      makecpt -Crelief -T${RHOMAP} > dens.cpt
 #  makecpt -Crainbow -T-2.2/1.2/.1 > dens1.cpt
   cd $TIMESTAMP
 
@@ -90,10 +90,10 @@ fi
       xyz2grd $XYDATA -Gdata1.grd -R${DR} -I${MESH} 
       grdinfo data1.grd
       grdgradient data1.grd -A30 -Nt -Gdata1_int.grd
-      grdimage data1.grd -J${BOX} -E$DPI  -R${DR} -T  -K -C../dens1.cpt -X1i -Y1i > $PLOT
+      grdimage data1.grd -J${BOX} -E$DPI  -R${DR} -T  -K -C../dens.cpt -X1i -Y1i > $PLOT
       psbasemap -R${PASHIFT} -J${BOX} -B50:"@~w@~@-p@-x/c":/50:"@~w@~@-p@-y/c":WnSe -P -O -K  -X0 -Y0 >> $PLOT 
       gmtset ANOT_FONT_SIZE 16p LABEL_FONT_SIZE 18p
-      psscale -C../dens1.cpt -D$SCALE -O -K -B1/:"log@-10@-(n@-i@- /n@-c@-)":  >> $PLOT
+      psscale -C../dens.cpt -D$SCALE -O -K -B1/:"log@-10@-(n@-i@- /n@-c@-)":  >> $PLOT
       cat << EOF | pstext -R${DR} -J$BOX -O -N -X0 -Y0 >> $PLOT
 120. 150. 20 0.0 1 2 a)
 EOF

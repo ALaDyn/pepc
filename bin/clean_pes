@@ -20,4 +20,4 @@ do
 done
 cd ..
 rm -fr coredir.*
-rm -f *.nc mpi_* load_* run.00* energy.00* *.out
+rm -f *.nc mpi_* load_* run.00* energy.00* 

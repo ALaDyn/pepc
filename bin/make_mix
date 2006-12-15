@@ -134,13 +134,13 @@ eval `cat gmt.env  | awk '{ printf "%s\n",$0 }' `
    echo "TCOLD=${TCOLD}"
 
 
-
+# Scale positions and dimensions
 
       ARROW=0.05c/0.2c/0.05cn0.25i  ## width/headlength/headwidth
       ILLU=-Idata1_int.grd
-      SCALE=.5i/${YSHIFT}i/.5i/0.05ih
-      ZSCALE=2.1i/${ZSHIFT}i/.5i/0.05i
-      PSCALE=.5i/${PSHIFT}i/.5i/0.05ih
+      SCALE=.5i/${YSHIFT}i/1i/0.05ih
+      ZSCALE=2.1i/${ZSHIFT}i/1i/0.05i
+      PSCALE=.5i/${PSHIFT}i/1.5i/0.05ih
 
       DPI=400  ## postscript resolution
       SSJI=2
@@ -162,7 +162,7 @@ eval `cat gmt.env  | awk '{ printf "%s\n",$0 }' `
       makecpt -Cjet  -T-1/$UANGMAX/.1   > ualpha.cpt
 
 # potential - polar
-      makecpt -Cred2green -T-3/3/.02 -I > pot.cpt
+      makecpt -Cred2green -T-5/5/1 -I > pot.cpt
 
       cat << EOF > potlevels
 0.1     C
@@ -200,7 +200,7 @@ eval `cat snap.env  | awk '{ printf "%s\n",$0 }' `
 
 echo "ion density in xy"
       XYDATA=xy_slice_iden
-      psbasemap -R${PA} -J${BOX} -B${AXES}WSne -P -K  -X.5i -Y7i > $PLOT 
+      psbasemap -R${PA} -J${BOX} -B${AXES}WSne -P -K  -X.5i -Y9i > $PLOT 
       xyz2grd $XYDATA -Gdata1.grd -R${DR} -I${MESH} 
       grdinfo data1.grd
       grdgradient data1.grd -A30 -Nt -Gdata1_int.grd
@@ -244,7 +244,7 @@ echo  "ion current in xy"
 
 echo "proton density in xy"
       XYDATA=xy_slice_pden
-      psbasemap -R${PA} -J${BOX} -B${AXES}WnSe -P -K -O -X-5i -Y-3i >> $PLOT 
+      psbasemap -R${PA} -J${BOX} -B${AXES}WnSe -P -K -O -X-5i -Y-4i >> $PLOT 
       xyz2grd $XYDATA -Gdata1.grd -R${DR} -I${MESH} 
       grdinfo data1.grd
       grdgradient data1.grd -A30 -Nt -Gdata1_int.grd
@@ -265,30 +265,57 @@ echo "proton temperature in xy"
       grdimage data1.grd  -J${BOX} -E$DPI -R${DR} -T -O -K -Cti.cpt -X0 -Y0 >> $PLOT
       psscale -Cti.cpt -D$SCALE -O -K -B${SSTI}/:T@_p@-:  >> $PLOT
 
+echo "Potential in xy"
+  echo "PHIPA=${PHIPA}"
+  echo "PHIDR=${PHIDR}"
+  echo "PHIMESH=${PHIMESH}"
+  echo "PHIAXES=${PHIAXES}"
+  echo "PACONV=${PACONV}"
+  echo "ZPACONV=${ZPACONV}"
+
+cat <<EOF > potlevels
+-0.1 A
+-0.01 A
+0.01 	A
+0.1 C
+0.5 A
+1    C
+10 A
+EOF
+ 
 
 
-echo "Electric field in xy"
-      EX=xy_slice_ex
-      EY=xy_slice_ey
+# xy-slice
+    XYDATA=xy_slice_phiw
 
-      psbasemap -R${PA} -J${BOX} -B${AXES}wnSe -P -K -O -X2.5i -Y0 >> $PLOT 
-      xyz2grd $EX -Gex.grd -R${DR} -I${MESH} 
-      xyz2grd $EY -Gey.grd -R${DR} -I${MESH}
-      grdinfo ex.grd
-      grdvector ex.grd ey.grd  -JX -O -K -Q$ARROW -C../e.cpt -G0 -S${EVEC}i >> $PLOT
-      psscale -C../e.cpt -D$SCALE -O -B${SSE}/:E:  >> $PLOT
+# Convert xyz data to grid file
+    xyz2grd $XYDATA -Gdata1.grd -R${PHIDR} -I${PHIMESH}
+    grdinfo data1.grd
+    psbasemap -R${PHIPA} -J$BOX -B${PHIAXES}wSnE -X2.5i -Y0 -P -K -O >> $PLOT
+    grdimage data1.grd  -J$BOX -E100 -R${PHIDR} -T -O -K -C../pot.cpt -X0 -Y0 >> $PLOT
+    grdcontour data1.grd  -Q10 -J$BOX -R${PHIDR} -O -K -Cpotlevels -X0 -Y0 >> $PLOT
+    psscale -C../pot.cpt -D1.i/2.5i/.8i/0.1ih -O -K -B5/:" Pot (MV)": >> $PLOT
+
+
+#echo "Electric field in xy"
+#      EX=xy_slice_ex
+#      EY=xy_slice_ey
+#
+#      psbasemap -R${PA} -J${BOX} -B${AXES}wnSe -P -K -O -X2.5i -Y0 >> $PLOT 
+#      xyz2grd $EX -Gex.grd -R${DR} -I${MESH} 
+#      xyz2grd $EY -Gey.grd -R${DR} -I${MESH}
+#      grdinfo ex.grd
+#      grdvector ex.grd ey.grd  -JX -O -K -Q$ARROW -C../e.cpt -G0 -S${EVEC}i >> $PLOT
+#      psscale -C../e.cpt -D$SCALE -O -K -B${SSE}/:E:  >> $PLOT
       \rm *.grd .gmtcommands
 
 # -----------------------------
 
 echo "electron density in xy"
       XYDATA=xy_slice_eden
-      XY2=xy_slice_nhot
-      psbasemap -R${PA} -J${BOX} -B${AXES}WSne -P -K -O -X-5i -Y-3i >> $PLOT 
+      psbasemap -R${PA} -J${BOX} -B${AXES}WSne -P -K -O -X-5i -Y-4i >> $PLOT 
       xyz2grd $XYDATA -Gdata1.grd -R${DR} -I${MESH} 
-      xyz2grd $XY2 -Gdata2.grd -R${DR} -I${MESH} 
-      grdmath data1.grd data2.grd ADD = data3.grd
-      grdinfo data2.grd
+      grdinfo data1.grd
       grdgradient data1.grd -A30 -Nt -Gdata1_int.grd
 # plot image
       grdimage data1.grd -JX -E$DPI -R${DR} -T -O -K -C../dens.cpt -X0 -Y0 >> $PLOT
@@ -517,57 +544,52 @@ EOF
      PLOT=../plots/phase_$TIMESTAMP.ps
 
 
-echo "electron pxpy"
+
 # -------------
 
-      XYDATA=fpxpy_ele
-      psbasemap -R${UPA} -J${UBOX} -B${UAXES}SWne -P -K  -X1i -Y7i > $PLOT
-      xyz2grd $XYDATA -Gdata1.grd -R${UDR} -I${UMESH} 
-      grdinfo data1.grd
-      grdimage data1.grd -J${UBOX} -E$DPI  -R${UDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
-      psscale -C../dens.cpt -D$PSCALE -O -K -B${SSFP}/:p@-y@--p@-x@-: >> $PLOT
-      \rm *.grd .gmtcommands
       
 echo "electron px-x"
       XYDATA=fpxx_ele
-      psbasemap -R${UXPA} -J${UBOX} -B${UXAXES}SEwn -P  -K -O -X3.0i -Y0 >> $PLOT 
+      psbasemap -R${UXPA} -J${UBOX} -B${UXAXES}SEwn -P  -K -X1i -Y8i > $PLOT 
       xyz2grd $XYDATA -Gdata1.grd -R${UXDR} -I${UXMESH} 
       grdinfo data1.grd
       grdimage data1.grd -J${UBOX} -E$DPI  -R${UXDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
       psscale -C../dens.cpt -D$PSCALE -O -K -B${SSFP}/:p@-x@--x: >> $PLOT
       \rm *.grd .gmtcommands
 
-echo "ion px-py"
-      XYDATA=fpxpy_ion
-      psbasemap -R${UIPA} -J${UIBOX} -B${UIAXES}SWne -P -K -O -X-3i -Y-3i >> $PLOT
-      xyz2grd $XYDATA -Gdata1.grd -R${UIDR} -I${UIMESH}
-      grdinfo data1.grd
-      grdimage data1.grd -J${UIBOX} -E$DPI  -R${UIDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
-      psscale -C../dens.cpt -D$PSCALE -O -K -B${SSIFP}/:pyi-pxi: >> $PLOT
 
-echo "ion px-pz"
-      XYDATA=fpxpz_ion
-      psbasemap -R${UIPA} -J${UIBOX} -B${UIAXES}SWne -P -K -O -X3i -Y0 >> $PLOT
-      xyz2grd $XYDATA -Gdata1.grd -R${UIDR} -I${UIMESH}
-      grdinfo data1.grd
-      grdimage data1.grd -J${UIBOX} -E$DPI  -R${UIDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
-      psscale -C../dens.cpt -D$PSCALE -O -K -B${SSIFP}/:pzi-pxi: >> $PLOT
-
-echo "ion px-x"
-      XYDATA=fpxx_ion
-      psbasemap -R${UXIPA} -J${UIBOX} -B${UXIAXES}SWne -P -K -O -X-3i -Y-3i >> $PLOT
+echo "proton px-x"
+      XYDATA=fpxx_pro
+      psbasemap -R${UXIPA} -J${UIBOX} -B${UXIAXES}SWne -P -K -O -X0 -Y-4i >> $PLOT
       xyz2grd $XYDATA -Gdata1.grd -R${UXIDR} -I${UXIMESH}
       grdinfo data1.grd
       grdimage data1.grd -J${UIBOX} -E$DPI  -R${UXIDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
-      psscale -C../dens.cpt -D$PSCALE -O -K -B${SSIFP}/:p@-xi@--x: -U"xy-slices of $RUN at $TRUN ($TIMESTAMP)" >> $PLOT
+      psscale -C../dens.cpt -D$PSCALE -O -K -B${SSIFP}/:p@-xp@--x: >> $PLOT
 
-echo "ion py-x"
-      XYDATA=fpzx_ion
-      psbasemap -R${UZIPA} -J${UIBOX} -B${UZIAXES}SWne -P -K -O -X3i -Y0 >> $PLOT
-      xyz2grd $XYDATA -Gdata1.grd -R${UZIDR} -I${UZIMESH}
+echo "ion px-x"
+      XYDATA=fpxx_ion
+      psbasemap -R${UXIPA} -J${UIBOX} -B${UXIAXES}SWne -P -K -O -X3i -Y0 >> $PLOT
+      xyz2grd $XYDATA -Gdata1.grd -R${UXIDR} -I${UXIMESH}
       grdinfo data1.grd
-      grdimage data1.grd -J${UIBOX} -E$DPI  -R${UZIDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
-      psscale -C../dens.cpt -D$PSCALE -O -B${SSIFP}/:p@-yi@--x:  >> $PLOT
+      grdimage data1.grd -J${UIBOX} -E$DPI  -R${UXIDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
+      psscale -C../dens.cpt -D$PSCALE -O  -B${SSIFP}/:p@-xi@--x: -U"phase space of $RUN at $TRUN ($TIMESTAMP)" >> $PLOT
+
+#echo "ion py-x"
+#      XYDATA=fpzx_ion
+#      psbasemap -R${UZIPA} -J${UIBOX} -B${UZIAXES}SWne -P -K -O -X3i -Y0 >> $PLOT
+#      xyz2grd $XYDATA -Gdata1.grd -R${UZIDR} -I${UZIMESH}
+#      grdinfo data1.grd
+#      grdimage data1.grd -J${UIBOX} -E$DPI  -R${UZIDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
+#      psscale -C../dens.cpt -D$PSCALE -O -B${SSIFP}/:p@-yi@--x:  >> $PLOT
+
+#echo "electron pxpy"
+#      XYDATA=fpxpy_ele
+#      psbasemap -R${UPA} -J${UBOX} -B${UAXES}SWne -P -K  -X1i -Y7i > $PLOT
+#      xyz2grd $XYDATA -Gdata1.grd -R${UDR} -I${UMESH} 
+#      grdinfo data1.grd
+#      grdimage data1.grd -J${UBOX} -E$DPI  -R${UDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
+#      psscale -C../dens.cpt -D$PSCALE -O -K -B${SSFP}/:p@-y@--p@-x@-: >> $PLOT
+#      \rm *.grd .gmtcommands
 
  #     gzip $PLOT
 
@@ -593,14 +615,20 @@ echo "hot electron spectrum"
     psxy   -R0/${UMEVMAX}/1/1000000 -JX3i/2il -X2i -Y6i -K -W1.5p $XYDATA -Ba${UTICK}:"Energy (MeV)":/a1f2:"fhot":WSne > $PLOT
     psxy -R -JX -O -K -Sp0.03i $XYDATA >> $PLOT
 
-echo "forward directed ions"
+echo "forward protons"
+    XYDATA=fhot_pro  
+    psxy  -R0/${UIMEVMAX}/1/1000000 -JX3i/2il -X5i -Y0i -O -K -W1.5p $XYDATA -Ba${UITICK}:"Energy (MeV)":/a1f2:"fhot_p":WSne  >> $PLOT
+    psxy -R -JX -O -K -Sp0.03i -W3/255/0/0 $XYDATA >> $PLOT
+
+echo "forward ions"
     XYDATA=fhot_ion_forw 
-    psxy  -R0/${UIMEVMAX}/1/1000000 -JX3i/2il -X0i -Y-3i -O -K -W1.5p $XYDATA -Ba${UITICK}:"Energy (MeV)":/a1f2:"fhoti (forward)":WSne  >> $PLOT
+    XYDATA2=fhot_pro 
+    psxy  -R0/${UIMEVMAX}/1/1000000 -JX3i/2il -X-5i -Y-3i -O -K -W1.5p $XYDATA -Ba${UITICK}:"Energy (MeV)":/a1f2:"fhot_i (f)":WSne  >> $PLOT
     psxy -R -JX -O -K -Sp0.03i $XYDATA >> $PLOT
 
 echo "backward directed ions"
     XYDATA=fhot_ion_back  
-    psxy   -U/-2.5i/-1.25i/"Hot electron & ion spectra of $RUN at $TRUN ($TIMESTAMP)"  -R0/${UIMEVMAX}/1/1000000 -JX3i/2il -X5i -Y0i -O -K -W1.5p $XYDATA  -Ba${UITICK}:"Energy (MeV)":/a1f2:"fhoti (back)":WSne  >> $PLOT
+    psxy   -U/-2.5i/-1.25i/"Hot electron & ion spectra of $RUN at $TRUN ($TIMESTAMP)"  -R0/${UIMEVMAX}/1/1000000 -JX3i/2il -X5i -Y0i -O -K -W1.5p $XYDATA  -Ba${UITICK}:"Energy (MeV)":/a1f2:"fhot_i (b)":WSne  >> $PLOT
     psxy -R -JX -O  -Sp0.03i $XYDATA  >> $PLOT
 
     echo " .. done"

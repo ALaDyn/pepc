@@ -149,7 +149,7 @@ eval `cat gmt.env  | awk '{ printf "%s\n",$0 }' `
       SSRHO=10
       UANGMAX=4
 # Make colour maps
-#    makecpt -Chaxby -T-.5/15/.1 -I > dens.cpt
+#    makecpt -Cseis -T-.5/20/.1 -I > dens.cpt
 #      makecpt -Cseis -I -Z -T${RHOMAP} > dens.cpt
 #      makecpt -Crainbow -Z -T${RHOMAP} > dens.cpt
       makecpt -Ccopper -T${JEMAP} -I > je.cpt
