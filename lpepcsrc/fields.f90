@@ -2,7 +2,6 @@
 !
 !                              FIELDS
 !
-!   $Revision$
 !
 !   Calculate fields and potential from coordinates x,y,z:
 !
