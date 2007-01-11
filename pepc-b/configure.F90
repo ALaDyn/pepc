@@ -1194,11 +1194,11 @@ subroutine configure
 
         case(1)
             call beam           ! Fixed beam
-#ifdef VISIT
+#ifdef VISIT_NBODY
             if (steering) call vis_control   ! Display default parameters
 #endif
         case(2)
-#ifdef VISIT
+#ifdef VISIT_NBODY
             if (steering) call vis_control   ! Constant particle source
 #endif
             if (me==0) write(*,'(//a)') '===> Particle beam switched on' 
@@ -1209,7 +1209,7 @@ subroutine configure
         case(3:6) ! laser on
 
             if (me==0) write(*,'(//a)') '===> Laser switched on' 
-#ifdef VISIT
+#ifdef VISIT_NBODY
             if (steering) call vis_control 
 #endif
 

@@ -231,7 +231,7 @@ subroutine velocities(p_start,p_finish,delta_t)
 
      chie = min(1.25,max(chie,0.75))  ! Set bounds of +- 50%
 
-     write (*,*) 'Te_unc ',Te_uncor,' Te0 ', Te0, ' chie ',chie
+     if (me.eq.0) write (*,*) 'Te_unc ',Te_uncor,' Te0 ', Te0, ' chie ',chie
 
      !  3)  Complete full step
 
