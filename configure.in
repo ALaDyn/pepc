@@ -18,7 +18,8 @@ CFLAGS="$CFLAGS -I/usr/local/include"
 if [[ `uname -n` = "jubl" ]] # jubl in Juelich
 then
  CFLAGS="$CFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
- LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib"
+ LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib "
+# FFLAGS="$FFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
 fi
 #if [[ `uname -m` = "00223C3B4C00" ]] # jump in Juelich
 
@@ -32,8 +33,8 @@ case "$host" in
 #----------------------------------------------------------
 powerpc64-unknown-linux-gnu) # jubl
  AC_MSG_RESULT(** setting options for powerpc64 host **)
- CFLAGS_OS="-DJUMP -DAIX_XLF -qarch=440 -qtune=440 -qlibansi -qnoinfo "
- FFLAGS_f77_f90="-WF,-DJUMP,-DAIX_XLF -qarch=440 -qtune=440 -qnosave -qextname"
+ CFLAGS_OS="-DAIX_XLF -qarch=440 -qtune=440 -qlibansi -qnoinfo "
+ FFLAGS_f77_f90="-WF,-DAIX_XLF -qarch=440 -qtune=440 -qnosave"
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_f77_f90 -qsuffix=f -qfixed -qspillsize=32000"

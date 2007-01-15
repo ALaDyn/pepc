@@ -3,7 +3,7 @@
 #
 .PHONY : lpepc pepc-b
 
-all: lpepc 
+all: lpepc pepc-b 
 
 lpepc:  
 	cd lpepcsrc && make
