@@ -1,0 +1,34 @@
+1.1 -> 1.2  (Nov 2005)
+==========
+
+Removed automatic promotion of single-precision reals (REAL*4) to doubles (REAL*8) by compiler.
+On some compilers this was overriding deliberate REAL*4 definitions needed for passing data to 
+visualisation interface (nbody3). 
+
+1.2 -> 1.3   (Jan 2006)
+==========
+
+Laser-plasma front end:
+----------------------
+* Reorganised plasma configuration/setup:
+
+	randion.f90 replaced by encapsulated plasma_start.f90 to allow more
+	flexible configs: multiple geometries, Z>1, mixed species in configure.f90.
+	Velocities now specified with velocity_config (cold, Maxwellian or beam).
+	Removed redundant double_target.f90 - can now do this in configure routine
+	Proton layer config front/back; fixed labelling for parallel run
+
+* Added field diagnostic for radially symmetric case
+	
+* Fixed error in linear particle->grid weighting (density gather) (weights f1, f2 were wrong way round!).
+
+lpepc kernel:
+-----------
+
+* MAC modified to exclude root node for dummy particle lists in vacuum
+
+* Adjustments to LJ pot - clamp max accn
+
+* Replaced pack function in tree_aswalk; tidied up arrays
+
+* Fixed bug in sort routine (upper fencepost); array adjustments 

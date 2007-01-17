@@ -54,7 +54,7 @@
   eps = 1.
  restart = .false.
   vis_on = .true.
- ivis = 1 
+ ivis = 5 
  ivis_fields = 5
  ivis_domains = 5000
   mc_init = .false.

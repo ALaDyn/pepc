@@ -38,6 +38,6 @@ tar vcfh - \
 	README.demos \
 		| gzip > pepc_demos$VERSION.tar.gz
 # Publish
-scp README.demos gibbon@zam581:/var/local/www/fzj/zam/pepc/.
-scp pepc_demos$VERSION.tar.gz gibbon@zam581:/var/local/www/fzj/zam/pepc/software/.
+#scp README.demos gibbon@zam581:/var/local/www/fzj/zam/pepc/.
+#scp pepc_demos$VERSION.tar.gz gibbon@zam581:/var/local/www/fzj/zam/pepc/software/.
 

@@ -9,12 +9,13 @@ WFNAME=parts_dump
 #ls -d pe* > PE_list
 cd $DATADIR/pe0000
 # Find timestep list
-if [ ! -f ../timestamps ]
+if [ ! -f ../../timestamps ]
   then
     echo "Making fresh timestamp list from data directory.."
     ls parts_info.* |  sed -e 's/parts_info.//g' > ../timestamps
   else
     echo "Found timestamp file"
+    cp ../../timestamps ../timestamps
 fi
 
 cd ..

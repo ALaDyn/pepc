@@ -3,8 +3,8 @@
 # Shell script to create new run directories 
 # PEs listed in PE_list
 
-DATADIR=$1
-NEWDIR=$2
+DATADIR=`pwd`/$1
+NEWDIR=`pwd`/$2
 STAMP=$3
 if [ ! -d $NEWDIR ]; then
   mkdir $NEWDIR
@@ -28,10 +28,10 @@ do
 done
 echo "Copying parameter files"
 cd $DATADIR
-cp data/PE_list ../$NEWDIR/data
-cp *.bgl *.job *.h *.rc *.sh *.cpt data/PE_list grid_defs.in ../$NEWDIR/.
-cd ../$NEWDIR
+cp data/PE_list $NEWDIR/data
+cp *.bgl *.job *.h *.rc *.sh *.cpt data/PE_list grid_defs.in $NEWDIR/.
+cd $NEWDIR
 mkdir fields fields_pp dumps log
 echo "Copying particle config data for timestamp $STAMP"
-cp ../$DATADIR/dumps/parts_*.$STAMP dumps/
+cp $DATADIR/dumps/parts_*.$STAMP dumps/
 echo "..done"

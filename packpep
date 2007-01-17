@@ -24,6 +24,6 @@ tar vcfh - \
 	 | gzip > pepc/pepc$VERSION.tar.gz
 # Publish
 cd pepc
-scp README jzam0403@jump:.
-scp pepc$VERSION.tar.gz jzam0403@jump:.
+#scp README jzam0403@jump:.
+#scp pepc$VERSION.tar.gz jzam0403@jump:.
 

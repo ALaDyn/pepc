@@ -39,7 +39,7 @@ fi
     cat timestamps | while read TIMESTAMP
     do
 	if [ ! -f dumps/parts_dump.$TIMESTAMP ]; then
-	    merge1_dump  $TIMESTAMP ## Merge particle data from PE directories
+	    $PEPC/bin/merge1_dump  $TIMESTAMP ## Merge particle data from PE directories
 	else
 	    echo "Data for $TIMESTAMP OK"
 	fi
