@@ -1,15 +1,122 @@
-1.1 -> 1.2  (Nov 2005)
-==========
+1.4 -> 1.5   (Nov 2006)
+=======================
 
-Removed automatic promotion of single-precision reals (REAL*4) to doubles (REAL*8) by compiler.
-On some compilers this was overriding deliberate REAL*4 definitions needed for passing data to 
-visualisation interface (nbody3). 
+
+Added CHANGES, TODO list
+Made changes to bookkeeping scripts
+Added sum_fieldave.f90 to makefile.in
+Added pepc-b to all target in makefile.in
+Added directives to diagnostics.F90, configure.F90
+Added new time-averaged axial field
+Modified Andreev cluster config to use characteristic CE units
+Created particle dump splitter - needs testing
+Hard-wired visit paths for JUMP
+Rearranged source files - .F90 now all PPSRC
+replaced system dependant Makefile directive
+vec fields in netcdf file
+------------------------------------------------------------------------
+r486 | zdv058 | 2006-10-31 11:11:07 +0100 (Tue, 31 Oct 2006) | 1 line
+added configure script, removed old makefiles to makefiles.old
+------------------------------------------------------------------------
+
+
+1.3 -> 1.4   (May 2006)
+=======================
+
+Revisions 337-485
+
+Added xy proton plots
+Included proton density, temp, phase space, spectrum
+Created new post-proc script for 3-species config
+Added vec field selection
+
+New configs (beam_config) for constant B-field:
+
+i) Bz        (7)
+ii) Z-pinch (17)
+iii) 'tokamak' (27)
+iv) magnetic mirror (37)
+
+Updated visit library paths
+Removed emobliq case (7=>24)
+
+Logical error in tree_walk fixed - acceptance of leaf nodes didn't correctly exclude self-term via ignore flag (was excluded anyway with s/d mac), leading to potential errors for other macs.
+
+Last 2 cols (Tpon, xc) of energy.dat removed 
+
+Tree diagnostic calls placed at top to avoid clash with sum_fields, radial_fields where intlist reused for computing pot, fields on grid.
+
+Error found & fixed in potential (Falk Eilenberger):
+Cross-terms of quadrupole had wrong sign!
+Now fixed so that notation & signs consistent with P&G, page 28-29 and 
+p.138 of Jackson.
+RMS error in potential now smaller than force error (as expected).
+
+Added case 6 to special configs: 
+Sets up microscopic (Debye) system in cubic box, length xl.  Force const derived from equivalent Gamma.
+
+Added plasma config #21: mixed species can (50:50)
+Made maxleaf, maxtwig global
+
+New config: shell + proton disc
+New plasma config: inset target for RAL focussing studies
+
+New geometries + relabelling (target_geometry)
+Added: 12 - tube
+	13 - hollow wire
+	26, 36 - reversed hemisphere/ hollow hemisph.
+Hollow sphere changed from 6 to 11
+For each new geometry, need changes in:
+face, configure (laser focus), plasma_start and vis_config.F90
+
+Added new geometry 16 - flipped hemisphere.  Affects routines face, plasma_start, configure
+
+New vis routine for interactive configuration mode
+
+Added hexdecode to bin scripts; modified directory copy to include .bgl scripts
+
+walk_scheme option added
+Timing breakdown for build into tree-build, branches & fill
+Updated configure with APLR's doped target configs
+
+pegs subproject created 
+------------------------
+Accelerations changed to ex,ey,ez in velocities
+Fixed alloc in setup; removed setup_arrays - now in pepc_setup; fixed timings, I/O
+
+key2addr_db replaced by key2addr including call location
+Rearranged setup structure: now separate routines for particle & star data
+Changed paths for slicer packs added, subdirs to tutorial, pegs setup fixed
+Added vis_vecfields for xnbody - electron current
+Added pegs to pepc repository
+
+Alex Robinson (RAL): Added new plasma_config=12 for double-sided proton layer
+
+Recursive sort routine psbal added to tree_utils
+Uses successive key refinements to ensure uniform bin distribution
+before placing pivots
+
+	walk_scheme introduced to switch between asynch, collective walks
+	mac now represents MAC - clumping switch
+
+New NETCDF fields
+
+Added proton disc config
+Added config routine for tapered spherical density profile
+Fixed split force routine - separate monopole/multipole terms
+Proton layer config front/back; fixed labelling for parallel run
+MAC modified to exclude root node for dummy particle lists in vacuum
+Radial field computed using tree sum_force
+Added sum_radial
+
+
 
 1.2 -> 1.3   (Jan 2006)
-==========
+=======================
 
 Laser-plasma front end:
 ----------------------
+
 * Reorganised plasma configuration/setup:
 
 	randion.f90 replaced by encapsulated plasma_start.f90 to allow more
@@ -19,16 +126,20 @@ Laser-plasma front end:
 	Proton layer config front/back; fixed labelling for parallel run
 
 * Added field diagnostic for radially symmetric case
-	
 * Fixed error in linear particle->grid weighting (density gather) (weights f1, f2 were wrong way round!).
 
 lpepc kernel:
------------
+------------
 
 * MAC modified to exclude root node for dummy particle lists in vacuum
-
 * Adjustments to LJ pot - clamp max accn
-
 * Replaced pack function in tree_aswalk; tidied up arrays
-
 * Fixed bug in sort routine (upper fencepost); array adjustments 
+
+
+1.1 -> 1.2  (Nov 2005)
+======================
+
+Removed automatic promotion of single-precision reals (REAL*4) to doubles (REAL*8) by compiler.
+On some compilers this was overriding deliberate REAL*4 definitions needed for passing data to 
+visualisation interface (nbody3). 
