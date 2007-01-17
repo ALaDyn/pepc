@@ -159,57 +159,45 @@ The physical model for the laser-plasma application is described in the Physics 
 \section{Compiling {\sc pepc}} 
 
 The source code for the tree kernel routines (fortran-90) resides in directory
-lpepcsrc, but is designed to be compiled from the application directory where
-all the machine-dependent options are determined.
+lpepcsrc, but is designed to be compiled from the installation directory via a configure script, where all the machine-dependent options are determined.
 
 \medskip\noindent
-To build the laser-plasma application {\tt pepcb}, first go to the directory
-{\tt pepc-b} and edit the {\tt makefile} to choose the {\tt ARCH} macro closest to your machine:
-
-\begin{tabbing}
-\hspace{1cm} \= \hspace{3cm} \= \hspace{1cm} \=\\
-\> \texttt{linux.mk} \> ... \> Linux-based PC, Intel compiler\\
-\> \texttt{ibm-p690.mk} \> ... \> IBM p690 Regatta (Power4)\\
-\> \texttt{bgl.mk} \> ... \> BlueGene/L \\
-\> \texttt{arc_icl.mk} \> ... \> Beowulf cluster, Lahey compiler 
-\end{tabbing}
-
-\noindent
-You will also probably need to change the compilers (FC, CC) and flags
-(FFLAGS1), and turn libraries on/off as needed.
-Once you are satisfied with the compiler options and libraries, do:
+To build the laser-plasma application {\tt pepcb}, first go to the top directory
+{\tt pepc} and try and run the configure script:
 
 \begin{verbatim}
-   > make clean
+./configure
+\end{verbatim}
+
+Machine options are in \texttt{config.in}.  These can be edited and a new configure script created with \texttt{autoconf}.
+
+Current builds are available for:
+\begin{tabbing}
+\hspace{1cm} \= \hspace{3cm} \= \hspace{1cm} \=\\
+\> \texttt{linux} \> ... \> Linux-based PC, Intel compiler\\
+\> \texttt{ibm-p690} \> ... \> IBM p690 Regatta (Power4)\\
+\> \texttt{bgl} \> ... \> BlueGene/L \\
+\end{tabbing}
+
+A full list of options can be obtained with:
+\begin{verbatim}
+./configure --help
+\end{verbatim}
+
+The configure script generates makefiles in the source directories from the \texttt{makefile.in} fields.  Once you are satisfied with the compiler options and libraries, do:
+
+\begin{verbatim}
+   > (make clean)
    > make
 \end{verbatim}
 
-\noindent
-The library and front end can also be compiled individually with:
-\begin{verbatim}
-   > make cleanlib 
-   > make lpepc
-   > make cleanapp
-   > make pepcb
-\end{verbatim}
- 
-\noindent
-The library should always be compiled first because header files are needed by
-{\tt pepcb}, and this step ensures that these are copied over (or freshly
-linked) from the {\tt lpepcsrc} directory.
 
 \medskip\noindent
 At this point there may well be linker errors because of missing
 libraries, such as MPI or from VISIT/XNBODY, the visualisation packages.  MPI is
 currently a prerequisite, even if the code is run on a single processor.  For
 single-CPU Linux users, this means installing the {\tt mpich} package first, available on
-most distributions.  The compiler `wrappers' (mpif90 etc.) may need tweeking
-after installation to select the right compiler (must be F90).
-
-\medskip\noindent
-If the VISIT or XNBODY libraries are not installed or are not needed, they can
-be turned off by commenting out the PREPROC and VISITLIBS macros in the arch.mk file.
-
+most distributions. 
 
 
 \section{Running the code}
