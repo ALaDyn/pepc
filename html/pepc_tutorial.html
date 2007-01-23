@@ -1,0 +1,842 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=iso-8859-1">
+	<TITLE></TITLE>
+	<META NAME="GENERATOR" CONTENT="OpenOffice.org 1.1.1  (Linux)">
+	<META NAME="CREATED" CONTENT="20051130;9001400">
+	<META NAME="CHANGED" CONTENT="20051130;12125000">
+</HEAD>
+<BODY LANG="en-US" DIR="LTR">
+<H2>PEPC: Tutorial</H2>
+<H3>Getting started</H3>
+<P>To run PEPC, first enter or create a run directory.   This can be
+anywhere, but we will assume it is placed in the PEPC install
+directory ($PEPC):</P>
+<P>  <FONT FACE="Courier, monospace">&gt; mkdir mydemo</FONT></P>
+<P>  <FONT FACE="Courier, monospace">&gt; cd mydemo</FONT></P>
+<P STYLE="page-break-before: always">This is where all the main
+output will appear. A number of subdirectories data/pe0000,
+data/pe0001, ... data/peNNNN must also exist or be created prior to
+the run, depending on the number of CPUs requested (P). This can be
+done with the aid of the script <FONT FACE="Courier, monospace">create_pes</FONT><FONT FACE="Times New Roman">,
+which resides in the <FONT FACE="Courier, monospace">bin </FONT>directory.
+ It will prove useful to include this directory in your path, i.e.: </FONT>
+</P>
+<P>  <FONT FACE="Courier, monospace">&gt; export PATH=$PATH:$PEPC/bin</FONT></P>
+<P>To create 4 data directories from scratch, type:</P>
+<P>  <FONT FACE="Courier, monospace">&gt; create_pes 0</FONT></P>
+<P>  <FONT FACE="Courier, monospace">&gt; ls data</FONT></P>
+<P><FONT FACE="Courier, monospace">PE_list  pe0000  pe0001  pe0002 
+pe0003</FONT></P>
+<P>The file <FONT FACE="Courier, monospace">PE_list</FONT> &ndash;
+also kept in the working directory &ndash; maintains a list of
+subdirectories.  If you need more, just edit this and repeat
+<FONT FACE="Courier, monospace">create_pes</FONT> command. 
+Alternatively, if you want to run with twice the number of CPUs, just
+do:</P>
+<P>   <FONT FACE="Courier, monospace">&gt; create_pes 4</FONT></P>
+<P>Sample run scripts (.sh) and parameter files (.h) can be found in
+the directory 'tutorial':</P>
+<TABLE WIDTH=560 BORDER=0 CELLPADDING=4 CELLSPACING=0 STYLE="page-break-inside: avoid">
+	<COL WIDTH=133>
+	<COL WIDTH=520>
+
+	<TBODY>
+		<TR VALIGN=TOP>
+			<TD WIDTH=133>
+				<P><FONT FACE="Courier, monospace">billiards.h</FONT>   
+				</P>
+			</TD>
+			<TD WIDTH=520>
+				<P>Inter-particle forces switched off;
+			reflective boundaries for various geometries</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=133>
+				<P><FONT FACE="Courier, monospace">clamp.h</FONT>   
+				</P>
+			</TD>
+			<TD WIDTH=520>
+				<P>Puts electrons in thermodynamic eqm using constant temperature
+				dynamics</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=133>
+				<P><FONT FACE="Courier, monospace">eqm.h</FONT>   
+				</P>
+			</TD>
+			<TD WIDTH=520>
+				<P>Plasma sphere - energy conservation
+			test</P>
+			</TD>
+		</TR>
+
+		<TR VALIGN=TOP>
+			<TD WIDTH=133>
+				<P><FONT FACE="Courier, monospace">ions.h</FONT>   
+				</P>
+			</TD>
+			<TD WIDTH=520>
+				<P>Creates ion 'crystal' using artificial lennard-jones potential</P>
+			</TD>
+		</TR>
+
+		<TR VALIGN=TOP>
+			<TD WIDTH=133>
+				<P><FONT FACE="Courier, monospace">laser.h</FONT>   
+				</P>
+			</TD>
+			<TD WIDTH=520>
+				<P>Ponderomotive laser heating</P>
+			</TD>
+		</TR>
+
+		<TR VALIGN=TOP>
+			<TD WIDTH=133>
+				<P><FONT FACE="Courier, monospace">wire.h</FONT>   
+				</P>
+			</TD>
+			<TD WIDTH=520>
+				<P>Laser interaction with wire target</P>
+			</TD>
+		</TR>	</TBODY>
+</TABLE>
+<P><BR><BR>
+</P>
+<P><B><FONT SIZE=4>Example </FONT></B><TT><B><FONT SIZE=4>run.h</FONT></B></TT><B><FONT SIZE=4>
+file:</FONT></B></P>
+<TABLE WIDTH=560 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=0 CELLSPACING=1 RULES=NONE STYLE="page-break-inside: avoid">
+	<COL WIDTH=274>
+	<COL WIDTH=392>
+	<THEAD>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>&amp;pepcdata</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+	</THEAD>
+	<TBODY>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>! particles</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  ne = 12000</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  ni = 12000</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT> plasma_config = 1  </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! set up plasma target</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT> target_geometry = 1   </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! sphere</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT> ! target_geometry =7   </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! hollow sphere</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT> ! target_geometry = 3         </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! wire</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT> ! target_geometry = 0  </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! rectangular slab</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>! physics stuff</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  Te_keV = 0.5 </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! Temperatures in keV</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  Ti_keV =0.</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  mass_ratio = 2000.</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! Ion:electron mass ratio</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  coulomb = .true.</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! Compute Coulomb forces</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  lenjones = .false.</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! Compute Lennard-Jones forces</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  bond_const = 2.e-3</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  r_sphere = 10.</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! Sphere radius/disc or wire diameter</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  x_plasma = .1    </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! plasma thickness</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  y_plasma = 2.     </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! plasma width (slab target)</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  z_plasma = 2.     </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! plasma width (slab) or wire length</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  xl = 2  </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! graphics box dimensions</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  yl =2</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  zl =2</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>! beam</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>   beam_config_in = 0 </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! beam off</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>!  beam_config = 1  </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! fixed beam, initialised at start</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>!  beam_config = 2  </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! user-controlled particle source</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>!  beam_config=4  </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! ponderomotive laser heating</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  vosc = 6.0</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! laser amplitude (vosc/c)</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  omega = 0.5</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! laser frequency (omega/omega_p)</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  sigma = 6.</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! focal spot size </TT>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  tpulse = 20.</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! pulse duration</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  lambda = 1.0   </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! wavelength in microns</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>! control</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  nt =10</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! number of timesteps</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  dt = 0.2</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! timestep </TT>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  eps = 2.</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! Coulomb potential softening parameter</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  theta = 0.3</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! multipole clumping parameter</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  mac=0</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! tree-walk switch</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  idump = 4000</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! particle dump frequency</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  iprot=1</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! protocol frequency</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  itrack=10</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! density tracking frequency</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  particle_bcs = 1</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! boundary conditions for particles</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  scheme = 1 </TT>
+				</P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! integrator scheme</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  ncpu_merge = 1</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! merge factor for restart</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  debug_level = 2</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! protocol debug level</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  debug_tree = 0</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! tree debug level</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  restart = .false.</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! restart switch</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  vis_on = .false.</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! visualisation switch</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  ivis = 2</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! vis frequency for particles</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  ivis_fields = 5000</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! vis frequency for fields</TT></P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=274>
+				<P><TT>  ivis_domains = 5000 /</TT></P>
+			</TD>
+			<TD WIDTH=392>
+				<P><TT>! vis frequency for tree boxes</TT></P>
+			</TD>
+		</TR>
+	</TBODY>
+</TABLE>
+<P><BR><BR>
+</P>
+<P>This parameter file is first copied to <TT>run.h</TT> by the run
+script or job.  See the <a href="../doc/pepc_ug.pdf">User Guide</a> for a more comprehensive list and
+description of input parameters.  More complex examples can be found
+in the <a href="http://www.fz-juelich.de/zam/pepc/demos/">Demos</a>.
+</P>
+<P>To execute the code on a Linux PC with mpich:</P>
+<P><TT>  &gt; ./eqm_linux.sh </TT>
+</P>
+<P>On the IBM p690, use:</P>
+<P><TT>  &gt; ./eqm.sh </TT>
+</P>
+<H3><BR><BR>
+</H3>
+<H3>Output data</H3>
+<P>The output files will be stored either in the run directory or in
+the subdirectories data/pe0000 etc.  The most important of these are:</P>
+<TABLE WIDTH=560 BORDER=0 CELLPADDING=0 CELLSPACING=0 STYLE="page-break-inside: avoid">
+	<COL WIDTH=121>
+	<COL WIDTH=126>
+	<COL WIDTH=422>
+	<THEAD>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><FONT FACE="Courier, monospace">energy.dat  </FONT>
+				</P>
+			</TD>
+			<TD COLSPAN=2 WIDTH=548>
+				<P>Kinetic and potential energies etc., expressed in keV per
+				particle.  9 y-columns in ASCII format, containing the following:</P>
+			</TD>
+		</TR>
+	</THEAD>
+	<TBODY>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P>  <FONT FACE="Courier, monospace">omega_p t </FONT>
+				</P>
+			</TD>
+			<TD WIDTH=422>
+				<P>normalised time</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P>  <FONT FACE="Courier, monospace">U_pot</FONT></P>
+			</TD>
+			<TD WIDTH=422>
+				<P>electrostatic potential energy</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P>  <FONT FACE="Courier, monospace">U_mag</FONT></P>
+			</TD>
+			<TD WIDTH=422>
+				<P>magnetic energy (not yet implemented)</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P>  <FONT FACE="Courier, monospace">U_kin-e</FONT></P>
+			</TD>
+			<TD WIDTH=422>
+				<P>electron kinetic energy</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P>  <FONT FACE="Courier, monospace">U_kin-i </FONT>
+				</P>
+			</TD>
+			<TD WIDTH=422>
+				<P>ion kinetic energy</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P>  <FONT FACE="Courier, monospace">U_beam</FONT></P>
+			</TD>
+			<TD WIDTH=422>
+				<P>beam energy</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P>  <FONT FACE="Courier, monospace">U_tot</FONT></P>
+			</TD>
+			<TD WIDTH=422>
+				<P>total energy</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P>  <FONT FACE="Courier, monospace">I_pond</FONT></P>
+			</TD>
+			<TD WIDTH=422>
+				<P>laser intensity</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P>  <FONT FACE="Courier, monospace">x_c</FONT></P>
+			</TD>
+			<TD WIDTH=422>
+				<P>position of critical density</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=422>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><FONT FACE="Courier, monospace">run.out        </FONT>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=422>
+				<P>Printed diagnostics/protocol</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=422>
+				<P><BR>
+				</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=121>
+				<P><FONT FACE="Courier, monospace">load_TTT.dat  </FONT>
+				</P>
+			</TD>
+			<TD WIDTH=126>
+				<P><BR>
+				</P>
+			</TD>
+			<TD WIDTH=422>
+				<P>Shows approx load balance amoung CPUs at timestep TTT</P>
+			</TD>
+		</TR>
+	</TBODY>
+</TABLE>
+<P><BR><BR>
+</P>
+<P><FONT SIZE=4><B>Particles</B></FONT></P>
+<P>Particle data is output independently by each CPU to avoid memory
+and MPI bottlenecks for large runs, and can be found in:</P>
+<P>  <FONT FACE="Courier, monospace">data/peNNNN/parts_dump.TTTTTT</FONT></P>
+<P>  <FONT FACE="Courier, monospace">data/peNNNN/parts_info.TTTTTT</FONT></P>
+<P>Currently the format of the particle dump is a 15-column ASCII
+file (13 reals, 2 integers) with the following content: 
+</P>
+<P>   <FONT FACE="Courier, monospace">x, y, z, px, py, pz, q, m, Ex,
+Ey, Ez, pot, owner, label</FONT></P>
+<P>The number of particles written out together with other data is
+contained in the associated info file.  Each subdirectory peNNNN
+contains data for CPU NNNN at the checkpoint timestamps TTTTTT, whose
+frequency is controlled by the input parameter <FONT FACE="Courier, monospace">idump</FONT>.
+ Data for each CPU can be merged for postprocessing with the script
+<FONT FACE="Courier, monospace">bin/merge1_dump</FONT>, for example:</P>
+<P>   <FONT FACE="Courier, monospace">&gt;  merge1_dump 000100</FONT></P>
+<P>will generate will create 2 new files in the subdirectory <FONT FACE="Courier, monospace">dumps</FONT>
+in the same format as the partial dumps containing the complete
+particle data at time 000100: 
+</P>
+<P>  <FONT FACE="Courier, monospace">dumps/parts_dump.000100</FONT></P>
+<P>  <FONT FACE="Courier, monospace">dumps/parts_info.000100</FONT></P>
+<P>These can either be used by a postprocessor or as an initial
+configuration for a new run.</P>
+<P><FONT SIZE=4><B>Fields</B></FONT></P>
+<P>Gridded data created during the run is placed in the <FONT FACE="Courier, monospace">fields</FONT><FONT FACE="Times New Roman">
+directory.</FONT></P>
+<P><BR><BR>
+</P>
+<P><BR><BR>
+</P>
+<P><BR><BR>
+</P>
+</BODY>
+</HTML>

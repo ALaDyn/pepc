@@ -1,0 +1,82 @@
+===============================
+  Demos using PEPC + XNBODY
+
+============================== 
+
+
+
+1.  Coulomb explosion of cluster
+================================
+
+  demo_cluster/
+
+Starts with ionized spherical cluster with equal numbers of ions and electron
+Laser is uniform field in the x-direction (beam_config_in=3), sinusoidal in time,
+amplitude vosc.  Can also be switched on by visualisation, if steering=.true. switch set.
+
+Two input sets: 
+	cluster.h       small system for viewing particle orbits
+	cluster_big.h 	large system with particles switched off, density and temperature fields only
+
+Associated run scripts are:
+	cluster.sh, cluster_big.sh
+
+
+
+
+2.  Crystals
+============
+
+  demo_crystal/
+
+Runs in 'crystal' mode, creating config with equidistant ions.
+
+Sets:
+	cube.h, shell.h
+
+
+
+3.  Electron + Ion acceleration (laser+ wire target)
+===================================================
+
+   demo_wire/
+
+Laser hits middle of wire near x=0 and starts heating electrons, pushing them
+through the wire.  Charge cloud on rear surface and sides starts to pull ions
+away.  Laser also 'drills' through front surface, pushing on ions there. 
+
+Sets:
+
+	wire.h + wire.sh
+	wire_big.h + wire.job (1.6 million on 32 or 64 CPUs)
+	
+Vis tips: 
+
+- Set ivis > # timesteps (too many particles to display and selective
+shipping doesn't work yet).  Pick laser intensity and electron density fields initially.
+- Select isosurface and adust cut for laser to about half-way down wire.  
+- Selecting lowest value for electron density will pick out single electrons.
+- User right mouse button to adjust the colour maps (make val=0 transparent).
+- After simulation has developed, switch to ion density to see ion motion.
+- Automatic update may not work - if so, adjust isosurface value slightly and 'Apply'.
+
+
+4.  Laser wakefield accelerator
+===============================
+
+Short laser pulse passes through thin, uniform plasma column,
+exciting plasma waves in its wake (speedboat effect).
+Electrons trapped in the wake get accelerated to high (many MeV) energies and
+trail behind the laser pulse at nearly the speed of light.
+Radial forces in front of the pulse cause electrons to make complex orbits away 
+from the propagation axis, rejoining the wake behind the pulse.
+
+Sets:
+
+	shoot_200k.h + shoot.sh
+	shoot_2m.h + wake_big.job
+
+Vis tips:
+- smaller run designed to display particles, BUT can only run until rezoning starts:
+XNBODY currently crashes if # particles not constant/labels change.
+- use longer column for big run if necessary (currently no rezoning)
