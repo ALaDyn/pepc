@@ -82,6 +82,8 @@ program pepce
 ! TODO: need proper mac selection instead of beam_config
 
      call error_test(npp)
+     call pepc_cleanup(my_rank,n_cpu)
+
      stop
      ! Integrator
      call cputime(t_start_push)
@@ -128,6 +130,7 @@ program pepce
 
   end do
 
+  call pepc_cleanup(my_rank,n_cpu)
 
   call closefiles      ! Tidy up O/P files
 

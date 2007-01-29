@@ -195,7 +195,7 @@ subroutine forces(p_start,p_finish,delta_t, t_domain,t_build,t_prefetch, t_walk,
      open(60, file=cfile)
      write(60,'(a/a,i8,2(a,1pe15.6))')  '! Full balancing','Parts: ',total_parts,' Work: ',total_work, &
           ' Ave. work:',average_work        
-     write(60,'(2i8,f12.3))')  (i-1,npps(i),work_loads(i)/average_work,i=1,n_cpu)
+     write(60,'(2i8,f12.3)')  (i-1,npps(i),work_loads(i)/average_work,i=1,n_cpu)
      close(60)
   endif
 
