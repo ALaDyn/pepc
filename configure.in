@@ -21,7 +21,11 @@ then
  LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib "
 # FFLAGS="$FFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
 fi
-#if [[ `uname -m` = "00223C3B4C00" ]] # jump in Juelich
+
+if [[ `uname -m` = "00223C3B4C00" ]] # jump in Juelich
+then
+ DEFAULT_VISITPATH="-L/usr/local/beta/visit-2.2/lvisit/lib -L/usr/local/beta/visit-2.2/lib -L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3"
+fi
 
 #######################################################################
 # determine host type and write to stdout
@@ -50,6 +54,7 @@ powerpc64-unknown-linux-gnu) # jubl
 *-*-aix*)
  AC_MSG_RESULT(** setting options for Aix host **)
  CFLAGS_OS="-DJUMP -DAIX_XLF -q64 -qlibansi -qnoinfo "
+ F90DEF="-WF,"
 # FFLAGS_OS="-WF,-DJUMP,-DAIX_XLF -q64 "
  FFLAGS_OS="-q64 "
  MODULE_FLAG="-qmoddir="
@@ -92,9 +97,9 @@ AC_SUBST(MPI_DIR)
 # default for visit is no
 AC_ARG_WITH(visit,[  --with-visit            use visit libraries (no)],
   if test "$withval" != "no" ; then
-     VISITDEF=-DVISIT_NBODY
+     VISITDEF="${F90DEF}-DVISIT_NBODY"
 # visit, xnbody path defaults 
-     VISITLIBS="-L/usr/local/beta/visit-2.2/lvisit/lib -L/usr/local/beta/visit-2.2/lib -L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3 -lvisit -llvisit -llvisit_nbody2"
+     VISITLIBS="${DEFAULT_VISITPATH} -lvisit -llvisit -llvisit_nbody2"
      TARGETS=pepc-visit 
      if test "$withval" != "yes" ; then
        VISIT=-L${withval}

@@ -35,7 +35,7 @@ LIBS      = $(LIBPEPC) $(LIBVISIT) $(LIBNETCDF)
 
 # -------------------------------------------------------------------------------------------
 
-VISIT.F90   =   vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90 vis_vecfields_nbody.F90
+VISIT.F90   =   vis_parts_nbody.F90 vis_fields_nbody.F90 vis_control.F90 vis_vecfields_nbody.F90 vis_config.F90
 PPSRC.F90   =   pepcb.F90 configure.F90 diagnostics.F90 
 MODULES.f90 =   physvars.f90 
 
