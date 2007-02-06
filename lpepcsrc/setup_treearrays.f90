@@ -65,7 +65,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   npartm = npart
   if (n_cpu.eq.1) then
-    nppm=npp
+    nppm=npart
   else if (np_mult>0) then 
     nppm = abs(np_mult)*2*max(npartm/num_pe,1000) ! allow 50% fluctuation
   else
@@ -90,7 +90,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
    npsize=nppm
-   size_tree = max(4*nintmax+npsize,10000)
+   size_tree = max(4*nintmax+2*npsize,10000)
    if (np_mult>0) then
      nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
      maxaddress = 2**nbaddr
@@ -98,21 +98,17 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
      nbaddr = 17   ! fixed address range
      maxaddress = abs(np_mult)*10000
    endif
-   size_fetch = fetch_mult*size_tree/4
-   nbranch_max = maxaddress/2
-!   nbranch_max = 4*nintmax*max(1.,log(1.*num_pe))
-   if (num_pe==1) size_fetch=size_tree
-!  maxaddress = 512
+
+   if (num_pe > 1) then
+     size_fetch = fetch_mult*size_tree/4
+     nbranch_max = maxaddress/2
+   else
+     size_fetch=nppm
+     nbranch_max = 5*nintmax
+   endif
+
    hashconst = 2**nbaddr-1
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
-  if (me==0 .and. db_level>0) then
-    write(*,*) 'size_tree= ',size_tree
-    write(*,*) 'max address = ',maxaddress
-    write(*,*) 'max branches = ',nbranch_max
-    write(*,*) 'size_fetch= ',size_fetch
-    write(*,*) 'np_mult= ',np_mult
-    write(*,*) 'fetch_mult= ',fetch_mult
-  endif 
 
   work_local = 1 ! Initial value for local load
 
@@ -171,8 +167,13 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   ! Allocate memory for tree node properties
 
-  maxleaf = maxaddress/3
-  maxtwig = 2*maxleaf
+  if (n_cpu==1) then
+    maxleaf = npart 
+    maxtwig = maxaddress/2
+  else
+    maxleaf = maxaddress/3
+    maxtwig = 2*maxleaf
+  endif 
 
   nreqs_total(0:num_pe-1) = 0   ! Zero cumulative fetch/ship counters for non-local nodes
   nfetch_total(0:num_pe-1) = 0  
@@ -277,7 +278,19 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
-  if (me==0 .and. db_level>0) write(*,*) '... done'
+  if (me==0 .and. db_level>0) then
+    write(*,*) 'nppm= ',nppm
+    write(*,*) 'size_tree= ',size_tree
+    write(*,*) 'max address = ',maxaddress
+    write(*,*) 'max leaf = ',maxleaf
+    write(*,*) 'max twig = ',maxtwig
+    write(*,*) 'max branches = ',nbranch_max
+    write(*,*) 'size_fetch= ',size_fetch
+    write(*,*) 'np_mult= ',np_mult
+    write(*,*) 'fetch_mult= ',fetch_mult
+    write(*,*) '... done'
+  endif 
+
   max_prefetches = 0
 
 end subroutine pepc_setup

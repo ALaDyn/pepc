@@ -171,7 +171,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      endif
   end do
 
-
+  if (me==0 .and. walk_summary) write (*,*) 'LPEPC | Passes:',npass
   if (jpass-1 > npass ) then
      write(*,*) 'PE',me,' missed some:',nshort(npass+1)
      if (nshort(npass) + nshort(npass+1) <= nshortm) then
