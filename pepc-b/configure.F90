@@ -1169,7 +1169,7 @@ subroutine configure
 
     if (te_perturb) then
         call perturb_temp    ! Impose perturbation on Te for transport test
-#ifdef VISIT
+#ifdef VISIT_NBODY
         if ( vis_on ) then
             call densities
             call sum_fields

@@ -3,14 +3,18 @@
 #
 .PHONY : lpepc pepc-b
 
-all: lpepc pepc-b 
+all: lpepc pepcb 
 
 lpepc:  
 	cd lpepcsrc && make
 
-pepc-b: 
+pepcb: 
 	cd lpepcsrc && make 
 	cd pepc-b && make
+
+pepc-vis:
+	cd lpepcsrc && make
+	cd pepc-b && make pepc-visit
 
 clean:
 	cd lpepcsrc && make clean && cd ..

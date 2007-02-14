@@ -53,7 +53,8 @@ powerpc64-unknown-linux-gnu) # jubl
 #----------------------------------------------------------
 *-*-aix*)
  AC_MSG_RESULT(** setting options for Aix host **)
- CFLAGS_OS="-DJUMP -DAIX_XLF -q64 -qlibansi -qnoinfo "
+# CFLAGS_OS="-DJUMP -DAIX_XLF -q64 -qlibansi -qnoinfo "
+ CFLAGS_OS="-q64 -qlibansi -qnoinfo "
  F90DEF="-WF,"
 # FFLAGS_OS="-WF,-DJUMP,-DAIX_XLF -q64 "
  FFLAGS_OS="-q64 "

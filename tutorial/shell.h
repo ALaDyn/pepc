@@ -5,8 +5,8 @@
  balance=0 ! load balance switch
  mac=0
 ! particles
-  ne = 40000
-  ni = 40000 
+  ne = 1000
+  ni = 1000 
 
  plasma_config = 1  ! set up plasma target
  target_geometry =1   ! hollow sphere
@@ -61,13 +61,13 @@
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =400
+  nt =10
   dt = 0.2
   eps = 3.
  restart = .false.
   vis_on = .true.
  steering=.false.
- ivis =  1000
+ ivis =  5
  ivis_fields = 5
   mc_init = .false.
   mc_steps = 1000

@@ -96,8 +96,8 @@ pepc:	lpepc $(appmods) $(appobjs)
 	@echo "... done\n"
 
 pepc-visit: lpepc $(appmods) $(appobjs) $(visitobjs) 
-	@echo "\n Creating ../bin/pepcb ...\n"
-	$(FC)  $(FFLAGS)  -o ../bin/pepcb $(appobjs) $(appmods) $(visitobjs) $(LIBS) $(LDFLAGS) 
+	@echo "\n Creating ../bin/pepcvis ...\n"
+	$(FC)  $(FFLAGS)  -o ../bin/pepcvis $(appobjs) $(appmods) $(visitobjs) $(LIBS) $(LDFLAGS) 
 	@echo "... done\n"
 
 # Update PEPC library and headers

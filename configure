@@ -1453,7 +1453,8 @@ echo "${ECHO_T}** setting options for powerpc64 host **" >&6
 *-*-aix*)
  echo "$as_me:$LINENO: result: ** setting options for Aix host **" >&5
 echo "${ECHO_T}** setting options for Aix host **" >&6
- CFLAGS_OS="-DJUMP -DAIX_XLF -q64 -qlibansi -qnoinfo "
+# CFLAGS_OS="-DJUMP -DAIX_XLF -q64 -qlibansi -qnoinfo "
+ CFLAGS_OS="-q64 -qlibansi -qnoinfo "
  F90DEF="-WF,"
 # FFLAGS_OS="-WF,-DJUMP,-DAIX_XLF -q64 "
  FFLAGS_OS="-q64 "
