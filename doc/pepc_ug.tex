@@ -320,12 +320,17 @@ will simply adjust until the electrons are in thermal equilibrium.
     2  disc, radius r_sphere, thickness x_plasma
     3  wire, radius r_sphere, length z_plasma
     4  ellipsoid, radii x_plasma, y_plasma, z_plasma
-    5  wedge, flat side y_plasma * z_plasma, depth x_plasma
+    5  wedge/prism, flat side y_plasma * z_plasma, depth x_plasma
     6  hemisphere, radius r_sphere
-    7  spherical shell,  radius r_sphere, thickness x_plasma
-    8  hemispherical shell, radius r_sphere, thickness x_plasma
-    9  not defined
-   10  not defined 
+    7  not defined
+    8  not defined
+    9  not defined 
+   10  hollow slab
+   11  spherical shell,  radius r_sphere, thickness x_plasma
+   12  cylinder (hollow disc)
+   13  vertical cylinder (hollow wire)
+   16  hemispherical shell, radius r_sphere, thickness x_plasma
+
 \end{verbatim}
 
 \subsection{Integrator schemes:  {\tt scheme}}
@@ -759,6 +764,163 @@ comprehensively documented in GMT_Docs.pdf and GMT_Tutorial.pdf from the distrib
 
 \section{Online visualization with VISIT and XNBODY}
 
+\section{Physical model and unit system for laser-plasma interactions}
+
+This section contains a `formal' description of the electrostatic FSP model as
+currently implemented in PEPC for laser-plasma modelling.  The choice of units is somewhat subtle for
+macroscopic mesh-free plasma simulation, and contrasts with the microscopic `Debye' system used for conventional plasma molecular dynamics.  The base normalizations for
+time, space, velocity, charge and mass respectively are as follows:
+\bea 
+t &=& \omega_p^{-1}\tilde{t}, \nonumber\\ 
+v&=&c\tilde{v}, \nonumber \\
+ \bm{r} &=& c \omega_p^{-1}\tilde{\bm{r}} \nonumber \\
+q&=& N_p e \tilde{q}, \nonumber \\ 
+m &=& N_p m_e \tilde{m}.
+\label{norms}
+\eea
+
+The constant $N_p$ in some sense represents the number of physical charges contained within a
+simulation (macro-)~particle, to be determined through the equation of motion.
+For a given particle $i$ with charge $q_i$ and mass $m_i$, this is given (in
+cgs units) by: 
+\bea
+m_i \ddt{\bm{u}_i} &=& q_i \bm{E}_j \nonumber \\
+              &=& q_i\sum_{i \neq j} \frac{q_j\bm{r}_{ij}}{r_{ij}^3},
+\label{force-cgs}
+\eea
+where $\bm{r}_{ij} = \bm{r}_i-\bm{r}_j$ is the separation between particles $i$
+and $j$, and $\bm{u}_i = \gamma \bm{v}_i$ is its proper velocity;
+$\gamma=(1 +\mid\bm{u}\mid^2/c^2)^\half$
+the relativistic factor.
+
+In PEPC, the $O(N)$ sum over all other particles is replaced by a sum
+over $O(\log N)$ \textit{multipole} expansions (expanded here up to quadrupole) of groups of particles, whose size
+increases with distance from particle $i$.  
+ 
+Rewriting Eq.~\ref{force-cgs} in terms of the normalized variables
+(\ref{norms}), we find:
+\bea
+\tilde{m}_i \ddt{\tilde{\bm{u}}_i} 
+    &=& \frac{N_pe^2\omega_p}{m_ec^3}\tilde{q}_i\sum_{i \neq j} \frac{\tilde{q}_j\tilde{\bm{r}}_{ij}}{\tilde{r}_{ij}^3},
+              \nonumber 
+\eea
+which, after making use of the plasma frequency definition, $\omega_p^2 =
+4\pi e^2n_e/m_e$ for an electron density $n_e$, reduces to
+\bea
+\tilde{m}_i \ddt{\tilde{\bm{u}}_i} 
+    &=& \frac{1}{3}\tilde{q}_i\sum_{i \neq j}
+    \frac{\tilde{q}_j\tilde{\bm{r}}_{ij}}{\tilde{r}_{ij}^3},
+\label{force-norm}
+\eea
+provided we take:
+\be
+N_p = \frac{4\pi}{3} n_e \left(\frac{c}{\omega_p}\right)^3.
+\label{Np}
+\ee
+Physically, the constant $N_p$ is just the number of electrons in a sphere
+with radius $c/\omega_p$.  Since it has been normalized out, we do not
+actually need to know $N_p$ in order to carry out a simulation, although it
+occasionally serves a convenient conversion factor.
+
+Adding an external field $\bm{E}\downbox{ext}$, the momentum equation becomes
+\bea
+\tilde{m}_i \ddt{\tilde{\bm{u}}_i} 
+    &=& \frac{1}{3}\tilde{q}_i\sum_{i \neq j}
+    \frac{\tilde{q}_j\tilde{\bm{r}}_{ij}}{\tilde{r}_{ij}^3}
++ \tilde{q}_i \tilde{\bm{E}}\downbox{ext}(\bm{r}_{i}),
+\label{force-norm}
+\eea
+where 
+$$
+\tilde{\bm{E}}\downbox{ext} = \frac{e\bm{E}\downbox{ext}}{m_e\omega_p c}
+$$
+For a laser field $\bm{E}\downbox{ext}=E_L\hat{y}$ we can also write
+$$
+\tilde{\bm{E}}\downbox{ext} = \frac{\omega_0}{\omega_p} a_0
+$$
+To avoid stochastic jumps in the particle accelerations, the force-law in Eq.~\ref{force-cgs} is modified to include a softening parameter $\varepsilon$,
+so that the electric field looks like:
+\be
+\bm{E}(\bm{r}) = \frac{q\bm{r}}{(r^2+\varepsilon^2)^{3/2}}.
+\label{soft-force}
+\ee 
+The effect of the softening parameter is to introduce a cutoff into the
+potential, and to ensure that $\bm{E(r)}\rightarrow 0$ as $r\rightarrow 0$,
+which greatly assists numerical stability in the time-integration 
+(or particle-pusher) scheme.   Physically, we no longer have point charges, but
+rather charge clouds with a smooth charge density.  It is
+instructive to compute the latter by applying Gauss' law to
+(\ref{soft-force}), giving:
+\be  
+\rho(r) = \frac{3q\varepsilon^2}{4\pi(r^2+\varepsilon^2)^{5/2}}.
+\label{soft-rho}
+\ee  
+It is a straightforward exercise to verify that
+$$
+\int_0^\infty \rho(r) = q
+$$
+Using the same normalizations as before, and taking $\rho = en_0\tilde{\rho}$,
+where $n_0$ is some number density to be determined, we find:
+\be
+n_0 \tilde{\rho(\tilde{r})} = n_e \frac{\tilde{q}\tilde{\varepsilon}^2}
+{(\tilde{r}^2+\tilde{\varepsilon}^2)^{5/2}}
+\ee
+
+To simplify this expression, we choose $n_0 = n_e$, or $\tilde{n}_e = 1$.
+Charge assignment is then as follows:  the total charge
+contained within a cuboid volume $V\downbox{plas}=x_L\times y_L\times z_L$ (in normalized
+units) is 
+\bea
+Q = \sum_i \tilde{q}_i &=& \tilde{\rho}_0 V\downbox{plas} \nonumber\\
+&=& N_e Q_s, \nonumber
+\eea
+where $N_e$ is the total number of simulation electrons and $Q_s$ is the
+macro-charge carried by them.  Since the initial density
+$\tilde{\rho}_0=-\tilde{n}_e = -1$, we have
+\be
+Q_s = -\frac{V\downbox{plas}}{N_e} = -\frac{1}{N_p}.
+\label{charge-ass}
+\ee
+
+\subsection{Kinetic energy}
+All energies -- potential, kinetic, magnetic etc. -- are normalized to $N_pm_ec^2$.  This factor arises naturally from the particle charge and mass weighting. For example, the kinetic energy is
+\bea
+U\downbox{kin} &=& \sum_i\fhalf m_iv_i^2 \nonumber\\
+& = & (N_pm_ec^2) \fhalf\sum\tilde{m}_i\tilde{v}_i^2 \nonumber
+\eea
+Thus
+\bea
+\tilde{U}\downbox{kin} &=& \sum_i\fhalf \tilde{m}_i\tilde{v}_i^2
+\eea
+For a Maxwellian velocity distribution, the thermal energy is 
+\be
+\tilde{U}\downbox{te} = \frac{3}{2} \tilde{m}_e\tilde{v}_t^2 = \frac{3}{2} \tilde{T}_e
+\ee
+To convert this to more conventional units we make use of the particle weight relation \eq{charge-ass}:
+$$
+M_s = |Q_s| = \frac{\tilde{\rho}V\downbox{plas}}{N_e} = \frac{1}{N_p}.
+$$ 
+For the electron kinetic energy \textit{per particle} we can therefore write
+\bea
+U\downbox{keV} &=& \frac{m_ec^2}{\mbox{keV}}\frac{1}{N_e|Q_s|} \tilde{U}\downbox{kin} \nonumber \\
+& \simeq &  \frac{511}{V\downbox{plas}}\tilde{U}\downbox{kin}
+\eea
+\subsection{Potential energy}
+The potential energy of a collection of charges is defined in the usual way (in cgs units) by
+\bea
+U\downbox{pot} = \fhalf \sum_i\sum_{j\neq i} \frac{q_iq_j}{r_{ij}},
+\eea
+where $r_{ij}=|\bm{r}_i-\bm{r}_j|$.
+Substituting normalized quantities  and dividing by $N_pm_ec^2$ on both sides gives
+\bea
+\tilde{U}\downbox{pot} &=& \frac{N_pe^2\omega_p}{m_ec^3}\fhalf\sum_i\sum_{j\neq i} \frac{\tilde{q}_i\tilde{q}_j}{\tilde{r}_{ij}} \nonumber \\
+& = & \frac{1}{6} \sum_i\sum_{j\neq i} \frac{\tilde{q}_i\tilde{q}_j}{\tilde{r}_{ij}} \nonumber \\
+& = & \fhalf \sum_i \tilde{q}_i \tilde{\phi}_i,
+\eea
+where
+$$
+\tilde{\phi}_i = \frac{1}{3} \sum_{j\neq i} \frac{\tilde{q}_j}{\tilde{r}_{ij}}.
+$$
 \end{document}
 
 
