@@ -1,14 +1,14 @@
  &pepcdata
 ! particles
-  ne = 5000
-  ni = 5000 
-
+  ne = 1000
+  ni = 1000 
+ np_mult = 2
  plasma_config = 1  ! set up plasma target
  target_geometry = 0         ! slab 
 
 ! physics stuff
 
-  theta = 0.5
+  theta = 0.6
   Te_keV = 0.5 ! Temperatures in keV
   Ti_keV =0. 
   mass_ratio = 2000.
@@ -27,9 +27,12 @@
  ngy=40
  ngz=40
 
+
 ! beam
-  beam_config_in=14  !  laser 
- 
+  beam_config_in=4  !  laser 
+  nxh = 100
+  xh_start =0
+  xh_end = 8
 
   r_beam = 0.05
   u_beam = 0.2
@@ -49,11 +52,11 @@
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =4000
+  nt =40
   dt = 0.5
   eps = 25.
  restart = .false.
-  vis_on = .true.
+  vis_on = .false.
  steering = .false.
  ivis = 10 
  ivis_fields = 10
