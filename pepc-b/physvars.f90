@@ -1,3 +1,4 @@
+
 module physvars
 
   real, parameter :: pi=3.141592654
@@ -15,6 +16,9 @@ module physvars
                       uxslice(:), uyslice(:), uzslice(:), &     ! velocity
                               qslice(:),  mslice(:)    ! charge and mass
   real*4, allocatable :: vbuffer(:,:), vbuf_local(:,:)
+
+  real*4, allocatable :: rho_helm(:)  ! Helmholtz density
+  complex, allocatable :: Az_helm(:)   ! Helmholtz vector potential
 
   !  physics, target data
 
@@ -98,6 +102,9 @@ module physvars
   real :: rezone_frac=0.75     ! Fraction of box to cross before rezoning switched on
   real :: glue_radius=2.e6 ! multiple of box size to catch escaping particles at
 
+  integer :: nxh ! 1D Helmholtz grid dimension
+  real :: dxh ! HH grid spacing
+  real :: xh_start, xh_end  ! Start and end points of Helmholtz grid
 
 !  Variables needing 'copy' for tree routines
 

@@ -52,7 +52,7 @@ subroutine vis_vecfields_nbody(timestamp)
        	 write (*,*) "VIS_NBODY | Selected vector field",fselect
 #endif
 
-!  fselect=2  ! Manual select - B-field
+  fselect=2  ! Manual select - B-field
 
   ! get filename suffix from dump counter
   do i=0,4

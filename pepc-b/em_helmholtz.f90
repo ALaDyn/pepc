@@ -1,0 +1,121 @@
+
+!     ==================================
+!     
+!     Helmholtz solver for electromagnetic fields 
+!     
+!     
+!     ==================================
+
+
+subroutine em_helmholtz(itime,n,dx,theta,a0,w0,rhoe,Az)
+
+  implicit none
+  integer, intent(in) :: n, itime
+  real*8, intent(in) :: theta, a0, w0, dx
+  real*4, intent(in) :: rhoe(0:n+1)  ! cycle-averaged electron density
+!  real*8, intent(out) :: Ezr(0:n+1), Byr(0:n+1), Azr(0:n+1), epond(0:n+1)
+  complex, dimension(n) :: alpha,beta,gamma,y
+  complex, dimension(0:n+1) :: Az,Ao	! Vector potential
+  complex, dimension(n) :: Ez, By, Bx ! Fields derived from Az
+  real, dimension(n) :: eps  ! permittivity
+  ! real :: rho(0:n+1)  ! density
+  real :: rgam(0:n+1)  !  relativistic gamma
+  real :: err(0:n+1)
+  complex :: yi,  aave, carg
+  integer :: i,j,n_iter
+  real :: pi, s2th, cth, errmax, pha
+  real*8 :: lskin, ncrit
+
+  real*8 :: phipon, epon_x, epon_y, epon_z ! pond. potential and fields
+
+  real*8 :: xf, yf, zf, g0
+  integer :: iplas, itav
+
+  itav=1
+  ncrit = w0**2  ! critical density in norm. units
+
+  pi = asin(1.0)*2
+  yi = (0.,1.)
+  err=0.
+  !  s2th=sin(pi/180*theta)**2
+  s2th=0.
+  cth = cos(pi/180*theta)
+  n_iter = 3
+  Az=(0.,0.)
+  ao=(0.,0.)
+  rgam(0:n+1)=1.
+
+  do j=1,n_iter
+     do i=1,n
+        !  coefficients
+        ! rhoe normalized to nc defined on own 1D grid along laser axis
+        eps(i) = 1.-rhoe(i)/ncrit/rgam(i)
+        y(i)=(0.,0.)
+        alpha(i)=1
+        beta(i)=-2 + dx**2*(eps(i)-s2th)
+        gamma(i)=1
+     end do
+
+     !  BCs
+     y(1) = 2*yi*a0*sin(dx*cth)
+     carg = yi*dx*cth
+     beta(1) = beta(1) + cexp(carg)
+
+     call trisolve(alpha,beta,gamma,y,Az(1:n),n-1,n)
+
+     ! relativistic factor - average old and new potentials
+     errmax=0.
+     do i=1,n
+        rgam(i) = sqrt(1 + 0.5*abs(az(i))**2) 
+        err(i) = sqrt(abs(az(i)**2-ao(i)**2)/4/a0**2)
+     end do
+
+     ! BCs for next iterate (Laplacian of gamma)
+     rgam(0) = 2*rgam(1) - rgam(2)
+     rgam(n+1) = rgam(n)
+
+     errmax = maxval(err(1:n))
+     Ao = Az  ! Store previous iterate
+
+  end do
+iplas = 9./dx
+!write(*,'(i6,2f12.3)') itime,rhoe(iplas),abs(az(iplas))
+if (itime .eq. itav) then
+  write (*,'(a20,i2,a10,f12.5)') 'Iterate ',j,' error=',errmax
+  g0 = sqrt(1+a0**2.2)
+  open (40,file='a_error.dat')
+  write(40,'(6(1pe12.3))') (dx*i,rhoe(i),eps(i),abs(az(i))/a0,rgam(i)/g0,err(i),i=1,n)
+  close(40)
+  
+endif
+
+ 
+  ! Bcs
+  Az(0) = 2*Az(1) - Az(2)
+  Az(n+1) = Az(n)
+
+!  do i=1,n
+!     Ez(i) = yi*Az(i)
+!     By(i) = -(Az(i+1)-Az(i-1))/2/dx  ! By=iEz'
+!     Bx(i) = sin(theta)*Ez(i) 
+!  end do
+
+!  Ezr = Real(Ez*cexp(yi*pha))*tpon  ! reconstruct real EM fields including time-variation (s-pol)
+!  Byr = Real(By*cexp(yi*pha))*tpon
+!  Azr = Real(Az*cexp(yi*pha))*tpon
+
+  ! pond force - without gamma factor, as in emfield
+!  do i=1,n
+!     epond(i) = .25/dx*( azr(i+1)**2-azr(i-1)**2 )
+!  end do
+
+end subroutine em_helmholtz
+
+
+
+
+
+
+
+
+

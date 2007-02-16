@@ -172,7 +172,6 @@ subroutine dump_fields(timestamp)
      close(62)
 
 ! Write out time-averaged E-field profiles to file
-! this has to go in dump_fields once time-averages taken
      write(*,'(a40,a10)') 'Cycle-averaged lineouts at',cdump
      dx = (xl-x_offset)/ngx ! spacing for time-ave grid
      cfile = "fields/linave."//cdump
@@ -182,7 +181,16 @@ subroutine dump_fields(timestamp)
           (i*dx+x_offset, ex_ave(i), i=0,ngx)
      close(60)
 
+! Write out Helmholtz fields to file
+     write(*,'(a40,a10)') 'Helmholtz lineouts at',cdump
+     cfile = "fields/helmholtz."//cdump
+     open (60,file=cfile)
+     write(60,'(2(a12))') '!   x_helm  ',' rho         az^2  '
+     write(60,'((2(1pe12.4)))') &
+          (i*dxh+xh_start, rho_helm(i), abs(az_helm(i)**2), i=0,nxh)
+     close(60)
   endif
+
   icall = icall + 1
 
   ! Rezero local fields

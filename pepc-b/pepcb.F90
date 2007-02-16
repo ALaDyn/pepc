@@ -156,6 +156,9 @@ program pepcb
 	Tpon = 0.
      end select laser_model
 
+     call laser            ! laser propagation according to beam_config
+     call cputime(t_laser)
+
      write(ifile_cpu,'(//a,i8,(3x,a20,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
           ,' total run time = ',trun &
           ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
@@ -212,8 +215,6 @@ program pepcb
 !POMP$ INST END(integ)
 
      call cputime(t_push)
-     call laser            ! laser propagation according to beam_config
-     call cputime(t_laser)
 
 !POMP$ INST BEGIN(diagno)
 
@@ -225,8 +226,8 @@ program pepcb
 
      call cputime(t_diag)
 
-     t_diag = t_diag - t_laser
-     t_laser = t_laser - t_push
+     t_diag = t_diag - t_push
+     t_laser = t_laser - t_start_loop
      t_push = t_push - t_start_push
      ttot = t_domain+SUM(t_build)+t_prefetch+t_walkc+t_walk+t_force + t_push + t_laser
      ops_per_sec = work_tot/ttot
@@ -276,7 +277,6 @@ program pepcb
 ! ---- Preprocess VISIT setup -----------
  
 #ifdef VISIT_NBODY
-! if (my_rank ==0 .and. vis_on) call flvisit_spk_close()  ! Tidy up VISIT
 if (my_rank==0 .and. vis_on) then 
   call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
 #ifdef NETCDFLIB

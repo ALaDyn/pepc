@@ -9,9 +9,10 @@ subroutine laser
 
   laser_focus: select case(beam_config)
 
-  case(4)  ! standing wave fpond
-     if (itime>0) focus(1) = x_crit  ! laser tracks n_c
+  case(4)  ! Helmholtz solver for vector potential
 
+     call density_helmholtz
+     call em_helmholtz(itime,nxh,dxh,theta_beam,vosc,omega,rho_helm,Az_helm)
 
   case(5)  ! propagating fpond
      !  Trigger rezoning if laser rezone_frac of the way through plasma
@@ -28,6 +29,9 @@ subroutine laser
         focus(1) = focus(1) + dt  ! propagate forward by c*dt - can include v_g here
         propag_laser=propag_laser + dt
      endif
+
+  case(8)  ! old fpond model
+     if (itime>0) focus(1) = x_crit  ! laser tracks n_c
 
   case default
      ! leave focal point unchanged
