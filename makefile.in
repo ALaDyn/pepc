@@ -1,7 +1,7 @@
 #
 #  Makefile for pepc
 #
-.PHONY : lpepc pepc-b
+.PHONY : lpepc pepcb
 
 all: lpepc pepcb 
 
