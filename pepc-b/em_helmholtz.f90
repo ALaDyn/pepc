@@ -1,64 +1,75 @@
 
-!     ==================================
-!     
-!     Helmholtz solver for electromagnetic fields 
-!     
-!     
-!     ==================================
+!>     ==================================
+!>     
+!>     Helmholtz solver for electromagnetic fields 
+!>     
+!>     Based on SPLIM project helmholtz.f90     
+!>     ==================================
 
 
 subroutine em_helmholtz(itime,n,dx,theta,a0,w0,rhoe,Az)
 
   implicit none
-  integer, intent(in) :: n, itime
-  real*8, intent(in) :: theta, a0, w0, dx
-  real*4, intent(in) :: rhoe(0:n+1)  ! cycle-averaged electron density
+  integer, intent(in) :: n !< number of mesh points for 1D Helmholtz fields
+  integer, intent(in) :: itime  !< current timestep 
+  real, intent(in) :: theta  !< angle of incidence
+  real, intent(in) ::  a0    !< laser amplitude vosc/c
+  real, intent(in) ::  w0    !< laser frequency (w/wp)
+  real, intent(in) ::  dx    !< mesh spacing (c/wp)
+  real*4, intent(in) :: rhoe(0:n+1)  !< cycle-averaged electron density
 !  real*8, intent(out) :: Ezr(0:n+1), Byr(0:n+1), Azr(0:n+1), epond(0:n+1)
-  complex, dimension(n) :: alpha,beta,gamma,y
-  complex, dimension(0:n+1) :: Az,Ao	! Vector potential
-  complex, dimension(n) :: Ez, By, Bx ! Fields derived from Az
-  real, dimension(n) :: eps  ! permittivity
-  ! real :: rho(0:n+1)  ! density
-  real :: rgam(0:n+1)  !  relativistic gamma
-  real :: err(0:n+1)
-  complex :: yi,  aave, carg
+  complex, dimension(n) :: alpha,beta,gamma,y !< trisolver work arrays
+  complex, dimension(0:n+1) :: Az,Ao	!< Vector potential
+  complex, dimension(n) :: Ez, By, Bx !< Fields derived from Az
+  real, dimension(n) :: eps  !< permittivity
+  real :: rgam(0:n+1)  !<  relativistic gamma
+  real :: err(0:n+1)   !<  error check
+  complex :: yi,  aave, carg  !< complex args
   integer :: i,j,n_iter
-  real :: pi, s2th, cth, errmax, pha
-  real*8 :: lskin, ncrit
+  real :: pi, s2th, cth, errmax, pha !< constants
+  real*8 :: lskin  !< skin depth
+  real*8 :: ncrit  !< critical density
 
-  real*8 :: phipon, epon_x, epon_y, epon_z ! pond. potential and fields
+  real*8 :: phipon, epon_x, epon_y, epon_z !< pond. potential and fields
 
   real*8 :: xf, yf, zf, g0
   integer :: iplas, itav
 
   itav=1
+  n_iter = 3
   ncrit = w0**2  ! critical density in norm. units
 
   pi = asin(1.0)*2
   yi = (0.,1.)
   err=0.
-  !  s2th=sin(pi/180*theta)**2
-  s2th=0.
+  s2th=sin(pi/180*theta)**2
   cth = cos(pi/180*theta)
-  n_iter = 3
-  Az=(0.,0.)
-  ao=(0.,0.)
-  rgam(0:n+1)=1.
+! Use gamma from previous step to speed up iteration
+  ao=az
+  rgam(0)=1.
+  rgam(n+1) = 1.
+  do i=1,n
+     rgam(i) = sqrt(1 + 0.5*abs(ao(i))**2)
+     az(i)=(0.,0.) 
+  end do
+
+  Az(0)=(0.,0.)
+  Az(n+1)=(0.,0.)
 
   do j=1,n_iter
      do i=1,n
-        !  coefficients
+        !  coefficients as for s-pol light
         ! rhoe normalized to nc defined on own 1D grid along laser axis
         eps(i) = 1.-rhoe(i)/ncrit/rgam(i)
         y(i)=(0.,0.)
         alpha(i)=1
-        beta(i)=-2 + dx**2*(eps(i)-s2th)
+        beta(i)=-2 + w0**2*dx**2*(eps(i)-s2th)
         gamma(i)=1
      end do
 
-     !  BCs
-     y(1) = 2*yi*a0*sin(dx*cth)
-     carg = yi*dx*cth
+     !  BCs - note additional factor w0=k0 for phase factors 
+     y(1) = 2*yi*a0*sin(w0*dx*cth)
+     carg = yi*w0*dx*cth
      beta(1) = beta(1) + cexp(carg)
 
      call trisolve(alpha,beta,gamma,y,Az(1:n),n-1,n)
@@ -78,8 +89,8 @@ subroutine em_helmholtz(itime,n,dx,theta,a0,w0,rhoe,Az)
      Ao = Az  ! Store previous iterate
 
   end do
-iplas = 9./dx
-!write(*,'(i6,2f12.3)') itime,rhoe(iplas),abs(az(iplas))
+iplas = n/2
+write(*,'(i6,2f12.3)') itime,rhoe(iplas),abs(az(iplas))
 if (itime .eq. itav) then
   write (*,'(a20,i2,a10,f12.5)') 'Iterate ',j,' error=',errmax
   g0 = sqrt(1+a0**2.2)

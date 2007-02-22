@@ -186,7 +186,8 @@ subroutine dump_fields(timestamp)
      cfile = "fields/helmholtz."//cdump
      open (60,file=cfile)
      write(60,'(2(a12))') '!   x_helm  ',' rho         az^2  '
-     write(60,'((2(1pe12.4)))') &
+     dxh = (xh_end-xh_start)/nxh
+     write(60,'((3(1pe12.4)))') &
           (i*dxh+xh_start, rho_helm(i), abs(az_helm(i)**2), i=0,nxh)
      close(60)
   endif

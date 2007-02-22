@@ -21,6 +21,7 @@ subroutine density_helmholtz
   character(5) :: cme
   character(6) :: cdump, cvis
   real*4 :: rho_loc(0:nxh+1,0:2,0:2), rho_glob(0:nxh+1,0:2,0:2)
+  real*4 :: charge_sum
 
 ! Helmholtz grid limits
   dxh = (xh_end-xh_start)/nxh
@@ -53,12 +54,12 @@ subroutine density_helmholtz
      k1=za+1
      k2=k1+1
 
-     i1 = min(max(0,i1),ngx+1)
-     i2 = min(max(0,i2),ngx+1)
-     j1 = min(max(0,j1),ngy+1)
-     j2 = min(max(0,j2),ngy+1)
-     k1 = min(max(0,k1),ngz+1)
-     k2 = min(max(0,k2),ngz+1)
+     i1 = min(max(0,i1),nxh+1)
+     i2 = min(max(0,i2),nxh+1)
+     j1 = min(max(0,j1),2)
+     j2 = min(max(0,j2),2)
+     k1 = min(max(0,k1),2)
+     k2 = min(max(0,k2),2)
 
      !  linear weighting
      fx2=min(max(i1-xa,0.),1.)  ! Prevent overflow/negative weighting for particles outside box
@@ -68,7 +69,7 @@ subroutine density_helmholtz
      fz2=min(max(k1-za,0.),1.)
      fz1=1.-fz2
 
-     !  gather charge at nearest grid points
+     !  gather ion charge at nearest grid points
      if (q(i)>0) then
         cweight = q(i)*rdx*rdy*rdz       ! charge weighting factor
 
@@ -90,6 +91,11 @@ subroutine density_helmholtz
   call MPI_REDUCE(rho_loc, rho_glob, ng, MPI_REAL, MPI_SUM, 0,  MPI_COMM_WORLD, ierr)
 
 ! Store density lineout for Helmholtz solver
-  rho_helm(0:nxh+1) = rho_glob(0:nxh+1,1,1) 
+  do i=0,nxh+1
+    rho_helm(i) = rho_glob(i,1,1)
+  end do 
+!  rho_helm(0:nxh+1) = rho_glob(0:nxh+1,1,1) 
+ charge_sum = SUM(rho_glob(1:nxh,1,1))/cweight
+if (me==0) write (6,*) "Charge sum on HH grid lineout:",charge_sum
 
 end subroutine density_helmholtz
