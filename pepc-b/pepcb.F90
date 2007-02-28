@@ -123,6 +123,7 @@ program pepcb
   call cputime(t_start_loop)
 
   do itime = 1,nt
+     call cputime(t0)
      trun = trun + dt
      if (my_rank==0 ) then
         do ifile = 6,15,9
@@ -227,7 +228,7 @@ program pepcb
      call cputime(t_diag)
 
      t_diag = t_diag - t_push
-     t_laser = t_laser - t_start_loop
+     t_laser = t_laser - t0
      t_push = t_push - t_start_push
      ttot = t_domain+SUM(t_build)+t_prefetch+t_walkc+t_walk+t_force + t_push + t_laser
      ops_per_sec = work_tot/ttot
