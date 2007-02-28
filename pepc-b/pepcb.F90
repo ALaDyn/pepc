@@ -298,7 +298,8 @@ endif
   if (my_rank==0) then
 	
      write(*,'(a20,2f12.3)') 'Loop total, average: ',t_loop, t_loop/irecord
-     write(*,'(a20,2f12.3)') 'Loop+diags: ',t_end_loop-t_start_loop
+     write(*,'(a20,2f12.3)') 'Loop+diags, average: ',t_end_loop-t_start_loop,(t_end_loop-t_start_loop)/nt
+     write(*,'(a20,i8)') '# timesteps: ',nt
      write (*,'(a20,f14.4)') 'Total run time: ',t_end_prog-t_start_prog
   endif 
 
