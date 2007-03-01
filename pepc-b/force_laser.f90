@@ -23,8 +23,11 @@ subroutine force_laser(p_start,p_finish)
   integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
   integer :: p
   real :: xd, yd, zd  ! positions relative to centre of laser spot
+  real :: uxd ! x-momentum
   real :: xt, yt, zt, rt  ! positions relative to plasma centre
   real :: Epon_x, Epon_y, Epon_z, Phipon, ex_em, ey_em, ez_em, bx_em, by_em, bz_em, az_em
+
+  dxh = (xh_end-xh_start)/nxh  ! HH grid spacing
 
   if (itime>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
 
@@ -91,6 +94,16 @@ subroutine force_laser(p_start,p_finish)
 	      Epon_x=0.
 	      Epon_y=0.
 	      Bz_em=0.
+
+           case(44)  ! fpond derived from Az_helm
+	      xd = x(p)
+	      uxd = ux(p)
+              call fpond_helm( tlaser, tpulse,sigma,vosc,omega, &
+                   xd,yd,zd,uxd,Az_helm,nxh,xh_start, xh_end, dxh, focus(1), &
+		   epon_x,epon_y,epon_z,phipon)
+	      Bx_em = 0.
+	      By_em = 0.
+	      Bz_em = 0.
 
            case(5)  ! propagating fpond
               call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, & 

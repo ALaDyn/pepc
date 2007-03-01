@@ -4,6 +4,7 @@ subroutine laser
   implicit none
 
   integer :: ierr
+  real :: amplitude
 
   !  Laser focal position and rezoning
 
@@ -11,8 +12,15 @@ subroutine laser
 
   case(4)  ! Helmholtz solver for vector potential
 
+! Factor-in pulse shape
+    if (tlaser <= 2*tpulse) then 
+      amplitude = vosc*max(0.,sin(pi*tlaser/2./tpulse)) 
+    else 
+      amplitude = 0.
+    endif
+
      call density_helmholtz
-     call em_helmholtz(itime,nxh,dxh,theta_beam,vosc,omega,rho_helm,Az_helm)
+     call em_helmholtz(itime,nxh,dxh,theta_beam,amplitude,omega,rho_helm,Az_helm)
 
   case(5)  ! propagating fpond
      !  Trigger rezoning if laser rezone_frac of the way through plasma

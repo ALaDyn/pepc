@@ -44,6 +44,8 @@ subroutine em_helmholtz(itime,n,dx,theta,a0,w0,rhoe,Az)
   err=0.
   s2th=sin(pi/180*theta)**2
   cth = cos(pi/180*theta)
+
+
 ! Use gamma from previous step to speed up iteration
   ao=az
   rgam(0)=1.
@@ -53,8 +55,11 @@ subroutine em_helmholtz(itime,n,dx,theta,a0,w0,rhoe,Az)
      az(i)=(0.,0.) 
   end do
 
+
   Az(0)=(0.,0.)
   Az(n+1)=(0.,0.)
+
+  if (a0==0) return
 
   do j=1,n_iter
      do i=1,n
@@ -89,6 +94,7 @@ subroutine em_helmholtz(itime,n,dx,theta,a0,w0,rhoe,Az)
      Ao = Az  ! Store previous iterate
 
   end do
+
 iplas = n/2
 write(*,'(i6,2f12.3)') itime,rhoe(iplas),abs(az(iplas))
 if (itime .eq. itav) then
@@ -101,24 +107,10 @@ if (itime .eq. itav) then
 endif
 
  
-  ! Bcs
-  Az(0) = 2*Az(1) - Az(2)
-  Az(n+1) = Az(n)
+  ! Bcs 
+  Az(0) = 2*Az(1) - Az(2)  ! gradient continuous
+  Az(n+1) = Az(n) ! zero in solid
 
-!  do i=1,n
-!     Ez(i) = yi*Az(i)
-!     By(i) = -(Az(i+1)-Az(i-1))/2/dx  ! By=iEz'
-!     Bx(i) = sin(theta)*Ez(i) 
-!  end do
-
-!  Ezr = Real(Ez*cexp(yi*pha))*tpon  ! reconstruct real EM fields including time-variation (s-pol)
-!  Byr = Real(By*cexp(yi*pha))*tpon
-!  Azr = Real(Az*cexp(yi*pha))*tpon
-
-  ! pond force - without gamma factor, as in emfield
-!  do i=1,n
-!     epond(i) = .25/dx*( azr(i+1)**2-azr(i-1)**2 )
-!  end do
 
 end subroutine em_helmholtz
 
