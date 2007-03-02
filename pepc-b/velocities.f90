@@ -311,13 +311,22 @@ subroutine velocities(p_start,p_finish,delta_t)
   else
 
      ! unconstrained motion by default (scheme=1)
-
+   if (idim==3) then
      do p = p_start, p_finish
 	ux(p) = ux(p) + delta_t * accx(p)
 	uy(p) = uy(p) + delta_t * accy(p)
-	if (idim==3) uz(p) = uz(p) + delta_t * accz(p)
+	uz(p) = uz(p) + delta_t * accz(p)
      end do
-
+   else if (idim==2) then
+     do p = p_start, p_finish
+	ux(p) = ux(p) + delta_t * accx(p)
+	uy(p) = uy(p) + delta_t * accy(p)
+     end do
+   else
+     do p = p_start, p_finish
+	ux(p) = ux(p) + delta_t * accx(p)
+     end do
+   endif
   endif
 
 end subroutine velocities

@@ -20,7 +20,7 @@ subroutine laser
     endif
 
      call density_helmholtz
-     call em_helmholtz(itime,nxh,dxh,theta_beam,amplitude,omega,rho_helm,Az_helm)
+     call em_helmholtz(my_rank,itime,nxh,dxh,theta_beam,amplitude,omega,rho_helm,Az_helm)
 
   case(5)  ! propagating fpond
      !  Trigger rezoning if laser rezone_frac of the way through plasma

@@ -7,11 +7,12 @@
 !>     ==================================
 
 
-subroutine em_helmholtz(itime,n,dx,theta,a0,w0,rhoe,Az)
+subroutine em_helmholtz(me,itime,n,dx,theta,a0,w0,rhoe,Az)
 
   implicit none
   integer, intent(in) :: n !< number of mesh points for 1D Helmholtz fields
   integer, intent(in) :: itime  !< current timestep 
+  integer, intent(in) :: me  !< current rank 
   real, intent(in) :: theta  !< angle of incidence
   real, intent(in) ::  a0    !< laser amplitude vosc/c
   real, intent(in) ::  w0    !< laser frequency (w/wp)
@@ -96,11 +97,12 @@ subroutine em_helmholtz(itime,n,dx,theta,a0,w0,rhoe,Az)
   end do
 
 iplas = n/2
-write(*,'(i6,2f12.3)') itime,rhoe(iplas),abs(az(iplas))
-if (itime .eq. itav) then
+if (me==0) write(*,'(i6,2f12.3)') itime,rhoe(iplas),abs(az(iplas))
+if (itime .eq. itav .and. me==0) then
   write (*,'(a20,i2,a10,f12.5)') 'Iterate ',j,' error=',errmax
   g0 = sqrt(1+a0**2.2)
   open (40,file='a_error.dat')
+  write(40,'(a)') '! x, rho, eps, az/a0, gam/g0, err'
   write(40,'(6(1pe12.3))') (dx*i,rhoe(i),eps(i),abs(az(i))/a0,rgam(i)/g0,err(i),i=1,n)
   close(40)
   

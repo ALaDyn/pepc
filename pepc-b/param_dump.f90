@@ -88,7 +88,7 @@ subroutine param_dump
         write (ifile,'(a20,l3)') ' walk debug: ',walk_debug
         write (ifile,'(a20,l3)') ' walk summary: ',walk_summary
         write (ifile,'(a20,l3)') ' dump tree: ',dump_tree
-        write (ifile,'(a20,l3)') ' performance anal.: ',perf_anal
+        write (ifile,'(a20,l3)') ' performance: ',perf_anal
         write (ifile,'(a20,l3)') ' visit: ',vis_on
         write (ifile,'(a20,l3/)') ' steering: ',steering
         write (ifile,*) 'Local tree size ',size_tree

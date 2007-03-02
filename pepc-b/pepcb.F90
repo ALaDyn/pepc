@@ -138,7 +138,7 @@ program pepcb
 
      laser_model: select case(beam_config_in)
 
-     case(4,34)
+     case(4,34,44)
 	if (tlaser<2*tpulse)  then
            Tpon = 2*vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2)
         ! * (sin(omega*tlaser))**2

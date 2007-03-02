@@ -31,6 +31,11 @@ subroutine diagnostics
   endif
 
 
+ if ( mod(itime,ivis_fields)==0 ) then
+   call densities
+   call sum_fields
+ endif 
+
   ! Interface to VISIT (Online visualisation)
 
   if (u_beam>0 .and. beam_config==3) scheme=1  ! Switch off Te control if beam on
@@ -45,8 +50,6 @@ subroutine diagnostics
      if ( mod(itime,min(ivis,ivis_fields))==0 .and. steering) call vis_control
      if ( mod(itime,ivis_fields)==0 ) then
         !     call pot_grid
-        call densities
-        call sum_fields
         call vis_fields_nbody(itime+itime_start)
         call vis_vecfields_nbody(itime+itime_start)
      endif

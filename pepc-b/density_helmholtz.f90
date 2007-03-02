@@ -26,9 +26,9 @@ subroutine density_helmholtz
 ! Helmholtz grid limits
   dxh = (xh_end-xh_start)/nxh
 
-! tranverse resolution defined by laser spot size
-  dy = sigma/5.
-  dz = sigma/5.
+! tranverse resolution defined by particle spacing 
+  dy = y_plasma/3.
+  dz = z_plasma/3.
   rdx = 1./dxh
   rdy = 1./dy
   rdz = 1./dz
@@ -36,7 +36,8 @@ subroutine density_helmholtz
 
   !  Any particle outside gets put in ghost cells 0, 2
 
-  !      write(15,'(//a,3f12.3)') 'cw,dx,dy',cweight,dx,dy
+  cweight = qi*rdx*rdy*rdz       ! charge weighting factor
+  if (me==0)   write(6,'(//a,3f12.3)') 'cw,dx,dy',cweight,dxh,dy
 
   rho_loc(0:nxh+1,0:2,0:2) = 0.
 
@@ -71,7 +72,6 @@ subroutine density_helmholtz
 
      !  gather ion charge at nearest grid points
      if (q(i)>0) then
-        cweight = q(i)*rdx*rdy*rdz       ! charge weighting factor
 
         rho_loc(i1,j1,k1)=rho_loc(i1,j1,k1) + cweight*fx1*fy1*fz1
         rho_loc(i2,j1,k1)=rho_loc(i2,j1,k1) + cweight*fx2*fy1*fz1
@@ -87,8 +87,8 @@ subroutine density_helmholtz
   end do
 
   ng = (nxh+2)*9                         ! total # gridpoints
-! gather on root
-  call MPI_REDUCE(rho_loc, rho_glob, ng, MPI_REAL, MPI_SUM, 0,  MPI_COMM_WORLD, ierr)
+! gather on all
+  call MPI_ALLREDUCE(rho_loc, rho_glob, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
 
 ! Store density lineout for Helmholtz solver
   do i=0,nxh+1

@@ -166,6 +166,7 @@ subroutine dump_fields(timestamp)
      ! Renormalise to EM units
      cfile = "fields/xslice."//cdump
      open (62,file=cfile)
+     write(62,'(a)') '!   x      rho_e   rho_i  ex, jxe,  phi_p,  ex_p,  ey_p,   ez_p  '
      write(62,'((9(1pe12.4)))') &
           (i*dx+x_offset,rhoe_slice(i)/omega**2, rhoi_slice(i)/omega**2, ex_slice(i)/omega,&
           jxe_slice(i), phi_pond(i),ex_pond(i)/omega, ey_pond(i)/omega, ez_pond(i)/omega,i=1,ngx)
