@@ -37,7 +37,7 @@ program pepcb
 
   ! timing stuff
   real :: t0, t_key, t_domain, t_build(4), t_branch, t_fill, t_props, t_walk, t_walkc, t_en, t_force
-  real :: t_push, t_diag, t_start_push, t_prefetch, Tpon, ttot, t_laser
+  real :: t_push, t_diag, t_start_push, t_prefetch, I_laser, ttot, t_laser
   real :: t_loop, t_start_loop, t_end_loop, t_start_prog, t_end_prog
   real :: t_record(10000)
   integer :: tremain ! remaining wall_clock seconds
@@ -134,36 +134,13 @@ program pepcb
 
 
 
-     if (beam_config >= 3) tlaser = tlaser + dt  
-
-     laser_model: select case(beam_config_in)
-
-     case(4,34,44)
-	if (tlaser<2*tpulse)  then
-           Tpon = 2*vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2)
-        ! * (sin(omega*tlaser))**2
-	else
-	   Tpon=0.
-	endif
-     case(14,94) 
-           Tpon = 2*vosc**2*min(1.,tlaser/tpulse)
-     case(3) 
-        Tpon = vosc**2
-     case(6) 
-        Tpon = vosc**2*max(0.,sin(3.14*tlaser/2./tpulse)**2)
-     case(16)
-        Tpon = vosc**2*min(1.,tlaser/tpulse)
-     case default
-	Tpon = 0.
-     end select laser_model
-
-     call laser            ! laser propagation according to beam_config
+     call laser(I_laser)         ! laser propagation according to beam_config
      call cputime(t_laser)
 
      write(ifile_cpu,'(//a,i8,(3x,a20,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
           ,' total run time = ',trun &
           ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
-          ,' Laser intensity  = ',Tpon
+          ,' Laser intensity  = ',I_laser
 
 
      !     tremain=llwrem(0)
@@ -175,7 +152,7 @@ program pepcb
            if (debug_level >= 2)  then
               write(ifile,'(//(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
                     ' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
-                   ,' intensity= ',Tpon &
+                   ,' intensity= ',I_laser &
                    ,' x_crit= ',x_crit &
                    ,' spot size= ',sigma & 
                    ,' theta =  ',theta_beam 
@@ -183,7 +160,7 @@ program pepcb
            endif
         end do
         if (beam_config==5 .or. beam_config==6) then 
-           write(6,'(5(a,f8.2/))') 'Laser amplitude =',sqrt(Tpon) &
+           write(6,'(5(a,f8.2/))') 'Laser amplitude =',sqrt(I_laser) &
                 , 'Pulse length',tpulse &
                 , 'Pulse width', sigma &
                 , 'Focal position',focus(1) &
