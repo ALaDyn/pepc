@@ -239,7 +239,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
 
   ! Derive electron/ion charges and masses from target parameters
 
-  if (idim==3) then    ! 3D
+  if (idim==3 .or. idim==1) then    ! 3D
 
      Qplas = Vplas*rho0      ! total target charge
      q_part = Qplas/nglobal   ! particle charge

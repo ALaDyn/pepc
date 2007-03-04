@@ -95,7 +95,7 @@ subroutine force_laser(p_start,p_finish)
 	      Epon_y=0.
 	      Bz_em=0.
 
-           case(44)  ! fpond derived from Az_helm
+           case(44,54)  ! fpond derived from Az_helm; both linear & sin2 pulse forms
 	      xd = x(p)
 	      uxd = ux(p)
               call fpond_helm( tlaser, tpulse,sigma,vosc,omega, &

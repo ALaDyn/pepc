@@ -91,8 +91,8 @@ subroutine fpond_helm(t,tpulse,sigma_in,vosc,omega,x,y,z,ux,Az,nxh,xh_start,xh_e
   xa = xh/dxh 
   i1=max(1,min(int(xa)+1,nxh))  ! lower NGP
   i2=min(i1+1,nxh)       ! upper NGP
-  b1=i1-xa  ! linear weights
-  b2=1.-b1
+  b2=i1-xa  ! linear weights  W_j = 1-|x_i-x_j|
+  b1=1.-b2
 
 ! Derive fpond from Az - need gradient at both reference points.
 ! include temporal phase factor  

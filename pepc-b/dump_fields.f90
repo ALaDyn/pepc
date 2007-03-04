@@ -189,7 +189,8 @@ subroutine dump_fields(timestamp)
      write(60,'(2(a12))') '!   x_helm  ',' rho         az^2  '
      dxh = (xh_end-xh_start)/nxh
      write(60,'((3(1pe12.4)))') &
-          (i*dxh+xh_start-xl/2.+x_plasma/2., rho_helm(i), abs(az_helm(i)**2), i=0,nxh)
+!          (i*dxh+xh_start-xl/2.+x_plasma/2., rho_helm(i), abs(az_helm(i)**2), i=0,nxh)
+          (i*dxh+xh_start, rho_helm(i), abs(az_helm(i)**2/vosc**2), i=0,nxh)
      close(60)
   endif
 

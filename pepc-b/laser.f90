@@ -13,20 +13,16 @@ subroutine laser(I_laser)
 !  Laser pulse envelope
   laser_model: select case(beam_config_in)
 
-     case(4,34,44)  	! sin^2 standing wave
+     case(4,34,44,6)  	! sin^2 standing wave
 	if (tlaser<2*tpulse)  then
-           I_laser = 4*vosc**2*max(0.,sin(pi*tlaser/2./tpulse)**2)
+           I_laser = vosc**2*max(0.,sin(pi*tlaser/2./tpulse)**2)
 	else
 	   I_laser=0.
 	endif
-     case(14,94,54) 	! standing wave, linear rise
-           I_laser = 4*vosc**2*min(1.,tlaser/tpulse)
+     case(14,94,54,16) 	! standing wave, linear rise
+           I_laser = vosc**2*min(1.,tlaser/tpulse)
      case(3) 		! constant
         I_laser = vosc**2
-     case(6) 		! sin^2, propagating
-        I_laser = vosc**2*max(0.,sin(pi*tlaser/2./tpulse)**2)
-     case(16)		! propag, linear rise
-        I_laser = vosc**2*min(1.,tlaser/tpulse)
      case default
 	I_laser = 0.
   end select laser_model
@@ -38,7 +34,7 @@ subroutine laser(I_laser)
   case(4)  ! Helmholtz solver for vector potential
 
 ! Factor-in pulse shape
-     amplitude = sqrt(I_laser/4)
+     amplitude = sqrt(I_laser)  ! amplitude of incoming wave
      call density_helmholtz
      call em_helmholtz(my_rank,itime,nxh,dxh,theta_beam,amplitude,omega,rho_helm,Az_helm)
 

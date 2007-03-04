@@ -137,10 +137,10 @@ program pepcb
      call laser(I_laser)         ! laser propagation according to beam_config
      call cputime(t_laser)
 
-     write(ifile_cpu,'(//a,i8,(3x,a20,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3)') 'Timestep ',itime+itime_start &
+     write(ifile_cpu,'(//a,i8,(3x,a20,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3,1pe12.3)') 'Timestep ',itime+itime_start &
           ,' total run time = ',trun &
           ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
-          ,' Laser intensity  = ',I_laser
+          ,' Laser amplitude, intensity  = ',sqrt(I_laser),I_laser*1.37e18
 
 
      !     tremain=llwrem(0)
@@ -152,7 +152,7 @@ program pepcb
            if (debug_level >= 2)  then
               write(ifile,'(//(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
                     ' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
-                   ,' intensity= ',I_laser &
+                   ,' amplitude = ',sqrt(I_laser) &
                    ,' x_crit= ',x_crit &
                    ,' spot size= ',sigma & 
                    ,' theta =  ',theta_beam 
