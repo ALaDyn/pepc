@@ -18,12 +18,13 @@ subroutine dump_fields(timestamp)
   include 'mpif.h'
 
   real, dimension(ngx) :: work1, work2
-  real, dimension(ngx) :: phi_pond, ex_pond, ey_pond, ez_pond
+  real, dimension(0:nxh) :: phi_pond, ex_pond, ey_pond, ez_pond
   real, dimension(0:ngx+1) :: rhoi_slice, rhoe_slice, ex_slice, ey_slice, ez_slice
   real, dimension(0:ngx+1) :: jxe_slice, jye_slice, jze_slice 
   real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: exg, eyg, ezg, jxeg, jyeg, jzeg
 
   real :: dx, dz, dy, xd, yd, zd, dummy, simtime, epon_x, epon_y, epon_z, phipond, epond_max, box_max
+  real :: uxd
   real :: Qtot, Qbox, norm, rhonorm, tpon, bx_em, by_em, az_em,ez_em
 
   character(30) :: cfile
@@ -182,15 +183,29 @@ subroutine dump_fields(timestamp)
           (i*dx+x_offset, ex_ave(i), i=0,ngx)
      close(60)
 
+! Laser fields on Helmholtz grid
+     do i=0,nxh
+        xd=i*dxh+xh_start
+        !        yd=sigma/2.
+        !        zd=sigma/2.
+        yd = 0.
+        zd = 0.
+        uxd = 0.
+        call fpond_helm( tlaser, tpulse,sigma,vosc,omega, &
+               xd,yd,zd,uxd,Az_helm,nxh,xh_start, xh_end, dxh, focus(1), &
+	       ex_pond(i),ey_pond(i),ez_pond(i),phi_pond(i))
+
+
+     end do
 ! Write out Helmholtz fields to file
      write(*,'(a40,a10)') 'Helmholtz lineouts at',cdump
      cfile = "fields/helmholtz."//cdump
      open (60,file=cfile)
      write(60,'(2(a12))') '!   x_helm  ',' rho         az^2  '
      dxh = (xh_end-xh_start)/nxh
-     write(60,'((3(1pe12.4)))') &
+     write(60,'((4(1pe12.4)))') &
 !          (i*dxh+xh_start-xl/2.+x_plasma/2., rho_helm(i), abs(az_helm(i)**2), i=0,nxh)
-          (i*dxh+xh_start, rho_helm(i), abs(az_helm(i)**2/vosc**2), i=0,nxh)
+          (i*dxh+xh_start, rho_helm(i), abs(az_helm(i))**2/vosc**2,ex_pond(i), i=0,nxh)
      close(60)
   endif
 
