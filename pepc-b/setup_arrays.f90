@@ -2,7 +2,7 @@ subroutine setup_arrays
   use physvars
   implicit none
   include 'mpif.h'
-  integer :: mem_fields, npmax
+  integer :: mem_fields, npmax, ntm
 
   npmax = npart_total/n_cpu*3
   allocate ( xslice(npmax), yslice(npmax), zslice(npmax), uxslice(npmax), uyslice(npmax), uzslice(npmax), & 
@@ -10,6 +10,7 @@ subroutine setup_arrays
 
 
   mem_fields = npmax*(8*8)
+  ntm = nt
 
   allocate (rhoi(0:ngx+1,0:ngy+1,0:ngz+1),rhoe(0:ngx+1,0:ngy+1,0:ngz+1))  ! global field arrays
 
@@ -24,6 +25,7 @@ subroutine setup_arrays
 
 ! Fields for Helmholtz solver
   allocate (rho_helm(0:nxh+1),az_helm(0:nxh+1) )
+
 
   mem_fields = mem_fields + ngx*ngy*ngz * (8*13)
 

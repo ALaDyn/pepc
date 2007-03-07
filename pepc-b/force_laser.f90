@@ -200,6 +200,7 @@ subroutine force_laser(p_start,p_finish)
            endif
 	endif
 
+        fpon_max = max(fpon_max,abs(Epon_x))
         ! Add external fields to new particle field
         Ex(p) = Ex(p) + Epon_x
         Ey(p) = Ey(p) + Epon_y

@@ -5,10 +5,12 @@ subroutine laser(I_laser)
 
   integer :: ierr
   real :: I_laser
-  real :: amplitude
-
+  real :: amplitude, ampl_min, pha
+  real :: Azr(1:nxh)
+  complex :: yi=(0.,1.)
 
   if (beam_config >= 3) tlaser = tlaser + dt  
+  pha = tlaser*omega
 
 !  Laser pulse envelope
   laser_model: select case(beam_config_in)
@@ -37,7 +39,11 @@ subroutine laser(I_laser)
      amplitude = sqrt(I_laser)  ! amplitude of incoming wave
      call density_helmholtz
      call em_helmholtz(my_rank,itime,nxh,dxh,theta_beam,amplitude,omega,rho_helm,Az_helm)
-
+     Azr(1:nxh) = Real(Az_helm(1:nxh)*cexp(yi*pha))
+     ampl_max = maxval(Azr)
+     ampl_min = minval(Azr)
+     if (ampl_max.lt.abs(ampl_min)) ampl_max=-ampl_min
+ 
   case(5)  ! propagating fpond
      !  Trigger rezoning if laser rezone_frac of the way through plasma
      ! - Only works after restart at present

@@ -6,6 +6,7 @@ subroutine closefiles
      close(15)
      close(81)  ! particle dump 
      close(70)
+     close(71)
      close(75)
   endif
   if (debug_level>1) close(20)

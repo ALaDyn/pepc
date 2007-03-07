@@ -15,6 +15,9 @@ pepcb:
 pepc-vis:
 	cd lpepcsrc && make
 	cd pepc-b && make pepc-visit
+debug:
+	cd lpepcsrc && make
+	cd pepc-b && make debug
 
 clean:
 	cd lpepcsrc && make clean && cd ..

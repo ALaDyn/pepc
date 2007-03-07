@@ -79,7 +79,7 @@ subroutine diagnostics
   if (itime_start>0 .and. itime==0) return  ! Avoid over-writing restart data
 
   call energy_cons(Ukine,Ukini,Umagnetic,Ubeam)       ! Compute energy balance
-
+  call laser_hist
 
   if ( idump>0 .and. (mod(itime+itime_start,idump)==0 .or. itime==nt) ) then
      call dump(itime+itime_start)     ! Dump complete set of particle data

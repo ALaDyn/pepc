@@ -1443,10 +1443,9 @@ echo "${ECHO_T}** setting options for powerpc64 host **" >&6
  F77FLAGS="$FFLAGS_f77_f90 -qsuffix=f -qfixed -qspillsize=32000"
  FLINK_FLAGS="-qarch=440 -qtune=440"
  CLINK_FLAGS="-qarch=440 -qtune=440"
- if [ -z "$OPT" ]; then OPT=-O2; fi
+ if [ -z "$OPT" ]; then OPT=-O3; fi
  AR="ar -q"
  #
- IPA="-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node"
  TUNE="-qarch=pwr4 -qtune=pwr4"
   ;;
 #----------------------------------------------------------
@@ -1457,12 +1456,13 @@ echo "${ECHO_T}** setting options for Aix host **" >&6
  CFLAGS_OS="-q64 -qlibansi -qnoinfo "
  F90DEF="-WF,"
 # FFLAGS_OS="-WF,-DJUMP,-DAIX_XLF -q64 "
+ IPA="-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node"
  FFLAGS_OS="-q64 "
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_OS -qnosave -qspillsize=32000"
  FLINK_FLAGS="-q64"
  CLINK_FLAGS="-q64"
- if [ -z "$OPT" ]; then OPT=-O2; fi
+ if [ -z "$OPT" ]; then OPT=-O3; fi
  AR="ar -q -X64"
   ;;
 #----------------------------------------------------------

@@ -20,6 +20,7 @@ module physvars
   real*4, allocatable :: rho_helm(:)  !< Helmholtz density
   complex, allocatable :: Az_helm(:)   !< Helmholtz vector potential
 
+
   !  physics, target data
 
   integer, parameter :: maxlayers=10
@@ -101,6 +102,7 @@ module physvars
   real :: window_min    !< start of wakefield plasma
   real :: rezone_frac=0.75     !< Fraction of box to cross before rezoning switched on
   real :: glue_radius=2.e6 !< multiple of box size to catch escaping particles at
+  real :: fpon_max, ampl_max !< max amplitudes
 
   integer :: nxh !< 1D Helmholtz grid dimension
   real :: dxh !< HH grid spacing

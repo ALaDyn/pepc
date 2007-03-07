@@ -11,6 +11,7 @@ subroutine openfiles
      open(81,file='parts_all.dat')
 
      open(70,file='domains.dat')
+     open(71,file='laser.dat')   ! laser parameters
      open(75,file='energy.dat')      ! energies
   endif
 

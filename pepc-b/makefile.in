@@ -58,7 +58,7 @@ SOURCES.f90 =   \
                 densities.f90 sum_fields.f90 dump_fields.f90 sum_radial.f90 \
                 track_nc.f90 sum_fieldave.f90 \
                 integrator.f90 abort.f90 \
-	        error_test.f90 force_direct.f90
+	        error_test.f90 force_direct.f90 laser_hist.f90
 
 # -------------------------------------------------------------------------------------------
 
@@ -101,17 +101,17 @@ pepc-visit: lpepc $(appmods) $(appobjs) $(visitobjs)
 	$(FC)  $(FFLAGS)  -o ../bin/pepcvis $(appobjs) $(appmods) $(visitobjs) $(LIBS) $(LDFLAGS) 
 	@echo "... done\n"
 
+debug: lpepc $(appmods) $(appobjs) $(visitobjs) 
+	@echo "\n Creating ../bin/pepcvis ...\n"
+	$(FC)  $(FFLAGS)  -o ../bin/pepc-debug $(appobjs) $(appmods) $(visitobjs) $(LIBS) $(LDFLAGS) 
+	@echo "... done\n"
+
 # Update PEPC library and headers
 lpepc:  ../lpepcsrc/liblpepc.a
 	cd ../lpepcsrc; make lpepc; cd ../pepc-b
 	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-b/treevars.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.mod $(PREFIX)/pepc-b/utils.mod
 
-
-pepck:	$(appobjs) $(appmods) $(pepcmods) liblpepc.a
-	@echo "\n Creating pepc application binary ...\n"
-	$(FC)  $(FFLAGS) $(LDFLAGS) $(LIBS) -o $@ $(appobjs) $(appmods) $(pepcmods)
-	@echo "... done\n"
 
 rand:	 rantest.o
 	$(FC) $(FFLAGS) -o rand rantest.o
