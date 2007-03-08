@@ -128,7 +128,7 @@ subroutine fpond_helm(t,tpulse,sigma_in,vosc,omega, &
 
      phipon = gamma*Rpon*atten 
 
-     Epon_x = omega*epxi*Rpon*atten
+     Epon_x = epxi*Rpon*atten
      Epon_y = epyi*yf*atten
      Epon_z = epzi*zf*atten
 !     if (i1==1) write(*,'(a)') 'x,abs(Az(i1)),  azi,  Epon, gamma '
