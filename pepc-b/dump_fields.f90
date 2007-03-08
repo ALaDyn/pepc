@@ -18,13 +18,13 @@ subroutine dump_fields(timestamp)
   include 'mpif.h'
 
   real, dimension(ngx) :: work1, work2
-  real, dimension(0:nxh) :: phi_pond, ex_pond, ey_pond, ez_pond
+  real, dimension(0:nxh+1) :: phi_pond, ex_pond, ey_pond, ez_pond, azr, epond
   real, dimension(0:ngx+1) :: rhoi_slice, rhoe_slice, ex_slice, ey_slice, ez_slice
-  real, dimension(0:ngx+1) :: jxe_slice, jye_slice, jze_slice 
+  real, dimension(0:ngx+1) :: jxe_slice, jye_slice, jze_slice
   real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: exg, eyg, ezg, jxeg, jyeg, jzeg
-
+  complex :: aph(nxh)
   real :: dx, dz, dy, xd, yd, zd, dummy, simtime, epon_x, epon_y, epon_z, phipond, epond_max, box_max
-  real :: uxd
+  real :: uxd, tplot, pha, gamma
   real :: Qtot, Qbox, norm, rhonorm, tpon, bx_em, by_em, az_em,ez_em
 
   character(30) :: cfile
@@ -34,6 +34,7 @@ subroutine dump_fields(timestamp)
   integer :: i, j, k, ioffset, idummy=0, ilev, ixd, iyd, izd, npx, npz, npy
   integer :: icall, lcount, ierr
   integer :: jfoc, kfoc, ng, nave
+  complex :: yi=(0.,1.)
 
   icall = timestamp/ivis
   simtime = timestamp*dt
@@ -184,6 +185,26 @@ subroutine dump_fields(timestamp)
      close(60)
 
 ! Laser fields on Helmholtz grid
+  tplot=tlaser
+  pha=omega*tplot
+  do i=1,nxh
+     aph(i) = Az_helm(i)*cexp(yi*pha)
+     Azr(i) = Real(aph(i))
+  end do
+!  Azr(1:nxh) = Real(Az_helm(1:nxh)*cexp(yi*pha))
+
+  ! pond force - without gamma factor, as in emfield
+  do i=1,nxh
+     gamma = sqrt(1. + azr(i)**2)
+
+     epond(i) = .5/dxh*azr(i)*( azr(i+1)-azr(i-1) )/gamma
+  end do
+!     write(*,*) 'On HH grid: '
+!     write(*,*) 'start, end, dxh, phase, nxh:',xh_start, xh_end, dxh, pha, nxh
+!     write(*,*) 'x, a, a^iph, |a|, real(a), epond'
+!     write(*,'((8(f12.4)))') &
+!          (i*dxh+xh_start, az_helm(i),aph(i),abs(az_helm(i)),azr(i), epond(i), i=1,nxh)
+
      do i=0,nxh
         xd=i*dxh+xh_start
         !        yd=sigma/2.
@@ -191,7 +212,7 @@ subroutine dump_fields(timestamp)
         yd = 0.
         zd = 0.
         uxd = 0.
-        call fpond_helm( tlaser, tpulse,sigma,vosc,omega, &
+        call fpond_helm( tplot, tpulse,sigma,vosc,omega, &
                xd,yd,zd,uxd,Az_helm,nxh,xh_start, xh_end, dxh, focus(1), &
 	       ex_pond(i),ey_pond(i),ez_pond(i),phi_pond(i))
 
@@ -202,7 +223,7 @@ subroutine dump_fields(timestamp)
      cfile = "fields/helmholtz."//cdump
      open (60,file=cfile)
      write(60,'(2(a12))') '!   x_helm  ',' rho         az^2  '
-     dxh = (xh_end-xh_start)/nxh
+!     dxh = (xh_end-xh_start)/nxh
      write(60,'((4(1pe12.3)))') &
 !          (i*dxh+xh_start-xl/2.+x_plasma/2., rho_helm(i), abs(az_helm(i)**2), i=0,nxh)
           (i*dxh+xh_start, rho_helm(i), abs(az_helm(i)),ex_pond(i), i=0,nxh)

@@ -99,7 +99,7 @@ subroutine em_helmholtz(me,itime,n,dx,theta,a0,w0,rhoe,Az)
 iplas = n/2
 if (me==0) write(*,'(i6,2f12.3)') itime,rhoe(iplas),abs(az(iplas))
 if (itime .eq. itav .and. me==0) then
-  write (*,'(a20,i2,a10,f12.5)') 'Iterate ',j,' error=',errmax
+  write (*,'(a20,i2,a10,f12.5,a10,f12.3)') 'Iterate ',j,' error=',errmax,' amplitude',a0
   g0 = sqrt(1+a0**2/2)
   open (40,file='a_error.dat')
   write(40,'(a)') '! x, rho, eps, az/a0, gam/g0, err'

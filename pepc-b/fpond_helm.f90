@@ -33,14 +33,15 @@ subroutine fpond_helm(t,tpulse,sigma_in,vosc,omega, &
   complex, intent(in) :: Az(0:nxh+1) !< Vector pot from Helmholtz solution
   real, intent(out) :: phipon, epon_x, epon_y, epon_z ! pond. potential and fields
 
-  real ::  yf, zf, xh, Rpon, intensity, gamma, sigma, atten, theta
-  real :: Azr_0, Azr_1, Azr_2, Azr_3  ! Vector pot. at control points
-  real :: epon1, epon2 ! pond force at control points
-  real :: ayi, azi ! vec. pot at particle
-  real :: epxi, epyi, epzi ! pond field at particle
-  real :: r, pi=3.141592654, sigma0
-  real :: pha, xa, b1, b2
+  real*8 ::  yf, zf, xh, Rpon, intensity, gamma, sigma, atten, theta
+  real*8 :: Azr_0, Azr_1, Azr_2, Azr_3  ! Vector pot. at control points
+  real*8 :: epon1, epon2 ! pond force at control points
+  real*8 :: ayi, azi ! vec. pot at particle
+  real*8 :: epxi, epyi, epzi ! pond field at particle
+  real*8 :: r, pi=3.141592654, sigma0
+  real*8 :: xa, b1, b2
   real :: f2d ! 2D switch
+  real :: pha  ! Temporal phase
   real :: Z_R  ! Rayleigh length
   complex :: yi = (0.,1.)
   integer ::  i1, i2
@@ -96,7 +97,7 @@ subroutine fpond_helm(t,tpulse,sigma_in,vosc,omega, &
   if (xa.ge.1 .and. xa.le.nxh) then
      ! Only compute force for particles inside HH grid
      ! leave one-point buffer at either end for difference dA/dx
-     i1 = xa  ! lower NGP
+     i1 = int(xa)  ! lower NGP
      i2 = i1+1       ! upper NGP
      b2=xa-i1  ! linear weights  W_j = 1-|x_i-x_j|
      b1=1.-b2
@@ -110,8 +111,8 @@ subroutine fpond_helm(t,tpulse,sigma_in,vosc,omega, &
 
      ! pond force at reference points i1, i2
      ! - 2nd order difference without gamma factor, as in emfield
-     Epon1 = .5*omega/dxh*( Azr_2**2-Azr_0**2 )
-     Epon2 = .5*omega/dxh*( Azr_3**2-Azr_1**2 )
+     Epon1 = .5*Azr_1*( Azr_2 - Azr_0 )/dxh
+     Epon2 = .5*Azr_2*( Azr_3 - Azr_1 )/dxh
 
      !        ayi = b1*ay(i1) + b2*ay(i2)
      ayi = 0.
@@ -127,9 +128,11 @@ subroutine fpond_helm(t,tpulse,sigma_in,vosc,omega, &
 
      phipon = gamma*Rpon*atten 
 
-     Epon_x = epxi*Rpon*atten
+     Epon_x = omega*epxi*Rpon*atten
      Epon_y = epyi*yf*atten
      Epon_z = epzi*zf*atten
+!     if (i1==1) write(*,'(a)') 'x,abs(Az(i1)),  azi,  Epon, gamma '
+!     write(*,'(i5,5(f12.4))') i1,x,abs(Az(i1)),azi,Epxi,gamma
   else
      phipon=0.
      Epon_x=0.
