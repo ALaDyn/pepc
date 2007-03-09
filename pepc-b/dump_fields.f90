@@ -224,9 +224,9 @@ subroutine dump_fields(timestamp)
      open (60,file=cfile)
      write(60,'(2(a12))') '!   x_helm  ',' rho         az^2  '
 !     dxh = (xh_end-xh_start)/nxh
-     write(60,'((4(1pe12.3)))') &
+     write(60,'((5(1pe12.3)))') &
 !          (i*dxh+xh_start-xl/2.+x_plasma/2., rho_helm(i), abs(az_helm(i)**2), i=0,nxh)
-          (i*dxh+xh_start, rho_helm(i), abs(az_helm(i)),ex_pond(i), i=0,nxh)
+          (i*dxh+xh_start, rho_helm(i),Azr(i),ex_pond(i),abs(az_helm(i)), i=0,nxh)
      close(60)
   endif
 
