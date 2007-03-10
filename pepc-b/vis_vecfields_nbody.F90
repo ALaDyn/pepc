@@ -46,13 +46,15 @@ subroutine vis_vecfields_nbody(timestamp)
 
 ! Connected to vis, so proceed with field select & gather
 
+  fselect=2  ! Manual select - B-field
 #ifdef VISIT_NBODY
 ! Fetch user-selected config from vis (TODO)
-!  if (me==0 .and. lvisit_active.ne.0) call flvisit_nbody2_selectvecfields_recv(fselect)
+  if (me==0 .and. lvisit_active.ne.0) then
+!	call flvisit_nbody2_selectvecfields_recv(fselect)
        	 write (*,*) "VIS_NBODY | Selected vector field",fselect
+  endif
 #endif
 
-  fselect=2  ! Manual select - B-field
 
   ! get filename suffix from dump counter
   do i=0,4

@@ -31,9 +31,9 @@ subroutine laser(I_laser)
 
   !  Laser focal position and rezoning
 
-  laser_focus: select case(beam_config)
+  laser_focus: select case(beam_config_in)
 
-  case(4)  ! Helmholtz solver for vector potential
+  case(44,54)  ! Helmholtz solver for vector potential
 
 ! Factor-in pulse shape
      amplitude = sqrt(I_laser)  ! amplitude of incoming wave
@@ -60,7 +60,7 @@ subroutine laser(I_laser)
         propag_laser=propag_laser + dt
      endif
 
-  case(8)  ! old fpond model
+  case(4,14,24,94)  ! old fpond model
      if (itime>0) focus(1) = x_crit  ! laser tracks n_c
 
   case default

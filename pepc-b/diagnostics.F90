@@ -51,7 +51,7 @@ subroutine diagnostics
      if ( mod(itime,ivis_fields)==0 ) then
         !     call pot_grid
         call vis_fields_nbody(itime+itime_start)
-        call vis_vecfields_nbody(itime+itime_start)
+!        call vis_vecfields_nbody(itime+itime_start)
      endif
 
   endif

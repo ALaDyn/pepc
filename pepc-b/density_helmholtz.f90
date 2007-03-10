@@ -43,7 +43,7 @@ subroutine density_helmholtz
   !  Any particle outside gets put in ghost cells 0, 2
 
   cweight = qi*rdx*rdy*rdz       ! charge weighting factor
-  if (me==0)   write(6,'(//a,3f12.3)') 'cw,dx,dy',cweight,dxh,dy
+!  if (me==0)   write(6,'(//a,3f12.3)') 'cw,dx,dy',cweight,dxh,dy
 
   rho_loc(0:nxh+1,0:nyh,0:nyh) = 0.
 

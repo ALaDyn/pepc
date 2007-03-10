@@ -26,7 +26,7 @@ subroutine vis_fields_nbody(timestamp)
   integer, intent(in) :: timestamp
   integer :: lvisit_active, ierr 
   integer :: npx, npy, npz, ng, jfoc, kfoc, nave
-  real :: norm
+  real :: norm, uxd
   integer :: iskip_x, iskip_y, iskip_z
   integer :: fselect1=0,fselect2=0,fselect3=0,fselect4=0
   integer :: incdf
@@ -142,6 +142,14 @@ subroutine vis_fields_nbody(timestamp)
                  xd,yd,zd,epon_x,epon_y,epon_z,phipond)
                  Tpon = min(1.,tlaser/tpulse) * (sin(omega*tlaser))**2
                  field_laser = phipond*Tpon ! Pond potential
+
+              case(44,54)  ! fpond derived from Az_helm; both linear & sin2 pulse forms
+                 xd = (i-0.5)*dx ! absolute position
+                 uxd = 0.
+                 call fpond_helm( tlaser, tpulse,sigma,vosc,omega, &
+                   xd,yd,zd,uxd,Az_helm,nxh,xh_start, xh_end, dxh, focus(1), &
+                   epon_x,epon_y,epon_z,phipond)
+                 field_laser = epon_x ! Pond potential
 
               case(5)  ! propagating fpond
                  call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, &
