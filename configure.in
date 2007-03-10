@@ -24,7 +24,10 @@ fi
 
 if [[ `uname -m` = "00223C3B4C00" ]] # jump in Juelich
 then
- DEFAULT_VISITPATH="-L/usr/local/beta/visit-2.2/lvisit/lib -L/usr/local/beta/visit-2.2/lib -L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3"
+ DEFAULT_VISITPATH="-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3 -llvisit_nbody2 -L/usr/local/beta/visit-2.2/lvisit/lib -llvisit -L/usr/local/beta/visit-2.2/lib -lvisit" 
+elif [[ `uname -n` = "jubl" ]] # jubl in Juelich
+then
+ DEFAULT_VISITPATH="-L/bgl/local/visit.rts/apis/nbody3 -llvisit_nbody2 -L/bgl/local/visit.rts/lvisit/lib -llvisit -L/bgl/local/visit.rts/lib -lvisit" 
 fi
 
 #######################################################################
@@ -39,6 +42,7 @@ powerpc64-unknown-linux-gnu) # jubl
  AC_MSG_RESULT(** setting options for powerpc64 host **)
  CFLAGS_OS="-DAIX_XLF -qarch=440 -qtune=440 -qlibansi -qnoinfo "
  FFLAGS_f77_f90="-WF,-DAIX_XLF -qarch=440 -qtune=440 -qnosave"
+ F90DEF="-WF,"
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_f77_f90 -qsuffix=f -qfixed -qspillsize=32000"
@@ -100,7 +104,7 @@ AC_ARG_WITH(visit,[  --with-visit            use visit libraries (no)],
   if test "$withval" != "no" ; then
      VISITDEF="${F90DEF}-DVISIT_NBODY"
 # visit, xnbody path defaults 
-     VISITLIBS="${DEFAULT_VISITPATH} -lvisit -llvisit -llvisit_nbody2"
+     VISITLIBS="${DEFAULT_VISITPATH}" 
      TARGETS=pepc-visit 
      if test "$withval" != "yes" ; then
        VISIT=-L${withval}
