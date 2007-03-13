@@ -18,7 +18,7 @@ CFLAGS="$CFLAGS -I/usr/local/include"
 if [[ `uname -n` = "jubl" ]] # jubl in Juelich
 then
  CFLAGS="$CFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
- LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib "
+ LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib" 
 # FFLAGS="$FFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
 fi
 
@@ -41,12 +41,12 @@ case "$host" in
 powerpc64-unknown-linux-gnu) # jubl
  AC_MSG_RESULT(** setting options for powerpc64 host **)
  CFLAGS_OS="-DAIX_XLF -qarch=440 -qtune=440 -qlibansi -qnoinfo "
- FFLAGS_f77_f90="-WF,-DAIX_XLF -qarch=440 -qtune=440 -qnosave"
+ FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS -qarch=440 -qtune=440 -qnosave"
  F90DEF="-WF,"
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_f77_f90 -qsuffix=f -qfixed -qspillsize=32000"
- FLINK_FLAGS="-qarch=440 -qtune=440"
+ FLINK_FLAGS="-qarch=440 -qtune=440 -lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts"
  CLINK_FLAGS="-qarch=440 -qtune=440"
  if [[ -z "$OPT" ]]; then OPT=-O3; fi
  AR="ar -q"
@@ -60,8 +60,9 @@ powerpc64-unknown-linux-gnu) # jubl
  CFLAGS_OS="-q64 -qlibansi -qnoinfo "
  F90DEF="-WF,"
 # FFLAGS_OS="-WF,-DJUMP,-DAIX_XLF -q64 "
+ FFLAGS_OS="-q64 -WF,-DHAVE_PRIVATE_CONFIGS"
+ #FFLAGS_OS="-q64 "
  IPA="-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node"
- FFLAGS_OS="-q64 "
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_OS -qnosave -qspillsize=32000"
  FLINK_FLAGS="-q64"

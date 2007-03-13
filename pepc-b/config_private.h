@@ -67,11 +67,11 @@
         case(21)  ! disc + tube: tincan target, 50:50 ion, proton mix
             !    ====================================
 
-            write(ipefile,'(/a/)') "Setting up flange"
+            if (my_rank==0) write(*,'(/a/)') "Setting up flange"
 
             target_geometry=2
             velocity_config=1
-            plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
+            plasma_centre =  (/ xl/2.+x_offset, yl/2., zl/2. /) 
             offset_e = me*nep + ne_rest
             offset_i = ne + me*nip + ni_rest
 
@@ -89,13 +89,19 @@
                 m(i) = m(i)/mass_ratio*1836
             end do
 
+            if (debug_level.ge.1 .and. me==0) then
+                write(*,*) "cap charge ",qi
+                write(*,*) "cap mass ",mass_i
+                write(*,*) "cap spacing",a_ii
+            endif
+
             if (scheme /= 5 .and. ramp) then
                 call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
             endif
 
             ! Tube = cylinder with inset
 
-            write(ipefile,'(/a/)') "Setting up tube"
+            if (my_rank==0) write(*,'(/a/)') "Setting up tube"
 
             ! Adjust local numbers if total non-multiple of # PEs
             if (my_rank==0) then
@@ -123,9 +129,9 @@
                 faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
 !  Turn 1/2 of ions into protons - assumes 50:50 mix @ same density
-!            do i=ipstart,ipstart+nlayp,2
-!                m(i) = m(i)/mratio_layer(1)*1836
-!            end do
+            do i=ipstart,ipstart+nlayp,2
+                m(i) = m(i)/mratio_layer(1)*1836
+            end do
 
             ! Equal number of neutralising electrons 
             label_offset = ne+ni+me*nlayp + ne_rest 
@@ -138,6 +144,11 @@
             ni = ni + n_layer(1)  ! Global # particles
             npart = ni+ne
 
+            if (debug_level.ge.1 .and. me==0) then
+                write(*,*) "tube charge ",qpart_layer(1)
+                write(*,*) "tube mass ",mass_layer(1)
+                write(*,*) "tube spacing",ai_layer(1)
+            endif
 
 
 

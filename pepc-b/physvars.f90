@@ -107,6 +107,9 @@ module physvars
   integer :: nxh !< 1D Helmholtz grid dimension
   real :: dxh !< HH grid spacing
   real :: xh_start, xh_end  !< Start and end points of Helmholtz grid
+ 
+  integer :: ngav !< Time-ave grid dimension
+  real :: xgav_start, xgav_end  !< Limits for time-ave grid
 
 !  Variables needing 'copy' for tree routines
 

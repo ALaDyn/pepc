@@ -311,7 +311,8 @@ endif
 #endif
 
 
-
+! TODO : Put this in dump_fields
+     return
      cfile = "fields/tslice."//cdump
      open (62,file=cfile)
 
@@ -340,7 +341,7 @@ endif
         end do
      end do
      write(62,'((2(1pe12.4)))') &
-          (i*dx+x_offset,te_slice(i),i=1,ngx)
+          (i*dx,te_slice(i),i=1,ngx)
      close(62)
   endif
 

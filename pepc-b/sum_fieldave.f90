@@ -12,7 +12,7 @@ subroutine sum_fieldave
   include 'mpif.h'
 
 
-  real :: dx, x_start, x_stop
+  real :: dx
   real :: fr1, fr2, ra, gamma, xt, yt, zt, rt
   real :: ttrav, tfetch
   integer :: ndum, i, j, k, ng, i1, i2, nelecs, nions, ngr, icall, ierr, p
@@ -20,8 +20,8 @@ subroutine sum_fieldave
   character(5) :: cme
   character(6) :: cdump, cvis
 
-  real*8, dimension(0:ngx+1) :: ex_g, ey_g, ez_g, phi_g, w_g
-  integer, dimension(ngx+1) :: pshortl
+  real*8, dimension(0:ngav+1) :: ex_g, ey_g, ez_g, phi_g, w_g
+  integer, dimension(ngav+1) :: pshortl
 
 
   if (my_rank==0) then
@@ -30,11 +30,8 @@ subroutine sum_fieldave
   endif
 
   !  field box limits 
-!  x_start = -xl/2 ! TODO: User should supply these limits
-  x_start = x_offset ! TODO: User should supply these limits
-  x_stop = xl
 
-  dx = (x_stop-x_start)/ngx
+  dx = (xgav_end-xgav_start)/ngav
 
 
 
@@ -42,19 +39,19 @@ subroutine sum_fieldave
 ! Dummies set up at end of particle arrays on root to ensure unique labelling
 
   if (my_rank==0) then
-      do i=1,ngx+1
+      do i=1,ngav+1
         
         p = npp+i   !index
         pshortl(i) = p   !index
-        x(p) = (i-1)*dx + x_start   ! axial position in box
+        x(p) = (i-1)*dx + xgav_start   ! axial position in box
         y(p) = plasma_centre(2)  ! target centre
         z(p) = plasma_centre(3)
       end do
 
 ! Get interaction lists
 !     write (*,*) 'Doing lists for dummy particles'
-!     write (*,'((i8,f12.3))') (pshortl(i),x(pshortl(i)),i=1,ngx+1)
-     ndum = ngx+1
+!     write (*,'((i8,f12.3))') (pshortl(i),x(pshortl(i)),i=1,ngav+1)
+     ndum = ngav+1
    else
      ndum=0  ! Remainder of CPUs just have to provide multipole info      
    endif  
@@ -65,7 +62,7 @@ subroutine sum_fieldave
 
    if (my_rank==0) then
 ! Fields
-     do i=1,ngx+1
+     do i=1,ngav+1
         p=pshortl(i)
         call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, &
              ex_g(i-1), ey_g(i-1), ez_g(i-1), phi_g(i-1), w_g(i-1))

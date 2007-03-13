@@ -142,3 +142,4 @@ depend:
 # Special dependencies
 setup.o:	namelist.h
 param_dump.o:   namelist.h
+configure.o	config_private.h

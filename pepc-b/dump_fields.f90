@@ -170,18 +170,18 @@ subroutine dump_fields(timestamp)
      open (62,file=cfile)
      write(62,'(a)') '!   x      rho_e   rho_i  ex, jxe,  phi_p,  ex_p,  ey_p,   ez_p  '
      write(62,'((9(1pe12.4)))') &
-          (i*dx+x_offset,rhoe_slice(i)/omega**2, rhoi_slice(i)/omega**2, ex_slice(i)/omega,&
+          (i*dx,rhoe_slice(i)/omega**2, rhoi_slice(i)/omega**2, ex_slice(i)/omega,&
           jxe_slice(i), phi_pond(i),ex_pond(i)/omega, ey_pond(i)/omega, ez_pond(i)/omega,i=1,ngx)
      close(62)
 
 ! Write out time-averaged E-field profiles to file
      write(*,'(a40,a10)') 'Cycle-averaged lineouts at',cdump
-     dx = (xl-x_offset)/ngx ! spacing for time-ave grid
+     dx = (xgav_end - xgav_start)/ngav ! spacing for time-ave grid
      cfile = "fields/linave."//cdump
      open (60,file=cfile)
      write(60,'(2(a12))') '!   x      ',' ex  '
      write(60,'((2(1pe12.4)))') &
-          (i*dx+x_offset, ex_ave(i), i=0,ngx)
+          (i*dx+xgav_start, ex_ave(i), i=0,ngav)
      close(60)
 
 ! Laser fields on Helmholtz grid
