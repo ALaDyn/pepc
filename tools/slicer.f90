@@ -27,7 +27,7 @@ program ppfields
 
     real, allocatable :: fpxpy_ion(:,:), fpxpy_ele(:,:)
     real, allocatable :: fpxpz_ion(:,:), fpxpz_ele(:,:)
-    real, allocatable :: fpxx_ion(:,:), fpyy_ion(:,:), fpxx_pro(:,:), fpxx_ele(:,:), fpzx_ion(:,:)
+    real, allocatable :: fpxx_ion(:,:), fpyy_ion(:,:), fpxx_pro(:,:), fpxx_ele(:,:), fpzx_ion(:,:), fpyy_pro(:,:)
     real, allocatable :: fang_ion(:,:), fang_ion1(:,:), fang_ion2(:,:), fang_back(:,:)
     real, allocatable :: uang_ion(:,:)
 
@@ -117,7 +117,7 @@ program ppfields
     allocate ( fpxpy_ion(0:ngux+1,0:nguy+1), fpxpy_ele(0:ngux+1,0:nguy+1), &
         fpxpz_ion(0:ngux+1,0:nguz+1), fpxpz_ele(0:ngux+1,0:nguz+1), &
         fpxx_ion(0:ngx+1,0:ngux+1), fpxx_ele(0:ngx+1,0:ngux+1), &
-        fpxx_pro(0:ngx+1,0:ngux+1), &
+        fpxx_pro(0:ngx+1,0:ngux+1), fpyy_pro(0:ngy+1,0:nguy+1), &
         fpzx_ion(0:ngx+1,0:nguz+1), fpyy_ion(0:ngy+1,0:nguy+1), &
         fang_ion(0:nalpha+1,0:nalpha+1),   fang_ion2(0:nalpha+1,0:nalpha+1),&
         fang_back(0:nalpha+1,0:nalpha+1), fang_ion1(0:nalpha+1,0:nalpha+1), &
@@ -1140,6 +1140,7 @@ program ppfields
     fpxpy_ion(0:ngux+1,0:nguy+1) = 0.
     fpxx_ion(0:ngx+1,0:ngux+1) = 0.
     fpxx_pro(0:ngx+1,0:ngux+1) = 0.
+    fpyy_pro(0:ngy+1,0:nguy+1) = 0.
     fpzx_ion(0:ngx+1,0:nguz+1) = 0.
     fang_ion(0:nalpha+1,0:nalpha+1) = 0.
     uang_ion(0:nalpha+1,0:nalpha+1) = 0.
@@ -1268,6 +1269,8 @@ program ppfields
             else
                 ! forward protons
                 fpxx_pro(ii1,i1)=fpxx_pro(ii1,i1) + 1
+		! radial protons
+                fpyy_pro(jj1,j1)=fpyy_ion(jj1,j1) + 1
                 gamma = sqrt(1.0+ux(i)**2+uy(i)**2+uz(i)**2)
                 umev  = .511*1836.*(gamma-1.0)
                 iu = umev/du+1  ! Energy bin
@@ -1291,7 +1294,7 @@ program ppfields
     ng = (ngux+2)*(nguy+2)                         ! total # gridpoints
 
     ! output data files
-    nout = 12
+    nout = 13
     cfout(1) = cdump//'/fpxpy_ion'
     cfout(2) = cdump//'/fpxpz_ion'
     cfout(3) = cdump//'/fpxx_ion'
@@ -1306,7 +1309,8 @@ program ppfields
     cfout(10) = cdump//'/fang_back'
 
     cfout(11) = cdump//'/fpxx_pro'
-    cfout(12) = cdump//'/fhot_pro'
+    cfout(12) = cdump//'/fpyy_pro'
+    cfout(13) = cdump//'/fhot_pro'
 
 
     do i=0,nout-1
@@ -1319,6 +1323,7 @@ program ppfields
     fpxx_ion = max(fpxx_ion,0.9)
     fpzx_ion = max(fpzx_ion,0.9)
     fpxx_pro = max(fpxx_pro,0.9)
+    fpyy_pro = max(fpxx_pro,0.9)
     fpyy_ion = max(fpyy_ion,0.9)
 
     do j=1,nguy
@@ -1338,9 +1343,10 @@ program ppfields
         end do
     end do
 
-    do j=1,nguz
-        do i=1,ngx
+    do j=1,nguy
+        do i=1,ngy
             write(23,'(2f13.4,f16.6)') i*dy+ymin, j*duy+uyimin, log(fpyy_ion(i,j))
+            write(31,'(2f13.4,f16.6)') i*dy+ymin, j*duy+uyimin, log(fpyy_pro(i,j))
         end do
     end do
 
@@ -1353,7 +1359,7 @@ program ppfields
 
     write(24,'((f13.4,f16.6))') (i*du, fhoti_for(i), i=1,ngux)
     write(25,'((f13.4,f16.6))') (i*du, fhoti_back(i), i=1,ngux)
-    write(31,'((f13.4,f16.6))') (i*du, fhotp(i), i=1,ngux)
+    write(32,'((f13.4,f16.6))') (i*du, fhotp(i), i=1,ngux)
 
     ! far-field y-z angular distribution
     do j=1,nalpha
