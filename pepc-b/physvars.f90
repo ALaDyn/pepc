@@ -4,7 +4,7 @@ module physvars
   real, parameter :: pi=3.141592654
 
   real*4, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:), & !< field arrays for time-averages
-                          ex_ave(:), ey_ave(:), ez_ave(:)      !< time-ave field 
+                          ex_ave(:), ey_ave(:,:), ez_ave(:)      !< time-ave field 
   real*4, allocatable ::  rhoi(:,:,:), rhoe(:,:,:) !< densities
   real*4, allocatable ::  g_ele(:,:,:), g_ion(:,:,:)  !< particle counts (weights for T)
   real*4, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  !< E-field 
@@ -110,6 +110,7 @@ module physvars
  
   integer :: ngav !< Time-ave grid dimension
   real :: xgav_start, xgav_end  !< Limits for time-ave grid
+  real :: xgav_pos(1:3)=(/0.,1.,2./)  !< Limits for time-ave grid - radial field positions
 
 !  Variables needing 'copy' for tree routines
 

@@ -12,7 +12,7 @@ subroutine sum_fieldave
   include 'mpif.h'
 
 
-  real :: dx
+  real :: dx,dy
   real :: fr1, fr2, ra, gamma, xt, yt, zt, rt
   real :: ttrav, tfetch
   integer :: ndum, i, j, k, ng, i1, i2, nelecs, nions, ngr, icall, ierr, p
@@ -35,7 +35,9 @@ subroutine sum_fieldave
 
 
 
-! Axial electric field - set up dummy particles at grid points & find forces directly from tree
+! Axial electric field 
+! --------------------
+! - set up dummy particles at grid points & find forces directly from tree
 ! Dummies set up at end of particle arrays on root to ensure unique labelling
 
   if (my_rank==0) then
@@ -70,6 +72,45 @@ subroutine sum_fieldave
  
      ex_ave = ex_ave + force_const*Ex_g/navcycle    ! Accumulate axial field
   endif
+
+
+! Radial electric field 
+! ----------------------
+! - set up dummy particles at grid points & find forces directly from tree
+! Dummies set up at end of particle arrays on root to ensure unique labelling
+
+  dy = yl/ngav
+  if (my_rank==0) then
+      do i=1,ngav+1
+        
+        p = npp+i   !index
+        pshortl(i) = p   !index
+        x(p) = xgav_pos(1)   ! 1st axial position in box
+        y(p) = dy*(i-1)  ! y position 
+        z(p) = plasma_centre(3) ! midpoint in z
+      end do
+! Get interaction lists
+     ndum = ngav+1
+   else
+     ndum=0  ! Remainder of CPUs just have to provide multipole info      
+   endif  
+
+! all CPUs must call walk
+
+   call tree_walk(pshortl(1:ndum),ndum,1,theta,eps,itime,mac,ttrav,tfetch)
+
+   if (my_rank==0) then
+! Fields
+     do i=1,ngav+1
+        p=pshortl(i)
+        call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, &
+             ex_g(i-1), ey_g(i-1), ez_g(i-1), phi_g(i-1), w_g(i-1))
+     end do
+ 
+! Accumulate radial field
+     ey_ave(1:ngav,1) = ey_ave(1:ngav,1) + force_const*Ex_g(1:ngav)/navcycle 
+  endif
+
 
 
 end subroutine sum_fieldave

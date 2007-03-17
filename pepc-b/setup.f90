@@ -136,6 +136,7 @@ subroutine setup
   beam_config=mod(beam_config_in,10)  ! derived config from s,p variations
 
 
+  lolam = lolam*2.*pi/omega  ! normalise scale-length
 
 end subroutine setup
 

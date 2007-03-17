@@ -33,13 +33,13 @@ subroutine em_helmholtz(me,itime,n,dx,theta,a0,w0,rhoe,Az)
 
   real*8 :: phipon, epon_x, epon_y, epon_z !< pond. potential and fields
 
-  real*8 :: xf, yf, zf, g0
+  real*8 :: xf, yf, zf, g0, nu_eff
   integer :: iplas, itav
 
   itav=1
   n_iter = 3
   ncrit = w0**2  ! critical density in norm. units
-
+  nu_eff=0.2  ! Effective collision rate
   pi = asin(1.0)*2
   yi = (0.,1.)
   err=0.
@@ -66,7 +66,7 @@ subroutine em_helmholtz(me,itime,n,dx,theta,a0,w0,rhoe,Az)
      do i=1,n
         !  coefficients as for s-pol light
         ! rhoe normalized to nc defined on own 1D grid along laser axis
-        eps(i) = 1.-rhoe(i)/ncrit/rgam(i)
+        eps(i) = 1.-rhoe(i)/ncrit/rgam(i)/(1.+yi*nu_eff)
         y(i)=(0.,0.)
         alpha(i)=1
         beta(i)=-2 + w0**2*dx**2*(eps(i)-s2th)

@@ -177,12 +177,20 @@ subroutine dump_fields(timestamp)
 ! Write out time-averaged E-field profiles to file
      write(*,'(a40,a10)') 'Cycle-averaged lineouts at',cdump
      dx = (xgav_end - xgav_start)/ngav ! spacing for time-ave grid
-     cfile = "fields/linave."//cdump
+     cfile = "fields/ex_ave."//cdump
      open (60,file=cfile)
      write(60,'(2(a12))') '!   x      ',' ex  '
      write(60,'((2(1pe12.4)))') &
           (i*dx+xgav_start, ex_ave(i), i=0,ngav)
      close(60)
+     dy = yl/ngav ! spacing for radial grid
+     cfile = "fields/ey_ave."//cdump
+     open (60,file=cfile)
+     write(60,'(2(a12))') '!   r      ',' er  '
+     write(60,'((2(1pe12.4)))') &
+          ((i-1)*dy, ey_ave(i,1), i=1,ngav)
+     close(60)
+
 
 ! Laser fields on Helmholtz grid
   tplot=tlaser

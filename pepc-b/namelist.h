@@ -18,4 +18,4 @@
        constrain_proof, len_tripod, struct_step, uthresh, domain_cut, glue_radius, &
        debug_rank, np_mult, fetch_mult,nbuf_max, te_perturb, tpert, kpert, &
        q_factor, netcdf, launch, foam_geom, &
-       xh_start, xh_end, nxh, xgav_start, xgav_end, ngav
+       xh_start, xh_end, nxh, xgav_start, xgav_end, ngav, xgav_pos
