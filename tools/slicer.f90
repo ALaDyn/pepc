@@ -1121,12 +1121,12 @@ program ppfields
     write(50,'(a8,a3,4(f12.5,a1))') 'UXIDR','"',xmin+dx,'/',xmax,'/',uximin+dux,'/',uximax,'"'  ! data region
     write(50,'(a8,a3,2(f12.5,a1))') 'UXIMESH','"',dx,'/',dux,'"'   ! mesh size 
     write(50,'(a8,a3,2(f12.5,a1))') 'UXIAXES','"',xtick,'/',uxitick,'"'   ! tick intervals
-    write(50,'(a8,a3,4(f12.5,a1))') 'UZIPA','"',xmin,'/',xmax,'/',uzimin,'/',uzimax,'"'  ! plot area
+    write(50,'(a8,a3,4(f12.5,a1))') 'UZIPA','"',zmin,'/',zmax,'/',uzimin,'/',uzimax,'"'  ! plot area
     write(50,'(a8,a3,4(f12.5,a1))') 'UZIPAC','"',xmin*cowp_micron,'/',xmax*cowp_micron, &
         '/',uzimin,'/',uzimax,'"'  ! plot area
-    write(50,'(a8,a3,4(f12.5,a1))') 'UZIDR','"',xmin+dx,'/',xmax,'/',uzimin+duz,'/',uzimax,'"'  ! data region
-    write(50,'(a8,a3,2(f12.5,a1))') 'UZIMESH','"',dx,'/',duz,'"'   ! mesh size 
-    write(50,'(a8,a3,2(f12.5,a1))') 'UZIAXES','"',xtick,'/',uzitick,'"'   ! tick intervals
+    write(50,'(a8,a3,4(f12.5,a1))') 'UZIDR','"',zmin+dz,'/',zmax,'/',uzimin+duz,'/',uzimax,'"'  ! data region
+    write(50,'(a8,a3,2(f12.5,a1))') 'UZIMESH','"',dz,'/',duz,'"'   ! mesh size 
+    write(50,'(a8,a3,2(f12.5,a1))') 'UZIAXES','"',ztick,'/',uzitick,'"'   ! tick intervals
     write(50,'(a8,a3,f12.3,a2)') 'UIMEVMAX','"',uimevmax,' "'  ! Max energy for fihot
     write(50,'(a8,a3,4(f12.5,a1))') 'AIPA','"',-aimax,'/',aimax,'/',-aimax,'/',aimax,'"'  ! plot area
     write(50,'(a8,a3,4(f12.5,a1))') 'AIDR','"',-aimax+dalpha,'/',aimax,'/',-aimax+dalpha,'/',aimax,'"'  ! data region
@@ -1270,7 +1270,7 @@ program ppfields
                 ! forward protons
                 fpxx_pro(ii1,i1)=fpxx_pro(ii1,i1) + 1
 		! radial protons
-                fpyy_pro(jj1,j1)=fpyy_ion(jj1,j1) + 1
+                if (x(i) > rear_edge) fpyy_pro(jj1,j1)=fpyy_pro(jj1,j1) + 1
                 gamma = sqrt(1.0+ux(i)**2+uy(i)**2+uz(i)**2)
                 umev  = .511*1836.*(gamma-1.0)
                 iu = umev/du+1  ! Energy bin
@@ -1323,7 +1323,7 @@ program ppfields
     fpxx_ion = max(fpxx_ion,0.9)
     fpzx_ion = max(fpzx_ion,0.9)
     fpxx_pro = max(fpxx_pro,0.9)
-    fpyy_pro = max(fpxx_pro,0.9)
+    fpyy_pro = max(fpyy_pro,0.9)
     fpyy_ion = max(fpyy_ion,0.9)
 
     do j=1,nguy

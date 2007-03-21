@@ -119,6 +119,10 @@ eval `cat gmt.env  | awk '{ printf "%s\n",$0 }' `
   echo "UIMESH=${UIMESH}"
   echo "UIAXES=${UIAXES}"
   echo "UIBOX=${UIBOX}"
+  echo "UZIMESH=${UZIMESH}"
+  echo "UZIAXES=${UZIAXES}"
+  echo "UZIPA=${UZIPA}"
+  echo "UZIDR=${UZIDR}"
   echo "SSRHO=${SSRHO}"
   echo "SSTE=${SSTE}"
   echo "SSTI=${SSTI}"
@@ -550,29 +554,35 @@ EOF
       
 echo "electron px-x"
       XYDATA=fpxx_ele
-      psbasemap -R${UXPA} -J${UBOX} -B${UXAXES}SEwn -P  -K -X1i -Y8i > $PLOT 
+      psbasemap -R${UXPA} -J${UBOX} -B${UXAXES}SWen -P  -K -X1i -Y8i > $PLOT 
       xyz2grd $XYDATA -Gdata1.grd -R${UXDR} -I${UXMESH} 
       grdinfo data1.grd
       grdimage data1.grd -J${UBOX} -E$DPI  -R${UXDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
       psscale -C../dens.cpt -D$PSCALE -O -K -B${SSFP}/:p@-x@--x: >> $PLOT
       \rm *.grd .gmtcommands
 
-
+echo "ion px-x"
+      XYDATA=fpxx_ion
+      psbasemap -R${UXIPA} -J${UIBOX} -B${UXIAXES}SWne -P -K -O -X4i -Y0 >> $PLOT
+      xyz2grd $XYDATA -Gdata1.grd -R${UXIDR} -I${UXIMESH}
+      grdinfo data1.grd
+      grdimage data1.grd -J${UIBOX} -E$DPI  -R${UXIDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
+      psscale -C../dens.cpt -D$PSCALE -O -K -B${SSIFP}/:p@-xi@--x: >> $PLOT
 echo "proton px-x"
       XYDATA=fpxx_pro
-      psbasemap -R${UXIPA} -J${UIBOX} -B${UXIAXES}SWne -P -K -O -X0 -Y-4i >> $PLOT
+      psbasemap -R${UXIPA} -J${UIBOX} -B${UXIAXES}SWne -P -K -O -X-4i -Y-4i >> $PLOT
       xyz2grd $XYDATA -Gdata1.grd -R${UXIDR} -I${UXIMESH}
       grdinfo data1.grd
       grdimage data1.grd -J${UIBOX} -E$DPI  -R${UXIDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
       psscale -C../dens.cpt -D$PSCALE -O -K -B${SSIFP}/:p@-xp@--x: >> $PLOT
 
-echo "ion px-x"
-      XYDATA=fpxx_ion
-      psbasemap -R${UXIPA} -J${UIBOX} -B${UXIAXES}SWne -P -K -O -X3i -Y0 >> $PLOT
-      xyz2grd $XYDATA -Gdata1.grd -R${UXIDR} -I${UXIMESH}
+echo "proton py-y"
+      XYDATA=fpyy_pro
+      psbasemap -R${UZIPA} -J${UIBOX} -B${UZIAXES}SWne -P -K -O -X4i -Y0 >> $PLOT
+      xyz2grd $XYDATA -Gdata1.grd -R${UZIDR} -I${UZIMESH}
       grdinfo data1.grd
-      grdimage data1.grd -J${UIBOX} -E$DPI  -R${UXIDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
-      psscale -C../dens.cpt -D$PSCALE -O  -B${SSIFP}/:p@-xi@--x: -U"phase space of $RUN at $TRUN ($TIMESTAMP)" >> $PLOT
+      grdimage data1.grd -J${UIBOX} -E$DPI  -R${UZIDR} -T -O -K -C../f.cpt -X0 -Y0 >> $PLOT
+      psscale -C../dens.cpt -D$PSCALE -O -B${SSIFP}/:p@-yp@--y: -U"phase space of $RUN at $TRUN ($TIMESTAMP)" >> $PLOT
 
 #echo "ion py-x"
 #      XYDATA=fpzx_ion
