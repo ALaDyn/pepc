@@ -104,12 +104,14 @@ module physvars
   real :: glue_radius=2.e6 !< multiple of box size to catch escaping particles at
   real :: fpon_max, ampl_max !< max amplitudes
 
-  integer :: nxh !< 1D Helmholtz grid dimension
+  integer :: nxh=10 !< 1D Helmholtz grid dimension
   real :: dxh !< HH grid spacing
-  real :: xh_start, xh_end  !< Start and end points of Helmholtz grid
+  real :: xh_start=0.
+  real :: xh_end=10.  !< Start and end points of Helmholtz grid
  
-  integer :: ngav !< Time-ave grid dimension
-  real :: xgav_start, xgav_end  !< Limits for time-ave grid
+  integer :: ngav=10 !< Time-ave grid dimension
+  real :: xgav_start=0.
+  real :: xgav_end=10.  !< Limits for time-ave grid
   real :: xgav_pos(1:3)=(/0.,1.,2./)  !< Limits for time-ave grid - radial field positions
 
 !  Variables needing 'copy' for tree routines
@@ -176,9 +178,9 @@ module physvars
    integer :: ivis_domains=10    !<  frequency for domain shipping to VISIT
    integer :: vis_select = 1  !< select switch for particles
    integer :: field_select(1:4) = 0. !< field selection switches for vis.
-   integer :: itrack       !< frequency for computing ion density (tracking)
+   integer :: itrack=1       !< frequency for computing ion density (tracking)
    integer :: navcycle     !< # timesteps in a laser cycle 
-   integer :: ngx, ngy, ngz  !< Plot grid dimensions
+   integer :: ngx=10, ngy=10, ngz=10  !< Plot grid dimensions
    integer :: ncid         !< NetCDF id
    integer :: nbuf_max=10000     !< Max vis buffer size
    integer :: ndom_max=1000     !< Max # domains
@@ -193,7 +195,7 @@ module physvars
    integer :: number_faces !< # faces in target container
 
  ! tree stuff
-  real :: theta       !< Clumping parameter
+  real :: theta=0.5       !< Clumping parameter
   real :: force_tolerance=1.      !< Permitted error in force calculation
   integer :: mac = 0  !< MAC (default=BH)
   integer :: walk_scheme = 0  !< Asynch/Collective walk algorithm 
@@ -214,8 +216,8 @@ module physvars
   character*7 :: beam_configs(0:9)=(/ &
        'eqm    ','beam   ','i-beam ','laser-u','ES pond','LWFA   ', &
        'EMplane','EM pond',' dust  ','       ' /)
-  character*7 :: schemes(1:6)=(/ &
-       'const U','Te, Ti ','glob Te','loc  Te','Ti only','Full 3V' /)
+  character*7 :: schemes(1:7)=(/ &
+       'const U','Te, Ti ','glob Te','loc  Te','Ti only','Full 3V','non-rel' /)
 
 !  Redundant variables retained for namelist compatibility
   real :: q_factor=1.0

@@ -230,7 +230,8 @@ subroutine configure
             !        plasma_centre =  (/ 0., 0., 0. /) ! Centre of plasma
             offset_e = me*nep + ne_rest
             offset_i = ne + me*nip + ni_rest
-
+	    vti = Ti_keV  ! Te represents vte/vmax in CE units
+	    vte = Te_keV
 
 ! Ion mass set to unity to define CE timescale (omega_pi^-1)
             call plasma_start( nep+1, nip, ni, offset_i, target_geometry, 0, idim, &
@@ -240,7 +241,7 @@ subroutine configure
             ! create spherically symmetric cluster with Andreev profile
             ! r_layer(1) is characteristic radius r0
 
-            call cluster_sa(nep+1,nip,r_layer(1),r_sphere,qi,Qplas,plasma_centre,mass_ratio)
+            call cluster_sa(nep+1,nip,r_layer(1),rho_layer(1),r_sphere,qi,Qplas,plasma_centre,mass_ratio)
 
             ! Electrons: use same geometry but reduced charge density
             ! - should get qe=-qi; masses reduced by miome
@@ -522,13 +523,22 @@ subroutine configure
     sigma_e = 1./nu_ei   ! Spitzer conductivity
     intensity = 0.2*vosc**2*omega**2  ! normalised laser intensity
 
-    if (ne>0) then
+    energy_units: select case(plasma_config)  ! TODO: Should have extra switch for unit system
+
+    case(6) ! Andreev profile - allow for x 1/2 factor in energies with CE norms 
+	convert_erg = 2*(ni*4.8e-10)**2/r_layer(1)  ! Radius in cm
+	convert_kev = convert_erg/1.6e-9
+
+    case default
+      if (ne>0) then
         convert_keV = 511./abs(qe)     ! convert from code energy units to keV
         convert_erg = 8.16e-7/abs(qe)
-    else
+      else
         convert_keV = 511./abs(qi)
         convert_erg = 8.16e-7/qi
-    endif
+      endif
+
+    end select energy_units
 
 
     if (mc_init) call mc_config  ! Do MC min-PE initialisation depending on config

@@ -33,14 +33,27 @@ subroutine kinenergy(ekine,ekini,ebeam)
     gamma = sqrt(1.0 + uhx(p)**2 + uhy(p)**2 + uhz(p)**2)
     if (pelabel(p) <= ne) then
      !  Sum local plasma electron kinetic energy
-      sum_plas_e = sum_plas_e + m(p)*(gamma - 1.0)
+      if (scheme.eq.7) then
+  ! non-relativistic - u not normalised to c
+        sum_plas_e = sum_plas_e + 0.5*m(p)*(uhx(p)**2+uhy(p)**2+uhz(p)**2)
+      else
+        sum_plas_e = sum_plas_e + m(p)*(gamma - 1.0)
+      endif
 
     else if (pelabel(p) <=ne+ni) then
-      sum_plas_i = sum_plas_i + m(p)*(gamma - 1.0)
+      if (scheme.eq.7) then
+        sum_plas_i = sum_plas_i + 0.5*m(p)*(uhx(p)**2+uhy(p)**2+uhz(p)**2)
+      else
+        sum_plas_i = sum_plas_i + m(p)*(gamma - 1.0)
+      endif
 
-       else
+    else
      !  Sum beam energy
-      sum_beam = sum_beam + m(p)*(gamma - 1.0)
+      if (scheme.eq.7) then
+        sum_beam = sum_beam + 0.5*m(p)*(uhx(p)**2+uhy(p)**2+uhz(p)**2)
+      else
+        sum_beam = sum_beam + m(p)*(gamma - 1.0)
+      endif
     endif
  end do
 

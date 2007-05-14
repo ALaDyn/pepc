@@ -38,7 +38,6 @@ subroutine diagnostics
 
   ! Interface to VISIT (Online visualisation)
 
-  if (u_beam>0 .and. beam_config==3) scheme=1  ! Switch off Te control if beam on
 
 #ifdef VISIT_NBODY
   if ( vis_on ) then

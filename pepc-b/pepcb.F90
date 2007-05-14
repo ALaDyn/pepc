@@ -72,7 +72,10 @@ program pepcb
 
 ! Allocate array space for tree
   call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,debug_rank) 
- 
+
+! call closefiles
+!  call MPI_FINALIZE(ierr)
+! stop 
 ! ---- Preprocess VISIT setup -----------
  
 #ifdef VISIT_NBODY

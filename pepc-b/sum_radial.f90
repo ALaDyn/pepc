@@ -182,7 +182,7 @@ subroutine sum_radial(timestamp)
              ex_g(i-1), ey_g(i-1), ez_g(i-1), phi_g(i-1), w_g(i-1))
      end do
  
-     Er_glob(0:ngr) = force_const*Ex_g(0:ngr)    !  Radial field
+     Er_glob(0:ngr) = Ex_g(0:ngr)    !  Radial field (leave off norm constant)
   endif
 
 ! Write out to file
@@ -193,7 +193,7 @@ subroutine sum_radial(timestamp)
      open (60,file=cfile)
      write(60,'(9(a12))') '!   r      ',' r/r0   ','ne    ','ni   ','rhoe   ','rhoi   ','ve   ','vi   ','er'
      write(60,'((10(1pe12.4)))') &
-          (i*dr, i*dr/r_layer(1), ge_glob(i)/max(1,ne), gi_glob(i)/max(1,ni), max(ne_glob(i),1.e-10), max(ni_glob(i),1.e-10), ve_glob(i), vi_glob(i), max(er_glob(i),1.e-10), phi_g(i), i=0,ngr)
+          (i*dr, i*dr, ge_glob(i)/max(1,ne), gi_glob(i)/max(1,ni), max(ne_glob(i),1.e-10), max(ni_glob(i),1.e-10), ve_glob(i), vi_glob(i), max(er_glob(i),1.e-10), phi_g(i), i=0,ngr)
      close(60)
 
   endif

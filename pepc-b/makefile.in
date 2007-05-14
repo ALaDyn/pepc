@@ -57,7 +57,7 @@ SOURCES.f90 =   \
                 open_files.f90 close_files.f90  \
                 densities.f90 sum_fields.f90 dump_fields.f90 sum_radial.f90 \
                 track_nc.f90 sum_fieldave.f90 \
-                integrator.f90 abort.f90 \
+                integrator.f90 abort.f90 push_nonrel.f90 \
 	        error_test.f90 force_direct.f90 laser_hist.f90
 
 # -------------------------------------------------------------------------------------------

@@ -6,13 +6,26 @@ subroutine integrator
   implicit none
 
   ! Integrator
-  if (scheme == 6 ) then
-     call push_full3v(1,npp,dt)  ! full EM pusher (all E, B components)
-  else
-     call velocities(1,npp,dt)  ! pure ES, NVT ensembles
-  endif
 
-  call push_x(1,npp,dt)  ! update positions
+ if (me==0) write(*,*) 'Push with scheme',scheme
+  pusher: select case(scheme)
+
+  case(1,2,3,4,5)
+     call velocities(1,npp,dt)  ! pure ES, NVT ensembles
+     call push_x(1,npp,dt)  ! update positions
+
+  case(6) 
+     call push_full3v(1,npp,dt)  ! full EM pusher (all E, B components)
+     call push_x(1,npp,dt)  ! update positions
+
+  case(7)
+     call velocities(1,npp,dt)  ! nonrelativistic push
+     call push_nonrel(1,npp,dt)
+  case default
+     ! do nothing!
+
+  end select pusher
+
 
 
   boundaries: select case(particle_bcs)

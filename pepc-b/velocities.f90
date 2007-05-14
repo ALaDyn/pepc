@@ -50,7 +50,9 @@ subroutine velocities(p_start,p_finish,delta_t)
 
   delta_u = acmax*delta_t
 
-  if (scheme == 2) then
+ pusher: select case(scheme)
+
+ case(2)
      ! Conserve kinetic energies of electrons and ions (initial Te const)
      ! adapted from
      !  Allen and Tildesley p230, Brown & Clark, Mol. Phys. 51, 1243 (1984)
@@ -137,7 +139,7 @@ subroutine velocities(p_start,p_finish,delta_t)
      !     heate = heate + delta_Te
 
 
-  else if (scheme ==3) then
+  case(3)
 
 ! electrons clamped, ions frozen
 
@@ -191,8 +193,8 @@ subroutine velocities(p_start,p_finish,delta_t)
      delta_Ti=0.
      delta_Te = 2*Te0*(1.0/chie**2-1.0)       !  heating
 
-  else if (scheme ==4) then
 
+  case(4)
 
 ! electrons clamped locally, ions frozen
 ! - require T=T_e on each PE to avoid local drifts
@@ -247,7 +249,8 @@ subroutine velocities(p_start,p_finish,delta_t)
      delta_Te = 2*Te0*(1.0/chie**2-1.0)       !  heating
 
 
-  else if (scheme == 5) then
+  case(5)
+
      ! Conserve kinetic energy of ions only (initial Ti const)
      mass_eqm = 20.  ! artificial ion mass for eqm stage
      sum_vxi=0.0  ! partial sums (ions)
@@ -308,9 +311,9 @@ subroutine velocities(p_start,p_finish,delta_t)
      endif
 
 
-  else
-
-     ! unconstrained motion by default (scheme=1)
+  case default
+  if (me==0) write(*,*) 'PEPC | velocities scheme',scheme
+     ! unconstrained motion by default (scheme=1,7)
    if (idim==3) then
      do p = p_start, p_finish
 	ux(p) = ux(p) + delta_t * accx(p)
@@ -327,7 +330,8 @@ subroutine velocities(p_start,p_finish,delta_t)
 	ux(p) = ux(p) + delta_t * accx(p)
      end do
    endif
-  endif
+ 
+  end select pusher
 
 end subroutine velocities
 

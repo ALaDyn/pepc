@@ -50,7 +50,7 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
 	     ' Total: ',etot, etot*convert_keV, etot*convert_erg, &
              ' Laser energy = ',elaser
 
-        write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',.67*convert_kev*ekine/max(1,ne),'Ti (keV):',.67*convert_kev*ekini/max(1,ni)
+        write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',convert_kev*ekine/max(1,ne),'Ti (keV):',convert_kev*ekini/max(1,ni)
      end do
      ! Write out to energy.dat file
      if (itime.eq.1)  write(75,'(a)') '! time  Upot  Umag  Ukin_e Ukin_i Ukin_beam Utot Tpon xc'
