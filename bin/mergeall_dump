@@ -45,14 +45,14 @@ do
 	# make copy of info block
 	cp pe0000/parts_info.$TIMESTAMP ../dumps/parts_info.$TIMESTAMP
 	echo
-        echo "Compressing ..."
-       gzip $DUMPFILE
+#        echo "Compressing $DUMPFILE .."
+#       gzip $DUMPFILE
   else
 	echo "Dump $TIMESTAMP already exists"
-        if [ -f $DUMPFILE ]; then
-	   echo "Compressing .."
-	   gzip $DUMPFILE
- 	fi
+#        if [ -f $DUMPFILE ]; then
+#	   echo "Compressing .."
+#	   gzip $DUMPFILE
+# 	fi
   fi 
 done
 echo "... done"

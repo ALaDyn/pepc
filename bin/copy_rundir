@@ -3,8 +3,8 @@
 # Shell script to create new run directories 
 # PEs listed in PE_list
 
-DATADIR=`pwd`/$1
-NEWDIR=`pwd`/$2
+DATADIR=$1
+NEWDIR=$2
 STAMP=$3
 if [ ! -d $NEWDIR ]; then
   mkdir $NEWDIR
