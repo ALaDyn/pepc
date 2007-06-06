@@ -492,7 +492,8 @@
 
 
 
-        case(35)  ! A.P.L.R's third set-up (19th May 2006)
+        case(35)  ! A.P.L.Rs third set-up (19th May 2006)
+
             !=====================================================
 
             target_geometry=0
