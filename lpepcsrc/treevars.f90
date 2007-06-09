@@ -101,8 +101,12 @@ module treevars
 
   integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
   			nprops_multipole=25      ! Number of multipole properties to ship
-  integer, dimension(nprops_multipole) :: blocklengths, displacements, types, address
-  integer :: send_base, receive_base, mpi_type_particle, mpi_type_multipole
+  integer, dimension(nprops_multipole) :: blocklengths, displacements, types
+  integer :: mpi_type_particle, mpi_type_multipole
+
+  ! address calculation, 8 byte 
+  integer*8, dimension(nprops_multipole) :: address
+  integer*8 :: send_base, receive_base
   
 
   !  tree variables
@@ -239,5 +243,6 @@ module treevars
   integer*8, allocatable ::  pivots(:)  ! Pivot buffer for sort
 
 end module treevars
+
 
 

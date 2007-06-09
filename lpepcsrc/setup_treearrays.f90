@@ -1,5 +1,6 @@
 subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult)
   use treevars
+  use tree_utils
   implicit none
   include 'mpif.h'
 
@@ -17,6 +18,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   character(3) :: cme
   character(30) :: cfile
   real, parameter :: mb=2.**20
+
+  type (particle) :: ship_props_a, get_props_a
 
 ! copy call parameters to treevars module
 
@@ -72,7 +75,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
     nppm = 5*max(npartm/num_pe,1000) ! allow 50% fluctuation
   endif
   
-  nshortm = 1000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
+!WF changed from 1000 
+  nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
@@ -207,26 +211,26 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   types(13) = MPI_INTEGER8
   types(14:15) = MPI_INTEGER
 
-  call MPI_ADDRESS( get_props%x, receive_base, ierr )  ! Base address for receive buffer
-  call MPI_ADDRESS( ship_props%x, send_base, ierr )  ! Base address for send buffer
+  call LOCADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
+  call LOCADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
 
 
 
-  call MPI_ADDRESS( ship_props%x, address(1), ierr )
-  call MPI_ADDRESS( ship_props%y, address(2), ierr )
-  call MPI_ADDRESS( ship_props%z, address(3), ierr )
-  call MPI_ADDRESS( ship_props%ux, address(4), ierr )
-  call MPI_ADDRESS( ship_props%uy, address(5), ierr )
-  call MPI_ADDRESS( ship_props%uz, address(6), ierr )
-  call MPI_ADDRESS( ship_props%q, address(7), ierr )
-  call MPI_ADDRESS( ship_props%m, address(8), ierr )
-  call MPI_ADDRESS( ship_props%work, address(9), ierr )
-  call MPI_ADDRESS( ship_props%ax, address(10), ierr )
-  call MPI_ADDRESS( ship_props%ay, address(11), ierr )
-  call MPI_ADDRESS( ship_props%az, address(12), ierr )
-  call MPI_ADDRESS( ship_props%key, address(13), ierr )
-  call MPI_ADDRESS( ship_props%label, address(14), ierr )
-  call MPI_ADDRESS( ship_props%pid, address(15), ierr )
+  call LOCADDRESS( ship_props_a%x, address(1), ierr )
+  call LOCADDRESS( ship_props_a%y, address(2), ierr )
+  call LOCADDRESS( ship_props_a%z, address(3), ierr )
+  call LOCADDRESS( ship_props_a%ux, address(4), ierr )
+  call LOCADDRESS( ship_props_a%uy, address(5), ierr )
+  call LOCADDRESS( ship_props_a%uz, address(6), ierr )
+  call LOCADDRESS( ship_props_a%q, address(7), ierr )
+  call LOCADDRESS( ship_props_a%m, address(8), ierr )
+  call LOCADDRESS( ship_props_a%work, address(9), ierr )
+  call LOCADDRESS( ship_props_a%ax, address(10), ierr )
+  call LOCADDRESS( ship_props_a%ay, address(11), ierr )
+  call LOCADDRESS( ship_props_a%az, address(12), ierr )
+  call LOCADDRESS( ship_props_a%key, address(13), ierr )
+  call LOCADDRESS( ship_props_a%label, address(14), ierr )
+  call LOCADDRESS( ship_props_a%pid, address(15), ierr )
 
   displacements(1:nprops_particle) = address(1:nprops_particle) - send_base  !  Addresses relative to start of particle (receive) data
 
@@ -243,35 +247,35 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   types(5) = MPI_INTEGER8
   types(6:25) = MPI_REAL8
 
-  call MPI_ADDRESS( node_dummy%key, send_base, ierr )  ! Base address for send buffer
+  call LOCADDRESS( node_dummy%key, send_base, ierr )  ! Base address for send buffer
 
 
 
-  call MPI_ADDRESS( node_dummy%key, address(1), ierr )
-  call MPI_ADDRESS( node_dummy%byte, address(2), ierr )
-  call MPI_ADDRESS( node_dummy%leaves, address(3), ierr )
-  call MPI_ADDRESS( node_dummy%owner, address(4), ierr )
-  call MPI_ADDRESS( node_dummy%next, address(5), ierr )
-  call MPI_ADDRESS( node_dummy%q, address(6), ierr )
-  call MPI_ADDRESS( node_dummy%absq, address(7), ierr )
-  call MPI_ADDRESS( node_dummy%xcoc, address(8), ierr )
-  call MPI_ADDRESS( node_dummy%ycoc, address(9), ierr )
-  call MPI_ADDRESS( node_dummy%zcoc, address(10), ierr )
-  call MPI_ADDRESS( node_dummy%xdip, address(11), ierr )
-  call MPI_ADDRESS( node_dummy%ydip, address(12), ierr )
-  call MPI_ADDRESS( node_dummy%zdip, address(13), ierr )
-  call MPI_ADDRESS( node_dummy%xxquad, address(14), ierr )
-  call MPI_ADDRESS( node_dummy%yyquad, address(15), ierr )
-  call MPI_ADDRESS( node_dummy%zzquad, address(16), ierr )
-  call MPI_ADDRESS( node_dummy%xyquad, address(17), ierr )
-  call MPI_ADDRESS( node_dummy%yzquad, address(18), ierr )
-  call MPI_ADDRESS( node_dummy%zxquad, address(19), ierr )
-  call MPI_ADDRESS( node_dummy%jx, address(20), ierr )
-  call MPI_ADDRESS( node_dummy%jy, address(21), ierr )
-  call MPI_ADDRESS( node_dummy%jz, address(22), ierr )
-  call MPI_ADDRESS( node_dummy%magmx, address(23), ierr )
-  call MPI_ADDRESS( node_dummy%magmy, address(24), ierr )
-  call MPI_ADDRESS( node_dummy%magmz, address(25), ierr )
+  call LOCADDRESS( node_dummy%key, address(1), ierr )
+  call LOCADDRESS( node_dummy%byte, address(2), ierr )
+  call LOCADDRESS( node_dummy%leaves, address(3), ierr )
+  call LOCADDRESS( node_dummy%owner, address(4), ierr )
+  call LOCADDRESS( node_dummy%next, address(5), ierr )
+  call LOCADDRESS( node_dummy%q, address(6), ierr )
+  call LOCADDRESS( node_dummy%absq, address(7), ierr )
+  call LOCADDRESS( node_dummy%xcoc, address(8), ierr )
+  call LOCADDRESS( node_dummy%ycoc, address(9), ierr )
+  call LOCADDRESS( node_dummy%zcoc, address(10), ierr )
+  call LOCADDRESS( node_dummy%xdip, address(11), ierr )
+  call LOCADDRESS( node_dummy%ydip, address(12), ierr )
+  call LOCADDRESS( node_dummy%zdip, address(13), ierr )
+  call LOCADDRESS( node_dummy%xxquad, address(14), ierr )
+  call LOCADDRESS( node_dummy%yyquad, address(15), ierr )
+  call LOCADDRESS( node_dummy%zzquad, address(16), ierr )
+  call LOCADDRESS( node_dummy%xyquad, address(17), ierr )
+  call LOCADDRESS( node_dummy%yzquad, address(18), ierr )
+  call LOCADDRESS( node_dummy%zxquad, address(19), ierr )
+  call LOCADDRESS( node_dummy%jx, address(20), ierr )
+  call LOCADDRESS( node_dummy%jy, address(21), ierr )
+  call LOCADDRESS( node_dummy%jz, address(22), ierr )
+  call LOCADDRESS( node_dummy%magmx, address(23), ierr )
+  call LOCADDRESS( node_dummy%magmy, address(24), ierr )
+  call LOCADDRESS( node_dummy%magmz, address(25), ierr )
 
   displacements(1:nprops_multipole) = address(1:nprops_multipole) - send_base   !  Addresses relative to start of particle (receive) data
 
@@ -294,6 +298,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   max_prefetches = 0
 
 end subroutine pepc_setup
+
 
 
 

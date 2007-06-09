@@ -45,6 +45,12 @@ module tree_utils
      module procedure uniq8
   end interface
 
+  interface locaddress
+     module procedure locaddress_int4_8
+     module procedure locaddress_int8_8
+     module procedure locaddress_real8_8
+  end interface
+
 contains
 
 ! ================
@@ -1230,5 +1236,37 @@ search_list = 8_8**lev_map  ! place holder
   end subroutine uniq8
 
 
+! Get address of variable
+  subroutine locaddress_int4_8(location, addr, ierr)
+    integer   :: location
+    integer*8 :: addr
+    integer   :: ierr,addr4
+    addr = LOC(location)
+    ierr=0
+!   call MPI_ADDRESS( location, addr4, ierr )
+!   addr=addr4
+  end subroutine locaddress_int4_8
+
+  subroutine locaddress_int8_8(location, addr, ierr)
+    integer*8 :: location
+    integer*8 :: addr
+    integer   :: ierr,addr4
+    addr = LOC(location)
+    ierr=0
+!   call MPI_ADDRESS( location, addr4, ierr )
+!   addr=addr4
+  end subroutine locaddress_int8_8
+
+
+  subroutine locaddress_real8_8(location, addr, ierr)
+    real*8    :: location
+    integer*8 :: addr
+    integer   :: ierr,addr4
+    addr = LOC(location)
+    ierr=0
+!   call MPI_ADDRESS( location, addr4, ierr )
+!   addr=addr4
+  end subroutine locaddress_real8_8
 
 end module tree_utils
+
