@@ -1,0 +1,21 @@
+1. Access: /opt/sshtools/bin/sshterm.sh (from FZJ IP - use VPN from outside)
+
+2. Checkout PEPC:
+ 	Generate ssh keys on scarf
+ 	Copy .ssh/id_rsa.pub to authorized_keys on zam040 (otherwise email to a.visser@fz-juelich.de)
+	svn checkout svn+ssh://gibbon@zam040.zam.kfa-juelich.de/subversion/cams/extern/pepc/trunk pepc
+
+3. Define fortran compiler:
+	module load intel
+	export DEFAULT_F77=ifort
+
+4. Compilation:
+	cd pepc
+   	./configure
+	make
+
+5. Job submission:
+	Adapt eqm.scf
+	bsub < eqm.scf
+	bjobs  			status
+	bjobs -q scarf-lexicon  
