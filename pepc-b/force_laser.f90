@@ -22,14 +22,14 @@ subroutine force_laser(p_start,p_finish)
 
   integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
   integer :: p
-  real :: xd, yd, zd  ! positions relative to centre of laser spot
+  real :: xd, yd, zd  ! positions relative to center of laser spot
   real :: uxd ! x-momentum
-  real :: xt, yt, zt, rt  ! positions relative to plasma centre
+  real :: xt, yt, zt, rt  ! positions relative to plasma center
   real :: Epon_x, Epon_y, Epon_z, Phipon, ex_em, ey_em, ez_em, bx_em, by_em, bz_em, az_em
 
   dxh = (xh_end-xh_start)/nxh  ! HH grid spacing
 
-  if (itime>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
+  if (current_step>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
 
   ! Include force from laser/external field on electrons - ES scheme
 
@@ -154,9 +154,9 @@ subroutine force_laser(p_start,p_finish)
            Bz_em = vosc
 
 	else if (beam_config_in==17)  then !  Z-pinch: circular B in x,y
-           xt=x(p) - plasma_centre(1)
-           yt=y(p) - plasma_centre(2)
-           zt=z(p) - plasma_centre(3)
+           xt=x(p) - plasma_center(1)
+           yt=y(p) - plasma_center(2)
+           zt=z(p) - plasma_center(3)
            rt = sqrt(xt**2+yt**2)
            Epon_x=0.
            Epon_y=0.
@@ -166,9 +166,9 @@ subroutine force_laser(p_start,p_finish)
            Bz_em = 0.
 
 	else if (beam_config_in==27)  then !  Tokamak: circular B in theta + const Bz
-           xt=x(p) - plasma_centre(1)
-           yt=y(p) - plasma_centre(2)
-           zt=z(p) - plasma_centre(3)
+           xt=x(p) - plasma_center(1)
+           yt=y(p) - plasma_center(2)
+           zt=z(p) - plasma_center(3)
            rt = sqrt(xt**2+yt**2)
            Epon_x=0.
            Epon_y=0.
@@ -178,9 +178,9 @@ subroutine force_laser(p_start,p_finish)
            Bz_em = vosc
 
 	else if (beam_config_in==37)  then !  Mirror in Bz
-           xt=x(p) - plasma_centre(1)
-           yt=y(p) - plasma_centre(2)
-           zt=z(p) - plasma_centre(3)
+           xt=x(p) - plasma_center(1)
+           yt=y(p) - plasma_center(2)
+           zt=z(p) - plasma_center(3)
            rt = sqrt(xt**2+yt**2)
            Epon_x=0.
            Epon_y=0.

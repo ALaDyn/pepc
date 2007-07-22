@@ -83,7 +83,7 @@ subroutine setup
   ivis = 1
   ivis_fields = 1
   ivis_domains = 1
-  itime_start = 0
+  start_step = 0
   itrack = 10
 
   ngx = 25   ! Grid size for plots
@@ -129,7 +129,7 @@ subroutine setup
 
   npart_total = ni+ne
   npp = npart_total/n_cpu  ! initial total # particles per processor
-  nppm = npp*1.5
+  pe_capacity = npp*1.5
 
   geometry: select case(target_geometry)
 
@@ -137,75 +137,75 @@ subroutine setup
      Vplas = x_plasma * y_plasma * z_plasma  ! plasma volume
      Aplas = x_plasma * y_plasma ! plasma area
      focus = (/xl / 2 + x_offset, yl / 2., zl / 2./) ! Centre of laser focal spot
-     plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     plasma_center =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 6
 
   case(1) ! sphere
      Vplas = 4 * pi * r_sphere**3 / 3.
      Aplas = pi*r_sphere**2
      focus = (/xl / 2. - r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
-     plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     plasma_center = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 1
 
   case(2) ! disc
      Vplas = pi * r_sphere**2 * x_plasma
      Aplas = x_plasma*y_plasma
      focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./) ! Centre of laser focal spot
-     plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma        
+     plasma_center = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma        
      number_faces = 3
 
   case(3) ! wire
      Vplas = pi * r_sphere**2 * z_plasma
      Aplas = pi*r_sphere**2
      focus = (/xl / 2. - r_sphere + x_offset, yl / 2., zl / 2. + z_offset/) ! Centre of laser focal spot
-     plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     plasma_center = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 3
 
   case(4) ! ellipsoid
      Vplas = 4 * pi * x_plasma * y_plasma * z_plasma / 3.
      Aplas = pi*x_plasma*y_plasma*2
      focus = (/xl / 2. - x_plasma * r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
-     plasma_centre = (/xl / 2., yl / 2., zl / 2./) 
+     plasma_center = (/xl / 2., yl / 2., zl / 2./) 
      number_faces = 1
 
   case(5) ! wedge
      Vplas = .5 * x_plasma * y_plasma * z_plasma
      Aplas = .5*x_plasma*y_plasma
      focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./)
-     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+     plasma_center = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 5
 
   case(6) ! hemisphere
      Vplas = 4 * pi * r_sphere**3 / 6.
      Aplas = pi*r_sphere**2/2.
      focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
-     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+     plasma_center = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 2
 
   case(7) ! hollow sphere
      Vplas = (4 * pi / 3.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
      Aplas = pi*(r_sphere**2-(r_sphere-x_plasma)**2)
      focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
-     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+     plasma_center = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 2
 
   case(8) ! hollow hemisphere
      Vplas = (4 * pi / 6.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
      Aplas = pi/2.*(r_sphere**2-(r_sphere-x_plasma)**2)
      focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
-     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
+     plasma_center = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 3
 
   end select geometry
 
-  window_min = plasma_centre(1) - x_plasma/2.
+  window_min = plasma_center(1) - x_plasma/2.
   propag_laser=focus(1)
 
   if (system_config==2) then ! Electrons only user-defined config (special_start)
      Vplas = x_plasma * y_plasma * z_plasma
      Aplas = x_plasma * y_plasma
      focus = (/xl /4., yl / 2., zl / 2./) ! Centre of laser focal spot
-     plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     plasma_center =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 6  
   endif
 
@@ -254,8 +254,8 @@ subroutine setup
 
   ! array allocation
 
-  allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
-       q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), pelabel(nppm), work(nppm) )
+  allocate ( x(pe_capacity), y(pe_capacity), z(pe_capacity), ux(pe_capacity), uy(pe_capacity), uz(pe_capacity), & 
+       q(pe_capacity), m(pe_capacity), Ex(pe_capacity), Ey(pe_capacity), Ez(pe_capacity), pot(pe_capacity), pelabel(pe_capacity), work(pe_capacity) )
 
 end subroutine setup
 

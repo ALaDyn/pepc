@@ -39,7 +39,7 @@ module physvars
   real :: x_plasma       ! initial plasma length (slab or disc targets)
   real :: y_plasma       ! initial plasma y-width (slab)
   real :: z_plasma       ! initial plasma z-width (slab)
-  real :: plasma_centre(3) ! vector defining centre of plasma target
+  real :: plasma_center(3) ! vector defining center of plasma target
   real :: x_crit         ! critical surface
   real :: x_offset       ! coordinate offset
   real :: z_offset       ! coordinate offset
@@ -91,7 +91,7 @@ module physvars
   real :: omega         ! frequency  (omega_p)
   real :: lambda        ! laser wavelength
   real :: theta_inc     ! angle of incidence
-  real :: focus(3)      ! centre of focal spot
+  real :: focus(3)      ! center of focal spot
   real :: tlaser        ! run time after laser switched on (1/omega_p)
   real :: elaser        ! deposited laser energy
   real :: propag_laser  ! distance travelled by laser after rezoning
@@ -104,7 +104,7 @@ module physvars
 !  Variables needing 'copy' for tree routines
   integer :: npart_total  ! Total # particles (npart)
   integer :: npp  ! Total # particles (npart)
-  integer :: nppm  ! Total # particles (npart)
+  integer :: pe_capacity  ! Total # particles (npart)
   real :: np_mult=1.5
   integer :: fetch_mult=2
 
@@ -140,8 +140,8 @@ module physvars
    real :: convert_fs     ! conversion factor from wp^-1 to fs
    real :: convert_mu     ! conversion factor from c/wp to microns
    real :: convert_keV     ! conversion factor from norm energy to keV/particle
-   integer :: nt, itime   ! # timesteps and current timestep
-   integer :: itime_start ! restart time stamp
+   integer :: nt, current_step   ! # timesteps and current timestep
+   integer :: start_step ! restart time stamp
    integer :: idump       ! output frequency (timesteps)
    integer :: db_level = 1  ! printed o/p debug level
    integer :: iprot=1       ! protocoll frequency

@@ -25,7 +25,7 @@ subroutine vis_domains_nbody
   integer :: nship, ierr, cpuid
 
 
-  simtime = dt*(itime+itime_start)
+  simtime = dt*(current_step+start_step)
 
   if (beam_config>=3 .and. beam_config<=5) then
      t_display = tlaser*convert_fs

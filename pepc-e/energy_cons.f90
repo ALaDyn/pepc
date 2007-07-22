@@ -38,7 +38,7 @@ subroutine energy_cons(ekine,ekini)
 
      end do
      ! Write out to energy.dat file
-     if (itime.eq.0)  write(75,'(a)') '! time  Upot  Ukin_e Ukin_i Utot '
+     if (current_step.eq.0)  write(75,'(a)') '! time  Upot  Ukin_e Ukin_i Utot '
      write (75,'(f12.5,4(1pe13.4))') trun, epot, ekine, ekini, etot
   endif
 end subroutine energy_cons

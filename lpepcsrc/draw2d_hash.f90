@@ -23,7 +23,7 @@ subroutine draw2d_hash
 
   integer*8 :: key_twig(ntwig), key_leaf(nleaf)
 
-  integer, dimension(nppm) :: ix, iy
+  integer, dimension(pe_capacity) :: ix, iy
 
   integer, dimension(ntwig) :: level_twig, node_twig       ! twig-nodes
   integer, dimension(nleaf) :: level_leaf, plist_leaf, ind_leaf       ! leaf-nodes

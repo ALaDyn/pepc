@@ -68,11 +68,11 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   npartm = npart
   if (n_cpu.eq.1) then
-    nppm=npart
+    pe_capacity=npart
   else if (np_mult>0) then 
-    nppm = abs(np_mult)*2*max(npartm/num_pe,1000) ! allow 50% fluctuation
+    pe_capacity = abs(np_mult)*2*max(npartm/num_pe,1000) ! allow 50% fluctuation
   else
-    nppm = 5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+    pe_capacity = 5*max(npartm/num_pe,1000) ! allow 50% fluctuation
   endif
   
 !WF changed from 1000 
@@ -93,7 +93,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
-   npsize=nppm
+   npsize=pe_capacity
    size_tree = max(4*nintmax+2*npsize,10000)
    if (np_mult>0) then
      nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
@@ -107,7 +107,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
      size_fetch = fetch_mult*size_tree/4
      nbranch_max = maxaddress/2
    else
-     size_fetch=nppm
+     size_fetch=pe_capacity
      nbranch_max = 5*nintmax
    endif
 
@@ -117,7 +117,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   work_local = 1 ! Initial value for local load
 
 ! Memory estimate
-  mem_parts = nppm*(22*8 + 2*4 + 8)
+  mem_parts = pe_capacity*(22*8 + 2*4 + 8)
   mem_lists = nshortm + nshortm*nintmax*(8+4)
   mem_tree =  maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
                       + num_pe * (4+4+4+4)  & ! request stuff
@@ -141,13 +141,13 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   ! array allocation
 
-  allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
-       q(nppm), m(nppm), work(nppm), &
-       Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), &
-       Ax(nppm), Ay(nppm), Az(nppm), &
-       Bx(nppm), By(nppm), Bz(nppm),  &
-       Axo(nppm), Ayo(nppm), Azo(nppm), &
-       pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
+  allocate ( x(pe_capacity), y(pe_capacity), z(pe_capacity), ux(pe_capacity), uy(pe_capacity), uz(pe_capacity), & 
+       q(pe_capacity), m(pe_capacity), work(pe_capacity), &
+       Ex(pe_capacity), Ey(pe_capacity), Ez(pe_capacity), pot(pe_capacity), &
+       Ax(pe_capacity), Ay(pe_capacity), Az(pe_capacity), &
+       Bx(pe_capacity), By(pe_capacity), Bz(pe_capacity),  &
+       Axo(pe_capacity), Ayo(pe_capacity), Azo(pe_capacity), &
+       pepid(pe_capacity), pelabel(pe_capacity), pekey(pe_capacity) )    ! Reserve particle array space N/NPE
 
 
 
@@ -186,7 +186,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   allocate ( charge(-maxtwig:maxleaf), &                    ! charge
        abs_charge(-maxtwig:maxleaf), &                ! absolute charge
-       xcoc(-maxtwig:maxleaf), ycoc(-maxtwig:maxleaf), zcoc(-maxtwig:maxleaf), &    ! centre of charge 
+       xcoc(-maxtwig:maxleaf), ycoc(-maxtwig:maxleaf), zcoc(-maxtwig:maxleaf), &    ! center of charge 
        xshift(-maxtwig:maxleaf), yshift(-maxtwig:maxleaf), zshift(-maxtwig:maxleaf), &    ! shift vector
        xdip(-maxtwig:maxleaf), ydip(-maxtwig:maxleaf), zdip(-maxtwig:maxleaf), &          ! dipole moment
        xxquad(-maxtwig:maxleaf), yyquad(-maxtwig:maxleaf), zzquad(-maxtwig:maxleaf), &       ! quadrupole moment
@@ -283,7 +283,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
   if (me==0 .and. db_level>0) then
-    write(*,*) 'nppm= ',nppm
+    write(*,*) 'pe_capacity= ',pe_capacity
     write(*,*) 'size_tree= ',size_tree
     write(*,*) 'max address = ',maxaddress
     write(*,*) 'max leaf = ',maxleaf

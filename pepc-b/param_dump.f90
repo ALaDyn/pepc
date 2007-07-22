@@ -34,7 +34,7 @@ subroutine param_dump
         if (ramp) then
            write (ifile,'(a20,f12.3)') ' n_min: ', rho_min
            write (ifile,'(a20,f12.3)') ' k_p L: ', lolam
-           write (ifile,'(a20,f12.3)') ' x_sol: ', plasma_centre(1)-x_plasma/2.+lolam*(1-rho_min)
+           write (ifile,'(a20,f12.3)') ' x_sol: ', plasma_center(1)-x_plasma/2.+lolam*(1-rho_min)
 
         endif
 
@@ -97,7 +97,7 @@ subroutine param_dump
         write (ifile,*) 'Max # multipole fetches: ',size_fetch
         machinebits = bit_size(1_8)    ! # bits in integer variable (hardware) 
         write (ifile,*) 'Machine bit-size = ',machinebits
-        write (ifile,*) 'Max permitted particles / PE: ', nppm
+        write (ifile,*) 'Max permitted particles / PE: ', pe_capacity
         write (ifile,*) 'Max size of interaction lists: ', nintmax
 	write (ifile,*) 'Shortlist length: ',nshortm
 

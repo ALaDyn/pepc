@@ -86,9 +86,9 @@ subroutine mc_config
 	   x(i) = xold + xs
 	   y(i) = yold + ys
 	   z(i) = zold + zs
-	   xt = x(i) - plasma_centre(1)
-	   yt = y(i) - plasma_centre(2)
-	   zt = z(i) - plasma_centre(3)
+	   xt = x(i) - plasma_center(1)
+	   yt = y(i) - plasma_center(2)
+	   zt = z(i) - plasma_center(3)
 	   if (q(i) <0) then 
 	      r_limit = r_sphere +10*vte   ! allow for Debye sheath
 	      x_limit = x_plasma/2. + 10*vte

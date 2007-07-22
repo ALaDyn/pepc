@@ -9,7 +9,7 @@
 ! 
 ! ==============================================
 
-subroutine cluster_sa(i1,nip,r0,n0,r_sphere,qi,Qplas,plasma_centre,miome)
+subroutine cluster_sa(i1,nip,r0,n0,r_sphere,qi,Qplas,plasma_center,miome)
 
     use treevars
     use utils
@@ -18,7 +18,7 @@ subroutine cluster_sa(i1,nip,r0,n0,r_sphere,qi,Qplas,plasma_centre,miome)
 
     real, intent(in) :: r0  ! characteristic radius (cm)
     real, intent(in) :: n0  ! characteristic cluster density (cm**-3)
-    real, intent(in) :: plasma_centre(3) !  sphere centre
+    real, intent(in) :: plasma_center(3) !  sphere center
     real, intent(in) :: r_sphere ! equivalent sphere radius for qi 
     real, intent(in) :: qi ! particle charge - already assigned in configure (plasma_start)
     real, intent(in) :: Qplas ! total plasma charge = 1
@@ -44,7 +44,7 @@ subroutine cluster_sa(i1,nip,r0,n0,r_sphere,qi,Qplas,plasma_centre,miome)
     zeta_max = 0.23  ! start point r(0.23)=0.1125
 
 ! # ions in central region
-!    r_c = 0.1125  ! centre radius normalised to r0 
+!    r_c = 0.1125  ! center radius normalised to r0 
     r_c = t_start*cosh(zeta_max)**2/(sinh(2*zeta_max)/2. + zeta_max)  ! Radius associated with zeta_max
     dens0 = 1./3./t_start**2*(sinh(2*zeta_max)/2. + zeta_max)**2/(cosh(zeta_max)**4*(1.-zeta_max*tanh(zeta_max)))
  
@@ -54,7 +54,7 @@ subroutine cluster_sa(i1,nip,r0,n0,r_sphere,qi,Qplas,plasma_centre,miome)
 
     n_max = n0*dens0
 !    N_c = 4*pi/3.*n_max*(r_c*r0)**3 ! # ions in central portion
-    Q_c = 0.041  ! Charge in centre (fixed to give correct field - 4pi/3 rho_m r_c^3; rho_m=6.917)
+    Q_c = 0.041  ! Charge in center (fixed to give correct field - 4pi/3 rho_m r_c^3; rho_m=6.917)
     N_c = Q_c/qi
     nitot = Qplas/qi  ! total ions (check)
     n0n = Q_c*3/4/pi/r_c**3 ! normalised central density
@@ -75,8 +75,8 @@ subroutine cluster_sa(i1,nip,r0,n0,r_sphere,qi,Qplas,plasma_centre,miome)
     offset = me*(nip-N_c/num_pe)  ! shell offset same for all
 
     if (me==0) then
-      write(*,'(a30,3i12)') "Total ions, in centre/outside:",nitot,N_c,N_s
-      write(*,'(a42,3i12)') "Local ions in centre/outside:",npi_c,npi_s
+      write(*,'(a30,3i12)') "Total ions, in center/outside:",nitot,N_c,N_s
+      write(*,'(a42,3i12)') "Local ions in center/outside:",npi_c,npi_s
        write(*,'(a30,4(1pe12.4))') "Densities:", n0, n_max, dens0, n0n, Qnorm
      write(*,'(a30,3f12.4)') "Radii r_eff, r_c, r0:", r_sphere, r_c, r0
       write(*,'(a30,3f12.4)') "Charge Q_tot, Q_c, Q_s",Qplas, Q_c, Q_s
@@ -86,14 +86,14 @@ subroutine cluster_sa(i1,nip,r0,n0,r_sphere,qi,Qplas,plasma_centre,miome)
     do i=1,npi_c
 	p = i + i1-1  ! local index (including offset)
         j = me*(npi_c-np_rest) + i   ! Unique global particle #
-       	xt = x(p)-plasma_centre(1)
-	yt = y(p)-plasma_centre(2)
-	zt = z(p)-plasma_centre(3)
+       	xt = x(p)-plasma_center(1)
+	yt = y(p)-plasma_center(2)
+	zt = z(p)-plasma_center(3)
 	xi = (1.*j/N_c)**(1./3.) !  inversion for uniform density
 	rt = sqrt(xt**2+yt**2+zt**2)
-        x(p) = plasma_centre(1) + xt/rt*r_c*xi  ! keep direction vector; scale by inner sphere radius 
-	y(p) = plasma_centre(2) + yt/rt*r_c*xi
-	z(p) = plasma_centre(3) + zt/rt*r_c*xi
+        x(p) = plasma_center(1) + xt/rt*r_c*xi  ! keep direction vector; scale by inner sphere radius 
+	y(p) = plasma_center(2) + yt/rt*r_c*xi
+	z(p) = plasma_center(3) + zt/rt*r_c*xi
 ! Scale velocities according to ss value at radius r_c 
 !          ux(i) = tanh(zeta_max)*xt/rt*xi
 !          uy(i) = tanh(zeta_max)*yt/rt*xi
@@ -139,16 +139,16 @@ subroutine cluster_sa(i1,nip,r0,n0,r_sphere,qi,Qplas,plasma_centre,miome)
 
      if (Qt > j*qi) then
 ! place particle
-          xt = x(i)-plasma_centre(1)  ! Get direction vector
-          yt = y(i)-plasma_centre(2)
-          zt = z(i)-plasma_centre(3)
+          xt = x(i)-plasma_center(1)  ! Get direction vector
+          yt = y(i)-plasma_center(2)
+          zt = z(i)-plasma_center(3)
           rt = sqrt(xt**2+yt**2+zt**2)
 !         write (ipefile,'(i6,a23,4f15.5)') i,'r/r0, zeta, integ, Qt',rp,zeta,integ,Qt
 !         if (me==0) write (*,'(2i6,a23,5(1pe15.7))') i,j,' r/r0, dens, integ, Qt/qi',rp,dens,Qt/qi
 
-          x(i) = plasma_centre(1) + xt/rt*rp  ! scale by sphere radius 
-          y(i) = plasma_centre(2) + yt/rt*rp
-          z(i) = plasma_centre(3) + zt/rt*rp
+          x(i) = plasma_center(1) + xt/rt*rp  ! scale by sphere radius 
+          y(i) = plasma_center(2) + yt/rt*rp
+          z(i) = plasma_center(3) + zt/rt*rp
 ! Scale velocities according to ss value at radius rp 
 !          ux(i) = th*xt/rt
 !          uy(i) = th*yt/rt

@@ -25,18 +25,18 @@ subroutine configure
 
 
      if (vte > 0) then
-        call maxwell1(ux,nppm,1,nep,vte)
-        call maxwell1(uy,nppm,1,nep,vte)
-        call maxwell1(uz,nppm,1,nep,vte)
+        call maxwell1(ux,pe_capacity,1,nep,vte)
+        call maxwell1(uy,pe_capacity,1,nep,vte)
+        call maxwell1(uz,pe_capacity,1,nep,vte)
         call scramble_v(1,nep)   ! remove x,y,z correlations
      else
         call cold_start(1,nep)
      endif
 
      if (vti > 0) then
-        call maxwell1(ux,nppm,nep+1,nip,vti)
-        call maxwell1(uy,nppm,nep+1,nip,vti)
-        call maxwell1(uz,nppm,nep+1,nip,vti)
+        call maxwell1(ux,pe_capacity,nep+1,nip,vti)
+        call maxwell1(uy,pe_capacity,nep+1,nip,vti)
+        call maxwell1(uz,pe_capacity,nep+1,nip,vti)
         call scramble_v(nep+1,nip) ! remove x,y,z correlations
      else
         call cold_start(nep+1,nip)

@@ -26,7 +26,7 @@ subroutine param_dump
         if (ramp) then
            write (ifile,'(a20,f12.3)') ' n_min: ', rho_min
            write (ifile,'(a20,f12.3)') ' k_p L: ', lolam
-           write (ifile,'(a20,f12.3)') ' x_sol: ', plasma_centre(1)-x_plasma/2.+lolam*(1-rho_min)
+           write (ifile,'(a20,f12.3)') ' x_sol: ', plasma_center(1)-x_plasma/2.+lolam*(1-rho_min)
 
         endif
 

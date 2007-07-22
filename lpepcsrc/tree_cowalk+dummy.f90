@@ -33,7 +33,7 @@
 !
 ! ===========================================
 
-subroutine tree_walkcdum(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
+subroutine tree_walkcdum(pshort,npshort, pass,theta,current_step,mac,twalk,tfetch)
 
   use treevars
   use tree_utils
@@ -42,7 +42,7 @@ subroutine tree_walkcdum(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   include 'mpif.h'
 
   real, intent(in) :: theta
-  integer, intent(in) :: npshort,itime
+  integer, intent(in) :: npshort,current_step
   integer, intent(in) :: pshort(npshort)
   integer, intent(in) :: mac
   ! integer, intent(out) :: nodelist(nintm, npshort)
@@ -124,8 +124,8 @@ subroutine tree_walkcdum(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   nchild_shipm = maxaddress
 !  walk_debug = .true.
   ! ipefile = 6
-  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK for timestep ',itime,' pass ',pass
-  if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK for timestep ',itime,' pass ',pass
+  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK for timestep ',current_step,' pass ',pass
+  if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK for timestep ',current_step,' pass ',pass
 
   sbox = boxsize
 

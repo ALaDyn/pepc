@@ -102,7 +102,7 @@ subroutine density_helmholtz
   end do 
  charge_sum = SUM(rho_glob(1:nxh,nyh/2,nyh/2))/cweight
  charge_tot = SUM(rho_glob)/cweight
-if (me==0 .and. itime==1) then
+if (me==0 .and. current_step==1) then
   write (6,*) "Charge sum on HH grid lineout/total:",charge_sum,charge_tot
 !  write(6,*) "rho20",(rho_glob(i,nyh/2,0),i=1,nxh)
 !  write(6,*) "rho21",(rho_glob(i,nyh/2,1),i=1,nxh)

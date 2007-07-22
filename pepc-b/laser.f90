@@ -38,7 +38,7 @@ subroutine laser(I_laser)
 ! Factor-in pulse shape
      amplitude = sqrt(I_laser)  ! amplitude of incoming wave
      call density_helmholtz
-     call em_helmholtz(my_rank,itime,nxh,dxh,theta_beam,amplitude,omega,rho_helm,Az_helm)
+     call em_helmholtz(my_rank,current_step,nxh,dxh,theta_beam,amplitude,omega,rho_helm,Az_helm)
      Azr(1:nxh) = Real(Az_helm(1:nxh)*cexp(yi*pha))
      ampl_max = maxval(Azr)
      ampl_min = minval(Azr)
@@ -61,7 +61,7 @@ subroutine laser(I_laser)
      endif
 
   case(4,14,24,94)  ! old fpond model
-     if (itime>0) focus(1) = x_crit  ! laser tracks n_c
+     if (current_step>0) focus(1) = x_crit  ! laser tracks n_c
 
   case default
      ! leave focal point unchanged

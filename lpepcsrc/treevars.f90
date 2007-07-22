@@ -13,7 +13,7 @@ module treevars
 ! fixed array sizes for debugging
 !  integer, parameter :: size_tree = 10000, &
 !                        maxaddress=32768, &
-!                        nppm=2000, &
+!                        pe_capacity=2000, &
 !                        nbranch_max=size_tree/10
 
  ! Constants
@@ -76,7 +76,7 @@ module treevars
      integer*8 :: next    ! next key on walk
      real*8 :: q    	! net charge sum
      real*8 :: absq  	!  absolute charge sum
-     real*8 :: xcoc  	! centre of charge
+     real*8 :: xcoc  	! center of charge
      real*8 :: ycoc    
      real*8 :: zcoc
      real*8 :: xdip  	! dipole moment
@@ -135,7 +135,7 @@ module treevars
   real*8, allocatable  :: &                ! Tree node properties:
                                charge(:), &                          ! charge
                                abs_charge(:), &                      ! absolute charge
-                               xcoc(:), ycoc(:), zcoc(:), &          ! centre of charge 
+                               xcoc(:), ycoc(:), zcoc(:), &          ! center of charge 
                                xshift(:), yshift(:), zshift(:), &    ! shift vector
                                xdip(:), ydip(:), zdip(:), &          ! dipole moment
                                xxquad(:), yyquad(:), zzquad(:), &    ! quadrupole moment
@@ -187,7 +187,7 @@ module treevars
              pe_debug, &       ! rank for debug O/P
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
-             nppm, &           ! max # particles/PE
+             pe_capacity, &           ! max # particles/PE
              npp, &            !  actual  # particles/PE
              nshortm, &        ! shortlist length
              iused          ! counter for collision resolution array free_addr()

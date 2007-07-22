@@ -17,13 +17,13 @@ program split_dump
   character(30) :: cinfile, cdump, cdumpfile, cpu_infile, cpu_dumpfile
   character(9) :: ct
   character(11) :: cme
-  integer :: ner, nir, np_beamr, npartr, iconf, iens, itime_start
+  integer :: ner, nir, np_beamr, npartr, iconf, iens, start_step
   real, allocatable :: x(:),y(:),z(:),ux(:),uy(:),uz(:),q(:),m(:), &
        ax(:),ay(:),az(:),phi(:)
   integer, allocatable ::  pid(:),label(:)
   real :: epsr, thetar, xlr, ylr, zlr, boxr, qe, qi, mass_e, mass_i
   real :: vplas, aplas, qplas, trun, tlaser, Zion, a_ii, eps
-  real :: omegar, lambdar, plasma_centre(1:3), focus(1:3)
+  real :: omegar, lambdar, plasma_center(1:3), focus(1:3)
   real :: axdum, aydum, azdum,phidum, bdum
   integer :: ioffset, i1, i2, npp_partial, npp_total, ipass, me_read, j, nrest, nadd
   integer :: ncpu, nmax, npp, timestamp
@@ -51,18 +51,18 @@ program split_dump
   ! Root reads info block in run directory to check that run parameters correct
 
   read(80,'(7(9x,i8/),10(9x,f12.5/),9(9x,1pe12.5/),2(9x,3f12.5/))')  &    ! info block - skip variable names
-       itime_start, npartr, &
+       start_step, npartr, &
        ner, nir, np_beamr, iconf, iens, &
        xlr, ylr, zlr, boxr, &
        epsr, thetar, &
        tlaser, trun, omegar, lambdar, &
        qe, qi, mass_e, mass_i, Zion, a_ii, Vplas, Aplas, Qplas, &
-       plasma_centre(1:3), focus(1:3)
+       plasma_center(1:3), focus(1:3)
   close(80)
 
   ! echo info block
   write(*,'(7(a12,i12/),9(a12,f12.5/),9(a12,1pe12.5/),2(a12,3(1pe12.5)/))')  &   
-       'Start time: ', itime_start, & 
+       'Start time: ', start_step, & 
        '# particles: ', npartr, &
        '# electrons: ', ner, &
        '# ions: ', nir, & 
@@ -87,7 +87,7 @@ program split_dump
        'Vplas: ',Vplas, &
        'Aplas: ',Aplas, &
        'Qplas: ',Qplas, &
-       'centre: ',plasma_centre(1:3), &
+       'center: ',plasma_center(1:3), &
        'focus: ',focus(1:3)
 
 
@@ -140,7 +140,7 @@ program split_dump
 
      ! Info block
      write(60,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))')  &   
-          'itime=',itime_start, 'npp=',npp, &
+          'current_step=',start_step, 'npp=',npp, &
           'ne=',ner, 'ni=',nir, 'npbeam=',np_beamr, 'geometry=', iconf, &
           'scheme=',iens, &
           'xl=',xlr, 'yl=',ylr, 'zl=',zlr, 'boxsize=',zlr, &
@@ -148,7 +148,7 @@ program split_dump
           'omega=',omegar,'lambda=',lambdar,'  qe=',qe,'  qi=',qi, &
           'mass_e=',mass_e,'mass_i=',mass_i,'Zion=',Zion,'a_ii=',a_ii, &
           'Vplas=',Vplas,'Aplas=',Aplas,'Qplas=',Qplas, &
-          'centre=',plasma_centre(1:3),'focus=',focus(1:3)
+          'center=',plasma_center(1:3),'focus=',focus(1:3)
 
      do i=1,npp+nadd
         write(61,'((12(1pe14.5),2i9))')  &

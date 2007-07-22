@@ -56,14 +56,14 @@ program pepce
   call param_dump      ! Dump initial data
   call configure       ! Set up particles
 
-  do itime = 1,nt
+  do current_step = 1,nt
      trun = trun + dt
 
 
      if (my_rank==0 ) then
         do ifile = 6,15,9
            write(ifile,'(//a,i8,(3x,a,f8.2))') &
-                ' Timestep ',itime+itime_start &
+                ' Timestep ',current_step+start_step &
                 ,' total run time = ',trun 
 
         end do
@@ -76,7 +76,7 @@ program pepce
 ! ux(1:npp),uy(1:npp),uz(1:npp), &   ! will eventually need velocities for B-fields -> 2nd interface
                  q(1:npp),m(1:npp),work(1:npp),pelabel(1:npp), &
                  ex(1:npp),ey(1:npp),ez(1:npp),pot(1:npp), &
-                 mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
+                 mac, theta, eps, force_const, err_f, xl, yl, zl, current_step, &
                  t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force)   ! Compute Coulomb fields and pot using lpepc
 
 ! TODO: need proper mac selection instead of beam_config
@@ -106,7 +106,7 @@ program pepce
      if (my_rank==0 .and. db_level .ge.1) then
         ttot = t_push-t0 ! total loop time without diags
 
-        if (itime ==1 .or. mod(itime,iprot).eq.0) then
+        if (current_step ==1 .or. mod(current_step,iprot).eq.0) then
            ifile = 6
         else 
            ifile = 15

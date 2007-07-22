@@ -20,7 +20,7 @@ subroutine push_em(p_start,p_finish,dts)
   real :: phipon, ez_em, by_em, az_em, xd, yd, zd
 
 
-  if (itime>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
+  if (current_step>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
 
   do p = p_start, p_finish
      beta=q(p)/m(p)*dts*0.5  ! charge/mass constant

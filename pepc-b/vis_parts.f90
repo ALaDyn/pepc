@@ -19,8 +19,8 @@ subroutine vis_parts
   integer, parameter :: ship_max = 10000
   real, dimension(npart_visit_max) :: xvis,yvis,zvis,vx,vy,vz,qvis,mvis
   integer, dimension(npart_visit_max) :: ppid, plabel
-  real, dimension(nppm) :: xv, yv, zv, uxv,uyv,uzv,qv,mv
-  integer, dimension(nppm) :: pepidv, pelabelv
+  real, dimension(pe_capacity) :: xv, yv, zv, uxv,uyv,uzv,qv,mv
+  integer, dimension(pe_capacity) :: pepidv, pelabelv
 
   integer, dimension(num_pe) :: nparts_pe, recv_strides  ! array of npp on each PE
   integer :: icolour(npart_visit_max)
@@ -32,7 +32,7 @@ subroutine vis_parts
   integer :: nship, ierr
 
   convert_mu=1.
-  simtime = dt*(itime+itime_start)
+  simtime = dt*(current_step+start_step)
 
   nskip = npart/ship_max + 1
   if (beam_config==4) then
@@ -105,7 +105,7 @@ subroutine vis_parts
      if (me==0) then
 !        call flvisit_spk_check_connection(lvisit_active)
 ! spk version2
-        !       call flvisit_spk_info_send(npart_buf,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
+        !       call flvisit_spk_info_send(npart_buf,xl,yl,zl,zl,ne,ni,np_beam,current_step+start_step)
         wfdatai=int(t_display)
         wfdatar=t_display
 !        call flvisit_spk_info_send(npart_buf,xl,yl,zl, xl, &
@@ -115,7 +115,7 @@ subroutine vis_parts
      endif
      !
      ! visit info block format in spk4
-     ! int flvisit_spk_info_send(int *npart,double *xl,double *yl,double *zl,double *sbox,double *boxoffsetx,double *vosc,double *sigma,double *tphase,int *ne,int *ni,int *np,int *itime);
+     ! int flvisit_spk_info_send(int *npart,double *xl,double *yl,double *zl,double *sbox,double *boxoffsetx,double *vosc,double *sigma,double *tphase,int *ne,int *ni,int *np,int *current_step);
 
 
      ! work out stride lengths so that partial arrays placed sequentially in global array
@@ -154,7 +154,7 @@ subroutine vis_parts
            nproot = 0.8*npart/num_pe ! fixed # parts close to npp
 
 !           call flvisit_spk_check_connection(lvisit_active)
-           !        call flvisit_spk_info_send(npp,xl,yl,zl,zl,nep,nip,np_beam,itime+itime_start)
+           !        call flvisit_spk_info_send(npp,xl,yl,zl,zl,nep,nip,np_beam,current_step+start_step)
            wfdatai=int(tlaser)
            wfdatar=tlaser
 !           call flvisit_spk_info_send(nproot,xl,yl,zl, t_display, &

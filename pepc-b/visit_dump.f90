@@ -55,7 +55,7 @@ subroutine visit_dump(timestamp)
   open (60,file=cfile)    
   write(60,'(a9,i8/4(a9,f12.5/),4(a9,i8/),a9,f8.3)')  &
        'npp=',npp, 'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
-       'ne=',ne, 'ni=',ni, 'np=',np_beam, 'itime=',timestamp, 't =',simtime
+       'ne=',ne, 'ni=',ni, 'np=',np_beam, 'current_step=',timestamp, 't =',simtime
   close(60)
 
   cfile = cme//"/wf_ele."//cdump

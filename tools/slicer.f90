@@ -61,7 +61,7 @@ program ppfields
 
     integer :: icm, icp, nout, nelecs, nions, nsel
 
-    integer ::   itime_start, npartr,  ner, nir, np_beamr, iconf, iens
+    integer ::   start_step, npartr,  ner, nir, np_beamr, iconf, iens
     real :: xlr, ylr, zlr, boxr, epsr, thetar, tlaser, trun, lambda, Qs, sigma
     real :: aimax, aimin, alphaz, alphay
     real :: xpmin, xpmax, ypmin, ypmax, zpmin, zpmax, xptick, yptick, xd, yd, zd
@@ -140,7 +140,7 @@ program ppfields
     open(10,file=cinfo)
 
     read(80,'(7(9x,i8/),11(9x,f12.5/))')  &    ! info block - skip variable names
-        itime_start, npartr, &
+        start_step, npartr, &
         ner, nir, np_beamr, iconf, iens, &
         xlr, ylr, zlr, boxr, &
         epsilon, &  ! Coulomb smoothing radius

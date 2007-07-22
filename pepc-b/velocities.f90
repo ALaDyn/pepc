@@ -26,7 +26,7 @@ subroutine velocities(p_start,p_finish,delta_t)
   integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
 
   integer p, i, ne_loc, ierr
-  real*8, dimension(nppm) :: uhx, uhy, uhz, accx, accy, accz
+  real*8, dimension(pe_capacity) :: uhx, uhy, uhz, accx, accy, accz
   real*8 :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, acmax
   real :: Te0, Te_uncor, Ti0, Ti_uncor, chie, chii, delta_u
   real*8 :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm

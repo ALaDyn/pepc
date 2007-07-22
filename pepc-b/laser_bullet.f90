@@ -11,12 +11,12 @@ subroutine laser_bullet(t,x0,tpulse,sigma,vosc,omega,x,y,z,epon_x,epon_y,epon_z,
 
   implicit none
   real, intent(in) :: t ! time laser on
-  real, intent(in) :: x0 ! pulse centre
+  real, intent(in) :: x0 ! pulse center
   real, intent(in) :: tpulse ! pulse duration
   real, intent(in) :: vosc ! quiver strength
   real, intent(in) :: sigma ! pulse width (1/e)
   real, intent(in) :: omega ! laser frequency
-  real, intent(in) :: x,y,z ! position to evaluate force; distance from laser centre (x0,0,0)
+  real, intent(in) :: x,y,z ! position to evaluate force; distance from laser center (x0,0,0)
 
   real, intent(out) :: phipon, epon_x, epon_y, epon_z ! pond. potential and fields
 
