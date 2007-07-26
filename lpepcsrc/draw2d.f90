@@ -21,7 +21,7 @@ subroutine draw2d
 
   implicit none
 
-  integer, dimension(pe_capacity) :: ix, iy
+  integer, dimension(nppm) :: ix, iy
 
   character(30) :: cfile
   character(1) :: csnap

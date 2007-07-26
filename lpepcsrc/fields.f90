@@ -14,7 +14,7 @@
 
 subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, &
-     mac, theta, eps, force_const, err_f, xl, yl, zl, current_step, &
+     mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force)
 
   use treevars
@@ -28,7 +28,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   real, intent(in) :: force_const       ! scaling factor for fields & potential
   real, intent(in) :: eps         ! potential softening distance
   real, intent(in) :: xl, yl, zl         ! box dimensions
-  integer, intent(in) :: current_step  ! timestep
+  integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: mac  ! choice of mac
   real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
 !  real*8, intent(in),  dimension(np_local) :: p_vx, p_vy, p_vz  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
@@ -54,7 +54,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   real*8 :: phi_coul, ex_coul, ey_coul, ez_coul ! partial forces/pot
   real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
   real :: Epon_x, Epon_y, Epon_z, Phipon, ex_em, ey_em, ez_em, bx_em, by_em, bz_em
-  real :: xd, yd, zd  ! positions relative to center of laser spot
+  real :: xd, yd, zd  ! positions relative to centre of laser spot
   real :: load_average, load_integral, total_work, average_work
   integer :: total_parts
   character(30) :: cfile, ccol1, ccol2
@@ -73,7 +73,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   npp = np_local  ! assumed lists matched for now
   
   if (force_debug) then
-     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: current_step, mac, theta, eps, force_const, err:',current_step, mac, theta, eps, force_const, err_f
+     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const, err:',itime, mac, theta, eps, force_const, err_f
      write (*,'(a7,a20/(i16,4f15.3,i8))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i), p_label(i),i=1,npp) 
   endif
 
@@ -121,7 +121,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   call tree_fill       ! Fill in remainder of local tree
   call tree_properties ! Compute multipole moments for local tree
   call cputime(tp1)
-  if (num_pe>1) call tree_prefetch(current_step)
+  if (num_pe>1) call tree_prefetch(itime)
   call cputime(tp2)
 
   t_domain = tb1-td1
@@ -202,7 +202,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
 
-     call tree_walk(pshortlist,nps,jpass,theta,eps,current_step,mac,ttrav,tfetch)
+     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 
@@ -244,10 +244,10 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
   call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
 
-!  timestamp = current_step + start_step
-  timestamp = current_step
+!  timestamp = itime + itime_start
+  timestamp = itime
 
-  if (me ==0 .and. mod(current_step,iprot)==0) then
+  if (me ==0 .and. mod(itime,iprot)==0) then
      total_work = SUM(work_loads)
      average_work = total_work/num_pe
      cme = achar(timestamp/1000+48) // achar(mod(timestamp/100,10)+48) &

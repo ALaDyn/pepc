@@ -21,12 +21,12 @@ subroutine tree_domains(xl,yl,zl)
   include 'mpif.h'
 
   real, intent(in) :: xl,yl,zl  ! initial box limits
-  integer*8, dimension(pe_capacity) :: ix, iy, iz
-  integer*8, dimension(pe_capacity) :: ixd, iyd, izd
-  integer*8, dimension(pe_capacity) :: local_key
+  integer*8, dimension(nppm) :: ix, iy, iz
+  integer*8, dimension(nppm) :: ixd, iyd, izd
+  integer*8, dimension(nppm) :: local_key
   integer*8, dimension(2) :: ixbox, iybox, izbox, key_box
 
-  integer ::  source_pe(pe_capacity)
+  integer ::  source_pe(nppm)
   integer :: i, j, ind_recv, inc, prev, next, handle(4)
 
 
@@ -41,10 +41,10 @@ subroutine tree_domains(xl,yl,zl)
 
   ! arrays for parallel sort
 
-  type (particle) :: ship_parts(pe_capacity), get_parts(pe_capacity)
+  type (particle) :: ship_parts(nppm), get_parts(nppm)
 
-  integer*8 :: xarray(pe_capacity),keys(pe_capacity),w1(pe_capacity),wi2(pe_capacity),wi3(pe_capacity)
-  integer :: indxl(pe_capacity),irnkl(pe_capacity)
+  integer*8 :: xarray(nppm),keys(nppm),w1(nppm),wi2(nppm),wi3(nppm)
+  integer :: indxl(nppm),irnkl(nppm)
 
   integer :: islen(num_pe),irlen(num_pe)
   integer :: fposts(num_pe+1),gposts(num_pe+1)
@@ -53,7 +53,7 @@ subroutine tree_domains(xl,yl,zl)
   integer :: iteration, niterations
   integer :: errcount, proc_debug
 
-  integer, dimension(pe_capacity) ::  w2, w3 ! scratch arrays for integer*4 permute
+  integer, dimension(nppm) ::  w2, w3 ! scratch arrays for integer*4 permute
   integer*8 :: tmp
   logical :: sort_debug
   real*8 :: xboxsize, yboxsize, zboxsize
@@ -225,9 +225,9 @@ subroutine tree_domains(xl,yl,zl)
 
      ! perform index sort on keys
 
-!     call pswssort(pe_capacity,npold,npnew,num_pe,me,keys, &
+!     call pswssort(nppm,npold,npnew,num_pe,me,keys, &
 !        indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
-     call pbalsort(pe_capacity,npold,npnew,num_pe,me,keys, &
+     call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
           indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
 
      do i=1,npold
@@ -235,7 +235,7 @@ subroutine tree_domains(xl,yl,zl)
      enddo
 
      ! permute keys according to sorted indices
-     call pll_permute(pe_capacity,npold,npnew,num_pe,me,w1,wi2,wi3, &
+     call pll_permute(nppm,npold,npnew,num_pe,me,w1,wi2,wi3, &
           indxl,irnkl,islen,irlen,fposts,gposts)
 
      if (domain_debug) then

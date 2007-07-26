@@ -10,14 +10,14 @@
 !
 ! ===========================================
 
-subroutine tree_update(current_step)
+subroutine tree_update(itime)
 
   use treevars
   use tree_utils
   implicit none
   include 'mpif.h'
 
-  integer, intent(in) :: current_step
+  integer, intent(in) :: itime
   integer*8, dimension(8) :: sub_key, key_child, child_sub, child_key, next_child, siblings
   
   integer, dimension(0:num_pe-1) ::  & 
@@ -56,7 +56,7 @@ subroutine tree_update(current_step)
   iofile = ipefile
 !  iofile = 6
   !
-  if (update_debug) write(iofile,'(/a,i6)') 'TREE NONLOCAL UPDATE for timestep ',current_step
+  if (update_debug) write(iofile,'(/a,i6)') 'TREE NONLOCAL UPDATE for timestep ',itime
 
 ! TODO prepare buffers as in walk: requested_keys 1D; needs sorting first
 
@@ -98,7 +98,7 @@ subroutine tree_update(current_step)
         write(ipefile,'(a/(2i5,o15))') 'fetches ',(i,sort_fetchowner(i),sort_fetch(i),i=1,sum_fetches)
      endif
 
-!if (current_step==4) call cleanup
+!if (itime==4) call cleanup
      ! Now have complete list of requests from all PEs in rank order.
      ! -- ready for all-to-all multipole swap
 

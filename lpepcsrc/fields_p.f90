@@ -14,7 +14,7 @@
 
 
 subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, balance, force_const, bond_const, &
-     delta_t,  xl, yl, zl, current_step, &
+     delta_t,  xl, yl, zl, itime, &
      coulomb, bfield_on, bonds, lenjones, &
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force, iprot,total_work)
 
@@ -34,7 +34,7 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
   logical, intent(in) :: bonds  ! Include bond forces
   logical, intent(in) :: lenjones ! Include Lennard-Jones potential
   real, intent(in) :: xl, yl, zl         ! box dimensions
-  integer, intent(in) :: current_step  ! timestep
+  integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: walk_scheme  ! choice of tree walk 
   integer, intent(in) :: mac  ! choice of tree walk 
   integer, intent(in) :: balance  ! balancing
@@ -81,13 +81,13 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
 
   if (force_debug) then
      if (me==0) write (*,*)
-     if (me==0) write (*,'(a8,a60/a7,2i5,6f11.2)') 'LPEPC | ','Params current_step, walk_scheme, theta, eps, force_const, bond_const, err, delta_t:', &
-          'LPEPC | ',current_step, walk_scheme, theta, eps, force_const, bond_const, err_f, delta_t
+     if (me==0) write (*,'(a8,a60/a7,2i5,6f11.2)') 'LPEPC | ','Params itime, walk_scheme, theta, eps, force_const, bond_const, err, delta_t:', &
+          'LPEPC | ',itime, walk_scheme, theta, eps, force_const, bond_const, err_f, delta_t
      if (me==0) write (*,'(a8,a17,4l4)') 'LPEPC | ','Force switches: ',coulomb,bfield_on,lenjones,bonds
      write (ipefile,'(a8,a20/(i16,4f15.3))') 'LPEPC | ','Initial buffers: ',(pelabel(i), x(i), y(i), z(i), q(i),i=1,npp) 
   endif
 
-  if (mod(current_step-1,ifreeze)==0) then
+  if (mod(itime-1,ifreeze)==0) then
      if (me==0) write (*,'(a23)') 'LPEPC | REBUILDING TREE'
  !    stop
      call cputime(td1)
@@ -126,16 +126,16 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
 
   call cputime(tp1)
   if (walk_scheme==3) then
-     if (mod(current_step-1,ifreeze) /= 0) then
+     if (mod(itime-1,ifreeze) /= 0) then
         ! freeze mode - re-fetch nonlocal multipole info
         !POMP$ INST BEGIN(update)
-        call tree_update(current_step)
+        call tree_update(itime)
         !POMP$ INST END(update)
 
      else
         ! tree just rebuilt so check for missing nodes before re-fetching
         !POMP$ INST BEGIN(prefetch)
-!        call tree_prefetch(current_step)
+!        call tree_prefetch(itime)
         !POMP$ INST END(prefetch)
         nfetch_total=0     ! Zero key fetch/request counters if fresh tree walk needed
         nreqs_total=0
@@ -146,7 +146,7 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
 
   else if (walk_scheme==2 .and. num_pe>1) then
      !POMP$ INST BEGIN(prefetch)
-     call tree_prefetch(current_step)
+     call tree_prefetch(itime)
      !POMP$ INST END(prefetch)
 
   else 
@@ -179,14 +179,17 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
   load_integral = 0.
   jpass = 1
   pstart(jpass) = 1
-  if (domain_debug) write(*,*) 'PE ',me,': npp',npp
+  if (domain_debug) then
+	write(*,*) 'PE ',me,': npp',npp
+	write(*,'((f12.3))') (work(i),i=1,npp)
+  endif
 
   do i=1,npp
      load_integral = load_integral + work(i)   ! integrate workload
-
+     
      if (i-pstart(jpass) + 1 == nshortm) then ! Need to check that nshort < nshortm
         write(*,*) 'Warning from PE: ',me,' # parts ',i-pstart(jpass)+1,' on pass ',jpass,' in shortlist exceeds array limit ',nshortm
-        write(*,*) 'Load=',load_integral
+        write(*,*) 'Load=',load_integral,' Average ',load_average
 	write(*,*) 'npp=',npp
         write(*,*) 'Putting spill-over into following pass'
         nshort(jpass) = nshortm
@@ -206,6 +209,7 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
 
   if (jpass-1 > npass ) then
      write(*,*) 'LPEPC | PE',me,' missed some:',nshort(npass+1)
+     write (*,*) 'LPEPC | npass',npass,(nshort(i),i=1,npass)
      if (nshort(npass) + nshort(npass+1) <= nshortm) then
         nshort(npass) = nshort(npass) + nshort(npass+1)
      else
@@ -237,10 +241,10 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
 
      if (walk_scheme==2 .or. walk_scheme==1) then
    ! collective walk
-        call tree_walkc(pshortlist,nps,jpass,theta,current_step,mac,ttrav,tfetch)
+        call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
     else
    ! asynchronous walk  (0,3)
-       call tree_walk(pshortlist,nps,jpass,theta,eps,current_step,mac,ttrav,tfetch)
+       call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
     endif
 
      t_walk = t_walk + ttrav  ! traversal time (serial)
@@ -317,7 +321,11 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
            Ez(p) = Ez(p) + bond_const * fsz
         endif
 	
-        work(p) = nterm(i)        ! Should really compute this in sum_force to allow for leaf/twig terms
+        if (num_pe.gt.1) then
+	  work(p) = nterm(i)        ! Should really compute this in sum_force to allow for leaf/twig terms
+        else
+          work(p)=1
+        endif
         work_local = work_local+nterm(i)
      end do
 
@@ -331,9 +339,9 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
   end do
 
 
-  !  timestamp = current_step + start_step
-  timestamp = current_step
-  if (mod(current_step,iprot)==0) then
+  !  timestamp = itime + itime_start
+  timestamp = itime
+  if (mod(itime,iprot)==0) then
      call MPI_ALLREDUCE(max_local, max_list_length, 1, MPI_INTEGER, MPI_MAX,  MPI_COMM_WORLD, ierr )
      call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
      call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn

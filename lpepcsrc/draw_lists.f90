@@ -14,9 +14,9 @@ subroutine draw_lists
 
   implicit none
 
-  integer*8 :: key_list(pe_capacity)
+  integer*8 :: key_list(nppm)
 
-  integer, dimension(pe_capacity) ::  addr_list, level_list, node_list, owner_list       ! list data
+  integer, dimension(nppm) ::  addr_list, level_list, node_list, owner_list       ! list data
 
   character(15) :: cfile
   character(1) :: csnap

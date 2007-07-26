@@ -34,7 +34,7 @@
 !
 ! ===========================================
 
-subroutine tree_walk(pshort,npshort, pass,theta,eps,current_step,mac,twalk,tfetch)
+subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
 
   use treevars
   use tree_utils
@@ -43,7 +43,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,current_step,mac,twalk,tfetc
   include 'mpif.h'
 
   real, intent(in) :: theta, eps
-  integer, intent(in) :: npshort,current_step
+  integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
   integer, intent(in) :: mac
   ! integer, intent(out) :: nodelist(nintm, npshort)
@@ -121,8 +121,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,current_step,mac,twalk,tfetc
   nchild_shipm = maxaddress
   !  walk_debug = .false.
   ! ipefile = 6
-  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK (AS) for timestep ',current_step,' pass ',pass
-  if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (AS) for timestep ',current_step,' pass ',pass
+  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK (AS) for timestep ',itime,' pass ',pass
+  if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (AS) for timestep ',itime,' pass ',pass
 
   sbox = boxsize
 

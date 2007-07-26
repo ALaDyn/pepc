@@ -10,14 +10,14 @@
 !
 ! ===========================================
 
-subroutine tree_prefetch(current_step)
+subroutine tree_prefetch(itime)
 
   use treevars
   use tree_utils
   implicit none
   include 'mpif.h'
 
-  integer, intent(in) :: current_step
+  integer, intent(in) :: itime
   ! Key arrays (64-bit)
 
   integer*8, dimension(size_fetch) :: sort_key, remove_keys, nofetch_keys ! List of deleted keys
@@ -65,9 +65,9 @@ subroutine tree_prefetch(current_step)
   iofile = 6
 !  if (me==255) prefetch_debug=.true.
   !
-  if (prefetch_debug) write(iofile,'(a,i6)') 'TREE PREFETCH for timestep ',current_step
-  if (me.eq.0 .and. walk_summary) write(*,'(a,i6)') 'LPEPC | TREE PREFETCH for timestep ',current_step
-  timestamp=current_step
+  if (prefetch_debug) write(iofile,'(a,i6)') 'TREE PREFETCH for timestep ',itime
+  if (me.eq.0 .and. walk_summary) write(*,'(a,i6)') 'LPEPC | TREE PREFETCH for timestep ',itime
+  timestamp=itime
 
 
   ! -------------------------------------------------------------------------

@@ -57,15 +57,15 @@ contains
 ! permute integer*4
 ! ================
 
-  subroutine psrsperm_i4(pe_capacity,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
+  subroutine psrsperm_i4(nppm,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
 
     implicit none
     include 'mpif.h'
 
-    integer :: pe_capacity,np,npnew,nprocs,iproc
+    integer :: nppm,np,npnew,nprocs,iproc
 
-    integer, dimension(pe_capacity) ::  array, w1, w2
-    integer, dimension(pe_capacity) :: indxl, irnkl
+    integer, dimension(nppm) ::  array, w1, w2
+    integer, dimension(nppm) :: indxl, irnkl
     integer, dimension(nprocs) ::  islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts
 
@@ -90,16 +90,16 @@ contains
 ! permute integer*8
 ! ================
 
-  subroutine psrsperm_i8(pe_capacity,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
+  subroutine psrsperm_i8(nppm,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
 
 
     implicit none
     include 'mpif.h'
 
-    integer :: pe_capacity,np,npnew,nprocs,iproc
+    integer :: nppm,np,npnew,nprocs,iproc
 
-    integer*8, dimension(pe_capacity) ::  array, w1, w2
-    integer, dimension(pe_capacity) :: indxl, irnkl
+    integer*8, dimension(nppm) ::  array, w1, w2
+    integer, dimension(nppm) :: indxl, irnkl
     integer, dimension(nprocs) ::  islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts
 
@@ -125,16 +125,16 @@ contains
   !  Permute REAL*8 array()
 ! ================
 
-  subroutine psrsperm_r8(pe_capacity,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
+  subroutine psrsperm_r8(nppm,np,npnew,nprocs,iproc,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
 
 
     implicit none
     include 'mpif.h'
 
-    integer :: pe_capacity,np,npnew,nprocs,iproc
+    integer :: nppm,np,npnew,nprocs,iproc
 
-    real*8, dimension(pe_capacity) ::  array, w1, w2
-    integer, dimension(pe_capacity) ::  indxl, irnkl
+    real*8, dimension(nppm) ::  array, w1, w2
+    integer, dimension(nppm) ::  indxl, irnkl
     integer, dimension(nprocs) ::  islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts
 
@@ -163,7 +163,7 @@ contains
 
 ! unweighted || sort
 
-  subroutine psrssort(pe_capacity,np,npnew,nprocs,iproc,keys,indxl,irnkl,islen,irlen,fposts,gposts,w1)
+  subroutine psrssort(nppm,np,npnew,nprocs,iproc,keys,indxl,irnkl,islen,irlen,fposts,gposts,w1)
 
 
     ! Xiaobo Li, Paul Lu, Jonathan Schaeffer,
@@ -186,10 +186,10 @@ contains
     implicit none
     include 'mpif.h'
 
-    integer :: pe_capacity,np,npnew,nprocs,iproc
-    integer*8, dimension(pe_capacity) ::  keys, &      ! array of keys to be sorted.
+    integer :: nppm,np,npnew,nprocs,iproc
+    integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    w1       ! work array
-    integer, dimension(pe_capacity) ::    indxl, irnkl ! origin locations of the keys 
+    integer, dimension(nppm) ::    indxl, irnkl ! origin locations of the keys 
 
 
     integer, dimension(nprocs) :: islen, irlen
@@ -217,7 +217,7 @@ contains
     !     Independent s  !     Note that indx() is a local index on the process.
 
 
-    call indexsort( keys,indxl, np, pe_capacity )   ! Index sort from Num. Rec.
+    call indexsort( keys,indxl, np, nppm )   ! Index sort from Num. Rec.
 
     do i=1,np
        w1(i) = keys(indxl(i))
@@ -340,7 +340,7 @@ contains
     enddo
 
     !     Merge the segments within each bin.
-    call nwaymerge(pe_capacity,npnew,nprocs,keys,irnkl,itabl,itabr,iproc)
+    call nwaymerge(nppm,npnew,nprocs,keys,irnkl,itabl,itabr,iproc)
 
   end subroutine psrssort
 
@@ -349,7 +349,7 @@ contains
 
 
 
-  subroutine pbalsort(pe_capacity,np,npnew,nprocs,iproc,keys, &
+  subroutine pbalsort(nppm,np,npnew,nprocs,iproc,keys, &
        indxl,irnkl, islen,irlen,fposts,gposts,pivot,kw1,wload,key_box,balance,debug,work_local)
 
 
@@ -370,18 +370,18 @@ contains
     implicit  none
     include 'mpif.h'
 
-    integer, intent(in) :: pe_capacity,np,nprocs,iproc
-    real*8, intent(in) :: wload(pe_capacity)  ! particle work loads
+    integer, intent(in) :: nppm,np,nprocs,iproc
+    real*8, intent(in) :: wload(nppm)  ! particle work loads
     integer, intent(out) :: npnew
     real, intent(in) :: work_local  ! total local work load
-    integer*8, dimension(pe_capacity) ::  keys, &      ! array of keys to be sorted.
+    integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    kw1,kw2,kred      ! work arrays
-    integer :: pbin(pe_capacity)
-    integer, dimension(pe_capacity) ::  indxl, irnkl ! origin locations of the keys 
+    integer :: pbin(nppm)
+    integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
     logical, intent(in) :: debug
     integer, intent(in) :: balance
     integer*8 :: pivot(nprocs+1)
-    real :: work1(pe_capacity), work2(pe_capacity)
+    real :: work1(nppm), work2(nppm)
     integer*8, dimension(2) :: key_box
     integer, dimension(nprocs) :: islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts !  fencepost index and key values for shuffle
@@ -421,7 +421,7 @@ search_list = 8_8**lev_map  ! place holder
 
 ! Sort local keys
     !     Independent s  !     Note that indx() is a local index on the process.
-    call indexsort( keys,indxl, np, pe_capacity )   ! Index sort from Num. Rec.
+    call indexsort( keys,indxl, np, nppm )   ! Index sort from Num. Rec.
 
     do i=1,np
        kw1(i) = keys(indxl(i))
@@ -509,7 +509,7 @@ search_list = 8_8**lev_map  ! place holder
 !       write(fd,'(a30,2o30)') 'key, reduced key ',kw2(p), key_reduce
 !    endif
 ! keys match - update bin count and move on to next particle
- 	if (balance==1) then
+ 	if (balance==1 .and. nprocs.gt.1) then
 	  f_local(ibin) = f_local(ibin) + work2(p) 
 	else
 	  f_local(ibin) = f_local(ibin) + 1
@@ -714,7 +714,7 @@ search_list = 8_8**lev_map  ! place holder
     enddo
 
     !     Merge the segments within each bin.
-    call nwaymerge(pe_capacity,npnew,nprocs,keys,irnkl,itabl(1:nprocs+1),itabr(1:nprocs),iproc)
+    call nwaymerge(nppm,npnew,nprocs,keys,irnkl,itabl(1:nprocs+1),itabr(1:nprocs),iproc)
 
     icall = icall + 1          ! update call count
   end subroutine pbalsort
@@ -724,7 +724,7 @@ search_list = 8_8**lev_map  ! place holder
 ! ========================================================================
 
 
-  subroutine pswssort(pe_capacity,np,npnew,nprocs,iproc,keys, &
+  subroutine pswssort(nppm,np,npnew,nprocs,iproc,keys, &
        indxl,irnkl, islen,irlen,fposts,gposts,kw1,wload,key_box,balance,debug)
 
 
@@ -745,17 +745,17 @@ search_list = 8_8**lev_map  ! place holder
     implicit  none
     include 'mpif.h'
 
-    integer, intent(in) :: pe_capacity,np,nprocs,iproc
-    real*8, intent(in) :: wload(pe_capacity)  ! particle work loads
+    integer, intent(in) :: nppm,np,nprocs,iproc
+    real*8, intent(in) :: wload(nppm)  ! particle work loads
     integer, intent(out) :: npnew
     integer, parameter :: binmult=1000000   !TODO: need to reduce size of f() arrays
 !    integer, parameter :: binmult=100000   !TODO: need to reduce size of f() arrays
-    integer*8, dimension(pe_capacity) ::  keys, &      ! array of keys to be sorted.
+    integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    kw1       ! work array
-    integer, dimension(pe_capacity) ::  indxl, irnkl ! origin locations of the keys 
+    integer, dimension(nppm) ::  indxl, irnkl ! origin locations of the keys 
     logical :: debug
     integer, intent(in) :: balance
-    real :: w2(pe_capacity)
+    real :: w2(nppm)
     integer*8, dimension(2) :: key_box
     integer, dimension(nprocs) :: islen, irlen
     integer, dimension(nprocs+1) :: fposts, gposts !  fencepost index and key values for shuffle
@@ -778,7 +778,7 @@ search_list = 8_8**lev_map  ! place holder
     proc_debug = 0
 
     !     Independent s  !     Note that indx() is a local index on the process.
-    call indexsort( keys,indxl, np, pe_capacity )   ! Index sort from Num. Rec.
+    call indexsort( keys,indxl, np, nppm )   ! Index sort from Num. Rec.
 
     do i=1,np
        kw1(i) = keys(indxl(i))
@@ -939,17 +939,17 @@ search_list = 8_8**lev_map  ! place holder
     enddo
 
     !     Merge the segments within each bin.
-    call nwaymerge(pe_capacity,npnew,nprocs,keys,irnkl,itabl(1:nprocs+1),itabr(1:nprocs),iproc)
+    call nwaymerge(nppm,npnew,nprocs,keys,irnkl,itabl(1:nprocs+1),itabr(1:nprocs),iproc)
 
   end subroutine pswssort
 
 
-  subroutine nwaymrg(pe_capacity,np,nprocs,keys,irnkl,itabl,itabr,me)
+  subroutine nwaymrg(nppm,np,nprocs,keys,irnkl,itabl,itabr,me)
 
     implicit none
-    integer :: pe_capacity,np,nprocs,me
-    integer :: irnkl(pe_capacity)
-    integer*8 :: keys(pe_capacity)
+    integer :: nppm,np,nprocs,me
+    integer :: irnkl(nppm)
+    integer*8 :: keys(nppm)
     integer :: itabl(nprocs+1),itabr(nprocs)
 
     integer, parameter :: maxprocs=1024
@@ -1103,13 +1103,13 @@ search_list = 8_8**lev_map  ! place holder
 
 !  Index sort for 8-byte integer list
 
-  subroutine indsort_i8(iarr,list,n,pe_capacity)
+  subroutine indsort_i8(iarr,list,n,nppm)
     implicit none
 
-    integer, intent(in) :: n,pe_capacity
+    integer, intent(in) :: n,nppm
 
-    integer*8, dimension(pe_capacity), intent(in) :: iarr
-    integer, dimension(pe_capacity), intent(inout) :: list
+    integer*8, dimension(nppm), intent(in) :: iarr
+    integer, dimension(nppm), intent(inout) :: list
     integer :: i, indxt, ir, l, j
     integer*8 :: q
 
@@ -1157,13 +1157,13 @@ search_list = 8_8**lev_map  ! place holder
 
 !  Index sort for 4-byte integer list
 
-  subroutine indsort_i4(iarr,list,n,pe_capacity)
+  subroutine indsort_i4(iarr,list,n,nppm)
     implicit none
 
-    integer, intent(in) :: n,pe_capacity
+    integer, intent(in) :: n,nppm
 
-    integer, dimension(pe_capacity), intent(in) :: iarr
-    integer, dimension(pe_capacity), intent(inout) :: list
+    integer, dimension(nppm), intent(in) :: iarr
+    integer, dimension(nppm), intent(inout) :: list
     integer :: i, indxt, ir, l, j
     integer :: q
 

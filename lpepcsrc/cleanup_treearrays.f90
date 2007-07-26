@@ -41,7 +41,7 @@ subroutine pepc_cleanup(my_rank,n_cpu)
 ! multipole moments
   deallocate ( charge, &                    ! charge
        abs_charge, &                ! absolute charge
-       xcoc, ycoc, zcoc, &    ! center of charge 
+       xcoc, ycoc, zcoc, &    ! centre of charge 
        xshift, yshift, zshift, &    ! shift vector
        xdip, ydip, zdip, &          ! dipole moment
        xxquad, yyquad, zzquad, &       ! quadrupole moment
