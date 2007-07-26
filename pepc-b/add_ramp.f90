@@ -29,7 +29,7 @@ subroutine add_ramp(d_layer)
     s = lolam*(1-rho_min)  ! required layer thickness for stretching
     qramp = rho0*s
     nramp = npart*s/d_layer
-    xedge = plasma_center(1)-d_layer/2.  ! leading edge (slab & disc)
+    xedge = plasma_centre(1)-d_layer/2.  ! leading edge (slab & disc)
 
     do i=1,npp
        if (x(i).le.xedge+s) then

@@ -1,5 +1,5 @@
 subroutine cutvector(r_in, face_nr, n, r_out, &
-        geometry, x_plasma, y_plasma, z_plasma, r_sphere, center )
+        geometry, x_plasma, y_plasma, z_plasma, r_sphere, centre )
     !
     ! cuts a vector on the face face_nr
     ! and optionally puts out thr normal vector
@@ -13,12 +13,12 @@ subroutine cutvector(r_in, face_nr, n, r_out, &
     integer, intent(in)               :: face_nr
     integer, intent(in)               :: geometry
     real, intent(in) :: x_plasma, y_plasma, z_plasma, r_sphere
-    real, intent(in) ::  center(3)
+    real, intent(in) ::  centre(3)
 
     real*8, dimension(1:3, 1:3)	      :: T
     real*8                              :: c_status, phi, psi, gamma
 
-    r_affin = r_in - center
+    r_affin = r_in - centre
     select case (geometry) 
     case (0) ! slab
         select case (face_nr)
@@ -35,11 +35,11 @@ subroutine cutvector(r_in, face_nr, n, r_out, &
             if (face_nr == 6) n = -n
             r_affin = .5 * x_plasma * r_affin / abs(dot_product(r_affin, n))
         end select
-        r_out = r_affin + center
+        r_out = r_affin + centre
         
     case (1) ! sphere
         n = - r_affin / sqrt(dot_product(r_affin, r_affin))
-        r_out = r_sphere * r_affin / abs(dot_product(r_affin, n)) + center
+        r_out = r_sphere * r_affin / abs(dot_product(r_affin, n)) + centre
         
     case (2) ! disc
         select case (face_nr)
@@ -52,7 +52,7 @@ subroutine cutvector(r_in, face_nr, n, r_out, &
             if (face_nr == 3) n = -n
             r_affin = .5 * x_plasma * r_affin / abs(dot_product(r_affin, n))
         end select
-        r_out = r_affin + center
+        r_out = r_affin + centre
         
     case (3) ! wire
         select case (face_nr)
@@ -65,7 +65,7 @@ subroutine cutvector(r_in, face_nr, n, r_out, &
             if (face_nr == 3) n = -n
             r_affin = .5 * z_plasma * r_affin / abs(dot_product(r_affin, n))
         end select
-        r_out = r_affin + center
+        r_out = r_affin + centre
         
     case (4) ! ellipsoid
         T = reshape((/1., 0., 0., 0., x_plasma / y_plasma, 0., 0., 0., x_plasma / z_plasma/), (/3, 3/))
@@ -77,7 +77,7 @@ subroutine cutvector(r_in, face_nr, n, r_out, &
         phi = phi - psi
         call rotate(phi, temp, n)
         n = -n / sqrt(dot_product(n, n))
-        r_out = r_out + center
+        r_out = r_out + centre
         
     case (5) ! prism
         gamma = atan(y_plasma / (2 * x_plasma))
@@ -97,7 +97,7 @@ subroutine cutvector(r_in, face_nr, n, r_out, &
                 r_affin(2) = -r_affin(2)
             end if
         end select
-        r_out = r_affin + center
+        r_out = r_affin + centre
         
     case (6) ! semisphere
         temp = r_affin - (/-r_sphere / 2.d0, 0.d0, 0.d0/)
@@ -110,7 +110,7 @@ subroutine cutvector(r_in, face_nr, n, r_out, &
             n = (/-1., 0., 0./)
             r_affin = .5 * r_sphere * r_affin / abs(dot_product(r_affin, n))
         end select
-        r_out = r_affin + center
+        r_out = r_affin + centre
         
     case (7) ! hollow ball
         select case (face_nr)
@@ -123,7 +123,7 @@ subroutine cutvector(r_in, face_nr, n, r_out, &
             n = n / sqrt(dot_product(n, n))
             r_affin = (r_sphere - x_plasma) * r_affin / abs(dot_product(r_affin, n))
         end select
-        r_out = r_affin + center
+        r_out = r_affin + centre
         
     case (8) ! hollow semisphere
         temp = r_affin - (/-r_sphere / 2.d0, 0.d0, 0.d0/)
@@ -140,7 +140,7 @@ subroutine cutvector(r_in, face_nr, n, r_out, &
             n = (/-1., 0., 0./)
             r_affin = .5 * r_sphere * r_affin / abs(dot_product(r_affin, n))
         end select
-        r_out = r_affin + center
+        r_out = r_affin + centre
         
     end select
     

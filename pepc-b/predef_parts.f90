@@ -36,18 +36,18 @@ subroutine predef_parts
      ! Root reads info block in run directory to check that run parameters correct
 
      read(80,'(7(9x,i8/),10(9x,f12.5/),9(9x,1pe12.5/),2(9x,3f12.5/))')  &    ! info block - skip variable names
-          start_step, npartr, &
+          itime_start, npartr, &
 	  ner, nir, np_beamr, iconf, iens, &
 	  xlr, ylr, zlr, boxr, &
   	  epsr, thetar, &
           tlaser, trun, omegar, lambdar, &
           qe, qi, mass_e, mass_i, Zion, a_ii, Vplas, Aplas, Qplas, &
-          plasma_center(1:3), focus(1:3)
+          plasma_centre(1:3), focus(1:3)
      close(80)
-     write(6,'(/a/a/a,i5)') 'RESTART:','Reading run data from info block: parts_info.in','Timestep:',start_step
+     write(6,'(/a/a/a,i5)') 'RESTART:','Reading run data from info block: parts_info.in','Timestep:',itime_start
 
      if (me==0) write(*,'(7(a12,i12/),9(a12,f12.5/),9(a12,1pe12.5/),2(a12,3(1pe12.5)/))')  &    ! info block - skip variable names
-          'Start time: ', start_step, & 
+          'Start time: ', itime_start, & 
           '# particles: ', npartr, &
 	  '# electrons: ', ner, &
           '# ions: ', nir, & 
@@ -72,7 +72,7 @@ subroutine predef_parts
           'Vplas: ',Vplas, &
           'Aplas: ',Aplas, &
           'Qplas: ',Qplas, &
-          'center: ',plasma_center(1:3), &
+          'centre: ',plasma_centre(1:3), &
           'focus: ',focus(1:3)
 
      if (ner /= ne .or. nir /= ni) then
@@ -98,7 +98,7 @@ subroutine predef_parts
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
 
-  call MPI_BCAST( start_step, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( itime_start, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( xl, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( yl, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( zl, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
@@ -116,7 +116,7 @@ subroutine predef_parts
   call MPI_BCAST( Vplas, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( Aplas, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( Qplas, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
-  call MPI_BCAST( plasma_center, 3, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
+  call MPI_BCAST( plasma_centre, 3, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( focus, 3, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( ne, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( ni, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
@@ -144,9 +144,9 @@ subroutine predef_parts
 
      ! get filename suffix from dump counter
      do i=0,4
-        cdump(6-i:6-i) =  achar(mod(start_step/10**i,10) + 48)  
+        cdump(6-i:6-i) =  achar(mod(itime_start/10**i,10) + 48)  
      end do
-     cdump(1:1) = achar(start_step/10**5 + 48)
+     cdump(1:1) = achar(itime_start/10**5 + 48)
 
      cfile=cme//"/parts_info."//cdump(1:6)
 
@@ -214,12 +214,12 @@ subroutine predef_parts
        // achar(mod(me_read/10,10)+48) &
        // achar(mod(me_read,10)+48)  ! Convert 4-digit PE number into character string
 
-        write(*,'(a,a,a6,i8)') 'Reading from ',cme,'current_step',start_step
+        write(*,'(a,a,a6,i8)') 'Reading from ',cme,'itime',itime_start
         ! get filename suffix from dump counter
         do i=0,4
-           cdump(6-i:6-i) =  achar(mod(start_step/10**i,10) + 48)  
+           cdump(6-i:6-i) =  achar(mod(itime_start/10**i,10) + 48)  
         end do
-        cdump(1:1) = achar(start_step/10**5 + 48)
+        cdump(1:1) = achar(itime_start/10**5 + 48)
 
         cfile=cme//"/parts_info."//cdump(1:6)
 

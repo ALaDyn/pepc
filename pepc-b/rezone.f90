@@ -96,7 +96,7 @@ subroutine rezone
   if (me==0) write(*,*) 'total # particles added ',2*nslice
 
   if (me==num_pe-1) then
-     iseed1=-17999-current_step
+     iseed1=-17999-itime
 
      ! initialize new ion disc
 
@@ -110,9 +110,9 @@ subroutine rezone
         end do
         !        write(*,*) 'seed, delta-r:',iseed1,xt,yt,zt
         x(npp+i) = window_min + x_plasma + xt 
-        y(npp+i) = plasma_center(2) + yt 
+        y(npp+i) = plasma_centre(2) + yt 
         if (idim==3) then
-           z(npp+i) = plasma_center(3) + zt 
+           z(npp+i) = plasma_centre(3) + zt 
         else
            z(npp+i)=0.
         endif
@@ -174,9 +174,9 @@ subroutine rezone
 
      !  Give electrons a thermal distribution
      if (vte > 0) then
-        call maxwell1(ux,pe_capacity,npp+1,nslice,vte)
-        call maxwell1(uy,pe_capacity,npp+1,nslice,vte)
-        call maxwell1(uz,pe_capacity,npp+1,nslice,vte)
+        call maxwell1(ux,nppm,npp+1,nslice,vte)
+        call maxwell1(uy,nppm,npp+1,nslice,vte)
+        call maxwell1(uz,nppm,npp+1,nslice,vte)
         call scramble_v(npp+1,nslice)   ! remove x,y,z correlations
      else
         call cold_start(npp+1,nslice)

@@ -7,11 +7,11 @@
 !>     ==================================
 
 
-subroutine em_helmholtz(me,current_step,n,dx,theta,a0,w0,rhoe,Az)
+subroutine em_helmholtz(me,itime,n,dx,theta,a0,w0,rhoe,Az)
 
   implicit none
   integer, intent(in) :: n !< number of mesh points for 1D Helmholtz fields
-  integer, intent(in) :: current_step  !< current timestep 
+  integer, intent(in) :: itime  !< current timestep 
   integer, intent(in) :: me  !< current rank 
   real, intent(in) :: theta  !< angle of incidence
   real, intent(in) ::  a0    !< laser amplitude vosc/c(t)
@@ -97,8 +97,8 @@ subroutine em_helmholtz(me,current_step,n,dx,theta,a0,w0,rhoe,Az)
   end do
 
 iplas = n/2
-if (me==0) write(*,'(i6,2f12.3)') current_step,rhoe(iplas),abs(az(iplas))
-if (current_step .eq. itav .and. me==0) then
+if (me==0) write(*,'(i6,2f12.3)') itime,rhoe(iplas),abs(az(iplas))
+if (itime .eq. itav .and. me==0) then
   write (*,'(a20,i2,a10,f12.5,a10,f12.3)') 'Iterate ',j,' error=',errmax,' amplitude',a0
   g0 = sqrt(1+a0**2/2)
   open (40,file='a_error.dat')

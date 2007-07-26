@@ -46,8 +46,8 @@ subroutine sum_fieldave
         p = npp+i   !index
         pshortl(i) = p   !index
         x(p) = (i-1)*dx + xgav_start   ! axial position in box
-        y(p) = plasma_center(2)  ! target center
-        z(p) = plasma_center(3)
+        y(p) = plasma_centre(2)  ! target centre
+        z(p) = plasma_centre(3)
       end do
 
 ! Get interaction lists
@@ -60,7 +60,7 @@ subroutine sum_fieldave
 
 ! all CPUs must call walk
 
-   call tree_walk(pshortl(1:ndum),ndum,1,theta,eps,current_step,mac,ttrav,tfetch)
+   call tree_walk(pshortl(1:ndum),ndum,1,theta,eps,itime,mac,ttrav,tfetch)
 
    if (my_rank==0) then
 ! Fields
@@ -87,7 +87,7 @@ subroutine sum_fieldave
         pshortl(i) = p   !index
         x(p) = xgav_pos(1)   ! 1st axial position in box
         y(p) = dy*(i-1)  ! y position 
-        z(p) = plasma_center(3) ! midpoint in z
+        z(p) = plasma_centre(3) ! midpoint in z
       end do
 ! Get interaction lists
      ndum = ngav+1
@@ -97,7 +97,7 @@ subroutine sum_fieldave
 
 ! all CPUs must call walk
 
-   call tree_walk(pshortl(1:ndum),ndum,1,theta,eps,current_step,mac,ttrav,tfetch)
+   call tree_walk(pshortl(1:ndum),ndum,1,theta,eps,itime,mac,ttrav,tfetch)
 
    if (my_rank==0) then
 ! Fields

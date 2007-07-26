@@ -21,9 +21,9 @@ subroutine earth_plate
   real :: x_limit, y_limit, z_limit, r_limit, xt, yt, zt, xt2, yt2
 
   do p=1,npp
-     xt = x(p) - plasma_center(1)  ! shift origin to 1st target center
-     yt = y(p) - plasma_center(2)
-     zt = z(p) - plasma_center(3)
+     xt = x(p) - plasma_centre(1)  ! shift origin to 1st target centre
+     yt = y(p) - plasma_centre(2)
+     zt = z(p) - plasma_centre(3)
 
      xt2 = xt - displace(1)
      yt2 = yt - displace(2)
@@ -52,7 +52,7 @@ subroutine earth_plate
  ! Absorb electrons and reinject with thermal velocity
  	   call reinject(vte,1,ux(p),uy(p),uz(p))
 !write(*,*) 'new velocities:', ux(p),uy(p),uz(p)
-           z(p)= plasma_center(3) -x_plasma/2 + uz(p)*dt/2. 
+           z(p)= plasma_centre(3) -x_plasma/2 + uz(p)*dt/2. 
 
            if (pelabel(p) <= npart/2 .and. xt**2+yt**2 > r_sphere**2) then
  ! Wire 1 electrons falling outside wire1 get reinjected inside wire1
@@ -61,8 +61,8 @@ subroutine earth_plate
                 yt = r_sphere*(2*rano(iseed1)-1.)
              end do
 
-             y(p) = yt + plasma_center(2)
-             x(p) = xt + plasma_center(1)
+             y(p) = yt + plasma_centre(2)
+             x(p) = xt + plasma_centre(1)
 
            else if (pelabel(p) <= npart/2 .and. xt**2+yt**2 <= r_sphere**2) then
   ! Wire 1 electrons falling inside get put back in  wire 2
@@ -77,8 +77,8 @@ subroutine earth_plate
                 xt2 = r_sphere*(2*rano(iseed2)-1.)
                 yt2 = r_sphere*(2*rano(iseed1)-1.)
              end do
-             y(p) = yt2 + plasma_center(2)+displace(2)
-             x(p) = xt2 + plasma_center(1)+displace(1)
+             y(p) = yt2 + plasma_centre(2)+displace(2)
+             x(p) = xt2 + plasma_centre(1)+displace(1)
 
            else if (pelabel(p) > npart/2 .and. xt2**2+yt2**2 <= r_sphere**2) then
   ! Wire 2 electrons falling inside get put back in  wire 1

@@ -33,7 +33,7 @@ subroutine constrain
 
         do face_nr = 1, number_faces ! walk through all faces
             call face(r_new, c_status, face_nr, & 
-              target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_center )
+              target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
 
             if (c_status .ge. 0.) then
                 nr_out = nr_out + 1
@@ -41,10 +41,10 @@ subroutine constrain
                 ! get a good r_old
                 r_test = r_new - dt * v
                 call face(r_test, c_status, face_nr, & 
-                  target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_center )
+                  target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                 if (c_status .gt. 0.) then
                     call cutvector(r_test, face_nr, n, r_old, &
-                        target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_center )
+                        target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                    temp = r_new - r_old
                     v = sqrt(dot_product(v, v)) * temp / sqrt(dot_product(temp, temp))
                 else
@@ -56,7 +56,7 @@ subroutine constrain
                 p_old = 0.
                 r_test = r_old + p_new * (r_new - r_old)
                 call face(r_test, c_status, face_nr, &
-                  target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_center )
+                  target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                 do while (abs(c_status) .gt. constrain_proof)
                     diff = abs(p_new - p_old) / 2.
                     p_old = p_new
@@ -67,11 +67,11 @@ subroutine constrain
                     end if
                     r_test = r_old + p_new * (r_new - r_old)
                     call face(r_test, c_status, face_nr, &
-                       target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_center )
+                       target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                 end do
 !                if (constrain_debug) write(*, *) 'Bisection for particle done.'
                 call cutvector(r_test, face_nr, n, r_d, & 
-                  target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_center )
+                  target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
                 ! Reflect
                 v = v - 2. * dot_product(v, n) * n
                 if (constrain_debug) write(*, *) 'Reflecting .. new v: v     = ', v(1:3)

@@ -65,10 +65,10 @@ subroutine sum_radial(timestamp)
 
   do i=1,npp
 
-! particle position relative to plasma center
-     xt = x(i)-plasma_center(1)
-     yt = y(i)-plasma_center(2)
-     zt = z(i)-plasma_center(3)
+! particle position relative to plasma centre
+     xt = x(i)-plasma_centre(1)
+     yt = y(i)-plasma_centre(2)
+     zt = z(i)-plasma_centre(3)
 
 ! radius
      rt=sqrt(xt**2+yt**2+zt**2)
@@ -158,9 +158,9 @@ subroutine sum_radial(timestamp)
         
         p = npp+i   !index
         pshortl(i) = p   !index
-        x(p) = (i-1)*dr + plasma_center(1)   ! radius - include r=0
-        y(p) = plasma_center(2)
-        z(p) = plasma_center(3)
+        x(p) = (i-1)*dr + plasma_centre(1)   ! radius - include r=0
+        y(p) = plasma_centre(2)
+        z(p) = plasma_centre(3)
      end do
 ! Get interaction lists
 !     write (*,*) 'Doing lists for dummy particles'
@@ -172,7 +172,7 @@ subroutine sum_radial(timestamp)
 
 ! all PEs must call walk
 
-   call tree_walk(pshortl(1:ndum),ndum,1,theta,eps,current_step,mac,ttrav,tfetch)
+   call tree_walk(pshortl(1:ndum),ndum,1,theta,eps,itime,mac,ttrav,tfetch)
 
    if (my_rank==0) then
 ! Fields

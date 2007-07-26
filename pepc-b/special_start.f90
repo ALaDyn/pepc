@@ -26,7 +26,7 @@ subroutine special_start(iconf)
   Vplas = x_plasma * y_plasma * z_plasma
   Aplas = x_plasma * y_plasma
   focus = (/ xl/4., yl/2., zl/2. /) ! Centre of laser focal spot
-  plasma_center =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+  plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
   Qplas = ne
 
   config: select case(iconf)
@@ -240,9 +240,9 @@ subroutine special_start(iconf)
      ! Setup 3v Maxwellian electrons
      ! TODO: max random seed processor-dependent
 
-     call maxwell1(ux,pe_capacity,1,nep,vte)
-     call maxwell1(uy,pe_capacity,1,nep,vte)
-     call maxwell1(uz,pe_capacity,1,nep,vte)
+     call maxwell1(ux,nppm,1,nep,vte)
+     call maxwell1(uy,nppm,1,nep,vte)
+     call maxwell1(uz,nppm,1,nep,vte)
      call scramble_v(1,nep)   ! remove x,y,z correlations
      ! Ions cold    
      call cold_start(nep+1,nip)

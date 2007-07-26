@@ -26,7 +26,7 @@ subroutine vis_fields
   integer :: npx, npy, npz, ng
   integer :: iskip_x, iskip_y, iskip_z
 
-  simtime = dt*(current_step+start_step)
+  simtime = dt*(itime+itime_start)
   amp_las = vosc*min(1.,simtime/tpulse)
 
   ng = (ngx+2)*(ngy+2)*(ngz+2)                         ! total # gridpoints
@@ -102,7 +102,7 @@ subroutine vis_fields
         end do
      end do
 !     call flvisit_spk_check_connection(lvisit_active)
-     !     call flvisit_spk_info_send(npart,xl,yl,zl,zl,ne,ni,np_beam,current_step+start_step)
+     !     call flvisit_spk_info_send(npart,xl,yl,zl,zl,ne,ni,np_beam,itime+itime_start)
      itlas=int(tlaser)
 
      !        call flvisit_spk_info_send(npart,xl,yl,zl, zl, &

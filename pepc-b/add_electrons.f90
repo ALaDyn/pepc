@@ -59,9 +59,9 @@ subroutine add_electrons
 
   !  Set up thermal distribution
   if (vte > 0) then
-     call maxwell1(ux,pe_capacity,nip+1,nep,vte)
-     call maxwell1(uy,pe_capacity,nip+1,nep,vte)
-     call maxwell1(uz,pe_capacity,nip+1,nep,vte)
+     call maxwell1(ux,nppm,nip+1,nep,vte)
+     call maxwell1(uy,nppm,nip+1,nep,vte)
+     call maxwell1(uz,nppm,nip+1,nep,vte)
      call scramble_v(nip+1,nep)   ! remove x,y,z correlations
   else
      call cold_start(nip+1,nep)

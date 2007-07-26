@@ -51,9 +51,9 @@ subroutine track_nc
  
 ! initial leading edge of plasma
   if (target_geometry == 1 .or. target_geometry ==3) then
-     xc1 = plasma_center(1)-r_sphere 
+     xc1 = plasma_centre(1)-r_sphere 
   else
-     xc1 = plasma_center(1)-x_plasma - x_layer(1)  
+     xc1 = plasma_centre(1)-x_plasma - x_layer(1)  
   endif
 
 ! abort tracking if particle number too low
@@ -94,7 +94,7 @@ subroutine track_nc
      i = i+1
   end do
 
-  if (.not.found .and. current_step>0) then 
+  if (.not.found .and. itime>0) then 
 	beam_config=0 ! switch off laser
 	if (my_rank==0) write(15,*) 'Target burnt through - switching off laser'
   endif

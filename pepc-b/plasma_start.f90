@@ -10,7 +10,7 @@
 ! ==============================================
 
 subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_config, idim, &
-     rho0, Zion, mass_ratio, vt, x_plasma, y_plasma, z_plasma, r_sphere, plasma_center, &
+     rho0, Zion, mass_ratio, vt, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
      number_faces, Vplas, Aplas, Qplas, q_part, m_part, a_ave )
 
   use treevars
@@ -30,7 +30,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   real, intent(in) :: vt ! thermal or drift velocity
   real, intent(in) :: mass_ratio ! mass ratio (m_q/m_e)
   real, intent(in) :: x_plasma, y_plasma, z_plasma, r_sphere ! container params
-  real, intent(in) :: plasma_center(3) ! target offset vector
+  real, intent(in) :: plasma_centre(3) ! target offset vector
   real, intent(out) :: Vplas, Aplas, Qplas ! Plasma volume, area, charge
   real, intent(out) :: q_part, m_part, a_ave ! Derived particle charge, mass, spacing
   integer, intent(out) :: number_faces   ! # faces of target container
@@ -63,7 +63,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
 	"yplas:",y_plasma,&
 	"zplas:",z_plasma,&
 	"radius:",r_sphere,&
-	"center:",plasma_center
+	"centre:",plasma_centre
   endif
 
   !  Predefined geometries:
@@ -79,7 +79,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   !       16, 36 = hollow hemisphere
 
 
-  !  Define target container parameters: volume, area, center, # faces
+  !  Define target container parameters: volume, area, centre, # faces
 
   geom_container: select case(target_geometry)
 
@@ -163,34 +163,34 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
 
      geom_parts: select case (target_geometry)
      case(0, 5) ! slab or wedge 
-        xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_center(1)
-        yt = .5 * y_plasma * (2 * rano(iseed1) - 1.) + plasma_center(2)         
-        zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_center(3)
+        xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
+        yt = .5 * y_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
+        zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
 
      case(1, 11) ! sphere and hollow sphere
-        xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_center(1)
-        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_center(2)        
-        zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_center(3)
+        xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
+        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)        
+        zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
 
      case(2,12) ! disc, tube
-        xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_center(1)
-        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_center(2)         
-        zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_center(3)
+        xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
+        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
+        zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
 
      case(3,13) ! wire
-        xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_center(1)         
-        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_center(2)
-        zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_center(3)
+        xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)         
+        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)
+        zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
 
      case(4) ! ellipsoid
-        xt = r_sphere * (2 * rano(iseed1) - 1.) * x_plasma + plasma_center(1)
-        yt = r_sphere * (2 * rano(iseed1) - 1.) * y_plasma + plasma_center(2)
-        zt = r_sphere * (2 * rano(iseed1) - 1.) * z_plasma + plasma_center(3)
+        xt = r_sphere * (2 * rano(iseed1) - 1.) * x_plasma + plasma_centre(1)
+        yt = r_sphere * (2 * rano(iseed1) - 1.) * y_plasma + plasma_centre(2)
+        zt = r_sphere * (2 * rano(iseed1) - 1.) * z_plasma + plasma_centre(3)
 
      case(6, 16, 26, 36) ! hemisphere and hollow hemisphere
-        xt = .5 * r_sphere * (2 * rano(iseed1) - 1.) + plasma_center(1)
-        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_center(2)
-        zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_center(3)
+        xt = .5 * r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
+        yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)
+        zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
 
      end select geom_parts
 
@@ -199,7 +199,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
 
      do face_nr = 1, number_faces
         call face(  (/xt, yt, zt/), c_status, face_nr, &
-	            target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_center )
+	            target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
 
         if (c_status .ge. 0.) exit ! particle outside
      end do
@@ -270,9 +270,9 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   case(1) ! isotropic Maxwellian
 
      if (vt > 0) then
-        call maxwell1(ux,pe_capacity,i1,n,vt)
-        call maxwell1(uy,pe_capacity,i1,n,vt)
-        call maxwell1(uz,pe_capacity,i1,n,vt)
+        call maxwell1(ux,nppm,i1,n,vt)
+        call maxwell1(uy,nppm,i1,n,vt)
+        call maxwell1(uz,nppm,i1,n,vt)
         call scramble_v(i1,n)   ! remove x,y,z correlations
      else
         call cold_start(i1,n)
@@ -286,12 +286,12 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   case(3)  ! radial velocity spread
      do i = 1, n
         p = i + i1-1
-        xt = x(p)-plasma_center(1)
-        yt = y(p)-plasma_center(2)
-        zt = z(p)-plasma_center(3)
+        xt = x(p)-plasma_centre(1)
+        yt = y(p)-plasma_centre(2)
+        zt = z(p)-plasma_centre(3)
 
         rt = sqrt(xt**2 + yt**2 + zt**2)
-! Set velocity direction according to position vector from plasma center
+! Set velocity direction according to position vector from plasma centre
         ux(p) = vt*xt/rt
         uy(p) = vt*yt/rt
         uz(p) = vt*zt/rt

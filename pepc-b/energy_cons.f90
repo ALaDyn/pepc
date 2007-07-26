@@ -53,7 +53,7 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
         write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',convert_kev*ekine/max(1,ne),'Ti (keV):',convert_kev*ekini/max(1,ni)
      end do
      ! Write out to energy.dat file
-     if (current_step.eq.1)  write(75,'(a)') '! time  Upot  Umag  Ukin_e Ukin_i Ukin_beam Utot Tpon xc'
+     if (itime.eq.1)  write(75,'(a)') '! time  Upot  Umag  Ukin_e Ukin_i Ukin_beam Utot Tpon xc'
      write (75,'(f12.5,5(1pe12.3),1pe13.5)') &
           trun, convert_kev*epot, convert_kev*emag, convert_kev*ekine, convert_kev*ekini,&
           convert_kev*ebeam, convert_kev*etot

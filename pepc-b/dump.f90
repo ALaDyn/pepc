@@ -38,7 +38,7 @@ subroutine dump(timestamp)
 
   open (60,file=cfile)    
   write(60,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))')  &    ! info block
-       'current_step=',timestamp, 'npp=',npp, &
+       'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
        'scheme=',scheme, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
@@ -46,7 +46,7 @@ subroutine dump(timestamp)
        'omega=',omega,'lambda=',lambda,'  qe=',qe,'  qi=',qi, &
        'mass_e=',mass_e,'mass_i=',mass_i,'Zion=',Zion,'a_ii=',a_ii, &
        'Vplas=',Vplas,'Aplas=',Aplas,'Qplas=',Qplas, &
-       'center=',plasma_center(1:3),'focus=',focus(1:3)
+       'centre=',plasma_centre(1:3),'focus=',focus(1:3)
   
 
   if (me.eq.0) then
@@ -54,7 +54,7 @@ subroutine dump(timestamp)
     cfile="parts_info.in"     ! copy to default restart block
     open (61,file=cfile)    
     write(61,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))')  &    ! info block
-       'current_step=',timestamp, 'npp=',npp, &
+       'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
        'scheme=',scheme, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
@@ -62,7 +62,7 @@ subroutine dump(timestamp)
        'omega=',omega,'lambda=',lambda,'  qe=',qe,'  qi=',qi, &
        'mass_e=',mass_e,'mass_i=',mass_i,'Zion=',Zion,'a_ii=',a_ii, &
        'Vplas=',Vplas,'Aplas=',Aplas,'Qplas=',Qplas, &
-       'center=',plasma_center(1:3),'focus=',focus(1:3)
+       'centre=',plasma_centre(1:3),'focus=',focus(1:3)
   
     close (61)
     open (62,file="runstamp")  ! time stamp 
@@ -70,7 +70,7 @@ subroutine dump(timestamp)
     close (62)
 
   write(6,'(//a/7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))') 'PARTICLE DUMP:', &    ! info block
-       'current_step=',timestamp, 'npp=',npp, &
+       'itime=',timestamp, 'npp=',npp, &
        'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
        'scheme=',scheme, &
        'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
@@ -78,7 +78,7 @@ subroutine dump(timestamp)
        'omega=',omega,'lambda=',lambda,'  qe=',qe,'  qi=',qi, &
        'mass_e=',mass_e,'mass_i=',mass_i,'Zion=',Zion,'a_ii=',a_ii, &
        'Vplas=',Vplas,'Aplas=',Aplas,'Qplas=',Qplas, &
-       'center=',plasma_center(1:3),'focus=',focus(1:3)
+       'centre=',plasma_centre(1:3),'focus=',focus(1:3)
 
   endif
   close(60)

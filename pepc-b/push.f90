@@ -21,10 +21,10 @@ subroutine push_x(ips,ipf,delt)
   !  relativistic particle push in space
 
   do p=ips,ipf
-! find radius from plasma_center
-     dx = x(p)-plasma_center(1)
-     dy = y(p)-plasma_center(2)
-     dz = z(p)-plasma_center(3)
+! find radius from plasma_centre
+     dx = x(p)-plasma_centre(1)
+     dy = y(p)-plasma_centre(2)
+     dz = z(p)-plasma_centre(3)
      dr2 = dx**2+dy**2+dz**2
      if (dr2 < r_glue2 ) then 
        gamma = sqrt(1.0 + ux(p)**2 + uy(p)**2 + uz(p)**2)

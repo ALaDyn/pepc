@@ -95,7 +95,7 @@ subroutine setup
   ivis = 1
   ivis_fields = 1
   ivis_domains = 1
-  start_step = 0
+  itime_start = 0
   itrack = 10
   domain_cut = zl
 

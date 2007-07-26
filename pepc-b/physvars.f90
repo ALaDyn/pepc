@@ -39,7 +39,7 @@ module physvars
   real :: x_plasma       !< initial plasma length (slab or disc targets)
   real :: y_plasma       !< initial plasma y-width (slab)
   real :: z_plasma       !< initial plasma z-width (slab)
-  real :: plasma_center(3) !< vector defining center of plasma target
+  real :: plasma_centre(3) !< vector defining centre of plasma target
   real :: displace(3)=0.    !< particle displacement vector for restart or 2nd target
   integer :: n_layer(maxlayers)=0   !< Additional target parameters
   real, dimension(maxlayers) :: rho_layer, Zion_layer, mratio_layer, x_layer, y_layer, z_layer, r_layer
@@ -94,7 +94,7 @@ module physvars
   real :: omega         !< frequency  (omega_p)
   real :: lambda        !< laser wavelength
   real :: theta_inc     !< angle of incidence
-  real :: focus(3)      !< center of focal spot
+  real :: focus(3)      !< centre of focal spot
   real :: tlaser        !< run time after laser switched on (1/omega_p)
   real :: elaser        !< deposited laser energy
   real :: propag_laser  !< distance travelled by laser after rezoning
@@ -169,8 +169,8 @@ module physvars
    real :: convert_keV     !< conversion factor from norm energy to keV/particle
    real :: convert_erg     !< conversion factor from norm energy to ergs
    real :: domain_cut      !< cutoff height for domain boxes
-   integer :: nt, current_step   !< # timesteps and current timestep
-   integer :: start_step !< restart time stamp
+   integer :: nt, itime   !< # timesteps and current timestep
+   integer :: itime_start !< restart time stamp
    integer :: idump=100      !< output frequency (timesteps)
    integer :: iprot=1       !< protocoll frequency
    integer :: ivis=5        !< frequency for particle shipping to VISIT

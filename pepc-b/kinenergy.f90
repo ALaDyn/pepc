@@ -17,7 +17,7 @@ subroutine kinenergy(ekine,ekini,ebeam)
 
   integer :: p,i,ierr
   real*8 :: ekine, ekini, ebeam, sum_plas_e, sum_plas_i, sum_beam, gamma
-  real*8, dimension(pe_capacity) :: uhx, uhy, uhz
+  real*8, dimension(nppm) :: uhx, uhy, uhz
 
   sum_plas_e = 0.
   sum_plas_i = 0.
