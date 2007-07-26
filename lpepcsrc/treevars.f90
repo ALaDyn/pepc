@@ -13,7 +13,7 @@ module treevars
 ! fixed array sizes for debugging
 !  integer, parameter :: size_tree = 10000, &
 !                        maxaddress=32768, &
-!                        pe_capacity=2000, &
+!                        nppm=2000, &
 !                        nbranch_max=size_tree/10
 
  ! Constants
@@ -99,15 +99,7 @@ module treevars
   type (multipole), allocatable :: pack_child(:), get_child(:)
   type (multipole) :: node_dummy
 
-  integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
-  			nprops_multipole=25      ! Number of multipole properties to ship
-  integer, dimension(nprops_multipole) :: blocklengths, displacements, types
   integer :: mpi_type_particle, mpi_type_multipole
-
-  ! address calculation, 8 byte 
-  integer*8, dimension(nprops_multipole) :: address
-  integer*8 :: send_base, receive_base
-  
 
   !  tree variables
 
@@ -187,7 +179,7 @@ module treevars
              pe_debug, &       ! rank for debug O/P
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
-             pe_capacity, &           ! max # particles/PE
+             nppm, &           ! max # particles/PE
              npp, &            !  actual  # particles/PE
              nshortm, &        ! shortlist length
              iused          ! counter for collision resolution array free_addr()
