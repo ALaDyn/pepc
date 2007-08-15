@@ -28,6 +28,10 @@ then
 elif [[ `uname -n` = "jubl" ]] # jubl in Juelich
 then
  DEFAULT_VISITPATH="-L/bgl/local/visit.rts/apis/nbody3 -llvisit_nbody2 -L/bgl/local/visit.rts/lvisit/lib -llvisit -L/bgl/local/visit.rts/lib -lvisit" 
+elif [[ `uname -m` = "i686" ]] # laptop
+then
+VPREFIX=/tmp/xnbody
+DEFAULT_VISITPATH="-L/tmp/xnbody/xnbody_qt4/apis/nbody3 -llvisit_nbody2 -L/tmp/xnbody/lvisit/lib -llvisit -L/tmp/xnbody/visit_dist/lib -lvisit"
 fi
 
 #######################################################################
