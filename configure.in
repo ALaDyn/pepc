@@ -20,6 +20,7 @@ then
  CFLAGS="$CFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
  LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib" 
 # FFLAGS="$FFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
+ DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
 fi
 
 if [[ `uname -m` = "00223C3B4C00" ]] # jump in Juelich
@@ -157,6 +158,21 @@ AC_ARG_WITH(opt,
 	[  --with-opt=options      compiler optimization options], 
 	[OPT=${withval}])
 AC_SUBST(OPT) 
+
+# set MPI trace library options
+AC_ARG_WITH(mpitrace,
+	[  --with-mpitrace         MPI trace library], 
+  if test "$withval" != "no" ; then
+        MPITRACE="${DEFAULT_TRACEPATH}"
+     if test "$withval" != "yes" ; then
+       MPITRACE=${withval}
+     fi
+  fi
+) 
+AC_SUBST(MPITRACE) 
+
+#MPITRACE = -L/bgl/local/lib -lmpitrace_f # MPI only
+# -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts  # MPI+HPM
 
 # default for debug is no
 AC_ARG_WITH(debug,[  --with-debug            produce debug library (no)],
