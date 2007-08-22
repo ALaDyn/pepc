@@ -1,0 +1,15 @@
+*/.svn
+*/*.o
+pepcb
+pepce
+pegs
+splitter
+slicer
+*.dat
+*.xyz
+*.00*
+*~
+*#
+*/*.mod
+*/*.a
+pepc-b/config_private.h
