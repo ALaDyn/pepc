@@ -10,19 +10,28 @@ fi
 
 cd ..
 VERSION=$1
-rm -f pepc$VERSION.tar.gz
-tar vcfh - \
-	pepc/lpepcsrc \
-	pepc/pepc-b \
-	pepc/pepc-e \
-	pepc/tutorial \
-	pepc/doc \
-	pepc/tools \
-	pepc/bin/*_pes pepc/bin/*_dump pepc/bin/make_* pepc/bin/copy_* \
-	pepc/README pepc/README.* pepc/DISCLAIMER pepc/TODO pepc/CHANGES \
-	 | gzip > pepc/pepc$VERSION.tar.gz
+rm -f pepc/pepc$VERSION.tar.gz
+tar vcfh pepc/pepc$VERSION.tar --exclude-from=pepc/.excludes \
+pepc/lpepcsrc \
+pepc/pepc-b \
+pepc/pepc-e \
+pepc/tutorial \
+pepc/doc \
+pepc/html \
+pepc/tools \
+pepc/bin \
+pepc/README \
+pepc/DISCLAIMER \
+pepc/TODO \
+pepc/CHANGES \
+pepc/config.h \
+pepc/*.in \
+pepc/configure \
+pepc/src-config \
+pepc/acx_mpi.m4
+gzip pepc/pepc$VERSION.tar
 # Publish
 cd pepc
-scp README gibbon@zam581:/var/local/www/fzj/zam/pepc/.
-scp pepc$VERSION.tar.gz gibbon@zam581:/var/local/www/fzj/zam/pepc/software/.
+#scp README gibbon@zam581:/var/local/www/fzj/zam/pepc/.
+#scp pepc$VERSION.tar.gz gibbon@zam581:/var/local/www/fzj/zam/pepc/software/.
 
