@@ -89,7 +89,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
     nppm = 5*max(npartm/num_pe,1000) ! allow 50% fluctuation
   endif
   
-!WF changed from 1000 
   nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
 
   ! Estimate of interaction list length - Hernquist expression
@@ -225,7 +224,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   types(13) = MPI_INTEGER8
   types(14:15) = MPI_INTEGER
 
-  receive_base=LOC(get_props_a%x)
 
   if (me==0) write(*,'(a30,o21)') 'Particle address base:',receive_base
   call MPI_GET_ADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
