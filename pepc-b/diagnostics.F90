@@ -132,6 +132,10 @@ subroutine diagnostics
    debug_tree = 2
   endif
 
+  if (debug_tree.ge.1 .and. mod(itime,iprot)==0 ) then
+    call tree_stats(itime)
+  endif
+
 ! Array bound check
   if (nleaf+ntwig > .95*maxaddress) then
      write (6,'(a,i4)') '*** WARNING:  hash table >95% full on CPU ',my_rank 
