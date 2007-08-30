@@ -12,20 +12,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   real, intent(in) :: np_mult ! particle array size multiplication factor (1.5)
   integer, intent(in) :: fetch_mult ! fetch array size multiplication factor (10)
 
-  integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
-                        nprops_multipole=25      ! Number of multipole properties to ship
-
-! MPI2 structure definition:
-! Let compiler choose whether to use 32- or 64-bit addressing for MPI pointers
-  integer(kind=MPI_ADDRESS_KIND), dimension(nprops_multipole) :: address, displacements
-  integer(kind=MPI_ADDRESS_KIND) :: send_base, receive_base
-
-! Old MPI1 definition (4-byte address pointers)
-!  integer, dimension(nprops_multipole) :: address, displacements
-!  integer :: send_base, receive_base
-
-  integer, dimension(nprops_multipole) :: blocklengths, types
-
   integer :: ibig, machinebits,k
   integer :: ierr,npsize
   integer :: mem_parts, mem_multipoles, mem_fields, mem_tree, mem_prefetch, mem_tot, mem_lists
@@ -50,7 +36,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
       force_debug=.false.
       walk_summary=.true.
       prefetch_debug=.false. 
-      domain_debug = .false.
+      domain_debug = .true.
 
   else if (db_level==3) then
      tree_debug=.true.
@@ -82,7 +68,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   npartm = npart
   if (n_cpu.eq.1) then
-    nppm=1.5*npart
+    nppm=npart
   else if (np_mult>0) then 
     nppm = abs(np_mult)*2*max(npartm/num_pe,1000) ! allow 50% fluctuation
   else
@@ -199,7 +185,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   allocate ( charge(-maxtwig:maxleaf), &                    ! charge
        abs_charge(-maxtwig:maxleaf), &                ! absolute charge
-       xcoc(-maxtwig:maxleaf), ycoc(-maxtwig:maxleaf), zcoc(-maxtwig:maxleaf), &    ! center of charge 
+       xcoc(-maxtwig:maxleaf), ycoc(-maxtwig:maxleaf), zcoc(-maxtwig:maxleaf), &    ! centre of charge 
        xshift(-maxtwig:maxleaf), yshift(-maxtwig:maxleaf), zshift(-maxtwig:maxleaf), &    ! shift vector
        xdip(-maxtwig:maxleaf), ydip(-maxtwig:maxleaf), zdip(-maxtwig:maxleaf), &          ! dipole moment
        xxquad(-maxtwig:maxleaf), yyquad(-maxtwig:maxleaf), zzquad(-maxtwig:maxleaf), &       ! quadrupole moment
@@ -224,35 +210,29 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   types(13) = MPI_INTEGER8
   types(14:15) = MPI_INTEGER
 
-
-  if (me==0) write(*,'(a30,o21)') 'Particle address base:',receive_base
-  call MPI_GET_ADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
-  call MPI_GET_ADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
+  call LOCADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
+  call LOCADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
 
 
-
-  call MPI_GET_ADDRESS( ship_props_a%x, address(1), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%y, address(2), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%z, address(3), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%ux, address(4), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%uy, address(5), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%uz, address(6), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%q, address(7), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%m, address(8), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%work, address(9), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%ax, address(10), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%ay, address(11), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%az, address(12), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%key, address(13), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%label, address(14), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%pid, address(15), ierr )
+  call LOCADDRESS( ship_props_a%x, address(1), ierr )
+  call LOCADDRESS( ship_props_a%y, address(2), ierr )
+  call LOCADDRESS( ship_props_a%z, address(3), ierr )
+  call LOCADDRESS( ship_props_a%ux, address(4), ierr )
+  call LOCADDRESS( ship_props_a%uy, address(5), ierr )
+  call LOCADDRESS( ship_props_a%uz, address(6), ierr )
+  call LOCADDRESS( ship_props_a%q, address(7), ierr )
+  call LOCADDRESS( ship_props_a%m, address(8), ierr )
+  call LOCADDRESS( ship_props_a%work, address(9), ierr )
+  call LOCADDRESS( ship_props_a%ax, address(10), ierr )
+  call LOCADDRESS( ship_props_a%ay, address(11), ierr )
+  call LOCADDRESS( ship_props_a%az, address(12), ierr )
+  call LOCADDRESS( ship_props_a%key, address(13), ierr )
+  call LOCADDRESS( ship_props_a%label, address(14), ierr )
+  call LOCADDRESS( ship_props_a%pid, address(15), ierr )
 
   displacements(1:nprops_particle) = address(1:nprops_particle) - send_base  !  Addresses relative to start of particle (receive) data
 
-! MPI1
-!  call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle, ierr )! Create and commit
-! MPI2
-  call MPI_TYPE_CREATE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle, ierr )   ! Create and commit
+  call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_particle, ierr)
 
   ! Create new contiguous datatype for shipping multipole properties (25 arrays)
@@ -265,44 +245,43 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   types(5) = MPI_INTEGER8
   types(6:25) = MPI_REAL8
 
-  call MPI_GET_ADDRESS( node_dummy%key, send_base, ierr )  ! Base address for send buffer
+  call LOCADDRESS( node_dummy%key, send_base, ierr )  ! Base address for send buffer
 
 
 
-  call MPI_GET_ADDRESS( node_dummy%key, address(1), ierr )
-  call MPI_GET_ADDRESS( node_dummy%byte, address(2), ierr )
-  call MPI_GET_ADDRESS( node_dummy%leaves, address(3), ierr )
-  call MPI_GET_ADDRESS( node_dummy%owner, address(4), ierr )
-  call MPI_GET_ADDRESS( node_dummy%next, address(5), ierr )
-  call MPI_GET_ADDRESS( node_dummy%q, address(6), ierr )
-  call MPI_GET_ADDRESS( node_dummy%absq, address(7), ierr )
-  call MPI_GET_ADDRESS( node_dummy%xcoc, address(8), ierr )
-  call MPI_GET_ADDRESS( node_dummy%ycoc, address(9), ierr )
-  call MPI_GET_ADDRESS( node_dummy%zcoc, address(10), ierr )
-  call MPI_GET_ADDRESS( node_dummy%xdip, address(11), ierr )
-  call MPI_GET_ADDRESS( node_dummy%ydip, address(12), ierr )
-  call MPI_GET_ADDRESS( node_dummy%zdip, address(13), ierr )
-  call MPI_GET_ADDRESS( node_dummy%xxquad, address(14), ierr )
-  call MPI_GET_ADDRESS( node_dummy%yyquad, address(15), ierr )
-  call MPI_GET_ADDRESS( node_dummy%zzquad, address(16), ierr )
-  call MPI_GET_ADDRESS( node_dummy%xyquad, address(17), ierr )
-  call MPI_GET_ADDRESS( node_dummy%yzquad, address(18), ierr )
-  call MPI_GET_ADDRESS( node_dummy%zxquad, address(19), ierr )
-  call MPI_GET_ADDRESS( node_dummy%jx, address(20), ierr )
-  call MPI_GET_ADDRESS( node_dummy%jy, address(21), ierr )
-  call MPI_GET_ADDRESS( node_dummy%jz, address(22), ierr )
-  call MPI_GET_ADDRESS( node_dummy%magmx, address(23), ierr )
-  call MPI_GET_ADDRESS( node_dummy%magmy, address(24), ierr )
-  call MPI_GET_ADDRESS( node_dummy%magmz, address(25), ierr )
+  call LOCADDRESS( node_dummy%key, address(1), ierr )
+  call LOCADDRESS( node_dummy%byte, address(2), ierr )
+  call LOCADDRESS( node_dummy%leaves, address(3), ierr )
+  call LOCADDRESS( node_dummy%owner, address(4), ierr )
+  call LOCADDRESS( node_dummy%next, address(5), ierr )
+  call LOCADDRESS( node_dummy%q, address(6), ierr )
+  call LOCADDRESS( node_dummy%absq, address(7), ierr )
+  call LOCADDRESS( node_dummy%xcoc, address(8), ierr )
+  call LOCADDRESS( node_dummy%ycoc, address(9), ierr )
+  call LOCADDRESS( node_dummy%zcoc, address(10), ierr )
+  call LOCADDRESS( node_dummy%xdip, address(11), ierr )
+  call LOCADDRESS( node_dummy%ydip, address(12), ierr )
+  call LOCADDRESS( node_dummy%zdip, address(13), ierr )
+  call LOCADDRESS( node_dummy%xxquad, address(14), ierr )
+  call LOCADDRESS( node_dummy%yyquad, address(15), ierr )
+  call LOCADDRESS( node_dummy%zzquad, address(16), ierr )
+  call LOCADDRESS( node_dummy%xyquad, address(17), ierr )
+  call LOCADDRESS( node_dummy%yzquad, address(18), ierr )
+  call LOCADDRESS( node_dummy%zxquad, address(19), ierr )
+  call LOCADDRESS( node_dummy%jx, address(20), ierr )
+  call LOCADDRESS( node_dummy%jy, address(21), ierr )
+  call LOCADDRESS( node_dummy%jz, address(22), ierr )
+  call LOCADDRESS( node_dummy%magmx, address(23), ierr )
+  call LOCADDRESS( node_dummy%magmy, address(24), ierr )
+  call LOCADDRESS( node_dummy%magmz, address(25), ierr )
 
   displacements(1:nprops_multipole) = address(1:nprops_multipole) - send_base   !  Addresses relative to start of particle (receive) data
 
-!  call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
-  call MPI_TYPE_CREATE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
+  call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
   if (me==0 .and. db_level>0) then
-    write(*,*) 'nppm = ',nppm
+    write(*,*) 'nppm= ',nppm
     write(*,*) 'size_tree= ',size_tree
     write(*,*) 'max address = ',maxaddress
     write(*,*) 'max leaf = ',maxleaf

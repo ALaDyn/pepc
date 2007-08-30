@@ -76,7 +76,7 @@ module treevars
      integer*8 :: next    ! next key on walk
      real*8 :: q    	! net charge sum
      real*8 :: absq  	!  absolute charge sum
-     real*8 :: xcoc  	! center of charge
+     real*8 :: xcoc  	! centre of charge
      real*8 :: ycoc    
      real*8 :: zcoc
      real*8 :: xdip  	! dipole moment
@@ -99,7 +99,15 @@ module treevars
   type (multipole), allocatable :: pack_child(:), get_child(:)
   type (multipole) :: node_dummy
 
+  integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
+  			nprops_multipole=25      ! Number of multipole properties to ship
+  integer, dimension(nprops_multipole) :: blocklengths, displacements, types
   integer :: mpi_type_particle, mpi_type_multipole
+
+  ! address calculation, 8 byte 
+  integer*8, dimension(nprops_multipole) :: address
+  integer*8 :: send_base, receive_base
+  
 
   !  tree variables
 
@@ -127,7 +135,7 @@ module treevars
   real*8, allocatable  :: &                ! Tree node properties:
                                charge(:), &                          ! charge
                                abs_charge(:), &                      ! absolute charge
-                               xcoc(:), ycoc(:), zcoc(:), &          ! center of charge 
+                               xcoc(:), ycoc(:), zcoc(:), &          ! centre of charge 
                                xshift(:), yshift(:), zshift(:), &    ! shift vector
                                xdip(:), ydip(:), zdip(:), &          ! dipole moment
                                xxquad(:), yyquad(:), zzquad(:), &    ! quadrupole moment
