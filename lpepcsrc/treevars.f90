@@ -99,15 +99,7 @@ module treevars
   type (multipole), allocatable :: pack_child(:), get_child(:)
   type (multipole) :: node_dummy
 
-  integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
-  			nprops_multipole=25      ! Number of multipole properties to ship
-  integer, dimension(nprops_multipole) :: blocklengths, displacements, types
   integer :: mpi_type_particle, mpi_type_multipole
-
-  ! address calculation, 8 byte 
-  integer*8, dimension(nprops_multipole) :: address
-  integer*8 :: send_base, receive_base
-  
 
   !  tree variables
 

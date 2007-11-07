@@ -20,6 +20,13 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   real, parameter :: mb=2.**20
 
   type (particle) :: ship_props_a, get_props_a
+  integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
+  			nprops_multipole=25      ! Number of multipole properties to ship
+  integer, dimension(nprops_multipole) :: blocklengths, displacements, types
+
+  ! address calculation, 8 byte 
+  integer*8, dimension(nprops_multipole) :: address
+  integer*8 :: send_base, receive_base
 
 ! copy call parameters to treevars module
 
