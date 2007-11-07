@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MPI_DIR VISIT VISITDEF VISITLIBS TARGETS MPICC MPIF90 CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MPILIBS LVISIT XNBODY NETCDFLIB OPT DEBUGDEF SET_MAKE CPP EGREP LIBOBJS FFLAGS CFLAGS_OS FFLAGS_OS MODULE_FLAG F77FLAGS FLINK_FLAGS CLINK_FLAGS AR LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MPI_DIR VISIT VISITDEF VISITLIBS TARGETS MPICC MPIF90 CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MPILIBS LVISIT XNBODY NETCDFLIB OPT MPITRACE DEBUGDEF SET_MAKE CPP EGREP LIBOBJS FFLAGS CFLAGS_OS FFLAGS_OS MODULE_FLAG F77FLAGS FLINK_FLAGS CLINK_FLAGS AR LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -864,6 +864,7 @@ Optional Packages:
   --with-netcdf           use netcdf library (no)
   --with-netcdf=DIR       path to netcdf library
   --with-opt=options      compiler optimization options
+  --with-mpitrace         MPI trace library
   --with-debug            produce debug library (no)
 
 Some influential environment variables:
@@ -1364,8 +1365,9 @@ CFLAGS="$CFLAGS -I/usr/local/include"
 if [ `uname -n` = "jubl" ] # jubl in Juelich
 then
  CFLAGS="$CFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
- LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib "
+ LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib"
 # FFLAGS="$FFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
+ DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
 fi
 
 if [ `uname -m` = "00223C3B4C00" ] # jump in Juelich
@@ -1440,12 +1442,12 @@ powerpc64-unknown-linux-gnu) # jubl
  echo "$as_me:$LINENO: result: ** setting options for powerpc64 host **" >&5
 echo "${ECHO_T}** setting options for powerpc64 host **" >&6
  CFLAGS_OS="-DAIX_XLF -qarch=440 -qtune=440 -qlibansi -qnoinfo "
- FFLAGS_f77_f90="-WF,-DAIX_XLF -qarch=440 -qtune=440 -qnosave"
+ FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS -qarch=440 -qtune=440 -qnosave"
  F90DEF="-WF,"
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_f77_f90 -qsuffix=f -qfixed -qspillsize=32000"
- FLINK_FLAGS="-qarch=440 -qtune=440"
+ FLINK_FLAGS="-qarch=440 -qtune=440 -lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts"
  CLINK_FLAGS="-qarch=440 -qtune=440"
  if [ -z "$OPT" ]; then OPT=-O3; fi
  AR="ar -q"
@@ -1460,8 +1462,9 @@ echo "${ECHO_T}** setting options for Aix host **" >&6
  CFLAGS_OS="-q64 -qlibansi -qnoinfo "
  F90DEF="-WF,"
 # FFLAGS_OS="-WF,-DJUMP,-DAIX_XLF -q64 "
+ FFLAGS_OS="-q64 -WF,-DHAVE_PRIVATE_CONFIGS"
+ #FFLAGS_OS="-q64 "
  IPA="-qipa=inline=key2addr -qipa=inline=make_hashentry -qipa=inline=key2node -qipa=inline=next_node"
- FFLAGS_OS="-q64 "
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_OS -qnosave -qspillsize=32000"
  FLINK_FLAGS="-q64"
@@ -3023,6 +3026,24 @@ if test "${with_opt+set}" = set; then
   OPT=${withval}
 fi;
 
+
+# set MPI trace library options
+
+# Check whether --with-mpitrace or --without-mpitrace was given.
+if test "${with_mpitrace+set}" = set; then
+  withval="$with_mpitrace"
+  if test "$withval" != "no" ; then
+        MPITRACE="${DEFAULT_TRACEPATH}"
+     if test "$withval" != "yes" ; then
+       MPITRACE=${withval}
+     fi
+  fi
+
+fi;
+
+
+#MPITRACE = -L/bgl/local/lib -lmpitrace_f # MPI only
+# -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts  # MPI+HPM
 
 # default for debug is no
 
@@ -5841,6 +5862,7 @@ s,@LVISIT@,$LVISIT,;t t
 s,@XNBODY@,$XNBODY,;t t
 s,@NETCDFLIB@,$NETCDFLIB,;t t
 s,@OPT@,$OPT,;t t
+s,@MPITRACE@,$MPITRACE,;t t
 s,@DEBUGDEF@,$DEBUGDEF,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@CPP@,$CPP,;t t

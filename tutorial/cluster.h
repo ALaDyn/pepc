@@ -49,14 +49,14 @@
   lambda = 1.0   
 
   ! control
-  nt =500
+  nt =1500
   dt = 0.3
   eps = 2.5
  restart = .false.
   vis_on = .true.
- steering = .false.
- ivis = 5
- ivis_fields = 5
+ steering = .true.
+ ivis = 15
+ ivis_fields = 15
   mc_init = .false.
   mc_steps = 1000
   idump = 4000

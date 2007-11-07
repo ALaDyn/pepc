@@ -5,11 +5,12 @@
  balance=0 ! load balance switch
  mac=0
 ! particles
-  ne = 1000
-  ni = 1000 
+  ne = 3000
+  ni = 3000 
 
+ launch = .true.
  plasma_config = 1  ! set up plasma target
- target_geometry =1   ! hollow sphere
+ target_geometry =11   ! hollow sphere
  ramp = .false.  ! add ramp
  lolam = 0.2   ! L/lambda
  rho_min = 0.1  ! min density
@@ -40,7 +41,7 @@
 
 ! beam
     beam_config_in = 0  ! fixed beam, initialised at start
-   beam_config_in = 94 ! laser fpond with reduced transverse fields 
+  beam_config_in = 6 ! laser fpond with reduced transverse fields 
  
 
   r_beam = 0.05
@@ -61,12 +62,12 @@
   lambda = 1.0   ! Wavelength in microns
 
   ! control
-  nt =10
+  nt =1000
   dt = 0.2
-  eps = 3.
+  eps = 2.
  restart = .false.
   vis_on = .true.
- steering=.false.
+ steering=.true.
  ivis =  5
  ivis_fields = 5
   mc_init = .false.

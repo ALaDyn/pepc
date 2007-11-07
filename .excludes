@@ -6,10 +6,11 @@ pegs
 splitter
 slicer
 *.dat
+*.inc
 *.xyz
 *.00*
 *~
 *#
 */*.mod
 */*.a
-pepc-b/config_private.h
+#pepc-b/config_private.h

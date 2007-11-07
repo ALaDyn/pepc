@@ -1,0 +1,2629 @@
+ scrambling  500  particles
+     Plasma config:    1 plasma    
+   Target geometry:    1 sphere    
+       Beam config:    0 eqm    
+              type:    0
+            Scheme:    1 const U
+     Plasma volume:    4.189E+00
+     Sphere radius:        1.000
+     Plasma length:        0.100
+      Plasma width:        2.000
+     Plasma height:        2.000
+   Electron charge:   -2.094E-03
+     Electron mass:    2.094E-03
+              Ion Z:   1.000E+00
+        Ion m_i/m_p:   2.000E+03
+        Ion charge:    2.094E-03
+          Ion mass:    4.189E+00
+                Te:        1.000
+                Ti:        0.000
+      Debye length:    4.424E-02
+           n_e/n_c:        4.000
+     Ion spacing a:       0.1279
+    Cloud radius R:        1.000
+   Collision freq.:        0.000
+      Electron mfp:      117.417
+      Conductivity:     2654.244
+   Laser amplitude:        6.000
+       Pulse width:        6.000
+    Pulse duration:       20.000
+        Wavelength:        1.000
+   Incidence angle:        0.000
+   Laser intensity:        1.800
+    # dt per cycle:           62
+               N_D:    1.731E-01
+               N_c:     2000.000
+       R/lambda_De:       22.605
+          Timestep:        0.200
+      Max timestep:       16.463
+ Neighbour search ra   6.397E-01
+         MAC theta:        0.500
+  Particle # ratio:    4.189E+03
+ Graphics box:      4.00 x      4.00 x      4.00
+
+ Laser focus:      1.00     2.00     2.00
+
+  Electrons:  2000
+  Ions:  2000
+  Beam particles:  0
+  Beam angles  0.0000000000E+00 0.3000000119
+  Particles per PE:  1000
+
+ Switches:
+--------
+    Coulomb forces:   T
+ Lennard-Jones force  F
+      load balance:   F
+           restart:   F
+              ramp:   F
+      domain debug:   F
+        walk debug:   F
+      walk summary:   F
+         dump tree:   F
+       performance:   F
+             visit:   T
+          steering:   F
+
+ Local tree size  14800
+ Max address in #-table:  32768
+ Max # branches:  16384
+ Max # multipole fetches:  11100
+ Machine bit-size =  64
+ Max permitted particles / PE:  3000
+ Max size of interaction lists:  2200
+ Shortlist length:  2000
+
+Other inputs:
+ &PEPCDATA
+ NEP=500, NIP=500, NE=2000, NI=2000, THETA=0.5000000000, MAC=0, MASS_RATIO=
+ 2000.000000, EPS=1.000000000, RHO0=1.000000000, PLASMA_CONFIG=1, 
+ TARGET_GEOMETRY=1, VELOCITY_CONFIG=1, ISPECIAL=0, TE_KEV=1.000000000, TI_KEV=
+ 0.0000000000E+00, T_SCALE=1.000000000, ZION=1.000000000, R_SPHERE=1.000000000, 
+ X_PLASMA=0.1000000015, Y_PLASMA=2.000000000, Z_PLASMA=2.000000000, DELTA_MC=
+ 0.1000000015, FORCE_CONST=0.3333333433, N_LAYER=0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ X_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, Y_LAYER=0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ Z_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, R_LAYER=0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ ZION_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, RHO_LAYER=
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, MRATIO_LAYER=0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ 0.0000000000E+00, LAYER_GEOMETRY=0, XL=4.000000000, YL=4.000000000, ZL=
+ 4.000000000, DISPLACE=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 
+ BOND_CONST=0.2000000095E-02, FNN=5.000000000, RHO_MIN=0.1000000015, LOLAM=
+ 1.256637096, BEAM_CONFIG_IN=0, NP_BEAM=0, NP_ERROR=0, IDIM=3, R_BEAM=
+ 0.1500000060, U_BEAM=0.2000000030, THETA_BEAM=0.0000000000E+00, PHI_BEAM=
+ 0.3000000119, X_BEAM=0.3999999911E-01, START_BEAM=0.4000000060, RHO_BEAM=
+ -5.000000000, MASS_BEAM=3.000000000, LAMBDA=1.000000000, SIGMA=6.000000000, 
+ TPULSE=20.00000000, VOSC=6.000000000, OMEGA=0.5000000000, FOCUS=1.000000000, 
+ 2.000000000, 2.000000000, X_OFFSET=0.0000000000E+00, Z_OFFSET=0.0000000000E+00, 
+ NT=100, DT=0.2000000030, MC_STEPS=1000, IDUMP=4000, IVIS=5, IVIS_FIELDS=5, 
+ IVIS_DOMAINS=5000, IPROT=20, ITRACK=300, NCPU_MERGE=1, NGX=25, NGY=25, NGZ=25, 
+ VIS_ON=T, STEERING=F, VIS_SELECT=1, MC_INIT=F, RESTART=F, SCHEME=1, 
+ PARTICLE_BCS=1, COULOMB=T, BFIELDS=F, BONDS=F, LENJONES=F, TARGET_DUP=F, RAMP=F
+ DEBUG_LEVEL=2, DEBUG_TREE=0, NCPU_MERGE=1, BALANCE=1, IFREEZE=1, WALK_SCHEME=0, 
+ CONSTRAIN_PROOF=0.1000000047E-02, LEN_TRIPOD=0.0000000000E+00, STRUCT_STEP=0, 
+ UTHRESH=-1.000000000, DOMAIN_CUT=2.000000000, GLUE_RADIUS=2000000.000, 
+ DEBUG_RANK=0, NP_MULT=1.500000000, FETCH_MULT=3, NBUF_MAX=10000, TE_PERTURB=F, 
+ TPERT=0.1000000015, KPERT=2.000000000, Q_FACTOR=1.000000000, NETCDF=F, LAUNCH=T
+ FOAM_GEOM=1, 1, 1, XH_START=0.0000000000E+00, XH_END=10.00000000, NXH=100, 
+ XGAV_START=0.0000000000E+00, XGAV_END=10.00000000, NGAV=10, XGAV_POS=
+ 0.0000000000E+00, 1.000000000, 2.000000000
+ /
+                                  norm                  keV                 erg 
+             P.E. =    -2.69967800E-03        -6.58680E+02        -1.05183E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22234138E-02         2.98232E+03         4.76238E-06
+ Ion K.E. norm/erg:     2.16408760E-10         5.28004E-05         8.43153E-14
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52373607E-03         2.32364E+03         3.71056E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49116
+           Ti (keV):     0.00000
+
+
+========================================================================
+
+
+ Timestep        1    total run time =     0.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.69967800E-03        -6.58680E+02        -1.05183E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22232681E-02         2.98229E+03         4.76232E-06
+ Ion K.E. norm/erg:     2.16408760E-10         5.28004E-05         8.43153E-14
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52359028E-03         2.32361E+03         3.71050E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49114
+           Ti (keV):     0.00000
+
+
+========================================================================
+
+
+ Timestep        2    total run time =     0.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.70163374E-03        -6.59157E+02        -1.05259E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22257666E-02         2.98290E+03         4.76330E-06
+ Ion K.E. norm/erg:     1.94637763E-09         4.74886E-04         7.58331E-13
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52413481E-03         2.32374E+03         3.71071E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49145
+           Ti (keV):     0.00000
+
+
+========================================================================
+
+
+ Timestep        3    total run time =     0.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.70623707E-03        -6.60280E+02        -1.05438E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22299166E-02         2.98391E+03         4.76491E-06
+ Ion K.E. norm/erg:     5.37413304E-09         1.31121E-03         2.09382E-12
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52368488E-03         2.32363E+03         3.71054E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49196
+           Ti (keV):     0.00000
+
+
+========================================================================
+
+
+ Timestep        4    total run time =     0.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.71178351E-03        -6.61633E+02        -1.05654E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22353065E-02         2.98523E+03         4.76701E-06
+ Ion K.E. norm/erg:     1.04331479E-08         2.54553E-03         4.06487E-12
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52353343E-03         2.32359E+03         3.71048E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49261
+           Ti (keV):     0.00000
+
+
+========================================================================
+
+
+ Timestep        5    total run time =     1.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.71842770E-03        -6.63254E+02        -1.05913E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22412643E-02         2.98668E+03         4.76933E-06
+ Ion K.E. norm/erg:     1.70236644E-08         4.15351E-03         6.63261E-12
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52285359E-03         2.32343E+03         3.71021E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49334
+           Ti (keV):     0.00000
+
+
+========================================================================
+
+
+ Timestep        6    total run time =     1.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.72313468E-03        -6.64403E+02        -1.06096E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22469136E-02         2.98806E+03         4.77154E-06
+ Ion K.E. norm/erg:     2.50336132E-08         6.10781E-03         9.75338E-12
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52380391E-03         2.32366E+03         3.71058E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49403
+           Ti (keV):     0.00000
+
+
+========================================================================
+
+
+ Timestep        7    total run time =     1.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.72660412E-03        -6.65249E+02        -1.06232E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22512511E-02         2.98912E+03         4.77323E-06
+ Ion K.E. norm/erg:     3.43422927E-08         8.37899E-03         1.33801E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52468131E-03         2.32387E+03         3.71092E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49456
+           Ti (keV):     0.00000
+
+
+========================================================================
+
+
+ Timestep        8    total run time =     1.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.72905818E-03        -6.65848E+02        -1.06327E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22532431E-02         2.98960E+03         4.77400E-06
+ Ion K.E. norm/erg:     4.48460136E-08         1.09417E-02         1.74725E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52422973E-03         2.32376E+03         3.71075E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49480
+           Ti (keV):     0.00001
+
+
+========================================================================
+
+
+ Timestep        9    total run time =     1.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.72786398E-03        -6.65557E+02        -1.06281E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22517294E-02         2.98923E+03         4.77341E-06
+ Ion K.E. norm/erg:     5.64877358E-08         1.37821E-02         2.20083E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52392191E-03         2.32369E+03         3.71063E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49462
+           Ti (keV):     0.00001
+
+
+========================================================================
+
+
+ Timestep       10    total run time =     2.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.72081054E-03        -6.63836E+02        -1.06006E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22455965E-02         2.98774E+03         4.77102E-06
+ Ion K.E. norm/erg:     6.92696795E-08         1.69007E-02         2.69882E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52485525E-03         2.32392E+03         3.71099E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49387
+           Ti (keV):     0.00001
+
+
+========================================================================
+
+
+ Timestep       11    total run time =     2.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.70924142E-03        -6.61013E+02        -1.05555E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22339851E-02         2.98490E+03         4.76650E-06
+ Ion K.E. norm/erg:     8.33353207E-08         2.03325E-02         3.24684E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52482702E-03         2.32391E+03         3.71098E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49245
+           Ti (keV):     0.00001
+
+
+========================================================================
+
+
+ Timestep       12    total run time =     2.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.69023586E-03        -6.56376E+02        -1.04815E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.22162744E-02         2.98058E+03         4.75960E-06
+ Ion K.E. norm/erg:     9.89148968E-08         2.41337E-02         3.85384E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52613749E-03         2.32423E+03         3.71149E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.49029
+           Ti (keV):     0.00001
+
+
+========================================================================
+
+
+ Timestep       13    total run time =     2.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.66572424E-03        -6.50395E+02        -1.03860E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.21918994E-02         2.97463E+03         4.75010E-06
+ Ion K.E. norm/erg:     1.16343182E-07         2.83859E-02         4.53286E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52629151E-03         2.32427E+03         3.71155E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.48732
+           Ti (keV):     0.00001
+
+
+========================================================================
+
+
+ Timestep       14    total run time =     2.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.63447268E-03        -6.42771E+02        -1.02642E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.21605127E-02         2.96698E+03         4.73787E-06
+ Ion K.E. norm/erg:     1.36092185E-07         3.32044E-02         5.30231E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52617610E-03         2.32424E+03         3.71151E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.48349
+           Ti (keV):     0.00002
+
+
+========================================================================
+
+
+ Timestep       15    total run time =     3.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.59696131E-03        -6.33618E+02        -1.01181E-06
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.21222193E-02         2.95763E+03         4.72295E-06
+ Ion K.E. norm/erg:     1.58632835E-07         3.87040E-02         6.18051E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52541662E-03         2.32405E+03         3.71121E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.47882
+           Ti (keV):     0.00002
+
+
+========================================================================
+
+
+ Timestep       16    total run time =     3.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.55302992E-03        -6.22900E+02        -9.94689E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.20774042E-02         2.94670E+03         4.70549E-06
+ Ion K.E. norm/erg:     1.84487235E-07         4.50120E-02         7.18783E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52455877E-03         2.32384E+03         3.71088E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.47335
+           Ti (keV):     0.00002
+
+
+========================================================================
+
+
+ Timestep       17    total run time =     3.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.50249395E-03        -6.10570E+02        -9.75000E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.20265822E-02         2.93430E+03         4.68569E-06
+ Ion K.E. norm/erg:     2.14383188E-07         5.23062E-02         8.35261E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52430260E-03         2.32378E+03         3.71078E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.46715
+           Ti (keV):     0.00003
+
+
+========================================================================
+
+
+ Timestep       18    total run time =     3.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.44456609E-03        -5.96436E+02        -9.52431E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.19704055E-02         2.92059E+03         4.66381E-06
+ Ion K.E. norm/erg:     2.49189458E-07         6.07984E-02         9.70870E-11
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52608862E-03         2.32422E+03         3.71147E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.46030
+           Ti (keV):     0.00003
+
+
+========================================================================
+
+
+ Timestep       19    total run time =     3.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.38217995E-03        -5.81215E+02        -9.28124E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.19098679E-02         2.90582E+03         4.64022E-06
+ Ion K.E. norm/erg:     2.89767976E-07         7.06989E-02         1.12897E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52797772E-03         2.32468E+03         3.71221E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.45291
+           Ti (keV):     0.00004
+
+
+========================================================================
+
+
+ Timestep       20    total run time =     4.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.31749175E-03        -5.65432E+02        -9.02921E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.18462150E-02         2.89029E+03         4.61542E-06
+ Ion K.E. norm/erg:     3.36886609E-07         8.21951E-02         1.31255E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52906018E-03         2.32494E+03         3.71263E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.44515
+           Ti (keV):     0.00004
+
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.020       3.704
+        Tree-build:        0.000       0.000
+          Branches:        0.000       0.000
+              Fill:        0.010       1.852
+             Props:        0.010       1.852
+          Prefetch:        0.000       0.000
+        Walk local:        0.170      31.481
+         Walk comm:        0.030       5.556
+            Forces:        0.300      55.556
+            Pusher:        0.000       0.000
+       Diagnostics:        0.020       3.704
+             Total:        0.540     100.000
+      Timing format:
+ #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
+    4       0.020       0.020       0.000       0.170       0.030       0.300       0.540
+
+========================================================================
+
+
+ Timestep       21    total run time =     4.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.25107294E-03        -5.49227E+02        -8.77043E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.17806664E-02         2.87430E+03         4.58988E-06
+ Ion K.E. norm/erg:     3.91353118E-07         9.54841E-02         1.52476E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52998477E-03         2.32517E+03         3.71299E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.43715
+           Ti (keV):     0.00005
+
+
+========================================================================
+
+
+ Timestep       22    total run time =     4.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.18267021E-03        -5.32538E+02        -8.50393E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.17144823E-02         2.85815E+03         4.56409E-06
+ Ion K.E. norm/erg:     4.53891268E-07         1.10742E-01         1.76841E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53226602E-03         2.32573E+03         3.71388E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.42908
+           Ti (keV):     0.00006
+
+
+========================================================================
+
+
+ Timestep       23    total run time =     4.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.11551893E-03        -5.16154E+02        -8.24230E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.16489034E-02         2.84215E+03         4.53854E-06
+ Ion K.E. norm/erg:     5.25042196E-07         1.28102E-01         2.04562E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53390956E-03         2.32613E+03         3.71452E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.42108
+           Ti (keV):     0.00006
+
+
+========================================================================
+
+
+ Timestep       24    total run time =     4.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -2.05046407E-03        -5.00281E+02        -7.98884E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.15850594E-02         2.82658E+03         4.51367E-06
+ Ion K.E. norm/erg:     6.05223846E-07         1.47665E-01         2.35802E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53520060E-03         2.32644E+03         3.71502E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.41329
+           Ti (keV):     0.00007
+
+
+========================================================================
+
+
+ Timestep       25    total run time =     5.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.98742073E-03        -4.84900E+02        -7.74322E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.15239742E-02         2.81167E+03         4.48987E-06
+ Ion K.E. norm/erg:     6.94619117E-07         1.69476E-01         2.70631E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53724813E-03         2.32694E+03         3.71582E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.40584
+           Ti (keV):     0.00008
+
+
+========================================================================
+
+
+ Timestep       26    total run time =     5.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.92747729E-03        -4.70275E+02        -7.50967E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.14665032E-02         2.79765E+03         4.46748E-06
+ Ion K.E. norm/erg:     7.93408426E-07         1.93579E-01         3.09121E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53981927E-03         2.32757E+03         3.71682E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.39882
+           Ti (keV):     0.00010
+
+
+========================================================================
+
+
+ Timestep       27    total run time =     5.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.87238302E-03        -4.56832E+02        -7.29502E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.14132226E-02         2.78465E+03         4.44672E-06
+ Ion K.E. norm/erg:     9.01616494E-07         2.19980E-01         3.51280E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54174124E-03         2.32804E+03         3.71757E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.39232
+           Ti (keV):     0.00011
+
+
+========================================================================
+
+
+ Timestep       28    total run time =     5.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.82290640E-03        -4.44761E+02        -7.10225E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.13644412E-02         2.77275E+03         4.42771E-06
+ Ion K.E. norm/erg:     1.01869654E-06         2.48546E-01         3.96896E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54255347E-03         2.32824E+03         3.71789E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.38637
+           Ti (keV):     0.00012
+
+
+========================================================================
+
+
+ Timestep       29    total run time =     5.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.77956936E-03        -4.34187E+02        -6.93340E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.13202555E-02         2.76197E+03         4.41050E-06
+ Ion K.E. norm/erg:     1.14406921E-06         2.79135E-01         4.45742E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54183023E-03         2.32806E+03         3.71760E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.38098
+           Ti (keV):     0.00014
+
+
+========================================================================
+
+
+ Timestep       30    total run time =     6.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.73896015E-03        -4.24279E+02        -6.77519E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.12806576E-02         2.75231E+03         4.39507E-06
+ Ion K.E. norm/erg:     1.27737522E-06         3.11660E-01         4.97680E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54297483E-03         2.32834E+03         3.71805E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.37615
+           Ti (keV):     0.00016
+
+
+========================================================================
+
+
+ Timestep       31    total run time =     6.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.70348048E-03        -4.15623E+02        -6.63695E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.12453794E-02         2.74370E+03         4.38133E-06
+ Ion K.E. norm/erg:     1.41783277E-06         3.45929E-01         5.52404E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54331672E-03         2.32842E+03         3.71818E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.37185
+           Ti (keV):     0.00017
+
+
+========================================================================
+
+
+ Timestep       32    total run time =     6.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.67057609E-03        -4.07595E+02        -6.50875E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.12140468E-02         2.73605E+03         4.36912E-06
+ Ion K.E. norm/erg:     1.56445336E-06         3.81702E-01         6.09529E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54503514E-03         2.32884E+03         3.71885E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.36803
+           Ti (keV):     0.00019
+
+
+========================================================================
+
+
+ Timestep       33    total run time =     6.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.64243702E-03        -4.00729E+02        -6.39912E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11862066E-02         2.72926E+03         4.35827E-06
+ Ion K.E. norm/erg:     1.71627983E-06         4.18746E-01         6.68682E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54548586E-03         2.32895E+03         3.71903E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.36463
+           Ti (keV):     0.00021
+
+
+========================================================================
+
+
+ Timestep       34    total run time =     6.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.61715735E-03        -3.94561E+02        -6.30063E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11612216E-02         2.72317E+03         4.34854E-06
+ Ion K.E. norm/erg:     1.87226371E-06         4.56803E-01         7.29455E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54593655E-03         2.32906E+03         3.71920E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.36158
+           Ti (keV):     0.00023
+
+
+========================================================================
+
+
+ Timestep       35    total run time =     7.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.59414646E-03        -3.88947E+02        -6.21097E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11384754E-02         2.71762E+03         4.33968E-06
+ Ion K.E. norm/erg:     2.03135825E-06         4.95620E-01         7.91440E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54636035E-03         2.32916E+03         3.71937E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35881
+           Ti (keV):     0.00025
+
+
+========================================================================
+
+
+ Timestep       36    total run time =     7.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.57378418E-03        -3.83979E+02        -6.13164E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11174554E-02         2.71249E+03         4.33149E-06
+ Ion K.E. norm/erg:     2.19264452E-06         5.34971E-01         8.54279E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54586388E-03         2.32904E+03         3.71918E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35624
+           Ti (keV):     0.00027
+
+
+========================================================================
+
+
+ Timestep       37    total run time =     7.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.55608019E-03        -3.79659E+02        -6.06266E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10976640E-02         2.70766E+03         4.32378E-06
+ Ion K.E. norm/erg:     2.35505789E-06         5.74598E-01         9.17557E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54393885E-03         2.32857E+03         3.71843E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35383
+           Ti (keV):     0.00029
+
+
+========================================================================
+
+
+ Timestep       38    total run time =     7.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.53678019E-03        -3.74951E+02        -5.98747E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10786520E-02         2.70302E+03         4.31637E-06
+ Ion K.E. norm/erg:     2.51788441E-06         6.14325E-01         9.80996E-10
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54438967E-03         2.32868E+03         3.71860E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35151
+           Ti (keV):     0.00031
+
+
+========================================================================
+
+
+ Timestep       39    total run time =     7.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51758995E-03        -3.70268E+02        -5.91270E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10602472E-02         2.69853E+03         4.30920E-06
+ Ion K.E. norm/erg:     2.68079107E-06         6.54072E-01         1.04447E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54533800E-03         2.32891E+03         3.71897E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34926
+           Ti (keV):     0.00033
+
+
+========================================================================
+
+
+ Timestep       40    total run time =     8.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.50065325E-03        -3.66136E+02        -5.84671E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10423374E-02         2.69416E+03         4.30222E-06
+ Ion K.E. norm/erg:     2.84308484E-06         6.93669E-01         1.10770E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54452722E-03         2.32872E+03         3.71866E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34708
+           Ti (keV):     0.00035
+
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.010       1.667
+        Tree-build:        0.010       1.667
+          Branches:        0.000       0.000
+              Fill:        0.010       1.667
+             Props:        0.000       0.000
+          Prefetch:        0.000       0.000
+        Walk local:        0.210      35.000
+         Walk comm:        0.020       3.333
+            Forces:        0.340      56.667
+            Pusher:        0.000       0.000
+       Diagnostics:        0.030       5.000
+             Total:        0.600     100.000
+      Timing format:
+ #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
+    4       0.010       0.020       0.000       0.210       0.020       0.340       0.600
+
+========================================================================
+
+
+ Timestep       41    total run time =     8.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.48496067E-03        -3.62307E+02        -5.78557E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10248276E-02         2.68989E+03         4.29540E-06
+ Ion K.E. norm/erg:     3.00410689E-06         7.32956E-01         1.17043E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54287102E-03         2.32831E+03         3.71801E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34494
+           Ti (keV):     0.00037
+
+
+========================================================================
+
+
+ Timestep       42    total run time =     8.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.46679123E-03        -3.57874E+02        -5.71478E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10078549E-02         2.68575E+03         4.28878E-06
+ Ion K.E. norm/erg:     3.16405632E-06         7.71981E-01         1.23275E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54422768E-03         2.32864E+03         3.71854E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34287
+           Ti (keV):     0.00039
+
+
+========================================================================
+
+
+ Timestep       43    total run time =     8.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.45242837E-03        -3.54370E+02        -5.65882E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09916917E-02         2.68180E+03         4.28249E-06
+ Ion K.E. norm/erg:     3.32314221E-06         8.10795E-01         1.29473E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54258644E-03         2.32824E+03         3.71790E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34090
+           Ti (keV):     0.00041
+
+
+========================================================================
+
+
+ Timestep       44    total run time =     8.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.43818260E-03        -3.50894E+02        -5.60332E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09766675E-02         2.67814E+03         4.27663E-06
+ Ion K.E. norm/erg:     3.48130859E-06         8.49385E-01         1.35636E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.54196619E-03         2.32809E+03         3.71766E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33907
+           Ti (keV):     0.00042
+
+
+========================================================================
+
+
+ Timestep       45    total run time =     9.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.42722972E-03        -3.48222E+02        -5.56065E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09632215E-02         2.67486E+03         4.27139E-06
+ Ion K.E. norm/erg:     3.63907423E-06         8.87878E-01         1.41782E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53963089E-03         2.32752E+03         3.71675E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33743
+           Ti (keV):     0.00044
+
+
+========================================================================
+
+
+ Timestep       46    total run time =     9.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.41811077E-03        -3.45997E+02        -5.52512E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09516974E-02         2.67204E+03         4.26690E-06
+ Ion K.E. norm/erg:     3.79660119E-06         9.26312E-01         1.47920E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53738324E-03         2.32697E+03         3.71587E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33602
+           Ti (keV):     0.00046
+
+
+========================================================================
+
+
+ Timestep       47    total run time =     9.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.40885999E-03        -3.43740E+02        -5.48908E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09424473E-02         2.66979E+03         4.26330E-06
+ Ion K.E. norm/erg:     3.95430626E-06         9.64789E-01         1.54064E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53754163E-03         2.32701E+03         3.71593E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33489
+           Ti (keV):     0.00048
+
+
+========================================================================
+
+
+ Timestep       48    total run time =     9.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.40398984E-03        -3.42552E+02        -5.47010E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09358370E-02         2.66817E+03         4.26073E-06
+ Ion K.E. norm/erg:     4.11303574E-06         1.00352E+00         1.60249E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53596018E-03         2.32663E+03         3.71532E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33409
+           Ti (keV):     0.00050
+
+
+========================================================================
+
+
+ Timestep       49    total run time =     9.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.40095490E-03        -3.41811E+02        -5.45828E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09320291E-02         2.66725E+03         4.25924E-06
+ Ion K.E. norm/erg:     4.27323098E-06         1.04260E+00         1.66490E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53534740E-03         2.32648E+03         3.71508E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33362
+           Ti (keV):     0.00052
+
+
+========================================================================
+
+
+ Timestep       50    total run time =    10.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.40081754E-03        -3.41778E+02        -5.45774E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09310647E-02         2.66701E+03         4.25887E-06
+ Ion K.E. norm/erg:     4.43522324E-06         1.08213E+00         1.72801E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53468241E-03         2.32631E+03         3.71482E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33351
+           Ti (keV):     0.00054
+
+
+========================================================================
+
+
+ Timestep       51    total run time =    10.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.40278618E-03        -3.42258E+02        -5.46541E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09329065E-02         2.66746E+03         4.25958E-06
+ Ion K.E. norm/erg:     4.59987139E-06         1.12230E+00         1.79216E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53472016E-03         2.32632E+03         3.71483E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33373
+           Ti (keV):     0.00056
+
+
+========================================================================
+
+
+ Timestep       52    total run time =    10.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.40900006E-03        -3.43774E+02        -5.48962E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09374172E-02         2.66856E+03         4.26134E-06
+ Ion K.E. norm/erg:     4.76780699E-06         1.16327E+00         1.85759E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53318499E-03         2.32595E+03         3.71424E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33428
+           Ti (keV):     0.00058
+
+
+========================================================================
+
+
+ Timestep       53    total run time =    10.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.41735262E-03        -3.45812E+02        -5.52217E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09442824E-02         2.67024E+03         4.26402E-06
+ Ion K.E. norm/erg:     4.93908758E-06         1.20506E+00         1.92432E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53186889E-03         2.32563E+03         3.71372E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33512
+           Ti (keV):     0.00060
+
+
+========================================================================
+
+
+ Timestep       54    total run time =    10.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.42769354E-03        -3.48335E+02        -5.56246E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09530799E-02         2.67238E+03         4.26744E-06
+ Ion K.E. norm/erg:     5.11421292E-06         1.24779E+00         1.99256E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53050054E-03         2.32529E+03         3.71319E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33619
+           Ti (keV):     0.00062
+
+
+========================================================================
+
+
+ Timestep       55    total run time =    11.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.43894518E-03        -3.51080E+02        -5.60629E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09633096E-02         2.67488E+03         4.27143E-06
+ Ion K.E. norm/erg:     5.29387653E-06         1.29162E+00         2.06255E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52965830E-03         2.32509E+03         3.71286E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33744
+           Ti (keV):     0.00065
+
+
+========================================================================
+
+
+ Timestep       56    total run time =    11.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.44924739E-03        -3.53594E+02        -5.64643E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09744120E-02         2.67759E+03         4.27575E-06
+ Ion K.E. norm/erg:     5.47884684E-06         1.33675E+00         2.13462E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53064347E-03         2.32533E+03         3.71325E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33879
+           Ti (keV):     0.00067
+
+
+========================================================================
+
+
+ Timestep       57    total run time =    11.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.45973926E-03        -3.56154E+02        -5.68731E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09858419E-02         2.68038E+03         4.28021E-06
+ Ion K.E. norm/erg:     5.66998746E-06         1.38339E+00         2.20909E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53177260E-03         2.32560E+03         3.71369E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34019
+           Ti (keV):     0.00069
+
+
+========================================================================
+
+
+ Timestep       58    total run time =    11.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.47040100E-03        -3.58755E+02        -5.72885E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09970616E-02         2.68311E+03         4.28458E-06
+ Ion K.E. norm/erg:     5.86779296E-06         1.43165E+00         2.28616E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53252837E-03         2.32579E+03         3.71398E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34156
+           Ti (keV):     0.00072
+
+
+========================================================================
+
+
+ Timestep       59    total run time =    11.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.48428144E-03        -3.62142E+02        -5.78293E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10074950E-02         2.68566E+03         4.28864E-06
+ Ion K.E. norm/erg:     6.07227166E-06         1.48154E+00         2.36583E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52928579E-03         2.32500E+03         3.71272E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34283
+           Ti (keV):     0.00074
+
+
+========================================================================
+
+
+ Timestep       60    total run time =    12.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.49437587E-03        -3.64605E+02        -5.82226E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10166723E-02         2.68790E+03         4.29222E-06
+ Ion K.E. norm/erg:     6.28349161E-06         1.53307E+00         2.44812E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52857997E-03         2.32483E+03         3.71244E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34395
+           Ti (keV):     0.00077
+
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.010       1.640
+        Tree-build:        0.010       1.639
+          Branches:        0.000       0.000
+              Fill:        0.010       1.639
+             Props:        0.000       0.000
+          Prefetch:        0.000       0.000
+        Walk local:        0.190      31.147
+         Walk comm:        0.050       8.197
+            Forces:        0.340      55.738
+            Pusher:        0.000       0.000
+       Diagnostics:        0.030       4.918
+             Total:        0.610     100.000
+      Timing format:
+ #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
+    4       0.010       0.020       0.000       0.190       0.050       0.340       0.610
+
+========================================================================
+
+
+ Timestep       61    total run time =    12.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.50328637E-03        -3.66779E+02        -5.85697E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10242569E-02         2.68975E+03         4.29517E-06
+ Ion K.E. norm/erg:     6.50185753E-06         1.58635E+00         2.53320E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52747241E-03         2.32456E+03         3.71201E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34487
+           Ti (keV):     0.00079
+
+
+========================================================================
+
+
+ Timestep       62    total run time =    12.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.50945821E-03        -3.68284E+02        -5.88102E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10300500E-02         2.69116E+03         4.29743E-06
+ Ion K.E. norm/erg:     6.72769580E-06         1.64145E+00         2.62119E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52731951E-03         2.32452E+03         3.71195E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34558
+           Ti (keV):     0.00082
+
+
+========================================================================
+
+
+ Timestep       63    total run time =    12.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51424102E-03        -3.69451E+02        -5.89965E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10340033E-02         2.69213E+03         4.29897E-06
+ Ion K.E. norm/erg:     6.96122049E-06         1.69843E+00         2.71217E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52672347E-03         2.32437E+03         3.71172E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34606
+           Ti (keV):     0.00085
+
+
+========================================================================
+
+
+ Timestep       64    total run time =    12.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51742146E-03        -3.70227E+02        -5.91205E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10362021E-02         2.69266E+03         4.29983E-06
+ Ion K.E. norm/erg:     7.20225831E-06         1.75724E+00         2.80608E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52598289E-03         2.32419E+03         3.71143E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34633
+           Ti (keV):     0.00088
+
+
+========================================================================
+
+
+ Timestep       65    total run time =    13.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51995011E-03        -3.70844E+02        -5.92190E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10368455E-02         2.69282E+03         4.30008E-06
+ Ion K.E. norm/erg:     7.45060195E-06         1.81783E+00         2.90284E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52434602E-03         2.32379E+03         3.71079E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34641
+           Ti (keV):     0.00091
+
+
+========================================================================
+
+
+ Timestep       66    total run time =    13.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51877663E-03        -3.70558E+02        -5.91733E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10362722E-02         2.69268E+03         4.29986E-06
+ Ion K.E. norm/erg:     7.70676297E-06         1.88033E+00         3.00264E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52520231E-03         2.32400E+03         3.71113E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34634
+           Ti (keV):     0.00094
+
+
+========================================================================
+
+
+ Timestep       67    total run time =    13.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51865064E-03        -3.70527E+02        -5.91683E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10349454E-02         2.69236E+03         4.29934E-06
+ Ion K.E. norm/erg:     7.97080271E-06         1.94475E+00         3.10551E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52426556E-03         2.32377E+03         3.71076E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34618
+           Ti (keV):     0.00097
+
+
+========================================================================
+
+
+ Timestep       68    total run time =    13.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51837043E-03        -3.70459E+02        -5.91574E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10333128E-02         2.69196E+03         4.29870E-06
+ Ion K.E. norm/erg:     8.24257237E-06         2.01106E+00         3.21140E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52318498E-03         2.32351E+03         3.71034E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34598
+           Ti (keV):     0.00101
+
+
+========================================================================
+
+
+ Timestep       69    total run time =    13.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51699794E-03        -3.70124E+02        -5.91040E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10318152E-02         2.69159E+03         4.29812E-06
+ Ion K.E. norm/erg:     8.52218511E-06         2.07928E+00         3.32034E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52333949E-03         2.32355E+03         3.71040E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34580
+           Ti (keV):     0.00104
+
+
+========================================================================
+
+
+ Timestep       70    total run time =    14.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51519106E-03        -3.69683E+02        -5.90336E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10309535E-02         2.69138E+03         4.29778E-06
+ Ion K.E. norm/erg:     8.80944894E-06         2.14937E+00         3.43226E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52457193E-03         2.32385E+03         3.71088E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34569
+           Ti (keV):     0.00107
+
+
+========================================================================
+
+
+ Timestep       71    total run time =    14.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51549150E-03        -3.69756E+02        -5.90453E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10311990E-02         2.69144E+03         4.29788E-06
+ Ion K.E. norm/erg:     9.10338688E-06         2.22109E+00         3.54678E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52481093E-03         2.32391E+03         3.71097E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34572
+           Ti (keV):     0.00111
+
+
+========================================================================
+
+
+ Timestep       72    total run time =    14.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.51814177E-03        -3.70403E+02        -5.91485E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10329026E-02         2.69186E+03         4.29854E-06
+ Ion K.E. norm/erg:     9.40295473E-06         2.29418E+00         3.66350E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52416376E-03         2.32375E+03         3.71072E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34593
+           Ti (keV):     0.00115
+
+
+========================================================================
+
+
+ Timestep       73    total run time =    14.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.52225738E-03        -3.71407E+02        -5.93089E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10362997E-02         2.69269E+03         4.29987E-06
+ Ion K.E. norm/erg:     9.70764605E-06         2.36852E+00         3.78221E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52375001E-03         2.32365E+03         3.71056E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34634
+           Ti (keV):     0.00118
+
+
+========================================================================
+
+
+ Timestep       74    total run time =    14.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.52799125E-03        -3.72806E+02        -5.95323E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10415083E-02         2.69396E+03         4.30190E-06
+ Ion K.E. norm/erg:     1.00163597E-05         2.44384E+00         3.90249E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52353338E-03         2.32359E+03         3.71048E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34698
+           Ti (keV):     0.00122
+
+
+========================================================================
+
+
+ Timestep       75    total run time =    15.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.53371692E-03        -3.74203E+02        -5.97553E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10485303E-02         2.69567E+03         4.30463E-06
+ Ion K.E. norm/erg:     1.03284506E-05         2.51998E+00         4.02408E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52514185E-03         2.32399E+03         3.71110E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34784
+           Ti (keV):     0.00126
+
+
+========================================================================
+
+
+ Timestep       76    total run time =    15.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.54225458E-03        -3.76286E+02        -6.00880E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10572254E-02         2.69779E+03         4.30802E-06
+ Ion K.E. norm/erg:     1.06437421E-05         2.59691E+00         4.14692E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52561458E-03         2.32410E+03         3.71129E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34890
+           Ti (keV):     0.00130
+
+
+========================================================================
+
+
+ Timestep       77    total run time =    15.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.55095325E-03        -3.78409E+02        -6.04269E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10673337E-02         2.70026E+03         4.31196E-06
+ Ion K.E. norm/erg:     1.09609925E-05         2.67431E+00         4.27053E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52734147E-03         2.32452E+03         3.71196E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35013
+           Ti (keV):     0.00134
+
+
+========================================================================
+
+
+ Timestep       78    total run time =    15.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.55871166E-03        -3.80302E+02        -6.07292E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10784473E-02         2.70297E+03         4.31629E-06
+ Ion K.E. norm/erg:     1.12795079E-05         2.75203E+00         4.39462E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53101515E-03         2.32542E+03         3.71339E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35148
+           Ti (keV):     0.00138
+
+
+========================================================================
+
+
+ Timestep       79    total run time =    15.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.57075661E-03        -3.83240E+02        -6.11985E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10900532E-02         2.70580E+03         4.32081E-06
+ Ion K.E. norm/erg:     1.15982256E-05         2.82979E+00         4.51880E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53089479E-03         2.32539E+03         3.71334E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35290
+           Ti (keV):     0.00141
+
+
+========================================================================
+
+
+ Timestep       80    total run time =    16.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.58295428E-03        -3.86216E+02        -6.16737E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11015534E-02         2.70861E+03         4.32529E-06
+ Ion K.E. norm/erg:     1.19153601E-05         2.90716E+00         4.64236E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.53051450E-03         2.32530E+03         3.71320E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35430
+           Ti (keV):     0.00145
+
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.010       1.613
+        Tree-build:        0.010       1.613
+          Branches:        0.000       0.000
+              Fill:        0.010       1.613
+             Props:        0.000       0.000
+          Prefetch:        0.000       0.000
+        Walk local:        0.220      35.484
+         Walk comm:        0.020       3.226
+            Forces:        0.350      56.451
+            Pusher:        0.000       0.000
+       Diagnostics:        0.030       4.839
+             Total:        0.620     100.000
+      Timing format:
+ #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
+    4       0.010       0.020       0.000       0.220       0.020       0.350       0.620
+
+========================================================================
+
+
+ Timestep       81    total run time =    16.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.59455606E-03        -3.89047E+02        -6.21257E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11123211E-02         2.71123E+03         4.32949E-06
+ Ion K.E. norm/erg:     1.22297347E-05         2.98387E+00         4.76484E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52999474E-03         2.32517E+03         3.71299E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35562
+           Ti (keV):     0.00149
+
+
+========================================================================
+
+
+ Timestep       82    total run time =    16.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.60812954E-03        -3.92359E+02        -6.26545E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11217250E-02         2.71353E+03         4.33315E-06
+ Ion K.E. norm/erg:     1.25400114E-05         3.05957E+00         4.88573E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52613545E-03         2.32423E+03         3.71149E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35676
+           Ti (keV):     0.00153
+
+
+========================================================================
+
+
+ Timestep       83    total run time =    16.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.61658911E-03        -3.94423E+02        -6.29841E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11291761E-02         2.71535E+03         4.33605E-06
+ Ion K.E. norm/erg:     1.28454818E-05         3.13410E+00         5.00474E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52543251E-03         2.32406E+03         3.71122E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35767
+           Ti (keV):     0.00157
+
+
+========================================================================
+
+
+ Timestep       84    total run time =    16.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.62230379E-03        -3.95817E+02        -6.32068E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11342203E-02         2.71658E+03         4.33802E-06
+ Ion K.E. norm/erg:     1.31460045E-05         3.20742E+00         5.12183E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52506252E-03         2.32397E+03         3.71107E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35829
+           Ti (keV):     0.00160
+
+
+========================================================================
+
+
+ Timestep       85    total run time =    17.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.62586060E-03        -3.96685E+02        -6.33454E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11364285E-02         2.71712E+03         4.33888E-06
+ Ion K.E. norm/erg:     1.34411478E-05         3.27943E+00         5.23682E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52400907E-03         2.32371E+03         3.71066E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35856
+           Ti (keV):     0.00164
+
+
+========================================================================
+
+
+ Timestep       86    total run time =    17.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.62553666E-03        -3.96606E+02        -6.33327E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11354709E-02         2.71688E+03         4.33851E-06
+ Ion K.E. norm/erg:     1.37303757E-05         3.35000E+00         5.34951E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52366464E-03         2.32363E+03         3.71053E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35844
+           Ti (keV):     0.00167
+
+
+========================================================================
+
+
+ Timestep       87    total run time =    17.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.62358843E-03        -3.96130E+02        -6.32568E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11312332E-02         2.71585E+03         4.33685E-06
+ Ion K.E. norm/erg:     1.40137244E-05         3.41913E+00         5.45991E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52165853E-03         2.32314E+03         3.70975E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35792
+           Ti (keV):     0.00171
+
+
+========================================================================
+
+
+ Timestep       88    total run time =    17.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.61484952E-03        -3.93998E+02        -6.29164E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11237736E-02         2.71403E+03         4.33395E-06
+ Ion K.E. norm/erg:     1.42922631E-05         3.48709E+00         5.56843E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52321638E-03         2.32352E+03         3.71035E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35701
+           Ti (keV):     0.00174
+
+
+========================================================================
+
+
+ Timestep       89    total run time =    17.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.60413437E-03        -3.91384E+02        -6.24989E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11133536E-02         2.71149E+03         4.32989E-06
+ Ion K.E. norm/erg:     1.45671518E-05         3.55416E+00         5.67553E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52378641E-03         2.32366E+03         3.71057E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35574
+           Ti (keV):     0.00178
+
+
+========================================================================
+
+
+ Timestep       90    total run time =    18.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.59065449E-03        -3.88095E+02        -6.19737E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.11003138E-02         2.70830E+03         4.32481E-06
+ Ion K.E. norm/erg:     1.48385612E-05         3.62038E+00         5.78127E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52449783E-03         2.32383E+03         3.71085E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35415
+           Ti (keV):     0.00181
+
+
+========================================================================
+
+
+ Timestep       91    total run time =    18.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.57516837E-03        -3.84317E+02        -6.13703E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10850631E-02         2.70458E+03         4.31887E-06
+ Ion K.E. norm/erg:     1.51071378E-05         3.68591E+00         5.88591E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52500182E-03         2.32395E+03         3.71105E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35229
+           Ti (keV):     0.00184
+
+
+========================================================================
+
+
+ Timestep       92    total run time =    18.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.55985112E-03        -3.80580E+02        -6.07736E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10681373E-02         2.70045E+03         4.31227E-06
+ Ion K.E. norm/erg:     1.53736461E-05         3.75093E+00         5.98975E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52365980E-03         2.32363E+03         3.71053E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.35023
+           Ti (keV):     0.00188
+
+
+========================================================================
+
+
+ Timestep       93    total run time =    18.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.54113368E-03        -3.76013E+02        -6.00443E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10500880E-02         2.69605E+03         4.30524E-06
+ Ion K.E. norm/erg:     1.56391265E-05         3.81570E+00         6.09318E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52459347E-03         2.32385E+03         3.71089E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34803
+           Ti (keV):     0.00191
+
+
+========================================================================
+
+
+ Timestep       94    total run time =    18.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.52377258E-03        -3.71777E+02        -5.93679E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10315150E-02         2.69152E+03         4.29800E-06
+ Ion K.E. norm/erg:     1.59052253E-05         3.88063E+00         6.19686E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52364763E-03         2.32362E+03         3.71052E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34576
+           Ti (keV):     0.00194
+
+
+========================================================================
+
+
+ Timestep       95    total run time =    19.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.50530504E-03        -3.67271E+02        -5.86484E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.10130051E-02         2.68700E+03         4.29079E-06
+ Ion K.E. norm/erg:     1.61732202E-05         3.94602E+00         6.30127E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52387327E-03         2.32368E+03         3.71061E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34350
+           Ti (keV):     0.00197
+
+
+========================================================================
+
+
+ Timestep       96    total run time =    19.20
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.48730625E-03        -3.62880E+02        -5.79471E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09950510E-02         2.68262E+03         4.28380E-06
+ Ion K.E. norm/erg:     1.64442402E-05         4.01214E+00         6.40686E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52418901E-03         2.32375E+03         3.71073E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.34131
+           Ti (keV):     0.00201
+
+
+========================================================================
+
+
+ Timestep       97    total run time =    19.40
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.47018310E-03        -3.58702E+02        -5.72800E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09780802E-02         2.67848E+03         4.27718E-06
+ Ion K.E. norm/erg:     1.67199964E-05         4.07942E+00         6.51430E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52461709E-03         2.32386E+03         3.71090E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33924
+           Ti (keV):     0.00204
+
+
+========================================================================
+
+
+ Timestep       98    total run time =    19.60
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.45444976E-03        -3.54863E+02        -5.66670E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09624429E-02         2.67467E+03         4.27109E-06
+ Ion K.E. norm/erg:     1.70024152E-05         4.14833E+00         6.62433E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52499555E-03         2.32395E+03         3.71105E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33733
+           Ti (keV):     0.00207
+
+
+========================================================================
+
+
+ Timestep       99    total run time =    19.80
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.44003608E-03        -3.51347E+02        -5.61054E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09483082E-02         2.67122E+03         4.26558E-06
+ Ion K.E. norm/erg:     1.72931418E-05         4.21926E+00         6.73760E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52556524E-03         2.32409E+03         3.71127E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33561
+           Ti (keV):     0.00211
+
+
+========================================================================
+
+
+ Timestep      100    total run time =    20.00
+
+
+    tlaser =     0.00 (    0.00 fs)
+        amplitude =     0.000
+            x_crit=     0.000
+         spot size=     6.000
+           theta =      0.000
+
+                                  norm                  keV                 erg 
+             P.E. =    -1.42690993E-03        -3.48144E+02        -5.55940E-07
+      Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
+ Electron K.E. norm/    1.09357441E-02         2.66815E+03         4.26069E-06
+ Ion K.E. norm/erg:     1.75937290E-05         4.29260E+00         6.85472E-09
+       Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
+             Total:     9.52642789E-03         2.32430E+03         3.71160E-06
+     Laser energy =     0.00000000E+00
+    Plasma Te (keV):     1.33408
+           Ti (keV):     0.00215
+
+
+
+Timing:  Routine   time(s)  percentage
+
+           Domains:        0.010       1.613
+        Tree-build:        0.010       1.613
+          Branches:        0.000       0.000
+              Fill:        0.010       1.613
+             Props:        0.000       0.000
+          Prefetch:        0.000       0.000
+        Walk local:        0.210      33.870
+         Walk comm:        0.030       4.840
+            Forces:        0.350      56.452
+            Pusher:        0.000       0.000
+       Diagnostics:        0.220      35.484
+             Total:        0.620     100.000
+      Timing format:
+ #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
+    4       0.010       0.020       0.000       0.210       0.030       0.350       0.620
