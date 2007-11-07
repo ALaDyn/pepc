@@ -1,0 +1,15 @@
+# @ job_name = eqm
+# @ comment = "BGL Job by Size"
+# @ error = $(job_name).$(jobid).out
+# @ output = $(job_name).$(jobid).out
+# @ environment = COPY_ALL;
+# @ bg_connection = MESH 
+# @ wall_clock_limit = 00:30:00
+# @ notification = complete
+# @ notify_user = p.gibbon@fz-juelich.de
+# @ job_type = bluegene
+# @ bg_size = 32 
+# @ queue
+PEPC=../bin/pepcvis
+cp cluster.h run.h
+/usr/local/bin/mpirun -exe `/bin/pwd`/$PEPC -mode CO -np 32 -verbose 1 -args "-t 1"
