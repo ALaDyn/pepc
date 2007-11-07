@@ -2,7 +2,7 @@
 
 # Shell script to decode hex addresses 
 
-CODE=../bin/pepcb.rts
+CODE=~/pepc/bin/pepcb
 
 # Find address list
 AFILE=addr.list

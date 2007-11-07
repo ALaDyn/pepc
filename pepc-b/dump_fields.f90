@@ -18,7 +18,7 @@ subroutine dump_fields(timestamp)
   include 'mpif.h'
 
   real, dimension(ngx) :: work1, work2
-  real, dimension(0:nxh+1) :: phi_pond, ex_pond, ey_pond, ez_pond, azr, epond
+  real, dimension(0:max(nxh+1,ngx+1)) :: phi_pond, ex_pond, ey_pond, ez_pond, azr, epond
   real, dimension(0:ngx+1) :: rhoi_slice, rhoe_slice, ex_slice, ey_slice, ez_slice
   real, dimension(0:ngx+1) :: jxe_slice, jye_slice, jze_slice
   real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: exg, eyg, ezg, jxeg, jyeg, jzeg

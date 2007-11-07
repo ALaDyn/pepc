@@ -36,6 +36,7 @@ subroutine tree_domains(xl,yl,zl)
   real*8 :: s
   real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
   logical :: boundary_debug=.false. 
+  logical :: identical_keys=.false. 
 
   integer status(MPI_STATUS_SIZE), ierr, tag1
 
@@ -50,7 +51,7 @@ subroutine tree_domains(xl,yl,zl)
   integer :: fposts(num_pe+1),gposts(num_pe+1)
 
   integer :: npnew,npold
-  integer :: iteration, niterations
+  integer :: iteration, niterations, keycheck_pass, ipp
   integer :: errcount, proc_debug
 
   integer, dimension(nppm) ::  w2, w3 ! scratch arrays for integer*4 permute
@@ -305,16 +306,6 @@ subroutine tree_domains(xl,yl,zl)
   npp = npnew
   pekey(1:npp) = w1(1:npp)
 
-  ! Check for identical keys
-
-  do i=2,npp
-     if (pekey(i) == pekey(i-1)) then
-!        write(*,'(a15,i5,a30,2i8)') 'LPEPC | PE ',me,' WARNING: identical keys found for particles  ',pelabel(i),pelabel(i-1)
-        
-        pekey(i) = pekey(i) + 1  ! Augment higher key
-!        write(ipefile,'(a,o21)') 'LPEPC | Upper key increased to:  ',pekey(i)
-     endif
-  end do
 
   ! Now permute remaining particle properties : x,y,z; vx,vy,vz; q,m, label, load
 
@@ -380,6 +371,46 @@ subroutine tree_domains(xl,yl,zl)
 
   ! Each PE now has sorted segment of particles of length npp
   ! Note that now npp /= npart/num_pe, only approx depending on key distribution, or target shape.
+
+
+
+  ! Check for identical keys
+
+
+   keycheck_pass=1
+
+   do i=2,npp-1
+     if (pekey(i) == pekey(i-1)) then
+        pekey(i) = pekey(i) + 1  ! Augment higher key
+        pekey(i+1) = pekey(i+1) + 2  ! Augment next higher key to avoid 'triplet'
+!  Tweak momenta and positions to ensure particles drift apart
+        ux(i-1) = ux(i-1)*.99999
+        ux(i+1) = ux(i+1)*1.0001
+        x(i-1) = x(i-1)*.99999
+        x(i+1) = x(i+1)*1.0001
+
+! TODO: need 'ripple' here up to next large gap in keys i+1->npp
+
+        write(*,'(a15,i5,a8,i3,a30,2i6,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass,' WARNING: identical keys found for particles  ',i,npp,pelabel(i-1),pelabel(i),pelabel(i+1),' - upper increased to: ',pekey(i),' next key: ',pekey(i+1)
+     endif
+   end do
+
+! Special case for last pair to avoid possibility of identical keys across processor boundary
+! - work back down from last key
+
+   ipp=npp-1
+   identical_keys=.true.
+   keycheck_pass=2
+   do while (identical_keys .and. ipp.gt.2)
+      identical_keys=.false.
+      if (pekey(ipp+1) == pekey(ipp)) then
+         pekey(ipp) = pekey(ipp)-1
+        write(*,'(a15,i5,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass,' WARNING: identical keys found for particles  ',pelabel(ipp+1),pelabel(ipp),'LPEPC | Lower key decreased to:  ',pekey(ipp)
+        identical_keys=.true.
+     endif
+     ipp=ipp-1
+  end do
+
 
 
   ! Copy boundary particles to adjacent PEs to ensure proper tree construction

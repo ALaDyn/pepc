@@ -210,9 +210,13 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   types(13) = MPI_INTEGER8
   types(14:15) = MPI_INTEGER
 
+!  receive_base=LOC(get_props_a%x)
   call LOCADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
   call LOCADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
 
+!  if (me==0) write(*,'(a30,o21)') 'Particle address base:',receive_base
+!  call MPI_GET_ADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
+!  call MPI_GET_ADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
 
   call LOCADDRESS( ship_props_a%x, address(1), ierr )
   call LOCADDRESS( ship_props_a%y, address(2), ierr )

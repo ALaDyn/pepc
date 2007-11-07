@@ -104,7 +104,7 @@ module physvars
   real :: glue_radius=2.e6 !< multiple of box size to catch escaping particles at
   real :: fpon_max, ampl_max !< max amplitudes
 
-  integer :: nxh=10 !< 1D Helmholtz grid dimension
+  integer :: nxh=100 !< 1D Helmholtz grid dimension
   real :: dxh !< HH grid spacing
   real :: xh_start=0.
   real :: xh_end=10.  !< Start and end points of Helmholtz grid
@@ -180,7 +180,7 @@ module physvars
    integer :: field_select(1:4) = 0. !< field selection switches for vis.
    integer :: itrack=1       !< frequency for computing ion density (tracking)
    integer :: navcycle     !< # timesteps in a laser cycle 
-   integer :: ngx=10, ngy=10, ngz=10  !< Plot grid dimensions
+   integer :: ngx=50, ngy=10, ngz=10  !< Plot grid dimensions
    integer :: ncid         !< NetCDF id
    integer :: nbuf_max=10000     !< Max vis buffer size
    integer :: ndom_max=1000     !< Max # domains
