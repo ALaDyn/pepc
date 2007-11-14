@@ -1241,8 +1241,10 @@ search_list = 8_8**lev_map  ! place holder
     integer   :: location
     integer*8 :: addr
     integer   :: ierr,addr4
+! IBM machines powerX, bg/l use internal function
     addr = LOC(location)
     ierr=0
+! Linux: use mpi1 address function
 !   call MPI_ADDRESS( location, addr4, ierr )
 !   addr=addr4
   end subroutine locaddress_int4_8
@@ -1269,4 +1271,3 @@ search_list = 8_8**lev_map  ! place holder
   end subroutine locaddress_real8_8
 
 end module tree_utils
-

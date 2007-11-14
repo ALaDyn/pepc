@@ -13,7 +13,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   integer, intent(in) :: fetch_mult ! fetch array size multiplication factor (10)
 
   integer :: ibig, machinebits,k
-  integer :: ierr,npsize
+  integer :: ierr,npsize,i
   integer :: mem_parts, mem_multipoles, mem_fields, mem_tree, mem_prefetch, mem_tot, mem_lists
   character(3) :: cme
   character(30) :: cfile
@@ -75,7 +75,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   npartm = npart
   if (n_cpu.eq.1) then
-    nppm=npart
+    nppm=npart + 1000  ! allow for additional ghost particles for field plots
   else if (np_mult>0) then 
     nppm = abs(np_mult)*2*max(npartm/num_pe,1000) ! allow 50% fluctuation
   else
@@ -245,6 +245,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_particle, ierr)
+
+! Check addresses for MPI particle structure
+  if (me==0) write(*,'(a30/(o28,i8))') 'Particle addresses:',(address(i),displacements(i),i=1,15)
 
   ! Create new contiguous datatype for shipping multipole properties (25 arrays)
 

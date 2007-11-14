@@ -4,7 +4,7 @@ subroutine integrator
   use treevars
   use physvars
   implicit none
-
+  integer :: i
   ! Integrator
 
  if (me==0) write(*,*) 'Push with scheme',scheme
@@ -38,5 +38,6 @@ subroutine integrator
      ! do nothing
 
   end select boundaries
+
 
 end subroutine integrator

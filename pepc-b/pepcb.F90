@@ -29,7 +29,7 @@
 !  ==============================================================
 
 program pepcb
-
+  use treevars
   use physvars
   use utils
   implicit none
@@ -42,7 +42,7 @@ program pepcb
   real :: t_record(10000)
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
-  integer :: ierr, lvisit_active, ifile, incdf
+  integer :: ierr, lvisit_active, ifile, incdf,i
   integer :: vbufcols = 22, irecord=0, ico
 
 !POMP$ INST INIT
@@ -64,11 +64,11 @@ program pepcb
   if (my_rank==0) call stamp(15,1)
 
 
-  call openfiles       ! Set up O/P files
 
 
   call setup           ! Read input deck, setup plasma config
   call setup_arrays    ! Set up field arrays
+  call openfiles       ! Set up O/P files
 
 ! Allocate array space for tree
   call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,debug_rank) 
@@ -117,6 +117,9 @@ program pepcb
        ico=ico+1
     end do
   endif
+     write (ipefile,'(/a/a/(z21,i6,5f12.4))') 'Particle list after configure:', &
+          '  key,   , label  coords, ux, ex', &
+          (pekey(i),pelabel(i),x(i),y(i),z(i),ux(i),ex(i),i=1,npp) 
 
 
   if (debug_level >0) then

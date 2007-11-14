@@ -109,6 +109,21 @@ subroutine configure
                 number_faces, Vplas, Aplas, Qplas, qe, mass_e, a_ee )
 
 
+        case(7)        ! Spherical Coulomb implosion
+
+
+            if (debug_level==2 .and. me==0) then
+                write(*,*) "Setting up Coulomb implosion"
+            endif
+            target_geometry=1
+            velocity_config=3   ! Ions only with v_r=-v0 
+            plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
+
+            ! Ions
+            call plasma_start( 1, nip, ni, 0, target_geometry, velocity_config, idim, &
+                rho0, 1.0, mass_ratio, vosc, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+                number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
+
 
 
         case(4)        ! Spherical Coulomb explosion

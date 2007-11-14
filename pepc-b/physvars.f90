@@ -109,7 +109,7 @@ module physvars
   real :: xh_start=0.
   real :: xh_end=10.  !< Start and end points of Helmholtz grid
  
-  integer :: ngav=10 !< Time-ave grid dimension
+  integer :: ngav=100 !< Time-ave grid dimension
   real :: xgav_start=0.
   real :: xgav_end=10.  !< Limits for time-ave grid
   real :: xgav_pos(1:3)=(/0.,1.,2./)  !< Limits for time-ave grid - radial field positions

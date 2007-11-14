@@ -68,6 +68,7 @@ subroutine dump(timestamp)
     open (62,file="runstamp")  ! time stamp 
     write(62,'(a)') cdump(1:6)
     close (62)
+    write(ipefile,'(2a)') 'Particle dump',cdump(1:6)
 
   write(6,'(//a/7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))') 'PARTICLE DUMP:', &    ! info block
        'itime=',timestamp, 'npp=',npp, &
