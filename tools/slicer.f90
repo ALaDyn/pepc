@@ -85,7 +85,7 @@ program ppfields
     read(20,'(9(9x,f12.5/))') xmin, xmax, xtick, ymin, ymax, ytick, zmin, zmax, ztick
     read(20,'(10(9x,f12.5/))') uxmin, uxmax, uxtick, uymin, uymax, uytick, uzmin, uzmax, uztick, umevmax
     read(20,'(14(9x,f12.5/))') uximin, uximax, uxitick, uyimin, uyimax, uyitick, uzimin, uzimax, uzitick, uimevmax,aimin,aimax, uimev1, uimev2
-    read(20,'(18(9x,f12.5/))') yslice(1), zslice(1), rear_edge, mass_ratio, rhomax, temin, temax, timin, timax, &
+    read(20,'(18(9x,f12.5/))') xslice(1),yslice(1), zslice(1), rear_edge, mass_ratio, rhomax, temin, temax, timin, timax, &
         jemax, jimax, emax, fpmax, jevec, jivec, evec, epsr, tcold
     read(20,'(6(9x,f12.5/))') xbox, ybox, zbox, yshift, zshift, pshift    ! plot dimensions and scale positions in inches
     read(20,'(9x,i6/)') iskip3d  ! skip stride for writing out 3D xyz plots
@@ -576,6 +576,10 @@ program ppfields
     write(80,'(a8,a3,f12.3,a2)') 'TLASER','"',tlaser,' "'  ! run time since laser switched on (timestamp)
     write(80,'(a8,a3,f12.3,a2)') 'TRUN','"',trun,' "'  ! total simulation time 
 
+
+
+!  2D PLOTS: x-y plane
+
     nout = 17
     cfout(1) = cdump//'/xy_slice_eden'
     cfout(2) = cdump//'/xy_slice_iden'
@@ -600,7 +604,6 @@ program ppfields
         open(20+i,file=cfout(i+1))
     end do
 
-    ! density slice in xy-plane along laser axis: converted to n/nc
 
 
     kslice = (zslice(1)-zmin)*rdz
@@ -639,6 +642,9 @@ program ppfields
     end do
 
 
+!  2D PLOTS: x-z plane
+
+
     ! output data file
     nout = 15
     cfout(1) = cdump//'/xz_slice_eden'
@@ -662,7 +668,6 @@ program ppfields
         open(20+i,file=cfout(i+1))
     end do
 
-    ! density slice in xz-plane along laser axis: converted to n/nc
 
 
     jslice = (yslice(1)-ymin)*rdy
@@ -683,6 +688,59 @@ program ppfields
             write(32,'(2f13.4,f16.6)') i*dx+xmin, k*dz+zmin, jx_hot(i,jslice,k)
             write(33,'(2f13.4,f16.6)') i*dx+xmin, k*dz+zmin, jy_hot(i,jslice,k)
             write(34,'(2f13.4,f16.6)') i*dx+xmin, k*dz+zmin, jz_hot(i,jslice,k)
+        end do
+    end do
+
+    do i=0,nout-1
+        close(20+i)
+    end do
+
+!  2D PLOTS: y-z plane
+
+
+    ! output data file
+    nout = 15
+    cfout(1) = cdump//'/yz_slice_eden'
+    cfout(2) = cdump//'/yz_slice_iden'
+    cfout(3) = cdump//'/yz_slice_jxe'
+    cfout(4) = cdump//'/yz_slice_jze'
+    cfout(5) = cdump//'/yz_slice_jxi'
+    cfout(6) = cdump//'/yz_slice_jzi'
+    cfout(7) = cdump//'/yz_slice_te'
+    cfout(8) = cdump//'/yz_slice_ti'
+    cfout(9) = cdump//'/yz_slice_ex'
+    cfout(10) = cdump//'/yz_slice_ez'
+    cfout(11) = cdump//'/yz_slice_phi'
+    cfout(12) = cdump//'/yz_slice_nhot'
+    cfout(13) = cdump//'/yz_slice_jxhot'
+    cfout(14) = cdump//'/yz_slice_jyhot'
+    cfout(15) = cdump//'/yz_slice_jzhot'
+
+    do i=0,nout-1
+        write(*,'(2a)') 'Writing slice ',cfout(i+1)
+        open(20+i,file=cfout(i+1))
+    end do
+
+
+
+    islice = (xslice(1)-xmin)*rdx
+    do k=1,ngz
+        do j=1,ngy
+            write(20,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, abs(rho_ele(islice,j,k))
+            write(21,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, rho_ion(islice,j,k)
+            write(22,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jx_ele(islice,j,k)
+            write(23,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jz_ele(islice,j,k)
+            write(24,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jx_ion(islice,j,k)
+            write(25,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jz_ion(islice,j,k)
+            write(26,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, te(islice,j,k)
+            write(27,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, ti(islice,j,k)
+            write(28,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, Egx(islice,j,k)
+            write(29,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, Egz(islice,j,k)
+            write(30,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, phig(islice,j,k)
+            write(31,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, abs(rho_hot(islice,j,k))
+            write(32,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jx_hot(islice,j,k)
+            write(33,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jy_hot(islice,j,k)
+            write(34,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jz_hot(islice,j,k)
         end do
     end do
 
@@ -767,181 +825,6 @@ program ppfields
     !  close(20)
     !  close(21)
 
-    ! ====================================================================================
-    !
-    ! Special grid for 'whole target' potential -use particle coord max/min
-    !
-    ! ====================================================================================
-    !
-    ! Max/min particle potential
-    phimax = maxval(phi)
-    phimin = minval(phi)
-    npx = ngx/2  ! reduce resolution
-    npy = ngy/2
-    npz = ngz/2
-    phi_whole(0:npx+1,0:npy+1,0:npz+1) = 0.
-    rho_ele(0:npx+1,0:npy+1,0:npz+1) = 0.
-    rho_ion(0:npx+1,0:npy+1,0:npz+1) = 0.
-    g_w(0:npx+1,0:npy+1,0:npz+1) = 0.
-    ! COORDINATE SPACE
-    ! box limits 
-    !  xpmin = int(min(minval(x),-100.)/100)*100 ! 2 sig figs
-    !  xpmax = int(max(maxval(x),150.)/100)*100
-    !  ypmin = int(min(minval(y),-100.)/100)*100
-    !  ypmax = int(max(maxval(y),100.)/100)*100
-    !  zpmin = int(min(minval(z),-100.)/100)*100
-    !  zpmax = int(max(maxval(z),200.)/100)*100 
-    write(10,'(a,2f12.5/)') 'x extents: ',minval(x),maxval(x) 
-    !	'y extents: 'minval(y),maxval(y),'z extents: ',minval(z),maxval(z)
-    xpmin = xmin
-    xpmax = xmax
-    ypmin = ymin
-    ypmax = ymax
-    zpmin = zmin
-    zpmax = zmax
-
-    xl = xpmax-xpmin
-    yl = ypmax-ypmin
-    zl = zpmax-zpmin
-
-    dx = xl/npx
-    dy = yl/npy
-    dz = zl/npz
-
-    rdx = 1./dx
-    rdy = 1./dy
-    rdz = 1./dz
-
-    xptick = xl/5.
-    yptick = yl/5.
-    ! grid defs for xy slices
-
-    write(50,'(a8,a3,4(f12.3,a1))') 'PHIPA','"',xpmin,'/',xpmax,'/',ypmin,'/',ypmax,'"'  ! plot area
-    write(50,'(a8,a3,4(f12.3,a1))') 'PACONV','"',xpmin*cowp_micron,'/',xpmax*cowp_micron, &
-        '/',ypmin*cowp_micron,'/',ypmax*cowp_micron,'"'  ! plot area
-    write(50,'(a8,a3,4(f12.3,a1))') 'ZPACONV','"',xpmin*cowp_micron,'/',xpmax*cowp_micron, &
-        '/',zpmin*cowp_micron,'/',zpmax*cowp_micron,'"'  ! xz plot area
-    write(50,'(a8,a3,4(f12.3,a1))') 'PHIDR','"',xpmin+dx,'/',xpmax,'/',ypmin+dy,'/',ypmax,'"'  ! data region 
-    write(50,'(a8,a3,2(f12.3,a1))') 'PHIMESH','"',dx,'/',dy,'"'   ! mesh size 
-    write(50,'(a8,a3,4(f12.3,a1))') 'PHIZPA','"',xpmin,'/',xpmax,'/',zpmin,'/',zpmax,'"'  ! plot area
-    write(50,'(a8,a3,4(f12.3,a1))') 'PHIZDR','"',xpmin+dx,'/',xpmax,'/',zpmin+dz,'/',zpmax,'"'  ! data region 
-    write(50,'(a8,a3,2(f12.3,a1))') 'PHIZMESH','"',dx,'/',dz,'"'   ! mesh size 
-    write(50,'(a8,a3,2(f12.3,a1))') 'PHIAXES','"',xptick,'/',yptick,'"'   ! tick intervals
-
-    do i=1,n
-
-        xd=(x(i)-xpmin)
-        yd=(y(i)-ypmin)
-        zd=(z(i)-zpmin)
-        xa=xd*rdx
-        ya=yd*rdy
-        za=zd*rdz
-
-        cweight = abs(q(i))*rdx*rdy*rdz/omega**2       ! charge weighting factor
-
-        !  indices
-        i1=xa+1
-        i2=i1+1
-        j1=ya+1
-        j2=j1+1
-        k1=za+1
-        k2=k1+1
-        i1 = min(max(0,i1),npx+1)
-        i2 = min(max(0,i2),npx+1)
-        j1 = min(max(0,j1),npy+1)
-        j2 = min(max(0,j2),npy+1)
-        k1 = min(max(0,k1),npz+1)
-        k2 = min(max(0,k2),npz+1)
-        !  linear weighting
-        fx1=i1-xa
-        fx2=1.-fx1
-        fy1=j1-ya
-        fy2=1.-fy1
-        fz1=k1-za
-        fz2=1.-fz1     !  potential at nearest grid points
-        fr1 = sqrt(xd**2+yd**2+zd**2+epsilon**2)
-        phi_whole(i1,j1,k1)=phi_whole(i1,j1,k1) + phi(i)/fr1 ! NGP 1/r weighting
-        g_w(i1,j1,k1) =  g_w(i1,j1,k1) + 1./fr1  ! Sum S(r) weights
-
-        ! Linear 2-point weighting
-        !        phi_whole(i1,j1,k1)=phi_whole(i1,j1,k1) + phi(i)*fx1*fy1*fz1
-        !        phi_whole(i2,j1,k1)=phi_whole(i2,j1,k1) + phi(i)*fx2*fy1*fz1
-        !        phi_whole(i1,j2,k1)=phi_whole(i1,j2,k1) + phi(i)*fx1*fy2*fz1
-        !        phi_whole(i2,j2,k1)=phi_whole(i2,j2,k1) + phi(i)*fx2*fy2*fz1
-        !        phi_whole(i1,j1,k2)=phi_whole(i1,j1,k2) + phi(i)*fx1*fy1*fz2
-        !        phi_whole(i2,j1,k2)=phi_whole(i2,j1,k2) + phi(i)*fx2*fy1*fz2
-        !        phi_whole(i1,j2,k2)=phi_whole(i1,j2,k2) + phi(i)*fx1*fy2*fz2
-        !        phi_whole(i2,j2,k2)=phi_whole(i2,j2,k2) + phi(i)*fx2*fy2*fz2
-
-        if (q(i)<0) then
-            rho_ele(i1,j1,k1)=rho_ele(i1,j1,k1) + cweight*fx1*fy1*fz1
-            rho_ele(i2,j1,k1)=rho_ele(i2,j1,k1) + cweight*fx2*fy1*fz1
-            rho_ele(i1,j2,k1)=rho_ele(i1,j2,k1) + cweight*fx1*fy2*fz1
-            rho_ele(i2,j2,k1)=rho_ele(i2,j2,k1) + cweight*fx2*fy2*fz1
-            rho_ele(i1,j1,k2)=rho_ele(i1,j1,k2) + cweight*fx1*fy1*fz2
-            rho_ele(i2,j1,k2)=rho_ele(i2,j1,k2) + cweight*fx2*fy1*fz2
-            rho_ele(i1,j2,k2)=rho_ele(i1,j2,k2) + cweight*fx1*fy2*fz2
-            rho_ele(i2,j2,k2)=rho_ele(i2,j2,k2) + cweight*fx2*fy2*fz2
-        else
-            rho_ion(i1,j1,k1)=rho_ion(i1,j1,k1) + cweight*fx1*fy1*fz1
-            rho_ion(i2,j1,k1)=rho_ion(i2,j1,k1) + cweight*fx2*fy1*fz1
-            rho_ion(i1,j2,k1)=rho_ion(i1,j2,k1) + cweight*fx1*fy2*fz1
-            rho_ion(i2,j2,k1)=rho_ion(i2,j2,k1) + cweight*fx2*fy2*fz1
-            rho_ion(i1,j1,k2)=rho_ion(i1,j1,k2) + cweight*fx1*fy1*fz2
-            rho_ion(i2,j1,k2)=rho_ion(i2,j1,k2) + cweight*fx2*fy1*fz2
-            rho_ion(i1,j2,k2)=rho_ion(i1,j2,k2) + cweight*fx1*fy2*fz2
-            rho_ion(i2,j2,k2)=rho_ion(i2,j2,k2) + cweight*fx2*fy2*fz2
-        endif
-    end do
-
-    ! normalise averaged quantities
-    cweight = abs(q(1))*rdx*rdy*rdz/omega**2       ! charge weighting factor
-    g_ele(1:npx,1:npy,1:npz) = -rho_ele(1:npx,1:npy,1:npz)/cweight   ! # electrons per cell
-    nelecs = SUM(g_ele(1:npx,1:npy,1:npz))
-    g_ion(1:npx,1:npy,1:npz) = rho_ion(1:npx,1:npy,1:npz)/cweight    ! # ions per cell
-    nions = SUM(g_ion(1:npx,1:npy,1:npz))
-    write(10,*) 'Whole-target density integrals: ',nelecs, nions
-    write(10,*) 'Min/max particle potentials:',phimin,phimax
-    g_w(1:npx,1:npy,1:npz) = max(1.,g_w(1:npx,1:npy,1:npz))
-
-    phi_whole(1:npx,1:npy,1:npz) = C_pot*phi_whole(1:npx,1:npy,1:npz)/ &
-        (g_w(1:npx,1:npy,1:npz) )  ! Average potential in cell and convert to MV
-
-    ! output data file
-
-
-    nout = 2
-
-    cfout(1) = cdump//'/xy_slice_phiw'
-    cfout(2) = cdump//'/xz_slice_phiw'
-
-
-    do i=0,nout-1
-        write(*,'(2a)') 'Writing slice ',cfout(i+1)
-        open(20+i,file=cfout(i+1))
-    end do
-
-    ! potential slice in xy-plane along laser axis
-
-
-    kslice = (zslice(1)-zpmin)*rdz
-    do j=1,npy
-        do i=1,npx
-            write(20,'(2f13.4,1pe14.4)') i*dx+xpmin, j*dy+ypmin, sum(phi_whole(i,j,kslice-1:kslice+1))/3.
-            !        write(20,'(2f13.4,f16.6)') i*dx+xpmin, j*dy+ypmin, phi_whole(i,j,kslice)
-        end do
-    end do
-
-    jslice = (yslice(1)-ymin)*rdy
-    do k=1,ngz
-        do i=1,ngx
-            write(21,'(2f13.4,1pe14.4)') i*dx+xmin, k*dz+zmin, sum(phi_whole(i,jslice-1:jslice+1,k))/3.
-        end do
-    end do
-
-    do i=0,nout-1
-        close(20+i)
-    end do
 
 
 
