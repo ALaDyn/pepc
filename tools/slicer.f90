@@ -258,6 +258,14 @@ program ppfields
     write(50,'(a8,a3,2(f12.3,a2))') 'ZBOX','"X',xbox,'i/',zbox,'i"'   ! plot size in inches 
     write(50,'(a8,a3,2(f12.3,a1))') 'ZAXES','"',xtick,'/',ztick,'"'   ! tick intervals
 
+    ! grid defs for yz slices
+
+    write(50,'(a8,a3,4(f12.3,a1))') 'YZPA','"',ymin,'/',ymax,'/',zmin,'/',zmax,'"'  ! plot area
+    write(50,'(a8,a3,4(f12.3,a1))') 'YZDR','"',ymin+dy,'/',ymax,'/',zmin+dz,'/',zmax,'"'  ! data region 
+    write(50,'(a8,a3,2(f12.3,a1))') 'YZMESH','"',dy,'/',dz,'"'   ! mesh size 
+    write(50,'(a8,a3,2(f12.3,a2))') 'YZBOX','"X',ybox,'i/',zbox,'i"'   ! plot size in inches 
+    write(50,'(a8,a3,2(f12.3,a1))') 'YZAXES','"',ytick,'/',ztick,'"'   ! tick intervals
+
     write(50,'(a8,a3,3(f12.3,a1))') 'RHOMAP','"',-rhomax/10.,'/',rhomax,'/',rhomax/50.,'"'  ! density map
     write(50,'(a8,a3,3(f12.3,a1))') 'JEMAP','"',0.0,'/',jemax,'/',jemax/20.,'"'  ! current map
     write(50,'(a8,a3,3(f12.3,a1))') 'JIMAP','"',0.0,'/',jimax,'/',jimax/20.,'"'  ! Ji map
@@ -266,6 +274,7 @@ program ppfields
     write(50,'(a8,a3,2(f12.3,a1))') 'TERANGE','"',temin,'/',temax,'"'  ! Te range
     write(50,'(a8,a3,3(f12.5,a1))') 'TIMAP','"',timin,'/',timax,'/',timax/50.,'"'  ! Ti map
     write(50,'(a8,a3,2(f12.3,a1))') 'TIRANGE','"',timin,'/',timax,'"'  ! Ti range
+
     write(50,'(a8,a3,f12.3,a1)') 'SSRHO','"',rhomax/2,'"'  ! density scale ticks 
     write(50,'(a8,a3,f12.3,a1)') 'TCOLD','"',tcold,'"'  ! threshold for cold/hot plots
     write(50,'(a8,a3,f12.3,a1)') 'SSTE','"',temax/2,'"'  ! temp scale ticks 
