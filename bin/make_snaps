@@ -97,6 +97,11 @@ eval `cat gmt.env  | awk '{ printf "%s\n",$0 }' `
   echo "ZMESH=${ZMESH}"
   echo "ZAXES=${ZAXES}"
   echo "ZBOX=${ZBOX}"
+  echo "YZPA=${YZPA}"
+  echo "YZDR=${YZDR}"
+  echo "YZMESH=${YZMESH}"
+  echo "YZAXES=${YZAXES}"
+  echo "YZBOX=${YZBOX}"
   echo "RHOMAP=${RHOMAP}"
   echo "JEMAP=${JEMAP}"
   echo "JIMAP=${JIMAP}"
@@ -193,6 +198,10 @@ done
 #  Convert to local variables
 eval `cat snap.env  | awk '{ printf "%s\n",$0 }' `
 
+##############################
+###  Plots in xy plane   #####
+##############################
+
       echo "TRUN=$TRUN"
       echo "TLASER=$TLASER"
       PLOT=../plots/xy_slice_${TIMESTAMP}.ps
@@ -207,14 +216,12 @@ echo "ion density in xy"
 # plot image
       grdimage data1.grd -J${BOX} -E$DPI  -R${DR} -T -O -K -C../dens.cpt -X0 -Y0 >> $PLOT
       psscale -C../dens.cpt -D$SCALE -O -K -B${SSRHO}/:n@-i@-/n@-c@-:  >> $PLOT
-
-
       \rm *.grd .gmtcommands
 
+#----------------
 echo  "ion current in xy"
       JX=xy_slice_jxi
       JY=xy_slice_jyi
-
       psbasemap -R${PA} -J${BOX} -B${AXES}wSne -P -K -O -X2.5i -Y0 >> $PLOT
       xyz2grd $JX -Gjx.grd -R${DR} -I${MESH} 
       xyz2grd $JY -Gjy.grd -R${DR} -I${MESH}
@@ -223,20 +230,18 @@ echo  "ion current in xy"
       psscale -C../ji.cpt -D$SCALE -O -K -B${SSJI}/:J@-i@-:  >> $PLOT
       \rm *.grd .gmtcommands
 
+#----------------
 echo "ion temperature (K.E.) in xy"
       TI=xy_slice_ti
-
       psbasemap -R${PA} -J${BOX} -B${AXES}wnSE -P -K -O -X2.5i -Y0 >> $PLOT 
 # Convert xyz data to grid file
       xyz2grd $TI -Gdata1.grd -R${DR} -I${MESH} 
       grdinfo data1.grd
 # Make colour map
 #      makecpt  -Cseis -I  -L${TIRANGE}   -S${TIMAP} > ti.cpt
-
       grd2cpt  data1.grd  -Cseis -I  -L${TIRANGE}   -S${TIMAP} > ti.cpt
       grdimage data1.grd  -J${BOX} -E$DPI -R${DR} -T -O -K -Cti.cpt -X0 -Y0 >> $PLOT
       psscale -Cti.cpt -D$SCALE -O -K -B${SSTI}/:T@_i@-:  >> $PLOT
-
 
 # -----------------------------
 echo "electron density in xy"
@@ -251,24 +256,23 @@ echo "electron density in xy"
 # plot image
       grdimage data1.grd -JX -E$DPI -R${DR} -T -O -K -C../dens.cpt -X0 -Y0 >> $PLOT
       psscale -C../dens.cpt -D$SCALE -O -K -B${SSRHO}/:n@-e@-/n@-c@-:  >> $PLOT
-
       \rm *.grd .gmtcommands
 
+# -----------------------------
 echo "electron current in xy"
       JX=xy_slice_jxe
       JY=xy_slice_jye
-
       psbasemap -R${PA} -J${BOX} -B${AXES}wnSe -P -K -O -X2.5i -Y0 >> $PLOT 
       xyz2grd $JX -Gjx.grd -R${DR} -I${MESH} 
       xyz2grd $JY -Gjy.grd -R${DR} -I${MESH}
       grdinfo jx.grd
       grdvector jx.grd jy.grd -JX -O -K -Q$ARROW -C../je.cpt -G0 -S${JEVEC}i >> $PLOT
        psscale -C../je.cpt -D$SCALE -O -K -B${SSJE}/:J@-e@-:  >> $PLOT
-     \rm *.grd .gmtcommands
+      \rm *.grd .gmtcommands
 
+# -----------------------------
 echo "electron temperature (K.E.) in xy"
       TE=xy_slice_te
-
       psbasemap -R${PA} -J${BOX} -B${AXES}wnSE -P -K -O -X2.5i -Y0 >> $PLOT
 # Convert xyz data to grid file
       xyz2grd $TE -Gdata1.grd -R${DR} -I${MESH}
@@ -279,7 +283,6 @@ echo "electron temperature (K.E.) in xy"
       psscale -Cte.cpt -D$SCALE -O -K -B${SSTE}/:T@-e@-: >> $PLOT
 
 # ------------------------
-
 echo "hot electron density in xy"
       XYDATA=xy_slice_nhot
       XY2=xy_slice_nhot
@@ -294,7 +297,6 @@ echo "hot electron density in xy"
 echo "hot electron current in xy"
       JX=xy_slice_jxhot
       JY=xy_slice_jyhot
-
       psbasemap -R${PA} -J${BOX} -B${AXES}wnSe -P -K -O -X2.5i -Y0 >> $PLOT 
       xyz2grd $JX -Gjx.grd -R${DR} -I${MESH} 
       xyz2grd $JY -Gjy.grd -R${DR} -I${MESH}
@@ -305,7 +307,6 @@ echo "hot electron current in xy"
 echo "Electric field in xy"
       EX=xy_slice_ex
       EY=xy_slice_ey
-
       psbasemap -R${PA} -J${BOX} -B${AXES}wnSe -P -K -O -X2.5i -Y0 >> $PLOT 
       xyz2grd $EX -Gex.grd -R${DR} -I${MESH} 
       xyz2grd $EY -Gey.grd -R${DR} -I${MESH}
@@ -330,12 +331,128 @@ echo "Electric field in xy"
 #      psscale  -C../potlevels -D$SCALE -O  -B1:Phi: -U"xy-slices of $RUN at $TIMESTAMP" >> $PLOT
 
 
+##############################
+###  Plots in yz plane   #####
+##############################
 
- #    gzip $PLOT
+      echo "TRUN=$TRUN"
+      echo "TLASER=$TLASER"
+      PLOT=../plots/yz_slice_${TIMESTAMP}.ps
+      rm -f $PLOT
+
+echo "ion density in yz"
+      XYDATA=yz_slice_iden
+      psbasemap -R${YZPA} -J${BOX} -B${YZAXES}WSne -P -K  -X.5i -Y7i > $PLOT 
+      xyz2grd $XYDATA -Gdata1.grd -R${YZDR} -I${YZMESH} 
+      grdinfo data1.grd
+      grdgradient data1.grd -A30 -Nt -Gdata1_int.grd
+# plot image
+      grdimage data1.grd -J${YZBOX} -E$DPI  -R${YZDR} -T -O -K -C../dens.cpt -X0 -Y0 >> $PLOT
+      psscale -C../dens.cpt -D$SCALE -O -K -B${SSRHO}/:n@-i@-/n@-c@-:  >> $PLOT
+      \rm *.grd .gmtcommands
+
+#----------------
+echo  "ion current in xy"
+      JX=xy_slice_jxi
+      JY=xy_slice_jyi
+      psbasemap -R${YZPA} -J${YZBOX} -B${YZAXES}wSne -P -K -O -X2.5i -Y0 >> $PLOT
+      xyz2grd $JX -Gjx.grd -R${YZDR} -I${YZMESH} 
+      xyz2grd $JY -Gjy.grd -R${YZDR} -I${YZMESH}
+      grdinfo jx.grd
+      grdvector jx.grd jy.grd -JX -O -K -Q$ARROW -C../ji.cpt -G0 -S${JIVEC}i >> $PLOT
+      psscale -C../ji.cpt -D$SCALE -O -K -B${SSJI}/:J@-i@-:  >> $PLOT
+      \rm *.grd .gmtcommands
+
+#----------------
+echo "ion temperature (K.E.) in xy"
+      TI=xy_slice_ti
+      psbasemap -R${YZPA} -J${YZBOX} -B${YZAXES}wnSE -P -K -O -X2.5i -Y0 >> $PLOT 
+# Convert xyz data to grid file
+      xyz2grd $TI -Gdata1.grd -R${YZDR} -I${YZMESH} 
+      grdinfo data1.grd
+# Make colour map
+#      makecpt  -Cseis -I  -L${TIRANGE}   -S${TIMAP} > ti.cpt
+      grd2cpt  data1.grd  -Cseis -I  -L${TIRANGE}   -S${TIMAP} > ti.cpt
+      grdimage data1.grd  -J${YZBOX} -E$DPI -R${YZDR} -T -O -K -Cti.cpt -X0 -Y0 >> $PLOT
+      psscale -Cti.cpt -D$SCALE -O -K -B${SSTI}/:T@_i@-:  >> $PLOT
+
+# -----------------------------
+echo "electron density in xy"
+      XYDATA=xy_slice_eden
+      XY2=xy_slice_nhot
+      psbasemap -R${YZPA} -J${YZBOX} -B${YZAXES}WSne -P -K -O -X-5i -Y-3i >> $PLOT 
+      xyz2grd $XYDATA -Gdata1.grd -R${YZDR} -I${YZMESH} 
+      xyz2grd $XY2 -Gdata2.grd -R${YZDR} -I${YZMESH} 
+      grdmath data1.grd data2.grd ADD = data3.grd
+      grdinfo data2.grd
+      grdgradient data1.grd -A30 -Nt -Gdata1_int.grd
+# plot image
+      grdimage data1.grd -JX -E$DPI -R${YZDR} -T -O -K -C../dens.cpt -X0 -Y0 >> $PLOT
+      psscale -C../dens.cpt -D$SCALE -O -K -B${SSRHO}/:n@-e@-/n@-c@-:  >> $PLOT
+      \rm *.grd .gmtcommands
+
+# -----------------------------
+echo "electron current in xy"
+      JX=xy_slice_jxe
+      JY=xy_slice_jye
+      psbasemap -R${YZPA} -J${YZBOX} -B${YZAXES}wnSe -P -K -O -X2.5i -Y0 >> $PLOT 
+      xyz2grd $JX -Gjx.grd -R${YZDR} -I${YZMESH} 
+      xyz2grd $JY -Gjy.grd -R${YZDR} -I${YZMESH}
+      grdinfo jx.grd
+      grdvector jx.grd jy.grd -JX -O -K -Q$ARROW -C../je.cpt -G0 -S${JEVEC}i >> $PLOT
+       psscale -C../je.cpt -D$SCALE -O -K -B${SSJE}/:J@-e@-:  >> $PLOT
+      \rm *.grd .gmtcommands
+
+# -----------------------------
+echo "electron temperature (K.E.) in xy"
+      TE=xy_slice_te
+      psbasemap -R${YZPA} -J${YZBOX} -B${YZAXES}wnSE -P -K -O -X2.5i -Y0 >> $PLOT
+# Convert xyz data to grid file
+      xyz2grd $TE -Gdata1.grd -R${YZDR} -I${YZMESH}
+      grdinfo data1.grd
+# Make colour map
+      grd2cpt  data1.grd  -Cseis -I  -L${TERANGE}   -S${TEMAP} > te.cpt
+      grdimage data1.grd  -J${YZBOX} -E$DPI -R${YZDR} -T -O -K -Cte.cpt -X0 -Y0 >> $PLOT
+      psscale -Cte.cpt -D$SCALE -O -K -B${SSTE}/:T@-e@-: >> $PLOT
+
+# ------------------------
+echo "hot electron density in xy"
+      XYDATA=xy_slice_nhot
+      XY2=xy_slice_nhot
+      psbasemap -R${YZPA} -J${YZBOX} -B${YZAXES}WnSe -P -K -O -X-5i -Y-3i >> $PLOT 
+      xyz2grd $XYDATA -Gdata1.grd -R${YZDR} -I${YZMESH} 
+#      grdmath data1.grd data2.grd ADD = data3.grd
+      grdinfo data1.grd
+      grdgradient data1.grd -A30 -Nt -Gdata1_int.grd
+      grdimage data1.grd -JX -E$DPI -R${YZDR} -T -O -K -C../dens.cpt -X0 -Y0 >> $PLOT
+      psscale -C../dens.cpt -D$SCALE -O -K -B${SSRHO}/:n@-hot@-/n@-c@-:  >> $PLOT
+
+echo "hot electron current in xy"
+      JX=xy_slice_jxhot
+      JY=xy_slice_jyhot
+      psbasemap -R${YZPA} -J${YZBOX} -B${YZAXES}wnSe -P -K -O -X2.5i -Y0 >> $PLOT 
+      xyz2grd $JX -Gjx.grd -R${YZDR} -I${YZMESH} 
+      xyz2grd $JY -Gjy.grd -R${YZDR} -I${YZMESH}
+      grdinfo jx.grd
+      grdvector jx.grd jy.grd -JX -O -K -Q$ARROW -C../je.cpt -G0 -S${JEVEC}i >> $PLOT
+       psscale -C../je.cpt -D$SCALE -O -K -B${SSJE}/:J@-e@-: -U"xy-slices of $RUN at ${TRUN} ($TIMESTAMP)" >> $PLOT
+
+echo "Electric field in xy"
+      EX=xy_slice_ex
+      EY=xy_slice_ey
+      psbasemap -R${YZPA} -J${YZBOX} -B${YZAXES}wnSe -P -K -O -X2.5i -Y0 >> $PLOT 
+      xyz2grd $EX -Gex.grd -R${YZDR} -I${YZMESH} 
+      xyz2grd $EY -Gey.grd -R${YZDR} -I${YZMESH}
+      grdinfo ex.grd
+      grdvector ex.grd ey.grd  -JX -O -K -Q$ARROW -C../e.cpt -G0 -S${EVEC}i >> $PLOT
+      psscale -C../e.cpt -D$SCALE -O -B${SSE}/:E:  >> $PLOT
+      \rm *.grd .gmtcommands
 
 
 
+##############################
 ###  Plots in xz plane   #####
+##############################
 
       PLOT=../plots/xz_slice_${TIMESTAMP}.ps
       TEXTPOS="-15.0 30.0"
