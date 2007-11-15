@@ -85,7 +85,7 @@ program ppfields
     read(20,'(9(9x,f12.5/))') xmin, xmax, xtick, ymin, ymax, ytick, zmin, zmax, ztick
     read(20,'(10(9x,f12.5/))') uxmin, uxmax, uxtick, uymin, uymax, uytick, uzmin, uzmax, uztick, umevmax
     read(20,'(14(9x,f12.5/))') uximin, uximax, uxitick, uyimin, uyimax, uyitick, uzimin, uzimax, uzitick, uimevmax,aimin,aimax, uimev1, uimev2
-    read(20,'(18(9x,f12.5/))') xslice(1),yslice(1), zslice(1), rear_edge, mass_ratio, rhomax, temin, temax, timin, timax, &
+    read(20,'(19(9x,f12.5/))') xslice(1),yslice(1), zslice(1), rear_edge, mass_ratio, rhomax, temin, temax, timin, timax, &
         jemax, jimax, emax, fpmax, jevec, jivec, evec, epsr, tcold
     read(20,'(6(9x,f12.5/))') xbox, ybox, zbox, yshift, zshift, pshift    ! plot dimensions and scale positions in inches
     read(20,'(9x,i6/)') iskip3d  ! skip stride for writing out 3D xyz plots
