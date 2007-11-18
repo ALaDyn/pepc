@@ -138,8 +138,8 @@ subroutine diagnostics
   endif
 
 ! Array bound check
-  if (nleaf+ntwig > .95*maxaddress) then
-     write (6,'(a,i4)') '*** WARNING:  hash table >95% full on CPU ',my_rank 
+  if (nleaf+ntwig > .98*maxaddress) then
+     write (6,'(a,i4)') '*** WARNING:  hash table >98% full on CPU ',my_rank 
 
      do ifile = 6,15,9
         write(ifile,'(/a,i4)') 'Tree stats for CPU ',my_rank

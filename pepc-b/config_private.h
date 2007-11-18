@@ -1,3 +1,66 @@
+        case(41)        ! Foam: array of cylindrical pipes 
+            !    ================================================
+
+!	    target_geometry=12
+            velocity_config=1   ! Ions, electrons thermal
+            nshell_z=foam_geom(3)
+            nshell_y=foam_geom(2)
+            nshell_x=foam_geom(1)
+            nshell = nshell_x * nshell_y * nshell_z
+            ne_shell = ne/nshell
+            ni_shell = ni/nshell
+            nep_shell = nep/nshell
+            nip_shell = nip/nshell
+	    if (me==0) then
+	      write(*,*) "Particles/pipe/cpu: ",nep_shell
+	      write(*,*) "Particles/pipe: ",ne_shell
+	    endif
+            ipstart_e = 1
+            ipstart_i = nep+1
+            offset_e = me*nep
+            offset_i = ne + me*nip
+
+! Physical transverse extent of target
+	    
+	    y_extent = 2*r_sphere*nshell_y
+	    z_extent = 2*r_sphere*nshell_z
+            plasma_centre =  (/ xl/2., yl/2.-y_extent/2., zl/2.-z_extent/2. /) ! Centre of first pipe 
+
+            ishell = 0
+                do jshell = 0,nshell_y-1
+                    do kshell = 0,nshell_z-1
+                        ! offset for next pipe 
+                        displace = (/ 0., 2*jshell*r_sphere, 2*kshell*r_sphere /)
+
+                        ! Electrons 
+
+                        call plasma_start( ipstart_e, nep_shell, ne_shell, offset_e, target_geometry, velocity_config, idim, &
+                            -rho0, -1.0, 1.0, vte, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
+                            number_faces, Vshell, Ashell, Qshell, qe_shell, mass_e_shell, a_ee_shell )
+
+                        ipstart_e = ipstart_e + nep_shell  ! index start
+                        offset_e = offset_e + nep_shell  ! label offset
+
+                        ! Ions
+                        call plasma_start( ipstart_i, nip_shell, ni_shell, offset_i, target_geometry, 0, idim, &
+                            rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre+displace, &
+                            number_faces, Vshell, Ashell, Qshell, qi_shell, mass_i_shell, a_ii_shell )
+
+                        ipstart_i = ipstart_i + nip_shell  ! index start
+                        offset_i = offset_i + nip_shell  ! label offset
+
+                    end do
+                end do
+            Vplas = Vshell
+            Aplas = Ashell
+            Qplas = Qshell
+            qe=qe_shell
+            mass_e = mass_e_shell
+            a_ee = a_ee_shell
+            qi=qi_shell
+            mass_i = mass_i_shell
+            a_ii = a_ii_shell
+
 
         case(20)  ! disc + tube: inset target
             !    ====================================

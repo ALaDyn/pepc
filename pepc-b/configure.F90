@@ -26,6 +26,7 @@ subroutine configure
     integer :: nshell, ne_shell, ni_shell, ishell, jshell, kshell, nshell_x, nshell_y, nshell_z
     integer :: nep_shell, nip_shell, jion
     real :: Vshell, Ashell, Qshell, qe_shell, mass_e_shell, a_ee_shell, qi_shell, mass_i_shell, a_ii_shell
+    real :: y_extent, z_extent
 
     npp = nep+nip  ! initial # particles on this CPU
     nep0 = nep
@@ -158,7 +159,7 @@ subroutine configure
 
 
 
-        case(5)        ! Foam: array of spherical shells 
+        case(40)        ! Foam: array of spherical shells 
             !    ================================================
 
             velocity_config=1   ! Ions, electrons thermal
