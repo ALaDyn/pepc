@@ -75,7 +75,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   npartm = npart
   if (n_cpu.eq.1) then
-    nppm=npart + 1000  ! allow for additional ghost particles for field plots
+    nppm=1.5*npart + 1000  ! allow for additional ghost particles for field plots
   else if (np_mult>0) then 
     nppm = abs(np_mult)*2*max(npartm/num_pe,1000) ! allow 50% fluctuation
   else
@@ -105,8 +105,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
      nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
      maxaddress = 2**nbaddr
    else
-     nbaddr = 17   ! fixed address range
      maxaddress = abs(np_mult)*10000
+     nbaddr = max(log(1.*maxaddress)/log(2.) ,15.)
    endif
 
    if (num_pe > 1) then
@@ -198,7 +198,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
        xxquad(-maxtwig:maxleaf), yyquad(-maxtwig:maxleaf), zzquad(-maxtwig:maxleaf), &       ! quadrupole moment
        xyquad(-maxtwig:maxleaf), yzquad(-maxtwig:maxleaf), zxquad(-maxtwig:maxleaf), &
        jx(-maxtwig:maxleaf), jy(-maxtwig:maxleaf), jz(-maxtwig:maxleaf), &      ! current
-       magmx(-maxtwig:maxleaf), magmy(-maxtwig:maxleaf), magmz(-maxtwig:maxleaf) ) ! magnetic moment 
+       magmx(-maxtwig:maxleaf), magmy(-maxtwig:maxleaf), magmz(-maxtwig:maxleaf), &! magnetic moment 
+	size_node(-maxtwig:maxleaf)) 
 
   allocate ( pack_child(size_fetch),get_child(size_fetch) )    ! Multipole shipping buffers
 
@@ -298,6 +299,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
     write(*,*) 'nppm= ',nppm
     write(*,*) 'size_tree= ',size_tree
     write(*,*) 'max address = ',maxaddress
+    write(*,*) 'address bits = ',nbaddr
+    write(*,*) '# const = ',hashconst
     write(*,*) 'max leaf = ',maxleaf
     write(*,*) 'max twig = ',maxtwig
     write(*,*) 'max branches = ',nbranch_max
