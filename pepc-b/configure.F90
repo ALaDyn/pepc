@@ -116,7 +116,7 @@ subroutine configure
             if (debug_level==2 .and. me==0) then
                 write(*,*) "Setting up Coulomb implosion"
             endif
-            target_geometry=1
+!            target_geometry=1
             velocity_config=3   ! Ions only with v_r=-v0 
             plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
 
