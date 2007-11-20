@@ -247,8 +247,10 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_particle, ierr)
 
+  if (me==0 .and. db_level>1) then
 ! Check addresses for MPI particle structure
-  if (me==0) write(*,'(a30/(o28,i8))') 'Particle addresses:',(address(i),displacements(i),i=1,15)
+     write(*,'(a30/(o28,i8))') 'Particle addresses:',(address(i),displacements(i),i=1,15)
+  endif 
 
   ! Create new contiguous datatype for shipping multipole properties (25 arrays)
 
