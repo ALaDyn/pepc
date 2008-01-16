@@ -149,7 +149,7 @@
 
 !  Turn 1/2 of ions into protons - assumes 50:50 mix @ same density
             do i=nep+1,nep+nip,2
-                m(i) = m(i)/mass_ratio*1836
+                m(i) = m(i)/mass_ratio*mass_proton
             end do
 
             if (debug_level.ge.1 .and. me==0) then
@@ -193,7 +193,7 @@
 
 !  Turn 1/2 of ions into protons - assumes 50:50 mix @ same density
             do i=ipstart,ipstart+nlayp,2
-                m(i) = m(i)/mratio_layer(1)*1836
+                m(i) = m(i)/mratio_layer(1)*mass_proton
             end do
 
             ! Equal number of neutralising electrons 

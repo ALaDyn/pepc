@@ -26,7 +26,7 @@ subroutine vis_parts_nbody(vcount)
   real :: plasma1, plasma2, plasma3, t_display, wfdatar, u2, amp_las, box_x, box_y, box_z
   integer :: nship, ierr, cpuid
   integer :: type
-  integer :: vbufcols = 22, incdf, ndom_vis, ivisdom, ndomain_vis=1000
+  integer :: vbufcols = 22, incdf, ndom_vis, ivisdom, ndomain_vis=0
   real :: lbox, work_ave, upmax, uproton_max, uxmax
   logical :: vis_debug=.false.
   logical :: pick=.false.

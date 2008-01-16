@@ -33,6 +33,7 @@ module physvars
   real :: force_const    !< force constant depending on unit system
   real :: bond_const     !< bonding force constant for ion crystal
   real :: mass_ratio     !< ion:electron mass ratio
+  real :: mass_proton=1836    !< proton:electron mass ration
   real :: qe, qi         !< electron, ion charge
   real :: mass_e, mass_i   !< electron, ion mass
   real :: r_sphere       !< initial radius of plasma sphere
