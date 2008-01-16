@@ -104,6 +104,8 @@ subroutine vis_parts_nbody(vcount)
           pick = (  mod(pelabel(i),nskip).eq.0 .and. pelabel(i)>npart-n_layer(1) )
 	case(3)  ! select above energy threshold 
   	  pick = (u2>uthresh)
+	case(4)  ! select protons only
+          pick = (  mod(pelabel(i),nskip).eq.0 .and. q(i)>0 .and. m(i)==mass_proton )
 	case default
 	  pick = .false.
 	end select pick_part

@@ -155,6 +155,7 @@
             if (debug_level.ge.1 .and. me==0) then
                 write(*,*) "cap charge ",qi
                 write(*,*) "cap mass ",mass_i
+                write(*,*) "cap proton mass ",mass_i/mass_ratio*mass_proton
                 write(*,*) "cap spacing",a_ii
             endif
 
@@ -196,6 +197,13 @@
                 m(i) = m(i)/mratio_layer(1)*mass_proton
             end do
 
+            if (debug_level.ge.1 .and. me==0) then
+                write(*,*) "tube charge ",qpart_layer(1)
+                write(*,*) "tube mass ",mass_layer(1)
+                write(*,*) "tube proton mass ",mass_layer(1)/mass_ratio*mass_proton
+               write(*,*) "tube spacing",ai_layer(1)
+            endif
+
             ! Equal number of neutralising electrons 
             label_offset = ne+ni+me*nlayp + ne_rest 
             call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
@@ -207,11 +215,7 @@
             ni = ni + n_layer(1)  ! Global # particles
             npart = ni+ne
 
-            if (debug_level.ge.1 .and. me==0) then
-                write(*,*) "tube charge ",qpart_layer(1)
-                write(*,*) "tube mass ",mass_layer(1)
-                write(*,*) "tube spacing",ai_layer(1)
-            endif
+
 
         case(22)  ! can target = disc + tube: cap heavy ions only; tube 50:50 ions + protons 
             !    ====================================
