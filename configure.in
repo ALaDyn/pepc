@@ -94,6 +94,7 @@ esac
 #######################################################################
 # extra configure options
 #######################################################################
+
 AC_LANG(C)
 #AC_PROG_FC
 #AC_LANG(Fortran) dnl error, no fortran???
@@ -105,14 +106,19 @@ AC_ARG_WITH(mpi,  [  --with-mpi=DIR          path to mpi installation directory]
 ])
 AC_SUBST(MPI_DIR) 
 
+# search mpi installation
+ACX_MPI(,AC_MSG_ERROR(mpi is not available => use --with-mpi=DIR))
+
 # default for visit is no
 AC_ARG_WITH(visit,[  --with-visit            use visit libraries (no)],
   if test "$withval" != "no" ; then
+# turn on preprocessor directive
      VISITDEF="${F90DEF}-DVISIT_NBODY"
 # visit, xnbody path defaults 
      VISITLIBS="${DEFAULT_VISITPATH}" 
      TARGETS=pepc-visit 
      if test "$withval" != "yes" ; then
+# user-defined path
        VISIT=-L${withval}
      fi
   else 
@@ -120,38 +126,52 @@ AC_ARG_WITH(visit,[  --with-visit            use visit libraries (no)],
   fi
   ,TARGETS=pepc
 )
-AC_SUBST(VISIT) 
-AC_SUBST(VISITDEF)
-AC_SUBST(VISITLIBS)
-AC_SUBST(TARGETS)
 
-# search mpi installation
-ACX_MPI(,AC_MSG_ERROR(mpi is not available => use --with-mpi=DIR))
 
-# set path to visit (only show option, do nothing)
-AC_ARG_WITH(visit,[  --with-visit=DIR        path to visit library],[])
 # set path to lvisit
 AC_ARG_WITH(lvisit,
 	[  --with-lvisit=DIR       path to lvisit library], 
 	[LVISIT=-L${withval}])
+
+# default for netcdf is no
+AC_ARG_WITH(netcdf,[  --with-netcdf           use netcdf library (no)],
+  if test "$withval" != "no" ; then
+# turn on preprocessor directive
+    NETCDFDEF="${F90DEF}-DNETCDFLIB"
+# netcdf path defaults 
+    NETCDFLIB=-lnetcdf
+# compile netcdf interface
+    NCOBJS=ncnbody.o
+    if test "$withval" != "yes" ; then
+# user-defined path
+       NETCDFLIB="-L${withval}/lib -lnetcdf"
+       CFLAGS=-I${withval}/include
+    fi
+  fi
+)
+
+
+AC_SUBST(VISIT) 
+AC_SUBST(VISITDEF)
+AC_SUBST(VISITLIBS)
 AC_SUBST(LVISIT) 
+AC_SUBST(NETCDFDEF) 
+AC_SUBST(NETCDFLIB) 
+AC_SUBST(NCOBJS) 
+AC_SUBST(TARGETS)
+
+
+# set path to visit (only show option, do nothing)
+AC_ARG_WITH(visit,[  --with-visit=DIR        path to visit library],[])
+AC_ARG_WITH(netcdf,[  --with-netcdf=DIR       path to netcdf library],[])
+
+
 # set path to xnbody
 AC_ARG_WITH(xnbody,
 	[  --with-xnbody=DIR       path to xnbody library], 
 	[XNBODY=-L${withval}])
 AC_SUBST(XNBODY) 
 
-# default for netcdf is no
-AC_ARG_WITH(netcdf,[  --with-netcdf           use netcdf library (no)],
-  if test "$withval" != "no" ; then
-    NETCDFLIB=-lnetcdf
-    if test "$withval" != "yes" ; then
-       NETCDFLIB="-L${withval} -lnetcdf"
-    fi
-  fi
-)
-AC_SUBST(NETCDFLIB) 
-AC_ARG_WITH(netcdf,[  --with-netcdf=DIR       path to netcdf library],[])
 
 # set optimization options
 AC_ARG_WITH(opt,
@@ -214,7 +234,9 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([atexit floor memset pow rint sqrt])
 
+# Compiler flag substitutions
 AC_SUBST(FFLAGS)
+AC_SUBST(CFLAGS)
 AC_SUBST(CFLAGS_OS)
 AC_SUBST(FFLAGS_OS)
 AC_SUBST(MODULE_FLAG)
@@ -225,7 +247,7 @@ AC_SUBST(OPT)
 AC_SUBST(AR)
 
 ###
-
+ 
 AC_CONFIG_FILES([makefile
                  lpepcsrc/makefile
                  pepc-b/makefile

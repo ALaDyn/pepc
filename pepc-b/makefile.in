@@ -14,11 +14,12 @@ PREFIX = ..
 #   - or modify configure.in 
 #  --------------------------------------------------------------------------------------
 
-DEFINES = @VISITDEF@
+DEFINES = @VISITDEF@ @NETCDFDEF@
 
 FC      = @MPIF90@
 CC      = @MPICC@
 FFLAGS  = @FFLAGS@ @FFLAGS_OS@ @OPT@
+CFLAGS  = @CFLAGS@ @CFLAGS_OS@
 LDFLAGS = @LDFLAGS@
 
 LIBPEPC   = -L../lpepcsrc -llpepc
@@ -26,6 +27,7 @@ LIBVISIT  = @VISIT@ @LVISIT@ @XNBODY@ @VISITLIBS@
 LIBNETCDF = @NETCDFLIB@
 LIBTRACE = @MPITRACE@
 LIBS      = $(LIBPEPC) $(LIBVISIT) $(LIBNETCDF) ## $(LIBTRACE) 
+NCOBJS = @NCOBJS@
 
 .SUFFIXES: .f90 .F90
 
@@ -95,6 +97,11 @@ pepc:	lpepc $(appmods) $(appobjs)
 	@echo "\n Creating ../bin/pepcb ...\n"
 	$(FC)  $(FFLAGS)  -o ../bin/pepcb $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
 #$(FC)  $(FFLAGS)  -o ../bin/$@ $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
+	@echo "... done\n"
+
+bgl:	lpepc $(appmods) $(appobjs) 
+	@echo "\n Creating BlueGene version ../bin/pepcbgl ...\n"
+	$(FC)  $(FFLAGS)  -o ../bin/pepcbgl $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
 	@echo "... done\n"
 
 pepc-visit: lpepc $(appmods) $(appobjs) $(visitobjs) 
