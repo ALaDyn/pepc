@@ -624,5 +624,14 @@ subroutine configure
         Azo(1:npp) = Az(1:npp)
     endif
 
+	if (np_error>0) then
+	  call error_test(np_error)
+     	call diagnose_tree   ! Printed tree info (htable etc)
+     	call draw_tree2d(xl,yl)     ! Draw PE-trees
+     	call draw_lists      ! Draw interaction lists
+     	call draw_domains(itime+itime_start)   ! Domains
+	  stop
+	endif
+
 end subroutine configure
 
