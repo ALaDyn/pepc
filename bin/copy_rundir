@@ -33,5 +33,9 @@ cp timestamps *.bgl *.job *.h *.rc *.sh *.cpt data/PE_list grid_defs.in $NEWDIR/
 cd $NEWDIR
 mkdir fields fields_pp dumps log
 echo "Copying particle config data for timestamp $STAMP"
-cp $DATADIR/dumps/parts_*.$STAMP dumps/
+cat $DATADIR/data/PE_list | while read PE
+do
+  echo $PE  
+  cp $DATADIR/data/$PE/parts_*.$STAMP $NEWDIR/data/$PE/.
+done
 echo "..done"
