@@ -1,9 +1,9 @@
 #
 #  Makefile for pepc
 #
-.PHONY : lpepc pepcb
+.PHONY : lpepc pepcb pepce
 
-all: lpepc pepcb 
+all: lpepc pepcb pepce
 
 lpepc:  
 	cd lpepcsrc && make
@@ -19,6 +19,11 @@ debug:
 	cd lpepcsrc && make
 	cd pepc-b && make debug
 
+pepce:
+	cd lpepcsrc && make
+	cd pepc-e && make
+
 clean:
 	cd lpepcsrc && make clean && cd ..
 	cd pepc-b && make clean
+	cd pepc-e && make clean

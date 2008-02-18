@@ -78,6 +78,7 @@ powerpc64-unknown-linux-gnu) # jubl
 #----------------------------------------------------------
 *-*-linux-gnu*)
  AC_MSG_RESULT(** setting options for Linux host with ifort compiler **)
+ MACH=linux
  CFLAGS_OS="-Wall -Wno-unused"
  MODULE_FLAG="-module "
  F77FLAGS="$FFLAGS_OS"
@@ -235,6 +236,7 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([atexit floor memset pow rint sqrt])
 
 # Compiler flag substitutions
+AC_SUBST(MACH) 
 AC_SUBST(FFLAGS)
 AC_SUBST(CFLAGS)
 AC_SUBST(CFLAGS_OS)
