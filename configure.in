@@ -45,6 +45,7 @@ case "$host" in
 #----------------------------------------------------------
 powerpc64-unknown-linux-gnu) # jubl
  AC_MSG_RESULT(** setting options for powerpc64 host **)
+ MACH=bgl
  CFLAGS_OS="-DAIX_XLF -qarch=440 -qtune=440 -qlibansi -qnoinfo "
  FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS -qarch=440 -qtune=440 -qnosave"
  F90DEF="-WF,"
@@ -62,6 +63,7 @@ powerpc64-unknown-linux-gnu) # jubl
 *-*-aix*)
  AC_MSG_RESULT(** setting options for Aix host **)
 # CFLAGS_OS="-DJUMP -DAIX_XLF -q64 -qlibansi -qnoinfo "
+ MACH=p690
  CFLAGS_OS="-q64 -qlibansi -qnoinfo "
  F90DEF="-WF,"
 # FFLAGS_OS="-WF,-DJUMP,-DAIX_XLF -q64 "

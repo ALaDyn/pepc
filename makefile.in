@@ -12,6 +12,10 @@ pepcb:
 	cd lpepcsrc && make 
 	cd pepc-b && make
 
+bgl: 
+	cd lpepcsrc && make 
+	cd pepc-b && make bgl
+
 pepc-vis:
 	cd lpepcsrc && make
 	cd pepc-b && make pepc-visit
