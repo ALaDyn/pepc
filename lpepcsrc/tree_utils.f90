@@ -680,6 +680,8 @@ search_list = 8_8**lev_map  ! place holder
        islen(i) = fposts(i+1) - fposts(i)
     enddo
 
+
+
     call MPI_ALLTOALL( islen,1,MPI_INTEGER, &
                        irlen,1,MPI_INTEGER, &
                        MPI_COMM_WORLD,ierr)
@@ -713,9 +715,13 @@ search_list = 8_8**lev_map  ! place holder
        itabl(i) = gposts(i)
     enddo
 
+
     !     Merge the segments within each bin.
     call nwaymerge(nppm,npnew,nprocs,keys,irnkl,itabl(1:nprocs+1),itabr(1:nprocs),iproc)
 
+    if (debug .and. iproc==proc_debug ) then
+       write (fd,'(a20/(10x,5i8))') 'fp, is, gp, ir ',(i,fposts(i),islen(i),gposts(i),irlen(i),i=1,nprocs+1)
+    endif
     icall = icall + 1          ! update call count
   end subroutine pbalsort
 
