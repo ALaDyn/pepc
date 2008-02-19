@@ -6,28 +6,24 @@
 all: lpepc pepcb ## pepce
 
 lpepc:  
-	cd lpepcsrc && make
+	cd lpepcsrc && gmake
 
 pepcb: 
-	cd lpepcsrc && make 
-	cd pepc-b && make
-
-bgl: 
-	cd lpepcsrc && make 
-	cd pepc-b && make bgl
+	cd lpepcsrc && gmake 
+	cd pepc-b && gmake
 
 pepc-vis:
-	cd lpepcsrc && make
-	cd pepc-b && make pepc-visit
+	cd lpepcsrc && gmake
+	cd pepc-b && gmake pepc-visit
 debug:
-	cd lpepcsrc && make
-	cd pepc-b && make debug
+	cd lpepcsrc && gmake
+	cd pepc-b && gmake debug
 
 pepce:
-	cd lpepcsrc && make
-	cd pepc-e && make
+	cd lpepcsrc && gmake
+	cd pepc-e && gmake
 
 clean:
-	cd lpepcsrc && make clean && cd ..
-	cd pepc-b && make clean
-	cd pepc-e && make clean
+	cd lpepcsrc && gmake clean && cd ..
+	cd pepc-b && gmake clean
+	cd pepc-e && gmake clean

@@ -123,7 +123,7 @@ debug: lpepc $(appmods) $(appobjs) $(visitobjs)
 
 # Update PEPC library and headers
 lpepc:  ../lpepcsrc/$(MACH)/liblpepc.a
-	cd ../lpepcsrc; make lpepc; cd ../pepc-b
+#	cd ../lpepcsrc; make lpepc; cd ../pepc-b
 	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/treevars.mod $(PREFIX)/pepc-b/treevars.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/utils.mod $(PREFIX)/pepc-b/utils.mod
 
