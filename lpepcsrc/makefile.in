@@ -41,17 +41,22 @@ all: dirs mods lpepc
 dirs:  
 	if [ ! -d $(MACH) ]; then mkdir $(MACH); fi
 
+#  explicit rules for modules
+#$(MACH)/%.o: $(PEPCMOD.f90)
+#	$(FC) -c $(FFLAGS) $(DEFINES) $< -o $@
+
+
 #  compile mode for PEPC library routines
 $(MACH)/%.o: %.f90  
 	$(FC) -c $(FFLAGS) $(INCLUDE) $(DBFLAGS) $< -o $@
 
-$(pepclib): lpepc
+$(pepclib): mods lpepc
 lpepc:   $(LIBOBJS) $(LIBMODS) 
 	@echo "Creating PEPC library ..."
 	rm -f $(MACH)/liblpepc.a
 	$(AR) $(MACH)/liblpepc.a $^
 	$(RANLIB) $(MACH)/liblpepc.a
-	if [ -e treevars.mod ]; then mv *.mod $(MACH)/.; fi
+	if [ -e treevars.mod ]; then cp *.mod $(MACH)/.; fi
 	@echo "... done"
 
 
@@ -62,7 +67,7 @@ debug:	$(OBJECTS)
 	$(FC) $(LDFLAGS)  $(VISITLIBS) $(DBFLAGS)  -o $@ $(OBJECTS)
 
 clean:
-	/bin/rm -f $(MACH)/liblpepc.a $(LIBOBJS) $(MACH)/*.mod *% *~ bin/key rand *.o *.pif core *.ps
+	/bin/rm -f $(MACH)/liblpepc.a $(LIBOBJS) $(LIBMODS) $(MACH)/*.mod *.mod *% *~ bin/key rand *.o *.pif core *.ps
 
 cleanps: 
 	/bin/rm -f *.ps 

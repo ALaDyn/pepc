@@ -17,6 +17,8 @@ PREFIX = ..
 DEFINES = @VISITDEF@ @NETCDFDEF@
 # Machine architecture - subdirectory for binaries
 MACH = @MACH@
+TARGET = $(PREFIX)/bin/pepcb_$(MACH)  # name of executable
+
 FC      = @MPIF90@
 CC      = @MPICC@
 FFLAGS  = @FFLAGS@ @FFLAGS_OS@ @OPT@
@@ -100,9 +102,8 @@ $(MACH)/%.o: %.c
 #  targets
 
 pepc:	lpepc $(appmods) $(appobjs) 
-	@echo "\n Creating ../bin/pepcb ...\n"
-	$(FC)  $(FFLAGS)  -o ../bin/pepcb $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
-#$(FC)  $(FFLAGS)  -o ../bin/$@ $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
+	@echo "\n Creating $(TARGET) ...\n"
+	$(FC)  $(FFLAGS)  -o $(TARGET) $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
 	@echo "... done\n"
 
 bgl:	lpepc $(appmods) $(appobjs) 
@@ -133,7 +134,8 @@ rand:	 rantest.o
 clean:  cleanapp 
 
 cleanapp:
-	@echo "Cleaning application binaries .."; /bin/rm -f $(MACH)/*.o $(MACH)/*.mod  *% *~ bin/key rand *.o *.pif core $(MACH)/*.lst *.a *.mod opari.rc *.mod.F90 *.opari.inc
+	@echo "Cleaning application binaries .."; 
+	/bin/rm -f $(MACH)/*.o $(MACH)/*.mod *.mod *% *~ *.o *.pif core $(MACH)/*.lst *.a *.mod opari.rc *.mod.F90 *.opari.inc
 
 cleanpre: 
 	@echo "Cleaning pre-processed .f90 files .."

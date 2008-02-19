@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MPI_DIR MPICC MPIF90 CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MPILIBS VISIT VISITDEF VISITLIBS LVISIT NETCDFDEF NETCDFLIB NCOBJS TARGETS XNBODY OPT MPITRACE DEBUGDEF SET_MAKE CPP EGREP LIBOBJS FFLAGS CFLAGS_OS FFLAGS_OS MODULE_FLAG F77FLAGS FLINK_FLAGS CLINK_FLAGS AR LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MPI_DIR MPICC MPIF90 CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MPILIBS VISIT VISITDEF VISITLIBS LVISIT NETCDFDEF NETCDFLIB NCOBJS TARGETS XNBODY OPT MPITRACE DEBUGDEF SET_MAKE CPP EGREP LIBOBJS MACH FFLAGS CFLAGS_OS FFLAGS_OS MODULE_FLAG F77FLAGS FLINK_FLAGS CLINK_FLAGS AR LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1365,22 +1365,62 @@ CFLAGS="$CFLAGS -I/usr/local/include"
 if [ `uname -n` = "jubl" ] # jubl in Juelich
 then
  CFLAGS="$CFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
- LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib"
+# LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib"
 # FFLAGS="$FFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
  DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
+# LIBS_MPI="-lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts"
+ MACH=bgl
+
+elif [ `uname -n` = "jugene1" ] # JuGene in Juelich
+then
+  BGPSYS=/bgsys/drivers/ppcfloor
+  INCLUDE_MPI="-I$BGPSYS/comm/include"
+  DIR_MPI="-L$BGPSYS/comm/lib -L$BGPSYS/runtime/SPI"
+#  CFLAGS="$CFLAGS  -I$INCLUDE_MPI"
+#  LDFLAGS="$LDFLAGS $DIR_MPI"
+#  FFLAGS="$FFLAGS -I$INCLUDE_MPI"
+  LIBS_MPI="$DIR_MPI -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk -lpthread -lrt -lSPI.cna"
+#  DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
+  MACH=bgp
+#  MPIF90=bgxlf90
+#  MPICC=bgxlc
+  MPIF90=mpxlf90
+  MPICC=mpcc
+
+elif [ `uname -m` = "00223C3B4C00" ] # jump in Juelich
+then
+  MACH=p690
+
+elif [ `uname -m` = "i686" ] # laptop
+then
+ MACH=linux
+
 fi
+
+#  Visit libraries
 
 if [ `uname -m` = "00223C3B4C00" ] # jump in Juelich
 then
- DEFAULT_VISITPATH="-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3 -llvisit_nbody2 -L/usr/local/beta/visit-2.2/lvisit/lib -llvisit -L/usr/local/beta/visit-2.2/lib -lvisit"
+  DEFAULT_VISITPATH="-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3 -llvisit_nbody2 \
+                     -L/usr/local/beta/visit-2.2/lvisit/lib -llvisit \
+                     -L/usr/local/beta/visit-2.2/lib -lvisit"
+
 elif [ `uname -n` = "jubl" ] # jubl in Juelich
 then
- DEFAULT_VISITPATH="-L/bgl/local/visit.rts/apis/nbody3 -llvisit_nbody2 -L/bgl/local/visit.rts/lvisit/lib -llvisit -L/bgl/local/visit.rts/lib -lvisit"
+  DEFAULT_VISITPATH="-L/bgl/local/visit.rts/apis/nbody3 -llvisit_nbody2 \
+                     -L/bgl/local/visit.rts/lvisit/lib -llvisit \
+                     -L/bgl/local/visit.rts/lib -lvisit"
+
 elif [ `uname -m` = "i686" ] # laptop
 then
-VPREFIX=/tmp/xnbody
-DEFAULT_VISITPATH="-L/tmp/xnbody/xnbody_qt4/apis/nbody3 -llvisit_nbody2 -L/tmp/xnbody/lvisit/lib -llvisit -L/tmp/xnbody/visit_dist/lib -lvisit"
+  VPREFIX=/tmp/xnbody
+  DEFAULT_VISITPATH="-L/tmp/xnbody/xnbody_qt4/apis/nbody3 -llvisit_nbody2 \
+                     -L/tmp/xnbody/lvisit/lib -llvisit \
+                     -L/tmp/xnbody/visit_dist/lib -lvisit"
 fi
+
+#AC_SUBST(LIBS_MPI)
+
 
 #######################################################################
 # determine host type and write to stdout
@@ -1441,7 +1481,8 @@ host_os=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 
 
 case "$host" in
-#----------------------------------------------------------
+
+#=====================================================================
 powerpc64-unknown-linux-gnu) # jubl
  echo "$as_me:$LINENO: result: ** setting options for powerpc64 host **" >&5
 echo "${ECHO_T}** setting options for powerpc64 host **" >&6
@@ -1451,14 +1492,15 @@ echo "${ECHO_T}** setting options for powerpc64 host **" >&6
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_f77_f90 -qsuffix=f -qfixed -qspillsize=32000"
- FLINK_FLAGS="-qarch=440 -qtune=440 -lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts"
  CLINK_FLAGS="-qarch=440 -qtune=440"
  if [ -z "$OPT" ]; then OPT=-O3; fi
  AR="ar -q"
  #
  TUNE="-qarch=pwr4 -qtune=pwr4"
   ;;
-#----------------------------------------------------------
+
+#=====================================================================
+
 *-*-aix*)
  echo "$as_me:$LINENO: result: ** setting options for Aix host **" >&5
 echo "${ECHO_T}** setting options for Aix host **" >&6
@@ -1476,7 +1518,9 @@ echo "${ECHO_T}** setting options for Aix host **" >&6
  if [ -z "$OPT" ]; then OPT=-O3; fi
  AR="ar -q -X64"
   ;;
-#----------------------------------------------------------
+
+#=====================================================================
+
 *-*-linux-gnu*)
  echo "$as_me:$LINENO: result: ** setting options for Linux host with ifort compiler **" >&5
 echo "${ECHO_T}** setting options for Linux host with ifort compiler **" >&6
@@ -5234,6 +5278,10 @@ done
 
 # Compiler flag substitutions
 
+#AC_SUBST(BGPSYS)
+#AC_SUBST(MPIF90)
+#AC_SUBST(MPICC)
+
 
 
 
@@ -5896,6 +5944,7 @@ s,@SET_MAKE@,$SET_MAKE,;t t
 s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
+s,@MACH@,$MACH,;t t
 s,@FFLAGS@,$FFLAGS,;t t
 s,@CFLAGS_OS@,$CFLAGS_OS,;t t
 s,@FFLAGS_OS@,$FFLAGS_OS,;t t
