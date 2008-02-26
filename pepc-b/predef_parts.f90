@@ -172,11 +172,12 @@ subroutine predef_parts
         nadd = 0
      endif
 
-     write(*,*) 'PE ',me,': Reading ',npp+nadd,' particles out of ',npp_total,' from ',cme
+     if(mod(me,1000)==0) write(*,*) 'PE ',me,': Reading ',npp+nadd,' particles out of ',npp_total,' from ',cme
+! Record # particles read in openfiles.out
+     write(90,*) 'PE ',me,': Reading ',npp+nadd,' particles out of ',npp_total,' from ',cme
+
      cfile=cme//"/parts_dump."//cdump(1:6)
      open (60,file=cfile) 
-
-
 
      !  Skip dummy blocks up to previous PEs 
      nslice_e=0

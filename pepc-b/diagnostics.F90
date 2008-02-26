@@ -17,6 +17,7 @@ subroutine diagnostics
 
   integer :: i,lvisit_active, ifile, ierr
   integer :: max_nnodes, max_fetches, max_reqs, max_sum_fetches, max_sum_ships,max_local_f, max_local_r, sum_local_f
+  integer :: max_nbranch
   integer :: vcount=0
 
 ! Tree diagnostics
@@ -96,6 +97,7 @@ subroutine diagnostics
      call MPI_ALLREDUCE(sum_fetches, max_sum_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
      call MPI_ALLREDUCE(sum_ships, max_sum_ships, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
      call MPI_ALLREDUCE(sum_local_f, max_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+     call MPI_ALLREDUCE(nbranch, max_nbranch, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
   nnodes=nleaf+ntwig
   call MPI_ALLREDUCE(nnodes, max_nnodes, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
 ! max_reqs, max_fetches should be equal
@@ -110,9 +112,9 @@ subroutine diagnostics
         write(ifile,'(a50,3i8)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
         write(ifile,'(a50,3i8,f12.1,a6,i8)') 'final # leaves, twigs, keys, (max): ',nleaf,ntwig,nleaf+ntwig, &
              (nleaf+ntwig)/(.01*maxaddress),' % of ',maxaddress
-        write(ifile,'(a50,i8,f12.1,a6,i8)') 'max # leaves+twigs: ',max_nnodes, &
+        write(ifile,'(a50,i8,f12.1,a6,i8)') 'Max # leaves+twigs: ',max_nnodes, &
              max_nnodes/(.01*maxaddress),' % of ',maxaddress
-        write(ifile,'(a50,2i8,a3,i7)') 'local, global # branches, (max): ',nbranch,nbranch_sum,'/',nbranch_max
+        write(ifile,'(a50,3i8,a3,2i7)') 'Local, max local, global # branches, (max): ',nbranch,max_nbranch,nbranch_sum,'/',nbranch_local_max,nbranch_max
         write (ifile,'(a50,i8,a3,i7)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
 

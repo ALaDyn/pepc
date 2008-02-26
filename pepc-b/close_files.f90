@@ -8,6 +8,7 @@ subroutine closefiles
      close(70)
      close(71)
      close(75)
+     close(90)
   endif
   if (debug_level>1) close(20)
   close(80)  ! initial particle data
