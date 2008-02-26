@@ -24,7 +24,7 @@ subroutine tree_properties
   integer :: addr_twig
 
   integer, parameter :: n_moments = 23  ! # property arrays
-  real*8, dimension(max(4*n_moments*nbranch_max/num_pe,10000)) :: local_moments      ! local branch properties    - size depends on # moments          
+  real*8, dimension(n_moments*nbranch_local_max) :: local_moments      ! local branch properties    - size depends on # moments          
   real*8, dimension(n_moments*nbranch_max) :: branch_moments   ! global branch properties
   integer, dimension(num_pe) :: nbranchmoments ! array containing total # multipole terms*branch list length
   integer, dimension(num_pe) :: recv_strides, recv_counts
@@ -41,7 +41,7 @@ subroutine tree_properties
   integer ::  addr_leaf, p_leaf, node_leaf       ! local leaf-nodes
   integer :: ierr, nbuf
   integer :: key2addr        ! Mapping function to get hash table address from key
-
+  integer :: max_nbranch
 
   if (tree_debug) write(ipefile,'(a)') 'TREE PROPERTIES'
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | PROPERTIES'
@@ -283,6 +283,7 @@ subroutine tree_properties
   end do
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
+
 
   !  Collect multipole properties
 

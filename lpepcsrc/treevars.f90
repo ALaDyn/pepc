@@ -172,6 +172,7 @@ module treevars
              sum_fetches, &    ! total # key fetches  per iteration  
              max_prefetches, &      ! total # multipole ships per prefetch 
              nbranch_max, &    ! array space needed for branches
+             nbranch_local_max, &
              free_lo, &        ! min address allowed for resolving collisions
 	     tablehigh, &      ! highest current address in #table 
              sum_unused, &     ! # free addresses
@@ -183,6 +184,7 @@ module treevars
              npp, &            !  actual  # particles/PE
              nshortm, &        ! shortlist length
              iused          ! counter for collision resolution array free_addr()
+  integer :: proc_debug=0     ! Debug rank: set to -1 for all
   real :: work_imbal=0.
   real :: part_imbal=0.
   real :: work_imbal_max, work_imbal_min  ! load stats

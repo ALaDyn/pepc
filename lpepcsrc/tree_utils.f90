@@ -400,7 +400,7 @@ contains
     integer :: level_dist=8, nlev=20, level_strip
     integer, parameter :: lev_map=15 ! max level for key distrib
     integer*8 :: maxbox
-    integer, parameter :: maxbin=1000000  ! Max # bins for key distrib
+    integer, parameter :: maxbin=1500000  ! Max # bins for key distrib
     real, dimension(maxbin)  :: f_local, f_global, f_final
     integer*8, dimension(maxbin) ::  search_list, retain_list, bin_list
     integer, dimension(maxbin) :: index_bin
@@ -458,7 +458,7 @@ search_list = 8_8**lev_map  ! place holder
     if (nprocs==1) then
        alpha=1.
     else
-       alpha=0.03
+       alpha=0.02
     endif
 
     if (debug.and.iproc==proc_debug) then
@@ -631,9 +631,9 @@ search_list = 8_8**lev_map  ! place holder
     pivot(nprocs+1) = ishft(gkey_max,-3_8*(nlev-lev_map))+1  ! absolute highest pivot
 
 
-    if (debug .and. iproc==proc_debug ) then
-       write (fd,'(a20/(10x,i5,o20))') 'Pivots: ',(i,pivot(i),i=1,nprocs+1)
-    endif
+ !   if (debug .and. iproc==proc_debug ) then
+ !      write (fd,'(a20/(10x,i5,o20))') 'Pivots: ',(i,pivot(i),i=1,nprocs+1)
+ !   endif
 
 !  if (debug .and. icall==0 .and. iproc==proc_debug) then
   if (debug .and. icall==0 ) then
@@ -719,9 +719,9 @@ search_list = 8_8**lev_map  ! place holder
     !     Merge the segments within each bin.
     call nwaymerge(nppm,npnew,nprocs,keys,irnkl,itabl(1:nprocs+1),itabr(1:nprocs),iproc)
 
-    if (debug .and. iproc==proc_debug ) then
-       write (fd,'(a20/(10x,5i8))') 'fp, is, gp, ir ',(i,fposts(i),islen(i),gposts(i),irlen(i),i=1,nprocs+1)
-    endif
+!    if (debug .and. iproc==proc_debug ) then
+!       write (fd,'(a20/(10x,5i8))') 'fp, is, gp, ir ',(i,fposts(i),islen(i),gposts(i),irlen(i),i=1,nprocs+1)
+!    endif
     icall = icall + 1          ! update call count
   end subroutine pbalsort
 

@@ -111,10 +111,12 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
    if (num_pe > 1) then
      size_fetch = fetch_mult*size_tree/4
-     nbranch_max = maxaddress/2
+     nbranch_max = maxaddress              ! Global max # branches
+     nbranch_local_max = 4*nbranch_max/num_pe  ! Local max # branches
    else
      size_fetch=nppm
      nbranch_max = 5*nintmax
+     nbranch_local_max = 5*nintmax
    endif
 
    hashconst = 2**nbaddr-1
@@ -297,6 +299,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
   if (me==0 .and. db_level>0) then
+    write(*,*) '# procs',num_pe
+    write(*,*) 'npart=',npart
+    write(*,*) 'N/P=',npart/num_pe
     write(*,*) 'nppm= ',nppm
     write(*,*) 'size_tree= ',size_tree
     write(*,*) 'max address = ',maxaddress

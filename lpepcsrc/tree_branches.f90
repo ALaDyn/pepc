@@ -20,9 +20,7 @@ subroutine tree_branches
 !  integer, parameter :: size_t=1000
   integer*8, dimension(nbranch_max) ::  resolve_key, search_key
   integer*8, dimension(8) :: sub_key   ! Child partial key
-  integer, parameter :: nbranch_local_max=10000
-  integer, dimension(max(5*nbranch_max/num_pe,nbranch_local_max)) ::  local_node, local_code, local_leaves  ! local branch data
-!  integer, dimension(nbranch_max) ::  local_node, local_code, local_leaves  ! local branch data
+  integer, dimension(nbranch_local_max) ::  local_node, local_code, local_leaves  ! local branch data
   integer, dimension(nbranch_max) :: newentry, branch_node, branch_code, branch_leaves  ! global htable data for branches
   integer :: treelevel
 
@@ -38,13 +36,16 @@ subroutine tree_branches
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: startlevel = 2  ! Min permitted branch level
 
-!  branch_debug=.true.
+  branch_debug=.true.
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
-  if (tree_debug) call check_table('after treebuild     ')
+  if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after treebuild     ')
 
   if (tree_debug) write(ipefile,'(a)') 'TREE BRANCHES'
-  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | BRANCHES'
+  if (me==0 .and. tree_debug) then
+	write(*,'(a)') 'LPEPC | BRANCHES'
+!        write(*,'(a,i8)') 'LPEPC | nbranch_local_max = ',nbranch_local_max
+  endif
 
 
   ! Determine minimum set of branch nodes making up local domain
@@ -131,7 +132,7 @@ subroutine tree_branches
      write(*,*) 'Checksum ',ncheck,' /= # leaves on PE ',me
   endif
 
-  if (tree_debug) call check_table('after local branches')
+  if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after local branches     ')
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 
@@ -159,7 +160,10 @@ subroutine tree_branches
 
   nbranch_sum = SUM( nbranches(1:num_pe) )   ! Total # branches in tree
   igap(num_pe+1) = nbranch_sum
-
+  if (me==0 .and. tree_debug) then
+    write(*,'(a50,3i8,a3,2i7)') 'LPEPC | BRANCHES: Local, max local, global # branches, (max): ',nbranch,MAXVAL(nbranches),nbranch_sum,'/',nbranch_local_max,nbranch_max
+!    write(*,'(a/(3i8))') 'Branch distribution',(i,nbranches(i),igap(i),i=1,num_pe)
+  endif
 
   ! now collect partial arrays together on each PE
   ! using gather-to-all: nbranches and igap already defined locally
@@ -240,7 +244,7 @@ subroutine tree_branches
 
   if ( branch_debug) then
      write (ipefile,'(2(/a20,i6,a1,i6))') 'New twigs: ',newtwig,'/',ntwig+newtwig, 'New leaves:',newleaf,'/',nleaf+newleaf
-     write (ipefile,*) 'Total # branches = ',nbranch_sum
+     write (ipefile,*) 'Local, total # branches = ',nbranch,nbranch_sum
   endif
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig

@@ -52,7 +52,7 @@ subroutine tree_domains(xl,yl,zl)
 
   integer :: npnew,npold
   integer :: iteration, niterations, keycheck_pass, ipp
-  integer :: errcount, proc_debug
+  integer :: errcount
 
   integer, dimension(nppm) ::  w2, w3 ! scratch arrays for integer*4 permute
   integer*8 :: tmp
@@ -63,7 +63,6 @@ subroutine tree_domains(xl,yl,zl)
 
     call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   sort_debug=domain_debug
-  proc_debug=5
 
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | DOMAINS..'
 

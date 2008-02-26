@@ -100,9 +100,14 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
 
      !POMP$ INST BEGIN(build)
      call tree_build      ! Build trees from local particle lists
+
      call cputime(tb2)
      call tree_branches   ! Determine and concatenate branch nodes
+!call closefiles
+!call MPI_FINALIZE(ierr)
+!stop
      call cputime(tb3)
+
      call tree_fill       ! Fill in remainder of local tree
      !POMP$ INST END(build)
      call cputime(tb4)
@@ -120,6 +125,9 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
      call cputime(tp1)
   !POMP$ INST BEGIN(properties)
   call tree_properties ! Compute multipole moments for local tree
+!call closefiles
+!call MPI_FINALIZE(ierr)
+!stop
   !POMP$ INST END(properties)
      call cputime(tp2)
 	t_build(4) = tp2-tp1

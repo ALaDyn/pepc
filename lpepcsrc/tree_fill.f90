@@ -39,9 +39,13 @@ subroutine tree_fill
   if (tree_debug) write(ipefile,'(/a)') 'TREE FILL'
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | FILL'
 
-  if (tree_debug) call check_table('after make_branches ')
-
-  ! get levels of branch nodes
+  if (tree_debug .and. proc_debug.eq.-1) then 
+	call check_table('after make_branches ')
+  else if (tree_debug .and. proc_debug==me) then
+	call check_table('after make_branches ')
+  endif
+  
+! get levels of branch nodes
   maxlevel=0
   do i=1,nbranch_sum
      branch_level(i) = log( 1.*branch_key(i) )/log(8.)
