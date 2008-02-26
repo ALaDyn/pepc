@@ -24,6 +24,7 @@ subroutine predef_parts
   real :: axdum, aydum, azdum,phidum, bdum
   integer :: ioffset, i1, i2, npp_partial, npp_total, ipass, me_read, j, nrest, nadd
   integer :: nslice_e, nslice_i
+  logical :: stopflag=.false.
 
   if (me == 0) then 
 
@@ -77,7 +78,7 @@ subroutine predef_parts
 
      if (ner /= ne .or. nir /= ni) then
         write(*,*) '*** Particle nos. in input deck do not match those in restart file parts_info.in'
-        stop
+        stopflag=.true.
      endif
 
      if (epsr /= eps) then
@@ -97,6 +98,13 @@ subroutine predef_parts
 
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
+
+  if (stopflag) then
+    if (me==0) write (*,*) "*** Stopping program"
+    call MPI_FINALIZE(ierr)
+    call closefiles
+    stop
+  endif
 
   call MPI_BCAST( itime_start, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
   call MPI_BCAST( xl, 1, MPI_REAL, 0, MPI_COMM_WORLD,ierr)
