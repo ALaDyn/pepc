@@ -42,26 +42,31 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 !      domain_debug = .true.
 	
   else if (db_level==2) then
+      tree_debug=.true.  ! location information only
+      walk_summary=.false.
+
+  else if (db_level==3) then
       tree_debug=.true.
       force_debug=.false.
       walk_summary=.true.
       prefetch_debug=.false. 
       domain_debug = .true.
 
-  else if (db_level==3) then
+  else if (db_level==4) then
      tree_debug=.true.
      domain_debug = .true.
      build_debug=.true.
      branch_debug=.true.
+     props_debug=.true.
      prefetch_debug=.true.
      walk_debug=.true.
      walk_summary=.true.
      force_debug=.true.
 
-  else if (db_level==4) then
+  else if (db_level==5) then
      dump_tree=.true.
 
-  else if (db_level==5) then
+  else if (db_level==6) then
      tree_debug=.true.
      domain_debug = .true.
      build_debug=.true.

@@ -36,7 +36,7 @@ subroutine tree_branches
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: startlevel = 2  ! Min permitted branch level
 
-  branch_debug=.true.
+!  branch_debug=.true.
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after treebuild     ')

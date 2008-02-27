@@ -458,7 +458,7 @@ search_list = 8_8**lev_map  ! place holder
     if (nprocs==1) then
        alpha=1.
     else
-       alpha=0.02
+       alpha=0.05
     endif
 
     if (debug.and.iproc==proc_debug) then

@@ -54,16 +54,10 @@ subroutine tree_fill
 
   nparent = 0
   parent_key(1) = 0
-!  if (tree_debug.and.me>250) then
-!     write (*,'(/a,i5/(i5,o16,i3))') 'Global branch list on ',me,&
-!          (i,branch_key(i), branch_level(i),i=1,nbranch_sum)
-!  endif
 
   do ilevel = maxlevel,1,-1                                            ! Start at finest branch level
      nsub = count( mask=branch_level(1:nbranch_sum) == ilevel )                       ! Count # branches at this level
-!     if (tree_debug.and.me>250) then
-!        write(*,*) 'proc ',me,' level= ',ilevel,' nsub= ',nsub,' nbranches=',nbranch_sum
-!     endif
+
      sub_key(1:nsub) =  pack(branch_key(1:nbranch_sum), mask = branch_level(1:nbranch_sum) == ilevel)        ! Pick out branches at current level
 
      sub_key(nsub+1:nsub+nparent) = parent_key(1:nparent)              ! Augment list with parent keys checked at previous level

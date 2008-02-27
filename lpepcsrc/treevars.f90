@@ -214,6 +214,7 @@ module treevars
   logical :: build_debug=.false.
   logical :: domain_debug = .false.
   logical :: branch_debug=.false.
+  logical :: props_debug=.false.
   logical :: prefetch_debug=.false.
   logical :: walk_debug=.false.
   logical :: walk_summary=.false.
