@@ -20,15 +20,15 @@ AR = @AR@
 #-------------------------------------------------------------------------------------------
 # Pepc library
 
-PEPCMOD.f90 =   treevars.f90 utils.f90 tree_utils.f90
-PEPCSRC.f90 =   tree_domains.f90 setup_treearrays.f90 \
+PEPCMOD.f90 =   treevars.f90 utils.f90 tree_utils.f90 
+PEPCSRC.f90 =   tree_domains.f90 setup_treearrays.f90 restore.f90 \
 		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
 		tree_aswalk.f90 tree_cowalk.f90 tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \
-	        tree_update.f90 tree_stats.f90\
+	        tree_update.f90 tree_stats.f90 \
 		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
 	        diagnose_tree.f90 check_table.f90 sum_lennardjones.f90 sum_bond.f90 \
 		draw_domains.f90 draw_tree2d.f90 draw_lists.f90 \
-		fields.f90 fields_p.f90 cleanup_treearrays.f90
+		fields.f90 fields_p.f90 fields_p1.f90 cleanup_treearrays.f90
 
 LIBOBJS = $(addprefix $(MACH)/, $(PEPCSRC.f90:.f90=.o))
 LIBMODS = $(addprefix $(MACH)/, $(PEPCMOD.f90:.f90=.o))
@@ -93,6 +93,7 @@ draw_map.o: treevars.o
 draw_tree2d.o: treevars.o
 fields.o: treevars.o
 fields_p.o: treevars.o utils.o
+fields_p1.o: treevars.o utils.o
 get_address.o: treevars.o
 get_next_node.o: treevars.o
 get_node.o: treevars.o
@@ -110,5 +111,6 @@ tree_fill.o: treevars.o tree_utils.o
 tree_prefetch.o: treevars.o tree_utils.o
 tree_properties.o: treevars.o tree_utils.o
 tree_update.o: treevars.o tree_utils.o
+restore.o: treevars.o
 
 

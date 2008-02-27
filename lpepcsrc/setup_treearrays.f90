@@ -20,8 +20,11 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   real, parameter :: mb=2.**20
 
   type (particle) :: ship_props_a, get_props_a
+  type (results) :: ship_props_b, get_props_b
+
   integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
-  			nprops_multipole=25      ! Number of multipole properties to ship
+  			nprops_multipole=25, &      ! Number of multipole properties to ship
+                        nprops_results=6       ! # results to ship
   integer, dimension(nprops_multipole) :: blocklengths, displacements, types
 
   ! address calculation, 8 byte 
@@ -86,7 +89,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
-     nintmax = max(1.*24*log(2.*npartm)/theta**2,2500.)
+     nintmax = max(1.*24*log(2.*npartm)/theta**2,2200.)
   else
      nintmax = npartm
   endif
@@ -106,6 +109,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
      maxaddress = 2**nbaddr
    else
      maxaddress = abs(np_mult)*10000
+!     maxaddress = nppm
      nbaddr = max(log(1.*maxaddress)/log(2.) ,15.)
    endif
 
@@ -119,6 +123,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
      nbranch_local_max = 5*nintmax
    endif
 
+   if (me == 0) write(*,*) "5 * ",nbranch_max," / ",num_pe," = ",5*nbranch_max/num_pe
    hashconst = 2**nbaddr-1
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
 
@@ -137,6 +142,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   mem_tot = mem_parts+mem_tree+mem_prefetch+mem_multipoles+mem_lists
 
   if (me==0 .and. db_level>0) then
+     open(113,file='memory.dat')
      write(*,'(//a/)') 'Initial memory allocation:'
      write(*,'(6(a15,f14.3,a3/)/)') 'Particles: ',mem_parts/mb,' MB', &
                                'Tree:',mem_tree/mb,' MB', &
@@ -145,6 +151,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
                                'Multipoles:',mem_multipoles/mb,' MB', &
                                'TOTAL: ',mem_tot/mb,' MB'
      write(*,'(a)') 'Allocating particle and tree arrays ...'
+     write(113,'(i8,6f14.3)') npart/num_pe,mem_parts/mb,mem_tree/mb,mem_lists/mb,mem_prefetch/mb,mem_multipoles/mb,mem_tot/mb
+     close(113)
   endif
 
   ! array allocation
@@ -184,6 +192,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
     maxtwig = maxaddress/2
   else
     maxleaf = maxaddress/3
+!    maxleaf = maxaddress/1
     maxtwig = 2*maxleaf
   endif 
 
@@ -252,6 +261,34 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 ! Check addresses for MPI particle structure
      write(*,'(a30/(o28,i8))') 'Particle addresses:',(address(i),displacements(i),i=1,15)
   endif 
+
+  ! Create new contiguous datatype for shipping result props (6 arrays)
+
+  blocklengths(1:nprops_results) = 1   
+
+  types(1:5) = MPI_REAL8
+  types(6) = MPI_INTEGER
+
+  call LOCADDRESS( get_props_b%Ex, receive_base, ierr )  ! Base address for receive buffer
+  call LOCADDRESS( ship_props_b%Ex, send_base, ierr )  ! Base address for send buffer
+
+  call LOCADDRESS( ship_props_b%Ex, address(1), ierr )
+  call LOCADDRESS( ship_props_b%Ey, address(2), ierr )
+  call LOCADDRESS( ship_props_b%Ez, address(3), ierr )
+  call LOCADDRESS( ship_props_b%pot, address(4), ierr )
+  call LOCADDRESS( ship_props_b%work, address(5), ierr )
+  call LOCADDRESS( ship_props_b%label, address(6), ierr )
+
+  displacements(1:nprops_results) = address(1:nprops_results) - send_base  !  Addresses relative to start of results (receive) data
+
+  call MPI_TYPE_STRUCT( nprops_results, blocklengths, displacements, types, mpi_type_results, ierr )   ! Create and commit
+  call MPI_TYPE_COMMIT( mpi_type_results, ierr)
+
+  if (me==0 .and. db_level>1) then
+     ! Check addresses for MPI results structure
+     write(*,'(a30/(o28,i8))') 'Results addresses:',(address(i),displacements(i),i=1,6)
+  endif 
+
 
   ! Create new contiguous datatype for shipping multipole properties (25 arrays)
 

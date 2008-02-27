@@ -64,9 +64,18 @@ module treevars
 
   type (particle) :: ship_props, get_props
 
+ ! Data structure for shipping results
 
+  type results
+     real*8 :: Ex
+     real*8 :: Ey
+     real*8 :: Ez
+     real*8 :: pot
+     real*8 :: work
+     integer :: label
+  end type results
 
- ! Data structure for shipping multiple moments of child nodes
+! Data structure for shipping multiple moments of child nodes
   
   type multipole
      integer*8 :: key     ! key
@@ -99,7 +108,7 @@ module treevars
   type (multipole), allocatable :: pack_child(:), get_child(:)
   type (multipole) :: node_dummy
 
-  integer :: mpi_type_particle, mpi_type_multipole
+  integer :: mpi_type_particle, mpi_type_multipole, mpi_type_results
 
   !  tree variables
 

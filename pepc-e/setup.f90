@@ -12,14 +12,22 @@
 
 subroutine setup
   use physvars
+  use tree_utils
   implicit none
+  include 'mpif.h'
 
   integer :: k, npb_pe
   real :: Qplas, Aplas
 
+  type (particle_p1) :: ship_props_a, get_props_a
+  integer, parameter :: nprops_particle=10   ! # particle properties to ship
+  integer, dimension(nprops_particle) :: blocklengths, displacements, types
+  integer*8 :: send_base, receive_base
+  integer :: ierr
+  integer*8, dimension(nprops_particle) :: address
 
 
-  namelist /pepcdata/ nep, nip, ne, ni, &
+  namelist /pepcdata/ nep, nip, np_mult, fetch_mult, ne, ni, &
        mac, theta, mass_ratio, q_factor, eps, &
        system_config, target_geometry, ispecial, &
        Te_keV, Ti_keV, T_scale, &
@@ -83,7 +91,7 @@ subroutine setup
   ivis = 1
   ivis_fields = 1
   ivis_domains = 1
-  start_step = 0
+  itime_start = 0
   itrack = 10
 
   ngx = 25   ! Grid size for plots
@@ -109,7 +117,8 @@ subroutine setup
      ! total # particles specified in input file 
      nep = ne/n_cpu
      nip = ni/n_cpu
-     npp = nep+nip
+     np_local = nep+nip
+!     npp = nep+nip
   endif
 
   !  npb_pe = np_beam/num_pe
@@ -128,8 +137,9 @@ subroutine setup
   endif
 
   npart_total = ni+ne
-  npp = npart_total/n_cpu  ! initial total # particles per processor
-  pe_capacity = npp*1.5
+  np_local = npart_total/n_cpu  ! initial total # particles per processor
+!  npp = npart_total/n_cpu  ! initial total # particles per processor
+  nppm = np_local*1.5
 
   geometry: select case(target_geometry)
 
@@ -137,75 +147,75 @@ subroutine setup
      Vplas = x_plasma * y_plasma * z_plasma  ! plasma volume
      Aplas = x_plasma * y_plasma ! plasma area
      focus = (/xl / 2 + x_offset, yl / 2., zl / 2./) ! Centre of laser focal spot
-     plasma_center =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 6
 
   case(1) ! sphere
      Vplas = 4 * pi * r_sphere**3 / 3.
      Aplas = pi*r_sphere**2
      focus = (/xl / 2. - r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
-     plasma_center = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 1
 
   case(2) ! disc
      Vplas = pi * r_sphere**2 * x_plasma
      Aplas = x_plasma*y_plasma
      focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./) ! Centre of laser focal spot
-     plasma_center = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma        
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma        
      number_faces = 3
 
   case(3) ! wire
      Vplas = pi * r_sphere**2 * z_plasma
      Aplas = pi*r_sphere**2
      focus = (/xl / 2. - r_sphere + x_offset, yl / 2., zl / 2. + z_offset/) ! Centre of laser focal spot
-     plasma_center = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 3
 
   case(4) ! ellipsoid
      Vplas = 4 * pi * x_plasma * y_plasma * z_plasma / 3.
      Aplas = pi*x_plasma*y_plasma*2
      focus = (/xl / 2. - x_plasma * r_sphere, yl / 2., zl / 2./) ! Centre of laser focal spot
-     plasma_center = (/xl / 2., yl / 2., zl / 2./) 
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./) 
      number_faces = 1
 
   case(5) ! wedge
      Vplas = .5 * x_plasma * y_plasma * z_plasma
      Aplas = .5*x_plasma*y_plasma
      focus = (/xl / 2. - x_plasma / 2., yl / 2., zl / 2./)
-     plasma_center = (/xl / 2., yl / 2., zl / 2./)
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 5
 
   case(6) ! hemisphere
      Vplas = 4 * pi * r_sphere**3 / 6.
      Aplas = pi*r_sphere**2/2.
      focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
-     plasma_center = (/xl / 2., yl / 2., zl / 2./)
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 2
 
   case(7) ! hollow sphere
      Vplas = (4 * pi / 3.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
      Aplas = pi*(r_sphere**2-(r_sphere-x_plasma)**2)
      focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
-     plasma_center = (/xl / 2., yl / 2., zl / 2./)
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 2
 
   case(8) ! hollow hemisphere
      Vplas = (4 * pi / 6.) * (r_sphere**3 - (r_sphere - x_plasma)**3)
      Aplas = pi/2.*(r_sphere**2-(r_sphere-x_plasma)**2)
      focus = (/xl / 2. - r_sphere / 2., yl / 2., zl / 2./)
-     plasma_center = (/xl / 2., yl / 2., zl / 2./)
+     plasma_centre = (/xl / 2., yl / 2., zl / 2./)
      number_faces = 3
 
   end select geometry
 
-  window_min = plasma_center(1) - x_plasma/2.
+  window_min = plasma_centre(1) - x_plasma/2.
   propag_laser=focus(1)
 
   if (system_config==2) then ! Electrons only user-defined config (special_start)
      Vplas = x_plasma * y_plasma * z_plasma
      Aplas = x_plasma * y_plasma
      focus = (/xl /4., yl / 2., zl / 2./) ! Centre of laser focal spot
-     plasma_center =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
+     plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
      number_faces = 6  
   endif
 
@@ -254,8 +264,43 @@ subroutine setup
 
   ! array allocation
 
-  allocate ( x(pe_capacity), y(pe_capacity), z(pe_capacity), ux(pe_capacity), uy(pe_capacity), uz(pe_capacity), & 
-       q(pe_capacity), m(pe_capacity), Ex(pe_capacity), Ey(pe_capacity), Ez(pe_capacity), pot(pe_capacity), pelabel(pe_capacity), work(pe_capacity) )
+  allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
+       q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), pelabel(nppm), number(nppm), work(nppm) )
+
+  allocate (vbuffer(0:attrib_max-1,nbuf_max), vbuf_local(0:attrib_max-1,nbuf_max))
+
+
+  blocklengths(1:nprops_particle) = 1   
+
+  types(1:8) = MPI_REAL8
+  types(9) = MPI_INTEGER8
+  types(10) = MPI_INTEGER
+
+!  receive_base=LOC(get_props_a%x)
+  call LOCADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
+  call LOCADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
+
+!  if (me==0) write(*,'(a30,o21)') 'Particle address base:',receive_base
+!  call MPI_GET_ADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
+!  call MPI_GET_ADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
+
+  call LOCADDRESS( ship_props_a%x, address(1), ierr )
+  call LOCADDRESS( ship_props_a%y, address(2), ierr )
+  call LOCADDRESS( ship_props_a%z, address(3), ierr )
+  call LOCADDRESS( ship_props_a%ux, address(4), ierr )
+  call LOCADDRESS( ship_props_a%uy, address(5), ierr )
+  call LOCADDRESS( ship_props_a%uz, address(6), ierr )
+  call LOCADDRESS( ship_props_a%q, address(7), ierr )
+  call LOCADDRESS( ship_props_a%m, address(8), ierr )
+  call LOCADDRESS( ship_props_a%work, address(9), ierr )
+  call LOCADDRESS( ship_props_a%label, address(10), ierr )
+
+  displacements(1:nprops_particle) = address(1:nprops_particle) - send_base  !  Addresses relative to start of particle (receive) data
+
+  call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle_p1, ierr )   ! Create and commit
+  call MPI_TYPE_COMMIT( mpi_type_particle_p1, ierr)
+
+  if (my_rank == 0) write(*,*) "Starting PEPC-E with",n_cpu," Processors, simulating",np_local," Particles on each Processor in",nt,"timesteps..."
 
 end subroutine setup
 

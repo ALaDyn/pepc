@@ -13,7 +13,7 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
   integer, intent(in) :: n  !  # terms on interaction list
   integer, dimension(1:n) ::  inode
   real, intent(in) :: eps ! smoothing parameter
-  real, intent(out) :: load ! work load for particle p
+  real*8, intent(out) :: load ! work load for particle p
   integer :: jnode, i,j,k 
 
   real*8 :: rd,dx,dy,dz,d,dx2,dy2,dz2 
@@ -135,6 +135,10 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
 
   work(p) = n    ! store for next domain decomp
   load = work(p)  ! return to calling routine
+
+!  load = n  ! return to calling routine
+!  if (me == 0) write(*,*) n,work(p),load
+  
 end subroutine sum_force
 
 

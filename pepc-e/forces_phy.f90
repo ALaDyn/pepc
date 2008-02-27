@@ -43,7 +43,7 @@ subroutine forces(p_start,p_finish,delta_t, t_domain,t_build,t_prefetch, t_walk,
   real :: fsx, fsy, fsz, phi, phi_coul, ex_coul, ey_coul, ez_coul
   real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
   real :: Epon_x, Epon_y, Epon_z, Phipon, ex_em, ey_em, ez_em, bx_em, by_em, bz_em
-  real :: xd, yd, zd  ! positions relative to center of laser spot
+  real :: xd, yd, zd  ! positions relative to centre of laser spot
   real :: work_local, load_average, load_integral, total_work, average_work
   integer :: total_parts
   integer ::  nfetch_total, nreqs_total, maxtraverse, maxships, sumships
@@ -62,7 +62,7 @@ subroutine forces(p_start,p_finish,delta_t, t_domain,t_build,t_prefetch, t_walk,
   call tree_fill       ! Fill in remainder of local tree
   call tree_properties ! Compute multipole moments for local tree
   call cputime(tp1)
-  if (n_cpu>1) call tree_prefetch(current_step)
+  if (n_cpu>1) call tree_prefetch(itime)
   call cputime(tp2)
 
   t_domain = tb1-td1
@@ -139,7 +139,7 @@ subroutine forces(p_start,p_finish,delta_t, t_domain,t_build,t_prefetch, t_walk,
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
 
-     call tree_walk(pshortlist,nps,jpass,theta,current_step,beam_config,ttrav,tfetch)
+     call tree_walk(pshortlist,nps,jpass,theta,itime,beam_config,ttrav,tfetch)
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 
@@ -183,9 +183,9 @@ subroutine forces(p_start,p_finish,delta_t, t_domain,t_build,t_prefetch, t_walk,
   call MPI_GATHER(work_local, 1, MPI_REAL8, work_loads, 1, MPI_REAL8, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
   call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
 
-  timestamp = current_step + start_step
+  timestamp = itime + itime_start
 
-  if (my_rank ==0 .and. mod(current_step,iprot)==0) then
+  if (my_rank ==0 .and. mod(itime,iprot)==0) then
      total_work = SUM(work_loads)
      average_work = total_work/n_cpu
      cme = achar(timestamp/1000+48) // achar(mod(timestamp/100,10)+48) &

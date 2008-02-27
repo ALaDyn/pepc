@@ -11,8 +11,7 @@
 !  ================================
 
 
-subroutine tree_domains(xl,yl,zl)
-
+subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)
 
   use treevars
   use tree_utils
@@ -21,6 +20,11 @@ subroutine tree_domains(xl,yl,zl)
   include 'mpif.h'
 
   real, intent(in) :: xl,yl,zl  ! initial box limits
+  integer, intent(out) :: indxl(nppm),irnkl(nppm)
+  integer, intent(out) :: islen(num_pe),irlen(num_pe)
+  integer, intent(out) :: fposts(num_pe+1),gposts(num_pe+1)
+  integer :: npnew,npold
+
   integer*8, dimension(nppm) :: ix, iy, iz
   integer*8, dimension(nppm) :: ixd, iyd, izd
   integer*8, dimension(nppm) :: local_key
@@ -29,9 +33,7 @@ subroutine tree_domains(xl,yl,zl)
   integer ::  source_pe(nppm)
   integer :: i, j, ind_recv, inc, prev, next, handle(4)
 
-
   integer :: nbits
-
 
   real*8 :: s
   real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
@@ -44,13 +46,7 @@ subroutine tree_domains(xl,yl,zl)
 
   type (particle) :: ship_parts(nppm), get_parts(nppm)
 
-  integer*8 :: xarray(nppm),keys(nppm),w1(nppm),wi2(nppm),wi3(nppm)
-  integer :: indxl(nppm),irnkl(nppm)
-
-  integer :: islen(num_pe),irlen(num_pe)
-  integer :: fposts(num_pe+1),gposts(num_pe+1)
-
-  integer :: npnew,npold
+  integer*8 :: xarray(nppm),keys(nppm),w1(nppm),wi2(nppm),wi3(nppm),compare(nppm)
   integer :: iteration, niterations, keycheck_pass, ipp
   integer :: errcount
 
@@ -61,11 +57,11 @@ subroutine tree_domains(xl,yl,zl)
 
   !POMP$ INST BEGIN(keys)
 
-    call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   sort_debug=domain_debug
 
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | DOMAINS..'
-
+  
 
   ! Find limits of local simulation region
   xmin_local = minval(x(1:npp))
@@ -76,14 +72,12 @@ subroutine tree_domains(xl,yl,zl)
   zmax_local = maxval(z(1:npp))
 
   ! Find global limits
-
   call MPI_ALLREDUCE(xmin_local, xmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
   call MPI_ALLREDUCE(xmax_local, xmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
   call MPI_ALLREDUCE(ymin_local, ymin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
   call MPI_ALLREDUCE(ymax_local, ymax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
   call MPI_ALLREDUCE(zmin_local, zmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
   call MPI_ALLREDUCE(zmax_local, zmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
-
 
   xboxsize = xmax-xmin
   yboxsize = ymax-ymin
@@ -160,6 +154,7 @@ subroutine tree_domains(xl,yl,zl)
   end do
 
 
+!  if (.true.) then
   if (domain_debug) then
      write (ipefile,'(a,2z20)') 'Box keys:', key_box(1),key_box(2)
      write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort:', &
@@ -190,9 +185,9 @@ subroutine tree_domains(xl,yl,zl)
   iteration = 0
   niterations = 3  ! Max # iterations
   errcount = 1
+
   npold = npp
   npnew = npp
-
 
   ! start permutation of local key list
   do i=1,npp
@@ -217,19 +212,16 @@ subroutine tree_domains(xl,yl,zl)
         enddo
      endif
 
-     if (domain_debug.and.me==0) then
-        write (ipefile,'(a/(i5,z20,i8))') 'input array (1st 10):  ',(i,keys(i),pelabel(i),i=1,min(10,npold))
-        write (ipefile,'(a/(i5,z20,i8))') 'input array (last 10):  ',(i,keys(i),pelabel(i),i=max(1,npold-10),npold)
-        write (ipefile,*) 'npold=',npold
-     endif
 
      ! perform index sort on keys
-
 !     call pswssort(nppm,npold,npnew,num_pe,me,keys, &
-!        indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
+!          indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
+!     call psrssort(nppm,npold,npnew,num_pe,me,keys, &
+!          indxl,irnkl,islen,irlen,fposts,gposts,w1)
      call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
           indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
 
+!     write(*,*) me,npp,npold,npnew
      do i=1,npold
         w1(i) = xarray(i)
      enddo
@@ -239,14 +231,8 @@ subroutine tree_domains(xl,yl,zl)
           indxl,irnkl,islen,irlen,fposts,gposts)
 
      if (domain_debug) then
-        write (ipefile,*) 'npnew=',npnew,' on ',me
-        !         write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
-        !         write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
-!        if (me.eq.50) then
-           write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,min(10,npnew))
-           write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=max(1,npnew-10),npnew)
-!        endif
-        write (ipefile,*) 'npnew=',npnew
+        write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
+        write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
      endif
 
      ! Check if sort finished
@@ -259,6 +245,7 @@ subroutine tree_domains(xl,yl,zl)
            endif
         endif
      enddo
+!     write(*,*) me,errcount
 
      ! Define wraps for ring network  0 -> 1 -> 2 -> ... ... -> num_pe-1 -> 0 ...
      if (me == 0) then
@@ -300,11 +287,8 @@ subroutine tree_domains(xl,yl,zl)
 
   enddo
 
-
-
   npp = npnew
   pekey(1:npp) = w1(1:npp)
-
 
   ! Now permute remaining particle properties : x,y,z; vx,vy,vz; q,m, label, load
 
@@ -321,7 +305,6 @@ subroutine tree_domains(xl,yl,zl)
           ex(indxl(i)), ey(indxl(i)), ez(indxl(i)), &
           keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
   enddo
-
 
   ! perform permute
   call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_particle, &
@@ -347,11 +330,7 @@ subroutine tree_domains(xl,yl,zl)
      pelabel(irnkl(i)) = get_parts(i)%label
   enddo
 
-
   pepid(1:npp) = me  ! new owner
-
-
-
 
   if (domain_debug) then
      do j=1,npp
@@ -371,8 +350,6 @@ subroutine tree_domains(xl,yl,zl)
   ! Each PE now has sorted segment of particles of length npp
   ! Note that now npp /= npart/num_pe, only approx depending on key distribution, or target shape.
 
-
-
   ! Check for identical keys
 
 
@@ -391,8 +368,10 @@ subroutine tree_domains(xl,yl,zl)
 ! TODO: need 'ripple' here up to next large gap in keys i+1->npp
 
         write(*,'(a15,i5,a8,i3,a30,2i6,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass,' WARNING: identical keys found for particles  ',i,npp,pelabel(i-1),pelabel(i),pelabel(i+1),' - upper increased to: ',pekey(i),' next key: ',pekey(i+1)
+!        if (x(i) == x(i-1)) write(*,*) "HELP"
      endif
    end do
+   
 
 ! Special case for last pair to avoid possibility of identical keys across processor boundary
 ! - work back down from last key
@@ -400,6 +379,7 @@ subroutine tree_domains(xl,yl,zl)
    ipp=npp-1
    identical_keys=.true.
    keycheck_pass=2
+
    do while (identical_keys .and. ipp.gt.2)
       identical_keys=.false.
       if (pekey(ipp+1) == pekey(ipp)) then
@@ -514,8 +494,6 @@ subroutine tree_domains(xl,yl,zl)
      else
         inc = 0
      endif
-
-
 
      write (ipefile,'(/a/a/(i5,z21,2i8,3f12.5,2f12.3))') 'Particle list after boundary swap:', &
           ' index   key,     label,   on PE,    x      y     q       m', &

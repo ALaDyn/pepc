@@ -2,7 +2,9 @@
 #  Makefile for treemp and test programs
 #
 
-MPI_DIR  = @MPI_DIR@
+BGPSYS = /bgsys/drivers/ppcfloor
+
+MPI_DIR  = -L$(BGPSYS)/comm/lib -L$(BGPSYS)/runtime/SPI
 PREFIX = ..
 
 #  Get machine-dependent flags
@@ -14,19 +16,21 @@ PREFIX = ..
 #   - or modify configure.in 
 #  --------------------------------------------------------------------------------------
 
-VISIT   = @VISIT@
-DEFINES = @VISITDEF@
-# Machine architecture - subdirectory for binaries
-MACH = @MACH@
-FC      = @MPIF90@
-CC      = @MPICC@
-FFLAGS  = @FFLAGS@ @FFLAGS_OS@ @OPT@
-LDFLAGS = @LDFLAGS@
+VISIT   = 
+DEFINES = 
 
-LIBPEPC   = -L../lpepcsrc/$(MACH) -llpepc
-LIBVISIT  = @VISIT@ @LVISIT@ @XNBODY@ @VISITLIBS@
+INCLUDE_MPI = -I$(BGPSYS)/comm/include
+
+FC      = bgxlf90
+#CC      = mpcc
+FFLAGS  =  -WF,-DHAVE_PRIVATE_CONFIGS $(INCLUDE_MPI) -qarch=440 -qtune=440 -qnosave -qsuffix=f=f90 -qsuffix=cpp=F90 -O3
+#LDFLAGS =  -L/bgl/local/lib   -L$(BGPSYS)/lib
+
+LIBPEPC   = -L../lpepcsrc -llpepc
+LIBS_MPI = $(MPI_DIR) -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk -lpthread -lrt -lSPI.cna
+LIBVISIT  =    
 LIBNETCDF = @NETCDF@
-LIBS      = $(LIBPEPC) $(LIBVISIT) $(LIBNETCDF)
+LIBS      = -lm $(LIBPEPC) $(LIBVISIT) $(LIBNETCDF) $(LIBS_MPI) 
 
 .SUFFIXES: .f90 .F90
 
@@ -56,57 +60,67 @@ SOURCES.f90 =	\
 # -------------------------------------------------------------------------------------------
 
 # Names of application object files derived from sources
-# Prefix added for multi-arch builds
 
-appobjs = $(addprefix $(MACH)/, $(PPSRC.F90:.F90=.o)) \
-	  $(addprefix $(MACH)/, $(SOURCES.f90:.f90=.o)) \
-	  $(addprefix $(MACH)/, $(NCOBJS) )
-visitobjs = $(addprefix $(MACH)/, $(VISIT.F90:.F90=.o) )
-appmods =  $(addprefix $(MACH)/, $(MODULES.f90:.f90=.o))
-mods = $(appmods)
+APPOBJS = $(PPSRC.F90:.F90=.o) $(SOURCES.f90:.f90=.o) $(NCOBJS)
+VISITOBJS = $(VISIT.F90:.F90=.o) 
+APPMODS =  $(MODULES.f90:.f90=.o)
+MODS = $(APPMODS)
 
-default: dirs pepce
-all: dirs pepce
-dirs: 	
-	if [ ! -d $(MACH) ]; then mkdir $(MACH); fi
+default: pepce
 
 #  compile rules
-$(MACH)/%.o: %.f90  
-	$(FC) -c $(FFLAGS) $(DEFINES) $< -o $@
 
-$(MACH)/%.o: %.F90  
-	$(FC) -c $(FFLAGS) $(DEFINES) $< -o $@
+.f90.o:   
+	$(FC) -c $(FFLAGS) $(DEFINES) $<
 
+.F90.o:   
+	$(FC) -c $(FFLAGS) $(DEFINES) $<
 
 #  explicit rules for f90 modules to avoid conflict with built-in ones
-$(MACH)/physvars.o: physvars.f90
-	$(FC) -c $(FFLAGS) $(DEFINES) physvars.f90 -o $@
+physvars.o: 
+	$(FC) -c $(FFLAGS) $(DEFINES) physvars.f90
 
-$(MACH)/%.o: %.c  
-	$(CC) -c $(CFLAGS) $< -o $@
-
-
-#all: MODS pepce
+#.c.o:   
+#	$(CC) -c $(CFLAGS) $<
 
 
 # -----------------------------------------------------------------------------------------
 #  targets
-pepce:	lpepc $(appmods) $(appobjs)
-	@echo "Creating application binary ../bin/pepce ..."
-	$(FC)  $(FFLAGS) $(LDFLAGS) -o ../bin/pepce $(appobjs) $(appmods) $(LIBPEPC) $(LIBMPI)
-	@echo "... done"
+# Names of application object files derived from sources
+#APPOBJS = $(PPSRC.F90:.F90=.o) $(SOURCES.f90:.f90=.o)
+#APPMODS =  $(MODULES.f90:.f90=.o)
+#VISITOBJS = $(VISIT.F90:.F90=.o) 
+#MODS = $(APPMODS) $(PMODS)
 
-pepc-visit:	lpepc $(appmods) $(appobjs) $(visitobjs)
+#all: MODS pepce
+
+#  compile mode
+#.f90.o:   
+#	$(FC) -c $(FFLAGS) $(DBFLAGS) $<
+
+#.F90.o:   
+#	$(FC) -c $(FFLAGS) $(DBFLAGS) $<
+
+
+# -----------------------------------------------------------------------------------------
+#  targets
+
+pepce:	lpepc $(APPMODS) $(APPOBJS)
+	@echo "Creating application binary ../bin/pepce ..."
+	$(FC)  $(FFLAGS) $(LDFLAGS) -o ../bin/pepce $(APPOBJS) $(MODS) $(LIBPEPC) $(LIBVISIT) $(LIBS_MPI)
+	@echo "... done\n"
+
+pepc-visit:	lpepc $(APPMODS) $(APPOBJS) $(VISITOBJS)
 	@echo "Creating application binary ../bin/pepcevis ..."
-	$(FC)  $(FFLAGS) $(LDFLAGS) -o ../bin/pepcevis $(appobjs) $(appmods) $(visitobjs) $(LIBPEPC) $(LIBVISIT) $(LIBMPI)
+	$(FC)  $(FFLAGS) $(LDFLAGS) -o ../bin/pepcevis $(APPOBJS) $(MODS) $(VISITOBJS) $(LIBPEPC) $(LIBVISIT) $(LIBS_MPI)
 	@echo "... done\n"
 
 # Update PEPC library and headers
-lpepc:  ../lpepcsrc/$(MACH)/liblpepc.a
-#	cd ../lpepcsrc; make lpepc; cd ../pepc-e
-	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/treevars.mod $(PREFIX)/pepc-e/treevars.mod
-	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/tree_utils.mod $(PREFIX)/pepc-e/tree_utils.mod
-	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/utils.mod $(PREFIX)/pepc-e/utils.mod
+lpepc:  ../lpepcsrc/liblpepc.a
+	cd ../lpepcsrc; make -f makefile_bgp lpepc; cd ../pepc-e
+	/bin/ln -sf $(PREFIX)/lpepcsrc/treevars.mod $(PREFIX)/pepc-e/treevars.mod
+	/bin/ln -sf $(PREFIX)/lpepcsrc/tree_utils.mod $(PREFIX)/pepc-e/tree_utils.mod
+	/bin/ln -sf $(PREFIX)/lpepcsrc/utils.mod $(PREFIX)/pepc-e/utils.mod
 
 
 
@@ -119,13 +133,15 @@ rand:	 rantest.o
 	$(FC) $(FFLAGS) -o rand rantest.o
 
 clean:
-	/bin/rm -f $(MACH)/*.o  *% *~ bin/key rand *.o *.pif core *.mod $(MACH)/*.mod 
+	/bin/rm -f bin/*.o  *% *~ bin/key rand *.o *.pif core *.mod 
 
-cleanbin: /bin/rm -r pepce debug core
+cleanbin: /bin/rm -r pepc debug core
 
 cleancore: 	
 	/bin/rm $(pepcobjs) 
- 
+
+cleandata: 
+	/bin/rm -f fort.* *.dat *.out *.gle 
 
 depend:
 	./f90depend -u -I/usr/lpp/ppe.poe/include/thread *.f90

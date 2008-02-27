@@ -26,7 +26,6 @@ subroutine pepc_cleanup(my_rank,n_cpu)
        Axo, Ayo, Azo, &
        pepid, pelabel, pekey )    
 
-
   deallocate ( nterm, intlist, nodelist ) ! interaction key-, node-lists
 
   deallocate ( htable, all_addr, free_addr, point_free, &
@@ -52,7 +51,21 @@ subroutine pepc_cleanup(my_rank,n_cpu)
   deallocate ( pack_child,get_child )    ! Multipole shipping buffers
 
 ! work balance arrays
-  deallocate  (work_loads,npps,pivots)  ! Work load & Particle distrib amoung PEs
+
+  deallocate (work_loads,npps,pivots)
+
+!  if (me==0) then
+!     write(*,'(a)') 'LPEPC | De-allocating npps ...'
+!  endif
+
+!  deallocate  (npps)  ! Work load & Particle distrib amoung PEs
+
+!  if (me==0) then
+!     write(*,'(a)') 'LPEPC | De-allocating pivots ...'
+!  endif
+
+!  deallocate (pivots)
+
 
 
 end subroutine pepc_cleanup

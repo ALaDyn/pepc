@@ -15,8 +15,8 @@ subroutine kinenergy(ekine,ekini)
   include 'mpif.h'
 
   integer :: p,i,ierr
-  real :: ekine, ekini, ebeam, sum_plas_e, sum_plas_i, sum_beam, gamma
-  real, dimension(pe_capacity) :: uhx, uhy, uhz
+  real*8 :: ekine, ekini, ebeam, sum_plas_e, sum_plas_i, sum_beam, gamma
+  real*8, dimension(nppm) :: uhx, uhy, uhz
 
   sum_plas_e = 0.
   sum_plas_i = 0.
@@ -24,7 +24,7 @@ subroutine kinenergy(ekine,ekini)
   sum_beam = 0.
 
 
-  do p=1, npp
+  do p=1, np_local
   ! Velocities at previous 1/2-step to synch with P.E.
     uhx(p) = ux(p)-dt*q(p)*Ex(p)/m(p)/2. 
     uhy(p) = uy(p)-dt*q(p)*Ey(p)/m(p)/2.

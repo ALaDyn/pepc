@@ -9,7 +9,7 @@ subroutine openfiles
      !  master diagnostics output
      open(15,file='run.out')
      open(81,file='parts_all.dat')
-
+     open(112,file = 'timing.dat')
      open(70,file='domains.dat')
      open(75,file='energy.dat')      ! energies
   endif

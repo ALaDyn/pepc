@@ -49,7 +49,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
   ! integer, intent(out) :: nodelist(nintm, npshort)
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
-  real :: twalk, tfetch, tw1, tw2, tc1, tf1, tf2
+  real :: twalk, tfetch, tw1, tw2, tc1, tf1, tf2, t1, t2
 
   ! Key arrays (64-bit)
 
@@ -113,6 +113,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
   integer*8 :: next_node   ! Function to get next node key for local tree walk
 
 
+  call cputime(t1)
   !
   twalk=0.
   tfetch=0.
@@ -163,6 +164,10 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
      hops = 2**30    ! First time round set infinite - finish all traversals
      !     hops(1) = 500
   endif
+
+  call cputime(t2)
+  
+  !if (me ==0) write(*,*) t2-t1
 
   do while (maxactive > 0)        ! Outer loop over 'active' traversals
 
@@ -682,7 +687,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
 
   end do
 
-
+  tfetch = tfetch+t2-t1
 
   !  Determine 'next_node' pointers for 'last child' list & update hash table (tree).
   !  This  ensures that traversals in next pass treat already-fetched nodes as local,

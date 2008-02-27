@@ -2,6 +2,22 @@ module physvars
 
   real, parameter :: pi=3.141592654
 
+  type particle_p1
+     real*8 :: x    ! coords
+     real*8 :: y
+     real*8 :: z
+     real*8 :: ux    ! momenta
+     real*8 :: uy
+     real*8 :: uz 
+     real*8 :: q     ! charge
+     real*8 :: m     ! mass
+     real*8 :: work  ! work load from force sum
+     integer :: label    ! label
+  end type particle_p1
+  
+  integer :: mpi_type_particle_p1
+
+
 ! particle arrays
   real*8, allocatable :: x(:),  y(:),  z(:), &     ! position
                       ux(:), uy(:), uz(:), &     ! velocity
@@ -10,14 +26,16 @@ module physvars
 			pot(:), &	         ! scalar potential
 			work(:)	         ! work load (interaction list length)
 
-  integer, allocatable ::  pelabel(:)  ! particle label
+  integer, allocatable ::  pelabel(:),number(:)  ! particle label
     
   real, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:)  ! field arrays for time-averages
   real, allocatable ::  rhoi(:,:,:), rhoe(:,:,:)
   real, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  ! E-field 
   real, allocatable ::  bx_loc(:,:,:), by_loc(:,:,:), bz_loc(:,:,:)  ! B-field 
   real, allocatable ::  jxe_loc(:,:,:), jye_loc(:,:,:), jze_loc(:,:,:)  ! elec current
-  
+
+  real*4, allocatable :: vbuffer(:,:), vbuf_local(:,:) !< vis buffers
+
   real, allocatable :: xslice(:),  yslice(:),  zslice(:), &     ! Rezoning slice
                       uxslice(:), uyslice(:), uzslice(:), &     ! velocity
                               qslice(:),  mslice(:)    ! charge and mass
@@ -39,7 +57,7 @@ module physvars
   real :: x_plasma       ! initial plasma length (slab or disc targets)
   real :: y_plasma       ! initial plasma y-width (slab)
   real :: z_plasma       ! initial plasma z-width (slab)
-  real :: plasma_center(3) ! vector defining center of plasma target
+  real :: plasma_centre(3) ! vector defining centre of plasma target
   real :: x_crit         ! critical surface
   real :: x_offset       ! coordinate offset
   real :: z_offset       ! coordinate offset
@@ -58,7 +76,7 @@ module physvars
   real :: lolam          ! L/lambda density scale-length
   real :: q_factor       ! Charge factor
   real :: fnn            ! Near-neighbour factor
-  real :: Ukine          ! Electron kinetic energy
+  real*8 :: Ukine          ! Electron kinetic energy
   real*8 :: Ukini          ! Ion kinetic energy
   real*8 :: Umagnetic           ! Magnetic energy
   real*8 :: Ubeam          ! Beam energy
@@ -91,7 +109,7 @@ module physvars
   real :: omega         ! frequency  (omega_p)
   real :: lambda        ! laser wavelength
   real :: theta_inc     ! angle of incidence
-  real :: focus(3)      ! center of focal spot
+  real :: focus(3)      ! centre of focal spot
   real :: tlaser        ! run time after laser switched on (1/omega_p)
   real :: elaser        ! deposited laser energy
   real :: propag_laser  ! distance travelled by laser after rezoning
@@ -103,8 +121,9 @@ module physvars
 
 !  Variables needing 'copy' for tree routines
   integer :: npart_total  ! Total # particles (npart)
-  integer :: npp  ! Total # particles (npart)
-  integer :: pe_capacity  ! Total # particles (npart)
+!  integer :: npp  ! Total # particles (npart)
+  integer :: np_local 
+  integer :: nppm  ! Total # particles (npart)
   real :: np_mult=1.5
   integer :: fetch_mult=2
 
@@ -140,14 +159,21 @@ module physvars
    real :: convert_fs     ! conversion factor from wp^-1 to fs
    real :: convert_mu     ! conversion factor from c/wp to microns
    real :: convert_keV     ! conversion factor from norm energy to keV/particle
-   integer :: nt, current_step   ! # timesteps and current timestep
-   integer :: start_step ! restart time stamp
+   integer :: nt, itime   ! # timesteps and current timestep
+   integer :: itime_start ! restart time stamp
    integer :: idump       ! output frequency (timesteps)
    integer :: db_level = 1  ! printed o/p debug level
    integer :: iprot=1       ! protocoll frequency
    integer :: ivis=5        ! frequency for particle shipping to VISIT
    integer :: ivis_fields=10    !  frequency for field shipping to VISIT
    integer :: ivis_domains=10    !  frequency for domain shipping to VISIT
+   integer :: vis_select = 1  !< select switch for particles
+   integer :: nbuf_max=10000     !< Max vis buffer size
+   integer :: ndom_max=1000     !< Max # domains
+   integer :: attrib_max = 22 !< max # attributes for vis buffer
+   real :: ops_per_sec = 0.  !< Work load (interactions per sec)
+
+
    integer :: itrack       ! frequency for computing ion density (tracking)
    integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
