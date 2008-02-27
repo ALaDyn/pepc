@@ -3,7 +3,7 @@
 #
 .PHONY : lpepc pepcb pepce
 
-all: lpepc pepcb ## pepce
+all: lpepc pepcb pepce
 
 lpepc:  
 	cd lpepcsrc && gmake

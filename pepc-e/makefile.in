@@ -92,13 +92,13 @@ $(MACH)/%.o: %.c
 # -----------------------------------------------------------------------------------------
 #  targets
 pepce:	lpepc $(appmods) $(appobjs)
-	@echo "Creating application binary ../bin/pepce ..."
-	$(FC)  $(FFLAGS) $(LDFLAGS) -o ../bin/pepce $(appobjs) $(appmods) $(LIBPEPC) $(LIBMPI)
+	@echo "Creating application binary ../bin/pepce_$(MACH) ..."
+	$(FC)  $(FFLAGS) $(LDFLAGS) -o ../bin/pepce_$(MACH) $(appobjs) $(appmods) $(LIBPEPC) $(LIBMPI)
 	@echo "... done"
 
 pepc-visit:	lpepc $(appmods) $(appobjs) $(visitobjs)
-	@echo "Creating application binary ../bin/pepcevis ..."
-	$(FC)  $(FFLAGS) $(LDFLAGS) -o ../bin/pepcevis $(appobjs) $(appmods) $(visitobjs) $(LIBPEPC) $(LIBVISIT) $(LIBMPI)
+	@echo "Creating application binary ../bin/pepcevis_$(MACH) ..."
+	$(FC)  $(FFLAGS) $(LDFLAGS) -o ../bin/pepcevis_$(MACH) $(appobjs) $(appmods) $(visitobjs) $(LIBPEPC) $(LIBVISIT) $(LIBMPI)
 	@echo "... done\n"
 
 # Update PEPC library and headers

@@ -62,6 +62,10 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
   character(30) :: cfile, ccol1, ccol2
   character(4) :: cme
   integer :: key2addr        ! Mapping function to get hash table address from key
+  integer :: npnew,npold
+  integer :: indxl(nppm),irnkl(nppm)      ! Merge-Sort arrays
+  integer :: islen(num_pe),irlen(num_pe)
+  integer :: fposts(num_pe+1),gposts(num_pe+1)
 
   !  force_debug=.true.
   !  tree_debug=.false.
@@ -92,7 +96,8 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
  !    stop
      call cputime(td1)
      !POMP$ INST BEGIN(domains)
-     call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
+!     call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
+     call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)    
      !POMP$ INST END(domains)
      ! particles now sorted according to keys assigned in tree_domains.
 
