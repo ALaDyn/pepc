@@ -1,4 +1,4 @@
-! ===========================================
+!===========================================
 !
 !           TREE_PROPERTIES
 !
@@ -291,6 +291,15 @@ subroutine tree_properties
   recv_strides(1:num_pe) = n_moments*igap(1:num_pe)       ! Stride lengths for global array
   nbuf = n_moments*nbranch
 
+!  write (ipefile,'(/a,i5)') '# local branch properties shipped:',nbuf
+!  write (ipefile,'(/a/a/(3i8))') 'A2A receive vectors:',(i,recv_counts(i), recv_strides(i),i=1,num_pe)
+!  if (me==0) then 
+!	write (*,'(/a,i5)') '# local branch props received:',nbuf
+!  	write (*,'(/a/(3i8))') 'A2A receive vectors:',(i,recv_counts(i), recv_strides(i),i=1,num_pe)
+!  endif
+!  call MPI_FINALIZE(ierr)
+!  call closefiles
+!  stop
 
   call MPI_ALLGATHERV( local_moments, nbuf, MPI_REAL8, &
        branch_moments, recv_counts, recv_strides, MPI_REAL8, MPI_COMM_WORLD, ierr )

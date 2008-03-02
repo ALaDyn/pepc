@@ -526,7 +526,7 @@ search_list = 8_8**lev_map  ! place holder
 
     ! Global distrib - must make sure all CPUs participate, even if locally finished
 
-    call MPI_ALLREDUCE(f_local, f_global, nbin, MPI_REAL, MPI_SUM,  MPI_COMM_WORLD, ierr )
+    call MPI_ALLREDUCE(f_local, f_global, nbin, MPI_INTEGER8, MPI_SUM,  MPI_COMM_WORLD, ierr )
 
     if (ilev==1) then 
        ave_work=SUM(f_global(1:nbin))/nprocs        ! need more particles than procs here
