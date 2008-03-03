@@ -218,9 +218,9 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
 !          indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
 !     call psrssort(nppm,npold,npnew,num_pe,me,keys, &
 !          indxl,irnkl,islen,irlen,fposts,gposts,w1)
-!     call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
+!     call pbalsortr(nppm,npold,npnew,num_pe,me,keys, &
 !          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
-     call pbalsorti(nppm,npold,npnew,num_pe,me,keys, &
+     call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
           indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
 
 !     write(*,*) me,npp,npold,npnew

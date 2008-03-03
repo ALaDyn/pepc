@@ -349,7 +349,7 @@ contains
 
 
 
-  subroutine pbalsorti(nppm,np,npnew,nprocs,iproc,keys, &
+  subroutine pbalsort(nppm,np,npnew,nprocs,iproc,keys, &
        indxl,irnkl, islen,irlen,fposts,gposts,pivot,kw1,wload,key_box,balance,debug,work_local)
 
 
@@ -727,14 +727,14 @@ search_list = 8_8**lev_map  ! place holder
 !       write (fd,'(a20/(10x,5i8))') 'fp, is, gp, ir ',(i,fposts(i),islen(i),gposts(i),irlen(i),i=1,nprocs+1)
 !    endif
     icall = icall + 1          ! update call count
-  end subroutine pbalsorti
+  end subroutine pbalsort
 
 
 !  ===================================================================================================
 
 
 
-  subroutine pbalsort(nppm,np,npnew,nprocs,iproc,keys, &
+  subroutine pbalsortr(nppm,np,npnew,nprocs,iproc,keys, &
        indxl,irnkl, islen,irlen,fposts,gposts,pivot,kw1,wload,key_box,balance,debug,work_local)
 
 
@@ -749,7 +749,7 @@ search_list = 8_8**lev_map  ! place holder
     !  Keys subdivided according to oct-tree structure, avoiding jumps when crossing
     !  octant boundaries.
     !
-    !
+    !  Older version using real distrib. function
     !
 
     implicit  none
@@ -1108,7 +1108,7 @@ search_list = 8_8**lev_map  ! place holder
 !       write (fd,'(a20/(10x,5i8))') 'fp, is, gp, ir ',(i,fposts(i),islen(i),gposts(i),irlen(i),i=1,nprocs+1)
 !    endif
     icall = icall + 1          ! update call count
-  end subroutine pbalsort
+  end subroutine pbalsortr
 
 
 
