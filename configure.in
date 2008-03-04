@@ -20,8 +20,8 @@ then
  CFLAGS="$CFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
 # LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib" 
 # FFLAGS="$FFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
- DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
-# LIBS_MPI="-lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts"
+# DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"  # MPI only
+ DEFAULT_TRACEPATH="-L/bgl/local/hpct_bgl/lib -lmpitrace -lhpm.rts -llicense"  # MPI+HPM - needs 'module load hpct'
  MACH=bgl
 
 elif [[ `uname -n` = "jugene1" ]] # JuGene in Juelich
@@ -236,7 +236,6 @@ AC_ARG_WITH(mpitrace,
 AC_SUBST(MPITRACE) 
 
 #MPITRACE = -L/bgl/local/lib -lmpitrace_f # MPI only
-# -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts  # MPI+HPM
 
 # default for debug is no
 AC_ARG_WITH(debug,[  --with-debug            produce debug library (no)],
