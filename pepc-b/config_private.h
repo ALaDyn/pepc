@@ -708,6 +708,8 @@
             if (debug_level==2 .and. me==0) then
                 write(*,*) "proton charge ",qpart_layer(1)
                 write(*,*) "proton mass ",mass_layer(1)
+                write(*,*) "ion charge ",qpart_layer(2)
+                write(*,*) "ion mass ",mass_layer(2)
                 write(*,*) "spacing",ai_layer(1)
             endif
 
