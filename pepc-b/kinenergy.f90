@@ -47,8 +47,9 @@ subroutine kinenergy(ekine,ekini,ebeam)
         sum_plas_i = sum_plas_i + m(p)*(gamma - 1.0)
       endif
 
-    else
-     !  Sum beam energy
+
+!  Sum beam energy - assumed to be protons
+    else if (nproton>0 .and. pelabel(p) >= proton_label .and. pelabel(p) <= proton_label+nproton) then
       if (scheme.eq.7) then
         sum_beam = sum_beam + 0.5*m(p)*(uhx(p)**2+uhy(p)**2+uhz(p)**2)
       else

@@ -397,8 +397,10 @@
 
 
 
-        case(13)  ! Add proton layer to slab INSIDE the target
-            !    ====================================
+        case(13)  
+
+	! Add proton layer to slab INSIDE the target
+        ! ====================================
 
             target_geometry=0
             velocity_config=1
@@ -462,8 +464,11 @@
             endif
 
 
-	    case(14)  ! Add mixed layer to slab OUTSIDE the target (as 35)
-            !    ====================================
+	    case(14)  
+
+        ! =========================================================
+	! Add 50:50 mixed layer to slab OUTSIDE the target (as 35)
+        ! =========================================================
 
             target_geometry=0
             velocity_config=1
@@ -538,8 +543,12 @@
 
 
 
-        case(32)  ! A.P.L.Rs SECOND set-up (8th March 2006)
-            !=====================================================
+        case(32)  
+
+        !=====================================================
+	! A.P.L.Rs SECOND set-up (8th March 2006)
+	! Doped proton layer inside front AND rear surfaces of substrate
+        !=====================================================
 
             target_geometry=0
             velocity_config=1
@@ -631,11 +640,13 @@
 
 
 
-        case(35)  ! A.P.L.Rs third set-up (19th May 2006)
+        case(35)  
 
-            !=====================================================
+        !==========================================================
+	! Microdot target - based on A.P.L.R's setup (19th May 2006)
+	! Substrate with additional layer of overlayed ions+protons
+        !==========================================================
 
-            target_geometry=0
             velocity_config=1
             plasma_centre =  (/ xl/2., yl/2., zl/2. /) 
             offset_e = me*nep + ne_rest
@@ -651,72 +662,93 @@
                 number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
             ! Protons 
+	    ! ----------
+	
             ! Adjust local numbers if total non-multiple of # PEs
-            if (my_rank == 0) then
-     		!np_rest = mod(n_layer(1),n_cpu)
-                np_rest = mod(n_layer(1),n_cpu) !2 layers = twice the no. of protons
 
+            if (my_rank == 0) then
+                np_rest = mod(n_layer(1),n_cpu)
             else
      		np_rest = 0
             endif
 
-            !nlayp = n_layer(1)/n_cpu + np_rest  ! total # protons on this CPU
-            nlayp = 2*(n_layer(1)/n_cpu + np_rest)  !2 layers = twice the number of protons
-            !nlayp = total # of protons in both layers
-            !assume that np_rest << n_layer(1)
-            nlaypfront = n_layer(1)/n_cpu + np_rest
-            nlaypback = n_layer(1)/n_cpu + np_rest
+            nlayp = n_layer(1)/n_cpu + np_rest  ! total # protons on this CPU
             nep0 = nlayp
+            nlaypback = nlayp
             !  Make particle numbers on root known (in case of unequal particle #s - need for label offset)
             call MPI_BCAST( nep0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
             ne_rest = nep0-nlayp
             ni_rest = nep0-nlayp
+            ipstart = nep+nip+1  ! local index
+            offset_e = ne+ni+me*nlaypback+ne_rest ! global label offset
+            offset_i = ne+ni+n_layer(1) + me*nlaypback + ni_rest ! add layer electrons to label offset
+	    proton_label = offset_i+1
 
-            ipstart = nep+nip+1
-            ! Place on rear of main slab 
-            !-------------------------------------------------
+            ! Place microdot on rear of main slab 
             displace = (/ x_plasma/2.+x_layer(1)/2,0.,0. /)
-            label_offset = ne+ni+me*nlaypback+ni_rest 
 
             ! Equal number of neutralising electrons 
-            call plasma_start( ipstart+nlaypback, nlaypback, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+
+            call plasma_start( ipstart, nlaypback, n_layer(1), offset_e, layer_geometry, velocity_config, idim, &
                 -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                 faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
-            !And now for the protons:
-            label_offset = ne+ni+n_layer(1) + me*nlaypback + ne_rest 
-            call plasma_start( ipstart, nlaypback, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+            ! And now for the protons:
+ 
+            call plasma_start( ipstart+nlaypback, nlaypback, n_layer(1), offset_i, layer_geometry, velocity_config, idim, &
                 rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                 faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
-            !We also need a another layer in the same place
-            !--------------------------------------------------------
+            ! We also need a another layer in the same place for the microdot heavy ions
+            !--------------------------------------------------------------------------
+
+            ! Adjust local numbers if total non-multiple of # PEs
+
+            if (my_rank == 0) then
+                np_rest = mod(n_layer(2),n_cpu)
+            else
+     		np_rest = 0
+            endif
+
+            nlayi = n_layer(2)/n_cpu + np_rest  ! total # heavy ions in layer 2 on this CPU
+            nep0 = nlayi
+
+            !  Make particle numbers on root known (in case of unequal particle #s - need for label offset)
+            call MPI_BCAST( nep0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD,ierr)
+            ne_rest = nep0-nlayi
+            ni_rest = nep0-nlayi
+            ipstart = nep + nip + 2*nlaypback + 1  ! local index including 1st proton layer
+            offset_e = ne+ni+2*n_layer(1)+ne_rest+me*nlayi ! add proton layer to label offset
+            offset_i = ne+ni+2*n_layer(1)+n_layer(2)+ni_rest+me*nlayi ! add proton layer + electrons to label offset
+
             displace = (/ x_plasma/2.+x_layer(2)/2,0.,0. /)
-            label_offset = ne+ni+2*n_layer(2)+ni_rest+me*nlaypfront
+
             ! Equal number of neutralising electrons 
-            call plasma_start( ipstart+2*nlaypback+nlaypfront, nlaypfront, n_layer(2), label_offset, target_geometry, velocity_config, idim, &
+            call plasma_start( ipstart, nlayi, n_layer(2), offset_e, layer_geometry, velocity_config, idim, &
                 -rho_layer(2), -1.0, 1.0, vte, x_layer(2), y_layer(2), z_layer(2), r_layer(2), plasma_centre+displace, &
                 faces(2), V_layer(2), A_layer(2), Q_layer(2), qpart_layer(2), mass_layer(2), ai_layer(2) )
 
-            !And now for the protons:
-            label_offset = ne+ni+3*n_layer(2) +me*nlaypfront + ne_rest 
-            call plasma_start( ipstart+2*nlaypback, nlaypfront, n_layer(2), label_offset, target_geometry, velocity_config, idim, &
+            !And now for the heavy ions:
+
+            call plasma_start( ipstart+nlayi, nlayi, n_layer(2), offset_i, layer_geometry, velocity_config, idim, &
                 rho_layer(2), 1.0, mratio_layer(2), vti, x_layer(2), y_layer(2), z_layer(2), r_layer(2), plasma_centre+displace, &
                 faces(2), V_layer(2), A_layer(2), Q_layer(2), qpart_layer(2), mass_layer(2), ai_layer(2) )
 
 
             if (debug_level==2 .and. me==0) then
+	        write(*,'(a/a)') "Target check:","=============" 
                 write(*,*) "proton charge ",qpart_layer(1)
                 write(*,*) "proton mass ",mass_layer(1)
                 write(*,*) "ion charge ",qpart_layer(2)
                 write(*,*) "ion mass ",mass_layer(2)
                 write(*,*) "spacing",ai_layer(1)
+		write(*,*) "proton labels: ",proton_label," - ",proton_label+n_layer(1)
             endif
 
 
-            npp=npp + 2*nlayp  ! Total # local particles
-            ne = ne + 2*n_layer(1)  ! Global # particles
-            ni = ni + 2*n_layer(1)  ! Global # particles
+            npp=npp + 2*(nlayp+nlayi)  ! Total # local particles
+            ne = ne + n_layer(1) + n_layer(2)  ! Global # electrons 
+            ni = ni + n_layer(1) + n_layer(2) ! Global # ions 
             npart = ni+ne
 
             if (scheme /= 5 .and. ramp) then

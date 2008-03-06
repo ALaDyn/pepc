@@ -44,7 +44,7 @@ subroutine plasma_start(i1, n, nglobal, label_off, target_geometry, velocity_con
   real :: pi=3.141592654
   logical :: start_debug=.false.
 
-  iseed1 =  -99 - label_off -me*1000     ! Select seed depending on PE and offset
+  iseed1 =  -99 - label_off      ! Select seed depending on PE and offset
 
   if (start_debug) then
     write (ipefile, '(a,3i8)') 'Seed: ', iseed1

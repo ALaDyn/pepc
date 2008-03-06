@@ -21,7 +21,7 @@ subroutine configure
     real ::  qpart_layer(maxlayers), mass_layer(maxlayers), ai_layer(maxlayers)
     integer :: ipstart, ipstart_e, offset_e, ipstart_i, offset_i, nlayp, np_rest, ne_rest, ni_rest, nep0, nip0
     !APLR stuff:
-    integer :: nlaypfront,nlaypback
+    integer :: nlaypfront,nlaypback, nlayi
     ! foam stuff
     integer :: nshell, ne_shell, ni_shell, ishell, jshell, kshell, nshell_x, nshell_y, nshell_z
     integer :: nep_shell, nip_shell, jion

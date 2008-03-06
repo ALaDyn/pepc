@@ -158,6 +158,8 @@ module physvars
   integer :: debug_tree =0 !< Debug level for tree diagnostics O/P
   integer :: ncpu_merge=1  !< Restart control: -1= split data amoung all CPUs 
   integer :: new_label  !< Rezone parameter
+  integer :: proton_label=1  ! Start label of protons (number in nlayer(x))
+  integer :: nproton=0    ! # protons
   integer :: nslice            !< # particles in rezoning slice (determined in predef)
   integer :: np_error=0            !< # particles in error test sample
   
