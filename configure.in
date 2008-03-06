@@ -17,15 +17,18 @@ CFLAGS="$CFLAGS -I/usr/local/include"
 
 if [[ `uname -n` = "jubl" ]] # jubl in Juelich
 then
+ AC_MSG_RESULT(** Configuring for JUBL **)
  CFLAGS="$CFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
 # LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib" 
 # FFLAGS="$FFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
 # DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"  # MPI only
  DEFAULT_TRACEPATH="-L/bgl/local/hpct_bgl/lib -lmpitrace -lhpm.rts -llicense"  # MPI+HPM - needs 'module load hpct'
  MACH=bgl
+ TUNE="-qarch=pwr4 -qtune=pwr4"
 
 elif [[ `uname -n` = "jugene1" ]] # JuGene in Juelich
 then
+ AC_MSG_RESULT(** Configuring for JuGene **)
   BGPSYS=/bgsys/drivers/ppcfloor
   INCLUDE_MPI="-I$BGPSYS/comm/include"
   DIR_MPI="-L$BGPSYS/comm/lib -L$BGPSYS/runtime/SPI"
@@ -35,6 +38,7 @@ then
   LIBS_MPI="$DIR_MPI -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk -lpthread -lrt -lSPI.cna"
 #  DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
   MACH=bgp
+ TUNE="-qarch=450d -qtune=440"
 #  MPIF90=bgxlf90
 #  MPICC=bgxlc
   MPIF90=mpxlf90
@@ -84,19 +88,18 @@ AC_CANONICAL_HOST  dnl get $host value
 case "$host" in
 
 #=====================================================================
-powerpc64-unknown-linux-gnu) # jubl
- AC_MSG_RESULT(** setting options for powerpc64 host **)
- CFLAGS_OS="-DAIX_XLF -qarch=440 -qtune=440 -qlibansi -qnoinfo "
- FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS -qarch=440 -qtune=440 -qnosave"
+powerpc64-unknown-linux-gnu) # jubl/jugene
+ AC_MSG_RESULT(** setting common options for powerpc64 host **)
+ CFLAGS_OS="-DAIX_XLF $TUNE -qlibansi -qnoinfo "
+ FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS $TUNE -qnosave"
  F90DEF="-WF,"
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_f77_f90 -qsuffix=f -qfixed -qspillsize=32000"
- CLINK_FLAGS="-qarch=440 -qtune=440"
+ CLINK_FLAGS=$TUNE
  if [[ -z "$OPT" ]]; then OPT=-O3; fi
  AR="ar -q"
  # 
- TUNE="-qarch=pwr4 -qtune=pwr4"
   ;;
 
 #=====================================================================
