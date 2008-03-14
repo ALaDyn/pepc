@@ -26,7 +26,7 @@ then
  MACH=bgl
  TUNE="-qarch=pwr4 -qtune=pwr4"
 
-elif [[ `uname -n` = "jugene1" ]] # JuGene in Juelich
+elif [[ `uname -n` = "jugene1" ] || [ `uname -n` = "jugene2" ]] # JuGene in Juelich
 then
  AC_MSG_RESULT(** Configuring for JuGene **)
   BGPSYS=/bgsys/drivers/ppcfloor
