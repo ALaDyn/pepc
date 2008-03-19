@@ -16,8 +16,8 @@ subroutine diagnostics
   include 'mpif.h'
 
   integer :: i,lvisit_active, ifile, ierr
-  integer :: max_nnodes, max_fetches, max_reqs, max_sum_fetches, max_sum_ships,max_local_f, max_local_r, sum_local_f
-  integer :: max_nbranch
+  integer :: max_fetches, max_reqs, max_sum_fetches, max_sum_ships,max_local_f, max_local_r, sum_local_f
+  integer :: max_nbranch, gmax_leaves, gmax_twigs
   integer :: vcount=0
 
 ! Tree diagnostics
@@ -99,11 +99,12 @@ subroutine diagnostics
      call MPI_ALLREDUCE(sum_local_f, max_fetches, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
      call MPI_ALLREDUCE(nbranch, max_nbranch, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
   nnodes=nleaf+ntwig
-  call MPI_ALLREDUCE(nnodes, max_nnodes, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+  call MPI_ALLREDUCE(nleaf, gmax_leaves, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
+  call MPI_ALLREDUCE(ntwig, gmax_twigs, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr )  
 ! max_reqs, max_fetches should be equal
 !  endif
 
-  if (my_rank.eq.debug_rank .and. debug_tree > 0) then
+  if ((my_rank.eq.debug_rank .and. debug_tree > 0) .or. (nleaf+ntwig > .98*maxaddress)) then
 
      do ifile = 6,15,9
         write(ifile,'(/a,i4)') 'Tree stats for CPU ',debug_rank
@@ -112,8 +113,8 @@ subroutine diagnostics
         write(ifile,'(a50,3i8)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
         write(ifile,'(a50,3i8,f12.1,a6,i8)') 'final # leaves, twigs, keys, (max): ',nleaf,ntwig,nleaf+ntwig, &
              (nleaf+ntwig)/(.01*maxaddress),' % of ',maxaddress
-        write(ifile,'(a50,i8,f12.1,a6,i8)') 'Max # leaves+twigs: ',max_nnodes, &
-             max_nnodes/(.01*maxaddress),' % of ',maxaddress
+        write(ifile,'(a50,2i8,a6,2f12.1)') 'Global max # leaves, twigs: ',gmax_leaves, gmax_twigs, &
+             ' %s: ',gmax_leaves/(.01*maxleaf),gmax_twigs/(.01*maxtwig)
         write(ifile,'(a50,3i8,a3,2i7)') 'Local, max local, global # branches, (max): ',nbranch,max_nbranch,nbranch_sum,'/',nbranch_local_max,nbranch_max
         write (ifile,'(a50,i8,a3,i7)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
         write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
@@ -123,8 +124,8 @@ subroutine diagnostics
         write (ifile,'(a50,2i8)') 'Local #  multipole fetches & ships/iteration ',sum_fetches,sum_ships
         if (debug_tree.ge.3) write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
         if (debug_tree.ge.3) write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
-        write (ifile,'(a50,i8,a3,i7)') 'Max # multipole fetches/cpu/iteration / limit',max_sum_fetches,'/',size_fetch
-        write (ifile,'(a50,i8,a3,i7)') 'Max # multipole ships/cpu/iteration / limit',max_sum_ships,'/',size_fetch
+        write (ifile,'(a50,i8,a3,i7)') 'Global max # multipole fetches/cpu/iteration / limit',max_sum_fetches,'/',size_fetch
+        write (ifile,'(a50,i8,a3,i7)') 'Global max # multipole ships/cpu/iteration / limit',max_sum_ships,'/',size_fetch
 	write (ifile,'(a50,3f12.3)') 'Load imbalance percent,min,max: ',work_imbal,work_imbal_min,work_imbal_max
 	write (ifile,'(a50,f15.3,2i15)') 'Particle imbalance ave,min,max: ',part_imbal,part_imbal_min,part_imbal_max
      end do
@@ -142,35 +143,8 @@ subroutine diagnostics
 ! Array bound check
   if (nleaf+ntwig > .98*maxaddress) then
      write (6,'(a,i4)') '*** WARNING:  hash table >98% full on CPU ',my_rank 
-
-     do ifile = 6,15,9
-        write(ifile,'(/a,i4)') 'Tree stats for CPU ',my_rank
-        write(ifile,'(a50,2i10,a3,i8)') 'new npp, npart, (max): ',npp,npart,'/',nppm
-        write(ifile,'(a50,3i8)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
-        write(ifile,'(a50,3i8)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
-        write(ifile,'(a50,3i8,f12.1,a6,i8)') 'final # leaves, twigs, keys, (max): ',nleaf,ntwig,nleaf+ntwig, &
-             (nleaf+ntwig)/(.01*maxaddress),' % of ',maxaddress
-        write(ifile,'(a50,i8,f12.1,a6,i8)') 'max # leaves+twigs: ',max_nnodes, &
-             max_nnodes/(.01*maxaddress),' % of ',maxaddress
-        write(ifile,'(a50,2i8,a3,i7)') 'local, global # branches, (max): ',nbranch,nbranch_sum,'/',nbranch_max
-        write (ifile,'(a50,i8,a3,i7)') 'Max length of all interaction lists: ',max_list_length,' / ',nintmax
-        write (ifile,'(a50,i8)') 'Max # traversals ',maxtraverse
-
-        write (ifile,'(a50,i8)') 'Max # multipole fetches/cpu/walk ',max_fetches-max_prefetches
-        write (ifile,'(a50,i8)') 'Max # multipole prefetches/cpu/prefetch ',max_prefetches
-        write (ifile,'(a50,2i8)') 'Local #  multipole fetches & ships/iteration ',sum_fetches,sum_ships
-        if (debug_tree.ge.3) write (ifile,*) ' cumulative # requested keys:  ',nreqs_total
-        if (debug_tree.ge.3) write (ifile,*) ' cumulative # fetched keys:    ',nfetch_total
-        write (ifile,'(a50,i8,a3,i7)') 'Max # multipole fetches/cpu/iteration / limit',max_sum_fetches,'/',size_fetch
-        write (ifile,'(a50,i8,a3,i7)') 'Max # multipole ships/cpu/iteration / limit',max_sum_ships,'/',size_fetch
-	write (ifile,'(a50,3f12.3)') 'Load imbalance percent,min,max: ',work_imbal,work_imbal_min,work_imbal_max
-	write (ifile,'(a50,f15.3,2i15)') 'Particle imbalance ave,min,max: ',part_imbal,part_imbal_min,part_imbal_max
-     end do
   endif
 
-  if (max_nnodes > .95*maxaddress) then
-     call cleanup
-  endif
 
 !  if (max_local_f > .95*size_fetch) then
 !     write (6,'(a,i4,a1,i8,a3,i8)') '*** WARNING:  # fetches >95% max on CPU ',my_rank,':',max_local_f,'/',size_fetch 
