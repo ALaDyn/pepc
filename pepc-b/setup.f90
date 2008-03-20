@@ -131,7 +131,7 @@ subroutine setup
 
   if (target_dup .or. scheme==5) np_mult = np_mult*2  ! double up particle array size if multi-target or ion config mode 
 
-  if (.not. restart) npart_total = npart_total + 2*SUM(n_layer) ! Include particles from remaining layers for array setup.
+  if (.not. restart .and. plasma_config .ge. 10) npart_total = npart_total + 2*SUM(n_layer) ! Include particles from remaining layers for array setup.
 
   beam_config=mod(beam_config_in,10)  ! derived config from s,p variations
 

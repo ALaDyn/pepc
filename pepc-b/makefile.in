@@ -141,6 +141,10 @@ cleanpre:
 	@echo "Cleaning pre-processed .f90 files .."
 	/bin/rm -f pepcb.f90 vis_*.f90
 
+cleanvis:
+	@echo "Cleaning visualization routines .."
+	/bin/rm -f $(visitobjs)
+
 cleancore: 	
 	/bin/rm $(pepcobjs) 
 

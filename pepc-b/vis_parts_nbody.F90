@@ -26,8 +26,8 @@ subroutine vis_parts_nbody(vcount)
   real :: plasma1, plasma2, plasma3, t_display, wfdatar, u2, amp_las, box_x, box_y, box_z
   integer :: nship, ierr, cpuid
   integer :: type
-  integer :: vbufcols = 22, incdf, ndom_vis, ivisdom, ndomain_vis=0
-  real :: lbox, work_ave, upmax, uproton_max, uxmax
+  integer :: vbufcols = 22, incdf, ndom_vis, ivisdom, ndomain_vis=40000, npart_vis
+  real :: lbox, work_ave, upmax, uproton_max, uxmax, boxz_min
   logical :: vis_debug=.false.
   logical :: pick=.false.
   integer :: vcount
@@ -44,16 +44,17 @@ subroutine vis_parts_nbody(vcount)
   case default
     nproot=0
   end select pick_particles
- 
-  if ( nproot > nbuf_max-ndomain_vis) then
-        nskip = nproot/nbuf_max + 2
+
+  npart_vis = nbuf_max - ndomain_vis  ! max # particles sent to visualization 
+  if ( nproot > npart_vis) then
+        nskip = nproot/npart_vis + 2
   else
 	nskip = 1
   endif
 
-  if (me==0 .and. nproot> nbuf_max-ndomain_vis) then
-	write(*,*) "VISNB | # particles > vis nbuf_max - reducing number shipped"
-	write(*,*) "VISNB | nbuf_max=",nbuf_max," nskip=",nskip
+  if (me==0 .and. nproot> npart_vis) then
+	write(*,'(a)') "VIS_PARTS   | # particles > vis nbuf_max - reducing number shipped"
+	write(*,'(a23,i8,a10,i8)') "VIS_PARTS   | nbuf_max=",nbuf_max," nskip=",nskip
   endif
 
   if (beam_config==4) then
@@ -163,11 +164,12 @@ subroutine vis_parts_nbody(vcount)
      call MPI_ALLREDUCE( nbufe, ne_buf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
      call MPI_ALLREDUCE( nbufi, ni_buf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
 
+     if (me==0) write(*,'(a28,i8,a10,i8)') "VIS_PARTS   | selected nbuf=",npart_buf," out of ",nbuf_max-ndomain_vis
 
-     if (npart_buf>0 .and. npart_buf < nbuf_max-ndomain_vis) then
+     if (npart_buf>0 .and. npart_buf < npart_vis) then
         ! send  particle data from all PEs
         ! increase momentum threshold if close to max ship # 
-        if (1.0*npart_buf/nbuf_max > 0.9) uthresh=uthresh*1.1
+        if (1.0*npart_buf/npart_vis > 0.9) uthresh=uthresh*1.1
 
         call MPI_GATHERV( vbuf_local, nship*attrib_max, MPI_REAL, vbuffer, nbuf_pe, recv_strides, MPI_REAL, 0, MPI_COMM_WORLD, ierr )
 
@@ -210,10 +212,11 @@ subroutine vis_parts_nbody(vcount)
 
              ! Add branch nodes to show domains
               ndom_vis=0
+     
 	      if (ndomain_vis>0) then
 
 ! First count how many to be shipped
-
+	      boxz_min=zl
               do k=1,nbranch_sum
              
                  ilev = log( 1.*branch_key(k) )/log(8.)
@@ -224,7 +227,7 @@ subroutine vis_parts_nbody(vcount)
                  box_x =  xmin + lbox*(ixd+.5) ! box centres
                  box_y =  ymin + lbox*(iyd+.5) ! box centres
                  box_z =  zmin + lbox*(izd+.5) ! box centres
-
+                 boxz_min=min(boxz_min,box_z)
                  if (box_z < domain_cut) ndom_vis=ndom_vis+1
               end do
 
@@ -279,19 +282,18 @@ subroutine vis_parts_nbody(vcount)
                  vbuffer(0:attrib_max-1,j) = 0.
               end do
 
-! ---- Preprocess VISIT setup -----------
-#ifdef VISIT_NBODY
 
      if (me==0) then 
-        write(*,*) 'VISNB | Display time/count ',t_display
-        write(*,*) 'VISNB | # particles shipped ',npart_buf,nship
-        write(*,*) 'VISNB | # branches shipped ',ndom_vis, '/', nbranch_sum
-        write(*,*) 'VISNB | Total # objects shipped :',ndom_vis+1+npart_buf,' /',nbuf_max
-        write(*,*) 'VISNB | u_thresh: (MeV)     ',uthresh
-        write(*,*) 'VISNB | ux, up_max: (MeV)     ',uxmax, upmax, uproton_max
-        write(*,*) 'VISNB | vis_select=  ',vis_select
+        write(*,'(2a,f12.1)') 'VIS_PARTS   |',' Display time/count ',t_display
+        write(*,'(2a,2i8)') 'VIS_PARTS   |',' # particles shipped ',npart_buf,nship
+        write(*,'(2a,i8,a2,i8)') 'VIS_PARTS   |',' # branches shipped ',ndom_vis, '/', nbranch_sum
+        write(*,'(2a,f12.1,a2,f12.1)') 'VIS_PARTS   |',' box min ',boxz_min, 'cutoff',domain_cut
+        write(*,'(2a,i8,a2,i8)') 'VIS_PARTS   |',' Total # objects shipped :',ndom_vis+1+npart_buf,' /',nbuf_max
+        write(*,'(2a,f12.2)') 'VIS_PARTS   |',' u_thresh: (MeV)     ',uthresh
+        write(*,'(2a,3f12.2)') 'VIS_PARTS   |',' ux, up_max: (MeV)     ',uxmax, upmax, uproton_max
+        write(*,'(2a,i8)') 'VIS_PARTS   |',' vis_select=  ',vis_select
 	if (vis_debug) then
-          write(*,*) 'VISNB | t,1,x,y,z,q,label,owner,type :'
+          write(*,'(2a)') 'VIS_PARTS   |',' t,1,x,y,z,q,label,owner,type :'
           do j=1,npart_buf
                  write (*,'(i6,6f12.4,2i5,3i6)') j,vbuffer(0,j),vbuffer(1,j),vbuffer(2,j), vbuffer(3,j), vbuffer(4,j), &
                      vbuffer(17,j), int(vbuffer(14,j)),int(vbuffer(19,j)),int(vbuffer(16,j))
@@ -299,15 +301,27 @@ subroutine vis_parts_nbody(vcount)
 	endif
      endif
 
+! ---- Preprocess VISIT setup -----------
+#ifdef VISIT_NBODY
+
               call flvisit_nbody2_check_connection(lvisit_active)
 ! send particles and branch boxes together
-              call flvisit_nbody2_partstep_send(vbuffer,npart_buf+ndom_vis+1,attrib_max)
+  	      if (lvisit_active.ne.0) then
+                call flvisit_nbody2_partstep_send(vbuffer,npart_buf+ndom_vis+1,attrib_max)
+	      endif
+#else
+!  --- No VISIT installed ----
+#endif
+!  --- end preprocess --------
+
 ! netcdf needs fixed buffer size, so take max used for initialisation
 #ifdef NETCDFLIB
 	      if (netcdf) then
 		call ncnbody_put(ncid,vbuffer,nbuf_max,attrib_max,incdf)
-	        write(*,*) "VIS_PARTS | Writing particles to netcdf"
-          	endif
+	        write(*,'(a)') "VIS_PARTS   | Writing particles to netcdf"
+              endif
+#else
+!  --- No NETCDF installed ----
 #endif
 
               !
@@ -317,10 +331,7 @@ subroutine vis_parts_nbody(vcount)
               !        write (90,'((22(f15.8/)//))') vbuffer(0:attrib_max-1,i)
               !        write (90,*) vbuffer(0:attrib_max-1,i)
               !              end do
-#else
-!  --- No VISIT installed ----
-#endif
-!  --- end preprocess --------
+
 
            endif
 
@@ -331,12 +342,12 @@ subroutine vis_parts_nbody(vcount)
 
            if (me==0) then
               if (npart_buf>nbuf_max-1000) then
-                 write(*,*) 'VISNB | Too many particles to ship: npart_buf= ',npart_buf,'/',nbuf_max
+                 write(*,'(a)') 'VIS_PARTS   | Too many particles to ship: npart_buf= ',npart_buf,'/',nbuf_max
                  uthresh = uthresh*2
-                 write(*,*) 'VISNB | Increasing momentum threshold to: ',sqrt(abs(uthresh))
+                 write(*,*) 'VIS_PARTS   | Increasing momentum threshold to: ',sqrt(abs(uthresh))
               else if (npart_buf==0 .and. ne > 0) then
                  uthresh = vte*2
-                 write(*,*) 'VISNB | Reducing momentum threshold to: ',sqrt(abs(uthresh))
+                 write(*,*) 'VIS_PARTS   | Reducing momentum threshold to: ',sqrt(abs(uthresh))
               endif
               nproot = 0.8*npart/num_pe ! fixed # parts close to npp
 

@@ -5,20 +5,29 @@
 
 all: lpepc pepcb pepce
 
+# PEPC kernel library routines (tree code)
 lpepc:  
 	cd lpepcsrc && gmake
 
+# Laser-plasma front-end
 pepcb: 
 	cd lpepcsrc && gmake 
 	cd pepc-b && gmake
 
+# pepc-b front-end with visit interface routines
+# need --with-visit to activate visit libraries
+# need --with-netcdf to activate netcdf output (via interface routines)
 pepc-vis:
 	cd lpepcsrc && gmake
 	cd pepc-b && gmake pepc-visit
+
+# Debug mode
 debug:
 	cd lpepcsrc && gmake
 	cd pepc-b && gmake debug
 
+# MD standalone front end
+# uses fields instead of fields_p
 pepce:
 	cd lpepcsrc && gmake
 	cd pepc-e && gmake
@@ -27,3 +36,7 @@ clean:
 	cd lpepcsrc && gmake clean && cd ..
 	cd pepc-b && gmake clean
 	cd pepc-e && gmake clean
+cleanb:
+	cd pepc-b && gmake clean && cd ..
+cleanvis:
+	cd pepc-b && gmake cleanvis && cd ..

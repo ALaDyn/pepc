@@ -683,6 +683,7 @@
             offset_e = ne+ni+me*nlaypback+ne_rest ! global label offset
             offset_i = ne+ni+n_layer(1) + me*nlaypback + ni_rest ! add layer electrons to label offset
 	    proton_label = offset_i+1
+	    nproton = n_layer(1)  ! Retain # protons for future reference
 
             ! Place microdot on rear of main slab 
             displace = (/ x_plasma/2.+x_layer(1)/2,0.,0. /)
@@ -742,7 +743,7 @@
                 write(*,*) "ion charge ",qpart_layer(2)
                 write(*,*) "ion mass ",mass_layer(2)
                 write(*,*) "spacing",ai_layer(1)
-		write(*,*) "proton labels: ",proton_label," - ",proton_label+n_layer(1)
+		write(*,*) "# protons, labels: ",nproton, proton_label," - ",proton_label+n_layer(1)
             endif
 
 

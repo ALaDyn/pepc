@@ -41,7 +41,7 @@ subroutine vis_vecfields_nbody(timestamp)
 #endif
 
   if (lvisit_active==0 )then
-     if (me==0) write(*,*) 'VIS_NBODY | No connection to visualization'
+     if (me==0) write(*,'(a)') 'VIS_VECF     | No connection to visualization'
   endif
 
 ! Connected to vis, so proceed with field select & gather
@@ -51,7 +51,7 @@ subroutine vis_vecfields_nbody(timestamp)
 ! Fetch user-selected config from vis (TODO)
   if (me==0 .and. lvisit_active.ne.0) then
 !	call flvisit_nbody2_selectvecfields_recv(fselect)
-       	 write (*,*) "VIS_NBODY | Selected vector field",fselect
+       	 write (*,'(a,i8)') "VIS_VECF    | Selected vector field",fselect
   endif
 #endif
 
@@ -193,7 +193,7 @@ subroutine vis_vecfields_nbody(timestamp)
 !   write(*,*) 'Grids: ',grid_pars
 
 !      if (fselect>0) then
-       	 write (*,*) "VIS_NBODY | Shipping vector field",fselect," min/max =", &
+       	 write (*,'(a,i8,a10,2(1pe12.3))') "VIS_VECF   | Shipping vector field",fselect," min/max =", &
 	minval(field1),maxval(field1)
 
        call flvisit_nbody2_vecfield1_send(field1,npx,npy,npz,3)   

@@ -38,10 +38,9 @@ subroutine diagnostics
  endif 
 
 
-  ! Interface to VISIT (Online visualisation)
+  ! Routines for particle and field processing
+  ! for VISIT (Online visualisation) and/or Netcdf file
 
-
-#ifdef VISIT_NBODY
   if ( vis_on ) then
      !     if ( mod(itime,ivis) ==0 ) call vis_parts       
      if ( mod(itime,ivis) ==0 ) then
@@ -56,7 +55,7 @@ subroutine diagnostics
      endif
 
   endif
-#endif
+
   !  if (target_geometry.eq.4) then
   !    do i=1,npp
   !	if (pelabel(i)==60) then
@@ -137,7 +136,7 @@ subroutine diagnostics
   endif
 
   if (debug_tree.ge.1 .and. mod(itime,iprot)==0 ) then
-    call tree_stats(itime)
+    call tree_stats(itime+itime_start)
   endif
 
 ! Array bound check

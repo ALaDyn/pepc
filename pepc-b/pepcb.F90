@@ -79,18 +79,25 @@ program pepcb
 ! ---- Preprocess VISIT setup -----------
  
 #ifdef VISIT_NBODY
-!  if (my_rank ==0 .and. vis_on) call flvisit_spk_init() ! Start up VISIT
   if (my_rank ==0 .and. vis_on) then
      call flvisit_nbody2_init ! Start up VISIT interface to xnbody
      call flvisit_nbody2_check_connection(lvisit_active)
-#ifdef NETCDFLIB
-     if (netcdf) call ncnbody_open(nbuf_max,vbufcols,ngx, ngy, ngz,ncid,incdf)
-#endif
-
+     write(*,*) 'Opening visit'
+     if (lvisit_active.ne.0) write(*,*) 'Visit connection OK'
   endif
 #else
 !  ---- No VISIT installed ---------
 #endif
+
+#ifdef NETCDFLIB
+  if (my_rank ==0 .and. netcdf) then
+    write(*,*) 'Opening NETCDF file'
+    call ncnbody_open(nbuf_max,vbufcols,ngx, ngy, ngz,ncid,incdf)
+  endif
+#else
+!  ---- No NETCDF installed ---------
+#endif
+
 
 ! ---- end of preprocess -------------
 
@@ -180,7 +187,7 @@ program pepcb
 
 !POMP$ INST BEGIN(fields)
      call pepc_fields_p(np_local, walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
-          dt, xl, yl, zl, itime, &
+          dt, xl, yl, zl, itime+itime_start, &
           coulomb, bfields, bonds, lenjones, &
           t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot) 
   
@@ -264,14 +271,20 @@ program pepcb
 #ifdef VISIT_NBODY
 if (my_rank==0 .and. vis_on) then 
   call flvisit_nbody2_close ! Tidy up VISIT interface to xnbody
-#ifdef NETCDFLIB
-  if (netcdf) call ncnbody_close(ncid,incdf)
-#endif
+  write(*,*) 'Closing visit'
 endif
 #else
+
 !  ---- No VISIT installed ---------
 #endif
-! ---- end of preprocess ----
+
+#ifdef NETCDFLIB
+  if (my_rank==0 .and. netcdf) then
+	call ncnbody_close(ncid,incdf)
+	write(*,*) 'Closed netcdf file'
+  endif
+#endif
+
 
   ! Time stamp
   if (my_rank==0) call stamp(6,2)

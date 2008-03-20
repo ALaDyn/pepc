@@ -44,7 +44,7 @@ subroutine vis_fields_nbody(timestamp)
 #endif
 
   if (lvisit_active==0 )then
-     if (me==0) write(*,*) 'VIS_NBODY | No connection to visualization'
+     if (me==0) write(*,'(a)') 'VIS_FIELDS  | No connection to visualization'
   endif
 
 ! Connected to vis, so proceed with field select & gather
@@ -53,7 +53,7 @@ subroutine vis_fields_nbody(timestamp)
 ! Fetch user-selected config from vis
   if (me==0 .and. lvisit_active.ne.0) then
 	call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
-  	write(*,*) 'Selection:',fselect1,fselect2,fselect3,fselect4
+  	write(*,'(a)') 'VIS_FIELDS  | Selection:',fselect1,fselect2,fselect3,fselect4
 ! Override selection 
 !	fselect1=1
 !	fselect2=4
@@ -245,7 +245,7 @@ subroutine vis_fields_nbody(timestamp)
 
 
 #ifdef VISIT_NBODY
-	write(*,*) 'VIS  confirm field select'
+      write(*,'(a)') 'VIS_FIELDS  | confirm field select'
       call flvisit_nbody2_check_connection(lvisit_active)
 
 ! Tell vis which fields are coming
@@ -255,7 +255,7 @@ if (lvisit_active.ne.0) then
 
 #ifdef NETCDFLIB
 ! Netcdf write
-	write(*,*) 'VIS  confirm field select - netcdf'
+	write(*,'(a)') 'VIS_FIELDS  | NETCDF: confirm field select'
          if (netcdf) call ncnbody_putselfield( ncid, simtime, fselect1, fselect2, fselect3, fselect4, incdf )
 #endif
 
@@ -268,42 +268,43 @@ if (lvisit_active.ne.0) then
    end do
 
    call flvisit_nbody2_fielddesc_send(grid_pars,4,6)
+
 #ifdef NETCDFLIB
-	write(*,*) 'VIS  grid-pars - netcdf'
+	write(*,'(a)') 'VIS_FIELDS  | NETCDF: grid-pars'
    if (netcdf) call ncnbody_putfielddesc( ncid, simtime, grid_pars, incdf )
 #endif
 
 !   write(*,*) 'Grids: ',grid_pars
       if (fselect1>0) then
-       	 write (*,*) "VIS_NBODY | Shipping field 1: min/max =", &
+       	 write (*,'(a)') "VIS_FIELDS  | Shipping field 1: min/max =", &
 	minval(field1),maxval(field1)
          call flvisit_nbody2_field1_send(field1,npx,npy,npz)   
 #ifdef NETCDFLIB
-       	 write (*,*) "VIS_NBODY | Writing field 1 to netcdf"
+       	 write (*,'(a)') "VIS_FIELDS  | Writing field 1 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime, 1, npx, npy, npz, field1, incdf )
 #endif
       endif
       if (fselect2>0) then
-       	 write (*,*) "VIS_NBODY | Shipping field 2"
+       	 write (*,'(a)') "VIS_FIELDS  | Shipping field 2"
          call flvisit_nbody2_field2_send(field2,npx,npy,npz)   
 #ifdef NETCDFLIB
-       	 write (*,*) "VIS_NBODY | Writing field 2 to netcdf"
+       	 write (*,'(a)') "VIS_FIELDS  | Writing field 2 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime, 2, npx, npy, npz, field2, incdf )
 #endif
       endif
       if (fselect3>0) then
-       	 write (*,*) "VIS_NBODY | Shipping field 3"
+       	 write (*,'(a)') "VIS_FIELDS  | Shipping field 3"
          call flvisit_nbody2_field3_send(field3,npx,npy,npz)  
 #ifdef NETCDFLIB
-       	 write (*,*) "VIS_NBODY | Writing field 3 to netcdf"
+       	 write (*,'(a)') "VIS_FIELDS  | Writing field 3 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime,3, npx, npy, npz, field3, incdf )
 #endif
       endif
       if (fselect4>0) then
-       	 write (*,*) "VIS_NBODY | Shipping field 4"
+       	 write (*,'(a)') "VIS_FIELDS  | Shipping field 4"
          call flvisit_nbody2_field4_send(field4,npx,npy,npz)
 #ifdef NETCDFLIB
-       	 write (*,*) "VIS_NBODY | Writing field 4 to netcdf"
+       	 write (*,'(a)') "VIS_FIELDS  | Writing field 4 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime, 4, npx, npy, npz, field4, incdf )
 #endif
       endif

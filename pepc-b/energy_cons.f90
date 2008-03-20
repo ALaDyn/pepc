@@ -19,10 +19,10 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
 
   integer :: ifile
   real*8 :: tpon, epot, ekine, ekini, ebeam,  etot
-  real*8 :: emag
+  real*8 :: emag, eproton_max
 
   call potenergy(epot,emag)
-  call kinenergy(ekine, ekini, ebeam)
+  call kinenergy(ekine, ekini, ebeam, eproton_max)
 
   etot = epot + emag + ekine + ekini + ebeam
 
@@ -50,7 +50,9 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
 	     ' Total: ',etot, etot*convert_keV, etot*convert_erg, &
              ' Laser energy = ',elaser
 
-        write (ifile,'(2(a20,f12.5/))') 'Plasma Te (keV):',convert_kev*ekine/max(1,ne),'Ti (keV):',convert_kev*ekini/max(1,ni)
+        write (ifile,'(3(a20,f12.5/))') 'Plasma Te (keV):',convert_kev*ekine/max(1,ne), &
+					'Ti (keV):',convert_kev*ekini/max(1,ni), &
+					'Max Eproton (MeV):',convert_kev*1.e-3*eproton_max
      end do
      ! Write out to energy.dat file
      if (itime.eq.1)  write(75,'(a)') '! time  Upot  Umag  Ukin_e Ukin_i Ukin_beam Utot Tpon xc'

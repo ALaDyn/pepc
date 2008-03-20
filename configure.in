@@ -37,6 +37,7 @@ then
 #  FFLAGS="$FFLAGS -I$INCLUDE_MPI"
   LIBS_MPI="$DIR_MPI -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk -lpthread -lrt -lSPI.cna"
 #  DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
+ NETCDF_PATH=/usr/local/netcdf/netcdf-3.6.2
   MACH=bgp
  TUNE="-qarch=450d -qtune=440"
 #  MPIF90=bgxlf90
@@ -186,13 +187,14 @@ AC_ARG_WITH(netcdf,[  --with-netcdf           use netcdf library (no)],
 # turn on preprocessor directive
     NETCDFDEF="${F90DEF}-DNETCDFLIB"
 # netcdf path defaults 
-    NETCDFLIB=-lnetcdf
+    NETCDFLIB="-L${NETCDF_PATH}/lib -lnetcdf"
+    CFLAGS="${CFLAGS} -I${NETCDF_PATH}/include"
 # compile netcdf interface
     NCOBJS=ncnbody.o
     if test "$withval" != "yes" ; then
 # user-defined path
        NETCDFLIB="-L${withval}/lib -lnetcdf"
-       CFLAGS=-I${withval}/include
+       CFLAGS="${CFLAGS} -I${withval}/include"
     fi
   fi
 )
