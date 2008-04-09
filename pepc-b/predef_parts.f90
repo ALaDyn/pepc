@@ -24,6 +24,7 @@ subroutine predef_parts
   real :: axdum, aydum, azdum,phidum, bdum
   integer :: ioffset, i1, i2, npp_partial, npp_total, ipass, me_read, j, nrest, nadd
   integer :: nslice_e, nslice_i
+  integer :: lendir  ! length of directory string
   logical :: stopflag=.false.
 
   if (me == 0) then 
@@ -135,20 +136,24 @@ subroutine predef_parts
      ! num_pe > # data sets, so carve up restart data
 
      if (ncpu_merge == -1) then
-        ncpu_merge = num_pe  ! automatic splitting of single data set
+ ! automatic splitting of single merged data set in dumps/ directory
+        ncpu_merge = num_pe 
+        cme = "dumps"
+        lendir=5  
+ 
      else
         ncpu_merge = -ncpu_merge  ! split several sets
-     endif
-
-     if (me==0) write (*,*) 'Splitting sets by 1:',ncpu_merge
-
      ! Filename (directory) prefix
-     me_read = me/ncpu_merge
-     cme = "data/pe" &   
+       me_read = me/ncpu_merge
+       cme = "data/pe" &   
        // achar(me_read/1000+48) &
        // achar(mod(me_read/100,10)+48) &
        // achar(mod(me_read/10,10)+48) &
        // achar(mod(me_read,10)+48)  ! Convert 4-digit PE number into character string
+       lendir=11
+     endif
+
+     if (me==0) write (*,*) 'Splitting sets by 1:',ncpu_merge
 
      ! get filename suffix from dump counter
      do i=0,4
@@ -156,9 +161,10 @@ subroutine predef_parts
      end do
      cdump(1:1) = achar(itime_start/10**5 + 48)
 
-     cfile=cme//"/parts_info."//cdump(1:6)
+     cfile=cme(1:lendir)//"/parts_info."//cdump(1:6)
 
 
+     if (me==0) write (*,'(a,a)') 'Reading info file',cfile
      open (60,file=cfile)    
      read(60,'(2(9x,i8/))')  timestamp,npp_total  ! Find # particles to be read 
      close(60)
@@ -172,11 +178,11 @@ subroutine predef_parts
         nadd = 0
      endif
 
-     if(mod(me,1000)==0) write(*,*) 'PE ',me,': Reading ',npp+nadd,' particles out of ',npp_total,' from ',cme
+     if(mod(me,1000)==0) write(*,*) 'PE ',me,': Reading ',npp+nadd,' particles out of ',npp_total,' from ',cme(1:lendir)
 ! Record # particles read in openfiles.out
-     write(90,*) 'PE ',me,': Reading ',npp+nadd,' particles out of ',npp_total,' from ',cme
+     write(90,*) 'PE ',me,': Reading ',npp+nadd,' particles out of ',npp_total,' from ',cme(1:lendir)
 
-     cfile=cme//"/parts_dump."//cdump(1:6)
+     cfile=cme(1:lendir)//"/parts_dump."//cdump(1:6)
      open (60,file=cfile) 
 
      !  Skip dummy blocks up to previous PEs 
