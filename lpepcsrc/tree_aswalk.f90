@@ -34,7 +34,9 @@
 !
 ! ===========================================
 
-!subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
+
+!Old call: subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
+
 subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,p_ex_nps,p_ey_nps,p_ez_nps,np_local)
   use treevars
   use tree_utils
@@ -112,12 +114,13 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,p_ex_
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
 
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! merge mit trunk !!!!!!!!!!!!!!!!!!!!!!!
   integer :: periodic_neighbour(3) ! stores the index offset of the nearest image's cell as an integer(3) array
   integer,intent(in) :: np_local
   real*8,intent(in) :: p_ex_nps(npshort),p_ey_nps(npshort),p_ez_nps(npshort)
   
- 
+
   call cputime(t1)
   !
   twalk=0.
@@ -216,9 +219,11 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,p_ex_
 !           dx = x( pshort(p) ) - xcoc( walk_node )      ! Separations
 !           dy = y( pshort(p) ) - ycoc( walk_node )
 !           dz = z( pshort(p) ) - zcoc( walk_node )
+           dist2 = dx**2+dy**2+dz**2
 
 !           write (*,'(a,4i8,o15,f12.3)') 'particle i,p,pshort(p),nterm,kwalk,x', &
 !                i,p,pshort(p),nterm(p),walk_key(i),x(pshort(p))
+
 
 !           s2 = boxlength2( node_level(walk_node) )
 !           dist2 = dx**2+dy**2+dz**2
@@ -226,24 +231,22 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,p_ex_
           
            call mac_version(npshort,pshort,p,p_ex_nps(p),p_ey_nps(p),p_ez_nps(p),np_local,walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)),theta2,mac,mac_ok, periodic_neighbour)
   
+
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
            ! NB: this uses local leaf #, not global particle label
            mac_ok = ( mac_ok .and. walk_key(i)>1 )
            
+	   mac_ok = ( mac_ok .and. walk_key(i)>1 )  !  always reject root node
+
            ignore =  ( pshort(p) == htable( walk_addr )%node )
 
-           ! Wakefield QSA mac condition: prevent forward transmission of pw info
-          ! if (mac==5) then
-	  !   ignore = (ignore .or. dx<0) 
-	  ! else if (mac==1) then
-	  !   ignore = (ignore .or. dist2 > 25*eps**2) ! impose cutoff at 5*eps
-	  ! endif
+
 	
            add_key = walk_key(i)                                ! Remember current key
 
            ! Possible courses of action:
            
-           ! 1) MAC test OK, so put cell on interaction list and find next node for tree walk
+           ! 1) MAC test OK, or leaf node, so put cell on interaction list and find next node for tree walk
            !    - reject self
 
            if ( (mac_ok .or. walk_node >0) .and. .not.ignore) then
