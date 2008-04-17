@@ -120,7 +120,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
 
    if (num_pe > 1) then
      size_fetch = fetch_mult*size_tree/4
-     nbranch_max = maxaddress              ! Global max # branches
+     nbranch_max = .75*maxaddress              ! Global max # branches
      nbranch_local_max = 4*nbranch_max/num_pe  ! Local max # branches
    else
      size_fetch=nppm
@@ -195,10 +195,13 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
   if (n_cpu==1) then
     maxleaf = npart 
     maxtwig = maxaddress/2
-  else
+  else if (n_cpu.lt.2048) then
     maxleaf = maxaddress/3
-!    maxleaf = maxaddress/1
     maxtwig = 2*maxleaf
+  else
+!  required # twigs increases with P because of branches
+    maxleaf = maxaddress/4
+    maxtwig = 3*maxleaf
   endif 
 
   nreqs_total(0:num_pe-1) = 0   ! Zero cumulative fetch/ship counters for non-local nodes
