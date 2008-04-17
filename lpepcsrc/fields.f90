@@ -66,6 +66,10 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   character(30) :: cfile, ccol1, ccol2
   character(4) :: cme
   integer :: key2addr        ! Mapping function to get hash table address from key
+  
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!merge mit trunk
+
+  real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
 
 !  force_debug=.true.
 !  tree_debug=.false.
@@ -76,7 +80,6 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 !  walk_debug=.false.
 !  walk_summary=.true.
 !  dump_tree=.true.
-
   call cputime(tb1)
 
   npp = np_local
@@ -212,6 +215,10 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      nps = nshort(jpass)
      ip1 = pstart(jpass)
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
+     p_ex_nps(1:nps) = p_ex(ip1:ip1+nps-1)
+     p_ey_nps(1:nps) = p_ey(ip1:ip1+nps-1)
+     p_ez_nps(1:nps) = p_ez(ip1:ip1+nps-1)
+
 
      if (force_debug) then
        	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
@@ -221,7 +228,8 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
      
-     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
+  
+     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,p_ex_nps,p_ey_nps,p_ez_nps,np_local)
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 

@@ -64,6 +64,14 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   character(4) :: cme
   integer :: key2addr        ! Mapping function to get hash table address from key
 
+
+!!!!!!!!!!!!!!!!!!!!!merge mit trunk
+
+  real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
+  real :: ww_list
+  integer :: a
+  
+
 !  force_debug=.true.
 !  tree_debug=.false.
 !  build_debug=.false.
@@ -183,7 +191,7 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 
      endif
   end do
-
+ 
   if (me==0 .and. walk_summary) write (*,*) 'LPEPC | Passes:',npass
   if (jpass-1 > npass ) then
      write(*,*) 'Step',itime,', PE',me,' missed some:',nshort(npass+1)
@@ -207,6 +215,10 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      nps = nshort(jpass)
      ip1 = pstart(jpass)
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
+     p_ex_nps(1:nps) = p_ex(ip1:ip1+nps-1)
+     p_ey_nps(1:nps) = p_ey(ip1:ip1+nps-1)
+     p_ez_nps(1:nps) = p_ez(ip1:ip1+nps-1)
+
 
      if (force_debug) then
        	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
@@ -215,11 +227,16 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
+   
      
-     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
+     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,p_ex_nps,p_ey_nps,p_ez_nps,np_local)
+  
+    ! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)   
+    
+     
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
-
+    
      call cputime(t2)   ! timing
      do i = 1, nps
 
@@ -234,7 +251,7 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
        p_ez(p) = force_const * ez_coul
        p_w(p) = work(p)  ! send back work load for next iteration
        work_local = work_local+nterm(i)
-
+       
     end do
 
     call cputime(t3)   ! timing
@@ -242,9 +259,22 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 
      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
-     if (dump_tree) call diagnose_tree
 
+     do a=1,nps
+        ww_list = ww_list + nterm(a)
+        !      write(*,*) nterm(a)
+     end do
+     
+
+     if (dump_tree) call diagnose_tree
+  
   end do
+  
+  ww_list = ww_list / nps
+  
+  write(*,*)"Durchschnittliche Laenge der WW-Liste:",ww_list
+
+
 
 ! restore initial particle order specified by calling routine to reassign computed forces
 ! notice the swapped order of the index-fields -> less changes in restore.f90 compared to tree_domains.f90 

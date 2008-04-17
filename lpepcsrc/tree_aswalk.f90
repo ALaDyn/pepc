@@ -34,8 +34,8 @@
 !
 ! ===========================================
 
-subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
-
+!subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
+subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,p_ex_nps,p_ey_nps,p_ez_nps,np_local)
   use treevars
   use tree_utils
   use utils
@@ -112,7 +112,12 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
 
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! merge mit trunk !!!!!!!!!!!!!!!!!!!!!!!
+  integer :: periodic_neighbour(3) ! stores the index offset of the nearest image's cell as an integer(3) array
+  integer,intent(in) :: np_local
+  real*8,intent(in) :: p_ex_nps(npshort),p_ey_nps(npshort),p_ez_nps(npshort)
+  
+ 
   call cputime(t1)
   !
   twalk=0.
@@ -143,7 +148,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
   plist(1:npshort) = (/ (i,i=1,npshort) /)       ! initial local particle indices 
   nterm(1:npshort) = 0
   nactive = npshort
-
+ 
   !  Find global max active particles - necessary if some PEs enter walk on dummy pass
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
@@ -170,7 +175,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
   !if (me ==0) write(*,*) t2-t1
 
   do while (maxactive > 0)        ! Outer loop over 'active' traversals
-
      !POMP$ INST BEGIN(walk_local)
 
      call cputime(tw1)
@@ -191,6 +195,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
 
 
      do while (nlist>0 .and. nhops <= hops(ntraversals) )        ! Inner loop - single hop in tree walk
+
         inner_pass = inner_pass+1        ! statistics
         nhops = nhops + nlist
         sum_nhops = sum_nhops + nlist
@@ -208,28 +213,31 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
            ! children of local/non-local parents already fetched: HERE flag
 
 
-           dx = x( pshort(p) ) - xcoc( walk_node )      ! Separations
-           dy = y( pshort(p) ) - ycoc( walk_node )
-           dz = z( pshort(p) ) - zcoc( walk_node )
+!           dx = x( pshort(p) ) - xcoc( walk_node )      ! Separations
+!           dy = y( pshort(p) ) - ycoc( walk_node )
+!           dz = z( pshort(p) ) - zcoc( walk_node )
 
 !           write (*,'(a,4i8,o15,f12.3)') 'particle i,p,pshort(p),nterm,kwalk,x', &
 !                i,p,pshort(p),nterm(p),walk_key(i),x(pshort(p))
 
-           s2 = boxlength2( node_level(walk_node) )
-           dist2 = dx**2+dy**2+dz**2
-           mac_ok = ( s2 < dist2*theta2 .and. walk_key(i)>1 )   ! Preprocess MAC - always reject root node
-
+!           s2 = boxlength2( node_level(walk_node) )
+!           dist2 = dx**2+dy**2+dz**2
+!           mac_ok = ( s2 < dist2*theta2 .and. walk_key(i)>1 )   ! Preprocess MAC - always reject root node
+          
+           call mac_version(npshort,pshort,p,p_ex_nps(p),p_ey_nps(p),p_ez_nps(p),np_local,walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)),theta2,mac,mac_ok, periodic_neighbour)
+  
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
            ! NB: this uses local leaf #, not global particle label
-
+           mac_ok = ( mac_ok .and. walk_key(i)>1 )
+           
            ignore =  ( pshort(p) == htable( walk_addr )%node )
 
            ! Wakefield QSA mac condition: prevent forward transmission of pw info
-           if (mac==5) then
-	     ignore = (ignore .or. dx<0) 
-	   else if (mac==1) then
-	     ignore = (ignore .or. dist2 > 25*eps**2) ! impose cutoff at 5*eps
-	   endif
+          ! if (mac==5) then
+	  !   ignore = (ignore .or. dx<0) 
+	  ! else if (mac==1) then
+	  !   ignore = (ignore .or. dist2 > 25*eps**2) ! impose cutoff at 5*eps
+	  ! endif
 	
            add_key = walk_key(i)                                ! Remember current key
 
@@ -312,9 +320,9 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
         end do
 
         nlist = nnew
-
+       
      end do   ! END DO_WHILE
-
+    
      ! For remaining unfinished particles, need to copy rest of walk_list (still not inspected)
      ! back onto defer list.
 
@@ -534,8 +542,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
      ! Wait for data to arrive
 
      do i=1, fetch_pe_count  ! loop over # PEs originally sent requests
-
         call MPI_WAITANY( fetch_pe_count, recv_child_handle, ihand, status, ierr)  ! Wait for one of receives to complete
+
         ipe = status(MPI_SOURCE)   ! which PE?
         ic1 = ic_start(ipe)         ! fenceposts
         ic2 = ic1 + nplace(ipe) -1
@@ -570,7 +578,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
                 'Child data arrived:',kchild,' from ',ipe,' requested for key ',kparent
 
            ! Insert new node into local #-table
-
+!          
            call make_hashentry( kchild, nodchild, lchild, bchild, ipe, hashaddr, ierr )
 
            htable(hashaddr)%next = nxchild           ! Fill in special next-node pointer for non-local children
@@ -670,9 +678,9 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
         !        write(ipefile,'(a/(2i5))') 'New shortlist: ',(plist(i),pshort(plist(i)),i=1,nlist)
 
      endif
-
+  
      ! Array bound checks
-     if (num_pe>1 .and. nleaf>.95*maxleaf .and. mod(me,200).eq.0) then
+     if (num_pe>1 .and. nleaf>.95*maxleaf .and. mod(me,1).eq.0) then
         write (6,*) 'LPEPC | WARNING: tree arrays >95% full on CPU ',me,' leaves',nleaf,' / ',maxleaf
      endif
      if (ntwig>.95*maxtwig .and. mod(me,200).eq.0) then
@@ -682,9 +690,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
      call cputime(tc1)
      tfetch=tfetch+tc1-tw2  ! timing for 2nd half of walk
      !POMP$ INST END(exchange)
-
+   
   end do
-
   tfetch = tfetch+t2-t1
 
   !  Determine 'next_node' pointers for 'last child' list & update hash table (tree).
@@ -697,12 +704,10 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
      node_addr = key2addr(search_key,'WALK: NN search ')
      htable( node_addr )%next = next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
   end do
-
   sum_inner_old = sum_inner_pass
   !  call MPI_ALLREDUCE( sum_nhops, sum_nhops_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
   !  call MPI_ALLREDUCE( sum_inner_pass, sum_inner_old, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
   sum_nhops_old = sum_nhops_old/num_pe
   sum_inner_old = sum_inner_old/num_pe
   maxtraverse = max(maxtraverse,ntraversals)
-
 end subroutine tree_walk
