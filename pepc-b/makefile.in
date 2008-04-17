@@ -101,9 +101,9 @@ $(MACH)/%.o: %.c
 # -----------------------------------------------------------------------------------------
 #  targets
 
-pepc:	lpepc $(appmods) $(appobjs) 
+pepc:	lpepc $(appmods) $(appobjs) $(visitobjs) 
 	@echo "\n Creating $(TARGET) ...\n"
-	$(FC)  $(FFLAGS)  -o $(TARGET) $(appobjs) $(appmods) $(LIBS) $(LDFLAGS) 
+	$(FC)  $(FFLAGS)  -o $(TARGET) $(appobjs) $(appmods) $(visitobjs) $(LIBS) $(LDFLAGS) 
 	@echo "... done\n"
 
 bgl:	lpepc $(appmods) $(appobjs) 

@@ -1,6 +1,6 @@
 ! ======================
 !
-!   VIS_PARTS
+!   VIS_PARTS_NBODY
 !
 !   Send particle data to VISIT for real-time visualisation
 !
@@ -18,25 +18,27 @@ subroutine vis_parts_nbody(vcount)
 ! Buffer arrays vbuffer, vbuf_local allocated in setup_arrays 
 
   integer, dimension(num_pe) :: nparts_pe, recv_strides, nbuf_pe  ! array of npp on each PE
+  integer, dimension(num_pe) :: istrid, ships, fetches  ! arrays of ships/fetches
   integer :: icolour(nbuf_max)
   integer :: lvisit_active, nskip, nproot, ne_buf, ni_buf, npart_buf, nbufe, nbufi
-  integer :: i, j, k, ioffset,ixd, iyd, izd, ilev, lcount, wfdatai
+  integer :: i, j, k, p, ioffset,ixd, iyd, izd, ilev, lcount, wfdatai
 
   real :: s, simtime, dummy, xd,yd,zd, dx, dz, dy, epond_max, box_max, epondx, epondy, epondz,phipond
   real :: plasma1, plasma2, plasma3, t_display, wfdatar, u2, amp_las, box_x, box_y, box_z
   integer :: nship, ierr, cpuid
   integer :: type
-  integer :: vbufcols = 22, incdf, ndom_vis, ivisdom, ndomain_vis=40000, npart_vis
+  integer :: vbufcols = 22, incdf, ndom_vis, ivisdom, ndomain_vis=5000, npart_vis
   real :: lbox, work_ave, upmax, uproton_max, uxmax, boxz_min
   logical :: vis_debug=.false.
   logical :: pick=.false.
-  integer :: vcount
-
-
+  integer :: vcount, iglobal, ibox, max_ships, max_fetches, min_ships, min_fetches
+  integer :: nproc_vis, proc_vis(num_pe)
+  real :: rlev, ave_ships, ave_fetches
+  integer*8 :: bkey
   convert_mu=1.
   simtime = dt*(itime+itime_start)
 
-  pick_particles: select case(vis_select)
+  pick_particles: select case(mod(vis_select,10))
   case(1,3) 
     nproot = npart
   case(2)
@@ -98,7 +100,7 @@ subroutine vis_parts_nbody(vcount)
      ! TODO:  separate interesting ions and electrons
      do i=1,npp
         u2=0.5*0.511*mratio_layer(1)*(ux(i)**2+uy(i)**2+uz(i)**2) ! in MeV
-       pick_part: select case(vis_select)
+       pick_part: select case(mod(vis_select,10))
 	case(1)  ! select from bulk
 	  pick = ( npart<nbuf_max .or. (npart > nbuf_max .and. mod(pelabel(i),nskip).eq.0)) 
 	case(2)  ! select from 2nd layer
@@ -163,8 +165,11 @@ subroutine vis_parts_nbody(vcount)
 
      call MPI_ALLREDUCE( nbufe, ne_buf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
      call MPI_ALLREDUCE( nbufi, ni_buf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
+     call MPI_GATHER(sum_fetches, 1, MPI_INTEGER, fetches, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  
+     call MPI_GATHER(sum_ships, 1, MPI_INTEGER, ships, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  
 
-     if (me==0) write(*,'(a28,i8,a10,i8)') "VIS_PARTS   | selected nbuf=",npart_buf," out of ",nbuf_max-ndomain_vis
+     if (me==0) write(*,'(a28,i8,a10,i8)') "VIS_PARTS   | selected nbuf=",npart_buf," out of ",npart_vis
+     if (me==0) write(*,'(a28,i8)') "VIS_PARTS   | total # branches = ",nbranch_sum
 
      if (npart_buf>0 .and. npart_buf < npart_vis) then
         ! send  particle data from all PEs
@@ -213,11 +218,17 @@ subroutine vis_parts_nbody(vcount)
              ! Add branch nodes to show domains
               ndom_vis=0
      
-	      if (ndomain_vis>0) then
+!	      if (ndomain_vis>0) then
+
+              pick_domain: select case(vis_select/10)
+
+              case(1)
+
+! Show all branch boxes below z-cutoff
 
 ! First count how many to be shipped
-	      boxz_min=zl
-              do k=1,nbranch_sum
+	        boxz_min=zl
+                do k=1,nbranch_sum
              
                  ilev = log( 1.*branch_key(k) )/log(8.)
                  ixd = SUM( (/ (2**i*ibits( branch_key(k),3*i,1 ), i=0,ilev-1) /) )
@@ -229,10 +240,10 @@ subroutine vis_parts_nbody(vcount)
                  box_z =  zmin + lbox*(izd+.5) ! box centres
                  boxz_min=min(boxz_min,box_z)
                  if (box_z < domain_cut) ndom_vis=ndom_vis+1
-              end do
+                end do
 
-              ivisdom = 0
-              do k=1,nbranch_sum
+                ivisdom = 0
+                do k=1,nbranch_sum
              
                  ilev = log( 1.*branch_key(k) )/log(8.)
                  ixd = SUM( (/ (2**i*ibits( branch_key(k),3*i,1 ), i=0,ilev-1) /) )
@@ -273,9 +284,151 @@ subroutine vis_parts_nbody(vcount)
                  endif
                  !        write (*,'(7f13.4)') vbuffer(1,j),vbuffer(2,j), vbuffer(4,j), vbuffer(5,j), & 
                  !             vbuffer(6,j), vbuffer(7,j), vbuffer(17,j)
-              end do
+                end do
 
-	      endif
+	      case(2)
+
+! Show first box in each processor domain
+
+    ! precalculate strides
+  		write(*,'(a28)') "VIS_PARTS   | case 2"
+                ivisdom = 0
+
+     		istrid(1:num_pe) = (/ 0,( SUM( nbranches(1:i-1) ),i=2,num_pe ) /)
+		ave_ships=SUM(ships(1:num_pe))/num_pe
+		ave_fetches=SUM(fetches(1:num_pe))/num_pe
+		max_ships=maxval(ships(1:num_pe))
+		max_fetches=maxval(fetches(1:num_pe))
+		min_ships=minval(ships(1:num_pe))
+		min_fetches=minval(fetches(1:num_pe))
+  		  write(*,'(a28,1pe12.2,a2,1pe12.2,a2,1pe12.2,a2,1pe12.2)') "VIS_PARTS   | ranges ships/fetches: ",min_ships/ave_ships,"-",max_ships/ave_ships,",",min_fetches/ave_fetches,"-",max_fetches/ave_fetches
+	        ! Pick biggest box in each domain 
+	        ndom_vis=num_pe
+
+                do k=1,num_pe
+
+		  iglobal = istrid(k)+1  ! branches are sorted, so 1st one will have lowest level #
+                  rlev = log( 1.*branch_key(iglobal) )/log(8.)
+		  ilev = rlev
+ 		  ibox = iglobal
+		  bkey=branch_key(iglobal)
+		  
+!  		  write(*,'(a28,3i10)') "VIS_PARTS   | branch ",i,iglobal, ilev
+		  
+                  ixd = SUM( (/ (2**i*ibits( branch_key(ibox),3*i,1 ), i=0,ilev-1) /) )
+                  iyd = SUM( (/ (2**i*ibits( branch_key(ibox),3*i+1,1 ), i=0,ilev-1) /) )
+                  izd = SUM( (/ (2**i*ibits( branch_key(ibox),3*i+2,1 ), i=0,ilev-1) /) )
+                  lbox = boxsize/2**(ilev)          !  box length
+                  box_x =  xmin + lbox*(ixd+.5) ! box centres
+                  box_y =  ymin + lbox*(iyd+.5) ! box centres
+                  box_z =  zmin + lbox*(izd+.5) ! box centres
+	          ivisdom=ivisdom+1
+                  j=npart_buf+1+ivisdom
+                 ! Store attributes for visualizing
+                  vbuffer(0,j) = t_display
+                  vbuffer(1,j)= box_x
+                  vbuffer(2,j)= box_y
+                  vbuffer(3,j)= box_z 
+                  vbuffer(4,j) = lbox
+                  vbuffer(5,j) = branch_owner(ibox)  ! cpu id of branch node
+                  cpuid = branch_owner(ibox)+1
+                  vbuffer(6,j) = 1.*ships(cpuid)/ave_ships   ! # ships made by this cpu
+                  vbuffer(7,j) = 1.*fetches(cpuid)/ave_fetches ! # fetches made by this cpu
+  		  write(*,'(a28,i8,a25,i8,o22,1pe12.3,i10,i10,1pe12.2,i10,1pe12.2)') "VIS_PARTS   | pe: ",k,"box, level, ships, fetches ",ibox, bkey, rlev, ilev, ships(cpuid), vbuffer(6,j), fetches(cpuid), vbuffer(7,j)
+                  vbuffer(8,j) = 0.
+                  vbuffer(9,j) = 0.
+                  vbuffer(10,j) = 0.
+                  vbuffer(11,j) = 0.
+                  vbuffer(12,j) = 0.
+                  vbuffer(13,j) = 0.
+                  vbuffer(14,j) = 0.
+                  vbuffer(15,j) = 0.
+                  vbuffer(16,j) = 16    ! Domain type
+                  vbuffer(17,j) = ndom_vis  ! Total # branch nodes
+                  vbuffer(18,j) = 0.
+                  vbuffer(19,j) = 0.
+                  vbuffer(20,j) = 0.
+                  vbuffer(21,j) = 0.
+                end do
+
+	      case(3)
+
+! Show domain boxes of selected processors
+
+    ! precalculate strides
+  		write(*,'(a28)') "VIS_PARTS   | case 3"
+                ivisdom = 0
+
+     		istrid(1:num_pe) = (/ 0,( SUM( nbranches(1:i-1) ),i=2,num_pe ) /)
+		ave_ships=SUM(ships(1:num_pe))/num_pe
+		ave_fetches=SUM(fetches(1:num_pe))/num_pe
+		max_ships=maxval(ships(1:num_pe))
+		max_fetches=maxval(fetches(1:num_pe))
+		min_ships=minval(ships(1:num_pe))
+		min_fetches=minval(fetches(1:num_pe))
+  		write(*,'(a28,1pe12.2,a2,1pe12.2,a2,1pe12.2,a2,1pe12.2)') "VIS_PARTS   | ranges ships/fetches: ",min_ships/ave_ships,"-",max_ships/ave_ships,",",min_fetches/ave_fetches,"-",max_fetches/ave_fetches
+	        ivisdom=0
+		ndom_vis=0
+		nproc_vis=5
+		proc_vis(1:nproc_vis) = (/5,297,563,804,1023/)  ! selected cpus for vis
+
+!  Determine total box #
+	        do p=1,nproc_vis
+		  ndom_vis=ndom_vis + nbranches(proc_vis(p))
+	        end do
+
+                do p=1,nproc_vis
+
+		 do k=1,nbranches(proc_vis(p))
+		  iglobal = istrid(proc_vis(p))+k  ! global branch index
+                  rlev = log( 1.*branch_key(iglobal) )/log(8.)
+		  ilev = rlev
+ 		  ibox = iglobal
+		  bkey=branch_key(iglobal)
+		  
+!  		  write(*,'(a28,3i10)') "VIS_PARTS   | branch ",i,iglobal, ilev
+		  
+                  ixd = SUM( (/ (2**i*ibits( branch_key(ibox),3*i,1 ), i=0,ilev-1) /) )
+                  iyd = SUM( (/ (2**i*ibits( branch_key(ibox),3*i+1,1 ), i=0,ilev-1) /) )
+                  izd = SUM( (/ (2**i*ibits( branch_key(ibox),3*i+2,1 ), i=0,ilev-1) /) )
+                  lbox = boxsize/2**(ilev)          !  box length
+                  box_x =  xmin + lbox*(ixd+.5) ! box centres
+                  box_y =  ymin + lbox*(iyd+.5) ! box centres
+                  box_z =  zmin + lbox*(izd+.5) ! box centres
+	          ivisdom=ivisdom+1
+                  j=npart_buf+1+ivisdom
+                 ! Store attributes for visualizing
+                  vbuffer(0,j) = t_display
+                  vbuffer(1,j)= box_x
+                  vbuffer(2,j)= box_y
+                  vbuffer(3,j)= box_z 
+                  vbuffer(4,j) = lbox
+                  vbuffer(5,j) = branch_owner(ibox)  ! cpu id of branch node
+                  cpuid = branch_owner(ibox)+1
+                  vbuffer(6,j) = 1.*ships(cpuid)/ave_ships   ! # ships made by this cpu
+                  vbuffer(7,j) = 1.*fetches(cpuid)/ave_fetches ! # fetches made by this cpu
+  		  write(*,'(a28,2i8,a25,i8,o22,1pe12.3,i10,i10,1pe12.2,i10,1pe12.2)') "VIS_PARTS   | pe: ",p,k,"box, level, ships, fetches ",ibox, bkey, rlev, ilev, ships(cpuid), vbuffer(6,j), fetches(cpuid), vbuffer(7,j)
+                  vbuffer(8,j) = 0.
+                  vbuffer(9,j) = 0.
+                  vbuffer(10,j) = 0.
+                  vbuffer(11,j) = 0.
+                  vbuffer(12,j) = 0.
+                  vbuffer(13,j) = 0.
+                  vbuffer(14,j) = 0.
+                  vbuffer(15,j) = 0.
+                  vbuffer(16,j) = 16    ! Domain type
+                  vbuffer(17,j) = ndom_vis  ! Total # branch nodes
+                  vbuffer(18,j) = 0.
+                  vbuffer(19,j) = 0.
+                  vbuffer(20,j) = 0.
+                  vbuffer(21,j) = 0.
+                end do
+	      end do
+
+	      case default
+	        ! skip domain boxes
+                ndom_vis=0
+              end select pick_domain
 
 ! Fill out dummy values for netcdf
               do j=npart_buf+1+ndom_vis,nbuf_max
