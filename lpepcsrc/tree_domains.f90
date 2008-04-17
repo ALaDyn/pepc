@@ -28,7 +28,6 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   integer*8, dimension(nppm) :: ix, iy, iz
   integer*8, dimension(nppm) :: ixd, iyd, izd
   integer*8, dimension(nppm) :: local_key
-  integer*8, dimension(2) :: ixbox, iybox, izbox, key_box
 
   integer ::  source_pe(nppm)
   integer :: i, j, ind_recv, inc, prev, next, handle(4)
@@ -121,42 +120,8 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
      end do
   end do
 
-  !  Find keys corresponding to corners of graphics box (initial target container)
-  if (xmin<0) then
-     ixbox(1) = -xmin/s
-     ixbox(2) = (xl - xmin)/s
-  else
-     ixbox(1) = 0
-     ixbox(2) = (xmax-xmin)/s
-  endif
-
-  if (ymin<0) then
-     iybox(1) = -ymin/s
-     iybox(2) = (yl - ymin)/s
-  else
-     iybox(1) = 0
-     iybox(2) = (ymax - ymin)/s
-  endif
-
-  if (zmin<0) then
-     izbox(1) =-zmin/s
-     izbox(2) = (zl - zmin)/s
-  else
-     izbox(1) = 0
-     izbox(2) = (zmax - zmin)/s
-  endif
-
-  do j=1,2
-     key_box(j) = iplace + &
-          SUM( (/ (8_8**i*(4_8*ibits( izbox(j),i,1) &
-          + 2_8*ibits( iybox(j),i,1 ) &
-          + 1_8*ibits( ixbox(j),i,1) ),i=0,nbits-1) /) )
-  end do
-
-
 !  if (.true.) then
   if (domain_debug) then
-     write (ipefile,'(a,2z20)') 'Box keys:', key_box(1),key_box(2)
      write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort:', &
           '  key,             label   coords     q ', &
           (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=1,npp) 
@@ -221,7 +186,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
 !     call pbalsortr(nppm,npold,npnew,num_pe,me,keys, &
 !          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
      call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
-          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
+          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,nkeys_total,load_balance,sort_debug,work_local)
 
 !     write(*,*) me,npp,npold,npnew
      do i=1,npold
