@@ -193,6 +193,7 @@ module treevars
              npp, &            !  actual  # particles/PE
              nshortm, &        ! shortlist length
              iused          ! counter for collision resolution array free_addr()
+  integer :: nkeys_total=1 ! total # keys in local tree
   integer :: proc_debug=0     ! Debug rank: set to -1 for all
   real :: work_imbal=0.
   real :: part_imbal=0.

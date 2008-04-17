@@ -16,18 +16,18 @@ subroutine tree_stats(timestamp)
 
   integer :: i,ierr, timestamp
   integer, dimension(num_pe) :: particles, local_keys, nonlocal_keys, fetches, ships, total_keys
-  integer :: nkeys_tot, nkeys_me
+  integer :: nkeys_me
   character*6 :: cdump
   character*40 :: cfile
 
 ! particle distrib 
   call MPI_GATHER(npp, 1, MPI_INTEGER, particles, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  
   nkeys_me=nleaf_me+ntwig_me
-  nkeys_tot=nleaf+ntwig
   call MPI_GATHER(nkeys_me, 1, MPI_INTEGER, local_keys, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  
-  call MPI_GATHER(nkeys_tot, 1, MPI_INTEGER, total_keys, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  
+  call MPI_GATHER(nkeys_total, 1, MPI_INTEGER, total_keys, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  
   call MPI_GATHER(sum_fetches, 1, MPI_INTEGER, fetches, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  
   call MPI_GATHER(sum_ships, 1, MPI_INTEGER, ships, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  
+  call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  
 
 
 if (me.eq.0) then
@@ -40,8 +40,8 @@ if (me.eq.0) then
   cfile="log/stats"//"."//cdump(1:6)
 
   open (60,file=cfile)    
-  write (60,'(a60/(7i10))') 'PE  parts local_keys  nl_keys  tot_keys fetches ships', &
-      (i-1,particles(i),local_keys(i),total_keys(i)-local_keys(i),total_keys(i),fetches(i),ships(i),i=1,num_pe-1)
+  write (60,'(a60/(8i10))') 'PE  parts local_keys  nl_keys  tot_keys fetches ships work', &
+      (i-1,particles(i),local_keys(i),total_keys(i)-local_keys(i),total_keys(i),fetches(i),ships(i),int(work_loads(i)),i=1,num_pe-1)
   close(60)
 
 endif

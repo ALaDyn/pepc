@@ -353,6 +353,12 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
 
   end do
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! TODO: Put all stats in tree_stats
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+! Retain total # keys stored locally for stats and load balancing
+  nkeys_total = nleaf+ntwig  
 
   !  timestamp = itime + itime_start
   timestamp = itime
