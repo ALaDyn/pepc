@@ -350,7 +350,7 @@ contains
 
 
   subroutine pbalsort(nppm,np,npnew,nprocs,iproc,keys, &
-       indxl,irnkl, islen,irlen,fposts,gposts,pivot,kw1,wload,key_box,balance,debug,work_local)
+       indxl,irnkl, islen,irlen,fposts,gposts,pivot,kw1,wload,nkeys_total,balance,debug,work_local)
 
 
     ! P. Gibbon
@@ -370,7 +370,7 @@ contains
     implicit  none
     include 'mpif.h'
 
-    integer, intent(in) :: nppm,np,nprocs,iproc
+    integer, intent(in) :: nppm,np,nprocs,iproc,nkeys_total
     real*8, intent(in) :: wload(nppm)  ! particle work loads
     integer, intent(out) :: npnew
     real, intent(in) :: work_local  ! total local work load
@@ -382,11 +382,12 @@ contains
     integer, intent(in) :: balance
     integer*8 :: pivot(nprocs+1)
     integer*8 :: work1(nppm), work2(nppm)  ! integer arrays for particle loads
-    integer*8, dimension(2) :: key_box
     integer, dimension(nprocs) :: islen, irlen  ! send/receive segment lengths
     integer, dimension(nprocs+1) :: fposts, gposts !  fencepost index and key values for shuffle
     integer :: itabr(nprocs), itabl(nprocs+1)  ! send/receive strides for A2A sort
-    integer*8 :: work_loads(nprocs)
+    integer*8 :: work_loads(nprocs) ! Aggregate work loads
+    integer :: total_keys(nprocs)  ! Total # keys in local tree(s) 
+    real*8 :: ave_nkeys,finc  ! Average # keys
 
     integer, parameter :: maxbin=1500000  ! Max # bins for key distrib
     integer*8, dimension(maxbin)  :: f_local, f_global, f_final  ! Key distribution functions
@@ -417,7 +418,6 @@ contains
     fd=6
     itag=0
     proc_debug = 0
-
 !  Make key map for binning - need to put in setup routine 
 search_list = 8_8**lev_map  ! place holder
 
@@ -445,6 +445,13 @@ search_list = 8_8**lev_map  ! place holder
 
     call MPI_ALLREDUCE(lmax, gkey_max, 1, MPI_INTEGER8, MPI_MAX,  MPI_COMM_WORLD, ierr )
     call MPI_ALLREDUCE(lmin, gkey_min, 1, MPI_INTEGER8, MPI_MIN,  MPI_COMM_WORLD, ierr )
+! Total # keys
+    call MPI_GATHER(nkeys_total, 1, MPI_INTEGER, total_keys, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
+    ave_nkeys = SUM(total_keys)/1./nprocs
+
+   if (debug .and. iproc==0) then
+	write (*,'(a,i12/(2i10))') "Ave # keys:", int(ave_nkeys),(i,total_keys(i),i=1,nprocs)
+   endif
 
 !  Get actual work loads from previous step
 !    call MPI_ALLGATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
@@ -459,7 +466,7 @@ search_list = 8_8**lev_map  ! place holder
     if (nprocs==1) then
        alpha=1
     else
-       alpha=50
+       alpha=25
     endif
 
     if (debug.and.iproc==proc_debug) then
@@ -510,11 +517,26 @@ search_list = 8_8**lev_map  ! place holder
 !       write(fd,'(a30,2o30)') 'key, reduced key ',kw2(p), key_reduce
 !    endif
 ! keys match - update bin count and move on to next particle
- 	if (balance==1 .and. nprocs.gt.1) then
-	  f_local(ibin) = f_local(ibin) + work2(p) 
-	else
-	  f_local(ibin) = f_local(ibin) + 1
-	endif
+
+	  if (nprocs.gt.1) then
+            loadbal: select case(balance) 
+   	    case(1)   ! Equal aggregate interaction lists
+	      f_local(ibin) = f_local(ibin) + work2(p) 
+ 
+            case(2)  ! Equal int lists corrected by # local keys 
+	      finc = 1.*work2(p)*ave_nkeys/nkeys_total 
+	      f_local(ibin) = f_local(ibin) + finc
+
+	    case default   ! Equal # particles
+	      f_local(ibin) = f_local(ibin) + 1
+ 	    end select loadbal
+
+  	   else
+	    f_local(ibin) = f_local(ibin) + 1
+	   endif
+
+
+        if (debug .and. iproc==proc_debug) write(fd,'(a30,o30,2i16,1pe12.1,i16,1pe12.1,i16)') 'reduced key, bin, f_local ',key_reduce,ibin,work2(p),ave_nkeys,nkeys_total,finc,f_local(ibin)
 	  pbin(p) = ibin ! remember bin number 
 	  p=p+1
 	else
