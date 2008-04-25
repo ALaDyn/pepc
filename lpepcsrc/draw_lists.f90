@@ -26,7 +26,7 @@ subroutine draw_lists
 
 
   integer :: i, ip, j, ilev, isnap, ix, iy, nbits
-  real :: s, xt, yt
+  real :: s, xt, yt, scale
   logical :: write_keys=.false.
   integer :: key2addr        ! Mapping function to get hash table address from key
 
@@ -51,9 +51,12 @@ subroutine draw_lists
 
 !  write (60,'(a/a,2f13.4)') 'amove 0 0','box ',boxsize,yl
 
+  write (60,'(a)')  'psize=0.1' 
 
+  scale = 15./boxsize
+  write (60,'(a/a,2f12.2)') 'set lwidth .01 hei .02', &
+		     'begin scale ',scale,scale	
   write (60,'(a)') 'set color black hei .3'
-  write (60,'(a)')  'psize=0.4' 
   write (60,'(a,2f13.4)') 'amove ',x(ip),y(ip)
   write (60,'(a,f10.5,2a)') 'marker otimes '
   write (60,'(a,2f13.4)') 'rmove ',.1,.1
@@ -75,7 +78,7 @@ subroutine draw_lists
   owner_list(1:nlist) =   htable( addr_list(1:nlist))%owner      ! owner
 
 
-  write (60,'(a)') 'set lwidth .01 hei .02'
+
 
   do j=1,nlist
     write (60,'(a,a7)') 'set color ',colors( mod(owner_list(j),10) )
@@ -101,7 +104,7 @@ subroutine draw_lists
 
   end do
 
-!  write (60,'(2(/a))') 'end scale ','end translate'
+  write (60,'((/a))') 'end scale '
 
   close(60)
 ! end do

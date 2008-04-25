@@ -48,6 +48,7 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
   real :: t_domain, t_build(4), t_prefetch, t_walk, t_walkc, t_force, ttrav, tfetch, t1, t2, t3  ! timing integrals
   real :: tb1, tb2, tb3, tb4, td1, td2, tp1, tp2
   integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm) ! work balance arrays
+  real*8 :: ex_sl(nshortm),ey_sl(nshortm),ez_sl(nshortm)  ! Fields in shortlist from previous timestep
   integer :: hashaddr ! Key address 
 
   integer :: max_local,  timestamp
@@ -244,6 +245,10 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
      nps = nshort(jpass)
      ip1 = pstart(jpass)
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
+! Copy fields for tree walk (WS mac=3)
+     ex_sl(1:nps) = ex(ip1:ip1+nps-1)
+     ey_sl(1:nps) = ey(ip1:ip1+nps-1)
+     ez_sl(1:nps) = ez(ip1:ip1+nps-1)
 
      if (force_debug) then
        	if (me==0) write(*,'(a14,i4,a4,i4,a20,i8,a4,i8)') &
@@ -259,7 +264,7 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
         call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
     else
    ! asynchronous walk  (0,3)
-       call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
+       call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,err_f,ttrav,tfetch,ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
     endif
 
      t_walk = t_walk + ttrav  ! traversal time (serial)

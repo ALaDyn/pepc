@@ -41,13 +41,14 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   integer, intent(out) :: islen(num_pe),irlen(num_pe)
   integer, intent(out) :: fposts(num_pe+1),gposts(num_pe+1)
 
-  integer, parameter :: npassm=100000 ! Max # passes - will need npp/nshortm
+  integer, parameter :: npassm=10000 ! Max # passes - will need npp/nshortm
 
   integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe, k
   real :: t_begin,t_domain, t_build, t_fill, t_branches, t_properties,t_prefetch, t_walk, t_walkc, t_force, t_restore, t_all
   real :: t_stuff_1, t_stuff_2, t_end, t_mpi,ttrav, tfetch, t1, t2, t3, t4  ! timing integrals
   real :: tb1, tb2, td1, td2, tb3, td3, tb4, td4, td5, tb5, tb6, td6, tb7, td7
   integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm) ! work balance arrays
+  real*8 :: ex_sl(nshortm),ey_sl(nshortm),ez_sl(nshortm)  ! Fields in particle short list sent to tree_walk
   integer :: hashaddr ! Key address 
 
   integer :: max_local,  timestamp
@@ -67,7 +68,6 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 
 !!!!!!!!!!!!!!!!!!!!!merge mit trunk
 
-  real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
   real :: ww_list
   integer :: a
   
@@ -215,9 +215,10 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      nps = nshort(jpass)
      ip1 = pstart(jpass)
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
-     p_ex_nps(1:nps) = p_ex(ip1:ip1+nps-1)
-     p_ey_nps(1:nps) = p_ey(ip1:ip1+nps-1)
-     p_ez_nps(1:nps) = p_ez(ip1:ip1+nps-1)
+! copy fields to shortlist
+     ex_sl(1:nps) = p_ex(ip1:ip1+nps-1)
+     ey_sl(1:nps) = p_ey(ip1:ip1+nps-1)
+     ez_sl(1:nps) = p_ez(ip1:ip1+nps-1)
 
 
      if (force_debug) then
@@ -229,7 +230,7 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
    
      
-     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,p_ex_nps,p_ey_nps,p_ez_nps,np_local)
+     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,ex_sl,ey_sl,ez_sl,np_local)
   
     ! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)   
     

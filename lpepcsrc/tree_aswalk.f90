@@ -37,7 +37,7 @@
 
 !Old call: subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
 
-subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,p_ex_nps,p_ey_nps,p_ez_nps,np_local)
+subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_nps,ey_nps,ez_nps,np_local)
   use treevars
   use tree_utils
   use utils
@@ -48,6 +48,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,p_ex_
   integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
   integer, intent(in) :: mac
+  integer,intent(in) :: np_local
+  real*8, intent(in) :: ex_nps(npshort),ey_nps(npshort),ez_nps(npshort)  ! Fields from previous timestep
   ! integer, intent(out) :: nodelist(nintm, npshort)
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
@@ -117,8 +119,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,p_ex_
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! merge mit trunk !!!!!!!!!!!!!!!!!!!!!!!
   integer :: periodic_neighbour(3) ! stores the index offset of the nearest image's cell as an integer(3) array
-  integer,intent(in) :: np_local
-  real*8,intent(in) :: p_ex_nps(npshort),p_ey_nps(npshort),p_ez_nps(npshort)
+
   
 
   call cputime(t1)
@@ -216,32 +217,19 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,p_ex_
            ! children of local/non-local parents already fetched: HERE flag
 
 
-!           dx = x( pshort(p) ) - xcoc( walk_node )      ! Separations
-!           dy = y( pshort(p) ) - ycoc( walk_node )
-!           dz = z( pshort(p) ) - zcoc( walk_node )
-           dist2 = dx**2+dy**2+dz**2
 
 !           write (*,'(a,4i8,o15,f12.3)') 'particle i,p,pshort(p),nterm,kwalk,x', &
 !                i,p,pshort(p),nterm(p),walk_key(i),x(pshort(p))
 
-
-!           s2 = boxlength2( node_level(walk_node) )
-!           dist2 = dx**2+dy**2+dz**2
-!           mac_ok = ( s2 < dist2*theta2 .and. walk_key(i)>1 )   ! Preprocess MAC - always reject root node
           
-           call mac_version(npshort,pshort,p,p_ex_nps(p),p_ey_nps(p),p_ez_nps(p),np_local,walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)),theta2,mac,mac_ok, periodic_neighbour)
+           call mac_choose(npshort,pshort,p,ex_nps(p),ey_nps(p),ez_nps(p),np_local,walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)),theta2,mac,mac_ok, periodic_neighbour)
   
+	   mac_ok = ( mac_ok .and. walk_key(i)>1 )  !  always reject root node
 
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
            ! NB: this uses local leaf #, not global particle label
-           mac_ok = ( mac_ok .and. walk_key(i)>1 )
-           
-	   mac_ok = ( mac_ok .and. walk_key(i)>1 )  !  always reject root node
-
            ignore =  ( pshort(p) == htable( walk_addr )%node )
 
-
-	
            add_key = walk_key(i)                                ! Remember current key
 
            ! Possible courses of action:

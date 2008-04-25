@@ -1,7 +1,19 @@
+
+!> MAC_CHOOSE
+!>
+!>  Picks one of several multipole acceptance criteria (MACs)
+!>
+!> mac=	0  Barnes Hut s/d
+!>     	1  Minimum distance - replace d with shortest distance to cell box
+!>	2  Bmax - replace s with longest sep between coq and box corner
+!>	3  Upper bound: Use E-field from previous step to estimate acceptable error and equiv dmin 
+!>	10 Periodic variant of s/d - use nearest min. image and return its quadrant for force sum.
+
 !>periodic boundary-safe version of the MAC originally proposed by Barnes&Hut
 !>
 !>in periodic boundary mode it also returns the index offset of the nearest image's cell as an integer(3) array in neighbour
-subroutine mac_version(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, neighbour)
+
+subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, neighbour)
   use treevars
   implicit none
  
@@ -38,7 +50,7 @@ subroutine mac_version(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,
   
   !  get levels of twigs
   nbits = log( 1.*walk_key )/log(8.)
-
+  neighbour = 0
 
 
 !  Ldiv2 = periodic_L*0.5
@@ -272,4 +284,4 @@ subroutine mac_version(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,
 
   end select
 
-end subroutine mac_version
+end subroutine mac_choose
