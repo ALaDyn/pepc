@@ -185,7 +185,7 @@ subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,w
 !     write(*,*) dist2, b_max2
   
   case(3) ! MAC E-Feld
-     alpha = 0.01
+     alpha = theta2
 
      field_old = sqrt(p_ex_p**2 + p_ey_p**2 + p_ez_p**2)
      
