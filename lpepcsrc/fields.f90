@@ -283,6 +283,8 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 !  timestamp = itime + itime_start
   timestamp = itime
 
+  nkeys_total = nleaf+ntwig  
+
   call cputime(td2)
 
   if (me ==0 .and. mod(itime,iprot)==0) then
@@ -315,6 +317,8 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 102  format(1x,i7,5(1pe14.5))
 
   endif
+
+  if (tree_debug) call tree_stats(itime)
 
   call cputime(td1)
 

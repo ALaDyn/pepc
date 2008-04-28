@@ -1364,15 +1364,20 @@ CFLAGS="$CFLAGS -I/usr/local/include"
 
 if [ `uname -n` = "jubl" ] # jubl in Juelich
 then
+ echo "$as_me:$LINENO: result: ** Configuring for JUBL **" >&5
+echo "${ECHO_T}** Configuring for JUBL **" >&6
  CFLAGS="$CFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
 # LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib"
 # FFLAGS="$FFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
- DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
-# LIBS_MPI="-lmpich.rts -lfmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts"
+# DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"  # MPI only
+ DEFAULT_TRACEPATH="-L/bgl/local/hpct_bgl/lib -lmpitrace -lhpm.rts -llicense"  # MPI+HPM - needs 'module load hpct'
  MACH=bgl
+ TUNE="-qarch=pwr4 -qtune=pwr4"
 
-elif [ `uname -n` = "jugene1" ] # JuGene in Juelich
+elif [ `uname -n` = "jugene1" ] || [ `uname -n` = "jugene2" ] # JuGene in Juelich
 then
+ echo "$as_me:$LINENO: result: ** Configuring for JuGene **" >&5
+echo "${ECHO_T}** Configuring for JuGene **" >&6
   BGPSYS=/bgsys/drivers/ppcfloor
   INCLUDE_MPI="-I$BGPSYS/comm/include"
   DIR_MPI="-L$BGPSYS/comm/lib -L$BGPSYS/runtime/SPI"
@@ -1381,7 +1386,9 @@ then
 #  FFLAGS="$FFLAGS -I$INCLUDE_MPI"
   LIBS_MPI="$DIR_MPI -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk -lpthread -lrt -lSPI.cna"
 #  DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
+ NETCDF_PATH=/usr/local/netcdf/netcdf-3.6.2
   MACH=bgp
+ TUNE="-qarch=450d -qtune=440"
 #  MPIF90=bgxlf90
 #  MPICC=bgxlc
   MPIF90=mpxlf90
@@ -1483,20 +1490,19 @@ host_os=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 case "$host" in
 
 #=====================================================================
-powerpc64-unknown-linux-gnu) # jubl
- echo "$as_me:$LINENO: result: ** setting options for powerpc64 host **" >&5
-echo "${ECHO_T}** setting options for powerpc64 host **" >&6
- CFLAGS_OS="-DAIX_XLF -qarch=440 -qtune=440 -qlibansi -qnoinfo "
- FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS -qarch=440 -qtune=440 -qnosave"
+powerpc64-unknown-linux-gnu) # jubl/jugene
+ echo "$as_me:$LINENO: result: ** setting common options for powerpc64 host **" >&5
+echo "${ECHO_T}** setting common options for powerpc64 host **" >&6
+ CFLAGS_OS="-DAIX_XLF $TUNE -qlibansi -qnoinfo "
+ FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS $TUNE -qnosave"
  F90DEF="-WF,"
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
  MODULE_FLAG="-qmoddir="
  F77FLAGS="$FFLAGS_f77_f90 -qsuffix=f -qfixed -qspillsize=32000"
- CLINK_FLAGS="-qarch=440 -qtune=440"
+ CLINK_FLAGS=$TUNE
  if [ -z "$OPT" ]; then OPT=-O3; fi
  AR="ar -q"
  #
- TUNE="-qarch=pwr4 -qtune=pwr4"
   ;;
 
 #=====================================================================
@@ -3038,13 +3044,14 @@ if test "${with_netcdf+set}" = set; then
 # turn on preprocessor directive
     NETCDFDEF="${F90DEF}-DNETCDFLIB"
 # netcdf path defaults
-    NETCDFLIB=-lnetcdf
+    NETCDFLIB="-L${NETCDF_PATH}/lib -lnetcdf"
+    CFLAGS="${CFLAGS} -I${NETCDF_PATH}/include"
 # compile netcdf interface
     NCOBJS=ncnbody.o
     if test "$withval" != "yes" ; then
 # user-defined path
        NETCDFLIB="-L${withval}/lib -lnetcdf"
-       CFLAGS=-I${withval}/include
+       CFLAGS="${CFLAGS} -I${withval}/include"
     fi
   fi
 
@@ -3111,7 +3118,6 @@ fi;
 
 
 #MPITRACE = -L/bgl/local/lib -lmpitrace_f # MPI only
-# -L/bgl/local/lib -lmpihpm_f -lbgl_perfctr.rts  # MPI+HPM
 
 # default for debug is no
 
