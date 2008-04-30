@@ -171,8 +171,8 @@ subroutine sum_radial(timestamp)
    endif  
 
 ! all PEs must call walk
-
-   call tree_walk(pshortl(1:ndum),ndum,1,theta,eps,itime,mac,ttrav,tfetch)
+! mac set to BH, theta to 0.5
+   call tree_walk(pshortl(1:ndum),ndum,1,0.5,eps,itime,0,ttrav,tfetch)
 
    if (my_rank==0) then
 ! Fields

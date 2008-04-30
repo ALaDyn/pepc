@@ -59,8 +59,11 @@ subroutine sum_fieldave
    endif  
 
 ! all CPUs must call walk
+!subroutine tree_walk(pshort,npshort, !pass,theta,eps,itime,mac,twalk,tfetch,ex_nps,ey_nps,ez_nps,np_local)
 
-   call tree_walk(pshortl(1:ndum),ndum,1,theta,eps,itime,mac,ttrav,tfetch)
+! mac set to BH, theta to 0.5
+
+   call tree_walk(pshortl(1:ndum),ndum,1,0.5,eps,itime,0,ttrav,tfetch)
 
    if (my_rank==0) then
 ! Fields
@@ -97,7 +100,7 @@ subroutine sum_fieldave
 
 ! all CPUs must call walk
 
-   call tree_walk(pshortl(1:ndum),ndum,1,theta,eps,itime,mac,ttrav,tfetch)
+   call tree_walk(pshortl(1:ndum),ndum,1,0.5,eps,itime,0,ttrav,tfetch)
 
    if (my_rank==0) then
 ! Fields
