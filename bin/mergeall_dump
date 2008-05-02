@@ -39,7 +39,7 @@ do
 	echo "Concatenating $WFNAME.$TIMESTAMP:"
 	cat PE_list | while read GNAME
 	do 
-	   echo "Adding $GNAME"
+#	   echo "Adding $GNAME"
 	   cat $GNAME/parts_dump.$TIMESTAMP >> $DUMPFILE
 	done
 	# make copy of info block
