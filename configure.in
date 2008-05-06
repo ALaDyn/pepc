@@ -39,7 +39,7 @@ then
 #  DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
  NETCDF_PATH=/usr/local/netcdf/netcdf-3.6.2
   MACH=bgp
- TUNE="-qarch=450d -qtune=440"
+ TUNE="-qarch=440d -qtune=440"
 #  MPIF90=bgxlf90
 #  MPICC=bgxlc
   MPIF90=mpxlf90
