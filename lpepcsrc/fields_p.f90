@@ -79,6 +79,8 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
   !  dump_tree=.true.
   !  npp = np_local  ! assumed lists matched for now
 
+   
+
   if (walk_scheme /= 3) ifreeze=1
 
   load_balance=balance
@@ -249,7 +251,8 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
      ex_sl(1:nps) = ex(ip1:ip1+nps-1)
      ey_sl(1:nps) = ey(ip1:ip1+nps-1)
      ez_sl(1:nps) = ez(ip1:ip1+nps-1)
-
+     
+     
      if (force_debug) then
        	if (me==0) write(*,'(a14,i4,a4,i4,a20,i8,a4,i8)') &
              'LPEPC |  pass ',jpass,' of ',max_npass,': # particles ',ip1,' to ',ip1+nps-1

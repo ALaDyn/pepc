@@ -1,5 +1,5 @@
-   itime=     100
-     npp=    1032
+   itime=       0
+     npp=     992
       ne=    2000
       ni=    2000
   npbeam=       0
@@ -12,7 +12,7 @@ geometry=       1
      eps=     1.00000
    theta=     0.50000
  tlaser=      0.00000
-   trun=     20.00000
+   trun=      0.00000
    omega=     0.50000
   lambda=     1.00000
       qe=-2.09440E-03

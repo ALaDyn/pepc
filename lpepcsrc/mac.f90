@@ -45,7 +45,8 @@ subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,w
   real*8 :: d,dx,dy,dz
   real*8 :: quad_mp,eps2
   real*8 :: B2,rc
-
+  
+  
   eps2 = 10**(-8)
   
   !  get levels of twigs
@@ -61,6 +62,8 @@ subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,w
   iz = SUM( (/ (2**i*ibits( walk_key,3*i+2,1 ), i=0,nbits-1) /) )
 
 
+
+ 
   select case(mac) 
   case(0)                               ! BH-MAC
      ! write(*,*) "MAC0"
@@ -185,10 +188,11 @@ subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,w
 !     write(*,*) dist2, b_max2
   
   case(3) ! MAC E-Feld
+!     write(*,*) "MAC3"
      alpha = theta2
 
      field_old = sqrt(p_ex_p**2 + p_ey_p**2 + p_ez_p**2)
-     
+
      dx = x( pshort(p) ) - xcoc( walk_node )      
      dy = y( pshort(p) ) - ycoc( walk_node )
      dz = z( pshort(p) ) - zcoc( walk_node )

@@ -186,6 +186,7 @@ program pepcb
      ! # particles on CPU may change due to re-sort
 
 !POMP$ INST BEGIN(fields)
+
      call pepc_fields_p(np_local, walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
           dt, xl, yl, zl, itime+itime_start, &
           coulomb, bfields, bonds, lenjones, &

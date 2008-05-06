@@ -4,7 +4,7 @@
  ncpu_merge = 1
  debug_level = 2
  debug_tree = 0
- mac=0
+ mac=3
 ! particles
   ne = 2000
   ni = 2000 
@@ -53,7 +53,7 @@
   dt = 0.2
   eps = 1.
  restart = .false.
-  vis_on = .true.
+  vis_on = .false.
  ivis = 5 
  ivis_fields = 5
  ivis_domains = 5000

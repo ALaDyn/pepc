@@ -120,7 +120,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_np
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! merge mit trunk !!!!!!!!!!!!!!!!!!!!!!!
   integer :: periodic_neighbour(3) ! stores the index offset of the nearest image's cell as an integer(3) array
 
-  
 
   call cputime(t1)
   !
@@ -220,8 +219,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_np
 
 !           write (*,'(a,4i8,o15,f12.3)') 'particle i,p,pshort(p),nterm,kwalk,x', &
 !                i,p,pshort(p),nterm(p),walk_key(i),x(pshort(p))
+           
 
-          
            call mac_choose(npshort,pshort,p,ex_nps(p),ey_nps(p),ez_nps(p),np_local,walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)),theta2,mac,mac_ok, periodic_neighbour)
   
 	   mac_ok = ( mac_ok .and. walk_key(i)>1 )  !  always reject root node

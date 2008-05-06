@@ -220,6 +220,7 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      ey_sl(1:nps) = p_ey(ip1:ip1+nps-1)
      ez_sl(1:nps) = p_ez(ip1:ip1+nps-1)
 
+     
 
      if (force_debug) then
        	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
@@ -261,19 +262,19 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
 
-     do a=1,nps
-        ww_list = ww_list + nterm(a)
+!     do a=1,nps
+!        ww_list = ww_list + nterm(a)
         !      write(*,*) nterm(a)
-     end do
+!     end do
      
 
      if (dump_tree) call diagnose_tree
   
   end do
   
-  ww_list = ww_list / nps
+!  ww_list = ww_list / nps
   
-  write(*,*)"Durchschnittliche Laenge der WW-Liste:",ww_list
+!  write(*,*)"Durchschnittliche Laenge der WW-Liste:",ww_list
 
 
 

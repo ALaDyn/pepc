@@ -26,7 +26,7 @@ subroutine setup
   integer :: ierr
   integer*8, dimension(nprops_particle) :: address
 
-
+ 
   namelist /pepcdata/ nep, nip, np_mult, fetch_mult, ne, ni, &
        mac, theta, mass_ratio, q_factor, eps, &
        system_config, target_geometry, ispecial, &
@@ -44,7 +44,7 @@ subroutine setup
 
   !  Default input set
 
-
+ 
   system_config = 1  ! plasma target
   target_geometry = 1         ! random sphere
 
@@ -105,7 +105,6 @@ subroutine setup
 
   open(10,file='run.h')
   read (10,NML=pepcdata)
-
 
   ! Derived parameters
 

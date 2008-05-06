@@ -1,5 +1,5 @@
 &pepcdata
-  db_level = 3
+  db_level = 1
   np_mult = 1.5
   fetch_mult = 4
 
@@ -42,14 +42,14 @@
 !   ni = 1024
 !   ne = 2048
 !   ni = 2048
-!   ne = 4096
-!   ni = 4096
+   ne = 4096
+   ni = 4096
 !   ne = 8192
 !   ni = 8192
 !   ne = 16384
 !   ni = 16384
-   ne = 32768
-   ni = 32768
+!   ne = 32768
+!   ni = 32768
 !  ne = 65536
 !  ni = 65536
 !  ne = 131072
@@ -83,8 +83,8 @@
 
 ! physics stuff
 
-  theta = 0.3
-  mac=2
+  theta = 0.5
+  mac=3
   Te_keV = 0.5 ! Temperatures in keV
   Ti_keV =0.1
   mass_ratio = 2000.
