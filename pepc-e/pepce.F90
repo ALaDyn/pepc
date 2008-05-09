@@ -33,11 +33,11 @@ program pepce
   integer :: ierr, lvisit_active, ifile, debug, i, k
   character*5 :: ci
 
-  integer, allocatable :: indxl(:),irnkl(:), label_tmp(:)
-  integer, allocatable :: islen(:),irlen(:)
-  integer, allocatable :: fposts(:),gposts(:)
+!  integer, allocatable :: indxl(:),irnkl(:), label_tmp(:)
+!  integer, allocatable :: islen(:),irlen(:)
+!  integer, allocatable :: fposts(:),gposts(:)
 
-  integer :: npnew
+!  integer :: npnew
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -61,7 +61,7 @@ program pepce
 
   call pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult)  ! Allocate array space for tree
 
-  allocate(indxl(nppm),irnkl(nppm),islen(n_cpu),irlen(n_cpu),fposts(n_cpu+1),gposts(n_cpu+1),label_tmp(nppm))
+!  allocate(indxl(nppm),irnkl(nppm),islen(n_cpu),irlen(n_cpu),fposts(n_cpu+1),gposts(n_cpu+1),label_tmp(nppm))
 
 !  call param_dump      ! Dump initial data
   call configure       ! Set up particles
@@ -77,7 +77,7 @@ program pepce
 #endif
 !  ------------------ VISIT ------------------
 
-  npnew = np_local	
+!  npnew = np_local	
 
   do itime = 1,nt
      trun = trun + dt
@@ -108,25 +108,25 @@ program pepce
 !    	label_tmp(i) = pelabel(i) 
 !    end do	
 
-     call pepc_fields_p1(np_local,x(1:np_local),y(1:np_local),z(1:np_local), &
-                 q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
-		 ex,ey,ez,pot,npnew,indxl,irnkl,islen,irlen,fposts,gposts,mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
-	         t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch, &
-	         t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all)
+!     call pepc_fields_p1(np_local,x(1:np_local),y(1:np_local),z(1:np_local), &
+!                 q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
+!		 ex,ey,ez,pot,npnew,indxl,irnkl,islen,irlen,fposts,gposts,mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
+!	         t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch, &
+!	         t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all)
 
 
      call cputime(t1)
 
-     call restore_p1(npnew,np_local,indxl(1:np_local),irnkl(1:npnew),islen(1:n_cpu),irlen(1:n_cpu),fposts(1:n_cpu+1),gposts(1:n_cpu+1))
+!     call restore_p1(npnew,np_local,indxl(1:np_local),irnkl(1:npnew),islen(1:n_cpu),irlen(1:n_cpu),fposts(1:n_cpu+1),gposts(1:n_cpu+1))
     
-     np_local = npnew
+!     np_local = npnew
 
-!     call pepc_fields(np_local,x(1:np_local),y(1:np_local),z(1:np_local), &
-!	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
-!        	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-!              	      mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
-!	              t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch, &
-!		      t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all)
+     call pepc_fields(np_local,x(1:np_local),y(1:np_local),z(1:np_local), &
+	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
+        	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
+              	      mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
+	              t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch, &
+		      t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all)
 
 ! TODO: need proper mac selection instead of beam_config
 
@@ -149,7 +149,7 @@ program pepce
 
      call cputime(t_diag)
 
-     t_restore = t_start_push - t1    
+!     t_restore = t_start_push - t1    
 
      if (my_rank==0 .and. db_level .ge.1) then
         ttot = t_push-t0 ! total loop time without diags

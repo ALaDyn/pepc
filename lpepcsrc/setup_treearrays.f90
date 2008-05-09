@@ -128,7 +128,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mul
      nbranch_local_max = 5*nintmax
    endif
 
-   if (me == 0) write(*,*) "5 * ",nbranch_max," / ",num_pe," = ",5*nbranch_max/num_pe
    hashconst = 2**nbaddr-1
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
 
