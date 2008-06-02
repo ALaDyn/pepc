@@ -22,6 +22,8 @@
 ! direct force evaluation
 ! TODO: make random list of particles for sample
 
+	write (*,*) "Doing error analysis .."
+
       do i=1,ntest
          isamp = npp*rano(iseed)+1
          listerr(i) = isamp
@@ -55,9 +57,9 @@
 
       open(60,file='forces.dat')
       write (*,*) 'Writing forces, potentials to forces.dat'
-      write (60,*) '    i     list    pot_tree       pot_direct       ex_tree       ex_direct', &
+      write (60,*) '    i     list   nlist,  pot_tree       pot_direct       ex_tree       ex_direct', &
 	'   ey_tree        ey_direct       ez_tree        ez_direct'
-      write (60,'((2i8,8(1pe14.4)))') (i,listerr(i),pot(listerr(i)),potd(i), &
+      write (60,'((2i8,i6,8(1pe14.4)))') (i,listerr(i),nterm(i),pot(listerr(i)),potd(i), &
 	ex(listerr(i)),exd(i), ey(listerr(i)), eyd(i), ez(listerr(i)), ezd(i), i=1,ntest)
 
       err_pot = sqrt(dpot/spot)
@@ -69,7 +71,8 @@
 	'Forces (x,y,z) ',errfx,errfy,errfz,'Average force',errf_ave
       write (60,'(a/a20,1pe13.6/a20,3(1pe13.6)/a20,1pe13.6)') 'Relative rms errors:','Potential ',err_pot, &
 	'Forces (x,y,z) ',errfx,errfy,errfz,'Average force',errf_ave
-  
+      write (6,'(a,i8,a1,i8)') 'Ave. list length',SUM(nterm(1:npp))/npp,'/',npp
+      write (60,'(a,i8,a1,i8)') 'Ave. list length',SUM(nterm(1:npp))/npp,'/',npp
       close(60)
       end subroutine error_test
 

@@ -481,7 +481,16 @@ subroutine configure
 #endif
 
         case default     ! Default = 0 - no plasma target
-            if (me==0) write (6,*) 'Warning: no plasma set up'
+            if (me==0) then
+		write (6,*) 'Warning: no plasma set up'
+		write (6,*) 'Chosen config ',plasma_config,' not found'
+		write (6,*) '- check you have built pepcb with OPT="-DHAVE_PRIVATE_CONFIGS"'
+		write (6,*) '  and that config exists in config_private.h'
+		call closefiles
+  	  	call MPI_FINALIZE(ierr)
+		stop
+	    endif
+
             npart=0
             npp = 0
             Vplas = x_plasma * y_plasma * z_plasma

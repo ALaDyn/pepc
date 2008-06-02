@@ -194,7 +194,6 @@ program pepcb
   
 !POMP$ INST END(fields)
 
-	if (np_error>0 .and. itime==1) call error_test(np_error)
 
      call cputime(t_start_push)
      fpon_max=0.

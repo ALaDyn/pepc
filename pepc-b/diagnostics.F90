@@ -67,7 +67,7 @@ subroutine diagnostics
 
   if (mod(itime,idump) >= idump-navcycle .or. nt.lt.idump) then
 !	call sum_fields    ! Accumulate cycle-averaged fields on grid
-	call sum_fieldave
+!	call sum_fieldave
   endif
 
   !  - assume for now that idump > navcycle
