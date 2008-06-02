@@ -142,7 +142,8 @@ module treevars
                                xxquad(:), yyquad(:), zzquad(:), &    ! quadrupole moment
                                xyquad(:), yzquad(:), zxquad(:), &    !
                                magmx(:), magmy(:), magmz(:), &       ! magnetic dipole moment
-                               jx(:), jy(:), jz(:)                   ! current
+                               jx(:), jy(:), jz(:), &                  ! current
+				size_node(:)  !  Spatial extent (radius) of multipole
   integer*8, allocatable ::    first_child(:)   ! key of first child
 
   integer, allocatable ::       n_children(:), &     ! # children

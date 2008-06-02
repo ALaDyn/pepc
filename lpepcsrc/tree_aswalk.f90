@@ -2,7 +2,7 @@
 !
 !           TREE_WALK
 !
-!   $ Revision: 1.19 $
+!   $Revision$
 !
 !   Perform tree walk for all local particles
 !

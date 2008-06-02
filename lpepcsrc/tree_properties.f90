@@ -23,7 +23,7 @@ subroutine tree_properties
   integer, dimension(maxaddress) :: local_node
   integer :: addr_twig
 
-  integer, parameter :: n_moments = 23  ! # property arrays
+  integer, parameter :: n_moments = 24  ! # property arrays
   real*8, dimension(n_moments*nbranch_local_max) :: local_moments      ! local branch properties    - size depends on # moments          
   real*8, dimension(n_moments*nbranch_max) :: branch_moments   ! global branch properties
   integer, dimension(num_pe) :: nbranchmoments ! array containing total # multipole terms*branch list length
@@ -70,6 +70,8 @@ subroutine tree_properties
      jx(i) = 0.
      jy(i) = 0.
      jz(i) = 0.
+     size_node( i ) = 0.
+
   end do
 
   !  Start with *local* leaf properties
@@ -116,6 +118,9 @@ subroutine tree_properties
      xshift( node_leaf ) = 0.
      yshift( node_leaf ) = 0.
      zshift( node_leaf ) = 0.
+
+     size_node( node_leaf ) = x(p_leaf)**2 + y(p_leaf)**2 + z(p_leaf)**2
+
   end do
 
 
@@ -243,6 +248,11 @@ subroutine tree_properties
         jx( node_twig(i) ) = jx( node_twig(i) ) + jx( node_child(j) )       ! Sum currents of child nodes
         jy( node_twig(i) ) = jy( node_twig(i) ) + jy( node_child(j) )  
         jz( node_twig(i) ) = jz( node_twig(i) ) + jz( node_child(j) )  
+
+!   moments for node size:
+
+     	size_node(node_twig(i)) = size_node(node_twig(i)) + size_node(node_child(j))
+
      end do
   end do
 
@@ -280,6 +290,7 @@ subroutine tree_properties
      local_moments(ibr+21) = jx( local_node(i) )
      local_moments(ibr+22) = jy( local_node(i) )
      local_moments(ibr+23) = jz( local_node(i) )
+     local_moments(ibr+24) = size_node( local_node(i) )
   end do
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
@@ -337,6 +348,7 @@ subroutine tree_properties
         jx( node_b ) = branch_moments(ibr+21)  
         jy( node_b ) = branch_moments(ibr+22)  
         jz( node_b ) = branch_moments(ibr+23)  
+     	size_node( node_b ) =  branch_moments(ibr+24) 
      endif
   end do
 
@@ -427,6 +439,9 @@ subroutine tree_properties
         jx( parent_node(i) ) = jx( parent_node(i) ) + jx( branch_node(i) )
         jy( parent_node(i) ) = jy( parent_node(i) ) + jy( branch_node(i) )
         jz( parent_node(i) ) = jz( parent_node(i) ) + jz( branch_node(i) )
+
+! Multipole extent
+     	size_node( parent_node(i) ) = size_node( parent_node(i) ) + size_node(branch_node(i))
      end do
 
 

@@ -19,6 +19,7 @@ subroutine diagnose_tree
   integer*8 :: key_twig(ntwig), key_leaf(nleaf) 
   integer, dimension(size_tree) :: node_list, owner_list, addr_list
   integer, dimension(ntwig) :: level_twig, nchild_twig, child_twig, addr_twig, ind_twig      ! twig-nodes
+  real :: rcoc2(1:ntwig)
   integer, dimension(nleaf) :: level_leaf, plist_leaf, ind_leaf, owner_leaf       ! leaf-nodes
 
   character(30) :: cfile
@@ -65,7 +66,9 @@ subroutine diagnose_tree
   child_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%childcode,i=1,ntwig )/)   !  Children byte-code
   ind_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%node,i=1,ntwig )/)   !  Twig node pointers
 
-
+  do i=1,ntwig
+  rcoc2(i) = xcoc(ind_twig(i))**2+ycoc(ind_twig(i))**2 + zcoc(ind_twig(i))**2
+  end do
 
   write (ipefile,'(///a)') 'Tree structure'
 
@@ -89,7 +92,7 @@ subroutine diagnose_tree
          jx(ind_twig(i)), &  
          jy(ind_twig(i)), &  
          magmx(ind_twig(i)), &  
-         magmy(ind_twig(i)), &  
+         sqrt(size_node(ind_twig(i))/htable(addr_twig(i))%leaves-rcoc2(i)), &  
 !         xxquad(ind_twig(i)), &  
 !         yyquad(ind_twig(i)), &  
 !         xyquad(ind_twig(i)), &  
