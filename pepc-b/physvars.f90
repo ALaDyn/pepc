@@ -205,10 +205,15 @@ module physvars
   integer :: balance = 1  !< Load balancing switch
   integer :: ifreeze = 1  !< Tree-freezing control
 
-  character*10 :: plasma_configs(0:20)= (/ &
-       'no plasma ','plasma    ','special   ','i+e slab  ','i+e sphere', &
-       '          ','          ','          ','          ','          ', &
-       '          ','          ','          ','          ','          ', &
+  character*10 :: plasma_configs(0:50)= (/ &
+       'no plasma ','rand-geom ','special   ','i+e slab  ','i+e sphere', &
+       '          ','          ','imp sphere','          ','          ', &
+       'ion overl ','slab+prot ','microdot  ','doped     ','micro-rear', &
+       'slab+foam ','dish+prot ','          ','          ','          ', &            'tincan    ','can+prot  ','tube+prot ','rev-can   ','          ', &
+       '          ','          ','          ','          ','          ', & 
+       '          ','          ','microd-2  ','          ','          ', &
+       'microd-3  ','          ','          ','          ','          ', & 
+       'foam      ','pipes     ','          ','          ','          ', &
        '          ','          ','          ','          ','          ', &
        '          '  /)
 
