@@ -97,8 +97,8 @@ subroutine fpond_helm(t,tpulse,sigma_in,vosc,omega, &
   if (xa.ge.1 .and. xa.le.nxh) then
      ! Only compute force for particles inside HH grid
      ! leave one-point buffer at either end for difference dA/dx
-     i1 = int(xa)  ! lower NGP
-     i2 = i1+1       ! upper NGP
+     i1 = max(int(xa),1)  ! lower NGP
+     i2 = min(i1+1,nxh)       ! upper NGP
      b2=xa-i1  ! linear weights  W_j = 1-|x_i-x_j|
      b1=1.-b2
 

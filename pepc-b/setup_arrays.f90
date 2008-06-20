@@ -21,7 +21,7 @@ subroutine setup_arrays
       Te_loc(0:ngx+1,0:ngy+1,0:ngz+1), Ti_loc(0:ngx+1,0:ngy+1,0:ngz+1),  &
       g_ele(0:ngx+1,0:ngy+1,0:ngz+1), g_ion(0:ngx+1,0:ngy+1,0:ngz+1),  &
       jxe_loc(0:ngx+1,0:ngy+1,0:ngz+1), jye_loc(0:ngx+1,0:ngy+1,0:ngz+1), jze_loc(0:ngx+1,0:ngy+1,0:ngz+1) )
-  allocate (ex_ave(0:nxh+1),ey_ave(0:nxh+1,3),ez_ave(0:nxh+1) )
+  allocate (ex_ave(0:ngav+1),ey_ave(0:ngav+1,3),ez_ave(0:ngav+1) )
 
 ! Fields for Helmholtz solver
   allocate (rho_helm(0:nxh+1),az_helm(0:nxh+1) )
