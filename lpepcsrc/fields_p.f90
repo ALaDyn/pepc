@@ -267,7 +267,7 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
         call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
     else
    ! asynchronous walk  (0,3)
-       call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,err_f,ttrav,tfetch,ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
+       call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
     endif
 
      t_walk = t_walk + ttrav  ! traversal time (serial)

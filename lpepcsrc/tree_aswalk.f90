@@ -35,7 +35,7 @@
 ! ===========================================
 
 
-! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,err_f,ttrav,tfetch,ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
+! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
 
 subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_nps,ey_nps,ez_nps,np_local)
   use treevars
@@ -46,7 +46,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_np
 
   real, intent(in) :: theta  ! MAC angle
   real, intent(in) :: eps    ! Softening radius
-  real, intent(in) :: err_f  ! Error bound
+!  real, intent(in) :: err_f  ! Error bound
   integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
   integer, intent(in) :: mac
