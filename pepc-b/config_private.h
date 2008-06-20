@@ -141,7 +141,7 @@
 
             target_geometry=2
             velocity_config=1
-            plasma_centre =  (/ .75*xl., yl/2., zl/2. /) 
+            plasma_centre =  (/ .75*xl, yl/2., zl/2. /) 
             offset_e = me*nep + ne_rest
             offset_i = ne + me*nip + ni_rest
 
@@ -154,8 +154,15 @@
                 rho0, 1.0, mass_ratio, vti, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
                 number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
-            ! Tube = cylinder with inset
 
+            if (debug_level.ge.1 .and. me==0) then
+                write(*,*) "cap volume ",Vplas
+                write(*,*) "cap ion charge ",qi
+                write(*,*) "cap ion mass ",mass_i
+                write(*,*) "cap spacing",a_ii
+            endif
+
+      ! Tube = cylinder with inset
             write(ipefile,'(/a/)') "Setting up tube"
 
             ! Adjust local numbers if total non-multiple of # PEs
@@ -188,6 +195,13 @@
             call plasma_start( ipstart+nlayp, nlayp, n_layer(1), label_offset, layer_geometry, velocity_config, idim, &
                 -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                 faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
+
+            if (debug_level.ge.1 .and. me==0) then
+                write(*,*) "tube volume ",V_layer(1)
+                write(*,*) "tube charge ",qpart_layer(1)
+                write(*,*) "tube mass ",mass_layer(1)
+               write(*,*) "tube spacing",ai_layer(1)
+            endif
 
             npp=npp + 2*nlayp  ! Total # local particles
             ne = ne + n_layer(1)  ! Global # particles

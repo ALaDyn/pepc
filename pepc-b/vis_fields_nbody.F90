@@ -47,21 +47,23 @@ subroutine vis_fields_nbody(timestamp)
      if (me==0) write(*,'(a)') 'VIS_FIELDS  | No connection to visualization'
   endif
 
+! Default field selection 
+  fselect1=1
+  fselect2=4
+  fselect3=5
+  fselect4=0
+
 ! Connected to vis, so proceed with field select & gather
 
 #ifdef VISIT_NBODY
 ! Fetch user-selected config from vis
   if (me==0 .and. lvisit_active.ne.0) then
 	call flvisit_nbody2_selectfields_recv(fselect1,fselect2,fselect3,fselect4)
-  	write(*,'(a)') 'VIS_FIELDS  | Selection:',fselect1,fselect2,fselect3,fselect4
-! Override selection 
-!	fselect1=1
-!	fselect2=4
-!	fselect3=5
-!	fselect4=0
 
   endif
 #endif
+
+  if (me==0) write(*,'(a,4i6)') 'VIS_FIELDS  | Selection:',fselect1,fselect2,fselect3,fselect4
 
   ! get filename suffix from dump counter
   do i=0,4
@@ -111,7 +113,7 @@ subroutine vis_fields_nbody(timestamp)
      dz = zl/ngz
      dy = yl/ngy
 
-  if (itime>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
+     if (itime>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
      do k=1,ngz,iskip_z
         do j=1,ngy,iskip_y
            do i=1,ngx,iskip_x
@@ -250,8 +252,10 @@ subroutine vis_fields_nbody(timestamp)
 
 ! Tell vis which fields are coming
 
-if (lvisit_active.ne.0) then
+  if (lvisit_active.ne.0) then
 	 call flvisit_nbody2_selectedfields_send(fselect1,fselect2,fselect3,fselect4)
+  endif
+#endif
 
 #ifdef NETCDFLIB
 ! Netcdf write
@@ -267,7 +271,9 @@ if (lvisit_active.ne.0) then
      grid_pars(6*i+6) = dz
    end do
 
+#ifdef VISIT_NBODY
    call flvisit_nbody2_fielddesc_send(grid_pars,4,6)
+#endif
 
 #ifdef NETCDFLIB
 	write(*,'(a)') 'VIS_FIELDS  | NETCDF: grid-pars'
@@ -276,40 +282,51 @@ if (lvisit_active.ne.0) then
 
 !   write(*,*) 'Grids: ',grid_pars
       if (fselect1>0) then
+#ifdef VISIT_NBODY
        	 write (*,'(a)') "VIS_FIELDS  | Shipping field 1: min/max =", &
-	minval(field1),maxval(field1)
+      minval(field1),maxval(field1)
          call flvisit_nbody2_field1_send(field1,npx,npy,npz)   
+#endif
 #ifdef NETCDFLIB
        	 write (*,'(a)') "VIS_FIELDS  | Writing field 1 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime, 1, npx, npy, npz, field1, incdf )
 #endif
       endif
+
       if (fselect2>0) then
+#ifdef VISIT_NBODY
        	 write (*,'(a)') "VIS_FIELDS  | Shipping field 2"
          call flvisit_nbody2_field2_send(field2,npx,npy,npz)   
+#endif
 #ifdef NETCDFLIB
        	 write (*,'(a)') "VIS_FIELDS  | Writing field 2 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime, 2, npx, npy, npz, field2, incdf )
 #endif
       endif
+
       if (fselect3>0) then
+#ifdef VISIT_NBODY
        	 write (*,'(a)') "VIS_FIELDS  | Shipping field 3"
          call flvisit_nbody2_field3_send(field3,npx,npy,npz)  
+#endif
 #ifdef NETCDFLIB
        	 write (*,'(a)') "VIS_FIELDS  | Writing field 3 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime,3, npx, npy, npz, field3, incdf )
 #endif
       endif
+
       if (fselect4>0) then
+#ifdef VISIT_NBODY
        	 write (*,'(a)') "VIS_FIELDS  | Shipping field 4"
          call flvisit_nbody2_field4_send(field4,npx,npy,npz)
+#endif
 #ifdef NETCDFLIB
        	 write (*,'(a)') "VIS_FIELDS  | Writing field 4 to netcdf"
          if (netcdf) call ncnbody_putfield( ncid, simtime, 4, npx, npy, npz, field4, incdf )
 #endif
       endif
-endif
-#endif
+
+  endif
 
 
 ! TODO : Put this in dump_fields
@@ -344,7 +361,6 @@ endif
      write(62,'((2(1pe12.4)))') &
           (i*dx,te_slice(i),i=1,ngx)
      close(62)
-  endif
 
 
 end subroutine vis_fields_nbody

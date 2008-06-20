@@ -209,7 +209,8 @@ module physvars
        'no plasma ','rand-geom ','special   ','i+e slab  ','i+e sphere', &
        '          ','          ','imp sphere','          ','          ', &
        'ion overl ','slab+prot ','microdot  ','doped     ','micro-rear', &
-       'slab+foam ','dish+prot ','          ','          ','          ', &            'tincan    ','can+prot  ','tube+prot ','rev-can   ','          ', &
+       'slab+foam ','dish+prot ','          ','          ','          ', &
+       'tincan    ','can+prot  ','tube+prot ','rev-can   ','          ', &
        '          ','          ','          ','          ','          ', & 
        '          ','          ','microd-2  ','          ','          ', &
        'microd-3  ','          ','          ','          ','          ', & 
