@@ -183,7 +183,7 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
 !     if(me == 2 .and. mac_ok ) write(*,*) mac_ok
       
 !     write(*,*) mac_ok, theta2
-!     write(*,*) x_wn,y_wn,z_wn,"teilchen",x(pshort(p)),y(pshort(p)),z(pshort(p))
+!     write(*,*) x_wn,y_wn,z_wn,"teilchen",x(p),y(p),z(p)
 !     write(*,*)"ddd",dx,dy,dz
 !     write(*,*) dist2, b_max2
   
@@ -209,7 +209,7 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
 
      dx = x(p) - xcoc( walk_node )      
      dy = y(p) - ycoc( walk_node )
-     dz = z( pshort(p) ) - zcoc( walk_node )
+     dz = z(p) - zcoc( walk_node )
 
  
      xt=ix*boxl + xmin
@@ -246,9 +246,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
 
      
 !  case(10)                              ! BH-MAC periodic
-!     dx = x( pshort(p) ) - xcoc( walk_node )      ! Separations
-!     dy = y( pshort(p) ) - ycoc( walk_node )
-!     dz = z( pshort(p) ) - zcoc( walk_node )
+!     dx = x(p) - xcoc( walk_node )      ! Separations
+!     dy = y(p)  - ycoc( walk_node )
+!     dz = z(p) - zcoc( walk_node )
      
 !     if (dx.gt.Ldiv2) then
 !        deltax = dx-periodic_L
