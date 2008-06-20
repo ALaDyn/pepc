@@ -35,20 +35,22 @@
 ! ===========================================
 
 
-!Old call: subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)
+! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,err_f,ttrav,tfetch,ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
 
-subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_nps,ey_nps,ez_nps,np_local)
+subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,err_f,twalk,tfetch,ex_nps,ey_nps,ez_nps,np_local)
   use treevars
   use tree_utils
   use utils
   implicit none
   include 'mpif.h'
 
-  real, intent(in) :: theta, eps
+  real, intent(in) :: theta  ! MAC angle
+  real, intent(in) :: eps    ! Softening radius
+  real, intent(in) :: err_f  ! Error bound
   integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
   integer, intent(in) :: mac
-  integer,intent(in) :: np_local
+  integer,intent(in) :: np_local  ! Total # local particles
   real*8, intent(in) :: ex_nps(npshort),ey_nps(npshort),ez_nps(npshort)  ! Fields from previous timestep
   ! integer, intent(out) :: nodelist(nintm, npshort)
   integer :: npackm   ! Max # children shipped
