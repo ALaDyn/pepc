@@ -8,10 +8,7 @@
 !>	2  Bmax - replace s with longest sep between coq and box corner
 !>	3  Upper bound: Use E-field from previous step to estimate acceptable error and equiv dmin 
 !>	10 Periodic variant of s/d - use nearest min. image and return its quadrant for force sum.
-
-!>periodic boundary-safe version of the MAC originally proposed by Barnes&Hut
-!>
-!>in periodic boundary mode it also returns the index offset of the nearest image's cell as an integer(3) array in neighbour
+!>         - returns the index offset of the nearest image's cell as an integer(3) array in neighbour
 
 subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, neighbour)
   use treevars
@@ -24,24 +21,24 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
   logical, intent(out) :: mac_ok !< on exit: if cell needs not be resolved: .true. else .false.
   integer, intent(out) :: neighbour(3) !< only for periodic mode: contains offsets to nearest  image cell (i,j,k)
   integer, intent(in) :: mac
+  integer, intent(in) :: p
   real*8, intent(in) :: walk_abs_charge
+  integer*8,intent(in) :: walk_key 
+  integer, intent(in) :: walk_node
+  integer, intent(in) :: np_local
+  real*8, intent(in) :: p_ex_p, p_ey_p, p_ez_p  
   real*8 :: dist2,s2
   real*8 :: deltax, deltay, deltaz
   real*8 :: Ldiv2
   integer :: ix,iy,iz,nbits,i,j,k
-  integer, intent(in) :: walk_node
 !  integer, intent(in) :: npshort
-  integer, intent(in) :: p
   real :: xt, yt,zt
-  integer*8,intent(in) :: walk_key 
   real :: boxl
   real :: x_wn,y_wn,z_wn,b_max2,b_temp,e_dx,e_dy,e_dz
   real :: x_min,y_min,z_min,x_max,y_max,z_max,x_len,y_len,z_len,px,py,pz,md2
   real,dimension(3) :: x_val,y_val,z_val
 !  real :: delta_x,delta_y,delta_z 
-  real*8, intent(in) :: p_ex_p, p_ey_p, p_ez_p  
   real :: alpha,field_old,dist
-  integer, intent(in) :: np_local
   real*8 :: d,dx,dy,dz
   real*8 :: quad_mp,eps2
   real*8 :: B2,rc
@@ -51,8 +48,13 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
   
   !  get levels of twigs
   nbits = log( 1.*walk_key )/log(8.)
+! should use:
+!  nbits = node_level(walk_node)
   neighbour = 0
 
+! TODO: need to prestore boxl and corner coord as tree node property
+! Do this at end of tree_fill and then for new nodes added during tree walk
+! - is there a faster bit-op to extract these?
 
 !  Ldiv2 = periodic_L*0.5
   boxl =  sqrt(boxl2)
