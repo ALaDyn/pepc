@@ -209,7 +209,7 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
 
      dx = x(p) - xcoc( walk_node )      
      dy = y(p) - ycoc( walk_node )
-     dz = z(p) - zcoc( walk_node )
+     dz = z( pshort(p) ) - zcoc( walk_node )
 
  
      xt=ix*boxl + xmin
