@@ -223,7 +223,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_np
 !                i,p,pshort(p),nterm(p),walk_key(i),x(pshort(p))
            
 
-           call mac_choose(npshort,pshort,p,ex_nps(p),ey_nps(p),ez_nps(p),np_local,walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)),theta2,mac,mac_ok, periodic_neighbour)
+           call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),np_local,walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)),theta2,mac,mac_ok, periodic_neighbour)
   
 	   mac_ok = ( mac_ok .and. walk_key(i)>1 )  !  always reject root node
 

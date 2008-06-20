@@ -13,7 +13,7 @@
 !>
 !>in periodic boundary mode it also returns the index offset of the nearest image's cell as an integer(3) array in neighbour
 
-subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, neighbour)
+subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, neighbour)
   use treevars
   implicit none
  
@@ -29,9 +29,9 @@ subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,w
   real*8 :: deltax, deltay, deltaz
   real*8 :: Ldiv2
   integer :: ix,iy,iz,nbits,i,j,k
-  integer, intent(in) :: p,walk_node
-  integer, intent(in) :: npshort
-  integer, intent(in) :: pshort(npshort)
+  integer, intent(in) :: walk_node
+!  integer, intent(in) :: npshort
+  integer, intent(in) :: p
   real :: xt, yt,zt
   integer*8,intent(in) :: walk_key 
   real :: boxl
@@ -67,9 +67,9 @@ subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,w
   select case(mac) 
   case(0)                               ! BH-MAC
      ! write(*,*) "MAC0"
-     dx = x( pshort(p) ) - xcoc( walk_node )      ! Separations
-     dy = y( pshort(p) ) - ycoc( walk_node )
-     dz = z( pshort(p) ) - zcoc( walk_node )
+     dx = x(p) - xcoc( walk_node )      ! Separations
+     dy = y(p) - ycoc( walk_node )
+     dz = z(p) - zcoc( walk_node )
      
        
      dist2 = theta2*(dx*dx+dy*dy+dz*dz)
@@ -78,9 +78,9 @@ subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,w
 !     mac_ok = .false.
   case(1)                                  !MD-MAC                
     ! write(*,*) "MAC1"
-     px = x( pshort(p) )
-     py = y( pshort(p) ) 
-     pz = z( pshort(p) ) 
+     px = x(p)
+     py = y(p) 
+     pz = z(p) 
   
    
      xt=ix*boxl + xmin
@@ -122,9 +122,9 @@ subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,w
      y_wn = ycoc( walk_node )
      z_wn = zcoc( walk_node )
 
-     dx = x( pshort(p) ) - x_wn      
-     dy = y( pshort(p) ) - y_wn
-     dz = z( pshort(p) ) - z_wn
+     dx = x(p) - x_wn      
+     dy = y(p) - y_wn
+     dz = z(p) - z_wn
 
      
      xt=ix*boxl + xmin
@@ -193,9 +193,9 @@ subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,w
 
      field_old = sqrt(p_ex_p**2 + p_ey_p**2 + p_ez_p**2)
 
-     dx = x( pshort(p) ) - xcoc( walk_node )      
-     dy = y( pshort(p) ) - ycoc( walk_node )
-     dz = z( pshort(p) ) - zcoc( walk_node )
+     dx = x(p) - xcoc( walk_node )      
+     dy = y(p) - ycoc( walk_node )
+     dz = z(p) - zcoc( walk_node )
      
      
      dist = sqrt((dx*dx+dy*dy+dz*dz)) !Distance between COC and particle
@@ -207,9 +207,9 @@ subroutine mac_choose(npshort,pshort,p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,w
      alpha = 1000
 
 
-     dx = x( pshort(p) ) - xcoc( walk_node )      
-     dy = y( pshort(p) ) - ycoc( walk_node )
-     dz = z( pshort(p) ) - zcoc( walk_node )
+     dx = x(p) - xcoc( walk_node )      
+     dy = y(p) - ycoc( walk_node )
+     dz = z(p) - zcoc( walk_node )
 
  
      xt=ix*boxl + xmin
