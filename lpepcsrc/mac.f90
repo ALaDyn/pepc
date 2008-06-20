@@ -46,6 +46,7 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
   
   eps2 = 10**(-8)
   
+  if (mac.ne.0) then
   !  get levels of twigs
   nbits = log( 1.*walk_key )/log(8.)
 ! should use:
@@ -63,7 +64,7 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
   iy = SUM( (/ (2**i*ibits( walk_key,3*i+1,1 ), i=0,nbits-1) /) )
   iz = SUM( (/ (2**i*ibits( walk_key,3*i+2,1 ), i=0,nbits-1) /) )
 
-
+ endif
 
  
   select case(mac) 
