@@ -56,7 +56,7 @@ program ppfields
 
     character(5) :: cme
     character(6) :: cdump, cvis
-    logical :: found
+    logical :: found, dump3d=.true.
     real :: xc1, rho_track, gamma, mass_ratio, phimin,phimax, logrho
 
     integer :: icm, icp, nout, nelecs, nions, nsel
@@ -89,6 +89,7 @@ program ppfields
         jemax, jimax, emax, fpmax, jevec, jivec, evec, epsr, tcold
     read(20,'(6(9x,f12.5/))') xbox, ybox, zbox, yshift, zshift, pshift    ! plot dimensions and scale positions in inches
     read(20,'(9x,i6/)') iskip3d  ! skip stride for writing out 3D xyz plots
+!    read(20,'(9x,i6/)') dump3d  ! 3D dump switch 
     close(20)
     write(*,*) n,ngx,ngy,ngz,ngux,nguy,nguz
     write(*,*) xmin,xmax,ymin,ymax,zmin,zmax
@@ -711,13 +712,13 @@ program ppfields
     nout = 15
     cfout(1) = cdump//'/yz_slice_eden'
     cfout(2) = cdump//'/yz_slice_iden'
-    cfout(3) = cdump//'/yz_slice_jxe'
+    cfout(3) = cdump//'/yz_slice_jye'
     cfout(4) = cdump//'/yz_slice_jze'
-    cfout(5) = cdump//'/yz_slice_jxi'
+    cfout(5) = cdump//'/yz_slice_jyi'
     cfout(6) = cdump//'/yz_slice_jzi'
     cfout(7) = cdump//'/yz_slice_te'
     cfout(8) = cdump//'/yz_slice_ti'
-    cfout(9) = cdump//'/yz_slice_ex'
+    cfout(9) = cdump//'/yz_slice_ey'
     cfout(10) = cdump//'/yz_slice_ez'
     cfout(11) = cdump//'/yz_slice_phi'
     cfout(12) = cdump//'/yz_slice_nhot'
@@ -737,13 +738,13 @@ program ppfields
         do j=1,ngy
             write(20,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, abs(rho_ele(islice,j,k))
             write(21,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, rho_ion(islice,j,k)
-            write(22,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jx_ele(islice,j,k)
+            write(22,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jy_ele(islice,j,k)
             write(23,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jz_ele(islice,j,k)
-            write(24,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jx_ion(islice,j,k)
+            write(24,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jy_ion(islice,j,k)
             write(25,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, jz_ion(islice,j,k)
             write(26,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, te(islice,j,k)
             write(27,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, ti(islice,j,k)
-            write(28,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, Egx(islice,j,k)
+            write(28,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, Egy(islice,j,k)
             write(29,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, Egz(islice,j,k)
             write(30,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, phig(islice,j,k)
             write(31,'(2f13.4,f16.6)') j*dy+ymin, k*dz+zmin, abs(rho_hot(islice,j,k))
@@ -793,47 +794,53 @@ program ppfields
         max(avete(i),1.e-5), max(aveti(i),1.e-5), avephi(i), avenhot(i), i=1,ngx )
     close(20)
 
-    cfout(1) = 'fields_pp/mesh.xyz'
-    cfout(2) = 'fields_pp/'//cdump//'.xyz'
 
 
-    !  write(*,'(2a)') 'Writing 3D dump ',cfout(2)
-    !  open(20,file=cfout(1))
-    !  open(21,file=cfout(2))
+!  3D field dumps
 
-    ! write AVS field record
-    !  open(60,file='fields3d.fld',position='append')
-    !  write(60,'(3a)') 'time file='//cfout(2)//' filetype=ascii'
-    !  write(60,'(3a)') 'variable 1 file='//cfout(2)//' filetype=ascii offset=0 stride=7'
-    !  write(60,'(3a)') 'variable 2 file='//cfout(2)//' filetype=ascii offset=1 stride=7'
-    !  write(60,'(3a)') 'variable 3 file='//cfout(2)//' filetype=ascii offset=2 stride=7'
-    !  write(60,'(3a)') 'variable 4 file='//cfout(2)//' filetype=ascii offset=3 stride=7'
-    !  write(60,'(3a)') 'variable 5 file='//cfout(2)//' filetype=ascii offset=4 stride=7'
-    !  write(60,'(3a)') 'variable 6 file='//cfout(2)//' filetype=ascii offset=5 stride=7'
-    !  write(60,'(3a)') 'variable 7 file='//cfout(2)//' filetype=ascii offset=6 stride=7'
-    !  write(60,'(a3)') 'EOT'
+
+   if (dump3d) then
+      cfout(1) = 'fields_pp/mesh.xyz'
+      cfout(2) = 'fields_pp/'//cdump//'.xyz'
+
+      write(*,'(2a)') 'Writing 3D dump ',cfout(2)
+      open(20,file=cfout(1))
+      open(21,file=cfout(2))
+
+!     write AVS field record
+      open(60,file='fields3d.fld',position='append')
+      write(60,'(3a)') 'time file='//cfout(2)//' filetype=ascii'
+      write(60,'(3a)') 'variable 1 file='//cfout(2)//' filetype=ascii offset=0 stride=7'
+      write(60,'(3a)') 'variable 2 file='//cfout(2)//' filetype=ascii offset=1 stride=7'
+      write(60,'(3a)') 'variable 3 file='//cfout(2)//' filetype=ascii offset=2 stride=7'
+      write(60,'(3a)') 'variable 4 file='//cfout(2)//' filetype=ascii offset=3 stride=7'
+      write(60,'(3a)') 'variable 5 file='//cfout(2)//' filetype=ascii offset=4 stride=7'
+      write(60,'(3a)') 'variable 6 file='//cfout(2)//' filetype=ascii offset=5 stride=7'
+      write(60,'(3a)') 'variable 7 file='//cfout(2)//' filetype=ascii offset=6 stride=7'
+      write(60,'(a3)') 'EOT'
 1   close(60)
-    !  iskip3d = 2
-    !  write(20,'(3i6)') ngx/iskip3d,ngy/iskip3d,ngz/iskip3d
 
-    !  do k=1,ngz,iskip3d
-    !     do j=1,ngy,iskip3d
-    !       do i=1,ngx,iskip3d
-    !           write(20,'(3f7.2)') i*dx+xmin, j*dy+ymin, k*dz+zmin
-    !           write(21,'(7(1pe10.2))') & 
-    !                abs(SUM(rho_ele(i:i+iskip3d-1,j,k))+SUM(rho_hot(i:i+iskip3d-1,j,k)))/iskip3d, &
-    !                SUM(rho_ion(i:i+iskip3d-1,j,k))/iskip3d, &
-    !                SUM(jx_ion(i:i+iskip3d-1,j,k))/iskip3d, &
-    !                SUM(jy_ion(i:i+iskip3d-1,j,k))/iskip3d, &
-    !                SUM(jz_ion(i:i+iskip3d-1,j,k))/iskip3d, & 
-    !                SUM(Te(i:i+iskip3d-1,j,k))/iskip3d, & 
-    !                SUM(Ti(i:i+iskip3d-1,j,k))/iskip3d 
-    !        end do
-    !     end do
-    !  end do
-    !  close(20)
-    !  close(21)
+      iskip3d = 1
+      write(20,'(3i6)') ngx/iskip3d,ngy/iskip3d,ngz/iskip3d
 
+      do k=1,ngz,iskip3d
+         do j=1,ngy,iskip3d
+           do i=1,ngx,iskip3d
+               write(20,'(3f7.2)') i*dx+xmin, j*dy+ymin, k*dz+zmin
+               write(21,'(7(1pe10.2))') & 
+                    abs(SUM(rho_ele(i:i+iskip3d-1,j,k))+SUM(rho_hot(i:i+iskip3d-1,j,k)))/iskip3d, &
+                    SUM(rho_ion(i:i+iskip3d-1,j,k))/iskip3d, &
+                    SUM(jx_ion(i:i+iskip3d-1,j,k))/iskip3d, &
+                    SUM(jy_ion(i:i+iskip3d-1,j,k))/iskip3d, &
+                    SUM(jz_ion(i:i+iskip3d-1,j,k))/iskip3d, & 
+                    SUM(Te(i:i+iskip3d-1,j,k))/iskip3d, & 
+                    SUM(Ti(i:i+iskip3d-1,j,k))/iskip3d 
+            end do
+         end do
+      end do
+      close(20)
+      close(21)
+    endif
 
 
 

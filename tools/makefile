@@ -16,7 +16,7 @@ ALL: default
 
 ## IBM compiler 
 FC = /usr/bin/xlf90
-FFLAGS = -g -O -q64 -qsuffix=f=f90
+FFLAGS = -g -O3 -q64 -qsuffix=f=f90
 
 # Source files
 
