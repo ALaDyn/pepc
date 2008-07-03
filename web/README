@@ -1,0 +1,216 @@
+
+=======================================================
+=
+=	PEPC -  Pretty Efficient Parallel Coulomb-solver
+=
+=		   pepcb   - laser-plasma application 
+=
+=	Author:    Paul Gibbon
+=                  Juelich, June 2005
+=======================================================
+
+
+PEPC is a parallel tree-code for rapid computation of long-range Coulomb forces,
+based on the original Barnes-Hut sequential algorithm and using concepts taken from the
+Warren-Salmon `Hashed Oct Tree' scheme.  A description of the algorithm can be
+found in the technical report pepc_alg.ps and some variations of the parallel tree
+traversal routine in parco05.pdf, a reprint from the ParCo 2005 conference proceedings.
+
+The following README is intended to provide a quick outline of how to compile and run 
+the code - a more comprehensive user guide (still being compiled) can be found in the /doc directory.
+ 
+The public version is divided into kernel routines and 'front-end'
+applications, which after unpacking the tarball and going to the installation
+directory (e.g.: $HOME/pepc) should be structured as follows:
+
+	lpepcsrc	kernel library routines for lpepc
+	pepc-b 		source code for laser-plasma application
+	tutorial	example run directory for pepcb
+	pepc-e		source code for simple MD demo program 
+	doc  		documentation
+
+
+1. Compiling pepcb 
+==================
+
+The source code (fortran-90) resides in directories lpepcsrc and pepc-b.
+Assumes mpich (MPI) installed locally.
+To compile, first try the automatic configure script:
+
+autoconf
+./configure      
+make
+	
+The configure script uses default options to generate a makefile in each source directory
+from makefile.in.  Use 
+
+./configure --help 
+
+for a list of options
+
+
+2.  Running the code
+=====================
+
+To run PEPC,  first enter or create a run directory.  This is where all the 
+main output will appear.  A number of subdirectories data/pe0000, data/pe0001, ... data/pe<P-1> must
+exist or be created prior to the run, depending on the number of CPUs requested (P).
+
+Sample run scripts (.sh) and parameter files (.h) can be found in the directory 'tutorial':
+
+eqm.h 		Creates ion 'crystal' using artificial lennard-jones potential
+clamp.h  	Puts electrons in thermodynamic eqm using NVT ensemble
+billiards.h	Inter-particle forces switched off; reflective boundaries for various geometries 
+dust.h		Dust particle inserted into plasma slab (steering demo)
+
+
+The main control options are read from a file run.h.  To introduce a new parameter, it
+must be defined in treevars.f90 and included in the NAMELIST in routine setup.f90.
+
+To execute the code:
+
+On JUMP:	./eqm.sh
+Linux PC:	./eqm_linux.sh
+
+
+Example run.h:
+
+-------------------------------------------------------------------------------------
+ &pepcdata
+
+! Configuration
+!--------------
+
+  ne = 51240				! # electrons
+  ni = 51240 				! # ions
+
+  initial_config = 1   			! sphere, radius r_sphere
+ !  initial_config = 2         		! disc, r_sphere (y,z) * x_plasma (x)
+ !  initial_config=3   			! wire, r_sphere (x,y) * x_plasma (z)
+ !  initial_config = 0         		! rectangular slab, x_plasma * y_plasma * y_plasma (default)
+
+! Currently available geometries:
+  0  slab
+  1  sphere
+  2  disc
+  3  wire
+  4  ellipsoid
+  5  wedge
+  6  hemisphere
+  7  hollow sphere
+  8  hollow hemisphere
+  10 special
+
+  r_sphere = 1				! Sphere/disc/wire radius
+  x_plasma = 1.    			! plasma slab/disc thickness/ wire length
+  y_plasma = 2.     			! plasma width (slab target)
+  xl = 2  				! graphics box size
+  yl =2 
+  zl =2 
+
+  theta = 0.5				! Multipole acceptance criterion (s/d)
+  Te_keV = 0.5 				! Electron temperature in keV
+  Ti_keV =0.2 				! Ion temperature in keV
+  mass_ratio = 200.			! Ion/electron mass ratio
+  q_factor = 1.				! Ion/electron charge ratio (for non-neutral system)
+  eps = 1.				! cutoff for Coulomb potential (c/wp)
+
+  coulomb = .true.			! Long-range potential switch
+  lenjones = .false.			! Short-range potential
+  bonds = .false.			! Bonding potential
+
+! laser/particle beam
+!--------------------
+
+   beam_config = 0 			! beam off (default)
+ !  beam_config = 1  			! fixed beam, initialised at start
+ ! beam_config = 2  			! user-controlled, real-time particle source
+ ! beam_config=4  			! laser fpond
+ 
+  r_beam = 0.05				! particle beam radius
+  u_beam = 0.2				! beam velocity
+  theta_beam = 0.0			! beam angle
+  phi_beam = 0.0			! beam angle
+  x_beam = .04				! beam length
+  start_beam = -0.1			! beam start position
+  mass_beam = 5.			! beam particle mass
+  rho_beam = -1.			! beam density
+  np_beam = 0 				! initial # beam particles/ dt
+
+  vosc = 2.0				! laser amplitude (p_osc/mc)
+  omega = 0.5				! laser frequency (/wp)
+  sigma = 6.				! spot size (c/wp)
+  tpulse = 20.				! rise-time/pulse duration (/wp)
+  lambda = 1.0   			! Wavelength in microns
+
+ 
+! run control
+! -----------
+
+  nt =10				! # timesteps
+  dt = 0.5				! timestep (in wp^-1)
+  restart = .false.			! restart switch
+  vis_on = .false.			! VISIT switch
+  ivis = 20 				! frequency to ship VISIT stuff (timesteps)
+  scheme = 1 				! Ensemble switch - see velocities routine
+  idump = 100				! particle dump frequency
+  iprot=1				! run protocol frequency
+  itrack = 1				! density tracking frequency (laser on)
+  mc_init = .false.			! MC mode switch
+  mc_steps = 1000			! # steps for MC initialisation
+
+  nmerge = 1				! Merges/expands restart files if # CPUs changed
+  perf_anal=.false.			! Switch for performance analysis mode
+  walk_balance=.true.			! Load balance switch
+
+  domain_debug=.false.			!
+  load_balance=.true.                    ! Debug switches for tree construction routines	
+  dump_tree = .false.			! Tree dump - beware: huge output generated
+  walk_debug=.false.                     !
+  domain_debug=.false.
+  prefetch_debug=.false.
+  force_debug=.false./              
+---------------------------------------------------------------------------------
+
+
+3. Output data
+==============
+
+The output files will be stored either in the run directory or in the
+subdirectories data/pe0000 etc.  The most important of these are:
+
+energy.dat	Kinetic and potential  energies expressed in keV PER PARTICLE 
+		(10 y-columns in ASCII format)
+
+load_TTT.dat    Shows approx load balance amoung CPUs at timestep TTT 
+
+run.out		Printed diagnostics
+
+data/peNNNN/parts_dump.TTTTTT		Particle dump for CPU NNN at timestep TTTTTT
+				
+These can be merged for postprocessing with the script
+merge1_dump in the pepc installation directory, for example:
+
+../merge1_dump TTTTTT 
+
+will produce a complete particle data set in dumps/parts_dump.TTTTTT
+ 
+Other files:
+-----------
+tree_NNN.gle	2D plot of tree structure for CPU # NNN in GLE format
+tree2d.gle        
+
+domain_NNN.gle  2D plot of branch nodes for CPU # NNN
+domains.gle
+
+list_NNNIII.gle   Interaction list of particle III on CPU NNN.  
+		  Useful for checking effect of changing clumping parameter theta.
+
+ 
+		    These and other .gle files can be viewed
+		   using the graphics program GLE (Graphics Layout Engine),
+		   currently available from Vicent LaBella at:
+		   
+		   http://www.uark.edu/misc/vlabella/gle/gle.html
+
+-------------------------------------------------

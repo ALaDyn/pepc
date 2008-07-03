@@ -1,0 +1,58 @@
+<html>
+
+<head>
+<title>PEPC: A Portable Multi-Purpose Parallel Tree-Code</title>
+</head>
+
+<body background="images/back.jpg">
+
+<hr>
+
+<h2 align="center">PEPC: A Multi-Purpose Parallel Tree-Code</h2>
+
+<hr>
+
+PEPC - Pretty Efficient Parallel Coulomb-solver - is a parallel tree-code 
+for rapid computation of long-range Coulomb forces in N-body particle systems. Based on the original
+Barnes-Hut algorithm, the code uses successively larger
+multipole-groupings of distant particles to reduce the computational
+effort in the force calculation from the generally
+unaffordable O(N<sup>2</sup>) operations needed for brute-force summation, to a
+more amenable O(N log N) complexity.
+The parallel version is a pure MPI implementation of the Warren-Salmon
+'Hashed Oct Tree' scheme, including several different variations of
+the tree traversal routine - the most challenging component in terms
+of scalability.
+
+<p>
+
+
+The public version is divided into kernel routines and 'front-end'
+applications, which currently include a skeleton molecular dynamics
+program (<b> PEPC-E</b>), and a code for simulating laser- or
+beam-plasma interactions (<b> PEPC-B</b>).   There is also a (non-public)
+gravitational version (<b> PEGS</b>) for modelling astrophysical
+discs, developed in collaboration with the <a href="http://www.ph1.uni-koeln.de/pfalzner">University of Cologne</a>.
+
+
+<p>
+ 
+The code currently runs on IBM Regatta, BlueGene/L and standard Linux
+clusters, but should be portable to any Unix-based parallel
+architecture.  The <a href="doc/pepc_ug.pdf"> User Guide</a> provides an introduction to compiling
+and running the code.  
+<p> <p>
+
+
+<p>
+
+<p>
+
+<img src="images/proton7+laser.jpg" width=255> <img
+src="images/domains_3d.jpg" width=280>
+
+<p><p>
+<p>Contact: <A HREF="mailto:pepc.zam@fz-juelich.de"<tt>pepc.zam@fz-juelich.de<tt></A>
+<br>WWW: <A HREF="http://www.fz-juelich.de/zam/pepc"<tt>http://www.fz-juelich.de/zam/pepc<tt></A>
+</body>
+</html>

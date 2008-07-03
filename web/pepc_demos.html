@@ -1,0 +1,109 @@
+
+<h2>PEPC Demos</h2>
+
+
+<h3>Download</h3>
+
+<OL>
+ -><A HREF="http://www.fz-juelich.de/zam/pepc/cgi-bin/getsoftware.cgi">
+get Demos</A>
+</OL>
+
+
+<h3>Installation</h3>
+
+
+
+After downloading the distribution file pepc_demos1.0.tar.gz unpack this
+file in the PEPC install directory with:<br>
+<p>
+<p><tt>>  tar xvfz pepc_demos1.0.tar.gz </tt><p>
+
+Each demo contains a complete directory structure necessary for
+running the code (up to a certain number of CPUs, which can be
+increased if necessary), one or more input parameter files (.h) and
+corresponding run scripts.  The following demos are currently included: 
+
+<h4> 1.  Coulomb explosion of cluster </h4>
+
+<pre>
+  demo_cluster/
+</pre>
+
+Starts with ionized spherical cluster with equal numbers of ions and electron
+Laser is uniform field in the x-direction (beam_config_in=3), sinusoidal in time,
+amplitude vosc.  Can also be switched on by visualisation, if
+steering=.true. switch set. <p>
+
+Two input sets:
+<pre> cluster.h     </pre> small system for viewing particle orbits
+<pre> cluster_big.h </pre> large system with particles switched off,
+density and temperature fields only <p>
+
+Associated run scripts are: <tt> cluster.sh, cluster_big.sh</tt>
+
+<h4> 2. Ion crystal generation</h4>
+
+<pre>
+  demo_crystal/
+</pre>
+
+Runs in 'crystal' mode, creating config with equidistant ions.<p>
+
+Sets:	<tt> cube.h, shell.h</tt>
+
+<p>
+
+<h4> 3. Electron + Ion acceleration (laser+ wire target) </h4>
+
+<pre>
+   demo_wire/
+</pre>
+
+Laser hits middle of wire near x=0 and starts heating electrons, pushing them
+through the wire.  Charge cloud on rear surface and sides starts to pull ions
+away.  Laser also 'drills' through front surface, pushing on ions there. 
+
+Sets:
+<pre>
+  wire.h + wire.sh
+  wire_big.h + wire.job
+</pre>
+<p>
+	
+Visualisation tips for XNBODY: <p>
+
+- Set ivis > # timesteps (too many particles to display and selective
+shipping isn't implemented yet).  Pick laser intensity and electron density fields initially.<br>
+- Select isosurface and adust cut for laser to about half-way down wire.  <br>
+- Selecting lowest value for electron density will pick out single electrons.<br>
+- User right mouse button to adjust the colour maps (make val=0 transparent).<br>
+- After simulation has developed, switch to ion density to see ion motion.<br>
+<p>
+
+<h4> 4. Laser wakefield accelerator </h4>
+
+Short laser pulse passes through thin, uniform plasma column,
+exciting plasma waves in its wake (speedboat effect).
+Electrons trapped in the wake get accelerated to high (many MeV) energies and
+trail behind the laser pulse at nearly the speed of light.
+Radial forces in front of the pulse cause electrons to make complex orbits away 
+from the propagation axis, rejoining the wake behind the pulse.<p>
+
+Sets:<p>
+<pre>
+  shoot_200k.h + shoot.sh
+  shoot_2m.h + wake_big.job
+</pre>
+<p>
+
+Vis tips:<p>
+- smaller run designed to display particles, BUT can only run until
+rezoning starts (XNBODY currently crashes if # particles not constant/labels change).<br>
+- use longer column for big run if necessary (currently no rezoning)
+<p>
+
+
+
+
+
