@@ -1388,15 +1388,19 @@ echo "${ECHO_T}** Configuring for JuGene **" >&6
 #  DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
  NETCDF_PATH=/usr/local/netcdf/netcdf-3.6.2
   MACH=bgp
- TUNE="-qarch=450d -qtune=440"
+ TUNE="-qarch=440d -qtune=440"
 #  MPIF90=bgxlf90
 #  MPICC=bgxlc
-  MPIF90=mpxlf90
-  MPICC=mpcc
+  MPIF90=mpixlf90
+  MPICC=mpicc
 
 elif [ `uname -m` = "00223C3B4C00" ] # jump in Juelich
 then
   MACH=p690
+
+elif [ `uname -m` = "00CF30914C00" ] # jump2 in Juelich
+then
+  MACH=power6
 
 elif [ `uname -m` = "i686" ] # laptop
 then
@@ -1407,6 +1411,12 @@ fi
 #  Visit libraries
 
 if [ `uname -m` = "00223C3B4C00" ] # jump in Juelich
+then
+  DEFAULT_VISITPATH="-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3 -llvisit_nbody2 \
+                     -L/usr/local/beta/visit-2.2/lvisit/lib -llvisit \
+                     -L/usr/local/beta/visit-2.2/lib -lvisit"
+
+elif [ `uname -m` = "00CF30914C00" ] # jump2 in Juelich
 then
   DEFAULT_VISITPATH="-L/usr/local/beta/visit-2.0b/lvisit/apis/nbody3 -llvisit_nbody2 \
                      -L/usr/local/beta/visit-2.2/lvisit/lib -llvisit \
@@ -1494,7 +1504,7 @@ powerpc64-unknown-linux-gnu) # jubl/jugene
  echo "$as_me:$LINENO: result: ** setting common options for powerpc64 host **" >&5
 echo "${ECHO_T}** setting common options for powerpc64 host **" >&6
  CFLAGS_OS="-DAIX_XLF $TUNE -qlibansi -qnoinfo "
- FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS $TUNE -qnosave"
+ FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS $TUNE -qnosave -qstrict"
  F90DEF="-WF,"
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
  MODULE_FLAG="-qmoddir="

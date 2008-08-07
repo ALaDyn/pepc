@@ -17,7 +17,7 @@ pepcb:
 # pepc-b front-end with visit interface routines
 # need --with-visit to activate visit libraries
 # need --with-netcdf to activate netcdf output (via interface routines)
-pepc-vis:
+pepcb-vis:
 	cd lpepcsrc && gmake
 	cd pepc-b && gmake pepc-visit
 
@@ -32,11 +32,20 @@ pepce:
 	cd lpepcsrc && gmake
 	cd pepc-e && gmake
 
+pepce-vis:
+	cd lpepcsrc && gmake
+	cd pepc-e && gmake pepc-visit
+
 clean:
 	cd lpepcsrc && gmake clean && cd ..
 	cd pepc-b && gmake clean
 	cd pepc-e && gmake clean
+
 cleanb:
 	cd pepc-b && gmake clean && cd ..
+
+cleane:
+	cd pepc-e && gmake clean && cd ..
+
 cleanvis:
 	cd pepc-b && gmake cleanvis && cd ..
