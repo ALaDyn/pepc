@@ -1,6 +1,270 @@
+
+
+Version 1.7->1.8 (new MACs by Marc Keldenich, April 2008)
+========================================================
+
+Revisions 751-
+
+
+updated makefiles, configure scripts
+Reinstated web page
+Added 3d dump switch
+Inserted temporary fix for slow macs 1-3
+Added TODO to mac.f90 for tree node props
+Tidied up pshort
+Fixed mac_choose
+
+Removed redundant pshort array from mac_choose
+- pshort(p) now passed from tree_aswalk instead
+- only scalars passed to mac_choose now
+
+Fixed bug in Helmholtz comp of fpond - integer particle coord
+within array bounds for az_helm etc
+
+Fixed missing call parameter err_f in tree_aswalk
+
+Tree stats written to file
+
+Corrections to plasma_config 23
+Reorganised vis_fields to separate netcdf O/P from visit calls
+- netcdf file now written without online vis
+
+Added new reverse can config 23 tube+can; Added config defs
+
+Added force_tolerance to namelist
+Extended error_test
+Abort run when no plasma config found
+
+switched to blackbox again, added job scripts for jump / bgp
+
+PEPC-E and PEPC-B prepared to use MAC 3(E-FIELD)M
+
+Script modifications
+- no gzip in merge
+- copy_rundir uses absolute paths + timestamp
+
+Modified calls to tree_walk to use BH mac=0 for gridded field calculation - avoids
+problems when mac=3 (E-field mac) set in input file
+
+fixed nkeys_total value, added tree_stats to fields
+
+Changed alpha=theta2 in E-field mac (case 3)
+Forced mac=0 for initial field comp. in configure.F90
+
+Adustments for new macs:
+
+Fixed fields_p - call to tree_aswalk consistent with fields_p1
+Renamed p_ex_nps to ex_sl etc for particle shortlists in fields_p
+routines.
+Added docu to mac routine; renamed to mac_choose
+Adjustments to draw_lists to scale interaction lists
+
+Removed err_max from routine call (mac uses theta)
+
+New weighting system for load balance:
+
+- use total # keys on each CPU as counterweight to particle work
+- TODO: needs fixing !
+
+Merge of additional macs with trunk: Marc Keldenich (April 2008)
+
+ - new routine mac.f90 including bh, bmax, min dist, 'e-field'
+ - called by tree_aswalk.f90 (TODO: tree_cowalk.f90)
+ - fields.f90, fields_p1.f90 (TODO: fields_p.f90)
+ - makefile.in includes mac.f90
+
+
+
+Version 1.6->1.7 (pepc-e merge by R. Speck, February 2008)
+==========================================================
+
+Revisions 730 - 750
+
+Adjustment to maxtwigs/maxleaves for P>2048
+Created global counter nkeys_total
+Removed references to key_box (redundant)
+
+Changed restart to read from dumps/parts_dump.nnnnnn
+for ncpu_merge=-1
+
+Separated netcdf and visit defs in vis_parts_nbody.F90
+Improved particle/domain selection in vis_parts
+Tidied up diagnostics in vis_parts, vis_fields
+
+Added make cleanvis to makefile.in
+Diverted read O/P for restart to openfiles.out
+
+Modified tree statistics in diagnostics.F90
+- now gives max leaves/twigs on any proc.
+
+Extended header for Jugene to catch both front end machines jugene1 and jugene2 with uname -n
+
+Adapted alexs microdot config to allow for varying proton concentrations
+Included proton kinetic energy in kinenergy bookkeeping
+Proton labels defined from:
+         proton_label+1 - proton_label+nproton
+
+Added TUNE option to jubl/jugene configs
+
+Changed mpitrace library location to:
+/bgl/local/hpct_bgl/lib
+Libraries needed:
+-lmpitrace
+-lhpm.rts
+-llicense
+
+Renamed pbalsorti to pbalsort (integer*8 version now default)
+
+Adjusted warning diagnostic for leaf/twig array bounds in aswalk
+
+Fixed reduce op for key distn in pbalsorti: now integer*8 instead of real*8
+Added call to pbalsorti to tree_domains
+Removed branch diagnostics from tree_props
+
+Created integer version of pbalsort: pbalsorti
+- uses integer*8 arithmetic to compute key distribution
+- particle loads converted to i*8
+
+Reorganise debug options for tree routines
+level=2 now just gives location info
+level>=2 gives per-core I/O
+
+Merged new fields.f90 routine with trunk (had forgotted in main merge!)
+- fields_p.f90 adapted to new tree_domains call including sort index arrays
+- binaries in makefile.in in pepc-e now with suffix $MACH
+
+Merged pepc-e branch with trunk (Robert Speck)
+
+Main changes to tree routines:
+
+- call parameters to tree domains now include sort infos (pivots, alltoall indices etc)
+- setup_treearrays includes new mpi data type 'results'
+- new restore routine: inverse sort for fields.f90
+- fields_p1: sorting cf pepc-b
+- sum bug fixes (particle loads real*8 in sum_force)
+- timings in tree_aswalk fixed
+
+Changes to pepc-e:
+
+- new particle configs
+- restore_p1.f90: for fields_p1
+- visit in pepce
+- makefiles
+
+
+Version 1.5->1.6 local MPI_ADDRESS function 
+==========================================================
+
+Rev. 528-729
+
+Added sort_test
+
+Several changes to tree routines:
+
+- Memory alloc in branches, properties  nbranch_max, nbranch_local_max now defined in setup_treearrays
+- Fixed alloc in tree_stats (num_pe instead of nppm!)
+- proc_debug made global; defined in setup_treearrays
+- Maxbin increased to 1.5M in pbalsort
+
+Cleaned up file opening diags
+Now written to openfiles.out
+Fixed program termination for restart with wrong number of particles
+Changed make to gmake in makefiles to fix JUMP build
+Added fpost diagnostic to pbalsort
+
+Created new configure section for BlueGene/P (JuGene)
+Binaries placed in bgp/ subdirectories
+
+Added jubl and  jump machine builds.
+bgl OK; jump still fussy and needs gmake to resolve prefixes
+
+Modified config and makefiles to allow multi-architecture builds.
+Machine type specified with MACH macro in configure.in
+Binaries now placed in pepc-b/$MACH/, lpepcsrc/$MACH/ etc.
+
+Run directory duplication:
+Added timestamp argument to copy particle data in all pe subdirectories
+
+New configure with for --with-netcdf
+Changes to config 21
+New particle select mode 4 for protons only
+Added mass_proton for vis control of multi-species sims
+
+Fixed bug with # const:
+ for np_mult<0 (fixed address max), ensure that # const < maxaddress
+
+Added 'stack of pipes' geometry (plasma_config=41) to config_private.h
+to avoid conflict with imploding single shell (7)
+
+Fixed grid dimensions (nxh, ngx) in physvars, dump_fields
+Changed nppm to nppm=npart+1000 to allow for ghost grid particles
+Reinstated I/O for pes - call to openfiles AFTER setup (debug_level
+defined)
+Changes to tree_domains to remove duplicate keys
+
+reinserted LOC for send_base, receive_base
+
+Added call to tree_stats
+Created new routine to write out tree communication stats
+- Currently produces table (0:num_pe-1):
+        # parts, local keys, nl keys, total keys, fetches, ships
+Modified makefile.in to include new routine
+Removed LOC from setup
+New tar packer with file excludes
+
+Added --with-mpitrace option
+
+Reverted Madlener changes (r601) back to r596
+
+Left MPI2 changes for structures in setup_treearrays
+Changed MPI_ADDRESS to MPI_GET_ADDRESS
+and     MPI_TYPE_STRUCT to MPI_CREATE_TYPE_STRUCT
+to conform to MPI2, allowing 8-byte variable addresses/displacement arrays
+README for scarf machine, RAL
+Workaround for MPIADDRESS problem on scarf, marenostrum machines
+Replaced by IBM LOC function placed in tree_utils.f90
+TODO: still need equivalents on other architectures
+
+Added non-relativistic integration scheme (scheme=7)
+Added new configuration plasma_config=22:
+ can target (cap+tube) with heavy ions only in cap; heavy ions + protons
+in tube.
+Added time-ave radial field diagnostic to sum_fieldave, dump_fields
+Added py vs y phase space for protons
+Changes to config; fieldave grid now independent
+Included fpond_helm in vis_fields
+Added laser history routine
+Inconsistencies in fpond_helm fixed: radial dep/attenuation terms corrected
+Tracking diagnostics for time-dep laser params added
+Debug version added to makefile.in
+
+Fixed Helmholtz density lineout.
+Now uses 5x5-point gather in transverse directions.
+Midpoint (2,2) gives correct line density; end planes collect particles
+falling outside grid.
+
+Multi-species dumps into pp
+Added new fpond routine fpon_helm
+Makes use of vector pot computed with Helmholtz solver (em_helmholtz)
+Calculates pond. fields at particle, correcting for gamma factor
+gam = (1+ux^2+az^2)^1/2
+
+Fixed timing ttot in pepcb.F90
+Added Helmholtz solver for EM field (Az)
+Density computed on special 1D grid - density_helmholtz.f90
+Output in dump_fields
+Adjusted array sizes maxleaf, maxtwig for single CPU op
+Added new clause nppm=npp for single CPU execution
+Created new directory web for online version (trunk)
+Added cleanup routine to deallocate tree arrays
+Added Doxygen-generated html for pepc-b
+Updated user guide with new config script
+
+
 1.4 -> 1.5   (Nov 2006)
 =======================
 
+Rev. 486-527 
 
 Added CHANGES, TODO list
 Made changes to bookkeeping scripts
