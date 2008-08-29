@@ -222,9 +222,26 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_np
 !           write (*,'(a,4i8,o15,f12.3)') 'particle i,p,pshort(p),nterm,kwalk,x', &
 !                i,p,pshort(p),nterm(p),walk_key(i),x(pshort(p))
            
+! TODO:  BH MAC is also implemented in mac_choose routine,
+!        which needs tuning and inlining to avoid excessive parameter-passing overhead
+!        Other MACS need additional preprocessed info on tree nodes (box lengths etc)
+!        before they can be used for performance tests.
+!        mac=1,2 only useful for accuracy tests at the moment (interaction list comparisons)
 
-           call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),np_local,walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)),theta2,mac,mac_ok, periodic_neighbour)
-  
+           if (mac==0) then 
+              ! BH-MAC
+              dx = x(p) - xcoc( walk_node )      ! Separations
+              dy = y(p) - ycoc( walk_node )
+              dz = z(p) - zcoc( walk_node )
+              dist2 = theta2*(dx*dx+dy*dy+dz*dz)
+              mac_ok = (dist2 > boxlength2(node_level(walk_node)))
+
+           else
+             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),np_local, &
+                  walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)), &
+                  theta2,mac,mac_ok, periodic_neighbour)
+           endif
+
 	   mac_ok = ( mac_ok .and. walk_key(i)>1 )  !  always reject root node
 
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
