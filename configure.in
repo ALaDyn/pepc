@@ -267,6 +267,10 @@ AC_ARG_WITH(debug,[  --with-debug            produce debug library (no)],
 )
 AC_SUBST(DEBUGDEF)
 
+AC_ARG_WITH(sion,
+	[  --with-sion          turn on sion support], 
+	SION="1")
+AC_SUBST(SION)
 #######################################################################
 
 # Checks for programs.
