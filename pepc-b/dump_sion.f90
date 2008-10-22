@@ -27,16 +27,19 @@ subroutine dump(timestamp)
   integer 	fsblksize
   integer 	sid
 
-  real*8 realdummy
+  real*8  realdummy(2)
+  integer integerdummy(2)
 
 ! Temp variable use for the info blockt
-  TYPE, BIND(C) :: Infoblock
-  integer, dimension(7) :: intarr
+!  TYPE, BIND(C) :: Infoblock
+  TYPE :: Infoblock
   real, dimension(18) :: realarr
   real, dimension(3) :: plasma_centre, focus
+  integer, dimension(7) :: intarr
   END TYPE Infoblock
 
   TYPE(Infoblock) :: infoblk
+  TYPE(Infoblock) :: infoblkdummy(2)
 
   infoblk%intarr(1)=timestamp
   infoblk%intarr(2)=npp
@@ -100,12 +103,11 @@ subroutine dump(timestamp)
 ! Particles: 12*npp*sizeof(real*8) + 2*npp*sizeof(integer)
 ! should be:
 
-  size_info = sizeof(infoblk%intarr)+sizeof(infoblk%realarr)+sizeof(infoblk%plasma_centre)+sizeof(infoblk%focus)
+  size_info = LOC(infoblkdummy(1))-LOC(infoblkdummy(0))
+!  size_info = sizeof(infoblk%intarr)+sizeof(infoblk%realarr)+sizeof(infoblk%plasma_centre)+sizeof(infoblk%focus)
 
-  ! npp * sizepof(real*8)
-  size1 = npp*sizeof(realdummy)
-  ! npp*sizeof(integer)
-  size2 = npp*sizeof(sid)
+  size1 = npp*(LOC(realdummy(1))-LOC(realdummy(0)))
+  size2 = npp*(LOC(integerdummy(1))-LOC(integerdummy(0)))
   chunksize = 12*size1 + 2*size2 + size_info
   fsblksize = 2*1024*1024
 
