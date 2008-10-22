@@ -3162,6 +3162,9 @@ if test "${with_sion+set}" = set; then
   if test ${MACH} == "bgp" ; then
      SION_LIB="third_party/sionlib/install/sionlib_bgp/lib -lsionfe"
   fi
+  if test ${MACH} == "linux" ; then
+     SION_LIB="third_party/sionlib/install/sionlib_linux/lib -lsion"
+  fi
 fi;
 
 
