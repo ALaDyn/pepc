@@ -271,13 +271,13 @@ AC_ARG_WITH(sion,
 	[  --with-sion          switch on sion support (no)], 
 	SION="1"
   if test ${MACH} == "power6" ; then 
-     SION_DIR="third_party/sionlib/install/sionlib_jump/lib"
+     SION_LIB="third_party/sionlib/install/sionlib_jump/lib -lsion"
   fi
   if test ${MACH} == "bgp" ; then 	
-     SION_DIR="third_party/sionlib/install/sionlib_bgp/lib"
+     SION_LIB="third_party/sionlib/install/sionlib_bgp/lib -lsionfe"
   fi)	   
 AC_SUBST(SION)
-AC_SUBST(SION_DIR)
+AC_SUBST(SION_LIB)
 
 #######################################################################
 

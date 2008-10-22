@@ -18,7 +18,7 @@ DEFINES = @VISITDEF@ @NETCDFDEF@
 # Machine architecture - subdirectory for binaries
 MACH = @MACH@
 SION = @SION@
-SION_DIR = @SION_DIR@
+SION_LIB = @SION_LIB@
 TARGET = $(PREFIX)/bin/pepcb_$(MACH)  # name of executable
 
 FC      = @MPIF90@
@@ -87,7 +87,7 @@ ifeq ($(SION),1)
 	rm -f  $(MACH)/dump.o $(MACH)/predef_parts.o 
 	ln -fs dump_sion.f90 dump.f90
 	ln -fs predef_parts_sion.f90 predef_parts.f90
-LIBS+=-L../$(SION_DIR) -lsion
+LIBS+=-L../$(SION_LIB)
 TARGET = $(PREFIX)/bin/pepcb_$(MACH)_sion
 else 
 	rm -f  $(MACH)/dump.o $(MACH)/predef_parts.o 

@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MPI_DIR MPICC MPIF90 CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MPILIBS VISIT VISITDEF VISITLIBS LVISIT NETCDFDEF NETCDFLIB NCOBJS TARGETS XNBODY OPT MPITRACE DEBUGDEF SION SION_DIR SET_MAKE CPP EGREP LIBOBJS MACH FFLAGS CFLAGS_OS FFLAGS_OS MODULE_FLAG F77FLAGS FLINK_FLAGS CLINK_FLAGS AR LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MPI_DIR MPICC MPIF90 CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MPILIBS VISIT VISITDEF VISITLIBS LVISIT NETCDFDEF NETCDFLIB NCOBJS TARGETS XNBODY OPT MPITRACE DEBUGDEF SION SION_LIB SET_MAKE CPP EGREP LIBOBJS MACH FFLAGS CFLAGS_OS FFLAGS_OS MODULE_FLAG F77FLAGS FLINK_FLAGS CLINK_FLAGS AR LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -3157,10 +3157,10 @@ if test "${with_sion+set}" = set; then
   withval="$with_sion"
   SION="1"
   if test ${MACH} == "power6" ; then
-     SION_DIR="third_party/sionlib/install/sionlib_jump/lib"
+     SION_LIB="third_party/sionlib/install/sionlib_jump/lib -lsion"
   fi
   if test ${MACH} == "bgp" ; then
-     SION_DIR="third_party/sionlib/install/sionlib_bgp/lib"
+     SION_LIB="third_party/sionlib/install/sionlib_bgp/lib -lsionfe"
   fi
 fi;
 
@@ -5973,7 +5973,7 @@ s,@OPT@,$OPT,;t t
 s,@MPITRACE@,$MPITRACE,;t t
 s,@DEBUGDEF@,$DEBUGDEF,;t t
 s,@SION@,$SION,;t t
-s,@SION_DIR@,$SION_DIR,;t t
+s,@SION_LIB@,$SION_LIB,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
