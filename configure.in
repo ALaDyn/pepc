@@ -268,9 +268,17 @@ AC_ARG_WITH(debug,[  --with-debug            produce debug library (no)],
 AC_SUBST(DEBUGDEF)
 
 AC_ARG_WITH(sion,
-	[  --with-sion          turn on sion support], 
-	SION="1")
+	[  --with-sion          switch on sion support (no)], 
+	SION="1"
+  if test ${MACH} == "power6" ; then 
+     SION_DIR="third_party/sionlib/install/sionlib_jump/lib"
+  fi
+  if test ${MACH} == "bgp" ; then 	
+     SION_DIR="third_party/sionlib/install/sionlib_bgp/lib"
+  fi)	   
 AC_SUBST(SION)
+AC_SUBST(SION_DIR)
+
 #######################################################################
 
 # Checks for programs.
