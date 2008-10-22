@@ -275,6 +275,9 @@ AC_ARG_WITH(sion,
   fi
   if test ${MACH} == "bgp" ; then 	
      SION_LIB="third_party/sionlib/install/sionlib_bgp/lib -lsionfe"
+  fi
+  if test ${MACH} == "linux" ; then 
+     SION_LIB="third_party/sionlib/install/sionlib_linux/lib -lsion"
   fi)	   
 AC_SUBST(SION)
 AC_SUBST(SION_LIB)
