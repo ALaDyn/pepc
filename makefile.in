@@ -1,5 +1,5 @@
 #
-#  Makefile for pepc
+#  Makefile for pepc and sion
 #
 SION = @SION@
 
