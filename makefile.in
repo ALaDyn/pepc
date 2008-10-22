@@ -15,7 +15,7 @@ lpepc:
 pepcb: 
 	cd lpepcsrc && gmake 
 ifeq ($(SION),1)
-	cd third_party/sionlib/src && make
+	cd third_party/sionlib/src && gmake
 endif	
 	cd pepc-b && gmake
 
@@ -44,7 +44,7 @@ pepce-vis:
 clean:
 	cd lpepcsrc && gmake clean && cd ..
 ifeq ($(SION),1)
-	cd third_party/sionlib/src && make clean
+	cd third_party/sionlib/src && gmake clean
 endif	
 	cd pepc-b && gmake clean
 	cd pepc-e && gmake clean
