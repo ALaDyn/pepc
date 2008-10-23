@@ -329,7 +329,6 @@ AC_CONFIG_FILES([makefile
                  lpepcsrc/makefile
                  pepc-b/makefile
                  pepc-e/makefile
-		 third_party/sionlib/src/Makefile_PEPC
                  ])
 AC_OUTPUT
 
