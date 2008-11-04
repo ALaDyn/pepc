@@ -1,0 +1,123 @@
+# Makefile for sionlib
+# Version 1.0
+# Wolfgang Frings 
+# ??.??. 2008
+#
+# Version 1.1
+# Ventsislav Petkov
+# 20.08.2008
+
+### Jugene: 
+#	BE: _BGP
+#	FE: _LINUX
+#		#include ./Makefile_BGP_FEgcc.defs
+#		include ./Makefile_BGP_FE.defs
+
+SIONSRCDIR=../../src
+
+#ARCH=_LINUX
+ARCH=_AIXPWR6
+#ARCH=_BGL
+#ARCH=_BGP
+
+LIBNAME = sion
+LIBSERNAME = sionser
+
+RANLIB          = echo
+ARCMD           = ar
+ARCHFLAGS       = cr
+
+include $(SIONSRCDIR)/Makefile$(ARCH).defs
+
+
+llib = $(SIONSRCDIR)/lib$(LIBNAME).a
+llibser = $(SIONSRCDIR)/lib$(LIBSERNAME).a
+
+### Debug or Release ###
+VERSION := DEBUG  # "debug" or "release"
+
+DEBUG_CFLAGS 	= -g -qfullpath -DSION_DEBUG
+RELEASE_CFLAGS 	= -O3 -qstrict -qarch=pwr6 -qtune=pwr6
+PROFILE_CFLAGS 	= -g -pg -DSION_DEBUG 
+
+ifeq "$(strip $(VERSION))" "PROFILE"
+CFLAGS 		+= $(PROFILE_CFLAGS)
+CPPFLAGS 	+= $(PROFILE_CFLAGS)
+FFLAGS 		+= $(PROFILE_CFLAGS)
+else
+ifeq "$(strip $(VERSION))" "DEBUG"
+CFLAGS 		+= $(DEBUG_CFLAGS)
+CPPFLAGS 	+= $(DEBUG_CFLAGS)
+#FFLAGS		+= $(DEBUG_CFLAGS)
+else
+ifeq "$(strip $(VERSION))" "RELEASE"
+CFLAGS 		+= $(RELEASE_CFLAGS)
+CPPFLAGS	+= $(RELEASE_CFLAGS)
+FFLAGS 		+= $(RELEASE_CFLAGS)
+endif
+endif
+endif
+####
+
+# Kernels 
+# ------
+
+#MPI DATATYPES  
+#DP_TYPE                = MPI_DOUBLE_PRECISION
+DP_TYPE                 = MPI_REAL8
+INTEGER_TYPE            = MPI_INTEGER
+DC_TYPE                 = MPI_DOUBLE_COMPLEX
+# Length of Double Precision in Bytes
+IDPLEN          = 8
+
+SHELL           =     /bin/sh
+
+.SUFFIXES: .f .c .f90 .F .c .h. .com .o
+
+utils =  sionpepc
+
+all: $(llib) $(llibser) $(utils)
+
+%.o: %.c
+	$(CC)  -c $(CFLAGS)  $<
+%.o: %.f
+	$(F90) -c $(FFLAGS)  $<
+
+###### UTILS #########
+
+sionpepc.o: sionpepc.c 
+	$(CC)  -c $(CFLAGS) -I$(SIONSRCDIR) $<
+
+sionpepc: sionpepc.o $(llibser) 
+	$(CCLOADER)  -o $@ $(CFLAGS) $< -L$(SIONSRCDIR) -l$(LIBSERNAME) 
+
+
+###### INSTALL ######
+install: all
+	mkdir -p $(INSTDIR)/bin	
+	@echo Installing Utilities
+	cp -p $(utils) $(INSTDIR)/bin
+
+######  Cleanup  ######
+.PHONY: clean
+clean:
+	@echo Clean $(HOST) 
+	-rm -f  $(utils) $(utils:%=%.o) 
+
+###### Jugene ######
+jugene:
+	@echo "********************************************************************************"
+	@echo Building BGP Front End
+	@echo "********************************************************************************"
+	$(MAKE) -f Makefile_FE clean all install
+
+	@echo "********************************************************************************"
+	@echo Building BGP Back End
+	@echo "********************************************************************************"
+	$(MAKE) -f Makefile_BE clean all install
+
+	@echo "********************************************************************************"
+	@echo Building BGP GCC Front End
+	@echo "********************************************************************************"
+	$(MAKE) -f Makefile_FEgcc clean all install
+
