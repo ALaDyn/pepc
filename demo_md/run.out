@@ -1,44 +1,78 @@
-
-Other inputs:
-     System config:    1 plasma    
-   Target geometry:    0 slab      
+     Plasma config:    1 rand-geom 
+   Target geometry:    1 sphere    
+       Beam config:    0 eqm    
+              type:    0
             Scheme:    1 const U
-     System volume:    1.000E+00
-     Sphere radius:        4.000
-     System length:        1.000
-      System width:        1.000
-     System height:        1.000
-   Electron charge:   -1.000E-02
-     Electron mass:    1.000E-02
-          Ion mass:    2.000E+01
+     Plasma volume:    4.189E+00
+     Sphere radius:        1.000
+     Plasma length:        0.100
+      Plasma width:        2.000
+     Plasma height:        2.000
+   Electron charge:    1.000E+00
+     Electron mass:    1.000E+00
+              Ion Z:   1.000E+00
+        Ion m_i/m_p:   2.000E+03
+        Ion charge:    2.094E-06
+          Ion mass:    4.189E-03
                 Te:        0.500
-                Ti:        0.100
+                Ti:        0.000
       Debye length:    3.128E-02
-     Ion spacing a:       0.2154
-    Cloud radius R:        0.000
-    # dt per cycle:            0
-               N_D:    1.282E-02
-               N_c:        0.000
-       R/lambda_De:        0.000
-          Timestep:        0.500
-      Max timestep:        0.000
- Neighbour search ra   1.077E+00
-         MAC theta:        0.600
-  Particle # ratio:    0.000E+00
- Graphics box:      3.00 x      8.00 x      8.00
+           n_e/n_c:        4.000
+     Ion spacing a:       0.0128
+    Cloud radius R:        0.200
+   Collision freq.:        0.000
+      Electron mfp:     2348.338
+      Conductivity:    75073.391
+   Laser amplitude:        6.000
+       Pulse width:        6.000
+    Pulse duration:       20.000
+        Wavelength:        1.000
+   Incidence angle:        0.000
+   Laser intensity:        1.800
+    # dt per cycle:           62
+               N_D:    6.121E+01
+               N_c:    16000.010
+       R/lambda_De:        6.394
+          Timestep:        0.200
+      Max timestep:        0.001
+ Neighbour search ra   6.397E-02
+         MAC theta:        0.500
+  Particle # ratio:    2.000E+06
+ Graphics box:      2.00 x      2.00 x      2.00
 
-  Electrons:  100
-  Ions:  100
-  Particles per PE:  200
+ Laser focus:      0.00     1.00     1.00
+
+  Electrons:  0
+  Ions:  2000000
+  Beam particles:  0
+  Beam angles  0.0000000000E+00 0.0000000000E+00
+  Particles per PE:  4034
 
  Switches:
 --------
     Coulomb forces:   T
  Lennard-Jones force  F
+      load balance:   F
+           restart:   F
+              ramp:   F
+      domain debug:   T
+        walk debug:   T
+      walk summary:   T
+         dump tree:   F
+       performance:   F
+             visit:   F
+          steering:   F
+
+ Local tree size  40048
+ Max address in #-table:  100000
+ Max # branches:  75000
+ Max # multipole fetches:  30036
+ Machine bit-size =  64
+ Max permitted particles / PE:  15624
+ Max size of interaction lists:  2200
+ Shortlist length:  2000
 
 Other inputs:
- scrambling  100  particles
- scrambling  100  particles
-
-
- Timestep        1    total run time =     0.50
+ &PEPCDATA
+ NEP=0, NIP=4034, NE=0, NI=2000000, THETA=0.5000000000, MAC=0, MASS_RATIO=2000.000000, MASS_PROTON=1836.000000, EPS=0.2000000030, RHO0=1.000000000, PLASMA_CONFIG=1, TARGET_GEOMETRY=1, VELOCITY_CONFIG=1, ISPECIAL=0, TE_KEV=0.5000000000, TI_KEV=0.0000000000E+00, T_SCALE=1.000000000, ZION=1.000000000, R_SPHERE=1.000000000, X_PLASMA=0.1000000015, Y_PLASMA=2.000000000, Z_PLASMA=2.000000000, DELTA_MC=0.1000000015, FORCE_CONST=1.000000000, N_LAYER=0, 0, 0, 0, 0, 0, 0, 0, 0, 0, X_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, Y_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, Z_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, R_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, ZION_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, RHO_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, MRATIO_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, LAYER_GEOMETRY=0, XL=2.000000000, YL=2.000000000, ZL=2.000000000, DISPLACE=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, BOND_CONST=0.2000000095E-02, FNN=5.000000000, RHO_MIN=0.1000000015, LOLAM=1.256637096, BEAM_CONFIG_IN=0, NP_BEAM=0, NP_ERROR=0, IDIM=3, R_BEAM=0.5000000075E-01, U_BEAM=0.2000000030, THETA_BEAM=0.0000000000E+00, PHI_BEAM=0.0000000000E+00, X_BEAM=0.3999999911E-01, START_BEAM=-0.1000000015, RHO_BEAM=-1.000000000, MASS_BEAM=5.000000000, LAMBDA=1.000000000, SIGMA=6.000000000, TPULSE=20.00000000, VOSC=6.000000000, OMEGA=0.5000000000, FOCUS=0.0000000000E+00, 1.000000000, 1.000000000, X_OFFSET=0.0000000000E+00, Z_OFFSET=0.0000000000E+00, NT=2, DT=0.2000000030, MC_STEPS=1000, IDUMP=4000, IVIS=2, IVIS_FIELDS=5000, IVIS_DOMAINS=5000, IPROT=1, ITRACK=300, NCPU_MERGE=1, NGX=2, NGY=2, NGZ=2, VIS_ON=F, STEERING=F, VIS_SELECT=1, MC_INIT=F, RESTART=F, SCHEME=1, PARTICLE_BCS=1, COULOMB=T, BFIELDS=F, BONDS=F, LENJONES=F, TARGET_DUP=F, RAMP=F, DEBUG_LEVEL=4, DEBUG_TREE=4, NCPU_MERGE=1, BALANCE=1, IFREEZE=1, WALK_SCHEME=0, CONSTRAIN_PROOF=0.1000000047E-02, LEN_TRIPOD=0.0000000000E+00, STRUCT_STEP=0, UTHRESH=-1.000000000, DOMAIN_CUT=2.000000000, GLUE_RADIUS=2000000.000, DEBUG_RANK=0, NP_MULT=-10.00000000, FETCH_MULT=3, NBUF_MAX=10000, TE_PERTURB=F, TPERT=0.1000000015, KPERT=2.000000000, Q_FACTOR=1.000000000, NETCDF=F, LAUNCH=T, FOAM_GEOM=1, 1, 1, FORCE_TOLERANCE=1.000000000, XH_START=0.0000000000E+00, XH_END=10.00000000, NXH=100, XGAV_START=0.0000000000E+00, XGAV_END=10.00000000, NGAV=100, XGAV_POS=0.0000000000E+00, 1.000000000, 2.000000000
+ /

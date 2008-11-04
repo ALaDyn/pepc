@@ -8,10 +8,10 @@
 # @ notification = complete
 # @ notify_user = r.speck@fz-juelich.de
 # @ job_type = bluegene
-# @ bg_size = 128
+# @ bg_size = 512
 # @ queue
 
 PEPC=../bin/pepce_bgp
 cp eqm.h run.h
-mpirun -exe $PEPC -mode SMP -verbose 1
+mpirun -exe $PEPC -mode VN -verbose 1
 

@@ -1,7 +1,6 @@
 #
 #  Makefile for pepc
 #
-SION = @SION@
 
 .PHONY : lpepc pepcb pepce
 
@@ -14,9 +13,6 @@ lpepc:
 # Laser-plasma front-end
 pepcb: 
 	cd lpepcsrc && gmake 
-ifeq ($(SION),1)
-	cd third_party/sionlib/src && gmake
-endif	
 	cd pepc-b && gmake
 
 # pepc-b front-end with visit interface routines
@@ -43,9 +39,6 @@ pepce-vis:
 
 clean:
 	cd lpepcsrc && gmake clean && cd ..
-ifeq ($(SION),1)
-	cd third_party/sionlib/src && gmake clean
-endif	
 	cd pepc-b && gmake clean
 	cd pepc-e && gmake clean
 

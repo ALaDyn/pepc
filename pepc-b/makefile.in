@@ -87,7 +87,7 @@ ifeq ($(SION),1)
 	rm -f  $(MACH)/dump.o $(MACH)/predef_parts.o 
 	ln -fs dump_sion.f90 dump.f90
 	ln -fs predef_parts_sion.f90 predef_parts.f90
-LIBS+=-L../$(SION_LIB)
+LIBS+=-L$(SION_LIB)
 TARGET = $(PREFIX)/bin/pepcb_$(MACH)_sion
 else 
 	rm -f  $(MACH)/dump.o $(MACH)/predef_parts.o 
