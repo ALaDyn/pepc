@@ -28,20 +28,16 @@ subroutine predef_parts
   ! 2MB GPFS
   integer 	fsblksize, feof
   integer 	sid, globalrank
-  real*8  realdummy(2)
-  integer integerdummy(2)
+  real*8 realdummy
 
 ! Temp variable use for the info blockt
-!  TYPE, BIND(C) :: Infoblock
-  TYPE :: Infoblock
+  TYPE, BIND(C) :: Infoblock
+  integer, dimension(7) :: intarr
   real, dimension(18) :: realarr
   real, dimension(3) :: plasma_centre, focus
-  integer, dimension(7) :: intarr
   END TYPE Infoblock
 
   TYPE(Infoblock) :: infoblk
-  TYPE(Infoblock) :: infoblkdummy(2)
-
 
   !get the last timestep
   if (me == 0) then
@@ -64,8 +60,7 @@ subroutine predef_parts
   call fsion_paropen_mpi(trim(cinfile),"br",MPI_COMM_WORLD,chunksize,fsblksize,me,sid)
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
-!  size_info = sizeof(infoblk%intarr)+sizeof(infoblk%realarr)+sizeof(infoblk%plasma_centre)+sizeof(infoblk%focus)
-  size_info = LOC(infoblkdummy(1))-LOC(infoblkdummy(0))
+  size_info = sizeof(infoblk%intarr)+sizeof(infoblk%realarr)+sizeof(infoblk%plasma_centre)+sizeof(infoblk%focus)
 
   call fsion_read(infoblk, 1, size_info, sid, bread)
   if (bread /= size_info) then
@@ -190,8 +185,10 @@ subroutine predef_parts
 
 	npp = npartr
 
-  size1 = npp*(LOC(realdummy(1))-LOC(realdummy(0)))
-  size2 = npp*(LOC(integerdummy(1))-LOC(integerdummy(0)))
+  ! npp * sizepof(real*8)
+	size1 = npp*sizeof(realdummy)
+  ! npp*sizeof(integer)
+	size2 = npp*sizeof(sid)
 
 !    if(me == 0) then
 !      write(6,*)'**************** npp=',npp,' **************'
