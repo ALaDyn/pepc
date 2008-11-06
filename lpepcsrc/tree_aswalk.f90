@@ -230,9 +230,9 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_np
 
            if (mac==0) then 
               ! BH-MAC
-              dx = x(p) - xcoc( walk_node )      ! Separations
-              dy = y(p) - ycoc( walk_node )
-              dz = z(p) - zcoc( walk_node )
+              dx = x(pshort(p)) - xcoc( walk_node )      ! Separations
+              dy = y(pshort(p)) - ycoc( walk_node )
+              dz = z(pshort(p)) - zcoc( walk_node )
               dist2 = theta2*(dx*dx+dy*dy+dz*dz)
               mac_ok = (dist2 > boxlength2(node_level(walk_node)))
 
