@@ -30,7 +30,7 @@ program pepce
   real :: t_stuff_1=0., t_stuff_2=0., t_en, t_mpi=0., t_end=0.
   real :: t_push, t_diag, t_start_push, t_prefetch=0., Tpon, ttot, t_laser, t_all = 0.
   integer :: tremain ! remaining wall_clock seconds
-  integer :: ierr, lvisit_active, ifile, debug, i, k
+  integer :: ierr, lvisit_active, ifile, debug, i, k, init_mb, nppm_ori
   character*5 :: ci
 
 !  integer, allocatable :: indxl(:),irnkl(:), label_tmp(:)
@@ -55,11 +55,11 @@ program pepce
 
   call openfiles       ! Set up O/P files
 
-  call setup           ! Each CPU gets copy of initial data
+  call setup(init_mb)           ! Each CPU gets copy of initial data
 
 !  debug=2
 
-  call pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult)  ! Allocate array space for tree
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult,init_mb,nppm_ori)  ! Allocate array space for tree
 
 !  allocate(indxl(nppm),irnkl(nppm),islen(n_cpu),irlen(n_cpu),fposts(n_cpu+1),gposts(n_cpu+1),label_tmp(nppm))
 
@@ -110,7 +110,8 @@ program pepce
 
 !     call pepc_fields_p1(np_local,x(1:np_local),y(1:np_local),z(1:np_local), &
 !                 q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
-!		 ex,ey,ez,pot,npnew,indxl,irnkl,islen,irlen,fposts,gposts,mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
+!		 ex,ey,ez,pot,npnew,indxl,irnkl,islen,irlen,fposts,gposts,np_mult,fetch_mult, &
+!	         mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
 !	         t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch, &
 !	         t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all)
 
@@ -121,12 +122,12 @@ program pepce
     
 !     np_local = npnew
 
-     call pepc_fields(np_local,x(1:np_local),y(1:np_local),z(1:np_local), &
+     call pepc_fields(np_local,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
+              	      np_mult,fetch_mult,mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
 	              t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch, &
-		      t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all)
+		      t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
 
 ! TODO: need proper mac selection instead of beam_config
 

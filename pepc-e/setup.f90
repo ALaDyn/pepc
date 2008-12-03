@@ -10,12 +10,13 @@
 !  ================================
 
 
-subroutine setup
+subroutine setup(init_mb)
   use physvars
   use tree_utils
   implicit none
   include 'mpif.h'
 
+  integer, intent(out) :: init_mb
   integer :: k, npb_pe
   real :: Qplas, Aplas
 
@@ -138,7 +139,13 @@ subroutine setup
   npart_total = ni+ne
   np_local = npart_total/n_cpu  ! initial total # particles per processor
 !  npp = npart_total/n_cpu  ! initial total # particles per processor
-  nppm = np_local*1.5
+  if (n_cpu.eq.1) then
+     nppm=1.5*npart_total + 1000  ! allow for additional ghost particles for field plots
+  else if (np_mult>0) then 
+     nppm = abs(np_mult)*max(npart_total/n_cpu,1000) ! allow 50% fluctuation
+  else
+     nppm = 4*max(npart_total/n_cpu,1000) ! allow 50% fluctuation
+  end if
 
   geometry: select case(target_geometry)
 
@@ -262,12 +269,12 @@ subroutine setup
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
 
   ! array allocation
+  init_mb = 15*nppm*8
 
   allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
        q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), pelabel(nppm), number(nppm), work(nppm) )
 
   allocate (vbuffer(0:attrib_max-1,nbuf_max), vbuf_local(0:attrib_max-1,nbuf_max))
-
 
   blocklengths(1:nprops_particle) = 1   
 

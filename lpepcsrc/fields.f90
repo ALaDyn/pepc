@@ -12,18 +12,18 @@
 !  ===================================================================
 
 
-subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
-     p_Ex, p_Ey, p_Ez, p_pot, &
+subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
+     p_Ex, p_Ey, p_Ez, p_pot, t_np_mult,t_fetch_mult, &
      mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
-     t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch,t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all)
+     t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch,t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
 
   use treevars
   use utils
   implicit none
   include 'mpif.h'
 
-  integer, intent(in) :: np_local  ! # particles on this CPU
-  real, intent(in) :: theta       ! multipole opening angle
+  integer, intent(in) :: np_local, t_fetch_mult,nppm_ori  ! # particles on this CPU
+  real, intent(in) :: theta, t_np_mult       ! multipole opening angle
   real, intent(in) :: err_f       ! max tolerated force error (rms)
   real, intent(in) :: force_const       ! scaling factor for fields & potential
   real, intent(in) :: eps         ! potential softening distance
@@ -35,12 +35,13 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
   integer, intent(in), dimension(np_local) :: p_label  ! particle label 
   real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
-  real*8, dimension(nppm) :: ex_tmp,ey_tmp,ez_tmp,pot_tmp,w_tmp
+  real*8, dimension(nppm_ori) :: ex_tmp,ey_tmp,ez_tmp,pot_tmp,w_tmp
   real*8, dimension(np_local) :: p_w ! work loads
+  integer, intent(in) :: init_mb
 
   integer :: npnew,npold
 
-  integer :: indxl(nppm),irnkl(nppm)
+  integer :: indxl(nppm_ori),irnkl(nppm_ori)
   integer :: islen(num_pe),irlen(num_pe)
   integer :: fposts(num_pe+1),gposts(num_pe+1)
 
@@ -67,7 +68,6 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   character(4) :: cme
   integer :: key2addr        ! Mapping function to get hash table address from key
   
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!merge mit trunk
 
   real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
 
@@ -81,6 +81,8 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 !  walk_summary=.true.
 !  dump_tree=.true.
   call cputime(tb1)
+  np_mult = t_np_mult
+  fetch_mult = t_fetch_mult
 
   npp = np_local
 
@@ -123,18 +125,9 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   call cputime(tb2)
 
 !  if (me == 0) write(*,*) "tree_domains"
-! Domain decomposition: allocate particle keys to PEs
-  call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)    
+  call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)  ! Domain decomposition: allocate particle keys to PEs
 
-  !  k = 0
-  !  do i = 1,npp
-  !  	if (p_label(i) <> pelabel(i)) k = k+1
-  !  end do	
-  !  write(*,*) me, k
-
-! particles now sorted according to keys assigned in tree_domains.
-! Serial mode: incoming labels can serve to restore order - now kept in pelabel 
-! Parallel mode: have to retain sort vectors from tree_domains
+  call tree_allocate(theta,init_mb)
 
 !  if (me == 0) write(*,*) "tree_build"
   call cputime(tb3)
@@ -215,10 +208,6 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      nps = nshort(jpass)
      ip1 = pstart(jpass)
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
-     p_ex_nps(1:nps) = p_ex(ip1:ip1+nps-1)
-     p_ey_nps(1:nps) = p_ey(ip1:ip1+nps-1)
-     p_ez_nps(1:nps) = p_ez(ip1:ip1+nps-1)
-
 
      if (force_debug) then
        	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
@@ -229,7 +218,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
      
   
-     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,p_ex_nps,p_ey_nps,p_ez_nps,np_local)
+     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 
@@ -271,7 +260,7 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 
   call cputime(td4)
 
-  call restore(npnew,npold,irnkl,indxl,irlen,islen,gposts,fposts, &
+  call restore(npnew,npold,nppm_ori,irnkl,indxl,irlen,islen,gposts,fposts, &
        pot_tmp(1:npnew),ex_tmp(1:npnew),ey_tmp(1:npnew),ez_tmp(1:npnew),w_tmp(1:npnew),p_pot,p_ex,p_ey,p_ez,p_w)    
 
   call cputime(td3)
@@ -319,6 +308,8 @@ subroutine pepc_fields(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   endif
 
   if (tree_debug) call tree_stats(itime)
+
+  call tree_deallocate
 
   call cputime(td1)
 

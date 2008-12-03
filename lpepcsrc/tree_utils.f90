@@ -401,7 +401,8 @@ contains
     integer ::  ibin, itag
     integer :: status(MPI_STATUS_SIZE),ierr
     integer :: alpha  ! alpha now in range 1-100
-    integer*8 :: ave_work, f_integral, work_average, work_threshold
+    real :: ave_work
+    integer*8 :: f_integral, work_average, work_threshold
     integer*8 :: total_work, checksum
     integer ::  i,j,k,ipe, iset,fd, nfill, proc_debug, nbin
     integer :: level_dist=8, nlev=20, level_strip
@@ -551,7 +552,7 @@ search_list = 8_8**lev_map  ! place holder
     call MPI_ALLREDUCE(f_local, f_global, nbin, MPI_INTEGER8, MPI_SUM,  MPI_COMM_WORLD, ierr )
 
     if (ilev==1) then 
-       ave_work=SUM(f_global(1:nbin))/nprocs        ! need more particles than procs here
+       ave_work=1.0*SUM(f_global(1:nbin))/nprocs        ! need more particles than procs here
        work_threshold = ave_work/alpha
     endif
 

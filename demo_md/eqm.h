@@ -1,5 +1,5 @@
 &pepcdata
-  db_level = 1
+  db_level = 2
   np_mult = 1.5
   fetch_mult = 4
 
@@ -25,13 +25,13 @@
 !   ne = 40758  ! exact, 40760 does not work...
 !   ni = 40758
 
-! ne = 44032000 ! absolute mx on JUMP-512 atm.
-! ni = 44032000
+! ne = 400000 
+! ni = 400000
 
 !   ne = 8
 !   ni = 8
-!   ne = 16
-!   ni = 16
+   ne = 16
+   ni = 16
 !   ne = 128
 !   ni = 128
 !   ne = 256
@@ -62,8 +62,8 @@
 !  ni = 1048576
 !  ne = 2097152
 !  ni = 2097152
-  ne = 4194304
-  ni = 4194304
+!  ne = 4194304
+!  ni = 4194304
 !  ne = 8388608
 !  ni = 8388608
 !  ne = 16777216

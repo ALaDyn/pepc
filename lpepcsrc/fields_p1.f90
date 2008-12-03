@@ -13,7 +13,7 @@
 
 subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, npnew, indxl, irnkl, islen, irlen, fposts, gposts, &
-     mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
+     t_np_mult,t_fetch_mult,mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
      t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch,t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all)
 
   use treevars
@@ -21,8 +21,8 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   implicit none
   include 'mpif.h'
 
-  integer, intent(in) :: np_local  ! # particles on this CPU
-  real, intent(in) :: theta       ! multipole opening angle
+  integer, intent(in) :: np_local,t_fetch_mult ! # particles on this CPU
+  real, intent(in) :: theta,t_np_mult       ! multipole opening angle
   real, intent(in) :: err_f       ! max tolerated force error (rms)
   real, intent(in) :: force_const       ! scaling factor for fields & potential
   real, intent(in) :: eps         ! potential softening distance
@@ -84,6 +84,9 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 
   call cputime(tb1)
 
+  np_mult = t_np_mult
+  fetch_mult = t_fetch_mult
+
   npp = np_local
   npnew = np_local
 
@@ -130,7 +133,7 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 ! Domain decomposition: allocate particle keys to PEs
   call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)    
 
-
+  call tree_allocate(theta)
 
 ! particles now sorted according to keys assigned in tree_domains.
 ! Serial mode: incoming labels can serve to restore order - now kept in pelabel 
@@ -331,6 +334,8 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 102  format(1x,i7,5(1pe14.5))
 
   endif
+
+  call tree_deallocate
 
   call cputime(td1)
 
