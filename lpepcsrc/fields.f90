@@ -217,7 +217,6 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
      
-  
      call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
@@ -231,7 +230,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
        ex_tmp(p) = 0.
        ey_tmp(p) = 0.
        ez_tmp(p) = 0.
-            
+
        !  compute Coulomb fields and potential of particle p from its interaction list
        call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
 
@@ -250,7 +249,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
 !     if (dump_tree) call diagnose_tree
-
+     if ((me == 0).and. tree_debug .and. (mod(jpass,max_npass/10)==0)) &
+          write(*,'(a26,a10,f12.4,a2)') ' LPEPC | TREE WALK (AS) --','Completed',100.0*jpass/max_npass,' %'
   end do
 
 ! restore initial particle order specified by calling routine to reassign computed forces
@@ -258,7 +258,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
 !  if (me == 0) write(*,*) "tree restore"
 
-  call cputime(td4)
+  call cputime(td4)  
 
   call restore(npnew,npold,nppm_ori,irnkl,indxl,irlen,islen,gposts,fposts, &
        pot_tmp(1:npnew),ex_tmp(1:npnew),ey_tmp(1:npnew),ez_tmp(1:npnew),w_tmp(1:npnew),p_pot,p_ex,p_ey,p_ez,p_w)    

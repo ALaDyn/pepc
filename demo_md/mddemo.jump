@@ -7,13 +7,13 @@
 #@ notify_user = r.speck@fz-juelich.de
 #@ wall_clock_limit = 00:30:00
 #@ node = 1
-#@ tasks_per_node = 4
-#@ data_limit=2.0GB 
-#@ stack_limit=1.5GB
+#@ tasks_per_node = 32
+#@ data_limit=3.0GB 
+#@ stack_limit=0.5GB
 #@ node_usage = shared
 #@ queue 
 
 
-PEPC=../bin/pepce_p690
+PEPC=../bin/pepce_power6
 cp eqm.h run.h
 poe $PEPC

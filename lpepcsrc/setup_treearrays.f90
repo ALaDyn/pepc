@@ -235,24 +235,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
-  if (me==0 .and. db_level>0) then
-    write(*,*) '# procs',num_pe
-    write(*,*) 'npart=',npart
-    write(*,*) 'N/P=',npart/num_pe
-    write(*,*) 'nppm= ',nppm
-    write(*,*) 'size_tree= ',size_tree
-    write(*,*) 'max address = ',maxaddress
-    write(*,*) 'address bits = ',nbaddr
-    write(*,*) '# const = ',hashconst
-    write(*,*) 'max leaf = ',maxleaf
-    write(*,*) 'max twig = ',maxtwig
-    write(*,*) 'max branches = ',nbranch_max
-    write(*,*) 'size_fetch= ',size_fetch
-    write(*,*) 'np_mult= ',np_mult
-    write(*,*) 'fetch_mult= ',fetch_mult
-    write(*,*) '... done'
-  endif 
-
   max_prefetches = 0
 
 end subroutine pepc_setup

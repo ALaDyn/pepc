@@ -43,6 +43,18 @@ subroutine tree_allocate(theta,init_mb)
      nbranch_local_max = 5*nintmax
   endif
 
+  if (num_pe==1) then
+    maxleaf = npart 
+    maxtwig = maxaddress/2
+  else if (num_pe.lt.2048) then
+    maxleaf = maxaddress/3
+    maxtwig = 2*maxleaf
+  else
+!  required # twigs increases with P because of branches
+    maxleaf = maxaddress/4
+    maxtwig = 3*maxleaf
+  endif 
+
   hashconst = 2**nbaddr-1
 
 ! Memory estimate
@@ -58,12 +70,27 @@ subroutine tree_allocate(theta,init_mb)
 
   if (me==0 .and. tree_debug) then
      write(*,'(//a/)') 'Actual memory allocation:'
-     write(*,'(6(a15,f14.3,a3/)/)') 'Inital Alloc: ',init_mb/mb,' MB', &
+     write(*,'(6(a15,f14.3,a3/))') 'Inital Alloc:',init_mb/mb,' MB', &
                                'Tree:',mem_tree/mb,' MB', &
                                'Lists:',mem_lists/mb,' MB', &
                                'Prefetch:',mem_prefetch/mb,' MB', &
                                'Multipoles:',mem_multipoles/mb,' MB', &
                                'TOTAL: ',mem_tot/mb,' MB'
+    write(*,*) '# procs',num_pe
+    write(*,*) 'npart=',npart
+    write(*,*) 'N/P=',npart/num_pe
+    write(*,*) 'nppm= ',nppm
+    write(*,*) 'size_tree= ',size_tree
+    write(*,*) 'max address = ',maxaddress
+    write(*,*) 'address bits = ',nbaddr
+    write(*,*) '# const = ',hashconst
+    write(*,*) 'max leaf = ',maxleaf
+    write(*,*) 'max twig = ',maxtwig
+    write(*,*) 'max branches = ',nbranch_max
+    write(*,*) 'size_fetch= ',size_fetch
+    write(*,*) 'np_mult= ',np_mult
+    write(*,*) 'fetch_mult= ',fetch_mult
+    write(*,'(a/)') '... done'
   endif
 
   allocate ( nterm(nshortm), intlist(nintmax,nshortm), nodelist(nintmax,nshortm) )! interaction key-, node-lists
@@ -82,18 +109,6 @@ subroutine tree_allocate(theta,init_mb)
   htable%childcode = 0
 
   ! Allocate memory for tree node properties
-
-  if (num_pe==1) then
-    maxleaf = npart 
-    maxtwig = maxaddress/2
-  else if (num_pe.lt.2048) then
-    maxleaf = maxaddress/3
-    maxtwig = 2*maxleaf
-  else
-!  required # twigs increases with P because of branches
-    maxleaf = maxaddress/4
-    maxtwig = 3*maxleaf
-  endif 
 
   allocate ( first_child(-maxtwig:maxleaf), n_children(-maxtwig:maxleaf), node_level(-maxtwig:maxleaf) )
 

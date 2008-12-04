@@ -1,6 +1,6 @@
 &pepcdata
   db_level = 2
-  np_mult = 1.5
+  np_mult = -60
   fetch_mult = 4
 
 ! particles
@@ -25,13 +25,13 @@
 !   ne = 40758  ! exact, 40760 does not work...
 !   ni = 40758
 
-! ne = 400000 
-! ni = 400000
+! ne = 500
+! ni = 500
 
-!   ne = 8
-!   ni = 8
-   ne = 16
-   ni = 16
+   ne = 8
+   ni = 8
+!   ne = 16
+!   ni = 16
 !   ne = 128
 !   ni = 128
 !   ne = 256
@@ -83,7 +83,7 @@
 
 ! physics stuff
 
-  theta = 0.6
+  theta = 0.0
   mac=0
   Te_keV = 0.5 ! Temperatures in keV
   Ti_keV =0.1
@@ -101,7 +101,7 @@
   zl =1
 
   ! control
-  nt =3
+  nt = 3
   dt = 0.01
   eps = 1.
   restart = .false.

@@ -24,7 +24,7 @@ subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
 
   type (results) :: ship_parts(npnew), get_parts(npold)
 
-  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | DOMAINS..'
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | RESTORE..'
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
