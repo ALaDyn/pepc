@@ -25,11 +25,11 @@
 !   ne = 40758  ! exact, 40760 does not work...
 !   ni = 40758
 
-! ne = 500
-! ni = 500
+ ne = 12800000
+ ni = 12800000
 
-   ne = 8
-   ni = 8
+!   ne = 8
+!   ni = 8
 !   ne = 16
 !   ni = 16
 !   ne = 128
@@ -83,7 +83,7 @@
 
 ! physics stuff
 
-  theta = 0.0
+  theta = 0.6
   mac=0
   Te_keV = 0.5 ! Temperatures in keV
   Ti_keV =0.1
@@ -101,7 +101,7 @@
   zl =1
 
   ! control
-  nt = 3
+  nt = 2
   dt = 0.01
   eps = 1.
   restart = .false.

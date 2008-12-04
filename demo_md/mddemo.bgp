@@ -1,17 +1,15 @@
-# @ job_name = md
+# @ job_name = pepce
 # @ comment = "BGP Job by Size"
 # @ error = $(job_name).$(jobid).out
 # @ output = $(job_name).$(jobid).out
 # @ environment = COPY_ALL;
 # @ bg_connection = MESH 
 # @ wall_clock_limit = 00:30:00
-# @ notification = complete
+# @ notification = always
 # @ notify_user = r.speck@fz-juelich.de
 # @ job_type = bluegene
 # @ bg_size = 512
 # @ queue
 
-PEPC=../bin/pepce_bgp
-cp eqm.h run.h
-mpirun -exe $PEPC -mode VN -verbose 1
+mpirun -exe pepc -mode VN -verbose 1
 
