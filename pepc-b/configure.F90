@@ -6,13 +6,14 @@
 !
 ! ==============================================
 
-subroutine configure
+subroutine configure(nppm_ori,init_mb)
 
     use physvars   ! Use internal particle arrays from lpepc
     use treevars
     implicit none
     include 'mpif.h'
 
+    integer, intent(in) :: nppm_ori,init_mb
     integer :: i, ipe, idummy=0, ierr, ifile, mac_init
     real :: t_walk, t_walkc, t_force, t_domain,t_build,t_prefetch
     integer :: label_offset
@@ -621,11 +622,11 @@ subroutine configure
         ! Compute initial field values - need these to get vec. pots consistent with velocities
 	mac_init=0  ! Use standard s/d mac for first step
         if (me==0) write(*,*) 'Computing initial fields'
-        call pepc_fields_p(np_local,  walk_scheme, mac_init, theta, ifreeze, eps, force_tolerance, balance,&
+        call pepc_fields_p(np_local,  nppm_ori, walk_scheme, mac_init, theta, ifreeze, eps, force_tolerance, balance,&
             force_const, bond_const, &
             dt, xl, yl, zl, 0, &
             coulomb, bfields, bonds, lenjones, &
-            t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot, work_tot)   
+            t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot, work_tot,init_mb)   
       
         !  Initialise vec. pots. to avoid jump in induced E-field
         Axo(1:npp) = Ax(1:npp)

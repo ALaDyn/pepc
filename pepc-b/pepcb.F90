@@ -73,9 +73,6 @@ program pepcb
 ! Allocate array space for tree
   call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,init_mb,nppm_ori) 
 
-!pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,init_mb,nppm_ori)
-
-
 ! call closefiles
 !  call MPI_FINALIZE(ierr)
 ! stop 
@@ -106,12 +103,12 @@ program pepcb
 
 
   if (launch) then
-    call configure       ! Set up particles
+    call configure(nppm_ori,init_mb)       ! Set up particles
 
   else
     ico=1
     do while (.not. launch)
-	call configure
+	call configure(nppm_ori,init_mb)
 #ifdef VISIT_NBODY
 	call vis_config
      	if ( mod(ico,ivis) ==0 ) call vis_parts_nbody(ico)       
@@ -182,7 +179,7 @@ program pepcb
                 , 'Focal position',focus(1) &
                 , 'Elapsed',tlaser 
         endif
-     endif
+    endif
 
      ! Compute internal E-, B-fields and pot using tree algorithm
      ! Uses internal particle arrays from library (setup up in configure step)
