@@ -202,13 +202,13 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   ip1 = 1
 
   call cputime(td6)
-
+  
   do jpass = 1,max_npass
      !  make short-list
      nps = nshort(jpass)
      ip1 = pstart(jpass)
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
-
+     if (me == 0) write(*,*) max_npass,jpass
      if (force_debug) then
        	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
         write(ipefile,*) 'pass ',jpass,' # parts ',ip1,' to ',ip1+nps-1
@@ -249,7 +249,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
 !     if (dump_tree) call diagnose_tree
-     if ((me == 0).and. tree_debug .and. (mod(jpass,max_npass/10)==0)) &
+     if ((me == 0).and. tree_debug .and. (mod(jpass,max_npass/10+1)==0)) &
           write(*,'(a26,a10,f12.4,a2)') ' LPEPC | TREE WALK (AS) --','Completed',100.0*jpass/max_npass,' %'
   end do
 
