@@ -309,7 +309,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   if (tree_debug) call tree_stats(itime)
 
-  call tree_deallocate
+  call tree_deallocate(nppm_ori)
 
   call cputime(td1)
 

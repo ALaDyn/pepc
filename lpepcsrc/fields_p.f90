@@ -13,10 +13,10 @@
 !  ===================================================================
 
 
-subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, balance, force_const, bond_const, &
+subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, eps, err_f, balance, force_const, bond_const, &
      delta_t,  xl, yl, zl, itime, &
      coulomb, bfield_on, bonds, lenjones, &
-     t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force, iprot,total_work)
+     t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force, iprot,total_work, init_mb)
 
   use treevars
   use utils
@@ -24,6 +24,7 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
   include 'mpif.h'
 
   integer :: np_local        ! # particles on CPU - can be changed in tree_domains
+  integer, intent(in) :: nppm_ori, init_mb  ! max # particles, initial MB
   real, intent(in) :: theta       ! multipole opening angle
   real, intent(in) :: err_f       ! max tolerated force error (rms)
   real, intent(in) :: delta_t       ! timestep 
@@ -103,6 +104,8 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
      call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)    
      !POMP$ INST END(domains)
      ! particles now sorted according to keys assigned in tree_domains.
+
+     call tree_allocate(theta,init_mb)
 
      call cputime(tb1)
 
@@ -417,6 +420,8 @@ subroutine pepc_fields_p(np_local,walk_scheme, mac, theta, ifreeze, eps, err_f, 
 102  format(1x,i7,5(1pe14.5))
 
   endif
+
+  call tree_deallocate(nppm_ori)
 
   np_local = npp   ! reset local # particles for calling routine
 

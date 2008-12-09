@@ -1,9 +1,10 @@
-subroutine tree_deallocate
+subroutine tree_deallocate(nppm_ori)
 
   use treevars
   implicit none
+  integer, intent(in) :: nppm_ori
 
-  nppm = nppm_old
+  nppm = nppm_ori
 
   deallocate ( nterm, intlist, nodelist ) ! interaction key-, node-lists
 
