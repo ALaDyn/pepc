@@ -4,8 +4,8 @@
 !
 !   $Revision$
 !
-!   Calculate forces due to laser fields
-!
+!   Calculate forces due to external fields
+! eg: laser, stationary B, E fields
 !
 !
 !

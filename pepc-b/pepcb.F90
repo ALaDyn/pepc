@@ -42,7 +42,7 @@ program pepcb
   real :: t_record(10000)
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
-  integer :: ierr, lvisit_active, ifile, incdf,i
+  integer :: ierr, lvisit_active, ifile, incdf,i, init_mb, nppm_ori
   integer :: vbufcols = 22, irecord=0, ico
 
 !POMP$ INST INIT
@@ -67,11 +67,14 @@ program pepcb
 
 
   call setup           ! Read input deck, setup plasma config
-  call setup_arrays    ! Set up field arrays
+  call setup_arrays(init_mb)    ! Set up field arrays
   call openfiles       ! Set up O/P files
 
 ! Allocate array space for tree
-  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,debug_rank) 
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,init_mb,nppm_ori) 
+
+!pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,init_mb,nppm_ori)
+
 
 ! call closefiles
 !  call MPI_FINALIZE(ierr)
@@ -181,34 +184,40 @@ program pepcb
         endif
      endif
 
-     ! Compute E, B-fields and pot using lpepc
+     ! Compute internal E-, B-fields and pot using tree algorithm
      ! Uses internal particle arrays from library (setup up in configure step)
      ! # particles on CPU may change due to re-sort
 
 !POMP$ INST BEGIN(fields)
 
-     call pepc_fields_p(np_local, walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
+     call pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
           dt, xl, yl, zl, itime+itime_start, &
           coulomb, bfields, bonds, lenjones, &
-          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot) 
+          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot, init_mb) 
   
 !POMP$ INST END(fields)
 
 
      call cputime(t_start_push)
+
+!  Compute external fields (laser, stationary E,B fields)
      fpon_max=0.
      call force_laser(1,np_local)
 
 
 !POMP$ INST BEGIN(integ)
 
+!  Velocity and position update - explicit schemes only
      call integrator
+
 
 !POMP$ INST END(integ)
 
      call cputime(t_push)
 
 !POMP$ INST BEGIN(diagno)
+
+!  Particle and field diagnostics; visualisation; tree stats
 
      if (debug_level>=1) then
         call diagnostics

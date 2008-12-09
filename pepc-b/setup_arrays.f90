@@ -1,10 +1,15 @@
-subroutine setup_arrays
+subroutine setup_arrays(init_mb)
   use physvars
   implicit none
   include 'mpif.h'
   integer :: mem_fields, npmax, ntm
+  integer, intent(out) :: init_mb
 
   npmax = npart_total/n_cpu*3
+
+  ! array allocation  - TODO
+  init_mb = 15*npmax*8
+
   allocate ( xslice(npmax), yslice(npmax), zslice(npmax), uxslice(npmax), uyslice(npmax), uzslice(npmax), & 
        qslice(npmax), mslice(npmax) )    ! Reserve slice particle array space N/NPE
 

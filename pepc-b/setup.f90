@@ -12,6 +12,7 @@
 
 subroutine setup
   use physvars
+  use treevars
   implicit none
 
   integer :: k, npb_pe, ne_rest, ni_rest
