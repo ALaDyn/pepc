@@ -131,9 +131,11 @@ program pepcb
 
   if (debug_level >0) then
 	call diagnostics     ! Initial config
+
   endif
 
   call cputime(t_start_loop)
+  call tree_deallocate(nppm_ori)
 
   do itime = 1,nt
      call cputime(t0)
@@ -191,6 +193,8 @@ program pepcb
           dt, xl, yl, zl, itime+itime_start, &
           coulomb, bfields, bonds, lenjones, &
           t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot, init_mb) 
+     call tree_deallocate(nppm_ori)
+
   
 !POMP$ INST END(fields)
 

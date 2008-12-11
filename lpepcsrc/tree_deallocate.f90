@@ -2,17 +2,24 @@ subroutine tree_deallocate(nppm_ori)
 
   use treevars
   implicit none
+  include 'mpif.h'
+
+  integer :: ierr
   integer, intent(in) :: nppm_ori
+  integer, allocatable :: test
 
   nppm = nppm_ori
 
-  deallocate ( nterm, intlist, nodelist ) ! interaction key-, node-lists
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
 
+ ! interaction key-, node-lists
+  deallocate(nodelist,nterm,intlist)
+       
   deallocate ( htable, all_addr, free_addr, point_free, &
        treekey, branch_key, branch_owner, &
        pebranch, leaf_key, twig_key, &
        fetched_owner, fetched_keys, requested_owner, requested_keys )
-       
+
   deallocate ( first_child, n_children, node_level )
 
 ! multipole moments
@@ -27,8 +34,6 @@ subroutine tree_deallocate(nppm_ori)
        magmx, magmy, magmz ) ! magnetic moment 
 
   deallocate ( pack_child,get_child )    ! Multipole shipping buffers
-
-! work balance arrays
 
 end subroutine tree_deallocate
 

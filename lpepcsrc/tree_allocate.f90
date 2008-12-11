@@ -11,7 +11,7 @@ subroutine tree_allocate(theta,init_mb)
 
   !nppm_old = nppm
   nppm = npp
-  
+
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
      nintmax = max(1.*24*log(2.*npartm)/max(theta**2,0.5),2200.)

@@ -4,11 +4,11 @@
 # @ output = $(job_name).$(jobid).out
 # @ environment = COPY_ALL;
 # @ bg_connection = MESH 
-# @ wall_clock_limit = 00:30:00
+# @ wall_clock_limit = 02:30:00
 # @ notification = always
 # @ notify_user = r.speck@fz-juelich.de
 # @ job_type = bluegene
-# @ bg_size = 512
+# @ bg_size = 2048
 # @ queue
 
 mpirun -exe pepc -mode VN -verbose 1

@@ -65,10 +65,10 @@ subroutine diagnostics
   !    enddo
   !  endif
 
-  if (mod(itime,idump) >= idump-navcycle .or. nt.lt.idump) then
+!  if (mod(itime,idump) >= idump-navcycle .or. nt.lt.idump) then
 !	call sum_fields    ! Accumulate cycle-averaged fields on grid
 !	call sum_fieldave
-  endif
+!  endif
 
   !  - assume for now that idump > navcycle
   !  - should really use running average to be compatible with online vis.

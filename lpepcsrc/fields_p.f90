@@ -70,7 +70,7 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
   integer :: fposts(num_pe+1),gposts(num_pe+1)
 
   !  force_debug=.true.
-  !  tree_debug=.false.
+  !  tree_debug=.true.
   !  build_debug=.false.
   !  domain_debug = .false.
   !  branch_debug=.false.
@@ -420,8 +420,6 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
 102  format(1x,i7,5(1pe14.5))
 
   endif
-
-  call tree_deallocate(nppm_ori)
 
   np_local = npp   ! reset local # particles for calling routine
 

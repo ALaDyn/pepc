@@ -37,7 +37,7 @@
 
 ! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
 
-subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_nps,ey_nps,ez_nps,np_local)
+subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)!,ex_nps,ey_nps,ez_nps,np_local)
   use treevars
   use tree_utils
   use utils
@@ -50,8 +50,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_np
   integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
   integer, intent(in) :: mac
-  integer,intent(in) :: np_local  ! Total # local particles
-  real*8, intent(in) :: ex_nps(npshort),ey_nps(npshort),ez_nps(npshort)  ! Fields from previous timestep
+!  integer,intent(in) :: np_local  ! Total # local particles
+!  real*8, intent(in) :: ex_nps(npshort),ey_nps(npshort),ez_nps(npshort)  ! Fields from previous timestep
   ! integer, intent(out) :: nodelist(nintm, npshort)
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
@@ -237,9 +237,9 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,ex_np
               mac_ok = (dist2 > boxlength2(node_level(walk_node)))
 
            else
-             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),np_local, &
-                  walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)), &
-                  theta2,mac,mac_ok, periodic_neighbour)
+!             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),np_local, &
+!                  walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)), &
+!                  theta2,mac,mac_ok, periodic_neighbour)
            endif
 
 	   mac_ok = ( mac_ok .and. walk_key(i)>1 )  !  always reject root node

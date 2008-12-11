@@ -67,19 +67,18 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   character(30) :: cfile, ccol1, ccol2
   character(4) :: cme
   integer :: key2addr        ! Mapping function to get hash table address from key
-  
 
-  real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
+!  real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
 
-!  force_debug=.true.
-!  tree_debug=.false.
-!  build_debug=.false.
-!  domain_debug = .false.
-!  branch_debug=.false.
-!  prefetch_debug=.false.
-!  walk_debug=.false.
-!  walk_summary=.true.
-!  dump_tree=.true.
+  force_debug=.false.
+  tree_debug=.false.
+  build_debug=.false.
+  domain_debug = .false.
+  branch_debug=.false.
+  prefetch_debug=.false.
+  walk_debug=.false.
+  walk_summary=.false.
+  dump_tree=.false.
   call cputime(tb1)
   np_mult = t_np_mult
   fetch_mult = t_fetch_mult
@@ -208,7 +207,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      nps = nshort(jpass)
      ip1 = pstart(jpass)
      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
-     if (me == 0) write(*,*) max_npass,jpass
+
      if (force_debug) then
        	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
         write(ipefile,*) 'pass ',jpass,' # parts ',ip1,' to ',ip1+nps-1
@@ -218,6 +217,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
      
      call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
+!     call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 
