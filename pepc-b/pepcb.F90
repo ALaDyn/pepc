@@ -193,7 +193,6 @@ program pepcb
           dt, xl, yl, zl, itime+itime_start, &
           coulomb, bfields, bonds, lenjones, &
           t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot, init_mb) 
-     call tree_deallocate(nppm_ori)
 
   
 !POMP$ INST END(fields)
@@ -257,7 +256,7 @@ program pepcb
 	end do
         t_record(irecord) = ttot
      endif
-
+     call tree_deallocate(nppm_ori)
   end do
   
   call cputime(t_end_loop)

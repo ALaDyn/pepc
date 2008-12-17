@@ -6,12 +6,11 @@ subroutine tree_deallocate(nppm_ori)
 
   integer :: ierr
   integer, intent(in) :: nppm_ori
-  integer, allocatable :: test
 
   nppm = nppm_ori
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-
+  
  ! interaction key-, node-lists
   deallocate(nodelist,nterm,intlist)
        
