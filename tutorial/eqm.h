@@ -1,13 +1,15 @@
 ! Plasma sphere
 
  &pepcdata
+ np_mult=10
+ fetch_mult=2
  ncpu_merge = 1
  debug_level = 2
- debug_tree = 0
- mac=3
+ debug_tree = 2
+ mac=0
 ! particles
-  ne = 2000
-  ni = 2000 
+  ne = 25000
+  ni = 25000 
 
 ! set up plasma target
  plasma_config = 1  
@@ -27,7 +29,7 @@
   bond_const = 2.e-3
   r_sphere = 1. 
 ! plasma disc thickness/ wire length
-  x_plasma = .1    
+  x_plasma = .5    
 ! plasma width (slab target)
   y_plasma = 2.     
 ! plasma width (slab target)
@@ -36,8 +38,9 @@
   xl = 4  
   yl =4 
   zl =4 
-
-
+ ngx=50
+ nxh=50
+ ngav=50
 ! beam
    beam_config_in = 0 
  
@@ -49,7 +52,7 @@
   lambda = 1.0   
 
   ! control
-  nt =100
+  nt =10
   dt = 0.2
   eps = 1.
  restart = .false.
@@ -59,8 +62,8 @@
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = 4000
-  iprot=20
+  idump = 10
+  iprot=2
   itrack=300
   particle_bcs = 1
   scheme = 1 /
