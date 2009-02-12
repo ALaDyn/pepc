@@ -54,6 +54,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm) ! work balance arrays
   integer :: hashaddr ! Key address 
 
+  real*8 :: tm1, tm2
+
   integer :: max_local,  timestamp
   integer :: ierr
   integer :: iprot = 50  ! frequency for load balance dump
@@ -70,15 +72,16 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
 !  real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
 
-  force_debug=.false.
-  tree_debug=.false.
-  build_debug=.false.
-  domain_debug = .false.
-  branch_debug=.false.
-  prefetch_debug=.false.
-  walk_debug=.false.
-  walk_summary=.false.
-  dump_tree=.false.
+!  force_debug=.false.
+!  tree_debug=.false.
+!  build_debug=.false.
+!  domain_debug = .false.
+!  branch_debug=.false.
+!  prefetch_debug=.false.
+!  walk_debug=.false.
+!  walk_summary=.false.
+!  dump_tree=.false.
+  tm1 = MPI_WTIME()
   call cputime(tb1)
   np_mult = t_np_mult
   fetch_mult = t_fetch_mult
@@ -125,7 +128,6 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
 !  if (me == 0) write(*,*) "tree_domains"
   call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)  ! Domain decomposition: allocate particle keys to PEs
-
   call tree_allocate(theta,init_mb)
 
 !  if (me == 0) write(*,*) "tree_build"
@@ -263,6 +265,10 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   call restore(npnew,npold,nppm_ori,irnkl,indxl,irlen,islen,gposts,fposts, &
        pot_tmp(1:npnew),ex_tmp(1:npnew),ey_tmp(1:npnew),ez_tmp(1:npnew),w_tmp(1:npnew),p_pot,p_ex,p_ey,p_ez,p_w)    
 
+!  do i=1,npold
+!     write(*,*) me,i,pelabel(i),p_w(i),p_pot(i),p_ex(i)
+!  end do
+
   call cputime(td3)
 
   call MPI_ALLREDUCE(max_local, max_list_length, 1, MPI_INTEGER, MPI_MAX,  MPI_COMM_WORLD, ierr )
@@ -312,8 +318,9 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   call tree_deallocate(nppm_ori)
 
   call cputime(td1)
+  tm2 = MPI_WTIME()
 
-  t_all = td1-tb1
+  t_all = tm2-tm1
   t_begin = tb2-tb1
   t_domain = tb3-tb2
   t_build = tb4-tb3

@@ -19,8 +19,7 @@ subroutine tree_allocate(theta,init_mb)
      nintmax = npartm
   endif
   max_list_length = 0 ! current max length of all interaction lists
-  
-  
+    
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
   npsize=nppm
@@ -68,7 +67,8 @@ subroutine tree_allocate(theta,init_mb)
   mem_prefetch = size_fetch*(8 + 4) + num_pe*4 *11 + maxaddress*8*2*2
   mem_tot = init_mb+mem_tree+mem_prefetch+mem_multipoles+mem_lists
 
-  if (me==0 .and. tree_debug) then
+!  if (me==0 .and. tree_debug) then
+  if (me==0) then
      write(*,'(//a/)') 'Actual memory allocation:'
      write(*,'(6(a15,f14.3,a3/))') 'Inital Alloc:',init_mb/mb,' MB', &
                                'Tree:',mem_tree/mb,' MB', &

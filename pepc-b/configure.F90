@@ -622,6 +622,7 @@ subroutine configure(nppm_ori,init_mb)
         ! Compute initial field values - need these to get vec. pots consistent with velocities
 	mac_init=0  ! Use standard s/d mac for first step
         if (me==0) write(*,*) 'Computing initial fields'
+	call tree_allocate(theta,init_mb)
         call pepc_fields_p(np_local,  nppm_ori, walk_scheme, mac_init, theta, ifreeze, eps, force_tolerance, balance,&
             force_const, bond_const, &
             dt, xl, yl, zl, 0, &

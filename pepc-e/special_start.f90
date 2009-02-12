@@ -17,7 +17,7 @@ subroutine special_start(iconf)
   real*8 :: gamma0,yt,zt,xt,qt,mt,c_status
   character(35) :: cinfile, cdump, cfile
   character(50) :: dfile
-  character(20) :: cme
+  character(25) :: cme
 
   iseed1 = -1 - my_rank
   iseed2 = -1011 - my_rank
@@ -183,36 +183,32 @@ subroutine special_start(iconf)
   case(4)
 
      if (my_rank == 0) write(*,*) "Special start 4: Reading initial particle positions..."
-     j = 0
-     do i = my_rank*max_num/n_cpu , (my_rank+1)*max_num/n_cpu-1
-        cme = "pepc_data/parts_info_" &   
-             // achar(i/1000+48) &
-             // achar(mod(i/100,10)+48) &
-             // achar(mod(i/10,10)+48) &
-             // achar(mod(i/1,10)+48)  ! Convert 4-digit PE number into character string
-        cfile=cme//".dat"
-        open(90,file=cfile)
-        p = 0
-        do while (p < npart_total/max_num)
-           read(90,*) p,xt,yt,zt,qt,mt,plt
-           ux(p+j*npart_total/max_num) = 0.
-           uy(p+j*npart_total/max_num) = 0.
-           uz(p+j*npart_total/max_num) = 0.
-           z(p+j*npart_total/max_num) = zt 
-           y(p+j*npart_total/max_num) = yt
-           x(p+j*npart_total/max_num) = xt
-           q(p+j*npart_total/max_num) = qt
-           m(p+j*npart_total/max_num) = mt
-           pelabel(p+j*npart_total/max_num) = plt
-!           write(*,*) my_rank,m(p+j*npart_total/max_num),pelabel(p+j*npart_total/max_num)
-!           write(*,*) my_rank,p+j*npart_total/max_num,p,i
-        end do    
-
-        j = j+1
-        close(90)
+     cme = "pepc_data/parts_info_" &   
+          // achar(my_rank/1000+48) &
+          // achar(mod(my_rank/100,10)+48) &
+          // achar(mod(my_rank/10,10)+48) &
+          // achar(mod(my_rank/1,10)+48)  ! Convert 4-digit PE number into character string
+     cfile=cme//".dat"
+     open(90,file=cfile)
+     p = 0
+     do while (p < np_local)
+        read(90,*) k,xt,yt,zt,qt,mt,plt
+        p = p+1
+        ux(p) = 0.
+        uy(p) = 0.
+        uz(p) = 0.
+        z(p) = zt 
+        y(p) = yt
+        x(p) = xt
+        q(p) = qt
+        m(p) = mt
+        pelabel(p) = plt
      end do
+     
+     close(90)
+
      goto 112
-!     write(*,*) my_rank,"1:NOOOOO!!!"
+
   end select config
 
   q(1:nep)             = qe        ! plasma electrons
@@ -221,7 +217,6 @@ subroutine special_start(iconf)
   m(nep + 1:np_local)       = mass_i    ! ion mass
   pelabel(1:nep)       = my_rank * nep + (/(i, i = 1, nep)/)      ! Electron labels
   pelabel(nep + 1:np_local) = ne + my_rank * nip + (/(i, i = 1, nip)/) ! Ion labels
-!  write(*,*) my_rank,"2:NOOOOO!!!"
 
 112  ex(1:np_local) = 0.
   ey(1:np_local) = 0.

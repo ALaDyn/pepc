@@ -63,9 +63,6 @@ program pepcb
   if (my_rank==0) call stamp(6,1)
   if (my_rank==0) call stamp(15,1)
 
-
-
-
   call setup           ! Read input deck, setup plasma config
   call setup_arrays(init_mb)    ! Set up field arrays
   call openfiles       ! Set up O/P files
@@ -135,7 +132,6 @@ program pepcb
   endif
 
   call cputime(t_start_loop)
-  call tree_deallocate(nppm_ori)
 
   do itime = 1,nt
      call cputime(t0)
@@ -256,7 +252,7 @@ program pepcb
 	end do
         t_record(irecord) = ttot
      endif
-     call tree_deallocate(nppm_ori)
+
   end do
   
   call cputime(t_end_loop)
@@ -271,7 +267,7 @@ program pepcb
      call dump(nt+itime_start)
   endif
 
-
+  call tree_deallocate(nppm_ori)
   call closefiles      ! Tidy up O/P files
 
 

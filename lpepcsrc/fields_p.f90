@@ -104,7 +104,7 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
      call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)    
      !POMP$ INST END(domains)
      ! particles now sorted according to keys assigned in tree_domains.
-     call tree_allocate(theta,init_mb)
+
      call cputime(tb1)
 
      !POMP$ INST BEGIN(build)

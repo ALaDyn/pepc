@@ -86,8 +86,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   npartm = npart
   if (num_pe.eq.1) then
     nppm=1.5*npart + 1000  ! allow for additional ghost particles for field plots
-  else if (np_mult>0) then 
-    nppm = abs(np_mult)*max(npartm/num_pe,1000) ! allow 50% fluctuation
+!  else if (np_mult<0) then 
+!    nppm = abs(np_mult)*max(npartm/num_pe,1000) ! allow 50% fluctuation
   else
     nppm = 1.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
   endif

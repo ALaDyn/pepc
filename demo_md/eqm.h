@@ -1,7 +1,7 @@
 &pepcdata
-  db_level = 2
-  np_mult = -60
-  fetch_mult = 4
+  db_level = 1
+  np_mult = -30
+  fetch_mult = 3
 
 ! particles
 
@@ -64,12 +64,12 @@
 !  ni = 2097152
 !  ne = 4194304
 !  ni = 4194304
-  ne = 8388608
-  ni = 8388608
+!  ne = 8388608
+!  ni = 8388608
 !  ne = 16777216
 !  ni = 16777216
-!  ne = 33554432
-!  ni = 33554432
+  ne = 33554432
+  ni = 33554432
 !  ne = 67108864
 !  ni = 67108864
 
@@ -101,7 +101,7 @@
   zl =1
 
   ! control
-  nt =3 
+  nt = 3
   dt = 0.01
   eps = 1.
   restart = .false.
