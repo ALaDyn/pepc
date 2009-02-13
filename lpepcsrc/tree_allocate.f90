@@ -4,13 +4,13 @@ subroutine tree_allocate(theta,init_mb)
   implicit none
   
   real, intent(in) :: theta
-  integer, intent(in) :: init_mb
+  integer :: init_mb
   integer :: k, npsize
   integer :: mem_parts, mem_multipoles, mem_fields, mem_tree, mem_prefetch, mem_tot, mem_lists
   real, parameter :: mb=2.**20
 
   !nppm_old = nppm
-  nppm = npp
+  nppm = 1.5*npp
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then

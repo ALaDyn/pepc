@@ -9,7 +9,7 @@ subroutine tree_deallocate(nppm_ori)
 
   nppm = nppm_ori
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+!  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   
  ! interaction key-, node-lists
   deallocate(nodelist,nterm,intlist)

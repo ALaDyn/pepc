@@ -37,7 +37,7 @@
 
 ! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
 
-subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch)!,ex_nps,ey_nps,ez_nps,np_local)
+subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex_nps,ey_nps,ez_nps,np_local)
   use treevars
   use tree_utils
   use utils

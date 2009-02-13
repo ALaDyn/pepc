@@ -11,10 +11,11 @@
 !
 !  ===================================================================
 
-subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
+subroutine pepc_fields_p1(np_local, nppm_ori, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, npnew, indxl, irnkl, islen, irlen, fposts, gposts, &
      t_np_mult,t_fetch_mult,mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
-     t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch,t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all)
+     t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch,t_stuff_1,t_stuff_2, &
+     t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all, init_mb)
 
   use treevars
   use utils
@@ -29,6 +30,8 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
   real, intent(in) :: xl, yl, zl         ! box dimensions
   integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: mac  ! choice of mac
+  integer :: nppm_ori ! max # particles per core
+  integer :: init_mb ! memory est
   real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
   real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
   integer, intent(in), dimension(np_local) :: p_label  ! particle label 
@@ -133,7 +136,7 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 ! Domain decomposition: allocate particle keys to PEs
   call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)    
 
-  call tree_allocate(theta)
+  call tree_allocate(theta,init_mb)
 
 ! particles now sorted according to keys assigned in tree_domains.
 ! Serial mode: incoming labels can serve to restore order - now kept in pelabel 
@@ -234,9 +237,9 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
    
      
-     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,ex_sl,ey_sl,ez_sl,np_local)
+!     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,ex_sl,ey_sl,ez_sl,np_local)
   
-    ! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)   
+     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)   
     
      
      t_walk = t_walk + ttrav  ! traversal time (serial)
@@ -335,7 +338,7 @@ subroutine pepc_fields_p1(np_local, p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
 
   endif
 
-  call tree_deallocate
+  call tree_deallocate(nppm_ori)
 
   call cputime(td1)
 

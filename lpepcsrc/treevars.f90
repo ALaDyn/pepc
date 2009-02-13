@@ -248,8 +248,8 @@ module treevars
   integer, allocatable :: npps(:)  ! Particle distrib amoung PEs
   integer*8, allocatable ::  pivots(:)  ! Pivot buffer for sort
 
-  real :: np_mult
-  integer :: fetch_mult
+  real :: np_mult=1.5
+  integer :: fetch_mult=4
 
 end module treevars
 
