@@ -19,7 +19,7 @@ DEFINES = @VISITDEF@ @NETCDFDEF@
 MACH = @MACH@
 SION = @SION@
 SION_LIB = @SION_LIB@
-TARGET = $(PREFIX)/bin/pepcb_$(MACH)  # name of executable
+TARGET = $(PREFIX)/bin/pepcb_$(MACH)_$(SION)  # name of executable
 
 FC      = @MPIF90@
 CC      = @MPICC@

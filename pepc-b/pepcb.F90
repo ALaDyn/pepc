@@ -69,6 +69,7 @@ program pepcb
 
 ! Allocate array space for tree
   call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,init_mb,nppm_ori) 
+  call tree_allocate(theta,init_mb)
 
 ! call closefiles
 !  call MPI_FINALIZE(ierr)
@@ -132,6 +133,7 @@ program pepcb
   endif
 
   call cputime(t_start_loop)
+!  call tree_deallocate(nppm_ori)
 
   do itime = 1,nt
      call cputime(t0)

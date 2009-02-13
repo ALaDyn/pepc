@@ -128,6 +128,8 @@ subroutine setup
   nep = ne/n_cpu + ne_rest ! local # electrons and ions - may be adjusted later
   nip = ni/n_cpu + ni_rest
 
+  npp = nep+nip ! initial estimate for total local # particles
+
   new_label = npart_total  ! Rezone label
 
   if (target_dup .or. scheme==5) np_mult = np_mult*2  ! double up particle array size if multi-target or ion config mode 

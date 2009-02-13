@@ -24,7 +24,7 @@ subroutine openfiles
        // achar(mod(my_rank/10,10)+48) &
        // achar(mod(my_rank,10)+48)  ! Convert 4-digit PE number into character string
   cfile="data/pe"//csubme//"/dump."//csubme
-  if (debug_level>1 .and. idump>0) then
+  if (debug_level>2 .and. idump>0) then
       open(90,file='openfiles.out')
       write (90,'(a3,i6,a15,a30)') 'PE ',my_rank,' opening ',cfile
       open(20,file=cfile) ! suppress I/O for debug=0

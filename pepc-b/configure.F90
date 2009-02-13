@@ -15,6 +15,7 @@ subroutine configure(nppm_ori,init_mb)
 
     integer, intent(in) :: nppm_ori,init_mb
     integer :: i, ipe, idummy=0, ierr, ifile, mac_init
+    integer :: nppm_ori,init_mb
     real :: t_walk, t_walkc, t_force, t_domain,t_build,t_prefetch
     integer :: label_offset
     integer :: faces(maxlayers)
@@ -627,7 +628,7 @@ subroutine configure(nppm_ori,init_mb)
             force_const, bond_const, &
             dt, xl, yl, zl, 0, &
             coulomb, bfields, bonds, lenjones, &
-            t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot, work_tot,init_mb)   
+            t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot, work_tot, init_mb)   
       
         !  Initialise vec. pots. to avoid jump in induced E-field
         Axo(1:npp) = Ax(1:npp)
@@ -644,5 +645,5 @@ subroutine configure(nppm_ori,init_mb)
         stop
      endif
      
-   end subroutine configure
+   End subroutine configure
    
