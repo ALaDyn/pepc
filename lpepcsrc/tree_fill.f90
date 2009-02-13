@@ -205,7 +205,5 @@ subroutine tree_fill
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 
-
-
 end subroutine tree_fill
 

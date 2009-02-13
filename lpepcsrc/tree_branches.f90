@@ -254,7 +254,5 @@ subroutine tree_branches
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 
-
-
 end subroutine tree_branches
 

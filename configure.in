@@ -39,7 +39,7 @@ then
 #  DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"
  NETCDF_PATH=/usr/local/netcdf/netcdf-3.6.2
   MACH=bgp
- TUNE="-qarch=440d -qtune=440"
+ TUNE="-qarch=450d -qtune=450"
 #  MPIF90=bgxlf90
 #  MPICC=bgxlc
   MPIF90=mpixlf90
@@ -102,7 +102,7 @@ case "$host" in
 powerpc64-unknown-linux-gnu) # jubl/jugene
  AC_MSG_RESULT(** setting common options for powerpc64 host **)
  CFLAGS_OS="-DAIX_XLF $TUNE -qlibansi -qnoinfo "
- FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS $TUNE -qnosave -qstrict"
+ FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS $TUNE -qnosave"
  F90DEF="-WF,"
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
  MODULE_FLAG="-qmoddir="

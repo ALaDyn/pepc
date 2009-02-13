@@ -188,7 +188,8 @@ subroutine special_start(iconf)
           // achar(mod(my_rank/100,10)+48) &
           // achar(mod(my_rank/10,10)+48) &
           // achar(mod(my_rank/1,10)+48)  ! Convert 4-digit PE number into character string
-     cfile=cme//".dat"
+!     cfile=cme//".dat"
+     cfile=cme
      open(90,file=cfile)
      p = 0
      do while (p < np_local)

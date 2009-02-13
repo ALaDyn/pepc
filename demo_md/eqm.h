@@ -1,6 +1,8 @@
 &pepcdata
   db_level = 1
-  np_mult = -30
+
+! np_mult = -30, fetch_mult = 3 for BG/P in VN-mode
+  np_mult = -30 
   fetch_mult = 3
 
 ! particles
@@ -64,17 +66,17 @@
 !  ni = 2097152
 !  ne = 4194304
 !  ni = 4194304
-!  ne = 8388608
-!  ni = 8388608
+  ne = 8388608
+  ni = 8388608
 !  ne = 16777216
 !  ni = 16777216
-  ne = 33554432
-  ni = 33554432
+!  ne = 33554432
+!  ni = 33554432
 !  ne = 67108864
 !  ni = 67108864
 
  system_config = 2  ! set up plasma target
- ispecial = 3
+ ispecial = 4
  !   initial_config=7   ! hollow sphere
    target_geometry = 0         ! random disc
  !   initial_config=3   ! wire
@@ -101,7 +103,7 @@
   zl =1
 
   ! control
-  nt = 3
+  nt = 5
   dt = 0.01
   eps = 1.
   restart = .false.

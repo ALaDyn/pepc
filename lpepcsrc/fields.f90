@@ -15,7 +15,7 @@
 subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, t_np_mult,t_fetch_mult, &
      mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
-     t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch,t_stuff_1,t_stuff_2,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
+     t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch,t_integral,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
 
   use treevars
   use utils
@@ -35,6 +35,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
   integer, intent(in), dimension(np_local) :: p_label  ! particle label 
   real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
+  real*8, intent(out) :: t_begin,t_domain, t_build, t_branches, t_fill, t_properties,t_prefetch, t_integral, t_walk, t_walkc, t_force, t_restore, &
+                         t_mpi,t_end,t_all
   real*8, dimension(nppm_ori) :: ex_tmp,ey_tmp,ez_tmp,pot_tmp,w_tmp
   real*8, dimension(np_local) :: p_w ! work loads
   integer, intent(in) :: init_mb
@@ -48,13 +50,11 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   integer, parameter :: npassm=100000 ! Max # passes - will need npp/nshortm
 
   integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe, k
-  real :: t_begin,t_domain, t_build, t_fill, t_branches, t_properties,t_prefetch, t_walk, t_walkc, t_force, t_restore, t_all
-  real :: t_stuff_1, t_stuff_2, t_end, t_mpi,ttrav, tfetch, t1, t2, t3, t4  ! timing integrals
-  real :: tb1, tb2, td1, td2, tb3, td3, tb4, td4, td5, tb5, tb6, td6, tb7, td7
+  real*8 :: ttrav, tfetch ! timing integrals
   integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm) ! work balance arrays
   integer :: hashaddr ! Key address 
 
-  real*8 :: tm1, tm2
+  real*8 :: tm1, tm2, tm3, tm4, tm5, tm6, tm7, tm8, tm9, tm10, tm11, tm12, tm13, tm14
 
   integer :: max_local,  timestamp
   integer :: ierr
@@ -81,8 +81,10 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 !  walk_debug=.false.
 !  walk_summary=.false.
 !  dump_tree=.false.
+
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   tm1 = MPI_WTIME()
-  call cputime(tb1)
+
   np_mult = t_np_mult
   fetch_mult = t_fetch_mult
 
@@ -124,27 +126,28 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      az(i) = 0.
   end do
 
-  call cputime(tb2)
-
-!  if (me == 0) write(*,*) "tree_domains"
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up  
+  tm2 = MPI_WTIME()
   call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)  ! Domain decomposition: allocate particle keys to PEs
   call tree_allocate(theta,init_mb)
 
-!  if (me == 0) write(*,*) "tree_build"
-  call cputime(tb3)
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  tm3 = MPI_WTIME()
   call tree_build      ! Build trees from local particle lists
 !  if (me == 0) write(*,*) "tree_branch"
-  call cputime(tb4)
+
+  tm4 = MPI_WTIME()
   call tree_branches   ! Determine and concatenate branch nodes
 !  if (me == 0) write(*,*) "tree_fill"
-  call cputime(tb5)
+
+  tm5 = MPI_WTIME()
   call tree_fill       ! Fill in remainder of local tree
 !  if (me == 0) write(*,*) "tree_props"
-  call cputime(tb6)
+
+  tm6 = MPI_WTIME()
   call tree_properties ! Compute multipole moments for local tree
-  call cputime(tb7)
-!  if (num_pe>1) call tree_prefetch(itime)
-  call cputime(td7)
+
+  tm7 = MPI_WTIME()
 
   t_walk=0.
   t_walkc=0.
@@ -202,7 +205,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   ip1 = 1
 
-  call cputime(td6)
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  tm8 = MPI_WTIME()
   
   do jpass = 1,max_npass
      !  make short-list
@@ -223,7 +227,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 
-     call cputime(t2)   ! timing
+     tm9 = MPI_WTIME()
      do i = 1, nps
 
        p = pshortlist(i)    ! local particle index
@@ -245,10 +249,10 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
     end do
 
-    call cputime(t3)   ! timing
-     t_force = t_force + t3-t2
+    tm10 = MPI_WTIME()
+    t_force = t_force + tm10-tm9
 
-     max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
+    max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
 !     if (dump_tree) call diagnose_tree
      if ((me == 0).and. tree_debug .and. (mod(jpass,max_npass/10+1)==0)) &
@@ -260,7 +264,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
 !  if (me == 0) write(*,*) "tree restore"
 
-  call cputime(td4)  
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  tm11 = MPI_WTIME()
 
   call restore(npnew,npold,nppm_ori,irnkl,indxl,irlen,islen,gposts,fposts, &
        pot_tmp(1:npnew),ex_tmp(1:npnew),ey_tmp(1:npnew),ez_tmp(1:npnew),w_tmp(1:npnew),p_pot,p_ex,p_ey,p_ez,p_w)    
@@ -269,7 +274,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 !     write(*,*) me,i,pelabel(i),p_w(i),p_pot(i),p_ex(i)
 !  end do
 
-  call cputime(td3)
+  tm12 = MPI_WTIME()
 
   call MPI_ALLREDUCE(max_local, max_list_length, 1, MPI_INTEGER, MPI_MAX,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
@@ -280,7 +285,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   nkeys_total = nleaf+ntwig  
 
-  call cputime(td2)
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  tm13 = MPI_WTIME()
 
   if (me ==0 .and. mod(itime,iprot)==0) then
      total_work = SUM(work_loads)
@@ -317,22 +323,21 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   call tree_deallocate(nppm_ori)
 
-  call cputime(td1)
-  tm2 = MPI_WTIME()
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  tm14 = MPI_WTIME()
 
-  t_all = tm2-tm1
-  t_begin = tb2-tb1
-  t_domain = tb3-tb2
-  t_build = tb4-tb3
-  t_branches = tb5-tb4
-  t_fill = tb6-tb5
-  t_properties = tb7-tb6
-  t_prefetch = td7-tb7
-  t_stuff_1 = td6-td7
-  t_stuff_2 = td4-td6
-  t_restore = td3-td4
-  t_mpi = td2-td3  
-  t_end = td1-td2  
+  t_all = tm14-tm1
+  t_begin = tm2-tm1
+  t_domain = tm3-tm2
+  t_build = tm4-tm3
+  t_branches = tm5-tm4
+  t_fill = tm6-tm5
+  t_properties = tm7-tm6
+  t_prefetch = 0.
+  t_integral = tm8-tm7
+  t_restore = tm12-tm11
+  t_mpi = tm13-tm12  
+  t_end = tm14-tm13  
 
 end subroutine pepc_fields
 

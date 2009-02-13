@@ -397,8 +397,8 @@ subroutine tree_build
     endif
  enddo
     
-
-
+ call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  
 end subroutine tree_build
 
 

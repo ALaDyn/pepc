@@ -55,7 +55,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
   ! integer, intent(out) :: nodelist(nintm, npshort)
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
-  real :: twalk, tfetch, tw1, tw2, tc1, tf1, tf2, t1, t2
+  real*8 :: twalk, tfetch, tw1, tw2, tc1, tf1, tf2, t1, t2
 
   ! Key arrays (64-bit)
 
@@ -120,10 +120,12 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! merge mit trunk !!!!!!!!!!!!!!!!!!!!!!!
+
   integer :: periodic_neighbour(3) ! stores the index offset of the nearest image's cell as an integer(3) array
 
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+  t1 = MPI_WTIME()
 
-  call cputime(t1)
   !
   twalk=0.
   tfetch=0.
@@ -175,14 +177,16 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
      !     hops(1) = 500
   endif
 
-  call cputime(t2)
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up  
+  t2 = MPI_WTIME()
   
   !if (me ==0) write(*,*) t2-t1
 
   do while (maxactive > 0)        ! Outer loop over 'active' traversals
      !POMP$ INST BEGIN(walk_local)
+     
+     tw1 = MPI_WTIME()
 
-     call cputime(tw1)
      ntraversals = ntraversals + 1  ! # Tree-walks
      if (walk_debug) write(ipefile,'(a,i6)') 'Start of traversal ',ntraversals
      !     if (walk_debug) write(*,'(a,i6)') 'Start of traversal ',ntraversals
@@ -349,8 +353,9 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
         endif
 
      end do
+     
+     tw2 = MPI_WTIME()
 
-     call cputime(tw2)
      twalk=twalk+tw2-tw1
      !POMP$ INST END(walk_local)
 
@@ -696,7 +701,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
         write (6,*) 'LPEPC | WARNING: tree arrays >95% full on CPU ',me,' twigs ',ntwig,' / ',maxtwig
      endif
 
-     call cputime(tc1)
+     tc1 = MPI_WTIME()
+
      tfetch=tfetch+tc1-tw2  ! timing for 2nd half of walk
      !POMP$ INST END(exchange)
    
