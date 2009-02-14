@@ -133,7 +133,7 @@ program pepcb
   endif
 
   call cputime(t_start_loop)
-!  call tree_deallocate(nppm_ori)
+  call tree_deallocate(nppm_ori)
 
   do itime = 1,nt
      call cputime(t0)
@@ -186,6 +186,8 @@ program pepcb
      ! # particles on CPU may change due to re-sort
 
 !POMP$ INST BEGIN(fields)
+
+     call tree_allocate(theta,init_mb)
 
      call pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
           dt, xl, yl, zl, itime+itime_start, &
@@ -255,6 +257,8 @@ program pepcb
         t_record(irecord) = ttot
      endif
 
+     call tree_deallocate(nppm_ori)
+
   end do
   
   call cputime(t_end_loop)
@@ -269,7 +273,7 @@ program pepcb
      call dump(nt+itime_start)
   endif
 
-  call tree_deallocate(nppm_ori)
+!  call tree_deallocate(nppm_ori)
   call closefiles      ! Tidy up O/P files
 
 
