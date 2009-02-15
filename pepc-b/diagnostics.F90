@@ -76,7 +76,7 @@ subroutine diagnostics
 
   if (beam_config == 4 .and. mod(itime,itrack)==0 ) call track_nc          ! Gather densities and track critical surface 
   if( mod(itime+itime_start,ivis_fields)==0 .and. mod(target_geometry,10)==1) then
-!     call sum_radial(itime+itime_start)  ! Radial moments
+     call sum_radial(itime+itime_start)  ! Radial moments
   endif
 
 
