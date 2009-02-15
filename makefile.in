@@ -12,12 +12,17 @@ lpepc:
 
 # Laser-plasma front-end
 pepcb: 
+	cd pepc-b && gmake
+
+# pepc-b front-end with sion I/O library interface routines
+pepc-sion: 
 	cd lpepcsrc && gmake 
 	cd pepc-b && gmake
 
 # pepc-b front-end with visit interface routines
 # need --with-visit to activate visit libraries
 # need --with-netcdf to activate netcdf output (via interface routines)
+
 pepcb-vis:
 	cd lpepcsrc && gmake
 	cd pepc-b && gmake pepc-visit
@@ -44,6 +49,9 @@ clean:
 
 cleanb:
 	cd pepc-b && gmake clean && cd ..
+
+cleanlib:
+	cd lpepcsrc && gmake clean && cd ..
 
 cleane:
 	cd pepc-e && gmake clean && cd ..
