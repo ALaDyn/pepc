@@ -1,0 +1,16 @@
+# @ job_name = eqm 
+# @ comment = "Eqm uniform plasma ball test"
+# @ error = $(job_name).$(jobid).out
+# @ output = $(job_name).$(jobid).out
+# @ environment = COPY_ALL;
+# @ bg_connection = MESH 
+# @ wall_clock_limit = 00:20:00
+# @ notification = complete
+# @ notify_user = p.gibbon@fz-juelich.de
+# @ job_type = bluegene
+# @ bg_size = 256
+# @ queue
+#PEPC=$HOME/pepc/bin/pepcb_bgp
+PEPC=$HOME/pepc/bin/pepcvis
+cp eqm.h run.h
+mpirun -exe $PEPC -mode SMP -verbose 1 
