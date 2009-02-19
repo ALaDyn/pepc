@@ -389,7 +389,7 @@ contains
     integer :: total_keys(nprocs)  ! Total # keys in local tree(s) 
     real*8 :: ave_nkeys,finc  ! Average # keys
 
-    integer, parameter :: maxbin=1500000  ! Max # bins for key distrib
+    integer, parameter :: maxbin=1000000  ! Max # bins for key distrib
     integer*8, dimension(maxbin)  :: f_local, f_global, f_final  ! Key distribution functions
     integer*8, dimension(maxbin) ::  search_list, retain_list, bin_list
     integer, dimension(maxbin) :: index_bin
@@ -724,8 +724,9 @@ search_list = 8_8**lev_map  ! place holder
     enddo
 
     npnew = gposts(nprocs+1)
-
-
+    if (npnew.gt.nppm) then
+      write(*,*) 'Problem with particle balance on proc',iproc,' np,npnew,npmm:',np,npnew,nppm
+    endif
 !  Use full keys for swap
  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
     call MPI_ALLTOALLV(  kw1  ,islen,fposts,MPI_INTEGER8, &

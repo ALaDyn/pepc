@@ -124,8 +124,8 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   nchild_shipm = maxaddress
 !  walk_debug = .true.
   ! ipefile = 6
-  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK (CO, ND) for timestep ',itime,' pass ',pass
-  if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (CO, ND) for timestep ',itime,' pass ',pass
+!  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK (CO, ND) for timestep ',itime,' pass ',pass
+  if (me.eq.0 .and. walk_summary .and. pass==1) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (CO, ND) for timestep ',itime,' pass ',pass
 
   sbox = boxsize
 

@@ -5,39 +5,42 @@ subroutine tree_allocate(theta,init_mb)
   
   real, intent(in) :: theta
   integer :: init_mb
-  integer :: k, npsize
+  integer :: k, nintest
   integer :: mem_parts, mem_multipoles, mem_fields, mem_tree, mem_prefetch, mem_tot, mem_lists
   real, parameter :: mb=2.**20
 
-  !nppm_old = nppm
-  nppm = 1.5*npp
 
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
-     nintmax = max(1.*24*log(2.*npartm)/max(theta**2,0.5),2200.)
+     nintest = 35.*log(1.*npartm)/max(theta**2,0.25)
   else
-     nintmax = npartm
+     nintest = npartm
   endif
+!  nintmax=max(nintest,2200)
+  nintmax=nintest
+
   max_list_length = 0 ! current max length of all interaction lists
     
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
-  npsize=nppm
-  size_tree = max(4*nintmax+2*npsize,10000)
+  size_tree = max(30*nintmax+4*npp,10000)
+
   if (np_mult>0) then
-     nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
-     maxaddress = 2**nbaddr
+!     nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
+!     maxaddress = 2**nbaddr
+      nbaddr = max(log(1.*size_tree)/log(2.),15.)
+      maxaddress = size_tree
   else
      maxaddress = abs(np_mult)*10000
      nbaddr = max(log(1.*maxaddress)/log(2.) ,15.)
   endif
   
   if (num_pe > 1) then
-     size_fetch = fetch_mult*size_tree/4
+     size_fetch = fetch_mult*size_tree/6
      nbranch_max = .75*maxaddress              ! Global max # branches
-     nbranch_local_max = 4*nbranch_max/num_pe  ! Local max # branches
+     nbranch_local_max = 2*nbranch_max/num_pe  ! Local max # branches
   else
-     size_fetch=nppm
+     size_fetch=npp
      nbranch_max = 5*nintmax
      nbranch_local_max = 5*nintmax
   endif
@@ -45,13 +48,13 @@ subroutine tree_allocate(theta,init_mb)
   if (num_pe==1) then
     maxleaf = npart 
     maxtwig = maxaddress/2
-  else if (num_pe.lt.2048) then
+  else if (num_pe.lt.1024) then
     maxleaf = maxaddress/3
     maxtwig = 2*maxleaf
   else
 !  required # twigs increases with P because of branches
-    maxleaf = maxaddress/4
-    maxtwig = 3*maxleaf
+    maxleaf = maxaddress/(1.+log(1.*num_pe)/3.)
+    maxtwig = maxaddress-maxleaf
   endif 
 
   hashconst = 2**nbaddr-1
@@ -69,17 +72,21 @@ subroutine tree_allocate(theta,init_mb)
 
 !  if (me==0 .and. tree_debug) then
   if (me==0) then
-     write(*,'(//a/)') 'Actual memory allocation:'
-     write(*,'(6(a15,f14.3,a3/))') 'Inital Alloc:',init_mb/mb,' MB', &
+     write(*,'(//a/)') 'Allocating new multipole fields'
+     write(*,'(6(a15,f14.3,a3/))') 'Initial alloc:',init_mb/mb,' MB', &
                                'Tree:',mem_tree/mb,' MB', &
                                'Lists:',mem_lists/mb,' MB', &
                                'Prefetch:',mem_prefetch/mb,' MB', &
                                'Multipoles:',mem_multipoles/mb,' MB', &
                                'TOTAL: ',mem_tot/mb,' MB'
+    if (dynamic_memalloc) write(*,'(/a/)') 'Dynamic memory management switched on!'	  
     write(*,*) '# procs',num_pe
     write(*,*) 'npart=',npart
     write(*,*) 'N/P=',npart/num_pe
+    write(*,*) 'npp= ',npp
     write(*,*) 'nppm= ',nppm
+    write(*,*) 'nshortm= ',nshortm
+    write(*,*) 'nintest/max=',nintest,nintmax
     write(*,*) 'size_tree= ',size_tree
     write(*,*) 'max address = ',maxaddress
     write(*,*) 'address bits = ',nbaddr

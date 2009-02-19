@@ -248,6 +248,8 @@ module treevars
   integer, allocatable :: npps(:)  ! Particle distrib amoung PEs
   integer*8, allocatable ::  pivots(:)  ! Pivot buffer for sort
 
+! Memory control
+  logical :: dynamic_memalloc=.false.
   real :: np_mult=1.5
   integer :: fetch_mult=4
 
