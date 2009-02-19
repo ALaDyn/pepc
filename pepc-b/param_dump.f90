@@ -91,15 +91,6 @@ subroutine param_dump
         write (ifile,'(a20,l3)') ' performance: ',perf_anal
         write (ifile,'(a20,l3)') ' visit: ',vis_on
         write (ifile,'(a20,l3/)') ' steering: ',steering
-        write (ifile,*) 'Local tree size ',size_tree
-        write (ifile,*) 'Max address in #-table: ',maxaddress
-        write (ifile,*) 'Max # branches: ',nbranch_max
-        write (ifile,*) 'Max # multipole fetches: ',size_fetch
-        machinebits = bit_size(1_8)    ! # bits in integer variable (hardware) 
-        write (ifile,*) 'Machine bit-size = ',machinebits
-        write (ifile,*) 'Max permitted particles / PE: ', nppm
-        write (ifile,*) 'Max size of interaction lists: ', nintmax
-	write (ifile,*) 'Shortlist length: ',nshortm
 
         if (debug_level>=2) then
            write (ifile,'(/a)') 'Other inputs:'
