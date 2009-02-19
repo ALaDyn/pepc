@@ -246,7 +246,7 @@ AC_ARG_WITH(debug,[  --with-debug            produce debug library (no)],
   case "$withval" in
   yes[)]
     DEBUGDEF=-DDEBUG 
-    OPT="-g"
+    OPT="-g -qfullpath -qcheck"
     ;;
   *[)]
     DEBUGDEF=
