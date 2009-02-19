@@ -69,7 +69,8 @@ program pepcb
 
 ! Allocate array space for tree
   call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,init_mb,nppm_ori) 
-  call tree_allocate(theta,init_mb)
+
+  if (.not.dynamic_memalloc) call tree_allocate(theta,init_mb)
 
 ! call closefiles
 !  call MPI_FINALIZE(ierr)
@@ -133,7 +134,8 @@ program pepcb
   endif
 
   call cputime(t_start_loop)
-  call tree_deallocate(nppm_ori)
+
+  if (dynamic_memalloc) call tree_deallocate(nppm_ori)
 
   do itime = 1,nt
      call cputime(t0)
@@ -187,7 +189,6 @@ program pepcb
 
 !POMP$ INST BEGIN(fields)
 
-     call tree_allocate(theta,init_mb)
 
      call pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
           dt, xl, yl, zl, itime+itime_start, &
@@ -257,7 +258,7 @@ program pepcb
         t_record(irecord) = ttot
      endif
 
-     call tree_deallocate(nppm_ori)
+     if (dynamic_memalloc) call tree_deallocate(nppm_ori)
 
   end do
   
@@ -273,7 +274,8 @@ program pepcb
      call dump(nt+itime_start)
   endif
 
-!  call tree_deallocate(nppm_ori)
+  if (.not.dynamic_memalloc) call tree_deallocate(nppm_ori)
+
   call closefiles      ! Tidy up O/P files
 
 
