@@ -20,7 +20,7 @@ DEFINES =
 MACH = bgp
 FC      = mpixlf90
 CC      = mpicc
-FFLAGS  =  -WF,-DHAVE_PRIVATE_CONFIGS -qarch=450d -qtune=450 -qnosave  -qsuffix=f=f90 -qsuffix=cpp=F90 -O5
+FFLAGS  =  -WF,-DHAVE_PRIVATE_CONFIGS -qarch=450d -qtune=450 -qnosave  -qsuffix=f=f90 -qsuffix=cpp=F90 -O3
 LDFLAGS = 
 
 LIBPEPC   = -L../lpepcsrc/$(MACH) -llpepc

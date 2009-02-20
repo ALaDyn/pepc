@@ -1,5 +1,5 @@
- scrambling         4374  particles
- scrambling         4374  particles
+ scrambling  4374  particles
+ scrambling  4374  particles
      Plasma config:    1 rand-geom 
    Target geometry:    1 sphere    
        Beam config:    0 eqm    
@@ -44,11 +44,11 @@
 
  Laser focus:      1.00     2.00     2.00
 
-  Electrons:        35000
-  Ions:        35000
-  Beam particles:            0
-  Beam angles    0.000000      0.3000000    
-  Particles per PE:         8750
+  Electrons:  35000
+  Ions:  35000
+  Beam particles:  0
+  Beam angles  0.0000000000E+00 0.3000000119
+  Particles per PE:  8750
 
  Switches:
 --------
@@ -67,127 +67,9 @@
 
 
 Other inputs:
-&PEPCDATA
- NEP=       4375,
- NIP=       4375,
- NE=      35000,
- NI=      35000,
- THETA= 0.5000000    ,
- MAC=          0,
- MASS_RATIO=  2000.000    ,
- MASS_PROTON=  1836.000    ,
- EPS= 0.5000000    ,
- RHO0=  1.000000    ,
- PLASMA_CONFIG=          1,
- TARGET_GEOMETRY=          1,
- VELOCITY_CONFIG=          1,
- ISPECIAL=          0,
- TE_KEV=  1.000000    ,
- TI_KEV= 0.1000000    ,
- T_SCALE=  1.000000    ,
- ZION=  1.000000    ,
- R_SPHERE=  1.000000    ,
- X_PLASMA=  1.000000    ,
- Y_PLASMA=  1.000000    ,
- Z_PLASMA=  1.000000    ,
- DELTA_MC= 0.1000000    ,
- FORCE_CONST= 0.3333333    ,
- N_LAYER= 10*0          ,
- X_LAYER= 10*0.000000      ,
- Y_LAYER= 10*0.000000      ,
- Z_LAYER= 10*0.000000      ,
- R_LAYER= 10*0.000000      ,
- ZION_LAYER= 10*0.000000      ,
- RHO_LAYER= 10*0.000000      ,
- MRATIO_LAYER= 10*0.000000      ,
- LAYER_GEOMETRY=          0,
- XL=  4.000000    ,
- YL=  4.000000    ,
- ZL=  4.000000    ,
- DISPLACE= 3*0.000000      ,
- BOND_CONST= 2.0000001E-03,
- FNN=  5.000000    ,
- RHO_MIN= 0.1000000    ,
- LOLAM=  1.256637    ,
- BEAM_CONFIG_IN=          0,
- NP_BEAM=          0,
- NP_ERROR=          0,
- IDIM=          3,
- R_BEAM= 0.1500000    ,
- U_BEAM= 0.2000000    ,
- THETA_BEAM=  0.000000    ,
- PHI_BEAM= 0.3000000    ,
- X_BEAM= 3.9999999E-02,
- START_BEAM= 0.4000000    ,
- RHO_BEAM= -5.000000    ,
- MASS_BEAM=  3.000000    ,
- LAMBDA=  1.000000    ,
- SIGMA=  6.000000    ,
- TPULSE=  20.00000    ,
- VOSC=  6.000000    ,
- OMEGA= 0.5000000    ,
- FOCUS=  1.000000    , 2*2.000000      ,
- X_OFFSET=  0.000000    ,
- Z_OFFSET=  0.000000    ,
- NT=         10,
- DT= 0.5000000    ,
- MC_STEPS=       1000,
- IDUMP=      -4000,
- IVIS=          5,
- IVIS_FIELDS=          5,
- IVIS_DOMAINS=       5000,
- IPROT=          1,
- ITRACK=        300,
- NCPU_MERGE=          1,
- NGX=         50,
- NGY=         25,
- NGZ=         25,
- VIS_ON=F,
- STEERING=F,
- VIS_SELECT=          1,
- MC_INIT=F,
- RESTART=F,
- SCHEME=          1,
- PARTICLE_BCS=          1,
- COULOMB=T,
- BFIELDS=F,
- BONDS=F,
- LENJONES=F,
- TARGET_DUP=F,
- RAMP=F,
- DEBUG_LEVEL=          2,
- DEBUG_TREE=          2,
- NCPU_MERGE=          1,
- BALANCE=          1,
- IFREEZE=          1,
- WALK_SCHEME=          0,
- CONSTRAIN_PROOF= 1.0000000E-03,
- LEN_TRIPOD=  0.000000    ,
- STRUCT_STEP=          0,
- UTHRESH= -1.000000    ,
- DOMAIN_CUT=  2.000000    ,
- GLUE_RADIUS=  2000000.    ,
- DEBUG_RANK=          0,
- NP_MULT=  10.00000    ,
- FETCH_MULT=          2,
- NBUF_MAX=      10000,
- TE_PERTURB=F,
- TPERT= 0.1000000    ,
- KPERT=  2.000000    ,
- Q_FACTOR=  1.000000    ,
- NETCDF=F,
- LAUNCH=T,
- FOAM_GEOM= 3*1          ,
- FORCE_TOLERANCE=  1.000000    ,
- DYNAMIC_MEMALLOC=F,
- XH_START=  0.000000    ,
- XH_END=  10.00000    ,
- NXH=         50,
- XGAV_START=  0.000000    ,
- XGAV_END=  10.00000    ,
- NGAV=         50,
- XGAV_POS=  0.000000    ,  1.000000    ,  2.000000    ,  /
-
+ &PEPCDATA
+ NEP=4375, NIP=4375, NE=35000, NI=35000, THETA=0.5000000000, MAC=0, MASS_RATIO=2000.000000, MASS_PROTON=1836.000000, EPS=0.5000000000, RHO0=1.000000000, PLASMA_CONFIG=1, TARGET_GEOMETRY=1, VELOCITY_CONFIG=1, ISPECIAL=0, TE_KEV=1.000000000, TI_KEV=0.1000000015, T_SCALE=1.000000000, ZION=1.000000000, R_SPHERE=1.000000000, X_PLASMA=1.000000000, Y_PLASMA=1.000000000, Z_PLASMA=1.000000000, DELTA_MC=0.1000000015, FORCE_CONST=0.3333333433, N_LAYER=0, 0, 0, 0, 0, 0, 0, 0, 0, 0, X_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, Y_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, Z_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, R_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, ZION_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, RHO_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, MRATIO_LAYER=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, LAYER_GEOMETRY=0, XL=4.000000000, YL=4.000000000, ZL=4.000000000, DISPLACE=0.0000000000E+00, 0.0000000000E+00, 0.0000000000E+00, BOND_CONST=0.2000000095E-02, FNN=5.000000000, RHO_MIN=0.1000000015, LOLAM=1.256637096, BEAM_CONFIG_IN=0, NP_BEAM=0, NP_ERROR=0, IDIM=3, R_BEAM=0.1500000060, U_BEAM=0.2000000030, THETA_BEAM=0.0000000000E+00, PHI_BEAM=0.3000000119, X_BEAM=0.3999999911E-01, START_BEAM=0.4000000060, RHO_BEAM=-5.000000000, MASS_BEAM=3.000000000, LAMBDA=1.000000000, SIGMA=6.000000000, TPULSE=20.00000000, VOSC=6.000000000, OMEGA=0.5000000000, FOCUS=1.000000000, 2.000000000, 2.000000000, X_OFFSET=0.0000000000E+00, Z_OFFSET=0.0000000000E+00, NT=10, DT=0.5000000000, MC_STEPS=1000, IDUMP=-4000, IVIS=5, IVIS_FIELDS=5, IVIS_DOMAINS=5000, IPROT=1, ITRACK=300, NCPU_MERGE=1, NGX=50, NGY=25, NGZ=25, VIS_ON=F, STEERING=F, VIS_SELECT=1, MC_INIT=F, RESTART=F, SCHEME=1, PARTICLE_BCS=1, COULOMB=T, BFIELDS=F, BONDS=F, LENJONES=F, TARGET_DUP=F, RAMP=F, DEBUG_LEVEL=2, DEBUG_TREE=2, NCPU_MERGE=1, BALANCE=1, IFREEZE=1, WALK_SCHEME=0, CONSTRAIN_PROOF=0.1000000047E-02, LEN_TRIPOD=0.0000000000E+00, STRUCT_STEP=0, UTHRESH=-1.000000000, DOMAIN_CUT=2.000000000, GLUE_RADIUS=2000000.000, DEBUG_RANK=0, NP_MULT=10.00000000, FETCH_MULT=2, NBUF_MAX=10000, TE_PERTURB=F, TPERT=0.1000000015, KPERT=2.000000000, Q_FACTOR=1.000000000, NETCDF=F, LAUNCH=T, FOAM_GEOM=1, 1, 1, FORCE_TOLERANCE=1.000000000, DYNAMIC_MEMALLOC=F, XH_START=0.0000000000E+00, XH_END=10.00000000, NXH=50, XGAV_START=0.0000000000E+00, XGAV_END=10.00000000, NGAV=50, XGAV_POS=0.0000000000E+00, 1.000000000, 2.000000000
+ /
                                   norm                  keV                 erg 
              P.E. =    -1.57498523E-04        -6.72476E+02        -1.07386E-06
       Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
@@ -263,21 +145,21 @@ Global max # multipole ships/cpu/iteration / limit    9709  /  27276
 
 Timing:  Routine   time(s)  percentage
 
-           Domains:        0.024       1.174
-        Tree-build:        0.028       1.370
-          Branches:        0.012       0.587
-              Fill:        0.040       1.957
-             Props:        0.048       2.348
+           Domains:        0.054       0.556
+        Tree-build:        0.015       0.151
+          Branches:        0.014       0.143
+              Fill:        0.041       0.425
+             Props:        0.151       1.557
           Prefetch:        0.000       0.000
-        Walk local:        0.000       0.000
-         Walk comm:        0.000       0.000
-            Forces:        1.892      92.564
-            Pusher:        0.000       0.000
-       Diagnostics:        0.004       0.196
-             Total:        2.044     100.000
+        Walk local:        3.117      32.165
+         Walk comm:        0.386       3.982
+            Forces:        5.910      60.983
+            Pusher:        0.003       0.036
+       Diagnostics:        0.020       0.203
+             Total:        9.691     100.000
       Timing format:
  #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
-    8       0.024       0.128       0.000       0.000       0.000       1.892       2.044
+    8       0.054       0.221       0.000       3.117       0.386       5.910       9.691
 
 ========================================================================
 
@@ -324,21 +206,21 @@ Global max # multipole ships/cpu/iteration / limit   11889  /  27276
 
 Timing:  Routine   time(s)  percentage
 
-           Domains:        0.024       1.174
-        Tree-build:        0.024       1.174
-          Branches:        0.008       0.391
-              Fill:        0.044       2.153
-             Props:        0.048       2.348
+           Domains:        0.056       0.570
+        Tree-build:        0.015       0.150
+          Branches:        0.014       0.139
+              Fill:        0.040       0.409
+             Props:        0.152       1.533
           Prefetch:        0.000       0.000
-        Walk local:        0.000       0.000
-         Walk comm:        0.000       0.000
-            Forces:        1.892      92.564
-            Pusher:        0.000       0.000
-       Diagnostics:        0.004       0.196
-             Total:        2.044     100.000
+        Walk local:        3.094      31.294
+         Walk comm:        0.610       6.166
+            Forces:        5.903      59.703
+            Pusher:        0.003       0.034
+       Diagnostics:        0.013       0.127
+             Total:        9.888     100.000
       Timing format:
  #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
-    8       0.024       0.124       0.000       0.000       0.000       1.892       2.044
+    8       0.056       0.221       0.000       3.094       0.610       5.903       9.888
 
 ========================================================================
 
@@ -385,21 +267,21 @@ Global max # multipole ships/cpu/iteration / limit   12632  /  27276
 
 Timing:  Routine   time(s)  percentage
 
-           Domains:        0.024       1.099
-        Tree-build:        0.024       1.099
-          Branches:        0.012       0.549
-              Fill:        0.044       2.015
-             Props:        0.048       2.198
+           Domains:        0.057       0.549
+        Tree-build:        0.015       0.142
+          Branches:        0.014       0.135
+              Fill:        0.042       0.402
+             Props:        0.149       1.433
           Prefetch:        0.000       0.000
-        Walk local:        0.000       0.000
-         Walk comm:        0.000       0.000
-            Forces:        2.032      93.040
-            Pusher:        0.000       0.000
-       Diagnostics:        0.000       0.000
-             Total:        2.184     100.000
+        Walk local:        3.319      31.927
+         Walk comm:        0.492       4.737
+            Forces:        6.304      60.639
+            Pusher:        0.004       0.034
+       Diagnostics:        0.016       0.151
+             Total:       10.396     100.000
       Timing format:
  #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
-    8       0.024       0.128       0.000       0.000       0.000       2.032       2.184
+    8       0.057       0.220       0.000       3.319       0.492       6.304      10.396
 
 ========================================================================
 
@@ -446,21 +328,21 @@ Global max # multipole ships/cpu/iteration / limit   12538  /  27276
 
 Timing:  Routine   time(s)  percentage
 
-           Domains:        0.028       1.248
-        Tree-build:        0.024       1.070
-          Branches:        0.020       0.891
-              Fill:        0.044       1.961
-             Props:        0.048       2.139
+           Domains:        0.057       0.526
+        Tree-build:        0.015       0.138
+          Branches:        0.014       0.130
+              Fill:        0.041       0.385
+             Props:        0.149       1.385
           Prefetch:        0.000       0.000
-        Walk local:        0.000       0.000
-         Walk comm:        0.000       0.000
-            Forces:        2.076      92.513
-            Pusher:        0.004       0.178
-       Diagnostics:        0.000       0.000
-             Total:        2.244     100.000
+        Walk local:        3.401      31.682
+         Walk comm:        0.609       5.674
+            Forces:        6.446      60.045
+            Pusher:        0.004       0.033
+       Diagnostics:        0.017       0.158
+             Total:       10.735     100.000
       Timing format:
  #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
-    8       0.028       0.136       0.000       0.000       0.000       2.076       2.244
+    8       0.057       0.219       0.000       3.401       0.609       6.446      10.735
 
 ========================================================================
 
@@ -507,21 +389,21 @@ Global max # multipole ships/cpu/iteration / limit   12698  /  27276
 
 Timing:  Routine   time(s)  percentage
 
-           Domains:        0.024       1.029
-        Tree-build:        0.028       1.201
-          Branches:        0.008       0.343
-              Fill:        0.040       1.715
-             Props:        0.052       2.230
+           Domains:        0.057       0.506
+        Tree-build:        0.015       0.135
+          Branches:        0.014       0.125
+              Fill:        0.041       0.369
+             Props:        0.151       1.346
           Prefetch:        0.000       0.000
-        Walk local:        0.000       0.000
-         Walk comm:        0.000       0.000
-            Forces:        2.176      93.310
-            Pusher:        0.004       0.172
-       Diagnostics:        0.028       1.201
-             Total:        2.332     100.000
+        Walk local:        3.573      31.942
+         Walk comm:        0.556       4.968
+            Forces:        6.776      60.576
+            Pusher:        0.004       0.032
+       Diagnostics:        0.088       0.787
+             Total:       11.185     100.000
       Timing format:
  #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
-    8       0.024       0.128       0.000       0.000       0.000       2.176       2.332
+    8       0.057       0.221       0.000       3.573       0.556       6.776      11.185
 
 ========================================================================
 
@@ -568,21 +450,21 @@ Global max # multipole ships/cpu/iteration / limit   12910  /  27276
 
 Timing:  Routine   time(s)  percentage
 
-           Domains:        0.028       1.178
-        Tree-build:        0.024       1.010
-          Branches:        0.012       0.505
-              Fill:        0.044       1.852
-             Props:        0.052       2.189
+           Domains:        0.057       0.500
+        Tree-build:        0.015       0.132
+          Branches:        0.014       0.122
+              Fill:        0.041       0.361
+             Props:        0.149       1.302
           Prefetch:        0.000       0.000
-        Walk local:        0.000       0.000
-         Walk comm:        0.000       0.000
-            Forces:        2.216      93.266
-            Pusher:        0.000       0.000
-       Diagnostics:        0.000       0.000
-             Total:        2.376     100.000
+        Walk local:        3.617      31.643
+         Walk comm:        0.599       5.240
+            Forces:        6.935      60.669
+            Pusher:        0.003       0.031
+       Diagnostics:        0.016       0.142
+             Total:       11.432     100.000
       Timing format:
  #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
-    8       0.028       0.132       0.000       0.000       0.000       2.216       2.376
+    8       0.057       0.219       0.000       3.617       0.599       6.935      11.432
 
 ========================================================================
 
@@ -629,21 +511,21 @@ Global max # multipole ships/cpu/iteration / limit   13934  /  27276
 
 Timing:  Routine   time(s)  percentage
 
-           Domains:        0.024       0.988
-        Tree-build:        0.028       1.153
-          Branches:        0.012       0.494
-              Fill:        0.044       1.812
-             Props:        0.048       1.977
+           Domains:        0.056       0.480
+        Tree-build:        0.015       0.129
+          Branches:        0.014       0.119
+              Fill:        0.042       0.354
+             Props:        0.149       1.274
           Prefetch:        0.000       0.000
-        Walk local:        0.000       0.000
-         Walk comm:        0.000       0.000
-            Forces:        2.272      93.575
-            Pusher:        0.000       0.000
-       Diagnostics:        0.004       0.165
-             Total:        2.428     100.000
+        Walk local:        3.706      31.617
+         Walk comm:        0.666       5.682
+            Forces:        7.070      60.312
+            Pusher:        0.004       0.030
+       Diagnostics:        0.013       0.109
+             Total:       11.722     100.000
       Timing format:
  #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
-    8       0.024       0.132       0.000       0.000       0.000       2.272       2.428
+    8       0.056       0.220       0.000       3.706       0.666       7.070      11.722
 
 ========================================================================
 
@@ -690,21 +572,21 @@ Global max # multipole ships/cpu/iteration / limit   13989  /  27276
 
 Timing:  Routine   time(s)  percentage
 
-           Domains:        0.028       1.094
-        Tree-build:        0.024       0.938
-          Branches:        0.012       0.469
-              Fill:        0.044       1.719
-             Props:        0.052       2.031
+           Domains:        0.057       0.460
+        Tree-build:        0.015       0.124
+          Branches:        0.014       0.114
+              Fill:        0.042       0.343
+             Props:        0.151       1.231
           Prefetch:        0.000       0.000
-        Walk local:        0.000       0.000
-         Walk comm:        0.000       0.000
-            Forces:        2.396      93.594
-            Pusher:        0.004       0.156
-       Diagnostics:        0.000       0.000
-             Total:        2.560     100.000
+        Walk local:        3.893      31.631
+         Walk comm:        0.674       5.476
+            Forces:        7.458      60.590
+            Pusher:        0.004       0.029
+       Diagnostics:        0.018       0.150
+             Total:       12.308     100.000
       Timing format:
  #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
-    8       0.028       0.132       0.000       0.000       0.000       2.396       2.560
+    8       0.057       0.223       0.000       3.893       0.674       7.458      12.308
 
 ========================================================================
 
@@ -751,21 +633,21 @@ Global max # multipole ships/cpu/iteration / limit   14000  /  27276
 
 Timing:  Routine   time(s)  percentage
 
-           Domains:        0.024       0.915
-        Tree-build:        0.024       0.915
-          Branches:        0.012       0.457
-              Fill:        0.044       1.677
-             Props:        0.052       1.982
+           Domains:        0.057       0.453
+        Tree-build:        0.015       0.122
+          Branches:        0.014       0.112
+              Fill:        0.043       0.337
+             Props:        0.152       1.206
           Prefetch:        0.000       0.000
-        Walk local:        0.000       0.000
-         Walk comm:        0.000       0.000
-            Forces:        2.468      94.055
-            Pusher:        0.000       0.000
-       Diagnostics:        0.000       0.000
-             Total:        2.624     100.000
+        Walk local:        4.032      31.909
+         Walk comm:        0.645       5.101
+            Forces:        7.673      60.731
+            Pusher:        0.004       0.029
+       Diagnostics:        0.012       0.097
+             Total:       12.635     100.000
       Timing format:
  #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
-    8       0.024       0.132       0.000       0.000       0.000       2.468       2.624
+    8       0.057       0.225       0.000       4.032       0.645       7.673      12.635
 
 ========================================================================
 
@@ -780,12 +662,12 @@ Timing:  Routine   time(s)  percentage
            theta =      0.000
 
                                   norm                  keV                 erg 
-             P.E. =     7.22149291E-04         3.08338E+03         4.92376E-06
+             P.E. =     7.22149178E-04         3.08338E+03         4.92376E-06
       Magnetic E. =     0.00000000E+00         0.00000E+00         0.00000E+00
  Electron K.E. norm/    1.13810944E-02         4.85942E+04         7.75986E-05
  Ion K.E. norm/erg:     1.22922498E-03         5.24846E+03         8.38110E-06
        Beam K.E.  =     0.00000000E+00         0.00000E+00         0.00000E+00
-             Total:     1.33324687E-02         5.69260E+04         9.09034E-05
+             Total:     1.33324686E-02         5.69260E+04         9.09034E-05
      Laser energy =     0.00000000E+00
     Plasma Te (keV):     1.38841
            Ti (keV):     0.14996
@@ -812,18 +694,18 @@ Global max # multipole ships/cpu/iteration / limit   14939  /  27276
 
 Timing:  Routine   time(s)  percentage
 
-           Domains:        0.028       1.046
-        Tree-build:        0.024       0.897
-          Branches:        0.012       0.448
-              Fill:        0.044       1.644
-             Props:        0.052       1.943
+           Domains:        0.058       0.443
+        Tree-build:        0.015       0.119
+          Branches:        0.014       0.109
+              Fill:        0.043       0.331
+             Props:        0.154       1.184
           Prefetch:        0.000       0.000
-        Walk local:        0.000       0.000
-         Walk comm:        0.000       0.000
-            Forces:        2.516      94.021
-            Pusher:        0.000       0.000
-       Diagnostics:        0.036       1.345
-             Total:        2.676     100.000
+        Walk local:        4.110      31.650
+         Walk comm:        0.686       5.280
+            Forces:        7.903      60.855
+            Pusher:        0.004       0.028
+       Diagnostics:        0.095       0.728
+             Total:       12.986     100.000
       Timing format:
  #CPU     domains       build    prefetch  walk-local   walk-comm       force         tot
-    8       0.028       0.132       0.000       0.000       0.000       2.516       2.676
+    8       0.058       0.226       0.000       4.110       0.686       7.903      12.986

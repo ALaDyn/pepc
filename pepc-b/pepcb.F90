@@ -36,10 +36,10 @@ program pepcb
   include 'mpif.h'
 
   ! timing stuff
-  real :: t0, t_key, t_domain, t_build(4), t_branch, t_fill, t_props, t_walk, t_walkc, t_en, t_force
-  real :: t_push, t_diag, t_start_push, t_prefetch, I_laser, ttot, t_laser
-  real :: t_loop, t_start_loop, t_end_loop, t_start_prog, t_end_prog
-  real :: t_record(10000)
+  real*8 :: t0, t_key, t_domain, t_build(4), t_branch, t_fill, t_props, t_walk, t_walkc, t_en, t_force
+  real*8 :: t_push, t_diag, t_start_push, t_prefetch, I_laser, ttot, t_laser
+  real*8 :: t_loop, t_start_loop, t_end_loop, t_start_prog, t_end_prog
+  real*8 :: t_record(10000)
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
   integer :: ierr, lvisit_active, ifile, incdf,i, init_mb, nppm_ori
@@ -51,7 +51,7 @@ program pepcb
   ! Initialize the MPI system
   call MPI_INIT(ierr)
 
-  call cputime(t_start_prog)
+  t_start_prog=MPI_WTIME()
 
   ! Get the id number of the current task
   call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -133,12 +133,12 @@ program pepcb
 
   endif
 
-  call cputime(t_start_loop)
+  t_start_loop=MPI_WTIME()
 
   if (dynamic_memalloc) call tree_deallocate(nppm_ori)
   
   do itime = 1,nt
-     call cputime(t0)
+     t0=MPI_WTIME()
      trun = trun + dt
      if (my_rank==0 ) then
         do ifile = 6,15,9
@@ -150,7 +150,7 @@ program pepcb
 
 
      call laser(I_laser)         ! laser propagation according to beam_config
-     call cputime(t_laser)
+     t_laser=MPI_WTIME()
 
      write(ifile_cpu,'(//a,i8,(3x,a20,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3,1pe12.3)') 'Timestep ',itime+itime_start &
           ,' total run time = ',trun &
@@ -200,7 +200,7 @@ program pepcb
 !POMP$ INST END(fields)
 
 
-     call cputime(t_start_push)
+     t_start_push=MPI_WTIME()
 
 !  Compute external fields (laser, stationary E,B fields)
      fpon_max=0.
@@ -215,7 +215,7 @@ program pepcb
 
 !POMP$ INST END(integ)
 
-     call cputime(t_push)
+     t_push=MPI_WTIME()
 
 !POMP$ INST BEGIN(diagno)
 
@@ -227,7 +227,7 @@ program pepcb
 
 !POMP$ INST END(diagno)
 
-     call cputime(t_diag)
+     t_diag=MPI_WTIME()
 
      t_diag = t_diag - t_push
      t_laser = t_laser - t0
@@ -263,7 +263,7 @@ program pepcb
 
   end do
   
-  call cputime(t_end_loop)
+  t_end_loop=MPI_WTIME()
   t_loop=SUM(t_record(1:irecord))
 
 
@@ -304,7 +304,7 @@ endif
   if (my_rank==0) call stamp(6,2)
   if (my_rank==0) call stamp(15,2)
 
-  call cputime(t_end_prog)
+  t_end_prog=MPI_WTIME()
 
   if (my_rank==0) then
 	

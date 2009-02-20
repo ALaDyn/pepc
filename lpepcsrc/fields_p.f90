@@ -47,8 +47,8 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
   integer, parameter :: npassm=100000 ! Max # passes - will need npp/nshortm
 
   integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe
-  real :: t_domain, t_build(4), t_prefetch, t_walk, t_walkc, t_force, ttrav, tfetch, t1, t2, t3  ! timing integrals
-  real :: tb1, tb2, tb3, tb4, td1, td2, tp1, tp2
+  real*8 :: t_domain, t_build(4), t_prefetch, t_walk, t_walkc, t_force, t_local, t_exchange, t1, t2, t3  ! timing integrals
+  real*8 :: tt(20)=0.
   integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm) ! work balance arrays
   real*8 :: ex_sl(nshortm),ey_sl(nshortm),ez_sl(nshortm)  ! Fields in shortlist from previous timestep
   integer :: hashaddr ! Key address 
@@ -100,7 +100,9 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
   if (mod(itime-1,ifreeze)==0) then
      if (me==0) write (*,'(a23)') 'LPEPC | REBUILDING TREE'
  !    stop
-     call cputime(td1)
+! Start timing
+     tt(1)=MPI_WTIME()
+
      !POMP$ INST BEGIN(domains)
 !     call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
      call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)    
@@ -117,43 +119,37 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
         call tree_allocate(theta,init_mb)
      endif
 
-     call cputime(tb1)
+     tt(2)=MPI_WTIME()
 
      !POMP$ INST BEGIN(build)
      call tree_build      ! Build trees from local particle lists
 
-     call cputime(tb2)
+     tt(3)=MPI_WTIME()
      call tree_branches   ! Determine and concatenate branch nodes
 !call closefiles
 !call MPI_FINALIZE(ierr)
 !stop
-     call cputime(tb3)
+     tt(4)=MPI_WTIME()
 
      call tree_fill       ! Fill in remainder of local tree
      !POMP$ INST END(build)
-     call cputime(tb4)
-     t_domain = tb1-td1
-     t_build(1) = tb2-tb1
-     t_build(2) = tb3-tb2
-     t_build(3) = tb4-tb3
+
+     tt(5)=MPI_WTIME()
 
   else 
      if (me==0) write (*,'(a19)') 'LPEPC | FREEZE MODE'
-     t_domain=0.
-     t_build=0.
   endif
 
-     call cputime(tp1)
+   tt(6)=MPI_WTIME()
+
   !POMP$ INST BEGIN(properties)
   call tree_properties ! Compute multipole moments for local tree
 !call closefiles
 !call MPI_FINALIZE(ierr)
 !stop
   !POMP$ INST END(properties)
-     call cputime(tp2)
-	t_build(4) = tp2-tp1
+   tt(7)=MPI_WTIME()
 
-  call cputime(tp1)
   if (walk_scheme==3) then
      if (mod(itime-1,ifreeze) /= 0) then
         ! freeze mode - re-fetch nonlocal multipole info
@@ -186,10 +182,8 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
      sum_ships=0      ! total current # multipole shipments
   endif
 
-  call cputime(tp2)
+  tt(8)=MPI_WTIME()
 
-
-  t_prefetch = tp2-tp1
   t_walk=0.
   t_walkc=0.
   t_force=0.
@@ -278,18 +272,21 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
 
      if (walk_scheme==2 .or. walk_scheme==1) then
    ! collective walk
-        call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+        call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,t_local,t_exchange)
     else
    ! asynchronous walk  (0,3)
-!       call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
-       call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
+!       call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,t_local,t_exchange, &
+!			ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
+       call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,t_local,t_exchange)
     endif
 
-     t_walk = t_walk + ttrav  ! traversal time (serial)
-     t_walkc = t_walkc + tfetch  ! multipole swaps
+     t_walk = t_walk + t_local  ! traversal time (serial)
+     t_walkc = t_walkc + t_exchange  ! multipole swaps
 
      !POMP$ INST BEGIN(force)
-     call cputime(t2)   ! timing
+
+     tt(9)=MPI_WTIME()
+
      do i = 1, nps
 
         p = pshortlist(i)    ! local particle index
@@ -367,10 +364,11 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
         work_local = work_local+nterm(i)
      end do
 
-     call cputime(t3)   ! timing
+     tt(10)=MPI_WTIME()
+
      !POMP$ INST END(force)
 
-     t_force = t_force + t3-t2
+     t_force = t_force + tt(10)-tt(9)
 
      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
@@ -435,6 +433,12 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
 
   np_local = npp   ! reset local # particles for calling routine
 
+  t_domain = tt(2)-tt(1)
+  t_build(1) = tt(3)-tt(2)
+  t_build(2) = tt(4)-tt(3)
+  t_build(3) = tt(5)-tt(4)
+  t_build(4) = tt(7)-tt(6)  
+  t_prefetch = tt(8)-tt(7)
 end subroutine pepc_fields_p
 
 
