@@ -39,7 +39,7 @@ if (me.eq.0) then
   cfile="log/stats"//"."//cdump(1:6)
   
   open (60,file=cfile)    
-  write (60,'(a98/(4i10,F8.4,5i10))') '         PE     parts    nleaf     ntwig   ratio    nl_keys', &
+  write (60,'(2a/(4i10,F8.4,5i10))') '         PE     parts    nleaf     ntwig   ratio    nl_keys', &
 	'   tot_keys   fetches    ships    work', &
       (i-1,particles(i),tot_nleaf(i),tot_ntwig(i),1.0*tot_nleaf(i)/(1.0*tot_ntwig(i)), &
 	total_keys(i)-(tot_nleaf(i)+tot_ntwig(i)),total_keys(i),fetches(i),ships(i),int(work_loads(i)),i=1,num_pe)

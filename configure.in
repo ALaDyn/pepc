@@ -49,7 +49,7 @@ then
 elif [[ `uname -m` = "x86_64" ]] # nicole cluster @ JSC 
 then
  MACH=nicole
- MPI_DIR=/opt/parastation/mpich
+ MPI_DIR=/opt/parastation/mpi2
 fi
 
 #  Visit libraries
