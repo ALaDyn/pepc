@@ -1363,19 +1363,7 @@ ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
 #######################################################################
 CFLAGS="$CFLAGS -I/usr/local/include"
 
-if [ `uname -n` = "jubl" ] # jubl in Juelich
-then
- echo "$as_me:$LINENO: result: ** Configuring for JUBL **" >&5
-echo "${ECHO_T}** Configuring for JUBL **" >&6
- CFLAGS="$CFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
-# LDFLAGS="$LDFLAGS -L/bgl/local/lib   -L\$(BGLSYS)/lib"
-# FFLAGS="$FFLAGS -I/bgl/local/include -I\$(BGLSYS)/include "
-# DEFAULT_TRACEPATH="-L/bgl/local/lib -lmpitrace_f"  # MPI only
- DEFAULT_TRACEPATH="-L/bgl/local/hpct_bgl/lib -lmpitrace -lhpm.rts -llicense"  # MPI+HPM - needs 'module load hpct'
- MACH=bgl
- TUNE="-qarch=pwr4 -qtune=pwr4"
-
-elif [ `uname -n` = "jugene1" ] || [ `uname -n` = "jugene2" ] # JuGene in Juelich
+if [ `uname -n` = "jugene1" ] || [ `uname -n` = "jugene2" ] # JuGene in Juelich
 then
  echo "$as_me:$LINENO: result: ** Configuring for JuGene **" >&5
 echo "${ECHO_T}** Configuring for JuGene **" >&6
@@ -1501,11 +1489,11 @@ host_os=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 case "$host" in
 
 #=====================================================================
-powerpc64-unknown-linux-gnu) # jubl/jugene
+powerpc64-unknown-linux-gnu) # jugene
  echo "$as_me:$LINENO: result: ** setting common options for powerpc64 host **" >&5
 echo "${ECHO_T}** setting common options for powerpc64 host **" >&6
  CFLAGS_OS="-DAIX_XLF $TUNE -qlibansi -qnoinfo "
- FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS $TUNE -qnosave"
+ FFLAGS_f77_f90="-WF,-DHAVE_PRIVATE_CONFIGS $TUNE -qnosave "
  F90DEF="-WF,"
  FFLAGS_OS="$FFLAGS_f77_f90 -qsuffix=f=f90 -qsuffix=cpp=F90"
  MODULE_FLAG="-qmoddir="
@@ -3160,7 +3148,7 @@ if test "${with_sion+set}" = set; then
      SION_LIB="/usr/local/beta/sionlib/sion/lib -lsion"
   fi
   if test ${MACH} == "bgp" ; then
-     SION_LIB="/bgsys/local/sionlib/sion/lib -lsion"
+     SION_LIB="/bgsys/local/sionlib/v1.1p4/lib -lsion"
   fi
   if test ${MACH} == "linux" ; then
      SION_LIB="third_party/sionlib/install/sionlib_linux/lib -lsion"
@@ -5329,7 +5317,7 @@ done
 
 ###
 
-                                        ac_config_files="$ac_config_files makefile lpepcsrc/makefile pepc-b/makefile pepc-e/makefile"
+                                                  ac_config_files="$ac_config_files makefile lpepcsrc/makefile pepc-b/makefile pepc-e/makefile sort_test/makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5859,6 +5847,7 @@ do
   "lpepcsrc/makefile" ) CONFIG_FILES="$CONFIG_FILES lpepcsrc/makefile" ;;
   "pepc-b/makefile" ) CONFIG_FILES="$CONFIG_FILES pepc-b/makefile" ;;
   "pepc-e/makefile" ) CONFIG_FILES="$CONFIG_FILES pepc-e/makefile" ;;
+  "sort_test/makefile" ) CONFIG_FILES="$CONFIG_FILES sort_test/makefile" ;;
   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}

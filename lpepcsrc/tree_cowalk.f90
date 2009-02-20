@@ -48,7 +48,7 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   ! integer, intent(out) :: nodelist(nintm, npshort)
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
-  real :: twalk, tfetch, tw1, tw2, tc1, tf1, tf2
+  real*8 :: twalk, tfetch, tw1, tw2, tc1, tf1, tf2
 
   ! Key arrays (64-bit)
 
@@ -170,8 +170,9 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
   do while (maxactive > 0)        ! Outer loop over 'active' traversals
 
      !POMP$ INST BEGIN(walk_local)
+     
+     tw1 = MPI_WTIME()
 
-     call cputime(tw1)
      ntraversals = ntraversals + 1  ! # Tree-walks
      if (walk_summary .and. me==0) write(iofile,'(a,i6)') 'WALK-CO: Start of traversal ',ntraversals
      !     if (walk_debug) write(*,'(a,i6)') 'Start of traversal ',ntraversals
@@ -322,7 +323,8 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
      end do
 
-     call cputime(tw2)
+     tw2 = MPI_WTIME()
+
      twalk=twalk+tw2-tw1
      !POMP$ INST END(walk_local)
 
@@ -339,15 +341,15 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
      ! First find out how many requests are to be sent to each PE 
  
 ! Create dummy keys to prevent zero length buffer in all2allv
-  if (dummies) then
-   do i=1,num_pe
-     nfetch_sum=nfetch_sum+1 
-     fetch_key(nfetch_sum)=0
-     fetch_owner(nfetch_sum) = i-1
-     nplace(i-1) = nplace(i-1)+1 
-  enddo
-endif
-
+     if (dummies) then
+        do i=1,num_pe
+           nfetch_sum=nfetch_sum+1 
+           fetch_key(nfetch_sum)=0
+           fetch_owner(nfetch_sum) = i-1
+           nplace(i-1) = nplace(i-1)+1 
+        enddo
+     endif
+     
      nfetches(0:num_pe-1) = (/ (count( mask = fetch_owner(1:nfetch_sum) == ipe ), ipe=0,num_pe-1) /)
 
      !POMP$ INST BEGIN(exchange)
@@ -670,8 +672,9 @@ endif
         write (6,*) 'LPEPC | ntwig = ',ntwig,' / ',maxtwig
 !        call cleanup
      endif
+     
+     tc1 = MPI_WTIME()
 
-     call cputime(tc1)
      tfetch=tfetch+tc1-tw2  ! timing for 2nd half of walk
      !POMP$ INST END(exchange)
   end do

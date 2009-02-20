@@ -24,7 +24,7 @@ subroutine sorting
   integer*8, dimension(2) :: ixbox, iybox, izbox, key_box
   integer*8, dimension(n_cpu+1)::  pivots
   integer :: load_balance   ! Balances particles in || sort according to work load
-  real :: work_local, t1, t2
+  real*8 :: work_local, t1, t2
   integer*8 :: k,i
 
 !  if ((db_level > 1) .and. (my_rank == 0)) then
@@ -168,10 +168,10 @@ subroutine sorting
 
 !     call pswssort(nppm,npold,npnew,n_cpu,my_rank,keys,&
 !                   indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
-     call psrssort(nppm,npold,npnew,n_cpu,my_rank,keys,&
-                   indxl,irnkl,islen,irlen,fposts,gposts,w1)
-!     call pbalsort(nppm,npold,npnew,n_cpu,my_rank,keys,&
-!                   indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
+!     call psrssort(nppm,npold,npnew,n_cpu,my_rank,keys,&
+!                   indxl,irnkl,islen,irlen,fposts,gposts,w1)
+     call pbalsort(nppm,npold,npnew,n_cpu,my_rank,keys,&
+                   indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,npp,load_balance,sort_debug,work_local)
 
 !     write(*,*) my_rank," - ",indxl,fposts
 

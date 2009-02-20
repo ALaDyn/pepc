@@ -31,10 +31,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   integer*8 :: send_base, receive_base
 
 ! copy call parameters to treevars module
-
+  
   np_mult = t_np_mult
   fetch_mult = t_fetch_mult
-
   me = my_rank
   num_pe = n_cpu
   npart = npart_total

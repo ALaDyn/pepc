@@ -141,10 +141,10 @@ subroutine setup(init_mb)
 !  npp = npart_total/n_cpu  ! initial total # particles per processor
   if (n_cpu.eq.1) then
      nppm=1.5*npart_total + 1000  ! allow for additional ghost particles for field plots
-  else if (np_mult>0) then 
-     nppm = abs(np_mult)*max(npart_total/n_cpu,1000) ! allow 50% fluctuation
+!  else if (np_mult<0) then 
+!     nppm = abs(np_mult)*max(npart_total/n_cpu,1000) ! allow 50% fluctuation
   else
-     nppm = 4*max(npart_total/n_cpu,1000) ! allow 50% fluctuation
+     nppm = 1.5*max(npart_total/n_cpu,1000) ! allow 50% fluctuation
   end if
 
   geometry: select case(target_geometry)

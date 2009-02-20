@@ -318,6 +318,7 @@ AC_CONFIG_FILES([makefile
                  lpepcsrc/makefile
                  pepc-b/makefile
                  pepc-e/makefile
+		 sort_test/makefile
                  ])
 AC_OUTPUT
 
