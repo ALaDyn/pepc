@@ -330,7 +330,8 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
 
 
      if (walk_debug) then
-        write(ipefile,'(a/(o15,i7))') 'Shared defer list to be fetched: ',(fetch_key(i),htable( key2addr( fetch_key(i),'COWALK: defer' ) )%owner,i=1,nfetch_sum)
+        write(ipefile,'(a/(o15,i7))') 'Shared defer list to be fetched: ',(fetch_key(i), &
+		htable( key2addr( fetch_key(i),'COWALK: defer' ) )%owner,i=1,nfetch_sum)
      endif
 
 
@@ -642,7 +643,8 @@ subroutine tree_walkc(pshort,npshort, pass,theta,itime,mac,twalk,tfetch)
         write (ipefile,'(/a,i8,a2)') 'LPEPC | Summary for traversal # ',ntraversals,' :'
         ! Determine global max
         call MPI_ALLREDUCE( nplace_sum, max_nplace, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
-        write (ipefile,'(a40,i8,a7,i8,a12,i8)') ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass,' previous ave: ',sum_inner_old
+        write (ipefile,'(a40,i8,a7,i8,a12,i8)') ' # inner loop iterations: ', inner_pass,', sum: ', &
+		sum_inner_pass,' previous ave: ',sum_inner_old
         write (ipefile,'(a40,i8,a7,i8,a12,i8)') ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops,' previous: ',sum_nhops_old
         write (ipefile,*) ' # local children shipped:     ',nchild_ship,', traversal sum:',nchild_ship_sum
         write (ipefile,*) ' # non-local children fetched: ',nplace,', traversal sum:',nplace_sum

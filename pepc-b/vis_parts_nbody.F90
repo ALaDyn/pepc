@@ -176,7 +176,8 @@ subroutine vis_parts_nbody(vcount)
         ! increase momentum threshold if close to max ship # 
         if (1.0*npart_buf/npart_vis > 0.9) uthresh=uthresh*1.1
 
-        call MPI_GATHERV( vbuf_local, nship*attrib_max, MPI_REAL, vbuffer, nbuf_pe, recv_strides, MPI_REAL, 0, MPI_COMM_WORLD, ierr )
+        call MPI_GATHERV( vbuf_local, nship*attrib_max, MPI_REAL, vbuffer, nbuf_pe, recv_strides, &
+				MPI_REAL, 0, MPI_COMM_WORLD, ierr )
 
 
         ! Ship to visualization
@@ -301,7 +302,8 @@ subroutine vis_parts_nbody(vcount)
 		max_fetches=maxval(fetches(1:num_pe))
 		min_ships=minval(ships(1:num_pe))
 		min_fetches=minval(fetches(1:num_pe))
-  		  write(*,'(a28,1pe12.2,a2,1pe12.2,a2,1pe12.2,a2,1pe12.2)') "VIS_PARTS   | ranges ships/fetches: ",min_ships/ave_ships,"-",max_ships/ave_ships,",",min_fetches/ave_fetches,"-",max_fetches/ave_fetches
+  		  write(*,'(a28,1pe12.2,a2,1pe12.2,a2,1pe12.2,a2,1pe12.2)') "VIS_PARTS   | ranges ships/fetches: ", &
+			min_ships/ave_ships,"-",max_ships/ave_ships,",",min_fetches/ave_fetches,"-",max_fetches/ave_fetches
 	        ! Pick biggest box in each domain 
 	        ndom_vis=num_pe
 
@@ -334,7 +336,9 @@ subroutine vis_parts_nbody(vcount)
                   cpuid = branch_owner(ibox)+1
                   vbuffer(6,j) = 1.*ships(cpuid)/ave_ships   ! # ships made by this cpu
                   vbuffer(7,j) = 1.*fetches(cpuid)/ave_fetches ! # fetches made by this cpu
-  		  write(*,'(a28,i8,a25,i8,o22,1pe12.3,i10,i10,1pe12.2,i10,1pe12.2)') "VIS_PARTS   | pe: ",k,"box, level, ships, fetches ",ibox, bkey, rlev, ilev, ships(cpuid), vbuffer(6,j), fetches(cpuid), vbuffer(7,j)
+  		  write(*,'(a28,i8,a25,i8,o22,1pe12.3,i10,i10,1pe12.2,i10,1pe12.2)') &
+			"VIS_PARTS   | pe: ",k,"box, level, ships, fetches ",ibox, bkey, rlev, ilev, ships(cpuid), &
+			vbuffer(6,j), fetches(cpuid), vbuffer(7,j)
                   vbuffer(8,j) = 0.
                   vbuffer(9,j) = 0.
                   vbuffer(10,j) = 0.
@@ -366,7 +370,9 @@ subroutine vis_parts_nbody(vcount)
 		max_fetches=maxval(fetches(1:num_pe))
 		min_ships=minval(ships(1:num_pe))
 		min_fetches=minval(fetches(1:num_pe))
-  		write(*,'(a28,1pe12.2,a2,1pe12.2,a2,1pe12.2,a2,1pe12.2)') "VIS_PARTS   | ranges ships/fetches: ",min_ships/ave_ships,"-",max_ships/ave_ships,",",min_fetches/ave_fetches,"-",max_fetches/ave_fetches
+  		write(*,'(a28,1pe12.2,a2,1pe12.2,a2,1pe12.2,a2,1pe12.2)') &
+		"VIS_PARTS   | ranges ships/fetches: ",min_ships/ave_ships,"-",max_ships/ave_ships,",", &
+			min_fetches/ave_fetches,"-",max_fetches/ave_fetches
 	        ivisdom=0
 		ndom_vis=0
 		nproc_vis=5
@@ -407,7 +413,9 @@ subroutine vis_parts_nbody(vcount)
                   cpuid = branch_owner(ibox)+1
                   vbuffer(6,j) = 1.*ships(cpuid)/ave_ships   ! # ships made by this cpu
                   vbuffer(7,j) = 1.*fetches(cpuid)/ave_fetches ! # fetches made by this cpu
-  		  write(*,'(a28,2i8,a25,i8,o22,1pe12.3,i10,i10,1pe12.2,i10,1pe12.2)') "VIS_PARTS   | pe: ",p,k,"box, level, ships, fetches ",ibox, bkey, rlev, ilev, ships(cpuid), vbuffer(6,j), fetches(cpuid), vbuffer(7,j)
+  		  write(*,'(a28,2i8,a25,i8,o22,1pe12.3,i10,i10,1pe12.2,i10,1pe12.2)') &
+			"VIS_PARTS   | pe: ",p,k,"box, level, ships, fetches ",ibox, bkey, rlev, ilev, &
+			ships(cpuid), vbuffer(6,j), fetches(cpuid), vbuffer(7,j)
                   vbuffer(8,j) = 0.
                   vbuffer(9,j) = 0.
                   vbuffer(10,j) = 0.

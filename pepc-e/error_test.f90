@@ -19,7 +19,8 @@
 
 ! direct force evaluation
 
-      call force_direct(ntest,x(1:ntest),y(1:ntest),z(1:ntest),q(1:ntest),eps,force_const,exd(1:ntest),eyd(1:ntest),ezd(1:ntest),potd(1:ntest))
+      call force_direct(ntest,x(1:ntest),y(1:ntest),z(1:ntest),q(1:ntest),eps,force_const, &
+			exd(1:ntest),eyd(1:ntest),ezd(1:ntest),potd(1:ntest))
 
 
 ! find rms error

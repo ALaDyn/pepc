@@ -51,7 +51,8 @@ subroutine rezone
   if (me==0) write(*,*) 'total # particles removed ',nremove_tot
 
   ! Gather all spent labels on root=last_pe
-  call MPI_GATHERV( spent_loc, nremove, MPI_INTEGER, spent_label, nremove_pe, recv_strides, MPI_INTEGER, num_pe-1, MPI_COMM_WORLD, ierr )
+  call MPI_GATHERV( spent_loc, nremove, MPI_INTEGER, spent_label, nremove_pe, recv_strides, &
+			MPI_INTEGER, num_pe-1, MPI_COMM_WORLD, ierr )
 
 
 

@@ -334,7 +334,9 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
 
 ! TODO: need 'ripple' here up to next large gap in keys i+1->npp
 
-        write(*,'(a15,i5,a8,i3,a30,2i6,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass,' WARNING: identical keys found for particles  ',i,npp,pelabel(i-1),pelabel(i),pelabel(i+1),' - upper increased to: ',pekey(i),' next key: ',pekey(i+1)
+        write(*,'(a15,i5,a8,i3,a30,2i6,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
+	 ' WARNING: identical keys found for particles  ',i,npp,pelabel(i-1),pelabel(i),pelabel(i+1), &
+	 ' - upper increased to: ',pekey(i),' next key: ',pekey(i+1)
 !        if (x(i) == x(i-1)) write(*,*) "HELP"
      endif
    end do
@@ -351,7 +353,9 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
       identical_keys=.false.
       if (pekey(ipp+1) == pekey(ipp)) then
          pekey(ipp) = pekey(ipp)-1
-        write(*,'(a15,i5,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass,' WARNING: identical keys found for particles  ',pelabel(ipp+1),pelabel(ipp),'LPEPC | Lower key decreased to:  ',pekey(ipp)
+        write(*,'(a15,i5,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
+	' WARNING: identical keys found for particles  ',pelabel(ipp+1),pelabel(ipp), &
+	'LPEPC | Lower key decreased to:  ',pekey(ipp)
         identical_keys=.true.
      endif
      ipp=ipp-1

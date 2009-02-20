@@ -26,7 +26,8 @@ program pepce
 
   ! timing stuff
   real*8 :: t0, t1, t2, t3, t4, ttot
-  real*8 :: t_domain=0., t_build=0., t_branches=0., t_fill=0., t_properties=0., t_restore=0., t_begin=0.,t_walk=0., t_walkc=0., t_force=0., &
+  real*8 :: t_domain=0., t_build=0., t_branches=0., t_fill=0., t_properties=0., t_restore=0., t_begin=0., &
+	    t_walk=0., t_walkc=0., t_force=0., &
 	    t_integral, t_mpi=0., t_end=0., t_prefetch=0., t_all=0.
   integer :: tremain ! remaining wall_clock seconds
   integer :: ierr, lvisit_active, ifile, debug, i, k, init_mb, nppm_ori

@@ -241,9 +241,12 @@ subroutine tree_properties
              - xdip( node_child(j) )*zs(j) + charge( node_child(j) )*zs(j)*xs(j) 
 
         ! magnetic dipole moment
-        magmx( node_twig(i) ) = magmx( node_twig(i) ) + magmx( node_child(j) ) - 0.5*ys(j)*jz( node_child(j) )  - 0.5*zs(j)*jy( node_child(j) )
-        magmy( node_twig(i) ) = magmy( node_twig(i) ) + magmy( node_child(j) ) - 0.5*zs(j)*jx( node_child(j) )  - 0.5*xs(j)*jz( node_child(j) )
-        magmz( node_twig(i) ) = magmz( node_twig(i) ) + magmz( node_child(j) ) - 0.5*xs(j)*jy( node_child(j) )  - 0.5*ys(j)*jx( node_child(j) )
+        magmx( node_twig(i) ) = magmx( node_twig(i) ) + magmx( node_child(j) ) - 0.5*ys(j)*jz( node_child(j) ) &
+		 - 0.5*zs(j)*jy( node_child(j) )
+        magmy( node_twig(i) ) = magmy( node_twig(i) ) + magmy( node_child(j) ) - 0.5*zs(j)*jx( node_child(j) ) &
+		 - 0.5*xs(j)*jz( node_child(j) )
+        magmz( node_twig(i) ) = magmz( node_twig(i) ) + magmz( node_child(j) ) - 0.5*xs(j)*jy( node_child(j) ) &
+		 - 0.5*ys(j)*jx( node_child(j) )
 
         jx( node_twig(i) ) = jx( node_twig(i) ) + jx( node_child(j) )       ! Sum currents of child nodes
         jy( node_twig(i) ) = jy( node_twig(i) ) + jy( node_child(j) )  
@@ -261,7 +264,8 @@ subroutine tree_properties
   ! By definition, this is complete: each branch node is self-contained.
   ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
 
-  local_node(1:nbranch) =  (/ ( htable( key2addr( pebranch(i),'PROPERTIES: branch' ) )%node, i=1,nbranch ) /)    ! Node #s of local branches
+   ! Node #s of local branches
+  local_node(1:nbranch) =  (/ ( htable( key2addr( pebranch(i),'PROPERTIES: branch' ) )%node, i=1,nbranch ) /) 
 
   ! Prepare properties for broadcast
 
@@ -324,7 +328,8 @@ subroutine tree_properties
   do i=1,nbranch_sum
      ibr = (i-1)*n_moments
      if (branch_owner(i) /= me) then
-        node_b = htable( key2addr( branch_key(i),'PROPERTIES: branch copy' ))%node   !  branch node index: already defined in MAKE_BRANCHES
+!  branch node index: already defined in MAKE_BRANCHES
+        node_b = htable( key2addr( branch_key(i),'PROPERTIES: branch copy' ))%node   
         charge( node_b ) = branch_moments(ibr+1)      ! Copy collected remote branch props into main arrays
         abs_charge( node_b ) = branch_moments(ibr+2)  
         xcoc( node_b ) = branch_moments(ibr+3)  
@@ -363,8 +368,9 @@ subroutine tree_properties
   nparent = 0
 
   do ilevel = maxlevel,1,-1                                           ! Start at deepest branch level and work up to root
-     nsub = count( mask=branch_level(1:nbranch_sum) == ilevel )                      ! Count # branches at this level
-     sum_key(1:nsub) =  pack(branch_key(1:nbranch_sum), mask = branch_level(1:nbranch_sum) == ilevel)       ! Pick out branches at current level
+     nsub = count( mask=branch_level(1:nbranch_sum) == ilevel )       ! Count # branches at this level
+ ! Pick out branches at current level
+     sum_key(1:nsub) =  pack(branch_key(1:nbranch_sum), mask = branch_level(1:nbranch_sum) == ilevel)
 
      sum_key(nsub+1:nsub+nparent) = parent_key(1:nparent)             ! Augment list with parent keys checked at previous level
      nsub = nsub + nparent
@@ -432,9 +438,12 @@ subroutine tree_properties
         zxquad( parent_node(i) ) = zxquad( parent_node(i) ) +  zxquad( branch_node(i) ) - zdip( branch_node(i) )*xss &
              - xdip( branch_node(i) )*zss + charge( branch_node(i) )*zss*xss
 
-        magmx( parent_node(i) ) = magmx( parent_node(i) ) + magmx( branch_node(i) ) - 0.5*yss*jz( branch_node(i) )  - 0.5*zss*jy( branch_node(i) ) 
-        magmy( parent_node(i) ) = magmy( parent_node(i) ) + magmy( branch_node(i) ) - 0.5*zss*jx( branch_node(i) )  - 0.5*xss*jz( branch_node(i) ) 
-        magmz( parent_node(i) ) = magmz( parent_node(i) ) + magmz( branch_node(i) ) - 0.5*xss*jy( branch_node(i) )  - 0.5*yss*jx( branch_node(i) ) 
+        magmx( parent_node(i) ) = magmx( parent_node(i) ) + magmx( branch_node(i) ) - 0.5*yss*jz( branch_node(i) ) &
+		 - 0.5*zss*jy( branch_node(i) ) 
+        magmy( parent_node(i) ) = magmy( parent_node(i) ) + magmy( branch_node(i) ) - 0.5*zss*jx( branch_node(i) ) &
+		 - 0.5*xss*jz( branch_node(i) ) 
+        magmz( parent_node(i) ) = magmz( parent_node(i) ) + magmz( branch_node(i) ) - 0.5*xss*jy( branch_node(i) ) &
+		 - 0.5*yss*jx( branch_node(i) ) 
 
         jx( parent_node(i) ) = jx( parent_node(i) ) + jx( branch_node(i) )
         jy( parent_node(i) ) = jy( parent_node(i) ) + jy( branch_node(i) )

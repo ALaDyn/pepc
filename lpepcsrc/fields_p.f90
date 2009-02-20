@@ -90,7 +90,8 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
 
   if (force_debug) then
      if (me==0) write (*,*)
-     if (me==0) write (*,'(a8,a60/a7,2i5,6f11.2)') 'LPEPC | ','Params itime, walk_scheme, theta, eps, force_const, bond_const, err, delta_t:', &
+     if (me==0) write (*,'(a8,a60/a7,2i5,6f11.2)') 'LPEPC | ', &
+  	  'Params itime, walk_scheme, theta, eps, force_const, bond_const, err, delta_t:', &
           'LPEPC | ',itime, walk_scheme, theta, eps, force_const, bond_const, err_f, delta_t
      if (me==0) write (*,'(a8,a17,4l4)') 'LPEPC | ','Force switches: ',coulomb,bfield_on,lenjones,bonds
      write (ipefile,'(a8,a20/(i16,4f15.3))') 'LPEPC | ','Initial buffers: ',(pelabel(i), x(i), y(i), z(i), q(i),i=1,npp) 
@@ -218,7 +219,8 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
      load_integral = load_integral + work(i)   ! integrate workload
      
      if (i-pstart(jpass) + 1 == nshortm) then ! Need to check that nshort < nshortm
-        write(*,*) 'Warning from PE: ',me,' # parts ',i-pstart(jpass)+1,' on pass ',jpass,' in shortlist exceeds array limit ',nshortm
+        write(*,*) 'Warning from PE: ',me,' # parts ',i-pstart(jpass)+1,' on pass ', &
+		jpass,' in shortlist exceeds array limit ',nshortm
         write(*,*) 'Load=',load_integral,' Average ',load_average
 	write(*,*) 'npp=',npp
         write(*,*) 'Putting spill-over into following pass'

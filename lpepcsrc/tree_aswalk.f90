@@ -361,9 +361,10 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
 
 
      if (walk_debug) then
-        write(ipefile,'(a/(o15,i7))') 'Shared request list: ',(request_key(i),htable( key2addr( request_key(i),'WALK: after local' ) )%owner,i=1,nshare)
+        write(ipefile,'(a/(o15,i7))') 'Shared request list: ',(request_key(i), &
+		htable( key2addr( request_key(i),'WALK: after local' ) )%owner,i=1,nshare)
         !        if (me==2) then
-        !           write(*,'(a/(o15,i7))') 'Shared request list: ',(request_key(i),htable( key2addr( request_key(i) ) )%owner,i=1,nshare)
+        !         write(*,'(a/(o15,i7))') 'Shared request list: ',(request_key(i),htable( key2addr( request_key(i) ) )%owner,i=1,nshare)
         !        endif
      endif
      ! At this point all particles have completed their walks with the locally available tree data.
@@ -674,7 +675,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
         write (ipefile,'(/a,i8,a2)') 'LPEPC | Summary for traversal # ',ntraversals,' :'
         ! Determine global max
         call MPI_ALLREDUCE( nplace_max, max_nplace, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
-        write (ipefile,'(a40,i8,a7,i8,a12,i8)') ' # inner loop iterations: ', inner_pass,', sum: ',sum_inner_pass,' previous ave: ',sum_inner_old
+        write (ipefile,'(a40,i8,a7,i8,a12,i8)') ' # inner loop iterations: ', inner_pass,', sum: ', &
+		sum_inner_pass,' previous ave: ',sum_inner_old
         write (ipefile,'(a40,i8,a7,i8,a12,i8)') ' # tree hops in inner loop: ',nhops,', sum: ',sum_nhops,' previous: ',sum_nhops_old
         write (ipefile,*) ' # local children shipped:     ',nchild_ship,', traversal sum:',nchild_ship_tot
         write (ipefile,*) ' # non-local children fetched: ',nplace,', traversal sum:',nplace_max,' total fetches ',sum_fetches

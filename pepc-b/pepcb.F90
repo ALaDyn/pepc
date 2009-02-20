@@ -190,7 +190,8 @@ program pepcb
 !POMP$ INST BEGIN(fields)
 
 
-     call pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance, force_const, bond_const, &
+     call pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, eps, force_tolerance, balance, &
+	  force_const, bond_const, &
           dt, xl, yl, zl, itime+itime_start, &
           coulomb, bfields, bonds, lenjones, &
           t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot, init_mb) 

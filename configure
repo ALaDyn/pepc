@@ -1395,6 +1395,10 @@ elif [ `uname -m` = "i686" ] # laptop
 then
  MACH=linux
 
+elif [ `uname -m` = "x86_64" ] # nicole cluster @ JSC
+then
+ MACH=nicole
+ MPI_DIR=/opt/parastation/mpich
 fi
 
 #  Visit libraries
@@ -3126,7 +3130,7 @@ if test "${with_debug+set}" = set; then
   case "$withval" in
   yes)
     DEBUGDEF=-DDEBUG
-    OPT="-g"
+    OPT="-g -qfullpath -qcheck"
     ;;
   *)
     DEBUGDEF=

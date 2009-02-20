@@ -15,7 +15,8 @@
 subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, t_np_mult,t_fetch_mult, &
      mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
-     t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch,t_integral,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
+     t_begin,t_domain,t_build,t_branches,t_fill,t_properties, &
+	 t_prefetch,t_integral,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
 
   use treevars
   use utils
@@ -35,7 +36,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
   integer, intent(in), dimension(np_local) :: p_label  ! particle label 
   real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
-  real*8, intent(out) :: t_begin,t_domain, t_build, t_branches, t_fill, t_properties,t_prefetch, t_integral, t_walk, t_walkc, t_force, t_restore, &
+  real*8, intent(out) :: t_begin,t_domain, t_build, t_branches, t_fill, t_properties,t_prefetch, & 
+			t_integral, t_walk, t_walkc, t_force, t_restore, &
                          t_mpi,t_end,t_all
   real*8, dimension(nppm_ori) :: ex_tmp,ey_tmp,ez_tmp,pot_tmp,w_tmp
   real*8, dimension(np_local) :: p_w ! work loads
@@ -91,8 +93,10 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   npp = np_local
 
   if (force_debug) then
-     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const, err:',itime, mac, theta, eps, force_const, err_f
-     write (*,'(a7,a20/(i16,4f15.3,i8))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i), p_label(i),i=1,npp) 
+     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const, err:', &
+		itime, mac, theta, eps, force_const, err_f
+     write (*,'(a7,a20/(i16,4f15.3,i8))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i), &
+		p_label(i),i=1,npp) 
   endif
 
  ! Copy particle buffers to tree arrays
@@ -128,7 +132,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up  
   tm2 = MPI_WTIME()
-  call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)  ! Domain decomposition: allocate particle keys to PEs
+! Domain decomposition: allocate particle keys to PEs
+  call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)  
   nppm=npp
   call tree_allocate(theta,init_mb)
 

@@ -397,7 +397,7 @@ contains
 
     integer*8 :: lmax, lmin, key_min, key_max, gkey_min, gkey_max, step ! Key mins and maxes and step size
     integer*8 :: step_reduced, key_reduce, pshift
-    integer*8, parameter :: iplace=8**20
+    integer*8, parameter :: iplace=8_8**20
     integer ::  ibin, itag
     integer :: status(MPI_STATUS_SIZE),ierr
     integer :: alpha  ! alpha now in range 1-100
@@ -537,7 +537,10 @@ search_list = 8_8**lev_map  ! place holder
 	   endif
 
 
-        if (debug .and. iproc==proc_debug) write(fd,'(a30,o30,2i16,1pe12.1,i16,1pe12.1,i16)') 'reduced key, bin, f_local ',key_reduce,ibin,work2(p),ave_nkeys,nkeys_total,finc,f_local(ibin)
+        if (debug .and. iproc==proc_debug) then
+	   write(fd,'(a30,o30,2i16,1pe12.1,i16,1pe12.1,i16)') 'reduced key, bin, f_local ', &
+		key_reduce,ibin,work2(p),ave_nkeys,nkeys_total,finc,f_local(ibin)
+        endif
 	  pbin(p) = ibin ! remember bin number 
 	  p=p+1
 	else
@@ -799,7 +802,7 @@ search_list = 8_8**lev_map  ! place holder
     real :: load_correct(nprocs)
     integer*8 :: lmax, lmin, key_min, key_max, gkey_min, gkey_max, step ! Key mins and maxes and step size
     integer*8 :: step_reduced, key_reduce, pshift
-    integer*8, parameter :: iplace=8**20
+    integer*8, parameter :: iplace=8_8**20
 !    integer*8, parameter :: iplace=0
     integer ::  ibin, itag
     integer :: status(MPI_STATUS_SIZE),ierr

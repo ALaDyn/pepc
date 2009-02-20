@@ -296,7 +296,8 @@ subroutine setup(init_mb)
   call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle_p1, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_particle_p1, ierr)
 
-  if (my_rank == 0) write(*,*) "Starting PEPC-E with",n_cpu," Processors, simulating",np_local," Particles on each Processor in",nt,"timesteps..."
+  if (my_rank == 0) write(*,*) "Starting PEPC-E with",n_cpu," Processors, simulating",np_local, &
+			" Particles on each Processor in",nt,"timesteps..."
 
 end subroutine setup
 

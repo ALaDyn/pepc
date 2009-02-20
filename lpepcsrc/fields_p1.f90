@@ -94,8 +94,10 @@ subroutine pepc_fields_p1(np_local, nppm_ori, p_x, p_y, p_z, p_q, p_m, p_w, p_la
   npnew = np_local
 
   if (force_debug) then
-     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const, err:',itime, mac, theta, eps, force_const, err_f
-     write (*,'(a7,a20/(i16,4f15.3,i8))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i), p_label(i),i=1,npp) 
+     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const, err:', &
+	itime, mac, theta, eps, force_const, err_f
+     write (*,'(a7,a20/(i16,4f15.3,i8))') 'PEPC | ','Initial buffers: ', &
+	(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i), p_label(i),i=1,npp) 
   endif
 
  ! Copy particle buffers to tree arrays

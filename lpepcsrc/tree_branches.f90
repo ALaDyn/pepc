@@ -80,7 +80,8 @@ subroutine tree_branches
 
         do i=1,nsubset
            treelevel  = log(1.*search_key(i))/log(8.)     ! node levels
-           if ( (search_key(i) > keymin .and. search_key(i) < keymax .and. treelevel>=startlevel) .or. ( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
+           if ( (search_key(i) > keymin .and. search_key(i) < keymax .and. treelevel>=startlevel) .or. &
+		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
               !  either middle node (complete twig),  or leaf:  so add to domain list
               nbranch = nbranch + 1
               pebranch(nbranch) = search_key(i)
@@ -161,7 +162,8 @@ subroutine tree_branches
   nbranch_sum = SUM( nbranches(1:num_pe) )   ! Total # branches in tree
   igap(num_pe+1) = nbranch_sum
   if (me==0 .and. tree_debug) then
-    write(*,'(a50,3i8,a3,2i7)') 'LPEPC | BRANCHES: Local, max local, global # branches, (max): ',nbranch,MAXVAL(nbranches),nbranch_sum,'/',nbranch_local_max,nbranch_max
+    write(*,'(a50,3i8,a3,2i7)') 'LPEPC | BRANCHES: Local, max local, global # branches, (max): ', &
+	nbranch,MAXVAL(nbranches),nbranch_sum,'/',nbranch_local_max,nbranch_max
 !    write(*,'(a/(3i8))') 'Branch distribution',(i,nbranches(i),igap(i),i=1,num_pe)
   endif
 

@@ -301,7 +301,7 @@ subroutine tree_prefetch(itime)
      write(iofile,*) 'Keys fetched at timestep ',timestamp,nfetch_total(pe_1:num_pe-1), &
           '------------------------------------------------------------'
      do i=1,nfetch_max
-        write(iofile,*) (fetched_owner(i),fetched_keys(i))
+        write(iofile,*) fetched_owner(i),fetched_keys(i)
      end do
   endif
 

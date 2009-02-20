@@ -111,7 +111,8 @@ subroutine special_start(iconf)
 !     open(90,file=cfile,STATUS='REPLACE')
 
      p=0
-     call srand(2.0*my_rank+1)
+     call srand(2*my_rank+1)
+!     call rand(2.0*my_rank+1)
 
      do while (p < np_local)
         xt = 0.

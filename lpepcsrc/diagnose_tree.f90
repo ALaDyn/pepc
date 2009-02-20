@@ -41,7 +41,8 @@ subroutine diagnose_tree
   ! output hash table
 
   write (ipefile,'(/a/8x,a/8x,a)') 'Hash table ', &
-       'entry,    owner    node,            key_8     key_10        parent       next       link   # leaves  childcode  collision', &
+       'entry,    owner    node,            key_8     key_10        parent       next   ', &
+	'    link   # leaves  childcode  collision', &
        '----------------------------------------------------------------------------------------------- '
 
   ! flag  collisions
