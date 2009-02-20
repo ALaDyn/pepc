@@ -1,5 +1,5 @@
 &pepcdata
-  db_level = 1
+  db_level = 2
   np_mult = 1.5
   fetch_mult = 4
 

@@ -129,6 +129,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up  
   tm2 = MPI_WTIME()
   call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)  ! Domain decomposition: allocate particle keys to PEs
+  nppm=npp
   call tree_allocate(theta,init_mb)
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up

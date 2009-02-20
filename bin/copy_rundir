@@ -2,6 +2,10 @@
 
 # Shell script to create new run directories 
 # PEs listed in PE_list
+if [ $# = 0 -o "$1" = "-h" -o "$1" = "-help" -o "$1" = "-?" ]; then
+    echo "Call parameters: source_dir target_dir timestamp"
+    exit
+fi
 
 DATADIR=$1
 NEWDIR=$2

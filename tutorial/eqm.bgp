@@ -11,6 +11,6 @@
 # @ bg_size = 256
 # @ queue
 #PEPC=$HOME/pepc/bin/pepcb_bgp
-PEPC=$HOME/pepc/bin/pepcvis
+PEPC=$HOME/pepc/bin/pepcb_bgp_sion
 cp eqm.h run.h
 mpirun -exe $PEPC -mode SMP -verbose 1 

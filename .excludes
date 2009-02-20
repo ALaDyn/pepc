@@ -1,8 +1,17 @@
 */.svn
 */*.o
-pepcb
-pepce
+*_bgl
+*_power6
+*_bgp
+*_linux
+*_sion
+*_ascii
+pepcvis
 pegs
+pepcb_*
+pepce_*
+doxygen*
+core*
 splitter
 slicer
 *.dat
@@ -13,4 +22,7 @@ slicer
 *#
 */*.mod
 */*.a
+tutorial/data/*
+tutorial/dumps/*
+tutorial/fields/*
 #pepc-b/config_private.h

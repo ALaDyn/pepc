@@ -8,7 +8,7 @@
 # @ notification = always
 # @ notify_user = r.speck@fz-juelich.de
 # @ job_type = bluegene
-# @ bg_size = 2048
+# @ bg_size =32 
 # @ queue
 
 mpirun -exe pepc -mode VN -verbose 1

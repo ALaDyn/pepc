@@ -64,10 +64,10 @@
 !  ni = 1048576
 !  ne = 2097152
 !  ni = 2097152
-!  ne = 4194304
-!  ni = 4194304
-  ne = 8388608
-  ni = 8388608
+  ne = 4194304
+  ni = 4194304
+!  ne = 8388608
+!  ni = 8388608
 !  ne = 16777216
 !  ni = 16777216
 !  ne = 33554432
@@ -76,7 +76,7 @@
 !  ni = 67108864
 
  system_config = 2  ! set up plasma target
- ispecial = 4
+ ispecial =3
  !   initial_config=7   ! hollow sphere
    target_geometry = 0         ! random disc
  !   initial_config=3   ! wire

@@ -1,5 +1,5 @@
 echo "Starting MD demo  .."
 cp eqm.h run.h
 #llrun -p 4 ../bin/pepcevis 
-llrun -p 2 ../bin/pepce_power6
+llrun -p 2 ../bin/pepce_bgp
 echo "... done" 

@@ -17,7 +17,6 @@ pepc/pepc-b \
 pepc/pepc-e \
 pepc/tutorial \
 pepc/doc \
-pepc/html \
 pepc/tools \
 pepc/bin \
 pepc/README \

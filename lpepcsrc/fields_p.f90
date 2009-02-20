@@ -107,7 +107,14 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
      ! particles now sorted according to keys assigned in tree_domains.
 
 
-     if (dynamic_memalloc) call tree_allocate(theta,init_mb)
+     if (dynamic_memalloc) then
+
+!  TODO: all tree arrays in build ... walk can have dimension npp
+!  - for now coded with nppm, so reset here and put back later in tree_deallocate with nppm_ori
+
+        nppm=npp
+        call tree_allocate(theta,init_mb)
+     endif
 
      call cputime(tb1)
 
