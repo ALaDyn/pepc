@@ -11,13 +11,14 @@ subroutine special_start(iconf)
   use physvars
   use utils
   implicit none
+  include 'mpif.h'
 
   integer, intent(in) :: iconf  ! Configuration switch
   integer :: p,i,j,k,l,n1,iseed1,iseed2,iseed3,face_nr,iseed=-17,decomp,max_num,plt
   real*8 :: gamma0,yt,zt,xt,qt,mt,c_status
   character(35) :: cinfile, cdump, cfile
   character(50) :: dfile
-  character(25) :: cme
+  character(35) :: cme
 
   iseed1 = -1 - my_rank
   iseed2 = -1011 - my_rank
@@ -111,27 +112,22 @@ subroutine special_start(iconf)
 
      p=0
      call srand(2.0*my_rank+1)
-!     decomp = 2
+
      do while (p < np_local)
         xt = 0.
         yt = 0.
         zt = 0.
         do while ((xt .le. 1.0*my_rank/(1.0*n_cpu)) .or. (xt .ge. 1.0*(my_rank+1)/(1.0*n_cpu)) .or. (xt == 0))
            xt = rand()
-!*(1.0*(mod(my_rank,decomp)+1)/(1.0*decomp)-1.0*mod(my_rank,decomp)/(1.0*decomp))+1.0*mod(my_rank,decomp)/(1.0*decomp)
-!           xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
         end do
         
         do while (yt == 0)
            yt = rand()
         end do
-!*(1.0*(ishft(iand(my_rank,decomp),-1)+1)/(1.0*decomp)-1.0*ishft(iand(my_rank,decomp),-1)/(1.0*decomp)) &
-!             +1.0*ishft(iand(my_rank,decomp),-1)/(1.0*decomp)
-!        yt = .5 * y_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(2)
+
         do while (zt == 0)
            zt = rand()
         end do
-!        zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
 
         p = p + 1
 
@@ -139,50 +135,21 @@ subroutine special_start(iconf)
         uy(p) = 0.
         uz(p) = 0.
 
-!        do face_nr = 1, number_faces
-!           call face((/xt, yt, zt/), c_status, face_nr)
-!           if (c_status .ge. 0.) exit
-!        end do
-!       if (c_status .lt. 0) then
-
-           z(p) = zt 
-           y(p) = yt
-           x(p) = xt
-           if (p.le.nep) then 
-!              write(90,*) p,xt,yt,zt,qe,mass_e,my_rank*nep+p      ! Electrons
-           else
-!              write(90,*) p,xt,yt,zt,qi,mass_i,ne+my_rank*nip+p-nep      ! Ions
-           end if
-!        end if
+        z(p) = zt 
+        y(p) = yt
+        x(p) = xt
+        if (p.le.nep) then 
+!           write(90,*) p,xt,yt,zt,qe,mass_e,my_rank*nep+p      ! Electrons
+        else
+!           write(90,*) p,xt,yt,zt,qi,mass_i,ne+my_rank*nip+p-nep      ! Ions
+        end if
      end do
-
-    ! scramble to remove correlations
-!    iseed2 = -17 - 4 * my_rank
-!    n1 = np_local    
-
-    !  exclude odd one out
-!    if (mod(np_local,2) .ne. 0) then
-!        n1 = n1 - 1
-!    end if
-    
-!    do i = 1, n1
-!        k = n1 * rano(iseed2) + 1
-!        xt = x(i)
-!        yt = y(i)
-!        zt = z(i)
-!        x(i) = x(k)
-!        y(i) = y(k)
-!        z(i) = z(k)
-!        x(k) = xt
-!        y(k) = yt
-!        z(k) = zt
-!    end do
 
 !    close(90)
 
   case(4)
 
-     if (my_rank == 0) write(*,*) "Special start 4: Reading initial particle positions..."
+     if (my_rank == 0) write(*,*) "Special start 4: Reading initial particle positions (multiple files)..."
      cme = "pepc_data/parts_info_" &   
           // achar(my_rank/1000+48) &
           // achar(mod(my_rank/100,10)+48) &
@@ -208,6 +175,32 @@ subroutine special_start(iconf)
      
      close(90)
 
+     goto 112
+
+  case(5)
+     if (my_rank == 0) write(*,*) "Special start 5: Reading initial particle positions (single file)..."
+     cme = "pepc_data/parts_info_all.dat"
+     cfile=cme
+     open(90,file=cfile)
+     p = 0    
+     do i = 0,npart_total-1
+        read(90,*) k,xt,yt,zt,qt,mt,plt
+        if ((i.ge.my_rank*(1.0*npart_total/n_cpu)).and.(i.lt.(my_rank+1)*(1.0*npart_total/n_cpu))) then
+           p = p+1
+           ux(p) = 0.
+           uy(p) = 0.
+           uz(p) = 0.
+           x(p) = xt
+           y(p) = yt
+           z(p) = zt
+           q(p) = qt
+           m(p) = mt
+           pelabel(p) = plt
+        end if
+     end do
+     close(90)   
+     
+     np_local = p
      goto 112
 
   end select config

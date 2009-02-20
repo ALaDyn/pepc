@@ -112,33 +112,23 @@ subroutine setup(init_mb)
   if (nep > 0) then
      ! particles specified per processor in input file
      ne = nep*n_cpu  ! total # electrons
-     ni = nip*n_cpu  ! total # ions
+     ni = nip*n_cpu  ! total # ions     
   else
      ! total # particles specified in input file 
      nep = ne/n_cpu
      nip = ni/n_cpu
-     np_local = nep+nip
-!     npp = nep+nip
+     if (nep*n_cpu /= ne) then
+        nep = ne/n_cpu+mod(ne,n_cpu)
+     end if
+     if (nip*n_cpu /= ni) then
+        nip = ni/n_cpu+mod(ni,n_cpu)
+     end if
   endif
-
-  !  npb_pe = np_beam/num_pe
-  if (.not. restart) then
-     if (nip*n_cpu /= ni .or. nep*n_cpu /= ne ) then
-        ne = (nep+1)*n_cpu
-        ni = (nip+1)*n_cpu
-
-        if (my_rank==0) then
-           write(*,'(//a//)') '*** Warning: number each particle species (ne, ni) must be divisible by # processors ***'
-           write(*,'(a,i6)') '*** Resetting to ',ne,ni
-        endif
- 
-
-     endif
-  endif
+  np_local = nep+nip        
 
   npart_total = ni+ne
-  np_local = npart_total/n_cpu  ! initial total # particles per processor
-!  npp = npart_total/n_cpu  ! initial total # particles per processor
+  write(*,*) my_rank,nep,nip,np_local,ne,ni,npart_total
+
   if (n_cpu.eq.1) then
      nppm=1.5*npart_total + 1000  ! allow for additional ghost particles for field plots
 !  else if (np_mult<0) then 
