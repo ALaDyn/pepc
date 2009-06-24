@@ -135,9 +135,6 @@ subroutine tree_branches
 
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after local branches     ')
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
-
-
 
 
   ! send copies of branch nodes to all other PEs

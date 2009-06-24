@@ -158,8 +158,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
  
   !  Find global max active particles - necessary if some PEs enter walk on dummy pass
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
-
   call MPI_ALLGATHER( nactive, 1, MPI_INTEGER, nactives, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
   maxactive = maxval(nactives)
@@ -376,9 +374,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
      nfetches(0:num_pe-1) = (/ (count( mask = request_owner(1:nshare) == ipe ), ipe=0,num_pe-1) /)
 
      !POMP$ INST BEGIN(exchange)
-
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
-
 
      ! Exchange numbers of keys to be shipped and requested
 
@@ -656,8 +651,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
      enddo
 
      nactive = count( mask = nwalk(1:npshort) /= 0 )     ! Count remaining 'active' particles - those still with deferred nodes to search
-
-    !  call MPI_BARRIER( MPI_COMM_WORLD, ierr )   ! Wait for other PEs to catch up
 
      ! Broadcast # remaining particles to other PEs
 
