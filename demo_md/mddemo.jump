@@ -7,7 +7,7 @@
 #@ notify_user = r.speck@fz-juelich.de
 #@ wall_clock_limit = 00:30:00
 #@ node = 1
-#@ tasks_per_node = 32
+#@ tasks_per_node = 4
 #@ data_limit=3.0GB 
 #@ stack_limit=0.5GB
 #@ node_usage = shared

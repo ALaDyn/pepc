@@ -1363,7 +1363,7 @@ ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
 #######################################################################
 CFLAGS="$CFLAGS -I/usr/local/include"
 
-if [ `uname -n` = "jugene1" ] || [ `uname -n` = "jugene2" ] # JuGene in Juelich
+if [ `uname -n` = "jugene1" ] || [ `uname -n` = "jugene2" ] || [ `uname -n` = "jugene3" ] || [ `uname -n` = "jugene4" ] # JuGene in Juelich
 then
  echo "$as_me:$LINENO: result: ** Configuring for JuGene **" >&5
 echo "${ECHO_T}** Configuring for JuGene **" >&6

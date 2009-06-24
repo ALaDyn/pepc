@@ -81,7 +81,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 !  branch_debug=.false.
 !  prefetch_debug=.false.
 !  walk_debug=.false.
-!  walk_summary=.false.
+!  walk_summary = .false.
 !  dump_tree=.false.
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up

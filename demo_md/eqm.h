@@ -1,5 +1,5 @@
 &pepcdata
-  db_level = 1
+  db_level = 2
 
 ! np_mult = -30, fetch_mult = 3 for BG/P in VN-mode
   np_mult = -30 
@@ -27,8 +27,8 @@
 !   ne = 40758  ! exact, 40760 does not work...
 !   ni = 40758
 
- ne =1500000
- ni =1500000
+! ne = 450000
+! ni = 450000
 
 
 !   ne = 8
@@ -63,8 +63,8 @@
 !  ni = 524288
 !  ne = 1048576
 !  ni = 1048576
-!  ne = 2097152
-!  ni = 2097152
+  ne = 2097152
+  ni = 2097152
 !  ne = 4194304
 !  ni = 4194304
 !  ne = 8388608
@@ -77,7 +77,7 @@
 !  ni = 67108864
 
  system_config = 2  ! set up plasma target
- ispecial =5
+ ispecial =3
  !   initial_config=7   ! hollow sphere
    target_geometry = 0         ! random disc
  !   initial_config=3   ! wire
@@ -104,7 +104,7 @@
   zl =1
 
   ! control
-  nt = 5
+  nt = 30
   dt = 0.01
   eps = 1.
   restart = .false.

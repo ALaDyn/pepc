@@ -127,7 +127,7 @@ subroutine setup(init_mb)
   np_local = nep+nip        
 
   npart_total = ni+ne
-  write(*,*) my_rank,nep,nip,np_local,ne,ni,npart_total
+!  write(*,*) my_rank,nep,nip,np_local,ne,ni,npart_total
 
   if (n_cpu.eq.1) then
      nppm=1.5*npart_total + 1000  ! allow for additional ghost particles for field plots

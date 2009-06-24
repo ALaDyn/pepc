@@ -15,7 +15,7 @@ AC_CONFIG_AUX_DIR([src-config])
 #######################################################################
 CFLAGS="$CFLAGS -I/usr/local/include"
 
-if [[ `uname -n` = "jugene1" ] || [ `uname -n` = "jugene2" ]] # JuGene in Juelich
+if [[ `uname -n` = "jugene1" ] || [ `uname -n` = "jugene2" ] || [ `uname -n` = "jugene3" ] || [ `uname -n` = "jugene4" ]] # JuGene in Juelich
 then
  AC_MSG_RESULT(** Configuring for JuGene **)
   BGPSYS=/bgsys/drivers/ppcfloor
