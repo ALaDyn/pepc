@@ -144,7 +144,7 @@ directory (e.g.: {\tt \$HOME/pepc}) should be structured as follows:
 \begin{tabbing}
 \hspace{1cm} \= \hspace{4cm} \= \hspace{1cm} \\
 \> \texttt{lpepcsrc} \> kernel library routines for {\tt lpepc}\\
-\> \texttt{pepc-b} \> source code for laser-plasma application \\
+\> \texttt{pepc-b} \> source code for beam-plasma applications \\
 \> \texttt{tutorial} \> example run directory for {\tt pepcb}\\
 \> \texttt{pepc-e} \> source code for simple MD demo program \\
 \> \texttt{doc} \> documentation\\
@@ -153,7 +153,7 @@ directory (e.g.: {\tt \$HOME/pepc}) should be structured as follows:
 \end{tabbing}
 
 \noindent 
-The physical model for the laser-plasma application is described in the Physics of Plasmas reprint pop04.pdf.
+The physical model for the laser-plasma application included in \texttt{pepc-b} is described in the Physics of Plasmas reprint pop04.pdf.
 
 
 \section{Compiling {\sc pepc}} 
@@ -169,16 +169,18 @@ To build the laser-plasma application {\tt pepcb}, first go to the top directory
 ./configure
 \end{verbatim}
 
-Machine options are in \texttt{config.in}.  These can be edited and a new configure script created with \texttt{autoconf}.
+Machine options are in \texttt{configure.in}.  These can be edited and a new configure script created with \texttt{autoconf}.
 
 Current builds are available for:
 \begin{tabbing}
 \hspace{1cm} \= \hspace{3cm} \= \hspace{1cm} \=\\
 \> \texttt{linux} \> ... \> Linux-based PC, Intel compiler\\
-\> \texttt{ibm-p690} \> ... \> IBM p690 Regatta (Power4)\\
-\> \texttt{bgl} \> ... \> BlueGene/L \\
+\> \texttt{p690} \> ... \> IBM p690 Regatta (Power4)\\
+\> \texttt{bgp} \> ... \> BlueGene/P \\
 \end{tabbing}
 
+The object files for these builds are maintained in separate subdirectories (beneath the source code), allowing development on several machines
+at once without having to clean all previous compilations.
 A full list of options can be obtained with:
 \begin{verbatim}
 ./configure --help
@@ -197,7 +199,14 @@ At this point there may well be linker errors because of missing
 libraries, such as MPI or from VISIT/XNBODY, the visualisation packages.  MPI is
 currently a prerequisite, even if the code is run on a single processor.  For
 single-CPU Linux users, this means installing the {\tt mpich} package first, available on
-most distributions. 
+most distributions.  If the build is successful, an executable file will appear in the \texttt{bin/} directory with a prefix and suffix corresponding to the application and architecture respectively.  Thus, you may see something like:
+
+\begin{verbatim}
+   pepcb_linux
+   pepcb_bgp
+   pepce_bgp
+   pepcbvis_linux
+\end{verbatim}
 
 
 \section{Running the code}
@@ -311,6 +320,30 @@ will simply adjust until the electrons are in thermal equilibrium.
                 3=box with velocities in x,y plane (B test)
                 4=config from file for FMM comparisons (x,y,z,q)
                 5=particle beam with np_beam=max(ne,ni)
+ 3   spatially separated ion + electron slabs
+ 4   spherical Coulomb explosion
+ 6   spherical cluster with Andreev self-similar profile
+ 7   imploding spherical shell
+10   2 overlapping ion species according to geometry
+11   slab + proton disc
+16   hemispherical shell + proton disc
+
+Special configs in config_private.h:
+------------------------------------
+15   2-layer slab with foam on rear
+
+12   microdot setup front/back (APLR, 8/3/06)
+13   proton-doped slab
+14   proton microdot on rear - simplified 35
+32   2nd microdot setup
+35   3rd microdot setup
+
+20  'tincan'= disc+tube inset
+21   disc + tube: tincan target, 50:50 ion, proton mix
+22   can target = disc + tube: cap heavy ions only; tube 50:50 ions + protons
+
+40   foam - FCC array of spherical shells
+41   pipes - array of cylindrical shells
 \end{verbatim}
 
 \subsection{Geometries:  {\tt target\_geometry}}
@@ -327,10 +360,11 @@ will simply adjust until the electrons are in thermal equilibrium.
     9  not defined 
    10  hollow slab
    11  spherical shell,  radius r_sphere, thickness x_plasma
-   12  cylinder (hollow disc)
-   13  vertical cylinder (hollow wire)
+   12  pipe (hollow disc)
+   13  vertical pipe (hollow wire)
    16  hemispherical shell, radius r_sphere, thickness x_plasma
-
+   26  reverse hemisphere
+   36  reverse hollow hemisphere
 \end{verbatim}
 
 \subsection{Integrator schemes:  {\tt scheme}}
@@ -763,6 +797,25 @@ Fine-tuning of the plots can be done by editing the scripts --
 comprehensively documented in GMT_Docs.pdf and GMT_Tutorial.pdf from the distribution.
 
 \section{Online visualization with VISIT and XNBODY}
+Support for the interactive visualization system Xnbody (www.fz-juelich.de/jsc/xnbody) developed at JSC is
+provided in pepc-b through the routines 
+\begin{verbatim}
+vis_nbody_parts.F90
+vis_nbody_fields.F90
+vis_nbody_vecfields.F90
+vis_control.F90
+vis_config.F90
+\end{verbatim}
+Note that these contain pre-processor directives in which the calls to the data communication library VISIT and netcdf library are embedded.
+They can be turned on at the configure stage via:
+
+\begin{verbatim}
+./configure --with-visit
+\end{verbatim}
+
+This will select default directories for the above libraries according to the architecture.  The former can be overridden if necessary (see options).
+
+
 
 \section{Physical model and unit system for laser-plasma interactions}
 
@@ -923,17 +976,4 @@ $$
 $$
 \end{document}
 
-
-
-
-
-
-
-
-
-
-%%% Local Variables: 
-%%% mode: plain-tex
-%%% TeX-master: t
-%%% End: 
 
