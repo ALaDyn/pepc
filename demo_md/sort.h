@@ -1,8 +1,8 @@
-&pepcdata
+&sortdata
   db_level = 0
 
 ! np_mult = -30, fetch_mult = 3 for BG/P in VN-mode
-  np_mult = -60 
+  np_mult = 1.5
   fetch_mult = 3
 
 ! particles
@@ -27,8 +27,8 @@
 !   ne = 40758  ! exact, 40760 does not work...
 !   ni = 40758
 
-! ne = 450000
-! ni = 450000
+! ne = 1000000
+! ni = 1000000
 
 
 !   ne = 8
@@ -59,16 +59,16 @@
 !  ni = 131072
 !  ne = 262144
 !  ni = 262144
-!  ne = 524288
-!  ni = 524288
+  ne = 524288
+  ni = 524288
 !  ne = 1048576
 !  ni = 1048576
 !  ne = 2097152
 !  ni = 2097152
 !  ne = 4194304
 !  ni = 4194304
-  ne = 8388608
-  ni = 8388608
+!  ne = 8388608
+!  ni = 8388608
 !  ne = 16777216
 !  ni = 16777216
 !  ne = 33554432

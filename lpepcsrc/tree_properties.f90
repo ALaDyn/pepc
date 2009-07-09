@@ -44,7 +44,7 @@ subroutine tree_properties
   integer :: max_nbranch
 
   if (tree_debug) write(ipefile,'(a)') 'TREE PROPERTIES'
-  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | PROPERTIES'
+  if (me==0) write(*,'(a)') 'LPEPC | PROPERTIES'
 
 
 

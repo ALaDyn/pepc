@@ -135,7 +135,7 @@ subroutine setup
   npart_total = ni+ne
   np_local = npart_total/n_cpu  ! initial total # particles per processor
 !  npp = npart_total/n_cpu  ! initial total # particles per processor
-  nppm = np_local*1.5
+  nppm = np_local*1.2
 
   geometry: select case(target_geometry)
 

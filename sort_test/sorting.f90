@@ -24,7 +24,8 @@ subroutine sorting
   integer*8, dimension(2) :: ixbox, iybox, izbox, key_box
   integer*8, dimension(n_cpu+1)::  pivots
   integer :: load_balance   ! Balances particles in || sort according to work load
-  real*8 :: work_local, t1, t2
+  real*8 :: t1, t2
+  real :: work_local
   integer*8 :: k,i
 
 !  if ((db_level > 1) .and. (my_rank == 0)) then
@@ -47,7 +48,6 @@ subroutine sorting
   load_balance = 0
   nlev = 20                     ! max refinement level
   iplace = 2_8**(3*nlev)           ! place holder bit
-  k = 0;
 
   ! Find limits of local simulation region
   xmin_local = minval(x(1:npp))
@@ -146,8 +146,8 @@ subroutine sorting
   enddo
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
+  t1 = MPI_WTIME()
 
-  call cpu_time(t1)  
   do while (errcount /= 0 .or. iteration == niterations)
     
      if (my_rank == 0) write(*,*) 'Starting iteration no.',iteration,'...'
@@ -173,20 +173,12 @@ subroutine sorting
      call pbalsort(nppm,npold,npnew,n_cpu,my_rank,keys,&
                    indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,npp,load_balance,sort_debug,work_local)
 
-!     write(*,*) my_rank," - ",indxl,fposts
-
-     do i=1,npold
-        if (xarray(i) .ne. w1(i)) k = k+1
-     enddo
-
      do i=1,npold
         w1(i) = xarray(i)
      enddo
 
      call pll_permute(nppm,npold,npnew,n_cpu,my_rank,w1,wi2,wi3, &
                       indxl,irnkl,islen,irlen,fposts,gposts)
-
-!     write(*,*) my_rank," --- ",w1(1:npnew)
 
      ! Check if sort finished
      errcount = 0
@@ -236,11 +228,11 @@ subroutine sorting
      call MPI_BARRIER( MPI_COMM_WORLD, ierr) 
 
   end do
-  call cpu_time(t2)
+
+  t2 = MPI_WTIME()
 
   do i=1,npnew
      keys(i) = w1(i)
-!     write(*,'(2i4,o30)') my_rank,i,keys(i)
   enddo
 
 !  write(*,*) my_rank, k

@@ -74,16 +74,6 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
 !  real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
 
-!  force_debug=.false.
-!  tree_debug=.false.
-!  build_debug=.false.
-!  domain_debug = .false.
-!  branch_debug=.false.
-!  prefetch_debug=.false.
-!  walk_debug=.false.
-!  walk_summary = .false.
-!  dump_tree=.false.
-
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   tm1 = MPI_WTIME()
 
@@ -261,7 +251,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
     max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
 !     if (dump_tree) call diagnose_tree
-     if ((me == 0).and. tree_debug .and. (mod(jpass,max_npass/10+1)==0)) &
+     if ((me == 0) .and. (mod(jpass,max_npass/10+1)==0)) &
           write(*,'(a26,a10,f12.4,a2)') ' LPEPC | TREE WALK (AS) --','Completed',100.0*jpass/max_npass,' %'
   end do
 

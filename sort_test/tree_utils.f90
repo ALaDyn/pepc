@@ -373,7 +373,7 @@ contains
     integer, intent(in) :: nppm,np,nprocs,iproc,nkeys_total
     real*8, intent(in) :: wload(nppm)  ! particle work loads
     integer, intent(out) :: npnew
-    real*8, intent(in) :: work_local  ! total local work load
+    real, intent(in) :: work_local  ! total local work load
     integer*8, dimension(nppm) ::  keys, &      ! array of keys to be sorted.
                                    kw1,kw2,kred      ! work arrays
     integer :: pbin(nppm)
@@ -389,7 +389,7 @@ contains
     integer :: total_keys(nprocs)  ! Total # keys in local tree(s) 
     real*8 :: ave_nkeys,finc  ! Average # keys
 
-    integer, parameter :: maxbin=1500000  ! Max # bins for key distrib
+    integer, parameter :: maxbin=1000000  ! Max # bins for key distrib
     integer*8, dimension(maxbin)  :: f_local, f_global, f_final  ! Key distribution functions
     integer*8, dimension(maxbin) ::  search_list, retain_list, bin_list
     integer, dimension(maxbin) :: index_bin
@@ -397,7 +397,7 @@ contains
 
     integer*8 :: lmax, lmin, key_min, key_max, gkey_min, gkey_max, step ! Key mins and maxes and step size
     integer*8 :: step_reduced, key_reduce, pshift
-    integer*8, parameter :: iplace=8**20
+    integer*8, parameter :: iplace=8_8**20
     integer ::  ibin, itag
     integer :: status(MPI_STATUS_SIZE),ierr
     integer :: alpha  ! alpha now in range 1-100
@@ -537,14 +537,17 @@ search_list = 8_8**lev_map  ! place holder
 	   endif
 
 
-        if (debug .and. iproc==proc_debug) write(fd,'(a30,o30,2i16,1pe12.1,i16,1pe12.1,i16)') 'reduced key, bin, f_local ',key_reduce,ibin,work2(p),ave_nkeys,nkeys_total,finc,f_local(ibin)
+        if (debug .and. iproc==proc_debug) then
+	   write(fd,'(a30,o30,2i16,1pe12.1,i16,1pe12.1,i16)') 'reduced key, bin, f_local ', &
+		key_reduce,ibin,work2(p),ave_nkeys,nkeys_total,finc,f_local(ibin)
+        endif
 	  pbin(p) = ibin ! remember bin number 
 	  p=p+1
 	else
 ! no match - try next bin
 	  ibin=ibin+1
 	endif
-      end do
+     end do
 
 
     ! Global distrib - must make sure all CPUs participate, even if locally finished
@@ -580,6 +583,7 @@ search_list = 8_8**lev_map  ! place holder
 
 	else if (f_global(ibin) /= 0) then
 	   nfbins=nfbins+1   ! Copy bin onto 'final' list here 
+!           if ((iproc==0).or.(nfbins.ge.maxbin)) write(*,*) iproc,'nfbins',nfbins,ibin,nbin
 	   bin_list(nfbins) = search_list(ibin)
 	   f_final(nfbins) = f_global(ibin)
 	   finished(ibin)=.true.
@@ -663,11 +667,11 @@ search_list = 8_8**lev_map  ! place holder
  !   endif
 
 !  if (debug .and. icall==0 .and. iproc==proc_debug) then
-  if (debug .and. icall==0 ) then
-!	write(*,*) 'PE ',iproc,'Writing key dist'
-        open(90,file='fglobal.data')
-       write(20,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
-!	call close(90)
+    if (debug .and. icall==0 ) then
+     !	write(*,*) 'PE ',iproc,'Writing key dist'
+     open(90,file='fglobal.data')
+     write(90,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
+     call close(90)
   endif
 
 
@@ -724,8 +728,9 @@ search_list = 8_8**lev_map  ! place holder
     enddo
 
     npnew = gposts(nprocs+1)
-
-
+    if (npnew.gt.nppm) then
+      write(*,*) 'Problem with particle balance on proc',iproc,' np,npnew,npmm:',np,npnew,nppm
+    endif
 !  Use full keys for swap
  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
     call MPI_ALLTOALLV(  kw1  ,islen,fposts,MPI_INTEGER8, &
@@ -798,7 +803,7 @@ search_list = 8_8**lev_map  ! place holder
     real :: load_correct(nprocs)
     integer*8 :: lmax, lmin, key_min, key_max, gkey_min, gkey_max, step ! Key mins and maxes and step size
     integer*8 :: step_reduced, key_reduce, pshift
-    integer*8, parameter :: iplace=8**20
+    integer*8, parameter :: iplace=8_8**20
 !    integer*8, parameter :: iplace=0
     integer ::  ibin, itag
     integer :: status(MPI_STATUS_SIZE),ierr

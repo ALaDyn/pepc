@@ -151,7 +151,7 @@ program pepce
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      t4 = MPI_WTIME()
 
-     if (my_rank==0 .and. db_level .ge.1) then
+     if (my_rank==0) then
         ttot = t3-t0 ! total loop time without diags
         write(112,*) trun,t_domain,t_build,t_branches,t_fill,t_properties,t_walk,t_walkc,t_force,t_restore,t_all,ttot
         write(*,*) t_all,ttot,ttot-t_all
