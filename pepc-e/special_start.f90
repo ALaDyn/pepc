@@ -6,6 +6,77 @@
 !
 ! ==============================================
 
+
+! portable random number generator, see numerical recipes
+! check for the random numbers:
+! the first numbers should be 0.2853809, 0.2533582 and 0.2533582
+
+subroutine par_rand(res)
+  
+  use physvars
+  implicit none
+
+  integer :: idum, idum2, iy, j, k
+  integer :: iv(32)
+
+  real, intent(inout) :: res
+
+  integer :: IM1, IM2, IMM1, IA1, IA2, IQ1, IQ2, IR1, IR2, NTAB, NDIV
+  real    :: AM, RNMX
+
+  save
+
+  data idum, idum2 /-1, 123456789/
+
+  IM1 = 2147483563
+  IM2 = 2147483399
+  AM  = 1.0/IM1
+  IMM1 = IM1-1 
+  IA1 = 40014
+  IA2 = 40692
+  IQ1 = 53668
+  IQ2 = 52774
+  IR1 = 12211
+  IR2 = 3791
+  NTAB = 32
+  NDIV = 1+IMM1/NTAB
+  RNMX = 1.0 - 1.2e-7
+
+  if (idum < 0) then
+  
+     idum = 1
+     idum2 = idum
+
+     do j = NTAB+7,0,-1
+        k = idum/IQ1
+        idum = IA1 * (idum-k*IQ1) - k*IR1
+        if (idum < 0 ) idum = idum + IM1
+        
+        if (j<NTAB) iv(j+1) = idum
+        
+     end do
+     iy = iv(1)
+  
+  end if
+
+  k = idum/IQ1
+  idum = IA1 * (idum-k*IQ1) - k*IR1
+  if (idum < 0) idum = idum + IM1
+
+  k = idum2/IQ2
+  idum2 = IA2 * (idum2-k*IQ2) - k*IR2
+  if (idum2 < 0) idum2 = idum2 + IM2
+  
+  j = iy/NDIV + 1
+  iy = iv(j)-idum2
+  iv(j) = idum
+  
+  if (iy < 1) iy = iy + IMM1
+  res = AM*iy
+  if (res > RNMX) res = RNMX
+  
+end subroutine par_rand
+
 subroutine special_start(iconf)
 
   use physvars
@@ -14,206 +85,151 @@ subroutine special_start(iconf)
   include 'mpif.h'
 
   integer, intent(in) :: iconf  ! Configuration switch
-  integer :: p,i,j,k,l,n1,iseed1,iseed2,iseed3,face_nr,iseed=-17,decomp,max_num,plt
+  integer :: p,i,j,k,l,n1,iseed1,iseed2,iseed3,face_nr,iseed=-17,decomp,max_num,plt, mpi_cnt, ierr
+  real*4 :: par_rand_res
   real*8 :: gamma0,yt,zt,xt,qt,mt,c_status
-  character(35) :: cinfile, cdump, cfile
+  character(50) :: cinfile, cdump
   character(50) :: dfile
   character(35) :: cme
-
-  iseed1 = -1 - my_rank
-  iseed2 = -1011 - my_rank
-  iseed3 = -200111 - my_rank
-  r_beam=sigma/2.
-  gamma0=sqrt(1+vosc**2/2.)
-
-  max_num = 4
-
+  integer :: np_local_max
 
   config: select case(iconf)
-  case(1)  ! electron disc at x=0 with 2pi phase spread
+  case(1)
 
-     do while (i < np_local)
-        yt = r_beam*(2*rano(iseed)-1.)
+     if (my_rank == 0) write(*,*) "Using special start... case 1 (homogeneous distribution)"
 
-        zt = r_beam*(2*rano(iseed)-1.)
-        if (yt**2 + zt**2 <= r_beam**2 ) then
-           i = i+1
-           x(i) = 2*pi*rano(iseed)
-           y(i) = yt + focus(2)
-           z(i) = zt + focus(3)
-           ux(i) = 0.
-           uy(i) = 0.
-           uz(i) = 0.
+     ! get the largest np_local
+     call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
+     call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
-        endif
+     do mpi_cnt = 0, n_cpu-1
+        do p = 1, np_local_max
+           
+           xt = 0.
+           yt = 0.
+           zt = 0.
+           
+           call par_rand(par_rand_res)
+           xt = par_rand_res
+           call par_rand(par_rand_res)
+           yt = par_rand_res
+           call par_rand(par_rand_res)
+           zt = par_rand_res
+
+           if ( my_rank == mpi_cnt .and. p <= np_local ) then
+              
+              ux(p) = 0.
+              uy(p) = 0.
+              uz(p) = 0.
+              
+              z(p) = zt 
+              y(p) = yt
+              x(p) = xt
+              
+           end if
+        end do
      end do
 
   case(2)
-!     x_crit = focus(1)
-! electron disc at laser focus with 2pi phase spread
-!     do while (i < np_local)
-!        yt = r_beam*(2*rano(iseed)-1.)
-!
-!        zt = r_beam*(2*rano(iseed)-1.)
-!        if (yt**2 + zt**2 <= r_beam**2 ) then
-!           i = i+1
-!           x(i) = focus(1)
-!           y(i) = yt + focus(2)
-!           z(i) = zt + focus(3)
-!           ux(i) = 0.
-!           uy(i) = 0.
-!           uz(i) = 0.
-!
-!        endif
-!     end do
-     
-     if (my_rank == 0) write(*,*) "Special start 2: Reading initial particle positions from FCS..."
-     p = 0
-     write(cme,*) my_rank+1
-     cme = ADJUSTL(cme)
-     dfile = "data/parts_info_"//TRIM(cme)//".dat"
-     open(90,file=dfile,STATUS='OLD')
-     
-     do while (p<np_local)
-        read(90,*) i,xt,yt,zt
-        p=p+1
-        x(p) = xt
-        y(p) = yt
-        z(p) = zt
-        ux(p) = 0.
-        uy(p) = 0.
-        uz(p) = 0.
-        pelabel(p) = i
-        if (mod(p,2) == 0) then
-           m(p) = mass_e
-           q(p) = qe
-        else 
-           m(p) = mass_i
-           q(p) = qi
-        end if   
-     end do
-!     write(*,*) my_rank,np_local,p,i
 
-     close(90)
-     goto 112
+     if (my_rank == 0) write(*,*) "Using special start... case 2 (one sphere benchmark)"
+
+     ! get the largest np_local
+     call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
+     call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+
+     do mpi_cnt = 0, n_cpu-1
+        do p = 1, np_local_max
+           
+           xt = 1.
+           yt = 1.
+           zt = 1.
+           
+           do while ( (xt*xt + yt*yt + zt*zt) > 1)
+              call par_rand(par_rand_res)
+              xt = -1.0 + 2.*par_rand_res
+              call par_rand(par_rand_res)
+              yt = -1.0 + 2.*par_rand_res
+              call par_rand(par_rand_res)
+              zt = -1.0 + 2.*par_rand_res
+           end do
+           
+           if ( my_rank == mpi_cnt .and. p <= np_local ) then
+
+              xt = xt*0.1
+              yt = yt*0.1
+              zt = zt*0.1
+              
+              ux(p) = 0.
+              uy(p) = 0.
+              uz(p) = 0.
+              
+              z(p) = 0.5 + zt 
+              y(p) = 0.5 + yt
+              x(p) = 0.5 + xt
+              
+           end if
+        end do
+     end do
 
   case(3)
+     if (my_rank == 0) write(*,*) "Using special start... case 3 (two sphere benchmark)"
 
-     if (my_rank == 0) write(*,*) "Using special start... case 3"
+     ! get the largest np_local
+     call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
+     call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
-     cme = "pepc_data/parts_info_" &   
-       // achar(my_rank/1000+48) &
-       // achar(mod(my_rank/100,10)+48) &
-       // achar(mod(my_rank/10,10)+48) &
-       // achar(mod(my_rank/1,10)+48)  ! Convert 4-digit PE number into character string
-     cfile=cme//".dat"
-   
-!     open(90,file=cfile,STATUS='REPLACE')
-
-     p=0
-     call srand(2*my_rank+1)
-!     call rand(2.0*my_rank+1)
-
-     do while (p < np_local)
-        xt = 0.
-        yt = 0.
-        zt = 0.
-        do while ((xt .le. 1.0*my_rank/(1.0*n_cpu)) .or. (xt .ge. 1.0*(my_rank+1)/(1.0*n_cpu)) .or. (xt == 0))
-           xt = rand()
+     do mpi_cnt = 0, n_cpu-1
+        do p = 1, np_local_max
+           
+           xt = 1.
+           yt = 1.
+           zt = 1.
+           
+           do while ( (xt*xt + yt*yt + zt*zt) > 1)
+              call par_rand(par_rand_res)
+              xt = -1.0 + 2.*par_rand_res
+              call par_rand(par_rand_res)
+              yt = -1.0 + 2.*par_rand_res
+              call par_rand(par_rand_res)
+              zt = -1.0 + 2.*par_rand_res
+           end do
+           
+           xt = xt*0.1
+           yt = yt*0.1
+           zt = zt*0.1
+           
+           call par_rand(par_rand_res)
+           if (par_rand_res .lt. 0.5) then
+              xt = xt + 0.2
+           else
+              xt = xt - 0.2
+           end if
+           
+           if ( my_rank == mpi_cnt .and. p <= np_local ) then
+                            
+              ux(p) = 0.
+              uy(p) = 0.
+              uz(p) = 0.
+              
+              z(p) = 0.5 + zt 
+              y(p) = 0.5 + yt
+              x(p) = 0.5 + xt
+              
+           end if
         end do
-        
-        do while (yt == 0)
-           yt = rand()
-        end do
-
-        do while (zt == 0)
-           zt = rand()
-        end do
-
-        p = p + 1
-
-        ux(p) = 0.
-        uy(p) = 0.
-        uz(p) = 0.
-
-        z(p) = zt 
-        y(p) = yt
-        x(p) = xt
-        if (p.le.nep) then 
-!           write(90,*) p,xt,yt,zt,qe,mass_e,my_rank*nep+p      ! Electrons
-        else
-!           write(90,*) p,xt,yt,zt,qi,mass_i,ne+my_rank*nip+p-nep      ! Ions
-        end if
      end do
-
-!    close(90)
-
-  case(4)
-
-     if (my_rank == 0) write(*,*) "Special start 4: Reading initial particle positions (multiple files)..."
-     cme = "pepc_data/parts_info_" &   
-          // achar(my_rank/1000+48) &
-          // achar(mod(my_rank/100,10)+48) &
-          // achar(mod(my_rank/10,10)+48) &
-          // achar(mod(my_rank/1,10)+48)  ! Convert 4-digit PE number into character string
-!     cfile=cme//".dat"
-     cfile=cme
-     open(90,file=cfile)
-     p = 0
-     do while (p < np_local)
-        read(90,*) k,xt,yt,zt,qt,mt,plt
-        p = p+1
-        ux(p) = 0.
-        uy(p) = 0.
-        uz(p) = 0.
-        z(p) = zt 
-        y(p) = yt
-        x(p) = xt
-        q(p) = qt
-        m(p) = mt
-        pelabel(p) = plt
-     end do
-     
-     close(90)
-
-     goto 112
-
-  case(5)
-     if (my_rank == 0) write(*,*) "Special start 5: Reading initial particle positions (single file)..."
-     cme = "pepc_data/parts_info_all.dat"
-     cfile=cme
-     open(90,file=cfile)
-     p = 0    
-     do i = 0,npart_total-1
-        read(90,*) k,xt,yt,zt,qt,mt,plt
-        if ((i.ge.my_rank*(1.0*npart_total/n_cpu)).and.(i.lt.(my_rank+1)*(1.0*npart_total/n_cpu))) then
-           p = p+1
-           ux(p) = 0.
-           uy(p) = 0.
-           uz(p) = 0.
-           x(p) = xt
-           y(p) = yt
-           z(p) = zt
-           q(p) = qt
-           m(p) = mt
-           pelabel(p) = plt
-        end if
-     end do
-     close(90)   
-     
-     np_local = p
-     goto 112
 
   end select config
 
-  q(1:nep)             = qe        ! plasma electrons
+  q(1:nep)                  = qe        ! plasma electrons
   q(nep + 1:np_local)       = qi        ! plasma ions (need Z* here)
-  m(1:nep)             = mass_e    ! electron mass
+  m(1:nep)                  = mass_e    ! electron mass
   m(nep + 1:np_local)       = mass_i    ! ion mass
-  pelabel(1:nep)       = my_rank * nep + (/(i, i = 1, nep)/)      ! Electron labels
+  pelabel(1:nep)            = my_rank * nep + (/(i, i = 1, nep)/)      ! Electron labels
   pelabel(nep + 1:np_local) = ne + my_rank * nip + (/(i, i = 1, nip)/) ! Ion labels
 
-112  ex(1:np_local) = 0.
+112 ex(1:np_local) = 0.
   ey(1:np_local) = 0.
   ez(1:np_local) = 0.
   pot(1:np_local) = 0.

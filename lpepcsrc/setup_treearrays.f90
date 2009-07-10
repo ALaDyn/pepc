@@ -39,31 +39,30 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   npart = npart_total
   ipefile = 20
 
-  if (db_level==0) then
+  force_debug=.false.
+  tree_debug=.false.
+  build_debug=.false.
+  domain_debug = .false.
+  branch_debug=.false.
+  prefetch_debug=.false.
+  walk_debug=.false.
+  walk_summary=.false.
+  dump_tree=.false.
 
-     force_debug=.false.
-     tree_debug=.false.
-     build_debug=.false.
-     domain_debug = .false.
-     branch_debug=.false.
-     prefetch_debug=.false.
-     walk_debug=.false.
-     walk_summary = .false.
-     dump_tree=.false.
 
-  else if (db_level==1) then
-     domain_debug = .true.
+  if (db_level==1) then
+!      domain_debug = .true.
 	
   else if (db_level==2) then
-     tree_debug=.true.  ! location information only
-     walk_summary=.true.
-     
+      tree_debug=.true.  ! location information only
+      walk_summary=.true.
+
   else if (db_level==3) then
-     tree_debug=.true.
-     force_debug=.false.
-     walk_summary=.true.
-     prefetch_debug=.false. 
-     domain_debug = .true.
+      tree_debug=.true.
+      force_debug=.false.
+      walk_summary=.true.
+      prefetch_debug=.false. 
+      domain_debug = .true.
 
   else if (db_level==4) then
      tree_debug=.true.

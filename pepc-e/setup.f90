@@ -27,7 +27,10 @@ subroutine setup(init_mb)
   integer :: ierr
   integer*8, dimension(nprops_particle) :: address
 
- 
+  integer*4 IARGC
+
+  character(50) :: parameterfile
+
   namelist /pepcdata/ nep, nip, np_mult, fetch_mult, ne, ni, &
        mac, theta, mass_ratio, q_factor, eps, &
        system_config, target_geometry, ispecial, &
@@ -43,69 +46,90 @@ subroutine setup(init_mb)
        db_level, &
        constrain_proof, len_tripod, struct_step, uthresh, bfield_on
 
+
   !  Default input set
-
  
-  system_config = 1  ! plasma target
-  target_geometry = 1         ! random sphere
+  system_config   = 2  
+  target_geometry = 0
 
-  db_level=1
+  db_level        = 0
+
+  np_mult         = -30
+  fetch_mult      = 3
+
+  ispecial        = 1
+
+  scheme          = 0
 
   ! particles
-  nep = 0 ! # plasma electrons per PE
+  nep = 0    ! # plasma electrons per PE
   nip = 0
-  ne = 100  ! Total # plasma electrons
-  ni = 100  ! total # plasma ions
+  ne  = 0    ! Total # plasma electrons
+  ni  = 1000 ! total # plasma ions
   mc_steps = 10
 
-  xl = 2
-  yl = 2
-  zl = 2
+  xl = 1
+  yl = 1
+  zl = 1
 
   ! physics stuff
   force_const = 1.
-  bond_const = 0.1
-  rho0 = 1.0
-  mac = 0        ! Multipole acceptance criterion (BH by default)
-  theta = 0.5
-  err_f = 0.01   ! force error tolerance
-  Te_keV = 1.
-  Ti_keV = Te_keV/10.
-  mass_ratio = 10.
-  q_factor = 1.
-  uthresh = -1.
+  bond_const  = 2.e-3
+  rho0        = 1.0
+  mac         = 0
+  theta       = 0.6
+  err_f       = 0.01
+  Te_keV      = 0.5
+  Ti_keV      = 0.1
+  mass_ratio  = 2000.
+  q_factor    = 1.
+  uthresh     = -1.
 
-  r_sphere = 0.5
-  x_plasma = 0.1    ! plasma disc thickness (2) or wire length (3)
-  y_plasma = 1.     ! plasma width (slab target)
-  z_plasma = 1.     ! plasma width (slab target)
-  eps = 0.1
-  fnn = 5  ! Neighbour search radius multiplier (x a_ii)
-  delta_mc = r_sphere/5.
+  r_sphere      = 4
+  x_plasma      = 1.
+  y_plasma      = 1.
+  z_plasma      = 1.
+  eps           = 1.
+  fnn           = 5
+  delta_mc      = r_sphere/5.
   displace(1:3) = (/0.,0.,0./)
 
 
   ! control
-  nt = 600
-  dt = 0.2
-  trun = 0.
-  ivis = 1
-  ivis_fields = 1
-  ivis_domains = 1
-  itime_start = 0
-  itrack = 10
+  nt           = 10
+  dt           = 0.01
+  trun         = 0.
+  ivis         = 2
+  ivis_fields  = 5000
+  ivis_domains = 5000
+  itime_start  = 0
+  itrack       = 10
 
-  ngx = 25   ! Grid size for plots
+  restart      = .false.
+  vis_on       = .false.
+  idump        = 0
+  iprot        = 1
+  particle_bcs = 1
+
+  ngx = 25   
   ngy = 25
   ngz = 25
+
   ! constrain
   constrain_proof = .001
   struct_step = 0
 
   ! Read actual inputs from namelist file
 
-  open(10,file='run.h')
-  read (10,NML=pepcdata)
+  if (IARGC() .eq. 1) then
+     call GETARG(1, parameterfile)
+     if(my_rank .eq. 0) write(*,*) "reading parameter file: ", parameterfile
+     open(10,file=parameterfile)
+     read(10,NML=pepcdata)
+     close(10)
+  else
+     if(my_rank .eq. 0) write(*,*) "##### using default parameter #####"
+  end if
 
   ! Derived parameters
 
@@ -117,17 +141,16 @@ subroutine setup(init_mb)
      ! total # particles specified in input file 
      nep = ne/n_cpu
      nip = ni/n_cpu
-     if (nep*n_cpu /= ne) then
-        nep = ne/n_cpu+mod(ne,n_cpu)
+     if (nep*n_cpu /= ne .and. mod(ne,n_cpu) > my_rank) then
+        nep = ne/n_cpu+1
      end if
-     if (nip*n_cpu /= ni) then
-        nip = ni/n_cpu+mod(ni,n_cpu)
+     if (nip*n_cpu /= ni .and. mod(ni,n_cpu) > my_rank) then
+        nip = ni/n_cpu+1
      end if
   endif
   np_local = nep+nip        
 
   npart_total = ni+ne
-!  write(*,*) my_rank,nep,nip,np_local,ne,ni,npart_total
 
   if (n_cpu.eq.1) then
      nppm=1.5*npart_total + 1000  ! allow for additional ghost particles for field plots

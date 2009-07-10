@@ -37,7 +37,7 @@ subroutine tree_fill
 
 !  tree_debug=.true.
   if (tree_debug) write(ipefile,'(/a)') 'TREE FILL'
-  if (me==0) write(*,'(a)') 'LPEPC | FILL'
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | FILL'
 
   if (tree_debug .and. proc_debug.eq.-1) then 
 	call check_table('after make_branches ')

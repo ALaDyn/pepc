@@ -1,0 +1,26 @@
+MACH     = GNU-Linux
+
+RANLIB   = ranlib
+
+MAKE     = gmake
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C -I/dir/to/mpif.h
+
+FCPRE    = 
+FC       = gfortran
+FFLAGS   = 
+
+LDPRE    = 
+LD       = gfortran
+LDFLAGS  = 
+LDLIBS   = -L/dir/to/libmpi -lmpich -lpthread
+
+RM       = rm -rf
+
+EXECNAME = ../pepc.exe
+
+

@@ -42,7 +42,11 @@ subroutine tree_branches
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after treebuild     ')
 
   if (tree_debug) write(ipefile,'(a)') 'TREE BRANCHES'
-  if (me==0) write(*,'(a)') 'LPEPC | BRANCHES'
+  if (me==0 .and. tree_debug) then
+	write(*,'(a)') 'LPEPC | BRANCHES'
+!        write(*,'(a,i8)') 'LPEPC | nbranch_local_max = ',nbranch_local_max
+  endif
+
 
   ! Determine minimum set of branch nodes making up local domain
 
@@ -130,6 +134,9 @@ subroutine tree_branches
   endif
 
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after local branches     ')
+
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
+
 
 
 

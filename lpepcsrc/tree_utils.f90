@@ -389,7 +389,7 @@ contains
     integer :: total_keys(nprocs)  ! Total # keys in local tree(s) 
     real*8 :: ave_nkeys,finc  ! Average # keys
 
-    integer, parameter :: maxbin=2100000  ! Max # bins for key distrib
+    integer, parameter :: maxbin=1000000  ! Max # bins for key distrib
     integer*8, dimension(maxbin)  :: f_local, f_global, f_final  ! Key distribution functions
     integer*8, dimension(maxbin) ::  search_list, retain_list, bin_list
     integer, dimension(maxbin) :: index_bin
@@ -547,7 +547,7 @@ search_list = 8_8**lev_map  ! place holder
 ! no match - try next bin
 	  ibin=ibin+1
 	endif
-     end do
+      end do
 
 
     ! Global distrib - must make sure all CPUs participate, even if locally finished
@@ -583,7 +583,6 @@ search_list = 8_8**lev_map  ! place holder
 
 	else if (f_global(ibin) /= 0) then
 	   nfbins=nfbins+1   ! Copy bin onto 'final' list here 
-!           if ((iproc==0).or.(nfbins.ge.maxbin)) write(*,*) iproc,'nfbins',nfbins,ibin,nbin
 	   bin_list(nfbins) = search_list(ibin)
 	   f_final(nfbins) = f_global(ibin)
 	   finished(ibin)=.true.
@@ -667,11 +666,11 @@ search_list = 8_8**lev_map  ! place holder
  !   endif
 
 !  if (debug .and. icall==0 .and. iproc==proc_debug) then
-    if (debug .and. icall==0 ) then
-     !	write(*,*) 'PE ',iproc,'Writing key dist'
-     open(90,file='fglobal.data')
-     write(90,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
-     call close(90)
+  if (debug .and. icall==0 ) then
+!	write(*,*) 'PE ',iproc,'Writing key dist'
+        open(90,file='fglobal.data')
+       write(20,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
+!	call close(90)
   endif
 
 

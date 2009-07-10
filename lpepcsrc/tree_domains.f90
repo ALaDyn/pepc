@@ -59,7 +59,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   sort_debug=domain_debug
 
-  if (me==0) write(*,'(a)') 'LPEPC | DOMAINS..'
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | DOMAINS..'
   
 
   ! Find limits of local simulation region

@@ -9,6 +9,25 @@
 subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
   use treevars
   implicit none
+
+  include 'mpif.h'
+
+!  ------------------ PAPI ------------------
+#ifdef PEPC_USE_PAPI_LOCAL
+
+#include "f90papi.h"
+
+#define PAPI_CNT_NUM 1
+
+  integer                      :: papi_events(PAPI_CNT_NUM)
+  integer*8                    :: papi_values(PAPI_CNT_NUM)
+  character*(PAPI_MAX_STR_LEN) :: papi_name
+  integer                      :: papi_check, papi_cnt
+  real*8                       :: papi_time_start, papi_time_stop
+#endif
+!  ------------------ PAPI ------------------
+
+
   integer, intent(in) :: p  ! particle label 
   integer, intent(in) :: n  !  # terms on interaction list
   integer, dimension(1:n) ::  inode
@@ -23,6 +42,32 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
  real*8, dimension(n*3) :: coc
   real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
   real :: eps2
+
+
+!  ------------------ PAPI ------------------
+#ifdef PEPC_USE_PAPI_LOCAL
+  
+  papi_events = (/ PAPI_FP_OPS /)
+
+  papi_check = PAPI_VER_CURRENT
+  call PAPIF_library_init(papi_check)
+  if (papi_check .ne. PAPI_VER_CURRENT) then
+    stop "PAPI: error library init"
+  endif
+  write(*,*) "PAPI: library initialized"
+
+  papi_time_start = MPI_WTIME()
+
+  call PAPIF_start_counters(papi_events, PAPI_CNT_NUM, papi_check)
+  if (papi_check .ne. PAPI_OK) then
+    stop "PAPI: error starting hardware counter"
+  endif
+
+  write(*,*) "PAPI: start hardware counter measurement"
+
+#endif
+!  ------------------ PAPI ------------------
+
 
   eps2=eps**2
   sumfx = 0.
@@ -138,6 +183,34 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
 
 !  load = n  ! return to calling routine
 !  if (me == 0) write(*,*) n,work(p),load
+
+
+!  ------------------ PAPI ------------------
+#ifdef PEPC_USE_PAPI_LOCAL
+
+  write(*,*) "PAPI: stop hardware counter"
+  call PAPIF_stop_counters(papi_values, PAPI_CNT_NUM, papi_check)
+  if (papi_check .ne. PAPI_OK) then
+    stop "PAPI: error stopping hardware counter"
+  endif
+
+  papi_time_stop = MPI_WTIME()
+
+  do papi_cnt = 1,PAPI_CNT_NUM
+    call PAPIF_event_code_to_name(papi_events(papi_cnt), papi_name, papi_check)
+    if (papi_check .ne. PAPI_OK) then
+      stop "PAPI: error reading hardware counter name"
+    endif
+
+    write(*,*) "PAPI: counter ", papi_name, "; value ", papi_values(papi_cnt)
+  end do
+
+
+  write(*,*) "PAPI: performance [MF/s] ", (papi_values(1))/(papi_time_stop-papi_time_start)/1.0e6
+
+#endif
+!  ------------------ PAPI ------------------
+
   
 end subroutine sum_force
 

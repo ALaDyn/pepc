@@ -44,7 +44,7 @@ subroutine tree_properties
   integer :: max_nbranch
 
   if (tree_debug) write(ipefile,'(a)') 'TREE PROPERTIES'
-  if (me==0) write(*,'(a)') 'LPEPC | PROPERTIES'
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | PROPERTIES'
 
 
 
@@ -296,6 +296,9 @@ subroutine tree_properties
      local_moments(ibr+23) = jz( local_node(i) )
      local_moments(ibr+24) = size_node( local_node(i) )
   end do
+
+  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
+
 
   !  Collect multipole properties
 
