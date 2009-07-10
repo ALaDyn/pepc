@@ -1,7 +1,0 @@
-service=pepc_tut
-passwd=charon
-doconnect=1
-StepTestConfig=1
-doproxy=0
-proxyservice=nbody6_proxy
-proxypasswd=charon 
