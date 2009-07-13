@@ -1,0 +1,76 @@
+<analyzer>
+
+<!-- ******************************************************************************** -->
+<!-- Input is stdout and stderr of benchmark run -->
+
+<analyse cname="IBM-BGP-Babel">
+   <includepattern file="./patterns-jube-pepc.xml" />
+</analyse>
+
+<analyse cname="Intel-Nehalem-JuRoPA">
+   <includepattern file="./patterns-jube-pepc.xml" />
+</analyse>
+
+<analyse cname="IBM-BGP-Jugene">
+   <precommand>(cd $outdir; bash collectData.sh)</precommand>
+   
+   <input addfiles="$subdir/IHPCT.log $subdir/GPROF.log" />
+
+   <includepattern file="./patterns-jube-pepc.xml" /> 
+   <includepattern file="./patterns-ihpct-pepc.xml" /> 
+   <includepattern file="./patterns-gprof-pepc.xml" /> 
+</analyse>
+
+<analyse cname="IBM-SP6-Huygens">
+   <precommand>(cd $outdir; bash collectData.sh)</precommand>
+   
+   <input addfiles="$subdir/IHPCT.log $subdir/GPROF.log" />
+
+   <includepattern file="./patterns-jube-pepc.xml" /> 
+   <includepattern file="./patterns-ihpct-pepc.xml" /> 
+   <includepattern file="./patterns-gprof-pepc.xml" /> 
+</analyse>
+
+
+<analyse cname="Cray-XT4-Jaguar">
+   <includepattern file="./patterns-jube-pepc.xml" /> 
+</analyse>
+
+<analyse cname="Cray-XT4-Louhi">
+   <precommand>(cd $outdir; bash collectData.sh)</precommand>
+   
+   <input addfiles="$subdir/IHPCT.log $subdir/GPROF.log $subdir/CRAYPAT.log" />
+
+   <includepattern file="./patterns-jube-pepc.xml" /> 
+   <includepattern file="./patterns-ihpct-pepc.xml" /> 
+   <includepattern file="./patterns-gprof-pepc.xml" /> 
+   <includepattern file="./patterns-craypat-pepc.xml" /> 
+</analyse>
+
+<analyse cname="IBM-SP6-Jump">
+   <precommand>(cd $outdir; bash collectData.sh)</precommand>
+   
+   <input addfiles="$subdir/IHPCT.log $subdir/GPROF.log" />
+
+   <includepattern file="./patterns-jube-pepc.xml" /> 
+   <includepattern file="./patterns-papi-pepc.xml" /> 
+   <includepattern file="./patterns-ihpct-pepc.xml" /> 
+   <includepattern file="./patterns-gprof-pepc.xml" /> 
+</analyse>
+
+
+<analyse cname="GNU-Linux">
+   <precommand>(cd $outdir; bash collectData.sh)</precommand>
+   
+   <input addfiles="$subdir/IHPCT.log $subdir/GPROF.log" />
+
+   <includepattern file="./patterns-jube-pepc.xml" /> 
+   <includepattern file="./patterns-ihpct-pepc.xml" /> 
+   <includepattern file="./patterns-gprof-pepc.xml" /> 
+</analyse>
+
+
+</analyzer>
+
+
+

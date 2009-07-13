@@ -1,0 +1,274 @@
+<execution>
+
+<execute cname="IBM-BGP-Babel">
+    <input files="$pdir/IBM-BGP-Babel/ibm_llsubmit.job.in" />
+
+    <substitute infile = "ibm_llsubmit.job.in"   outfile = "ibm_llsubmit.job">
+        <sub from = "#OUTDIR#"            to = "$outdir" />
+        <sub from = "#STDOUTLOGFILE#"     to = "$stdoutlogfile" />
+        <sub from = "#STDERRLOGFILE#"     to = "$stderrlogfile" />
+        <sub from = "#BENCHNAME#"         to = "$benchname" />
+        <sub from = "#NODEUSAGE#"         to = "shared" />
+        <sub from = "#NODES#"             to = "$nodes" />
+        <sub from = "#TIME_LIMIT#"        to = "00:30:00" />
+        <sub from = "#TASKSPERNODE#"      to = "$taskspernode" />
+        <sub from = "#THREADSPERTASK#"    to = "$threadspertask" />
+        <sub from = "#NOTIFICATION#"      to = "never" />
+        <sub from = "#NOTIFY_EMAIL#"      to = "benchmarking@deisa.eu" />
+        <sub from = "#EXECUTABLE#"        to = "pepc.exe" />
+        <sub from = "#ENV#"               to = "$env" />
+        <sub from = "#PREPROCESS#"        to = "cp $executable pepc.exe; "/>
+        <sub from = "#POSTPROCESS#"       to = "" />
+        <sub from = "#NODES#"             to = "$nodes" />
+        <sub from = "#CONNECTION#"        to = "`int('$nodes')>256 ? 'TORUS' : 'MESH'`" />
+        <sub from = "#STARTER#"           to = "mpirun" />
+        <sub from = "#ARGS_STARTER#"      to = "`$taskspernode == 1 ? '-mode SMP' : ($taskspernode == 2 ? '-mode DUAL' : '-mode VN')`
+                                                -np $ncpus" />
+        <sub from = "#MEASUREMENT#"       to = "" />
+        <sub from = "#ARGS_EXECUTABLE#"   to = "run.h" />
+    </substitute>
+
+    <environment>
+        <env var = "MP_LABELIO"         value = "yes" />
+        <env var = "MP_INFOLEVEL"       value = "2" />
+    </environment>
+
+    <command>llsubmit ibm_llsubmit.job</command>
+
+</execute>
+
+<!-- ******************************************************************************** -->
+
+<execute cname="IBM-BGP-Jugene">
+    <input files="$pdir/IBM-BGP-Babel/ibm_llsubmit.job.in" />
+
+    <substitute infile = "ibm_llsubmit.job.in"   outfile = "ibm_llsubmit.job">
+        <sub from = "#OUTDIR#"            to = "$outdir" />
+        <sub from = "#STDOUTLOGFILE#"     to = "$stdoutlogfile" />
+        <sub from = "#STDERRLOGFILE#"     to = "$stderrlogfile" />
+        <sub from = "#BENCHNAME#"         to = "$benchname" />
+        <sub from = "#NODES#"             to = "$nodes" />
+        <sub from = "#TIME_LIMIT#"        to = "00:30:00" />
+        <sub from = "#TASKSPERNODE#"      to = "$taskspernode" />
+        <sub from = "#THREADSPERTASK#"    to = "$threadspertask" />
+        <sub from = "#NOTIFICATION#"      to = "never" />
+        <sub from = "#NOTIFY_EMAIL#"      to = "l.arnold@fz-juelich.de" />
+        <sub from = "#EXECUTABLE#"        to = "pepc.exe" />
+        <sub from = "#ENV#"               to = "$env" />
+        <sub from = "#PREPROCESS#"        to = "cp $executable pepc.exe; "/>
+        <sub from = "#POSTPROCESS#"       to = "rm -f particle_*.dat" />
+        <sub from = "#NODES#"             to = "$nodes" />
+        <sub from = "#CONNECTION#"        to = "`int('$nodes')>256 ? 'TORUS' : 'MESH'`" />
+        <sub from = "#STARTER#"           to = "mpirun" />
+        <sub from = "#ARGS_STARTER#"      to = "`$taskspernode == 1 ? '-mode SMP' : ($taskspernode == 2 ? '-mode DUAL' : '-mode VN')`
+                                                -np $ncpus" />
+        <sub from = "#MEASUREMENT#"       to = "" />
+        <sub from = "#ARGS_EXECUTABLE#"   to = "run.h" />
+    </substitute>
+
+    <environment>
+        <env var = "MP_LABELIO"         value = "yes" />
+        <env var = "MP_INFOLEVEL"       value = "2" />
+    </environment>
+
+    <command>llsubmit ibm_llsubmit.job</command>
+
+</execute>
+
+<!-- ******************************************************************************** -->
+
+<execute cname="Intel-Nehalem-JuRoPA">
+    <input files="$pdir/Intel-Nehalem-JuRoPA/intel_PBSsubmit.job.in" />
+
+    <substitute infile="intel_PBSsubmit.job.in" outfile="intel_PBSsubmit.job">
+        <sub from="#BENCHNAME#"         to="$benchname" />
+        <sub from="#OUTDIR#"            to="$outdir" />
+        <sub from="#STDOUTLOGFILE#"     to="$stdoutlogfile" />
+        <sub from="#STDERRLOGFILE#"     to="$stderrlogfile" />
+        <sub from="#TIME_LIMIT#"        to="$timelimit" />
+        <sub from="#TASKS#"             to="$tasks" />
+        <sub from="#TASKSPERNODE#"      to="$taskspernode" />
+        <sub from="#THREADSPERTASK#"    to="$threadspertask" />
+        <sub from="#NODES#"             to="$nodes" />
+        <sub from="#NCPUS#"             to="$ncpus" />
+        <sub from="#NOTIFICATION#"      to="never" />
+        <sub from="#NOTIFY_EMAIL#"      to="user@fz-juelich.de" />
+        <sub from="#EXECUTABLE#"        to="$executable" />
+        <sub from="#ENV#"               to=" " />
+        <sub from="#PREPROCESS#"        to="cp $executable pepc.exe;" />
+        <sub from="#POSTPROCESS#"       to="" />
+        <sub from="#STARTER#"           to="mpiexec" />
+        <sub from="#ARGS_STARTER#"      to="-np $ncpus " />
+        <sub from="#MEASUREMENT#"       to="time" />
+        <sub from="#ARGS_EXECUTABLE#"   to="run.h" />
+    </substitute>
+  
+    <environment>
+        <env var="OMP_NUM_THREADS"  value="$threadspertask" />
+    </environment>
+  
+    <command>msub -q sun intel_PBSsubmit.job</command>
+</execute>
+
+<!-- ******************************************************************************** -->
+
+<execute cname="Cray-XT4-Louhi">
+    <input files="$pdir/Cray-XT4-Louhi/cray_qsub.job.in" />
+
+    <substitute infile="cray_qsub.job.in" outfile="cray_qsub.job">
+        <sub from="#BENCHNAME#"         to="$benchname" />
+
+        <sub from="#OUTDIR#"            to="$outdir" />
+        <sub from="#STDOUTLOGFILE#"     to="$stdoutlogfile" />
+        <sub from="#STDERRLOGFILE#"     to="$stderrlogfile" />
+
+        <sub from="#TIME_LIMIT#"        to="00:10:00" />
+
+        <sub from="#TASKS#"             to="$tasks" />
+        <sub from="#TASKSPERNODE#"      to="$taskspernode" />
+        <sub from="#THREADSPERTASK#"    to="$threadspertask" />
+
+        <sub from="#NOTIFICATION#"      to="n" />
+        <sub from="#NOTIFY_EMAIL#"      to="l.arnold@fz-juelich.de" />
+
+        <sub from="#MEMORYPERTASK#"     to="750M" />
+
+        <sub from="#EXECUTABLE#"        to="$executable" />
+        <sub from="#ENV#"               to="$env" />
+        <sub from="#PREPROCESS#"        to="" />
+        <sub from="#POSTPROCESS#"       to="" />
+        <sub from="#STARTER#"           to="aprun -n $tasks -m 750M -N ${taskspernode}" />
+        <sub from="#ARGS_STARTER#"      to="" />
+        <sub from="#MEASUREMENT#"       to="time" />
+        <sub from="#ARGS_EXECUTABLE#"   to="run.h" />
+    </substitute>
+  
+    <environment>
+        <env var="PAT_RT_HWPC"   value="$CRAYPAT_HWC" />    
+    </environment>
+  
+    <command>qsub cray_qsub.job -q prace-shanghai</command>
+</execute>
+
+<!-- ******************************************************************************** -->
+
+<execute cname="IBM-SP6-Huygens">
+    <input files="$pdir/IBM-SP6-Huygens/ibm_llsubmit.job.in" />
+
+    <substitute infile="ibm_llsubmit.job.in" outfile="ibm_llsubmit.job">
+        <sub from="#OUTDIR#"            to="$outdir" />
+        <sub from="#STDOUTLOGFILE#"     to="$stdoutlogfile" />
+        <sub from="#STDERRLOGFILE#"     to="$stderrlogfile" />
+        <sub from="#CLASS#"             to="$class" />
+        <sub from="#BENCHNAME#"         to="$benchname" />
+        <sub from="#NODEUSAGE#"         to="not_shared" />
+        <sub from="#TIME_LIMIT#"        to="00:30:00" />
+        <sub from="#NODES#"             to="$nodes" />
+        <sub from="#TASKS#"             to="$tasks" />
+        <sub from="#TAFFINITY#"         to="$taffinity" />
+        <sub from="#TASKSPERNODE#"      to="$taskspernode" />
+        <sub from="#NOTIFICATION#"      to="never" />
+        <sub from="#NOTIFY_EMAIL#"      to="l.arnold@fz-juelich.de" />
+        <sub from="#THREADSPERTASK#"    to="$threadspertask" />
+        <sub from="#DATA_LIMIT#"        to="`int('$taskspernode')>32 ? '1.5GB' : '3.25GB'`" />
+        <sub from="#STACK_LIMIT#"       to="0.25GB" />
+        <sub from="#EXECUTABLE#"        to="./pepc.exe" />
+        <sub from="#ENV#"               to="$env" />
+        <sub from="#PREPROCESS#"        to="cp $executable pepc.exe;
+	                                    `index('$SCALASCA','on')==0 ? 'module load papi scalasca;' : ' '`" />
+        <sub from="#POSTPROCESS#"       to="" />
+        <sub from="#STARTER#"           to="`index('$SCALASCA','on')==0 ? 'scalasca -analyse' : ' '` poe" />
+        <sub from="#ARGS_STARTER#"      to="" />
+        <sub from="#MEASUREMENT#"       to="" />
+        <sub from="#ARGS_EXECUTABLE#"   to="run.h" />
+    </substitute>
+  
+    <environment>
+        <env var="MP_LABELIO" value="yes" />
+        <env var="MP_INFOLEVEL" value="2" />
+        <env var="MP_SHARED_MEMORY" value="yes" />
+        <env var="MP_TASK_AFFINITY" value="MCM" />
+        <env var="MEMORY_AFFINITY"  value="MCM" />
+    </environment>
+  
+    <command>llsubmit ibm_llsubmit.job</command>
+</execute>
+
+<!-- ******************************************************************************** -->
+
+<execute cname="IBM-SP6-Jump">
+    <input files="$pdir/IBM-SP6-Jump/ibm_llsubmit.job.in" />
+
+    <substitute infile = "ibm_llsubmit.job.in"   outfile = "ibm_llsubmit.job">
+        <sub from = "#OUTDIR#"            to = "$outdir" />
+        <sub from = "#STDOUTLOGFILE#"     to = "$stdoutlogfile" />
+        <sub from = "#STDERRLOGFILE#"     to = "$stderrlogfile" />
+        <sub from = "#BENCHNAME#"         to = "$benchname" />
+	<sub from = "#NODEUSAGE#"         to = "shared" />
+	<sub from = "#NODES#"             to = "$nodes" />
+        <sub from = "#TIME_LIMIT#"        to = "00:30:00" />
+        <sub from = "#DATA_LIMIT#"        to = "3.5GB" />
+        <sub from = "#STACK_LIMIT#"       to = "0.25GB" />
+	<sub from = "#MEMORYPERTASK#"     to = "3.75GB" />
+	<sub from = "#TASKSPERNODE#"      to = "$taskspernode" />
+	<sub from = "#THREADSPERTASK#"    to = "$threadspertask" />
+        <sub from = "#NOTIFICATION#"      to = "never" />
+        <sub from = "#NOTIFY_EMAIL#"      to = "l.arnold@fz-juelich.de" />
+        <sub from = "#EXECUTABLE#"        to = "pepc.exe" />
+        <sub from = "#ENV#"               to = "$env" />
+        <sub from = "#PREPROCESS#"        to = "cp $executable pepc.exe;
+						`index('$SCALASCA','on')==0 ? '. /usr/local/beta/TclModules/init/init.sh; 
+	                                                                       module load UNITE scalasca/1.2b1;' : ' '`" />
+        <sub from = "#POSTPROCESS#"       to = "" />
+        <sub from = "#STARTER#"           to = "`index('$SCALASCA','on')==0 ? 'scalasca -analyse' : ' '` poe" />
+        <sub from = "#ARGS_STARTER#"      to = "" />
+        <sub from = "#MEASUREMENT#"       to = "" />
+        <sub from = "#ARGS_EXECUTABLE#"   to = "run.h" />
+    </substitute>
+  
+    <environment>
+        <env var = "MP_LABELIO"         value = "yes" />
+        <env var = "MP_INFOLEVEL"       value = "2" />
+        <env var = "MP_TASK_AFFINITY"   value = "MCM" />
+        <env var = "MEMORY_AFFINITY"    value = "MCM" />
+        <env var = "MPITRACE_ON"        value = "1" />
+        <env var = "MP_PRINTENV"        value = "1" />
+    </environment>
+  
+    <command>llsubmit ibm_llsubmit.job</command>
+
+</execute>
+
+ <!-- ******************************************************************************** -->
+ 
+<execute cname="GNU-Linux">
+
+    <input files="$pdir/Linux-system/linux-mpich2-execute.sh.in" />
+
+    <substitute infile="linux-mpich2-execute.sh.in" outfile="linux-mpich2-execute.sh">
+        <sub from="#OUTDIR#"          to="$outdir" />
+        <sub from="#STDOUTLOGFILE#"   to="$stdoutlogfile" />
+        <sub from="#STDERRLOGFILE#"   to="$stderrlogfile" />
+        <sub from="#ENV#"             to="$env" />
+        <sub from="#PREPROCESS#"      to="" />
+        <sub from="#POSTPROCESS#"     to="" />
+        <sub from="#STARTER#"         to="~/local/soft/bin/mpirun" />
+        <sub from="#ARGS_STARTER#"    to="-np $tasks" />
+        <sub from="#MEASUREMENT#"     to="" />
+        <sub from="#EXECUTABLE#"      to="$executable" />
+        <sub from="#ARGS_EXECUTABLE#" to="run.h" />
+    </substitute>
+
+    <environment>
+    </environment>
+
+    <command>sh linux-mpich2-execute.sh</command>
+</execute>
+
+
+<!-- ******************************************************************************** -->
+
+</execution>
+
+
+

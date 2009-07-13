@@ -1,0 +1,67 @@
+<!--
+    PRACE BENCHMARK SUITE
+
+    JuBE benchmark configuration schemata for: PEPC
+
+    Contact: l.arnold@fz-juelich.de
+-->
+<!--
+
+    wscheme (walk_scheme) -> 0 (isend/irecv) or 1(coll)
+    nt                    -> number of timesteps
+    npart                 -> number of particles (ions)
+    geom                  -> 1 (homogeneous); 2/3 (one/two spheres)
+-->
+
+<bench name = "PEPC"   platform = "Cray-XT4-Louhi">
+
+<!-- ********************************************************** -->
+
+<benchmark name="scaling" active="1">
+    <!-- version="reuse|new" -->
+    <compile     cname             = "$platform"   
+                 version           = "new"
+ 
+                 CMP_OPT           = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
+		 CMP_GPROF         = "$GPROF" 
+		 CMP_SCALASCA      = "$SCALASCA"
+		 CMP_CRAYPAT_GROUP = "$CRAYPAT_GROUP"
+		 CMP_CRAYPAT       = "$CRAYPAT" />
+
+    <tasks       threadspertask = "1"   taskspernode = "8"   nodes = "32,64,128" />
+
+    <params      COMMENT       = "scaling louhi XT5"
+                 PERL_CMD      = "perl"
+                 optflags      = "-O3 -fast"
+
+                 GPROF         = "off"
+
+		 SCALASCA      = "off"
+
+		 CRAYPAT       = "off"
+		 CRAYPAT_GROUP = "heap"
+		 CRAYPAT_HWC   = "1"
+
+		 geom          = "1"
+		 npart         = "25000000" 
+                 nt            = "5" 
+	         wscheme       = "1"
+		 fetchmult     = "3"
+		 npmult        = "-40" /> 
+
+    <prepare     cname = "PEPC" />
+
+    <execution   iteration = "1"     cname = "$platform" />
+
+    <verify      cname="PEPC" />
+    <analyse     cname="$platform" /> 
+
+</benchmark>
+
+<!-- ********************************************************** -->
+
+</bench>
+
+
+
+

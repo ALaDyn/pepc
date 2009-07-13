@@ -1,0 +1,20 @@
+<patterns>
+
+    <parm name = "GPROF_01_NAME"   unit = ""    mode = "line,last"   type="string" >JuBE: gprof: proc 1:\s*$patwrd\s*$patnfp</parm>
+    <parm name = "GPROF_01_PART"   unit = "%"   mode = "line,last"   type="float"  >JuBE: gprof: proc 1:\s*$patnwrd\s*$patfp</parm>
+
+    <parm name = "GPROF_02_NAME"   unit = ""    mode = "line,last"   type="string" >JuBE: gprof: proc 2:\s*$patwrd\s*$patnfp</parm>
+    <parm name = "GPROF_02_PART"   unit = "%"   mode = "line,last"   type="float"  >JuBE: gprof: proc 2:\s*$patnwrd\s*$patfp</parm>
+
+    <parm name = "GPROF_03_NAME"   unit = ""    mode = "line,last"   type="string" >JuBE: gprof: proc 3:\s*$patwrd\s*$patnfp</parm>
+    <parm name = "GPROF_03_PART"   unit = "%"   mode = "line,last"   type="float"  >JuBE: gprof: proc 3:\s*$patnwrd\s*$patfp</parm>
+
+    <parm name = "GPROF_04_NAME"   unit = ""    mode = "line,last"   type="string" >JuBE: gprof: proc 4:\s*$patwrd\s*$patnfp</parm>
+    <parm name = "GPROF_04_PART"   unit = "%"   mode = "line,last"   type="float"  >JuBE: gprof: proc 4:\s*$patnwrd\s*$patfp</parm>
+
+    <parm name = "GPROF_05_NAME"   unit = ""    mode = "line,last"   type="string" >JuBE: gprof: proc 5:\s*$patwrd\s*$patnfp</parm>
+    <parm name = "GPROF_05_PART"   unit = "%"   mode = "line,last"   type="float"  >JuBE: gprof: proc 5:\s*$patnwrd\s*$patfp</parm>
+
+    <parm name = "GPROF_LIST"      unit = ""    mode = "line,index(2,3)" type="float" >JuBE: gprof: proc $patint:\s+$patwrd\s+$patfp</parm>
+
+</patterns>

@@ -1,0 +1,14 @@
+&pepcdata
+ db_level = 0
+
+ np_mult    = #NPMULT# 
+ fetch_mult = #FETCHMULT#
+
+ ne = 0
+ ni = #NPART#
+
+ ispecial = #GEOM# 
+
+ scheme = #WSCHEME#
+ nt     = #NT# 
+ idump  = 1000 /

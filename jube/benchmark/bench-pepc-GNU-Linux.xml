@@ -1,0 +1,62 @@
+<!--
+    JuBE benchmark configuration schemata for: PEPC
+
+    Contact: l.arnold@fz-juelich.de
+-->
+<!--
+   Choose one of the platforms defined in the toplevel platform.xml
+
+   GNU-Linux
+
+    wscheme (walk_scheme) -> 0 (isend/irecv) or 1(coll)
+    nt                    -> number of timesteps
+    npart                 -> number of particles (ions)
+    geom                  -> 3 (homogeneous); 6/7 (one/two spheres)
+
+-->
+<bench name="PEPC" platform="GNU-Linux" >
+
+<!-- ********************************************************** -->
+
+<benchmark name="scaling" active="1">
+    <!-- version="reuse|new" -->
+    <compile     cname           = "$platform"   
+                 version         = "new"
+ 
+                 CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
+		 CMP_GPROF       = "$GPROF" 
+		 CMP_SCALASCA    = "$SCALASCA"/>
+
+    <tasks       threadspertask = "1"   taskspernode = "1,2,4"   nodes = "1" />
+
+    <params      COMMENT       = "scaling"
+                 PERL_CMD      = "perl"
+                 optflags      = "-O2"
+
+                 GPROF         = "off"
+
+		 SCALASCA      = "off"
+
+                 geom          = "6"
+		 npart         = "5000" 
+                 nt            = "5" 
+	         wscheme       = "0"
+		 fetchmult     = "3"
+		 npmult        = "3" /> 
+
+    <prepare     cname = "PEPC" />
+
+    <execution   iteration = "1"   cname   = "$platform"/>
+
+    <verify      cname="PEPC" />
+    <analyse     cname="$platform" /> 
+
+</benchmark>
+
+<!-- ********************************************************** -->
+
+</bench>
+
+
+
+

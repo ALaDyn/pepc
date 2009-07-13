@@ -1,0 +1,150 @@
+<!--
+    PRACE BENCHMARK SUITE
+
+    JuBE benchmark configuration schemata for: PEPC
+
+    Contact: l.arnold@fz-juelich.de
+-->
+<!--
+    wscheme (walk_scheme) -> 0 (isend/irecv) or 1(coll)
+    nt                    -> number of timesteps
+    npart                 -> number of particles (ions)
+    geom                  -> 1 (homogeneous); 2/3 (one/two spheres)
+    writemode             -> text, binary, sionlib
+-->
+
+<bench name = "PEPC"   platform = "IBM-BGP-Jugene" >
+
+<!-- ********************************************************** -->
+
+<benchmark name="scaling" active="1">
+    <!-- version="reuse|new" -->
+    <compile     cname           = "$platform"
+                 version         = "new"
+
+                 CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
+                 CMP_GPROF       = "$GPROF"
+                 CMP_IHPCT_HWC   = "$IHPCT_HWC"
+                 CMP_IHPCT_MPITR = "$IHPCT_MPITR"
+                 CMP_SCALASCA    = "$SCALASCA"
+		 CMP_WRITEMODE   = "$writemode" />
+
+    <tasks       threadspertask = "1"   taskspernode = "4"   nodes = "128,256" />
+
+    <params      COMMENT       = "scaling test"
+                 PERL_CMD      = "perl"
+                 optflags      = "-O3"
+
+                 GPROF         = "off"
+
+                 IHPCT_HWC     = "off"
+                 IHPCT_HWC_GRP = "0"
+                 IHPCT_MPITR   = "off"
+
+		 SCALASCA      = "off"
+
+		 writemode     = "binary"
+
+		 npart         = "2000000" 
+		 geom          = "1"
+                 nt            = "20" 
+	         wscheme       = "0"
+		 fetchmult     = "3"
+		 npmult        = "-40" /> 
+
+    <prepare     cname="PEPC" />
+
+    <execution   iteration="1" cname="$platform" />
+
+    <verify      cname="PEPC" />
+    <analyse     cname="$platform" /> 
+
+</benchmark>
+
+<!-- ********************************************************** -->
+
+<benchmark name="test" active="0">
+    <!-- version="reuse|new" -->
+    <compile     cname           = "$platform"
+                 version         = "new"
+
+                 CMP_OPT         = "$optflags"
+                 CMP_GPROF       = "$GPROF"
+                 CMP_IHPCT_HWC   = "$IHPCT_HWC"
+                 CMP_IHPCT_MPITR = "$IHPCT_MPITR"
+                 CMP_SCALASCA    = "$SCALASCA"/>
+
+    <tasks       threadspertask = "1"   taskspernode = "4"   nodes = "32" />
+
+    <params      COMMENT       = "testing on jugene"
+                 PERL_CMD      = "perl"
+                 optflags      = "-O3"
+
+                 GPROF         = "off"
+
+                 IHPCT_HWC     = "off"
+                 IHPCT_HWC_GRP = "0"
+                 IHPCT_MPITR   = "off"
+
+		 SCALASCA      = "off"
+
+		 npart         = "100000" 
+                 nt            = "2" 
+	         wscheme       = "0"
+		 fetchmult     = "3"
+		 npmult        = "`int(min(-530/$ncpus*10.0-1.0,-10))`" /> 
+
+    <prepare     cname = "PEPC_sphere" />
+
+    <execution   iteration = "1"   cname   = "$platform"   bgpconn = "MESH" />
+
+    <verify      cname="PEPC" />
+    <analyse     cname="$platform" /> 
+
+</benchmark>
+
+<!-- ********************************************************** -->
+
+<!-- ********************************************************** -->
+<benchmark name="weeklyBenchmark-jugene" active="0">
+    <!-- version="reuse|new" -->
+    <compile     cname           = "$platform"
+                 version         = "new"
+
+                 CMP_OPT         = "$optflags"
+                 CMP_GPROF       = "$GPROF"
+                 CMP_IHPCT_HWC   = "$IHPCT_HWC"
+                 CMP_IHPCT_MPITR = "$IHPCT_MPITR"
+                 CMP_SCALASCA    = "$SCALASCA"/>
+
+    <tasks       threadspertask = "1"   taskspernode = "4"   nodes = "32,64,128" />
+
+    <params      COMMENT       = "weekly benchmark on jugene"
+                 PERL_CMD      = "perl"
+                 optflags      = "-O3"
+
+                 GPROF         = "off"
+
+                 IHPCT_HWC     = "off"
+                 IHPCT_HWC_GRP = "0"
+                 IHPCT_MPITR   = "off"
+
+		 SCALASCA      = "off"
+
+		 npart         = "5000000" 
+                 nt            = "5" 
+	         wscheme       = "0"
+		 fetchmult     = "3"
+		 npmult        = "3" /> 
+
+    <prepare     cname = "PEPC_sphere" />
+
+    <execution   iteration = "1"   cname   = "$platform"   bgpconn = "MESH" />
+
+    <verify      cname="PEPC" />
+    <analyse     cname="$platform" /> 
+
+</benchmark>
+
+
+</bench>

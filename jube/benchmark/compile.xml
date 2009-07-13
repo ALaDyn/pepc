@@ -1,0 +1,292 @@
+<compilation>
+
+<!-- predefined vars:
+   $outdir -> output directory for temporary compile files
+   $id     -> identifier of this benchmark run
+-->
+
+<!-- ********************************************************** -->
+
+<compile cname="IBM-BGP-Babel">
+    <!-- Specification of source files to copy into temporary build
+         directory -->
+    <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
+				    lpepcsrc pepc-e" />
+
+    <!-- Create makefile.defs and substitute parameters -->
+    <substitute infile="makefile.defs.jube" outfile="makefile.defs">
+        <sub from="#ARCH#"          to="$platform" />
+
+        <sub from="#MAKE#"          to="$make" />
+        <sub from="#RANLIB#"        to="$ranlib" />
+        <sub from="#AR#"            to="$ar" />
+        <sub from="#ARFLAGS#"       to="$arflags" />
+        <sub from="#RM#"            to="$rm" />
+        <sub from="#CPP#"           to="$cpp" />
+        <sub from="#CPPFLAGS#"      to="$cppflags -C "/>
+        <sub from="#FCPRE#"         to=" " />
+        <sub from="#MPI_F90#"       to="$mpi_f90" />
+        <sub from="#F90FLAGS#"      to="$f90flags $optflags "/>
+        <sub from="#LDPRE#"         to=" " />
+        <sub from="#LD#"            to="$mpi_f90" />
+        <sub from="#LDFLAGS#"       to="$ldflags $optflags"/>
+        <sub from="#LDLIBS#"        to=" " />
+        <sub from="#EXECNAME#"      to="$execname" />
+    </substitute>
+
+    <!-- issue build command -->
+    <command>make</command>
+
+</compile>
+
+<!-- ********************************************************** -->
+
+<compile cname="Intel-Nehalem-JuRoPA">
+    <!-- Specification of source files to copy into temporary build
+         directory -->
+    <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
+				    lpepcsrc pepc-e" />
+
+    <!-- Create makefile.defs and substitute parameters -->
+    <substitute infile="makefile.defs.jube" outfile="makefile.defs">
+        <sub from="#ARCH#"          to="$platform" />
+	<sub from="#MAKE#"          to="$make" />
+	<sub from="#RANLIB#"        to="$ranlib" />
+	<sub from="#AR#"            to="$ar" />
+        <sub from="#ARFLAGS#"       to="$arflags" />
+	<sub from="#RM#"            to="$rm" />
+        <sub from="#CPP#"           to="$cpp" />
+        <sub from="#CPPFLAGS#"      to="$cppflags -C "/>
+        <sub from="#FCPRE#"         to=" " />
+	<sub from="#MPI_F90#"       to="$mpi_f90" />
+        <sub from="#F90FLAGS#"      to="$f90flags $optflags" />    
+        <sub from="#LDPRE#"         to=" " />
+        <sub from="#LD#"            to="$mpi_f90" />
+        <sub from="#LDFLAGS#"       to="$ldflags $optflags" />
+        <sub from="#LDLIBS#"        to="" />
+	<sub from="#EXECNAME#"      to="$execname" />
+    </substitute>
+
+    <!-- issue build command -->
+    <command>(make)</command>
+    
+</compile>
+
+<!-- ********************************************************** -->
+
+<compile cname="Cray-XT4-Louhi">
+    <!-- Specification of source files to copy into temporary build
+         directory -->
+    <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
+				    lpepcsrc pepc-e" />
+
+    <!-- Create makefile.defs and substitute parameters -->
+    <substitute infile="makefile.defs.jube" outfile="makefile.defs">
+        <sub from="#ARCH#"          to="$platform" />
+
+	<sub from="#MAKE#"          to="$make" />
+	<sub from="#RANLIB#"        to="$ranlib" />
+	<sub from="#AR#"            to="$ar" />
+        <sub from="#ARFLAGS#"       to="$arflags" />
+	<sub from="#RM#"            to="$rm" />
+
+	<sub from="#CPP#"           to="$cpp" />
+	<sub from="#CPPFLAGS#"      to="$cppflags -C" />
+					
+	<sub from="#FCPRE#"         to="`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
+ 	<sub from="#MPI_F90#"       to="$mpi_f90" />
+        <sub from="#F90FLAGS#"      to="$f90flags $optflags
+                                         `index('$GPROF','on')==0 ? '-g -pg' : ' '`" />
+
+	<sub from = "#LDPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
+        <sub from = "#LD#"         to = "$mpi_f90" />
+        <sub from = "#LDFLAGS#"    to = "$ldflags $optflags
+                                         `index('$GPROF','on')==0 ? '-g -pg' : ' '`" />
+        <sub from = "#LDLIBS#"     to = "" />
+					
+	<sub from = "#EXECNAME#"   to = "$execname" />
+    </substitute>
+
+    <!-- issue build command -->
+    <command>( source /opt/modules/default/init/sh; `index('$CRAYPAT','on')==0 ? 'module load xt-craypat;' : ' '` make `index('$CRAYPAT','on')==0 ? '; pat_build -v -u -g $CRAYPAT_GROUP -o ${execname}+pat $execname; cp ${execname}+pat $execname' : ' '`)</command>
+    
+</compile>
+
+<!-- ********************************************************** -->
+<compile cname="IBM-SP6-Huygens">
+    <!-- Specification of source files to copy into temporary build
+         directory -->
+    <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
+				    lpepcsrc pepc-e" />
+
+    <!-- Create makefile.defs and substitute parameters -->
+    <substitute infile="makefile.defs.jube" outfile="makefile.defs">
+        <sub from="#ARCH#"          to="$platform" />
+
+	<sub from="#MAKE#"          to="$make" />
+	<sub from="#RANLIB#"        to="$ranlib" />
+	<sub from="#AR#"            to="$ar" />
+        <sub from="#ARFLAGS#"       to="$arflags" />
+	<sub from="#RM#"            to="$rm" />
+
+	<sub from="#CPP#"           to="$cpp" />
+	<sub from="#CPPFLAGS#"      to="$cppflags -C
+					`index('$PAPI','on')==0 ? '-I/usr/local/beta/papi-3.6.2/include -DPEPC_USE_PAPI_$PAPI_SCOPE' : ' '`" />
+
+	<sub from = "#FCPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
+ 	<sub from = "#MPI_F90#"    to = "$mpi_f90" />
+        <sub from = "#F90FLAGS#"   to = "$f90flags $optflags
+                                         `index('$GPROF','on')==0        ? '-g -pg'                   : ' '`
+                                         `index('$IHPCT_MPITR','on')==0  ? '-g'                       : ' '`" />
+
+	<sub from = "#LDPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
+        <sub from = "#LD#"         to = "$mpi_f90" />
+
+        <sub from = "#LDFLAGS#"    to = "$ldflags $optflags
+                                         `index('$GPROF','on')==0 ? '-g -pg' : ' '`" />
+        <sub from = "#LDLIBS#"     to = "`index('$IHPCT_MPITR','on')==0 ? '-L $(IHPCT_BASE)/lib64 -llicense -lmpitrace' : ' '`
+                                         `index('$IHPCT_HWC','on')==0   ? '-L $(IHPCT_BASE)/lib64 -lhpm -llicense -lm'  : ' '`" />
+					
+	<sub from = "#EXECNAME#"   to = "$execname" />
+    </substitute>
+
+    <!-- issue build command -->
+    <command>(`index('$SCALASCA','on')==0 ? 'module load papi scalasca;' : ' '` `(index('$IHPCT_HWC','on')==0 || index('$IHPCT_MPITR','on')==0) ? 'module load hpct;' : ' '` make)</command> 
+
+    
+</compile>
+
+<!-- ********************************************************** -->
+
+<compile cname="IBM-BGP-Jugene">
+    <!-- Specification of source files to copy into temporary build
+         directory -->
+    <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
+				    lpepcsrc pepc-e" />
+
+    <!-- Create makefile.defs and substitute parameters -->
+    <substitute infile="makefile.defs.jube" outfile="makefile.defs">
+        <sub from="#ARCH#"          to="$platform" />
+
+	<sub from="#MAKE#"          to="$make" />
+	<sub from="#RANLIB#"        to="$ranlib" />
+	<sub from="#AR#"            to="$ar" />
+        <sub from="#ARFLAGS#"       to="$arflags" />
+	<sub from="#RM#"            to="$rm" />
+
+	<sub from="#CPP#"           to="$cpp" />
+	<sub from="#CPPFLAGS#"      to="$cppflags -C
+					`index('$writemode','binary')==0  ? '-DWRITE_PARTICLE_BINARY'  : ' '`
+					`index('$writemode','sionlib')==0 ? '-DWRITE_PARTICLE_SIONLIB' : ' '`
+					`index('$PAPI','on')==0 ? '-I/usr/local/beta/papi-3.6.2/include -DPEPC_USE_PAPI_$PAPI_SCOPE' : ' '`" />
+
+	<sub from = "#FCPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
+ 	<sub from = "#MPI_F90#"    to = "$mpi_f90" />
+        <sub from = "#F90FLAGS#"   to = "$f90flags $optflags
+                                         `index('$GPROF','on')==0        ? '-g -pg'                   : ' '`
+                                         `index('$IHPCT_MPITR','on')==0  ? '-g'                       : ' '`" />
+
+	<sub from = "#LDPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
+        <sub from = "#LD#"         to = "$mpi_f90" />
+
+        <sub from = "#LDFLAGS#"    to = "$ldflags $optflags
+                                         `index('$GPROF','on')==0 ? '-g -pg' : ' '`" />
+        <sub from = "#LDLIBS#"     to = "`index('$IHPCT_MPITR','on')==0 ? '-L $(IHPCT_BASE)/lib64 -llicense -lmpitrace' : ' '`
+                                         `index('$IHPCT_HWC','on')==0   ? '-L $(IHPCT_BASE)/lib64 -lhpm -llicense -lm'  : ' '`
+ 					 `index('$writemode','sionlib')==0 ? '-L/bgsys/local/sionlib/v1.1p4/lib/ -lsion' : ' '`" />
+					
+	<sub from = "#EXECNAME#"   to = "$execname" />
+    </substitute>
+
+    <!-- issue build command -->
+    <command>(`index('$SCALASCA','on')==0 ? 'module load papi scalasca;' : ' '` `(index('$IHPCT_HWC','on')==0 || index('$IHPCT_MPITR','on')==0) ? 'module load hpct;' : ' '` make)</command> 
+
+    
+</compile>
+
+<!-- ********************************************************** -->
+
+<compile cname="IBM-SP6-Jump">
+    <!-- Specification of source files to copy into temporary build
+         directory -->
+    <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
+				    lpepcsrc pepc-e" />
+
+    <!-- Create makefile.defs and substitute parameters -->
+    <substitute infile="makefile.defs.jube" outfile="makefile.defs">
+        <sub from="#ARCH#"          to="$platform" />
+
+	<sub from="#MAKE#"          to="$make" />
+	<sub from="#RANLIB#"        to="$ranlib" />
+	<sub from="#AR#"            to="$ar" />
+        <sub from="#ARFLAGS#"       to="$arflags" />
+	<sub from="#RM#"            to="$rm" />
+
+	<sub from="#CPP#"           to="$cpp" />
+	<sub from="#CPPFLAGS#"      to="$cppflags -C
+					`index('$writemode','binary')==0  ? '-DWRITE_PARTICLE_BINARY'  : ' '`
+					`index('$writemode','sionlib')==0 ? '-DWRITE_PARTICLE_SIONLIB' : ' '`
+					`index('$PAPI','on')==0 ? '-I/usr/local/beta/papi-3.6.2/include -DPEPC_USE_PAPI_$PAPI_SCOPE' : ' '`" />
+
+	<sub from = "#FCPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
+	<sub from = "#MPI_F90#"    to = "$mpi_f90" />
+        <sub from = "#F90FLAGS#"   to = "$f90flags $optflags -qipa -qipa=inline=key2addr
+                                         `index('$GPROF','on')==0          ? '-g -pg'                   : ' '`
+                                         `index('$IHPCT_MPITR','on')==0    ? '-g'                       : ' '`" />
+
+	<sub from = "#LDPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
+        <sub from = "#LD#"         to = "$mpi_f90" />
+
+        <sub from = "#LDFLAGS#"    to = "$ldflags $optflags
+                                         `index('$GPROF','on')==0 ? '-g -pg' : ' '`" />
+        <sub from = "#LDLIBS#"     to = "`index('$IHPCT_MPITR','on')==0    ? '-lmpitrace -llicense' : ' '`
+                                         `index('$IHPCT_HWC','on')==0      ? '-lhpm -llicense -lm -lpmapi'  : ' '`
+					 `index('$PAPI','on')==0           ? '-lpapi64 -lpmapi' : ' '`
+					 `index('$PARAVER','on')==0        ? '-lompitrace'  : ' '`
+					 `index('$writemode','sionlib')==0 ? '-L/usr/local/beta/sionlib/sion/lib -lsion' : ' '`" />
+					 
+	<sub from = "#EXECNAME#"   to = "$execname" />
+    </substitute>
+
+    <!-- issue build command -->
+    <command>(`index('$SCALASCA','on')==0 ? '. /usr/local/beta/TclModules/init/init.sh; module load UNITE scalasca/1.2b1;' : ' '` `(index('$IHPCT_HWC','on')==0 || index('$IHPCT_MPITR','on')==0) ? '. /usr/local/beta/TclModules/init/init.sh; module load ihpct;' : ' '` `index('$PARAVER','on')==0 ? '. /usr/local/beta/TclModules/init/init.sh; module load ompitrace;' : ' '` `index('$PAPI','on')==0 ? 'module load papi;' : ' '` make)</command>
+
+
+</compile>
+
+<!-- ********************************************************** -->
+
+<compile cname="GNU-Linux">
+
+    <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
+				    lpepcsrc pepc-e" />
+
+    <!-- Create makefile.defs and substitute parameters -->
+    <substitute infile="makefile.defs.jube" outfile="makefile.defs">
+        <sub from="#ARCH#"     to="$platform" />
+
+       <sub from="#MAKE#"     to="$make" />
+       <sub from="#RANLIB#"   to="$ranlib" />
+       <sub from="#AR#"       to="$ar" />
+       <sub from="#ARFLAGS#"  to="$arflags" />
+       <sub from="#RM#"       to="$rm" />
+
+       <sub from="#FCPRE#"    to="" />
+       <sub from="#MPI_F90#"  to="$f90" />
+       <sub from="#F90FLAGS#" to="-I ~/local/soft/include $f90flags $optflags" />    
+
+       <sub from="#LDPRE#"    to="" />
+       <sub from="#LD#"       to="$f90" />
+       <sub from="#LDFLAGS#"  to="$ldflags $optflags" />
+       <sub from="#LDLIBS#"   to="-L ~/local/soft/lib -lmpich -lpthread" />
+
+       <sub from="#EXECNAME#" to="$execname" />
+    </substitute>
+
+    <!-- issue build command -->
+    <command>(make)</command>
+    
+</compile>
+
+
+</compilation>

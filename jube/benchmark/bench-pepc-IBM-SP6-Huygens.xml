@@ -1,0 +1,66 @@
+<!--
+    PRACE BENCHMARK SUITE
+
+    JuBE benchmark configuration schemata for: PEPC
+
+    Contact: l.arnold@fz-juelich.de
+-->
+<!--
+    wscheme (walk_scheme) -> 0 (isend/irecv) or 1(coll)
+    nt                    -> number of timesteps
+    npart                 -> number of particles (ions)
+    geom                  -> 1 (homogeneous); 2/3 (one/two spheres)
+-->
+
+<bench name = "PEPC" platform = "IBM-SP6-Huygens" >
+
+<!-- ********************************************************** -->
+
+<benchmark name="scaling" active="1">
+    <!-- version="reuse|new" -->
+    <compile     cname           = "$platform"   
+                 version         = "new"
+ 
+                 CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
+		 CMP_GPROF       = "$GPROF" 
+		 CMP_IHPCT_HWC   = "$IHPCT_HWC"
+		 CMP_IHPCT_MPITR = "$IHPCT_MPITR"
+		 CMP_SCALASCA    = "$SCALASCA"/>
+
+    <tasks       threadspertask = "1"   taskspernode = "32"   nodes = "2,4" />
+
+    <params      COMMENT       = "scaling on huygens"
+                 PERL_CMD      = "perl"
+                 optflags      = "-O3"
+
+                 GPROF         = "off"
+
+                 IHPCT_HWC     = "off"
+                 IHPCT_HWC_GRP = "127"
+                 IHPCT_MPITR   = "off"
+
+		 SCALASCA      = "off"
+
+		 npart         = "25000000" 
+		 geom          = "1"
+                 nt            = "5" 
+	         wscheme       = "1"
+		 fetchmult     = "3"
+		 npmult        = "-40" /> 
+
+    <prepare     cname = "PEPC" />
+
+    <execution   iteration = "1"   cname   = "$platform"/>
+
+    <verify      cname="PEPC" />
+    <analyse     cname="$platform" /> 
+
+</benchmark>
+
+<!-- ********************************************************** -->
+
+</bench>
+
+
+
+
