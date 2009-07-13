@@ -669,8 +669,8 @@ search_list = 8_8**lev_map  ! place holder
   if (debug .and. icall==0 ) then
 !	write(*,*) 'PE ',iproc,'Writing key dist'
         open(90,file='fglobal.data')
-       write(20,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
-!	call close(90)
+       write(90,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
+	call close(90)
   endif
 
 
@@ -1051,8 +1051,8 @@ search_list = 8_8**lev_map  ! place holder
   if (debug .and. icall==0 ) then
 !	write(*,*) 'PE ',iproc,'Writing key dist'
         open(90,file='fglobal.data')
-       write(20,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
-!	call close(90)
+       write(90,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
+	call close(90)
   endif
 
 

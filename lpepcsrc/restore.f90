@@ -26,8 +26,6 @@ subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
 
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | RESTORE..'
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-
   do i=1,npnew
      ship_parts(i) = results( ex_tmp(indxl(i)), ey_tmp(indxl(i)), ez_tmp(indxl(i)), &
                               pot_tmp(indxl(i)), w_tmp(indxl(i)), pelabel(indxl(i)) )

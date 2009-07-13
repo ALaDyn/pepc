@@ -297,9 +297,6 @@ subroutine tree_properties
      local_moments(ibr+24) = size_node( local_node(i) )
   end do
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
-
-
   !  Collect multipole properties
 
   recv_counts(1:num_pe) = n_moments*nbranches(1:num_pe)   ! # terms in global array
