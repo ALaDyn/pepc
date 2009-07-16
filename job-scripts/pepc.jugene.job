@@ -9,6 +9,6 @@
 # @ wall_clock_limit = 00:30:00
 # @ queue
 
-mpirun -mode VN -np 512 pepc.exe run.h
+mpirun -mode VN -np 512 pepc run.h
 
 

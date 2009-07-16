@@ -13,7 +13,7 @@
 # @ resources           = ConsumableCpus(1) ConsumableMemory(3.75GB)
 # @ queue
 
-poe pepc.exe run.h
+poe pepc run.h
 
 
 

@@ -21,4 +21,4 @@ LDLIBS   =
 
 RM       = rm -rf
 
-EXECNAME = ../pepc.exe
+EXECNAME = ../pepc

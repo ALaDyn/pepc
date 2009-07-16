@@ -21,6 +21,6 @@ LDLIBS   = -L/dir/to/libmpi -lmpich -lpthread
 
 RM       = rm -rf
 
-EXECNAME = ../pepc.exe
+EXECNAME = ../pepc
 
 

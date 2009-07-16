@@ -1,17 +1,6 @@
 &pepcdata
 
-! debug level, in general it should be set to 0
- db_level = 0
-
-! memory allocation parameter, _might/will_ 
-! depend on target architecture, in general they 
-! should be set to np_mult = -30 and fetch_mult = 3
-
- np_mult = -30 
- fetch_mult = 3
-
-! number of electrons and ions
- ne = 0
+! number of particles, here ions
  ni = 1000
 
 ! initial particle distribution
