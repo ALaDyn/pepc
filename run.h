@@ -12,7 +12,7 @@
  
 ! communication scheme
 ! 0: point-to-point, 1: collectives
- scheme = 1 
+ scheme = 0
 
 ! determinates the particle dump interval
 ! 0: never write anything
