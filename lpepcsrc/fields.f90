@@ -14,9 +14,9 @@
 
 subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, t_np_mult,t_fetch_mult, &
-     mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
+     mac, theta, eps, force_const, err_f, xl, yl, zl, itime, walk_scheme, &
      t_begin,t_domain,t_build,t_branches,t_fill,t_properties, &
-	 t_prefetch,t_integral,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
+     t_prefetch,t_integral,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
 
   use treevars
   use utils
@@ -41,8 +41,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
                          t_mpi,t_end,t_all
   real*8, dimension(nppm_ori) :: ex_tmp,ey_tmp,ez_tmp,pot_tmp,w_tmp
   real*8, dimension(np_local) :: p_w ! work loads
-  integer, intent(in) :: init_mb
-
+  integer, intent(in) :: init_mb, walk_scheme
+  
   integer :: npnew,npold
 
   integer :: indxl(nppm_ori),irnkl(nppm_ori)
@@ -218,8 +218,12 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
      
-     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
-!     call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+     if (walk_scheme == 1) then
+        call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+     else
+        call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
+     end if
+
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 

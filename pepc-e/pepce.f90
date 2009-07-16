@@ -89,7 +89,7 @@ program pepce
      call pepc_fields(np_local,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult,fetch_mult,mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
+              	      np_mult,fetch_mult,mac, theta, eps, force_const, err_f, xl, yl, zl, itime, scheme, &
 	              t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch, &
 		      t_integral,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
 
