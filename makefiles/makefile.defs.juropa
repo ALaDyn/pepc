@@ -4,7 +4,7 @@ RANLIB   = ranlib
 
 MAKE     = gmake
 
-AR       = ar
+AR       = xiar
 ARFLAGS  = -rs
 
 CPP      = cpp
@@ -12,7 +12,7 @@ CPPFLAGS = -P -C
 
 FCPRE    = 
 FC       = mpif90
-FFLAGS   = -O2 -axSSE4.2
+FFLAGS   = -O2 -ipo -axSSE4.2
 
 LDPRE    = 
 LD       = mpif90
