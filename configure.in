@@ -46,9 +46,9 @@ elif [[ `uname -m` = "i686" ]] # laptop
 then
  MACH=linux
 
-elif [[ `uname -m` = "x86_64" ]] # nicole cluster @ JSC 
+elif [[ `uname -m` = "x86_64" ]] # nicole or juropa @ JSC 
 then
- MACH=nicole
+ MACH=x86_64
  MPI_DIR=/opt/parastation/mpi2
 fi
 
