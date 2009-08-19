@@ -49,7 +49,7 @@ dirs:
 
 #  compile mode for PEPC library routines
 $(MACH)/%.o: %.f90  
-	$(FC) -c $(FFLAGS) $(INCLUDE) $(DBFLAGS) $< -o $@
+	$(FC) -c $(FFLAGS) $(DBFLAGS) $< -o $@
 
 $(pepclib): mods lpepc
 lpepc:   $(LIBOBJS) $(LIBMODS) 
