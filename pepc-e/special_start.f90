@@ -19,6 +19,7 @@ subroutine special_start(iconf)
   character(35) :: cinfile, cdump, cfile
   character(50) :: dfile
   character(35) :: cme
+  real*8 :: rand
 
   iseed1 = -1 - my_rank
   iseed2 = -1011 - my_rank
