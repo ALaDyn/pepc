@@ -27,9 +27,14 @@ subroutine setup(init_mb)
   integer :: ierr
   integer*8, dimension(nprops_particle) :: address
 
+  character(50) :: parameterfile
+  integer :: read_param_file
+
+  integer :: i
+  
   integer*4 IARGC
 
-  character(50) :: parameterfile
+
 
   namelist /pepcdata/ nep, nip, np_mult, fetch_mult, ne, ni, &
        mac, theta, mass_ratio, q_factor, eps, &
@@ -119,10 +124,23 @@ subroutine setup(init_mb)
   constrain_proof = .001
   struct_step = 0
 
-  ! Read actual inputs from namelist file
+  ! rank 0 reads in first command line argument
+  read_param_file = 0
+  if (my_rank .eq. 0) then
+     if( IARGC() .ne. 0 ) then
+        call GETARG(1, parameterfile)
+        read_param_file = 1
+     end if
+  end if
 
-  if (IARGC() .eq. 1) then
-     call GETARG(1, parameterfile)
+  call MPI_BCAST( read_param_file, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr )
+
+  ! broadcast file name, read actual inputs from namelist file
+
+  if (read_param_file .eq. 1) then
+
+     call MPI_BCAST( parameterfile, 50, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr )
+
      if(my_rank .eq. 0) write(*,*) "reading parameter file: ", parameterfile
      open(10,file=parameterfile)
      read(10,NML=pepcdata)
