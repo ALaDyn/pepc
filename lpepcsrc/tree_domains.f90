@@ -177,8 +177,9 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
         enddo
      endif
 
-
+     
      ! perform index sort on keys
+     load_balance = 1
 !     call pswssort(nppm,npold,npnew,num_pe,me,keys, &
 !          indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
 !     call psrssort(nppm,npold,npnew,num_pe,me,keys, &
