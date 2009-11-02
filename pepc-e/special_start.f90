@@ -87,7 +87,7 @@ subroutine special_start(iconf)
   integer, intent(in) :: iconf  ! Configuration switch
   integer :: p,i,j,k,l,n1,iseed1,iseed2,iseed3,face_nr,iseed=-17,decomp,max_num,plt, mpi_cnt, ierr
   real*4 :: par_rand_res
-  real*8 :: gamma0,yt,zt,xt,qt,mt,c_status
+  real*8 :: gamma0,yt,zt,xt,qt,mt,c_status, r1
   character(50) :: cinfile, cdump
   character(50) :: dfile
   character(35) :: cme
@@ -220,6 +220,48 @@ subroutine special_start(iconf)
         end do
      end do
 
+  case(4)
+
+     if (my_rank == 0) write(*,*) "Using special start... case 4: Plummer distribution (core cut)"
+
+     ! get the largest np_local
+     call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
+     call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+
+     do mpi_cnt = 0, n_cpu-1
+        do p = 1, np_local_max
+     
+           xt = 0.
+           yt = 0.
+           zt = 0.
+           r1 = 0.
+           
+
+
+           do while (.not.(r1 .gt. 0.1 .and. r1 .lt. 3))
+              call par_rand(par_rand_res)
+              r1 = (par_rand_res**(-0.2D01/0.3D01)-0.1D01)**(-0.5D00)
+           end do
+           call par_rand(par_rand_res)
+           zt = (0.1D01-0.2D01*par_rand_res)*r1
+           call par_rand(par_rand_res)
+           xt = (r1**0.2D01-zt**0.2D01)**(0.5D00)*cos(0.2D01*pi*par_rand_res)
+           yt = (r1**0.2D01-zt**0.2D01)**(0.5D00)*sin(0.2D01*pi*par_rand_res)                     
+
+           if ( my_rank == mpi_cnt .and. p <= np_local) then
+
+              ux(p) = 0.
+              uy(p) = 0.
+              uz(p) = 0.
+              
+              z(p) = zt 
+              y(p) = yt
+              x(p) = xt
+
+           end if
+        end do
+     end do
+
   end select config
 
   q(1:nep)                  = qe        ! plasma electrons
@@ -237,6 +279,3 @@ subroutine special_start(iconf)
   work(1:np_local) = 1.
 
 end subroutine special_start
-
-
-
