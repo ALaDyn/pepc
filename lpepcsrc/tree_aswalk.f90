@@ -464,7 +464,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
         i1 = istart(ipe)
         i2 = istart(ipe) + nrequests(ipe) - 1
         if (walk_debug) then
-           write(ipefile,'(a,i4,a,3i7/(o12))') 'PE ',me,' received request from: ',ipe,nrequests(ipe),istart(ipe),process_key(i1:i2) 
+           write(ipefile,'(a,i4,a,3i7/(o12))') 'PE ',me,' received request from: ', &
+		ipe,nrequests(ipe),istart(ipe),process_key(i1:i2) 
         endif
         process_addr(1:nreqs) = (/( key2addr( process_key(j),'WALK: ship1 '),j=i1,i2)/)    ! get htable addresses
         childbyte(1:nreqs) = htable( process_addr(1:nreqs) )%childcode        !  Children byte-code
