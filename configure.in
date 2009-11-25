@@ -130,6 +130,7 @@ powerpc64-unknown-linux-gnu) # jugene
 *-*-linux-gnu*)
  AC_MSG_RESULT(** setting options for Linux host with ifort compiler **)
  CFLAGS_OS="-Wall -Wno-unused"
+ FFLAGS_OS="-Wp,-DHAVE_PRIVATE_CONFIGS"
  MODULE_FLAG="-module "
  F77FLAGS="$FFLAGS_OS"
  FLINK_FLAGS="-nofor_main"
