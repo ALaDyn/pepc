@@ -456,14 +456,16 @@
             displace = (/ -x_plasma/2.-x_layer(1)/2,0.,0. /)
             label_offset = ne+ni+2*n_layer(1)+ni_rest+me*nlaypfront
             ! Equal number of neutralising electrons 
-            call plasma_start( ipstart+2*nlaypback+nlaypfront, nlaypfront, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+            call plasma_start( ipstart+2*nlaypback+nlaypfront, nlaypfront, n_layer(1), label_offset, target_geometry, &
+		velocity_config, idim, &
                 -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                 faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
             !And now for the protons:
             label_offset = ne+ni+3*n_layer(1) +me*nlaypfront + ne_rest 
-            call plasma_start( ipstart+2*nlaypback, nlaypfront, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
-                rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+            call plasma_start( ipstart+2*nlaypback, nlaypfront, n_layer(1), label_offset, target_geometry, & 
+		velocity_config, idim, rho_layer(1), 1.0, mratio_layer(1), vti, & 
+	        x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                 faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
 
@@ -700,14 +702,17 @@
             displace = (/ -x_plasma/2.+x_layer(1)/2,0.,0. /)
             label_offset = ne+ni+2*n_layer(1)+ni_rest+me*nlaypfront
             ! Equal number of neutralising electrons 
-            call plasma_start( ipstart+2*nlaypback+nlaypfront, nlaypfront, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
+            call plasma_start( ipstart+2*nlaypback+nlaypfront, nlaypfront, n_layer(1), label_offset, target_geometry, &
+                 velocity_config, idim, &
                 -rho_layer(1), -1.0, 1.0, vte, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
                 faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
             !And now for the protons:
             label_offset = ne+ni+3*n_layer(1) +me*nlaypfront + ne_rest 
-            call plasma_start( ipstart+2*nlaypback, nlaypfront, n_layer(1), label_offset, target_geometry, velocity_config, idim, &
-                rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), plasma_centre+displace, &
+            call plasma_start( ipstart+2*nlaypback, nlaypfront, n_layer(1), label_offset, target_geometry, &
+		velocity_config, idim, &
+                rho_layer(1), 1.0, mratio_layer(1), vti, x_layer(1), y_layer(1), z_layer(1), r_layer(1), &
+		plasma_centre+displace, &
                 faces(1), V_layer(1), A_layer(1), Q_layer(1), qpart_layer(1), mass_layer(1), ai_layer(1) )
 
 
@@ -968,7 +973,8 @@
 
                         ! Ions
                         call plasma_start( ipstart_i, nip_shell, ni_shell, offset_i, target_geometry, 0, idim, &
-                            rho_layer(2), 1.0, mratio_layer(2), vti, x_layer(2), y_layer(2), z_layer(2), r_layer(2), plasma_centre+displace, &
+                            rho_layer(2), 1.0, mratio_layer(2), vti, x_layer(2), y_layer(2), z_layer(2), r_layer(2), &
+                            plasma_centre+displace, &
                             faces(2), V_layer(2), A_layer(2), Q_layer(2), qpart_layer(2), mass_layer(2), a_layer(2) )
 
                         ipstart_i = ipstart_i + nip_shell  ! index start
