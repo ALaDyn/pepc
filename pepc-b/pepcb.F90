@@ -68,7 +68,7 @@ program pepcb
   call openfiles       ! Set up O/P files
 
 ! Allocate array space for tree
-  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,init_mb,nppm_ori) 
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,nint_max,init_mb,nppm_ori) 
 
   if (.not.dynamic_memalloc) call tree_allocate(theta,init_mb)
 

@@ -200,6 +200,7 @@ module physvars
  ! tree stuff
   real :: theta=0.5       !< Clumping parameter
   real :: force_tolerance=1.      !< Permitted error in force calculation
+  integer :: nint_max = 2500
   integer :: mac = 0  !< MAC (default=BH)
   integer :: walk_scheme = 0  !< Asynch/Collective walk algorithm 
   integer :: balance = 1  !< Load balancing switch

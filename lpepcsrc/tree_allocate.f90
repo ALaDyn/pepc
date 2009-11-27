@@ -16,8 +16,7 @@ subroutine tree_allocate(theta,init_mb)
   else
      nintest = npartm
   endif
-!  nintmax=max(nintest,2200)
-  nintmax=nintest
+  nintmax=max(nintest,nintmax) ! Take max of user-preset and estimated values
 
   max_list_length = 0 ! current max length of all interaction lists
     

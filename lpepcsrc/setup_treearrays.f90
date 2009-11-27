@@ -1,4 +1,4 @@
-subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,init_mb,nppm_ori)
+subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,t_nintmax,init_mb,nppm_ori)
   use treevars
   use tree_utils
   implicit none
@@ -9,6 +9,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   integer, intent(in) :: n_cpu  ! MPI # CPUs
   integer, intent(in) :: npart_total  ! total (max) # simulation particles
   integer, intent(in) :: db_level
+  integer, intent(in) :: t_nintmax  ! Max length of interaction lists 
   integer, intent(out) :: init_mb,nppm_ori
 
   integer :: ibig, machinebits,k
@@ -34,6 +35,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   
   np_mult = t_np_mult
   fetch_mult = t_fetch_mult
+  nintmax = t_nintmax
   me = my_rank
   num_pe = n_cpu
   npart = npart_total
@@ -100,7 +102,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 !  else if (np_mult<0) then 
 !    nppm = abs(np_mult)*max(npartm/num_pe,1000) ! allow 50% fluctuation
   else
-    nppm = 1.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+    nppm = 2.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
   endif
   
   nppm_ori = nppm
