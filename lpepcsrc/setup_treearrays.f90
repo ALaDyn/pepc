@@ -172,7 +172,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 
   if (me==0 .and. db_level>1) then
 ! Check addresses for MPI particle structure
-     write(*,'(a30/(o28,i8))') 'Particle addresses:',(address(i),displacements(i),i=1,15)
+     write(15,'(a30/(o28,i8))') 'Particle addresses:',(address(i),displacements(i),i=1,15)
   endif 
 
   ! Create new contiguous datatype for shipping result props (6 arrays)
@@ -199,7 +199,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 
   if (me==0 .and. db_level>1) then
      ! Check addresses for MPI results structure
-     write(*,'(a30/(o28,i8))') 'Results addresses:',(address(i),displacements(i),i=1,6)
+     write(15,'(a30/(o28,i8))') 'Results addresses:',(address(i),displacements(i),i=1,6)
   endif 
 
 
