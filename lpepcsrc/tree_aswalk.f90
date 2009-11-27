@@ -522,6 +522,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
 
            !  Keep record of # requested child keys
            nreqs_total(ipe) = nreqs_total(ipe) + nchild  ! Record cumulative total of # children requested 
+	   if (nreqs_total(ipe).ge.size_fetch) write(*,*) "**** WARNING: too many nonlocal multipole requests - increase fetch_mult! ****"
            requested_keys(sum_ships+1:sum_ships+nchild) = key_child(1:nchild)  ! Keep record of multipole ships
            requested_owner(sum_ships+1:sum_ships+nchild) = ipe  ! where requests came from
            sum_ships = sum_ships + nchild
@@ -629,6 +630,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
 
            !  Add child key to list of fetched nodes
            nfetch_total(ipe) = nfetch_total(ipe) + 1
+	   if (nfetch_total(ipe).ge.size_fetch) write(*,*) "**** WARNING: too many nonlocal multipole fetches - increase fetch_mult! ****"
 	   sum_fetches=sum_fetches+1
            fetched_keys( sum_fetches ) = kchild
            fetched_owner( sum_fetches ) = ipe
@@ -665,7 +667,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
      !     sum_fetches = sum_fetches + nplace_max  ! Total # fetches/iteration
      !     sum_ships = sum_ships + nchild_ship_tot ! Total # shipments/iteration
 
-     if (walk_summary ) then
+     if (walk_debug ) then
         write (ipefile,'(/a,i8,a2)') 'LPEPC | Summary for traversal # ',ntraversals,' :'
         ! Determine global max
         call MPI_ALLREDUCE( nplace_max, max_nplace, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )
