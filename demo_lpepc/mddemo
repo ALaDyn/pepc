@@ -1,6 +1,0 @@
-echo "Starting MD demo  .."
-cp eqm.indata run.h
-mpirun -np 1 ../pepcesrc/pepce 
-#mv energy.dat log/energy.dat
-#mv run.out log/run.dat
-echo "... done" 

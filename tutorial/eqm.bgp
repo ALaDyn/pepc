@@ -10,7 +10,6 @@
 # @ job_type = bluegene
 # @ bg_size = 256
 # @ queue
-#PEPC=$HOME/pepc/bin/pepcb_bgp
-PEPC=$HOME/pepc/bin/pepcb_bgp_sion
+PEPC=$HOME/pepc/bin/pepcb_bgp
 cp eqm.h run.h
-mpirun -exe $PEPC -mode SMP -verbose 1 
+mpirun -exe $PEPC -mode VN -verbose 1 

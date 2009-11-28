@@ -230,7 +230,7 @@ subroutine dump_fields(timestamp)
      write(*,'(a40,a10)') 'Helmholtz lineouts at',cdump
      cfile = "fields/helmholtz."//cdump
      open (60,file=cfile)
-     write(60,'(2(a12))') '!   x_helm  ',' rho         az^2  '
+     write(60,'(2(a12))') '!   x_helm  ',' rho     Azr    Ex    az^2  '
 !     dxh = (xh_end-xh_start)/nxh
      write(60,'((5(1pe12.3)))') &
 !          (i*dxh+xh_start-xl/2.+x_plasma/2., rho_helm(i), abs(az_helm(i)**2), i=0,nxh)

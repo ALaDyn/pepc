@@ -97,7 +97,7 @@ subroutine param_dump
            write(ifile,NML=pepcdata)
         else 
            write (15,'(/a)') 'Other inputs:'
-           write(15,NML=pepcdata)
+!           write(15,NML=pepcdata)
         endif
 
 

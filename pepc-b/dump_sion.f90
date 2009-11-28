@@ -80,7 +80,7 @@ subroutine dump(timestamp)
 
 ! Write particles info file
   if(me == 0) then
-	  cinfofile="parts_info.in"
+	  cinfofile="dumps/parts_info."//cdump(1:6)
 	  open (60,file=cinfofile)
 	  write(60,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))')  &    ! info block
 		   'itime=',timestamp, 'npp=',npp, &
@@ -118,7 +118,7 @@ subroutine dump(timestamp)
 !  end if
 
 ! Particles dump file
-  cfile="data/parts_all_dump."//cdump(1:6)
+  cfile="dumps/parts_dump."//cdump(1:6)
 
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   call fsion_paropen_mpi(trim(cfile),'bw',MPI_COMM_WORLD,chunksize,fsblksize,me,sid)

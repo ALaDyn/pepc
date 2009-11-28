@@ -1,0 +1,25 @@
+This file contains a collection of runtime error codes returned on the BG/P system.
+
+
+1. Problem/cause:  Namelist write with 4096 cores
+
+Crash report:
+<Nov 27 13:35:04.985319> BE_MPI (Info) : I/O output runner thread terminated
+<Nov 27 13:35:05.002338> BE_MPI (Info) : Job 243655 switched to state TERMINATED ('T')
+<Nov 27 13:35:05.002373> BE_MPI (Info) : Job successfully terminated - TERMINATED ('T')
+<Nov 27 13:35:05.044551> FE_MPI (Info) : Job terminated normally
+<Nov 27 13:35:05.044640> FE_MPI (Info) : exit status = (139)
+<Nov 27 13:35:05.045648> BE_MPI (Info) : Starting cleanup sequence
+<Nov 27 13:35:05.045686> BE_MPI (Info) : cleanupDatabase() - job already terminated / hasn't been added
+<Nov 27 13:35:05.052394> BE_MPI (ERROR): The error message in the job record is as follows:
+<Nov 27 13:35:05.052420> BE_MPI (ERROR):   "killed with signal 11"
+<Nov 27 13:35:05.055307> BE_MPI (Info) : cleanupDatabase() - Partition was supplied with CONFIGURING ('A' or 'C' or 'B') initial state
+<Nov 27 13:35:05.055328> BE_MPI (Info) : cleanupDatabase() - No need to destroy the partition
+<Nov 27 13:35:05.404567> FE_MPI (Info) : ==   FE completed   ==
+<Nov 27 13:35:05.404633> FE_MPI (Info) : == Exit status: 139 ==
+<Nov 27 13:35:05.404700> LoadLeveler (Info) : mpirun_done_enhanced() - mpirun_rc=139
+
+Remedy:
+
+In param_dump.f90
+100 !           write(15,NML=pepcdata)

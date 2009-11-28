@@ -52,7 +52,7 @@
   lambda = 1.0   
 
   ! control
-  nt =10
+  nt =40
   dt = 0.5
   eps = 0.5
  restart = .false.
@@ -62,7 +62,7 @@
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = -4000
+  idump = 20
   iprot=1
   itrack=300
   particle_bcs = 1
