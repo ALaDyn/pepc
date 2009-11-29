@@ -116,6 +116,10 @@ subroutine setup
   npart_total = ni+ne
 
 ! Adjust local numbers if total non-multiple of # PEs
+! Nov 29 2009 PG: Changed from previous assignment, which placed all
+! remaining particles on root cpu
+! Now spread evenly over 1st ne_rest cpus (each gets one extra)
+
   nep = ne/n_cpu  ! local # electrons and ions - may be adjusted later
   nip = ni/n_cpu 
   ne_rest = mod(ne,n_cpu)
