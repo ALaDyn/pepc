@@ -116,19 +116,17 @@ subroutine setup
   npart_total = ni+ne
 
 ! Adjust local numbers if total non-multiple of # PEs
-  if (my_rank==0) then 
-     ne_rest = mod(ne,n_cpu)
-     ni_rest = mod(ni,n_cpu)
-  else
-     ne_rest = 0
-     ni_rest = 0
-  endif
+  nep = ne/n_cpu  ! local # electrons and ions - may be adjusted later
+  nip = ni/n_cpu 
+  ne_rest = mod(ne,n_cpu)
+  ni_rest = mod(ni,n_cpu)
 
-  np_local = npart_total/n_cpu + ne_rest + ni_rest  ! total # particles on this CPU
-  nep = ne/n_cpu + ne_rest ! local # electrons and ions - may be adjusted later
-  nip = ni/n_cpu + ni_rest
+! Assign remainder of each particle species 
+  if (my_rank.lt.ne_rest) nep=nep+1  
+  if (my_rank.lt.ni_rest) nip=nip+1 
 
   npp = nep+nip ! initial estimate for total local # particles
+  np_local = npp
 
   new_label = npart_total  ! Rezone label
 

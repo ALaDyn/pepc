@@ -57,7 +57,8 @@ SOURCES.f90 =   \
                 velocities.f90 perturb_temp.f90 \
                 energy_cons.f90 potenergy.f90 kinenergy.f90\
                 force_laser.f90 emplane_lin.f90 \
-                fpond.f90 fpond_lin.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90 fpond_helm.f90 \
+                fpond.f90 fpond_lin.f90 empond.f90 emplane.f90 laser_bullet.f90 emoblique.f90\
+		fpond_helm.f90 fpond_helmc.f90\
 		density_helmholtz.f90 em_helmholtz.f90 trisolve.f90 \
                 push_em.f90 push_full3v.f90 \
                 push.f90 reinject.f90 earth_plate.f90 add_ramp.f90 \
@@ -126,8 +127,8 @@ pepc-visit: lpepc $(appmods) $(appobjs) $(visitobjs)
 	@echo "... done\n"
 
 debug: lpepc $(appmods) $(appobjs) $(visitobjs) 
-	@echo "\n Creating ../bin/pepc-debug_$(MACH) ...\n"
-	$(FC)  $(FFLAGS)  -o ../bin/pepc-debug_$(MACH) $(appobjs) $(appmods) $(visitobjs) $(LIBS) $(LDFLAGS) 
+	@echo "\n Creating ../bin/pepcb-debug_$(MACH) ...\n"
+	$(FC)  $(FFLAGS)  -o ../bin/pepcb-debug_$(MACH) $(appobjs) $(appmods) $(visitobjs) $(LIBS) $(LDFLAGS) 
 	@echo "... done\n"
 
 # Update PEPC library and headers

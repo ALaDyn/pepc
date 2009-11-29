@@ -109,11 +109,11 @@ subroutine dump_fields(timestamp)
         end do
      end do
      Qtot = SUM(rhoe)*dx*dy*dz  ! including ghost cells
-     write(ifile_cpu,'(4(a,f14.5/))') &
-          'Total charge on grid:',Qbox, &
-          '         ghost cells:',Qtot-Qbox, &
-          '                 sum:',Qtot, &
-          'Initial charge Q_s*Ne = rho0*Vplas = ',Vplas*rho0
+!     write(ifile_cpu,'(4(a,f14.5/))') &
+!          'Total charge on grid:',Qbox, &
+!          '         ghost cells:',Qtot-Qbox, &
+!          '                 sum:',Qtot, &
+!          'Initial charge Q_s*Ne = rho0*Vplas = ',Vplas*rho0
      write(*,'(4(a,f14.5/))') &
           'Total charge on grid:',Qbox, &
           '         ghost cells:',Qtot-Qbox, &

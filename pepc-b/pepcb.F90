@@ -152,10 +152,10 @@ program pepcb
      call laser(I_laser)         ! laser propagation according to beam_config
      t_laser=MPI_WTIME()
 
-     write(ifile_cpu,'(//a,i8,(3x,a20,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3,1pe12.3)') 'Timestep ',itime+itime_start &
-          ,' total run time = ',trun &
-          ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
-          ,' Laser amplitude, intensity  = ',sqrt(I_laser),I_laser*1.37e18
+!     write(ifile_cpu,'(//a,i8,(3x,a20,f8.2)/(3x,a,f8.2,a2,f8.2,a4)/a,f9.3,1pe12.3)') 'Timestep ',itime+itime_start &
+!          ,' total run time = ',trun &
+!          ,' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
+!          ,' Laser amplitude, intensity  = ',sqrt(I_laser),I_laser*1.37e18
 
 
      !     tremain=llwrem(0)
