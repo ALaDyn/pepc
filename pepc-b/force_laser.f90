@@ -105,6 +105,16 @@ subroutine force_laser(p_start,p_finish)
 	      By_em = 0.
 	      Bz_em = 0.
 
+           case(64)  ! fpond derived from Az_helm, c-pol light
+	      xd = x(p)
+	      uxd = ux(p)
+              call fpond_helmc( tlaser, tpulse,sigma,vosc,omega, &
+                   xd,yd,zd,uxd,Az_helm,nxh,xh_start, xh_end, dxh, focus(1), &
+		   epon_x,epon_y,epon_z,phipon)
+	      Bx_em = 0.
+	      By_em = 0.
+	      Bz_em = 0.
+
            case(5)  ! propagating fpond
               call laser_bullet( tlaser, focus(1), tpulse,sigma,vosc,omega, & 
                    xd,yd,zd,epon_x,epon_y,epon_z,phipon)

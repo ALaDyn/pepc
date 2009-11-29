@@ -12,10 +12,13 @@ subroutine laser(I_laser)
   if (beam_config >= 3) tlaser = tlaser + dt  
   pha = tlaser*omega
 
+
 !  Laser pulse envelope
+!  =====================
+
   laser_model: select case(beam_config_in)
 
-     case(4,34,44,6)  	! sin^2 standing wave
+     case(4,34,44,64,6)  	! sin^2 standing wave
 	if (tlaser<2*tpulse)  then
            I_laser = vosc**2*max(0.,sin(pi*tlaser/2./tpulse)**2)
 	else
@@ -29,25 +32,39 @@ subroutine laser(I_laser)
 	I_laser = 0.
   end select laser_model
 
-  !  Laser focal position and rezoning
+
+
+
+!    Laser focal position and rezoning
+!    ==================================
 
   laser_focus: select case(beam_config_in)
 
-  case(44,54)  ! Helmholtz solver for vector potential
+    case(44,54)  ! Helmholtz solver for vector potential
 
 ! Factor-in pulse shape
-     amplitude = sqrt(I_laser)  ! amplitude of incoming wave
-     call density_helmholtz
-     call em_helmholtz(my_rank,itime,nxh,dxh,theta_beam,amplitude,omega,rho_helm,Az_helm)
-     Azr(1:nxh) = Real(Az_helm(1:nxh)*cexp(yi*pha))
-     ampl_max = maxval(Azr)
-     ampl_min = minval(Azr)
-     if (ampl_max.lt.abs(ampl_min)) ampl_max=-ampl_min
+      amplitude = sqrt(I_laser)  ! amplitude of incoming wave
+      call density_helmholtz
+      call em_helmholtz(my_rank,itime,nxh,dxh,theta_beam,amplitude,omega,rho_helm,Az_helm)
+      Azr(1:nxh) = Real(Az_helm(1:nxh)*cexp(yi*pha))
+      ampl_max = maxval(Azr)
+      ampl_min = minval(Azr)
+      if (ampl_max.lt.abs(ampl_min)) ampl_max=-ampl_min
+  
+    case(64)  ! Helmholtz solver for vector potential circ pol
+
+! Factor-in pulse shape
+      amplitude = sqrt(I_laser)  ! amplitude of incoming wave
+      call density_helmholtz
+      call em_helmholtz(my_rank,itime,nxh,dxh,theta_beam,amplitude,omega,rho_helm,Az_helm)
+      Azr(1:nxh) = Real(Az_helm(1:nxh))
+      ampl_max = maxval(Azr)
+      ampl_min = minval(Azr)
  
-  case(5)  ! propagating fpond
+    case(5)  ! propagating fpond
      !  Trigger rezoning if laser rezone_frac of the way through plasma
      ! - Only works after restart at present
-     if (restart .and. beam_config ==5 .and. focus(1) >= window_min + x_plasma*rezone_frac) then
+      if (restart .and. beam_config ==5 .and. focus(1) >= window_min + x_plasma*rezone_frac) then
         if (my_rank==0) then
            write (*,*) 'REZONE'
            !           read (*,*) go
@@ -55,15 +72,15 @@ subroutine laser(I_laser)
 
         call rezone
         !        window_min = window_min + dt
-     else
+      else
         focus(1) = focus(1) + dt  ! propagate forward by c*dt - can include v_g here
         propag_laser=propag_laser + dt
-     endif
+      endif
 
-  case(4,14,24,94)  ! old fpond model
-     if (itime>0) focus(1) = x_crit  ! laser tracks n_c
+    case(4,14,24,94)  ! old fpond model
+      if (itime>0) focus(1) = x_crit  ! laser tracks n_c
 
-  case default
+    case default
      ! leave focal point unchanged
 
   end select laser_focus
