@@ -7,7 +7,11 @@ subroutine integrator
   integer :: i
   ! Integrator
 
- if (me==0) write(*,*) 'Push with scheme',scheme
+ if (me==0) then
+	write(6,*) 'Push with scheme',scheme
+	write(24,*) 'Push with scheme',scheme
+ endif
+
   pusher: select case(scheme)
 
   case(1,2,3,4,5)

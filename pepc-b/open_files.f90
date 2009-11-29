@@ -7,8 +7,8 @@ subroutine openfiles
 
   if (my_rank == 0) then
      !  master diagnostics output
-     open(15,file='run.out')
-     open(81,file='parts_all.dat')
+     open(15,file='tree.out')  ! Tree stats
+     open(24,file='pepcb.out') ! Physics log
 
      open(70,file='domains.dat')
      open(71,file='laser.dat')   ! laser parameters
@@ -17,13 +17,13 @@ subroutine openfiles
   endif
 
   !  stdout for PE my_rank
-  !  must first create subdirectory 'data/peXXXX' in run directory
+  !  must first create subdirectory 'data' in run directory
 
   csubme =   achar(my_rank/1000+48) &
        // achar(mod(my_rank/100,10)+48) &
        // achar(mod(my_rank/10,10)+48) &
        // achar(mod(my_rank,10)+48)  ! Convert 4-digit PE number into character string
-  cfile="data/pe"//csubme//"/dump."//csubme
+  cfile="data/out."//csubme
   if (debug_level>2 .and. idump>0) then
       open(90,file='openfiles.out')
       write (90,'(a3,i6,a15,a30)') 'PE ',my_rank,' opening ',cfile

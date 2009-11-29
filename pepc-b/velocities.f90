@@ -312,7 +312,10 @@ subroutine velocities(p_start,p_finish,delta_t)
 
 
   case default
-  if (me==0) write(*,*) 'PEPC | velocities scheme',scheme
+  if (me==0) then
+	write(6,*) 'PEPC | velocities scheme',scheme
+	write(24,*) 'PEPC | velocities scheme',scheme
+  endif
      ! unconstrained motion by default (scheme=1,7)
    if (idim==3) then
      do p = p_start, p_finish

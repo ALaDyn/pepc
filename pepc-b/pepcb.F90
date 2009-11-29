@@ -141,7 +141,7 @@ program pepcb
      t0=MPI_WTIME()
      trun = trun + dt
      if (my_rank==0 ) then
-        do ifile = 6,15,9
+        do ifile = 6,24,9
            write(ifile,'(/a)') '========================================================================'
         end do
            write(ifile_cpu,'(/a)') '========================================================================'
@@ -160,7 +160,7 @@ program pepcb
 
      !     tremain=llwrem(0)
      if (my_rank==0 ) then
-        do ifile = 6,15,9
+        do ifile = 6,24,18
            write(ifile,'(//a,i8,(3x,a,f8.2))') &
                 ' Timestep ',itime+itime_start &
                 ,' total run time = ',trun 
@@ -175,7 +175,7 @@ program pepcb
            endif
         end do
         if (beam_config==5 .or. beam_config==6) then 
-           write(6,'(5(a,f8.2/))') 'Laser amplitude =',sqrt(I_laser) &
+           write(ifile,'(5(a,f8.2/))') 'Laser amplitude =',sqrt(I_laser) &
                 , 'Pulse length',tpulse &
                 , 'Pulse width', sigma &
                 , 'Focal position',focus(1) &
@@ -237,7 +237,8 @@ program pepcb
 
      if (my_rank==0 .and. debug_level .ge.0 .and. mod(itime,iprot).eq.0) then
         irecord = irecord+1
-        do ifile = 6,15,9
+!        do ifile = 6,15,9
+        ifile=15
         write(ifile,'(//a/)') 'Timing:  Routine   time(s)  percentage'
         write(ifile,'(a20,2f12.3,a1)') 'Domains: ',t_domain,100*t_domain/ttot
         write(ifile,'(a20,2f12.3,a1)') 'Tree-build: ',t_build(1),100*t_build(1)/ttot
@@ -255,7 +256,7 @@ program pepcb
         write(ifile,'(a20/a5,7a12/i5,7f12.3)') 'Timing format:', &
              ' #CPU','domains','build',' prefetch','walk-local','walk-comm','force','tot' &
 	  ,n_cpu,t_domain,SUM(t_build),t_prefetch,t_walk,t_walkc,t_force,ttot
-	end do
+!	end do
         t_record(irecord) = ttot
      endif
 
@@ -307,11 +308,12 @@ endif
   t_end_prog=MPI_WTIME()
 
   if (my_rank==0) then
-	
-     write(*,'(a20,2f12.3)') 'Loop total, average: ',t_loop, t_loop/irecord
-     write(*,'(a20,2f12.3)') 'Loop+diags, average: ',t_end_loop-t_start_loop,(t_end_loop-t_start_loop)/nt
-     write(*,'(a20,i8)') '# timesteps: ',nt
-     write (*,'(a20,f14.4)') 'Total run time: ',t_end_prog-t_start_prog
+    do ifile=6,24,18	
+     write(ifile,'(a20,2f12.3)') 'Loop total, average: ',t_loop, t_loop/irecord
+     write(ifile,'(a20,2f12.3)') 'Loop+diags, average: ',t_end_loop-t_start_loop,(t_end_loop-t_start_loop)/nt
+     write(ifile,'(a20,i8)') '# timesteps: ',nt
+     write (ifile,'(a20,f14.4)') 'Total run time: ',t_end_prog-t_start_prog
+    end do
   endif 
 
   ! End the MPI run

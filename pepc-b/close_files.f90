@@ -4,7 +4,7 @@ subroutine closefiles
 
   if (my_rank == 0) then
      close(15)
-     close(81)  ! particle dump 
+     close(24)
      close(70)
      close(71)
      close(75)

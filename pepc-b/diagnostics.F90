@@ -105,7 +105,8 @@ subroutine diagnostics
 
   if ((my_rank.eq.debug_rank .and. debug_tree > 0) .or. (nleaf+ntwig > .98*maxaddress)) then
 
-     do ifile = 6,15,9
+!     do ifile = 6,15,9
+        ifile=15
         write(ifile,'(/a,i4)') 'Tree stats for CPU ',debug_rank
         write(ifile,'(a50,2i10,a3,i8)') 'new npp, npart, (max): ',npp,npart,'/',nppm
         write(ifile,'(a50,3i8)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
@@ -128,7 +129,7 @@ subroutine diagnostics
         write (ifile,'(a50,i8,a3,i7)') 'Global max # multipole ships/cpu/iteration / limit',max_sum_ships,'/',size_fetch
 	write (ifile,'(a50,3f12.3)') 'Load imbalance percent,min,max: ',work_imbal,work_imbal_min,work_imbal_max
 	write (ifile,'(a50,f15.3,2i15)') 'Particle imbalance ave,min,max: ',part_imbal,part_imbal_min,part_imbal_max
-     end do
+!     end do
   endif
 
   if (part_imbal>5 .or. work_imbal_min < 0.1) then

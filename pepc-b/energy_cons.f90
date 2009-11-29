@@ -39,7 +39,7 @@ subroutine energy_cons(ekine,ekini,emag,ebeam)
   end select laser_energy
 
   if ( my_rank == 0 .and. debug_level.ge.1 ) then
-     do ifile = 6,15,9
+     do ifile = 6,24,18
         write (ifile,'(20x,3a20/6(a20,1pe18.8,8x,1pe12.5,8x,1pe12.5/),a20,1pe18.8)') &
 	     'norm  ','keV ','erg ', &
 	     ' P.E. = ',epot, epot*convert_keV, epot*convert_erg, &
