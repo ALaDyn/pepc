@@ -234,9 +234,7 @@ subroutine special_start(iconf)
            xt = 0.
            yt = 0.
            zt = 0.
-           r1 = 0.
-           
-
+           r1 = 0.           
 
            do while (.not.(r1 .gt. 0.1 .and. r1 .lt. 3))
               call par_rand(par_rand_res)
@@ -262,6 +260,45 @@ subroutine special_start(iconf)
         end do
      end do
 
+!!$  case(5)
+!!$       
+!!$     if (my_rank == 0) write(*,*) "Using special start... case 5: Sphere"
+!!$
+!!$     do i = 1,npart_total
+!!$
+!!$        if(i.eq.1) then
+!!$           cth = mone
+!!$           sth = zero
+!!$           cphi = one
+!!$           sphi = zero
+!!$           b = cphi
+!!$           c = sphi
+!!$        elseif(i.eq.npart_total) then
+!!$           cth = one
+!!$           sth = zero
+!!$           cphi = one
+!!$           sphi = zero
+!!$        else
+!!$           cth = dble(2*i-npart_total-1)/dble(npart_total-1)
+!!$           sth = two*(sqrt(dble(i-1)/dble(npart_total-1))*sqrt(dble(npart_total-i)/dble(npart_total-1)))
+!!$           s = a*sqrt(dble(npart_total-1)/(dble(i-1)*dble(npart_totaly-i)))
+!!$           cphi = b*cos(s)-c*sin(s)
+!!$           sphi = c*cos(s)+b*sin(s)
+!!$           b = cphi
+!!$           c = sphi
+!!$        endif
+!!$        if (mod(i+my_rank,n_cpu) == 0) then
+!!$           j = j+1
+!!$           x(i) = sth*cphi 
+!!$           y(i) = sth*sphi 
+!!$           z(i) = cth
+!!$           ux(i) = 0.
+!!$           uy(i) = 0.
+!!$           uz(i) = 0.
+!!$           if (
+!!$        end if
+!!$     end do
+     
   end select config
 
   q(1:nep)                  = qe        ! plasma electrons

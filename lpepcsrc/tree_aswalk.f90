@@ -123,7 +123,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
 
   integer :: periodic_neighbour(3) ! stores the index offset of the nearest image's cell as an integer(3) array
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   t1 = MPI_WTIME()
 
   !
@@ -175,7 +174,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
      !     hops(1) = 500
   endif
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up  
   t2 = MPI_WTIME()
   
   !if (me ==0) write(*,*) t2-t1

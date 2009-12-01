@@ -8,7 +8,9 @@ PREFIX = ..
 
 include ../makefile.defs
 
-LIBPEPC   = -L../lpepcsrc/$(MACH) -llpepc
+FFLAGS += -I../lpepcsrc/$(MACH)
+
+LIBPEPC   = -L../lpepcsrc/$(MACH) -llpepc ../sl_pepc/libsl.a
 LIBS      = $(LIBPEPC)
 
 .SUFFIXES: .f90
@@ -75,6 +77,7 @@ lpepc:  ../lpepcsrc/$(MACH)/liblpepc.a
 	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/treevars.mod $(PREFIX)/pepc-e/treevars.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/tree_utils.mod $(PREFIX)/pepc-e/tree_utils.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/utils.mod $(PREFIX)/pepc-e/utils.mod
+	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/timings.mod $(PREFIX)/pepc-e/timings.mod
 
 clean:
 	$(RM) $(MACH)/*.o  *% *~ bin/key rand *.o *.pif core *.mod $(MACH)/*.mod $(EXECNAME)

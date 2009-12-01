@@ -1,0 +1,62 @@
+# This is a Makefile!
+
+DEBUG_HOSTS=
+
+ifneq ($(findstring $(shell uname -n),$(DEBUG_HOSTS)),)
+ DEBUG=5
+endif
+
+CC=icc
+LD=icc
+LDC=icc
+MPICC=mpicc
+MPILD=mpicc
+MPILDC=mpicc
+
+CXX=icpc
+LDCXX=icpc
+MPICXX=mpicxx
+MPILDCXX=mpicxx
+
+F77=ifort
+LDF77=ifort
+MPIF77=mpif77
+MPILDF77=mpif77
+
+F90=ifort
+LDF90=ifort
+MPIF90=mpif90
+MPILDF90=mpif90
+
+CFLAGS+=-DJUROPA
+CXXFLAGS+=-DJUROPA
+FFLAGS+=-DJUROPA
+
+ifneq ($(DEBUG),)
+ CFLAGS+=-debug -diag-enable warn
+ CXXFLAGS+=-debug -diag-enable warn
+ FFLAGS+=-debug -diag-enable warn
+ LDFLAGS+=-debug -diag-enable warn
+else
+ CFLAGS+=-O3
+ CXXFLAGS+=-O3
+ FFLAGS+=-O3
+ LDFLAGS+=-O3
+endif
+
+#SOFLAGS+=-shared -Wl,-soname,$@
+
+
+AR=ar
+CAT=cat
+CLEAR=clear
+CP=cp
+CPP=cpp
+ECHO=echo
+ECHO_N=printf
+PRINTF=printf
+GREP=grep
+MKDIR=mkdir
+MKDIR_P=mkdir -p
+RM=rm -f
+SED=sed

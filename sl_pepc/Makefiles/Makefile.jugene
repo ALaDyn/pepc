@@ -1,0 +1,65 @@
+# This is a Makefile!
+
+#DEBUG_HOSTS=
+
+ifneq ($(findstring $(shell uname -n),$(DEBUG_HOSTS)),)
+ DEBUG=5
+endif
+
+CC=xlc
+LD=xlc
+LDC=xlc
+MPICC=mpcc
+MPILD=mpcc
+MPILDC=mpcc
+
+CXX=xlC
+LDCXX=xlC
+MPICXX=mpCC
+MPILDCXX=mpCC
+
+F77=xlf
+LDF77=xlf
+MPIF77=mpxlf
+MPILDF77=mpxlf
+
+F90=xlf90
+LDF90=xlf90
+MPIF90=mpxlf90
+MPILDF90=mpxlf90
+
+CFLAGS+=-DJUGENE
+CXXFLAGS+=-DJUGENE
+FFLAGS+=-DJUGENE
+
+ifneq ($(DEBUG),)
+ CFLAGS+=-g -qfullpath -DDEBUG
+ CXXFLAGS+=-g -qfullpath -DDEBUG
+ FFLAGS+=-g -qfullpath -DDEBUG
+ LDFLAGS+=-g -qfullpath
+else
+ CFLAGS+=-O3
+ CXXFLAGS+=-O3
+ FFLAGS+=-O3
+ LDFLAGS+=-O3
+endif
+
+SOFLAGS+=-qmkshrobj
+
+
+AR=ar
+CAT=cat
+CLEAR=clear
+CP=cp
+CPP=cpp
+ECHO=echo
+ECHO_N=printf
+PRINTF=printf
+GREP=grep
+MKDIR=mkdir
+MKDIR_P=mkdir -p
+RM=rm -f
+SED=sed
+
+
+ALL_AS_MPI=1

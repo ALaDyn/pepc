@@ -22,15 +22,13 @@ program pepce
   use physvars
   use utils
   use benchmarking
+  use timings
   implicit none
   include 'mpif.h'
 
   ! timing stuff
   real*8 :: t0, t1, t2, t3, t4, ttot
-  real*8 :: t_domain=0., t_build=0., t_branches=0., t_fill=0., t_properties=0., t_restore=0., t_begin=0., &
-	    t_walk=0., t_walkc=0., t_force=0., &
-	    t_integral, t_mpi=0., t_end=0., t_prefetch=0., t_all=0.
-  integer :: tremain ! remaining wall_clock seconds
+
   integer :: ierr, lvisit_active, ifile, debug, i, k, init_mb, nppm_ori
   integer :: p
   character(50) :: cme, cfile
@@ -48,8 +46,8 @@ program pepce
   call benchmark_pre
 
   ! Time stamp
-  if (my_rank==0) call stamp(6,1)
-  if (my_rank==0) call stamp(15,1)
+!  if (my_rank==0) call stamp(6,1)
+!  if (my_rank==0) call stamp(15,1)
 
   ! Set up O/P files
   call openfiles
@@ -83,22 +81,18 @@ program pepce
 
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      t0 = MPI_WTIME()
-
      t1 = MPI_WTIME()
 
      call pepc_fields(np_local,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult,fetch_mult,mac, theta, eps, force_const, err_f, xl, yl, zl, itime, scheme, &
-	              t_begin,t_domain,t_build,t_branches,t_fill,t_properties,t_prefetch, &
-		      t_integral,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
-
+              	      np_mult,fetch_mult,mac, theta, eps, force_const, err_f, xl, yl, zl, &
+                      itime, scheme, choose_sort,weighted,init_mb)
       
 
     ! Integrator
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      t2 = MPI_WTIME()
-!     t_restore = t2 - t1    
 
      call velocities(1,np_local,dt)  ! pure ES, NVT ensembles
      call push_x(1,np_local,dt)  ! update positions
@@ -118,10 +112,12 @@ program pepce
 
      if (my_rank==0) then
         ttot = t3-t0 ! total loop time without diags
+        open(112,file = 'timing.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
 	if (itime==1) then
-	   write(112,*) "# trun,t_domain,t_build,t_branches,t_fill,t_properties,t_walk,t_walkc,t_force,t_restore,t_all,ttot"
+	   write(112,*) "# trun,t_domain,t_allocate,t_build,t_branches,t_fill,t_properties,t_walk,t_walkc,t_force,t_restore,t_deallocate,t_all,ttot"
 	endif
-        write(112,*) trun,t_domain,t_build,t_branches,t_fill,t_properties,t_walk,t_walkc,t_force,t_restore,t_all,ttot
+        write(112,*) trun,t_domain,t_allocate,t_build,t_branches,t_fill,t_properties,t_walk,t_walkc,t_force,t_restore,t_deallocate,t_all,ttot
+        close(112)
         write(*,*) "t_all ", t_all
         write(*,*) "ttot ", ttot
         write(*,*) "ttot-t_all ", ttot-t_all

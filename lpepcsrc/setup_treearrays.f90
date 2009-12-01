@@ -99,7 +99,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 !  else if (np_mult<0) then 
 !    nppm = abs(np_mult)*max(npartm/num_pe,1000) ! allow 50% fluctuation
   else
-    nppm = 1.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+    nppm = 2*max(npartm/num_pe,1000) ! allow 50% fluctuation
   endif
   
   nppm_ori = nppm

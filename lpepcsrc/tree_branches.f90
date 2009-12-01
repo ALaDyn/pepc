@@ -13,9 +13,12 @@ subroutine tree_branches
 
   use treevars
   use tree_utils
+  use timings
 
   implicit none
   include 'mpif.h'
+
+  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
 
 !  integer, parameter :: size_t=1000
   integer*8, dimension(nbranch_max) ::  resolve_key, search_key
@@ -35,6 +38,9 @@ subroutine tree_branches
 
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: startlevel = 2  ! Min permitted branch level
+
+  ts1b = MPI_WTIME()
+  ta1b = MPI_WTIME()
 
 !  branch_debug=.true.
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
@@ -135,9 +141,11 @@ subroutine tree_branches
 
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after local branches     ')
 
+  ta1e = MPI_WTIME()
+  t_branches_find = ta1e-ta1b  
+  ta1b = MPI_WTIME()
 
   ! send copies of branch nodes to all other PEs
-
 
   ! first need to find number of branches to be gathered from each PE:
   ! do this by first collecting nbranch values on root.
@@ -201,6 +209,10 @@ subroutine tree_branches
      write(ipefile,*) '# branch twigs to be added: ',ntwig_check,' node>0 ',nleaf_check,' branch_leaves:',nleaf_check2 
   endif
 
+  ta1e = MPI_WTIME()
+  t_branches_exchange = ta1e-ta1b  
+  ta1b = MPI_WTIME()
+
   ! Create entries in #table for remote branch nodes
 
   nres = 0
@@ -249,8 +261,10 @@ subroutine tree_branches
   nleaf = nleaf + newleaf  ! Total # leaves/twigs in local #table
   ntwig = ntwig + newtwig
 
-
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
+  ta1e = MPI_WTIME()
+  t_branches_integrate = ta1e-ta1b  
+  ts1e = MPI_WTIME()
+  call MPI_REDUCE(ts1e-ts1b,t_branches,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
 
 end subroutine tree_branches
 

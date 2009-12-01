@@ -45,6 +45,4 @@ subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
      pelabel(irnkl(i)) = get_parts(i)%label
   enddo
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-
 end subroutine restore

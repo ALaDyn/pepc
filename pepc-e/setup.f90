@@ -38,7 +38,7 @@ subroutine setup(init_mb)
 
   namelist /pepcdata/ nep, nip, np_mult, fetch_mult, ne, ni, &
        mac, theta, mass_ratio, q_factor, eps, &
-       system_config, target_geometry, ispecial, &
+       system_config, target_geometry, ispecial, choose_sort, weighted, &
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
        xl, yl, zl, displace, bond_const, fnn, rho_min, lolam, &
@@ -63,6 +63,9 @@ subroutine setup(init_mb)
   fetch_mult      = 3
 
   ispecial        = 1
+
+  choose_sort = 0
+  weighted = 0
 
   scheme          = 0
 
