@@ -177,7 +177,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   ! Use Parallel Sort by Regular Sampling (PSRS) 
 
   ta1e = MPI_WTIME()
-  t_domain_keys = ta1e-ta1b  
+  t_domains_keys = ta1e-ta1b  
   ta1b = MPI_WTIME()
 
   if (domain_debug .and. me==proc_debug) then
@@ -269,7 +269,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
         end if
 
         ta2e = MPI_WTIME()
-        t_domain_sort_pure = ta2e-ta2b
+        t_domains_sort_pure = ta2e-ta2b
 
         !     write(*,*) me,npp,npold,npnew
         do i=1,npold
@@ -323,7 +323,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
      enddo
 
      ta1e = MPI_WTIME()
-     t_domain_sort = ta1e-ta1b
+     t_domains_sort = ta1e-ta1b
      ta1b = MPI_WTIME()
 
      npp = npnew
@@ -373,11 +373,11 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   endif
 
   ta1e = MPI_WTIME()
-  t_domain_ship = ta1e - ta1b
+  t_domains_ship = ta1e - ta1b
   ta1b = MPI_WTIME()
 
   if (me .eq. -1) then
-     write (*,*) 'sorting: ', t_domain_ship
+     write (*,*) 'sorting: ', t_domains_ship
   endif
 
   ! gather workload information
@@ -588,9 +588,9 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   endif
 
   ta1e = MPI_WTIME()
-  t_domain_bound = ta1e - ta1b
+  t_domains_bound = ta1e - ta1b
   ts1e = MPI_WTIME()
-  call MPI_REDUCE(ts1e-ts1b,t_domain,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  t_domains = ts1e-ts1b
 
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | ..done'
   !POMP$ INST END(sort)

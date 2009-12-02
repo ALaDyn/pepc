@@ -1,14 +1,17 @@
 module timings
 
   ! global timings
-  real*8 :: t_domain=0., t_allocate=0., t_build=0., t_branches=0., t_fill=0., t_properties=0., t_restore=0., &
+  real*8 :: t_domains=0., t_allocate=0., t_build=0., t_branches=0., t_fill=0., t_properties=0., t_restore=0., &
             t_walk=0., t_walkc=0., t_force=0., t_deallocate=0., t_all=0.
+  real*8 :: t0_domains=0., t0_allocate=0., t0_build=0., t0_branches=0., t0_fill=0., t0_properties=0., t0_restore=0., &
+            t0_walk=0., t0_walkc=0., t0_force=0., t0_deallocate=0., t0_all=0.
+
 
   ! fields internal
   real*8 :: t_fields_begin=0., t_fields_tree=0., t_fields_nshort=0., t_fields_passes=0., t_fields_stats=0., t_restore_async
   
   ! tree_domains
-  real*8 :: t_domain_keys=0., t_domain_sort=0., t_domain_sort_pure=0., t_domain_ship=0.,t_domain_bound=0.
+  real*8 :: t_domains_keys=0., t_domains_sort=0., t_domains_sort_pure=0., t_domains_ship=0.,t_domains_bound=0.
 
   ! tree_allocate
   real*8 :: t_allocate_async=0.

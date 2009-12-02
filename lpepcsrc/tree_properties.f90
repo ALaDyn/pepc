@@ -487,6 +487,7 @@ subroutine tree_properties
   ta1e = MPI_WTIME()
   t_props_global = ta1e-ta1b  
   ts1e = MPI_WTIME()
-  call MPI_REDUCE(ts1e-ts1b,t_properties,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  t_properties = ts1e-ts1b
+
 
 end subroutine tree_properties

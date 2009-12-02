@@ -114,13 +114,13 @@ program pepce
         ttot = t3-t0 ! total loop time without diags
         open(112,file = 'timing.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
 	if (itime==1) then
-	   write(112,*) "# trun,t_domain,t_allocate,t_build,t_branches,t_fill,t_properties,t_walk,t_walkc,t_force,t_restore,t_deallocate,t_all,ttot"
+	   write(112,*) "# trun,t0_domains,t0_allocate,t0_build,t0_branches,t0_fill,t0_properties,t0_walk,t0_walkc,t0_force,t0_restore,t0_deallocate,t0_all,ttot"
 	endif
-        write(112,*) trun,t_domain,t_allocate,t_build,t_branches,t_fill,t_properties,t_walk,t_walkc,t_force,t_restore,t_deallocate,t_all,ttot
+        write(112,*) trun,t0_domains,t0_allocate,t0_build,t0_branches,t0_fill,t0_properties,t0_walk,t0_walkc,t0_force,t0_restore,t0_deallocate,t0_all,ttot
         close(112)
-        write(*,*) "t_all ", t_all
+        write(*,*) "t_all ", t0_all
         write(*,*) "ttot ", ttot
-        write(*,*) "ttot-t_all ", ttot-t_all
+        write(*,*) "ttot-t_all ", ttot-t0_all
      endif
 
   end do

@@ -141,7 +141,8 @@ subroutine tree_allocate(theta,init_mb)
   ta1e = MPI_WTIME()
   t_allocate_async = ta1e-ta1b
   ts1e = MPI_WTIME()
-  call MPI_REDUCE(ts1e-ts1b,t_allocate,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  t_allocate = ts1e-ts1b
+
 
 end subroutine tree_allocate
 

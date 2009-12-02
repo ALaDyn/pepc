@@ -267,7 +267,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   ta1e = MPI_WTIME()
   t_restore_async = ta1e-ta1b
   ts2e = MPI_WTIME()
-  call MPI_REDUCE(ts2e-ts2b,t_restore,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  t_restore = ts2e-ts2b 
   ta1b = MPI_WTIME()
 
   if (tree_debug .and. mod(itime,iprot)==0) then
@@ -320,8 +320,22 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   call tree_deallocate(nppm_ori)
 
   ts1e = MPI_WTIME()
-  call MPI_REDUCE(ts1e-ta1b,t_deallocate,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  t_deallocate = ts1e-ts1b
   t_all = ts1e-ts1b
+
+  call MPI_REDUCE(t_domains,t0_domains,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_build,t0_build,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_allocate,t0_allocate,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_branches,t0_branches,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_fill,t0_fill,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_properties,t0_properties,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  t0_walk = t_walk
+  t0_walkc = t_walkc
+  t0_force = t_force
+  call MPI_REDUCE(t_restore,t0_restore,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_deallocate,t0_deallocate,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_all,t0_all,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+
 
   write(cfile,'(a,i6.6,a)') "load_", me, ".dat"  
   open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
@@ -331,14 +345,14 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   write(cfile,'(a,i6.6,a)') "timing_", me, ".dat"  
   open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
   write(60,*) itime,' ',t_fields_begin,' ',&
-       t_domain_keys,' ',t_domain_sort,' ',t_domain_ship,' ',t_domain_bound,' ',&
+       t_domains_keys,' ',t_domains_sort,' ',t_domains_ship,' ',t_domains_bound,' ',&
        t_allocate_async,' ',&
        t_build_neigh,' ',t_build_part,' ',t_build_byte,' ',&
        t_branches_find,' ',t_branches_exchange,' ',t_branches_integrate,' ',&
        t_fill_local,' ',t_fill_global,' ',&
        t_props_leafs,' ',t_props_twigs,' ',t_props_branches,' ',t_props_global,' ',&
        t_fields_nshort,' ',t_fields_passes,' ',t_restore_async,' ',t_fields_stats,' ',&
-       t_domain_sort_pure,' ',t_walk,' ',t_walkc,' ',t_force
+       t_domains_sort_pure,' ',t_walk,' ',t_walkc,' ',t_force
   close(60)   
 
 end subroutine pepc_fields
