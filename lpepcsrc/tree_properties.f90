@@ -45,6 +45,8 @@ subroutine tree_properties
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: max_nbranch
 
+  character(30) :: cfile
+
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()  
 
@@ -169,7 +171,7 @@ subroutine tree_properties
   end do
 
   call sort(key_twig(1:ntwig_domain))
-
+ 
   if (props_debug) then
 !     write (ipefile,*) 'Twigs contained in local branch list: ',key_twig(1:ntwig_domain)
      write (ipefile,*) '# Twigs contained in local branch list: ',ntwig_domain

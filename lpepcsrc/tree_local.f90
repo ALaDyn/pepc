@@ -10,7 +10,7 @@ subroutine tree_local
   real*8 :: gamma, vx, vy, vz
   integer :: i, k, j, i1, i2, ierr, level_match, level_diff, ibit, iend, level, nbound, newleaf, nres, ncoll, &
        link_addr, ipoint, parent_addr, childbyte, treelevel, ncheck, nsubset, newsub, cchild, nchild, addr_leaf, &
-       p_leaf, ntwig_domain, node_leaf, addr_twig, addr_child
+       p_leaf, ntwig_domain, node_leaf, addr_twig, addr_child, nsearch
   integer*8 ::  key_lo, cell1, cell2, parent_key, keymin, keymax
   logical :: resolved
 
@@ -25,6 +25,8 @@ subroutine tree_local
   integer, dimension(0:maxaddress) :: cell_addr
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
   integer*8, dimension(nbranch_max) :: search_key, resolve_key
+
+  character(30) :: cfile
 
 
   integer,external :: key2addr        ! Mapping function to get hash table address from key
@@ -403,12 +405,8 @@ subroutine tree_local
               nbranch = nbranch + 1
               pebranch(nbranch) = search_key(i)
               ncheck = ncheck +  htable( key2addr( search_key(i),'BRANCHES: ncheck' ) )%leaves  ! Augment checksum
-              if ( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node <= 0 ) then ! for properties: if branch is a twig ... 
-                 ntwig_domain = ntwig_domain + 1 
-                 res_key(ntwig_domain) = search_key(i)
-              end if                
            else 
-              ! end node: check for complete twigs; otherwise subdivide
+               ! end node: check for complete twigs; otherwise subdivide
               cchild = htable( key2addr( search_key(i),'BRANCHES: cchild' ) )%childcode   !  Children byte-code
               nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
               sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract sub key from byte code
@@ -479,8 +477,8 @@ subroutine tree_local
   size_node = 0.
 
 
-  !  Start with *local* leaf properties, nleaf is still local
-  do i=1, nleaf
+  !  Start with *local* leaf properties
+  do i=1, nleaf_me
      addr_leaf = key2addr( leaf_key(i),'PROPERTIES: local' )   !  Table address
      p_leaf = htable( addr_leaf )%node   !  Local particle index  - points to properties on PE
      node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves 
@@ -531,8 +529,42 @@ subroutine tree_local
 
   !  Accumulate local twig properties
   !  Make list of twig nodes contained within local branch list (pebranch).  Recursive search adapted from make_branches.
-  call sort(res_key(1:ntwig_domain))
 
+  search_key(1:nbranch) = pebranch(1:nbranch)            ! start with branch list
+  ncheck = 0       ! Checksum
+  newsub = 0
+  ntwig_domain = 0  ! # twigs contained in branch list
+  nsearch = nbranch
+
+  do while ( ncheck < nleaf_me )     ! Repeat until all local leaves found
+
+     do i=1,nsearch
+        if (  htable( key2addr( search_key(i),'PROPERTIES: twigs' ) )%node > 0 ) then
+           !  leaf,  so skip and increment checksum
+           ncheck = ncheck +  1  
+
+        else 
+           ! twig: add to list and  subdivide
+           ntwig_domain = ntwig_domain + 1
+           res_key(ntwig_domain) = search_key(i)
+
+           cchild = htable( key2addr( search_key(i),'PROPERTIES: tw2' ) )%childcode   !  Children byte-code
+           nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
+           sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code
+
+           resolve_key(newsub+1:newsub+nchild) = IOR( ishft( search_key(i),3 ), sub_key(1:nchild) ) ! Add keys of children to new search list
+           newsub = newsub + nchild
+
+        endif
+     end do
+
+     search_key(1:newsub) = resolve_key(1:newsub)        ! Put children into search list
+     nsearch = newsub  ! # new nodes to search
+     newsub = 0
+  end do
+
+  call sort(res_key(1:ntwig_domain))
+  
   if (props_debug) then
      write (ipefile,*) '# Twigs contained in local branch list: ',ntwig_domain
      write (ipefile,*) 'Found ',ncheck,' out of ',nleaf,' leaves'
