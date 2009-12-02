@@ -1,3 +1,3 @@
-To compile this program please define makefile.defs in the root directory and Makefile.defs in sl_pepc.
+To compile this program please define makefile.defs in the root directory and Makefile.in in sl_pepc.
 
 Some machines defs are already predefined and can be found in makefiles/ and sl_pepc/Makefiles/
