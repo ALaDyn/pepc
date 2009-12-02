@@ -14,7 +14,7 @@
 
 subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, t_np_mult,t_fetch_mult, &
-     mac, theta, eps, force_const, err_f, xl, yl, zl, itime, walk_scheme, choose_sort,weighted, init_mb)
+     mac, theta, eps, force_const, err_f, xl, yl, zl, itime, walk_scheme, choose_sort,weighted, choose_build, init_mb)
 
   use treevars
   use utils
@@ -29,7 +29,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   real, intent(in) :: eps         ! potential softening distance
   real, intent(in) :: xl, yl, zl         ! box dimensions
   integer, intent(in) :: itime  ! timestep
-  integer, intent(in) :: mac, choose_sort, weighted
+  integer, intent(in) :: mac, choose_sort, weighted, choose_build
   real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
 !  real*8, intent(in),  dimension(np_local) :: p_vx, p_vy, p_vz  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
   real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
@@ -124,16 +124,23 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   ! Domain decomposition: allocate particle keys to PEs
   call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, choose_sort, weighted)  
-
   call tree_allocate(theta,init_mb)
 
-  call tree_build      ! Build trees from local particle lists
+  if (choose_build == 0) then
 
-  call tree_branches   ! Determine and concatenate branch nodes
+     call tree_build      ! Build trees from local particle lists
+     call tree_branches   ! Determine and concatenate branch nodes
+     call tree_fill       ! Fill in remainder of local tree
+     call tree_properties ! Compute multipole moments for local tree
 
-  call tree_fill       ! Fill in remainder of local tree
+  else   
 
-  call tree_properties ! Compute multipole moments for local tree
+     call tree_local
+     call tree_exchange
+     call tree_global
+
+  end if
+
 
   ta1e = MPI_WTIME()
   t_fields_tree = ta1e-ta1b
