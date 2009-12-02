@@ -141,6 +141,15 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   end if
 
+  write(cfile,'(a,i6.6,a)') "diag_", me, ".dat"  
+  open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+  write(60,*) itime,nbranch,nbranch_sum,nleaf,nleaf_me,ntwig,ntwig_me,nnodes
+  do i=1,nbranch_sum
+     write(60,*) branch_key(i),htable( key2addr( branch_key(i),'EXCHANGE: info' ) )%node,htable( key2addr( branch_key(i),'EXCHANGE: info' ) )%leaves
+  end do
+  close(60)   
+ 
+
 
   ta1e = MPI_WTIME()
   t_fields_tree = ta1e-ta1b
