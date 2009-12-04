@@ -166,7 +166,7 @@ program pepcb
                 ,' total run time = ',trun 
         end do
         do ifile = 6,24,18
-           if (debug_level >= 2)  then
+           if (debug_level >= 2 .and. beam_config.ne.0)  then
               write(ifile,'(//(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
                     ' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
                    ,' amplitude = ',sqrt(I_laser) &
