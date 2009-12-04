@@ -141,10 +141,10 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)   ! Synchronize first
 
   if (domain_debug .and. me==proc_debug) then
-     write (*,*) 'MPI psrssort() commencing'
-     write (*,*) 'iproc=',me
-     write (*,*) 'num_pe=',num_pe
-     write (*,*) 'npp=',npp
+     write (15,*) 'MPI psrssort() commencing'
+     write (15,*) 'iproc=',me
+     write (15,*) 'num_pe=',num_pe
+     write (15,*) 'npp=',npp
   endif
 
   iteration = 0
@@ -241,13 +241,13 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
      if (me .ne. num_pe-1) then
         !    if (me == 50 ) then
         if (domain_debug .and. tmp .lt. w1(npnew)) then          ! still something to sort
-           write (*,'(a,i3,a1,2z20)') 'w1(npnew), w1(1) from',me+1, '=',w1(npnew),tmp
+           write (15,'(a,i3,a1,2z20)') 'w1(npnew), w1(1) from',me+1, '=',w1(npnew),tmp
            errcount = errcount + 1  
         endif
      endif
 
      if (errcount .ne. 0 .and. domain_debug) then
-        write (ipefile,*) 'errcount=',errcount
+        write (15,*) 'errcount=',errcount
      endif
 
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
@@ -334,7 +334,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
 
 ! TODO: need 'ripple' here up to next large gap in keys i+1->npp
 
-        write(*,'(a15,i5,a8,i3,a30,2i6,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
+        write(15,'(a15,i5,a8,i3,a30,2i6,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
 	 ' WARNING: identical keys found for particles  ',i,npp,pelabel(i-1),pelabel(i),pelabel(i+1), &
 	 ' - upper increased to: ',pekey(i),' next key: ',pekey(i+1)
 !        if (x(i) == x(i-1)) write(*,*) "HELP"
@@ -353,7 +353,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
       identical_keys=.false.
       if (pekey(ipp+1) == pekey(ipp)) then
          pekey(ipp) = pekey(ipp)-1
-        write(*,'(a15,i5,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
+        write(15,'(a15,i5,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
 	' WARNING: identical keys found for particles  ',pelabel(ipp+1),pelabel(ipp), &
 	'LPEPC | Lower key decreased to:  ',pekey(ipp)
         identical_keys=.true.

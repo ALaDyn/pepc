@@ -41,7 +41,7 @@ subroutine tree_build
   logical :: resolved
 
 
-  if (me==0) write(*,'(a)') 'LPEPC | LOCAL BUILD'
+  if (me==0) write(6,'(a)') 'LPEPC | LOCAL BUILD'
 
   ! zero table: need list of 'live' addresses to speed up
   htable%node = 0

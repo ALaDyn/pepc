@@ -126,7 +126,7 @@ subroutine tree_branches
   end do
 
   if (ncheck > nleaf) then
-     write(*,*) 'Checksum ',ncheck,' /= # leaves on PE ',me
+     write(15,*) 'Checksum ',ncheck,' /= # leaves on PE ',me
   endif
 
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after local branches     ')
@@ -155,9 +155,9 @@ subroutine tree_branches
   nbranch_sum = SUM( nbranches(1:num_pe) )   ! Total # branches in tree
   igap(num_pe+1) = nbranch_sum
   if (me==0 .and. tree_debug) then
-    write(*,'(a50,3i8,a3,2i7)') 'LPEPC | BRANCHES: Local, max local, global # branches, (max): ', &
+    write(15,'(a50,3i8,a3,2i7)') 'LPEPC | BRANCHES: Local, max local, global # branches, (max): ', &
 	nbranch,MAXVAL(nbranches),nbranch_sum,'/',nbranch_local_max,nbranch_max
-!    write(*,'(a/(3i8))') 'Branch distribution',(i,nbranches(i),igap(i),i=1,num_pe)
+!    write(15,'(a/(3i8))') 'Branch distribution',(i,nbranches(i),igap(i),i=1,num_pe)
   endif
 
   ! now collect partial arrays together on each PE
