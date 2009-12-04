@@ -9,7 +9,7 @@ subroutine param_dump
 
 
   if (me==0) then
-     do ifile = 6,15,9
+     do ifile = 6,24,18
 
         write (ifile,'(a20,i4,a11)') ' Plasma config: ',plasma_config,plasma_configs(plasma_config)
         write (ifile,'(a20,i4,a11)') ' Target geometry: ',target_geometry,geometries(mod(target_geometry,10))
@@ -75,7 +75,6 @@ subroutine param_dump
         write (ifile,*) ' Particles per PE: ', npp
 
 
-! Tree stuff
         write (ifile,'(/a/a)') ' Switches:','--------'
         write (ifile,'(a20,l3)') ' Coulomb forces: ',coulomb
         write (ifile,'(a20,l3)') ' Lennard-Jones forces: ',lenjones
@@ -84,6 +83,7 @@ subroutine param_dump
         write (ifile,'(a20,l3)') ' restart: ',restart
         write (ifile,'(a20,l3)') ' ramp: ',ramp
 
+! Tree stuff
         write (ifile,'(a20,l3)') ' domain debug: ',domain_debug
         write (ifile,'(a20,l3)') ' walk debug: ',walk_debug
         write (ifile,'(a20,l3)') ' walk summary: ',walk_summary
@@ -96,8 +96,8 @@ subroutine param_dump
            write (ifile,'(/a)') 'Other inputs:'
            write(ifile,NML=pepcdata)
         else 
-           write (15,'(/a)') 'Other inputs:'
-!           write(15,NML=pepcdata)
+           write (24,'(/a)') 'Other inputs:'
+           write(24,NML=pepcdata)
         endif
 
 

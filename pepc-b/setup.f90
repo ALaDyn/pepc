@@ -110,7 +110,7 @@ subroutine setup
 
   ! Read actual inputs from namelist file
   open(10,file='run.h')
-  read (10,NML=pepcdata)
+  read(10,NML=pepcdata)
 
  ! # particles in primary target component
   npart_total = ni+ne

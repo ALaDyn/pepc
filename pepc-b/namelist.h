@@ -1,6 +1,3 @@
-
-
-
   namelist /pepcdata/ nep, nip, ne, ni, &
        theta, mac, nint_max, mass_ratio, mass_proton, eps, rho0, &
        plasma_config, target_geometry, velocity_config, ispecial, &
@@ -11,7 +8,8 @@
        beam_config_in, np_beam, np_error, idim, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
-       nt, dt, mc_steps, idump, ivis, ivis_fields, ivis_domains, iprot, itrack, ncpu_merge, ngx, ngy, ngz, &
+       nt, dt, mc_steps, idump, ivis, ivis_fields, ivis_domains, iprot, itrack, &
+       ncpu_merge, ngx, ngy, ngz, &
        vis_on, steering,  vis_select, mc_init, restart, scheme, particle_bcs, &
        coulomb,  bfields,  bonds, lenjones, target_dup, ramp, &
        debug_level, debug_tree, ncpu_merge, balance, ifreeze, walk_scheme, &

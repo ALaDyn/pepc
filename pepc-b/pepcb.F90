@@ -160,10 +160,12 @@ program pepcb
 
      !     tremain=llwrem(0)
      if (my_rank==0 ) then
-        do ifile = 6,24,18
+        do ifile = 6,24,9
            write(ifile,'(//a,i8,(3x,a,f8.2))') &
                 ' Timestep ',itime+itime_start &
                 ,' total run time = ',trun 
+        end do
+        do ifile = 6,24,18
            if (debug_level >= 2)  then
               write(ifile,'(//(3x,a,f8.2,a2,f8.2,a4)/4(a20,f9.3/))') &
                     ' tlaser = ',tlaser,' (',tlaser*convert_fs,' fs)' &
@@ -172,15 +174,14 @@ program pepcb
                    ,' spot size= ',sigma & 
                    ,' theta =  ',theta_beam 
               !                ,' remaining wall-clock time (s)= ',tremain 
-           endif
-        end do
-        if (beam_config==5 .or. beam_config==6) then 
-           write(ifile,'(5(a,f8.2/))') 'Laser amplitude =',sqrt(I_laser) &
+           else if (beam_config==5 .or. beam_config==6) then 
+             write(ifile,'(5(a,f8.2/))') 'Laser amplitude =',sqrt(I_laser) &
                 , 'Pulse length',tpulse &
                 , 'Pulse width', sigma &
                 , 'Focal position',focus(1) &
                 , 'Elapsed',tlaser 
-        endif
+           endif
+	end do
     endif
 
      ! Compute internal E-, B-fields and pot using tree algorithm
