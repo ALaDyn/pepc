@@ -56,7 +56,7 @@ subroutine predef_parts
   end do
   cdump(1:1) = achar(itime_start/10**5 + 48)
 
-  cinfile="data/parts_all_dump."//cdump(1:6)
+  cinfile="dumps/parts_dump."//cdump(1:6)
   call fsion_paropen_mpi(trim(cinfile),"br",MPI_COMM_WORLD,chunksize,fsblksize,me,sid)
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
