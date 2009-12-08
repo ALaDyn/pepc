@@ -21,6 +21,8 @@ subroutine tree_global
   integer, external :: key2addr        ! Mapping function to get hash table address from key
   integer*8, external :: next_node   ! Function to get next node key for local tree walk
 
+  character(30) :: cfile
+
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()
 
@@ -83,7 +85,7 @@ subroutine tree_global
         endif
 
         branch_addr(i) = key2addr( sub_key(i),'PROPERTIES: fill' )   !  branches' #table addresses
-        branch_node(i) = htable( branch_addr(i ) )%node
+        branch_node(i) = htable( branch_addr(i) )%node
         parent_addr(i) = key2addr( parent_key(i),'PROPERTIES:fill' )   ! parents' #table addresses
         parent_node(i) = htable( parent_addr(i) )%node          ! parents' node numbers
         
@@ -149,8 +151,8 @@ subroutine tree_global
 
 ! Multipole extent
      	size_node( parent_node(i) ) = size_node( parent_node(i) ) + size_node(branch_node(i))
-     end do
 
+     end do
 
      nparent = nuniq
   end do

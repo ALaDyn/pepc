@@ -385,8 +385,6 @@ subroutine tree_local
   nbranch = 0
   newsub = 0
   level = 1
-  res_key = 0
-  ntwig_domain = 0  ! # twigs contained in branch list
 
   do while ( ncheck < nleaf )
 
@@ -535,6 +533,7 @@ subroutine tree_local
   newsub = 0
   ntwig_domain = 0  ! # twigs contained in branch list
   nsearch = nbranch
+  res_key = 0
 
   do while ( ncheck < nleaf_me )     ! Repeat until all local leaves found
 
@@ -664,8 +663,7 @@ subroutine tree_local
   ta1e = MPI_WTIME()
   t_props_twigs = ta1e-ta1b  
   ts1e = MPI_WTIME()
-  t_local = ts1e - ts1e
-  call check_table('end: tree_local')
+  t_local = ts1e - ts1b
 
 end subroutine tree_local
 

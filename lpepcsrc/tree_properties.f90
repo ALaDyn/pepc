@@ -265,6 +265,7 @@ subroutine tree_properties
      	size_node(node_twig(i)) = size_node(node_twig(i)) + size_node(node_child(j))
 
      end do
+
   end do
 
   ta1e = MPI_WTIME()
@@ -275,6 +276,7 @@ subroutine tree_properties
   ! Should now have multipole information up to branch list level(s).
   ! By definition, this is complete: each branch node is self-contained.
   ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
+
 
    ! Node #s of local branches
   local_node(1:nbranch) =  (/ ( htable( key2addr( pebranch(i),'PROPERTIES: branch' ) )%node, i=1,nbranch ) /) 
@@ -465,7 +467,6 @@ subroutine tree_properties
 ! Multipole extent
      	size_node( parent_node(i) ) = size_node( parent_node(i) ) + size_node(branch_node(i))
      end do
-
 
      nparent = nuniq
   end do

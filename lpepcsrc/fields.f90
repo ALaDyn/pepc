@@ -141,16 +141,6 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   end if
 
-  write(cfile,'(a,i6.6,a)') "diag_", me, ".dat"  
-  open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
-  write(60,*) nbranch,nleaf,nleaf_me,ntwig,ntwig_me,nnodes
-  write(60,*) charge(1),xcoc(1)
-!  do i=1,ntwig_domain
-!     write(60,*) 
-!  end do
-  close(60)
-
-
   ta1e = MPI_WTIME()
   t_fields_tree = ta1e-ta1b
   ta1b = MPI_WTIME()
@@ -213,7 +203,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   ta1e = MPI_WTIME()
   t_fields_nshort = ta1e-ta1b
   ta1b = MPI_WTIME()
-
+  
   do jpass = 1,max_npass
      !  make short-list
      nps = nshort(jpass)
@@ -336,15 +326,25 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   call tree_deallocate(nppm_ori)
 
   ts1e = MPI_WTIME()
-  t_deallocate = ts1e-ts1b
+  t_deallocate = ts1e-ta1b
   t_all = ts1e-ts1b
 
   call MPI_REDUCE(t_domains,t0_domains,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-  call MPI_REDUCE(t_build,t0_build,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
   call MPI_REDUCE(t_allocate,t0_allocate,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-  call MPI_REDUCE(t_branches,t0_branches,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-  call MPI_REDUCE(t_fill,t0_fill,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-  call MPI_REDUCE(t_properties,t0_properties,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  
+  if (choose_build == 0) then
+     call MPI_REDUCE(t_build,t0_build,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(t_branches,t0_branches,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(t_fill,t0_fill,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(t_properties,t0_properties,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  else
+     call MPI_REDUCE(t_local,t0_local,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(t_exchange,t0_exchange,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(t_global,t0_global,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     t_props_branches = 0.
+     t_props_global = 0.
+  end if
+
   t0_walk = t_walk
   t0_walkc = t_walkc
   t0_force = t_force
@@ -370,6 +370,17 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
        t_fields_nshort,' ',t_fields_passes,' ',t_restore_async,' ',t_fields_stats,' ',&
        t_domains_sort_pure,' ',t_walk,' ',t_walkc,' ',t_force
   close(60)   
+  
+!!$!  call diagnose_tree
+!!$  write(cfile,'(a,i6.6,a)') "diag_", me, ".dat"  
+!!$  open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+!!$!  write(60,*) nbranch,nleaf,nleaf_me,ntwig,ntwig_me,nnodes
+!!$!  write(60,*) xcoc(i),ycoc(i),zcoc(i),charge(i),xdip(i),ydip(i),zdip(i),xxquad(i),xyquad(i),zxquad(i),yzquad(i),yyquad(i),zzquad(i),size_node(i)
+!!$!  write(60,*) k,sum_fetches, sum_ships, nleaf_me, ntwig_me, nkeys_total,work_local
+!!$  do i=1,nbranch_sum    
+!!$     write(60,*) branch_key(i),htable( key2addr( branch_key(i),'BRANCHES: debug' ) )%node
+!!$  end do
+!!$  close(60)
 
 end subroutine pepc_fields
 

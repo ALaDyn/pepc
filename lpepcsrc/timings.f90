@@ -4,7 +4,7 @@ module timings
   real*8 :: t_domains=0., t_allocate=0., t_build=0., t_branches=0., t_fill=0., t_properties=0., t_restore=0., &
             t_walk=0., t_walkc=0., t_force=0., t_deallocate=0., t_all=0., t_local=0., t_exchange=0., t_global=0.
   real*8 :: t0_domains=0., t0_allocate=0., t0_build=0., t0_branches=0., t0_fill=0., t0_properties=0., t0_restore=0., &
-            t0_walk=0., t0_walkc=0., t0_force=0., t0_deallocate=0., t0_all=0.
+            t0_walk=0., t0_walkc=0., t0_force=0., t0_deallocate=0., t0_all=0., t0_local=0., t0_exchange=0., t0_global=0.
 
 
   ! fields internal

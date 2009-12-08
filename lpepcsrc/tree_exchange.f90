@@ -9,11 +9,15 @@ subroutine tree_exchange
 
   integer :: i,ierr, lnode, lcode, lleaves, hashaddr, newleaf, newtwig
   integer*8 :: lnext
-
-  real*8, dimension(nbranch_max) :: pack_size, get_size
-
+  
+  real*8, dimension(nbranch) :: pack_size
+  type (multipole), dimension(nbranch) :: pack_mult
+  real*8, dimension(nbranch_max) :: get_size
+  type (multipole), dimension(nbranch_max) :: get_mult
 
   integer,external :: key2addr        ! Mapping function to get hash table address from key
+
+  character(30) :: cfile
    
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()
@@ -23,13 +27,14 @@ subroutine tree_exchange
 	write(*,'(a)') 'LPEPC | EXCHANGE'
   endif
 
+ 
   ! Pack local branches for shipping
   do i=1,nbranch
      lnode = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%node
      lcode = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%childcode 
      lleaves = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%leaves 
      lnext = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%next
-     pack_child(i) = multipole(pebranch(i),lcode,lleaves,me,lnext,&
+     pack_mult(i) = multipole(pebranch(i),lcode,lleaves,me,lnext,&
           charge( lnode ), &
           abs_charge( lnode ), &
           xcoc( lnode), &
@@ -47,12 +52,12 @@ subroutine tree_exchange
           jx( lnode), &
           jy( lnode), &
           jz( lnode), &
-          magmx( lnode), &
-          magmy( lnode), &
-          magmz( lnode) )
+          xshift( lnode), &
+          yshift( lnode), &
+          zshift( lnode) )
      pack_size(i) = size_node(lnode)
   end do
-  
+
   call mpi_allgather( nbranch, 1, MPI_INTEGER, nbranches, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
   ! work out stride lengths so that partial arrays placed sequentially in global array
@@ -64,36 +69,35 @@ subroutine tree_exchange
   
   nbranch_sum = SUM( nbranches(1:num_pe) )   ! Total # branches in tree
   igap(num_pe+1) = nbranch_sum
-  if (me==0 .and. tree_debug) then
-    write(*,'(a50,3i8,a3,2i7)') 'LPEPC | BRANCHES: Local, max local, global # branches, (max): ', &
-	nbranch,MAXVAL(nbranches),nbranch_sum,'/',nbranch_local_max,nbranch_max
-!    write(*,'(a/(3i8))') 'Branch distribution',(i,nbranches(i),igap(i),i=1,num_pe)
-  endif
 
-  if (nbranch_sum > size_fetch) then
-     write(*,*) 'Too many branches for buffer on ',me,': nbranch_sum=',nbranch_sum,' size_fetch=',size_fetch
+  if (nbranch_sum > nbranch_max) then
+     write(*,*) 'Too many branches for buffer on ',me,': nbranch_sum=',nbranch_sum,' nbranch_max=',nbranch_max
      call MPI_ABORT(MPI_COMM_WORLD,ierr)
      stop
   end if
-  
-  call MPI_ALLGATHERV(pack_child, nbranch, MPI_TYPE_MULTIPOLE, get_child, nbranches, igap, MPI_TYPE_MULTIPOLE, MPI_COMM_WORLD, ierr)
+ 
+  call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_MULTIPOLE, get_mult, nbranches, igap, MPI_TYPE_MULTIPOLE, MPI_COMM_WORLD, ierr)
   call MPI_ALLGATHERV(pack_size, nbranch, MPI_REAL8, get_size, nbranches, igap, MPI_REAL8, MPI_COMM_WORLD, ierr)
 
   newleaf = 0
   newtwig = 0
 
+  ta1e = MPI_WTIME()
+  t_branches_exchange = ta1e-ta1b  
+  ta1b = MPI_WTIME()
+
   ! Integrate remote branches into local tree
   do i = 1,nbranch_sum
 
-     branch_key(i) = get_child(i)%key
+     branch_key(i) = get_mult(i)%key
 
-     if (get_child(i)%owner /= me) then
+     if (get_mult(i)%owner /= me) then
 
-        if ( get_child(i)%leaves == 1 ) then
+        if ( get_mult(i)%leaves == 1 ) then
            ! leaf
            newleaf = newleaf + 1 
            lnode = nleaf+newleaf    ! Create local label for remote branch         
-        else if ( get_child(i)%leaves > 1 ) then
+        else if ( get_mult(i)%leaves > 1 ) then
            ! twig
            newtwig = newtwig + 1
            lnode = -ntwig-newtwig    ! Create local label for remote branch
@@ -102,29 +106,31 @@ subroutine tree_exchange
            call MPI_ABORT(MPI_COMM_WORLD,ierr)
            stop       
         endif
-        call make_hashentry( get_child(i)%key, lnode , get_child(i)%leaves, get_child(i)%byte, get_child(i)%owner, hashaddr, ierr )
+        call make_hashentry( get_mult(i)%key, lnode , get_mult(i)%leaves, get_mult(i)%byte, get_mult(i)%owner, hashaddr, ierr )
  
-        charge( lnode ) = get_child(i)%q
-        abs_charge( lnode ) = get_child(i)%absq
-        xcoc( lnode ) = get_child(i)%xcoc
-        ycoc( lnode ) = get_child(i)%ycoc
-        zcoc( lnode ) = get_child(i)%zcoc
-        xdip( lnode ) = get_child(i)%xdip
-        ydip( lnode ) = get_child(i)%ydip
-        zdip( lnode ) = get_child(i)%zdip
-        xxquad( lnode ) = get_child(i)%xxquad
-        yyquad( lnode ) = get_child(i)%yyquad
-        zzquad( lnode ) = get_child(i)%zzquad
-        xyquad( lnode ) = get_child(i)%xyquad
-        yzquad( lnode ) = get_child(i)%yzquad
-        zxquad( lnode ) = get_child(i)%zxquad
-        magmx( lnode ) = get_child(i)%magmx
-        magmy( lnode ) = get_child(i)%magmy
-        magmz( lnode ) = get_child(i)%magmz
-        jx( lnode ) = get_child(i)%jx
-        jy( lnode ) = get_child(i)%jy
-        jz( lnode ) = get_child(i)%jz
-
+        charge( lnode ) = get_mult(i)%q
+        abs_charge( lnode ) = get_mult(i)%absq
+        xcoc( lnode ) = get_mult(i)%xcoc
+        ycoc( lnode ) = get_mult(i)%ycoc
+        zcoc( lnode ) = get_mult(i)%zcoc
+        xdip( lnode ) = get_mult(i)%xdip
+        ydip( lnode ) = get_mult(i)%ydip
+        zdip( lnode ) = get_mult(i)%zdip
+        xxquad( lnode ) = get_mult(i)%xxquad
+        yyquad( lnode ) = get_mult(i)%yyquad
+        zzquad( lnode ) = get_mult(i)%zzquad
+        xyquad( lnode ) = get_mult(i)%xyquad
+        yzquad( lnode ) = get_mult(i)%yzquad
+        zxquad( lnode ) = get_mult(i)%zxquad
+        magmx( lnode ) = get_mult(i)%magmx
+        magmy( lnode ) = get_mult(i)%magmy
+        magmz( lnode ) = get_mult(i)%magmz
+        jx( lnode ) = get_mult(i)%jx
+        jy( lnode ) = get_mult(i)%jy
+        jz( lnode ) = get_mult(i)%jz
+        xshift( lnode ) = get_mult(i)%magmx
+        yshift( lnode ) = get_mult(i)%magmy
+        zshift( lnode ) = get_mult(i)%magmz
      	size_node( lnode ) =  get_size(i)
        
      endif

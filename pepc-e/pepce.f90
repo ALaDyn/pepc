@@ -113,10 +113,17 @@ program pepce
      if (my_rank==0) then
         ttot = t3-t0 ! total loop time without diags
         open(112,file = 'timing.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
-	if (itime==1) then
-	   write(112,*) "# trun,t0_domains,t0_allocate,t0_build,t0_branches,t0_fill,t0_properties,t0_walk,t0_walkc,t0_force,t0_restore,t0_deallocate,t0_all,ttot"
-	endif
-        write(112,*) trun,t0_domains,t0_allocate,t0_build,t0_branches,t0_fill,t0_properties,t0_walk,t0_walkc,t0_force,t0_restore,t0_deallocate,t0_all,ttot
+        if (choose_build == 0) then
+           if (itime==1) then
+              write(112,*) "# trun,t0_domains,t0_allocate,t0_build,t0_branches,t0_fill,t0_properties,t0_walk,t0_walkc,t0_force,t0_restore,t0_deallocate,t0_all,ttot"
+           endif
+           write(112,*) trun,t0_domains,t0_allocate,t0_build,t0_branches,t0_fill,t0_properties,t0_walk,t0_walkc,t0_force,t0_restore,t0_deallocate,t0_all,ttot
+        else
+           if (itime==1) then
+              write(112,*) "# trun,t0_domains,t0_allocate,t0_local,t0_exchange,t0_global,t0_walk,t0_walkc,t0_force,t0_restore,t0_deallocate,t0_all,ttot"
+           endif
+           write(112,*) trun,t0_domains,t0_allocate,t0_local,t0_exchange,t0_global,t0_walk,t0_walkc,t0_force,t0_restore,t0_deallocate,t0_all,ttot
+        end if
         close(112)
         write(*,*) "t_all ", t0_all
         write(*,*) "ttot ", ttot
