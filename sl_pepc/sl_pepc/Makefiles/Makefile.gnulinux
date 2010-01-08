@@ -1,0 +1,61 @@
+# This is a Makefile!
+
+#DEBUG_HOSTS=
+
+ifneq ($(findstring $(shell uname -n),$(DEBUG_HOSTS)),)
+ DEBUG=5
+endif
+
+CC=gcc
+LD=gcc
+LDC=gcc
+MPICC=mpicc
+MPILD=mpicc
+MPILDC=mpicc
+
+CXX=g++
+LDCXX=g++
+MPICXX=mpicxx
+MPILDCXX=mpicxx
+
+F77=gfortran
+LDF77=gfortran
+MPIF77=mpif77
+MPILDF77=mpif77
+
+F90=gfortran
+LDF90=gfortran
+MPIF90=mpif90
+MPILDF90=mpif90
+
+CFLAGS+=-DGNULINUX
+CXXFLAGS+=-DGNULINUX
+FFLAGS+=-DGNULINUX
+
+ifneq ($(DEBUG),)
+ CFLAGS+=-ggdb -Wall
+ CXXFLAGS+=-ggdb -Wall
+ FFLAGS+=-ggdb -Wall
+ LDFLAGS+=-ggdb -Wall
+else
+ CFLAGS+=-O3
+ CXXFLAGS+=-O3
+ FFLAGS+=-O3
+ LDFLAGS+=-O3
+endif
+
+
+AR=ar
+ARFLAGS=-r
+CAT=cat
+CLEAR=clear
+CP=cp
+CPP=cpp
+ECHO=echo
+ECHO_N=printf
+PRINTF=printf
+GREP=grep
+MKDIR=mkdir
+MKDIR_P=mkdir -p
+RM=rm -f
+SED=sed
