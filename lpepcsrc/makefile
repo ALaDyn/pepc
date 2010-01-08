@@ -41,7 +41,7 @@ $(MACH)/%.o: %.f90
 	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$< -o $@
 
 $(pepclib): mods lpepc
-lpepc:   $(LIBOBJS) $(LIBMODS) 
+lpepc:   module.deps $(LIBOBJS) $(LIBMODS) 
 	@echo "Creating PEPC library ..."
 	$(RM) $(MACH)/liblpepc.a
 	$(AR) $(ARFLAGS) $(MACH)/liblpepc.a $^
@@ -57,7 +57,7 @@ debug:	$(OBJECTS)
 	$(FC) $(LDFLAGS)  $(VISITLIBS) $(DBFLAGS)  -o $@ $(OBJECTS)
 
 clean:
-	$(RM) $(MACH)/liblpepc.a $(LIBOBJS) $(LIBMODS) $(MACH)/*.mod *.mod *% *~ bin/key rand *.o *.pif core *.ps
+	$(RM) $(MACH)/liblpepc.a $(LIBOBJS) $(LIBMODS) $(MACH)/*.mod *.mod *% *~ bin/key rand *.o *.pif core *.ps module.deps
 	$(RM) -r $(MACH)
 
 cleanps: 
