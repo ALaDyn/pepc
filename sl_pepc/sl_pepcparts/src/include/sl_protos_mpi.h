@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2009-11-23 22:06:40 +0100
+ *  timestamp: 2010-01-05 17:56:41 +0100
  *  
  */
 
@@ -21,7 +21,7 @@ unsigned short pepcparts_mpi_cs16(elements_t *s, slint n, slint keys, slint data
 unsigned int pepcparts_mpi_cs32(elements_t *s, slint n, slint keys, slint data, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_elements_packed.c */
-slint_t pepcparts_mpi_elements_packed_datatype_create(MPI_Datatype *pdt);
+slint_t pepcparts_mpi_elements_packed_datatype_create(MPI_Datatype *pdt, slint_t structured);
 slint_t pepcparts_mpi_elements_packed_datatype_destroy(MPI_Datatype *pdt);
 
 /* src/core_mpi/pepcparts_mpi_find_exact.c */
@@ -49,6 +49,9 @@ slint pepcparts_mpi_partition_joink(elements_t *s, slint *sizes, int size, int r
 
 /* src/core_mpi/pepcparts_mpi_partition_radix.c */
 slint_t pepcparts_mpi_partition_radix(elements_t *s, partcond_t *pc, slint_t rhigh, slint_t rlow, slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
+
+/* src/core_mpi/pepcparts_mpi_partition_radix_old.c */
+slint_t pepcparts_mpi_partition_radix_old(elements_t *s, partcond_t *pc, slint_t rhigh, slint_t rlow, slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/pepcparts_mpi_rebalance.c */
 slint_t pepcparts_mpi_rebalance(elements_t *s0, elements_t *s1, slint_t stable, slint_t *dst_size, int size, int rank, MPI_Comm comm);

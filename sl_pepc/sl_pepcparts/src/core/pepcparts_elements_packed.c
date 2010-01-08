@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/elements_packed.c
- *  timestamp: 2009-11-23 13:06:23 +0100
+ *  timestamp: 2009-12-03 11:24:01 +0100
  *  
  */
 
@@ -176,4 +176,6 @@ slint_t pepcparts_elements_unpack_keys(packed_elements_t *s, slkey_t *k) /* pepc
   slint_t i;
 
   for (i = 0; i < s->size; ++i) key_copy_at(&s->elements[i].key, 0, k, i);
+  
+  return 0;
 }

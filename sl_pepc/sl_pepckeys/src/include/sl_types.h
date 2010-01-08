@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_types.h
- *  timestamp: 2009-11-19 16:06:54 +0100
+ *  timestamp: 2009-12-03 09:12:31 +0100
  *  
  */
 
@@ -25,83 +25,83 @@ typedef sl_key_pure_type_c slkey_pure_t;
 
 /* DATAX_TEMPLATE_BEGIN */
 /* sl_type sldata0_t */
-#ifdef SL_DATA0
+#ifdef sl_data0_type_c
 typedef sl_data0_type_c sldata0_t;
 #endif
 /* sl_type sldata1_t */
-#ifdef SL_DATA1
+#ifdef sl_data1_type_c
 typedef sl_data1_type_c sldata1_t;
 #endif
 /* sl_type sldata2_t */
-#ifdef SL_DATA2
+#ifdef sl_data2_type_c
 typedef sl_data2_type_c sldata2_t;
 #endif
 /* sl_type sldata3_t */
-#ifdef SL_DATA3
+#ifdef sl_data3_type_c
 typedef sl_data3_type_c sldata3_t;
 #endif
 /* sl_type sldata4_t */
-#ifdef SL_DATA4
+#ifdef sl_data4_type_c
 typedef sl_data4_type_c sldata4_t;
 #endif
 /* sl_type sldata5_t */
-#ifdef SL_DATA5
+#ifdef sl_data5_type_c
 typedef sl_data5_type_c sldata5_t;
 #endif
 /* sl_type sldata6_t */
-#ifdef SL_DATA6
+#ifdef sl_data6_type_c
 typedef sl_data6_type_c sldata6_t;
 #endif
 /* sl_type sldata7_t */
-#ifdef SL_DATA7
+#ifdef sl_data7_type_c
 typedef sl_data7_type_c sldata7_t;
 #endif
 /* sl_type sldata8_t */
-#ifdef SL_DATA8
+#ifdef sl_data8_type_c
 typedef sl_data8_type_c sldata8_t;
 #endif
 /* sl_type sldata9_t */
-#ifdef SL_DATA9
+#ifdef sl_data9_type_c
 typedef sl_data9_type_c sldata9_t;
 #endif
 /* sl_type sldata10_t */
-#ifdef SL_DATA10
+#ifdef sl_data10_type_c
 typedef sl_data10_type_c sldata10_t;
 #endif
 /* sl_type sldata11_t */
-#ifdef SL_DATA11
+#ifdef sl_data11_type_c
 typedef sl_data11_type_c sldata11_t;
 #endif
 /* sl_type sldata12_t */
-#ifdef SL_DATA12
+#ifdef sl_data12_type_c
 typedef sl_data12_type_c sldata12_t;
 #endif
 /* sl_type sldata13_t */
-#ifdef SL_DATA13
+#ifdef sl_data13_type_c
 typedef sl_data13_type_c sldata13_t;
 #endif
 /* sl_type sldata14_t */
-#ifdef SL_DATA14
+#ifdef sl_data14_type_c
 typedef sl_data14_type_c sldata14_t;
 #endif
 /* sl_type sldata15_t */
-#ifdef SL_DATA15
+#ifdef sl_data15_type_c
 typedef sl_data15_type_c sldata15_t;
 #endif
 /* sl_type sldata16_t */
-#ifdef SL_DATA16
+#ifdef sl_data16_type_c
 typedef sl_data16_type_c sldata16_t;
 #endif
 /* sl_type sldata17_t */
-#ifdef SL_DATA17
+#ifdef sl_data17_type_c
 typedef sl_data17_type_c sldata17_t;
 #endif
 /* sl_type sldata18_t */
-#ifdef SL_DATA18
+#ifdef sl_data18_type_c
 typedef sl_data18_type_c sldata18_t;
 #endif
 /* sl_type sldata19_t */
-#ifdef SL_DATA19
+#ifdef sl_data19_type_c
 typedef sl_data19_type_c sldata19_t;
 #endif
 /* DATAX_TEMPLATE_END */
@@ -186,6 +186,10 @@ typedef struct _elements_t
 typedef struct _packed_element_t
 {
   slkey_t key;
+
+#ifdef SL_PACKED_INDEX
+  slindex_t index;
+#endif
 
 /* DATAX_TEMPLATE_BEGIN */
 #ifdef SL_DATA0

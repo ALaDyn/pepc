@@ -56,7 +56,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_config_intern.h
- *  timestamp: 2009-11-19 12:53:02 +0100
+ *  timestamp: 2009-12-03 09:11:41 +0100
  *  
  */
 
@@ -80,6 +80,11 @@
 # ifndef inline
 #  define inline
 # endif
+#endif
+
+
+#ifndef pepckeys_SL_INDEX
+# undef SL_PACKED_INDEX
 #endif
 
 
@@ -200,6 +205,91 @@
 #endif
 
 
+/* disable data components on request */
+/* DATAX_TEMPLATE_BEGIN */
+/* sl_macro pepckeys_SL_DATA0_IGNORE */
+#ifdef pepckeys_SL_DATA0_IGNORE
+# undef pepckeys_SL_DATA0
+#endif
+/* sl_macro pepckeys_SL_DATA1_IGNORE */
+#ifdef pepckeys_SL_DATA1_IGNORE
+# undef pepckeys_SL_DATA1
+#endif
+/* sl_macro pepckeys_SL_DATA2_IGNORE */
+#ifdef pepckeys_SL_DATA2_IGNORE
+# undef pepckeys_SL_DATA2
+#endif
+/* sl_macro pepckeys_SL_DATA3_IGNORE */
+#ifdef pepckeys_SL_DATA3_IGNORE
+# undef pepckeys_SL_DATA3
+#endif
+/* sl_macro pepckeys_SL_DATA4_IGNORE */
+#ifdef pepckeys_SL_DATA4_IGNORE
+# undef pepckeys_SL_DATA4
+#endif
+/* sl_macro pepckeys_SL_DATA5_IGNORE */
+#ifdef pepckeys_SL_DATA5_IGNORE
+# undef pepckeys_SL_DATA5
+#endif
+/* sl_macro pepckeys_SL_DATA6_IGNORE */
+#ifdef pepckeys_SL_DATA6_IGNORE
+# undef pepckeys_SL_DATA6
+#endif
+/* sl_macro pepckeys_SL_DATA7_IGNORE */
+#ifdef pepckeys_SL_DATA7_IGNORE
+# undef pepckeys_SL_DATA7
+#endif
+/* sl_macro pepckeys_SL_DATA8_IGNORE */
+#ifdef pepckeys_SL_DATA8_IGNORE
+# undef pepckeys_SL_DATA8
+#endif
+/* sl_macro pepckeys_SL_DATA9_IGNORE */
+#ifdef pepckeys_SL_DATA9_IGNORE
+# undef pepckeys_SL_DATA9
+#endif
+/* sl_macro pepckeys_SL_DATA10_IGNORE */
+#ifdef pepckeys_SL_DATA10_IGNORE
+# undef pepckeys_SL_DATA10
+#endif
+/* sl_macro pepckeys_SL_DATA11_IGNORE */
+#ifdef pepckeys_SL_DATA11_IGNORE
+# undef pepckeys_SL_DATA11
+#endif
+/* sl_macro pepckeys_SL_DATA12_IGNORE */
+#ifdef pepckeys_SL_DATA12_IGNORE
+# undef pepckeys_SL_DATA12
+#endif
+/* sl_macro pepckeys_SL_DATA13_IGNORE */
+#ifdef pepckeys_SL_DATA13_IGNORE
+# undef pepckeys_SL_DATA13
+#endif
+/* sl_macro pepckeys_SL_DATA14_IGNORE */
+#ifdef pepckeys_SL_DATA14_IGNORE
+# undef pepckeys_SL_DATA14
+#endif
+/* sl_macro pepckeys_SL_DATA15_IGNORE */
+#ifdef pepckeys_SL_DATA15_IGNORE
+# undef pepckeys_SL_DATA15
+#endif
+/* sl_macro pepckeys_SL_DATA16_IGNORE */
+#ifdef pepckeys_SL_DATA16_IGNORE
+# undef pepckeys_SL_DATA16
+#endif
+/* sl_macro pepckeys_SL_DATA17_IGNORE */
+#ifdef pepckeys_SL_DATA17_IGNORE
+# undef pepckeys_SL_DATA17
+#endif
+/* sl_macro pepckeys_SL_DATA18_IGNORE */
+#ifdef pepckeys_SL_DATA18_IGNORE
+# undef pepckeys_SL_DATA18
+#endif
+/* sl_macro pepckeys_SL_DATA19_IGNORE */
+#ifdef pepckeys_SL_DATA19_IGNORE
+# undef pepckeys_SL_DATA19
+#endif
+/* DATAX_TEMPLATE_END */
+
+
 /* default element weights */
 #ifndef pepckeys_sl_elem_weight
 # define pepckeys_sl_elem_weight(e, at)       1  /* sl_macro */
@@ -210,7 +300,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_types.h
- *  timestamp: 2009-11-19 16:06:54 +0100
+ *  timestamp: 2009-12-03 09:12:31 +0100
  *  
  */
 
@@ -231,83 +321,83 @@ typedef pepckeys_sl_key_pure_type_c pepckeys_slkey_pure_t;
 
 /* DATAX_TEMPLATE_BEGIN */
 /* sl_type pepckeys_sldata0_t */
-#ifdef pepckeys_SL_DATA0
+#ifdef pepckeys_sl_data0_type_c
 typedef pepckeys_sl_data0_type_c pepckeys_sldata0_t;
 #endif
 /* sl_type pepckeys_sldata1_t */
-#ifdef pepckeys_SL_DATA1
+#ifdef pepckeys_sl_data1_type_c
 typedef pepckeys_sl_data1_type_c pepckeys_sldata1_t;
 #endif
 /* sl_type pepckeys_sldata2_t */
-#ifdef pepckeys_SL_DATA2
+#ifdef pepckeys_sl_data2_type_c
 typedef pepckeys_sl_data2_type_c pepckeys_sldata2_t;
 #endif
 /* sl_type pepckeys_sldata3_t */
-#ifdef pepckeys_SL_DATA3
+#ifdef pepckeys_sl_data3_type_c
 typedef pepckeys_sl_data3_type_c pepckeys_sldata3_t;
 #endif
 /* sl_type pepckeys_sldata4_t */
-#ifdef pepckeys_SL_DATA4
+#ifdef pepckeys_sl_data4_type_c
 typedef pepckeys_sl_data4_type_c pepckeys_sldata4_t;
 #endif
 /* sl_type pepckeys_sldata5_t */
-#ifdef pepckeys_SL_DATA5
+#ifdef pepckeys_sl_data5_type_c
 typedef pepckeys_sl_data5_type_c pepckeys_sldata5_t;
 #endif
 /* sl_type pepckeys_sldata6_t */
-#ifdef pepckeys_SL_DATA6
+#ifdef pepckeys_sl_data6_type_c
 typedef pepckeys_sl_data6_type_c pepckeys_sldata6_t;
 #endif
 /* sl_type pepckeys_sldata7_t */
-#ifdef pepckeys_SL_DATA7
+#ifdef pepckeys_sl_data7_type_c
 typedef pepckeys_sl_data7_type_c pepckeys_sldata7_t;
 #endif
 /* sl_type pepckeys_sldata8_t */
-#ifdef pepckeys_SL_DATA8
+#ifdef pepckeys_sl_data8_type_c
 typedef pepckeys_sl_data8_type_c pepckeys_sldata8_t;
 #endif
 /* sl_type pepckeys_sldata9_t */
-#ifdef pepckeys_SL_DATA9
+#ifdef pepckeys_sl_data9_type_c
 typedef pepckeys_sl_data9_type_c pepckeys_sldata9_t;
 #endif
 /* sl_type pepckeys_sldata10_t */
-#ifdef pepckeys_SL_DATA10
+#ifdef pepckeys_sl_data10_type_c
 typedef pepckeys_sl_data10_type_c pepckeys_sldata10_t;
 #endif
 /* sl_type pepckeys_sldata11_t */
-#ifdef pepckeys_SL_DATA11
+#ifdef pepckeys_sl_data11_type_c
 typedef pepckeys_sl_data11_type_c pepckeys_sldata11_t;
 #endif
 /* sl_type pepckeys_sldata12_t */
-#ifdef pepckeys_SL_DATA12
+#ifdef pepckeys_sl_data12_type_c
 typedef pepckeys_sl_data12_type_c pepckeys_sldata12_t;
 #endif
 /* sl_type pepckeys_sldata13_t */
-#ifdef pepckeys_SL_DATA13
+#ifdef pepckeys_sl_data13_type_c
 typedef pepckeys_sl_data13_type_c pepckeys_sldata13_t;
 #endif
 /* sl_type pepckeys_sldata14_t */
-#ifdef pepckeys_SL_DATA14
+#ifdef pepckeys_sl_data14_type_c
 typedef pepckeys_sl_data14_type_c pepckeys_sldata14_t;
 #endif
 /* sl_type pepckeys_sldata15_t */
-#ifdef pepckeys_SL_DATA15
+#ifdef pepckeys_sl_data15_type_c
 typedef pepckeys_sl_data15_type_c pepckeys_sldata15_t;
 #endif
 /* sl_type pepckeys_sldata16_t */
-#ifdef pepckeys_SL_DATA16
+#ifdef pepckeys_sl_data16_type_c
 typedef pepckeys_sl_data16_type_c pepckeys_sldata16_t;
 #endif
 /* sl_type pepckeys_sldata17_t */
-#ifdef pepckeys_SL_DATA17
+#ifdef pepckeys_sl_data17_type_c
 typedef pepckeys_sl_data17_type_c pepckeys_sldata17_t;
 #endif
 /* sl_type pepckeys_sldata18_t */
-#ifdef pepckeys_SL_DATA18
+#ifdef pepckeys_sl_data18_type_c
 typedef pepckeys_sl_data18_type_c pepckeys_sldata18_t;
 #endif
 /* sl_type pepckeys_sldata19_t */
-#ifdef pepckeys_SL_DATA19
+#ifdef pepckeys_sl_data19_type_c
 typedef pepckeys_sl_data19_type_c pepckeys_sldata19_t;
 #endif
 /* DATAX_TEMPLATE_END */
@@ -392,6 +482,10 @@ typedef struct pepckeys__elements_t
 typedef struct pepckeys__packed_element_t
 {
   pepckeys_slkey_t key;
+
+#ifdef SL_PACKED_INDEX
+  pepckeys_slindex_t index;
+#endif
 
 /* DATAX_TEMPLATE_BEGIN */
 #ifdef pepckeys_SL_DATA0
@@ -554,7 +648,7 @@ typedef struct pepckeys__partcond_t
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos.h
- *  timestamp: 2009-11-23 22:06:40 +0100
+ *  timestamp: 2010-01-05 17:56:41 +0100
  *  
  */
 
@@ -648,6 +742,10 @@ pepckeys_slint pepckeys_merge2_memory_adaptive(pepckeys_elements_t *s0, pepckeys
 /* src/core/merge2_simplify.c */
 pepckeys_slint pepckeys_merge2_simplify_s1(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *sx, pepckeys_slint s1elements);
 
+/* src/core/pepckeys_mergep_heap.c */
+pepckeys_slint pepckeys_mergep_heap(pepckeys_elements_t *s, pepckeys_elements_t *d, pepckeys_slint_t p, pepckeys_slindex_t *displs, pepckeys_slindex_t *counts);
+pepckeys_slint pepckeys_mergep_heap_unpack(pepckeys_packed_elements_t *s, pepckeys_elements_t *d, pepckeys_slint_t p, pepckeys_slindex_t *displs, pepckeys_slindex_t *counts);
+
 /* src/core/search.c */
 pepckeys_slint pepckeys_sl_search_sequential_lt(pepckeys_elements_t *s, pepckeys_slkey_t *k);
 pepckeys_slint pepckeys_sl_search_sequential_le(pepckeys_elements_t *s, pepckeys_slkey_t *k);
@@ -734,7 +832,7 @@ pepckeys_slint pepckeys_splitk_k2c_count(pepckeys_elements_t *s, pepckeys_slint 
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2009-11-23 22:06:40 +0100
+ *  timestamp: 2010-01-05 17:56:41 +0100
  *  
  */
 
@@ -751,7 +849,7 @@ unsigned short pepckeys_mpi_cs16(pepckeys_elements_t *s, pepckeys_slint n, pepck
 unsigned int pepckeys_mpi_cs32(pepckeys_elements_t *s, pepckeys_slint n, pepckeys_slint keys, pepckeys_slint data, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_elements_packed.c */
-pepckeys_slint_t pepckeys_mpi_elements_packed_datatype_create(MPI_Datatype *pdt);
+pepckeys_slint_t pepckeys_mpi_elements_packed_datatype_create(MPI_Datatype *pdt, pepckeys_slint_t structured);
 pepckeys_slint_t pepckeys_mpi_elements_packed_datatype_destroy(MPI_Datatype *pdt);
 
 /* src/core_mpi/pepckeys_mpi_find_exact.c */
@@ -779,6 +877,9 @@ pepckeys_slint pepckeys_mpi_partition_joink(pepckeys_elements_t *s, pepckeys_sli
 
 /* src/core_mpi/pepckeys_mpi_partition_radix.c */
 pepckeys_slint_t pepckeys_mpi_partition_radix(pepckeys_elements_t *s, pepckeys_partcond_t *pc, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
+
+/* src/core_mpi/pepckeys_mpi_partition_radix_old.c */
+pepckeys_slint_t pepckeys_mpi_partition_radix_old(pepckeys_elements_t *s, pepckeys_partcond_t *pc, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/pepckeys_mpi_rebalance.c */
 pepckeys_slint_t pepckeys_mpi_rebalance(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_slint_t stable, pepckeys_slint_t *dst_size, int size, int rank, MPI_Comm comm);

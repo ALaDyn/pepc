@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_rti.h
- *  timestamp: 2009-11-04 13:37:31 +0100
+ *  timestamp: 2009-12-21 16:15:37 +0100
  *  
  */
 
@@ -68,7 +68,12 @@ enum rti_tid
   rti_tid_mpi_partition_radix_while_allreduce,
   rti_tid_mpi_partition_radix_while_round1,
   rti_tid_mpi_partition_radix_while_round1_allgather,
+  rti_tid_mpi_partition_radix_while_exscan,
   rti_tid_mpi_partition_radix_while_check,
+  rti_tid_mpi_partition_radix_while_check_pre,
+  rti_tid_mpi_partition_radix_while_check_classes,
+  rti_tid_mpi_partition_radix_while_check_final,
+  rti_tid_mpi_partition_radix_while_check_post,
   rti_tid_mpi_partition_radix_final,
 
   rti_tid_mpi_sample_complete,

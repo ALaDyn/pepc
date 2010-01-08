@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_key.h
- *  timestamp: 2009-11-19 13:49:55 +0100
+ *  timestamp: 2009-12-03 10:37:56 +0100
  *  
  */
 
@@ -47,8 +47,16 @@
 #endif
 
 #define key_purify(k)                        (sl_key_purify(k))
-#define key_get_pure(k)                      (sl_key_get_pure(k))
-#define key_set_pure(k, p)                   (sl_key_set_pure(k, p))
+#ifdef sl_key_get_pure
+# define key_get_pure(k)                     (sl_key_get_pure(k))
+#else
+# define key_get_pure(k)                     key_purify(k)
+#endif
+#ifdef sl_key_set_pure
+# define key_set_pure(k, p)                  (sl_key_set_pure(k, p))
+#else
+# define key_set_pure(k, p)                  (key_purify(k) = (p))
+#endif
 
 #define key_n                                1
 #define key_byte                             (sl_key_byte)

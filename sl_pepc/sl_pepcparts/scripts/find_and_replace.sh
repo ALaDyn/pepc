@@ -4,7 +4,7 @@
 #  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
 #  
 #  file: scripts/find_and_replace.sh
-#  timestamp: 2009-10-22 09:31:12 +0200
+#  timestamp: 2010-01-05 17:56:27 +0100
 #  
 
 #set -xv
@@ -28,24 +28,24 @@ far_script_sed_end()
 
 far_script_sed_mod_list()
 {
-  local ww=$1
-  local list=$2
-  local mod_in=$3
-  local mod_out=$4
+  local ww="$1"
+  local list="$2"
+  local mod_in="$3"
+  local mod_out="$4"
 
-  local _ifs=$IFS
+  local _ifs="$IFS"
   IFS=":"
   set $mod_in
-  local in_prefix=$1
-  local in_suffix=$2
+  local in_prefix="$1"
+  local in_suffix="$2"
   set $mod_out
-  local out_prefix=$1
-  local out_suffix=$2
-  IFS=$_ifs
+  local out_prefix="$1"
+  local out_suffix="$2"
+  IFS="${_ifs}"
 
   if [ "${ww}" != "0" ] ; then
-    local ww_begin=${sed_ww_begin}
-    local ww_end=${sed_ww_end}
+    local ww_begin="${sed_ww_begin}"
+    local ww_end="${sed_ww_end}"
   fi
 
   exec < ${list}
@@ -57,13 +57,14 @@ far_script_sed_mod_list()
 
 far_script_sed_single()
 {
-  local ww=$1
-  local find=$2
-  local replace=$3
+  local ww="$1"
+  local find="$2"
+  shift 2
+  local replace=$*
 
   if [ "${ww}" != "0" ] ; then
-    local ww_begin=${sed_ww_begin}
-    local ww_end=${sed_ww_end}
+    local ww_begin="${sed_ww_begin}"
+    local ww_end="${sed_ww_end}"
   fi
 
   printf "s${sed_delim}${ww_begin}${find}${ww_end}${sed_delim}${replace}${sed_delim}g\n"
@@ -87,24 +88,24 @@ far_script_perl_end()
 
 far_script_perl_mod_list()
 {
-  local ww=$1
-  local list=$2
-  local mod_in=$3
-  local mod_out=$4
+  local ww="$1"
+  local list="$2"
+  local mod_in="$3"
+  local mod_out="$4"
 
-  local _ifs=$IFS
+  local _ifs="$IFS"
   IFS=":"
   set $mod_in
-  local in_prefix=$1
-  local in_suffix=$2
+  local in_prefix="$1"
+  local in_suffix="$2"
   set $mod_out
-  local out_prefix=$1
-  local out_suffix=$2
-  IFS=$_ifs
+  local out_prefix="$1"
+  local out_suffix="$2"
+  IFS="${_ifs}"
 
   if [ "${ww}" != "0" ] ; then
-    local ww_begin=${perl_ww_begin}
-    local ww_end=${perl_ww_end}
+    local ww_begin="${perl_ww_begin}"
+    local ww_end="${perl_ww_end}"
   fi
 
   exec < ${list}
@@ -116,13 +117,14 @@ far_script_perl_mod_list()
 
 far_script_perl_single()
 {
-  local ww=$1
-  local find=$2
-  local replace=$3
+  local ww="$1"
+  local find="$2"
+  shift 2
+  local replace="$*"
 
   if [ "${ww}" != "0" ] ; then
-    local ww_begin=${perl_ww_begin}
-    local ww_end=${perl_ww_end}
+    local ww_begin="${perl_ww_begin}"
+    local ww_end="${perl_ww_end}"
   fi
 
   printf "s${perl_delim}${ww_begin}${find}${ww_end}${perl_delim}${replace}${perl_delim}g;\n"
@@ -130,8 +132,8 @@ far_script_perl_single()
 
 # FIXME: sed \< \> ability testen!
 
-in_cfg=$1
-in_cmd=$2
+in_cfg="$1"
+in_cmd="$2"
 shift 2
 
 [ -z "${in_cfg}" ] && in_cfg=sed

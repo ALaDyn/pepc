@@ -44,10 +44,9 @@ else
  LDFLAGS+=-O3
 endif
 
-SOFLAGS+=-qmkshrobj
-
 
 AR=ar
+ARFLAGS=-r
 CAT=cat
 CLEAR=clear
 CP=cp
@@ -60,6 +59,3 @@ MKDIR=mkdir
 MKDIR_P=mkdir -p
 RM=rm -f
 SED=sed
-
-
-ALL_AS_MPI=1

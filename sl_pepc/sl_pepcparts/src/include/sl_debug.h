@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_debug.h
- *  timestamp: 2009-11-02 16:43:48 +0100
+ *  timestamp: 2009-12-16 18:02:58 +0100
  *  
  */
 
@@ -24,7 +24,7 @@
 
 #ifdef SL_USE_MPI
  extern int pepcparts_sl_mpi_rank;
- #define MPI_STR    "%d:"
+ #define MPI_STR    "%d: "
  #define MPI_PARAM  pepcparts_sl_mpi_rank
 #else
  #define MPI_STR    "%s"
@@ -32,23 +32,26 @@
 #endif
 
 
-#define SL_NOTICE(format, args...) printf(MPI_STR format "\n", MPI_PARAM, ##args)
+#define SL_NOTICE(_format_, _args_...)           printf(MPI_STR _format_ "\n", MPI_PARAM, ##_args_)
+#define SL_NOTICE_IF(_if_, _format_, _args_...)  do { if (_if_) { SL_NOTICE(_format_, ##_args_); } } while (0)
 
-#define SL_ERROR(format, args...)  printf(MPI_STR "%s:%i:%s: " format "\n", MPI_PARAM, __FILE__, __LINE__, __func__, ##args)
+#define SL_ERROR(_format_, _args_...)            printf(MPI_STR "%s:%i:%s: " _format_ "\n", MPI_PARAM, __FILE__, __LINE__, __func__, ##_args_)
 
-#ifdef DEBUG
-# define SL_DEBUG(level, format, args... )  \
-    if (level <= DEBUG) { \
-      printf(MPI_STR "%s:%i:%s " format "\n", MPI_PARAM, __FILE__, __LINE__, __func__, ##args); \
+#ifdef SLDEBUG
+# define SL_DEBUG(_level_, _format_, _args_... )  \
+    if (_level_ <= SLDEBUG) { \
+      printf(MPI_STR "%s:%i:%s " _format_ "\n", MPI_PARAM, __FILE__, __LINE__, __func__, ##_args_); \
       fflush(stdout); \
     } else do {} while (0)
 #else
-# define SL_DEBUG(x...)  do {} while(0)
+# define SL_DEBUG(_x_...)                        do {} while(0)
 #endif
 
-#define SL_ASSERT(x)  { if (x) {} else { SL_DEBUG(0, "assertion '%s' failed.", #x); } }
+#define SL_ASSERT(_x_)                           do { if (_x_) {} else SL_DEBUG(0, "ASSERT: '%s' failed.", #_x_); } while(0)
+#define SL_ASSERT_IF(_if,_, _x_)                 do { if (_if_) { SL_ASSERT(_x_); } } while (0)
 
-#define SL_TRACE(format, args...)  SL_DEBUG(3, format, ##args)
+#define SL_TRACE(_format_, _args_...)            SL_DEBUG(3, _format_, ##_args_)
+#define SL_TRACE_IF(_if_, _format_, _args_...)   do { if (_if_) { SL_TRACE(_format_, ##_args_); } } while (0)
 
 
 #endif /* __SL_DEBUG_H__ */

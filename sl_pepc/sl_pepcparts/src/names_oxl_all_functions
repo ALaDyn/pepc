@@ -64,6 +64,8 @@ merge2_compo_hula
 merge2_compo_tridgell
 merge2_memory_adaptive
 merge2_simplify_s1
+mergep_heap
+mergep_heap_unpack
 sl_search_sequential_lt
 sl_search_sequential_le
 sl_search_sequential_gt
@@ -167,6 +169,7 @@ dfs_visit_dcrbe
 disjoint_cycle_reduce_back_edges
 mpi_partition_joink
 mpi_partition_radix
+mpi_partition_radix_old
 mpi_rebalance
 mpi_sample_ci_init
 mpi_sample_ci_duplicate

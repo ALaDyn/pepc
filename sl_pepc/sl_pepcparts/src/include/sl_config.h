@@ -26,6 +26,9 @@
 #define sl_index_size_mpi      1
 #define sl_index_type_fmt      FINT_TYPE_FMT
 
+/* use indices */
+#define SL_INDEX
+
 
 /* keys */
 #define sl_key_type_c          FINT8_TYPE_C

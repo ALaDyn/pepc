@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_common.h
- *  timestamp: 2009-11-19 13:53:04 +0100
+ *  timestamp: 2010-01-05 09:03:36 +0100
  *  
  */
 
@@ -22,6 +22,7 @@
 #define xmin(a,b)           (((a)<(b))?(a):(b))
 #define xmax3(a,b,c)        xmax(a,xmax(b,c))
 #define xmin3(a,b,c)        xmin(a,xmin(b,c))
+#define xminmax(_a_, _b_, _c_)  (((_b_)<(_a_))?(_a_):(((_b_)>(_c_))?(_c_):(_b_)))
 
 #define powof2_typed(a, t)  (((t) 1) << (a))
 #define powof2(a)           powof2_typed(a, slint_t)
@@ -52,6 +53,8 @@
 #include "sl_rti_intern.h"
 
 #include "sl_elements.h"
+
+#include "sl_pelem.h"
 
 #include "sl_types.h"
 

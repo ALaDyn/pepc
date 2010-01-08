@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_environment_intern.h
- *  timestamp: 2009-11-04 18:14:36 +0100
+ *  timestamp: 2009-11-26 17:36:24 +0100
  *  
  */
 
@@ -12,7 +12,7 @@
 
 
 #ifndef sl_alloc
- #ifdef DEBUG
+ #ifdef SLDEBUG
   #define sl_alloc(n, s)           calloc((n), (s))
  #else
   #define sl_alloc(n, s)           malloc((n) * (s))

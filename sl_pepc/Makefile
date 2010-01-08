@@ -4,7 +4,7 @@
 #  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
 #  
 #  file: Makefile
-#  timestamp: 2009-11-13 12:31:36 +0100
+#  timestamp: 2010-01-05 22:43:03 +0100
 #  
 
 
@@ -12,10 +12,10 @@
 ifeq ($(mod),)
 
 # initial config
-MAKEFILE_IN:=
+MAKEFILE_IN:=Makefile.pepc
 
-SL_USE_MPI:=
-ALL_AS_MPI:=
+SL_USE_MPI:=true
+ALL_AS_MPI:=true
 DI_VERSIONS:=
 FAR:=perl
 TUNEABLE:=#TUNEABLE#
@@ -46,14 +46,18 @@ MODULES:=$(call or2,$(MODULES),$(dir $(wildcard sl_*/.)))
 
 MAKEFILE_IN:=$(call or2,$(MAKEFILE_IN),Makefile.in)
 
+# workaround problems with 'include' and non-existing files
+MAKEFILE_IN:=$(wildcard $(MAKEFILE_IN))
+
 -include $(MAKEFILE_IN)
 
 RM:=$(call or2,$(RM),rm -f)
 ECHO:=$(call or2,$(ECHO),echo)
+MKDIR_P:=$(call or2,$(MKDIR_P),mkdir -p)
 
 
 ifneq ($(DEBUG),)
- CPPFLAGS+=-DDEBUG=$(DEBUG)
+ CPPFLAGS+=-DSLDEBUG=$(DEBUG)
 endif
 
 
@@ -177,29 +181,29 @@ $(cmod_)_MPILDFLAGS:=$(MPILDFLAGS) $($(cmod_)_MPILDFLAGS)
 # options
 $(cmod_)_SL_USE_MPI:=$(call or2,$($(cmod_)_SL_USE_MPI),$(SL_USE_MPI))
 
-# SL_USE_MPI = 0 | 1 | detect (default)
-ifneq ($($(cmod_)_SL_USE_MPI),0) # not 0
- ifneq ($($(cmod_)_SL_USE_MPI),1) # not 1
+# SL_USE_MPI = true | false | detect (default)
+ifneq ($($(cmod_)_SL_USE_MPI),true) # not true
+ ifneq ($($(cmod_)_SL_USE_MPI),false) # not false
   # else: use configuration file
   ifneq ($(wildcard $($(cmod_)_SRC_INCLUDE)sl_config.h),)
    ifneq ($(shell $(PRINTF) "\#include \"sl_config.h\"\nSL_USE_MPI\n" | $(CPP) $($(cmod_)_CPPFLAGS_SL) 2>/dev/null | $(GREP) SL_USE_MPI),SL_USE_MPI)
-    $(cmod_)_SL_USE_MPI:=1
+    $(cmod_)_SL_USE_MPI:=true
    else
-    $(cmod_)_SL_USE_MPI:=0
+    $(cmod_)_SL_USE_MPI:=false
    endif
   endif
  endif
 endif
 
-ifeq ($($(cmod_)_SL_USE_MPI),1)
-  M_SL_USE_MPI:=1
+ifeq ($($(cmod_)_SL_USE_MPI),true)
+  M_SL_USE_MPI:=true
 endif
 
 $(cmod_)_ALL_AS_MPI:=$(call or2,$($(cmod_)_ALL_AS_MPI),$(ALL_AS_MPI))
 
-# ALL_AS_MPI = 0 | 1 | SL_USE_MPI (default)
-ifneq ($($(cmod_)_ALL_AS_MPI),0) # not 0
- ifneq ($($(cmod_)_ALL_AS_MPI),1) # not 1
+# ALL_AS_MPI = true | false | SL_USE_MPI (default)
+ifneq ($($(cmod_)_ALL_AS_MPI),true) # not true
+ ifneq ($($(cmod_)_ALL_AS_MPI),false) # not false
   # else: use SL_USE_MPI or not
 #  $(cmod_)_ALL_AS_MPI:=$($(cmod_)_SL_USE_MPI)
   $(cmod_)_ALL_AS_MPI:=
@@ -350,7 +354,7 @@ $(cmod_)_TMP_OBJS_SL_DEVL:=$($(cmod_)_TMP_OBJS_SL_DEVL_SEQ)
 $(cmod_)_TMP_OBJS_SL_DEMO:=$($(cmod_)_TMP_OBJS_SL_DEMO_SEQ)
 $(cmod_)_TMP_OBJS_SL_WRAP:=$($(cmod_)_TMP_OBJS_SL_WRAP_SEQ)
 
-ifeq ($($(cmod_)_SL_USE_MPI),1)
+ifeq ($($(cmod_)_SL_USE_MPI),true)
  $(cmod_)_OBJS_SL_CORE+=$($(cmod_)_OBJS_SL_CORE_MPI)
  $(cmod_)_OBJS_SL_TUNE+=$($(cmod_)_OBJS_SL_TUNE_MPI)
  $(cmod_)_OBJS_SL_DEVL:=$($(cmod_)_OBJS_SL_DEVL_MPI)
@@ -363,7 +367,7 @@ ifeq ($($(cmod_)_SL_USE_MPI),1)
  $(cmod_)_TMP_OBJS_SL_DEMO:=$($(cmod_)_TMP_OBJS_SL_DEMO_MPI)
  $(cmod_)_TMP_OBJS_SL_WRAP+=$($(cmod_)_TMP_OBJS_SL_WRAP_MPI)
 else
- ifeq ($(M_SL_USE_MPI),1)
+ ifeq ($(M_SL_USE_MPI),true)
   $(cmod_)_OBJS_SL_WRAP+=$($(cmod_)_OBJS_SL_WRAP_MPI)
 
   $(cmod_)_TMP_OBJS_SL_WRAP+=$($(cmod_)_TMP_OBJS_SL_WRAP_MPI)
@@ -377,7 +381,7 @@ $(cmod_)_CFLAGS_SL_:=$($(cmod_)_CFLAGS_SL) -DSL_USE_MPI_IGNORE $($(cmod_)_CPPFLA
 $(cmod_)_MPICFLAGS_:=$($(cmod_)_CFLAGS) $($(cmod_)_MPICFLAGS) $($(cmod_)_CPPFLAGS) $($(cmod_)_MPICPPFLAGS)
 $(cmod_)_MPICFLAGS_SL_:=$($(cmod_)_CFLAGS_SL) $($(cmod_)_MPICFLAGS_SL) -DSL_USE_MPI_FORCE $($(cmod_)_CPPFLAGS_SL) $($(cmod_)_MPICPPFLAGS_SL)
 
-ifeq ($($(cmod_)_ALL_AS_MPI),1)
+ifeq ($($(cmod_)_ALL_AS_MPI),true)
  $(cmod_)_CC:=$($(cmod_)_MPICC)
  $(cmod_)_CFLAGS_:=$($(cmod_)_MPICFLAGS_)
  $(cmod_)_CFLAGS_SL_:=$($(cmod_)_MPICFLAGS_SL_)
@@ -386,7 +390,7 @@ endif
 $(cmod_)_LDFLAGS_:=$($(cmod_)_LDFLAGS)
 $(cmod_)_MPILDFLAGS_:=$($(cmod_)_LDFLAGS) $($(cmod_)_MPILDFLAGS)
 
-ifeq ($($(cmod_)_SL_USE_MPI),1)
+ifeq ($($(cmod_)_SL_USE_MPI),true)
  $(cmod_)_LD:=$($(cmod_)_MPILD)
  $(cmod_)_LDFLAGS_:=$($(cmod_)_MPILDFLAGS_)
 endif
@@ -406,7 +410,7 @@ endef
 #@$(ECHO) "adding $(TYPE) '$<' to '$@'"
 define $(cmod_)_add
 -@$(MKDIR_P) $(dir $@)
-$(AR) -r $@ $<
+$(AR) $(ARFLAGS) $@ $<
 endef
 
 define $(cmod_)_make

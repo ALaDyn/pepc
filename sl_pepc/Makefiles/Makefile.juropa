@@ -1,6 +1,6 @@
 # This is a Makefile!
 
-DEBUG_HOSTS=
+#DEBUG_HOSTS=
 
 ifneq ($(findstring $(shell uname -n),$(DEBUG_HOSTS)),)
  DEBUG=5
@@ -44,10 +44,9 @@ else
  LDFLAGS+=-O3
 endif
 
-#SOFLAGS+=-shared -Wl,-soname,$@
-
 
 AR=ar
+ARFLAGS=-r
 CAT=cat
 CLEAR=clear
 CP=cp

@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_elements.h
- *  timestamp: 2009-11-19 18:15:31 +0100
+ *  timestamp: 2010-01-05 12:46:03 +0100
  *  
  */
 
@@ -117,6 +117,9 @@
 #define elem_xchange_at(_e0_, _at0_, _e1_, _at1_, _t_)  (elem_copy_at(_e0_, _at0_, _t_, 0), elem_copy_at(_e1_, _at1_, _e0_, _at0_), elem_copy_at(_t_, 0, _e1_, _at1_))*/
 
 #define elem_weight(_e_, _at_)                          sl_elem_weight((_e_), (_at_))
+
+#define elem_pack(_s_, _d_)                             (key_copy((_s_)->keys, &(_d_)->elements[0].key) cc_data_copy(_d_, &(_s_)->elements[0]))
+#define elem_pack_at(_s_, _sat_, _d_, _dat_)            (key_copy_at((_s_)->keys, _sat_, &(_d_)->elements[_dat_].key, 0) cc_data_copy_at(_s_, _sat_, &(_d_)->elements[_dat_], 0))
 
 
 #endif /* __SL_ELEMENTS_H__ */

@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/pepckeys_mpi_merge2.c
- *  timestamp: 2009-11-12 08:41:36 +0100
+ *  timestamp: 2009-11-26 17:36:13 +0100
  *  
  */
 
@@ -10,7 +10,7 @@
 #include "sl_common.h"
 
 
-#ifdef DEBUG
+#ifdef SLDEBUG
 # define CHECK_ORDER
 #endif
 

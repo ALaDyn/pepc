@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_xelem_call.h
- *  timestamp: 2009-11-20 11:25:16 +0100
+ *  timestamp: 2009-12-03 09:12:56 +0100
  *  
  */
 
@@ -77,7 +77,7 @@ xelem_call_not
 
 
 #define xelem_name                                       indices
-#define xelem_name_packed
+#define xelem_name_packed                                index
 #define xelem_type_c                                     index_type_c
 #define xelem_size_c                                     1
 #define xelem_type_mpi                                   index_type_mpi

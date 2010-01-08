@@ -5,7 +5,7 @@
 
 /*#include "config.h"*/
 
-#if defined (HAVE_INTTYPES_H) && defined (HAVE_MPI22)
+#if defined (HAVE_INTTYPES_H) && (MPI_VERSION >= 2) && (MPI_SUBVERSION >= 2)
 
 # include <inttypes.h>
 

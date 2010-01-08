@@ -33,6 +33,9 @@
 #define pepcparts_sl_index_size_mpi      1
 #define pepcparts_sl_index_type_fmt      FINT_TYPE_FMT
 
+/* use indices */
+#define pepcparts_SL_INDEX
+
 
 /* keys */
 #define pepcparts_sl_key_type_c          FINT8_TYPE_C
@@ -139,7 +142,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_config_intern.h
- *  timestamp: 2009-11-19 12:53:02 +0100
+ *  timestamp: 2009-12-03 09:11:41 +0100
  *  
  */
 
@@ -163,6 +166,11 @@
 # ifndef inline
 #  define inline
 # endif
+#endif
+
+
+#ifndef pepcparts_SL_INDEX
+# undef SL_PACKED_INDEX
 #endif
 
 
@@ -283,6 +291,91 @@
 #endif
 
 
+/* disable data components on request */
+/* DATAX_TEMPLATE_BEGIN */
+/* sl_macro pepcparts_SL_DATA0_IGNORE */
+#ifdef pepcparts_SL_DATA0_IGNORE
+# undef pepcparts_SL_DATA0
+#endif
+/* sl_macro pepcparts_SL_DATA1_IGNORE */
+#ifdef pepcparts_SL_DATA1_IGNORE
+# undef pepcparts_SL_DATA1
+#endif
+/* sl_macro pepcparts_SL_DATA2_IGNORE */
+#ifdef pepcparts_SL_DATA2_IGNORE
+# undef pepcparts_SL_DATA2
+#endif
+/* sl_macro pepcparts_SL_DATA3_IGNORE */
+#ifdef pepcparts_SL_DATA3_IGNORE
+# undef pepcparts_SL_DATA3
+#endif
+/* sl_macro pepcparts_SL_DATA4_IGNORE */
+#ifdef pepcparts_SL_DATA4_IGNORE
+# undef pepcparts_SL_DATA4
+#endif
+/* sl_macro pepcparts_SL_DATA5_IGNORE */
+#ifdef pepcparts_SL_DATA5_IGNORE
+# undef pepcparts_SL_DATA5
+#endif
+/* sl_macro pepcparts_SL_DATA6_IGNORE */
+#ifdef pepcparts_SL_DATA6_IGNORE
+# undef pepcparts_SL_DATA6
+#endif
+/* sl_macro pepcparts_SL_DATA7_IGNORE */
+#ifdef pepcparts_SL_DATA7_IGNORE
+# undef pepcparts_SL_DATA7
+#endif
+/* sl_macro pepcparts_SL_DATA8_IGNORE */
+#ifdef pepcparts_SL_DATA8_IGNORE
+# undef pepcparts_SL_DATA8
+#endif
+/* sl_macro pepcparts_SL_DATA9_IGNORE */
+#ifdef pepcparts_SL_DATA9_IGNORE
+# undef pepcparts_SL_DATA9
+#endif
+/* sl_macro pepcparts_SL_DATA10_IGNORE */
+#ifdef pepcparts_SL_DATA10_IGNORE
+# undef pepcparts_SL_DATA10
+#endif
+/* sl_macro pepcparts_SL_DATA11_IGNORE */
+#ifdef pepcparts_SL_DATA11_IGNORE
+# undef pepcparts_SL_DATA11
+#endif
+/* sl_macro pepcparts_SL_DATA12_IGNORE */
+#ifdef pepcparts_SL_DATA12_IGNORE
+# undef pepcparts_SL_DATA12
+#endif
+/* sl_macro pepcparts_SL_DATA13_IGNORE */
+#ifdef pepcparts_SL_DATA13_IGNORE
+# undef pepcparts_SL_DATA13
+#endif
+/* sl_macro pepcparts_SL_DATA14_IGNORE */
+#ifdef pepcparts_SL_DATA14_IGNORE
+# undef pepcparts_SL_DATA14
+#endif
+/* sl_macro pepcparts_SL_DATA15_IGNORE */
+#ifdef pepcparts_SL_DATA15_IGNORE
+# undef pepcparts_SL_DATA15
+#endif
+/* sl_macro pepcparts_SL_DATA16_IGNORE */
+#ifdef pepcparts_SL_DATA16_IGNORE
+# undef pepcparts_SL_DATA16
+#endif
+/* sl_macro pepcparts_SL_DATA17_IGNORE */
+#ifdef pepcparts_SL_DATA17_IGNORE
+# undef pepcparts_SL_DATA17
+#endif
+/* sl_macro pepcparts_SL_DATA18_IGNORE */
+#ifdef pepcparts_SL_DATA18_IGNORE
+# undef pepcparts_SL_DATA18
+#endif
+/* sl_macro pepcparts_SL_DATA19_IGNORE */
+#ifdef pepcparts_SL_DATA19_IGNORE
+# undef pepcparts_SL_DATA19
+#endif
+/* DATAX_TEMPLATE_END */
+
+
 /* default element weights */
 #ifndef pepcparts_sl_elem_weight
 # define pepcparts_sl_elem_weight(e, at)       1  /* sl_macro */
@@ -293,7 +386,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_types.h
- *  timestamp: 2009-11-19 16:06:54 +0100
+ *  timestamp: 2009-12-03 09:12:31 +0100
  *  
  */
 
@@ -314,83 +407,83 @@ typedef pepcparts_sl_key_pure_type_c pepcparts_slkey_pure_t;
 
 /* DATAX_TEMPLATE_BEGIN */
 /* sl_type pepcparts_sldata0_t */
-#ifdef pepcparts_SL_DATA0
+#ifdef pepcparts_sl_data0_type_c
 typedef pepcparts_sl_data0_type_c pepcparts_sldata0_t;
 #endif
 /* sl_type pepcparts_sldata1_t */
-#ifdef pepcparts_SL_DATA1
+#ifdef pepcparts_sl_data1_type_c
 typedef pepcparts_sl_data1_type_c pepcparts_sldata1_t;
 #endif
 /* sl_type pepcparts_sldata2_t */
-#ifdef pepcparts_SL_DATA2
+#ifdef pepcparts_sl_data2_type_c
 typedef pepcparts_sl_data2_type_c pepcparts_sldata2_t;
 #endif
 /* sl_type pepcparts_sldata3_t */
-#ifdef pepcparts_SL_DATA3
+#ifdef pepcparts_sl_data3_type_c
 typedef pepcparts_sl_data3_type_c pepcparts_sldata3_t;
 #endif
 /* sl_type pepcparts_sldata4_t */
-#ifdef pepcparts_SL_DATA4
+#ifdef pepcparts_sl_data4_type_c
 typedef pepcparts_sl_data4_type_c pepcparts_sldata4_t;
 #endif
 /* sl_type pepcparts_sldata5_t */
-#ifdef pepcparts_SL_DATA5
+#ifdef pepcparts_sl_data5_type_c
 typedef pepcparts_sl_data5_type_c pepcparts_sldata5_t;
 #endif
 /* sl_type pepcparts_sldata6_t */
-#ifdef pepcparts_SL_DATA6
+#ifdef pepcparts_sl_data6_type_c
 typedef pepcparts_sl_data6_type_c pepcparts_sldata6_t;
 #endif
 /* sl_type pepcparts_sldata7_t */
-#ifdef pepcparts_SL_DATA7
+#ifdef pepcparts_sl_data7_type_c
 typedef pepcparts_sl_data7_type_c pepcparts_sldata7_t;
 #endif
 /* sl_type pepcparts_sldata8_t */
-#ifdef pepcparts_SL_DATA8
+#ifdef pepcparts_sl_data8_type_c
 typedef pepcparts_sl_data8_type_c pepcparts_sldata8_t;
 #endif
 /* sl_type pepcparts_sldata9_t */
-#ifdef pepcparts_SL_DATA9
+#ifdef pepcparts_sl_data9_type_c
 typedef pepcparts_sl_data9_type_c pepcparts_sldata9_t;
 #endif
 /* sl_type pepcparts_sldata10_t */
-#ifdef pepcparts_SL_DATA10
+#ifdef pepcparts_sl_data10_type_c
 typedef pepcparts_sl_data10_type_c pepcparts_sldata10_t;
 #endif
 /* sl_type pepcparts_sldata11_t */
-#ifdef pepcparts_SL_DATA11
+#ifdef pepcparts_sl_data11_type_c
 typedef pepcparts_sl_data11_type_c pepcparts_sldata11_t;
 #endif
 /* sl_type pepcparts_sldata12_t */
-#ifdef pepcparts_SL_DATA12
+#ifdef pepcparts_sl_data12_type_c
 typedef pepcparts_sl_data12_type_c pepcparts_sldata12_t;
 #endif
 /* sl_type pepcparts_sldata13_t */
-#ifdef pepcparts_SL_DATA13
+#ifdef pepcparts_sl_data13_type_c
 typedef pepcparts_sl_data13_type_c pepcparts_sldata13_t;
 #endif
 /* sl_type pepcparts_sldata14_t */
-#ifdef pepcparts_SL_DATA14
+#ifdef pepcparts_sl_data14_type_c
 typedef pepcparts_sl_data14_type_c pepcparts_sldata14_t;
 #endif
 /* sl_type pepcparts_sldata15_t */
-#ifdef pepcparts_SL_DATA15
+#ifdef pepcparts_sl_data15_type_c
 typedef pepcparts_sl_data15_type_c pepcparts_sldata15_t;
 #endif
 /* sl_type pepcparts_sldata16_t */
-#ifdef pepcparts_SL_DATA16
+#ifdef pepcparts_sl_data16_type_c
 typedef pepcparts_sl_data16_type_c pepcparts_sldata16_t;
 #endif
 /* sl_type pepcparts_sldata17_t */
-#ifdef pepcparts_SL_DATA17
+#ifdef pepcparts_sl_data17_type_c
 typedef pepcparts_sl_data17_type_c pepcparts_sldata17_t;
 #endif
 /* sl_type pepcparts_sldata18_t */
-#ifdef pepcparts_SL_DATA18
+#ifdef pepcparts_sl_data18_type_c
 typedef pepcparts_sl_data18_type_c pepcparts_sldata18_t;
 #endif
 /* sl_type pepcparts_sldata19_t */
-#ifdef pepcparts_SL_DATA19
+#ifdef pepcparts_sl_data19_type_c
 typedef pepcparts_sl_data19_type_c pepcparts_sldata19_t;
 #endif
 /* DATAX_TEMPLATE_END */
@@ -475,6 +568,10 @@ typedef struct pepcparts__elements_t
 typedef struct pepcparts__packed_element_t
 {
   pepcparts_slkey_t key;
+
+#ifdef SL_PACKED_INDEX
+  pepcparts_slindex_t index;
+#endif
 
 /* DATAX_TEMPLATE_BEGIN */
 #ifdef pepcparts_SL_DATA0
@@ -637,7 +734,7 @@ typedef struct pepcparts__partcond_t
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos.h
- *  timestamp: 2009-11-23 22:06:40 +0100
+ *  timestamp: 2010-01-05 17:56:41 +0100
  *  
  */
 
@@ -731,6 +828,10 @@ pepcparts_slint pepcparts_merge2_memory_adaptive(pepcparts_elements_t *s0, pepcp
 /* src/core/merge2_simplify.c */
 pepcparts_slint pepcparts_merge2_simplify_s1(pepcparts_elements_t *s0, pepcparts_elements_t *s1, pepcparts_elements_t *sx, pepcparts_slint s1elements);
 
+/* src/core/pepcparts_mergep_heap.c */
+pepcparts_slint pepcparts_mergep_heap(pepcparts_elements_t *s, pepcparts_elements_t *d, pepcparts_slint_t p, pepcparts_slindex_t *displs, pepcparts_slindex_t *counts);
+pepcparts_slint pepcparts_mergep_heap_unpack(pepcparts_packed_elements_t *s, pepcparts_elements_t *d, pepcparts_slint_t p, pepcparts_slindex_t *displs, pepcparts_slindex_t *counts);
+
 /* src/core/search.c */
 pepcparts_slint pepcparts_sl_search_sequential_lt(pepcparts_elements_t *s, pepcparts_slkey_t *k);
 pepcparts_slint pepcparts_sl_search_sequential_le(pepcparts_elements_t *s, pepcparts_slkey_t *k);
@@ -817,7 +918,7 @@ pepcparts_slint pepcparts_splitk_k2c_count(pepcparts_elements_t *s, pepcparts_sl
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2009-11-23 22:06:40 +0100
+ *  timestamp: 2010-01-05 17:56:41 +0100
  *  
  */
 
@@ -834,7 +935,7 @@ unsigned short pepcparts_mpi_cs16(pepcparts_elements_t *s, pepcparts_slint n, pe
 unsigned int pepcparts_mpi_cs32(pepcparts_elements_t *s, pepcparts_slint n, pepcparts_slint keys, pepcparts_slint data, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_elements_packed.c */
-pepcparts_slint_t pepcparts_mpi_elements_packed_datatype_create(MPI_Datatype *pdt);
+pepcparts_slint_t pepcparts_mpi_elements_packed_datatype_create(MPI_Datatype *pdt, pepcparts_slint_t structured);
 pepcparts_slint_t pepcparts_mpi_elements_packed_datatype_destroy(MPI_Datatype *pdt);
 
 /* src/core_mpi/pepcparts_mpi_find_exact.c */
@@ -862,6 +963,9 @@ pepcparts_slint pepcparts_mpi_partition_joink(pepcparts_elements_t *s, pepcparts
 
 /* src/core_mpi/pepcparts_mpi_partition_radix.c */
 pepcparts_slint_t pepcparts_mpi_partition_radix(pepcparts_elements_t *s, pepcparts_partcond_t *pc, pepcparts_slint_t rhigh, pepcparts_slint_t rlow, pepcparts_slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
+
+/* src/core_mpi/pepcparts_mpi_partition_radix_old.c */
+pepcparts_slint_t pepcparts_mpi_partition_radix_old(pepcparts_elements_t *s, pepcparts_partcond_t *pc, pepcparts_slint_t rhigh, pepcparts_slint_t rlow, pepcparts_slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/pepcparts_mpi_rebalance.c */
 pepcparts_slint_t pepcparts_mpi_rebalance(pepcparts_elements_t *s0, pepcparts_elements_t *s1, pepcparts_slint_t stable, pepcparts_slint_t *dst_size, int size, int rank, MPI_Comm comm);

@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_elements_packed.c
- *  timestamp: 2009-11-19 13:52:21 +0100
+ *  timestamp: 2009-12-03 11:25:06 +0100
  *  
  */
 
@@ -10,7 +10,7 @@
 #include "sl_common.h"
 
 
-slint_t pepcparts_mpi_elements_packed_datatype_create(MPI_Datatype *pdt) /* pepcparts_sl_proto, sl_func pepcparts_mpi_elements_packed_datatype_create */
+slint_t pepcparts_mpi_elements_packed_datatype_create(MPI_Datatype *pdt, slint_t structured) /* pepcparts_sl_proto, sl_func pepcparts_mpi_elements_packed_datatype_create */
 {
   packed_element_t pe;
   
@@ -21,8 +21,10 @@ slint_t pepcparts_mpi_elements_packed_datatype_create(MPI_Datatype *pdt) /* pepc
   int i = 0;
   
   MPI_Aint base;
-  
-  MPI_Get_address(&pe, &base);
+
+  if (structured)
+  {
+    MPI_Get_address(&pe, &base);
 
 #define xelem_index_not
 #define xelem_call \
@@ -32,7 +34,9 @@ slint_t pepcparts_mpi_elements_packed_datatype_create(MPI_Datatype *pdt) /* pepc
   i++;
 #include "sl_xelem_call.h"
 
-  MPI_Type_create_struct(1 + data_n, blengths, displs, types, pdt);
+    MPI_Type_create_struct(1 + data_n, blengths, displs, types, pdt);
+
+  } else MPI_Type_contiguous(sizeof(packed_element_t), MPI_BYTE, pdt);
 
   MPI_Type_commit(pdt);
 
