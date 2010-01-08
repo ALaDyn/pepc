@@ -13,10 +13,11 @@
 !  ===================================================================
 
 
-subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, eps, err_f, balance, force_const, bond_const, &
-     delta_t,  xl, yl, zl, itime, &
-     coulomb, bfield_on, bonds, lenjones, &
-     t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force, iprot,total_work, init_mb)
+subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, &
+     eps, err_f, balance, force_const, bond_const, &
+     delta_t,  xl, yl, zl, itime, coulomb, bfield_on, bonds, lenjones, &
+     t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force, iprot,total_work, &
+     choose_sort,weighted, choose_build, init_mb)
 
   use treevars
   use utils
@@ -38,7 +39,7 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
   real, intent(in) :: xl, yl, zl         ! box dimensions
   integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: walk_scheme  ! choice of tree walk 
-  integer, intent(in) :: mac  ! choice of tree walk 
+  integer, intent(in) :: mac, choose_sort,weighted, choose_build
   integer, intent(in) :: balance  ! balancing
   integer :: ifreeze
 
@@ -47,7 +48,7 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
   integer, parameter :: npassm=100000 ! Max # passes - will need npp/nshortm
 
   integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe
-  real*8 :: t_domain, t_build(4), t_prefetch, t_walk, t_walkc, t_force, t_local, t_exchange, t1, t2, t3  ! timing integrals
+  real*8 :: t_domain, t_build(4), t_prefetch, t_walk, t_walkc, t_force, t_local, t_exchange, t1, t2, t3  ! timing integrals 
   real*8 :: tt(20)=0.
   integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm) ! work balance arrays
   real*8 :: ex_sl(nshortm),ey_sl(nshortm),ez_sl(nshortm)  ! Fields in shortlist from previous timestep
@@ -81,8 +82,6 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
   !  dump_tree=.true.
   !  npp = np_local  ! assumed lists matched for now
 
-   
-
   if (walk_scheme /= 3) ifreeze=1
 
   load_balance=balance
@@ -105,7 +104,7 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
 
      !POMP$ INST BEGIN(domains)
 !     call tree_domains(xl,yl,zl)    ! Domain decomposition: allocate particle keys to PEs
-     call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)    
+     call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, choose_sort, weighted)  
      !POMP$ INST END(domains)
      ! particles now sorted according to keys assigned in tree_domains.
 
@@ -133,7 +132,7 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
 
      call tree_fill       ! Fill in remainder of local tree
      !POMP$ INST END(build)
-
+     
      tt(5)=MPI_WTIME()
 
   else 

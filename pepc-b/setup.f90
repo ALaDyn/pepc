@@ -108,6 +108,10 @@ subroutine setup
   constrain_proof = .001
   struct_step = 0
 
+  choose_sort = 0
+  weighted = 0
+  choose_build = 0
+
   ! Read actual inputs from namelist file
   open(10,file='run.h')
   read(10,NML=pepcdata)

@@ -30,7 +30,7 @@ POBJS = $(PEPCSRC.f90:.f90=.o)
 PMODS =  $(PEPCMOD.f90:.f90=.o)
 
 
-all: dirs mods lpepc
+all: dirs mods module.deps lpepc 
 
 dirs:  
 	if [ ! -d $(MACH) ]; then mkdir $(MACH); fi
@@ -41,12 +41,12 @@ $(MACH)/%.o: %.f90
 	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$< -o $@
 
 $(pepclib): mods lpepc
-lpepc:   module.deps $(LIBOBJS) $(LIBMODS) 
+lpepc:  $(LIBOBJS) $(LIBMODS) 
 	@echo "Creating PEPC library ..."
 	$(RM) $(MACH)/liblpepc.a
 	$(AR) $(ARFLAGS) $(MACH)/liblpepc.a $^
 	$(RANLIB) $(MACH)/liblpepc.a
-	if [ -e treevars.mod ]; then cp *.mod $(MACH)/.; fi
+	if [ -e treevars.mod ]; then cp -p *.mod $(MACH)/.; fi
 	@echo "... done"
 
 

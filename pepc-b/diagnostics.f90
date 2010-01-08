@@ -41,6 +41,7 @@ subroutine diagnostics
   ! Routines for particle and field processing
   ! for VISIT (Online visualisation) and/or Netcdf file
 
+#ifdef VISIT_NBODY
   if ( vis_on ) then
      !     if ( mod(itime,ivis) ==0 ) call vis_parts       
      if ( mod(itime,ivis) ==0 ) then
@@ -55,6 +56,7 @@ subroutine diagnostics
      endif
 
   endif
+#endif
 
   !  if (target_geometry.eq.4) then
   !    do i=1,npp

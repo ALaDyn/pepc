@@ -44,8 +44,8 @@ appobjs = $(addprefix $(MACH)/, $(SOURCES.f90:.f90=.o)) \
 appmods =  $(addprefix $(MACH)/, $(MODULES.f90:.f90=.o))
 mods = $(appmods)
 
-default: dirs pepce
-all: dirs pepce
+default: dirs module.deps pepce
+all: dirs module.deps pepce
 dirs: 	
 	if [ ! -d $(MACH) ]; then mkdir $(MACH); fi
 
@@ -66,7 +66,7 @@ $(MACH)/%.o: %.c
 
 # -----------------------------------------------------------------------------------------
 #  targets
-pepce:	module.deps lpepc $(appmods) $(appobjs)
+pepce:	lpepc $(appmods) $(appobjs)
 	@echo "Creating application binary $(EXECNAME) ..."
 	$(LDPRE) $(LD) $(LDFLAGS) -o $(EXECNAME) $(appobjs) $(appmods) $(LIBPEPC) $(LDLIBS)
 	@echo "... done"
@@ -86,7 +86,7 @@ clean:
 default: pepce
 
 module.deps:
-	./f90_mod_deps.py -o $@ --o-prefix "\$$(MACH)/" $(PEPCMOD.f90) $(PEPCSRC.f90)
+	./f90_mod_deps.py -o $@ --o-prefix "\$$(MACH)/" $(MODULES.f90) $(SOURCES.f90)
 
 -include module.deps
 

@@ -195,7 +195,7 @@ program pepcb
 	  force_const, bond_const, &
           dt, xl, yl, zl, itime+itime_start, &
           coulomb, bfields, bonds, lenjones, &
-          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot, init_mb) 
+          t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot,work_tot, choose_sort, weighted, choose_build, init_mb) 
 
   
 !POMP$ INST END(fields)

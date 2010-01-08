@@ -20,6 +20,7 @@ module physvars
   real*4, allocatable :: rho_helm(:)  !< Helmholtz density
   complex, allocatable :: Az_helm(:)   !< Helmholtz vector potential
 
+  integer :: choose_sort, weighted, choose_build
 
   !  physics, target data
 

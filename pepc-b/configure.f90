@@ -8,7 +8,7 @@
 
 subroutine configure(nppm_ori,init_mb)
 
-    use physvars   ! Use internal particle arrays from lpepc
+    use physvars
     use treevars
     implicit none
     include 'mpif.h'
@@ -626,7 +626,7 @@ subroutine configure(nppm_ori,init_mb)
             force_const, bond_const, &
             dt, xl, yl, zl, 0, &
             coulomb, bfields, bonds, lenjones, &
-            t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot, work_tot, init_mb)   
+            t_domain,t_build,t_prefetch,t_walk,t_walkc,t_force, iprot, work_tot, choose_sort, weighted, choose_build, init_mb)   
       
         !  Initialise vec. pots. to avoid jump in induced E-field
         Axo(1:npp) = Ax(1:npp)
