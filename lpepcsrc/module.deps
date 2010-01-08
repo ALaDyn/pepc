@@ -1,0 +1,36 @@
+# DO NOT EDIT --- auto-generated file
+$(MACH)/treevars.o: treetypes.mod
+treevars.mod: treetypes.mod
+$(MACH)/tree_domains.o: treevars.mod tree_utils.mod utils.mod timings.mod treetypes.mod
+$(MACH)/setup_treearrays.o: treevars.mod tree_utils.mod
+$(MACH)/restore.o: treevars.mod
+$(MACH)/tree_allocate.o: treevars.mod timings.mod
+$(MACH)/tree_deallocate.o: treevars.mod
+$(MACH)/tree_build.o: treevars.mod timings.mod
+$(MACH)/tree_branches.o: treevars.mod tree_utils.mod timings.mod
+$(MACH)/tree_fill.o: treevars.mod tree_utils.mod timings.mod
+$(MACH)/tree_properties.o: treevars.mod tree_utils.mod timings.mod
+$(MACH)/tree_aswalk.o: treevars.mod tree_utils.mod utils.mod
+$(MACH)/tree_cowalk.o: treevars.mod tree_utils.mod utils.mod
+$(MACH)/tree_prefetch.o: treevars.mod tree_utils.mod
+$(MACH)/sum_force.o: treevars.mod
+$(MACH)/sum_bfield.o: treevars.mod
+$(MACH)/tree_update.o: treevars.mod tree_utils.mod
+$(MACH)/tree_stats.o: treevars.mod
+$(MACH)/make_hashentry.o: treevars.mod
+$(MACH)/get_address.o: treevars.mod
+$(MACH)/get_node.o: treevars.mod
+$(MACH)/key_test.o: treevars.mod
+$(MACH)/get_next_node.o: treevars.mod
+$(MACH)/diagnose_tree.o: treevars.mod
+$(MACH)/check_table.o: treevars.mod
+$(MACH)/sum_lennardjones.o: treevars.mod
+$(MACH)/sum_bond.o: treevars.mod
+$(MACH)/draw_domains.o: treevars.mod
+$(MACH)/draw_tree2d.o: treevars.mod
+$(MACH)/draw_lists.o: treevars.mod
+$(MACH)/fields.o: treevars.mod utils.mod timings.mod
+$(MACH)/fields_p.o: treevars.mod utils.mod
+$(MACH)/fields_p1.o: treevars.mod utils.mod
+$(MACH)/cleanup_treearrays.o: treevars.mod
+$(MACH)/mac.o: treevars.mod

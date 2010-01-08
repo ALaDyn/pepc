@@ -45,8 +45,6 @@ subroutine tree_properties
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: max_nbranch
 
-  character(30) :: cfile
-
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()  
 
@@ -171,7 +169,7 @@ subroutine tree_properties
   end do
 
   call sort(key_twig(1:ntwig_domain))
- 
+
   if (props_debug) then
 !     write (ipefile,*) 'Twigs contained in local branch list: ',key_twig(1:ntwig_domain)
      write (ipefile,*) '# Twigs contained in local branch list: ',ntwig_domain
@@ -265,7 +263,6 @@ subroutine tree_properties
      	size_node(node_twig(i)) = size_node(node_twig(i)) + size_node(node_child(j))
 
      end do
-
   end do
 
   ta1e = MPI_WTIME()
@@ -276,7 +273,6 @@ subroutine tree_properties
   ! Should now have multipole information up to branch list level(s).
   ! By definition, this is complete: each branch node is self-contained.
   ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
-
 
    ! Node #s of local branches
   local_node(1:nbranch) =  (/ ( htable( key2addr( pebranch(i),'PROPERTIES: branch' ) )%node, i=1,nbranch ) /) 
@@ -467,6 +463,7 @@ subroutine tree_properties
 ! Multipole extent
      	size_node( parent_node(i) ) = size_node( parent_node(i) ) + size_node(branch_node(i))
      end do
+
 
      nparent = nuniq
   end do

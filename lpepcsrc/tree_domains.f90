@@ -69,26 +69,32 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
        integer*8,intent(inout) :: keys(*)
        real*8,intent(inout) :: workload(*)
      end subroutine slsort_keys
-  end interface
 
-  !    subroutine slsort_parts(n,nmax,keys,x,y,z,ux,uy,uz,q,m,work,ex,ey,ez,pelabel,balance_weight,max_imbalance,scratch0,scratch1,size,rank)
-  !      integer,intent(inout) :: n
-  !      integer,intent(in) :: nmax,balance_weight,size,rank
-  !      integer*8,intent(inout) :: keys(*)
-  !      real*8,intent(inout) :: x(*),y(*),z(*),ux(*),uy(*),uz(*),q(*),m(*),work(*),ex(*),ey(*),ez(*)
-  !      integer,intent(inout) :: pelabel(*)
-  !      real*8,intent(in) :: max_imbalance
-  !      character :: scratch0(*), scratch1(*)
-  !    end subroutine slsort_parts
+     subroutine slsort_parts(n,nmax,keys,x,y,z,ux,uy,uz,q,m,work,ex,ey,ez,pelabel,balance_weight,max_imbalance,indxl,irnkl,scounts,rcounts,sdispls,rdispls,scratch0,scratch1,keys2,work2,irnkl2,size,rank)
+       use treetypes
+       integer,intent(inout) :: n
+       integer,intent(in) :: nmax,balance_weight,size,rank
+       integer*8,intent(inout) :: keys(*)
+       real*8,intent(inout) :: x(*),y(*),z(*),ux(*),uy(*),uz(*),q(*),m(*),work(*),ex(*),ey(*),ez(*)
+       integer,intent(inout) :: pelabel(*)
+       real*8,intent(in) :: max_imbalance
+       integer,intent(out) :: indxl(*),irnkl(*),scounts(*),rcounts(*),sdispls(*),rdispls(*)
+       type (particle) :: scratch0(*), scratch1(*)
+       integer*8,intent(out) :: keys2(*)
+       real*8,intent(out) :: work2(*)
+       integer,intent(out) :: irnkl2(*)
+     end subroutine slsort_parts
+  end interface
 
   integer*8 :: keys2(nppm)
   real*8 work2(nppm)
   integer irnkl2(nppm)
 
-  real*8 d,local_work,work_stats(num_pe+1)
   integer local_count,count_stats(num_pe+1)
+  real*8 local_work,work_stats(num_pe+1)
+  real*8 d,minc,maxc,sumc,minw,maxw,sumw
 
-  DOUBLE PRECISION :: ts
+  DOUBLE PRECISION :: ts, tpack, tunpack, talltoallv
 
   !POMP$ INST BEGIN(keys)
 
@@ -205,6 +211,8 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   npold = npp
   npnew = npp
 
+  ts = MPI_WTIME()
+
   if (choose_sort == 2) then
 
      source_pe(1:npold) = pepid(1:npold)
@@ -220,6 +228,8 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
 
      ! set npnew to the new number of local particles
      npnew = npp
+
+     t_domains_sort_pure = 0
 
   else
 
@@ -336,6 +346,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
      ! Set up particle structure - keys and source_pe are dummies
      ! ( pekey is already sorted)
 
+     tpack = MPI_WTIME()
 
      do i=1,npold
         ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
@@ -346,10 +357,18 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
              keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
      enddo
 
+     tpack = MPI_WTIME() - tpack
+
+     talltoallv = MPI_WTIME()
+
      ! perform permute
      call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_particle, &
           get_parts, irlen, gposts, mpi_type_particle, &
           MPI_COMM_WORLD,ierr)
+
+     talltoallv = MPI_WTIME() - talltoallv
+
+     tunpack = MPI_WTIME()
 
      do i=1,npp
         x(irnkl(i)) = get_parts(i)%x
@@ -370,29 +389,33 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
         pelabel(irnkl(i)) = get_parts(i)%label
      enddo
 
+     tunpack = MPI_WTIME() - tunpack
+
   endif
+
+  ts = MPI_WTIME() - ts
 
   ta1e = MPI_WTIME()
   t_domains_ship = ta1e - ta1b
   ta1b = MPI_WTIME()
 
   if (me .eq. -1) then
-     write (*,*) 'sorting: ', t_domains_ship
+     write (*,*) 'sorting: ', ts, ' = ', t_domains_sort_pure, ' + ', t_domains_ship, '(', tpack, ' + ', talltoallv, ' + ', tunpack, ')'
   endif
 
   ! gather workload information
-  if (0 .eq. 1) then
+  if (0 .eq. -1) then
 
      ! new workloads
      local_count = npp;
      local_work = 0;
      do i=1,npp
-        !      write(*,*) i,work(i)
+!        write(*,*) i,work(i)
         local_work = local_work + work(i)
      enddo
 
-     call MPI_Allgather(local_work, 1, MPI_DOUBLE_PRECISION, work_stats, 1, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr);
      call MPI_Allgather(local_count, 1, MPI_INTEGER, count_stats, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr);
+     call MPI_Allgather(local_work, 1, MPI_DOUBLE_PRECISION, work_stats, 1, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr);
 
      work_stats(num_pe+1) = 0;
      count_stats(num_pe+1) = 0;
@@ -403,20 +426,35 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
 
      if (me .eq. 0) then
         write(*,*) 'total_count:',count_stats(num_pe+1)
-        d = 0;
+        sumc = 0;
+        minc = count_stats(num_pe+1)/num_pe;
+        maxc = 0;
         do i=1,num_pe
-           write(*,*) i,count_stats(i),real(count_stats(i))/count_stats(num_pe+1),'/',((real(count_stats(num_pe+1))/num_pe)-count_stats(i)),abs(1.0d0-(real(count_stats(i))*num_pe/count_stats(num_pe+1)))
-           d = d + abs((count_stats(num_pe+1)/num_pe)-count_stats(i));
+!           write(*,*) i,count_stats(i),real(count_stats(i))/count_stats(num_pe+1),'/',((real(count_stats(num_pe+1))/num_pe)-count_stats(i)),abs(1.0d0-(real(count_stats(i))*num_pe/count_stats(num_pe+1)))
+           d = abs((count_stats(num_pe+1)/num_pe)-count_stats(i));
+           minc = min(minc, d);
+           maxc = max(maxc, d);
+           sumc = sumc + d;
         enddo
-        write(*,*) 'average_count:',count_stats(num_pe+1)/num_pe,d/num_pe,d/count_stats(num_pe+1)
-
+        write(*,*) 'avg_count:',count_stats(num_pe+1)/num_pe
+        write(*,*) 'avg_cdiff:',sumc/num_pe,sumc/count_stats(num_pe+1)
+        write(*,*) 'min_cdiff:',minc,minc*num_pe/count_stats(num_pe+1)
+        write(*,*) 'max_cdiff:',maxc,maxc*num_pe/count_stats(num_pe+1)
         write(*,*) 'total_weight:',work_stats(num_pe+1)
-        d = 0;
+        sumw = 0;
+        minw = work_stats(num_pe+1)/num_pe;
+        maxw = 0;
         do i=1,num_pe
-           write(*,*) i,work_stats(i),real(work_stats(i))/work_stats(num_pe+1),'/',((real(work_stats(num_pe+1))/num_pe)-work_stats(i)),abs(1.0d0-(real(work_stats(i))*num_pe/work_stats(num_pe+1)))
-           d = d + abs((work_stats(num_pe+1)/num_pe)-work_stats(i));
+!           write(*,*) i,work_stats(i),real(work_stats(i))/work_stats(num_pe+1),'/',((real(work_stats(num_pe+1))/num_pe)-work_stats(i)),abs(1.0d0-(real(work_stats(i))*num_pe/work_stats(num_pe+1)))
+           d = abs((work_stats(num_pe+1)/num_pe)-work_stats(i));
+           minw = min(minw, d);
+           maxw = max(maxw, d);
+           sumw = sumw + d;
         enddo
-        write(*,*) 'average_weight:',work_stats(num_pe+1)/num_pe,d/num_pe,d/work_stats(num_pe+1)
+        write(*,*) 'avg_weight:',work_stats(num_pe+1)/num_pe
+        write(*,*) 'avg_wdiff:',sumw/num_pe,sumw/work_stats(num_pe+1)
+        write(*,*) 'min_wdiff:',minw,minw*num_pe/work_stats(num_pe+1)
+        write(*,*) 'max_wdiff:',maxw,maxw*num_pe/work_stats(num_pe+1)
      endif
 
   endif
