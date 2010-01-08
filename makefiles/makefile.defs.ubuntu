@@ -14,6 +14,10 @@ FCPRE    =
 FC       = mpif90
 FFLAGS   = -I/usr/lib/mpich-shmem/include
 
+CCPRE    = 
+CC       = mpicc
+CFLAGS   = -I/usr/lib/mpich-shmem/include
+
 LDPRE    = 
 LD       = mpif90
 LDFLAGS  = 
