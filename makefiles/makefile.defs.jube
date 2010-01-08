@@ -1,0 +1,28 @@
+MACH     = #ARCH#
+
+RANLIB   = #RANLIB#
+
+MAKE     = #MAKE#
+
+AR       = #AR#
+ARFLAGS  = #ARFLAGS#
+
+CPP      = #CPP#
+CPPFLAGS = #CPPFLAGS#
+
+FCPRE    = #FCPRE#
+FC       = #MPI_F90#
+FFLAGS   = #F90FLAGS#
+
+CCPRE    = #CCPRE#
+CC       = #MPI_CC#
+CFLAGS   = #CCFLAGS#
+
+LDPRE    = #LDPRE#
+LD       = #LD#
+LDFLAGS  = #LDFLAGS#
+LDLIBS   = #LDLIBS#
+
+RM       = #RM#
+
+EXECNAME = #EXECNAME#

@@ -123,7 +123,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
 
   integer :: periodic_neighbour(3) ! stores the index offset of the nearest image's cell as an integer(3) array
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   t1 = MPI_WTIME()
 
   !
@@ -175,7 +174,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
      !     hops(1) = 500
   endif
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up  
   t2 = MPI_WTIME()
   
   !if (me ==0) write(*,*) t2-t1
@@ -464,8 +462,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
         i1 = istart(ipe)
         i2 = istart(ipe) + nrequests(ipe) - 1
         if (walk_debug) then
-           write(ipefile,'(a,i4,a,3i7/(o12))') 'PE ',me,' received request from: ', &
-		ipe,nrequests(ipe),istart(ipe),process_key(i1:i2) 
+           write(ipefile,'(a,i4,a,3i7/(o12))') 'PE ',me,' received request from: ',ipe,nrequests(ipe),istart(ipe),process_key(i1:i2) 
         endif
         process_addr(1:nreqs) = (/( key2addr( process_key(j),'WALK: ship1 '),j=i1,i2)/)    ! get htable addresses
         childbyte(1:nreqs) = htable( process_addr(1:nreqs) )%childcode        !  Children byte-code
@@ -667,7 +664,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
      !     sum_fetches = sum_fetches + nplace_max  ! Total # fetches/iteration
      !     sum_ships = sum_ships + nchild_ship_tot ! Total # shipments/iteration
 
-     if (walk_debug ) then
+     if (walk_summary ) then
         write (ipefile,'(/a,i8,a2)') 'LPEPC | Summary for traversal # ',ntraversals,' :'
         ! Determine global max
         call MPI_ALLREDUCE( nplace_max, max_nplace, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr )

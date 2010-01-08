@@ -10,7 +10,6 @@ subroutine tree_deallocate(nppm_ori)
   nppm = nppm_ori
   if (me==0) write(*,*) 'Deallocating multipole fields'
 
-!  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   
  ! interaction key-, node-lists
   deallocate(nodelist,nterm,intlist)

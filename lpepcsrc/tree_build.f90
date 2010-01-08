@@ -10,8 +10,11 @@
 subroutine tree_build
 
   use treevars
+  use timings
   implicit none
   include 'mpif.h'
+
+  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
 
   integer*8, dimension(maxaddress) :: subcell, par_key, res_key        ! All key arrays 64-bit
   integer*8, dimension(nppm+2) :: local_key
@@ -40,8 +43,11 @@ subroutine tree_build
   real :: s
   logical :: resolved
 
+  ts1b = MPI_WTIME()
+  ta1b = MPI_WTIME()
 
-  if (me==0) write(6,'(a)') 'LPEPC | LOCAL BUILD'
+  if (tree_debug) write(ipefile,'(/a)') 'TREE BUILD'
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | LOCAL BUILD'
 
   ! zero table: need list of 'live' addresses to speed up
   htable%node = 0
@@ -111,15 +117,13 @@ subroutine tree_build
      endif
   endif
 
-
+  ta1e = MPI_WTIME()  
+  t_build_neigh = ta1e-ta1b
+  ta1b = MPI_WTIME()
 
   level = 0                        ! start at root
-
-
   local_ind(1:nlist) = (/(k,k=1,nlist)/) ! Sorted local particle index / leaf number: points to particle properties
-
   part_done(1:nlist) = .false.              ! flag all particles not finished
-
 
   !  set up root node
 
@@ -362,6 +366,9 @@ subroutine tree_build
 
   end do
 
+  ta1e = MPI_WTIME()  
+  t_build_part = ta1e-ta1b
+  ta1b = MPI_WTIME()  
 
   ! Fill in byte code for children in table (twig entries contain # children at this point)
 
@@ -395,8 +402,12 @@ subroutine tree_build
        point_free(i) = 0
     endif
  enddo
-    
- call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+
+ ta1e = MPI_WTIME()  
+ t_build_byte = ta1e-ta1b
+ ts1e = MPI_WTIME()
+ t_build = ts1e-ts1b
+
   
 end subroutine tree_build
 

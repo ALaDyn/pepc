@@ -1,0 +1,30 @@
+MACH     = Ubuntu
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C 
+
+FCPRE    = 
+FC       = mpif90
+FFLAGS   = -I/usr/lib/mpich-shmem/include
+
+CCPRE    = 
+CC       = mpicc
+CFLAGS   = -I/usr/lib/mpich-shmem/include
+
+LDPRE    = 
+LD       = mpif90
+LDFLAGS  = 
+LDLIBS   = 
+
+RM       = rm -rf
+
+EXECNAME = ../pepc
+
+

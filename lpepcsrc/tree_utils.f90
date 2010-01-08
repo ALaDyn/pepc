@@ -389,7 +389,7 @@ contains
     integer :: total_keys(nprocs)  ! Total # keys in local tree(s) 
     real*8 :: ave_nkeys,finc  ! Average # keys
 
-    integer, parameter :: maxbin=2100000  ! Max # bins for key distrib
+    integer, parameter :: maxbin=1000000  ! Max # bins for key distrib
     integer*8, dimension(maxbin)  :: f_local, f_global, f_final  ! Key distribution functions
     integer*8, dimension(maxbin) ::  search_list, retain_list, bin_list
     integer, dimension(maxbin) :: index_bin
@@ -414,6 +414,14 @@ contains
     integer, save :: icall
     data icall/0/
 
+    double PRECISION :: ts, ttotal, twhile, twhile_allreduce, talltoall
+
+    ttotal = 0.0
+    twhile = 0.0
+    twhile_allreduce = 0.0
+    talltoall = 0.0
+
+    ttotal = MPI_Wtime()
 
 !    fd = iproc+10
     fd=6
@@ -488,6 +496,7 @@ search_list = 8_8**lev_map  ! place holder
    nfbins = 0  ! Final # bins
    ilev = 1
 
+   twhile = MPI_Wtime()
 
    do while (ilev <= lev_map)
 
@@ -547,13 +556,17 @@ search_list = 8_8**lev_map  ! place holder
 ! no match - try next bin
 	  ibin=ibin+1
 	endif
-     end do
+      end do
 
 
     ! Global distrib - must make sure all CPUs participate, even if locally finished
 
+    ts = MPI_Wtime();
+
     call MPI_ALLREDUCE(f_local, f_global, nbin, MPI_INTEGER8, MPI_SUM,  MPI_COMM_WORLD, ierr )
 
+    twhile_allreduce = twhile_allreduce + (MPI_Wtime() - ts);
+    
     if (ilev==1) then 
        ave_work=1.0*SUM(f_global(1:nbin))/nprocs        ! need more particles than procs here
        work_threshold = ave_work/alpha
@@ -583,7 +596,6 @@ search_list = 8_8**lev_map  ! place holder
 
 	else if (f_global(ibin) /= 0) then
 	   nfbins=nfbins+1   ! Copy bin onto 'final' list here 
-!           if ((iproc==0).or.(nfbins.ge.maxbin)) write(*,*) iproc,'nfbins',nfbins,ibin,nbin
 	   bin_list(nfbins) = search_list(ibin)
 	   f_final(nfbins) = f_global(ibin)
 	   finished(ibin)=.true.
@@ -608,6 +620,8 @@ search_list = 8_8**lev_map  ! place holder
     finished(1:new_bins)=.false.
     nbin = new_bins
   end do 
+
+  twhile = MPI_Wtime() - twhile
 
   nbin = nfbins
 
@@ -667,11 +681,11 @@ search_list = 8_8**lev_map  ! place holder
  !   endif
 
 !  if (debug .and. icall==0 .and. iproc==proc_debug) then
-    if (debug .and. icall==0 ) then
-     !	write(*,*) 'PE ',iproc,'Writing key dist'
-     open(90,file='fglobal.data')
-     write(90,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
-     close(90)
+  if (debug .and. icall==0 ) then
+!	write(*,*) 'PE ',iproc,'Writing key dist'
+        open(90,file='fglobal.data')
+       write(90,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
+	close(90)
   endif
 
 
@@ -712,6 +726,7 @@ search_list = 8_8**lev_map  ! place holder
     enddo
 
 
+    talltoall = MPI_Wtime()
 
     call MPI_ALLTOALL( islen,1,MPI_INTEGER, &
                        irlen,1,MPI_INTEGER, &
@@ -732,7 +747,7 @@ search_list = 8_8**lev_map  ! place holder
       write(*,*) 'Problem with particle balance on proc',iproc,' np,npnew,npmm:',np,npnew,nppm
     endif
 !  Use full keys for swap
- call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
     call MPI_ALLTOALLV(  kw1  ,islen,fposts,MPI_INTEGER8, &
                          keys,irlen,gposts,MPI_INTEGER8, &
                          MPI_COMM_WORLD,ierr)
@@ -740,6 +755,8 @@ search_list = 8_8**lev_map  ! place holder
  !      write (*,'(a10,i7/a10/(4i12))') 'npnew: ',npnew, &
  !      'posts: ',(fposts(i),gposts(i),islen(i),irlen(i),i=1,nprocs)
  !   endif
+
+    talltoall = MPI_Wtime() - talltoall
 
 
     !     Set up the information for the merge:
@@ -755,6 +772,16 @@ search_list = 8_8**lev_map  ! place holder
 !       write (fd,'(a20/(10x,5i8))') 'fp, is, gp, ir ',(i,fposts(i),islen(i),gposts(i),irlen(i),i=1,nprocs+1)
 !    endif
     icall = icall + 1          ! update call count
+    
+    ttotal = MPI_Wtime() - ttotal
+
+    if (iproc .eq. -1) then
+      write(*,*) 'pbalsort: total:', ttotal
+      write(*,*) 'pbalsort: while:', twhile
+      write(*,*) 'pbalsort:   allreduce:', twhile_allreduce
+      write(*,*) 'pbalsort: alltoall:', talltoall
+    endif
+    
   end subroutine pbalsort
 
 
@@ -1052,8 +1079,8 @@ search_list = 8_8**lev_map  ! place holder
   if (debug .and. icall==0 ) then
 !	write(*,*) 'PE ',iproc,'Writing key dist'
         open(90,file='fglobal.data')
-       write(20,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
-!	call close(90)
+       write(90,'(a30/(i6,2f12.3))') '! Local & global key distributions: ',(i,f_local(i),f_global(i),i=1,nbin)
+	close(90)
   endif
 
 
@@ -1113,7 +1140,7 @@ search_list = 8_8**lev_map  ! place holder
 
 
 !  Use full keys for swap
- call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
     call MPI_ALLTOALLV(  kw1  ,islen,fposts,MPI_INTEGER8, &
                          keys,irlen,gposts,MPI_INTEGER8, &
                          MPI_COMM_WORLD,ierr)

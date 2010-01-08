@@ -14,12 +14,11 @@
 
 subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, t_np_mult,t_fetch_mult, &
-     mac, theta, eps, force_const, err_f, xl, yl, zl, itime, &
-     t_begin,t_domain,t_build,t_branches,t_fill,t_properties, &
-	 t_prefetch,t_integral,t_walk,t_walkc,t_force,t_restore,t_mpi,t_end,t_all,init_mb)
+     mac, theta, eps, force_const, err_f, xl, yl, zl, itime, walk_scheme, choose_sort,weighted, choose_build, init_mb)
 
   use treevars
   use utils
+  use timings
   implicit none
   include 'mpif.h'
 
@@ -30,19 +29,17 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   real, intent(in) :: eps         ! potential softening distance
   real, intent(in) :: xl, yl, zl         ! box dimensions
   integer, intent(in) :: itime  ! timestep
-  integer, intent(in) :: mac  ! choice of mac
+  integer, intent(in) :: mac, choose_sort, weighted, choose_build
   real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
 !  real*8, intent(in),  dimension(np_local) :: p_vx, p_vy, p_vz  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
   real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
   integer, intent(in), dimension(np_local) :: p_label  ! particle label 
   real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
-  real*8, intent(out) :: t_begin,t_domain, t_build, t_branches, t_fill, t_properties,t_prefetch, & 
-			t_integral, t_walk, t_walkc, t_force, t_restore, &
-                         t_mpi,t_end,t_all
+
   real*8, dimension(nppm_ori) :: ex_tmp,ey_tmp,ez_tmp,pot_tmp,w_tmp
   real*8, dimension(np_local) :: p_w ! work loads
-  integer, intent(in) :: init_mb
-
+  integer, intent(in) :: init_mb, walk_scheme
+  
   integer :: npnew,npold
 
   integer :: indxl(nppm_ori),irnkl(nppm_ori)
@@ -56,7 +53,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm) ! work balance arrays
   integer :: hashaddr ! Key address 
 
-  real*8 :: tm1, tm2, tm3, tm4, tm5, tm6, tm7, tm8, tm9, tm10, tm11, tm12, tm13, tm14
+  real*8 :: ts1b, ts1e, ts2b, ts2e, ta1b, ta1e, ta2b, ta2e
 
   integer :: max_local,  timestamp
   integer :: ierr
@@ -75,7 +72,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 !  real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
 
   call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-  tm1 = MPI_WTIME()
+  ts1b = MPI_WTIME()
+  ta1b = MPI_WTIME()
 
   np_mult = t_np_mult
   fetch_mult = t_fetch_mult
@@ -120,36 +118,37 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      az(i) = 0.
   end do
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up  
-  tm2 = MPI_WTIME()
-! Domain decomposition: allocate particle keys to PEs
-  call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold)  
-  nppm=npp
+  ta1e = MPI_WTIME()
+  t_fields_begin = ta1e-ta1b
+  ta1b = MPI_WTIME()
+
+  ! Domain decomposition: allocate particle keys to PEs
+  call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, choose_sort, weighted)  
   call tree_allocate(theta,init_mb)
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-  tm3 = MPI_WTIME()
-  call tree_build      ! Build trees from local particle lists
-!  if (me == 0) write(*,*) "tree_branch"
+  if (choose_build == 0) then
 
-  tm4 = MPI_WTIME()
-  call tree_branches   ! Determine and concatenate branch nodes
-!  if (me == 0) write(*,*) "tree_fill"
+     call tree_build      ! Build trees from local particle lists
+     call tree_branches   ! Determine and concatenate branch nodes
+     call tree_fill       ! Fill in remainder of local tree
+     call tree_properties ! Compute multipole moments for local tree
 
-  tm5 = MPI_WTIME()
-  call tree_fill       ! Fill in remainder of local tree
-!  if (me == 0) write(*,*) "tree_props"
+  else   
 
-  tm6 = MPI_WTIME()
-  call tree_properties ! Compute multipole moments for local tree
+     call tree_local
+     call tree_exchange
+     call tree_global
 
-  tm7 = MPI_WTIME()
+  end if
+
+  ta1e = MPI_WTIME()
+  t_fields_tree = ta1e-ta1b
+  ta1b = MPI_WTIME()
 
   t_walk=0.
   t_walkc=0.
   t_force=0.
   max_local = 0   ! max length of interaction list
-  max_list_length = 0
   work_local = 0  ! total workload
   maxtraverse=0   ! max # traversals
   sum_fetches=0      ! total # multipole fetches/iteration
@@ -201,8 +200,9 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   ip1 = 1
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-  tm8 = MPI_WTIME()
+  ta1e = MPI_WTIME()
+  t_fields_nshort = ta1e-ta1b
+  ta1b = MPI_WTIME()
   
   do jpass = 1,max_npass
      !  make short-list
@@ -218,12 +218,16 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
      
-     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
-!     call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+     if (walk_scheme == 1) then
+        call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
+     else
+        call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
+     end if
+
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps
 
-     tm9 = MPI_WTIME()
+     ta2b = MPI_WTIME()
      do i = 1, nps
 
        p = pshortlist(i)    ! local particle index
@@ -245,46 +249,44 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
     end do
 
-    tm10 = MPI_WTIME()
-    t_force = t_force + tm10-tm9
+    ta2e= MPI_WTIME()
+    t_force = t_force + ta2e-ta2b
 
     max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
 !     if (dump_tree) call diagnose_tree
-     if ((me == 0) .and. (mod(jpass,max_npass/10+1)==0)) &
+     if ((me == 0).and. tree_debug .and. (mod(jpass,max_npass/10+1)==0)) &
           write(*,'(a26,a10,f12.4,a2)') ' LPEPC | TREE WALK (AS) --','Completed',100.0*jpass/max_npass,' %'
   end do
 
 ! restore initial particle order specified by calling routine to reassign computed forces
 ! notice the swapped order of the index-fields -> less changes in restore.f90 compared to tree_domains.f90 
 
-!  if (me == 0) write(*,*) "tree restore"
-
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-  tm11 = MPI_WTIME()
+  ta1e = MPI_WTIME()
+  t_fields_passes = ta1e-ta1b
+  ta1b = MPI_WTIME()
+  ts2b = MPI_WTIME()
 
   call restore(npnew,npold,nppm_ori,irnkl,indxl,irlen,islen,gposts,fposts, &
        pot_tmp(1:npnew),ex_tmp(1:npnew),ey_tmp(1:npnew),ez_tmp(1:npnew),w_tmp(1:npnew),p_pot,p_ex,p_ey,p_ez,p_w)    
 
-!  do i=1,npold
-!     write(*,*) me,i,pelabel(i),p_w(i),p_pot(i),p_ex(i)
-!  end do
+  ta1e = MPI_WTIME()
+  t_restore_async = ta1e-ta1b
+  ts2e = MPI_WTIME()
+  t_restore = ts2e-ts2b 
+  ta1b = MPI_WTIME()
 
-  tm12 = MPI_WTIME()
+  if (tree_debug .and. mod(itime,iprot)==0) then
+     call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
+     call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
+  end if
 
-  call MPI_ALLREDUCE(max_local, max_list_length, 1, MPI_INTEGER, MPI_MAX,  MPI_COMM_WORLD, ierr )
-  call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
-  call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
 
-!  timestamp = itime + itime_start
   timestamp = itime
 
   nkeys_total = nleaf+ntwig  
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-  tm13 = MPI_WTIME()
-
-  if (me ==0 .and. mod(itime,iprot)==0) then
+  if (me ==0 .and. mod(itime,iprot)==0 .and. tree_debug) then
      total_work = SUM(work_loads)
      average_work = total_work/num_pe
      cme = achar(timestamp/1000+48) // achar(mod(timestamp/100,10)+48) &
@@ -317,23 +319,68 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   if (tree_debug) call tree_stats(itime)
 
+  ta1e = MPI_WTIME()
+  t_fields_stats = ta1e-ta1b
+  ta1b = MPI_WTIME()
+
   call tree_deallocate(nppm_ori)
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-  tm14 = MPI_WTIME()
+  ts1e = MPI_WTIME()
+  t_deallocate = ts1e-ta1b
+  t_all = ts1e-ts1b
 
-  t_all = tm14-tm1
-  t_begin = tm2-tm1
-  t_domain = tm3-tm2
-  t_build = tm4-tm3
-  t_branches = tm5-tm4
-  t_fill = tm6-tm5
-  t_properties = tm7-tm6
-  t_prefetch = 0.
-  t_integral = tm8-tm7
-  t_restore = tm12-tm11
-  t_mpi = tm13-tm12  
-  t_end = tm14-tm13  
+  call MPI_REDUCE(t_domains,t0_domains,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_allocate,t0_allocate,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  
+  if (choose_build == 0) then
+     call MPI_REDUCE(t_build,t0_build,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(t_branches,t0_branches,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(t_fill,t0_fill,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(t_properties,t0_properties,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  else
+     call MPI_REDUCE(t_local,t0_local,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(t_exchange,t0_exchange,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(t_global,t0_global,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     t_props_branches = 0.
+     t_props_global = 0.
+  end if
+
+  t0_walk = t_walk
+  t0_walkc = t_walkc
+  t0_force = t_force
+  call MPI_REDUCE(t_restore,t0_restore,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_deallocate,t0_deallocate,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_all,t0_all,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+
+
+  write(cfile,'(a,i6.6,a)') "load_", me, ".dat"  
+  open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+  write(60,*) itime,' ',work_local,' ',npp
+  close(60)   
+
+  write(cfile,'(a,i6.6,a)') "timing_", me, ".dat"  
+  open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+  write(60,*) itime,' ',t_fields_begin,' ',&
+       t_domains_keys,' ',t_domains_sort,' ',t_domains_ship,' ',t_domains_bound,' ',&
+       t_allocate_async,' ',&
+       t_build_neigh,' ',t_build_part,' ',t_build_byte,' ',&
+       t_branches_find,' ',t_branches_exchange,' ',t_branches_integrate,' ',&
+       t_fill_local,' ',t_fill_global,' ',&
+       t_props_leafs,' ',t_props_twigs,' ',t_props_branches,' ',t_props_global,' ',&
+       t_fields_nshort,' ',t_fields_passes,' ',t_restore_async,' ',t_fields_stats,' ',&
+       t_domains_sort_pure,' ',t_walk,' ',t_walkc,' ',t_force
+  close(60)   
+  
+!!$!  call diagnose_tree
+!!$  write(cfile,'(a,i6.6,a)') "diag_", me, ".dat"  
+!!$  open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+!!$!  write(60,*) nbranch,nleaf,nleaf_me,ntwig,ntwig_me,nnodes
+!!$!  write(60,*) xcoc(i),ycoc(i),zcoc(i),charge(i),xdip(i),ydip(i),zdip(i),xxquad(i),xyquad(i),zxquad(i),yzquad(i),yyquad(i),zzquad(i),size_node(i)
+!!$!  write(60,*) k,sum_fetches, sum_ships, nleaf_me, ntwig_me, nkeys_total,work_local
+!!$  do i=1,nbranch_sum    
+!!$     write(60,*) branch_key(i),htable( key2addr( branch_key(i),'BRANCHES: debug' ) )%node
+!!$  end do
+!!$  close(60)
 
 end subroutine pepc_fields
 

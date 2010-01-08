@@ -34,6 +34,8 @@ subroutine diagnose_tree
 
   csnap=achar(mod(isnap,10)+48)
 
+  write(cfile,'(a,i6.6,a)') "diag_", me, ".dat"  
+  open(ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
 
   if (me==0) write (*,*) 'DIAGNOSE TREE'
   write (ipefile,*) 'DIAGNOSE TREE'
@@ -51,10 +53,10 @@ subroutine diagnose_tree
      collision=" "
      if (htable(i)%node/=0 .and. htable(i)%link/= -1 ) collision="C"
      if (htable(i)%node /= 0 .and. htable(i)%next >=0) write (ipefile,'(3i10,o22,i10,2o22,i8,i5,z4,4x,a1)') &
-	  i,htable(i)%owner,htable(i)%node,htable(i)%key,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
+	  me,htable(i)%owner,htable(i)%node,htable(i)%key,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
           htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
      if (htable(i)%node /= 0 .and. htable(i)%next <0) write (ipefile,'(3i10,2o15,i15,i15,i5,z4,4x,a1)') &
-	  i,htable(i)%owner,htable(i)%node,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
+	  me,htable(i)%owner,htable(i)%node,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
           htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
   end do
 
@@ -132,14 +134,14 @@ subroutine diagnose_tree
 
 ! Interaction lists
   
-  write(ipefile,'(//a)') 'Interaction lists'
-  do i=1,npp
-     write(ipefile,'(//a,i5,a,i5)') 'Particle ',pelabel(i),' # terms: ',nterm(i)
-     write(ipefile,'(a/(4i7))') 'List: key,owner,node',(intlist(j,i),htable( key2addr( intlist(j,i),'DIAGNOSE_TREE' ) )%owner &
-          ,htable( key2addr( intlist(j,i),'DIAGNOSE_TREE' ) )%node,nodelist(j,i),j=1,nterm(i))
-  end do
+!!$  write(ipefile,'(//a)') 'Interaction lists'
+!!$  do i=1,npp
+!!$     write(ipefile,'(//a,i5,a,i5)') 'Particle ',pelabel(i),' # terms: ',nterm(i)
+!!$     write(ipefile,'(a/(4i7))') 'List: key,owner,node',(intlist(j,i),htable( key2addr( intlist(j,i),'DIAGNOSE_TREE' ) )%owner &
+!!$          ,htable( key2addr( intlist(j,i),'DIAGNOSE_TREE' ) )%node,nodelist(j,i),j=1,nterm(i))
+!!$  end do
 
 
-
-
+  close(ipefile)
+  
 end subroutine diagnose_tree

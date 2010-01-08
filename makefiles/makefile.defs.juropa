@@ -1,0 +1,28 @@
+MACH     = JUROPA-JSC
+
+RANLIB   = ranlib
+
+MAKE     = gmake
+
+AR       = xiar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C
+
+FCPRE    = 
+FC       = mpif90
+FFLAGS   = -O2 -ipo -axSSE4.2
+
+CCPRE    = 
+CC       = mpicc
+CFLAGS   = 
+
+LDPRE    = 
+LD       = mpif90
+LDFLAGS  = 
+LDLIBS   = 
+
+RM       = rm -rf
+
+EXECNAME = ../pepc

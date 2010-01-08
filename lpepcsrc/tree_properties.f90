@@ -11,9 +11,11 @@ subroutine tree_properties
 
   use treevars
   use tree_utils
-
+  use timings
   implicit none
   include 'mpif.h'
+
+  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
 
   integer*8, dimension(maxaddress) ::  search_key, resolve_key, parent_key, sum_key, key_twig
   integer*8, dimension(8) :: sub_key, key_child
@@ -43,10 +45,11 @@ subroutine tree_properties
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: max_nbranch
 
+  ts1b = MPI_WTIME()
+  ta1b = MPI_WTIME()  
+
   if (tree_debug) write(ipefile,'(a)') 'TREE PROPERTIES'
-  if (me==0) write(*,'(a)') 'LPEPC | PROPERTIES'
-
-
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | PROPERTIES'
 
   ! Zero multipole arrays
   do i=-ntwig_pw, nleaf_pw
@@ -123,6 +126,9 @@ subroutine tree_properties
 
   end do
 
+  ta1e = MPI_WTIME()
+  t_props_leafs = ta1e-ta1b  
+  ta1b = MPI_WTIME()
 
   !  Accumulate local twig properties
 
@@ -259,6 +265,10 @@ subroutine tree_properties
      end do
   end do
 
+  ta1e = MPI_WTIME()
+  t_props_twigs = ta1e-ta1b  
+  ta1b = MPI_WTIME()
+
 
   ! Should now have multipole information up to branch list level(s).
   ! By definition, this is complete: each branch node is self-contained.
@@ -353,6 +363,10 @@ subroutine tree_properties
      	size_node( node_b ) =  branch_moments(ibr+24) 
      endif
   end do
+
+  ta1e = MPI_WTIME()
+  t_props_branches = ta1e-ta1b  
+  ta1b = MPI_WTIME()
 
   ! Fill up top levels with tree properties: same algorithm as TREE_FILL
 
@@ -470,6 +484,10 @@ subroutine tree_properties
      magmz(i) = 0.
   end do
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
+  ta1e = MPI_WTIME()
+  t_props_global = ta1e-ta1b  
+  ts1e = MPI_WTIME()
+  t_properties = ts1e-ts1b
+
 
 end subroutine tree_properties

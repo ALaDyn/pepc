@@ -13,14 +13,14 @@ subroutine tree_fill
 
   use treevars
   use tree_utils
-
+  use timings
   implicit none
   include 'mpif.h'
 
-!  integer, parameter :: size_t=1000
+  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
 
- integer*8, dimension(maxaddress) :: sub_key, parent_key
- integer*8, dimension(8) :: child_key, child_sub
+  integer*8, dimension(maxaddress) :: sub_key, parent_key
+  integer*8, dimension(8) :: child_key, child_sub
 
   integer, dimension(nbranch_max) :: branch_level
   integer, dimension(maxaddress) :: twig_addr, twig_code,  cell_addr, tree_node, parent_addr
@@ -35,9 +35,12 @@ subroutine tree_fill
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   integer :: ierr
 
+  ts1b = MPI_WTIME()
+  ta1b = MPI_WTIME()  
+
 !  tree_debug=.true.
   if (tree_debug) write(ipefile,'(/a)') 'TREE FILL'
-  if (me==0) write(*,'(a)') 'LPEPC | FILL'
+  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | FILL'
 
   if (tree_debug .and. proc_debug.eq.-1) then 
 	call check_table('after make_branches ')
@@ -103,6 +106,10 @@ subroutine tree_fill
 
 
   if (tree_debug) call check_table('End of tree-fill    ')
+
+  ta1e = MPI_WTIME()
+  t_fill_local = ta1e-ta1b  
+  ta1b = MPI_WTIME()
 
   !  Go through twig nodes and fix # leaves in #table to include non-local branch nodes
   !  - put this stuff in tree_properties for correct array sizes
@@ -203,7 +210,10 @@ subroutine tree_fill
   first_child(1:nleaf) = treekey(ntwig+1:ntwig+nleaf) 
   n_children(1:nleaf) = 0
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
+  ta1e = MPI_WTIME()
+  t_fill_global = ta1e-ta1b  
+  ts1e = MPI_WTIME()
+  t_fill = ts1e-ts1b
 
 end subroutine tree_fill
 

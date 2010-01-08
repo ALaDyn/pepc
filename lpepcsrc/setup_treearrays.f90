@@ -1,4 +1,4 @@
-subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,t_nintmax,init_mb,nppm_ori)
+subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,init_mb,nppm_ori)
   use treevars
   use tree_utils
   implicit none
@@ -9,7 +9,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   integer, intent(in) :: n_cpu  ! MPI # CPUs
   integer, intent(in) :: npart_total  ! total (max) # simulation particles
   integer, intent(in) :: db_level
-  integer, intent(in) :: t_nintmax  ! Max length of interaction lists 
   integer, intent(out) :: init_mb,nppm_ori
 
   integer :: ibig, machinebits,k
@@ -35,37 +34,35 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   
   np_mult = t_np_mult
   fetch_mult = t_fetch_mult
-  nintmax = t_nintmax
   me = my_rank
   num_pe = n_cpu
   npart = npart_total
   ipefile = 20
 
-  if (db_level==0) then
+  force_debug=.false.
+  tree_debug=.false.
+  build_debug=.false.
+  domain_debug = .false.
+  branch_debug=.false.
+  prefetch_debug=.false.
+  walk_debug=.false.
+  walk_summary=.false.
+  dump_tree=.false.
 
-     force_debug=.false.
-     tree_debug=.false.
-     build_debug=.false.
-     domain_debug = .false.
-     branch_debug=.false.
-     prefetch_debug=.false.
-     walk_debug=.false.
-     walk_summary = .false.
-     dump_tree=.false.
 
-  else if (db_level==1) then
-     domain_debug = .true.
+  if (db_level==1) then
+!      domain_debug = .true.
 	
   else if (db_level==2) then
-     tree_debug=.true.  ! location information only
-     walk_summary=.true.
-     
+      tree_debug=.true.  ! location information only
+      walk_summary=.true.
+
   else if (db_level==3) then
-     tree_debug=.true.
-     force_debug=.false.
-     walk_summary=.true.
-     prefetch_debug=.false. 
-     domain_debug = .true.
+      tree_debug=.true.
+      force_debug=.false.
+      walk_summary=.true.
+      prefetch_debug=.false. 
+      domain_debug = .true.
 
   else if (db_level==4) then
      tree_debug=.true.
@@ -102,7 +99,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 !  else if (np_mult<0) then 
 !    nppm = abs(np_mult)*max(npartm/num_pe,1000) ! allow 50% fluctuation
   else
-    nppm = 2.5*max(npartm/num_pe,1000) ! allow 50% fluctuation
+    nppm = 2*max(npartm/num_pe,1000) ! allow 50% fluctuation
   endif
   
   nppm_ori = nppm
@@ -172,7 +169,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 
   if (me==0 .and. db_level>1) then
 ! Check addresses for MPI particle structure
-     write(15,'(a30/(o28,i8))') 'Particle addresses:',(address(i),displacements(i),i=1,15)
+     write(*,'(a30/(o28,i8))') 'Particle addresses:',(address(i),displacements(i),i=1,15)
   endif 
 
   ! Create new contiguous datatype for shipping result props (6 arrays)
@@ -199,7 +196,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 
   if (me==0 .and. db_level>1) then
      ! Check addresses for MPI results structure
-     write(15,'(a30/(o28,i8))') 'Results addresses:',(address(i),displacements(i),i=1,6)
+     write(*,'(a30/(o28,i8))') 'Results addresses:',(address(i),displacements(i),i=1,6)
   endif 
 
 

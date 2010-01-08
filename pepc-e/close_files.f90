@@ -5,8 +5,6 @@ subroutine closefiles
      close(15)
      close(81)  ! particle dump 
      close(70)
-     close(75)
-     close(112)
   endif
   close(20)
   close(80)  ! initial particle data

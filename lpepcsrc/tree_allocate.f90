@@ -1,25 +1,32 @@
 subroutine tree_allocate(theta,init_mb)
 
   use treevars
+  use timings
   implicit none
-  
+  include 'mpif.h'  
+
   real, intent(in) :: theta
-  integer :: init_mb
+
+  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0., ta2b=0., ta2e=0.
+
+  integer :: init_mb, ierr
   integer :: k, nintest
   integer :: mem_parts, mem_multipoles, mem_fields, mem_tree, mem_prefetch, mem_tot, mem_lists
   real, parameter :: mb=2.**20
 
-!  nppm=npp
+  ts1b = MPI_WTIME()
+  ta1b = MPI_WTIME()
+
+  nppm=npp
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
      nintest = 35.*log(1.*npartm)/max(theta**2,0.25)
   else
      nintest = npartm
   endif
-  nintmax=max(nintest,nintmax) ! Take max of user-preset and estimated values
+!  nintmax=max(nintest,2200)
+  nintmax=nintest
 
-  max_list_length = 0 ! current max length of all interaction lists
-    
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
   size_tree = max(30*nintmax+4*npp,10000)
@@ -69,8 +76,8 @@ subroutine tree_allocate(theta,init_mb)
   mem_prefetch = size_fetch*(8 + 4) + num_pe*4 *11 + maxaddress*8*2*2
   mem_tot = init_mb+mem_tree+mem_prefetch+mem_multipoles+mem_lists
 
-!  if (me==0 .and. tree_debug) then
-  if (me==0) then
+  if (me==0 .and. tree_debug) then
+!  if (me==0) then
      write(*,'(//a/)') 'Allocating new multipole fields'
      write(*,'(6(a15,f14.3,a3/))') 'Initial alloc:',init_mb/mb,' MB', &
                                'Tree:',mem_tree/mb,' MB', &
@@ -130,6 +137,12 @@ subroutine tree_allocate(theta,init_mb)
        magmx(-maxtwig:maxleaf), magmy(-maxtwig:maxleaf), magmz(-maxtwig:maxleaf)) ! magnetic moment 
 
   allocate ( pack_child(size_fetch),get_child(size_fetch) )    ! Multipole shipping buffers
+
+  ta1e = MPI_WTIME()
+  t_allocate_async = ta1e-ta1b
+  ts1e = MPI_WTIME()
+  t_allocate = ts1e-ts1b
+
 
 end subroutine tree_allocate
 

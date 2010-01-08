@@ -1,0 +1,28 @@
+MACH     = IBM-BGP-jugene
+
+RANLIB   = ranlib
+
+MAKE     = gmake
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C
+
+FCPRE    = 
+FC       = mpixlf90_r
+FFLAGS   = -qtune=450 -qarch=450 -O3 -qipa -qipa=inline=key2addr
+
+CCPRE    = 
+CC       = mpixlc_r
+CFLAGS   = 
+
+LDPRE    = 
+LD       = mpixlf90_r
+LDFLAGS  = -qtune=450 -qarch=450 -qipa -qipa=inline=key2addr
+LDLIBS   = 
+
+RM       = rm -rf
+
+EXECNAME = ../pepc

@@ -13,9 +13,12 @@ subroutine tree_branches
 
   use treevars
   use tree_utils
+  use timings
 
   implicit none
   include 'mpif.h'
+
+  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
 
 !  integer, parameter :: size_t=1000
   integer*8, dimension(nbranch_max) ::  resolve_key, search_key
@@ -36,13 +39,20 @@ subroutine tree_branches
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: startlevel = 2  ! Min permitted branch level
 
+  ts1b = MPI_WTIME()
+  ta1b = MPI_WTIME()
+
 !  branch_debug=.true.
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after treebuild     ')
 
   if (tree_debug) write(ipefile,'(a)') 'TREE BRANCHES'
-  if (me==0) write(*,'(a)') 'LPEPC | BRANCHES'
+  if (me==0 .and. tree_debug) then
+	write(*,'(a)') 'LPEPC | BRANCHES'
+!        write(*,'(a,i8)') 'LPEPC | nbranch_local_max = ',nbranch_local_max
+  endif
+
 
   ! Determine minimum set of branch nodes making up local domain
 
@@ -126,15 +136,16 @@ subroutine tree_branches
   end do
 
   if (ncheck > nleaf) then
-     write(15,*) 'Checksum ',ncheck,' /= # leaves on PE ',me
+     write(*,*) 'Checksum ',ncheck,' /= # leaves on PE ',me
   endif
 
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after local branches     ')
 
-
+  ta1e = MPI_WTIME()
+  t_branches_find = ta1e-ta1b  
+  ta1b = MPI_WTIME()
 
   ! send copies of branch nodes to all other PEs
-
 
   ! first need to find number of branches to be gathered from each PE:
   ! do this by first collecting nbranch values on root.
@@ -155,9 +166,9 @@ subroutine tree_branches
   nbranch_sum = SUM( nbranches(1:num_pe) )   ! Total # branches in tree
   igap(num_pe+1) = nbranch_sum
   if (me==0 .and. tree_debug) then
-    write(15,'(a50,3i8,a3,2i7)') 'LPEPC | BRANCHES: Local, max local, global # branches, (max): ', &
+    write(*,'(a50,3i8,a3,2i7)') 'LPEPC | BRANCHES: Local, max local, global # branches, (max): ', &
 	nbranch,MAXVAL(nbranches),nbranch_sum,'/',nbranch_local_max,nbranch_max
-!    write(15,'(a/(3i8))') 'Branch distribution',(i,nbranches(i),igap(i),i=1,num_pe)
+!    write(*,'(a/(3i8))') 'Branch distribution',(i,nbranches(i),igap(i),i=1,num_pe)
   endif
 
   ! now collect partial arrays together on each PE
@@ -197,6 +208,10 @@ subroutine tree_branches
      ntwig_check = count(mask = branch_owner(1:nbranch_sum)/=me .and. branch_node(1:nbranch_sum) <0 )
      write(ipefile,*) '# branch twigs to be added: ',ntwig_check,' node>0 ',nleaf_check,' branch_leaves:',nleaf_check2 
   endif
+
+  ta1e = MPI_WTIME()
+  t_branches_exchange = ta1e-ta1b  
+  ta1b = MPI_WTIME()
 
   ! Create entries in #table for remote branch nodes
 
@@ -241,13 +256,17 @@ subroutine tree_branches
      write (ipefile,'(2(/a20,i6,a1,i6))') 'New twigs: ',newtwig,'/',ntwig+newtwig, 'New leaves:',newleaf,'/',nleaf+newleaf
      write (ipefile,*) 'Local, total # branches = ',nbranch,nbranch_sum
   endif
+
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
   nleaf = nleaf + newleaf  ! Total # leaves/twigs in local #table
   ntwig = ntwig + newtwig
 
+  ta1e = MPI_WTIME()
+  t_branches_integrate = ta1e-ta1b  
+  ts1e = MPI_WTIME()
+  t_branches = ts1e-ts1b
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Synchronize
 
 end subroutine tree_branches
 
