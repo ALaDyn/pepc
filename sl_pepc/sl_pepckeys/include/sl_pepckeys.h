@@ -648,7 +648,7 @@ typedef struct pepckeys__partcond_t
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos.h
- *  timestamp: 2010-01-05 17:56:41 +0100
+ *  timestamp: 2010-01-08 15:04:49 +0100
  *  
  */
 
@@ -745,6 +745,7 @@ pepckeys_slint pepckeys_merge2_simplify_s1(pepckeys_elements_t *s0, pepckeys_ele
 /* src/core/pepckeys_mergep_heap.c */
 pepckeys_slint pepckeys_mergep_heap(pepckeys_elements_t *s, pepckeys_elements_t *d, pepckeys_slint_t p, pepckeys_slindex_t *displs, pepckeys_slindex_t *counts);
 pepckeys_slint pepckeys_mergep_heap_unpack(pepckeys_packed_elements_t *s, pepckeys_elements_t *d, pepckeys_slint_t p, pepckeys_slindex_t *displs, pepckeys_slindex_t *counts);
+pepckeys_slint pepckeys_mergep_heap_unpack_indices(pepckeys_packed_elements_t *s, pepckeys_elements_t *d, pepckeys_slint_t p, pepckeys_slindex_t *displs, pepckeys_slindex_t *counts);
 
 /* src/core/search.c */
 pepckeys_slint pepckeys_sl_search_sequential_lt(pepckeys_elements_t *s, pepckeys_slkey_t *k);
@@ -832,7 +833,7 @@ pepckeys_slint pepckeys_splitk_k2c_count(pepckeys_elements_t *s, pepckeys_slint 
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2010-01-05 17:56:41 +0100
+ *  timestamp: 2010-01-08 15:04:49 +0100
  *  
  */
 

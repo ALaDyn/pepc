@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2010-01-05 17:56:41 +0100
+ *  timestamp: 2010-01-08 15:04:49 +0100
  *  
  */
 

@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/pepcparts_mpi_partition_radix.c
- *  timestamp: 2010-01-06 14:31:50 +0100
+ *  timestamp: 2010-01-08 15:04:27 +0100
  *  
  */
 
@@ -319,6 +319,8 @@ slint_t pepcparts_mpi_partition_radix(elements_t *s, partcond_t *pc, slint_t rhi
         parts_minmax[2 * 4 * parts[i] + 0 + 3] = parts_minmax[2 * 4 * (parts[i] + 1) + 0 + 3] - minmax[2 * 4 * parts[i] + 0 + 1];
         parts_minmax[2 * 4 * parts[i] + 4 + 1] = parts_minmax[2 * 4 * (parts[i] + 1) + 4 + 1] - minmax[2 * 4 * parts[i] + 4 + 0];
         parts_minmax[2 * 4 * parts[i] + 4 + 3] = parts_minmax[2 * 4 * (parts[i] + 1) + 4 + 3] - minmax[2 * 4 * parts[i] + 4 + 1];
+        
+        parts_minmax[2 * 4 * parts[i] + 0 + 0] = parts_minmax[2 * 4 * parts[i] + 0 + 2] = parts_minmax[2 * 4 * parts[i] + 4 + 0] = parts_minmax[2 * 4 * parts[i] + 4 + 2] = -1;
 
         parts_range[2 * 2 * parts[i] + 0 + 0] = 0.0;
         parts_range[2 * 2 * parts[i] + 0 + 1] = global_counts[nareas * nclasses + 0];

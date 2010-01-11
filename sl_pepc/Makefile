@@ -4,7 +4,7 @@
 #  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
 #  
 #  file: Makefile
-#  timestamp: 2010-01-05 22:43:03 +0100
+#  timestamp: 2010-01-11 11:12:25 +0100
 #  
 
 
@@ -54,6 +54,7 @@ MAKEFILE_IN:=$(wildcard $(MAKEFILE_IN))
 RM:=$(call or2,$(RM),rm -f)
 ECHO:=$(call or2,$(ECHO),echo)
 MKDIR_P:=$(call or2,$(MKDIR_P),mkdir -p)
+RANLIB:=$(call or2,$(RANLIB),ranlib)
 
 
 ifneq ($(DEBUG),)
@@ -711,6 +712,7 @@ M_LIBSL+=$(cmod_)_libsl
 
 ifneq ($($(cmod_)_LIBSL_SEQ),$(LIBSL_SEQ))
 $($(cmod_)_LIBSL_SEQ): $($(cmod_)_LIBSL_SEQ)($($(cmod_)_OBJS_SL_CORE_SEQ) $($(cmod_)_OBJS_SL_WRAP_SEQ))
+	$(RANLIB) $@
 else
 M_OBJS_SL_CORE_SEQ+=$($(cmod_)_OBJS_SL_CORE_SEQ)
 M_OBJS_SL_WRAP_SEQ+=$($(cmod_)_OBJS_SL_WRAP_SEQ)
@@ -718,6 +720,7 @@ endif
 
 ifneq ($($(cmod_)_LIBSL_MPI),$(LIBSL_MPI))
 $($(cmod_)_LIBSL_MPI): $($(cmod_)_LIBSL_MPI)($($(cmod_)_OBJS_SL_CORE_MPI) $($(cmod_)_OBJS_SL_WRAP_MPI))
+	$(RANLIB) $@
 else
 M_OBJS_SL_CORE_MPI+=$($(cmod_)_OBJS_SL_CORE_MPI)
 M_OBJS_SL_WRAP_MPI+=$($(cmod_)_OBJS_SL_WRAP_MPI)
@@ -725,6 +728,7 @@ endif
 
 ifneq ($($(cmod_)_LIBSL),$(LIBSL))
 $($(cmod_)_LIBSL): $($(cmod_)_LIBSL)($($(cmod_)_OBJS_SL_CORE) $($(cmod_)_OBJS_SL_WRAP)
+	$(RANLIB) $@
 else
 M_OBJS_SL_CORE+=$($(cmod_)_OBJS_SL_CORE)
 M_OBJS_SL_WRAP+=$($(cmod_)_OBJS_SL_WRAP)
@@ -863,12 +867,18 @@ wrapper_mpi: $(M_WRAP_MPI)
 wrapper: $(M_WRAP)
 
 libsl_seq: $(M_LIBSL_SEQ)
+	$(RANLIB) $(LIBSL_SEQ)
 libsl_mpi: $(M_LIBSL_MPI)
+	$(RANLIB) $(LIBSL_MPI)
 libsl: $(M_LIBSL)
+	$(RANLIB) $(LIBSL)
 
 $(LIBSL_SEQ): $(LIBSL_SEQ)($(M_OBJS_SL_CORE_SEQ) $(M_OBJS_SL_WRAP_SEQ))
+	$(RANLIB) $@
 $(LIBSL_MPI): $(LIBSL_MPI)($(M_OBJS_SL_CORE_MPI) $(M_OBJS_SL_WRAP_MPI))
+	$(RANLIB) $@
 $(LIBSL): $(LIBSL)($(M_OBJS_SL_CORE) $(M_OBJS_SL_WRAP))
+	$(RANLIB) $@
 
 tune: $(M_TUNE)
 

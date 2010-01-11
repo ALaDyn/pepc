@@ -16,6 +16,8 @@ typedef FINT_TYPE_C finteger_t;
 
 /*#define MPI_PARTITION_RADIX_OLD*/
 
+/*#define MERGE_AND_UNPACK*/
+
 /*#define VERBOSE
 #define VALIDATE
 #define TIMING*/
@@ -98,6 +100,9 @@ void slsort_parts(finteger_t *n,                                                
 #ifdef TIMING
   double ttotal;
   double tinitindxl, tcopy, tpresort, tpartition, tpack, talltoall,talltoallv, tmergeunpack, tmakeindices;
+#ifndef MERGE_AND_UNPACK
+  double tunpack;
+#endif
 #endif
 
 #ifdef VERBOSE
@@ -259,8 +264,9 @@ void slsort_parts(finteger_t *n,                                                
   printf("%d: slsort_parts: 4. alltoallv done\n", rank);
 #endif
 
+#ifdef MERGE_AND_UNPACK
 
-  /* fused merge and unpack (indices during merge) */
+  /* fused merge and unpack (indices created during merge) */
 #ifdef VERBOSE
   printf("%d: slsort_parts: 5. merge and unpack\n", rank);
 #endif
@@ -283,11 +289,62 @@ void slsort_parts(finteger_t *n,                                                
   printf("%d: slsort_parts: 5. merge and unpack done\n", rank);
 #endif
 
-
   TSTART(tmakeindices);
   for (i = 0; i < nin; ++i) ++indxl[i];
   for (i = 0; i < *n; ++i) irnkl[irnkl2[i]] = i + 1;
   TSTOP(tmakeindices);
+
+#else
+
+  /* fused merge and unpack of keys (indices created during merge) */
+#ifdef VERBOSE
+  printf("%d: slsort_parts: 5a. merge and unpack indices\n", rank);
+#endif
+
+  pepcparts_pelem_set_size(&pd0, *n);
+  pepcparts_pelem_set_max_size(&pd0, *nmax);
+  pepcparts_pelem_set_elements(&pd0, parts1);
+
+  pepcparts_elem_set_size(&d0, *n);
+  pepcparts_elem_set_max_size(&d0, *nmax);
+/*  pepcparts_elem_set_keys(&d0, keys);*/
+  pepcparts_elem_set_indices(&d0, irnkl2);
+/*  pepcparts_elem_set_data(&d0, x, y, z, ux, uy, uz, q, m, work, ex, ey, ez, pelabel);*/ 
+
+  TSTART(tmergeunpack);
+  pepcparts_mergep_heap_unpack_indices(&pd0, &d0, size, rdispls, rcounts);
+  TSTOP(tmergeunpack);
+
+#ifdef VERBOSE
+  printf("%d: slsort_parts: 5a. merge and unpack indices done\n", rank);
+#endif
+
+  /* unpack */
+#ifdef VERBOSE
+  printf("%d: slsort_parts: 5b. unpack\n", rank);
+#endif
+
+  for (i = 0; i < *n; ++i) irnkl[irnkl2[i]] = i;
+
+  pepcparts_elem_set_size(&d0, *n);
+  pepcparts_elem_set_max_size(&d0, *nmax);
+  pepcparts_elem_set_keys(&d0, keys);
+  pepcparts_elem_set_data(&d0, x, y, z, ux, uy, uz, q, m, work, ex, ey, ez, pelabel);
+
+  TSTART(tunpack);
+  pepcparts_elements_unpack_indexed(&pd0, &d0, NULL, irnkl);
+  TSTOP(tunpack);
+
+#ifdef VERBOSE
+  printf("%d: slsort_parts: 5b. unpack data done\n", rank);
+#endif
+
+  TSTART(tmakeindices);
+  for (i = 0; i < nin; ++i) ++indxl[i];
+  for (i = 0; i < *n; ++i) ++irnkl[i];
+  TSTOP(tmakeindices);
+
+#endif
 
 
 #ifdef VALIDATE
@@ -318,6 +375,9 @@ void slsort_parts(finteger_t *n,                                                
     printf("%d: slsort_parts: alltoall: %f\n", rank, talltoall);
     printf("%d: slsort_parts: alltoallv: %f\n", rank, talltoallv);
     printf("%d: slsort_parts: mergeunpack: %f\n", rank, tmergeunpack);
+#ifndef MERGE_AND_UNPACK
+    printf("%d: slsort_parts: unpack: %f\n", rank, tunpack);
+#endif
     printf("%d: slsort_parts: makeindices: %f\n", rank, tmakeindices);
   }
 #endif
