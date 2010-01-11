@@ -36,6 +36,14 @@ SOURCES.f90 =	\
 
 # -------------------------------------------------------------------------------------------
 
+# check for sion usage, add dump_sion or dump_ascii to src-list
+ifeq ($(SION),1)
+CPPFLAGS += -DWRITE_PARTICLE_SIONLIB
+LDLIBS += $(LIB_SION)
+else
+endif
+
+
 # Names of application object files derived from sources
 # Prefix added for multi-arch builds
 

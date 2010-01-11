@@ -26,3 +26,5 @@ LDLIBS   =
 RM       = rm -rf
 
 EXECNAME = ../pepc
+
+LIB_SION = -L/bgsys/local/sionlib/sion/lib -lsion
