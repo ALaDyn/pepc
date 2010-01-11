@@ -57,5 +57,6 @@ PRINTF=printf
 GREP=grep
 MKDIR=mkdir
 MKDIR_P=mkdir -p
+RANLIB=ranlib
 RM=rm -f
 SED=sed

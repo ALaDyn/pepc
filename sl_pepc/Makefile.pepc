@@ -14,7 +14,8 @@ MPICC:=$(CC)
 CPPFLAGS:=
 
 # defaults are set in the SL Makefile
-#ECHO=echo
-#MKDIR_P=mkdir -p
+#ECHO:=echo
+#MKDIR_P:=mkdir -p
+#RANLIB:=ranlib
 
 endif
