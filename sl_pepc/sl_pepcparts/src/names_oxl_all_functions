@@ -66,6 +66,7 @@ merge2_memory_adaptive
 merge2_simplify_s1
 mergep_heap
 mergep_heap_unpack
+mergep_heap_unpack_indices
 sl_search_sequential_lt
 sl_search_sequential_le
 sl_search_sequential_gt

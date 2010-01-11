@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos.h
- *  timestamp: 2010-01-05 17:56:41 +0100
+ *  timestamp: 2010-01-08 15:04:49 +0100
  *  
  */
 
@@ -101,6 +101,7 @@ slint pepcparts_merge2_simplify_s1(elements_t *s0, elements_t *s1, elements_t *s
 /* src/core/pepcparts_mergep_heap.c */
 slint pepcparts_mergep_heap(elements_t *s, elements_t *d, slint_t p, slindex_t *displs, slindex_t *counts);
 slint pepcparts_mergep_heap_unpack(packed_elements_t *s, elements_t *d, slint_t p, slindex_t *displs, slindex_t *counts);
+slint pepcparts_mergep_heap_unpack_indices(packed_elements_t *s, elements_t *d, slint_t p, slindex_t *displs, slindex_t *counts);
 
 /* src/core/search.c */
 slint pepcparts_sl_search_sequential_lt(elements_t *s, slkey_t *k);

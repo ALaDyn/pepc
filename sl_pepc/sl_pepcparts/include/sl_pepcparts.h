@@ -734,7 +734,7 @@ typedef struct pepcparts__partcond_t
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos.h
- *  timestamp: 2010-01-05 17:56:41 +0100
+ *  timestamp: 2010-01-08 15:04:49 +0100
  *  
  */
 
@@ -831,6 +831,7 @@ pepcparts_slint pepcparts_merge2_simplify_s1(pepcparts_elements_t *s0, pepcparts
 /* src/core/pepcparts_mergep_heap.c */
 pepcparts_slint pepcparts_mergep_heap(pepcparts_elements_t *s, pepcparts_elements_t *d, pepcparts_slint_t p, pepcparts_slindex_t *displs, pepcparts_slindex_t *counts);
 pepcparts_slint pepcparts_mergep_heap_unpack(pepcparts_packed_elements_t *s, pepcparts_elements_t *d, pepcparts_slint_t p, pepcparts_slindex_t *displs, pepcparts_slindex_t *counts);
+pepcparts_slint pepcparts_mergep_heap_unpack_indices(pepcparts_packed_elements_t *s, pepcparts_elements_t *d, pepcparts_slint_t p, pepcparts_slindex_t *displs, pepcparts_slindex_t *counts);
 
 /* src/core/search.c */
 pepcparts_slint pepcparts_sl_search_sequential_lt(pepcparts_elements_t *s, pepcparts_slkey_t *k);
@@ -918,7 +919,7 @@ pepcparts_slint pepcparts_splitk_k2c_count(pepcparts_elements_t *s, pepcparts_sl
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2010-01-05 17:56:41 +0100
+ *  timestamp: 2010-01-08 15:04:49 +0100
  *  
  */
 
