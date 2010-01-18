@@ -124,7 +124,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   ! Domain decomposition: allocate particle keys to PEs
   call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, choose_sort, weighted)  
-  call tree_allocate(theta,init_mb)
+  call tree_allocate(npp,theta,init_mb)
 
   if (choose_build == 0) then
 
