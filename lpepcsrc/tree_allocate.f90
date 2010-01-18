@@ -1,4 +1,4 @@
-subroutine tree_allocate(theta,init_mb)
+subroutine tree_allocate(var_np,theta,init_mb)
 
   use treevars
   use timings
@@ -6,6 +6,7 @@ subroutine tree_allocate(theta,init_mb)
   include 'mpif.h'  
 
   real, intent(in) :: theta
+  integer, intent(in) :: var_np
 
   real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0., ta2b=0., ta2e=0.
 
@@ -17,7 +18,7 @@ subroutine tree_allocate(theta,init_mb)
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()
 
-  nppm=npp
+  nppm=var_np
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0 ) then
      nintest = 35.*log(1.*npartm)/max(theta**2,0.25)
