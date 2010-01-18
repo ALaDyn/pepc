@@ -114,8 +114,7 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, &
 !  TODO: all tree arrays in build ... walk can have dimension npp
 !  - for now coded with nppm, so reset here and put back later in tree_deallocate with nppm_ori
 
-        nppm=npp
-        call tree_allocate(theta,init_mb)
+        call tree_allocate(npp,theta,init_mb)
      endif
 
      tt(2)=MPI_WTIME()
