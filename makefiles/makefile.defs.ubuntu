@@ -12,7 +12,7 @@ CPPFLAGS = -P -C
 
 FCPRE    = 
 FC       = mpif90
-FFLAGS   = -I/usr/lib/mpich-shmem/include
+FFLAGS   = -ffree-form -ffree-line-length-none -I/usr/lib/mpich-shmem/include
 
 CCPRE    = 
 CC       = mpicc
