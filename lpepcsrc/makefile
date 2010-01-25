@@ -57,7 +57,7 @@ debug:	$(OBJECTS)
 	$(FC) $(LDFLAGS)  $(VISITLIBS) $(DBFLAGS)  -o $@ $(OBJECTS)
 
 clean:
-	$(RM) $(MACH)/liblpepc.a $(LIBOBJS) $(LIBMODS) $(MACH)/*.mod *.mod *% *~ bin/key rand *.o *.pif core *.ps
+	$(RM) $(MACH)/liblpepc.a $(LIBOBJS) $(LIBMODS) $(MACH)/*.mod *.mod *% *~ bin/key rand *.o *.pif core *.ps module.deps
 	$(RM) -r $(MACH)
 
 cleanps: 
@@ -67,6 +67,6 @@ cleanps:
 	@true
 
 module.deps:
-	./f90_mod_deps.py -o $@ --o-prefix "\$$(MACH)/" $(PEPCMOD.f90) $(PEPCSRC.f90)
+	../tools/build/f90_mod_deps.py -o $@ --o-prefix "\$$(MACH)/" $(PEPCMOD.f90) $(PEPCSRC.f90)
 
 -include module.deps

@@ -1,0 +1,30 @@
+MACH     = darwin
+
+RANLIB   = ranlib -c
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -r 
+
+CPP      = cpp
+CPPFLAGS = -P -C
+
+FCPRE    = 
+FC       = /opt/local/lib/openmpi/bin/mpif90
+FFLAGS   = -ffree-form -ffree-line-length-none -fno-underscoring
+
+CCPRE    = 
+CC       = /opt/local/lib/openmpi/bin/mpicc
+CFLAGS   = 
+
+LDPRE    = 
+LD       = /opt/local/lib/openmpi/bin/mpif90
+LDFLAGS  = 
+LDLIBS   = 
+
+RM       = rm -rf
+
+EXECNAME = ../pepc
+
+
