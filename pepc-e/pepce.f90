@@ -66,6 +66,7 @@ program pepce
 
   call benchmark_inner
 
+  ! Loop over all timesteps
   do itime = 1,nt
      trun = trun + dt
 
@@ -139,10 +140,14 @@ program pepce
     if ( mod(nt,idump) .ne. 0 ) call write_particles(nt)
   endif
 
+  ! deallocate array space for tree
   call pepc_cleanup(my_rank,n_cpu)
 
-  call closefiles      ! Tidy up O/P files
-
+  ! deallocate array space for particles
+  call cleanup(my_rank,n_cpu)
+  
+  ! Tidy up O/P files
+  call closefiles      
 
   ! Time stamp
   if (my_rank==0) call stamp(6,2)

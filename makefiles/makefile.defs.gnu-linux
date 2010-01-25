@@ -8,20 +8,16 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -I/dir/to/mpif.h
+CPPFLAGS = -P -C -I/usr/local/intel/impi/3.2.1.009/include/
 
 FCPRE    = 
-FC       = gfortran
-FFLAGS   = 
-
-CCPRE    = 
-CC       = gcc
-CFLAGS   = 
+FC       = /usr/local/intel/impi/3.2.1.009/bin/mpif90
+FFLAGS   = # add this stuff
 
 LDPRE    = 
-LD       = gfortran
+LD       = /usr/local/intel/impi/3.2.1.009/bin/mpif90
 LDFLAGS  = 
-LDLIBS   = -L/dir/to/libmpi -lmpich -lpthread
+LDLIBS   = # change lmpich to lmpi
 
 RM       = rm -rf
 

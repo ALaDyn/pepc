@@ -1,3 +1,5 @@
-To compile this program please define makefile.defs in the root directory and Makefile.in in sl_pepc.
+To compile this program please define makefile.defs in the root directory. When you are at Jugene and have entered the root directory, the command can look like this:
 
-Some machines defs are already predefined and can be found in makefiles/ and sl_pepc/Makefiles/
+ln -sf ./makefiles/makefile.defs.jugene ./makefile.defs
+
+Some machines defs are already predefined and can be found in makefiles/
