@@ -1,3 +1,18 @@
+/****************************************************************************
+**  SIONLIB     http://www.fz-juelich.de/jsc/sionlib                       **
+*****************************************************************************
+**  Copyright (c) 2008-2009                                                **
+**  Forschungszentrum Juelich, Juelich Supercomputing Centre               **
+**                                                                         **
+**  See the file COPYRIGHT in the package base directory for details       **
+****************************************************************************/
+/*
+ * \file sion_pepc.c
+ *
+ * \brief example for a serial converter tool to convert  data between 
+ *  PEPC particle data and binary data in sionfile 
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -108,12 +123,12 @@ int main(int argc, char **argv)
 
 
   if(opt_generatesionfilefromascii)   {
-    printf("siondump: generate sionfile from ascii:               %-30s\n",opt_generatesionfilefromascii);
+    printf("siondump: generate sionfile from ascii:               %-30d\n",opt_generatesionfilefromascii);
     generatesionfilefromascii(infilename,outfilename,opt_ntasks,opt_nparts,opt_fsblocksize,opt_verbose);
   }
 
   if(opt_generateasciifromsionfile)   {
-    printf("siondump: generate ascii from sionfile:               %-30s\n",opt_generateasciifromsionfile);
+    printf("siondump: generate ascii from sionfile:               %-30d\n",opt_generateasciifromsionfile);
     generateasciifromsionfile(infilename,outfilename,opt_verbose);
   }
 
@@ -134,7 +149,7 @@ int generatesionfilefromascii (
   
   sion_int64 *chunksizes=NULL;
   int        *globalranks=NULL;
-  int         ntasks;
+  int         ntasks, nfiles;
 
   FILE *fp,*infp;
   int rank, nullcount, rc;
@@ -173,12 +188,12 @@ int generatesionfilefromascii (
 
   /* check parameters */
   if(numparts<=0) {
-    fprintf(stderr, "number of parts <=0  (-p %d), aborting ...\n",numparts);
-    _sion_error();
+    return(_sion_errorprint(-1,_SION_ERROR_ABORT,"number of tasks not defined (-n %d), aborting ...\n",
+			    opt_ntasks));
   }
   if(opt_ntasks<=0) {
-    fprintf(stderr, "number of tasks not defined (-n %d), aborting ...\n",opt_ntasks);
-    _sion_error();
+    return(_sion_errorprint(-1,_SION_ERROR_ABORT,"number of tasks not defined (-n %d), aborting ...\n",
+			    opt_ntasks));
   }
 
   /* calculate parts per task */
@@ -192,13 +207,13 @@ int generatesionfilefromascii (
   /* allocate fields */
   chunksizes = (sion_int64 *) malloc(ntasks*sizeof(sion_int64));
   if (chunksizes==NULL) {
-    fprintf(stderr, "cannot allocate memory of size %lu (chunksizes), aborting ...\n",(unsigned long) ntasks*sizeof(sion_int64));
-    _sion_error();
+    return(_sion_errorprint(-1,_SION_ERROR_ABORT,"cannot allocate memory of size %lu (chunksizes), aborting ...\n",
+			    (unsigned long) ntasks*sizeof(sion_int64)));
   }
   globalranks = (int *) malloc(ntasks*sizeof(int));
   if (globalranks==NULL) {
-    fprintf(stderr, "cannot allocate memory of size %lu (globalranks), aborting ...\n",(unsigned long) ntasks*sizeof(int));
-    _sion_error();
+    return(_sion_errorprint(-1,_SION_ERROR_ABORT,"cannot allocate memory of size %lu (globalranks), aborting ...\n",
+			    (unsigned long) ntasks*sizeof(int)));
   }
 
   /* initalize fields and other paramters of sion_open */
@@ -210,14 +225,13 @@ int generatesionfilefromascii (
   if(opt_fsblocksize!=-1)  fsblksize=opt_fsblocksize;
 
   /* open sion file */
-  sid=sion_open(outfilename,"wb",&ntasks,&chunksizes,&fsblksize,&globalranks,&fp);
+  sid=sion_open(outfilename,"wb",&ntasks,&nfiles,&chunksizes,&fsblksize,&globalranks,&fp);
   printf("siondump: sion file opened, sid:     %d\n",sid);
  
   printf("siondump: opening:                   %s ...\n",infilename);
   infp=fopen(infilename,"r");
   if (infp==NULL) {
-    fprintf(stderr, "cannot open %s, aborting ...\n",infilename);
-    _sion_error();
+    return(_sion_errorprint(-1,_SION_ERROR_ABORT,"cannot open %s, aborting ...\n",infilename));
   }
 
   rank=0;np=0;gnp=0;
@@ -268,7 +282,7 @@ int generateasciifromsionfile (
   
   sion_int64 *chunksizes=NULL;
   int        *globalranks=NULL;
-  int         ntasks, blknum;
+  int         ntasks, nfiles, blknum;
 
   FILE *fp,*outfp;
   int rank, nullcount, rc;
@@ -289,7 +303,7 @@ int generateasciifromsionfile (
 
   chunksizes=NULL;globalranks=NULL; /* will be allocated by sion_open */
 
-  sid=sion_open(infilename,"rb",&ntasks,&chunksizes,&fsblksize,&globalranks,&fp);
+  sid=sion_open(infilename,"rb",&ntasks,&nfiles,&chunksizes,&fsblksize,&globalranks,&fp);
 
   printf("sionpepc: sid:                       %d\n",sid);
   printf("sionpepc: filename:                  %-30s\n",infilename);
@@ -307,8 +321,7 @@ int generateasciifromsionfile (
   printf("siondump: opening:                   %s ...\n",outfilename);
   outfp=fopen(outfilename,"w");
   if (outfp==NULL) {
-    fprintf(stderr, "cannot open %s, aborting ...\n",outfilename);
-    _sion_error();
+    return(_sion_errorprint(-1,_SION_ERROR_ABORT,"cannot open %s, aborting ...\n",outfilename));
   }
   gnp=0;
   
