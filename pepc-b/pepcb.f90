@@ -71,7 +71,7 @@ program pepcb
   call pepc_setup(my_rank,n_cpu,npart_total,theta,debug_tree,np_mult,fetch_mult,init_mb,nppm_ori) 
 
   if (.not.dynamic_memalloc) call tree_allocate(nppm_ori,theta,init_mb)
-  write(*,*) my_rank,npp,nppm,nppm_ori
+  !write(*,*) my_rank,npp,nppm,nppm_ori
 
 ! call closefiles
 !  call MPI_FINALIZE(ierr)

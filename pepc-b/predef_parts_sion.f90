@@ -14,13 +14,14 @@ subroutine predef_parts
   include 'mpif.h'
 
   integer :: i, j, idummy=0, ierr
-  character(30) :: cinfile, cdump, cfile, cinfofile
+  character(30) :: cinfile, cdump, cfile, cinfofile, cfile_new
   integer :: ner, nir, np_beamr, npartr, iconf, iens, timestamp
   real :: epsr, thetar, xlr, ylr, zlr, boxr
   real :: omegar, lambdar
   real :: axdum, aydum, azdum,phidum, bdum
   integer :: ioffset, i1, i2, npp_partial, npp_total, ipass, me_read, nrest, nadd
   integer :: nslice_e, nslice_i
+  integer :: numfiles = 0
   logical :: stopflag=.false.
 
 
@@ -57,7 +58,7 @@ subroutine predef_parts
   cdump(1:1) = achar(itime_start/10**5 + 48)
 
   cinfile="dumps/parts_dump."//cdump(1:6)
-  call fsion_paropen_mpi(trim(cinfile),"br",MPI_COMM_WORLD,chunksize,fsblksize,me,sid)
+  call fsion_paropen_mpi(trim(cinfile),"br",numfiles,MPI_COMM_WORLD,MPI_COMM_WORLD,chunksize,fsblksize,me,cfile_new,sid)
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   size_info = sizeof(infoblk%intarr)+sizeof(infoblk%realarr)+sizeof(infoblk%plasma_centre)+sizeof(infoblk%focus)

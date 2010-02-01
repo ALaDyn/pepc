@@ -96,7 +96,7 @@ subroutine track_nc
 
   if (.not.found .and. itime>0) then 
 	beam_config=0 ! switch off laser
-	if (my_rank==0) write(15,*) 'Target burnt through - switching off laser'
+	if (my_rank==0) write(6,*) 'Target burnt through - switching off laser'
   endif
 
   rho_upper=0.
@@ -114,7 +114,7 @@ subroutine track_nc
 if (my_rank==0) then
    write(*,'(/a15,f10.3,a15,f10.3,a15,f10.3)') &
         'plasma edge: ',xc1, ' x_crit: ',x_crit,' n_upper: ',rho_upper
-   write(15,*) 'plasma edge: ',xc1, ' x_crit: ',x_crit
+   write(24,*) 'plasma edge: ',xc1, ' x_crit: ',x_crit
 
 endif
 

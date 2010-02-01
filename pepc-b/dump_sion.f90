@@ -1,9 +1,11 @@
+
+
 ! ======================
 !
-!   Sion DUMP
+! Sion DUMP
 !
-!   Gather and write out particle data for restart
-!   using sionlib
+! Gather and write out particle data for restart
+! using sionlib
 !
 ! ======================
 
@@ -14,18 +16,19 @@ subroutine dump(timestamp)
   implicit none
   include 'mpif.h'
 
-  character(30) :: cfile, cinfofile
+  character(30) :: cfile, cinfofile, cfile_new
   character(6) :: cdump
   character(5) :: cme
   integer, intent(in) :: timestamp
   integer :: i, j, ioffset, idummy=0, ierr
   integer, save :: icall=0
+  integer :: numfiles=0
   real :: simtime
 
   integer*8 chunksize, size_info, size1, size2, bwrote
   ! 2MB GPFS
-  integer 	fsblksize
-  integer 	sid
+  integer fsblksize
+  integer sid
 
   real*8 realdummy
 
@@ -65,8 +68,8 @@ subroutine dump(timestamp)
   infoblk%realarr(17)=Aplas
   infoblk%realarr(18)=Qplas
   do i=1,3
-  	infoblk%plasma_centre(i) = plasma_centre(i)
-  	infoblk%focus(i)=focus(i)
+   infoblk%plasma_centre(i) = plasma_centre(i)
+   infoblk%focus(i)=focus(i)
   end do
 
   simtime = dt*timestamp
@@ -74,25 +77,25 @@ subroutine dump(timestamp)
 
   ! get filename suffix from dump counter
   do i=0,4
-     cdump(6-i:6-i) =  achar(mod(timestamp/10**i,10) + 48)
+     cdump(6-i:6-i) = achar(mod(timestamp/10**i,10) + 48)
   end do
   cdump(1:1) = achar(timestamp/10**5 + 48)
 
 ! Write particles info file
   if(me == 0) then
-	  cinfofile="dumps/parts_info."//cdump(1:6)
-	  open (60,file=cinfofile)
-	  write(60,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))')  &    ! info block
-		   'itime=',timestamp, 'npp=',npp, &
-		   'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
-		   'scheme=',scheme, &
-		   'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
-		   'eps=', eps, 'theta=',theta,' tlaser= ',tlaser,' trun= ',trun, &
-		   'omega=',omega,'lambda=',lambda,'  qe=',qe,'  qi=',qi, &
-		   'mass_e=',mass_e,'mass_i=',mass_i,'Zion=',Zion,'a_ii=',a_ii, &
-		   'Vplas=',Vplas,'Aplas=',Aplas,'Qplas=',Qplas, &
-		   'centre=',plasma_centre(1:3),'focus=',focus(1:3)
-	  close (60)
+   cinfofile="dumps/parts_info."//cdump(1:6)
+   open (60,file=cinfofile)
+   write(60,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))') & ! info block
+     'itime=',timestamp, 'npp=',npp, &
+     'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
+     'scheme=',scheme, &
+     'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
+     'eps=', eps, 'theta=',theta,' tlaser= ',tlaser,' trun= ',trun, &
+     'omega=',omega,'lambda=',lambda,'  qe=',qe,'  qi=',qi, &
+     'mass_e=',mass_e,'mass_i=',mass_i,'Zion=',Zion,'a_ii=',a_ii, &
+     'Vplas=',Vplas,'Aplas=',Aplas,'Qplas=',Qplas, &
+     'centre=',plasma_centre(1:3),'focus=',focus(1:3)
+   close (60)
   endif
 
 ! Calc the size of the chunk
@@ -109,19 +112,19 @@ subroutine dump(timestamp)
   chunksize = 12*size1 + 2*size2 + size_info
   fsblksize = 2*1024*1024
 
-!  if(me == 0) then
-!    write(6,*)'**************** npp=',npp,' **************'
-!    write(6,*)'**************** size_info=',size_info,' **************'
-!    write(6,*)'**************** size1    =',size1,' **************'
-!    write(6,*)'**************** size2    =',size2,' **************'
-!   	write(6,*)'**************** chunksize=',chunksize,' **************'
-!  end if
+! if(me == 0) then
+! write(6,*)'**************** npp=',npp,' **************'
+! write(6,*)'**************** size_info=',size_info,' **************'
+! write(6,*)'**************** size1    =',size1,' **************'
+! write(6,*)'**************** size2    =',size2,' **************'
+! write(6,*)'**************** chunksize=',chunksize,' **************'
+! end if
 
 ! Particles dump file
   cfile="dumps/parts_dump."//cdump(1:6)
 
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-  call fsion_paropen_mpi(trim(cfile),'bw',MPI_COMM_WORLD,chunksize,fsblksize,me,sid)
+  call fsion_paropen_mpi(trim(cfile),'bw',numfiles,MPI_COMM_WORLD,MPI_COMM_WORLD,chunksize,fsblksize,me,cfile_new,sid)
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   ! Write the inforblock
@@ -129,7 +132,7 @@ subroutine dump(timestamp)
   if (bwrote /= size_info) then
    write(*,*) 'Error writing Infoblock. Wrote: ', bwrote
   else
-  	write(167,*)'Wrote infoblock: ',bwrote
+   write(167,*)'Wrote infoblock: ',bwrote
   end if
 
   ! Write X
@@ -193,21 +196,21 @@ subroutine dump(timestamp)
 
 ! add to runstamp the stamp and print to stdout
   if (me.eq.0) then
-    open (62,file="runstamp")  ! time stamp
+    open (62,file="runstamp") ! time stamp
     write(62,'(a)') cdump(1:6)
     close (62)
 
-!    write(166,'(2a)') 'Particle dump',cdump(1:6)
-!  	write(166,'(//a/7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))') 'PARTICLE DUMP:', &    ! info block
-!       'itime=',timestamp, 'npp=',npp, &
-!       'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
-!       'scheme=',scheme, &
-!       'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
-!       'eps=', eps, 'theta=',theta,' tlaser= ',tlaser,' trun= ',trun, &
-!       'omega=',omega,'lambda=',lambda,'  qe=',qe,'  qi=',qi, &
-!       'mass_e=',mass_e,'mass_i=',mass_i,'Zion=',Zion,'a_ii=',a_ii, &
-!       'Vplas=',Vplas,'Aplas=',Aplas,'Qplas=',Qplas, &
-!       'centre=',plasma_centre(1:3),'focus=',focus(1:3)
+! write(166,'(2a)') 'Particle dump',cdump(1:6)
+! write(166,'(//a/7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))') 'PARTICLE DUMP:', & ! info block
+! 'itime=',timestamp, 'npp=',npp, &
+! 'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
+! 'scheme=',scheme, &
+! 'xl=',xl, 'yl=',yl, 'zl=',zl, 'boxsize=',zl, &
+! 'eps=', eps, 'theta=',theta,' tlaser= ',tlaser,' trun= ',trun, &
+! 'omega=',omega,'lambda=',lambda,'  qe=',qe,'  qi=',qi, &
+! 'mass_e=',mass_e,'mass_i=',mass_i,'Zion=',Zion,'a_ii=',a_ii, &
+! 'Vplas=',Vplas,'Aplas=',Aplas,'Qplas=',Qplas, &
+! 'centre=',plasma_centre(1:3),'focus=',focus(1:3)
 
   endif
   icall = icall + 1
