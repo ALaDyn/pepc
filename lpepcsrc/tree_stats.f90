@@ -36,7 +36,7 @@ if (me.eq.0) then
   end do
   cdump(1:1) = achar(timestamp/10**5 + 48)
 
-  cfile="stats"//"."//cdump(1:6)
+  cfile="log/stats"//"."//cdump(1:6)
   
   open (60,file=cfile)    
   write (60,'(2a/(4i10,F8.4,5i10))') '         PE     parts    nleaf     ntwig   ratio    nl_keys', &
