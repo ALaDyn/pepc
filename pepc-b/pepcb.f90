@@ -37,9 +37,10 @@ program pepcb
 
   ! timing stuff
   real*8 :: t0, t_key, t_domain, t_build(4), t_branch, t_fill, t_props, t_walk, t_walkc, t_en, t_force
-  real*8 :: t_push, t_diag, t_start_push, t_prefetch, I_laser, ttot, t_laser
+  real*8 :: t_push, t_diag, t_start_push, t_prefetch, ttot, t_laser
   real*8 :: t_loop, t_start_loop, t_end_loop, t_start_prog, t_end_prog
   real*8 :: t_record(10000)
+  real*4 :: I_laser  ! current laser amplitude
   integer :: tremain ! remaining wall_clock seconds
   integer :: llwrem  ! function to enquire remaining wall_clock time
   integer :: ierr, lvisit_active, ifile, incdf,i, init_mb, nppm_ori
