@@ -24,7 +24,7 @@ subroutine laser(I_laser)
 	else
 	   I_laser=0.
 	endif
-     case(14,94,54,16) 	! standing wave, linear rise
+     case(14,94,54,74,16) 	! standing wave, linear rise
            I_laser = vosc**2*min(1.,tlaser/tpulse)
      case(3) 		! constant
         I_laser = vosc**2
@@ -51,7 +51,7 @@ subroutine laser(I_laser)
       ampl_min = minval(Azr)
       if (ampl_max.lt.abs(ampl_min)) ampl_max=-ampl_min
   
-    case(64)  ! Helmholtz solver for vector potential circ pol
+    case(64,74)  ! Helmholtz solver for vector potential circ pol
 
 ! Factor-in pulse shape
       amplitude = sqrt(I_laser)  ! amplitude of incoming wave
