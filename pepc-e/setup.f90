@@ -64,7 +64,7 @@ subroutine setup(init_mb)
 
   ispecial        = 1
 
-  choose_sort = 0
+  choose_sort = 3
   weighted = 0
   choose_build = 0
 

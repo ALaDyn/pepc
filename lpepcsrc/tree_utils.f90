@@ -200,7 +200,7 @@ contains
 
     integer*8 :: work(maxprocs*(maxprocs+1))
     integer*8 :: fpval(maxprocs+1)
-    integer :: lmax, ak
+    integer*8 :: lmax, ak
 
     integer*8 :: buf(maxprocs)
 
@@ -209,7 +209,7 @@ contains
     integer :: fd, nsamp
     character(13) :: cfmt
 
-    fd = 20
+    fd = 29
 
     tag1=0
 
@@ -243,7 +243,6 @@ contains
 
     tag1 = tag1 + 1
 
-
     if (iproc .ne. 0) then
        call MPI_SEND(work, nprocs, MPI_INTEGER8, 0, tag1, MPI_COMM_WORLD, ierr)
     else
@@ -272,7 +271,7 @@ contains
        !        work() are the sorted sampled key values for the fenceposts.
        nsamp=nprocs*nprocs
        cfmt = "(/a15,"//achar(mod(nsamp/10,10)+48) // achar(mod(nsamp,10)+48) // "(i4))"
-       write(fd,cfmt) 'Sorted sample: ',(work(i),i=1,nsamp)
+!       write(fd,cfmt) 'Sorted sample: ',(work(i),i=1,nsamp)
 
        k = 1
        do i=1,nprocs*nprocs,nprocs
@@ -285,7 +284,7 @@ contains
 
 
     fpval(nprocs+1) = lmax+1
-    write (fd,*) 'Pivots: ',fpval(1:nprocs+1)
+!    write (fd,*) 'Pivots: ',fpval(1:nprocs+1)
 
     !     Determine segment boundaries. Within each bin, fposts(i) is the
     !     start of the ith shuffle segment.

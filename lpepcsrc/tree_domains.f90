@@ -265,16 +265,17 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
         ta2b = MPI_WTIME()
 
         ! perform index sort on keys
-        !     call pswssort(nppm,npold,npnew,num_pe,me,keys, &
-        !          indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
-        !     call psrssort(nppm,npold,npnew,num_pe,me,keys, &
-        !          indxl,irnkl,islen,irlen,fposts,gposts,w1)
-        !     call pbalsortr(nppm,npold,npnew,num_pe,me,keys, &
-        !          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
-        if (choose_sort == 1) then
+        if (choose_sort == 0) then
+           call psrssort(nppm,npold,npnew,num_pe,me,keys, &
+                indxl,irnkl,islen,irlen,fposts,gposts,w1)
+!          call pswssort(nppm,npold,npnew,num_pe,me,keys, &
+!               indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
+        else if (choose_sort == 1) then
+           !     call pbalsortr(nppm,npold,npnew,num_pe,me,keys, &
+           !          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
            call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
                 indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,nkeys_total,weighted,sort_debug,work_local)
-        else
+        else ! Default: fastest
            call slsort_keys(npold,nppm,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
         end if
 
