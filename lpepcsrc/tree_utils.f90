@@ -1681,38 +1681,49 @@ search_list = 8_8**lev_map  ! place holder
   end subroutine uniq8
 
 
-! Get address of variable
+  ! Get address of variable
   subroutine locaddress_int4_8(location, addr, ierr)
-    integer   :: location
-    integer*8 :: addr
-    integer   :: ierr,addr4
-! IBM machines powerX, bg/l use internal function
-    addr = LOC(location)
+    
+    implicit none
+    include 'mpif.h'
+    
+    integer,intent(in) :: location
+    integer(kind=MPI_ADDRESS_KIND),intent(out) :: addr 
+    integer :: ierr
+    
     ierr=0
-! Linux: use mpi1 address function
-!   call MPI_ADDRESS( location, addr4, ierr )
-!   addr=addr4
+    call MPI_GET_ADDRESS( location, addr, ierr )
+    
   end subroutine locaddress_int4_8
 
+
   subroutine locaddress_int8_8(location, addr, ierr)
-    integer*8 :: location
-    integer*8 :: addr
-    integer   :: ierr,addr4
-    addr = LOC(location)
+    
+    implicit none
+    include 'mpif.h'
+    
+    integer*8,intent(in):: location
+    integer(kind=MPI_ADDRESS_KIND),intent(out) :: addr 
+    integer :: ierr
+    
     ierr=0
-!   call MPI_ADDRESS( location, addr4, ierr )
-!   addr=addr4
+    call MPI_GET_ADDRESS( location, addr, ierr )
+    
   end subroutine locaddress_int8_8
 
 
   subroutine locaddress_real8_8(location, addr, ierr)
-    real*8    :: location
-    integer*8 :: addr
-    integer   :: ierr,addr4
-    addr = LOC(location)
+    
+    implicit none
+    include 'mpif.h'
+    
+    real*8,intent(in) :: location
+    integer(kind=MPI_ADDRESS_KIND),intent(out) :: addr 
+    integer :: ierr
+    
     ierr=0
-!   call MPI_ADDRESS( location, addr4, ierr )
-!   addr=addr4
+    call MPI_GET_ADDRESS( location, addr, ierr )
+    
   end subroutine locaddress_real8_8
 
 end module tree_utils

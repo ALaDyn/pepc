@@ -27,8 +27,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   integer, dimension(nprops_multipole) :: blocklengths, displacements, types
 
   ! address calculation, 8 byte 
-  integer*8, dimension(nprops_multipole) :: address
-  integer*8 :: send_base, receive_base
+  integer(kind=MPI_ADDRESS_KIND), dimension(nprops_multipole) :: address
+  integer(kind=MPI_ADDRESS_KIND) :: send_base, receive_base
 
 ! copy call parameters to treevars module
   
