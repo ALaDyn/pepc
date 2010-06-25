@@ -1,7 +1,7 @@
 ! Plasma sphere
 
  &pepcdata
- np_mult=10
+ np_mult=-30
  fetch_mult=2
  ncpu_merge = 1
  debug_level = 2
@@ -14,7 +14,7 @@
 ! set up plasma target
  plasma_config = 1  
 ! sphere
- target_geometry = 1   
+ target_geometry = 0   
 
 ! physics stuff
 
