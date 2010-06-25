@@ -23,9 +23,9 @@ subroutine setup(init_mb)
   type (particle_p1) :: ship_props_a, get_props_a
   integer, parameter :: nprops_particle=10   ! # particle properties to ship
   integer, dimension(nprops_particle) :: blocklengths, displacements, types
-  integer*8 :: send_base, receive_base
+  integer(kind=MPI_ADDRESS_KIND) :: send_base, receive_base
   integer :: ierr
-  integer*8, dimension(nprops_particle) :: address
+  integer(kind=MPI_ADDRESS_KIND), dimension(nprops_particle) :: address
 
   character(50) :: parameterfile
   integer :: read_param_file
