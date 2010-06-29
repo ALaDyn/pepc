@@ -1,4 +1,4 @@
-subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,init_mb,nppm_ori)
+subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,init_mb,nppm_ori,t_curve_style)
   use treevars
   use tree_utils
   implicit none
@@ -9,6 +9,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   integer, intent(in) :: n_cpu  ! MPI # CPUs
   integer, intent(in) :: npart_total  ! total (max) # simulation particles
   integer, intent(in) :: db_level
+  integer, intent(in) :: t_curve_style
   integer, intent(out) :: init_mb,nppm_ori
 
   integer :: ibig, machinebits,k
@@ -31,13 +32,13 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   integer(kind=MPI_ADDRESS_KIND) :: send_base, receive_base
 
 ! copy call parameters to treevars module
-  
   np_mult = t_np_mult
   fetch_mult = t_fetch_mult
   me = my_rank
   num_pe = n_cpu
   npart = npart_total
   ipefile = 20
+  curve_style = t_curve_style
 
   force_debug=.false.
   tree_debug=.false.

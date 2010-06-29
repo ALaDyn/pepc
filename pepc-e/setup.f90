@@ -49,7 +49,8 @@ subroutine setup(init_mb)
        vis_on, steering,  mc_init, restart, scheme, particle_bcs, &
        coulomb, bonds, lenjones, target_dup, ramp, &
        db_level, &
-       constrain_proof, len_tripod, struct_step, uthresh, bfield_on
+       constrain_proof, len_tripod, struct_step, uthresh, bfield_on, &
+       curve_style
 
 
   !  Default input set
@@ -69,6 +70,7 @@ subroutine setup(init_mb)
   choose_build = 0
 
   scheme          = 0
+
 
   ! particles
   nep = 0    ! # plasma electrons per PE

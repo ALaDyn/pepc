@@ -56,7 +56,7 @@ program pepce
   call setup(init_mb)
 
   ! Allocate array space for tree
-  call pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult,init_mb,nppm_ori)  
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult,init_mb,nppm_ori,curve_style)  
 
   ! Set up particles
   call configure

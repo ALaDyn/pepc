@@ -6,9 +6,11 @@
 ! number of particles, here ions
 ! ne = 200000
 ! ni = 200000
- ne = 12800000
- ni = 12800000
+ !ne = 12800000
+ !ni = 12800000
 ! ni = 12800000
+ne=1000
+ni=1000
 
 ! initial particle distribution
   ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
@@ -30,6 +32,10 @@
 ! Choose tree build routine
 ! 0: original, 1: optimized
  choose_build = 0
+
+! Choose space-filling-curve
+! 0: Z-curve, 1:Hilbert-curve
+ curve_style=0
 
 ! determinates the particle dump interval
 ! 0: never write anything
