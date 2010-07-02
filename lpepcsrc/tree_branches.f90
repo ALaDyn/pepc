@@ -33,9 +33,6 @@ subroutine tree_branches
   integer :: nleaf_check, ntwig_check, nleaf_check2, ierr
   logical :: resolved
 
-  integer*8 :: right_limit_me, right_limit
-  integer*8 :: left_limit_me, left_limit
-  integer :: lh_neigh, rh_neigh ! neighbors
 
   ! Global arrays used:
   !   treekey
@@ -57,31 +54,6 @@ subroutine tree_branches
 !        write(*,'(a,i8)') 'LPEPC | nbranch_local_max = ',nbranch_local_max
   endif
 
-
-  ! get key limits
-  left_limit_me=minval(treekey(1:nnodes),1)
-  right_limit_me=maxval(treekey(1:nnodes),1)
-
-  ! left-hand neighbor
-  lh_neigh = modulo((me + num_pe - 1),num_pe)
-
-  ! right-hand neighbor
-  rh_neigh = modulo((me + num_pe + 1),num_pe)
-  
-  if(num_pe.ne.1)then
-     ! send limits to neighbor
-     call MPI_Send(left_limit_me,1,MPI_INTEGER8,lh_neigh,1,MPI_COMM_WORLD,ierr)
-     call MPI_Recv(right_limit,1,MPI_INTEGER8,rh_neigh,1,MPI_COMM_WORLD,ierr)
-     
-     call MPI_Send(right_limit_me,1,MPI_INTEGER8,rh_neigh,2,MPI_COMM_WORLD,ierr)
-     call MPI_Recv(left_limit,1,MPI_INTEGER8,lh_neigh,2,MPI_COMM_WORLD,ierr)
-  end if
-  
-  ! balance (not optimal yet) 
-  ! simple with the mean 
-  ! TODO: fit on cell limits
-  right_limit=(right_limit_me+right_limit)/2       ! equivalent to floor()
-  left_limit=(left_limit_me+left_limit)/2+1        ! equivalent to ceil()
      
 
   ! Determine minimum set of branch nodes making up local domain
@@ -94,7 +66,6 @@ subroutine tree_branches
 
   do i=1,nnodes
      treelevel  = log(1.*treekey(i))/log(8.)     ! node levels
-
      if (treelevel==1) then
         nsubset = nsubset+1  ! # nodes at level 1
         search_key(nsubset) = treekey(i)   ! Subset of nodes at same level
