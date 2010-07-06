@@ -9,8 +9,8 @@
  !ne = 12800000
  !ni = 12800000
 ! ni = 12800000
-ne=1000
-ni=1000
+ne=500
+ni=500
 
 ! initial particle distribution
   ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
