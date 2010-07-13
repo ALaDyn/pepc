@@ -12,7 +12,8 @@ CPPFLAGS = -P -C
 
 FCPRE    = 
 FC       = mpif90
-FFLAGS   = -O2 -ipo -axSSE4.2
+#FFLAGS   = -O2 -ipo -axSSE4.2
+FFLAGS   = -g
 
 CCPRE    = 
 CC       = mpicc
@@ -25,4 +26,4 @@ LDLIBS   =
 
 RM       = rm -rf
 
-EXECNAME = ../pepc
+EXECNAME = ../bin/$@.juropa

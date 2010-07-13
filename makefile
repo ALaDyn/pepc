@@ -18,7 +18,8 @@ usage:
 info:
 	@echo ""
 	@echo "PEPC makefile info"
-	@echo "TARGET=$(TARGET)"
+	@echo "TARGET=$@"
+	@echo "EXECNAME=$(EXECNAME)"
 	@echo "SION=$(SION)"
 	@echo "MACH=$(MACH)"
 
@@ -26,13 +27,13 @@ pepce:
 	cd sl_pepc && $(MAKE)
 	cd lpepcsrc && $(MAKE)
 	cd pepc-e && $(MAKE)
-	make info TARGET=$@
+	make info TARGET=$(TARGET)
 
 pepcb:
 	cd sl_pepc && $(MAKE)
 	cd lpepcsrc && $(MAKE)
 	cd pepc-b && $(MAKE)
-	make info
+	make info TARGET=$(TARGET)
 
 clean:
 	cd sl_pepc && $(MAKE) clean

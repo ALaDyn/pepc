@@ -25,6 +25,6 @@ LDLIBS   =
 
 RM       = rm -rf
 
-EXECNAME = ../pepc
+EXECNAME = ../bin/$@.ubu
 
 
