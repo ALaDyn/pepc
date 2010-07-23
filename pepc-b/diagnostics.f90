@@ -141,7 +141,7 @@ subroutine diagnostics
 
   if (debug_tree.ge.1 .and. mod(itime,iprot)==0 ) then
     call tree_stats(itime+itime_start)
-    flush(15)  ! Release tree diags
+!    flush(15)  ! Release tree diags
   endif
 
 ! Array bound check
@@ -160,7 +160,7 @@ subroutine diagnostics
      call MPI_ABORT(MPI_COMM_WORLD,ierr)
      stop 
   endif
-  if (mod(itime,iprot)==0) flush(24)  ! physics log 
+!  if (mod(itime,iprot)==0) flush(24)  ! physics log 
 
 end subroutine diagnostics
 

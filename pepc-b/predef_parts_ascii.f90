@@ -17,7 +17,7 @@ subroutine predef_parts
 
   character(30) :: cinfile, cdump, cfile
   character(9) :: ct
-  character(11) :: cme
+  character(5) :: cme
   integer :: ner, nir, np_beamr, npartr, iconf, iens, timestamp
   real :: epsr, thetar, xlr, ylr, zlr, boxr
   real :: omegar, lambdar
@@ -145,7 +145,7 @@ subroutine predef_parts
         ncpu_merge = -ncpu_merge  ! split several sets
      ! Filename (directory) prefix
        me_read = me/ncpu_merge
-       cme = "data/pe" &   
+       cme = "p" &   
        // achar(me_read/1000+48) &
        // achar(mod(me_read/100,10)+48) &
        // achar(mod(me_read/10,10)+48) &
@@ -161,8 +161,8 @@ subroutine predef_parts
      end do
      cdump(1:1) = achar(itime_start/10**5 + 48)
 
-     cfile=cme(1:lendir)//"/parts_info."//cdump(1:6)
-
+ !    cfile=cme(1:lendir)//"/parts_info."//cdump(1:6)
+     cfile="dumps/info_"//cme//"."//cdump(1:6)
 
      if (me==0) write (*,'(a,a)') 'Reading info file',cfile
      open (60,file=cfile)    
@@ -182,8 +182,9 @@ subroutine predef_parts
 ! Record # particles read in openfiles.out
      write(90,*) 'PE ',me,': Reading ',npp+nadd,' particles out of ',npp_total,' from ',cme(1:lendir)
 
-     cfile=cme(1:lendir)//"/parts_dump."//cdump(1:6)
-     open (60,file=cfile) 
+ !    cfile=cme(1:lendir)//"/parts_dump."//cdump(1:6)
+   cfile="dumps/parts_"//cme//"."//cdump(1:6)
+    open (60,file=cfile) 
 
      !  Skip dummy blocks up to previous PEs 
      nslice_e=0
@@ -223,7 +224,7 @@ subroutine predef_parts
      do ipass = 0, ncpu_merge-1
         me_read = me*ncpu_merge + ipass
         ! Filename (directory) prefix
-        cme = "data/pe" &   
+        cme = "p" &   
        // achar(me_read/1000+48) &
        // achar(mod(me_read/100,10)+48) &
        // achar(mod(me_read/10,10)+48) &
@@ -236,15 +237,17 @@ subroutine predef_parts
         end do
         cdump(1:1) = achar(itime_start/10**5 + 48)
 
-        cfile=cme//"/parts_info."//cdump(1:6)
-
+!        cfile=cme//"/parts_info."//cdump(1:6)
+        cfile="dumps/info_"//cme//"."//cdump(1:6)
 
         open (60,file=cfile)    
         read(60,'(2(9x,i8/))')  timestamp,npp_partial  ! Find # particles to be read 
         close(60)
 
 
-        cfile=cme//"/parts_dump."//cdump(1:6)
+!        cfile=cme//"/parts_dump."//cdump(1:6)
+       cfile="dumps/parts_"//cme//"."//cdump(1:6)
+
         open (60,file=cfile) 
 
         i1 = ioffset + 1

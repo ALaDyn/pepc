@@ -33,8 +33,8 @@ subroutine dump(timestamp)
   end do
   cdump(1:1) = achar(timestamp/10**5 + 48)
 
-  cfile="data/pe"//csubme//"/parts_info."//cdump(1:6)
-
+!  cfile="data/pe"//csubme//"/parts_info."//cdump(1:6)
+  cfile="dumps/info_p"//csubme//"."//cdump(1:6)
 
   open (60,file=cfile)    
   write(60,'(7(a9,i8/),10(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))')  &    ! info block
@@ -86,7 +86,8 @@ subroutine dump(timestamp)
 
 
   
-  cfile="data/pe"//csubme//"/parts_dump."//cdump(1:6)
+!  cfile="data/pe"//csubme//"/parts_dump."//cdump(1:6)
+  cfile="dumps/parts_p"//csubme//"."//cdump(1:6)
   open (60,file=cfile) 
   write(60,'((12(1pe14.5),2i9))')  &
        (x(i), y(i), z(i), ux(i), uy(i), uz(i), q(i), m(i), &
