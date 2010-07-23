@@ -1,3 +1,4 @@
+ 
   namelist /pepcdata/ nep, nip, ne, ni, &
        theta, mac, nint_max, mass_ratio, mass_proton, eps, rho0, &
        plasma_config, target_geometry, velocity_config, ispecial, &
@@ -17,3 +18,4 @@
        debug_rank, np_mult, fetch_mult,nbuf_max, te_perturb, tpert, kpert, &
        q_factor, netcdf, launch, foam_geom, force_tolerance, dynamic_memalloc, &
        xh_start, xh_end, nxh, xgav_start, xgav_end, ngav, xgav_pos
+

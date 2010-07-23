@@ -18,7 +18,6 @@ subroutine setup
   integer :: k, npb_pe, ne_rest, ni_rest
 
   include 'namelist.h' 
-
   !  Default input set
 
   ! switches

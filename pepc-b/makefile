@@ -22,7 +22,7 @@ LIBS      = $(LIBPEPC)
 
 # -------------------------------------------------------------------------------------------
 
-MODULES.f90 =   physvars.f90 
+MODULES.f90 =   physvars.f90  
 
 SOURCES.f90 =	\
                 setup.f90 setup_arrays.f90 stamp.f90 \
@@ -81,11 +81,21 @@ $(MACH)/%.o: %.f90
 	$(CPP) $(CPPFLAGS) $< $(MACH)/$<
 	$(FCPRE) $(FC) -c $(FFLAGS) $(DEFINES) $(MACH)/$< -o $@
 
-
 #  explicit rules for f90 modules to avoid conflict with built-in ones
 $(MACH)/physvars.o: physvars.f90
 	$(CPP) $(CPPFLAGS) physvars.f90 $(MACH)/physvars.f90
 	$(FCPRE) $(FC) -c $(FFLAGS) $(DEFINES) $(MACH)/physvars.f90 -o $@
+
+#  explicit rule for sources including namelist (for some reason .h files don't get copied under linux build)
+$(MACH)/setup.o: namelist.h
+	cp namelist.h $(MACH)/namelist.h
+	$(CPP) $(CPPFLAGS) setup.f90 $(MACH)/setup.f90
+	$(FCPRE) $(FC) -c $(FFLAGS) $(DEFINES) $(MACH)/setup.f90 -o $@
+
+$(MACH)/param_dump.o: namelist.h
+	cp namelist.h $(MACH)/namelist.h
+	$(CPP) $(CPPFLAGS) param_dump.f90 $(MACH)/param_dump.f90
+	$(FCPRE) $(FC) -c $(FFLAGS) $(DEFINES) $(MACH)/param_dump.f90 -o $@
 
 $(MACH)/%.o: %.c  
 	$(CC) -c $(CFLAGS) $< -o $@
