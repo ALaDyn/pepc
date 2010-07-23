@@ -8,8 +8,8 @@
  debug_tree = 2
  mac=0
 ! particles
-  ne = 35000
-  ni = 35000 
+  ne = 3500
+  ni = 3500 
 
 ! set up plasma target
  plasma_config = 1  
@@ -52,10 +52,10 @@
   lambda = 1.0   
 
   ! control
-  nt =40
+  nt =10
   dt = 0.5
   eps = 0.5
- restart = .false.
+ restart = .true.
   vis_on = .false.
  ivis = 5 
  ivis_fields = 5

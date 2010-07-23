@@ -1,4 +1,5 @@
 echo "Starting eqm  .."
 cp eqm.h run.h
-mpirun -np 1 ../bin/pepcb 
+!cp dumps/info_p0000.000040 parts_info.in
+mpirun -np 4 ../bin/pepcb.ubu 
 echo "... done" 
