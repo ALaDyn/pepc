@@ -15,8 +15,8 @@
 
 # TASKS = nodes * ppn / tpt = 8 * 4 / 1 = 32
 # NSLOTS = nodes * ppn = 128 * 8 = 1024
-TASKS=32
+TASKS=4
 echo "Executing $TASKS MPI tasks ..."
 cp eqm.h run.h
-mpiexec -np $TASKS ../bin/pepcb_x86_64_ascii > pepc.out
+mpiexec -np $TASKS ../bin/pepcb.juropa > pepc.out
 
