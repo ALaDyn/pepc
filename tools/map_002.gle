@@ -1,0 +1,156 @@
+set color black
+amove        1.4135       0.8774
+circle psize fill black
+amove        1.3662       0.9436
+circle psize fill black
+amove        1.5197       0.9089
+circle psize fill black
+amove        1.5816       0.8736
+circle psize fill black
+amove        1.5939       0.9349
+circle psize fill black
+amove        1.4700       0.9376
+circle psize fill black
+amove        0.4444       1.0790
+circle psize fill black
+amove        0.5043       1.1378
+circle psize fill black
+amove        0.6077       1.0460
+circle psize fill black
+amove        0.6181       1.0983
+circle psize fill black
+amove        0.6782       1.0783
+circle psize fill black
+amove        0.6884       1.0741
+circle psize fill black
+amove        0.4483       1.1710
+circle psize fill black
+amove        0.4771       1.2745
+circle psize fill black
+amove        0.5245       1.2893
+circle psize fill black
+amove        0.6741       1.2743
+circle psize fill black
+amove        0.5765       1.2735
+circle psize fill black
+amove        0.6584       1.2768
+circle psize fill black
+amove        0.7542       1.0215
+circle psize fill black
+amove        0.7419       1.0588
+circle psize fill black
+amove        0.8082       1.0836
+circle psize fill black
+amove        0.8383       1.0617
+circle psize fill black
+amove        0.9526       1.0647
+circle psize fill black
+amove        0.9041       1.1660
+circle psize fill black
+amove        0.9472       1.1205
+circle psize fill black
+amove        0.9704       1.1556
+circle psize fill black
+amove        0.8413       1.1844
+circle psize fill black
+amove        0.8136       1.2158
+circle psize fill black
+amove        0.8491       1.2285
+circle psize fill black
+amove        0.9446       1.2066
+circle psize fill black
+amove        0.8483       1.2821
+circle psize fill black
+amove        0.6077       1.3152
+circle psize fill black
+amove        0.5840       1.3367
+circle psize fill black
+amove        0.5873       1.4094
+circle psize fill black
+amove        0.5874       1.4213
+circle psize fill black
+amove        0.7547       1.3695
+circle psize fill black
+amove        0.8251       1.3828
+circle psize fill black
+amove        0.7164       1.4514
+circle psize fill black
+amove        0.8265       1.4293
+circle psize fill black
+amove        0.9775       1.3648
+circle psize fill black
+amove        0.7486       1.5250
+circle psize fill black
+amove        0.8577       1.5602
+circle psize fill black
+amove        0.9043       1.5014
+circle psize fill black
+amove        0.9970       1.4902
+circle psize fill black
+amove        0.9582       1.5537
+circle psize fill black
+amove        0.9613       1.5922
+circle psize fill black
+amove        0.9634       1.5611
+circle psize fill black
+amove        0.9279       1.5909
+circle psize fill black
+amove        1.0390       1.0358
+circle psize fill black
+amove        1.0957       1.1028
+circle psize fill black
+amove        1.1379       1.0245
+circle psize fill black
+amove        1.4135       0.8774
+set color magenta
+set lwidth 0.005 lstyle 1
+aline        1.3662       0.9436
+aline        1.5197       0.9089
+aline        1.5816       0.8736
+aline        1.5939       0.9349
+aline        1.4700       0.9376
+aline        0.4444       1.0790
+aline        0.5043       1.1378
+aline        0.6077       1.0460
+aline        0.6181       1.0983
+aline        0.6782       1.0783
+aline        0.6884       1.0741
+aline        0.4483       1.1710
+aline        0.4771       1.2745
+aline        0.5245       1.2893
+aline        0.6741       1.2743
+aline        0.5765       1.2735
+aline        0.6584       1.2768
+aline        0.7542       1.0215
+aline        0.7419       1.0588
+aline        0.8082       1.0836
+aline        0.8383       1.0617
+aline        0.9526       1.0647
+aline        0.9041       1.1660
+aline        0.9472       1.1205
+aline        0.9704       1.1556
+aline        0.8413       1.1844
+aline        0.8136       1.2158
+aline        0.8491       1.2285
+aline        0.9446       1.2066
+aline        0.8483       1.2821
+aline        0.6077       1.3152
+aline        0.5840       1.3367
+aline        0.5873       1.4094
+aline        0.5874       1.4213
+aline        0.7547       1.3695
+aline        0.8251       1.3828
+aline        0.7164       1.4514
+aline        0.8265       1.4293
+aline        0.9775       1.3648
+aline        0.7486       1.5250
+aline        0.8577       1.5602
+aline        0.9043       1.5014
+aline        0.9970       1.4902
+aline        0.9582       1.5537
+aline        0.9613       1.5922
+aline        0.9634       1.5611
+aline        0.9279       1.5909
+aline        1.0390       1.0358
+aline        1.0957       1.1028
+aline        1.1379       1.0245

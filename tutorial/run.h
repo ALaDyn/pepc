@@ -14,7 +14,7 @@
 ! set up plasma target
  plasma_config = 1  
 ! sphere
- target_geometry = 0   
+ target_geometry = 1   
 
 ! physics stuff
 
@@ -27,7 +27,7 @@
   coulomb = .true.
   lenjones = .false.
   bond_const = 2.e-3
-  r_sphere = 1. 
+  r_sphere = 2. 
 ! plasma disc thickness/ wire length
   x_plasma = 1    
 ! plasma width (slab target)
@@ -55,7 +55,7 @@
   nt =10
   dt = 0.5
   eps = 0.5
- restart = .true.
+ restart = .false.
   vis_on = .false.
  ivis = 5 
  ivis_fields = 5

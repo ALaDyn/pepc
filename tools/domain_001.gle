@@ -1,0 +1,249 @@
+set lwidth .001
+set color black
+set lwidth .001 color white
+set color white
+amove        0.6985       0.4139
+set color white
+amove        0.3996       0.7127
+set color white
+amove        0.5491       0.5633
+set color white
+amove        0.6985       0.7127
+set color white
+amove        0.8479       0.7127
+set color white
+amove        0.5491       0.4886
+set color white
+amove        0.6238       0.4886
+set color white
+amove        0.7919       0.8995
+set color white
+amove        0.7919       0.9182
+set color white
+amove        0.9973       0.4139
+box        0.2989       0.2989 fill cyan   
+set color white
+amove        1.2962       0.4139
+box        0.2989       0.2989 fill cyan   
+set color white
+amove        0.9973       0.7127
+box        0.2989       0.2989 fill cyan   
+set color white
+amove        0.8479       0.8622
+box        0.1494       0.1494 fill cyan   
+set color white
+amove        1.2962       0.7127
+box        0.1494       0.1494 fill cyan   
+set color white
+amove        1.4456       0.7127
+box        0.1494       0.1494 fill cyan   
+set color white
+amove        0.6985       0.9369
+box        0.0747       0.0747 fill cyan   
+set color white
+amove        0.7732       0.9369
+box        0.0747       0.0747 fill cyan   
+set color white
+amove        1.2962       0.8622
+box        0.0374       0.0374 fill cyan   
+set color white
+amove        1.2962       0.8995
+box        0.0374       0.0374 fill cyan   
+set color white
+amove        0.3996       1.0116
+set color white
+amove        1.4456       0.8622
+set color white
+amove        1.3709       0.8622
+set color white
+amove        1.3709       0.9369
+set color white
+amove        1.0347       1.0116
+set color white
+amove        1.0347       1.0489
+set color white
+amove        1.2962       1.0116
+set color white
+amove        0.9973       1.3104
+set color white
+amove        1.1468       1.0116
+set color white
+amove        0.9973       1.1610
+set color white
+amove        1.1468       1.1610
+set color white
+amove        1.0721       1.0116
+set color white
+amove        1.0721       1.0863
+set color white
+amove        1.2962       1.3104
+set color white
+amove        1.3709       1.3104
+set color white
+amove        1.2962       1.3852
+set color white
+amove        1.4083       1.3852
+set color white
+amove        1.4270       1.4038
+set lwidth .001 color black
+amove        1.0347       0.7314
+amove        1.0534       0.4326
+amove        1.0347       1.0116
+amove        1.0721       1.0116
+amove        1.0721       1.0863
+amove        1.0721       0.8622
+amove        1.0907       0.8622
+amove        0.8853       0.9742
+amove        1.0347       1.0489
+amove        0.5491       0.4886
+amove        0.6238       0.4886
+amove        1.0721       0.5633
+amove        1.0721       0.6007
+amove        1.4083       1.3852
+amove        1.4270       1.4038
+amove        0.6985       0.9369
+amove        0.7732       0.9369
+amove        0.8479       0.8622
+amove        0.9226       0.9369
+amove        1.2962       0.4886
+amove        0.9973       0.6380
+amove        1.0721       0.6380
+amove        1.1468       0.5633
+amove        1.2215       0.5633
+amove        1.2215       0.6380
+amove        1.3709       0.4886
+amove        1.0721       0.7874
+amove        1.1468       0.7127
+amove        1.2215       0.7874
+amove        0.9973       0.8622
+amove        1.0721       0.9369
+amove        1.1468       0.9369
+amove        1.2215       0.9369
+amove        1.5203       0.7127
+amove        1.4456       0.7874
+amove        1.3709       0.8622
+amove        1.3709       0.9369
+amove        0.9973       0.7127
+amove        0.9973       0.7874
+amove        1.0347       0.7874
+amove        0.7919       0.8995
+amove        0.7919       0.9182
+amove        1.4083       0.6007
+amove        1.4270       0.6193
+amove        0.9973       0.9369
+amove        1.0347       0.9742
+amove        1.2215       0.8995
+amove        1.2588       0.8995
+amove        1.3336       0.7127
+amove        1.3336       0.7501
+amove        1.2962       0.7874
+amove        1.3336       0.7874
+amove        1.3336       0.8248
+amove        1.2962       0.8622
+amove        1.2962       0.8995
+amove        0.8479       0.9929
+amove        0.8666       0.9929
+amove        1.2962       1.3104
+amove        1.3709       1.3104
+amove        1.0534       0.7127
+amove        1.0347       0.4139
+amove        1.3709       0.5633
+amove        1.3336       0.5259
+amove        0.7078       0.9515
+circle psize fill black
+amove        0.8368       0.9983
+circle psize fill black
+amove        0.8789       0.9138
+circle psize fill black
+amove        0.8540       0.9938
+circle psize fill black
+amove        0.8849       0.9966
+circle psize fill black
+amove        0.8889       0.9960
+circle psize fill black
+amove        0.9515       0.9579
+circle psize fill black
+amove        1.0398       0.4306
+circle psize fill black
+amove        1.0636       0.4411
+circle psize fill black
+amove        1.1052       0.6001
+circle psize fill black
+amove        1.0945       0.6368
+circle psize fill black
+amove        1.0297       0.6567
+circle psize fill black
+amove        1.0891       0.6583
+circle psize fill black
+amove        1.1474       0.5965
+circle psize fill black
+amove        1.2691       0.6190
+circle psize fill black
+amove        1.2536       0.6707
+circle psize fill black
+amove        1.3089       0.4996
+circle psize fill black
+amove        1.3345       0.5273
+circle psize fill black
+amove        1.3995       0.5544
+circle psize fill black
+amove        1.3840       0.5806
+circle psize fill black
+amove        1.4124       0.6172
+circle psize fill black
+amove        1.4318       0.6331
+circle psize fill black
+amove        1.0329       0.7320
+circle psize fill black
+amove        1.0584       0.7188
+circle psize fill black
+amove        1.0371       0.7332
+circle psize fill black
+amove        1.0221       0.8124
+circle psize fill black
+amove        1.0534       0.8208
+circle psize fill black
+amove        1.1450       0.7921
+circle psize fill black
+amove        1.2061       0.7264
+circle psize fill black
+amove        1.2699       0.8342
+circle psize fill black
+amove        1.0718       0.9111
+circle psize fill black
+amove        1.0865       0.8636
+circle psize fill black
+amove        1.0996       0.8765
+circle psize fill black
+amove        1.0085       0.9662
+circle psize fill black
+amove        1.0610       0.9957
+circle psize fill black
+amove        1.1172       0.9634
+circle psize fill black
+amove        1.2266       0.9268
+circle psize fill black
+amove        1.2906       0.9068
+circle psize fill black
+amove        1.1540       0.9596
+circle psize fill black
+amove        1.2252       0.9837
+circle psize fill black
+amove        1.3433       0.7249
+circle psize fill black
+amove        1.3601       0.7830
+circle psize fill black
+amove        1.2993       0.8009
+circle psize fill black
+amove        1.3358       0.8188
+circle psize fill black
+amove        1.3535       0.8479
+circle psize fill black
+amove        1.5481       0.7605
+circle psize fill black
+amove        1.5099       0.8389
+circle psize fill black
+amove        1.3288       0.8853
+circle psize fill black
+amove        1.3083       0.9317
+circle psize fill black
