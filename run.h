@@ -17,7 +17,7 @@ ni=500
  ispecial = 1
 
 ! number of timesteps
- nt = 10
+ nt = 1
  
 ! communication scheme
 ! 0: point-to-point, 1: collectives

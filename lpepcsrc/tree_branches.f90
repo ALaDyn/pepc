@@ -38,12 +38,11 @@ subroutine tree_branches
   !   treekey
 
   integer :: key2addr        ! Mapping function to get hash table address from key
-  integer :: startlevel = 2  ! Min permitted branch level
 
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()
 
-!  branch_debug=.true.
+
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after treebuild     ')
@@ -57,52 +56,62 @@ subroutine tree_branches
      
 
   ! Determine minimum set of branch nodes making up local domain
-
-  ncheck = 0
-  nbranch = 0
+  ncheck = 0     ! 0 leafs resolved in branches
+  nbranch = 0    ! 0 branches resolved
+  level = 1      ! first level
   newsub = 0
-  level = 1
   nsubset=0
 
+  ! Filtering all first level nodes
   do i=1,nnodes
-     treelevel  = log(1.*treekey(i))/log(8.)     ! node levels
+     treelevel = log(1.*treekey(i))/log(8.) ! node levels
      if (treelevel==1) then
-        nsubset = nsubset+1  ! # nodes at level 1
-        search_key(nsubset) = treekey(i)   ! Subset of nodes at same level
+        nsubset = nsubset+1                  ! # nodes at level 1
+        search_key(nsubset) = treekey(i)     ! Subset of nodes at first level
      endif
   end do
 
+  ! while any particle is not resolved
   do while ( ncheck < nleaf )
 
      call sort( search_key(1:nsubset) )  ! Sort keys
 
      if (nsubset > 0 ) then
-        keymin = minval( search_key(1:nsubset),1 )      ! TODO:  This should include cells that have already been added to
-        keymax = maxval( search_key(1:nsubset),1 )      ! to the list.  At present, keymin, keymax could lie in middle of 
-        ! domain, causing 'gaps' in branch list
-        ! =>  Compute from particle keys for given level instead.
+        
+        ! find lowest and highest key (search_key is sorted)
+        keymin = search_key(1)
+        keymax = search_key(nsubset)
 
-        !        keymin = ishft( pekey(1),-3*(nlev-level) )      ! recover min, max twig keys from particle keys at this level
-        !        keymax = ishft( pekey(nlist),-3*(nlev-level) )      ! recover min, max twig keys from particle keys at this level
-
+        ! for all possible branches
         do i=1,nsubset
-           treelevel  = log(1.*search_key(i))/log(8.)     ! node levels
-           if ( (search_key(i) > keymin .and. search_key(i) < keymax .and. treelevel>=startlevel) .or. &
-		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
-              !  either middle node (complete twig),  or leaf:  so add to domain list
-              nbranch = nbranch + 1
-              pebranch(nbranch) = search_key(i)
-              ncheck = ncheck +  htable( key2addr( search_key(i),'BRANCHES: ncheck' ) )%leaves  ! Augment checksum
 
+           if ( (search_key(i) > keymin .and. search_key(i) < keymax) .or. &
+		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
+              ! either middle node (complete twig)  or leaf:  so add to domain list
+              
+              ! Found a new branch, increment number
+              nbranch = nbranch + 1
+              ! Add branch
+              pebranch(nbranch) = search_key(i)
+              ! Augment checksum
+              ncheck = ncheck +  htable( key2addr( search_key(i),'BRANCHES: ncheck' ) )%leaves  ! Augment checksum
+           
            else 
               ! end node: check for complete twigs; otherwise subdivide
+
+              ! get children byte-code to know if children exists
               cchild = htable( key2addr( search_key(i),'BRANCHES: cchild' ) )%childcode   !  Children byte-code
 
-              nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
-              sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract sub key from byte code
+              ! number of children = sum of bits in byte-code
+              nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) 
+              
+              ! Extract sub key from children byte-code
+              sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  
 
+              ! for all children 
               do j=1,nchild
-                 resolve_key(newsub+j) = IOR( ishft( search_key(i),3 ), sub_key(j) ) ! Construct keys of children
+                 ! Construct keys of children and add for resolve at next level
+                 resolve_key(newsub+j) = IOR( ishft( search_key(i),3 ), sub_key(j) )
               end do
               newsub = newsub + nchild
 
@@ -113,18 +122,23 @@ subroutine tree_branches
            write (ipefile,'(/a,i7,a,i7/a/(i5,o16,i6,z5,i8))') 'Branches at level:',level, ' Checksum: ',ncheck, &
                 '    i      key         node     code     #leaves', &
                 (i,search_key(i), &
-                htable( key2addr( search_key(i),'BRANCHES: debug' ) )%node, &                         ! Node #
-                htable( key2addr( search_key(i),'BRANCHES: debug' ) )%childcode, &                         ! Children byte-code 
-                htable( key2addr( search_key(i),'BRANCHES:debug' ) )%leaves, &                           ! # leaves contained in branch 
+                htable( key2addr( search_key(i),'BRANCHES: debug' ) )%node, &        ! Node #
+                htable( key2addr( search_key(i),'BRANCHES: debug' ) )%childcode, &   ! Children byte-code 
+                htable( key2addr( search_key(i),'BRANCHES:debug' ) )%leaves, &       ! # leaves contained in branch 
                 i=1,nsubset)
         endif
 
      endif
-     level = level + 1
-     search_key(1:newsub) = resolve_key(1:newsub)        ! Put children into search list
+     ! Next level
+     level = level + 1  
+
+     ! Put children into search list
+     search_key(1:newsub) = resolve_key(1:newsub) ! Put children into search list
      nsubset = newsub
      newsub = 0
   end do
+
+  
 
   if (branch_debug) write (ipefile,'(/a/(i6,o16))') 'Domain branch list:',(i,pebranch(i),i=1,nbranch)
 
