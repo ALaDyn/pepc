@@ -34,14 +34,22 @@ subroutine tree_branches
   logical :: resolved
 
 
-  ! Global arrays used:
-  !   treekey
+  ! stuff for getting a virtual domain
+  integer*8 :: right_limit_me, right_limit
+  integer*8 :: left_limit_me, left_limit
+  integer*8 :: left_virt_limit, right_virt_limit
+  integer*8 :: left_cell, right_cell
 
-  integer :: key2addr        ! Mapping function to get hash table address from key
+  ! Mapping function to get hash table address from key
+  integer :: key2addr
+
+
+  ! Global arrays used:
+  ! pekey
+  ! treekey
 
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()
-
 
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
@@ -49,97 +57,148 @@ subroutine tree_branches
 
   if (tree_debug) write(ipefile,'(a)') 'TREE BRANCHES'
   if (me==0 .and. tree_debug) then
-	write(*,'(a)') 'LPEPC | BRANCHES'
-!        write(*,'(a,i8)') 'LPEPC | nbranch_local_max = ',nbranch_local_max
+     write(*,'(a)') 'LPEPC | BRANCHES'
+     ! write(*,'(a,i8)') 'LPEPC | nbranch_local_max = ',nbranch_local_max
   endif
 
+  ! get local key limits
+  left_limit_me=pekey(1)
+  right_limit_me=pekey(npp)
+  
+  ! get key limits for neighbor PE's
+  ! and build virtual limits, so that a minimum set a branch nodes comes arround
+  ! boundary PE's can access their boundary space fully only need one virtual limit
+  if(me.eq.0)then
+     right_limit=pekey(npp+1)
+     call bpi(right_limit,right_limit_me,8_8,right_virt_limit)
+  else if(me.eq.(num_pe-1))then
+     left_limit=pekey(npp+1)
+     call bpi(left_limit,left_limit_me,8_8,left_virt_limit)
+  else
+     left_limit=pekey(npp+2)
+     right_limit=pekey(npp+1)
+     call bpi(left_limit,left_limit_me,8_8,left_virt_limit)
+     call bpi(right_limit,right_limit_me,8_8,right_virt_limit)
+  end if
+  
+  ! make the range bigger for inner pe's
+  if(me.ne.0.and.me.ne.num_pe-1)then
+     if(left_virt_limit .le. left_limit_me)then
+        left_virt_limit = left_virt_limit - 1
+     end if
      
-
+     if(right_virt_limit .ge. right_limit_me)then
+        right_virt_limit = right_virt_limit + 1
+     end if
+  end if
+  
+  
+  
   ! Determine minimum set of branch nodes making up local domain
   ncheck = 0     ! 0 leafs resolved in branches
   nbranch = 0    ! 0 branches resolved
-  level = 1      ! first level
+  level = 1      ! start at first level
   newsub = 0
-  nsubset=0
-
+  nsubset = 0
+  
   ! Filtering all first level nodes
   do i=1,nnodes
      treelevel = log(1.*treekey(i))/log(8.) ! node levels
      if (treelevel==1) then
-        nsubset = nsubset+1                  ! # nodes at level 1
-        search_key(nsubset) = treekey(i)     ! Subset of nodes at first level
+        nsubset = nsubset+1                 ! # nodes at level 1
+        search_key(nsubset) = treekey(i)    ! Subset of nodes at first level
      endif
   end do
-
-  ! while any particle is not resolved
+  
+  ! while any particle is not in a branch
   do while ( ncheck < nleaf )
-
+     
      call sort( search_key(1:nsubset) )  ! Sort keys
-
+     
      if (nsubset > 0 ) then
         
-        ! find lowest and highest key (search_key is sorted)
-        keymin = search_key(1)
-        keymax = search_key(nsubset)
-
-        ! for all possible branches
+        ! calculate parent cell for this level from virtual limits 
+        left_cell = ibits(left_virt_limit,nlev*3-3*level,3*level)
+        right_cell = ibits(right_virt_limit,nlev*3-3*level,3*level)
+        
+        ! for all nodes at this level
         do i=1,nsubset
-
-           if ( (search_key(i) > keymin .and. search_key(i) < keymax) .or. &
-		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
-              ! either middle node (complete twig)  or leaf:  so add to domain list
-              
-              ! Found a new branch, increment number
-              nbranch = nbranch + 1
-              ! Add branch
-              pebranch(nbranch) = search_key(i)
-              ! Augment checksum
-              ncheck = ncheck +  htable( key2addr( search_key(i),'BRANCHES: ncheck' ) )%leaves  ! Augment checksum
            
+           ! check if key between limits
+           ! Important: discount placeholder-bit from search_key-entries
+           if ( (me.eq.0 .and. (search_key(i)-2**(3*level)) < right_cell) .or. &
+		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
+              ! twig node between limits or
+              ! node is a leaf
+              nbranch = nbranch + 1
+              pebranch(nbranch) = search_key(i)
+              ncheck = ncheck +  htable( key2addr( search_key(i),'BRANCHES: ncheck' ) )%leaves  ! Augment checksum
+              
+           elseif ( (me.eq.num_pe-1 .and. (search_key(i)-2**(3*level)) > left_cell) .or. &
+		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
+              ! twig node between limits or
+              ! node is a leaf
+              nbranch = nbranch + 1
+              pebranch(nbranch) = search_key(i)
+              ncheck = ncheck +  htable( key2addr( search_key(i),'BRANCHES: ncheck' ) )%leaves  ! Augment checksum
+              
+           elseif (  ((search_key(i)-2**(3*level)) > left_cell .and. (search_key(i)-2**(3*level)) < right_cell) .or. &
+		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
+              ! twig node between limits or
+              ! node is a leaf
+              nbranch = nbranch + 1
+              pebranch(nbranch) = search_key(i)
+              ncheck = ncheck +  htable( key2addr( search_key(i),'BRANCHES: ncheck' ) )%leaves  ! Augment checksum
+              
            else 
               ! end node: check for complete twigs; otherwise subdivide
-
-              ! get children byte-code to know if children exists
-              cchild = htable( key2addr( search_key(i),'BRANCHES: cchild' ) )%childcode   !  Children byte-code
-
-              ! number of children = sum of bits in byte-code
+              
+              ! get children byte-code from hash-table
+              cchild = htable( key2addr( search_key(i),'BRANCHES: cchild' ) )%childcode   
+              
+              ! get number of children (sum of 1-bits in childcode)
               nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) 
               
-              ! Extract sub key from children byte-code
+              ! extract sub key from childcode
               sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  
-
-              ! for all children 
+              
+              ! put children in list for next level branching
               do j=1,nchild
-                 ! Construct keys of children and add for resolve at next level
+                 
+                 ! Construct keys of children
                  resolve_key(newsub+j) = IOR( ishft( search_key(i),3 ), sub_key(j) )
+                 
               end do
               newsub = newsub + nchild
-
+              
            endif
         end do
-
+        
+        branch_debug=.true.
         if (branch_debug) then
            write (ipefile,'(/a,i7,a,i7/a/(i5,o16,i6,z5,i8))') 'Branches at level:',level, ' Checksum: ',ncheck, &
                 '    i      key         node     code     #leaves', &
                 (i,search_key(i), &
-                htable( key2addr( search_key(i),'BRANCHES: debug' ) )%node, &        ! Node #
-                htable( key2addr( search_key(i),'BRANCHES: debug' ) )%childcode, &   ! Children byte-code 
-                htable( key2addr( search_key(i),'BRANCHES:debug' ) )%leaves, &       ! # leaves contained in branch 
+                htable( key2addr( search_key(i),'BRANCHES: debug' ) )%node, &      ! Node #
+                htable( key2addr( search_key(i),'BRANCHES: debug' ) )%childcode, & ! Children byte-code 
+                htable( key2addr( search_key(i),'BRANCHES:debug' ) )%leaves, &     ! # leaves contained in branch 
                 i=1,nsubset)
         endif
-
+        
      endif
-     ! Next level
-     level = level + 1  
-
-     ! Put children into search list
-     search_key(1:newsub) = resolve_key(1:newsub) ! Put children into search list
+     
+     ! determine branches in next level
+     level = level + 1
+     
+     ! refresh search list for next level with children of twigs which are not a branch at this level
+     search_key(1:newsub) = resolve_key(1:newsub) 
      nsubset = newsub
      newsub = 0
   end do
-
+  
   
 
+  
   if (branch_debug) write (ipefile,'(/a/(i6,o16))') 'Domain branch list:',(i,pebranch(i),i=1,nbranch)
 
   ! Extract info about branches

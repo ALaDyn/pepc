@@ -51,6 +51,10 @@ module tree_utils
      module procedure locaddress_real8_8
   end interface
 
+  interface bpi
+     module procedure bpi_int8_8
+  end interface
+
 contains
 
 ! ================
@@ -1725,5 +1729,40 @@ search_list = 8_8**lev_map  ! place holder
     call MPI_GET_ADDRESS( location, addr, ierr )
     
   end subroutine locaddress_real8_8
+
+  
+  subroutine bpi_int8_8(a, b, base, res)
+    
+    implicit none    
+    
+    integer*8,intent(in) :: a, b, base
+    integer*8,intent(out) :: res
+    integer*8 :: k, ka, kb, temp
+    integer*8 :: i 
+    integer*8 :: pot
+    
+    ! 
+    if (a.eq.b)then
+       res=a
+       return
+    end if
+    
+    ! swap for correct interval 
+    if (b .le. a) then
+       call swap(a,b)
+    end if
+    
+    pot = floor(log(REAL(b))/log(REAL(base)))
+    do i = pot, 0, -1
+       ka = ceiling(REAL(a)/base**i)
+       kb = floor(REAL(b)/base**i)
+       k = max(ka, kb)
+       res = k * base**i
+       if (a.le.res.and.res.le.b) then
+          return
+       end if
+    end do
+    
+  end subroutine bpi_int8_8
 
 end module tree_utils
