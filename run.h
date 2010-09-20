@@ -6,18 +6,18 @@
 ! number of particles, here ions
 ! ne = 200000
 ! ni = 200000
- !ne = 12800000
- !ni = 12800000
+ ne = 12800000
+ ni = 12800000
 ! ni = 12800000
-ne=500
-ni=500
+!ne=500
+!ni=500
 
 ! initial particle distribution
   ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
  ispecial = 6
 
 ! number of timesteps
- nt = 1
+ nt = 3
  
 ! communication scheme
 ! 0: point-to-point, 1: collectives

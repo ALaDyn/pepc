@@ -83,12 +83,12 @@ subroutine tree_branches
   
   ! make the range bigger for inner pe's
   if(me.ne.0.and.me.ne.num_pe-1)then
-     if(left_virt_limit .le. left_limit_me)then
-        left_virt_limit = left_virt_limit - 1
+     if(left_virt_limit .lt. left_limit_me)then
+        !left_virt_limit = left_virt_limit - 1
      end if
      
-     if(right_virt_limit .ge. right_limit_me)then
-        right_virt_limit = right_virt_limit + 1
+     if(right_virt_limit .gt. right_limit_me)then
+        !right_virt_limit = right_virt_limit + 1
      end if
   end if
   
@@ -96,7 +96,7 @@ subroutine tree_branches
   
   ! Determine minimum set of branch nodes making up local domain
   ncheck = 0     ! 0 leafs resolved in branches
-  nbranch = 0    ! 0 branches resolved
+  nbranch = 0    ! 0 branches cognized
   level = 1      ! start at first level
   newsub = 0
   nsubset = 0
@@ -124,7 +124,7 @@ subroutine tree_branches
         ! for all nodes at this level
         do i=1,nsubset
            
-           ! check if key between limits
+           ! check if key between virtual limits
            ! Important: discount placeholder-bit from search_key-entries
            if ((me.eq.0 .and. (search_key(i)-2**(3*level)) < right_cell) .or. &
 		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
@@ -210,7 +210,7 @@ subroutine tree_branches
   end do
 
   if (ncheck > nleaf) then
-     write(*,*) 'Checksum ',ncheck,' /= # leaves on PE ',me
+     write(*,*) 'Checksum ',ncheck,' /= ',nleaf,'= # leaves on PE ',me, ':left_limit',left_limit,'left_limit_me',left_limit_me,'virtual_limit_left',left_virt_limit
   endif
 
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after local branches     ')

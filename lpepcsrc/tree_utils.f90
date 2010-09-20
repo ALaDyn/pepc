@@ -55,6 +55,10 @@ module tree_utils
      module procedure bpi_int8_8
   end interface
 
+  interface bpi_bits
+     module procedure bpi_bits_int8_8
+  end interface
+
 contains
 
 ! ================
@@ -1741,7 +1745,6 @@ search_list = 8_8**lev_map  ! place holder
     integer*8 :: i 
     integer*8 :: pot
     
-    ! 
     if (a.eq.b)then
        res=a
        return
@@ -1754,14 +1757,51 @@ search_list = 8_8**lev_map  ! place holder
     
     pot = floor(log(REAL(b))/log(REAL(base)))
     do i = pot, 0, -1
-       ka = ceiling(REAL(a)/base**i)
-       kb = floor(REAL(b)/base**i)
-       k = max(ka, kb)
+       k = b/(base**i)
        res = k * base**i
-       if (a.le.res.and.res.le.b) then
+       if (a.lt.res) then
           return
        end if
     end do
     
   end subroutine bpi_int8_8
+  
+  subroutine bpi_bits_int8_8(a, b, base, res)
+    
+    implicit none   
+
+    integer*8,intent(in) :: a, b, base
+    integer*8,intent(out) :: res
+    integer*8 :: l_cell,r_cell
+    integer*8 :: k, pot
+    integer*8 :: i 
+    integer*8 :: nbits
+    
+
+    nbits = 3
+
+    ! swap for correct interval 
+    if (b .le. a) then
+       call swap(a,b)
+    end if
+
+    
+    do i=1,63/nbits
+     
+       l_cell = ibits(a,63-i*nbits+1,nbits)
+       r_cell = ibits(b,63-i*nbits+1,nbits)
+     
+       if(l_cell.ne.r_cell)then
+          pot=(63/nbits)-i+1
+          exit
+       end if
+       
+    end do
+
+    k=b/base**pot
+    res=k*base**pot
+    
+    
+  end subroutine bpi_bits_int8_8
+
 end module tree_utils
