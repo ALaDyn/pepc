@@ -126,7 +126,7 @@ subroutine tree_branches
            
            ! check if key between limits
            ! Important: discount placeholder-bit from search_key-entries
-           if ( (me.eq.0 .and. (search_key(i)-2**(3*level)) < right_cell) .or. &
+           if ((me.eq.0 .and. (search_key(i)-2**(3*level)) < right_cell) .or. &
 		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
               ! twig node between limits or
               ! node is a leaf

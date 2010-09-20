@@ -14,7 +14,7 @@ ni=500
 
 ! initial particle distribution
   ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
- ispecial = 1
+ ispecial = 6
 
 ! number of timesteps
  nt = 1
