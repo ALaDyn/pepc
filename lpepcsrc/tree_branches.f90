@@ -70,15 +70,15 @@ subroutine tree_branches
   ! boundary PE's can access their boundary space fully only need one virtual limit
   if(me.eq.0)then
      right_limit=pekey(npp+1)
-     call bpi(right_limit,right_limit_me,8_8,right_virt_limit)
+     call bpi_bits(right_limit,right_limit_me,8_8,right_virt_limit)
   else if(me.eq.(num_pe-1))then
      left_limit=pekey(npp+1)
-     call bpi(left_limit,left_limit_me,8_8,left_virt_limit)
+     call bpi_bits(left_limit,left_limit_me,8_8,left_virt_limit)
   else
      left_limit=pekey(npp+2)
      right_limit=pekey(npp+1)
-     call bpi(left_limit,left_limit_me,8_8,left_virt_limit)
-     call bpi(right_limit,right_limit_me,8_8,right_virt_limit)
+     call bpi_bits(left_limit,left_limit_me,8_8,left_virt_limit)
+     call bpi_bits(right_limit,right_limit_me,8_8,right_virt_limit)
   end if
   
   ! make the range bigger for inner pe's
