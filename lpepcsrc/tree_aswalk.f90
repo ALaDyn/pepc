@@ -258,6 +258,11 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
            if ( (mac_ok .or. walk_node >0) .and. .not.ignore) then
               walk_key(i) = walk_next
 	      entry_next = nterm(p) + 1
+              if(entry_next .ge. nintmax) then
+                 write(*,*) " *** interaction list too short nintmax=", nintmax, ", please increase nintmax *** "
+                 flush(6)
+                 call MPI_Abort(ierr)
+              end if
               intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
               nodelist( entry_next, p ) = walk_node   ! Node number for sum_force
               nterm(p) = entry_next

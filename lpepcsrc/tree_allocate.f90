@@ -19,13 +19,12 @@ subroutine tree_allocate(theta,init_mb)
 
   nppm=npp
   ! Estimate of interaction list length - Hernquist expression
-  if (theta >0 ) then
-     nintest = 35.*log(1.*npartm)/max(theta**2,0.25)
+  if (theta >0.01 ) then
+     nintest = 35.*log(1.*npartm)/(theta**2)
   else
      nintest = npartm
   endif
-!  nintmax=max(nintest,2200)
-  nintmax=nintest
+  nintmax=min(nintest,npartm)
 
   !  Space for # table and tree arrays
   !  TODO: need good estimate for max # branches
