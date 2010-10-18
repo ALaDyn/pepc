@@ -28,7 +28,7 @@ void vtk_output_fields(integer* npp, int ntasks, int sid, FILE* vtk_file)
   int rcnt, fcnt;
   double *ne, *ni, *n, *jx, *jy, *jz;
 
-  printf(" ... converting integrated fields ...\n");
+  printf(" ... converting integrated fields on grid %dx%dx%d ...\n", nx, ny, nz);
 
   ne = (double*)(malloc(sizeof(double)*nx*ny*nz));
   assert(ne != NULL);
@@ -53,8 +53,8 @@ void vtk_output_fields(integer* npp, int ntasks, int sid, FILE* vtk_file)
   fprintf(vtk_file, "ASCII\n");
   fprintf(vtk_file, "DATASET STRUCTURED_POINTS\n"); 
   fprintf(vtk_file, "DIMENSIONS %d %d %d\n", nx+1, ny+1, nz+1); 
-  fprintf(vtk_file, "ORIGIN 180.0 40.0 40.0\n");
-  fprintf(vtk_file, "SPACING %f %f %f\n", (220.0-180.0)/nx, (200.0-40.0)/ny, (200.0-40.0)/nz);
+  fprintf(vtk_file, "ORIGIN %e %e %e\n", xm, ym, zm);
+  fprintf(vtk_file, "SPACING %f %f %f\n", (xp-xm)/nx, (yp-ym)/ny, (zp-zm)/nz);
   fprintf(vtk_file, "CELL_DATA %d\n", nx*ny*nz);  
 
   assert(NULL!=read_buffer);
@@ -196,11 +196,12 @@ void vtk_output_particle_positions(integer* npp, int ntasks, integer total_parti
 	} /* left */
     } /* rcnt */
 
-  fprintf(vtk_file,"VERTICES %d %d\n", total_particles, total_particles*2);
+  fprintf(vtk_file,"VERTICES %lld %lld\n", total_particles, total_particles*2);
   
   for(lcnt=0; lcnt<total_particles; lcnt++)
-    fprintf(vtk_file,"1 %d\n", lcnt);
-
+    fprintf(vtk_file,"1 %lld\n", lcnt);
+  
+  fprintf(vtk_file, "POINT_DATA %lld\n", total_particles);
 }
 
 void vtk_output_particle_vector(integer* npp, integer ntasks, integer total_particles, integer sid, FILE* vtk_file, char* name, int f1, int f2, int f3)
@@ -291,7 +292,7 @@ int main(int argc, char **argv)
 
   assert(argc > 1);
   for(acnt=1; acnt<argc; acnt++)
-    printf("file number %d -> %s to be processed\n", acnt, argv[acnt]);
+    printf("file number %lld -> %s to be processed\n", acnt, argv[acnt]);
   
   read_buffer = (double*)(malloc(sizeof(double)*8*read_buffer_size));
   assert(NULL != read_buffer);
@@ -340,15 +341,28 @@ int main(int argc, char **argv)
 	  npp[rcnt] = *((int*)(info_buffer + 4));
 	  total_particles += npp[rcnt];
 	  if(rcnt%35==0) printf(" ** sion file info - npp on rank %d: %lld\n", rcnt, npp[rcnt]);
+
+	  if(rcnt == 0)
+	    {
+	      /* pepc internal agreement */
+	      xm = 0.0; 
+	      ym = 0.0;
+	      zm = 0.0;
+	      
+	      /* from output file */
+	      xp = *((float*)(info_buffer + 7*4));
+	      yp = *((float*)(info_buffer + 8*4));
+	      zp = *((float*)(info_buffer + 9*4));
+	    }
+	  
 	}
 
-      /* /\* get volume information *\/ */
-      /* { */
-      /* 	sion_seek(sid,rcnt,SION_ABSOLUTE_POS,0); */
-      /* 	bread=sion_fread(info_buffer,1,info_header_size,sid); */
-	
-      /* 	printf(" ** sion file info - visualization x_min: %e, x_max: %e\n", xm, xp); */
-      /* } */
+      /* get volume information */
+      {
+      	printf(" ** sion file info - visualization x_min: %e, x_max: %e\n", xm, xp);
+      	printf(" ** sion file info - visualization y_min: %e, y_max: %e\n", ym, yp);
+      	printf(" ** sion file info - visualization z_min: %e, z_max: %e\n", zm, zp);
+      }
 
       printf("total particles : %lld\n", total_particles);
 
