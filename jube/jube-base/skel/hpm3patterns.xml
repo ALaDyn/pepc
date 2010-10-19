@@ -1,0 +1,69 @@
+<!-- HPM Average hpmcount -a -k -->
+<patterns>
+
+    <parm name="HPMwtimeSum"    unit="s"      mode="line,add" 
+          type="float">Execution time \(wall clock time\)\s*:\s*$patfp</parm>
+    <parm name="HPMwtimeAvg"    unit="s"      mode="derived"  
+          type="float">(($HPMwtimeSum_cnt>0)?($HPMwtimeSum/$HPMwtimeSum_cnt):-1)</parm>
+
+
+    <parm name="HPMutimeSum"    unit="s"      mode="line,add" 
+          type="float">Total amount of time in user mode\s*:\s*$patfp\s+seconds</parm>
+    <parm name="HPMutimeAvg"    unit="s"      mode="derived"  
+          type="float">(($HPMutimeSum_cnt>0)?($HPMutimeSum/$HPMutimeSum_cnt):-1)</parm>
+
+
+    <parm name="HPMTotCyc"    unit="#"      mode="line,statistics" 
+          type="int">PM_RUN_CYC \(Run cycles\)\s*:\s*$patint</parm>
+
+    <parm name="HPMutime"     unit="s"      mode="line,statistics" 
+          type="float">Total amount of time in user mode\s*:\s*$patfp\s+seconds</parm>
+
+    <parm name="HPMressize"     unit="s"      mode="line,statistics" 
+          type="int">Maximum resident set size\s*:\s*$patint Kbytes</parm>
+
+
+    <parm name="HPMTotCycAvg"    unit=""      mode="derived"  
+          type="float">(($HPMTotCycSum_cnt>0)?($HPMTotCycSum/$HPMTotCycSum_cnt):-1)</parm>
+    <parm name="HPMTotCycMin"    unit=""      mode="line,min"  
+          type="float">PM_RUN_CYC \(Run cycles\)\s*:\s*$patfp</parm>
+    <parm name="HPMTotCycMax"    unit=""      mode="line,max"  
+          type="float">PM_RUN_CYC \(Run cycles\)\s*:\s*$patfp</parm>
+
+
+    <parm name="HPMstimeSum"    unit="s"      mode="line,add" 
+    type="float">Total amount of time in system mode\s*:\s*$patfp</parm>
+    <parm name="HPMstimeAvg"    unit="s"      mode="derived"  
+          type="float">(($HPMstimeSum_cnt>0)?($HPMstimeSum/$HPMstimeSum_cnt):-1)</parm>
+
+    <parm name="HPMressizeSum"  unit="KB"     mode="line,add" 
+          type="float">Maximum resident set size\s*:\s*$patint Kbytes</parm>
+    <parm name="HPMressizeAvg"  unit="KB"     mode="derived"  
+          type="float">(($HPMressizeSum_cnt>0)?($HPMressizeSum/$HPMressizeSum_cnt):-1)</parm>
+
+    <parm name="HPMtflopsSum"   unit="Mio"    mode="line,add" 
+          type="float">Total floating point operations\s*:\s*$patfp\sM</parm> 
+    <parm name="HPMtflopsAvg"   unit="KB"     mode="derived"  
+          type="float">(($HPMtflopsSum_cnt>0)?($HPMtflopsSum/$HPMtflopsSum_cnt):-1)</parm>
+
+    <parm name="HPMflopsWCT"    unit="MFlops" mode="line"     
+          type="float">Flop rate \(flops \/ WCT\)\s*:\s*$patfp\sMflop\/s</parm>
+    <parm name="HPMflopsUser"   unit="MFlops" mode="line"     
+          type="float">Flops / user time\s*:\s*$patfp\sMflop\/s</parm>
+
+    <parm name="HPMFMPperc"     unit="%"      mode="line,add" 
+          type="float">FMA percentage\s*:\s*$patfp\s*\%</parm>
+
+    <parm name="HPMpercPeakSum" unit="%"      mode="line,add" 
+          type="float">\% of peak performance\s*:\s*$patfp\s*\%</parm>
+    <parm name="HPMpercPeakAvg" unit="%"      mode="derived"  
+          type="float">(($HPMpercPeakSum_cnt>0)?($HPMpercPeakSum/$HPMpercPeakSum_cnt):-1)</parm>
+
+    <parm name="HPMflopsCPU"       unit="MFlops" mode="derived"  
+          type="float">$HPMflopsWCT/$threadspertask</parm>
+    <parm name="HPMflopsUserCPU"   unit="MFlops" mode="derived"  
+          type="float">$HPMflopsUser/$threadspertask</parm>
+
+    <parm name="HPMflopsCPUglobal" unit="MFlops" mode="derived"  
+          type="float">$HPMtflopsSum/$ncpus/$HPMwtimeAvg</parm>
+</patterns>

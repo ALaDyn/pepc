@@ -1,0 +1,29 @@
+# @ shell               = /bin/ksh
+# @ tasks_per_node      = #TASKSPERNODE#
+## @ task_affinity       = #TAFFINITY#
+# @ node_usage          = #NODEUSAGE#
+# @ node                = #NODES#
+## @ class               = #CLASS#
+# @ job_name            = #BENCHNAME#
+# @ output              = #STDOUTLOGFILE#
+# @ error               = #STDERRLOGFILE#
+# @ notification        = #NOTIFICATION#
+# @ notify_user         = #NOTIFY_EMAIL#
+# @ wall_clock_limit    = #TIME_LIMIT#
+# @ data_limit          = #DATA_LIMIT# 
+# @ stack_limit         = #STACK_LIMIT#
+# @ job_type            = parallel
+# @ resources           = ConsumableCpus(#THREADSPERTASK#) ConsumableMemory(#MEMORYPERTASK#)
+## @ requirements        = (Machine != "jump01m")
+# @ queue
+
+#ENV#
+
+echo "<jobstart at=\"`date`\" />" >> #OUTDIR#/start_info.xml
+#PREPROCESS#
+#STARTER# #ARGS_STARTER# #MEASUREMENT# #EXECUTABLE# #ARGS_EXECUTABLE#
+#POSTPROCESS#
+echo "<jobend at=\"`date`\" />" >> #OUTDIR#/end_info.xml
+
+
+

@@ -1,0 +1,20 @@
+#!/bin/bash
+# @ job_name         = #BENCHNAME#
+# @ output           = #STDOUTLOGFILE#
+# @ error            = #STDERRLOGFILE#
+# @ notify_user      = #NOTIFY_EMAIL#
+# @ notification     = #NOTIFICATION#
+# @ job_type         = BLUEGENE
+# @ bg_size          = #NODES#
+# @ bg_connection    = #CONNECTION#
+# @ wall_clock_limit = #TIME_LIMIT#
+# @ queue
+
+#ENV#
+
+echo "<jobstart at=\"`date`\" />" >> #OUTDIR#/start_info.xml
+#PREPROCESS#
+#MEASUREMENT# #STARTER# #ARGS_STARTER# #EXECUTABLE# #ARGS_EXECUTABLE#
+#POSTPROCESS#
+echo "<jobend at=\"`date`\" />" >> #OUTDIR#/end_info.xml
+
