@@ -23,9 +23,9 @@ subroutine setup(init_mb)
   type (particle_p1) :: ship_props_a, get_props_a
   integer, parameter :: nprops_particle=10   ! # particle properties to ship
   integer, dimension(nprops_particle) :: blocklengths, displacements, types
-  integer(kind=MPI_ADDRESS_KIND) :: send_base, receive_base
+  integer*8 :: send_base, receive_base
   integer :: ierr
-  integer(kind=MPI_ADDRESS_KIND), dimension(nprops_particle) :: address
+  integer*8, dimension(nprops_particle) :: address
 
   character(50) :: parameterfile
   integer :: read_param_file
@@ -49,8 +49,7 @@ subroutine setup(init_mb)
        vis_on, steering,  mc_init, restart, scheme, particle_bcs, &
        coulomb, bonds, lenjones, target_dup, ramp, &
        db_level, &
-       constrain_proof, len_tripod, struct_step, uthresh, bfield_on, &
-       curve_style
+       constrain_proof, len_tripod, struct_step, uthresh, bfield_on
 
 
   !  Default input set
@@ -65,12 +64,11 @@ subroutine setup(init_mb)
 
   ispecial        = 1
 
-  choose_sort = 3
+  choose_sort = 0
   weighted = 0
   choose_build = 0
 
   scheme          = 0
-
 
   ! particles
   nep = 0    ! # plasma electrons per PE

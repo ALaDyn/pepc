@@ -298,43 +298,7 @@ subroutine special_start(iconf)
 !!$           if (
 !!$        end if
 !!$     end do
-
-  case(6)
      
-     if (my_rank == 0) write(*,*) "Using special start... case 6 (2D-homogeneous distribution)"
-
-     ! get the largest np_local
-     call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
-     call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-     
-     do mpi_cnt = 0, n_cpu-1
-        do p = 1, np_local_max
-           
-           xt = 0.
-           yt = 0.
-           zt = 0.
-           
-           call par_rand(par_rand_res)
-           xt = par_rand_res
-           call par_rand(par_rand_res)
-           yt = par_rand_res
-           call par_rand(par_rand_res)
-           zt = 0
-           
-           if ( my_rank == mpi_cnt .and. p <= np_local ) then
-              
-              ux(p) = 0.
-              uy(p) = 0.
-              uz(p) = 0.
-              
-              z(p) = zt 
-              y(p) = yt
-              x(p) = xt
-              
-           end if
-        end do
-     end do
-        
   end select config
 
   q(1:nep)                  = qe        ! plasma electrons

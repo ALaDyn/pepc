@@ -173,18 +173,17 @@ module treevars
              nbranch, &        ! min # branch nodes covering local domain
              nbranch_sum, &    ! total # branch nodes covering all domains
              nintmax, &        ! max # terms allowed in interaction list
-             curve_style, &    ! style of space-filling-curve
-             max_list_length,& ! current max list length
+             max_list_length, & ! current max list length
              maxaddress, &     ! max address allowed in #table
-             maxleaf, &        ! max leaf allowed in #table
-             maxtwig, &        ! max twig allowed in #table
+             maxleaf, &     ! max leaf allowed in #table
+             maxtwig, &     ! max twig allowed in #table
              size_tree, &      ! array space needed for local tree
-             size_fetch, &     ! array space needed for fetch/request arrays 
-             maxtraverse, &    ! max # traversals per iteration 
+             size_fetch, &      ! array space needed for fetch/request arrays 
+             maxtraverse, &      ! max # traversals per iteration 
              maxships, &       ! max # multipole ships per traversal 
              sum_ships, &      ! total # multipole ships per iteration  
              sum_fetches, &    ! total # key fetches  per iteration  
-             max_prefetches, & ! total # multipole ships per prefetch 
+             max_prefetches, &      ! total # multipole ships per prefetch 
              nbranch_max, &    ! array space needed for branches
              nbranch_local_max, &
              free_lo, &        ! min address allowed for resolving collisions

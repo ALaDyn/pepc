@@ -60,14 +60,6 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
 
   real*8 imba
 
-  ! Hilbert-derived keys
-  integer*8 :: CI(0:7)          ! inverse hilbert cell
-  integer*8 :: G(0:7,0:1)       ! hilbert gene
-  integer*8 :: space_dimension  ! dimension of space
-  integer*8 :: horder           ! order of the hilbert cell C
-  integer*8 :: temp,xtemp,ytemp,ztemp,change
-
-
   interface
      subroutine slsort_keys(nin,nmax,keys,workload,balance_weight,max_imbalance,nout,indxl,irnkl,scounts,rcounts,sdispls,rdispls,keys2,irnkl2,size,rank)
        integer,intent(in) :: nin,nmax,balance_weight,size,rank
@@ -155,133 +147,23 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
 
   ix(1:npp) = ( x(1:npp) - xmin )/s           ! partial keys
-  iy(1:npp) = ( y(1:npp) - ymin )/s           
+  iy(1:npp) = ( y(1:npp) - ymin )/s           !
   iz(1:npp) = ( z(1:npp) - zmin )/s        
 
-  ! construct particle keys
-  ! Z-keys (Morton-order)
-  if(curve_style.eq.0)then
+  ! construct keys by interleaving coord bits and add placeholder bit
+  ! - note use of 64-bit constants to ensure correct arithmetic
 
-     ! construct keys by interleaving coord bits and add placeholder bit
-     ! - note use of 64-bit constants to ensure correct arithmetic
-     nbits = nlev+1
-     ! for all particles
-     do j=1,npp
-        !     local_key(j) = iplace + &
-        !          SUM( (/ (8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) ),i=0,nbits-1) /) )
-        local_key(j)=iplace
-        do i=0,nbits-1
-           local_key(j) = local_key(j) &
-                + 8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) )
-        end do
-     end do
-    
-  else if(curve_style.eq.1)then ! Hilbert-derived-keys (Hilbert-order)
-     
-     ! 3D - inverse hilbert cell
-     CI(0) = 0_8
-     CI(1) = 1_8
-     CI(2) = 3_8
-     CI(3) = 2_8
-     CI(4) = 7_8
-     CI(5) = 6_8
-     CI(6) = 4_8
-     CI(7) = 5_8
-
-     ! 3D - hilbert gene
-     G(0,0) = 5_8
-     G(0,1) = 0_8
-     G(1,0) = 6_8
-     G(1,1) = 0_8
-     G(2,0) = 0_8
-     G(2,1) = 0_8
-     G(3,0) = 5_8
-     G(3,1) = 5_8
-     G(4,0) = 5_8
-     G(4,1) = 0_8
-     G(5,0) = 0_8
-     G(5,1) = 0_8
-     G(6,0) = 6_8
-     G(6,1) = 6_8
-     G(7,0) = 5_8
-     G(7,1) = 5_8
-
-     nbits=nlev         ! order of the curve
-     space_dimension=3  ! dimension of the space the curve should fit
-     
-     temp=0_8
-     ! for all particles
-     do j=1,npp
-        ! copy, because construction alters original values
-        xtemp=ix(j)
-        ytemp=iy(j)
-        ztemp=iz(j)
-				
-        ! add placeholder bit
-        local_key(j)=iplace
-        
-  	! key generation		
-        do i=0,nbits-2_8
-     
-           ! gathering upper bits and combine to binary number
-           temp=4_8*ibits(ztemp,nbits-1_8-i,1_8) + 2_8*ibits( ytemp,nbits-1_8-i,1_8 ) + 1_8*ibits( xtemp,nbits-1_8-i,1_8)
-
-           ! get H-order
-           horder = CI(temp)
-     
-           ! appending H-order to hkey
-           local_key(j) = local_key(j) &
-                + 2_8**((nbits-i)*space_dimension-1_8)*ibits(horder,2_8,1_8) &
-                + 2_8**((nbits-i)*space_dimension-2_8)*ibits(horder,1_8,1_8) &
-                + 2_8**((nbits-i)*space_dimension-3_8)*ibits(horder,0_8,1_8)
-
-           ! transform coordinates with the gene rules
-           ! change
-           if(G(horder,0).eq.5_8)then
-              ! change z and x
-              change = ztemp
-              ztemp = xtemp
-              xtemp = change
-           else if(G(horder,0).eq.6_8)then
-              ! change z and y
-              change = ztemp
-              ztemp = ytemp
-              ytemp = change
-           end if
-
-           ! reverse
-           if(G(horder,1).eq.5_8)then
-              ! reverse z and x
-              ztemp = not(ztemp)
-              ztemp = ibclr(ztemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-              xtemp = not(xtemp)
-              xtemp = ibclr(xtemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-           else if(G(horder,1).eq.6_8)then
-              ! reverse z and y
-              ztemp = not(ztemp)
-              ztemp = ibclr(ztemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-              ytemp = not(ytemp)
-              ytemp = ibclr(ytemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-           end if
-           
-        end do
-
-        ! gathering last bits and combine to binary number
-        temp=4_8*ibits(ztemp,0_8,1_8) + 2_8*ibits(ytemp,0_8,1_8 ) + 1_8*ibits(xtemp,0_8,1_8)
-        
-        ! get H-order
-        horder = CI(temp)
-        
-        ! appending H-order to hkey
+  nbits = nlev+1
+  do j = 1,npp
+     !     local_key(j) = iplace + &
+     !          SUM( (/ (8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) ),i=0,nbits-1) /) )
+     local_key(j) = iplace
+     do i=0,nbits-1
         local_key(j) = local_key(j) &
-             + 4_8*ibits(horder,2_8,1_8) &
-             + 2_8*ibits(horder,1_8,1_8) &
-             + 1_8*ibits(horder,0_8,1_8)
+             + 8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) )
      end do
-  end if ! end of key construction
+  end do
 
-
-     
   !  if (.true.) then
   if (domain_debug) then
      write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort:', &
@@ -383,17 +265,16 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
         ta2b = MPI_WTIME()
 
         ! perform index sort on keys
-        if (choose_sort == 0) then
-           call psrssort(nppm,npold,npnew,num_pe,me,keys, &
-                indxl,irnkl,islen,irlen,fposts,gposts,w1)
-!          call pswssort(nppm,npold,npnew,num_pe,me,keys, &
-!               indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
-        else if (choose_sort == 1) then
-           !     call pbalsortr(nppm,npold,npnew,num_pe,me,keys, &
-           !          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
+        !     call pswssort(nppm,npold,npnew,num_pe,me,keys, &
+        !          indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
+        !     call psrssort(nppm,npold,npnew,num_pe,me,keys, &
+        !          indxl,irnkl,islen,irlen,fposts,gposts,w1)
+        !     call pbalsortr(nppm,npold,npnew,num_pe,me,keys, &
+        !          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
+        if (choose_sort == 1) then
            call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
                 indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,nkeys_total,weighted,sort_debug,work_local)
-        else ! Default: fastest
+        else
            call slsort_keys(npold,nppm,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
         end if
 

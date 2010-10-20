@@ -126,7 +126,6 @@ module physvars
   integer :: nppm  ! Total # particles (npart)
   real :: np_mult=1.5
   integer :: fetch_mult=2
-  integer :: curve_style=0 ! Default for Z-curve
 
 !  Associated MPI stuff
 

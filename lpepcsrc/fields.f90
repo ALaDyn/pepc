@@ -355,7 +355,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   write(cfile,'(a,i6.6,a)') "load_", me, ".dat"  
   open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
-  write(60,*) itime,' ',work_local,' ',npp,' ',nbranch,' ',nbranch_sum
+  write(60,*) itime,' ',work_local,' ',npp
   close(60)   
 
   write(cfile,'(a,i6.6,a)') "timing_", me, ".dat"  

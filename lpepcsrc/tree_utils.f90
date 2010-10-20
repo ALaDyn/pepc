@@ -51,14 +51,6 @@ module tree_utils
      module procedure locaddress_real8_8
   end interface
 
-  interface bpi
-     module procedure bpi_int8_8
-  end interface
-
-  interface bpi_bits
-     module procedure bpi_bits_int8_8
-  end interface
-
 contains
 
 ! ================
@@ -208,7 +200,7 @@ contains
 
     integer*8 :: work(maxprocs*(maxprocs+1))
     integer*8 :: fpval(maxprocs+1)
-    integer*8 :: lmax, ak
+    integer :: lmax, ak
 
     integer*8 :: buf(maxprocs)
 
@@ -217,7 +209,7 @@ contains
     integer :: fd, nsamp
     character(13) :: cfmt
 
-    fd = 29
+    fd = 20
 
     tag1=0
 
@@ -251,6 +243,7 @@ contains
 
     tag1 = tag1 + 1
 
+
     if (iproc .ne. 0) then
        call MPI_SEND(work, nprocs, MPI_INTEGER8, 0, tag1, MPI_COMM_WORLD, ierr)
     else
@@ -279,7 +272,7 @@ contains
        !        work() are the sorted sampled key values for the fenceposts.
        nsamp=nprocs*nprocs
        cfmt = "(/a15,"//achar(mod(nsamp/10,10)+48) // achar(mod(nsamp,10)+48) // "(i4))"
-!       write(fd,cfmt) 'Sorted sample: ',(work(i),i=1,nsamp)
+       write(fd,cfmt) 'Sorted sample: ',(work(i),i=1,nsamp)
 
        k = 1
        do i=1,nprocs*nprocs,nprocs
@@ -292,7 +285,7 @@ contains
 
 
     fpval(nprocs+1) = lmax+1
-!    write (fd,*) 'Pivots: ',fpval(1:nprocs+1)
+    write (fd,*) 'Pivots: ',fpval(1:nprocs+1)
 
     !     Determine segment boundaries. Within each bin, fposts(i) is the
     !     start of the ith shuffle segment.
@@ -1689,119 +1682,38 @@ search_list = 8_8**lev_map  ! place holder
   end subroutine uniq8
 
 
-  ! Get address of variable
+! Get address of variable
   subroutine locaddress_int4_8(location, addr, ierr)
-    
-    implicit none
-    include 'mpif.h'
-    
-    integer,intent(in) :: location
-    integer(kind=MPI_ADDRESS_KIND),intent(out) :: addr 
-    integer :: ierr
-    
+    integer   :: location
+    integer*8 :: addr
+    integer   :: ierr,addr4
+! IBM machines powerX, bg/l use internal function
+    addr = LOC(location)
     ierr=0
-    call MPI_GET_ADDRESS( location, addr, ierr )
-    
+! Linux: use mpi1 address function
+!   call MPI_ADDRESS( location, addr4, ierr )
+!   addr=addr4
   end subroutine locaddress_int4_8
 
-
   subroutine locaddress_int8_8(location, addr, ierr)
-    
-    implicit none
-    include 'mpif.h'
-    
-    integer*8,intent(in):: location
-    integer(kind=MPI_ADDRESS_KIND),intent(out) :: addr 
-    integer :: ierr
-    
+    integer*8 :: location
+    integer*8 :: addr
+    integer   :: ierr,addr4
+    addr = LOC(location)
     ierr=0
-    call MPI_GET_ADDRESS( location, addr, ierr )
-    
+!   call MPI_ADDRESS( location, addr4, ierr )
+!   addr=addr4
   end subroutine locaddress_int8_8
 
 
   subroutine locaddress_real8_8(location, addr, ierr)
-    
-    implicit none
-    include 'mpif.h'
-    
-    real*8,intent(in) :: location
-    integer(kind=MPI_ADDRESS_KIND),intent(out) :: addr 
-    integer :: ierr
-    
+    real*8    :: location
+    integer*8 :: addr
+    integer   :: ierr,addr4
+    addr = LOC(location)
     ierr=0
-    call MPI_GET_ADDRESS( location, addr, ierr )
-    
+!   call MPI_ADDRESS( location, addr4, ierr )
+!   addr=addr4
   end subroutine locaddress_real8_8
-
-  
-  subroutine bpi_int8_8(a, b, base, res)
-    
-    implicit none    
-    
-    integer*8,intent(in) :: a, b, base
-    integer*8,intent(out) :: res
-    integer*8 :: k, ka, kb, temp
-    integer*8 :: i 
-    integer*8 :: pot
-    
-    if (a.eq.b)then
-       res=a
-       return
-    end if
-    
-    ! swap for correct interval 
-    if (b .le. a) then
-       call swap(a,b)
-    end if
-    
-    pot = floor(log(REAL(b))/log(REAL(base)))
-    do i = pot, 0, -1
-       k = b/(base**i)
-       res = k * base**i
-       if (a.lt.res) then
-          return
-       end if
-    end do
-    
-  end subroutine bpi_int8_8
-  
-  subroutine bpi_bits_int8_8(a, b, base, res)
-    
-    implicit none   
-
-    integer*8,intent(in) :: a, b, base
-    integer*8,intent(out) :: res
-    integer*8 :: l_cell,r_cell
-    integer*8 :: k, pot
-    integer*8 :: i 
-    integer*8 :: nbits
-    
-
-    nbits = 3
-
-    ! swap for correct interval 
-    if (b .le. a) then
-       call swap(a,b)
-    end if
-
-    
-    do i=1,63/nbits
-     
-       l_cell = ibits(a,63-i*nbits+1,nbits)
-       r_cell = ibits(b,63-i*nbits+1,nbits)
-     
-       if(l_cell.ne.r_cell)then
-          pot=(63/nbits)-i+1
-          exit
-       end if
-       
-    end do
-
-    k=b/base**pot
-    res=k*base**pot
-    
-    
-  end subroutine bpi_bits_int8_8
 
 end module tree_utils
