@@ -17,30 +17,90 @@ module benchmarking
 
   real*8 :: time_start, time_pre, time_inner, time_post
   
+  integer, private, parameter :: NUM_PARTICLES_FRONT  = 5 !< number of particles from beginning of particle list to use in dump routines
+  integer, private, parameter :: NUM_PARTICLES_MID    = 5 !< number of particles from center of particle list to use in dump routines
+  integer, private, parameter :: NUM_PARTICLES_BACK   = 5 !< number of particles from end of particle list to use in dump routines
+  integer, private, parameter :: NUM_DIAG_PARTICLES = NUM_PARTICLES_FRONT + NUM_PARTICLES_MID + NUM_PARTICLES_BACK !< total number of particles to use in dump routines
   
 contains
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine dump_trajectory()
-    
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> routine for selecting particles that are used for diagnostic output
+  !> for given input idx=1:NUM_DIAG_PARTICLES, it returns a particle number from
+  !> the beginning, the center, or the end of the local particle list
+  !> the number of particles can be adjusted by modifying the constants
+  !> NUM_PARTICLES_FRONT, NUM_PARTICLES_MID, and NUM_PARTICLES_BACK
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  function diagnostic_particle(idx)
     use physvars
-    use utils
     implicit none
-    
-    integer :: p
-    character(50) :: filename
+    integer, intent(in) :: idx !< index of diagnostic particle, possible input range: (1:NUM_DIAG_PARTICLES)
+    integer :: diagnostic_particle
+
+    select case (idx)
+      case (1:NUM_PARTICLES_FRONT)
+                  diagnostic_particle = min(idx, np_local)
+      case (NUM_PARTICLES_FRONT+1:NUM_PARTICLES_FRONT+NUM_PARTICLES_MID)
+                  diagnostic_particle = max(min(((np_local - NUM_PARTICLES_MID) / 2 + idx), np_local), 1)
+      case (NUM_PARTICLES_FRONT+NUM_PARTICLES_MID+1:NUM_DIAG_PARTICLES)
+                  diagnostic_particle = max(np_local-NUM_DIAG_PARTICLES+idx, 1)
+    end select
+  end function
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> output of position of selected particles to file trajectory.dat
+  !> for diagnostic purposes.
+  !> should only be called once per simulation run
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine dump_trajectory()
+    use physvars
+    implicit none
+    integer :: p, i
 
     if(my_rank == 0) write(*,*) "benchmarking: dump_trajectory"
     
-    filename = "trajectory.dat"
-    open(91, file=filename, STATUS='REPLACE')
+    open(91, file="trajectory.dat", STATUS='REPLACE')
     write(91,*) "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z"
-    do p=1, 4
+    do i=1,NUM_DIAG_PARTICLES
+       p = diagnostic_particle(i)
        write(91,*) p, x(p), y(p), z(p)
     end do
     close(91)
     
   end subroutine dump_trajectory
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> output of number of interactions of selected particles and in total
+  !> into file num_interactions.dat for diagnostic purposes.
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine dump_num_interactions()
+    use physvars
+    implicit none
+    integer :: i
+    integer :: ninter(NUM_DIAG_PARTICLES)
+    logical, save :: print_header = .true.
+
+    if(my_rank == 0) write(*,*) "benchmarking: dump_num_interactions"
+
+    open(91, file="num_interactions.dat", STATUS='UNKNOWN', position='APPEND')
+
+    if (print_header) then
+      write(91,*) "# itime, totalnumber, p=", ( diagnostic_particle(i), i=1,NUM_DIAG_PARTICLES )
+      print_header = .false.
+    end if
+
+    write(91,*) itime, int(sum(work)), ( int(work(diagnostic_particle(i))), i=1,NUM_DIAG_PARTICLES )
+    close(91)
+
+  end subroutine dump_num_interactions
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine write_particles(step)

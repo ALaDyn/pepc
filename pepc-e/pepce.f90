@@ -89,9 +89,11 @@ program pepce
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult,fetch_mult,mac, theta, eps, force_const, err_f, xl, yl, zl, &
                       itime, scheme, choose_sort,weighted,choose_build,init_mb)
-      
 
-    ! Integrator
+     ! dump number of interactions
+     if (my_rank == 0) call dump_num_interactions()
+
+     ! Integrator
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      t2 = MPI_WTIME()
 
