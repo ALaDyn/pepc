@@ -30,7 +30,7 @@ SOURCES.f90 =	\
 		randion.f90 maxwell1.f90 special_start.f90 cold_start.f90 scramble_v.f90 \
 		forces.f90 force_direct.f90 error_test.f90 \
 		velocities.f90 push.f90 \
-	 	energy_cons.f90 potenergy.f90 kinenergy.f90 \
+	 	energy_cons.f90 potenergy.f90 kinenergy.f90 sum_radial.f90 \
 		param_dump.f90 cleanup.f90 \
 		open_files.f90 close_files.f90 restore_p1.f90 pepce.f90
 

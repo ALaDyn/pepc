@@ -62,9 +62,14 @@ program pepce
   call configure
 
   ! initial particle output
-  if( idump .gt. 0 ) call write_particles(0)
+  if( idump .gt. 0 ) then
+    call write_particles(0)
+    if ((ispecial==9).or.(ispecial==10).or.(ispecial==11)) call sum_radial(itime)
+  end if
 
   call benchmark_inner
+
+  flush(6)
 
   ! Loop over all timesteps
   do itime = 1,nt
@@ -110,7 +115,10 @@ program pepce
 
      ! periodic particle dump
      if ( idump .gt. 0 ) then
-       if ( mod(itime, idump ) .eq. 0) call write_particles(itime)
+       if ( mod(itime, idump ) .eq. 0) then
+         call write_particles(itime)
+         if ((ispecial==9).or.(ispecial==10).or.(ispecial==11)) call sum_radial(itime)
+       end if
      endif
 
      if (my_rank==0) then
@@ -132,6 +140,8 @@ program pepce
         write(*,*) "ttot ", ttot
         write(*,*) "ttot-t_all ", ttot-t0_all
      endif
+
+  flush(6)
 
   end do
 
