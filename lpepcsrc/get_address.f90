@@ -18,7 +18,7 @@ function key2addr(keyin,cmark)
   integer*8, intent(in)  :: keyin
   integer :: cell_addr, link_addr, ires,i, ierr, iret
   logical :: resolved
-  character*20 cmark
+  character(*) :: cmark
   integer :: key2addr
 
   cell_addr = IAND( keyin, hashconst)     ! cell address hash function
