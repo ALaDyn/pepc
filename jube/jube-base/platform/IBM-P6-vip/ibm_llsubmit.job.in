@@ -1,0 +1,31 @@
+# @ shell               = /bin/ksh
+# @ tasks_per_node      = #TASKSPERNODE#
+# @ node_usage          = #NODEUSAGE#
+# @ node                = #NODES#
+# @ job_name            = #BENCHNAME#
+# @ output              = #STDOUTLOGFILE#
+# @ error               = #STDERRLOGFILE#
+# @ notification        = #NOTIFICATION#
+##@ notify_user         = #NOTIFY_EMAIL#
+# @ wall_clock_limit    = #TIME_LIMIT#
+# @ data_limit          = #DATA_LIMIT# 
+# @ stack_limit         = #STACK_LIMIT#
+# @ job_type            = parallel
+# @ resources           = ConsumableCpus(#THREADSPERTASK#) ConsumableMemory(#MEMORYPERTASK#)
+# @ rset        	= RSET_MCM_AFFINITY
+# @ mcm_affinity_options= mcm_distribute,mcm_mem_req,mcm_sni_none
+# @ queue
+
+export MP_SHARED_MEMORY=yes
+export MP_SINGLE_THREAD=yes
+export MEMORY_AFFINITY=MCM
+
+export TARGET_CPU_RANGE=-1
+
+#ENV#
+
+echo "<jobstart at=\"`date`\" />" >> #OUTDIR#/start_info.xml
+#PREPROCESS#
+#MEASUREMENT# #STARTER# #ARGS_STARTER# #EXECUTABLE# #ARGS_EXECUTABLE#
+#POSTPROCESS#
+echo "<jobend at=\"`date`\" />" >> #OUTDIR#/end_info.xml

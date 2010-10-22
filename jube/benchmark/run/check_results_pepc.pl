@@ -34,8 +34,8 @@ while( defined ($line1 = readline(file1)) && defined ($line2 = readline(file2)) 
     print "line1: $line1";
     print "line2: $line2";
 
-    my @values1 = split(/ /, $line1);
-    my @values2 = split(/ /, $line2);
+    my @values1 = split(/\s+/, $line1);
+    my @values2 = split(/\s+/, $line2);
 
     my $diffx = $values1[2] - $values2[2];
     my $diffy = $values1[3] - $values2[3];

@@ -34,7 +34,7 @@
                  CMP_PARAVER     = "$PARAVER"
                  CMP_SCALASCA    = "$SCALASCA"/>
 
-    <tasks       threadspertask = "1"   taskspernode = "8"   nodes = "1" />
+    <tasks       threadspertask = "1"   taskspernode = "8"   nodes = "4,16,64" />
 
     <params      COMMENT       = "scaling on JuRoPA"
                  PERL_CMD      = "/usr/bin/perl"
@@ -53,9 +53,9 @@
 
 		 PARAVER       = "off"
 
-		 geom          = "2"
-		 npart         = "100000"
-                 nt            = "20" 
+		 geom          = "1,2,3"
+		 npart         = "10000000"
+                 nt            = "100" 
 		 wscheme       = "1"
 		 fetchmult     = "3"
 		 npmult        = "-30" /> 

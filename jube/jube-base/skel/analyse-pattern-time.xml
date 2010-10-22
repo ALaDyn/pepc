@@ -1,0 +1,15 @@
+<patterns>
+
+<parm name="real_time" unit="s" mode="line" type="float">
+real\s*$patnfp\s*m$patfp\s*s\s*$
+</parm>
+
+<parm name="user_time" unit="s" mode="line" type="float">
+user\s*$patfp\s*m$patfp\s*s\s*$
+</parm>
+
+<parm name="system_time" unit="s" mode="line" type="float">
+system\s*$patnfp\s*m$patnfp\s*s\s*$
+</parm>
+
+</patterns>

@@ -1,0 +1,23 @@
+#!/bin/bash -l
+#PBS -A #PROJECT#
+#PBS -N #BENCHNAME#
+#PBS -o #STDOUTLOGFILE#
+#PBS -e #STDERRLOGFILE#
+#PBS -m #NOTIFICATION#
+#PBS -M #NOTIFY_EMAIL#
+#PBS -l size=#TASKS#,walltime=#TIME_LIMIT#
+#ENDPBS
+
+cd $PBS_O_WORKDIR/
+#ENV#
+
+export SION_DEBUG=sion_debug.log
+export SION_DEBUG_MASK=1023
+export SION_DEBUG_RANK1=0
+export SION_DEBUG_RANK2=2
+
+echo "<jobstart at=\"`date`\" />" >> #OUTDIR#/start_info.xml
+#PREPROCESS#
+#MEASUREMENT# #STARTER# #ARGS_STARTER# #EXECUTABLE# #ARGS_EXECUTABLE#
+#POSTPROCESS#
+echo "<jobend at=\"`date`\" />" >> #OUTDIR#/end_info.xml

@@ -1,0 +1,58 @@
+#---------------------------------------------------------------------
+#   Make.inc file for IBM-SP4 architecture
+#
+#---------------------------------------------------------------------
+#- General variables
+#---------------------------------------------------------------------
+MAKE        = #MAKE#
+RM          = #RM#
+AR          = #AR#
+ARFLAGS     = #ARFLAGS#
+RANLIB      = #RANLIB#
+
+CPP         = #CPP#
+CPPFLAGS    = #CPPFLAGS#
+
+F77         = #F77#
+FFLAGS      = #FFLAGS#
+
+F90         = #F90#
+F90FLAGS    = #F90FLAGS#
+
+CC          = #CC#
+CXX    		= #CXX#
+CFLAGS      = #CFLAGS#
+
+MPI_F90     = #MPI_F90#
+MPI_F77     = #MPI_F77#
+MPI_CC      = #MPI_CC#
+MPI_CXX     = #MPI_CXX#
+
+LD			= #LD#
+LDFLAGS     = #LDFLAGS#
+
+#- MPI library
+MPI_DIR     = #MPI_DIR#
+MPI_LIB     = #MPI_LIB#
+MPI_INC     = #MPI_INC#
+MPI_BIN     = #MPI_BIN#
+
+#---------------------------------------------------------------------
+#- BLAS library 
+BLAS_DIR     = #BLAS_DIR#
+BLAS_LIB     = #BLAS_LIB#
+
+#- LAPACK library 
+LAPACK_DIR     = #LAPACK_DIR#
+LAPACK_LIB     = #LAPACK_LIB#
+
+#- FFTW librairies 
+FFTW_DIR     = #FFTW3_DIR#
+FFTW_LIB     = #FFTW3_LIB#
+FFTW_INC     = #FFTW3_INC#
+
+#- NetCDF Library 
+NETCDF3_DIR = #NETCDF3_DIR#
+NETCDF3_LIB = #NETCDF3_LIB#
+NETCDF3_INC = #NETCDF3_INC#
+
