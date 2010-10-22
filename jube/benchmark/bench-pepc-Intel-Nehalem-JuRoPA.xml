@@ -36,7 +36,7 @@
 
     <tasks       threadspertask = "1"   taskspernode = "8"   nodes = "4,16,64" />
 
-    <params      COMMENT       = "scaling on JuRoPA"
+    <params      COMMENT       = "JuRoPA PEPC benchmark"
                  PERL_CMD      = "/usr/bin/perl"
                  optflags      = "-O3 -axSSE4.2 "
 
