@@ -69,7 +69,7 @@ program pepce
 
   call benchmark_inner
 
-  flush(6)
+  !flush(6)
 
   ! Loop over all timesteps
   do itime = 1,nt
@@ -141,7 +141,7 @@ program pepce
         write(*,*) "ttot-t_all ", ttot-t0_all
      endif
 
-  flush(6)
+  !flush(6)
 
   end do
 
