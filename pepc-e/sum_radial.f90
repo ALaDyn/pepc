@@ -113,7 +113,7 @@ subroutine sum_radial(timestamp)
   if (my_rank == 0) then
      cfile = "radial_fields."//cdump
      open (60,file=cfile)
-     write(60,'(7(a12))') '!   r      ','ni   ','rhoi   ','vi_min','vi_max','er',' phi'
+     write(60,'(7(a12))') '#   r      ','ni   ','rhoi   ','vi_min','vi_max','er',' phi'
      write(60,'((7(1pe12.4)))') &
           ((i-1)*dr, gi_glob(i)/max(1,ni), ni_glob(i), &
 		 vi_glob_min(i), vi_glob_max(i), ex(np_local-ngr+i), pot(np_local-ngr+i), i=1,ngr)

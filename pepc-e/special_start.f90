@@ -505,21 +505,26 @@ subroutine special_start(iconf)
            xt = 1.
            yt = 1.
            zt = 1.
-           par_rand_res = 1.
+           par_rand_res = 100.
            fr = 0.  
            mu = 1.
            
            do while ( fr < par_rand_res)
               call par_rand(par_rand_res)
-              xt = -1.+2.*par_rand_res
+              xt = -1.+ 8.*par_rand_res*r_sphere
               call par_rand(par_rand_res)
-              yt = -1.+2.*par_rand_res
+              yt = -1.+ 8.*par_rand_res*r_sphere
               call par_rand(par_rand_res)
-              zt = -1.+2.*par_rand_res
-              fr = (1+(sqrt(xt*xt + yt*yt + zt*zt)/r_sphere)**(3.*mu))**(1./mu+1.)
+              zt = -1.+ 8.*par_rand_res*r_sphere
+              r1 = dsqrt(xt*xt + yt*yt + zt*zt) ! normalized radius
+              fr = 1/(  (  1 +  r1**(3.*mu) )**(1./mu+1.)  )
               call par_rand(par_rand_res)
            end do
            
+           if (my_rank==0) then
+             write(17,*) r1
+           end if
+
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
 
               ux(p) = 0.
