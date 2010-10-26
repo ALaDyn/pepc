@@ -521,10 +521,6 @@ subroutine special_start(iconf)
               call par_rand(par_rand_res)
            end do
            
-           if (my_rank==0) then
-             write(17,*) r1
-           end if
-
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
 
               ux(p) = 0.
