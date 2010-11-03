@@ -37,7 +37,7 @@
     </substitute>
 
     <!-- issue build command -->
-    <command>(make)</command>
+    <command>(module load intel parastation/intel; make)</command>
     
 </compile>
 

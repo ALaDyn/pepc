@@ -56,9 +56,9 @@
         <sub from="#NCPUS#"             to="$ncpus" />
         <sub from="#NOTIFICATION#"      to="never" />
         <sub from="#NOTIFY_EMAIL#"      to="user@fz-juelich.de" />
-        <sub from="#EXECUTABLE#"        to="$executable" />
+        <sub from="#EXECUTABLE#"        to="pepc.exe" />
         <sub from="#ENV#"               to=" " />
-        <sub from="#PREPROCESS#"        to="cp $executable pepc.exe;" />
+        <sub from="#PREPROCESS#"        to="cp $executable pepc.exe; ls;" />
         <sub from="#POSTPROCESS#"       to="" />
         <sub from="#STARTER#"           to="mpiexec" />
         <sub from="#ARGS_STARTER#"      to="-np $ncpus " />

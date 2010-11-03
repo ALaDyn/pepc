@@ -9,12 +9,14 @@
   <input files="input/run.h.jube input/collectData.sh.jube" />
 
   <substitute infile="run.h.jube" outfile="run.h">
-    <sub from="#NPART#"     to="$npart" />
-    <sub from="#GEOM#"      to="$geom" />
-    <sub from="#WSCHEME#"   to="$wscheme" />
-    <sub from="#NT#"        to="$nt" />
-    <sub from="#NPMULT#"    to="$npmult" />
-    <sub from="#FETCHMULT#" to="$fetchmult" /> 
+    <sub from="#NPART#"        to="$npart" />
+    <sub from="#GEOM#"         to="$geom" />
+    <sub from="#WSCHEME#"      to="$wscheme" />
+    <sub from="#NT#"           to="$nt" />
+    <sub from="#NPMULT#"       to="$npmult" />
+    <sub from="#CSCHEME#"      to="$cscheme" /> 
+    <sub from="#CHOOSE_SORT#"  to="$csort" /> 
+    <sub from="#CHOOSE_BUILD#" to="$cbuild" /> 
   </substitute>
 
   <!-- collect script -->

@@ -20,7 +20,7 @@
 
 <!-- ********************************************************** -->
 
-<benchmark name="scaling" active="1">
+<benchmark name="test_and_verify" active="1">
 
     <compile     cname           = "$platform"
                  version         = "new"
@@ -34,7 +34,7 @@
                  CMP_PARAVER     = "$PARAVER"
                  CMP_SCALASCA    = "$SCALASCA"/>
 
-    <tasks       threadspertask = "1"   taskspernode = "8"   nodes = "4,16,64" />
+    <tasks       threadspertask = "1"   taskspernode = "8"   nodes = "4" />
 
     <params      COMMENT       = "JuRoPA PEPC benchmark"
                  PERL_CMD      = "/usr/bin/perl"
@@ -54,11 +54,13 @@
 		 PARAVER       = "off"
 
 		 geom          = "1,2,3"
-		 npart         = "10000000"
+		 npart         = "1000000"
                  nt            = "100" 
 		 wscheme       = "1"
-		 fetchmult     = "3"
-		 npmult        = "-30" /> 
+		 cscheme       = "1"
+		 csort         = "3"
+		 cbuild        = "1"
+		 npmult        = "-45" /> 
 
     <prepare     cname = "PEPC" />
 
