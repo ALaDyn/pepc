@@ -1,6 +1,6 @@
 &pepcdata
 
- db_level = 2
+ db_level = 0
  np_mult = #NPMULT#
 
 ! number of particles, here ions
