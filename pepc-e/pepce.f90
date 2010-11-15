@@ -83,6 +83,7 @@ program pepce
      endif
      
      ! dump trajectory
+     call gather_particle_diag()
      if (my_rank == 0 .and. itime == nt) call dump_trajectory()
 
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up

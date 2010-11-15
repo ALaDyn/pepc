@@ -21,6 +21,8 @@ module benchmarking
   integer, private, parameter :: NUM_PARTICLES_MID    = 5 !< number of particles from center of particle list to use in dump routines
   integer, private, parameter :: NUM_PARTICLES_BACK   = 5 !< number of particles from end of particle list to use in dump routines
   integer, private, parameter :: NUM_DIAG_PARTICLES = NUM_PARTICLES_FRONT + NUM_PARTICLES_MID + NUM_PARTICLES_BACK !< total number of particles to use in dump routines
+!   real*8, private :: diag_positions(NUM_DIAG_PARTICLES)
+!   integer, private :: diag_(NUM_DIAG_PARTICLES)
   
 contains
 
@@ -37,18 +39,93 @@ contains
   function diagnostic_particle(idx)
     use physvars
     implicit none
+
     integer, intent(in) :: idx !< index of diagnostic particle, possible input range: (1:NUM_DIAG_PARTICLES)
     integer :: diagnostic_particle
 
     select case (idx)
       case (1:NUM_PARTICLES_FRONT)
-                  diagnostic_particle = min(idx, np_local)
+                  diagnostic_particle = idx
       case (NUM_PARTICLES_FRONT+1:NUM_PARTICLES_FRONT+NUM_PARTICLES_MID)
-                  diagnostic_particle = max(min(((np_local - NUM_PARTICLES_MID) / 2 + idx), np_local), 1)
+                  diagnostic_particle = npart_total/2 - ((NUM_PARTICLES_MID/2+NUM_PARTICLES_FRONT)-idx)
       case (NUM_PARTICLES_FRONT+NUM_PARTICLES_MID+1:NUM_DIAG_PARTICLES)
-                  diagnostic_particle = max(np_local-NUM_DIAG_PARTICLES+idx, 1)
+                  diagnostic_particle = npart_total-(NUM_DIAG_PARTICLES-idx)
     end select
+
   end function
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine gather_particle_diag()
+    use physvars
+    implicit none
+    include 'mpif.h'
+
+    integer :: r, i, ierr, target_rank, target_particle, target_particle_local
+    integer :: fances(0:n_cpu-1)
+    real*8  :: diag_pos_vel(6)
+    integer :: diag_inter(2)
+
+    write(*,*) "start mpi scan on rank ", my_rank
+
+    call MPI_SCAN(np_local, fances(my_rank), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    call MPI_ALLGATHER(MPI_IN_PLACE, 0, 0, fances, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
+
+    if(my_rank.eq.0) then
+       do i=0, n_cpu-1
+          write(*,*) "particle rank fance: rank=", i, " partial sum=", fances(i)
+       end do
+    end if
+
+    do i=1, NUM_DIAG_PARTICLES
+       target_particle = diagnostic_particle(i)
+       if(my_rank.eq.0) write(*,*) "gather diag information for particle ", target_particle
+       do r=0, n_cpu-1
+          if(target_particle.le.fances(r)) then
+             target_rank = r
+             exit
+          end if
+       end do
+       if(my_rank.eq.0) write(*,*) "particle is located on rank ", target_rank
+
+       if(my_rank.eq.target_rank .and. my_rank.ne.0) then
+          target_particle_local = target_particle-fances(my_rank)+np_local
+          write(*,*) "from rank", my_rank, " particle is here, with label ", pelabel(target_particle_local)
+          if(pelabel(target_particle_local) .ne. target_particle) stop
+
+          diag_pos_vel(1) = x(target_particle_local)
+          diag_pos_vel(2) = y(target_particle_local)
+          diag_pos_vel(3) = z(target_particle_local)
+
+          diag_pos_vel(4) = ux(target_particle_local)
+          diag_pos_vel(5) = uy(target_particle_local)
+          diag_pos_vel(6) = uz(target_particle_local)
+
+          diag_inter(1) = work(target_particle_local)
+
+          write(*,*) "from rank", my_rank, " sending pos_vel ", diag_pos_vel
+
+          if(my_rank .ne. 0) then
+             call MPI_SEND(diag_pos_vel, 6, MPI_DOUBLE_PRECISION, 0, 0, MPI_COMM_WORLD, ierr)
+             call MPI_SEND(diag_inter, 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, ierr)
+          end if
+       end if
+
+       if(my_rank.eq.0 .and. target_rank.ne.0) then
+          call MPI_RECV(diag_pos_vel, 6, MPI_DOUBLE_PRECISION, target_rank, 0, MPI_COMM_WORLD, ierr)
+          call MPI_RECV(diag_inter, 1, MPI_INTEGER, target_rank, 0, MPI_COMM_WORLD, ierr)
+          write(*,*) "from rank", my_rank, " received pos_vel ", diag_pos_vel
+       end if
+       
+       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
+    end do
+
+
+  end subroutine gather_particle_diag
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
