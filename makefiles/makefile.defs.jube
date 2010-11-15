@@ -16,7 +16,7 @@ FFLAGS   = #F90FLAGS#
 
 CCPRE    = #CCPRE#
 CC       = #MPI_CC#
-CFLAGS   = #CCFLAGS#
+CFLAGS   = #CFLAGS#
 
 LDPRE    = #LDPRE#
 LD       = #LD#

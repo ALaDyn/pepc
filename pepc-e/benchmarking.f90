@@ -69,7 +69,7 @@ contains
     write(91,*) "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z"
     do i=1,NUM_DIAG_PARTICLES
        p = diagnostic_particle(i)
-       write(91,*) p, x(p), y(p), z(p)
+       write(91,'(i,3e)') p, x(p), y(p), z(p)
     end do
     close(91)
     
