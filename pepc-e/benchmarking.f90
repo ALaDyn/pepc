@@ -21,8 +21,8 @@ module benchmarking
   integer, private, parameter :: NUM_PARTICLES_MID    = 5 !< number of particles from center of particle list to use in dump routines
   integer, private, parameter :: NUM_PARTICLES_BACK   = 5 !< number of particles from end of particle list to use in dump routines
   integer, private, parameter :: NUM_DIAG_PARTICLES = NUM_PARTICLES_FRONT + NUM_PARTICLES_MID + NUM_PARTICLES_BACK !< total number of particles to use in dump routines
-!   real*8, private :: diag_positions(NUM_DIAG_PARTICLES)
-!   integer, private :: diag_(NUM_DIAG_PARTICLES)
+   real*8, private :: diag_pos_vel(NUM_DIAG_PARTICLES,6)
+   integer, private :: diag_work(NUM_DIAG_PARTICLES,1)
   
 contains
 
@@ -66,8 +66,8 @@ contains
 
     integer :: r, i, ierr, target_rank, target_particle, target_particle_local
     integer :: fances(0:n_cpu-1)
-    real*8  :: diag_pos_vel(6)
-    integer :: diag_inter(2)
+    real*8  :: diag_pos_vel_buf(6)
+    integer :: diag_work_buf(1)
 
     write(*,*) "start mpi scan on rank ", my_rank
 
@@ -91,36 +91,46 @@ contains
        end do
        if(my_rank.eq.0) write(*,*) "particle is located on rank ", target_rank
 
-       if(my_rank.eq.target_rank .and. my_rank.ne.0) then
+       if(my_rank.eq.target_rank) then
+          write(*,'(a,4i)') "particle: ", my_rank, target_particle, fances(my_rank), np_local
           target_particle_local = target_particle-fances(my_rank)+np_local
-          write(*,*) "from rank", my_rank, " particle is here, with label ", pelabel(target_particle_local)
-          if(pelabel(target_particle_local) .ne. target_particle) stop
+          write(*,'(a,i,a,i,a,i)') "from rank", my_rank, " particle is here, with label ", pelabel(target_particle_local), " local target ", target_particle_local
+          !if(pelabel(target_particle_local) .ne. target_particle) stop
 
-          diag_pos_vel(1) = x(target_particle_local)
-          diag_pos_vel(2) = y(target_particle_local)
-          diag_pos_vel(3) = z(target_particle_local)
+          diag_pos_vel_buf(1) = x(target_particle_local)
+          diag_pos_vel_buf(2) = y(target_particle_local)
+          diag_pos_vel_buf(3) = z(target_particle_local)
 
-          diag_pos_vel(4) = ux(target_particle_local)
-          diag_pos_vel(5) = uy(target_particle_local)
-          diag_pos_vel(6) = uz(target_particle_local)
+          diag_pos_vel_buf(4) = ux(target_particle_local)
+          diag_pos_vel_buf(5) = uy(target_particle_local)
+          diag_pos_vel_buf(6) = uz(target_particle_local)
 
-          diag_inter(1) = work(target_particle_local)
+          diag_work_buf(1) = work(target_particle_local)
 
-          write(*,*) "from rank", my_rank, " sending pos_vel ", diag_pos_vel
+          write(*,*) "from rank", my_rank, " sending pos_vel ", diag_pos_vel_buf
 
           if(my_rank .ne. 0) then
-             call MPI_SEND(diag_pos_vel, 6, MPI_DOUBLE_PRECISION, 0, 0, MPI_COMM_WORLD, ierr)
-             call MPI_SEND(diag_inter, 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, ierr)
+             call MPI_SEND(diag_pos_vel_buf, 6, MPI_DOUBLE_PRECISION, 0, 0, MPI_COMM_WORLD, ierr)
+             call MPI_SEND(diag_work_buf,    1, MPI_INTEGER,          0, 0, MPI_COMM_WORLD, ierr)
           end if
        end if
 
        if(my_rank.eq.0 .and. target_rank.ne.0) then
-          call MPI_RECV(diag_pos_vel, 6, MPI_DOUBLE_PRECISION, target_rank, 0, MPI_COMM_WORLD, ierr)
-          call MPI_RECV(diag_inter, 1, MPI_INTEGER, target_rank, 0, MPI_COMM_WORLD, ierr)
-          write(*,*) "from rank", my_rank, " received pos_vel ", diag_pos_vel
+          call MPI_RECV(diag_pos_vel_buf, 6, MPI_DOUBLE_PRECISION, target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+          call MPI_RECV(diag_work_buf,    1, MPI_INTEGER,          target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+          write(*,*) "from rank", my_rank, " received pos_vel ", diag_pos_vel_buf
        end if
        
        call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
+       diag_pos_vel(i,1) = diag_pos_vel_buf(1)
+       diag_pos_vel(i,2) = diag_pos_vel_buf(2)
+       diag_pos_vel(i,3) = diag_pos_vel_buf(3)
+       diag_pos_vel(i,4) = diag_pos_vel_buf(4)
+       diag_pos_vel(i,5) = diag_pos_vel_buf(5)
+       diag_pos_vel(i,6) = diag_pos_vel_buf(6)
+
+       diag_work(i,1) = diag_work_buf(1)
 
     end do
 
@@ -143,10 +153,12 @@ contains
     if(my_rank == 0) write(*,*) "benchmarking: dump_trajectory"
     
     open(91, file="trajectory.dat", STATUS='REPLACE')
-    write(91,*) "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z"
+    write(91,'(a, i, a, i, a)') "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z ux uy uz work"
     do i=1,NUM_DIAG_PARTICLES
        p = diagnostic_particle(i)
-       write(91,'(i,3e)') p, x(p), y(p), z(p)
+       write(91,'(i,6e,i)') p, diag_pos_vel(i,1), diag_pos_vel(i,2), diag_pos_vel(i,3), &
+            diag_pos_vel(i,4), diag_pos_vel(i,5), diag_pos_vel(i,6), diag_work(i,1)
+       
     end do
     close(91)
     

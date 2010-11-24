@@ -93,6 +93,8 @@ subroutine special_start(iconf)
   integer :: i,j,k,n(3), myidx, globalidx
   real*8 a,b,c,cth,sth,cphi,sphi,s
 
+  integer :: fances(-1:n_cpu-1)
+
   real*8 zero
   parameter(zero=0.d0)
   real*8 one
@@ -106,17 +108,18 @@ subroutine special_start(iconf)
   real*8 nine
   parameter(nine=9.d0)
 
+  call MPI_SCAN(np_local, fances(my_rank), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLGATHER(MPI_IN_PLACE, 0, 0, fances(0), 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
+  fances(-1) = 0
+
   config: select case(iconf)
   case(1)
 
      if (my_rank == 0) write(*,*) "Using special start... case 1 (homogeneous distribution)"
 
-     ! get the largest np_local
-     call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
-     call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-
      do mpi_cnt = 0, n_cpu-1
-        do p = 1, np_local_max
+        if (my_rank == 0) write(*,*) "init particles for rank ", mpi_cnt, fances(mpi_cnt), fances(mpi_cnt-1)
+        do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
            
            xt = 0.
            yt = 0.
@@ -152,7 +155,7 @@ subroutine special_start(iconf)
      call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
      do mpi_cnt = 0, n_cpu-1
-        do p = 1, np_local_max
+        do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
            
            xt = 1.
            yt = 1.
@@ -193,7 +196,7 @@ subroutine special_start(iconf)
      call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
      do mpi_cnt = 0, n_cpu-1
-        do p = 1, np_local_max
+        do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
            
            xt = 1.
            yt = 1.
@@ -242,7 +245,7 @@ subroutine special_start(iconf)
      call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
      do mpi_cnt = 0, n_cpu-1
-        do p = 1, np_local_max
+        do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
      
            xt = 0.
            yt = 0.
@@ -282,7 +285,7 @@ subroutine special_start(iconf)
      call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
      do mpi_cnt = 0, n_cpu-1
-        do p = 1, np_local_max
+        do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
            
            xt = 1.
            yt = 1.
@@ -323,7 +326,7 @@ subroutine special_start(iconf)
      call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
      
      do mpi_cnt = 0, n_cpu-1
-        do p = 1, np_local_max
+        do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
            
            xt = 0.
            yt = 0.
@@ -362,7 +365,7 @@ subroutine special_start(iconf)
      call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
      do mpi_cnt = 0, n_cpu-1
-        do p = 1, np_local_max
+        do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
            
            xt = 1.
            yt = 1.
@@ -500,7 +503,7 @@ subroutine special_start(iconf)
      call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
      do mpi_cnt = 0, n_cpu-1
-        do p = 1, np_local_max
+        do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
            
            xt = 1.
            yt = 1.
@@ -570,8 +573,8 @@ subroutine special_start(iconf)
   q(nep + 1:np_local)       = qi        ! plasma ions (need Z* here)
   m(1:nep)                  = mass_e    ! electron mass
   m(nep + 1:np_local)       = mass_i    ! ion mass
-  pelabel(1:nep)            = my_rank * nep + (/(i, i = 1, nep)/)      ! Electron labels
-  pelabel(nep + 1:np_local) = ne + my_rank * nip + (/(i, i = 1, nip)/) ! Ion labels
+  pelabel(1:nep)            = fances(my_rank-1) + (/(i, i = 1, nep)/)      ! Electron labels
+  pelabel(nep + 1:np_local) = ne + fances(my_rank-1) + nep + (/(i, i = 1, (fances(my_rank) - fances(my_rank-1) - nep))/) ! Ion labels
 
   ex(1:np_local) = 0.
   ey(1:np_local) = 0.

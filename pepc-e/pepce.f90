@@ -83,8 +83,6 @@ program pepce
      endif
      
      ! dump trajectory
-     call gather_particle_diag()
-     if (my_rank == 0 .and. itime == nt) call dump_trajectory()
 
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      t0 = MPI_WTIME()
@@ -97,7 +95,12 @@ program pepce
                       itime, scheme, choose_sort,weighted,choose_build,init_mb)
 
      ! dump number of interactions
-     if (my_rank == 0) call dump_num_interactions()
+     !if (my_rank == 0) call dump_num_interactions()
+     
+     if (my_rank == 0 .and. itime == nt) then
+        call gather_particle_diag()
+        call dump_trajectory()
+     end if
 
      ! Integrator
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
