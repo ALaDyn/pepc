@@ -89,8 +89,7 @@
             mpi_cc          = "mpicc"
             mpi_cxx         = "mpicxx"
                                     
-            ldflags         = "-i_dynamic -L/opt/intel/Compiler/11.0/074/mkl/lib/em64t
-                               -L/opt/parastation/lib64 "
+            ldflags         = ""
                                     
             mpi_dir         = ""
             mpi_lib         = ""
