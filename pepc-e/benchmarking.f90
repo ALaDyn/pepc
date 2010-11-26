@@ -69,12 +69,16 @@ contains
     real*8  :: diag_pos_vel_buf(6)
     integer :: diag_work_buf(1)
 
+    logical :: debug=.false., debug_root
+
+    debug_root = (my_rank.eq.0) .and. debug
+
     write(*,*) "start mpi scan on rank ", my_rank
 
     call MPI_SCAN(np_local, fances(my_rank), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
     call MPI_ALLGATHER(MPI_IN_PLACE, 0, 0, fances, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
 
-    if(my_rank.eq.0) then
+    if(my_rank.eq.0 .and. debug) then
        do i=0, n_cpu-1
           write(*,*) "particle rank fance: rank=", i, " partial sum=", fances(i)
        end do
@@ -82,20 +86,20 @@ contains
 
     do i=1, NUM_DIAG_PARTICLES
        target_particle = diagnostic_particle(i)
-       if(my_rank.eq.0) write(*,*) "gather diag information for particle ", target_particle
+       if(debug_root) write(*,*) "gather diag information for particle ", target_particle
        do r=0, n_cpu-1
           if(target_particle.le.fances(r)) then
              target_rank = r
              exit
           end if
        end do
-       if(my_rank.eq.0) write(*,*) "particle is located on rank ", target_rank
+       if(debug_root) write(*,*) "particle is located on rank ", target_rank
 
        if(my_rank.eq.target_rank) then
-          write(*,'(a,4i)') "particle: ", my_rank, target_particle, fances(my_rank), np_local
+          if(debug) write(*,'(a,4i)') "particle: ", my_rank, target_particle, fances(my_rank), np_local
           target_particle_local = target_particle-fances(my_rank)+np_local
-          write(*,'(a,i,a,i,a,i)') "from rank", my_rank, " particle is here, with label ", pelabel(target_particle_local), " local target ", target_particle_local
-          !if(pelabel(target_particle_local) .ne. target_particle) stop
+          if(debug) write(*,'(a,i,a,i,a,i)') "from rank", my_rank, " particle is here, with label ", pelabel(target_particle_local), " local target ", target_particle_local
+          if(pelabel(target_particle_local) .ne. target_particle) stop
 
           diag_pos_vel_buf(1) = x(target_particle_local)
           diag_pos_vel_buf(2) = y(target_particle_local)
@@ -107,7 +111,7 @@ contains
 
           diag_work_buf(1) = work(target_particle_local)
 
-          write(*,*) "from rank", my_rank, " sending pos_vel ", diag_pos_vel_buf
+          if(debug) write(*,*) "from rank", my_rank, " sending pos_vel ", diag_pos_vel_buf
 
           if(my_rank .ne. 0) then
              call MPI_SEND(diag_pos_vel_buf, 6, MPI_DOUBLE_PRECISION, 0, 0, MPI_COMM_WORLD, ierr)
@@ -118,7 +122,7 @@ contains
        if(my_rank.eq.0 .and. target_rank.ne.0) then
           call MPI_RECV(diag_pos_vel_buf, 6, MPI_DOUBLE_PRECISION, target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
           call MPI_RECV(diag_work_buf,    1, MPI_INTEGER,          target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
-          write(*,*) "from rank", my_rank, " received pos_vel ", diag_pos_vel_buf
+          if(debug) write(*,*) "from rank", my_rank, " received pos_vel ", diag_pos_vel_buf
        end if
        
        call MPI_BARRIER(MPI_COMM_WORLD, ierr)

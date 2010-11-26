@@ -32,4 +32,4 @@
 ! determinates the particle dump interval
 ! 0: never write anything
 ! n: each n-th step, plus first and last step
- idump = 1000  /
+ idump = 0  /

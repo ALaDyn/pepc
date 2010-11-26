@@ -97,9 +97,9 @@ program pepce
      ! dump number of interactions
      !if (my_rank == 0) call dump_num_interactions()
      
-     if (my_rank == 0 .and. itime == nt) then
+     if (itime == nt) then
         call gather_particle_diag()
-        call dump_trajectory()
+        if (my_rank == 0) call dump_trajectory()
      end if
 
      ! Integrator

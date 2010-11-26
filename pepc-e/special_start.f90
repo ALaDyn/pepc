@@ -118,7 +118,6 @@ subroutine special_start(iconf)
      if (my_rank == 0) write(*,*) "Using special start... case 1 (homogeneous distribution)"
 
      do mpi_cnt = 0, n_cpu-1
-        if (my_rank == 0) write(*,*) "init particles for rank ", mpi_cnt, fances(mpi_cnt), fances(mpi_cnt-1)
         do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
            
            xt = 0.

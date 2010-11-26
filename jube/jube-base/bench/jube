@@ -1582,8 +1582,8 @@ sub analyse {
 
 	    if($naref->{parm}->{$parm}->{'count'}>1 && $naref->{parm}->{$parm."_avg"}->{'value'}>0) {
 		$naref->{parm}->{$parm."_std"}->{'value'} = 
-		    sqrt(($naref->{parm}->{$parm}->{'count'}*$naref->{parm}->{$parm."_std"}->{'value'} - 
-			  $naref->{parm}->{$parm."_avg"}->{'value'} * $naref->{parm}->{$parm."_avg"}->{'value'}) /
+		    sqrt(abs($naref->{parm}->{$parm}->{'count'}  *  $naref->{parm}->{$parm."_std"}->{'value'} - 
+			  $naref->{parm}->{$parm."_avg"}->{'value'}  *  $naref->{parm}->{$parm."_avg"}->{'value'}) /
 			 ($naref->{parm}->{$parm}->{'count'} * ($naref->{parm}->{$parm}->{'count'}-1)));
 		$naref->{parm}->{$parm."_avg"}->{'value'}/=$naref->{parm}->{$parm}->{'count'};
 

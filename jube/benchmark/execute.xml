@@ -19,7 +19,7 @@
         <sub from = "#EXECUTABLE#"        to = "pepc.exe" />
         <sub from = "#ENV#"               to = "$env" />
         <sub from = "#PREPROCESS#"        to = "cp $executable pepc.exe; "/>
-        <sub from = "#POSTPROCESS#"       to = "rm -f particle_*.dat" />
+<!--        <sub from = "#POSTPROCESS#"       to = "rm -f particle_*.dat" /> -->
         <sub from = "#NODES#"             to = "$nodes" />
         <sub from = "#CONNECTION#"        to = "`int('$nodes')>256 ? 'TORUS' : 'MESH'`" />
         <sub from = "#STARTER#"           to = "mpirun" />
