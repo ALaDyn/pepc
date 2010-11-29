@@ -157,6 +157,8 @@ contains
     if(my_rank == 0) write(*,*) "benchmarking: dump_trajectory"
     
     open(91, file="trajectory.dat", STATUS='REPLACE')
+    write(91,'(a,i)') "# npart_total ", npart_total
+    write(91,'(a,i)') "# npart_diag ", NUM_DIAG_PARTICLES
     write(91,'(a, i, a, i, a)') "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z ux uy uz work"
     do i=1,NUM_DIAG_PARTICLES
        p = diagnostic_particle(i)
