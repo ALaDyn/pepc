@@ -67,14 +67,14 @@
 
 	<sub from = "#FCPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
  	<sub from = "#MPI_F90#"    to = "$mpi_f90" />
-        <sub from = "#F90FLAGS#"   to = "$f90flags $optflags
+        <sub from = "#F90FLAGS#"   to = "$f90flags $optflags -qtune=450 -qarch=450 -O3 -qipa -qipa=inline=key2addr
                                          `index('$GPROF','on')==0        ? '-g -pg'                   : ' '`
                                          `index('$IHPCT_MPITR','on')==0  ? '-g'                       : ' '`" />
 
 	<sub from = "#LDPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
         <sub from = "#LD#"         to = "$mpi_f90" />
 
-        <sub from = "#LDFLAGS#"    to = "$ldflags $optflags
+        <sub from = "#LDFLAGS#"    to = "$ldflags $optflags -qtune=450 -qarch=450 -O3 -qipa -qipa=inline=key2addr
                                          `index('$GPROF','on')==0 ? '-g -pg' : ' '`" />
         <sub from = "#LDLIBS#"     to = "`index('$IHPCT_MPITR','on')==0 ? '-L $(IHPCT_BASE)/lib64 -llicense -lmpitrace' : ' '`
                                          `index('$IHPCT_HWC','on')==0   ? '-L $(IHPCT_BASE)/lib64 -lhpm -llicense -lm'  : ' '`

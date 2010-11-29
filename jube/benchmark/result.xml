@@ -17,7 +17,7 @@
     
 
     <show active="1" colw="30" title="verification and date">
-    jobenddate, vcheck, L2norm
+    jobenddate, vcheck, vcomment
     </show>    
 
     <show active="0">
