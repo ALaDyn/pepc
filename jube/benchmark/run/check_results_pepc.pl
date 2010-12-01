@@ -13,7 +13,7 @@ my $xmloutfile = $ARGV[0];
 my $vcheck=0;
 my $vcomment="not tested";
 
-my $limit=1e-9;
+my $limit=1e-7;
 
 my $line1; 
 my $line2;
@@ -59,14 +59,22 @@ while( defined ($line1 = readline(file1)) && defined ($line2 = readline(file2)) 
     my @values1 = split(/\s+/, $line1);
     my @values2 = split(/\s+/, $line2);
 
+    my $diffp = $values1[1] - $values2[1];
     my $diffx = $values1[2] - $values2[2];
     my $diffy = $values1[3] - $values2[3];
     my $diffz = $values1[4] - $values2[4];
+    my $diffvx = $values1[5] - $values2[5];
+    my $diffvy = $values1[6] - $values2[6];
+    my $diffvz = $values1[7] - $values2[7];
+    my $diffw = $values1[8] - $values2[8];
 
-    print "linediff: $diffx $diffy $diffz\n";
+    print "linediff: $diffp $diffx $diffy $diffz $diffvx $diffvy $diffvz $diffw\n";
     print "\n";
 
-    $L2norm = $L2norm + sqrt($diffx*$diffx + $diffy*$diffy + $diffz*$diffz);
+    $L2norm = $L2norm + sqrt($diffp*$diffp + 
+			     $diffx*$diffx + $diffy*$diffy + $diffz*$diffz + 
+			     $diffvx*$diffvx + $diffvy*$diffvy + $diffvz*$diffvz +
+			     $diffw*$diffw );
     
     $lines_tocompare -= 1;
 }

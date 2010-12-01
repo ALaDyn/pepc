@@ -34,7 +34,7 @@
                  CMP_PARAVER     = "$PARAVER"
                  CMP_SCALASCA    = "$SCALASCA"/>
 
-    <tasks       threadspertask = "1"   taskspernode = "8"   nodes = "1,4,16,64" />
+    <tasks       threadspertask = "1"   taskspernode = "8"   nodes = "16,32,64" />
 
     <params      COMMENT       = "JuRoPA PEPC benchmark"
                  PERL_CMD      = "/usr/bin/perl"
@@ -54,13 +54,13 @@
 		 PARAVER       = "off"
 
 		 geom          = "1,2,3"
-		 npart         = "1000000"
-                 nt            = "100" 
+		 npart         = "1000017,10000023,25000029"
+                 nt            = "50" 
 		 wscheme       = "1"
-		 cscheme       = "1"
+		 cscheme       = "0"
 		 csort         = "3"
 		 cbuild        = "1"
-		 npmult        = "-45" /> 
+		 npmult        = "-300" /> 
 
     <prepare     cname = "PEPC" />
 
