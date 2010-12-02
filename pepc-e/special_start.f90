@@ -87,7 +87,7 @@ subroutine special_start(iconf)
   integer, intent(in) :: iconf  ! Configuration switch
   integer :: p,mpi_cnt, ierr
   real*4 :: par_rand_res,fr,mu
-  real*8 :: yt,zt,xt,r1,dx
+  real*4 :: yt,zt,xt,r1,dx
   integer :: np_local_max
   real*8 :: delta(3)
   integer :: i,j,k,n(3), myidx, globalidx
@@ -107,6 +107,10 @@ subroutine special_start(iconf)
   parameter(five=5.d0)
   real*8 nine
   parameter(nine=9.d0)
+
+  ! get the largest np_local
+  call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
   call MPI_SCAN(np_local, fances(my_rank), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
   call MPI_ALLGATHER(MPI_IN_PLACE, 0, 0, fances(0), 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
@@ -149,18 +153,14 @@ subroutine special_start(iconf)
 
      if (my_rank == 0) write(*,*) "Using special start... case 2 (one sphere benchmark)"
 
-     ! get the largest np_local
-     call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
-     call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-
      do mpi_cnt = 0, n_cpu-1
-        do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
+        do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
            
            xt = 1.
            yt = 1.
            zt = 1.
            
-           do while ( (xt*xt + yt*yt + zt*zt) > 1)
+           do while ( (xt*xt + yt*yt + zt*zt) > 1.0)
               call par_rand(par_rand_res)
               xt = -1.0 + 2.*par_rand_res
               call par_rand(par_rand_res)
@@ -190,18 +190,14 @@ subroutine special_start(iconf)
   case(3)
      if (my_rank == 0) write(*,*) "Using special start... case 3 (two sphere benchmark)"
 
-     ! get the largest np_local
-     call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
-     call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-
      do mpi_cnt = 0, n_cpu-1
-        do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
+        do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
            
            xt = 1.
            yt = 1.
            zt = 1.
            
-           do while ( (xt*xt + yt*yt + zt*zt) > 1)
+           do while ( (xt*xt + yt*yt + zt*zt) > 1.0)
               call par_rand(par_rand_res)
               xt = -1.0 + 2.*par_rand_res
               call par_rand(par_rand_res)
@@ -518,7 +514,7 @@ subroutine special_start(iconf)
               yt = -1.+ 8.*par_rand_res*r_sphere
               call par_rand(par_rand_res)
               zt = -1.+ 8.*par_rand_res*r_sphere
-              r1 = dsqrt(xt*xt + yt*yt + zt*zt) ! normalized radius
+              r1 = sqrt(xt*xt + yt*yt + zt*zt) ! normalized radius
               fr = 1/(  (  1 +  r1**(3.*mu) )**(1./mu+1.)  )
               call par_rand(par_rand_res)
            end do

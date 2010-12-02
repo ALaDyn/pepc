@@ -1,32 +1,13 @@
-<!--
-    PRACE BENCHMARK SUITE
-
-    JuBE benchmark configuration schemata for: PEPC
-
-    Contact: l.arnold@fz-juelich.de
--->
-<!--
-    wscheme (walk_scheme) -> 0 (isend/irecv) or 1(coll)
-    nt                    -> number of timesteps
-    npart                 -> number of particles (ions)
-    geom                  -> 1 (homogeneous); 2/3 (one/two spheres)
-    writemode             -> text, binary, sionlib
--->
-
 <bench name = "PEPC"   platform = "IBM-BGP-Jugene" >
 
 <!-- ********************************************************** -->
 
-<benchmark name="scaling" active="1">
+<benchmark name="test_and_verify" active="1">
     <!-- version="reuse|new" -->
     <compile     cname           = "$platform"
                  version         = "new"
 
                  CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
-                 CMP_GPROF       = "$GPROF"
-                 CMP_IHPCT_HWC   = "$IHPCT_HWC"
-                 CMP_IHPCT_MPITR = "$IHPCT_MPITR"
-                 CMP_SCALASCA    = "$SCALASCA"
 		 CMP_WRITEMODE   = "$writemode" />
 
     <tasks       threadspertask = "1"   taskspernode = "4"   nodes = "256,512,1024" />
@@ -34,14 +15,6 @@
     <params      COMMENT       = "scaling test"
                  PERL_CMD      = "perl"
                  optflags      = "-O3"
-
-                 GPROF         = "off"
-
-                 IHPCT_HWC     = "off"
-                 IHPCT_HWC_GRP = "0"
-                 IHPCT_MPITR   = "off"
-
-		 SCALASCA      = "off"
 
 		 writemode     = "binary"
 

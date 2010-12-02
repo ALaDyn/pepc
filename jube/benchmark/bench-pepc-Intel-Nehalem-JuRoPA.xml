@@ -1,21 +1,3 @@
-<!--
-    PRACE BENCHMARK SUITE
-
-    JuBE benchmark configuration schemata for: PEPC
-
-    Contact: l.arnold@fz-juelich.de
--->
-<!--
-   Choose one of the platforms defined in the toplevel platform.xml
-
-   IBM-SP6-Jump
-
-    wscheme (walk_scheme) -> 0 (isend/irecv) or 1(coll)
-    nt                    -> number of timesteps
-    npart                 -> number of particles (ions)
-    geom                  -> 3 (homogeneous); 6/7 (one/two spheres)
-
--->
 <bench name    = "PEPC" platform= "Intel-Nehalem-JuRoPA" >
 
 <!-- ********************************************************** -->
@@ -25,33 +7,13 @@
     <compile     cname           = "$platform"
                  version         = "new"
 
-                 CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
-                 CMP_GPROF       = "$GPROF"
-                 CMP_PAPI        = "$PAPI"
-                 CMP_PAPI_SCOPE  = "$PAPI_SCOPE"
-                 CMP_IHPCT_HWC   = "$IHPCT_HWC"
-                 CMP_IHPCT_MPITR = "$IHPCT_MPITR"
-                 CMP_PARAVER     = "$PARAVER"
-                 CMP_SCALASCA    = "$SCALASCA"/>
+                 CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"/>
 
     <tasks       threadspertask = "1"   taskspernode = "8"   nodes = "16,32,64" />
 
     <params      COMMENT       = "JuRoPA PEPC benchmark"
                  PERL_CMD      = "/usr/bin/perl"
                  optflags      = "-O3 -axSSE4.2 "
-
-                 GPROF         = "off"
-
-                 IHPCT_HWC     = "off"
-                 IHPCT_HWC_GRP = "0"
-                 IHPCT_MPITR   = "off"
-
-		 PAPI          = "off"
-		 PAPI_SCOPE    = "LOCAL"
-
-		 SCALASCA      = "off"
-
-		 PARAVER       = "off"
 
 		 geom          = "1,2,3"
 		 npart         = "1000017,10000023,25000029"
