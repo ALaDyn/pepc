@@ -98,7 +98,9 @@ contains
        if(my_rank.eq.target_rank) then
           if(debug) write(*,'(a,4i)') "particle: ", my_rank, target_particle, fances(my_rank), np_local
           target_particle_local = target_particle-fances(my_rank)+np_local
-          if(debug) write(*,'(a,i,a,i,a,i)') "from rank", my_rank, " particle is here, with label ", pelabel(target_particle_local), " local target ", target_particle_local
+          if(debug) write(*,'(a,i,a,i,a,i)') "from rank", my_rank, " particle is here, with label ", &
+               pelabel(target_particle_local), " local target ", target_particle_local
+
           if(pelabel(target_particle_local) .ne. target_particle) stop
 
           diag_pos_vel_buf(1) = x(target_particle_local)
@@ -431,10 +433,12 @@ end subroutine write_particles
 
     time_post = MPI_WTIME()
     
-    write(*,*) "pepc timing - pre: ", time_pre - time_start
-    write(*,*) "pepc timing - inner: ", time_inner - time_pre
-    write(*,*) "pepc timing - post: ", time_post - time_inner
-    write(*,*) "pepc timing - total: ", time_post - time_start
+    if(my_rank == 0) then
+       write(*,*) "pepc timing - pre: ", time_pre - time_start
+       write(*,*) "pepc timing - inner: ", time_inner - time_pre
+       write(*,*) "pepc timing - post: ", time_post - time_inner
+       write(*,*) "pepc timing - total: ", time_post - time_start
+    end if
 
   end subroutine benchmark_end
   
