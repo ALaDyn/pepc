@@ -156,17 +156,17 @@ subroutine special_start(iconf)
      do mpi_cnt = 0, n_cpu-1
         do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
            
-           xt = 1.
-           yt = 1.
-           zt = 1.
+           xt = 1.0_8
+           yt = 1.0_8
+           zt = 1.0_8
            
-           do while ( (xt*xt + yt*yt + zt*zt) > 1.0)
+           do while ( (xt*xt + yt*yt + zt*zt) > 1.0_8)
               call par_rand(par_rand_res)
-              xt = -1.0 + 2.*par_rand_res
+              xt = -1.0_8 + 2.0_8*par_rand_res
               call par_rand(par_rand_res)
-              yt = -1.0 + 2.*par_rand_res
+              yt = -1.0_8 + 2.0_8*par_rand_res
               call par_rand(par_rand_res)
-              zt = -1.0 + 2.*par_rand_res
+              zt = -1.0_8 + 2.0_8*par_rand_res
            end do
            
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
@@ -193,17 +193,17 @@ subroutine special_start(iconf)
      do mpi_cnt = 0, n_cpu-1
         do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
            
-           xt = 1.
-           yt = 1.
-           zt = 1.
+           xt = 1.0_8
+           yt = 1.0_8
+           zt = 1.0_8
            
-           do while ( (xt*xt + yt*yt + zt*zt) > 1.0)
+           do while ( (xt*xt + yt*yt + zt*zt) > 1.0_8)
               call par_rand(par_rand_res)
-              xt = -1.0 + 2.*par_rand_res
+              xt = -1.0_8 + 2.0_8*par_rand_res
               call par_rand(par_rand_res)
-              yt = -1.0 + 2.*par_rand_res
+              yt = -1.0_8 + 2.0_8*par_rand_res
               call par_rand(par_rand_res)
-              zt = -1.0 + 2.*par_rand_res
+              zt = -1.0_8 + 2.0_8*par_rand_res
            end do
            
            xt = xt*0.1
