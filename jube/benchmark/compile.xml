@@ -65,6 +65,10 @@
 					`index('$writemode','sionlib')==0 ? '-DWRITE_PARTICLE_SIONLIB' : ' '`
 					`index('$PAPI','on')==0 ? '-I/usr/local/beta/papi-3.6.2/include -DPEPC_USE_PAPI_$PAPI_SCOPE' : ' '`" />
 
+        <sub from="#CCPRE#"         to=" " />
+	<sub from="#MPI_CC#"        to="$mpi_cc" />
+        <sub from="#CFLAGS#"        to="$cflags $optflags" />    
+
 	<sub from = "#FCPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
  	<sub from = "#MPI_F90#"    to = "$mpi_f90" />
         <sub from = "#F90FLAGS#"   to = "$f90flags $optflags -qtune=450 -qarch=450 -O3 -qipa -qipa=inline=key2addr
