@@ -10,7 +10,7 @@
                  CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
 		 CMP_WRITEMODE   = "$writemode" />
 
-    <tasks       threadspertask = "1"   taskspernode = "4"   nodes = "256" />
+    <tasks       threadspertask = "1"   taskspernode = "4"   nodes = "256,512,1024" />
 
     <params      COMMENT       = "scaling test"
                  PERL_CMD      = "perl"
@@ -18,8 +18,8 @@
 
 		 writemode     = "binary"
 
-		 npart         = "25000029" 
-		 geom          = "2"
+		 npart         = "1000017,10000023,25000029" 
+		 geom          = "1,2,3"
                  nt            = "50" 
 		 wscheme       = "1"
 		 cscheme       = "0"
