@@ -11,7 +11,7 @@
 !  ================================
 
 
-subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose_sort,weighted)
+subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose_sort,weighted)
 
   use treevars
   use tree_utils
@@ -20,7 +20,6 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   implicit none
   include 'mpif.h'
 
-  real, intent(in) :: xl,yl,zl  ! initial box limits
   integer, intent(in) :: choose_sort, weighted
   integer, intent(out) :: indxl(nppm),irnkl(nppm)
   integer, intent(out) :: islen(num_pe),irlen(num_pe)
@@ -43,17 +42,16 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   logical :: boundary_debug=.false. 
   logical :: identical_keys=.false. 
 
-  integer status(MPI_STATUS_SIZE), ierr, tag1
+  integer :: status(MPI_STATUS_SIZE), ierr
 
   ! arrays for parallel sort
 
   type (particle) :: ship_parts(nppm), get_parts(nppm)
 
-  integer*8 :: xarray(nppm),keys(nppm),w1(nppm),wi2(nppm),wi3(nppm),compare(nppm)
+  integer*8 :: xarray(nppm),keys(nppm),w1(nppm),wi2(nppm),wi3(nppm)
   integer :: iteration, niterations, keycheck_pass, ipp
   integer :: errcount
 
-  integer, dimension(nppm) ::  w2, w3 ! scratch arrays for integer*4 permute
   integer*8 :: tmp
   logical :: sort_debug
   real*8 :: xboxsize, yboxsize, zboxsize
@@ -95,8 +93,6 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   real*8 d,minc,maxc,sumc,minw,maxw,sumw
 
   DOUBLE PRECISION :: ts, tpack, tunpack, talltoallv
-
-  !POMP$ INST BEGIN(keys)
 
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()
@@ -146,9 +142,9 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
 
   ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
 
-  ix(1:npp) = ( x(1:npp) - xmin )/s           ! partial keys
-  iy(1:npp) = ( y(1:npp) - ymin )/s           !
-  iz(1:npp) = ( z(1:npp) - zmin )/s        
+  ix(1:npp) = int(( x(1:npp) - xmin )/s)           ! partial keys
+  iy(1:npp) = int(( y(1:npp) - ymin )/s)           !
+  iz(1:npp) = int(( z(1:npp) - zmin )/s)
 
   ! construct keys by interleaving coord bits and add placeholder bit
   ! - note use of 64-bit constants to ensure correct arithmetic
@@ -175,10 +171,6 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
 
      call blankn(ipefile)
   endif
-
-  !POMP$ INST END(keys)
-
-  !POMP$ INST BEGIN(sort)
 
   ! Use Parallel Sort by Regular Sampling (PSRS) 
 
@@ -287,7 +279,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
         enddo
 
         ! permute keys according to sorted indices
-        call pll_permute(nppm,npold,npnew,num_pe,me,w1,wi2,wi3, &
+        call pll_permute(nppm,npold,npnew,num_pe,w1,wi2,wi3, &
              indxl,irnkl,islen,irlen,fposts,gposts)
 
         if (domain_debug) then
@@ -522,7 +514,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   end do
 
   ! Copy boundary particles to adjacent PEs to ensure proper tree construction
-  !  - if we don't do this, can get two particles on separate PEs 'sharing' a leaf
+  !  - if we do not do this, can get two particles on separate PEs 'sharing' a leaf
 
 
   !  ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
@@ -580,7 +572,7 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   ! Place incoming data at end of array
 
   if (me == num_pe-1) then
-     ind_recv = npp+1   ! PEn array hasn't yet received boundary value
+     ind_recv = npp+1   ! PEn array has not yet received boundary value
   else
      ind_recv = npp+2
   endif
@@ -631,6 +623,5 @@ subroutine tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npo
   t_domains = ts1e-ts1b
 
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | ..done'
-  !POMP$ INST END(sort)
 
 end subroutine tree_domains

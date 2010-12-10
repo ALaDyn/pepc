@@ -21,8 +21,6 @@ subroutine tree_global
   integer, external :: key2addr        ! Mapping function to get hash table address from key
   integer*8, external :: next_node   ! Function to get next node key for local tree walk
 
-  character(30) :: cfile
-
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()
 
@@ -40,7 +38,7 @@ subroutine tree_global
 ! get levels of branch nodes
   maxlevel=0
   do i=1,nbranch_sum
-     branch_level(i) = log( 1.*branch_key(i) )/log(8.)
+     branch_level(i) = int(log( 1.*branch_key(i) )/log(8.))
      maxlevel = max( maxlevel, branch_level(i) )        ! Find maximum level
   end do  
 
@@ -62,7 +60,7 @@ subroutine tree_global
 
      do i=1,nuniq
         parent_key(i) = ISHFT( sub_key(i),-3 )             ! Parent key
-        child_bit = IAND( sub_key(i), hashchild)                    ! extract child bit from key: which child is it?
+        child_bit = int(IAND( sub_key(i), hashchild))                    ! extract child bit from key: which child is it?
         child_byte = 0
         child_byte = IBSET(child_byte, child_bit)    ! convert child bit to byte code
         nodtwig = -ntwig -1     ! predicted twig # 
@@ -84,10 +82,10 @@ subroutine tree_global
            stop       
         endif
 
-        branch_addr(i) = key2addr( sub_key(i),'PROPERTIES: fill' )   !  branches' #table addresses
+        branch_addr(i) = key2addr( sub_key(i),'PROPERTIES: fill' )   !  branches` #table addresses
         branch_node(i) = htable( branch_addr(i) )%node
-        parent_addr(i) = key2addr( parent_key(i),'PROPERTIES:fill' )   ! parents' #table addresses
-        parent_node(i) = htable( parent_addr(i) )%node          ! parents' node numbers
+        parent_addr(i) = key2addr( parent_key(i),'PROPERTIES:fill' )   ! parents` #table addresses
+        parent_node(i) = htable( parent_addr(i) )%node          ! parents` node numbers
         
      end do
 
@@ -97,7 +95,7 @@ subroutine tree_global
         charge( parent_node(i) ) = charge( parent_node(i) ) + charge( branch_node(i) )                       ! Sum q
      end do
 
-     ! parent charges should be complete before computing coq's
+     ! parent charges should be complete before computing coq`s
 
      do i=nuniq,1,-1
         ! Centres of charge
@@ -201,7 +199,7 @@ subroutine tree_global
     cell_addr(i) = hashaddr 
     tree_node(i) =  htable( hashaddr )%node                       ! node property pointers
     parent_key(i) = ishft(treekey(i),-3 )                         ! Parent keys, skipping root
-    parent_addr(i) =  key2addr( parent_key(i),'FILL: node par' )  ! parents' #table addresses
+    parent_addr(i) =  key2addr( parent_key(i),'FILL: node par' )  ! parents` #table addresses
   end do
 
   !  Sweep back up, and augment leaf count of parent node
@@ -211,7 +209,7 @@ subroutine tree_global
      endif
   end do
 
-  node_level( tree_node(1:nnodes) ) = log(1.*treekey(1:nnodes))/log(8.)  ! get levels from keys and prestore as node property
+  node_level( tree_node(1:nnodes) ) = int(log(1.*treekey(1:nnodes))/log(8.))  ! get levels from keys and prestore as node property
   node_level(0) = 0
 
   ! Check tree integrity: Root node should now contain all particles!

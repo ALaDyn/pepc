@@ -17,8 +17,6 @@ subroutine tree_exchange
 
   integer,external :: key2addr        ! Mapping function to get hash table address from key
 
-  character(30) :: cfile
-   
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()
 

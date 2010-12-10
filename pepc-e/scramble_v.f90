@@ -12,8 +12,8 @@ subroutine scramble_v(i1,n)
   use utils
   implicit none
 
- integer :: dum1, dum2, dum3  
-real :: uxt, uyt, uzt
+  integer :: dum1, dum2, dum3
+  real*8 :: uxt, uyt, uzt
   integer :: i, j, k, kk, p, i1, n, n1
 
   dum1 = -71 - 10*my_rank
@@ -29,9 +29,9 @@ real :: uxt, uyt, uzt
   !  scramble indices to remove correlation between ux,uy,uz
   do i=1,n1
      p=i+i1-1
-     j=n1*rano(dum1)+i1
-     k=n1*rano(dum2)+i1
-     kk=n1*rano(dum3)+i1
+     j=int(n1*rano(dum1)+i1)
+     k=int(n1*rano(dum2)+i1)
+     kk=int(n1*rano(dum3)+i1)
      uxt=ux(p)
      uyt=uy(p)
      uzt=uz(p)

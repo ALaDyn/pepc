@@ -16,16 +16,11 @@ function next_node(keyin)
   implicit none
   integer*8 :: next_node
   integer*8 :: keyin
-  integer :: nodeout
   logical :: resolved
   logical, dimension(8) :: keymatch
   integer*8, dimension(8) :: child_key, child_sub
-
-
-  integer, dimension(8) :: child_addr !  children nodes
-
   integer*8 :: node_key, search_key, parent,  child_top
-  integer :: cell_addr, node_addr, parent_node, child_byte, nchild
+  integer :: node_addr, parent_node, child_byte, nchild
   integer :: jmatch(1), j
   integer :: key2addr        ! Mapping function to get hash table address from key
 

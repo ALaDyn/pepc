@@ -8,9 +8,9 @@
 !>	2  Bmax - replace s with longest sep between coq and box corner
 !>	3  Upper bound: Use E-field from previous step to estimate acceptable error and equiv dmin 
 !>	10 Periodic variant of s/d - use nearest min. image and return its quadrant for force sum.
-!>         - returns the index offset of the nearest image's cell as an integer(3) array in neighbour
+!>         - returns the index offset of the nearest image`s cell as an integer(3) array in neighbour
 
-subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, neighbour)
+subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, neighbour)
   use treevars
   implicit none
  
@@ -25,22 +25,18 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
   real*8, intent(in) :: walk_abs_charge
   integer*8,intent(in) :: walk_key 
   integer, intent(in) :: walk_node
-  integer, intent(in) :: np_local
   real*8, intent(in) :: p_ex_p, p_ey_p, p_ez_p  
-  real*8 :: dist2,s2
-  real*8 :: deltax, deltay, deltaz
-  real*8 :: Ldiv2
+  real*8 :: dist2
   integer :: ix,iy,iz,nbits,i,j,k
-!  integer, intent(in) :: npshort
-  real :: xt, yt,zt
+  real*8 :: xt, yt,zt
   real :: boxl
-  real :: x_wn,y_wn,z_wn,b_max2,b_temp,e_dx,e_dy,e_dz
-  real :: x_min,y_min,z_min,x_max,y_max,z_max,x_len,y_len,z_len,px,py,pz,md2
-  real,dimension(3) :: x_val,y_val,z_val
-!  real :: delta_x,delta_y,delta_z 
-  real :: alpha,field_old,dist
-  real*8 :: d,dx,dy,dz
-  real*8 :: quad_mp,eps2
+  real*8 :: x_wn,y_wn,z_wn,dist,field_old,e_dx,e_dy,e_dz
+  real*8 :: b_max2,b_temp
+  real*8 :: x_min,y_min,z_min,x_max,y_max,z_max,x_len,y_len,z_len,px,py,pz,md2
+  real*8,dimension(3) :: x_val,y_val,z_val
+  real :: alpha
+  real*8 :: dx,dy,dz
+  real*8 :: eps2
   real*8 :: B2,rc
   
   
@@ -48,7 +44,7 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
   
   if (mac.ne.0) then
   !  get levels of twigs
-  nbits = log( 1.*walk_key )/log(8.)
+  nbits = int(log( 1.*walk_key )/log(8.))
 ! should use:
 !  nbits = node_level(walk_node)
   neighbour = 0
@@ -60,9 +56,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
 !  Ldiv2 = periodic_L*0.5
   boxl =  sqrt(boxl2)
 
-  ix = SUM( (/ (2**i*ibits( walk_key,3*i,1 ), i=0,nbits-1) /) )
-  iy = SUM( (/ (2**i*ibits( walk_key,3*i+1,1 ), i=0,nbits-1) /) )
-  iz = SUM( (/ (2**i*ibits( walk_key,3*i+2,1 ), i=0,nbits-1) /) )
+  ix = int(SUM( (/ (2**i*ibits( walk_key,3*i  ,1 ), i=0,nbits-1) /) ))
+  iy = int(SUM( (/ (2**i*ibits( walk_key,3*i+1,1 ), i=0,nbits-1) /) ))
+  iz = int(SUM( (/ (2**i*ibits( walk_key,3*i+2,1 ), i=0,nbits-1) /) ))
 
  endif
 
@@ -102,9 +98,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
      z_max = zt + boxl !3D
      !z_max = zt       !2D
      
-     x_val = (/x_min-px,px-x_max,0.0/)
-     y_val = (/y_min-py,py-y_max,0.0/)
-     z_val = (/z_min-pz,pz-z_max,0.0/)
+     x_val = (/x_min-px,px-x_max,0.0_8/)
+     y_val = (/y_min-py,py-y_max,0.0_8/)
+     z_val = (/z_min-pz,pz-z_max,0.0_8/)
      
 
      x_len = maxval(x_val)
@@ -206,7 +202,7 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
      mac_ok = (dist**5 * field_old * alpha >  walk_abs_charge * boxl**3) 
 
 
-  case(4)     !erw b_max !! doesn't work
+  case(4)     !erw b_max !! does not work
      alpha = 1000
 
 

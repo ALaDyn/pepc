@@ -23,14 +23,12 @@ subroutine tree_fill
   integer*8, dimension(8) :: child_key, child_sub
 
   integer, dimension(nbranch_max) :: branch_level
-  integer, dimension(maxaddress) :: twig_addr, twig_code,  cell_addr, tree_node, parent_addr
-  integer, dimension(8) :: child_addr !  children nodes
-  logical :: duplicate(maxaddress), resolved, keymatch(8)
+  integer, dimension(maxaddress) :: cell_addr, tree_node, parent_addr
+  logical :: duplicate(maxaddress)
 
-  integer*8 :: node_key, search_key, parent,  child_top
-  integer :: maxlevel, ilevel, nsub,i,j,k, nparent, nuniq, child_byte, child_bit, nchild, link_addr, hashaddr
-  integer :: nleaf_check, ntwig_check
-  integer ::  node_addr, jmatch(1),  parent_node, parent_level, nodtwig
+  integer*8 :: search_key, child_top
+  integer :: maxlevel, ilevel, nsub, i, j, nparent, nuniq, child_byte, child_bit, nchild, hashaddr
+  integer ::  node_addr, nodtwig
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
   integer :: ierr
@@ -51,7 +49,7 @@ subroutine tree_fill
 ! get levels of branch nodes
   maxlevel=0
   do i=1,nbranch_sum
-     branch_level(i) = log( 1.*branch_key(i) )/log(8.)
+     branch_level(i) = int(log( 1.*branch_key(i) )/log(8.))
      maxlevel = max( maxlevel, branch_level(i) )        ! Find maximum level
   end do
 
@@ -77,7 +75,7 @@ subroutine tree_fill
 
         parent_key(i) = ISHFT( sub_key(i),-3 )             ! Parent key
 
-        child_bit = IAND( sub_key(i), hashchild)                    ! extract child bit from key: which child is it?
+        child_bit = int(IAND( sub_key(i), hashchild))                    ! extract child bit from key: which child is it?
         child_byte = 0
         child_byte = IBSET(child_byte, child_bit)    ! convert child bit to byte code
         nodtwig = -ntwig -1     ! predicted twig # 
@@ -157,7 +155,7 @@ subroutine tree_fill
     cell_addr(i) = hashaddr 
     tree_node(i) =  htable( hashaddr )%node                     ! node property pointers
     parent_key(i) = ishft(treekey(i),-3 )                    ! Parent keys, skipping root
-    parent_addr(i) =  key2addr( parent_key(i),'FILL: node par' )                 ! parents' #table addresses
+    parent_addr(i) =  key2addr( parent_key(i),'FILL: node par' )                 ! parents` #table addresses
   end do
 
 
@@ -169,7 +167,7 @@ subroutine tree_fill
      endif
   end do
 
-  node_level( tree_node(1:nnodes) ) = log(1.*treekey(1:nnodes))/log(8.)  ! get levels from keys and prestore as node property
+  node_level( tree_node(1:nnodes) ) = int(log(1.*treekey(1:nnodes))/log(8.))  ! get levels from keys and prestore as node property
   node_level(0) = 0
 
   ! Check tree integrity: Root node should now contain all particles!

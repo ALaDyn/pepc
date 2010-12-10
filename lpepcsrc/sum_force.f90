@@ -21,7 +21,6 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
 
   real*8 :: rd,dx,dy,dz,d,dx2,dy2,dz2 
   real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
-  real*8 :: fsx,fsy,fsz,phi
   real*8, dimension(n*10) :: mult 
   real*8, dimension(n*3) :: coc
   real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
@@ -54,8 +53,6 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
      mult(i+9) = zxquad(jnode)
   end do
 
-  call delay(me,0)
-  !  write(*,*) p,' x_p=',x(p)
   do j=1,n
 
      !  preprocess distances

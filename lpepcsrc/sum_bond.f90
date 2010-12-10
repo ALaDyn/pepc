@@ -9,6 +9,7 @@
 subroutine sum_bond( p, n, inode, a_bond, sumfx, sumfy, sumfz, sumphi )
 
   use treevars
+  implicit none
 
   integer, intent(in) :: p  ! particle number
   integer, intent(in) :: n  !  # terms on interaction list
@@ -16,7 +17,9 @@ subroutine sum_bond( p, n, inode, a_bond, sumfx, sumfy, sumfz, sumphi )
   real, intent(in) :: a_bond
   integer :: jnode
 
-  real, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
+  real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
+  real*8 :: dx, dy, dz, d
+  integer :: i
 
   sumfx = 0
   sumfy = 0

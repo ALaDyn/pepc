@@ -12,8 +12,8 @@ subroutine maxwell1(u,nmax,i1,n,vt)
   real :: u(nmax)
   real, parameter :: pi=3.141592654
 
-  integer :: p, ip1, ip2, i, cntr, nv
-  real :: f0 ,df, rs, v, dv, vmax, finf, vip, vth1, deltv
+  integer :: ip1, ip2, i, cntr, nv
+  real :: f0 ,df, v, dv, vmax, finf, vip, deltv
 
   if (n.eq.0) return
   nv = 30*n

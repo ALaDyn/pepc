@@ -6,9 +6,7 @@
 !     =========================
       
 subroutine stamp(istream,ibegin)
-  character :: fdate*24
   character :: cdate*8, ctime*10, czone*5
-  integer :: vals(4)
   integer :: ibegin
 
      !      call DATE_AND_TIME(cdate,ctime,czone,vals)

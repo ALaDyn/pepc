@@ -13,13 +13,11 @@ subroutine sum_bfield( p, n, inode, eps, sumbx, sumby, sumbz, sumax, sumay, suma
   integer, intent(in) :: n  !  # terms on interaction list
   integer, dimension(1:n) ::  inode
   real, intent(in) :: eps ! smoothing parameter
-  integer :: jnode, i,j,k 
+  integer :: jnode, i,j
 
-  real*8 :: rd,dx,dy,dz,d,dx2,dy2,dz2 
- real*8 :: dx3,dy3,dz3,rd3,rd5,rdotj,rdotm
- real*8 :: fsx,fsy,fsz,phi
- real, dimension(n*10) :: mult 
- real, dimension(n*3) :: coc
+  real*8 :: rd,dx,dy,dz,d
+  real*8 :: rd3,rd5,rdotj,rdotm
+  real*8, dimension(n*10) :: mult
   real*8, intent(out) ::  sumax,sumay,sumaz,sumbx, sumby, sumbz 
   real :: eps2
 

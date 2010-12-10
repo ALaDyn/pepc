@@ -3,7 +3,7 @@ subroutine param_dump
   use physvars
   use utils
   implicit none
-  integer :: ibig, machinebits, ifile
+  integer :: ifile
 
 
   if (my_rank==0) then

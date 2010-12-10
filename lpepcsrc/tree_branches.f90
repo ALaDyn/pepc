@@ -28,14 +28,12 @@ subroutine tree_branches
   integer :: treelevel
 
   integer*8 ::  keymin, keymax
-  integer :: i, j, k, level, nsubset, ncheck, cchild, nchild, newsub, &
-       link_addr, ncoll, nres, nbound, newleaf, newtwig, hashaddr
+  integer :: i, j, level, nsubset, ncheck, cchild, nchild, newsub, &
+       nres, newleaf, newtwig, hashaddr
   integer :: nleaf_check, ntwig_check, nleaf_check2, ierr
-  logical :: resolved
 
   ! Global arrays used:
   !   treekey
-
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer :: startlevel = 2  ! Min permitted branch level
 
@@ -63,7 +61,7 @@ subroutine tree_branches
   nsubset=0
 
   do i=1,nnodes
-     treelevel  = log(1.*treekey(i))/log(8.)     ! node levels
+     treelevel  = int(log(1.*treekey(i))/log(8.))     ! node levels
 
      if (treelevel==1) then
         nsubset = nsubset+1  ! # nodes at level 1
@@ -85,7 +83,7 @@ subroutine tree_branches
         !        keymax = ishft( pekey(nlist),-3*(nlev-level) )      ! recover min, max twig keys from particle keys at this level
 
         do i=1,nsubset
-           treelevel  = log(1.*search_key(i))/log(8.)     ! node levels
+           treelevel  = int(log(1.*search_key(i))/log(8.))     ! node levels
            if ( (search_key(i) > keymin .and. search_key(i) < keymax .and. treelevel>=startlevel) .or. &
 		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
               !  either middle node (complete twig),  or leaf:  so add to domain list

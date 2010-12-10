@@ -1,4 +1,4 @@
-subroutine tree_allocate(theta,init_mb)
+subroutine tree_allocate(theta)
 
   use treevars
   use timings
@@ -7,12 +7,9 @@ subroutine tree_allocate(theta,init_mb)
 
   real, intent(in) :: theta
 
-  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0., ta2b=0., ta2e=0.
+  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
 
-  integer :: init_mb, ierr
   integer :: k, nintest
-  integer :: mem_parts, mem_multipoles, mem_fields, mem_tree, mem_prefetch, mem_tot, mem_lists
-  real, parameter :: mb=2.**20
 
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()
@@ -20,7 +17,7 @@ subroutine tree_allocate(theta,init_mb)
   nppm=npp
   ! Estimate of interaction list length - Hernquist expression
   if (theta >0.01 ) then
-     nintest = 35.*log(1.*npartm)/(theta**2) 
+     nintest = int(35.*log(1.*npartm)/(theta**2))
   else
      nintest = npartm
   endif
@@ -34,16 +31,16 @@ subroutine tree_allocate(theta,init_mb)
   if (np_mult>0) then
 !     nbaddr = max(log(1.*size_tree)/log(2.) + 1,15.)
 !     maxaddress = 2**nbaddr
-      nbaddr = max(log(1.*size_tree)/log(2.),15.)
+      nbaddr = int(max(log(1.*size_tree)/log(2.),15.))
       maxaddress = size_tree
   else
-     maxaddress = abs(np_mult)*10000
-     nbaddr = max(log(1.*maxaddress)/log(2.) ,15.)
+     maxaddress = int(abs(np_mult)*10000)
+     nbaddr = int(max(log(1.*maxaddress)/log(2.) ,15.))
   endif
   
   if (num_pe > 1) then
      size_fetch = fetch_mult*size_tree/6
-     nbranch_max = .75*maxaddress              ! Global max # branches
+     nbranch_max = int(.75*maxaddress)         ! Global max # branches
      nbranch_local_max = 2*nbranch_max/num_pe  ! Local max # branches
   else
      size_fetch=npp
@@ -59,32 +56,16 @@ subroutine tree_allocate(theta,init_mb)
     maxtwig = 2*maxleaf
   else
 !  required # twigs increases with P because of branches
-    maxleaf = maxaddress/(1.+log(1.*num_pe)/3.)
+    maxleaf = int(maxaddress/(1.+log(1.*num_pe)/3.))
     maxtwig = maxaddress-maxleaf
   endif 
 
   hashconst = 2**nbaddr-1
 
-! Memory estimate
-  mem_lists = nshortm + nshortm*nintmax*(8+4)
-  mem_tree =  maxaddress * (36 + 4 + 4 + 4) & ! # htable stuff
-                      + num_pe * (4+4+4+4)  & ! request stuff
-                      + maxaddress * (3*8) & ! keys
-                      + size_fetch * 2*(22*8+2*4) & ! get_child, pack_child buffers
-                      + nbranch_max * (8 + 4 + 8 + 8*23)  ! branches
-  mem_multipoles = maxaddress * (8+3*4 + 23*8 + 8) 
-  mem_prefetch = size_fetch*(8 + 4) + num_pe*4 *11 + maxaddress*8*2*2
-  mem_tot = init_mb+mem_tree+mem_prefetch+mem_multipoles+mem_lists
-
   if (me==0 .and. tree_debug) then
 !  if (me==0) then
      write(*,'(//a/)') 'Allocating new multipole fields'
-     write(*,'(6(a15,f14.3,a3/))') 'Initial alloc:',init_mb/mb,' MB', &
-                               'Tree:',mem_tree/mb,' MB', &
-                               'Lists:',mem_lists/mb,' MB', &
-                               'Prefetch:',mem_prefetch/mb,' MB', &
-                               'Multipoles:',mem_multipoles/mb,' MB', &
-                               'TOTAL: ',mem_tot/mb,' MB'
+
     if (dynamic_memalloc) write(*,'(/a/)') 'Dynamic memory management switched on!'	  
     write(*,*) '# procs',num_pe
     write(*,*) 'npart=',npart

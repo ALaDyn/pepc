@@ -20,39 +20,35 @@ subroutine tree_prefetch(itime)
   integer, intent(in) :: itime
   ! Key arrays (64-bit)
 
-  integer*8, dimension(size_fetch) :: sort_key, remove_keys, nofetch_keys ! List of deleted keys
+  integer*8, dimension(size_fetch) :: sort_key, remove_keys ! List of deleted keys
   integer*8, dimension(size_fetch) :: req_parent, req_compress, fetch_parent, fetch_comp, absent   ! work arrays
-  integer, dimension(size_fetch) :: fetch_owner, sort_owner, indx   ! work arrays
+  integer, dimension(size_fetch) :: sort_owner, indx   ! work arrays
 
-  integer*8, dimension(8) :: sub_key, key_child, child_sub, child_key, next_child, siblings
+  integer*8, dimension(8) :: sub_key, child_sub, child_key
 
   integer, dimension(0:num_pe-1) :: &
        nremove, &              ! # keys deleted from request list
        nadd, &                 ! # new ones added
-       nnofetch, &             ! # keys to delete from fetch list
        sstrides, &              ! fence posts for remove lists
-       rstrides, &              ! fence posts for remove lists
-       istart, ic_start, &     ! # fenceposts
-       nplace,&                ! # children (new entries) to place in table
-       nchild_ship       ! # children shipped to others
+       rstrides              ! fence posts for remove lists
   integer :: ierr
   integer*8, dimension(size_fetch) :: last_child   ! List of 'last' children fetched from remote PEs
 
-  logical, dimension(size_fetch) :: key_present, duplicate
+  logical, dimension(size_fetch) :: key_present
 
   ! Key working vars
   integer :: ship_byte, ship_leaves, ship_node, ship_address
   integer*8 :: ship_next, ship_key
-  integer :: recv_byte, recv_leaves, recv_node, recv_address
+  integer :: recv_byte, recv_leaves
   integer*8 :: recv_next, recv_key, recv_parent
-  integer*8 :: kparent, kin, search_key
+  integer*8 :: kparent, search_key
   integer :: nodchild, nlast_child, newtwig, newleaf, hashaddr, nuniq, npar, nabsent
   integer :: cchild, nchild, node_addr, addr_parent, child_byte
-  integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops, nreqs_new, nreqs_old, nfetch_new         ! loop counters
+  integer :: i, j, ipe, nreqs_new, nreqs_old, nfetch_new         ! loop counters
   integer :: iofile,pe_1
-  integer :: size_remove, sum_reqs, nreq_max, nfetch_max,  timestamp, send_prop_count, recv_count, nnot_local
+  integer :: sum_reqs, nreq_max, nfetch_max,  timestamp, send_prop_count, recv_count, nnot_local
   character*1 :: ctick
-  character(30) :: cfile, ccol1, ccol2, ccol0
+  character(30) :: ccol1, ccol2, ccol0
   integer :: sum_prefetches
 
   ! external functions
@@ -186,7 +182,7 @@ subroutine tree_prefetch(itime)
 
      if (prefetch_summary) write(iofile,'(a,i8/(o15))') 'Keys removed: ', nremove(ipe),(remove_keys(i),i=1,nremove(ipe))
 
-     ! TODO: Check that sibling sets complete so that parent's 'HERE' flag can be set in childcode.
+     ! TODO: Check that sibling sets complete so that parent`s 'HERE' flag can be set in childcode.
      ! Need this so that tree_walk MAC options still function as-is
 
 
@@ -436,7 +432,7 @@ subroutine tree_prefetch(itime)
          node_addr =  key2addr( recv_parent,'PREFETCH: MNHE ')
          htable( node_addr )%childcode = IBSET(  htable( node_addr )%childcode, 9) ! Set children_HERE flag for parent node
 
-         node_level( nodchild ) = log(1.*recv_key)/log(8.)  ! get level from keys and prestore as node property
+         node_level( nodchild ) = int(log(1.*recv_key)/log(8.))  ! get level from keys and prestore as node property
 
         ! Physical properties
 

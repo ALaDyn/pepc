@@ -21,8 +21,8 @@ module benchmarking
   integer, private, parameter :: NUM_PARTICLES_MID    = 5 !< number of particles from center of particle list to use in dump routines
   integer, private, parameter :: NUM_PARTICLES_BACK   = 5 !< number of particles from end of particle list to use in dump routines
   integer, private, parameter :: NUM_DIAG_PARTICLES = NUM_PARTICLES_FRONT + NUM_PARTICLES_MID + NUM_PARTICLES_BACK !< total number of particles to use in dump routines
-   real*8, private :: diag_pos_vel(NUM_DIAG_PARTICLES,6)
-   integer, private :: diag_work(NUM_DIAG_PARTICLES,1)
+  real*8, private :: diag_pos_vel(NUM_DIAG_PARTICLES,6)
+  integer, private :: diag_work(NUM_DIAG_PARTICLES,1)
   
 contains
 
@@ -96,9 +96,9 @@ contains
        if(debug_root) write(*,*) "particle is located on rank ", target_rank
 
        if(my_rank.eq.target_rank) then
-          if(debug) write(*,'(a,4i)') "particle: ", my_rank, target_particle, fances(my_rank), np_local
+          if(debug) write(*,'(a,4i12)') "particle: ", my_rank, target_particle, fances(my_rank), np_local
           target_particle_local = target_particle-fances(my_rank)+np_local
-          if(debug) write(*,'(a,i,a,i,a,i)') "from rank", my_rank, " particle is here, with label ", &
+          if(debug) write(*,'(a,i12,a,i12,a,i12)') "from rank", my_rank, " particle is here, with label ", &
                pelabel(target_particle_local), " local target ", target_particle_local
 
           if(pelabel(target_particle_local) .ne. target_particle) stop
@@ -111,7 +111,7 @@ contains
           diag_pos_vel_buf(5) = uy(target_particle_local)
           diag_pos_vel_buf(6) = uz(target_particle_local)
 
-          diag_work_buf(1) = work(target_particle_local)
+          diag_work_buf(1) = int(work(target_particle_local))
 
           if(debug) write(*,*) "from rank", my_rank, " sending pos_vel ", diag_pos_vel_buf
 
@@ -159,12 +159,12 @@ contains
     if(my_rank == 0) write(*,*) "benchmarking: dump_trajectory"
     
     open(91, file="trajectory.dat", STATUS='REPLACE')
-    write(91,'(a,i)') "# npart_total ", npart_total
-    write(91,'(a,i)') "# npart_diag ", NUM_DIAG_PARTICLES
-    write(91,'(a, i, a, i, a)') "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z ux uy uz work"
+    write(91,'(a,i12)') "# npart_total ", npart_total
+    write(91,'(a,i12)') "# npart_diag ", NUM_DIAG_PARTICLES
+    write(91,'(a, i6, a, i6, a)') "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z ux uy uz work"
     do i=1,NUM_DIAG_PARTICLES
        p = diagnostic_particle(i)
-       write(91,'(i,6e,i)') p, diag_pos_vel(i,1), diag_pos_vel(i,2), diag_pos_vel(i,3), &
+       write(91,'(i12,6e20.12,i12)') p, diag_pos_vel(i,1), diag_pos_vel(i,2), diag_pos_vel(i,3), &
             diag_pos_vel(i,4), diag_pos_vel(i,5), diag_pos_vel(i,6), diag_work(i,1)
        
     end do
@@ -182,7 +182,6 @@ contains
     use physvars
     implicit none
     integer :: i
-    integer :: ninter(NUM_DIAG_PARTICLES)
     logical, save :: print_header = .true.
 
     if(my_rank == 0) write(*,*) "benchmarking: dump_num_interactions"
@@ -213,10 +212,11 @@ contains
     real*8 :: writesize, t1, t2, t3, t4
     character(50) :: filename
 
+#ifdef WRITE_PARTICLE_SIONLIB
     !! sionlib related variables
     integer   :: sid, fsblksize
     integer*8 :: chuncksize, left, dumpsize, bwrote
-    
+#endif
 
     if(my_rank == 0) write(*,*) "benchmarking: write particles to file"
 

@@ -14,7 +14,7 @@
 
 subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, t_np_mult,t_fetch_mult, &
-     mac, theta, eps, force_const, err_f, xl, yl, zl, itime, walk_scheme, choose_sort,weighted, choose_build, init_mb)
+     mac, theta, eps, force_const, err_f, itime, choose_sort,weighted, choose_build)
 
   use treevars
   use utils
@@ -27,7 +27,6 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   real, intent(in) :: err_f       ! max tolerated force error (rms)
   real, intent(in) :: force_const       ! scaling factor for fields & potential
   real, intent(in) :: eps         ! potential softening distance
-  real, intent(in) :: xl, yl, zl         ! box dimensions
   integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: mac, choose_sort, weighted, choose_build
   real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
@@ -38,7 +37,6 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   real*8, dimension(nppm_ori) :: ex_tmp,ey_tmp,ez_tmp,pot_tmp,w_tmp
   real*8, dimension(np_local) :: p_w ! work loads
-  integer, intent(in) :: init_mb, walk_scheme
   
   integer :: npnew,npold
 
@@ -48,10 +46,9 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   integer, parameter :: npassm=100000 ! Max # passes - will need npp/nshortm
 
-  integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list, ipe, k
+  integer :: p, i, j, npass, jpass, ip1, nps,  max_npass,nshort_list
   real*8 :: ttrav, tfetch ! timing integrals
   integer :: pshortlist(nshortm),nshort(npassm),pstart(npassm) ! work balance arrays
-  integer :: hashaddr ! Key address 
 
   real*8 :: ts1b, ts1e, ts2b, ts2e, ta1b, ta1e, ta2b, ta2e
 
@@ -60,14 +57,11 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   integer :: iprot = 50  ! frequency for load balance dump
 
   real*8 :: phi_coul, ex_coul, ey_coul, ez_coul ! partial forces/pot
-  real :: ax_ind, ay_ind, az_ind, bx_ind, by_ind, bz_ind
-  real :: Epon_x, Epon_y, Epon_z, Phipon, ex_em, ey_em, ez_em, bx_em, by_em, bz_em
-  real :: xd, yd, zd  ! positions relative to centre of laser spot
-  real :: load_average, load_integral, total_work, average_work
+  real*8 :: load_average, load_integral
+  real :: total_work, average_work
   integer :: total_parts
-  character(30) :: cfile, ccol1, ccol2
+  character(30) :: cfile
   character(4) :: cme
-  integer :: key2addr        ! Mapping function to get hash table address from key
 
 !  real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
 
@@ -123,8 +117,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   ta1b = MPI_WTIME()
 
   ! Domain decomposition: allocate particle keys to PEs
-  call tree_domains(xl,yl,zl,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, choose_sort, weighted)  
-  call tree_allocate(theta,init_mb)
+  call tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, choose_sort, weighted)
+  call tree_allocate(theta)
 
   if (choose_build == 0) then
 
@@ -218,11 +212,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      !  build interaction list: 
      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
      
-     if (walk_scheme == 1) then
-        call tree_walkc(pshortlist,nps,jpass,theta,itime,mac,ttrav,tfetch)
-     else
-        call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
-     end if
+     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
 
      t_walk = t_walk + ttrav  ! traversal time (serial)
      t_walkc = t_walkc + tfetch  ! multipole swaps

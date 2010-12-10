@@ -20,19 +20,18 @@
 program pepce
 
   use physvars
-  use utils
+  use particle_pusher
   use benchmarking
   use timings
+  use files
+  use energies
   implicit none
   include 'mpif.h'
 
   ! timing stuff
   real*8 :: t0, t1, t2, t3, t4, ttot
 
-  integer :: ierr, lvisit_active, ifile, debug, i, k, init_mb, nppm_ori
-  integer :: p
-  character(50) :: cme, cfile
-  character*5 :: ci
+  integer :: ierr, ifile, nppm_ori
 
   ! Initialize the MPI system
   call MPI_INIT(ierr)
@@ -53,10 +52,10 @@ program pepce
   call openfiles
 
   ! Each CPU gets copy of initial data
-  call setup(init_mb)
+  call setup()
 
   ! Allocate array space for tree
-  call pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult,init_mb,nppm_ori)  
+  call pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult,nppm_ori)
 
   ! Set up particles
   call configure
@@ -91,8 +90,8 @@ program pepce
      call pepc_fields(np_local,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult,fetch_mult,mac, theta, eps, force_const, err_f, xl, yl, zl, &
-                      itime, scheme, choose_sort,weighted,choose_build,init_mb)
+              	      np_mult,fetch_mult,mac, theta, eps, force_const, err_f, &
+                      itime, choose_sort,weighted,choose_build)
 
      ! dump number of interactions
      !if (my_rank == 0) call dump_num_interactions()
@@ -107,7 +106,7 @@ program pepce
      t2 = MPI_WTIME()
 
      call velocities(1,np_local,dt)  ! pure ES, NVT ensembles
-     call push_x(1,np_local,dt)  ! update positions
+     call push(1,np_local,dt)  ! update positions
 
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      t3 = MPI_WTIME()

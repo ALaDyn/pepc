@@ -6,7 +6,7 @@
 !
 !   Perform tree walk for all local particles
 !
-!  Algorithm follows Warren & Salmon's 'latency-hiding' concept,
+!  Algorithm follows Warren & Salmon`s 'latency-hiding' concept,
 !  retaining list-based tree-walk from vectorised code by Pfalzner & Gibbon.
 !
 !  Structure:
@@ -46,21 +46,17 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
 
   real, intent(in) :: theta  ! MAC angle
   real, intent(in) :: eps    ! Softening radius
-!  real, intent(in) :: err_f  ! Error bound
   integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
   integer, intent(in) :: mac
-!  integer,intent(in) :: np_local  ! Total # local particles
-!  real*8, intent(in) :: ex_nps(npshort),ey_nps(npshort),ez_nps(npshort)  ! Fields from previous timestep
-  ! integer, intent(out) :: nodelist(nintm, npshort)
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
-  real*8 :: twalk, tfetch, tw1, tw2, tc1, tf1, tf2, t1, t2
+  real*8 :: twalk, tfetch, tw1, tw2, tc1, t1, t2
 
   ! Key arrays (64-bit)
 
   integer*8,  dimension(npshort) :: walk_key, walk_last 
-  integer*8, dimension(maxaddress)  :: request_key, ask_key, process_key
+  integer*8, dimension(maxaddress)  :: request_key, process_key
   integer*8, dimension(size_fetch) ::  ship_keys
   integer*8, dimension(8) :: sub_key, key_child, next_child
   integer*8, dimension(nintmax,npshort) :: defer_list, walk_list
@@ -69,17 +65,15 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
   integer, dimension(npshort) :: plist
 
   integer ::  walk_addr, walk_node, entry_next 
-  integer, dimension(npshort) :: nlocal, ndefer,  nwalk, defer_ctr
+  integer, dimension(npshort) :: ndefer,  nwalk, defer_ctr
 
 
   integer, dimension(maxaddress) ::  process_addr, request_owner, reqlist
   integer, dimension(maxaddress) :: childbyte
   integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child
 
-  real*8, dimension(8) :: xcoc_child, ycoc_child, zcoc_child
-
-  real, dimension(0:nlev) :: boxlength2
-  logical, dimension(npshort) :: finished, requested
+  real*8, dimension(0:nlev) :: boxlength2
+  logical, dimension(npshort) :: finished
   integer :: hops(21) ! array to control max # iterations in single traversal 
   integer, dimension(num_pe) ::   nactives
   integer, dimension(0:num_pe-1) :: nfetches, &              ! # keys needed
@@ -91,37 +85,33 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
   integer, dimension(size_fetch) :: send_child_handle, recv_child_handle
 
   ! Key working vars
-  integer*8 :: node_key, add_key, walk_next, kchild, kparent, search_key,  nxchild
+  integer*8 :: add_key, walk_next, kchild, kparent, search_key,  nxchild
 
-  integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops          ! loop counters
+  integer :: i, j, ic, ipe, iwait, inner_pass, nhops          ! loop counters
   integer :: p,pass
-  integer :: nnew, nshare, newrequest, nreqs, i1, i2, ioff, ipack
+  integer :: nnew, nshare, nreqs, i1, i2, ipack
   integer :: nchild, newleaf, newtwig, nactive, maxactive, ntraversals, own
-  integer :: ic1, ic2, iship1, ihand, nchild_ship_tot, nplace_max, sum_pack
+  integer :: ic1, ic2, iship1, ihand, nchild_ship_tot, nplace_max
   integer, save ::  sum_nhops, sum_inner_pass, sum_nhops_old=0, sum_inner_old=0
   integer :: request_count, fetch_pe_count, send_prop_count  ! buffer counters
 
   integer ::  bchild, nodchild, lchild, hashaddr, nlast_child, cbyte
-  integer :: max_nplace, max_pack
-  real :: sbox, theta2, theta2_ion, dx, dy, dz, s2, dist2
+  integer :: max_nplace
+  real :: theta2, theta2_ion
+  real*8 :: dx, dy, dz, dist2
+  real*8 :: sbox
 
   ! stuff for tree-patch after traversals complete
-  integer ::  node_addr, parent_addr, parent_node, child_byte
-  integer :: jmatch(1)
-  logical :: resolved, keymatch(8), emulate_blocking=.false.
+  integer ::  node_addr
+  logical, parameter :: emulate_blocking=.false.
   logical :: ignore, mac_ok
 
   integer :: nrest, ndef
-  integer :: ierr, nbuf, status(MPI_STATUS_SIZE)
+  integer :: ierr, status(MPI_STATUS_SIZE)
   integer :: tag1=40
 
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! merge mit trunk !!!!!!!!!!!!!!!!!!!!!!!
-
-  integer :: periodic_neighbour(3) ! stores the index offset of the nearest image's cell as an integer(3) array
 
   t1 = MPI_WTIME()
 
@@ -166,8 +156,8 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
   sum_nhops = 0
   sum_inner_pass = 0
   if (sum_nhops_old < 0) then
-     hops(1) = sum_nhops_old*0.9 
-     hops(2:4) = hops(1:3)*0.2
+     hops(1) = int(sum_nhops_old*0.9)
+     hops(2:4) = int(hops(1:3)*0.2)
      hops(5:21) = 2**30
   else
      hops = 2**30    ! First time round set infinite - finish all traversals
@@ -179,7 +169,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
   !if (me ==0) write(*,*) t2-t1
 
   do while (maxactive > 0)        ! Outer loop over 'active' traversals
-     !POMP$ INST BEGIN(walk_local)
      
      tw1 = MPI_WTIME()
 
@@ -237,7 +226,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
               mac_ok = (dist2 > boxlength2(node_level(walk_node)))
 
            else
-!             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),np_local, &
+!             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p), &
 !                  walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)), &
 !                  theta2,mac,mac_ok, periodic_neighbour)
            endif
@@ -353,8 +342,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
      tw2 = MPI_WTIME()
 
      twalk=twalk+tw2-tw1
-     !POMP$ INST END(walk_local)
-
 
      if (walk_debug) then
         write(ipefile,'(a/(o15,i7))') 'Shared request list: ',(request_key(i), &
@@ -370,8 +357,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
      ! First find out how many requests are to be sent to each PE.
 
      nfetches(0:num_pe-1) = (/ (count( mask = request_owner(1:nshare) == ipe ), ipe=0,num_pe-1) /)
-
-     !POMP$ INST BEGIN(exchange)
 
      ! Exchange numbers of keys to be shipped and requested
 
@@ -429,7 +414,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
                 MPI_COMM_WORLD, recv_child_handle(fetch_pe_count), ierr)
            i1 = i1+nplace(ipe)
 
-           ! Extract sub-list of keys to request according to location - don't overwrite buffer!
+           ! Extract sub-list of keys to request according to location - do not overwrite buffer!
 
            !           ship_keys(iship1:iship1+nfetches(ipe)) = pack(request_key(1:nshare), mask = request_owner(1:nshare) == ipe )
 
@@ -484,7 +469,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
            leaves_child(1:nchild) = htable( addr_child(1:nchild) )%leaves                    ! # contained leaves
            next_child(1:nchild-1) = htable( addr_child(1:nchild-1) )%next                    ! # next-node pointer
            next_child(nchild) = -1                             ! Last child gets pointed back to _parent_ for non-local nodes
-           ! This is used to distinguish particles' walks during 'defer' phase
+           ! This is used to distinguish particles` walks during 'defer' phase
 
            ! Package children properties into user-defined multipole array for shipping
            do ic = 1,nchild
@@ -593,7 +578,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
            node_addr = key2addr( kparent,'WALK: MNHE ' )
            htable( node_addr )%childcode = IBSET(  htable( node_addr )%childcode, 9) ! Set children_HERE flag for parent node
 
-           node_level( nodchild ) = log(1.*kchild)/log(8.)  ! get level from keys and prestore as node property
+           node_level( nodchild ) = int(log(1.*kchild)/log(8.))  ! get level from keys and prestore as node property
 
            ! Physical properties
 
@@ -697,7 +682,6 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
      tc1 = MPI_WTIME()
 
      tfetch=tfetch+tc1-tw2  ! timing for 2nd half of walk
-     !POMP$ INST END(exchange)
    
   end do
   tfetch = tfetch+t2-t1

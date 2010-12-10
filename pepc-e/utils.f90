@@ -11,10 +11,6 @@ module utils
      module procedure blankn, blank6
   end interface
 
-  interface cputime
-     module procedure cput
-  end interface
-
 contains
 
 
@@ -27,16 +23,6 @@ contains
   subroutine blank6
     write(6,'(/)')
   end subroutine blank6
-
-
-  subroutine cput(sec)
-    real :: sec
-    integer :: ic1, ir1, im1
-    !    CALL SYSTEM_CLOCK(COUNT=IC1, COUNT_RATE=IR1, COUNT_MAX=IM1)
-    !    sec = 1.*ic1/ir1
-    call cpu_time(sec)
-  end subroutine cput
-
 
 
   ! Random number scrambler
@@ -89,7 +75,7 @@ contains
        y=genran(dseed)
     endif
 
-    !  next index - make sure we don't overstep array bounds if
+    !  next index - make sure we do not overstep array bounds if
     !  generator returns a 0.0 or 1.0
 
     j=max(mod(1+int(97.*y),98),1)
@@ -128,37 +114,6 @@ contains
     genran = dseed / d2p31                                            
     return                                                            
   end function genran
-
-  !  ========================================
-  !
-  !      function   PHASE
-  !
-  !  Returns -pi -> pi (4-quadrant) phase of complex pair (x,y)
-  !
-  !  ========================================
-
-  real function phase(x,y)
-    implicit none
-    real, parameter :: pi=3.1415926536
-    real, intent(in) :: x,y
-    integer :: sx,sy,itx
-
-    sx=sign(1.,x)
-    sy=sign(1.,y)
-    itx = (1-sx)/2  ! 0 or 1
-
-    ! special cases first
-    if (x.eq.0 .and. y.eq.0) then
-       phase = 0.
-    else if (x.eq.0.) then
-       phase = sy*pi/2.
-    else if (y.eq.0) then
-       phase = itx*pi
-    else
-       phase = atan(y/x)+itx*sy*pi
-    endif
-
-  end function phase
 
 
 end module utils

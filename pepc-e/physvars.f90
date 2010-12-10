@@ -183,7 +183,7 @@ module physvars
    ! constrain
    real :: constrain_proof ! quality of getting crossing points
    real :: len_tripod      ! length of tripod
-   real :: number_faces    ! # faces to constrain the particles in
+   integer :: number_faces    ! # faces to constrain the particles in
    integer :: struct_step
 
   character*10 :: plasma_configs(0:2)= (/ &

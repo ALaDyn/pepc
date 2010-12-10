@@ -77,6 +77,9 @@ subroutine par_rand(res)
   
 end subroutine par_rand
 
+
+
+
 subroutine special_start(iconf)
 
   use physvars
@@ -86,11 +89,11 @@ subroutine special_start(iconf)
 
   integer, intent(in) :: iconf  ! Configuration switch
   integer :: p,mpi_cnt, ierr
-  real*4 :: par_rand_res,fr,mu
-  real*4 :: yt,zt,xt,r1,dx
+  real*4 :: par_rand_res,mu
+  real*8 :: yt,zt,xt, r1,fr
+  real*4 ::dx
   integer :: np_local_max
-  real*8 :: delta(3)
-  integer :: i,j,k,n(3), myidx, globalidx
+  integer :: i,j
   real*8 a,b,c,cth,sth,cphi,sphi,s
 
   integer :: fances(-1:n_cpu-1)

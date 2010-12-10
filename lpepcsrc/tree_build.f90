@@ -16,22 +16,19 @@ subroutine tree_build
 
   real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
 
-  integer*8, dimension(maxaddress) :: subcell, par_key, res_key        ! All key arrays 64-bit
+  integer*8, dimension(maxaddress) :: subcell, res_key        ! All key arrays 64-bit
   integer*8, dimension(nppm+2) :: local_key
 
- ! integer*8, dimension(2*nppm) :: leaf_key, twig_key
-  integer*8, dimension(8) :: sub_key   ! Child partial key
-
-  integer, dimension(maxaddress) :: ix, iy, res_addr, res_node, res_child, res_owner, &
-        newentry, treelevel
+  integer, dimension(maxaddress) :: res_addr, res_node, res_child, res_owner, &
+        newentry
   integer, dimension(nppm+2)  :: local_plist, local_ind, local_owner
   integer, dimension(0:maxaddress) ::  cell_addr
   logical, dimension(nppm+2) :: part_done            ! finished flag for leaf nodes
 
   integer*8 ::  parent_key,  key_lo, cell1, cell2
 
-  integer :: i, j, k, nres, ncoll, link, link_addr, & 
-       level, ilev, ibit, newleaf, nbound, nlistnew, ipart, ilist, ipoint, &
+  integer :: i, k, nres, ncoll, link_addr, &
+       level, ibit, newleaf, nbound, nlistnew, ipart, ipoint, &
        childbyte, parent_addr, &
        level_top, level_match, level_diff, iend, &
        i1, i2, ierr
@@ -40,7 +37,6 @@ subroutine tree_build
 
 
   character*1 :: collision(0:maxaddress)
-  real :: s
   logical :: resolved
 
   ts1b = MPI_WTIME()
@@ -77,7 +73,7 @@ subroutine tree_build
   if ( me /= num_pe-1 ) then
 ! First find level shared by last particle pair in list
      key_lo = ieor( pekey(npp), pekey(npp-1) )   ! Picks out 1st position where keys differ
-     level_diff =  log(1.*key_lo)/log(8.) 
+     level_diff =  int(log(1.*key_lo)/log(8.))
      level_match = max( nlev - level_diff, level_top )    ! Excludes low-level end-cells for discontinuous domains
      ibit = nlev-level_match               ! bit shift factor 
 
@@ -100,7 +96,7 @@ subroutine tree_build
      if ( me == num_pe-1 ) iend = npp+1         ! End node only has one boundary particle
 ! First find level shared by first particle pair in list
      key_lo = ieor( pekey(1), pekey(2)  )   ! Picks out lower order bits where keys differ
-     level_diff =  log(1.0*key_lo)/log(8.) 
+     level_diff =  int(log(1.0*key_lo)/log(8.))
 
      level_match = max( nlev - level_diff, level_top )    ! Excludes low-level end-cells for discontinuous domains
      ibit = nlev-level_match               ! bit shift factor 
@@ -158,7 +154,7 @@ subroutine tree_build
         subcell(i) = ishft( local_key(i), -3_8*ibit )    
 
         ! cell address hash function
-        cell_addr(i) = IAND( subcell(i), hashconst)
+        cell_addr(i) = int(IAND( subcell(i), hashconst))
      end do
 
      if (build_debug) then
@@ -192,7 +188,7 @@ subroutine tree_build
            htable(cell_addr(i))%leaves =  htable(cell_addr(i))%leaves + 1
            htable(cell_addr(i))%owner = me       ! Set owner of node equal to local PE
 
-        else                                    ! Entry exists and keys don't match
+        else                                    ! Entry exists and keys do not match
            ncoll = ncoll + 1                    ! Increment collision count
            res_addr(ncoll) = cell_addr(i)        ! Reduced list of addresses 
            res_key(ncoll) = subcell(i)           !     ..    .. of keys
@@ -303,7 +299,7 @@ subroutine tree_build
             local_plist( ipoint ) = 0                    ! label as done - removes particle from list
             htable( newentry(i) )%node = 0               ! remove node from #table
             htable( newentry(i) )%key = -1_8               ! but retain %link to dummy entry 
-	                                                 ! in case it's in the middle of a chain
+	                                                 ! in case it is in the middle of a chain
             htable( newentry(i) )%leaves = 0
             htable( newentry(i) )%childcode = 0 
 
@@ -381,7 +377,7 @@ subroutine tree_build
 !  write (*,*) 'Keys on :',me,nnodes,(treekey(i),i=1,nnodes)
 
   do i=1,nnodes-1
-     childbyte = IAND( treekey(i), hashchild)    ! extract last 3 bits from key
+     childbyte = int(IAND( treekey(i), hashchild))    ! extract last 3 bits from key
      parent_key = ishft( treekey(i),-3 )      ! parent key
      parent_addr = key2addr(parent_key,'BUILD: childbyte')
      ! Construct children byte-code (8 settable bits indicating which children nodes present)

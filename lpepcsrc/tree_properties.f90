@@ -28,9 +28,8 @@ subroutine tree_properties
   integer, parameter :: n_moments = 24  ! # property arrays
   real*8, dimension(n_moments*nbranch_local_max) :: local_moments      ! local branch properties    - size depends on # moments          
   real*8, dimension(n_moments*nbranch_max) :: branch_moments   ! global branch properties
-  integer, dimension(num_pe) :: nbranchmoments ! array containing total # multipole terms*branch list length
   integer, dimension(num_pe) :: recv_strides, recv_counts
-  integer, dimension(nbranch_max) :: bindex, branch_addr, branch_node, branch_level
+  integer, dimension(nbranch_max) :: branch_addr, branch_node, branch_level
   logical :: duplicate(maxaddress)
 
   integer :: addr_child
@@ -38,12 +37,11 @@ subroutine tree_properties
   real*8, dimension(8) :: xs, ys, zs   ! multipole shift vector
 
   real*8 :: xss, yss, zss, gamma, vx, vy, vz
-  integer :: i, j, k, maxlevel, nchild, ncheck, ntwig_domain, nsearch, newsub, cchild 
-  integer :: node_b, nuniq, nsub, nparent, ilevel, ibr, pno, bno
+  integer :: i, j, maxlevel, nchild, ncheck, ntwig_domain, nsearch, newsub, cchild
+  integer :: node_b, nuniq, nsub, nparent, ilevel, ibr
   integer ::  addr_leaf, p_leaf, node_leaf       ! local leaf-nodes
   integer :: ierr, nbuf
   integer :: key2addr        ! Mapping function to get hash table address from key
-  integer :: max_nbranch
 
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()  
@@ -372,7 +370,7 @@ subroutine tree_properties
 
   maxlevel = 0
   do i=1,nbranch_sum
-     branch_level(i) = log(1.*branch_key(i))/log(8.)       ! Get levels of branch nodes
+     branch_level(i) = int(log(1.*branch_key(i))/log(8.))       ! Get levels of branch nodes
      maxlevel = max( maxlevel,branch_level(i) )                                    ! Find maximum level
   end do
 
@@ -393,12 +391,12 @@ subroutine tree_properties
      sum_key(1:nuniq) = pack(sum_key(1:nsub), mask = duplicate(1:nsub))        ! Compress list
 
      do i=1,nuniq
-        branch_addr(i) = key2addr( sum_key(i),'PROPERTIES: fill' )   !  branches' #table addresses
+        branch_addr(i) = key2addr( sum_key(i),'PROPERTIES: fill' )   !  branches` #table addresses
         branch_node(i) =  htable( branch_addr(i ) )%node
 
         parent_key(i) = ISHFT( sum_key(i),-3 )                ! parent keys
-        parent_addr(i) = key2addr( parent_key(i),'PROPERTIES:fill' )   ! parents' #table addresses
-        parent_node(i) =  htable( parent_addr(i) )%node          ! parents' node numbers
+        parent_addr(i) = key2addr( parent_key(i),'PROPERTIES:fill' )   ! parents` #table addresses
+        parent_node(i) =  htable( parent_addr(i) )%node          ! parents` node numbers
      end do
 
      ! Compute parent properties from children
@@ -407,7 +405,7 @@ subroutine tree_properties
         charge( parent_node(i) ) = charge( parent_node(i) ) + charge( branch_node(i) )                       ! Sum q
      end do
 
-     ! parent charges should be complete before computing coq's
+     ! parent charges should be complete before computing coq`s
 
      do i=nuniq,1,-1
         ! Centres of charge

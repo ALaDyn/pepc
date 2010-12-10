@@ -4,7 +4,6 @@ subroutine tree_deallocate(nppm_ori)
   implicit none
   include 'mpif.h'
 
-  integer :: ierr
   integer, intent(in) :: nppm_ori
 
   nppm = nppm_ori

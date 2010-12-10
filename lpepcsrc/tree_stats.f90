@@ -15,7 +15,7 @@ subroutine tree_stats(timestamp)
   include 'mpif.h'
 
   integer :: i,ierr, timestamp
-  integer, dimension(num_pe) :: particles, nonlocal_keys, fetches, ships, total_keys, tot_nleaf, tot_ntwig
+  integer, dimension(num_pe) :: particles, fetches, ships, total_keys, tot_nleaf, tot_ntwig
   character*6 :: cdump
   character*40 :: cfile
 

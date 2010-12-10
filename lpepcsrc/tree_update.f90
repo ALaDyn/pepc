@@ -18,39 +18,28 @@ subroutine tree_update(itime)
   include 'mpif.h'
 
   integer, intent(in) :: itime
-  integer*8, dimension(8) :: sub_key, key_child, child_sub, child_key, next_child, siblings
+  integer*8, dimension(8) :: child_sub, child_key
   
   integer, dimension(0:num_pe-1) ::  & 
        sstrides, &              ! fence posts for remove lists
-       rstrides, &              ! fence posts for remove lists
-       istart, ic_start, &     ! # fenceposts
-       nplace,&                ! # children (new entries) to place in table
-       nchild_ship       ! # children shipped to others
+       rstrides              ! fence posts for remove lists
   integer :: ierr
-  integer*8, dimension(size_fetch) :: work_key, last_child   ! List of 'last' children fetched from remote PEs
   integer*8, dimension(size_fetch) :: sort_reqs, sort_fetch
   integer, dimension(size_fetch) :: indxr, indxf, sort_reqowner, sort_fetchowner
-  logical, dimension(size_fetch) :: key_present, duplicate
 
   ! Key working vars
   integer :: ship_byte, ship_leaves, ship_node, ship_address
   integer*8 :: ship_next, ship_key
-  integer :: recv_byte, recv_leaves, recv_node, recv_address
+  integer :: recv_byte, recv_leaves
   integer*8 :: recv_next, recv_key, recv_parent
-  integer*8 :: kparent, kin, search_key
-  integer :: nodchild, nlast_child, newtwig, newleaf, hashaddr, nuniq, npar, nabsent
-  integer :: cchild, nchild, node_addr, addr_parent, child_byte
-  integer :: i, j, k, ic, ipe, iwait, inner_pass, nhops, nreqs_new, nreqs_old, nfetch_new         ! loop counters
-  integer :: iofile, sum_reqs, sum_fetch
-  integer :: size_remove, nreq_max, nfetch_max,  timestamp, send_prop_count, recv_count, nnot_local
-  character*1 :: ctick
-  character(30) :: cfile, ccol1, ccol2, ccol0
-  integer, save :: sumfetches
+  integer*8 :: kparent
+  integer :: nodchild
+  integer :: nchild, node_addr, addr_parent, child_byte
+  integer :: i, j, ipe         ! loop counters
+  integer :: iofile
 
   ! external functions
   integer :: key2addr        ! Mapping function to get hash table address from key
-  integer*8 :: next_node   ! Function to get next node key for local tree walk
-  logical :: key_local   ! Tests whether key present in local # table
   logical :: update_debug=.false.
 
   iofile = ipefile

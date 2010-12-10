@@ -11,7 +11,7 @@
 !    1D gather for spherically symmetric fields
 !
 !  =================================
-   !r      ','ni   ','rhoi   ','vi   ','er',' phi'
+   !'r      ','ni   ','rhoi   ','vi   ','er',' phi'
 subroutine sum_radial(timestamp)
 
   use physvars

@@ -1,6 +1,6 @@
 !  This subroutine de-allocates the array space for the physvars module.
 !  @param my_rank_l rank of the cpu
-!  @param n_cpu_l number of cpu's
+!  @param n_cpu_l number of cpu`s
 subroutine cleanup(my_rank_l,n_cpu_l)
   
   use physvars

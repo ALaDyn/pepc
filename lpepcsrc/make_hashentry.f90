@@ -18,7 +18,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
   integer, intent(in) :: nodein, leavesin, codein, ownerin      ! call input parameters
   integer, intent(out) :: newentry  ! address in # table returned to calling routine
   integer :: ierr
-  integer :: link_addr, cell_addr, ierror, k, free, addr_count
+  integer :: link_addr, cell_addr, ierror, free, addr_count
   logical :: resolved
 
   ierror = 0
@@ -26,7 +26,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
   free = free_addr(iused)
 
   ! perform address hashing on key
-  cell_addr = IAND( keyin, hashconst)
+  cell_addr = int(IAND( keyin, hashconst))
 
   tablehigh = max(tablehigh,cell_addr)                 ! Track highest address
 
@@ -51,7 +51,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
      ierror = 1
 
 
-  else            ! Entry exists and keys don't match: COLLISION
+  else            ! Entry exists and keys do not match: COLLISION
 
      if ( htable( cell_addr )%link == -1) then     ! Entry was occupied without existing link
 

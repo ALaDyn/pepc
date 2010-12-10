@@ -10,14 +10,12 @@
 !  ================================
 
 
-subroutine setup(init_mb)
+subroutine setup()
   use physvars
   use tree_utils
   implicit none
   include 'mpif.h'
 
-  integer, intent(out) :: init_mb
-  integer :: k, npb_pe
   real :: Qplas, Aplas
 
   type (particle_p1) :: ship_props_a, get_props_a
@@ -30,8 +28,6 @@ subroutine setup(init_mb)
   character(50) :: parameterfile
   integer :: read_param_file
 
-  integer :: i
-  
   integer*4 IARGC
 
 
@@ -175,11 +171,11 @@ subroutine setup(init_mb)
   npart_total = ni+ne
 
   if (n_cpu.eq.1) then
-     nppm=1.5*npart_total + 1000  ! allow for additional ghost particles for field plots
+     nppm=int(1.5*npart_total + 1000)  ! allow for additional ghost particles for field plots
 !  else if (np_mult<0) then 
 !     nppm = abs(np_mult)*max(npart_total/n_cpu,1000) ! allow 50% fluctuation
   else
-     nppm = 1.5*max(npart_total/n_cpu,1000) ! allow 50% fluctuation
+     nppm = int(1.5*max(npart_total/n_cpu,1000)) ! allow 50% fluctuation
   end if
 
   geometry: select case(target_geometry)
@@ -303,9 +299,6 @@ subroutine setup(init_mb)
 
   r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
 
-  ! array allocation
-  init_mb = 15*nppm*8
-
   allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
        q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), pelabel(nppm), number(nppm), work(nppm) )
 
@@ -336,7 +329,7 @@ subroutine setup(init_mb)
   call LOCADDRESS( ship_props_a%work, address(9), ierr )
   call LOCADDRESS( ship_props_a%label, address(10), ierr )
 
-  displacements(1:nprops_particle) = address(1:nprops_particle) - send_base  !  Addresses relative to start of particle (receive) data
+  displacements(1:nprops_particle) = int(address(1:nprops_particle) - send_base)  !  Addresses relative to start of particle (receive) data
 
   call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle_p1, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_particle_p1, ierr)

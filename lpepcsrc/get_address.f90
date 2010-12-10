@@ -16,12 +16,12 @@ function key2addr(keyin,cmark)
   include 'mpif.h'
 
   integer*8, intent(in)  :: keyin
-  integer :: cell_addr, link_addr, ires,i, ierr, iret
+  integer :: cell_addr, link_addr, ires,i, ierr
   logical :: resolved
   character(*) :: cmark
   integer :: key2addr
 
-  cell_addr = IAND( keyin, hashconst)     ! cell address hash function
+  cell_addr = int(IAND( keyin, hashconst))     ! cell address hash function
 
   if ( htable( cell_addr )%key == keyin ) then
      key2addr = cell_addr       ! Keys match -> found entry

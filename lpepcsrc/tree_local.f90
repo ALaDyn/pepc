@@ -26,9 +26,6 @@ subroutine tree_local
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
   integer*8, dimension(nbranch_max) :: search_key, resolve_key
 
-  character(30) :: cfile
-
-
   integer,external :: key2addr        ! Mapping function to get hash table address from key
 
 !!! --------------- TREE BUILD ---------------
@@ -64,7 +61,7 @@ subroutine tree_local
   if ( me /= num_pe-1 ) then
      ! First find level shared by last particle pair in list
      key_lo = ieor( pekey(npp), pekey(npp-1) )   ! Picks out 1st position where keys differ
-     level_diff =  log(1.*key_lo)/log(8.) 
+     level_diff =  int(log(1.*key_lo)/log(8.))
      level_match = max( nlev - level_diff, 1 )    ! Excludes low-level end-cells for discontinuous domains
      ibit = nlev-level_match               ! bit shift factor 
 
@@ -86,7 +83,7 @@ subroutine tree_local
      if ( me == num_pe-1 ) iend = npp+1         ! End node only has one boundary particle
      ! First find level shared by first particle pair in list
      key_lo = ieor( pekey(1), pekey(2)  )   ! Picks out lower order bits where keys differ
-     level_diff =  log(1.0*key_lo)/log(8.) 
+     level_diff =  int(log(1.0*key_lo)/log(8.))
 
      level_match = max( nlev - level_diff, 1 )    ! Excludes low-level end-cells for discontinuous domains
      ibit = nlev-level_match               ! bit shift factor 
@@ -140,7 +137,7 @@ subroutine tree_local
      ! At a given level, these will be unique   
      do i=1,nlist
         subcell(i) = ishft( local_key(i), -3_8*ibit )    
-        cell_addr(i) = IAND( subcell(i), hashconst)         ! cell address hash function
+        cell_addr(i) = int(IAND( subcell(i), hashconst))         ! cell address hash function
      end do
 
      if (build_debug) then
@@ -172,7 +169,7 @@ subroutine tree_local
            htable(cell_addr(i))%leaves =  htable(cell_addr(i))%leaves + 1
            htable(cell_addr(i))%owner = me             ! Set owner of node equal to local PE
 
-        else                                    ! Entry exists and keys don't match
+        else                                    ! Entry exists and keys do not match
            ncoll = ncoll + 1                    ! Increment collision count
            res_addr(ncoll) = cell_addr(i)       ! Reduced list of addresses 
            res_key(ncoll) = subcell(i)          !     ..    .. of keys
@@ -271,7 +268,7 @@ subroutine tree_local
            local_plist( ipoint ) = 0                    ! label as done - removes particle from list
            htable( newentry(i) )%node = 0               ! remove node from #table
            htable( newentry(i) )%key = -1_8             ! but retain %link to dummy entry 
-                                                        ! in case it's in the middle of a chain
+                                                        ! in case it is in the middle of a chain
            htable( newentry(i) )%leaves = 0
            htable( newentry(i) )%childcode = 0 
         else if ( htable( newentry(i) )%leaves > 1 ) then
@@ -338,18 +335,18 @@ subroutine tree_local
   nsubset=0
 
   do i=1,nnodes-1
-     childbyte = IAND( treekey(i), hashchild)    ! extract last 3 bits from key
+     childbyte = int(IAND( treekey(i), hashchild))    ! extract last 3 bits from key
      parent_key = ishft( treekey(i),-3 )      ! parent key
      parent_addr = key2addr(parent_key,'BUILD: childbyte')
      ! Construct children byte-code (8 settable bits indicating which children nodes present)
      htable(parent_addr)%childcode = ibset( htable(parent_addr)%childcode, childbyte )
-     treelevel  = log(1.*treekey(i))/log(8.)     ! node levels 
+     treelevel  = int(log(1.*treekey(i))/log(8.))     ! node levels
      if (treelevel==1) then
         nsubset = nsubset+1  ! # nodes at level 1
         search_key(nsubset) = treekey(i)   ! Subset of nodes at same level
      endif
   end do
-  treelevel  = log(1.*treekey(nnodes))/log(8.)     ! node levels 
+  treelevel  = int(log(1.*treekey(nnodes))/log(8.))     ! node levels
   if (treelevel==1) then
      nsubset = nsubset+1  ! # nodes at level 1
      search_key(nsubset) = treekey(nnodes)   ! Subset of nodes at same level
@@ -396,7 +393,7 @@ subroutine tree_local
                                                         ! domain, causing 'gaps' in branch list
                                                         ! =>  Compute from particle keys for given level instead.
         do i=1,nsubset
-           treelevel  = log(1.*search_key(i))/log(8.)   ! node levels
+           treelevel  = int(log(1.*search_key(i))/log(8.))   ! node levels
            if ( (search_key(i) > keymin .and. search_key(i) < keymax .and. treelevel>=2) .or. &
 		( htable( key2addr( search_key(i),'BRANCHES: search' ) )%node > 0 )) then
               !  either middle node (complete twig),  or leaf:  so add to domain list

@@ -17,17 +17,14 @@ subroutine diagnose_tree
   integer :: key2addr        ! Mapping function to get hash table address from key
 
   integer*8 :: key_twig(ntwig), key_leaf(nleaf) 
-  integer, dimension(size_tree) :: node_list, owner_list, addr_list
-  integer, dimension(ntwig) :: level_twig, nchild_twig, child_twig, addr_twig, ind_twig      ! twig-nodes
-  real :: rcoc2(1:ntwig)
-  integer, dimension(nleaf) :: level_leaf, plist_leaf, ind_leaf, owner_leaf       ! leaf-nodes
+  integer, dimension(ntwig) :: child_twig, addr_twig, ind_twig      ! twig-nodes
+  real*8 :: rcoc2(1:ntwig)
+  integer, dimension(nleaf) :: plist_leaf, ind_leaf, owner_leaf       ! leaf-nodes
 
   character(30) :: cfile
   character(1) :: csnap, collision
-  integer ic(5),jc(5),lc(5)
 
-  integer :: i, ip, j, ilev, isnap, ibt,ierr
-  real :: s, xt, yt
+  integer :: i, isnap
 
   save isnap
   data isnap/1/

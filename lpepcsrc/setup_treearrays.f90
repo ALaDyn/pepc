@@ -1,4 +1,4 @@
-subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,init_mb,nppm_ori)
+subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,nppm_ori)
   use treevars
   use tree_utils
   implicit none
@@ -9,14 +9,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   integer, intent(in) :: n_cpu  ! MPI # CPUs
   integer, intent(in) :: npart_total  ! total (max) # simulation particles
   integer, intent(in) :: db_level
-  integer, intent(out) :: init_mb,nppm_ori
+  integer, intent(out) :: nppm_ori
 
-  integer :: ibig, machinebits,k
-  integer :: ierr,npsize,i
-  integer :: mem_parts, mem_multipoles, mem_fields, mem_tree, mem_prefetch, mem_tot, mem_lists
-  character(3) :: cme
-  character(30) :: cfile
-  real, parameter :: mb=2.**20
+  integer :: ierr,i
 
   type (particle) :: ship_props_a, get_props_a
   type (results) :: ship_props_b, get_props_b
@@ -95,7 +90,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 
   npartm = npart
   if (num_pe.eq.1) then
-    nppm=1.5*npart + 1000  ! allow for additional ghost particles for field plots
+    nppm=int(1.5*npart + 1000)  ! allow for additional ghost particles for field plots
 !  else if (np_mult<0) then 
 !    nppm = abs(np_mult)*max(npartm/num_pe,1000) ! allow 50% fluctuation
   else
@@ -111,8 +106,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   work_local = 1 ! Initial value for local load
 
   ! array allocation
-
-  init_mb = init_mb + nppm*(22*8 + 2*4 + 8) + 8*num_pe*4
 
   allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
        q(nppm), m(nppm), work(nppm), &
@@ -162,7 +155,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   call LOCADDRESS( ship_props_a%label, address(14), ierr )
   call LOCADDRESS( ship_props_a%pid, address(15), ierr )
 
-  displacements(1:nprops_particle) = address(1:nprops_particle) - send_base  !  Addresses relative to start of particle (receive) data
+  displacements(1:nprops_particle) = int(address(1:nprops_particle) - send_base)  !  Addresses relative to start of particle (receive) data
 
   call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_particle, ierr)
@@ -189,7 +182,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   call LOCADDRESS( ship_props_b%work, address(5), ierr )
   call LOCADDRESS( ship_props_b%label, address(6), ierr )
 
-  displacements(1:nprops_results) = address(1:nprops_results) - send_base  !  Addresses relative to start of results (receive) data
+  displacements(1:nprops_results) = int(address(1:nprops_results) - send_base)  !  Addresses relative to start of results (receive) data
 
   call MPI_TYPE_STRUCT( nprops_results, blocklengths, displacements, types, mpi_type_results, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_results, ierr)
@@ -240,7 +233,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   call LOCADDRESS( node_dummy%magmy, address(24), ierr )
   call LOCADDRESS( node_dummy%magmz, address(25), ierr )
 
-  displacements(1:nprops_multipole) = address(1:nprops_multipole) - send_base   !  Addresses relative to start of particle (receive) data
+  displacements(1:nprops_multipole) = int(address(1:nprops_multipole) - send_base)   !  Addresses relative to start of particle (receive) data
 
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
