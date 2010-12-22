@@ -98,7 +98,7 @@
 <compile cname="GNU-Linux">
 
     <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
-	                            lpepcsrc sl_pepc pepc-e" />
+	                            lpepcsrc sl_pepc pepc-e tools" />
 
     <!-- Create makefile.defs and substitute parameters -->
     <substitute infile="makefile.defs.jube" outfile="makefile.defs">
