@@ -37,7 +37,7 @@
 
 		 SCALASCA      = "off"
 
-		 npart         = "1000017,10000023,25000029" 
+		 npart         = "1000017" 
 		 geom          = "1,2,3"
 		 nt            = "50" 
 	         wscheme       = "1"
