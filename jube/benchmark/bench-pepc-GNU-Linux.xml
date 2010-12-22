@@ -37,11 +37,13 @@
 
 		 SCALASCA      = "off"
 
-                 geom          = "6"
-		 npart         = "5000" 
-                 nt            = "5" 
-	         wscheme       = "0"
-		 fetchmult     = "3"
+		 npart         = "1000017,10000023,25000029" 
+		 geom          = "1,2,3"
+		 nt            = "50" 
+	         wscheme       = "1"
+		 cscheme       = "0"
+		 csort         = "3"
+		 cbuild        = "1"
 		 npmult        = "3" /> 
 
     <prepare     cname = "PEPC" />

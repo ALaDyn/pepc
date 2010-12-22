@@ -86,11 +86,11 @@
         <sub from="#ENV#"             to="$env" />
         <sub from="#PREPROCESS#"      to="" />
         <sub from="#POSTPROCESS#"     to="" />
-        <sub from="#STARTER#"         to="~/local/soft/bin/mpirun" />
+        <sub from="#STARTER#"         to="mpirun" />
         <sub from="#ARGS_STARTER#"    to="-np $tasks" />
         <sub from="#MEASUREMENT#"     to="" />
         <sub from="#EXECUTABLE#"      to="$executable" />
-        <sub from="#ARGS_EXECUTABLE#" to="run.h" />
+        <sub from="#ARGS_EXECUTABLE#" to="./run.h" />
     </substitute>
 
     <environment>

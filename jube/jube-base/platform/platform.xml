@@ -1252,22 +1252,22 @@
             cpp             = "/usr/bin/cpp"
             cppflags        = "-P"
 
-            f77             = "ftn"
+            f77             = "f77"
             f77flags        = ""
 
-            f90             = "ftn"
-            f90flags        = ""
+	    f90             = "f90"
+	    f90flags        = "-ffree-line-length-none"
 
-            cc              = "cc"
+	    cc              = "cc"
             cflags          = ""
 
-            cxx             = "CC"
+	    cxx             = "mpifcxx"
             cxxflags        = ""
 
-            mpi_f90         = "ftn"
-            mpi_f77         = "ftn"
+	    mpi_f90         = "mpif90"
+	    mpi_f77         = "mpif90"
             mpi_cc          = "mpicc"
-            mpi_cxx         = "CC"
+	    mpi_cxx         = "mpifcc"
 
             ldflags         = ""
 
@@ -1365,22 +1365,22 @@
             cpp             = "cpp"
             cppflags        = "-P"
 
-            f77             = "gfortran"
-            f77flags        = ""
-
-            f90             = "gfortran"
-            f90flags        = ""
-
-            cc              = "gcc"
-            cflags          = ""
-
-            cxx             = "g++"
-            cxxflags        = ""
-
-            mpi_f90         = ""
-            mpi_f77         = ""
-            mpi_cc          = ""
-            mpi_cxx         = ""
+	    f77             = "f77"
+	    f77flags        = ""
+	    
+	    f90             = "f90"
+	    f90flags        = "-ffree-line-length-none"
+	    
+	    cc              = "cc"
+	    cflags          = ""
+	    
+	    cxx             = "mpifcxx"
+	    cxxflags        = ""
+	    
+	    mpi_f90         = "mpif90"
+	    mpi_f77         = "mpif90"
+	    mpi_cc          = "mpicc"
+	    mpi_cxx         = "mpifcc"
 
             ldflags         = ""
 

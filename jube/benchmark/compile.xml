@@ -98,7 +98,7 @@
 <compile cname="GNU-Linux">
 
     <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
-				    lpepcsrc pepc-e" />
+	                            lpepcsrc sl_pepc pepc-e" />
 
     <!-- Create makefile.defs and substitute parameters -->
     <substitute infile="makefile.defs.jube" outfile="makefile.defs">
@@ -109,15 +109,25 @@
        <sub from="#AR#"       to="$ar" />
        <sub from="#ARFLAGS#"  to="$arflags" />
        <sub from="#RM#"       to="$rm" />
+       
+       <sub from="#CPP#"           to="$cpp" />
+       <sub from="#CPPFLAGS#"      to="$cppflags -C
+	    `index('$writemode','binary')==0  ? '-DWRITE_PARTICLE_BINARY'  : ' '`
+	    `index('$writemode','sionlib')==0 ? '-DWRITE_PARTICLE_SIONLIB' : ' '`
+	    `index('$PAPI','on')==0 ? '-I/usr/local/beta/papi-3.6.2/include -DPEPC_USE_PAPI_$PAPI_SCOPE' : ' '`" />
 
+       <sub from="#CCPRE#"         to=" " />
+       <sub from="#MPI_CC#"        to="$mpi_cc" />
+       <sub from="#CFLAGS#"        to="$cflags $optflags" />    
+       
        <sub from="#FCPRE#"    to="" />
-       <sub from="#MPI_F90#"  to="$f90" />
-       <sub from="#F90FLAGS#" to="-I ~/local/soft/include $f90flags $optflags" />    
+       <sub from="#MPI_F90#"  to="$mpi_f90" />
+       <sub from="#F90FLAGS#" to="$f90flags $optflags" />    
 
        <sub from="#LDPRE#"    to="" />
-       <sub from="#LD#"       to="$f90" />
+       <sub from="#LD#"       to="$mpi_f90" />
        <sub from="#LDFLAGS#"  to="$ldflags $optflags" />
-       <sub from="#LDLIBS#"   to="-L ~/local/soft/lib -lmpich -lpthread" />
+       <sub from="#LDLIBS#"   to="-lmpich -lpthread" />
 
        <sub from="#EXECNAME#" to="$execname" />
     </substitute>
