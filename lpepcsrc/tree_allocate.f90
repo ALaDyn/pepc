@@ -98,7 +98,7 @@ subroutine tree_allocate(theta)
 
   free_addr = 0
 
-  do k=1,maxaddress
+  do k=0,maxaddress
     htable(k)%node      =  0
     htable(k)%key       =  0_8
     htable(k)%link      = -1
