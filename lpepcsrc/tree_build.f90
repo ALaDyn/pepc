@@ -46,11 +46,13 @@ subroutine tree_build
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | LOCAL BUILD'
 
   ! zero table: need list of 'live' addresses to speed up
-  htable%node = 0
-  htable%leaves = 0
-  htable%childcode = 0
-  htable%link = -1
-  htable%key = 0_8
+  do i=1,maxaddress
+    htable(i)%node      =  0
+    htable(i)%key       =  0_8
+    htable(i)%link      = -1
+    htable(i)%leaves    =  0
+    htable(i)%childcode =  0
+  end do
 
   do i=1,npp+2
      local_plist(i) = pelabel(i)       ! Particle (global) label for tracking purposes 

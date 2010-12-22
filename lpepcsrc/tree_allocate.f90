@@ -95,12 +95,16 @@ subroutine tree_allocate(theta)
        fetched_owner(size_fetch), fetched_keys(size_fetch), requested_owner(size_fetch), requested_keys(size_fetch) )
 
   all_addr = (/ (k,k=0,maxaddress) /)      ! List of all possible # table addresses
+
   free_addr = 0
-  htable%node = 0
-  htable%key = 0
-  htable%link = -1
-  htable%leaves = 0
-  htable%childcode = 0
+
+  do k=1,maxaddress
+    htable(k)%node      =  0
+    htable(k)%key       =  0_8
+    htable(k)%link      = -1
+    htable(k)%leaves    =  0
+    htable(k)%childcode =  0
+  end do
 
   ! Allocate memory for tree node properties
 
