@@ -44,12 +44,12 @@ program pepce
 
   call benchmark_pre
 
-  ! Time stamp
-!  if (my_rank==0) call stamp(6,1)
-!  if (my_rank==0) call stamp(15,1)
-
   ! Set up O/P files
   call openfiles
+
+  ! Time stamp
+  if (my_rank==0) call stamp(6,1)
+  if (my_rank==0) call stamp(15,1)
 
   ! Each CPU gets copy of initial data
   call setup()
@@ -161,12 +161,12 @@ program pepce
   ! deallocate array space for particles
   call cleanup(my_rank,n_cpu)
   
-  ! Tidy up O/P files
-  call closefiles      
-
   ! Time stamp
   if (my_rank==0) call stamp(6,2)
   if (my_rank==0) call stamp(15,2)
+
+  ! Tidy up O/P files
+  call closefiles
 
   call benchmark_end
 
