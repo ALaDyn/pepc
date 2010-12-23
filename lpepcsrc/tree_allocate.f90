@@ -98,13 +98,8 @@ subroutine tree_allocate(theta)
 
   free_addr = 0
 
-  do k=0,maxaddress
-    htable(k)%node      =  0
-    htable(k)%key       =  0_8
-    htable(k)%link      = -1
-    htable(k)%leaves    =  0
-    htable(k)%childcode =  0
-  end do
+  ! Empty hashtable
+  htable = hash(0,0_8,-1,0,0,0_8,0)
 
   ! Allocate memory for tree node properties
 
