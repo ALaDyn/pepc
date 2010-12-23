@@ -12,15 +12,15 @@ CPPFLAGS = -P -C
 
 FCPRE    = 
 FC       = mpixlf90_r
-FFLAGS   = -qtune=450 -qarch=450 -O3 -qipa -qipa=inline=key2addr
+FFLAGS   = -qtune=450 -qarch=450 -qipa -qipa=inline=key2addr -g -qfullpath
 
 CCPRE    = 
 CC       = mpixlc_r
-CFLAGS   = 
+CFLAGS   = -g
 
 LDPRE    = 
 LD       = mpixlf90_r
-LDFLAGS  = -qtune=450 -qarch=450 -qipa -qipa=inline=key2addr
+LDFLAGS  = -qtune=450 -qarch=450 -qipa -qipa=inline=key2addr -g -qfullpath
 LDLIBS   = 
 
 RM       = rm -rf
