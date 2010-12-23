@@ -18,7 +18,7 @@
 
 <!-- ********************************************************** -->
 
-<benchmark name="scaling" active="1">
+<benchmark name="test_and_verify" active="1">
     <!-- version="reuse|new" -->
     <compile     cname           = "$platform"   
                  version         = "new"
@@ -27,13 +27,15 @@
 		 CMP_GPROF       = "$GPROF" 
 		 CMP_SCALASCA    = "$SCALASCA"/>
 
-    <tasks       threadspertask = "1"   taskspernode = "1,2,4"   nodes = "1" />
+    <tasks       threadspertask = "1"   taskspernode = "4"   nodes = "1" />
 
-    <params      COMMENT       = "scaling"
+    <params      COMMENT       = "scaling test"
                  PERL_CMD      = "perl"
-                 optflags      = "-O2"
+                 optflags      = "-O3"
 
-                 GPROF         = "off"
+		 writemode     = "binary"
+                 
+		 GPROF         = "off"
 
 		 SCALASCA      = "off"
 
@@ -44,7 +46,7 @@
 		 cscheme       = "0"
 		 csort         = "3"
 		 cbuild        = "1"
-		 npmult        = "3" /> 
+		 npmult        = "-200" /> 
 
     <prepare     cname = "PEPC" />
 
