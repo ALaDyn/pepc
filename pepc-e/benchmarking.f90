@@ -202,7 +202,6 @@ contains
   subroutine write_particles(step)
     
     use physvars
-    use utils
     implicit none
 
     include 'mpif.h'

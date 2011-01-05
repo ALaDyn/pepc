@@ -13,7 +13,6 @@ module energies
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine energy_cons(ekine,ekini)
       use physvars
-      use utils
       implicit none
 
       real*8 :: epot, ekine, ekini, etot

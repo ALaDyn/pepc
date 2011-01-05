@@ -83,7 +83,6 @@ end subroutine par_rand
 subroutine special_start(iconf)
 
   use physvars
-  use utils
   implicit none
   include 'mpif.h'
 

@@ -15,7 +15,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
 
   use treevars
   use tree_utils
-  use utils
   use timings
   implicit none
   include 'mpif.h'
@@ -169,7 +168,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
      !         '  key,                  label        coords              q ', &
      !         (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=max(1,npp-10),npp) 
 
-     call blankn(ipefile)
+     write(ipefile,'(/)')
   endif
 
   ! Use Parallel Sort by Regular Sampling (PSRS) 
@@ -464,7 +463,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
           (pekey(i),pepid(i),source_pe(i),'|', &
           pelabel(i),x(i),y(i),z(i),ixd(i)*s+xmin,iyd(i)*s+ymin,izd(i)*s+zmin,i=1,npp) 
 
-     call blankn(ipefile)
+     write(ipefile,'(/)')
   endif
 
 
@@ -614,7 +613,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
           ' index   key,     label,   on PE,    x      y     q       m', &
           (i,pekey(i),pelabel(i),pepid(i),x(i),y(i),z(i),q(i),m(i),i=1,npp+1+inc) 
 
-     call blankn(ipefile)
+     write(ipefile,'(/)')
   endif
 
   ta1e = MPI_WTIME()

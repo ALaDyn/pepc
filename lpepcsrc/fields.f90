@@ -17,7 +17,6 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      mac, theta, eps, force_const, err_f, itime, choose_sort,weighted, choose_build)
 
   use treevars
-  use utils
   use timings
   implicit none
   include 'mpif.h'

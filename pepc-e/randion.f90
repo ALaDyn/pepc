@@ -11,7 +11,7 @@
 subroutine randion
 
     use physvars
-    use utils
+    use velocity_setup
 
     implicit none
 

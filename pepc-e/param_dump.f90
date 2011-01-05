@@ -1,7 +1,6 @@
 subroutine param_dump
 
   use physvars
-  use utils
   implicit none
   integer :: ifile
 

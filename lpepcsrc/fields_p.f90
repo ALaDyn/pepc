@@ -19,7 +19,6 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
      t_domain,t_build,t_prefetch, t_walk, t_walkc, t_force, iprot,total_work)
 
   use treevars
-  use utils
   implicit none
   include 'mpif.h'
 

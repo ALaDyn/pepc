@@ -734,7 +734,7 @@ search_list = 8_8**lev_map  ! place holder
          if (j < r) then
             if (iarr(j) < iarr(j+1)) j = j+1
          endif
-         if (a >= iarr(j)) exit       ! Found a's level, so terminate sift-down
+         if (a >= iarr(j)) exit       ! Found a`s level, so terminate sift-down
          iarr(jold) = iarr(j)
          jold = j                    ! Demote a and continue
          j = j+j

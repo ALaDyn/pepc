@@ -40,7 +40,6 @@
 subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex_nps,ey_nps,ez_nps,np_local)
   use treevars
   use tree_utils
-  use utils
   implicit none
   include 'mpif.h'
 
