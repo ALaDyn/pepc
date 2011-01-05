@@ -7,7 +7,7 @@ subroutine tree_deallocate(nppm_ori)
   integer, intent(in) :: nppm_ori
 
   nppm = nppm_ori
-  if (me==0) write(*,*) 'Deallocating multipole fields'
+  if (me==0 .and. tree_debug) write(*,*) 'Deallocating multipole fields'
 
   
  ! interaction key-, node-lists
