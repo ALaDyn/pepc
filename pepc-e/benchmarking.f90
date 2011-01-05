@@ -101,7 +101,11 @@ contains
           if(debug) write(*,'(a,i12,a,i12,a,i12)') "from rank", my_rank, " particle is here, with label ", &
                pelabel(target_particle_local), " local target ", target_particle_local
 
-          if(pelabel(target_particle_local) .ne. target_particle) stop
+          if(pelabel(target_particle_local) .ne. target_particle) then
+            write(*,*) "Error in gather_particle_diag(): pelabel(target_particle_local) = ", &
+                         pelabel(target_particle_local), ", target_particle = ", target_particle
+            call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+          endif
 
           diag_pos_vel_buf(1) = x(target_particle_local)
           diag_pos_vel_buf(2) = y(target_particle_local)
