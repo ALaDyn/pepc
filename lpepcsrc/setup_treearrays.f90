@@ -1,6 +1,7 @@
 subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,nppm_ori)
   use treevars
   use tree_utils
+  use module_fmm_framework
   implicit none
   include 'mpif.h'
 
@@ -43,7 +44,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   walk_debug=.false.
   walk_summary=.false.
   dump_tree=.false.
-
+  periodic_debug=.false.
 
   if (db_level==1) then
 !      domain_debug = .true.
@@ -58,6 +59,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
       walk_summary=.true.
       prefetch_debug=.false. 
       domain_debug = .true.
+      periodic_debug=.true.
 
   else if (db_level==4) then
      tree_debug=.true.
@@ -69,6 +71,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
      walk_debug=.true.
      walk_summary=.true.
      force_debug=.true.
+     periodic_debug=.true.
 
   else if (db_level==5) then
      dump_tree=.true.
@@ -83,6 +86,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
      walk_summary=.true.
      force_debug=.true.
      dump_tree=.true.
+     periodic_debug=.true.
   else
 ! all off by default
 

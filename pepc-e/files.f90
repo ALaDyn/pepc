@@ -14,11 +14,17 @@ module files
     subroutine openfiles
       use physvars
 
+      character(30) :: cfile
+
       if (my_rank == 0) then
          !  master diagnostics output
          open(15,file='run.out')
-         open(81,file='parts_all.dat')
          open(70,file='domains.dat')
+     endif
+
+     if (db_level > 0) then
+       write(cfile,'(a,i6.6,a)') "diag_", my_rank, ".dat"
+       open(20, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
      endif
 
     end subroutine openfiles
@@ -31,7 +37,6 @@ module files
 
       if (my_rank == 0) then
          close(15)
-         close(81)  ! particle dump
          close(70)
       endif
 

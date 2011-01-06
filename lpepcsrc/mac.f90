@@ -8,9 +8,8 @@
 !>	2  Bmax - replace s with longest sep between coq and box corner
 !>	3  Upper bound: Use E-field from previous step to estimate acceptable error and equiv dmin 
 !>	10 Periodic variant of s/d - use nearest min. image and return its quadrant for force sum.
-!>         - returns the index offset of the nearest image`s cell as an integer(3) array in neighbour
 
-subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, neighbour)
+subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, vbox)
   use treevars
   implicit none
  
@@ -19,7 +18,7 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
   real, intent(in) :: boxl2 !< square of the boxlength of the cell in question
   real, intent(in) :: theta2 !< square of the multipole acceptance parameter
   logical, intent(out) :: mac_ok !< on exit: if cell needs not be resolved: .true. else .false.
-  integer, intent(out) :: neighbour(3) !< only for periodic mode: contains offsets to nearest  image cell (i,j,k)
+  integer, intent(in) :: vbox(3) !< only for periodic mode: contains vector to the actually processed near-field box
   integer, intent(in) :: mac
   integer, intent(in) :: p
   real*8, intent(in) :: walk_abs_charge
@@ -47,7 +46,6 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
   nbits = int(log( 1.*walk_key )/log(8.))
 ! should use:
 !  nbits = node_level(walk_node)
-  neighbour = 0
 
 ! TODO: need to prestore boxl and corner coord as tree node property
 ! Do this at end of tree_fill and then for new nodes added during tree walk
@@ -66,10 +64,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
   select case(mac) 
   case(0)                               ! BH-MAC
      ! write(*,*) "MAC0"
-     dx = x(p) - xcoc( walk_node )      ! Separations
-     dy = y(p) - ycoc( walk_node )
-     dz = z(p) - zcoc( walk_node )
-     
+     dx = x(p) - ( xcoc( walk_node ) + vbox(1) )     ! Separations
+     dy = y(p) - ( ycoc( walk_node ) + vbox(2) )
+     dz = z(p) - ( zcoc( walk_node ) + vbox(3) )
        
      dist2 = theta2*(dx*dx+dy*dy+dz*dz)
 
@@ -82,9 +79,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
      pz = z(p) 
   
    
-     xt=ix*boxl + xmin
-     yt=iy*boxl + ymin
-     zt=iz*boxl + zmin
+     xt= ( ix*boxl + vbox(1) ) + xmin
+     yt= ( iy*boxl + vbox(2) ) + ymin
+     zt= ( iz*boxl + vbox(3) ) + zmin
      
      
      x_min = xt
@@ -117,19 +114,19 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
   case(2)                               !b_max-MAC
     
      !write(*,*)"MAC2"
-     x_wn = xcoc( walk_node )
-     y_wn = ycoc( walk_node )
-     z_wn = zcoc( walk_node )
+     x_wn = xcoc( walk_node ) + vbox(1)
+     y_wn = ycoc( walk_node ) + vbox(2)
+     z_wn = zcoc( walk_node ) + vbox(3)
 
      dx = x(p) - x_wn      
      dy = y(p) - y_wn
      dz = z(p) - z_wn
 
      
-     xt=ix*boxl + xmin
-     yt=iy*boxl + ymin
-     zt=iz*boxl + zmin
- !    write(*,*) xmin,ymin,zmin
+     xt= ( ix*boxl + vbox(1) ) + xmin
+     yt= ( iy*boxl + vbox(2) ) + ymin
+     zt= ( iz*boxl + vbox(3) ) + zmin
+     !    write(*,*) xmin,ymin,zmin
      
 !     b_max2 = 0
 !     b_temp = 0
@@ -192,10 +189,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
 
      field_old = sqrt(p_ex_p**2 + p_ey_p**2 + p_ez_p**2)
 
-     dx = x(p) - xcoc( walk_node )      
-     dy = y(p) - ycoc( walk_node )
-     dz = z(p) - zcoc( walk_node )
-     
+     dx = x(p) - ( xcoc( walk_node ) + vbox(1) )
+     dy = y(p) - ( ycoc( walk_node ) + vbox(2) )
+     dz = z(p) - ( zcoc( walk_node ) + vbox(3) )
      
      dist = sqrt((dx*dx+dy*dy+dz*dz)) !Distance between COC and particle
      
@@ -206,19 +202,19 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
      alpha = 1000
 
 
-     dx = x(p) - xcoc( walk_node )      
-     dy = y(p) - ycoc( walk_node )
-     dz = z(p) - zcoc( walk_node )
+     dx = x(p) - ( xcoc( walk_node ) + vbox(1) )
+     dy = y(p) - ( ycoc( walk_node ) + vbox(2) )
+     dz = z(p) - ( zcoc( walk_node ) + vbox(3) )
 
- 
-     xt=ix*boxl + xmin
-     yt=iy*boxl + ymin
-     zt=iz*boxl + zmin
-     
+
+     xt= ( ix*boxl + vbox(1) ) + xmin
+     yt= ( iy*boxl + vbox(2) ) + ymin
+     zt= ( iz*boxl + vbox(3) ) + zmin
+
     
-     x_wn = xcoc( walk_node )
-     y_wn = ycoc( walk_node )
-     z_wn = zcoc( walk_node )
+     x_wn = xcoc( walk_node ) + vbox(1)
+     y_wn = ycoc( walk_node ) + vbox(2)
+     z_wn = zcoc( walk_node ) + vbox(3)
 
      b_max2 = 0
      b_temp = 0
@@ -242,48 +238,6 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
      rc = sqrt(b_max2)/2 + sqrt(sqrt(3*B2/alpha)+(b_max2/4))
      
      mac_ok = (dx**2+dy**2+dz**2 > rc**2)
-
-     
-!  case(10)                              ! BH-MAC periodic
-!     dx = x(p) - xcoc( walk_node )      ! Separations
-!     dy = y(p)  - ycoc( walk_node )
-!     dz = z(p) - zcoc( walk_node )
-     
-!     if (dx.gt.Ldiv2) then
-!        deltax = dx-periodic_L
-!        neighbour(1) = -1
-!     else if (dx.le.(-Ldiv2)) then
-!        deltax = dx+periodic_L
-!        neighbour(1) = +1
-!     else
-!        deltax = dx
-!        neighbour(1) = 0
-!     end if
-     
-!     if (dy.gt.Ldiv2) then
-!        deltay = dy-periodic_L
-!        neighbour(2) = -1
-!     else if (dy.le.(-Ldiv2)) then
-!        deltay = dy+periodic_L
-!        neighbour(2) = +1
-!     else
-!        deltay = dy
-!        neighbour(2) = 0
-!     end if
-     
-!     if (dz.gt.Ldiv2) then
-!        deltaz = dz-periodic_L
-!        neighbour(3) = -1
-!     else if (dz.le.(-Ldiv2)) then
-!        deltaz = dz+periodic_L
-!        neighbour(3) = +1
-!     else
-!        deltaz = dz
-!        neighbour(3) = 0
-!     end if
-!     dist2 = theta2*(deltax*deltax+deltay*deltay+deltaz*deltaz)
-!     mac_ok = (dist2 > boxl2) 
-
 
   end select
 

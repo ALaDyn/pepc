@@ -66,7 +66,6 @@ module physvars
   real :: rho_upper      ! shelf/profile density above x_crit (/nc)
   real :: Vplas          ! plasma volume
   real :: a_ii           ! mean ion spacing
-  real :: r_neighbour    ! nearest-neighbour search radius
   real :: eps            ! potential/force law cutoff
   real :: err_f          ! user-specified force error tolerance
   real :: delta_mc       ! step size for MC config
@@ -75,7 +74,6 @@ module physvars
   real :: rho_min        ! min density for exponential ramp
   real :: lolam          ! L/lambda density scale-length
   real :: q_factor       ! Charge factor
-  real :: fnn            ! Near-neighbour factor
   real*8 :: Ukine          ! Electron kinetic energy
   real*8 :: Ukini          ! Ion kinetic energy
   real*8 :: Umagnetic           ! Magnetic energy
@@ -152,7 +150,6 @@ module physvars
   integer :: ispecial       ! Switch to select special electron configs 
   integer :: choose_sort, weighted, choose_build
   integer :: scheme = 1 ! Integrator scheme switch: 2-4= const. Te dynamics, 6=EM
-  integer :: particle_bcs = 1 ! Particle BC switch: 1=open, 2=reflective
   integer :: debug_level =0 ! Debug level for printed O/P
 
    real :: dt             ! timestep

@@ -73,6 +73,7 @@ lpepc:  ../lpepcsrc/$(MACH)/liblpepc.a
 	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/tree_utils.mod $(PREFIX)/pepc-e/tree_utils.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/utils.mod $(PREFIX)/pepc-e/utils.mod
 	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/timings.mod $(PREFIX)/pepc-e/timings.mod
+	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/module_fmm_framework.mod $(PREFIX)/pepc-e/module_fmm_framework.mod 
 
 clean:
 	$(RM) $(MACH)/*.o  *% *~ bin/key rand *.o *.pif core *.mod $(MACH)/*.mod module.deps $(EXECNAME)

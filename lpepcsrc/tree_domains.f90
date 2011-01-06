@@ -282,8 +282,12 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
              indxl,irnkl,islen,irlen,fposts,gposts)
 
         if (domain_debug) then
-           write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
-           write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
+          if (npnew > 20) then
+            write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
+            write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
+          else
+            write (ipefile,'(a/(i5,z20))') 'output array: ',(i,w1(i),i=1,npnew)
+          endif
         endif
 
         ! Check if sort finished

@@ -83,6 +83,7 @@ end subroutine par_rand
 subroutine special_start(iconf)
 
   use physvars
+  use module_fmm_framework
   implicit none
   include 'mpif.h'
 
@@ -92,7 +93,8 @@ subroutine special_start(iconf)
   real*8 :: yt,zt,xt, r1,fr
   real*4 ::dx
   integer :: np_local_max
-  integer :: i,j
+  real*8 :: delta(3)
+  integer :: i,j,k,n(3), myidx, globalidx
   real*8 a,b,c,cth,sth,cphi,sphi,s
 
   integer :: fances(-1:n_cpu-1)
@@ -349,6 +351,74 @@ subroutine special_start(iconf)
            end if
         end do
      end do
+
+
+  case(7)
+
+    n(1) = NINT((npart_total/8)**(1./3.))*2
+    n(2) = NINT((npart_total/n(1)/4)**(1./2.))*2
+    n(3) = npart_total/n(1)/n(2)
+
+    if (my_rank == 0) write(*,*) "Using special start... case 7 (3D Madelung Setup) with", n, "particles per edge"
+
+    qe = -1.0
+    qi = -qe
+
+    delta(1) = sqrt(dot_product(t_lattice_1,t_lattice_1))/real(n(1))
+    delta(2) = sqrt(dot_product(t_lattice_2,t_lattice_2))/real(n(2))
+    delta(3) = sqrt(dot_product(t_lattice_3,t_lattice_3))/real(n(3))
+
+    myidx     = 0
+    globalidx = 0
+
+    do i = 0, n(1)-1
+      do j = 0, n(2)-1
+        do k = 0, n(3)-1
+
+          globalidx = globalidx + 1
+
+          if ( mod((globalidx-1)/2,n_cpu) == my_rank) then ! distribute pairs of electron and ion, since np_local is constructed a bit weird
+            myidx = myidx + 1
+
+            x(myidx)  = (i + 0.5)*delta(1)
+            y(myidx)  = (j + 0.5)*delta(2)
+            z(myidx)  = (k + 0.5)*delta(3)
+            ux(myidx) = 0
+            uy(myidx) = 0
+            uz(myidx) = 0
+
+            if (mod(i+j+k, 2) == 0) then
+              q(myidx) = qe
+              m(myidx) = mass_e
+            else
+              q(myidx) = qi
+              m(myidx) = mass_i
+            end if
+
+          end if
+
+        end do
+      end do
+    end do
+
+    pelabel(1:nep)            = my_rank * nep + (/(i, i = 1, nep)/)      ! Electron labels
+    pelabel(nep + 1:np_local) = ne + my_rank * nip + (/(i, i = 1, nip)/) ! Ion labels
+    ex(1:np_local) = 0.
+    ey(1:np_local) = 0.
+    ez(1:np_local) = 0.
+    pot(1:np_local) = 0.
+
+    work(1:np_local) = 1.
+
+    if (myidx .ne. np_local) write(*,*) "ERROR in special_start(7): PE", my_rank, "set up", myidx, &
+        "particles, but np_local=", np_local, "globalidx=", globalidx, "npart_total=",npart_total
+
+    !write(*,*) "Particle positions: "
+    !do i=1,np_local
+    !  write(*,*) my_rank,i,x(i), y(i), z(i), q(i), pelabel(i)
+    !end do
+
+    return ! do not execute the stuff below in this case, since this messes up charges etc.
 
   case(9)
 

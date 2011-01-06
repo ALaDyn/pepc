@@ -6,8 +6,8 @@
 ! number of particles, here ions
 ! ne = 200000
 ! ni = 200000
- ne = 12800000
- ni = 12800000
+ ne = 1280
+ ni = 1280
 ! ni = 12800000
 
 ! initial particle distribution
@@ -17,6 +17,16 @@
 ! number of timesteps
  nt = 10
  
+! fmm-periodicity framework
+! lattice basis vectors
+  t_lattice_1 = 1.0   0.0   0.0
+  t_lattice_2 = 0.0   1.0   0.0
+  t_lattice_3 = 0.0   0.0   1.0
+! periodicity in x-, y-, and z-direction
+  periodicity = .true.  .true.  .true.
+! extrinsic-to-intrinsic correction
+  do_extrinsic_correction = .false.
+
 ! communication scheme
 ! 0: point-to-point, 1: collectives
  scheme = 0

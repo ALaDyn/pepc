@@ -6,13 +6,14 @@
 !
 !  ===================================================================
 
-subroutine sum_bfield( p, n, inode, eps, sumbx, sumby, sumbz, sumax, sumay, sumaz )
+subroutine sum_bfield( p, n, inode, vbox, eps, sumbx, sumby, sumbz, sumax, sumay, sumaz )
   use treevars
   implicit none
   integer, intent(in) :: p  ! particle label 
   integer, intent(in) :: n  !  # terms on interaction list
   integer, dimension(1:n) ::  inode
   real, intent(in) :: eps ! smoothing parameter
+  real*8, intent(in) :: vbox(3) !< vector to neighbour box that is currently processed
   integer :: jnode, i,j
 
   real*8 :: rd,dx,dy,dz,d
@@ -51,9 +52,9 @@ subroutine sum_bfield( p, n, inode, eps, sumbx, sumby, sumbz, sumax, sumay, suma
      i = 10*(j-1) + 1  ! multipole index
 !     k = 3*(j-1) + 1  ! coc index
      jnode=inode(j)
-     dx = x(p) - xcoc(jnode)
-     dy = y(p) - ycoc(jnode)
-     dz = z(p) - zcoc(jnode) 
+     dx = x(p) - ( xcoc(jnode) + vbox(1) )
+     dy = y(p) - ( ycoc(jnode) + vbox(2) )
+     dz = z(p) - ( zcoc(jnode) + vbox(3) )
 
      d = sqrt(dx**2+dy**2+dz**2+eps2)
      rd = 1./d

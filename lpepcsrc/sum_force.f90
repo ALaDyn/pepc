@@ -6,7 +6,7 @@
 !
 !  ===================================================================
 
-subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
+subroutine sum_force( p, n, inode, vbox, eps, sumfx, sumfy, sumfz, sumphi, load )
   use treevars
   implicit none
 
@@ -16,6 +16,7 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
   integer, intent(in) :: n  !  # terms on interaction list
   integer, dimension(1:n) ::  inode
   real, intent(in) :: eps ! smoothing parameter
+  real*8, intent(in) :: vbox(3) !< vector to neighbour box that is currently processed
   real*8, intent(out) :: load ! work load for particle p
   integer :: jnode, i,j,k 
 
@@ -62,9 +63,9 @@ subroutine sum_force( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi, load )
      !     dx = x(p) - xcoc(jnode)
      !     dy = y(p) - ycoc(jnode)
      !     dz = z(p) - zcoc(jnode) 
-     dx = x(p) - coc(k)
-     dy = y(p) - coc(k+1)
-     dz = z(p) - coc(k+2) 
+     dx = x(p) - ( coc(k)   + vbox(1) )
+     dy = y(p) - ( coc(k+1) + vbox(2) )
+     dz = z(p) - ( coc(k+2) + vbox(3) )
 
      d = sqrt(dx**2+dy**2+dz**2+eps2)
      rd = 1./d

@@ -14,10 +14,12 @@
 
 subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, t_np_mult,t_fetch_mult, &
-     mac, theta, eps, force_const, err_f, itime, choose_sort,weighted, choose_build)
+     mac, theta, eps, force_const, err_f, itime, choose_sort,weighted, choose_build, &
+     num_neighbours, neighbours)
 
   use treevars
   use timings
+  use module_fmm_framework
   implicit none
   include 'mpif.h'
 
@@ -29,11 +31,11 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   integer, intent(in) :: itime  ! timestep
   integer, intent(in) :: mac, choose_sort, weighted, choose_build
   real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
-!  real*8, intent(in),  dimension(np_local) :: p_vx, p_vy, p_vz  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
   real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
   integer, intent(in), dimension(np_local) :: p_label  ! particle label 
   real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
-
+  integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
+  integer, intent(in) :: neighbours(3, num_neighbours) !< list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
   real*8, dimension(nppm_ori) :: ex_tmp,ey_tmp,ez_tmp,pot_tmp,w_tmp
   real*8, dimension(np_local) :: p_w ! work loads
   
@@ -56,15 +58,17 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   integer :: iprot = 50  ! frequency for load balance dump
 
   real*8 :: phi_coul, ex_coul, ey_coul, ez_coul ! partial forces/pot
+  real*8 :: phi_lattice, ex_lattice, ey_lattice, ez_lattice ! partial forces/pot
   real*8 :: load_average, load_integral
   real :: total_work, average_work
   integer :: total_parts
+  integer :: ibox
+  real*8 :: vbox(3)
   character(30) :: cfile
   character(4) :: cme
 
 !  real*8 :: p_ex_nps(nshortm),p_ey_nps(nshortm),p_ez_nps(nshortm)
 
-  call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
   ts1b = MPI_WTIME()
   ta1b = MPI_WTIME()
 
@@ -111,6 +115,9 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      az(i) = 0.
   end do
 
+  ! calculate spherical multipole expansion of central box
+  call fmm_framework_timestep
+
   ta1e = MPI_WTIME()
   t_fields_begin = ta1e-ta1b
   ta1b = MPI_WTIME()
@@ -154,11 +161,11 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   nshort_list =nshortm/4 
   npass = max(1,npart/num_pe/nshort_list)   ! ave(npp)/nshort_list   - make nshort_list a power of 2
   load_average = SUM(work(1:npp))/npass   ! Ave. workload per pass: same for all PEs if already load balanced
-  nshort(1:npass+1) = 0
+  nshort = 0 ! set length of all shortlists to zero
 
   load_integral = 0.
-  jpass = 1
-  pstart(jpass) = 1
+  jpass = 1  ! number of necessary passes
+  pstart = 1 ! all shortlists will start at particle 1 for now
   do i=1,npp
      load_integral = load_integral + work(i)   ! integrate workload
 
@@ -179,77 +186,105 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   if (me==0 .and. walk_summary) write (*,*) 'LPEPC | Passes:',npass
   if (jpass-1 > npass ) then
-     write(*,*) 'Step',itime,', PE',me,' missed some:',nshort(npass+1)
-     if (nshort(npass) + nshort(npass+1) <= nshortm) then
-        nshort(npass) = nshort(npass) + nshort(npass+1)
-     else
-        npass = npass+1
-     endif
+    ! this PE has wants to perform more passes than we estimated before
+    ! if we only added one pass and there is enough space in the last but one, we just put the particles there
+    if ((jpass-2 == npass ) .and. (nshort(npass) + nshort(npass+1) <= nshortm)) then
+      write(*,*) 'Step',itime,', PE',me,' putting particles from pass ', npass+1, 'to the previous one'
+      nshort(npass) = nshort(npass) + nshort(npass+1)
+    else
+      npass = npass+1
+    endif
   endif
 
   if (force_debug)   write (ipefile,*) 'Shortlists: ',(nshort(j),j=1,npass+1)
 
-  max_npass = npass
+  ! all PEs have to perform the same number of passes, otherwise the collective operations in tree_walk() will fail
+  call MPI_ALLREDUCE(npass, max_npass, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
 
   ip1 = 1
 
   ta1e = MPI_WTIME()
   t_fields_nshort = ta1e-ta1b
   ta1b = MPI_WTIME()
-  
-  do jpass = 1,max_npass
-     !  make short-list
-     nps = nshort(jpass)
-     ip1 = pstart(jpass)
-     pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
 
-     if (force_debug) then
-       	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
-        write(ipefile,*) 'pass ',jpass,' # parts ',ip1,' to ',ip1+nps-1
-     endif
+  pot_tmp = 0.
+  ex_tmp  = 0.
+  ey_tmp  = 0.
+  ez_tmp  = 0.
+  work    = 0.
+
+  do ibox = 1,num_neighbours ! sum over all boxes within ws=1
+
+    vbox = lattice_vect(neighbours(:,ibox))
+
+    do jpass = 1,max_npass
+      !  make short-list
+      nps = nshort(jpass)
+      ip1 = pstart(jpass)
+      pshortlist(1:nps) = (/ (ip1+i-1, i=1,nps) /)
+
+      if (force_debug) then
+        	write(*,*) 'pass ',jpass,' of ',max_npass,': # parts ',ip1,' to ',ip1+nps-1
+         write(ipefile,*) 'pass ',jpass,' # parts ',ip1,' to ',ip1+nps-1
+      endif
      
-     !  build interaction list: 
-     ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
+      !  build interaction list:
+      ! tree walk creates intlist(1:nps), nodelist(1:nps) for particles on short list
      
-     call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
+      call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,vbox)
 
-     t_walk = t_walk + ttrav  ! traversal time (serial)
-     t_walkc = t_walkc + tfetch  ! multipole swaps
+      t_walk = t_walk + ttrav  ! traversal time (serial)
+      t_walkc = t_walkc + tfetch  ! multipole swaps
 
-     ta2b = MPI_WTIME()
-     do i = 1, nps
+      ta2b = MPI_WTIME()
 
-       p = pshortlist(i)    ! local particle index
+      do i = 1, nps
+
+        p = pshortlist(i)    ! local particle index
        
-       pot_tmp(p) = 0.
-       ex_tmp(p) = 0.
-       ey_tmp(p) = 0.
-       ez_tmp(p) = 0.
+        !  compute Coulomb fields and potential of particle p from its interaction list
+        call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), vbox, eps, &
+                           ex_coul, ey_coul, ez_coul, phi_coul, work(p))
 
-       !  compute Coulomb fields and potential of particle p from its interaction list
-       call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
+        pot_tmp(p) = pot_tmp(p) + force_const * phi_coul
+        ex_tmp(p)  = ex_tmp(p)  + force_const * ex_coul
+        ey_tmp(p)  = ey_tmp(p)  + force_const * ey_coul
+        ez_tmp(p)  = ez_tmp(p)  + force_const * ez_coul
+        w_tmp(p)   = work(p)  ! send back work load for next iteration
+        work_local = work_local+nterm(i)
 
-       pot_tmp(p) = pot_tmp(p)+force_const * phi_coul
-       ex_tmp(p) = ex_tmp(p)+force_const * ex_coul
-       ey_tmp(p) = ey_tmp(p)+force_const * ey_coul
-       ez_tmp(p) = ez_tmp(p)+force_const * ez_coul
-       w_tmp(p) = work(p)  ! send back work load for next iteration
-       work_local = work_local+nterm(i)
+      end do
 
-    end do
+      ta2e= MPI_WTIME()
+      t_force = t_force + ta2e-ta2b
 
-    ta2e= MPI_WTIME()
-    t_force = t_force + ta2e-ta2b
+      max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
 
-    max_local = max( max_local,maxval(nterm(1:nps)) )  ! Max length of interaction list
+      if ((me == 0).and. tree_debug .and. (mod(jpass,max_npass/10+1)==0)) then
+        write(*,'(a26,a10,f12.4,a2)') ' LPEPC | TREE WALK (AS) --','Completed',100.0*jpass/max_npass,' %'
+      endif
 
-!     if (dump_tree) call diagnose_tree
-     if ((me == 0).and. tree_debug .and. (mod(jpass,max_npass/10+1)==0)) &
-          write(*,'(a26,a10,f12.4,a2)') ' LPEPC | TREE WALK (AS) --','Completed',100.0*jpass/max_npass,' %'
+    end do ! jpass = 1,max_npass
+  end do ! ibox = 1,num_neighbours
+
+  ! add lattice contribution
+  potfarfield  = 0.
+  potnearfield = 0.
+
+  do p=1,npp
+    call fmm_sum_lattice_force(p, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
+
+    potfarfield  = potfarfield  + phi_lattice * q(p)
+    potnearfield = potnearfield + pot_tmp(p) * q(p)
+    pot_tmp(p) = pot_tmp(p) + force_const * phi_lattice
+    ex_tmp(p)  = ex_tmp(p)  + force_const * ex_lattice
+    ey_tmp(p)  = ey_tmp(p)  + force_const * ey_lattice
+    ez_tmp(p)  = ez_tmp(p)  + force_const * ez_lattice
   end do
 
-! restore initial particle order specified by calling routine to reassign computed forces
-! notice the swapped order of the index-fields -> less changes in restore.f90 compared to tree_domains.f90 
+
+  ! restore initial particle order specified by calling routine to reassign computed forces
+  ! notice the swapped order of the index-fields -> less changes in restore.f90 compared to tree_domains.f90
 
   ta1e = MPI_WTIME()
   t_fields_passes = ta1e-ta1b

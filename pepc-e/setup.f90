@@ -13,6 +13,7 @@
 subroutine setup()
   use physvars
   use tree_utils
+  use module_fmm_framework
   implicit none
   include 'mpif.h'
 
@@ -22,7 +23,7 @@ subroutine setup()
   integer, parameter :: nprops_particle=10   ! # particle properties to ship
   integer, dimension(nprops_particle) :: blocklengths, displacements, types
   integer*8 :: send_base, receive_base
-  integer :: ierr
+  integer :: ierr, npart_tmp
   integer*8, dimension(nprops_particle) :: address
 
   character(50) :: parameterfile
@@ -37,34 +38,35 @@ subroutine setup()
        system_config, target_geometry, ispecial, choose_sort, weighted, choose_build, &
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
-       xl, yl, zl, displace, bond_const, fnn, rho_min, lolam, &
+       xl, yl, zl, displace, bond_const, rho_min, lolam, &
        beam_config_in, np_beam, idim, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
        nt, dt, mc_steps, idump, ivis, ivis_fields, ivis_domains, iprot, itrack, ngx, ngy, ngz, &
-       vis_on, steering,  mc_init, restart, scheme, particle_bcs, &
+       vis_on, steering,  mc_init, restart, scheme, &
        coulomb, bonds, lenjones, target_dup, ramp, &
        db_level, &
-       constrain_proof, len_tripod, struct_step, uthresh, bfield_on
+       constrain_proof, len_tripod, struct_step, uthresh, bfield_on, &
+       t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction
 
 
   !  Default input set
  
-  system_config   = 2  
-  target_geometry = 0
+  system_config   =   2
+  target_geometry =   0
 
-  db_level        = 0
+  db_level        =   0
 
-  np_mult         = -30
-  fetch_mult      = 3
+  np_mult         = -45
+  fetch_mult      =   3
 
-  ispecial        = 1
+  ispecial        =   1
 
-  choose_sort = 0
-  weighted = 0
-  choose_build = 0
+  choose_sort     =   3
+  weighted        =   1
+  choose_build    =   0
 
-  scheme          = 0
+  scheme          =   0
 
   ! particles
   nep = 0    ! # plasma electrons per PE
@@ -94,8 +96,7 @@ subroutine setup()
   x_plasma      = 1.
   y_plasma      = 1.
   z_plasma      = 1.
-  eps           = 1.
-  fnn           = 5
+  eps           = 0.01
   delta_mc      = r_sphere/5.
   displace(1:3) = (/0.,0.,0./)
 
@@ -114,7 +115,6 @@ subroutine setup()
   vis_on       = .false.
   idump        = 0
   iprot        = 1
-  particle_bcs = 1
 
   ngx = 25   
   ngy = 25
@@ -155,20 +155,28 @@ subroutine setup()
      ! particles specified per processor in input file
      ne = nep*n_cpu  ! total # electrons
      ni = nip*n_cpu  ! total # ions     
-  else
-     ! total # particles specified in input file 
-     nep = ne/n_cpu
-     nip = ni/n_cpu
-     if (nep*n_cpu /= ne .and. mod(ne,n_cpu) > my_rank) then
-        nep = ne/n_cpu+1
-     end if
-     if (nip*n_cpu /= ni .and. mod(ni,n_cpu) > my_rank) then
-        nip = ni/n_cpu+1
-     end if
   endif
-  np_local = nep+nip        
 
   npart_total = ni+ne
+
+  if ((system_config == 2) .and. (ispecial == 7)) then ! Madelung setup needs ne=ni and (ne+ni)mod 8==0 and (ne+ni)/8==2**sth
+
+    npart_tmp   = nint((npart_total/8)**(1./3.))
+    npart_total = (npart_tmp**3)*8
+
+    if (my_rank == 0) write(*,*) "Using 3D-Madelung Setup: Total particle number must be representable by 8*k^3. Setting npart_total =", npart_total
+
+    ne = npart_total/2
+    ni = ne
+  end if
+
+  ! total # particles specified in input file
+  nep = ne/n_cpu
+  nip = ni/n_cpu
+  if (nep*n_cpu /= ne .and. mod(ne,n_cpu) > my_rank)  nep = ne/n_cpu+1
+  if (nip*n_cpu /= ni .and. mod(ni,n_cpu) > my_rank)   nip = ni/n_cpu+1
+
+  np_local = nep+nip
 
   if (n_cpu.eq.1) then
      nppm=int(1.5*npart_total + 1000)  ! allow for additional ghost particles for field plots
@@ -296,8 +304,6 @@ subroutine setup()
   convert_mu = omega/2./pi*lambda          ! convert from c/wp to microns
   lolam = lolam*2.*pi/omega  ! normalise scale-length
   convert_keV = 2./3./Qplas*511     ! convert from code energy units to keV/particle
-
-  r_neighbour = fnn*a_ii  ! Nearest neighbour search radius
 
   allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
        q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), pelabel(nppm), number(nppm), work(nppm) )

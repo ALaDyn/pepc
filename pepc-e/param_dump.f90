@@ -41,7 +41,6 @@ subroutine param_dump
         write (ifile,'(a20,f12.3)') ' Timestep: ',dt
         write (ifile,'(a20,f12.3)') ' Max timestep: ',0.45*sqrt(3.)*eps**2/abs(qe)*vte
 
-        write (ifile,'(a20,1pe12.3)') ' Neighbour search radius: ',r_neighbour
         write (ifile,'(a20,f12.3)') ' MAC theta: ',theta
         write (ifile,'(a20,1pe12.3)') ' Particle # ratio: ',4.e6*lambda*omega*abs(qe)
 

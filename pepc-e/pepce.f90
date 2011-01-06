@@ -14,7 +14,6 @@
 !   June 2005: Development begun
 !
 !   See README.compile for summary of program units
-!
 !  ==============================================================
 
 program pepce
@@ -23,6 +22,7 @@ program pepce
   use particle_pusher
   use benchmarking
   use timings
+  use module_fmm_framework
   use files
   use energies
   implicit none
@@ -60,6 +60,9 @@ program pepce
   ! Set up particles
   call configure
 
+  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
+  call fmm_framework_init(my_rank, wellsep = 1)
+
   ! initial particle output
   if( idump .gt. 0 ) then
     call write_particles(0)
@@ -91,7 +94,8 @@ program pepce
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult,fetch_mult,mac, theta, eps, force_const, err_f, &
-                      itime, choose_sort,weighted,choose_build)
+                      itime, choose_sort,weighted,choose_build, &
+                      num_neighbour_boxes, neighbour_boxes)
 
      ! dump number of interactions
      !if (my_rank == 0) call dump_num_interactions()
@@ -107,6 +111,9 @@ program pepce
 
      call velocities(1,np_local,dt)  ! pure ES, NVT ensembles
      call push(1,np_local,dt)  ! update positions
+
+     ! periodic systems demand periodic boundary conditions
+     if (do_periodic) call constrain_periodic(x(1:np_local),y(1:np_local),z(1:np_local),np_local)
 
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      t3 = MPI_WTIME()

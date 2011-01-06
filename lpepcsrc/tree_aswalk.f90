@@ -35,9 +35,9 @@
 ! ===========================================
 
 
-! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch,ex_sl(1:nps),ey_sl(1:nps),ez_sl(1:nps),np_local)
+! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
 
-subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex_nps,ey_nps,ez_nps,np_local)
+subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,vbox)
   use treevars
   use tree_utils
   implicit none
@@ -48,6 +48,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
   integer, intent(in) :: npshort,itime
   integer, intent(in) :: pshort(npshort)
   integer, intent(in) :: mac
+  real*8, intent(in) :: vbox(3) !< real space shift vector of box to be processed
   integer :: npackm   ! Max # children shipped
   integer :: nchild_shipm
   real*8 :: twalk, tfetch, tw1, tw2, tc1, t1, t2
@@ -97,8 +98,9 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
   integer ::  bchild, nodchild, lchild, hashaddr, nlast_child, cbyte
   integer :: max_nplace
   real :: theta2, theta2_ion
-  real*8 :: dx, dy, dz, dist2
+  real*8 :: dist2
   real*8 :: sbox
+  real*8 :: delta(3)
 
   ! stuff for tree-patch after traversals complete
   integer ::  node_addr
@@ -111,18 +113,15 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
 
   integer :: key2addr        ! Mapping function to get hash table address from key
   integer*8 :: next_node   ! Function to get next node key for local tree walk
+  logical :: in_central_box
 
   t1 = MPI_WTIME()
 
-  !
   twalk=0.
   tfetch=0.
 
   npackm = maxaddress
   nchild_shipm = maxaddress
-  !  walk_debug = .false.
-  ! ipefile = 6
-!  if (walk_debug .or. walk_summary) write(ipefile,'(/2(a,i6))') '*** TREE WALK (AS) for timestep ',itime,' pass ',pass
   if (me.eq.0 .and. walk_summary .and.pass==1) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (AS) for timestep ',itime,' pass ',pass
 
   sbox = boxsize
@@ -132,6 +131,10 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
   !  theta2_ion = min(1.0,2*theta2)  ! Ion MAC 50% larger than electron MAC
   theta2_ion=theta2
   boxlength2(0)=sbox**2
+
+  ! we will only want to reject the root node and the particle itself if we are in the central box
+  in_central_box = (dot_product(vbox,vbox) == 0)
+
   do i=1,nlev
      boxlength2(i) =  boxlength2(i-1)/4.  ! Preprocessed box sizes for each level
   end do
@@ -218,23 +221,27 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
 
            if (mac==0) then 
               ! BH-MAC
-              dx = x(pshort(p)) - xcoc( walk_node )      ! Separations
-              dy = y(pshort(p)) - ycoc( walk_node )
-              dz = z(pshort(p)) - zcoc( walk_node )
-              dist2 = theta2*(dx*dx+dy*dy+dz*dz)
+              delta(1) = x(pshort(p)) - (xcoc( walk_node ) + vbox(1) )     ! Separations
+              delta(2) = y(pshort(p)) - (ycoc( walk_node ) + vbox(2) )
+              delta(3) = z(pshort(p)) - (zcoc( walk_node ) + vbox(3) )
+
+              dist2 = theta2 * DOT_PRODUCT(delta, delta)
+
               mac_ok = (dist2 > boxlength2(node_level(walk_node)))
 
            else
 !             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p), &
 !                  walk_node,walk_key(i),abs_charge(walk_node),boxlength2(node_level(walk_node)), &
-!                  theta2,mac,mac_ok, periodic_neighbour)
+!                  theta2,mac,mac_ok, vbox)
            endif
 
-	   mac_ok = ( mac_ok .and. walk_key(i)>1 )  !  always reject root node
+           mac_ok = ( mac_ok .and. ((.not. in_central_box) .or. walk_key(i)>1 ) )  !  reject root node if we are in the central box
 
            ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
            ! NB: this uses local leaf #, not global particle label
-           ignore =  ( pshort(p) == htable( walk_addr )%node )
+           ! only ignore particle if we are processing the central box
+           ! when walking through neighbour boxes, it has to be included
+           ignore = (in_central_box) .and. ( pshort(p) == htable( walk_addr )%node )
 
            add_key = walk_key(i)                                ! Remember current key
 
@@ -245,7 +252,16 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch) !,ex
 
            if ( (mac_ok .or. walk_node >0) .and. .not.ignore) then
               walk_key(i) = walk_next
-	      entry_next = nterm(p) + 1
+              entry_next = nterm(p) + 1
+
+              ! DEBUG: Actual size of nodelist is nodelist(1:nintmax,1:nshortm). This may both be overrun
+              if ((entry_next > nintmax) .or. (p > nshortm)) then ! the first case can happen if the estimation for nintmax is insufficient
+                                                                   ! the second one really should never appear
+                write (*, *) "tree_walk ERROR: nodelist overrun on PE ", me, &
+                              " entry_next = ", entry_next, "nintmax = ", nintmax, " | p = ", p, "nshortm = ", nshortm
+                write (*, *) "Try setting nint_mult to some value >= 1.0 to modify maximal length of interaction list."
+              end if
+
               intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
               nodelist( entry_next, p ) = walk_node   ! Node number for sum_force
               nterm(p) = entry_next

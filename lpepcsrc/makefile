@@ -14,7 +14,8 @@ pepclib = liblpepc.a
 #-------------------------------------------------------------------------------------------
 # Pepc library
 
-PEPCMOD.f90 =   treevars.f90 utils.f90 tree_utils.f90 timings.f90 treetypes.f90 draw_gle.f90
+PEPCMOD.f90 =   treevars.f90 tree_utils.f90 timings.f90 treetypes.f90 draw_gle.f90 \
+                module_debug.f90 module_math_tools.f90 module_fmm_framework.f90
 PEPCSRC.f90 =   tree_domains.f90 setup_treearrays.f90 restore.f90 tree_allocate.f90 tree_deallocate.f90 \
 		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
 		tree_aswalk.f90 tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \

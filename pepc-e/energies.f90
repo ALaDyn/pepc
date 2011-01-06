@@ -13,6 +13,7 @@ module energies
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine energy_cons(ekine,ekini)
       use physvars
+      use module_fmm_framework
       implicit none
 
       real*8 :: epot, ekine, ekini, etot
@@ -34,8 +35,8 @@ module energies
     !     end do
          ! Write out to energy.dat file
          open(75,file='energy.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
-         if (itime.eq.0)  write(75,'(a)') '! time  Upot  Ukin_e Ukin_i Utot '
-         write (75,'(f12.5,5(1pe13.4))') trun, epot, ekine, ekini, ekine+ekini, etot
+         if (itime.eq.0)  write(75,'(a)') '! time  Upot(total)  Upot(near field) Upot(far field)  Ukin_e Ukin_i Ukin_e+i Utot '
+         write (75,'(f12.5,7(1pe13.4))') trun, epot, potnearfield, potfarfield, ekine, ekini, ekine+ekini, etot
          close(75)
       endif
     end subroutine energy_cons
@@ -96,6 +97,7 @@ module energies
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine potenergy(epot_total)
       use physvars
+      use module_fmm_framework
       implicit none
       include 'mpif.h'
 
@@ -122,6 +124,13 @@ module energies
       if (pot_debug) write (ifile_cpu,'(a,1pe11.4,i2)') 'partial PE sum',upartial,my_rank
 
       call MPI_ALLREDUCE(upartial, epot_total,1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+      ! this can also be done in fields.f90, but thematically it fits better here :-)
+      potfarfield  = potfarfield/2.
+      potnearfield = potnearfield/2.
+
+      call MPI_ALLREDUCE(MPI_IN_PLACE, potfarfield,  1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, potnearfield, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
     end subroutine potenergy
 

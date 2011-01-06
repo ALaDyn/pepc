@@ -1,0 +1,37 @@
+MACH     = SUSE-Workstations_gcc-4.5
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C
+
+#INLINING = 
+INLINING = -fwhole-program -fwhopr -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining  
+#-flto
+
+FCPRE    = 
+FC       = mpif90
+FFLAGS   = -g -pg -ffree-line-length-none -Wall -fbounds-check -frange-check -fbacktrace -fvar-tracking
+#FFLAGS   =  -Wall -pg -O3 -ffree-line-length-none $(INLINING)
+
+CCPRE    = 
+CC       = mpicc
+#CFLAGS   = -pg -O3
+CFLAGS   = -g -pg $(INLINING)
+
+LDPRE    = 
+LD       = mpif90
+#LDFLAGS   = -pg -O3
+LDFLAGS   = -pg -O3 $(INLINING)
+LDLIBS   = 
+
+RM       = rm -rf
+
+EXECNAME = ../pepc
+
+

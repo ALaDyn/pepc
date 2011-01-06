@@ -6,7 +6,7 @@
 !
 !  ===================================================================
 
-subroutine sum_lennardjones( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi )
+subroutine sum_lennardjones( p, n, inode, vbox, eps, sumfx, sumfy, sumfz, sumphi )
 
   use treevars
   implicit none
@@ -14,6 +14,7 @@ subroutine sum_lennardjones( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi )
   integer, intent(in) :: n  !  # terms on interaction list
   integer, dimension(1:n) ::  inode
   real, intent(in) :: eps
+  real*8, intent(in) :: vbox(3) !< vector to neighbour box that is currently processed
   integer :: jnode, i
 
   real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi 
@@ -31,9 +32,10 @@ subroutine sum_lennardjones( p, n, inode, eps, sumfx, sumfy, sumfz, sumphi )
 
      !  preprocess distances
      jnode = inode(i)
-     dx =  x(p) - xcoc( jnode ) 
-     dy =  y(p) - ycoc( jnode ) 
-     dz =  z(p) - zcoc( jnode ) 
+     dx =  x(p) - ( xcoc( jnode ) + vbox(1) )
+     dy =  y(p) - ( ycoc( jnode ) + vbox(2) )
+     dz =  z(p) - ( zcoc( jnode ) + vbox(3) )
+
 
      d2 = dx**2+dy**2+dz**2
      d = sqrt(d2) 
