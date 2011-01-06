@@ -60,6 +60,21 @@ class Opts:
     verbose = False
 
 def get_deps_and_mods(filename, opts):
+    ''' some changes by ab (2010.11.30):
+    below is the code used for testing:
+    	
+    USE treevars, ONLY: x, & ! comment for testing
+       yy => y, &
+       z
+    use utils ! more comment for testing
+    
+    The FORTRAN 2008 standard (ftp://ftp.nag.co.uk/sc22wg5/N1801-N1850/N1830.pdf) allows only one module per use statement.
+    After a "use modname" only a ", only:..." or something like ", x => y ..." can be used.
+    The standard allows several ";"-seperated use-statements in one line, but since it is very hard to account for this and nobody uses it i have not implemented it.
+    The standard also allows a "module-nature" before the module name, but again i have not implemented it
+    
+    '''
+
     if opts.verbose:
 	sys.stderr.write("Processing %s\n" % filename)
     deps = []
@@ -68,41 +83,35 @@ def get_deps_and_mods(filename, opts):
     if not f:
 	print "ERROR: unable to open %s%s" % filename
 	sys.exit(1)
-    use_line_re = re.compile("^\s*use\s+(\S.+)\s*$")
-    cont_line_re = re.compile("^(.*)&\s*$")
-    mod_line_re = re.compile("^\s*module\s+(\S+)\s*$")
+#    use_line_re = re.compile("^\s*use\s+(\S.+)\s*$")							# 1: this is old (pre ab) regexp
+    use_line_re = re.compile("^\s*use\s+([a-z][a-z0-9_]+)", re.IGNORECASE)				# 1: new by ab: takes only one valid module name ([a-z][a-z0-9_]+), almost following
+    													#  the fortran 2008 standard (ftp://ftp.nag.co.uk/sc22wg5/N1801-N1850/N1830.pdf, p.273)
+    													#  but ignoring the "module-nature" and the possibility to write several ";"-seperated
+    													#  USE-statements in one line. now ignoring case.
+    													#  this regexp is not checking for a valid use-statement, that's the compilers job.
+#    cont_line_re = re.compile("^(.*)&\s*$")								# 2: this line is no longer needed, following the standard it was never needed
+#    mod_line_re = re.compile("^\s*module\s+(\S+)\s*$")							# 3: old line
+    mod_line_re = re.compile("^\s*module\s+([a-z][a-z0-9_]+)\s*$", re.IGNORECASE)			# 3: new by ab: now matching only valid module names (see 1:). ignoring case
     split_re = re.compile("\s*,\s*")
     dep_re = re.compile(opts.dep_re)
     mod_re = re.compile(opts.mod_re)
-    within_use_statement = False
-    line_with_use = False
     for line in f:
+	line = re.sub("!.*","",line)									# 4: new by ab: first remove every comment
 	match = use_line_re.search(line)
 	if match:
-	    within_use_statement = True
-	    rest_line = match.group(1)
-	else:
-	    rest_line = line
-	if within_use_statement:
-	    match = cont_line_re.search(rest_line)
-	    if match:
-		rest_line = match.group(1)
-	    else:
-		within_use_statement = False
-	    line_items = split_re.split(rest_line.strip())
-	    for item in line_items:
-		if item:
+	    item = match.group(1)
+	    if item:
+		if opts.verbose:
+		    sys.stderr.write("use: %s\n" % item)
+		match = dep_re.match(item)
+		if match:
+		    dep = match.expand(opts.dep_template)
 		    if opts.verbose:
-			sys.stderr.write("use: %s\n" % item)
-		    match = dep_re.match(item)
-		    if match:
-			dep = match.expand(opts.dep_template)
-			if opts.verbose:
-			    sys.stderr.write("matched to: %s\n" % dep)
-			if dep not in deps:
-			    deps.append(dep)
+		        sys.stderr.write("matched to: %s\n" % dep)
+		    if dep not in deps:
+		        deps.append(dep)
+	
 	else:
-	    # not within_use_statement
 	    match = mod_line_re.search(line)
 	    if match:
 		mod_name = match.group(1)
