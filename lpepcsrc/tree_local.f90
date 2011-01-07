@@ -104,11 +104,12 @@ subroutine tree_local
 
   !  set up root node
 
-  htable(1)%node = -1                 !  node #
-  htable(1)%owner = me                !  Owner
-  htable(1)%key = 1_8                 !  key
-  htable(1)%link = -1                 !  collision link
-  htable(1)%leaves = npp              !  root contains all leaves, excluding boundary particles
+  htable(1)%node   =  -1              !  node #
+  htable(1)%owner  =  me              ! Owner
+  htable(1)%key    =   1_8            !  key
+  htable(1)%link   =  -1              !  collision link
+  htable(1)%leaves = npp              ! root contains all leaves, excluding boundary particles
+  htable(1)%next   =   1              ! root points to itself as next to abort tree walk even after directly interacting with root node
   ntwig = 1
   nleaf = 0
   tablehigh = 0

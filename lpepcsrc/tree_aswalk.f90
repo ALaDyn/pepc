@@ -33,10 +33,6 @@
 !    end while
 !
 ! ===========================================
-
-
-! call tree_walk(pshortlist,nps,jpass,theta,eps,itime,mac,ttrav,tfetch)
-
 subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,vbox)
   use treevars
   use tree_utils
@@ -200,19 +196,14 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,vbox)
         do i=1,nlist
            p = plist(i)  ! particle index
            walk_addr =  key2addr( walk_key(i),'WALK: local ' )     ! get htable address
-           walk_node = htable( walk_addr )%node             ! Walk node index - points to multipole moments  
-           walk_next = htable( walk_addr )%next             ! Next node pointer 
+           walk_node = htable( walk_addr )%node                    ! Walk node index - points to multipole moments
+           walk_next = htable( walk_addr )%next             ! Next node pointer
 
            cbyte = htable( walk_addr )%childcode        ! Children byte-code
 
-
            ! children of local/non-local parents already fetched: HERE flag
-
-
-
-!           write (*,'(a,4i8,o15,f12.3)') 'particle i,p,pshort(p),nterm,kwalk,x', &
-!                i,p,pshort(p),nterm(p),walk_key(i),x(pshort(p))
            
+
 ! TODO:  BH MAC is also implemented in mac_choose routine,
 !        which needs tuning and inlining to avoid excessive parameter-passing overhead
 !        Other MACS need additional preprocessed info on tree nodes (box lengths etc)
@@ -310,29 +301,26 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,vbox)
 
 
            ! Check for completed traversals
-           if ( walk_key(i) == 1 )  then  ! Reached root  
+           if ( walk_key(i) == 1 )  then  ! Reached root
               finished(i) = .true.    ! Flag particles whose local walks are complete
               defer_ctr(p) = defer_ctr(p) + 1
 
            else 
               finished(i) = .false. 
            endif
+
         end do
 
-        !        nnew = count( mask = .not.finished(1:nlist) )            ! Count remaining particles
+           nnew=0
+	       do i=1,nlist
+             if (.not.finished(i)) then
+               nnew=nnew+1
+               plist(nnew) = plist(i)
+               walk_key(nnew) = walk_key(i)
+             endif
+           end do
 
-        !        plist(1:nnew) =  pack( plist(1:nlist), mask = .not.finished(1:nlist) )    ! Compress particle index list
-        !        walk_key(1:nnew) =  pack( walk_key(1:nlist), mask = .not.finished(1:nlist) )       ! Compress walk lists etc.
-	nnew=0
-	do i=1,nlist
-           if (.not.finished(i)) then
-              nnew=nnew+1
-              plist(nnew) = plist(i)
-              walk_key(nnew) = walk_key(i)
-           endif
-        end do
-
-        nlist = nnew
+           nlist = nnew
        
      end do   ! END DO_WHILE
     
