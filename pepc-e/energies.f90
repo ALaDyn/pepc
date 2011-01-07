@@ -36,7 +36,7 @@ module energies
          ! Write out to energy.dat file
          open(75,file='energy.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
          if (itime.eq.0)  write(75,'(a)') '! time  Upot(total)  Upot(near field) Upot(far field)  Ukin_e Ukin_i Ukin_e+i Utot '
-         write (75,'(f12.5,7(1pe13.4))') trun, epot, potnearfield, potfarfield, ekine, ekini, ekine+ekini, etot
+         write (75,'(f12.5,7(1pe20.12))') trun, epot, potnearfield, potfarfield, ekine, ekini, ekine+ekini, etot
          close(75)
       endif
     end subroutine energy_cons

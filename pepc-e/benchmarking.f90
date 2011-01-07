@@ -44,14 +44,18 @@ contains
     integer, intent(in) :: idx !< index of diagnostic particle, possible input range: (1:NUM_DIAG_PARTICLES)
     integer :: diagnostic_particle
 
-    select case (idx)
-      case (1:NUM_PARTICLES_FRONT)
-                  diagnostic_particle = idx
-      case (NUM_PARTICLES_FRONT+1:NUM_PARTICLES_FRONT+NUM_PARTICLES_MID)
-                  diagnostic_particle = npart_total/2 - ((NUM_PARTICLES_MID/2+NUM_PARTICLES_FRONT)-idx)
-      case (NUM_PARTICLES_FRONT+NUM_PARTICLES_MID+1:NUM_DIAG_PARTICLES)
-                  diagnostic_particle = npart_total-(NUM_DIAG_PARTICLES-idx)
-    end select
+    if (npart_total <= NUM_DIAG_PARTICLES) then
+      diagnostic_particle = min(idx, npart_total)
+    else
+      select case (idx)
+        case (1:NUM_PARTICLES_FRONT)
+                    diagnostic_particle = idx
+        case (NUM_PARTICLES_FRONT+1:NUM_PARTICLES_FRONT+NUM_PARTICLES_MID)
+                    diagnostic_particle = npart_total/2 - ((NUM_PARTICLES_MID/2+NUM_PARTICLES_FRONT)-idx)
+        case (NUM_PARTICLES_FRONT+NUM_PARTICLES_MID+1:NUM_DIAG_PARTICLES)
+                    diagnostic_particle = npart_total-(NUM_DIAG_PARTICLES-idx)
+      end select
+    end if
 
   end function
 
@@ -181,6 +185,7 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine dump_fields()
     use physvars
+    use module_fmm_framework
     implicit none
     integer :: p, i
 
@@ -189,6 +194,8 @@ contains
     open(91, file="fielddump.dat", STATUS='REPLACE')
     write(91,'(a,i12)') "# npart_total ", npart_total
     write(91,'(a,i12)') "# npart_diag ", NUM_DIAG_PARTICLES
+    write(91,'(a,e20.12)') "# pot_farfield ", potfarfield
+    write(91,'(a,e20.12)') "# pot_nearfield ", potnearfield
     write(91,'(a, i6, a, i6, a)') "# particle charge and field for geom ", ispecial, " at timestep ", nt, ": p q pot ex ey ez"
     do i=1,NUM_DIAG_PARTICLES
        p = diagnostic_particle(i)
