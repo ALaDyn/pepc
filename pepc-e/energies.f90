@@ -17,6 +17,7 @@ module energies
       implicit none
 
       real*8 :: epot, ekine, ekini, etot
+      logical, save :: header = .true.
 
       call potenergy(epot)
       call kinenergy(ekine, ekini)
@@ -35,7 +36,10 @@ module energies
     !     end do
          ! Write out to energy.dat file
          open(75,file='energy.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
-         if (itime.eq.0)  write(75,'(a)') '! time  Upot(total)  Upot(near field) Upot(far field)  Ukin_e Ukin_i Ukin_e+i Utot '
+         if (header) then
+           write(75,'(a)') '! time  Upot(total)  Upot(near field) Upot(far field)  Ukin_e Ukin_i Ukin_e+i Utot '
+           header = .false.
+         endif
          write (75,'(f12.5,7(1pe20.12))') trun, epot, potnearfield, potfarfield, ekine, ekini, ekine+ekini, etot
          close(75)
       endif
