@@ -250,7 +250,7 @@ subroutine tree_walk(pshort,npshort, pass,theta,eps,itime,mac,twalk,tfetch,vbox)
                                                                    ! the second one really should never appear
                 write (*, *) "tree_walk ERROR: nodelist overrun on PE ", me, &
                               " entry_next = ", entry_next, "nintmax = ", nintmax, " | p = ", p, "nshortm = ", nshortm
-                write (*, *) "Try setting nint_mult to some value >= 1.0 to modify maximal length of interaction list."
+                write (*, *) "Try increaasing nintmax to modify maximal length of interaction list."
               end if
 
               intlist( entry_next, p ) = add_key      ! Augment interaction list - only need keys for diagnosis
