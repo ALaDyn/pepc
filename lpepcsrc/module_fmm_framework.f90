@@ -692,7 +692,7 @@ module module_fmm_framework
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Formal summation of \f$M\f$ over FF', ie a lot of boxes
+        !> Formal summation of \f$M\f$ over FF`, ie a lot of boxes
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex*16 function LstarFunc(l,m)
