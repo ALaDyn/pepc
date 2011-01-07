@@ -215,7 +215,7 @@ module module_fmm_framework
           integer :: iter
 
           write (debug, *) 'LATTICE COEFFICIENTS: Starting calculation'
-          call print_debug(.true., 2, [6, 24], myrank.eq.0 .and. [.true., .true.])
+          call print_debug(.true., 2, [6, 15], myrank.eq.0 .and. [.true., .true.])
 
           Mstar    = 0
           Lstar    = 0
