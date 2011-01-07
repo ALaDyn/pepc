@@ -293,9 +293,9 @@ module module_fmm_framework
             call WriteTableToFile('omega_tilde.tab', omega_tilde)
           end if
 
-          if (omega_tilde( tblinv(0, 0)) .ne. 0.0) then
+          if (real(omega_tilde( tblinv(0, 0))) > 1.E-14) then
 
-            write (debug, *) 'WARNIG: The central box is not charge-neutral. Switching off calculation of lattice contribution'
+            write (debug, *) 'WARNIG: The central box is not charge-neutral. Switching off calculation of lattice contribution. omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0))
             call print_debug(.true., 2, [ipefile, 6], [.true., myrank.eq.0])
 
             do_periodic         = .false.
