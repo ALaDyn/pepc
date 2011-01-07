@@ -21,7 +21,8 @@ module benchmarking
   integer, private, parameter :: NUM_PARTICLES_MID    = 5 !< number of particles from center of particle list to use in dump routines
   integer, private, parameter :: NUM_PARTICLES_BACK   = 5 !< number of particles from end of particle list to use in dump routines
   integer, private, parameter :: NUM_DIAG_PARTICLES = NUM_PARTICLES_FRONT + NUM_PARTICLES_MID + NUM_PARTICLES_BACK !< total number of particles to use in dump routines
-  real*8, private :: diag_pos_vel(NUM_DIAG_PARTICLES,6)
+  integer, private, parameter :: NUM_DIAG_PROPS     = 12  !< number of properties to be collected for diagnostic purposes (in addition to workload)
+  real*8, private :: diag_props(NUM_DIAG_PARTICLES,NUM_DIAG_PROPS)
   integer, private :: diag_work(NUM_DIAG_PARTICLES,1)
   
 contains
@@ -58,7 +59,6 @@ contains
   !>
   !>
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
   subroutine gather_particle_diag()
     use physvars
     implicit none
@@ -66,7 +66,7 @@ contains
 
     integer :: r, i, ierr, target_rank, target_particle, target_particle_local
     integer :: fances(0:n_cpu-1)
-    real*8  :: diag_pos_vel_buf(6)
+    real*8  :: diag_props_buf(NUM_DIAG_PROPS)
     integer :: diag_work_buf(1)
 
     logical :: debug=.false., debug_root
@@ -101,45 +101,46 @@ contains
           if(debug) write(*,'(a,i12,a,i12,a,i12)') "from rank", my_rank, " particle is here, with label ", &
                pelabel(target_particle_local), " local target ", target_particle_local
 
-          diag_pos_vel_buf(1) = x(target_particle_local)
-          diag_pos_vel_buf(2) = y(target_particle_local)
-          diag_pos_vel_buf(3) = z(target_particle_local)
-
-          diag_pos_vel_buf(4) = ux(target_particle_local)
-          diag_pos_vel_buf(5) = uy(target_particle_local)
-          diag_pos_vel_buf(6) = uz(target_particle_local)
+          diag_props_buf( 1: 3) = [  x(target_particle_local),  y(target_particle_local),  z(target_particle_local)]
+          diag_props_buf( 4: 6) = [ ux(target_particle_local), uy(target_particle_local), uz(target_particle_local)]
+          diag_props_buf( 7: 8) = [  q(target_particle_local),  m(target_particle_local)]
+          diag_props_buf(    9) =  pot(target_particle_local)
+          diag_props_buf(10:12) = [ ex(target_particle_local), ey(target_particle_local), ez(target_particle_local)]
 
           diag_work_buf(1) = int(work(target_particle_local))
 
-          if(debug) write(*,*) "from rank", my_rank, " sending pos_vel ", diag_pos_vel_buf
+          if(debug) write(*,*) "from rank", my_rank, " sending pos_vel ", diag_props_buf
 
           if(my_rank .ne. 0) then
-             call MPI_SEND(diag_pos_vel_buf, 6, MPI_DOUBLE_PRECISION, 0, 0, MPI_COMM_WORLD, ierr)
-             call MPI_SEND(diag_work_buf,    1, MPI_INTEGER,          0, 0, MPI_COMM_WORLD, ierr)
+             call MPI_SEND(diag_props_buf,12, MPI_REAL8,   0, 0, MPI_COMM_WORLD, ierr)
+             call MPI_SEND(diag_work_buf,  1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, ierr)
           end if
        end if
 
        if(my_rank.eq.0 .and. target_rank.ne.0) then
-          call MPI_RECV(diag_pos_vel_buf, 6, MPI_DOUBLE_PRECISION, target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
-          call MPI_RECV(diag_work_buf,    1, MPI_INTEGER,          target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
-          if(debug) write(*,*) "from rank", my_rank, " received pos_vel ", diag_pos_vel_buf
+          call MPI_RECV(diag_props_buf,12, MPI_REAL8,  target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+          call MPI_RECV(diag_work_buf,  1, MPI_INTEGER,target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+          if(debug) write(*,*) "from rank", my_rank, " received pos_vel ", diag_props_buf
        end if
        
        call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-       diag_pos_vel(i,1) = diag_pos_vel_buf(1)
-       diag_pos_vel(i,2) = diag_pos_vel_buf(2)
-       diag_pos_vel(i,3) = diag_pos_vel_buf(3)
-       diag_pos_vel(i,4) = diag_pos_vel_buf(4)
-       diag_pos_vel(i,5) = diag_pos_vel_buf(5)
-       diag_pos_vel(i,6) = diag_pos_vel_buf(6)
-
+       diag_props(i,:) = diag_props_buf(:)
        diag_work(i,1) = diag_work_buf(1)
 
     end do
 
 
   end subroutine gather_particle_diag
+
+
+  subroutine benchmarking_dump_diagnostics()
+    implicit none
+
+    call dump_trajectory()
+    call dump_fields()
+
+  end subroutine benchmarking_dump_diagnostics
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -162,13 +163,41 @@ contains
     write(91,'(a, i6, a, i6, a)') "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z ux uy uz work"
     do i=1,NUM_DIAG_PARTICLES
        p = diagnostic_particle(i)
-       write(91,'(i12,6e20.12,i12)') p, diag_pos_vel(i,1), diag_pos_vel(i,2), diag_pos_vel(i,3), &
-            diag_pos_vel(i,4), diag_pos_vel(i,5), diag_pos_vel(i,6), diag_work(i,1)
+       write(91,'(i12,6e20.12,i12)') p, diag_props(i,1), diag_props(i,2), diag_props(i,3), &
+            diag_props(i,4), diag_props(i,5), diag_props(i,6), diag_work(i,1)
        
     end do
     close(91)
     
   end subroutine dump_trajectory
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> output of charge, potential and electric field to file fielddump.dat
+  !> for diagnostic purposes.
+  !> should only be called once per simulation run
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine dump_fields()
+    use physvars
+    implicit none
+    integer :: p, i
+
+    if(my_rank == 0) write(*,*) "benchmarking: dump_fields"
+
+    open(91, file="fielddump.dat", STATUS='REPLACE')
+    write(91,'(a,i12)') "# npart_total ", npart_total
+    write(91,'(a,i12)') "# npart_diag ", NUM_DIAG_PARTICLES
+    write(91,'(a, i6, a, i6, a)') "# particle charge and field for geom ", ispecial, " at timestep ", nt, ": p q pot ex ey ez"
+    do i=1,NUM_DIAG_PARTICLES
+       p = diagnostic_particle(i)
+       write(91,'(i12,5e20.12)') p, diag_props(i,7), diag_props(i,9:12)
+    end do
+    close(91)
+
+  end subroutine dump_fields
+
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>

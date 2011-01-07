@@ -84,8 +84,6 @@ program pepce
                 ,' total run time = ',trun 
      endif
      
-     ! dump trajectory
-
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      t0 = MPI_WTIME()
      t1 = MPI_WTIME()
@@ -102,7 +100,7 @@ program pepce
      
      if (itime == nt) then
         call gather_particle_diag()
-        if (my_rank == 0) call dump_trajectory()
+        if (my_rank == 0) call benchmarking_dump_diagnostics()
      end if
 
      ! Integrator
