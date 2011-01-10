@@ -18,7 +18,7 @@ my $limit=1e-7;
 my $line1; 
 my $line2;
 
-my $L2norm = (1.234e-3)*$limit;
+my $L2norm = 0.;
 
 open(file1, "$ARGV[1]") or die "can not open file $ARGV[1]";
 open(file2, "$ARGV[2]") or die "can not open file $ARGV[2]";
