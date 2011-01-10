@@ -15,14 +15,14 @@
                  PERL_CMD      = "/usr/bin/perl"
                  optflags      = "-O3 -axSSE4.2 "
 
-		 geom          = "1,2,3"
-		 npart         = "1000017,10000023,25000029"
+                 geom          = "1,2,3"
+                 npart         = "1000017,10000023,25000029"
                  nt            = "50" 
-		 wscheme       = "1"
-		 cscheme       = "0"
-		 csort         = "3"
-		 cbuild        = "1"
-		 npmult        = "-300" /> 
+                 wscheme       = "1"
+                 cscheme       = "0"
+                 csort         = "3"
+                 cbuild        = "1"
+                 npmult        = "-300" /> 
 
     <prepare     cname = "PEPC" />
 
@@ -31,6 +31,41 @@
                  cname     = "$platform" />
 
     <verify      cname="PEPC" />
+    <analyse     cname="$platform" /> 
+
+</benchmark>
+
+<!-- ********************************************************** -->
+
+<benchmark name="periodic_test" active="1">
+
+    <compile     cname           = "$platform"
+                 version         = "new"
+
+                 CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"/>
+
+    <tasks       threadspertask = "1"   taskspernode = "2"   nodes = "1" />
+
+    <params      COMMENT       = "periodic test"
+                 PERL_CMD      = "/usr/bin/perl"
+                 optflags      = "-O3 -axSSE4.2 "
+
+                 geom          = "7"
+                 npart         = "4"
+                 nt            = "1" 
+                 wscheme       = "1"
+                 cscheme       = "0"
+                 csort         = "3"
+                 cbuild        = "1"
+                 npmult        = "-300" /> 
+
+    <prepare     cname = "PEPC-periodic" />
+
+    <execution   iteration = "1"   
+                 timelimit = "00:30:00"
+                 cname     = "$platform" />
+
+    <verify      cname="PEPC-periodic" />
     <analyse     cname="$platform" /> 
 
 </benchmark>

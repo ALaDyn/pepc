@@ -24,8 +24,8 @@
                  version         = "new"
  
                  CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
-		 CMP_GPROF       = "$GPROF" 
-		 CMP_SCALASCA    = "$SCALASCA"/>
+                 CMP_GPROF       = "$GPROF" 
+                 CMP_SCALASCA    = "$SCALASCA"/>
 
     <tasks       threadspertask = "1"   taskspernode = "4"   nodes = "1" />
 
@@ -33,26 +33,68 @@
                  PERL_CMD      = "perl"
                  optflags      = "-O3"
 
-		 writemode     = "binary"
+                 writemode     = "binary"
                  
-		 GPROF         = "off"
+                 GPROF         = "off"
 
-		 SCALASCA      = "off"
+                 SCALASCA      = "off"
 
-		 npart         = "1000017" 
-		 geom          = "1,2,3"
-		 nt            = "50" 
-	         wscheme       = "1"
-		 cscheme       = "0"
-		 csort         = "3"
-		 cbuild        = "1"
-		 npmult        = "-200" /> 
+                 npart         = "1000017" 
+                 geom          = "1,2,3"
+                 nt            = "50" 
+                 wscheme       = "1"
+                 cscheme       = "0"
+                 csort         = "3"
+                 cbuild        = "1"
+                 npmult        = "-200" /> 
 
     <prepare     cname = "PEPC" />
 
     <execution   iteration = "1"   cname   = "$platform"/>
 
     <verify      cname="PEPC" />
+    <analyse     cname="$platform" /> 
+
+</benchmark>
+
+<!-- ********************************************************** -->
+
+<benchmark name="periodic_test" active="1">
+    <!-- version="reuse|new" -->
+    <compile     cname           = "$platform"   
+                 version         = "new"
+ 
+                 CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
+                 CMP_GPROF       = "$GPROF" 
+                 CMP_SCALASCA    = "$SCALASCA"/>
+
+    <tasks       threadspertask = "1"   taskspernode = "2"   nodes = "1" />
+
+    <params      COMMENT       = "periodic test"
+                 PERL_CMD      = "perl"
+                 optflags      = "-O3"
+
+                 writemode     = "binary"
+                 
+                 GPROF         = "off"
+
+                 SCALASCA      = "off"
+
+                 npart         = "4" 
+                 geom          = "7"
+                 nt            = "1" 
+                 wscheme       = "1"
+                 cscheme       = "0"
+                 csort         = "3"
+                 cbuild        = "1"
+                 npmult        = "-200" /> 
+
+    <prepare     cname = "PEPC-periodic" />
+
+    <execution   iteration = "1"   
+                 cname   = "$platform"/>
+
+    <verify      cname="PEPC-periodic" />
     <analyse     cname="$platform" /> 
 
 </benchmark>
