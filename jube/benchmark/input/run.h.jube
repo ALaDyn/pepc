@@ -10,6 +10,7 @@
 ! initial particle distribution
   ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
  ispecial = #GEOM#
+ eps = 1.0
 
 ! number of timesteps
  nt = #NT#
