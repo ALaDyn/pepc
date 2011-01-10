@@ -13,7 +13,15 @@
 </verify>
 
 
+
+<verify cname="PEPC-periodic">
+  <command>perl run/check_results_pepc-periodic.pl $subdir/verify.xml $subdir/fielddump.ref.dat $subdir/fielddump.dat</command>
+</verify>
+
+
 <!-- ******************************************************************************** -->
+
+
 
 </verification>
 

@@ -1,7 +1,6 @@
 &pepcdata
 
     db_level = 0
-    fetch_mult = #FETCHMULT#
     scheme = #WSCHEME#
     np_mult    = #NPMULT# 
     theta = 0.0
