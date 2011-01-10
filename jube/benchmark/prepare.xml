@@ -41,6 +41,43 @@
 </prepare>
 
 <!-- ******************************************************************************** -->
+<prepare cname="PEPC-periodic">
+
+  <precommand>(if test ! -f ./input/fielddump.ref.$geom.$npart.$nt.dat; then touch ./input/fielddump.ref.$geom.$npart.$nt.dat; fi)</precommand> 
+
+  <input files="input/madelung.h.jube input/collectData.sh.jube" />
+
+  <substitute infile="madelung.h.jube" outfile="run.h">
+    <sub from="#NPART#"        to="$npart" />
+    <sub from="#GEOM#"         to="$geom" />
+    <sub from="#WSCHEME#"      to="$wscheme" />
+    <sub from="#NT#"           to="$nt" />
+    <sub from="#NPMULT#"       to="$npmult" />
+    <sub from="#CSCHEME#"      to="$cscheme" /> 
+    <sub from="#CHOOSE_SORT#"  to="$csort" /> 
+    <sub from="#CHOOSE_BUILD#" to="$cbuild" /> 
+  </substitute>
+
+  <!-- collect script -->
+  <substitute infile="collectData.sh.jube" outfile="collectData.sh">
+    <sub from="#BENCHHOME#"             to="$benchhome" />
+    <sub from="#EXECUTABLE#"            to="pepc.exe" />
+
+    <sub from="#PERL#"                  to="$PERL_CMD" />
+    
+    <sub from="#COLLECT_IHPCT_HWC#"     to="`index('$IHPCT_HWC','on')>-1     ? ' ' : '#'`" />
+    <sub from="#COLLECT_IHPCT_MPITR#"   to="`index('$IHPCT_MPITR','on')>-1   ? ' ' : '#'`" />
+    <sub from="#COLLECT_GPROF#"         to="`index('$GPROF','on')>-1         ? ' ' : '#'`" />
+    <sub from="#COLLECT_CRAYPAT#"       to="`index('$CRAYPAT','on')>-1       ? ' ' : '#'`" />
+    <sub from="#JUGENE#"                to="`index('$platform','Jugene')>-1  ? ' ' : '#'`" />
+    <sub from="#JUMP#"                  to="`index('$platform','Jump')>-1    ? ' ' : '#'`" />
+    <sub from="#HUYGENS#"               to="`index('$platform','Huygens')>-1 ? ' ' : '#'`" />
+    <sub from="#LOUHI#"                 to="`index('$platform','Louhi')>-1   ? ' ' : '#'`" />
+  </substitute>
+
+  <command>(ln -s $benchhome/input/fielddump.ref.$geom.$npart.$nt.dat $outdir/fielddump.ref.dat)</command> 
+
+</prepare>
 
 <!-- ******************************************************************************** -->
 
