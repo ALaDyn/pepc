@@ -25,8 +25,7 @@ LIBS      = $(LIBPEPC)
 MODULES.f90 =   physvars.f90 benchmarking.f90 pusher.f90 files.f90 energies.f90 \
                 velocity_setup.f90
 SOURCES.f90 =	setup.f90 stamp.f90 configure.f90 face.f90 \
-		randion.f90 special_start.f90 \
-		force_direct.f90 error_test.f90 sum_radial.f90 \
+		randion.f90 special_start.f90 sum_radial.f90 \
 		param_dump.f90 cleanup.f90 pepce.f90
 
 # -------------------------------------------------------------------------------------------
