@@ -96,8 +96,8 @@ module module_fmm_framework
         !>
         !> Module Initialization, should be called on program startup
         !> after setting up all geometric parameters etc.
-        !> @param, in mpi_rank MPI rank of process for controlling debug output
-        !> @param, in wellsep well-separation criterion parmater
+        !> @param[in] mpi_rank MPI rank of process for controlling debug output
+        !> @param[in] wellsep well-separation criterion parmater
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_framework_init(mpi_rank, wellsep)
@@ -482,7 +482,7 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates vector with respect to lattice base vectors
-        !> @param, in ijk lattice indices
+        !> @param[in] ijk lattice indices
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function lattice_vect(ijk)
@@ -498,9 +498,9 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculate Spherical Multipole coefficients \f$\mathcal{M}\f$ for a cartesian vector
-        !> @param, in l multipole order
-        !> @param, in m
-        !> @param, in r cartesian vector [x, y, z]
+        !> @param[in] l multipole order
+        !> @param[in] m
+        !> @param[in] r cartesian vector [x, y, z]
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex*16 function Mvec(l,m,r)
@@ -530,9 +530,9 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculate Spherical Taylor coefficients \f$\mathcal{L}\f$ for a cartesian vector
-        !> @param, in l multipole order
-        !> @param, in m
-        !> @param, in r cartesian vector [x, y, z]
+        !> @param[in] l multipole order
+        !> @param[in] m
+        !> @param[in] r cartesian vector [x, y, z]
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex*16 function Lvec(l,m,r)
@@ -558,9 +558,9 @@ module module_fmm_framework
         !> The function cares for picking the right indices and
         !> respects symmetry
         !>
-        !> @param, in l multipole order
-        !> @param, in m
-        !> @param, in A table
+        !> @param[in] l multipole order
+        !> @param[in] m
+        !> @param[in] A table
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex*16 function tbl(A,l,m)
@@ -586,8 +586,8 @@ module module_fmm_framework
         !> Calculates the flat index, where an entry for l and m
         !> has to be stored in a one-dimensional array
         !>
-        !> @param, in l
-        !> @param, in m
+        !> @param[in] l
+        !> @param[in] m
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         integer function tblinv(l,m)
@@ -602,10 +602,6 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> M2M-Operator (denoted with \f$\otimes\f$ )
-        !>
-        !> @param, in l multipole order
-        !> @param, in m
-        !> @param, in A table
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function M2M(L, M)
@@ -645,7 +641,7 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Scaling Operator \f$\mathcal{U}_L\f$ for Taylor coefficients
-        !> @param, in L table with Taylor coefficients
+        !> @param[in] L table with Taylor coefficients
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function UL(L)
@@ -715,8 +711,8 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Converts cartesian coordinates to spherical system
-        !> @param, in  cartesian  cartesian vector [x, y, z]
-        !> @param, out spherical  spherical coordinates [ |r|, Cos(Theta), phi ]
+        !> @param[in]  cartesian  cartesian vector [x, y, z]
+        !> @param[out] spherical  spherical coordinates [ |r|, Cos(Theta), phi ]
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine cartesian_to_spherical(cartesian, spherical)
