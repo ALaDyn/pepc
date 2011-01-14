@@ -1,7 +1,8 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Several math tools, primarily matrix manipulations,
-!> Legendre polynomials and related stuff
+!> Legendre polynomials and related stuff. Additionally
+!> functions to calculate the biggest power in given interval
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_math_tools
@@ -28,6 +29,8 @@ module module_math_tools
       public div_by_fac
       public factorial
       public inverse3
+      public bpi
+      public bpi_bits
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -337,8 +340,85 @@ module module_math_tools
         end function mult_by_fac
 
 
-end module module_math_tools
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates the biggest power to \a base in a given interval with the limits \a a and \a b.
+        !>
+        !> @param[in] a First Limit of interval.
+        !> @param[in] b Second Limit of interval.
+        !> @param[in] base Base for which the power shoul be found.
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        integer*8 function bpi(a, b, base)
+          implicit none    
+          integer*8,intent(inout) :: a, b
+          integer*8,intent(in) :: base
+          integer*8 :: k
+          integer*8 :: i 
+          integer*8 :: powr
+          integer*8 :: temp
+          integer*8 :: res
+          
+          
+          ! swap for correct interval 
+          if (b .le. a) then
+             temp = a
+             a=b
+             b=temp
+          end if
+          
+          powr = floor(log(REAL(b))/log(REAL(base)))
+          do i = powr, 0, -1
+             
+             k = b/base**i
+             res = k * base**i
+             if (a.lt.res) then
+                bpi=res ! return
+             end if
+          end do
+          
+        end function bpi
+        
 
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates the biggest power to \a base in a given interval with the limits \a a and \a b. In this 
+        !> routine it is done by bit operations. 
+        !>
+        !> @param[in] a First Limit of interval.
+        !> @param[in] b Second Limit of interval.
+        !> @param[in] base Base for which the power shoul be found.
+        !> @param[in] levels The number of levels in the tree.\see{treevars::nlev}
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        integer*8 function bpi_bits(a, b, base, levels)
+          implicit none
+          integer*8,intent(inout) :: a, b
+          integer*8,intent(in) :: base
+          integer,intent(in) :: levels
+          integer*8 :: k
+          integer*8 :: i
+          integer*8 :: bn, pos, temp
+
+          ! swap for correct interval 
+          if (b .le. a) then
+             temp = a
+             a=b
+             b=temp
+          end if
+          
+          do i=1,levels
+             pos=3*(levels-i)
+             if(ibits(a,pos,3).ne.ibits(b,pos,3))then
+                bn=8**(levels-i)
+                bpi_bits=b/bn*bn  ! return, Note: is a integer division
+             end if
+          end do
+          
+        end function bpi_bits
+        
+ end module module_math_tools
+      
 
 
 

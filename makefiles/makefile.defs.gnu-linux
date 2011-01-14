@@ -12,7 +12,11 @@ CPPFLAGS = -P -C -I/usr/local/intel/impi/3.2.1.009/include/
 
 FCPRE    = 
 FC       = /usr/local/intel/impi/3.2.1.009/bin/mpif90
-FFLAGS   = # add this stuff
+FFLAGS   = -ffree-form -ffree-line-length-none
+
+CCPRE    = 
+CC       = /usr/local/intel/impi/3.2.1.009/bin/mpicc
+CFLAGS   = 
 
 LDPRE    = 
 LD       = /usr/local/intel/impi/3.2.1.009/bin/mpif90
