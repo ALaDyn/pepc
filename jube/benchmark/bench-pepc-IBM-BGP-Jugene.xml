@@ -10,23 +10,24 @@
                  CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
                  CMP_WRITEMODE   = "$writemode" />
 
-    <tasks       threadspertask = "1"   taskspernode = "4"   nodes = "256,512,1024" />
+    <tasks       threadspertask = "1"   taskspernode = "4"   nodes = "256,512,1024 " />
 
-    <params      COMMENT       = "scaling test"
+    <params      COMMENT       = "test with new branch algorithm"
                  PERL_CMD      = "perl"
                  optflags      = "-O3"
 
                  writemode     = "binary"
 
-                 npart         = "1000017,10000023,25000029" 
-                 geom          = "1,2,3"
+                 npart         = "1000017,10000023,25000029"  
+                 geom          = "1,2,3" 
                  nt            = "50" 
                  wscheme       = "1"
                  cscheme       = "0"
                  csort         = "3"
                  cbuild        = "1"
                  npmult        = "-40" /> 
-
+   
+    <!-- 2,3 -->
     <prepare     cname="PEPC" />
 
     <execution   iteration="1" cname="$platform" />
