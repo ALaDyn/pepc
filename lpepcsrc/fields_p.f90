@@ -103,26 +103,21 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
 
      tt(2)=MPI_WTIME()
 
-     call tree_build      ! Build trees from local particle lists
-
+     ! build local part of tree
+     call tree_local
      tt(3)=MPI_WTIME()
-     call tree_branches   ! Determine and concatenate branch nodes
+     ! exchange branch nodes
+     call tree_exchange
      tt(4)=MPI_WTIME()
-
-     call tree_fill       ! Fill in remainder of local tree
-
+     ! build global part of tree
+     call tree_global
      tt(5)=MPI_WTIME()
-
   else 
-     if (me==0) write (*,'(a19)') 'LPEPC | FREEZE MODE'
+     if (me==0) write (*,'(a19)') 'LPEPC | FREEZE MODE - maybe damaged due to changes to tree build routines'
   endif
 
    tt(6)=MPI_WTIME()
 
-  call tree_properties ! Compute multipole moments for local tree
-!call closefiles
-!call MPI_FINALIZE(ierr)
-!stop
    tt(7)=MPI_WTIME()
 
   if (walk_scheme==3) then

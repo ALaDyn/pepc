@@ -14,7 +14,7 @@
 
 subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, t_np_mult,t_fetch_mult, &
-     mac, theta, eps, force_const, err_f, itime, choose_sort,weighted, choose_build, &
+     mac, theta, eps, force_const, err_f, itime, choose_sort,weighted, &
      num_neighbours, neighbours)
 
   use treevars
@@ -29,7 +29,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   real, intent(in) :: force_const       ! scaling factor for fields & potential
   real, intent(in) :: eps         ! potential softening distance
   integer, intent(in) :: itime  ! timestep
-  integer, intent(in) :: mac, choose_sort, weighted, choose_build
+  integer, intent(in) :: mac, choose_sort, weighted
   real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
   real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
   integer, intent(in), dimension(np_local) :: p_label  ! particle label 
@@ -126,20 +126,12 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   call tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, choose_sort, weighted)
   call tree_allocate(theta)
 
-  if (choose_build == 0) then
-
-     call tree_build      ! Build trees from local particle lists
-     call tree_branches   ! Determine and concatenate branch nodes
-     call tree_fill       ! Fill in remainder of local tree
-     call tree_properties ! Compute multipole moments for local tree
-
-  else   
-
-     call tree_local
-     call tree_exchange
-     call tree_global
-
-  end if
+  ! build local part of tree
+  call tree_local
+  ! exchange branch nodes
+  call tree_exchange
+  ! build global part of tree
+  call tree_global
 
   ta1e = MPI_WTIME()
   t_fields_tree = ta1e-ta1b
@@ -356,18 +348,11 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   call MPI_REDUCE(t_domains,t0_domains,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
   call MPI_REDUCE(t_allocate,t0_allocate,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
   
-  if (choose_build == 0) then
-     call MPI_REDUCE(t_build,t0_build,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-     call MPI_REDUCE(t_branches,t0_branches,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-     call MPI_REDUCE(t_fill,t0_fill,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-     call MPI_REDUCE(t_properties,t0_properties,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-  else
-     call MPI_REDUCE(t_local,t0_local,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-     call MPI_REDUCE(t_exchange,t0_exchange,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-     call MPI_REDUCE(t_global,t0_global,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-     t_props_branches = 0.
-     t_props_global = 0.
-  end if
+  call MPI_REDUCE(t_local,t0_local,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_exchange,t0_exchange,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  call MPI_REDUCE(t_global,t0_global,1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  t_props_branches = 0.
+  t_props_global = 0.
 
   t0_walk = t_walk
   t0_walkc = t_walkc

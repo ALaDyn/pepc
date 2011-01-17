@@ -148,7 +148,7 @@ module physvars
   integer :: beam_config_in = 0 ! Particle or laser beam switch including variations 
   integer :: beam_config = 0 ! Reduced switch for particle or laser beam 
   integer :: ispecial       ! Switch to select special electron configs 
-  integer :: choose_sort, weighted, choose_build
+  integer :: choose_sort, weighted
   integer :: scheme = 1 ! Integrator scheme switch: 2-4= const. Te dynamics, 6=EM
   integer :: debug_level =0 ! Debug level for printed O/P
 

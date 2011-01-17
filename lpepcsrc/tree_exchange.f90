@@ -14,8 +14,6 @@ subroutine tree_exchange
   type (multipole), dimension(nbranch) :: pack_mult
   real*8, allocatable :: get_size(:)
   type (multipole),allocatable :: get_mult(:)
-!  real*8, dimension(nbranch_max) :: get_size
-!  type (multipole), dimension(nbranch_max) :: get_mult
 
   integer,external :: key2addr        ! Mapping function to get hash table address from key
 

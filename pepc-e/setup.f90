@@ -35,7 +35,7 @@ subroutine setup()
 
   namelist /pepcdata/ nep, nip, np_mult, fetch_mult, ne, ni, &
        mac, theta, mass_ratio, q_factor, eps, &
-       system_config, target_geometry, ispecial, choose_sort, weighted, choose_build, &
+       system_config, target_geometry, ispecial, choose_sort, weighted, &
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
        xl, yl, zl, displace, bond_const, rho_min, lolam, &
@@ -64,7 +64,6 @@ subroutine setup()
 
   choose_sort     =   3
   weighted        =   1
-  choose_build    =   0
 
   scheme          =   0
 

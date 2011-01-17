@@ -20,11 +20,9 @@ subroutine tree_local
 
   integer*8, dimension(nppm+2) :: local_key
   integer, dimension(nppm+2)  :: local_plist, local_owner, local_ind
- ! character*1 :: collision(0:maxaddress) ! Debug only
   integer*8, allocatable :: subcell(:)
   integer, allocatable :: cell_addr(:)
   integer*8, dimension(maxaddress) :: res_key
- ! integer, dimension(0:maxaddress) :: cell_addr
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
   integer*8, dimension(nbranch_max) :: search_key, resolve_key
 
@@ -48,8 +46,6 @@ subroutine tree_local
   end do
   i=0                     ! List of free (unused #table-addresses) 
 
-!  collision = " "                               ! Collision flag
-  
   !  Check whether boundary particles are close enough to warrant inclusion
   !  in tree construction.
   
@@ -287,31 +283,17 @@ subroutine tree_local
 
      end do
 
-     ! output interim hash table
-!     if (build_debug) then
-!        write (ipefile,'(/a,i6/8x,a/8x,a)') 'Hash table at level',level, &
-!             'entry,    node,    key,     link  children  collision', &
-!             '----------------------------------------------------- '
-!        ! flag old & new collisions
-!        do i=0,tablehigh
-!           if ( collision(i) == "X") collision(i) = "c" 
-!           if (htable(i)%node/=0 .and. htable(i)%link/= -1 .and. collision(i)/="c") collision(i)="X"
-!           if (htable(i)%node /=0 ) write (ipefile,'(2i10,o10,2i10,4x,a1)') &
-!               i,htable(i)%node,htable(i)%key,htable(i)%link,htable(i)%leaves,collision(i)
-!        end do
-!     endif
-
      ! Make new lists from unfinished particles.
 
      k=0
      do i=1,nlist
      	if (.not. (local_plist(i)==0)) then
-	  k=k+1
+	      k=k+1
           local_key(k) = local_key(i)
           local_ind(k) = local_ind(i)
-	  local_plist(k) = local_plist(i)
-	  local_owner(k) = local_owner(i)		  
-	endif
+	      local_plist(k) = local_plist(i)
+	      local_owner(k) = local_owner(i)
+	    endif
      end do
      
      nlist = nlist - newleaf - nbound
@@ -450,29 +432,6 @@ subroutine tree_local
 
 
   ta1b = MPI_WTIME()  
-
-  ! Zero multipole arrays: WARNING! EXPENSIVE FOR INCREASING 
-!  charge = 0.
-!  abs_charge = 0.
-!  xcoc = 0.
-!  ycoc = 0.
-!  zcoc = 0.
-!  xdip = 0.
-!  ydip = 0.
-!  zdip = 0.
-!  xxquad = 0.
-!  yyquad = 0.
-!  zzquad = 0.
-!  xyquad = 0.
-!  yzquad = 0.
-!  zxquad = 0.
-!  magmx = 0.
-!  magmy = 0.
-!  magmz = 0.
-!  jx = 0.
-!  jy = 0.
-!  jz = 0.
-!  size_node = 0.
 
   !  Start with *local* leaf properties
   do i=1, nleaf_me
