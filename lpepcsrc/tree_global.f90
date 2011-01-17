@@ -15,7 +15,8 @@ subroutine tree_global
   
   integer, dimension(nbranch_sum) :: branch_level, branch_addr, branch_node 
   integer*8, dimension(maxaddress) :: sub_key, parent_key
-  integer, dimension(maxaddress) ::  tree_node, cell_addr, parent_addr, parent_node
+  integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
+  integer, dimension(maxaddress) ::  parent_node
   logical :: duplicate(maxaddress)
 
   integer, external :: key2addr        ! Mapping function to get hash table address from key
@@ -72,10 +73,32 @@ subroutine tree_global
            ! Set child-bit in existing parent byte-code
            hashaddr = key2addr( parent_key(i),'GLOBAL: sweep1'  )
            htable( hashaddr )%childcode = IBSET( htable( hashaddr )%childcode, child_bit )
+           nodtwig = htable( hashaddr )%node 
         else if (ierr == 0 ) then
            ntwig = ntwig + 1
            ntwig_me = ntwig_me+1               ! # local twigs
 	   twig_key(ntwig_me) = htable( hashaddr)%key  ! add to list of local twigs
+           abs_charge( nodtwig ) = 0.  ! Zero multipole arrays for new entries
+           charge( nodtwig ) = 0.
+           xcoc( nodtwig ) = 0.
+           ycoc( nodtwig ) = 0.           
+           zcoc( nodtwig ) = 0.           
+           xdip( nodtwig ) = 0.
+           ydip( nodtwig ) = 0. 
+           zdip( nodtwig ) = 0.
+           xxquad( nodtwig ) = 0.
+           yyquad( nodtwig ) = 0.
+           zzquad( nodtwig ) = 0.
+           xyquad( nodtwig ) = 0.
+           yzquad( nodtwig ) = 0.
+           zxquad( nodtwig ) = 0.
+           magmx( nodtwig ) = 0.
+           magmy( nodtwig ) = 0.
+           magmz( nodtwig ) = 0.
+           jx( nodtwig ) = 0.
+           jy( nodtwig ) = 0.
+           jz( nodtwig ) = 0.
+           size_node( nodtwig ) = 0.           
         else
            write (ipefile,*) 'Key number ',i,' not resolved'
            call MPI_ABORT(MPI_COMM_WORLD,ierr)
@@ -84,8 +107,7 @@ subroutine tree_global
 
         branch_addr(i) = key2addr( sub_key(i),'PROPERTIES: fill' )   !  branches` #table addresses
         branch_node(i) = htable( branch_addr(i) )%node
-        parent_addr(i) = key2addr( parent_key(i),'PROPERTIES:fill' )   ! parents` #table addresses
-        parent_node(i) = htable( parent_addr(i) )%node          ! parents` node numbers
+        parent_node(i) = nodtwig                                     ! parents` node numbers
         
      end do
 
@@ -156,20 +178,18 @@ subroutine tree_global
   end do
 
   ! Rezero dipole and quadrupole sums of all local leaf nodes
-  do i=1,nleaf
-     xdip(i) = 0.
-     ydip(i) = 0.
-     zdip(i) = 0.
-     xxquad(i) = 0.
-     yyquad(i) = 0.
-     zzquad(i) = 0.
-     xyquad(i) = 0.
-     yzquad(i) = 0.
-     zxquad(i) = 0.
-     magmx(i) = 0.
-     magmy(i) = 0.
-     magmz(i) = 0.
-  end do
+  xdip(1:nleaf) = 0.
+  ydip(1:nleaf) = 0.
+  zdip(1:nleaf) = 0.
+  xxquad(1:nleaf) = 0.
+  yyquad(1:nleaf) = 0.
+  zzquad(1:nleaf) = 0.
+  xyquad(1:nleaf) = 0.
+  yzquad(1:nleaf) = 0.
+  zxquad(1:nleaf) = 0.
+  magmx(1:nleaf) = 0.
+  magmy(1:nleaf) = 0.
+  magmz(1:nleaf) = 0.
 
   if (tree_debug) call check_table('End of local fill    ')
 
@@ -191,9 +211,11 @@ subroutine tree_global
   call sort(treekey(1:ntwig))                                                               ! Sort keys
   treekey(ntwig+1:ntwig+nleaf) = pack(htable%key,mask = htable%node > 0)                    ! add list of leaf keys
 
+  allocate(tree_node(nnodes),cell_addr(nnodes),parent_addr(nnodes))
+
   tree_node(1) = -1  ! root node #
   cell_addr(1) = key2addr(1_8,'FILL: root')
- 
+
   do i=2,nnodes
     hashaddr = key2addr( treekey(i),'FILL: nodes' )
     cell_addr(i) = hashaddr 
@@ -250,6 +272,8 @@ subroutine tree_global
   !  Dummy values for leaves
   first_child(1:nleaf) = treekey(ntwig+1:ntwig+nleaf) 
   n_children(1:nleaf) = 0
+
+  deallocate(tree_node,cell_addr,parent_addr)
 
   ta1e = MPI_WTIME()
   t_fill_global = ta1e-ta1b  

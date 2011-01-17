@@ -12,8 +12,10 @@ subroutine tree_exchange
   
   real*8, dimension(nbranch) :: pack_size
   type (multipole), dimension(nbranch) :: pack_mult
-  real*8, dimension(nbranch_max) :: get_size
-  type (multipole), dimension(nbranch_max) :: get_mult
+  real*8, allocatable :: get_size(:)
+  type (multipole),allocatable :: get_mult(:)
+!  real*8, dimension(nbranch_max) :: get_size
+!  type (multipole), dimension(nbranch_max) :: get_mult
 
   integer,external :: key2addr        ! Mapping function to get hash table address from key
 
@@ -66,6 +68,7 @@ subroutine tree_exchange
   end do
   
   nbranch_sum = SUM( nbranches(1:num_pe) )   ! Total # branches in tree
+  allocate(get_size(1:nbranch_sum),get_mult(1:nbranch_sum))
   igap(num_pe+1) = nbranch_sum
 
   if (nbranch_sum > nbranch_max) then
@@ -144,6 +147,8 @@ subroutine tree_exchange
   ntwig_me = ntwig
   nleaf = nleaf + newleaf  ! Total # leaves/twigs in local #table
   ntwig = ntwig + newtwig
+  
+  deallocate(get_size,get_mult)
 
   ta1e = MPI_WTIME()
   t_branches_integrate = ta1e-ta1b  

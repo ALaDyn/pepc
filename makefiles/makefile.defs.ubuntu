@@ -12,7 +12,8 @@ CPPFLAGS = -P -C
 
 FCPRE    = 
 FC       = mpif90
-FFLAGS   = -ffree-line-length-none -I/usr/lib/mpich-shmem/include -g -O0 -fbounds-check -frange-check -Wall
+#FFLAGS   = -ffree-line-length-none -I/usr/lib/mpich-shmem/include -g -O0 -fbounds-check -frange-check -Wall
+FFLAGS   = -ffree-line-length-none -I/usr/lib/mpich-shmem/include -O3
 
 CCPRE    = 
 CC       = mpicc
@@ -20,7 +21,7 @@ CFLAGS   = -I/usr/lib/mpich-shmem/include
 
 LDPRE    = 
 LD       = mpif90
-LDFLAGS  = -g -O0
+LDFLAGS  = -O3
 LDLIBS   = 
 
 RM       = rm -rf
