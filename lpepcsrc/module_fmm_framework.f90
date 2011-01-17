@@ -111,7 +111,7 @@ module module_fmm_framework
           myrank = mpi_rank
           ws     = wellsep
 
-          call init_movement_contraint
+          call init_movement_constraint
 
           LatticeCenter = 0.5*(t_lattice_1 + t_lattice_2 + t_lattice_3)
 
@@ -160,7 +160,7 @@ module module_fmm_framework
         !> Initializes transformation matrices between cartesian system and lattice basis
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine init_movement_contraint
+        subroutine init_movement_constraint
           use module_math_tools
           implicit none
 
@@ -184,7 +184,7 @@ module module_fmm_framework
           end do
 
 
-        end subroutine init_movement_contraint
+        end subroutine init_movement_constraint
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -701,7 +701,7 @@ module module_fmm_framework
 
           do i = 2,num_neighbour_boxes ! central box is being omitted in this loop
             do ii = 1,num_neighbour_boxes
-               LstarFunc = LstarFunc + Lvec(l, m, -lattice_vect(neighbour_boxes(:,ii)) + (2*ws+1)*neighbour_boxes(:,i))
+               LstarFunc = LstarFunc + Lvec(l, m, -lattice_vect(neighbour_boxes(:,ii)) + (2*ws+1)*lattice_vect(neighbour_boxes(:,i)))
             end do
           end do
 
