@@ -22,3 +22,17 @@ doc: clean-doc
 	doxygen ./tools/Doxyfile
 	@echo "--- you can view the source code documentation by opening ./doc/index.html with your favourite web browser ---"
 
+clean-dist:
+	rm -rf ./benchmark
+	rm -f benchmark-VER.tgz
+	
+dist: clean-dist	
+	@echo "--- exporting svn directory structure ---"
+	svn export ./ ./benchmark
+	rm -rf ./benchmark/jube
+	@echo "--- creating tarball ---"
+	tar -czvf ./benchmark-VER.tgz ./benchmark/
+	@echo "--- removing temporary files ---"
+	rm -rf ./benchmark
+	@echo "--- before publishing do not forget to update revision number in filename ---"
+	
