@@ -26,10 +26,6 @@
 ! 1: pbalsort, 2: sl_sort_part, 3: sl_sort_keys
  choose_sort = #CHOOSE_SORT#
 
-! Choose tree build routine
-! 0: original, 1: optimized
- choose_build = #CHOOSE_BUILD#
-
 ! determinates the particle dump interval
 ! 0: never write anything
 ! n: each n-th step, plus first and last step

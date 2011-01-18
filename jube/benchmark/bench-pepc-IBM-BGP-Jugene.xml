@@ -24,7 +24,6 @@
                  wscheme       = "1"
                  cscheme       = "0"
                  csort         = "3"
-                 cbuild        = "1"
                  npmult        = "-40" /> 
    
     <!-- 2,3 -->
@@ -61,7 +60,6 @@
                  wscheme       = "1"
                  cscheme       = "0"
                  csort         = "3"
-                 cbuild        = "1"
                  npmult        = "-40" /> 
 
     <prepare     cname="PEPC-periodic" />

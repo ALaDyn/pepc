@@ -16,7 +16,6 @@
     <sub from="#NPMULT#"       to="$npmult" />
     <sub from="#CSCHEME#"      to="$cscheme" /> 
     <sub from="#CHOOSE_SORT#"  to="$csort" /> 
-    <sub from="#CHOOSE_BUILD#" to="$cbuild" /> 
   </substitute>
 
   <!-- collect script -->
@@ -55,7 +54,6 @@
     <sub from="#NPMULT#"       to="$npmult" />
     <sub from="#CSCHEME#"      to="$cscheme" /> 
     <sub from="#CHOOSE_SORT#"  to="$csort" /> 
-    <sub from="#CHOOSE_BUILD#" to="$cbuild" /> 
   </substitute>
 
   <!-- collect script -->
