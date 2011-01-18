@@ -1,0 +1,35 @@
+ run parameter
+#  Subid                                       ncpus t_loop_avg      npart         nt       geom   optflags    COMMENT
+#  -------------------------------------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+                         n1p4t1_t001_i01          4      41.26    1000017         50          1        -O3 scaling test
+                         n1p4t1_t002_i01          4      47.41    1000017         50          2        -O3 scaling test
+                         n1p4t1_t003_i01          4      46.06    1000017         50          3        -O3 scaling test
+
+ loop timing
+#  Subid                                       ncpus t_loop_min t_loop_avg t_loop_max t_loop_std
+#  -------------------------------------- ---------- ---------- ---------- ---------- ----------
+                         n1p4t1_t001_i01          4       0.94      41.26       1.08       0.05
+                         n1p4t1_t002_i01          4       0.95      47.41       1.07       0.05
+                         n1p4t1_t003_i01          4       0.94      46.06       1.12       0.05
+
+ phase timing
+#  Subid                                       ncpus time_pravg time_inavg time_poavg
+#  -------------------------------------- ---------- ---------- ---------- ----------
+                         n1p4t1_t001_i01          4       0.17    2064.38       0.01
+                         n1p4t1_t002_i01          4       0.34    2372.22       0.01
+                         n1p4t1_t003_i01          4       0.47    2304.54       0.01
+
+ io timing
+#  Subid                                       ncpus  writemode IOperf_avg IOopen_avg IOwriteavg IOcloseavg
+#  -------------------------------------- ---------- ---------- ---------- ---------- ---------- ----------
+                         n1p4t1_t001_i01          4     binary       0.00       0.00       0.00       0.00
+                         n1p4t1_t002_i01          4     binary       0.00       0.00       0.00       0.00
+                         n1p4t1_t003_i01          4     binary       0.00       0.00       0.00       0.00
+
+ verification and date
+#  Subid                                                      jobenddate                         vcheck                       vcomment
+#  -------------------------------------- ------------------------------ ------------------------------ ------------------------------
+                         n1p4t1_t001_i01   Tue Jan 18 11:03:40 CET 2011                              1         verify ok (7.2098e-12)
+                         n1p4t1_t002_i01   Tue Jan 18 11:43:14 CET 2011                              1         verify ok (1.0437e-08)
+                         n1p4t1_t003_i01   Tue Jan 18 12:21:42 CET 2011                              1         verify ok (1.4909e-08)
+

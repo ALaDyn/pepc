@@ -1,0 +1,25 @@
+ run parameter
+#  Subid                                       ncpus t_loop_avg      npart         nt       geom   optflags    COMMENT
+#  -------------------------------------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+                         n1p2t1_t001_i01          2       0.43          4          1          7        -O3 periodic test
+
+ loop timing
+#  Subid                                       ncpus t_loop_min t_loop_avg t_loop_max t_loop_std
+#  -------------------------------------- ---------- ---------- ---------- ---------- ----------
+                         n1p2t1_t001_i01          2       0.43       0.43       0.43       0.18
+
+ phase timing
+#  Subid                                       ncpus time_pravg time_inavg time_poavg
+#  -------------------------------------- ---------- ---------- ---------- ----------
+                         n1p2t1_t001_i01          2       0.04       0.44       0.00
+
+ io timing
+#  Subid                                       ncpus  writemode IOperf_avg IOopen_avg IOwriteavg IOcloseavg
+#  -------------------------------------- ---------- ---------- ---------- ---------- ---------- ----------
+                         n1p2t1_t001_i01          2     binary       0.00       0.00       0.00       0.00
+
+ verification and date
+#  Subid                                                      jobenddate                         vcheck                       vcomment
+#  -------------------------------------- ------------------------------ ------------------------------ ------------------------------
+                         n1p2t1_t001_i01   Tue Jan 18 12:21:44 CET 2011                              1         verify ok (9.3889e-15)
+
