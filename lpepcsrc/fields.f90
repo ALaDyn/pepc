@@ -203,7 +203,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   ex_tmp  = 0.
   ey_tmp  = 0.
   ez_tmp  = 0.
-  work    = 0.
+  work    = 1.
 
   do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 
@@ -236,7 +236,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
        
         !  compute Coulomb fields and potential of particle p from its interaction list
         call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), vbox, eps, &
-                           ex_coul, ey_coul, ez_coul, phi_coul, work(p))
+                           ex_coul, ey_coul, ez_coul, phi_coul)
 
         pot_tmp(p) = pot_tmp(p) + force_const * phi_coul
         ex_tmp(p)  = ex_tmp(p)  + force_const * ex_coul

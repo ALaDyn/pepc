@@ -270,7 +270,7 @@ subroutine pepc_fields_p(np_local, nppm_ori, walk_scheme, mac, theta, ifreeze, e
 
         if (coulomb) then
            !  compute Coulomb fields and potential of particle p from its interaction list
-           call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
+           call sum_force(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul)
 !           call sum_force_split(p, nterm(i), nodelist( 1:nterm(i),i), eps, ex_coul, ey_coul, ez_coul, phi_coul, work(p))
 
            pot(p) = pot(p) + force_const * phi_coul

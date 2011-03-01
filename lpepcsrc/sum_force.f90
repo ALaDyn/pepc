@@ -6,7 +6,7 @@
 !
 !  ===================================================================
 
-subroutine sum_force( p, n, inode, vbox, eps, sumfx, sumfy, sumfz, sumphi, load )
+subroutine sum_force( p, n, inode, vbox, eps, sumfx, sumfy, sumfz, sumphi)
   use treevars
   implicit none
 
@@ -17,7 +17,6 @@ subroutine sum_force( p, n, inode, vbox, eps, sumfx, sumfy, sumfz, sumphi, load 
   integer, dimension(1:n) ::  inode
   real, intent(in) :: eps ! smoothing parameter
   real*8, intent(in) :: vbox(3) !< vector to neighbour box that is currently processed
-  real*8, intent(inout) :: load ! work load for particle p
   integer :: jnode, i,j,k 
 
   real*8 :: rd,dx,dy,dz,d,dx2,dy2,dz2 
@@ -136,11 +135,7 @@ subroutine sum_force( p, n, inode, vbox, eps, sumfx, sumfy, sumfz, sumphi, load 
   ! work load - can make this for accurate by sorting leaf/twig terms
 
   ! store work for next domain decomp
-  load = load + n  ! return to calling routine
-
-  !  load = n  ! return to calling routine
-  !  if (me == 0) write(*,*) n,work(p),load
-
+  work(p) = work(p) + n 
 
 end subroutine sum_force
 
