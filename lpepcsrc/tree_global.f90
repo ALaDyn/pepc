@@ -77,28 +77,7 @@ subroutine tree_global
         else if (ierr == 0 ) then
            ntwig = ntwig + 1
            ntwig_me = ntwig_me+1               ! # local twigs
-	   twig_key(ntwig_me) = htable( hashaddr)%key  ! add to list of local twigs
-           abs_charge( nodtwig ) = 0.  ! Zero multipole arrays for new entries
-           charge( nodtwig ) = 0.
-           xcoc( nodtwig ) = 0.
-           ycoc( nodtwig ) = 0.           
-           zcoc( nodtwig ) = 0.           
-           xdip( nodtwig ) = 0.
-           ydip( nodtwig ) = 0. 
-           zdip( nodtwig ) = 0.
-           xxquad( nodtwig ) = 0.
-           yyquad( nodtwig ) = 0.
-           zzquad( nodtwig ) = 0.
-           xyquad( nodtwig ) = 0.
-           yzquad( nodtwig ) = 0.
-           zxquad( nodtwig ) = 0.
-           magmx( nodtwig ) = 0.
-           magmy( nodtwig ) = 0.
-           magmz( nodtwig ) = 0.
-           jx( nodtwig ) = 0.
-           jy( nodtwig ) = 0.
-           jz( nodtwig ) = 0.
-           size_node( nodtwig ) = 0.           
+     	   twig_key(ntwig_me) = htable( hashaddr)%key  ! add to list of local twigs
         else
            write (ipefile,*) 'Key number ',i,' not resolved'
            call MPI_ABORT(MPI_COMM_WORLD,ierr)
@@ -109,6 +88,32 @@ subroutine tree_global
         branch_node(i) = htable( branch_addr(i) )%node
         parent_node(i) = nodtwig                                     ! parents` node numbers
         
+     end do
+
+     ! Set mm-arrays to zero (initially) for all twigs below branches
+     do i=nuniq,1,-1
+        nodtwig = parent_node(i)
+        abs_charge( nodtwig ) = 0.  ! Zero multipole arrays for new entries
+        charge( nodtwig ) = 0.
+        xcoc( nodtwig ) = 0.
+        ycoc( nodtwig ) = 0.
+        zcoc( nodtwig ) = 0.
+        xdip( nodtwig ) = 0.
+        ydip( nodtwig ) = 0.
+        zdip( nodtwig ) = 0.
+        xxquad( nodtwig ) = 0.
+        yyquad( nodtwig ) = 0.
+        zzquad( nodtwig ) = 0.
+        xyquad( nodtwig ) = 0.
+        yzquad( nodtwig ) = 0.
+        zxquad( nodtwig ) = 0.
+        magmx( nodtwig ) = 0.
+        magmy( nodtwig ) = 0.
+        magmz( nodtwig ) = 0.
+        jx( nodtwig ) = 0.
+        jy( nodtwig ) = 0.
+        jz( nodtwig ) = 0.
+        size_node( nodtwig ) = 0.
      end do
 
      ! Compute parent properties from children
