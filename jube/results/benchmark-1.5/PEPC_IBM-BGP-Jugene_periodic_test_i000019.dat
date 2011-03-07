@@ -6,12 +6,12 @@
  loop timing
 #  Subid                                       ncpus t_loop_min t_loop_avg t_loop_max t_loop_std
 #  -------------------------------------- ---------- ---------- ---------- ---------- ----------
-                         n1p2t1_t001_i01          2       0.43       0.43       0.43       0.18
+                         n1p2t1_t001_i01          2       0.43       0.43       0.43       0.19
 
  phase timing
 #  Subid                                       ncpus time_pravg time_inavg time_poavg
 #  -------------------------------------- ---------- ---------- ---------- ----------
-                         n1p2t1_t001_i01          2       0.04       0.44       0.00
+                         n1p2t1_t001_i01          2       0.30       0.50       0.00
 
  io timing
 #  Subid                                       ncpus  writemode IOperf_avg IOopen_avg IOwriteavg IOcloseavg
@@ -21,5 +21,5 @@
  verification and date
 #  Subid                                                      jobenddate                         vcheck                       vcomment
 #  -------------------------------------- ------------------------------ ------------------------------ ------------------------------
-                         n1p2t1_t001_i01   Tue Jan 18 12:21:44 CET 2011                              1         verify ok (9.3889e-15)
+                         n1p2t1_t001_i01    Mon Mar 7 13:21:23 CET 2011                              1         verify ok (0.0000e+00)
 

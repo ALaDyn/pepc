@@ -1,0 +1,150 @@
+ run parameter
+#  Subid                                       ncpus t_loop_avg      npart         nt       geom   optflags    COMMENT
+#  -------------------------------------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+                       n256p4t1_t001_i01       1024       1.50    1000017         50          1        -O3 test with new branch algorithm
+                       n256p4t1_t004_i01       1024       1.85    1000017         50          2        -O3 test with new branch algorithm
+                       n256p4t1_t007_i01       1024       1.96    1000017         50          3        -O3 test with new branch algorithm
+                       n256p4t1_t002_i01       1024      10.15   10000023         50          1        -O3 test with new branch algorithm
+                       n256p4t1_t005_i01       1024      11.70   10000023         50          2        -O3 test with new branch algorithm
+                       n256p4t1_t008_i01       1024      11.46   10000023         50          3        -O3 test with new branch algorithm
+                       n256p4t1_t003_i01       1024      26.14   25000029         50          1        -O3 test with new branch algorithm
+                       n256p4t1_t006_i01       1024      29.31   25000029         50          2        -O3 test with new branch algorithm
+                       n256p4t1_t009_i01       1024      28.17   25000029         50          3        -O3 test with new branch algorithm
+                       n512p4t1_t001_i01       2048      23.13    1000017         50          1        -O3 test with new branch algorithm
+                       n512p4t1_t004_i01       2048      22.42    1000017         50          2        -O3 test with new branch algorithm
+                       n512p4t1_t007_i01       2048      13.45    1000017         50          3        -O3 test with new branch algorithm
+                       n512p4t1_t002_i01       2048      26.73   10000023         50          1        -O3 test with new branch algorithm
+                       n512p4t1_t005_i01       2048      24.38   10000023         50          2        -O3 test with new branch algorithm
+                       n512p4t1_t008_i01       2048      18.45   10000023         50          3        -O3 test with new branch algorithm
+                       n512p4t1_t003_i01       2048      30.41   25000029         50          1        -O3 test with new branch algorithm
+                       n512p4t1_t006_i01       2048      25.76   25000029         50          2        -O3 test with new branch algorithm
+                       n512p4t1_t009_i01       2048      24.56   25000029         50          3        -O3 test with new branch algorithm
+                      n1024p4t1_t001_i01       4096      23.91    1000017         50          1        -O3 test with new branch algorithm
+                      n1024p4t1_t004_i01       4096      24.93    1000017         50          2        -O3 test with new branch algorithm
+                      n1024p4t1_t007_i01       4096      24.50    1000017         50          3        -O3 test with new branch algorithm
+                      n1024p4t1_t002_i01       4096      27.25   10000023         50          1        -O3 test with new branch algorithm
+                      n1024p4t1_t005_i01       4096      27.69   10000023         50          2        -O3 test with new branch algorithm
+                      n1024p4t1_t008_i01       4096      27.46   10000023         50          3        -O3 test with new branch algorithm
+                      n1024p4t1_t003_i01       4096      29.99   25000029         50          1        -O3 test with new branch algorithm
+                      n1024p4t1_t009_i01       4096      26.48   25000029         50          3        -O3 test with new branch algorithm
+
+ loop timing
+#  Subid                                       ncpus t_loop_min t_loop_avg t_loop_max t_loop_std
+#  -------------------------------------- ---------- ---------- ---------- ---------- ----------
+                       n256p4t1_t001_i01       1024       0.89       1.50       3.16       0.38
+                       n256p4t1_t004_i01       1024       0.80       1.85       4.08       0.49
+                       n256p4t1_t007_i01       1024       0.76       1.96       5.39       0.65
+                       n256p4t1_t002_i01       1024       0.97      10.15       1.29       0.05
+                       n256p4t1_t005_i01       1024       0.96      11.70       1.29       0.05
+                       n256p4t1_t008_i01       1024       0.95      11.46       1.42       0.09
+                       n256p4t1_t003_i01       1024       0.98      26.14       1.49       0.08
+                       n256p4t1_t006_i01       1024       0.99      29.31       1.26       0.04
+                       n256p4t1_t009_i01       1024       0.98      28.17       1.31       0.05
+                       n512p4t1_t001_i01       2048       0.67      23.13       1.70       0.21
+                       n512p4t1_t004_i01       2048       0.51      22.42       1.40       0.21
+                       n512p4t1_t007_i01       2048       0.58      13.45       2.77       0.47
+                       n512p4t1_t002_i01       2048       0.69      26.73       1.51       0.18
+                       n512p4t1_t005_i01       2048       0.53      24.38       1.60       0.30
+                       n512p4t1_t008_i01       2048       0.68      18.45       2.49       0.39
+                       n512p4t1_t003_i01       2048       0.67      30.41       1.47       0.23
+                       n512p4t1_t006_i01       2048       0.81      25.76       2.20       0.28
+                       n512p4t1_t009_i01       2048       0.85      24.56       1.82       0.22
+                      n1024p4t1_t001_i01       4096       0.66      23.91       2.04       0.23
+                      n1024p4t1_t004_i01       4096       0.71      24.93       1.77       0.20
+                      n1024p4t1_t007_i01       4096       0.65      24.50       1.42       0.17
+                      n1024p4t1_t002_i01       4096       0.61      27.25       1.53       0.16
+                      n1024p4t1_t005_i01       4096       0.69      27.69       1.28       0.15
+                      n1024p4t1_t008_i01       4096       0.65      27.46       1.35       0.16
+                      n1024p4t1_t003_i01       4096       0.70      29.99       1.58       0.18
+                      n1024p4t1_t009_i01       4096       0.66      26.48       1.79       0.29
+
+ phase timing
+#  Subid                                       ncpus time_pravg time_inavg time_poavg
+#  -------------------------------------- ---------- ---------- ---------- ----------
+                       n256p4t1_t001_i01       1024       1.93      75.18       2.18
+                       n256p4t1_t004_i01       1024       2.26      92.42      14.60
+                       n256p4t1_t007_i01       1024       2.52      98.44       8.56
+                       n256p4t1_t002_i01       1024       5.25     507.85      16.99
+                       n256p4t1_t005_i01       1024      16.51     585.97       0.00
+                       n256p4t1_t008_i01       1024      10.22     573.43       8.34
+                       n256p4t1_t003_i01       1024      10.17    1307.18      11.44
+                       n256p4t1_t006_i01       1024      21.25    1465.96       2.31
+                       n256p4t1_t009_i01       1024      23.19    1409.04       1.82
+                       n512p4t1_t001_i01       2048      17.10    1176.47       0.00
+                       n512p4t1_t004_i01       2048       6.34    1139.28       0.00
+                       n512p4t1_t007_i01       2048       7.37     676.96       0.00
+                       n512p4t1_t002_i01       2048      14.07    1353.55       0.00
+                       n512p4t1_t005_i01       2048      18.39    1228.89       0.22
+                       n512p4t1_t008_i01       2048      24.97     930.34       0.00
+                       n512p4t1_t003_i01       2048      22.30    1535.43       0.27
+                       n512p4t1_t006_i01       2048      37.99    1290.10       0.00
+                       n512p4t1_t009_i01       2048      45.05    1230.35       0.00
+                      n1024p4t1_t001_i01       4096      14.14    1209.10       0.00
+                      n1024p4t1_t004_i01       4096      17.94    1256.53       0.00
+                      n1024p4t1_t007_i01       4096      30.58    1240.64       0.00
+                      n1024p4t1_t002_i01       4096      15.32    1373.46       0.00
+                      n1024p4t1_t005_i01       4096      33.93    1409.62       0.00
+                      n1024p4t1_t008_i01       4096      20.40    1390.68       0.06
+                      n1024p4t1_t003_i01       4096      23.14    1514.92       0.00
+                      n1024p4t1_t009_i01       4096      44.36    1331.67       0.00
+
+ io timing
+#  Subid                                       ncpus  writemode IOperf_avg IOopen_avg IOwriteavg IOcloseavg
+#  -------------------------------------- ---------- ---------- ---------- ---------- ---------- ----------
+                       n256p4t1_t001_i01       1024     binary       0.00       0.00       0.00       0.00
+                       n256p4t1_t004_i01       1024     binary       0.00       0.00       0.00       0.00
+                       n256p4t1_t007_i01       1024     binary       0.00       0.00       0.00       0.00
+                       n256p4t1_t002_i01       1024     binary       0.00       0.00       0.00       0.00
+                       n256p4t1_t005_i01       1024     binary       0.00       0.00       0.00       0.00
+                       n256p4t1_t008_i01       1024     binary       0.00       0.00       0.00       0.00
+                       n256p4t1_t003_i01       1024     binary       0.00       0.00       0.00       0.00
+                       n256p4t1_t006_i01       1024     binary       0.00       0.00       0.00       0.00
+                       n256p4t1_t009_i01       1024     binary       0.00       0.00       0.00       0.00
+                       n512p4t1_t001_i01       2048     binary       0.00       0.00       0.00       0.00
+                       n512p4t1_t004_i01       2048     binary       0.00       0.00       0.00       0.00
+                       n512p4t1_t007_i01       2048     binary       0.00       0.00       0.00       0.00
+                       n512p4t1_t002_i01       2048     binary       0.00       0.00       0.00       0.00
+                       n512p4t1_t005_i01       2048     binary       0.00       0.00       0.00       0.00
+                       n512p4t1_t008_i01       2048     binary       0.00       0.00       0.00       0.00
+                       n512p4t1_t003_i01       2048     binary       0.00       0.00       0.00       0.00
+                       n512p4t1_t006_i01       2048     binary       0.00       0.00       0.00       0.00
+                       n512p4t1_t009_i01       2048     binary       0.00       0.00       0.00       0.00
+                      n1024p4t1_t001_i01       4096     binary       0.00       0.00       0.00       0.00
+                      n1024p4t1_t004_i01       4096     binary       0.00       0.00       0.00       0.00
+                      n1024p4t1_t007_i01       4096     binary       0.00       0.00       0.00       0.00
+                      n1024p4t1_t002_i01       4096     binary       0.00       0.00       0.00       0.00
+                      n1024p4t1_t005_i01       4096     binary       0.00       0.00       0.00       0.00
+                      n1024p4t1_t008_i01       4096     binary       0.00       0.00       0.00       0.00
+                      n1024p4t1_t003_i01       4096     binary       0.00       0.00       0.00       0.00
+                      n1024p4t1_t009_i01       4096     binary       0.00       0.00       0.00       0.00
+
+ verification and date
+#  Subid                                                      jobenddate                         vcheck                       vcomment
+#  -------------------------------------- ------------------------------ ------------------------------ ------------------------------
+                       n256p4t1_t001_i01    Mon Mar 7 12:53:25 CET 2011                              1         verify ok (7.2098e-12)
+                       n256p4t1_t004_i01    Mon Mar 7 12:56:37 CET 2011                              1         verify ok (1.0437e-08)
+                       n256p4t1_t007_i01    Mon Mar 7 13:04:28 CET 2011                              1         verify ok (1.4909e-08)
+                       n256p4t1_t002_i01    Mon Mar 7 13:01:09 CET 2011                              1         verify ok (8.1736e-12)
+                       n256p4t1_t005_i01    Mon Mar 7 13:04:39 CET 2011                              1         verify ok (1.3416e-08)
+                       n256p4t1_t008_i01    Mon Mar 7 13:15:46 CET 2011                              1         verify ok (6.7117e-09)
+                       n256p4t1_t003_i01    Mon Mar 7 13:16:07 CET 2011                              1         verify ok (7.5258e-12)
+                       n256p4t1_t006_i01    Mon Mar 7 13:23:37 CET 2011                              1         verify ok (0.0000e+00)
+                       n256p4t1_t009_i01    Mon Mar 7 13:29:45 CET 2011                              1         verify ok (7.4569e-09)
+                       n512p4t1_t001_i01    Mon Mar 7 13:13:48 CET 2011                              1         verify ok (7.2098e-12)
+                       n512p4t1_t004_i01    Mon Mar 7 13:19:18 CET 2011                              1         verify ok (1.0437e-08)
+                       n512p4t1_t007_i01    Mon Mar 7 13:24:03 CET 2011                              1         verify ok (1.4909e-08)
+                       n512p4t1_t002_i01    Mon Mar 7 13:19:07 CET 2011                              1         verify ok (8.1736e-12)
+                       n512p4t1_t005_i01    Mon Mar 7 13:22:42 CET 2011                              1         verify ok (1.3416e-08)
+                       n512p4t1_t008_i01    Mon Mar 7 13:27:47 CET 2011                              1         verify ok (6.7117e-09)
+                       n512p4t1_t003_i01    Mon Mar 7 13:24:52 CET 2011                              1         verify ok (7.5258e-12)
+                       n512p4t1_t006_i01    Mon Mar 7 13:33:56 CET 2011                              1         verify ok (0.0000e+00)
+                       n512p4t1_t009_i01    Mon Mar 7 13:33:54 CET 2011                              1         verify ok (7.4569e-09)
+                      n1024p4t1_t001_i01    Mon Mar 7 13:13:51 CET 2011                              1         verify ok (7.2098e-12)
+                      n1024p4t1_t004_i01    Mon Mar 7 13:14:55 CET 2011                              1         verify ok (1.0437e-08)
+                      n1024p4t1_t007_i01    Mon Mar 7 13:14:53 CET 2011                              1         verify ok (1.4909e-08)
+                      n1024p4t1_t002_i01    Mon Mar 7 13:16:41 CET 2011                              1         verify ok (8.1736e-12)
+                      n1024p4t1_t005_i01    Mon Mar 7 13:18:03 CET 2011                              1         verify ok (1.3416e-08)
+                      n1024p4t1_t008_i01    Mon Mar 7 13:19:17 CET 2011                              1         verify ok (6.7117e-09)
+                      n1024p4t1_t003_i01    Mon Mar 7 13:19:10 CET 2011                              1         verify ok (7.5258e-12)
+                      n1024p4t1_t009_i01    Mon Mar 7 13:26:26 CET 2011                              1         verify ok (7.4569e-09)
+
