@@ -43,6 +43,14 @@ module tree_utils
      module procedure locaddress_real8_8
   end interface
 
+  interface bpi
+     module procedure bpi_int8_8
+  end interface
+
+  interface bpi_bits
+     module procedure bpi_bits_int8_8
+  end interface
+
 contains
 
 ! ================
@@ -914,5 +922,64 @@ search_list = 8_8**lev_map  ! place holder
 !   call MPI_ADDRESS( location, addr4, ierr )
 !   addr=addr4
   end subroutine locaddress_real8_8
+
+  subroutine bpi_int8_8(a, b, base, res)
+    
+    implicit none    
+    include 'mpif.h'
+
+    integer :: ierr
+    
+    integer*8,intent(in) :: a, b, base
+    integer*8,intent(out) :: res
+    integer*8 :: k
+    integer*8 :: i 
+    integer*8 :: pot
+    
+  
+    pot = floor(log(REAL(b))/log(REAL(base)))
+    do i = pot, 0, -1
+       
+       k = b/base**i
+       res = k * base**i
+       if (a.lt.res) then
+          return
+       end if
+    end do
+
+    res=-1
+    call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+
+
+  end subroutine bpi_int8_8
+
+  subroutine bpi_bits_int8_8(a, b, base, res, levels)
+ 
+    implicit none
+
+    include 'mpif.h'
+
+    integer :: ierr
+ 
+    integer*8,intent(in) :: a, b, base
+    integer,intent(in) :: levels
+    integer*8,intent(out) :: res
+    integer*8 :: k
+    integer*8 :: i
+    integer*8 :: bn, pos
+  
+    do i=1,levels
+       pos=3*(levels-i)
+       if(ibits(a,pos,3).ne.ibits(b,pos,3))then
+          bn=8**(levels-i)
+          res=b/bn*bn ! integer division
+          return
+       end if
+    end do
+
+    res=-1
+    call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+
+  end subroutine bpi_bits_int8_8
 
 end module tree_utils

@@ -350,7 +350,12 @@ module module_math_tools
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         integer*8 function bpi(a, b, base)
-          implicit none    
+
+          implicit none
+          include 'mpif.h'
+
+          integer :: ierr
+
           integer*8,intent(inout) :: a, b
           integer*8,intent(in) :: base
           integer*8 :: k
@@ -359,14 +364,6 @@ module module_math_tools
           integer*8 :: temp
           integer*8 :: res
           
-          
-          ! swap for correct interval 
-          if (b .le. a) then
-             temp = a
-             a=b
-             b=temp
-          end if
-          
           powr = floor(log(REAL(b))/log(REAL(base)))
           do i = powr, 0, -1
              
@@ -374,8 +371,12 @@ module module_math_tools
              res = k * base**i
              if (a.lt.res) then
                 bpi=res ! return
+                return
              end if
           end do
+
+          bpi=-1
+          call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
           
         end function bpi
         
@@ -392,7 +393,12 @@ module module_math_tools
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         integer*8 function bpi_bits(a, b, base, levels)
+
           implicit none
+          include 'mpif.h'
+
+          integer :: ierr
+
           integer*8,intent(inout) :: a, b
           integer*8,intent(in) :: base
           integer,intent(in) :: levels
@@ -400,21 +406,18 @@ module module_math_tools
           integer*8 :: i
           integer*8 :: bn, pos, temp
 
-          ! swap for correct interval 
-          if (b .le. a) then
-             temp = a
-             a=b
-             b=temp
-          end if
-          
           do i=1,levels
              pos=3*(levels-i)
              if(ibits(a,pos,3).ne.ibits(b,pos,3))then
                 bn=8**(levels-i)
                 bpi_bits=b/bn*bn  ! return, Note: is a integer division
+                return
              end if
           end do
           
+          bpi_bits=-1
+          call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+
         end function bpi_bits
         
  end module module_math_tools
