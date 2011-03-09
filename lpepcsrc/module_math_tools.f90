@@ -29,6 +29,7 @@ module module_math_tools
       public div_by_fac
       public factorial
       public inverse3
+      public sort_abs
       public bpi
       public bpi_bits
 
@@ -342,6 +343,64 @@ module module_math_tools
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
+        !> Sorts the given values with a heap sort approach
+        !> in order of ther absolute value
+        !> compare (Numerical Recipes f90, p1171)
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          subroutine sort_abs(arr)
+            implicit none
+            real*8, intent(inout) :: arr(:)
+            integer :: i,n
+
+            n = size(arr)
+
+            do i=n/2,1,-1                      ! Left range - hiring phase (heap creation)
+               call sift_down(i,n)
+            end do
+
+            do i=n,2,-1                        ! Right range of sift-down is decr. from n-1 ->1
+               ! during retirement/promotion (heap selection) phase.
+               call swap( arr(1),arr(i) )      ! Clear space at end of array and retire top of heap into it
+               call sift_down( 1,i-1)
+            end do
+
+          contains
+            subroutine sift_down(l,r)        ! Carry out the sift-down on element arr(l) to maintain
+              integer, intent(in) :: l,r     ! the heap structure
+              integer :: j,jold    ! index
+              real*8 :: a
+
+              a = arr(l)
+
+              jold = l
+              j = l + l
+              do                   ! do while j <= r
+                 if (j > r) exit
+                 if (j < r) then
+                   if (abs(arr(j)) < abs(arr(j+1))) j = j+1
+                 endif
+                 if (abs(a) >= abs(arr(j))) exit       ! Found a`s level, so terminate sift-down
+                 arr(jold) = arr(j)
+                 jold = j                    ! Demote a and continue
+                 j = j+j
+              end do
+              arr(jold) = a                  ! Put a into its slot
+
+            end subroutine sift_down
+
+            subroutine swap(p,q)
+                real*8 :: p,q, dum
+                dum = p
+                p=q
+                q = dum
+            end subroutine swap
+
+          end subroutine sort_abs
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
         !> Calculates the biggest power to \a base in a given interval with the limits \a a and \a b.
         !>
         !> @param[in] a First Limit of interval.
@@ -361,7 +420,6 @@ module module_math_tools
           integer*8 :: k
           integer*8 :: i 
           integer*8 :: powr
-          integer*8 :: temp
           integer*8 :: res
           
           powr = floor(log(REAL(b))/log(REAL(base)))
@@ -388,7 +446,7 @@ module module_math_tools
         !>
         !> @param[in] a First Limit of interval.
         !> @param[in] b Second Limit of interval.
-        !> @param[in] base Base for which the power shoul be found.
+        !> @param[in] base Base for which the power should be found.
         !> @param[in] levels The number of levels in the tree.\see{treevars::nlev}
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -402,15 +460,14 @@ module module_math_tools
           integer*8,intent(inout) :: a, b
           integer*8,intent(in) :: base
           integer,intent(in) :: levels
-          integer*8 :: k
           integer*8 :: i
-          integer*8 :: bn, pos, temp
+          integer*8 :: bn, pos
 
           do i=1,levels
              pos=3*(levels-i)
              if(ibits(a,pos,3).ne.ibits(b,pos,3))then
-                bn=8**(levels-i)
-                bpi_bits=b/bn*bn  ! return, Note: is a integer division
+                bn=base**(levels-i)
+                bpi_bits=b/bn*bn  ! return, Note: is an integer division
                 return
              end if
           end do

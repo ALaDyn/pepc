@@ -1,32 +1,254 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>
+!> All stuff concerning timing: timings are contained in a single
+!> array. certain entries therein are addressed via integer
+!> parameters, eg.   tim(t_allocate) = 0.1234
+!>
+!>
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module timings
+  implicit none
 
-  ! global timings
-  real*8 :: t_domains=0., t_allocate=0., t_build=0., t_branches=0., t_fill=0., t_properties=0., t_restore=0., &
-            t_walk=0., t_walkc=0., t_force=0., t_deallocate=0., t_all=0., t_local=0., t_exchange=0., t_global=0.
-  real*8 :: t0_domains=0., t0_allocate=0., t0_build=0., t0_branches=0., t0_fill=0., t0_properties=0., t0_restore=0., &
-            t0_walk=0., t0_walkc=0., t0_force=0., t0_deallocate=0., t0_all=0., t0_local=0., t0_exchange=0., t0_global=0.
+    !> number of timing entries - dont forget to adjust if you add some timing variables
+    integer, private, parameter :: numtimings = 48
+
+    ! global timings
+    integer, parameter :: t_domains            =  1
+    integer, parameter :: t_allocate           =  2
+    integer, parameter :: t_build              =  3
+    integer, parameter :: t_branches           =  4
+    integer, parameter :: t_fill               =  5
+    integer, parameter :: t_properties         =  6
+    integer, parameter :: t_restore            =  7
+    integer, parameter :: t_walk               =  8
+    integer, parameter :: t_walkc              =  9
+    integer, parameter :: t_force              = 10
+    integer, parameter :: t_deallocate         = 11
+    integer, parameter :: t_all                = 12
+    integer, parameter :: t_local              = 13
+    integer, parameter :: t_exchange           = 14
+    integer, parameter :: t_global             = 15
+    integer, parameter :: t_lattice            = 16
+    ! fields internal
+    integer, parameter :: t_fields_begin       = 17
+    integer, parameter :: t_fields_tree        = 18
+    integer, parameter :: t_unused1            = 19
+    integer, parameter :: t_fields_passes      = 20
+    integer, parameter :: t_fields_stats       = 21
+    integer, parameter :: t_unused2            = 22
+    ! tree_domains
+    integer, parameter :: t_domains_keys       = 23
+    integer, parameter :: t_domains_sort       = 24
+    integer, parameter :: t_domains_sort_pure  = 25
+    integer, parameter :: t_domains_ship       = 26
+    integer, parameter :: t_domains_bound      = 27
+    ! tree_allocate
+    integer, parameter :: t_allocate_async     = 28
+    ! tree_build
+    integer, parameter :: t_build_neigh        = 29
+    integer, parameter :: t_build_part         = 30
+    integer, parameter :: t_build_byte         = 31
+    ! tree_branches
+    integer, parameter :: t_branches_find      = 32
+    integer, parameter :: t_branches_exchange  = 33
+    integer, parameter :: t_branches_integrate = 34
+    ! tree_fill
+    integer, parameter :: t_fill_local         = 35
+    integer, parameter :: t_fill_global        = 36
+    ! tree_props
+    integer, parameter :: t_props_leafs        = 37
+    integer, parameter :: t_props_twigs        = 38
+    integer, parameter :: t_props_branches     = 39
+    integer, parameter :: t_props_global       = 40
+    ! timings for outside fields()
+    integer, parameter :: t_tot                = 41
+    ! timings for tree_walk_communicator
+    integer, parameter :: t_comm_total         = 42
+    integer, parameter :: t_comm_recv          = 43
+    integer, parameter :: t_comm_sendreqs      = 44
+    ! tree_domains, additional timings
+    integer, parameter :: t_domains_add_sort   = 45
+    integer, parameter :: t_domains_add_pack   = 46
+    integer, parameter :: t_domains_add_unpack = 47
+    integer, parameter :: t_domains_add_alltoallv = 48
+
+    !> array for local timings
+    real*8, private, dimension(1:numtimings) :: tim = 0.
+
+  contains
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Resets a certain timer to zero
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    function timer_read(id)
+      implicit none
+      integer, intent(in) :: id !< the affected timer address
+      real*8 :: timer_read
+
+      timer_read = tim(id)
+
+    end function timer_read
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Resets a certain timer to zero
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine timer_reset(id)
+      implicit none
+      integer, intent(in) :: id !< the affected timer address
+
+      tim(id) = 0.
+
+    end subroutine timer_reset
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Resets all timers to zero
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine timer_reset_all()
+      implicit none
+
+      tim(1:numtimings) = 0.
+
+    end subroutine timer_reset_all
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Starts a timer, i.e. sets
+    !>      tim(id) = MPI_WTIME()
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine timer_start(id)
+      implicit none
+      include 'mpif.h'
+      integer, intent(in) :: id !< the affected timer address
+
+      tim(id) = MPI_WTIME()
+
+    end subroutine timer_start
 
 
-  ! fields internal
-  real*8 :: t_fields_begin=0., t_fields_tree=0., t_fields_nshort=0., t_fields_passes=0., t_fields_stats=0., t_restore_async
-  
-  ! tree_domains
-  real*8 :: t_domains_keys=0., t_domains_sort=0., t_domains_sort_pure=0., t_domains_ship=0.,t_domains_bound=0.
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Stops a timer, i.e. sets
+    !>      tim(id) = MPI_WTIME() - tim(id)
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine timer_stop(id)
+      implicit none
+      include 'mpif.h'
+      integer, intent(in) :: id !< the affected timer address
 
-  ! tree_allocate
-  real*8 :: t_allocate_async=0.
+      tim(id) = MPI_WTIME() - tim(id)
 
-  ! tree_build
-  real*8 :: t_build_neigh=0., t_build_part=0., t_build_byte=0.
+    end subroutine timer_stop
 
-  ! tree_branches
-  real*8 :: t_branches_find=0., t_branches_exchange=0., t_branches_integrate=0.
 
-  ! tree_fill
-  real*8 :: t_fill_local=0., t_fill_global=0.
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Adds the given value to a timer for cumulative measurements
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine timer_add(id, val)
+      implicit none
+      integer, intent(in) :: id !< the affected timer address
+      real*8, intent(in) :: val !< value to be added
 
-  ! tree_props
-  real*8 :: t_props_leafs=0., t_props_twigs=0., t_props_branches=0., t_props_global=0.
+      tim(id) = tim(id) + val
 
+    end subroutine timer_add
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Outputs the given timing array to a file with the given filename
+    !> @todo: add file header
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine timings_ToFile(itime, tdata, filename)
+      implicit none
+      integer, intent(in) :: itime !< current timestep
+      character(*), intent(in) :: filename !< output filename
+      real*8, dimension(1:numtimings), intent(in) :: tdata !< array with timing data
+
+      open  (60, file=filename,STATUS='UNKNOWN', POSITION = 'APPEND')
+      write (60,*) itime, tdata
+      close (60)
+
+!        open(112,file = 'timing.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
+!        if (choose_build == 0) then
+!           if (itime==1) then
+!              write(112,*) "# trun,t0_domains,t0_allocate,t0_build,t0_branches,t0_fill," // &
+!                     "t0_properties,t0_walk,t0_walkc,t0_force,t0_lattice,t0_restore,t0_deallocate,t0_all,ttot"
+!           endif
+!           write(112,*) trun,t0_domains,t0_allocate,t0_build,t0_branches,t0_fill,&
+!                     t0_properties,t0_walk,t0_walkc,t0_force,t0_lattice,t0_restore,t0_deallocate,t0_all,ttot
+!        else
+!           if (itime==1) then
+!              write(112,*) "# trun,t0_domains,t0_allocate,t0_local,t0_exchange,t0_global," // &
+!                            "t0_walk,t0_walkc,t0_force,t0_lattice,t0_restore,t0_deallocate,t0_all,ttot"
+!           endif
+!           write(112,*) trun,t0_domains,t0_allocate,t0_local,t0_exchange,t0_global,t0_walk,&
+!                             t0_walkc,t0_force,t0_lattice,t0_restore,t0_deallocate,t0_all,ttot
+!        end if
+!        close(112)
+    end subroutine timings_ToFile
+
+
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Outputs all local timing data to timing_XXXX.dat
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine timings_LocalOutput(itime)
+      use treevars
+      implicit none
+      integer, intent(in) :: itime !< current timestep
+      character(30) :: cfile
+
+      write(cfile,'(a,i6.6,a)') "timing_", me, ".dat"
+      call timings_ToFile(itime, tim, cfile)
+
+    end subroutine timings_LocalOutput
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Gathers global timing data and outputs to
+    !> timing_avg.dat, timing_min.dat, timing_max.dat
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine timings_GatherAndOutput(itime)
+      use treevars
+      implicit none
+      include 'mpif.h'
+      integer, intent(in) :: itime !< current timestep
+      integer :: ierr
+
+      real*8, dimension(1:numtimings) :: tim_max
+      real*8, dimension(1:numtimings) :: tim_avg
+      real*8, dimension(1:numtimings) :: tim_min
+
+      call MPI_REDUCE(tim, tim_max, numtimings, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD,ierr);
+      call MPI_REDUCE(tim, tim_min, numtimings, MPI_REAL8, MPI_MIN, 0, MPI_COMM_WORLD,ierr);
+      call MPI_REDUCE(tim, tim_avg, numtimings, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD,ierr);
+      tim_avg = tim_avg / num_pe
+
+
+     if (me==0) then
+        call timings_ToFile(itime, tim_max, 'timing_max.dat')
+        call timings_ToFile(itime, tim_avg, 'timing_avg.dat')
+        call timings_ToFile(itime, tim_min, 'timing_min.dat')
+
+        write(*,'(a20,f16.10," s")') "t_all = ",       tim(t_all)
+     endif
+
+    end subroutine timings_GatherAndOutput
 
 end module timings

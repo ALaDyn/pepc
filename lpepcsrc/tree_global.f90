@@ -6,7 +6,6 @@ subroutine tree_global
   implicit none
   include 'mpif.h'
 
-  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
   real*8 :: xss, yss, zss
   integer :: i,j, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr, node_addr, nchild
   integer*8 :: search_key, child_top
@@ -22,8 +21,10 @@ subroutine tree_global
   integer, external :: key2addr        ! Mapping function to get hash table address from key
   integer*8, external :: next_node   ! Function to get next node key for local tree walk
 
-  ts1b = MPI_WTIME()
-  ta1b = MPI_WTIME()
+  call timer_start(t_global)
+  call timer_start(t_fill_local)
+
+  call OutputMemUsage(20, "[tree_global]", memory_debug .and. (me==0), 59)
 
   if (tree_debug) write(ipefile,'(a)') 'TREE GLOBAL'
   if (me==0 .and. tree_debug) then
@@ -198,9 +199,8 @@ subroutine tree_global
 
   if (tree_debug) call check_table('End of local fill    ')
 
-  ta1e = MPI_WTIME()
-  t_fill_local = ta1e-ta1b  
-  ta1b = MPI_WTIME()  
+  call timer_stop(t_fill_local)
+  call timer_start(t_fill_global)
 
   !  Go through twig nodes and fix # leaves in #table to include non-local branch nodes
   nnodes = ntwig + nleaf
@@ -271,19 +271,14 @@ subroutine tree_global
      end do
 
      first_child( tree_node(i) ) = child_key(1)   ! Store 1st child as twig-node property - used in tree_walk
-     n_children( tree_node(i) ) = nchild             ! Store # children   "    "
   end do
 
   !  Dummy values for leaves
   first_child(1:nleaf) = treekey(ntwig+1:ntwig+nleaf) 
-  n_children(1:nleaf) = 0
 
   deallocate(tree_node,cell_addr,parent_addr)
 
-  ta1e = MPI_WTIME()
-  t_fill_global = ta1e-ta1b  
-  ts1e = MPI_WTIME()  
-  t_global = ts1e - ts1b
-  
+  call timer_stop(t_fill_global)
+  call timer_stop(t_global)
 
 end subroutine tree_global

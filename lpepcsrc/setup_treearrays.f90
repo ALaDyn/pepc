@@ -1,12 +1,12 @@
-subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch_mult,nppm_ori)
+subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
   use treevars
   use tree_utils
   use module_fmm_framework
   implicit none
   include 'mpif.h'
 
-  real, intent(in) :: theta,t_np_mult     ! Multipole clumping parameter
-  integer, intent(in) :: my_rank,t_fetch_mult  ! MPI cpu rank
+  real, intent(in) :: np_mult_
+  integer, intent(in) :: my_rank  ! MPI cpu rank
   integer, intent(in) :: n_cpu  ! MPI # CPUs
   integer, intent(in) :: npart_total  ! total (max) # simulation particles
   integer, intent(in) :: db_level
@@ -28,8 +28,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 
 ! copy call parameters to treevars module
   
-  np_mult = t_np_mult
-  fetch_mult = t_fetch_mult
+  np_mult = np_mult_
   me = my_rank
   num_pe = n_cpu
   npart = npart_total
@@ -40,7 +39,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   build_debug=.false.
   domain_debug = .false.
   branch_debug=.false.
-  prefetch_debug=.false.
   walk_debug=.false.
   walk_summary=.false.
   dump_tree=.false.
@@ -48,6 +46,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 
   if (db_level==1) then
 !      domain_debug = .true.
+      tree_debug=.true.  ! location information only
 	
   else if (db_level==2) then
       tree_debug=.true.  ! location information only
@@ -57,7 +56,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
       tree_debug=.true.
       force_debug=.false.
       walk_summary=.true.
-      prefetch_debug=.false. 
       domain_debug = .true.
       periodic_debug=.true.
 
@@ -67,7 +65,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
      build_debug=.true.
      branch_debug=.true.
      props_debug=.true.
-     prefetch_debug=.true.
      walk_debug=.true.
      walk_summary=.true.
      force_debug=.true.
@@ -81,15 +78,17 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
      domain_debug = .true.
      build_debug=.true.
      branch_debug=.true.
-     prefetch_debug=.true.
      walk_debug=.true.
      walk_summary=.true.
      force_debug=.true.
      dump_tree=.true.
      periodic_debug=.true.
-  else
-! all off by default
 
+  else if (db_level==-1) then
+     memory_debug=.true.
+
+  else
+     ! all off by default
   endif
 
   npartm = npart
@@ -103,7 +102,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
   
   nppm_ori = nppm
 
-  nshortm = 2000    ! Max shortlist length: leave safety factor for nshort_list in FORCES
   nlev = 20                     ! max refinement level
   iplace = 2_8**(3*nlev)           ! place holder bit
   free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
@@ -121,13 +119,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 
   allocate (work_loads(num_pe),npps(num_pe),pivots(num_pe+1))  ! Work load & Particle distrib amoung PEs
 
-  allocate (nbranches(num_pe+2), igap(num_pe+3), nreqs_total(0:num_pe-1), nfetch_total(0:num_pe-1) )
-
-  nreqs_total(0:num_pe-1) = 0   ! Zero cumulative fetch/ship counters for non-local nodes
-  nfetch_total(0:num_pe-1) = 0  
+  allocate (nbranches(num_pe+2), igap(num_pe+3))
 
   ! Create new contiguous datatype for shipping particle properties (15 arrays)
-
   blocklengths(1:nprops_particle) = 1   
 
 
@@ -241,8 +235,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,t_np_mult,t_fetch
 
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
-
-  max_prefetches = 0
 
 end subroutine pepc_setup
 

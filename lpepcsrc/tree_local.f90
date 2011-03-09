@@ -3,18 +3,16 @@ subroutine tree_local
   use treevars
   use timings
   use tree_utils
-
   use module_math_tools
 
   implicit none
   include 'mpif.h'
 
-  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
   real*8 :: gamma, vx, vy, vz
   integer :: i, k, j, i1, i2, ierr, level_match, level_diff, ibit, iend, level, nbound, newleaf, nres, ncoll, &
        link_addr, ipoint, parent_addr, childbyte, treelevel, ncheck, nsubset, newsub, cchild, nchild, addr_leaf, &
        p_leaf, ntwig_domain, node_leaf, addr_twig, addr_child, nsearch
-  integer*8 ::  key_lo, cell1, cell2, parent_key, keymin, keymax
+  integer*8 ::  key_lo, cell1, cell2, parent_key
   logical :: resolved
 
   integer*8, dimension(8) :: sub_key, key_child   ! Child partial key
@@ -44,7 +42,6 @@ subroutine tree_local
   integer*8 :: L                    ! inner limit
   integer*8 :: branch_max_local     ! estimation for local branches
   integer*8 :: branch_max_global    ! estimation for global branches
-  integer*8 :: branch_max           ! global estimation
   integer*8 :: ilevel, pos
 
   integer,external :: key2addr        ! Mapping function to get hash table address from key
@@ -52,8 +49,11 @@ subroutine tree_local
 !!! --------------- TREE BUILD ---------------
 
  
-  ts1b = MPI_WTIME()
-  ta1b = MPI_WTIME()
+  call timer_start(t_local)
+  call timer_start(t_build)
+  call timer_start(t_build_neigh)
+
+  call OutputMemUsage(18, "[tree_local]", memory_debug .and. (me==0), 59)
 
   if (tree_debug) write(ipefile,'(/a)') 'TREE LOCAL'
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | LOCAL BUILD'
@@ -115,9 +115,8 @@ subroutine tree_local
      endif
   endif
 
-  ta1e = MPI_WTIME()  
-  t_build_neigh = ta1e-ta1b
-  ta1b = MPI_WTIME()
+  call timer_stop(t_build_neigh)
+  call timer_start(t_build_part)
 
   allocate(subcell(1:nlist),cell_addr(1:nlist))
 
@@ -330,9 +329,8 @@ subroutine tree_local
 
   deallocate(subcell,cell_addr)
 
-  ta1e = MPI_WTIME()  
-  t_build_part = ta1e-ta1b
-  ta1b = MPI_WTIME()  
+  call timer_stop(t_build_part)
+  call timer_start(t_build_byte)
 
   nnodes = nleaf + ntwig  ! total number of local tree nodes
 
@@ -371,14 +369,12 @@ subroutine tree_local
      endif
   enddo
   
-  ta1e = MPI_WTIME()  
-  t_build_byte = ta1e-ta1b
-  ts1e = MPI_WTIME()
-  t_build = ts1e-ts1b
-  
+  call timer_stop(t_build_byte)
+  call timer_stop(t_build)
+
 !!! --------------- TREE BRANCHES (local part) ---------------
 
-  ta1b = MPI_WTIME()
+  call timer_start(t_branches_find)
   
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
@@ -549,14 +545,13 @@ subroutine tree_local
 
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after local branches     ')
   
-  ta1e = MPI_WTIME()
-  t_branches_find = ta1e-ta1b  
+  call timer_stop(t_branches_find)
 
 
 !!! --------------- TREE PROPERTIES (local part) ---------------
 
 
-  ta1b = MPI_WTIME()  
+  call timer_start(t_props_leafs)
 
   !  Start with *local* leaf properties
   do i=1, nleaf_me
@@ -604,9 +599,8 @@ subroutine tree_local
 
   end do
 
-  ta1e = MPI_WTIME()
-  t_props_leafs = ta1e-ta1b  
-  ta1b = MPI_WTIME()
+  call timer_stop(t_props_leafs)
+  call timer_start(t_props_twigs)
 
   !  Accumulate local twig properties
   !  Make list of twig nodes contained within local branch list (pebranch).  Recursive search adapted from make_branches.
@@ -763,10 +757,8 @@ subroutine tree_local
   ! By definition, this is complete: each branch node is self-contained.
   ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
 
-  ta1e = MPI_WTIME()
-  t_props_twigs = ta1e-ta1b  
-  ts1e = MPI_WTIME()
-  t_local = ts1e - ts1b
+  call timer_stop(t_props_twigs)
+  call timer_stop(t_local)
 
 end subroutine tree_local
 

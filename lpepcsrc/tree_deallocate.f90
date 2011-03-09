@@ -9,16 +9,11 @@ subroutine tree_deallocate(nppm_ori)
   nppm = nppm_ori
   if (me==0 .and. tree_debug) write(*,*) 'Deallocating multipole fields'
 
-  
- ! interaction key-, node-lists
-  deallocate(nodelist,nterm,intlist)
-       
   deallocate ( htable, all_addr, free_addr, point_free, &
        treekey, branch_key, branch_owner, &
-       pebranch, leaf_key, twig_key, &
-       fetched_owner, fetched_keys, requested_owner, requested_keys )
+       pebranch, leaf_key, twig_key )
 
-  deallocate ( first_child, n_children, node_level )
+  deallocate ( first_child, node_level )
 
 ! multipole moments
   deallocate ( charge, &                    ! charge
@@ -30,8 +25,6 @@ subroutine tree_deallocate(nppm_ori)
        xyquad, yzquad, zxquad, &
        jx, jy, jz, &      ! current
        magmx, magmy, magmz ) ! magnetic moment 
-
-  deallocate ( pack_child,get_child )    ! Multipole shipping buffers
 
 end subroutine tree_deallocate
 

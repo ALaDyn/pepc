@@ -1,8 +1,8 @@
 &pepcdata
 
     db_level = 0
-    scheme = #WSCHEME#
     np_mult    = #NPMULT# 
+    num_walk_threads = #NUM_WALK_THREADS#
     theta = 0.0
     eps = 0.0
 

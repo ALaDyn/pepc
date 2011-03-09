@@ -25,7 +25,7 @@ subroutine pepc_cleanup(my_rank,n_cpu)
        Axo, Ayo, Azo, &
        pepid, pelabel, pekey )    
 
-  deallocate ( nbranches, igap, nreqs_total, nfetch_total )
+  deallocate ( nbranches, igap )
 
   deallocate (work_loads,npps,pivots)
 

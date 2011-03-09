@@ -10,24 +10,25 @@ ARFLAGS  = -rs
 CPP      = cpp
 CPPFLAGS = -P -C
 
-#INLINING = 
-INLINING = -fwhole-program -fwhopr -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining  
+INLINING = 
+INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop 
 #-flto
+#-fwhopr
 
 FCPRE    = 
 FC       = mpif90
-FFLAGS   = -g -pg -ffree-line-length-none -Wall -fbounds-check -frange-check -fbacktrace -fvar-tracking
-#FFLAGS   =  -Wall -pg -O3 -ffree-line-length-none $(INLINING)
+#FFLAGS   = -O0 -g -pg -ffree-line-length-none -Wall -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
+FFLAGS   =  -Wall -O3 -pg -ffree-line-length-none $(INLINING)
 
 CCPRE    = 
 CC       = mpicc
-#CFLAGS   = -pg -O3
-CFLAGS   = -g -pg $(INLINING)
+CFLAGS   = -pg -O3 -pthread  -Wconversion
+#CFLAGS   = -g -pg -O0
 
 LDPRE    = 
 LD       = mpif90
-#LDFLAGS   = -pg -O3
-LDFLAGS   = -pg -O3 $(INLINING)
+#LDFLAGS   = -pg -O0 -g
+LDFLAGS   = -pthread -pg -O3 $(INLINING) -fwhole-program -fuse-linker-plugin
 LDLIBS   = 
 
 RM       = rm -rf

@@ -2,20 +2,18 @@
 
  db_level = 0
  np_mult = -45
+ num_walk_threads = 3
 
 ! number of particles, here ions
-! ne = 200000
-! ni = 200000
- ne = 1280
- ni = 1280
-! ni = 12800000
+ ne = 1000
+ ni = 1000
 
 ! initial particle distribution
   ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
  ispecial = 1
 
 ! number of timesteps
- nt = 10
+ nt = 100
  
 ! fmm-periodicity framework
 ! lattice basis vectors
@@ -27,19 +25,11 @@
 ! extrinsic-to-intrinsic correction
   do_extrinsic_correction = .false.
 
-! communication scheme
-! 0: point-to-point, 1: collectives
- scheme = 0
-
 ! Choose sorting routine and load balancing
-! 0: no load balacing, 1: load balacing
+! 0: no load balancing, 1: load balancing
  weighted = 1
 ! 1: pbalsort, 2: sl_sort_part, 3: sl_sort_keys
  choose_sort = 3
-
-! Choose tree build routine
-! 0: original, 1: optimized
- choose_build = 0
 
 ! determinates the particle dump interval
 ! 0: never write anything

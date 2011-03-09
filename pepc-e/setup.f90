@@ -14,6 +14,7 @@ subroutine setup()
   use physvars
   use tree_utils
   use module_fmm_framework
+  use tree_walk_utils
   implicit none
   include 'mpif.h'
 
@@ -33,7 +34,7 @@ subroutine setup()
 
 
 
-  namelist /pepcdata/ nep, nip, np_mult, fetch_mult, ne, ni, &
+  namelist /pepcdata/ nep, nip, np_mult, ne, ni, num_walk_threads, &
        mac, theta, mass_ratio, q_factor, eps, &
        system_config, target_geometry, ispecial, choose_sort, weighted, &
        Te_keV, Ti_keV, T_scale, &
@@ -58,14 +59,11 @@ subroutine setup()
   db_level        =   0
 
   np_mult         = -45
-  fetch_mult      =   3
 
   ispecial        =   1
 
   choose_sort     =   3
   weighted        =   1
-
-  scheme          =   0
 
   ! particles
   nep = 0    ! # plasma electrons per PE
@@ -339,8 +337,11 @@ subroutine setup()
   call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle_p1, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_particle_p1, ierr)
 
-  if (my_rank == 0) write(*,*) "Starting PEPC-E with",n_cpu," Processors, simulating",np_local, &
-			" Particles on each Processor in",nt,"timesteps..."
+  if (my_rank == 0) then
+     write(*,*) "Starting PEPC-E with",n_cpu," Processors, simulating",np_local, &
+                         " Particles on each Processor in",nt,"timesteps..."
+     write(*,*) "Using",num_walk_threads,"worker-threads and 1 communication thread in treewalk on each processor (i.e. per MPI rank)"
+  end if
 
 end subroutine setup
 

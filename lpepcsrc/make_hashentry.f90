@@ -47,9 +47,9 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
 
   else if ( htable( cell_addr )%node /= 0 .AND. htable(cell_addr)%key == keyin ) then  
      ! Entry exists and keys match
-     ! => local node  so skip
+     ! => local node or already inserted
      ierror = 1
-
+     newentry = cell_addr
 
   else            ! Entry exists and keys do not match: COLLISION
 
@@ -84,6 +84,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
               ! Occupied with same key -> local or boundary node, so skip
               resolved = .true.
               ierror = 1
+              newentry = link_addr
 
            else if ( htable(link_addr)%node == 0 .and. htable (link_addr)%link == -1 ) then
               ! Found end of chain: entry was occupied by boundary node, so reuse entry

@@ -2,6 +2,7 @@
 
  db_level = 0
  np_mult = #NPMULT#
+ num_walk_threads = #NUM_WALK_THREADS#
 
 ! number of particles, here ions
  ne = 0
@@ -14,10 +15,6 @@
 
 ! number of timesteps
  nt = #NT#
- 
-! communication scheme
-! 0: point-to-point, 1: collectives
- scheme = #CSCHEME#
 
 ! Choose sorting routine and load balancing
 ! 0: no load balacing, 1: load balacing

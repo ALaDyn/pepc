@@ -5,8 +5,6 @@ subroutine tree_exchange
   implicit none
   include 'mpif.h'
 
-  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
-
   integer :: i,ierr, lnode, lcode, lleaves, hashaddr, newleaf, newtwig
   integer*8 :: lnext
   
@@ -17,8 +15,10 @@ subroutine tree_exchange
 
   integer,external :: key2addr        ! Mapping function to get hash table address from key
 
-  ts1b = MPI_WTIME()
-  ta1b = MPI_WTIME()
+  call timer_start(t_exchange)
+  call timer_start(t_branches_exchange)
+
+  call OutputMemUsage(19, "[tree_exchange]", memory_debug .and. (me==0), 59)
 
   if (tree_debug) write(ipefile,'(a)') 'TREE EXCHANGE'
   if (me==0 .and. tree_debug) then
@@ -81,9 +81,8 @@ subroutine tree_exchange
   newleaf = 0
   newtwig = 0
 
-  ta1e = MPI_WTIME()
-  t_branches_exchange = ta1e-ta1b  
-  ta1b = MPI_WTIME()
+  call timer_stop(t_branches_exchange)
+  call timer_start(t_branches_integrate)
 
   ! Integrate remote branches into local tree
   do i = 1,nbranch_sum
@@ -148,9 +147,7 @@ subroutine tree_exchange
   
   deallocate(get_size,get_mult)
 
-  ta1e = MPI_WTIME()
-  t_branches_integrate = ta1e-ta1b  
-  ts1e = MPI_WTIME()
-  t_exchange = ts1e - ts1b
+  call timer_stop(t_branches_integrate)
+  call timer_stop(t_exchange)
 
 end subroutine tree_exchange

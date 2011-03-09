@@ -4,15 +4,32 @@
 
 include makefile.defs
 
-pepce:
-	cd sl_pepc && $(MAKE)
-	cd lpepcsrc && $(MAKE)
-	cd pepc-e && $(MAKE)
+default: pepce
+
+benchmark: pepce
+
+all: pepce
+
+pepce:  pepcbasics
+	@echo "============  Making Frontend PEPC-E (Benchmark version)  ============="
+	cd pepc-e && $(MAKE) $(MFLAGS)
+
+pepcbasics:
+	@echo "============  Making PEPC Sorting Library  ============="
+	cd sl_pepc && $(MAKE) $(MFLAGS)
+	@echo "============  Making PEPC Memory Bookkeeper =============" 
+	cd memwatch && $(MAKE) $(MFLAGS) 
+	@echo "============  Making PEPC Pthreads Interface  ============="
+	cd pthreads && $(MAKE) $(MFLAGS)
+	@echo "============  Making PEPC Library  ============="
+	cd lpepcsrc && $(MAKE) $(MFLAGS)
 
 clean: clean-doc
-	cd sl_pepc && $(MAKE) clean
-	cd lpepcsrc && $(MAKE) clean && cd ..
-	cd pepc-e && $(MAKE) clean && cd ..
+	cd sl_pepc  && $(MAKE) $(MFLAGS) clean
+	cd memwatch && $(MAKE) $(MFLAGS) clean
+	cd pthreads && $(MAKE) $(MFLAGS) clean
+	cd lpepcsrc && $(MAKE) $(MFLAGS) clean
+	cd pepc-e   && $(MAKE) $(MFLAGS) clean
 
 clean-doc:
 	rm -rf ./doc

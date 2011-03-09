@@ -956,7 +956,6 @@ search_list = 8_8**lev_map  ! place holder
   subroutine bpi_bits_int8_8(a, b, base, res, levels)
  
     implicit none
-
     include 'mpif.h'
 
     integer :: ierr
@@ -964,7 +963,6 @@ search_list = 8_8**lev_map  ! place holder
     integer*8,intent(in) :: a, b, base
     integer,intent(in) :: levels
     integer*8,intent(out) :: res
-    integer*8 :: k
     integer*8 :: i
     integer*8 :: bn, pos
   

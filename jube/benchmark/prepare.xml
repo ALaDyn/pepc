@@ -11,11 +11,10 @@
   <substitute infile="run.h.jube" outfile="run.h">
     <sub from="#NPART#"        to="$npart" />
     <sub from="#GEOM#"         to="$geom" />
-    <sub from="#WSCHEME#"      to="$wscheme" />
     <sub from="#NT#"           to="$nt" />
     <sub from="#NPMULT#"       to="$npmult" />
-    <sub from="#CSCHEME#"      to="$cscheme" /> 
     <sub from="#CHOOSE_SORT#"  to="$csort" /> 
+    <sub from="#NUM_WALK_THREADS#"  to="$num_walk_threads" /> 
   </substitute>
 
   <!-- collect script -->
@@ -47,13 +46,9 @@
   <input files="input/madelung.h.jube input/collectData.sh.jube" />
 
   <substitute infile="madelung.h.jube" outfile="run.h">
-    <sub from="#NPART#"        to="$npart" />
-    <sub from="#GEOM#"         to="$geom" />
-    <sub from="#WSCHEME#"      to="$wscheme" />
-    <sub from="#NT#"           to="$nt" />
-    <sub from="#NPMULT#"       to="$npmult" />
-    <sub from="#CSCHEME#"      to="$cscheme" /> 
-    <sub from="#CHOOSE_SORT#"  to="$csort" /> 
+	  <sub from="#NPART#"        to="$npart" />
+	  <sub from="#NPMULT#"       to="$npmult" />
+	  <sub from="#NUM_WALK_THREADS#"  to="$num_walk_threads" /> 
   </substitute>
 
   <!-- collect script -->

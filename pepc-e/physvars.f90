@@ -123,7 +123,6 @@ module physvars
   integer :: np_local 
   integer :: nppm  ! Total # particles (npart)
   real :: np_mult=1.5
-  integer :: fetch_mult=2
 
 !  Associated MPI stuff
 

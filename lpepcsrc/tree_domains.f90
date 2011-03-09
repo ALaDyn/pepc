@@ -29,8 +29,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
   integer*8, dimension(nppm) :: ixd, iyd, izd
   integer*8, dimension(nppm) :: local_key
 
-  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0., ta2b=0., ta2e=0.
-
   integer ::  source_pe(nppm)
   integer :: i, j, ind_recv, inc, prev, next, handle(4)
 
@@ -91,10 +89,8 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
   real*8 local_work,work_stats(num_pe+1)
   real*8 d,minc,maxc,sumc,minw,maxw,sumw
 
-  DOUBLE PRECISION :: ts, tpack, tunpack, talltoallv
-
-  ts1b = MPI_WTIME()
-  ta1b = MPI_WTIME()
+  call timer_start(t_domains)
+  call timer_start(t_domains_keys)
 
   sort_debug=domain_debug
 
@@ -173,9 +169,8 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
 
   ! Use Parallel Sort by Regular Sampling (PSRS) 
 
-  ta1e = MPI_WTIME()
-  t_domains_keys = ta1e-ta1b  
-  ta1b = MPI_WTIME()
+  call timer_stop(t_domains_keys)
+  call timer_start(t_domains_sort)
 
   if (domain_debug .and. me==proc_debug) then
      write (*,*) 'MPI psrssort() commencing'
@@ -202,7 +197,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
   npold = npp
   npnew = npp
 
-  ts = MPI_WTIME()
+  call timer_start(t_domains_add_sort)
 
   if (choose_sort == 2) then
 
@@ -220,7 +215,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
      ! set npnew to the new number of local particles
      npnew = npp
 
-     t_domains_sort_pure = 0
+     call timer_reset(t_domains_sort_pure)
 
   else
 
@@ -253,7 +248,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
 
         work2 = work
 
-        ta2b = MPI_WTIME()
+        call timer_start(t_domains_sort_pure)
 
         ! perform index sort on keys
         !     call pswssort(nppm,npold,npnew,num_pe,me,keys, &
@@ -269,8 +264,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
            call slsort_keys(npold,nppm,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
         end if
 
-        ta2e = MPI_WTIME()
-        t_domains_sort_pure = ta2e-ta2b
+        call timer_stop(t_domains_sort_pure)
 
         !     write(*,*) me,npp,npold,npnew
         do i=1,npold
@@ -327,9 +321,8 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
 
      enddo
 
-     ta1e = MPI_WTIME()
-     t_domains_sort = ta1e-ta1b
-     ta1b = MPI_WTIME()
+     call timer_stop(t_domains_sort)
+     call timer_start(t_domains_ship)
 
      npp = npnew
      pekey(1:npp) = w1(1:npp)
@@ -341,7 +334,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
      ! Set up particle structure - keys and source_pe are dummies
      ! ( pekey is already sorted)
 
-     tpack = MPI_WTIME()
+     call timer_start(t_domains_add_pack)
 
      do i=1,npold
         ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
@@ -352,18 +345,18 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
              keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
      enddo
 
-     tpack = MPI_WTIME() - tpack
+     call timer_stop(t_domains_add_pack)
 
-     talltoallv = MPI_WTIME()
+     call timer_start(t_domains_add_alltoallv)
 
      ! perform permute
      call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_particle, &
           get_parts, irlen, gposts, mpi_type_particle, &
           MPI_COMM_WORLD,ierr)
 
-     talltoallv = MPI_WTIME() - talltoallv
+     call timer_stop(t_domains_add_alltoallv)
 
-     tunpack = MPI_WTIME()
+     call timer_start(t_domains_add_unpack)
 
      do i=1,npp
         x(irnkl(i)) = get_parts(i)%x
@@ -384,19 +377,13 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
         pelabel(irnkl(i)) = get_parts(i)%label
      enddo
 
-     tunpack = MPI_WTIME() - tunpack
+     call timer_stop(t_domains_add_unpack)
 
   endif
 
-  ts = MPI_WTIME() - ts
-
-  ta1e = MPI_WTIME()
-  t_domains_ship = ta1e - ta1b
-  ta1b = MPI_WTIME()
-
-  if (me .eq. -1) then
-     write (*,*) 'sorting: ', ts, ' = ', t_domains_sort_pure, ' + ', t_domains_ship, '(', tpack, ' + ', talltoallv, ' + ', tunpack, ')'
-  endif
+  call timer_stop(t_domains_ship)
+  call timer_stop(t_domains_add_sort)
+  call timer_start(t_domains_bound)
 
   ! gather workload information
   if (0 .eq. -1) then
@@ -489,7 +476,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
 
         ! TODO: need 'ripple' here up to next large gap in keys i+1->npp
 
-        write(*,'(a15,i5,a8,i3,a30,2i6,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
+        write(*,'(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
              ' WARNING: identical keys found for particles  ',i,npp,pelabel(i-1),pelabel(i),pelabel(i+1), &
              ' - upper increased to: ',pekey(i),' next key: ',pekey(i+1)
         !        if (x(i) == x(i-1)) write(*,*) "HELP"
@@ -508,7 +495,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
      identical_keys=.false.
      if (pekey(ipp+1) == pekey(ipp)) then
         pekey(ipp) = pekey(ipp)-1
-        write(*,'(a15,i5,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
+        write(*,'(a15,i9,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
              ' WARNING: identical keys found for particles  ',pelabel(ipp+1),pelabel(ipp), &
              'LPEPC | Lower key decreased to:  ',pekey(ipp)
         identical_keys=.true.
@@ -620,10 +607,8 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
      write(ipefile,'(/)')
   endif
 
-  ta1e = MPI_WTIME()
-  t_domains_bound = ta1e - ta1b
-  ts1e = MPI_WTIME()
-  t_domains = ts1e-ts1b
+  call timer_stop(t_domains_bound)
+  call timer_stop(t_domains)
 
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | ..done'
 

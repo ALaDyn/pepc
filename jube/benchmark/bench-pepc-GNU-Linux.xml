@@ -23,7 +23,6 @@
     <compile     cname           = "$platform"   
                  version         = "new"
  
-                 CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
                  CMP_GPROF       = "$GPROF" 
                  CMP_SCALASCA    = "$SCALASCA"/>
 
@@ -31,7 +30,6 @@
 
     <params      COMMENT       = "scaling test"
                  PERL_CMD      = "perl"
-                 optflags      = "-O3"
 
                  writemode     = "binary"
                  
@@ -41,9 +39,8 @@
 
                  npart         = "1000017" 
                  geom          = "1,2,3"
+		 num_walk_threads = "1,2,4"
                  nt            = "50" 
-                 wscheme       = "1"
-                 cscheme       = "0"
                  csort         = "3"
                  npmult        = "-200" /> 
 
@@ -63,7 +60,6 @@
     <compile     cname           = "$platform"   
                  version         = "new"
  
-                 CMP_OPT         = "`{$a = '$optflags'; $a =~ s/[ ]//g; $a}`"
                  CMP_GPROF       = "$GPROF" 
                  CMP_SCALASCA    = "$SCALASCA"/>
 
@@ -71,7 +67,6 @@
 
     <params      COMMENT       = "periodic test"
                  PERL_CMD      = "perl"
-                 optflags      = "-O3"
 
                  writemode     = "binary"
                  
@@ -81,9 +76,8 @@
 
                  npart         = "4" 
                  geom          = "7"
+		 num_walk_threads = "1,2,4"
                  nt            = "1" 
-                 wscheme       = "1"
-                 cscheme       = "0"
                  csort         = "3"
                  npmult        = "-200" /> 
 

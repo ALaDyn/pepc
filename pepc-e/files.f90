@@ -20,6 +20,9 @@ module files
          !  master diagnostics output
          open(15,file='run.out')
          open(70,file='domains.dat')
+
+         open(59,file='memory.dat')
+         write(59,*) "# ID               bytes                  KB                  MB           location"
      endif
 
      if (db_level > 0) then
@@ -38,6 +41,7 @@ module files
       if (my_rank == 0) then
          close(15)
          close(70)
+         close(59)
       endif
 
       close(20)

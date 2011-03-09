@@ -28,16 +28,21 @@ program pepce
   implicit none
   include 'mpif.h'
 
-  ! timing stuff
-  real*8 :: t0, t1, t2, t3, t4, ttot
-
-  integer :: ierr, ifile, nppm_ori
-
-  ! Initialize the MPI system
-  call MPI_INIT(ierr)
+  integer :: ierr, ifile, nppm_ori, provided
+  integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
+                                                                  !  must ensure that only the main thread makes MPI calls."
+  ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
+  call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
 
   ! Get the id number of the current task
   call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
+
+  ! inform the user about possible issues concerning MPI thread safety
+  if ((my_rank == 0) .and. (provided < MPI_THREAD_LEVEL)) then
+    write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
+         MPI_THREAD_LEVEL, provided
+    write(*,*) "Initializing with provided level of multithreading. Stability is possibly not guaranteed."
+  end if
 
   ! Get the number of MPI tasks
   call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
@@ -47,6 +52,8 @@ program pepce
   ! Set up O/P files
   call openfiles
 
+  call OutputMemUsage(1, "[pepce startup]", (my_rank==0), 59)
+
   ! Time stamp
   if (my_rank==0) call stamp(6,1)
   if (my_rank==0) call stamp(15,1)
@@ -55,7 +62,7 @@ program pepce
   call setup()
 
   ! Allocate array space for tree
-  call pepc_setup(my_rank,n_cpu,npart_total,theta,db_level,np_mult,fetch_mult,nppm_ori)
+  call pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult,nppm_ori)
 
   ! Set up particles
   call configure
@@ -71,7 +78,7 @@ program pepce
 
   call benchmark_inner
 
-  !flush(6)
+  flush(6)
 
   ! Loop over all timesteps
   do itime = 1,nt
@@ -85,41 +92,32 @@ program pepce
      endif
      
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-     t0 = MPI_WTIME()
-     t1 = MPI_WTIME()
+     call timer_start(t_tot)
+
+     call OutputMemUsage(2, "[pepce before fields]", (db_level==7) .and. (my_rank==0), 59)
 
      call pepc_fields(np_local,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult,fetch_mult,mac, theta, eps, force_const, err_f, &
+              	      np_mult, mac, theta, eps, force_const, err_f, &
                       itime, choose_sort,weighted, &
                       num_neighbour_boxes, neighbour_boxes)
 
-     ! dump number of interactions
-     !if (my_rank == 0) call dump_num_interactions()
-     
      if (itime == nt) then
         call gather_particle_diag()
         if (my_rank == 0) call benchmarking_dump_diagnostics()
      end if
 
-     ! Integrator
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-     t2 = MPI_WTIME()
+     call OutputMemUsage(7, "[pepce after fields]", (db_level==7) .and. (my_rank==0), 59)
 
+     ! Integrator
      call velocities(1,np_local,dt)  ! pure ES, NVT ensembles
      call push(1,np_local,dt)  ! update positions
 
      ! periodic systems demand periodic boundary conditions
      if (do_periodic) call constrain_periodic(x(1:np_local),y(1:np_local),z(1:np_local),np_local)
 
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-     t3 = MPI_WTIME()
-
      call energy_cons(Ukine,Ukini)
-
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-     t4 = MPI_WTIME()
 
      ! periodic particle dump
      if ( idump .gt. 0 ) then
@@ -129,18 +127,13 @@ program pepce
        end if
      endif
 
-     if (my_rank==0) then
-        ttot = t3-t0 ! total loop time without diags
-        open(112,file = 'timing.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
-          if (itime==1) write(112,*) "# trun,t0_domains,t0_allocate,t0_local,t0_exchange,t0_global,t0_walk,t0_walkc,t0_force,t0_restore,t0_deallocate,t0_all,ttot"
-          write(112,*) trun,t0_domains,t0_allocate,t0_local,t0_exchange,t0_global,t0_walk,t0_walkc,t0_force,t0_restore,t0_deallocate,t0_all,ttot
-        close(112)
-        write(*,*) "t_all ", t0_all
-        write(*,*) "ttot ", ttot
-        write(*,*) "ttot-t_all ", ttot-t0_all
-     endif
+     ! timings dump
+     call timer_stop(t_tot) ! total loop time without diags
 
-  !flush(6)
+     call timings_LocalOutput(itime)
+     call timings_GatherAndOutput(itime)
+
+     flush(6)
 
   end do
 
@@ -160,6 +153,8 @@ program pepce
   ! Time stamp
   if (my_rank==0) call stamp(6,2)
   if (my_rank==0) call stamp(15,2)
+
+  call OutputMemUsage(8, "[pepce end of program]", (db_level==7) .and. (my_rank==0), 59)
 
   ! Tidy up O/P files
   call closefiles

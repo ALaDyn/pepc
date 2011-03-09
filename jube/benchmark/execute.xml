@@ -23,7 +23,7 @@
         <sub from = "#NODES#"             to = "$nodes" />
         <sub from = "#CONNECTION#"        to = "`int('$nodes')>256 ? 'TORUS' : 'MESH'`" />
         <sub from = "#STARTER#"           to = "mpirun" />
-        <sub from = "#ARGS_STARTER#"      to = "`$taskspernode == 1 ? '-mode SMP' : ($taskspernode == 2 ? '-mode DUAL' : '-mode VN')`
+        <sub from = "#ARGS_STARTER#"      to = "-env BG_APPTHREADDEPTH=3 `$taskspernode == 1 ? '-mode SMP' : ($taskspernode == 2 ? '-mode DUAL' : '-mode VN')`
                                                 -np $ncpus" />
         <sub from = "#MEASUREMENT#"       to = "" />
         <sub from = "#ARGS_EXECUTABLE#"   to = "run.h" />

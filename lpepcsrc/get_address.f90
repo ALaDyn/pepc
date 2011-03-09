@@ -18,7 +18,7 @@ function key2addr(keyin,cmark)
   integer*8, intent(in)  :: keyin
   integer :: cell_addr, link_addr, ires,i, ierr
   logical :: resolved
-  character(*) :: cmark
+  character(LEN=*) :: cmark
   integer :: key2addr
 
   cell_addr = int(IAND( keyin, hashconst))     ! cell address hash function
@@ -37,7 +37,7 @@ function key2addr(keyin,cmark)
            write (*,'(a,a20)') 'Key not resolved in KEY2ADDR at ',cmark
            write (*,*) 'check #-table and key list for PE ',me
            write(*,*) 'Bad address'
-           write(*,'(a15,o20)') 'Key = ',keyin
+           write(*,'(a15,o22)') 'Key = ',keyin
            write(*,*) 'Initial address =',cell_addr
            write(*,*) '# const =',hashconst
           write(*,*) 'ires =',ires

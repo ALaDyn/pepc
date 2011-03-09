@@ -24,7 +24,7 @@ subroutine diagnose_tree
   character(30) :: cfile
   character(1) :: csnap, collision
 
-  integer :: i, isnap
+  integer :: i, isnap, ipediagfile
 
   save isnap
   data isnap/1/
@@ -32,14 +32,14 @@ subroutine diagnose_tree
   csnap=achar(mod(isnap,10)+48)
 
   write(cfile,'(a,i6.6,a)') "diag_", me, ".dat"  
-  open(ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+  open(ipediagfile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
 
   if (me==0) write (*,*) 'DIAGNOSE TREE'
-  write (ipefile,*) 'DIAGNOSE TREE'
+  write (ipediagfile,*) 'DIAGNOSE TREE'
 
   ! output hash table
 
-  write (ipefile,'(/a/8x,a/8x,a)') 'Hash table ', &
+  write (ipediagfile,'(/a/8x,a/8x,a)') 'Hash table ', &
        'entry,    owner    node,            key_8     key_10        parent       next   ', &
 	'    link   # leaves  childcode  collision', &
        '----------------------------------------------------------------------------------------------- '
@@ -49,10 +49,10 @@ subroutine diagnose_tree
   do i=0,maxaddress
      collision=" "
      if (htable(i)%node/=0 .and. htable(i)%link/= -1 ) collision="C"
-     if (htable(i)%node /= 0 .and. htable(i)%next >=0) write (ipefile,'(3i10,o22,i10,2o22,i8,i5,z4,4x,a1)') &
+     if (htable(i)%node /= 0 .and. htable(i)%next >=0) write (ipediagfile,'(3i10,o22,i10,2o22,i8,i5,z4,4x,a1)') &
 	  me,htable(i)%owner,htable(i)%node,htable(i)%key,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
           htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
-     if (htable(i)%node /= 0 .and. htable(i)%next <0) write (ipefile,'(3i10,2o15,i15,i15,i5,z4,4x,a1)') &
+     if (htable(i)%node /= 0 .and. htable(i)%next <0) write (ipediagfile,'(3i10,2o15,i15,i15,i5,z4,4x,a1)') &
 	  me,htable(i)%owner,htable(i)%node,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
           htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
   end do
@@ -70,17 +70,16 @@ subroutine diagnose_tree
   rcoc2(i) = xcoc(ind_twig(i))**2+ycoc(ind_twig(i))**2 + zcoc(ind_twig(i))**2
   end do
 
-  write (ipefile,'(///a)') 'Tree structure'
+  write (ipediagfile,'(///a)') 'Tree structure'
 
-!  write (ipefile,'(/a/a/(3i5,2i10,2i8,b11,i2,i8,i10,9(1pe15.4)))') 'Twigs from hash-table:', &
-  write (ipefile,'(/a/a/(3i5,2o15,2i8,z4,i2,o15,i5,10(1pe15.4)))') 'Twigs from hash-table:', &
+!  write (ipediagfile,'(/a/a/(3i5,2i10,2i8,b11,i2,i8,i10,9(1pe15.4)))') 'Twigs from hash-table:', &
+  write (ipediagfile,'(/a/a/(3i5,2o15,2i8,z4,i2,o15,i5,10(1pe15.4)))') 'Twigs from hash-table:', &
        '    i  level  owner   key    parent-key    #     node     code    #c  1st child    #leaves ', &
        (i,node_level(ind_twig(i)), &              !  index, level
          htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%owner, &                            ! Owner-PE of node
          key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
          addr_twig(i), ind_twig(i), &    ! Table address and node number
          child_twig(i), &                         ! Children byte-code 
-         n_children( ind_twig(i) ), &
          first_child( ind_twig(i) ), &            ! key of 1st child
          htable( addr_twig(i) )%leaves, &                           ! # leaves contained in branch 
          abs_charge(ind_twig(i)), &    ! Twig absolute charge
@@ -106,7 +105,7 @@ subroutine diagnose_tree
   owner_leaf(1:nleaf_me) = pack(htable%owner,mask=(htable%node>0 .and. htable%owner == me))   ! who owns leaf node
 
 
-  write (ipefile,'(/a/3a5,2a10,2a15,a25,4a11/(3i5,2i10,2o15,o25,2f11.4,2f11.4))') 'Local leaves from hash-table:', &
+  write (ipediagfile,'(/a/3a5,2a10,2a15,a25,4a11/(3i5,2i10,2o15,o25,2f11.4,2f11.4))') 'Local leaves from hash-table:', &
        'i','owner','plab','i-leaf','lev','key','parent','pkey','x','y','q','jx', &
        (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),node_level(ind_leaf(i)),key_leaf(i), &
         ishft( key_leaf(i),-3 ), &      ! parent
@@ -121,7 +120,7 @@ subroutine diagnose_tree
   owner_leaf(1:nleaf-nleaf_me) = pack(htable%owner,mask=(htable%node>0 .and. htable%owner /= me))   ! who owns leaf node
 
 
-  write (ipefile,'(//a/a/(4i5,2o15,i5,2f11.4,f6.1,f11.4))') 'Non-local leaves from hash-table:', &
+  write (ipediagfile,'(//a/a/(4i5,2o15,i5,2f11.4,f6.1,f11.4))') 'Non-local leaves from hash-table:', &
        '    i   owner    i-leaf    lev    key    parent  plabel  xcoc  ycoc  charge      ', &
        (i,owner_leaf(i),ind_leaf(i),node_level(ind_leaf(i)),key_leaf(i), &
         ishft( key_leaf(i),-3 ), &      ! parent
@@ -129,16 +128,6 @@ subroutine diagnose_tree
         xcoc(ind_leaf(i)),ycoc(ind_leaf(i)), charge(ind_leaf(i)), xdip(ind_leaf(i)), &
 	i=1,nleaf-nleaf_me)
 
-! Interaction lists
-  
-!!$  write(ipefile,'(//a)') 'Interaction lists'
-!!$  do i=1,npp
-!!$     write(ipefile,'(//a,i5,a,i5)') 'Particle ',pelabel(i),' # terms: ',nterm(i)
-!!$     write(ipefile,'(a/(4i7))') 'List: key,owner,node',(intlist(j,i),htable( key2addr( intlist(j,i),'DIAGNOSE_TREE' ) )%owner &
-!!$          ,htable( key2addr( intlist(j,i),'DIAGNOSE_TREE' ) )%node,nodelist(j,i),j=1,nterm(i))
-!!$  end do
-
-
-  close(ipefile)
+  close(ipediagfile)
   
 end subroutine diagnose_tree
