@@ -35,7 +35,7 @@ subroutine tree_local
   integer*8 :: search_key_mod
 
   ! stuff for estimation
-  integer*8 :: branch_level(0:nlev) 
+  integer*8 :: branch_level(1:nlev)
   integer*8 :: branch_level_D1(1:nlev) ! start at level 1
   integer*8 :: branch_level_D2(1:nlev) 
   integer*8 :: D1, D2               ! sub-domains
@@ -389,24 +389,21 @@ subroutine tree_local
   ! boundary PE's can access their boundary space fully only need one virtual limit
   if(me.eq.0)then
      right_limit=pekey(npp+1)
-     call bpi_bits(right_limit,right_limit_me,8_8,right_virt_limit,nlev)
+     right_virt_limit = bpi(right_limit_me,right_limit)
      left_virt_limit=2_8**(nlev*3)
   else if(me.eq.(num_pe-1))then
      left_limit=pekey(npp+1)
-     call bpi_bits(left_limit,left_limit_me,8_8,left_virt_limit,nlev)
+     left_virt_limit  = bpi(left_limit,left_limit_me)
      right_virt_limit=2_8**(3*nlev+1)-1
   else
      left_limit=pekey(npp+2)
      right_limit=pekey(npp+1)
-     call bpi_bits(left_limit,left_limit_me,8_8,left_virt_limit,nlev)
-     call bpi_bits(right_limit,right_limit_me,8_8,right_virt_limit,nlev)
+     left_virt_limit  = bpi(left_limit,left_limit_me)
+     right_virt_limit = bpi(right_limit_me,right_limit)
   end if
 
-  ! Make tough estimation for amount of branches
-  branch_level(0)=1;              ! root
-  
   ! First find highest power in the Virtual Domain
-  call bpi_bits(left_virt_limit,right_virt_limit,8_8,L,nlev)
+  L = bpi(left_virt_limit,right_virt_limit)
   
   ! divide in two sub-domains
   D1 = L-left_virt_limit
@@ -433,11 +430,11 @@ subroutine tree_local
   end if
 
   ! Determine minimum set of branch nodes making up local domain
-  ncheck = 0
+  ncheck  = 0
   nbranch = 0
-  newsub = 0
-  level = 1
-  nsubset=0
+  newsub  = 0
+  level   = 1
+  nsubset = 0
 
 
   ! Artificial Startup: mimic first level cells + placeholder bit
@@ -455,8 +452,8 @@ subroutine tree_local
      if (nsubset > 0 ) then
         
         ! calculate parent cell for this level from virtual limits 
-        left_cell = ibits(left_virt_limit,nlev*3_8-3_8*level,3_8*level)
-        right_cell = ibits(right_virt_limit,nlev*3_8-3_8*level,3_8*level)
+        left_cell  = ibits(left_virt_limit, 3_8*(nlev-level),3_8*level)
+        right_cell = ibits(right_virt_limit,3_8*(nlev-level),3_8*level)
 
         ! for all nodes at this level
         do i=1,nsubset

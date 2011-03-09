@@ -205,7 +205,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
      pekey(1:npp) = local_key(1:npp)
 
      ! sort particles with their data
-     call slsort_parts(npp,nppm,&
+     call slsort_parts(npp,nppm-2,&
           pekey,x,y,z,ux,uy,uz,q,m,work,ex,ey,ez,pelabel,&
           weighted,imba,&
           indxl,irnkl,islen,irlen,fposts,gposts,&
@@ -258,10 +258,10 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
         !     call pbalsortr(nppm,npold,npnew,num_pe,me,keys, &
         !          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
         if (choose_sort == 1) then
-           call pbalsort(nppm,npold,npnew,num_pe,me,keys, &
+           call pbalsort(nppm-2,npold,npnew,num_pe,me,keys, &
                 indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,nkeys_total,weighted,sort_debug,work_local)
         else
-           call slsort_keys(npold,nppm,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
+           call slsort_keys(npold,nppm-2,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
         end if
 
         call timer_stop(t_domains_sort_pure)
