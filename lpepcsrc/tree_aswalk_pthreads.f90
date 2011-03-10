@@ -981,13 +981,14 @@ module tree_walk_utils
       use, intrinsic :: iso_c_binding
       implicit none
       integer :: ith, ierr
+      integer, target :: num_processed_particles(num_walk_threads)
 
       ! we count how many threads already have finished
       finished_threads = 0
 
       ! start the worker threads...
       do ith = 1,num_walk_threads
-        call retval(pthreads_createthread(ith, c_funloc(walk_worker_thread), c_null_ptr), "walk_schedule_thread_inner:pthread_create")
+        call retval(pthreads_createthread(ith, c_funloc(walk_worker_thread), c_loc(num_processed_particles(ith))), "walk_schedule_thread_inner:pthread_create")
       end do
 
       call run_communication_loop()
@@ -1003,6 +1004,10 @@ module tree_walk_utils
                             next_unassigned_particle, " np_local =", np_local
         flush(6)
         call MPI_ABORT(MPI_COMM_WORLD, ierr)
+      end if
+
+      if (walk_summary) then
+        write(ipefile,*) "Hybrid walk finished. The ", num_walk_threads, " work-threads processed ",num_processed_particles, " particles"
       end if
 
     end subroutine walk_hybrid
@@ -1083,6 +1088,7 @@ module tree_walk_utils
       logical :: particles_available
       logical :: particles_active
       logical :: process_particle
+      integer, pointer :: my_processed_particles
 
       allocate(my_particles(max_particles_per_thread),                         &
                             todo_list_top(max_particles_per_thread),           &
@@ -1099,7 +1105,8 @@ module tree_walk_utils
       my_particles(:)     = -1
       particles_available = .true.
       particles_active    = .true.
-
+      call c_f_pointer(arg, my_processed_particles)
+      my_processed_particles = 0
 
 
       do while (particles_active .or. particles_available)
@@ -1125,6 +1132,7 @@ module tree_walk_utils
               todo_list(1,i)             =  1
               todo_list_minlevel_next(i) =  0
               my_particles(i)            = -1
+              my_processed_particles     = my_processed_particles + 1
             else
               particles_active = .true.
             end if
