@@ -248,6 +248,7 @@ module tree_walk_communicator
 
 
       subroutine run_communication_loop()
+        use pthreads_stuff
         implicit none
         include 'mpif.h'
         logical :: walk_finished(num_pe) ! will hold information on PE 0 about which processor
@@ -271,6 +272,8 @@ module tree_walk_communicator
         do while (walk_status < WALK_ALL_FINISHED)
           comm_loop_iterations(1) = comm_loop_iterations(1) + 1
           call run_communication_loop_inner(walk_finished)
+          ! currently, there is no communication request --> other threads may do something interesting
+          call retval(pthreads_sched_yield(), "run_communication_loop() - sched_yield()")
         end do ! while (walk_status .ne. WALK_ALL_FINISHED)
 
         if (walk_comm_debug) write(ipefile,'("PE", I6, " run_communication_loop end.   walk_status = ", I6)') me, walk_status
@@ -1141,6 +1144,10 @@ module tree_walk_utils
           end if
 
         end do
+
+        ! we processed all our particles now. possibly, they are waiting for communication --> other threads may do something interesting
+        call retval(pthreads_sched_yield(), "walk_worker_thread() - sched_yield()")
+
       end do
 
       deallocate(my_particles, todo_list_top, todo_list_bottom, todo_list_minlevel_next);

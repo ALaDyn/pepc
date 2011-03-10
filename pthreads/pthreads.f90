@@ -37,6 +37,12 @@ module pthreads_stuff
       integer :: pthreads_exitthread
     end function
 
+    function pthreads_sched_yield()
+      use iso_c_binding
+      implicit none
+      integer :: pthreads_sched_yield
+    end function
+
   end interface
 
 

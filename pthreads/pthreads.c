@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sched.h>
 #include "fortran2c_types.h"
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -102,6 +103,16 @@ FINT_TYPE_C pthreads_exitthread_()
     pthread_exit(NULL);
 
     return 0;
+}
+
+
+FINT_TYPE_C pthreads_sched_yield()
+{
+    return pthreads_sched_yield_();
+}
+FINT_TYPE_C pthreads_sched_yield_()
+{
+    return sched_yield();
 }
 
 
