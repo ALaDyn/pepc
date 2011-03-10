@@ -117,7 +117,7 @@ subroutine special_start(iconf)
   call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
   call MPI_SCAN(np_local, fances(my_rank), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-  call MPI_ALLGATHER(MPI_IN_PLACE, 0, 0, fances(0), 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
+  call MPI_ALLGATHER(MPI_IN_PLACE, 1, MPI_INTEGER, fances(0), 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
   fances(-1) = 0
 
   config: select case(iconf)

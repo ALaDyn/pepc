@@ -80,7 +80,7 @@ contains
     if (debug) write(*,*) "start mpi scan on rank ", my_rank
 
     call MPI_SCAN(np_local, fances(my_rank), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-    call MPI_ALLGATHER(MPI_IN_PLACE, 0, 0, fances, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
+    call MPI_ALLGATHER(MPI_IN_PLACE,  1, MPI_INTEGER, fances, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
 
     if(my_rank.eq.0 .and. debug) then
        do i=0, n_cpu-1
