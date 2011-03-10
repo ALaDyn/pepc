@@ -1,0 +1,55 @@
+
+# use Makefile.in if it exists, makefile.defs otherwise
+ifneq ($(wildcard Makefile.in),)
+
+include Makefile.in
+
+ifeq ($(MPIFC),)
+  MPIFC:=$(MPIF90)
+endif
+
+else
+
+include ../makefile.defs
+
+MPICC:=$(CC)
+MPIFC:=$(FC)
+
+# reset fancy CPPFLAGS of PEPC so that SL can use it for regular compiling with CC
+CPPFLAGS:=
+
+# defaults are set in the SL Makefile
+#ECHO:=echo
+#MKDIR_P:=mkdir -p
+#RANLIB:=ranlib
+
+endif
+
+
+PREREQ+=config.h
+
+CPPFLAGS+=-DHAVE_CONFIG_H
+
+config.h:
+	@echo "making $@"
+	@echo > $@
+	@ftype=integer ; for fkind in 2 4 8 ; do \
+  echo "module conftest"         > conftest.f90 ; \
+  echo "interface atype"         >> conftest.f90 ; \
+  echo "module procedure atypeX" >> conftest.f90 ; \
+  echo "end interface"           >> conftest.f90 ; \
+  echo "contains"                >> conftest.f90 ; \
+  echo "subroutine atypeX(a)"    >> conftest.f90 ; \
+  echo "$${ftype}*$${fkind}::a"  >> conftest.f90 ; \
+  echo "end subroutine"          >> conftest.f90 ; \
+  echo "end module"              >> conftest.f90 ; \
+  echo "program main"            >> conftest.f90 ; \
+  echo "use conftest"            >> conftest.f90 ; \
+  echo "$${ftype}::a"            >> conftest.f90 ; \
+  echo "call atypeX(a)"          >> conftest.f90 ; \
+  echo "end program"             >> conftest.f90 ; \
+  $(MPIFC) $(FFLAGS) -c conftest.f90 2>conftest.err ; \
+  if [ $$? = 0 ] ; then echo "#define FINT_DEFAULT  $${fkind}  /*  fortran compiler and flags: $(MPIFC) $(FFLAGS) */" >> $@ ; break ; fi ; \
+done ; rm conftest.*
+
+CLEAN_FILES:=config.h
