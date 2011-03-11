@@ -24,7 +24,7 @@ subroutine diagnose_tree
   character(30) :: cfile
   character(1) :: csnap, collision
 
-  integer :: i, isnap, ipediagfile
+  integer :: i, isnap, ipediagfile = 86
 
   save isnap
   data isnap/1/

@@ -43,6 +43,13 @@ module pthreads_stuff
       integer :: pthreads_sched_yield
     end function
 
+    function pthreads_setmypriority(val)
+      use iso_c_binding
+      implicit none
+      integer :: pthreads_setmypriority
+      integer, intent(in), value :: val
+    end function
+
   end interface
 
 
@@ -77,6 +84,48 @@ module pthreads_stuff
       implicit none
       integer :: rwlocks_unlock
       integer, intent(in), value :: id
+    end function
+
+  end interface
+
+
+
+  interface
+
+    function pthreads_conds_init(numconds)
+      implicit none
+      integer :: pthreads_conds_init
+      integer, intent(in), value :: numconds
+    end function
+
+    function pthreads_conds_uninit()
+      implicit none
+      integer :: pthreads_conds_uninit
+    end function
+
+    function pthreads_conds_signal(id)
+      implicit none
+      integer :: pthreads_conds_signal
+      integer, intent(in), value :: id
+    end function
+
+    function pthreads_conds_broadcast(id)
+      implicit none
+      integer :: pthreads_conds_broadcast
+      integer, intent(in), value :: id
+    end function
+
+    function pthreads_conds_wait(id)
+      implicit none
+      integer :: pthreads_conds_wait
+      integer, intent(in), value :: id
+    end function
+
+    function pthreads_conds_timedwait(id, microseconds)
+      implicit none
+      integer :: pthreads_conds_timedwait
+      integer, intent(in), value :: id
+      integer, intent(in), value :: microseconds
     end function
 
   end interface

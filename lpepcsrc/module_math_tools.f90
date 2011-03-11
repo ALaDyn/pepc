@@ -489,13 +489,11 @@ module module_math_tools
           implicit none
           include 'mpif.h'
 
-          integer :: ierr
-
           integer*8,intent(inout) :: a, b
           integer*8 :: i
           integer*8 :: bn
 
-          i = log(1._8*real(ieor(a,b)))/log(8._8)
+          i = int(log(1._8*real(ieor(a,b)))/log(8._8))
           bn = 8_8**i
           bpi = b/bn*bn
 

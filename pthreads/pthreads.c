@@ -13,15 +13,27 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <time.h>
+#include <errno.h>
+
+struct my_conds_t
+{
+    pthread_cond_t cond;
+    pthread_mutex_t mutex;
+} my_conds_t;
 
 pthread_t *__restrict__ my_threads;
+struct my_conds_t *my_conds;
 pthread_rwlock_t *my_rwlocks;
 pthread_attr_t thread_attr;
 int maxnumthreads = 0;
+int maxnumconds = 0;
 int maxnumlocks = 0;
 
 #define CHECKRES do {if (iret != 0) return iret;} while(0);
 
+
+//////////////// PThreads //////////////////////
 
 FINT_TYPE_C pthreads_init(FINT_TYPE_C numthreads)
 {
@@ -32,7 +44,7 @@ FINT_TYPE_C pthreads_init_(FINT_TYPE_C numthreads)
     int iret = 0;
 
     maxnumthreads = numthreads;
-    my_threads    = (pthread_t*)malloc(maxnumthreads*sizeof(pthread_t));
+    my_threads    = (pthread_t*)malloc(((unsigned int)maxnumthreads)*sizeof(pthread_t));
 
     iret = pthread_attr_init(&thread_attr);
     CHECKRES;
@@ -63,18 +75,13 @@ FINT_TYPE_C pthreads_uninit_()
 }
 
 
-FINT_TYPE_C pthreads_createthread(FINT_TYPE_C id, void *(*start_routine) (void *), void *arg)
+FINT_TYPE_C pthreads_createthread(FINT_TYPE_C id, void *(*start_routine) (void *), void *arg, FINT_TYPE_C relative_priority)
 {
-    return pthreads_createthread_(id, start_routine, arg);
+    return pthreads_createthread_(id, start_routine, arg, relative_priority);
 }
-FINT_TYPE_C pthreads_createthread_(FINT_TYPE_C id, void *(*start_routine) (void *), void *arg)
+FINT_TYPE_C pthreads_createthread_(FINT_TYPE_C id, void *(*start_routine) (void *), void *arg, FINT_TYPE_C relative_priority)
 {
-    int iret = 0;
-
-    iret = pthread_create(&(my_threads[id]), &thread_attr, start_routine, arg);
-    CHECKRES;
-
-    return 0;
+    return pthread_create(&(my_threads[id-1]), &thread_attr, start_routine, arg);
 }
 
 
@@ -85,12 +92,7 @@ FINT_TYPE_C pthreads_jointhread(FINT_TYPE_C id)
 FINT_TYPE_C pthreads_jointhread_(FINT_TYPE_C id)
 {
     void *retval; // for convenience we do not pass it to fortran
-    int iret = 0;
-
-    iret = pthread_join(my_threads[id], &retval);
-    CHECKRES;
-
-    return 0;
+    return pthread_join(my_threads[id-1], &retval);
 }
 
 
@@ -115,6 +117,129 @@ FINT_TYPE_C pthreads_sched_yield_()
     return sched_yield();
 }
 
+FINT_TYPE_C pthreads_setmypriority(FINT_TYPE_C val)
+{
+    return pthreads_setmypriority_();
+}
+FINT_TYPE_C pthreads_setmypriority_(FINT_TYPE_C val)
+{
+    pthread_t myid = pthread_self();
+    int policy, iret;
+    struct sched_param param;
+
+    iret = pthread_getschedparam(myid, &policy, &param);
+    CHECKRES;
+
+    printf("ThreadID %u, Policy: %d, Priority %d, max %d, min %d\n", myid, policy, param.sched_priority, sched_get_priority_max(policy), sched_get_priority_min(policy));
+
+    param.sched_priority += val;
+    return pthread_setschedparam(myid,  policy, &param);
+
+}
+
+
+
+//////////////// Condition Variables //////////////////////
+
+FINT_TYPE_C pthreads_conds_init(FINT_TYPE_C numconds)
+{
+    return pthreads_init_(numconds);
+}
+FINT_TYPE_C pthreads_conds_init_(FINT_TYPE_C numconds)
+{
+    int iret = 0;
+    int i;
+
+    maxnumconds = numconds;
+    my_conds    = (struct my_conds_t*)malloc(((unsigned int)maxnumconds)*sizeof(my_conds_t));
+
+    for (i=0;i<maxnumconds;i++)
+    {
+        iret = pthread_cond_init(&my_conds[i].cond, NULL);
+        CHECKRES;
+        iret = pthread_mutex_init(&my_conds[i].mutex, NULL);
+        CHECKRES;
+    }
+
+    return 0;
+}
+
+FINT_TYPE_C pthreads_conds_uninit()
+{
+    return pthreads_conds_uninit_();
+}
+FINT_TYPE_C pthreads_conds_uninit_()
+{
+    int iret = 0;
+    int i = 0;
+
+
+    for (i=0;i<maxnumconds;i++)
+    {
+        iret = pthread_cond_destroy(&my_conds[i].cond);
+        CHECKRES;
+        iret = pthread_mutex_destroy(&my_conds[i].mutex);
+        CHECKRES;
+    }
+
+    free(my_conds);
+
+    return 0;
+}
+
+
+FINT_TYPE_C pthreads_conds_signal(FINT_TYPE_C id)
+{
+    return pthreads_conds_signal_(id);
+}
+FINT_TYPE_C pthreads_conds_signal_(FINT_TYPE_C id)
+{
+    return pthread_cond_signal(&my_conds[id-1].cond);
+}
+
+
+FINT_TYPE_C pthreads_conds_broadcast(FINT_TYPE_C id)
+{
+    return pthreads_conds_broadcast_(id);
+}
+FINT_TYPE_C pthreads_conds_broadcast_(FINT_TYPE_C id)
+{
+    return pthread_cond_broadcast(&my_conds[id-1].cond);
+}
+
+
+FINT_TYPE_C pthreads_conds_wait(FINT_TYPE_C id)
+{
+    return pthreads_conds_wait_(id);
+}
+FINT_TYPE_C pthreads_conds_wait_(FINT_TYPE_C id)
+{
+    return pthread_cond_wait(&my_conds[id-1].cond, &my_conds[id-1].mutex);
+}
+
+FINT_TYPE_C pthreads_conds_timedwait(FINT_TYPE_C id, FINT_TYPE_C microseconds)
+{
+    return pthreads_conds_timedwait_(id, microseconds);
+}
+FINT_TYPE_C pthreads_conds_timedwait_(FINT_TYPE_C id, FINT_TYPE_C microseconds)
+{
+    struct timespec abstime;
+    int iret = 0;
+
+    iret = clock_gettime(CLOCK_REALTIME, &abstime);
+    CHECKRES;
+
+    abstime.tv_nsec += (microseconds % 1000000)*1000;
+    abstime.tv_sec  += (microseconds / 1000000) + (abstime.tv_nsec / 1000000000);
+    abstime.tv_nsec %=  1000000000;
+
+    iret = pthread_cond_timedwait(&my_conds[id-1].cond, &my_conds[id-1].mutex, &abstime);
+    if (iret == ETIMEDOUT) return -1;
+
+    CHECKRES;
+}
+
+//////////////// RWLocks //////////////////////
 
 FINT_TYPE_C rwlocks_init(FINT_TYPE_C numlocks)
 {
@@ -126,7 +251,7 @@ FINT_TYPE_C rwlocks_init_(FINT_TYPE_C numlocks)
     int i = 0;
 
     maxnumlocks = numlocks;
-    my_rwlocks    = (pthread_rwlock_t*)malloc(maxnumlocks*sizeof(pthread_rwlock_t));
+    my_rwlocks    = (pthread_rwlock_t*)malloc(((unsigned int)maxnumlocks)*sizeof(pthread_rwlock_t));
 
     for (i=0;i<maxnumlocks;i++)
     {

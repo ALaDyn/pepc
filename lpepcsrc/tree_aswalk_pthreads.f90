@@ -112,7 +112,6 @@ module tree_walk_communicator
   use treevars
   use pthreads_stuff
   implicit none
-  include 'mpif.h'
 
   private
 
@@ -152,6 +151,7 @@ module tree_walk_communicator
     integer, private :: comm_dummy = 123456 !< dummy variable for sending "empty" messages (those, where we are only interested in the tag)
     integer, private, allocatable :: request_balance(:) !< (#requests - #answers) per PE
     real*8, public :: timings_comm(3) !< array for storing internal timing information
+    integer, private :: cond_comm_timeout = 1000 !< timeout for pthread_cond_wait() in commloop in microseconds TODO: tune this parameter automatically during runtime
 
     ! rwlocks for regulating concurrent access
     integer, private, parameter :: NUM_RWLOCKS = 4
@@ -159,6 +159,10 @@ module tree_walk_communicator
     integer, public, parameter :: RWLOCK_NEXT_FREE_PARTICLE = 2
     integer, public, parameter :: RWLOCK_FINISHED_THREADS   = 3
     integer, public, parameter :: RWLOCK_CHILDBYTE          = 4
+
+    ! pthread conditional variables
+    integer, private, parameter :: NUM_CONDS = 1
+    integer, public, parameter :: PTHREAD_COND_COMMBLOCK = 1
 
     ! IDs for internal timing measurement
     integer, public, parameter :: TIMING_COMMLOOP = 1
@@ -185,6 +189,7 @@ module tree_walk_communicator
       subroutine retval(iret, msg)
         use, intrinsic :: iso_c_binding
         implicit none
+        include 'mpif.h'
         integer( kind= c_int) :: iret
         character(*) :: msg
         integer :: ierr
@@ -229,6 +234,9 @@ module tree_walk_communicator
           ! initialize rwlock objects
           call retval(rwlocks_init(NUM_RWLOCKS), "rwlocks_init")
 
+          ! initialize conditional variable objects
+          call retval(pthreads_conds_init(NUM_CONDS), "pthreads_conds_init")
+
         end if
 
         req_queue_top    = 0
@@ -249,8 +257,10 @@ module tree_walk_communicator
 
       subroutine run_communication_loop()
         use pthreads_stuff
+        use, intrinsic :: iso_c_binding
         implicit none
         include 'mpif.h'
+        integer( kind= c_int) :: iret
         logical :: walk_finished(num_pe) ! will hold information on PE 0 about which processor
                                           ! is still working and which ones are finished
                                           ! to emulate a non-blocking barrier
@@ -270,10 +280,20 @@ module tree_walk_communicator
         timings_comm(TIMING_COMMLOOP) = MPI_WTIME()
 
         do while (walk_status < WALK_ALL_FINISHED)
+
           comm_loop_iterations(1) = comm_loop_iterations(1) + 1
           call run_communication_loop_inner(walk_finished)
+
           ! currently, there is no communication request --> other threads may do something interesting
-          call retval(pthreads_sched_yield(), "run_communication_loop() - sched_yield()")
+          if (walk_status < WALK_IAM_FINISHED) then
+            iret = pthreads_conds_timedwait(PTHREAD_COND_COMMBLOCK, cond_comm_timeout)
+            if (iret == -1) then
+              ! Timeout occured, hence no pending send-requests,
+              ! but we have to check whether there are incoming messages
+            else
+              call retval(iret, "pthreads_conds_timedwait(PTHREAD_COND_COMMBLOCK, cond_comm_timeout)")
+            endif
+          endif
         end do ! while (walk_status .ne. WALK_ALL_FINISHED)
 
         if (walk_comm_debug) write(ipefile,'("PE", I6, " run_communication_loop end.   walk_status = ", I6)') me, walk_status
@@ -416,7 +436,7 @@ module tree_walk_communicator
       ! if request_balance contains positive values, not all requested data has arrived
       ! this means, that there were algorithmically unnecessary requests, which would be a bug
       ! negative values denote more received datasets than requested, which implies
-      ! a bug in bookkeeping on the sender's side
+      ! a bug in bookkeeping on the sender`s side
         if (req_queue_top .ne. req_queue_bottom) then
            write(*,*) "PE", me, " has finished its walk, but the request list is not empty"
            write(*,*) "obviously, there is an error in the todo_list bookkeeping"
@@ -453,6 +473,8 @@ module tree_walk_communicator
         ! free our buffer that was reserved for buffered communication
         call MPI_BUFFER_DETACH(dummy, buffsize, ierr) ! FIXME: what is the dummy thought for?
         deallocate(bsend_buffer)
+        ! free the conditional variable objects
+        call retval(pthreads_conds_uninit(), "pthreads_conds_uninit")
         ! free the rwlock objects
         call retval(rwlocks_uninit(), "rwlocks_uninit")
 
@@ -597,6 +619,9 @@ module tree_walk_communicator
 
         call rwlock_unlock(RWLOCK_REQUEST_QUEUE, "post_request")
 
+        ! since there is at least one active communication request, we can wakeup the comm thread
+        call retval(pthreads_conds_signal(PTHREAD_COND_COMMBLOCK), "post_request() - pthreads_cond_signal()")
+
     end subroutine post_request
 
 
@@ -668,6 +693,7 @@ module tree_walk_communicator
 
     subroutine send_data(requested_key, ipe_sender)
       implicit none
+      include 'mpif.h'
       integer*8, intent(in) :: requested_key
       integer, intent(in) :: ipe_sender
       integer :: process_addr, childbyte
@@ -744,6 +770,7 @@ module tree_walk_communicator
 
     subroutine unpack_data(child_data, num_children, ipe_sender)
       implicit none
+      include 'mpif.h'
       type (multipole) :: child_data(8) !< child data that has been received
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
@@ -860,7 +887,7 @@ module tree_walk_communicator
          call MPI_ABORT(MPI_COMM_WORLD, ierr)
        end if
      end do
-     ! mark the parent node inside the hashtable: it's children are now accessible
+     ! mark the parent node inside the hashtable: it`s children are now accessible
      node_addr = key2addr( kparent(1),'WALK:unpack_data' )
 
      !call rwlock_wrlock(RWLOCK_CHILDBYTE, "unpack_data")
@@ -869,17 +896,7 @@ module tree_walk_communicator
 
     end subroutine unpack_data
 
-
-
-
-
 end module tree_walk_communicator
-
-
-
-
-
-
 
 
 
@@ -893,11 +910,11 @@ module tree_walk_utils
   use treevars
   use pthreads_stuff
   implicit none
-  include 'mpif.h'
 
   private
     integer, public :: num_walk_threads = 3
     integer, public :: max_particles_per_thread = 2000
+    integer, private, parameter :: walk_worker_thread_priority = -1
 
     real*8, dimension(:), allocatable :: boxlength2
     real :: eps
@@ -983,6 +1000,8 @@ module tree_walk_utils
       use tree_walk_communicator
       use, intrinsic :: iso_c_binding
       implicit none
+      include 'mpif.h'
+
       integer :: ith, ierr
       integer, target :: num_processed_particles(num_walk_threads)
 
@@ -991,6 +1010,7 @@ module tree_walk_utils
 
       ! start the worker threads...
       do ith = 1,num_walk_threads
+        ! increasing priority values means: this thread is less important
         call retval(pthreads_createthread(ith, c_funloc(walk_worker_thread), c_loc(num_processed_particles(ith))), "walk_schedule_thread_inner:pthread_create")
       end do
 
@@ -1079,6 +1099,7 @@ module tree_walk_utils
     function walk_worker_thread(arg) bind(c)
       use, intrinsic :: iso_c_binding
       use tree_walk_communicator
+      use pthreads_stuff
       implicit none
       type(c_ptr) :: walk_worker_thread
       type(c_ptr), value :: arg
@@ -1087,11 +1108,14 @@ module tree_walk_utils
       integer*8, dimension(:,:), allocatable :: todo_list
       integer, dimension(:), allocatable :: todo_list_top, todo_list_bottom
       integer, dimension(:), allocatable :: todo_list_minlevel_next
-      integer :: i
+      integer :: i, iret
       logical :: particles_available
       logical :: particles_active
       logical :: process_particle
       integer, pointer :: my_processed_particles
+
+      iret = pthreads_setmypriority(walk_worker_thread_priority)
+      if (iret .ne. 0) write(*,*) "Setting Priority failed, iret = ", iret
 
       allocate(my_particles(max_particles_per_thread),                         &
                             todo_list_top(max_particles_per_thread),           &
@@ -1144,9 +1168,6 @@ module tree_walk_utils
           end if
 
         end do
-
-        ! we processed all our particles now. possibly, they are waiting for communication --> other threads may do something interesting
-        call retval(pthreads_sched_yield(), "walk_worker_thread() - sched_yield()")
 
       end do
 

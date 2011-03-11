@@ -384,9 +384,9 @@ subroutine tree_local
   left_limit_me=pekey(1)
   right_limit_me=pekey(npp)
 
-  ! get key limits for neighbor PE's
+  ! get key limits for neighbor PE`s
   ! and build virtual limits, so that a minimum set a branch nodes comes arround
-  ! boundary PE's can access their boundary space fully only need one virtual limit
+  ! boundary PE`s can access their boundary space fully only need one virtual limit
   if(me.eq.0)then
      right_limit=pekey(npp+1)
      right_virt_limit = bpi(right_limit_me,right_limit)
