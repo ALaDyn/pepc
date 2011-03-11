@@ -914,7 +914,6 @@ module tree_walk_utils
   private
     integer, public :: num_walk_threads = 3
     integer, public :: max_particles_per_thread = 2000
-    integer, private, parameter :: walk_worker_thread_priority = -1
 
     real*8, dimension(:), allocatable :: boxlength2
     real :: eps
@@ -1113,9 +1112,6 @@ module tree_walk_utils
       logical :: particles_active
       logical :: process_particle
       integer, pointer :: my_processed_particles
-
-      iret = pthreads_setmypriority(walk_worker_thread_priority)
-      if (iret .ne. 0) write(*,*) "Setting Priority failed, iret = ", iret
 
       allocate(my_particles(max_particles_per_thread),                         &
                             todo_list_top(max_particles_per_thread),           &

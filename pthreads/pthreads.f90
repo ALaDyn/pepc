@@ -43,13 +43,6 @@ module pthreads_stuff
       integer :: pthreads_sched_yield
     end function
 
-    function pthreads_setmypriority(val)
-      use iso_c_binding
-      implicit none
-      integer :: pthreads_setmypriority
-      integer, intent(in), value :: val
-    end function
-
   end interface
 
 

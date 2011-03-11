@@ -117,27 +117,6 @@ FINT_TYPE_C pthreads_sched_yield_()
     return sched_yield();
 }
 
-FINT_TYPE_C pthreads_setmypriority(FINT_TYPE_C val)
-{
-    return pthreads_setmypriority_();
-}
-FINT_TYPE_C pthreads_setmypriority_(FINT_TYPE_C val)
-{
-    pthread_t myid = pthread_self();
-    int policy, iret;
-    struct sched_param param;
-
-    iret = pthread_getschedparam(myid, &policy, &param);
-    CHECKRES;
-
-    printf("ThreadID %u, Policy: %d, Priority %d, max %d, min %d\n", myid, policy, param.sched_priority, sched_get_priority_max(policy), sched_get_priority_min(policy));
-
-    param.sched_priority += val;
-    return pthread_setschedparam(myid,  policy, &param);
-
-}
-
-
 
 //////////////// Condition Variables //////////////////////
 
