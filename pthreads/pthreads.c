@@ -122,7 +122,7 @@ FINT_TYPE_C pthreads_sched_yield_()
 
 FINT_TYPE_C pthreads_conds_init(FINT_TYPE_C numconds)
 {
-    return pthreads_init_(numconds);
+    return pthreads_conds_init_(numconds);
 }
 FINT_TYPE_C pthreads_conds_init_(FINT_TYPE_C numconds)
 {
