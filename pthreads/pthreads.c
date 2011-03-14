@@ -215,7 +215,7 @@ FINT_TYPE_C pthreads_conds_timedwait_(FINT_TYPE_C id, FINT_TYPE_C microseconds)
     iret = pthread_cond_timedwait(&my_conds[id-1].cond, &my_conds[id-1].mutex, &abstime);
     if (iret == ETIMEDOUT) return -1;
 
-    CHECKRES;
+    return iret;
 }
 
 //////////////// RWLocks //////////////////////
