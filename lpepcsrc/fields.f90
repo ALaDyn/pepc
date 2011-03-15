@@ -90,15 +90,15 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
      uz(i) = 0.
      q(i) = p_q(i)
      m(i) = p_m(i)
-     if (p_label(i) <=0) then
-        ! Trap bad particle labels
-        write (*,*) '*** Error: particle labels must be positive integers (1,2,3,...)! '
-        write (*,*) p_label(1:20)
-        call MPI_ABORT(ierr)
-        stop
-     else
+!     if (p_label(i) <=0) then
+!        ! Trap bad particle labels
+!        write (*,*) '*** Error: particle labels must be positive integers (1,2,3,...)! '
+!        write (*,*) p_label(1:20)
+!        call MPI_ABORT(ierr)
+!        stop
+!     else
         pelabel(i) = p_label(i)     
-     endif
+!     endif
      pepid(i) = me
      if (num_pe==1 .or. p_w(i)==0) then
         work(i) = 1.
