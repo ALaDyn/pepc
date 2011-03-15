@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_rti.h
- *  timestamp: 2011-03-06 21:59:34 +0100
+ *  timestamp: 2011-03-11 09:08:29 +0100
  *  
  */
 
@@ -68,19 +68,6 @@ enum rti_tid
   rti_tid_mpi_partition_exact_radix_2groups_alltoall,
   rti_tid_mpi_partition_exact_radix_2groups_select2nd,
   rti_tid_mpi_partition_exact_radix_2groups_subx2y,
-
-  /* src/core_mpi/mpi_partition_radix2.c */
-  rti_tid_mpi_partition_radix2_while,
-  rti_tid_mpi_partition_radix2_while_count,
-  rti_tid_mpi_partition_radix2_while_allreduce,
-  rti_tid_mpi_partition_radix2_while_round1,
-  rti_tid_mpi_partition_radix2_while_round1_allgather,
-  rti_tid_mpi_partition_radix2_while_exscan,
-  rti_tid_mpi_partition_radix2_while_check,
-  rti_tid_mpi_partition_radix2_while_check_pre,
-  rti_tid_mpi_partition_radix2_while_check_classes,
-  rti_tid_mpi_partition_radix2_while_check_final,
-  rti_tid_mpi_partition_radix2_while_check_post,
 
   /* src/core_mpi/mpi_partition_sample.c */
   rti_tid_mpi_partition_sample,

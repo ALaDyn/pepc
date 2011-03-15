@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2011-03-06 21:59:33 +0100
+ *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
@@ -80,12 +80,6 @@ slint_t SL_PROTO(mpi_partition_exact_radix)(elements_t *s, partcond_t *pcond, sl
 /* src/core_mpi/mpi_partition_exact_radix_grouped.c */
 slint_t SL_PROTO(mpi_partition_exact_radix_ngroups)(elements_t *s, partcond_t *pcond, slint_t ngroups, MPI_Comm *group_comms, elements_t *sx, slint_t rhigh, slint_t rlow, slint_t rwidth, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_partition_exact_radix_2groups)(elements_t *s, partcond_t *pcond, MPI_Comm group_comm, elements_t *sx, slint_t rhigh, slint_t rlow, slint_t rwidth, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
-
-/* src/core_mpi/mpi_partition_radix2.c */
-slint_t SL_PROTO(mpi_partition_radix2)(elements_t *s, partcond2_t *pc, slint_t rhigh, slint_t rlow, slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
-
-/* src/core_mpi/mpi_partition_radix_old.c */
-slint_t SL_PROTO(mpi_partition_radix_old)(elements_t *s, partcond2_t *pc, slint_t rhigh, slint_t rlow, slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_partition_sample.c */
 slint_t SL_PROTO(mpi_partition_sample_regular)(elements_t *s, partcond_t *pcond, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);

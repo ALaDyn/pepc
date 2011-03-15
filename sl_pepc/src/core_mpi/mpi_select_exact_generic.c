@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_select_exact_generic.c
- *  timestamp: 2011-03-03 22:37:02 +0100
+ *  timestamp: 2011-03-11 09:11:22 +0100
  *  
  */
 
@@ -30,6 +30,7 @@
 /*#define VERIFY*/
 
 /*#define OLD*/
+/*#define OLD_CHECK*/
 
 typedef struct _border_info_t {
 #ifdef OLD
@@ -1339,6 +1340,7 @@ do_partitioning:
           gws = 0.0;
 #endif
 
+#ifdef OLD_CHECK
           for (k = 0; k < gb.bm->nbins; ++k)
           {
             gc = *gb_counts(&gb, border_bins[i], k);
@@ -1426,13 +1428,126 @@ do_partitioning:
               break;
             }
           }
-
+          
           Z_ASSERT_IF(MSEG_ASSERT_IF, k < gb.bm->nbins);
-
-          Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": %s k = %" slint_fmt, i, borders[i], (refine)?"REFINE":"HIT", k);
 
           /* make sure k is safe (it is used as index later) */
           if (k >= gb.bm->nbins) k = gb.bm->nbins - 1;
+
+          if (!refine) ++k;
+
+#else /* OLD_CHECK */
+
+          k = 0;
+          
+          while (1)
+          {
+            /* check for HIT */
+
+            /* HIT if max count already skipped */
+            if (k == 0 && currents[CNT_HI] < 0) break;
+
+            /* if between min/max counts */
+            if (currents[CNT_LO] <= 0 && currents[CNT_HI] >= 0)
+            {
+#ifdef elem_weight
+              if (doweights)
+              {
+                Z_TRACE_IF(MSEG_TRACE_IF, "go to next: %d && %d", (currents[CNT_HI] > 0), (currents[WHT_LO] > 0));
+
+                /* go to next if max count not reached AND min weight not reached */
+                if (currents[CNT_HI] > 0 && currents[WHT_LO] > 0) goto donthit;
+              }
+#endif
+
+              /* look ahead for a better stop */
+              if (k < gb.bm->nbins && currents[CNT_HI] - *gb_counts(&gb, border_bins[i], k) >= 0)
+              {
+#ifdef elem_weight
+                if (doweights)
+                {
+                  /* continue if weights will improve */
+                  if (z_abs(currents[WHT_LO] + currents[WHT_HI]) > z_abs(currents[WHT_LO] + currents[WHT_HI] - 2 * *gb_weights(&gb, border_bins[i], k))) goto donthit;
+
+                } else
+#endif
+                {
+                  /* continue if counts will improve */
+                  if (z_abs(currents[CNT_LO] + currents[CNT_HI]) > z_abs(currents[CNT_LO] + currents[CNT_HI] - 2 * *gb_counts(&gb, border_bins[i], k))) goto donthit;
+                }
+              }
+
+              /* HIT if there is no better stop */
+              break;
+            }
+
+donthit:
+
+            /* HIT in the worst case */
+            if (k >= gb.bm->nbins) break;
+
+            /* skip k-th bin */
+
+            gc = *gb_counts(&gb, border_bins[i], k);
+
+            currents[CNT_LO] -= gc;
+            currents[CNT_HI] -= gc;
+
+            Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": k = %" slint_fmt ", currents count: %" slweight_fmt " - %" slweight_fmt ", gc = %" slint_fmt ", gcs = %" slint_fmt,
+              i, borders[i], k, currents[CNT_LO], currents[CNT_HI], gc, gcs);
+
+#ifdef elem_weight
+            if (doweights)
+            {
+              gw = *gb_weights(&gb, border_bins[i], k);
+
+              currents[WHT_LO] -= gw;
+              currents[WHT_HI] -= gw;
+
+              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": k = %" slint_fmt ", currents weight: %" slweight_fmt " - %" slweight_fmt ", gw = %" slweight_fmt ", gws = %" slweight_fmt,
+                i, borders[i], k, currents[WHT_LO], currents[WHT_HI], gw, gws);
+
+            } else
+#endif
+            {
+#ifdef elem_weight
+              gw = 0;
+#endif
+              Z_TRACE_IF(MSEG_TRACE_IF, "");
+            }
+
+            /* check for REFINE */
+
+            /* stop and refine if max count is skipped OR (min count AND max weight is skipped) */
+            if (currents[CNT_HI] < 0
+#ifdef elem_weight
+              || (doweights && currents[CNT_LO] < 0 && currents[WHT_HI] < 0.0)
+#endif
+              )
+            {
+              /* stop for REFINE only if there are more than one elements to refine (otherwise a HIT follows next) */
+              if (gc > 1)
+              {
+                refine = 1;
+                break;
+              }
+            }
+
+            gcs += gc;
+            gc = 0;
+
+#ifdef elem_weight
+            gws += gw;
+            gw = 0.0;
+#endif
+            
+            ++k;
+          }
+#endif /* OLD_CHECK */
+
+          Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": %s k = %" slint_fmt, i, borders[i], (refine)?"REFINE":"HIT", k);
+
+          Z_ASSERT_IF(MSEG_ASSERT_IF, ((refine && k < gb.bm->nbins) || (!refine && k <= gb.bm->nbins)));
 
           k = (k + 1) * ((refine)?-1:1);
         }

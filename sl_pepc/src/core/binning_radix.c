@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/binning_radix.c
- *  timestamp: 2011-02-24 21:37:35 +0100
+ *  timestamp: 2011-03-10 18:12:28 +0100
  *  
  */
 
@@ -237,7 +237,7 @@ slint_t binning_radix_hit(binning_t *bm, bin_t *bin, slint_t k, slweight_t *coun
 {
   slint_t l;
 
-  for (l = 0; l <= k; ++l) sp->displs[s] += counts[l];
+  for (l = 0; l < k; ++l) sp->displs[s] += counts[l];
 
   Z_TRACE_IF(BR_TRACE_IF, "displs[%" slint_fmt "] += ... = %d", s, sp->displs[s]);
 

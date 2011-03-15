@@ -142,7 +142,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_config_intern.h
- *  timestamp: 2011-03-06 21:59:31 +0100
+ *  timestamp: 2011-02-14 10:22:21 +0100
  *  
  */
 
@@ -681,7 +681,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_types.h
- *  timestamp: 2011-03-06 21:59:32 +0100
+ *  timestamp: 2011-03-03 13:24:38 +0100
  *  
  */
 
@@ -1501,7 +1501,7 @@ typedef struct pepcparts__global_bins_t
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_adds.h
- *  timestamp: 2011-03-06 21:59:31 +0100
+ *  timestamp: 2011-02-08 18:10:11 +0100
  *  
  */
 
@@ -1524,7 +1524,7 @@ typedef struct pepcparts__global_bins_t
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_globals.h
- *  timestamp: 2011-03-06 21:59:33 +0100
+ *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
@@ -1579,7 +1579,7 @@ extern pepcparts_slint_t pepcparts_msp_sync;
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos.h
- *  timestamp: 2011-03-06 21:59:32 +0100
+ *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
@@ -1806,7 +1806,7 @@ pepcparts_slint SL_PROTO(pepcparts_splitk_k2c_count)(pepcparts_elements_t *s, pe
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2011-03-06 21:59:33 +0100
+ *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
@@ -1882,12 +1882,6 @@ pepcparts_slint_t SL_PROTO(pepcparts_mpi_partition_exact_radix)(pepcparts_elemen
 /* src/core_mpi/mpi_partition_exact_radix_grouped.c */
 pepcparts_slint_t SL_PROTO(pepcparts_mpi_partition_exact_radix_ngroups)(pepcparts_elements_t *s, pepcparts_partcond_t *pcond, pepcparts_slint_t ngroups, MPI_Comm *group_comms, pepcparts_elements_t *sx, pepcparts_slint_t rhigh, pepcparts_slint_t rlow, pepcparts_slint_t rwidth, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
 pepcparts_slint_t SL_PROTO(pepcparts_mpi_partition_exact_radix_2groups)(pepcparts_elements_t *s, pepcparts_partcond_t *pcond, MPI_Comm group_comm, pepcparts_elements_t *sx, pepcparts_slint_t rhigh, pepcparts_slint_t rlow, pepcparts_slint_t rwidth, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
-
-/* src/core_mpi/pepcparts_mpi_partition_radix2.c */
-pepcparts_slint_t SL_PROTO(pepcparts_mpi_partition_radix2)(pepcparts_elements_t *s, pepcparts_partcond2_t *pc, pepcparts_slint_t rhigh, pepcparts_slint_t rlow, pepcparts_slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
-
-/* src/core_mpi/pepcparts_mpi_partition_radix_old.c */
-pepcparts_slint_t SL_PROTO(pepcparts_mpi_partition_radix_old)(pepcparts_elements_t *s, pepcparts_partcond2_t *pc, pepcparts_slint_t rhigh, pepcparts_slint_t rlow, pepcparts_slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_partition_sample.c */
 pepcparts_slint_t SL_PROTO(pepcparts_mpi_partition_sample_regular)(pepcparts_elements_t *s, pepcparts_partcond_t *pcond, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);

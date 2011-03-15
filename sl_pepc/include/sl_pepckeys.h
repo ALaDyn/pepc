@@ -57,7 +57,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_config_intern.h
- *  timestamp: 2011-03-06 21:59:31 +0100
+ *  timestamp: 2011-02-14 10:22:21 +0100
  *  
  */
 
@@ -596,7 +596,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_types.h
- *  timestamp: 2011-03-06 21:59:32 +0100
+ *  timestamp: 2011-03-03 13:24:38 +0100
  *  
  */
 
@@ -1416,7 +1416,7 @@ typedef struct pepckeys__global_bins_t
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_adds.h
- *  timestamp: 2011-03-06 21:59:31 +0100
+ *  timestamp: 2011-02-08 18:10:11 +0100
  *  
  */
 
@@ -1439,7 +1439,7 @@ typedef struct pepckeys__global_bins_t
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_globals.h
- *  timestamp: 2011-03-06 21:59:33 +0100
+ *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
@@ -1494,7 +1494,7 @@ extern pepckeys_slint_t pepckeys_msp_sync;
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos.h
- *  timestamp: 2011-03-06 21:59:32 +0100
+ *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
@@ -1721,7 +1721,7 @@ pepckeys_slint SL_PROTO(pepckeys_splitk_k2c_count)(pepckeys_elements_t *s, pepck
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2011-03-06 21:59:33 +0100
+ *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
@@ -1797,12 +1797,6 @@ pepckeys_slint_t SL_PROTO(pepckeys_mpi_partition_exact_radix)(pepckeys_elements_
 /* src/core_mpi/mpi_partition_exact_radix_grouped.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_partition_exact_radix_ngroups)(pepckeys_elements_t *s, pepckeys_partcond_t *pcond, pepckeys_slint_t ngroups, MPI_Comm *group_comms, pepckeys_elements_t *sx, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_partition_exact_radix_2groups)(pepckeys_elements_t *s, pepckeys_partcond_t *pcond, MPI_Comm group_comm, pepckeys_elements_t *sx, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
-
-/* src/core_mpi/pepckeys_mpi_partition_radix2.c */
-pepckeys_slint_t SL_PROTO(pepckeys_mpi_partition_radix2)(pepckeys_elements_t *s, pepckeys_partcond2_t *pc, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
-
-/* src/core_mpi/pepckeys_mpi_partition_radix_old.c */
-pepckeys_slint_t SL_PROTO(pepckeys_mpi_partition_radix_old)(pepckeys_elements_t *s, pepckeys_partcond2_t *pc, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int *scounts, int *sdispls, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_partition_sample.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_partition_sample_regular)(pepckeys_elements_t *s, pepckeys_partcond_t *pcond, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);

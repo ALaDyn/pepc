@@ -2,7 +2,7 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_rename.h
- *  timestamp: 2011-03-06 21:59:35 +0100
+ *  timestamp: 2011-03-11 09:08:31 +0100
  *  
  */
 
@@ -357,12 +357,6 @@
 /* src/core_mpi/mpi_partition_exact_radix_grouped.c */
 #define mpi_partition_exact_radix_ngroups  SL_FUNC(mpi_partition_exact_radix_ngroups)
 #define mpi_partition_exact_radix_2groups  SL_FUNC(mpi_partition_exact_radix_2groups)
-
-/* src/core_mpi/mpi_partition_radix2.c */
-#define mpi_partition_radix2  SL_FUNC(mpi_partition_radix2)
-
-/* src/core_mpi/mpi_partition_radix_old.c */
-#define mpi_partition_radix_old  SL_FUNC(mpi_partition_radix_old)
 
 /* src/core_mpi/mpi_partition_sample.c */
 #define mpi_partition_sample_regular  SL_FUNC(mpi_partition_sample_regular)
