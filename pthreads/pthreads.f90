@@ -121,7 +121,32 @@ module pthreads_stuff
       integer, intent(in), value :: microseconds
     end function
 
-  end interface
+    function pthreads_conds_mutex_lock(id)
+      implicit none
+      integer :: pthreads_conds_mutex_lock
+      integer, intent(in), value :: id
+    end function
+
+    function pthreads_conds_mutex_unlock(id)
+      implicit none
+      integer :: pthreads_conds_mutex_unlock
+      integer, intent(in), value :: id
+    end function
+
+     function pthreads_conds_mutex_timedlock(id, microseconds)
+      implicit none
+      integer :: pthreads_conds_mutex_timedlock
+      integer, intent(in), value :: id
+      integer, intent(in), value :: microseconds
+    end function
+
+    function pthreads_nanosleep(microseconds)
+      implicit none
+      integer :: pthreads_nanosleep
+      integer, intent(in), value :: microseconds
+    end function
+
+   end interface
 
 
 

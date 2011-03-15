@@ -152,6 +152,10 @@ module tree_walk_communicator
     integer, private, allocatable :: request_balance(:) !< (#requests - #answers) per PE
     real*8, public :: timings_comm(3) !< array for storing internal timing information
     integer, private :: cond_comm_timeout = 1000 !< timeout for pthread_cond_wait() in commloop in microseconds TODO: tune this parameter automatically during runtime
+    integer, public :: particles_per_yield = 500 !< number of particles to process in a work_thread before it shall call sched_yield to hand the processor over to some other thread
+    integer, private :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
+    integer, parameter :: MAX_MESSAGES_PER_ITERATION = 10
+    integer, parameter :: MIN_MESSAGES_PER_ITERATION = 0
 
     ! rwlocks for regulating concurrent access
     integer, private, parameter :: NUM_RWLOCKS = 4
@@ -183,6 +187,7 @@ module tree_walk_communicator
     public rwlock_rdlock
     public rwlock_wrlock
     public rwlock_unlock
+    public comm_sched_yield
 
   contains
 
@@ -281,8 +286,18 @@ module tree_walk_communicator
 
         do while (walk_status < WALK_ALL_FINISHED)
 
+          messages_per_iteration = 0;
+
           comm_loop_iterations(1) = comm_loop_iterations(1) + 1
           call run_communication_loop_inner(walk_finished)
+
+          if (messages_per_iteration > MAX_MESSAGES_PER_ITERATION) then
+            particles_per_yield = max(0.75 * particles_per_yield, 10.)
+            write(*,'("messages_per_iteration = ", I6, " > ", I6, ". Decreased particles_per_yield to", I10)') messages_per_iteration, MAX_MESSAGES_PER_ITERATION, particles_per_yield
+          elseif (messages_per_iteration < MIN_MESSAGES_PER_ITERATION) then
+            particles_per_yield = min(1.5 * particles_per_yield, 2000.)
+            write(*,'("messages_per_iteration = ", I6, " < ", I6, ". Increased particles_per_yield to", I10)') messages_per_iteration, MIN_MESSAGES_PER_ITERATION, particles_per_yield
+          endif
 
           ! currently, there is no communication request --> other threads may do something interesting
           if (walk_status < WALK_IAM_FINISHED) then
@@ -351,6 +366,8 @@ module tree_walk_communicator
             tcomm = MPI_WTIME()
 
           do while (msg_avail)
+
+          messages_per_iteration = messages_per_iteration + 1
 
           ipe_sender = stat(MPI_SOURCE)
 
@@ -531,6 +548,13 @@ module tree_walk_communicator
       end subroutine rwlock_unlock
 
 
+      subroutine comm_sched_yield()
+        use pthreads_stuff
+        implicit none
+
+        call retval(pthreads_sched_yield(), "pthreads_sched_yield()")
+      end subroutine comm_sched_yield
+
 
       subroutine notify_walk_finished()
         use, intrinsic :: iso_c_binding
@@ -654,6 +678,8 @@ module tree_walk_communicator
         call rwlock_rdlock(RWLOCK_REQUEST_QUEUE, "send_requests")
 
         do while (req_queue_top .ne. local_queue_bottom)
+
+          messages_per_iteration = messages_per_iteration + 1
 
           req_queue_top = mod(req_queue_top, REQUEST_QUEUE_LENGTH) + 1
 
@@ -1112,6 +1138,7 @@ module tree_walk_utils
       logical :: particles_active
       logical :: process_particle
       integer, pointer :: my_processed_particles
+      integer :: particles_since_last_yield
 
       allocate(my_particles(max_particles_per_thread),                         &
                             todo_list_top(max_particles_per_thread),           &
@@ -1130,6 +1157,7 @@ module tree_walk_utils
       particles_active    = .true.
       call c_f_pointer(arg, my_processed_particles)
       my_processed_particles = 0
+      particles_since_last_yield = 0
 
 
       do while (particles_active .or. particles_available)
@@ -1146,6 +1174,15 @@ module tree_walk_utils
           end if
 
           if (process_particle) then
+
+            particles_since_last_yield = particles_since_last_yield + 1
+
+            ! after processing a number of particles: handle control to other (possibly comm) thread
+            if (particles_since_last_yield == particles_per_yield) then
+              call comm_sched_yield()
+              particles_since_last_yield = 0
+            endif
+
             if (walk_single_particle(my_particles(i), nintmax, todo_list(1:nintmax,i), todo_list_top(i), todo_list_bottom(i), todo_list_minlevel_next(i))) then
               ! this particle`s walk has finished
 !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"

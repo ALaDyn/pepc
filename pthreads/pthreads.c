@@ -128,6 +128,13 @@ FINT_TYPE_C pthreads_conds_init_(FINT_TYPE_C numconds)
 {
     int iret = 0;
     int i;
+    pthread_mutexattr_t mattr;
+
+    iret = pthread_mutexattr_init(&mattr);
+    CHECKRES;
+
+    //    iret = pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_NORMAL);
+    //    CHECKRES;
 
     maxnumconds = numconds;
     my_conds    = (struct my_conds_t*)malloc(((unsigned int)maxnumconds)*sizeof(my_conds_t));
@@ -136,7 +143,7 @@ FINT_TYPE_C pthreads_conds_init_(FINT_TYPE_C numconds)
     {
         iret = pthread_cond_init(&my_conds[i].cond, NULL);
         CHECKRES;
-        iret = pthread_mutex_init(&my_conds[i].mutex, NULL);
+        iret = pthread_mutex_init(&my_conds[i].mutex, &mattr);
         CHECKRES;
     }
 
@@ -218,7 +225,72 @@ FINT_TYPE_C pthreads_conds_timedwait_(FINT_TYPE_C id, FINT_TYPE_C microseconds)
     return iret;
 }
 
-//////////////// RWLocks //////////////////////
+
+FINT_TYPE_C pthreads_conds_mutex_lock(FINT_TYPE_C id)
+{
+    return pthreads_conds_mutex_lock_(id);
+}
+
+FINT_TYPE_C pthreads_conds_mutex_lock_(FINT_TYPE_C id)
+{
+    return pthread_mutex_lock(&my_conds[id-1].mutex);
+}
+
+
+FINT_TYPE_C pthreads_conds_mutex_unlock(FINT_TYPE_C id)
+{
+    return pthreads_conds_mutex_unlock_(id);
+}
+
+FINT_TYPE_C pthreads_conds_mutex_unlock_(FINT_TYPE_C id)
+{
+    return pthread_mutex_unlock(&my_conds[id-1].mutex);
+}
+
+
+FINT_TYPE_C pthreads_conds_mutex_timedlock(FINT_TYPE_C id, FINT_TYPE_C microseconds)
+{
+    return pthreads_conds_mutex_timedlock_(id, microseconds);
+}
+FINT_TYPE_C pthreads_conds_mutex_timedlock_(FINT_TYPE_C id, FINT_TYPE_C microseconds)
+{
+    struct timespec abstime;
+    int iret = 0;
+
+    iret = clock_gettime(CLOCK_REALTIME, &abstime);
+    CHECKRES;
+
+    abstime.tv_nsec += (microseconds % 1000000)*1000;
+    abstime.tv_sec  += (microseconds / 1000000) + (abstime.tv_nsec / 1000000000);
+    abstime.tv_nsec %=  1000000000;
+
+    iret = pthread_mutex_timedlock(&my_conds[id-1].mutex, &abstime);
+    if (iret == ETIMEDOUT) return -1;
+
+    return iret;
+
+
+
+}FINT_TYPE_C pthreads_nanosleep(FINT_TYPE_C microseconds)
+{
+    return pthreads_nanosleep_(microseconds);
+}
+FINT_TYPE_C pthreads_nanosleep_(FINT_TYPE_C microseconds)
+{
+    struct timespec abstime;
+    int iret;
+
+    iret = clock_gettime(CLOCK_REALTIME, &abstime);
+    CHECKRES;
+
+    abstime.tv_nsec += (microseconds % 1000000)*1000;
+    abstime.tv_sec  += (microseconds / 1000000) + (abstime.tv_nsec / 1000000000);
+    abstime.tv_nsec %=  1000000000;
+
+    return nanosleep(&abstime, NULL);
+}
+
+///////////////// RWLocks //////////////////////
 
 FINT_TYPE_C rwlocks_init(FINT_TYPE_C numlocks)
 {
