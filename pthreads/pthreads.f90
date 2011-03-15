@@ -1,6 +1,14 @@
 module pthreads_stuff
 
   interface
+    function get_my_core()
+      implicit none
+      integer :: get_my_core
+    end function
+  end interface
+
+
+  interface
 
     function pthreads_init(numthreads)
       implicit none

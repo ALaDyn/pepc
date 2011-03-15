@@ -139,6 +139,13 @@ module tree_walk_communicator
     integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT       = 10
     integer, public, parameter :: CHILDCODE_BIT_CHILDREN_AVAILABLE =  9
 
+    ! variables for adjusting the thread`s workload
+    integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
+    real, public :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
+    integer, public :: particles_per_yield = 500 !< number of particles to process in a work_thread before it shall call sched_yield to hand the processor over to some other thread
+    integer, private :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
+    integer, parameter :: MAX_MESSAGES_PER_ITERATION = 20
+    integer, parameter :: MIN_MESSAGES_PER_ITERATION = 5
 
     ! internal communication variables - not to be touched from outside the module
     integer, parameter :: ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
@@ -152,10 +159,6 @@ module tree_walk_communicator
     integer, private, allocatable :: request_balance(:) !< (#requests - #answers) per PE
     real*8, public :: timings_comm(3) !< array for storing internal timing information
     integer, private :: cond_comm_timeout = 1000 !< timeout for pthread_cond_wait() in commloop in microseconds TODO: tune this parameter automatically during runtime
-    integer, public :: particles_per_yield = 500 !< number of particles to process in a work_thread before it shall call sched_yield to hand the processor over to some other thread
-    integer, private :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
-    integer, parameter :: MAX_MESSAGES_PER_ITERATION = 10
-    integer, parameter :: MIN_MESSAGES_PER_ITERATION = 0
 
     ! rwlocks for regulating concurrent access
     integer, private, parameter :: NUM_RWLOCKS = 4
@@ -291,12 +294,13 @@ module tree_walk_communicator
           comm_loop_iterations(1) = comm_loop_iterations(1) + 1
           call run_communication_loop_inner(walk_finished)
 
+          ! adjust the sched_yield()-timeout for the thread that shares its processor with the communicator
           if (messages_per_iteration > MAX_MESSAGES_PER_ITERATION) then
-            particles_per_yield = max(0.75 * particles_per_yield, 10.)
-            write(*,'("messages_per_iteration = ", I6, " > ", I6, ". Decreased particles_per_yield to", I10)') messages_per_iteration, MAX_MESSAGES_PER_ITERATION, particles_per_yield
-          elseif (messages_per_iteration < MIN_MESSAGES_PER_ITERATION) then
-            particles_per_yield = min(1.5 * particles_per_yield, 2000.)
-            write(*,'("messages_per_iteration = ", I6, " < ", I6, ". Increased particles_per_yield to", I10)') messages_per_iteration, MIN_MESSAGES_PER_ITERATION, particles_per_yield
+            particles_per_yield = int(max(0.75 * particles_per_yield, 0.01*max_particles_per_thread))
+            if (walk_debug) write(ipefile,'("messages_per_iteration = ", I6, " > ", I6, " --> Decreased particles_per_yield to", I10)') messages_per_iteration, MAX_MESSAGES_PER_ITERATION, particles_per_yield
+          elseif ((particles_per_yield < max_particles_per_thread) .and. (messages_per_iteration < MIN_MESSAGES_PER_ITERATION)) then
+            particles_per_yield = int(min(1.5 * particles_per_yield, 1.*max_particles_per_thread))
+            if (walk_debug) write(ipefile,'("messages_per_iteration = ", I6, " < ", I6, " --> Increased particles_per_yield to", I10)') messages_per_iteration, MIN_MESSAGES_PER_ITERATION, particles_per_yield
           endif
 
           ! currently, there is no communication request --> other threads may do something interesting
@@ -939,7 +943,7 @@ module tree_walk_utils
 
   private
     integer, public :: num_walk_threads = 3
-    integer, public :: max_particles_per_thread = 2000
+    integer, private :: primary_processor_id = 0
 
     real*8, dimension(:), allocatable :: boxlength2
     real :: eps
@@ -1085,6 +1089,10 @@ module tree_walk_utils
       end do
 
       next_unassigned_particle = 1
+
+      ! store ID of primary (comm-thread) processor
+      primary_processor_id = get_my_core()
+
     end subroutine init_walk_data
 
 
@@ -1133,18 +1141,29 @@ module tree_walk_utils
       integer*8, dimension(:,:), allocatable :: todo_list
       integer, dimension(:), allocatable :: todo_list_top, todo_list_bottom
       integer, dimension(:), allocatable :: todo_list_minlevel_next
-      integer :: i, iret
+      integer :: i
       logical :: particles_available
       logical :: particles_active
       logical :: process_particle
       integer, pointer :: my_processed_particles
       integer :: particles_since_last_yield
+      logical :: same_core_as_communicator
+      integer :: my_max_particles_per_thread
 
-      allocate(my_particles(max_particles_per_thread),                         &
-                            todo_list_top(max_particles_per_thread),           &
-                            todo_list_bottom(max_particles_per_thread),        &
-                            todo_list_minlevel_next(max_particles_per_thread));
-      allocate(todo_list(nintmax,max_particles_per_thread));
+      same_core_as_communicator = (get_my_core() == primary_processor_id)
+
+      if (same_core_as_communicator) then
+            my_max_particles_per_thread = int(work_on_communicator_particle_number_factor * max_particles_per_thread)
+      else
+            my_max_particles_per_thread = max_particles_per_thread
+      endif
+
+
+      allocate(my_particles(my_max_particles_per_thread),                         &
+                            todo_list_top(my_max_particles_per_thread),           &
+                            todo_list_bottom(my_max_particles_per_thread),        &
+                            todo_list_minlevel_next(my_max_particles_per_thread));
+      allocate(todo_list(nintmax,my_max_particles_per_thread));
 
       ! every particle will start at the root node (one entry per todo_list, no particle is finished)
       todo_list_top       = 0
@@ -1164,7 +1183,7 @@ module tree_walk_utils
 
         particles_active = .false.
 
-        do i=1,max_particles_per_thread
+        do i=1,my_max_particles_per_thread
 
           process_particle = (my_particles(i) .ne. -1)
 
@@ -1175,12 +1194,14 @@ module tree_walk_utils
 
           if (process_particle) then
 
-            particles_since_last_yield = particles_since_last_yield + 1
-
             ! after processing a number of particles: handle control to other (possibly comm) thread
-            if (particles_since_last_yield == particles_per_yield) then
-              call comm_sched_yield()
-              particles_since_last_yield = 0
+            if (same_core_as_communicator) then
+              if (particles_since_last_yield == particles_per_yield) then
+                call comm_sched_yield()
+                particles_since_last_yield = 0
+              else
+                particles_since_last_yield = particles_since_last_yield + 1
+              endif
             endif
 
             if (walk_single_particle(my_particles(i), nintmax, todo_list(1:nintmax,i), todo_list_top(i), todo_list_bottom(i), todo_list_minlevel_next(i))) then

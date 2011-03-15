@@ -8,7 +8,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C
+CPPFLAGS = -P -C -D_BGP
 
 OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck
 OPTIMIZATIONFLAGS       = -O3 -qhot -qipa -qipa=list=long:threads=auto -qipa=inline=limit=12000 -qipa=inline=threshold=12000 \
