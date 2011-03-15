@@ -44,14 +44,12 @@ FINT_TYPE_C get_my_core()
   return get_my_core_();
 }
 
-#ifdef BGP
+#ifdef _BGP
 FINT_TYPE_C get_my_core_()
 {
   return Kernel_PhysicalProcessorID();
 }
-
 #else
-
 FINT_TYPE_C get_my_core_()
 {
   // we have to be sure that on machines with a standard scheduler

@@ -51,6 +51,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
   else if (db_level==2) then
       tree_debug=.true.  ! location information only
       walk_summary=.true.
+      memory_debug =.true. 
 
   else if (db_level==3) then
       tree_debug=.true.

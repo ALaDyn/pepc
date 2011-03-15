@@ -8,7 +8,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -D_BGP
+CPPFLAGS = -P -C 
 
 OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck
 OPTIMIZATIONFLAGS       = -O3 -qhot -qipa -qipa=list=long:threads=auto -qipa=inline=limit=12000 -qipa=inline=threshold=12000 \
@@ -22,11 +22,11 @@ FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATION)
 
 #CCPRE    = bgvtcc -vt:cc
 CC       = mpixlc_r
-CFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATION)
+CFLAGS   = -D_BGP $(STANDARDFLAGS) $(OPTIMIZATION) -I/bgsys/drivers/ppcfloor/arch/include
 
 #LDPRE    = bgvtf90 -vt:f90
 LD       = mpixlf90_r
-LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATION) -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc 
+LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATION) -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc
 #-L/bgsys/local/totalview/toolworks/totalview.8.8.0-1/linux-power/lib/ -ltvheap_bluegene
 LDLIBS   = 
 
