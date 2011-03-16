@@ -21,9 +21,8 @@ module benchmarking
   integer, private, parameter :: NUM_PARTICLES_MID    = 5 !< number of particles from center of particle list to use in dump routines
   integer, private, parameter :: NUM_PARTICLES_BACK   = 5 !< number of particles from end of particle list to use in dump routines
   integer, private, parameter :: NUM_DIAG_PARTICLES = NUM_PARTICLES_FRONT + NUM_PARTICLES_MID + NUM_PARTICLES_BACK !< total number of particles to use in dump routines
-  integer, private, parameter :: NUM_DIAG_PROPS     = 12  !< number of properties to be collected for diagnostic purposes (in addition to workload)
+  integer, private, parameter :: NUM_DIAG_PROPS     = 13  !< number of properties to be collected for diagnostic purposes
   real*8, private :: diag_props(NUM_DIAG_PARTICLES,NUM_DIAG_PROPS)
-  integer, private :: diag_work(NUM_DIAG_PARTICLES,1)
   
 contains
 
@@ -71,7 +70,6 @@ contains
     integer :: r, i, ierr, target_rank, target_particle, target_particle_local
     integer :: fances(0:n_cpu-1)
     real*8  :: diag_props_buf(NUM_DIAG_PROPS)
-    integer :: diag_work_buf(1)
 
     logical :: debug=.false., debug_root
 
@@ -110,27 +108,23 @@ contains
           diag_props_buf( 7: 8) = [  q(target_particle_local),  m(target_particle_local)]
           diag_props_buf(    9) =  pot(target_particle_local)
           diag_props_buf(10:12) = [ ex(target_particle_local), ey(target_particle_local), ez(target_particle_local)]
-
-          diag_work_buf(1) = int(work(target_particle_local))
+          diag_props_buf(   13) = work(target_particle_local)
 
           if(debug) write(*,*) "from rank", my_rank, " sending pos_vel ", diag_props_buf
 
           if(my_rank .ne. 0) then
-             call MPI_SEND(diag_props_buf,12, MPI_REAL8,   0, 0, MPI_COMM_WORLD, ierr)
-             call MPI_SEND(diag_work_buf,  1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, ierr)
+             call MPI_SEND(diag_props_buf,NUM_DIAG_PROPS, MPI_REAL8,   0, 0, MPI_COMM_WORLD, ierr)
           end if
        end if
 
        if(my_rank.eq.0 .and. target_rank.ne.0) then
-          call MPI_RECV(diag_props_buf,12, MPI_REAL8,  target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
-          call MPI_RECV(diag_work_buf,  1, MPI_INTEGER,target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+          call MPI_RECV(diag_props_buf,NUM_DIAG_PROPS, MPI_REAL8,  target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
           if(debug) write(*,*) "from rank", my_rank, " received pos_vel ", diag_props_buf
        end if
        
        call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
        diag_props(i,:) = diag_props_buf(:)
-       diag_work(i,1) = diag_work_buf(1)
 
     end do
 
@@ -167,8 +161,8 @@ contains
     write(91,'(a, i6, a, i6, a)') "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z ux uy uz work"
     do i=1,NUM_DIAG_PARTICLES
        p = diagnostic_particle(i)
-       write(91,'(i12,6e20.12,i12)') p, diag_props(i,1), diag_props(i,2), diag_props(i,3), &
-            diag_props(i,4), diag_props(i,5), diag_props(i,6), diag_work(i,1)
+       write(91,'(i12,6e20.12,e15.5)') p, diag_props(i,1), diag_props(i,2), diag_props(i,3), &
+            diag_props(i,4), diag_props(i,5), diag_props(i,6), diag_props(i,13)
        
     end do
     close(91)

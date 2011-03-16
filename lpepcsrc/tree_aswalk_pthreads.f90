@@ -1138,6 +1138,7 @@ module tree_walk_utils
       type(c_ptr), value :: arg
 
       integer, dimension(:), allocatable :: my_particles
+      real, dimension(:), allocatable :: my_particles_starttime !< for measuring time per particle for load balancing purposes
       integer*8, dimension(:,:), allocatable :: todo_list
       integer, dimension(:), allocatable :: todo_list_top, todo_list_bottom
       integer, dimension(:), allocatable :: todo_list_minlevel_next
@@ -1149,6 +1150,7 @@ module tree_walk_utils
       integer :: particles_since_last_yield
       logical :: same_core_as_communicator
       integer :: my_max_particles_per_thread
+      real :: time_elapsed
 
       same_core_as_communicator = (get_my_core() == primary_processor_id)
 
@@ -1159,7 +1161,8 @@ module tree_walk_utils
       endif
 
 
-      allocate(my_particles(my_max_particles_per_thread),                         &
+      allocate(my_particles(my_max_particles_per_thread),                        &
+                my_particles_starttime(my_max_particles_per_thread),                        &
                             todo_list_top(my_max_particles_per_thread),           &
                             todo_list_bottom(my_max_particles_per_thread),        &
                             todo_list_minlevel_next(my_max_particles_per_thread));
@@ -1189,6 +1192,7 @@ module tree_walk_utils
 
           if ((.not. process_particle) .and. (particles_available)) then ! i.e. the place for a particle is unassigned
             my_particles(i) = get_first_unassigned_particle(process_particle)
+            call cpu_time(my_particles_starttime(i)) ! we measure cpu_time instead of mpi_wtime since we want the time that has been spent for touching this particle
 !            write(ipefile,*) "PE", me, getfullid(), "my_particles(",i, ") :=", my_particles(i)
           end if
 
@@ -1207,6 +1211,15 @@ module tree_walk_utils
             if (walk_single_particle(my_particles(i), nintmax, todo_list(1:nintmax,i), todo_list_top(i), todo_list_bottom(i), todo_list_minlevel_next(i))) then
               ! this particle`s walk has finished
 !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
+              call cpu_time(time_elapsed) ! check for overflow when calculating elapsed time
+              if (time_elapsed > my_particles_starttime(i)) then
+                time_elapsed = time_elapsed - my_particles_starttime(i)
+              else
+                time_elapsed = time_elapsed - (my_particles_starttime(i) - huge(time_elapsed))
+              endif
+
+              work_per_particle(my_particles(i)) = work(my_particles(i)) + time_elapsed
+
               todo_list_top(i)           =  0
               todo_list_bottom(i)        =  1
               todo_list(:,i)             =  0
@@ -1336,7 +1349,6 @@ module tree_walk_utils
        if ( (mac_ok .or. walk_node > 0) .and. .not.ignore) then
 
           call calc_force_per_interaction(nodeidx, walk_node, vbox, eps, force_const)
-!FIXME          work_per_particle(nodeidx) = work_per_particle(nodeidx) + 1
           work_local = work_local + 1
 
           ! if walk_key is already the rootnode, next_key is zero --> walk is finished
