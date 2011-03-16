@@ -6,7 +6,7 @@ LIBNAME = libpthreads.a
 # -------------------------------------------------------------------------------------------
 # Source files
 SOURCES.f90 =   pthreads.f90
-SOURCES.c   =   pthreads.c
+SOURCES.c   =   pthreads.c bgp_core.c
 #-------------------------------------------------------------------------------------------
 
 # Names of application object files derived from sources
@@ -32,6 +32,9 @@ all:    $(MACH) $(MACH)/$(LIBNAME)
 
 $(MACH):  
 	mkdir -p  $(MACH)
+
+$(MACH)/bgp_core_c.o: bgp_core.c
+	$(CCPRE) $(CC) $(CFLAGS_NOOPT) -c $< -o $@
 
 $(MACH)/%_f.o: %.f90
 	$(FC) $(FFLAGS) -c $< -o $@

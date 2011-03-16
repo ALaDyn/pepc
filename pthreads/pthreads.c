@@ -15,11 +15,6 @@
 #include <sys/types.h>
 #include <time.h>
 #include <errno.h>
-#ifdef _BGP
-#include <spi/kernel_interface.h>
-#include <common/bgp_personality.h>
-#include <common/bgp_personality_inlines.h>
-#endif
 
 struct my_conds_t
 {
@@ -36,29 +31,6 @@ int maxnumconds = 0;
 int maxnumlocks = 0;
 
 #define CHECKRES do {if (iret != 0) return iret;} while(0);
-
-
-//////////////// BGP-Core Identification //////////////////////
-FINT_TYPE_C get_my_core()
-{
-  return get_my_core_();
-}
-
-#ifdef _BGP
-FINT_TYPE_C get_my_core_()
-{
-  return Kernel_PhysicalProcessorID();
-}
-#else
-FINT_TYPE_C get_my_core_()
-{
-  // we have to be sure that on machines with a standard scheduler
-  // no thread thinks, he is sharing its processor with someone else
-  static FINT_TYPE_C lastreq = 0;
-
-  return ++lastreq;
-}
-#endif
 
 
 //////////////// PThreads //////////////////////
