@@ -234,17 +234,22 @@ module timings
       real*8, dimension(1:numtimings) :: tim_max
       real*8, dimension(1:numtimings) :: tim_avg
       real*8, dimension(1:numtimings) :: tim_min
+      real*8, dimension(1:numtimings) :: tim_dev
 
       call MPI_REDUCE(tim, tim_max, numtimings, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD,ierr);
       call MPI_REDUCE(tim, tim_min, numtimings, MPI_REAL8, MPI_MIN, 0, MPI_COMM_WORLD,ierr);
       call MPI_REDUCE(tim, tim_avg, numtimings, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD,ierr);
-      tim_avg = tim_avg / num_pe
-
 
      if (me==0) then
+        tim_avg = tim_avg / num_pe
+        tim_dev = tim_max - tim_min
         call timings_ToFile(itime, tim_max, 'timing_max.dat')
         call timings_ToFile(itime, tim_avg, 'timing_avg.dat')
         call timings_ToFile(itime, tim_min, 'timing_min.dat')
+        call timings_ToFile(itime, tim_dev, 'timing_dev_abs.dat')
+        tim_dev = tim_dev / tim_min
+        call timings_ToFile(itime, tim_dev, 'timing_dev_rel.dat')
+
 
         write(*,'(a20,f16.10," s")') "t_all = ",       tim(t_all)
      endif
