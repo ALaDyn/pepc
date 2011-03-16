@@ -135,6 +135,7 @@ module treevars
   real*8 :: ymin, ymax  
   real*8 :: zmin, zmax
   real*8 :: boxsize       ! length of box
+  integer, parameter :: CHILDCODE_NODE_TOUCHED = 11 !< this bit is used inside the childcode to notify of nodes, that already contain valid multipole information and may not be set to zero in tree_global
 
  ! Force control
   integer :: load_balance   ! Balances particles in || sort according to work load

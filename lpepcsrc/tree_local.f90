@@ -554,6 +554,7 @@ subroutine tree_local
   do i=1, nleaf_me
      addr_leaf = key2addr( leaf_key(i),'PROPERTIES: local' )   !  Table address
      p_leaf = htable( addr_leaf )%node   !  Local particle index  - points to properties on PE
+     htable(addr_leaf)%childcode = IBSET( htable(addr_leaf)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zero its properties (in tree_global)
      node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves 
 
      xcoc( node_leaf ) = x( p_leaf )         ! Centre of charge
@@ -647,6 +648,7 @@ subroutine tree_local
      addr_twig = key2addr( res_key(i),'PROPERTIES: domain' )   !  Table address
      res_node(i) = htable( addr_twig )%node   !  Twig node index  
      res_child(i) = htable( addr_twig )%childcode   !  Twig children byte-code 
+     htable(addr_twig)%childcode = IBSET( htable(addr_twig)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zero its properties (in tree_global)
   end do  
 
   ! Go up through tree, starting at deepest level (largest key first)

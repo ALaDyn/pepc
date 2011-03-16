@@ -79,8 +79,15 @@ subroutine tree_global
            ntwig = ntwig + 1
            ntwig_me = ntwig_me+1               ! # local twigs
      	   twig_key(ntwig_me) = htable( hashaddr)%key  ! add to list of local twigs
+        else
+           write (ipefile,*) 'Key number ',i,' not resolved'
+           call MPI_ABORT(MPI_COMM_WORLD,ierr)
+           stop
+        endif
 
-     	   ! zero multipole information for any entries that have not been inside the tree before
+        ! Set mm-arrays to zero (initially) for all twigs that are parents of branches and have not been initially sett in tree_local
+        if (.not. BTEST( htable(hashaddr)%childcode, CHILDCODE_NODE_TOUCHED )) then
+           ! zero multipole information for any entries that have not been inside the tree before
            abs_charge( nodtwig ) = 0.  !
            charge( nodtwig )     = 0.
            xcoc( nodtwig )       = 0.
@@ -102,10 +109,7 @@ subroutine tree_global
            jy( nodtwig )         = 0.
            jz( nodtwig )         = 0.
            size_node( nodtwig )  = 0.
-        else
-           write (ipefile,*) 'Key number ',i,' not resolved'
-           call MPI_ABORT(MPI_COMM_WORLD,ierr)
-           stop       
+           htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will now touch this again
         endif
 
         branch_addr(i) = key2addr( sub_key(i),'PROPERTIES: fill' )   !  branches` #table addresses

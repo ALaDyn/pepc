@@ -106,6 +106,7 @@ subroutine tree_exchange
         endif
         call make_hashentry( get_mult(i)%key, lnode , get_mult(i)%leaves, get_mult(i)%byte, get_mult(i)%owner, hashaddr, ierr )
  
+        htable(hashaddr)%childcode = IBSET( htable(hashaddr)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zeor its properties (in tree_global)
         charge( lnode ) = get_mult(i)%q
         abs_charge( lnode ) = get_mult(i)%absq
         xcoc( lnode ) = get_mult(i)%xcoc
