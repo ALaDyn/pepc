@@ -100,7 +100,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
         pelabel(i) = p_label(i)     
 !     endif
      pepid(i) = me
-     if (num_pe==1 .or. p_w(i)==0) then
+     if (num_pe==1 .or. p_w(i)<1.) then
         work(i) = 1.
      else
        work(i) = p_w(i)
@@ -157,7 +157,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
     vbox = lattice_vect(neighbours(:,ibox))
 
     ! tree walk finds interaction partners and calls interaction routine for particles on short list
-    call tree_walk(np_local,theta,eps,force_const,itime,mac,ttrav,tfetch, vbox, work, tcomm)
+    call tree_walk(npp,theta,eps,force_const,itime,mac,ttrav,tfetch, vbox, work, tcomm)
 
     call timer_add(t_walk, ttrav)    ! traversal time (serial)
     call timer_add(t_walkc, tfetch)  ! multipole swaps
@@ -167,7 +167,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   end do ! ibox = 1,num_neighbours
 
-  w_tmp(1:nppm_ori) = work  ! send back work load for next iteration
+  w_tmp(1:npp) = work(1:npp)  ! send back work load for next iteration
 
   ! add lattice contribution
   call timer_start(t_lattice)
