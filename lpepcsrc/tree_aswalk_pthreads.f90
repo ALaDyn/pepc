@@ -146,6 +146,7 @@ module tree_walk_communicator
     integer, private :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
     integer, parameter :: MAX_MESSAGES_PER_ITERATION = 20
     integer, parameter :: MIN_MESSAGES_PER_ITERATION = 5
+    logical, public :: comm_on_shared_processor = .false.
 
     ! internal communication variables - not to be touched from outside the module
     integer, parameter :: ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
@@ -273,6 +274,7 @@ module tree_walk_communicator
                                           ! is still working and which ones are finished
                                           ! to emulate a non-blocking barrier
         integer :: ierr
+        integer :: timeout = cond_comm_timeout
 
         if (me==0) walk_finished = .false.
 
@@ -304,6 +306,12 @@ module tree_walk_communicator
           endif
 
           ! currently, there is no further communication request --> other threads may do something interesting
+          if (comm_on_shared_processor) then
+             timeout = cond_comm_timeout
+          else
+             timeout = cond_comm_timeout / 100
+          endif
+
           iret = pthreads_conds_timedwait(PTHREAD_COND_COMMBLOCK, cond_comm_timeout)
           if (iret == -1) then
             ! Timeout occured, hence no pending send-requests,
@@ -1157,6 +1165,7 @@ module tree_walk_utils
 
       if (same_core_as_communicator) then
             my_max_particles_per_thread = int(work_on_communicator_particle_number_factor * max_particles_per_thread)
+            comm_on_shared_processor = .true.
       else
             my_max_particles_per_thread = max_particles_per_thread
       endif
@@ -1201,7 +1210,7 @@ module tree_walk_utils
 
             ! after processing a number of particles: handle control to other (possibly comm) thread
             if (same_core_as_communicator) then
-              if (particles_since_last_yield == particles_per_yield) then
+              if (particles_since_last_yield >= particles_per_yield) then
                 call comm_sched_yield()
                 particles_since_last_yield = 0
               else
@@ -1254,7 +1263,9 @@ module tree_walk_utils
 
       call rwlock_unlock(RWLOCK_FINISHED_THREADS, "walk_worker_thread: increment finished_threads")
 
-      ! walk_worker_thread = c_null_ptr ! due to some strange reasons, ifort produces a sigsegv here.
+      if (same_core_as_communicator) comm_on_shared_processor = .false.
+
+     ! walk_worker_thread = c_null_ptr ! due to some strange reasons, ifort produces a sigsegv here.
                                         ! since the return value is not needed, we just do not set it
                                         ! to circumvent the problem
       call retval(pthreads_exitthread(), "walk_worker_thread:pthread_exit")
