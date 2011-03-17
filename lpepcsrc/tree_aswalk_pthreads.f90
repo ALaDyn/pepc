@@ -146,6 +146,7 @@ module tree_walk_communicator
     integer, private :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
     integer, parameter :: MAX_MESSAGES_PER_ITERATION = 20
     integer, parameter :: MIN_MESSAGES_PER_ITERATION = 5
+    logical, public :: processor_is_shared = .false. !< is set to true if a thread detects that it is sharing its processor with the communicator and set to false after this situation ends
 
     ! internal communication variables - not to be touched from outside the module
     integer, parameter :: ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
@@ -294,17 +295,18 @@ module tree_walk_communicator
           comm_loop_iterations(1) = comm_loop_iterations(1) + 1
           call run_communication_loop_inner(walk_finished)
 
-          ! adjust the sched_yield()-timeout for the thread that shares its processor with the communicator
-          if (messages_per_iteration > MAX_MESSAGES_PER_ITERATION) then
-            particles_per_yield = int(max(0.75 * particles_per_yield, 0.01*max_particles_per_thread))
-            if (walk_debug) write(ipefile,'("messages_per_iteration = ", I6, " > ", I6, " --> Decreased particles_per_yield to", I10)') messages_per_iteration, MAX_MESSAGES_PER_ITERATION, particles_per_yield
-          elseif ((particles_per_yield < max_particles_per_thread) .and. (messages_per_iteration < MIN_MESSAGES_PER_ITERATION)) then
-            particles_per_yield = int(min(1.5 * particles_per_yield, 1.*max_particles_per_thread))
-            if (walk_debug) write(ipefile,'("messages_per_iteration = ", I6, " < ", I6, " --> Increased particles_per_yield to", I10)') messages_per_iteration, MIN_MESSAGES_PER_ITERATION, particles_per_yield
-          endif
+          ! if the processor is shared with some work_thread, we have to yield the processor to it for a certain time
+          if (processor_is_shared) then
+            ! adjust the sched_yield()-timeout for the thread that shares its processor with the communicator
+            if (messages_per_iteration > MAX_MESSAGES_PER_ITERATION) then
+              particles_per_yield = int(max(0.75 * particles_per_yield, 0.01*max_particles_per_thread))
+              if (walk_debug) write(ipefile,'("messages_per_iteration = ", I6, " > ", I6, " --> Decreased particles_per_yield to", I10)') messages_per_iteration, MAX_MESSAGES_PER_ITERATION, particles_per_yield
+            elseif ((particles_per_yield < max_particles_per_thread) .and. (messages_per_iteration < MIN_MESSAGES_PER_ITERATION)) then
+              particles_per_yield = int(min(1.5 * particles_per_yield, 1.*max_particles_per_thread))
+              if (walk_debug) write(ipefile,'("messages_per_iteration = ", I6, " < ", I6, " --> Increased particles_per_yield to", I10)') messages_per_iteration, MIN_MESSAGES_PER_ITERATION, particles_per_yield
+            endif
 
-          ! currently, there is no communication request --> other threads may do something interesting
-          if (walk_status < WALK_IAM_FINISHED) then
+            ! currently, there is no communication request --> other threads may do something interesting
             iret = pthreads_conds_timedwait(PTHREAD_COND_COMMBLOCK, cond_comm_timeout)
             if (iret == -1) then
               ! Timeout occured, hence no pending send-requests,
@@ -313,6 +315,7 @@ module tree_walk_communicator
               call retval(iret, "pthreads_conds_timedwait(PTHREAD_COND_COMMBLOCK, cond_comm_timeout)")
             endif
           endif
+
         end do ! while (walk_status .ne. WALK_ALL_FINISHED)
 
         if (walk_comm_debug) write(ipefile,'("PE", I6, " run_communication_loop end.   walk_status = ", I6)') me, walk_status
@@ -1156,6 +1159,8 @@ module tree_walk_utils
 
       if (same_core_as_communicator) then
             my_max_particles_per_thread = int(work_on_communicator_particle_number_factor * max_particles_per_thread)
+            ! notify the communicator, that he does not exclusively own its processor
+            processor_is_shared = .true.
       else
             my_max_particles_per_thread = max_particles_per_thread
       endif
@@ -1252,6 +1257,12 @@ module tree_walk_utils
       end if
 
       call rwlock_unlock(RWLOCK_FINISHED_THREADS, "walk_worker_thread: increment finished_threads")
+
+      if (same_core_as_communicator) then
+            ! notify the communicator, that now it exclusively owns the processor again
+            processor_is_shared = .false.
+      endif
+
 
       ! walk_worker_thread = c_null_ptr ! due to some strange reasons, ifort produces a sigsegv here.
                                         ! since the return value is not needed, we just do not set it
