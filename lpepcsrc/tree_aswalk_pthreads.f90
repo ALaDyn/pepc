@@ -159,7 +159,7 @@ module tree_walk_communicator
     integer, private :: comm_dummy = 123456 !< dummy variable for sending "empty" messages (those, where we are only interested in the tag)
     integer, private, allocatable :: request_balance(:) !< (#requests - #answers) per PE
     real*8, public :: timings_comm(3) !< array for storing internal timing information
-    integer, private :: cond_comm_timeout = 1000 !< timeout for pthread_cond_wait() in commloop in microseconds TODO: tune this parameter automatically during runtime
+    integer, parameter :: cond_comm_timeout = 1000 !< timeout for pthread_cond_wait() in commloop in microseconds TODO: tune this parameter automatically during runtime
 
     ! rwlocks for regulating concurrent access
     integer, private, parameter :: NUM_RWLOCKS = 4
@@ -951,6 +951,8 @@ module tree_walk_utils
   private
     integer, public :: num_walk_threads = 3
     integer, private :: primary_processor_id = 0
+    integer, parameter :: WORKLOAD_PENALTY_MAC  = 1
+    integer, parameter :: WORKLOAD_PENALTY_INTERACTION = 30
 
     real*8, dimension(:), allocatable :: boxlength2
     real :: eps
@@ -1145,7 +1147,6 @@ module tree_walk_utils
       type(c_ptr), value :: arg
 
       integer, dimension(:), allocatable :: my_particles
-      real, dimension(:), allocatable :: my_particles_starttime !< for measuring time per particle for load balancing purposes
       integer*8, dimension(:,:), allocatable :: todo_list
       integer, dimension(:), allocatable :: todo_list_top, todo_list_bottom
       integer, dimension(:), allocatable :: todo_list_minlevel_next
@@ -1157,7 +1158,6 @@ module tree_walk_utils
       integer :: particles_since_last_yield
       logical :: same_core_as_communicator
       integer :: my_max_particles_per_thread
-      real :: time_elapsed
       integer :: my_processor_id
 
       my_processor_id = get_my_core()
@@ -1172,7 +1172,6 @@ module tree_walk_utils
 
 
       allocate(my_particles(my_max_particles_per_thread),                        &
-                my_particles_starttime(my_max_particles_per_thread),                        &
                             todo_list_top(my_max_particles_per_thread),           &
                             todo_list_bottom(my_max_particles_per_thread),        &
                             todo_list_minlevel_next(my_max_particles_per_thread));
@@ -1202,7 +1201,6 @@ module tree_walk_utils
 
           if ((.not. process_particle) .and. (particles_available)) then ! i.e. the place for a particle is unassigned
             my_particles(i) = get_first_unassigned_particle(process_particle)
-            call cpu_time(my_particles_starttime(i)) ! we measure cpu_time instead of mpi_wtime since we want the time that has been spent for touching this particle
 !            write(ipefile,*) "PE", me, getfullid(), "my_particles(",i, ") :=", my_particles(i)
           end if
 
@@ -1221,14 +1219,6 @@ module tree_walk_utils
             if (walk_single_particle(my_particles(i), nintmax, todo_list(1:nintmax,i), todo_list_top(i), todo_list_bottom(i), todo_list_minlevel_next(i))) then
               ! this particle`s walk has finished
 !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
-              call cpu_time(time_elapsed) ! check for overflow when calculating elapsed time
-              if (time_elapsed > my_particles_starttime(i)) then
-                time_elapsed = time_elapsed - my_particles_starttime(i)
-              else
-                time_elapsed = time_elapsed - (my_particles_starttime(i) - huge(time_elapsed))
-              endif
-
-              work_per_particle(my_particles(i)) = work(my_particles(i)) + time_elapsed
 
               todo_list_top(i)           =  0
               todo_list_bottom(i)        =  1
@@ -1347,6 +1337,8 @@ module tree_walk_utils
 
        mac_ok = ( mac_ok .and. ((.not. in_central_box) .or. walk_key>1 ) )  !  reject root node if we are in the central box
 
+       work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_MAC
+
        ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
        ! NB: this uses local leaf #, not global particle label
        ! only ignore particle if we are processing t.not. all_my_particles_finishedhe central box
@@ -1361,6 +1353,7 @@ module tree_walk_utils
        if ( (mac_ok .or. walk_node > 0) .and. .not.ignore) then
 
           call calc_force_per_interaction(nodeidx, walk_node, vbox, eps, force_const)
+          work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_INTERACTION
           work_local = work_local + 1
 
           ! if walk_key is already the rootnode, next_key is zero --> walk is finished
