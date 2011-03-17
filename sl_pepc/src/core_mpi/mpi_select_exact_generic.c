@@ -1848,7 +1848,7 @@ donthit:
 
 #ifdef MSEG_INFO  
   mseg_info_rounds = round;
-  mseg_info_finish_rounds_avg /= (size - 1);
+  if (size > 1) mseg_info_finish_rounds_avg /= (size - 1); else mseg_info_finish_rounds_avg = 0.0;
 #endif
 
   rti_tstop(rti_tid_mpi_select_exact_generic_while);
