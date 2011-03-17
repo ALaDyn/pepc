@@ -146,7 +146,7 @@ module tree_walk_communicator
     integer, private :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
     integer, parameter :: MAX_MESSAGES_PER_ITERATION = 20
     integer, parameter :: MIN_MESSAGES_PER_ITERATION = 5
-    logical, public :: processor_is_shared = .false. !< is set to true if a thread detects that it is sharing its processor with the communicator and set to false after this situation ends
+    logical, public :: processor_is_shared = .true. !< is set to true if a thread detects that it is sharing its processor with the communicator and set to false after this situation ends, must initially be true, otherwise, the thread with the shared processor possibly cannot startup
 
     ! internal communication variables - not to be touched from outside the module
     integer, parameter :: ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
