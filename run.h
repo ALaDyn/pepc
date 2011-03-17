@@ -5,8 +5,8 @@
  num_walk_threads = 3
 
 ! number of particles, here ions
- ne = 1000
- ni = 1000
+ ne = 100000
+ ni = 100000
 
 ! initial particle distribution
   ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
