@@ -1,19 +1,20 @@
 &pepcdata
 
- db_level = 0
- np_mult = -45
- num_walk_threads = 3
+ db_level = 2
+ np_mult = -300
+ num_walk_threads = 4
+ max_particles_per_thread = 2000
 
 ! number of particles, here ions
- ne = 100000
- ni = 100000
+ ne = 1000
+ ni = 1000
 
 ! initial particle distribution
   ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
  ispecial = 1
 
 ! number of timesteps
- nt = 100
+ nt = 5
  
 ! fmm-periodicity framework
 ! lattice basis vectors
@@ -21,7 +22,7 @@
   t_lattice_2 = 0.0   1.0   0.0
   t_lattice_3 = 0.0   0.0   1.0
 ! periodicity in x-, y-, and z-direction
-  periodicity = .true.  .true.  .true.
+!  periodicity = .true.  .true.  .true.
 ! extrinsic-to-intrinsic correction
   do_extrinsic_correction = .false.
 

@@ -15,6 +15,7 @@ subroutine setup()
   use tree_utils
   use module_fmm_framework
   use tree_walk_utils
+  use tree_walk_communicator
   implicit none
   include 'mpif.h'
 
@@ -34,7 +35,7 @@ subroutine setup()
 
 
 
-  namelist /pepcdata/ nep, nip, np_mult, ne, ni, num_walk_threads, &
+  namelist /pepcdata/ nep, nip, np_mult, ne, ni, num_walk_threads, max_particles_per_thread, &
        mac, theta, mass_ratio, q_factor, eps, &
        system_config, target_geometry, ispecial, choose_sort, weighted, &
        Te_keV, Ti_keV, T_scale, &
@@ -341,6 +342,7 @@ subroutine setup()
      write(*,*) "Starting PEPC-E with",n_cpu," Processors, simulating",np_local, &
                          " Particles on each Processor in",nt,"timesteps..."
      write(*,*) "Using",num_walk_threads,"worker-threads and 1 communication thread in treewalk on each processor (i.e. per MPI rank)"
+     write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
   end if
 
 end subroutine setup

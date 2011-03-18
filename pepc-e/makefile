@@ -57,6 +57,8 @@ module_fmm_framework.mod:
 	ln -sf ../lpepcsrc/module_fmm_framework.mod ./module_fmm_framework.mod
 tree_walk_utils.mod:
 	ln -sf ../lpepcsrc/tree_walk_utils.mod ./tree_walk_utils.mod
+tree_walk_communicator.mod:
+	ln -sf ../lpepcsrc/tree_walk_communicator.mod ./tree_walk_communicator.mod
 timings.mod:
 	ln -sf ../lpepcsrc/timings.mod ./timings.mod
 #	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/timings.mod $(PREFIX)/pepc-mw/timings.mod
