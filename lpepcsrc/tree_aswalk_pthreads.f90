@@ -951,8 +951,8 @@ module tree_walk_utils
   private
     integer, public :: num_walk_threads = 3
     integer, private :: primary_processor_id = 0
-    integer, parameter :: WORKLOAD_PENALTY_MAC  = 1
-    integer, parameter :: WORKLOAD_PENALTY_INTERACTION = 30
+    real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8
+    real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
     real*8, dimension(:), allocatable :: boxlength2
     real :: eps
