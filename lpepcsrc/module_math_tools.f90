@@ -493,7 +493,7 @@ module module_math_tools
           integer*8 :: i
           integer*8 :: bn
 
-          i = int(log(1._8*real(ieor(a,b)))/log(8._8))
+          i = int(log(1._8*real(ieor(a,b), kind(1._8)))/log(8._8))
           bn = 8_8**i
           bpi = b/bn*bn
 
