@@ -18,11 +18,11 @@ subroutine tree_stats(timestamp)
 
   integer :: i,ierr, timestamp
   integer, dimension(num_pe) :: particles, fetches, ships, total_keys, tot_nleaf, tot_ntwig
-  real*8, dimension(num_pe) ::  work_loads  ! Load balance array
+  real*8, dimension(num_pe) ::  num_interactions, num_mac_evaluations  ! Load balance arrays
   character*6 :: cdump
   character*40 :: cfile
   integer :: max_nbranch,min_nbranch, gmax_leaves, gmax_twigs, total_part
-  real*8 :: total_work, average_work
+  real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, max_mac_evaluations
   real :: part_imbal=0.
   real*8 :: work_imbal=0.
   real*8 :: work_imbal_max, work_imbal_min  ! load stats
@@ -35,7 +35,8 @@ subroutine tree_stats(timestamp)
   call MPI_GATHER(nkeys_total, 1, MPI_INTEGER, total_keys, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(sum_fetches, 1, MPI_INTEGER, fetches,    1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(sum_ships,   1, MPI_INTEGER, ships,      1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
-  call MPI_GATHER(work_local,  1, MPI_REAL8, work_loads,   1, MPI_REAL8,   0,  MPI_COMM_WORLD, ierr )
+  call MPI_GATHER(interactions_local,    1, MPI_REAL8, num_interactions,      1, MPI_REAL8,   0,  MPI_COMM_WORLD, ierr )
+  call MPI_GATHER(mac_evaluations_local, 1, MPI_REAL8, num_mac_evaluations,   1, MPI_REAL8,   0,  MPI_COMM_WORLD, ierr )
   call MPI_REDUCE(nbranch, max_nbranch,     1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
   call MPI_REDUCE(nbranch, min_nbranch,     1, MPI_INTEGER, MPI_MIN, 0, MPI_COMM_WORLD, ierr )
   nnodes=nleaf+ntwig
@@ -45,13 +46,18 @@ subroutine tree_stats(timestamp)
   part_imbal_max = MAXVAL(particles)
   part_imbal_min = MINVAL(particles)
   part_imbal = (part_imbal_max-part_imbal_min)/1.0/npart*num_pe
-  total_work = SUM(work_loads)
-  average_work = total_work/num_pe
-  work_imbal_max = MAXVAL(work_loads)/average_work
-  work_imbal_min = MINVAL(work_loads)/average_work
+
+  total_interactions       = SUM(num_interactions)
+  total_mac_evaluations    = SUM(num_mac_evaluations)
+  max_interactions         = MAXVAL(num_interactions)
+  max_mac_evaluations      = MAXVAL(num_mac_evaluations)
+  average_interactions     = total_interactions    / num_pe
+  average_mac_evaluations  = total_mac_evaluations / num_pe
+  work_imbal_max = max_interactions/average_interactions
+  work_imbal_min = MINVAL(num_interactions)/average_interactions
   work_imbal = 0.
   do i=1,num_pe
-     work_imbal = work_imbal + abs(work_loads(i) - average_work)/average_work/num_pe
+     work_imbal = work_imbal + abs(num_interactions(i) - average_interactions)/average_interactions/num_pe
   end do
 
   total_part = sum(particles)
@@ -70,11 +76,11 @@ subroutine tree_stats(timestamp)
     write(60,'(a20,i7,a22)') 'Tree stats for CPU ', me, ' and global statistics'
 
     write(60,'(a50,3i12)') '# procs, walk_threads, max_particles_per_thread', num_pe, num_walk_threads, max_particles_per_thread
-    write(60,'(a50,3i12)') 'nintmax, np_mult, size_tree',nintmax, np_mult,size_tree
+    write(60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, size_tree',nintmax, np_mult,size_tree
     write(60,'(a50,3i12)') 'npp, npart, nppm(max): ',npp,npart,nppm
-    write(60,'(a50,3i12)') 'N/P',npart/num_pe
-    write(60,'(a50,1i12)') 'total # particles: ', total_part
-    write(60,'(a50,2e12.4)') 'total/ave work: ', total_work, average_work
+    write(60,'(a50,2i12)') 'total # particles, N/P',total_part,int(npart/num_pe)
+    write(60,'(a50,3e12.4)') 'total/ave/max_local # interactions(work): ', total_interactions, average_interactions, max_interactions
+    write(60,'(a50,3e12.4)') 'total/ave/max_local # mac evaluations: ', total_mac_evaluations, average_mac_evaluations, max_mac_evaluations
     write(60,'(a50,3i12)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
     write(60,'(a50,3i12)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
     write(60,'(a50,3i12,f12.1,a6,i12)') 'final # leaves, twigs, keys, (max): ',nleaf,ntwig,nleaf+ntwig, &
@@ -93,11 +99,11 @@ subroutine tree_stats(timestamp)
     write (60,'(a50,2i12)') 'cumulative/maximum # of entries in request queue: ', cum_req_list_length, max_req_list_length
     write (60,'(a50,3i12)') '# of comm-loop iterations (tot,send,recv): ', comm_loop_iterations(:)
     write (60,*) '###########################################################################'
-    write (60,'(2a/(4i10,F8.4,5i10,F8.4))') '         PE     parts    nleaf     ntwig   ratio    nl_keys', &
-              '   tot_keys   fetches    ships    work   rel.work*ncpu', &
+    write (60,'(2a/(4i10,F8.4,6i10,F8.4))') '         PE     parts    nleaf     ntwig   ratio    nl_keys', &
+              '   tot_keys   fetches    ships    #interactions(work)   #mac_evals   rel.work*ncpu', &
               (i-1,particles(i),tot_nleaf(i),tot_ntwig(i),1.0*tot_nleaf(i)/(1.0*tot_ntwig(i)), &
-              total_keys(i)-(tot_nleaf(i)+tot_ntwig(i)),total_keys(i),fetches(i),ships(i),int(work_loads(i)),&
-              work_loads(i)/average_work,i=1,num_pe)
+              total_keys(i)-(tot_nleaf(i)+tot_ntwig(i)),total_keys(i),fetches(i),ships(i),int(num_interactions(i)),int(num_mac_evaluations(i)),&
+              num_interactions(i)/average_interactions,i=1,num_pe)
     close(60)
 
   endif

@@ -971,6 +971,16 @@ module tree_walk_utils
     integer :: next_unassigned_particle !< index of next particle that has not been assigned to a work thread
     integer :: finished_threads !< number of worker threads that have terminated. if equal to num_walk_threads, all particles have been completely processed on this PE
 
+    !> type for input and return values of walk_threads
+    type t_threaddata
+      integer :: id                         !< just a running number to distinguish the threads, currently unused
+      integer :: num_processed_particles  !< thread output value: number of particles that it has processed
+      real*8  :: num_interactions !< thread output value: number of interactions that were performed
+      real*8  :: num_mac_evaluations !< thread output value: number of mac evaluations that have been performed
+      logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
+      integer :: coreid !< thread output value: id of thread`s processor
+    end type t_threaddata
+
 
   public tree_walk
 
@@ -1041,15 +1051,15 @@ module tree_walk_utils
       include 'mpif.h'
 
       integer :: ith, ierr
-      integer, target :: num_processed_particles(num_walk_threads)
+      type(t_threaddata), target :: threaddata(num_walk_threads)
 
       ! we count how many threads already have finished
       finished_threads = 0
 
       ! start the worker threads...
       do ith = 1,num_walk_threads
-        ! increasing priority values means: this thread is less important
-        call retval(pthreads_createthread(ith, c_funloc(walk_worker_thread), c_loc(num_processed_particles(ith))), "walk_schedule_thread_inner:pthread_create")
+        threaddata(ith)%id = ith
+        call retval(pthreads_createthread(ith, c_funloc(walk_worker_thread), c_loc(threaddata(ith))), "walk_schedule_thread_inner:pthread_create")
       end do
 
       call run_communication_loop()
@@ -1057,7 +1067,13 @@ module tree_walk_utils
       ! ... and wait for work thread completion
       do ith = 1,num_walk_threads
         call retval( pthreads_jointhread( ith ), "walk_schedule_thread_inner:pthread_join" )
+        if (walk_summary) then
+          write(ipefile,*) "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith)
+        end if
       end do
+
+      interactions_local    = sum(threaddata(:)%num_interactions)
+      mac_evaluations_local = sum(threaddata(:)%num_mac_evaluations)
 
       ! check wether all particles really have been processed
       if (next_unassigned_particle .ne. np_local + 1) then
@@ -1065,10 +1081,6 @@ module tree_walk_utils
                             next_unassigned_particle, " np_local =", np_local
         flush(6)
         call MPI_ABORT(MPI_COMM_WORLD, ierr)
-      end if
-
-      if (walk_summary) then
-        write(ipefile,*) "Hybrid walk finished. The ", num_walk_threads, " work-threads processed ",num_processed_particles, " particles"
       end if
 
     end subroutine walk_hybrid
@@ -1154,7 +1166,7 @@ module tree_walk_utils
       logical :: particles_available
       logical :: particles_active
       logical :: process_particle
-      integer, pointer :: my_processed_particles
+      type(t_threaddata), pointer :: my_threaddata
       integer :: particles_since_last_yield
       logical :: same_core_as_communicator
       integer :: my_max_particles_per_thread
@@ -1186,8 +1198,8 @@ module tree_walk_utils
       my_particles(:)     = -1
       particles_available = .true.
       particles_active    = .true.
-      call c_f_pointer(arg, my_processed_particles)
-      my_processed_particles = 0
+      call c_f_pointer(arg, my_threaddata)
+      my_threaddata = t_threaddata(my_threaddata%id, 0, 0._8, 0._8, same_core_as_communicator, my_processor_id)
       particles_since_last_yield = 0
 
 
@@ -1216,7 +1228,7 @@ module tree_walk_utils
               endif
             endif
 
-            if (walk_single_particle(my_particles(i), nintmax, todo_list(1:nintmax,i), todo_list_top(i), todo_list_bottom(i), todo_list_minlevel_next(i))) then
+            if (walk_single_particle(my_particles(i), nintmax, todo_list(1:nintmax,i), todo_list_top(i), todo_list_bottom(i), todo_list_minlevel_next(i), my_threaddata)) then
               ! this particle`s walk has finished
 !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
 
@@ -1226,7 +1238,7 @@ module tree_walk_utils
               todo_list(1,i)             =  1
               todo_list_minlevel_next(i) =  0
               my_particles(i)            = -1
-              my_processed_particles     = my_processed_particles + 1
+              my_threaddata%num_processed_particles = my_threaddata%num_processed_particles + 1
             else
               particles_active = .true.
             end if
@@ -1265,7 +1277,7 @@ module tree_walk_utils
 
 
 
-   function walk_single_particle(nodeidx, nintmax, todo_list, todo_list_top, todo_list_bottom, todo_list_minlevel_next)
+   function walk_single_particle(nodeidx, nintmax, todo_list, todo_list_top, todo_list_bottom, todo_list_minlevel_next, my_threaddata)
       use tree_walk_communicator
       use module_calc_force
       implicit none
@@ -1274,6 +1286,7 @@ module tree_walk_utils
       integer, intent(in) :: nintmax
       integer*8, intent(inout) :: todo_list(nintmax)
       integer, intent(inout) :: todo_list_top, todo_list_bottom, todo_list_minlevel_next
+      type(t_threaddata), intent(inout) :: my_threaddata
       logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
       logical :: result
 
@@ -1337,6 +1350,7 @@ module tree_walk_utils
 
        mac_ok = ( mac_ok .and. ((.not. in_central_box) .or. walk_key>1 ) )  !  reject root node if we are in the central box
 
+       my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + 1._8
        work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_MAC
 
        ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
@@ -1354,7 +1368,7 @@ module tree_walk_utils
 
           call calc_force_per_interaction(nodeidx, walk_node, vbox, eps, force_const)
           work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_INTERACTION
-          work_local = work_local + 1._8
+          my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
 
           ! if walk_key is already the rootnode, next_key is zero --> walk is finished
           ! if next_key == 1, then we reached root --> walk also finished

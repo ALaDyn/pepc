@@ -135,7 +135,6 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   max_req_list_length = 0
   cum_req_list_length = 0
   comm_loop_iterations = 0
-  work_local = 0  ! total workload
   sum_fetches=0      ! total # multipole fetches/iteration
   sum_ships=0      ! total # multipole shipments/iteration
 
@@ -216,7 +215,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   write(cfile,'(a,i6.6,a)') "load_", me, ".dat"  
   open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
-  write(60,*) itime,' ',work_local,' ',npp
+  write(60,'(i5,2f20.10, i12)') itime,interactions_local, mac_evaluations_local,npp
   close(60)   
 
   deallocate(ex_tmp, ey_tmp, ez_tmp, pot_tmp, w_tmp)

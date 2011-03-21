@@ -126,16 +126,13 @@ module treevars
              iused          ! counter for collision resolution array free_addr()
   integer :: nkeys_total=1 ! total # keys in local tree
   integer :: proc_debug=0     ! Debug rank: set to -1 for all
-  real*8 :: work_local ! Total local work load (=sum of interaction lists)
   real*8 :: xmin, xmax    ! box limits
   real*8 :: ymin, ymax  
   real*8 :: zmin, zmax
   real*8 :: boxsize       ! length of box
   integer, parameter :: CHILDCODE_NODE_TOUCHED = 11 !< this bit is used inside the childcode to notify of nodes, that already contain valid multipole information and may not be set to zero in tree_global
-
- ! Force control
-  integer :: load_balance   ! Balances particles in || sort according to work load
-  logical :: use_multipoles = .true.   ! Use of multipoles? 
+  real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
+  real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
 
   ! Debugging switches (all off by default)
   logical :: tree_debug=.false.

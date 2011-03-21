@@ -260,7 +260,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
         !          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
         if (choose_sort == 1) then
            ! FIXME: Dangerous conversion real*8 --> real*4
-           work4pbalsort = real(work_local, kind(work4pbalsort))
+           work4pbalsort = real(interactions_local, kind(work4pbalsort))
            call pbalsort(nppm-2,npold,npnew,num_pe,me,keys, &
                 indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,nkeys_total,weighted,sort_debug,work4pbalsort)
         else
