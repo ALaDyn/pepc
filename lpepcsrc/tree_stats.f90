@@ -99,7 +99,7 @@ subroutine tree_stats(timestamp)
     write (60,'(a50,2i12)') 'cumulative/maximum # of entries in request queue: ', cum_req_list_length, max_req_list_length
     write (60,'(a50,3i12)') '# of comm-loop iterations (tot,send,recv): ', comm_loop_iterations(:)
     write (60,*) '###########################################################################'
-    write (60,'(2a/(4i10,F8.4,6i10,F8.4))') '         PE     parts    nleaf     ntwig   ratio    nl_keys', &
+    write (60,'(2a/(4i10,F8.4,6i15,F8.4))') '         PE     parts    nleaf     ntwig   ratio    nl_keys', &
               '   tot_keys   fetches    ships    #interactions(work)   #mac_evals   rel.work*ncpu', &
               (i-1,particles(i),tot_nleaf(i),tot_ntwig(i),1.0*tot_nleaf(i)/(1.0*tot_ntwig(i)), &
               total_keys(i)-(tot_nleaf(i)+tot_ntwig(i)),total_keys(i),fetches(i),ships(i),int(num_interactions(i)),int(num_mac_evaluations(i)),&
