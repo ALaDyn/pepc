@@ -1354,7 +1354,7 @@ module tree_walk_utils
 
           call calc_force_per_interaction(nodeidx, walk_node, vbox, eps, force_const)
           work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_INTERACTION
-          work_local = work_local + 1
+          work_local = work_local + 1._8
 
           ! if walk_key is already the rootnode, next_key is zero --> walk is finished
           ! if next_key == 1, then we reached root --> walk also finished

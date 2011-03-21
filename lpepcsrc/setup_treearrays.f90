@@ -118,7 +118,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
        Axo(nppm), Ayo(nppm), Azo(nppm), &
        pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
-  allocate (work_loads(num_pe),npps(num_pe),pivots(num_pe+1))  ! Work load & Particle distrib amoung PEs
+  allocate (pivots(num_pe+1))  ! Work load & Particle distrib amoung PEs
 
   allocate (nbranches(num_pe+2), igap(num_pe+3))
 

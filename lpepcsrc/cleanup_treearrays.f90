@@ -27,7 +27,7 @@ subroutine pepc_cleanup(my_rank,n_cpu)
 
   deallocate ( nbranches, igap )
 
-  deallocate (work_loads,npps,pivots)
+  deallocate (pivots)
 
 
 end subroutine pepc_cleanup

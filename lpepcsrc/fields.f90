@@ -51,15 +51,10 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   real*8 :: ttrav, tfetch, tcomm(3) ! timing integrals
 
   integer :: timestamp
-  integer :: ierr
-  integer :: iprot = 50  ! frequency for load balance dump
 
-  real :: total_work, average_work
-  integer :: total_parts
   integer :: ibox
   real*8 :: vbox(3)
   character(30) :: cfile
-  character(4) :: cme
 
   allocate(ex_tmp(nppm_ori), ey_tmp(nppm_ori), ez_tmp(nppm_ori), pot_tmp(nppm_ori), w_tmp(nppm_ori))
 
@@ -186,29 +181,9 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   call timer_stop(t_restore)
   call timer_start(t_fields_stats)
 
-  if (tree_debug .and. mod(itime,iprot)==0) then
-     call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
-     call MPI_GATHER(npp, 1, MPI_INTEGER, npps, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )  ! Gather particle distn
-  end if
-
-
   timestamp = itime
 
   nkeys_total = nleaf+ntwig  
-
-  if (me ==0 .and. mod(itime,iprot)==0 .and. tree_debug) then
-     total_work = SUM(work_loads)
-     average_work = total_work/num_pe
-     cme = achar(timestamp/1000+48) // achar(mod(timestamp/100,10)+48) &
-          // achar(mod(timestamp/10,10)+48) // achar(mod(timestamp,10)+48) 
-     cfile="load_"//cme//".dat"
-     total_parts=SUM(npps)
-     open(60, file=cfile)
-!     write(60,'(a/a,i8,2(a,1pe15.6))')  '! Full balancing','Parts: ',total_parts,' Work: ',total_work, &
-!          ' Ave. work:',average_work        
-!     write(60,'(2i8,f12.3)')  (i-1,npps(i),work_loads(i)/average_work,i=1,num_pe)
-     close(60)
-  endif
 
   if (force_debug) then
      write (ipefile,101)

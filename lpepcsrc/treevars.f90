@@ -126,11 +126,7 @@ module treevars
              iused          ! counter for collision resolution array free_addr()
   integer :: nkeys_total=1 ! total # keys in local tree
   integer :: proc_debug=0     ! Debug rank: set to -1 for all
-  real :: work_imbal=0.
-  real :: part_imbal=0.
-  real :: work_imbal_max, work_imbal_min  ! load stats
-  integer ::  part_imbal_max, part_imbal_min
-  real :: work_local ! Total local work load (=sum of interaction lists)
+  real*8 :: work_local ! Total local work load (=sum of interaction lists)
   real*8 :: xmin, xmax    ! box limits
   real*8 :: ymin, ymax  
   real*8 :: zmin, zmax
@@ -170,8 +166,6 @@ module treevars
   integer, allocatable ::    pepid(:), & ! owner
                                 pelabel(:)   ! particle label
 
-  real, allocatable ::  work_loads(:)  ! Load balance array
-  integer, allocatable :: npps(:)  ! Particle distrib amoung PEs
   integer*8, allocatable ::  pivots(:)  ! Pivot buffer for sort
 
 ! Memory control

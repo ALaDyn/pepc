@@ -18,10 +18,15 @@ subroutine tree_stats(timestamp)
 
   integer :: i,ierr, timestamp
   integer, dimension(num_pe) :: particles, fetches, ships, total_keys, tot_nleaf, tot_ntwig
+  real*8, dimension(num_pe) ::  work_loads  ! Load balance array
   character*6 :: cdump
   character*40 :: cfile
   integer :: max_nbranch,min_nbranch, gmax_leaves, gmax_twigs, total_part
-  real :: total_work, average_work
+  real*8 :: total_work, average_work
+  real :: part_imbal=0.
+  real*8 :: work_imbal=0.
+  real*8 :: work_imbal_max, work_imbal_min  ! load stats
+  integer ::  part_imbal_max, part_imbal_min
 
   ! particle distrib
   call MPI_GATHER(npp,         1, MPI_INTEGER, particles,  1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
@@ -30,14 +35,13 @@ subroutine tree_stats(timestamp)
   call MPI_GATHER(nkeys_total, 1, MPI_INTEGER, total_keys, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(sum_fetches, 1, MPI_INTEGER, fetches,    1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(sum_ships,   1, MPI_INTEGER, ships,      1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
-  call MPI_GATHER(work_local,  1, MPI_REAL, work_loads,    1, MPI_REAL,    0,  MPI_COMM_WORLD, ierr )
+  call MPI_GATHER(work_local,  1, MPI_REAL8, work_loads,   1, MPI_REAL8,   0,  MPI_COMM_WORLD, ierr )
   call MPI_REDUCE(nbranch, max_nbranch,     1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
   call MPI_REDUCE(nbranch, min_nbranch,     1, MPI_INTEGER, MPI_MIN, 0, MPI_COMM_WORLD, ierr )
   nnodes=nleaf+ntwig
   call MPI_REDUCE(nleaf, gmax_leaves, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
   call MPI_REDUCE(ntwig, gmax_twigs,  1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
 
-  call MPI_GATHER(work_local, 1, MPI_REAL, work_loads, 1, MPI_REAL, 0,  MPI_COMM_WORLD, ierr )  ! Gather work integrals
   part_imbal_max = MAXVAL(particles)
   part_imbal_min = MINVAL(particles)
   part_imbal = (part_imbal_max-part_imbal_min)/1.0/npart*num_pe
