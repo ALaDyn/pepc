@@ -420,6 +420,27 @@ subroutine special_start(iconf)
 
     return ! do not execute the stuff below in this case, since this messes up charges etc.
 
+  case(8)
+
+     if (my_rank == 0) write(*,*) "Using special start... case 8 (fast homogeneous distribution)"
+
+     par_rand_res = my_rank**2 + 13
+
+     do p = 1, (fances(my_rank) - fances(my_rank-1))
+           
+        call par_rand(par_rand_res)
+        x(p) = par_rand_res
+        call par_rand(par_rand_res)
+        y(p) = par_rand_res
+        call par_rand(par_rand_res)
+        z(p) = par_rand_res
+
+        ux(p) = 0.
+        uy(p) = 0.
+        uz(p) = 0.
+              
+     end do
+
   case(9)
 
      if (my_rank == 0) write(*,*) "Using special start... case 9 (ion sphere Coulomb explosion)"
