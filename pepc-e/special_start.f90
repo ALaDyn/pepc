@@ -424,7 +424,8 @@ subroutine special_start(iconf)
 
      if (my_rank == 0) write(*,*) "Using special start... case 8 (fast homogeneous distribution)"
 
-     par_rand_res = my_rank**2 + 13
+     ! arbitrary initialization of random number generator with a seed from [0;1[
+     par_rand_res = ( sin(1.*my_rank**2 + 13) + 1. ) / 2.001
 
      do p = 1, (fances(my_rank) - fances(my_rank-1))
            
