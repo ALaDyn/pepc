@@ -10,8 +10,7 @@
 ! portable random number generator, see numerical recipes
 ! check for the random numbers:
 ! the first numbers should be 0.2853809, 0.2533582 and 0.2533582
-
-subroutine par_rand(res)
+subroutine par_rand(res, iseed)
   
   use physvars
   implicit none
@@ -20,6 +19,7 @@ subroutine par_rand(res)
   integer :: iv(32)
 
   real, intent(inout) :: res
+  integer, intent(in), optional :: iseed
 
   integer :: IM1, IM2, IMM1, IA1, IA2, IQ1, IQ2, IR1, IR2, NTAB, NDIV
   real    :: AM, RNMX
@@ -44,7 +44,12 @@ subroutine par_rand(res)
 
   if (idum < 0) then
   
-     idum = 1
+     if (present(iseed)) then
+       idum = iseed
+     else
+       idum = 1
+     endif
+
      idum2 = idum
 
      do j = NTAB+7,0,-1
@@ -84,15 +89,23 @@ subroutine special_start(iconf)
 
   use physvars
   use module_fmm_framework
+  use module_icosahedron
   implicit none
   include 'mpif.h'
+
+  interface
+    subroutine par_rand(res, iseed)
+      real, intent(inout) :: res
+      integer, intent(in), optional :: iseed
+    end subroutine
+  end interface
 
   integer, intent(in) :: iconf  ! Configuration switch
   integer :: p,mpi_cnt, ierr
   real*4 :: par_rand_res,mu
-  real*8 :: yt,zt,xt, r1,fr
+  real*8 :: yt,zt,xt, r1,fr,r(3)
   real*4 ::dx
-  integer :: np_local_max
+  integer :: np_local_max, currlayer, particletype
   real*8 :: delta(3)
   integer :: i,j,k,n(3), myidx, globalidx
   real*8 a,b,c,cth,sth,cphi,sphi,s
@@ -424,8 +437,8 @@ subroutine special_start(iconf)
 
      if (my_rank == 0) write(*,*) "Using special start... case 8 (fast homogeneous distribution)"
 
-     ! arbitrary initialization of random number generator with a seed from [0;1[
-     par_rand_res = ( sin(1.*my_rank**2 + 13) + 1. ) / 2.001
+     ! initialize random number generator with some arbitrary seed
+     call par_rand(par_rand_res, my_rank**2 + 13)
 
      do p = 1, (fances(my_rank) - fances(my_rank-1))
            
@@ -652,6 +665,48 @@ subroutine special_start(iconf)
        z(np_local-ngx+1:np_local) = zl/2. 
        pelabel(np_local-ngx+1:np_local) = ni + (/(i, i = 1, ngx)/) ! grid particle labels
      endif
+
+     return ! skip rest of routine
+
+  case(12)
+     if (my_rank == 0) write(*,*) "Using special start... case 12 (Mackay Icosahedron)"
+
+     r_sphere = 100.0
+
+     do p=1,np_local/2
+       ! get particle position inside the cluster
+       r = get_particle(p + fances(my_rank-1)/2-1, currlayer, particletype)
+
+       ! put an ion there
+       x(np_local-p+1)   = r(1)*r_sphere
+       y(np_local-p+1)   = r(2)*r_sphere
+       z(np_local-p+1)   = r(3)*r_sphere
+       ux(np_local-p+1)  = 0.
+       uy(np_local-p+1)  = 0.
+       uz(np_local-p+1)  = 0.
+        q(np_local-p+1)  = qi
+        m(np_local-p+1)  = mass_i
+       pelabel(np_local-p+1)  = 1 + p + fances(my_rank-1)/2-1
+
+       ! and put an electron into near proximity
+       call par_rand(par_rand_res)
+       xt = par_rand_res*2*pi
+       call par_rand(par_rand_res)
+       yt = par_rand_res*pi
+
+       x(p) = x(np_local-p+1) + r_sphere/100 * cos(xt) * sin(yt)
+       y(p) = y(np_local-p+1) + r_sphere/100 * sin(xt) * sin(yt)
+       z(p) = z(np_local-p+1) + r_sphere/100 * cos(yt)
+
+       ux(p)  = 0.1
+       uy(p)  = 0.1
+       uz(p)  = 0.1
+        q(p)  = qe
+        m(p)  = mass_e
+       pelabel(p)  = -(1 + p + fances(my_rank-1)/2-1)
+     end do
+
+     work(1:np_local) = 1.
 
      return ! skip rest of routine
 

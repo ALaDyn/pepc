@@ -16,6 +16,7 @@ subroutine setup()
   use module_fmm_framework
   use tree_walk_utils
   use tree_walk_communicator
+  use module_icosahedron
   implicit none
   include 'mpif.h'
 
@@ -157,15 +158,28 @@ subroutine setup()
 
   npart_total = ni+ne
 
-  if ((system_config == 2) .and. (ispecial == 7)) then ! Madelung setup needs ne=ni and (ne+ni)mod 8==0 and (ne+ni)/8==2**sth
+  if (system_config == 2) then
 
-    npart_tmp   = nint((npart_total/8)**(1./3.))
-    npart_total = (npart_tmp**3)*8
+    if (ispecial == 7) then ! Madelung setup needs ne=ni and (ne+ni)mod 8==0 and (ne+ni)/8==2**sth
 
-    if (my_rank == 0) write(*,*) "Using 3D-Madelung Setup: Total particle number must be representable by 8*k^3. Setting npart_total =", npart_total
+      npart_tmp   = nint((npart_total/8)**(1./3.))
+      npart_total = (npart_tmp**3)*8
 
-    ne = npart_total/2
-    ni = ne
+      if (my_rank == 0) write(*,*) "Using 3D-Madelung Setup: Total particle number must be representable by 8*k^3. Setting npart_total =", npart_total
+
+      ne = npart_total/2
+      ni = ne
+
+    elseif (ispecial == 12) then
+
+      npart_total   = get_nextlower_particles(npart_total/2)*2
+
+      if (my_rank == 0) write(*,*) "Using Mackay Icosahedron: Total particle number must be two times a magic cluster number. Setting npart_total =", npart_total
+
+      ne = npart_total/2
+      ni = ne
+
+    end if
   end if
 
   ! total # particles specified in input file
