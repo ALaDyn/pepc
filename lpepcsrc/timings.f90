@@ -10,7 +10,7 @@ module timings
   implicit none
 
     !> number of timing entries - dont forget to adjust if you add some timing variables
-    integer, private, parameter :: numtimings = 48
+    integer, private, parameter :: numtimings = 53
 
     ! global timings
     integer, parameter :: t_domains            =  1
@@ -71,6 +71,12 @@ module timings
     integer, parameter :: t_domains_add_pack   = 46
     integer, parameter :: t_domains_add_unpack = 47
     integer, parameter :: t_domains_add_alltoallv = 48
+    ! time stamps
+    integer, parameter :: t_stamp_before_local     = 49
+    integer, parameter :: t_stamp_before_exchange  = 50
+    integer, parameter :: t_stamp_before_global    = 51
+    integer, parameter :: t_stamp_before_walkloop  = 52
+    integer, parameter :: t_stamp_after_walkloop   = 53
 
     !> array for local timings
     real*8, private, dimension(1:numtimings) :: tim = 0.
@@ -115,6 +121,22 @@ module timings
       tim(1:numtimings) = 0.
 
     end subroutine timer_reset_all
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Logs current time, i.e. sets
+    !>      tim(id) = MPI_WTIME()
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine timer_stamp(id)
+      implicit none
+      include 'mpif.h'
+      integer, intent(in) :: id !< the affected timer address
+
+      tim(id) = MPI_WTIME()
+
+    end subroutine timer_stamp
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>

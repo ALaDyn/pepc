@@ -118,10 +118,13 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   call fmm_framework_timestep
 
   ! build local part of tree
+  call timer_stamp(t_stamp_before_local)
   call tree_local
   ! exchange branch nodes
+  call timer_stamp(t_stamp_before_exchange)
   call tree_exchange
   ! build global part of tree
+  call timer_stamp(t_stamp_before_global)
   call tree_global
 
   call timer_stop(t_fields_tree)
@@ -144,6 +147,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   ez_tmp  = 0.
   work    = 1.
 
+  call timer_stamp(t_stamp_before_walkloop)
+
   do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 
     vbox = lattice_vect(neighbours(:,ibox))
@@ -157,6 +162,8 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
     call timer_add(t_comm_sendreqs, tcomm(TIMING_SENDREQS))
 
   end do ! ibox = 1,num_neighbours
+
+  call timer_stamp(t_stamp_after_walkloop)
 
   w_tmp(1:npp) = work(1:npp)  ! send back work load for next iteration
 
