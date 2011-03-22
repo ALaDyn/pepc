@@ -126,8 +126,6 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
 
   call timer_stop(t_fields_tree)
   call timer_reset(t_walk)
-  call timer_reset(t_walkc)
-  call timer_reset(t_force)
   call timer_reset(t_comm_total)
   call timer_reset(t_comm_recv)
   call timer_reset(t_comm_sendreqs)
@@ -154,7 +152,6 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
     call tree_walk(npp,theta,eps,force_const,itime,mac,ttrav,tfetch, vbox, work, tcomm)
 
     call timer_add(t_walk, ttrav)    ! traversal time (serial)
-    call timer_add(t_walkc, tfetch)  ! multipole swaps
     call timer_add(t_comm_total,    tcomm(TIMING_COMMLOOP))
     call timer_add(t_comm_recv,     tcomm(TIMING_RECEIVE))
     call timer_add(t_comm_sendreqs, tcomm(TIMING_SENDREQS))

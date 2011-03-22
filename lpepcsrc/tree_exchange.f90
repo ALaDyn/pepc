@@ -15,8 +15,7 @@ subroutine tree_exchange
 
   integer,external :: key2addr        ! Mapping function to get hash table address from key
 
-  call timer_start(t_exchange)
-  call timer_start(t_branches_exchange)
+  call timer_start(t_exchange_branches)
 
   call OutputMemUsage(19, "[tree_exchange]", memory_debug .and. (me==0), 59)
 
@@ -26,6 +25,8 @@ subroutine tree_exchange
   endif
 
  
+  call timer_start(t_exchange_branches_pack)
+
   ! Pack local branches for shipping
   do i=1,nbranch
      lnode = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%node
@@ -56,6 +57,9 @@ subroutine tree_exchange
      pack_size(i) = size_node(lnode)
   end do
 
+  call timer_stop(t_exchange_branches_pack)
+  call timer_start(t_exchange_branches_admininstrative)
+
   call mpi_allgather( nbranch, 1, MPI_INTEGER, nbranches, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
   ! work out stride lengths so that partial arrays placed sequentially in global array
@@ -75,14 +79,17 @@ subroutine tree_exchange
      stop
   end if
  
+  call timer_stop(t_exchange_branches_admininstrative)
+  call timer_start(t_exchange_branches_allgatherv)
+
   call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_MULTIPOLE, get_mult, nbranches, igap, MPI_TYPE_MULTIPOLE, MPI_COMM_WORLD, ierr)
   call MPI_ALLGATHERV(pack_size, nbranch, MPI_REAL8, get_size, nbranches, igap, MPI_REAL8, MPI_COMM_WORLD, ierr)
 
+  call timer_stop(t_exchange_branches_allgatherv)
+  call timer_start(t_exchange_branches_integrate)
+
   newleaf = 0
   newtwig = 0
-
-  call timer_stop(t_branches_exchange)
-  call timer_start(t_branches_integrate)
 
   ! Integrate remote branches into local tree
   do i = 1,nbranch_sum
@@ -148,7 +155,7 @@ subroutine tree_exchange
   
   deallocate(get_size,get_mult)
 
-  call timer_stop(t_branches_integrate)
-  call timer_stop(t_exchange)
+  call timer_stop(t_exchange_branches_integrate)
+  call timer_stop(t_exchange_branches)
 
 end subroutine tree_exchange

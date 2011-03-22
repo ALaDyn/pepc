@@ -16,26 +16,26 @@ module timings
     integer, parameter :: t_domains            =  1
     integer, parameter :: t_allocate           =  2
     integer, parameter :: t_build              =  3
-    integer, parameter :: t_branches           =  4
-    integer, parameter :: t_fill               =  5
-    integer, parameter :: t_properties         =  6
+    integer, parameter :: t_exchange_branches_pack        =  4
+    integer, parameter :: t_exchange_branches_allgatherv  =  5
+    integer, parameter :: t_exchange_branches_integrate   =  6
     integer, parameter :: t_restore            =  7
     integer, parameter :: t_walk               =  8
-    integer, parameter :: t_walkc              =  9
-    integer, parameter :: t_force              = 10
+    integer, parameter :: t_unused9            =  9
+    integer, parameter :: t_unused10           = 10
     integer, parameter :: t_deallocate         = 11
     integer, parameter :: t_all                = 12
     integer, parameter :: t_local              = 13
-    integer, parameter :: t_exchange           = 14
+    integer, parameter :: t_exchange_branches  = 14
     integer, parameter :: t_global             = 15
     integer, parameter :: t_lattice            = 16
     ! fields internal
     integer, parameter :: t_fields_begin       = 17
     integer, parameter :: t_fields_tree        = 18
-    integer, parameter :: t_unused1            = 19
+    integer, parameter :: t_unused19           = 19
     integer, parameter :: t_fields_passes      = 20
     integer, parameter :: t_fields_stats       = 21
-    integer, parameter :: t_unused2            = 22
+    integer, parameter :: t_unused22           = 22
     ! tree_domains
     integer, parameter :: t_domains_keys       = 23
     integer, parameter :: t_domains_sort       = 24
@@ -50,16 +50,16 @@ module timings
     integer, parameter :: t_build_byte         = 31
     ! tree_branches
     integer, parameter :: t_branches_find      = 32
-    integer, parameter :: t_branches_exchange  = 33
-    integer, parameter :: t_branches_integrate = 34
+    integer, parameter :: t_exchange_branches_admininstrative = 33
+    integer, parameter :: t_unused34            = 34
     ! tree_fill
     integer, parameter :: t_fill_local         = 35
     integer, parameter :: t_fill_global        = 36
     ! tree_props
     integer, parameter :: t_props_leafs        = 37
     integer, parameter :: t_props_twigs        = 38
-    integer, parameter :: t_props_branches     = 39
-    integer, parameter :: t_props_global       = 40
+    integer, parameter :: t_unused39           = 39
+    integer, parameter :: t_unused40           = 40
     ! timings for outside fields()
     integer, parameter :: t_tot                = 41
     ! timings for tree_walk_communicator
