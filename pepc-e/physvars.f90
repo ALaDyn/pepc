@@ -41,7 +41,7 @@ module physvars
                               qslice(:),  mslice(:)    ! charge and mass
 
   !  physics data
-
+  logical :: experiment = .false.
   integer :: ni, ne       !  # ions, electrons
   integer :: nep, nip     ! # particles/electrons/ions per PE
   real :: xl, yl, zl      ! box size
@@ -59,11 +59,7 @@ module physvars
   real :: z_plasma       ! initial plasma z-width (slab)
   real :: plasma_centre(3) ! vector defining centre of plasma target
   real :: x_crit         ! critical surface
-  real :: x_offset       ! coordinate offset
-  real :: z_offset       ! coordinate offset
   real :: rho0           ! electron density (1)
-  real :: rho_track      ! tracking density for x_crit (/nc)
-  real :: rho_upper      ! shelf/profile density above x_crit (/nc)
   real :: Vplas          ! plasma volume
   real :: a_ii           ! mean ion spacing
   real :: eps            ! potential/force law cutoff
@@ -95,27 +91,10 @@ module physvars
   real :: x_beam        ! beam length
   real :: r_beam        ! beam radius
   real :: start_beam    ! starting position (x-axis)
-  real :: u_beam, theta_beam, phi_beam        ! beam velocity and angles
+  real :: u_beam       ! beam velocity and angles
   real :: rho_beam      ! beam density as fraction of plasma density (=1)
   real :: mass_beam     ! mass of beam particles
   real :: qeb           ! beam particle charge
-
- ! laser parameters
-  real :: tpulse        ! pulse duration (in units of 1/omega_p)
-  real :: sigma         ! 1/e pulse width (c/omega_p)
-  real :: vosc          ! pump strength    (c)
-  real :: omega         ! frequency  (omega_p)
-  real :: lambda        ! laser wavelength
-  real :: theta_inc     ! angle of incidence
-  real :: focus(3)      ! centre of focal spot
-  real :: tlaser        ! run time after laser switched on (1/omega_p)
-  real :: elaser        ! deposited laser energy
-  real :: propag_laser  ! distance travelled by laser after rezoning
-  real :: intensity     ! normalised intensity = 0.5*vosc^2*omega^2
-  real :: window_min    ! start of wakefield plasma
-  real :: rezone_frac=0.75     ! Fraction of box to cross before rezoning switched on
-
-
 
 !  Variables needing 'copy' for tree routines
   integer :: npart_total  ! Total # particles (npart)
@@ -144,8 +123,6 @@ module physvars
   integer :: system_config = 1  ! Switch for initial configuration (positions, velocities)
   integer :: target_geometry = 0  ! Geometry for plasma target
   integer :: idim=3  ! # dimensions (velocity and position updates)
-  integer :: beam_config_in = 0 ! Particle or laser beam switch including variations 
-  integer :: beam_config = 0 ! Reduced switch for particle or laser beam 
   integer :: ispecial       ! Switch to select special electron configs 
   integer :: choose_sort, weighted
   integer :: scheme = 1 ! Integrator scheme switch: 2-4= const. Te dynamics, 6=EM
@@ -172,7 +149,6 @@ module physvars
 
 
    integer :: itrack       ! frequency for computing ion density (tracking)
-   integer :: navcycle     ! # timesteps in a laser cycle 
    integer :: ngx, ngy, ngz  ! Plot grid dimensions
    integer :: ifile_cpu    ! O/P stream
 

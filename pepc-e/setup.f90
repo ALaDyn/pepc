@@ -17,6 +17,8 @@ subroutine setup()
   use tree_walk_utils
   use tree_walk_communicator
   use module_icosahedron
+  use module_laser
+  use module_units
   implicit none
   include 'mpif.h'
 
@@ -36,15 +38,14 @@ subroutine setup()
 
 
 
-  namelist /pepcdata/ nep, nip, np_mult, ne, ni, num_walk_threads, max_particles_per_thread, &
+  namelist /pepcdata/ experiment, nep, nip, np_mult, ne, ni, num_walk_threads, max_particles_per_thread, &
        mac, theta, mass_ratio, q_factor, eps, &
        system_config, target_geometry, ispecial, choose_sort, weighted, &
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
        xl, yl, zl, displace, bond_const, rho_min, lolam, &
-       beam_config_in, np_beam, idim, &
-       r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
-       lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
+       idim, &
+       beam_config_in, vosc,omega, sigma, tpulse, theta_inc, rho_track, omega_wpl, I0_Wpercm2, & ! laser config
        nt, dt, mc_steps, idump, ivis, ivis_fields, ivis_domains, iprot, itrack, ngx, ngy, ngz, &
        vis_on, steering,  mc_init, restart, scheme, &
        coulomb, bonds, lenjones, target_dup, ramp, &
@@ -321,6 +322,30 @@ subroutine setup()
        q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), pelabel(nppm), number(nppm), work(nppm) )
 
   allocate (vbuffer(0:attrib_max-1,nbuf_max), vbuf_local(0:attrib_max-1,nbuf_max))
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !!!!!!!!!!!!!!!  parameters (laser)            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  wpl_e = sqrt( (ne/Vplas * qe *qe) / (unit_epsilon0 * mass_e) )
+  wpl_i = sqrt( (ni/Vplas * qi *qi) / (unit_epsilon0 * mass_i) )
+
+  if (omega_wpl > 0.) omega = omega_wpl * wpl_e
+  omega_wpl = omega / wpl_e
+  omega_hz  = omega / unit_t0_in_s
+  lambda    = unit_c / omega
+  lambda_nm = lambda * unit_abohr_in_nm
+  rhocrit_nm3 = omega*omega*unit_epsilon0*mass_e/(qe*qe) / unit_abohr_in_nm**3.
+
+  if (I0_Wpercm2 > 0.) then
+    E0   = unit_Z0 *sqrt(I0_Wpercm2*1.E4 / unit_P0_in_W ) * unit_abohr_in_m
+    vosc = (abs(qe)*E0)/(mass_e*omega)
+  endif
+  E0         = vosc*mass_e*omega/abs(qe)
+  I0_Wpercm2 = (E0 / unit_abohr_in_m / unit_Z0)**2. * unit_P0_in_W * 1.E-4
+
+  call setup_laser()
+
 
   blocklengths(1:nprops_particle) = 1   
 

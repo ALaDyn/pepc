@@ -14,7 +14,8 @@ LIBRARIES = ../lpepcsrc/$(MACH)/liblpepc.a ../sl_pepc/libsl.a ../memwatch/$(MACH
 SOURCES.f90 =   physvars.f90 benchmarking.f90 sum_radial.f90 velocity_setup.f90 \
                 param_dump.f90 face.f90 files.f90 pusher.f90 randion.f90 \
                 setup.f90 configure.f90 special_start.f90 stamp.f90 \
-	 	energies.f90 cleanup.f90 pepce.f90 module_icosahedron.f90
+	 	energies.f90 cleanup.f90 pepce.f90 \
+	 	module_icosahedron.f90 module_units.f90 module_laser.f90 module_fields.f90
 # -------------------------------------------------------------------------------------------
 
 # Names of application object files derived from sources

@@ -1,6 +1,7 @@
 subroutine param_dump
 
   use physvars
+  use module_laser
   implicit none
   integer :: ifile
 
@@ -33,7 +34,7 @@ subroutine param_dump
         write (ifile,'(a20,f12.3)') ' Cloud radius R: ',eps
        
 
-        write (ifile,'(a20,i12)') ' # dt per cycle: ',navcycle
+        write (ifile,'(a20,1e12.5)') ' # dt per cycle: ',navcycle
 
         write (ifile,'(a20,1pe12.3)') ' N_D: ',4*pi/3.*(vte/a_ii)**3
         write (ifile,'(a20,f12.3)') ' N_c: ',4*pi/3.*(eps/a_ii)**3

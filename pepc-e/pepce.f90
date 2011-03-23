@@ -25,6 +25,8 @@ program pepce
   use module_fmm_framework
   use files
   use energies
+  use module_laser
+  use module_fields
   implicit none
   include 'mpif.h'
 
@@ -94,6 +96,9 @@ program pepce
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
 
+     ! laser propagation according to beam_config
+     if (experiment) call laser()
+
      call OutputMemUsage(2, "[pepce before fields]", (db_level==7) .and. (my_rank==0), 59)
 
      call pepc_fields(np_local,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
@@ -102,6 +107,12 @@ program pepce
               	      np_mult, mac, theta, eps, force_const, err_f, &
                       itime, choose_sort,weighted, &
                       num_neighbour_boxes, neighbour_boxes)
+
+     ! add any external forces (laser field etc)
+     if (experiment) then
+       call force_laser(1, np_local)
+       call field_dump(itime)
+     end if
 
      if (itime == nt) then
         call gather_particle_diag()
