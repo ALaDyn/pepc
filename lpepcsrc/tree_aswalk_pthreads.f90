@@ -979,6 +979,7 @@ module tree_walk_utils
       real*8  :: num_mac_evaluations !< thread output value: number of mac evaluations that have been performed
       logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
       integer :: coreid !< thread output value: id of thread`s processor
+      real*8 :: runtime_seconds !< thread wallclock-runtime in seconds, measured with MPI_WTIME()
     end type t_threaddata
 
 
@@ -1050,7 +1051,7 @@ module tree_walk_utils
       implicit none
       include 'mpif.h'
 
-      integer :: ith, ierr
+      integer :: ith, displ, ierr
       type(t_threaddata), target :: threaddata(num_walk_threads)
 
       ! we count how many threads already have finished
@@ -1065,13 +1066,39 @@ module tree_walk_utils
       call run_communication_loop()
 
       ! ... and wait for work thread completion
+      thread_workload = 0.
+
       do ith = 1,num_walk_threads
         call retval( pthreads_jointhread( ith ), "walk_schedule_thread_inner:pthread_join" )
+
+        if (threaddata(ith)%is_on_shared_core) then
+          displ = 2
+        else
+          displ = 0
+          thread_workload(0) = thread_workload(0) + 1
+        endif
+
+        thread_workload( displ+1) =     thread_workload( displ+1) + 1._8*threaddata(ith)%num_processed_particles
+        thread_workload( displ+2) = max(thread_workload( displ+2),  1._8*threaddata(ith)%num_processed_particles)
+        thread_workload(-displ-1) =     thread_workload(-displ-1) + 1._8*threaddata(ith)%runtime_seconds
+        thread_workload(-displ-2) = max(thread_workload(-displ-2),  1._8*threaddata(ith)%runtime_seconds)
+
+
         if (walk_summary) then
           write(ipefile,*) "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith)
         end if
       end do
 
+      ! compute relative deviation
+      thread_workload( 2) = abs(thread_workload( 2) - thread_workload( 1)) / thread_workload( 1)
+      thread_workload( 4) = abs(thread_workload( 4) - thread_workload( 1)) / thread_workload( 1)
+      thread_workload( 1) =     thread_workload( 1)                        / thread_workload( 0)
+      thread_workload( 3) =     thread_workload( 3)                        / (num_walk_threads - thread_workload(0))
+      thread_workload(-2) = abs(thread_workload(-2) - thread_workload(-1)) / thread_workload(-1)
+      thread_workload(-4) = abs(thread_workload(-4) - thread_workload(-1)) / thread_workload(-1)
+      thread_workload(-1) =     thread_workload(-1)                        / thread_workload( 0)
+      thread_workload(-3) =     thread_workload(-3)                        / (num_walk_threads - thread_workload(0))
+      ! store workload data
       interactions_local    = sum(threaddata(:)%num_interactions)
       mac_evaluations_local = sum(threaddata(:)%num_mac_evaluations)
 
@@ -1155,6 +1182,7 @@ module tree_walk_utils
       use tree_walk_communicator
       use pthreads_stuff
       implicit none
+      include 'mpif.h'
       type(c_ptr) :: walk_worker_thread
       type(c_ptr), value :: arg
 
@@ -1199,7 +1227,7 @@ module tree_walk_utils
       particles_available = .true.
       particles_active    = .true.
       call c_f_pointer(arg, my_threaddata)
-      my_threaddata = t_threaddata(my_threaddata%id, 0, 0._8, 0._8, same_core_as_communicator, my_processor_id)
+      my_threaddata = t_threaddata(my_threaddata%id, 0, 0._8, 0._8, same_core_as_communicator, my_processor_id, MPI_WTIME())
       particles_since_last_yield = 0
 
 
@@ -1270,6 +1298,9 @@ module tree_walk_utils
      ! walk_worker_thread = c_null_ptr ! due to some strange reasons, ifort produces a sigsegv here.
                                         ! since the return value is not needed, we just do not set it
                                         ! to circumvent the problem
+
+      my_threaddata%runtime_seconds = MPI_WTIME() - my_threaddata%runtime_seconds
+
       call retval(pthreads_exitthread(), "walk_worker_thread:pthread_exit")
 
     end function walk_worker_thread

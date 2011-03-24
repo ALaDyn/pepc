@@ -134,7 +134,7 @@ module treevars
   real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
   real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
   integer*8 :: branch_max_global = -1   ! estimation for global branches
-
+  real*8 :: thread_workload(-4:4) !< stores average particles and runtime per thread for diagnostic purposes, entry 0 contains number of worker threads
   ! Debugging switches (all off by default)
   logical :: tree_debug=.false.
   logical :: build_debug=.false.
