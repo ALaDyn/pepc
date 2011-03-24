@@ -34,13 +34,13 @@ $(MACH):
 	mkdir -p  $(MACH)
 
 $(MACH)/bgp_core_c.o: bgp_core.c
-	$(CC) $(CFLAGS_NOOPT) -c $< -o $@
+	$(CCPRE) $(CC) $(CFLAGS_NOOPT) -c $< -o $@
 
 $(MACH)/%_f.o: %.f90
-	$(FC) $(FFLAGS) -c $< -o $@
+	$(FCPRE) $(FC) $(FFLAGS) -c $< -o $@
 
 $(MACH)/%_c.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CCPRE) $(CC) $(CFLAGS) -c $< -o $@
 	
 $(MACH)/$(LIBNAME): $(OBJS)
 	$(AR) $(ARFLAGS) $(MACH)/$(LIBNAME) $(OBJS)

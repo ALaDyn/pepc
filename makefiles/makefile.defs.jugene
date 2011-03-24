@@ -28,9 +28,14 @@ CFLAGS_NOOPT = -D_BGP $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drive
 
 #LDPRE    = bgvtf90 -vt:f90
 LD       = mpixlf90_r
-LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATION) -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc
-#-L/bgsys/local/totalview/toolworks/totalview.8.8.0-1/linux-power/lib/ -ltvheap_bluegene
-LDLIBS   = 
+LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATION) 
+
+#TOTALVIEW_LIB = -L/bgsys/local/totalview/toolworks/totalview.8.8.0-1/linux-power/lib/ -ltvheap_bluegene
+
+#IHPCT_BASE=/bgsys/local/ihpct
+#HPCCOUNT_LIB = -L../hpccount/lib -lhpccnt -L$(IHPCT_BASE)/lib -lhpc -llicense $(IHPCT_BASE)/lib/fake_dlfcn.o $(IHPCT_BASE)/lib/average.o
+
+LDLIBS   = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc $(TOTOALVIEW_LIB) $(HPCCOUNT_LIB)
 
 RM       = rm -rf
 

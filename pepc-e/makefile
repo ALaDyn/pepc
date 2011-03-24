@@ -67,7 +67,7 @@ timings.mod:
 
 $(EXECNAME): $(LIBRARIES) $(OBJS)
 	@echo "Creating application binary $(EXECNAME) ..."
-	$(LDPRE) $(LD) $(LDFLAGS) -o $(EXECNAME) $(OBJS) $(LIBPEPC) $(LDLIBS) $(LIBRARIES)
+	$(LDPRE) $(LD) $(LDFLAGS) -o $(EXECNAME) $(OBJS) $(LIBPEPC) $(LIBRARIES) $(LDLIBS)
 	@echo "... done"
 
 clean:
