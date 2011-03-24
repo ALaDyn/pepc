@@ -100,6 +100,14 @@ subroutine special_start(iconf)
     end subroutine
   end interface
 
+  interface
+    function GetSphereCenter(idx)
+      integer, intent(in) :: idx
+      real*8, dimension(3) :: GetSphereCenter
+    end function
+  end interface
+
+
   integer, intent(in) :: iconf  ! Configuration switch
   integer :: p,mpi_cnt, ierr
   real*4 :: par_rand_res,mu
@@ -244,6 +252,49 @@ subroutine special_start(iconf)
               y(p) = 0.5 + yt
               x(p) = 0.5 + xt
               
+           end if
+        end do
+     end do
+
+  case(342)
+     if (my_rank == 0) write(*,*) "Using special start... case 342 (42 spheres benchmark)"
+
+     r_sphere = 0.05
+
+     do mpi_cnt = 0, n_cpu-1
+        do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
+
+           xt = 2.0_8
+           yt = 1.0_8
+           zt = 1.0_8
+
+           do while ( (xt*xt + yt*yt + zt*zt) > 1.0_8)
+              call par_rand(par_rand_res)
+              xt = -1.0_8 + 2.0_8*par_rand_res
+              call par_rand(par_rand_res)
+              yt = -1.0_8 + 2.0_8*par_rand_res
+              call par_rand(par_rand_res)
+              zt = -1.0_8 + 2.0_8*par_rand_res
+           end do
+
+           call par_rand(par_rand_res)
+
+           delta = 1._8*GetSphereCenter(nint(42.*par_rand_res))
+
+           xt = xt*r_sphere + delta(1)
+           yt = yt*r_sphere + delta(2)
+           zt = zt*r_sphere + delta(3)
+
+           if ( my_rank == mpi_cnt .and. p <= np_local ) then
+
+              ux(p) = 0.
+              uy(p) = 0.
+              uz(p) = 0.
+
+              z(p) = 0.5 + zt
+              y(p) = 0.5 + yt
+              x(p) = 0.5 + xt
+
            end if
         end do
      end do
@@ -438,7 +489,7 @@ subroutine special_start(iconf)
      if (my_rank == 0) write(*,*) "Using special start... case 8 (fast homogeneous distribution)"
 
      ! initialize random number generator with some arbitrary seed
-     call par_rand(par_rand_res, my_rank**2 + 13)
+     call par_rand(par_rand_res, my_rank + 13)
 
      do p = 1, (fances(my_rank) - fances(my_rank-1))
            
@@ -728,3 +779,72 @@ subroutine special_start(iconf)
   work(1:np_local) = 1.
 
 end subroutine special_start
+
+
+
+function GetSphereCenter(idx)
+  implicit none
+  integer, intent(in) :: idx
+  real*8, dimension(3) :: GetSphereCenter
+
+  INTEGER, DIMENSION(3, 3) :: array = reshape([ 1, 2, 3, 4,&
+   5, 6, 7, 8, 9 ], shape(array))
+
+
+  real*8, dimension(3, 50) :: random_vectors = reshape([  0.7011 ,  0.0942 ,  0.0012, &
+    0.6663 ,  0.5985 ,  0.4624,&
+    0.5391 ,  0.4709 ,  0.4243,&
+    0.6981 ,  0.6959 ,  0.4609,&
+    0.6665 ,  0.6999 ,  0.7702,&
+    0.1781 ,  0.6385 ,  0.3225,&
+    0.1280 ,  0.0336 ,  0.7847,&
+    0.9991 ,  0.0688 ,  0.4714,&
+    0.1711 ,  0.3196 ,  0.0358,&
+    0.0326 ,  0.5309 ,  0.1759,&
+    0.5612 ,  0.6544 ,  0.7218,&
+    0.8819 ,  0.4076 ,  0.4735,&
+    0.6692 ,  0.8200 ,  0.1527,&
+    0.1904 ,  0.7184 ,  0.3411,&
+    0.3689 ,  0.9686 ,  0.6074,&
+    0.4607 ,  0.5313 ,  0.1917,&
+    0.9816 ,  0.3251 ,  0.7384,&
+    0.1564 ,  0.1056 ,  0.2428,&
+    0.8555 ,  0.6110 ,  0.9174,&
+    0.6448 ,  0.7788 ,  0.2691,&
+    0.3763 ,  0.4235 ,  0.7655,&
+    0.1909 ,  0.0908 ,  0.1887,&
+    0.4283 ,  0.2665 ,  0.2875,&
+    0.4820 ,  0.1537 ,  0.0911,&
+    0.1206 ,  0.2810 ,  0.5762,&
+    0.5895 ,  0.4401 ,  0.6834,&
+    0.2262 ,  0.5271 ,  0.5466,&
+    0.3846 ,  0.4574 ,  0.4257,&
+    0.5830 ,  0.8754 ,  0.6444,&
+    0.2518 ,  0.5181 ,  0.6476,&
+    0.2904 ,  0.9436 ,  0.6790,&
+    0.6171 ,  0.6377 ,  0.6358,&
+    0.2653 ,  0.9577 ,  0.9452,&
+    0.8244 ,  0.2407 ,  0.2089,&
+    0.9827 ,  0.6761 ,  0.7093,&
+    0.7302 ,  0.2891 ,  0.2362,&
+    0.3439 ,  0.6718 ,  0.1194,&
+    0.5841 ,  0.6951 ,  0.6073,&
+    0.1078 ,  0.0680 ,  0.4501,&
+    0.9063 ,  0.2548 ,  0.4587,&
+    0.8797 ,  0.2240 ,  0.6619,&
+    0.8178 ,  0.6678 ,  0.7703,&
+    0.2607 ,  0.8444 ,  0.3502,&
+    0.5944 ,  0.3445 ,  0.6620,&
+    0.0225 ,  0.7805 ,  0.4162,&
+    0.4253 ,  0.6753 ,  0.8419,&
+    0.3127 ,  0.0067 ,  0.8329,&
+    0.1615 ,  0.6022 ,  0.2564,&
+    0.1788 ,  0.3868 ,  0.6135,&
+    0.4229 ,  0.9160 ,  0.5822], shape(random_vectors))
+
+
+
+  GetSphereCenter = 1._8*random_vectors(:, idx + 1)
+
+end function GetSphereCenter
+
