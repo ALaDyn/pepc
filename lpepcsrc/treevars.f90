@@ -133,6 +133,7 @@ module treevars
   integer, parameter :: CHILDCODE_NODE_TOUCHED = 11 !< this bit is used inside the childcode to notify of nodes, that already contain valid multipole information and may not be set to zero in tree_global
   real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
   real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
+  integer*8 :: branch_max_global = -1   ! estimation for global branches
 
   ! Debugging switches (all off by default)
   logical :: tree_debug=.false.

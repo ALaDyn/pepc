@@ -75,10 +75,10 @@ subroutine tree_stats(timestamp)
 
     write(60,'(a20,i7,a22)') 'Tree stats for CPU ', me, ' and global statistics'
 
-    write(60,'(a50,3i12)') '# procs, walk_threads, max_particles_per_thread', num_pe, num_walk_threads, max_particles_per_thread
-    write(60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, size_tree',nintmax, np_mult,size_tree
+    write(60,'(a50,3i12)') '# procs, walk_threads, max_particles_per_thread: ', num_pe, num_walk_threads, max_particles_per_thread
+    write(60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, size_tree: ',nintmax, np_mult,size_tree
     write(60,'(a50,3i12)') 'npp, npart, nppm(max): ',npp,npart,nppm
-    write(60,'(a50,2i12)') 'total # particles, N/P',total_part,int(npart/num_pe)
+    write(60,'(a50,2i12)') 'total # particles, N/P: ',total_part,int(npart/num_pe)
     write(60,'(a50,3e12.4)') 'total/ave/max_local # interactions(work): ', total_interactions, average_interactions, max_interactions
     write(60,'(a50,3e12.4)') 'total/ave/max_local # mac evaluations: ', total_mac_evaluations, average_mac_evaluations, max_mac_evaluations
     write(60,'(a50,3i12)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
@@ -88,9 +88,9 @@ subroutine tree_stats(timestamp)
     write(60,'(a50,3i12)') 'maximum # leaves, twigs, keys(=maxaddress): ',maxleaf, maxtwig, maxaddress
     write(60,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # leaves: ',gmax_leaves, gmax_leaves/(.01*maxleaf), ' % of  ', maxleaf
     write(60,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # twigs: ', gmax_twigs, gmax_twigs/(.01*maxtwig), ' % of  ', maxtwig
-    write(60,'(a50,4i12,a3,2i12)') 'Local, max / min local, global # branches, (max): ', &
-              nbranch,max_nbranch,min_nbranch, nbranch_sum,'/',nbranch_local_max,nbranch_max
-
+    write(60,'(a50,3i12)') '#branches local, max_global, min_global: ', nbranch,max_nbranch,min_nbranch
+    write(60,'(a50,2i12)') '#branches global sum estimated, sum actual: ',branch_max_global,nbranch_sum
+    write(60,'(a50,2i12)') 'max res.space for local branches, global br.: ', nbranch_local_max,nbranch_max
     write (60,'(a50,2i12)') 'Max # multipole fetches/ships per cpu: ',maxval(fetches), maxval(ships)
     write (60,'(a50,2i12)') 'Min # multipole fetches/ships per cpu: ',minval(fetches), minval(ships)
     write (60,'(a50,2i12)') 'Local #  multipole fetches & ships: ',sum_fetches,sum_ships

@@ -41,7 +41,6 @@ subroutine tree_local
   integer*8 :: D1, D2               ! sub-domains
   integer*8 :: L                    ! inner limit
   integer*8 :: branch_max_local     ! estimation for local branches
-  integer*8 :: branch_max_global    ! estimation for global branches
   integer*8 :: ilevel, pos
 
   integer,external :: key2addr        ! Mapping function to get hash table address from key
