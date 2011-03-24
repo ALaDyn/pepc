@@ -261,8 +261,10 @@ subroutine special_start(iconf)
 
      r_sphere = 0.05
 
-     do mpi_cnt = 0, n_cpu-1
-        do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
+     ! initialize random number generator with some arbitrary seed
+     call par_rand(par_rand_res, my_rank + 13)
+
+        do p = 1, (fances(my_rank) - fances(my_rank-1))
 
            xt = 2.0_8
            yt = 1.0_8
@@ -285,19 +287,7 @@ subroutine special_start(iconf)
            yt = yt*r_sphere + delta(2)
            zt = zt*r_sphere + delta(3)
 
-           if ( my_rank == mpi_cnt .and. p <= np_local ) then
-
-              ux(p) = 0.
-              uy(p) = 0.
-              uz(p) = 0.
-
-              z(p) = 0.5 + zt
-              y(p) = 0.5 + yt
-              x(p) = 0.5 + xt
-
-           end if
         end do
-     end do
 
   case(4)
 
