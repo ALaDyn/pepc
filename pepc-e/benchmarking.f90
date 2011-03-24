@@ -325,9 +325,9 @@ contains
 
     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
     t2=MPI_WTIME()
-    write(91,*) "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z vx vy vz"
+    write(91,*) "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z vx vy vz q m"
     do p=1, np_local
-       write(91,'(I6.6,6E10.3E2)') p, x(p), y(p), z(p), ux(p), uy(p), uz(p)
+       write(91,'(I6.6,8E15.3E2)') p, x(p), y(p), z(p), ux(p), uy(p), uz(p), q(p), m(p)
     end do
 
     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
