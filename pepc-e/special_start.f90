@@ -283,9 +283,13 @@ subroutine special_start(iconf)
 
            delta = 1._8*GetSphereCenter(nint(42.*par_rand_res))
 
-           xt = xt*r_sphere + delta(1)
-           yt = yt*r_sphere + delta(2)
-           zt = zt*r_sphere + delta(3)
+           x(p) = xt*r_sphere + delta(1)
+           y(p) = yt*r_sphere + delta(2)
+           z(p) = zt*r_sphere + delta(3)
+
+           ux(p) = 0.
+           uy(p) = 0.
+           uz(p) = 0.
 
         end do
 
