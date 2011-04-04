@@ -1,0 +1,42 @@
+MACH     = IBM-BGP-jugene
+
+RANLIB   = ranlib
+
+MAKE     = gmake
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C 
+
+OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck
+OPTIMIZATIONFLAGS       = -O3 -qhot -qipa -qipa=list=long:threads=auto -qipa=inline=limit=12000:inline=threshold=12000:level=2 
+                                             
+OPTIMIZATION            = $(OPTIMIZATIONFLAGS)
+STANDARDFLAGS           = -qtune=450 -qarch=450 -qthreaded -qsmp=noauto
+
+#FCPRE    = bgvtf90 -vt:f90
+FC       = mpixlf90_r
+FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATION)
+
+#CCPRE       = bgvtcc -vt:cc
+CC           = mpixlc_r
+CFLAGS       = $(STANDARDFLAGS) $(OPTIMIZATION) 
+CFLAGS_NOOPT = -D_BGP $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
+
+#LDPRE    = bgvtf90 -vt:f90
+LD       = mpixlf90_r
+LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATION) 
+
+#TOTALVIEW_LIB = -L/bgsys/local/totalview/toolworks/totalview.8.8.0-1/linux-power/lib/ -ltvheap_bluegene
+
+IHPCT_BASE=/bgsys/local/ihpct
+HPCCOUNT_LIB = -L../hpccount/lib -lhpccnt -L$(IHPCT_BASE)/lib -lhpc -llicense $(IHPCT_BASE)/lib/fake_dlfcn.o $(IHPCT_BASE)/lib/average.o
+
+LDLIBS   = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc $(TOTOALVIEW_LIB) $(HPCCOUNT_LIB)
+
+RM       = rm -rf
+
+EXECNAME = force_test
+
