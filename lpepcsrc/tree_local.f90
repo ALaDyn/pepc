@@ -23,9 +23,8 @@ subroutine tree_local
   integer, dimension(nppm+2)  :: local_plist, local_owner, local_ind
   integer*8, allocatable :: subcell(:)
   integer, allocatable :: cell_addr(:)
-  integer*8, dimension(maxaddress) :: res_key
+  integer*8, dimension(maxaddress) :: res_key,search_key, resolve_key
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
-  integer*8, dimension(nbranch_max) :: search_key, resolve_key
 
   ! stuff for getting a virtual domain
   integer*8 :: right_limit_me, right_limit
