@@ -19,6 +19,7 @@ subroutine setup()
   use module_icosahedron
   use module_laser
   use module_units
+  use module_fields
   implicit none
   include 'mpif.h'
 
@@ -39,7 +40,7 @@ subroutine setup()
 
 
   namelist /pepcdata/ experiment, nep, nip, np_mult, ne, ni, num_walk_threads, max_particles_per_thread, &
-       mac, theta, mass_ratio, q_factor, eps, &
+       mac, theta, mass_ratio, q_factor, eps, field_dump_ncells, &
        system_config, target_geometry, ispecial, choose_sort, weighted, &
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
@@ -55,7 +56,6 @@ subroutine setup()
 
 
   !  Default input set
- 
   system_config   =   2
   target_geometry =   0
 

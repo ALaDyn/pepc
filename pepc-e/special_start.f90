@@ -743,9 +743,17 @@ subroutine special_start(iconf)
        y(p) = y(np_local-p+1) + r_sphere/100 * sin(xt) * sin(yt)
        z(p) = z(np_local-p+1) + r_sphere/100 * cos(yt)
 
-       ux(p)  = 0.1
-       uy(p)  = 0.1
-       uz(p)  = 0.1
+       ! chose random velocity
+       call par_rand(par_rand_res)
+       xt = par_rand_res*2*pi
+       call par_rand(par_rand_res)
+       yt = par_rand_res*pi
+       call par_rand(par_rand_res)
+       zt = par_rand_res*vte
+
+       ux(p)  = zt * cos(xt) * sin(yt)
+       uy(p)  = zt * cos(xt) * sin(yt)
+       uz(p)  = zt * cos(yt)
         q(p)  = qe
         m(p)  = mass_e
        pelabel(p)  = -(1 + p + fances(my_rank-1)/2-1)

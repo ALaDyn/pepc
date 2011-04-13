@@ -17,7 +17,7 @@ module module_laser
       integer, public :: beam_config_in = 0 !< Particle or laser beam switch including variations
       integer, public :: beam_config = 0 !< Reduced switch for particle or laser beam
 
-      real, public :: omega     =  0.5    !< frequency
+      real, public :: omega     =  0.1    !< frequency
       real, public :: omega_wpl =  0.0    !< frequency omega in wpl_e
       real, public :: omega_hz  =  0.0    !< frequency omega in Hz
       real, public :: lambda    =  1.0    !< laser wavelength
@@ -165,7 +165,7 @@ module module_laser
           !    Laser parameter output
           !    ==================================
 	      if (my_rank==0) then
-	        do ifile = 6,24,18
+	        do ifile = 6,15,9
 	           if (beam_config.ne.0)  then
 	              write(ifile,'(/"-- LASER --"/(a20,f8.2,a4,f12.6,a4)/6(a20,f9.3/))') &
 	                    'tlaser =',          tlaser,'   (',tlaser*unit_t0_in_fs,' fs)' &

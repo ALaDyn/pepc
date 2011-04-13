@@ -111,7 +111,6 @@ program pepce
      ! add any external forces (laser field etc)
      if (experiment) then
        call force_laser(1, np_local)
-       call field_dump(itime)
      end if
 
      if (itime == nt) then
@@ -135,8 +134,12 @@ program pepce
        if ( mod(itime, idump ) .eq. 0) then
          call write_particles(itime)
          if ((ispecial==9).or.(ispecial==10).or.(ispecial==11)) call sum_radial(itime)
+
+         if (experiment) call field_dump(itime)
        end if
      endif
+
+     if (experiment) call momentum_dump(itime, trun)
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
