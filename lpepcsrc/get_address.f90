@@ -1,14 +1,13 @@
-! ===========================================
-!
-!           GET_ADDRESS
-!
-!   Function to return hash table entry 
-!   address from key
-!   
-!
-! ===========================================
-
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>
+!> Calculates inverse mapping from the hash-key to the hash-address.
+!>
+!> @param[in] keyin inverse mapping candidate.
+!> @param[in] cmark a description.
+!> @param[out] key2addr the adress if the key exists
+!> @exception if key does not exist, the whole program is aborted
+!>
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 function key2addr(keyin,cmark)
 
   use treevars
@@ -40,7 +39,7 @@ function key2addr(keyin,cmark)
            write(*,'(a15,o22)') 'Key = ',keyin
            write(*,*) 'Initial address =',cell_addr
            write(*,*) '# const =',hashconst
-          write(*,*) 'ires =',ires
+           write(*,*) 'ires =',ires
            exit
         endif
         ires = ires + 1
@@ -64,3 +63,60 @@ close(75)
      stop
   endif
 end function key2addr
+
+
+
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>
+!> Calculates inverse mapping from the hash-key to the hash-address.
+!>
+!> @param[in] keyin inverse mapping candidate.
+!> @return true if candidate exists
+!>
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+function testaddr(keyin)
+
+  use treevars
+  implicit none
+  include 'mpif.h'
+
+  integer*8, intent(in)  :: keyin
+
+  integer :: cell_addr, link_addr, ires
+  logical :: resolved
+  logical :: testaddr
+
+  ! cell address hash function
+  cell_addr = INT(IAND(keyin,hashconst))
+
+  ! Keys match -> found entry
+  if ( htable( cell_addr )%key == keyin ) then
+     testaddr = .true.
+     return
+  else
+     resolved = .false.
+     link_addr = cell_addr
+     ires = 0
+
+     do while (.not.resolved .and. ires <= maxaddress )       ! Repeat until keys match or run out of links
+       link_addr = htable(link_addr)%link    ! Next linked entry
+
+       ! no more links, thus no entry for keyin
+       if (link_addr == -1 ) then
+           testaddr = .false.
+           return
+        endif
+
+        ires = ires + 1
+
+        ! Keys match -> found entry
+        if ( htable( link_addr )%key == keyin ) then
+           testaddr = .true.
+           return
+        endif
+     end do
+  endif
+end function testaddr
