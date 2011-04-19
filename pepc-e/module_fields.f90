@@ -39,14 +39,15 @@ module module_fields
 
     contains
 
-      subroutine momentum_dump(itime_, trun_)
+      subroutine momentum_dump(itime_, trun_, mom)
         use physvars
         implicit none
         include 'mpif.h'
 
         integer, intent(in) :: itime_
         real, intent(in) :: trun_
-        real*8 :: mom(4), r(4)
+        real*8, intent(out) :: mom(4)
+        real*8 :: r(4)
         integer :: p, ierr
 
         mom = 0.

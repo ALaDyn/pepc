@@ -27,12 +27,16 @@ program pepce
   use energies
   use module_laser
   use module_fields
+  use module_acf
   implicit none
   include 'mpif.h'
 
   integer :: ierr, ifile, nppm_ori, provided
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls."
+  type(acf) :: momentum_acf
+  real*8 :: mom(4)
+
   ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
   call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
 
@@ -81,6 +85,8 @@ program pepce
   call benchmark_inner
 
   flush(6)
+
+  if (experiment) call momentum_acf%initialize(nt)
 
   ! Loop over all timesteps
   do itime = 1,nt
@@ -139,7 +145,10 @@ program pepce
        end if
      endif
 
-     if (experiment) call momentum_dump(itime, trun)
+     if (experiment) then
+       call momentum_dump(itime, trun, mom)
+       call momentum_acf%addval(mom(1:3))
+     endif
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
@@ -150,6 +159,8 @@ program pepce
      flush(6)
 
   end do
+
+  if (experiment) call momentum_acf%finalize()
 
   call benchmark_post
 
