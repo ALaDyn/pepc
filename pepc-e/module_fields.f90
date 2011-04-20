@@ -39,51 +39,6 @@ module module_fields
 
     contains
 
-      subroutine momentum_dump(itime_, trun_, mom)
-        use physvars
-        implicit none
-        include 'mpif.h'
-
-        integer, intent(in) :: itime_
-        real, intent(in) :: trun_
-        real*8, intent(out) :: mom(4)
-        real*8 :: r(4)
-        integer :: p, ierr
-
-        mom = 0.
-
-        do p = 1,np_local
-          if (q(p) < 0) then
-            r = [ux(p), uy(p), uz(p), 0._8]
-            r(4) = sqrt(dot_product(r,r))
-            mom = mom + r
-          endif
-        end do
-
-        if (my_rank == 0) then
-          call MPI_REDUCE(MPI_IN_PLACE, mom, 4, MPI_REAL8, MPI_SUM,  0, MPI_COMM_WORLD, ierr )
-        else
-          call MPI_REDUCE(mom, MPI_IN_PLACE, 4, MPI_REAL8, MPI_SUM,  0, MPI_COMM_WORLD, ierr )
-        endif
-
-        if (my_rank == 0) then
-          if (itime_ <= 1) then
-             open(87, FILE='momentum.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
-          else
-             open(87, FILE='momentum.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
-           endif
-
-           write(87,'(i10,5g25.12)') itime_, trun_, mom
-
-           close(87)
-
-        endif
-
-
-      end subroutine momentum_dump
-
-
-
       subroutine field_dump(itime)
         implicit none
         include 'mpif.h'

@@ -28,6 +28,7 @@ program pepce
   use module_laser
   use module_fields
   use module_acf
+  use module_diagnostics
   implicit none
   include 'mpif.h'
 
@@ -139,14 +140,18 @@ program pepce
      if ( idump .gt. 0 ) then
        if ( mod(itime, idump ) .eq. 0) then
          call write_particles(itime)
+         call write_particles_to_vtk(itime)
          if ((ispecial==9).or.(ispecial==10).or.(ispecial==11)) call sum_radial(itime)
 
-         if (experiment) call field_dump(itime)
+         if (experiment) then
+           call field_dump(itime)
+           call momentum_acf%to_file("momentum_Kt.dat")
+         end if
        end if
      endif
 
      if (experiment) then
-       call momentum_dump(itime, trun, mom)
+       call write_total_momentum(itime, trun, mom)
        call momentum_acf%addval(mom(1:3))
      endif
 
