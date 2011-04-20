@@ -41,7 +41,7 @@ module module_vtk
           procedure :: write_data_array_Int4_1  => vtkfile_write_data_array_Int4_1
           procedure :: write_data_array_Int4_3  => vtkfile_write_data_array_Int4_3
           procedure :: write_data_array_Int8_1  => vtkfile_write_data_array_Int8_1
-          procedure :: write_data_array_Int8_3  => vtkfile_write_data_array_Int4_3
+          procedure :: write_data_array_Int8_3  => vtkfile_write_data_array_Int8_3
 
           generic :: write_data_array => write_data_array_Real4_1, & ! name, one-dim real*4, number of entries
                                             write_data_array_Real4_3,  & ! name, three-dim real*4 as three separate arrays, number of entries
