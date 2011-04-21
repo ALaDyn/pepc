@@ -4,6 +4,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_vtk
+      use module_base64
       implicit none
 
       character(6), parameter :: subfolder = "./vtk/"
@@ -20,9 +21,9 @@ module module_vtk
           integer :: filehandle = 97
           integer :: filehandle_par = 98
           logical :: parallel = .false.
-          character(12) :: byte_order = "LittleEndian"
+          character(12) :: byte_order = "BigEndian"
           character(3) :: version = "0.1"
-          character(5) :: format = "ascii"
+          logical :: binary = .true.
           integer :: my_rank
           integer :: num_pe
 
@@ -123,12 +124,19 @@ module module_vtk
         class(vtkfile) :: vtk
         character(*) :: name, type
         integer :: number_of_components
+        character(6) :: format
+
+        if (vtk%binary) then
+          format = "binary"
+        else
+          format = "ascii"
+        end if
 
         write(vtk%filehandle, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,""">")') &
-                 name, number_of_components, type, vtk%format
+                 name, number_of_components, type, trim(format)
         if (vtk%parallel) then
           write(vtk%filehandle_par, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,"""/>")') &
-                 name, number_of_components, type, vtk%format
+                 name, number_of_components, type, trim(format)
         end if
      end subroutine
 
@@ -139,10 +147,25 @@ module module_vtk
         character(*) :: name
         integer :: ndata, i
         real*4 :: data(:)
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 1, "Float32")
-        do i=1,ndata
+
+        if (vtk%binary) then
+          numbytes = ndata*1*4
+          call base64%start(vtk%filehandle)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle)
+          do i=1,ndata
+            call base64%encode(data(i))
+          end do
+          call base64%finish()
+        else
+          do i=1,ndata
           write(vtk%filehandle, '(G14.6)') data(i)
-        end do
+          end do
+        endif
         write(vtk%filehandle, '("</DataArray>")')
      end subroutine vtkfile_write_data_array_Real4_1
 
@@ -153,10 +176,27 @@ module module_vtk
         character(*) :: name
         integer :: ndata, i
         real*4 :: data1(:), data2(:), data3(:)
-        call vtk%write_data_array_header(name, 1, "Float32")
-        do i=1,ndata
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 3, "Float32")
+
+        if (vtk%binary) then
+          numbytes = ndata*3*4
+          call base64%start(vtk%filehandle)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle)
+          do i=1,ndata
+            call base64%encode(data1(i))
+            call base64%encode(data2(i))
+            call base64%encode(data3(i))
+          end do
+          call base64%finish()
+        else
+          do i=1,ndata
           write(vtk%filehandle, '(3G14.6)') data1(i), data2(i), data3(i)
-        end do
+          end do
+        endif
         write(vtk%filehandle, '("</DataArray>")')
      end subroutine vtkfile_write_data_array_Real4_3
 
@@ -167,12 +207,27 @@ module module_vtk
         character(*) :: name
         integer :: ndata, i
         real*8 :: data(:)
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 1, "Float64")
-        do i=1,ndata
+
+        if (vtk%binary) then
+          numbytes = ndata*1*8
+          call base64%start(vtk%filehandle)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle)
+          do i=1,ndata
+            call base64%encode(data(i))
+          end do
+          call base64%finish()
+        else
+          do i=1,ndata
           write(vtk%filehandle, '(G14.6)') data(i)
-        end do
+          end do
+        endif
         write(vtk%filehandle, '("</DataArray>")')
-     end subroutine vtkfile_write_data_array_Real8_1
+      end subroutine vtkfile_write_data_array_Real8_1
 
 
      subroutine vtkfile_write_data_array_Real8_3(vtk, name, ndata, data1, data2, data3)
@@ -181,10 +236,27 @@ module module_vtk
         character(*) :: name
         integer :: ndata, i
         real*8 :: data1(:), data2(:), data3(:)
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 3, "Float64")
-        do i=1,ndata
+
+        if (vtk%binary) then
+          numbytes = ndata*3*8
+          call base64%start(vtk%filehandle)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle)
+          do i=1,ndata
+            call base64%encode(data1(i))
+            call base64%encode(data2(i))
+            call base64%encode(data3(i))
+          end do
+          call base64%finish()
+        else
+          do i=1,ndata
           write(vtk%filehandle, '(3G14.6)') data1(i), data2(i), data3(i)
-        end do
+          end do
+        endif
         write(vtk%filehandle, '("</DataArray>")')
      end subroutine vtkfile_write_data_array_Real8_3
 
@@ -195,10 +267,25 @@ module module_vtk
         character(*) :: name
         integer :: ndata, i
         integer*4 :: data(:)
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 1, "Int32")
-        do i=1,ndata
+
+        if (vtk%binary) then
+          numbytes = ndata*1*4
+          call base64%start(vtk%filehandle)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle)
+          do i=1,ndata
+            call base64%encode(data(i))
+          end do
+          call base64%finish()
+        else
+          do i=1,ndata
           write(vtk%filehandle, '(I20)') data(i)
-        end do
+          end do
+        endif
         write(vtk%filehandle, '("</DataArray>")')
      end subroutine vtkfile_write_data_array_Int4_1
 
@@ -209,10 +296,27 @@ module module_vtk
         character(*) :: name
         integer :: ndata, i
         integer*4 :: data1(:), data2(:), data3(:)
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 1, "Int32")
-        do i=1,ndata
+
+        if (vtk%binary) then
+          numbytes = ndata*3*4
+          call base64%start(vtk%filehandle)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle)
+          do i=1,ndata
+            call base64%encode(data1(i))
+            call base64%encode(data2(i))
+            call base64%encode(data3(i))
+          end do
+          call base64%finish()
+        else
+          do i=1,ndata
           write(vtk%filehandle, '(3I20)') data1(i), data2(i), data3(i)
-        end do
+          end do
+        endif
         write(vtk%filehandle, '("</DataArray>")')
      end subroutine vtkfile_write_data_array_Int4_3
 
@@ -223,10 +327,25 @@ module module_vtk
         character(*) :: name
         integer :: ndata, i
         integer*8 :: data(:)
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 1, "Int64")
-        do i=1,ndata
+
+        if (vtk%binary) then
+          numbytes = ndata*1*8
+          call base64%start(vtk%filehandle)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle)
+          do i=1,ndata
+            call base64%encode(data(i))
+          end do
+          call base64%finish()
+        else
+          do i=1,ndata
           write(vtk%filehandle, '(I20)') data(i)
-        end do
+          end do
+        endif
         write(vtk%filehandle, '("</DataArray>")')
      end subroutine vtkfile_write_data_array_Int8_1
 
@@ -237,10 +356,27 @@ module module_vtk
         character(*) :: name
         integer :: ndata, i
         integer*8 :: data1(:), data2(:), data3(:)
-        call vtk%write_data_array_header(name, 3, "Int64")
-        do i=1,ndata
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 1, "Int64")
+
+        if (vtk%binary) then
+          numbytes = ndata*3*8
+          call base64%start(vtk%filehandle)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle)
+          do i=1,ndata
+            call base64%encode(data1(i))
+            call base64%encode(data2(i))
+            call base64%encode(data3(i))
+          end do
+          call base64%finish()
+        else
+          do i=1,ndata
           write(vtk%filehandle, '(3I20)') data1(i), data2(i), data3(i)
-        end do
+          end do
+        endif
         write(vtk%filehandle, '("</DataArray>")')
      end subroutine vtkfile_write_data_array_Int8_3
 
@@ -250,12 +386,12 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
         integer :: npart
 
-        write(vtk%filehandle, '("<VTKFile type=""UnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, vtk%byte_order
+        write(vtk%filehandle, '("<VTKFile type=""UnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
         write(vtk%filehandle, '("<UnstructuredGrid GhostLevel=""0"">")')
         write(vtk%filehandle, '("<Piece NumberOfPoints=""", I0, """ NumberOfCells=""0"">")') npart
 
         if (vtk%parallel) then
-          write(vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, vtk%byte_order
+          write(vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
           write(vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
         endif
      end subroutine vtkfile_unstructured_grid_write_headers

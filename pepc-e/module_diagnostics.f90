@@ -82,6 +82,6 @@ module module_diagnostics
            write(87,'(i10,5g25.12)') itime_, trun_, mom
            close(87)
         endif
-      end subroutine momentum_dump
+      end subroutine write_total_momentum
 
 end module module_diagnostics
