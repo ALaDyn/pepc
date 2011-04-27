@@ -8,6 +8,8 @@ module module_vtk
       implicit none
 
       character(6), parameter :: subfolder = "./vtk/"
+      character(16), parameter :: visitfilename = "timeseries.visit"
+      logical, private, save :: firststep = .true.
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -20,6 +22,7 @@ module module_vtk
           character(40) :: filename
           integer :: filehandle = 97
           integer :: filehandle_par = 98
+          integer :: filehandle_visit = 99
           logical :: parallel = .false.
           character(12) :: byte_order = "BigEndian"
           character(3) :: version = "0.1"
@@ -107,6 +110,12 @@ module module_vtk
 
         if (vtk%parallel) then
           open(vtk%filehandle_par, file=subfolder//filename_//".pvtu")
+          if (firststep) then
+            open(vtk%filehandle_visit, file=subfolder//visitfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
+            write(vtk%filehandle_visit, '("!NBLOCKS ", I10)') vtk%num_pe
+          else
+            open(vtk%filehandle_visit, file=subfolder//visitfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
+          endif
         endif
       end subroutine vtkfile_create_parallel
 
@@ -115,7 +124,12 @@ module module_vtk
         implicit none
         class(vtkfile) :: vtk
         close(vtk%filehandle)
-        if (vtk%parallel) close(vtk%filehandle_par)
+        if (vtk%parallel) then
+           close(vtk%filehandle_par)
+           close(vtk%filehandle_visit)
+        endif
+
+        firststep = .false.
      end subroutine vtkfile_close
 
 
@@ -418,11 +432,13 @@ module module_vtk
           if (vtk%parallel) then
             write(vtk%filehandle_par, '("<PCellData>")')
             write(vtk%filehandle_par, '("</PCellData>")')
+            write(vtk%filehandle_visit, '(/)')
 
             do i = 0,vtk%num_pe-1
               write(tmp,'(I6.6)') i
               fn = trim(vtk%filename)//"."//tmp//".vtu"
               write(vtk%filehandle_par, '("<Piece Source=""", a, """/>")') trim(fn)
+              write(vtk%filehandle_visit, '(a)') trim(fn)
             end do
 
             write(vtk%filehandle_par, '("</PUnstructuredGrid>")')
