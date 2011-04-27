@@ -11,8 +11,8 @@
 subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, ierror)
 
   use treevars
-
   implicit none
+  include 'mpif.h'
 
   integer*8, intent(in) :: keyin
   integer, intent(in) :: nodein, leavesin, codein, ownerin      ! call input parameters
