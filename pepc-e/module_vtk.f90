@@ -10,6 +10,11 @@ module module_vtk
       character(6), parameter :: subfolder = "./vtk/"
       character(16), parameter :: visitfilename = "timeseries.visit"
       logical, private, save :: firststep = .true.
+#ifndef LITTLEENDIAN
+      logical, parameter :: bigendian = .true.
+#else
+      logical, parameter :: bigendian = .false.
+#endif
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -167,10 +172,10 @@ module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*1*4
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           call base64%encode(numbytes)
           call base64%finish()
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           do i=1,ndata
             call base64%encode(data(i))
           end do
@@ -196,10 +201,10 @@ module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*3*4
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           call base64%encode(numbytes)
           call base64%finish()
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           do i=1,ndata
             call base64%encode(data1(i))
             call base64%encode(data2(i))
@@ -227,10 +232,10 @@ module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*1*8
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           call base64%encode(numbytes)
           call base64%finish()
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           do i=1,ndata
             call base64%encode(data(i))
           end do
@@ -256,10 +261,10 @@ module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*3*8
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           call base64%encode(numbytes)
           call base64%finish()
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           do i=1,ndata
             call base64%encode(data1(i))
             call base64%encode(data2(i))
@@ -287,10 +292,10 @@ module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*1*4
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           call base64%encode(numbytes)
           call base64%finish()
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           do i=1,ndata
             call base64%encode(data(i))
           end do
@@ -316,10 +321,10 @@ module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*3*4
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           call base64%encode(numbytes)
           call base64%finish()
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           do i=1,ndata
             call base64%encode(data1(i))
             call base64%encode(data2(i))
@@ -347,10 +352,10 @@ module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*1*8
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           call base64%encode(numbytes)
           call base64%finish()
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           do i=1,ndata
             call base64%encode(data(i))
           end do
@@ -376,10 +381,10 @@ module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*3*8
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           call base64%encode(numbytes)
           call base64%finish()
-          call base64%start(vtk%filehandle)
+          call base64%start(vtk%filehandle, bigendian)
           do i=1,ndata
             call base64%encode(data1(i))
             call base64%encode(data2(i))

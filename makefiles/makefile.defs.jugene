@@ -8,13 +8,13 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C 
+CPPFLAGS = -P -C -DLITTLEENDIAN
 
 OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck
 OPTIMIZATIONFLAGS       = -O3 -qhot -qipa -qipa=list=long:threads=auto -qipa=inline=limit=12000:inline=threshold=12000:level=2 \
                           -Q+__tree_walk_communicator_NMOD_run_communication_loop_inner:__tree_walk_utils_NMOD_walk_single_particle:next_node:key2addr:make_hashentry:rwlocks_unlock:rwlocks_unlock_:rwlocks_wrlock:rwlocks_wrlock_:rwlocks_rdlock:rwlocks_rdlock_:__module_calc_force_NMOD_calc_force_per_particle:__module_math_tools_NMOD_div_by_fac:__tree_walk_communicator_NMOD_unpack_data:__tree_walk_utils_NMOD_get_first_unassigned_particle:__tree_walk_communicator_NMOD_send_requests:__tree_walk_communicator_NMOD_send_data
                    
-OPTIMIZATION            = $(OPTIMIZATIONFLAGS)
+OPTIMIZATION            = $(OPTIMIZATIONFLAGS_DEBUG)
 STANDARDFLAGS           = -qtune=450 -qarch=450 -qthreaded -qsmp=noauto -qxlf2003=polymorphic
 
 #FCPRE    = bgvtf90 -vt:f90

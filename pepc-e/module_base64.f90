@@ -16,6 +16,8 @@ module module_base64
         integer*8 :: buffer  = 0
         integer   :: bits    = 0
         integer   :: istream = 6
+        logical   :: bigendian = .true.
+
       contains
            procedure :: getnextbyte    => base64_encoder_getnextbyte
            procedure :: flushbuffer  => base64_encoder_flushbuffer
@@ -78,20 +80,22 @@ module module_base64
       end subroutine base64_encoder_finish
 
 
-      subroutine base64_encoder_start(base64, istream_)
+      subroutine base64_encoder_start(base64, istream_, bigendian_)
         implicit none
         class(base64_encoder) :: base64
         integer :: istream_
-        base64%bits    = 0
-        base64%buffer  = 0_8
-        base64%istream = istream_
+        logical :: bigendian_
+        base64%bits      = 0
+        base64%buffer    = 0_8
+        base64%istream   = istream_
+        base64%bigendian = bigendian_
       end subroutine base64_encoder_start
 
 
       subroutine base64_encoder_encode_real8(base64, data)
         implicit none
         class(base64_encoder) :: base64
-        real*8, intent(in) :: data
+        real*8, intent(in), value :: data
         integer*8 :: tmp
         tmp = transfer(data, tmp)
         call base64%encode_int8(tmp)
@@ -101,7 +105,7 @@ module module_base64
       subroutine base64_encoder_encode_real4(base64, data)
         implicit none
         class(base64_encoder) :: base64
-        real*4, intent(in) :: data
+        real*4, intent(in), value :: data
         integer*4 :: tmp
         tmp = transfer(data, tmp)
         call base64%encode_int4(tmp)
@@ -111,7 +115,7 @@ module module_base64
       subroutine base64_encoder_encode_int8(base64, data)
         implicit none
         class(base64_encoder) :: base64
-        integer*8, intent(in) :: data
+        integer*8, intent(in), value :: data
         integer*4 :: tmp1, tmp2
         tmp1 = int(ibits(data,  0, 32), kind(tmp1))
         tmp2 = int(ibits(data, 32, 32), kind(tmp2))
@@ -123,11 +127,11 @@ module module_base64
       subroutine base64_encoder_encode_int4(base64, data)
         implicit none
         class(base64_encoder) :: base64
-        integer*4, intent(in) :: data
+        integer*4, value, intent(in) :: data
         integer*8 :: tmp
-
-        tmp = iand(transfer(data, tmp), Z'FFFFFFFF')
-        tmp = ishft(tmp, 32-base64%bits)
+        tmp = transfer(data, tmp)
+        if (.not. base64%bigendian) tmp = ishft(tmp, -32)
+        tmp = ishft(iand(tmp, Z'FFFFFFFF'), 32-base64%bits)
         base64%buffer = ior(base64%buffer, tmp)
         base64%bits = base64%bits + 32
         call base64%flushbuffer()
