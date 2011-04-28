@@ -8,8 +8,16 @@ default: pepce
 
 benchmark: pepce
 
-all: pepce
+all: pepce pepcmini pepcmw
 
+pepcmw: pepcbasics
+	@echo "============  Making Frontend PEPC-MW (Mathias Winkel version)  ============="
+	cd pepc-mw && $(MAKE) $(MFLAGS)
+	
+pepcmini: pepcbasics
+	@echo "============  Making Frontend PEPC-MINI (minial version)  ============="
+	cd pepc-mini && $(MAKE) $(MFLAGS)
+	
 pepce:  pepcbasics
 	@echo "============  Making Frontend PEPC-E (Benchmark version)  ============="
 	cd pepc-e && $(MAKE) $(MFLAGS)
@@ -17,8 +25,8 @@ pepce:  pepcbasics
 pepcbasics:
 	@echo "============  Making PEPC Sorting Library  ============="
 	cd sl_pepc && $(MAKE) $(MFLAGS)
-	@echo "============  Making PEPC Memory Bookkeeper =============" 
-	cd memwatch && $(MAKE) $(MFLAGS) 
+	@echo "============  Making PEPC Memory Bookkeeper ============="
+	cd memwatch && $(MAKE) $(MFLAGS)
 	@echo "============  Making PEPC Pthreads Interface  ============="
 	cd pthreads && $(MAKE) $(MFLAGS)
 	@echo "============  Making PEPC Library  ============="
@@ -30,6 +38,8 @@ clean: clean-doc
 	cd pthreads && $(MAKE) $(MFLAGS) clean
 	cd lpepcsrc && $(MAKE) $(MFLAGS) clean
 	cd pepc-e   && $(MAKE) $(MFLAGS) clean
+	cd pepc-mw  && $(MAKE) $(MFLAGS) clean
+	cd pepc-mini  && $(MAKE) $(MFLAGS) clean
 
 clean-doc:
 	rm -rf ./doc
