@@ -12,7 +12,7 @@
 !  ===================================================================
 
 
-subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
+subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, np_mult_,&
      mac, theta, eps, force_const, err_f, itime, choose_sort,weighted, &
      num_neighbours, neighbours)
@@ -26,7 +26,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   implicit none
   include 'mpif.h'
 
-  integer, intent(in) :: np_local, nppm_ori  ! # particles on this CPU
+  integer, intent(in) :: np_local, npart_total, nppm_ori  ! # particles on this CPU
   real, intent(in) :: theta, np_mult_       ! multipole opening angle
   real, intent(in) :: err_f       ! max tolerated force error (rms)
   real, intent(in) :: force_const       ! scaling factor for fields & potential
@@ -64,6 +64,7 @@ subroutine pepc_fields(np_local,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, 
   call timer_start(t_fields_begin)
 
   np_mult = np_mult_
+  npart   = npart_total
 
   npp = np_local
 

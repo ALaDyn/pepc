@@ -10,8 +10,10 @@
  ni = 1000
 
 ! initial particle distribution
-  ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
+! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
  ispecial = 1
+! ispecial = -1: reload particle positions from mpiio-timestamp #itime_in
+itme_in = 5
 
 ! number of timesteps
  nt = 5
@@ -32,7 +34,12 @@
 ! 1: pbalsort, 2: sl_sort_part, 3: sl_sort_keys
  choose_sort = 3
 
-! determinates the particle dump interval
+! determies the particle dump interval
 ! 0: never write anything
 ! n: each n-th step, plus first and last step
- idump = 0  /
+ idump = 0
+! dito for vtk, binary and checkpoint-output
+ idump_vtk = 1
+ idump_binary = 0
+ idump_checkpoint = 5
+  /

@@ -69,7 +69,7 @@ subroutine diagnose_tree
   write (ipefile,'(///a)') 'Tree structure'
 
 !  write (ipefile,'(/a/a/(3i5,2i10,2i8,b11,i2,i8,i10,9(1pe15.4)))') 'Twigs from hash-table:', &
-  write (ipefile,'(/a/a/(3i5,2o15,2i8,z4,i2,o15,i5,10(1pe15.4)))') 'Twigs from hash-table:', &
+  write (ipefile,'(/a/a/(3i5,2o15,2i8,z4,i2,o15,10(1pe15.4)))') 'Twigs from hash-table:', &
        '    i  level  owner   key    parent-key    #     node     code    #c  1st child    #leaves ', &
        (i,node_level(ind_twig(i)), &              !  index, level
          htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%owner, &                            ! Owner-PE of node

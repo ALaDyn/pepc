@@ -134,8 +134,9 @@ module physvars
    real :: convert_mu     ! conversion factor from c/wp to microns
    real :: convert_keV     ! conversion factor from norm energy to keV/particle
    integer :: nt, itime   ! # timesteps and current timestep
+   integer :: itime_in    ! timestep to read mpi-io checkpoint from in case of ispecial==-1
    integer :: itime_start ! restart time stamp
-   integer :: idump       ! output frequency (timesteps)
+   integer :: idump, idump_vtk, idump_checkpoint, idump_binary ! output frequency (timesteps): ascii, vtk and mpi-io-checkpoint
    integer :: db_level = 1  ! printed o/p debug level
    integer :: iprot=1       ! protocoll frequency
    integer :: ivis=5        ! frequency for particle shipping to VISIT

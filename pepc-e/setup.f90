@@ -50,7 +50,7 @@ subroutine setup()
        nt, dt, mc_steps, idump, ivis, ivis_fields, ivis_domains, iprot, itrack, ngx, ngy, ngz, &
        vis_on, steering,  mc_init, restart, scheme, &
        coulomb, bonds, lenjones, target_dup, ramp, &
-       db_level, &
+       db_level, itime_in, idump_vtk, idump_checkpoint, idump_binary, &
        constrain_proof, len_tripod, struct_step, uthresh, bfield_on, &
        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction
 
@@ -114,6 +114,10 @@ subroutine setup()
   restart      = .false.
   vis_on       = .false.
   idump        = 0
+  idump_vtk    = 0
+  idump_checkpoint  = 0
+  idump_binary = 0
+
   iprot        = 1
 
   ngx = 25   

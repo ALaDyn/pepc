@@ -90,6 +90,7 @@ subroutine special_start(iconf)
   use physvars
   use module_fmm_framework
   use module_icosahedron
+  use module_diagnostics
   implicit none
   include 'mpif.h'
 
@@ -142,6 +143,14 @@ subroutine special_start(iconf)
   fances(-1) = 0
 
   config: select case(iconf)
+  case (-1)
+     if (my_rank == 0) write(*,*) "Using special start... case -1 (reading mpi-io checkpoint from timestep itime_in=", itime_in ,")"
+
+     call read_particles(itime_in)
+     work(1:np_local) = 1.
+
+     return ! skip rest of routine
+
   case(1)
 
      if (my_rank == 0) write(*,*) "Using special start... case 1 (homogeneous distribution)"

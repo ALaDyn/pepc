@@ -78,10 +78,9 @@ program pepce
   call fmm_framework_init(my_rank, wellsep = 1)
 
   ! initial particle output
-  if( idump .gt. 0 ) then
-    call write_particles(0)
-    if ((ispecial==9).or.(ispecial==10).or.(ispecial==11)) call sum_radial(itime)
-  end if
+  ! no initial checkpoint since this would override the current checkpoint if in resume-mode
+  call write_particles(.false.)
+  if (( idump .gt. 0 ) .and. ((ispecial==9).or.(ispecial==10).or.(ispecial==11))) call sum_radial(itime)
 
   call benchmark_inner
 
@@ -90,8 +89,9 @@ program pepce
   if (experiment) call momentum_acf%initialize(nt)
 
   ! Loop over all timesteps
-  do itime = 1,nt
-     trun = trun + dt
+  do while (itime < nt)
+     itime = itime + 1
+     trun  = trun  + dt
 
      if (my_rank==0 ) then
         ifile=6
@@ -108,7 +108,7 @@ program pepce
 
      call OutputMemUsage(2, "[pepce before fields]", (db_level==7) .and. (my_rank==0), 59)
 
-     call pepc_fields(np_local,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
+     call pepc_fields(np_local,npart_total,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult, mac, theta, eps, force_const, err_f, &
@@ -137,10 +137,10 @@ program pepce
      call energy_cons(Ukine,Ukini)
 
      ! periodic particle dump
+     call write_particles(.true.)
+
      if ( idump .gt. 0 ) then
        if ( mod(itime, idump ) .eq. 0) then
-         call write_particles(itime)
-         call write_particles_to_vtk(itime)
          if ((ispecial==9).or.(ispecial==10).or.(ispecial==11)) call sum_radial(itime)
 
          if (experiment) then
@@ -170,9 +170,7 @@ program pepce
   call benchmark_post
 
   ! final particle dump
-  if ( idump .gt. 0 ) then
-    if ( mod(nt,idump) .ne. 0 ) call write_particles(nt)
-  endif
+  call write_particles(.true.)
 
   ! deallocate array space for tree
   call pepc_cleanup(my_rank,n_cpu)
