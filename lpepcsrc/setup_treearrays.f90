@@ -43,6 +43,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
   walk_summary=.false.
   dump_tree=.false.
   periodic_debug=.false.
+  memory_debug=.false.
+
 
   if (db_level==1) then
 !      domain_debug = .true.
@@ -51,7 +53,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
   else if (db_level==2) then
       tree_debug=.true.  ! location information only
       walk_summary=.true.
-      memory_debug =.true. 
 
   else if (db_level==3) then
       tree_debug=.true.
@@ -84,13 +85,14 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
      force_debug=.true.
      dump_tree=.true.
      periodic_debug=.true.
-
   else if (db_level==-1) then
      memory_debug=.true.
-
   else
-     ! all off by default
+! all off by default
+
   endif
+
+  memory_debug=.true.
 
   npartm = npart
   if (num_pe.eq.1) then

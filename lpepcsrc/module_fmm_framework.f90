@@ -106,8 +106,6 @@ module module_fmm_framework
           integer, intent(in) :: mpi_rank
           integer, intent(in) :: wellsep
 
-          integer :: i,j,k,idx
-
           myrank = mpi_rank
           ws     = wellsep
 
@@ -117,32 +115,7 @@ module module_fmm_framework
 
           do_periodic = periodicity(1) .or. periodicity(2) .or. periodicity(3)
 
-          do i = 1,3
-            if (periodicity(i)) then
-               periodicity_switches(i) = ws
-             else
-               periodicity_switches(i) = 0
-             end if
-          end do
-
-          num_neighbour_boxes = product(2*periodicity_switches+1)
-          allocate(neighbour_boxes(3,num_neighbour_boxes))
-
-          idx = 1
-          neighbour_boxes(:,idx) = [0, 0, 0] ! center box is put to the front of the boxlist for easier iteration
-
-          do i = -periodicity_switches(1),periodicity_switches(1)
-            do j = -periodicity_switches(2),periodicity_switches(2)
-              do k = -periodicity_switches(3),periodicity_switches(3)
-
-                if (.not. ((i==0) .and. (j==0) .and. (k==0))) then
-                  idx = idx + 1
-                  neighbour_boxes(:,idx) = [i, j , k]
-                end if
-
-              end do
-            end do
-          end do
+          call calc_neighbour_boxes
 
            ! anything above has to be done in any case
           if (do_periodic) then
@@ -154,6 +127,67 @@ module module_fmm_framework
 
         end subroutine fmm_framework_init
 
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Prepares the list of neighbour boxes within ws
+        !> stores their number in num_neighbour_boxes and their logical
+        !> indices/coordinates in neighbour_boxes
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_neighbour_boxes
+        implicit none
+        integer :: i,j,k,idx
+
+          do i = 1,3
+            if (periodicity(i)) then
+               periodicity_switches(i) = ws
+             else
+               periodicity_switches(i) = 0
+             end if
+          end do
+
+          idx = 0
+
+          num_neighbour_boxes = product(2*periodicity_switches+1)
+          allocate(neighbour_boxes(3,num_neighbour_boxes))
+
+          ! the boxes of the shells that surround the central box
+          ! are ordered in a way, that a box and its central-symmetric counterpart are grouped together
+          do i = -periodicity_switches(1),-1
+            do j = -periodicity_switches(2),periodicity_switches(2)
+              do k = -periodicity_switches(3),periodicity_switches(3)
+                  idx = idx + 1
+                  neighbour_boxes(:,idx) = [ i,  j ,  k]
+                  idx = idx + 1
+                  neighbour_boxes(:,idx) = [-i, -j , -k]
+              end do
+            end do
+          end do
+
+          i = 0
+          do j = -periodicity_switches(2),-1
+            do k = -periodicity_switches(3),periodicity_switches(3)
+                idx = idx + 1
+                neighbour_boxes(:,idx) = [ i,  j ,  k]
+                idx = idx + 1
+                neighbour_boxes(:,idx) = [-i, -j , -k]
+            end do
+          end do
+
+          i = 0
+          j = 0
+          do k = -periodicity_switches(3),-1
+            idx = idx + 1
+            neighbour_boxes(:,idx) = [ i,  j ,  k]
+            idx = idx + 1
+            neighbour_boxes(:,idx) = [-i, -j , -k]
+          end do
+
+          neighbour_boxes(:,idx+1) = [0, 0, 0] ! center box is put to the back of the boxlist for easier iteration
+
+
+        end subroutine calc_neighbour_boxes
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
@@ -198,6 +232,7 @@ module module_fmm_framework
           if (.not. do_periodic) return
           call calc_omega_tilde
           call calc_mu_cent
+          call calc_extrinsic_correction
         end subroutine fmm_framework_timestep
 
 
@@ -469,12 +504,18 @@ module module_fmm_framework
 		    end do
 		  end do
 
-                         ! E = -grad(Phi)       ! extrinsic correction
-		  ex_lattice  = -real(mu_shift(1,1))  + box_dipole(1)
-		  ey_lattice  = -aimag(mu_shift(1,1)) + box_dipole(2)
-          ez_lattice  = -real(mu_shift(1,0))  + box_dipole(3)
-		  phi_lattice =  real(mu_shift(0,0))  - dot_product(r, box_dipole) + quad_trace
-
+                         ! E = -grad(Phi)
+          if (do_extrinsic_correction) then    ! extrinsic correction
+		    ex_lattice  = -real(mu_shift(1,1))  + box_dipole(1)
+		    ey_lattice  = -aimag(mu_shift(1,1)) + box_dipole(2)
+            ez_lattice  = -real(mu_shift(1,0))  + box_dipole(3)
+		    phi_lattice =  real(mu_shift(0,0))  - dot_product(r, box_dipole) + quad_trace
+		  else
+            ex_lattice  = -real(mu_shift(1,1))
+            ey_lattice  = -aimag(mu_shift(1,1))
+            ez_lattice  = -real(mu_shift(1,0))
+            phi_lattice =  real(mu_shift(0,0))
+          endif
 		end subroutine fmm_sum_lattice_force
 
 
@@ -540,7 +581,6 @@ module module_fmm_framework
           implicit none
           integer, intent(in) :: l, m
           real*8, intent(in) :: r(3)
-
           real*8 :: s(3)
           complex*16, parameter :: i = (0,1)
 
@@ -602,6 +642,10 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> M2M-Operator (denoted with \f$\otimes\f$ )
+        !>
+        !> @param[in] l multipole order
+        !> @param[in] m
+        !> @param[in] A table
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function M2M(L, M)
@@ -689,21 +733,44 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Formal summation of \f$M\f$ over FF`, ie a lot of boxes
+        !> with some overhead to avoid numerical elimination of small values
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex*16 function LstarFunc(l,m)
+          use module_math_tools
           implicit none
           integer, intent(in) :: l, m
-
-          integer :: i, ii
+          real*8 :: rpart(num_neighbour_boxes*(num_neighbour_boxes-1)), ipart(num_neighbour_boxes*(num_neighbour_boxes-1)),rp,ip
+          complex*16 :: tmp
+          complex*16, parameter :: ic = (0,1)
+          integer :: i, ii, k
 
           LstarFunc = 0
+          k = 0
 
-          do i = 2,num_neighbour_boxes ! central box is being omitted in this loop
+          do i = 1,num_neighbour_boxes-1 ! central box is being omitted in this loop
             do ii = 1,num_neighbour_boxes
-               LstarFunc = LstarFunc + Lvec(l, m, -lattice_vect(neighbour_boxes(:,ii)) + (2*ws+1)*lattice_vect(neighbour_boxes(:,i)))
+              tmp = Lvec(l, m, -lattice_vect(neighbour_boxes(:,ii)) + (2*ws+1)*lattice_vect(neighbour_boxes(:,i)))
+              k   = k+1
+              ! we store the summands and order them before performing the sum
+              ! to avoid numeric elimination
+              rpart(k) =  real(tmp)
+              ipart(k) = aimag(tmp)
             end do
           end do
+
+          call sort_abs(rpart)
+          call sort_abs(ipart)
+
+          rp = 0.
+          ip = 0.
+
+          do i = k,1,-1
+            rp = rp + rpart(i)
+            ip = ip + ipart(i)
+          end do
+
+          LStarFunc = rp + ic*ip
 
         end function LstarFunc
 

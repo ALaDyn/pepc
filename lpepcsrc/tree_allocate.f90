@@ -14,7 +14,7 @@ subroutine tree_allocate(theta)
 
   nppm=npp
   ! Estimate of interaction list length - Hernquist expression
-  if (theta >0.01 ) then
+  if (theta > 0.01 ) then
      nintest = int(35.*log(1.*npartm)/(theta**2))
   else
      nintest = npartm

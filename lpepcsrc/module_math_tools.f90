@@ -109,9 +109,9 @@ module module_math_tools
 
               LegendreP = pll
             endif
-
-            LegendreP = (-1)**m * LegendreP
           endif
+
+          LegendreP = (-1)**m * LegendreP
 
           ! DEBUG (for comparison with Mathematica worksheet)
           !write(*, '("LegendreP[", I2.2, ", ", I2.2, ", ", F10.5, "],  ", D20.10)') l, m, x, LegendreP
