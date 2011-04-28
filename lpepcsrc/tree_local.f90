@@ -162,7 +162,7 @@ subroutine tree_local
      if (level>nlev) then
        write(*,*) 'Problem with tree on PE ',me,' - no more levels '
        write(*,'(a/(i8,o30))') 'Remaining keys: ',(local_plist(i),local_key(i),i=1,nlist)
-       call MPI_ABORT(MPI_COMM_WORLD,ierr)
+       call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
        stop
      endif
 
@@ -275,7 +275,7 @@ subroutine tree_local
 
         else
            write (ipefile,*) 'Key number ',i,' not resolved'
-           call MPI_ABORT(MPI_COMM_WORLD,ierr)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
            stop           
         end if
         tablehigh = max(tablehigh,free_addr(i))                 ! Track highest address
@@ -317,7 +317,7 @@ subroutine tree_local
            htable( newentry(i) )%childcode = 0  ! Zero children byte-code in twig nodes
         else
            write (ipefile,*) 'Problem with flagging'
-           call MPI_ABORT(MPI_COMM_WORLD,ierr)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
            stop           
         endif
 

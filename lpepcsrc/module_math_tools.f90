@@ -434,7 +434,7 @@ module module_math_tools
           end do
 
           bpi_log=-1
-          call MPI_ABORT(MPI_COMM_WORLD,ierr)
+          call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
           
         end function bpi_log
         
@@ -471,7 +471,7 @@ module module_math_tools
           end do
           
           bpi_bits=-1
-          call MPI_ABORT(MPI_COMM_WORLD,ierr)
+          call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
 
         end function bpi_bits
         

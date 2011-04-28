@@ -81,7 +81,7 @@ subroutine tree_global
      	   twig_key(ntwig_me) = htable( hashaddr)%key  ! add to list of local twigs
         else
            write (ipefile,*) 'Key number ',i,' not resolved'
-           call MPI_ABORT(MPI_COMM_WORLD,ierr)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
            stop
         endif
 
@@ -245,7 +245,7 @@ subroutine tree_global
      write(*,*) 'Problem with tree on PE ',me
      write(*,*) 'Leaf checksum (',htable(1)%leaves,')  does not match # particles (',npart,')'
      call diagnose_tree
-     call MPI_ABORT(MPI_COMM_WORLD,ierr)
+     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
      stop           
   endif
 

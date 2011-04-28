@@ -75,7 +75,7 @@ subroutine tree_exchange
 
   if (nbranch_sum > nbranch_max) then
      write(*,*) 'Too many branches for buffer on ',me,': nbranch_sum=',nbranch_sum,' nbranch_max=',nbranch_max
-     call MPI_ABORT(MPI_COMM_WORLD,ierr)
+     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
      stop
   end if
  
@@ -108,7 +108,7 @@ subroutine tree_exchange
            lnode = -ntwig-newtwig    ! Create local label for remote branch
         else
            write(*,*) 'Problem with flagging on remote branches',me
-           call MPI_ABORT(MPI_COMM_WORLD,ierr)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
            stop       
         endif
         call make_hashentry( get_mult(i)%key, lnode , get_mult(i)%leaves, get_mult(i)%byte, get_mult(i)%owner, hashaddr, ierr )

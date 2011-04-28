@@ -177,7 +177,7 @@ module module_checkpoint
 
               if (disp > max_header_size) then
                 write(*,*) "header_size is too small: ", max_header_size, "<", disp
-                call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+                call MPI_ABORT(comm, 1,ierr)
               end if
             end if
 

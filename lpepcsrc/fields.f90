@@ -90,7 +90,7 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
 !        ! Trap bad particle labels
 !        write (*,*) '*** Error: particle labels must be positive integers (1,2,3,...)! '
 !        write (*,*) p_label(1:20)
-!        call MPI_ABORT(MPI_COMM_WORLD, ierr)
+!        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
 !        stop
 !     else
         pelabel(i) = p_label(i)     

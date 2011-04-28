@@ -388,7 +388,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
    write(*,*) "Something went seriously wrong during sorting: there are more than nppm local particles now."
    write(*,*) "npp = ", npp, ">   nppm = ", nppm
    write(*,*) "All local particle fields are too short. Aborting..."
-   call MPI_ABORT(MPI_COMM_WORLD, ierr)
+   call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
   endif
 
   call timer_stop(t_domains_ship)

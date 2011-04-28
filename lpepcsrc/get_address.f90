@@ -59,7 +59,7 @@ function key2addr(keyin,cmark)
 close(75)     
 !     call closefiles
 !     pause
-     call MPI_ABORT(MPI_COMM_WORLD,ierr)
+     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
      stop
   endif
 end function key2addr

@@ -207,7 +207,7 @@ module tree_walk_communicator
           write(*,*)       "PE:", me, "[", msg, "] iret == ", iret
           write(ipefile,*) "PE:", me, "[", msg, "] iret == ", iret
           flush(6)
-          call MPI_ABORT(MPI_COMM_WORLD, ierr)
+          call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         end if
 
       end subroutine retval
@@ -282,7 +282,7 @@ module tree_walk_communicator
         if (.not. initialized) then
            write(*,*) "Serious issue in PE", me, ": walk_communicator has not been initialized. Call init_comm_data() before run_communication_loop(..)"
            flush(6)
-           call MPI_ABORT(MPI_COMM_WORLD, ierr)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         endif
 
         if (walk_comm_debug) write(ipefile,'("PE", I6, " run_communication_loop start. walk_status = ", I6)') me, walk_status
@@ -841,7 +841,7 @@ module tree_walk_communicator
            if (nleaf>=maxleaf) then
              write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' leaves',nleaf,' / ',maxleaf
              flush(6)
-             call MPI_ABORT(MPI_COMM_WORLD, ierr)
+             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
            end if
 
         else if (lchild > 1) then
@@ -854,7 +854,7 @@ module tree_walk_communicator
            if (ntwig>=maxtwig) then
              write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' twigs ',ntwig,' / ',maxtwig
              flush(6)
-             call MPI_ABORT(MPI_COMM_WORLD, ierr)
+             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
            end if
 
         else
@@ -875,7 +875,7 @@ module tree_walk_communicator
            ! some serious issue happened
            write(*,*) "PE", me, "has encountered problems in unpack_data while calling make_hashentry(", kchild, nodchild, lchild, bchild, ipe_sender, hashaddr, ierr, ")"
            flush(6)
-           call MPI_ABORT(MPI_COMM_WORLD, ierr)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         end select
 
         !  Determine 'next_node' pointers for 'last child' list & update hash table (tree).
@@ -921,7 +921,7 @@ module tree_walk_communicator
          write(*,*) "PE", me, "received child data for different parent nodes within one message - this is not allowed"
          write(*,*) "child_data =", child_data
          flush(6)
-         call MPI_ABORT(MPI_COMM_WORLD, ierr)
+         call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
        end if
      end do
      ! mark the parent node inside the hashtable: it`s children are now accessible
@@ -1107,7 +1107,7 @@ module tree_walk_utils
         write(*,*) "Serious issue on PE", me, ": all walk threads have terminated, but obviously not all particles are finished with walking: next_unassigned_particle =", &
                             next_unassigned_particle, " np_local =", np_local
         flush(6)
-        call MPI_ABORT(MPI_COMM_WORLD, ierr)
+        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
       end if
 
     end subroutine walk_hybrid
@@ -1427,7 +1427,7 @@ module tree_walk_utils
                 write(*,'("Rather serious issue on PE ", I6, ": todo_list is full for particle ", I20, " nintmax =", I6, " is too small")') me, nodeidx, nintmax
                 write(*,*) "We could skip the current particle until some child_data has arrive, but this can result in a deadlock... --> aborting."
                 flush(6)
-                call MPI_ABORT(MPI_COMM_WORLD, ierr)
+                call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
               else
                 todo_list( todo_list_bottom ) = walk_key ! Deferred list of nodes to search, pending request
                                                          ! for data from nonlocal PEs

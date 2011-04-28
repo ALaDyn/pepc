@@ -60,7 +60,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
         if (htable(free)%node /= 0 ) then
            write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
            write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
-	  call MPI_ABORT(MPI_COMM_WORLD, ierr)
+	  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         endif
         htable( free )%node = nodein                     
         htable( free )%key = keyin
@@ -111,7 +111,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
               if (htable(free)%node /= 0 ) then
                  write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
                  write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
-	         call MPI_ABORT(MPI_COMM_WORLD, ierr)
+	         call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
               endif
 
               htable( free )%node = nodein                     
@@ -131,7 +131,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
 
         if (addr_count >= maxaddress) then
 	  write (ipefile,'(a5,o20,a)') 'Key ',keyin,' not resolved in MAKE_HASHENTRY'
-	  call MPI_ABORT(MPI_COMM_WORLD, ierr)
+	  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         endif
      else
         write (ipefile,'(a5,o20,a)') 'Key ',keyin,' not resolved in MAKE_HASHENTRY'
