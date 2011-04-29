@@ -25,9 +25,6 @@ program pepce
   use module_fmm_framework
   use files
   use energies
-  use module_laser
-  use module_fields
-  use module_acf
   use module_diagnostics
   implicit none
   include 'mpif.h'
@@ -35,8 +32,6 @@ program pepce
   integer :: ierr, ifile, nppm_ori, provided
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls."
-  type(acf) :: momentum_acf
-  real*8 :: mom(4)
 
   ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
   call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
@@ -80,13 +75,10 @@ program pepce
   ! initial particle output
   ! no initial checkpoint since this would override the current checkpoint if in resume-mode
   call write_particles(.false.)
-  if (( idump .gt. 0 ) .and. ((ispecial==9).or.(ispecial==10).or.(ispecial==11))) call sum_radial(itime)
 
   call benchmark_inner
 
   flush(6)
-
-  if (experiment) call momentum_acf%initialize(nt)
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -96,29 +88,21 @@ program pepce
      if (my_rank==0 ) then
         ifile=6
            write(ifile,'(//a,i8,(3x,a,f12.3))') &
-                ' Timestep ',itime+itime_start &
+                ' Timestep ',itime &
                 ,' total run time = ',trun 
      endif
      
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
 
-     ! laser propagation according to beam_config
-     if (experiment) call laser()
-
      call OutputMemUsage(2, "[pepce before fields]", (db_level==7) .and. (my_rank==0), 59)
 
      call pepc_fields(np_local,npart_total,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult, mac, theta, eps, force_const, err_f, &
+              	      np_mult, mac, theta, eps, force_const, &
                       itime, choose_sort,weighted, &
                       num_neighbour_boxes, neighbour_boxes)
-
-     ! add any external forces (laser field etc)
-     if (experiment) then
-       call force_laser(1, np_local)
-     end if
 
      if (itime == nt) then
         call gather_particle_diag()
@@ -139,22 +123,6 @@ program pepce
      ! periodic particle dump
      call write_particles(.true.)
 
-     if ( idump .gt. 0 ) then
-       if ( mod(itime, idump ) .eq. 0) then
-         if ((ispecial==9).or.(ispecial==10).or.(ispecial==11)) call sum_radial(itime)
-
-         if (experiment) then
-           call field_dump(itime)
-           call momentum_acf%to_file("momentum_Kt.dat")
-         end if
-       end if
-     endif
-
-     if (experiment) then
-       call write_total_momentum(itime, trun, mom)
-       call momentum_acf%addval(mom(1:3))
-     endif
-
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
 
@@ -164,8 +132,6 @@ program pepce
      flush(6)
 
   end do
-
-  if (experiment) call momentum_acf%finalize()
 
   call benchmark_post
 
