@@ -14,7 +14,7 @@
 
 subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, np_mult_,&
-     mac, theta, eps, force_const, itime, choose_sort,weighted, &
+     mac, theta, eps, force_const, itime, weighted, &
      num_neighbours, neighbours)
 
   use treevars
@@ -31,7 +31,7 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
   real, intent(in) :: force_const       ! scaling factor for fields & potential
   real, intent(in) :: eps         ! potential softening distance
   integer, intent(in) :: itime  ! timestep
-  integer, intent(in) :: mac, choose_sort, weighted
+  integer, intent(in) :: mac, weighted
   real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc 
   real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
   integer, intent(in), dimension(np_local) :: p_label  ! particle label 
@@ -107,7 +107,7 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
   call timer_start(t_fields_tree)
 
   ! Domain decomposition: allocate particle keys to PEs
-  call tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, choose_sort, weighted)
+  call tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted)
   call tree_allocate(theta)
 
   ! calculate spherical multipole expansion of central box

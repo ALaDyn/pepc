@@ -31,8 +31,6 @@ itme_in = 5
 ! Choose sorting routine and load balancing
 ! 0: no load balancing, 1: load balancing
  weighted = 1
-! 1: pbalsort, 2: sl_sort_part, 3: sl_sort_keys
- choose_sort = 3
 
 ! determies the particle dump interval
 ! 0: never write anything

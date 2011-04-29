@@ -29,7 +29,7 @@ subroutine setup()
 
 
   namelist /pepcdata/ np_mult, ne, ni, num_walk_threads, max_particles_per_thread, &
-       mac, theta, q_factor, eps, ispecial, choose_sort, weighted, &
+       mac, theta, q_factor, eps, ispecial, weighted, &
        r_sphere, idim, nt, dt, db_level, &
        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction
 
@@ -41,7 +41,6 @@ subroutine setup()
 
   ispecial        =   1
 
-  choose_sort     =   3
   weighted        =   1
 
   ! particles

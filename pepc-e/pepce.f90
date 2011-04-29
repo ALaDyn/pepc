@@ -97,7 +97,7 @@ program pepce
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult, mac, theta, eps, force_const, &
-                      itime, choose_sort,weighted, &
+                      itime, weighted, &
                       num_neighbour_boxes, neighbour_boxes)
 
      if (itime == nt) then

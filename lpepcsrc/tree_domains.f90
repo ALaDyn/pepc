@@ -11,7 +11,7 @@
 !  ================================
 
 
-subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose_sort,weighted)
+subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted)
 
   use treevars
   use tree_utils
@@ -19,7 +19,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
   implicit none
   include 'mpif.h'
 
-  integer, intent(in) :: choose_sort, weighted
+  integer, intent(in) :: weighted
   integer, intent(out) :: indxl(nppm),irnkl(nppm)
   integer, intent(out) :: islen(num_pe),irlen(num_pe)
   integer, intent(out) :: fposts(num_pe+1),gposts(num_pe+1)
@@ -52,7 +52,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
   integer*8 :: tmp
   logical :: sort_debug
   real*8 :: xboxsize, yboxsize, zboxsize
-  real :: work4pbalsort
 
   real*8 imba
 
@@ -65,24 +64,8 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
        integer*8,intent(inout) :: keys(*)
        real*8,intent(inout) :: workload(*)
      end subroutine slsort_keys
-
-     subroutine slsort_parts(n,nmax,keys,x,y,z,ux,uy,uz,q,m,work,ex,ey,ez,pelabel,balance_weight,max_imbalance,indxl,irnkl,scounts,rcounts,sdispls,rdispls,scratch0,scratch1,keys2,work2,irnkl2,size,rank)
-       use treetypes
-       integer,intent(inout) :: n
-       integer,intent(in) :: nmax,balance_weight,size,rank
-       integer*8,intent(inout) :: keys(*)
-       real*8,intent(inout) :: x(*),y(*),z(*),ux(*),uy(*),uz(*),q(*),m(*),work(*),ex(*),ey(*),ez(*)
-       integer,intent(inout) :: pelabel(*)
-       real*8,intent(in) :: max_imbalance
-       integer,intent(out) :: indxl(*),irnkl(*),scounts(*),rcounts(*),sdispls(*),rdispls(*)
-       type (particle) :: scratch0(*), scratch1(*)
-       integer*8,intent(out) :: keys2(*)
-       real*8,intent(out) :: work2(*)
-       integer,intent(out) :: irnkl2(*)
-     end subroutine slsort_parts
   end interface
 
-  integer*8 :: keys2(nppm)
   real*8 work2(nppm)
   integer irnkl2(nppm)
 
@@ -200,26 +183,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
 
   call timer_start(t_domains_add_sort)
 
-  if (choose_sort == 2) then
-
-     source_pe(1:npold) = pepid(1:npold)
-     pekey(1:npp) = local_key(1:npp)
-
-     ! sort particles with their data
-     call slsort_parts(npp,nppm-2,&
-          pekey,x,y,z,ux,uy,uz,q,m,work,ex,ey,ez,pelabel,&
-          weighted,imba,&
-          indxl,irnkl,islen,irlen,fposts,gposts,&
-          ship_parts,get_parts,keys2,work2,irnkl2,&
-          num_pe,me)
-
-     ! set npnew to the new number of local particles
-     npnew = npp
-
-     call timer_reset(t_domains_sort_pure)
-
-  else
-
      iteration = 0
      niterations = 3  ! Max # iterations
      errcount = 1
@@ -252,20 +215,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
         call timer_start(t_domains_sort_pure)
 
         ! perform index sort on keys
-        !     call pswssort(nppm,npold,npnew,num_pe,me,keys, &
-        !          indxl,irnkl,islen,irlen,fposts,gposts,w1,work,key_box,load_balance,sort_debug)
-        !     call psrssort(nppm,npold,npnew,num_pe,me,keys, &
-        !          indxl,irnkl,islen,irlen,fposts,gposts,w1)
-        !     call pbalsortr(nppm,npold,npnew,num_pe,me,keys, &
-        !          indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,key_box,load_balance,sort_debug,work_local)
-        if (choose_sort == 1) then
-           ! FIXME: Dangerous conversion real*8 --> real*4
-           work4pbalsort = real(interactions_local, kind(work4pbalsort))
-           call pbalsort(nppm-2,npold,npnew,num_pe,me,keys, &
-                indxl,irnkl,islen,irlen,fposts,gposts,pivots,w1,work,nkeys_total,weighted,sort_debug,work4pbalsort)
-        else
-           call slsort_keys(npold,nppm-2,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
-        end if
+        call slsort_keys(npold,nppm-2,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
 
         call timer_stop(t_domains_sort_pure)
 
@@ -382,7 +332,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,choose
 
      call timer_stop(t_domains_add_unpack)
 
-  endif
 
   if (npp > nppm) then
    write(*,*) "Something went seriously wrong during sorting: there are more than nppm local particles now."

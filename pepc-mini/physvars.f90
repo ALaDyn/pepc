@@ -41,7 +41,7 @@ module physvars
 ! Control stuff
   integer :: idim=3  ! # dimensions (velocity and position updates)
   integer :: ispecial       ! Switch to select special electron configs 
-  integer :: choose_sort, weighted
+  integer :: weighted
   integer :: debug_level =0 ! Debug level for printed O/P
 
    real :: dt             ! timestep

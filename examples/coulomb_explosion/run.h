@@ -33,8 +33,6 @@ xl=8
 ! Choose sorting routine and load balancing
 ! 0: no load balacing, 1: load balacing
  weighted = 1
-! 0: Simple sort, 1: pbalsort, 2: sl_sort_part, 3: sl_sort_keys
- choose_sort = 3
 
 ! Choose tree build routine
 ! 0: original, 1: optimized

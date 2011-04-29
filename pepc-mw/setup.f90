@@ -36,7 +36,7 @@ subroutine setup()
 
   namelist /pepcdata/ &
        np_mult, num_walk_threads, mac, theta, max_particles_per_thread, &
-       choose_sort, weighted, &                                      ! algorithm parameters
+       weighted, &                                      ! algorithm parameters
        ne,  eps, nt, dt, idump, db_level, itime_in, idump_vtk, idump_checkpoint, idump_binary, & ! fundamental stuff
        ispecial, rhoe_nm3, Zion, Aion, Te_eV, Ti_eV, Te_K, Ti_K, &   ! experimental setup
        workflow_setup, &                                             ! workflow
@@ -55,7 +55,6 @@ subroutine setup()
 
   ispecial        = 1
 
-  choose_sort     = 3
   weighted        = 1
 
   ! particles
