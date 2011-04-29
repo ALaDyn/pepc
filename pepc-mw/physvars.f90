@@ -1,21 +1,5 @@
 module physvars
 
-  type particle_p1
-     real*8 :: x    ! coords
-     real*8 :: y
-     real*8 :: z
-     real*8 :: ux    ! momenta
-     real*8 :: uy
-     real*8 :: uz 
-     real*8 :: q     ! charge
-     real*8 :: m     ! mass
-     real*8 :: work  ! work load from force sum
-     integer :: label    ! label
-  end type particle_p1
-  
-  integer :: mpi_type_particle_p1
-
-
 ! particle arrays
   real*8, allocatable :: x(:),  y(:),  z(:), &     ! position
                       ux(:), uy(:), uz(:), &     ! velocity
@@ -26,7 +10,7 @@ module physvars
 			pot(:), &	         ! scalar potential
 			work(:)	         ! work load (interaction list length)
 
-  integer, allocatable ::  pelabel(:),number(:)  ! particle label
+  integer, allocatable ::  pelabel(:)  ! particle label
     
   real, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:)  ! field arrays for time-averages
   real, allocatable ::  rhoi(:,:,:), rhoe(:,:,:)
@@ -44,6 +28,7 @@ module physvars
   integer :: nep, nip     ! # particles/electrons/ions per PE
   real*8 :: maxdt(4)       ! maximum allowed dt from different constraints
   real*8 :: xl, yl, zl      ! box size
+  integer :: ngx, ngy, ngz  ! Plot grid dimensions
   real*8 :: vte, vti       ! electron, ion thermal velocities
   real*8 :: Te = 0., Ti = 0. ! electron, ion emperatures in program units
   real*8 :: Te_eV = 0., Ti_eV = 0. ! electron, ion emperatures in electron Volts
@@ -78,7 +63,6 @@ module physvars
   integer :: np_local 
   integer :: nppm  ! Total # particles (npart)
   real :: np_mult=1.5
-  integer :: fetch_mult=2
 
 !  Associated MPI stuff
 
@@ -89,22 +73,18 @@ module physvars
 ! Control stuff
   integer :: idim=3  ! # dimensions (velocity and position updates)
   integer :: ispecial       ! Switch to select special electron configs 
-  integer :: choose_sort, weighted, choose_build
+  integer :: choose_sort, weighted
   integer :: debug_level = 0 ! Debug level for printed O/P
 
    logical, public :: restart = .false. !< Restart switch: config read from parts_all.in
    real*8 :: dt             ! timestep
    real*8 :: trun           ! total run time including restarts
    integer :: nt, itime   ! # timesteps and current timestep
-   integer :: itime_start ! restart time stamp
-   integer :: idump       ! output frequency (timesteps)
+   integer :: itime_in    ! timestep to read mpi-io checkpoint from in case of ispecial==-1
+   integer :: idump, idump_vtk, idump_checkpoint, idump_binary ! output frequency (timesteps): ascii, vtk and mpi-io-checkpoint
    integer :: db_level = 1  ! printed o/p debug level
 
    integer :: ifile_cpu    ! O/P stream
-
-  character*10 :: plasma_configs(0:2)= (/ &
-       'no plasma ','plasma    ','special   ' /)
-
 
 end module physvars
 

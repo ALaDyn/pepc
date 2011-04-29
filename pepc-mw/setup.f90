@@ -10,28 +10,23 @@
 !  ================================
 
 
-subroutine setup(init_mb)
+subroutine setup()
   use physvars
   use tree_utils
   use module_fmm_framework
   use tree_walk_utils
   use tree_walk_communicator
+  use module_icosahedron
   use module_laser
   use module_pusher
   use module_workflow
   use module_units
   use module_param_dump
+  use module_fields
   implicit none
   include 'mpif.h'
 
-  integer, intent(out) :: init_mb
-
-  type (particle_p1) :: ship_props_a, get_props_a
-  integer, parameter :: nprops_particle=10   ! # particle properties to ship
-  integer, dimension(nprops_particle) :: blocklengths, displacements, types
-  integer*8 :: send_base, receive_base
   integer :: ierr, ifile
-  integer*8, dimension(nprops_particle) :: address
 
   character(50) :: parameterfile
   integer :: read_param_file
@@ -40,14 +35,15 @@ subroutine setup(init_mb)
 
 
   namelist /pepcdata/ &
-       np_mult, fetch_mult, num_walk_threads, mac, theta, max_particles_per_thread, &
-       choose_sort, weighted, choose_build, &                        ! algorithm parameters
-       ne,  eps, nt, dt, idump, db_level, &                          ! fundamental stuff
+       np_mult, num_walk_threads, mac, theta, max_particles_per_thread, &
+       choose_sort, weighted, &                                      ! algorithm parameters
+       ne,  eps, nt, dt, idump, db_level, itime_in, idump_vtk, idump_checkpoint, idump_binary, & ! fundamental stuff
        ispecial, rhoe_nm3, Zion, Aion, Te_eV, Ti_eV, Te_K, Ti_K, &   ! experimental setup
        workflow_setup, &                                             ! workflow
        integrator_scheme, enable_drift_elimination, &                ! pusher configuration
        beam_config_in, vosc,omega, sigma, tpulse, theta_inc, rho_track, omega_wpl, I0_Wpercm2, & ! laser config
-       t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction              ! periodicity config
+       t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction, &            ! periodicity config
+       field_dump_ncells, ngx, ngy, ngz                              ! diagnostics config
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -56,13 +52,11 @@ subroutine setup(init_mb)
   db_level        = 0
 
   np_mult         = -45
-  fetch_mult      = 3
 
   ispecial        = 1
 
   choose_sort     = 3
   weighted        = 1
-  choose_build    = 0
 
   ! particles
   nep = 0    ! # plasma electrons per PE
@@ -91,9 +85,16 @@ subroutine setup(init_mb)
   nt           = 10
   dt           = 0.01
   trun         = 0.
-  itime_start  = 0
 
   idump        = 0
+  idump_vtk    = 0
+  idump_checkpoint  = 0
+  idump_binary = 0
+
+  ngx = 25
+  ngy = 25
+  ngz = 25
+
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  read parameter file           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -141,13 +142,20 @@ subroutine setup(init_mb)
      ni = ne
   end if
 
-  if (ispecial == 8) then ! ion lattice setup needs integer number of ions per edge
+  if (ispecial == 13) then ! ion lattice setup needs integer number of ions per edge
      ni = nint((ne/Zion)**(1./3.))**3
      ne = ni * Zion
      npart_total = ne + ni
      if (my_rank == 0) write(*,*) "Using Ion Lattice Setup: Number of Ions per edge must be integer, setting ne =", ne, ", ni=", ni
   end if
   
+  if (ispecial == 12) then
+    npart_total   = get_nextlower_particles(npart_total/2)*2
+    if (my_rank == 0) write(*,*) "Using Mackay Icosahedron: Total particle number must be two times a magic cluster number. Setting npart_total =", npart_total
+    ne = npart_total/2
+    ni = ne
+  end if
+
 
   Vplas    =  ne/rhoe_nm3 / unit_abohr_in_nm**3. ! adjust simulation volume to fit requested electron density while keeping particle number constant
   rhoi_nm3 =  ni/Vplas / unit_abohr_in_nm**3.
@@ -265,50 +273,19 @@ subroutine setup(init_mb)
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  array allocation                !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  init_mb = 15*nppm*8
-
   allocate ( &
        x(nppm), y(nppm), z(nppm), &
        ux(nppm), uy(nppm), uz(nppm), &
        q(nppm), m(nppm), &
        Ex(nppm), Ey(nppm), Ez(nppm), &
        Ax(nppm), Ay(nppm), Az(nppm), &
-       Bx(nppm), By(nppm), Bz(nppm), pot(nppm), pelabel(nppm), number(nppm), work(nppm) )
-
-  blocklengths(1:nprops_particle) = 1   
-
-  types(1:8) = MPI_REAL8
-  types(9) = MPI_INTEGER8
-  types(10) = MPI_INTEGER
-
-!  receive_base=LOC(get_props_a%x)
-  call LOCADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
-  call LOCADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
-
-!  if (me==0) write(*,'(a30,o21)') 'Particle address base:',receive_base
-!  call MPI_GET_ADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
-!  call MPI_GET_ADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
-
-  call LOCADDRESS( ship_props_a%x, address(1), ierr )
-  call LOCADDRESS( ship_props_a%y, address(2), ierr )
-  call LOCADDRESS( ship_props_a%z, address(3), ierr )
-  call LOCADDRESS( ship_props_a%ux, address(4), ierr )
-  call LOCADDRESS( ship_props_a%uy, address(5), ierr )
-  call LOCADDRESS( ship_props_a%uz, address(6), ierr )
-  call LOCADDRESS( ship_props_a%q, address(7), ierr )
-  call LOCADDRESS( ship_props_a%m, address(8), ierr )
-  call LOCADDRESS( ship_props_a%work, address(9), ierr )
-  call LOCADDRESS( ship_props_a%label, address(10), ierr )
-
-  displacements(1:nprops_particle) = int(address(1:nprops_particle) - send_base)  !  Addresses relative to start of particle (receive) data
-
-  call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle_p1, ierr )   ! Create and commit
-  call MPI_TYPE_COMMIT( mpi_type_particle_p1, ierr)
+       Bx(nppm), By(nppm), Bz(nppm), pot(nppm), pelabel(nppm), work(nppm) )
 
   if (my_rank == 0) then
     write(*,*) "Starting PEPC-MW with",n_cpu," Processors, simulating",np_local, &
 			" Particles on each Processor in",nt,"timesteps..."
-	write(*,*) "Using",num_walk_threads,"worker-threads in treewalk on each processor"
+	write(*,*) "Using",num_walk_threads,"worker-threads in treewalk on each processor (i.e. per MPI rank)"
+    write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
   end if
 
 

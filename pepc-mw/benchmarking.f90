@@ -17,154 +17,212 @@ module benchmarking
 
   real*8 :: time_start, time_pre, time_inner, time_post
   
+  integer, private, parameter :: NUM_PARTICLES_FRONT  = 5 !< number of particles from beginning of particle list to use in dump routines
+  integer, private, parameter :: NUM_PARTICLES_MID    = 5 !< number of particles from center of particle list to use in dump routines
+  integer, private, parameter :: NUM_PARTICLES_BACK   = 5 !< number of particles from end of particle list to use in dump routines
+  integer, private, parameter :: NUM_DIAG_PARTICLES = NUM_PARTICLES_FRONT + NUM_PARTICLES_MID + NUM_PARTICLES_BACK !< total number of particles to use in dump routines
+  integer, private, parameter :: NUM_DIAG_PROPS     = 13  !< number of properties to be collected for diagnostic purposes
+  real*8, private :: diag_props(NUM_DIAG_PARTICLES,NUM_DIAG_PROPS)
   
 contains
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine dump_trajectory()
-    
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> routine for selecting particles that are used for diagnostic output
+  !> for given input idx=1:NUM_DIAG_PARTICLES, it returns a particle number from
+  !> the beginning, the center, or the end of the local particle list
+  !> the number of particles can be adjusted by modifying the constants
+  !> NUM_PARTICLES_FRONT, NUM_PARTICLES_MID, and NUM_PARTICLES_BACK
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  function diagnostic_particle(idx)
     use physvars
     implicit none
-    
-    integer :: p
-    character(50) :: filename
+
+    integer, intent(in) :: idx !< index of diagnostic particle, possible input range: (1:NUM_DIAG_PARTICLES)
+    integer :: diagnostic_particle
+
+    if (npart_total <= NUM_DIAG_PARTICLES) then
+      diagnostic_particle = min(idx, npart_total)
+    else
+      select case (idx)
+        case (1:NUM_PARTICLES_FRONT)
+                    diagnostic_particle = idx
+        case (NUM_PARTICLES_FRONT+1:NUM_PARTICLES_FRONT+NUM_PARTICLES_MID)
+                    diagnostic_particle = npart_total/2 - ((NUM_PARTICLES_MID/2+NUM_PARTICLES_FRONT)-idx)
+        case (NUM_PARTICLES_FRONT+NUM_PARTICLES_MID+1:NUM_DIAG_PARTICLES)
+                    diagnostic_particle = npart_total-(NUM_DIAG_PARTICLES-idx)
+      end select
+    end if
+
+  end function
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine gather_particle_diag()
+    use physvars
+    implicit none
+    include 'mpif.h'
+
+    integer :: r, i, ierr, target_rank, target_particle, target_particle_local
+    integer :: fances(0:n_cpu-1)
+    real*8  :: diag_props_buf(NUM_DIAG_PROPS)
+
+    logical :: debug=.false., debug_root
+
+    debug_root = (my_rank.eq.0) .and. debug
+
+    if (debug) write(*,*) "start mpi scan on rank ", my_rank
+
+    call MPI_SCAN(np_local, fances(my_rank), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    call MPI_ALLGATHER(MPI_IN_PLACE,  1, MPI_INTEGER, fances, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
+
+    if(my_rank.eq.0 .and. debug) then
+       do i=0, n_cpu-1
+          write(*,*) "particle rank fance: rank=", i, " partial sum=", fances(i)
+       end do
+    end if
+
+    do i=1, NUM_DIAG_PARTICLES
+       target_particle = diagnostic_particle(i)
+       if(debug_root) write(*,*) "gather diag information for particle ", target_particle
+       do r=0, n_cpu-1
+          if(target_particle.le.fances(r)) then
+             target_rank = r
+             exit
+          end if
+       end do
+       if(debug_root) write(*,*) "particle is located on rank ", target_rank
+
+       if(my_rank.eq.target_rank) then
+          if(debug) write(*,'(a,4i12)') "particle: ", my_rank, target_particle, fances(my_rank), np_local
+          target_particle_local = target_particle-fances(my_rank)+np_local
+          if(debug) write(*,'(a,i12,a,i12,a,i12)') "from rank", my_rank, " particle is here, with label ", &
+               pelabel(target_particle_local), " local target ", target_particle_local
+
+          diag_props_buf( 1: 3) = [  x(target_particle_local),  y(target_particle_local),  z(target_particle_local)]
+          diag_props_buf( 4: 6) = [ ux(target_particle_local), uy(target_particle_local), uz(target_particle_local)]
+          diag_props_buf( 7: 8) = [  q(target_particle_local),  m(target_particle_local)]
+          diag_props_buf(    9) =  pot(target_particle_local)
+          diag_props_buf(10:12) = [ ex(target_particle_local), ey(target_particle_local), ez(target_particle_local)]
+          diag_props_buf(   13) = work(target_particle_local)
+
+          if(debug) write(*,*) "from rank", my_rank, " sending pos_vel ", diag_props_buf
+
+          if(my_rank .ne. 0) then
+             call MPI_SEND(diag_props_buf,NUM_DIAG_PROPS, MPI_REAL8,   0, 0, MPI_COMM_WORLD, ierr)
+          end if
+       end if
+
+       if(my_rank.eq.0 .and. target_rank.ne.0) then
+          call MPI_RECV(diag_props_buf,NUM_DIAG_PROPS, MPI_REAL8,  target_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+          if(debug) write(*,*) "from rank", my_rank, " received pos_vel ", diag_props_buf
+       end if
+       
+       diag_props(i,:) = diag_props_buf(:)
+
+    end do
+
+
+  end subroutine gather_particle_diag
+
+
+  subroutine benchmarking_dump_diagnostics()
+    implicit none
+
+    call dump_trajectory()
+    call dump_fields()
+
+  end subroutine benchmarking_dump_diagnostics
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> output of position of selected particles to file trajectory.dat
+  !> for diagnostic purposes.
+  !> should only be called once per simulation run
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine dump_trajectory()
+    use physvars
+    implicit none
+    integer :: p, i
 
     if(my_rank == 0) write(*,*) "benchmarking: dump_trajectory"
     
-    filename = "trajectory.dat"
-    open(91, file=filename, STATUS='REPLACE')
-    write(91,*) "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z"
-    do p=1, 4
-       write(91,*) p, x(p), y(p), z(p)
+    open(91, file="trajectory.dat", STATUS='REPLACE')
+    write(91,'(a,i12)') "# npart_total ", npart_total
+    write(91,'(a,i12)') "# npart_diag ", NUM_DIAG_PARTICLES
+    write(91,'(a, i6, a, i6, a)') "# particle positions for geom ", ispecial, " at timestep ", nt, ": p x y z ux uy uz work"
+    do i=1,NUM_DIAG_PARTICLES
+       p = diagnostic_particle(i)
+       write(91,'(i12,6e20.12,e15.5)') p, diag_props(i,1), diag_props(i,2), diag_props(i,3), &
+            diag_props(i,4), diag_props(i,5), diag_props(i,6), diag_props(i,13)
+       
     end do
     close(91)
     
   end subroutine dump_trajectory
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine write_particles(step)
-    
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> output of charge, potential and electric field to file fielddump.dat
+  !> for diagnostic purposes.
+  !> should only be called once per simulation run
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine dump_fields()
+    use physvars
+    use module_fmm_framework
+    implicit none
+    integer :: p, i
+
+    if(my_rank == 0) write(*,*) "benchmarking: dump_fields"
+
+    open(91, file="fielddump.dat", STATUS='REPLACE')
+    write(91,'(a,i12)') "# npart_total ", npart_total
+    write(91,'(a,i12)') "# npart_diag ", NUM_DIAG_PARTICLES
+    write(91,'(a,e20.12)') "# pot_farfield ", potfarfield
+    write(91,'(a,e20.12)') "# pot_nearfield ", potnearfield
+    write(91,'(a, i6, a, i6, a)') "# particle charge and field for geom ", ispecial, " at timestep ", nt, ": p q pot ex ey ez"
+    do i=1,NUM_DIAG_PARTICLES
+       p = diagnostic_particle(i)
+       write(91,'(i12,5e20.12)') p, diag_props(i,7), diag_props(i,9:12)
+    end do
+    close(91)
+
+  end subroutine dump_fields
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> output of number of interactions of selected particles and in total
+  !> into file num_interactions.dat for diagnostic purposes.
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine dump_num_interactions()
     use physvars
     implicit none
+    integer :: i
+    logical, save :: print_header = .true.
 
-    include 'mpif.h'
-    
-    integer, intent(in) :: step
-    integer :: p, ierr
-    real*8 :: writesize, t1, t2, t3, t4
-    character(50) :: filename
+    if(my_rank == 0) write(*,*) "benchmarking: dump_num_interactions"
 
-#ifdef WRITE_PARTICLE_SIONLIB
-    !! sionlib related variables
-    integer   :: sid, fsblksize
-    integer*8 :: chuncksize, itemsize, bwrote
-#endif
+    open(91, file="num_interactions.dat", STATUS='UNKNOWN', position='APPEND')
 
-    if(my_rank == 0) write(*,*) "benchmarking: write particles to file"
-
-
-!!! write particle data as a binary file
-#ifdef WRITE_PARTICLE_BINARY
-
-    if(my_rank == 0) write(*,*) "benchmarking: write particles in binary mode"
-
-    write(filename,'(a,i6.6,a,i6.6,a)') "particle_", step, "_", my_rank, ".dat"
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t1 = MPI_WTIME()
-    open(91, file=filename, STATUS='REPLACE', ACCESS="STREAM")
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t2 = MPI_WTIME()
-    do p=1, np_local
-       write(91) x(p), y(p), z(p), ux(p), uy(p), uz(p)
-    end do
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t3 = MPI_WTIME()
-    close(91)
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t4 = MPI_WTIME()
-
-    writesize = np_local*6*kind(x(1))/1024.0/1024.0
-
-#else
-
-!!! write particle data using the sion library
-#ifdef WRITE_PARTICLE_SIONLIB
-    if(my_rank == 0) write(*,*) "benchmarking: write particles with sionlib"
-
-    write(filename,'(a,i6.6,a,i6.6,a)') "particle_", step, ".dat"
-
-    itemsize = sizeof(x(1))
-
-    chuncksize = 6*np_local*itemsize
-    fsblksize  = 2*1024*1024
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t1=MPI_WTIME()
-    call fsion_paropen_mpi(trim(filename), "bw", MPI_COMM_PEPC, chuncksize, fsblksize, my_rank, sid)     
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t2=MPI_WTIME()
-    
-    call fsion_write(x,  itemsize, np_local, sid, bwrote)
-    call fsion_write(y,  itemsize, np_local, sid, bwrote)
-    call fsion_write(z,  itemsize, np_local, sid, bwrote)
-    call fsion_write(ux, itemsize, np_local, sid, bwrote)
-    call fsion_write(uy, itemsize, np_local, sid, bwrote)
-    call fsion_write(uz, itemsize, np_local, sid, bwrote)
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t3=MPI_WTIME()
-
-    call fsion_parclose_mpi(sid, MPI_COMM_PEPC, ierr)
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t4=MPI_WTIME()
-
-    writesize=chuncksize/1024.0/1024.0
-
-#else
-!!! write particle date as a text file    
-    
-    if(my_rank == 0) write(*,*) "benchmarking: write particles in text mode"
-
-    write(filename,'(a,i6.6,a,i6.6,a)') "particle_", step, "_", my_rank, ".dat"
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t1=MPI_WTIME()
-    open(91, file=filename, STATUS='REPLACE')
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t2=MPI_WTIME()
-    write(91,*) "# particle positions for geom ", ispecial, " at timestep ", step, ": p pelabel x y z vx vy vz q m pot ex ey ez"
-    do p=1, np_local
-       write(91,'(I8.8," ",I8.8,12E14.4E2)') p, pelabel(p), x(p), y(p), z(p), ux(p), uy(p), uz(p), q(p), m(p), pot(p), ex(p), ey(p), ez(p)
-    end do
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t3=MPI_WTIME()
-    close(91)
-
-    call MPI_BARRIER(MPI_COMM_PEPC,ierr)
-    t4=MPI_WTIME()
-
-    writesize = np_local*(12*14 + 2*8)/1024.0/1024.0
-
-#endif
-#endif 
-
-    if(my_rank == 0) then
-       write(*,'(" benchmarking: rank ", I6, " has written ", F8.6, " MB to file")') my_rank, writesize
-       write(*,'(" benchmarking: rank ", I6, " time to open file ", F8.6, " s")')    my_rank, t2-t1
-       write(*,'(" benchmarking: rank ", I6, " time to write file ", F8.6, " s")')   my_rank, t3-t2
-       write(*,'(" benchmarking: rank ", I6, " time to close file ", F8.6, " s")')   my_rank, t4-t3
-       write(*,'(" benchmarking: rank ", I6, " io performance ", F8.6, " MB/s")')    my_rank, writesize/(t4-t1)
+    if (print_header) then
+      write(91,*) "# itime, totalnumber, p=", ( diagnostic_particle(i), i=1,NUM_DIAG_PARTICLES )
+      print_header = .false.
     end if
 
-end subroutine write_particles
+    write(91,*) itime, int(sum(work)), ( int(work(diagnostic_particle(i))), i=1,NUM_DIAG_PARTICLES )
+    close(91)
+
+  end subroutine dump_num_interactions
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
@@ -270,16 +328,15 @@ end subroutine write_particles
 
     include 'mpif.h'
 
+    if(my_rank == 0) write(*,*) "benchmarking: end"
+
     time_post = MPI_WTIME()
-
-
-    if(my_rank == 0) then
-      write(*,*) "benchmarking: end"
     
-      write(*,*) "pepc timing - pre: ", time_pre - time_start
-      write(*,*) "pepc timing - inner: ", time_inner - time_pre
-      write(*,*) "pepc timing - post: ", time_post - time_inner
-      write(*,*) "pepc timing - total: ", time_post - time_start
+    if(my_rank == 0) then
+       write(*,*) "pepc timing - pre: ", time_pre - time_start
+       write(*,*) "pepc timing - inner: ", time_inner - time_pre
+       write(*,*) "pepc timing - post: ", time_post - time_inner
+       write(*,*) "pepc timing - total: ", time_post - time_start
     end if
 
   end subroutine benchmark_end

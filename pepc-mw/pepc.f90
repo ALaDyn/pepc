@@ -21,14 +21,20 @@ program pepc
   use module_laser
   use module_pusher
   use module_io
+  use module_fields
+  use module_acf
+  use module_diagnostics
   use module_workflow
   use module_units
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, ifile, init_mb, nppm_ori, provided
+  integer :: ierr, ifile, nppm_ori, provided
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! `The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls.`
+  type(acf) :: momentum_acf
+  real*8 :: mom(4)
+
   ! Initialization of signal handler - deactivated atm since it outputs the call stack for every mpi rank which results in a very messy output
   !call InitSignalHandler()
 
@@ -63,7 +69,7 @@ program pepc
   if (my_rank==0) call stamp(15,1)
 
   ! Each CPU gets copy of initial data
-  call setup(init_mb)
+  call setup()
 
   ! Allocate array space for tree
   call pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult,nppm_ori)
@@ -75,19 +81,24 @@ program pepc
   call fmm_framework_init(my_rank, wellsep = 1)
 
   ! initial particle output
-  if( idump .gt. 0 ) call write_particles(0)
+  ! no initial checkpoint since this would override the current checkpoint if in resume-mode
+  call write_particles(.false.)
+  if (( idump .gt. 0 ) .and. ((ispecial==9).or.(ispecial==10).or.(ispecial==11))) call sum_radial(itime)
+
+  call momentum_acf%initialize(nt)
 
   call benchmark_inner
 
   ! Loop over all timesteps
-  do itime = 1,nt
-     trun = trun + dt
+  do while (itime < nt)
+    itime = itime + 1
+    trun  = trun  + dt
 
      if (my_rank==0 ) then
         ifile=6
            write(ifile,'(//a)') "==================================================================="
            write(ifile,'(//a,i8,3x,a,f12.3,"  (",f12.3," fs)")') &
-                ' Timestep ',itime+itime_start &
+                ' Timestep ',itime &
                 ,' total run time = ',trun, trun*unit_t0_in_fs
      endif
      
@@ -117,21 +128,10 @@ program pepc
      ! add any external forces (laser field etc)
      call force_laser(1, np_local)
 
+     if (itime == nt) call gather_particle_diag()
+
      ! Velocity and position update - explicit schemes only
      call integrator(1, np_local, integrator_scheme)
-
-!TODO:      boundaries: select case(particle_bcs)
-
-!      case(2)
-!         call constrain   ! relective particle bcs for temperature-clamp mode
-!      case(3)
-!         call earth_plate  ! special bcs for grounded target end
-!      case(4)
-!         call constrain_periodic ! special bcs for periodic version of the tree
-!      case default
-         ! do nothing
-
-!      end select boundaries
 
      ! periodic systems demand periodic boundary conditions
      if (do_periodic) call constrain_periodic(x(1:np_local),y(1:np_local),z(1:np_local),np_local)
@@ -139,9 +139,19 @@ program pepc
      call energy_cons(Ukine,Ukini)
 
      ! periodic particle dump
+     call write_particles(.true.)
+
      if ( idump .gt. 0 ) then
-       if ( mod(itime, idump ) .eq. 0) call write_particles(itime)
+       if ( mod(itime, idump ) .eq. 0) then
+         if ((ispecial==9).or.(ispecial==10).or.(ispecial==11)) call sum_radial(itime)
+
+         call field_dump(itime)
+         call momentum_acf%to_file("momentum_Kt.dat")
+       end if
      endif
+
+     call write_total_momentum(itime, trun, mom)
+     call momentum_acf%addval(mom(1:3))
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
@@ -156,9 +166,7 @@ program pepc
   call benchmark_post
 
   ! final particle dump
-  if ( idump .gt. 0 ) then
-    if ( mod(nt,idump) .ne. 0 ) call write_particles(nt)
-  endif
+  call write_particles(.true.)
 
   ! deallocate array space for tree
   call pepc_cleanup(my_rank,n_cpu)
