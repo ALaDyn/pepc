@@ -25,8 +25,6 @@ pepce:  pepcbasics
 pepcbasics:
 	@echo "============  Making PEPC Sorting Library  ============="
 	cd sl_pepc && $(MAKE) $(MFLAGS)
-	@echo "============  Making PEPC Memory Bookkeeper ============="
-	cd memwatch && $(MAKE) $(MFLAGS)
 	@echo "============  Making PEPC Pthreads Interface  ============="
 	cd pthreads && $(MAKE) $(MFLAGS)
 	@echo "============  Making PEPC Library  ============="
@@ -34,7 +32,6 @@ pepcbasics:
 
 clean: clean-doc
 	cd sl_pepc  && $(MAKE) $(MFLAGS) clean
-	cd memwatch && $(MAKE) $(MFLAGS) clean
 	cd pthreads && $(MAKE) $(MFLAGS) clean
 	cd lpepcsrc && $(MAKE) $(MFLAGS) clean
 	cd pepc-e   && $(MAKE) $(MFLAGS) clean

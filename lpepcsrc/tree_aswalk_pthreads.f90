@@ -107,7 +107,6 @@
 !
 ! ===========================================
 
-! TODO: memwatch with malloc hooks does not seem to be thread-safe :-(
 module tree_walk_communicator
   use treevars
   use pthreads_stuff
@@ -1007,7 +1006,6 @@ module tree_walk_utils
       real*8, target, intent(inout) :: twalk, tfetch
       real*8, target, intent(out), dimension(3) :: tcomm
 
-      call OutputMemUsage(5, "[tree_walk]", memory_debug .and. (me==0), 59)
       if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (HYBRID) for timestep ',itime
 
       np_local = np_local_
@@ -1030,9 +1028,7 @@ module tree_walk_utils
 
       call init_comm_data()
 
-      call OutputMemUsage(12, "[tree_walk 0]", memory_debug .and. (me==0), 59)
       call walk_hybrid()
-      call OutputMemUsage(13, "[tree_walk 1]", memory_debug .and. (me==0), 59)
 
       call uninit_comm_data()
 

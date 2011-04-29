@@ -48,8 +48,6 @@ program pepce
   ! Set up O/P files
   call openfiles
 
-  call OutputMemUsage(1, "[pepce startup]", (my_rank==0), 59)
-
   ! Time stamp
   if (my_rank==0) call stamp(6,1)
   if (my_rank==0) call stamp(15,1)
@@ -81,16 +79,12 @@ program pepce
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
 
-     call OutputMemUsage(2, "[pepce before fields]", (db_level==7) .and. (my_rank==0), 59)
-
      call pepc_fields(np_local,npart_total,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult, mac, theta, eps, force_const, &
                       itime, choose_sort,weighted, &
                       num_neighbour_boxes, neighbour_boxes)
-
-     call OutputMemUsage(7, "[pepce after fields]", (db_level==7) .and. (my_rank==0), 59)
 
      ! Integrator
      call velocities(1,np_local,dt)
@@ -118,8 +112,6 @@ program pepce
   ! Time stamp
   if (my_rank==0) call stamp(6,2)
   if (my_rank==0) call stamp(15,2)
-
-  call OutputMemUsage(8, "[pepc-mini end of program]", (db_level==7) .and. (my_rank==0), 59)
 
   ! Tidy up O/P files
   call closefiles

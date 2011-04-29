@@ -24,8 +24,6 @@ subroutine tree_global
   call timer_start(t_global)
   call timer_start(t_fill_local)
 
-  call OutputMemUsage(20, "[tree_global]", memory_debug .and. (me==0), 59)
-
   if (tree_debug) write(ipefile,'(a)') 'TREE GLOBAL'
   if (me==0 .and. tree_debug) then
 	write(*,'(a)') 'LPEPC | GLOBAL'

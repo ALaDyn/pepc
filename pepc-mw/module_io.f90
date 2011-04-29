@@ -23,7 +23,6 @@ module module_io
       integer, parameter, public :: file_laser_dat   = 71
       integer, parameter, public :: file_energy_dat  = 75
       integer, parameter, public :: file_parts_info_in = 80
-      integer, parameter, public :: file_memory_dat  = 59
 
       integer, parameter, public :: file_ipefile     = 20
 
@@ -61,7 +60,6 @@ module module_io
 		!>          - domains.dat (\e 70):
 		!>          - laser.dat (\e 71): Laser parameters
         !>          - energy.dat (\e 75): energies
-        !>          - memory.dat (\e 59): memory status information
 		!>          .
 		!> - all ranks (only if \code(debug_level>2 .and. idump>0)\endcode) :
 		!>          - data/out.1234 (\e 20):
@@ -82,9 +80,6 @@ module module_io
 		     open(file_domains_dat, file='domains.dat')
 		     open(file_laser_dat,   file='laser.dat')       ! laser parameters
 		     open(file_energy_dat,  file='energy.dat')      ! energies
-
-             open(file_memory_dat,file='memory.dat')
-             write(file_memory_dat,*) "# ID               bytes                  KB                  MB           location"
 
 		     write(*,*) 'debug level: ',debug_level,' idump',idump
 		  endif
@@ -116,8 +111,6 @@ module module_io
              flush(file_domains_dat)
              flush(file_laser_dat)
              flush(file_energy_dat)
-
-             flush(file_memory_dat)
           endif
 
         end subroutine flushfiles
@@ -138,7 +131,6 @@ module module_io
 		     close(file_domains_dat)
 		     close(file_laser_dat)
              close(file_energy_dat)
-             close(file_memory_dat)
 		     close(90)
 		  endif
 		  if (db_level > 0) close(file_ipefile)

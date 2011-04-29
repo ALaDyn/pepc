@@ -72,8 +72,6 @@ subroutine tree_local
   call timer_start(t_build)
   call timer_start(t_build_neigh)
 
-  call OutputMemUsage(18, "[tree_local]", memory_debug .and. (me==0), 59)
-
   if (tree_debug) write(ipefile,'(/a)') 'TREE LOCAL'
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | LOCAL BUILD'
 

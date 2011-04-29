@@ -57,8 +57,6 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
 
   allocate(ex_tmp(nppm_ori), ey_tmp(nppm_ori), ez_tmp(nppm_ori), pot_tmp(nppm_ori), w_tmp(nppm_ori))
 
-  call OutputMemUsage(3, "[fields]", memory_debug .and. (me==0), 59)
-
   call timer_start(t_all)
   call timer_start(t_fields_begin)
 
@@ -111,8 +109,6 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
   ! Domain decomposition: allocate particle keys to PEs
   call tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, choose_sort, weighted)
   call tree_allocate(theta)
-
-  call OutputMemUsage(4, "[fields after tree_allocate etc.]", memory_debug .and. (me==0), 59)
 
   ! calculate spherical multipole expansion of central box
   call fmm_framework_timestep
@@ -212,8 +208,6 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
   call timer_start(t_deallocate)
   call tree_deallocate(nppm_ori)
   call timer_stop(t_deallocate)
-
-  call OutputMemUsage(6, "[fields after tree_deallocate]", memory_debug .and. (me==0), 59)
 
   call timer_stop(t_all)
 

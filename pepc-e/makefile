@@ -4,7 +4,7 @@ PREFIX = ..
 
 include ../makefile.defs
 
-LIBRARIES = ../lpepcsrc/$(MACH)/liblpepc.a ../sl_pepc/libsl.a ../memwatch/$(MACH)/libmemwatch.a ../pthreads/$(MACH)/libpthreads.a
+LIBRARIES = ../lpepcsrc/$(MACH)/liblpepc.a ../sl_pepc/libsl.a ../pthreads/$(MACH)/libpthreads.a
 
 .SUFFIXES: .f90
 

@@ -17,8 +17,6 @@ subroutine tree_exchange
 
   call timer_start(t_exchange_branches)
 
-  call OutputMemUsage(19, "[tree_exchange]", memory_debug .and. (me==0), 59)
-
   if (tree_debug) write(ipefile,'(a)') 'TREE EXCHANGE'
   if (me==0 .and. tree_debug) then
 	write(*,'(a)') 'LPEPC | EXCHANGE'

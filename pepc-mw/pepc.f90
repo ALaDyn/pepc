@@ -62,8 +62,6 @@ program pepc
   ! Set up O/P files
   call openfiles
 
-  call OutputMemUsage(1, "[pepce startup]", (my_rank==0), 59)
-
   ! Time stamp
   if (my_rank==0) call stamp(6,1)
   if (my_rank==0) call stamp(15,1)
@@ -113,8 +111,6 @@ program pepc
      ! laser propagation according to beam_config
      call laser()
 
-     call OutputMemUsage(2, "[pepce before fields]", (db_level==7) .and. (my_rank==0), 59)
-
      call pepc_fields(np_local,npart_total,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
@@ -122,8 +118,6 @@ program pepc
                       itime, choose_sort,weighted, &
                       num_neighbour_boxes, neighbour_boxes)
       
-
-     call OutputMemUsage(7, "[pepce after fields]", (db_level==7) .and. (my_rank==0), 59)
 
      ! add any external forces (laser field etc)
      call force_laser(1, np_local)
@@ -177,8 +171,6 @@ program pepc
   ! Time stamp
   if (my_rank==0) call stamp(6,2)
   if (my_rank==0) call stamp(15,2)
-
-  call OutputMemUsage(8, "[pepce end of program]", (db_level==7) .and. (my_rank==0), 59)
 
   ! Tidy up O/P files
   call closefiles
