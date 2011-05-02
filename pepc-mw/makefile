@@ -37,41 +37,21 @@ $(MACH):
 # touch module files after compilation so that the are newer than the .o files
 # this prevents make from trying to rebuild them again and again
 # we keep the preprocessed files for easier debugging / correct line information etc.
-$(MACH)/%.o: %.f90  
+$(MACH)/%.o %.mod: %.f90  
 	$(CPP) $(CPPFLAGS) $< $(MACH)/$<
-	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$< -o $@
-	touch -c $(@F:.o=.mod)
+	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$< -o $(MACH)/$(<:.f90=.o)
 
-# override stupid internal rule for .o files to depend on .mod files and call m2c
-%.o: %.mod
-
-# for creating the .mod files, we only have to compile the .o-files from the respective .f90 files
-# gfortran stores the mod-files in the current directory - just where we need them
-# unfortunately, this rule only works if it actually does somenthing, so we echo some useless info
-%.mod: $(MACH)/%.o
-	@echo 'Making module file' $@
-
+# avoid infinite recursion of rule below
+../lpepcsrc/%.mod: ../lpepcsrc/%.mod
+	@echo "========================================== " $@
 # special rules for "external" modules
-treevars.mod:
-	ln -sf ../lpepcsrc/treevars.mod ./treevars.mod
-utils.mod:
-	ln -sf ../lpepcsrc/utils.mod ./utils.mod
-tree_utils.mod:
-	ln -sf ../lpepcsrc/tree_utils.mod ./tree_utils.mod
-module_fmm_framework.mod:
-	ln -sf ../lpepcsrc/module_fmm_framework.mod ./module_fmm_framework.mod
-tree_walk_utils.mod:
-	ln -sf ../lpepcsrc/tree_walk_utils.mod ./tree_walk_utils.mod
-tree_walk_communicator.mod:
-	ln -sf ../lpepcsrc/tree_walk_communicator.mod ./tree_walk_communicator.mod
-timings.mod:
-	ln -sf ../lpepcsrc/timings.mod ./timings.mod
-#	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/timings.mod $(PREFIX)/pepc-mw/timings.mod
+%.mod: ../lpepcsrc/%.mod
+	ln -sf ../lpepcsrc/$@ ./$(@F)
 
 
 $(EXECNAME): $(LIBRARIES) $(OBJS)
 	@echo "Creating application binary $(EXECNAME) ..."
-	$(LDPRE) $(LD) $(LDFLAGS) -o $(EXECNAME) $(OBJS) $(LIBPEPC) $(LDLIBS) $(LIBRARIES)
+	$(LDPRE) $(LD) $(LDFLAGS) -o $(EXECNAME) $(OBJS) $(LIBPEPC) $(LIBRARIES) $(LDLIBS)
 	@echo "... done"
 
 clean:
