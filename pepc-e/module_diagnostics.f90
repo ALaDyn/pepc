@@ -50,10 +50,12 @@ module module_diagnostics
             integer :: p
             type(t_dumpparticle), allocatable :: dp(:)
             integer*8 :: npart
+            real*8 :: trun_
 
             if (binary .or. ascii .or. mpiio) then
 
               npart = npart_total ! TODO: conversion real*4 --> real*8 will be unneccessary soon
+              trun_ = trun
 
               allocate(dp(np_local))
 
@@ -69,7 +71,7 @@ module module_diagnostics
               if (ascii) call write_particles_ascii(my_rank, itime, np_local, dp)
 
               !!! write particle checkpoint data using mpi-io
-              if (mpiio) call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, trun, np_local, npart, dp)
+              if (mpiio) call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, trun_, np_local, npart, dp)
 
               deallocate(dp)
             endif
@@ -110,6 +112,7 @@ module module_diagnostics
             integer :: p
             type(t_dumpparticle), allocatable :: dp(:)
             integer*8 :: npart
+            real*8 :: trun_
 
             if (binary .or. ascii .or. mpiio) then
 
@@ -120,9 +123,10 @@ module module_diagnostics
               if (ascii)  write(*,*) "read_particles(): ascii mode unsupported" !call read_particles_ascii(my_rank, itime, np_local, dp)
 
               !!! read particle checkpoint data using mpi-io
-              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, trun, np_local, npart, dp)
+              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, trun_, np_local, npart, dp)
 
               npart_total = npart
+              trun = trun_
 
               ! unpack our data
               do p=1,np_local
