@@ -26,12 +26,18 @@ module module_diagnostics
             use physvars
             implicit none
             logical, intent(in) :: allowcheckpoint
+            logical :: bin, asc, check, vtk
 
-            call write_particles_type( &
-                                       (idump_binary     > 0) .and. ((mod(itime, idump_binary     ) == 0) .or. (itime == nt)) , &
-                                       (idump            > 0) .and. ((mod(itime, idump            ) == 0) .or. (itime == nt)) , &
-               (allowcheckpoint) .and. (idump_checkpoint > 0) .and. ((mod(itime, idump_checkpoint ) == 0) .or. (itime == nt)) , &
-                                       (idump_vtk        > 0) .and. ((mod(itime, idump_vtk        ) == 0) .or. (itime == nt)) )
+            bin = (idump_binary       > 0)
+            if (bin) bin = ((mod(itime, idump_binary        ) == 0) .or. (itime == nt))
+            asc = (idump              > 0)
+            if (asc) asc = ((mod(itime, idump               ) == 0) .or. (itime == nt))
+            check = (idump_checkpoint > 0) .and. (allowcheckpoint) 
+            if (check) check = ((mod(itime, idump_checkpoint) == 0) .or. (itime == nt))
+            vtk = (idump_vtk          > 0)
+            if (vtk) vtk = ((mod(itime, idump_vtk           ) == 0) .or. (itime == nt))
+
+            call write_particles_type( bin, asc, check, vtk )
 
           end subroutine write_particles
 
