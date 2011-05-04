@@ -20,13 +20,13 @@ itme_in = 5
  
 ! fmm-periodicity framework
 ! lattice basis vectors
-  t_lattice_1 = 1.0   0.0   0.0
-  t_lattice_2 = 0.0   1.0   0.0
-  t_lattice_3 = 0.0   0.0   1.0
+!  t_lattice_1 = 1.0   0.0   0.0
+!  t_lattice_2 = 0.0   1.0   0.0
+!  t_lattice_3 = 0.0   0.0   1.0
 ! periodicity in x-, y-, and z-direction
 !  periodicity = .true.  .true.  .true.
 ! extrinsic-to-intrinsic correction
-  do_extrinsic_correction = .false.
+!  do_extrinsic_correction = .false.
 
 ! Choose sorting routine and load balancing
 ! 0: no load balancing, 1: load balancing

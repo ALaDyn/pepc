@@ -67,11 +67,11 @@ void slcheck_fortran2c_types(double *f2c_sizes)
 }
 
 
-void slsort_keys_(finteger_t *, finteger_t *, pepckeys_slkey_t *, pepckeys_sldata0_t *, finteger_t *, double *, finteger_t *, finteger_t *, finteger_t *,
+void slsort_keys(finteger_t *, finteger_t *, pepckeys_slkey_t *, pepckeys_sldata0_t *, finteger_t *, double *, finteger_t *, finteger_t *, finteger_t *,
                   finteger_t *, finteger_t *, finteger_t *, finteger_t *, pepckeys_slkey_t *, finteger_t *, finteger_t *, finteger_t *);
 
-#pragma weak slsort_keys_ = slsort_keys
-void slsort_keys(finteger_t *nin,                                       /* IN */
+#pragma weak slsort_keys = slsort_keys_
+void slsort_keys_(finteger_t *nin,                                       /* IN */
                  finteger_t *nmax,                                      /* IN */
                  pepckeys_slkey_t *keys,                                /* INOUT */
                  pepckeys_sldata0_t *workload,                          /* INOUT */

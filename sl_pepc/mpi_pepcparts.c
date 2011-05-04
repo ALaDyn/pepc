@@ -56,13 +56,13 @@ typedef FINT_TYPE_C finteger_t;
 #endif
 
 
-void slsort_parts_(finteger_t *, finteger_t *, pepcparts_slkey_t *, pepcparts_sldata0_t *, pepcparts_sldata1_t *, pepcparts_sldata2_t *, pepcparts_sldata3_t *, pepcparts_sldata4_t *, pepcparts_sldata5_t *,
+void slsort_parts(finteger_t *, finteger_t *, pepcparts_slkey_t *, pepcparts_sldata0_t *, pepcparts_sldata1_t *, pepcparts_sldata2_t *, pepcparts_sldata3_t *, pepcparts_sldata4_t *, pepcparts_sldata5_t *,
                    pepcparts_sldata6_t *, pepcparts_sldata7_t *, pepcparts_sldata8_t *, pepcparts_sldata9_t *, pepcparts_sldata10_t *, pepcparts_sldata11_t *, pepcparts_sldata12_t *,
                    finteger_t *, double *, finteger_t *, finteger_t *, finteger_t *, finteger_t *, finteger_t *, finteger_t *,
                    void *, void *, pepcparts_slkey_t *, pepcparts_sldata8_t *, finteger_t *, finteger_t *, finteger_t *);
 
-#pragma weak slsort_parts_ = slsort_parts
-void slsort_parts(finteger_t *n,                                                             /* INOUT */
+#pragma weak slsort_parts = slsort_parts_
+void slsort_parts_(finteger_t *n,                                                             /* INOUT */
                   finteger_t *nmax,                                                          /* IN */
                   pepcparts_slkey_t *keys,                                                   /* INOUT */
                   pepcparts_sldata0_t *x,                                                    /* INOUT */
