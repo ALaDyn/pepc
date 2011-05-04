@@ -26,4 +26,4 @@ LDLIBS   =
 
 RM       = rm -rf
 
-EXECNAME = ../bin/$@.jump
+EXECNAME = ../pepc

@@ -17,25 +17,18 @@ subroutine diagnose_tree
   integer :: key2addr        ! Mapping function to get hash table address from key
 
   integer*8 :: key_twig(ntwig), key_leaf(nleaf) 
-  integer, dimension(size_tree) :: node_list, owner_list, addr_list
-  integer, dimension(ntwig) :: level_twig, nchild_twig, child_twig, addr_twig, ind_twig      ! twig-nodes
-  real :: rcoc2(1:ntwig)
-  integer, dimension(nleaf) :: level_leaf, plist_leaf, ind_leaf, owner_leaf       ! leaf-nodes
+  integer, dimension(ntwig) :: child_twig, addr_twig, ind_twig      ! twig-nodes
+  real*8 :: rcoc2(1:ntwig)
+  integer, dimension(nleaf) :: plist_leaf, ind_leaf, owner_leaf       ! leaf-nodes
 
-  character(30) :: cfile
   character(1) :: csnap, collision
-  integer ic(5),jc(5),lc(5)
 
-  integer :: i, ip, j, ilev, isnap, ibt,ierr
-  real :: s, xt, yt
+  integer :: i, isnap
 
   save isnap
   data isnap/1/
 
   csnap=achar(mod(isnap,10)+48)
-
-  write(cfile,'(a,i6.6,a)') "diag_", me, ".dat"  
-  open(ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
 
   if (me==0) write (*,*) 'DIAGNOSE TREE'
   write (ipefile,*) 'DIAGNOSE TREE'
@@ -76,14 +69,13 @@ subroutine diagnose_tree
   write (ipefile,'(///a)') 'Tree structure'
 
 !  write (ipefile,'(/a/a/(3i5,2i10,2i8,b11,i2,i8,i10,9(1pe15.4)))') 'Twigs from hash-table:', &
-  write (ipefile,'(/a/a/(3i5,2o15,2i8,z4,i2,o15,i5,10(1pe15.4)))') 'Twigs from hash-table:', &
+  write (ipefile,'(/a/a/(3i5,2o15,2i8,z4,i2,o15,10(1pe15.4)))') 'Twigs from hash-table:', &
        '    i  level  owner   key    parent-key    #     node     code    #c  1st child    #leaves ', &
        (i,node_level(ind_twig(i)), &              !  index, level
          htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%owner, &                            ! Owner-PE of node
          key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
          addr_twig(i), ind_twig(i), &    ! Table address and node number
          child_twig(i), &                         ! Children byte-code 
-         n_children( ind_twig(i) ), &
          first_child( ind_twig(i) ), &            ! key of 1st child
          htable( addr_twig(i) )%leaves, &                           ! # leaves contained in branch 
          abs_charge(ind_twig(i)), &    ! Twig absolute charge
@@ -131,17 +123,5 @@ subroutine diagnose_tree
         plist_leaf(i), & ! global particle label
         xcoc(ind_leaf(i)),ycoc(ind_leaf(i)), charge(ind_leaf(i)), xdip(ind_leaf(i)), &
 	i=1,nleaf-nleaf_me)
-
-! Interaction lists
-  
-!!$  write(ipefile,'(//a)') 'Interaction lists'
-!!$  do i=1,npp
-!!$     write(ipefile,'(//a,i5,a,i5)') 'Particle ',pelabel(i),' # terms: ',nterm(i)
-!!$     write(ipefile,'(a/(4i7))') 'List: key,owner,node',(intlist(j,i),htable( key2addr( intlist(j,i),'DIAGNOSE_TREE' ) )%owner &
-!!$          ,htable( key2addr( intlist(j,i),'DIAGNOSE_TREE' ) )%node,nodelist(j,i),j=1,nterm(i))
-!!$  end do
-
-
-  close(ipefile)
-  
+ 
 end subroutine diagnose_tree

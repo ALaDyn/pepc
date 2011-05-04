@@ -14,14 +14,34 @@ typedef FINT_TYPE_C finteger_t;
 
 /*#define MAX_IMBALANCE  0.01*/
 
-/*#define MPI_PARTITION_RADIX_OLD*/
+/*#define MPI_PARTITION_RADIX_2GROUPS*/
+/*#define MPI_PARTITION_RADIX_NGROUPS  2*/
+
+/*#define MPI_PARTITION_SAMPLE*/
 
 /*#define SORT_INSTEAD_OF_MERGE*/
 
-/*#define VERBOSE
-#define VALIDATE
-#define TIMING*/
+#define PART_MINMAX
 
+/*#define VERBOSE*/
+/*#define VALIDATE*/
+/*#define TIMING*/
+
+
+#define SORT_RHIGH   -1
+#define SORT_RLOW    -1
+#define SORT_RWIDTH  -1
+
+#define PART_RHIGH   62
+#define PART_RLOW    -1
+#define PART_RWIDTH  3
+
+
+#ifdef VERBOSE
+# define VERBOSE_MOP(_mop_)  do { _mop_ ; } while (0)
+#else
+# define VERBOSE_MOP(_mop_)  do { } while (0)
+#endif
 
 #ifdef TIMING
 # define TSTART(tid)  tid = MPI_Wtime()
@@ -31,14 +51,27 @@ typedef FINT_TYPE_C finteger_t;
 # define TSTOP(tid)   do { } while (0)
 #endif
 
-extern int pepckeys_sl_mpi_rank;
+
+void slcheck_fortran2c_types_(double *);
+
+#pragma weak slcheck_fortran2c_types_ = slcheck_fortran2c_types
+void slcheck_fortran2c_types(double *f2c_sizes)
+{
+  int error = 0;
+
+  if (f2c_sizes[0] != sizeof(FINT_TYPE_C)) { fprintf(stderr, "WARNING: fortran integer = %d vs. FINT_TYPE_C = %d\n", (int) f2c_sizes[0], (int) sizeof(FINT_TYPE_C)); ++error; }
+  if (f2c_sizes[1] != sizeof(FINT8_TYPE_C)) { fprintf(stderr, "WARNING: fortran integer*8 = %d vs. FINT8_TYPE_C = %d\n", (int) f2c_sizes[1], (int) sizeof(FINT8_TYPE_C)); ++error; }
+  if (f2c_sizes[2] != sizeof(FREAL8_TYPE_C)) { fprintf(stderr, "WARNING: fortran real*8 = %d vs. FREAL8_TYPE_C = %d\n", (int) f2c_sizes[2], (int) sizeof(FREAL8_TYPE_C)); ++error; }
+
+  if (error) fprintf(stderr, "WARNING: There seems to be a problem between Fortran and C data types. Please adjust file 'fortran2c_types.h'!\n");
+}
 
 
-void slsort_keys_(finteger_t *, finteger_t *, pepckeys_slkey_t *, pepckeys_sldata0_t *, finteger_t *, double *, finteger_t *, finteger_t *, finteger_t *,
+void slsort_keys(finteger_t *, finteger_t *, pepckeys_slkey_t *, pepckeys_sldata0_t *, finteger_t *, double *, finteger_t *, finteger_t *, finteger_t *,
                   finteger_t *, finteger_t *, finteger_t *, finteger_t *, pepckeys_slkey_t *, finteger_t *, finteger_t *, finteger_t *);
 
-#pragma weak slsort_keys_ = slsort_keys
-void slsort_keys(finteger_t *nin,                                       /* IN */
+#pragma weak slsort_keys = slsort_keys_
+void slsort_keys_(finteger_t *nin,                                       /* IN */
                  finteger_t *nmax,                                      /* IN */
                  pepckeys_slkey_t *keys,                                /* INOUT */
                  pepckeys_sldata0_t *workload,                          /* INOUT */
@@ -56,8 +89,12 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
   int rank = *frank;
   MPI_Comm comm = MPI_COMM_WORLD;
 
+  typedef pepckeys_slint_t slint_t;
+#define slint_fmt pepckeys_sl_int_type_fmt
+
+  slint_t i;
+
   pepckeys_elements_t s0, s1;
-  pepckeys_slint_t i;
   pepckeys_partcond_t pc;
 
 #ifdef MAX_IMBALANCE
@@ -66,17 +103,47 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
   double imba = *max_imbalance;
 #endif
 
-#define scounts  fscounts
-#define rcounts  frcounts
-#define sdispls  fsdispls
-#define rdispls  frdispls
+  int scounts[size], rcounts[size], sdispls[size], rdispls[size];
+
+#if defined(MPI_PARTITION_RADIX_2GROUPS) || defined(MPI_PARTITION_RADIX_NGROUPS)
+  const slint_t max_nsubs = 4;
+
+  slint_t nsubs;
+  MPI_Comm sub_comms[max_nsubs];
+  int sub_sizes[max_nsubs], sub_ranks[max_nsubs];
+#endif
 
 #ifdef VALIDATE
-  pepckeys_slint_t o, l;
+  slint_t o, l;
 #endif
 
 #ifdef TIMING
   double ttotal, tinitpre, tpresort, tpartition, talltoall, talltoallv, tinitpost, tpostmerge;
+#endif
+
+#if defined(VERBOSE) || defined(TIMING)
+  slint_t ntotal = *n * size;
+  const pepcparts_slint_t ndims = 4;
+  pepcparts_slint_t dims[ndims], pos[ndims];
+#endif
+
+
+#if defined(VERBOSE) || defined(TIMING)
+  pepcparts_mpi_get_grid_properties(ndims, dims, pos, size, rank, comm);
+  if (rank == 0)
+    printf("# np: %d, grid: %dx%dx%dx%d, n: %" finteger_fmt ", nmax: %" finteger_fmt ", ntotal: %" slint_fmt ", partitioning: %s, minmax: %s, weighted: %" finteger_fmt ", imba: %f\n",
+      size, (int) dims[3], (int) dims[2], (int) dims[1], (int) dims[0], *n, *nmax, ntotal,
+# ifdef MPI_PARTITION_SAMPLE
+      "rs",
+# else
+      "ep",
+# endif
+# ifdef PART_MINMAX
+      "yes",
+# else
+      "no",
+# endif
+      *balance_weight, imba);
 #endif
 
   TSTART(ttotal);
@@ -88,9 +155,10 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
   printf("%d:  balance_weight: %" finteger_fmt "\n", rank, *balance_weight);
   printf("%d:  max_imbalance: %f\n", rank, *max_imbalance);
 
-  printf("%d:  sizeof(integer) = %d\n", rank, sizeof(finteger_t));
-  printf("%d:  sizeof(key) = %d\n", rank, sizeof(pepckeys_slkey_t));
-  printf("%d:  sizeof(index) = %d\n", rank, sizeof(pepckeys_slindex_t));
+  printf("%d:  sizeof(integer) = %d\n", rank, (int) sizeof(finteger_t));
+  printf("%d:  sizeof(integer*8) = %d\n", rank, (int) sizeof(FINT8_TYPE_C));
+  printf("%d:  sizeof(pepckeys_key) = %d\n", rank, (int) sizeof(pepckeys_slkey_t));
+  printf("%d:  sizeof(pepckeys_index) = %d\n", rank, (int) sizeof(pepckeys_slindex_t));
 #endif
 
   pepckeys_sl_mpi_rank = rank;
@@ -111,17 +179,14 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
   TSTOP(tinitpre);
 
   /* pre sort local */
-#ifdef VERBOSE
-  printf("%d: slsort_keys: 1. sort keys\n", rank);
-#endif
+  VERBOSE_MOP(printf("%d: slsort_keys: 1. sort keys\n", rank));
 
   TSTART(tpresort);
-  pepckeys_sort_radix(&s0, NULL, -1, -1, -1);
+  pepckeys_sort_radix(&s0, NULL, SORT_RHIGH, SORT_RLOW, SORT_RWIDTH);
   TSTOP(tpresort);
 
-#ifdef VERBOSE
-  printf("%d: slsort_keys: 1. sort keys done\n", rank);
-#endif
+  VERBOSE_MOP(printf("%d: slsort_keys: 1. sort keys done\n", rank));
+
 
 #ifdef VALIDATE
   l = pepckeys_elements_validate_order(&s0, 1);
@@ -129,58 +194,101 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
 
 
   /* partitioning */
-#ifdef VERBOSE
-  printf("%d: slsort_keys: 2. partitioning\n", rank);
-#endif
+  VERBOSE_MOP(printf("%d: slsort_keys: 2. partitioning\n", rank));
 
-  /* no fixed min/max borders for this partition */
-  pc.min_cpart = 0.0;
-  pc.max_cpart = -1.0;
-  pc.min_wpart = 0.0;
-  pc.max_wpart = -1.0;
+#define REDUCTION  0.25
 
-#ifdef MPI_PARTITION_RADIX_OLD
-  pc.weighted = (*balance_weight != 0);
-  pc.min_count = -(1.0 - imba);
-  pc.max_count = -(1.0 + imba);
-  pc.min_weight = -(1.0 - imba);
-  pc.max_weight = -(1.0 + imba);
-
-  TSTART(tpartition);
-  pepckeys_mpi_partition_radix_old(&s0, &pc, -1, -1, 3, scounts, sdispls, size, rank, comm);
-  TSTOP(tpartition);
-#else
-  if (*balance_weight)
+#if defined(PART_MINMAX) && !defined(MPI_PARTITION_SAMPLE)
+  if (*balance_weight == 0)
   {
-    pc.min_count = 0;
-    pc.max_count = *nmax;
-    pc.min_weight = -(1.0 - imba);
-    pc.max_weight = -(1.0 + imba);
+    pc.pcm = SLPC_COUNTS_MM;
+    pc.count_min = -(1.0 - imba);
+    pc.count_max = -(1.0 + imba);
+
+    pepckeys_mseg_border_update_count_reduction = REDUCTION;
 
   } else
   {
-    pc.min_count = -(1.0 - imba);
-    pc.max_count = -(1.0 + imba);
-    pc.min_weight = 0;
-    pc.max_weight = -size; /* max = size x avg. = total */
+    pc.pcm = SLPC_COUNTS_MM|SLPC_WEIGHTS_MM;
+    pc.count_min = 0;
+    pc.count_max = *nmax;
+    pc.weight_min = -(1.0 - imba);
+    pc.weight_max = -(1.0 + imba);
 
-    if (pc.max_count > *nmax) pc.max_count = *nmax;
+    pepckeys_mseg_border_update_weight_reduction = REDUCTION;
   }
+#else
+  if (*balance_weight == 0)
+  {
+    pc.pcm = SLPC_COUNTS_LH;
+    pc.count_low = ((double) (rank + 0) / (double) size) - (0.5 * imba / size);
+    pc.count_low = -((pc.count_low > 0)?pc.count_low:0);
+    pc.count_high = ((double) (rank + 1) / (double) size) + (0.5 * imba / size);
+    pc.count_high = -((pc.count_high < 1)?pc.count_high:1);
+
+  } else
+  {
+    pc.pcm = SLPC_WEIGHTS_LH;
+    pc.weight_low = ((double) (rank + 0) / (double) size) - (0.5 * imba / size);
+    pc.weight_low = -((pc.weight_low > 0)?pc.weight_low:0);
+    pc.weight_high = ((double) (rank + 1) / (double) size) + (0.5 * imba / size);
+    pc.weight_high = -((pc.weight_high < 1)?pc.weight_high:1);
+  }
+#endif
+
+/*  pepckeys_mseg_finalize_mode = SL_MSEG_FM_ALLORNOTHING;*/
 
   TSTART(tpartition);
-  pepckeys_mpi_partition_radix(&s0, &pc, -1, -1, 3, scounts, sdispls, size, rank, comm);
+
+#if defined(MPI_PARTITION_SAMPLE)
+
+  VERBOSE_MOP(printf("%d: slsort_parts: 2. partitioning: regular sampling\n", rank));
+
+/*  pepckeys_mss_root = -1;*/
+
+  pepckeys_mpi_partition_sample_regular(&s0, &pc, scounts, NULL, size, rank, comm);
+
+#elif defined(MPI_PARTITION_RADIX_2GROUPS)
+
+  nsubs = 2;
+
+  VERBOSE_MOP(printf("%d: slsort_parts: 2. partitioning: 2groups\n", rank));
+
+  pepckeys_mpi_subgroups_create(nsubs, sub_comms, sub_sizes, sub_ranks, size, rank, comm);
+  pepckeys_mpi_partition_exact_radix_2groups(&s0, &pc, sub_comms[1], NULL, PART_RHIGH, PART_RLOW, PART_RWIDTH, scounts, NULL, size, rank, comm);
+  pepckeys_mpi_subgroups_delete(nsubs, sub_comms, size, rank, comm);
+
+#elif defined(MPI_PARTITION_RADIX_NGROUPS)
+
+  nsubs = (MPI_PARTITION_RADIX_NGROUPS <= max_nsubs)?MPI_PARTITION_RADIX_NGROUPS:max_nsubs;
+
+  VERBOSE_MOP(printf("%d: slsort_parts: 2. partitioning: ngroups (%" slint_fmt ")\n", rank, nsubs));
+
+  pepckeys_elem_set_indices(&k0, indxl2); /* ..._ngroups requires indices that can be modified (indxl2 is not used otherwise) */
+
+  pepckeys_mpi_subgroups_create(nsubs, sub_comms, sub_sizes, sub_ranks, size, rank, comm);
+  pepckeys_mpi_partition_exact_radix_ngroups(&s0, &pc, nsubs, sub_comms, NULL, PART_RHIGH, PART_RLOW, PART_RWIDTH, scounts, NULL, size, rank, comm);
+  pepckeys_mpi_subgroups_delete(nsubs, sub_comms, size, rank, comm);
+
+#else
+
+  VERBOSE_MOP(printf("%d: slsort_parts: 2. partitioning: direct\n", rank));
+
+  pepckeys_mpi_partition_exact_radix(&s0, &pc, PART_RHIGH, PART_RLOW, PART_RWIDTH, SL_SORTED_IN, scounts, NULL, size, rank, comm);
+
+/*  if (rank == 0) printf("average finish round: %f\n", pepckeys_mseg_info_finish_rounds_avg);*/
+
+#endif
+
   TSTOP(tpartition);
-#endif
+
+  pepckeys_counts2displs(size, scounts, sdispls);
+
+  VERBOSE_MOP(printf("%d: slsort_keys: 2. partitioning done\n", rank));
 
 
-#ifdef VERBOSE
-  printf("%d: slsort_keys: 2. partitioning done\n", rank);
-#endif
-  
   /* alltoallv keys */
-#ifdef VERBOSE
-  printf("%d: slsort_keys: 3. alltoallv\n", rank);
-#endif
+  VERBOSE_MOP(printf("%d: slsort_keys: 3. alltoallv\n", rank));
 
   TSTART(talltoall);
   MPI_Alltoall(scounts, 1, MPI_INT, rcounts, 1, MPI_INT, comm);
@@ -190,16 +298,21 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
   MPI_Alltoallv(keys, scounts, sdispls, pepckeys_sl_key_type_mpi, keys2, rcounts, rdispls, pepckeys_sl_key_type_mpi, comm);
   TSTOP(talltoallv);
 
-#ifdef VERBOSE
-  printf("%d: slsort_keys: 3. alltoallv done\n", rank);
-#endif
-
   *nout = rdispls[size - 1] + rcounts[size - 1];
 
+  for (i = 0; i < size; ++i)
+  {
+    fscounts[i] = scounts[i];
+    frcounts[i] = rcounts[i];
+    fsdispls[i] = sdispls[i];
+    frdispls[i] = rdispls[i];
+  }
+
+  VERBOSE_MOP(printf("%d: slsort_keys: 3. alltoallv done\n", rank));
+
+
   /* post sort local (or mergep) */
-#ifdef VERBOSE
-  printf("%d: slsort_keys: 4. merge keys\n", rank);
-#endif
+  VERBOSE_MOP(printf("%d: slsort_keys: 4. merge keys\n", rank));
 
 #ifdef SORT_INSTEAD_OF_MERGE
 
@@ -250,16 +363,15 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
   TSTOP(tinitpost);
 
   TSTART(tpostmerge);
-  pepckeys_mergep_heap(&s0, &s1, size, rdispls, rcounts);
+  pepckeys_mergep_heap_idx(&s0, &s1, size, frdispls, frcounts);
   TSTOP(tpostmerge);
 
 #endif
-  
+
   for (i = 0; i < s0.size; ++i) irnkl[irnkl2[i]] = i + 1;
 
-#ifdef VERBOSE
-  printf("%d: slsort_keys: 4. merge keys done\n", rank);
-#endif
+  VERBOSE_MOP(printf("%d: slsort_keys: 4. merge keys done\n", rank));
+
 
 #ifdef VALIDATE
   o = pepckeys_mpi_elements_validate_order(&s1, 1, size, rank, comm);
@@ -268,22 +380,17 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
  #endif
 #endif
 
+
   pepckeys_mpi_datatypes_release();
 
   TSTOP(ttotal);
 
-#ifdef VERBOSE
-  printf("%d: nout: %" FINT_TYPE_FMT "\n", rank, *nout);
-#endif
+  VERBOSE_MOP(printf("%d: nout: %" FINT_TYPE_FMT "\n", rank, *nout));
 
 #ifdef TIMING
   if (rank == 0)
   {
-#ifdef MPI_PARTITION_RADIX_OLD
-    printf("%d: slsort_keys: %f (old)\n", rank, ttotal);
-#else
     printf("%d: slsort_keys: %f\n", rank, ttotal);
-#endif
     printf("%d: slsort_keys: initpre: %f\n", rank, tinitpre);
     printf("%d: slsort_keys: presort: %f\n", rank, tpresort);
     printf("%d: slsort_keys: partition: %f\n", rank, tpartition);

@@ -1,0 +1,24 @@
+#!/bin/ksh
+#PBS -N #BENCHNAME#
+#PBS -o #STDOUTLOGFILE#
+#PBS -e #STDERRLOGFILE#
+#PBS -l mppwidth=#TASKS#
+#PBS -l mppnppn=#TASKSPERNODE#
+#PBS -l mppdepth=#THREADSPERTASK#
+#PBS -l mppmem=#MEMORYPERTASK#
+#PBS -l walltime=#TIME_LIMIT#
+#PBS -q #QUEUE#
+#PBS -A #ACCOUNT#
+
+cd $PBS_O_WORKDIR/
+echo
+
+#ENV#
+
+echo "<jobstart at=\"`date`\" />" >> #OUTDIR#/start_info.xml
+
+#PREPROCESS#
+#MEASUREMENT# #STARTER# #ARGS_STARTER# #EXECUTABLE# #ARGS_EXECUTABLE#
+#POSTPROCESS#
+
+echo "<jobend at=\"`date`\" />" >> #OUTDIR#/end_info.xml

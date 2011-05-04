@@ -12,18 +12,17 @@ CPPFLAGS = -P -C
 
 FCPRE    = 
 FC       = mpif90
-#FFLAGS   = -O2 -ipo -axSSE4.2
-FFLAGS   = -g
+FFLAGS   = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -ipo-c -ipo-S -O3 -reentrancy threaded
 
 CCPRE    = 
 CC       = mpicc
-CFLAGS   = 
+CFLAGS   = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -ipo-c -ipo-S -O3 -reentrancy threaded
 
 LDPRE    = 
 LD       = mpif90
-LDFLAGS  = 
+LDFLAGS  = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -ipo-c -ipo-S -O3 -reentrancy threaded
 LDLIBS   = 
 
 RM       = rm -rf
 
-EXECNAME = ../bin/$@.juropa
+EXECNAME = ../pepc

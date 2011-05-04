@@ -1,0 +1,38 @@
+#!/bin/bash -x
+
+#MSUB -l walltime=#TIME_LIMIT#
+#MSUB -S /bin/bash
+#MSUB -l nodes=#NODES#:ppn=#NCPUS#
+#MSUB -M #NOTIFY_EMAIL#
+#MSUB -N #BENCHNAME#
+#MSUB -o #STDOUTLOGFILE#
+#MSUB -e #STDERRLOGFILE#
+#CLASSDEF##MSUB -q #CLASS#
+#ENDPBS
+
+#ENV#
+
+
+# :#PARTITION#
+
+cd ${PBS_O_WORKDIR}
+cd #OUTDIR#
+
+cat $PBS_NODEFILE > #OUTDIR#/nodes_used.lst
+
+PSP_TCP=0
+PSP_ONDEMAND=0
+PSI_WAIT=1
+export PSP_TCP
+export PSP_ONDEMAND
+export PSI_WAIT
+
+echo "<jobstart at=\"`date`\" />" >> #OUTDIR#/start_info.xml
+#PREPROCESS#
+#MEASUREMENT# #STARTER# #ARGS_STARTER# #EXECUTABLE# #ARGS_EXECUTABLE# > #OUTDIR#/run.out 2>#OUTDIR#/run.err 
+#POSTPROCESS#
+echo "<jobend at=\"`date`\" />" >> #OUTDIR#/end_info.xml
+cat run.out
+cat run.err
+cd ${PBS_O_WORKDIR}
+#### CPU time limit

@@ -12,19 +12,19 @@ CPPFLAGS = -P -C
 
 FCPRE    = 
 FC       = mpif90
-FFLAGS   = -ffree-form -ffree-line-length-none -I/usr/lib/mpich-shmem/include
+FFLAGS   = -ffree-line-length-none -I/usr/lib/mpich-shmem/include -g -pg -Wall -lpthread -pg
 
 CCPRE    = 
 CC       = mpicc
-CFLAGS   = -I/usr/lib/mpich-shmem/include
+CFLAGS   = -I/usr/lib/mpich-shmem/include -lpthread -pg
 
 LDPRE    = 
 LD       = mpif90
-LDFLAGS  = 
+LDFLAGS  = -lpthread -pg
 LDLIBS   = 
 
 RM       = rm -rf
 
-EXECNAME = ../bin/$@.ubu
+EXECNAME = ../pepc
 
 

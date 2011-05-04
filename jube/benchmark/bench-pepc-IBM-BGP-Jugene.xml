@@ -1,0 +1,70 @@
+<bench name = "PEPC"   platform = "IBM-BGP-Jugene" >
+
+<!-- ********************************************************** -->
+
+<benchmark name="test_and_verify" active="1">
+    <!-- version="reuse|new" -->
+    <compile     cname           = "$platform"
+                 version         = "new"
+
+                 CMP_WRITEMODE   = "$writemode" />
+
+    <tasks       threadspertask = "1"   taskspernode = "1,4"   nodes = "256,512,1024 " />
+
+    <params      COMMENT       = "test with new branch algorithm"
+                 PERL_CMD      = "perl"
+
+                 writemode     = "binary"
+
+                 npart         = "1000017,10000023,25000029"  
+                 geom          = "1,2,3" 
+		 num_walk_threads = "1,2,4"
+                 nt            = "50" 
+                 csort         = "3"
+                 npmult        = "-40" /> 
+   
+    <!-- 2,3 -->
+    <prepare     cname="PEPC" />
+
+    <execution   iteration="1" cname="$platform" />
+
+    <verify      cname="PEPC" />
+    <analyse     cname="$platform" /> 
+
+</benchmark>
+
+<!-- ********************************************************** -->
+
+<benchmark name="periodic_test" active="1">
+    <!-- version="reuse|new" -->
+    <compile     cname           = "$platform"
+                 version         = "new"
+
+                 CMP_WRITEMODE   = "$writemode" />
+
+    <tasks       threadspertask = "1"   taskspernode = "2"   nodes = "1" />
+
+    <params      COMMENT       = "periodic test"
+                 PERL_CMD      = "perl"
+
+                 writemode     = "binary"
+
+                 npart         = "4" 
+                 geom          = "7"
+		 num_walk_threads = "1,2,4"
+                 nt            = "1" 
+                 csort         = "3"
+                 npmult        = "-40" /> 
+
+    <prepare     cname="PEPC-periodic" />
+
+    <execution   iteration="1" cname="$platform" />
+
+    <verify      cname="PEPC-periodic" />
+    <analyse     cname="$platform" /> 
+
+</benchmark>
+
+<!-- ********************************************************** -->
+
+</bench>

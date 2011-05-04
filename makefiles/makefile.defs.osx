@@ -1,0 +1,34 @@
+# MPI NOTE: make sure, that your MPI implementation supports MPI_IN_PLACE
+#           on OSX this might not be the case for OpenMPI(1.4.3), use for
+#           example the MPICH2(1.3.2) implementation 
+
+MACH     = OSX
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = libtool
+ARFLAGS  = -o
+
+CPP      = cpp
+CPPFLAGS = -P -C 
+
+FCPRE    = 
+FC       = mpif90
+FFLAGS   = -ffree-line-length-none -O3
+
+CCPRE    = 
+CC       = mpicc
+CFLAGS   = 
+
+LDPRE    = 
+LD       = mpif90
+LDFLAGS  = -O3
+LDLIBS   = 
+
+RM       = rm -rf
+
+EXECNAME = ../pepc
+
+

@@ -1,6 +1,31 @@
 
 module treetypes
 
+
+  ! Data structure for shipping results
+  type results
+     real*8 :: Ex
+     real*8 :: Ey
+     real*8 :: Ez
+     real*8 :: pot
+     real*8 :: work
+     integer :: label
+  end type results
+
+
+  ! Hash table datatype - 36 bytes per entry
+  type hash
+     integer   :: node          ! Address of particle/pseudoparticle data
+     integer*8 :: key           ! Key
+     integer   :: link          ! Pointer to next empty address in table in case of collision
+     integer   :: leaves        ! # leaves contained within twig (=1 for leaf, npart for root)
+     integer   :: childcode     ! Byte code indicating position of children (twig node); particle label (leaf node)
+     integer*8 :: next          ! Pointer to next key to examine in tree-walk
+     integer   :: owner         ! Node owner (for branches)
+  end type hash
+
+
+ ! Data structure for shipping single particles
   type particle
      real*8 :: x    ! coords
      real*8 :: y
@@ -18,5 +43,36 @@ module treetypes
      integer :: label    ! label
      integer :: pid      ! owner
   end type particle
+
+
+  ! Data structure for shipping multiple moments of child nodes
+  type multipole
+     integer*8 :: key     ! key
+     integer   :: byte    ! byte code
+     integer   :: leaves  ! # leaves contained
+     integer :: owner    ! owner where multipole resides
+     integer*8 :: next    ! next key on walk
+     real*8 :: q        ! net charge sum
+     real*8 :: absq     !  absolute charge sum
+     real*8 :: xcoc     ! centre of charge
+     real*8 :: ycoc
+     real*8 :: zcoc
+     real*8 :: xdip     ! dipole moment
+     real*8 :: ydip
+     real*8 :: zdip
+     real*8 :: xxquad   ! quadrupole moment
+     real*8 :: yyquad
+     real*8 :: zzquad
+     real*8 :: xyquad
+     real*8 :: yzquad
+     real*8 :: zxquad
+     real*8 :: jx        ! current
+     real*8 :: jy
+     real*8 :: jz
+     real*8 :: magmx      ! magnetic moment
+     real*8 :: magmy
+     real*8 :: magmz
+  end type multipole
+
 
 end module treetypes

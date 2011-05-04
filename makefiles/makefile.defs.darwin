@@ -1,11 +1,11 @@
 MACH     = darwin
 
-RANLIB   = ranlib
+RANLIB   = ranlib -c
 
 MAKE     = make
 
 AR       = ar
-ARFLAGS  = -rs
+ARFLAGS  = -r 
 
 CPP      = cpp
 CPPFLAGS = -P -C
@@ -25,6 +25,6 @@ LDLIBS   =
 
 RM       = rm -rf
 
-EXECNAME = ../bin/$@.darwin
+EXECNAME = ../pepc
 
 

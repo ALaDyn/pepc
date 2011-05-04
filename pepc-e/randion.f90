@@ -11,14 +11,14 @@
 subroutine randion
 
     use physvars
-    use utils
+    use module_velocity_setup
 
     implicit none
 
-    integer              :: i, j, face_nr
-    integer              :: idum, iseed1, iseed2, iseed3, i1, n1,p, k, nsphere, nx, ny
-    real                 :: r(np_local), phi(np_local), the(np_local), xt, yt, zt, radius, dpx, s, c_status
-    real, dimension(1:3) :: r_temp
+    integer              :: i, face_nr
+    integer              :: iseed1, iseed2, iseed3, n1,p, k, nsphere
+    real*8                :: xt, yt, zt
+    real                  ::c_status
 
     iseed1 = -11 - my_rank      ! Select seed depending on PE
     iseed2 = -1001 - my_rank     ! Select seed depending on PE
@@ -103,7 +103,7 @@ subroutine randion
     end if
 
     do i = 1, n1
-        k = n1 * rano(iseed3) + 1
+        k = int(n1 * rano(iseed3) + 1)
         xt = x(i)
         yt = y(i)
         zt = z(i)

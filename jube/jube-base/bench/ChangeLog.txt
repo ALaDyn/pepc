@@ -1,0 +1,171 @@
+Change log for JuBE:
+--------------------
+29.06.2009: SM
+patch level 17
+- Bug fix: empty variables in substitute
+
+19.05.2009: LA
+patch level 16
+- new feature: (implemented by Sebastian von Alfthan)
+      	       the result element may now contain a title, which will be
+               printed above the according result table, and a transpose
+	       section, which transposes the table.
+
+	       Example:
+	       <result>
+	       <show colw="10" title="Real Cycle and Time Accounting (%)" transpose="yes">
+	       	     Domain_dec,Send_X_PME,Comm_coord,Neigh_srch,Force,Wait_Cmm_F,
+	       	     PME_mesh,Wait_Cm_XF,Wait_Rx_PF,Write_traj,Update,Constrnts,Comm_energ,Rest
+	       </show>
+
+	       <sort>
+		ncpus	
+	       </sort>
+
+	       </result>
+
+	       Will result in the following table:
+
+	       Real Cycle and Time Accounting (%)
+	        Subid:     |  n44p8t1_t001_i01  n88p8t1_t001_i01
+		-----------+------------------------------------
+		Domain_dec |              1.00              0.80
+		Send_X_PME |              0.10              0.00
+		Comm_coord |              2.10              1.10
+		Neigh_srch |              2.90              1.80
+		Force      |             28.00             17.10
+		Wait_Cmm_F |              4.00              3.90
+		PME_mesh   |             22.80             23.80
+		Wait_Cm_XF |              2.20              1.20
+		Wait_Rx_PF |             32.60             47.60
+		Write_traj |              0.00              0.00
+		Update     |              0.90              0.60
+		Constrnts  |              0.70              0.50
+		Comm_energ |              2.20              1.30
+		Rest       |              0.50              0.30
+
+
+
+20.03.2009: FJ
+patch level 15
+- A default column width of colw="10" is used if the attribute is not
+  specified in result.xml
+
+05.03.2009: AS
+patch level: 14
+- new feature: It's now possible to define the column width for the
+               result tables. As of now a new attribute called colw has
+               to be defined in result.xml. 
+	       Example:  <show active="1" colw="10"> ...</show>
+               If you do not set the column width jube will terminate with
+	       an error message.
+	       Thanks go to Jon Hill for this adaption
+
+
+14.01.2009: AS
+patch level: 13
+ - jube adds a header to xml-longlog-files. Combined with jube_report.xsl and style.css
+   which are copied to xmllogs/ it is now possible to regard the longlog files in your 
+   browser provided with an formatted style. Please choose Firefox or Windows IE because
+   parsing xsl-files is not supported by all browsers yet. Please make sure that your
+   browser recognizes that your longlog file is a xml file.
+   usage example:  firefox <whatever.longlog>
+
+26.11.2008: LA
+patch level: 12
+ - add new function: predefparams; it allows to read in the top level xml-file
+   parameter out of a choosen section
+
+04.11.2008: WF
+patch level: 11
+ - add precommand in analyse tag: command will be executed before 
+   verify and pattern analysis
+
+02.11.2008: FJ
+patch level: 10
+ - jube adds the content of platform.xml to the xmllog for
+   the chosen platform. 
+
+30.10.2008: AS
+patch level: 9
+ - jube prints out the xml-file names when processing them.
+   If there is a mistake in these files the user now knows
+   where to look for the problem.
+
+27.10.2008: AS
+patch level: 8
+ - 'index' has been modified. It is used in analyse.xml via the attribute 
+   'mode' in order to extract data out of a table. 'index' takes a table 
+   from input and writes out columns choosen by the user through indeces 
+   and puts them into the xmllog file.
+
+
+23.10.2008: WF
+patch level: 7
+ - new option '-showall' shows all benchmark runs in result table, 
+   shows also queued and failed runs
+ - new feature: multiple output tables in result:
+   <show>...</show> can be repeated in result.xml
+   <sort>...</sort> can also be repeated, if not, sort order will 
+   be the same for all tables
+ - result.xml: active option to show- and sort- tag implemented
+	       e.g.: <show active="1"> ...
+		     <sort active="0"> ...
+
+17.10.2008: AS
+patch level: 6
+ - modification of the -cmpdir option. This option allows
+   for setting a compile directory other than the home/
+   directory. This option works with a single compilation
+   and with a bunch of compilations as well. Each
+   compilation takes place in an unique subdirectories. The
+   option -cmpdir can also be used together with the option
+   -tmpdir. JuBE creates a tar ball of the source files and
+   transfers it to the corresponding subdirectory in the 
+   directory chosen by -tmpdir.
+
+14.10.2008: AS
+patch level: 5
+ - if the start_info.xml file and end_info.xml file
+   respectively don't exist in the end of a calculation 
+   a hint will be added to the output while updating the 
+   results via the option -update.
+
+01.10.2008: AS
+patch level: 4
+ - new command line option -cmpdir added:
+   can be used in the compile step to choose another
+   directory for compilation than the home/ directory.
+   In the end the new executable will be copied to the
+   home/ directory as well
+
+16.09.2008: SM
+patch level: 3
+ - nbench has been changed to JuBE
+
+31.03.2008: WF
+patch level: 2
+- new tag <input> in analyse.xml:
+  <analyse cname="SGI-Altix">
+      <input addfiles="log/load_0001.dat log/load_0001.dat" />
+      <includepattern file="./analyse-pattern-pepc.xml" /> 
+  </analyse>
+  All files specified in the addfile attribute of this tag will be 
+  appended to the analyse data (stderr and stdout). The contents of the 
+  addfiles attribute can be a comma or blank delimited list of files. 
+  If the filename is not starting with a / the execution directory of 
+  benchmark run will be automatically prepended to the filename.
+
+23.01.2008: WF
+patch level: 1 
+ - new command line option -tmpdir added:
+   for specifying a directory containing all files 
+   needed during runtime of a benchmark
+   can be used, if benchmark directory resides on a filesystem
+    which is not mounted on the compute nodes
+   stdout/err will be temporally stored in $TMPdir/logs 
+   and moved later by nbench (-update option) to the logs
+   directory in the benchmark suite
+ - first enhancements for logging compile parameters when using
+   reuse option
+

@@ -1,0 +1,21 @@
+<patterns>
+
+    <parm name="HWC_PAPI_L1_DCM" unit="" mode="line,last" type="int">JuBE: CRAYPAT: HWC:\s+PAPI_L1_DCM\s+$patnwrd\s+$patint\s+misses</parm> 
+    <parm name="HWC_PAPI_TLB_DM" unit="" mode="line,last" type="int">JuBE: CRAYPAT: HWC:\s+PAPI_TLB_DM\s+$patnwrd\s+$patint\s+misses</parm> 
+    <parm name="HWC_PAPI_L1_DCA" unit="" mode="line,last" type="int">JuBE: CRAYPAT: HWC:\s+PAPI_L1_DCA\s+$patnwrd\s+$patint\s+refs</parm> 
+    <parm name="HWC_PAPI_FP_OPS" unit="" mode="line,last" type="int">JuBE: CRAYPAT: HWC:\s+PAPI_FP_OPS\s+$patnwrd\s+$patint\s+ops</parm> 
+
+    <parm name = "CRAYPAT_TIME_01_NAME"   unit = ""    mode = "line,last"   type="string" >JuBE: CRAYPAT: TIME: proc 1: \|\|\s+$patnfp\%\s+\|$patwrd</parm>
+    <parm name = "CRAYPAT_TIME_01_PART"   unit = "%"   mode = "line,last"   type="float"  >JuBE: CRAYPAT: TIME: proc 1: \|\|\s+$patfp\%\s+\|$patnwrd</parm>
+
+    <parm name = "CRAYPAT_TIME_02_NAME"   unit = ""    mode = "line,last"   type="string" >JuBE: CRAYPAT: TIME: proc 2: \|\|\s+$patnfp\%\s+\|$patwrd</parm>
+    <parm name = "CRAYPAT_TIME_02_PART"   unit = "%"   mode = "line,last"   type="float"  >JuBE: CRAYPAT: TIME: proc 2: \|\|\s+$patfp\%\s+\|$patnwrd</parm>
+
+    <parm name = "CRAYPAT_TIME_03_NAME"   unit = ""    mode = "line,last"   type="string" >JuBE: CRAYPAT: TIME: proc 3: \|\|\s+$patnfp\%\s+\|$patwrd</parm>
+    <parm name = "CRAYPAT_TIME_03_PART"   unit = "%"   mode = "line,last"   type="float"  >JuBE: CRAYPAT: TIME: proc 3: \|\|\s+$patfp\%\s+\|$patnwrd</parm>
+
+    <parm name = "CRAYPAT_TIME_LIST"      unit = ""    mode = "line,index(3,2)" type="float" >JuBE: CRAYPAT: TIME: proc $patint: \|\|\s+$patfp\%\s+\|$patwrd</parm>
+
+    <parm name = "CRAYPAT_HEAP_MAX"       unit = ""    mode = "line,last" type="float" >JuBE: CRAYPAT: HEAP:\s+$patfp\s+\|Total</parm>
+
+</patterns>

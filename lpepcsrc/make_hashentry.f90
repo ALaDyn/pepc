@@ -11,14 +11,14 @@
 subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, ierror)
 
   use treevars
-
   implicit none
+  include 'mpif.h'
 
   integer*8, intent(in) :: keyin
   integer, intent(in) :: nodein, leavesin, codein, ownerin      ! call input parameters
   integer, intent(out) :: newentry  ! address in # table returned to calling routine
   integer :: ierr
-  integer :: link_addr, cell_addr, ierror, k, free, addr_count
+  integer :: link_addr, cell_addr, ierror, free, addr_count
   logical :: resolved
 
   ierror = 0
@@ -26,7 +26,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
   free = free_addr(iused)
 
   ! perform address hashing on key
-  cell_addr = IAND( keyin, hashconst)
+  cell_addr = int(IAND( keyin, hashconst))
 
   tablehigh = max(tablehigh,cell_addr)                 ! Track highest address
 
@@ -47,11 +47,11 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
 
   else if ( htable( cell_addr )%node /= 0 .AND. htable(cell_addr)%key == keyin ) then  
      ! Entry exists and keys match
-     ! => local node  so skip
+     ! => local node or already inserted
      ierror = 1
+     newentry = cell_addr
 
-
-  else            ! Entry exists and keys don't match: COLLISION
+  else            ! Entry exists and keys do not match: COLLISION
 
      if ( htable( cell_addr )%link == -1) then     ! Entry was occupied without existing link
 
@@ -60,7 +60,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
         if (htable(free)%node /= 0 ) then
            write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
            write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
-	  call MPI_ABORT(ierr)
+	  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         endif
         htable( free )%node = nodein                     
         htable( free )%key = keyin
@@ -84,6 +84,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
               ! Occupied with same key -> local or boundary node, so skip
               resolved = .true.
               ierror = 1
+              newentry = link_addr
 
            else if ( htable(link_addr)%node == 0 .and. htable (link_addr)%link == -1 ) then
               ! Found end of chain: entry was occupied by boundary node, so reuse entry
@@ -110,7 +111,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
               if (htable(free)%node /= 0 ) then
                  write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
                  write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
-	         call MPI_ABORT(ierr)
+	         call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
               endif
 
               htable( free )%node = nodein                     
@@ -130,7 +131,7 @@ subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, i
 
         if (addr_count >= maxaddress) then
 	  write (ipefile,'(a5,o20,a)') 'Key ',keyin,' not resolved in MAKE_HASHENTRY'
-	  call MPI_ABORT(ierr)
+	  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         endif
      else
         write (ipefile,'(a5,o20,a)') 'Key ',keyin,' not resolved in MAKE_HASHENTRY'

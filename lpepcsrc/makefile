@@ -1,72 +1,55 @@
-#
-#  Makefile for treemp and test programs
-#
-
 include ../makefile.defs
 
-pepclib = liblpepc.a
+pepclib = $(MACH)/liblpepc.a
 
 .SUFFIXES: .f90
 # -------------------------------------------------------------------------------------------
-
 # Source files
-
+PEPCSRC.f90 =   treevars.f90 tree_utils.f90 timings.f90 treetypes.f90 \
+                module_debug.f90 module_math_tools.f90 module_fmm_framework.f90 \
+                module_calc_force.f90 tree_aswalk_pthreads.f90 \
+                tree_domains.f90 setup_treearrays.f90 restore.f90 tree_allocate.f90 tree_deallocate.f90 \
+		tree_stats.f90 tree_local.f90 tree_exchange.f90 tree_global.f90 \
+		make_hashentry.f90 get_address.f90 get_next_node.f90 \
+	        diagnose_tree.f90 check_table.f90 fields.f90 cleanup_treearrays.f90 mac.f90
 #-------------------------------------------------------------------------------------------
-# Pepc library
 
-PEPCMOD.f90 =   treevars.f90 utils.f90 tree_utils.f90 timings.f90 treetypes.f90
-PEPCSRC.f90 =   tree_domains.f90 setup_treearrays.f90 restore.f90 tree_allocate.f90 tree_deallocate.f90 \
-		tree_build.f90  tree_branches.f90 tree_fill.f90 tree_properties.f90 \
-		tree_aswalk.f90 tree_cowalk.f90 tree_prefetch.f90 sum_force.f90 sum_bfield.f90 \
-	        tree_update.f90 tree_stats.f90 tree_local.f90 tree_exchange.f90 tree_global.f90 \
-		make_hashentry.f90 get_address.f90  get_node.f90 key_test.f90 get_next_node.f90 \
-	        diagnose_tree.f90 check_table.f90 sum_lennardjones.f90 sum_bond.f90 \
-		draw_domains.f90 draw_tree2d.f90 draw_lists.f90 \
-		fields.f90 fields_p.f90 fields_p1.f90 cleanup_treearrays.f90 mac.f90
+# Names of application object files derived from sources
+# Prefix added for multi-arch builds
+OBJS = $(addprefix $(MACH)/, $(PEPCSRC.f90:.f90=.o))
 
-LIBOBJS = $(addprefix $(MACH)/, $(PEPCSRC.f90:.f90=.o))
-LIBMODS = $(addprefix $(MACH)/, $(PEPCMOD.f90:.f90=.o))
-POBJS = $(PEPCSRC.f90:.f90=.o)
-PMODS =  $(PEPCMOD.f90:.f90=.o)
+default: all
+all: $(MACH) module.deps $(pepclib)
 
+$(MACH):  
+	mkdir -p  $(MACH)
 
-all: dirs mods module.deps lpepc 
-
-dirs:  
-	if [ ! -d $(MACH) ]; then mkdir $(MACH); fi
-
-#  compile mode for PEPC library routines
-$(MACH)/%.o: %.f90  
+# preprocess files and put into $(MACH) subdir
+# then compile form there
+# touch module files after compilation so that the are newer than the .o files
+# this prevents make from trying to rebuild them again and again
+# we keep the preprocessed files for easier debugging / correct line information etc.
+$(MACH)/%.o %.mod: %.f90  
 	$(CPP) $(CPPFLAGS) $< $(MACH)/$<
-	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$< -o $@
+	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$< -o $(MACH)/$(<:.f90=.o)
 
-$(pepclib): mods lpepc
-lpepc:  $(LIBOBJS) $(LIBMODS) 
+# special rules for "external" modules
+pthreads_stuff.mod:
+	ln -sf ../pthreads/pthreads_stuff.mod ./pthreads_stuff.mod
+
+$(pepclib):   $(OBJS)
 	@echo "Creating PEPC library ..."
 	$(RM) $(MACH)/liblpepc.a
 	$(AR) $(ARFLAGS) $(MACH)/liblpepc.a $^
 	$(RANLIB) $(MACH)/liblpepc.a
-	if [ -e treevars.mod ]; then cp -p *.mod $(MACH)/.; fi
 	@echo "... done"
 
 
-mods:   $(LIBMODS) 
-
-debug:	$(OBJECTS)
-	@echo "Loading object files using flags $(DBFLAGS)"
-	$(FC) $(LDFLAGS)  $(VISITLIBS) $(DBFLAGS)  -o $@ $(OBJECTS)
-
 clean:
-	$(RM) $(MACH)/liblpepc.a $(LIBOBJS) $(LIBMODS) $(MACH)/*.mod *.mod *% *~ bin/key rand *.o *.pif core *.ps module.deps
+	$(RM) $(MACH)/liblpepc.a $(OBJS) $(MACH)/*.mod *.mod *% *~ bin/key rand *.o *.pif core module.deps
 	$(RM) -r $(MACH)
 
-cleanps: 
-	$(RM) *.ps 
-
-%.mod: $(MACH)/%.o
-	@true
-
 module.deps:
-	./f90_mod_deps.py -o $@ --o-prefix "\$$(MACH)/" $(PEPCMOD.f90) $(PEPCSRC.f90)
+	../tools/build/f90_mod_deps.py -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(PEPCSRC.f90)
 
 -include module.deps

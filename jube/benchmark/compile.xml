@@ -1,0 +1,129 @@
+<compilation>
+
+<!-- predefined vars:
+   $outdir -> output directory for temporary compile files
+   $id     -> identifier of this benchmark run
+-->
+
+<!-- ********************************************************** -->
+
+<compile cname="Intel-Nehalem-JuRoPA">
+    <!-- Specification of source files to copy into temporary build
+         directory -->
+    <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
+				    lpepcsrc sl_pepc pepc-e tools" />
+
+    <!-- Create makefile.defs and substitute parameters -->
+    <substitute infile="makefile.defs.jube" outfile="makefile.defs">
+        <sub from="#ARCH#"          to="$platform" />
+	<sub from="#MAKE#"          to="$make" />
+	<sub from="#RANLIB#"        to="$ranlib" />
+	<sub from="#AR#"            to="$ar" />
+        <sub from="#ARFLAGS#"       to="$arflags" />
+	<sub from="#RM#"            to="$rm" />
+        <sub from="#CPP#"           to="$cpp" />
+        <sub from="#CPPFLAGS#"      to="$cppflags -C "/>
+        <sub from="#CCPRE#"         to=" " />
+	<sub from="#MPI_CC#"        to="$mpi_cc" />
+        <sub from="#CFLAGS#"        to="$cflags $optflags" />    
+        <sub from="#FCPRE#"         to=" " />
+	<sub from="#MPI_F90#"       to="$mpi_f90" />
+        <sub from="#F90FLAGS#"      to="$f90flags $optflags" />    
+        <sub from="#LDPRE#"         to=" " />
+        <sub from="#LD#"            to="$mpi_f90" />
+        <sub from="#LDFLAGS#"       to="$ldflags $optflags" />
+        <sub from="#LDLIBS#"        to="" />
+	<sub from="#EXECNAME#"      to="$execname" />
+    </substitute>
+
+    <!-- issue build command -->
+    <command>(module load intel parastation/intel; make)</command>
+    
+</compile>
+
+<!-- ********************************************************** -->
+
+<compile cname="IBM-BGP-Jugene">
+    <!-- Specification of source files to copy into temporary build
+         directory -->
+    <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
+				    lpepcsrc sl_pepc pepc-e tools memwatch pthreads" />
+
+    <!-- Create makefile.defs and substitute parameters -->
+    <substitute infile="makefile.defs.jube" outfile="makefile.defs">
+	<sub from="#ARCH#"          to="$platform" />
+	<sub from="#MAKE#"          to="gmake" />
+	<sub from="#RANLIB#"        to="ranlib" />
+	<sub from="#AR#"            to="ar" />
+        <sub from="#ARFLAGS#"       to="-rs" />
+	<sub from="#RM#"            to="rm -rf" />
+	<sub from="#CPP#"           to="cpp" />
+	<sub from="#CPPFLAGS#"      to="-P -C
+	     `index('$writemode','binary')==0  ? '-DWRITE_PARTICLE_BINARY'  : ' '`
+	     `index('$writemode','sionlib')==0 ? '-DWRITE_PARTICLE_SIONLIB' : ' '`
+	     `index('$PAPI','on')==0 ? '-I/usr/local/beta/papi-3.6.2/include -DPEPC_USE_PAPI_$PAPI_SCOPE' : ' '`" />
+        <sub from="#CCPRE#"         to=" " />
+	<sub from="#MPI_CC#"        to="mpixlc_r" />
+	<sub from="#CFLAGS#"        to="-qtune=450 -qarch=450d -qthreaded -qsmp=noauto -O3 -qhot -qipa -qipa=list=long:threads=auto -qipa=inline=limit=12000 -qipa=inline=threshold=12000 -Q+__tree_walk_communicator_NMOD_run_communication_loop_inner:__tree_walk_utils_NMOD_walk_single_particle:next_node:key2addr:make_hashentry:rwlocks_unlock:rwlocks_unlock_:rwlocks_wrlock:rwlocks_wrlock_:rwlocks_rdlock:rwlocks_rdlock_:__module_calc_force_NMOD_calc_force_per_particle:__module_math_tools_NMOD_div_by_fac:__tree_walk_communicator_NMOD_unpack_data:__tree_walk_utils_NMOD_get_first_unassigned_particle:__tree_walk_communicator_NMOD_send_requests:__tree_walk_communicator_NMOD_send_data" />    
+	<sub from="#FCPRE#"         to=" " />
+	<sub from="#MPI_F90#"       to="mpixlf90_r" />
+	<sub from="#F90FLAGS#"      to="-qtune=450 -qarch=450d -qthreaded -qsmp=noauto -O3 -qhot -qipa -qipa=list=long:threads=auto -qipa=inline=limit=12000 -qipa=inline=threshold=12000 -Q+__tree_walk_communicator_NMOD_run_communication_loop_inner:__tree_walk_utils_NMOD_walk_single_particle:next_node:key2addr:make_hashentry:rwlocks_unlock:rwlocks_unlock_:rwlocks_wrlock:rwlocks_wrlock_:rwlocks_rdlock:rwlocks_rdlock_:__module_calc_force_NMOD_calc_force_per_particle:__module_math_tools_NMOD_div_by_fac:__tree_walk_communicator_NMOD_unpack_data:__tree_walk_utils_NMOD_get_first_unassigned_particle:__tree_walk_communicator_NMOD_send_requests:__tree_walk_communicator_NMOD_send_data
+                                         `index('$GPROF','on')==0        ? '-g -pg'                   : ' '`
+                                         `index('$IHPCT_MPITR','on')==0  ? '-g'                       : ' '`" />
+	<sub from = "#LDPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
+	<sub from = "#LD#"         to = "mpixlf90_r" />
+	<sub from = "#LDFLAGS#"    to = "-qtune=450 -qarch=450d -qthreaded -qsmp=noauto -O3 -qhot -qipa -qipa=list=long:threads=auto -qipa=inline=limit=12000 -qipa=inline=threshold=12000 -Q+__tree_walk_communicator_NMOD_run_communication_loop_inner:__tree_walk_utils_NMOD_walk_single_particle:next_node:key2addr:make_hashentry:rwlocks_unlock:rwlocks_unlock_:rwlocks_wrlock:rwlocks_wrlock_:rwlocks_rdlock:rwlocks_rdlock_:__module_calc_force_NMOD_calc_force_per_particle:__module_math_tools_NMOD_div_by_fac:__tree_walk_communicator_NMOD_unpack_data:__tree_walk_utils_NMOD_get_first_unassigned_particle:__tree_walk_communicator_NMOD_send_requests:__tree_walk_communicator_NMOD_send_data -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc
+                                         `index('$GPROF','on')==0 ? '-g -pg' : ' '`" />
+        <sub from = "#LDLIBS#"     to = " " />	
+	<sub from = "#EXECNAME#"   to = "$execname" />
+    </substitute>
+
+    <!-- issue build command -->
+    <command>(make)</command> 
+
+    
+</compile>
+
+<!-- ********************************************************** -->
+
+<compile cname="GNU-Linux">
+
+    <src directory="./../.." files="makefile makefiles/makefile.defs.jube 
+	                            lpepcsrc sl_pepc pepc-e tools memwatch pthreads" />
+
+    <!-- Create makefile.defs and substitute parameters -->
+    <substitute infile="makefile.defs.jube" outfile="makefile.defs">
+	    <sub from="#ARCH#"          to="$platform" />
+	    <sub from="#MAKE#"          to="gmake" />
+	    <sub from="#RANLIB#"        to="ranlib" />
+	    <sub from="#AR#"            to="ar" />
+	    <sub from="#ARFLAGS#"       to="-rs" />
+	    <sub from="#RM#"            to="rm -rf" />
+	    <sub from="#CPP#"           to="cpp" />
+	    <sub from="#CPPFLAGS#"      to="-P -C
+		 `index('$writemode','binary')==0  ? '-DWRITE_PARTICLE_BINARY'  : ' '`
+		 `index('$writemode','sionlib')==0 ? '-DWRITE_PARTICLE_SIONLIB' : ' '`
+		 `index('$PAPI','on')==0 ? '-I/usr/local/beta/papi-3.6.2/include -DPEPC_USE_PAPI_$PAPI_SCOPE' : ' '`" />
+	    <sub from="#CCPRE#"         to=" " />
+	    <sub from="#MPI_CC#"        to="mpicc" />
+	    <sub from="#CFLAGS#"        to="-pg -O3 -pthread  -Wconversion" />    
+	    <sub from="#FCPRE#"         to=" " />
+	    <sub from="#MPI_F90#"       to="mpif90" />
+	    <sub from="#F90FLAGS#"      to="-Wall -O3 -pg -ffree-line-length-none -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop
+		 `index('$GPROF','on')==0        ? '-g -pg'                   : ' '`
+		 `index('$IHPCT_MPITR','on')==0  ? '-g'                       : ' '`" />
+	    <sub from = "#LDPRE#"      to = "`index('$SCALASCA','on')==0 ? 'scalasca -instrument' : ' '`" />
+	    <sub from = "#LD#"         to = "mpif90" />
+	    <sub from = "#LDFLAGS#"    to = "-pthread -pg -O3 -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop -fwhole-program -fuse-linker-plugin
+		 `index('$GPROF','on')==0 ? '-g -pg' : ' '`" />
+	    <sub from = "#LDLIBS#"     to = " " />	
+	    <sub from = "#EXECNAME#"   to = "$execname" />
+    </substitute>
+
+    <!-- issue build command -->
+    <command>(make)</command>
+    
+</compile>
+
+
+</compilation>

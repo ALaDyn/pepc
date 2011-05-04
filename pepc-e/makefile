@@ -1,100 +1,75 @@
-#
-#  Makefile for treemp and test programs
-#
-
 PREFIX = ..
 
 #  Get machine-dependent flags
 
 include ../makefile.defs
 
-FFLAGS += -I../lpepcsrc/$(MACH)
-
-LIBPEPC   = -L../lpepcsrc/$(MACH) -llpepc ../sl_pepc/libsl.a
-LIBS      = $(LIBPEPC)
+LIBRARIES = ../lpepcsrc/$(MACH)/liblpepc.a ../sl_pepc/libsl.a ../pthreads/$(MACH)/libpthreads.a
+PEPCGENERIC = ../pepc-generic
 
 .SUFFIXES: .f90
 
+EXECNAME = ../pepce
 
 # -------------------------------------------------------------------------------------------
-
 # Source files
-
+SOURCES.f90 =   physvars.f90 param_dump.f90 face.f90 files.f90 pusher.f90 randion.f90 \
+                setup.f90 configure.f90 special_start.f90 \
+	 	energies.f90 cleanup.f90 pepce.f90 module_diagnostics.f90
+SOURCES.GENERIC.f90 = module_vtk.f90 module_base64.f90 module_checkpoint.f90 \
+                benchmarking.f90 module_velocity_setup.f90
 # -------------------------------------------------------------------------------------------
-
-MODULES.f90 =   physvars.f90 utils.f90 benchmarking.f90
-
-SOURCES.f90 =	\
-		setup.f90 stamp.f90 \
-		configure.f90 face.f90 cutvector.f90 \
-		randion.f90 maxwell1.f90 special_start.f90 cold_start.f90 scramble_v.f90 \
-		forces.f90 force_direct.f90 error_test.f90 \
-		velocities.f90 push.f90 \
-	 	energy_cons.f90 potenergy.f90 kinenergy.f90\
-		param_dump.f90 \
-		open_files.f90 close_files.f90 restore_p1.f90 pepce.f90
-
-# -------------------------------------------------------------------------------------------
-
-# check for sion usage, add dump_sion or dump_ascii to src-list
-ifeq ($(SION),1)
-CPPFLAGS += -DWRITE_PARTICLE_SIONLIB
-LDLIBS += $(LIB_SION)
-else
-endif
-
 
 # Names of application object files derived from sources
 # Prefix added for multi-arch builds
+SOURCES = $(SOURCES.f90) $(SOURCES.GENERIC.f90)
+OBJS = $(addprefix $(MACH)/, $(SOURCES:.f90=.o))
+SOURCES.GENERICP.f90 = $(addprefix $(PEPCGENERIC)/, $(SOURCES.GENERIC.f90))
 
-appobjs = $(addprefix $(MACH)/, $(SOURCES.f90:.f90=.o)) \
-	  $(addprefix $(MACH)/, $(NCOBJS) )
-appmods =  $(addprefix $(MACH)/, $(MODULES.f90:.f90=.o))
-mods = $(appmods)
+default: all
+all: $(MACH) $(EXECNAME)
 
-default: dirs module.deps pepce
-all: dirs module.deps pepce
-dirs: 	
-	if [ ! -d $(MACH) ]; then mkdir $(MACH); fi
+$(MACH): 	
+	mkdir -p $(MACH)
 
-#  compile rules
-$(MACH)/%.o: %.f90  
+# preprocess files and put into $(MACH) subdir
+# then compile form there
+# touch module files after compilation so that the are newer than the .o files
+# this prevents make from trying to rebuild them again and again
+# we keep the preprocessed files for easier debugging / correct line information etc.
+$(MACH)/%.o %.mod: %.f90  
 	$(CPP) $(CPPFLAGS) $< $(MACH)/$<
-	$(FCPRE) $(FC) -c $(FFLAGS) $(DEFINES) $(MACH)/$< -o $@
+	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$< -o $(MACH)/$(<:.f90=.o)
 
+$(MACH)/%.o %.mod: $(PEPCGENERIC)/%.f90  
+	$(CPP) $(CPPFLAGS) $< $(MACH)/$(<F)
+	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$(<F) -o $(MACH)/$(<F:.f90=.o)
 
-#  explicit rules for f90 modules to avoid conflict with built-in ones
-$(MACH)/physvars.o: physvars.f90
-	$(CPP) $(CPPFLAGS) physvars.f90 $(MACH)/physvars.f90
-	$(FCPRE) $(FC) -c $(FFLAGS) $(DEFINES) $(MACH)/physvars.f90 -o $@
+# avoid infinite recursion of rule below
+../lpepcsrc/%.mod: ../lpepcsrc/%.mod
+	@echo "" $@
+# special rules for "external" modules
+%.mod: ../lpepcsrc/%.mod
+	ln -sf ../lpepcsrc/$@ ./$(@F)
 
-$(MACH)/%.o: %.c  
-	$(CC) -c $(CFLAGS) $< -o $@
-
-
-# -----------------------------------------------------------------------------------------
-#  targets
-pepce:	lpepc $(appmods) $(appobjs)
+# final rule for executable
+$(EXECNAME): $(LIBRARIES) $(OBJS)
 	@echo "Creating application binary $(EXECNAME) ..."
-	$(LDPRE) $(LD) $(LDFLAGS) -o $(EXECNAME) $(appobjs) $(appmods) $(LIBPEPC) $(LDLIBS)
+	$(LDPRE) $(LD) $(LDFLAGS) -o $(EXECNAME) $(OBJS) $(LIBPEPC) $(LIBRARIES) $(LDLIBS)
 	@echo "... done"
 
-# Update PEPC library and headers
-lpepc:  ../lpepcsrc/$(MACH)/liblpepc.a
-#	cd ../lpepcsrc; make lpepc; cd ../pepc-e
-	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/treevars.mod $(PREFIX)/pepc-e/treevars.mod
-	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/tree_utils.mod $(PREFIX)/pepc-e/tree_utils.mod
-	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/utils.mod $(PREFIX)/pepc-e/utils.mod
-	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/timings.mod $(PREFIX)/pepc-e/timings.mod
-
 clean:
-	$(RM) $(MACH)/*.o  *% *~ bin/key rand *.o *.pif core *.mod $(MACH)/*.mod $(EXECNAME) module.deps
+	$(RM) $(MACH)/*.o  *% *~ bin/key rand *.o *.pif core *.mod $(MACH)/*.mod module.deps module.generic.deps $(EXECNAME)
 	$(RM) -r $(MACH)
 
-default: pepce
-
 module.deps:
-	./f90_mod_deps.py -o $@ --o-prefix "\$$(MACH)/" $(MODULES.f90) $(SOURCES.f90)
+	../tools/build/f90_mod_deps.py -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(SOURCES.f90)
+module.generic.deps:
+	if [ -z "$(SOURCES.GENERIC.f90)" ]; then \
+	  touch module.generic.deps; \
+	else \
+	../tools/build/f90_mod_deps.py -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(SOURCES.GENERICP.f90); \
+	fi
 
--include module.deps
-
+include module.deps
+include module.generic.deps

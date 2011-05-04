@@ -6,7 +6,6 @@ subroutine tree_global
   implicit none
   include 'mpif.h'
 
-  real*8 :: ts1b=0., ts1e=0., ta1b=0., ta1e=0.
   real*8 :: xss, yss, zss
   integer :: i,j, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr, node_addr, nchild
   integer*8 :: search_key, child_top
@@ -15,16 +14,15 @@ subroutine tree_global
   
   integer, dimension(nbranch_sum) :: branch_level, branch_addr, branch_node 
   integer*8, dimension(maxaddress) :: sub_key, parent_key
-  integer, dimension(maxaddress) ::  tree_node, cell_addr, parent_addr, parent_node
+  integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
+  integer, dimension(maxaddress) ::  parent_node
   logical :: duplicate(maxaddress)
 
   integer, external :: key2addr        ! Mapping function to get hash table address from key
   integer*8, external :: next_node   ! Function to get next node key for local tree walk
 
-  character(30) :: cfile
-
-  ts1b = MPI_WTIME()
-  ta1b = MPI_WTIME()
+  call timer_start(t_global)
+  call timer_start(t_fill_local)
 
   if (tree_debug) write(ipefile,'(a)') 'TREE GLOBAL'
   if (me==0 .and. tree_debug) then
@@ -40,7 +38,7 @@ subroutine tree_global
 ! get levels of branch nodes
   maxlevel=0
   do i=1,nbranch_sum
-     branch_level(i) = log( 1.*branch_key(i) )/log(8.)
+     branch_level(i) = int(log( 1.*branch_key(i) )/log(8.))
      maxlevel = max( maxlevel, branch_level(i) )        ! Find maximum level
   end do  
 
@@ -62,7 +60,7 @@ subroutine tree_global
 
      do i=1,nuniq
         parent_key(i) = ISHFT( sub_key(i),-3 )             ! Parent key
-        child_bit = IAND( sub_key(i), hashchild)                    ! extract child bit from key: which child is it?
+        child_bit = int(IAND( sub_key(i), hashchild))                    ! extract child bit from key: which child is it?
         child_byte = 0
         child_byte = IBSET(child_byte, child_bit)    ! convert child bit to byte code
         nodtwig = -ntwig -1     ! predicted twig # 
@@ -74,20 +72,47 @@ subroutine tree_global
            ! Set child-bit in existing parent byte-code
            hashaddr = key2addr( parent_key(i),'GLOBAL: sweep1'  )
            htable( hashaddr )%childcode = IBSET( htable( hashaddr )%childcode, child_bit )
+           nodtwig = htable( hashaddr )%node 
         else if (ierr == 0 ) then
            ntwig = ntwig + 1
            ntwig_me = ntwig_me+1               ! # local twigs
-	   twig_key(ntwig_me) = htable( hashaddr)%key  ! add to list of local twigs
+     	   twig_key(ntwig_me) = htable( hashaddr)%key  ! add to list of local twigs
         else
            write (ipefile,*) 'Key number ',i,' not resolved'
-           call MPI_ABORT(MPI_COMM_WORLD,ierr)
-           stop       
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+           stop
         endif
 
-        branch_addr(i) = key2addr( sub_key(i),'PROPERTIES: fill' )   !  branches' #table addresses
+        ! Set mm-arrays to zero (initially) for all twigs that are parents of branches and have not been initially sett in tree_local
+        if (.not. BTEST( htable(hashaddr)%childcode, CHILDCODE_NODE_TOUCHED )) then
+           ! zero multipole information for any entries that have not been inside the tree before
+           abs_charge( nodtwig ) = 0.  !
+           charge( nodtwig )     = 0.
+           xcoc( nodtwig )       = 0.
+           ycoc( nodtwig )       = 0.
+           zcoc( nodtwig )       = 0.
+           xdip( nodtwig )       = 0.
+           ydip( nodtwig )       = 0.
+           zdip( nodtwig )       = 0.
+           xxquad( nodtwig )     = 0.
+           yyquad( nodtwig )     = 0.
+           zzquad( nodtwig )     = 0.
+           xyquad( nodtwig )     = 0.
+           yzquad( nodtwig )     = 0.
+           zxquad( nodtwig )     = 0.
+           magmx( nodtwig )      = 0.
+           magmy( nodtwig )      = 0.
+           magmz( nodtwig )      = 0.
+           jx( nodtwig )         = 0.
+           jy( nodtwig )         = 0.
+           jz( nodtwig )         = 0.
+           size_node( nodtwig )  = 0.
+           htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will now touch this again
+        endif
+
+        branch_addr(i) = key2addr( sub_key(i),'PROPERTIES: fill' )   !  branches` #table addresses
         branch_node(i) = htable( branch_addr(i) )%node
-        parent_addr(i) = key2addr( parent_key(i),'PROPERTIES:fill' )   ! parents' #table addresses
-        parent_node(i) = htable( parent_addr(i) )%node          ! parents' node numbers
+        parent_node(i) = nodtwig                                     ! parents` node numbers
         
      end do
 
@@ -97,7 +122,7 @@ subroutine tree_global
         charge( parent_node(i) ) = charge( parent_node(i) ) + charge( branch_node(i) )                       ! Sum q
      end do
 
-     ! parent charges should be complete before computing coq's
+     ! parent charges should be complete before computing coq`s
 
      do i=nuniq,1,-1
         ! Centres of charge
@@ -158,26 +183,23 @@ subroutine tree_global
   end do
 
   ! Rezero dipole and quadrupole sums of all local leaf nodes
-  do i=1,nleaf
-     xdip(i) = 0.
-     ydip(i) = 0.
-     zdip(i) = 0.
-     xxquad(i) = 0.
-     yyquad(i) = 0.
-     zzquad(i) = 0.
-     xyquad(i) = 0.
-     yzquad(i) = 0.
-     zxquad(i) = 0.
-     magmx(i) = 0.
-     magmy(i) = 0.
-     magmz(i) = 0.
-  end do
+  xdip(1:nleaf) = 0.
+  ydip(1:nleaf) = 0.
+  zdip(1:nleaf) = 0.
+  xxquad(1:nleaf) = 0.
+  yyquad(1:nleaf) = 0.
+  zzquad(1:nleaf) = 0.
+  xyquad(1:nleaf) = 0.
+  yzquad(1:nleaf) = 0.
+  zxquad(1:nleaf) = 0.
+  magmx(1:nleaf) = 0.
+  magmy(1:nleaf) = 0.
+  magmz(1:nleaf) = 0.
 
   if (tree_debug) call check_table('End of local fill    ')
 
-  ta1e = MPI_WTIME()
-  t_fill_local = ta1e-ta1b  
-  ta1b = MPI_WTIME()  
+  call timer_stop(t_fill_local)
+  call timer_start(t_fill_global)
 
   !  Go through twig nodes and fix # leaves in #table to include non-local branch nodes
   nnodes = ntwig + nleaf
@@ -193,15 +215,17 @@ subroutine tree_global
   call sort(treekey(1:ntwig))                                                               ! Sort keys
   treekey(ntwig+1:ntwig+nleaf) = pack(htable%key,mask = htable%node > 0)                    ! add list of leaf keys
 
+  allocate(tree_node(nnodes),cell_addr(nnodes),parent_addr(nnodes))
+
   tree_node(1) = -1  ! root node #
   cell_addr(1) = key2addr(1_8,'FILL: root')
- 
+
   do i=2,nnodes
     hashaddr = key2addr( treekey(i),'FILL: nodes' )
     cell_addr(i) = hashaddr 
     tree_node(i) =  htable( hashaddr )%node                       ! node property pointers
     parent_key(i) = ishft(treekey(i),-3 )                         ! Parent keys, skipping root
-    parent_addr(i) =  key2addr( parent_key(i),'FILL: node par' )  ! parents' #table addresses
+    parent_addr(i) =  key2addr( parent_key(i),'FILL: node par' )  ! parents` #table addresses
   end do
 
   !  Sweep back up, and augment leaf count of parent node
@@ -211,7 +235,7 @@ subroutine tree_global
      endif
   end do
 
-  node_level( tree_node(1:nnodes) ) = log(1.*treekey(1:nnodes))/log(8.)  ! get levels from keys and prestore as node property
+  node_level( tree_node(1:nnodes) ) = int(log(1.*treekey(1:nnodes))/log(8.))  ! get levels from keys and prestore as node property
   node_level(0) = 0
 
   ! Check tree integrity: Root node should now contain all particles!
@@ -219,7 +243,7 @@ subroutine tree_global
      write(*,*) 'Problem with tree on PE ',me
      write(*,*) 'Leaf checksum (',htable(1)%leaves,')  does not match # particles (',npart,')'
      call diagnose_tree
-     call MPI_ABORT(MPI_COMM_WORLD,ierr)
+     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
      stop           
   endif
 
@@ -246,17 +270,14 @@ subroutine tree_global
      end do
 
      first_child( tree_node(i) ) = child_key(1)   ! Store 1st child as twig-node property - used in tree_walk
-     n_children( tree_node(i) ) = nchild             ! Store # children   "    "
   end do
 
   !  Dummy values for leaves
   first_child(1:nleaf) = treekey(ntwig+1:ntwig+nleaf) 
-  n_children(1:nleaf) = 0
 
-  ta1e = MPI_WTIME()
-  t_fill_global = ta1e-ta1b  
-  ts1e = MPI_WTIME()  
-  t_global = ts1e - ts1b
-  
+  deallocate(tree_node,cell_addr,parent_addr)
+
+  call timer_stop(t_fill_global)
+  call timer_stop(t_global)
 
 end subroutine tree_global

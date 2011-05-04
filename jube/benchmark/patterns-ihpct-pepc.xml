@@ -1,0 +1,26 @@
+<patterns>
+
+    <parm name="HWC" unit="" mode="line,index(2,3)" type="float">IHPCT: libHPM: in section $patwrd: $patwrd:\s+$patint</parm>
+
+    <parm name="HWC_BGP_PU0_FPU_ADD_SUB_1" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all:\s+BGP_PU0_FPU_ADD_SUB_1:\s+$patint</parm>
+    <parm name="HWC_BGP_PU0_FPU_ADD_SUB_2" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all:\s+BGP_PU0_FPU_ADD_SUB_2:\s+$patint</parm>
+
+    <parm name="HWC_BGP_PU0_FPU_MULT_1" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all:\s+BGP_PU0_FPU_MULT_1:\s+$patint</parm>
+    <parm name="HWC_BGP_PU0_FPU_MULT_2" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all:\s+BGP_PU0_FPU_MULT_2:\s+$patint</parm>
+
+    <parm name="HWC_BGP_PU0_FPU_DIV_1" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all:\s+BGP_PU0_FPU_DIV_1:\s+$patint</parm>
+    <parm name="HWC_BGP_PU0_FPU_DIV_2" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all:\s+BGP_PU0_FPU_DIV_2:\s+$patint</parm>
+
+    <parm name="HWC_BGP_PU0_FPU_FMA_2" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all:\s+BGP_PU0_FPU_FMA_2:\s+$patint</parm>
+    <parm name="HWC_BGP_PU0_FPU_FMA_4" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all:\s+BGP_PU0_FPU_FMA_4:\s+$patint</parm>
+
+    <parm name="HWC_PM_FPU_FLOP" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all: PM_FPU_FLOP:\s+$patint</parm>
+    <parm name="HWC_PM_RUN_INST_CMPL" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all: PM_RUN_INST_CMPL:\s+$patint</parm>
+    <parm name="HWC_PM_RUN_CYC" unit="" mode="line,last" type="int">IHPCT: libHPM: in section all: PM_RUN_CYC:\s+$patint</parm>
+    <parm name="HWC_PEAK_FRAC" unit="" mode="line,last" type="float">IHPCT: libHPM: in section all: % of peak performance:\s+$patfp</parm>
+
+
+    <parm name="MPI_COMM_TIME"  unit="s" mode="line,last" type="float">IHPCT: MPITracer:   median  communication time =\s*$patfp\s*sec for task $patnint</parm>
+
+
+</patterns>

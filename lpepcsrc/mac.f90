@@ -8,9 +8,8 @@
 !>	2  Bmax - replace s with longest sep between coq and box corner
 !>	3  Upper bound: Use E-field from previous step to estimate acceptable error and equiv dmin 
 !>	10 Periodic variant of s/d - use nearest min. image and return its quadrant for force sum.
-!>         - returns the index offset of the nearest image's cell as an integer(3) array in neighbour
 
-subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, neighbour)
+subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, vbox)
   use treevars
   implicit none
  
@@ -19,28 +18,24 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
   real, intent(in) :: boxl2 !< square of the boxlength of the cell in question
   real, intent(in) :: theta2 !< square of the multipole acceptance parameter
   logical, intent(out) :: mac_ok !< on exit: if cell needs not be resolved: .true. else .false.
-  integer, intent(out) :: neighbour(3) !< only for periodic mode: contains offsets to nearest  image cell (i,j,k)
+  integer, intent(in) :: vbox(3) !< only for periodic mode: contains vector to the actually processed near-field box
   integer, intent(in) :: mac
   integer, intent(in) :: p
   real*8, intent(in) :: walk_abs_charge
   integer*8,intent(in) :: walk_key 
   integer, intent(in) :: walk_node
-  integer, intent(in) :: np_local
   real*8, intent(in) :: p_ex_p, p_ey_p, p_ez_p  
-  real*8 :: dist2,s2
-  real*8 :: deltax, deltay, deltaz
-  real*8 :: Ldiv2
+  real*8 :: dist2
   integer :: ix,iy,iz,nbits,i,j,k
-!  integer, intent(in) :: npshort
-  real :: xt, yt,zt
+  real*8 :: xt, yt,zt
   real :: boxl
-  real :: x_wn,y_wn,z_wn,b_max2,b_temp,e_dx,e_dy,e_dz
-  real :: x_min,y_min,z_min,x_max,y_max,z_max,x_len,y_len,z_len,px,py,pz,md2
-  real,dimension(3) :: x_val,y_val,z_val
-!  real :: delta_x,delta_y,delta_z 
-  real :: alpha,field_old,dist
-  real*8 :: d,dx,dy,dz
-  real*8 :: quad_mp,eps2
+  real*8 :: x_wn,y_wn,z_wn,dist,field_old,e_dx,e_dy,e_dz
+  real*8 :: b_max2,b_temp
+  real*8 :: x_min,y_min,z_min,x_max,y_max,z_max,x_len,y_len,z_len,px,py,pz,md2
+  real*8,dimension(3) :: x_val,y_val,z_val
+  real :: alpha
+  real*8 :: dx,dy,dz
+  real*8 :: eps2
   real*8 :: B2,rc
   
   
@@ -48,10 +43,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
   
   if (mac.ne.0) then
   !  get levels of twigs
-  nbits = log( 1.*walk_key )/log(8.)
+  nbits = int(log( 1.*walk_key )/log(8.))
 ! should use:
 !  nbits = node_level(walk_node)
-  neighbour = 0
 
 ! TODO: need to prestore boxl and corner coord as tree node property
 ! Do this at end of tree_fill and then for new nodes added during tree walk
@@ -60,9 +54,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
 !  Ldiv2 = periodic_L*0.5
   boxl =  sqrt(boxl2)
 
-  ix = SUM( (/ (2**i*ibits( walk_key,3*i,1 ), i=0,nbits-1) /) )
-  iy = SUM( (/ (2**i*ibits( walk_key,3*i+1,1 ), i=0,nbits-1) /) )
-  iz = SUM( (/ (2**i*ibits( walk_key,3*i+2,1 ), i=0,nbits-1) /) )
+  ix = int(SUM( (/ (2**i*ibits( walk_key,3*i  ,1 ), i=0,nbits-1) /) ))
+  iy = int(SUM( (/ (2**i*ibits( walk_key,3*i+1,1 ), i=0,nbits-1) /) ))
+  iz = int(SUM( (/ (2**i*ibits( walk_key,3*i+2,1 ), i=0,nbits-1) /) ))
 
  endif
 
@@ -70,10 +64,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
   select case(mac) 
   case(0)                               ! BH-MAC
      ! write(*,*) "MAC0"
-     dx = x(p) - xcoc( walk_node )      ! Separations
-     dy = y(p) - ycoc( walk_node )
-     dz = z(p) - zcoc( walk_node )
-     
+     dx = x(p) - ( xcoc( walk_node ) + vbox(1) )     ! Separations
+     dy = y(p) - ( ycoc( walk_node ) + vbox(2) )
+     dz = z(p) - ( zcoc( walk_node ) + vbox(3) )
        
      dist2 = theta2*(dx*dx+dy*dy+dz*dz)
 
@@ -86,9 +79,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
      pz = z(p) 
   
    
-     xt=ix*boxl + xmin
-     yt=iy*boxl + ymin
-     zt=iz*boxl + zmin
+     xt= ( ix*boxl + vbox(1) ) + xmin
+     yt= ( iy*boxl + vbox(2) ) + ymin
+     zt= ( iz*boxl + vbox(3) ) + zmin
      
      
      x_min = xt
@@ -102,9 +95,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
      z_max = zt + boxl !3D
      !z_max = zt       !2D
      
-     x_val = (/x_min-px,px-x_max,0.0/)
-     y_val = (/y_min-py,py-y_max,0.0/)
-     z_val = (/z_min-pz,pz-z_max,0.0/)
+     x_val = (/x_min-px,px-x_max,0.0_8/)
+     y_val = (/y_min-py,py-y_max,0.0_8/)
+     z_val = (/z_min-pz,pz-z_max,0.0_8/)
      
 
      x_len = maxval(x_val)
@@ -121,19 +114,19 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
   case(2)                               !b_max-MAC
     
      !write(*,*)"MAC2"
-     x_wn = xcoc( walk_node )
-     y_wn = ycoc( walk_node )
-     z_wn = zcoc( walk_node )
+     x_wn = xcoc( walk_node ) + vbox(1)
+     y_wn = ycoc( walk_node ) + vbox(2)
+     z_wn = zcoc( walk_node ) + vbox(3)
 
      dx = x(p) - x_wn      
      dy = y(p) - y_wn
      dz = z(p) - z_wn
 
      
-     xt=ix*boxl + xmin
-     yt=iy*boxl + ymin
-     zt=iz*boxl + zmin
- !    write(*,*) xmin,ymin,zmin
+     xt= ( ix*boxl + vbox(1) ) + xmin
+     yt= ( iy*boxl + vbox(2) ) + ymin
+     zt= ( iz*boxl + vbox(3) ) + zmin
+     !    write(*,*) xmin,ymin,zmin
      
 !     b_max2 = 0
 !     b_temp = 0
@@ -196,33 +189,32 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
 
      field_old = sqrt(p_ex_p**2 + p_ey_p**2 + p_ez_p**2)
 
-     dx = x(p) - xcoc( walk_node )      
-     dy = y(p) - ycoc( walk_node )
-     dz = z(p) - zcoc( walk_node )
-     
+     dx = x(p) - ( xcoc( walk_node ) + vbox(1) )
+     dy = y(p) - ( ycoc( walk_node ) + vbox(2) )
+     dz = z(p) - ( zcoc( walk_node ) + vbox(3) )
      
      dist = sqrt((dx*dx+dy*dy+dz*dz)) !Distance between COC and particle
      
      mac_ok = (dist**5 * field_old * alpha >  walk_abs_charge * boxl**3) 
 
 
-  case(4)     !erw b_max !! doesn't work
+  case(4)     !erw b_max !! does not work
      alpha = 1000
 
 
-     dx = x(p) - xcoc( walk_node )      
-     dy = y(p) - ycoc( walk_node )
-     dz = z(p) - zcoc( walk_node )
+     dx = x(p) - ( xcoc( walk_node ) + vbox(1) )
+     dy = y(p) - ( ycoc( walk_node ) + vbox(2) )
+     dz = z(p) - ( zcoc( walk_node ) + vbox(3) )
 
- 
-     xt=ix*boxl + xmin
-     yt=iy*boxl + ymin
-     zt=iz*boxl + zmin
-     
+
+     xt= ( ix*boxl + vbox(1) ) + xmin
+     yt= ( iy*boxl + vbox(2) ) + ymin
+     zt= ( iz*boxl + vbox(3) ) + zmin
+
     
-     x_wn = xcoc( walk_node )
-     y_wn = ycoc( walk_node )
-     z_wn = zcoc( walk_node )
+     x_wn = xcoc( walk_node ) + vbox(1)
+     y_wn = ycoc( walk_node ) + vbox(2)
+     z_wn = zcoc( walk_node ) + vbox(3)
 
      b_max2 = 0
      b_temp = 0
@@ -246,48 +238,6 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,np_local,walk_node,walk_key,walk_ab
      rc = sqrt(b_max2)/2 + sqrt(sqrt(3*B2/alpha)+(b_max2/4))
      
      mac_ok = (dx**2+dy**2+dz**2 > rc**2)
-
-     
-!  case(10)                              ! BH-MAC periodic
-!     dx = x(p) - xcoc( walk_node )      ! Separations
-!     dy = y(p)  - ycoc( walk_node )
-!     dz = z(p) - zcoc( walk_node )
-     
-!     if (dx.gt.Ldiv2) then
-!        deltax = dx-periodic_L
-!        neighbour(1) = -1
-!     else if (dx.le.(-Ldiv2)) then
-!        deltax = dx+periodic_L
-!        neighbour(1) = +1
-!     else
-!        deltax = dx
-!        neighbour(1) = 0
-!     end if
-     
-!     if (dy.gt.Ldiv2) then
-!        deltay = dy-periodic_L
-!        neighbour(2) = -1
-!     else if (dy.le.(-Ldiv2)) then
-!        deltay = dy+periodic_L
-!        neighbour(2) = +1
-!     else
-!        deltay = dy
-!        neighbour(2) = 0
-!     end if
-     
-!     if (dz.gt.Ldiv2) then
-!        deltaz = dz-periodic_L
-!        neighbour(3) = -1
-!     else if (dz.le.(-Ldiv2)) then
-!        deltaz = dz+periodic_L
-!        neighbour(3) = +1
-!     else
-!        deltaz = dz
-!        neighbour(3) = 0
-!     end if
-!     dist2 = theta2*(deltax*deltax+deltay*deltay+deltaz*deltaz)
-!     mac_ok = (dist2 > boxl2) 
-
 
   end select
 

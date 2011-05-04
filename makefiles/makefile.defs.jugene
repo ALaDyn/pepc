@@ -8,23 +8,36 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C
+CPPFLAGS = -P -C -DLITTLEENDIAN
 
-FCPRE    = 
+OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck
+OPTIMIZATIONFLAGS       = -O3 -qhot -qipa -qipa=list=long:threads=auto -qipa=inline=limit=12000:inline=threshold=12000:level=2 \
+                          -Q+__tree_walk_communicator_NMOD_run_communication_loop_inner:__tree_walk_utils_NMOD_walk_single_particle:next_node:key2addr:make_hashentry:rwlocks_unlock:rwlocks_unlock_:rwlocks_wrlock:rwlocks_wrlock_:rwlocks_rdlock:rwlocks_rdlock_:__module_calc_force_NMOD_calc_force_per_particle:__module_math_tools_NMOD_div_by_fac:__tree_walk_communicator_NMOD_unpack_data:__tree_walk_utils_NMOD_get_first_unassigned_particle:__tree_walk_communicator_NMOD_send_requests:__tree_walk_communicator_NMOD_send_data
+                   
+OPTIMIZATION            = $(OPTIMIZATIONFLAGS)
+STANDARDFLAGS           = -qtune=450 -qarch=450 -qthreaded -qsmp=noauto -qxlf2003=polymorphic
+
+#FCPRE    = bgvtf90 -vt:f90
 FC       = mpixlf90_r
-FFLAGS   = -qtune=450 -qarch=450 -O3 -qipa -qipa=inline=key2addr
+FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATION)
 
-CCPRE    = 
-CC       = mpixlc_r
-CFLAGS   = 
+#CCPRE       = bgvtcc -vt:cc
+CC           = mpixlc_r
+CFLAGS       = $(STANDARDFLAGS) $(OPTIMIZATION) 
+CFLAGS_NOOPT = -D_BGP $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
 
-LDPRE    = 
+#LDPRE    = bgvtf90 -vt:f90
 LD       = mpixlf90_r
-LDFLAGS  = -qtune=450 -qarch=450 -qipa -qipa=inline=key2addr
-LDLIBS   = 
+LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATION) 
+
+#TOTALVIEW_LIB = -L/bgsys/local/totalview/toolworks/totalview.8.8.0-1/linux-power/lib/ -ltvheap_bluegene
+
+#IHPCT_BASE=/bgsys/local/ihpct
+#HPCCOUNT_LIB = -L../hpccount/lib -lhpccnt -L$(IHPCT_BASE)/lib -lhpc -llicense $(IHPCT_BASE)/lib/fake_dlfcn.o $(IHPCT_BASE)/lib/average.o
+
+LDLIBS   = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc $(TOTOALVIEW_LIB) $(HPCCOUNT_LIB)
 
 RM       = rm -rf
 
-EXECNAME = ../bin/$@.jugene
+EXECNAME = ../pepc
 
-LIB_SION = -L/bgsys/local/sionlib/sion/lib -lsion

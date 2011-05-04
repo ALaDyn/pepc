@@ -1,5 +1,0 @@
-service=demo 
-passwd=spk
-doconnect=1
-StepTestConfig=2
-

@@ -16,31 +16,26 @@ function next_node(keyin)
   implicit none
   integer*8 :: next_node
   integer*8 :: keyin
-  integer :: nodeout
   logical :: resolved
   logical, dimension(8) :: keymatch
   integer*8, dimension(8) :: child_key, child_sub
-
-
-  integer, dimension(8) :: child_addr !  children nodes
-
   integer*8 :: node_key, search_key, parent,  child_top
-  integer :: cell_addr, node_addr, parent_node, child_byte, nchild
+  integer :: node_addr, parent_node, child_byte, nchild
   integer :: jmatch(1), j
   integer :: key2addr        ! Mapping function to get hash table address from key
 
   search_key = keyin                   
   node_key = keyin                     ! keep key, address of node 
-  node_addr = key2addr(keyin)
+  node_addr = key2addr(keyin,"next_node(), line 29")
   resolved = .false.
 
   !   Search for next sibling, uncle, great-uncle etc
 
   do while (.not. resolved .and. search_key > 1)
      parent =  ishft(search_key,-3)                 ! parent
-     parent_node = htable( key2addr( parent ) )%node   ! parent node pointer
+     parent_node = htable( key2addr( parent ,"next_node(), line 36" ) )%node   ! parent node pointer
 
-     child_byte = htable( key2addr( parent ) )%childcode                           !  Children byte-code
+     child_byte = htable( key2addr( parent ,"next_node(), line 38" ) )%childcode                           !  Children byte-code
      nchild = SUM( (/ (ibits(child_byte,j,1),j=0,7) /) )                   ! # children = sum of bits in byte-code
      child_sub(1:nchild) = pack( bitarr, mask=(/ (btest(child_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
      child_top = ishft(parent,3)  
