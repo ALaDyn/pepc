@@ -28,7 +28,7 @@ pepcbasics:
 	@echo "============  Making PEPC Pthreads Interface  ============="
 	cd pthreads && $(MAKE) $(MFLAGS)
 	@echo "============  Making PEPC Library  ============="
-	cd lpepcsrc && $(MAKE) $(MFLAGS)
+	cd lpepcsrc && $(MAKE) $(MFLAGS) -j1
 
 clean: clean-doc
 	cd sl_pepc  && $(MAKE) $(MFLAGS) clean
