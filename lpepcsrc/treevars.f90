@@ -11,13 +11,6 @@ module treevars
 
   implicit none
 
-
-! fixed array sizes for debugging
-!  integer, parameter :: size_tree = 10000, &
-!                        maxaddress=32768, &
-!                        nppm=2000, &
-!                        nbranch_max=size_tree/10
-
  ! Constants
 
   integer, dimension(0:7) :: bitarr = (/ 0,1,2,3,4,5,6,7 /)    ! Array of bit positions
@@ -31,18 +24,6 @@ module treevars
   type (hash), allocatable :: htable(:)
   
   type (particle) :: ship_props, get_props
-
- ! Data structure for shipping results
-
-  type results
-     real*8 :: Ex
-     real*8 :: Ey
-     real*8 :: Ez
-     real*8 :: pot
-     real*8 :: work
-     integer :: label
-  end type results
-
 
   type (multipole) :: node_dummy
 
@@ -98,10 +79,6 @@ module treevars
              ntwig_me, &       ! total # twigs in local domain
              nlist, &          ! # particles/PE + boundary bodies (1 or 2)
              nnodes, &         ! nleaf + ntwig
-             nnodes_me, &      ! nleaf_me + ntwig_me
-             nnodes_pw, &      ! # nnodes prior to tree-walk
-             nleaf_pw, &       ! # leaves prior to walk
-             ntwig_pw, &       ! # twigs prior to walk
              nbranch, &        ! min # branch nodes covering local domain
              nbranch_sum, &    ! total # branch nodes covering all domains
              nintmax, &        ! max # terms allowed in interaction list
@@ -118,7 +95,6 @@ module treevars
 	         tablehigh, &      ! highest current address in #table
              sum_unused, &     ! # free addresses
              ipefile, &             ! local O/P stream
-             pe_debug, &       ! rank for debug O/P
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
              nppm, &           ! max # particles/PE
@@ -163,8 +139,6 @@ module treevars
 
   integer, allocatable ::    pepid(:), & ! owner
                                 pelabel(:)   ! particle label
-
-  integer*8, allocatable ::  pivots(:)  ! Pivot buffer for sort
 
 ! Memory control
   real :: np_mult=1.5

@@ -1,6 +1,18 @@
 
 module treetypes
 
+
+  ! Data structure for shipping results
+  type results
+     real*8 :: Ex
+     real*8 :: Ey
+     real*8 :: Ez
+     real*8 :: pot
+     real*8 :: work
+     integer :: label
+  end type results
+
+
   ! Hash table datatype - 36 bytes per entry
   type hash
      integer   :: node          ! Address of particle/pseudoparticle data

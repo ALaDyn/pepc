@@ -119,8 +119,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
        Axo(nppm), Ayo(nppm), Azo(nppm), &
        pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
-  allocate (pivots(num_pe+1))  ! Work load & Particle distrib amoung PEs
-
   allocate (nbranches(num_pe+2), igap(num_pe+3))
 
   ! Create new contiguous datatype for shipping particle properties (15 arrays)
