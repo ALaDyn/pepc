@@ -26,8 +26,8 @@ subroutine density_helmholtz
 ! Helmholtz grid limits
   dxh = (xh_end-xh_start)/nxh
 ! tranverse resolution defined by particle spacing 
-  dy = max(dxh,5*a_ii)
-  dz = max(dxh,5*a_ii)
+  dy = max(1._8*dxh,5*a_ii)
+  dz = max(1._8*dxh,5*a_ii)
 !  dy = dxh
 !  dz = dxh
   yh_start = focus(2)-nyh/2*dy

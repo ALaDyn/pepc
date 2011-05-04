@@ -221,7 +221,7 @@ subroutine setup()
   !!!!!!!!!!!!!!!  parameters (simulation generic)   !!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   maxdt(1) = 2*pi/max(omega,1.e-10) * 1./100.
-  maxdt(2) = 2*pi/max(wpl_e,1.e-10) * 1./100.
+  maxdt(2) = 2*pi/max(wpl_e,1.e-10_8) * 1./100.
   maxdt(3) = lambdaD_e/10./vte
   maxdt(4) = abs(mass_e/qe * eps*eps / (10.*qe) * vte/10.)
 
