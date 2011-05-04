@@ -3,7 +3,7 @@
 !>  Encapsulates functions for setting up particle velocities with diefferent models
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-module velocity_setup
+module module_velocity_setup
       use physvars
       implicit none
       private
@@ -22,9 +22,11 @@ module velocity_setup
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       public maxwell1
+      public maxwell3
       public scramble_v
       public cold_start
       public rano
+
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -71,12 +73,13 @@ module velocity_setup
 		subroutine maxwell1(u,nmax,i1,n,vt)
 		  implicit none
 		  integer, intent(in) ::  nmax, i1, n
-		  real, intent(in) :: vt
+		  real*8, intent(in) :: vt
 		  real*8 :: u(nmax)
 		  real, parameter :: pi=3.141592654
 
 		  integer :: ip1, ip2, i, cntr, nv
-		  real :: f0 ,df, v, dv, vmax, finf, vip, deltv
+		  real :: f0 ,df, v, dv, vmax, finf, deltv
+		  real*8 :: vip
 
 		  if (n.eq.0) return
 		  nv = 30*n
@@ -112,6 +115,33 @@ module velocity_setup
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
+        !>   MAXWELL3
+        !>   initialises 3D Maxwellian velocity distribution
+        !>   @param ux,uy,uz arrays of velocities to be initialized
+        !>   @param nmax total number of entries in u
+        !>   @param i1 minimal index in u to be used
+        !>   @param n maximum index in u to be used
+        !>   @param vt desired average velocity of particles
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine maxwell3(ux,uy,uz,nmax,i1,n,vt)
+          implicit none
+          integer, intent(in) ::  nmax, i1, n
+          real*8, intent(in) :: vt
+          real*8 :: ux(nmax),uy(nmax),uz(nmax), vc
+
+          vc = vt / sqrt(3.) ! homogeneous: vx=vy=vz = sqrt(|v|^2/3)
+
+          call maxwell1(ux,nmax,i1,n,vc)
+          call maxwell1(uy,nmax,i1,n,vc)
+          call maxwell1(uz,nmax,i1,n,vc)
+          call scramble_v(ux,uy,uz,nmax,i1,n)   ! remove x,y,z correlations
+
+        end subroutine maxwell3
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
         !>   SCRAMBLE_V
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -133,7 +163,7 @@ module velocity_setup
 		  else
 		    n1 = n
 		  endif
-		 write(15,*) 'scrambling ',n1,' particles'
+
 		  !  scramble indices to remove correlation between ux,uy,uz
 		  do i=1,n1
 		     p=i+i1-1
@@ -243,4 +273,4 @@ module velocity_setup
 
 
 
-end module velocity_setup
+end module module_velocity_setup

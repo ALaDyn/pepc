@@ -9,9 +9,12 @@
 subroutine configure
 
   use physvars
-  use velocity_setup
+  use module_velocity_setup
   implicit none
-  include 'mpif.h'
+  real*8 :: vte_, vti_
+
+  vte_ = real(vte)
+  vti_ = real(vti)
 
   config: select case(system_config)
 
@@ -20,18 +23,18 @@ subroutine configure
 
 
      if (vte > 0) then
-        call maxwell1(ux,nppm,1,nep,vte)
-        call maxwell1(uy,nppm,1,nep,vte)
-        call maxwell1(uz,nppm,1,nep,vte)
+        call maxwell1(ux,nppm,1,nep,vte_)
+        call maxwell1(uy,nppm,1,nep,vte_)
+        call maxwell1(uz,nppm,1,nep,vte_)
         call scramble_v(ux,uy,uz,nppm,1,nep)   ! remove x,y,z correlations
      else
         call cold_start(ux,uy,uz,nppm,1,nep)
      endif
 
      if (vti > 0) then
-        call maxwell1(ux,nppm,nep+1,nip,vti)
-        call maxwell1(uy,nppm,nep+1,nip,vti)
-        call maxwell1(uz,nppm,nep+1,nip,vti)
+        call maxwell1(ux,nppm,nep+1,nip,vti_)
+        call maxwell1(uy,nppm,nep+1,nip,vti_)
+        call maxwell1(uz,nppm,nep+1,nip,vti_)
         call scramble_v(ux,uy,uz,nppm,nep+1,nip) ! remove x,y,z correlations
      else
         call cold_start(ux,uy,uz,nppm,nep+1,nip)
