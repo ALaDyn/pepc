@@ -1,5 +1,88 @@
-To compile this program please define makefile.defs in the root directory. When you are at Jugene and have entered the root directory, the command can look like this:
+============================================================
+=
+=       PEPC -  Pretty Efficient Parallel Coulomb-solver
+=
+=       Author:   Paul Gibbon
+=
+============================================================
 
-ln -sf ./makefiles/makefile.defs.jugene ./makefile.defs
+1. COMPILATION
 
-Some machines defs are already predefined and can be found in makefiles/
+For compiling this program, the machine-dependent compiler 
+names and flags have to be set in a definition file called
+'makefile.defs' in the root directory.
+
+Several exemplary definitions are available in the subdirectory
+./makefiles. For example, an JUGENE you can simply call
+
+"ln -sf ./makefiles/makefile.defs.jugene ./makefile.defs"
+
+from the root directory to create a symbolic link the the 
+appropriate definitions. Some makefile.defs contain
+comments on correct MPI implementations etc. - do not
+forget to take a look there for hints.
+
+After providing the makefile.defs file, you can simply
+call 
+
+"make"
+
+to build the pepce frontend. Parallel make (i.e. "make -j")
+is currently unstable.
+
+There are three different frontends available at the moment:
+
+pepc-e: pure electrostatics
+        simple molecular dynamics, 
+        some diagnostics for energy, performance, vtk output etc.
+pepc-mini: pure electrostatics
+        simple molecular dynamics
+        no diagnostics
+        minimum requirements to get pepc running
+pepc-mw: frontend for laser-plasma interaction (experimental)
+
+To build an alternative frontend, just call
+
+"make pepcmini"
+or
+"make pepcmw"
+
+All frontends can be built using 
+
+"make all"
+
+
+============================================================
+
+2. RUNNING THE PROGRAM
+
+Create a run directory, and copy the file run.h there.
+Then you can run pepc from there, e.g.
+
+"mkdir rundir"
+"cp run.h rundir/"
+"cd rundir"
+"mpirun -np 4 ../pepce ./run.h"
+
+The file run.h contains some user-adjustable parameters which
+are explained therein.
+
+If you want to use checkpointing, particle data output and
+vtk file creation (see idump_XXX-parameters for details), 
+you have to provide two additional directories inside rundir:
+
+,,,
+"cd rundir"
+"mkdir vtk"
+"mkdir "particles"
+
+
+============================================================
+
+3. DOCUMENTATION
+
+Rudimentary doxygen documentation is available by calling
+
+"make doc"
+
+from the root directory. A users guide is in preparation. 
