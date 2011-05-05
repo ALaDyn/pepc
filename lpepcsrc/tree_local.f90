@@ -51,11 +51,11 @@ subroutine tree_local
   integer*8 :: left_virt_limit, right_virt_limit
 
   ! stuff for estimation
-  integer*8 :: branch_level(1:nlev)    ! start at level 1 (root can not be a branch)
-  integer*8 :: branch_level_D1(1:nlev) ! partial occupancy of D1
-  integer*8 :: branch_level_D2(1:nlev) ! partial occupancy of D2
+  integer*8 :: branch_level(0:nlev)    ! start at level 1 (root can not be a branch)
+  integer*8 :: branch_level_D1(0:nlev) ! partial occupancy of D1
+  integer*8 :: branch_level_D2(0:nlev) ! partial occupancy of D2
 
-  integer*8 :: speedup_potenz(1:nlev)
+  integer*8 :: speedup_potenz(0:nlev)
   integer*8 :: D1, D2                  ! partial domains
   integer*8 :: L                       ! inner limit
   integer*8 :: branch_max_local        ! estimation for local branches
@@ -402,26 +402,31 @@ subroutine tree_local
   ntwig_me = ntwig
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after treebuild     ')
   
-  ! get local key limits
-  left_limit_me=pekey(1)
-  right_limit_me=pekey(npp)
+  if (num_pe > 1) then
+    ! get local key limits
+    left_limit_me=pekey(1)
+    right_limit_me=pekey(npp)
 
-  ! get key limits for neighbor tasks
-  ! and build virtual limits, so that a minimum set a branch nodes comes arround
-  ! boundary tasks can access their boundary space fully only need one virtual limit
-  if(me.eq.0)then
-     right_limit=pekey(npp+1)
-     right_virt_limit = bpi(right_limit_me,right_limit)
-     left_virt_limit=2_8**(nlev*3)
-  else if(me.eq.(num_pe-1))then
-     left_limit=pekey(npp+1)
-     left_virt_limit  = bpi(left_limit,left_limit_me)
-     right_virt_limit=2_8**(3*nlev+1)-1
+    ! get key limits for neighbor tasks
+    ! and build virtual limits, so that a minimum set a branch nodes comes arround
+    ! boundary tasks can access their boundary space fully only need one virtual limit
+    if(me.eq.0)then
+       right_limit=pekey(npp+1)
+       right_virt_limit = bpi(right_limit_me,right_limit)
+       left_virt_limit=2_8**(nlev*3)
+    else if(me.eq.(num_pe-1))then
+       left_limit=pekey(npp+1)
+       left_virt_limit  = bpi(left_limit,left_limit_me)
+       right_virt_limit=2_8**(3*nlev+1)-1
+    else
+       left_limit=pekey(npp+2)
+       right_limit=pekey(npp+1)
+       left_virt_limit  = bpi(left_limit,left_limit_me)
+       right_virt_limit = bpi(right_limit_me,right_limit)
+    end if
   else
-     left_limit=pekey(npp+2)
-     right_limit=pekey(npp+1)
-     left_virt_limit  = bpi(left_limit,left_limit_me)
-     right_virt_limit = bpi(right_limit_me,right_limit)
+    left_virt_limit=2_8**(nlev*3)
+    right_virt_limit=2_8**(3*nlev+1)-1
   end if
 
   ! First find highest power in the Virtual Domain
@@ -438,13 +443,11 @@ subroutine tree_local
   end if
   
   ! get estimation number of branches at all levels
-  ! tune start level, because for large task numbers
-  ! a branch at first level improbable
   !min_branch_level_D1 = nlev - log(1._8*D1)/log(8._8) + 1
   !min_branch_level_D2 = nlev - log(1._8*D2)/log(8._8) + 1
   !min_branch_level = min( min_branch_level_D1,min_branch_level_D2)
-  ! but to expensive because array must be preset with zero
-  do ilevel=1,nlev
+  ! but too expensive because array must be preset with zero
+  do ilevel=0,nlev
      pos=3*(nlev-ilevel)
      branch_level_D1(ilevel)=ibits(D1,pos,3_8)
      branch_level_D2(ilevel)=ibits(D2,pos,3_8)
@@ -452,7 +455,7 @@ subroutine tree_local
   end do
 
   ! estimate local number
-  branch_max_local = SUM(branch_level(1:nlev))
+  branch_max_local = SUM(branch_level(:))
 
   ! get global estimation
   ! theoretically every task can calculate the branches for every other
@@ -464,7 +467,7 @@ subroutine tree_local
   ! Determine minimum set of branch nodes making up local domain
   nbranch = 0
 
-  speedup_potenz = (/(8**ilevel,ilevel=1,nlev)/)
+  speedup_potenz = (/(8**ilevel,ilevel=0,nlev)/)
 
   ! add placeholder-bit to inner limit L
   ! first get level of limit L
@@ -476,7 +479,7 @@ subroutine tree_local
 
   ! for D1
   pos=L
-  do ilevel=1,nlev
+  do ilevel=0,nlev
      do j=1,int(branch_level_D1(ilevel))
         pos = pos - speedup_potenz((nlev-ilevel))!8**(nlev-ilevel)
         possible_branch=ishft(pos,-3*(nlev-ilevel))
@@ -493,7 +496,7 @@ subroutine tree_local
 
   ! for D2
   pos=L-1
-  do ilevel=1,nlev
+  do ilevel=0,nlev
      do j=1,int(branch_level_D2(ilevel))
         pos = pos + speedup_potenz((nlev-ilevel))!8**(nlev-ilevel)
         possible_branch=ishft(pos,-3*(nlev-ilevel))
