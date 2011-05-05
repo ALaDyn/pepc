@@ -13,7 +13,7 @@
 ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
  ispecial = 1
 ! ispecial = -1: reload particle positions from mpiio-timestamp #itime_in
-itme_in = 5
+item_in = 5
 
 ! number of timesteps
  nt = 5
