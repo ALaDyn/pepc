@@ -75,9 +75,6 @@ program pepc
   ! Set up particles
   call configure
 
-  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
-  call fmm_framework_init(my_rank, wellsep = 1)
-
   ! initial particle output
   ! no initial checkpoint since this would override the current checkpoint if in resume-mode
   call write_particles(.false.)

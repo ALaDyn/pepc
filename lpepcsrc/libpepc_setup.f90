@@ -2,29 +2,14 @@
 !>
 !> Initializes debug level
 !> Creates and registers user-defined MPI types
+!> Calls initialization for periodic framework
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine libpepc_setup(my_rank,n_cpu,db_level)
   use treevars
-  use tree_utils
-  use module_fmm_framework, only : periodic_debug
+  use module_fmm_framework
   implicit none
-  include 'mpif.h'
   integer, intent(in) :: db_level, my_rank, n_cpu
-
-  integer :: ierr,i
-
-  type (particle) :: ship_props_a, get_props_a
-  type (results) :: ship_props_b, get_props_b
-
-  integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
-  			nprops_multipole=25, &      ! Number of multipole properties to ship
-                        nprops_results=6       ! # results to ship
-  integer, dimension(nprops_multipole) :: blocklengths, displacements, types
-
-  ! address calculation, 8 byte 
-  integer(KIND=MPI_ADDRESS_KIND), dimension(nprops_multipole) :: address
-  integer(KIND=MPI_ADDRESS_KIND) :: send_base, receive_base
 
   ! copy call parameters to treevars module
   me     = my_rank
@@ -83,6 +68,41 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
   else
     ! all off by default
   endif
+
+  ! create and register mpi types
+  call libpepc_register_mpi_types(db_level)
+
+  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
+  call fmm_framework_init(me, wellsep = 1)
+
+end subroutine libpepc_setup
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>
+!> Creates and registers user-defined MPI types
+!>
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine libpepc_register_mpi_types(db_level)
+  use treevars
+  implicit none
+  include 'mpif.h'
+  integer, intent(in) :: db_level
+
+  integer :: ierr,i
+
+  type (particle) :: ship_props_a, get_props_a
+  type (results) :: ship_props_b, get_props_b
+
+  integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
+            nprops_multipole=25, &      ! Number of multipole properties to ship
+                        nprops_results=6       ! # results to ship
+  integer, dimension(nprops_multipole) :: blocklengths, displacements, types
+
+  ! address calculation, 8 byte
+  integer(KIND=MPI_ADDRESS_KIND), dimension(nprops_multipole) :: address
+  integer(KIND=MPI_ADDRESS_KIND) :: send_base, receive_base
 
   ! Create new contiguous datatype for shipping particle properties (15 arrays)
   blocklengths(1:nprops_particle) = 1   
@@ -162,8 +182,6 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
 
   call MPI_GET_ADDRESS( node_dummy%key, send_base, ierr )  ! Base address for send buffer
 
-
-
   call MPI_GET_ADDRESS( node_dummy%key, address(1), ierr )
   call MPI_GET_ADDRESS( node_dummy%byte, address(2), ierr )
   call MPI_GET_ADDRESS( node_dummy%leaves, address(3), ierr )
@@ -195,9 +213,7 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
-end subroutine libpepc_setup
-
-
+end subroutine libpepc_register_mpi_types
 
 
 

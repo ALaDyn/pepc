@@ -49,6 +49,7 @@ module module_fmm_framework
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       public fmm_framework_init
+      public fmm_framework_finalize
       public fmm_framework_timestep
       public fmm_sum_lattice_force
       public lattice_vect
@@ -126,6 +127,18 @@ module module_fmm_framework
           end if
 
         end subroutine fmm_framework_init
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Clean up the allocated memory
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine fmm_framework_finalize
+          implicit none
+          deallocate(neighbour_boxes)
+
+        end subroutine fmm_framework_finalize
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

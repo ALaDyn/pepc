@@ -61,9 +61,6 @@ program pepce
   ! Set up particles
   call special_start(ispecial)
 
-  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
-  call fmm_framework_init(my_rank, wellsep = 1)
-
   ! Loop over all timesteps
   do while (itime < nt)
      itime = itime + 1
