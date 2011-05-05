@@ -26,7 +26,7 @@ program pepce
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, ifile, nppm_ori, provided
+  integer :: ierr, ifile, provided
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls."
   ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
@@ -53,10 +53,10 @@ program pepce
   if (my_rank==0) call stamp(15,1)
 
   ! Each CPU gets copy of initial data
-  call setup()
+  call pepc_setup()
 
   ! Allocate array space for tree
-  call pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult,nppm_ori)
+  call libpepc_setup(my_rank,n_cpu,db_level)
 
   ! Set up particles
   call special_start(ispecial)
@@ -79,7 +79,7 @@ program pepce
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
 
-     call pepc_fields(np_local,npart_total,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
+     call pepc_fields(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult, mac, theta, eps, force_const, &
@@ -103,8 +103,8 @@ program pepce
 
   end do
 
-  ! deallocate array space for tree
-  call pepc_cleanup(my_rank,n_cpu)
+  ! cleanup of lpepc static data
+  call libpepc_finalize()
 
   ! deallocate array space for particles
   call cleanup(my_rank,n_cpu)

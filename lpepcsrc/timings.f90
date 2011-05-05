@@ -43,7 +43,7 @@ module timings
     integer, parameter :: t_domains_ship       = 26
     integer, parameter :: t_domains_bound      = 27
     ! tree_allocate
-    integer, parameter :: t_allocate_async     = 28
+    integer, parameter :: t_unused28           = 28
     ! tree_build
     integer, parameter :: t_build_neigh        = 29
     integer, parameter :: t_build_part         = 30

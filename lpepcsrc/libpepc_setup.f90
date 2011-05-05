@@ -1,16 +1,16 @@
-subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>
+!> Initializes debug level
+!> Creates and registers user-defined MPI types
+!>
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine libpepc_setup(my_rank,n_cpu,db_level)
   use treevars
   use tree_utils
-  use module_fmm_framework
+  use module_fmm_framework, only : periodic_debug
   implicit none
   include 'mpif.h'
-
-  real, intent(in) :: np_mult_
-  integer, intent(in) :: my_rank  ! MPI cpu rank
-  integer, intent(in) :: n_cpu  ! MPI # CPUs
-  integer, intent(in) :: npart_total  ! total (max) # simulation particles
-  integer, intent(in) :: db_level
-  integer, intent(out) :: nppm_ori
+  integer, intent(in) :: db_level, my_rank, n_cpu
 
   integer :: ierr,i
 
@@ -26,13 +26,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
   integer(KIND=MPI_ADDRESS_KIND), dimension(nprops_multipole) :: address
   integer(KIND=MPI_ADDRESS_KIND) :: send_base, receive_base
 
-! copy call parameters to treevars module
-  
-  np_mult = np_mult_
-  me = my_rank
+  ! copy call parameters to treevars module
+  me     = my_rank
   num_pe = n_cpu
-  npart = npart_total
-  ipefile = 20
 
   force_debug=.false.
   tree_debug=.false.
@@ -43,7 +39,6 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
   walk_summary=.false.
   dump_tree=.false.
   periodic_debug=.false.
-  memory_debug=.false.
 
 
   if (db_level==1) then
@@ -85,41 +80,9 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
      force_debug=.true.
      dump_tree=.true.
      periodic_debug=.true.
-  else if (db_level==-1) then
-     memory_debug=.true.
   else
-! all off by default
-
+    ! all off by default
   endif
-
-  memory_debug=.true.
-
-  npartm = npart
-  if (num_pe.eq.1) then
-    nppm=int(1.5*npart + 1000)  ! allow for additional ghost particles for field plots
-!  else if (np_mult<0) then 
-!    nppm = abs(np_mult)*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  else
-    nppm = 2*max(npartm/num_pe,1000) ! allow 50% fluctuation
-  endif
-  
-  nppm_ori = nppm
-
-  nlev = 20                     ! max refinement level
-  iplace = 2_8**(3*nlev)           ! place holder bit
-  free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
-
-  ! array allocation
-
-  allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
-       q(nppm), m(nppm), work(nppm), &
-       Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), &
-       Ax(nppm), Ay(nppm), Az(nppm), &
-       Bx(nppm), By(nppm), Bz(nppm),  &
-       Axo(nppm), Ayo(nppm), Azo(nppm), &
-       pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
-
-  allocate (nbranches(num_pe+2), igap(num_pe+3))
 
   ! Create new contiguous datatype for shipping particle properties (15 arrays)
   blocklengths(1:nprops_particle) = 1   
@@ -154,8 +117,8 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
   call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, mpi_type_particle, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_particle, ierr)
 
-  if (me==0 .and. db_level>1) then
-! Check addresses for MPI particle structure
+  if (me==0 .and. db_level>2) then
+  ! Check addresses for MPI particle structure
      write(*,'(a30/(o28,i8))') 'Particle addresses:',(address(i),displacements(i),i=1,15)
   endif 
 
@@ -181,7 +144,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
   call MPI_TYPE_STRUCT( nprops_results, blocklengths, displacements, types, mpi_type_results, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_results, ierr)
 
-  if (me==0 .and. db_level>1) then
+  if (me==0 .and. db_level>2) then
      ! Check addresses for MPI results structure
      write(*,'(a30/(o28,i8))') 'Results addresses:',(address(i),displacements(i),i=1,6)
   endif 
@@ -232,7 +195,7 @@ subroutine pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult_,nppm_ori)
   call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
-end subroutine pepc_setup
+end subroutine libpepc_setup
 
 
 

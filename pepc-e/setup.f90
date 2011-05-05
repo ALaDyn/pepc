@@ -10,7 +10,7 @@
 !  ================================
 
 
-subroutine setup()
+subroutine pepc_setup()
   use physvars
   use tree_utils
   use module_fmm_framework
@@ -265,7 +265,7 @@ subroutine setup()
      write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
   end if
 
-end subroutine setup
+end subroutine pepc_setup
 
 
 

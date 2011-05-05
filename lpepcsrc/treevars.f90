@@ -11,12 +11,10 @@ module treevars
 
   implicit none
 
- ! Constants
-
+  ! Constants
   integer, dimension(0:7) :: bitarr = (/ 0,1,2,3,4,5,6,7 /)    ! Array of bit positions
 
-!  Associated MPI stuff
-
+  !  Associated MPI stuff
   integer :: me       ! Rank of current task
   integer :: num_pe   ! # cpus used by program
 
@@ -30,7 +28,6 @@ module treevars
   integer :: mpi_type_particle, mpi_type_multipole, mpi_type_results
 
   !  tree variables
-
   integer*8, allocatable :: &
                                 treekey(:), &       ! keys of all twig and leaf nodes
                                 branch_key(:), &    ! keys of branch nodes covering all domains
@@ -94,12 +91,12 @@ module treevars
              free_lo, &        ! min address allowed for resolving collisions
 	         tablehigh, &      ! highest current address in #table
              sum_unused, &     ! # free addresses
-             ipefile, &             ! local O/P stream
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
              nppm, &           ! max # particles/PE
              npp, &            !  actual  # particles/PE
              iused          ! counter for collision resolution array free_addr()
+  integer :: ipefile = 20 ! local O/P stream
   integer :: nkeys_total=1 ! total # keys in local tree
   integer :: proc_debug=0     ! Debug rank: set to -1 for all
   real*8 :: xmin, xmax    ! box limits
@@ -121,7 +118,6 @@ module treevars
   logical :: walk_summary=.false.
   logical :: force_debug=.false.
   logical :: dump_tree=.false.
-  logical :: memory_debug=.false.
 
   !  particle data - dimensions filled in when #PEs known
 

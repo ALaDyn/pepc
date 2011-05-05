@@ -10,7 +10,7 @@
 !  ================================
 
 
-subroutine setup()
+subroutine pepc_setup()
   use physvars
   use tree_utils
   use module_fmm_framework
@@ -288,7 +288,7 @@ subroutine setup()
   end if
 
 
-end subroutine setup
+end subroutine pepc_setup
 
 
 

@@ -12,7 +12,7 @@
 !  ===================================================================
 
 
-subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
+subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, np_mult_,&
      mac, theta, eps, force_const, itime, weighted, &
      num_neighbours, neighbours)
@@ -23,10 +23,12 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
   use module_fmm_framework
   use tree_walk_utils
   use tree_walk_communicator
+  use module_allocation
   implicit none
   include 'mpif.h'
 
-  integer, intent(in) :: np_local, npart_total, nppm_ori  ! # particles on this CPU
+  integer, intent(in) :: np_local  ! # particles on this CPU
+  integer, intent(in) :: npart_total ! total # simulation particles
   real, intent(in) :: theta, np_mult_       ! multipole opening angle
   real, intent(in) :: force_const       ! scaling factor for fields & potential
   real, intent(in) :: eps         ! potential softening distance
@@ -40,30 +42,32 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
   integer, intent(in) :: neighbours(3, num_neighbours) !< list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
   real*8, dimension(np_local) :: p_w ! work loads
   
+  integer :: nppm_ori, ierr
+
   integer :: npnew, npold
 
-  integer :: indxl(nppm_ori),irnkl(nppm_ori)
+  integer, allocatable :: indxl(:),irnkl(:)
   integer :: islen(num_pe),irlen(num_pe)
   integer :: fposts(num_pe+1),gposts(num_pe+1)
 
   integer :: i
   real*8 :: ttrav, tfetch, tcomm(3) ! timing integrals
 
-  integer :: timestamp
-
   integer :: ibox
   real*8 :: vbox(3)
   character(30) :: cfile
+
+  ! copy call parameters to treevars module
+  npart = npart_total
+  np_mult = np_mult_
+  npp = np_local
+
+  call allocate_particles(nppm_ori)
 
   allocate(ex_tmp(nppm_ori), ey_tmp(nppm_ori), ez_tmp(nppm_ori), pot_tmp(nppm_ori), w_tmp(nppm_ori))
 
   call timer_start(t_all)
   call timer_start(t_fields_begin)
-
-  np_mult = np_mult_
-  npart   = npart_total
-
-  npp = np_local
 
   if (force_debug) then
      write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
@@ -72,43 +76,43 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
 		p_label(i),i=1,npp) 
   endif
 
- ! Copy particle buffers to tree arrays
-  do i=1,npp
-     x(i) = p_x(i)
-     y(i) = p_y(i)
-     z(i) = p_z(i)
+  ! Copy particle buffers to tree arrays
+   x(1:npp) = p_x(1:npp)
+   y(1:npp) = p_y(1:npp)
+   z(1:npp) = p_z(1:npp)
+  ux(1:npp) = 0.  ! No B-fields for now
+  uy(1:npp) = 0.
+  uz(1:npp) = 0.
+  ax(1:npp) = 0.
+  ay(1:npp) = 0.
+  az(1:npp) = 0.
+   q(1:npp) = p_q(1:npp)
+   m(1:npp) = p_m(1:npp)
+   pelabel(1:npp) = p_label(1:npp)
+   pepid(1:npp)   = me
 
-     ux(i) = 0.  ! No B-fields for now
-     uy(i) = 0.
-     uz(i) = 0.
-     q(i) = p_q(i)
-     m(i) = p_m(i)
-!     if (p_label(i) <=0) then
-!        ! Trap bad particle labels
-!        write (*,*) '*** Error: particle labels must be positive integers (1,2,3,...)! '
-!        write (*,*) p_label(1:20)
-!        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-!        stop
-!     else
-        pelabel(i) = p_label(i)     
-!     endif
-     pepid(i) = me
-     if (num_pe==1 .or. p_w(i)<1.) then
-        work(i) = 1.
-     else
-       work(i) = p_w(i)
-     endif
-     ax(i) = 0.
-     ay(i) = 0.
-     az(i) = 0.
-  end do
+  ! copy workload array
+  if (num_pe==1) then
+    work(1:npp) = 1.
+  else
+    do i=1,npp
+       work(i) = max(p_w(i), 1.)
+    end do
+  endif
+
+  ! Trap bad particle labels
+  if (any(pelabel(1:npp) == 0)) then
+    write (*,*) '*** Error: particle labels must be nonzero:', i, p_label(i)
+    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+  endif
 
   call timer_stop(t_fields_begin)
   call timer_start(t_fields_tree)
 
+  allocate(indxl(nppm_ori),irnkl(nppm_ori))
   ! Domain decomposition: allocate particle keys to PEs
   call tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted)
-  call tree_allocate(theta)
+  call allocate_tree(theta)
 
   ! calculate spherical multipole expansion of central box
   call fmm_framework_timestep
@@ -178,26 +182,22 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
        pot_tmp(1:npnew),ex_tmp(1:npnew),ey_tmp(1:npnew),ez_tmp(1:npnew),w_tmp(1:npnew),p_pot,p_ex,p_ey,p_ez,p_w)    
 
   call timer_stop(t_restore)
-  call timer_start(t_fields_stats)
 
-  timestamp = itime
+  deallocate(indxl,irnkl)
+
+  call timer_start(t_fields_stats)
 
   nkeys_total = nleaf+ntwig  
 
   if (force_debug) then
-     write (ipefile,101)
-     write (*,101)
-     write (ipefile,101) force_const
+     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)')
+     write (*,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)')
+     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)') force_const
 
      do i=1,npp
-        write (ipefile,102) pelabel(i), & 
-             q(i), m(i), ux(i), p_pot(i), p_ex(i)
-        write (*,102) pelabel(i), x(i), & 
-             q(i), m(i), ux(i), p_pot(i)
+        write (ipefile,'(1x,i7,5(1pe14.5))') pelabel(i), q(i), m(i), ux(i), p_pot(i), p_ex(i)
+        write (*,'(1x,i7,5(1pe14.5))') pelabel(i), x(i), q(i), m(i), ux(i), p_pot(i)
      end do
-
-101  format('Tree forces:'/'   p    q   m   ux   pot  ',f8.2)
-102  format(1x,i7,5(1pe14.5))
 
   endif
 
@@ -206,7 +206,7 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
   call timer_stop(t_fields_stats)
 
   call timer_start(t_deallocate)
-  call tree_deallocate(nppm_ori)
+  call deallocate_tree(nppm_ori)
   call timer_stop(t_deallocate)
 
   call timer_stop(t_all)
@@ -217,6 +217,11 @@ subroutine pepc_fields(np_local,npart_total,nppm_ori,p_x, p_y, p_z, p_q, p_m, p_
   close(60)   
 
   deallocate(ex_tmp, ey_tmp, ez_tmp, pot_tmp, w_tmp)
+
+
+  ! deallocate particle and result arrays
+  call deallocate_particles()
+
 
 end subroutine pepc_fields
 

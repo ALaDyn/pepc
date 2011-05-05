@@ -29,7 +29,7 @@ program pepc
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, ifile, nppm_ori, provided
+  integer :: ierr, ifile, provided
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! `The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls.`
   type(acf) :: momentum_acf
@@ -67,10 +67,10 @@ program pepc
   if (my_rank==0) call stamp(15,1)
 
   ! Each CPU gets copy of initial data
-  call setup()
+  call pepc_setup()
 
   ! Allocate array space for tree
-  call pepc_setup(my_rank,n_cpu,npart_total,db_level,np_mult,nppm_ori)
+  call libpepc_setup(my_rank,n_cpu,db_level)
 
   ! Set up particles
   call configure
@@ -111,7 +111,7 @@ program pepc
      ! laser propagation according to beam_config
      call laser()
 
-     call pepc_fields(np_local,npart_total,nppm_ori,x(1:np_local),y(1:np_local),z(1:np_local), &
+     call pepc_fields(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),m(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult,mac, theta, eps, force_const, &
@@ -159,11 +159,11 @@ program pepc
 
   call benchmark_post
 
+  ! cleanup of lpepc static data
+  call libpepc_finalize()
+
   ! final particle dump
   call write_particles(.true.)
-
-  ! deallocate array space for tree
-  call pepc_cleanup(my_rank,n_cpu)
 
   ! deallocate array space for particles
   call cleanup(my_rank,n_cpu)
