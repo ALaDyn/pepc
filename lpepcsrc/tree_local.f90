@@ -27,7 +27,6 @@ subroutine tree_local
   implicit none
   include 'mpif.h'
 
-  real*8 :: gamma, vx, vy, vz
   integer :: i, j, k, i1, i2, ierr, level_match, level_diff, ibit, iend, level, nbound, newleaf, nres, ncoll, &
        link_addr, ipoint, parent_addr, childbyte, treelevel, ncheck, nsubset, newsub, cchild, nchild, addr_leaf, &
        p_leaf, ntwig_domain, node_leaf, addr_twig, addr_child, nsearch
@@ -546,19 +545,6 @@ subroutine tree_local
      yzquad( node_leaf ) = q(p_leaf) * y(p_leaf) * z(p_leaf)  
      zxquad( node_leaf ) = q(p_leaf) * z(p_leaf) * x(p_leaf)   
 
-     !  get true velocities from momenta
-     gamma = sqrt(1.0+ux(p_leaf)**2+uy(p_leaf)**2 + uz(p_leaf)**2)
-     vx = ux(p_leaf)/gamma
-     vy = uy(p_leaf)/gamma
-     vz = uz(p_leaf)/gamma
-     jx( node_leaf ) = vx * q(p_leaf)   ! Drift moment
-     jy( node_leaf ) = vy * q(p_leaf) 
-     jz( node_leaf ) = vz * q(p_leaf) 
-
-     magmx( node_leaf ) = 0.5*q(p_leaf) * ( y(p_leaf)*vz - z(p_leaf)*vy)  ! Magnetic dipole moment
-     magmy( node_leaf ) = 0.5*q(p_leaf) * ( z(p_leaf)*vx - x(p_leaf)*vz)  
-     magmz( node_leaf ) = 0.5*q(p_leaf) * ( x(p_leaf)*vy - y(p_leaf)*vx)  
-
      !  Zero shift vector
      xshift( node_leaf ) = 0.
      yshift( node_leaf ) = 0.
@@ -673,14 +659,6 @@ subroutine tree_local
      yzquad( res_node(i) ) = 0.
      zxquad( res_node(i) ) = 0.
 
-     magmx( res_node(i) ) = 0.
-     magmy( res_node(i) ) = 0.
-     magmz( res_node(i) ) = 0.
-
-     jx( res_node(i) ) = 0.
-     jy( res_node(i) ) = 0.
-     jz( res_node(i) ) = 0.
-
      size_node(res_node(i)) = 0.
 
      do j = 1,nchild
@@ -704,18 +682,6 @@ subroutine tree_local
              - zdip( node_child(j) )*ys(j) + charge( node_child(j) )*ys(j)*zs(j) 
         zxquad( res_node(i) ) = zxquad( res_node(i) ) + zxquad( node_child(j) ) - zdip( node_child(j) )*xs(j) &
              - xdip( node_child(j) )*zs(j) + charge( node_child(j) )*zs(j)*xs(j) 
-
-        ! magnetic dipole moment
-        magmx( res_node(i) ) = magmx( res_node(i) ) + magmx( node_child(j) ) - 0.5*ys(j)*jz( node_child(j) ) &
-		 - 0.5*zs(j)*jy( node_child(j) )
-        magmy( res_node(i) ) = magmy( res_node(i) ) + magmy( node_child(j) ) - 0.5*zs(j)*jx( node_child(j) ) &
-		 - 0.5*xs(j)*jz( node_child(j) )
-        magmz( res_node(i) ) = magmz( res_node(i) ) + magmz( node_child(j) ) - 0.5*xs(j)*jy( node_child(j) ) &
-		 - 0.5*ys(j)*jx( node_child(j) )
-
-        jx( res_node(i) ) = jx( res_node(i) ) + jx( node_child(j) )       ! Sum currents of child nodes
-        jy( res_node(i) ) = jy( res_node(i) ) + jy( node_child(j) )  
-        jz( res_node(i) ) = jz( res_node(i) ) + jz( node_child(j) )  
 
         ! moments for node size:
      	size_node(res_node(i)) = size_node(res_node(i)) + size_node(node_child(j))

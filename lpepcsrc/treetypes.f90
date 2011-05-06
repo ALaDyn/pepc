@@ -36,9 +36,6 @@ module treetypes
      real*8 :: q     ! charge
      real*8 :: m     ! mass
      real*8 :: work  ! work load from force sum
-     real*8 :: ax   ! 'forces' 
-     real*8 :: ay
-     real*8 :: az
      integer*8 :: key           ! Key
      integer :: label    ! label
      integer :: pid      ! owner
@@ -66,12 +63,9 @@ module treetypes
      real*8 :: xyquad
      real*8 :: yzquad
      real*8 :: zxquad
-     real*8 :: jx        ! current
-     real*8 :: jy
-     real*8 :: jz
-     real*8 :: magmx      ! magnetic moment
-     real*8 :: magmy
-     real*8 :: magmz
+     real*8 :: xshift
+     real*8 :: yshift
+     real*8 :: zshift
   end type multipole
 
 

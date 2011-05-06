@@ -95,8 +95,8 @@ subroutine libpepc_register_mpi_types(db_level)
   type (particle) :: ship_props_a, get_props_a
   type (results) :: ship_props_b, get_props_b
 
-  integer, parameter :: nprops_particle=15, &    ! # particle properties to ship
-            nprops_multipole=25, &      ! Number of multipole properties to ship
+  integer, parameter :: nprops_particle=12, &    ! # particle properties to ship
+            nprops_multipole=22, &      ! Number of multipole properties to ship
                         nprops_results=6       ! # results to ship
   integer, dimension(nprops_multipole) :: blocklengths, displacements, types
 
@@ -107,9 +107,9 @@ subroutine libpepc_register_mpi_types(db_level)
   ! Create new contiguous datatype for shipping particle properties (15 arrays)
   blocklengths(1:nprops_particle) = 1   
 
-  types(1:12) = MPI_REAL8
-  types(13) = MPI_INTEGER8
-  types(14:15) = MPI_INTEGER
+  types(1:9) = MPI_REAL8
+  types(10) = MPI_INTEGER8
+  types(11:12) = MPI_INTEGER
 
   call MPI_GET_ADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
   call MPI_GET_ADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
@@ -125,12 +125,9 @@ subroutine libpepc_register_mpi_types(db_level)
   call MPI_GET_ADDRESS( ship_props_a%q, address(7), ierr )
   call MPI_GET_ADDRESS( ship_props_a%m, address(8), ierr )
   call MPI_GET_ADDRESS( ship_props_a%work, address(9), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%ax, address(10), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%ay, address(11), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%az, address(12), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%key, address(13), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%label, address(14), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%pid, address(15), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%key, address(10), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%label, address(11), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%pid, address(12), ierr )
 
   displacements(1:nprops_particle) = int(address(1:nprops_particle) - send_base)  !  Addresses relative to start of particle (receive) data
 
@@ -178,7 +175,7 @@ subroutine libpepc_register_mpi_types(db_level)
   types(1) = MPI_INTEGER8
   types(2:4) = MPI_INTEGER
   types(5) = MPI_INTEGER8
-  types(6:25) = MPI_REAL8
+  types(6:22) = MPI_REAL8
 
   call MPI_GET_ADDRESS( node_dummy%key, send_base, ierr )  ! Base address for send buffer
 
@@ -201,12 +198,9 @@ subroutine libpepc_register_mpi_types(db_level)
   call MPI_GET_ADDRESS( node_dummy%xyquad, address(17), ierr )
   call MPI_GET_ADDRESS( node_dummy%yzquad, address(18), ierr )
   call MPI_GET_ADDRESS( node_dummy%zxquad, address(19), ierr )
-  call MPI_GET_ADDRESS( node_dummy%jx, address(20), ierr )
-  call MPI_GET_ADDRESS( node_dummy%jy, address(21), ierr )
-  call MPI_GET_ADDRESS( node_dummy%jz, address(22), ierr )
-  call MPI_GET_ADDRESS( node_dummy%magmx, address(23), ierr )
-  call MPI_GET_ADDRESS( node_dummy%magmy, address(24), ierr )
-  call MPI_GET_ADDRESS( node_dummy%magmz, address(25), ierr )
+  call MPI_GET_ADDRESS( node_dummy%xshift, address(20), ierr )
+  call MPI_GET_ADDRESS( node_dummy%yshift, address(21), ierr )
+  call MPI_GET_ADDRESS( node_dummy%zshift, address(22), ierr )
 
   displacements(1:nprops_multipole) = int(address(1:nprops_multipole) - send_base)   !  Addresses relative to start of particle (receive) data
 

@@ -135,9 +135,7 @@ module module_allocation
 		       size_node(-maxtwig:maxleaf), & ! rms node size
 		       xdip(-maxtwig:maxleaf), ydip(-maxtwig:maxleaf), zdip(-maxtwig:maxleaf), &          ! dipole moment
 		       xxquad(-maxtwig:maxleaf), yyquad(-maxtwig:maxleaf), zzquad(-maxtwig:maxleaf), &       ! quadrupole moment
-		       xyquad(-maxtwig:maxleaf), yzquad(-maxtwig:maxleaf), zxquad(-maxtwig:maxleaf), &
-		       jx(-maxtwig:maxleaf), jy(-maxtwig:maxleaf), jz(-maxtwig:maxleaf), &      ! current
-		       magmx(-maxtwig:maxleaf), magmy(-maxtwig:maxleaf), magmz(-maxtwig:maxleaf)) ! magnetic moment
+		       xyquad(-maxtwig:maxleaf), yzquad(-maxtwig:maxleaf), zxquad(-maxtwig:maxleaf))
 
 		  call timer_stop(t_allocate)
 
@@ -172,9 +170,7 @@ module module_allocation
 		       xshift, yshift, zshift, &    ! shift vector
 		       xdip, ydip, zdip, &          ! dipole moment
 		       xxquad, yyquad, zzquad, &       ! quadrupole moment
-		       xyquad, yzquad, zxquad, &
-		       jx, jy, jz, &      ! current
-		       magmx, magmy, magmz ) ! magnetic moment
+		       xyquad, yzquad, zxquad)
 
 		end subroutine deallocate_tree
 
@@ -208,10 +204,6 @@ module module_allocation
 
 		  allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), &
 		       q(nppm), m(nppm), work(nppm), &
-		       Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), &
-		       Ax(nppm), Ay(nppm), Az(nppm), &
-		       Bx(nppm), By(nppm), Bz(nppm),  &
-		       Axo(nppm), Ayo(nppm), Azo(nppm), &
 		       pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
 		  allocate (nbranches(num_pe+2), igap(num_pe+3))
@@ -236,10 +228,6 @@ module module_allocation
 		  ! particle array deallocation
 		  deallocate ( x, y, z, ux, uy, uz, &
 		       q, m, work, &
-		       Ex, Ey, Ez, pot, &
-		       Ax, Ay, Az, &
-		       Bx, By, Bz,  &
-		       Axo, Ayo, Azo, &
 		       pepid, pelabel, pekey )
 
 		  deallocate ( nbranches, igap )

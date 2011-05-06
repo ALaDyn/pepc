@@ -51,8 +51,6 @@ module treevars
                                xdip(:), ydip(:), zdip(:), &          ! dipole moment
                                xxquad(:), yyquad(:), zzquad(:), &    ! quadrupole moment
                                xyquad(:), yzquad(:), zxquad(:), &    !
-                               magmx(:), magmy(:), magmz(:), &       ! magnetic dipole moment
-                               jx(:), jy(:), jz(:), &                  ! current
 				               size_node(:)  !  Spatial extent (radius) of multipole
 
   integer*8, allocatable :: first_child(:)   ! key of first child
@@ -124,12 +122,7 @@ module treevars
   real*8, allocatable :: work(:), &        ! interaction work load
                             x(:),   y(:),   z(:), &     ! position
                            ux(:),  uy(:),  uz(:), &     ! velocity
-                            q(:),   m(:),         &     ! charge and mass
-			               Ex(:),  Ey(:),  Ez(:), &     ! E-field
-			              pot(:), &                     ! scalar potential
-                          Axo(:), Ayo(:), Azo(:), &     ! vector potential
-                           Ax(:),  Ay(:),  Az(:), &     ! vector potential
-                           Bx(:),  By(:),  Bz(:)        ! B-field
+                            q(:),   m(:)                ! charge and mass
 
   integer*8, allocatable ::  pekey(:)  ! local particle keys
 

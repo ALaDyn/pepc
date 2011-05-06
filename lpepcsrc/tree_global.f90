@@ -100,12 +100,9 @@ subroutine tree_global
            xyquad( nodtwig )     = 0.
            yzquad( nodtwig )     = 0.
            zxquad( nodtwig )     = 0.
-           magmx( nodtwig )      = 0.
-           magmy( nodtwig )      = 0.
-           magmz( nodtwig )      = 0.
-           jx( nodtwig )         = 0.
-           jy( nodtwig )         = 0.
-           jz( nodtwig )         = 0.
+           xshift( nodtwig )     = 0.
+           yshift( nodtwig )     = 0.
+           zshift( nodtwig )     = 0.
            size_node( nodtwig )  = 0.
            htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will now touch this again
         endif
@@ -163,18 +160,7 @@ subroutine tree_global
         zxquad( parent_node(i) ) = zxquad( parent_node(i) ) +  zxquad( branch_node(i) ) - zdip( branch_node(i) )*xss &
              - xdip( branch_node(i) )*zss + charge( branch_node(i) )*zss*xss
 
-        magmx( parent_node(i) ) = magmx( parent_node(i) ) + magmx( branch_node(i) ) - 0.5*yss*jz( branch_node(i) ) &
-		 - 0.5*zss*jy( branch_node(i) ) 
-        magmy( parent_node(i) ) = magmy( parent_node(i) ) + magmy( branch_node(i) ) - 0.5*zss*jx( branch_node(i) ) &
-		 - 0.5*xss*jz( branch_node(i) ) 
-        magmz( parent_node(i) ) = magmz( parent_node(i) ) + magmz( branch_node(i) ) - 0.5*xss*jy( branch_node(i) ) &
-		 - 0.5*yss*jx( branch_node(i) ) 
-
-        jx( parent_node(i) ) = jx( parent_node(i) ) + jx( branch_node(i) )
-        jy( parent_node(i) ) = jy( parent_node(i) ) + jy( branch_node(i) )
-        jz( parent_node(i) ) = jz( parent_node(i) ) + jz( branch_node(i) )
-
-! Multipole extent
+        ! Multipole extent
      	size_node( parent_node(i) ) = size_node( parent_node(i) ) + size_node(branch_node(i))
 
      end do
@@ -192,9 +178,6 @@ subroutine tree_global
   xyquad(1:nleaf) = 0.
   yzquad(1:nleaf) = 0.
   zxquad(1:nleaf) = 0.
-  magmx(1:nleaf) = 0.
-  magmy(1:nleaf) = 0.
-  magmz(1:nleaf) = 0.
 
   if (tree_debug) call check_table('End of local fill    ')
 

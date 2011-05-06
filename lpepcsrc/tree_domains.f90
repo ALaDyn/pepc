@@ -151,17 +151,8 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
      write(ipefile,'(/)')
   endif
 
-  ! Use Parallel Sort by Regular Sampling (PSRS) 
-
   call timer_stop(t_domains_keys)
   call timer_start(t_domains_sort)
-
-  if (domain_debug .and. me==proc_debug) then
-     write (*,*) 'MPI psrssort() commencing'
-     write (*,*) 'iproc=',me
-     write (*,*) 'num_pe=',num_pe
-     write (*,*) 'npp=',npp
-  endif
 
   ! Define wraps for ring network  0 -> 1 -> 2 -> ... ... -> num_pe-1 -> 0 ...
   if (me == 0) then
@@ -293,8 +284,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
         ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
              ux(indxl(i)), uy(indxl(i)), uz(indxl(i)), &
              q(indxl(i)), m(indxl(i)), work(indxl(i)), &
-             !          ax(indxl(i)), ay(indxl(i)), az(indxl(i)), &
-             ex(indxl(i)), ey(indxl(i)), ez(indxl(i)), &
              keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
      enddo
 
@@ -321,12 +310,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
         q(irnkl(i)) = get_parts(i)%q
         m(irnkl(i)) = get_parts(i)%m
         work(irnkl(i)) = get_parts(i)%work
-        !     ax(irnkl(i)) = get_parts(i)%ax
-        !     ay(irnkl(i)) = get_parts(i)%ay
-        !     az(irnkl(i)) = get_parts(i)%az
-        ex(irnkl(i)) = get_parts(i)%ax
-        ey(irnkl(i)) = get_parts(i)%ay
-        ez(irnkl(i)) = get_parts(i)%az
         pelabel(irnkl(i)) = get_parts(i)%label
      enddo
 
@@ -470,7 +453,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   !       ax(1),ay(1),az(1), pekey(1), pelabel(1), pepid(1) )
 
   ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
-       ax(1),ay(1),az(1), pekey(1), pelabel(1), pepid(1) )
+       pekey(1), pelabel(1), pepid(1) )
 
   !  write (*,'(9f12.3,z20,2i6)') ship_props
 
@@ -494,12 +477,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
      q(npp+1) = get_props%q
      m(npp+1) = get_props%m
      work(npp+1) = get_props%work
-     ex(npp+1) = get_props%ax
-     ey(npp+1) = get_props%ay
-     ez(npp+1) = get_props%az
-     !     ax(npp+1) = get_props%ax
-     !     ay(npp+1) = get_props%ay
-     !     az(npp+1) = get_props%az
      pekey(npp+1) = get_props%key
      pelabel(npp+1) = get_props%label
      pepid(npp+1) = get_props%pid
@@ -511,7 +488,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   !       ax(npp),ay(npp),az(npp), pekey(npp), pelabel(npp), pepid(npp) )
 
   ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), m(npp), work(npp), &
-       ex(npp),ey(npp),ez(npp), pekey(npp), pelabel(npp), pepid(npp) )
+       pekey(npp), pelabel(npp), pepid(npp) )
 
   if (me /= num_pe-1 ) then
      call MPI_ISEND( ship_props, 1, mpi_type_particle, next, 2, MPI_COMM_WORLD, handle(3), ierr )
@@ -527,7 +504,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   endif
 
   if ( me /= 0) then
-     !     call MPI_IRECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, handle(4), ierr )
      call MPI_RECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, status, ierr )
      x(ind_recv) = get_props%x
      y(ind_recv) = get_props%y
@@ -538,12 +514,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
      q(ind_recv) = get_props%q
      m(ind_recv) = get_props%m
      work(ind_recv) = get_props%work
-     !     ax(ind_recv) = get_props%ax
-     !     ay(ind_recv) = get_props%ay
-     !     az(ind_recv) = get_props%az
-     ex(ind_recv) = get_props%ax
-     ey(ind_recv) = get_props%ay
-     ez(ind_recv) = get_props%az
      pekey(ind_recv) = get_props%key
      pelabel(ind_recv) = get_props%label
      pepid(ind_recv) = get_props%pid

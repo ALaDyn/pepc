@@ -782,12 +782,9 @@ module tree_walk_communicator
                                       xyquad( node_child(ic)), &
                                       yzquad( node_child(ic)), &
                                       zxquad( node_child(ic)), &
-                                      jx( node_child(ic)), &
-                                      jy( node_child(ic)), &
-                                      jz( node_child(ic)), &
-                                      magmx( node_child(ic)), &
-                                      magmy( node_child(ic)), &
-                                      magmz( node_child(ic)) )
+                                      xshift( node_child(ic)), &
+                                      yshift( node_child(ic)), &
+                                      zshift( node_child(ic)) )
       end do
 
       ! Ship child data back to PE that requested it
@@ -903,12 +900,9 @@ module tree_walk_communicator
         xyquad( nodchild ) = child_data(ic)%xyquad
         yzquad( nodchild ) = child_data(ic)%yzquad
         zxquad( nodchild ) = child_data(ic)%zxquad
-        magmx( nodchild )  = child_data(ic)%magmx
-        magmy( nodchild )  = child_data(ic)%magmy
-        magmz( nodchild )  = child_data(ic)%magmz
-        jx( nodchild )     = child_data(ic)%jx
-        jy( nodchild )     = child_data(ic)%jy
-        jz( nodchild )     = child_data(ic)%jz
+        xshift( nodchild ) = child_data(ic)%xshift
+        yshift( nodchild ) = child_data(ic)%yshift
+        zshift( nodchild ) = child_data(ic)%zshift
 
         !  Add child key to list of fetched nodes
         sum_fetches=sum_fetches+1

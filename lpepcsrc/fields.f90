@@ -80,12 +80,9 @@ subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_m, p_w, p_labe
    x(1:npp) = p_x(1:npp)
    y(1:npp) = p_y(1:npp)
    z(1:npp) = p_z(1:npp)
-  ux(1:npp) = 0.  ! No B-fields for now
+  ux(1:npp) = 0.
   uy(1:npp) = 0.
   uz(1:npp) = 0.
-  ax(1:npp) = 0.
-  ay(1:npp) = 0.
-  az(1:npp) = 0.
    q(1:npp) = p_q(1:npp)
    m(1:npp) = p_m(1:npp)
    pelabel(1:npp) = p_label(1:npp)

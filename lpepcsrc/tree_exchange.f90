@@ -46,9 +46,6 @@ subroutine tree_exchange
           xyquad( lnode), &
           yzquad( lnode), &
           zxquad( lnode), &
-          jx( lnode), &
-          jy( lnode), &
-          jz( lnode), &
           xshift( lnode), &
           yshift( lnode), &
           zshift( lnode) )
@@ -126,15 +123,9 @@ subroutine tree_exchange
         xyquad( lnode ) = get_mult(i)%xyquad
         yzquad( lnode ) = get_mult(i)%yzquad
         zxquad( lnode ) = get_mult(i)%zxquad
-        magmx( lnode ) = get_mult(i)%magmx
-        magmy( lnode ) = get_mult(i)%magmy
-        magmz( lnode ) = get_mult(i)%magmz
-        jx( lnode ) = get_mult(i)%jx
-        jy( lnode ) = get_mult(i)%jy
-        jz( lnode ) = get_mult(i)%jz
-        xshift( lnode ) = get_mult(i)%magmx
-        yshift( lnode ) = get_mult(i)%magmy
-        zshift( lnode ) = get_mult(i)%magmz
+        xshift( lnode ) = get_mult(i)%xshift
+        yshift( lnode ) = get_mult(i)%yshift
+        zshift( lnode ) = get_mult(i)%zshift
      	size_node( lnode ) =  get_size(i)
        
      endif
