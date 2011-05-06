@@ -221,10 +221,6 @@ module module_allocation
 		  use treevars
 		  implicit none
 
-		  if (me==0) then
-		     write(*,'(a)') 'LPEPC | De-allocating particle arrays ...'
-		  endif
-
 		  ! particle array deallocation
 		  deallocate ( x, y, z, ux, uy, uz, &
 		       q, m, work, &
