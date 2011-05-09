@@ -40,7 +40,7 @@ program pepcs
 
      nparts = (my_rank + 15) * it
 
-     write(*,*) " - number of paricles on rank ", my_rank, " is ", nparts
+     write(*,*) " - number of particles on rank ", my_rank, " is ", nparts
 
      allocate(x(nparts), y(nparts), z(nparts), ex(nparts), ey(nparts), ez(nparts))
      allocate(pot(nparts), q(nparts), m(nparts))

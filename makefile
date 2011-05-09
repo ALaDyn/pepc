@@ -8,7 +8,7 @@ default: pepce
 
 benchmark: pepce
 
-all: pepce pepcmini pepcmw
+all: pepce pepcmini pepcmw pepcs
 
 pepcmw: pepcbasics
 	@echo "============  Making Frontend PEPC-MW (Mathias Winkel version)  ============="
@@ -21,6 +21,10 @@ pepcmini: pepcbasics
 pepce:  pepcbasics
 	@echo "============  Making Frontend PEPC-E (Benchmark version)  ============="
 	cd pepc-e && $(MAKE) $(MFLAGS)
+
+pepcs:  pepcbasics
+	@echo "============  Making Frontend PEPC-S (ScaFaCoS-library version + minimal frontend)  ============="
+	cd pepc-s && $(MAKE) $(MFLAGS)
 
 pepcbasics:
 	@echo "============  Making PEPC Sorting Library  ============="
