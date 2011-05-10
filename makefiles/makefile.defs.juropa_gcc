@@ -1,0 +1,42 @@
+# call before compilation to activate GNU Compiler Collection instead of Intel compiler:
+#  > module unload parastation/intel
+#  > module unload intel
+#  > module load parastation/gcc-mt
+
+
+MACH     = JUROPA_gcc
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C
+
+INLINING = 
+INLINING = -g -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -mstringop-strategy=unrolled_loop 
+
+FCPRE    = 
+FC       = mpif90
+#FFLAGS   = -O0 -g -pg -ffree-line-length-none -Wall -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
+FFLAGS   =  -Wall -O3 -pg -ffree-line-length-none $(INLINING)
+
+CCPRE    = 
+CC       = mpicc
+CFLAGS   = -g -pg -O3 -pthread  -Wconversion
+#CFLAGS   = -g -pg -O0
+
+LDPRE    = 
+LD       = mpif90
+#LDFLAGS   = -pg -O0 -g
+LDFLAGS   = -pthread -pg -O3 $(INLINING) -fwhole-program -fuse-linker-plugin
+LDLIBS   = 
+
+RM       = rm -rf
+
+EXECNAME = ../pepc
+
+
