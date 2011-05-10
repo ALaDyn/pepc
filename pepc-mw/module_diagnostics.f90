@@ -177,6 +177,8 @@ module module_diagnostics
             call vtk%finishpoints()
             call vtk%startpointdata()
               call vtk%write_data_array("velocity", np_local, ux, uy, uz)
+              call vtk%write_data_array("el_field", np_local, ex, ey, ez)
+              call vtk%write_data_array("el_pot", np_local, pot)
               call vtk%write_data_array("charge", np_local, q)
               call vtk%write_data_array("mass", np_local, m)
               call vtk%write_data_array("pelabel", np_local, pelabel)
