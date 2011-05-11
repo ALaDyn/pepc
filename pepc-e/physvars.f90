@@ -68,6 +68,7 @@ module physvars
    integer :: itime_in    ! timestep to read mpi-io checkpoint from in case of ispecial==-1
    integer :: idump, idump_vtk, idump_checkpoint, idump_binary ! output frequency (timesteps): ascii, vtk and mpi-io-checkpoint
    integer :: db_level = 1  ! printed o/p debug level
+   integer :: curve_type = 0 !< type of space-filling curve, 0=z-curve, 1=Hilbert-curve
 
    integer :: ifile_cpu    ! O/P stream
 
