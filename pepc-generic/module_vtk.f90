@@ -9,6 +9,7 @@ module module_vtk
 
       character(6), parameter :: subfolder = "./vtk/"
       character(16), parameter :: visitfilename = "timeseries.visit"
+      character(16), parameter :: paraviewfilename = "timeseries.pvd"
       logical, private, save :: firststep = .true.
 #ifndef LITTLEENDIAN
       logical, parameter :: bigendian = .true.
@@ -25,15 +26,17 @@ module module_vtk
       type vtkfile
         private
           character(40) :: filename
-          integer :: filehandle = 97
-          integer :: filehandle_par = 98
-          integer :: filehandle_visit = 99
-          logical :: parallel = .false.
+          integer :: filehandle = 96
+          integer :: filehandle_par = 97
+          integer :: filehandle_visit = 98
+          integer :: filehandle_paraview = 99
           character(12) :: byte_order = "BigEndian"
           character(3) :: version = "0.1"
           logical :: binary = .true.
           integer :: my_rank
           integer :: num_pe
+          real*8 :: simtime
+          logical :: final
 
 
         contains
@@ -83,44 +86,48 @@ module module_vtk
       contains
 
 
-      subroutine vtkfile_create(vtk, filename_)
+      subroutine vtkfile_create(vtk, filename_, simtime_, final_)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: filename_
-        call vtk%create_parallel(filename_, 0, 0)
+        real*8 :: simtime_
+        logical :: final_
+        call vtk%create_parallel(filename_, 0, 0, simtime_, final_)
       end subroutine vtkfile_create
 
 
-      subroutine vtkfile_create_parallel(vtk, filename_, my_rank_, num_pe_)
+      subroutine vtkfile_create_parallel(vtk, filename_, my_rank_, num_pe_, simtime_, final_)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: filename_
         character(50) :: fn
         character(6) :: tmp
+        real*8 :: simtime_
         integer :: my_rank_, num_pe_
+        logical :: final_
 
-        vtk%num_pe   = num_pe_
+        vtk%num_pe   = max(num_pe_, 1)
         vtk%my_rank  = my_rank_
         vtk%filename = filename_
+        vtk%simtime  = simtime_
+        vtk%final    = final_
 
-        if (vtk%num_pe>0) then
-          vtk%parallel = (vtk%my_rank == 0)
-          write(tmp,'(I6.6)') vtk%my_rank
-          fn = subfolder//trim(vtk%filename)//"."//tmp//".vtu"
-        else
-          fn = subfolder//trim(vtk%filename)//".vtu"
-        endif
+        write(tmp,'(I6.6)') vtk%my_rank
+        fn = subfolder//trim(vtk%filename)//"."//tmp//".vtu"
 
         open(vtk%filehandle, file=fn)
 
-        if (vtk%parallel) then
-          open(vtk%filehandle_par, file=subfolder//filename_//".pvtu")
-          if (firststep) then
-            open(vtk%filehandle_visit, file=subfolder//visitfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
-            write(vtk%filehandle_visit, '("!NBLOCKS ", I10)') vtk%num_pe
-          else
-            open(vtk%filehandle_visit, file=subfolder//visitfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
-          endif
+        open(vtk%filehandle_par, file=subfolder//filename_//".pvtu")
+
+        if (firststep) then
+          open(vtk%filehandle_visit, file=subfolder//visitfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
+          write(vtk%filehandle_visit, '("!NBLOCKS ", I0)') vtk%num_pe
+
+          open(vtk%filehandle_paraview, file=subfolder//paraviewfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
+          write(vtk%filehandle_paraview, '("<VTKFile type=""Collection"">", /, "<Collection>")')
+        else
+          open(vtk%filehandle_visit, file=subfolder//visitfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
+          open(vtk%filehandle_paraview, file=subfolder//paraviewfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
         endif
       end subroutine vtkfile_create_parallel
 
@@ -129,11 +136,14 @@ module module_vtk
         implicit none
         class(vtkfile) :: vtk
         close(vtk%filehandle)
-        if (vtk%parallel) then
-           close(vtk%filehandle_par)
-           close(vtk%filehandle_visit)
+        close(vtk%filehandle_par)
+        close(vtk%filehandle_visit)
+
+        if (vtk%final) then
+          write(vtk%filehandle_paraview, '("</Collection>", / , "</VTKFile>")')
         endif
 
+        close(vtk%filehandle_paraview)
         firststep = .false.
      end subroutine vtkfile_close
 
@@ -153,10 +163,8 @@ module module_vtk
 
         write(vtk%filehandle, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,""">")') &
                  name, number_of_components, type, trim(format)
-        if (vtk%parallel) then
-          write(vtk%filehandle_par, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,"""/>")') &
+        write(vtk%filehandle_par, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,"""/>")') &
                  name, number_of_components, type, trim(format)
-        end if
      end subroutine
 
 
@@ -409,10 +417,8 @@ module module_vtk
         write(vtk%filehandle, '("<UnstructuredGrid GhostLevel=""0"">")')
         write(vtk%filehandle, '("<Piece NumberOfPoints=""", I0, """ NumberOfCells=""0"">")') npart
 
-        if (vtk%parallel) then
-          write(vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
-          write(vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
-        endif
+        write(vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+        write(vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
      end subroutine vtkfile_unstructured_grid_write_headers
 
 
@@ -434,21 +440,21 @@ module module_vtk
           write(vtk%filehandle, '("</UnstructuredGrid>")')
           write(vtk%filehandle, '("</VTKFile>")')
 
-          if (vtk%parallel) then
-            write(vtk%filehandle_par, '("<PCellData>")')
-            write(vtk%filehandle_par, '("</PCellData>")')
-            write(vtk%filehandle_visit, '(/)')
+          write(vtk%filehandle_par, '("<PCellData>")')
+          write(vtk%filehandle_par, '("</PCellData>")')
+          write(vtk%filehandle_visit, '(/)')
 
-            do i = 0,vtk%num_pe-1
-              write(tmp,'(I6.6)') i
-              fn = trim(vtk%filename)//"."//tmp//".vtu"
-              write(vtk%filehandle_par, '("<Piece Source=""", a, """/>")') trim(fn)
-              write(vtk%filehandle_visit, '(a)') trim(fn)
-            end do
+          do i = 0,vtk%num_pe-1
+            write(tmp,'(I6.6)') i
+            fn = trim(vtk%filename)//"."//tmp//".vtu"
+            write(vtk%filehandle_par, '("<Piece Source=""", a, """/>")') trim(fn)
+            write(vtk%filehandle_visit, '(a)') trim(fn)
+          end do
 
-            write(vtk%filehandle_par, '("</PUnstructuredGrid>")')
-            write(vtk%filehandle_par, '("</VTKFile>")')
-          endif
+          write(vtk%filehandle_par, '("</PUnstructuredGrid>")')
+          write(vtk%filehandle_par, '("</VTKFile>")')
+
+          write(vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(trim(vtk%filename)//".pvtu")
      end subroutine vtkfile_unstructured_grid_write_final
 
 
@@ -457,7 +463,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("<Points>")')
-        if (vtk%parallel) write(vtk%filehandle_par, '("<PPoints>")')
+        write(vtk%filehandle_par, '("<PPoints>")')
      end subroutine vtkfile_unstructured_grid_startpoints
 
 
@@ -466,7 +472,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("</Points>")')
-        if (vtk%parallel) write(vtk%filehandle_par, '("</PPoints>")')
+        write(vtk%filehandle_par, '("</PPoints>")')
      end subroutine vtkfile_unstructured_grid_finishpoints
 
 
@@ -475,7 +481,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("<PointData>")')
-        if (vtk%parallel) write(vtk%filehandle_par, '("<PPointData>")')
+        write(vtk%filehandle_par, '("<PPointData>")')
      end subroutine vtkfile_unstructured_grid_startpointdata
 
 
@@ -484,7 +490,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("</PointData>")')
-        if (vtk%parallel) write(vtk%filehandle_par, '("</PPointData>")')
+        write(vtk%filehandle_par, '("</PPointData>")')
      end subroutine vtkfile_unstructured_grid_finishpointdata
 
 end module module_vtk

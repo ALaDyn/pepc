@@ -27,17 +27,24 @@ module module_diagnostics
             implicit none
             logical, intent(in) :: allowcheckpoint
             logical :: bin, asc, check, vtk
+            integer, save :: lasttimestep = -1
 
-            bin = (idump_binary       > 0)
-            if (bin) bin = ((mod(itime, idump_binary        ) == 0) .or. (itime == nt))
-            asc = (idump              > 0)
-            if (asc) asc = ((mod(itime, idump               ) == 0) .or. (itime == nt))
-            check = (idump_checkpoint > 0) .and. (allowcheckpoint) 
-            if (check) check = ((mod(itime, idump_checkpoint) == 0) .or. (itime == nt))
-            vtk = (idump_vtk          > 0)
-            if (vtk) vtk = ((mod(itime, idump_vtk           ) == 0) .or. (itime == nt))
+            ! avoid calling this function several times per timestep
+            if (lasttimestep .ne. itime) then
 
-            call write_particles_type( bin, asc, check, vtk )
+              bin = (idump_binary       > 0)
+              if (bin) bin = ((mod(itime, idump_binary        ) == 0) .or. (itime == nt))
+              asc = (idump              > 0)
+              if (asc) asc = ((mod(itime, idump               ) == 0) .or. (itime == nt))
+              check = (idump_checkpoint > 0) .and. (allowcheckpoint)
+              if (check) check = ((mod(itime, idump_checkpoint) == 0) .or. (itime == nt))
+              vtk = (idump_vtk          > 0)
+              if (vtk) vtk = ((mod(itime, idump_vtk           ) == 0) .or. (itime == nt))
+
+              call write_particles_type( bin, asc, check, vtk , itime==nt)
+            endif
+
+            lasttimestep = itime
 
           end subroutine write_particles
 
@@ -47,12 +54,12 @@ module module_diagnostics
           !>
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          subroutine write_particles_type(binary, ascii, mpiio, vtk)
+          subroutine write_particles_type(binary, ascii, mpiio, vtk, final)
             use physvars
             use module_checkpoint
             implicit none
             include 'mpif.h'
-            logical, intent(in) :: binary, ascii, mpiio, vtk
+            logical, intent(in) :: binary, ascii, mpiio, vtk, final
             integer :: p
             type(t_dumpparticle), allocatable :: dp(:)
             integer*8 :: npart
@@ -81,7 +88,7 @@ module module_diagnostics
             endif
 
 
-            if (vtk) call write_particles_to_vtk(itime)
+            if (vtk) call write_particles_to_vtk(itime, final)
 
         end subroutine write_particles_type
 
@@ -159,18 +166,20 @@ module module_diagnostics
           !>
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine write_particles_to_vtk(step)
+      subroutine write_particles_to_vtk(step, final)
         use physvars
         use module_vtk
+        use module_units
         implicit none
         integer, intent(in) :: step
+        logical, intent(in) :: final
         character(16) :: fn
         integer :: i
         type(vtkfile_unstructured_grid) :: vtk
 
         write(fn, '("particles_", I6.6)') step
 
-        call vtk%create_parallel(fn, my_rank, n_cpu)
+        call vtk%create_parallel(fn, my_rank, n_cpu, trun*unit_t0_in_fs, final)
           call vtk%write_headers(np_local)
             call vtk%startpoints()
               call vtk%write_data_array("xyz", np_local, x, y, z)
