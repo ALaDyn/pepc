@@ -1,0 +1,90 @@
+# call before compilation to activate GNU Compiler Collection instead of Intel compiler:
+#  > module unload parastation/intel
+#  > module unload intel
+#  > module load parastation/gcc-mt
+#  > module use ~/modulefiles
+#  > module load vampirtrace/5.10.1-parastation-gnu-papi 
+#
+#  > make pepcmini
+#
+# start interactive session:
+# > msub -I -l nodes=2:ppn=8
+
+# there:
+# > module use ~/modulefiles
+# > module load vampirtrace/5.10.1-parastation-gnu-papi
+# > export VT_SYNC_FLUSH=yes
+# > export VT_BUFFER_SIZE=1024M
+# > export VT_COMPRESSION=yes
+# > export VT_FILE_UNIQUE=yes
+# > export VT_MAX_FLUSHES=20
+# > export VT_UNIFY=yes
+# > export VT_CPUIDTRACE=yes
+# > export VT_ETIMESYNC=yes
+# > export VT_IOTRACE=yes
+# > export VT_LIBCTRACE=yes
+# > export VT_GROUPS_SPEC=~/vtgroups.txt
+# > export VT_FILTER_SPEC=~/vtfilter.txt
+# > export VT_METRICS=PAPI_FP_OPS:PAPI_TOT_CYC:PAPI_FP_INS
+# > mpiexec -x -n 4 ../pepcmini ./run.h
+#
+# content of vtfilter.txt:
+# par_rand* -- 0
+# key2addr* -- 0
+# __tree_walk_utils_NMOD_walk_single_par* -- 0
+#
+# content of vtgroups.txt:
+# YIELD=pthreads_sched_yield
+# PTHREADS_CONDS=pthreads_conds*
+# RWLOCKS=rwlocks_*
+# SCHED_YIELD=pthreads_sched_yield
+# PTHREADS_THREAD=pthreads_createthread;pthreads_jointhread;pthreads_exitthread;pthreads_init;pthreads_uninit
+# COMMUNICATOR=__tree_walk_communicator_*
+# FIELDS=pepc_fields
+# SORTING=slsort_*
+# WALKWORKER=WALK_WORKER_THREAD
+# CALC_FORCE=*calc_force*
+# PT_FIRST_PARTICLE=__tree_walk_utils_NMOD_get_*
+#
+# to view traces:
+# > module load vampirserver vampir
+# vngd &
+# vampir
+
+
+MACH     = JUROPA_gcc_vampirtrace
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C
+
+INLINING = 
+INLINING = -g -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -mstringop-strategy=unrolled_loop 
+
+FCPRE    = vtf90 -vt:f90
+FC       = mpif90
+#FFLAGS   = -O0 -g -pg -ffree-line-length-none -Wall -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
+FFLAGS   =  -Wall -O3 -pg -ffree-line-length-none $(INLINING)
+
+CCPRE    = vtcc -vt:cc
+CC       = mpicc
+CFLAGS   = -g -pg -O3 -pthread  -Wconversion
+#CFLAGS   = -g -pg -O0
+
+LDPRE    = vtf90 -vt:f90
+LD       = mpif90
+#LDFLAGS   = -pg -O0 -g
+LDFLAGS   = -pthread -pg -O3 $(INLINING) -fwhole-program -fuse-linker-plugin
+LDLIBS   = 
+
+RM       = rm -rf
+
+EXECNAME = ../pepc
+
+
