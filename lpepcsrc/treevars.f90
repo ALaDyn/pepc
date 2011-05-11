@@ -94,7 +94,6 @@ module treevars
              nppm, &           ! max # particles/PE
              npp, &            !  actual  # particles/PE
              iused          ! counter for collision resolution array free_addr()
-  integer :: curve_type = 0 !< type of space-filling curve, 0=z-curve, 1=Hilbert-curve
   integer :: ipefile = 20 ! local O/P stream
   integer :: nkeys_total=1 ! total # keys in local tree
   integer :: proc_debug=0     ! Debug rank: set to -1 for all

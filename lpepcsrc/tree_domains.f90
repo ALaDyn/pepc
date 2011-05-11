@@ -11,7 +11,7 @@
 !  ================================
 
 
-subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted)
+subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted,curve_type)
 
   use treevars
   use tree_utils
@@ -24,6 +24,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   integer, intent(out) :: islen(num_pe),irlen(num_pe)
   integer, intent(out) :: fposts(num_pe+1),gposts(num_pe+1)
   integer :: npnew,npold
+  integer, intent(in) :: curve_type !< type of space-filling curve
 
   integer*8, dimension(nppm) :: ix, iy, iz
   integer*8, dimension(nppm) :: ixd, iyd, izd
