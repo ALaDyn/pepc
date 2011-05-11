@@ -14,7 +14,7 @@
 
 subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
      p_Ex, p_Ey, p_Ez, p_pot, np_mult_,&
-     mac, theta, eps, force_const, itime, weighted, &
+     mac, theta, eps, force_const, itime, weighted, curve_type, &
      num_neighbours, neighbours)
 
   use treevars
@@ -41,6 +41,7 @@ subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_m, p_w, p_labe
   integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
   integer, intent(in) :: neighbours(3, num_neighbours) !< list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
   real*8, dimension(np_local) :: p_w ! work loads
+  integer, intent(in) :: curve_type !< type of space-filling curve
   
   integer :: nppm_ori, ierr
 
@@ -58,9 +59,9 @@ subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_m, p_w, p_labe
   character(30) :: cfile
 
   ! copy call parameters to treevars module
-  npart = npart_total
-  np_mult = np_mult_
-  npp = np_local
+  npart      = npart_total
+  np_mult    = np_mult_
+  npp        = np_local
 
   call allocate_particles(nppm_ori)
 
@@ -108,7 +109,7 @@ subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_m, p_w, p_labe
 
   allocate(indxl(nppm_ori),irnkl(nppm_ori))
   ! Domain decomposition: allocate particle keys to PEs
-  call tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted)
+  call tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted, curve_type)
   call allocate_tree(theta)
 
   ! calculate spherical multipole expansion of central box

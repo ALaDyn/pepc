@@ -31,7 +31,7 @@ subroutine pepc_setup()
 
 
   namelist /pepcdata/ nep, nip, np_mult, ne, ni, num_walk_threads, max_particles_per_thread, &
-       mac, theta, mass_ratio, q_factor, eps, &
+       mac, theta, mass_ratio, q_factor, eps, curve_type, &
        system_config, target_geometry, ispecial, weighted, &
        Te_keV, Ti_keV, T_scale, &
        r_sphere, x_plasma, y_plasma, z_plasma, &

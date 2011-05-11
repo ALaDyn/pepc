@@ -48,6 +48,7 @@ module physvars
    real :: trun           ! total run time including restarts
    integer :: nt, itime   ! # timesteps and current timestep
    integer :: db_level = 1  ! printed o/p debug level
+   integer :: curve_type = 0 !< type of space-filling curve, 0=z-curve, 1=Hilbert-curve
 
    integer :: ifile_cpu    ! O/P stream
 

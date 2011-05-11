@@ -32,6 +32,9 @@ itime_in = 5
 ! 0: no load balancing, 1: load balancing
  weighted = 1
 
+! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
+ curve_type = 1
+
 ! determies the particle dump interval
 ! 0: never write anything
 ! n: each n-th step, plus first and last step
