@@ -94,7 +94,7 @@ subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_m, p_w, p_labe
     work(1:npp) = 1.
   else
     do i=1,npp
-       work(i) = max(p_w(i), 1.)
+       work(i) = max(p_w(i), 1._8)
     end do
   endif
 
