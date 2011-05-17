@@ -44,7 +44,7 @@ module module_workflow
 		  implicit none
 		  integer, intent(in) :: my_rank, itime
 		  real*8, intent(in) :: trun, dt
-		  character(30) :: setup_name
+		  character(40) :: setup_name
 
 		  select case(workflow_setup)
 		    case(0) ! no time variation

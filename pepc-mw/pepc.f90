@@ -26,6 +26,8 @@ program pepc
   use module_diagnostics
   use module_workflow
   use module_units
+  use module_setup
+  use module_param_dump
   implicit none
   include 'mpif.h'
 
@@ -73,7 +75,13 @@ program pepc
   call libpepc_setup(my_rank,n_cpu,db_level)
 
   ! Set up particles
-  call configure
+  call particle_setup(ispecial)
+
+  ! parameter output
+  if (my_rank == 0) then
+    call PrintPhysicalParameters(6)
+    call PrintPhysicalParameters(24)
+  endif
 
   ! initial particle output
   ! no initial checkpoint since this would override the current checkpoint if in resume-mode
@@ -137,12 +145,12 @@ program pepc
          if ((ispecial==9).or.(ispecial==10).or.(ispecial==11)) call sum_radial(itime)
 
          call field_dump(itime)
-         call momentum_acf%to_file("momentum_Kt.dat")
        end if
      endif
 
      call write_total_momentum(itime, trun, mom)
      call momentum_acf%addval(mom(1:3))
+     call momentum_acf%to_file("momentum_Kt.dat")
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags

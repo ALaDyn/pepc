@@ -13,6 +13,7 @@
 subroutine pepc_setup()
   use physvars
   use tree_utils
+  use module_setup
   use module_fmm_framework
   use tree_walk_utils
   use tree_walk_communicator
@@ -21,7 +22,6 @@ subroutine pepc_setup()
   use module_pusher
   use module_workflow
   use module_units
-  use module_param_dump
   use module_fields
   implicit none
   include 'mpif.h'
@@ -58,8 +58,6 @@ subroutine pepc_setup()
   weighted        = 1
 
   ! particles
-  nep = 0    ! # plasma electrons per PE
-  nip = 0
   ne  = 1000    ! Total # plasma electrons
   ni  = 0 ! total # plasma ions
 
@@ -134,28 +132,6 @@ subroutine pepc_setup()
   mass_i = unit_mp*Aion ! Aion = ion mass number
   npart_total = ni+ne
 
-  if (ispecial == 7) then ! Madelung setup needs ne=ni and (ne+ni)mod 8==0 and (ne+ni)/8==2**sth
-     npart_total = (nint((npart_total/8)**(1./3.))**3)*8
-     if (my_rank == 0) write(*,*) "Using 3D-Madelung Setup: Total particle number must be representable by 8*k^3. Setting npart_total =", npart_total
-     ne = npart_total/2
-     ni = ne
-  end if
-
-  if (ispecial == 13) then ! ion lattice setup needs integer number of ions per edge
-     ni = nint((ne/Zion)**(1./3.))**3
-     ne = ni * Zion
-     npart_total = ne + ni
-     if (my_rank == 0) write(*,*) "Using Ion Lattice Setup: Number of Ions per edge must be integer, setting ne =", ne, ", ni=", ni
-  end if
-  
-  if (ispecial == 12) then
-    npart_total   = get_nextlower_particles(npart_total/2)*2
-    if (my_rank == 0) write(*,*) "Using Mackay Icosahedron: Total particle number must be two times a magic cluster number. Setting npart_total =", npart_total
-    ne = npart_total/2
-    ni = ne
-  end if
-
-
   Vplas    =  ne/rhoe_nm3 / unit_abohr_in_nm**3. ! adjust simulation volume to fit requested electron density while keeping particle number constant
   rhoi_nm3 =  ni/Vplas / unit_abohr_in_nm**3.
   x_plasma = (ne/rhoe_nm3)**(1./3.) / unit_abohr_in_nm ! (assume cubic volume)
@@ -165,7 +141,6 @@ subroutine pepc_setup()
   yl       = y_plasma
   zl       = z_plasma
 
-  plasma_centre =  (/xl / 2., yl / 2., zl / 2./) ! Centre of plasma
   a_ee = (Vplas/ne)**(1./3.)
   a_ii = (Vplas/ni)**(1./3.)
   r_sphere = ((3.*Vplas)/(4.*pi))**(1./3.)
@@ -239,28 +214,9 @@ subroutine pepc_setup()
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!  parameter output              !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-  if (my_rank == 0) then
-    call PrintPhysicalParameters(6)
-    call PrintPhysicalParameters(24)
-  endif
-
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  derived parameters (tree code)  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  nep = ne/n_cpu
-  nip = ni/n_cpu
-  if (nep*n_cpu /= ne .and. mod(ne,n_cpu) > my_rank) then
-     nep = ne/n_cpu+1
-  end if
-  if (nip*n_cpu /= ni .and. mod(ni,n_cpu) > my_rank) then
-     nip = ni/n_cpu+1
-  end if
-
-  np_local = nep+nip
+  call update_particle_numbers(ne + ni)
 
   if (n_cpu.eq.1) then
      nppm = nint(1.5*npart_total + 1000)  ! allow for additional ghost particles for field plots

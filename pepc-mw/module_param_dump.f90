@@ -85,6 +85,7 @@ module module_param_dump
       use physvars
       use module_laser
       use module_units
+      use module_workflow
       implicit none
       integer, intent(in) :: ifile
 ! xl, yl, zl, plasma_centre
@@ -109,6 +110,7 @@ module module_param_dump
       write(ifile,'(92("-"))' )
       call WriteParameter(ifile, "npart_total", npart_total)
       call WriteParameter(ifile, "special setup (ispecial)", ispecial)
+      call WriteParameter(ifile, "workflow setup", workflow_setup)
       call WriteParameter(ifile, "dt", dt)
       call WriteParameter(ifile, "laser-frequency: max dt", maxdt(1))
       call WriteParameter(ifile, "plasma-frequency: max dt", maxdt(2))

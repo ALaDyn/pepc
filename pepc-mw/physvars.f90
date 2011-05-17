@@ -25,7 +25,6 @@ module physvars
   !  physics data
 
   integer :: ni, ne       !  # ions, electrons
-  integer :: nep, nip     ! # particles/electrons/ions per PE
   real*8 :: maxdt(4)       ! maximum allowed dt from different constraints
   real*8 :: xl, yl, zl      ! box size
   integer :: ngx, ngy, ngz  ! Plot grid dimensions
@@ -50,6 +49,7 @@ module physvars
   real*8 :: physGamma      ! coupling parameter
   real :: eps            ! potential/force law cutoff
   integer :: Zion=1, Aion=1       ! ion charge and mass number
+  integer :: setup_type = 0 !< for computing volume, interparticle distance, etc: 0-cubic, 1-spherical
 
   real*8 :: Ukine          ! Electron kinetic energy
   real*8 :: Ukini          ! Ion kinetic energy
