@@ -29,8 +29,11 @@ program pepc
   use module_units
   use module_setup
   use module_param_dump
+  use module_treediags
   implicit none
   include 'mpif.h'
+
+  logical, parameter :: treediags = .true.
 
   integer :: ierr, ifile, provided
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! `The process may be multi-threaded, but the application
@@ -122,8 +125,13 @@ program pepc
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult,mac, theta, eps, force_const, &
                       itime, weighted, curve_type, &
-                      num_neighbour_boxes, neighbour_boxes, .false.)
-      
+                      num_neighbour_boxes, neighbour_boxes, treediags)
+
+     ! output of tree diagnostics
+     if (treediags) then
+       call write_branches_to_vtk()
+       call write_spacecurve_to_vtk()
+     endif
 
      ! add any external forces (laser field etc)
      call force_laser(1, np_local)
