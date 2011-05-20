@@ -22,6 +22,7 @@ program pepce
   use particle_pusher
   use timings
   use module_fmm_framework
+  use module_pepcfields
   use files
   implicit none
   include 'mpif.h'

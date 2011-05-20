@@ -26,6 +26,7 @@ program pepce
   use files
   use energies
   use module_diagnostics
+  use module_pepcfields
   implicit none
   include 'mpif.h'
 

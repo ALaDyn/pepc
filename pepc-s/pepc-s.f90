@@ -12,6 +12,7 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
 
   use physvars
   use module_fmm_framework
+  use module_pepcfields
   implicit none
   include 'mpif.h'
 
