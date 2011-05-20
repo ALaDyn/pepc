@@ -351,7 +351,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
      do i=1,npold
         ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
              ux(indxl(i)), uy(indxl(i)), uz(indxl(i)), &
-             q(indxl(i)), m(indxl(i)), work(indxl(i)), &
+             q(indxl(i)), work(indxl(i)), &
              keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
      enddo
 
@@ -376,7 +376,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
         uy(irnkl(i)) = get_parts(i)%uy
         uz(irnkl(i)) = get_parts(i)%uz
         q(irnkl(i)) = get_parts(i)%q
-        m(irnkl(i)) = get_parts(i)%m
         work(irnkl(i)) = get_parts(i)%work
         pelabel(irnkl(i)) = get_parts(i)%label
      enddo
@@ -520,7 +519,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   !  ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
   !       ax(1),ay(1),az(1), pekey(1), pelabel(1), pepid(1) )
 
-  ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
+  ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), work(1), &
        pekey(1), pelabel(1), pepid(1) )
 
   !  write (*,'(9f12.3,z20,2i6)') ship_props
@@ -543,7 +542,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
      uy(npp+1) = get_props%uy
      uz(npp+1) = get_props%uz
      q(npp+1) = get_props%q
-     m(npp+1) = get_props%m
      work(npp+1) = get_props%work
      pekey(npp+1) = get_props%key
      pelabel(npp+1) = get_props%label
@@ -552,10 +550,10 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   ! Ship  end particle data to start of list of RH neighbour PE
 
-  !  ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), m(npp), work(npp), &
+  !  ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), work(npp), &
   !       ax(npp),ay(npp),az(npp), pekey(npp), pelabel(npp), pepid(npp) )
 
-  ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), m(npp), work(npp), &
+  ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), work(npp), &
        pekey(npp), pelabel(npp), pepid(npp) )
 
   if (me /= num_pe-1 ) then
@@ -580,7 +578,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
      uy(ind_recv) = get_props%uy
      uz(ind_recv) = get_props%uz
      q(ind_recv) = get_props%q
-     m(ind_recv) = get_props%m
      work(ind_recv) = get_props%work
      pekey(ind_recv) = get_props%key
      pelabel(ind_recv) = get_props%label
@@ -597,9 +594,9 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
         inc = 0
      endif
 
-     write (ipefile,'(/a/a/(i5,z21,2i8,3f12.5,2f12.3))') 'Particle list after boundary swap:', &
-          ' index   key,     label,   on PE,    x      y     q       m', &
-          (i,pekey(i),pelabel(i),pepid(i),x(i),y(i),z(i),q(i),m(i),i=1,npp+1+inc) 
+     write (ipefile,'(/a/a/(i5,z21,2i8,3f12.5,1f12.3))') 'Particle list after boundary swap:', &
+          ' index   key,     label,   on PE,    x      y     q', &
+          (i,pekey(i),pelabel(i),pepid(i),x(i),y(i),z(i),q(i),i=1,npp+1+inc)
 
      write(ipefile,'(/)')
   endif

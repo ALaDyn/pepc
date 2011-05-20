@@ -50,6 +50,8 @@ module module_allocation
 
 		  call timer_start(t_allocate)
 
+		  if (allocated(htable)) call deallocate_tree(nppm)
+
 		  nppm=npp
 		  ! Estimate of interaction list length - Hernquist expression
 		  if (theta > 0.01 ) then
@@ -186,6 +188,8 @@ module module_allocation
           implicit none
 		  integer, intent(out) :: nppm_ori
 
+          if (allocated(x)) call deallocate_particles()
+
           npartm = npart
 
 		  if (num_pe.eq.1) then
@@ -203,7 +207,7 @@ module module_allocation
 		  ! array allocation
 
 		  allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), &
-		       q(nppm), m(nppm), work(nppm), &
+		       q(nppm), work(nppm), &
 		       pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
 		  allocate (nbranches(num_pe+2), igap(num_pe+3))
@@ -223,8 +227,7 @@ module module_allocation
 
 		  ! particle array deallocation
 		  deallocate ( x, y, z, ux, uy, uz, &
-		       q, m, work, &
-		       pepid, pelabel, pekey )
+		       q, work, pepid, pelabel, pekey )
 
 		  deallocate ( nbranches, igap )
 

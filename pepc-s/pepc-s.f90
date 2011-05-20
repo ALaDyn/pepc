@@ -58,11 +58,11 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
 
   call pepc_fields(np_local, npart_total, &
        pos_x, pos_y, pos_z, &
-       charge, mass, work, pelabel, &
+       charge, work, pelabel, &
        ex, ey, ez, pot, &
        np_mult, mac, theta, eps, force_const, &
        itime, weighted, curve_type, &
-       num_neighbour_boxes, neighbour_boxes)
+       num_neighbour_boxes, neighbour_boxes, .false.)
   
   ! cleanup of lpepc static data
   call libpepc_finalize()

@@ -34,7 +34,6 @@ module treetypes
      real*8 :: uy
      real*8 :: uz 
      real*8 :: q     ! charge
-     real*8 :: m     ! mass
      real*8 :: work  ! work load from force sum
      integer*8 :: key           ! Key
      integer :: label    ! label

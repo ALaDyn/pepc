@@ -37,12 +37,35 @@ module module_pepcfields
         !>   Calculate fields and potential from coordinates x,y,z:
         !>
         !>   Returns fields Ex, Ey, Ez and potential pot excluding external terms
+        !>   @param[in] np_local local number of particles
+        !>   @param[in] npart_total total particle number
+        !>   @param[in] p_x dimension(1:np_local) - x-component of particle coordinates
+        !>   @param[in] p_y dimension(1:np_local) - y-component of particle coordinates
+        !>   @param[in] p_z dimension(1:np_local) - z-component of particle coordinates
+        !>   @param[in] p_q dimension(1:np_local) - particle charge
+        !>   @param[in] p_w dimension(1:np_local) - particle workload from previous iteration (should be set to 1.0 for the first timestep)
+        !>   @param[in] p_label dimension(1:np_local) - particle label (may any number except zero)
+        !>   @param[out] p_Ex dimension(1:np_local) - x-component of electric field
+        !>   @param[out] p_Ey dimension(1:np_local) - y-component of electric field
+        !>   @param[out] p_Ez dimension(1:np_local) - z-component of electric field
+        !>   @param[out] p_pot dimension(1:np_local) - electric potential
+        !>   @param[in] np_mult_ memory allocation parameter
+        !>   @param[in] selector for multipole acceptance criterion, currently, only 0 (BH-MAC) is supported
+        !>   @param[in] theta multipole opening angle
+        !>   @param[in] eps plummer potential parameter
+        !>   @param[in] force_const coulomb force constant
+        !>   @param[in] itime current simulation timestep number
+        !>   @param[in] weighted selector for load balancing
+        !>   @param[in] curve_type selector for type of space filling curve
+        !>   @param[in] num_neighbours number of neighbour boxes to be considered during tree walk
+        !>   @param[in] neighbours shift vectors to neighbour boxes
+        !>   @param[in] no_dealloc if set to .true., deallocation of tree-structures is prevented to allow for front-end triggered diagnostics
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_m, p_w, p_label, &
+		subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_w, p_label, &
 		     p_Ex, p_Ey, p_Ez, p_pot, np_mult_,&
 		     mac, theta, eps, force_const, itime, weighted, curve_type, &
-		     num_neighbours, neighbours)
+		     num_neighbours, neighbours, no_dealloc)
 
 		  use treevars
 		  use timings
@@ -62,13 +85,14 @@ module module_pepcfields
 		  integer, intent(in) :: itime  ! timestep
 		  integer, intent(in) :: mac, weighted
 		  real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc
-		  real*8, intent(in), dimension(np_local) :: p_q, p_m ! charges, masses
+		  real*8, intent(in), dimension(np_local) :: p_q ! charges, masses
 		  integer, intent(in), dimension(np_local) :: p_label  ! particle label
 		  real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
 		  integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
-		  integer, intent(in) :: neighbours(3, num_neighbours) !< list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
+		  integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
 		  real*8, dimension(np_local) :: p_w ! work loads
-		  integer, intent(in) :: curve_type !< type of space-filling curve
+		  integer, intent(in) :: curve_type ! type of space-filling curve
+		  logical, intent(in) :: no_dealloc
 
 		  integer :: nppm_ori, ierr
 
@@ -112,7 +136,6 @@ module module_pepcfields
 		  uy(1:npp) = 0.
 		  uz(1:npp) = 0.
 		   q(1:npp) = p_q(1:npp)
-		   m(1:npp) = p_m(1:npp)
 		   pelabel(1:npp) = p_label(1:npp)
 		   pepid(1:npp)   = me
 
@@ -220,8 +243,8 @@ module module_pepcfields
 		     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)') force_const
 
 		     do i=1,npp
-		        write (ipefile,'(1x,i7,5(1pe14.5))') pelabel(i), q(i), m(i), ux(i), p_pot(i), p_ex(i)
-		        write (*,'(1x,i7,5(1pe14.5))') pelabel(i), x(i), q(i), m(i), ux(i), p_pot(i)
+		        write (ipefile,'(1x,i7,4(1pe14.5))') pelabel(i), q(i), ux(i), p_pot(i), p_ex(i)
+		        write (*,'(1x,i7,4(1pe14.5))') pelabel(i), x(i), q(i), ux(i), p_pot(i)
 		     end do
 
 		  endif
@@ -230,22 +253,22 @@ module module_pepcfields
 
 		  call timer_stop(t_fields_stats)
 
-		  call timer_start(t_deallocate)
-		  call deallocate_tree(nppm_ori)
-		  call timer_stop(t_deallocate)
-
-		  call timer_stop(t_all)
-
 		  write(cfile,'(a,i6.6,a)') "load_", me, ".dat"
 		  open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
 		  write(60,'(i5,2f20.10, i12)') itime,interactions_local, mac_evaluations_local,npp
 		  close(60)
 
-		  deallocate(ex_tmp, ey_tmp, ez_tmp, pot_tmp, w_tmp)
+          ! deallocate particle and result arrays
+          call timer_start(t_deallocate)
 
+            deallocate(ex_tmp, ey_tmp, ez_tmp, pot_tmp, w_tmp)
+            if (.not. no_dealloc) then
+              call deallocate_tree(nppm_ori)
+              call deallocate_particles()
+            endif
 
-		  ! deallocate particle and result arrays
-		  call deallocate_particles()
+          call timer_stop(t_deallocate)
+          call timer_stop(t_all)
 
 		end subroutine pepc_fields
 

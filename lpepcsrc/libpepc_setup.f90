@@ -95,7 +95,7 @@ subroutine libpepc_register_mpi_types(db_level)
   type (particle) :: ship_props_a, get_props_a
   type (results) :: ship_props_b, get_props_b
 
-  integer, parameter :: nprops_particle=12, &    ! # particle properties to ship
+  integer, parameter :: nprops_particle=11, &    ! # particle properties to ship
             nprops_multipole=22, &      ! Number of multipole properties to ship
                         nprops_results=6       ! # results to ship
   integer, dimension(nprops_multipole) :: blocklengths, displacements, types
@@ -107,9 +107,9 @@ subroutine libpepc_register_mpi_types(db_level)
   ! Create new contiguous datatype for shipping particle properties (15 arrays)
   blocklengths(1:nprops_particle) = 1   
 
-  types(1:9) = MPI_REAL8
-  types(10) = MPI_INTEGER8
-  types(11:12) = MPI_INTEGER
+  types(1:8)   = MPI_REAL8
+  types(9)     = MPI_INTEGER8
+  types(10:11) = MPI_INTEGER
 
   call MPI_GET_ADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
   call MPI_GET_ADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
@@ -123,11 +123,10 @@ subroutine libpepc_register_mpi_types(db_level)
   call MPI_GET_ADDRESS( ship_props_a%uy, address(5), ierr )
   call MPI_GET_ADDRESS( ship_props_a%uz, address(6), ierr )
   call MPI_GET_ADDRESS( ship_props_a%q, address(7), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%m, address(8), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%work, address(9), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%key, address(10), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%label, address(11), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%pid, address(12), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%work, address(8), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%key, address(9), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%label, address(10), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%pid, address(11), ierr )
 
   displacements(1:nprops_particle) = int(address(1:nprops_particle) - send_base)  !  Addresses relative to start of particle (receive) data
 

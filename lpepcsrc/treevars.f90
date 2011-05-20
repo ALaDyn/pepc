@@ -122,7 +122,7 @@ module treevars
   real*8, allocatable :: work(:), &        ! interaction work load
                             x(:),   y(:),   z(:), &     ! position
                            ux(:),  uy(:),  uz(:), &     ! velocity
-                            q(:),   m(:)                ! charge and mass
+                            q(:)                ! charge
 
   integer*8, allocatable ::  pekey(:)  ! local particle keys
 
