@@ -46,6 +46,7 @@ module module_treediags
         subroutine write_branches_to_vtk(step, tsim, vtk_step)
           use treevars
           use module_vtk
+          use module_spacefilling
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
@@ -57,15 +58,16 @@ module module_treediags
           real*8, dimension(nbranch_sum*8) :: bcornersx, bcornersy, bcornersz
           integer, dimension(nbranch_sum*8) :: bcornersidx
           integer, dimension(nbranch_sum) :: bcornersoffsets, bcornerstypes, bowner, blevel
+          real*8 :: bx, by, bz
 
-          real, parameter, dimension(3,8) :: box_shift = reshape([-0.5, -0.5, -0.5, &
-                                                                      -0.5, -0.5,  0.5, &
-                                                                      -0.5,  0.5, -0.5, &
-                                                                      -0.5,  0.5,  0.5, &
-                                                                       0.5, -0.5, -0.5, &
-                                                                       0.5, -0.5,  0.5, &
-                                                                       0.5,  0.5, -0.5, &
-                                                                       0.5,  0.5,  0.5], shape(box_shift))
+          real, parameter, dimension(3,8) :: box_shift = reshape([ 0., 0., 0., &
+                                                                       0., 0., 1., &
+                                                                       0., 1., 0., &
+                                                                       0., 1., 1., &
+                                                                       1., 0., 0., &
+                                                                       1., 0., 1., &
+                                                                       1., 1., 0., &
+                                                                       1., 1., 1. ], shape(box_shift))
           real*8, dimension(3) :: bshift
           type(vtkfile_unstructured_grid) :: vtk
 
@@ -83,7 +85,6 @@ module module_treediags
             bowner(i) = htable(baddr)%owner
             blevel(i) = int(log( 1._8*bkey )/log(8._8))
             bsize     = boxsize/2**blevel(i)
-            ! TODO: compute branch box center and box size from key
             !write(*,'(O10, Z8, I12, I8, I8, 1G12.3, " | ", 3G12.3)') bkey, baddr, bnode, bowner, blevel, bsize, bcoc
             ! prepare voxel data structure
             bcornerstypes(i)   = VTK_VOXEL
@@ -92,13 +93,15 @@ module module_treediags
             bcocx(i)           = xcoc(bnode)
             bcocy(i)           = ycoc(bnode)
             bcocz(i)           = zcoc(bnode)
+            ! compute real center coordinate
+            call key_to_coord(bkey, bx, by, bz)
+
             do j=1,8
               bcornersidx(8*(i-1)+j) = 8*(i-1)+j - 1
               bshift(1:3) = box_shift(1:3,j) * bsize
-              ! TODO: compute real corner coordinates
-              bcornersx(8*(i-1)+j)   = bcocx(i) + bshift(1)
-              bcornersy(8*(i-1)+j)   = bcocy(i) + bshift(2)
-              bcornersz(8*(i-1)+j)   = bcocz(i) + bshift(3)
+              bcornersx(8*(i-1)+j)   = bx + bshift(1)
+              bcornersy(8*(i-1)+j)   = by + bshift(2)
+              bcornersz(8*(i-1)+j)   = bz + bshift(3)
             end do
           end do
 
@@ -140,14 +143,32 @@ module module_treediags
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
+          type(vtkfile_unstructured_grid) :: vtk
+          integer :: i
 
-          if (me .ne. 0) return
-
-          if (.not. allocated(htable)) then
-            write(*,*) 'write_spacecurve_to_vtk(): pepc_fields() must have been called with no_dealloc=.true. before'
+          if (.not. (allocated(x) .and. allocated(y) .and. allocated(z))) then
+            if (me .eq. 0) write(*,*) 'write_spacecurve_to_vtk(): pepc_fields() must have been called with no_dealloc=.true. before'
             return
           endif
 
+            call vtk%create_parallel("spacecurve", step, me, num_pe, tsim, vtk_step)
+              call vtk%write_headers(npp, 1)
+                call vtk%startpoints()
+                  call vtk%write_data_array("xyz", npp, x, y, z)
+                call vtk%finishpoints()
+                call vtk%startpointdata()
+                  ! no point data here
+                call vtk%finishpointdata()
+                call vtk%startcells()
+                  call vtk%write_data_array("connectivity", npp, [(i,i=0, npp-1)])
+                  call vtk%write_data_array("offsets", npp)
+                  call vtk%write_data_array("types", VTK_POLY_LINE)
+                call vtk%finishcells()
+                call vtk%startcelldata()
+                  call vtk%write_data_array("processor", me)
+                call vtk%finishcelldata()
+              call vtk%write_final()
+            call vtk%close()
         end subroutine
 
 

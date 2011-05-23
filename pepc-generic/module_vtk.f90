@@ -78,6 +78,8 @@ module module_vtk
           procedure :: write_data_array_Int8_1  => vtkfile_write_data_array_Int8_1
           procedure :: write_data_array_Int8_3  => vtkfile_write_data_array_Int8_3
 
+          procedure :: write_data_Int4_1        => vtkfile_write_data_Int4_1
+
           generic :: write_data_array => write_data_array_Real4_1, & ! name, one-dim real*4, number of entries
                                             write_data_array_Real4_3,  & ! name, three-dim real*4 as three separate arrays, number of entries
                                             write_data_array_Real8_1,  & ! ...
@@ -85,7 +87,8 @@ module module_vtk
                                             write_data_array_Int4_1,   &
                                             write_data_array_Int4_3,   &
                                             write_data_array_Int8_1,   &
-                                            write_data_array_Int8_3
+                                            write_data_array_Int8_3,   &
+                                            write_data_Int4_1
       end type vtkfile
 
 
@@ -343,6 +346,30 @@ module module_vtk
         endif
         write(vtk%filehandle, '("</DataArray>")')
      end subroutine vtkfile_write_data_array_Int4_1
+
+
+     subroutine vtkfile_write_data_Int4_1(vtk, name, data)
+        implicit none
+        class(vtkfile) :: vtk
+        character(*) :: name
+        integer*4 :: data
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 1, "Int32")
+
+        if (vtk%binary) then
+          numbytes = 1*4
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(data)
+          call base64%finish()
+        else
+          write(vtk%filehandle, '(I20)') data
+        endif
+        write(vtk%filehandle, '("</DataArray>")')
+     end subroutine vtkfile_write_data_Int4_1
 
 
      subroutine vtkfile_write_data_array_Int4_3(vtk, name, ndata, data1, data2, data3)
