@@ -11,11 +11,12 @@
 !  ================================
 
 
-subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted,curve_type)
+subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted,curve_type_)
 
   use treevars
   use tree_utils
   use timings
+  use module_spacefilling
   implicit none
   include 'mpif.h'
 
@@ -24,9 +25,8 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   integer, intent(out) :: islen(num_pe),irlen(num_pe)
   integer, intent(out) :: fposts(num_pe+1),gposts(num_pe+1)
   integer :: npnew,npold
-  integer, intent(in) :: curve_type !< type of space-filling curve
+  integer, intent(in) :: curve_type_ !< type of space-filling curve
 
-  integer*8, dimension(nppm) :: ix, iy, iz
   integer*8, dimension(nppm) :: ixd, iyd, izd
   integer*8, dimension(nppm) :: local_key
 
@@ -54,12 +54,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   real*8 imba
 
-  ! Hilbert-derived keys
-  integer*8, parameter :: CI(0:7)    = [ 0, 1, 3, 2, 7, 6, 4, 5 ] ! 3D - inverse hilbert cell
-  integer*8, parameter :: G(0:7,0:1) = reshape([5, 6, 0, 5, 5, 0, 6, 5, 0, 0, 0, 5, 0, 0, 6, 5],shape(G))     ! 3D - hilbert gene
-  integer*8, parameter :: space_dimension = 3 ! dimension of the space the curve should fit
-  integer*8 :: horder           ! order of the hilbert cell C
-  integer*8 :: xtemp,ytemp,ztemp,change
 
 
   interface
@@ -79,6 +73,8 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   integer local_count,count_stats(num_pe+1)
   real*8 local_work,work_stats(num_pe+1)
   real*8 d,minc,maxc,sumc,minw,maxw,sumw
+
+  curve_type = curve_type_
 
   call timer_start(t_domains)
   call timer_start(t_domains_keys)
@@ -126,98 +122,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   s=boxsize/2**nlev       ! refinement length
 
-  ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
-
-  ix(1:npp) = int(( x(1:npp) - xmin )/s)           ! partial keys
-  iy(1:npp) = int(( y(1:npp) - ymin )/s)           !
-  iz(1:npp) = int(( z(1:npp) - zmin )/s)
-
-  ! construct particle keys
-  select case (curve_type)
-    case (0) ! Z-curve
-	  ! construct keys by interleaving coord bits and add placeholder bit
-	  ! - note use of 64-bit constants to ensure correct arithmetic
-	  do j = 1,npp
-	     !     local_key(j) = iplace + &
-	     !          SUM( (/ (8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) ),i=0,nlev) /) )
-	     local_key(j) = iplace
-	     do i=0,nlev
-	        local_key(j) = local_key(j) &
-	             + 8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) )
-	     end do
-	  end do
-
-	case (1) ! Hilbert curve (original pattern)
-
-     ! for all particles
-     do j=1,npp
-        ! copy, because construction alters original values
-        xtemp=ix(j)
-        ytemp=iy(j)
-        ztemp=iz(j)
-
-        ! set placeholder bit
-        local_key(j)=1
-
-        ! key generation
-        do i=0,nlev-2
-
-           ! get H-order (gathering upper bits as in z-mapping and combine to binary number)
-           horder = CI( 4_8*ibits( ztemp,nlev-1_8-i, 1_8 ) &
-                      + 2_8*ibits( ytemp,nlev-1_8-i, 1_8 ) &
-                      + 1_8*ibits( xtemp,nlev-1_8-i, 1_8 ) )
-
-           ! appending H-order to hkey
-           local_key(j) = ior(ishft(local_key(j), 3), horder)
-
-           ! transform partial curve with the gene rules for the next level step
-           ! exchange
-           select case (G(horder,0))
-             case (5) ! (= 101[zyx]) --> change z and x
-                change = ztemp
-                ztemp  = xtemp
-                xtemp  = change
-             case (6) ! (= 110[zyx]) --> change z and y
-                change = ztemp
-                ztemp  = ytemp
-                ytemp  = change
-           end select
-
-           ! reverse
-           select case (G(horder,1))
-             case (5) ! (= 101[zyx]) --> reverse z and x
-               ztemp = not(ztemp)
-               ztemp = ibclr(ztemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-               xtemp = not(xtemp)
-               xtemp = ibclr(xtemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-             case (6) ! (= 110[zyx]) --> reverse z and y
-               ztemp = not(ztemp)
-               ztemp = ibclr(ztemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-               ytemp = not(ytemp)
-               ytemp = ibclr(ytemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-           end select
-
-        end do
-
-        ! get H-order (gathering last bits as in z-mapping and combine to binary number)
-        horder = CI( 4_8*ibits(ztemp,0_8,1_8) + 2_8*ibits(ytemp,0_8,1_8 ) + 1_8*ibits(xtemp,0_8,1_8) )
-
-        ! appending H-order to hkey for final level
-        local_key(j) = ior(ishft(local_key(j), 3), horder)
-     end do
-
-  end select
-
-  if (domain_debug) then
-     write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort:', &
-          '  key,             label   coords     q ', &
-          (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=1,npp) 
-     !    write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8))') '(last 10):', &
-     !         '  key,                  label        coords              q ', &
-     !         (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=max(1,npp-10),npp) 
-
-     write(ipefile,'(/)')
-  endif
+  call compute_particle_keys(local_key)
 
   call timer_stop(t_domains_keys)
   call timer_start(t_domains_sort)
