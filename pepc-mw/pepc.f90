@@ -30,6 +30,7 @@ program pepc
   use module_setup
   use module_param_dump
   use module_treediags
+  use module_vtk
   implicit none
   include 'mpif.h'
 
@@ -129,8 +130,13 @@ program pepc
 
      ! output of tree diagnostics
      if (treediags) then
-       call write_branches_to_vtk()
-       call write_spacecurve_to_vtk()
+       if (itime == 1) then
+         call write_branches_to_vtk(itime, trun*unit_t0_in_fs,   VTK_STEP_FIRST)
+         call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, VTK_STEP_FIRST)
+       else
+         call write_branches_to_vtk(itime, trun*unit_t0_in_fs,   VTK_STEP_NORMAL)
+         call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, VTK_STEP_NORMAL)
+       endif
      endif
 
      ! add any external forces (laser field etc)
@@ -178,6 +184,11 @@ program pepc
 
   ! final particle dump
   call write_particles(.true.)
+  ! output of tree diagnostics
+  if (treediags) then
+    call write_branches_to_vtk(itime, trun*unit_t0_in_fs, VTK_STEP_LAST)
+    call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, VTK_STEP_LAST)
+  endif
 
   ! deallocate array space for particles
   call cleanup(my_rank,n_cpu)

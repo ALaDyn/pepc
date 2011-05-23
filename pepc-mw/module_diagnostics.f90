@@ -173,14 +173,20 @@ module module_diagnostics
         implicit none
         integer, intent(in) :: step
         logical, intent(in) :: final
-        character(16) :: fn
         integer :: i
         type(vtkfile_unstructured_grid) :: vtk
+        integer :: vtk_step
 
-        write(fn, '("particles_", I6.6)') step
+        if (step .eq. 0) then
+          vtk_step = VTK_STEP_FIRST
+        else if (step .eq. nt) then
+          vtk_step = VTK_STEP_LAST
+        else
+          vtk_step = VTK_STEP_NORMAL
+        endif
 
-        call vtk%create_parallel(fn, my_rank, n_cpu, trun*unit_t0_in_fs, final)
-          call vtk%write_headers(np_local)
+        call vtk%create_parallel("particles", step, my_rank, n_cpu, trun*unit_t0_in_fs, vtk_step)
+          call vtk%write_headers(np_local, 0)
             call vtk%startpoints()
               call vtk%write_data_array("xyz", np_local, x, y, z)
             call vtk%finishpoints()
@@ -194,6 +200,7 @@ module module_diagnostics
               call vtk%write_data_array("local index", np_local, [(i,i=1,np_local)])
               call vtk%write_data_array("processor", np_local, [(my_rank,i=1,np_local)])
             call vtk%finishpointdata()
+          call vtk%dont_write_cells()
           call vtk%write_final()
         call vtk%close()
 

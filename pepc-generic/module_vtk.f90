@@ -7,10 +7,33 @@ module module_vtk
       use module_base64
       implicit none
 
+      integer, public, parameter :: VTK_VERTEX               =  1
+      integer, public, parameter :: VTK_POLY_VERTEX          =  2
+      integer, public, parameter :: VTK_LINE                 =  3
+      integer, public, parameter :: VTK_POLY_LINE            =  4
+      integer, public, parameter :: VTK_TRIANGLE             =  5
+      integer, public, parameter :: VTK_TRIANGLE_STRIP       =  6
+      integer, public, parameter :: VTK_POLYGON              =  7
+      integer, public, parameter :: VTK_PIXEL                =  8
+      integer, public, parameter :: VTK_QUAD                 =  9
+      integer, public, parameter :: VTK_TETRA                = 10
+      integer, public, parameter :: VTK_VOXEL                = 11
+      integer, public, parameter :: VTK_HEXAHEDRON           = 12
+      integer, public, parameter :: VTK_WEDGE                = 13
+      integer, public, parameter :: VTK_PYRAMID              = 14
+      integer, public, parameter :: VTK_QUADRATIC_EDGE       = 21
+      integer, public, parameter :: VTK_QUADRATIC_TRIANGLE   = 22
+      integer, public, parameter :: VTK_QUADRATIC_QUAD       = 23
+      integer, public, parameter :: VTK_QUADRATIC_TETRA      = 24
+      integer, public, parameter :: VTK_QUADRATIC_HEXAHEDRON = 25
+
+      integer, public, parameter :: VTK_STEP_FIRST  = -1
+      integer, public, parameter :: VTK_STEP_NORMAL =  0
+      integer, public, parameter :: VTK_STEP_LAST   =  1
+
       character(6), parameter :: subfolder = "./vtk/"
       character(16), parameter :: visitfilename = "timeseries.visit"
       character(16), parameter :: paraviewfilename = "timeseries.pvd"
-      logical, private, save :: firststep = .true.
 #ifndef LITTLEENDIAN
       logical, parameter :: bigendian = .true.
 #else
@@ -36,7 +59,7 @@ module module_vtk
           integer :: my_rank
           integer :: num_pe
           real*8 :: simtime
-          logical :: final
+          integer :: vtk_step
 
 
         contains
@@ -73,6 +96,11 @@ module module_vtk
           procedure :: finishpoints => vtkfile_unstructured_grid_finishpoints
           procedure :: startpointdata => vtkfile_unstructured_grid_startpointdata
           procedure :: finishpointdata => vtkfile_unstructured_grid_finishpointdata
+          procedure :: startcells => vtkfile_unstructured_grid_startcells
+          procedure :: finishcells => vtkfile_unstructured_grid_finishcells
+          procedure :: startcelldata => vtkfile_unstructured_grid_startcelldata
+          procedure :: finishcelldata => vtkfile_unstructured_grid_finishcelldata
+          procedure :: dont_write_cells => vtkfile_unstructured_grid_dont_write_cells
           procedure :: write_final => vtkfile_unstructured_grid_write_final ! writes anything from/incl. <Cells>
       end type vtkfile_unstructured_grid
 
@@ -86,48 +114,49 @@ module module_vtk
       contains
 
 
-      subroutine vtkfile_create(vtk, filename_, simtime_, final_)
+      subroutine vtkfile_create(vtk, filename_, step_, simtime_, vtk_step_)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: filename_
+        integer :: step_
         real*8 :: simtime_
-        logical :: final_
-        call vtk%create_parallel(filename_, 0, 0, simtime_, final_)
+        integer :: vtk_step_
+        call vtk%create_parallel(filename_, step_, 0, 0, simtime_, vtk_step_)
       end subroutine vtkfile_create
 
 
-      subroutine vtkfile_create_parallel(vtk, filename_, my_rank_, num_pe_, simtime_, final_)
+      subroutine vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: filename_
         character(50) :: fn
         character(6) :: tmp
         real*8 :: simtime_
-        integer :: my_rank_, num_pe_
-        logical :: final_
+        integer :: my_rank_, num_pe_, step_
+        integer :: vtk_step_
 
         vtk%num_pe   = max(num_pe_, 1)
         vtk%my_rank  = my_rank_
-        vtk%filename = filename_
         vtk%simtime  = simtime_
-        vtk%final    = final_
+        vtk%vtk_step = vtk_step_
+        write(vtk%filename, '(a, "_", I6.6)') filename_, step_
 
         write(tmp,'(I6.6)') vtk%my_rank
         fn = subfolder//trim(vtk%filename)//"."//tmp//".vtu"
 
         open(vtk%filehandle, file=fn)
 
-        open(vtk%filehandle_par, file=subfolder//filename_//".pvtu")
+        open(vtk%filehandle_par, file=subfolder//trim(vtk%filename)//".pvtu")
 
-        if (firststep) then
-          open(vtk%filehandle_visit, file=subfolder//visitfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
+        if (vtk%vtk_step .eq. VTK_STEP_FIRST) then
+          open(vtk%filehandle_visit, file=subfolder//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
           write(vtk%filehandle_visit, '("!NBLOCKS ", I0)') vtk%num_pe
 
-          open(vtk%filehandle_paraview, file=subfolder//paraviewfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
+          open(vtk%filehandle_paraview, file=subfolder//trim(filename_)//"."//paraviewfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
           write(vtk%filehandle_paraview, '("<VTKFile type=""Collection"">", /, "<Collection>")')
         else
-          open(vtk%filehandle_visit, file=subfolder//visitfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
-          open(vtk%filehandle_paraview, file=subfolder//paraviewfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
+          open(vtk%filehandle_visit, file=subfolder//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
+          open(vtk%filehandle_paraview, file=subfolder//trim(filename_)//"."//paraviewfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
         endif
       end subroutine vtkfile_create_parallel
 
@@ -139,12 +168,11 @@ module module_vtk
         close(vtk%filehandle_par)
         close(vtk%filehandle_visit)
 
-        if (vtk%final) then
+        if (vtk%vtk_step .eq. VTK_STEP_LAST) then
           write(vtk%filehandle_paraview, '("</Collection>", / , "</VTKFile>")')
         endif
 
         close(vtk%filehandle_paraview)
-        firststep = .false.
      end subroutine vtkfile_close
 
 
@@ -408,18 +436,33 @@ module module_vtk
      end subroutine vtkfile_write_data_array_Int8_3
 
 
-     subroutine vtkfile_unstructured_grid_write_headers(vtk, npart)
+     subroutine vtkfile_unstructured_grid_write_headers(vtk, npart, ncell)
         implicit none
         class(vtkfile_unstructured_grid) :: vtk
-        integer :: npart
+        integer :: npart, ncell
 
         write(vtk%filehandle, '("<VTKFile type=""UnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
         write(vtk%filehandle, '("<UnstructuredGrid GhostLevel=""0"">")')
-        write(vtk%filehandle, '("<Piece NumberOfPoints=""", I0, """ NumberOfCells=""0"">")') npart
+        write(vtk%filehandle, '("<Piece NumberOfPoints=""", I0, """ NumberOfCells=""", I0, """>")') npart, ncell
 
         write(vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
         write(vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
      end subroutine vtkfile_unstructured_grid_write_headers
+
+
+     subroutine vtkfile_unstructured_grid_dont_write_cells(vtk)
+        implicit none
+        class(vtkfile_unstructured_grid) :: vtk
+
+          call vtk%startcells()
+          write(vtk%filehandle, '("<DataArray type=""Int32"" Name=""connectivity"" />")')
+          write(vtk%filehandle, '("<DataArray type=""Int32"" Name=""offsets"" />")')
+          write(vtk%filehandle, '("<DataArray type=""UInt8"" Name=""types"" />")')
+          call vtk%finishcells()
+          call vtk%startcelldata()
+          call vtk%finishcelldata()
+
+     end subroutine vtkfile_unstructured_grid_dont_write_cells
 
 
      subroutine vtkfile_unstructured_grid_write_final(vtk)
@@ -429,19 +472,10 @@ module module_vtk
         character(6) :: tmp
         character(50) :: fn
 
-          write(vtk%filehandle, '("<Cells>")')
-          write(vtk%filehandle, '("<DataArray type=""Int32"" Name=""connectivity"" />")')
-          write(vtk%filehandle, '("<DataArray type=""Int32"" Name=""offsets"" />")')
-          write(vtk%filehandle, '("<DataArray type=""UInt8"" Name=""types"" />")')
-          write(vtk%filehandle, '("</Cells>")')
-          write(vtk%filehandle, '("<CellData>")')
-          write(vtk%filehandle, '("</CellData>")')
           write(vtk%filehandle, '("</Piece>")')
           write(vtk%filehandle, '("</UnstructuredGrid>")')
           write(vtk%filehandle, '("</VTKFile>")')
 
-          write(vtk%filehandle_par, '("<PCellData>")')
-          write(vtk%filehandle_par, '("</PCellData>")')
           write(vtk%filehandle_visit, '(/)')
 
           do i = 0,vtk%num_pe-1
@@ -492,5 +526,42 @@ module module_vtk
         write(vtk%filehandle, '("</PointData>")')
         write(vtk%filehandle_par, '("</PPointData>")')
      end subroutine vtkfile_unstructured_grid_finishpointdata
+
+
+
+     subroutine vtkfile_unstructured_grid_startcells(vtk)
+        implicit none
+        class(vtkfile_unstructured_grid) :: vtk
+
+        write(vtk%filehandle, '("<Cells>")')
+        write(vtk%filehandle_par, '("<PCells>")')
+     end subroutine vtkfile_unstructured_grid_startcells
+
+
+     subroutine vtkfile_unstructured_grid_finishcells(vtk)
+        implicit none
+        class(vtkfile_unstructured_grid) :: vtk
+
+        write(vtk%filehandle, '("</Cells>")')
+        write(vtk%filehandle_par, '("</PCells>")')
+     end subroutine vtkfile_unstructured_grid_finishcells
+
+
+     subroutine vtkfile_unstructured_grid_startcelldata(vtk)
+        implicit none
+        class(vtkfile_unstructured_grid) :: vtk
+
+        write(vtk%filehandle, '("<CellData>")')
+        write(vtk%filehandle_par, '("<PCellData>")')
+     end subroutine vtkfile_unstructured_grid_startcelldata
+
+
+     subroutine vtkfile_unstructured_grid_finishcelldata(vtk)
+        implicit none
+        class(vtkfile_unstructured_grid) :: vtk
+
+        write(vtk%filehandle, '("</CellData>")')
+        write(vtk%filehandle_par, '("</PCellData>")')
+     end subroutine vtkfile_unstructured_grid_finishcelldata
 
 end module module_vtk
