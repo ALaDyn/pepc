@@ -229,7 +229,7 @@ module module_spacefilling
           integer*8, parameter :: G(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G))     ! 3D - hilbert gene
 		  integer*8 :: horder           ! order of the hilbert cell C
 		  integer*8 :: xtemp,ytemp,ztemp,change
-		  integer :: cval
+		  integer*8 :: cval
 
 	        ! copy, because construction alters original values
 	        xtemp=ix
