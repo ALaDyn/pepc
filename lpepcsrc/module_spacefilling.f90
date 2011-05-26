@@ -208,7 +208,15 @@ module module_spacefilling
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Hilbert-curve
+        !> Hilbert-curve,
+        !>
+        !> algorithm from
+        !>
+        !> Kamata, S.-I.; Eason, R.O.; Bandou, Y.; ,
+        !> "A new algorithm for N-dimensional Hilbert scanning",
+        !> Image Processing, IEEE Transactions on , vol.8, no.7, pp.964-973, Jul 1999
+        !> doi: 10.1109/83.772242
+        !> http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=772242&isnumber=16772
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function intcoord_to_key_hilbert(ix, iy, iz)
@@ -217,11 +225,11 @@ module module_spacefilling
           integer*8 :: intcoord_to_key_hilbert
           integer :: i
 
-		  integer*8, parameter :: CI(0:7)    = [ 0, 1, 3, 2, 7, 6, 4, 5 ] ! 3D - inverse hilbert cell
-		  integer*8, parameter :: G(0:7,0:1) = reshape([5, 6, 0, 5, 5, 0, 6, 5, 0, 0, 0, 5, 0, 0, 6, 5],shape(G))     ! 3D - hilbert gene
-		  integer*8, parameter :: space_dimension = 3 ! dimension of the space the curve should fit
+		  integer*8, parameter :: CI(0:7)    = [0,1,3,2,7,6,4,5] ! 3D - inverse hilbert cell
+          integer*8, parameter :: G(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G))     ! 3D - hilbert gene
 		  integer*8 :: horder           ! order of the hilbert cell C
 		  integer*8 :: xtemp,ytemp,ztemp,change
+		  integer :: cval
 
 	        ! copy, because construction alters original values
 	        xtemp=ix
@@ -229,15 +237,18 @@ module module_spacefilling
 	        ztemp=iz
 
 	        ! set placeholder bit
-	        intcoord_to_key_hilbert = 1
+	        intcoord_to_key_hilbert = 0!1
 
 	        ! key generation
-	        do i=0,nlev-2
+	        do i=nlev-1,0,-1
+
+	          cval = 4_8*ibits( ztemp,i, 1_8 ) + 2_8*ibits( ytemp,i, 1_8 ) + 1_8*ibits( xtemp,i, 1_8 )
+              xtemp = ibclr(xtemp, i)
+              ytemp = ibclr(ytemp, i)
+              ztemp = ibclr(ztemp, i)
 
 	           ! get H-order (gathering upper bits as in z-mapping and combine to binary number)
-	           horder = CI( 4_8*ibits( ztemp,nlev-1_8-i, 1_8 ) &
-	                      + 2_8*ibits( ytemp,nlev-1_8-i, 1_8 ) &
-	                      + 1_8*ibits( xtemp,nlev-1_8-i, 1_8 ) )
+	           horder = CI( cval )
 
 	           ! appending H-order to hkey
 	           intcoord_to_key_hilbert = ior(ishft(intcoord_to_key_hilbert, 3), horder)
@@ -249,33 +260,23 @@ module module_spacefilling
 	                change = ztemp
 	                ztemp  = xtemp
 	                xtemp  = change
-	             case (6) ! (= 110[zyx]) --> change z and y
-	                change = ztemp
-	                ztemp  = ytemp
-	                ytemp  = change
+                 case (6) ! (= 110[zyx]) --> change z and y
+                    change = ztemp
+                    ztemp  = ytemp
+                    ytemp  = change
 	           end select
 
 	           ! reverse
 	           select case (G(horder,1))
 	             case (5) ! (= 101[zyx]) --> reverse z and x
-	               ztemp = not(ztemp)
-	               ztemp = ibclr(ztemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-	               xtemp = not(xtemp)
-	               xtemp = ibclr(xtemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-	             case (6) ! (= 110[zyx]) --> reverse z and y
-	               ztemp = not(ztemp)
-	               ztemp = ibclr(ztemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
-	               ytemp = not(ytemp)
-	               ytemp = ibclr(ytemp,63) ! because there is no unsigned datatype in F90, and reflecting all bits makes it negative
+	               ztemp = iand(not(ztemp),2**(i)-1)
+	               xtemp = iand(not(xtemp),2**(i)-1)
+                 case (6) ! (= 110[zyx]) --> reverse z and y
+                   ztemp = iand(not(ztemp),2**(i)-1)
+                   ytemp = iand(not(ytemp),2**(i)-1)
 	           end select
-
 	        end do
 
-	        ! get H-order (gathering last bits as in z-mapping and combine to binary number)
-	        horder = CI( 4_8*ibits(ztemp,0_8,1_8) + 2_8*ibits(ytemp,0_8,1_8 ) + 1_8*ibits(xtemp,0_8,1_8) )
-
-	        ! appending H-order to hkey for final level
-	        intcoord_to_key_hilbert = ior(ishft(intcoord_to_key_hilbert, 3), horder)
         end function intcoord_to_key_hilbert
 
 
@@ -294,47 +295,43 @@ module module_spacefilling
 		  integer*8 :: change, horder
 		  integer*8 :: i
 
-		  integer*8, parameter :: C(0:7)=[0,1,3,2,6,7,5,4]
-		  integer*8, parameter :: G(0:7,0:1)=reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G))
+          integer*8, parameter :: C(0:7)    = [0,1,3,2,6,7,5,4] ! 3D - hilbert cell
+          integer*8, parameter :: G(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G)) ! 3D - hilbert gene
+          !integer*8, parameter :: G(0:7,0:1) = reshape([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],shape(G)) ! 3D - hilbert gene
 
-		  ! gather lower bits
-		  horder=ibits(key,0,3)
+		  iz = 0
+		  iy = 0
+		  ix = 0
 
-		  iz=ibits(C(horder),2,1)
-		  iy=ibits(C(horder),1,1)
-		  ix=ibits(C(horder),0,1)
+		  do i=0,nlev-1
+		     horder = ibits(key,3*i,3)
 
-		  do i=1,nlev-1
-		     horder=ibits(key,3*i,3)
+             select case(G(horder,1))
+             case(5)
+                ix=iand(not(ix),2**(i)-1)
+                iz=iand(not(iz),2**(i)-1)
+             case(6)
+                iy=iand(not(iy),2**(i)-1)
+                iz=iand(not(iz),2**(i)-1)
+             end select
 
-		     select case(G(horder,0))
-		     case(5)
-		        change=ix
-		        ix=iz
-		        iz=change
+             select case(G(horder,0))
+             case(5)
+                change=ix
+                ix=iz
+                iz=change
+             case(6)
+                change=iy
+                iy=iz
+                iz=change
+             end select
 
-		     case(6)
-		        change=iy
-		        iy=iz
-		        iz=iy
-		     end select
-
-		     select case(G(horder,1))
-		     case(5)
-		        ix=iand(not(ix),2**(i)-1)
-		        iz=iand(not(iz),2**(i)-1)
-		     case(6)
-		        iy=iand(not(iy),2**(i)-1)
-		        iz=iand(not(iz),2**(i)-1)
-		     end select
-
-		     iz=ior(ishft(ibits(C(horder),2,1),i),iz)
-		     iy=ior(ishft(ibits(C(horder),1,1),i),iy)
-		     ix=ior(ishft(ibits(C(horder),0,1),i),ix)
-
+             iz=ior(ishft(ibits(C(horder),2,1),i),iz)
+             iy=ior(ishft(ibits(C(horder),1,1),i),iy)
+             ix=ior(ishft(ibits(C(horder),0,1),i),ix)
 		  end do
 
-          write(*,'(O24.24," ",O24.24,3(/,B24.24),/)') key, intcoord_to_key_hilbert(ix, iy, iz), ix, iy, iz
+          !write(*,'(O24.24," ",O24.24,3(/,B24.24),/)') key, intcoord_to_key_hilbert(ix, iy, iz), ix, iy, iz
 
         end subroutine key_to_intcoord_hilbert
 
