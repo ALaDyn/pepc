@@ -62,8 +62,6 @@ module module_spacefilling
               end do
 
             case (1) ! Hilbert curve (original pattern)
-
-             ! for all particles
              do j=1,npp
                  local_key(j) = intcoord_to_key_hilbert(ix(j), iy(j), iz(j))
              end do
@@ -237,7 +235,7 @@ module module_spacefilling
 	        ztemp=iz
 
 	        ! set placeholder bit
-	        intcoord_to_key_hilbert = 0!1
+	        intcoord_to_key_hilbert = 1
 
 	        ! key generation
 	        do i=nlev-1,0,-1
