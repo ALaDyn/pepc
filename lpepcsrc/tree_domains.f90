@@ -44,11 +44,9 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   type (particle) :: ship_parts(nppm), get_parts(nppm)
 
-  integer*8 :: xarray(nppm),keys(nppm),w1(nppm),wi2(nppm),wi3(nppm)
-  integer :: iteration, niterations, keycheck_pass, ipp
-  integer :: errcount
+  integer*8 :: keys(nppm),w1(nppm),wi2(nppm),wi3(nppm)
+  integer :: keycheck_pass, ipp
 
-  integer*8 :: tmp
   logical :: sort_debug
   real*8 :: xboxsize, yboxsize, zboxsize
 
@@ -147,145 +145,85 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   call timer_start(t_domains_add_sort)
 
-     iteration = 0
-     niterations = 3  ! Max # iterations
-     errcount = 1
+  ! start permutation of local key list
+  do i=1,npold
+     keys(i) = local_key(i)
+  enddo
 
-     ! start permutation of local key list
-     do i=1,npp
-        xarray(i) = local_key(i)
-     enddo
+  work2 = work
 
-     do while (errcount /= 0 .or. iteration == niterations)
-        iteration = iteration + 1
+  call timer_start(t_domains_sort_pure)
 
-        if (iteration .lt. niterations) then
-           do i=1,npold
-              keys(i) = xarray(i)
-           enddo
-        else
-           if (domain_debug .and. errcount .eq. 0) then
-              write (ipefile,*) 'This time we are using already sorted data'
-           endif
-           npold = npnew
-           do i=1,npold
-              xarray(i) = w1(i)
-              keys(i) = w1(i)
-           enddo
-        endif
+  ! perform index sort on keys
+  call slsort_keys(npold,nppm-2,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
 
-        work2 = work
+  call timer_stop(t_domains_sort_pure)
 
-        call timer_start(t_domains_sort_pure)
+  do i=1,npold
+     w1(i) = local_key(i)
+  enddo
 
-        ! perform index sort on keys
-        call slsort_keys(npold,nppm-2,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
+  ! permute keys according to sorted indices
+  call pll_permute(nppm,npold,npnew,num_pe,w1,wi2,wi3, &
+       indxl,irnkl,islen,irlen,fposts,gposts)
 
-        call timer_stop(t_domains_sort_pure)
+  if (domain_debug) then
+    if (npnew > 20) then
+      write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
+      write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
+    else
+      write (ipefile,'(a/(i5,z20))') 'output array: ',(i,w1(i),i=1,npnew)
+    endif
+  endif
 
-        !     write(*,*) me,npp,npold,npnew
-        do i=1,npold
-           w1(i) = xarray(i)
-        enddo
+  call timer_stop(t_domains_sort)
+  call timer_start(t_domains_ship)
 
-        ! permute keys according to sorted indices
-        call pll_permute(nppm,npold,npnew,num_pe,w1,wi2,wi3, &
-             indxl,irnkl,islen,irlen,fposts,gposts)
+  npp = npnew
+  pekey(1:npp) = w1(1:npp)
 
-        if (domain_debug) then
-          if (npnew > 20) then
-            write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
-            write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
-          else
-            write (ipefile,'(a/(i5,z20))') 'output array: ',(i,w1(i),i=1,npnew)
-          endif
-        endif
+  ! Now permute remaining particle properties : x,y,z; vx,vy,vz; q,m, label, load
 
-        ! Check if sort finished
-        errcount = 0
-        do i=2,npnew
-           if (w1(i) .lt. w1(i-1)) then
-              errcount = errcount + 1
-              if (domain_debug .and. errcount .lt. 10) then
-                 write (ipefile,'(a,i5,2z20)') 'i,w1(i),w1(i-1)=',i,w1(i),w1(i-1)
-              endif
-           endif
-        enddo
-        !     write(*,*) me,errcount
+  source_pe(1:npold) = pepid(1:npold)   ! where particle came from
 
-        ! swap end items
-        if (me .ne. 0) then
-           call MPI_ISEND(w1, 1, MPI_INTEGER8, prev, 1, MPI_COMM_WORLD, handle(1), ierr)
-           call MPI_REQUEST_FREE(handle(1),ierr)
-        endif
+  ! Set up particle structure - keys and source_pe are dummies
+  ! ( pekey is already sorted)
 
-        if (me .ne. num_pe-1) then
-           call MPI_RECV(tmp, 1, MPI_INTEGER8, next, 1, MPI_COMM_WORLD, status, ierr)
-        endif
+  call timer_start(t_domains_add_pack)
 
+  do i=1,npold
+     ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
+          ux(indxl(i)), uy(indxl(i)), uz(indxl(i)), &
+          q(indxl(i)), work(indxl(i)), &
+          keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
+  enddo
 
-        if (me .ne. num_pe-1) then
-           !    if (me == 50 ) then
-           if (domain_debug .and. tmp .lt. w1(npnew)) then          ! still something to sort
-              write (*,'(a,i3,a1,2z20)') 'w1(npnew), w1(1) from',me+1, '=',w1(npnew),tmp
-              errcount = errcount + 1  
-           endif
-        endif
+  call timer_stop(t_domains_add_pack)
 
-        if (errcount .ne. 0 .and. domain_debug) then
-           write (ipefile,*) 'errcount=',errcount
-        endif
+  call timer_start(t_domains_add_alltoallv)
 
-     enddo
-
-     call timer_stop(t_domains_sort)
-     call timer_start(t_domains_ship)
-
-     npp = npnew
-     pekey(1:npp) = w1(1:npp)
-
-     ! Now permute remaining particle properties : x,y,z; vx,vy,vz; q,m, label, load
-
-     source_pe(1:npold) = pepid(1:npold)   ! where particle came from
-
-     ! Set up particle structure - keys and source_pe are dummies
-     ! ( pekey is already sorted)
-
-     call timer_start(t_domains_add_pack)
-
-     do i=1,npold
-        ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
-             ux(indxl(i)), uy(indxl(i)), uz(indxl(i)), &
-             q(indxl(i)), work(indxl(i)), &
-             keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
-     enddo
-
-     call timer_stop(t_domains_add_pack)
-
-     call timer_start(t_domains_add_alltoallv)
-
-     ! perform permute
-     call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_particle, &
+  ! perform permute
+  call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_particle, &
           get_parts, irlen, gposts, mpi_type_particle, &
           MPI_COMM_WORLD,ierr)
 
-     call timer_stop(t_domains_add_alltoallv)
+  call timer_stop(t_domains_add_alltoallv)
 
-     call timer_start(t_domains_add_unpack)
+  call timer_start(t_domains_add_unpack)
 
-     do i=1,npp
-        x(irnkl(i)) = get_parts(i)%x
-        y(irnkl(i)) = get_parts(i)%y
-        z(irnkl(i)) = get_parts(i)%z
-        ux(irnkl(i)) = get_parts(i)%ux
-        uy(irnkl(i)) = get_parts(i)%uy
-        uz(irnkl(i)) = get_parts(i)%uz
-        q(irnkl(i)) = get_parts(i)%q
-        work(irnkl(i)) = get_parts(i)%work
-        pelabel(irnkl(i)) = get_parts(i)%label
-     enddo
+  do i=1,npp
+     x(irnkl(i)) = get_parts(i)%x
+     y(irnkl(i)) = get_parts(i)%y
+     z(irnkl(i)) = get_parts(i)%z
+     ux(irnkl(i)) = get_parts(i)%ux
+     uy(irnkl(i)) = get_parts(i)%uy
+     uz(irnkl(i)) = get_parts(i)%uz
+     q(irnkl(i)) = get_parts(i)%q
+     work(irnkl(i)) = get_parts(i)%work
+     pelabel(irnkl(i)) = get_parts(i)%label
+  enddo
 
-     call timer_stop(t_domains_add_unpack)
+  call timer_stop(t_domains_add_unpack)
 
 
   if (npp > nppm) then
