@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_rename.h
- *  timestamp: 2011-03-11 09:08:31 +0100
  *  
  */
 
@@ -26,9 +25,6 @@
 #endif
 
 
-/* src/include/sl_rti_intern.h */
-#define rti_env  SL_VAR(rti_env)
-
 /* src/core/binning.c */
 #define binning_create  SL_FUNC(binning_create)
 #define binning_destroy  SL_FUNC(binning_destroy)
@@ -49,10 +45,6 @@
 #define binning_radix_hit  SL_FUNC(binning_radix_hit)
 #define binning_radix_finalize  SL_FUNC(binning_radix_finalize)
 #define binning_radix_post  SL_FUNC(binning_radix_post)
-#define binning_radix_exec_pre_old  SL_FUNC(binning_radix_exec_pre_old)
-#define binning_radix_exec_post_old  SL_FUNC(binning_radix_exec_post_old)
-#define binning_radix_refinable_old  SL_FUNC(binning_radix_refinable_old)
-#define binning_radix_refine_old  SL_FUNC(binning_radix_refine_old)
 
 /* src/core/elements.c */
 #define elements_alloc  SL_FUNC(elements_alloc)
@@ -73,14 +65,16 @@
 #define elements_crc32  SL_FUNC(elements_crc32)
 #define elements_digest_hash  SL_FUNC(elements_digest_hash)
 #define elements_random_exchange  SL_FUNC(elements_random_exchange)
-#define elements_init_keys2  SL_FUNC(elements_init_keys2)
+#define elements_keys_init_seed  SL_FUNC(elements_keys_init_seed)
 #define elements_keys_init  SL_FUNC(elements_keys_init)
+#define elements_keys_init_randomized  SL_FUNC(elements_keys_init_randomized)
 #define elements_init_keys_from_file  SL_FUNC(elements_init_keys_from_file)
 #define elements_save_keys_to_file  SL_FUNC(elements_save_keys_to_file)
 #define elements_validate_order  SL_FUNC(elements_validate_order)
 #define elements_validate_order_bmask  SL_FUNC(elements_validate_order_bmask)
 #define elements_validate_order_weight  SL_FUNC(elements_validate_order_weight)
 #define elements_keys_stats  SL_FUNC(elements_keys_stats)
+#define elements_keys_stats_print  SL_FUNC(elements_keys_stats_print)
 #define elements_print_keys  SL_FUNC(elements_print_keys)
 #define elements_print_all  SL_FUNC(elements_print_all)
 #define elements_get_weight  SL_FUNC(elements_get_weight)
@@ -135,6 +129,7 @@
 
 /* src/core/mergep_2way.c */
 #define mergep_2way_ip_int  SL_FUNC(mergep_2way_ip_int)
+#define mergep_2way_ip_int_rec  SL_FUNC(mergep_2way_ip_int_rec)
 
 /* src/core/mergep_heap.c */
 #define mergep_heap_int  SL_FUNC(mergep_heap_int)
@@ -165,9 +160,10 @@
 #define sl_search_hybrid_ge  SL_FUNC(sl_search_hybrid_ge)
 
 /* src/core/sl_common.c */
+#define rti_env  SL_VAR(rti_env)
+#define sl_mpi_rank_dummy  SL_VAR(sl_mpi_rank_dummy)
 #define ilog2c  SL_FUNC(ilog2c)
 #define ilog2f  SL_FUNC(ilog2f)
-#define sl_random64  SL_FUNC(sl_random64)
 #define print_bits  SL_FUNC(print_bits)
 #define pivot_random  SL_FUNC(pivot_random)
 #define counts2displs  SL_FUNC(counts2displs)
@@ -227,7 +223,9 @@
 #define sort_quick  SL_FUNC(sort_quick)
 
 /* src/core/sort_radix.c */
-#define sa_ip_threshold  SL_VAR(sa_ip_threshold)
+#define sr_ip_threshold  SL_VAR(sr_ip_threshold)
+#define sr_db_threshold  SL_VAR(sr_db_threshold)
+#define sr_ma_threshold  SL_VAR(sr_ma_threshold)
 #define rs_rec_ip  SL_FUNC(rs_rec_ip)
 #define sort_radix_ip  SL_FUNC(sort_radix_ip)
 #define rs_rec_db  SL_FUNC(rs_rec_db)
@@ -304,6 +302,7 @@
 #define mpi_get_grid  SL_FUNC(mpi_get_grid)
 #define mpi_subgroups_create  SL_FUNC(mpi_subgroups_create)
 #define mpi_subgroups_delete  SL_FUNC(mpi_subgroups_delete)
+#define sl_MPI_Allreduce  SL_FUNC(sl_MPI_Allreduce)
 
 /* src/core_mpi/mpi_elements.c */
 #define me_sendrecv_replace_mem  SL_VAR(me_sendrecv_replace_mem)
@@ -323,6 +322,10 @@
 #define mpi_elements_sendrecv_replace  SL_FUNC(mpi_elements_sendrecv_replace)
 #define mpi_elements_crc32  SL_FUNC(mpi_elements_crc32)
 
+/* src/core_mpi/mpi_elements_alltoall_specific.c */
+#define meas_t  SL_VAR(meas_t)
+#define mpi_elements_alltoall_specific  SL_FUNC(mpi_elements_alltoall_specific)
+
 /* src/core_mpi/mpi_elements_alltoallv.c */
 #define mpi_elements_alltoallv_db  SL_FUNC(mpi_elements_alltoallv_db)
 #define mpi_elements_alltoallv_ip  SL_FUNC(mpi_elements_alltoallv_ip)
@@ -337,6 +340,7 @@
 
 /* src/core_mpi/mpi_linsplit.c */
 #define mpi_linsplit  SL_FUNC(mpi_linsplit)
+#define mpi_linsplit_radix  SL_FUNC(mpi_linsplit_radix)
 #define mpi_linsplit2  SL_FUNC(mpi_linsplit2)
 
 /* src/core_mpi/mpi_merge2.c */
@@ -344,12 +348,12 @@
 
 /* src/core_mpi/mpi_mergek.c */
 #define mpi_mergek_equal  SL_FUNC(mpi_mergek_equal)
+#define mpi_mergek_sorted  SL_FUNC(mpi_mergek_sorted)
 #define mpi_mergek  SL_FUNC(mpi_mergek)
 #define mpi_mergek_equal2  SL_FUNC(mpi_mergek_equal2)
 
 /* src/core_mpi/mpi_partition_exact_generic.c */
 #define mpi_partition_exact_generic  SL_FUNC(mpi_partition_exact_generic)
-#define mpi_partition_exact_generic2  SL_FUNC(mpi_partition_exact_generic2)
 
 /* src/core_mpi/mpi_partition_exact_radix.c */
 #define mpi_partition_exact_radix  SL_FUNC(mpi_partition_exact_radix)
@@ -381,17 +385,12 @@
 #define mseg_root  SL_VAR(mseg_root)
 #define mseg_border_update_count_reduction  SL_VAR(mseg_border_update_count_reduction)
 #define mseg_border_update_weight_reduction  SL_VAR(mseg_border_update_weight_reduction)
-#define mseg_border_update_full  SL_VAR(mseg_border_update_full)
+#define mseg_forward_only  SL_VAR(mseg_forward_only)
 #define mseg_info_rounds  SL_VAR(mseg_info_rounds)
 #define mseg_info_finish_rounds  SL_VAR(mseg_info_finish_rounds)
 #define mseg_info_finish_rounds_avg  SL_VAR(mseg_info_finish_rounds_avg)
 #define mseg_binnings  SL_VAR(mseg_binnings)
 #define mseg_finalize_mode  SL_VAR(mseg_finalize_mode)
-#define border_update_old  SL_FUNC(border_update_old)
-#define border_update_full_old  SL_FUNC(border_update_full_old)
-#define border_change_old  SL_FUNC(border_change_old)
-#define border_init_old  SL_FUNC(border_init_old)
-#define border_currents_old  SL_FUNC(border_currents_old)
 #define border_init  SL_FUNC(border_init)
 #define border_update  SL_FUNC(border_update)
 #define border_change  SL_FUNC(border_change)
@@ -408,17 +407,33 @@
 #define mpi_select_sample_regular  SL_FUNC(mpi_select_sample_regular)
 
 /* src/core_mpi/mpi_sort_merge.c */
+#define msm_t  SL_VAR(msm_t)
+#define msm_sync  SL_VAR(msm_sync)
 #define mpi_sort_merge  SL_FUNC(mpi_sort_merge)
 #define mpi_sort_merge2  SL_FUNC(mpi_sort_merge2)
+#define mpi_sort_merge_radix  SL_FUNC(mpi_sort_merge_radix)
 
 /* src/core_mpi/mpi_sort_partition.c */
 #define msp_t  SL_VAR(msp_t)
 #define msp_sync  SL_VAR(msp_sync)
+#define msp_r_pc  SL_VAR(msp_r_pc)
 #define mpi_sort_partition  SL_FUNC(mpi_sort_partition)
 #define mpi_sort_partition_radix  SL_FUNC(mpi_sort_partition_radix)
 #define mpi_sort_partition_exact_radix  SL_FUNC(mpi_sort_partition_exact_radix)
 #define mpi_sort_partition_exact_radix_ngroups  SL_FUNC(mpi_sort_partition_exact_radix_ngroups)
 #define mpi_sort_partition_exact_radix_2groups  SL_FUNC(mpi_sort_partition_exact_radix_2groups)
+
+/* src/core_mpi/mpi_sort_special.c */
+#define mss_i_t  SL_VAR(mss_i_t)
+#define mss_p_t  SL_VAR(mss_p_t)
+#define mss_b_t  SL_VAR(mss_b_t)
+#define mss_sync  SL_VAR(mss_sync)
+#define mss_i_sync  SL_VAR(mss_i_sync)
+#define mss_p_sync  SL_VAR(mss_p_sync)
+#define mss_b_sync  SL_VAR(mss_b_sync)
+#define mpi_sort_insert_radix  SL_FUNC(mpi_sort_insert_radix)
+#define mpi_sort_presorted_radix  SL_FUNC(mpi_sort_presorted_radix)
+#define mpi_sort_back  SL_FUNC(mpi_sort_back)
 
 /* src/core_mpi/mpi_xcounts2ycounts.c */
 #define mpi_xcounts2ycounts_all2all  SL_FUNC(mpi_xcounts2ycounts_all2all)

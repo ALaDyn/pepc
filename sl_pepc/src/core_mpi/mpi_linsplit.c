@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_linsplit.c
- *  timestamp: 2011-02-10 21:20:50 +0100
  *  
  */
 
@@ -10,7 +9,13 @@
 #include "sl_common.h"
 
 
-#define DEBUG_OR_NOT  (sl_mpi_rank == -1)
+#ifndef ML_TRACE_IF
+# ifdef GLOBAL_TRACE_IF
+#  define ML_TRACE_IF  GLOBAL_TRACE_IF
+# else
+#  define ML_TRACE_IF  (sl_mpi_rank == -1)
+# endif
+#endif
 
 
 slint_t mpi_linsplit(MPI_Comm comm_in, slkey_pure_t *keys_in, MPI_Comm *comms_out, slint_t *parity, int size, int rank, MPI_Comm comm) /* sl_proto, sl_func mpi_linsplit */
@@ -20,7 +25,7 @@ slint_t mpi_linsplit(MPI_Comm comm_in, slkey_pure_t *keys_in, MPI_Comm *comms_ou
 
   comms_out[0] = comms_out[1] = MPI_COMM_NULL;
 
-  Z_TRACE_IF(DEBUG_OR_NOT, "comm_in = %" zcomm_fmt "\n", zcomm_val(comm_in));
+  Z_TRACE_IF(ML_TRACE_IF, "comm_in = %" zcomm_fmt "\n", zcomm_val(comm_in));
 
   if (comm_in == MPI_COMM_NULL) return 0;
 
@@ -48,7 +53,7 @@ slint_t mpi_linsplit(MPI_Comm comm_in, slkey_pure_t *keys_in, MPI_Comm *comms_ou
 
 #ifdef key_integer
 
-slint_t mpi_linsplit_radix(slkey_pure_t klow, slkey_pure_t khigh, MPI_Comm *comm0, MPI_Comm *comm1, int size, int rank, MPI_Comm comm)
+slint_t mpi_linsplit_radix(slkey_pure_t klow, slkey_pure_t khigh, MPI_Comm *comm0, MPI_Comm *comm1, int size, int rank, MPI_Comm comm) /* sl_proto, sl_func mpi_linsplit_radix */
 {
   slint_t parity, parity_prefix;
   int comm0_size, comm1_size;
@@ -84,7 +89,7 @@ slint_t mpi_linsplit2(MPI_Comm comm_in, slkey_pure_t *keys_in, MPI_Comm *comms_o
 
   comms_out[0] = comms_out[1] = MPI_COMM_NULL;
 
-  Z_TRACE_IF(DEBUG_OR_NOT, "comm_in = %" zcomm_fmt "\n", zcomm_val(comm_in));
+  Z_TRACE_IF(ML_TRACE_IF, "comm_in = %" zcomm_fmt "\n", zcomm_val(comm_in));
 
   if (comm_in == MPI_COMM_NULL) return 0;
 

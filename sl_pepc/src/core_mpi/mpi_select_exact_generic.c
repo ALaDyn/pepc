@@ -2,26 +2,26 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_select_exact_generic.c
- *  timestamp: 2011-03-11 09:11:22 +0100
  *  
  */
 
 
 /* sl_macro MSEG_ROOT */
-/* sl_macro MSEG_REDUCEBCAST_THRESHOLD */
 /* sl_macro MSEG_BORDER_UPDATE_REDUCTION */
-/* sl_macro MSEG_BORDER_UPDATE_FULL */
+/* sl_macro MSEG_DISABLE_BEST_CHOICE */
+/* sl_macro MSEG_DISABLE_MINMAX */
+/* sl_macro MSEG_ENABLE_OPTIMZED_LOWHIGH */
+/* sl_macro MSEG_FORWARD_ONLY */
 /* sl_macro MSEG_INFO */
 /* sl_macro MSEG_TRACE_IF */
 
-  
+
 #include "sl_common.h"
 
 
 /* config */
 /*#define SYNC_ON_INIT
 #define SYNC_ON_EXIT*/
-#define HAVENT_MPI_IN_PLACE
 
 /*#define PRINT_SDISPLS*/
 /*#define PRINT_STATS*/
@@ -29,28 +29,10 @@
 
 /*#define VERIFY*/
 
-/*#define OLD*/
-/*#define OLD_CHECK*/
-
 typedef struct _border_info_t {
-#ifdef OLD
-#define LO_LE  0
-#define HI_LE  1
-#define LO_RI  2
-#define HI_RI  3
-#ifdef MSEG_BORDER_UPDATE_FULL
-  slint_t done;
-#endif
-  slint_t update;
-  slint_t crange[2], cmmlr[4];
-#ifdef elem_weight
-  slweight_t wrange[2], wmmlr[4];
-#endif
-#else
   slint_t crange[2], ccurrent[2];
 #ifdef elem_weight
   slweight_t wrange[2], wcurrent[2];
-#endif
 #endif
 
 } border_info_t;
@@ -59,20 +41,9 @@ typedef struct _border_info_t {
 #define LO  0
 #define HI  1
 
-#define CNT_LO  0
-#define CNT_HI  1
-#define WHT_LO  2
-#define WHT_HI  3
-
 
 #ifdef MSEG_ROOT
 int mseg_root = -1;  /* sl_global, sl_var mseg_root */
-#endif
-
-#define REDUCEBCAST_ROOT  0
-
-#if !defined(MSEG_REDUCEBCAST_THRESHOLD) && defined(GLOBAL_REDUCEBCAST_THRESHOLD)
-# define MSEG_REDUCEBCAST_THRESHOLD  GLOBAL_REDUCEBCAST_THRESHOLD
 #endif
 
 #ifdef MSEG_BORDER_UPDATE_REDUCTION
@@ -82,8 +53,8 @@ double mseg_border_update_weight_reduction = 0.0;  /* sl_global, sl_var mseg_bor
 # endif
 #endif
 
-#ifdef MSEG_BORDER_UPDATE_FULL
-slint_t mseg_border_update_full = 0;  /* sl_global, sl_var mseg_border_update_full */
+#ifdef MSEG_FORWARD_ONLY
+slint_t mseg_forward_only = 0;  /* sl_global, sl_var mseg_forward_only */
 #endif
 
 #ifdef MSEG_INFO
@@ -107,620 +78,27 @@ slint_t mseg_finalize_mode = SL_MSEG_FM_EXACT;  /* sl_global, sl_var mseg_finali
 #define MSEG_ASSERT_IF  (rank == 0)
 
 
-#ifdef OLD
-void border_update_old(slint_t doweights, border_info_t *bi, partcond_intern_t *pc, slint_t dir, slint_t check_inconsistence, slint_t reduction) /* sl_func border_update_old */
+void border_init(slint_t docounts, slint_t doweights, border_info_t *bi, slint_t current, slint_t tc, slweight_t tw) /* sl_func border_init */
 {
-#ifdef MSEG_BORDER_UPDATE_REDUCTION
-  slint_t count_reduction;
-# ifdef elem_weight
-  slweight_t weight_reduction;
-# endif
-#endif
-
-  /* forward */
-  if (dir > 0)
+  if (docounts)
   {
-    /* init from range */
-    bi[0].cmmlr[LO_LE] = bi[0].crange[0];
-    bi[0].cmmlr[HI_LE] = bi[0].crange[1];
+    bi[0].crange[0] = 0;
+    bi[0].crange[1] = tc;
 
-    /* init from min/max */
-    if (pc[0].pcm & SLPC_COUNTS_MM)
-    {
-#ifdef MSEG_BORDER_UPDATE_REDUCTION
-      if (reduction)
-      {
-        count_reduction = z_round((bi[-1].cmmlr[HI_LE] - bi[-1].cmmlr[LO_LE]) * 0.5 * mseg_border_update_count_reduction);
-        Z_ASSERT(count_reduction >= 0);
+    Z_TRACE_IF(MSEG_TRACE_IF, "count range: %" slint_fmt " - %" slint_fmt "",
+      bi[0].crange[0], bi[0].crange[1]);
 
-        Z_TRACE_IF(MSEG_TRACE_IF, "forward: count_reduction: %" slint_fmt, count_reduction);
+    bi[0].ccurrent[LO] = (current == 0 || current != 1)?0:tc;
+    bi[0].ccurrent[HI] = (current == 1 || current != 0)?tc:0;
 
-        bi[0].cmmlr[LO_LE] = z_min(bi[-1].cmmlr[LO_LE] + count_reduction + pc[0].count_min, bi[0].cmmlr[HI_RI]);
-        bi[0].cmmlr[HI_LE] = z_max(bi[-1].cmmlr[HI_LE] - count_reduction + pc[0].count_max, bi[0].cmmlr[LO_RI]);
-
-        Z_TRACE_IF(MSEG_TRACE_IF, "forward: count[min/max-left]: min(%" slint_fmt " + %" slint_fmt " + %" slint_fmt ", %" slint_fmt "), max(%" slint_fmt " - % "slint_fmt " + %" slint_fmt ", %" slint_fmt ")",
-          bi[-1].cmmlr[LO_LE], count_reduction, pc[0].count_min, bi[0].cmmlr[HI_RI], bi[-1].cmmlr[HI_LE], count_reduction, pc[0].count_max, bi[0].cmmlr[LO_RI]);
-
-      } else
-#endif
-      {
-        bi[0].cmmlr[LO_LE] = bi[-1].cmmlr[LO_LE] + pc[0].count_min;
-        bi[0].cmmlr[HI_LE] = bi[-1].cmmlr[HI_LE] + pc[0].count_max;
-
-        Z_TRACE_IF(MSEG_TRACE_IF, "forward: count[min/max-left]: %" slint_fmt " + %" slint_fmt ", %" slint_fmt " + %" slint_fmt,
-          bi[-1].cmmlr[LO_LE], pc[0].count_min, bi[-1].cmmlr[HI_LE], pc[0].count_max);
-      }
-    }
-
-    /* check against low/high */
-    if (pc[0].pcm & SLPC_COUNTS_LH)
-    {
-      if (bi[0].cmmlr[LO_LE] < pc[1].count_low)  bi[0].cmmlr[LO_LE] = pc[1].count_low;
-      if (bi[0].cmmlr[HI_LE] > pc[0].count_high) bi[0].cmmlr[HI_LE] = pc[0].count_high;
-    }
-
-    /* fit to range */
-    bi[0].cmmlr[LO_LE] = z_minmax(bi[0].crange[0], bi[0].cmmlr[LO_LE], bi[0].crange[1]);
-    bi[0].cmmlr[HI_LE] = z_minmax(bi[0].crange[0], bi[0].cmmlr[HI_LE], bi[0].crange[1]);
-
-#ifdef elem_weight
-    if (doweights)
-    {
-      /* init from range */
-      bi[0].wmmlr[LO_LE] = bi[0].wrange[0];
-      bi[0].wmmlr[HI_LE] = bi[0].wrange[1];
-
-      /* init from min/max */
-      if (pc[0].pcm & SLPC_WEIGHTS_MM)
-      {
-# ifdef MSEG_BORDER_UPDATE_REDUCTION
-        if (reduction)
-        {
-          weight_reduction = (bi[-1].wmmlr[HI_LE] - bi[-1].wmmlr[LO_LE]) * 0.5 * mseg_border_update_weight_reduction;
-          Z_ASSERT(weight_reduction >= 0.0);
-
-          Z_TRACE_IF(MSEG_TRACE_IF, "forward: weight_reduction: %" slweight_fmt, weight_reduction);
-  
-          bi[0].wmmlr[LO_LE] = z_min(bi[-1].wmmlr[LO_LE] + weight_reduction + pc[0].weight_min, bi[0].wmmlr[HI_RI]);
-          bi[0].wmmlr[HI_LE] = z_max(bi[-1].wmmlr[HI_LE] - weight_reduction + pc[0].weight_max, bi[0].wmmlr[LO_RI]);
-
-          Z_TRACE_IF(MSEG_TRACE_IF, "weight_reduction: weight[min/max-left]: min(%" slweight_fmt " + %" slweight_fmt " + %" slweight_fmt ", %" slweight_fmt "), max(%" slweight_fmt " - %" slweight_fmt " + %" slweight_fmt ", %" slweight_fmt ")",
-            bi[-1].wmmlr[LO_LE], weight_reduction, pc[0].weight_min, bi[0].wmmlr[HI_RI], bi[-1].wmmlr[HI_LE], weight_reduction, pc[0].weight_max, bi[0].wmmlr[LO_RI]);
-
-        } else
-# endif
-        {
-          bi[0].wmmlr[LO_LE] = bi[-1].wmmlr[LO_LE] + pc[0].weight_min;
-          bi[0].wmmlr[HI_LE] = bi[-1].wmmlr[HI_LE] + pc[0].weight_max;
-
-          Z_TRACE_IF(MSEG_TRACE_IF, "forward: weight[min/max-left]: %" slweight_fmt " + %" slweight_fmt ", %" slweight_fmt " + %" slweight_fmt,
-            bi[-1].wmmlr[LO_LE], pc[0].weight_min, bi[-1].wmmlr[HI_LE], pc[0].weight_max);
-        }
-      }
-
-      /* check against low/high (on demand) */
-      if (pc[0].pcm & SLPC_WEIGHTS_LH)
-      {
-        if (bi[0].wmmlr[LO_LE] < pc[1].weight_low)  bi[0].wmmlr[LO_LE] = pc[1].weight_low;
-        if (bi[0].wmmlr[HI_LE] > pc[0].weight_high) bi[0].wmmlr[HI_LE] = pc[0].weight_high;
-      }
-
-      /* fit to range */
-      bi[0].wmmlr[LO_LE] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[LO_LE], bi[0].wrange[1]);
-      bi[0].wmmlr[HI_LE] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[HI_LE], bi[0].wrange[1]);
-
-    } else
-#endif
-    { Z_TRACE_IF(MSEG_TRACE_IF, ""); Z_TRACE_IF(MSEG_TRACE_IF, ""); }
-      
-  } else /* backward */
-  {
-    /* init from range */
-    bi[0].cmmlr[LO_RI] = bi[0].crange[0];
-    bi[0].cmmlr[HI_RI] = bi[0].crange[1];
-
-    /* init from min/max */
-    if (pc[0].pcm & SLPC_COUNTS_MM)
-    {
-#ifdef MSEG_BORDER_UPDATE_REDUCTION
-      if (reduction)
-      {
-        count_reduction = z_round((bi[1].cmmlr[HI_RI] - bi[1].cmmlr[LO_RI]) * 0.5 * mseg_border_update_count_reduction);
-        Z_ASSERT(count_reduction >= 0);
-
-        Z_TRACE_IF(MSEG_TRACE_IF, "backward: count_reduction: %" slint_fmt, count_reduction);
-
-        bi[0].cmmlr[HI_RI] = z_max(bi[1].cmmlr[HI_RI] - count_reduction - pc[1].count_min, bi[0].cmmlr[LO_LE]);
-        bi[0].cmmlr[LO_RI] = z_min(bi[1].cmmlr[LO_RI] + count_reduction - pc[1].count_max, bi[0].cmmlr[HI_LE]);
-
-        Z_TRACE_IF(MSEG_TRACE_IF, "backward: count[min/max-right]: max(%" slint_fmt " - %" slint_fmt " + %" slint_fmt ", %" slint_fmt "), min(%" slint_fmt " + %" slint_fmt " - %" slint_fmt ", %" slint_fmt ")",
-          bi[1].cmmlr[HI_RI], count_reduction, pc[1].count_min, bi[0].cmmlr[LO_LE], bi[1].cmmlr[LO_RI], count_reduction, pc[1].count_max, bi[0].cmmlr[HI_LE]);
-
-      } else
-#endif
-      {
-        bi[0].cmmlr[HI_RI] = bi[1].cmmlr[HI_RI] - pc[1].count_min;
-        bi[0].cmmlr[LO_RI] = bi[1].cmmlr[LO_RI] - pc[1].count_max;
-
-        Z_TRACE_IF(MSEG_TRACE_IF, "backward: count[min/max-right]: %" slint_fmt " - %" slint_fmt ", %" slint_fmt " - %" slint_fmt "",
-          bi[1].cmmlr[HI_RI], pc[1].count_min, bi[1].cmmlr[LO_RI], pc[1].count_max);
-      }
-    }
-
-    /* check against low/high (on demand) */
-    if (pc[0].pcm & SLPC_COUNTS_LH)
-    {
-      if (bi[0].cmmlr[LO_RI] < pc[1].count_low)  bi[0].cmmlr[LO_RI] = pc[1].count_low;
-      if (bi[0].cmmlr[HI_RI] > pc[0].count_high) bi[0].cmmlr[HI_RI] = pc[0].count_high;
-    }
-
-    /* fit to range */
-    bi[0].cmmlr[HI_RI] = z_minmax(bi[0].crange[0], bi[0].cmmlr[HI_RI], bi[0].crange[1]);
-    bi[0].cmmlr[LO_RI] = z_minmax(bi[0].crange[0], bi[0].cmmlr[LO_RI], bi[0].crange[1]);
-
-#ifdef elem_weight
-    if (doweights)
-    {
-      /* init from range */
-      bi[0].wmmlr[LO_RI] = bi[0].wrange[0];
-      bi[0].wmmlr[HI_RI] = bi[0].wrange[1];
-
-      /* init from min/max */
-      if (pc[0].pcm & SLPC_WEIGHTS_MM)
-      {
-#ifdef MSEG_BORDER_UPDATE_REDUCTION
-        if (reduction)
-        {
-          weight_reduction = (bi[1].wmmlr[HI_RI] - bi[1].wmmlr[LO_RI]) * 0.5 * mseg_border_update_weight_reduction;
-          Z_ASSERT(weight_reduction >= 0.0);
-
-          Z_TRACE_IF(MSEG_TRACE_IF, "backward: weight_reduction: %" slweight_fmt, weight_reduction);
-
-          bi[0].wmmlr[HI_RI] = z_max(bi[1].wmmlr[HI_RI] - weight_reduction - pc[1].weight_min, bi[0].wmmlr[LO_LE]);
-          bi[0].wmmlr[LO_RI] = z_min(bi[1].wmmlr[LO_RI] + weight_reduction - pc[1].weight_max, bi[0].wmmlr[HI_LE]);
-
-          Z_TRACE_IF(MSEG_TRACE_IF, "backward: weight[min/max-right]: max(%" slweight_fmt " - %" slweight_fmt " - %" slweight_fmt ", %" slweight_fmt "), min(%" slweight_fmt " + %" slweight_fmt " - %" slweight_fmt ", %" slweight_fmt ")",
-            bi[1].wmmlr[HI_RI], weight_reduction, pc[1].weight_min, bi[0].wmmlr[LO_LE], bi[1].wmmlr[LO_RI], weight_reduction, pc[1].weight_max, bi[0].wmmlr[HI_LE]);
-
-        } else
-#endif
-        {
-          bi[0].wmmlr[HI_RI] = bi[1].wmmlr[HI_RI] - pc[1].weight_min;
-          bi[0].wmmlr[LO_RI] = bi[1].wmmlr[LO_RI] - pc[1].weight_max;
-
-          Z_TRACE_IF(MSEG_TRACE_IF, "backward: weight[min/max-right]: %" slweight_fmt " - %" slweight_fmt ", %" slweight_fmt " - %" slweight_fmt,
-            bi[1].wmmlr[HI_RI], pc[1].weight_min, bi[1].wmmlr[LO_RI], pc[1].weight_max);
-        }
-      }
-
-      /* check against low/high (on demand) */
-      if (pc[0].pcm & SLPC_WEIGHTS_LH)
-      {
-        if (bi[0].wmmlr[LO_RI] < pc[1].weight_low)  bi[0].wmmlr[LO_RI] = pc[1].weight_low;
-        if (bi[0].wmmlr[HI_RI] > pc[0].weight_high) bi[0].wmmlr[HI_RI] = pc[0].weight_high;
-      }
-
-      /* fit to range */
-      bi[0].wmmlr[HI_RI] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[HI_RI], bi[0].wrange[1]);
-      bi[0].wmmlr[LO_RI] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[LO_RI], bi[0].wrange[1]);
-
-    } else
-#endif
-    { Z_TRACE_IF(MSEG_TRACE_IF, ""); Z_TRACE_IF(MSEG_TRACE_IF, ""); }
+    Z_TRACE_IF(MSEG_TRACE_IF, "count[low/high]: %" slint_fmt " / %" slint_fmt,
+      bi[0].ccurrent[LO], bi[0].ccurrent[HI]);
   }
-
-  Z_TRACE_IF(MSEG_TRACE_IF, "count[min/max-left/right]: %" slint_fmt " / %" slint_fmt " - %" slint_fmt " / %" slint_fmt "",
-    bi[0].cmmlr[LO_LE], bi[0].cmmlr[HI_LE], bi[0].cmmlr[HI_RI], bi[0].cmmlr[LO_RI]);
-
-#ifdef elem_weight
-  if (doweights)
-    Z_TRACE_IF(MSEG_TRACE_IF, "weight[min/max-left/right]: %" slweight_fmt " / %" slweight_fmt " - %" slweight_fmt " / %" slweight_fmt,
-      bi[0].wmmlr[LO_LE], bi[0].wmmlr[HI_LE], bi[0].wmmlr[HI_RI], bi[0].wmmlr[LO_RI]);
-  else
-#endif
-    Z_TRACE_IF(MSEG_TRACE_IF, "");
-
-  if (check_inconsistence)
-  {
-    /* check against inconsistence */
-    if (bi[0].cmmlr[LO_LE] > bi[0].cmmlr[HI_RI]) bi[0].cmmlr[LO_LE] = bi[0].cmmlr[HI_RI] = (bi[0].cmmlr[LO_LE] + bi[0].cmmlr[HI_RI]) / 2;
-    if (bi[0].cmmlr[HI_LE] < bi[0].cmmlr[LO_RI]) bi[0].cmmlr[HI_LE] = bi[0].cmmlr[LO_RI] = (bi[0].cmmlr[HI_LE] + bi[0].cmmlr[LO_RI]) / 2;
-
-    Z_TRACE_IF(MSEG_TRACE_IF, "consistence count[min/max-left/right]: %" slint_fmt " / %" slint_fmt " - %" slint_fmt " / %" slint_fmt "",
-      bi[0].cmmlr[LO_LE], bi[0].cmmlr[HI_LE], bi[0].cmmlr[HI_RI], bi[0].cmmlr[LO_RI]);
-
-#ifdef elem_weight
-    if (doweights)
-    {
-      if (bi[0].wmmlr[LO_LE] > bi[0].wmmlr[HI_RI]) bi[0].wmmlr[LO_LE] = bi[0].wmmlr[HI_RI] = (bi[0].wmmlr[LO_LE] + bi[0].wmmlr[HI_RI]) / 2;
-      if (bi[0].wmmlr[HI_LE] < bi[0].wmmlr[LO_RI]) bi[0].wmmlr[HI_LE] = bi[0].wmmlr[LO_RI] = (bi[0].wmmlr[HI_LE] + bi[0].wmmlr[LO_RI]) / 2;
-
-      Z_TRACE_IF(MSEG_TRACE_IF, "consistence weight[min/max-left/right]: %" slweight_fmt " / %" slweight_fmt " - %" slweight_fmt " / %" slweight_fmt,
-        bi[0].wmmlr[LO_LE], bi[0].wmmlr[HI_LE], bi[0].wmmlr[HI_RI], bi[0].wmmlr[LO_RI]);
-
-    } else
-#endif
-      Z_TRACE_IF(MSEG_TRACE_IF, "");
-  }
-}
-
-
-#ifdef MSEG_BORDER_UPDATE_FULL
-void border_update_full_old(slint_t doweights, border_info_t *bi, partcond_intern_t *pc, slint_t check_inconsistence) /* sl_func border_update_full_old */
-{
-  slint_t lo = -1, hi = -1;
-
-  bi[0].cmmlr[LO_LE] = bi[0].cmmlr[LO_RI] = bi[0].crange[0];
-  bi[0].cmmlr[HI_LE] = bi[0].cmmlr[HI_RI] = bi[0].crange[1];
 
 #ifdef elem_weight
   if (doweights)
   {
-    bi[0].wmmlr[LO_LE] = bi[0].wmmlr[LO_RI] = bi[0].wrange[0];
-    bi[0].wmmlr[HI_LE] = bi[0].wmmlr[HI_RI] = bi[0].wrange[1];
-  }
-#endif
-
-  /* init from min/max */
-  if (pc[0].pcm & (SLPC_COUNTS_MM|SLPC_WEIGHTS_MM))
-  {
-    /* seach backward */
-    for (lo = 0; (!bi[lo - 1].done); --lo);
-
-    /* seach forward */
-    for (hi = 0; (!bi[hi + 1].done); ++hi);
-
-    Z_TRACE_IF(MSEG_TRACE_IF, "found: lo: %" slint_fmt ", hi: %" slint_fmt "", lo, hi);
-
-    if (pc[0].pcm & SLPC_COUNTS_MM)
-    {
-      bi[0].cmmlr[LO_LE] = bi[lo - 1].cmmlr[LO_LE];
-      bi[0].cmmlr[HI_LE] = bi[lo - 1].cmmlr[HI_LE];
-      Z_ASSERT(bi[0].cmmlr[LO_LE] == bi[0].cmmlr[HI_LE]);
-
-      bi[0].cmmlr[HI_RI] = bi[hi + 1].cmmlr[HI_RI]; 
-      bi[0].cmmlr[LO_RI] = bi[hi + 1].cmmlr[LO_RI]; 
-      Z_ASSERT(bi[0].cmmlr[HI_RI] == bi[0].cmmlr[LO_RI]);
-    }
-
-    Z_TRACE_IF(MSEG_TRACE_IF, "start: %" slint_fmt " / %" slint_fmt " - %" slint_fmt " / %" slint_fmt "",
-      bi[0].cmmlr[LO_LE], bi[0].cmmlr[HI_LE], bi[0].cmmlr[HI_RI], bi[0].cmmlr[LO_RI]);
-
-#ifdef elem_weight
-    if (doweights)
-    {
-      if (pc[0].pcm & SLPC_WEIGHTS_MM)
-      {
-        bi[0].wmmlr[LO_LE] = bi[lo - 1].wmmlr[LO_LE];
-        bi[0].wmmlr[HI_LE] = bi[lo - 1].wmmlr[HI_LE];
-        Z_ASSERT(bi[0].wmmlr[LO_LE] == bi[0].wmmlr[HI_LE]);
-
-        bi[0].wmmlr[HI_RI] = bi[hi + 1].wmmlr[HI_RI];
-        bi[0].wmmlr[LO_RI] = bi[hi + 1].wmmlr[LO_RI];
-        Z_ASSERT(bi[0].wmmlr[HI_RI] == bi[0].wmmlr[LO_RI]);
-      }
-    }
-#endif
-  
-    /* go backward */
-    for (; lo <= 0; ++lo)
-    {
-      if (pc[0].pcm & SLPC_COUNTS_MM)
-      {
-        Z_TRACE_IF(MSEG_TRACE_IF, "- count[min/max-left]: %" slint_fmt " + %" slint_fmt ", %" slint_fmt " + %" slint_fmt "",
-          bi[0].cmmlr[LO_LE], pc[0].count_min, bi[0].cmmlr[HI_LE], pc[0].count_max);
-
-        bi[0].cmmlr[LO_LE] = bi[0].cmmlr[LO_LE] + pc[lo].count_min;
-        bi[0].cmmlr[HI_LE] = bi[0].cmmlr[HI_LE] + pc[lo].count_max;
-      }
-
-#ifdef elem_weight
-      if (doweights && pc[0].pcm & SLPC_WEIGHTS_MM)
-      {
-        bi[0].wmmlr[LO_LE] = bi[0].wmmlr[LO_LE] + pc[lo].weight_min;
-        bi[0].wmmlr[HI_LE] = bi[0].wmmlr[HI_LE] + pc[lo].weight_max;
-      }
-#endif
-    }
-
-    /* go forward */
-    for (; 0 <= hi; --hi)
-    {
-      if (pc[0].pcm & SLPC_COUNTS_MM)
-      {
-        Z_TRACE_IF(MSEG_TRACE_IF, "+ count[min/max-left]: %" slint_fmt " - %" slint_fmt ", %" slint_fmt " - %" slint_fmt "",
-          bi[0].cmmlr[HI_RI], pc[hi + 1].count_min, bi[0].cmmlr[LO_RI], pc[hi + 1].count_max);
-
-        bi[0].cmmlr[HI_RI] = bi[0].cmmlr[HI_RI] - pc[hi + 1].count_min;
-        bi[0].cmmlr[LO_RI] = bi[0].cmmlr[LO_RI] - pc[hi + 1].count_max;
-      }
-
-#ifdef elem_weight
-      if (doweights && pc[0].pcm & SLPC_WEIGHTS_MM)
-      {
-        bi[0].wmmlr[HI_RI] = bi[0].wmmlr[HI_RI] + pc[hi + 1].weight_min;
-        bi[0].wmmlr[LO_RI] = bi[0].wmmlr[LO_RI] + pc[hi + 1].weight_max;
-      }
-#endif
-    }
-
-  } else Z_TRACE_IF(MSEG_TRACE_IF, "no search");
-
-  /* check against low/high */
-  if (pc[0].pcm & SLPC_COUNTS_LH)
-  {
-    if (bi[0].cmmlr[LO_LE] < pc[1].count_low)  bi[0].cmmlr[LO_LE] = pc[1].count_low;
-    if (bi[0].cmmlr[HI_LE] > pc[0].count_high) bi[0].cmmlr[HI_LE] = pc[0].count_high;
-    if (bi[0].cmmlr[LO_RI] < pc[1].count_low)  bi[0].cmmlr[LO_RI] = pc[1].count_low;
-    if (bi[0].cmmlr[HI_RI] > pc[0].count_high) bi[0].cmmlr[HI_RI] = pc[0].count_high;
-  }
-
-#ifdef elem_weight
-  if (doweights && pc[0].pcm & SLPC_WEIGHTS_MM)
-  {
-    if (bi[0].wmmlr[LO_LE] < pc[1].weight_low)  bi[0].wmmlr[LO_LE] = pc[1].weight_low;
-    if (bi[0].wmmlr[HI_LE] > pc[0].weight_high) bi[0].wmmlr[HI_LE] = pc[0].weight_high;
-    if (bi[0].wmmlr[LO_RI] < pc[1].weight_low)  bi[0].wmmlr[LO_RI] = pc[1].weight_low;
-    if (bi[0].wmmlr[HI_RI] > pc[0].weight_high) bi[0].wmmlr[HI_RI] = pc[0].weight_high;
-  }
-#endif
-
-  /* fit to range */
-  bi[0].cmmlr[LO_LE] = z_minmax(bi[0].crange[0], bi[0].cmmlr[LO_LE], bi[0].crange[1]);
-  bi[0].cmmlr[HI_LE] = z_minmax(bi[0].crange[0], bi[0].cmmlr[HI_LE], bi[0].crange[1]);
-  bi[0].cmmlr[HI_RI] = z_minmax(bi[0].crange[0], bi[0].cmmlr[HI_RI], bi[0].crange[1]);
-  bi[0].cmmlr[LO_RI] = z_minmax(bi[0].crange[0], bi[0].cmmlr[LO_RI], bi[0].crange[1]);
-
-#ifdef elem_weight
-  if (doweights)
-  {
-    bi[0].wmmlr[LO_LE] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[LO_LE], bi[0].wrange[1]);
-    bi[0].wmmlr[HI_LE] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[HI_LE], bi[0].wrange[1]);
-    bi[0].wmmlr[HI_RI] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[HI_RI], bi[0].wrange[1]);
-    bi[0].wmmlr[LO_RI] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[LO_RI], bi[0].wrange[1]);
-  }
-#endif
-
-  Z_TRACE_IF(MSEG_TRACE_IF, "count[min/max-left/right]: %" slint_fmt " / %" slint_fmt " - %" slint_fmt " / %" slint_fmt "",
-    bi[0].cmmlr[LO_LE], bi[0].cmmlr[HI_LE], bi[0].cmmlr[HI_RI], bi[0].cmmlr[LO_RI]);
-
-#ifdef elem_weight
-  if (doweights)
-    Z_TRACE_IF(MSEG_TRACE_IF, "weight[min/max-left/right]: %" slweight_fmt " / %" slweight_fmt " - %" slweight_fmt " / %" slweight_fmt,
-      bi[0].wmmlr[LO_LE], bi[0].wmmlr[HI_LE], bi[0].wmmlr[HI_RI], bi[0].wmmlr[LO_RI]);
-#endif
-
-  if (check_inconsistence)
-  {
-    /* check against inconsistence */
-    if (bi[0].cmmlr[LO_LE] > bi[0].cmmlr[HI_RI]) bi[0].cmmlr[LO_LE] = bi[0].cmmlr[HI_RI] = (bi[0].cmmlr[LO_LE] + bi[0].cmmlr[HI_RI]) / 2;
-    if (bi[0].cmmlr[HI_LE] < bi[0].cmmlr[LO_RI]) bi[0].cmmlr[HI_LE] = bi[0].cmmlr[LO_RI] = (bi[0].cmmlr[HI_LE] + bi[0].cmmlr[LO_RI]) / 2;
-
-    Z_TRACE_IF(MSEG_TRACE_IF, "consistence count[min/max-left/right]: %" slint_fmt " / %" slint_fmt " - %" slint_fmt " / %" slint_fmt "",
-      bi[0].cmmlr[LO_LE], bi[0].cmmlr[HI_LE], bi[0].cmmlr[HI_RI], bi[0].cmmlr[LO_RI]);
-
-#ifdef elem_weight
-    if (doweights)
-    {
-      if (bi[0].wmmlr[LO_LE] > bi[0].wmmlr[HI_RI]) bi[0].wmmlr[LO_LE] = bi[0].wmmlr[HI_RI] = (bi[0].wmmlr[LO_LE] + bi[0].wmmlr[HI_RI]) / 2;
-      if (bi[0].wmmlr[HI_LE] < bi[0].wmmlr[LO_RI]) bi[0].wmmlr[HI_LE] = bi[0].wmmlr[LO_RI] = (bi[0].wmmlr[HI_LE] + bi[0].wmmlr[LO_RI]) / 2;
-
-      Z_TRACE_IF(MSEG_TRACE_IF, "consistence weight[min/max-left/right]: %" slweight_fmt " / %" slweight_fmt " - %" slweight_fmt " / %" slweight_fmt,
-        bi[0].wmmlr[LO_LE], bi[0].wmmlr[HI_LE], bi[0].wmmlr[HI_RI], bi[0].wmmlr[LO_RI]);
-    }
-#endif
-  }
-}
-#endif
-
-
-void border_change_old(slint_t doweights, border_info_t *bi, border_info_t *bi_old, slint_t gcs, slint_t gc, slweight_t gws, slweight_t gw, slint_t dir) /* sl_func border_change_old */
-{
-  Z_TRACE_IF(MSEG_TRACE_IF, "change: gcs = %" slint_fmt ", gc = %" slint_fmt "", gcs, gc);
-
-  bi[0].crange[0] += gcs;
-  bi[0].crange[1] = bi[0].crange[0] + gc;
-
-  Z_TRACE_IF(MSEG_TRACE_IF, "counts_range: %" slint_fmt "  %" slint_fmt "", bi[0].crange[0], bi[0].crange[1]);
-
-#ifdef elem_weight
-  if (doweights)
-  {
-    Z_TRACE_IF(MSEG_TRACE_IF, "change: gws = %" slweight_fmt ", gc = %" slweight_fmt, gws, gw);
-
-    bi[0].wrange[0] += gws;
-    bi[0].wrange[1] = bi[0].wrange[0] + gw;
-
-    Z_TRACE_IF(MSEG_TRACE_IF, "weights_range: %" slweight_fmt "  %" slweight_fmt, bi[0].wrange[0], bi[0].wrange[1]);
-
-  } else
-#endif
-  { Z_TRACE_IF(MSEG_TRACE_IF, ""); Z_TRACE_IF(MSEG_TRACE_IF, ""); }
-
-  /* forward or hit */
-  if (dir >= 0)
-  {
-    bi[0].cmmlr[LO_LE] = z_minmax(bi[0].crange[0], bi[0].cmmlr[LO_LE], bi[0].crange[1]);
-    bi[0].cmmlr[HI_LE] = z_minmax(bi[0].crange[0], bi[0].cmmlr[HI_LE], bi[0].crange[1]);
-
-    Z_TRACE_IF(MSEG_TRACE_IF, "count[min/max-left/right]: %" slint_fmt " / %" slint_fmt " - %" slint_fmt " / %" slint_fmt "",
-      bi[0].cmmlr[LO_LE], bi[0].cmmlr[HI_LE], bi[0].cmmlr[HI_RI], bi[0].cmmlr[LO_RI]);
-
-#ifdef elem_weight
-    if (doweights)
-    {
-      bi[0].wmmlr[LO_LE] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[LO_LE], bi[0].wrange[1]);
-      bi[0].wmmlr[HI_LE] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[HI_LE], bi[0].wrange[1]);
-
-      Z_TRACE_IF(MSEG_TRACE_IF, "weight[min/max-left/right]: %" slweight_fmt " / %" slweight_fmt " - %" slweight_fmt " / %" slweight_fmt,
-        bi[0].wmmlr[LO_LE], bi[0].wmmlr[HI_LE], bi[0].wmmlr[HI_RI], bi[0].wmmlr[LO_RI]);
-
-    } else
-#endif
-      Z_TRACE_IF(MSEG_TRACE_IF, "");
-
-
-#ifndef MSEG_BORDER_UPDATE_FULL
-    if (bi[0].cmmlr[LO_LE] != bi_old[0].cmmlr[LO_LE] || bi[0].cmmlr[HI_LE] != bi_old[0].cmmlr[HI_LE]
-# ifdef elem_weight
-     || (doweights && (bi[0].wmmlr[LO_LE] != bi_old[0].wmmlr[LO_LE] || bi[0].wmmlr[HI_LE] != bi_old[0].wmmlr[HI_LE]))
-# endif
-     ) bi[1].update = 1;
-#endif
-  }
-  
-  /* backward or hit */
-  if (dir <= 0)
-  {
-    bi[0].cmmlr[HI_RI] = z_minmax(bi[0].crange[0], bi[0].cmmlr[HI_RI], bi[0].crange[1]);
-    bi[0].cmmlr[LO_RI] = z_minmax(bi[0].crange[0], bi[0].cmmlr[LO_RI], bi[0].crange[1]);
-
-    Z_TRACE_IF(MSEG_TRACE_IF, "count[min/max-left/right]: %" slint_fmt " / %" slint_fmt " - %" slint_fmt " / %" slint_fmt "",
-      bi[0].cmmlr[LO_LE], bi[0].cmmlr[HI_LE], bi[0].cmmlr[HI_RI], bi[0].cmmlr[LO_RI]);
-
-#ifdef elem_weight
-    if (doweights)
-    {
-      bi[0].wmmlr[HI_RI] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[HI_RI], bi[0].wrange[1]);
-      bi[0].wmmlr[LO_RI] = z_minmax(bi[0].wrange[0], bi[0].wmmlr[LO_RI], bi[0].wrange[1]);
-
-      Z_TRACE_IF(MSEG_TRACE_IF, "weight[min/max-left/right]: %" slweight_fmt " / %" slweight_fmt " - %" slweight_fmt " / %" slweight_fmt,
-        bi[0].wmmlr[LO_LE], bi[0].wmmlr[HI_LE], bi[0].wmmlr[HI_RI], bi[0].wmmlr[LO_RI]);
-
-    } else
-#endif
-      Z_TRACE_IF(MSEG_TRACE_IF, "");
-
-#ifndef MSEG_BORDER_UPDATE_FULL
-    if (bi[0].cmmlr[HI_RI] != bi_old[0].cmmlr[HI_RI] || bi[0].cmmlr[LO_RI] != bi_old[0].cmmlr[LO_RI]
-# ifdef elem_weight
-     || (doweights && (bi[0].wmmlr[HI_RI] != bi_old[0].wmmlr[HI_RI] || bi[0].wmmlr[LO_RI] != bi_old[0].wmmlr[LO_RI]))
-# endif
-     ) bi[-1].update = 1;
-#endif
-  }
-
-#ifndef MSEG_BORDER_UPDATE_FULL
-  bi[0].update = 0;
-#endif
-
-  Z_TRACE_IF(MSEG_TRACE_IF, "range diff 0: %" slint_fmt "-%" slint_fmt " | %" slint_fmt "-%" slint_fmt,
-    bi[0].crange[0] - bi[-1].crange[1], bi[0].crange[0] - bi[-1].crange[0],
-    bi[1].crange[0] - bi[ 0].crange[0], bi[1].crange[1] - bi[ 0].crange[0]);
-  Z_TRACE_IF(MSEG_TRACE_IF, "range diff 1: %" slint_fmt "-%" slint_fmt " | %" slint_fmt "-%" slint_fmt,
-    bi[0].crange[1] - bi[-1].crange[1], bi[0].crange[1] - bi[-1].crange[0],
-    bi[1].crange[0] - bi[ 0].crange[1], bi[1].crange[1] - bi[ 0].crange[1]);
-}
-
-
-void border_init_old(slint_t doweights, border_info_t *bi, partcond_intern_t *pc, slint_t tc, slweight_t tw) /* sl_func border_init_old */
-{
-#ifdef MSEG_BORDER_UPDATE_FULL
-  bi[0].done = (pc == NULL);
-#endif
-  bi[0].update = (pc != NULL);
-
-  bi[0].crange[0] = 0;
-  bi[0].crange[1] = tc;
-
-  Z_TRACE_IF(MSEG_TRACE_IF, "count range: %" slint_fmt " - %" slint_fmt "",
-    bi[0].crange[0], bi[0].crange[1]);
-
-  bi[0].cmmlr[LO_LE] = bi[0].cmmlr[HI_LE] = bi[0].cmmlr[HI_RI] = bi[0].cmmlr[LO_RI] = -1;
-
-#ifdef elem_weight
-  if (doweights)
-  {
-    bi[0].wrange[0] = 0.0;
-    bi[0].wrange[1] = tw;
-
-    Z_TRACE_IF(MSEG_TRACE_IF, "weight range: %" slweight_fmt " - %" slweight_fmt,
-      bi[0].wrange[0], bi[0].wrange[1]);
-
-    bi[0].wmmlr[LO_LE] = bi[0].wmmlr[HI_LE] = bi[0].wmmlr[HI_RI] = bi[0].wmmlr[LO_RI] = -1.0;
-
-  } else
-#endif
-    Z_TRACE_IF(MSEG_TRACE_IF, "");
-
-  if (!pc)
-  {
-    bi[0].cmmlr[LO_LE] = bi[0].cmmlr[HI_LE] = 0;
-    bi[0].cmmlr[HI_RI] = bi[0].cmmlr[LO_RI] = tc;
-
-#ifdef elem_weight
-    if (doweights)
-    {
-      bi[0].wmmlr[LO_LE] = bi[0].wmmlr[HI_LE] = 0.0;
-      bi[0].wmmlr[HI_RI] = bi[0].wmmlr[LO_RI] = tw;
-    }
-#endif
-  }
-
-/*  Z_TRACE_IF(MSEG_TRACE_IF, "count[min/max-left/right]: %" slint_fmt " / %" slint_fmt " - %" slint_fmt " / %" slint_fmt "",
-    bi[0].cmmlr[LO_LE], bi[0].cmmlr[HI_LE], bi[0].cmmlr[HI_RI], bi[0].cmmlr[LO_RI]);
-
-#ifdef elem_weight
-  if (doweights)
-    Z_TRACE_IF(MSEG_TRACE_IF, "weight[min/max-left/right]: %" slweight_fmt " / %" slweight_fmt " - %" slweight_fmt " / %" slweight_fmt,
-      bi[0].wmmlr[LO_LE], bi[0].wmmlr[HI_LE], bi[0].wmmlr[HI_RI], bi[0].wmmlr[LO_RI]);
-#endif*/
-}
-
-
-inline void border_currents_old(slint_t doweights, border_info_t *bi, slweight_t *currents) /* sl_func border_currents_old */
-{
-  Z_TRACE_IF(MSEG_TRACE_IF, "count[min/max-left/right]: %" slint_fmt " / %" slint_fmt " - %" slint_fmt " / %" slint_fmt "",
-    bi[0].cmmlr[LO_LE], bi[0].cmmlr[HI_LE], bi[0].cmmlr[HI_RI], bi[0].cmmlr[LO_RI]);
-
-  Z_TRACE_IF(MSEG_TRACE_IF, "crange: %" slint_fmt " - %" slint_fmt "",
-    bi[0].crange[0], bi[0].crange[1]);
-
-  /* select max. of low and min. of high */
-  currents[CNT_LO] = z_max(bi[0].cmmlr[LO_LE], bi[0].cmmlr[LO_RI]) - bi[0].crange[0];
-  currents[CNT_HI] = z_min(bi[0].cmmlr[HI_LE], bi[0].cmmlr[HI_RI]) - bi[0].crange[0];
-
-  Z_TRACE_IF(MSEG_TRACE_IF, "currents count: %" slweight_fmt " - %" slweight_fmt, currents[CNT_LO], currents[CNT_HI]);
-
-#ifdef elem_weight
-  if (doweights)
-  {
-    Z_TRACE_IF(MSEG_TRACE_IF, "weight[min/max-left/right]: %" slweight_fmt " / %" slweight_fmt " - %" slweight_fmt " / %" slweight_fmt,
-      bi[0].wmmlr[LO_LE], bi[0].wmmlr[HI_LE], bi[0].wmmlr[HI_RI], bi[0].wmmlr[LO_RI]);
-
-    Z_TRACE_IF(MSEG_TRACE_IF, "wrange: %" slweight_fmt " - %" slweight_fmt, bi[0].wrange[0], bi[0].wrange[1]);
-
-    /* select highest min and lowest max */
-    currents[WHT_LO] = z_max(bi[0].wmmlr[LO_LE], bi[0].wmmlr[LO_RI]) - bi[0].wrange[0];
-    currents[WHT_HI] = z_min(bi[0].wmmlr[HI_LE], bi[0].wmmlr[HI_RI]) - bi[0].wrange[0];
-
-    Z_TRACE_IF(MSEG_TRACE_IF, "currents weight: %" slweight_fmt " - %" slweight_fmt, currents[WHT_LO], currents[WHT_HI]);
-
-  } else
-#endif
-  { Z_TRACE_IF(MSEG_TRACE_IF, ""); Z_TRACE_IF(MSEG_TRACE_IF, ""); Z_TRACE_IF(MSEG_TRACE_IF, ""); }
-}
-
-#else /* OLD */
-
-void border_init(slint_t doweights, border_info_t *bi, slint_t current, slint_t tc, slweight_t tw) /* sl_func border_init */
-{
-  bi[0].crange[0] = 0;
-  bi[0].crange[1] = tc;
-
-  Z_TRACE_IF(MSEG_TRACE_IF, "count range: %" slint_fmt " - %" slint_fmt "",
-    bi[0].crange[0], bi[0].crange[1]);
-
-  bi[0].ccurrent[LO] = (current == 0 || current != 1)?0:tc;
-  bi[0].ccurrent[HI] = (current == 1 || current != 0)?tc:0;
-
-  Z_TRACE_IF(MSEG_TRACE_IF, "count[low/high]: %" slint_fmt " / %" slint_fmt,
-    bi[0].ccurrent[LO], bi[0].ccurrent[HI]);
-
-#ifdef elem_weight
-  if (doweights)
-  {
-    bi[0].wrange[0] = 0.0;
+    bi[0].wrange[0] = 0;
     bi[0].wrange[1] = tw;
 
     Z_TRACE_IF(MSEG_TRACE_IF, "weight range: %" slweight_fmt " - %" slweight_fmt,
@@ -732,13 +110,12 @@ void border_init(slint_t doweights, border_info_t *bi, slint_t current, slint_t 
     Z_TRACE_IF(MSEG_TRACE_IF, "weight[low/high]: %" slweight_fmt " / %" slweight_fmt,
       bi[0].wcurrent[LO], bi[0].wcurrent[HI]);
 
-  } else
+  }
 #endif
-    Z_TRACE_IF(MSEG_TRACE_IF, "");
 }
 
 
-void border_update(slint_t doweights, border_info_t *bi, partcond_intern_t *pc, slint_t dir, slint_t reduction) /* sl_func border_update */
+void border_update(slint_t docounts, slint_t doweights, border_info_t *bi, partcond_intern_t *pc, slint_t dir, slint_t reduction) /* sl_func border_update */
 {
   slint_t ccurrent_new[2];
 #ifdef elem_weight
@@ -752,9 +129,22 @@ void border_update(slint_t doweights, border_info_t *bi, partcond_intern_t *pc, 
 # endif
 #endif
 
+
+#if 1
+  /* if counts are used and the current interval is already as small as possible, then skip the update */
+  if (docounts && bi[0].ccurrent[LO] == bi[0].ccurrent[HI])
+  {
+    Z_TRACE_IF(MSEG_TRACE_IF, "skip border_update");
+    return;
+  }
+#endif
+
   /* init from range */
-  ccurrent_new[LO] = bi[0].crange[0];
-  ccurrent_new[HI] = bi[0].crange[1];
+  if (docounts)
+  {
+    ccurrent_new[LO] = bi[0].crange[0];
+    ccurrent_new[HI] = bi[0].crange[1];
+  }
 #ifdef elem_weight
   if (doweights)
   {
@@ -766,31 +156,34 @@ void border_update(slint_t doweights, border_info_t *bi, partcond_intern_t *pc, 
   /* forward */
   if (dir > 0)
   {
-    /* init from min/max */
-    if (pc[0].pcm & SLPC_COUNTS_MM)
+    if (docounts)
     {
+      /* init from min/max */
+      if (pc[0].pcm & SLPC_COUNTS_MM)
+      {
 #ifdef MSEG_BORDER_UPDATE_REDUCTION
-      if (reduction)
-      {
-        count_reduction = z_round((bi[-1].ccurrent[HI] - bi[-1].ccurrent[LO]) * 0.5 * mseg_border_update_count_reduction);
-        Z_ASSERT(count_reduction >= 0);
+        if (reduction)
+        {
+          count_reduction = z_round((bi[-1].ccurrent[HI] - bi[-1].ccurrent[LO]) * 0.5 * mseg_border_update_count_reduction);
+          Z_ASSERT(count_reduction >= 0);
 
-        Z_TRACE_IF(MSEG_TRACE_IF, "forward: count_reduction: %" slint_fmt, count_reduction);
+          Z_TRACE_IF(MSEG_TRACE_IF, "forward: count_reduction: %" slint_fmt, count_reduction);
 
-        ccurrent_new[0] = z_min(bi[-1].ccurrent[LO] + count_reduction + pc[0].count_min, bi[0].ccurrent[HI]);
-        ccurrent_new[1] = z_max(bi[-1].ccurrent[HI] - count_reduction + pc[0].count_max, bi[0].ccurrent[LO]);
+          ccurrent_new[LO] = z_min(bi[-1].ccurrent[LO] + count_reduction + pc[0].count_min, bi[0].ccurrent[HI]);
+          ccurrent_new[HI] = z_max(bi[-1].ccurrent[HI] - count_reduction + pc[0].count_max, bi[0].ccurrent[LO]);
 
-        Z_TRACE_IF(MSEG_TRACE_IF, "forward: count[low/high]: min(%" slint_fmt " + %" slint_fmt " + %" slint_fmt ", %" slint_fmt "), max(%" slint_fmt " - % "slint_fmt " + %" slint_fmt ", %" slint_fmt ")",
-          bi[-1].ccurrent[LO], count_reduction, pc[0].count_min, bi[0].ccurrent[HI], bi[-1].ccurrent[HI], count_reduction, pc[0].count_max, bi[0].ccurrent[LO]);
+          Z_TRACE_IF(MSEG_TRACE_IF, "forward: count[low/high]: min(%" slint_fmt " + %" slint_fmt " + %" slint_fmt ", %" slint_fmt "), max(%" slint_fmt " - % "slint_fmt " + %" slint_fmt ", %" slint_fmt ")",
+            bi[-1].ccurrent[LO], count_reduction, pc[0].count_min, bi[0].ccurrent[HI], bi[-1].ccurrent[HI], count_reduction, pc[0].count_max, bi[0].ccurrent[LO]);
 
-      } else
+        } else
 #endif
-      {
-        ccurrent_new[LO] = bi[-1].ccurrent[LO] + pc[0].count_min;
-        ccurrent_new[HI] = bi[-1].ccurrent[HI] + pc[0].count_max;
+        {
+          ccurrent_new[LO] = bi[-1].ccurrent[LO] + pc[0].count_min;
+          ccurrent_new[HI] = bi[-1].ccurrent[HI] + pc[0].count_max;
 
-        Z_TRACE_IF(MSEG_TRACE_IF, "forward: count[low/high]: %" slint_fmt " + %" slint_fmt ", %" slint_fmt " + %" slint_fmt,
-          bi[-1].ccurrent[LO], pc[0].count_min, bi[-1].ccurrent[HI], pc[0].count_max);
+          Z_TRACE_IF(MSEG_TRACE_IF, "forward: count[low/high]: %" slint_fmt " + %" slint_fmt ", %" slint_fmt " + %" slint_fmt,
+            bi[-1].ccurrent[LO], pc[0].count_min, bi[-1].ccurrent[HI], pc[0].count_max);
+        }
       }
     }
 
@@ -836,31 +229,34 @@ void border_update(slint_t doweights, border_info_t *bi, partcond_intern_t *pc, 
 
   } else /* backward */
   {
-    /* init from min/max */
-    if (pc[0].pcm & SLPC_COUNTS_MM)
+    if (docounts)
     {
+      /* init from min/max */
+      if (pc[0].pcm & SLPC_COUNTS_MM)
+      {
 #ifdef MSEG_BORDER_UPDATE_REDUCTION
-      if (reduction)
-      {
-        count_reduction = z_round((bi[1].ccurrent[HI] - bi[1].ccurrent[LO]) * 0.5 * mseg_border_update_count_reduction);
-        Z_ASSERT(count_reduction >= 0);
+        if (reduction)
+        {
+          count_reduction = z_round((bi[1].ccurrent[HI] - bi[1].ccurrent[LO]) * 0.5 * mseg_border_update_count_reduction);
+          Z_ASSERT(count_reduction >= 0);
 
-        Z_TRACE_IF(MSEG_TRACE_IF, "backward: count_reduction: %" slint_fmt, count_reduction);
+          Z_TRACE_IF(MSEG_TRACE_IF, "backward: count_reduction: %" slint_fmt, count_reduction);
 
-        ccurrent_new[LO] = z_min(bi[1].ccurrent[LO] + count_reduction - pc[1].count_max, bi[0].ccurrent[HI]);
-        ccurrent_new[HI] = z_max(bi[1].ccurrent[HI] - count_reduction - pc[1].count_min, bi[0].ccurrent[LO]);
+          ccurrent_new[LO] = z_min(bi[1].ccurrent[LO] + count_reduction - pc[1].count_max, bi[0].ccurrent[HI]);
+          ccurrent_new[HI] = z_max(bi[1].ccurrent[HI] - count_reduction - pc[1].count_min, bi[0].ccurrent[LO]);
 
-        Z_TRACE_IF(MSEG_TRACE_IF, "backward: count[low/high]: min(%" slint_fmt " + %" slint_fmt " - %" slint_fmt ", %" slint_fmt "), max(%" slint_fmt " - %" slint_fmt " + %" slint_fmt ", %" slint_fmt ")",
-          bi[1].ccurrent[LO], count_reduction, pc[1].count_max, bi[0].ccurrent[HI], bi[1].ccurrent[HI], count_reduction, pc[1].count_min, bi[0].ccurrent[LO]);
+          Z_TRACE_IF(MSEG_TRACE_IF, "backward: count[low/high]: min(%" slint_fmt " + %" slint_fmt " - %" slint_fmt ", %" slint_fmt "), max(%" slint_fmt " - %" slint_fmt " + %" slint_fmt ", %" slint_fmt ")",
+            bi[1].ccurrent[LO], count_reduction, pc[1].count_max, bi[0].ccurrent[HI], bi[1].ccurrent[HI], count_reduction, pc[1].count_min, bi[0].ccurrent[LO]);
 
-      } else
+        } else
 #endif
-      {
-        ccurrent_new[LO] = bi[1].ccurrent[LO] - pc[1].count_max;
-        ccurrent_new[HI] = bi[1].ccurrent[HI] - pc[1].count_min;
+        {
+          ccurrent_new[LO] = bi[1].ccurrent[LO] - pc[1].count_max;
+          ccurrent_new[HI] = bi[1].ccurrent[HI] - pc[1].count_min;
 
-        Z_TRACE_IF(MSEG_TRACE_IF, "backward: count[low/high]: %" slint_fmt " - %" slint_fmt ", %" slint_fmt " - %" slint_fmt "",
-          bi[1].ccurrent[LO], pc[1].count_max, bi[1].ccurrent[HI], pc[1].count_min);
+          Z_TRACE_IF(MSEG_TRACE_IF, "backward: count[low/high]: %" slint_fmt " - %" slint_fmt ", %" slint_fmt " - %" slint_fmt "",
+            bi[1].ccurrent[LO], pc[1].count_max, bi[1].ccurrent[HI], pc[1].count_min);
+        }
       }
     }
 
@@ -906,20 +302,23 @@ void border_update(slint_t doweights, border_info_t *bi, partcond_intern_t *pc, 
   }
 
   /* check against low/high */
-  if (pc[0].pcm & SLPC_COUNTS_LH)
+  if (docounts)
   {
-    if (ccurrent_new[LO] < pc[1].count_low)  ccurrent_new[LO] = pc[1].count_low;
-    if (ccurrent_new[HI] > pc[0].count_high) ccurrent_new[HI] = pc[0].count_high;
+    if (pc[0].pcm & SLPC_COUNTS_LH)
+    {
+      if (ccurrent_new[LO] < pc[1].count_low)  ccurrent_new[LO] = pc[1].count_low;
+      if (ccurrent_new[HI] > pc[0].count_high) ccurrent_new[HI] = pc[0].count_high;
+    }
+
+    /* fit to range (NOT REQUIRED!?) */
+/*    ccurrent_new[LO] = z_minmax(bi[0].crange[0], ccurrent_new[LO], bi[0].crange[1]);
+    ccurrent_new[HI] = z_minmax(bi[0].crange[0], ccurrent_new[HI], bi[0].crange[1]);*/
+
+    bi[0].ccurrent[LO] = z_max(bi[0].ccurrent[LO], ccurrent_new[LO]);
+    bi[0].ccurrent[HI] = z_min(bi[0].ccurrent[HI], ccurrent_new[HI]);
+
+    Z_TRACE_IF(MSEG_TRACE_IF, "current count[low/high]: %" slint_fmt " / %" slint_fmt, bi[0].ccurrent[LO], bi[0].ccurrent[HI]);
   }
-
-  /* fit to range (NOT REQUIRED!?) */
-/*  ccurrent_new[LO] = z_minmax(bi[0].crange[0], ccurrent_new[LO], bi[0].crange[1]);
-  ccurrent_new[HI] = z_minmax(bi[0].crange[0], ccurrent_new[HI], bi[0].crange[1]);*/
-
-  bi[0].ccurrent[LO] = z_max(bi[0].ccurrent[LO], ccurrent_new[LO]);
-  bi[0].ccurrent[HI] = z_min(bi[0].ccurrent[HI], ccurrent_new[HI]);
-
-  Z_TRACE_IF(MSEG_TRACE_IF, "current count[low/high]: %" slint_fmt " / %" slint_fmt, bi[0].ccurrent[LO], bi[0].ccurrent[HI]);
 
 #ifdef elem_weight
   if (doweights)
@@ -943,20 +342,23 @@ void border_update(slint_t doweights, border_info_t *bi, partcond_intern_t *pc, 
 }
 
 
-void border_change(slint_t doweights, border_info_t *bi, slint_t gcs, slint_t gc, slweight_t gws, slweight_t gw) /* sl_func border_change */
+void border_change(slint_t docounts, slint_t doweights, border_info_t *bi, slint_t gcs, slint_t gc, slweight_t gws, slweight_t gw) /* sl_func border_change */
 {
-  Z_TRACE_IF(MSEG_TRACE_IF, "change: gcs = %" slint_fmt ", gc = %" slint_fmt "", gcs, gc);
+  if (docounts)
+  {
+    Z_TRACE_IF(MSEG_TRACE_IF, "change: gcs = %" slint_fmt ", gc = %" slint_fmt "", gcs, gc);
 
-  bi[0].crange[0] += gcs;
-  bi[0].crange[1] = bi[0].crange[0] + gc;
+    bi[0].crange[0] += gcs;
+    bi[0].crange[1] = bi[0].crange[0] + gc;
 
-  Z_TRACE_IF(MSEG_TRACE_IF, "counts_range: %" slint_fmt "  %" slint_fmt "", bi[0].crange[0], bi[0].crange[1]);
+    Z_TRACE_IF(MSEG_TRACE_IF, "counts_range: %" slint_fmt "  %" slint_fmt "", bi[0].crange[0], bi[0].crange[1]);
 
-  bi[0].ccurrent[LO] = z_minmax(bi[0].crange[0], bi[0].ccurrent[LO], bi[0].crange[1]);
-  bi[0].ccurrent[HI] = z_minmax(bi[0].crange[0], bi[0].ccurrent[HI], bi[0].crange[1]);
+    bi[0].ccurrent[LO] = z_minmax(bi[0].crange[0], bi[0].ccurrent[LO], bi[0].crange[1]);
+    bi[0].ccurrent[HI] = z_minmax(bi[0].crange[0], bi[0].ccurrent[HI], bi[0].crange[1]);
 
-  Z_TRACE_IF(MSEG_TRACE_IF, "count[low/high]: %" slint_fmt " / %" slint_fmt,
-    bi[0].ccurrent[LO], bi[0].ccurrent[HI]);
+    Z_TRACE_IF(MSEG_TRACE_IF, "count[low/high]: %" slint_fmt " / %" slint_fmt,
+      bi[0].ccurrent[LO], bi[0].ccurrent[HI]);
+  }
 
 #ifdef elem_weight
   if (doweights)
@@ -988,6 +390,20 @@ void border_change(slint_t doweights, border_info_t *bi, slint_t gcs, slint_t gc
 #endif
 }
 
+
+#ifdef MSEG_ENABLE_OPTIMZED_LOWHIGH
+# define border_update_update(_dc_, _dw_, _bi_, _pc_, _dir_, _red_)        Z_NOP()
+# ifdef elem_weight
+# define border_change_change(_dc_, _dw_, _bi_, _gcs_, _gc_, _gws_, _gw_)  Z_MOP( \
+  if (_dc_) { (_bi_)[0].crange[0] += (_gcs_); (_bi_)[0].crange[1] = (_bi_)[0].crange[0] + (_gc_); } \
+  if (_dw_) { (_bi_)[0].wrange[0] += (_gws_); (_bi_)[0].wrange[1] = (_bi_)[0].wrange[0] + (_gw_); })
+# else
+# define border_change_change(_dc_, _dw_, _bi_, _gcs_, _gc_, _gws_, _gw_)  Z_MOP( \
+  if (_dc_) { (_bi_)[0].crange[0] += (_gcs_); (_bi_)[0].crange[1] = (_bi_)[0].crange[0] + (_gc_); })
+# endif
+#else
+# define border_update_update(_dc_, _dw_, _bi_, _pc_, _dir_, _red_)        border_update(_dc_, _dw_, _bi_, _pc_, _dir_, _red_)
+# define border_change_change(_dc_, _dw_, _bi_, _gcs_, _gc_, _gws_, _gw_)  border_change(_dc_, _dw_, _bi_, _gcs_, _gc_, _gws_, _gw_)
 #endif
 
 
@@ -998,34 +414,66 @@ slint_t mpi_select_exact_generic_bulk(elements_t *s, slint_t nelements, slint_t 
   slint_t borders[max_nborders], border_bins[max_nborders];
 
   border_info_t border_infos_[1 + max_nborders + 1], *border_infos = border_infos_ + 1;
-#ifdef OLD
-  border_info_t  border_info_old;
-#endif
 
   slint_t total_counts;
 #ifdef elem_weight
   slweight_t total_weights;
 #endif
 
+  slint_t pcm;
   partcond_intern_t pci[nparts];
 
-  slweight_t currents[2 * WEIGHT_FACTOR];
-
-  slweight_t final_locals[WEIGHT_FACTOR], final_globals[WEIGHT_FACTOR];
+#if defined(elem_weight) && defined(sl_weight_intequiv)
+  slweight_t current_cw[4];
+# define current_clo  current_cw[0]
+# define current_chi  current_cw[1]
+# define current_wlo  current_cw[2]
+# define current_whi  current_cw[3]
+#else
+  slint_t current_c[2];
+# define current_clo  current_c[0]
+# define current_chi  current_c[1]
+# ifdef elem_weight
+  slweight_t current_w[2];
+#  define current_wlo  current_w[0]
+#  define current_whi  current_w[1]
+# endif
+#endif
 
   slint_t round, direction, refine, finalize;
 
   slint_t nothing, lc_min, lc_max, lcw2gcw;
 
-  slweight_t mcw, dcw, lcw[WEIGHT_FACTOR], gcw[WEIGHT_FACTOR];
+#if defined(elem_weight) && defined(sl_weight_intequiv)
+  slweight_t final_lcw[2], final_gcw[2];
+# define final_lc   final_lcw[0]
+# define final_gc   final_gcw[0]
+# define final_lw   final_lcw[1]
+# define final_gw   final_gcw[1]
+  slweight_t final_lcws[2], final_gcws[2];
+# define final_lcs  final_lcws[0]
+# define final_gcs  final_gcws[0]
+# define final_lws  final_lcws[1]
+# define final_gws  final_gcws[1]
+#else
+  slint_t final_lc, final_gc;
+  slint_t final_lcs, final_gcs;
+# ifdef elem_weight
+  slweight_t final_lw, final_gw;
+  slweight_t final_lws, final_gws;
+# endif
+#endif
 
   slint_t gc, gcs;
+  slint_t final_mc, final_dc;
 #ifdef elem_weight
   slweight_t gw, gws;
+  slweight_t final_mw, final_dw;
 #endif
 
   slint_t i, j, k, ix;
 
+  slint_t docounts;
 #ifdef elem_weight
   slint_t doweights, weight_factor;
 #else
@@ -1070,18 +518,18 @@ slint_t mpi_select_exact_generic_bulk(elements_t *s, slint_t nelements, slint_t 
   Z_TRACE_IF(MSEG_TRACE_IF, "elements order: %s (%" slint_fmt ")", (v > 0)?"FAILED":"SUCCESS", v);
 #endif
 
-#ifdef elem_weight
-  doweights = ((pconds->pcm & (SLPC_WEIGHTS_MM|SLPC_WEIGHTS_LH)) != 0);
+  pcm = pconds->pcm;
+#ifdef MSEG_DISABLE_MINMAX
+  pcm &= ~(SLPC_COUNTS_MM|SLPC_WEIGHTS_MM);
 #endif
 
+  docounts = ((pcm & (SLPC_COUNTS_MM|SLPC_COUNTS_LH)) != 0);
 #ifdef elem_weight
+  doweights = ((pcm & (SLPC_WEIGHTS_MM|SLPC_WEIGHTS_LH)) != 0);
   weight_factor = 1 + (doweights != 0);
-# define MY_WEIGHT_FACTOR  weight_factor
-#else
-# define MY_WEIGHT_FACTOR  1
 #endif
 
-  mpi_binning_create(&gb, max_nborders, mseg_binnings, s, nelements, doweights, bm, size, rank, comm);
+  mpi_binning_create(&gb, max_nborders, mseg_binnings, s, nelements, docounts, doweights, bm, size, rank, comm);
 
   /* init parts */
   border_lo = 0;
@@ -1105,7 +553,7 @@ slint_t mpi_select_exact_generic_bulk(elements_t *s, slint_t nelements, slint_t 
   direction = 1;
 
   round = 0;
-  while (border_lo <= border_hi)
+  while (border_lo <= border_hi && (docounts || doweights))
   {
     ++round;
 
@@ -1180,78 +628,50 @@ slint_t mpi_select_exact_generic_bulk(elements_t *s, slint_t nelements, slint_t 
         {
           total_counts = 0;
 #ifdef elem_weight
-          total_weights = 0.0;
+          total_weights = 0;
 #endif
           for (j = 0; j < gb.bm->nbins; ++j)
           {
-            total_counts += *gb_counts(&gb, border_bins[i], j);
+            if (docounts) total_counts += *gb_counts(&gb, border_bins[i], j);
 #ifdef elem_weight
-            if (doweights)
-              total_weights += *gb_weights(&gb, border_bins[i], j);
+            if (doweights) total_weights += *gb_weights(&gb, border_bins[i], j);
 #endif
           }
 
-          Z_TRACE_IF(MSEG_TRACE_IF, "total_counts = %" slint_fmt, total_counts);
+          if (docounts) Z_TRACE_IF(MSEG_TRACE_IF, "total_counts = %" slint_fmt, total_counts);
 #ifdef elem_weight
-          if (doweights)
-            Z_TRACE_IF(MSEG_TRACE_IF, "total_weights = %" slweight_fmt , total_weights);
-          else
+          if (doweights) Z_TRACE_IF(MSEG_TRACE_IF, "total_weights = %" slweight_fmt , total_weights);
 #endif
-            Z_TRACE_IF(MSEG_TRACE_IF, "");
 
           init_partconds_intern(nparts, pci, pconds, nparts, total_counts, elem_weight_ifelse(total_weights, 0));
 
           /* init lowest and highest part (sentinels) */
-#ifdef OLD
           Z_TRACE_IF(MSEG_TRACE_IF, "init lowest border:");
-          border_init_old(doweights, &border_infos[border_lo - 1], NULL, total_counts, elem_weight_ifelse(total_weights, 0));
+          border_init(docounts, doweights, &border_infos[border_lo - 1], 0, total_counts, elem_weight_ifelse(total_weights, 0));
           Z_TRACE_IF(MSEG_TRACE_IF, "init highest border:");
-          border_init_old(doweights, &border_infos[border_hi + 1], NULL, total_counts, elem_weight_ifelse(total_weights, 0));
-#else
-          Z_TRACE_IF(MSEG_TRACE_IF, "init lowest border:");
-          border_init(doweights, &border_infos[border_lo - 1], 0, total_counts, elem_weight_ifelse(total_weights, 0));
-          Z_TRACE_IF(MSEG_TRACE_IF, "init highest border:");
-          border_init(doweights, &border_infos[border_hi + 1], 1, total_counts, elem_weight_ifelse(total_weights, 0));
-#endif
+          border_init(docounts, doweights, &border_infos[border_hi + 1], 1, total_counts, elem_weight_ifelse(total_weights, 0));
 
 #ifdef MSEG_BORDER_UPDATE_REDUCTION
           /* init+update forwards */
           for (j = border_lo; j <= border_hi; ++j)
           {
-#ifdef OLD
             Z_TRACE_IF(MSEG_TRACE_IF, "init border %" slint_fmt ",%" slint_fmt ":", j, borders[j]);
-            border_init_old(doweights, &border_infos[borders[j]], &pci[borders[j]], total_counts, elem_weight_ifelse(total_weights, 0));
+            border_init(docounts, doweights, &border_infos[borders[j]], -1, total_counts, elem_weight_ifelse(total_weights, 0));
 
             Z_TRACE_IF(MSEG_TRACE_IF, "update update %" slint_fmt ",%" slint_fmt ":", j, borders[j]);
-            border_update_old(doweights, &border_infos[borders[j]], &pci[borders[j]], 1, 0, 0);
-#else
-            Z_TRACE_IF(MSEG_TRACE_IF, "init border %" slint_fmt ",%" slint_fmt ":", j, borders[j]);
-            border_init(doweights, &border_infos[borders[j]], -1, total_counts, elem_weight_ifelse(total_weights, 0));
-
-            Z_TRACE_IF(MSEG_TRACE_IF, "update update %" slint_fmt ",%" slint_fmt ":", j, borders[j]);
-            border_update(doweights, &border_infos[borders[j]], &pci[borders[j]], 1, 0);
-#endif
+            border_update(docounts, doweights, &border_infos[borders[j]], &pci[borders[j]], 1, 0);
           }
 #endif
 
           /* [init+]update backwards */
           for (j = border_hi; j >= border_lo; --j)
           {
-#ifdef OLD
 #ifndef MSEG_BORDER_UPDATE_REDUCTION
             Z_TRACE_IF(MSEG_TRACE_IF, "init border %" slint_fmt ",%" slint_fmt ":", j, borders[j]);
-            border_init_old(doweights, &border_infos[borders[j]], &pci[borders[j]], total_counts, elem_weight_ifelse(total_weights, 0));
+            border_init(docounts, doweights, &border_infos[borders[j]], -1, total_counts, elem_weight_ifelse(total_weights, 0));
 #endif
             Z_TRACE_IF(MSEG_TRACE_IF, "update border %" slint_fmt ",%" slint_fmt ":", j, borders[j]);
-            border_update_old(doweights, &border_infos[borders[j]], &pci[borders[j]], -1, 0, 1);
-#else
-#ifndef MSEG_BORDER_UPDATE_REDUCTION
-            Z_TRACE_IF(MSEG_TRACE_IF, "init border %" slint_fmt ",%" slint_fmt ":", j, borders[j]);
-            border_init(doweights, &border_infos[borders[j]], -1, total_counts, elem_weight_ifelse(total_weights, 0));
-#endif
-            Z_TRACE_IF(MSEG_TRACE_IF, "update border %" slint_fmt ",%" slint_fmt ":", j, borders[j]);
-            border_update(doweights, &border_infos[borders[j]], &pci[borders[j]], -1, 0);
-#endif
+            border_update(docounts, doweights, &border_infos[borders[j]], &pci[borders[j]], -1, 1);
           }
         }
         
@@ -1268,59 +688,41 @@ do_partitioning:
       {
         Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": check", i, borders[i]);
 
-        Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": crange: %" slint_fmt " - %" slint_fmt, i, borders[i], border_infos[borders[i]].crange[0], border_infos[borders[i]].crange[1]);
+        if (docounts)
+          Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": crange: %" slint_fmt " - %" slint_fmt, i, borders[i], border_infos[borders[i]].crange[0], border_infos[borders[i]].crange[1]);
 #ifdef elem_weight
         if (doweights)
           Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": wrange: %" slweight_fmt " - %" slweight_fmt, i, borders[i], border_infos[borders[i]].wrange[0], border_infos[borders[i]].wrange[1]);
 #endif
 
-#ifdef OLD
-        /* save old limits */
-        border_info_old = border_infos[borders[i]];
+        border_update_update(docounts, doweights, &border_infos[borders[i]], &pci[borders[i]], direction, 1);
 
-#ifdef MSEG_BORDER_UPDATE_FULL
-        if (mseg_border_update_full)
-          border_update_full_old(doweights, &border_infos[borders[i]], &pci[borders[i]], 1);
-        else
-#endif
+        if (docounts)
         {
-          /* is an update required? */
-          if (border_infos[borders[i]].update) border_update_old(doweights, &border_infos[borders[i]], &pci[borders[i]], direction, 1, 1);
-          else { Z_TRACE_IF(MSEG_TRACE_IF, ""); Z_TRACE_IF(MSEG_TRACE_IF, ""); Z_TRACE_IF(MSEG_TRACE_IF, ""); Z_TRACE_IF(MSEG_TRACE_IF, ""); }
-        }
+          current_clo = border_infos[borders[i]].ccurrent[LO] - border_infos[borders[i]].crange[0];
+          current_chi = border_infos[borders[i]].ccurrent[HI] - border_infos[borders[i]].crange[0];
 
-        /* get currents */
-        border_currents_old(doweights, &border_infos[borders[i]], currents);
-#else
-        border_update(doweights, &border_infos[borders[i]], &pci[borders[i]], direction, 1);
-        currents[CNT_LO] = border_infos[borders[i]].ccurrent[LO] - border_infos[borders[i]].crange[0];
-        currents[CNT_HI] = border_infos[borders[i]].ccurrent[HI] - border_infos[borders[i]].crange[0];
-#ifdef elem_weight
-        if (doweights)
-        {
-          currents[WHT_LO] = border_infos[borders[i]].wcurrent[LO] - border_infos[borders[i]].wrange[0];
-          currents[WHT_HI] = border_infos[borders[i]].wcurrent[HI] - border_infos[borders[i]].wrange[0];
-        }
-#endif
-#endif
-
-        Z_ASSERT_IF(MSEG_ASSERT_IF, currents[CNT_LO] <= currents[CNT_HI]);
-        Z_ASSERT_IF(MSEG_ASSERT_IF, 0 <= currents[CNT_LO]);
+          Z_ASSERT_IF(MSEG_ASSERT_IF, current_clo <= current_chi);
+          Z_ASSERT_IF(MSEG_ASSERT_IF, 0 <= current_clo);
         
-        Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": currents count: %" slweight_fmt " - %" slweight_fmt " (range: %" slweight_fmt ")",
-          i, borders[i], currents[CNT_LO], currents[CNT_HI], currents[CNT_HI] - currents[CNT_LO]);
+          Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": currents count: %" slcount_fmt " - %" slcount_fmt " (range: %" slcount_fmt ")",
+            i, borders[i], current_clo, current_chi, current_chi - current_clo);
+
+        } else { current_clo = -1; current_chi = 1; }
 
 #ifdef elem_weight
         if (doweights)
         {
-          Z_ASSERT_IF(MSEG_ASSERT_IF, currents[WHT_LO] <= currents[WHT_HI]);
+          current_wlo = border_infos[borders[i]].wcurrent[LO] - border_infos[borders[i]].wrange[0];
+          current_whi = border_infos[borders[i]].wcurrent[HI] - border_infos[borders[i]].wrange[0];
+
+          Z_ASSERT_IF(MSEG_ASSERT_IF, current_wlo <= current_whi);
 
           Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": currents weight: %" slweight_fmt " - %" slweight_fmt " (range: %" slweight_fmt ")",
-            i, borders[i], currents[WHT_LO], currents[WHT_HI], currents[WHT_HI] - currents[WHT_LO]);
+            i, borders[i], current_wlo, current_whi, current_whi - current_wlo);
 
-        } else
+        } else { current_wlo = -1; current_whi = 1; }
 #endif
-          Z_TRACE_IF(MSEG_TRACE_IF, "");
       }
 
       rti_tstop(rti_tid_mpi_select_exact_generic_while_check_pre);
@@ -1337,106 +739,8 @@ do_partitioning:
         {
           gcs = 0;
 #ifdef elem_weight
-          gws = 0.0;
+          gws = 0;
 #endif
-
-#ifdef OLD_CHECK
-          for (k = 0; k < gb.bm->nbins; ++k)
-          {
-            gc = *gb_counts(&gb, border_bins[i], k);
-
-            currents[CNT_LO] -= gc;
-            currents[CNT_HI] -= gc;
-
-            Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": k = %" slint_fmt ", currents count: %" slweight_fmt " - %" slweight_fmt ", gc = %" slint_fmt ", gcs = %" slint_fmt,
-              i, borders[i], k, currents[CNT_LO], currents[CNT_HI], gc, gcs);
-
-#ifdef elem_weight
-            if (doweights)
-            {
-              gw = *gb_weights(&gb, border_bins[i], k);
-
-              currents[WHT_LO] -= gw;
-              currents[WHT_HI] -= gw;
-
-              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": k = %" slint_fmt ", currents weight: %" slweight_fmt " - %" slweight_fmt ", gw = %" slweight_fmt ", gws = %" slweight_fmt,
-                i, borders[i], k, currents[WHT_LO], currents[WHT_HI], gw, gws);
-
-            } else
-#endif
-            {
-#ifdef elem_weight
-              gw = 0;
-#endif
-              Z_TRACE_IF(MSEG_TRACE_IF, "");
-            }
-
-            /* stop and refine if max count is skipped OR (min count AND max weight is skipped) */
-            if ((currents[CNT_HI] < 0)
-#ifdef elem_weight
-              || (doweights && currents[CNT_LO] < 0 && currents[WHT_HI] < 0.0)
-#endif
-              )
-            {
-              /* stop for REFINE only if there are more than one elements to refine */
-              if (gc > 1)
-              {
-                refine = 1;
-                break;
-              }
-            }
-
-            gcs += gc;
-            gc = 0;
-
-#ifdef elem_weight
-            gws += gw;
-            gw = 0.0;
-#endif
-
-            /* if between min/max counts */
-            if (currents[CNT_LO] <= 0 && currents[CNT_HI] >= 0)
-            {
-#ifdef elem_weight
-              if (doweights)
-              {
-                Z_TRACE_IF(MSEG_TRACE_IF, "go to next: %d && %d", (currents[CNT_HI] > 0), (currents[WHT_LO] > 0));
-
-                /* go to next if max count not reached AND min weight not reached */
-                if (currents[CNT_HI] > 0 && currents[WHT_LO] > 0) continue;
-              }
-#endif
-
-              /* look ahead for a better stop */
-              if (k + 1 < gb.bm->nbins && currents[CNT_HI] - *gb_counts(&gb, border_bins[i], k + 1) >= 0)
-              {
-#ifdef elem_weight
-                if (doweights)
-                {
-                  /* continue if weights will improve */
-                  if (z_abs(currents[WHT_LO] + currents[WHT_HI]) > z_abs(currents[WHT_LO] + currents[WHT_HI] - 2 * *gb_weights(&gb, border_bins[i], k + 1))) continue;
-
-                } else
-#endif
-                {
-                  /* continue if counts will improve */
-                  if (z_abs(currents[CNT_LO] + currents[CNT_HI]) > z_abs(currents[CNT_LO] + currents[CNT_HI] - 2 * *gb_counts(&gb, border_bins[i], k + 1))) continue;
-                }
-              }
-
-              /* stop */
-              break;
-            }
-          }
-          
-          Z_ASSERT_IF(MSEG_ASSERT_IF, k < gb.bm->nbins);
-
-          /* make sure k is safe (it is used as index later) */
-          if (k >= gb.bm->nbins) k = gb.bm->nbins - 1;
-
-          if (!refine) ++k;
-
-#else /* OLD_CHECK */
 
           k = 0;
           
@@ -1445,37 +749,39 @@ do_partitioning:
             /* check for HIT */
 
             /* HIT if max count already skipped */
-            if (k == 0 && currents[CNT_HI] < 0) break;
+            if (k == 0 && current_chi < 0) break;
 
             /* if between min/max counts */
-            if (currents[CNT_LO] <= 0 && currents[CNT_HI] >= 0)
+            if (current_clo <= 0 && current_chi >= 0)
             {
 #ifdef elem_weight
               if (doweights)
               {
-                Z_TRACE_IF(MSEG_TRACE_IF, "go to next: %d && %d", (currents[CNT_HI] > 0), (currents[WHT_LO] > 0));
+                Z_TRACE_IF(MSEG_TRACE_IF, "go to next: %d && %d", (current_chi > 0), (current_wlo > 0));
 
                 /* go to next if max count not reached AND min weight not reached */
-                if (currents[CNT_HI] > 0 && currents[WHT_LO] > 0) goto donthit;
+                if (current_chi > 0 && current_wlo > 0) goto donthit;
               }
 #endif
 
+#ifndef MSEG_DISABLE_BEST_CHOICE
               /* look ahead for a better stop */
-              if (k < gb.bm->nbins && currents[CNT_HI] - *gb_counts(&gb, border_bins[i], k) >= 0)
+              if (k < gb.bm->nbins && (!docounts || current_chi - *gb_counts(&gb, border_bins[i], k) >= 0))
               {
 #ifdef elem_weight
                 if (doweights)
                 {
                   /* continue if weights will improve */
-                  if (z_abs(currents[WHT_LO] + currents[WHT_HI]) > z_abs(currents[WHT_LO] + currents[WHT_HI] - 2 * *gb_weights(&gb, border_bins[i], k))) goto donthit;
+                  if (z_abs(current_wlo + current_whi) > z_abs(current_wlo + current_whi - 2 * *gb_weights(&gb, border_bins[i], k))) goto donthit;
 
                 } else
 #endif
                 {
                   /* continue if counts will improve */
-                  if (z_abs(currents[CNT_LO] + currents[CNT_HI]) > z_abs(currents[CNT_LO] + currents[CNT_HI] - 2 * *gb_counts(&gb, border_bins[i], k))) goto donthit;
+                  if (z_abs(current_clo + current_chi) > z_abs(current_clo + current_chi - 2 * *gb_counts(&gb, border_bins[i], k))) goto donthit;
                 }
               }
+#endif
 
               /* HIT if there is no better stop */
               break;
@@ -1487,46 +793,47 @@ donthit:
             if (k >= gb.bm->nbins) break;
 
             /* skip k-th bin */
+            
+            if (docounts)
+            {
+              gc = *gb_counts(&gb, border_bins[i], k);
 
-            gc = *gb_counts(&gb, border_bins[i], k);
+              current_clo -= gc;
+              current_chi -= gc;
 
-            currents[CNT_LO] -= gc;
-            currents[CNT_HI] -= gc;
+              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": k = %" slint_fmt ", currents count: %" slcount_fmt " - %" slcount_fmt ", gc = %" slint_fmt ", gcs = %" slint_fmt,
+                i, borders[i], k, current_clo, current_chi, gc, gcs);
 
-            Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": k = %" slint_fmt ", currents count: %" slweight_fmt " - %" slweight_fmt ", gc = %" slint_fmt ", gcs = %" slint_fmt,
-              i, borders[i], k, currents[CNT_LO], currents[CNT_HI], gc, gcs);
+            } else gc = 0;
 
 #ifdef elem_weight
             if (doweights)
             {
               gw = *gb_weights(&gb, border_bins[i], k);
 
-              currents[WHT_LO] -= gw;
-              currents[WHT_HI] -= gw;
+              current_wlo -= gw;
+              current_whi -= gw;
 
               Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": k = %" slint_fmt ", currents weight: %" slweight_fmt " - %" slweight_fmt ", gw = %" slweight_fmt ", gws = %" slweight_fmt,
-                i, borders[i], k, currents[WHT_LO], currents[WHT_HI], gw, gws);
+                i, borders[i], k, current_wlo, current_whi, gw, gws);
 
-            } else
+            } else gw = 0;
 #endif
-            {
-#ifdef elem_weight
-              gw = 0;
-#endif
-              Z_TRACE_IF(MSEG_TRACE_IF, "");
-            }
 
             /* check for REFINE */
 
             /* stop and refine if max count is skipped OR (min count AND max weight is skipped) */
-            if (currents[CNT_HI] < 0
+            if (current_chi < 0
 #ifdef elem_weight
-              || (doweights && currents[CNT_LO] < 0 && currents[WHT_HI] < 0.0)
+              /* '(!docounts || current_clo < 0)' is omitted, because if !docounts then current_clo = -1 */
+              /* 'doweights &&' is omitted, because if !doweights then current_whi = 1 */
+              || (current_clo < 0 && current_whi < 0)
 #endif
               )
             {
-              /* stop for REFINE only if there are more than one elements to refine (otherwise a HIT follows next) */
-              if (gc > 1)
+              /* stop for REFINE if we do not know the counts, or */
+              /* if counts are known and there are more than one elements to refine (otherwise a HIT follows next) */
+              if (!docounts || gc > 1)
               {
                 refine = 1;
                 break;
@@ -1538,12 +845,11 @@ donthit:
 
 #ifdef elem_weight
             gws += gw;
-            gw = 0.0;
+            gw = 0;
 #endif
             
             ++k;
           }
-#endif /* OLD_CHECK */
 
           Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": %s k = %" slint_fmt, i, borders[i], (refine)?"REFINE":"HIT", k);
 
@@ -1586,7 +892,19 @@ donthit:
 
 #ifdef MSEG_ROOT
         rti_tstart(rti_tid_mpi_select_exact_generic_while_check_final_root);
-        if (mseg_root >= 0) MPI_Bcast(currents, 2 * MY_WEIGHT_FACTOR, weight_mpi_datatype, mseg_root, comm);
+        if (mseg_root >= 0)
+        {
+#if defined(elem_weight) && defined(sl_weight_intequiv)
+          MPI_Bcast(current_cw, 4, weight_mpi_datatype, mseg_root, comm);
+#else
+          if (docounts)
+            MPI_Bcast(current_c, 2, int_mpi_datatype, mseg_root, comm);
+# ifdef elem_weight
+          if (doweights)
+            MPI_Bcast(current_w, 2, weight_mpi_datatype, mseg_root, comm);
+# endif
+#endif
+        }
         rti_tstop(rti_tid_mpi_select_exact_generic_while_check_final_root);
 #endif
 
@@ -1597,19 +915,22 @@ donthit:
 #ifdef elem_weight
             if (doweights)
             {
-              nothing = (currents[WHT_LO] < ((border_infos[borders[i]].wrange[1] - border_infos[borders[i]].wrange[0]) - currents[WHT_HI]));
-              Z_TRACE_IF(MSEG_TRACE_IF, "weight: %" slweight_fmt " vs. %" slweight_fmt " -> %s", currents[WHT_LO], (border_infos[borders[i]].wrange[1] - border_infos[borders[i]].wrange[0]) - currents[WHT_HI], ((nothing)?"NOTHING":"ALL"));
+              nothing = (current_wlo < ((border_infos[borders[i]].wrange[1] - border_infos[borders[i]].wrange[0]) - current_whi));
+              Z_TRACE_IF(MSEG_TRACE_IF, "weight: %" slweight_fmt " vs. %" slweight_fmt " -> %s", current_wlo, (border_infos[borders[i]].wrange[1] - border_infos[borders[i]].wrange[0]) - current_whi, ((nothing)?"NOTHING":"ALL"));
 
             } else
 #endif
             {
-              nothing = (currents[CNT_LO] < ((border_infos[borders[i]].crange[1] - border_infos[borders[i]].crange[0]) - currents[CNT_HI]));
-              Z_TRACE_IF(MSEG_TRACE_IF, "count: %" slint_fmt " vs. %" slint_fmt " -> %s", (slint_t) currents[CNT_LO], (slint_t) ((border_infos[borders[i]].crange[1] - border_infos[borders[i]].crange[0]) - currents[CNT_HI]), ((nothing)?"NOTHING":"ALL"));
+              nothing = (current_clo < ((border_infos[borders[i]].crange[1] - border_infos[borders[i]].crange[0]) - current_chi));
+              Z_TRACE_IF(MSEG_TRACE_IF, "count: %" slint_fmt " vs. %" slint_fmt " -> %s", (slint_t) current_clo, (slint_t) ((border_infos[borders[i]].crange[1] - border_infos[borders[i]].crange[0]) - current_chi), ((nothing)?"NOTHING":"ALL"));
             }
 
             if (nothing)
             {
-              mcw = dcw = 0.0;
+              final_mc = final_dc = 0;
+#ifdef elem_weight
+              final_mw = final_dw = 0;
+#endif
               lc_min = lc_max = 0;
 
             } else
@@ -1617,22 +938,28 @@ donthit:
 #ifdef elem_weight
               if (doweights)
               {
-                mcw = dcw = border_infos[borders[i]].wrange[1] - border_infos[borders[i]].wrange[0];
+                final_mw = final_dw = border_infos[borders[i]].wrange[1] - border_infos[borders[i]].wrange[0];
 
               } else
 #endif
               {
-                mcw = dcw = border_infos[borders[i]].crange[1] - border_infos[borders[i]].crange[0];
+                final_mc = final_dc = border_infos[borders[i]].crange[1] - border_infos[borders[i]].crange[0];
               }
               lc_min = lc_max = border_infos[borders[i]].crange[1] - border_infos[borders[i]].crange[0];
             }
 
-            Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": %s: mcw = %" slweight_fmt ", dcw = %" slweight_fmt, i, borders[i], ((doweights)?"weights":"counts"), mcw, dcw);
-
-            gcw[0] = (nothing)?0.0:(border_infos[borders[i]].crange[1] - border_infos[borders[i]].crange[0]);
 #ifdef elem_weight
             if (doweights)
-              gcw[1] = (nothing)?0.0:(border_infos[borders[i]].wrange[1] - border_infos[borders[i]].wrange[0]);
+              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": weights: final_mw = %" slweight_fmt ", final_dw = %" slweight_fmt, i, borders[i], final_mw, final_dw);
+            else
+#endif
+              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": counts: final_mc = %" slint_fmt ", final_dc = %" slint_fmt, i, borders[i], final_mc, final_dc);
+
+            if (docounts)
+              final_gcs = (nothing)?0:(border_infos[borders[i]].crange[1] - border_infos[borders[i]].crange[0]);
+#ifdef elem_weight
+            if (doweights)
+              final_gws = (nothing)?0:(border_infos[borders[i]].wrange[1] - border_infos[borders[i]].wrange[0]);
 #endif
             lcw2gcw = 0;
             break;
@@ -1644,64 +971,76 @@ donthit:
           case SL_MSEG_FM_EXACT:
             Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": finalize mode: exact", i, borders[i]);
 
-            final_locals[0] =
+            final_lc = 0;
 #ifdef elem_weight
-              final_locals[1] =
+            final_lw = 0;
 #endif
-              0.0;
 
             for (j = 0; j < nelements; ++j)
             {
-              final_locals[0] += lb_bin_count(&gb.lb, border_bins[i], j);
+              final_lc += lb_bin_count(&gb.lb, border_bins[i], j);
 #ifdef elem_weight
-              final_locals[1] += lb_bin_weight(&gb.lb, border_bins[i], j);
+              final_lw += lb_bin_weight(&gb.lb, border_bins[i], j);
 #endif
             }
 
-            Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": final_locals[0]: %" slweight_fmt, i, borders[i], final_locals[0]);
+            if (docounts)
+              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": final_lc: %" slcount_fmt, i, borders[i], final_lc);
 #ifdef elem_weight
             if (doweights)
-              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": final_locals[1]: %" slweight_fmt, i, borders[i], final_locals[1]);
+              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": final_lw: %" slweight_fmt, i, borders[i], final_lw);
 #endif
 
-            MPI_Exscan(final_locals, final_globals, MY_WEIGHT_FACTOR, weight_mpi_datatype, MPI_SUM, comm);
-            if (rank == 0) final_globals[0] =
-#ifdef elem_weight
-              final_globals[1] =
+#if defined(elem_weight) && defined(sl_weight_intequiv)
+            MPI_Exscan(final_lcw, final_gcw, weight_factor, weight_mpi_datatype, MPI_SUM, comm);
+            if (rank == 0) final_gcw[0] = final_gcw[1] = 0;
+#else
+            if (docounts)
+            {
+              MPI_Exscan(&final_lc, &final_gc, 1, int_mpi_datatype, MPI_SUM, comm);
+              if (rank == 0) final_gc = 0;
+            }
+# ifdef elem_weight
+            if (doweights)
+            {
+              MPI_Exscan(&final_lw, &final_gw, 1, weight_mpi_datatype, MPI_SUM, comm);
+              if (rank == 0) final_gw = 0;
+            }
+# endif
 #endif
-              0.0;
 
-            Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": final_globals[0]: %" slweight_fmt, i, borders[i], final_globals[0]);
+            if (docounts)
+              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": final_gc: %" slcount_fmt, i, borders[i], final_gc);
 #ifdef elem_weight
             if (doweights)
-              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": final_globals[1]: %" slweight_fmt, i, borders[i], final_globals[1]);
+              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": final_gw: %" slweight_fmt, i, borders[i], final_gw);
 #endif
 
 #ifdef elem_weight
             if (doweights)
             {
               /* middle of min/max weight */
-              mcw = (currents[WHT_LO] + currents[WHT_HI]) / 2.0;
+              final_mw = (current_wlo + current_whi) / 2.0;
 
               /* min. part of weight to contribute */
-              dcw = z_max(0, mcw - final_globals[1]);
+              final_dw = z_max(0, final_mw - final_gw);
 
-              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": weights: mcw = %" slweight_fmt ", dcw = %" slweight_fmt, i, borders[i], mcw, dcw);
+              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": weights: final_mw = %" slweight_fmt ", final_dw = %" slweight_fmt, i, borders[i], final_mw, final_dw);
 
             } else
 #endif
             {
               /* middle of min/max count */
-              mcw = (currents[CNT_LO] + currents[CNT_HI]) / 2;
+              final_mc = (current_clo + current_chi) / 2;
 
               /* min. part of count to contribute */
-              dcw = z_max(0, mcw - final_globals[0]);
+              final_dc = z_max(0, final_mc - final_gc);
 
-              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": counts: mcw = %" slweight_fmt ", dcw = %" slweight_fmt, i, borders[i], mcw, dcw);
+              Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": counts: final_mc = %" slint_fmt ", final_dc = %" slint_fmt, i, borders[i], final_mc, final_dc);
             }
 
-            lc_min = currents[CNT_LO] - final_globals[0];
-            lc_max = currents[CNT_HI] - final_globals[0];
+            lc_min = current_clo - final_gc;
+            lc_max = current_chi - final_gc;
 
             lcw2gcw = 1;
             break;
@@ -1709,17 +1048,18 @@ donthit:
 
         Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": lc_min = %" slint_fmt ", lc_max = %" slint_fmt, i, borders[i], lc_min, lc_max);
 
-        mpi_binning_finalize(&gb, border_bins[i], dcw, lc_min, lc_max, lcw, sp, borders[i] + 1, size, rank, comm);
-        
-        Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": lcw[0] = %" slweight_fmt, i, borders[i], lcw[0]);
+        mpi_binning_finalize(&gb, border_bins[i], elem_weight_ifelse(0, final_dc), elem_weight_ifelse(final_dw, 0), lc_min, lc_max, &final_lcs, elem_weight_ifelse(&final_lws, NULL), sp, borders[i] + 1, size, rank, comm);
+
+        if (docounts)
+          Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": lcs_final = %" slcount_fmt, i, borders[i], final_lcs);
 #ifdef elem_weight
         if (doweights)
-          Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": lcw[1] = %" slweight_fmt, i, borders[i], lcw[1]);
+          Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": lws_final = %" slweight_fmt, i, borders[i], final_lws);
 #endif
 
         gcs = gc = 0;
 #ifdef elem_weight
-        gws = gw = 0.0;
+        gws = gw = 0;
 #endif
 
         Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": next border: %" slint_fmt " <= %" slint_fmt " + %" slint_fmt " <= %" slint_fmt,
@@ -1740,21 +1080,23 @@ donthit:
               Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": get gcw from lcw", i, borders[i]);
               
 # ifdef MSEG_ROOT
-              if (mseg_root >= 0) MPI_Reduce(lcw, gcw, MY_WEIGHT_FACTOR, weight_mpi_datatype, MPI_SUM, mseg_root, comm);
-              else
+              if (mseg_root >= 0)
+              {
+#  ifdef sl_weight_intequiv
+                MPI_Reduce(final_lcws, final_gcws, weight_factor, weight_mpi_datatype, MPI_SUM, mseg_root, comm);
+#  else
+                MPI_Reduce(&final_lcs, &final_gcs, 1, int_mpi_datatype, MPI_SUM, mseg_root, comm);
+                MPI_Reduce(&final_lws, &final_gws, 1, weight_mpi_datatype, MPI_SUM, mseg_root, comm);
+#  endif
+              } else
 # endif
               {
-# ifdef MSEG_REDUCEBCAST_THRESHOLD
-                if (size >= MSEG_REDUCEBCAST_THRESHOLD)
-                {
-                  Z_TRACE_IF(MSEG_TRACE_IF, "%d >= %d: allreduce = reduce + bcast", size, (int) MSEG_REDUCEBCAST_THRESHOLD);
-
-                  MPI_Reduce(lcw, gcw, MY_WEIGHT_FACTOR, weight_mpi_datatype, MPI_SUM, REDUCEBCAST_ROOT, comm);
-                  MPI_Bcast(gcw, MY_WEIGHT_FACTOR, weight_mpi_datatype, REDUCEBCAST_ROOT, comm);
-
-                } else
+# ifdef sl_weight_intequiv
+                sl_MPI_Allreduce(final_lcws, final_gcws, weight_factor, weight_mpi_datatype, MPI_SUM, comm, size, rank);
+# else
+                sl_MPI_Allreduce(&final_lcs, &final_gcs, 1, int_mpi_datatype, MPI_SUM, comm, size, rank);
+                sl_MPI_Allreduce(&final_lws, &final_gws, 1, weight_mpi_datatype, MPI_SUM, comm, size, rank);
 # endif
-                  MPI_Allreduce(lcw, gcw, MY_WEIGHT_FACTOR, weight_mpi_datatype, MPI_SUM, comm);
               }
             }
 
@@ -1762,26 +1104,29 @@ donthit:
 #endif
           {
             /* global counts is just what we selected above */
-            gcw[0] = mcw;
+            final_gcs = final_mc;
           }
 
 #ifdef MSEG_ROOT
           if (mseg_root < 0 || mseg_root == rank)
 #endif
           {
-            gcs = gcw[0];
+            gcs = final_gcs;
 #ifdef elem_weight
-            gws = gcw[1];
+            gws = final_gws;
 #endif
           }
 
-          Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": gcs = %" slint_fmt, i, borders[i], gcs);
-/*          Z_ASSERT_IF(MSEG_ASSERT_IF, currents[CNT_LO] <= gcs && gcs <= currents[CNT_HI]);*/ /* FIXME: only if exact */
+          if (docounts)
+          {
+            Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": gcs = %" slint_fmt, i, borders[i], gcs);
+/*            Z_ASSERT_IF(MSEG_ASSERT_IF, current_clo <= gcs && gcs <= current_chi);*/ /* FIXME: only if exact */
+          }
 #ifdef elem_weight
           if (doweights)
           {
             Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": gws = %" slweight_fmt, i, borders[i], gws);
-/*            Z_ASSERT_IF(MSEG_ASSERT_IF, currents[WHT_LO] <= gws && gws <= currents[WHT_HI]);*/  /* FIXME: only if exact */
+/*            Z_ASSERT_IF(MSEG_ASSERT_IF, current_wlo <= gws && gws <= current_whi);*/  /* FIXME: only if exact */
           }
 #endif
         }
@@ -1795,11 +1140,7 @@ donthit:
       if (mseg_root < 0 || mseg_root == rank)
 #endif
       {
-#ifdef OLD
-        border_change_old(doweights, &border_infos[borders[i]], &border_info_old, gcs, gc, elem_weight_ifelse(gws, 0.0), elem_weight_ifelse(gw, 0.0), (refine)?direction:0);
-#else
-        border_change(doweights, &border_infos[borders[i]], gcs, gc, elem_weight_ifelse(gws, 0.0), elem_weight_ifelse(gw, 0.0));
-#endif
+        border_change_change(docounts, doweights, &border_infos[borders[i]], gcs, gc, elem_weight_ifelse(gws, 0), elem_weight_ifelse(gw, 0));
       }
       
       Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": %s", i, borders[i], (refine)?"REFINE":"REMOVE");
@@ -1812,11 +1153,6 @@ donthit:
       } else
       {
         ++nborders_removed;
-#ifdef OLD
-#ifdef MSEG_BORDER_UPDATE_FULL
-        border_infos[borders[i]].done = 1;
-#endif
-#endif
 
 #ifdef MSEG_INFO
         if (mseg_info_finish_rounds) mseg_info_finish_rounds[borders[i]] = round;
@@ -1842,8 +1178,21 @@ donthit:
 
     Z_TRACE_IF(MSEG_TRACE_IF, "%" slint_fmt ": remove %" slint_fmt", lo: %" slint_fmt ", hi: %" slint_fmt "", round, nborders_removed, border_lo, border_hi);
 
-    /* change direction */
-    direction *= -1;
+#ifdef MSEG_FORWARD_ONLY
+    if (mseg_forward_only)
+    {
+      /* do not change direction, but if there are min-max bounds, then perform a separate backward pass to update the (remaining) borders */
+      if (pci->pcm & (SLPC_COUNTS_MM|SLPC_WEIGHTS_MM))
+      {
+        for (i = border_hi; i >= border_lo; --i) border_update_update(docounts, doweights, &border_infos[borders[i]], &pci[borders[i]], direction, -1);
+      }
+
+    } else
+#endif
+    {
+      /* change direction */
+      direction *= -1;
+    }
   }
 
 #ifdef MSEG_INFO  
@@ -1905,6 +1254,8 @@ donthit:
 #endif
 
   return 0;
+
+#undef doweights
 }
 
 
@@ -2010,3 +1361,13 @@ slint_t mpi_select_exact_generic(elements_t *s, slint_t nelements, slint_t npart
   return 0;
 }
 #endif
+
+
+#undef SYNC_ON_INIT
+#undef SYNC_ON_EXIT
+#undef PRINT_SDISPLS
+#undef PRINT_STATS
+#undef PRINT_TIMINGS
+#undef VERIFY
+#undef LO
+#undef HI

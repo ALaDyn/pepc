@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/merge2_search.c
- *  timestamp: 2011-02-08 21:32:53 +0100
  *  
  */
 
@@ -450,3 +449,8 @@ slint merge2_basic_shyb_01(elements_t *s0, elements_t *s1, elements_t *t) /* sl_
 #undef the_search_le
 #undef the_search_gt
 #undef the_search_ge
+
+
+#undef the_ncopy
+#undef the_nmove
+#undef the_rotate

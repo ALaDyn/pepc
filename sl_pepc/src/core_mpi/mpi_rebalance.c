@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_rebalance.c
- *  timestamp: 2011-02-10 21:20:50 +0100
  *  
  */
 
@@ -308,3 +307,8 @@ slint_t mpi_rebalance_alltoallv(elements_t *sbuf, int *scounts, int *sdispls, el
 
   return 0;
 }
+
+
+#undef LOCAL_NCOPY
+#undef NONBLOCKING
+#undef MPI_REBALANCE_ALLTOALLV_TAG

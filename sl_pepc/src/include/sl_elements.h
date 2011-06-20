@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_elements.h
- *  timestamp: 2011-03-06 21:59:31 +0100
  *  
  */
 
@@ -121,12 +120,18 @@
 #ifdef sl_elem_weight
 # define elem_has_weight                                1
 # define elem_weight_ifelse(_if_, _el_)                 (_if_)
-# define elem_weight(_e_, _at_)                         sl_elem_weight((_e_), (_at_))
-# define elem_weight_one(_e_, _at_)                     sl_elem_weight((_e_), (_at_))
+# define elem_weight(_e_, _at_)                         ((slweight_t) sl_elem_weight((_e_), (_at_)))
+# define elem_weight_one(_e_, _at_)                     ((slweight_t) sl_elem_weight((_e_), (_at_)))
+# ifdef sl_elem_weight_set
+#  define elem_weight_set(_e_, _at_, _w_)               sl_elem_weight_set((_e_), (_at_), (_w_))
+# else
+#  define elem_weight_set(_e_, _at_, _w_)               sl_elem_weight((_e_), (_at_)) = (_w_)
+# endif
 #else
 # define elem_has_weight                                0
 # define elem_weight_ifelse(_if_, _el_)                 (_el_)
-# define elem_weight_one(_e_, _at_)                     1
+# define elem_weight_one(_e_, _at_)                     ((slweight_t) 1)
+# define elem_weight_set(_e_, _at_, _w_)                Z_NOP()
 #endif
 
 #define elem_pack(_s_, _d_)                             (key_copy((_s_)->keys, &(_d_)->elements[0].key) cc_data_copy(_d_, &(_s_)->elements[0]))

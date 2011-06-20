@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/search.c
- *  timestamp: 2011-02-24 21:37:35 +0100
  *  
  */
 

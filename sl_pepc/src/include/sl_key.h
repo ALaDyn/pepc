@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_key.h
- *  timestamp: 2011-03-06 21:59:31 +0100
  *  
  */
 
@@ -50,6 +49,9 @@
 #define key_get_pure(k)                      (sl_key_get_pure(k))
 #define key_set_pure(k, p)                   (sl_key_set_pure(k, p))
 
+#ifdef key_integer
+# define key_integer_unsigned                (((key_pure_type_c) ~((key_pure_type_c) 0)) >= ((key_pure_type_c) 0))
+#endif
 
 #define key_n                                1
 #define key_byte                             (sl_key_byte)
@@ -73,9 +75,17 @@
 #endif
 #ifdef sl_key_val_rand
 # define key_val_rand()                      sl_key_val_rand()
+# define have_key_val_rand                   1
+#else
+# define key_val_rand()                      Z_NOP()
+# define have_key_val_rand                   0
 #endif
 #ifdef sl_key_val_rand_minmax
 # define key_val_rand_minmax(_min_, _max_)   sl_key_val_rand_minmax(_min_, _max_)
+# define have_key_val_rand_minmax            1
+#else
+# define key_val_rand_minmax(_min_, _max_)   Z_NOP()
+# define have_key_val_rand_minmax            0
 #endif
 
 
@@ -103,8 +113,8 @@
 #define key_cm                               SLCM_KEYS
 
 #ifdef key_integer
-# define key_radix_low                       0
-# define key_radix_high                      (sizeof(key_pure_type_c) * 8 - 1)
+# define key_radix_low                       ((slint_t) 0)
+# define key_radix_high                      ((slint_t) (sizeof(key_pure_type_c) * 8 - 1))
 # define key_radix_key2class(_k_, _x_, _y_)  (((_k_) >> (_x_)) & (_y_))
 #endif
 

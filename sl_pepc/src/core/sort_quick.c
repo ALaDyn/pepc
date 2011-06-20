@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/sort_quick.c
- *  timestamp: 2011-02-08 21:32:53 +0100
  *  
  */
 
@@ -213,6 +212,8 @@ slint qs_hybrid(elements_t xl, elements_t xh, elements_t *xs) /* sl_func qs_hybr
   return 0;
 }
 
+#undef stack_size
+
 
 slint sort_quick_h(elements_t *s, elements_t *xs) /* sl_func sort_quick_h */
 {
@@ -235,6 +236,7 @@ slint sort_quick_h(elements_t *s, elements_t *xs) /* sl_func sort_quick_h */
 
   return 0;
 }
+
 
 slint sort_quick(elements_t *s, elements_t *xs) /* sl_proto, sl_func sort_quick */
 {

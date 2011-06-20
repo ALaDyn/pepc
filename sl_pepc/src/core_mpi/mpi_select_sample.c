@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_select_sample.c
- *  timestamp: 2011-02-10 21:20:50 +0100
  *  
  */
 
@@ -172,7 +171,7 @@ slint_t mpi_select_sample_regular(elements_t *s, slint_t nparts, partcond_t *pco
         for (i = 0; i < nsglobal; ++i)
         {
           key_set_pure(elem_key_at(&gs, i), gwskeys[i].pkey);
-          elem_weight(&gs, i) = gwskeys[i].weight;
+          elem_weight_set(&gs, i, gwskeys[i].weight);
 
           Z_TRACE_IF(MSS_TRACE_IF, "global sample %" slint_fmt ": key: %" key_pure_type_fmt ", weight: %" slweight_fmt, i, *key_get_pure(elem_key_at(&gs, i)), elem_weight(&gs, i));
         }
@@ -271,7 +270,7 @@ slint_t mpi_select_sample_regular(elements_t *s, slint_t nparts, partcond_t *pco
       for (i = 0; i < gs.size; ++i)
       {
         key_set_pure(elem_key_at(&gs, i), lwskeys[i].pkey);
-        elem_weight(&gs, i) = lwskeys[i].weight;
+        elem_weight_set(&gs, i, lwskeys[i].weight);
 
         Z_TRACE_IF(MSS_TRACE_IF, "global sample %" slint_fmt ": key: %" key_pure_type_fmt ", weight: %" slweight_fmt, i, *key_get_pure(elem_key_at(&gs, i)), elem_weight(&gs, i));
       }
@@ -424,4 +423,9 @@ slint_t mpi_select_sample_regular(elements_t *s, slint_t nparts, partcond_t *pco
   }
   
   return 0;
+
+#undef doweights
 }
+
+
+#undef sl_pivot_equal

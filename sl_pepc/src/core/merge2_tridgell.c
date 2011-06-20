@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/merge2_tridgell.c
- *  timestamp: 2011-02-10 21:20:49 +0100
  *  
  */
 
@@ -330,3 +329,6 @@ slint merge2_compo_tridgell(elements_t *s0, elements_t *s1, elements_t *sx) /* s
 
   return 0;
 }
+
+
+#undef the_merge_x_0_1

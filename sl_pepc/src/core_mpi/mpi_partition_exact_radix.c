@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_partition_exact_radix.c
- *  timestamp: 2010-12-19 13:24:44 +0100
  *  
  */
 

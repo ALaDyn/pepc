@@ -11,10 +11,10 @@
 
 
 /* standard (SL) integer data type */
-#define sl_int_type_c          long
-#define sl_int_type_mpi        MPI_LONG
+#define sl_int_type_c          long long
+#define sl_int_type_mpi        MPI_LONG_LONG
 #define sl_int_size_mpi        1
-#define sl_int_type_fmt        "ld"
+#define sl_int_type_fmt        "lld"
 
 
 /* index data type */

@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/merge2_straight.c
- *  timestamp: 2011-02-06 00:22:34 +0100
  *  
  */
 

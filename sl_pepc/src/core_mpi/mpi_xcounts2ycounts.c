@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_xcounts2ycounts.c
- *  timestamp: 2011-02-10 21:20:50 +0100
  *  
  */
 
@@ -29,10 +28,10 @@ slint_t mpi_xcounts2ycounts_all2all(int *xcounts, int *ycounts, int size, int ra
 }
 
 
-#define MPI_XCOUNTS2YCOUNTS_SPARSE_TAG  1
-
 slint_t mpi_xcounts2ycounts_sparse(int *xcounts, int *ycounts, slint_t ytotal, int size, int rank, MPI_Comm comm) /* sl_proto, sl_func mpi_xcounts2ycounts_sparse */
 {
+#define MPI_XCOUNTS2YCOUNTS_SPARSE_TAG  1
+
   slint_t i;
 
   MPI_Request req;
@@ -59,6 +58,8 @@ slint_t mpi_xcounts2ycounts_sparse(int *xcounts, int *ycounts, slint_t ytotal, i
   }
   
   return 0;
+
+#undef MPI_XCOUNTS2YCOUNTS_SPARSE_TAG
 }
 
 
@@ -228,9 +229,9 @@ slint_t mpi_subxdispls2ycounts(slint_t nsubs, int *sub_xdispls, slint_t *sub_sou
 
 
   Z_TRACE_IF(MX2Y_TRACE_IF, "nsubs = %" slint_fmt "", nsubs);
-  Z_TRACE_ARRAY_IF(MX2Y_TRACE_IF, "sub_xdispls = ", "%d  ", i, nsubs * sub_size, sub_xdispls);
-  Z_TRACE_ARRAY_IF(MX2Y_TRACE_IF, "sub_sources = ", "%" slint_fmt "  ", i, nsubs, sub_sources);
-  Z_TRACE_ARRAY_IF(MX2Y_TRACE_IF, "sub_sizes = ", "%" slint_fmt "  ", i, nsubs, sub_sizes);
+  Z_TRACE_ARRAY_IF(MX2Y_TRACE_IF, i, nsubs * sub_size, "%d  ", sub_xdispls[i], "sub_xdispls = ");
+  Z_TRACE_ARRAY_IF(MX2Y_TRACE_IF, i, nsubs, "%" slint_fmt "  ", sub_sources[i], "sub_sources = ");
+  Z_TRACE_ARRAY_IF(MX2Y_TRACE_IF, i, nsubs, "%" slint_fmt "  ", sub_sizes[i], "sub_sizes = ");
 
   MPI_Allgather(&nsubs, 1, int_mpi_datatype, all_nsubs, 1, int_mpi_datatype, sub_comm);
   

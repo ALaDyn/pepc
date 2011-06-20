@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/z_crc32.c
- *  timestamp: 2011-02-26 16:58:40 +0100
  *  
  */
 
@@ -14,14 +13,12 @@
 #include "z_pack.h"
 
 
+/*#define RFC_1510*/
+
 #define CRC32POLY     0x04C11DB7
 #define CRC32POLYREV  0xEDB88320
 
 #define CRC32FMASK    0xFFFFFFFF
-
-/*#define RFC_1510*/
-
-#define z_crc32_fmtx  ".8X"
 
 /* z_var z_crc32_table_size z_crc32_table */
 
@@ -85,8 +82,10 @@ void z_crc32_make_table(z_crc32_t *tbl) /* z_func z_crc32_make_table */
 
 void z_crc32_print_table(z_crc32_t *tbl) /* z_func z_crc32_print_table */
 {
+#define z_crc32_fmtx  ".8X"
+
   z_int_t i;
-  
+
   const z_int_t line_length = 8;
 
 
@@ -95,9 +94,12 @@ void z_crc32_print_table(z_crc32_t *tbl) /* z_func z_crc32_print_table */
   {
     printf("%s0x%" z_crc32_fmtx ", ", (i % line_length == 0)?"\n  ":"", tbl[i]);
   }
-  
+
   printf("};\n");
+
+#undef z_crc32_fmtx
 }
+
 
 
 z_crc32_t z_crc32_buffer_update(z_crc32_t crc, const void *buffer, z_int_t length) /* z_func z_crc32_buffer_update */
@@ -123,3 +125,9 @@ z_crc32_t z_crc32_buffer(const void *buffer, z_int_t length) /* z_func z_crc32_b
 {
   return z_crc32_buffer_update(0, buffer, length);
 }
+
+
+#undef RFC_1510
+#undef CRC32POLY
+#undef CRC32POLYREV
+#undef CRC32FMASK

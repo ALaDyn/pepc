@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/z_pack_conf.h
- *  timestamp: 2011-03-06 21:59:31 +0100
  *  
  */
 
@@ -14,6 +13,8 @@
 #include "sl_config.h"
 #include "sl_config_intern.h"
 
+
+#define Z_PACK_RENAME
 
 #ifdef SL_PREFIX
 # define Z_PREFIX  SL_PREFIX
@@ -29,19 +30,18 @@ typedef sl_int_type_c z_int_t;
 # define Z_PACK_MPI_RANK  -2
 #endif
 
-
 #define Z_PACK_NUMERIC
-
-#define Z_PACK_ALLOC
-
-#ifdef SLDEBUG_ALLOC
-# define Z_ALLOC_DEBUG  SLDEBUG_ALLOC
-#endif
 
 #define Z_PACK_DEBUG
 
 #ifdef SLDEBUG_OUTPUT
 # define Z_DEBUG_LEVEL  SLDEBUG_OUTPUT
+#endif
+
+#define Z_PACK_ALLOC
+
+#ifdef SLDEBUG_ALLOC
+# define Z_ALLOC_DEBUG  SLDEBUG_ALLOC
 #endif
 
 #define Z_PACK_TIME
@@ -54,6 +54,8 @@ typedef sl_int_type_c z_int_t;
 
 typedef unsigned int z_crc32_t;
 #define z_crc32_fmt  "X"
+
+#define Z_PACK_GMP
 
 
 #endif /* __Z_PACK_CONF_H__ */

@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/binning.c
- *  timestamp: 2011-02-10 21:20:49 +0100
  *  
  */
 
@@ -22,11 +21,12 @@
 #endif
 
 
-slint_t binning_create(local_bins_t *lb, slint_t max_nbins, slint_t max_nbinnings, elements_t *s, slint_t nelements, slint_t doweights, binning_t *bm) /* sl_proto, sl_func binning_create */
+slint_t binning_create(local_bins_t *lb, slint_t max_nbins, slint_t max_nbinnings, elements_t *s, slint_t nelements, slint_t docounts, slint_t doweights, binning_t *bm) /* sl_proto, sl_func binning_create */
 {
   slint_t j;
 
-#ifdef elem_weight  
+  bm->docounts = docounts;
+#ifdef elem_weight
   bm->doweights = doweights;
 #endif
   lb->bm = bm;
@@ -39,12 +39,9 @@ slint_t binning_create(local_bins_t *lb, slint_t max_nbins, slint_t max_nbinning
 
   lb->nelements = nelements;
 
+  lb->docounts = docounts;
 #ifdef elem_weight
   lb->doweights = doweights;
-  lb->weight_factor = 1 + (lb->doweights != 0);
-# define MY_WEIGHT_FACTOR  lb->weight_factor
-#else
-# define MY_WEIGHT_FACTOR  1
 #endif
 
   lb->bins0 = z_alloc(lb->max_nbins * lb->nelements, sizeof(bin_t));
@@ -52,9 +49,24 @@ slint_t binning_create(local_bins_t *lb, slint_t max_nbins, slint_t max_nbinning
 
   lb->bcws = z_alloc(lb->max_nbins, sizeof(slint_t));
 
-  lb->cws = z_alloc(lb->max_nbinnings * MY_WEIGHT_FACTOR * lb->bm->max_nbins, sizeof(slweight_t));
+#if defined(elem_weight) && defined(sl_weight_intequiv)
+  lb->cw_factor = (lb->docounts != 0) + (lb->doweights != 0);
+  lb->w_index = (lb->docounts != 0);
+  lb->cws = z_alloc(lb->max_nbinnings * lb->cw_factor * lb->bm->max_nbins, sizeof(slweight_t));
+  lb->bin_cw_factor = 1 + (lb->doweights != 0);
+  lb->bin_cws = z_alloc(lb->max_nbinnings * lb->bin_cw_factor * lb->nelements * bm->max_nbins, sizeof(slweight_t));
+#else
+  lb->cs = z_alloc(lb->max_nbinnings * 1 * lb->bm->max_nbins, sizeof(slint_t));
+  lb->bin_cs = z_alloc(lb->max_nbinnings * 1 * lb->nelements * bm->max_nbins, sizeof(slint_t));
+# ifdef elem_weight
+  if (lb->doweights)
+  {
+    lb->ws = z_alloc(lb->max_nbinnings * 1 * lb->bm->max_nbins, sizeof(slweight_t));
+    lb->bin_ws = z_alloc(lb->max_nbinnings * 1 * lb->nelements * bm->max_nbins, sizeof(slweight_t));
 
-  lb->bin_cws = z_alloc(lb->max_nbinnings * MY_WEIGHT_FACTOR * lb->nelements * bm->max_nbins, sizeof(slweight_t));
+  } else lb->ws = lb->bin_ws = NULL;
+# endif
+#endif
 
   lb->last_exec_b = -1;
 
@@ -78,8 +90,20 @@ slint_t binning_destroy(local_bins_t *lb) /* sl_proto, sl_func binning_destroy *
   
   z_free(lb->bcws);
 
+#if defined(elem_weight) && defined(sl_weight_intequiv)
   z_free(lb->cws);
   z_free(lb->bin_cws);
+#else
+  z_free(lb->cs);
+  z_free(lb->bin_cs);
+# ifdef elem_weight
+  if (lb->doweights)
+  {
+    z_free(lb->ws);
+    z_free(lb->bin_ws);
+  }
+# endif
+#endif
 
   return 0;
 }
@@ -109,7 +133,7 @@ slint_t binning_exec(local_bins_t *lb, slint_t b) /* sl_proto, sl_func binning_e
   slint_t j;
   slkey_pure_t k;
 
-  slweight_t *counts, *bin_counts;
+  slcount_t *counts, *bin_counts;
 #ifdef elem_weight
   slweight_t *weights, *bin_weights;
 #endif
@@ -154,14 +178,14 @@ slint_t binning_exec(local_bins_t *lb, slint_t b) /* sl_proto, sl_func binning_e
 
       for (k = 0; k < lb->bm->nbins; ++k)
       {
-        counts[k] += bin_counts[k];
+        if (lb->docounts) counts[k] += bin_counts[k];
 
         weights[k] += bin_weights[k];
         lb->bins[b * lb->nelements + j].weight += bin_weights[k];
       }
-    
-      Z_TRACE_ARRAY_IF(B_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": bin_counts =", " %" slweight_fmt, k, lb->bm->nbins, bin_counts, b, j);
-      Z_TRACE_ARRAY_IF(B_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": bin_weights =", " %" slweight_fmt, k, lb->bm->nbins, bin_weights, b, j);
+
+      Z_TRACE_ARRAY_IF(B_TRACE_IF, k, lb->bm->nbins, " %" slcount_fmt, bin_counts[k], "%" slint_fmt ",%" slint_fmt ": bin_counts =", b, j);
+      Z_TRACE_ARRAY_IF(B_TRACE_IF, k, lb->bm->nbins, " %" slweight_fmt, bin_weights[k], "%" slint_fmt ",%" slint_fmt ": bin_weights =", b, j);
 
       bin_counts += lb->bm->nbins;
       bin_weights += lb->bm->nbins;
@@ -187,16 +211,17 @@ slint_t binning_exec(local_bins_t *lb, slint_t b) /* sl_proto, sl_func binning_e
         counts[k] += bin_counts[k];
       }
     
-      Z_TRACE_ARRAY_IF(B_TRACE_IF, "%" slint_fmt ",%" slint_fmt ": bin_counts =", " %" slweight_fmt, k, lb->bm->nbins, bin_counts, b, j);
+      Z_TRACE_ARRAY_IF(B_TRACE_IF, k, lb->bm->nbins, " %" slcount_fmt, bin_counts[k], "%" slint_fmt ",%" slint_fmt ": bin_counts =", b, j);
 
       bin_counts += lb->bm->nbins;
     }
   }
 
-  Z_TRACE_ARRAY_IF(B_TRACE_IF, "%" slint_fmt ": counts =", " %" slweight_fmt, k, lb->bm->nbins, counts, b);
+  if (lb->docounts)
+    Z_TRACE_ARRAY_IF(B_TRACE_IF, k, lb->bm->nbins, " %" slcount_fmt, counts[k], "%" slint_fmt ": counts =", b);
 #ifdef elem_weight
   if (lb->doweights)
-    Z_TRACE_ARRAY_IF(B_TRACE_IF, "%" slint_fmt ": weights =", " %" slweight_fmt, k, lb->bm->nbins, weights, b);
+    Z_TRACE_ARRAY_IF(B_TRACE_IF, k, lb->bm->nbins, " %" slweight_fmt, weights[k], "%" slint_fmt ": weights =", b);
 #endif
 
   return 0;
@@ -256,32 +281,35 @@ slint_t binning_hit(local_bins_t *lb, slint_t b, slint_t k, splitter_t *sp, slin
 }
 
 
-slint_t binning_finalize(local_bins_t *lb, slint_t b, slweight_t dcw, slint_t lc_min, slint_t lc_max, slweight_t *lcw, splitter_t *sp, slint_t s) /* sl_proto, sl_func binning_finalize */
+slint_t binning_finalize(local_bins_t *lb, slint_t b, slint_t dc, slweight_t dw, slint_t lc_min, slint_t lc_max, slcount_t *lcs, slweight_t *lws, splitter_t *sp, slint_t s) /* sl_proto, sl_func binning_finalize */
 {
-  slint_t j;
-  slweight_t dcw_left;
-
-
-  Z_TRACE_IF(B_TRACE_IF, "b: %" slint_fmt ", dcw: %" slweight_fmt ", %" slint_fmt ", %" slint_fmt, b, dcw, lc_min, lc_max);
-
-  lcw[0] =
+  slint_t j, dc_left;
 #ifdef elem_weight
-    lcw[1] =
+  slweight_t dw_left;
+#else
+# define dw_left  0
 #endif
-    0.0;
 
-  dcw_left = dcw;
+
+  Z_TRACE_IF(B_TRACE_IF, "b: %" slint_fmt ", dc: %" slint_fmt ", dw: %" slweight_fmt ", %" slint_fmt ", %" slint_fmt, b, dc, dw, lc_min, lc_max);
+
+  dc_left = dc;
+  *lcs = 0.0;
+#ifdef elem_weight
+  dw_left = dw;
+  *lws = 0.0;
+#endif
 
   for (j = 0; j < lb->nelements; ++j)
   {
 #ifdef elem_weight
     if (lb->doweights)
-      dcw_left = dcw - lcw[1];
+      dw_left = dw - *lws;
     else
 #endif
-      dcw_left = dcw - lcw[0];
+      dc_left = dc - *lcs;
 
-    if (lb->bm->finalize(lb->bm, &lb->bins[b * lb->nelements + j], dcw_left, lc_min - lcw[0], lc_max - lcw[0], lcw, sp, s * lb->nelements + j)) break;
+    if (lb->bm->finalize(lb->bm, &lb->bins[b * lb->nelements + j], dc_left, dw_left, lc_min - *lcs, lc_max - *lcs, lcs, lws, sp, s * lb->nelements + j)) break;
   }
 
   return 0;

@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_find_exact.c
- *  timestamp: 2011-02-08 21:32:54 +0100
  *  
  */
 
@@ -13,10 +12,16 @@
 #include "sl_common.h"
 
 
-#define DEBUG_OR_NOT  (sl_mpi_rank == -1)
-
-
 /*#define CHECK_EQUAL*/
+
+#ifndef MFE_TRACE_IF
+# ifdef GLOBAL_TRACE_IF
+#  define MFE_TRACE_IF  GLOBAL_TRACE_IF
+# else
+#  define MFE_TRACE_IF  (sl_mpi_rank == -1)
+# endif
+#endif
+
 
 slint_t mpi_find_exact_equal(elements_t *s, slint_t other_rank, slint_t high_rank, slint_t *ex_start, slint_t *ex_size, int size, int rank, MPI_Comm comm) /* sl_proto, sl_func mpi_find_exact_equal */
 {
@@ -224,3 +229,6 @@ slint_t mpi_find_exact(elements_t *s, slint_t other_rank, slint_t high_rank, sli
   
   return 0;
 }
+
+
+#undef CHECK_EQUAL

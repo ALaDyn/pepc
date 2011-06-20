@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/sl_elem.c
- *  timestamp: 2010-12-19 13:24:41 +0100
  *  
  */
 
@@ -27,7 +26,7 @@ slint_t elem_set_data(elements_t *e, ...) /* sl_proto, sl_func elem_set_data */
 }
 
 
-inline slint_t elem_reverse_aio(elements_t *e, elements_t *t) /* sl_func elem_reverse_aio */
+slint_t elem_reverse_aio(elements_t *e, elements_t *t) /* sl_func elem_reverse_aio */
 {
   elements_t front, back, end;
 
@@ -46,7 +45,7 @@ inline slint_t elem_reverse_aio(elements_t *e, elements_t *t) /* sl_func elem_re
 }
 
 
-inline slint_t elem_reverse_obo(elements_t *e, elements_t *t) /* sl_func elem_reverse_obo */
+slint_t elem_reverse_obo(elements_t *e, elements_t *t) /* sl_func elem_reverse_obo */
 {
   elements_t front, back, end;
 
@@ -125,7 +124,7 @@ slint_t elem_nxchange_ro0(elements_t *e0, elements_t *e1, slint_t n, elements_t 
 
 
 /* the easy way, with 3x reverse */
-inline slint_t elem_rotate_3rev_aio(elements_t *e, slint_t m, slint_t n, elements_t *t) /* sl_func elem_rotate_3rev_aio */
+slint_t elem_rotate_3rev_aio(elements_t *e, slint_t m, slint_t n, elements_t *t) /* sl_func elem_rotate_3rev_aio */
 {
   elements_t _e;
 
@@ -149,7 +148,7 @@ inline slint_t elem_rotate_3rev_aio(elements_t *e, slint_t m, slint_t n, element
 }
 
 
-inline slint_t elem_rotate_3rev_obo(elements_t *e, slint_t m, slint_t n, elements_t *t) /* sl_func elem_rotate_3rev_obo */
+slint_t elem_rotate_3rev_obo(elements_t *e, slint_t m, slint_t n, elements_t *t) /* sl_func elem_rotate_3rev_obo */
 {
   elements_t _e;
 
@@ -173,7 +172,7 @@ inline slint_t elem_rotate_3rev_obo(elements_t *e, slint_t m, slint_t n, element
 }
 
 
-inline slint_t elem_rotate_cycles_aio(elements_t *e, slint_t m, slint_t n, elements_t *t) /* sl_func elem_rotate_cycles_aio */
+slint_t elem_rotate_cycles_aio(elements_t *e, slint_t m, slint_t n, elements_t *t) /* sl_func elem_rotate_cycles_aio */
 {
   slint_t k;
   elements_t start, half, current, next;
@@ -212,7 +211,7 @@ inline slint_t elem_rotate_cycles_aio(elements_t *e, slint_t m, slint_t n, eleme
 
 
 /* FIXME: hier fehlt noch etwas vom xcall! */
-inline slint_t elem_rotate_cycles_obo(elements_t *e, slint_t m, slint_t n, elements_t *t) /* sl_func elem_rotate_cycles_obo */
+slint_t elem_rotate_cycles_obo(elements_t *e, slint_t m, slint_t n, elements_t *t) /* sl_func elem_rotate_cycles_obo */
 {
 /*  slint_t k;*/
   elements_t start, half/*, current, next*/;

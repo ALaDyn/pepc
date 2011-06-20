@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/sort_counting.c
- *  timestamp: 2011-02-10 21:20:49 +0100
  *  
  */
 

@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/mergep_heap.c
- *  timestamp: 2010-12-19 13:24:42 +0100
  *  
  */
 
@@ -404,3 +403,9 @@ slint_t mergep_heap_unpack_idxonly(packed_elements_t *s, elements_t *d, slint_t 
 
   return 0;
 }
+
+
+#undef HEAPIFY_INTRO
+#undef HEAPIFY_EXTRO
+#undef HEAPIFY_UP
+#undef HEAPIFY_DOWN

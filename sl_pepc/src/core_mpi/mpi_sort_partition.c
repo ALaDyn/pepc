@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_sort_partition.c
- *  timestamp: 2011-02-10 21:20:50 +0100
  *  
  */
 
@@ -21,6 +20,8 @@
 double msp_t[4];  /* sl_global, sl_var msp_t */
 
 slint_t msp_sync = 0;  /* sl_global, sl_var msp_sync */
+
+partcond_t *msp_r_pc = NULL;  /* sl_global, sl_var msp_r_pc */
 
 
 #ifndef MSP_TRACE_IF
@@ -152,17 +153,27 @@ slint_t mpi_sort_partition_radix(elements_t *s0, elements_t *s1, elements_t *xs,
 #endif
 
 
+  /* local sort */
   if (msp_sync) MPI_Barrier(comm);
   msp_t[0] = z_time_get_s();
   sort_radix(s0, xs, rhigh, rlow, -1);
   msp_t[0] = z_time_get_s() - msp_t[0];
 
+  /* partitioning */
   if (msp_sync) MPI_Barrier(comm);
   msp_t[1] = z_time_get_s();
 
-  pc.pcm = SLPC_COUNTS_MM;
-  pc.count_min = s0->size * (1.0 - imba);
-  pc.count_max = s0->size * (1.0 + imba);
+  if (msp_r_pc) pc = *msp_r_pc;
+  else
+  {
+    pc.pcm = SLPC_COUNTS_MM;
+    pc.count_min = -(1.0 - imba);
+    pc.count_max = -(1.0 + imba);
+  }
+
+#ifdef MSEG_BORDER_UPDATE_REDUCTION
+  mseg_border_update_count_reduction = 0.25;
+#endif
 
   if (part_type == 1)
   {
@@ -191,7 +202,7 @@ slint_t mpi_sort_partition_radix(elements_t *s0, elements_t *s1, elements_t *xs,
   if (msp_sync) MPI_Barrier(comm);
   msp_t[1] = z_time_get_s() - msp_t[1];
 
-
+  /* all-to-all */
   msp_t[2] = z_time_get_s();
   
   counts2displs(size, scounts, sdispls);
@@ -201,15 +212,32 @@ slint_t mpi_sort_partition_radix(elements_t *s0, elements_t *s1, elements_t *xs,
 #define xelem_call \
     MPI_Alltoallv(xelem_buf(s0), scounts, sdispls, xelem_mpi_datatype, xelem_buf(s1), rcounts, rdispls, xelem_mpi_datatype, comm);
 #include "sl_xelem_call.h"
-  
+
+  /* local merge */
+  if (msp_sync) MPI_Barrier(comm);
   msp_t[2] = z_time_get_s() - msp_t[2];
 
   s0->size = s1->size = rdispls[size - 1] + rcounts[size - 1];
 
+#define HOW_TO_MERGEP  3
+
   if (msp_sync) MPI_Barrier(comm);
   msp_t[3] = z_time_get_s();
+#if HOW_TO_MERGEP == 0
+  sort_radix(s1, s0, rhigh, rlow, -1);
+  elem_ncopy(s1, s0, s1->size);
+#elif HOW_TO_MERGEP == 1
   mergep_heap_int(s1, s0, size, rdispls, rcounts);
+#elif HOW_TO_MERGEP == 2
+  mergep_2way_ip_int(s1, s0, size, rdispls, merge2_basic_straight_01_x);
+  elem_ncopy(s1, s0, s1->size);
+#else
+  mergep_2way_ip_int_rec(s1, s0, size, rdispls, merge2_basic_straight_01_x);
+  elem_ncopy(s1, s0, s1->size);
+#endif
   msp_t[3] = z_time_get_s() - msp_t[3];
+
+#undef HOW_TO_MERGEP
 
 #ifdef MSP_VERIFY
   mpi_elements_check_order(s0, 1, rorders, size, rank, comm);
@@ -400,18 +428,18 @@ slint_t mpi_sort_partition_exact_radix_ngroups(elements_t *s, elements_t *sx, pa
   {
     mpi_select_exact_radix(s, 1, master_sizes[g], group_pconds[g], rhigh, rlow, rwidth, SL_SORTED_IN, group_sdispls, group_sizes[g], group_ranks[g], group_comms[g]);
 
-    Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": group_sdispls = ", "%d  ", i, master_sizes[g], group_sdispls, g);
+/*    Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": group_sdispls = ", "%d  ", i, master_sizes[g], group_sdispls, g);*/
 
     if (g < ngroups - 1)
     {
       /* create scounts from sdispls */
       displs2counts(master_sizes[g], group_sdispls, group_scounts, s->size);
 
-      Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": group_scounts = ", "%d  ", i, master_sizes[g], group_scounts, g);
+/*      Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": group_scounts = ", "%d  ", i, master_sizes[g], group_scounts, g);*/
 
       mpi_xcounts2ycounts_grouped(group_scounts, master_sizes[g], current_rcounts, group_comms[g + 1], master_comms[g], group_sizes[g], group_ranks[g], group_comms[g]);
     
-      Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": current_rcounts = ", "%d  ", i, group_sizes[g], current_rcounts, g);
+/*      Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": current_rcounts = ", "%d  ", i, group_sizes[g], current_rcounts, g);*/
 
 /*#define SPARSE_SCOUNTS_FROM_RCOUNTS*/
 
@@ -422,19 +450,21 @@ slint_t mpi_sort_partition_exact_radix_ngroups(elements_t *s, elements_t *sx, pa
       mpi_xcounts2ycounts_all2all(current_rcounts, current_scounts, group_sizes[g], group_ranks[g], group_comms[g]);
 #endif
 
-      Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": current_scounts = ", "%d  ", i, group_sizes[g], current_scounts, g);
+#undef SPARSE_SCOUNTS_FROM_RCOUNTS
+
+/*      Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": current_scounts = ", "%d  ", i, group_sizes[g], current_scounts, g);*/
 
     } else
     {
       /* create scounts from sdispls */
       displs2counts(master_sizes[g], group_sdispls, current_scounts, s->size);
 
-      Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": current_scounts = ", "%d  ", i, group_sizes[g], current_scounts, g);
+/*      Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": current_scounts = ", "%d  ", i, group_sizes[g], current_scounts, g);*/
 
       /* make rcounts from scounts */
       mpi_xcounts2ycounts_all2all(current_scounts, current_rcounts, group_sizes[g], group_ranks[g], group_comms[g]);
 
-      Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": current_rcounts = ", "%d  ", i, group_sizes[g], current_rcounts, g);
+/*      Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "%" slint_fmt ": current_rcounts = ", "%d  ", i, group_sizes[g], current_rcounts, g);*/
     }
 
     counts2displs(group_sizes[g], current_scounts, current_sdispls);
@@ -485,6 +515,8 @@ slint_t mpi_sort_partition_exact_radix_ngroups(elements_t *s, elements_t *sx, pa
 #endif
 
   return 0;
+
+#undef doweights
 }
 
 #endif
@@ -593,16 +625,16 @@ slint_t mpi_sort_partition_exact_radix_2groups(elements_t *s, elements_t *sx, pa
   /* perform 1st grouped select */  
   mpi_select_exact_radix_grouped(s, 1, &group_pcond, master_comm, group_comm, rhigh, rlow, rwidth, SL_SORTED_IN, group_sdispls, size, rank, comm);
 
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "group_sdispls = ", "%d  ", i, nparts, group_sdispls);
+/*  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "group_sdispls = ", "%d  ", i, nparts, group_sdispls);*/
 
   /* create scounts from sdispls */
   displs2counts(nparts, group_sdispls, group_scounts, s->size);
 
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "group_scounts = ", "%d  ", i, nparts, group_scounts);
+/*  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "group_scounts = ", "%d  ", i, nparts, group_scounts);*/
 
   mpi_xcounts2ycounts_grouped(group_scounts, nparts, rcounts, group_comm, master_comm, size, rank, comm);
 
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "rcounts = ", "%d  ", i, size, rcounts);
+/*  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "rcounts = ", "%d  ", i, size, rcounts);*/
 
 #define SPARSE_SCOUNTS_FROM_RCOUNTS
 
@@ -613,14 +645,16 @@ slint_t mpi_sort_partition_exact_radix_2groups(elements_t *s, elements_t *sx, pa
   mpi_xcounts2ycounts_all2all(rcounts, scounts, size, rank, comm);
 #endif
 
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "scounts = ", "%d  ", i, size, scounts);
+#undef SPARSE_SCOUNTS_FROM_RCOUNTS
+
+/*  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "scounts = ", "%d  ", i, size, scounts);*/
 
   /* create displs from counts */
   counts2displs(size, scounts, sdispls);
   counts2displs(size, rcounts, rdispls);
 
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "sdispls = ", "%d  ", i, size, sdispls);
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "rdispls = ", "%d  ", i, size, rdispls);
+/*  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "sdispls = ", "%d  ", i, size, sdispls);
+  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "rdispls = ", "%d  ", i, size, rdispls);*/
   
   /* determine number of sub lists to receive */
   nsubelements = 0;
@@ -668,11 +702,11 @@ slint_t mpi_sort_partition_exact_radix_2groups(elements_t *s, elements_t *sx, pa
   /* perform 2nd select */
   mpi_select_exact_radix(sub_elements, nsubelements, group_size, group_pconds, rhigh, rlow, rwidth, SL_SORTED_IN, sub_sdispls, group_size, group_rank, group_comm);
 
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "sub_displs = ", "%d  ", i, nsubelements * group_size, sub_sdispls);
+/*  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "sub_displs = ", "%d  ", i, nsubelements * group_size, sub_sdispls);*/
 
   mpi_subxdispls2ycounts(nsubelements, sub_sdispls, sub_elements_sources, sub_elements_sizes, group_comm, group_size, rcounts, size, rank, comm);
 
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "rcounts = ", "%d  ", i, size, rcounts);
+/*  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "rcounts = ", "%d  ", i, size, rcounts);*/
 
   z_freea(sub_sdispls);
   z_freea(group_pconds);
@@ -683,7 +717,7 @@ slint_t mpi_sort_partition_exact_radix_2groups(elements_t *s, elements_t *sx, pa
 
   msp_t[1] = z_time_get_s() - msp_t[1];
 
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "scounts = ", "%d  ", i, size, scounts);
+/*  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "scounts = ", "%d  ", i, size, scounts);*/
 
   if (msp_sync) MPI_Barrier(comm);
   msp_t[2] = z_time_get_s();
@@ -691,8 +725,8 @@ slint_t mpi_sort_partition_exact_radix_2groups(elements_t *s, elements_t *sx, pa
   counts2displs(size, scounts, sdispls);
   counts2displs(size, rcounts, rdispls);
 
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "rdispls = ", "%d  ", i, size, rdispls);
-  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "sdispls = ", "%d  ", i, size, sdispls);
+/*  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "rdispls = ", "%d  ", i, size, rdispls);
+  Z_TRACE_ARRAY_IF(MSP_TRACE_IF, "sdispls = ", "%d  ", i, size, sdispls);*/
 
 #define xelem_call \
   MPI_Alltoallv(xelem_buf(s), scounts, sdispls, xelem_mpi_datatype, xelem_buf(sx), rcounts, rdispls, xelem_mpi_datatype, comm);
@@ -719,6 +753,8 @@ slint_t mpi_sort_partition_exact_radix_2groups(elements_t *s, elements_t *sx, pa
 #endif
 
   return 0;
+
+#undef doweights
 }
 
 #endif

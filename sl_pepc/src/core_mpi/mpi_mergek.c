@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_mergek.c
- *  timestamp: 2011-02-10 21:20:50 +0100
  *  
  */
 
@@ -10,6 +9,7 @@
 /* sl_macro MMK_TRACE_IF */
 /* sl_macro MMK_TRACE_FAIL */
 /* sl_macro MMK_EQUAL_SYNC */
+/* sl_macro MMK_SORTED_SYNC */
 /* sl_macro MMK_SYNC */
 /* sl_macro MMK_PRINT_TIMINGS */
 
@@ -152,6 +152,74 @@ slint_t mpi_mergek_equal(elements_t *s, sortnet_f sn, sortnet_data_t snd, merge2
 }
 
 
+slint_t mpi_mergek_sorted(elements_t *s, merge2x_f m2x, elements_t *xs, int size, int rank, MPI_Comm comm) /* sl_proto, sl_func mpi_mergek_sorted */
+{
+  slint_t stage, done;
+
+
+  Z_TRACE_IF(MMK_TRACE_IF, "starting mpi_mergek_sorted");
+
+  /* sl_tid rti_tid_mpi_mergek_sorted */
+
+  rti_treset(rti_tid_mpi_mergek_sorted_while);          /* sl_tid */
+  rti_treset(rti_tid_mpi_mergek_sorted_while_check);    /* sl_tid */
+  rti_treset(rti_tid_mpi_mergek_sorted_while_oddeven);  /* sl_tid */
+
+  rti_tstart(rti_tid_mpi_mergek_sorted);
+
+  if (size < 0) MPI_Comm_size(comm, &size);
+  if (rank < 0) MPI_Comm_rank(comm, &rank);
+
+#ifdef MMK_SORTED_SYNC
+  MPI_Barrier(comm);
+#endif
+
+  rti_tstart(rti_tid_mpi_mergek_sorted_while);
+
+  stage = 0;
+
+  /* use alternating odd/even rounds (simliar to odd-even-tranpose) until sorted */
+  if (size > 1)
+  while (1)
+  {
+    rti_tstart(rti_tid_mpi_mergek_sorted_while_check);
+    done = mpi_check_global_order(key_purify(s->keys[0]), key_purify(s->keys[s->size - 1]), -1, size, rank, comm);
+    rti_tstop(rti_tid_mpi_mergek_sorted_while_check);
+
+    if (done) break;
+
+    Z_TRACE_IF(MMK_TRACE_IF, "stage: %" slint_fmt " order failed, do %s", stage, ((stage % 2)?"odd":"even"));
+
+    rti_tstart(rti_tid_mpi_mergek_sorted_while_oddeven);
+    mpi_mergek_equal(s, (stage % 2)?sn_odd:sn_even, NULL, m2x, xs, size, rank, comm);
+    rti_tstop(rti_tid_mpi_mergek_sorted_while_oddeven);
+
+#ifdef MMK_SORTED_SYNC
+    MPI_Barrier(comm);
+#endif
+
+    ++stage;
+  }
+
+  rti_tstop(rti_tid_mpi_mergek_sorted_while);
+
+  rti_tstop(rti_tid_mpi_mergek_sorted);
+
+#if defined(MMK_PRINT_TIMINGS) && defined(SL_USE_RTI_TIM)
+  if (MMK_PRINT_TIMINGS)
+  {
+    printf("%d: mpi_mergek_sorted: %f\n", rank, rti_tlast(rti_tid_mpi_mergek_sorted));
+    printf("%d: mpi_mergek_sorted: while: %f\n", rank, rti_tlast(rti_tid_mpi_mergek_sorted_while));
+    printf("%d: mpi_mergek_sorted:  check: %f\n", rank, rti_tcumu(rti_tid_mpi_mergek_sorted_while_check));
+    printf("%d: mpi_mergek_sorted:  oddeven: %f\n", rank, rti_tcumu(rti_tid_mpi_mergek_sorted_while_oddeven));
+    printf("%d: mpi_mergek_sorted: stages: %" slint_fmt "\n", rank, stage);
+  }
+#endif
+
+  return stage;
+}
+
+
 slint_t mpi_mergek(elements_t *s, sortnet_f sn, sortnet_data_t snd, merge2x_f m2x, elements_t *xs, int size, int rank, MPI_Comm comm) /* sl_proto, sl_func mpi_mergek */
 {
   slint_t stage, done;
@@ -265,3 +333,7 @@ slint_t mpi_mergek_equal2(elements_t *s, sortnet_f sn, sortnet_data_t snd, merge
 
   return stage;
 }
+
+
+#undef CHECK_ORDER
+#undef CHECK_ORDER_BREAK

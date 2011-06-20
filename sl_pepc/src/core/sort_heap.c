@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/sort_heap.c
- *  timestamp: 2010-12-19 13:24:42 +0100
  *  
  */
 
@@ -10,8 +9,7 @@
 #include "sl_common.h"
 
 
-
-inline slint hs_heapify_i(elements_t *s, slint i, slint size, elements_t *xs) /* sl_func hs_heapify_i */
+slint hs_heapify_i(elements_t *s, slint i, slint size, elements_t *xs) /* sl_func hs_heapify_i */
 {
   slint l, r, largest;
 

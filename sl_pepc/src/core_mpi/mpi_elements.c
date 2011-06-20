@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_elements.c
- *  timestamp: 2011-02-10 21:20:50 +0100
  *  
  */
 
@@ -199,6 +198,8 @@ slint_t mpi_elements_digest_sum(elements_t *s, slint_t nelements, slcint_t compo
   MPI_Allreduce(&lsum, sum, 1, MPI_UNSIGNED, MPI_SUM_OP, comm);
 
   return 0;
+
+#undef MPI_SUM_OP
 }
 
 

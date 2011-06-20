@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
@@ -12,7 +11,7 @@
 
 
 /* src/core_mpi/mpi_binning.c */
-slint_t SL_PROTO(mpi_binning_create)(global_bins_t *gb, slint_t max_nbins, slint_t max_nbinnings, elements_t *s, slint_t nelements, slint_t doweights, binning_t *bm, int size, int rank, MPI_Comm comm);
+slint_t SL_PROTO(mpi_binning_create)(global_bins_t *gb, slint_t max_nbins, slint_t max_nbinnings, elements_t *s, slint_t nelements, slint_t docounts, slint_t doweights, binning_t *bm, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_binning_destroy)(global_bins_t *gb, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_binning_pre)(global_bins_t *gb, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_binning_exec_reset)(global_bins_t *gb, int size, int rank, MPI_Comm comm);
@@ -20,7 +19,7 @@ slint_t SL_PROTO(mpi_binning_exec_local)(global_bins_t *gb, slint_t b, int size,
 slint_t SL_PROTO(mpi_binning_exec_global)(global_bins_t *gb, slint_t root, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_binning_refine)(global_bins_t *gb, slint_t b, slint_t k, splitter_t *sp, slint_t s, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_binning_hit)(global_bins_t *gb, slint_t b, slint_t k, splitter_t *sp, slint_t s, int size, int rank, MPI_Comm comm);
-slint_t SL_PROTO(mpi_binning_finalize)(global_bins_t *gb, slint_t b, slweight_t dcw, slint_t lc_min, slint_t lc_max, slweight_t *lcw, splitter_t *sp, slint_t s, int size, int rank, MPI_Comm comm);
+slint_t SL_PROTO(mpi_binning_finalize)(global_bins_t *gb, slint_t b, slint_t dc, slweight_t dw, slint_t lc_min, slint_t lc_max, slcount_t *lcs, slweight_t *lws, splitter_t *sp, slint_t s, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_binning_post)(global_bins_t *gb, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_common.c */
@@ -30,6 +29,7 @@ slint_t SL_PROTO(mpi_get_grid_properties)(slint_t ndims, slint_t *dims, slint_t 
 slint_t SL_PROTO(mpi_get_grid)(slint_t ndims, slint_t *dims, slint_t *pos, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_subgroups_create)(slint_t nsubgroups, MPI_Comm *sub_comms, int *sub_sizes, int *sub_ranks, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_subgroups_delete)(slint_t nsubgroups, MPI_Comm *sub_comms, int size, int rank, MPI_Comm comm);
+int SL_PROTO(sl_MPI_Allreduce)(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm, int size, int rank);
 
 /* src/core_mpi/mpi_elements.c */
 slint SL_PROTO(mpi_elements_init_keys_from_file)(elements_t *s, char *filename, slint from, slint to, slint const_bytes_per_line, slint root, int size, int rank, MPI_Comm comm);
@@ -46,6 +46,9 @@ slint_t SL_PROTO(mpi_elements_get_counts_and_weights)(elements_t *s, slint_t nel
 slint_t SL_PROTO(mpi_elements_sendrecv_replace)(elements_t *s, int count, int dest, int sendtag, int source, int recvtag, int size, int rank, MPI_Comm comm);
 unsigned int SL_PROTO(mpi_elements_crc32)(elements_t *s, slint_t n, slint_t keys, slint_t data, int size, int rank, MPI_Comm comm);
 
+/* src/core_mpi/mpi_elements_alltoall_specific.c */
+slint_t SL_PROTO(mpi_elements_alltoall_specific)(elements_t *s0, elements_t *s1, elements_t *xs, tproc_f tproc, void *data, int size, int rank, MPI_Comm comm);
+
 /* src/core_mpi/mpi_elements_alltoallv.c */
 slint_t SL_PROTO(mpi_elements_alltoallv_db)(elements_t *sbuf, int *scounts, int *sdispls, elements_t *rbuf, int *rcounts, int *rdispls, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_elements_alltoallv_ip)(elements_t *sbuf, elements_t *sx, int *scounts, int *sdispls, int *rcounts, int *rdispls, int size, int rank, MPI_Comm comm);
@@ -60,6 +63,7 @@ slint_t SL_PROTO(mpi_find_exact)(elements_t *s, slint_t other_rank, slint_t high
 
 /* src/core_mpi/mpi_linsplit.c */
 slint_t SL_PROTO(mpi_linsplit)(MPI_Comm comm_in, slkey_pure_t *keys_in, MPI_Comm *comms_out, slint_t *parity, int size, int rank, MPI_Comm comm);
+slint_t SL_PROTO(mpi_linsplit_radix)(slkey_pure_t klow, slkey_pure_t khigh, MPI_Comm *comm0, MPI_Comm *comm1, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_linsplit2)(MPI_Comm comm_in, slkey_pure_t *keys_in, MPI_Comm *comms_out, slint_t *parity, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_merge2.c */
@@ -67,12 +71,12 @@ slint_t SL_PROTO(mpi_merge2)(elements_t *s, slint_t other_rank, slint_t high_ran
 
 /* src/core_mpi/mpi_mergek.c */
 slint_t SL_PROTO(mpi_mergek_equal)(elements_t *s, sortnet_f sn, sortnet_data_t snd, merge2x_f m2x, elements_t *xs, int size, int rank, MPI_Comm comm);
+slint_t SL_PROTO(mpi_mergek_sorted)(elements_t *s, merge2x_f m2x, elements_t *xs, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_mergek)(elements_t *s, sortnet_f sn, sortnet_data_t snd, merge2x_f m2x, elements_t *xs, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_mergek_equal2)(elements_t *s, sortnet_f sn, sortnet_data_t snd, merge2x_f m2x, elements_t *xs, int *sizes, int *ranks, MPI_Comm *comms);
 
 /* src/core_mpi/mpi_partition_exact_generic.c */
 slint_t SL_PROTO(mpi_partition_exact_generic)(elements_t *s, partcond_t *pcond, binning_t *bm, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
-slint_t SL_PROTO(mpi_partition_exact_generic2)(elements_t *s, partcond_t *pcond, binning_t *bm, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_partition_exact_radix.c */
 slint_t SL_PROTO(mpi_partition_exact_radix)(elements_t *s, partcond_t *pcond, slint_t rhigh, slint_t rlow, slint_t rwidth, slint_t sorted, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
@@ -115,6 +119,7 @@ slint_t SL_PROTO(mpi_select_sample_regular)(elements_t *s, slint_t nparts, partc
 /* src/core_mpi/mpi_sort_merge.c */
 slint_t SL_PROTO(mpi_sort_merge)(elements_t *s0, elements_t *s1, elements_t *xs, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_sort_merge2)(elements_t *s0, elements_t *s1, elements_t *xs, slint_t merge_type, slint_t sort_type, double *times, int size, int rank, MPI_Comm comm);
+slint_t SL_PROTO(mpi_sort_merge_radix)(elements_t *s0, elements_t *s1, elements_t *xs, slint_t merge_type, slint_t sort_type, slint_t rhigh, slint_t rlow, slint_t rwidth, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_sort_partition.c */
 slint_t SL_PROTO(mpi_sort_partition)(elements_t *s0, elements_t *s1, elements_t *xs, slint_t part_type, int size, int rank, MPI_Comm comm);
@@ -122,6 +127,11 @@ slint_t SL_PROTO(mpi_sort_partition_radix)(elements_t *s0, elements_t *s1, eleme
 slint_t SL_PROTO(mpi_sort_partition_exact_radix)(elements_t *s, elements_t *sx, partcond_t *pcond, slint_t rhigh, slint_t rlow, slint_t rwidth, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_sort_partition_exact_radix_ngroups)(elements_t *s, elements_t *sx, partcond_t *pcond, slint_t ngroups, MPI_Comm *group_comms, slint_t rhigh, slint_t rlow, slint_t rwidth, int size, int rank, MPI_Comm comm);
 slint_t SL_PROTO(mpi_sort_partition_exact_radix_2groups)(elements_t *s, elements_t *sx, partcond_t *pcond, MPI_Comm group_comm, slint_t rhigh, slint_t rlow, slint_t rwidth, int size, int rank, MPI_Comm comm);
+
+/* src/core_mpi/mpi_sort_special.c */
+slint_t SL_PROTO(mpi_sort_insert_radix)(elements_t *s0, elements_t *s1, elements_t *xs, slpkey_t *mmkeys, slint_t rhigh, slint_t rlow, slint_t rwidth, int size, int rank, MPI_Comm comm);
+slint_t SL_PROTO(mpi_sort_presorted_radix)(elements_t *s0, elements_t *s1, elements_t *xs, slint_t merge_type, slint_t rhigh, slint_t rlow, slint_t rwidth, int size, int rank, MPI_Comm comm);
+slint_t SL_PROTO(mpi_sort_back)(elements_t *s0, elements_t *s1, elements_t *xs, slpkey_t *lh, slint_t ntotal, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_xcounts2ycounts.c */
 slint_t SL_PROTO(mpi_xcounts2ycounts_all2all)(int *xcounts, int *ycounts, int size, int rank, MPI_Comm comm);

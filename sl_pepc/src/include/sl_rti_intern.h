@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_rti_intern.h
- *  timestamp: 2011-03-06 21:59:31 +0100
  *  
  */
 
@@ -111,26 +110,9 @@
 
 
 #ifdef SL_USE_RTI
-
  #define rti_reset()              my_rti_reset(rti_env)
-
-# ifdef DECLARE_RTI
-rti rti_env;  /* sl_global, sl_var rti_env */
-# endif
-
 #else
-
  #define rti_reset()              Z_NOP()
-
-#endif
-
-
-#ifdef SL_DATA_IGNORE
- #undef declare_rti_env
-#endif
-
-#ifndef declare_rti_env
- #define declare_rti_env
 #endif
 
 

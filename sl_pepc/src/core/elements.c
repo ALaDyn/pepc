@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/elements.c
- *  timestamp: 2011-02-12 11:41:38 +0100
  *  
  */
 
@@ -10,10 +9,6 @@
 /* sl_macro E_TRACE_IF */
 
 #include "sl_common.h"
-
-#if defined(HAVE_GMP_H)
-# include <gmp.h>
-#endif
 
 
 #ifndef E_TRACE_IF
@@ -348,7 +343,7 @@ slint_t elements_digest_sum(elements_t *s, slint_t nelements, slcint_t component
     }
   }
 
-#undef SUM_OP_ASSIGN
+#undef SUM_OP
 
   return 0;
 }
@@ -426,137 +421,170 @@ slint_t elements_random_exchange(elements_t *s, slint_t rounds, elements_t *xs) 
 }
 
 
-slint_t elements_init_keys2(elements_t *s, slint_t dtype, slkey_pure_t key_min, slkey_pure_t key_max) /* sl_proto, sl_func elements_init_keys2 */
+slint_t elements_keys_init_seed(unsigned long s) /* sl_proto, sl_func elements_keys_init_seed */
 {
-  slint_t i, j;
-  slint_t param;
-
-  const double rand_norm_stdev = 0.25;
-
-  if (s == NULL) return -1;
-
-  j = 0;
-
-  param = dtype % SL_EIK_OFFSET;
-  dtype -= param;
-
-  switch (dtype)
-  {
-    case SL_EIK_SET:
-      for (i = 0; i < s->size; i++) key_set_pure(&s->keys[i], key_min);
-      break;
-    case SL_EIK_RAND:
-      for (i = 0; i < s->size; i++) key_set_pure(&s->keys[i], key_val_rand_minmax(key_min, key_max));
-      break;
-    case SL_EIK_RAND_QUAD:
-      for (i = 0; i < s->size; i++)
-      {
-        key_set_pure(&s->keys[i], key_val_rand_minmax(key_min, key_max));
-        key_set_pure(&s->keys[i], *key_get_pure(&s->keys[i]) * *key_get_pure(&s->keys[i]));
-      }
-      break;
-#ifdef key_integer
-    case SL_EIK_RAND_AND:
-      for (i = 0; i < s->size; i++)
-      {
-        key_set_pure(&s->keys[i], key_val_rand());
-        for (j = 0; j < param; ++j) key_set_pure(&s->keys[i], *key_get_pure(&s->keys[i]) & key_val_rand());
-      }
-      break;
+#ifdef key_val_srand
+  key_val_srand(s);
 #endif
-    case SL_EIK_RAND_NORM:
-      for (i = 0; i < s->size; i++)
-      {
-        key_set_pure(&s->keys[i], ((key_min + key_max) / 2) + (z_nrandom() * rand_norm_stdev * ((key_max / 2) - (key_min / 2))));
-      }
-      break;
-  }
 
-   return 0;
+  z_urandom_seed(s);
+  z_nrandom_seed(s);
+
+  return 0;
 }
+
+#define KEY_SET_VARIABLES() \
+  slint_t ks_j, ks_m; \
+  slkey_pure_t *ks_pk; \
+  key_set_f ks_func; \
+  key_set_data_t ks_data
+
+#define KEY_SET_SET_INIT(_d_)       Z_NOP()
+#define KEY_SET_SET(_k_, _d_)       Z_MOP(*(_k_) = *((slkey_pure_t *) (_d_));)
+
+#define KEY_SET_SET_FUNC_INIT(_d_)  Z_MOP(ks_func = (key_set_f) ((void **) (_d_))[0]; ks_data = (key_set_data_t) ((void **) (_d_))[1];)
+#define KEY_SET_SET_FUNC(_k_, _d_)  Z_MOP(ks_func(_k_, ks_data);)
+
+#define KEY_SET_RAND_INIT(_d_)      Z_MOP( \
+  if (_d_) { \
+    if (!have_key_val_rand_minmax) Z_ERROR("key_val_rand_minmax is missing!"); \
+    ks_pk = (slkey_pure_t *) (_d_); \
+  } else { \
+    if (!have_key_val_rand_minmax) Z_ERROR("key_val_rand is missing!"); \
+  })
+#define KEY_SET_RAND(_k_, _d_)      Z_MOP(if (_d_) *(_k_) = key_val_rand_minmax(ks_pk[0], ks_pk[1]); else *(_k_) = key_val_rand();)
+
+#define KEY_SET_RAND_QUAD_INIT(_d_)  Z_MOP( \
+  if (_d_) { \
+    if (!have_key_val_rand_minmax) Z_ERROR("key_val_rand_minmax is missing!"); \
+    ks_pk = (slkey_pure_t *) (_d_); \
+  } else { \
+    if (!have_key_val_rand_minmax) Z_ERROR("key_val_rand is missing!"); \
+  })
+#define KEY_SET_RAND_QUAD(_k_, _d_)  Z_MOP(if (_d_) *(_k_) = key_val_rand_minmax(ks_pk[0], ks_pk[1]); else *(_k_) = key_val_rand(); *(_k_) *= *(_k_);)
+
+#ifdef key_integer
+#define KEY_SET_RAND_AND_INIT(_d_)  Z_MOP( \
+  ks_m = *((slint_t *) (_d_)); \
+  if (!have_key_val_rand_minmax) Z_ERROR("key_val_rand is missing!");)
+#define KEY_SET_RAND_AND(_k_, _d_)  Z_MOP(*(_k_) = key_val_rand(); for (ks_j = 0; ks_j < ks_m; ++ks_j) *(_k_) &= key_val_rand();)
+#endif
+
+#define KEY_SET_URAND_INIT(_d_)  Z_MOP(ks_pk = (slkey_pure_t *) (_d_);)
+#define KEY_SET_URAND(_k_, _d_)  Z_MOP(*(_k_) = (slkey_pure_t) (ks_pk[0] + z_urandom() * (ks_pk[1] - ks_pk[0]) + 0.5);)
+
+#define KEY_SET_NRAND_INIT(_d_)  Z_MOP(ks_pk = (slkey_pure_t *) (_d_);)
+#define KEY_SET_NRAND(_k_, _d_)  Z_MOP(*(_k_) = (slkey_pure_t) (ks_pk[2] + z_nrandom() * ks_pk[3]); *(_k_) = z_minmax(ks_pk[0], *(_k_), ks_pk[1]);)
 
 
 slint_t elements_keys_init(elements_t *s, keys_init_type_t t, keys_init_data_t d) /* sl_proto, sl_func elements_keys_init */
 {
-  slint_t i, j, l;
-  slkey_pure_t k, *pk;
+  slint_t i;
 
-  key_set_f set_func;
-  key_set_data_t set_data;
+  KEY_SET_VARIABLES();
 
   if (s == NULL) return -1;
 
   switch (t)
   {
     case SL_EKIT_SET:
-      k = *((slkey_pure_t *) d);
-      for (i = 0; i < s->size; i++) key_set_pure(&s->keys[i], k);
+      KEY_SET_SET_INIT(d);
+      for (i = 0; i < s->size; i++) KEY_SET_SET(&s->keys[i], d);
       break;
     case SL_EKIT_SET_FUNC:
-      set_func = (key_set_f) ((void **) d)[0];
-      set_data = (key_set_data_t) ((void **) d)[1];
-      for (i = 0; i < s->size; i++)
-      {
-        set_func(&k, set_data);
-        key_set_pure(&s->keys[i], k);
-      }
+      KEY_SET_SET_FUNC_INIT(d);
+      for (i = 0; i < s->size; i++) KEY_SET_SET_FUNC(&s->keys[i], d);
       break;
     case SL_EKIT_RAND:
-      if (d)
-      {
-        pk = (slkey_pure_t *) d;
-        for (i = 0; i < s->size; i++) key_set_pure(&s->keys[i], key_val_rand_minmax(pk[0], pk[1]));
-
-      } else
-      {
-        for (i = 0; i < s->size; i++) key_set_pure(&s->keys[i], key_val_rand());
-      }
+      KEY_SET_RAND_INIT(d);
+      for (i = 0; i < s->size; i++) KEY_SET_RAND(&s->keys[i], d);
       break;
     case SL_EKIT_RAND_QUAD:
-      if (d)
-      {
-        pk = (slkey_pure_t *) d;
-        for (i = 0; i < s->size; i++)
-        {
-          k = key_val_rand_minmax(pk[0], pk[1]);
-          key_set_pure(&s->keys[i], k * k);
-        }
-
-      } else
-      {
-        for (i = 0; i < s->size; i++)
-        {
-          k = key_val_rand();
-          key_set_pure(&s->keys[i], k * k);
-        }
-      }
+      KEY_SET_RAND_QUAD_INIT(d);
+      for (i = 0; i < s->size; i++) KEY_SET_RAND_QUAD(&s->keys[i], d);
       break;
 #ifdef key_integer
     case SL_EKIT_RAND_AND:
-      l = *((slint_t *) d);
-      for (i = 0; i < s->size; i++)
-      {
-        k = key_val_rand();
-        for (j = 0; j < l; ++j) k &= key_val_rand();
-        key_set_pure(&s->keys[i], k);
-      }
+      KEY_SET_RAND_AND_INIT(d);
+      for (i = 0; i < s->size; i++) KEY_SET_RAND_AND(&s->keys[i], d);
       break;
 #endif
+    case SL_EKIT_URAND:
+      KEY_SET_URAND_INIT(d);
+      for (i = 0; i < s->size; i++) KEY_SET_URAND(&s->keys[i], d);
+      break;
     case SL_EKIT_NRAND:
-      pk = (slkey_pure_t *) d;
-
-      for (i = 0; i < s->size; i++)
-      {
-        k = (z_nrandom() * pk[3]) + pk[2];
-        k = z_minmax(pk[0], k, pk[1]);
-
-        key_set_pure(&s->keys[i], k);
-      }
+      KEY_SET_NRAND_INIT(d);
+      for (i = 0; i < s->size; i++) KEY_SET_NRAND(&s->keys[i], d);
       break;
   }
 
   return 0;
 }
+
+
+slint_t elements_keys_init_randomized(elements_t *s, slint_t nkeys, keys_init_type_t t, keys_init_data_t d) /* sl_proto, sl_func elements_keys_init_randomized */
+{
+  slint_t i, j;
+
+  KEY_SET_VARIABLES();
+
+  if (s == NULL) return -1;
+
+  i = 0;
+  switch (t)
+  {
+    case SL_EKIT_SET:
+      KEY_SET_SET_INIT(d);
+      for (j = 0; j < nkeys; j++) { i = (i + z_rand()) % s->size; KEY_SET_SET(&s->keys[i], d); }
+      break;
+    case SL_EKIT_SET_FUNC:
+      KEY_SET_SET_FUNC_INIT(d);
+      for (j = 0; j < nkeys; j++) { i = (i + z_rand()) % s->size; KEY_SET_SET_FUNC(&s->keys[i], d); }
+      break;
+    case SL_EKIT_RAND:
+      KEY_SET_RAND_INIT(d);
+      for (j = 0; j < nkeys; j++) { i = (i + z_rand()) % s->size; KEY_SET_RAND(&s->keys[i], d); }
+      break;
+    case SL_EKIT_RAND_QUAD:
+      KEY_SET_RAND_QUAD_INIT(d);
+      for (j = 0; j < nkeys; j++) { i = (i + z_rand()) % s->size; KEY_SET_RAND_QUAD(&s->keys[i], d); }
+      break;
+#ifdef key_integer
+    case SL_EKIT_RAND_AND:
+      KEY_SET_RAND_AND_INIT(d);
+      for (j = 0; j < nkeys; j++) { i = (i + z_rand()) % s->size; KEY_SET_RAND_AND(&s->keys[i], d); }
+      break;
+#endif
+    case SL_EKIT_URAND:
+      KEY_SET_URAND_INIT(d);
+      for (j = 0; j < nkeys; j++) { i = (i + z_rand()) % s->size; KEY_SET_URAND(&s->keys[i], d); }
+      break;
+    case SL_EKIT_NRAND:
+      KEY_SET_NRAND_INIT(d);
+      for (j = 0; j < nkeys; j++) { i = (i + z_rand()) % s->size; KEY_SET_NRAND(&s->keys[i], d); }
+      break;
+  }
+
+  return 0;
+}
+
+
+#undef KEY_SET_VARIABLES
+#undef KEY_SET_SET_INIT
+#undef KEY_SET_SET
+#undef KEY_SET_SET_FUNC_INIT
+#undef KEY_SET_SET_FUNC
+#undef KEY_SET_RAND_INIT
+#undef KEY_SET_RAND
+#undef KEY_SET_RAND_QUAD_INIT
+#undef KEY_SET_RAND_QUAD
+#undef KEY_SET_RAND_AND_INIT
+#undef KEY_SET_RAND_AND
+#undef KEY_SET_URAND_INIT
+#undef KEY_SET_URAND
+#undef KEY_SET_NRAND_INIT
+#undef KEY_SET_NRAND
 
 
 #define LINE_LENGTH  1024
@@ -619,6 +647,8 @@ slint_t elements_init_keys_from_file(elements_t *s, slint_t data, char *filename
 
   return i;
 }
+
+#undef LINE_LENGTH
 
 
 slint_t elements_save_keys_to_file(elements_t *s, char *filename) /* sl_proto, sl_func elements_save_keys_to_file */
@@ -701,86 +731,133 @@ slint_t elements_validate_order_weight(elements_t *s, slint_t n, slkey_pure_t we
 #undef evo_body
 
 
+#if defined(HAVE_GMP_H)
+# include <gmp.h>
+#endif
+
+
 slint_t elements_keys_stats(elements_t *s, slkey_pure_t *stats) /* sl_proto, sl_func elements_keys_stats */
 {
   slint_t i;
-  slkey_pure_t kmin, kmax;
+  slkey_pure_t k, kmin, kmax;
 
 
   if (s->size <= 0) return 0;
 
 #ifdef HAVE_GMP_H
 # ifdef key_integer
-#  define stats_t                            mpz_t
-#  define stats_init(_x_)                    mpz_init(_x_)
-#  define stats_free(_x_)                    mpz_clear(_x_)
-#  define stats_set(_x_, _v_)                mpz_set_si(_x_, _v_)
-#  define stats_add(_x_, _v_)                (_v_ > 0)?mpz_add_ui(_x_, _x_, (unsigned long) _v_):mpz_add_ui(_x_, _x_, (unsigned long) -_v_);
-#  define stats_addsqr(_x_, _v_, _t_)        Z_MOP(mpz_set_si(_t_, (signed long) _v_); mpz_mul(_t_, _t_, _t_); mpz_add(_x_, _x_, _t_);)
-#  define stats_get(_x_)                     (slkey_pure_t) mpz_get_si(_x_)
-#  define stats_avg(_sum_, _n_, _t_)         (slkey_pure_t) ((mpz_tdiv_q_ui(_t_, _sum_, (unsigned long) _n_) < (_n_ / 2))?(mpz_get_si(_t_)):(mpz_get_si(_t_) + 1))
-#  define stats_std(_sum_, _sqr_, _n_, _t_)  (slkey_pure_t) (mpz_mul(_t_, _sum_, _sum_), mpz_tdiv_q_ui(_t_, _t_, (unsigned long) _n_), mpz_sub(_t_, _sqr_, _t_), mpz_tdiv_q_ui(_t_, _t_, (unsigned long) (_n_ - 1)), mpz_sqrt(_t_, _t_), mpz_get_si(_t_))
+#  define stats_t                                    mpz_t
+#  define stats_init(_x_)                            mpz_init(_x_)
+#  define stats_free(_x_)                            mpz_clear(_x_)
+#  define stats_set(_x_, _v_)                        Z_MOP(if (sizeof(_v_) <= sizeof(long)) \
+                                                           { if (key_integer_unsigned) mpz_set_ui(_x_, (unsigned long) _v_); else mpz_set_si(_x_, (long) _v_); } \
+                                                           else \
+                                                           { if (key_integer_unsigned) z_gmp_mpz_set_ull(_x_, (unsigned long long) _v_); else z_gmp_mpz_set_sll(_x_, (long long) _v_); })
+#  define stats_get(_x_, _type_)                     (_type_) ((sizeof(_type_) <= sizeof(long))? \
+                                                               (key_integer_unsigned?mpz_get_ui(_x_):mpz_get_si(_x_)): \
+                                                               (key_integer_unsigned?z_gmp_mpz_get_ull(_x_):z_gmp_mpz_get_sll(_x_)))
+#  define stats_add(_x_, _v_)                        mpz_add(_x_, _x_, _v_);
+#  define stats_addsqr(_x_, _v_, _t_)                Z_MOP(mpz_mul(_t_, _v_, _v_); mpz_add(_x_, _x_, _t_);)
+#  define stats_avg(_sum_, _n_, _t_, _type_)         (_type_) ((mpz_tdiv_q_ui(_t_, _sum_, (unsigned long) _n_) < (_n_ / 2))? \
+                                                               (stats_get(_t_, _type_)): \
+                                                               (stats_get(_t_, _type_) + 1))
+#  define stats_std(_sum_, _sqr_, _n_, _t_, _type_)  (_type_) (mpz_mul(_t_, _sum_, _sum_), \
+                                                               mpz_tdiv_q_ui(_t_, _t_, (unsigned long) _n_), \
+                                                               mpz_sub(_t_, _sqr_, _t_), \
+                                                               mpz_tdiv_q_ui(_t_, _t_, (unsigned long) (_n_ - 1)), \
+                                                               mpz_sqrt(_t_, _t_), stats_get(_t_, _type_))
+#  define stats_print(_x_)                           gmp_printf(#_x_ ": %Zd\n", _x_)
 # endif
 #else
-# define stats_t                              long double
-# define stats_init(_x_)                      Z_NOP()
-# define stats_free(_x_)                      Z_NOP()
-# define stats_set(_x_, _v_)                  _x_ = (stats_t) _v_
-# define stats_add(_x_, _v_)                  _x_ += (stats_t) _v_
-# define stats_addsqr(_x_, _v_, _t_)          _x_ += (stats_t) _v_ * (stats_t) _v_
-# define stats_get(_x_)                       (slkey_pure_t) _x_
-# define stats_avg(_sum_, _n_, _t_)          (slkey_pure_t) (_sum_ / _n_ + 0.5)
-# define stats_std(_sum_, _sqr_, _n_, _t_)   (slkey_pure_t) sqrt((_sqr_ - ((_sum_ * _sum_) / (stats_t) _n_)) / (stats_t) (_n_ - 1))
+# define stats_t                                     long double
+# define stats_init(_x_)                             Z_NOP()
+# define stats_free(_x_)                             Z_NOP()
+# define stats_set(_x_, _v_)                         _x_ = (stats_t) _v_
+# define stats_get(_x_, _type_)                      (_type_) _x_
+# define stats_add(_x_, _v_)                         _x_ += (stats_t) _v_
+# define stats_addsqr(_x_, _v_, _t_)                 _x_ += (stats_t) _v_ * (stats_t) _v_
+# define stats_avg(_sum_, _n_, _t_, _type_)          (_type_) (_sum_ / _n_ + 0.5)
+# define stats_std(_sum_, _sqr_, _n_, _t_, _type_)   (_type_) sqrt((_sqr_ - ((_sum_ * _sum_) / (stats_t) _n_)) / (stats_t) (_n_ - 1))
+# define stats_print(_x_)                            printf(#_x_ ": %Lf\n", _x_)
 #endif
 
-  stats_t ksum, ksqr, t;
+  stats_t x, xsum, xsqr, xt;
 
+/*  elements_print_keys(s);*/
 
   kmin = kmax = key_get_pure(s->keys[0]);
 
-  stats_init(ksum);
-  stats_init(ksqr);
-  stats_init(t);
+  stats_init(x);
+  stats_init(xsum);
+  stats_init(xsqr);
+  stats_init(xt);
 
-  stats_set(ksum, 0);
-  stats_set(ksqr, 0);
-  stats_set(t, 0);
+  stats_set(x, 0);
+  stats_set(xsum, 0);
+  stats_set(xsqr, 0);
+  stats_set(xt, 0);
 
   for (i = 0; i < s->size; i++)
   {
-    if (key_get_pure(s->keys[i]) < kmin) kmin = key_get_pure(s->keys[i]);
-    if (key_get_pure(s->keys[i]) > kmax) kmax = key_get_pure(s->keys[i]);
+    k = key_get_pure(s->keys[i]);
 
-    stats_add(ksum, key_get_pure(s->keys[i]));
+/*    printf("key: %" sl_key_type_fmt "\n", k);*/
 
-    stats_addsqr(ksqr, key_get_pure(s->keys[i]), t);
+    if (k < kmin) kmin = k;
+    if (k > kmax) kmax = k;
+
+    stats_set(x, k);
+    stats_add(xsum, x);
+    stats_addsqr(xsqr, x, xt);
+
+/*    stats_print(x);
+    stats_print(xsum);
+    stats_print(xsqr);*/
   }
 
   stats[SL_EKS_MIN] = kmin;
   stats[SL_EKS_MAX] = kmax;
-  stats[SL_EKS_SUM] = stats_get(ksum);
-  stats[SL_EKS_AVG] = stats_avg(ksum, s->size, t);
+  stats[SL_EKS_SUM] = stats_get(xsum, slkey_pure_t);
+  stats[SL_EKS_AVG] = stats_avg(xsum, s->size, xt, slkey_pure_t);
 
-/*  for (i = 0; i < s->size; i++)
-  {
-    std += (long double) (key_get_pure(s->keys[i]) - stats[SL_EKS_AVG]);
-  }
-  
-  stats[SL_EKS_STD] = (slkey_pure_t) (std / s->size + 0.5);*/
-  
-/*  printf("sum: %f\n", (double) sum);
-  printf("sqr: %f\n", (double) sqr);
-  printf("std: %f\n", sqrt((sqr - ((sum * sum) / (long double) s->size)) / (long double) (s->size - 1)));*/
-  
-/*  if (s->size > 1) stats[SL_EKS_STD] = (slkey_pure_t) sqrt((sqr - ((sum * sum) / (long double) s->size)) / (long double) (s->size - 1));
-  else stats[SL_EKS_STD] = 0;*/
+/*  stats_print(ksum);
+  stats_print(ksqr);*/
 
-  if (s->size > 1) stats[SL_EKS_STD] = stats_std(ksum, ksqr, s->size, t);
+  if (s->size > 1) stats[SL_EKS_STD] = stats_std(xsum, xsqr, s->size, xt, slkey_pure_t);
   else stats[SL_EKS_STD] = 0;
 
-  stats_free(ksum);
-  stats_free(ksqr);
-  stats_free(t);
+  stats_free(x);
+  stats_free(xsum);
+  stats_free(xsqr);
+  stats_free(xt);
+
+  return 0;
+}
+
+#undef stats_t
+#undef stats_init
+#undef stats_free
+#undef stats_set
+#undef stats_get
+#undef stats_add
+#undef stats_addsqr
+#undef stats_avg
+#undef stats_std
+#undef stats_print
+
+
+slint_t elements_keys_stats_print(elements_t *s) /* sl_proto, sl_func elements_keys_stats_print */
+{
+  slkey_pure_t stats[SL_EKS_SIZE];
+
+
+  elements_keys_stats(s, stats);
+
+  printf("min: %" key_pure_type_fmt "\n", stats[SL_EKS_MIN]);
+  printf("max: %" key_pure_type_fmt "\n", stats[SL_EKS_MAX]);
+  printf("sum: %" key_pure_type_fmt "\n", stats[SL_EKS_SUM]);
+  printf("avg: %" key_pure_type_fmt "\n", stats[SL_EKS_AVG]);
+  printf("std: %" key_pure_type_fmt "\n", stats[SL_EKS_STD]);
 
   return 0;
 }

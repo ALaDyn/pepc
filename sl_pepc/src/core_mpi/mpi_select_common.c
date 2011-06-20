@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_select_common.c
- *  timestamp: 2011-02-10 21:20:50 +0100
  *  
  */
 
@@ -72,7 +71,7 @@ slint_t init_partconds_intern(slint_t npconds, partcond_intern_t *pci, partcond_
   slint_t sum_count[2] = { 0, 0 };
   slint_t tot_count[2] = { total_count, total_count };
 #ifdef elem_weight
-  slweight_t avg_weight = total_weight / nparts;
+  double avg_weight = ((double) total_weight) / nparts;
   slweight_t sum_weight[2] = { 0.0, 0.0 };
   slweight_t tot_weight[2] = { total_weight, total_weight };
 #endif
@@ -114,8 +113,17 @@ slint_t init_partconds_intern(slint_t npconds, partcond_intern_t *pci, partcond_
 
     if (pci[i].pcm & SLPC_WEIGHTS_MM)
     {
-      pci[i].weight_min = (pc[i].weight_min < 0.0)?(-pc[i].weight_min * avg_weight):pc[i].weight_min;
-      pci[i].weight_max = (pc[i].weight_max < 0.0)?(-pc[i].weight_max * avg_weight):pc[i].weight_max;
+      /* round only if weight is an integral type */
+      if (0.5 != (slweight_t) 0.5)
+      {
+        pci[i].weight_min = z_round((pc[i].weight_min < 0.0)?(-pc[i].weight_min * avg_weight):pc[i].weight_min);
+        pci[i].weight_max = z_round((pc[i].weight_max < 0.0)?(-pc[i].weight_max * avg_weight):pc[i].weight_max);
+
+      } else
+      {
+        pci[i].weight_min = (pc[i].weight_min < 0.0)?(-pc[i].weight_min * avg_weight):pc[i].weight_min;
+        pci[i].weight_max = (pc[i].weight_max < 0.0)?(-pc[i].weight_max * avg_weight):pc[i].weight_max;
+      }
       
       /* check min/max consistency */
       if (pci[i].weight_min > pci[i].weight_max) pci[i].weight_min = pci[i].weight_max = (pci[i].weight_min + pci[i].weight_max) / 2.0;
@@ -127,14 +135,23 @@ slint_t init_partconds_intern(slint_t npconds, partcond_intern_t *pci, partcond_
 
     if (pci[i].pcm & SLPC_WEIGHTS_LH)
     {
-      pci[i].weight_low  = (pc[i].weight_low  < 0.0)?(-pc[i].weight_low  * total_weight):pc[i].weight_low;
-      pci[i].weight_high = (pc[i].weight_high < 0.0)?(-pc[i].weight_high * total_weight):pc[i].weight_high;
+      /* round only if weight is an integral type */
+      if (0.5 != (slweight_t) 0.5)
+      {
+        pci[i].weight_low  = z_round((pc[i].weight_low  < 0.0)?(-pc[i].weight_low  * total_weight):pc[i].weight_low);
+        pci[i].weight_high = z_round((pc[i].weight_high < 0.0)?(-pc[i].weight_high * total_weight):pc[i].weight_high);
+
+      } else
+      {
+        pci[i].weight_low  = (pc[i].weight_low  < 0.0)?(-pc[i].weight_low  * total_weight):pc[i].weight_low;
+        pci[i].weight_high = (pc[i].weight_high < 0.0)?(-pc[i].weight_high * total_weight):pc[i].weight_high;
+      }
 
       /* FIXME: low/high consistency not checked */
 
     } else { pci[i].weight_low = 0; pci[i].weight_high = total_weight; }
 
-    Z_TRACE_IF(MSC_TRACE_IF, "OUT partcond weight %" slint_fmt ": %f / %f / %f / %f", i, pci[i].weight_min, pci[i].weight_max, pci[i].weight_low, pci[i].weight_high);
+    Z_TRACE_IF(MSC_TRACE_IF, "OUT partcond weight %" slint_fmt ": %" slweight_fmt " / %" slweight_fmt " / %" slweight_fmt " / %" slweight_fmt, i, pci[i].weight_min, pci[i].weight_max, pci[i].weight_low, pci[i].weight_high);
 #endif
   }
 
@@ -446,9 +463,12 @@ slint_t mpi_select_stats(elements_t *s, slint_t nparts, int *sdispls, int size, 
       if (fabs(1.0 - (partial_weights[i] * nparts / partial_weights[nparts])) > vmax) vmax = fabs(1.0 - (partial_weights[i] * nparts / partial_weights[nparts]));
     }
     printf("%d: weight min/max: %f / %f\n", rank, vmin, vmax);
-    printf("%d: weight average: %f - %f / %f\n", rank, partial_weights[nparts] / nparts, v / nparts, v / partial_weights[nparts]);
+    printf("%d: weight average: %f - %f / %f\n", rank, (double) partial_weights[nparts] / nparts, v / nparts, v / partial_weights[nparts]);
 #endif
   }
   
   return 0;
+
+#undef partial_counts
+#undef partial_weights
 }

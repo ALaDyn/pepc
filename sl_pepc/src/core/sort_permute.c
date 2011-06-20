@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/sort_permute.c
- *  timestamp: 2011-02-08 21:32:53 +0100
  *  
  */
 
@@ -10,11 +9,11 @@
 #include "sl_common.h"
 
 
-inline slint sort_permute_forward_(elements_t *s, elements_t *sx, slint *perm, slint offset) /* sl_func sort_permute_forward_ */
+slint_t sort_permute_forward_(elements_t *s, elements_t *sx, slint_t *perm, slint_t offset) /* sl_func sort_permute_forward_ */
 {
   elements_t src, end;
 
-  slint j, i, *ia, *ja;
+  slint_t j, i, *ia, *ja;
 
   elem_assign(s, &src);
   elem_assign_at(s, s->size, &end);
@@ -43,12 +42,12 @@ inline slint sort_permute_forward_(elements_t *s, elements_t *sx, slint *perm, s
 }
 
 
-inline slint sort_permute_forward_masked(elements_t *s, elements_t *sx, slint *perm, slint offset, slint bit_mask) /* sl_func sort_permute_forward_masked */
+slint_t sort_permute_forward_masked(elements_t *s, elements_t *sx, slint_t *perm, slint_t offset, slint_t bit_mask) /* sl_func sort_permute_forward_masked */
 {
   elements_t src, end;
 
-  slint inv_bit_mask = bit_mask ^ -1L;
-  slint j, i, *ia, *ja;
+  slint_t inv_bit_mask = bit_mask ^ -1L;
+  slint_t j, i, *ia, *ja;
 
   elem_assign(s, &src);
   elem_assign_at(s, s->size, &end);
@@ -82,7 +81,7 @@ inline slint sort_permute_forward_masked(elements_t *s, elements_t *sx, slint *p
 }
 
 
-slint sort_permute_forward(elements_t *s, elements_t *sx, slint *perm, slint offset, slint mask_bit) /* sl_proto, sl_func sort_permute_forward */
+slint_t sort_permute_forward(elements_t *s, elements_t *sx, slint_t *perm, slint_t offset, slint_t mask_bit) /* sl_proto, sl_func sort_permute_forward */
 {
   elements_t _sx;
 
@@ -99,7 +98,7 @@ slint sort_permute_forward(elements_t *s, elements_t *sx, slint *perm, slint off
   }
 
   if (mask_bit < 0) sort_permute_forward_(s, sx, perm, offset);
-  else sort_permute_forward_masked(s, sx, perm, offset, 1L << z_min(mask_bit, (sizeof(slint) * 8) - 1));
+  else sort_permute_forward_masked(s, sx, perm, offset, z_powof2_typed(z_min(mask_bit, (slint_t) (sizeof(slint_t) * 8) - 1), slint_t));
 
   if (sx == &_sx) elements_free(sx);
 
@@ -109,11 +108,11 @@ slint sort_permute_forward(elements_t *s, elements_t *sx, slint *perm, slint off
 }
 
 
-inline slint sort_permute_backward_(elements_t *s, elements_t *sx, slint *perm, slint offset) /* sl_func sort_permute_backward_ */
+slint_t sort_permute_backward_(elements_t *s, elements_t *sx, slint_t *perm, slint_t offset) /* sl_func sort_permute_backward_ */
 {
   elements_t src, end, e0, e1, *from, *to, *t;
 
-  slint i, j, k, *ia, *ja;
+  slint_t i, j, k, *ia, *ja;
 
   elem_assign(s, &src);
   elem_assign_at(s, s->size, &end);
@@ -159,13 +158,13 @@ inline slint sort_permute_backward_(elements_t *s, elements_t *sx, slint *perm, 
 }
 
 
-inline slint sort_permute_backward_masked(elements_t *s, elements_t *sx, slint *perm, slint offset, slint bit_mask) /* sl_func sort_permute_backward_masked */
+slint_t sort_permute_backward_masked(elements_t *s, elements_t *sx, slint_t *perm, slint_t offset, slint_t bit_mask) /* sl_func sort_permute_backward_masked */
 {
   elements_t src, end, e0, e1, *from, *to, *t;
 
-  slint inv_bit_mask = bit_mask ^ -1L;
+  slint_t inv_bit_mask = bit_mask ^ -1L;
 
-  slint i, k, *ia, *ja;
+  slint_t i, k, *ia, *ja;
 
   elem_assign(s, &src);
   elem_assign_at(s, s->size, &end);
@@ -213,7 +212,7 @@ inline slint sort_permute_backward_masked(elements_t *s, elements_t *sx, slint *
 }
 
 
-slint sort_permute_backward(elements_t *s, elements_t *sx, slint *perm, slint offset, slint mask_bit) /* sl_proto, sl_func sort_permute_backward */
+slint_t sort_permute_backward(elements_t *s, elements_t *sx, slint_t *perm, slint_t offset, slint_t mask_bit) /* sl_proto, sl_func sort_permute_backward */
 {
   elements_t _sx;
 
@@ -230,7 +229,7 @@ slint sort_permute_backward(elements_t *s, elements_t *sx, slint *perm, slint of
   }
 
   if (mask_bit < 0) sort_permute_backward_(s, sx, perm, offset);
-  else sort_permute_backward_masked(s, sx, perm, offset, 1L << z_min(mask_bit, (sizeof(slint) * 8) - 1));
+  else sort_permute_backward_masked(s, sx, perm, offset, z_powof2_typed(z_min(mask_bit, (slint_t) (sizeof(slint_t) * 8) - 1), slint_t));
 
   if (sx == &_sx) elements_free(sx);
 

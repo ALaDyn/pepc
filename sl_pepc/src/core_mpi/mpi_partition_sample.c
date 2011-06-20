@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_partition_sample.c
- *  timestamp: 2011-01-30 00:28:58 +0100
  *  
  */
 
@@ -98,3 +97,8 @@ slint_t mpi_partition_sample_regular(elements_t *s, partcond_t *pcond, int *scou
 
   return 0;
 }
+
+
+#undef PRINT_SCOUNTS_RCOUNTS
+#undef PRINT_STATS
+#undef PRINT_TIMINGS

@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_rti.h
- *  timestamp: 2011-03-11 09:08:29 +0100
  *  
  */
 
@@ -37,6 +36,10 @@ enum rti_tid
   rti_tid_mpi_mergek_equal,
   rti_tid_mpi_mergek_equal_while,
   rti_tid_mpi_mergek_equal_while_merge2,
+  rti_tid_mpi_mergek_sorted,
+  rti_tid_mpi_mergek_sorted_while,
+  rti_tid_mpi_mergek_sorted_while_check,
+  rti_tid_mpi_mergek_sorted_while_oddeven,
   rti_tid_mpi_mergek,
   rti_tid_mpi_mergek_equalike,
   rti_tid_mpi_mergek_while,

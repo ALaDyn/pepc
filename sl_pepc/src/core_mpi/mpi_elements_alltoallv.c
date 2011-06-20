@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_elements_alltoallv.c
- *  timestamp: 2010-12-19 13:24:45 +0100
  *  
  */
 

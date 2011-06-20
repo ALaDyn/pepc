@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_common.c
- *  timestamp: 2011-02-24 23:31:43 +0100
  *  
  */
 
@@ -177,6 +176,8 @@ slint_t mpi_get_grid_properties(slint_t ndims, slint_t *dims, slint_t *pos, int 
   }
 # endif
 
+#undef STATIC
+
   _pos[3] = (rank / (1))                                  % _dims[3];
   _pos[2] = (rank / (1 * _dims[3]))                       % _dims[2];
   _pos[1] = (rank / (1 * _dims[3] * _dims[2]))            % _dims[1];
@@ -298,6 +299,8 @@ slint_t mpi_get_grid(slint_t ndims, slint_t *dims, slint_t *pos, int size, int r
   }
 # endif
 
+#undef STATIC
+
   _pos[3] = (rank / (1))                                  % _dims[3];
   _pos[2] = (rank / (1 * _dims[3]))                       % _dims[2];
   _pos[1] = (rank / (1 * _dims[3] * _dims[2]))            % _dims[1];
@@ -361,4 +364,29 @@ slint_t mpi_subgroups_delete(slint_t nsubgroups, MPI_Comm *sub_comms, int size, 
   for (i = 0; i < nsubgroups; ++i) MPI_Comm_free(&sub_comms[i]);
 
   return 0;
+}
+
+
+/* sl_macro MC_REDUCEBCAST_THRESHOLD */
+/* sl_macro MC_REDUCEBCAST_ROOT */
+
+#if !defined(MC_REDUCEBCAST_THRESHOLD) && defined(GLOBAL_REDUCEBCAST_THRESHOLD)
+# define MC_REDUCEBCAST_THRESHOLD  GLOBAL_REDUCEBCAST_THRESHOLD
+#endif
+
+#ifndef MC_REDUCEBCAST_ROOT
+# define MC_REDUCEBCAST_ROOT  0
+#endif
+
+int sl_MPI_Allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm, int size, int rank) /* sl_proto, sl_func sl_MPI_Allreduce */
+{
+#ifdef MC_REDUCEBCAST_THRESHOLD
+  if (size >= MC_REDUCEBCAST_THRESHOLD)
+  {
+    MPI_Reduce(sendbuf, recvbuf, count, datatype, op, MC_REDUCEBCAST_ROOT, comm);
+    MPI_Bcast(recvbuf, count, datatype, MC_REDUCEBCAST_ROOT, comm);
+    return 0;
+  }
+#endif
+  return MPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm);
 }

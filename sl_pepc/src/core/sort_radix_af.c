@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/sort_radix_af.c
- *  timestamp: 2011-02-08 21:32:53 +0100
  *  
  */
 
@@ -137,6 +136,8 @@ slint rs_rec_af(elements_t *s, elements_t *sx, slint rhigh, slint rlow, slint rw
   return 0;
 }
 
+#undef max_nclasses
+
 
 slint sort_radix_af(elements_t *s, elements_t *sx, slint rhigh, slint rlow, slint rwidth) /* sl_proto, sl_func sort_radix_af */
 {
@@ -176,6 +177,11 @@ slint sort_radix_af(elements_t *s, elements_t *sx, slint rhigh, slint rlow, slin
 
   return 0;
 }
+
+
+#undef insertsort
+#undef insertsort_finalize
+#undef insertsort_finalize_adaptive
 
 
 #endif /* key_integer */

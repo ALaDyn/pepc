@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/z_pack.c
- *  timestamp: 2011-02-26 16:57:01 +0100
  *  
  */
 
@@ -42,6 +41,98 @@ double z_time_wtime() /* z_proto, z_func z_time_wtime */
 
 
 #ifdef Z_PACK_RANDOM
+
+#if !defined(HAVE_RANDOM) && !defined(HAVE_RAND)
+
+/* "Even Quicker Generator" from Numerical Recipes in C, §7.1 */
+
+unsigned long z_srandom_seed = 0; /* z_var z_srandom_seed */
+
+void z_srandom(unsigned long seed) /* z_proto, z_func z_srandom */
+{
+  z_srandom_seed = seed;
+}
+
+unsigned long z_random() /* z_proto, z_func z_random */
+{
+  z_srandom_seed = 1664525L * z_srandom_seed + 1013904223L;
+  return (z_srandom_seed &= 0xFFFFFFFFL);
+}
+
+#endif
+
+
+void z_srandom64(unsigned long seed) /* z_proto, z_func z_srandom64 */
+{
+  z_srand(seed);
+}
+
+
+long long z_random64() /* z_proto, z_func z_random64 */
+{
+  long long x;
+
+
+  x =  ((long long) z_rand()) << 32;
+  x |= ((long long) z_rand()) << 1;
+
+  x |= ((long long) z_rand()) & 0x1;
+  
+  return x;
+}
+
+
+long long z_random64_minmax(long long min, long long max) /* z_proto, z_func z_random64_minmax */
+{
+  long double r;
+  long long x;
+
+
+  r = (long double) z_rand() / (long double) Z_RAND_MAX;
+  
+  x = ((long double) (max - min) * r) + 0.5;
+  
+  x += min;
+
+  if (x > max) x = max;
+  
+  return x;
+}
+
+
+unsigned long long z_random64u() /* z_proto, z_func z_random64u */
+{
+  unsigned long long x;
+  
+
+  x =  ((unsigned long long) z_rand()) << 32;
+  x |= ((unsigned long long) z_rand()) << 1;
+
+  x <<= 1;
+  x |= ((unsigned long long) z_rand()) & 0x3;
+  
+  return x;
+}
+
+
+unsigned long long z_random64u_minmax(unsigned long long min, unsigned long long max) /* z_proto, z_func z_random64u_minmax */
+{
+  long double r;
+  unsigned long long x;
+
+
+  r = (long double) z_rand() / (long double) Z_RAND_MAX;
+  
+  x = ((long double) (max - min) * r) + 0.5;
+  
+  x += min;
+
+  if (x > max) x = max;
+  
+  return x;
+}
+
+
 
 #if defined(HAVE_ESSL_H)
 # include <essl.h>
@@ -94,6 +185,8 @@ void z_urandom_seed(unsigned long s) /* z_proto, z_func z_urandom_seed */
   z_urandom_seed_essl = s + 1;
 #elif defined(HAVE_T4C_H)
   t4c_durand_seed(s);
+#else
+  z_srand(s);
 #endif
 }
 
@@ -108,6 +201,9 @@ double z_urandom() /* z_proto, z_func z_urandom */
 #elif defined(HAVE_T4C_H)
 /*  printf("t4c_durand\n");*/
   t4c_durand(r);
+#else
+/*  printf("random() / RAND_MAX\n");*/
+  r[0] = (double) z_rand() / (double) Z_RAND_MAX;
 #endif
 
 /*  printf("z_urandom: %f\n", r[0]);*/
@@ -204,3 +300,105 @@ z_int_t z_digest_hash_read(void *hdl, void *hash) /* z_proto, z_func z_digest_ha
 }
 
 #endif /* Z_PACK_DIGEST */
+
+
+#if defined(Z_PACK_GMP) && defined(HAVE_GMP_H)
+
+#ifdef HAVE_GMP_H
+# include <gmp.h>
+#endif
+
+
+void z_gmp_mpz_set_ull(mpz_t z, unsigned long long v) /* z_proto, z_func z_gmp_mpz_set_ull */
+{
+/*  printf("z_gmp_mpz_set_ull\n");*/
+
+
+  if (sizeof(unsigned long long) != sizeof (unsigned long))
+  {
+    mpz_set_ui(z, (unsigned long) (v >> 32));
+    mpz_mul_2exp(z, z, 32);
+    mpz_add_ui(z, z, (unsigned long) (v & 0x00000000FFFFFFFFULL));
+
+  } else mpz_set_ui(z, (unsigned long) v);
+}
+
+
+void z_gmp_mpz_set_sll(mpz_t z, long long v) /* z_proto, z_func z_gmp_mpz_set_sll */
+{
+  unsigned long long uv = (v < 0)?-v:v;
+
+
+/*  printf("z_gmp_mpz_set_sll\n");*/
+
+  if (sizeof(long long) != sizeof (long))
+  {
+    mpz_set_ui(z, (unsigned long) (uv >> 32));
+    mpz_mul_2exp(z, z, 32);
+    mpz_add_ui(z, z, (long) (uv & 0x00000000FFFFFFFFLL));
+    
+    if (v < 0) mpz_neg(z, z);
+
+  } else mpz_set_si(z, (long) v);
+}
+
+
+unsigned long long z_gmp_mpz_get_ull(mpz_t z) /* z_proto, z_func z_gmp_mpz_get_ull */
+{
+  mpz_t t;
+  unsigned long long r = 0;
+
+
+/*  printf("z_gmp_mpz_get_ull\n");*/
+
+  if (sizeof(unsigned long long) != sizeof (unsigned long))
+  {
+    mpz_init(t);
+
+    mpz_tdiv_q_2exp(t, z, 32);
+    r = mpz_get_ui(t);
+    mpz_tdiv_r_2exp(t, z, 32);
+    r = (r << 32) + mpz_get_ui(t);
+
+    mpz_clear(t);
+
+  } else r = mpz_get_ui(z);
+
+  return r;
+}
+
+
+long long z_gmp_mpz_get_sll(mpz_t z) /* z_proto, z_func z_gmp_mpz_get_sll */
+{
+  long long r = 0;
+  mpz_t t;
+  int s;
+
+
+/*  printf("z_gmp_mpz_get_sll\n");*/
+
+  if (sizeof(long long) != sizeof (long))
+  {
+    s = mpz_sgn(z);
+
+    if (s < 0) mpz_neg(z, z);
+
+    mpz_init(t);
+
+    mpz_tdiv_q_2exp(t, z, 32);
+    r = mpz_get_si(t);
+    mpz_tdiv_r_2exp(t, z, 32);
+    r = (r << 32) + mpz_get_ui(t);
+
+    mpz_clear(t);
+
+    if (s < 0) mpz_neg(z, z);
+
+    r *= s;
+
+  } else r = mpz_get_si(z);
+
+  return r;
+}
+
+#endif /* Z_PACK_GMP && HAVE_GMP_H */

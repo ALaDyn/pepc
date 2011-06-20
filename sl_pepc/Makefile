@@ -4,7 +4,6 @@
 #  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
 #  
 #  file: Makefile
-#  timestamp: 2011-03-06 17:48:21 +0100
 #  
 
 
@@ -212,10 +211,12 @@ ifneq ($(MODULES),)
  ifeq ($(findstring sl_pepckeys,$($(mod)_MODULES_NOT)),)
   mod:=sl_pepckeys/
   include Makefile
+  mod:=$(firstword $(mod_list))
  endif
  ifeq ($(findstring sl_pepcparts,$($(mod)_MODULES_NOT)),)
   mod:=sl_pepcparts/
   include Makefile
+  mod:=$(firstword $(mod_list))
  endif
 endif
 

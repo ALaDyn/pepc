@@ -19,10 +19,10 @@
 
 
 /* standard (SL) integer data type */
-#define pepckeys_sl_int_type_c          long
-#define pepckeys_sl_int_type_mpi        MPI_LONG
+#define pepckeys_sl_int_type_c          long long
+#define pepckeys_sl_int_type_mpi        MPI_LONG_LONG
 #define pepckeys_sl_int_size_mpi        1
-#define pepckeys_sl_int_type_fmt        "ld"
+#define pepckeys_sl_int_type_fmt        "lld"
 
 
 /* index data type */
@@ -57,7 +57,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_config_intern.h
- *  timestamp: 2011-02-14 10:22:21 +0100
  *  
  */
 
@@ -76,20 +75,12 @@
 #endif
 
 
-/* override inlining */
-#ifdef NO_INLINE
-# ifndef inline
-#  define inline
-# endif
-#endif
-
-
 #ifndef pepckeys_SL_INDEX
 # undef pepckeys_SL_PACKED_INDEX
 #endif
 
 
-/* if no special, given, primary and heavy used integer-type ... */
+/* if no special datatype for (sl default) integer ... */
 #ifndef pepckeys_sl_int_type_c
   /* ... use a default one */
 # define pepckeys_sl_int_type_c               long      /* sl_macro */
@@ -115,14 +106,16 @@
 
 /* if no special datatype for (intern) weight ... */
 #ifndef pepckeys_sl_weight_type_c
- /* ... use the double */
-# define pepckeys_sl_weight_type_c             double      /* sl_macro */
+ /* ... use (sl default) integer */
+# define pepckeys_sl_weight_type_c             pepckeys_sl_int_type_c    /* sl_macro */
 # undef pepckeys_sl_weight_type_mpi
-# define pepckeys_sl_weight_type_mpi           MPI_DOUBLE  /* sl_macro */
+# define pepckeys_sl_weight_type_mpi           pepckeys_sl_int_type_mpi  /* sl_macro */
 # undef pepckeys_sl_weight_size_mpi
-# define pepckeys_sl_weight_size_mpi           1           /* sl_macro */
+# define pepckeys_sl_weight_size_mpi           pepckeys_sl_int_size_mpi  /* sl_macro */
 # undef pepckeys_sl_weight_type_fmt
-# define pepckeys_sl_weight_type_fmt           "f"         /* sl_macro */
+# define pepckeys_sl_weight_type_fmt           pepckeys_sl_int_type_fmt  /* sl_macro */
+# undef pepckeys_sl_weight_intequiv
+# define pepckeys_sl_weight_intequiv                            /* sl_macro */
 #else
   /* ... use the given one and check whether an mpi-type is present and required */
 # ifdef SL_USE_MPI
@@ -596,7 +589,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_types.h
- *  timestamp: 2011-03-03 13:24:38 +0100
  *  
  */
 
@@ -706,6 +698,15 @@ typedef pepckeys_sl_data19_type_c pepckeys_sldata19_t;
 typedef pepckeys_sl_weight_type_c pepckeys_slweight_t;
 
 #define pepckeys_slweight_fmt  pepckeys_sl_weight_type_fmt  /* sl_macro */
+
+#if defined(pepckeys_sl_elem_weight) && defined(pepckeys_sl_weight_intequiv)
+typedef pepckeys_sl_weight_type_c pepckeys_slcount_t;       /* sl_type pepckeys_slcount_t */
+# define pepckeys_slcount_fmt  pepckeys_sl_weight_type_fmt  /* sl_macro */
+#else
+typedef pepckeys_sl_int_type_c pepckeys_slcount_t;
+# define pepckeys_slcount_fmt  pepckeys_sl_int_type_fmt
+#endif
+
 
 /* sl_type pepckeys__slpwkey_t pepckeys_slpwkey_t */
 typedef struct pepckeys__slpwkey_t
@@ -1048,6 +1049,23 @@ typedef pepckeys_slint_t (*pepckeys_sortnet_f)(pepckeys_slint_t size, pepckeys_s
 typedef pepckeys_slint_t (*pepckeys_merge2x_f)(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *sx);
 typedef pepckeys_slint_t (*pepckeys_merge2X_f)(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *sx, pepckeys_elements_t *t);
 
+/* sl_type pepckeys_tproc_f pepckeys__tproc_data_t pepckeys_tproc_data_t */
+typedef struct pepckeys__tproc_data_t
+{
+  int *int_tprocs;
+  int int_mask;
+
+} pepckeys_tproc_data_t;
+
+typedef int (*pepckeys_tproc_f)(pepckeys_elements_t *s0, pepckeys_slint_t x, void *data);
+
+#ifndef SL_TPROC_INT
+# define SL_TPROC_INT       ((void *) 1)
+#endif
+#ifndef SL_TPROC_INT_MASK
+# define SL_TPROC_INT_MASK  ((void *) 2)
+#endif
+
 
 /* deprecated, sl_type pepckeys_k2c_func pepckeys_pivot_func pepckeys_sn_func pepckeys_m2x_func pepckeys_m2X_func */
 typedef pepckeys_key2class_f pepckeys_k2c_func;
@@ -1088,8 +1106,10 @@ typedef void (*pepckeys_key_set_f)(pepckeys_slkey_pure_t *k, pepckeys_key_set_da
 #define SL_EKIT_RAND_QUAD   4
 #undef SL_EKIT_RAND_AND
 #define SL_EKIT_RAND_AND    5
+#undef SL_EKIT_URAND
+#define SL_EKIT_URAND       6
 #undef SL_EKIT_NRAND
-#define SL_EKIT_NRAND       6
+#define SL_EKIT_NRAND       7
 
 
 #ifndef SL_EIK_OFFSET
@@ -1207,8 +1227,8 @@ typedef struct pepckeys__partcond_intern_t
   pepckeys_slint_t count_min, count_max;
   pepckeys_slint_t count_low, count_high;
 #ifdef elem_weight
-  double weight_min, weight_max;
-  double weight_low, weight_high;
+  pepckeys_slweight_t weight_min, weight_max;
+  pepckeys_slweight_t weight_low, weight_high;
 #endif
 
 } pepckeys_partcond_intern_t, *pepckeys_partcond_intern_p;
@@ -1217,6 +1237,7 @@ typedef struct pepckeys__partcond_intern_t
 /* sl_type pepckeys__parttype_t pepckeys_parttype_t pepckeys_parttype_p */
 typedef struct pepckeys__parttype_t
 {
+  pepckeys_slint_t type;
 
 } pepckeys_parttype_t, *pepckeys_parttype_p;
 
@@ -1229,7 +1250,7 @@ typedef struct pepckeys__bin_t
   pepckeys_elements_t s;
 
 #ifdef elem_weight
-  double weight;
+  pepckeys_slweight_t weight;
 #endif
 
 } pepckeys_bin_t;
@@ -1251,19 +1272,11 @@ struct pepckeys__binning_t;
 
 /* sl_type pepckeys_binning_pre_f pepckeys_binning_exec_f pepckeys_binning_refine_f pepckeys_binning_hit_f pepckeys_binning_finalize_f pepckeys_binning_post_f */
 typedef pepckeys_slint_t (*pepckeys_binning_pre_f)(struct pepckeys__binning_t *bm);
-typedef pepckeys_slint_t (*pepckeys_binning_exec_f)(struct pepckeys__binning_t *bm, pepckeys_bin_t *bin, double *counts, double *weights);
-typedef pepckeys_slint_t (*pepckeys_binning_refine_f)(struct pepckeys__binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t k, double *counts, double *weights, pepckeys_splitter_t *sp, pepckeys_slint_t s, pepckeys_bin_t *new_bin);
-typedef pepckeys_slint_t (*pepckeys_binning_hit_f)(struct pepckeys__binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t k, double *counts, pepckeys_splitter_t *sp, pepckeys_slint_t s);
-typedef pepckeys_slint_t (*pepckeys_binning_finalize_f)(struct pepckeys__binning_t *bm, pepckeys_bin_t *bin, double dcw, pepckeys_slint_t lc_min, pepckeys_slint_t lc_max, double *lcw, pepckeys_splitter_t *sp, pepckeys_slint_t s);
+typedef pepckeys_slint_t (*pepckeys_binning_exec_f)(struct pepckeys__binning_t *bm, pepckeys_bin_t *bin, pepckeys_slcount_t *counts, pepckeys_slweight_t *weights);
+typedef pepckeys_slint_t (*pepckeys_binning_refine_f)(struct pepckeys__binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t k, pepckeys_slcount_t *counts, pepckeys_slweight_t *weights, pepckeys_splitter_t *sp, pepckeys_slint_t s, pepckeys_bin_t *new_bin);
+typedef pepckeys_slint_t (*pepckeys_binning_hit_f)(struct pepckeys__binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t k, pepckeys_slcount_t *counts, pepckeys_splitter_t *sp, pepckeys_slint_t s);
+typedef pepckeys_slint_t (*pepckeys_binning_finalize_f)(struct pepckeys__binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t dc, pepckeys_slweight_t dw, pepckeys_slint_t lc_min, pepckeys_slint_t lc_max, pepckeys_slcount_t *lcs, pepckeys_slweight_t *lws, pepckeys_splitter_t *sp, pepckeys_slint_t s);
 typedef pepckeys_slint_t (*pepckeys_binning_post_f)(struct pepckeys__binning_t *bm);
-
-#ifdef SL_DEPRECATED
-/* sl_type pepckeys_binning_exec_pre_old_f pepckeys_binning_exec_post_old_f pepckeys_binning_refinable_old_f pepckeys_binning_refine_old_f */
-typedef pepckeys_slint_t (*pepckeys_binning_exec_pre_old_f)(struct pepckeys__binning_t *bm);
-typedef pepckeys_slint_t (*pepckeys_binning_exec_post_old_f)(struct pepckeys__binning_t *bm);
-typedef pepckeys_slint_t (*pepckeys_binning_refinable_old_f)(struct pepckeys__binning_t *bm);
-typedef pepckeys_slint_t (*pepckeys_binning_refine_old_f)(struct pepckeys__binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t k, double *counts, pepckeys_bin_t *new_bin);
-#endif
 
 
 /* sl_type pepckeys__binning_data_t pepckeys_binning_data_t */
@@ -1296,15 +1309,9 @@ typedef struct pepckeys__binning_t
 
   pepckeys_slint_t sorted;
 
+  pepckeys_slint_t docounts;
 #ifdef elem_weight
   pepckeys_slint_t doweights;
-#endif
-
-#ifdef SL_DEPRECATED
-  pepckeys_binning_exec_pre_old_f exec_pre_old;
-  pepckeys_binning_exec_post_old_f exec_post_old;
-  pepckeys_binning_refinable_old_f refinable_old;
-  pepckeys_binning_refine_old_f refine_old;
 #endif
 
   pepckeys_binning_data_t bd;
@@ -1320,8 +1327,9 @@ typedef struct pepckeys__local_bins_t
   pepckeys_slint_t nbins, max_nbins;
   pepckeys_slint_t nelements;
 
+  pepckeys_slint_t docounts;
 #ifdef elem_weight
-  pepckeys_slint_t doweights, weight_factor;
+  pepckeys_slint_t doweights;
 #endif
 
   pepckeys_slint_t nbinnings, max_nbinnings;
@@ -1330,13 +1338,17 @@ typedef struct pepckeys__local_bins_t
   pepckeys_bin_t *bins, *bins_new;
   pepckeys_bin_t *bins0, *bins1;
 
-  double *counts, *bin_counts;
-#ifdef elem_weight
-  double *weights, *bin_weights;
-#endif
-
   pepckeys_slint_t *bcws;
-  double *cws, *bin_cws;
+
+#if defined(elem_weight) && defined(pepckeys_sl_weight_intequiv)
+  pepckeys_slint_t cw_factor, w_index, bin_cw_factor;
+  pepckeys_slweight_t *cws, *bin_cws;
+#else
+  pepckeys_slint_t *cs, *bin_cs;
+# ifdef elem_weight
+  pepckeys_slweight_t *ws, *bin_ws;
+# endif
+#endif
 
   pepckeys_slint_t last_exec_b;
 
@@ -1349,74 +1361,25 @@ typedef struct pepckeys__global_bins_t
   pepckeys_binning_t *bm;
   
   pepckeys_local_bins_t lb;
-  
-  double *counts;
-#ifdef elem_weight
-  double *weights;
-#endif
 
   pepckeys_slint_t *bcws;
-  double *cws;
+
+#if defined(elem_weight) && defined(pepckeys_sl_weight_intequiv)
+  pepckeys_slweight_t *cws;
+#else
+  pepckeys_slint_t *cs;
+# ifdef elem_weight
+  pepckeys_slweight_t *ws;
+# endif
+#endif
 
 } pepckeys_global_bins_t;
-
-
-/* sl_macro pepckeys_WEIGHT_FACTOR */
-#ifdef elem_weight
-# define pepckeys_WEIGHT_FACTOR  2
-#else
-# define pepckeys_WEIGHT_FACTOR  1
-#endif
-
-
-/* sl_macro pepckeys_get1d pepckeys_get2d pepckeys_get3d pepckeys_get4d */
-#define pepckeys_get1d(x0)                           (x0)
-#define pepckeys_get2d(x1, d0, x0)                  ((x0) + (d0) *  (x1))
-#define pepckeys_get3d(x2, d1, x1, d0, x0)          ((x0) + (d0) * ((x1) + (d1) *  (x2)))
-#define pepckeys_get4d(x3, d2, x2, d1, x1, d0, x0)  ((x0) + (d0) * ((x1) + (d1) * ((x2) + (d2) * (x3))))
-
-
-/* sl_macro pepckeys_lb_bin_count pepckeys_lb_bin_weight */
-#define pepckeys_lb_bin_count(_lb_, _b_, _j_)    ((_lb_)->bins[(_b_) * (_lb_)->nelements + _j_].s.size)
-#ifdef elem_weight
-# define pepckeys_lb_bin_weight(_lb_, _b_, _j_)  ((_lb_)->bins[(_b_) * (_lb_)->nelements + _j_].weight)
-#else
-# define pepckeys_lb_bin_weight(_lb_, _b_, _j_)  0
-#endif
-
-/* sl_macro pepckeys_lb_bin_counts pepckeys_lb_bin_weights */
-#ifdef elem_weight
-# define pepckeys_lb_bin_counts(_lb_, _b_, _j_, _k_)   ((_lb_)->bin_cws + pepckeys_get4d((_lb_)->bcws[_b_], (_lb_)->weight_factor, 0, (_lb_)->nelements, _j_, (_lb_)->bm->nbins, _k_))
-# define pepckeys_lb_bin_weights(_lb_, _b_, _j_, _k_)  ((_lb_)->bin_cws + pepckeys_get4d((_lb_)->bcws[_b_], (_lb_)->weight_factor, 1, (_lb_)->nelements, _j_, (_lb_)->bm->nbins, _k_))
-#else
-# define pepckeys_lb_bin_counts(_lb_, _b_, _j_, _k_)   ((_lb_)->bin_cws + pepckeys_get4d((_lb_)->bcws[_b_], 1, 0, (_lb_)->nelements, _j_, (_lb_)->bm->nbins, _k_))
-# define pepckeys_lb_bin_weights(_lb_, _b_, _j_, _k_)  NULL
-#endif
-
-/* sl_macro pepckeys_lb_counts pepckeys_lb_weights */
-#ifdef elem_weight
-# define pepckeys_lb_counts(_lb_, _b_, _k_)   ((_lb_)->cws + pepckeys_get3d((_lb_)->bcws[_b_], (_lb_)->weight_factor, 0, (_lb_)->bm->nbins, (_k_)))
-# define pepckeys_lb_weights(_lb_, _b_, _k_)  ((_lb_)->cws + pepckeys_get3d((_lb_)->bcws[_b_], (_lb_)->weight_factor, 1, (_lb_)->bm->nbins, (_k_)))
-#else
-# define pepckeys_lb_counts(_lb_, _b_, _k_)   ((_lb_)->cws + pepckeys_get3d((_lb_)->bcws[_b_], 1, 0, (_lb_)->bm->nbins, (_k_)))
-# define pepckeys_lb_weights(_lb_, _b_, _k_)  NULL
-#endif
-
-/* sl_macro pepckeys_gb_counts pepckeys_gb_weights */
-#ifdef elem_weight
-# define pepckeys_gb_counts(_gb_, _b_, _k_)   ((_gb_)->cws + pepckeys_get3d((_gb_)->bcws[_b_], (_gb_)->lb.weight_factor, 0, (_gb_)->bm->nbins, (_k_)))
-# define pepckeys_gb_weights(_gb_, _b_, _k_)  ((_gb_)->cws + pepckeys_get3d((_gb_)->bcws[_b_], (_gb_)->lb.weight_factor, 1, (_gb_)->bm->nbins, (_k_)))
-#else
-# define pepckeys_gb_counts(_gb_, _b_, _k_)   ((_gb_)->cws + pepckeys_get3d((_gb_)->bcws[_b_], 1, 0, (_gb_)->bm->nbins, (_k_)))
-# define pepckeys_gb_weights(_gb_, _b_, _k_)  NULL
-#endif
 
 
 /*
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_adds.h
- *  timestamp: 2011-02-08 18:10:11 +0100
  *  
  */
 
@@ -1439,18 +1402,20 @@ typedef struct pepckeys__global_bins_t
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_globals.h
- *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
 
 
 
-/* src/include/sl_rti_intern.h */
+/* src/core/sl_common.c */
 extern rti pepckeys_rti_env;
+extern int pepckeys_sl_mpi_rank_dummy;
 
 /* src/core/pepckeys_sort_radix.c */
-extern pepckeys_slint_t pepckeys_sa_ip_threshold;
+extern pepckeys_slint_t pepckeys_sr_ip_threshold;
+extern pepckeys_slint_t pepckeys_sr_db_threshold;
+extern pepckeys_slint_t pepckeys_sr_ma_threshold;
 
 /* src/core_mpi/mpi_common.c */
 #ifdef SL_USE_MPI
@@ -1471,11 +1436,14 @@ extern void *pepckeys_me_sendrecv_replace_mem;
 extern pepckeys_slint_t pepckeys_me_sendrecv_replace_memsize;
 extern pepckeys_slint_t pepckeys_me_sendrecv_replace_mpi_maxsize;
 
+/* src/core_mpi/pepckeys_mpi_elements_alltoall_specific.c */
+extern double pepckeys_meas_t[];
+
 /* src/core_mpi/pepckeys_mpi_select_exact_generic.c */
 extern int pepckeys_mseg_root;
 extern double pepckeys_mseg_border_update_count_reduction;
 extern double pepckeys_mseg_border_update_weight_reduction;
-extern pepckeys_slint_t pepckeys_mseg_border_update_full;
+extern pepckeys_slint_t pepckeys_mseg_forward_only;
 extern pepckeys_slint_t pepckeys_mseg_info_rounds;
 extern pepckeys_slint_t *pepckeys_mseg_info_finish_rounds;
 extern double pepckeys_mseg_info_finish_rounds_avg;
@@ -1485,16 +1453,29 @@ extern pepckeys_slint_t pepckeys_mseg_finalize_mode;
 /* src/core_mpi/mpi_select_sample.c */
 extern int pepckeys_mss_root;
 
+/* src/core_mpi/pepckeys_mpi_sort_merge.c */
+extern double pepckeys_msm_t[];
+extern pepckeys_slint_t pepckeys_msm_sync;
+
 /* src/core_mpi/pepckeys_mpi_sort_partition.c */
 extern double pepckeys_msp_t[];
 extern pepckeys_slint_t pepckeys_msp_sync;
+extern pepckeys_partcond_t *pepckeys_msp_r_pc;
+
+/* src/core_mpi/mpi_sort_special.c */
+extern double pepckeys_mss_i_t[];
+extern double pepckeys_mss_p_t[];
+extern double pepckeys_mss_b_t[];
+extern pepckeys_slint_t pepckeys_mss_sync;
+extern pepckeys_slint_t pepckeys_mss_i_sync;
+extern pepckeys_slint_t pepckeys_mss_p_sync;
+extern pepckeys_slint_t pepckeys_mss_b_sync;
 
 
 /*
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos.h
- *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
@@ -1502,29 +1483,25 @@ extern pepckeys_slint_t pepckeys_msp_sync;
 
 
 /* src/core/binning.c */
-pepckeys_slint_t SL_PROTO(pepckeys_binning_create)(pepckeys_local_bins_t *lb, pepckeys_slint_t max_nbins, pepckeys_slint_t max_nbinnings, pepckeys_elements_t *s, pepckeys_slint_t nelements, pepckeys_slint_t doweights, pepckeys_binning_t *bm);
+pepckeys_slint_t SL_PROTO(pepckeys_binning_create)(pepckeys_local_bins_t *lb, pepckeys_slint_t max_nbins, pepckeys_slint_t max_nbinnings, pepckeys_elements_t *s, pepckeys_slint_t nelements, pepckeys_slint_t docounts, pepckeys_slint_t doweights, pepckeys_binning_t *bm);
 pepckeys_slint_t SL_PROTO(pepckeys_binning_destroy)(pepckeys_local_bins_t *lb);
 pepckeys_slint_t SL_PROTO(pepckeys_binning_pre)(pepckeys_local_bins_t *lb);
 pepckeys_slint_t SL_PROTO(pepckeys_binning_exec_reset)(pepckeys_local_bins_t *lb);
 pepckeys_slint_t SL_PROTO(pepckeys_binning_exec)(pepckeys_local_bins_t *lb, pepckeys_slint_t b);
 pepckeys_slint_t SL_PROTO(pepckeys_binning_refine)(pepckeys_local_bins_t *lb, pepckeys_slint_t b, pepckeys_slint_t k, pepckeys_splitter_t *sp, pepckeys_slint_t s);
 pepckeys_slint_t SL_PROTO(pepckeys_binning_hit)(pepckeys_local_bins_t *lb, pepckeys_slint_t b, pepckeys_slint_t k, pepckeys_splitter_t *sp, pepckeys_slint_t s);
-pepckeys_slint_t SL_PROTO(pepckeys_binning_finalize)(pepckeys_local_bins_t *lb, pepckeys_slint_t b, pepckeys_slweight_t dcw, pepckeys_slint_t lc_min, pepckeys_slint_t lc_max, pepckeys_slweight_t *lcw, pepckeys_splitter_t *sp, pepckeys_slint_t s);
+pepckeys_slint_t SL_PROTO(pepckeys_binning_finalize)(pepckeys_local_bins_t *lb, pepckeys_slint_t b, pepckeys_slint_t dc, pepckeys_slweight_t dw, pepckeys_slint_t lc_min, pepckeys_slint_t lc_max, pepckeys_slcount_t *lcs, pepckeys_slweight_t *lws, pepckeys_splitter_t *sp, pepckeys_slint_t s);
 pepckeys_slint_t SL_PROTO(pepckeys_binning_post)(pepckeys_local_bins_t *lb);
 
 /* src/core/binning_radix.c */
 pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_create)(pepckeys_binning_t *bm, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, pepckeys_slint_t sorted);
 pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_destroy)(pepckeys_binning_t *bm);
 pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_pre)(pepckeys_binning_t *bm);
-pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_exec)(pepckeys_binning_t *bm, pepckeys_bin_t *bin, pepckeys_slweight_t *counts, pepckeys_slweight_t *weights);
-pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_refine)(pepckeys_binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t k, pepckeys_slweight_t *counts, pepckeys_slweight_t *weights, pepckeys_splitter_t *sp, pepckeys_slint_t s, pepckeys_bin_t *new_bin);
-pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_hit)(pepckeys_binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t k, pepckeys_slweight_t *counts, pepckeys_splitter_t *sp, pepckeys_slint_t s);
-pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_finalize)(pepckeys_binning_t *bm, pepckeys_bin_t *bin, pepckeys_slweight_t dcw, pepckeys_slint_t lc_min, pepckeys_slint_t lc_max, pepckeys_slweight_t *lcw, pepckeys_splitter_t *sp, pepckeys_slint_t s);
+pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_exec)(pepckeys_binning_t *bm, pepckeys_bin_t *bin, pepckeys_slcount_t *counts, pepckeys_slweight_t *weights);
+pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_refine)(pepckeys_binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t k, pepckeys_slcount_t *counts, pepckeys_slweight_t *weights, pepckeys_splitter_t *sp, pepckeys_slint_t s, pepckeys_bin_t *new_bin);
+pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_hit)(pepckeys_binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t k, pepckeys_slcount_t *counts, pepckeys_splitter_t *sp, pepckeys_slint_t s);
+pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_finalize)(pepckeys_binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t dc, pepckeys_slweight_t dw, pepckeys_slint_t lc_min, pepckeys_slint_t lc_max, pepckeys_slcount_t *lcs, pepckeys_slweight_t *lws, pepckeys_splitter_t *sp, pepckeys_slint_t s);
 pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_post)(pepckeys_binning_t *bm);
-pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_exec_pre_old)(pepckeys_binning_t *bm);
-pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_exec_post_old)(pepckeys_binning_t *bm);
-pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_refinable_old)(pepckeys_binning_t *bm);
-pepckeys_slint_t SL_PROTO(pepckeys_binning_radix_refine_old)(pepckeys_binning_t *bm, pepckeys_bin_t *bin, pepckeys_slint_t k, pepckeys_slweight_t *counts, pepckeys_bin_t *new_bin);
 
 /* src/core/elements.c */
 pepckeys_slint_t SL_PROTO(pepckeys_elements_alloc)(pepckeys_elements_t *s, pepckeys_slint_t nelements, slcint_t components);
@@ -1545,14 +1522,16 @@ pepckeys_slint_t SL_PROTO(pepckeys_elements_digest_sum)(pepckeys_elements_t *s, 
 unsigned int SL_PROTO(pepckeys_elements_crc32)(pepckeys_elements_t *s, pepckeys_slint nelements, pepckeys_slint_t keys, pepckeys_slint_t data);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_digest_hash)(pepckeys_elements_t *s, pepckeys_slint_t nelements, slcint_t components, void *hash);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_random_exchange)(pepckeys_elements_t *s, pepckeys_slint_t rounds, pepckeys_elements_t *xs);
-pepckeys_slint_t SL_PROTO(pepckeys_elements_init_keys2)(pepckeys_elements_t *s, pepckeys_slint_t dtype, pepckeys_slkey_pure_t key_min, pepckeys_slkey_pure_t key_max);
+pepckeys_slint_t SL_PROTO(pepckeys_elements_keys_init_seed)(unsigned long s);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_keys_init)(pepckeys_elements_t *s, pepckeys_keys_init_type_t t, pepckeys_keys_init_data_t d);
+pepckeys_slint_t SL_PROTO(pepckeys_elements_keys_init_randomized)(pepckeys_elements_t *s, pepckeys_slint_t nkeys, pepckeys_keys_init_type_t t, pepckeys_keys_init_data_t d);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_init_keys_from_file)(pepckeys_elements_t *s, pepckeys_slint_t data, char *filename, pepckeys_slint_t from, pepckeys_slint_t to, pepckeys_slint_t const_bytes_per_line);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_save_keys_to_file)(pepckeys_elements_t *s, char *filename);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_validate_order)(pepckeys_elements_t *s, pepckeys_slint_t n);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_validate_order_bmask)(pepckeys_elements_t *s, pepckeys_slint_t n, pepckeys_slkey_pure_t bmask);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_validate_order_weight)(pepckeys_elements_t *s, pepckeys_slint_t n, pepckeys_slkey_pure_t weight);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_keys_stats)(pepckeys_elements_t *s, pepckeys_slkey_pure_t *stats);
+pepckeys_slint_t SL_PROTO(pepckeys_elements_keys_stats_print)(pepckeys_elements_t *s);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_print_keys)(pepckeys_elements_t *s);
 pepckeys_slint_t SL_PROTO(pepckeys_elements_print_all)(pepckeys_elements_t *s);
 pepckeys_slweight_t SL_PROTO(pepckeys_elements_get_weight)(pepckeys_elements_t *s);
@@ -1606,6 +1585,7 @@ pepckeys_slint SL_PROTO(pepckeys_merge2_compo_tridgell)(pepckeys_elements_t *s0,
 
 /* src/core/mergep_2way.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mergep_2way_ip_int)(pepckeys_elements_t *s, pepckeys_elements_t *sx, pepckeys_slint_t p, int *displs, pepckeys_merge2x_f m2x);
+pepckeys_slint_t SL_PROTO(pepckeys_mergep_2way_ip_int_rec)(pepckeys_elements_t *s, pepckeys_elements_t *sx, pepckeys_slint_t p, int *displs, pepckeys_merge2x_f m2x);
 
 /* src/core/mergep_heap.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mergep_heap_int)(pepckeys_elements_t *s, pepckeys_elements_t *d, pepckeys_slint_t p, int *displs, int *counts);
@@ -1638,7 +1618,6 @@ pepckeys_slint SL_PROTO(pepckeys_sl_search_hybrid_ge)(pepckeys_elements_t *s, pe
 /* src/core/sl_common.c */
 pepckeys_slint SL_PROTO(pepckeys_ilog2c)(pepckeys_slint x);
 pepckeys_slint SL_PROTO(pepckeys_ilog2f)(pepckeys_slint x);
-long long SL_PROTO(pepckeys_sl_random64)();
 pepckeys_slint SL_PROTO(pepckeys_print_bits)(pepckeys_slint v);
 pepckeys_slint SL_PROTO(pepckeys_pivot_random)(pepckeys_elements_t *s);
 pepckeys_slint_t SL_PROTO(pepckeys_counts2displs)(pepckeys_slint_t n, int *counts, int *displs);
@@ -1668,8 +1647,8 @@ pepckeys_slint_t SL_PROTO(pepckeys_sort_insert_bmask_kernel)(pepckeys_elements_t
 pepckeys_slint_t SL_PROTO(pepckeys_sort_insert)(pepckeys_elements_t *s, pepckeys_elements_t *sx);
 
 /* src/core/sort_permute.c */
-pepckeys_slint SL_PROTO(pepckeys_sort_permute_forward)(pepckeys_elements_t *s, pepckeys_elements_t *sx, pepckeys_slint *perm, pepckeys_slint offset, pepckeys_slint mask_bit);
-pepckeys_slint SL_PROTO(pepckeys_sort_permute_backward)(pepckeys_elements_t *s, pepckeys_elements_t *sx, pepckeys_slint *perm, pepckeys_slint offset, pepckeys_slint mask_bit);
+pepckeys_slint_t SL_PROTO(pepckeys_sort_permute_forward)(pepckeys_elements_t *s, pepckeys_elements_t *sx, pepckeys_slint_t *perm, pepckeys_slint_t offset, pepckeys_slint_t mask_bit);
+pepckeys_slint_t SL_PROTO(pepckeys_sort_permute_backward)(pepckeys_elements_t *s, pepckeys_elements_t *sx, pepckeys_slint_t *perm, pepckeys_slint_t offset, pepckeys_slint_t mask_bit);
 
 /* src/core/pepckeys_sort_quick.c */
 pepckeys_slint SL_PROTO(pepckeys_sort_quick)(pepckeys_elements_t *s, pepckeys_elements_t *xs);
@@ -1721,7 +1700,6 @@ pepckeys_slint SL_PROTO(pepckeys_splitk_k2c_count)(pepckeys_elements_t *s, pepck
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos_mpi.h
- *  timestamp: 2011-03-11 09:08:28 +0100
  *  
  */
 
@@ -1729,7 +1707,7 @@ pepckeys_slint SL_PROTO(pepckeys_splitk_k2c_count)(pepckeys_elements_t *s, pepck
 
 
 /* src/core_mpi/mpi_binning.c */
-pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_create)(pepckeys_global_bins_t *gb, pepckeys_slint_t max_nbins, pepckeys_slint_t max_nbinnings, pepckeys_elements_t *s, pepckeys_slint_t nelements, pepckeys_slint_t doweights, pepckeys_binning_t *bm, int size, int rank, MPI_Comm comm);
+pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_create)(pepckeys_global_bins_t *gb, pepckeys_slint_t max_nbins, pepckeys_slint_t max_nbinnings, pepckeys_elements_t *s, pepckeys_slint_t nelements, pepckeys_slint_t docounts, pepckeys_slint_t doweights, pepckeys_binning_t *bm, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_destroy)(pepckeys_global_bins_t *gb, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_pre)(pepckeys_global_bins_t *gb, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_exec_reset)(pepckeys_global_bins_t *gb, int size, int rank, MPI_Comm comm);
@@ -1737,7 +1715,7 @@ pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_exec_local)(pepckeys_global_bins_
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_exec_global)(pepckeys_global_bins_t *gb, pepckeys_slint_t root, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_refine)(pepckeys_global_bins_t *gb, pepckeys_slint_t b, pepckeys_slint_t k, pepckeys_splitter_t *sp, pepckeys_slint_t s, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_hit)(pepckeys_global_bins_t *gb, pepckeys_slint_t b, pepckeys_slint_t k, pepckeys_splitter_t *sp, pepckeys_slint_t s, int size, int rank, MPI_Comm comm);
-pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_finalize)(pepckeys_global_bins_t *gb, pepckeys_slint_t b, pepckeys_slweight_t dcw, pepckeys_slint_t lc_min, pepckeys_slint_t lc_max, pepckeys_slweight_t *lcw, pepckeys_splitter_t *sp, pepckeys_slint_t s, int size, int rank, MPI_Comm comm);
+pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_finalize)(pepckeys_global_bins_t *gb, pepckeys_slint_t b, pepckeys_slint_t dc, pepckeys_slweight_t dw, pepckeys_slint_t lc_min, pepckeys_slint_t lc_max, pepckeys_slcount_t *lcs, pepckeys_slweight_t *lws, pepckeys_splitter_t *sp, pepckeys_slint_t s, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_binning_post)(pepckeys_global_bins_t *gb, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_common.c */
@@ -1747,6 +1725,7 @@ pepckeys_slint_t SL_PROTO(pepckeys_mpi_get_grid_properties)(pepckeys_slint_t ndi
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_get_grid)(pepckeys_slint_t ndims, pepckeys_slint_t *dims, pepckeys_slint_t *pos, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_subgroups_create)(pepckeys_slint_t nsubgroups, MPI_Comm *sub_comms, int *sub_sizes, int *sub_ranks, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_subgroups_delete)(pepckeys_slint_t nsubgroups, MPI_Comm *sub_comms, int size, int rank, MPI_Comm comm);
+int SL_PROTO(pepckeys_sl_MPI_Allreduce)(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm, int size, int rank);
 
 /* src/core_mpi/mpi_elements.c */
 pepckeys_slint SL_PROTO(pepckeys_mpi_elements_init_keys_from_file)(pepckeys_elements_t *s, char *filename, pepckeys_slint from, pepckeys_slint to, pepckeys_slint const_bytes_per_line, pepckeys_slint root, int size, int rank, MPI_Comm comm);
@@ -1763,6 +1742,9 @@ pepckeys_slint_t SL_PROTO(pepckeys_mpi_elements_get_counts_and_weights)(pepckeys
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_elements_sendrecv_replace)(pepckeys_elements_t *s, int count, int dest, int sendtag, int source, int recvtag, int size, int rank, MPI_Comm comm);
 unsigned int SL_PROTO(pepckeys_mpi_elements_crc32)(pepckeys_elements_t *s, pepckeys_slint_t n, pepckeys_slint_t keys, pepckeys_slint_t data, int size, int rank, MPI_Comm comm);
 
+/* src/core_mpi/pepckeys_mpi_elements_alltoall_specific.c */
+pepckeys_slint_t SL_PROTO(pepckeys_mpi_elements_alltoall_specific)(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *xs, pepckeys_tproc_f tproc, void *data, int size, int rank, MPI_Comm comm);
+
 /* src/core_mpi/mpi_elements_alltoallv.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_elements_alltoallv_db)(pepckeys_elements_t *sbuf, int *scounts, int *sdispls, pepckeys_elements_t *rbuf, int *rcounts, int *rdispls, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_elements_alltoallv_ip)(pepckeys_elements_t *sbuf, pepckeys_elements_t *sx, int *scounts, int *sdispls, int *rcounts, int *rdispls, int size, int rank, MPI_Comm comm);
@@ -1777,6 +1759,7 @@ pepckeys_slint_t SL_PROTO(pepckeys_mpi_find_exact)(pepckeys_elements_t *s, pepck
 
 /* src/core_mpi/pepckeys_mpi_linsplit.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_linsplit)(MPI_Comm comm_in, pepckeys_slkey_pure_t *keys_in, MPI_Comm *comms_out, pepckeys_slint_t *parity, int size, int rank, MPI_Comm comm);
+pepckeys_slint_t SL_PROTO(pepckeys_mpi_linsplit_radix)(pepckeys_slkey_pure_t klow, pepckeys_slkey_pure_t khigh, MPI_Comm *comm0, MPI_Comm *comm1, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_linsplit2)(MPI_Comm comm_in, pepckeys_slkey_pure_t *keys_in, MPI_Comm *comms_out, pepckeys_slint_t *parity, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/pepckeys_mpi_merge2.c */
@@ -1784,12 +1767,12 @@ pepckeys_slint_t SL_PROTO(pepckeys_mpi_merge2)(pepckeys_elements_t *s, pepckeys_
 
 /* src/core_mpi/pepckeys_mpi_mergek.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_mergek_equal)(pepckeys_elements_t *s, pepckeys_sortnet_f sn, pepckeys_sortnet_data_t snd, pepckeys_merge2x_f m2x, pepckeys_elements_t *xs, int size, int rank, MPI_Comm comm);
+pepckeys_slint_t SL_PROTO(pepckeys_mpi_mergek_sorted)(pepckeys_elements_t *s, pepckeys_merge2x_f m2x, pepckeys_elements_t *xs, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_mergek)(pepckeys_elements_t *s, pepckeys_sortnet_f sn, pepckeys_sortnet_data_t snd, pepckeys_merge2x_f m2x, pepckeys_elements_t *xs, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_mergek_equal2)(pepckeys_elements_t *s, pepckeys_sortnet_f sn, pepckeys_sortnet_data_t snd, pepckeys_merge2x_f m2x, pepckeys_elements_t *xs, int *sizes, int *ranks, MPI_Comm *comms);
 
 /* src/core_mpi/pepckeys_mpi_partition_exact_generic.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_partition_exact_generic)(pepckeys_elements_t *s, pepckeys_partcond_t *pcond, pepckeys_binning_t *bm, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
-pepckeys_slint_t SL_PROTO(pepckeys_mpi_partition_exact_generic2)(pepckeys_elements_t *s, pepckeys_partcond_t *pcond, pepckeys_binning_t *bm, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/pepckeys_mpi_partition_exact_radix.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_partition_exact_radix)(pepckeys_elements_t *s, pepckeys_partcond_t *pcond, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, pepckeys_slint_t sorted, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm);
@@ -1832,6 +1815,7 @@ pepckeys_slint_t SL_PROTO(pepckeys_mpi_select_sample_regular)(pepckeys_elements_
 /* src/core_mpi/pepckeys_mpi_sort_merge.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_merge)(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *xs, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_merge2)(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *xs, pepckeys_slint_t merge_type, pepckeys_slint_t sort_type, double *times, int size, int rank, MPI_Comm comm);
+pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_merge_radix)(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *xs, pepckeys_slint_t merge_type, pepckeys_slint_t sort_type, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/pepckeys_mpi_sort_partition.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_partition)(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *xs, pepckeys_slint_t part_type, int size, int rank, MPI_Comm comm);
@@ -1839,6 +1823,11 @@ pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_partition_radix)(pepckeys_elements_t
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_partition_exact_radix)(pepckeys_elements_t *s, pepckeys_elements_t *sx, pepckeys_partcond_t *pcond, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_partition_exact_radix_ngroups)(pepckeys_elements_t *s, pepckeys_elements_t *sx, pepckeys_partcond_t *pcond, pepckeys_slint_t ngroups, MPI_Comm *group_comms, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int size, int rank, MPI_Comm comm);
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_partition_exact_radix_2groups)(pepckeys_elements_t *s, pepckeys_elements_t *sx, pepckeys_partcond_t *pcond, MPI_Comm group_comm, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int size, int rank, MPI_Comm comm);
+
+/* src/core_mpi/mpi_sort_special.c */
+pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_insert_radix)(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *xs, pepckeys_slpkey_t *mmkeys, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int size, int rank, MPI_Comm comm);
+pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_presorted_radix)(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *xs, pepckeys_slint_t merge_type, pepckeys_slint_t rhigh, pepckeys_slint_t rlow, pepckeys_slint_t rwidth, int size, int rank, MPI_Comm comm);
+pepckeys_slint_t SL_PROTO(pepckeys_mpi_sort_back)(pepckeys_elements_t *s0, pepckeys_elements_t *s1, pepckeys_elements_t *xs, pepckeys_slpkey_t *lh, pepckeys_slint_t ntotal, int size, int rank, MPI_Comm comm);
 
 /* src/core_mpi/mpi_xcounts2ycounts.c */
 pepckeys_slint_t SL_PROTO(pepckeys_mpi_xcounts2ycounts_all2all)(int *xcounts, int *ycounts, int size, int rank, MPI_Comm comm);

@@ -2,14 +2,16 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/sl_common.c
- *  timestamp: 2011-02-12 11:42:34 +0100
  *  
  */
 
 
-#define DECLARE_RTI
-
 #include "sl_common.h"
+
+
+rti rti_env;  /* sl_global, sl_var rti_env */
+
+int sl_mpi_rank_dummy = -2;  /* sl_global, sl_var sl_mpi_rank_dummy */
 
 
 slint ilog2c(slint x) /* sl_proto, sl_func ilog2c */
@@ -27,18 +29,6 @@ slint ilog2f(slint x) /* sl_proto, sl_func ilog2f */
   --x;
   while (x /= 2) ++l;
   return l + 1;
-}
-
-
-long long sl_random64() /* sl_proto, sl_func sl_random64 */
-{
-  long long x;
-  
-  x = random();
-  x <<= 32;
-  x |= random();
-  
-  return x;
 }
 
 

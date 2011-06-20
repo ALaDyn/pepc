@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/sort_radix_1bit.c
- *  timestamp: 2011-02-08 21:32:53 +0100
  *  
  */
 
@@ -14,7 +13,7 @@
 #ifdef key_integer
 
 
-inline slint_t split2_b_1brs(elements_t *s, elements_t *sx, slkey_pure_t bmask) /* sl_func split2_b_1brs */
+slint_t split2_b_1brs(elements_t *s, elements_t *sx, slkey_pure_t bmask) /* sl_func split2_b_1brs */
 {
   elements_t xl, xh;
 

@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_merge2.c
- *  timestamp: 2011-02-10 21:20:50 +0100
  *  
  */
 
@@ -204,3 +203,6 @@ slint_t mpi_merge2(elements_t *s, slint_t other_rank, slint_t high_rank, slint_t
 
   return 0;
 }
+
+
+#undef CHECK_ORDER

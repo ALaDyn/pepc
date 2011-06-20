@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core_mpi/mpi_partition_exact_generic.c
- *  timestamp: 2011-03-11 09:06:54 +0100
  *  
  */
 
@@ -92,6 +91,6 @@ slint_t mpi_partition_exact_generic(elements_t *s, partcond_t *pcond, binning_t 
 }
 
 
-#if 0
-slint_t mpi_partition_exact_generic2(elements_t *s, partcond_t *pcond, binning_t *bm, int *scounts, int *rcounts, int size, int rank, MPI_Comm comm) /* sl_proto, sl_func mpi_partition_exact_generic2 */
-#endif
+#undef PRINT_SCOUNTS_RCOUNTS
+#undef PRINT_STATS
+#undef PRINT_TIMINGS

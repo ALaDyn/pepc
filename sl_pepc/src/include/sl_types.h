@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_types.h
- *  timestamp: 2011-03-06 21:59:32 +0100
  *  
  */
 
@@ -114,6 +113,15 @@ typedef sl_data19_type_c sldata19_t;
 typedef sl_weight_type_c slweight_t;
 
 #define slweight_fmt  sl_weight_type_fmt  /* sl_macro */
+
+#if defined(sl_elem_weight) && defined(sl_weight_intequiv)
+typedef sl_weight_type_c slcount_t;       /* sl_type slcount_t */
+# define slcount_fmt  sl_weight_type_fmt  /* sl_macro */
+#else
+typedef sl_int_type_c slcount_t;
+# define slcount_fmt  sl_int_type_fmt
+#endif
+
 
 /* sl_type _slpwkey_t slpwkey_t */
 typedef struct _slpwkey_t
@@ -456,6 +464,23 @@ typedef slint_t (*sortnet_f)(slint_t size, slint_t rank, slint_t stage, sortnet_
 typedef slint_t (*merge2x_f)(elements_t *s0, elements_t *s1, elements_t *sx);
 typedef slint_t (*merge2X_f)(elements_t *s0, elements_t *s1, elements_t *sx, elements_t *t);
 
+/* sl_type tproc_f _tproc_data_t tproc_data_t */
+typedef struct _tproc_data_t
+{
+  int *int_tprocs;
+  int int_mask;
+
+} tproc_data_t;
+
+typedef int (*tproc_f)(elements_t *s0, slint_t x, void *data);
+
+#ifndef SL_TPROC_INT
+# define SL_TPROC_INT       ((void *) 1)
+#endif
+#ifndef SL_TPROC_INT_MASK
+# define SL_TPROC_INT_MASK  ((void *) 2)
+#endif
+
 
 /* deprecated, sl_type k2c_func pivot_func sn_func m2x_func m2X_func */
 typedef key2class_f k2c_func;
@@ -496,8 +521,10 @@ typedef void (*key_set_f)(slkey_pure_t *k, key_set_data_t d);
 #define SL_EKIT_RAND_QUAD   4
 #undef SL_EKIT_RAND_AND
 #define SL_EKIT_RAND_AND    5
+#undef SL_EKIT_URAND
+#define SL_EKIT_URAND       6
 #undef SL_EKIT_NRAND
-#define SL_EKIT_NRAND       6
+#define SL_EKIT_NRAND       7
 
 
 #ifndef SL_EIK_OFFSET
@@ -615,8 +642,8 @@ typedef struct _partcond_intern_t
   slint_t count_min, count_max;
   slint_t count_low, count_high;
 #ifdef elem_weight
-  double weight_min, weight_max;
-  double weight_low, weight_high;
+  slweight_t weight_min, weight_max;
+  slweight_t weight_low, weight_high;
 #endif
 
 } partcond_intern_t, *partcond_intern_p;
@@ -625,6 +652,7 @@ typedef struct _partcond_intern_t
 /* sl_type _parttype_t parttype_t parttype_p */
 typedef struct _parttype_t
 {
+  slint_t type;
 
 } parttype_t, *parttype_p;
 
@@ -637,7 +665,7 @@ typedef struct _bin_t
   elements_t s;
 
 #ifdef elem_weight
-  double weight;
+  slweight_t weight;
 #endif
 
 } bin_t;
@@ -659,19 +687,11 @@ struct _binning_t;
 
 /* sl_type binning_pre_f binning_exec_f binning_refine_f binning_hit_f binning_finalize_f binning_post_f */
 typedef slint_t (*binning_pre_f)(struct _binning_t *bm);
-typedef slint_t (*binning_exec_f)(struct _binning_t *bm, bin_t *bin, double *counts, double *weights);
-typedef slint_t (*binning_refine_f)(struct _binning_t *bm, bin_t *bin, slint_t k, double *counts, double *weights, splitter_t *sp, slint_t s, bin_t *new_bin);
-typedef slint_t (*binning_hit_f)(struct _binning_t *bm, bin_t *bin, slint_t k, double *counts, splitter_t *sp, slint_t s);
-typedef slint_t (*binning_finalize_f)(struct _binning_t *bm, bin_t *bin, double dcw, slint_t lc_min, slint_t lc_max, double *lcw, splitter_t *sp, slint_t s);
+typedef slint_t (*binning_exec_f)(struct _binning_t *bm, bin_t *bin, slcount_t *counts, slweight_t *weights);
+typedef slint_t (*binning_refine_f)(struct _binning_t *bm, bin_t *bin, slint_t k, slcount_t *counts, slweight_t *weights, splitter_t *sp, slint_t s, bin_t *new_bin);
+typedef slint_t (*binning_hit_f)(struct _binning_t *bm, bin_t *bin, slint_t k, slcount_t *counts, splitter_t *sp, slint_t s);
+typedef slint_t (*binning_finalize_f)(struct _binning_t *bm, bin_t *bin, slint_t dc, slweight_t dw, slint_t lc_min, slint_t lc_max, slcount_t *lcs, slweight_t *lws, splitter_t *sp, slint_t s);
 typedef slint_t (*binning_post_f)(struct _binning_t *bm);
-
-#ifdef SL_DEPRECATED
-/* sl_type binning_exec_pre_old_f binning_exec_post_old_f binning_refinable_old_f binning_refine_old_f */
-typedef slint_t (*binning_exec_pre_old_f)(struct _binning_t *bm);
-typedef slint_t (*binning_exec_post_old_f)(struct _binning_t *bm);
-typedef slint_t (*binning_refinable_old_f)(struct _binning_t *bm);
-typedef slint_t (*binning_refine_old_f)(struct _binning_t *bm, bin_t *bin, slint_t k, double *counts, bin_t *new_bin);
-#endif
 
 
 /* sl_type _binning_data_t binning_data_t */
@@ -704,15 +724,9 @@ typedef struct _binning_t
 
   slint_t sorted;
 
+  slint_t docounts;
 #ifdef elem_weight
   slint_t doweights;
-#endif
-
-#ifdef SL_DEPRECATED
-  binning_exec_pre_old_f exec_pre_old;
-  binning_exec_post_old_f exec_post_old;
-  binning_refinable_old_f refinable_old;
-  binning_refine_old_f refine_old;
 #endif
 
   binning_data_t bd;
@@ -728,8 +742,9 @@ typedef struct _local_bins_t
   slint_t nbins, max_nbins;
   slint_t nelements;
 
+  slint_t docounts;
 #ifdef elem_weight
-  slint_t doweights, weight_factor;
+  slint_t doweights;
 #endif
 
   slint_t nbinnings, max_nbinnings;
@@ -738,13 +753,17 @@ typedef struct _local_bins_t
   bin_t *bins, *bins_new;
   bin_t *bins0, *bins1;
 
-  double *counts, *bin_counts;
-#ifdef elem_weight
-  double *weights, *bin_weights;
-#endif
-
   slint_t *bcws;
-  double *cws, *bin_cws;
+
+#if defined(elem_weight) && defined(sl_weight_intequiv)
+  slint_t cw_factor, w_index, bin_cw_factor;
+  slweight_t *cws, *bin_cws;
+#else
+  slint_t *cs, *bin_cs;
+# ifdef elem_weight
+  slweight_t *ws, *bin_ws;
+# endif
+#endif
 
   slint_t last_exec_b;
 
@@ -757,67 +776,19 @@ typedef struct _global_bins_t
   binning_t *bm;
   
   local_bins_t lb;
-  
-  double *counts;
-#ifdef elem_weight
-  double *weights;
-#endif
 
   slint_t *bcws;
-  double *cws;
+
+#if defined(elem_weight) && defined(sl_weight_intequiv)
+  slweight_t *cws;
+#else
+  slint_t *cs;
+# ifdef elem_weight
+  slweight_t *ws;
+# endif
+#endif
 
 } global_bins_t;
-
-
-/* sl_macro WEIGHT_FACTOR */
-#ifdef elem_weight
-# define WEIGHT_FACTOR  2
-#else
-# define WEIGHT_FACTOR  1
-#endif
-
-
-/* sl_macro get1d get2d get3d get4d */
-#define get1d(x0)                           (x0)
-#define get2d(x1, d0, x0)                  ((x0) + (d0) *  (x1))
-#define get3d(x2, d1, x1, d0, x0)          ((x0) + (d0) * ((x1) + (d1) *  (x2)))
-#define get4d(x3, d2, x2, d1, x1, d0, x0)  ((x0) + (d0) * ((x1) + (d1) * ((x2) + (d2) * (x3))))
-
-
-/* sl_macro lb_bin_count lb_bin_weight */
-#define lb_bin_count(_lb_, _b_, _j_)    ((_lb_)->bins[(_b_) * (_lb_)->nelements + _j_].s.size)
-#ifdef elem_weight
-# define lb_bin_weight(_lb_, _b_, _j_)  ((_lb_)->bins[(_b_) * (_lb_)->nelements + _j_].weight)
-#else
-# define lb_bin_weight(_lb_, _b_, _j_)  0
-#endif
-
-/* sl_macro lb_bin_counts lb_bin_weights */
-#ifdef elem_weight
-# define lb_bin_counts(_lb_, _b_, _j_, _k_)   ((_lb_)->bin_cws + get4d((_lb_)->bcws[_b_], (_lb_)->weight_factor, 0, (_lb_)->nelements, _j_, (_lb_)->bm->nbins, _k_))
-# define lb_bin_weights(_lb_, _b_, _j_, _k_)  ((_lb_)->bin_cws + get4d((_lb_)->bcws[_b_], (_lb_)->weight_factor, 1, (_lb_)->nelements, _j_, (_lb_)->bm->nbins, _k_))
-#else
-# define lb_bin_counts(_lb_, _b_, _j_, _k_)   ((_lb_)->bin_cws + get4d((_lb_)->bcws[_b_], 1, 0, (_lb_)->nelements, _j_, (_lb_)->bm->nbins, _k_))
-# define lb_bin_weights(_lb_, _b_, _j_, _k_)  NULL
-#endif
-
-/* sl_macro lb_counts lb_weights */
-#ifdef elem_weight
-# define lb_counts(_lb_, _b_, _k_)   ((_lb_)->cws + get3d((_lb_)->bcws[_b_], (_lb_)->weight_factor, 0, (_lb_)->bm->nbins, (_k_)))
-# define lb_weights(_lb_, _b_, _k_)  ((_lb_)->cws + get3d((_lb_)->bcws[_b_], (_lb_)->weight_factor, 1, (_lb_)->bm->nbins, (_k_)))
-#else
-# define lb_counts(_lb_, _b_, _k_)   ((_lb_)->cws + get3d((_lb_)->bcws[_b_], 1, 0, (_lb_)->bm->nbins, (_k_)))
-# define lb_weights(_lb_, _b_, _k_)  NULL
-#endif
-
-/* sl_macro gb_counts gb_weights */
-#ifdef elem_weight
-# define gb_counts(_gb_, _b_, _k_)   ((_gb_)->cws + get3d((_gb_)->bcws[_b_], (_gb_)->lb.weight_factor, 0, (_gb_)->bm->nbins, (_k_)))
-# define gb_weights(_gb_, _b_, _k_)  ((_gb_)->cws + get3d((_gb_)->bcws[_b_], (_gb_)->lb.weight_factor, 1, (_gb_)->bm->nbins, (_k_)))
-#else
-# define gb_counts(_gb_, _b_, _k_)   ((_gb_)->cws + get3d((_gb_)->bcws[_b_], 1, 0, (_gb_)->bm->nbins, (_k_)))
-# define gb_weights(_gb_, _b_, _k_)  NULL
-#endif
 
 
 #endif /* __SL_TYPES_H__ */

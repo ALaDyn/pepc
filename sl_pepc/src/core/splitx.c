@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/splitx.c
- *  timestamp: 2011-02-10 21:20:49 +0100
  *  
  */
 
@@ -62,6 +61,8 @@ slint_t splitx_radix(elements_t *s, elements_t *sx, slint_t nclasses, slint_t sh
 
   return 0;
 }
+
+#undef max_nclasses
 
 
 slint split2_lt_ge(elements_t *s, slkey_pure_t *k, elements_t *t) /* sl_proto, sl_func split2_lt_ge */
@@ -254,7 +255,7 @@ slint splitk_k2c_af(elements_t *s, elements_t *sx, slint k, slint *c, k2c_func k
 #endif
 
 #ifdef NO_VARIABLE_LENGTH_ARRAYS
-  parts = z_alloc(k, sizeof(elements_t));
+  parts = z_alloca(k, sizeof(elements_t));
 #endif
 
   /* compute the target of every class */
@@ -278,7 +279,7 @@ slint splitk_k2c_af(elements_t *s, elements_t *sx, slint k, slint *c, k2c_func k
   }
 
 #ifdef NO_VARIABLE_LENGTH_ARRAYS
-  z_free(parts);
+  z_freea(parts);
 #endif
 
   return 0;
@@ -297,7 +298,7 @@ slint splitk_k2c(elements_t *s, elements_t *sx, slint k, slint *c, k2c_func k2c,
 #endif
 
 #ifdef NO_VARIABLE_LENGTH_ARRAYS
-  parts = z_alloc(k, sizeof(elements_t));
+  parts = z_alloca(k, sizeof(elements_t));
 #endif
 
   /* compute the target of every class */
@@ -331,7 +332,7 @@ slint splitk_k2c(elements_t *s, elements_t *sx, slint k, slint *c, k2c_func k2c,
   }
 
 #ifdef NO_VARIABLE_LENGTH_ARRAYS
-  z_free(parts);
+  z_freea(parts);
 #endif
 
   return 0;

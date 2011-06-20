@@ -9,27 +9,31 @@
 #include "fortran2c_types.h"
 
 
+typedef pepckeys_slint_t slint_t;
+#define slint_fmt pepckeys_sl_int_type_fmt
+
 typedef FINT_TYPE_C finteger_t;
 #define finteger_mpi  FINT_TYPE_MPI
 #define finteger_fmt  FINT_TYPE_FMT
 
 /*#define MAX_IMBALANCE  0.01*/
 
+#define PART_MINMAX
+
 /*#define MPI_PARTITION_RADIX_2GROUPS*/
 /*#define MPI_PARTITION_RADIX_NGROUPS  2*/
-
 /*#define MPI_PARTITION_SAMPLE*/
 
+/*#define THREE_STEPS_VERSION*/
 /*#define MERGE_AND_UNPACK*/
-
-#define PART_MINMAX
 
 /*#define VERBOSE*/
 /*#define VALIDATE*/
-/*#define BORDER_STATS*/
-/*#define RECEIVE_STATS*/
 /*#define TIMING*/
 /*#define TIMING_ROW*/
+
+/*#define BORDER_STATS*/
+/*#define RECEIVE_STATS*/
 
 
 #define SORT_RHIGH   -1
@@ -40,6 +44,10 @@ typedef FINT_TYPE_C finteger_t;
 #define PART_RLOW    -1
 #define PART_RWIDTH  3
 
+
+#if defined(MPI_PARTITION_RADIX_2GROUPS) || defined(MPI_PARTITION_RADIX_NGROUPS) || defined(MPI_PARTITION_SAMPLE)
+# undef THREE_STEPS_VERSION
+#endif
 
 #ifdef VERBOSE
 # define VERBOSE_MOP(_mop_)  do { _mop_ ; } while (0)
@@ -56,13 +64,11 @@ typedef FINT_TYPE_C finteger_t;
 #endif
 
 
-void slsort_parts(finteger_t *, finteger_t *, pepcparts_slkey_t *, pepcparts_sldata0_t *, pepcparts_sldata1_t *, pepcparts_sldata2_t *, pepcparts_sldata3_t *, pepcparts_sldata4_t *, pepcparts_sldata5_t *,
-                   pepcparts_sldata6_t *, pepcparts_sldata7_t *, pepcparts_sldata8_t *, pepcparts_sldata9_t *, pepcparts_sldata10_t *, pepcparts_sldata11_t *, pepcparts_sldata12_t *,
-                   finteger_t *, double *, finteger_t *, finteger_t *, finteger_t *, finteger_t *, finteger_t *, finteger_t *,
-                   void *, void *, pepcparts_slkey_t *, pepcparts_sldata8_t *, finteger_t *, finteger_t *, finteger_t *);
+void receive_stats(finteger_t nmax, int *scounts, int *sdispls, int *rcounts, int *rdispls, pepckeys_sldata0_t *work, int size, int rank, MPI_Comm comm);
+void border_stats(slint_t nkeys, pepckeys_slkey_t *keys, int size, int rank, MPI_Comm comm);
 
-#pragma weak slsort_parts = slsort_parts_
-void slsort_parts_(finteger_t *n,                                                             /* INOUT */
+
+void slsort_parts(finteger_t *n,                                                             /* INOUT */
                   finteger_t *nmax,                                                          /* IN */
                   pepcparts_slkey_t *keys,                                                   /* INOUT */
                   pepcparts_sldata0_t *x,                                                    /* INOUT */
@@ -87,12 +93,11 @@ void slsort_parts_(finteger_t *n,                                               
                   pepcparts_slkey_t *keys2, pepcparts_sldata8_t *work2, finteger_t *irnkl2,  /* SCRATCH */
                   finteger_t *fsize, finteger_t *frank)                                      /* IN */
 {
+#ifndef NOT_sl_pepcparts
+
   int size = *fsize;
   int rank = *frank;
   MPI_Comm comm = MPI_COMM_WORLD;
-
-  typedef pepckeys_slint_t slint_t;
-#define slint_fmt pepckeys_sl_int_type_fmt
 
   slint_t i;
 
@@ -128,10 +133,14 @@ void slsort_parts_(finteger_t *n,                                               
 #endif
 
 #ifdef TIMING
-  double ttotal;
-  double tinitindxl, tcopy, tpresort, tpartition, tpack, talltoall,talltoallv, tmergeunpack, tmakeindices;
-#ifndef MERGE_AND_UNPACK
+  double ttotal, tinitindxl, tcopy, tsort, tpartition, tpack, talltoall, talltoallv, tmakeindices;
+#ifdef THREE_STEPS_VERSION
   double tunpack;
+#else
+  double tmergeunpack;
+# ifndef MERGE_AND_UNPACK
+  double tunpack;
+# endif
 #endif
 #endif
 
@@ -204,12 +213,20 @@ void slsort_parts_(finteger_t *n,                                               
   pepckeys_elements_ncopy(&k0, &k1, *n);
   TSTOP(tcopy);
 
+#ifdef THREE_STEPS_VERSION
+
+#ifdef VALIDATE
+  l = 0;
+#endif
+
+#else /* THREE_STEPS_VERSION */
+
   /* pre sort keys (+ indices and work) */
   VERBOSE_MOP(printf("%d: slsort_parts: 1. sort keys\n", rank));
 
-  TSTART(tpresort);
+  TSTART(tsort);
   pepckeys_sort_radix(&k0, NULL, SORT_RHIGH, SORT_RLOW, SORT_RWIDTH);
-  TSTOP(tpresort);
+  TSTOP(tsort);
 
 /*  for (i = 0; i < k0.size; ++i) printf("%d  %d  %f\n", rank, (int) i, work[i]);*/
 
@@ -217,8 +234,12 @@ void slsort_parts_(finteger_t *n,                                               
 
 
 #ifdef VALIDATE
+  VERBOSE_MOP(printf("%d: slsort_parts: 1. not sort keys!\n", rank));
+
   l = pepckeys_elements_validate_order(&k0, 1);
 #endif
+
+#endif /* THREE_STEPS_VERSION */
 
 
   /* partitioning */
@@ -261,6 +282,10 @@ void slsort_parts_(finteger_t *n,                                               
     pc.weight_low = -((pc.weight_low > 0)?pc.weight_low:0);
     pc.weight_high = ((double) (rank + 1) / (double) size) + (0.5 * imba / size);
     pc.weight_high = -((pc.weight_high < 1)?pc.weight_high:1);
+
+    pc.pcm |= SLPC_COUNTS_MM;
+    pc.count_min = 0;
+    pc.count_max = *nmax;
   }
 #endif
 
@@ -302,9 +327,13 @@ void slsort_parts_(finteger_t *n,                                               
 
   VERBOSE_MOP(printf("%d: slsort_parts: 2. partitioning: direct\n", rank));
 
+#ifdef THREE_STEPS_VERSION
+  pepckeys_mpi_partition_exact_radix(&k0, &pc, PART_RHIGH, PART_RLOW, PART_RWIDTH, SL_SORTED_OUT, scounts, NULL, size, rank, comm);
+#else
   pepckeys_mpi_partition_exact_radix(&k0, &pc, PART_RHIGH, PART_RLOW, PART_RWIDTH, SL_SORTED_IN, scounts, NULL, size, rank, comm);
+#endif
 
-/*  if (rank == 0) printf("average finish round: %f\n", pepckeys_mseg_info_finish_rounds_avg);*/
+  VERBOSE_MOP(printf("%d: average finish round: %f\n", rank, pepckeys_mseg_info_finish_rounds_avg));
 
 #endif
 
@@ -347,28 +376,6 @@ void slsort_parts_(finteger_t *n,                                               
   for (rdispls[0] = 0, i = 1; i < size; ++i) rdispls[i] = rdispls[i - 1] + rcounts[i - 1];
 
 #ifdef RECEIVE_STATS
-  printf("%d: slsort_parts: total receive count: %d (nmax: %" finteger_fmt ")%s\n", rank, rdispls[size - 1] + rcounts[size - 1], *nmax, (rdispls[size - 1] + rcounts[size - 1] > *nmax)?" ERROR!!!":"");
-
-  double w, sweights[size], rweights[size];
-  slint_t j;
-  for (j = 0; j < size; ++j)
-  {
-    sweights[j] = 0;
-    for (i = sdispls[j]; i < sdispls[j]+scounts[j]; ++i) sweights[j] += work[i];
-  }
-  MPI_Alltoall(sweights, 1, MPI_DOUBLE, rweights, 1, MPI_DOUBLE, comm);
-  w = 0;
-  for (i = 0; i < size; ++i) w += rweights[i];
-
-/*  printf("%d: slsort_parts: total receive weight: %f\n", rank, w);*/
-
-  double cw[2], cw_min[2], cw_max[2], cw_sum[2];
-  cw[0] = rdispls[size - 1] + rcounts[size - 1];
-  cw[1] = w;
-  MPI_Reduce(cw, cw_min, 2, MPI_DOUBLE, MPI_MIN, 0, comm);
-  MPI_Reduce(cw, cw_max, 2, MPI_DOUBLE, MPI_MAX, 0, comm);
-  MPI_Reduce(cw, cw_sum, 2, MPI_DOUBLE, MPI_SUM, 0, comm);
-  if (rank == 0) printf("%d: slsort_parts: receive stats: %d  %d  %d  /  %f  %f  %f\n", rank, (int) cw_min[0], (int) cw_max[0], (int) (cw_sum[0] / size), cw_min[1], cw_max[1], cw_sum[1] / size);
 #endif
 
   TSTART(talltoallv);
@@ -389,6 +396,53 @@ void slsort_parts_(finteger_t *n,                                               
 
   VERBOSE_MOP(printf("%d: slsort_parts: 4. alltoallv done\n", rank));
 
+
+#ifdef THREE_STEPS_VERSION
+
+  VERBOSE_MOP(printf("%d: slsort_parts: 5a. sort keys\n", rank));
+
+  pepcparts_pelem_set_size(&pd0, *n);
+  pepcparts_pelem_set_max_size(&pd0, *nmax);
+  pepcparts_pelem_set_elements(&pd0, parts1);
+  
+  pepcparts_elements_unpack_keys(&pd0, keys2);
+
+  /* init post indexes */
+  for (i = 0; i < *n; ++i) irnkl2[i] = i;
+  
+  pepckeys_elem_set_size(&k0, *n);
+  pepckeys_elem_set_max_size(&k0, *nmax);
+  pepckeys_elem_set_keys(&k0, keys2);
+  pepckeys_elem_set_indices(&k0, irnkl2);
+  pepckeys_elem_set_data(&k0, work2);
+
+  TSTART(tsort);
+  pepckeys_sort_radix(&k0, NULL, SORT_RHIGH, SORT_RLOW, SORT_RWIDTH);
+  TSTOP(tsort);
+
+  VERBOSE_MOP(printf("%d: slsort_parts: 5b. sort keys done\n", rank));
+
+  VERBOSE_MOP(printf("%d: slsort_parts: 5b. unpack\n", rank));
+
+  for (i = 0; i < *n; ++i) irnkl[irnkl2[i]] = i;
+
+  pepcparts_elem_set_size(&d0, *n);
+  pepcparts_elem_set_max_size(&d0, *nmax);
+  pepcparts_elem_set_keys(&d0, keys);
+  pepcparts_elem_set_data(&d0, x, y, z, ux, uy, uz, q, m, work, ex, ey, ez, pelabel);
+
+  TSTART(tunpack);
+  pepcparts_elements_unpack_indexed(&pd0, &d0, NULL, irnkl);
+  TSTOP(tunpack);
+
+  VERBOSE_MOP(printf("%d: slsort_parts: 5b. unpack data done\n", rank));
+
+  TSTART(tmakeindices);
+  for (i = 0; i < nin; ++i) ++indxl[i];
+  for (i = 0; i < *n; ++i) ++irnkl[i];
+  TSTOP(tmakeindices);
+
+#else /* THREE_STEPS_VERSION */
 
 #ifdef MERGE_AND_UNPACK
 
@@ -460,6 +514,8 @@ void slsort_parts_(finteger_t *n,                                               
 
 #endif
 
+#endif /* THREE_STEPS_VERSION */
+
 
 #ifdef VALIDATE
   o = pepcparts_mpi_elements_validate_order(&d0, 1, size, rank, comm);
@@ -477,52 +533,6 @@ void slsort_parts_(finteger_t *n,                                               
   VERBOSE_MOP(printf("%d: out: n = %" FINT_TYPE_FMT "\n", rank, *n));
 
 #ifdef BORDER_STATS
-  pepcparts_sl_key_type_c lmm[2], gmm[2 * size];
-  
-  pepckeys_slint_t nb;
-  double b, bsum, bmin, bmax;
-
-  if (d0.size > 0)
-  {
-    lmm[0] = d0.keys[0];
-    lmm[1] = d0.keys[d0.size - 1];
-
-  } else lmm[0] = lmm[1] = 0;
-
-  MPI_Gather(lmm, 2 * pepcparts_sl_key_size_mpi, pepcparts_sl_key_type_mpi, gmm, 2 * pepcparts_sl_key_size_mpi, pepcparts_sl_key_type_mpi, 0, comm);
-  
-  if (rank == 0)
-  {
-    nb = 0;
-    bsum = 0.0;
-    bmin = 100.0;
-    bmax = 0.0;
-
-/*    for (i = 0; i < size; ++i)
-    {
-      if (i > 0) printf("%" pepckeys_sl_int_type_fmt "  %llX -> %llX\n", i, gmm[i * 2 + 0], gmm[i * 2 - 1] ^ gmm[i * 2 + 0]);
-      else printf("%" pepckeys_sl_int_type_fmt "  %llX\n", i, gmm[i * 2 + 0]);
-      printf("%" pepckeys_sl_int_type_fmt "  %llX\n", i, gmm[i * 2 + 1]);
-    }*/
-
-/*    printf("%d: borders:\n", rank);*/
-    for (i = 0; i < size - 1; ++i)
-    {
-      if (gmm[i * 2 + 1] > 0 && gmm[(i + 1) * 2] > 0 && (gmm[i * 2 + 1] ^ gmm[(i + 1) * 2]) > 0)
-      {
-        ++nb;
-        b = log((double) (gmm[i * 2 + 1] ^ gmm[(i + 1) * 2])) / log(2.0);
-/*        printf("%" pepckeys_sl_int_type_fmt "  %" pepcparts_sl_key_type_fmt "  %f\n", i, gmm[i * 2 + 1] ^ gmm[(i + 1) * 2], b);*/
-
-      } else b = 0;
-      
-      bsum += b;
-      if (b < bmin) bmin = b;
-      if (b > bmax) bmax = b;
-    }
-
-    printf("%d: borders: avg: %f, min: %f, max: %f\n", rank, (nb)?(bsum / (double) nb):-1.0, bmin, bmax);
-  }
 #endif
 
 #ifdef TIMING
@@ -532,19 +542,61 @@ void slsort_parts_(finteger_t *n,                                               
     printf("%d: slsort_parts: %f\n", rank, ttotal);
     printf("%d: slsort_parts: initindxl: %f\n", rank, tinitindxl);
     printf("%d: slsort_parts: copy: %f\n", rank, tcopy);
-    printf("%d: slsort_parts: presort: %f\n", rank, tpresort);
+#ifndef THREE_STEPS_VERSION
+    printf("%d: slsort_parts: presort: %f\n", rank, tsort);
+#endif
     printf("%d: slsort_parts: partition: %f\n", rank, tpartition);
     printf("%d: slsort_parts: pack: %f\n", rank, tpack);
     printf("%d: slsort_parts: alltoall: %f\n", rank, talltoall);
     printf("%d: slsort_parts: alltoallv: %f\n", rank, talltoallv);
+#ifdef THREE_STEPS_VERSION
+    printf("%d: slsort_parts: postsort: %f\n", rank, tsort);
+    printf("%d: slsort_parts: unpack: %f\n", rank, tunpack);
+#else
     printf("%d: slsort_parts: mergeunpack: %f\n", rank, tmergeunpack);
 #  ifndef MERGE_AND_UNPACK
     printf("%d: slsort_parts: unpack: %f\n", rank, tunpack);
 #  endif
+#endif
     printf("%d: slsort_parts: makeindices: %f\n", rank, tmakeindices);
 # else
-    printf("%" slint_fmt "  %f  %f  %f  %f  %f  %f  %f  %f  %f  %f  %f\n", ntotal, ttotal, tinitindxl, tcopy, tpresort, tpartition, tpack, talltoall, talltoallv, tmergeunpack, tunpack, tmakeindices);
+    printf("%" slint_fmt "  %f  %f  %f  %f  %f  %f  %f  %f  %f  %f  %f\n", ntotal, ttotal, tinitindxl, tcopy, tsort, tpartition, tpack, talltoall, talltoallv, tmergeunpack, tunpack, tmakeindices);
 # endif
   }
 #endif
+
+#else
+
+  fprintf(stderr, "ERROR: slsort_parts is not available. Use 'choose_sort = 3' (sl_sort_keys)!\n");
+
+#endif /* NOT_sl_pepcparts */
+}
+
+
+void slsort_parts_(finteger_t *n,                                                             /* INOUT */
+                   finteger_t *nmax,                                                          /* IN */
+                   pepcparts_slkey_t *keys,                                                   /* INOUT */
+                   pepcparts_sldata0_t *x,                                                    /* INOUT */
+                   pepcparts_sldata1_t *y,                                                    /* INOUT */
+                   pepcparts_sldata2_t *z,                                                    /* INOUT */
+                   pepcparts_sldata3_t *ux,                                                   /* INOUT */
+                   pepcparts_sldata4_t *uy,                                                   /* INOUT */
+                   pepcparts_sldata5_t *uz,                                                   /* INOUT */
+                   pepcparts_sldata6_t *q,                                                    /* INOUT */
+                   pepcparts_sldata7_t *m,                                                    /* INOUT */
+                   pepcparts_sldata8_t *work,                                                 /* INOUT */
+                   pepcparts_sldata9_t  *ex,                                                  /* INOUT */
+                   pepcparts_sldata10_t *ey,                                                  /* INOUT */
+                   pepcparts_sldata11_t *ez,                                                  /* INOUT */
+                   pepcparts_sldata12_t *pelabel,                                             /* INOUT */
+                   finteger_t *balance_weight,                                                /* IN */
+                   double *max_imbalance,                                                     /* IN */
+                   finteger_t *indxl, finteger_t *irnkl,                                      /* OUT */
+                   finteger_t *fscounts, finteger_t *frcounts,                                /* OUT */
+                   finteger_t *fsdispls, finteger_t *frdispls,                                /* OUT */
+                   void *parts0, void *parts1,                                                /* SCRATCH */
+                   pepcparts_slkey_t *keys2, pepcparts_sldata8_t *work2, finteger_t *irnkl2,  /* SCRATCH */
+                   finteger_t *fsize, finteger_t *frank)                                      /* IN */
+{
+  slsort_parts(n, nmax, keys, x, y, z, ux, uy, uz, q, m, work, ex, ey, ez, pelabel, balance_weight, max_imbalance, indxl, irnkl, fscounts, frcounts, fsdispls, frdispls, parts0, parts1, keys2, work2, irnkl2, fsize, frank);
 }

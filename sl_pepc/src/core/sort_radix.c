@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/sort_radix.c
- *  timestamp: 2011-02-08 21:32:53 +0100
  *  
  */
 
@@ -20,21 +19,23 @@
 #include "sl_common.h"
 
 
-slint_t sa_ip_threshold = sort_radix_threshold_rec;  /* sl_global, sl_var sa_ip_threshold */
+slint_t sr_ip_threshold = sort_radix_threshold_rec;  /* sl_global, sl_var sr_ip_threshold */
+slint_t sr_db_threshold = sort_radix_threshold_rec;  /* sl_global, sl_var sr_db_threshold */
+slint_t sr_ma_threshold = sort_radix_threshold_rec;  /* sl_global, sl_var sr_ma_threshold */
 
 
 #ifdef key_integer
 
 
+#define max_nclasses(_width_, _type_) (z_powof2_typed(_width_, _type_))
+
+
 slint_t rs_rec_ip(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow, slint_t rwidth) /* sl_func rs_rec_ip */
 {
-/* fixed size of local arrays import for performance */
-#define max_nclasses (z_powof2_typed(sort_radix_width_max, slkey_pure_t))
-
   slkey_pure_t bit_mask, nclasses;
 
-  slint_t i, j, k, current_width, c[max_nclasses];
-  elements_t xi, end, parts[max_nclasses];
+  slint_t i, j, k, current_width, c[max_nclasses(sort_radix_width_max, slkey_pure_t)];
+  elements_t xi, end, parts[max_nclasses(sort_radix_width_max, slkey_pure_t)];
 
   elem_assign_at(s, s->size, &end);
 
@@ -98,7 +99,7 @@ slint_t rs_rec_ip(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow, sl
       xi.size = c[i];
 
 #if defined(SR_IP_INSERTSORT)
-      if (xi.size > sa_ip_threshold) rs_rec_ip(&xi, sx, rhigh, rlow, rwidth);
+      if (xi.size > sr_ip_threshold) rs_rec_ip(&xi, sx, rhigh, rlow, rwidth);
       else
       {
         if (xi.size > 1)
@@ -152,12 +153,10 @@ slint_t sort_radix_ip(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow
 
 slint_t rs_rec_db(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow, slint_t rwidth, slint_t switchdb) /* sl_func rs_rec_db */
 {
-#define max_nclasses (z_powof2_typed(sort_radix_width_max, slkey_pure_t))
-
   slkey_pure_t bit_mask, nclasses;
 
-  slint_t i, j, current_width, c[max_nclasses];
-  elements_t xi, xj, end, parts[max_nclasses];
+  slint_t i, j, current_width, c[max_nclasses(sort_radix_width_max, slkey_pure_t)];
+  elements_t xi, xj, end, parts[max_nclasses(sort_radix_width_max, slkey_pure_t)];
 
   elem_assign_at(s, s->size, &end);
 
@@ -208,7 +207,7 @@ slint_t rs_rec_db(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow, sl
       xi.size = xj.size = c[i];
 
 #ifdef SR_DB_INSERTSORT
-      if (c[i] > sort_radix_threshold_rec) rs_rec_db(&xj, &xi, rhigh, rlow, rwidth, (!switchdb));
+      if (c[i] > sr_db_threshold) rs_rec_db(&xj, &xi, rhigh, rlow, rwidth, (!switchdb));
       else
       {
         if (c[i] > 1) sort_insert_bmask_kernel(&xj, &xi, bit_mask);
@@ -217,10 +216,10 @@ slint_t rs_rec_db(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow, sl
 
       elem_add(&xi, c[i]);
       elem_add(&xj, c[i]);
-    }
 #else
       if (c[i] > 1) rs_rec_db(&xj, &xi, rhigh, rlow, rwidth, (!switchdb));
 #endif
+    }
 
   } else elem_ncopy(sx, s, s->size);
 
@@ -262,12 +261,10 @@ slint_t sort_radix_db(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow
 
 slint_t rs_rec_ma_db(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow, slint_t rwidth, slint_t switchdb) /* sl_func rs_rec_ma_db */
 {
-#define max_nclasses (z_powof2_typed(sort_radix_width_max, slkey_pure_t))
-
   slkey_pure_t bit_mask, nclasses;
 
-  slint_t i, j, current_width, c[max_nclasses];
-  elements_t xi, xj, end, parts[max_nclasses];
+  slint_t i, j, current_width, c[max_nclasses(sort_radix_width_max, slkey_pure_t)];
+  elements_t xi, xj, end, parts[max_nclasses(sort_radix_width_max, slkey_pure_t)];
 
   elem_assign_at(s, s->size, &end);
 
@@ -318,7 +315,7 @@ slint_t rs_rec_ma_db(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow,
       xi.size = xj.size = c[i];
 
 #ifdef SR_MA_INSERTSORT
-      if (c[i] > sort_radix_threshold_rec) rs_rec_ma_db(&xj, &xi, rhigh, rlow, rwidth, (!switchdb));
+      if (c[i] > sr_ma_threshold) rs_rec_ma_db(&xj, &xi, rhigh, rlow, rwidth, (!switchdb));
       else
       {
         if (c[i] > 1) sort_insert_bmask_kernel(&xj, &xi, bit_mask);
@@ -327,10 +324,10 @@ slint_t rs_rec_ma_db(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow,
 
       elem_add(&xi, c[i]);
       elem_add(&xj, c[i]);
-    }
 #else
       if (c[i] > 1) rs_rec_ma_db(&xj, &xi, rhigh, rlow, rwidth, (!switchdb));
 #endif
+    }
 
   } else elem_ncopy(sx, s, s->size);
 
@@ -340,12 +337,10 @@ slint_t rs_rec_ma_db(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow,
 
 slint_t rs_rec_ma(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow, slint_t rwidth) /* sl_func rs_rec_ma */
 {
-#define max_nclasses (z_powof2_typed(sort_radix_width_max, slkey_pure_t))
-
   slkey_pure_t bit_mask, nclasses;
 
-  slint_t i, j, k, current_width, c[max_nclasses];
-  elements_t xi, end, parts[max_nclasses];
+  slint_t i, j, k, current_width, c[max_nclasses(sort_radix_width_max, slkey_pure_t)];
+  elements_t xi, end, parts[max_nclasses(sort_radix_width_max, slkey_pure_t)];
 
   elem_assign_at(s, s->size, &end);
 
@@ -409,7 +404,7 @@ slint_t rs_rec_ma(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow, sl
       xi.size = c[i];
 
 #ifdef SR_MA_INSERTSORT
-      if (xi.size > sort_radix_threshold_rec)
+      if (xi.size > sr_ma_threshold)
 #else
       if (xi.size > 1)
 #endif
@@ -469,6 +464,9 @@ slint_t sort_radix(elements_t *s, elements_t *sx, slint_t rhigh, slint_t rlow, s
   if (sx && sx->size >= s->size) return sort_radix_db(s, sx, rhigh, rlow, rwidth);
   else return sort_radix_ip(s, sx, rhigh, rlow, rwidth);
 }
+
+
+#undef max_nclasses
 
 
 #endif /* key_integer */

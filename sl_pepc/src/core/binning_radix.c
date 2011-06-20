@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/binning_radix.c
- *  timestamp: 2011-03-10 18:12:28 +0100
  *  
  */
 
@@ -33,13 +32,6 @@ slint_t binning_radix_create(binning_t *bm, slint_t rhigh, slint_t rlow, slint_t
 
   bm->sorted = sorted;
 
-#ifdef SL_DEPRECATED
-  bm->exec_pre_old = binning_radix_exec_pre_old;
-  bm->exec_post_old = binning_radix_exec_post_old;
-  bm->refinable_old = binning_radix_refinable_old;
-  bm->refine_old = binning_radix_refine_old;
-#endif
-
   if (rhigh < 0) rhigh = key_radix_high;
   if (rlow < 0) rlow = key_radix_low;
   if (rwidth < 0) rwidth = sort_radix_width_default;
@@ -51,7 +43,7 @@ slint_t binning_radix_create(binning_t *bm, slint_t rhigh, slint_t rlow, slint_t
   bm->bd.radix.rlow = rlow;
   bm->bd.radix.rwidth = rwidth;
 
-  elements_alloc2(&bm->bd.radix.sx, 1, 1, 1, 1, 1);
+  elements_alloc(&bm->bd.radix.sx, 1, SLCM_ALL);
 
   return 0;
 }
@@ -77,7 +69,7 @@ slint_t binning_radix_pre(binning_t *bm) /* sl_proto, sl_func binning_radix_pre 
 }
 
 
-slint_t binning_radix_exec(binning_t *bm, bin_t *bin, slweight_t *counts, slweight_t *weights) /* sl_proto, sl_func binning_radix_exec */
+slint_t binning_radix_exec(binning_t *bm, bin_t *bin, slcount_t *counts, slweight_t *weights) /* sl_proto, sl_func binning_radix_exec */
 {
   elements_t xi, end;
   slkey_pure_t k;
@@ -109,7 +101,7 @@ slint_t binning_radix_exec(binning_t *bm, bin_t *bin, slweight_t *counts, slweig
       
         Z_TRACE_IF(BR_TRACE_IF, "bitmask = %" key_pure_type_fmt " -> %s", (bm->bd.radix.bit_mask << bm->bd.radix.rhigh), special?"special signedness handling":"normal");
 
-        if (BR_TRACE_IF) elements_print_keys(&bin->s);
+/*        if (BR_TRACE_IF) elements_print_keys(&bin->s);*/
 
         if (special)
         {
@@ -118,7 +110,7 @@ slint_t binning_radix_exec(binning_t *bm, bin_t *bin, slweight_t *counts, slweig
           Z_TRACE_IF(BR_TRACE_IF, "sign switch @ %" slint_fmt, special);
           
           /* make bit mask 1 bit smaller (and erase the sign bit) */
-          bm->bd.radix.bit_mask = (bm->bd.radix.bit_mask >> 1) & ~(((slkey_pure_t) 1) << (sizeof(slkey_pure_t)*8-1));
+          bm->bd.radix.bit_mask = (bm->bd.radix.bit_mask >> 1) & ~(~((slkey_pure_t) 0) << (sizeof(slkey_pure_t)*8-1));
 
           elem_assign(&bin->s, &xi);
           xi.size = special;
@@ -127,7 +119,7 @@ slint_t binning_radix_exec(binning_t *bm, bin_t *bin, slweight_t *counts, slweig
           {
             k = ((slkey_pure_t) i + 1) << bm->bd.radix.rhigh;
             counts[i] = sl_search_binary_lt_bmask(&xi, k, bm->bd.radix.bit_mask << bm->bd.radix.rhigh);
-            Z_TRACE_IF(BR_TRACE_IF, "i = %" slint_fmt " of %" key_pure_type_fmt " << %" slint_fmt ", k = %" key_pure_type_fmt ", searching in %" slint_fmt " -> %" slweight_fmt, i, bm->bd.radix.bit_mask, bm->bd.radix.rhigh, k, xi.size, counts[i]);
+            Z_TRACE_IF(BR_TRACE_IF, "i = %" slint_fmt " of %" key_pure_type_fmt " << %" slint_fmt ", k = %" key_pure_type_fmt ", searching in %" slint_fmt " -> %" slcount_fmt, i, bm->bd.radix.bit_mask, bm->bd.radix.rhigh, k, xi.size, counts[i]);
             elem_add(&xi, (slint_t) counts[i]);
             xi.size -= counts[i];
           }
@@ -140,7 +132,7 @@ slint_t binning_radix_exec(binning_t *bm, bin_t *bin, slweight_t *counts, slweig
           {
             k = ((slkey_pure_t) i + 1) << bm->bd.radix.rhigh;
             counts[i + bm->bd.radix.bit_mask + 1] = sl_search_binary_lt_bmask(&xi, k, bm->bd.radix.bit_mask << bm->bd.radix.rhigh);
-            Z_TRACE_IF(BR_TRACE_IF, "i = %" slint_fmt " of %" key_pure_type_fmt " << %" slint_fmt ", k = %" key_pure_type_fmt ", searching in %" slint_fmt " -> %" slweight_fmt, i, bm->bd.radix.bit_mask, bm->bd.radix.rhigh, k, xi.size, counts[i + bm->bd.radix.bit_mask + 1]);
+            Z_TRACE_IF(BR_TRACE_IF, "i = %" slint_fmt " of %" key_pure_type_fmt " << %" slint_fmt ", k = %" key_pure_type_fmt ", searching in %" slint_fmt " -> %" slcount_fmt, i, bm->bd.radix.bit_mask, bm->bd.radix.rhigh, k, xi.size, counts[i + bm->bd.radix.bit_mask + 1]);
             elem_add(&xi, (slint_t) counts[i + bm->bd.radix.bit_mask + 1]);
             xi.size -= counts[i + bm->bd.radix.bit_mask + 1];
           }
@@ -153,7 +145,7 @@ slint_t binning_radix_exec(binning_t *bm, bin_t *bin, slweight_t *counts, slweig
           {
             k = ((slkey_pure_t) i + 1) << bm->bd.radix.rhigh;
             counts[i] = sl_search_binary_lt_bmask(&xi, k, bm->bd.radix.bit_mask << bm->bd.radix.rhigh);
-            Z_TRACE_IF(BR_TRACE_IF, "i = %" slint_fmt " of %" key_pure_type_fmt " << %" slint_fmt ", k = %" key_pure_type_fmt ", searching in %" slint_fmt " -> %" slweight_fmt, i, bm->bd.radix.bit_mask, bm->bd.radix.rhigh, k, xi.size, counts[i]);
+            Z_TRACE_IF(BR_TRACE_IF, "i = %" slint_fmt " of %" key_pure_type_fmt " << %" slint_fmt ", k = %" key_pure_type_fmt ", searching in %" slint_fmt " -> %" slcount_fmt, i, bm->bd.radix.bit_mask, bm->bd.radix.rhigh, k, xi.size, counts[i]);
             elem_add(&xi, (slint_t) counts[i]);
             xi.size -= counts[i];
           }
@@ -191,17 +183,17 @@ slint_t binning_radix_exec(binning_t *bm, bin_t *bin, slweight_t *counts, slweig
 #endif
   }
 
-  Z_TRACE_ARRAY_IF(BR_TRACE_IF, "counts of %" slint_fmt " @ %p:", " %" slweight_fmt, k, bm->nbins, counts, bin->s.size, bin->s.keys);
+  Z_TRACE_ARRAY_IF(BR_TRACE_IF, k, bm->nbins, " %" slcount_fmt, counts[k], "counts of %" slint_fmt " @ %p:", bin->s.size, bin->s.keys);
 #ifdef elem_weight
   if (bm->doweights)
-    Z_TRACE_ARRAY_IF(BR_TRACE_IF, "weights of %" slint_fmt " @ %p:", " %" slweight_fmt, k, bm->nbins, weights, bin->s.size, bin->s.keys);
+    Z_TRACE_ARRAY_IF(BR_TRACE_IF, k, bm->nbins, " %" slweight_fmt, weights[k], "weights of %" slint_fmt " @ %p:", bin->s.size, bin->s.keys);
 #endif
 
   return 0;
 }
 
 
-slint_t binning_radix_refine(binning_t *bm, bin_t *bin, slint_t k, slweight_t *counts, slweight_t *weights, splitter_t *sp, slint_t s, bin_t *new_bin) /* sl_proto, sl_func binning_radix_refine */
+slint_t binning_radix_refine(binning_t *bm, bin_t *bin, slint_t k, slcount_t *counts, slweight_t *weights, splitter_t *sp, slint_t s, bin_t *new_bin) /* sl_proto, sl_func binning_radix_refine */
 {
   slint_t l, lcs;
 
@@ -233,7 +225,7 @@ slint_t binning_radix_refine(binning_t *bm, bin_t *bin, slint_t k, slweight_t *c
 }
 
 
-slint_t binning_radix_hit(binning_t *bm, bin_t *bin, slint_t k, slweight_t *counts, splitter_t *sp, slint_t s) /* sl_proto, sl_func binning_radix_hit */
+slint_t binning_radix_hit(binning_t *bm, bin_t *bin, slint_t k, slcount_t *counts, splitter_t *sp, slint_t s) /* sl_proto, sl_func binning_radix_hit */
 {
   slint_t l;
 
@@ -245,7 +237,7 @@ slint_t binning_radix_hit(binning_t *bm, bin_t *bin, slint_t k, slweight_t *coun
 }
 
 
-slint_t binning_radix_finalize(binning_t *bm, bin_t *bin, slweight_t dcw, slint_t lc_min, slint_t lc_max, slweight_t *lcw, splitter_t *sp, slint_t s) /* sl_proto, sl_func binning_radix_finalize */
+slint_t binning_radix_finalize(binning_t *bm, bin_t *bin, slint_t dc, slweight_t dw, slint_t lc_min, slint_t lc_max, slcount_t *lcs, slweight_t *lws, splitter_t *sp, slint_t s) /* sl_proto, sl_func binning_radix_finalize */
 {
   slint_t lc, r;
 #ifdef elem_weight
@@ -254,10 +246,10 @@ slint_t binning_radix_finalize(binning_t *bm, bin_t *bin, slweight_t dcw, slint_
 #endif
 
 
-  Z_TRACE_IF(BR_TRACE_IF, "bin size: %" slint_fmt ", dcw = %" slweight_fmt ", lc: %" slint_fmt " - %" slint_fmt ", lcw[0] = %" slweight_fmt, bin->s.size, dcw, lc_min, lc_max, lcw[0]);
+  Z_TRACE_IF(BR_TRACE_IF, "bin size: %" slint_fmt ", dc = %" slint_fmt ", lc: %" slint_fmt " - %" slint_fmt ", *lcs = %" slcount_fmt, bin->s.size, dc, lc_min, lc_max, *lcs);
 #ifdef elem_weight
   if (bm->doweights)
-    Z_TRACE_IF(BR_TRACE_IF, "bin weight: %" slweight_fmt ", dcw = %" slweight_fmt ", lc: %" slint_fmt " - %" slint_fmt ", lcw[1] = %" slweight_fmt, bin->weight, dcw, lc_min, lc_max, lcw[1]);
+    Z_TRACE_IF(BR_TRACE_IF, "bin weight: %" slweight_fmt ", dw = %" slweight_fmt ", lc: %" slint_fmt " - %" slint_fmt ", *lws = %" slweight_fmt, bin->weight, dw, lc_min, lc_max, *lws);
 #endif
 
   r = 0;
@@ -268,7 +260,7 @@ slint_t binning_radix_finalize(binning_t *bm, bin_t *bin, slweight_t dcw, slint_
     lc = 0;
     lw = 0.0;
 
-    if (bin->s.size <= lc_min || (dcw >= bin->weight && bin->s.size <= lc_max))
+    if (bin->s.size <= lc_min || (dw >= bin->weight && bin->s.size <= lc_max))
     {
       lc = bin->s.size;
       lw = bin->weight;
@@ -279,7 +271,7 @@ slint_t binning_radix_finalize(binning_t *bm, bin_t *bin, slweight_t dcw, slint_
       {
         elem_assign_at(&bin->s, bin->s.size, &end);
 
-        lw = dcw;
+        lw = dw;
 
         for (elem_assign(&bin->s, &xi); xi.keys < end.keys; elem_inc(&xi))
         {
@@ -296,7 +288,7 @@ slint_t binning_radix_finalize(binning_t *bm, bin_t *bin, slweight_t dcw, slint_
           }
         }
       
-        lw = dcw - lw;
+        lw = dw - lw;
       }
 
       r = 1;
@@ -305,18 +297,18 @@ slint_t binning_radix_finalize(binning_t *bm, bin_t *bin, slweight_t dcw, slint_
   } else
 #endif
   {
-    lc = z_min(dcw, bin->s.size);
+    lc = z_min(dc, bin->s.size);
     
-    r = (lc >= (slint_t) dcw);
+    r = (lc >= dc);
   }
 
-  lcw[0] += lc;
-  Z_TRACE_IF(BR_TRACE_IF, "lcw[0] = %" slweight_fmt " + %" slint_fmt " = %" slweight_fmt, lcw[0] - lc, lc, lcw[0]);
+  *lcs += lc;
+  Z_TRACE_IF(BR_TRACE_IF, "*lcs = %" slcount_fmt " + %" slint_fmt " = %" slcount_fmt, (slcount_t) (*lcs - lc), lc, *lcs);
 #ifdef elem_weight
   if (bm->doweights)
   {
-    lcw[1] += lw;
-    Z_TRACE_IF(BR_TRACE_IF, "lcw[1] = %" slweight_fmt " + %" slweight_fmt " = %" slweight_fmt, lcw[1] - lw, lw, lcw[1]);
+    *lws += lw;
+    Z_TRACE_IF(BR_TRACE_IF, "*lws = %" slweight_fmt " + %" slweight_fmt " = %" slweight_fmt, *lws - lw, lw, *lws);
   }
 #endif
 
@@ -334,43 +326,3 @@ slint_t binning_radix_post(binning_t *bm) /* sl_proto, sl_func binning_radix_pos
 
   return 0;
 }
-
-
-#ifdef SL_DEPRECATED
-
-slint_t binning_radix_exec_pre_old(binning_t *bm) /* sl_proto, sl_func binning_radix_exec_pre_old */
-{
-  binning_radix_pre(bm);
-  
-  return 0;
-}
-
-
-slint_t binning_radix_exec_post_old(binning_t *bm) /* sl_proto, sl_func binning_radix_exec_post_old */
-{
-  binning_radix_post(bm);
-
-  return 0;
-}
-
-
-slint_t binning_radix_refinable_old(binning_t *bm) /* sl_proto, sl_func binning_radix_refinable_old */
-{
-  return (bm->bd.radix.rhigh >= bm->bd.radix.rlow);
-}
-
-
-slint_t binning_radix_refine_old(binning_t *bm, bin_t *bin, slint_t k, slweight_t *counts, bin_t *new_bin) /* sl_proto, sl_func binning_radix_refine_old */
-{
-  slint_t l, lcs;
-
-  lcs = 0;
-  for (l = 0; l < k; ++l) lcs += counts[l];
-
-  elem_assign_at(&bin->s, lcs, &new_bin->s);
-  new_bin->s.size = counts[k];
-  
-  return 0;
-}
-
-#endif

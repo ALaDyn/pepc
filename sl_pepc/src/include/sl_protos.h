@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_protos.h
- *  timestamp: 2011-03-06 21:59:32 +0100
  *  
  */
 
@@ -12,29 +11,25 @@
 
 
 /* src/core/binning.c */
-slint_t SL_PROTO(binning_create)(local_bins_t *lb, slint_t max_nbins, slint_t max_nbinnings, elements_t *s, slint_t nelements, slint_t doweights, binning_t *bm);
+slint_t SL_PROTO(binning_create)(local_bins_t *lb, slint_t max_nbins, slint_t max_nbinnings, elements_t *s, slint_t nelements, slint_t docounts, slint_t doweights, binning_t *bm);
 slint_t SL_PROTO(binning_destroy)(local_bins_t *lb);
 slint_t SL_PROTO(binning_pre)(local_bins_t *lb);
 slint_t SL_PROTO(binning_exec_reset)(local_bins_t *lb);
 slint_t SL_PROTO(binning_exec)(local_bins_t *lb, slint_t b);
 slint_t SL_PROTO(binning_refine)(local_bins_t *lb, slint_t b, slint_t k, splitter_t *sp, slint_t s);
 slint_t SL_PROTO(binning_hit)(local_bins_t *lb, slint_t b, slint_t k, splitter_t *sp, slint_t s);
-slint_t SL_PROTO(binning_finalize)(local_bins_t *lb, slint_t b, slweight_t dcw, slint_t lc_min, slint_t lc_max, slweight_t *lcw, splitter_t *sp, slint_t s);
+slint_t SL_PROTO(binning_finalize)(local_bins_t *lb, slint_t b, slint_t dc, slweight_t dw, slint_t lc_min, slint_t lc_max, slcount_t *lcs, slweight_t *lws, splitter_t *sp, slint_t s);
 slint_t SL_PROTO(binning_post)(local_bins_t *lb);
 
 /* src/core/binning_radix.c */
 slint_t SL_PROTO(binning_radix_create)(binning_t *bm, slint_t rhigh, slint_t rlow, slint_t rwidth, slint_t sorted);
 slint_t SL_PROTO(binning_radix_destroy)(binning_t *bm);
 slint_t SL_PROTO(binning_radix_pre)(binning_t *bm);
-slint_t SL_PROTO(binning_radix_exec)(binning_t *bm, bin_t *bin, slweight_t *counts, slweight_t *weights);
-slint_t SL_PROTO(binning_radix_refine)(binning_t *bm, bin_t *bin, slint_t k, slweight_t *counts, slweight_t *weights, splitter_t *sp, slint_t s, bin_t *new_bin);
-slint_t SL_PROTO(binning_radix_hit)(binning_t *bm, bin_t *bin, slint_t k, slweight_t *counts, splitter_t *sp, slint_t s);
-slint_t SL_PROTO(binning_radix_finalize)(binning_t *bm, bin_t *bin, slweight_t dcw, slint_t lc_min, slint_t lc_max, slweight_t *lcw, splitter_t *sp, slint_t s);
+slint_t SL_PROTO(binning_radix_exec)(binning_t *bm, bin_t *bin, slcount_t *counts, slweight_t *weights);
+slint_t SL_PROTO(binning_radix_refine)(binning_t *bm, bin_t *bin, slint_t k, slcount_t *counts, slweight_t *weights, splitter_t *sp, slint_t s, bin_t *new_bin);
+slint_t SL_PROTO(binning_radix_hit)(binning_t *bm, bin_t *bin, slint_t k, slcount_t *counts, splitter_t *sp, slint_t s);
+slint_t SL_PROTO(binning_radix_finalize)(binning_t *bm, bin_t *bin, slint_t dc, slweight_t dw, slint_t lc_min, slint_t lc_max, slcount_t *lcs, slweight_t *lws, splitter_t *sp, slint_t s);
 slint_t SL_PROTO(binning_radix_post)(binning_t *bm);
-slint_t SL_PROTO(binning_radix_exec_pre_old)(binning_t *bm);
-slint_t SL_PROTO(binning_radix_exec_post_old)(binning_t *bm);
-slint_t SL_PROTO(binning_radix_refinable_old)(binning_t *bm);
-slint_t SL_PROTO(binning_radix_refine_old)(binning_t *bm, bin_t *bin, slint_t k, slweight_t *counts, bin_t *new_bin);
 
 /* src/core/elements.c */
 slint_t SL_PROTO(elements_alloc)(elements_t *s, slint_t nelements, slcint_t components);
@@ -55,14 +50,16 @@ slint_t SL_PROTO(elements_digest_sum)(elements_t *s, slint_t nelements, slcint_t
 unsigned int SL_PROTO(elements_crc32)(elements_t *s, slint nelements, slint_t keys, slint_t data);
 slint_t SL_PROTO(elements_digest_hash)(elements_t *s, slint_t nelements, slcint_t components, void *hash);
 slint_t SL_PROTO(elements_random_exchange)(elements_t *s, slint_t rounds, elements_t *xs);
-slint_t SL_PROTO(elements_init_keys2)(elements_t *s, slint_t dtype, slkey_pure_t key_min, slkey_pure_t key_max);
+slint_t SL_PROTO(elements_keys_init_seed)(unsigned long s);
 slint_t SL_PROTO(elements_keys_init)(elements_t *s, keys_init_type_t t, keys_init_data_t d);
+slint_t SL_PROTO(elements_keys_init_randomized)(elements_t *s, slint_t nkeys, keys_init_type_t t, keys_init_data_t d);
 slint_t SL_PROTO(elements_init_keys_from_file)(elements_t *s, slint_t data, char *filename, slint_t from, slint_t to, slint_t const_bytes_per_line);
 slint_t SL_PROTO(elements_save_keys_to_file)(elements_t *s, char *filename);
 slint_t SL_PROTO(elements_validate_order)(elements_t *s, slint_t n);
 slint_t SL_PROTO(elements_validate_order_bmask)(elements_t *s, slint_t n, slkey_pure_t bmask);
 slint_t SL_PROTO(elements_validate_order_weight)(elements_t *s, slint_t n, slkey_pure_t weight);
 slint_t SL_PROTO(elements_keys_stats)(elements_t *s, slkey_pure_t *stats);
+slint_t SL_PROTO(elements_keys_stats_print)(elements_t *s);
 slint_t SL_PROTO(elements_print_keys)(elements_t *s);
 slint_t SL_PROTO(elements_print_all)(elements_t *s);
 slweight_t SL_PROTO(elements_get_weight)(elements_t *s);
@@ -116,6 +113,7 @@ slint SL_PROTO(merge2_compo_tridgell)(elements_t *s0, elements_t *s1, elements_t
 
 /* src/core/mergep_2way.c */
 slint_t SL_PROTO(mergep_2way_ip_int)(elements_t *s, elements_t *sx, slint_t p, int *displs, merge2x_f m2x);
+slint_t SL_PROTO(mergep_2way_ip_int_rec)(elements_t *s, elements_t *sx, slint_t p, int *displs, merge2x_f m2x);
 
 /* src/core/mergep_heap.c */
 slint_t SL_PROTO(mergep_heap_int)(elements_t *s, elements_t *d, slint_t p, int *displs, int *counts);
@@ -148,7 +146,6 @@ slint SL_PROTO(sl_search_hybrid_ge)(elements_t *s, slkey_t *k, slint t);
 /* src/core/sl_common.c */
 slint SL_PROTO(ilog2c)(slint x);
 slint SL_PROTO(ilog2f)(slint x);
-long long SL_PROTO(sl_random64)();
 slint SL_PROTO(print_bits)(slint v);
 slint SL_PROTO(pivot_random)(elements_t *s);
 slint_t SL_PROTO(counts2displs)(slint_t n, int *counts, int *displs);
@@ -178,8 +175,8 @@ slint_t SL_PROTO(sort_insert_bmask_kernel)(elements_t *s, elements_t *sx, slkey_
 slint_t SL_PROTO(sort_insert)(elements_t *s, elements_t *sx);
 
 /* src/core/sort_permute.c */
-slint SL_PROTO(sort_permute_forward)(elements_t *s, elements_t *sx, slint *perm, slint offset, slint mask_bit);
-slint SL_PROTO(sort_permute_backward)(elements_t *s, elements_t *sx, slint *perm, slint offset, slint mask_bit);
+slint_t SL_PROTO(sort_permute_forward)(elements_t *s, elements_t *sx, slint_t *perm, slint_t offset, slint_t mask_bit);
+slint_t SL_PROTO(sort_permute_backward)(elements_t *s, elements_t *sx, slint_t *perm, slint_t offset, slint_t mask_bit);
 
 /* src/core/sort_quick.c */
 slint SL_PROTO(sort_quick)(elements_t *s, elements_t *xs);

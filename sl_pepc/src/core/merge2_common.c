@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/merge2_common.c
- *  timestamp: 2011-02-08 21:32:53 +0100
  *  
  */
 
@@ -226,7 +225,7 @@ slint merge2_memory_adaptive(elements_t *s0, elements_t *s1, elements_t *sx) /* 
 
   if (v >= 0) return v;
 
-  return merge2_compo_hula(s0, s1, sx);
+  v = merge2_compo_hula(s0, s1, sx);
   
   if (v >= 0) return v;
 

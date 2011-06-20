@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_pelem.h
- *  timestamp: 2011-03-06 21:59:31 +0100
  *  
  */
 

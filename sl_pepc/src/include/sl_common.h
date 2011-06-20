@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_common.h
- *  timestamp: 2011-03-06 21:59:31 +0100
  *  
  */
 
@@ -56,6 +55,11 @@
 
 #ifdef SL_USE_MPI
  #include <mpi.h>
+extern int sl_mpi_rank;
+#else
+extern int sl_mpi_rank_dummy;
+ #undef sl_mpi_rank
+ #define sl_mpi_rank  sl_mpi_rank_dummy
 #endif
 
 #include "sl_tune.h"
@@ -66,6 +70,10 @@
 #include "sl_environment.h"
 #include "sl_environment_intern.h"
 
+#ifdef __Z_PACK_H__
+# error "z_pack.h" is not allowed to be used in config/tune/environment (the sorting library already uses z-pack!)
+#endif
+
 #include "sl_rti.h"
 #include "sl_rti_intern.h"
 
@@ -74,12 +82,13 @@
 #include "sl_pelem.h"
 
 #include "sl_types.h"
-
-#include "z_pack.h"
+#include "sl_types_intern.h"
 
 #include "sl_adds.h"
 
 #include "sl_globals.h"
+
+#include "z_pack.h"
 
 #define SL_PROTO(_f_)  _f_
 #include "sl_protos.h"
@@ -97,16 +106,6 @@
 # define SL_PROTO(_f_)  _f_##_di
 #  include "sl_protos_mpi.h"
 # undef SL_PROTO
-#endif
-
-
-#ifdef SL_USE_MPI
-extern int sl_mpi_rank;
-#else
- #ifdef sl_mpi_rank
- # undef sl_mpi_rank
- #endif
- #define sl_mpi_rank  -2
 #endif
 
 

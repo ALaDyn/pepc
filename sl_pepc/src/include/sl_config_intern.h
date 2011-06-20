@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/include/sl_config_intern.h
- *  timestamp: 2011-03-06 21:59:31 +0100
  *  
  */
 
@@ -23,20 +22,12 @@
 #endif
 
 
-/* override inlining */
-#ifdef NO_INLINE
-# ifndef inline
-#  define inline
-# endif
-#endif
-
-
 #ifndef SL_INDEX
 # undef SL_PACKED_INDEX
 #endif
 
 
-/* if no special, given, primary and heavy used integer-type ... */
+/* if no special datatype for (sl default) integer ... */
 #ifndef sl_int_type_c
   /* ... use a default one */
 # define sl_int_type_c               long      /* sl_macro */
@@ -62,14 +53,16 @@
 
 /* if no special datatype for (intern) weight ... */
 #ifndef sl_weight_type_c
- /* ... use the double */
-# define sl_weight_type_c             double      /* sl_macro */
+ /* ... use (sl default) integer */
+# define sl_weight_type_c             sl_int_type_c    /* sl_macro */
 # undef sl_weight_type_mpi
-# define sl_weight_type_mpi           MPI_DOUBLE  /* sl_macro */
+# define sl_weight_type_mpi           sl_int_type_mpi  /* sl_macro */
 # undef sl_weight_size_mpi
-# define sl_weight_size_mpi           1           /* sl_macro */
+# define sl_weight_size_mpi           sl_int_size_mpi  /* sl_macro */
 # undef sl_weight_type_fmt
-# define sl_weight_type_fmt           "f"         /* sl_macro */
+# define sl_weight_type_fmt           sl_int_type_fmt  /* sl_macro */
+# undef sl_weight_intequiv
+# define sl_weight_intequiv                            /* sl_macro */
 #else
   /* ... use the given one and check whether an mpi-type is present and required */
 # ifdef SL_USE_MPI

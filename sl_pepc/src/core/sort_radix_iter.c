@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/sort_radix_iter.c
- *  timestamp: 2011-02-08 21:32:53 +0100
  *  
  */
 
@@ -171,6 +170,8 @@ slint rs_iter(elements_t *s, elements_t *sx, slint presorted, slint rhigh, slint
   return 0;
 }
 
+#undef max_nclasses
+
 
 slint sort_radix_iter(elements_t *s, elements_t *sx, slint presorted, slint rhigh, slint rlow, slint rwidth) /* sl_proto, sl_func sort_radix_iter */
 {
@@ -206,6 +207,10 @@ slint sort_radix_iter(elements_t *s, elements_t *sx, slint presorted, slint rhig
 
   return 0;
 }
+
+
+#undef insertsort
+#undef insertsort_finalize
 
 
 #endif /* key_integer */

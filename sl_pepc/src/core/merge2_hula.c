@@ -2,7 +2,6 @@
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
  *  
  *  file: src/core/merge2_hula.c
- *  timestamp: 2011-02-06 00:26:17 +0100
  *  
  */
 
@@ -283,3 +282,8 @@ slint merge2_compo_hula(elements_t *s0, elements_t *s1, elements_t *xs) /* sl_pr
 
   return 0;
 }
+
+
+#undef the_merge2_01
+#undef the_merge2_0X_1
+#undef the_merge2_X0_1
