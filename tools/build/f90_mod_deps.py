@@ -129,10 +129,10 @@ def get_deps_and_mods(filename, opts):
 
 def write_deps(outf, filename, deps, mods, opts):
     filebase, fileext = os.path.splitext(filename)
-    outf.write("%s%s.o: %s\n" % (opts.o_prefix, filebase, " ".join(deps)))
+    outf.write("%s%s.o: %s\n" % (opts.o_prefix, os.path.basename(filebase), " ".join(deps)))
     for mod in mods:
-	outf.write("%s: %s\n"
-		   % (mod, " ".join(deps)))
+	outf.write("%s: %s%s.o %s\n"
+		   % (mod, opts.o_prefix, os.path.basename(filebase) , " ".join(deps)))                     # mw (2011-06-20): added .o-file to .mod-file dependencies 
 
 def process_args():
     try:
