@@ -267,11 +267,11 @@ module module_spacefilling
 	           ! reverse
 	           select case (G(horder,1))
 	             case (5) ! (= 101[zyx]) --> reverse z and x
-	               ztemp = iand(not(ztemp),2**(i)-1)
-	               xtemp = iand(not(xtemp),2**(i)-1)
+	               ztemp = iand(not(ztemp),2_8**(i)-1)
+	               xtemp = iand(not(xtemp),2_8**(i)-1)
                  case (6) ! (= 110[zyx]) --> reverse z and y
-                   ztemp = iand(not(ztemp),2**(i)-1)
-                   ytemp = iand(not(ytemp),2**(i)-1)
+                   ztemp = iand(not(ztemp),2_8**(i)-1)
+                   ytemp = iand(not(ytemp),2_8**(i)-1)
 	           end select
 	        end do
 

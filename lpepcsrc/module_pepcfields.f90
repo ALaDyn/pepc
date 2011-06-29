@@ -144,7 +144,7 @@ module module_pepcfields
 		    work(1:npp) = 1.
 		  else
 		    do i=1,npp
-		       work(i) = max(p_w(i), 1.)
+		       work(i) = max(p_w(i), 1._8)
 		    end do
 		  endif
 
