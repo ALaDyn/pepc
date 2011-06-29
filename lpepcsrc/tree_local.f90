@@ -136,6 +136,8 @@ subroutine tree_local
 
   allocate(subcell(1:nlist),cell_addr(1:nlist))
 
+  call timer_start(t_build_pure)
+
   level = 0                        ! start at root
   local_ind(1:nlist) = (/(k,k=1,nlist)/) ! Sorted local particle index / leaf number: points to particle properties
 
@@ -343,6 +345,8 @@ subroutine tree_local
 
   end do
 
+  call timer_stop(t_build_pure)
+
   deallocate(subcell,cell_addr)
 
   call timer_stop(t_build_part)
@@ -389,7 +393,7 @@ subroutine tree_local
         point_free(i) = 0
      endif
   enddo
-  
+
   call timer_stop(t_build_byte)
   call timer_stop(t_build)
 

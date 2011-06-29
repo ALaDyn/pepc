@@ -51,7 +51,7 @@ module timings
     ! tree_branches
     integer, parameter :: t_branches_find      = 32
     integer, parameter :: t_exchange_branches_admininstrative = 33
-    integer, parameter :: t_unused34            = 34
+    integer, parameter :: t_build_pure         = 34
     ! tree_fill
     integer, parameter :: t_fill_local         = 35
     integer, parameter :: t_fill_global        = 36
