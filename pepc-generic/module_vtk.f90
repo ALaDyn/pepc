@@ -149,17 +149,19 @@ module module_vtk
 
         open(vtk%filehandle, file=fn)
 
-        open(vtk%filehandle_par, file=subfolder//trim(vtk%filename)//".pvtu")
+        if (vtk%my_rank == 0) then
+          open(vtk%filehandle_par, file=subfolder//trim(vtk%filename)//".pvtu")
 
-        if (vtk%vtk_step .eq. VTK_STEP_FIRST) then
-          open(vtk%filehandle_visit, file=subfolder//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
-          write(vtk%filehandle_visit, '("!NBLOCKS ", I0)') vtk%num_pe
+          if (vtk%vtk_step .eq. VTK_STEP_FIRST) then
+            open(vtk%filehandle_visit, file=subfolder//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
+            write(vtk%filehandle_visit, '("!NBLOCKS ", I0)') vtk%num_pe
 
-          open(vtk%filehandle_paraview, file=subfolder//trim(filename_)//"."//paraviewfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
-          write(vtk%filehandle_paraview, '("<VTKFile type=""Collection"">", /, "<Collection>")')
-        else
-          open(vtk%filehandle_visit, file=subfolder//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
-          open(vtk%filehandle_paraview, file=subfolder//trim(filename_)//"."//paraviewfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
+            open(vtk%filehandle_paraview, file=subfolder//trim(filename_)//"."//paraviewfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
+            write(vtk%filehandle_paraview, '("<VTKFile type=""Collection"">", /, "<Collection>")')
+          else
+            open(vtk%filehandle_visit, file=subfolder//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
+            open(vtk%filehandle_paraview, file=subfolder//trim(filename_)//"."//paraviewfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
+          endif
         endif
       end subroutine vtkfile_create_parallel
 
@@ -168,14 +170,16 @@ module module_vtk
         implicit none
         class(vtkfile) :: vtk
         close(vtk%filehandle)
-        close(vtk%filehandle_par)
-        close(vtk%filehandle_visit)
 
-        if (vtk%vtk_step .eq. VTK_STEP_LAST) then
-          write(vtk%filehandle_paraview, '("</Collection>", / , "</VTKFile>")')
+        if (vtk%my_rank == 0) then
+          if (vtk%vtk_step .eq. VTK_STEP_LAST) then
+            write(vtk%filehandle_paraview, '("</Collection>", / , "</VTKFile>")')
+          endif
+
+          close(vtk%filehandle_par)
+          close(vtk%filehandle_visit)
+          close(vtk%filehandle_paraview)
         endif
-
-        close(vtk%filehandle_paraview)
      end subroutine vtkfile_close
 
 
@@ -503,19 +507,21 @@ module module_vtk
           write(vtk%filehandle, '("</UnstructuredGrid>")')
           write(vtk%filehandle, '("</VTKFile>")')
 
-          write(vtk%filehandle_visit, '(/)')
+          if (vtk%my_rank ==0) then
+            write(vtk%filehandle_visit, '(/)')
 
-          do i = 0,vtk%num_pe-1
-            write(tmp,'(I6.6)') i
-            fn = trim(vtk%filename)//"."//tmp//".vtu"
-            write(vtk%filehandle_par, '("<Piece Source=""", a, """/>")') trim(fn)
-            write(vtk%filehandle_visit, '(a)') trim(fn)
-          end do
+            do i = 0,vtk%num_pe-1
+              write(tmp,'(I6.6)') i
+              fn = trim(vtk%filename)//"."//tmp//".vtu"
+              write(vtk%filehandle_par, '("<Piece Source=""", a, """/>")') trim(fn)
+              write(vtk%filehandle_visit, '(a)') trim(fn)
+            end do
 
-          write(vtk%filehandle_par, '("</PUnstructuredGrid>")')
-          write(vtk%filehandle_par, '("</VTKFile>")')
+            write(vtk%filehandle_par, '("</PUnstructuredGrid>")')
+            write(vtk%filehandle_par, '("</VTKFile>")')
 
-          write(vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(trim(vtk%filename)//".pvtu")
+            write(vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(trim(vtk%filename)//".pvtu")
+          endif
      end subroutine vtkfile_unstructured_grid_write_final
 
 
