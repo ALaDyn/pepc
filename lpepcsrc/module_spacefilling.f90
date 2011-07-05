@@ -21,6 +21,10 @@ module module_spacefilling
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+      interface coord_to_key
+        module procedure coord_to_key_lastlevel, coord_to_key_level
+      end interface coord_to_key
+
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -72,9 +76,6 @@ module module_spacefilling
              write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort:', &
                   '  key,             label   coords     q ', &
                   (local_key(j),pelabel(j),x(j),y(j),z(j),ix(j),iy(j),iz(j),q(j),work(j),j=1,npp)
-             !    write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8))') '(last 10):', &
-             !         '  key,                  label        coords              q ', &
-             !         (local_key(i),pelabel(i),x(i),y(i),z(i),ix(i),iy(i),iz(i),q(i),work(i),i=max(1,npp-10),npp)
 
              write(ipefile,'(/)')
           endif
@@ -84,12 +85,12 @@ module module_spacefilling
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> calculates key from particle coordiante
+        !> calculates key from particle coordinate on top level
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function coord_to_key(x, y, z)
+        function coord_to_key_lastlevel(x, y, z)
           implicit none
-          integer*8 :: coord_to_key
+          integer*8 :: coord_to_key_lastlevel
           real*8, intent(in) :: x, y, z
           integer*8 :: ix, iy, iz
           real*8 :: s
@@ -104,12 +105,28 @@ module module_spacefilling
           ! construct particle keys
           select case (curve_type)
             case (0) ! Z-curve
-              coord_to_key = intcoord_to_key_morton(ix, iy, iz)
+              coord_to_key_lastlevel = intcoord_to_key_morton(ix, iy, iz)
             case (1) ! Hilbert curve (original pattern)
-              coord_to_key = intcoord_to_key_hilbert(ix, iy, iz)
+              coord_to_key_lastlevel = intcoord_to_key_hilbert(ix, iy, iz)
           end select
 
-        end function coord_to_key
+        end function coord_to_key_lastlevel
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> calculates key from particle coordinate on certain tree level
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        function coord_to_key_level(x, y, z, level)
+          implicit none
+          integer*8 :: coord_to_key_level
+          real*8, intent(in) :: x, y, z
+          integer, intent(in) :: level
+
+          coord_to_key_level = ishft(coord_to_key_lastlevel(x, y, z),3*(level-nlev))
+
+        end function coord_to_key_level
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -121,23 +138,15 @@ module module_spacefilling
           implicit none
           integer*8, intent(in) :: key
           real*8, intent(out) :: x, y, z
-          integer*8 :: ix, iy, iz, tmp
+          integer*8 :: ix, iy, iz
           real*8 :: s
-
-          tmp = key
-          ! shift left until placeholder bit is in front
-          do while ((iand(tmp, iplace) .eq. 0) .and. (tmp .ne. 0))
-            tmp = ishft(tmp, 3)
-          end do
-          ! eliminate placeholder bit
-          tmp = iand(tmp, not(iplace))
 
           ! construct particle coordiantes
           select case (curve_type)
             case (0) ! Z-curve
-              call key_to_intcoord_morton(tmp, ix, iy, iz)
+              call key_to_intcoord_morton(key, ix, iy, iz)
             case (1) ! Hilbert curve (original pattern)
-              call key_to_intcoord_hilbert(tmp, ix, iy, iz)
+              call key_to_intcoord_hilbert(key, ix, iy, iz)
           end select
 
           s=boxsize/2**nlev       ! refinement length
@@ -146,8 +155,6 @@ module module_spacefilling
           x = (real(ix,kind(1._8)) + 0.5_8) * s + xmin
           y = (real(iy,kind(1._8)) + 0.5_8) * s + ymin
           z = (real(iz,kind(1._8)) + 0.5_8) * s + zmin
-
-          !write(*,'(2O30, 3G15.5)') key, coord_to_key(x, y, z), x, y, z
 
         end subroutine key_to_coord
 
@@ -164,15 +171,17 @@ module module_spacefilling
           integer*8, intent(in) :: ix, iy, iz
           integer*8 :: intcoord_to_key_morton
           integer :: i
+          integer*8 :: cval
 
-          !     local_key(j) = iplace + &
-          !          SUM( (/ (8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) ),i=0,nlev) /) )
-          intcoord_to_key_morton = iplace
+            ! set placeholder bit
+            intcoord_to_key_morton = 1
 
-          do i=0,nlev
-            intcoord_to_key_morton = intcoord_to_key_morton &
-                 + 8_8**i*(4_8*ibits( iz,i,1) + 2_8*ibits( iy,i,1 ) + 1_8*ibits( ix,i,1) )
-          end do
+            ! key generation
+            do i=nlev-1,0,-1
+               cval = 4_8*ibits( iz,i, 1_8 ) + 2_8*ibits( iy,i, 1_8 ) + 1_8*ibits( ix,i, 1_8 )
+               ! appending bit triple to key
+               intcoord_to_key_morton = ior(ishft(intcoord_to_key_morton, 3), cval)
+            end do
         end function intcoord_to_key_morton
 
 
@@ -180,26 +189,26 @@ module module_spacefilling
         !>
         !> (Morton-)Z-curve
         !> keys were constructed by interleaving coord bits and adding placeholder bit
-        !> input key must be adjusted to lowest level and may not contain a placeholder bit
+        !> input key must be right-adjusted and must contain a placeholder bit
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_intcoord_morton(key, ix, iy, iz)
           implicit none
           integer*8, intent(out) :: ix, iy, iz
           integer*8, intent(in) :: key
-          integer :: i
+          integer :: i, lev
+
+          lev = int(log(1._8*key)/log(8._8))
 
           ix = 0
           iy = 0
           iz = 0
 
-          do i=0,nlev
-            ix = ior(ix, ishft(ibits(key, 3*i + 0, 1), i))
-            iy = ior(iy, ishft(ibits(key, 3*i + 1, 1), i))
-            iz = ior(iz, ishft(ibits(key, 3*i + 2, 1), i))
+          do i=0,lev-1
+            ix = ior(ix, ishft(ibits(key, 3*i + 0, 1), nlev-lev+i))
+            iy = ior(iy, ishft(ibits(key, 3*i + 1, 1), nlev-lev+i))
+            iz = ior(iz, ishft(ibits(key, 3*i + 2, 1), nlev-lev+i))
           end do
-
-          !write(*,'(O24.24," ",O24.24,3(/,B24.24),/)') key, intcoord_to_key_morton(ix, iy, iz), ix, iy, iz
 
         end subroutine key_to_intcoord_morton
 
@@ -282,7 +291,7 @@ module module_spacefilling
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> inverse Hilbert mapping
-        !> input key must be adjusted to lowest level and may not contain a placeholder bit
+        !> input key must be right-adjusted and must contain a placeholder bit
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_intcoord_hilbert(key, ix, iy, iz)
@@ -290,46 +299,54 @@ module module_spacefilling
           integer*8, intent(out) :: ix, iy, iz
           integer*8, intent(in) :: key
 
-		  integer*8 :: change, horder
+		  integer*8 :: change, horder, cval
 		  integer*8 :: i
+		  integer :: lev
 
           integer*8, parameter :: C(0:7)    = [0,1,3,2,6,7,5,4] ! 3D - hilbert cell
           integer*8, parameter :: G(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G)) ! 3D - hilbert gene
           !integer*8, parameter :: G(0:7,0:1) = reshape([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],shape(G)) ! 3D - hilbert gene
 
+          lev = int(log(1._8*key)/log(8._8))
+
 		  iz = 0
 		  iy = 0
 		  ix = 0
 
-		  do i=0,nlev-1
+		  do i=0,lev-1
 		     horder = ibits(key,3*i,3)
+		     cval   = C(horder)
 
-             select case(G(horder,1))
-             case(5)
-                ix=iand(not(ix),2**(i)-1)
-                iz=iand(not(iz),2**(i)-1)
-             case(6)
-                iy=iand(not(iy),2**(i)-1)
-                iz=iand(not(iz),2**(i)-1)
-             end select
+             if (i>0) then
+               select case(G(horder,1))
+               case(5)
+                  ix=iand(not(ix),2_8**(i)-1)
+                  iz=iand(not(iz),2_8**(i)-1)
+               case(6)
+                  iy=iand(not(iy),2_8**(i)-1)
+                  iz=iand(not(iz),2_8**(i)-1)
+               end select
 
-             select case(G(horder,0))
-             case(5)
-                change=ix
-                ix=iz
-                iz=change
-             case(6)
-                change=iy
-                iy=iz
-                iz=change
-             end select
+               select case(G(horder,0))
+               case(5)
+                  change = ix
+                  ix     = iz
+                  iz     = change
+               case(6)
+                  change = iy
+                  iy     = iz
+                  iz     = change
+               end select
+             end if
 
-             iz=ior(ishft(ibits(C(horder),2,1),i),iz)
-             iy=ior(ishft(ibits(C(horder),1,1),i),iy)
-             ix=ior(ishft(ibits(C(horder),0,1),i),ix)
+             iz=ior(ishft(ibits(cval,2,1),i),iz)
+             iy=ior(ishft(ibits(cval,1,1),i),iy)
+             ix=ior(ishft(ibits(cval,0,1),i),ix)
 		  end do
 
-          !write(*,'(O24.24," ",O24.24,3(/,B24.24),/)') key, intcoord_to_key_hilbert(ix, iy, iz), ix, iy, iz
+          ix = ishft(ix, nlev-lev)
+          iy = ishft(iy, nlev-lev)
+          iz = ishft(iz, nlev-lev)
 
         end subroutine key_to_intcoord_hilbert
 
