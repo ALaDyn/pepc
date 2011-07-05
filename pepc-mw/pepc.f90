@@ -35,6 +35,7 @@ program pepc
   include 'mpif.h'
 
   logical, parameter :: treediags = .true.
+  integer :: vtk_step
 
   integer :: ierr, ifile, provided
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! `The process may be multi-threaded, but the application
@@ -131,12 +132,15 @@ program pepc
      ! output of tree diagnostics
      if (treediags) then
        if (itime == 1) then
-         call write_branches_to_vtk(itime, trun*unit_t0_in_fs,   VTK_STEP_FIRST)
-         call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, VTK_STEP_FIRST)
+         vtk_step = VTK_STEP_FIRST
+       else if (itime == nt) then
+         vtk_step = VTK_STEP_LAST
        else
-         call write_branches_to_vtk(itime, trun*unit_t0_in_fs,   VTK_STEP_NORMAL)
-         call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, VTK_STEP_NORMAL)
+         vtk_step = VTK_STEP_NORMAL
        endif
+
+       call write_branches_to_vtk(itime,   trun*unit_t0_in_fs, vtk_step)
+       call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, vtk_step)
      endif
 
      ! add any external forces (laser field etc)
@@ -184,11 +188,6 @@ program pepc
 
   ! final particle dump
   call write_particles(.true.)
-  ! output of tree diagnostics
-  if (treediags) then
-    call write_branches_to_vtk(itime, trun*unit_t0_in_fs, VTK_STEP_LAST)
-    call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, VTK_STEP_LAST)
-  endif
 
   ! deallocate array space for particles
   call cleanup(my_rank,n_cpu)
