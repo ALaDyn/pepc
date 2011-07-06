@@ -809,7 +809,7 @@ module tree_walk_communicator
       integer, intent(in) :: ipe_sender
       integer*8, dimension(8) :: sub_key
       integer*8 :: kchild, kparent(8), nxchild
-      integer :: node_addr, hashaddr, lchild, nchild, nodchild, bchild
+      integer :: node_addr, hashaddr, lchild, nchild, nodchild, bchild, ownerchild
       integer :: j, ic, ierr
 
       integer :: key2addr        ! Mapping function to get hash table address from key
@@ -823,10 +823,11 @@ module tree_walk_communicator
         bchild      = child_data(ic)%byte
         lchild      = child_data(ic)%leaves
         nxchild     = child_data(ic)%next
+        ownerchild  = child_data(ic)%owner
 
         if (walk_comm_debug) then
-          write(ipefile,'("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ", kchild=", O22)') &
-                         me, kparent(ic), ipe_sender, kchild
+          write(ipefile,'("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ",        owner=", I6, ", kchild=", O22)') &
+                         me, kparent(ic), ipe_sender, ownerchild, kchild
         end if
 
         if (lchild == 1 ) then
@@ -858,7 +859,7 @@ module tree_walk_communicator
         endif
 
         ! Insert new node into local #-table
-        call make_hashentry( kchild, nodchild, lchild, bchild, ipe_sender, hashaddr, ierr )
+        call make_hashentry( kchild, nodchild, lchild, bchild, ownerchild, hashaddr, ierr )
 
         select case (ierr)
           case (0)
