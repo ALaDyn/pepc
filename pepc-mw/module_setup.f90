@@ -74,17 +74,25 @@ module module_setup
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine rescale_coordinates_cuboid()
           implicit none
-          real*8 :: minc, maxc
+          include 'mpif.h'
+          real*8 :: minc(3), maxc(3), h(3)
+          integer :: ierr
 
-          minc = minval(x(1:np_local))
-          maxc = maxval(x(1:np_local))
-          x(1:np_local) = ((x(1:np_local) - minc)/(maxc-minc) - 0.5) * x_plasma
-          minc = minval(y(1:np_local))
-          maxc = maxval(y(1:np_local))
-          y(1:np_local) = ((y(1:np_local) - minc)/(maxc-minc) - 0.5) * y_plasma
-          minc = minval(z(1:np_local))
-          maxc = maxval(z(1:np_local))
-          z(1:np_local) = ((z(1:np_local) - minc)/(maxc-minc) - 0.5) * z_plasma
+          minc = [minval(x(1:np_local)), minval(y(1:np_local)), minval(z(1:np_local))]
+          maxc = [maxval(x(1:np_local)), maxval(y(1:np_local)), maxval(z(1:np_local))]
+
+          call MPI_ALLREDUCE(MPI_IN_PLACE, minc, 3, MPI_REAL8, MPI_MIN, MPI_COMM_PEPC, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, maxc, 3, MPI_REAL8, MPI_MAX, MPI_COMM_PEPC, ierr)
+
+          h = maxc - minc
+
+          where (h<=0.)
+            h = 1.
+          end where
+
+          x(1:np_local) = ((x(1:np_local) - minc(1))/h(1) - 0.5_8) * x_plasma
+          y(1:np_local) = ((y(1:np_local) - minc(2))/h(2) - 0.5_8) * y_plasma
+          z(1:np_local) = ((z(1:np_local) - minc(3))/h(3) - 0.5_8) * z_plasma
 
           plasma_centre =  (/ 0., 0., 0./) ! Centre of plasma
         end subroutine
@@ -745,60 +753,59 @@ module module_setup
 		!>
 		!> portable random number generator, see numerical recipes
 		!> check for the random numbers:
-		!> the first numbers should be 0.2853809, 0.2533582 and 0.2533582
+		!> the first numbers should be 0.2853809, 0.2533582 and 0.0934685
 		!> the parameter iseed is optional
 		!>
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		function par_rand(iseed)
 		  implicit none
-
-		  integer :: idum, idum2, iy, j, k
-		  integer :: iv(32)
-
 		  real :: par_rand
 		  integer, intent(in), optional :: iseed
 
-		  integer :: IM1, IM2, IMM1, IA1, IA2, IQ1, IQ2, IR1, IR2, NTAB, NDIV
-		  real    :: AM, RNMX
+		  integer, parameter :: IM1  = 2147483563
+		  integer, parameter :: IM2  = 2147483399
+		  real,    parameter :: AM   = 1.0/IM1
+		  integer, parameter :: IMM1 = IM1-1
+		  integer, parameter :: IA1  = 40014
+		  integer, parameter :: IA2  = 40692
+		  integer, parameter :: IQ1  = 53668
+		  integer, parameter :: IQ2  = 52774
+		  integer, parameter :: IR1  = 12211
+		  integer, parameter :: IR2  = 3791
+		  integer, parameter :: NTAB = 32
+		  integer, parameter :: NDIV = 1+IMM1/NTAB
+                  real,    parameter :: eps_ = 1.2e-7 ! epsilon(eps_)
+		  real,    parameter :: RNMX = 1.0 - eps_
 
-		  save
+                  integer, volatile :: j, k
+                  integer, volatile, save :: idum  = -1
+                  integer, volatile, save :: idum2 =  123456789
+                  integer, volatile, save :: iy    =  0
+		  integer, volatile, save :: iv(NTAB)
 
-		  data idum, idum2 /-1, 123456789/
 
-		  IM1 = 2147483563
-		  IM2 = 2147483399
-		  AM  = 1.0/IM1
-		  IMM1 = IM1-1
-		  IA1 = 40014
-		  IA2 = 40692
-		  IQ1 = 53668
-		  IQ2 = 52774
-		  IR1 = 12211
-		  IR2 = 3791
-		  NTAB = 32
-		  NDIV = 1+IMM1/NTAB
-		  RNMX = 1.0 - 1.2e-7
+                  if (idum <=0 .or. present(iseed)) then
+                    if (present(iseed)) then
+   	              idum = iseed
+                    else
+                      if (-idum < 1) then
+  	                idum = 1
+                      else
+                        idum = -idum
+                      endif
+                    endif
+		    
+                    idum2 = idum
 
-		  if (idum < 0) then
+		    do j = NTAB+7,0,-1
+		      k = idum/IQ1
+		      idum = IA1 * (idum-k*IQ1) - k*IR1
+		      if (idum < 0 ) idum = idum + IM1
 
-		     if (present(iseed)) then
-		       idum = iseed
-		     else
-		       idum = 1
-		     endif
+		      if (j<NTAB) iv(j+1) = idum
 
-		     idum2 = idum
-
-		     do j = NTAB+7,0,-1
-		        k = idum/IQ1
-		        idum = IA1 * (idum-k*IQ1) - k*IR1
-		        if (idum < 0 ) idum = idum + IM1
-
-		        if (j<NTAB) iv(j+1) = idum
-
-		     end do
-		     iy = iv(1)
-
+		    end do
+		    iy = iv(1)
 		  end if
 
 		  k = idum/IQ1
