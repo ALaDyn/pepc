@@ -654,7 +654,7 @@ module tree_walk_communicator
         call rwlock_unlock(RWLOCK_REQUEST_QUEUE, "post_request")
 
         ! since there is at least one active communication request, we can wakeup the comm thread
-        call retval(pthreads_conds_signal(PTHREAD_COND_COMMBLOCK), "post_request() - pthreads_cond_signal()")
+        !call retval(pthreads_conds_signal(PTHREAD_COND_COMMBLOCK), "post_request() - pthreads_cond_signal()")
 
     end subroutine post_request
 
