@@ -253,10 +253,12 @@ module module_pepcfields
 
 		  call timer_stop(t_fields_stats)
 
-		  write(cfile,'(a,i6.6,a)') "load_", me, ".dat"
-		  open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
-		  write(60,'(i5,2f20.10, i12)') itime,interactions_local, mac_evaluations_local,npp
-		  close(60)
+                  if( db_level > 0) then
+                     write(cfile,'(a,i6.6,a)') "load_", me, ".dat"
+                     open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+                     write(60,'(i5,2f20.10, i12)') itime,interactions_local, mac_evaluations_local,npp
+                     close(60)
+                  end if
 
           ! deallocate particle and result arrays
           call timer_start(t_deallocate)

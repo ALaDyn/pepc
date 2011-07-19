@@ -265,6 +265,12 @@ subroutine pepc_setup()
      write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
   end if
 
+  if (db_level > 0) then
+     write(cfile,'(a,i6.6,a)') "diag_", my_rank, ".dat"
+     open(20, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+  endif
+
+
 end subroutine pepc_setup
 
 

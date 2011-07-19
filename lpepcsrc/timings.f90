@@ -234,8 +234,10 @@ module timings
       integer, intent(in) :: itime !< current timestep
       character(30) :: cfile
 
-      write(cfile,'(a,i6.6,a)') "timing_", me, ".dat"
-      call timings_ToFile(itime, tim, cfile)
+      if ( db_level > 0 ) then
+         write(cfile,'(a,i6.6,a)') "timing_", me, ".dat"
+         call timings_ToFile(itime, tim, cfile)
+      end if
 
     end subroutine timings_LocalOutput
 

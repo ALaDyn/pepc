@@ -22,11 +22,6 @@ module files
          open(70,file='domains.dat')
      endif
 
-     if (db_level > 0) then
-       write(cfile,'(a,i6.6,a)') "diag_", my_rank, ".dat"
-       open(20, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
-     endif
-
     end subroutine openfiles
 
 
