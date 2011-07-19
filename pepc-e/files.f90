@@ -14,8 +14,6 @@ module files
     subroutine openfiles
       use physvars
 
-      character(30) :: cfile
-
       if (my_rank == 0) then
          !  master diagnostics output
          open(15,file='run.out')

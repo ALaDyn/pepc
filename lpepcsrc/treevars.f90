@@ -116,6 +116,9 @@ module treevars
   logical :: walk_summary=.false.
   logical :: force_debug=.false.
   logical :: dump_tree=.false.
+  logical :: timing_file_debug=.false.
+  logical :: load_file_debug=.false.
+  
 
   !  particle data - dimensions filled in when #PEs known
 

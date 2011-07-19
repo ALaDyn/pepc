@@ -253,7 +253,7 @@ module module_pepcfields
 
 		  call timer_stop(t_fields_stats)
 
-                  if( db_level > 0) then
+                  if( load_file_debug ) then
                      write(cfile,'(a,i6.6,a)') "load_", me, ".dat"
                      open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
                      write(60,'(i5,2f20.10, i12)') itime,interactions_local, mac_evaluations_local,npp

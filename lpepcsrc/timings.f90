@@ -230,11 +230,12 @@ module timings
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine timings_LocalOutput(itime)
       use treevars
+
       implicit none
       integer, intent(in) :: itime !< current timestep
       character(30) :: cfile
 
-      if ( db_level > 0 ) then
+      if ( timing_file_debug ) then
          write(cfile,'(a,i6.6,a)') "timing_", me, ".dat"
          call timings_ToFile(itime, tim, cfile)
       end if

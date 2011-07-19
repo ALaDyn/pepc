@@ -28,6 +28,7 @@ subroutine pepc_setup()
 
   integer*4 IARGC
 
+  character(30) :: cfile
 
 
   namelist /pepcdata/ nep, nip, np_mult, ne, ni, num_walk_threads, max_particles_per_thread, &
@@ -265,7 +266,7 @@ subroutine pepc_setup()
      write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
   end if
 
-  if (db_level > 0) then
+  if (db_level > 4) then
      write(cfile,'(a,i6.6,a)') "diag_", my_rank, ".dat"
      open(20, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
   endif

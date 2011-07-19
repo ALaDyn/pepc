@@ -25,6 +25,9 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
   dump_tree=.false.
   periodic_debug=.false.
 
+  load_file_debug=.false.
+  timing_file_debug=.false.
+
 
   if (db_level==1) then
 !      domain_debug = .true.
@@ -65,6 +68,9 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
      force_debug=.true.
      dump_tree=.true.
      periodic_debug=.true.
+     load_file_debug=.true.
+     timing_file_debug=.true.
+
   else
     ! all off by default
   endif
