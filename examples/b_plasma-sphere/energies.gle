@@ -1,0 +1,37 @@
+! new page
+size 19 14
+set lwidth 0.1 font psh
+
+
+
+!  Data format
+!    t	Utot	Upot	Ukin	Ukine	Ukini	Utherme	  Uthermi  Ufield
+!	 d1	 d2	 d3	  d4	  d5	  d6	   d7	   d8
+
+set lwidth 0.08
+set hei 0.5
+begin translate   2.  2.
+begin graph
+fullsize
+	size 16 10
+	nobox
+	title "Energies"
+	ytitle " U" hei .7
+	xtitle " Time  " hei .7
+	xlabels hei 0.7
+	ylabels hei 0.7
+!	xaxis min 5.e-3 max 1 nticks 5
+!	yaxis  min 0. max 5 nticks 5
+        xticks length .12
+        yticks length .12
+
+	data energy.dat
+	key position tr
+	d1 lstyle 1 color blue key "U_{pot}"
+	d3 lstyle 1 color red key "U_{ekin}"
+	d4 lstyle 1 color green key "U_{ikin}"
+	d6 lstyle 1 color black key "U_{tot}"
+end graph
+
+end translate
+

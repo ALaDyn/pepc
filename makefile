@@ -26,6 +26,10 @@ pepcs:  pepcbasics
 	@echo "============  Making Frontend PEPC-S (ScaFaCoS-library version + minimal frontend)  ============="
 	cd pepc-s && $(MAKE) $(MFLAGS)
 
+pepcb:  pepcbasics
+	@echo "============  Making Frontend PEPC-B (Laser/beam-plasma with magnetic fields)  ============="
+	cd pepc-b && $(MAKE) $(MFLAGS)
+
 pepcbasics:
 	@echo "============  Making PEPC Sorting Library  ============="
 	cd sl_pepc && $(MAKE) $(MFLAGS)
@@ -38,8 +42,9 @@ clean: clean-doc
 	cd sl_pepc  && $(MAKE) $(MFLAGS) clean
 	cd pthreads && $(MAKE) $(MFLAGS) clean
 	cd lpepcsrc && $(MAKE) $(MFLAGS) clean
-	cd pepc-e   && $(MAKE) $(MFLAGS) clean
 	cd pepc-s   && $(MAKE) $(MFLAGS) clean
+	cd pepc-e   && $(MAKE) $(MFLAGS) clean
+	cd pepc-b   && $(MAKE) $(MFLAGS) clean
 	cd pepc-mw  && $(MAKE) $(MFLAGS) clean
 	cd pepc-mini  && $(MAKE) $(MFLAGS) clean
 
