@@ -8,8 +8,8 @@
 # @ notification = complete
 # @ notify_user = p.gibbon@fz-juelich.de
 # @ job_type = bluegene
-# @ bg_size = 256
+# @ bg_size = 32 
 # @ queue
-PEPC=$HOME/pepc/bin/pepcb.jugene
-cp eqm.h run.h
-mpirun -exe $PEPC -mode VN -verbose 1 
+PEPC=../../pepcb
+cp sphere.h run.h
+mpirun -env BG_APPTHREADDEPTH=2 -label -exe $PEPC -mode SMP -args "./sphere.h"

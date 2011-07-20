@@ -78,10 +78,11 @@ tree_utils.mod:
 	ln -sf ../lpepcsrc/tree_utils.mod ./tree_utils.mod
 module_fmm_framework.mod:
 	ln -sf ../lpepcsrc/module_fmm_framework.mod ./module_fmm_framework.mod
+tree_walk_utils.mod:
+	ln -sf ../lpepcsrc/tree_walk_utils.mod ./tree_walk_utils.mod
 module_pepcfields.mod:
 	ln -sf ../lpepcsrc/module_pepcfields.mod ./module_pepcfields.mod
-#tree_walk_utils.mod:
-#	ln -sf ../lpepcsrc/tree_walk_utils.mod ./tree_walk_utils.mod
+
 timings.mod:
 	ln -sf ../lpepcsrc/timings.mod ./timings.mod
 #	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/timings.mod $(PREFIX)/pepc-mw/timings.mod

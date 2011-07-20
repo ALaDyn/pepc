@@ -45,6 +45,7 @@ subroutine param_dump
 
   use module_physvars
   use module_utilities
+!  use tree_walk_utils
   implicit none
   integer :: ifile
 

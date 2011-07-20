@@ -12,6 +12,7 @@
 
 subroutine setup
   use module_fmm_framework
+!  use tree_walk_utils
   use module_physvars
 
   implicit none
@@ -20,6 +21,8 @@ subroutine setup
 
   character(50) :: parameterfile
   integer :: read_param_file
+
+  integer*4 IARGC
 
 !  include 'namelist.h' 
   !  Default input set

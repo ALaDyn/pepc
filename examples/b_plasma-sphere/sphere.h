@@ -15,10 +15,11 @@
 ! choose_build=0
  curve_type=0
  walk_scheme = 0 
+ num_walk_threads =2
 
 ! particles
-  ne = 3500
-  ni = 3500 
+  ne = 35000
+  ni = 35000 
 
 ! set up plasma target
  plasma_config = 1  

@@ -1,5 +1,7 @@
 
 module module_physvars
+  use tree_walk_utils
+  implicit none
 
   real, parameter :: pi=3.141592654
 
@@ -259,7 +261,8 @@ module module_physvars
        constrain_proof, len_tripod, struct_step, uthresh, domain_cut, glue_radius, &
        debug_rank, np_mult, fetch_mult,nbuf_max, te_perturb, tpert, kpert, &
        q_factor, netcdf, launch, foam_geom, force_tolerance, dynamic_memalloc, &
-       xh_start, xh_end, nxh, xgav_start, xgav_end, ngav, xgav_pos
+       xh_start, xh_end, nxh, xgav_start, xgav_end, ngav, xgav_pos, &
+       num_walk_threads
 !       t1, t2, t3, periodicity, do_extrinsic_correction              ! periodicity config
  
 end module module_physvars
