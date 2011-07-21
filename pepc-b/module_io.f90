@@ -94,7 +94,7 @@ module module_io
 
 		  !  stdout for PE my_rank
 		  if (debug_level > 0) then
-		    write(cfile,'(a,i6.6,a)') "diag_", my_rank, ".dat"
+		    write(cfile,'(a,i6.6,a)') "log/diag_", my_rank, ".dat"
 		    open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
 		  endif
 
