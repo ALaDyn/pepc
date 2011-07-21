@@ -8,7 +8,7 @@ default: pepce
 
 benchmark: pepce
 
-all: pepce pepcmini pepcmw pepcs
+all: pepce pepcmini pepcmw pepcs pepcb
 
 pepcmw: pepcbasics
 	@echo "============  Making Frontend PEPC-MW (Mathias Winkel version)  ============="
