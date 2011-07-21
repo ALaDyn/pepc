@@ -1286,9 +1286,7 @@ module tree_walk_utils
 
       if (same_core_as_communicator) comm_on_shared_processor = .false.
 
-     ! walk_worker_thread = c_null_ptr ! due to some strange reasons, ifort produces a sigsegv here.
-                                        ! since the return value is not needed, we just do not set it
-                                        ! to circumvent the problem
+      walk_worker_thread = c_null_ptr
 
       my_threaddata%runtime_seconds = MPI_WTIME() - my_threaddata%runtime_seconds
 
