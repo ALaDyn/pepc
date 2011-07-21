@@ -94,7 +94,14 @@ WARN_LOGFILE           = ./doxygen.warnings
 # configuration options related to the input files
 #---------------------------------------------------------------------------
 INPUT                  = ./lpepcsrc \
-                         ./pepc-e
+                         ./pepc-e   \
+                         ./pepc-b   \
+                         ./pepc-generic   \
+                         ./pepc-mini   \
+                         ./pepc-mw   \
+                         ./pepc-s   \
+                         ./sl-pepc   \
+                         ./pthreads
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.c \
                          *.cc \
