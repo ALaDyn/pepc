@@ -777,7 +777,7 @@ module module_setup
                   real,    parameter :: eps_ = 1.2e-7 ! epsilon(eps_)
 		  real,    parameter :: RNMX = 1.0 - eps_
 
-                  integer, volatile :: j, k
+                  integer :: j, k
                   integer, volatile, save :: idum  = -1
                   integer, volatile, save :: idum2 =  123456789
                   integer, volatile, save :: iy    =  0
