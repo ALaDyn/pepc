@@ -16,6 +16,11 @@ do
   rm -f ${FILEOUT}
 done
 
+firststats=`ls stats.* | head -n 1`
+
+NUMPE=`grep "# procs, walk_threads, max_particles_per_thread:" stats.000000 | tr -s ' ' | cut -d ' ' -f 6`
+
+echo "Found data for ${NUMPE} processors"
 
 for FILENAME in `ls stats.??????`
 do
@@ -24,7 +29,7 @@ do
   for FIELD in ${FIELDS}
   do
     FILEOUT="extr.stats.FIELD${FIELD}.dat"
-    tail -n 1024 ${FILENAME} | tr -s ' ' | cut -d ' ' -f ${FIELD} | tr '\n' ' ' >> ${FILEOUT}
+    tail -n ${NUMPE} ${FILENAME} | tr -s ' ' | cut -d ' ' -f ${FIELD} | tr '\n' ' ' >> ${FILEOUT}
     echo "" >> ${FILEOUT}
   done
 done
