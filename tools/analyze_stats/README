@@ -1,0 +1,12 @@
+Scripts for evaluation per-rank workload and communication data from stats.XXXXXX over time.
+
+
+Usage:
+
+Change to the directory, that contains the stats.XXXXXX files.
+Call extract_data.sh. This will create several extr.stats.XX.dat files from the 
+data inside the stats.XXXXXX.
+Call plot_heat_maps.py. This will create several stats.YYYYY.pdf files with the plots.
+
+The python script can also be called on your local workstation. - Just copy the
+extr.stats.XX.dat ot a local directory and run the python script from there.
