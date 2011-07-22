@@ -147,6 +147,7 @@ module module_vtk
         write(tmp,'(I6.6)') vtk%my_rank
         fn = subfolder//trim(vtk%filename)//"."//tmp//".vtu"
 
+        call system("mkdir -p " // trim(subfolder))
         open(vtk%filehandle, file=fn)
 
         if (vtk%my_rank == 0) then
@@ -198,7 +199,7 @@ module module_vtk
 
         write(vtk%filehandle, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,""">")') &
                  name, number_of_components, type, trim(format)
-        write(vtk%filehandle_par, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,"""/>")') &
+        if (vtk%my_rank == 0)  write(vtk%filehandle_par, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,"""/>")') &
                  name, number_of_components, type, trim(format)
      end subroutine
 
@@ -476,8 +477,10 @@ module module_vtk
         write(vtk%filehandle, '("<UnstructuredGrid GhostLevel=""0"">")')
         write(vtk%filehandle, '("<Piece NumberOfPoints=""", I0, """ NumberOfCells=""", I0, """>")') npart, ncell
 
-        write(vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
-        write(vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
+        if (vtk%my_rank == 0) then
+          write(vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+          write(vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
+        endif
      end subroutine vtkfile_unstructured_grid_write_headers
 
 
@@ -507,7 +510,7 @@ module module_vtk
           write(vtk%filehandle, '("</UnstructuredGrid>")')
           write(vtk%filehandle, '("</VTKFile>")')
 
-          if (vtk%my_rank ==0) then
+          if (vtk%my_rank == 0) then
             write(vtk%filehandle_visit, '(/)')
 
             do i = 0,vtk%num_pe-1
@@ -530,7 +533,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("<Points>")')
-        write(vtk%filehandle_par, '("<PPoints>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("<PPoints>")')
      end subroutine vtkfile_unstructured_grid_startpoints
 
 
@@ -539,7 +542,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("</Points>")')
-        write(vtk%filehandle_par, '("</PPoints>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PPoints>")')
      end subroutine vtkfile_unstructured_grid_finishpoints
 
 
@@ -548,7 +551,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("<PointData>")')
-        write(vtk%filehandle_par, '("<PPointData>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("<PPointData>")')
      end subroutine vtkfile_unstructured_grid_startpointdata
 
 
@@ -557,7 +560,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("</PointData>")')
-        write(vtk%filehandle_par, '("</PPointData>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PPointData>")')
      end subroutine vtkfile_unstructured_grid_finishpointdata
 
 
@@ -567,7 +570,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("<Cells>")')
-        write(vtk%filehandle_par, '("<PCells>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("<PCells>")')
      end subroutine vtkfile_unstructured_grid_startcells
 
 
@@ -576,7 +579,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("</Cells>")')
-        write(vtk%filehandle_par, '("</PCells>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PCells>")')
      end subroutine vtkfile_unstructured_grid_finishcells
 
 
@@ -585,7 +588,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("<CellData>")')
-        write(vtk%filehandle_par, '("<PCellData>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("<PCellData>")')
      end subroutine vtkfile_unstructured_grid_startcelldata
 
 
@@ -594,7 +597,7 @@ module module_vtk
         class(vtkfile_unstructured_grid) :: vtk
 
         write(vtk%filehandle, '("</CellData>")')
-        write(vtk%filehandle_par, '("</PCellData>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PCellData>")')
      end subroutine vtkfile_unstructured_grid_finishcelldata
 
 end module module_vtk

@@ -68,6 +68,7 @@ module module_checkpoint
             type(t_dumpparticle), intent(in), dimension(np_local) :: dp
             character(50) :: filename
 
+            call system("mkdir -p " // trim(directory))
             write(filename,'(a,"particle_",i6.6,"_",i6.6,".dat")') trim(directory), itime, my_rank
             if(my_rank == 0) write(*,*) "write particles in text mode to file ", filename
             open(filehandle, file=trim(filename), STATUS='REPLACE')
@@ -90,6 +91,7 @@ module module_checkpoint
             type(t_dumpparticle), intent(in), dimension(np_local) :: dp
             character(50) :: filename
 
+            call system("mkdir -p " // trim(directory))
             write(filename,'(a,"particle_",i6.6,"_",i6.6,".bin")') trim(directory), itime, my_rank
             if(my_rank == 0) write(*,*) "write particles in binary mode to file ", filename
             open(filehandle, file=trim(filename), STATUS='REPLACE', ACCESS="STREAM")
@@ -157,6 +159,7 @@ module module_checkpoint
             integer :: fh, ierr, status(MPI_STATUS_SIZE)
             integer(KIND=MPI_OFFSET_KIND) :: disp
 
+            call system("mkdir -p " // trim(directory))
             write(filename,'(a,"particle_",i6.6,".mpi")') trim(directory), itime
             if(my_rank == 0) write(*,*) "write particles using MPI-IO to file ", filename
 
