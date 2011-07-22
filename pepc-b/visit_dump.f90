@@ -51,6 +51,8 @@ subroutine visit_dump(timestamp)
   end do
   cvis(1:1) = achar(icall/10**5 + 48)
 
+  call system("mkdir -p " // cme)
+
   cfile=cme//"/wf_info."//cdump
   open (60,file=cfile)    
   write(60,'(a9,i8/4(a9,f12.5/),4(a9,i8/),a9,f8.3)')  &

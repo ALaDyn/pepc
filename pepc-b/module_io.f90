@@ -86,15 +86,13 @@ module module_io
 		     open(file_laser_dat,   file='laser.dat')       ! laser parameters
 		     open(file_energy_dat,  file='energy.dat')      ! energies
 
-             open(file_memory_dat,file='memory.dat')
-             write(file_memory_dat,*) "# ID               bytes                  KB                  MB           location"
-
 		     write(*,*) 'debug level: ',debug_level,' idump',idump
 		  endif
 
 		  !  stdout for PE my_rank
 		  if (debug_level > 0) then
-		    write(cfile,'(a,i6.6,a)') "log/diag_", my_rank, ".dat"
+            call system("mkdir -p " // "diag")
+		    write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
 		    open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
 		  endif
 
@@ -749,6 +747,7 @@ subroutine dump(timestamp)
   cdump(1:1) = achar(timestamp/10**5 + 48)
 
 !  cfile="data/pe"//csubme//"/parts_info."//cdump(1:6)
+  call system("mkdir -p " // "dumps")
   cfile="dumps/info_p"//csubme//"."//cdump(1:6)
 
   open (60,file=cfile)    

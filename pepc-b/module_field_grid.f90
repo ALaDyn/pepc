@@ -529,7 +529,7 @@ subroutine field_lineout(timestamp)
 ! Write out to file
 
   if (my_rank == 0) then
-
+     call system("mkdir -p" // "fields")
      cfile = "fields/lineout."//cdump
      open (60,file=cfile)
      write(60,'(3(a12))') '!   x   ','Ex','Phi'
@@ -737,8 +737,9 @@ subroutine sum_radial(timestamp)
 
   if (my_rank == 0) then
      write(*,*) 'number density integrals: ',nelecs, nions
+     call system("mkdir -p " // "fields")
      cfile = "fields/radial."//cdump
-     open (60,file=cfile)
+     open (60,file=trim(cfile))
      write(60,'(9(a12))') '!   r      ',' r/r0   ','ne    ','ni   ','rhoe   ','rhoi   ','ve   ','vi   ','er'
      write(60,'((10(1pe12.4)))') &
           (i*dr, i*dr, ge_glob(i)/max(1,ne), gi_glob(i)/max(1,ni), max(ne_glob(i),1.e-10), max(ni_glob(i),1.e-10), &

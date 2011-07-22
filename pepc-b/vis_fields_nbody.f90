@@ -330,6 +330,7 @@ subroutine vis_fields_nbody(timestamp)
 
 ! TODO : Put this in dump_fields
      return
+     call system("mkdir -p " // fields)
      cfile = "fields/tslice."//cdump
      open (62,file=cfile)
 
