@@ -19,7 +19,8 @@ SOURCES.f90 =   module_units.f90 physvars.f90 module_io.f90 module_laser.f90 mod
 	 	module_acf.f90 sum_radial.f90 module_setup.f90 \
 	 	module_diagnostics.f90 module_fields.f90 module_icosahedron.f90
 SOURCES.GENERIC.f90 = module_vtk.f90 module_base64.f90 module_checkpoint.f90 \
-                benchmarking.f90 module_velocity_setup.f90 module_treediags.f90
+                benchmarking.f90 module_velocity_setup.f90 module_treediags.f90 \
+                module_vtk_helpers.f90
 # -------------------------------------------------------------------------------------------
 
 # Names of application object files derived from sources

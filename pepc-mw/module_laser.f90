@@ -1,6 +1,6 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
-!>  Encapsulates anything that is concenred with laser setup and laser-particle interaction
+!>  Encapsulates anything that is concerned with laser setup and laser-particle interaction
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_laser
@@ -71,6 +71,7 @@ module module_laser
       public setup_laser
       public laser
       public force_laser
+      public force_laser_at
       public laser_hist
       public emplane
       public empond
@@ -255,33 +256,66 @@ module module_laser
 		  use physvars
 		  implicit none
 		  include 'mpif.h'
+          real*8 :: E_pon(3), B_em(3), Phipon
 
 		  integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
 		  integer :: p
-		  real*8 :: dc(3)  ! positions relative to centre of plasma centre
-		  real*8 :: uxd ! x-momentum
-		  real*8 :: df(3)  ! position relative to laser focus
-		  real*8 :: ez_em, az_em, rt
-		  real*8 :: E_pon(3), B_em(3), Phipon
-
-		  dxh = (xh_end-xh_start)/nxh  ! HH grid spacing
 
 		  if (itime>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
 
 		  ! Include force from laser/external field on electrons - ES scheme
 	      do p = p_start, p_finish
+	            call force_laser_at(x(p), y(p), z(p), ux(p), E_pon, B_em, Phipon)
 
-             df = [ x(p), y(p), z(p) ] - focus
-             dc = [ x(p), y(p), z(p) ] - plasma_centre
+                !  ions assumed not to feel laser, so zero fields
+                if (q(p) > 0 .and. beam_config >= 3 .and. beam_config <=7) then
+                  E_pon = [ 0., 0., 0. ]
+                  B_em  = [ 0., 0., 0. ]
+                endif
+
+                fpon_max = max(fpon_max, abs(E_pon(1)))
+                ! Add external fields to new particle field
+                Pot(p)=Pot(p) + Phipon
+                Ex(p) = Ex(p) + E_pon(1)
+                Ey(p) = Ey(p) + E_pon(2)
+                Ez(p) = Ez(p) + E_pon(3)
+                Bx(p) = Bx(p) + B_em(1)
+                By(p) = By(p) + B_em(2)
+                Bz(p) = Bz(p) + B_em(3)
+
+          end do
+
+         end subroutine force_laser
+
+
+         subroutine force_laser_at(x, y, z, ux, E_pon, B_em, Phipon)
+           use physvars, only : plasma_centre, zl
+           implicit none
+            real*8, intent(out) :: E_pon(3), B_em(3), Phipon
+            real*8, intent(in) :: x, y, z, ux
+
+            real*8 :: dc(3)  ! positions relative to centre of plasma centre
+            real*8 :: uxd ! x-momentum
+            real*8 :: df(3)  ! position relative to laser focus
+            real*8 :: ez_em, az_em, rt
+
+             dxh = (xh_end-xh_start)/nxh  ! HH grid spacing
+
+             df = [ x, y, z ] - focus
+             dc = [ x, y, z ] - plasma_centre
              rt = sqrt(dc(1)**2+dc(2)**2)
 
 		     laser_model: select case(beam_config_in)
 
 		        case(03)  ! Uniform sinusoid in x (s-pol)
-		           E_pon = [ m(p)*vosc*omega*sin(omega*tlaser), 0._8, 0._8 ]
+		           E_pon = [ vosc*omega*sin(omega*tlaser), 0., 0. ]
                    B_em  = [ 0., 0., 0.]
 
-		        case(23)  ! Uniform sinusoid in z (s-pol)
+                case(13)  ! Uniform sinusoid in y (s-pol)
+                   E_pon = [ 0., vosc*omega*sin(omega*tlaser), 0. ]
+                   B_em  = [ 0., 0., 0.]
+
+                case(23)  ! Uniform sinusoid in z (s-pol)
                    E_pon = [ 0., 0., vosc*omega*sin(omega*tlaser) ]
                    B_em  = [ 0., 0., 0.]
 
@@ -311,8 +345,8 @@ module module_laser
 		           B_em(3)    = 0.
 
 		        case(44,54)  ! fpond derived from Az_helm; both linear & sin2 pulse forms
-		           df(1) = x(p)
-		           uxd  = ux(p)
+		           df(1) = x
+		           uxd  = ux
 		           call fpond_helm( tlaser, tpulse,sigma,vosc,omega, &
 		                df(1), df(2), df(3), uxd, Az_helm, nxh, xh_start, xh_end, dxh, focus(1), &
 		                E_pon(1), E_pon(2), E_pon(3), Phipon)
@@ -320,8 +354,8 @@ module module_laser
                    B_em  = [ 0., 0., 0.]
 
 		        case(64)  ! fpond derived from Az_helm, c-pol light
-		           df(1) = x(p)
-		           uxd  = ux(p)
+		           df(1) = x
+		           uxd  = ux
 		           call fpond_helmc( tlaser, tpulse,sigma,vosc,omega, &
 		                df(1), df(2), df(3), uxd,Az_helm,nxh,xh_start, xh_end, dxh, focus(1), &
 		                E_pon(1), E_pon(2), E_pon(3), Phipon)
@@ -383,24 +417,7 @@ module module_laser
 
 		        end select laser_model
 
-                !  ions assumed not to feel laser, so zero fields
-                if (q(p) > 0 .and. beam_config >= 3 .and. beam_config <=7) then
-                  E_pon = [ 0., 0., 0. ]
-                  B_em  = [ 0., 0., 0. ]
-                endif
-
-                fpon_max = max(fpon_max, abs(E_pon(1)))
-  		        ! Add external fields to new particle field
-		        Ex(p) = Ex(p) + E_pon(1)
-		        Ey(p) = Ey(p) + E_pon(2)
-		        Ez(p) = Ez(p) + E_pon(3)
-		        Bx(p) = Bx(p) + B_em(1)
-		        By(p) = By(p) + B_em(2)
-		        Bz(p) = Bz(p) + B_em(3)
-
-		  end do
-
-		end subroutine force_laser
+		end subroutine force_laser_at
 
 
 

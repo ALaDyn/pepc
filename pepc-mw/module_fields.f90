@@ -60,6 +60,10 @@ module module_fields
         mincoord = mincoord - deltathresh
         delta = (maxcoord - mincoord)/(field_dump_ncells-1)
 
+        call field_dump_laser()
+
+        return
+
         if (my_rank == 0) then
           write(*,*) "DUMPING VTK FILE"
           write(filename,'("field_",i8.8,".vtk")') itime
@@ -266,10 +270,66 @@ module module_fields
 
 
 
-      subroutine field_calc_laser
+      subroutine field_dump_laser
+        use module_laser
+        use module_units
+        use module_vtk_helpers
+        use module_vtk
+        use physvars, only : itime, nt, trun
         implicit none
+        real*8, dimension(:,:,:,:), allocatable :: efield
+        real*8, dimension(:,:,:), allocatable :: pot
+        real*8, allocatable, dimension(:) :: xcoords, ycoords, zcoords
+        real*8 :: E_pon(3), B_em(3), Phi_pon
+        integer :: i, j, k, vtk_step
 
-      end subroutine
+        allocate(efield(field_dump_ncells(1),field_dump_ncells(2),field_dump_ncells(3), 3))
+        allocate(pot(field_dump_ncells(1),field_dump_ncells(2),field_dump_ncells(3)))
+        allocate(xcoords(field_dump_ncells(1)))
+        allocate(ycoords(field_dump_ncells(2)))
+        allocate(zcoords(field_dump_ncells(3)))
+
+        do i=1,field_dump_ncells(1)
+          xcoords(i) = (i-1)*delta(1) + mincoord(1)
+        end do
+
+        do j=1,field_dump_ncells(2)
+          ycoords(j) = (j-1)*delta(2) + mincoord(2)
+        end do
+
+        do k=1,field_dump_ncells(3)
+          zcoords(k) = (k-1)*delta(3) + mincoord(3)
+        end do
+
+        do k=1,field_dump_ncells(3)
+          do j=1,field_dump_ncells(2)
+            do i=1,field_dump_ncells(1)
+              call force_laser_at(xcoords(i), ycoords(j), zcoords(k), 0._8, E_pon, B_em, Phi_pon)
+              efield(i, j, k, 1:3) = E_pon
+                 pot(i, j, k)      = Phi_pon
+            end do
+          end do
+        end do
+
+       if (itime == 1) then
+         vtk_step = VTK_STEP_FIRST
+       else if (itime == nt) then
+         vtk_step = VTK_STEP_LAST
+       else
+         vtk_step = VTK_STEP_NORMAL
+       endif
+
+       call vtk_field_on_grid("laser", itime, trun*unit_t0_in_fs, vtk_step, &
+                    field_dump_ncells(1), field_dump_ncells(2), field_dump_ncells(3), &
+                    xcoords, ycoords, zcoords, pot, "phipon", efield, "epon")
+
+       deallocate(efield)
+       deallocate(pot)
+       deallocate(xcoords)
+       deallocate(ycoords)
+       deallocate(zcoords)
+
+     end subroutine
 
 
 
