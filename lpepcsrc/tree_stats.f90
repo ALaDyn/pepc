@@ -19,7 +19,6 @@ subroutine tree_stats(timestamp)
   integer :: i,ierr, timestamp
   integer, dimension(num_pe) :: particles, fetches, ships, total_keys, tot_nleaf, tot_ntwig
   real*8, dimension(num_pe) ::  num_interactions, num_mac_evaluations  ! Load balance arrays
-  character*6 :: cdump
   character*40 :: cfile
   integer :: max_nbranch,min_nbranch, gmax_leaves, gmax_twigs, total_part
   real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, max_mac_evaluations
@@ -72,15 +71,10 @@ subroutine tree_stats(timestamp)
   total_part = sum(particles)
 
   if (me.eq.0) then
-    ! get filename suffix from dump counter
-    do i=0,4
-       cdump(6-i:6-i) =  achar(mod(timestamp/10**i,10) + 48)
-    end do
-    cdump(1:1) = achar(timestamp/10**5 + 48)
-
-    cfile="stats"//"."//cdump(1:6)
+    call system("mkdir -p " // "stats")
+    write(cfile,'("stats/stats.",i6.6)') timestamp
   
-    open (60,file=cfile)
+    open (60,file=trim(cfile))
 
     write (60,'(a20,i7,a22)') 'Tree stats for CPU ', me, ' and global statistics'
     write (60,*) '######## GENERAL DATA #####################################################################'

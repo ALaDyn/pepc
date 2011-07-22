@@ -201,23 +201,6 @@ module timings
       write (60,*) itime, tdata
       close (60)
 
-!        open(112,file = 'timing.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
-!        if (choose_build == 0) then
-!           if (itime==1) then
-!              write(112,*) "# trun,t0_domains,t0_allocate,t0_build,t0_branches,t0_fill," // &
-!                     "t0_properties,t0_walk,t0_walkc,t0_force,t0_lattice,t0_restore,t0_deallocate,t0_all,ttot"
-!           endif
-!           write(112,*) trun,t0_domains,t0_allocate,t0_build,t0_branches,t0_fill,&
-!                     t0_properties,t0_walk,t0_walkc,t0_force,t0_lattice,t0_restore,t0_deallocate,t0_all,ttot
-!        else
-!           if (itime==1) then
-!              write(112,*) "# trun,t0_domains,t0_allocate,t0_local,t0_exchange,t0_global," // &
-!                            "t0_walk,t0_walkc,t0_force,t0_lattice,t0_restore,t0_deallocate,t0_all,ttot"
-!           endif
-!           write(112,*) trun,t0_domains,t0_allocate,t0_local,t0_exchange,t0_global,t0_walk,&
-!                             t0_walkc,t0_force,t0_lattice,t0_restore,t0_deallocate,t0_all,ttot
-!        end if
-!        close(112)
     end subroutine timings_ToFile
 
 
@@ -236,7 +219,8 @@ module timings
       character(30) :: cfile
 
       if ( timing_file_debug ) then
-         write(cfile,'(a,i6.6,a)') "timing_", me, ".dat"
+         call system("mkdir -p " // "timing")
+         write(cfile,'("timing/timing_",i6.6,".dat")') me
          call timings_ToFile(itime, tim, cfile)
       end if
 

@@ -68,10 +68,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   real*8 work2(nppm)
   integer irnkl2(nppm)
 
-  integer local_count,count_stats(num_pe+1)
-  real*8 local_work,work_stats(num_pe+1)
-  real*8 d,minc,maxc,sumc,minw,maxw,sumw
-
   curve_type = curve_type_
 
   call timer_start(t_domains)
@@ -237,62 +233,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   call timer_stop(t_domains_add_sort)
   call timer_start(t_domains_bound)
 
-  ! gather workload information
-  if (0 .eq. -1) then
-
-     ! new workloads
-     local_count = npp;
-     local_work = 0;
-     do i=1,npp
-!        write(*,*) i,work(i)
-        local_work = local_work + work(i)
-     enddo
-
-     call MPI_Allgather(local_count, 1, MPI_INTEGER, count_stats, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr);
-     call MPI_Allgather(local_work, 1, MPI_DOUBLE_PRECISION, work_stats, 1, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr);
-
-     work_stats(num_pe+1) = 0;
-     count_stats(num_pe+1) = 0;
-     do i=1,num_pe
-        work_stats(num_pe+1) = work_stats(num_pe+1) + work_stats(i)
-        count_stats(num_pe+1) = count_stats(num_pe+1) + count_stats(i)
-     enddo
-
-     if (me .eq. 0) then
-        write(*,*) 'total_count:',count_stats(num_pe+1)
-        sumc = 0;
-        minc = count_stats(num_pe+1)/num_pe;
-        maxc = 0;
-        do i=1,num_pe
-!           write(*,*) i,count_stats(i),real(count_stats(i))/count_stats(num_pe+1),'/',((real(count_stats(num_pe+1))/num_pe)-count_stats(i)),abs(1.0d0-(real(count_stats(i))*num_pe/count_stats(num_pe+1)))
-           d = abs((count_stats(num_pe+1)/num_pe)-count_stats(i));
-           minc = min(minc, d);
-           maxc = max(maxc, d);
-           sumc = sumc + d;
-        enddo
-        write(*,*) 'avg_count:',count_stats(num_pe+1)/num_pe
-        write(*,*) 'avg_cdiff:',sumc/num_pe,sumc/count_stats(num_pe+1)
-        write(*,*) 'min_cdiff:',minc,minc*num_pe/count_stats(num_pe+1)
-        write(*,*) 'max_cdiff:',maxc,maxc*num_pe/count_stats(num_pe+1)
-        write(*,*) 'total_weight:',work_stats(num_pe+1)
-        sumw = 0;
-        minw = work_stats(num_pe+1)/num_pe;
-        maxw = 0;
-        do i=1,num_pe
-!           write(*,*) i,work_stats(i),real(work_stats(i))/work_stats(num_pe+1),'/',((real(work_stats(num_pe+1))/num_pe)-work_stats(i)),abs(1.0d0-(real(work_stats(i))*num_pe/work_stats(num_pe+1)))
-           d = abs((work_stats(num_pe+1)/num_pe)-work_stats(i));
-           minw = min(minw, d);
-           maxw = max(maxw, d);
-           sumw = sumw + d;
-        enddo
-        write(*,*) 'avg_weight:',work_stats(num_pe+1)/num_pe
-        write(*,*) 'avg_wdiff:',sumw/num_pe,sumw/work_stats(num_pe+1)
-        write(*,*) 'min_wdiff:',minw,minw*num_pe/work_stats(num_pe+1)
-        write(*,*) 'max_wdiff:',maxw,maxw*num_pe/work_stats(num_pe+1)
-     endif
-
-  endif
-
   pepid(1:npp) = me  ! new owner
 
   if (domain_debug) then
@@ -330,7 +270,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
         write(*,'(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
              ' WARNING: identical keys found for particles  ',i,npp,pelabel(i-1),pelabel(i),pelabel(i+1), &
-             ' - upper increased to: ',pekey(i),' next key: ',pekey(i+1)
+             ' -  to: ',pekey(i),' next key: ',pekey(i+1)
         !        if (x(i) == x(i-1)) write(*,*) "HELP"
      endif
   end do

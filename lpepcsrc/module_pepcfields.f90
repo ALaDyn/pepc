@@ -242,7 +242,7 @@ module module_pepcfields
 		     write (*,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)')
 		     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)') force_const
 
-		     do i=1,npp
+		     do i=1,np_local
 		        write (ipefile,'(1x,i7,4(1pe14.5))') pelabel(i), q(i), ux(i), p_pot(i), p_ex(i)
 		        write (*,'(1x,i7,4(1pe14.5))') pelabel(i), x(i), q(i), ux(i), p_pot(i)
 		     end do
@@ -254,8 +254,9 @@ module module_pepcfields
 		  call timer_stop(t_fields_stats)
 
                   if( load_file_debug ) then
-                     write(cfile,'(a,i6.6,a)') "load_", me, ".dat"
-                     open(60, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+                     call system("mkdir -p " // "load")
+                     write(cfile,'("load/load_",i6.6,".dat")') me
+                     open(60, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
                      write(60,'(i5,2f20.10, i12)') itime,interactions_local, mac_evaluations_local,npp
                      close(60)
                   end if

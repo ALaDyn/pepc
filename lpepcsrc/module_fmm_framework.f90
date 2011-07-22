@@ -854,7 +854,7 @@ module module_fmm_framework
           character(len=*) :: s
           integer, parameter :: temp_file = 60
 
-          open(temp_file, file=s)
+          open(temp_file, file=trim(s))
 
           write(temp_file,*) "# t_lattice_1 = ", t_lattice_1
           write(temp_file,*) "# t_lattice_2 = ", t_lattice_2
