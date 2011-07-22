@@ -50,7 +50,7 @@ module module_acf
         class(acf) :: acf_
         character(*) :: filename
 
-        open(47,file=filename)
+        open(47,file=trim(filename))
         write(47,'(g18.8)') acf_%Kt / acf_%ctr
         close(47)
 

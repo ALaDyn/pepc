@@ -63,7 +63,7 @@ module module_fields
         if (my_rank == 0) then
           write(*,*) "DUMPING VTK FILE"
           write(filename,'("field_",i8.8,".vtk")') itime
-         open(87, FILE=filename,STATUS='UNKNOWN')
+         open(87, FILE=trim(filename),STATUS='UNKNOWN')
           call field_write_vtk_header(87)
         end if
 

@@ -26,19 +26,11 @@ subroutine sum_radial(timestamp)
   integer :: i, i1, i2, ngr, ierr
   character(30) :: cfile
 
-  character(6) :: cdump
   real*8, dimension(0:ngx+1) :: vi_loc_min, vi_loc_max, ni_loc, gi_loc
   real*8, dimension(0:ngx+1) :: vi_glob_min, vi_glob_max, ni_glob, gi_glob
   real*8, dimension(0:ngx+1) :: volume
   real*8 :: vradial
   real*8 :: gmin=1.e-3
-
-
-  ! get filename suffix from dump counter
-  do i=0,4
-     cdump(6-i:6-i) =  achar(mod(timestamp/10**i,10) + 48)  
-  end do
-  cdump(1:1) = achar(timestamp/10**5 + 48)
 
   if (my_rank==0) write(*,'("Radial fields: writing out densities, fields on grid 0.0 - ",f4.2)') xl
 
@@ -112,8 +104,9 @@ subroutine sum_radial(timestamp)
 
   ! Write out to file
   if (my_rank == 0) then
-     cfile = "radial_fields."//cdump
-     open (60,file=cfile)
+     call system("mkdir -p " // "radial_fields")
+     write(cfile,'("radial_fields/radial_fields.",i6.6)') timestamp
+     open (60,file=trim(cfile))
      write(60,'(7(a12))') '#   r      ','ni   ','rhoi   ','vi_min','vi_max','er',' phi'
      write(60,'((7(1pe12.4)))') &
           ((i-1)*dr, gi_glob(i)/max(1,ni), ni_glob(i), &
