@@ -23,8 +23,9 @@ module files
      endif
 
      if (db_level > 0) then
-       write(cfile,'(a,i6.6,a)') "diag_", my_rank, ".dat"
-       open(20, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+       call system("mkdir -p " // "diag")
+       write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
+       open(20, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
      endif
 
     end subroutine openfiles
