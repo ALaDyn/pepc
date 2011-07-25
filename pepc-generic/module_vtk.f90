@@ -60,6 +60,7 @@ module module_vtk
           integer :: num_pe
           real*8 :: simtime
           integer :: vtk_step
+          character(3) ::filesuffix = 'vtk'
 
 
         contains
@@ -73,6 +74,9 @@ module module_vtk
           procedure :: write_data_array_Real8_1  => vtkfile_write_data_array_Real8_1
           procedure :: write_data_array_Real8_3  => vtkfile_write_data_array_Real8_3
 
+          procedure :: write_data_array_Real8_1_field3  => vtkfile_write_data_array_Real8_1_field3
+          procedure :: write_data_array_Real8_3_field3  => vtkfile_write_data_array_Real8_3_field3
+
           procedure :: write_data_array_Int4_1  => vtkfile_write_data_array_Int4_1
           procedure :: write_data_array_Int4_3  => vtkfile_write_data_array_Int4_3
           procedure :: write_data_array_Int8_1  => vtkfile_write_data_array_Int8_1
@@ -84,28 +88,44 @@ module module_vtk
                                             write_data_array_Real4_3,  & ! name, three-dim real*4 as three separate arrays, number of entries
                                             write_data_array_Real8_1,  & ! ...
                                             write_data_array_Real8_3,  &
+                                            write_data_array_Real8_1_field3,  &
+                                            write_data_array_Real8_3_field3,  &
                                             write_data_array_Int4_1,   &
                                             write_data_array_Int4_3,   &
                                             write_data_array_Int8_1,   &
                                             write_data_array_Int8_3,   &
                                             write_data_Int4_1
+          procedure :: startpointdata => vtkfile_startpointdata
+          procedure :: finishpointdata => vtkfile_finishpointdata
+          procedure :: startcelldata => vtkfile_startcelldata
+          procedure :: finishcelldata => vtkfile_finishcelldata
       end type vtkfile
 
 
       type, extends(vtkfile) :: vtkfile_unstructured_grid
         contains
+          procedure :: create => vtkfile_unstructured_grid_create ! filename
+          procedure :: create_parallel => vtkfile_unstructured_grid_create_parallel ! filename, mpi_comm, rank, num_pe --> rank 0 writes .pvtX-file
           procedure :: write_headers => vtkfile_unstructured_grid_write_headers ! number of particles, writes anything incl. <Piece>
           procedure :: startpoints => vtkfile_unstructured_grid_startpoints
           procedure :: finishpoints => vtkfile_unstructured_grid_finishpoints
-          procedure :: startpointdata => vtkfile_unstructured_grid_startpointdata
-          procedure :: finishpointdata => vtkfile_unstructured_grid_finishpointdata
           procedure :: startcells => vtkfile_unstructured_grid_startcells
           procedure :: finishcells => vtkfile_unstructured_grid_finishcells
-          procedure :: startcelldata => vtkfile_unstructured_grid_startcelldata
-          procedure :: finishcelldata => vtkfile_unstructured_grid_finishcelldata
           procedure :: dont_write_cells => vtkfile_unstructured_grid_dont_write_cells
-          procedure :: write_final => vtkfile_unstructured_grid_write_final ! writes anything from/incl. <Cells>
+          procedure :: write_final => vtkfile_unstructured_grid_write_final
       end type vtkfile_unstructured_grid
+
+
+      type, extends(vtkfile) :: vtkfile_rectilinear_grid
+          integer, private, dimension(3) :: numpoints, origin
+        contains
+          procedure :: create => vtkfile_rectilinear_grid_create ! filename
+          procedure :: create_parallel => vtkfile_rectilinear_grid_create_parallel ! filename, mpi_comm, rank, num_pe --> rank 0 writes .pvtX-file
+          procedure :: write_headers => vtkfile_rectilinear_grid_write_headers ! number of particles, writes anything incl. <Piece>
+          procedure :: startcoordinates => vtkfile_rectilinear_grid_startcoordinates
+          procedure :: finishcoordinates => vtkfile_rectilinear_grid_finishcoordinates
+          procedure :: write_final => vtkfile_rectilinear_grid_write_final
+      end type vtkfile_rectilinear_grid
 
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -145,13 +165,13 @@ module module_vtk
         write(vtk%filename, '(a, "_", I6.6)') filename_, step_
 
         write(tmp,'(I6.6)') vtk%my_rank
-        fn = subfolder//trim(vtk%filename)//"."//tmp//".vtu"
+        fn = subfolder//trim(vtk%filename)//"."//tmp//"."//trim(vtk%filesuffix)
 
         call system("mkdir -p " // trim(subfolder))
         open(vtk%filehandle, file=fn)
 
         if (vtk%my_rank == 0) then
-          open(vtk%filehandle_par, file=subfolder//trim(vtk%filename)//".pvtu")
+          open(vtk%filehandle_par, file=subfolder//trim(vtk%filename)//".p"//trim(vtk%filesuffix))
 
           if (vtk%vtk_step .eq. VTK_STEP_FIRST) then
             open(vtk%filehandle_visit, file=subfolder//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
@@ -324,6 +344,82 @@ module module_vtk
      end subroutine vtkfile_write_data_array_Real8_3
 
 
+     subroutine vtkfile_write_data_array_Real8_1_field3(vtk, name, ndatax, ndatay, ndataz, data)
+        implicit none
+        class(vtkfile) :: vtk
+        character(*) :: name
+        integer :: ndatax, ndatay, ndataz, i,j,k
+        real*8 :: data(ndatax,ndatay,ndataz)
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 1, "Float64")
+
+        if (vtk%binary) then
+          numbytes = ndatax*ndatay*ndataz*1*8
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle, bigendian)
+          do k=1,ndataz
+            do j=1,ndatay
+              do i=1,ndatax
+                call base64%encode(data(i,j,k))
+              end do
+            end do
+          end do
+          call base64%finish()
+        else
+          do k=1,ndataz
+            do j=1,ndatay
+              do i=1,ndatax
+                write(vtk%filehandle, '(G14.6)') data(i,j,k)
+              end do
+            end do
+          end do
+        endif
+        write(vtk%filehandle, '("</DataArray>")')
+      end subroutine vtkfile_write_data_array_Real8_1_field3
+
+
+     subroutine vtkfile_write_data_array_Real8_3_field3(vtk, name, ndatax, ndatay, ndataz, data1, data2, data3)
+        implicit none
+        class(vtkfile) :: vtk
+        character(*) :: name
+        integer :: ndatax, ndatay, ndataz, i, j, k
+        real*8 :: data1(ndatax,ndatay,ndataz), data2(ndatax,ndatay,ndataz), data3(ndatax,ndatay,ndataz)
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 3, "Float64")
+
+        if (vtk%binary) then
+          numbytes = ndatax*ndatay*ndataz*3*8
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle, bigendian)
+          do k=1,ndataz
+            do j=1,ndatay
+              do i=1,ndatax
+                call base64%encode(data1(i,j,k))
+                call base64%encode(data2(i,j,k))
+                call base64%encode(data3(i,j,k))
+              end do
+            end do
+          end do
+          call base64%finish()
+        else
+          do k=1,ndataz
+            do j=1,ndatay
+              do i=1,ndatax
+                write(vtk%filehandle, '(3G14.6)') data1(i,j,k), data2(i,j,k), data3(i,j,k)
+              end do
+            end do
+          end do
+        endif
+        write(vtk%filehandle, '("</DataArray>")')
+     end subroutine vtkfile_write_data_array_Real8_3_field3
+
+
      subroutine vtkfile_write_data_array_Int4_1(vtk, name, ndata, data)
         implicit none
         class(vtkfile) :: vtk
@@ -468,6 +564,69 @@ module module_vtk
      end subroutine vtkfile_write_data_array_Int8_3
 
 
+     subroutine vtkfile_startpointdata(vtk)
+        implicit none
+        class(vtkfile) :: vtk
+
+        write(vtk%filehandle, '("<PointData>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("<PPointData>")')
+     end subroutine vtkfile_startpointdata
+
+
+     subroutine vtkfile_finishpointdata(vtk)
+        implicit none
+        class(vtkfile) :: vtk
+
+        write(vtk%filehandle, '("</PointData>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PPointData>")')
+     end subroutine vtkfile_finishpointdata
+
+
+     subroutine vtkfile_startcelldata(vtk)
+        implicit none
+        class(vtkfile) :: vtk
+
+        write(vtk%filehandle, '("<CellData>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("<PCellData>")')
+     end subroutine vtkfile_startcelldata
+
+
+     subroutine vtkfile_finishcelldata(vtk)
+        implicit none
+        class(vtkfile) :: vtk
+
+        write(vtk%filehandle, '("</CellData>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PCellData>")')
+     end subroutine vtkfile_finishcelldata
+
+
+    ! ########################### Unstructured Grid ################################################
+
+     subroutine vtkfile_unstructured_grid_create(vtk, filename_, step_, simtime_, vtk_step_)
+        implicit none
+        class(vtkfile_unstructured_grid) :: vtk
+        character(*) :: filename_
+        integer :: step_
+        real*8 :: simtime_
+        integer :: vtk_step_
+        call vtk%create_parallel(filename_, step_, 0, 0, simtime_, vtk_step_)
+     end subroutine vtkfile_unstructured_grid_create
+
+
+     subroutine vtkfile_unstructured_grid_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
+        implicit none
+        class(vtkfile_unstructured_grid) :: vtk
+        character(*) :: filename_
+        real*8 :: simtime_
+        integer :: my_rank_, num_pe_, step_
+        integer :: vtk_step_
+
+        vtk%filesuffix = 'vtu'
+        call vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
+
+     end subroutine vtkfile_unstructured_grid_create_parallel
+
+
      subroutine vtkfile_unstructured_grid_write_headers(vtk, npart, ncell)
         implicit none
         class(vtkfile_unstructured_grid) :: vtk
@@ -515,7 +674,7 @@ module module_vtk
 
             do i = 0,vtk%num_pe-1
               write(tmp,'(I6.6)') i
-              fn = trim(vtk%filename)//"."//tmp//".vtu"
+              fn = trim(vtk%filename)//"."//tmp//"."//vtk%filesuffix
               write(vtk%filehandle_par, '("<Piece Source=""", a, """/>")') trim(fn)
               write(vtk%filehandle_visit, '(a)') trim(fn)
             end do
@@ -523,7 +682,7 @@ module module_vtk
             write(vtk%filehandle_par, '("</PUnstructuredGrid>")')
             write(vtk%filehandle_par, '("</VTKFile>")')
 
-            write(vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(trim(vtk%filename)//".pvtu")
+            write(vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(trim(vtk%filename)//".p"//vtk%filesuffix)
           endif
      end subroutine vtkfile_unstructured_grid_write_final
 
@@ -546,25 +705,6 @@ module module_vtk
      end subroutine vtkfile_unstructured_grid_finishpoints
 
 
-     subroutine vtkfile_unstructured_grid_startpointdata(vtk)
-        implicit none
-        class(vtkfile_unstructured_grid) :: vtk
-
-        write(vtk%filehandle, '("<PointData>")')
-        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("<PPointData>")')
-     end subroutine vtkfile_unstructured_grid_startpointdata
-
-
-     subroutine vtkfile_unstructured_grid_finishpointdata(vtk)
-        implicit none
-        class(vtkfile_unstructured_grid) :: vtk
-
-        write(vtk%filehandle, '("</PointData>")')
-        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PPointData>")')
-     end subroutine vtkfile_unstructured_grid_finishpointdata
-
-
-
      subroutine vtkfile_unstructured_grid_startcells(vtk)
         implicit none
         class(vtkfile_unstructured_grid) :: vtk
@@ -583,21 +723,98 @@ module module_vtk
      end subroutine vtkfile_unstructured_grid_finishcells
 
 
-     subroutine vtkfile_unstructured_grid_startcelldata(vtk)
+    ! ########################### Rectilinear Grid ################################################
+
+     subroutine vtkfile_rectilinear_grid_create(vtk, filename_, step_, simtime_, vtk_step_)
         implicit none
-        class(vtkfile_unstructured_grid) :: vtk
+        class(vtkfile_rectilinear_grid) :: vtk
+        character(*) :: filename_
+        integer :: step_
+        real*8 :: simtime_
+        integer :: vtk_step_
+        call vtk%create_parallel(filename_, step_, 0, 0, simtime_, vtk_step_)
+     end subroutine vtkfile_rectilinear_grid_create
 
-        write(vtk%filehandle, '("<CellData>")')
-        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("<PCellData>")')
-     end subroutine vtkfile_unstructured_grid_startcelldata
 
-
-     subroutine vtkfile_unstructured_grid_finishcelldata(vtk)
+     subroutine vtkfile_rectilinear_grid_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
         implicit none
-        class(vtkfile_unstructured_grid) :: vtk
+        class(vtkfile_rectilinear_grid) :: vtk
+        character(*) :: filename_
+        real*8 :: simtime_
+        integer :: my_rank_, num_pe_, step_
+        integer :: vtk_step_
 
-        write(vtk%filehandle, '("</CellData>")')
-        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PCellData>")')
-     end subroutine vtkfile_unstructured_grid_finishcelldata
+        vtk%filesuffix = 'vtr'
+        call vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
+
+     end subroutine vtkfile_rectilinear_grid_create_parallel
+
+
+     subroutine vtkfile_rectilinear_grid_write_headers(vtk, origin_, numpoints_)
+        implicit none
+        class(vtkfile_rectilinear_grid) :: vtk
+        integer, dimension(3), intent(in) :: origin_, numpoints_
+
+        vtk%numpoints = numpoints_
+        vtk%origin    = origin_
+
+        write(vtk%filehandle, '("<VTKFile type=""RectilinearGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+        write(vtk%filehandle, '("<RectilinearGrid WholeExtent=""", 6(" ",I0), """>")') vtk%origin(1), vtk%numpoints(1)-1, vtk%origin(2), vtk%numpoints(2)-1, vtk%origin(3), vtk%numpoints(3)-1
+        write(vtk%filehandle, '("<Piece Extent=""", 6(" ",I0), """>")') vtk%origin(1), vtk%numpoints(1)-1, vtk%origin(2), vtk%numpoints(2)-1, vtk%origin(3), vtk%numpoints(3)-1 !TODO: for parallel files, the piece extent is not necessarily identical to the whole extent
+
+        if (vtk%my_rank == 0) then
+          write(vtk%filehandle_par, '("<VTKFile type=""PRectilinearGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+          write(vtk%filehandle_par, '("<PRectilinearGrid WholeExtent=""", 6(" ",I0), """ GhostLevel=""0"">")') vtk%origin(1), vtk%numpoints(1)-1, vtk%origin(2), vtk%numpoints(2)-1, vtk%origin(3), vtk%numpoints(3)-1
+        endif
+     end subroutine vtkfile_rectilinear_grid_write_headers
+
+
+     subroutine vtkfile_rectilinear_grid_write_final(vtk)
+        implicit none
+        class(vtkfile_rectilinear_grid) :: vtk
+        integer :: i
+        character(6) :: tmp
+        character(50) :: fn
+
+          write(vtk%filehandle, '("</Piece>")')
+          write(vtk%filehandle, '("</RectilinearGrid>")')
+          write(vtk%filehandle, '("</VTKFile>")')
+
+          if (vtk%my_rank == 0) then
+            write(vtk%filehandle_visit, '(/)')
+
+            do i = 0,vtk%num_pe-1
+              write(tmp,'(I6.6)') i
+              fn = trim(vtk%filename)//"."//tmp//"."//vtk%filesuffix
+              !TODO: for parallel files, the piece extent is not necessarily identical to the whole extent
+              write(vtk%filehandle_par, '("<Piece Extent=""", 6(" ",I0), """ Source=""", a, """/>")') vtk%origin(1), vtk%numpoints(1)-1, vtk%origin(2), vtk%numpoints(2)-1, vtk%origin(3), vtk%numpoints(3)-1, trim(fn)
+              write(vtk%filehandle_visit, '(a)') trim(fn)
+            end do
+
+            write(vtk%filehandle_par, '("</PRectilinearGrid>")')
+            write(vtk%filehandle_par, '("</VTKFile>")')
+
+            write(vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(trim(vtk%filename)//".p"//vtk%filesuffix)
+          endif
+     end subroutine vtkfile_rectilinear_grid_write_final
+
+
+     subroutine vtkfile_rectilinear_grid_startcoordinates(vtk)
+        implicit none
+        class(vtkfile_rectilinear_grid) :: vtk
+
+        write(vtk%filehandle, '("<Coordinates>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("<PCoordinates>")')
+     end subroutine vtkfile_rectilinear_grid_startcoordinates
+
+
+     subroutine vtkfile_rectilinear_grid_finishcoordinates(vtk)
+        implicit none
+        class(vtkfile_rectilinear_grid) :: vtk
+
+        write(vtk%filehandle, '("</Coordinates>")')
+        if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PCoordinates>")')
+     end subroutine vtkfile_rectilinear_grid_finishcoordinates
+
 
 end module module_vtk
