@@ -961,6 +961,7 @@ module module_laser
 		  real :: pi=3.141592654, a02
 		  real :: rho0_up, f2d
 		  real*8 :: Z_R  ! Rayleigh length
+		  real*8 :: sigma
 
 		  ! fast oscillations
 		 Tpon = (sin(omega*t))**2
@@ -1358,6 +1359,7 @@ module module_laser
 		  real :: k0, lskin, gamma_c, wp_r, nonc
 		  real*8 :: Z_R  ! Rayleigh length
 		  real*8 :: r, f_helm, g_helm, chi, atten, theta
+          real*8 :: sigma
 
 		  !     linear rise
 
@@ -1455,6 +1457,7 @@ module module_laser
 		  real :: rho0_up, f2d
 		  real :: kx, ky, k0, thetar
 		  real*8 :: r, tphase, chi_s, Tpon, gamma_s, wp_r, ls_r, phi_s
+          real*8 :: sigma
 
 		  ! phase factors (normalised to nominal wp)
 		  thetar=pi*theta/180.
