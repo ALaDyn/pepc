@@ -31,21 +31,29 @@ module module_vtk_helpers
 
       contains
 
-        subroutine vtk_field_on_grid(filename, step, tsim, vtk_step, nx, ny, nz, xcoords, ycoords, zcoords, scalarvalues, scalarname, vectorvalues, vectorname)
+        subroutine vtk_field_on_grid(filename, step, tsim, vtk_step, globaldims, mydims, xcoords, ycoords, zcoords, &
+                          scalarvalues, scalarname, vectorvalues, vectorname, my_rank, num_pe, comm)
           use module_vtk
           implicit none
           character(*), intent(in) :: filename, scalarname, vectorname
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
-          integer, intent(in) :: nx, ny, nz
-          real*8, intent(in) :: xcoords(nx), ycoords(ny), zcoords(nz)
-          real*8, intent(in) :: scalarvalues(nx, ny, nz), vectorvalues(nx,ny,nz,3)
+          integer, dimension(2,3), intent(in) :: globaldims, mydims
+          real*8, intent(in) :: xcoords(:), ycoords(:), zcoords(:)
+          real*8, intent(in) :: scalarvalues(:, :, :), vectorvalues(:,:,:,:)
+          integer, intent(in) :: comm, my_rank, num_pe
+          integer :: nx, ny, nz
 
           type(vtkfile_rectilinear_grid) :: vtk
 
-            call vtk%create(trim(filename), step, tsim, vtk_step)
-              call vtk%write_headers([0, 0, 0], [nx, ny, nz])
+            nx = mydims(2,1) - mydims(1,1) + 1
+            ny = mydims(2,2) - mydims(1,2) + 1
+            nz = mydims(2,3) - mydims(1,3) + 1
+
+            call vtk%create_parallel(trim(filename), step, my_rank, num_pe, tsim, vtk_step)
+              call vtk%set_communicator(comm)
+              call vtk%write_headers(globaldims, mydims)
                 call vtk%startcoordinates()
                   call vtk%write_data_array("x_coordinate", nx, xcoords)
                   call vtk%write_data_array("y_coordinate", ny, ycoords)

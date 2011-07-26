@@ -31,9 +31,10 @@ module module_vtk
       integer, public, parameter :: VTK_STEP_NORMAL =  0
       integer, public, parameter :: VTK_STEP_LAST   =  1
 
-      character(6), parameter :: subfolder = "./vtk/"
-      character(16), parameter :: visitfilename = "timeseries.visit"
-      character(16), parameter :: paraviewfilename = "timeseries.pvd"
+      character(*), parameter :: subfolder_collections = "./"
+      character(*), parameter :: subfolder_vtk = "./vtk/"
+      character(*), parameter :: visitfilename = "timeseries.visit"
+      character(*), parameter :: paraviewfilename = "timeseries.pvd"
 #ifndef LITTLEENDIAN
       logical, parameter :: bigendian = .true.
 #else
@@ -61,6 +62,7 @@ module module_vtk
           real*8 :: simtime
           integer :: vtk_step
           character(3) ::filesuffix = 'vtk'
+          integer :: communicator
 
 
         contains
@@ -68,6 +70,7 @@ module module_vtk
           procedure :: create_parallel => vtkfile_create_parallel ! filename, mpi_comm, rank, num_pe --> rank 0 writes .pvtX-file
           procedure :: close => vtkfile_close
           procedure :: write_data_array_header => vtkfile_write_data_array_header
+          procedure :: set_communicator => vtkfile_set_communicator
 
           procedure :: write_data_array_Real4_1  => vtkfile_write_data_array_Real4_1
           procedure :: write_data_array_Real4_3  => vtkfile_write_data_array_Real4_3
@@ -117,7 +120,7 @@ module module_vtk
 
 
       type, extends(vtkfile) :: vtkfile_rectilinear_grid
-          integer, private, dimension(3) :: numpoints, origin
+          integer, private, dimension(2,3) :: globaldims, mydims
         contains
           procedure :: create => vtkfile_rectilinear_grid_create ! filename
           procedure :: create_parallel => vtkfile_rectilinear_grid_create_parallel ! filename, mpi_comm, rank, num_pe --> rank 0 writes .pvtX-file
@@ -127,6 +130,14 @@ module module_vtk
           procedure :: write_final => vtkfile_rectilinear_grid_write_final
       end type vtkfile_rectilinear_grid
 
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      character(*), private, parameter :: subfolder = subfolder_collections//subfolder_vtk
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -150,6 +161,7 @@ module module_vtk
 
       subroutine vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
         implicit none
+        include 'mpif.h'
         class(vtkfile) :: vtk
         character(*) :: filename_
         character(50) :: fn
@@ -162,26 +174,27 @@ module module_vtk
         vtk%my_rank  = my_rank_
         vtk%simtime  = simtime_
         vtk%vtk_step = vtk_step_
+        vtk%communicator = MPI_COMM_WORLD
         write(vtk%filename, '(a, "_", I6.6)') filename_, step_
 
         write(tmp,'(I6.6)') vtk%my_rank
-        fn = subfolder//trim(vtk%filename)//"."//tmp//"."//trim(vtk%filesuffix)
+        fn = trim(subfolder)//trim(vtk%filename)//"."//tmp//"."//trim(vtk%filesuffix)
 
         call system("mkdir -p " // trim(subfolder))
         open(vtk%filehandle, file=fn)
 
         if (vtk%my_rank == 0) then
-          open(vtk%filehandle_par, file=subfolder//trim(vtk%filename)//".p"//trim(vtk%filesuffix))
+          open(vtk%filehandle_par, file=trim(subfolder)//trim(vtk%filename)//".p"//trim(vtk%filesuffix))
 
           if (vtk%vtk_step .eq. VTK_STEP_FIRST) then
-            open(vtk%filehandle_visit, file=subfolder//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
+            open(vtk%filehandle_visit, file=trim(subfolder_collections)//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
             write(vtk%filehandle_visit, '("!NBLOCKS ", I0)') vtk%num_pe
 
-            open(vtk%filehandle_paraview, file=subfolder//trim(filename_)//"."//paraviewfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
+            open(vtk%filehandle_paraview, file=trim(subfolder_collections)//trim(filename_)//"."//paraviewfilename,STATUS='UNKNOWN', POSITION = 'REWIND')
             write(vtk%filehandle_paraview, '("<VTKFile type=""Collection"">", /, "<Collection>")')
           else
-            open(vtk%filehandle_visit, file=subfolder//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
-            open(vtk%filehandle_paraview, file=subfolder//trim(filename_)//"."//paraviewfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
+            open(vtk%filehandle_visit, file=trim(subfolder_collections)//trim(filename_)//"."//visitfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
+            open(vtk%filehandle_paraview, file=trim(subfolder_collections)//trim(filename_)//"."//paraviewfilename,STATUS='UNKNOWN', POSITION = 'APPEND')
           endif
         endif
       end subroutine vtkfile_create_parallel
@@ -202,6 +215,16 @@ module module_vtk
           close(vtk%filehandle_paraview)
         endif
      end subroutine vtkfile_close
+
+
+     subroutine vtkfile_set_communicator(vtk, comm)
+       implicit none
+        class(vtkfile) :: vtk
+       integer, intent(in) :: comm
+
+       vtk%communicator = comm
+
+     end subroutine vtkfile_set_communicator
 
 
      subroutine vtkfile_write_data_array_header(vtk, name, number_of_components, type)
@@ -750,35 +773,44 @@ module module_vtk
      end subroutine vtkfile_rectilinear_grid_create_parallel
 
 
-     subroutine vtkfile_rectilinear_grid_write_headers(vtk, origin_, numpoints_)
+     subroutine vtkfile_rectilinear_grid_write_headers(vtk, globaldims_, mydims_)
         implicit none
         class(vtkfile_rectilinear_grid) :: vtk
-        integer, dimension(3), intent(in) :: origin_, numpoints_
+        integer, dimension(2, 3), intent(in) :: globaldims_, mydims_
 
-        vtk%numpoints = numpoints_
-        vtk%origin    = origin_
+        vtk%globaldims = globaldims_
+        vtk%mydims     = mydims_
 
         write(vtk%filehandle, '("<VTKFile type=""RectilinearGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
-        write(vtk%filehandle, '("<RectilinearGrid WholeExtent=""", 6(" ",I0), """>")') vtk%origin(1), vtk%numpoints(1)-1, vtk%origin(2), vtk%numpoints(2)-1, vtk%origin(3), vtk%numpoints(3)-1
-        write(vtk%filehandle, '("<Piece Extent=""", 6(" ",I0), """>")') vtk%origin(1), vtk%numpoints(1)-1, vtk%origin(2), vtk%numpoints(2)-1, vtk%origin(3), vtk%numpoints(3)-1 !TODO: for parallel files, the piece extent is not necessarily identical to the whole extent
+        write(vtk%filehandle, '("<RectilinearGrid WholeExtent=""", 6(" ",I0), """>")') vtk%mydims
+        write(vtk%filehandle, '("<Piece Extent=""", 6(" ",I0), """>")') vtk%mydims
 
         if (vtk%my_rank == 0) then
           write(vtk%filehandle_par, '("<VTKFile type=""PRectilinearGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
-          write(vtk%filehandle_par, '("<PRectilinearGrid WholeExtent=""", 6(" ",I0), """ GhostLevel=""0"">")') vtk%origin(1), vtk%numpoints(1)-1, vtk%origin(2), vtk%numpoints(2)-1, vtk%origin(3), vtk%numpoints(3)-1
+          write(vtk%filehandle_par, '("<PRectilinearGrid WholeExtent=""", 6(" ",I0), """ GhostLevel=""0"">")') vtk%globaldims
         endif
      end subroutine vtkfile_rectilinear_grid_write_headers
 
 
      subroutine vtkfile_rectilinear_grid_write_final(vtk)
         implicit none
+        include 'mpif.h'
         class(vtkfile_rectilinear_grid) :: vtk
         integer :: i
         character(6) :: tmp
         character(50) :: fn
 
+        integer, allocatable :: localdims(:,:, :)
+        integer :: ierr
+
           write(vtk%filehandle, '("</Piece>")')
           write(vtk%filehandle, '("</RectilinearGrid>")')
           write(vtk%filehandle, '("</VTKFile>")')
+
+
+          allocate(localdims(2, 3, vtk%num_pe))
+
+          call MPI_GATHER(vtk%mydims, 2*3, MPI_INTEGER, localdims, 2*3, MPI_INTEGER, 0, vtk%communicator, ierr)
 
           if (vtk%my_rank == 0) then
             write(vtk%filehandle_visit, '(/)')
@@ -786,16 +818,18 @@ module module_vtk
             do i = 0,vtk%num_pe-1
               write(tmp,'(I6.6)') i
               fn = trim(vtk%filename)//"."//tmp//"."//vtk%filesuffix
-              !TODO: for parallel files, the piece extent is not necessarily identical to the whole extent
-              write(vtk%filehandle_par, '("<Piece Extent=""", 6(" ",I0), """ Source=""", a, """/>")') vtk%origin(1), vtk%numpoints(1)-1, vtk%origin(2), vtk%numpoints(2)-1, vtk%origin(3), vtk%numpoints(3)-1, trim(fn)
-              write(vtk%filehandle_visit, '(a)') trim(fn)
+              write(vtk%filehandle_par, '("<Piece Extent=""", 6(" ",I0), """ Source=""", a, """/>")') localdims(:,:,i+1), trim(fn)
+              write(vtk%filehandle_visit, '(a)') trim(subfolder)//trim(fn)
             end do
 
             write(vtk%filehandle_par, '("</PRectilinearGrid>")')
             write(vtk%filehandle_par, '("</VTKFile>")')
 
-            write(vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(trim(vtk%filename)//".p"//vtk%filesuffix)
+            write(vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(subfolder)//trim(vtk%filename)//".p"//trim(vtk%filesuffix)
           endif
+
+          deallocate(localdims)
+
      end subroutine vtkfile_rectilinear_grid_write_final
 
 

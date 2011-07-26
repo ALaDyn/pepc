@@ -275,35 +275,58 @@ module module_fields
         use module_units
         use module_vtk_helpers
         use module_vtk
-        use physvars, only : itime, nt, trun
+        use physvars, only : itime, nt, trun, my_rank, n_cpu, MPI_COMM_PEPC
         implicit none
+        include 'mpif.h'
         real*8, dimension(:,:,:,:), allocatable :: efield
         real*8, dimension(:,:,:), allocatable :: pot
         real*8, allocatable, dimension(:) :: xcoords, ycoords, zcoords
         real*8 :: E_pon(3), B_em(3), Phi_pon
-        integer :: i, j, k, vtk_step
+        integer :: i, j, k, vtk_step, ierr
+        integer :: globaldims(2,3), mydims(2,3)
+        integer :: dims(3), coords(3)
+        logical :: periods
+        integer :: comm_cart
 
-        allocate(efield(field_dump_ncells(1),field_dump_ncells(2),field_dump_ncells(3), 3))
-        allocate(pot(field_dump_ncells(1),field_dump_ncells(2),field_dump_ncells(3)))
-        allocate(xcoords(field_dump_ncells(1)))
-        allocate(ycoords(field_dump_ncells(2)))
-        allocate(zcoords(field_dump_ncells(3)))
+        globaldims(1,:) = 0
+        globaldims(2,:) = field_dump_ncells(:)
 
-        do i=1,field_dump_ncells(1)
-          xcoords(i) = (i-1)*delta(1) + mincoord(1)
+        dims = 0
+        call MPI_DIMS_CREATE(n_cpu, 3, dims, ierr)
+        periods = .false.
+        call MPI_CART_CREATE(MPI_COMM_PEPC, 3, dims, periods, .false., comm_cart, ierr)
+        call MPI_CART_GET(comm_cart, 3, dims, periods, coords, ierr)
+
+        mydims(2,:) = globaldims(2,:) / dims
+        mydims(1,:) = coords * mydims(2,:)
+        mydims(2,:) = mydims(2,:) + mydims(1,:)
+        mydims(1,:) = mydims(1,:)
+
+        allocate(efield(mydims(1,1):mydims(2,1), &
+                         mydims(1,2):mydims(2,2), &
+                         mydims(1,3):mydims(2,3), 3))
+        allocate(pot(mydims(1,1):mydims(2,1), &
+                      mydims(1,2):mydims(2,2), &
+                      mydims(1,3):mydims(2,3)))
+        allocate(xcoords(mydims(1,1):mydims(2,1)))
+        allocate(ycoords(mydims(1,2):mydims(2,2)))
+        allocate(zcoords(mydims(1,3):mydims(2,3)))
+
+        do i=mydims(1,1),mydims(2,1)
+          xcoords(i) = (1.*i-0.5)*delta(1) + mincoord(1)
         end do
 
-        do j=1,field_dump_ncells(2)
-          ycoords(j) = (j-1)*delta(2) + mincoord(2)
+        do j=mydims(1,2),mydims(2,2)
+          ycoords(j) = (1.*j-0.5)*delta(2) + mincoord(2)
         end do
 
-        do k=1,field_dump_ncells(3)
-          zcoords(k) = (k-1)*delta(3) + mincoord(3)
+        do k=mydims(1,3),mydims(2,3)
+          zcoords(k) = (1.*k-0.5)*delta(3) + mincoord(3)
         end do
 
-        do k=1,field_dump_ncells(3)
-          do j=1,field_dump_ncells(2)
-            do i=1,field_dump_ncells(1)
+        do k=mydims(1,3),mydims(2,3)
+          do j=mydims(1,2),mydims(2,2)
+            do i=mydims(1,1),mydims(2,1)
               call force_laser_at(xcoords(i), ycoords(j), zcoords(k), 0._8, E_pon, B_em, Phi_pon)
               efield(i, j, k, 1:3) = E_pon
                  pot(i, j, k)      = Phi_pon
@@ -320,8 +343,8 @@ module module_fields
        endif
 
        call vtk_field_on_grid("laser", itime, trun*unit_t0_in_fs, vtk_step, &
-                    field_dump_ncells(1), field_dump_ncells(2), field_dump_ncells(3), &
-                    xcoords, ycoords, zcoords, pot, "phipon", efield, "epon")
+                    globaldims, mydims, xcoords, ycoords, zcoords, pot, "phipon", efield, "epon", &
+                    my_rank, n_cpu, MPI_COMM_PEPC)
 
        deallocate(efield)
        deallocate(pot)
