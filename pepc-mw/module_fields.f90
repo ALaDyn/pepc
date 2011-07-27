@@ -300,7 +300,12 @@ module module_fields
         mydims(2,:) = globaldims(2,:) / dims
         mydims(1,:) = coords * mydims(2,:)
         mydims(2,:) = mydims(2,:) + mydims(1,:)
-        mydims(1,:) = mydims(1,:)
+        ! shift domains if modulo(globaldims(2,:), dims !=0
+        mydims(1,:) = mydims(1,:) + min(my_rank, modulo(globaldims(2,:), dims))
+        mydims(2,:) = mydims(2,:) + min(my_rank, modulo(globaldims(2,:), dims))
+        where (coords < modulo(globaldims(2,:), dims))
+          mydims(2,:) = mydims(2,:) + 1
+        end where
 
         allocate(efield(mydims(1,1):mydims(2,1), &
                          mydims(1,2):mydims(2,2), &

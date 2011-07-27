@@ -787,7 +787,7 @@ module module_vtk
 
         if (vtk%my_rank == 0) then
           write(vtk%filehandle_par, '("<VTKFile type=""PRectilinearGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
-          write(vtk%filehandle_par, '("<PRectilinearGrid WholeExtent=""", 6(" ",I0), """ GhostLevel=""0"">")') vtk%globaldims
+          write(vtk%filehandle_par, '("<PRectilinearGrid WholeExtent=""", 6(" ",I0), """ GhostLevel=""1"">")') vtk%globaldims
         endif
      end subroutine vtkfile_rectilinear_grid_write_headers
 
