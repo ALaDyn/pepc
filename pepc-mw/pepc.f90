@@ -94,7 +94,7 @@ program pepc
   call write_particles(.false.)
   if (( idump .gt. 0 ) .and. ((ispecial==9).or.(ispecial==10).or.(ispecial==11))) call sum_radial(itime)
 
-  call momentum_acf%initialize(nt)
+  call momentum_acf%initialize(nt, my_rank, n_cpu, MPI_COMM_PEPC)
 
   call benchmark_inner
 

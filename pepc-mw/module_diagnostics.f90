@@ -236,7 +236,7 @@ module module_diagnostics
           endif
         end do
 
-        call MPI_REDUCE(tmp, mom, 4, MPI_REAL8, MPI_SUM,  0, MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(tmp, mom, 4, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr )
 
         if (my_rank == 0) then
           if (itime_ <= 1) then
