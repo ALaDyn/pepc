@@ -153,6 +153,12 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   ! perform index sort on keys
   call slsort_keys(npold,nppm-2,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
 
+  ! FIXME: every processor has to have at least one particle
+  if (npnew < 2) then
+    write(*,'("PE ", I8, " has less than two particles after sorting (had ", I8, " before) - currently this can lead to errors --> aborting")') me, npold
+    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+  endif
+
   call timer_stop(t_domains_sort_pure)
 
   do i=1,npold
