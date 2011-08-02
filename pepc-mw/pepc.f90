@@ -167,9 +167,10 @@ program pepc
        end if
      endif
 
-     call write_total_momentum(itime, trun, mom)
+     ! output total momentum of all negatively charged particles
+     call write_total_momentum('momentum_electrons.dat', itime, trun, q(1:np_local) < 0., mom)
      call momentum_acf%addval(mom(1:3))
-     call momentum_acf%to_file("momentum_Kt.dat")
+     call momentum_acf%to_file("momentum_electrons_Kt.dat")
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags

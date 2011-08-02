@@ -212,13 +212,15 @@ module module_diagnostics
           !>
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine write_total_momentum(itime_, trun_, mom)
+      subroutine write_total_momentum(filename, itime_, trun_, selection, mom)
         use physvars
         implicit none
         include 'mpif.h'
 
         integer, intent(in) :: itime_
+        character(*), intent(in) :: filename
         real*8, intent(in) :: trun_
+        logical, intent(in) :: selection(1:np_local)
         real*8, intent(out) :: mom(4)
         real*8 :: r(4)
         integer :: p, ierr
@@ -226,7 +228,7 @@ module module_diagnostics
         mom = 0.
 
         do p = 1,np_local
-          if (q(p) < 0) then
+          if (selection(p)) then
             r = [ux(p), uy(p), uz(p), 0._8]
             r(4) = sqrt(dot_product(r,r))
             mom = mom + r
@@ -241,9 +243,9 @@ module module_diagnostics
 
         if (my_rank == 0) then
           if (itime_ <= 1) then
-             open(87, FILE='momentum.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
+             open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
           else
-             open(87, FILE='momentum.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
+             open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
            endif
            write(87,'(i10,5g25.12)') itime_, trun_, mom
            close(87)
