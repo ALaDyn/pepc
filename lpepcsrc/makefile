@@ -19,7 +19,8 @@ PEPCSRC.f90 =   treevars.f90 tree_utils.f90 timings.f90 treetypes.f90 \
 OBJS = $(addprefix $(MACH)/, $(PEPCSRC.f90:.f90=.o))
 
 default: all
-all: $(MACH) module.deps $(pepclib)
+all: $(MACH)
+	$(MAKE) $(MFLAGS) $(pepclib)
 
 $(MACH):  
 	mkdir -p  $(MACH)
@@ -52,4 +53,4 @@ clean:
 module.deps:
 	../tools/build/f90_mod_deps.py -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(PEPCSRC.f90)
 
--include module.deps
+include module.deps

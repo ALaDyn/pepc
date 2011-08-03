@@ -30,7 +30,8 @@ OBJS = $(addprefix $(MACH)/, $(SOURCES:.f90=.o))
 SOURCES.GENERICP.f90 = $(addprefix $(PEPCGENERIC)/, $(SOURCES.GENERIC.f90))
 
 default: all
-all: $(MACH) $(EXECNAME)
+all: $(MACH)
+	$(MAKE) $(MFLAGS) $(EXECNAME)
 
 $(MACH): 	
 	mkdir -p $(MACH)

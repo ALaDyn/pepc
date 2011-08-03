@@ -28,7 +28,8 @@ default: all
 clean:
 	$(RM) $(MACH)/*.o *.mod $(MACH)/$(LIBNAME) $(MACH)
 	
-all:    $(MACH) $(MACH)/$(LIBNAME)	
+all:    $(MACH)
+	$(MAKE) $(MFLAGS) $(MACH)/$(LIBNAME)
 
 $(MACH):  
 	mkdir -p  $(MACH)

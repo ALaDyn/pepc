@@ -31,7 +31,8 @@ SOURCES.GENERICP.f90 = $(addprefix $(PEPCGENERIC)/, $(SOURCES.GENERIC.f90))
 MAINOBJ = $(MACH)/main.o
 
 default: all
-all: $(MACH) $(EXECNAME)
+all: $(MACH)
+	$(MAKE) $(MFLAGS) $(EXECNAME)
 
 $(MACH): 	
 	mkdir -p $(MACH)
