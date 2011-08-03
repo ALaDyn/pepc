@@ -18,6 +18,7 @@
 
 program pepce
 
+  use treetypes
   use physvars
   use particle_pusher
   use timings
@@ -80,7 +81,7 @@ program pepce
      call pepc_fields(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult, mac, theta, eps, force_const, &
+              	      np_mult, mac, theta, calc_force_params(eps, force_const, 3), &
                       itime, weighted, curve_type, &
                       num_neighbour_boxes, neighbour_boxes, .false.)
 

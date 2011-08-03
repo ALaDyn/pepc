@@ -10,6 +10,7 @@
 
 subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez, pot, lat_x, lat_y, lat_z, lat_period, lat_corr)
 
+  use treetypes
   use physvars
   use module_fmm_framework
   use module_pepcfields
@@ -60,7 +61,7 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
        pos_x, pos_y, pos_z, &
        charge, work, pelabel, &
        ex, ey, ez, pot, &
-       np_mult, mac, theta, eps, force_const, &
+       np_mult, mac, theta, calc_force_params(eps, force_const, 3), &
        itime, weighted, curve_type, &
        num_neighbour_boxes, neighbour_boxes, .false.)
   

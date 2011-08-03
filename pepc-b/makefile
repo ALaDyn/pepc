@@ -74,6 +74,8 @@ $(MACH)/%.o: %.f90
 # special rules for "external" modules
 treevars.mod:
 	ln -sf ../lpepcsrc/treevars.mod ./treevars.mod
+treetypes.mod:
+	ln -sf ../lpepcsrc/treetypes.mod ./treetypes.mod
 tree_utils.mod:
 	ln -sf ../lpepcsrc/tree_utils.mod ./tree_utils.mod
 module_fmm_framework.mod:

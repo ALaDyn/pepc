@@ -1,6 +1,12 @@
 
 module treetypes
 
+  ! Data structure for user-defined variables that are directly involved into the force calculation
+  type calc_force_params
+    real    :: eps
+    real    :: force_const
+    integer :: force_law
+  end type calc_force_params
 
   ! Data structure for shipping results
   type results

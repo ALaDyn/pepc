@@ -52,8 +52,7 @@ module module_pepcfields
         !>   @param[in] np_mult_ memory allocation parameter
         !>   @param[in] selector for multipole acceptance criterion, currently, only 0 (BH-MAC) is supported
         !>   @param[in] theta multipole opening angle
-        !>   @param[in] eps plummer potential parameter
-        !>   @param[in] force_const coulomb force constant
+        !>   @param[in] cf_par parameters for force summation
         !>   @param[in] itime current simulation timestep number
         !>   @param[in] weighted selector for load balancing
         !>   @param[in] curve_type selector for type of space filling curve
@@ -64,10 +63,11 @@ module module_pepcfields
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_w, p_label, &
 		     p_Ex, p_Ey, p_Ez, p_pot, np_mult_,&
-		     mac, theta, eps, force_const, itime, weighted, curve_type, &
+		     mac, theta, cf_par, itime, weighted, curve_type, &
 		     num_neighbours, neighbours, no_dealloc)
 
 		  use treevars
+		  use treetypes
 		  use timings
 		  use module_calc_force
 		  use module_fmm_framework
@@ -80,8 +80,7 @@ module module_pepcfields
 		  integer, intent(in) :: np_local  ! # particles on this CPU
 		  integer, intent(in) :: npart_total ! total # simulation particles
 		  real, intent(in) :: theta, np_mult_       ! multipole opening angle
-		  real, intent(in) :: force_const       ! scaling factor for fields & potential
-		  real, intent(in) :: eps         ! potential softening distance
+		  type(calc_force_params), intent(in) :: cf_par
 		  integer, intent(in) :: itime  ! timestep
 		  integer, intent(in) :: mac, weighted
 		  real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc
@@ -123,7 +122,7 @@ module module_pepcfields
 
 		  if (force_debug) then
 		     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
-				itime, mac, theta, eps, force_const
+				itime, mac, theta, cf_par%eps, cf_par%force_const
 		     write (*,'(a7,a20/(i16,4f15.3,i8))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i), &
 				p_label(i),i=1,npp)
 		  endif
@@ -202,7 +201,7 @@ module module_pepcfields
 		    vbox = lattice_vect(neighbours(:,ibox))
 
 		    ! tree walk finds interaction partners and calls interaction routine for particles on short list
-		    call tree_walk(npp,theta,eps,force_const,itime,mac,ttrav,tfetch, vbox, work, tcomm)
+		    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,tfetch, vbox, work, tcomm)
 
 		    call timer_add(t_walk, ttrav)    ! traversal time (serial)
 		    call timer_add(t_comm_total,    tcomm(TIMING_COMMLOOP))
@@ -217,7 +216,7 @@ module module_pepcfields
 
 		  ! add lattice contribution
 		  call timer_start(t_lattice)
-		  call calc_force_per_particle(eps, force_const)
+		  call calc_force_per_particle(cf_par)
 		  call timer_stop(t_lattice)
 
 		  ! restore initial particle order specified by calling routine to reassign computed forces
@@ -240,7 +239,7 @@ module module_pepcfields
 		  if (force_debug) then
 		     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)')
 		     write (*,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)')
-		     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)') force_const
+		     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)') cf_par%force_const
 
 		     do i=1,np_local
 		        write (ipefile,'(1x,i7,4(1pe14.5))') pelabel(i), q(i), ux(i), p_pot(i), p_ex(i)

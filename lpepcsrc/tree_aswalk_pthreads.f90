@@ -938,6 +938,7 @@ end module tree_walk_communicator
 
 
 module tree_walk_utils
+  use treetypes
   use treevars
   use pthreads_stuff
   implicit none
@@ -949,11 +950,10 @@ module tree_walk_utils
     real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
     real*8, dimension(:), allocatable :: boxlength2
-    real :: eps
-    real :: force_const
     integer :: mac
     real*8 :: theta2
     real*8 :: vbox(3)
+    type(calc_force_params) :: cf_par
     logical :: in_central_box
 
 
@@ -982,8 +982,9 @@ module tree_walk_utils
   contains
 
 
-    subroutine tree_walk(np_local_,theta_,eps_, force_const_,itime,mac_,twalk,tfetch,vbox_,work_per_particle_, tcomm)
+    subroutine tree_walk(np_local_,theta_,cf_par_,itime,mac_,twalk,tfetch,vbox_,work_per_particle_, tcomm)
       use, intrinsic :: iso_c_binding
+      use treetypes
       use tree_utils
       use timings
       use tree_walk_communicator
@@ -991,8 +992,7 @@ module tree_walk_utils
       include 'mpif.h'
 
       real, intent(in) :: theta_  ! MAC angle
-      real, intent(in) :: eps_   ! Softening radius
-      real, intent(in) :: force_const_ !< force constant
+      type(calc_force_params), intent(in) :: cf_par_
       integer, intent(in) :: np_local_
       integer, intent(in) :: itime
       integer, intent(in) :: mac_
@@ -1008,9 +1008,8 @@ module tree_walk_utils
       work_per_particle => work_per_particle_
       ! box shift vector
       vbox = vbox_
-      force_const = force_const_
-      ! plummer potential parameter
-      eps = eps_
+      ! force calculation parameters
+      cf_par = cf_par_
       ! mac selection parameter
       mac = mac_
       ! Clumping parameter**2 for MAC
@@ -1386,7 +1385,7 @@ module tree_walk_utils
 
        if ( (mac_ok .or. walk_node > 0) .and. .not.ignore) then
 
-          call calc_force_per_interaction(nodeidx, walk_node, vbox, eps, force_const)
+          call calc_force_per_interaction(nodeidx, walk_node, vbox, cf_par)
           work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_INTERACTION
           my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
 
