@@ -699,13 +699,13 @@ module module_vtk
               write(tmp,'(I6.6)') i
               fn = trim(vtk%filename)//"."//tmp//"."//vtk%filesuffix
               write(vtk%filehandle_par, '("<Piece Source=""", a, """/>")') trim(fn)
-              write(vtk%filehandle_visit, '(a)') trim(fn)
+              write(vtk%filehandle_visit, '(a)') trim(subfolder)//trim(fn)
             end do
 
             write(vtk%filehandle_par, '("</PUnstructuredGrid>")')
             write(vtk%filehandle_par, '("</VTKFile>")')
 
-            write(vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(trim(vtk%filename)//".p"//vtk%filesuffix)
+            write(vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(subfolder)//trim(trim(vtk%filename)//".p"//vtk%filesuffix)
           endif
      end subroutine vtkfile_unstructured_grid_write_final
 
