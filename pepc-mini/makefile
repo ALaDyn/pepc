@@ -14,7 +14,7 @@ EXECNAME = ../pepcmini
 # -------------------------------------------------------------------------------------------
 # Source files
 SOURCES.f90 =   physvars.f90 files.f90 pusher.f90 setup.f90 special_start.f90 stamp.f90 \
-	 	cleanup.f90 pepc.f90 
+                cleanup.f90 pepc.f90 
 SOURCES.GENERIC.f90 = 
 # -------------------------------------------------------------------------------------------
 
@@ -35,11 +35,11 @@ $(MACH):
 # touch module files after compilation so that the are newer than the .o files
 # this prevents make from trying to rebuild them again and again
 # we keep the preprocessed files for easier debugging / correct line information etc.
-$(MACH)/%.o %.mod: %.f90  
+$(MACH)/%.o: %.f90
 	$(CPP) $(CPPFLAGS) $< $(MACH)/$<
 	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$< -o $(MACH)/$(<:.f90=.o)
 
-$(MACH)/%.o %.mod: $(PEPCGENERIC)/%.f90  
+$(MACH)/%.o: $(PEPCGENERIC)/%.f90
 	$(CPP) $(CPPFLAGS) $< $(MACH)/$(<F)
 	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$(<F) -o $(MACH)/$(<F:.f90=.o)
 
@@ -57,17 +57,10 @@ $(EXECNAME): $(LIBRARIES) $(OBJS)
 	@echo "... done"
 
 clean:
-	$(RM) $(MACH)/*.o  *% *~ bin/key rand *.o *.pif core *.mod $(MACH)/*.mod module.deps module.generic.deps $(EXECNAME)
+	$(RM) $(MACH)/*.o  *% *~ bin/key rand *.o *.pif core *.mod $(MACH)/*.mod module.deps $(EXECNAME)
 	$(RM) -r $(MACH)
 
 module.deps:
-	../tools/build/f90_mod_deps.py -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(SOURCES.f90)
-module.generic.deps:
-	if [ -z "$(SOURCES.GENERIC.f90)" ]; then \
-	  touch module.generic.deps; \
-	else \
-	../tools/build/f90_mod_deps.py -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(SOURCES.GENERICP.f90); \
-	fi
+	../tools/build/f90_mod_deps.py -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(SOURCES.f90) $(SOURCES.GENERICP.f90)
 
 include module.deps
-include module.generic.deps

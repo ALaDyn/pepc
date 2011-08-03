@@ -83,14 +83,11 @@ def get_deps_and_mods(filename, opts):
     if not f:
 	print "ERROR: unable to open %s%s" % filename
 	sys.exit(1)
-#    use_line_re = re.compile("^\s*use\s+(\S.+)\s*$")							# 1: this is old (pre ab) regexp
     use_line_re = re.compile("^\s*use\s+([a-z][a-z0-9_]+)", re.IGNORECASE)				# 1: new by ab: takes only one valid module name ([a-z][a-z0-9_]+), almost following
     													#  the fortran 2008 standard (ftp://ftp.nag.co.uk/sc22wg5/N1801-N1850/N1830.pdf, p.273)
     													#  but ignoring the "module-nature" and the possibility to write several ";"-seperated
     													#  USE-statements in one line. now ignoring case.
     													#  this regexp is not checking for a valid use-statement, that's the compilers job.
-#    cont_line_re = re.compile("^(.*)&\s*$")								# 2: this line is no longer needed, following the standard it was never needed
-#    mod_line_re = re.compile("^\s*module\s+(\S+)\s*$")							# 3: old line
     mod_line_re = re.compile("^\s*module\s+([a-z][a-z0-9_]+)\s*$", re.IGNORECASE)			# 3: new by ab: now matching only valid module names (see 1:). ignoring case
     split_re = re.compile("\s*,\s*")
     dep_re = re.compile(opts.dep_re)

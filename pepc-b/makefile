@@ -1,96 +1,35 @@
-#
-#  Makefile for treemp and test programs
-#
-
 PREFIX = ..
 
 #  Get machine-dependent flags
 
 include ../makefile.defs
 
+LIBRARIES = ../lpepcsrc/$(MACH)/liblpepc.a ../sl_pepc/libsl.a ../pthreads/$(MACH)/libpthreads.a
+PEPCGENERIC = ../pepc-generic
 
-LIBRARIES   = ../lpepcsrc/$(MACH)/liblpepc.a ../sl_pepc/libsl.a ../pthreads/$(MACH)/libpthreads.a
-# ../memwatch/$(MACH)/libmemwatch.a 
-# ../pthreads/$(MACH)/libpthreads.a
+.SUFFIXES: .f90
 
 # Override default executable name
 EXECNAME = ../pepcb
 
-.SUFFIXES: .f90
-
 # -------------------------------------------------------------------------------------------
 # Source files
+SOURCES.f90 =  module_physvars.f90 \
+               module_particle_props.f90 \
+               module_utilities.f90 \
+               module_velocity_setup.f90 \
+               module_field_grid.f90 \
+               module_laser.f90 \
+               module_io.f90 \
+               module_geometry.f90 \
+               module_integration_scheme.f90 \
+               module_diagnostics.f90 \
+               module_particle_beam.f90 \
+               module_particle_boundaries.f90 \
+               setup_arrays.f90 setup.f90 configure.f90 integrator.f90 diagnostics.f90 pepcb.f90 
+#               module_xnbody.f90
+SOURCES.GENERIC.f90 = 
 # -------------------------------------------------------------------------------------------
-
-SOURCES.f90 = 	module_physvars.f90 \
-		module_particle_props.f90 \
-		module_utilities.f90 \
-		module_velocity_setup.f90 \
-		module_field_grid.f90 \
-		module_laser.f90 \
-		module_io.f90 \
-		module_geometry.f90 \
-		module_integration_scheme.f90 \
-		module_diagnostics.f90 \
-		module_particle_beam.f90 \
-		module_particle_boundaries.f90 \
-		setup_arrays.f90 setup.f90 configure.f90 integrator.f90 diagnostics.f90 pepcb.f90 
-#		module_xnbody.f90 \	
-
-
-
-# Names of application object files derived from sources
-# Prefix added for multi-arch builds
-OBJS = $(addprefix $(MACH)/, $(SOURCES.f90:.f90=.o)) 
-
-default: all
-all: $(MACH) $(EXECNAME)
-
-$(MACH): 	
-	mkdir -p $(MACH)
-
-# preprocess files and put into $(MACH) subdir
-# then compile from there
-# touch module files after compilation so that they are newer than the .o files
-# this prevents make from trying to rebuild them again and again
-# we keep the preprocessed files for easier debugging / correct line information etc.
-$(MACH)/%.o: %.f90  
-	$(CPP) $(CPPFLAGS) $< $(MACH)/$<
-	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$< -o $@
-	touch -c $(@F:.o=.mod)
-
-
-#  Modules
-
-# override stupid internal rule for .o files to depend on .mod files and call m2c
-%.o: %.mod
-
-# for creating the .mod files, we only have to compile the .o-files from the respective .f90 files
-# gfortran stores the mod-files in the current directory - just where we need them
-# unfortunately, this rule only works if it actually does something, so we echo some useless info
-%.mod: $(MACH)/%.o
-	@echo 'Making module file' $@
-
-# special rules for "external" modules
-treevars.mod:
-	ln -sf ../lpepcsrc/treevars.mod ./treevars.mod
-treetypes.mod:
-	ln -sf ../lpepcsrc/treetypes.mod ./treetypes.mod
-tree_utils.mod:
-	ln -sf ../lpepcsrc/tree_utils.mod ./tree_utils.mod
-module_fmm_framework.mod:
-	ln -sf ../lpepcsrc/module_fmm_framework.mod ./module_fmm_framework.mod
-tree_walk_utils.mod:
-	ln -sf ../lpepcsrc/tree_walk_utils.mod ./tree_walk_utils.mod
-module_pepcfields.mod:
-	ln -sf ../lpepcsrc/module_pepcfields.mod ./module_pepcfields.mod
-
-timings.mod:
-	ln -sf ../lpepcsrc/timings.mod ./timings.mod
-#	/bin/ln -sf $(PREFIX)/lpepcsrc/$(MACH)/timings.mod $(PREFIX)/pepc-mw/timings.mod
-
-# -------------------------------------------------------------------------------------------
-
 
 # check for sion usage, add dump_sion or dump_ascii to src-list
 ifeq ($(SION),1)
@@ -102,9 +41,38 @@ endif
 
 # Names of application object files derived from sources
 # Prefix added for multi-arch builds
+SOURCES = $(SOURCES.f90) $(SOURCES.GENERIC.f90)
+OBJS = $(addprefix $(MACH)/, $(SOURCES:.f90=.o))
+SOURCES.GENERICP.f90 = $(addprefix $(PEPCGENERIC)/, $(SOURCES.GENERIC.f90))
 
+default: all
+all: $(MACH) $(EXECNAME)
 
+$(MACH): 	
+	mkdir -p $(MACH)
 
+# preprocess files and put into $(MACH) subdir
+# then compile form there
+# touch module files after compilation so that the are newer than the .o files
+# this prevents make from trying to rebuild them again and again
+# we keep the preprocessed files for easier debugging / correct line information etc.
+$(MACH)/%.o: %.f90
+	$(CPP) $(CPPFLAGS) $< $(MACH)/$<
+	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$< -o $(MACH)/$(<:.f90=.o)
+
+$(MACH)/%.o: $(PEPCGENERIC)/%.f90
+	$(CPP) $(CPPFLAGS) $< $(MACH)/$(<F)
+	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$(<F) -o $(MACH)/$(<F:.f90=.o)
+
+# avoid infinite recursion of rule below
+../lpepcsrc/%.mod: ../lpepcsrc/%.mod
+	@echo "" $@
+# special rules for "external" modules
+%.mod: ../lpepcsrc/%.mod
+	ln -sf ../lpepcsrc/$@ ./$(@F)
+	
+
+# final rule for executable
 $(EXECNAME): $(LIBRARIES) $(OBJS)
 	@echo "Creating application binary $(EXECNAME) ..."
 	$(LDPRE) $(LD) $(LDFLAGS) -o $(EXECNAME) $(OBJS) $(LIBPEPC) $(LDLIBS) $(LIBRARIES)
@@ -115,11 +83,6 @@ clean:
 	$(RM) -r $(MACH)
 
 module.deps:
-	../tools/build/f90_mod_deps.py -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(SOURCES.f90)
+	../tools/build/f90_mod_deps.py -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(SOURCES.f90) $(SOURCES.GENERICP.f90)
 
--include module.deps
-
-
-
-
-
+include module.deps
