@@ -127,12 +127,9 @@ def get_deps_and_mods(filename, opts):
     f.close()
     return (deps, mods)
 
-def write_deps(outf, filename, deps, mods, opts):
+def write_deps(outf, filename, deps, opts):
     filebase, fileext = os.path.splitext(filename)
     outf.write("%s%s.o: %s\n" % (opts.o_prefix, os.path.basename(filebase), " ".join(deps)))
-    for mod in mods:
-	outf.write("%s: %s%s.o %s\n"
-		   % (mod, opts.o_prefix, os.path.basename(filebase) , " ".join(deps)))                     # mw (2011-06-20): added .o-file to .mod-file dependencies 
 
 def process_args():
     try:
@@ -187,13 +184,30 @@ def main():
 	if opts.verbose:
 	    sys.stderr.write("Output to STDOUT\n")
     outf.write("# DO NOT EDIT --- auto-generated file\n")
+
+    modlist = {}
+
+    for filename in filenames:
+	(deps, mods) = get_deps_and_mods(filename, opts)
+
+        filebase, fileext = os.path.splitext(filename)
+        for cmod in mods:
+            modlist[cmod] = opts.o_prefix+os.path.basename(filebase+".o")
+
     for filename in filenames:
 	(deps, mods) = get_deps_and_mods(filename, opts)
 	if opts.verbose:
-	    sys.stderr.write("deps: %s\n" % " ".join(deps))
+            sys.stderr.write("deps: %s\n" % " ".join(deps))
 	    sys.stderr.write("mods: %s\n" % " ".join(mods))
 	if deps:
-	    write_deps(outf, filename, deps, mods, opts)
+            new_deps = []
+            filebase, fileext = os.path.splitext(filename)
+            objectfile = opts.o_prefix+os.path.basename(filebase+".o")
+            for cdeps in deps:
+                if modlist.get(cdeps, cdeps) != objectfile:
+                    new_deps.append(modlist.get(cdeps, cdeps))
+
+	    write_deps(outf, filename, new_deps, opts)
     outf.close()
 
 if __name__ == "__main__":
