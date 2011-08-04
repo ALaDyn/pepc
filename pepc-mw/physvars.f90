@@ -75,6 +75,7 @@ module physvars
   integer :: ispecial       ! Switch to select special electron configs 
   integer :: weighted
   integer :: debug_level = 0 ! Debug level for printed O/P
+  logical :: treediags = .false.
 
    logical, public :: restart = .false. !< Restart switch: config read from parts_all.in
    real*8 :: dt             ! timestep
