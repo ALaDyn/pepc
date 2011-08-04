@@ -69,8 +69,9 @@ subroutine diagnose_tree
   write (ipefile,'(///a)') 'Tree structure'
 
 !  write (ipefile,'(/a/a/(3i5,2i10,2i8,b11,i2,i8,i10,9(1pe15.4)))') 'Twigs from hash-table:', &
-  write (ipefile,'(/a/a/(3i5,2o15,2i8,z4,i2,o15,7(1pe15.4)))') 'Twigs from hash-table:', &
-       '    i  level  owner   key    parent-key    #     node     code    #c  1st child    #leaves ', &
+  write (ipefile,'(/a/a,a/(3i5,2o15,2i8,z6,o15,i2,15(1pe30.19)))') 'Twigs from hash-table:', &
+       '    i  level  owner        key     parent-key       #    node  code      1st child #leaves ', &
+       ' abs_charge    charge   xcoc   ycoc   zcoc   xdip   ydip   zdip   sqrtbla   xxquad   yyquad   zzquad   xyquad   yzquad   zxquad', &
        (i,node_level(ind_twig(i)), &              !  index, level
          htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%owner, &                            ! Owner-PE of node
          key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
@@ -82,12 +83,17 @@ subroutine diagnose_tree
          charge(ind_twig(i)), &    ! Twig  charge
          xcoc(ind_twig(i)), & ! Centre of charge
          ycoc(ind_twig(i)), &  
+         zcoc(ind_twig(i)), &
          xdip(ind_twig(i)), &  
          ydip(ind_twig(i)), &  
+         zdip(ind_twig(i)), &
          sqrt(size_node(ind_twig(i))/htable(addr_twig(i))%leaves-rcoc2(i)), &  
-!         xxquad(ind_twig(i)), &  
-!         yyquad(ind_twig(i)), &  
-!         xyquad(ind_twig(i)), &  
+         xxquad(ind_twig(i)), &
+         yyquad(ind_twig(i)), &
+         zzquad(ind_twig(i)), &
+         xyquad(ind_twig(i)), &
+         yzquad(ind_twig(i)), &
+         zxquad(ind_twig(i)), &
          i=1,ntwig)     
        
 
@@ -98,12 +104,12 @@ subroutine diagnose_tree
   owner_leaf(1:nleaf_me) = pack(htable%owner,mask=(htable%node>0 .and. htable%owner == me))   ! who owns leaf node
 
 
-  write (ipefile,'(/a/3a5,2a10,2a15,a25,4a11/(3i5,2i10,2o15,o25,2f11.4,1f11.4))') 'Local leaves from hash-table:', &
-       'i','owner','plab','i-leaf','lev','key','parent','pkey','x','y','q', &
+  write (ipefile,'(/a/3a5,2a10,2a15,a25,4a11/(3i5,2i10,2o15,o25,4f30.19))') 'Local leaves from hash-table:', &
+       'i','owner','plab','i-leaf','lev','key','parent','pkey','x','y','z','q', &
        (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),node_level(ind_leaf(i)),key_leaf(i), &
         ishft( key_leaf(i),-3 ), &      ! parent
         pekey(ind_leaf(i)), &  ! particle key
-        x(ind_leaf(i)),y(ind_leaf(i)), q(ind_leaf(i)), &
+        x(ind_leaf(i)),y(ind_leaf(i)),z(ind_leaf(i)), q(ind_leaf(i)), &
 	i=1,nleaf_me)
 
  ! get keys of NON-local leaf nodes from hash table
