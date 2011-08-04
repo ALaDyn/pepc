@@ -32,6 +32,7 @@ program pepc
   use module_param_dump
   use module_treediags
   use module_vtk
+  use module_directsum
   implicit none
   include 'mpif.h'
 
@@ -41,7 +42,7 @@ program pepc
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! `The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls.`
   type(acf) :: momentum_acf
-  real*8 :: mom(4)
+   real*8 :: mom(4)
 
   ! Initialization of signal handler - deactivated atm since it outputs the call stack for every mpi rank which results in a very messy output
   !call InitSignalHandler()
@@ -128,6 +129,9 @@ program pepc
               	      np_mult,mac, theta, calc_force_params(eps, force_const, 3), &
                       itime, weighted, curve_type, &
                       num_neighbour_boxes, neighbour_boxes, treediags)
+
+     call verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, [1, 2, np_local-1, np_local], &
+                       calc_force_params(eps, force_const, 3), my_rank, n_cpu, MPI_COMM_PEPC)
 
      ! output of tree diagnostics
      if (treediags) then
