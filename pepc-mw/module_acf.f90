@@ -1,6 +1,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
-!>  Encapsulates ...
+!>  Provides a class for computation of the auto correlation function
+!> of a vectorial quantity
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_acf
@@ -16,10 +17,10 @@ module module_acf
       type acf
         private
           integer :: Ntau
+          real*8  :: dt
           integer :: tau
           integer :: num_pe, my_rank, comm
           real*8, allocatable :: Kt(:)
-          integer, allocatable :: ctr(:)
           real*8,  allocatable :: oldvals(:,:)
 
         contains
@@ -46,51 +47,76 @@ module module_acf
 
       contains
 
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !> Writes the values of the ACF(delta_t) to a file
+      !> first colum:   delta_t in physical time (see parameter dt of acf_initialize() )
+      !> second column: ACF(delta_t)
+      !> @param filename name of target file
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine acf_to_file(acf_, filename)
         implicit none
         class(acf) :: acf_
         character(*) :: filename
+        integer :: i
 
         if (acf_%my_rank == 0) then
           open(47,file=trim(filename))
-          write(47,'(g18.8)') acf_%Kt / acf_%ctr
+          do i=0,acf_%Ntau-1
+            write(47,'(2(g18.8,x))') acf_%dt*i, acf_%Kt(i) / (1.*acf_%Ntau-i)
+          end do
           close(47)
         endif
 
       end subroutine
 
 
-      subroutine acf_initialize(acf_, Nt_, my_rank_, num_pe_, comm_)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !> Initializes the ACF class
+      !> @param Nt_ total number of timesteps to be processed
+      !> @param dt_ physical timestep (just for output purposes)
+      !> @param my_rank_ local MPI rank
+      !> @param num_pe_ total number of MPI ranks
+      !> @param comm_ MPI communicator (e.g. MPI_COMM_WORLD)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine acf_initialize(acf_, Nt_, dt_, my_rank_, num_pe_, comm_)
         implicit none
         class(acf) :: acf_
         integer, intent(in) :: Nt_
+        real*8, intent(in) :: dt_
         integer, intent(in) :: num_pe_, my_rank_, comm_
 
         acf_%Ntau    = Nt_
+        acf_%dt      = dt_
         acf_%tau     = 0
         acf_%num_pe  = num_pe_
         acf_%my_rank = my_rank_
         acf_%comm    = comm_
 
-        allocate(acf_%Kt(0:acf_%Ntau))
+        allocate(acf_%Kt(0:acf_%Ntau-1))
         acf_%Kt = 0.
-        allocate(acf_%ctr(0:acf_%Ntau))
-        acf_%ctr = 0
         allocate(acf_%oldvals(1:3,1:acf_%Ntau))
       end subroutine
 
 
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !> Finalizes the ACF class
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine acf_finalize(acf_)
         implicit none
         class(acf) :: acf_
 
         if (allocated(acf_%Kt))      deallocate(acf_%Kt)
-        if (allocated(acf_%ctr))     deallocate(acf_%ctr)
         if (allocated(acf_%oldvals)) deallocate(acf_%oldvals)
       end subroutine
 
 
 
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !> Increments internal timestep counter and includes val as current
+      !> value of the quantity under consideration
+      !> May only be called once per timestep
+      !> @param val value of considered quantity
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine acf_addval(acf_, val)
         implicit none
         include 'mpif.h'
@@ -126,13 +152,11 @@ module module_acf
         myend   = myend + mystart
 
         do s = mystart,myend-1
-          acf_%Kt(s) = acf_%Kt(s) + dot_product(val, acf_%oldvals(1:3,acf_%tau - s))
-          acf_%ctr(s) = acf_%ctr(s) + 1
+          acf_%Kt(s)  = acf_%Kt(s)  + dot_product(val, acf_%oldvals(1:3,acf_%tau - s))
         end do
 
 
         call MPI_ALLGATHERV(MPI_IN_PLACE, recvcounts(acf_%my_rank), MPI_REAL8,   acf_%Kt,  recvcounts, displs, MPI_REAL8,   acf_%comm, ierr)
-        call MPI_ALLGATHERV(MPI_IN_PLACE, recvcounts(acf_%my_rank), MPI_INTEGER, acf_%ctr, recvcounts, displs, MPI_INTEGER, acf_%comm, ierr)
 
         deallocate(recvcounts, displs)
 
