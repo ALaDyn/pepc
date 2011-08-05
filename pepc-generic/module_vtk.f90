@@ -56,7 +56,6 @@ module module_vtk
           integer :: filehandle_paraview = 99
           character(12) :: byte_order = "BigEndian"
           character(3) :: version = "0.1"
-          logical :: binary = .true.
           integer :: my_rank
           integer :: num_pe
           real*8 :: simtime
@@ -64,6 +63,7 @@ module module_vtk
           character(3) ::filesuffix = 'vtk'
           integer :: communicator
 
+          logical, public :: binary = .true. !< flag for switch binary/ascii output in xml-vtk files. should only be modified before calling vtkfile_create (or if the user knows waht he is doing)
 
         contains
           procedure :: create => vtkfile_create ! filename
