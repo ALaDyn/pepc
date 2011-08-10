@@ -145,7 +145,7 @@ subroutine plasma_start(my_rank, i1, n, nglobal, label_off, target_geometry, idi
 
   case(2) ! disc
      Vplas = pi * r_sphere**2 * x_plasma
-     Aplas = x_plasma*y_plasma
+     Aplas = Vplas
      number_faces = 3
 
   case(12) ! hollow tube
@@ -221,6 +221,7 @@ subroutine plasma_start(my_rank, i1, n, nglobal, label_off, target_geometry, idi
         xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
         yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
         zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
+	if (idim.eq.2) zt=0.
 
      case(3,13) ! wire
         xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)         
