@@ -2,6 +2,7 @@ subroutine tree_exchange
 
   use treevars
   use timings
+  use module_branching
   implicit none
   include 'mpif.h'
 
@@ -68,8 +69,8 @@ subroutine tree_exchange
   allocate(get_size(1:nbranch_sum),get_mult(1:nbranch_sum))
   igap(num_pe+1) = nbranch_sum
 
-  if (nbranch_sum > nbranch_max) then
-     write(*,*) 'Too many branches for buffer on ',me,': nbranch_sum=',nbranch_sum,' nbranch_max=',nbranch_max
+  if (nbranch_sum > branch_max_global) then
+     write(*,*) 'Too many branches for buffer on ',me,': nbranch_sum=',nbranch_sum,' branch_max_global=',branch_max_global
      call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
      stop
   end if

@@ -51,7 +51,7 @@ module treevars
                                xdip(:), ydip(:), zdip(:), &          ! dipole moment
                                xxquad(:), yyquad(:), zzquad(:), &    ! quadrupole moment
                                xyquad(:), yzquad(:), zxquad(:), &    !
-				               size_node(:)  !  Spatial extent (radius) of multipole
+                               size_node(:)  !  Spatial extent (radius) of multipole
 
   integer*8, allocatable :: first_child(:)   ! key of first child
 
@@ -59,7 +59,7 @@ module treevars
  
 
   integer*8 ::  hashconst, &   ! hashing constants
-	             hashchild=7_8, &
+                 hashchild=7_8, &
                  max_req_list_length, & ! maximum length of request queue
                  cum_req_list_length, & ! cumulative length of request queue
                  comm_loop_iterations(3)! number of comm loop iterations (total, sending, receiving)
@@ -85,10 +85,8 @@ module treevars
              maxships, &       ! max # multipole ships per traversal 
              sum_ships, &      ! total # multipole ships per iteration  
              sum_fetches, &    ! total # key fetches  per iteration  
-             nbranch_max, &    ! array space needed for branches
-             nbranch_local_max, &
              free_lo, &        ! min address allowed for resolving collisions
-	         tablehigh, &      ! highest current address in #table
+             tablehigh, &      ! highest current address in #table
              sum_unused, &     ! # free addresses
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
