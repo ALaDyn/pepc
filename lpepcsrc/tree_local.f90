@@ -22,7 +22,7 @@ subroutine tree_local
   use treevars
   use timings
   use tree_utils
-  use module_math_tools
+  use module_branching
 
   implicit none
   include 'mpif.h'
@@ -44,25 +44,7 @@ subroutine tree_local
   integer*8, dimension(maxaddress) :: res_key,search_key, resolve_key
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
 
-  ! stuff for getting a virtual domain
-  integer*8 :: right_limit_me, right_limit
-  integer*8 :: left_limit_me, left_limit
-  integer*8 :: left_virt_limit, right_virt_limit
-
-  ! stuff for estimation
-  integer*8 :: branch_level(0:nlev)    ! start at level 1 (root can not be a branch)
-  integer*8 :: branch_level_D1(0:nlev) ! partial occupancy of D1
-  integer*8 :: branch_level_D2(0:nlev) ! partial occupancy of D2
-
-  integer*8 :: speedup_potenz(0:nlev)
-  integer*8 :: D1, D2                  ! partial domains
-  integer*8 :: L                       ! inner limit
-  integer*8 :: branch_max_local        ! estimation for local branches
-  integer*8 :: ilevel, pos
-  integer*8 :: possible_branch
-
   integer,external :: key2addr        ! Mapping function to get hash table address from key
-  logical,external :: testaddr         ! Inverse Mapping function to test existence of key
 
 !!! --------------- TREE BUILD ---------------
 
@@ -404,115 +386,8 @@ subroutine tree_local
   nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
   ntwig_me = ntwig
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after treebuild     ')
-  
-  if (num_pe > 1) then
-    ! get local key limits
-    left_limit_me=pekey(1)
-    right_limit_me=pekey(npp)
 
-    ! get key limits for neighbor tasks
-    ! and build virtual limits, so that a minimum set a branch nodes comes arround
-    ! boundary tasks can access their boundary space fully only need one virtual limit
-    if(me.eq.0)then
-       right_limit=pekey(npp+1)
-       right_virt_limit = bpi(right_limit_me,right_limit)
-       left_virt_limit=2_8**(nlev*3)
-    else if(me.eq.(num_pe-1))then
-       left_limit=pekey(npp+1)
-       left_virt_limit  = bpi(left_limit,left_limit_me)
-       right_virt_limit=2_8**(3*nlev+1)-1
-    else
-       left_limit=pekey(npp+2)
-       right_limit=pekey(npp+1)
-       left_virt_limit  = bpi(left_limit,left_limit_me)
-       right_virt_limit = bpi(right_limit_me,right_limit)
-    end if
-  else
-    left_virt_limit=2_8**(nlev*3)
-    right_virt_limit=2_8**(3*nlev+1)-1
-  end if
-
-  ! First find highest power in the Virtual Domain
-  L = bpi(left_virt_limit,right_virt_limit)
-  
-  ! divide in two sub-domains
-  ! only the last tasks must get 1 particle more
-  ! because it s right limit is possibly not presentable
-  D1 = L-left_virt_limit
-  if(me.eq.(num_pe-1))then
-    D2 = right_virt_limit-L+1
-  else
-    D2 = right_virt_limit-L
-  end if
-  
-  ! get estimation number of branches at all levels
-  !min_branch_level_D1 = nlev - log(1._8*D1)/log(8._8) + 1
-  !min_branch_level_D2 = nlev - log(1._8*D2)/log(8._8) + 1
-  !min_branch_level = min( min_branch_level_D1,min_branch_level_D2)
-  ! but too expensive because array must be preset with zero
-  do ilevel=0,nlev
-     pos=3*(nlev-ilevel)
-     branch_level_D1(ilevel)=ibits(D1,pos,3_8)
-     branch_level_D2(ilevel)=ibits(D2,pos,3_8)
-     branch_level(ilevel)=branch_level_D1(ilevel)+branch_level_D2(ilevel)
-  end do
-
-  ! estimate local number
-  branch_max_local = SUM(branch_level(:))
-
-  ! get global estimation
-  ! theoretically every task can calculate the branches for every other
-  ! because the limits are known, but with a increasing number of tasks
-  ! this will be very expensive, therefore communication is used
-  ! TODO: move to good place (other collective) to save latency
-  call MPI_REDUCE(branch_max_local, branch_max_global, 1, MPI_INTEGER8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-
-  ! Determine minimum set of branch nodes making up local domain
-  nbranch = 0
-
-  speedup_potenz = (/(8**ilevel,ilevel=0,nlev)/)
-
-  ! add placeholder-bit to inner limit L
-  ! first get level of limit L
-  ilevel = int(log(1._8*L)/log(8._8))
-
-  !pos=L
-  !L=L+8**(ilevel+1)
-  !if(me.eq.0)write(*,'(o25,o25,o25,o25,i10)')L,pos,left_virt_limit,right_virt_limit,ilevel
-
-  ! for D1
-  pos=L
-  do ilevel=0,nlev
-     do j=1,int(branch_level_D1(ilevel))
-        pos = pos - speedup_potenz((nlev-ilevel))!8**(nlev-ilevel)
-        possible_branch=ishft(pos,-3*(nlev-ilevel))
-        ! After build hashtable should contain calculated key
-        ! otherwise branch does not exists
-        ! if entry exists it is counted as branch
-        ! otherwise discarded
-        if(testaddr(possible_branch))then ! entry exists
-            nbranch = nbranch + 1
-            pebranch(nbranch) = possible_branch
-        end if
-     end do
-  end do
-
-  ! for D2
-  pos=L-1
-  do ilevel=0,nlev
-     do j=1,int(branch_level_D2(ilevel))
-        pos = pos + speedup_potenz((nlev-ilevel))!8**(nlev-ilevel)
-        possible_branch=ishft(pos,-3*(nlev-ilevel))
-        ! After build hashtable should contain calculated key
-        ! otherwise branch does not exists
-        ! if entry exists it is counted as branch
-        ! otherwise discarded
-        if(testaddr(possible_branch))then ! entry exists
-            nbranch = nbranch + 1
-            pebranch(nbranch) = possible_branch
-        end if
-     end do
-  end do
+  call find_branches(branch_level_D1, branch_level_D2)
 
   if (tree_debug .and. (proc_debug==me .or.proc_debug==-1)) call check_table('after local branches     ')
 

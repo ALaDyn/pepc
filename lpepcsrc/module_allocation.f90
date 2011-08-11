@@ -200,8 +200,6 @@ module module_allocation
 
 		  nppm_ori = nppm
 
-		  nlev = 20                     ! max refinement level
-		  iplace = 2_8**(3*nlev)           ! place holder bit
 		  free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
 
 		  ! array allocation

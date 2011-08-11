@@ -8,6 +8,7 @@
 subroutine libpepc_setup(my_rank,n_cpu,db_level)
   use treevars
   use module_fmm_framework
+  use module_branching
   implicit none
   integer, intent(in) :: db_level, my_rank, n_cpu
 
@@ -80,6 +81,9 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
 
   ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
   call fmm_framework_init(me, wellsep = 1)
+
+  ! initialize data structures in module_branches
+  call branches_initialize()
 
 end subroutine libpepc_setup
 
