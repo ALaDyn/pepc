@@ -1,0 +1,39 @@
+! new page
+size 19 14
+set font psh
+
+
+
+!  Data format
+!    t	Utot	Upot	Ukin	Ukine	Ukini	Utherme	  Uthermi  Ufield
+!	 d1	 d2	 d3	  d4	  d5	  d6	   d7	   d8
+
+set lwidth 0.07
+set hei 0.5
+begin translate 0 0
+begin graph
+	size 19 15
+	nobox
+!	title "Ion energy distributions @ 900 \omega_p^{-1}" hei .6
+	xtitle " U_e / MeV" hei .8
+	ytitle " f(U_e)dU_e  " hei .8
+	xlabels hei 0.8
+	ylabels hei 0.8
+	xaxis min 0 max 3 nticks 3 
+	yaxis  min 1 max 1e7 log
+        xticks length .12
+        yticks length .12
+
+	data fhot_50fs d1=c1,c2
+	data fhot_100fs d2=c1,c2
+	data fhot_150fs d3=c1,c2
+	key position tr
+	d1 lstyle 1 color blue msize .4 key "50 fs" 
+	d2 lstyle 9 color green  key "100 fs"
+	d3 lstyle 2 color orange  key "150 fs"
+
+
+end graph
+
+end translate
+

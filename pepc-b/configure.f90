@@ -74,7 +74,6 @@ subroutine configure
             endif
             plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
 
-            velocity_config=1
             offset_e = my_rank*nep + ne_rest
             offset_i = ne + my_rank*nip + ni_rest
 

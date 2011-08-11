@@ -1,0 +1,42 @@
+set color black hei .3
+psize=0.4
+amove        0.3699       0.2461
+marker otimes 
+rmove        0.1000       0.1000
+text     54
+set lwidth .01 hei .02
+set color orange 
+amove        0.4520       0.1516
+box        0.1224       0.1224
+amove        0.4824       0.1838
+circle    0.08778*psize fill orange 
+set color black
+amove        0.5132       0.2128
+set color orange 
+amove        0.5744       0.1516
+box        0.1224       0.1224
+amove        0.6279       0.2377
+circle    0.08778*psize fill orange 
+set color black
+amove        0.6355       0.2128
+set color orange 
+amove        0.6967       0.1516
+box        0.1224       0.1224
+amove        0.7175       0.2576
+circle    0.08778*psize fill orange 
+set color black
+amove        0.7579       0.2128
+set color orange 
+amove        0.5744       0.2739
+box        0.1224       0.1224
+amove        0.6450       0.3415
+circle    0.08778*psize fill orange 
+set color black
+amove        0.6355       0.3351
+set color orange 
+amove        0.5744       0.3963
+box        0.1224       0.1224
+amove        0.6172       0.5030
+circle    0.11034*psize fill orange 
+set color black
+amove        0.6355       0.4575

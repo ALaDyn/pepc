@@ -145,7 +145,7 @@ subroutine plasma_start(my_rank, i1, n, nglobal, label_off, target_geometry, idi
 
   case(2) ! disc
      Vplas = pi * r_sphere**2 * x_plasma
-     Aplas = Vplas
+     Aplas = pi*r_sphere**2
      number_faces = 3
 
   case(12) ! hollow tube
@@ -156,7 +156,11 @@ subroutine plasma_start(my_rank, i1, n, nglobal, label_off, target_geometry, idi
   case(3) ! wire
      Vplas = pi * r_sphere**2 * z_plasma
      Aplas = pi*r_sphere**2
-     number_faces = 3
+     if (idim.eq.2) then
+	number_faces = 1 ! In 2D, just check particles inside circle radius r_sphere
+     else 
+	number_faces = 3 ! Otherwise check z-faces too
+     endif
 
   case(13) ! hollow wire
      Vplas = pi * (r_sphere**2 - (r_sphere-x_plasma)**2) * z_plasma
@@ -221,12 +225,12 @@ subroutine plasma_start(my_rank, i1, n, nglobal, label_off, target_geometry, idi
         xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
         yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
         zt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(3)
-	if (idim.eq.2) zt=0.
 
      case(3,13) ! wire
         xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)         
         yt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(2)
-        zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
+        zt =  plasma_centre(3)
+	if (idim.eq.3) zt=zt + .5 * z_plasma * (2 * rano(iseed1) - 1.) ! Add z-component in 3D
 
      case(4) ! ellipsoid
         xt = r_sphere * (2 * rano(iseed1) - 1.) * x_plasma + plasma_centre(1)
