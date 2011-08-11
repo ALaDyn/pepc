@@ -131,7 +131,7 @@ module module_branching
               D2 = right_virt_limit-L
            end if
   
-           call get_local_csbe(branch_level, branch_level_D1, branch_level_D2)
+           call get_local_csbe(D1, D2, branch_level, branch_level_D1, branch_level_D2)
 
 
            ! estimate local number
@@ -165,22 +165,28 @@ module module_branching
         !> get keys of all estimated global branches
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine get_global_apriori_branches()
+        subroutine get_global_apriori_branches(resultarray, numbranches)
            implicit none
            include 'mpif.h'
 
-           integer*8 :: allD1(num_pe), allD2(num_pe) 
-           integer*8 :: est_global_branch_keys(branch_max_global)
+           integer*8 :: allD1(num_pe), allD2(num_pe) , allL(num_pe)
            integer :: ierr 
+           integer :: i
+           integer*8, dimension(1:branch_max_global), intent(out) :: resultarray
+           integer, dimension(0:num_pe-1), intent(out) :: numbranches
+           integer :: resultidx
 
            ! get D1 and D2 of all tasks
            call MPI_Allgather( D1, 1, MPI_INTEGER8, allD1, 1, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
            call MPI_Allgather( D2, 1, MPI_INTEGER8, allD2, 1, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
+           call MPI_Allgather(  L, 1, MPI_INTEGER8, allL,  1, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
 
-            ! TODO: Helges methode
+           resultidx = 0
+           do i=0,num_pe-1
+             numbranches(i) = find_possible_branches(allD1(i), allD2(i), allL(i), resultarray, resultidx)
+             resultidx = resultidx + numbranches(i)
+           end do
 
-
-           
         end subroutine get_global_apriori_branches
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -188,9 +194,10 @@ module module_branching
         !> make cross sum and store
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine get_local_csbe(branch_level, branch_level_D1, branch_level_D2)
+        subroutine get_local_csbe(D1, D2, branch_level, branch_level_D1, branch_level_D2)
            implicit none
 
+           integer*8, intent(in) :: D1, D2
            integer*8 :: ilevel, pos
            integer*8, intent(out) :: branch_level(0:nlev), branch_level_D1(0:nlev), branch_level_D2(0:nlev)
  
@@ -266,7 +273,53 @@ module module_branching
       end subroutine find_branches
 
 
-     
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> calculates all possible branch keys in VLD D1 and D2 with
+      !> inner limit L
+      !> return keys are put into result array, starting from index resultidx
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      function find_possible_branches(D1, D2, L, resultarray, resultidx)
+       implicit none
+       integer :: find_possible_branches
+       integer*8, intent(in) :: D1, D2, L
+       integer*8, intent(inout), dimension(1:branch_max_global) :: resultarray
+       integer, intent(in) :: resultidx
+
+       integer*8 :: ilevel, j
+       integer*8 :: pbranch_level(0:nlev), pbranch_level_D1(0:nlev), pbranch_level_D2(0:nlev)
+       integer*8 :: pos
+
+       find_possible_branches = 0
+
+       ! add placeholder-bit to inner limit L
+       ! first get level of limit L
+       ilevel = int(log(1._8*L)/log(8._8))
+
+       call get_local_csbe(D1, D2, pbranch_level, pbranch_level_D1, pbranch_level_D2)
+
+       ! for D1
+       pos=L
+       do ilevel=0,nlev
+          do j=1,int(pbranch_level_D1(ilevel))
+             pos = pos - speedup_potenz((nlev-ilevel))!8**(nlev-ilevel)
+             resultarray(resultidx+find_possible_branches) = ishft(pos,-3*(nlev-ilevel))
+             find_possible_branches = find_possible_branches + 1
+          end do
+       end do
+
+       ! for D2
+       pos=L-1
+       do ilevel=0,nlev
+         do j=1,int(pbranch_level_D2(ilevel))
+            pos = pos + speedup_potenz((nlev-ilevel))!8**(nlev-ilevel)
+            resultarray(resultidx+find_possible_branches) = ishft(pos,-3*(nlev-ilevel))
+            find_possible_branches = find_possible_branches + 1
+         end do
+       end do
+
+      end function find_possible_branches
 
 
 end module module_branching
