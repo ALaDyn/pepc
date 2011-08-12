@@ -22,6 +22,12 @@ module module_treediags
 
       public write_branches_to_vtk
       public write_spacecurve_to_vtk
+      public draw_lists
+      public draw_map
+      public draw_domains
+      public draw_tree2d
+      public draw2d
+      public draw2d_hash
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

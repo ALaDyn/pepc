@@ -23,7 +23,7 @@
 !   June 2005:     Separation of tree routines (now in lpepc) from physics applications
 !                  currently include: pepc-e (electrostatic version), pepc-b and pepc-g (gravitation)
 !   January 2010   Modularization of pepc-b; clean separation from lpepc kernel
-!
+!   June 2011	   Merge with pepc2.0 kernel: hybrid mpi+pthreads walk
 !
 !  ==============================================================
 
@@ -52,7 +52,7 @@ program pepcb
   real*4 :: I_laser  ! current laser amplitude
 
 
-  integer :: ierr, ifile, i, init_mb, nppm_ori
+  integer :: ierr, ifile, i, init_mb
   integer :: irecord=0
 
 !POMP$ INST INIT
@@ -115,10 +115,7 @@ program pepcb
 
 
     call configure       ! Set up particles
-
-
- 
-    call param_dump
+    call param_dump	 ! Dump input parameters to pepc.out
 
     ! Compute initial field values
 
@@ -132,15 +129,11 @@ program pepcb
                       itime, weighted, curve_type, &
                       num_neighbour_boxes, neighbour_boxes, .false.)
      
-! TODO - shift to lpepcsrc
-!     if (np_error>0) then
-!        call error_test(np_error)
-!        call diagnose_tree   ! Printed tree info (htable etc)
-!        call draw_tree2d(xl)     ! Draw PE-trees
-!        call draw_lists      ! Draw interaction lists
-!        call draw_domains()   ! Domains
-!        stop
-!     endif
+! Static error test mode
+  if (np_error>0) then
+	write(6,*) 'Entering error test mode'
+	call error_test(np_error)
+  endif
 
   if (debug_level > 1) then
 	  write (ipefile,'(/a/a/(i6,5f12.4))') 'Particle list after configure:', &

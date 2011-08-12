@@ -28,7 +28,8 @@ SOURCES.f90 =  module_physvars.f90 \
                module_particle_boundaries.f90 \
                setup_arrays.f90 setup.f90 configure.f90 integrator.f90 diagnostics.f90 pepcb.f90 
 #               module_xnbody.f90
-SOURCES.GENERIC.f90 = 
+SOURCES.GENERIC.f90 = module_gle.f90 
+
 # -------------------------------------------------------------------------------------------
 
 # check for sion usage, add dump_sion or dump_ascii to src-list

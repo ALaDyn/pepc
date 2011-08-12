@@ -349,6 +349,7 @@ end subroutine kinenergy
       use module_physvars
       use module_particle_props
       use module_utilities
+      use module_gle
 
       implicit none
 !      integer, parameter :: ntest = 3
@@ -372,7 +373,17 @@ end subroutine kinenergy
       end do
 
 ! Get direct forces, potential
-      call force_direct(np_local,ntest,x(1:np_local),y(1:np_local),z(1:np_local),q(1:np_local),listerr(1:ntest),eps,force_const,exd,eyd,ezd,potd)
+      if (force_law==3) then
+	call force_direct(np_local,ntest,x(1:np_local),y(1:np_local),z(1:np_local),q(1:np_local),listerr(1:ntest),eps,force_const,exd,eyd,ezd,potd)
+
+      else if (force_law==2) then
+	call force_direct_2d(np_local,ntest,x(1:np_local),y(1:np_local),q(1:np_local),listerr(1:ntest),eps,force_const,exd,eyd,potd)
+      else
+! no force
+	exd(1:np_local)=0
+	eyd(1:np_local)=0
+	potd(1:np_local)=0
+      endif
 
 ! find rms error
 
@@ -388,36 +399,77 @@ end subroutine kinenergy
       do i=1,ntest
         dfx2 = dfx2 + (exd(i) - ex(listerr(i)))**2
         dfy2 = dfy2 + (eyd(i) - ey(listerr(i)))**2
-        dfz2 = dfz2 + (ezd(i) - ez(listerr(i)))**2
+        if (force_law==3) dfz2 = dfz2 + (ezd(i) - ez(listerr(i)))**2
         dpot = dpot + (potd(i) - pot(listerr(i)))**2
 	spot = spot+ potd(i)**2
         fxs = fxs + exd(i)**2
         fys = fys + eyd(i)**2
-        fzs = fzs + ezd(i)**2
+        if (force_law==3) fzs = fzs + ezd(i)**2
       end do
 
-      open(60,file='forces.dat')
-      write (*,*) 'Writing forces, potentials to forces.dat'
-      write (60,*) '    i     list   nlist,  pot_tree       pot_direct       ex_tree       ex_direct', &
-	'   ey_tree        ey_direct       ez_tree        ez_direct'
-!      write (60,'((2i8,i6,8(1pe14.4)))') (i,listerr(i),nterm(i),pot(listerr(i)),potd(i), &
-!	ex(listerr(i)),exd(i), ey(listerr(i)), eyd(i), ez(listerr(i)), ezd(i), i=1,ntest)
-! Currently no access to nterm(i)
-      write (60,'((2i8,i6,8(1pe14.4)))') (i,listerr(i),pot(listerr(i)),potd(i), &
-	ex(listerr(i)),exd(i), ey(listerr(i)), eyd(i), ez(listerr(i)), ezd(i), i=1,ntest)
 
       err_pot = sqrt(dpot/spot)
       errfx = sqrt(dfx2/fxs)
       errfy = sqrt(dfy2/fys)
-      errfz = sqrt(dfz2/fzs)
+      if (force_law==3) then
+	errfz = sqrt(dfz2/fzs) 
+      else
+	errfz=0
+      endif 
       errf_ave = (errfx+errfy+errfz)/3.
-      write (6,'(a/a20,1pe13.6/a20,3(1pe13.6)/a20,1pe13.6)') 'Relative rms errors:','Potential ',err_pot, &
+
+      open(60,file='forces.dat')
+      write (*,*) 'Writing forces, potentials to forces.dat'
+
+      if (force_law==3) then
+        write (60,*) '    i     list   nlist,  pot_tree       pot_direct       ex_tree       ex_direct', &
+	'   ey_tree        ey_direct       ez_tree        ez_direct'
+!      write (60,'((2i8,i6,8(1pe14.4)))') (i,listerr(i),nterm(i),pot(listerr(i)),potd(i), &
+!	ex(listerr(i)),exd(i), ey(listerr(i)), eyd(i), ez(listerr(i)), ezd(i), i=1,ntest)
+! Currently no access to nterm(i)
+        write (60,'((2i8,8(1pe14.4)))') (i,listerr(i),pot(listerr(i)),potd(i), &
+	ex(listerr(i)),exd(i), ey(listerr(i)), eyd(i), ez(listerr(i)), ezd(i), i=1,ntest)
+
+  
+        write (6,'(a/a20,1pe13.6/a20,3(1pe13.6)/a20,1pe13.6)') 'Relative rms errors:','Potential ',err_pot, &
 	'Forces (x,y,z) ',errfx,errfy,errfz,'Average force',errf_ave
-      write (60,'(a/a20,1pe13.6/a20,3(1pe13.6)/a20,1pe13.6)') 'Relative rms errors:','Potential ',err_pot, &
+        write (60,'(a/a20,1pe13.6/a20,3(1pe13.6)/a20,1pe13.6)') 'Relative rms errors:','Potential ',err_pot, &
 	'Forces (x,y,z) ',errfx,errfy,errfz,'Average force',errf_ave
 !      write (6,'(a,i8,a1,i8)') 'Ave. list length',SUM(nterm(1:np_local))/np_local,'/',np_local
 !      write (60,'(a,i8,a1,i8)') 'Ave. list length',SUM(nterm(1:np_local))/np_local,'/',np_local
+
+
+      else if (force_law==2) then
+        write (60,*) '    i     list   nlist,  pot_tree       pot_direct       ex_tree       ex_direct', &
+	'   ey_tree        ey_direct'
+!      write (60,'((2i8,i6,8(1pe14.4)))') (i,listerr(i),nterm(i),pot(listerr(i)),potd(i), &
+!	ex(listerr(i)),exd(i), ey(listerr(i)), eyd(i), ez(listerr(i)), ezd(i), i=1,ntest)
+! Currently no access to nterm(i)
+        write (60,'((2i8,6(1pe14.4)))') (i,listerr(i),pot(listerr(i)),potd(i), &
+	ex(listerr(i)),exd(i), ey(listerr(i)), eyd(i), i=1,ntest)
+
+  
+        write (6,'(a/a20,1pe13.6/a20,2(1pe20.12)/a20,1pe20.12)') 'Relative rms errors:','Potential ',err_pot, &
+	'Forces (x,y) ',errfx,errfy,'Average force',errf_ave
+        write (60,'(a/a20,1pe13.6/a20,2(1pe20.12)/a20,1pe20.12)') 'Relative rms errors:','Potential ',err_pot, &
+	'Forces (x,y) ',errfx,errfy,'Average force',errf_ave
+!      write (6,'(a,i8,a1,i8)') 'Ave. list length',SUM(nterm(1:np_local))/np_local,'/',np_local
+!      write (60,'(a,i8,a1,i8)') 'Ave. list length',SUM(nterm(1:np_local))/np_local,'/',np_local
+      else
+      endif
+
       close(60)
+
+! Tree diagnostics
+! If interaction lists needed, must ensure that intlist() is large enough to contain all lists
+! - will otherwise just get last pass of tree walk
+
+        call diagnose_tree   ! Printed tree info (htable etc)
+        call draw_tree2d(xl)     ! Draw PE-trees
+!        call draw_lists      ! Draw interaction lists
+        call draw_domains()   ! Domains
+        stop
+
       end subroutine error_test
 
 
@@ -470,4 +522,50 @@ subroutine force_direct(n,ntest,x,y,z,q, list, eps, const, ex, ey, ez, pot)
 
 
 end subroutine force_direct
+
+!  ====================================================================
+!
+!                              FORCE_DIRECT_2D
+!
+!   Direct PP force sum for error estimates - 2D force law
+!
+!  ====================================================================
+
+subroutine force_direct_2d(n,ntest,x,y,q, list, eps, const, ex, ey, pot)
+  implicit none
+  real, intent(in) :: eps, const
+  integer, intent(in) :: n, ntest
+  integer, intent(in), dimension(n) :: list 
+  real*8, intent(in), dimension(n) :: x, y, q  ! coords and charge 
+  real*8,  dimension(ntest) :: ex, ey, pot  ! fields and potential to return
+
+  real :: eps2, d2, dx, dy
+  integer :: i,j,k
+!  write (*,*) 'Direct sum params: ',eps,const
+!  write (*,'(a10,a20/(i6,4f15.3))') 'DIRECT | ','Initial buffers: ',(i, x(i), y(i), z(i), q(i),i=1,n) 
+ eps2=eps**2
+  ex(1:ntest) = 0.
+  ey(1:ntest) = 0.
+  pot(1:ntest) = 0.
+
+  !  PP contribution from simulation volume
+
+  do  k=1,ntest
+     i=list(k)
+!     write (*,*) i,'x_i=',x(i)
+     do  j=1,n
+        if (j.ne.i) then
+           dx=x(i)-x(j)
+           dy=y(i)-y(j)
+           d2 = dx**2+dy**2+eps2
+           ex(k) = ex(k) + const*q(j)*dx/d2
+           ey(k) = ey(k) + const*q(j)*dy/d2
+           pot(k) = pot(k) - const*0.5*q(j)*log(d2)
+!          write (*,'(i5,a5,f12.3,a5,f12.3,a5,f12.3)') j,'q_j=',q(j),' x_j=',x(j), ' d=',d
+        endif
+     end do
+  end do
+
+
+end subroutine force_direct_2d
 end module module_diagnostics
