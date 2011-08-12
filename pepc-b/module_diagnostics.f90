@@ -415,8 +415,9 @@ end subroutine kinenergy
 	errfz = sqrt(dfz2/fzs) 
       else
 	errfz=0
+
       endif 
-      errf_ave = (errfx+errfy+errfz)/3.
+      errf_ave = (errfx+errfy+errfz)/idim
 
       open(60,file='forces.dat')
       write (*,*) 'Writing forces, potentials to forces.dat'
@@ -468,7 +469,7 @@ end subroutine kinenergy
         call draw_tree2d(xl)     ! Draw PE-trees
 !        call draw_lists      ! Draw interaction lists
         call draw_domains()   ! Domains
-        stop
+       
 
       end subroutine error_test
 
