@@ -32,7 +32,6 @@ module treevars
                                 treekey(:), &       ! keys of all twig and leaf nodes
                                 branch_key(:), &    ! keys of branch nodes covering all domains
                                 pebranch(:), &	    ! keys of branch nodes covering local domain
-				                leaf_key(:), & 	    ! local leaf keys
 	                            twig_key(:)         ! local twig keys
 
   integer, allocatable :: &

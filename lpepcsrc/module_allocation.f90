@@ -91,7 +91,7 @@ module module_allocation
 
 		  allocate ( htable(0:maxaddress), all_addr(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
 		       treekey(maxaddress), branch_key(branch_max_global), branch_owner(branch_max_global), &
-		       pebranch(branch_max_global), leaf_key(maxaddress), twig_key(maxaddress) )
+		       pebranch(branch_max_global), twig_key(maxtwig) )
 
 		  all_addr = (/ (k,k=0,maxaddress) /)      ! List of all possible # table addresses
 
@@ -135,7 +135,7 @@ module module_allocation
 
 		  deallocate ( htable, all_addr, free_addr, point_free, &
 		       treekey, branch_key, branch_owner, &
-		       pebranch, leaf_key, twig_key )
+		       pebranch, twig_key )
 
 		  deallocate ( first_child, node_level )
 
