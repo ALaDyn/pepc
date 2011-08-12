@@ -1,58 +1,52 @@
-! ===========================================
-!
-!           GET_NEXT_NODE
-!
-! $Revision$
-!
-!   Function to return key of next node in local tree-walk
-!   
-!
-! ===========================================
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>
+!> Function to return key of next node in local tree-walk,
+!> i.e. search for next sibling, uncle, great-uncle etc
+!>
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 function next_node(keyin)
 
   use treevars
 
   implicit none
   integer*8 :: next_node
-  integer*8 :: keyin
-  logical :: resolved
-  logical, dimension(8) :: keymatch
-  integer*8, dimension(8) :: child_key, child_sub
-  integer*8 :: node_key, search_key, parent,  child_top
-  integer :: node_addr, parent_node, child_byte, nchild
-  integer :: jmatch(1), j
+  integer*8, intent(in) :: keyin
+  integer :: start_child_idx = 0
+
+
+  integer*8 :: search_key, parent_key
+  integer :: parent_addr
+  integer :: parent_child_byte, search_child_idx
+
   integer :: key2addr        ! Mapping function to get hash table address from key
 
-  search_key = keyin                   
-  node_key = keyin                     ! keep key, address of node 
-  node_addr = key2addr(keyin,"next_node(), line 29")
-  resolved = .false.
+  search_key = keyin
 
-  !   Search for next sibling, uncle, great-uncle etc
+  ! search for next sibling, uncle, great-uncle etc
+  do while (search_key > 1) ! loop through parent nodes up to root
+    parent_key        = ishft(search_key,-3)
+    parent_addr       = key2addr( parent_key ,"next_node(), get parent_addr" )
+    parent_child_byte = ibits( htable( parent_addr ) % childcode, 0, 8)
 
-  do while (.not. resolved .and. search_key > 1)
-     parent =  ishft(search_key,-3)                 ! parent
-     parent_node = htable( key2addr( parent ,"next_node(), line 36" ) )%node   ! parent node pointer
+    search_child_idx  = int(ibits( search_key, 0, 3), kind(search_child_idx) ) ! lower three bits of key
 
-     child_byte = htable( key2addr( parent ,"next_node(), line 38" ) )%childcode                           !  Children byte-code
-     nchild = SUM( (/ (ibits(child_byte,j,1),j=0,7) /) )                   ! # children = sum of bits in byte-code
-     child_sub(1:nchild) = pack( bitarr, mask=(/ (btest(child_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
-     child_top = ishft(parent,3)  
-     child_key(1:nchild) = IOR( child_top, child_sub(1:nchild) )         ! Construct keys of children
+    do ! loop over all siblings
+      search_child_idx   = modulo(search_child_idx + 1, 8) ! get next sibling, possibly starting again from first one
 
-     keymatch=.false.
-     keymatch(1:nchild) = (/ (child_key(j) == search_key,j=1,nchild) /)
-     jmatch = pack(bitarr, mask = keymatch ) + 1                                  ! Pick out position of current search key in family
+      ! if sibling-loop wrapped and reached starting point again --> go up one level
+      if ( search_child_idx == start_child_idx ) then
+          search_key = parent_key      ! go up one level
+          exit
+      endif
 
-     if (jmatch(1) < nchild ) then                                                ! if search_key has 'elder' sibling then
-        next_node  = child_key(jmatch(1)+1)                        ! store next_node as sibling of parent/grandparent
-        resolved = .true.
-     else
-        search_key = ishft(search_key, -3)                                     ! Go up one level 
-     endif
+      ! if sibling exists: next_node has been found
+      if ( btest(parent_child_byte, search_child_idx) ) then
+          next_node = ior(ishft(parent_key, 3), search_child_idx) ! assemble next_node out of parent-key and new sibling-index
+          return
+      endif
+    end do
   end do
 
-  if (.not. resolved .and. search_key == 1) next_node  = 1        ! Top-right corner reached: set pointer=root
+  next_node  = 1 ! nothing has been found, i.e. top-right corner reached: set pointer=root
 
 end function next_node
