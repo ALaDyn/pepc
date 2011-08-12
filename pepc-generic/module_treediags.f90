@@ -47,10 +47,10 @@ module module_treediags
           use treevars
           use module_vtk
           use module_spacefilling
+          use module_htable
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
-          integer :: key2addr
 
           integer :: i,j, baddr, bnode
           integer*8 :: bkey

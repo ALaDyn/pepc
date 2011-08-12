@@ -19,18 +19,6 @@ module treetypes
   end type results
 
 
-  ! Hash table datatype - 36 bytes per entry
-  type hash
-     integer   :: node          ! Address of particle/pseudoparticle data
-     integer*8 :: key           ! Key
-     integer   :: link          ! Pointer to next empty address in table in case of collision
-     integer   :: leaves        ! # leaves contained within twig (=1 for leaf, npart for root)
-     integer   :: childcode     ! Byte code indicating position of children (twig node); particle label (leaf node)
-     integer*8 :: next          ! Pointer to next key to examine in tree-walk
-     integer   :: owner         ! Node owner (for branches)
-  end type hash
-
-
  ! Data structure for shipping single particles
   type particle
      real*8 :: x    ! coords

@@ -23,6 +23,7 @@ subroutine tree_local
   use timings
   use tree_utils
   use module_math_tools
+  use module_htable
 
   implicit none
   include 'mpif.h'
@@ -61,9 +62,6 @@ subroutine tree_local
   integer*8 :: ilevel, pos
   integer*8 :: possible_branch
 
-  integer,external :: key2addr        ! Mapping function to get hash table address from key
-  logical,external :: testaddr         ! Inverse Mapping function to test existence of key
-
 !!! --------------- TREE BUILD ---------------
 
  
@@ -74,8 +72,7 @@ subroutine tree_local
   if (tree_debug) write(ipefile,'(/a)') 'TREE LOCAL'
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | LOCAL BUILD'
 
-  ! zero table: need list of 'live' addresses to speed up
-  htable = hash(0,0_8,-1,0,0,0_8,0)
+  call htable_clear()
 
   do i=1,npp+2
      local_plist(i) = pelabel(i)       ! Particle (global) label for tracking purposes 

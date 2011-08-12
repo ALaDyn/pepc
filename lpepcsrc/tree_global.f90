@@ -3,6 +3,7 @@ subroutine tree_global
   use treevars
   use timings
   use tree_utils
+  use module_htable
   implicit none
   include 'mpif.h'
 
@@ -17,9 +18,6 @@ subroutine tree_global
   integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
   integer, dimension(maxaddress) ::  parent_node
   logical :: duplicate(maxaddress)
-
-  integer, external :: key2addr        ! Mapping function to get hash table address from key
-  integer*8, external :: next_node   ! Function to get next node key for local tree walk
 
   call timer_start(t_global)
   call timer_start(t_fill_local)
@@ -237,7 +235,7 @@ subroutine tree_global
   do i = nnodes,2,-1
      search_key = treekey(i)                   
      node_addr = cell_addr(i)
-     htable( node_addr )%next = next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
+     htable( node_addr )%next = get_next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
   end do  
 
 

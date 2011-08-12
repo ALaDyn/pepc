@@ -214,7 +214,6 @@ module tree_walk_communicator
       ! initializes bsend buffer and rwlock objects
       ! returns size of bsend buffer in buffsize in bytes
       subroutine init_comm_data()
-        use, intrinsic :: iso_c_binding
         implicit none
         include 'mpif.h'
         integer :: msg_size_request, msg_size_data
@@ -330,7 +329,6 @@ module tree_walk_communicator
 
 
     subroutine run_communication_loop_inner(walk_finished)
-        use, intrinsic :: iso_c_binding
         implicit none
         include 'mpif.h'
         logical :: msg_avail
@@ -488,7 +486,6 @@ module tree_walk_communicator
 
 
       subroutine uninit_comm_data()
-        use, intrinsic :: iso_c_binding
         implicit none
         include 'mpif.h'
         integer :: ierr
@@ -567,7 +564,6 @@ module tree_walk_communicator
 
 
       subroutine notify_walk_finished()
-        use, intrinsic :: iso_c_binding
         use treevars
         implicit none
 
@@ -605,8 +601,8 @@ module tree_walk_communicator
 
       ! this routine is thread-safe to prevent concurrent write access to the queue
       subroutine post_request(request_key, request_addr)
-        use, intrinsic :: iso_c_binding
         use treevars
+        use module_htable
         implicit none
         include 'mpif.h'
         integer*8, intent(in) :: request_key
@@ -663,7 +659,7 @@ module tree_walk_communicator
 
 
     subroutine send_requests()
-      use, intrinsic :: iso_c_binding
+      use module_htable
       implicit none
       include 'mpif.h'
 
@@ -728,6 +724,7 @@ module tree_walk_communicator
 
 
     subroutine send_data(requested_key, ipe_sender)
+      use module_htable
       implicit none
       include 'mpif.h'
       integer*8, intent(in) :: requested_key
@@ -738,8 +735,6 @@ module tree_walk_communicator
       integer*8, dimension(8) :: sub_key, key_child, next_child
       integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child
       integer :: j, ic, ierr, nchild
-
-      integer :: key2addr        ! Mapping function to get hash table address from key
 
       if (walk_comm_debug) then
         write(ipefile,'("PE", I6, " answering request.                         request_key=", O22, ",        sender=", I6)') &
@@ -802,6 +797,7 @@ module tree_walk_communicator
 
 
     subroutine unpack_data(child_data, num_children, ipe_sender)
+      use module_htable
       implicit none
       include 'mpif.h'
       type (multipole) :: child_data(8) !< child data that has been received
@@ -811,9 +807,6 @@ module tree_walk_communicator
       integer*8 :: kchild, kparent(8), nxchild
       integer :: node_addr, hashaddr, lchild, nchild, nodchild, bchild, ownerchild
       integer :: j, ic, ierr
-
-      integer :: key2addr        ! Mapping function to get hash table address from key
-      integer*8 :: next_node   ! Function to get next node key for local tree walk
 
       request_balance(ipe_sender+1) = request_balance(ipe_sender+1) - 1
 
@@ -879,7 +872,7 @@ module tree_walk_communicator
         !  This  ensures that traversals in next pass treat already-fetched nodes as local,
         !  avoiding deferral list completely.
         if (nxchild == -1) then
-          htable( hashaddr )%next = next_node(kchild)  !   Get next sibling, uncle, great-uncle in local tree
+          htable( hashaddr )%next = get_next_node(kchild)  !   Get next sibling, uncle, great-uncle in local tree
         else
           htable(hashaddr)%next = nxchild           ! Fill in special next-node pointer for non-local children
         endif
@@ -1136,7 +1129,6 @@ module tree_walk_utils
 
 
     subroutine uninit_walk_data()
-      use, intrinsic :: iso_c_binding
       use tree_walk_communicator
       implicit none
       deallocate(boxlength2)
@@ -1298,6 +1290,7 @@ module tree_walk_utils
 
    function walk_single_particle(nodeidx, nintmax, todo_list, todo_list_top, todo_list_bottom, todo_list_minlevel_next, my_threaddata)
       use tree_walk_communicator
+      use module_htable
       use module_calc_force
       implicit none
       include 'mpif.h'
@@ -1312,7 +1305,6 @@ module tree_walk_utils
       integer*8 :: walk_key, next_key
       integer :: walk_addr, walk_node
 
-      integer :: key2addr        ! Mapping function to get hash table address from key
       integer :: newtop
       real*8 :: dist2
       real*8 :: delta(3)

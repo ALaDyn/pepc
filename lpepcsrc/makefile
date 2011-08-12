@@ -10,8 +10,7 @@ PEPCSRC.f90 =   treevars.f90 tree_utils.f90 timings.f90 treetypes.f90 \
                 module_calc_force.f90 tree_aswalk_pthreads.f90 libpepc_setup.f90 \
                 tree_domains.f90 restore.f90 module_allocation.f90 libpepc_finalize.f90 \
                 tree_stats.f90 tree_local.f90 tree_exchange.f90 tree_global.f90 \
-                make_hashentry.f90 get_address.f90 get_next_node.f90 module_spacefilling.f90 \
-                diagnose_tree.f90 check_table.f90 module_pepcfields.f90 mac.f90
+                module_spacefilling.f90 module_htable.f90 module_pepcfields.f90 mac.f90
 #-------------------------------------------------------------------------------------------
 
 # Names of application object files derived from sources

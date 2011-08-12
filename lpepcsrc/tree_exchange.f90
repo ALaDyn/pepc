@@ -2,6 +2,7 @@ subroutine tree_exchange
 
   use treevars
   use timings
+  use module_htable
   implicit none
   include 'mpif.h'
 
@@ -12,8 +13,6 @@ subroutine tree_exchange
   type (multipole), dimension(nbranch) :: pack_mult
   real*8, allocatable :: get_size(:)
   type (multipole),allocatable :: get_mult(:)
-
-  integer,external :: key2addr        ! Mapping function to get hash table address from key
 
   call timer_start(t_exchange_branches)
 

@@ -4,7 +4,6 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_allocation
-      use module_debug
       implicit none
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -42,6 +41,8 @@ module module_allocation
 		subroutine allocate_tree(theta)
 		  use treevars
 		  use timings
+          use module_debug
+          use module_htable
 		  implicit none
 
 		  real, intent(in) :: theta
@@ -124,7 +125,7 @@ module module_allocation
 		  free_addr = 0
 
 		  ! Empty hashtable
-		  htable = hash(0,0_8,-1,0,0,0_8,0)
+		  call htable_clear()
 
 		  ! Allocate memory for tree node properties
 
@@ -152,6 +153,8 @@ module module_allocation
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		subroutine deallocate_tree(nppm_ori)
 		  use treevars
+          use module_debug
+          use module_htable
 		  implicit none
           integer, intent(in) :: nppm_ori
 

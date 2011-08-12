@@ -18,9 +18,6 @@ module treevars
   integer :: me       ! Rank of current task
   integer :: num_pe   ! # cpus used by program
 
-  !  hash table
-  type (hash), allocatable :: htable(:)
-  
   type (particle) :: ship_props, get_props
 
   type (multipole) :: node_dummy
