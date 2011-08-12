@@ -18,8 +18,6 @@ module treevars
   integer :: me       ! Rank of current task
   integer :: num_pe   ! # cpus used by program
 
-  type (particle) :: ship_props, get_props
-
   type (multipole) :: node_dummy
 
   integer :: mpi_type_particle, mpi_type_multipole, mpi_type_results

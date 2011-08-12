@@ -4,7 +4,6 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_spacefilling
-      use treevars
       implicit none
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -40,10 +39,24 @@ module module_spacefilling
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
+        !> calculates level from key by finding position of placeholder bit
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        function level_from_key(key)
+          implicit none
+          integer*8, intent(in) :: key
+          integer :: level_from_key
+
+          level_from_key = int( log(1._8*key) / log(8._8))
+
+        end function
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
         !> calculates keys form local particles (faster than per-particle call to coord_to_key())
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine compute_particle_keys(local_key)
+          use treevars
           implicit none
           integer*8, intent(out) :: local_key(nppm)
           integer*8, dimension(nppm) :: ix, iy, iz
@@ -89,6 +102,7 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function coord_to_key_lastlevel(x, y, z)
+          use treevars, only : nlev, boxsize, xmin, ymin, zmin
           implicit none
           integer*8 :: coord_to_key_lastlevel
           real*8, intent(in) :: x, y, z
@@ -119,6 +133,7 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function coord_to_key_level(x, y, z, level)
+          use treevars, only : nlev
           implicit none
           integer*8 :: coord_to_key_level
           real*8, intent(in) :: x, y, z
@@ -135,6 +150,7 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_coord(key, x, y, z)
+          use treevars, only : nlev, boxsize, xmin, ymin, zmin
           implicit none
           integer*8, intent(in) :: key
           real*8, intent(out) :: x, y, z
@@ -167,6 +183,7 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function intcoord_to_key_morton(ix, iy, iz)
+          use treevars, only : nlev
           implicit none
           integer*8, intent(in) :: ix, iy, iz
           integer*8 :: intcoord_to_key_morton
@@ -193,12 +210,13 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_intcoord_morton(key, ix, iy, iz)
+          use treevars, only : nlev
           implicit none
           integer*8, intent(out) :: ix, iy, iz
           integer*8, intent(in) :: key
           integer :: i, lev
 
-          lev = int(log(1._8*key)/log(8._8))
+          lev = level_from_key(key)
 
           ix = 0
           iy = 0
@@ -227,6 +245,7 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function intcoord_to_key_hilbert(ix, iy, iz)
+          use treevars
           implicit none
           integer*8, intent(in) :: ix, iy, iz
           integer*8 :: intcoord_to_key_hilbert
@@ -295,6 +314,7 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_intcoord_hilbert(key, ix, iy, iz)
+          use treevars
           implicit none
           integer*8, intent(out) :: ix, iy, iz
           integer*8, intent(in) :: key
@@ -307,7 +327,7 @@ module module_spacefilling
           integer*8, parameter :: G(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G)) ! 3D - hilbert gene
           !integer*8, parameter :: G(0:7,0:1) = reshape([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],shape(G)) ! 3D - hilbert gene
 
-          lev = int(log(1._8*key)/log(8._8))
+          lev = level_from_key(key)
 
 		  iz = 0
 		  iy = 0

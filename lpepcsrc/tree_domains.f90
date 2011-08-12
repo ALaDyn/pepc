@@ -52,6 +52,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   real*8 imba
 
+  type (particle) :: ship_props, get_props
 
 
   interface
@@ -303,11 +304,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   ! Copy boundary particles to adjacent PEs to ensure proper tree construction
   !  - if we do not do this, can get two particles on separate PEs 'sharing' a leaf
-
-
-  !  ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), m(1), work(1), &
-  !       ax(1),ay(1),az(1), pekey(1), pelabel(1), pepid(1) )
-
   ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), work(1), &
        pekey(1), pelabel(1), pepid(1) )
 
@@ -338,10 +334,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   endif
 
   ! Ship  end particle data to start of list of RH neighbour PE
-
-  !  ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), work(npp), &
-  !       ax(npp),ay(npp),az(npp), pekey(npp), pelabel(npp), pepid(npp) )
-
   ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), work(npp), &
        pekey(npp), pelabel(npp), pepid(npp) )
 

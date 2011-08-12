@@ -83,7 +83,7 @@ module module_treediags
             baddr     = key2addr(bkey, "write_branches_to_vtk")
             bnode     = htable(baddr)%node
             bowner(i) = htable(baddr)%owner
-            blevel(i) = int(log( 1._8*bkey )/log(8._8))
+            blevel(i) = level_from_key(bkey)
             bsize     = boxsize/2**blevel(i)
             !write(*,'(O10, Z8, I12, I8, I8, 1G12.3, " | ", 3G12.3)') bkey, baddr, bnode, bowner, blevel, bsize, bcoc
             ! prepare voxel data structure

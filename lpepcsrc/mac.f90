@@ -11,6 +11,7 @@
 
 subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,boxl2,theta2, mac, mac_ok, vbox)
   use treevars
+  use module_spacefilling
   implicit none
  
 
@@ -43,7 +44,7 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
   
   if (mac.ne.0) then
   !  get levels of twigs
-  nbits = int(log( 1.*walk_key )/log(8.))
+  nbits = level_from_key(walk_key)
 ! should use:
 !  nbits = node_level(walk_node)
 

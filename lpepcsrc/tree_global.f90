@@ -4,6 +4,7 @@ subroutine tree_global
   use timings
   use tree_utils
   use module_htable
+  use module_spacefilling
   implicit none
   include 'mpif.h'
 
@@ -36,7 +37,7 @@ subroutine tree_global
 ! get levels of branch nodes
   maxlevel=0
   do i=1,nbranch_sum
-     branch_level(i) = int(log( 1.*branch_key(i) )/log(8.))
+     branch_level(i) = level_from_key(branch_key(i))
      maxlevel = max( maxlevel, branch_level(i) )        ! Find maximum level
   end do  
 
@@ -216,7 +217,9 @@ subroutine tree_global
      endif
   end do
 
-  node_level( tree_node(1:nnodes) ) = int(log(1.*treekey(1:nnodes))/log(8.))  ! get levels from keys and prestore as node property
+  do i=1,nnodes
+    node_level( tree_node(i) ) = level_from_key(treekey(i))  ! get levels from keys and prestore as node property
+  end do
   node_level(0) = 0
 
   ! Check tree integrity: Root node should now contain all particles!

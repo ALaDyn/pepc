@@ -24,6 +24,7 @@ subroutine tree_local
   use tree_utils
   use module_math_tools
   use module_htable
+  use module_spacefilling
 
   implicit none
   include 'mpif.h'
@@ -90,7 +91,7 @@ subroutine tree_local
   if ( me /= num_pe-1 ) then
      ! First find level shared by last particle pair in list
      key_lo = ieor( pekey(npp), pekey(npp-1) )   ! Picks out 1st position where keys differ
-     level_diff =  int(log(1.*key_lo)/log(8.))
+     level_diff =  level_from_key(key_lo)
      level_match = max( nlev - level_diff, 1 )    ! Excludes low-level end-cells for discontinuous domains
      ibit = nlev-level_match               ! bit shift factor 
 
@@ -112,7 +113,7 @@ subroutine tree_local
      if ( me == num_pe-1 ) iend = npp+1         ! End node only has one boundary particle
      ! First find level shared by first particle pair in list
      key_lo = ieor( pekey(1), pekey(2)  )   ! Picks out lower order bits where keys differ
-     level_diff =  int(log(1.0*key_lo)/log(8.))
+     level_diff =  level_from_key(key_lo)
 
      level_match = max( nlev - level_diff, 1 )    ! Excludes low-level end-cells for discontinuous domains
      ibit = nlev-level_match               ! bit shift factor 
@@ -367,13 +368,13 @@ subroutine tree_local
      parent_addr = key2addr(parent_key,'BUILD: childbyte')
      ! Construct children byte-code (8 settable bits indicating which children nodes present)
      htable(parent_addr)%childcode = ibset( htable(parent_addr)%childcode, childbyte )
-     treelevel  = int(log(1.*treekey(i))/log(8.))     ! node levels
+     treelevel  = level_from_key(treekey(i))     ! node levels
      if (treelevel==1) then
         nsubset = nsubset+1  ! # nodes at level 1
         search_key(nsubset) = treekey(i)   ! Subset of nodes at same level
      endif
   end do
-  treelevel  = int(log(1.*treekey(nnodes))/log(8.))     ! node levels
+  treelevel  = level_from_key(treekey(nnodes))     ! node levels
   if (treelevel==1) then
      nsubset = nsubset+1  ! # nodes at level 1
      search_key(nsubset) = treekey(nnodes)   ! Subset of nodes at same level
@@ -443,8 +444,8 @@ subroutine tree_local
   end if
   
   ! get estimation number of branches at all levels
-  !min_branch_level_D1 = nlev - log(1._8*D1)/log(8._8) + 1
-  !min_branch_level_D2 = nlev - log(1._8*D2)/log(8._8) + 1
+  !min_branch_level_D1 = nlev - level_from_key(D1) + 1
+  !min_branch_level_D2 = nlev - level_from_key(D2) + 1
   !min_branch_level = min( min_branch_level_D1,min_branch_level_D2)
   ! but too expensive because array must be preset with zero
   do ilevel=0,nlev
@@ -471,7 +472,7 @@ subroutine tree_local
 
   ! add placeholder-bit to inner limit L
   ! first get level of limit L
-  ilevel = int(log(1._8*L)/log(8._8))
+  ilevel = level_from_key(L)
 
   !pos=L
   !L=L+8**(ilevel+1)

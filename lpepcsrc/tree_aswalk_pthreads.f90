@@ -798,6 +798,7 @@ module tree_walk_communicator
 
     subroutine unpack_data(child_data, num_children, ipe_sender)
       use module_htable
+      use module_spacefilling
       implicit none
       include 'mpif.h'
       type (multipole) :: child_data(8) !< child data that has been received
@@ -877,7 +878,7 @@ module tree_walk_communicator
           htable(hashaddr)%next = nxchild           ! Fill in special next-node pointer for non-local children
         endif
 
-        node_level( nodchild ) = int(log(1.*kchild)/log(8.))  ! get level from keys and prestore as node property
+        node_level( nodchild ) = level_from_key(kchild)  ! get level from keys and prestore as node property
 
         ! Physical properties
         charge( nodchild ) = child_data(ic)%q
@@ -1292,6 +1293,7 @@ module tree_walk_utils
       use tree_walk_communicator
       use module_htable
       use module_calc_force
+      use module_spacefilling, only : level_from_key
       implicit none
       include 'mpif.h'
       integer, intent(in) :: nodeidx
@@ -1332,7 +1334,7 @@ module tree_walk_utils
       walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
       next_key  = htable( walk_addr )%next            ! Next node pointer
 
-      if (int(log(1.*next_key)/log(8.)) < todo_list_minlevel_next) then ! TODO: use pretabulated values for node level
+      if (level_from_key(next_key) < todo_list_minlevel_next) then ! TODO: use pretabulated values for node level
         next_key = 1                                    ! special case for nodes from the deferral list to prevent restarting the walk with their siblings again and again
       end if
 
@@ -1440,7 +1442,7 @@ module tree_walk_utils
        if (( todo_list(newtop) == -1 ) .or. ( todo_list(newtop) == 1 ) .or. ( todo_list(newtop) == 0 )) then
          ! skip the entry that is currently on top of the todo_list and continue with deferred keys
          todo_list_top           = newtop
-         todo_list_minlevel_next = int(log(1.*todo_list(mod(newtop,nintmax)+1))/log(8.))+1
+         todo_list_minlevel_next = level_from_key(todo_list(mod(newtop,nintmax)+1))+1
        end if
 
 
