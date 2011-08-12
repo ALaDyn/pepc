@@ -213,7 +213,7 @@ module module_allocation
 		       q(nppm), work(nppm), &
 		       pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
 
-		  allocate (nbranches(num_pe+2), igap(num_pe+3))
+        allocate (nbranches(num_pe+2) )
 
         end subroutine allocate_particles
 
@@ -232,7 +232,7 @@ module module_allocation
 		  deallocate ( x, y, z, ux, uy, uz, &
 		       q, work, pepid, pelabel, pekey )
 
-		  deallocate ( nbranches, igap )
+		  deallocate ( nbranches )
 
         end subroutine deallocate_particles
 

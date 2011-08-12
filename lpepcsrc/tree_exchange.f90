@@ -13,6 +13,7 @@ subroutine tree_exchange
   type (multipole), dimension(nbranch) :: pack_mult
   real*8, allocatable :: get_size(:)
   type (multipole),allocatable :: get_mult(:)
+  integer, allocatable :: igap(:)    !  stride lengths of local branch arrays
 
   call timer_start(t_exchange_branches)
 
@@ -57,6 +58,8 @@ subroutine tree_exchange
   call mpi_allgather( nbranch, 1, MPI_INTEGER, nbranches, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
   ! work out stride lengths so that partial arrays placed sequentially in global array
+  allocate (igap(num_pe+3))
+
   igap(1) = 0
   igap(2) = nbranches(1)
   do i=3,num_pe
@@ -78,6 +81,9 @@ subroutine tree_exchange
 
   call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_MULTIPOLE, get_mult, nbranches, igap, MPI_TYPE_MULTIPOLE, MPI_COMM_WORLD, ierr)
   call MPI_ALLGATHERV(pack_size, nbranch, MPI_REAL8, get_size, nbranches, igap, MPI_REAL8, MPI_COMM_WORLD, ierr)
+
+  deallocate (igap)
+
 
   call timer_stop(t_exchange_branches_allgatherv)
   call timer_start(t_exchange_branches_integrate)

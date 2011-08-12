@@ -32,7 +32,6 @@ module treevars
 
   integer, allocatable :: &
                                 nbranches(:), &       ! # branches in local domain
-                                igap(:), &    !  stride lengths of local branch arrays
                                 branch_owner(:), &    ! owners of branch nodes covering all domains
                                 all_addr(:), &  ! List of all possible #table addresses
                                 free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
@@ -53,9 +52,7 @@ module treevars
   integer, allocatable ::   node_level(:)       ! refinement level
  
 
-  integer*8 ::  hashconst, &   ! hashing constants
-	             hashchild=7_8, &
-                 max_req_list_length, & ! maximum length of request queue
+  integer*8 ::  max_req_list_length, & ! maximum length of request queue
                  cum_req_list_length, & ! cumulative length of request queue
                  comm_loop_iterations(3), & ! number of comm loop iterations (total, sending, receiving)
                  iplace         ! value of place holder bit = 2^(2*nlev)
