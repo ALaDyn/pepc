@@ -27,7 +27,6 @@ module treevars
                                 treekey(:), &       ! keys of all twig and leaf nodes
                                 branch_key(:), &    ! keys of branch nodes covering all domains
                                 pebranch(:), &	    ! keys of branch nodes covering local domain
-				                leaf_key(:), & 	    ! local leaf keys
 	                            twig_key(:)         ! local twig keys
 
   integer, allocatable :: &
@@ -45,7 +44,7 @@ module treevars
                                xdip(:), ydip(:), zdip(:), &          ! dipole moment
                                xxquad(:), yyquad(:), zzquad(:), &    ! quadrupole moment
                                xyquad(:), yzquad(:), zxquad(:), &    !
-				               size_node(:)  !  Spatial extent (radius) of multipole
+                               size_node(:)  !  Spatial extent (radius) of multipole
 
   integer*8, allocatable :: first_child(:)   ! key of first child
 
@@ -54,11 +53,12 @@ module treevars
 
   integer*8 ::  max_req_list_length, & ! maximum length of request queue
                  cum_req_list_length, & ! cumulative length of request queue
-                 comm_loop_iterations(3), & ! number of comm loop iterations (total, sending, receiving)
-                 iplace         ! value of place holder bit = 2^(2*nlev)
+                 comm_loop_iterations(3)! number of comm loop iterations (total, sending, receiving)
+
+  integer,   parameter :: nlev = 20 ! max refinement level
+  integer*8, parameter :: iplace = 2_8**(3*nlev) ! value of place holder bit = 2^(idim*nlev)
 
   integer :: &
-             nlev, &           ! max refinement level
              nbaddr, &         ! # bits in hashing function
              nleaf, &          ! total # leaf nodes in local #table 
              ntwig, &          ! total # twig nodes in local #table
@@ -76,16 +76,15 @@ module treevars
              maxships, &       ! max # multipole ships per traversal 
              sum_ships, &      ! total # multipole ships per iteration  
              sum_fetches, &    ! total # key fetches  per iteration  
-             nbranch_max, &    ! array space needed for branches
-             nbranch_local_max, &
              free_lo, &        ! min address allowed for resolving collisions
-	         tablehigh, &      ! highest current address in #table
+             tablehigh, &      ! highest current address in #table
              sum_unused, &     ! # free addresses
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
              nppm, &           ! max # particles/PE
              npp, &            !  actual  # particles/PE
              iused          ! counter for collision resolution array free_addr()
+
   integer :: ipefile = 20 ! local O/P stream
   integer :: nkeys_total=1 ! total # keys in local tree
   integer :: proc_debug=0     ! Debug rank: set to -1 for all
@@ -96,7 +95,6 @@ module treevars
   integer, parameter :: CHILDCODE_NODE_TOUCHED = 11 !< this bit is used inside the childcode to notify of nodes, that already contain valid multipole information and may not be set to zero in tree_global
   real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
   real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
-  integer*8 :: branch_max_global = -1   ! estimation for global branches
   real*8 :: thread_workload(-4:4) !< stores average particles and runtime per thread for diagnostic purposes, entry 0 contains number of worker threads
   ! Debugging switches (all off by default)
   logical :: tree_debug=.false.

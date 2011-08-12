@@ -13,6 +13,7 @@ subroutine tree_stats(timestamp)
   use treevars
   use tree_walk_communicator
   use tree_walk_utils
+  use module_branching
   implicit none
   include 'mpif.h'
 
@@ -93,7 +94,7 @@ subroutine tree_stats(timestamp)
     write (60,*) '######## BRANCHES #########################################################################'
     write (60,'(a50,3i12)') '#branches local, max_global, min_global: ', nbranch,max_nbranch,min_nbranch
     write (60,'(a50,2i12)') '#branches global sum estimated, sum actual: ',branch_max_global,nbranch_sum
-    write (60,'(a50,2i12)') 'max res.space for local branches, global br.: ', nbranch_local_max,nbranch_max
+    write (60,'(a50,2i12)') 'max res.space for local branches, global br.: ', branch_max_local,branch_max_global
     write (60,*) '######## WALK-COMMUNICATION ###############################################################'
     write (60,'(a50,2i12)') 'Max # multipole fetches/ships per cpu: ',maxval(fetches), maxval(ships)
     write (60,'(a50,2i12)') 'Min # multipole fetches/ships per cpu: ',minval(fetches), minval(ships)

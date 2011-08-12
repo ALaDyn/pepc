@@ -17,6 +17,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   use tree_utils
   use timings
   use module_spacefilling
+  use module_branching
   implicit none
   include 'mpif.h'
 
@@ -367,6 +368,13 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
 
   !  if (me /= 0) call MPI_WAIT(handle(4),status,ierr)
+
+  ! Initialize VLD-stuff
+  call get_virtual_local_domain()
+  ! CSBE - Cross Sum Branch Node Estimator
+  call get_local_apriori_est()
+  call get_global_apriori_est()
+
 
   if (boundary_debug) then
      if (me /= 0 .and. me /= num_pe-1) then
