@@ -463,9 +463,9 @@ contains
 
         ! output hash table
 
-        write (ipefile,'(/a/8x,a/8x,a)') 'Hash table ', &
+        write (ipefile,'(/a/8x,a,a)') 'Hash table ', &
         'entry,    owner    node,            key_8     key_10        parent       next   ', &
-        '    link   # leaves  childcode  collision', &
+        '    link   #leaves  childcode  collision', &
         '----------------------------------------------------------------------------------------------- '
 
         ! flag  collisions
@@ -473,10 +473,10 @@ contains
         do i=0,maxaddress
             collision=" "
             if (htable(i)%node/=0 .and. htable(i)%link/= -1 ) collision="C"
-            if (htable(i)%node /= 0 .and. htable(i)%next >=0) write (ipefile,'(3i10,o22,i10,2o22,i8,i5,z4,4x,a1)') &
+            if (htable(i)%node /= 0 .and. htable(i)%next >=0) write (ipefile,'(3i10,o22,i10,2o22,i8,i10,z4,4x,a1)') &
             me,htable(i)%owner,htable(i)%node,htable(i)%key,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
             htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
-            if (htable(i)%node /= 0 .and. htable(i)%next <0) write (ipefile,'(3i10,2o15,i15,i15,i5,z4,4x,a1)') &
+            if (htable(i)%node /= 0 .and. htable(i)%next <0) write (ipefile,'(3i10,2o15,i15,i15,i5,z6,4x,a1)') &
             me,htable(i)%owner,htable(i)%node,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
             htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
         end do
@@ -496,7 +496,7 @@ contains
         write (ipefile,'(///a)') 'Tree structure'
 
         !  write (ipefile,'(/a/a/(3i5,2i10,2i8,b11,i2,i8,i10,9(1pe15.4)))') 'Twigs from hash-table:', &
-        write (ipefile,'(/a/a,a/(3i5,2o15,2i8,z6,o15,i2,15(1pe30.19)))') 'Twigs from hash-table:', &
+        write (ipefile,'(/a/a,a/(3i5,2o15,2i8,z6,o15,i8,15(1pe30.19)))') 'Twigs from hash-table:', &
         '    i  level  owner        key     parent-key       #    node  code      1st child #leaves ', &
         ' abs_charge    charge   xcoc   ycoc   zcoc   xdip   ydip   zdip   sqrtbla   xxquad   yyquad   zzquad   xyquad   yzquad   zxquad', &
         (i,node_level(ind_twig(i)), &              !  index, level
