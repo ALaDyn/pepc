@@ -112,7 +112,7 @@ contains
 
                 ! if sibling exists: next_node has been found
                 if ( btest(parent_child_byte, search_child_idx) ) then
-                    get_next_node = ior(ishft(parent_key, 3), search_child_idx) ! assemble next_node out of parent-key and new sibling-index
+                    get_next_node = ior(int(ishft(parent_key, 3), kind(search_child_idx)), search_child_idx) ! assemble next_node out of parent-key and new sibling-index
                     return
                 endif
             end do
