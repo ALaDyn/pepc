@@ -55,7 +55,7 @@ module module_directsum
         !>
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, np_total, testidx, cf_par, verbosity, my_rank, n_cpu, comm)
+        subroutine verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, testidx, cf_par, verbosity, my_rank, n_cpu, comm)
           use treetypes
           implicit none
           include 'mpif.h'
@@ -71,14 +71,13 @@ module module_directsum
           type(calc_force_params), intent(in) :: cf_par !< force calculation parameters
           integer, intent(in) :: verbosity !< verbosity level: 0 - only print max. relative deviations, 1 - additionally print all. relative deviations, 2 - additionally print all. calculated forces
           integer, intent(in) :: np_local !< number of local particles
-          integer, intent(in) :: np_total !< total number of particles
           integer, dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
           integer :: ntest !< number of particles in testidx
           integer, intent(in) :: my_rank, n_cpu, comm
           real*8 :: deviation(4), deviation_max(4)
           real*8 :: field_abssum(4), field_average(4)
 
-          integer :: i
+          integer :: i, ntest_total
           type(direct_particle), dimension(:), allocatable :: res !< test results
 
           ntest = size(testidx)
@@ -111,9 +110,10 @@ module module_directsum
             end associate
           end do
 
-          call MPI_REDUCE(deviation_max,   deviation,             4, MPI_REAL8, MPI_MAX, 0, comm)
-          call MPI_REDUCE(field_abssum,    field_average,         4, MPI_REAL8, MPI_SUM, 0, comm)
-          field_average         = field_average         / np_total
+          call MPI_REDUCE(deviation_max,   deviation,             4, MPI_REAL8,   MPI_MAX, 0, comm)
+          call MPI_REDUCE(field_abssum,    field_average,         4, MPI_REAL8,   MPI_SUM, 0, comm)
+          call MPI_REDUCE(ntest,           ntest_total,           1, MPI_INTEGER, MPI_SUM, 0, comm)
+          field_average         = field_average         / ntest_total
 
           if ((verbosity > -1) .and. (my_rank == 0)) then
             write(*,'("Maximum absolute deviation (ex, ey, ez, pot): ", 4(2x,E20.12))') deviation
