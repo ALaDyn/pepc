@@ -55,7 +55,7 @@ module module_directsum
         !>
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, testidx, cf_par, verbosity, my_rank, n_cpu, comm)
+        subroutine verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, np_total, testidx, cf_par, verbosity, my_rank, n_cpu, comm)
           use treetypes
           implicit none
           include 'mpif.h'
@@ -71,10 +71,12 @@ module module_directsum
           type(calc_force_params), intent(in) :: cf_par !< force calculation parameters
           integer, intent(in) :: verbosity !< verbosity level: 0 - only print max. relative deviations, 1 - additionally print all. relative deviations, 2 - additionally print all. calculated forces
           integer, intent(in) :: np_local !< number of local particles
+          integer, intent(in) :: np_total !< total number of particles
           integer, dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
           integer :: ntest !< number of particles in testidx
           integer, intent(in) :: my_rank, n_cpu, comm
           real*8 :: deviation(4), deviation_max(4)
+          real*8 :: field_abssum(4), field_average(4)
 
           integer :: i
           type(direct_particle), dimension(:), allocatable :: res !< test results
@@ -85,31 +87,38 @@ module module_directsum
 
           call directforce(x, y, z, q, np_local, testidx, ntest, cf_par, res, my_rank, n_cpu, comm)
 
-          deviation        = 0.
-          deviation_max(4) = 0.
+          deviation     = 0.
+          deviation_max = 0.
+          field_abssum  = 0.
 
           do i=1,ntest
             associate(p=>testidx(i), re=>res(i))
-              deviation(1:3) = abs( 1. - re%field / [ex(p), ey(p), ez(p)] )
-              deviation(4)   = abs( 1. - re%potential / pot(p) )
+              deviation(1:3)       = abs( re%field - [ex(p), ey(p), ez(p)] )
+              field_abssum(1:3)    = field_abssum(1:3)    + abs(re%field)
+              deviation(4)         = abs( re%potential - pot(p) )
+              field_abssum(4)      = field_abssum(4)      + abs(re%potential)
 
               deviation_max  = max(deviation, deviation_max)
 
               if (verbosity > 1) then
-                write(*,'("[",I6.6,":",I6.6,"]",3(x,F10.4), " | PEPC    ", 4(x,E20.12))') my_rank, p, x(p), y(p), z(p), ex(p), ey(p), ez(p), pot(p)
-                write(*,'("[",I6.6,":",I6.6,"]",33x,        " | DIRECT  ", 4(x,E20.12))') my_rank, p, re%field, re%potential
+                write(*,'("[",I6.6,":",I6.6,"]",3(x,F10.4), " | PEPC    ", 4(x,E20.13))') my_rank, p, x(p), y(p), z(p), ex(p), ey(p), ez(p), pot(p)
+                write(*,'("[",I6.6,":",I6.6,"]",33x,        " | DIRECT  ", 4(x,E20.13))') my_rank, p, re%field, re%potential
               endif
 
               if (verbosity > 0) then
-                write(*,'("[",I6.6,":",I6.6,"]",33x,        " | Rel.err ", 4(x,F20.2))') my_rank, p, deviation
+                write(*,'("[",I6.6,":",I6.6,"]",33x,        " | Abs.err ", 4(x,E20.13),"__")') my_rank, p, deviation
               endif
             end associate
           end do
 
-          call MPI_REDUCE(deviation_max, deviation, 8, MPI_REAL8, MPI_MAX, 0, comm)
+          call MPI_REDUCE(deviation_max,   deviation,             4, MPI_REAL8, MPI_MAX, 0, comm)
+          call MPI_REDUCE(field_abssum,    field_average,         4, MPI_REAL8, MPI_SUM, 0, comm)
+          field_average         = field_average         / np_total
 
           if ((verbosity > -1) .and. (my_rank == 0)) then
-            write(*,'("Maximum relative deviation (ex, ey, ez, pot): ", 4(2x,F8.2))') deviation
+            write(*,'("Maximum absolute deviation (ex, ey, ez, pot): ", 4(2x,E20.12))') deviation
+            write(*,'("Average field values       (ex, ey, ez, pot): ", 4(2x,E20.12))') field_average
+            write(*,'("Maximum relative deviation (ex, ey, ez, pot): ", 4(2x,F20.3))') deviation / field_average
           endif
 
           deallocate(res)
