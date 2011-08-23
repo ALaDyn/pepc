@@ -740,7 +740,7 @@ module tree_walk_communicator
       type(multipole) :: children_to_send(8)
       integer :: reqhandle
       integer*8, dimension(8) :: sub_key, key_child
-      integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child
+      integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child, owner_child
       integer :: j, ic, ierr, nchild
 
       if (walk_comm_debug) then
@@ -760,12 +760,13 @@ module tree_walk_communicator
       node_child(1:nchild)   = htable( addr_child(1:nchild) )%node                        ! Child node index
       byte_child(1:nchild)   = IAND( htable( addr_child(1:nchild) )%childcode,255 )       ! Catch lowest 8 bits of childbyte - filter off requested and here flags
       leaves_child(1:nchild) = htable( addr_child(1:nchild) )%leaves                      ! # contained leaves
+      owner_child(1:nchild)  = htable( addr_child(1:nchild) )%owner                       ! real owner of child (does not necessarily have to be identical to me, at least after futural modifications)
       ! Package children properties into user-defined multipole array for shipping
       do ic = 1,nchild
          children_to_send(ic) = multipole ( key_child(ic), &
                                       byte_child(ic), &
                                       leaves_child(ic), &
-                                      me, &
+                                      owner_child(ic), &
                                       charge( node_child(ic) ), &
                                       abs_charge( node_child(ic) ), &
                                       xcoc( node_child(ic)), &
