@@ -829,7 +829,6 @@ module tree_walk_communicator
         if (lchild == 1 ) then
            nleaf = nleaf + 1
            nodchild = nleaf
-           first_child(nodchild) = kchild
            ! Array bound checks
            if (nleaf>=maxleaf) then
              write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' leaves',nleaf,' / ',maxleaf
@@ -842,7 +841,6 @@ module tree_walk_communicator
            nodchild = -ntwig
            nchild = int(SUM( (/ (ibits(bchild,j,1),j=0,7) /) ))   ! Get # children
            sub_key(1:nchild) = pack( bitarr(0:7), mask=(/ (btest(bchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code
-           first_child( nodchild ) = IOR( ishft( kchild,3), sub_key(1) )                ! Construct key of 1st (grand)child
            ! Array bound checks
            if (ntwig>=maxtwig) then
              write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' twigs ',ntwig,' / ',maxtwig

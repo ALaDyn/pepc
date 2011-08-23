@@ -103,7 +103,7 @@ module module_allocation
 
 		  ! Allocate memory for tree node properties
 
-		  allocate ( first_child(-maxtwig:maxleaf), node_level(-maxtwig:maxleaf) )
+		  allocate ( node_level(-maxtwig:maxleaf) )
 
 		  allocate ( charge(-maxtwig:maxleaf), &                    ! charge
 		       abs_charge(-maxtwig:maxleaf), &                ! absolute charge
@@ -140,7 +140,7 @@ module module_allocation
 		       treekey, branch_key, branch_owner, &
 		       pebranch, twig_key )
 
-		  deallocate ( first_child, node_level )
+		  deallocate ( node_level )
 
 		! multipole moments
 		  deallocate ( charge, &                    ! charge

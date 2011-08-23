@@ -241,12 +241,7 @@ subroutine tree_global
      do j=1,nchild
         child_key(j) = IOR( child_top, child_sub(j) )         ! Construct keys of children
      end do
-
-     first_child( tree_node(i) ) = child_key(1)   ! Store 1st child as twig-node property - used in tree_walk
   end do
-
-  !  Dummy values for leaves
-  first_child(1:nleaf) = treekey(ntwig+1:ntwig+nleaf) 
 
   deallocate(tree_node,cell_addr,parent_addr)
 

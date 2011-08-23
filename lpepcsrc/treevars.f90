@@ -46,8 +46,6 @@ module treevars
                                xyquad(:), yzquad(:), zxquad(:), &    !
                                size_node(:)  !  Spatial extent (radius) of multipole
 
-  integer*8, allocatable :: first_child(:)   ! key of first child
-
   integer, allocatable ::   node_level(:)       ! refinement level
  
 

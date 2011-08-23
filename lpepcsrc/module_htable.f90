@@ -523,7 +523,7 @@ contains
         write (ipefile,'(///a)') 'Tree structure'
 
         !  write (ipefile,'(/a/a/(3i5,2i10,2i8,b11,i2,i8,i10,9(1pe15.4)))') 'Twigs from hash-table:', &
-        write (ipefile,'(/a/a,a/(3i5,2o15,2i8,z6,o15,i8,15(1pe30.19)))') 'Twigs from hash-table:', &
+        write (ipefile,'(/a/a,a/(3i5,2o15,2i8,o15,i8,15(1pe30.19)))') 'Twigs from hash-table:', &
         '    i  level  owner        key     parent-key       #    node  code      1st child #leaves ', &
         ' abs_charge    charge   xcoc   ycoc   zcoc   xdip   ydip   zdip   sqrtbla   xxquad   yyquad   zzquad   xyquad   yzquad   zxquad', &
         (i,node_level(ind_twig(i)), &              !  index, level
@@ -531,7 +531,6 @@ contains
         key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
         addr_twig(i), ind_twig(i), &    ! Table address and node number
         child_twig(i), &                         ! Children byte-code
-        first_child( ind_twig(i) ), &            ! key of 1st child
         htable( addr_twig(i) )%leaves, &                           ! # leaves contained in branch
         abs_charge(ind_twig(i)), &    ! Twig absolute charge
         charge(ind_twig(i)), &    ! Twig  charge
