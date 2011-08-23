@@ -1313,96 +1313,97 @@ module tree_walk_utils
       logical :: ignore, mac_ok
       integer :: ierr
 
-      walk_single_particle = (todo_list_top == todo_list_bottom)
+      ! check whether walk is already finished
+      if (todo_list_top .ne. todo_list_bottom) then
 
-      if (walk_single_particle) then
-        if (walk_debug) then
-          write(ipefile,'("PE", I6, " particle ", I12, " has an empty todo_list: particle obviously finished walking around :-)")') me, nodeidx
-        end if
+          ! read next todo_list-entry
+          call todo_list_pop_front(walk_key)
+          walk_addr = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
+          walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
 
-        return ! nothing to walk here any more
-      end if
+          ! TODO:  BH MAC is also implemented in mac_choose routine,
+          !        which needs tuning and inlining to avoid excessive parameter-passing overhead
+          !        Other MACS need additional preprocessed info on tree nodes (box lengths etc)
+          !        before they can be used for performance tests.
+          !        mac=1,2 only useful for accuracy tests at the moment (interaction list comparisons)
 
-      ! read next todo_list-entry
-      call todo_list_pop_front(walk_key)
-      walk_addr = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
-      walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
+          if (mac==0) then
+              ! BH-MAC
+              delta(1) = x(nodeidx) - (xcoc( walk_node ) + vbox(1) )     ! Separations
+              delta(2) = y(nodeidx) - (ycoc( walk_node ) + vbox(2) )
+              delta(3) = z(nodeidx) - (zcoc( walk_node ) + vbox(3) )
 
-! TODO:  BH MAC is also implemented in mac_choose routine,
-!        which needs tuning and inlining to avoid excessive parameter-passing overhead
-!        Other MACS need additional preprocessed info on tree nodes (box lengths etc)
-!        before they can be used for performance tests.
-!        mac=1,2 only useful for accuracy tests at the moment (interaction list comparisons)
+              dist2 = DOT_PRODUCT(delta, delta)
 
-       if (mac==0) then
-          ! BH-MAC
-          delta(1) = x(nodeidx) - (xcoc( walk_node ) + vbox(1) )     ! Separations
-          delta(2) = y(nodeidx) - (ycoc( walk_node ) + vbox(2) )
-          delta(3) = z(nodeidx) - (zcoc( walk_node ) + vbox(3) )
-
-          dist2 = DOT_PRODUCT(delta, delta)
-
-          mac_ok = (theta2 * dist2 > boxlength2(node_level(walk_node)))
-       else
-!             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),&
-!                  walk_node,walk_key(idx),abs_charge(walk_node),boxlength2(node_level(walk_node)), &
-!                  theta2,mac,mac_ok, vbox)
-          mac_ok = .false.
-       endif
-
-       mac_ok = ( mac_ok .and. ((.not. in_central_box) .or. walk_key>1 ) )  !  reject root node if we are in the central box
-
-       my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + 1._8
-       work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_MAC
-
-       ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
-       ! NB: this uses local leaf #, not global particle label
-       ! only ignore particle if we are processing the central box
-       ! when walking through neighbour boxes, it has to be included
-       ignore = (in_central_box) .and. ( nodeidx == walk_node )
-
-       ! Possible courses of action:
-
-       ! 1) MAC test OK, or leaf node, so put cell on interaction list and find next node for tree walk
-       !    - reject self
-
-       if ( (mac_ok .or. walk_node > 0) .and. .not.ignore) then
-
-          call calc_force_per_interaction(nodeidx, walk_node, vbox, cf_par)
-          work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_INTERACTION
-          my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
-
-       else  if ( .not.mac_ok .and. walk_node < 0 ) then
-
-          if ( btest(htable( walk_addr )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE) ) then
-              ! 2) MAC fails at node for which children present, so resolve cell & put all children in front of todo_list
-              ! if local put 1st child node on walk_list
-              call get_childkeys(walk_addr, childnum, childlist)
-              call todo_list_push_front(childnum, childlist)
-
+              mac_ok = (theta2 * dist2 > boxlength2(node_level(walk_node)))
           else
-              ! 3) MAC fails at node for which children _absent_, so put node on REQUEST list (flag with add=2) and
-              !    put walk_key on bottom of todo_list
-              call post_request(walk_key, walk_addr)        ! tell the communicator about our needs
-              ! if posting the request failed, this is not a problem, since we defer the particle anyway
-              ! since it will not be available then, the request will simply be repeated
-              call todo_list_push_back(1, [walk_key]) ! Deferred list of nodes to search, pending request
-                                                      ! for data from nonlocal PEs
-              if (walk_debug) then
-                write(ipefile,'("PE ", I6, " adding nonlocal key to tail for particle ", I20, " todo_list_bottom=", I6)') me, nodeidx, todo_list_bottom
-              end if
-
+              !             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),&
+              !                  walk_node,walk_key(idx),abs_charge(walk_node),boxlength2(node_level(walk_node)), &
+              !                  theta2,mac,mac_ok, vbox)
+              mac_ok = .false.
           endif
 
-       else
-          ! 4) particle and leaf node identical, so skip
+          mac_ok = ( mac_ok .and. ((.not. in_central_box) .or. walk_key>1 ) )  !  reject root node if we are in the central box
+
+          my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + 1._8
+          work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_MAC
+
+          ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
+          ! NB: this uses local leaf #, not global particle label
+          ! only ignore particle if we are processing the central box
+          ! when walking through neighbour boxes, it has to be included
+          ignore = (in_central_box) .and. ( nodeidx == walk_node )
+
+          ! Possible courses of action:
+
+          ! 1) MAC test OK, or leaf node, so put cell on interaction list and find next node for tree walk
+          !    - reject self
+
+          if ( (mac_ok .or. walk_node > 0) .and. .not.ignore) then
+
+              call calc_force_per_interaction(nodeidx, walk_node, vbox, cf_par)
+              work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_INTERACTION
+              my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
+
+          else  if ( .not.mac_ok .and. walk_node < 0 ) then
+
+              if ( btest(htable( walk_addr )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE) ) then
+                  ! 2) MAC fails at node for which children present, so resolve cell & put all children in front of todo_list
+                  ! if local put 1st child node on walk_list
+                  call get_childkeys(walk_addr, childnum, childlist)
+                  call todo_list_push_front(childnum, childlist)
+
+              else
+                  ! 3) MAC fails at node for which children _absent_, so put node on REQUEST list (flag with add=2) and
+                  !    put walk_key on bottom of todo_list
+                  call post_request(walk_key, walk_addr)        ! tell the communicator about our needs
+                  ! if posting the request failed, this is not a problem, since we defer the particle anyway
+                  ! since it will not be available then, the request will simply be repeated
+                  call todo_list_push_back(1, [walk_key]) ! Deferred list of nodes to search, pending request
+                                                          ! for data from nonlocal PEs
+                  if (walk_debug) then
+                      write(ipefile,'("PE ", I6, " adding nonlocal key to tail for particle ", I20, " todo_list_bottom=", I6)') me, nodeidx, todo_list_bottom
+                  end if
+
+              endif
+
+          else
+             ! 4) particle and leaf node identical, so skip
+          endif
+
        endif
 
-       ! if the todo_list is now empty, the walk has finished (will be checked on next invocation)
+      ! if the todo_list is now empty, the walk has finished
+      walk_single_particle = (todo_list_top == todo_list_bottom)
+
+      if (walk_single_particle .and. walk_debug) then
+          write(ipefile,'("PE", I6, " particle ", I12, " has an empty todo_list: particle obviously finished walking around :-)")') me, nodeidx
+      end if
 
 
     contains
 
+     ! helper routines for todo_list manipulation
      subroutine todo_list_pop_front(key)
        implicit none
        integer*8, intent(out) :: key
