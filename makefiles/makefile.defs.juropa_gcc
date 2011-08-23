@@ -3,6 +3,8 @@
 #  > module unload intel
 #  > module load parastation/gcc-mt
 
+# avoid using any object oriented features if set to 1 (for older compilers)
+NO_CLASSES = 1
 
 MACH     = JUROPA_gcc
 
