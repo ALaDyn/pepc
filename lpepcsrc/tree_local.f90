@@ -202,7 +202,7 @@ subroutine tree_local
         do while (htable(i1)%node /= 0 .or. htable(i1)%key==-1 ) 
            i1=i1-1  ! skip existing or dummy entries
         end do
-        free_addr(i) = all_addr(i1)
+        free_addr(i) = i1
         i2 = i1-1
      end do
 

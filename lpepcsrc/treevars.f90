@@ -32,7 +32,6 @@ module treevars
   integer, allocatable :: &
                                 nbranches(:), &       ! # branches in local domain
                                 branch_owner(:), &    ! owners of branch nodes covering all domains
-                                all_addr(:), &  ! List of all possible #table addresses
                                 free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
                                 point_free(:)      ! Pointer to free address index
 
