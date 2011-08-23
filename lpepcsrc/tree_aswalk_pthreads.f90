@@ -739,7 +739,7 @@ module tree_walk_communicator
       integer :: process_addr, childbyte
       type(multipole) :: children_to_send(8)
       integer :: reqhandle
-      integer*8, dimension(8) :: sub_key, key_child, next_child
+      integer*8, dimension(8) :: sub_key, key_child
       integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child
       integer :: j, ic, ierr, nchild
 
@@ -760,16 +760,12 @@ module tree_walk_communicator
       node_child(1:nchild)   = htable( addr_child(1:nchild) )%node                        ! Child node index
       byte_child(1:nchild)   = IAND( htable( addr_child(1:nchild) )%childcode,255 )       ! Catch lowest 8 bits of childbyte - filter off requested and here flags
       leaves_child(1:nchild) = htable( addr_child(1:nchild) )%leaves                      ! # contained leaves
-      next_child(1:nchild-1) = htable( addr_child(1:nchild-1) )%next                      ! # next-node pointer
-      next_child(nchild)     = -1  ! Last child gets pointed back to _parent_ for non-local nodes
-                                   ! This is used to distinguish particles` walks during 'defer' phase
       ! Package children properties into user-defined multipole array for shipping
       do ic = 1,nchild
          children_to_send(ic) = multipole ( key_child(ic), &
                                       byte_child(ic), &
                                       leaves_child(ic), &
                                       me, &
-                                      next_child(ic), &
                                       charge( node_child(ic) ), &
                                       abs_charge( node_child(ic) ), &
                                       xcoc( node_child(ic)), &
@@ -812,7 +808,7 @@ module tree_walk_communicator
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
       integer*8, dimension(8) :: sub_key
-      integer*8 :: kchild, kparent(8), nxchild
+      integer*8 :: kchild, kparent(8)
       integer :: node_addr, hashaddr, lchild, nchild, nodchild, bchild, ownerchild
       integer :: j, ic, ierr
 
@@ -823,7 +819,6 @@ module tree_walk_communicator
         kparent(ic) = ishft( kchild,-3 )
         bchild      = child_data(ic)%byte
         lchild      = child_data(ic)%leaves
-        nxchild     = child_data(ic)%next
         ownerchild  = child_data(ic)%owner
 
         if (walk_comm_debug) then
@@ -875,15 +870,6 @@ module tree_walk_communicator
            flush(6)
            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         end select
-
-        !  Determine 'next_node' pointers for 'last child' list & update hash table (tree).
-        !  This  ensures that traversals in next pass treat already-fetched nodes as local,
-        !  avoiding deferral list completely.
-        if (nxchild == -1) then
-          htable( hashaddr )%next = get_next_node(kchild)  !   Get next sibling, uncle, great-uncle in local tree
-        else
-          htable(hashaddr)%next = nxchild           ! Fill in special next-node pointer for non-local children
-        endif
 
         node_level( nodchild ) = level_from_key(kchild)  ! get level from keys and prestore as node property
 
@@ -1362,7 +1348,7 @@ module tree_walk_utils
           if ( (mac_ok .or. walk_node > 0) .and. .not.ignore) then
 
               call calc_force_per_interaction(nodeidx, walk_node, vbox, cf_par)
-              work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_INTERACTION
+              work_per_particle(nodeidx)     = work_per_particle(nodeidx)     + WORKLOAD_PENALTY_INTERACTION
               my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
 
           else  if ( .not.mac_ok .and. walk_node < 0 ) then

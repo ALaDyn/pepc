@@ -21,7 +21,6 @@ module module_htable
         integer   :: link          !< Pointer to next empty address in table in case of collision
         integer   :: leaves        !< # leaves contained within twig (=1 for leaf, npart for root)
         integer   :: childcode     !< Byte code indicating position of children (twig node); particle label (leaf node)
-        integer*8 :: next          !< Pointer to next key to examine in tree-walk
         integer   :: owner         !< Node owner (for branches)
     end type hash
 
@@ -57,7 +56,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     integer, private, parameter :: start_child_idx = 0 !< index of first child to be used in traversal - do not change, currently not completely implemented
-    type (hash), private, parameter :: HASHENTRY_EMPTY = hash(0,0_8,-1,0,0,0_8,0) !< constant for empty hashentry
+    type (hash), private, parameter :: HASHENTRY_EMPTY = hash(0,0_8,-1,0,0,0) !< constant for empty hashentry
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -503,11 +502,9 @@ contains
         do i=0,maxaddress
             collision=" "
             if (htable(i)%node/=0 .and. htable(i)%link/= -1 ) collision="C"
-            if (htable(i)%node /= 0 .and. htable(i)%next >=0) write (ipefile,'(3i10,o22,i10,2o22,i8,i10,z4,4x,a1)') &
-            me,htable(i)%owner,htable(i)%node,htable(i)%key,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
-            htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
-            if (htable(i)%node /= 0 .and. htable(i)%next <0) write (ipefile,'(3i10,2o15,i15,i15,i5,z6,4x,a1)') &
-            me,htable(i)%owner,htable(i)%node,htable(i)%key,ishft( htable(i)%key,-3 ), htable(i)%next, &
+
+            if (htable(i)%node /= 0) write (ipefile,'(3i10,o22,i10,o22,i8,i10,z4,4x,a1)') &
+            i,htable(i)%owner,htable(i)%node,htable(i)%key,htable(i)%key,ishft( htable(i)%key,-3 ), &
             htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
         end do
 

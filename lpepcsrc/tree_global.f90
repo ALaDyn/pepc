@@ -9,8 +9,8 @@ subroutine tree_global
   include 'mpif.h'
 
   real*8 :: xss, yss, zss
-  integer :: i,j, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr, node_addr, nchild
-  integer*8 :: search_key, child_top
+  integer :: i,j, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr, nchild
+  integer*8 :: child_top
 
   integer*8, dimension(8) :: child_key, child_sub
   
@@ -230,17 +230,6 @@ subroutine tree_global
      call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
      stop           
   endif
-
-  !  Determine 'next_node' pointers for tree walk & store in hash table.
-  !  Preprocess child info and store as node properties
-  !  - already have (approx) sorted key list for twig nodes from leaf count above.
-
-  do i = nnodes,2,-1
-     search_key = treekey(i)                   
-     node_addr = cell_addr(i)
-     htable( node_addr )%next = get_next_node(search_key)  !   Get next sibling, uncle, great-uncle in local tree
-  end do  
-
 
   ! Fill in 1st child, # children in twig properties
   do i = 1,ntwig

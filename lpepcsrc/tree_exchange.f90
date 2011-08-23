@@ -8,7 +8,6 @@ subroutine tree_exchange
   include 'mpif.h'
 
   integer :: i,ierr, lnode, lcode, lleaves, hashaddr, newleaf, newtwig
-  integer*8 :: lnext
   
   real*8, dimension(nbranch) :: pack_size
   type (multipole), dimension(nbranch) :: pack_mult
@@ -31,8 +30,7 @@ subroutine tree_exchange
      lnode = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%node
      lcode = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%childcode 
      lleaves = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%leaves 
-     lnext = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%next
-     pack_mult(i) = multipole(pebranch(i),lcode,lleaves,me,lnext,&
+     pack_mult(i) = multipole(pebranch(i),lcode,lleaves,me,&
           charge( lnode ), &
           abs_charge( lnode ), &
           xcoc( lnode), &

@@ -9,6 +9,7 @@ module treetypes
   end type calc_force_params
 
   ! Data structure for shipping results
+  integer, parameter :: nprops_results = 6       ! # results to ship
   type results
      real*8 :: Ex
      real*8 :: Ey
@@ -20,6 +21,7 @@ module treetypes
 
 
  ! Data structure for shipping single particles
+  integer, parameter :: nprops_particle = 11 ! # particle properties to ship
   type particle
      real*8 :: x    ! coords
      real*8 :: y
@@ -36,12 +38,12 @@ module treetypes
 
 
   ! Data structure for shipping multiple moments of child nodes
+  integer, parameter :: nprops_multipole = 21 ! Number of multipole properties to ship
   type multipole
      integer*8 :: key     ! key
      integer   :: byte    ! byte code
      integer   :: leaves  ! # leaves contained
      integer :: owner    ! owner where multipole resides
-     integer*8 :: next    ! next key on walk
      real*8 :: q        ! net charge sum
      real*8 :: absq     !  absolute charge sum
      real*8 :: xcoc     ! centre of charge
