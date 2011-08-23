@@ -42,6 +42,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     public get_next_node
+    public get_childkeys
     public make_hashentry
     public key2addr
     public testaddr
@@ -122,6 +123,35 @@ contains
 
     end function get_next_node
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> returns the keys of all children, that are attached to the
+    !> node at a particular htable address
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine get_childkeys(addr, childnum, childkeys)
+        use treevars
+        implicit none
+        integer, intent(in) :: addr
+        integer, intent(out) :: childnum
+        integer*8, dimension(:), intent(out) :: childkeys
+        integer :: i
+
+        integer*8 :: keyhead
+        integer :: childcode
+
+        keyhead   = ishft(htable(addr)%key, 3)
+        childcode = htable(addr)%childcode
+        childnum = 0
+
+        do i=0,7
+          if (btest(childcode, i)) then
+            childnum            = childnum + 1
+            childkeys(childnum) = ior(keyhead, 1_8*i)
+          end if
+        end do
+
+    end subroutine
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
