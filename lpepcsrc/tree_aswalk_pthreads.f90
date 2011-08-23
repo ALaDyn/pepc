@@ -610,6 +610,13 @@ module tree_walk_communicator
         integer :: local_queue_bottom
         logical, save :: warned = .false.
 
+        ! check wether the node has already been requested
+        ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
+        ! otherwise it will be possible that two walk threads can synchronously post a prticle to the request queue
+        if (BTEST( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ) then
+          return
+        endif
+
         ! we first flag the particle as having been already requested to prevent other threads from doing it while
         ! we are inside this function
         !call rwlock_wrlock(RWLOCK_CHILDBYTE, "walk_single_particle")
@@ -1172,7 +1179,6 @@ module tree_walk_utils
       integer, dimension(:), allocatable :: my_particles
       integer*8, dimension(:,:), allocatable :: todo_list
       integer, dimension(:), allocatable :: todo_list_top, todo_list_bottom
-      integer, dimension(:), allocatable :: todo_list_minlevel_next
       integer :: i
       logical :: particles_available
       logical :: particles_active
@@ -1196,16 +1202,14 @@ module tree_walk_utils
 
       allocate(my_particles(my_max_particles_per_thread),                        &
                             todo_list_top(my_max_particles_per_thread),           &
-                            todo_list_bottom(my_max_particles_per_thread),        &
-                            todo_list_minlevel_next(my_max_particles_per_thread));
-      allocate(todo_list(nintmax,my_max_particles_per_thread));
+                            todo_list_bottom(my_max_particles_per_thread))
+      allocate(todo_list(0:nintmax-1,my_max_particles_per_thread))
 
       ! every particle will start at the root node (one entry per todo_list, no particle is finished)
       todo_list_top       = 0
       todo_list_bottom    = 1
       todo_list           = 0
       todo_list(1,:)      = 1
-      todo_list_minlevel_next = 0
       my_particles(:)     = -1
       particles_available = .true.
       particles_active    = .true.
@@ -1239,15 +1243,14 @@ module tree_walk_utils
               endif
             endif
 
-            if (walk_single_particle(my_particles(i), nintmax, todo_list(1:nintmax,i), todo_list_top(i), todo_list_bottom(i), todo_list_minlevel_next(i), my_threaddata)) then
+            if (walk_single_particle(my_particles(i), nintmax, todo_list(:,i), todo_list_top(i), todo_list_bottom(i), my_threaddata)) then
               ! this particle`s walk has finished
 !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
 
-              todo_list_top(i)           =  0
-              todo_list_bottom(i)        =  1
-              todo_list(:,i)             =  0
-              todo_list(1,i)             =  1
-              todo_list_minlevel_next(i) =  0
+              todo_list_top(i)           = -1
+              todo_list_bottom(i)        =  0
+              ! todo_list(:,i)             =  0
+              todo_list(0,i)             =  1
               my_particles(i)            = -1
               my_threaddata%num_processed_particles = my_threaddata%num_processed_particles + 1
             else
@@ -1261,7 +1264,7 @@ module tree_walk_utils
 
       end do
 
-      deallocate(my_particles, todo_list_top, todo_list_bottom, todo_list_minlevel_next);
+      deallocate(my_particles, todo_list_top, todo_list_bottom);
       deallocate(todo_list);
 
       ! bookekeeping about finished worker threads
@@ -1289,36 +1292,30 @@ module tree_walk_utils
 
 
 
-   function walk_single_particle(nodeidx, nintmax, todo_list, todo_list_top, todo_list_bottom, todo_list_minlevel_next, my_threaddata)
+   function walk_single_particle(nodeidx, nintmax, todo_list, todo_list_top, todo_list_bottom, my_threaddata)
       use tree_walk_communicator
       use module_htable
       use module_calc_force
       use module_spacefilling, only : level_from_key
       implicit none
-      include 'mpif.h'
       integer, intent(in) :: nodeidx
       integer, intent(in) :: nintmax
-      integer*8, intent(inout) :: todo_list(nintmax)
-      integer, intent(inout) :: todo_list_top, todo_list_bottom, todo_list_minlevel_next
+      integer*8, intent(inout) :: todo_list(0:nintmax-1)
+      integer, intent(inout) :: todo_list_top, todo_list_bottom
       type(t_threaddata), intent(inout) :: my_threaddata
       logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
-      logical :: result
 
-      integer*8 :: walk_key, next_key
-      integer :: walk_addr, walk_node
+      integer*8 :: walk_key, childlist(8)
+      integer :: walk_addr, walk_node, childnum
 
-      integer :: newtop
       real*8 :: dist2
       real*8 :: delta(3)
       logical :: ignore, mac_ok
       integer :: ierr
 
-      newtop    = todo_list_top ! todo_list_top( will only be updated if really necessary
+      walk_single_particle = (todo_list_top == todo_list_bottom)
 
-      result = (newtop == todo_list_bottom)
-      walk_single_particle = result
-
-      if (result) then
+      if (walk_single_particle) then
         if (walk_debug) then
           write(ipefile,'("PE", I6, " particle ", I12, " has an empty todo_list: particle obviously finished walking around :-)")') me, nodeidx
         end if
@@ -1327,17 +1324,9 @@ module tree_walk_utils
       end if
 
       ! read next todo_list-entry
-      newtop = mod(newtop, nintmax) + 1
-
-      walk_key  = todo_list(newtop)
+      call todo_list_pop_front(walk_key)
       walk_addr = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
       walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
-      next_key  = htable( walk_addr )%next            ! Next node pointer
-
-      if (level_from_key(next_key) < todo_list_minlevel_next) then ! TODO: use pretabulated values for node level
-        next_key = 1                                    ! special case for nodes from the deferral list to prevent restarting the walk with their siblings again and again
-      end if
-
 
 ! TODO:  BH MAC is also implemented in mac_choose routine,
 !        which needs tuning and inlining to avoid excessive parameter-passing overhead
@@ -1383,68 +1372,79 @@ module tree_walk_utils
           work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_INTERACTION
           my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
 
-          ! if walk_key is already the rootnode, next_key is zero --> walk is finished
-          ! if next_key == 1, then we reached root --> walk also finished
-          todo_list(newtop) = next_key
-
-
        else  if ( .not.mac_ok .and. walk_node < 0 ) then
 
           if ( btest(htable( walk_addr )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE) ) then
-              ! 2) MAC fails at node for which children present, so resolve cell & put 1st child in front of todo_list
+              ! 2) MAC fails at node for which children present, so resolve cell & put all children in front of todo_list
               ! if local put 1st child node on walk_list
-              todo_list(newtop) = first_child( walk_node )
+              call get_childkeys(walk_addr, childnum, childlist)
+              call todo_list_push_front(childnum, childlist)
+
           else
               ! 3) MAC fails at node for which children _absent_, so put node on REQUEST list (flag with add=2) and
               !    put walk_key on bottom of todo_list
-              todo_list_bottom  = mod(todo_list_bottom, nintmax) + 1
-
+              call post_request(walk_key, walk_addr)        ! tell the communicator about our needs
+              ! if posting the request failed, this is not a problem, since we defer the particle anyway
+              ! since it will not be available then, the request will simply be repeated
+              call todo_list_push_back(1, [walk_key]) ! Deferred list of nodes to search, pending request
+                                                      ! for data from nonlocal PEs
               if (walk_debug) then
                 write(ipefile,'("PE ", I6, " adding nonlocal key to tail for particle ", I20, " todo_list_bottom=", I6)') me, nodeidx, todo_list_bottom
-              end if
-
-              if (todo_list_bottom == todo_list_top) then ! the "overfull todo_list" error can be avoided by simply deferring
-                                                          ! the current walk_key and going on with the next one
-                                                          ! TODO: abort this process if there is no hope anymore
-                write(*,'("Rather serious issue on PE ", I6, ": todo_list is full for particle ", I20, " nintmax =", I6, " is too small")') me, nodeidx, nintmax
-                write(*,*) "We could skip the current particle until some child_data has arrive, but this can result in a deadlock... --> aborting."
-                flush(6)
-                call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-              else
-                todo_list( todo_list_bottom ) = walk_key ! Deferred list of nodes to search, pending request
-                                                         ! for data from nonlocal PEs
-                ! check wether the node has already been requested
-                ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
-                ! otherwise it will be possible that two walk threads can synchronously post a prticle to the request queue
-
-                if (.not. BTEST( htable(walk_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ) then  ! Check if node already requested
-                    call post_request(walk_key, walk_addr)        ! tell the communicator about our needs
-                    ! if posting the request failed, this is not a problem, since we defer the particle anyway
-                    ! since it will not be available then, the request will simply be repeated
-                end if
-
-                todo_list(newtop) = next_key  ! Continue with walk for now
               end if
 
           endif
 
        else
           ! 4) particle and leaf node identical, so skip
-          todo_list(newtop) = next_key  ! Continue with walk
        endif
 
-       ! Possible special cases now:
-       !  1. ) we reached last of nonlocal children (walk_key == -1)
-       !  2a.) we reached root node (walk_key == 1) while still having pending nodes in our todo_list
-       !  2b.) we just took a deferred node - its next_node has already been processed before, the next_node value has been set to 1 (root node) manually
-       !  3. ) next_key was zero because we directly interacted with box root
-       ! then we simply point to the next entry in the todo_list
-       if (( todo_list(newtop) == -1 ) .or. ( todo_list(newtop) == 1 ) .or. ( todo_list(newtop) == 0 )) then
-         ! skip the entry that is currently on top of the todo_list and continue with deferred keys
-         todo_list_top           = newtop
-         todo_list_minlevel_next = level_from_key(todo_list(mod(newtop,nintmax)+1))+1
-       end if
+       ! if the todo_list is now empty, the walk has finished (will be checked on next invocation)
 
+
+    contains
+
+     subroutine todo_list_pop_front(key)
+       implicit none
+       integer*8, intent(out) :: key
+       todo_list_top = mod(todo_list_top + 1, nintmax)
+       key           = todo_list(todo_list_top)
+     end subroutine
+
+     subroutine todo_list_push_front(numkeys, keys)
+       implicit none
+       integer, intent(in) :: numkeys
+       integer*8, dimension(numkeys), intent(in) :: keys
+       integer :: i
+
+       do i=1,numkeys
+         todo_list(todo_list_top) = keys(i)
+         todo_list_top            = modulo(todo_list_top - 1, nintmax)
+         if (todo_list_bottom == todo_list_top) call todo_list_full()
+       end do
+     end subroutine
+
+     subroutine todo_list_push_back(numkeys, keys)
+       implicit none
+       integer, intent(in) :: numkeys
+       integer*8, dimension(numkeys), intent(in) :: keys
+       integer :: i
+
+       do i=1,numkeys
+         todo_list_bottom            = modulo(todo_list_bottom + 1, nintmax)
+         if (todo_list_bottom == todo_list_top) call todo_list_full()
+         todo_list(todo_list_bottom) = keys(i)
+       end do
+
+     end subroutine
+
+     subroutine todo_list_full()
+       implicit none
+       include 'mpif.h'
+        write(*,'("Rather serious issue on PE ", I6, ": todo_list is full for particle ", I20, " nintmax =", I6, " is too small")') me, nodeidx, nintmax
+        write(*,*) "We could skip the current particle until some child_data has arrive, but this can result in a deadlock... --> aborting."
+        flush(6)
+        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+     end subroutine
 
     end function walk_single_particle
 
