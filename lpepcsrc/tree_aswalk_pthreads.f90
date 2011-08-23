@@ -1368,7 +1368,7 @@ module tree_walk_utils
 
        ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
        ! NB: this uses local leaf #, not global particle label
-       ! only ignore particle if we are processing t.not. all_my_particles_finishedhe central box
+       ! only ignore particle if we are processing the central box
        ! when walking through neighbour boxes, it has to be included
        ignore = (in_central_box) .and. ( nodeidx == walk_node )
 
