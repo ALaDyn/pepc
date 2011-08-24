@@ -148,12 +148,17 @@ module tree_walk_communicator
     integer, parameter :: MIN_MESSAGES_PER_ITERATION = 5
     logical, public :: comm_on_shared_processor = .false.
 
+    !> data type for internal request queue
+    type t_request_queue_entry
+      integer*8 :: key
+      integer   :: addr
+      integer   :: owner
+    end type
+
     ! internal communication variables - not to be touched from outside the module
     integer, parameter :: ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
     integer, parameter :: REQUEST_QUEUE_LENGTH = 400000 !< maximum length of request queue
-    integer*8, private, volatile :: req_queue_keys(REQUEST_QUEUE_LENGTH)
-    integer, private, volatile :: req_queue_addrs(REQUEST_QUEUE_LENGTH)
-    integer, private, volatile :: req_queue_owners(REQUEST_QUEUE_LENGTH)
+    type(t_request_queue_entry), private, volatile :: req_queue(REQUEST_QUEUE_LENGTH)
     integer, private, volatile :: req_queue_top, req_queue_bottom ! we will insert data at bottom and take from top
     integer*1, private, allocatable, target :: bsend_buffer(:) !< buffer for bsend-alls
     integer, private :: comm_dummy = 123456 !< dummy variable for sending "empty" messages (those, where we are only interested in the tag)
@@ -649,9 +654,7 @@ module tree_walk_communicator
           return
         end if
 
-        req_queue_keys(local_queue_bottom)   = request_key
-        req_queue_owners(local_queue_bottom) = htable( request_addr )%owner
-        req_queue_addrs(local_queue_bottom)  = request_addr
+        req_queue(local_queue_bottom)   = t_request_queue_entry( request_key, request_addr, htable( request_addr )%owner )
 
         if (walk_comm_debug) then
           write(ipefile,'("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6, " request_addr=", I12)') &
@@ -703,24 +706,24 @@ module tree_walk_communicator
 
           req_queue_top = mod(req_queue_top, REQUEST_QUEUE_LENGTH) + 1
 
-          if (walk_comm_debug) then
-            write(ipefile,'("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)') &
-                           me, req_queue_top, req_queue_keys(req_queue_top), req_queue_owners(req_queue_top)
-          end if
+          associate (req=>req_queue(req_queue_top))
+            if (walk_comm_debug) then
+              write(ipefile,'("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)') &
+                           me, req_queue_top, req%key, req%owner
+            end if
 
-          if (.not. BTEST( htable(req_queue_addrs(req_queue_top))%childcode, CHILDCODE_BIT_REQUEST_SENT ) ) then
-            ! send a request to PE req_queue_owners(req_queue_top)
-            ! telling, that we need child data for particle request_key(req_queue_top)
-            call MPI_IBSEND(req_queue_keys(req_queue_top), 1, MPI_INTEGER8, &
-                            req_queue_owners(req_queue_top), TAG_REQUEST_KEY, &
-                                MPI_COMM_WORLD, reqhandle, ierr )
-            call MPI_REQUEST_FREE( reqhandle, ierr)
+            if (.not. BTEST( htable(req%addr)%childcode, CHILDCODE_BIT_REQUEST_SENT ) ) then
+              ! send a request to PE req_queue_owners(req_queue_top)
+              ! telling, that we need child data for particle request_key(req_queue_top)
+              call MPI_IBSEND(req%key, 1, MPI_INTEGER8, req%owner, TAG_REQUEST_KEY, MPI_COMM_WORLD, reqhandle, ierr )
+              call MPI_REQUEST_FREE( reqhandle, ierr)
 
-            htable(req_queue_addrs(req_queue_top))%childcode = ibset(htable(req_queue_addrs(req_queue_top))%childcode, CHILDCODE_BIT_REQUEST_SENT )
+              htable(req%addr)%childcode = ibset(htable(req%addr)%childcode, CHILDCODE_BIT_REQUEST_SENT )
 
-            request_balance(req_queue_owners(req_queue_top)+1) = request_balance(req_queue_owners(req_queue_top)+1) + 1
+              request_balance(req%owner+1) = request_balance(req%owner+1) + 1
 
-          end if
+            end if
+          end associate
         end do
 
        call rwlock_unlock(RWLOCK_REQUEST_QUEUE, "send_requests")
