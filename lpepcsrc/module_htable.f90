@@ -34,12 +34,18 @@ module module_htable
     integer*8,   public ::  hashconst  !< hashing constants
     integer*8,   public ::  hashchild=7_8 !< bits that contain the child index in a key
 
+    ! bits in childcode to be set when children are requested, the request has been sent, and they have arrived
+    integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED     =  8
+    integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT       = 10
+    integer, public, parameter :: CHILDCODE_BIT_CHILDREN_AVAILABLE =  9
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    public children_available
     public get_next_node
     public get_childkeys
     public make_hashentry
@@ -65,12 +71,32 @@ module module_htable
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 contains
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> empties the htable
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine htable_clear()
         implicit none
 
         htable = HASHENTRY_EMPTY ! TODO: need list of 'live' adresses to speed this up
 
     end subroutine
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> checks whether children for certain htable-address are locally available
+    !> or have to be requested
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    pure function children_available(addr)
+      implicit none
+      logical :: children_available
+      integer, intent(in) :: addr
+
+      children_available = btest(htable( addr )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE)
+
+    end function
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -354,7 +380,7 @@ contains
                 if (htable(i)%key/=0) write(ipefile,'(i8,o25,i10)') i,htable(i)%key,htable(i)%link
             end do
 
-            !     call diagnose_tree
+            call diagnose_tree
             close(75)
             !     call closefiles
             !     pause
