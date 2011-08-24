@@ -102,7 +102,7 @@ module module_pepcfields
 		  integer :: fposts(num_pe+1),gposts(num_pe+1)
 
 		  integer :: i
-		  real*8 :: ttrav, tfetch, tcomm(3) ! timing integrals
+		  real*8 :: ttrav, ttrav_loc, tcomm(3) ! timing integrals
 
 		  integer :: ibox
 		  real*8 :: vbox(3)
@@ -175,7 +175,8 @@ module module_pepcfields
 		  call tree_global
 
 		  call timer_stop(t_fields_tree)
-		  call timer_reset(t_walk)
+          call timer_reset(t_walk)
+          call timer_reset(t_walk_local)
 		  call timer_reset(t_comm_total)
 		  call timer_reset(t_comm_recv)
 		  call timer_reset(t_comm_sendreqs)
@@ -201,9 +202,10 @@ module module_pepcfields
 		    vbox = lattice_vect(neighbours(:,ibox))
 
 		    ! tree walk finds interaction partners and calls interaction routine for particles on short list
-		    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,tfetch, vbox, work, tcomm)
+		    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, work, tcomm)
 
-		    call timer_add(t_walk, ttrav)    ! traversal time (serial)
+            call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
+            call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
 		    call timer_add(t_comm_total,    tcomm(TIMING_COMMLOOP))
 		    call timer_add(t_comm_recv,     tcomm(TIMING_RECEIVE))
 		    call timer_add(t_comm_sendreqs, tcomm(TIMING_SENDREQS))

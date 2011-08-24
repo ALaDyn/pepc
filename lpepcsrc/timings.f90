@@ -21,7 +21,7 @@ module timings
     integer, parameter :: t_exchange_branches_integrate   =  6
     integer, parameter :: t_restore            =  7
     integer, parameter :: t_walk               =  8
-    integer, parameter :: t_unused9            =  9
+    integer, parameter :: t_walk_local         =  9
     integer, parameter :: t_unused10           = 10
     integer, parameter :: t_deallocate         = 11
     integer, parameter :: t_all                = 12

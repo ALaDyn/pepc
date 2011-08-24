@@ -180,6 +180,8 @@ module tree_walk_communicator
 
     ! internal initialization status
     logical, private :: initialized = .false.
+    ! local walktime (i.e. from comm_loop start until send_walk_finished() )
+    real*8, public, pointer :: twalk_loc
 
     public init_comm_data
     public run_communication_loop
@@ -276,6 +278,8 @@ module tree_walk_communicator
         integer :: timeout = cond_comm_timeout
 
         if (me==0) walk_finished = .false.
+
+        twalk_loc = MPI_WTIME()
 
         ! check whether initialization has correctly been performed
         if (.not. initialized) then
@@ -593,6 +597,8 @@ module tree_walk_communicator
         call MPI_REQUEST_FREE( reqhandle, ierr)
 
         walk_status = WALK_I_NOTIFIED_0
+
+        twalk_loc = MPI_WTIME() - twalk_loc
 
       end subroutine send_walk_finished
 
@@ -975,7 +981,7 @@ module tree_walk_utils
   contains
 
 
-    subroutine tree_walk(np_local_,theta_,cf_par_,itime,mac_,twalk,tfetch,vbox_,work_per_particle_, tcomm)
+    subroutine tree_walk(np_local_,theta_,cf_par_,itime,mac_,twalk,twalk_loc_,vbox_,work_per_particle_, tcomm)
       use, intrinsic :: iso_c_binding
       use treetypes
       use tree_utils
@@ -991,7 +997,7 @@ module tree_walk_utils
       integer, intent(in) :: mac_
       real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
       real*8, dimension(nppm), intent(inout), target :: work_per_particle_
-      real*8, target, intent(inout) :: twalk, tfetch
+      real*8, target, intent(inout) :: twalk, twalk_loc_
       real*8, target, intent(out), dimension(3) :: tcomm
 
       if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (HYBRID) for timestep ',itime
@@ -1010,8 +1016,9 @@ module tree_walk_utils
       ! length of todo- and defer-list per particle (estimations)
       todo_list_length  = nintmax
       defer_list_length = todo_list_length / 8
+      ! pure local walk time (i.e. from start of communicator till sned_walk_finished)
+      twalk_loc => twalk_loc_
 
-      tfetch = 0.
       twalk  = MPI_WTIME()
 
       call init_walk_data()
