@@ -1191,10 +1191,10 @@ module tree_walk_utils
       allocate(todo_list(0:nintmax-1,my_max_particles_per_thread))
 
       ! every particle will start at the root node (one entry per todo_list, no particle is finished)
-      todo_list_top       = 0
-      todo_list_bottom    = 1
-      todo_list           = 0
-      todo_list(1,:)      = 1
+      todo_list_top       = -1
+      todo_list_bottom    =  0
+      !todo_list           =  0
+      todo_list(0,:)      = 1
       my_particles(:)     = -1
       particles_available = .true.
       particles_active    = .true.
@@ -1295,7 +1295,7 @@ module tree_walk_utils
 
       real*8 :: dist2
       real*8 :: delta(3)
-      logical :: ignore, mac_ok
+      logical :: same_particle, mac_ok
       integer :: ierr
 
       ! check whether walk is already finished
@@ -1328,55 +1328,50 @@ module tree_walk_utils
               mac_ok = .false.
           endif
 
-          mac_ok = ( mac_ok .and. ((.not. in_central_box) .or. walk_key>1 ) )  !  reject root node if we are in the central box
+          mac_ok = ( mac_ok .and. ((.not. in_central_box) .or. walk_key.ne.1 ) )  !  reject root node if we are in the central box
 
+          work_per_particle(nodeidx)        = work_per_particle(nodeidx)        + WORKLOAD_PENALTY_MAC
           my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + 1._8
-          work_per_particle(nodeidx) = work_per_particle(nodeidx) + WORKLOAD_PENALTY_MAC
 
           ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
           ! NB: this uses local leaf #, not global particle label
           ! only ignore particle if we are processing the central box
           ! when walking through neighbour boxes, it has to be included
-          ignore = (in_central_box) .and. ( nodeidx == walk_node )
+          same_particle = (in_central_box) .and. ( nodeidx == walk_node )
 
-          ! Possible courses of action:
+          if (.not. same_particle) then
 
-          ! 1) MAC test OK, or leaf node, so put cell on interaction list and find next node for tree walk
-          !    - reject self
+          ! ========= Possible courses of action:
 
-          if ( (mac_ok .or. walk_node > 0) .and. .not.ignore) then
-
-              call calc_force_per_interaction(nodeidx, walk_node, vbox, cf_par)
-              work_per_particle(nodeidx)     = work_per_particle(nodeidx)     + WORKLOAD_PENALTY_INTERACTION
-              my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
-
-          else  if ( .not.mac_ok .and. walk_node < 0 ) then
-
-              if ( btest(htable( walk_addr )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE) ) then
-                  ! 2) MAC fails at node for which children present, so resolve cell & put all children in front of todo_list
-                  ! if local put 1st child node on walk_list
-                  call get_childkeys(walk_addr, childnum, childlist)
-                  call todo_list_push_front(childnum, childlist)
+              if (walk_node > 0 .or. mac_ok) then
+                  ! 1) leaf node or MAC test OK ===========
+                  !    --> interact with cell
+                  call calc_force_per_interaction(nodeidx, walk_node, vbox, cf_par)
+                  work_per_particle(nodeidx)     = work_per_particle(nodeidx)     + WORKLOAD_PENALTY_INTERACTION
+                  my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
 
               else
-                  ! 3) MAC fails at node for which children _absent_, so put node on REQUEST list (flag with add=2) and
-                  !    put walk_key on bottom of todo_list
-                  call post_request(walk_key, walk_addr)        ! tell the communicator about our needs
-                  ! if posting the request failed, this is not a problem, since we defer the particle anyway
-                  ! since it will not be available then, the request will simply be repeated
-                  call todo_list_push_back(1, [walk_key]) ! Deferred list of nodes to search, pending request
-                                                          ! for data from nonlocal PEs
-                  if (walk_debug) then
-                      write(ipefile,'("PE ", I6, " adding nonlocal key to tail for particle ", I20, " todo_list_bottom=", I6)') me, nodeidx, todo_list_bottom
+                  ! 2) MAC fails for twig node ============
+                  if ( btest(htable( walk_addr )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE) ) then
+                      ! 2a) children for twig are present --------
+                      ! --> resolve cell & put all children in front of todo_list
+                      call get_childkeys(walk_addr, childnum, childlist)
+                      call todo_list_push_front(childnum, childlist)
+                  else
+                      ! 2b) children for twig are _absent_ --------
+                      ! --> put node on REQUEST list and put walk_key on bottom of todo_list
+                      call post_request(walk_key, walk_addr)        ! tell the communicator about our needs
+                      ! if posting the request failed, this is not a problem, since we defer the particle anyway
+                      ! since it will not be available then, the request will simply be repeated
+                      call todo_list_push_back(1, [walk_key]) ! Deferred list of nodes to search, pending request
+                                                              ! for data from nonlocal PEs
+                      if (walk_debug) then
+                          write(ipefile,'("PE ", I6, " adding nonlocal key to tail for particle ", I20, " todo_list_bottom=", I6)') me, nodeidx, todo_list_bottom
+                      end if
                   end if
-
               endif
-
-          else
-             ! 4) particle and leaf node identical, so skip
-          endif
-
-       endif
+          endif !(.not. same_particle)
+      endif ! (todo_list_top .ne. todo_list_bottom)
 
       ! if the todo_list is now empty, the walk has finished
       walk_single_particle = (todo_list_top == todo_list_bottom)
