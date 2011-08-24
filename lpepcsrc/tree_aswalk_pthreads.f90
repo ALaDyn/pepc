@@ -743,10 +743,10 @@ module tree_walk_communicator
       include 'mpif.h'
       integer*8, intent(in) :: requested_key
       integer, intent(in) :: ipe_sender
-      integer :: process_addr, childbyte
+      integer :: process_addr
       type(multipole) :: children_to_send(8)
       integer :: reqhandle
-      integer*8, dimension(8) :: sub_key, key_child
+      integer*8, dimension(8) :: key_child
       integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child, owner_child
       integer :: j, ic, ierr, nchild
 
@@ -757,12 +757,9 @@ module tree_walk_communicator
 
       j = 0
       process_addr = key2addr( requested_key,'WALK:send_data:parentkey')       ! get htable addresses
-      childbyte    = htable( process_addr )%childcode              ! children byte-code
 
-      nchild = int(SUM( (/ (ibits(childbyte,j,1),j=0,7) /) ))        ! Get # children
+      call get_childkeys(process_addr, nchild, key_child)
 
-      sub_key(1:nchild)      = pack( bitarr, mask=(/ (btest(childbyte,j),j=0,7) /) )      ! Extract sub key from byte code
-      key_child(1:nchild)    = IOR( ishft( requested_key,3 ), sub_key(1:nchild) )    ! Construct keys of children
       addr_child(1:nchild)   = (/( key2addr( key_child(j),'WALK:send_data:childkey' ),j=1,nchild)/)  ! Table address of children
       node_child(1:nchild)   = htable( addr_child(1:nchild) )%node                        ! Child node index
       byte_child(1:nchild)   = IAND( htable( addr_child(1:nchild) )%childcode,255 )       ! Catch lowest 8 bits of childbyte - filter off requested and here flags
@@ -815,10 +812,9 @@ module tree_walk_communicator
       type (multipole) :: child_data(8) !< child data that has been received
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
-      integer*8, dimension(8) :: sub_key
       integer*8 :: kchild, kparent(8)
-      integer :: node_addr, hashaddr, lchild, nchild, nodchild, bchild, ownerchild
-      integer :: j, ic, ierr
+      integer :: node_addr, hashaddr, lchild,  nodchild, bchild, ownerchild
+      integer :: ic, ierr
 
       request_balance(ipe_sender+1) = request_balance(ipe_sender+1) - 1
 
@@ -847,8 +843,6 @@ module tree_walk_communicator
         else if (lchild > 1) then
            ntwig = ntwig + 1
            nodchild = -ntwig
-           nchild = int(SUM( (/ (ibits(bchild,j,1),j=0,7) /) ))   ! Get # children
-           sub_key(1:nchild) = pack( bitarr(0:7), mask=(/ (btest(bchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code
            ! Array bound checks
            if (ntwig>=maxtwig) then
              write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' twigs ',ntwig,' / ',maxtwig
