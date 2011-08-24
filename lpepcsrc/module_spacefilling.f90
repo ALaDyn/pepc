@@ -122,6 +122,8 @@ module module_spacefilling
               coord_to_key_lastlevel = intcoord_to_key_morton(ix, iy, iz)
             case (1) ! Hilbert curve (original pattern)
               coord_to_key_lastlevel = intcoord_to_key_hilbert(ix, iy, iz)
+            case default
+              coord_to_key_lastlevel = 0
           end select
 
         end function coord_to_key_lastlevel
@@ -163,6 +165,10 @@ module module_spacefilling
               call key_to_intcoord_morton(key, ix, iy, iz)
             case (1) ! Hilbert curve (original pattern)
               call key_to_intcoord_hilbert(key, ix, iy, iz)
+            case default
+              ix = 0
+              iy = 0
+              iz = 0
           end select
 
           s=boxsize/2**nlev       ! refinement length
