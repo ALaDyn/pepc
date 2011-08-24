@@ -1243,7 +1243,7 @@ module tree_walk_utils
               endif
             endif
 
-            if (walk_single_particle(my_particles(i), todo_list_length, todo_list(:,i), todo_list_top(i), todo_list_bottom(i), defer_list(:,i), defer_list_entries(i), my_threaddata)) then
+            if (walk_single_particle(my_particles(i), todo_list(:,i), todo_list_top(i), todo_list_bottom(i), defer_list(:,i), defer_list_entries(i), my_threaddata)) then
               ! this particle`s walk has finished
 !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
 
@@ -1292,14 +1292,13 @@ module tree_walk_utils
 
 
 
-   function walk_single_particle(nodeidx, todo_list_length, todo_list, todo_list_top, todo_list_bottom, defer_list, defer_list_entries, my_threaddata)
+   function walk_single_particle(nodeidx, todo_list, todo_list_top, todo_list_bottom, defer_list, defer_list_entries, my_threaddata)
       use tree_walk_communicator
       use module_htable
       use module_calc_force
       use module_spacefilling, only : level_from_key
       implicit none
       integer, intent(in) :: nodeidx
-      integer, intent(in) :: todo_list_length
       integer*8, intent(inout) :: todo_list(0:todo_list_length-1)
       type(t_defer_list_entry), intent(inout) :: defer_list(0:defer_list_length-1)
       integer, intent(inout) :: todo_list_top, todo_list_bottom, defer_list_entries
