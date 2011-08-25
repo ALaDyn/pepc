@@ -406,7 +406,7 @@ subroutine tree_local
      tree_nodes( node_leaf ) = multipole( &
        treekey(i),                        &
        htable(addr_leaf)%childcode,       &
-       0,                                 &
+       1,                                 &! # leaves contained within twig (=1 for leaf, npart for root)
        me,                                &
        q( p_leaf ),                       &! Charge
        abs( q(p_leaf) ),                  &! Absolute charge (needed for c.o.c)
