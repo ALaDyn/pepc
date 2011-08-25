@@ -16,6 +16,7 @@ subroutine tree_global
   integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
   integer, dimension(maxaddress) ::  parent_node
   logical :: duplicate(maxaddress)
+  type(multipole), pointer :: twig, parent, branch, leaf
 
   call timer_start(t_global)
   call timer_start(t_fill_local)
@@ -82,8 +83,8 @@ subroutine tree_global
         ! Set mm-arrays to zero (initially) for all twigs that are parents of branches and have not been initially sett in tree_local
         if (.not. BTEST( htable(hashaddr)%childcode, CHILDCODE_NODE_TOUCHED )) then
            ! zero multipole information for any entries that have not been inside the tree before
-           associate(twig=>tree_nodes(nodtwig))
-               twig%abs_charge = 0.  !
+           twig=>tree_nodes(nodtwig)
+               twig%abs_charge = 0.
                twig%charge     = 0.
                twig%xcoc       = 0.
                twig%ycoc       = 0.
@@ -102,7 +103,6 @@ subroutine tree_global
                twig%zshift     = 0.
                htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will now touch this again
                twig%byte       = htable(hashaddr)%childcode ! TODO: maybe inconsistent with htable data
-           end associate
         endif
 
         branch_addr(i) = key2addr( sub_key(i),'PROPERTIES: fill' )   !  branches` #table addresses
@@ -113,25 +113,26 @@ subroutine tree_global
 
      ! Compute parent properties from children
      do i=nuniq,1,-1
-        associate(parent=>tree_nodes(parent_node(i)), branch=>tree_nodes(branch_node(i)))
+        parent=>tree_nodes(parent_node(i))
+        branch=>tree_nodes(branch_node(i))
             parent%abs_charge = parent%abs_charge + branch%abs_charge           ! Sum |q|
             parent%charge     = parent%charge     + branch%charge               ! Sum q
-        end associate
      end do
 
      ! parent charges should be complete before computing coq`s
 
      do i=nuniq,1,-1
-        associate(parent=>tree_nodes(parent_node(i)), branch=>tree_nodes(branch_node(i)))
+        parent=>tree_nodes(parent_node(i))
+        branch=>tree_nodes(branch_node(i))
             ! Centres of charge
             parent%xcoc = parent%xcoc + (branch%xcoc * branch%abs_charge )  / parent%abs_charge ! coq
             parent%ycoc = parent%ycoc + (branch%ycoc * branch%abs_charge )  / parent%abs_charge ! coq
             parent%zcoc = parent%zcoc + (branch%zcoc * branch%abs_charge )  / parent%abs_charge ! coq
-        end associate
      end do
 
      do i=nuniq,1,-1
-        associate(parent=>tree_nodes(parent_node(i)), branch=>tree_nodes(branch_node(i)))
+        parent=>tree_nodes(parent_node(i))
+        branch=>tree_nodes(branch_node(i))
             ! Shifts and multipole moments
             xss = parent%xcoc - branch%xshift  ! Shift vector for current child node
             yss = parent%ycoc - branch%yshift
@@ -154,7 +155,6 @@ subroutine tree_global
             parent%xyquad = parent%xyquad +  branch%xyquad - branch%xdip*yss - branch%ydip*xss + branch%charge*xss*yss
             parent%yzquad = parent%yzquad +  branch%yzquad - branch%ydip*zss - branch%zdip*yss + branch%charge*yss*zss
             parent%zxquad = parent%zxquad +  branch%zxquad - branch%zdip*xss - branch%xdip*zss + branch%charge*zss*xss
-        end associate
      end do
 
      nparent = nuniq
@@ -162,7 +162,7 @@ subroutine tree_global
 
   ! Rezero dipole and quadrupole sums of all local leaf nodes
   do i=1,nleaf
-    associate(leaf=>tree_nodes(i))
+    leaf=>tree_nodes(i)
       leaf%xdip   = 0.
       leaf%ydip   = 0.
       leaf%zdip   = 0.
@@ -172,7 +172,6 @@ subroutine tree_global
       leaf%xyquad = 0.
       leaf%yzquad = 0.
       leaf%zxquad = 0.
-    end associate
   end do
 
   if (tree_debug) call check_table('End of local fill    ')

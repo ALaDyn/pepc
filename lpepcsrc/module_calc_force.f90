@@ -153,8 +153,9 @@ module module_calc_force
           real*8 :: rd,dx,dy,dz,d,dx2,dy2,dz2
           real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
           real :: eps2
+          type(multipole), pointer :: t
 
-          associate(t=>tree_nodes(inode))
+             t=>tree_nodes(inode)
 
              eps2   = cf_par%eps**2
              sumfx  = 0.
@@ -230,8 +231,6 @@ module module_calc_force
                   + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*0.5*t%yyquad &
                   + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*0.5*t%xxquad
 
-          end associate
-
         end subroutine calc_force_coulomb_3D
 
 
@@ -257,21 +256,20 @@ module module_calc_force
 
           real*8 :: dx,dy,d
           real :: eps2
+          type(multipole), pointer :: t
 
-          eps2   = cf_par%eps**2
-          sumfx  = 0.
-          sumfy  = 0.
-          sumphi = 0.
+            eps2   = cf_par%eps**2
+            sumfx  = 0.
+            sumfy  = 0.
+            sumphi = 0.
 
-          associate(t=>tree_nodes(inode))
+            t=>tree_nodes(inode)
 
             !  preprocess distances
             dx = x(p) - ( t%xcoc + vbox(1) )
             dy = y(p) - ( t%ycoc + vbox(2) )
 
             d  = sqrt(dx**2+dy**2+eps2)
-
-          end associate
 
         end subroutine calc_force_coulomb_2D
 

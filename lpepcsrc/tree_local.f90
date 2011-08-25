@@ -45,6 +45,7 @@ subroutine tree_local
   integer, allocatable :: cell_addr(:)
   integer*8, dimension(maxaddress) :: res_key,search_key, resolve_key
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
+  type(multipole), pointer :: res, child
 
 !!! --------------- TREE BUILD ---------------
 
@@ -478,7 +479,7 @@ subroutine tree_local
   ! Go up through tree, starting at deepest level (largest key first)
   ! and accumulate multipole moments onto twig nodes
   do i = ntwig_domain,1,-1
-     associate( res=>tree_nodes(res_node(i)) )
+     res=>tree_nodes(res_node(i))
 
          nchild = SUM( (/ (ibits(res_child(i),j,1),j=0,7) /) )                 ! Get # children
          sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(res_child(i),j),j=0,7) /) )  ! Extract sub key from byte code
@@ -498,11 +499,10 @@ subroutine tree_local
          res%zcoc = 0.
 
          do j=1,nchild
-            associate(child=>tree_nodes(node_child(j)))
+            child=>tree_nodes(node_child(j))
               res%xcoc = res%xcoc + ( child%xcoc * child%abs_charge) / res%abs_charge
               res%ycoc = res%ycoc + ( child%ycoc * child%abs_charge) / res%abs_charge
               res%zcoc = res%zcoc + ( child%zcoc * child%abs_charge) / res%abs_charge
-            end associate
          end do
 
          ! Shifts and multipole moments
@@ -527,7 +527,7 @@ subroutine tree_local
          res%zxquad = 0.
 
          do j = 1,nchild
-            associate(child=>tree_nodes(node_child(j)))
+            child=>tree_nodes(node_child(j))
 
                 ! dipole moment
                 res%xdip = res%xdip + child%xdip - child%charge*xs(j)
@@ -543,9 +543,7 @@ subroutine tree_local
                 res%yzquad = res%yzquad + child%yzquad - child%ydip*zs(j) - child%zdip*ys(j) + child%charge*ys(j)*zs(j)
                 res%zxquad = res%zxquad + child%zxquad - child%zdip*xs(j) - child%xdip*zs(j) + child%charge*zs(j)*xs(j)
 
-            end associate
          end do
-     end associate
   end do
 
   ! Should now have multipole information up to branch list level(s).

@@ -78,7 +78,9 @@ module module_directsum
           real*8 :: field_abssum(4), field_average(4)
 
           integer :: i, ntest_total
-          type(direct_particle), dimension(:), allocatable :: res !< test results
+          type(direct_particle), target, dimension(:), allocatable :: res !< test results
+          type(direct_particle), pointer :: re
+          integer :: p
 
           ntest = size(testidx)
 
@@ -91,7 +93,8 @@ module module_directsum
           field_abssum  = 0.
 
           do i=1,ntest
-            associate(p=>testidx(i), re=>res(i))
+            p = testidx(i)
+            re=>res(i)
               deviation(1:3)       = abs( re%field - [ex(p), ey(p), ez(p)] )
               field_abssum(1:3)    = field_abssum(1:3)    + abs(re%field)
               deviation(4)         = abs( re%potential - pot(p) )
@@ -107,7 +110,6 @@ module module_directsum
               if (verbosity > 0) then
                 write(*,'("[",I6.6,":",I6.6,"]",33x,        " | Abs.err ", 4(x,E20.13),"__")') my_rank, p, deviation
               endif
-            end associate
           end do
 
           call MPI_REDUCE(deviation_max,   deviation,             4, MPI_REAL8,   MPI_MAX, 0, comm)
@@ -151,7 +153,7 @@ module module_directsum
           integer :: maxtest !< maximum ntest
           type(direct_particle), dimension(:), allocatable :: received, sending
           integer :: nreceived, nsending
-          integer :: ierr, req, stat(MPI_STATUS_SIZE), i, j, currank, nextrank, prevrank
+          integer :: ierr, req, stat(MPI_STATUS_SIZE), i, j, currank, nextrank, prevrank, p
 
           call MPI_ALLREDUCE(ntest, maxtest, 1, MPI_INTEGER, MPI_MAX, comm, ierr)
           allocate(received(1:maxtest), sending(1:maxtest))
@@ -165,9 +167,8 @@ module module_directsum
           ! insert initial data into input array
           nreceived = ntest
           do i=1,ntest
-            associate (p => testidx(i))
+            p = testidx(i)
               received(i) = direct_particle([x(p), y(p), z(p)], [0.,   0.,   0.  ], 0.)
-            end associate
           end do
 
           ! we will send our data packet to every other mpi rank

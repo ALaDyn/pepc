@@ -9,7 +9,8 @@ subroutine tree_exchange
 
   integer :: i,ierr, lnode, lcode, lleaves, hashaddr, newleaf, newtwig
   
-  type (multipole), dimension(nbranch) :: pack_mult
+  type (multipole), target, dimension(nbranch) :: pack_mult
+  type (multipole), pointer :: packm
   type (multipole),allocatable :: get_mult(:)
   integer, allocatable :: igap(:)    !  stride lengths of local branch arrays
 
@@ -28,13 +29,12 @@ subroutine tree_exchange
      lnode   = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%node
      lcode   = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%childcode
      lleaves = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%leaves
-     associate(packm=>pack_mult(i))
+     packm=>pack_mult(i)
          packm        = tree_nodes( lnode )
          packm%key    = pebranch(i)   ! TODO: this data is maybe not consistently stored in tree_nodes array
          packm%byte   = lcode  ! therefore, we have to take it directly form the htable --> repair this
          packm%leaves = lleaves
          packm%owner  = me
-     end associate
   end do
 
   call timer_stop(t_exchange_branches_pack)

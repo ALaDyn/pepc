@@ -35,7 +35,7 @@ module treevars
                                 free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
                                 point_free(:)      ! Pointer to free address index
 
-  type(multipole), allocatable  :: tree_nodes(:)                 ! Tree node properties
+  type(multipole), target, allocatable  :: tree_nodes(:)                 ! Tree node properties
 
   integer, allocatable ::   node_level(:)       ! refinement level
  

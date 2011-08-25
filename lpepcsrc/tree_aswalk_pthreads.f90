@@ -158,7 +158,7 @@ module tree_walk_communicator
     ! internal communication variables - not to be touched from outside the module
     integer, parameter :: ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
     integer, parameter :: REQUEST_QUEUE_LENGTH = 400000 !< maximum length of request queue
-    type(t_request_queue_entry), private, volatile :: req_queue(REQUEST_QUEUE_LENGTH)
+    type(t_request_queue_entry), private, target :: req_queue(REQUEST_QUEUE_LENGTH)
     integer, private, volatile :: req_queue_top, req_queue_bottom ! we will insert data at bottom and take from top
     integer*1, private, allocatable, target :: bsend_buffer(:) !< buffer for bsend-alls
     integer, private :: comm_dummy = 123456 !< dummy variable for sending "empty" messages (those, where we are only interested in the tag)
@@ -686,6 +686,7 @@ module tree_walk_communicator
       integer :: reqhandle, ierr
       real*8 :: tsend
       integer*8 :: req_queue_length
+      type(t_request_queue_entry), pointer :: req
 
       ! send all requests from our thread-safe list
 
@@ -708,7 +709,8 @@ module tree_walk_communicator
 
           req_queue_top = mod(req_queue_top, REQUEST_QUEUE_LENGTH) + 1
 
-          associate (req=>req_queue(req_queue_top))
+          req=>req_queue(req_queue_top)
+
             if (walk_comm_debug) then
               write(ipefile,'("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)') &
                            me, req_queue_top, req%key, req%owner
@@ -725,7 +727,7 @@ module tree_walk_communicator
               request_balance(req%owner+1) = request_balance(req%owner+1) + 1
 
             end if
-          end associate
+
         end do
 
        call rwlock_unlock(RWLOCK_REQUEST_QUEUE, "send_requests")
