@@ -346,7 +346,7 @@ module tree_walk_communicator
         integer :: stat(MPI_STATUS_SIZE)
         integer :: reqhandle
         integer*8 :: requested_key
-        type (multipole) :: child_data(8) ! child data to be received - maximum up to eight children per particle
+        type (multipole), allocatable :: child_data(:) ! child data to be received - maximum up to eight children per particle
         integer :: num_children
         integer :: ipe_sender
         logical, intent(inout) :: walk_finished(num_pe)
@@ -402,10 +402,12 @@ module tree_walk_communicator
              case (TAG_REQUESTED_DATA)
                 ! actually receive the data... ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
                 call MPI_GET_COUNT(stat, MPI_type_multipole, num_children, ierr)
+                allocate(child_data(num_children))
                 call MPI_RECV( child_data, num_children, MPI_type_multipole, ipe_sender, TAG_REQUESTED_DATA, &
                         MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
                 ! ... and put it into the tree and all other data structures
                 call unpack_data(child_data, num_children, ipe_sender)
+                deallocate(child_data)
 
              ! rank 0 does bookkeeping about which PE is already finished with its walk
              ! no one else will ever receive this message tag
@@ -812,7 +814,7 @@ module tree_walk_communicator
       use module_spacefilling
       implicit none
       include 'mpif.h'
-      type (multipole) :: child_data(8) !< child data that has been received
+      type (multipole) :: child_data(num_children) !< child data that has been received
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
       integer*8 :: kchild, kparent(8)
