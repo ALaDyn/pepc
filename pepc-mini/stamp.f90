@@ -6,8 +6,9 @@
 !     =========================
       
 subroutine stamp(istream,ibegin)
+  implicit none
+  integer, intent(in) :: istream, ibegin
   character :: cdate*8, ctime*10, czone*5
-  integer :: ibegin
 
      !      call DATE_AND_TIME(cdate,ctime,czone,vals)
      call DATE_AND_TIME(cdate,ctime,czone)
