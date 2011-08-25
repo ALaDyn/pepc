@@ -425,9 +425,6 @@ subroutine tree_local
      xshift( node_leaf ) = 0.
      yshift( node_leaf ) = 0.
      zshift( node_leaf ) = 0.
-
-     size_node( node_leaf ) = x(p_leaf)**2 + y(p_leaf)**2 + z(p_leaf)**2
-
   end do
 
   call timer_stop(t_props_leafs)
@@ -535,8 +532,6 @@ subroutine tree_local
      yzquad( res_node(i) ) = 0.
      zxquad( res_node(i) ) = 0.
 
-     size_node(res_node(i)) = 0.
-
      do j = 1,nchild
         ! dipole moment
 
@@ -558,10 +553,6 @@ subroutine tree_local
              - zdip( node_child(j) )*ys(j) + charge( node_child(j) )*ys(j)*zs(j) 
         zxquad( res_node(i) ) = zxquad( res_node(i) ) + zxquad( node_child(j) ) - zdip( node_child(j) )*xs(j) &
              - xdip( node_child(j) )*zs(j) + charge( node_child(j) )*zs(j)*xs(j) 
-
-        ! moments for node size:
-     	size_node(res_node(i)) = size_node(res_node(i)) + size_node(node_child(j))
-
      end do
   end do
 

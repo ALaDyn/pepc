@@ -107,7 +107,6 @@ module module_allocation
 		       abs_charge(-maxtwig:maxleaf), &                ! absolute charge
 		       xcoc(-maxtwig:maxleaf), ycoc(-maxtwig:maxleaf), zcoc(-maxtwig:maxleaf), &    ! centre of charge
 		       xshift(-maxtwig:maxleaf), yshift(-maxtwig:maxleaf), zshift(-maxtwig:maxleaf), &    ! shift vector
-		       size_node(-maxtwig:maxleaf), & ! rms node size
 		       xdip(-maxtwig:maxleaf), ydip(-maxtwig:maxleaf), zdip(-maxtwig:maxleaf), &          ! dipole moment
 		       xxquad(-maxtwig:maxleaf), yyquad(-maxtwig:maxleaf), zzquad(-maxtwig:maxleaf), &       ! quadrupole moment
 		       xyquad(-maxtwig:maxleaf), yzquad(-maxtwig:maxleaf), zxquad(-maxtwig:maxleaf))
@@ -143,7 +142,7 @@ module module_allocation
 		! multipole moments
 		  deallocate ( charge, &                    ! charge
 		       abs_charge, &                ! absolute charge
-		       xcoc, ycoc, zcoc, size_node, &    ! centre of charge
+		       xcoc, ycoc, zcoc, &    ! centre of charge
 		       xshift, yshift, zshift, &    ! shift vector
 		       xdip, ydip, zdip, &          ! dipole moment
 		       xxquad, yyquad, zzquad, &       ! quadrupole moment

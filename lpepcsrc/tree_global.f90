@@ -102,7 +102,6 @@ subroutine tree_global
            xshift( nodtwig )     = 0.
            yshift( nodtwig )     = 0.
            zshift( nodtwig )     = 0.
-           size_node( nodtwig )  = 0.
            htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will now touch this again
         endif
 
@@ -158,10 +157,6 @@ subroutine tree_global
              - zdip( branch_node(i) )*yss + charge( branch_node(i) )*yss*zss
         zxquad( parent_node(i) ) = zxquad( parent_node(i) ) +  zxquad( branch_node(i) ) - zdip( branch_node(i) )*xss &
              - xdip( branch_node(i) )*zss + charge( branch_node(i) )*zss*xss
-
-        ! Multipole extent
-     	size_node( parent_node(i) ) = size_node( parent_node(i) ) + size_node(branch_node(i))
-
      end do
 
      nparent = nuniq

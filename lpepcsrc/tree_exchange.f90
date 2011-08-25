@@ -9,9 +9,7 @@ subroutine tree_exchange
 
   integer :: i,ierr, lnode, lcode, lleaves, hashaddr, newleaf, newtwig
   
-  real*8, dimension(nbranch) :: pack_size
   type (multipole), dimension(nbranch) :: pack_mult
-  real*8, allocatable :: get_size(:)
   type (multipole),allocatable :: get_mult(:)
   integer, allocatable :: igap(:)    !  stride lengths of local branch arrays
 
@@ -48,7 +46,6 @@ subroutine tree_exchange
           xshift( lnode), &
           yshift( lnode), &
           zshift( lnode) )
-     pack_size(i) = size_node(lnode)
   end do
 
   call timer_stop(t_exchange_branches_pack)
@@ -66,7 +63,7 @@ subroutine tree_exchange
   end do
   
   nbranch_sum = SUM( nbranches(1:num_pe) )   ! Total # branches in tree
-  allocate(get_size(1:nbranch_sum),get_mult(1:nbranch_sum))
+  allocate(get_mult(1:nbranch_sum))
   igap(num_pe+1) = nbranch_sum
 
   if (nbranch_sum > branch_max_global) then
@@ -79,7 +76,6 @@ subroutine tree_exchange
   call timer_start(t_exchange_branches_allgatherv)
 
   call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_MULTIPOLE, get_mult, nbranches, igap, MPI_TYPE_MULTIPOLE, MPI_COMM_WORLD, ierr)
-  call MPI_ALLGATHERV(pack_size, nbranch, MPI_REAL8, get_size, nbranches, igap, MPI_REAL8, MPI_COMM_WORLD, ierr)
 
   deallocate (igap)
 
@@ -130,8 +126,6 @@ subroutine tree_exchange
         xshift( lnode ) = get_mult(i)%xshift
         yshift( lnode ) = get_mult(i)%yshift
         zshift( lnode ) = get_mult(i)%zshift
-     	size_node( lnode ) =  get_size(i)
-       
      endif
 
   end do  
@@ -146,7 +140,7 @@ subroutine tree_exchange
   nleaf = nleaf + newleaf  ! Total # leaves/twigs in local #table
   ntwig = ntwig + newtwig
   
-  deallocate(get_size,get_mult)
+  deallocate(get_mult)
 
   call timer_stop(t_exchange_branches_integrate)
   call timer_stop(t_exchange_branches)

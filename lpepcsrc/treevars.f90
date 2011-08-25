@@ -42,8 +42,7 @@ module treevars
                                xshift(:), yshift(:), zshift(:), &    ! shift vector
                                xdip(:), ydip(:), zdip(:), &          ! dipole moment
                                xxquad(:), yyquad(:), zzquad(:), &    ! quadrupole moment
-                               xyquad(:), yzquad(:), zxquad(:), &    !
-                               size_node(:)  !  Spatial extent (radius) of multipole
+                               xyquad(:), yzquad(:), zxquad(:)       !
 
   integer, allocatable ::   node_level(:)       ! refinement level
  

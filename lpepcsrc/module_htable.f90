@@ -549,9 +549,9 @@ contains
         write (ipefile,'(///a)') 'Tree structure'
 
         !  write (ipefile,'(/a/a/(3i5,2i10,2i8,b11,i2,i8,i10,9(1pe15.4)))') 'Twigs from hash-table:', &
-        write (ipefile,'(/a/a,a/(3i5,2o15,2i8,o15,i8,15(1pe30.19)))') 'Twigs from hash-table:', &
+        write (ipefile,'(/a/a,a/(3i5,2o15,2i8,o15,i8,14(1pe30.19)))') 'Twigs from hash-table:', &
         '    i  level  owner        key     parent-key       #    node  code      1st child #leaves ', &
-        ' abs_charge    charge   xcoc   ycoc   zcoc   xdip   ydip   zdip   sqrtbla   xxquad   yyquad   zzquad   xyquad   yzquad   zxquad', &
+        ' abs_charge    charge   xcoc   ycoc   zcoc   xdip   ydip   zdip   xxquad   yyquad   zzquad   xyquad   yzquad   zxquad', &
         (i,node_level(ind_twig(i)), &              !  index, level
         htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%owner, &                            ! Owner-PE of node
         key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
@@ -566,7 +566,6 @@ contains
         xdip(ind_twig(i)), &
         ydip(ind_twig(i)), &
         zdip(ind_twig(i)), &
-        sqrt(size_node(ind_twig(i))/htable(addr_twig(i))%leaves-rcoc2(i)), &
         xxquad(ind_twig(i)), &
         yyquad(ind_twig(i)), &
         zzquad(ind_twig(i)), &
