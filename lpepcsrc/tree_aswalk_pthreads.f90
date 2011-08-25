@@ -817,22 +817,25 @@ module tree_walk_communicator
       type (multipole) :: child_data(num_children) !< child data that has been received
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
-      integer*8 :: kchild, kparent(8)
-      integer :: node_addr, hashaddr, lchild,  nodchild, bchild, ownerchild
+      integer*8 :: kchild, kparent
+      integer :: hashaddr, lchild,  nodchild, bchild, ownerchild, parent_addr(0:num_children)
       integer :: ic, ierr
 
       request_balance(ipe_sender+1) = request_balance(ipe_sender+1) - 1
+      parent_addr(0) = 0
 
       do ic = 1, num_children
         kchild      = child_data(ic)%key
-        kparent(ic) = ishft( kchild,-3 )
+        kparent     = ishft( kchild,-3 )
         bchild      = child_data(ic)%byte
         lchild      = child_data(ic)%leaves
         ownerchild  = child_data(ic)%owner
+        ! save parent address - after (!) inserting all (!) children we can flag it: it`s children are then accessible
+        parent_addr(ic) = key2addr( kparent, 'WALK:unpack_data() - get parent address' )
 
         if (walk_comm_debug) then
           write(ipefile,'("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ",        owner=", I6, ", kchild=", O22)') &
-                         me, kparent(ic), ipe_sender, ownerchild, kchild
+                         me, kparent, ipe_sender, ownerchild, kchild
         end if
 
         if (lchild == 1 ) then
@@ -902,20 +905,14 @@ module tree_walk_communicator
      end do
 
      ! first check, if all received particles share the same parent node
-     do ic=2,num_children
-       if (kparent(ic) .ne. kparent(1)) then
-         write(*,*) "PE", me, "received child data for different parent nodes within one message - this is not allowed"
-         write(*,*) "child_data =", child_data
-         flush(6)
-         call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+     do ic=1,num_children
+       if (parent_addr(ic) .ne. parent_addr(ic-1)) then
+         !call rwlock_wrlock(RWLOCK_CHILDBYTE, "unpack_data")
+         htable( parent_addr(ic) )%childcode = IBSET(  htable( parent_addr(ic) )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
+         !call rwlock_unlock(RWLOCK_CHILDBYTE, "unpack_data")
        end if
      end do
-     ! mark the parent node inside the hashtable: it`s children are now accessible
-     node_addr = key2addr( kparent(1),'WALK:unpack_data' )
 
-     !call rwlock_wrlock(RWLOCK_CHILDBYTE, "unpack_data")
-     htable( node_addr )%childcode = IBSET(  htable( node_addr )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
-     !call rwlock_unlock(RWLOCK_CHILDBYTE, "unpack_data")
 
     end subroutine unpack_data
 
