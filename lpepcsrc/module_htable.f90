@@ -205,8 +205,6 @@ contains
         ! perform address hashing on key
         cell_addr = int(IAND( keyin, hashconst))
 
-        tablehigh = max(tablehigh,cell_addr)                 ! Track highest address
-
         if ( htable( cell_addr )%node == 0 .and. htable( cell_addr )%key /=-1 ) then       ! Is entry empty?
             newentry = cell_addr                 ! Yes, so create new entry:
             htable( cell_addr )%node = nodein          !   local pointer
@@ -314,7 +312,6 @@ contains
                 write (ipefile,'(a5,o20,a)') 'Key ',keyin,' not resolved in MAKE_HASHENTRY'
                 ierror = 2
             end if
-            tablehigh = max(tablehigh,free)                 ! Track highest address
 
         end if
 

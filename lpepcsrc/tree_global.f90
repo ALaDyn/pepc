@@ -9,11 +9,8 @@ subroutine tree_global
   include 'mpif.h'
 
   real*8 :: xss, yss, zss
-  integer :: i,j, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr, nchild
-  integer*8 :: child_top
+  integer :: i, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr, nchild
 
-  integer*8, dimension(8) :: child_key, child_sub
-  
   integer, dimension(nbranch_sum) :: branch_level, branch_addr, branch_node 
   integer*8, dimension(maxaddress) :: sub_key, parent_key
   integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
@@ -230,18 +227,6 @@ subroutine tree_global
      call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
      stop           
   endif
-
-  ! Fill in 1st child, # children in twig properties
-  do i = 1,ntwig
-     child_byte = htable( cell_addr(i) )%childcode                           !  Children byte-code
-     nchild = SUM( (/ (ibits(child_byte,j,1),j=0,7) /) )                   ! # children = sum of bits in byte-code
-     child_sub(1:nchild) = pack( bitarr, mask=(/ (btest(child_byte,j),j=0,7) /) )  ! Extract child sub-keys from byte code
-     child_top = ishft(treekey(i),3) 
-
-     do j=1,nchild
-        child_key(j) = IOR( child_top, child_sub(j) )         ! Construct keys of children
-     end do
-  end do
 
   deallocate(tree_node,cell_addr,parent_addr)
 

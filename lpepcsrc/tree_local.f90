@@ -131,7 +131,6 @@ subroutine tree_local
   htable(1)%leaves = npp              ! root contains all leaves, excluding boundary particles
   ntwig = 1
   nleaf = 0
-  tablehigh = 0
 
 
   do while ( nlist > 0 )              ! While any particle not finished:
@@ -169,7 +168,6 @@ subroutine tree_local
 
      !  Make set of entries at current level and tag collisions
      do i = 1,nlist
-        tablehigh = max(tablehigh,cell_addr(i))                 ! Track highest address
         if ( htable( cell_addr(i) )%node == 0 .and. htable(cell_addr(i))%key /= -1 ) then       ! Is entry empty?
            nres = nres + 1
            newentry(nres) = cell_addr(i)                  ! Yes, so create new entry:
@@ -257,8 +255,6 @@ subroutine tree_local
            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
            stop           
         end if
-        tablehigh = max(tablehigh,free_addr(i))                 ! Track highest address
-
      end do
 
      ! Go through new entries and sort them into twigs/leaves

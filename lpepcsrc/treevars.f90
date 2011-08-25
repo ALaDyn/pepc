@@ -27,7 +27,7 @@ module treevars
                                 treekey(:), &       ! keys of all twig and leaf nodes
                                 branch_key(:), &    ! keys of branch nodes covering all domains
                                 pebranch(:), &	    ! keys of branch nodes covering local domain
-	                            twig_key(:)         ! local twig keys
+                                twig_key(:)         ! local twig keys
 
   integer, allocatable :: &
                                 nbranches(:), &       ! # branches in local domain
@@ -66,7 +66,6 @@ module treevars
              sum_ships, &      ! total # multipole ships per iteration  
              sum_fetches, &    ! total # key fetches  per iteration  
              free_lo, &        ! min address allowed for resolving collisions
-             tablehigh, &      ! highest current address in #table
              sum_unused, &     ! # free addresses
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
