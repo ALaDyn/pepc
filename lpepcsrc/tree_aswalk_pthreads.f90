@@ -772,27 +772,13 @@ module tree_walk_communicator
       owner_child(1:nchild)  = htable( addr_child(1:nchild) )%owner                       ! real owner of child (does not necessarily have to be identical to me, at least after futural modifications)
       ! Package children properties into user-defined multipole array for shipping
       do ic = 1,nchild
-         children_to_send(ic) = multipole ( key_child(ic), &
-                                      byte_child(ic), &
-                                      leaves_child(ic), &
-                                      owner_child(ic), &
-                                      charge( node_child(ic) ), &
-                                      abs_charge( node_child(ic) ), &
-                                      xcoc( node_child(ic)), &
-                                      ycoc( node_child(ic)), &
-                                      zcoc( node_child(ic)), &
-                                      xdip( node_child(ic)), &
-                                      ydip( node_child(ic)), &
-                                      zdip( node_child(ic)), &
-                                      xxquad( node_child(ic)), &
-                                      yyquad( node_child(ic)), &
-                                      zzquad( node_child(ic)), &
-                                      xyquad( node_child(ic)), &
-                                      yzquad( node_child(ic)), &
-                                      zxquad( node_child(ic)), &
-                                      xshift( node_child(ic)), &
-                                      yshift( node_child(ic)), &
-                                      zshift( node_child(ic)) )
+         associate(c=>children_to_send(ic))
+           c        = tree_nodes(node_child(ic))
+           c%key    = key_child(ic)   ! TODO: this data is maybe not consistently stored in tree_nodes array
+           c%byte   = byte_child(ic)  ! therefore, we have to take it directly form the htable --> repair this
+           c%leaves = leaves_child(ic)
+           c%owner  = owner_child(ic)
+          end associate
       end do
 
       ! Ship child data back to PE that requested it
@@ -882,23 +868,7 @@ module tree_walk_communicator
         node_level( nodchild ) = level_from_key(kchild)  ! get level from keys and prestore as node property
 
         ! Physical properties
-        charge( nodchild ) = child_data(ic)%q
-        abs_charge( nodchild ) = child_data(ic)%absq
-        xcoc( nodchild )   = child_data(ic)%xcoc
-        ycoc( nodchild )   = child_data(ic)%ycoc
-        zcoc( nodchild )   = child_data(ic)%zcoc
-        xdip( nodchild )   = child_data(ic)%xdip
-        ydip( nodchild )   = child_data(ic)%ydip
-        zdip( nodchild )   = child_data(ic)%zdip
-        xxquad( nodchild ) = child_data(ic)%xxquad
-        yyquad( nodchild ) = child_data(ic)%yyquad
-        zzquad( nodchild ) = child_data(ic)%zzquad
-        xyquad( nodchild ) = child_data(ic)%xyquad
-        yzquad( nodchild ) = child_data(ic)%yzquad
-        zxquad( nodchild ) = child_data(ic)%zxquad
-        xshift( nodchild ) = child_data(ic)%xshift
-        yshift( nodchild ) = child_data(ic)%yshift
-        zshift( nodchild ) = child_data(ic)%zshift
+        tree_nodes( nodchild ) = child_data( ic )
 
         !  Add child key to list of fetched nodes
         sum_fetches=sum_fetches+1
@@ -1335,9 +1305,9 @@ module tree_walk_utils
 
           if (mac==0) then
               ! BH-MAC
-              delta(1) = x(nodeidx) - (xcoc( walk_node ) + vbox(1) )     ! Separations
-              delta(2) = y(nodeidx) - (ycoc( walk_node ) + vbox(2) )
-              delta(3) = z(nodeidx) - (zcoc( walk_node ) + vbox(3) )
+              delta(1) = x(nodeidx) - (tree_nodes(walk_node)%xcoc + vbox(1) )     ! Separations
+              delta(2) = y(nodeidx) - (tree_nodes(walk_node)%ycoc + vbox(2) )
+              delta(3) = z(nodeidx) - (tree_nodes(walk_node)%zcoc + vbox(3) )
 
               dist2 = DOT_PRODUCT(delta, delta)
 

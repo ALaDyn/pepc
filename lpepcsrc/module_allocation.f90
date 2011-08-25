@@ -103,13 +103,7 @@ module module_allocation
 
 		  allocate ( node_level(-maxtwig:maxleaf) )
 
-		  allocate ( charge(-maxtwig:maxleaf), &                    ! charge
-		       abs_charge(-maxtwig:maxleaf), &                ! absolute charge
-		       xcoc(-maxtwig:maxleaf), ycoc(-maxtwig:maxleaf), zcoc(-maxtwig:maxleaf), &    ! centre of charge
-		       xshift(-maxtwig:maxleaf), yshift(-maxtwig:maxleaf), zshift(-maxtwig:maxleaf), &    ! shift vector
-		       xdip(-maxtwig:maxleaf), ydip(-maxtwig:maxleaf), zdip(-maxtwig:maxleaf), &          ! dipole moment
-		       xxquad(-maxtwig:maxleaf), yyquad(-maxtwig:maxleaf), zzquad(-maxtwig:maxleaf), &       ! quadrupole moment
-		       xyquad(-maxtwig:maxleaf), yzquad(-maxtwig:maxleaf), zxquad(-maxtwig:maxleaf))
+		  allocate ( tree_nodes(-maxtwig:maxleaf) )
 
 		  call timer_stop(t_allocate)
 
@@ -140,13 +134,7 @@ module module_allocation
 		  deallocate ( node_level )
 
 		! multipole moments
-		  deallocate ( charge, &                    ! charge
-		       abs_charge, &                ! absolute charge
-		       xcoc, ycoc, zcoc, &    ! centre of charge
-		       xshift, yshift, zshift, &    ! shift vector
-		       xdip, ydip, zdip, &          ! dipole moment
-		       xxquad, yyquad, zzquad, &       ! quadrupole moment
-		       xyquad, yzquad, zxquad)
+		  deallocate ( tree_nodes )
 
 		end subroutine deallocate_tree
 

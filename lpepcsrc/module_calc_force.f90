@@ -154,16 +154,18 @@ module module_calc_force
           real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
           real :: eps2
 
-          eps2   = cf_par%eps**2
-          sumfx  = 0.
-          sumfy  = 0.
-          sumfz  = 0.
-          sumphi = 0.
+          associate(t=>tree_nodes(inode))
+
+             eps2   = cf_par%eps**2
+             sumfx  = 0.
+             sumfy  = 0.
+             sumfz  = 0.
+             sumphi = 0.
 
              !  preprocess distances
-             dx = x(p) - ( xcoc(inode) + vbox(1) )
-             dy = y(p) - ( ycoc(inode) + vbox(2) )
-             dz = z(p) - ( zcoc(inode) + vbox(3) )
+             dx = x(p) - ( t%xcoc + vbox(1) )
+             dy = y(p) - ( t%ycoc + vbox(2) )
+             dz = z(p) - ( t%zcoc + vbox(3) )
 
 
              d = sqrt(dx**2+dy**2+dz**2+eps2)
@@ -188,45 +190,47 @@ module module_calc_force
 
              ! potential
 
-             sumphi = sumphi + charge(inode)*rd    &                           !  monopole term
+             sumphi = sumphi + t%charge*rd    &                           !  monopole term
                                         !
-                  + (dx*xdip(inode) + dy*ydip(inode) + dz*zdip(inode))*rd3  &    !  dipole
+                  + (dx*t%xdip + dy*t%ydip + dz*t%zdip)*rd3  &    !  dipole
                                         !     Dx             Dy            Dz
-                  + 0.5*fd1*xxquad(inode) + 0.5*fd2*yyquad(inode) + 0.5*fd3*zzquad(inode)  &  !  quadrupole
+                  + 0.5*fd1*t%xxquad + 0.5*fd2*t%yyquad + 0.5*fd3*t%zzquad  &  !  quadrupole
                                         !           Qxx                 Qyy                 Qzz
-                  + fd4*xyquad(inode) + fd5*yzquad(inode) + fd6*zxquad(inode)
+                  + fd4*t%xyquad + fd5*t%yzquad + fd6*t%zxquad
              !   Qxy            Qyz             Qzx
 
              !  forces
 
-             sumfx = sumfx + charge(inode)*dx*rd3 &      ! monopole term
+             sumfx = sumfx + t%charge*dx*rd3 &      ! monopole term
                                         !
-                  + fd1*xdip(inode) + fd4*ydip(inode) + fd6*zdip(inode)   &   !  dipole term
+                  + fd1*t%xdip + fd4*t%ydip + fd6*t%zdip   &   !  dipole term
                                         !
-                  + (15.*dx3*rd7 - 9.*dx*rd5 )*0.5*xxquad(inode) &     !
-                  + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*xyquad(inode) &     !
-                  + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*zxquad(inode) &     !   quadrupole term
-                  + ( 15*dx*dy*dz*rd7 )*yzquad(inode) &                !
-                  + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*0.5*yyquad(inode) & !
-                  + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*0.5*zzquad(inode)   !
+                  + (15.*dx3*rd7 - 9.*dx*rd5 )*0.5*t%xxquad &     !
+                  + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*t%xyquad &     !
+                  + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*t%zxquad &     !   quadrupole term
+                  + ( 15*dx*dy*dz*rd7 )*t%yzquad &                !
+                  + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*0.5*t%yyquad & !
+                  + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*0.5*t%zzquad   !
 
-             sumfy = sumfy + charge(inode)*dy*rd3 &
-                  + fd2*ydip(inode) + fd4*xdip(inode) + fd5*zdip(inode)  &
-                  + ( 15.*dy3*rd7 - 9.*dy*rd5 )*0.5*yyquad(inode) &
-                  + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*xyquad(inode) &
-                  + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*yzquad(inode) &
-                  + ( 15.*dx*dy*dz*rd7 )*zxquad(inode) &
-                  + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*0.5*xxquad(inode) &
-                  + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*0.5*zzquad(inode)
+             sumfy = sumfy + t%charge*dy*rd3 &
+                  + fd2*t%ydip + fd4*t%xdip + fd5*t%zdip  &
+                  + ( 15.*dy3*rd7 - 9.*dy*rd5 )*0.5*t%yyquad &
+                  + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*t%xyquad &
+                  + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*t%yzquad &
+                  + ( 15.*dx*dy*dz*rd7 )*t%zxquad &
+                  + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*0.5*t%xxquad &
+                  + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*0.5*t%zzquad
 
-             sumfz = sumfz + charge(inode)*dz*rd3 &
-                  + fd3*zdip(inode) + fd5*ydip(inode) + fd6*xdip(inode)  &
-                  + ( 15.*dz3*rd7 - 9.*dz*rd5 )*0.5*zzquad(inode) &
-                  + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*zxquad(inode) &
-                  + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*yzquad(inode) &
-                  + ( 15.*dx*dy*dz*rd7 )*xyquad(inode) &
-                  + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*0.5*yyquad(inode) &
-                  + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*0.5*xxquad(inode)
+             sumfz = sumfz + t%charge*dz*rd3 &
+                  + fd3*t%zdip + fd5*t%ydip + fd6*t%xdip  &
+                  + ( 15.*dz3*rd7 - 9.*dz*rd5 )*0.5*t%zzquad &
+                  + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*t%zxquad &
+                  + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*t%yzquad &
+                  + ( 15.*dx*dy*dz*rd7 )*t%xyquad &
+                  + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*0.5*t%yyquad &
+                  + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*0.5*t%xxquad
+
+          end associate
 
         end subroutine calc_force_coulomb_3D
 
@@ -259,11 +263,15 @@ module module_calc_force
           sumfy  = 0.
           sumphi = 0.
 
-          !  preprocess distances
-          dx = x(p) - ( xcoc(inode) + vbox(1) )
-          dy = y(p) - ( ycoc(inode) + vbox(2) )
+          associate(t=>tree_nodes(inode))
 
-          d  = sqrt(dx**2+dy**2+eps2)
+            !  preprocess distances
+            dx = x(p) - ( t%xcoc + vbox(1) )
+            dy = y(p) - ( t%ycoc + vbox(2) )
+
+            d  = sqrt(dx**2+dy**2+eps2)
+
+          end associate
 
         end subroutine calc_force_coulomb_2D
 

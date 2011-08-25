@@ -89,10 +89,10 @@ module module_treediags
             ! prepare voxel data structure
             bcornerstypes(i)   = VTK_VOXEL
             bcornersoffsets(i) = 8*i
-            bq(i)              = charge(bnode)
-            bcocx(i)           = xcoc(bnode)
-            bcocy(i)           = ycoc(bnode)
-            bcocz(i)           = zcoc(bnode)
+            bq(i)              = tree_nodes(bnode)%charge
+            bcocx(i)           = tree_nodes(bnode)%xcoc
+            bcocy(i)           = tree_nodes(bnode)%ycoc
+            bcocz(i)           = tree_nodes(bnode)%zcoc
             ! compute real center coordinate
             call key_to_coord(bkey, bx, by, bz)
 

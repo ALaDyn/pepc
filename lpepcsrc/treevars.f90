@@ -35,14 +35,7 @@ module treevars
                                 free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
                                 point_free(:)      ! Pointer to free address index
 
-  real*8, allocatable  :: &                ! Tree node properties:
-                               charge(:), &                          ! charge
-                               abs_charge(:), &                      ! absolute charge
-                               xcoc(:), ycoc(:), zcoc(:), &          ! centre of charge 
-                               xshift(:), yshift(:), zshift(:), &    ! shift vector
-                               xdip(:), ydip(:), zdip(:), &          ! dipole moment
-                               xxquad(:), yyquad(:), zzquad(:), &    ! quadrupole moment
-                               xyquad(:), yzquad(:), zxquad(:)       !
+  type(multipole), allocatable  :: tree_nodes(:)                 ! Tree node properties
 
   integer, allocatable ::   node_level(:)       ! refinement level
  

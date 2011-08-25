@@ -543,7 +543,7 @@ contains
         ind_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%node,i=1,ntwig )/)   !  Twig node pointers
 
         do i=1,ntwig
-            rcoc2(i) = xcoc(ind_twig(i))**2+ycoc(ind_twig(i))**2 + zcoc(ind_twig(i))**2
+            rcoc2(i) = tree_nodes(ind_twig(i))%xcoc**2+tree_nodes(ind_twig(i))%ycoc**2 + tree_nodes(ind_twig(i))%zcoc**2
         end do
 
         write (ipefile,'(///a)') 'Tree structure'
@@ -558,20 +558,20 @@ contains
         addr_twig(i), ind_twig(i), &    ! Table address and node number
         child_twig(i), &                         ! Children byte-code
         htable( addr_twig(i) )%leaves, &                           ! # leaves contained in branch
-        abs_charge(ind_twig(i)), &    ! Twig absolute charge
-        charge(ind_twig(i)), &    ! Twig  charge
-        xcoc(ind_twig(i)), & ! Centre of charge
-        ycoc(ind_twig(i)), &
-        zcoc(ind_twig(i)), &
-        xdip(ind_twig(i)), &
-        ydip(ind_twig(i)), &
-        zdip(ind_twig(i)), &
-        xxquad(ind_twig(i)), &
-        yyquad(ind_twig(i)), &
-        zzquad(ind_twig(i)), &
-        xyquad(ind_twig(i)), &
-        yzquad(ind_twig(i)), &
-        zxquad(ind_twig(i)), &
+        tree_nodes(ind_twig(i))%abs_charge, &    ! Twig absolute charge
+        tree_nodes(ind_twig(i))%charge, &    ! Twig  charge
+        tree_nodes(ind_twig(i))%xcoc, & ! Centre of charge
+        tree_nodes(ind_twig(i))%ycoc, &
+        tree_nodes(ind_twig(i))%zcoc, &
+        tree_nodes(ind_twig(i))%xdip, &
+        tree_nodes(ind_twig(i))%ydip, &
+        tree_nodes(ind_twig(i))%zdip, &
+        tree_nodes(ind_twig(i))%xxquad, &
+        tree_nodes(ind_twig(i))%yyquad, &
+        tree_nodes(ind_twig(i))%zzquad, &
+        tree_nodes(ind_twig(i))%xyquad, &
+        tree_nodes(ind_twig(i))%yzquad, &
+        tree_nodes(ind_twig(i))%zxquad, &
         i=1,ntwig)
 
 
@@ -600,9 +600,12 @@ contains
         write (ipefile,'(//a/a/(4i5,2o15,i5,2f11.4,f6.1,f11.4))') 'Non-local leaves from hash-table:', &
         '    i   owner    i-leaf    lev    key    parent  plabel  xcoc  ycoc  charge      ', &
         (i,owner_leaf(i),ind_leaf(i),node_level(ind_leaf(i)),key_leaf(i), &
-        ishft( key_leaf(i),-3 ), &      ! parent
-        plist_leaf(i), & ! global particle label
-        xcoc(ind_leaf(i)),ycoc(ind_leaf(i)), charge(ind_leaf(i)), xdip(ind_leaf(i)), &
+          ishft( key_leaf(i),-3 ), &      ! parent
+          plist_leaf(i), & ! global particle label
+          tree_nodes(ind_twig(i))%xcoc,&
+          tree_nodes(ind_twig(i))%ycoc,&
+          tree_nodes(ind_twig(i))%charge,&
+          tree_nodes(ind_twig(i))%xdip, &
         i=1,nleaf-nleaf_me)
 
     end subroutine diagnose_tree

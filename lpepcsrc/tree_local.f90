@@ -403,28 +403,26 @@ subroutine tree_local
      htable(addr_leaf)%childcode = IBSET( htable(addr_leaf)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zero its properties (in tree_global)
      node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves 
 
-     xcoc( node_leaf ) = x( p_leaf )         ! Centre of charge
-     ycoc( node_leaf ) = y( p_leaf )
-     zcoc( node_leaf ) = z( p_leaf )
-
-     charge( node_leaf ) = q( p_leaf )       ! Charge
-     abs_charge( node_leaf ) = abs( q(p_leaf) )   ! Absolute charge (needed for c.o.c)
-
-     xdip( node_leaf ) = x(p_leaf) * q(p_leaf)   ! Dipole moment
-     ydip( node_leaf ) = y(p_leaf) * q(p_leaf) 
-     zdip( node_leaf ) = z(p_leaf) * q(p_leaf) 
-
-     xxquad( node_leaf ) = q(p_leaf) * x(p_leaf)**2   ! Quadrupole moment
-     yyquad( node_leaf ) = q(p_leaf) * y(p_leaf)**2   
-     zzquad( node_leaf ) = q(p_leaf) * z(p_leaf)**2   
-     xyquad( node_leaf ) = q(p_leaf) * x(p_leaf) * y(p_leaf) 
-     yzquad( node_leaf ) = q(p_leaf) * y(p_leaf) * z(p_leaf)  
-     zxquad( node_leaf ) = q(p_leaf) * z(p_leaf) * x(p_leaf)   
-
-     !  Zero shift vector
-     xshift( node_leaf ) = 0.
-     yshift( node_leaf ) = 0.
-     zshift( node_leaf ) = 0.
+     tree_nodes( node_leaf ) = multipole( &
+       treekey(i),                        &
+       htable(addr_leaf)%childcode,       &
+       0,                                 &
+       me,                                &
+       q( p_leaf ),                       &! Charge
+       abs( q(p_leaf) ),                  &! Absolute charge (needed for c.o.c)
+       x( p_leaf ),                       &! x-Centre of charge
+       y( p_leaf ),                       &! y
+       z( p_leaf ),                       &! z
+       x(p_leaf) * q(p_leaf),             &! x-Dipole moment
+       y(p_leaf) * q(p_leaf),             &! y
+       z(p_leaf) * q(p_leaf),             &! z
+       q(p_leaf) * x(p_leaf)**2,          &! xx- Quadrupole moment
+       q(p_leaf) * y(p_leaf)**2,          &! yy
+       q(p_leaf) * z(p_leaf)**2,          &! zz
+       q(p_leaf) * x(p_leaf) * y(p_leaf), &! xy
+       q(p_leaf) * y(p_leaf) * z(p_leaf), &! yz
+       q(p_leaf) * z(p_leaf) * x(p_leaf), &! zx
+       0., 0., 0.)                         ! Zero shift vector
   end do
 
   call timer_stop(t_props_leafs)
@@ -484,76 +482,74 @@ subroutine tree_local
   ! Go up through tree, starting at deepest level (largest key first)
   ! and accumulate multipole moments onto twig nodes
   do i = ntwig_domain,1,-1
-     nchild = SUM( (/ (ibits(res_child(i),j,1),j=0,7) /) )                 ! Get # children
-     sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(res_child(i),j),j=0,7) /) )  ! Extract sub key from byte code
+     associate( res=>tree_nodes(res_node(i)) )
 
-     do j=1,nchild
-        key_child(j) = IOR( ishft( res_key(i),3 ), sub_key(j) )      ! Construct keys of children
-        addr_child = key2addr( key_child(j),'PROPERTIES: domain2' )             ! Table address of children
-        node_child(j) = htable( addr_child )%node                     ! Child node index  
-     end do
+         nchild = SUM( (/ (ibits(res_child(i),j,1),j=0,7) /) )                 ! Get # children
+         sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(res_child(i),j),j=0,7) /) )  ! Extract sub key from byte code
 
-     charge( res_node(i) ) = SUM( charge( node_child(1:nchild) ) )                 ! Sum charge of child nodes and place
-     ! result with parent node
-     abs_charge( res_node(i) ) = SUM( abs_charge( node_child(1:nchild) ) )                 ! Sum |q|
+         do j=1,nchild
+            key_child(j) = IOR( ishft( res_key(i),3 ), sub_key(j) )      ! Construct keys of children
+            addr_child = key2addr( key_child(j),'PROPERTIES: domain2' )             ! Table address of children
+            node_child(j) = htable( addr_child )%node                     ! Child node index
+         end do
 
-     ! Centres of charge
-     xcoc( res_node(i) ) = 0.
-     ycoc( res_node(i) ) = 0.
-     zcoc( res_node(i) ) = 0.
+         res%charge     = SUM( tree_nodes(node_child(1:nchild))%charge )      ! Sum charge of child nodes and place
+         res%abs_charge = SUM( tree_nodes(node_child(1:nchild))%abs_charge )  ! Sum |q|
 
-     do j=1,nchild
-        xcoc( res_node(i) ) = xcoc( res_node(i) ) + ( xcoc(node_child(j)) * abs_charge(node_child(j))) &
-             / abs_charge( res_node(i) )
-        ycoc( res_node(i) ) = ycoc( res_node(i) ) + ( ycoc(node_child(j)) * abs_charge(node_child(j))) &
-             / abs_charge( res_node(i) )
-        zcoc( res_node(i) ) = zcoc( res_node(i) ) + ( zcoc(node_child(j)) * abs_charge(node_child(j))) &
-             / abs_charge( res_node(i) )
-     end do
+         ! Centres of charge
+         res%xcoc = 0.
+         res%ycoc = 0.
+         res%zcoc = 0.
 
-     ! Shifts and multipole moments
-     xs(1:nchild) = xcoc( res_node(i) ) - xshift( node_child(1:nchild) )     ! Shift vector for current node
-     ys(1:nchild) = ycoc( res_node(i) ) - yshift( node_child(1:nchild) )
-     zs(1:nchild) = zcoc( res_node(i) ) - zshift( node_child(1:nchild) )
+         do j=1,nchild
+            associate(child=>tree_nodes(node_child(j)))
+              res%xcoc = res%xcoc + ( child%xcoc * child%abs_charge) / res%abs_charge
+              res%ycoc = res%ycoc + ( child%ycoc * child%abs_charge) / res%abs_charge
+              res%zcoc = res%zcoc + ( child%zcoc * child%abs_charge) / res%abs_charge
+            end associate
+         end do
 
-     xshift( res_node(i) ) = xcoc( res_node(i) ) ! Shift variable for next level up
-     yshift( res_node(i) ) = ycoc( res_node(i) ) 
-     zshift( res_node(i) ) = zcoc( res_node(i) ) 
+         ! Shifts and multipole moments
+         xs(1:nchild) = res%xcoc - tree_nodes(node_child(1:nchild))%xshift  ! Shift vector for current node
+         ys(1:nchild) = res%ycoc - tree_nodes(node_child(1:nchild))%yshift
+         zs(1:nchild) = res%zcoc - tree_nodes(node_child(1:nchild))%zshift
 
-     xdip( res_node(i) ) = 0.
-     ydip( res_node(i) ) = 0.
-     zdip( res_node(i) ) = 0.
-     
-     xxquad( res_node(i) ) = 0.
-     yyquad( res_node(i) ) = 0.
-     zzquad( res_node(i) ) = 0.
+         res%xshift = res%xcoc ! Shift variable for next level up
+         res%yshift = res%ycoc
+         res%zshift = res%zcoc
 
-     xyquad( res_node(i) ) = 0.  
-     yzquad( res_node(i) ) = 0.
-     zxquad( res_node(i) ) = 0.
+         res%xdip = 0.
+         res%ydip = 0.
+         res%zdip = 0.
 
-     do j = 1,nchild
-        ! dipole moment
+         res%xxquad = 0.
+         res%yyquad = 0.
+         res%zzquad = 0.
 
-        xdip( res_node(i) ) = xdip( res_node(i) ) + xdip( node_child(j) ) - charge( node_child(j) )*xs(j) 
-        ydip( res_node(i) ) = ydip( res_node(i) ) + ydip( node_child(j) ) - charge( node_child(j) )*ys(j) 
-        zdip( res_node(i) ) = zdip( res_node(i) ) + zdip( node_child(j) ) - charge( node_child(j) )*zs(j) 
+         res%xyquad = 0.
+         res%yzquad = 0.
+         res%zxquad = 0.
 
-        ! quadrupole moment
-        xxquad( res_node(i) ) = xxquad( res_node(i) ) + xxquad( node_child(j) ) - 2*xdip( node_child(j) )*xs(j) &
-             + charge( node_child(j) )*xs(j)**2 
-        yyquad( res_node(i) ) = yyquad( res_node(i) ) + yyquad( node_child(j) ) - 2*ydip( node_child(j) )*ys(j) &
-             + charge( node_child(j) )*ys(j)**2 
-        zzquad( res_node(i) ) = zzquad( res_node(i) ) + zzquad( node_child(j) ) - 2*zdip( node_child(j) )*zs(j) &
-             + charge( node_child(j) )*zs(j)**2 
+         do j = 1,nchild
+            associate(child=>tree_nodes(node_child(j)))
 
-        xyquad( res_node(i) ) = xyquad( res_node(i) ) + xyquad( node_child(j) ) - xdip( node_child(j) )*ys(j) &
-             - ydip( node_child(j) )*xs(j) + charge( node_child(j) )*xs(j)*ys(j) 
-        yzquad( res_node(i) ) = yzquad( res_node(i) ) + yzquad( node_child(j) ) - ydip( node_child(j) )*zs(j) &
-             - zdip( node_child(j) )*ys(j) + charge( node_child(j) )*ys(j)*zs(j) 
-        zxquad( res_node(i) ) = zxquad( res_node(i) ) + zxquad( node_child(j) ) - zdip( node_child(j) )*xs(j) &
-             - xdip( node_child(j) )*zs(j) + charge( node_child(j) )*zs(j)*xs(j) 
-     end do
+                ! dipole moment
+                res%xdip = res%xdip + child%xdip - child%charge*xs(j)
+                res%ydip = res%ydip + child%ydip - child%charge*ys(j)
+                res%zdip = res%zdip + child%zdip - child%charge*zs(j)
+
+                ! quadrupole moment
+                res%xxquad = res%xxquad + child%xxquad - 2*child%xdip*xs(j) + child%charge*xs(j)**2
+                res%yyquad = res%yyquad + child%yyquad - 2*child%ydip*ys(j) + child%charge*ys(j)**2
+                res%zzquad = res%zzquad + child%zzquad - 2*child%zdip*zs(j) + child%charge*zs(j)**2
+
+                res%xyquad = res%xyquad + child%xyquad - child%xdip*ys(j) - child%ydip*xs(j) + child%charge*xs(j)*ys(j)
+                res%yzquad = res%yzquad + child%yzquad - child%ydip*zs(j) - child%zdip*ys(j) + child%charge*ys(j)*zs(j)
+                res%zxquad = res%zxquad + child%zxquad - child%zdip*xs(j) - child%xdip*zs(j) + child%charge*zs(j)*xs(j)
+
+            end associate
+         end do
+     end associate
   end do
 
   ! Should now have multipole information up to branch list level(s).

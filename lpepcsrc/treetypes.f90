@@ -43,10 +43,10 @@ module treetypes
      integer*8 :: key     ! key
      integer   :: byte    ! byte code
      integer   :: leaves  ! # leaves contained
-     integer :: owner    ! owner where multipole resides
-     real*8 :: q        ! net charge sum
-     real*8 :: absq     !  absolute charge sum
-     real*8 :: xcoc     ! centre of charge
+     integer :: owner     ! owner where multipole resides
+     real*8 :: charge     ! net charge sum
+     real*8 :: abs_charge !  absolute charge sum
+     real*8 :: xcoc       ! centre of charge
      real*8 :: ycoc
      real*8 :: zcoc
      real*8 :: xdip     ! dipole moment

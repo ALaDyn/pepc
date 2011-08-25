@@ -85,24 +85,27 @@ subroutine tree_global
         ! Set mm-arrays to zero (initially) for all twigs that are parents of branches and have not been initially sett in tree_local
         if (.not. BTEST( htable(hashaddr)%childcode, CHILDCODE_NODE_TOUCHED )) then
            ! zero multipole information for any entries that have not been inside the tree before
-           abs_charge( nodtwig ) = 0.  !
-           charge( nodtwig )     = 0.
-           xcoc( nodtwig )       = 0.
-           ycoc( nodtwig )       = 0.
-           zcoc( nodtwig )       = 0.
-           xdip( nodtwig )       = 0.
-           ydip( nodtwig )       = 0.
-           zdip( nodtwig )       = 0.
-           xxquad( nodtwig )     = 0.
-           yyquad( nodtwig )     = 0.
-           zzquad( nodtwig )     = 0.
-           xyquad( nodtwig )     = 0.
-           yzquad( nodtwig )     = 0.
-           zxquad( nodtwig )     = 0.
-           xshift( nodtwig )     = 0.
-           yshift( nodtwig )     = 0.
-           zshift( nodtwig )     = 0.
-           htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will now touch this again
+           associate(twig=>tree_nodes(nodtwig))
+               twig%abs_charge = 0.  !
+               twig%charge     = 0.
+               twig%xcoc       = 0.
+               twig%ycoc       = 0.
+               twig%zcoc       = 0.
+               twig%xdip       = 0.
+               twig%ydip       = 0.
+               twig%zdip       = 0.
+               twig%xxquad     = 0.
+               twig%yyquad     = 0.
+               twig%zzquad     = 0.
+               twig%xyquad     = 0.
+               twig%yzquad     = 0.
+               twig%zxquad     = 0.
+               twig%xshift     = 0.
+               twig%yshift     = 0.
+               twig%zshift     = 0.
+               htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will now touch this again
+               twig%byte       = htable(hashaddr)%childcode ! TODO: maybe inconsistent with htable data
+           end associate
         endif
 
         branch_addr(i) = key2addr( sub_key(i),'PROPERTIES: fill' )   !  branches` #table addresses
@@ -113,65 +116,67 @@ subroutine tree_global
 
      ! Compute parent properties from children
      do i=nuniq,1,-1
-        abs_charge( parent_node(i) ) = abs_charge( parent_node(i) ) + abs_charge( branch_node(i) )           ! Sum |q|
-        charge( parent_node(i) ) = charge( parent_node(i) ) + charge( branch_node(i) )                       ! Sum q
+        associate(parent=>tree_nodes(parent_node(i)), branch=>tree_nodes(branch_node(i)))
+            parent%abs_charge = parent%abs_charge + branch%abs_charge           ! Sum |q|
+            parent%charge     = parent%charge     + branch%charge               ! Sum q
+        end associate
      end do
 
      ! parent charges should be complete before computing coq`s
 
      do i=nuniq,1,-1
-        ! Centres of charge
-        xcoc( parent_node(i) ) = xcoc(parent_node(i)) + (xcoc( branch_node(i) ) * abs_charge( branch_node(i) ) ) &
-             / abs_charge( parent_node(i)) ! coq
-        ycoc( parent_node(i) ) = ycoc(parent_node(i)) + (ycoc( branch_node(i) ) * abs_charge( branch_node(i) ) ) &
-             / abs_charge( parent_node(i)) ! coq
-        zcoc( parent_node(i) ) = zcoc(parent_node(i)) + (zcoc( branch_node(i) ) * abs_charge( branch_node(i) ) ) &
-             / abs_charge( parent_node(i)) ! coq
+        associate(parent=>tree_nodes(parent_node(i)), branch=>tree_nodes(branch_node(i)))
+            ! Centres of charge
+            parent%xcoc = parent%xcoc + (branch%xcoc * branch%abs_charge )  / parent%abs_charge ! coq
+            parent%ycoc = parent%ycoc + (branch%ycoc * branch%abs_charge )  / parent%abs_charge ! coq
+            parent%zcoc = parent%zcoc + (branch%zcoc * branch%abs_charge )  / parent%abs_charge ! coq
+        end associate
      end do
 
      do i=nuniq,1,-1
-        ! Shifts and multipole moments
-        xss = xcoc( parent_node(i) ) - xshift( branch_node(i)  )     ! Shift vector for current child node
-        yss = ycoc( parent_node(i) ) - yshift( branch_node(i) )
-        zss = zcoc( parent_node(i) ) - zshift( branch_node(i) )
+        associate(parent=>tree_nodes(parent_node(i)), branch=>tree_nodes(branch_node(i)))
+            ! Shifts and multipole moments
+            xss = parent%xcoc - branch%xshift  ! Shift vector for current child node
+            yss = parent%ycoc - branch%yshift
+            zss = parent%zcoc - branch%zshift
 
-        xshift( parent_node(i) ) = xcoc( parent_node(i) ) ! Shift variable for next level up
-        yshift( parent_node(i) ) = ycoc( parent_node(i) ) 
-        zshift( parent_node(i) ) = zcoc( parent_node(i) ) 
+            parent%xshift = parent%xcoc ! Shift variable for next level up
+            parent%yshift = parent%ycoc
+            parent%zshift = parent%zcoc
 
-        ! dipole moment
-        xdip( parent_node(i) ) = xdip( parent_node(i) ) + xdip( branch_node(i) ) - charge( branch_node(i) )*xss 
-        ydip( parent_node(i) ) = ydip( parent_node(i) ) + ydip( branch_node(i) ) - charge( branch_node(i) )*yss 
-        zdip( parent_node(i) ) = zdip( parent_node(i) ) + zdip( branch_node(i) ) - charge( branch_node(i) )*zss 
+            ! dipole moment
+            parent%xdip = parent%xdip + branch%xdip - branch%charge*xss
+            parent%ydip = parent%ydip + branch%ydip - branch%charge*yss
+            parent%zdip = parent%zdip + branch%zdip - branch%charge*zss
 
-        ! quadrupole moment
-        xxquad( parent_node(i) ) = xxquad( parent_node(i) ) +  xxquad( branch_node(i) ) - 2*xdip( branch_node(i) )*xss &
-             + charge( branch_node(i) )*xss**2 
-        yyquad( parent_node(i) ) = yyquad( parent_node(i) ) +  yyquad( branch_node(i) ) - 2*ydip( branch_node(i) )*yss &
-             + charge( branch_node(i) )*yss**2
-        zzquad( parent_node(i) ) = zzquad( parent_node(i) ) +  zzquad( branch_node(i) ) - 2*zdip( branch_node(i) )*zss &
-             + charge( branch_node(i) )*zss**2 
-        xyquad( parent_node(i) ) = xyquad( parent_node(i) ) +  xyquad( branch_node(i) ) - xdip( branch_node(i) )*yss &
-             - ydip( branch_node(i) )*xss + charge( branch_node(i) )*xss*yss
-        yzquad( parent_node(i) ) = yzquad( parent_node(i) ) +  yzquad( branch_node(i) ) - ydip( branch_node(i) )*zss &
-             - zdip( branch_node(i) )*yss + charge( branch_node(i) )*yss*zss
-        zxquad( parent_node(i) ) = zxquad( parent_node(i) ) +  zxquad( branch_node(i) ) - zdip( branch_node(i) )*xss &
-             - xdip( branch_node(i) )*zss + charge( branch_node(i) )*zss*xss
+            ! quadrupole moment
+            parent%xxquad = parent%xxquad +  branch%xxquad - 2*branch%xdip*xss + branch%charge*xss**2
+            parent%yyquad = parent%yyquad +  branch%yyquad - 2*branch%ydip*yss + branch%charge*yss**2
+            parent%zzquad = parent%zzquad +  branch%zzquad - 2*branch%zdip*zss + branch%charge*zss**2
+
+            parent%xyquad = parent%xyquad +  branch%xyquad - branch%xdip*yss - branch%ydip*xss + branch%charge*xss*yss
+            parent%yzquad = parent%yzquad +  branch%yzquad - branch%ydip*zss - branch%zdip*yss + branch%charge*yss*zss
+            parent%zxquad = parent%zxquad +  branch%zxquad - branch%zdip*xss - branch%xdip*zss + branch%charge*zss*xss
+        end associate
      end do
 
      nparent = nuniq
   end do
 
   ! Rezero dipole and quadrupole sums of all local leaf nodes
-  xdip(1:nleaf) = 0.
-  ydip(1:nleaf) = 0.
-  zdip(1:nleaf) = 0.
-  xxquad(1:nleaf) = 0.
-  yyquad(1:nleaf) = 0.
-  zzquad(1:nleaf) = 0.
-  xyquad(1:nleaf) = 0.
-  yzquad(1:nleaf) = 0.
-  zxquad(1:nleaf) = 0.
+  do i=1,nleaf
+    associate(leaf=>tree_nodes(i))
+      leaf%xdip   = 0.
+      leaf%ydip   = 0.
+      leaf%zdip   = 0.
+      leaf%xxquad = 0.
+      leaf%yyquad = 0.
+      leaf%zzquad = 0.
+      leaf%xyquad = 0.
+      leaf%yzquad = 0.
+      leaf%zxquad = 0.
+    end associate
+  end do
 
   if (tree_debug) call check_table('End of local fill    ')
 

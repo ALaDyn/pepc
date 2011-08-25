@@ -25,27 +25,16 @@ subroutine tree_exchange
 
   ! Pack local branches for shipping
   do i=1,nbranch
-     lnode = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%node
-     lcode = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%childcode 
-     lleaves = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%leaves 
-     pack_mult(i) = multipole(pebranch(i),lcode,lleaves,me,&
-          charge( lnode ), &
-          abs_charge( lnode ), &
-          xcoc( lnode), &
-          ycoc( lnode), &
-          zcoc( lnode), &
-          xdip( lnode), &
-          ydip( lnode), &
-          zdip( lnode), &
-          xxquad( lnode), &
-          yyquad( lnode), &
-          zzquad( lnode), &
-          xyquad( lnode), &
-          yzquad( lnode), &
-          zxquad( lnode), &
-          xshift( lnode), &
-          yshift( lnode), &
-          zshift( lnode) )
+     lnode   = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%node
+     lcode   = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%childcode
+     lleaves = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%leaves
+     associate(packm=>pack_mult(i))
+         packm        = tree_nodes( lnode )
+         packm%key    = pebranch(i)   ! TODO: this data is maybe not consistently stored in tree_nodes array
+         packm%byte   = lcode  ! therefore, we have to take it directly form the htable --> repair this
+         packm%leaves = lleaves
+         packm%owner  = me
+     end associate
   end do
 
   call timer_stop(t_exchange_branches_pack)
@@ -109,23 +98,10 @@ subroutine tree_exchange
         call make_hashentry( get_mult(i)%key, lnode , get_mult(i)%leaves, get_mult(i)%byte, get_mult(i)%owner, hashaddr, ierr )
  
         htable(hashaddr)%childcode = IBSET( htable(hashaddr)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zeor its properties (in tree_global)
-        charge( lnode ) = get_mult(i)%q
-        abs_charge( lnode ) = get_mult(i)%absq
-        xcoc( lnode ) = get_mult(i)%xcoc
-        ycoc( lnode ) = get_mult(i)%ycoc
-        zcoc( lnode ) = get_mult(i)%zcoc
-        xdip( lnode ) = get_mult(i)%xdip
-        ydip( lnode ) = get_mult(i)%ydip
-        zdip( lnode ) = get_mult(i)%zdip
-        xxquad( lnode ) = get_mult(i)%xxquad
-        yyquad( lnode ) = get_mult(i)%yyquad
-        zzquad( lnode ) = get_mult(i)%zzquad
-        xyquad( lnode ) = get_mult(i)%xyquad
-        yzquad( lnode ) = get_mult(i)%yzquad
-        zxquad( lnode ) = get_mult(i)%zxquad
-        xshift( lnode ) = get_mult(i)%xshift
-        yshift( lnode ) = get_mult(i)%yshift
-        zshift( lnode ) = get_mult(i)%zshift
+
+        !insert received data into local tree
+        tree_nodes( lnode )      = get_mult(i)
+        tree_nodes( lnode )%byte = htable(hashaddr)%childcode ! TODO: otherwise maybe inconsistent with htable data
      endif
 
   end do  

@@ -65,9 +65,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
   select case(mac) 
   case(0)                               ! BH-MAC
      ! write(*,*) "MAC0"
-     dx = x(p) - ( xcoc( walk_node ) + vbox(1) )     ! Separations
-     dy = y(p) - ( ycoc( walk_node ) + vbox(2) )
-     dz = z(p) - ( zcoc( walk_node ) + vbox(3) )
+     dx = x(p) - ( tree_nodes( walk_node )%xcoc + vbox(1) )     ! Separations
+     dy = y(p) - ( tree_nodes( walk_node )%ycoc + vbox(2) )
+     dz = z(p) - ( tree_nodes( walk_node )%zcoc + vbox(3) )
        
      dist2 = theta2*(dx*dx+dy*dy+dz*dz)
 
@@ -115,9 +115,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
   case(2)                               !b_max-MAC
     
      !write(*,*)"MAC2"
-     x_wn = xcoc( walk_node ) + vbox(1)
-     y_wn = ycoc( walk_node ) + vbox(2)
-     z_wn = zcoc( walk_node ) + vbox(3)
+     x_wn = tree_nodes( walk_node )%xcoc + vbox(1)
+     y_wn = tree_nodes( walk_node )%ycoc + vbox(2)
+     z_wn = tree_nodes( walk_node )%zcoc + vbox(3)
 
      dx = x(p) - x_wn      
      dy = y(p) - y_wn
@@ -190,9 +190,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
 
      field_old = sqrt(p_ex_p**2 + p_ey_p**2 + p_ez_p**2)
 
-     dx = x(p) - ( xcoc( walk_node ) + vbox(1) )
-     dy = y(p) - ( ycoc( walk_node ) + vbox(2) )
-     dz = z(p) - ( zcoc( walk_node ) + vbox(3) )
+     dx = x(p) - ( tree_nodes( walk_node )%xcoc + vbox(1) )
+     dy = y(p) - ( tree_nodes( walk_node )%ycoc + vbox(2) )
+     dz = z(p) - ( tree_nodes( walk_node )%zcoc + vbox(3) )
      
      dist = sqrt((dx*dx+dy*dy+dz*dz)) !Distance between COC and particle
      
@@ -203,9 +203,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
      alpha = 1000
 
 
-     dx = x(p) - ( xcoc( walk_node ) + vbox(1) )
-     dy = y(p) - ( ycoc( walk_node ) + vbox(2) )
-     dz = z(p) - ( zcoc( walk_node ) + vbox(3) )
+     dx = x(p) - ( tree_nodes( walk_node )%xcoc + vbox(1) )
+     dy = y(p) - ( tree_nodes( walk_node )%ycoc + vbox(2) )
+     dz = z(p) - ( tree_nodes( walk_node )%zcoc + vbox(3) )
 
 
      xt= ( ix*boxl + vbox(1) ) + xmin
@@ -213,9 +213,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
      zt= ( iz*boxl + vbox(3) ) + zmin
 
     
-     x_wn = xcoc( walk_node ) + vbox(1)
-     y_wn = ycoc( walk_node ) + vbox(2)
-     z_wn = zcoc( walk_node ) + vbox(3)
+     x_wn = tree_nodes( walk_node )%xcoc + vbox(1)
+     y_wn = tree_nodes( walk_node )%ycoc + vbox(2)
+     z_wn = tree_nodes( walk_node )%zcoc + vbox(3)
 
      b_max2 = 0
      b_temp = 0
@@ -235,7 +235,7 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
         enddo
      enddo
   
-     B2 = b_max2*abs_charge(walk_node)
+     B2 = b_max2*tree_nodes( walk_node )%abs_charge
      rc = sqrt(b_max2)/2 + sqrt(sqrt(3*B2/alpha)+(b_max2/4))
      
      mac_ok = (dx**2+dy**2+dz**2 > rc**2)
