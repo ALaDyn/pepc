@@ -47,12 +47,17 @@ module module_spacefilling
           integer*8, intent(in) :: key
           integer :: level_from_key
 
-          level_from_key = int( log(1._8*key) / log(8._8))
+          ! using log_8(key):
+          ! level_from_key = int( log(1._8*key) / log(8._8))
+          ! counting leading zeros (faster):
+          level_from_key = (bit_size(key) - leadz(key) - 1) / 3
 
         end function
+
+
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> calculates keys form local particles (faster than per-particle call to coord_to_key())
+        !> calculates keys from local particles (faster than per-particle call to coord_to_key())
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine compute_particle_keys(local_key)
