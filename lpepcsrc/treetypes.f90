@@ -38,7 +38,7 @@ module treetypes
 
 
   ! Data structure for shipping multiple moments of child nodes
-  integer, parameter :: nprops_multipole = 21 ! Number of multipole properties to ship
+  integer, parameter :: nprops_multipole = 22 ! Number of multipole properties to ship
   type multipole
      integer*8 :: key     ! key
      integer   :: byte    ! byte code
@@ -49,6 +49,7 @@ module treetypes
      real*8 :: xcoc       ! centre of charge
      real*8 :: ycoc
      real*8 :: zcoc
+     integer :: level     ! level of tree node (for fast lookup instead of calculation) - stored in close proximity to coc-coordinates for better caching posibilities in walk
      real*8 :: xdip     ! dipole moment
      real*8 :: ydip
      real*8 :: zdip

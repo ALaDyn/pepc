@@ -867,8 +867,6 @@ module tree_walk_communicator
            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         end select
 
-        node_level( nodchild ) = level_from_key(kchild)  ! get level from keys and prestore as node property
-
         ! Physical properties
         tree_nodes( nodchild ) = child_data( ic )
 
@@ -1313,10 +1311,10 @@ module tree_walk_utils
 
               dist2 = DOT_PRODUCT(delta, delta)
 
-              mac_ok = (theta2 * dist2 > boxlength2(node_level(walk_node)))
+              mac_ok = (theta2 * dist2 > boxlength2(tree_nodes(walk_node)%level))
           else
               !             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),&
-              !                  walk_node,walk_key(idx),abs_charge(walk_node),boxlength2(node_level(walk_node)), &
+              !                  walk_node,walk_key(idx),abs_charge(walk_node),boxlength2(tree_nodes(walk_node)%level), &
               !                  theta2,mac,mac_ok, vbox)
               mac_ok = .false.
           endif

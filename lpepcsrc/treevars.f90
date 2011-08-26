@@ -37,9 +37,6 @@ module treevars
 
   type(multipole), target, allocatable  :: tree_nodes(:)                 ! Tree node properties
 
-  integer, allocatable ::   node_level(:)       ! refinement level
- 
-
   integer*8 ::  max_req_list_length, & ! maximum length of request queue
                  cum_req_list_length, & ! cumulative length of request queue
                  comm_loop_iterations(3)! number of comm loop iterations (total, sending, receiving)

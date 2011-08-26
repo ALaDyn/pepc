@@ -214,9 +214,9 @@ subroutine tree_global
   end do
 
   do i=1,nnodes
-    node_level( tree_node(i) ) = level_from_key(treekey(i))  ! get levels from keys and prestore as node property
+    tree_nodes(tree_node(i))%level = level_from_key(treekey(i))  ! get levels from keys and prestore as node property
   end do
-  node_level(0) = 0
+  tree_nodes(0)%level = 0
 
   ! Check tree integrity: Root node should now contain all particles!
   if (htable(1)%leaves /= npart) then

@@ -178,9 +178,12 @@ subroutine libpepc_register_mpi_types(db_level)
 
   blocklengths(1:nprops_multipole) = 1   
 
-  types(1)    = MPI_INTEGER8
-  types(2:4)  = MPI_INTEGER
-  types(5:21) = MPI_REAL8
+  types(1)      = MPI_INTEGER8
+  types(2:4)    = MPI_INTEGER
+  types(5:9)    = MPI_REAL8
+  types(10)     = MPI_INTEGER
+  types(11:22)  = MPI_REAL8
+
 
   call MPI_GET_ADDRESS( node_dummy%key, send_base, ierr )  ! Base address for send buffer
 
@@ -193,18 +196,19 @@ subroutine libpepc_register_mpi_types(db_level)
   call MPI_GET_ADDRESS( node_dummy%xcoc,       address( 7), ierr )
   call MPI_GET_ADDRESS( node_dummy%ycoc,       address( 8), ierr )
   call MPI_GET_ADDRESS( node_dummy%zcoc,       address( 9), ierr )
-  call MPI_GET_ADDRESS( node_dummy%xdip,       address(10), ierr )
-  call MPI_GET_ADDRESS( node_dummy%ydip,       address(11), ierr )
-  call MPI_GET_ADDRESS( node_dummy%zdip,       address(12), ierr )
-  call MPI_GET_ADDRESS( node_dummy%xxquad,     address(13), ierr )
-  call MPI_GET_ADDRESS( node_dummy%yyquad,     address(14), ierr )
-  call MPI_GET_ADDRESS( node_dummy%zzquad,     address(15), ierr )
-  call MPI_GET_ADDRESS( node_dummy%xyquad,     address(16), ierr )
-  call MPI_GET_ADDRESS( node_dummy%yzquad,     address(17), ierr )
-  call MPI_GET_ADDRESS( node_dummy%zxquad,     address(18), ierr )
-  call MPI_GET_ADDRESS( node_dummy%xshift,     address(19), ierr )
-  call MPI_GET_ADDRESS( node_dummy%yshift,     address(20), ierr )
-  call MPI_GET_ADDRESS( node_dummy%zshift,     address(21), ierr )
+  call MPI_GET_ADDRESS( node_dummy%level,      address(10), ierr )
+  call MPI_GET_ADDRESS( node_dummy%xdip,       address(11), ierr )
+  call MPI_GET_ADDRESS( node_dummy%ydip,       address(12), ierr )
+  call MPI_GET_ADDRESS( node_dummy%zdip,       address(13), ierr )
+  call MPI_GET_ADDRESS( node_dummy%xxquad,     address(14), ierr )
+  call MPI_GET_ADDRESS( node_dummy%yyquad,     address(15), ierr )
+  call MPI_GET_ADDRESS( node_dummy%zzquad,     address(16), ierr )
+  call MPI_GET_ADDRESS( node_dummy%xyquad,     address(17), ierr )
+  call MPI_GET_ADDRESS( node_dummy%yzquad,     address(18), ierr )
+  call MPI_GET_ADDRESS( node_dummy%zxquad,     address(19), ierr )
+  call MPI_GET_ADDRESS( node_dummy%xshift,     address(20), ierr )
+  call MPI_GET_ADDRESS( node_dummy%yshift,     address(21), ierr )
+  call MPI_GET_ADDRESS( node_dummy%zshift,     address(22), ierr )
 
   displacements(1:nprops_multipole) = int(address(1:nprops_multipole) - send_base)   !  Addresses relative to start of particle (receive) data
 

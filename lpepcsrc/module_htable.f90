@@ -549,7 +549,7 @@ contains
         write (ipefile,'(/a/a,a/(3i5,2o15,2i8,o15,i8,14(1pe30.19)))') 'Twigs from hash-table:', &
         '    i  level  owner        key     parent-key       #    node  code      1st child #leaves ', &
         ' abs_charge    charge   xcoc   ycoc   zcoc   xdip   ydip   zdip   xxquad   yyquad   zzquad   xyquad   yzquad   zxquad', &
-        (i,node_level(ind_twig(i)), &              !  index, level
+        (i,tree_nodes(ind_twig(i))%level, &              !  index, level
         htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%owner, &                            ! Owner-PE of node
         key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
         addr_twig(i), ind_twig(i), &    ! Table address and node number
@@ -581,7 +581,7 @@ contains
 
         write (ipefile,'(/a/3a5,2a10,2a15,a25,4a11/(3i5,2i10,2o15,o25,4f30.19))') 'Local leaves from hash-table:', &
         'i','owner','plab','i-leaf','lev','key','parent','pkey','x','y','z','q', &
-        (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),node_level(ind_leaf(i)),key_leaf(i), &
+        (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),tree_nodes(ind_leaf(i))%level,key_leaf(i), &
         ishft( key_leaf(i),-3 ), &      ! parent
         pekey(ind_leaf(i)), &  ! particle key
         x(ind_leaf(i)),y(ind_leaf(i)),z(ind_leaf(i)), q(ind_leaf(i)), &
@@ -596,7 +596,7 @@ contains
 
         write (ipefile,'(//a/a/(4i5,2o15,i5,2f11.4,f6.1,f11.4))') 'Non-local leaves from hash-table:', &
         '    i   owner    i-leaf    lev    key    parent  plabel  xcoc  ycoc  charge      ', &
-        (i,owner_leaf(i),ind_leaf(i),node_level(ind_leaf(i)),key_leaf(i), &
+        (i,owner_leaf(i),ind_leaf(i),tree_nodes(ind_leaf(i))%level,key_leaf(i), &
           ishft( key_leaf(i),-3 ), &      ! parent
           plist_leaf(i), & ! global particle label
           tree_nodes(ind_twig(i))%xcoc,&

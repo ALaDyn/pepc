@@ -100,9 +100,6 @@ module module_allocation
 		  call htable_clear()
 
 		  ! Allocate memory for tree node properties
-
-		  allocate ( node_level(-maxtwig:maxleaf) )
-
 		  allocate ( tree_nodes(-maxtwig:maxleaf) )
 
 		  call timer_stop(t_allocate)
@@ -130,8 +127,6 @@ module module_allocation
 		  deallocate ( htable, free_addr, point_free, &
 		       treekey, branch_key, branch_owner, &
 		       pebranch, twig_key )
-
-		  deallocate ( node_level )
 
 		! multipole moments
 		  deallocate ( tree_nodes )

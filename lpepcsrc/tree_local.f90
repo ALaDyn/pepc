@@ -410,6 +410,7 @@ subroutine tree_local
        x( p_leaf ),                       &! x-Centre of charge
        y( p_leaf ),                       &! y
        z( p_leaf ),                       &! z
+       level_from_key( treekey(i) ),      &! level
        x(p_leaf) * q(p_leaf),             &! x-Dipole moment
        y(p_leaf) * q(p_leaf),             &! y
        z(p_leaf) * q(p_leaf),             &! z
