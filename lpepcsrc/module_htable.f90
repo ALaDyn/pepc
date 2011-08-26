@@ -19,7 +19,6 @@ module module_htable
         integer   :: node          !< Address of particle/pseudoparticle data
         integer*8 :: key           !< Key
         integer   :: link          !< Pointer to next empty address in table in case of collision
-        integer   :: leaves        !< # leaves contained within twig (=1 for leaf, npart for root)
         integer   :: childcode     !< Byte code indicating position of children (twig node); particle label (leaf node)
         integer   :: owner         !< Node owner (for branches)
     end type hash
@@ -62,7 +61,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     integer, private, parameter :: start_child_idx = 0 !< index of first child to be used in traversal - do not change, currently not completely implemented
-    type (hash), private, parameter :: HASHENTRY_EMPTY = hash(0,0_8,-1,0,0,0) !< constant for empty hashentry
+    type (hash), private, parameter :: HASHENTRY_EMPTY = hash(0,0_8,-1,0,0) !< constant for empty hashentry
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -185,14 +184,14 @@ contains
     !>  Resolve collision if necessary
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, ierror)
+    subroutine make_hashentry( keyin, nodein, codein, ownerin, newentry, ierror)
 
         use treevars
         implicit none
         include 'mpif.h'
 
         integer*8, intent(in) :: keyin
-        integer, intent(in) :: nodein, leavesin, codein, ownerin      ! call input parameters
+        integer, intent(in) :: nodein, codein, ownerin      ! call input parameters
         integer, intent(out) :: newentry  ! address in # table returned to calling routine
         integer :: ierr
         integer :: link_addr, cell_addr, ierror, free, addr_count
@@ -209,7 +208,6 @@ contains
             newentry = cell_addr                 ! Yes, so create new entry:
             htable( cell_addr )%node = nodein          !   local pointer
             htable( cell_addr )%key =  keyin            !   key
-            htable( cell_addr )%leaves = leavesin       !   # contained nodes
             htable( cell_addr )%childcode = codein       !  child byte-code or particle #
             htable( cell_addr )%owner = ownerin       ! PE owning branch node
 
@@ -240,7 +238,6 @@ contains
                 htable( free )%node = nodein
                 htable( free )%key = keyin
                 htable( free )%childcode = codein
-                htable( free )%leaves = leavesin
                 htable( free )%owner = ownerin
                 htable( free )%link = -1
                 htable( cell_addr )%link = free     ! Create link from 1st duplicate entry to new entry
@@ -268,7 +265,6 @@ contains
                         htable( link_addr )%node = nodein
                         htable( link_addr )%key = keyin
                         htable( link_addr )%childcode = codein
-                        htable( link_addr )%leaves = leavesin
                         htable( link_addr )%owner = ownerin
 
                         if (point_free(link_addr) /= 0) then     ! Check if new address in collision res. list
@@ -292,7 +288,6 @@ contains
                         htable( free )%node = nodein
                         htable( free )%key = keyin
                         htable( free )%childcode = codein
-                        htable( free )%leaves = leavesin
                         htable( free )%owner = ownerin
                         htable( free )%link = -1
                         htable( link_addr )%link = free     ! Create link from 1st duplicate entry to new entry
@@ -528,7 +523,7 @@ contains
 
             if (htable(i)%node /= 0) write (ipefile,'(3i10,o22,i10,o22,i8,i10,z4,4x,a1)') &
             i,htable(i)%owner,htable(i)%node,htable(i)%key,htable(i)%key,ishft( htable(i)%key,-3 ), &
-            htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
+            htable(i)%link,tree_nodes(htable(i)%node)%leaves,htable(i)%childcode,collision
         end do
 
 
@@ -554,7 +549,7 @@ contains
         key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
         addr_twig(i), ind_twig(i), &    ! Table address and node number
         child_twig(i), &                         ! Children byte-code
-        htable( addr_twig(i) )%leaves, &                           ! # leaves contained in branch
+        tree_nodes(ind_twig(i))%leaves, &                           ! # leaves contained in branch
         tree_nodes(ind_twig(i))%abs_charge, &    ! Twig absolute charge
         tree_nodes(ind_twig(i))%charge, &    ! Twig  charge
         tree_nodes(ind_twig(i))%xcoc, & ! Centre of charge

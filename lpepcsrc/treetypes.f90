@@ -42,7 +42,7 @@ module treetypes
   type multipole
      integer*8 :: key     ! key
      integer   :: byte    ! byte code
-     integer   :: leaves  ! # leaves contained
+     integer   :: leaves  !< # leaves contained within twig (=1 for leaf, npart for root)
      integer :: owner     ! owner where multipole resides
      real*8 :: charge     ! net charge sum
      real*8 :: abs_charge !  absolute charge sum

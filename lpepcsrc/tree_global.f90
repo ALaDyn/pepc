@@ -9,7 +9,7 @@ subroutine tree_global
   include 'mpif.h'
 
   real*8 :: xss, yss, zss
-  integer :: i, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr, nchild
+  integer :: i, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr, nchild, parent_node_i
 
   integer, dimension(nbranch_sum) :: branch_level, branch_addr, branch_node 
   integer*8, dimension(maxaddress) :: sub_key, parent_key
@@ -62,7 +62,7 @@ subroutine tree_global
         child_byte = IBSET(child_byte, child_bit)    ! convert child bit to byte code
         nodtwig = -ntwig -1     ! predicted twig # 
 
-        call make_hashentry( parent_key(i), nodtwig, 0, child_byte, me, hashaddr, ierr )
+        call make_hashentry( parent_key(i), nodtwig, child_byte, me, hashaddr, ierr )
 
         if ( ierr == 1 ) then     
            ! keys match, so node already exists locally
@@ -73,7 +73,8 @@ subroutine tree_global
         else if (ierr == 0 ) then
            ntwig = ntwig + 1
            ntwig_me = ntwig_me+1               ! # local twigs
-     	   twig_key(ntwig_me) = htable( hashaddr)%key  ! add to list of local twigs
+           twig_key(ntwig_me) = htable( hashaddr)%key  ! add to list of local twigs
+           tree_nodes(nodtwig)%leaves = 0
         else
            write (ipefile,*) 'Key number ',i,' not resolved'
            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
@@ -184,7 +185,7 @@ subroutine tree_global
 
   do i=1,ntwig_me
     hashaddr = key2addr( twig_key(i),'FILL: twigs' )                          ! Table address
-    htable( hashaddr )%leaves = 0                                             ! Reset # leaves to zero for recount including non-local branches
+    tree_nodes( i )%leaves = 0                           ! Reset # leaves to zero for recount including non-local branches
     htable( hashaddr )%childcode =  IBSET( htable( hashaddr )%childcode,9 )   ! Set children_HERE flag for all local twig nodes
   end do
 
@@ -208,8 +209,9 @@ subroutine tree_global
 
   !  Sweep back up, and augment leaf count of parent node
   do i=nnodes,2,-1
+     parent_node_i = htable( parent_addr(i) )%node
      if (htable( parent_addr(i) )%owner == me ) then
-        htable( parent_addr(i) )%leaves = htable( parent_addr(i) )%leaves + htable(cell_addr(i) )%leaves 
+        tree_nodes(parent_node_i)%leaves = tree_nodes(parent_node_i)%leaves + tree_nodes(htable(cell_addr(i) )%node)%leaves
      endif
   end do
 
@@ -219,9 +221,9 @@ subroutine tree_global
   tree_nodes(0)%level = 0
 
   ! Check tree integrity: Root node should now contain all particles!
-  if (htable(1)%leaves /= npart) then
+  if (tree_nodes(-1)%leaves /= npart) then
      write(*,*) 'Problem with tree on PE ',me
-     write(*,*) 'Leaf checksum (',htable(1)%leaves,')  does not match # particles (',npart,')'
+     write(*,*) 'Leaf checksum (',tree_nodes(-1)%leaves,')  does not match # particles (',npart,')'
      call diagnose_tree
      call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
      stop           

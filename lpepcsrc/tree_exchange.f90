@@ -28,12 +28,10 @@ subroutine tree_exchange
   do i=1,nbranch
      lnode   = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%node
      lcode   = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%childcode
-     lleaves = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%leaves
      packm=>pack_mult(i)
          packm        = tree_nodes( lnode )
          packm%key    = pebranch(i)   ! TODO: this data is maybe not consistently stored in tree_nodes array
          packm%byte   = lcode  ! therefore, we have to take it directly form the htable --> repair this
-         packm%leaves = lleaves
          packm%owner  = me
   end do
 
@@ -95,7 +93,7 @@ subroutine tree_exchange
            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
            stop       
         endif
-        call make_hashentry( get_mult(i)%key, lnode , get_mult(i)%leaves, get_mult(i)%byte, get_mult(i)%owner, hashaddr, ierr )
+        call make_hashentry( get_mult(i)%key, lnode , get_mult(i)%byte, get_mult(i)%owner, hashaddr, ierr )
  
         htable(hashaddr)%childcode = IBSET( htable(hashaddr)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zeor its properties (in tree_global)
 
