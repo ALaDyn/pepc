@@ -754,7 +754,7 @@ module tree_walk_communicator
       type(multipole) :: children_to_send(8)
       integer :: reqhandle
       integer*8, dimension(8) :: key_child
-      integer, dimension(8) :: addr_child, node_child, byte_child, owner_child
+      integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child, owner_child
       integer :: j, ic, ierr, nchild
 
       if (walk_comm_debug) then
@@ -770,6 +770,7 @@ module tree_walk_communicator
       addr_child(1:nchild)   = (/( key2addr( key_child(j),'WALK:send_data:childkey' ),j=1,nchild)/)  ! Table address of children
       node_child(1:nchild)   = htable( addr_child(1:nchild) )%node                        ! Child node index
       byte_child(1:nchild)   = IAND( htable( addr_child(1:nchild) )%childcode,255 )       ! Catch lowest 8 bits of childbyte - filter off requested and here flags
+      leaves_child(1:nchild) = htable( addr_child(1:nchild) )%leaves                      ! # contained leaves
       owner_child(1:nchild)  = htable( addr_child(1:nchild) )%owner                       ! real owner of child (does not necessarily have to be identical to me, at least after futural modifications)
       ! Package children properties into user-defined multipole array for shipping
       do ic = 1,nchild
@@ -777,6 +778,7 @@ module tree_walk_communicator
            c        = tree_nodes(node_child(ic))
            c%key    = key_child(ic)   ! TODO: this data is maybe not consistently stored in tree_nodes array
            c%byte   = byte_child(ic)  ! therefore, we have to take it directly form the htable --> repair this
+           c%leaves = leaves_child(ic)
            c%owner  = owner_child(ic)
           end associate
       end do
@@ -849,7 +851,7 @@ module tree_walk_communicator
         endif
 
         ! Insert new node into local #-table
-        call make_hashentry( kchild, nodchild, bchild, ownerchild, hashaddr, ierr )
+        call make_hashentry( kchild, nodchild, lchild, bchild, ownerchild, hashaddr, ierr )
 
         select case (ierr)
           case (0)
@@ -865,7 +867,7 @@ module tree_walk_communicator
            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         end select
 
-        ! copy tree node properties
+        ! Physical properties
         tree_nodes( nodchild ) = child_data( ic )
 
         !  Add child key to list of fetched nodes
