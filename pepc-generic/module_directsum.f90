@@ -77,7 +77,7 @@ module module_directsum
           real*8 :: deviation(4), deviation_max(4)
           real*8 :: field_abssum(4), field_average(4)
 
-          integer :: i, ntest_total
+          integer :: i, ntest_total, ierr
           type(direct_particle), target, dimension(:), allocatable :: res !< test results
           type(direct_particle), pointer :: re
           integer :: p
@@ -112,9 +112,9 @@ module module_directsum
               endif
           end do
 
-          call MPI_REDUCE(deviation_max,   deviation,             4, MPI_REAL8,   MPI_MAX, 0, comm)
-          call MPI_REDUCE(field_abssum,    field_average,         4, MPI_REAL8,   MPI_SUM, 0, comm)
-          call MPI_REDUCE(ntest,           ntest_total,           1, MPI_INTEGER, MPI_SUM, 0, comm)
+          call MPI_REDUCE(deviation_max,   deviation,             4, MPI_REAL8,   MPI_MAX, 0, comm, ierr)
+          call MPI_REDUCE(field_abssum,    field_average,         4, MPI_REAL8,   MPI_SUM, 0, comm, ierr)
+          call MPI_REDUCE(ntest,           ntest_total,           1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
           field_average         = field_average         / ntest_total
 
           if ((verbosity > -1) .and. (my_rank == 0)) then
