@@ -21,7 +21,6 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
   build_debug=.false.
   domain_debug = .false.
   branch_debug=.false.
-  walk_debug=.false.
   walk_summary=.false.
   dump_tree=.false.
   periodic_debug=.false.
@@ -51,7 +50,6 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
      build_debug=.true.
      branch_debug=.true.
      props_debug=.true.
-     walk_debug=.true.
      walk_summary=.true.
      force_debug=.true.
      periodic_debug=.true.
@@ -64,7 +62,6 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
      domain_debug = .true.
      build_debug=.true.
      branch_debug=.true.
-     walk_debug=.true.
      walk_summary=.true.
      force_debug=.true.
      dump_tree=.true.

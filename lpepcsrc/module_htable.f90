@@ -32,12 +32,14 @@ module module_htable
 
     type (hash), public, allocatable :: htable(:) !< hash table
     integer*8,   public ::  hashconst  !< hashing constants
-    integer*8,   public ::  hashchild=7_8 !< bits that contain the child index in a key
+    integer*8,   public ::  hashchild = b'111' !< bits that contain the child index in a key
 
     ! bits in childcode to be set when children are requested, the request has been sent, and they have arrived
-    integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED     =  8
-    integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT       = 10
-    integer, public, parameter :: CHILDCODE_BIT_CHILDREN_AVAILABLE =  9
+    integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED     =  8 !< this bit is used inside the childcode to denote that a request for children information is already in the request queue
+    integer, public, parameter :: CHILDCODE_BIT_CHILDREN_AVAILABLE =  9 !< this bit is used inside the childcode to denote that children information for the node is available in the local hashtable
+    integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT       = 10 !< this bit is used inside the childcode to denote that children information has already been requested from the owner
+    integer, public, parameter :: CHILDCODE_NODE_TOUCHED           = 11 !< this bit is used inside the childcode to notify of nodes, that already contain valid multipole information and may not be set to zero in tree_global
+    integer*8, public, parameter :: CHILDCODE_CHILDBYTE            = b'11111111' !< bits that contain the children information for this node
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -77,7 +77,6 @@ module treevars
   real*8 :: ymin, ymax  
   real*8 :: zmin, zmax
   real*8 :: boxsize       ! length of box
-  integer, parameter :: CHILDCODE_NODE_TOUCHED = 11 !< this bit is used inside the childcode to notify of nodes, that already contain valid multipole information and may not be set to zero in tree_global
   real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
   real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
   real*8 :: thread_workload(-4:4) !< stores average particles and runtime per thread for diagnostic purposes, entry 0 contains number of worker threads
@@ -87,7 +86,6 @@ module treevars
   logical :: domain_debug = .false.
   logical :: branch_debug=.false.
   logical :: props_debug=.false.
-  logical :: walk_debug=.false.
   logical :: walk_summary=.false.
   logical :: force_debug=.false.
   logical :: dump_tree=.false.

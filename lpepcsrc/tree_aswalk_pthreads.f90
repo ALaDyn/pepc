@@ -122,9 +122,10 @@ module tree_walk_communicator
 
     integer, public :: walk_status
 
-
+    !> debug flags - cannot be modified at runtime due to performance reasons
     logical, parameter :: walk_comm_debug = .false.
-    logical, parameter :: rwlock_debug = .false.
+    logical, parameter :: rwlock_debug    = .false.
+    logical, parameter, public  :: walk_debug     = .false.
 
     ! tags to be used in communication
     integer, parameter :: TAG_REQUEST_KEY    = 1257 !< message tag for walk communication: message for requesting child data for a certain key
@@ -787,7 +788,7 @@ module tree_walk_communicator
 
       addr_child(1:nchild)   = (/( key2addr( key_child(j),'WALK:send_data:childkey' ),j=1,nchild)/)  ! Table address of children
       node_child(1:nchild)   = htable( addr_child(1:nchild) )%node                        ! Child node index
-      byte_child(1:nchild)   = IAND( htable( addr_child(1:nchild) )%childcode,255 )       ! Catch lowest 8 bits of childbyte - filter off requested and here flags
+      byte_child(1:nchild)   = IAND( htable( addr_child(1:nchild) )%childcode, CHILDCODE_CHILDBYTE )! Catch lowest 8 bits of childbyte - filter off requested and here flags
       leaves_child(1:nchild) = htable( addr_child(1:nchild) )%leaves                      ! # contained leaves
       owner_child(1:nchild)  = htable( addr_child(1:nchild) )%owner                       ! real owner of child (does not necessarily have to be identical to me, at least after futural modifications)
       ! Package children properties into user-defined multipole array for shipping

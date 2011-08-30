@@ -9,7 +9,7 @@ subroutine tree_global
   include 'mpif.h'
 
   real*8 :: xss, yss, zss
-  integer :: i, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr, nchild
+  integer :: i, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr
 
   integer, dimension(nbranch_sum) :: branch_level, branch_addr, branch_node 
   integer*8, dimension(maxaddress) :: sub_key, parent_key
@@ -185,7 +185,7 @@ subroutine tree_global
   do i=1,ntwig_me
     hashaddr = key2addr( twig_key(i),'FILL: twigs' )                          ! Table address
     htable( hashaddr )%leaves = 0                                             ! Reset # leaves to zero for recount including non-local branches
-    htable( hashaddr )%childcode =  IBSET( htable( hashaddr )%childcode,9 )   ! Set children_HERE flag for all local twig nodes
+    htable( hashaddr )%childcode =  IBSET( htable( hashaddr )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE )   ! Set children_HERE flag for all local twig nodes
   end do
 
   treekey(1:ntwig) = pack(htable%key,mask = htable%node < 0)                                ! list of all twig keys excluding root
