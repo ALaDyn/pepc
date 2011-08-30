@@ -158,7 +158,7 @@ module tree_walk_communicator
     ! internal communication variables - not to be touched from outside the module
     integer, parameter :: ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
     integer, parameter :: REQUEST_QUEUE_LENGTH = 400000 !< maximum length of request queue
-    type(t_request_queue_entry), private, target :: req_queue(REQUEST_QUEUE_LENGTH)
+    type(t_request_queue_entry), volatile, private, target :: req_queue(REQUEST_QUEUE_LENGTH)
     integer, private, volatile :: req_queue_top, req_queue_bottom ! we will insert data at bottom and take from top
     integer*1, private, allocatable, target :: bsend_buffer(:) !< buffer for bsend-alls
     integer, private :: comm_dummy = 123456 !< dummy variable for sending "empty" messages (those, where we are only interested in the tag)
