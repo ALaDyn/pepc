@@ -1291,29 +1291,30 @@ module tree_walk_utils
           walk_addr = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
           walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
 
-          ! TODO:  BH MAC is also implemented in mac_choose routine,
-          !        which needs tuning and inlining to avoid excessive parameter-passing overhead
-          !        Other MACS need additional preprocessed info on tree nodes (box lengths etc)
-          !        before they can be used for performance tests.
-          !        mac=1,2 only useful for accuracy tests at the moment (interaction list comparisons)
+          delta(1) = x(nodeidx) - (tree_nodes(walk_node)%xcoc + vbox(1) )     ! Separations
+          delta(2) = y(nodeidx) - (tree_nodes(walk_node)%ycoc + vbox(2) )
+          delta(3) = z(nodeidx) - (tree_nodes(walk_node)%zcoc + vbox(3) )
 
-          if (mac==0) then
-              ! BH-MAC
-              delta(1) = x(nodeidx) - (tree_nodes(walk_node)%xcoc + vbox(1) )     ! Separations
-              delta(2) = y(nodeidx) - (tree_nodes(walk_node)%ycoc + vbox(2) )
-              delta(3) = z(nodeidx) - (tree_nodes(walk_node)%zcoc + vbox(3) )
+          dist2 = DOT_PRODUCT(delta, delta)
 
-              dist2 = DOT_PRODUCT(delta, delta)
-
+          if (mac == 0) then
+              ! Barnes-Hut-MAC
               mac_ok = (theta2 * dist2 > boxlength2(tree_nodes(walk_node)%level))
           else
+              ! TODO:  BH MAC is also implemented in mac_choose routine,
+              !        which needs tuning and inlining to avoid excessive parameter-passing overhead
+              !        Other MACS need additional preprocessed info on tree nodes (box lengths etc)
+              !        before they can be used for performance tests.
+              !        mac=1,2 only useful for accuracy tests at the moment (interaction list comparisons)
               !             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),&
               !                  walk_node,walk_key(idx),abs_charge(walk_node),boxlength2(tree_nodes(walk_node)%level), &
               !                  theta2,mac,mac_ok, vbox)
               mac_ok = .false.
           endif
 
-          mac_ok = ( mac_ok .and. ((.not. in_central_box) .or. walk_key.ne.1 ) )  !  reject root node if we are in the central box
+          !  always accept leaf-nodes since they cannot be refined any further
+          !  reject root node if we are in the central box
+          mac_ok = (walk_node > 0) .or. ( mac_ok .and. ((.not. in_central_box) .or. walk_key.ne.1 ) )
 
           work_per_particle(nodeidx)        = work_per_particle(nodeidx)        + WORKLOAD_PENALTY_MAC
           my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + 1._8
@@ -1328,7 +1329,7 @@ module tree_walk_utils
 
           ! ========= Possible courses of action:
 
-              if (walk_node > 0 .or. mac_ok) then
+              if (mac_ok) then
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell
                   call calc_force_per_interaction(nodeidx, walk_node, delta, dist2, vbox, cf_par)
