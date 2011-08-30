@@ -1331,7 +1331,7 @@ module tree_walk_utils
               if (walk_node > 0 .or. mac_ok) then
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell
-                  call calc_force_per_interaction(nodeidx, walk_node, vbox, cf_par)
+                  call calc_force_per_interaction(nodeidx, walk_node, delta, dist2, vbox, cf_par)
                   work_per_particle(nodeidx)     = work_per_particle(nodeidx)     + WORKLOAD_PENALTY_INTERACTION
                   my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
 

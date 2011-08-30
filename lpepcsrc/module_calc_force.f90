@@ -53,13 +53,13 @@ module module_calc_force
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine calc_force_per_interaction(p, inode, vbox, cf_par)
+		subroutine calc_force_per_interaction(p, inode, delta, dist2, vbox, cf_par)
           use treetypes
 		  use treevars
 		  implicit none
 
 		  integer, intent(in) :: p, inode
-		  real*8, intent(in) :: vbox(3)
+		  real*8, intent(in) :: vbox(3), delta(3), dist2
           type(calc_force_params), intent(in) :: cf_par
 
 		  real*8 :: exc, eyc, ezc, phic
@@ -70,7 +70,7 @@ module module_calc_force
                 ezc = 0.
 
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_3D(p, inode, vbox, cf_par, exc, eyc, ezc, phic)
+                call calc_force_coulomb_3D(inode, delta, dist2, cf_par, exc, eyc, ezc, phic)
 
 		    case default
 		      exc  = 0.
@@ -137,40 +137,37 @@ module module_calc_force
         !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_coulomb_3D(p, inode, vbox, cf_par, sumfx, sumfy, sumfz, sumphi)
+        subroutine calc_force_coulomb_3D(inode, d, dist2, cf_par, sumfx, sumfy, sumfz, sumphi)
           use treetypes
           use treevars
           implicit none
 
           include 'mpif.h'
 
-          integer, intent(in) :: p  !< particle label
           integer, intent(in) :: inode !< index of particle to interact with
-          real*8, intent(in) :: vbox(3) !< vector to neighbour box that is currently processed
+          real*8, intent(in) :: d(3), dist2
           type(calc_force_params), intent(in) :: cf_par
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
 
-          real*8 :: rd,dx,dy,dz,d,dx2,dy2,dz2
+          real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2
           real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
-          real :: eps2
           type(multipole), pointer :: t
 
              t=>tree_nodes(inode)
 
-             eps2   = cf_par%eps**2
              sumfx  = 0.
              sumfy  = 0.
              sumfz  = 0.
              sumphi = 0.
 
              !  preprocess distances
-             dx = x(p) - ( t%xcoc + vbox(1) )
-             dy = y(p) - ( t%ycoc + vbox(2) )
-             dz = z(p) - ( t%zcoc + vbox(3) )
+             dx = d(1)
+             dy = d(2)
+             dz = d(3)
 
 
-             d = sqrt(dx**2+dy**2+dz**2+eps2)
-             rd = 1./d
+             r = sqrt(dist2+cf_par%eps**2)
+             rd = 1./r
              rd3 = rd**3
              rd5 = rd**5
              rd7 = rd**7
