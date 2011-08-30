@@ -170,8 +170,7 @@ module tree_walk_communicator
     integer, private, parameter :: NUM_RWLOCKS = 4
     integer, public, parameter :: RWLOCK_REQUEST_QUEUE      = 1
     integer, public, parameter :: RWLOCK_NEXT_FREE_PARTICLE = 2
-    integer, public, parameter :: RWLOCK_FINISHED_THREADS   = 3
-    integer, public, parameter :: RWLOCK_CHILDBYTE          = 4
+    integer, public, parameter :: RWLOCK_CHILDBYTE          = 3
 
     ! pthread conditional variables
     integer, private, parameter :: NUM_CONDS = 1
@@ -187,6 +186,21 @@ module tree_walk_communicator
     logical, private :: initialized = .false.
     ! local walktime (i.e. from comm_loop start until send_walk_finished() )
     real*8, public, pointer :: twalk_loc
+
+    !> type for input and return values of walk_threads
+    type, public :: t_threaddata
+      integer :: id                         !< just a running number to distinguish the threads, currently unused
+      integer :: num_processed_particles  !< thread output value: number of particles that it has processed
+      real*8  :: num_interactions !< thread output value: number of interactions that were performed
+      real*8  :: num_mac_evaluations !< thread output value: number of mac evaluations that have been performed
+      logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
+      integer :: coreid !< thread output value: id of thread`s processor
+      real*8 :: runtime_seconds !< thread wallclock-runtime in seconds, measured with MPI_WTIME()
+      logical :: finished !< will be set to .true. when the thread has finished
+    end type t_threaddata
+
+    type(t_threaddata), public, allocatable, target :: threaddata(:)
+
 
     public init_comm_data
     public run_communication_loop
@@ -579,11 +593,15 @@ module tree_walk_communicator
         use treevars
         implicit none
 
-        walk_status = max(walk_status, WALK_IAM_FINISHED)
+        if (all(threaddata(:)%finished)) then
 
-        if (walk_debug) then
-          write(ipefile,*) "PE", me, "has finished walking"
-        end if
+          walk_status = max(walk_status, WALK_IAM_FINISHED)
+
+          if (walk_debug) then
+            write(ipefile,*) "PE", me, "has finished walking"
+          end if
+
+        endif
 
       end subroutine notify_walk_finished
 
@@ -920,21 +938,7 @@ module tree_walk_utils
     integer :: np_local
     real*8, dimension(:), pointer :: work_per_particle => NULL()
 
-    integer, allocatable :: pshort_thread(:,:) !< start- and endpoint of shortlist-chunks to be processed by the distinct walk threads
-
     integer :: next_unassigned_particle !< index of next particle that has not been assigned to a work thread
-    integer :: finished_threads !< number of worker threads that have terminated. if equal to num_walk_threads, all particles have been completely processed on this PE
-
-    !> type for input and return values of walk_threads
-    type t_threaddata
-      integer :: id                         !< just a running number to distinguish the threads, currently unused
-      integer :: num_processed_particles  !< thread output value: number of particles that it has processed
-      real*8  :: num_interactions !< thread output value: number of interactions that were performed
-      real*8  :: num_mac_evaluations !< thread output value: number of mac evaluations that have been performed
-      logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
-      integer :: coreid !< thread output value: id of thread`s processor
-      real*8 :: runtime_seconds !< thread wallclock-runtime in seconds, measured with MPI_WTIME()
-    end type t_threaddata
 
     type t_defer_list_entry
       integer  :: addr
@@ -1011,14 +1015,13 @@ module tree_walk_utils
       include 'mpif.h'
 
       integer :: ith, displ, ierr
-      type(t_threaddata), target :: threaddata(num_walk_threads)
 
-      ! we count how many threads already have finished
-      finished_threads = 0
+      allocate(threaddata(num_walk_threads))
 
       ! start the worker threads...
       do ith = 1,num_walk_threads
         threaddata(ith)%id = ith
+        threaddata(ith)%finished = .false.
         call retval(pthreads_createthread(ith, c_funloc(walk_worker_thread), c_loc(threaddata(ith))), "walk_schedule_thread_inner:pthread_create")
       end do
 
@@ -1069,6 +1072,8 @@ module tree_walk_utils
         call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
       end if
 
+      deallocate(threaddata)
+
     end subroutine walk_hybrid
 
 
@@ -1085,7 +1090,6 @@ module tree_walk_utils
       max_particles_per_thread = max(min(np_local/num_walk_threads, max_particles_per_thread),1)
       ! allocate storage for thread handles, the 0th entry is the walk scheduler thread, the other ones are the walk worker threads
       call retval(pthreads_init(num_walk_threads + 1), "init_walk_data:pthreads_init")
-      allocate(pshort_thread(2, num_walk_threads))
       ! we will only want to reject the root node and the particle itself if we are in the central box
       in_central_box = (dot_product(vbox,vbox) == 0)
       ! Preprocessed box sizes for each level
@@ -1108,7 +1112,6 @@ module tree_walk_utils
       use tree_walk_communicator
       implicit none
       deallocate(boxlength2)
-      deallocate(pshort_thread)
       call retval(pthreads_uninit(), "uninit_walk_data:pthreads_uninit")
     end subroutine uninit_walk_data
 
@@ -1178,15 +1181,15 @@ module tree_walk_utils
       allocate(defer_list(0:defer_list_length-1,my_max_particles_per_thread))
 
       ! every particle will start at the root node (one entry per todo_list, no particle is finished)
-      todo_list_top       = -1
-      todo_list_bottom    =  0
-      todo_list(0,:)      =  1
-      my_particles(:)     = -1
-      defer_list_entries  =  0
+      todo_list_top       = -1 !
+      todo_list_bottom    =  0 ! one entry in todo_list:
+      todo_list(0,:)      =  1 ! start at root node
+      my_particles(:)     = -1 ! no particles assigned to this thread
+      defer_list_entries  =  0 ! empty defer list
       particles_available = .true.
       particles_active    = .true.
       call c_f_pointer(arg, my_threaddata)
-      my_threaddata = t_threaddata(my_threaddata%id, 0, 0._8, 0._8, same_core_as_communicator, my_processor_id, MPI_WTIME())
+      my_threaddata = t_threaddata(my_threaddata%id, 0, 0._8, 0._8, same_core_as_communicator, my_processor_id, MPI_WTIME(), .false.)
       particles_since_last_yield = 0
 
 
@@ -1219,6 +1222,7 @@ module tree_walk_utils
               ! this particle`s walk has finished
 !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
 
+              ! walk for particle i has finished --> remove entries from todo_list and defer_list
               todo_list_top(i)           = -1
               todo_list_bottom(i)        =  0
               todo_list(0,i)             =  1
@@ -1239,17 +1243,10 @@ module tree_walk_utils
       deallocate(my_particles, todo_list_top, todo_list_bottom, defer_list_entries);
       deallocate(todo_list, defer_list);
 
-      ! bookekeeping about finished worker threads
-      call rwlock_wrlock(RWLOCK_FINISHED_THREADS, "walk_worker_thread: increment finished_threads")
+      my_threaddata%finished = .true.
 
-      finished_threads = finished_threads + 1
-
-      if (finished_threads == num_walk_threads) then
-        ! tell rank 0 that we are finished with our walk
-        call notify_walk_finished()
-      end if
-
-      call rwlock_unlock(RWLOCK_FINISHED_THREADS, "walk_worker_thread: increment finished_threads")
+      ! tell rank 0 that we are finished with our walk
+      call notify_walk_finished()
 
       if (same_core_as_communicator) comm_on_shared_processor = .false.
 
