@@ -5,12 +5,6 @@
 
 module tree_utils
 
-  interface pll_permute
-     module procedure psrsperm_i4
-     module procedure psrsperm_i8
-     module procedure psrsperm_r8
-  end interface
-
   interface sort
      module procedure sort_i
   end interface
@@ -21,109 +15,6 @@ module tree_utils
 
 contains
 
-! ================
-! permute integer*4
-! ================
-
-  subroutine psrsperm_i4(nppm,np,npnew,nprocs,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
-
-    implicit none
-    include 'mpif.h'
-
-    integer :: nppm,np,npnew,nprocs
-
-    integer, dimension(nppm) ::  array, w1, w2
-    integer, dimension(nppm) :: indxl, irnkl
-    integer, dimension(nprocs) ::  islen, irlen
-    integer, dimension(nprocs+1) :: fposts, gposts
-
-    integer :: i,ierr
-
-    do i=1,np
-       w1(i) = array(indxl(i))
-    enddo
-
-    call MPI_ALLTOALLV(  w1, islen, fposts, MPI_INTEGER, &
-                         w2, irlen, gposts, MPI_INTEGER, &
-                         MPI_COMM_WORLD,ierr)
-
-    do i=1,npnew
-       array(irnkl(i)) = w2(i)
-    enddo
-
-  end subroutine psrsperm_i4
-
-
-! ================
-! permute integer*8
-! ================
-
-  subroutine psrsperm_i8(nppm,np,npnew,nprocs,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
-
-
-    implicit none
-    include 'mpif.h'
-
-    integer :: nppm,np,npnew,nprocs
-
-    integer*8, dimension(nppm) ::  array, w1, w2
-    integer, dimension(nppm) :: indxl, irnkl
-    integer, dimension(nprocs) ::  islen, irlen
-    integer, dimension(nprocs+1) :: fposts, gposts
-
-    integer :: i,ierr
-
-
-    do i=1,np
-       w1(i) = array(indxl(i))
-    enddo
-
-    call MPI_ALLTOALLV(  w1, islen, fposts, MPI_INTEGER8, &
-                         w2, irlen, gposts, MPI_INTEGER8, &
-                         MPI_COMM_WORLD,ierr)
-
-    do i=1,npnew
-       array(irnkl(i)) = w2(i)
-    enddo
-
-  end subroutine psrsperm_i8
-
-
-! ================
-  !  Permute REAL*8 array()
-! ================
-
-  subroutine psrsperm_r8(nppm,np,npnew,nprocs,array,w1,w2, indxl,irnkl,islen,irlen,fposts,gposts)
-
-
-    implicit none
-    include 'mpif.h'
-
-    integer :: nppm,np,npnew,nprocs
-
-    real*8, dimension(nppm) ::  array, w1, w2
-    integer, dimension(nppm) ::  indxl, irnkl
-    integer, dimension(nprocs) ::  islen, irlen
-    integer, dimension(nprocs+1) :: fposts, gposts
-
-
-    integer :: i,ierr
-
-
-    do i=1,np
-       w1(i) = array(indxl(i))
-    enddo
-
-
-    call MPI_alltoallv(  w1,islen, fposts, MPI_REAL8, &
-         w2, irlen, gposts, MPI_REAL8, &
-         MPI_COMM_WORLD,ierr)
-
-    do i=1,npnew
-       array(irnkl(i)) = w2(i)
-    enddo
-
-  end subroutine psrsperm_r8
 
   !  ================================
   !

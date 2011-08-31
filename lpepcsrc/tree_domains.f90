@@ -45,7 +45,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   type (particle) :: ship_parts(nppm), get_parts(nppm)
 
-  integer*8 :: keys(nppm),w1(nppm),wi2(nppm),wi3(nppm)
+  integer*8 :: keys(nppm),w1(nppm)
   integer :: keycheck_pass, ipp
 
   logical :: sort_debug
@@ -163,43 +163,20 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   call timer_stop(t_domains_sort_pure)
 
-  do i=1,npold
-     w1(i) = local_key(i)
-  enddo
-
-  ! permute keys according to sorted indices
-  call pll_permute(nppm,npold,npnew,num_pe,w1,wi2,wi3, &
-       indxl,irnkl,islen,irlen,fposts,gposts)
-
-  if (domain_debug) then
-    if (npnew > 20) then
-      write (ipefile,'(a/(i5,z20))') 'output array (1st 10): ',(i,w1(i),i=1,10)
-      write (ipefile,'(a/(i5,z20))') 'output array (last 10): ',(i,w1(i),i=npnew-10,npnew)
-    else
-      write (ipefile,'(a/(i5,z20))') 'output array: ',(i,w1(i),i=1,npnew)
-    endif
-  endif
-
   call timer_stop(t_domains_sort)
   call timer_start(t_domains_ship)
 
   npp = npnew
-  pekey(1:npp) = w1(1:npp)
 
-  ! Now permute remaining particle properties : x,y,z; vx,vy,vz; q,m, label, load
-
-  source_pe(1:npold) = pepid(1:npold)   ! where particle came from
-
-  ! Set up particle structure - keys and source_pe are dummies
-  ! ( pekey is already sorted)
-
+  ! Now permute particle properties
+  ! Set up particle structure 
   call timer_start(t_domains_add_pack)
 
   do i=1,npold
      ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
           ux(indxl(i)), uy(indxl(i)), uz(indxl(i)), &
           q(indxl(i)), work(indxl(i)), &
-          keys(indxl(i)), pelabel(indxl(i)), source_pe(indxl(i))    )
+          local_key(indxl(i)), pelabel(indxl(i)), pepid(indxl(i))    )
   enddo
 
   call timer_stop(t_domains_add_pack)
@@ -224,7 +201,9 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
      uz(irnkl(i)) = get_parts(i)%uz
      q(irnkl(i)) = get_parts(i)%q
      work(irnkl(i)) = get_parts(i)%work
+     pekey(irnkl(i)) = get_parts(i)%key
      pelabel(irnkl(i)) = get_parts(i)%label
+     pepid(irnkl(i)) = get_parts(i)%pid
   enddo
 
   call timer_stop(t_domains_add_unpack)
