@@ -933,6 +933,7 @@ module tree_walk_utils
     real*8 :: vbox(3)
     type(calc_force_params) :: cf_par
     logical :: in_central_box
+    integer*8 :: num_interaction_leaves
     integer :: todo_list_length, defer_list_length
 
 
@@ -1093,6 +1094,12 @@ module tree_walk_utils
       call retval(pthreads_init(num_walk_threads + 1), "init_walk_data:pthreads_init")
       ! we will only want to reject the root node and the particle itself if we are in the central box
       in_central_box = (dot_product(vbox,vbox) == 0)
+      ! every particle has directly or indirectly interact with each other, and outside the central box even with itself
+      if (in_central_box) then
+        num_interaction_leaves = npart - 1
+      else
+        num_interaction_leaves = npart
+      endif
       ! Preprocessed box sizes for each level
       allocate(boxlength2(0:nlev))
       boxlength2(0)=boxsize**2
@@ -1150,6 +1157,7 @@ module tree_walk_utils
 
       integer, dimension(:), allocatable :: my_particles
       integer*8, dimension(:,:), allocatable :: todo_list
+      integer*8, dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
       type(t_defer_list_entry), dimension(:,:), allocatable :: defer_list
       integer, dimension(:), allocatable :: todo_list_entries, defer_list_entries
       integer :: i
@@ -1175,7 +1183,8 @@ module tree_walk_utils
 
       allocate(my_particles(my_max_particles_per_thread),                        &
                             todo_list_entries(my_max_particles_per_thread),       &
-                            defer_list_entries(my_max_particles_per_thread))
+                            defer_list_entries(my_max_particles_per_thread),      &
+                            partner_leaves(my_max_particles_per_thread))
       allocate( todo_list(0: todo_list_length-1,my_max_particles_per_thread))
       allocate(defer_list(0:defer_list_length-1,my_max_particles_per_thread))
 
@@ -1184,6 +1193,7 @@ module tree_walk_utils
       todo_list(0,:)      =  1 !     start at root node
       my_particles(:)     = -1 ! no particles assigned to this thread
       defer_list_entries  =  0 ! empty defer list
+      partner_leaves      =  0 ! no interactions yet
       particles_available = .true.
       particles_active    = .true.
       call c_f_pointer(arg, my_threaddata)
@@ -1218,15 +1228,24 @@ module tree_walk_utils
 
             if (walk_single_particle(i, my_particles(i),  todo_list,  todo_list_entries(i), &
                                                          defer_list, defer_list_entries(i), &
-                                                    my_max_particles_per_thread, my_threaddata)) then
+                                                    my_max_particles_per_thread, partner_leaves(i), my_threaddata)) then
               ! this particle`s walk has finished
 !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
 
-              ! walk for particle i has finished --> remove entries from todo_list and defer_list
+              ! walk for particle i has finished
+              ! check whether it really interacted with all other particles (in central box: excluding itself)
+              if (partner_leaves(i) .ne. num_interaction_leaves) then
+                write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, my_particles(i), particles(my_particles(i))%label
+                write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
+                write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
+              endif
+
+              !remove entries from todo_list and defer_list
               todo_list_entries(i)       =  1
               todo_list(0,i)             =  1
               my_particles(i)            = -1
               defer_list_entries(i)      =  0
+              partner_leaves(i)          =  0
               my_threaddata%num_processed_particles = my_threaddata%num_processed_particles + 1
             else
               particles_active = .true.
@@ -1239,8 +1258,8 @@ module tree_walk_utils
 
       end do
 
-      deallocate(my_particles, todo_list_entries, defer_list_entries);
-      deallocate(todo_list, defer_list);
+      deallocate(my_particles, todo_list_entries, defer_list_entries, partner_leaves)
+      deallocate(todo_list, defer_list)
 
       my_threaddata%finished = .true.
 
@@ -1260,7 +1279,7 @@ module tree_walk_utils
 
 
 
-   function walk_single_particle(myidx, nodeidx, todo_list, todo_list_entries, defer_list, defer_list_entries, listlengths, my_threaddata)
+   function walk_single_particle(myidx, nodeidx, todo_list, todo_list_entries, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
       use tree_walk_communicator
       use module_htable
       use module_calc_force
@@ -1268,6 +1287,7 @@ module tree_walk_utils
       implicit none
       integer, intent(in) :: nodeidx, myidx, listlengths
       integer*8, intent(inout) :: todo_list(0:todo_list_length-1,1:listlengths)
+      integer*8, intent(inout) :: partner_leaves
       type(t_defer_list_entry), intent(inout) :: defer_list(0:defer_list_length-1,1:listlengths)
       integer, intent(inout) :: todo_list_entries, defer_list_entries
       type(t_threaddata), intent(inout) :: my_threaddata
@@ -1336,6 +1356,7 @@ module tree_walk_utils
                   !    --> interact with cell
                   call calc_force_per_interaction(nodeidx, walk_node, delta, dist2, vbox, cf_par)
                   work_per_particle(nodeidx)     = work_per_particle(nodeidx)     + WORKLOAD_PENALTY_INTERACTION
+                  partner_leaves                 = partner_leaves                 + htable(walk_addr)%leaves
                   my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
 
               else
