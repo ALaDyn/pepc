@@ -1216,7 +1216,9 @@ module tree_walk_utils
               endif
             endif
 
-            if (walk_single_particle(my_particles(i), todo_list(:,i), todo_list_entries(i), defer_list(:,i), defer_list_entries(i), my_threaddata)) then
+            if (walk_single_particle(i, my_particles(i),  todo_list,  todo_list_entries(i), &
+                                                         defer_list, defer_list_entries(i), &
+                                                    my_max_particles_per_thread, my_threaddata)) then
               ! this particle`s walk has finished
 !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
 
@@ -1258,15 +1260,15 @@ module tree_walk_utils
 
 
 
-   function walk_single_particle(nodeidx, todo_list, todo_list_entries, defer_list, defer_list_entries, my_threaddata)
+   function walk_single_particle(myidx, nodeidx, todo_list, todo_list_entries, defer_list, defer_list_entries, listlengths, my_threaddata)
       use tree_walk_communicator
       use module_htable
       use module_calc_force
       use module_spacefilling, only : level_from_key
       implicit none
-      integer, intent(in) :: nodeidx
-      integer*8, intent(inout) :: todo_list(0:todo_list_length-1)
-      type(t_defer_list_entry), intent(inout) :: defer_list(0:defer_list_length-1)
+      integer, intent(in) :: nodeidx, myidx, listlengths
+      integer*8, intent(inout) :: todo_list(0:todo_list_length-1,1:listlengths)
+      type(t_defer_list_entry), intent(inout) :: defer_list(0:defer_list_length-1,1:listlengths)
       integer, intent(inout) :: todo_list_entries, defer_list_entries
       type(t_threaddata), intent(inout) :: my_threaddata
       logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
@@ -1378,7 +1380,7 @@ module tree_walk_utils
 
        if (todo_list_pop) then
          todo_list_entries = todo_list_entries - 1
-         key               = todo_list(todo_list_entries)
+         key               = todo_list(todo_list_entries, myidx)
        endif
      end function
 
@@ -1391,8 +1393,8 @@ module tree_walk_utils
        if (todo_list_entries + numkeys >= todo_list_length) call todo_list_full()
 
        do i=1,numkeys
-         todo_list(todo_list_entries) = keys(i)
-         todo_list_entries            = todo_list_entries + 1
+         todo_list(todo_list_entries, myidx) = keys(i)
+         todo_list_entries                   = todo_list_entries + 1
        end do
      end subroutine
 
@@ -1413,8 +1415,8 @@ module tree_walk_utils
 
        if (defer_list_entries == defer_list_length) call defer_list_full()
 
-       defer_list(defer_list_entries) = t_defer_list_entry(addr_, key_)
-       defer_list_entries             = defer_list_entries + 1
+       defer_list(defer_list_entries, myidx) = t_defer_list_entry(addr_, key_)
+       defer_list_entries                    = defer_list_entries + 1
      end subroutine
 
      subroutine defer_list_parse_and_compact()
@@ -1425,14 +1427,14 @@ module tree_walk_utils
 
        inew = 0
        do iold = 0,defer_list_entries-1
-         if ( children_available(defer_list(iold)%addr) ) then
+         if ( children_available(defer_list(iold, myidx)%addr) ) then
            ! children for deferred node have arrived --> put children onto todo_list
-           call get_childkeys(defer_list(iold)%addr, cnum, clist)
+           call get_childkeys(defer_list(iold, myidx)%addr, cnum, clist)
            call todo_list_push(cnum, clist)
          else
            ! children for deferred node are still unavailable - put back onto defer_list
-           defer_list(inew) = defer_list(iold)
-           inew = inew + 1
+           defer_list(inew, myidx) = defer_list(iold, myidx)
+           inew                    = inew + 1
          end if
        end do
 
