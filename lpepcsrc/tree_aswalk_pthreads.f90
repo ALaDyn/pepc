@@ -986,7 +986,7 @@ module tree_walk_utils
       theta2 = theta_**2
       ! length of todo- and defer-list per particle (estimations)
       todo_list_length  = nintmax
-      defer_list_length = todo_list_length / 8
+      defer_list_length = max(todo_list_length / 8, npp)
       ! pure local walk time (i.e. from start of communicator till sned_walk_finished)
       twalk_loc => twalk_loc_
 
