@@ -1293,9 +1293,9 @@ module tree_walk_utils
           walk_addr = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
           walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
 
-          delta(1) = x(nodeidx) - (tree_nodes(walk_node)%xcoc + vbox(1) )     ! Separations
-          delta(2) = y(nodeidx) - (tree_nodes(walk_node)%ycoc + vbox(2) )
-          delta(3) = z(nodeidx) - (tree_nodes(walk_node)%zcoc + vbox(3) )
+          delta     = particles(nodeidx)%x - ([tree_nodes(walk_node)%xcoc, &
+                                               tree_nodes(walk_node)%ycoc, &
+                                               tree_nodes(walk_node)%zcoc] + vbox)  ! Separations
 
           dist2 = DOT_PRODUCT(delta, delta)
 

@@ -143,29 +143,25 @@ module module_allocation
         subroutine allocate_particles(nppm_ori)
           use treevars
           implicit none
-		  integer, intent(out) :: nppm_ori
+          integer, intent(out) :: nppm_ori
 
-          if (allocated(x)) call deallocate_particles()
+          if (allocated(particles)) call deallocate_particles()
 
           npartm = npart
 
-		  if (num_pe.eq.1) then
-		    nppm=int(1.5*npart + 1000)  ! allow for additional ghost particles for field plots
-		  else
-		    nppm = 2*max(npartm/num_pe,1000) ! allow 50% fluctuation
-		  endif
+          if (num_pe.eq.1) then
+            nppm=int(1.5*npart + 1000)  ! allow for additional ghost particles for field plots
+          else
+            nppm = 2*max(npartm/num_pe,1000) ! allow 50% fluctuation
+          endif
 
-		  nppm_ori = nppm
+          nppm_ori = nppm
 
-		  free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
+          free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
 
-		  ! array allocation
-
-		  allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), &
-		       q(nppm), work(nppm), &
-		       pepid(nppm), pelabel(nppm), pekey(nppm) )    ! Reserve particle array space N/NPE
-
-        allocate (nbranches(num_pe+2) )
+          ! array allocation
+          allocate (particles(nppm) )    ! Reserve particle array space N/NPE
+          allocate (nbranches(num_pe+2) )
 
         end subroutine allocate_particles
 
@@ -176,15 +172,13 @@ module module_allocation
         !> Deallocates all particle and results-arrays
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine deallocate_particles()
-		  use treevars
-		  implicit none
+        subroutine deallocate_particles()
+          use treevars
+          implicit none
 
-		  ! particle array deallocation
-		  deallocate ( x, y, z, ux, uy, uz, &
-		       q, work, pepid, pelabel, pekey )
-
-		  deallocate ( nbranches )
+          ! particle array deallocation
+          deallocate (particles )
+          deallocate (nbranches )
 
         end subroutine deallocate_particles
 

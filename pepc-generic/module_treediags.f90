@@ -73,7 +73,7 @@ module module_treediags
 
           if (me .ne. 0) return
 
-          if (.not. (allocated(htable) .and. allocated(branch_key))) then
+          if (.not. (allocated(htable) .and. allocated(branch_key) .and. allocated(tree_nodes))) then
             write(*,*) 'write_branches_to_vtk(): pepc_fields() must have been called with no_dealloc=.true. before'
             return
           endif
@@ -146,7 +146,7 @@ module module_treediags
           type(vtkfile_unstructured_grid) :: vtk
           integer :: i
 
-          if (.not. (allocated(x) .and. allocated(y) .and. allocated(z))) then
+          if (.not. allocated(particles)) then
             if (me .eq. 0) write(*,*) 'write_spacecurve_to_vtk(): pepc_fields() must have been called with no_dealloc=.true. before'
             return
           endif
@@ -154,7 +154,7 @@ module module_treediags
             call vtk%create_parallel("spacecurve", step, me, num_pe, tsim, vtk_step)
               call vtk%write_headers(npp, 1)
                 call vtk%startpoints()
-                  call vtk%write_data_array("xyz", npp, x, y, z)
+                  call vtk%write_data_array("xyz", npp, particles(1:npp)%x(1), particles(1:npp)%x(2), particles(1:npp)%x(3))
                 call vtk%finishpoints()
                 call vtk%startpointdata()
                   ! no point data here

@@ -327,7 +327,7 @@ module module_fmm_framework
               tmp = 0
 
               do p=1,npp
-                tmp = tmp + q(p) * O(ll, mm, [x(p), y(p), z(p)] - LatticeCenter)
+                tmp = tmp + particles(p)%q * O(ll, mm, particles(p)%x - LatticeCenter)
               end do
 
               omega_tilde( tblinv(ll, mm) ) = tmp
@@ -384,10 +384,10 @@ module module_fmm_framework
 
 	          ! calculate multipole contributions of all local particles
 	          do p=1,npp
-	            r = [x(p), y(p), z(p)] - LatticeCenter
+	            r = particles(p)%x - LatticeCenter
 
-	            box_dipole = box_dipole + q(p) * r
-	            quad_trace = quad_trace + q(p) * dot_product(r, r)
+	            box_dipole = box_dipole + particles(p)%q * r
+	            quad_trace = quad_trace + particles(p)%q * dot_product(r, r)
 	          end do
 
 	          ! sum contributions from all processors
@@ -499,7 +499,7 @@ module module_fmm_framework
 
 		 ! shift mu_cent to the position of our particle
 		  mu_shift =  0
-		  r        = [x(p), y(p), z(p)] - LatticeCenter
+		  r        = particles(p)%x - LatticeCenter
 
 		  do ll = 0,1
 		    do mm = 0,ll

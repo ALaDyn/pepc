@@ -50,7 +50,7 @@ module module_spacefilling
           ! using log_8(key):
           ! level_from_key = int( log(1._8*key) / log(8._8))
           ! counting leading zeros (faster):
-          level_from_key = (bit_size(key) - leadz(key) - 1) / 3
+          level_from_key = int((bit_size(key) - leadz(key) - 1) / 3)
 
         end function
 
@@ -64,28 +64,27 @@ module module_spacefilling
           use treevars
           implicit none
           integer*8, intent(out) :: local_key(nppm)
-          integer*8, dimension(nppm) :: ix, iy, iz
+          integer*8, dimension(3,nppm) :: intcoord
           real*8 :: s
           integer :: j
 
           s=boxsize/2**nlev       ! refinement length
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
-
-          ix(1:npp) = int(( x(1:npp) - xmin )/s)           ! partial keys
-          iy(1:npp) = int(( y(1:npp) - ymin )/s)           !
-          iz(1:npp) = int(( z(1:npp) - zmin )/s)
+          do j = 1,npp
+            intcoord(:,j) = int(( particles(j)%x - [xmin, ymin, zmin] )/s) ! partial keys
+          end do
 
           ! construct particle keys
           select case (curve_type)
             case (0) ! Z-curve
               do j = 1,npp
-                 local_key(j) = intcoord_to_key_morton(ix(j), iy(j), iz(j))
+                 local_key(j) = intcoord_to_key_morton(intcoord(:,j))
               end do
 
             case (1) ! Hilbert curve (original pattern)
              do j=1,npp
-                 local_key(j) = intcoord_to_key_hilbert(ix(j), iy(j), iz(j))
+                 local_key(j) = intcoord_to_key_hilbert(intcoord(:,j))
              end do
 
           end select
@@ -93,7 +92,7 @@ module module_spacefilling
           if (domain_debug) then
              write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort:', &
                   '  key,             label   coords     q ', &
-                  (local_key(j),pelabel(j),x(j),y(j),z(j),ix(j),iy(j),iz(j),q(j),work(j),j=1,npp)
+                  (local_key(j),particles(j)%label,particles(j)%x,intcoord(:,j),particles(j)%q,particles(j)%work,j=1,npp)
 
              write(ipefile,'(/)')
           endif
@@ -124,9 +123,9 @@ module module_spacefilling
           ! construct particle keys
           select case (curve_type)
             case (0) ! Z-curve
-              coord_to_key_lastlevel = intcoord_to_key_morton(ix, iy, iz)
+              coord_to_key_lastlevel = intcoord_to_key_morton([ix, iy, iz])
             case (1) ! Hilbert curve (original pattern)
-              coord_to_key_lastlevel = intcoord_to_key_hilbert(ix, iy, iz)
+              coord_to_key_lastlevel = intcoord_to_key_hilbert([ix, iy, iz])
             case default
               coord_to_key_lastlevel = 0
           end select
@@ -193,10 +192,10 @@ module module_spacefilling
         !> note use of 64-bit constants to ensure correct arithmetic
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function intcoord_to_key_morton(ix, iy, iz)
+        function intcoord_to_key_morton(ic)
           use treevars, only : nlev
           implicit none
-          integer*8, intent(in) :: ix, iy, iz
+          integer*8, intent(in) :: ic(3)
           integer*8 :: intcoord_to_key_morton
           integer :: i
           integer*8 :: cval
@@ -206,7 +205,7 @@ module module_spacefilling
 
             ! key generation
             do i=nlev-1,0,-1
-               cval = 4_8*ibits( iz,i, 1_8 ) + 2_8*ibits( iy,i, 1_8 ) + 1_8*ibits( ix,i, 1_8 )
+               cval = 4_8*ibits( ic(3),i, 1_8 ) + 2_8*ibits( ic(2),i, 1_8 ) + 1_8*ibits( ic(1),i, 1_8 )
                ! appending bit triple to key
                intcoord_to_key_morton = ior(ishft(intcoord_to_key_morton, 3), cval)
             end do
@@ -255,10 +254,10 @@ module module_spacefilling
         !> http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=772242&isnumber=16772
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function intcoord_to_key_hilbert(ix, iy, iz)
+        function intcoord_to_key_hilbert(ic)
           use treevars
           implicit none
-          integer*8, intent(in) :: ix, iy, iz
+          integer*8, intent(in) :: ic(3)
           integer*8 :: intcoord_to_key_hilbert
           integer :: i
 
@@ -269,9 +268,9 @@ module module_spacefilling
 		  integer*8 :: cval
 
 	        ! copy, because construction alters original values
-	        xtemp=ix
-	        ytemp=iy
-	        ztemp=iz
+	        xtemp=ic(1)
+	        ytemp=ic(2)
+	        ztemp=ic(3)
 
 	        ! set placeholder bit
 	        intcoord_to_key_hilbert = 1

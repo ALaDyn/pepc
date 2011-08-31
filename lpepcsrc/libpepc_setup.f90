@@ -121,12 +121,12 @@ subroutine libpepc_register_mpi_types(db_level)
 
 !  if (me==0) write(*,'(a30,o21)') 'Particle address base:',receive_base
 
-  call MPI_GET_ADDRESS( ship_props_a%x, address(1), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%y, address(2), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%z, address(3), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%ux, address(4), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%uy, address(5), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%uz, address(6), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%x(1), address(1), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%x(2), address(2), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%x(3), address(3), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%u(1), address(4), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%u(2), address(5), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%u(3), address(6), ierr )
   call MPI_GET_ADDRESS( ship_props_a%q, address(7), ierr )
   call MPI_GET_ADDRESS( ship_props_a%work, address(8), ierr )
   call MPI_GET_ADDRESS( ship_props_a%key, address(9), ierr )

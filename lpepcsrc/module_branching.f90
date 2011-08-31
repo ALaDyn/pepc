@@ -83,29 +83,29 @@ contains
           
         if (num_pe > 1) then
             ! get local key limits
-            left_limit_me=pekey(1)
-            right_limit_me=pekey(npp)
+            left_limit_me  = particles(  1)%key
+            right_limit_me = particles(npp)%key
 
             ! get key limits for neighbor tasks
             ! and build virtual limits, so that a minimum set a branch nodes comes arround
             ! boundary tasks can access their boundary space fully only need one virtual limit
             if(me.eq.0)then
-                right_limit=pekey(npp+1)
+                right_limit      = particles(npp+1)%key
                 right_virt_limit = bpi(right_limit_me,right_limit)
-                left_virt_limit=2_8**(nlev*3)
+                left_virt_limit  = 2_8**(nlev*3)
             else if(me.eq.(num_pe-1))then
-                left_limit=pekey(npp+1)
+                left_limit       = particles(npp+1)%key
                 left_virt_limit  = bpi(left_limit,left_limit_me)
-                right_virt_limit=2_8**(3*nlev+1)-1
+                right_virt_limit = 2_8**(3*nlev+1)-1
             else
-                left_limit=pekey(npp+2)
-                right_limit=pekey(npp+1)
+                left_limit       = particles(npp+2)%key
+                right_limit      = particles(npp+1)%key
                 left_virt_limit  = bpi(left_limit,left_limit_me)
                 right_virt_limit = bpi(right_limit_me,right_limit)
             end if
         else
-            left_virt_limit=2_8**(nlev*3)
-            right_virt_limit=2_8**(3*nlev+1)-1
+            left_virt_limit  = 2_8**(3*nlev)
+            right_virt_limit = 2_8**(3*nlev+1)-1
         end if
 
     end subroutine get_virtual_local_domain

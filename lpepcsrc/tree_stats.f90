@@ -18,7 +18,7 @@ subroutine tree_stats(timestamp)
   include 'mpif.h'
 
   integer :: i,ierr, timestamp
-  integer, dimension(num_pe) :: particles, fetches, ships, total_keys, tot_nleaf, tot_ntwig
+  integer, dimension(num_pe) :: nparticles, fetches, ships, total_keys, tot_nleaf, tot_ntwig
   real*8, dimension(num_pe) ::  num_interactions, num_mac_evaluations  ! Load balance arrays
   character*40 :: cfile
   integer :: max_nbranch,min_nbranch, gmax_leaves, gmax_twigs, total_part
@@ -30,7 +30,7 @@ subroutine tree_stats(timestamp)
   real*8 :: global_thread_workload(-4:4)
 
   ! particle distrib
-  call MPI_GATHER(npp,         1, MPI_INTEGER, particles,  1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
+  call MPI_GATHER(npp,         1, MPI_INTEGER, nparticles, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(ntwig_me,    1, MPI_INTEGER, tot_ntwig,  1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(nleaf_me,    1, MPI_INTEGER, tot_nleaf,  1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(nkeys_total, 1, MPI_INTEGER, total_keys, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
@@ -52,8 +52,8 @@ subroutine tree_stats(timestamp)
   call MPI_REDUCE(nleaf, gmax_leaves, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
   call MPI_REDUCE(ntwig, gmax_twigs,  1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
 
-  part_imbal_max = MAXVAL(particles)
-  part_imbal_min = MINVAL(particles)
+  part_imbal_max = MAXVAL(nparticles)
+  part_imbal_min = MINVAL(nparticles)
   part_imbal = (part_imbal_max-part_imbal_min)/1.0/npart*num_pe
 
   total_interactions       = SUM(num_interactions)
@@ -69,7 +69,7 @@ subroutine tree_stats(timestamp)
      work_imbal = work_imbal + abs(num_interactions(i) - average_interactions)/average_interactions/num_pe
   end do
 
-  total_part = sum(particles)
+  total_part = sum(nparticles)
 
   if (me.eq.0) then
     call system("mkdir -p " // "stats")
@@ -79,10 +79,10 @@ subroutine tree_stats(timestamp)
 
     write (60,'(a20,i7,a22)') 'Tree stats for CPU ', me, ' and global statistics'
     write (60,*) '######## GENERAL DATA #####################################################################'
-    write (60,'(a50,3i12)') '# procs, walk_threads, max_particles_per_thread: ', num_pe, num_walk_threads, max_particles_per_thread
+    write (60,'(a50,3i12)') '# procs, walk_threads, max_nparticles_per_thread: ', num_pe, num_walk_threads, max_particles_per_thread
     write (60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, size_tree: ',nintmax, np_mult,size_tree
     write (60,'(a50,3i12)') 'npp, npart, nppm(max): ',npp,npart,nppm
-    write (60,'(a50,2i12)') 'total # particles, N/P: ',total_part,int(npart/num_pe)
+    write (60,'(a50,2i12)') 'total # nparticles, N/P: ',total_part,int(npart/num_pe)
     write (60,*) '######## TREE STRUCTURES ##################################################################'
     write (60,'(a50,3i12)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
     write (60,'(a50,3i12)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
@@ -107,7 +107,7 @@ subroutine tree_stats(timestamp)
     write (60,'(a50,3f12.3)')       'Load imbalance percent,min,max: ',work_imbal,work_imbal_min,work_imbal_max
     write (60,'(a50,f12.3,2i12)')   'Particle imbalance ave,min,max: ',part_imbal,part_imbal_min,part_imbal_max
     write (60,*) '######## WALK-WORKER-THREAD WORKLOAD ######################################################'
-    write (60,'(a50)')              'average # processed particles per thread    '
+    write (60,'(a50)')              'average # processed nparticles per thread    '
     write (60,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', thread_workload(1), thread_workload(3)
     write (60,'(a50,3f12.3)')       '  maximum relative deviation: ', thread_workload(2), thread_workload(4)
     write (60,'(a50)')              'average wallclocktime per thread    '
@@ -117,7 +117,7 @@ subroutine tree_stats(timestamp)
     write (60,*) '######## DETAILED DATA ####################################################################'
     write (60,'(2a/(4i10,F8.4,6i15,F8.4))') '         PE     parts    nleaf     ntwig   ratio    nl_keys', &
               '   tot_keys   fetches    ships    #interactions(work)   #mac_evals   rel.work*ncpu', &
-              (i-1,particles(i),tot_nleaf(i),tot_ntwig(i),1.0*tot_nleaf(i)/(1.0*tot_ntwig(i)), &
+              (i-1,nparticles(i),tot_nleaf(i),tot_ntwig(i),1.0*tot_nleaf(i)/(1.0*tot_ntwig(i)), &
               total_keys(i)-(tot_nleaf(i)+tot_ntwig(i)),total_keys(i),fetches(i),ships(i),int(num_interactions(i)),int(num_mac_evaluations(i)),&
               num_interactions(i)/average_interactions,i=1,num_pe)
     close(60)

@@ -31,7 +31,6 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   integer*8, dimension(nppm) :: ixd, iyd, izd
   integer*8, dimension(nppm) :: local_key
 
-  integer ::  source_pe(nppm)
   integer :: i, j, ind_recv, inc, prev, next, handle(4)
 
   real*8 :: s
@@ -45,7 +44,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   type (particle) :: ship_parts(nppm), get_parts(nppm)
 
-  integer*8 :: keys(nppm),w1(nppm)
+  integer*8 :: w1(nppm)
   integer :: keycheck_pass, ipp
 
   logical :: sort_debug
@@ -81,12 +80,12 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
 
   ! Find limits of local simulation region
-  xmin_local = minval(x(1:npp))
-  xmax_local = maxval(x(1:npp))
-  ymin_local = minval(y(1:npp))
-  ymax_local = maxval(y(1:npp))
-  zmin_local = minval(z(1:npp))
-  zmax_local = maxval(z(1:npp))
+  xmin_local = minval(particles(1:npp)%x(1))
+  xmax_local = maxval(particles(1:npp)%x(1))
+  ymin_local = minval(particles(1:npp)%x(2))
+  ymax_local = maxval(particles(1:npp)%x(2))
+  zmin_local = minval(particles(1:npp)%x(3))
+  zmax_local = maxval(particles(1:npp)%x(3))
 
   ! Find global limits
   call MPI_ALLREDUCE(xmin_local, xmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
@@ -119,6 +118,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   s=boxsize/2**nlev       ! refinement length
 
   call compute_particle_keys(local_key)
+  particles(1:npp)%key = local_key(1:npp)
 
   call timer_stop(t_domains_keys)
   call timer_start(t_domains_sort)
@@ -144,16 +144,12 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   call timer_start(t_domains_add_sort)
 
   ! start permutation of local key list
-  do i=1,npold
-     keys(i) = local_key(i)
-  enddo
-
-  work2 = work
+  work2 = particles(:)%work
 
   call timer_start(t_domains_sort_pure)
 
   ! perform index sort on keys
-  call slsort_keys(npold,nppm-2,keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
+  call slsort_keys(npold,nppm-2,local_key,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
 
   ! FIXME: every processor has to have at least one particle
   if (npnew < 2) then
@@ -173,10 +169,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   call timer_start(t_domains_add_pack)
 
   do i=1,npold
-     ship_parts(i) = particle( x(indxl(i)), y(indxl(i)), z(indxl(i)), &
-          ux(indxl(i)), uy(indxl(i)), uz(indxl(i)), &
-          q(indxl(i)), work(indxl(i)), &
-          local_key(indxl(i)), pelabel(indxl(i)), pepid(indxl(i))    )
+     ship_parts(i) = particles( indxl(i) )
   enddo
 
   call timer_stop(t_domains_add_pack)
@@ -193,17 +186,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   call timer_start(t_domains_add_unpack)
 
   do i=1,npp
-     x(irnkl(i)) = get_parts(i)%x
-     y(irnkl(i)) = get_parts(i)%y
-     z(irnkl(i)) = get_parts(i)%z
-     ux(irnkl(i)) = get_parts(i)%ux
-     uy(irnkl(i)) = get_parts(i)%uy
-     uz(irnkl(i)) = get_parts(i)%uz
-     q(irnkl(i)) = get_parts(i)%q
-     work(irnkl(i)) = get_parts(i)%work
-     pekey(irnkl(i)) = get_parts(i)%key
-     pelabel(irnkl(i)) = get_parts(i)%label
-     pepid(irnkl(i)) = get_parts(i)%pid
+     particles( irnkl(i) ) = get_parts(i)
   enddo
 
   call timer_stop(t_domains_add_unpack)
@@ -220,22 +203,24 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   call timer_stop(t_domains_add_sort)
   call timer_start(t_domains_bound)
 
-  pepid(1:npp) = me  ! new owner
-
   if (domain_debug) then
      do j=1,npp
-        ixd(j) = SUM( (/ (2_8**i*ibits( pekey(j)-iplace,3*i,1 ), i=0,nlev-1) /) )
-        iyd(j) = SUM( (/ (2_8**i*ibits( pekey(j)-iplace,3*i+1,1 ), i=0,nlev-1) /) )
-        izd(j) = SUM( (/ (2_8**i*ibits( pekey(j)-iplace,3*i+2,1 ), i=0,nlev-1) /) )
+        ixd(j) = SUM( (/ (2_8**i*ibits( particles(j)%key-iplace,3*i,1 ), i=0,nlev-1) /) )
+        iyd(j) = SUM( (/ (2_8**i*ibits( particles(j)%key-iplace,3*i+1,1 ), i=0,nlev-1) /) )
+        izd(j) = SUM( (/ (2_8**i*ibits( particles(j)%key-iplace,3*i+2,1 ), i=0,nlev-1) /) )
      end do
-     write (ipefile,'(/a/a/(z21,2i6,a2,i8,6f12.4))') 'Particle list after key sort:', &
+     write (ipefile,'(/a/a/(z21,i6,a2,i8,6f12.4))') 'Particle list after key sort:', &
           '  key,                owner,    from PE  |  label  Fetched coords      derived from key', &
-          (pekey(i),pepid(i),source_pe(i),'|', &
-          pelabel(i),x(i),y(i),z(i),ixd(i)*s+xmin,iyd(i)*s+ymin,izd(i)*s+zmin,i=1,npp) 
+          (particles(i)%key, particles(i)%pid, '|', &
+           particles(i)%label, &
+           particles(i)%x(1),particles(i)%x(2),particles(i)%x(3),&
+           ixd(i)*s+xmin,iyd(i)*s+ymin,izd(i)*s+zmin,&
+           i=1,npp)
 
      write(ipefile,'(/)')
   endif
 
+  particles(1:npp)%pid = me  ! new owner
 
   ! Each PE now has sorted segment of particles of length npp
   ! Note that now npp /= npart/num_pe, only approx depending on key distribution, or target shape.
@@ -244,21 +229,21 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
   keycheck_pass=1
 
   do i=2,npp-1
-     if (pekey(i) == pekey(i-1)) then
-        pekey(i) = pekey(i) + 1  ! Augment higher key
-        pekey(i+1) = pekey(i+1) + 2  ! Augment next higher key to avoid 'triplet'
+     if (particles(i)%key == particles(i-1)%key) then
+        particles(  i)%key = particles(  i)%key + 1  ! Augment higher key
+        particles(i+1)%key = particles(i+1)%key + 2  ! Augment next higher key to avoid 'triplet'
         !  Tweak momenta and positions to ensure particles drift apart
-        ux(i-1) = ux(i-1)*.99999
-        ux(i+1) = ux(i+1)*1.0001
-        x(i-1) = x(i-1)*.99999
-        x(i+1) = x(i+1)*1.0001
+        particles(i-1)%u(1) = particles(i-1)%u(1) *0.99999
+        particles(i+1)%u(1) = particles(i+1)%u(1) *1.00001
+
+        particles(i-1)%x(1) = particles(i-1)%x(1) *0.99999
+        particles(i+1)%x(1) = particles(i+1)%x(1) *1.00001
 
         ! TODO: need 'ripple' here up to next large gap in keys i+1->npp
 
         write(*,'(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
-             ' WARNING: identical keys found for particles  ',i,npp,pelabel(i-1),pelabel(i),pelabel(i+1), &
-             ' -  to: ',pekey(i),' next key: ',pekey(i+1)
-        !        if (x(i) == x(i-1)) write(*,*) "HELP"
+             ' WARNING: identical keys found for particles  ',i,npp,particles(i-1)%label,particles(i)%label,particles(i+1)%label, &
+             ' -  to: ',particles(i)%key,' next key: ',particles(i+1)%key
      endif
   end do
 
@@ -272,11 +257,11 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   do while (identical_keys .and. ipp.gt.2)
      identical_keys=.false.
-     if (pekey(ipp+1) == pekey(ipp)) then
-        pekey(ipp) = pekey(ipp)-1
+     if (particles(ipp+1)%key == particles(ipp)%key) then
+        particles(ipp)%key = particles(ipp)%key-1
         write(*,'(a15,i9,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
-             ' WARNING: identical keys found for particles  ',pelabel(ipp+1),pelabel(ipp), &
-             'LPEPC | Lower key decreased to:  ',pekey(ipp)
+             ' WARNING: identical keys found for particles  ',particles(ipp+1)%label,particles(ipp)%label, &
+             'LPEPC | Lower key decreased to:  ',particles(ipp)%key
         identical_keys=.true.
      endif
      ipp=ipp-1
@@ -284,10 +269,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   ! Copy boundary particles to adjacent PEs to ensure proper tree construction
   !  - if we do not do this, can get two particles on separate PEs 'sharing' a leaf
-  ship_props = particle ( x(1), y(1), z(1), ux(1), uy(1), uz(1), q(1), work(1), &
-       pekey(1), pelabel(1), pepid(1) )
-
-  !  write (*,'(9f12.3,z20,2i6)') ship_props
+  ship_props = particles( 1 )
 
   ! Ship 1st particle data to end of list of LH neighbour PE
 
@@ -298,24 +280,12 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   ! Place incoming data at end of array
   if ( me /= num_pe-1) then
-     !     call MPI_IRECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, handle(2), ierr )
      call MPI_RECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, status, ierr )
-     x(npp+1) = get_props%x
-     y(npp+1) = get_props%y
-     z(npp+1) = get_props%z
-     ux(npp+1) = get_props%ux
-     uy(npp+1) = get_props%uy
-     uz(npp+1) = get_props%uz
-     q(npp+1) = get_props%q
-     work(npp+1) = get_props%work
-     pekey(npp+1) = get_props%key
-     pelabel(npp+1) = get_props%label
-     pepid(npp+1) = get_props%pid
+     particles(npp+1) = get_props
   endif
 
   ! Ship  end particle data to start of list of RH neighbour PE
-  ship_props = particle ( x(npp), y(npp), z(npp), ux(npp), uy(npp), uz(npp), q(npp), work(npp), &
-       pekey(npp), pelabel(npp), pepid(npp) )
+  ship_props = particles( npp )
 
   if (me /= num_pe-1 ) then
      call MPI_ISEND( ship_props, 1, mpi_type_particle, next, 2, MPI_COMM_WORLD, handle(3), ierr )
@@ -332,21 +302,8 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   if ( me /= 0) then
      call MPI_RECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, status, ierr )
-     x(ind_recv) = get_props%x
-     y(ind_recv) = get_props%y
-     z(ind_recv) = get_props%z
-     ux(ind_recv) = get_props%ux
-     uy(ind_recv) = get_props%uy
-     uz(ind_recv) = get_props%uz
-     q(ind_recv) = get_props%q
-     work(ind_recv) = get_props%work
-     pekey(ind_recv) = get_props%key
-     pelabel(ind_recv) = get_props%label
-     pepid(ind_recv) = get_props%pid
+     particles(ind_recv) = get_props
   endif
-
-
-  !  if (me /= 0) call MPI_WAIT(handle(4),status,ierr)
 
   ! Initialize VLD-stuff
   call get_virtual_local_domain()
@@ -364,7 +321,8 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
      write (ipefile,'(/a/a/(i5,z21,2i8,3f12.5,1f12.3))') 'Particle list after boundary swap:', &
           ' index   key,     label,   on PE,    x      y     q', &
-          (i,pekey(i),pelabel(i),pepid(i),x(i),y(i),z(i),q(i),i=1,npp+1+inc)
+          (i,particles(i)%key,particles(i)%label,particles(i)%pid,&
+           particles(i)%x(1),particles(i)%x(2),particles(i)%x(3),particles(i)%q,i=1,npp+1+inc)
 
      write(ipefile,'(/)')
   endif

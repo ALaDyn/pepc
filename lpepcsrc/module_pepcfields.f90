@@ -127,28 +127,19 @@ module module_pepcfields
 				p_label(i),i=1,npp)
 		  endif
 
-		  ! Copy particle buffers to tree arrays
-		   x(1:npp) = p_x(1:npp)
-		   y(1:npp) = p_y(1:npp)
-		   z(1:npp) = p_z(1:npp)
-		  ux(1:npp) = 0.
-		  uy(1:npp) = 0.
-		  uz(1:npp) = 0.
-		   q(1:npp) = p_q(1:npp)
-		   pelabel(1:npp) = p_label(1:npp)
-		   pepid(1:npp)   = me
-
-		  ! copy workload array
-		  if (num_pe==1) then
-		    work(1:npp) = 1.
-		  else
-		    do i=1,npp
-		       work(i) = max(p_w(i), 1._8)
-		    end do
-		  endif
+          ! Copy particle buffers to tree arrays
+          do i=1,npp
+            particles(i) = particle([p_x(i), p_y(i), p_z(i)], &  ! position
+                                    [    0.,     0.,     0.], &  ! velocity - not relevant for tree code
+                                     p_q(i),                  &  ! charge
+                                     max(p_w(i), 1._8),       &  ! workload from last step
+                                     -1_8,                    &  ! key - will be assigned later
+                                     p_label(i),              &  ! particle label for tracking purposes
+                                     me )                        ! particle owner
+          end do
 
 		  ! Trap bad particle labels
-		  if (any(pelabel(1:npp) == 0)) then
+		  if (any(p_label(1:npp) == 0)) then
 		    write (*,*) '*** Error: particle labels must be nonzero:', i, p_label(i)
 		    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
 		  endif
@@ -193,7 +184,7 @@ module module_pepcfields
 		  ex_tmp  = 0.
 		  ey_tmp  = 0.
 		  ez_tmp  = 0.
-		  work    = 1.
+		  w_tmp   = 1.
 
 		  call timer_stamp(t_stamp_before_walkloop)
 
@@ -202,7 +193,7 @@ module module_pepcfields
 		    vbox = lattice_vect(neighbours(:,ibox))
 
 		    ! tree walk finds interaction partners and calls interaction routine for particles on short list
-		    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, work, tcomm)
+		    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, w_tmp, tcomm)
 
             call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
             call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
@@ -213,8 +204,6 @@ module module_pepcfields
 		  end do ! ibox = 1,num_neighbours
 
 		  call timer_stamp(t_stamp_after_walkloop)
-
-		  w_tmp(1:npp) = work(1:npp)  ! send back work load for next iteration
 
 		  ! add lattice contribution
 		  call timer_start(t_lattice)
@@ -244,8 +233,8 @@ module module_pepcfields
 		     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)') cf_par%force_const
 
 		     do i=1,np_local
-		        write (ipefile,'(1x,i7,4(1pe14.5))') pelabel(i), q(i), ux(i), p_pot(i), p_ex(i)
-		        write (*,'(1x,i7,4(1pe14.5))') pelabel(i), x(i), q(i), ux(i), p_pot(i)
+		        write (ipefile,'(1x,i7,4(1pe14.5))') particles(i)%label, particles(i)%q, particles(i)%u(1), p_pot(i), p_ex(i)
+		        write (*,'(1x,i7,4(1pe14.5))') particles(i)%label, particles(i)%x(1), particles(i)%q, particles(i)%u(1), p_pot(i)
 		     end do
 
 		  endif

@@ -585,8 +585,8 @@ contains
         'i','owner','plab','i-leaf','lev','key','parent','pkey','x','y','z','q', &
         (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),tree_nodes(ind_leaf(i))%level,key_leaf(i), &
         ishft( key_leaf(i),-3 ), &      ! parent
-        pekey(ind_leaf(i)), &  ! particle key
-        x(ind_leaf(i)),y(ind_leaf(i)),z(ind_leaf(i)), q(ind_leaf(i)), &
+        particles(ind_leaf(i))%key, &  ! particle key
+        particles(ind_leaf(i))%x, particles(ind_leaf(i))%q, &
         i=1,nleaf_me)
 
         ! get keys of NON-local leaf nodes from hash table

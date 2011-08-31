@@ -93,17 +93,8 @@ module treevars
   logical :: load_file_debug=.false.
   
 
-  !  particle data - dimensions filled in when #PEs known
-
-  real*8, allocatable :: work(:), &        ! interaction work load
-                            x(:),   y(:),   z(:), &     ! position
-                           ux(:),  uy(:),  uz(:), &     ! velocity
-                            q(:)                ! charge
-
-  integer*8, allocatable ::  pekey(:)  ! local particle keys
-
-  integer, allocatable ::    pepid(:), & ! owner
-                                pelabel(:)   ! particle label
+  !>  particle data - dimensions filled in when #PEs known
+  type(particle), target, allocatable :: particles(:)
 
 ! Memory control
   real :: np_mult=1.5

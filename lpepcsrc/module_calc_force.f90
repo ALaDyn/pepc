@@ -117,8 +117,8 @@ module module_calc_force
 			    ! write(*,*) "            |", y(p), "|", ey_tmp(p),  "|", ey_lattice
 			    ! write(*,*) "            |", z(p), "|", ez_tmp(p),  "|", ez_lattice
 
-			    potfarfield  = potfarfield  + phi_lattice * q(p)
-			    potnearfield = potnearfield + pot_tmp(p) * q(p)
+			    potfarfield  = potfarfield  + phi_lattice * particles(p)%q
+			    potnearfield = potnearfield + pot_tmp(p) * particles(p)%q
 			    pot_tmp(p) = pot_tmp(p) + cf_par%force_const * phi_lattice
 			    ex_tmp(p)  = ex_tmp(p)  + cf_par%force_const * ex_lattice
 			    ey_tmp(p)  = ey_tmp(p)  + cf_par%force_const * ey_lattice
@@ -263,8 +263,8 @@ module module_calc_force
             t=>tree_nodes(inode)
 
             !  preprocess distances
-            dx = x(p) - ( t%xcoc + vbox(1) )
-            dy = y(p) - ( t%ycoc + vbox(2) )
+            dx = particles(p)%x(1) - ( t%xcoc + vbox(1) )
+            dy = particles(p)%x(2) - ( t%ycoc + vbox(2) )
 
             d  = sqrt(dx**2+dy**2+eps2)
 

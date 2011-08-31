@@ -46,6 +46,7 @@ subroutine tree_local
   integer*8, dimension(maxaddress) :: res_key,search_key, resolve_key
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
   type(multipole), pointer :: res, child
+  type(particle), pointer :: p
 
 !!! --------------- TREE BUILD ---------------
 
@@ -60,9 +61,9 @@ subroutine tree_local
   call htable_clear()
 
   do i=1,npp+2
-     local_plist(i) = pelabel(i)       ! Particle (global) label for tracking purposes 
-     local_key(i) = pekey(i)           ! Particle key
-     local_owner(i) = pepid(i)
+     local_plist(i) = particles(i)%label       ! Particle (global) label for tracking purposes
+     local_key(i)   = particles(i)%key           ! Particle key
+     local_owner(i) = particles(i)%pid
   end do
   i=0                     ! List of free (unused #table-addresses) 
 
@@ -74,17 +75,17 @@ subroutine tree_local
   ! RH neighbour PE 
   if ( me /= num_pe-1 ) then
      ! First find level shared by last particle pair in list
-     key_lo = ieor( pekey(npp), pekey(npp-1) )   ! Picks out 1st position where keys differ
+     key_lo = ieor( particles(npp)%key, particles(npp-1)%key )   ! Picks out 1st position where keys differ
      level_diff =  level_from_key(key_lo)
      level_match = max( nlev - level_diff, 1 )    ! Excludes low-level end-cells for discontinuous domains
      ibit = nlev-level_match               ! bit shift factor 
 
-     cell1 = ishft( pekey(npp), -3*ibit )    ! Subcell number of RH boundary particle
-     cell2 = ishft( pekey(npp+1), -3*ibit )    ! Subcell number of LH boundary particle of neighbouring PE
+     cell1 = ishft( particles(npp  )%key, -3*ibit )    ! Subcell number of RH boundary particle
+     cell2 = ishft( particles(npp+1)%key, -3*ibit )    ! Subcell number of LH boundary particle of neighbouring PE
      if (cell1 == cell2) then
         nlist = nlist+1                    ! If keys match at this level then include boundary particle in local tree
-        local_plist(nlist) = pelabel(npp+1)
-        local_key(nlist) = pekey(npp+1)
+        local_plist(nlist) = particles(npp+1)%label
+        local_key(nlist)   = particles(npp+1)%key
         local_owner(nlist) = me+1
         if (build_debug) write (ipefile,'(a,i5,a)') 'boundary particle from PE',me+1,' included in list'
      endif
@@ -96,18 +97,18 @@ subroutine tree_local
      iend = npp+2
      if ( me == num_pe-1 ) iend = npp+1         ! End node only has one boundary particle
      ! First find level shared by first particle pair in list
-     key_lo = ieor( pekey(1), pekey(2)  )   ! Picks out lower order bits where keys differ
+     key_lo = ieor( particles(1)%key, particles(2)%key  )   ! Picks out lower order bits where keys differ
      level_diff =  level_from_key(key_lo)
 
      level_match = max( nlev - level_diff, 1 )    ! Excludes low-level end-cells for discontinuous domains
      ibit = nlev-level_match               ! bit shift factor 
 
-     cell1 = ishft( pekey(1), -3*ibit )    ! Subcell number of LH boundary particle
-     cell2 = ishft( pekey(iend), -3*ibit )    ! Subcell number of RH boundary particle of neighbouring PE
+     cell1 = ishft( particles(   1)%key, -3*ibit )    ! Subcell number of LH boundary particle
+     cell2 = ishft( particles(iend)%key, -3*ibit )    ! Subcell number of RH boundary particle of neighbouring PE
      if (cell1 == cell2) then
         nlist = nlist+1         ! If keys match at this level then include boundary particle in local tree
-        local_plist(nlist) = pelabel(iend)
-        local_key(nlist) = pekey(iend) 
+        local_plist(nlist) = particles(iend)%label
+        local_key(nlist)   = particles(iend)%key
         local_owner(nlist) = me-1
         if (build_debug) write (ipefile,'(a,i5,a)') 'boundary particle from PE',me-1,' included in list'
      endif
@@ -267,7 +268,7 @@ subroutine tree_local
            nleaf = nleaf + 1 
            ipoint =  htable( newentry(i) )%node                  ! local pointer
            htable( newentry(i) )%leaves = 1                      ! contained leaves
-           htable( newentry(i) )%childcode = pelabel(local_ind(ipoint))  ! store label in #-table
+           htable( newentry(i) )%childcode = particles(local_ind(ipoint))%label ! store label in #-table
            htable( newentry(i) )%node = local_ind(ipoint)        ! store index in #-table
            htable( newentry(i) )%owner = me                      ! Set owner
            local_plist( ipoint ) = 0                             ! label as done
@@ -398,29 +399,30 @@ subroutine tree_local
      addr_leaf = key2addr( treekey(i),'PROPERTIES: local' )   !  Table address
      p_leaf = htable( addr_leaf )%node   !  Local particle index  - points to properties on PE
      htable(addr_leaf)%childcode = IBSET( htable(addr_leaf)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zero its properties (in tree_global)
-     node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves 
+     node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves
 
-     tree_nodes( node_leaf ) = multipole( &
-       treekey(i),                        &
-       htable(addr_leaf)%childcode,       &
-       1,                                 &! # leaves contained within twig (=1 for leaf, npart for root)
-       me,                                &
-       q( p_leaf ),                       &! Charge
-       abs( q(p_leaf) ),                  &! Absolute charge (needed for c.o.c)
-       x( p_leaf ),                       &! x-Centre of charge
-       y( p_leaf ),                       &! y
-       z( p_leaf ),                       &! z
-       level_from_key( treekey(i) ),      &! level
-       x(p_leaf) * q(p_leaf),             &! x-Dipole moment
-       y(p_leaf) * q(p_leaf),             &! y
-       z(p_leaf) * q(p_leaf),             &! z
-       q(p_leaf) * x(p_leaf)**2,          &! xx- Quadrupole moment
-       q(p_leaf) * y(p_leaf)**2,          &! yy
-       q(p_leaf) * z(p_leaf)**2,          &! zz
-       q(p_leaf) * x(p_leaf) * y(p_leaf), &! xy
-       q(p_leaf) * y(p_leaf) * z(p_leaf), &! yz
-       q(p_leaf) * z(p_leaf) * x(p_leaf), &! zx
-       0., 0., 0.)                         ! Zero shift vector
+     p => particles( p_leaf )
+       tree_nodes( node_leaf ) = multipole( &
+           treekey(i),                        &
+           htable(addr_leaf)%childcode,       &
+           1,                                 &! # leaves contained within twig (=1 for leaf, npart for root)
+           me,                                &
+           p%q,                               &! Charge
+           abs( p%q ),                        &! Absolute charge (needed for c.o.c)
+           p%x(1),                            &! x-Centre of charge
+           p%x(2),                            &! y
+           p%x(3),                            &! z
+           level_from_key( treekey(i) ),      &! level
+           p%x(1) * p%q,                      &! x-Dipole moment
+           p%x(2) * p%q,                      &! y
+           p%x(3) * p%q,                      &! z
+           p%q * p%x(1)**2,                   &! xx- Quadrupole moment
+           p%q * p%x(2)**2,                   &! yy
+           p%q * p%x(3)**2,                   &! zz
+           p%q * p%x(1) * p%x(2),             &! xy
+           p%q * p%x(2) * p%x(3),             &! yz
+           p%q * p%x(3) * p%x(1),             &! zx
+           0., 0., 0.)                         ! Zero shift vector
   end do
 
   call timer_stop(t_props_leafs)

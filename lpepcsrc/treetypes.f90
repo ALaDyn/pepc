@@ -23,12 +23,8 @@ module treetypes
  ! Data structure for shipping single particles
   integer, parameter :: nprops_particle = 11 ! # particle properties to ship
   type particle
-     real*8 :: x    ! coords
-     real*8 :: y
-     real*8 :: z
-     real*8 :: ux    ! momenta
-     real*8 :: uy
-     real*8 :: uz 
+     real*8 :: x(1:3)    ! coords
+     real*8 :: u(1:3)    ! momenta
      real*8 :: q     ! charge
      real*8 :: work  ! work load from force sum
      integer*8 :: key           ! Key
