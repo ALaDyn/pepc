@@ -2,8 +2,6 @@
 !
 !           TREE_WALK
 !
-!   $Revision: 1461 $
-!
 !  Perform tree walk for all local particles
 !  in a hybrid parallelization scheme using
 !  linux pthreads
@@ -168,7 +166,7 @@ module tree_walk_communicator
     integer, parameter :: cond_comm_timeout = 1000 !< timeout for pthread_cond_wait() in commloop in microseconds TODO: tune this parameter automatically during runtime
 
     ! rwlocks for regulating concurrent access
-    integer, private, parameter :: NUM_RWLOCKS = 4
+    integer, private, parameter :: NUM_RWLOCKS = 3
     integer, public, parameter :: RWLOCK_REQUEST_QUEUE      = 1
     integer, public, parameter :: RWLOCK_NEXT_FREE_PARTICLE = 2
     integer, public, parameter :: RWLOCK_CHILDBYTE          = 3
