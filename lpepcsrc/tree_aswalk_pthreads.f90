@@ -1178,86 +1178,90 @@ module tree_walk_utils
             my_max_particles_per_thread = max_particles_per_thread
       endif
 
-
-      allocate(my_particles(my_max_particles_per_thread),                        &
-                            todo_list_entries(my_max_particles_per_thread),       &
-                            defer_list_entries(my_max_particles_per_thread),      &
-                            partner_leaves(my_max_particles_per_thread))
-      allocate( todo_list(0: todo_list_length-1,my_max_particles_per_thread))
-      allocate(defer_list(0:defer_list_length-1,my_max_particles_per_thread))
-
-      ! every particle will start at the root node (one entry per todo_list, no particle is finished)
-      todo_list_entries   =  1 ! one entry in todo_list:
-      todo_list(0,:)      =  1 !     start at root node
-      my_particles(:)     = -1 ! no particles assigned to this thread
-      defer_list_entries  =  0 ! empty defer list
-      partner_leaves      =  0 ! no interactions yet
-      particles_available = .true.
-      particles_active    = .true.
       call c_f_pointer(arg, my_threaddata)
       my_threaddata = t_threaddata(my_threaddata%id, 0, 0._8, 0._8, same_core_as_communicator, my_processor_id, MPI_WTIME(), .false.)
-      particles_since_last_yield = 0
+
+      if (my_max_particles_per_thread > 0) then
+
+          allocate(my_particles(my_max_particles_per_thread),                        &
+                                todo_list_entries(my_max_particles_per_thread),       &
+                                defer_list_entries(my_max_particles_per_thread),      &
+                                partner_leaves(my_max_particles_per_thread))
+          allocate( todo_list(0: todo_list_length-1,my_max_particles_per_thread))
+          allocate(defer_list(0:defer_list_length-1,my_max_particles_per_thread))
+
+          ! every particle will start at the root node (one entry per todo_list, no particle is finished)
+          todo_list_entries   =  1 ! one entry in todo_list:
+          todo_list(0,:)      =  1 !     start at root node
+          my_particles(:)     = -1 ! no particles assigned to this thread
+          defer_list_entries  =  0 ! empty defer list
+          partner_leaves      =  0 ! no interactions yet
+          particles_available = .true.
+          particles_active    = .true.
+          particles_since_last_yield = 0
 
 
-      do while (particles_active .or. particles_available)
+          do while (particles_active .or. particles_available)
 
-        particles_active = .false.
+            particles_active = .false.
 
-        do i=1,my_max_particles_per_thread
+            do i=1,my_max_particles_per_thread
 
-          process_particle = (my_particles(i) .ne. -1)
+              process_particle = (my_particles(i) .ne. -1)
 
-          if ((.not. process_particle) .and. (particles_available)) then ! i.e. the place for a particle is unassigned
-            my_particles(i) = get_first_unassigned_particle(process_particle)
-!            write(ipefile,*) "PE", me, getfullid(), "my_particles(",i, ") :=", my_particles(i)
-          end if
+              if ((.not. process_particle) .and. (particles_available)) then ! i.e. the place for a particle is unassigned
+                my_particles(i) = get_first_unassigned_particle(process_particle)
+    !            write(ipefile,*) "PE", me, getfullid(), "my_particles(",i, ") :=", my_particles(i)
+              end if
 
-          if (process_particle) then
+              if (process_particle) then
 
-            ! after processing a number of particles: handle control to other (possibly comm) thread
-            if (same_core_as_communicator) then
-              if (particles_since_last_yield >= particles_per_yield) then
-                call comm_sched_yield()
-                particles_since_last_yield = 0
+                ! after processing a number of particles: handle control to other (possibly comm) thread
+                if (same_core_as_communicator) then
+                  if (particles_since_last_yield >= particles_per_yield) then
+                    call comm_sched_yield()
+                    particles_since_last_yield = 0
+                  else
+                    particles_since_last_yield = particles_since_last_yield + 1
+                  endif
+                endif
+
+                if (walk_single_particle(i, my_particles(i),  todo_list,  todo_list_entries(i), &
+                                                             defer_list, defer_list_entries(i), &
+                                                        my_max_particles_per_thread, partner_leaves(i), my_threaddata)) then
+                  ! this particle`s walk has finished
+    !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
+
+                  ! walk for particle i has finished
+                  ! check whether it really interacted with all other particles (in central box: excluding itself)
+                  if (partner_leaves(i) .ne. num_interaction_leaves) then
+                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, my_particles(i), particles(my_particles(i))%label
+                    write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
+                    write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
+                  endif
+
+                  !remove entries from todo_list and defer_list
+                  todo_list_entries(i)       =  1
+                  todo_list(0,i)             =  1
+                  my_particles(i)            = -1
+                  defer_list_entries(i)      =  0
+                  partner_leaves(i)          =  0
+                  my_threaddata%num_processed_particles = my_threaddata%num_processed_particles + 1
+                else
+                  particles_active = .true.
+                end if
               else
-                particles_since_last_yield = particles_since_last_yield + 1
-              endif
-            endif
+                particles_available = .false.
+              end if
 
-            if (walk_single_particle(i, my_particles(i),  todo_list,  todo_list_entries(i), &
-                                                         defer_list, defer_list_entries(i), &
-                                                    my_max_particles_per_thread, partner_leaves(i), my_threaddata)) then
-              ! this particle`s walk has finished
-!              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
+            end do
 
-              ! walk for particle i has finished
-              ! check whether it really interacted with all other particles (in central box: excluding itself)
-              if (partner_leaves(i) .ne. num_interaction_leaves) then
-                write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, my_particles(i), particles(my_particles(i))%label
-                write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
-                write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
-              endif
+          end do
 
-              !remove entries from todo_list and defer_list
-              todo_list_entries(i)       =  1
-              todo_list(0,i)             =  1
-              my_particles(i)            = -1
-              defer_list_entries(i)      =  0
-              partner_leaves(i)          =  0
-              my_threaddata%num_processed_particles = my_threaddata%num_processed_particles + 1
-            else
-              particles_active = .true.
-            end if
-          else
-            particles_available = .false.
-          end if
+          deallocate(my_particles, todo_list_entries, defer_list_entries, partner_leaves)
+          deallocate(todo_list, defer_list)
 
-        end do
-
-      end do
-
-      deallocate(my_particles, todo_list_entries, defer_list_entries, partner_leaves)
-      deallocate(todo_list, defer_list)
+      endif
 
       my_threaddata%finished = .true.
 
