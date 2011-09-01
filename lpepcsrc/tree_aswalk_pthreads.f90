@@ -827,7 +827,6 @@ module tree_walk_communicator
       integer :: ic, ierr
 
       request_balance(ipe_sender+1) = request_balance(ipe_sender+1) - 1
-      parent_addr(0) = 0
 
       do ic = 1, num_children
         kchild      = child_data(ic)%key
@@ -891,7 +890,8 @@ module tree_walk_communicator
         sum_fetches=sum_fetches+1
      end do
 
-     ! first check, if all received particles share the same parent node
+     ! set 'children-here'-flag for all distinct parent addresses
+     parent_addr(0) = -1
      do ic=1,num_children
        if (parent_addr(ic) .ne. parent_addr(ic-1)) then
          !call rwlock_wrlock(RWLOCK_CHILDBYTE, "unpack_data")
