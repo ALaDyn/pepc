@@ -823,7 +823,7 @@ module tree_walk_communicator
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
       integer*8 :: kchild, kparent
-      integer :: hashaddr, lchild,  nodchild, bchild, ownerchild, parent_addr(0:num_children)
+      integer :: hashaddr, lchild,  nodchild, bchild, ownerchild, parent_addr(num_children)
       integer :: ic, ierr
 
       request_balance(ipe_sender+1) = request_balance(ipe_sender+1) - 1
@@ -890,14 +890,12 @@ module tree_walk_communicator
         sum_fetches=sum_fetches+1
      end do
 
-     ! set 'children-here'-flag for all distinct parent addresses
-     parent_addr(0) = -1
+     ! set 'children-here'-flag for all parent addresses
+     ! may only be done *after inserting all* children, hence not(!) during the loop above
      do ic=1,num_children
-       if (parent_addr(ic) .ne. parent_addr(ic-1)) then
          !call rwlock_wrlock(RWLOCK_CHILDBYTE, "unpack_data")
          htable( parent_addr(ic) )%childcode = IBSET(  htable( parent_addr(ic) )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
          !call rwlock_unlock(RWLOCK_CHILDBYTE, "unpack_data")
-       end if
      end do
 
 
