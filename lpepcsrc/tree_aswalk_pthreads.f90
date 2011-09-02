@@ -1154,10 +1154,9 @@ module tree_walk_utils
       type(c_ptr), value :: arg
 
       integer, dimension(:), allocatable :: my_particles
-      integer*8, dimension(:,:), allocatable :: todo_list
       integer*8, dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
       type(t_defer_list_entry), dimension(:,:), allocatable :: defer_list
-      integer, dimension(:), allocatable :: todo_list_entries, defer_list_entries
+      integer, dimension(:), allocatable :: defer_list_entries
       integer :: i
       logical :: particles_available
       logical :: particles_active
@@ -1184,17 +1183,14 @@ module tree_walk_utils
       if (my_max_particles_per_thread > 0) then
 
           allocate(my_particles(my_max_particles_per_thread),                        &
-                                todo_list_entries(my_max_particles_per_thread),       &
                                 defer_list_entries(my_max_particles_per_thread),      &
                                 partner_leaves(my_max_particles_per_thread))
-          allocate( todo_list(0: todo_list_length-1,my_max_particles_per_thread))
           allocate(defer_list(0:defer_list_length-1,my_max_particles_per_thread))
 
           ! every particle will start at the root node (one entry per todo_list, no particle is finished)
-          todo_list_entries   =  1 ! one entry in todo_list:
-          todo_list(0,:)      =  1 !     start at root node
           my_particles(:)     = -1 ! no particles assigned to this thread
-          defer_list_entries  =  0 ! empty defer list
+          defer_list_entries  =  1 ! one entry in defer_list:
+          defer_list(0,:)     =  t_defer_list_entry(1, 1_8) !     start at root node (addr, and key)
           partner_leaves      =  0 ! no interactions yet
           particles_available = .true.
           particles_active    = .true.
@@ -1226,9 +1222,8 @@ module tree_walk_utils
                   endif
                 endif
 
-                if (walk_single_particle(i, my_particles(i),  todo_list,  todo_list_entries(i), &
-                                                             defer_list, defer_list_entries(i), &
-                                                        my_max_particles_per_thread, partner_leaves(i), my_threaddata)) then
+                if (walk_single_particle(i, my_particles(i), defer_list, defer_list_entries(i), &
+                                       my_max_particles_per_thread, partner_leaves(i), my_threaddata)) then
                   ! this particle`s walk has finished
     !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
 
@@ -1240,11 +1235,10 @@ module tree_walk_utils
                     write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
                   endif
 
-                  !remove entries from todo_list and defer_list
-                  todo_list_entries(i)       =  1
-                  todo_list(0,i)             =  1
+                  !remove entries from defer_list
                   my_particles(i)            = -1
-                  defer_list_entries(i)      =  0
+                  defer_list_entries(i)      =  1
+                  defer_list(0,i)            =  t_defer_list_entry(1, 1_8)
                   partner_leaves(i)          =  0
                   my_threaddata%num_processed_particles = my_threaddata%num_processed_particles + 1
                 else
@@ -1258,8 +1252,8 @@ module tree_walk_utils
 
           end do
 
-          deallocate(my_particles, todo_list_entries, defer_list_entries, partner_leaves)
-          deallocate(todo_list, defer_list)
+          deallocate(my_particles, defer_list_entries, partner_leaves)
+          deallocate(defer_list)
 
       endif
 
@@ -1281,17 +1275,18 @@ module tree_walk_utils
 
 
 
-   function walk_single_particle(myidx, nodeidx, todo_list, todo_list_entries, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
+   function walk_single_particle(myidx, nodeidx, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
       use tree_walk_communicator
       use module_htable
       use module_calc_force
       use module_spacefilling, only : level_from_key
       implicit none
       integer, intent(in) :: nodeidx, myidx, listlengths
-      integer*8, intent(inout) :: todo_list(0:todo_list_length-1,1:listlengths)
+      integer*8 :: todo_list(0:todo_list_length-1)
       integer*8, intent(inout) :: partner_leaves
       type(t_defer_list_entry), intent(inout) :: defer_list(0:defer_list_length-1,1:listlengths)
-      integer, intent(inout) :: todo_list_entries, defer_list_entries
+      integer, intent(inout) :: defer_list_entries
+      integer :: todo_list_entries
       type(t_threaddata), intent(inout) :: my_threaddata
       logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
 
@@ -1302,6 +1297,8 @@ module tree_walk_utils
       real*8 :: delta(3)
       logical :: same_particle, mac_ok
       integer :: ierr
+
+      todo_list_entries = 0
 
       ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
       ! another mac-check for each entry is not necessary here, since due to having requested the children, we already know,
@@ -1403,7 +1400,7 @@ module tree_walk_utils
 
        if (todo_list_pop) then
          todo_list_entries = todo_list_entries - 1
-         key               = todo_list(todo_list_entries, myidx)
+         key               = todo_list(todo_list_entries)
        endif
      end function
 
@@ -1416,8 +1413,8 @@ module tree_walk_utils
        if (todo_list_entries + numkeys >= todo_list_length) call todo_list_full()
 
        do i=1,numkeys
-         todo_list(todo_list_entries, myidx) = keys(i)
-         todo_list_entries                   = todo_list_entries + 1
+         todo_list(todo_list_entries) = keys(i)
+         todo_list_entries            = todo_list_entries + 1
        end do
      end subroutine
 
