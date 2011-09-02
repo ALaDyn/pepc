@@ -261,6 +261,7 @@ module timings
 
 
         write(*,'(a20,f16.10," s")') "t_all = ",       tim(t_all)
+        write(*,'(a20,f16.10," s")') "t_tot = ",       tim(t_tot)
      endif
 
     end subroutine timings_GatherAndOutput
