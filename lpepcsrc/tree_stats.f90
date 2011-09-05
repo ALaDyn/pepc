@@ -12,7 +12,7 @@ subroutine tree_stats(timestamp)
 
   use treevars
   use tree_walk_communicator
-  use tree_walk_utils
+  use tree_walk_pthreads
   use module_branching
   implicit none
   include 'mpif.h'

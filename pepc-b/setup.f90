@@ -12,7 +12,7 @@
 
 subroutine setup
   use module_fmm_framework
-!  use tree_walk_utils
+!  use tree_walk_pthreads
   use module_physvars
 
   implicit none

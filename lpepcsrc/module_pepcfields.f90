@@ -71,7 +71,7 @@ module module_pepcfields
 		  use timings
 		  use module_calc_force
 		  use module_fmm_framework
-		  use tree_walk_utils
+		  use tree_walk_pthreads
 		  use tree_walk_communicator
 		  use module_allocation
 		  implicit none

@@ -14,7 +14,7 @@ subroutine pepc_setup()
   use physvars
   use tree_utils
   use module_fmm_framework
-  use tree_walk_utils
+  use tree_walk_pthreads
   use tree_walk_communicator
   implicit none
 

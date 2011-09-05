@@ -45,7 +45,7 @@ subroutine param_dump
 
   use module_physvars
   use module_utilities
-!  use tree_walk_utils
+!  use tree_walk_pthreads
   implicit none
   integer :: ifile
 

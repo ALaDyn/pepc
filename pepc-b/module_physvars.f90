@@ -1,6 +1,6 @@
 
 module module_physvars
-  use tree_walk_utils
+  use tree_walk_pthreads
   implicit none
 
   real, parameter :: pi=3.141592654

@@ -11,7 +11,7 @@ PEPCSRC.f90 =   treevars.f90 tree_utils.f90 timings.f90 treetypes.f90 \
                 tree_domains.f90 restore.f90 module_allocation.f90 libpepc_finalize.f90 \
                 tree_stats.f90 tree_local.f90 tree_exchange.f90 tree_global.f90 \
                 module_spacefilling.f90 module_htable.f90 module_pepcfields.f90 \
-                module_branching.f90
+                module_branching.f90 tree_walk_communicator.f90
 #-------------------------------------------------------------------------------------------
 
 # Names of application object files derived from sources
