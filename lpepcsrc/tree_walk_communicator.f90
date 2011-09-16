@@ -659,7 +659,8 @@ module tree_walk_communicator
       integer*8, intent(in) :: requested_key
       integer, intent(in) :: ipe_sender
       integer :: process_addr
-      type(multipole) :: children_to_send(8)
+      type(multipole), target :: children_to_send(8)
+      type(multipole), pointer :: c
       integer :: reqhandle
       integer*8, dimension(8) :: key_child
       integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child, owner_child
@@ -682,13 +683,12 @@ module tree_walk_communicator
       owner_child(1:nchild)  = htable( addr_child(1:nchild) )%owner                       ! real owner of child (does not necessarily have to be identical to me, at least after futural modifications)
       ! Package children properties into user-defined multipole array for shipping
       do ic = 1,nchild
-         associate(c=>children_to_send(ic))
+         c=>children_to_send(ic)
            c        = tree_nodes(node_child(ic))
            c%key    = key_child(ic)   ! TODO: this data is maybe not consistently stored in tree_nodes array
            c%byte   = byte_child(ic)  ! therefore, we have to take it directly form the htable --> repair this
            c%leaves = leaves_child(ic)
            c%owner  = owner_child(ic)
-          end associate
       end do
 
       ! Ship child data back to PE that requested it
