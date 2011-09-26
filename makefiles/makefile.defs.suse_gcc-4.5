@@ -1,5 +1,7 @@
 MACH     = SUSE-Workstations_gcc-4.5
 
+DEBUG = 0
+
 RANLIB   = ranlib
 
 MAKE     = make
@@ -10,25 +12,34 @@ ARFLAGS  = -rs
 CPP      = cpp
 CPPFLAGS = -P -C
 
-INLINING = 
-INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop 
-#-flto
+INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none
 #-fwhopr
 
 FCPRE    = 
 FC       = mpif90
-#FFLAGS   = -O0 -g -pg -ffree-line-length-none -Wall -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
-FFLAGS   =  -Wall -O3 -pg -ffree-line-length-none $(INLINING)
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
+else
+  FFLAGS   = -Wall -O3 -pg    -ffree-line-length-none $(INLINING)
+endif
 
 CCPRE    = 
 CC       = mpicc
-CFLAGS   = -pg -O3 -pthread  -Wconversion
-#CFLAGS   = -g -pg -O0
+ifeq ($(DEBUG), 1)
+  CFLAGS   = -g -pg -O0
+else
+  CFLAGS   = -Wall -O3 -pg
+endif
 
 LDPRE    = 
 LD       = mpif90
-#LDFLAGS   = -pg -O0 -g
-LDFLAGS   = -pthread -pg -O3 $(INLINING) -fwhole-program -fuse-linker-plugin
+ifeq ($(DEBUG), 1)
+  LDFLAGS   = -pg -O0 -g
+else
+  LDFLAGS   = -pthread -pg -O3 $(INLINING)
+# -fwhole-program 
+#-fuse-linker-plugin
+endif
 LDLIBS   = 
 
 RM       = rm -rf

@@ -130,8 +130,8 @@ program pepc
                       itime, weighted, curve_type, &
                       num_neighbour_boxes, neighbour_boxes, treediags)
 
-     call verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, [1, 2, np_local-1, np_local], &
-                       calc_force_params(eps, force_const, 3), 0, my_rank, n_cpu, MPI_COMM_PEPC)
+  !   call verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, [1, 2, np_local-1, np_local], &
+  !                     calc_force_params(eps, force_const, 3), 0, my_rank, n_cpu, MPI_COMM_PEPC)
 
      ! output of tree diagnostics
      if (treediags) then

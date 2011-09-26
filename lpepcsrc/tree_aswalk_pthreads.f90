@@ -110,6 +110,389 @@
 !
 !
 ! ===========================================
+module tree_walk_pthreads_commutils
+  use tree_walk_communicator
+  use pthreads_stuff
+  implicit none
+  private
+
+    !> debug flags - cannot be modified at runtime due to performance reasons
+    logical, parameter :: rwlock_debug    = .false.
+    logical, parameter, public  :: walk_debug     = .false.
+
+    ! variables for adjusting the thread`s workload
+    real, public :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
+    integer, public :: particles_per_yield = 500 !< number of particles to process in a work_thread before it shall call sched_yield to hand the processor over to some other thread
+    integer, parameter :: MAX_MESSAGES_PER_ITERATION = 20
+    integer, parameter :: MIN_MESSAGES_PER_ITERATION = 5
+
+    integer, parameter :: ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
+    integer, parameter :: REQUEST_QUEUE_LENGTH = 400000 !< maximum length of request queue
+
+    type(t_request_queue_entry), volatile, private, target :: req_queue(REQUEST_QUEUE_LENGTH)
+    integer, private, volatile :: req_queue_top, req_queue_bottom ! we will insert data at bottom and take from top
+    integer, private :: request_balance !< total (#requests - #answers), should be zero after complete traversal
+
+    ! rwlocks for regulating concurrent access
+    integer, private, parameter :: NUM_RWLOCKS = 2
+    integer, public, parameter :: RWLOCK_REQUEST_QUEUE      = 1
+    integer, public, parameter :: RWLOCK_NEXT_FREE_PARTICLE = 2
+
+    ! internal initialization status
+    logical, private :: initialized = .false.
+
+    ! local walktime (i.e. from comm_loop start until send_walk_finished() )
+    real*8, public, pointer :: twalk_loc
+
+    !> type for input and return values of walk_threads
+    type, public :: t_threaddata
+      integer :: id                         !< just a running number to distinguish the threads, currently unused
+      integer :: num_processed_particles  !< thread output value: number of particles that it has processed
+      real*8  :: num_interactions !< thread output value: number of interactions that were performed
+      real*8  :: num_mac_evaluations !< thread output value: number of mac evaluations that have been performed
+      logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
+      integer :: coreid !< thread output value: id of thread`s processor
+      real*8 :: runtime_seconds !< thread wallclock-runtime in seconds, measured with MPI_WTIME()
+      logical :: finished !< will be set to .true. when the thread has finished
+    end type t_threaddata
+
+    type(t_threaddata), public, allocatable, target :: threaddata(:)
+
+
+    public run_communication_loop
+    public send_requests
+    public post_request
+    public rwlock_rdlock
+    public rwlock_wrlock
+    public rwlock_unlock
+    public comm_sched_yield
+    public retval
+    public init_commutils
+    public uninit_commutils
+
+  contains
+  
+    subroutine init_commutils()
+        use treevars
+        implicit none
+
+        if (.not. initialized) then
+
+          call init_comm_data(REQUEST_QUEUE_LENGTH, ANSWER_BUFF_LENGTH)
+
+          ! initialize rwlock objects
+          call retval(rwlocks_init(NUM_RWLOCKS), "rwlocks_init")
+
+          req_queue_top    = 0
+          req_queue_bottom = 0
+          request_balance  = 0
+
+          initialized = .true.
+
+        endif
+
+      end subroutine init_commutils
+
+
+
+      subroutine uninit_commutils
+        use tree_walk_communicator
+        implicit none
+
+        initialized = .false.
+
+        call uninit_comm_data
+
+        ! free the conditional variable objects
+        call retval(pthreads_conds_uninit(), "pthreads_conds_uninit")
+        ! free the rwlock objects
+        call retval(rwlocks_uninit(), "rwlocks_uninit")
+
+      end subroutine uninit_commutils
+
+
+
+    subroutine check_comm_finished()
+      use treevars
+      implicit none
+      ! if request_balance contains positive values, not all requested data has arrived
+      ! this means, that there were algorithmically unnecessary requests, which would be a bug
+      ! negative values denote more received datasets than requested, which implies
+      ! a bug in bookkeeping on the sender`s side
+        if (req_queue_top .ne. req_queue_bottom) then
+           write(*,*) "PE", me, " has finished its walk, but the request list is not empty"
+           write(*,*) "obviously, there is an error in the todo_list bookkeeping"
+           write(*,*) "Trying to recover from that"
+           flush(6)
+        elseif (request_balance .ne. 0) then
+           write(*,*) "PE", me, " finished walking but is are still waiting for requested data: request_balance =", request_balance
+           write(*,*) "This should never happen - obviously, the request_queue or some todo_list is corrupt"
+           write(*,*) "Trying to recover from this situation anyway: Waiting until everything arrived although we will not interact with it."
+           flush(6)
+        else
+           walk_status = WALK_ALL_MSG_DONE
+        end if
+    end subroutine
+
+
+
+      subroutine retval(iret, msg)
+        use treevars
+        use, intrinsic :: iso_c_binding
+        implicit none
+        include 'mpif.h'
+        integer( kind= c_int) :: iret
+        character(*) :: msg
+        integer :: ierr
+
+        if (iret .ne. 0) then
+          write(*,*)       "PE:", me, "[", msg, "] iret == ", iret
+          write(ipefile,*) "PE:", me, "[", msg, "] iret == ", iret
+          flush(6)
+          call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+        end if
+
+      end subroutine retval
+
+
+
+      ! this routine is thread-safe to prevent concurrent write access to the queue
+      subroutine post_request(request_key, request_addr)
+        use treevars
+        use module_htable
+        use tree_walk_communicator
+        implicit none
+        include 'mpif.h'
+        integer*8, intent(in) :: request_key
+        integer, intent(in) :: request_addr
+        integer :: local_queue_bottom
+        logical, save :: warned = .false.
+
+        ! check wether the node has already been requested
+        ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
+        ! otherwise it will be possible that two walk threads can synchronously post a prticle to the request queue
+        if (BTEST( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ) then
+          return
+        endif
+
+        ! we first flag the particle as having been already requested to prevent other threads from doing it while
+        ! we are inside this function
+        !call rwlock_wrlock(RWLOCK_CHILDBYTE, "walk_single_particle")
+        htable(request_addr)%childcode   =  IBSET( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ! Set requested flag
+        !call rwlock_unlock(RWLOCK_CHILDBYTE, "walk_single_particle")
+
+        call rwlock_wrlock(RWLOCK_REQUEST_QUEUE, "post_request")
+
+        ! use a thread safe list to put the requests onto
+        local_queue_bottom = mod(req_queue_bottom, REQUEST_QUEUE_LENGTH) + 1
+
+        if (local_queue_bottom == req_queue_top) then
+          if (.not. warned) then
+            write(*,*) "Issue with request sending queue: REQUEST_QUEUE_LENGTH is too small: ", REQUEST_QUEUE_LENGTH, ". Will try again later."
+            warned = .true.
+          end if
+
+          call rwlock_unlock(RWLOCK_REQUEST_QUEUE, "post_request")
+          ! since posting the request failed due to a too short queue, we have to flag the particle as to be procssed again
+          !call rwlock_wrlock(RWLOCK_CHILDBYTE, "walk_single_particle")
+          htable(request_addr)%childcode   =  IBCLR( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED )
+          !call rwlock_unlock(RWLOCK_CHILDBYTE, "walk_single_particle")
+          return
+        end if
+
+        req_queue(local_queue_bottom)   = t_request_queue_entry( request_key, request_addr, htable( request_addr )%owner )
+
+        if (walk_comm_debug) then
+          write(ipefile,'("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6, " request_addr=", I12)') &
+                         me, local_queue_bottom, request_key, htable( request_addr )%owner, request_addr
+        end if
+
+        ! now, we can tell the communicator that there is new data available
+        req_queue_bottom = local_queue_bottom
+
+        call rwlock_unlock(RWLOCK_REQUEST_QUEUE, "post_request")
+
+    end subroutine post_request
+
+
+
+    subroutine send_requests()
+      use tree_walk_communicator
+      use treevars
+      implicit none
+      include 'mpif.h'
+
+      integer :: local_queue_bottom ! buffer for avoiding interference with threads that post data to the queue
+      real*8 :: tsend
+      integer*8 :: req_queue_length
+
+      ! send all requests from our thread-safe list
+
+      local_queue_bottom = req_queue_bottom
+
+      if (req_queue_top .ne. local_queue_bottom) then
+
+        req_queue_length    = modulo(local_queue_bottom-req_queue_top, REQUEST_QUEUE_LENGTH)
+        max_req_list_length = max(max_req_list_length,  req_queue_length)
+        cum_req_list_length =     cum_req_list_length + req_queue_length
+        comm_loop_iterations(2) = comm_loop_iterations(2) + 1
+
+        tsend = MPI_WTIME()
+
+        do while (req_queue_top .ne. local_queue_bottom)
+
+          req_queue_top = mod(req_queue_top, REQUEST_QUEUE_LENGTH) + 1
+
+          if (walk_comm_debug) then
+            write(ipefile,'("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)') &
+                         me, req_queue_top, req_queue(req_queue_top)%key, req_queue(req_queue_top)%owner
+          end if
+
+          if (send_request(req_queue(req_queue_top))) then
+            request_balance = request_balance + 1
+          endif
+
+        end do
+
+       timings_comm(TIMING_SENDREQS) = timings_comm(TIMING_SENDREQS) + ( MPI_WTIME() - tsend )
+
+     end if
+
+    end subroutine send_requests
+
+
+
+      subroutine run_communication_loop(max_particles_per_thread)
+        use pthreads_stuff
+        use treevars
+        use, intrinsic :: iso_c_binding
+        implicit none
+        include 'mpif.h'
+        integer, intent(in) :: max_particles_per_thread
+        integer, dimension(mintag:maxtag) :: nummessages
+        integer :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
+        logical :: walk_finished(num_pe) ! will hold information on PE 0 about which processor
+                                          ! is still working and which ones are finished
+                                          ! to emulate a non-blocking barrier
+        integer :: ierr
+        nummessages = 0
+
+        if (me==0) walk_finished = .false.
+
+        twalk_loc = MPI_WTIME()
+
+        ! check whether initialization has correctly been performed
+        if (.not. initialized) then
+           write(*,*) "Serious issue in PE", me, ": walk_communicator has not been initialized. Call init_comm_data() before run_communication_loop(..)"
+           flush(6)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+        endif
+
+        if (walk_comm_debug) write(ipefile,'("PE", I6, " run_communication_loop start. walk_status = ", I6)') me, walk_status
+
+        timings_comm(TIMING_COMMLOOP) = MPI_WTIME()
+
+        do while (walk_status < WALK_ALL_FINISHED)
+
+          comm_loop_iterations(1) = comm_loop_iterations(1) + 1
+
+          ! send our requested keys
+          call send_requests()
+
+          ! check whether we are still waiting for data or some other communication
+          if (walk_status == WALK_IAM_FINISHED) call check_comm_finished()
+
+          ! process any incoming answers
+          call run_communication_loop_inner(walk_finished, nummessages)
+
+          messages_per_iteration = messages_per_iteration + sum(nummessages)
+          request_balance = request_balance - nummessages(TAG_REQUESTED_DATA)
+          nummessages(TAG_REQUESTED_DATA) = 0
+
+          ! adjust the sched_yield()-timeout for the thread that shares its processor with the communicator
+          if (messages_per_iteration > MAX_MESSAGES_PER_ITERATION) then
+            particles_per_yield = int(max(0.75 * particles_per_yield, 0.01*max_particles_per_thread))
+            if (walk_debug) write(ipefile,'("messages_per_iteration = ", I6, " > ", I6, " --> Decreased particles_per_yield to", I10)') messages_per_iteration, MAX_MESSAGES_PER_ITERATION, particles_per_yield
+          elseif ((particles_per_yield < max_particles_per_thread) .and. (messages_per_iteration < MIN_MESSAGES_PER_ITERATION)) then
+            particles_per_yield = int(min(1.5 * particles_per_yield, 1.*max_particles_per_thread))
+            if (walk_debug) write(ipefile,'("messages_per_iteration = ", I6, " < ", I6, " --> Increased particles_per_yield to", I10)') messages_per_iteration, MIN_MESSAGES_PER_ITERATION, particles_per_yield
+          endif
+
+          ! currently, there is no further communication request --> other threads may do something interesting
+          call comm_sched_yield()
+
+        end do ! while (walk_status .ne. WALK_ALL_FINISHED)
+
+        if (walk_comm_debug) write(ipefile,'("PE", I6, " run_communication_loop end.   walk_status = ", I6)') me, walk_status
+
+        timings_comm(TIMING_COMMLOOP) = MPI_WTIME() - timings_comm(TIMING_COMMLOOP)
+
+    end subroutine run_communication_loop
+
+
+
+      subroutine rwlock_rdlock(idx, reason)
+        implicit none
+        integer, intent(in) :: idx
+        character(*), intent(in) :: reason
+
+        call retval(rwlocks_rdlock(idx), "pthread_rwlock_rdlock:"//reason)
+
+        if (rwlock_debug) then
+          write(*,*) "pthread_rwlock_rdlock:"//reason, ", idx =", idx
+          flush(6)
+        end if
+
+      end subroutine rwlock_rdlock
+
+
+
+      subroutine rwlock_wrlock(idx, reason)
+        implicit none
+        integer, intent(in) :: idx
+        character(*), intent(in) :: reason
+
+        call retval(rwlocks_wrlock(idx), "pthread_rwlock_wrlock:"//reason)
+
+        if (rwlock_debug) then
+          write(*,*) "pthread_rwlock_wrlock:"//reason, ", idx =", idx
+          flush(6)
+        end if
+
+      end subroutine rwlock_wrlock
+
+
+
+      subroutine rwlock_unlock(idx, reason)
+        implicit none
+        integer, intent(in) :: idx
+        character(*), intent(in) :: reason
+
+        call retval(rwlocks_unlock(idx), "pthread_rwlock_unlock:"//reason)
+
+        if (rwlock_debug) then
+          write(*,*) "pthread_rwlock_unlock:"//reason, ", idx =", idx
+          flush(6)
+        end if
+
+      end subroutine rwlock_unlock
+
+
+      subroutine comm_sched_yield()
+        use pthreads_stuff
+        implicit none
+
+        call retval(pthreads_sched_yield(), "pthreads_sched_yield()")
+      end subroutine comm_sched_yield
+
+
+end module tree_walk_pthreads_commutils
+
+
+
+
+
+
 module tree_walk_pthreads
   use treetypes
   use treevars
@@ -117,7 +500,10 @@ module tree_walk_pthreads
   implicit none
 
   private
-    integer, public :: num_walk_threads = 3
+
+    integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
+
+    integer, public :: num_walk_threads = 3 !< number of worker threads
     integer, private :: primary_processor_id = 0
     real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8
     real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
@@ -143,7 +529,7 @@ module tree_walk_pthreads
     end type t_defer_list_entry
 
 
-  public tree_walk
+    public tree_walk
 
   contains
 
@@ -153,6 +539,7 @@ module tree_walk_pthreads
       use treetypes
       use tree_utils
       use timings
+      use tree_walk_pthreads_commutils
       use tree_walk_communicator
       implicit none
       include 'mpif.h'
@@ -190,11 +577,11 @@ module tree_walk_pthreads
 
       call init_walk_data()
 
-      call init_comm_data()
+      call init_commutils()
 
       call walk_hybrid()
 
-      call uninit_comm_data()
+      call uninit_commutils()
 
       call uninit_walk_data()
 
@@ -206,7 +593,7 @@ module tree_walk_pthreads
 
 
     subroutine walk_hybrid()
-      use tree_walk_communicator
+      use tree_walk_pthreads_commutils
       use, intrinsic :: iso_c_binding
       implicit none
       include 'mpif.h'
@@ -222,7 +609,7 @@ module tree_walk_pthreads
         call retval(pthreads_createthread(ith, c_funloc(walk_worker_thread), c_loc(threaddata(ith))), "walk_schedule_thread_inner:pthread_create")
       end do
 
-      call run_communication_loop()
+      call run_communication_loop(num_walk_threads)
 
       ! ... and wait for work thread completion
       thread_workload = 0.
@@ -277,7 +664,7 @@ module tree_walk_pthreads
 
     subroutine init_walk_data()
       use, intrinsic :: iso_c_binding
-      use tree_walk_communicator
+      use tree_walk_pthreads_commutils
       implicit none
       integer :: i
 
@@ -312,7 +699,7 @@ module tree_walk_pthreads
 
 
     subroutine uninit_walk_data()
-      use tree_walk_communicator
+      use tree_walk_pthreads_commutils
       implicit none
       deallocate(boxlength2)
       call retval(pthreads_uninit(), "uninit_walk_data:pthreads_uninit")
@@ -321,7 +708,7 @@ module tree_walk_pthreads
 
 
     function get_first_unassigned_particle(success)
-      use tree_walk_communicator
+      use tree_walk_pthreads_commutils
       implicit none
       integer :: get_first_unassigned_particle
       logical, intent(out) :: success
@@ -343,6 +730,7 @@ module tree_walk_pthreads
 
     function walk_worker_thread(arg) bind(c)
       use, intrinsic :: iso_c_binding
+      use tree_walk_pthreads_commutils
       use tree_walk_communicator
       use pthreads_stuff
       implicit none
@@ -369,7 +757,6 @@ module tree_walk_pthreads
 
       if (same_core_as_communicator) then
             my_max_particles_per_thread = int(work_on_communicator_particle_number_factor * max_particles_per_thread)
-            comm_on_shared_processor = .true.
       else
             my_max_particles_per_thread = max_particles_per_thread
       endif
@@ -457,9 +844,16 @@ module tree_walk_pthreads
       my_threaddata%finished = .true.
 
       ! tell rank 0 that we are finished with our walk
-      call notify_walk_finished()
+      if (all(threaddata(:)%finished)) then
+        call notify_walk_finished()
 
-      if (same_core_as_communicator) comm_on_shared_processor = .false.
+        twalk_loc = MPI_WTIME() - twalk_loc
+
+        if (walk_debug) then
+          write(ipefile,*) "PE", me, "has finished walking"
+        end if
+
+      endif
 
       walk_worker_thread = c_null_ptr
 
@@ -473,7 +867,7 @@ module tree_walk_pthreads
 
 
    function walk_single_particle(myidx, nodeidx, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
-      use tree_walk_communicator
+      use tree_walk_pthreads_commutils
       use module_htable
       use module_calc_force
       use module_spacefilling, only : level_from_key

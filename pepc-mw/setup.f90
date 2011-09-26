@@ -15,8 +15,7 @@ subroutine pepc_setup()
   use tree_utils
   use module_setup
   use module_fmm_framework
-  use tree_walk_utils
-  use tree_walk_communicator
+  use tree_walk_pthreads
   use module_icosahedron
   use module_laser
   use module_pusher
@@ -58,7 +57,7 @@ subroutine pepc_setup()
   weighted        = 1
 
   ! particles
-  ne  = 1000    ! Total # plasma electrons
+  ne  = 2! Total # plasma electrons
   ni  = 0 ! total # plasma ions
 
   xl = 1
@@ -79,7 +78,7 @@ subroutine pepc_setup()
   eps           = 1.
 
   ! control
-  nt           = 10
+  nt           = 1
   dt           = 0.01
   trun         = 0.
 
