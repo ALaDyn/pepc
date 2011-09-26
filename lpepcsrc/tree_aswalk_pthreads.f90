@@ -203,8 +203,6 @@ module tree_walk_pthreads_commutils
 
         call uninit_comm_data
 
-        ! free the conditional variable objects
-        call retval(pthreads_conds_uninit(), "pthreads_conds_uninit")
         ! free the rwlock objects
         call retval(rwlocks_uninit(), "rwlocks_uninit")
 
