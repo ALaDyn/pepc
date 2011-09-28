@@ -53,16 +53,21 @@ module module_calc_force
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine calc_force_per_interaction(p, inode, delta, dist2, vbox, cf_par)
+	subroutine calc_force_per_interaction(p, inode, delta, dist2, vbox, cf_par)
           use treetypes
-		  use treevars
-		  implicit none
+	  use treevars
+	  implicit none
 
-		  integer, intent(in) :: p, inode
-		  real*8, intent(in) :: vbox(3), delta(3), dist2
+	  integer, intent(in) :: p, inode
+	  real*8, intent(in) :: vbox(3), delta(3), dist2
+	  !> Force law struct has following content (defined in module treetypes) 
+	  !> These need to be included/defined in call to fields from frontend 
+	  !>    real    :: eps 
+	  !>    real    :: force_const 
+	  !>    integer :: force_law   0= no interaction (default); 2=2D Coulomb; 3=3D Coulomb
           type(calc_force_params), intent(in) :: cf_par
 
-		  real*8 :: exc, eyc, ezc, phic
+	  real*8 :: exc, eyc, ezc, phic
 
           select case (cf_par%force_law)
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
@@ -104,26 +109,26 @@ module module_calc_force
           real*8 :: ex_lattice, ey_lattice, ez_lattice, phi_lattice
           integer :: p
 
-		  potfarfield  = 0.
-		  potnearfield = 0.
+          potfarfield  = 0.
+          potnearfield = 0.
 
-		  if (do_periodic) then
+          if (do_periodic) then
 
-			  do p=1,npp
-			    call fmm_sum_lattice_force(p, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
+             do p=1,npp
+                call fmm_sum_lattice_force(p, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
+                
+                ! write(*,*) p,          "|", q(p), "|", pot_tmp(p), "|", phi_lattice
+                ! write(*,*) "            |", x(p), "|", ex_tmp(p),  "|", ex_lattice
+                ! write(*,*) "            |", y(p), "|", ey_tmp(p),  "|", ey_lattice
+                ! write(*,*) "            |", z(p), "|", ez_tmp(p),  "|", ez_lattice
 
-			    ! write(*,*) p,          "|", q(p), "|", pot_tmp(p), "|", phi_lattice
-			    ! write(*,*) "            |", x(p), "|", ex_tmp(p),  "|", ex_lattice
-			    ! write(*,*) "            |", y(p), "|", ey_tmp(p),  "|", ey_lattice
-			    ! write(*,*) "            |", z(p), "|", ez_tmp(p),  "|", ez_lattice
-
-			    potfarfield  = potfarfield  + phi_lattice * particles(p)%q
-			    potnearfield = potnearfield + pot_tmp(p) * particles(p)%q
-			    pot_tmp(p) = pot_tmp(p) + cf_par%force_const * phi_lattice
-			    ex_tmp(p)  = ex_tmp(p)  + cf_par%force_const * ex_lattice
-			    ey_tmp(p)  = ey_tmp(p)  + cf_par%force_const * ey_lattice
-			    ez_tmp(p)  = ez_tmp(p)  + cf_par%force_const * ez_lattice
-			  end do
+                potfarfield  = potfarfield  + phi_lattice * particles(p)%q
+                potnearfield = potnearfield + pot_tmp(p) * particles(p)%q
+                pot_tmp(p) = pot_tmp(p) + cf_par%force_const * phi_lattice
+                ex_tmp(p)  = ex_tmp(p)  + cf_par%force_const * ex_lattice
+                ey_tmp(p)  = ey_tmp(p)  + cf_par%force_const * ey_lattice
+                ez_tmp(p)  = ez_tmp(p)  + cf_par%force_const * ez_lattice
+             end do
 
           end if
 
@@ -233,10 +238,12 @@ module module_calc_force
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Calculates 3D Coulomb interaction of particle p with tree node inode
+        !> Calculates 2D Coulomb interaction of particle p with tree node inode
         !> that is shifted by the lattice vector vbox
-        !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
-        !>
+        !> results are returned in eps, sumfx, sumfy, sumphi 
+        !> Unregularized force law is: 
+        !>   Phi = -2q log R 
+        !>   Ex = -dPhi/dx = 2 q x/R^2 etc 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_coulomb_2D(p, inode, vbox, cf_par, sumfx, sumfy, sumphi)
           use treetypes
@@ -251,25 +258,54 @@ module module_calc_force
           type(calc_force_params), intent(in) :: cf_par
           real*8, intent(out) ::  sumfx,sumfy,sumphi
 
-          real*8 :: dx,dy,d
+          real*8 :: dx,dy,d2,rd2,rd4,rd6,dx2,dy2,dx3,dy3
           real :: eps2
           type(multipole), pointer :: t
 
-            eps2   = cf_par%eps**2
-            sumfx  = 0.
-            sumfy  = 0.
-            sumphi = 0.
+          eps2   = cf_par%eps**2
+          sumfx  = 0.
+          sumfy  = 0.
+          sumphi = 0.
 
-            t=>tree_nodes(inode)
+          t=>tree_nodes(inode)
 
-            !  preprocess distances
-            dx = particles(p)%x(1) - ( t%xcoc + vbox(1) )
-            dy = particles(p)%x(2) - ( t%ycoc + vbox(2) )
+          !  preprocess distances and reciprocals
+          dx = particles(p)%x(1) - ( t%xcoc + vbox(1) )
+          dy = particles(p)%x(2) - ( t%ycoc + vbox(2) )
 
-            d  = sqrt(dx**2+dy**2+eps2)
-
+          d2  = dx**2+dy**2+eps2 
+          rd2 = 1./d2 
+          rd4 = rd2**2 
+          rd6 = rd2**3 
+          dx2 = dx**2 
+          dy2 = dy**2 
+          dx3 = dx**3 
+          dy3 = dy**3 
+	  
+          sumphi = sumphi - 0.5*t%charge*log(d2)    &                           !  monopole term 
+               ! 
+               + (dx*t%xdip + dy*t%ydip )*rd2  &    !  dipole 
+               !                               
+               + 0.5*t%xxquad*(dx2*rd4 - rd2) + 0.5*t%yyquad*(dy2*rd4 - rd2) + t%xyquad*dx*dy*rd4  !  quadrupole 
+          
+          sumfx = sumfx + t%charge*dx*rd2  &   ! monopole 
+               ! 
+               + t%xdip*(2*dx2*rd4 - rd2) + t%ydip*2*dx*dy*rd4  &  ! dipole 
+               ! 
+               + 0.5*t%xxquad*(8*dx3*rd6 - 6*dx*rd4) &                    ! quadrupole 
+               + 0.5*t%yyquad*(8*dx*dy**2*rd6 - 2*dx*rd4) & 
+               +     t%xyquad*(8*dx2*dy*rd6 - 2*dy*rd4) 
+          
+          sumfy = sumfy + t%charge*dy*rd2  &   ! monopole 
+               ! 
+               + t%ydip*(2*dy2*rd4 - rd2) + t%xdip*2*dx*dy*rd4  &  ! dipole 
+               ! 
+               + 0.5*t%yyquad*(8*dy3*rd6 - 6*dy*rd4) &                    ! quadrupole 
+               + 0.5*t%xxquad*(8*dy*dx**2*rd6 - 2*dy*rd4) & 
+               +     t%xyquad*(8*dy2*dx*rd6 - 2*dx*rd4) 
+          
         end subroutine calc_force_coulomb_2D
-
-
-
+        
+        
+        
 end module module_calc_force
