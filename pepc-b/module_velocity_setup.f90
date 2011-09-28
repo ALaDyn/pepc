@@ -26,6 +26,7 @@ module module_velocity_setup
       public set_velocities
       public cold_start
       public maxwell1
+      public maxwell2
       public maxwell3
       public scramble_v
       public perturb_temp
@@ -88,6 +89,16 @@ module module_velocity_setup
         uy(p) = vt*yt/rt
         uz(p) = vt*zt/rt
      end do
+
+  case(4) ! 2D isotropic Maxwellian
+
+     if (vt > 0) then
+        call maxwell2(ux(i1:i1+n),uy(i1:i1+n),n,vt)
+	uz(i1:i1+n-1) = 0.
+     else
+        call cold_start(i1,n)
+     endif
+
 
   end select velocities
 
@@ -166,6 +177,40 @@ end subroutine set_velocities
 		     u(n)=0.
 		  endif
 		end subroutine maxwell1
+
+
+       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>   MAXWELL2
+        !>   initialises 2D Maxwellian velocity distribution by direct inversion
+	!>   assumes thermal distribution exp{ -(vx**2+vy**2)/2v_t**2 }
+        !>   @param ux,uy array of velocities to be initialized
+        !>   @param n maximum index in ux to be used
+        !>   @param vt desired thermal velocity of particles
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		subroutine maxwell2(u1,u2,n,vt)
+
+		  implicit none
+		  integer, intent(in) :: n
+		  real, intent(in) :: vt
+		  real*8 :: u1(n),u2(n)
+		  real, parameter :: pi=3.141592654
+
+		  integer :: i
+		  real*8 :: theta, u0
+		  integer :: dum1=-319
+
+		  if (n.eq.0) return
+
+		  do  i=1,n
+		     u0 = vt*sqrt(-2.*log((i-0.5)/n))
+		     theta=2*pi*rano(dum1)
+		     u1(i) = u0*cos(theta)
+		     u2(i) = u0*sin(theta)
+		  end do
+
+		end subroutine maxwell2
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -1,0 +1,12 @@
+size 18 18
+set font rm
+set lwidth 0.001 lstyle 1
+psize=0.01
+begin scale       12.5478      12.5478
+begin translate    -.3 -.3
+include domain_000.gle                
+include domain_001.gle                
+include domain_002.gle                
+include domain_003.gle                
+end translate
+end scale

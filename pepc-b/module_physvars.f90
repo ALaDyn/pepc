@@ -37,9 +37,12 @@ module module_physvars
   real :: Te_keV, Ti_keV !< electron, ion emperatures in keV
   real :: T_scale = 1       !< factor for rescaling Te after restart 
   real :: force_const    !< force constant depending on unit system
-  real :: bond_const     !< bonding force constant for ion crystal
-  real :: mass_ratio     !< ion:electron mass ratio
-  real :: mass_proton=1836    !< proton:electron mass ration
+  real :: eps = 1.       !< potential/force law cutoff
+  integer :: force_law = 3 !< force law  0 = no interactions; 2 = 2D Coulomb; 3 = 3D Coulomb
+  integer :: idim=3      !< # dimensions (velocity and position updates - indep of force_law)
+  real :: bond_const=0.  !< bonding force constant for ion crystal
+  real :: mass_ratio=1836   !< ion:electron mass ratio
+  real :: mass_proton=1836  !< proton:electron mass ration
   real :: qe, qi         !< electron, ion charge
   real :: mass_e, mass_i   !< electron, ion mass
   real :: r_sphere       !< initial radius of plasma sphere
@@ -63,7 +66,6 @@ module module_physvars
   real :: a_ii           !< mean ion spacing
   real :: a_ee           !< mean electron spacing
   real :: r_neighbour    !< nearest-neighbour search radius
-  real :: eps            !< potential/force law cutoff
   real :: delta_mc       !< step size for MC config
   real :: uthresh        !< velocity (u^2) threshold for vis_parts
   real :: rho_min        !< min density for exponential ramp
@@ -115,7 +117,6 @@ module module_physvars
   real :: dxh !< HH grid spacing
   real :: xh_start=0.
   real :: xh_end=10.  !< Start and end points of Helmholtz grid
- 
   integer :: ngav=100 !< Time-ave grid dimension
   real :: xgav_start=0.
   real :: xgav_end=10.  !< Limits for time-ave grid
@@ -157,7 +158,6 @@ module module_physvars
   integer :: layer_geometry = 0  !< Geometry for 2nd layer
   integer :: velocity_config = 1  !< Velocity distrib. (Maxw) 
   integer :: foam_geom(1:3) = (/1,1,1/)  !< Foam array dimensions
-  integer :: idim=3  !< # dimensions (velocity and position updates)
   integer :: beam_config_in = 0 !< Particle or laser beam switch including variations 
   integer :: beam_config = 0 !< Reduced switch for particle or laser beam 
   integer :: ispecial       !< Switch to select special electron configs 
@@ -244,13 +244,13 @@ module module_physvars
   logical :: target_dup = .false.  
 
  namelist /pepcdata/ nep, nip, ne, ni, &
-       theta, mac, nint_max, mass_ratio, mass_proton, eps, rho0, &
+       theta, mac, nint_max, mass_ratio, mass_proton, rho0, &
        plasma_config, target_geometry, velocity_config, ispecial, &
        Te_keV, Ti_keV, T_scale, Zion, &
-       r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, force_const, &
+       r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
        n_layer, x_layer, y_layer, z_layer, r_layer, Zion_layer, rho_layer, mratio_layer, layer_geometry, &
        xl, yl, zl, displace, bond_const, fnn, rho_min, lolam, &
-       beam_config_in, np_beam, np_error, idim, &
+       beam_config_in, np_beam, np_error, &
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
        nt, dt, mc_steps, idump, ivis, ivis_fields, ivis_domains, iprot, itrack, &
@@ -261,6 +261,7 @@ module module_physvars
        constrain_proof, len_tripod, struct_step, uthresh, domain_cut, glue_radius, &
        debug_rank, np_mult, fetch_mult,nbuf_max, te_perturb, tpert, kpert, &
        q_factor, netcdf, launch, foam_geom, force_tolerance, dynamic_memalloc, &
+       eps, force_const, idim, force_law, &
        xh_start, xh_end, nxh, xgav_start, xgav_end, ngav, xgav_pos, &
        num_walk_threads
 !       t1, t2, t3, periodicity, do_extrinsic_correction              ! periodicity config

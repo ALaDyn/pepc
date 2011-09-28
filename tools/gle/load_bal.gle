@@ -1,0 +1,46 @@
+! new page
+size 14 10
+set lwidth 0.1 font psh
+
+
+
+!  Data format
+!    t	Utot	Upot	Ukin	Ukine	Ukini	Utherme	  Uthermi  Ufield
+!	 d1	 d2	 d3	  d4	  d5	  d6	   d7	   d8
+
+set lwidth 0.07
+set hei 0.5
+begin translate  1.8 1.7
+begin graph
+fullsize
+	size 15 8
+	nobox
+	ytitle "  relative % work" hei .6
+	xtitle "  processor #   " hei .6
+	xlabels hei 0.8
+	ylabels hei 0.8
+	xaxis min 0 max 128
+	yaxis  min 0.5 max 1.5
+        xticks length .12
+        yticks length .12
+
+	data load_128pe.dat
+	let d11 = d1*128./100.
+	data load_64pe.dat
+	let d12 = d2*64./100.
+!	data load_32pe.dat
+!	let d12 = d2*32/100.
+	data load_16pe.dat
+	let d13 = d3*16/100.
+!	data load_disc_64pe.dat
+	bar d11,d12,d13 fill red,green,cyan
+
+end graph
+begin key
+position tr
+!offset 10 7
+hei .4
+text "N=80k, 64 PEs" marker fsquare color red
+text "N=80k, 16 PEs" marker fsquare color green
+end key
+end translate

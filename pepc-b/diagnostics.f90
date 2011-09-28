@@ -16,23 +16,10 @@ subroutine diagnostics
   use module_laser
   use module_diagnostics
   use module_io
+  use module_gle
 
   implicit none
   include 'mpif.h'
-
-
-! Tree diagnostics
-! If interaction lists needed, must ensure that intlist() is large enough to contain all lists
-! - will otherwise just get last pass of tree walk
-
-! TODO -need tree diagnostic module
-
-!  if ( dump_tree .and. mod(itime,iprot) ==0 ) then
-!     call diagnose_tree   ! Printed tree info (htable etc)
-!     call draw_tree2d(xl)     ! Draw PE-trees
-!     call draw_lists      ! Draw interaction lists
-!     call draw_domains()   ! Domains
-!  endif
 
 
  if ( mod(itime,ivis_fields)==0 ) then
