@@ -1,4 +1,9 @@
-module draw_gle
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>
+!> Helper functions for gle postprocessing
+!>
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+module module_gle
   implicit none
   private
 
@@ -23,6 +28,7 @@ module draw_gle
 
 
 	  use treevars
+	  use module_htable
 
 	  implicit none
 
@@ -39,7 +45,6 @@ module draw_gle
 	  integer :: i, ip, j, ix, iy, nbits
 	  real*8 :: xt, yt, scale, s
 	  logical :: write_keys=.false.
-	  integer :: key2addr        ! Mapping function to get hash table address from key
 
 
 	!  do ip=1,npp,npp/2
@@ -68,19 +73,21 @@ module draw_gle
 	  write (60,'(a/a,2f12.2)') 'set lwidth .01 hei .02', &
 			     'begin scale ',scale,scale
 	  write (60,'(a)') 'set color black hei .3'
-	  write (60,'(a,2f13.4)') 'amove ',x(ip),y(ip)
+	  write (60,'(a,2f13.4)') 'amove ',particles(ip)%x(1),particles(ip)%x(2)
 	  write (60,'(a,f10.5,2a)') 'marker otimes '
 	  write (60,'(a,2f13.4)') 'rmove ',.1,.1
 
-	  write (60,'(a,i6)') 'text ',pelabel(ip)         ! write out label
+	  write (60,'(a,i6)') 'text ',particles(ip)%label         ! write out label
 
 
 	  !  Now do selected particle lists
+	  !  TODO need optional reinstatement of interaction lists for diagnostic purposes
 
-	  nlist = nterm(ip)
-
+!	  nlist = nterm(ip)
+	  nlist = 1
 	  ! get keys of twig nodes from hash table
-	  key_list(1:nlist) = intlist(1:nlist,ip)
+!	  key_list(1:nlist) = intlist(1:nlist,ip)
+	  key_list(1) = 1  ! dummy
 	  addr_list(1:nlist) = (/ ( key2addr( key_list(i),'DRAW_LISTS' ),i=1,nlist) /)   !  Table address
 
 	  ! get levels of twigs
@@ -104,8 +111,8 @@ module draw_gle
 	     write (60,'(a,2f13.4)') 'amove ',xt,yt
 	     write (60,'(a,2f13.4)') 'box ',s,s
 
-	     write (60,'(a,2f13.4)') 'amove ',xcoc( node_list(j) ),ycoc( node_list(j) )        ! Centre of charge of twig node
-	     write (60,'(a,f10.5,2a)') 'circle ',(abs_charge( node_list(j)))**(.33), &
+	     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_list(j) )%xcoc,tree_nodes( node_list(j) )%ycoc     ! Centre of charge of twig node
+	     write (60,'(a,f10.5,2a)') 'circle ',(tree_nodes( node_list(j) )%abs_charge)**(.33), &
 	     		'*psize fill ',colors( mod(owner_list(j),10) )
 	    ! write (60,'(a,f10.5,2a)') 'circle ',psize,' fill ',colors( mod(owner_list(j),10) )
 	     !
@@ -192,7 +199,7 @@ module draw_gle
 	  do i=1,npp
 	     write (60,'(a,a)') 'set color ',colors( mod(me,8) )
 
-	     write (60,'(a,2f13.4)') 'amove ',x(i),y(i)
+	     write (60,'(a,2f13.4)') 'amove ',particles(i)%x(1),particles(i)%x(2)
 	     write (60,'(2a)') 'circle psize fill ',colors( mod(me,8))
 	!     write (60,'(2a)') 'circle psize fill ','black'
 	  end do
@@ -205,28 +212,28 @@ module draw_gle
 	  ! recover box coordinates of parents
 	  ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
 	  do j = 1,npp
-	     ix = int(SUM( (/ (2**i*ibits( ishft( pekey(j),-2*ibt ),2*i,1 ), i=0,nbits-2-ibt) /) ))
-	     iy = int(SUM( (/ (2**i*ibits( ishft( pekey(j),-2*ibt ),2*i+1,1 ), i=0,nbits-2-ibt) /) ))
+	     ix = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-2-ibt) /) ))
+	     iy = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-2-ibt) /) ))
 	  end do
 
 
 	  ! first point
-	  xt=x(1)
-	  yt=y(1)
+	  xt=particles(1)%x(1)
+	  yt=particles(1)%x(2)
 	  write (60,'(a,2f13.4)') 'amove ',xt,yt
 	  write (60,'(a,a)') 'set color ',colors( mod(me,8) )
 	  write (60,'(a,a)') 'set lwidth 0.03'
 
 	  do ip = 2,npp
-	     xt=x(ip)
-	     yt=y(ip)
+	     xt=particles(ip)%x(1)
+	     yt=particles(ip)%x(2)
 	     write (60,'(a,2f13.4)') 'aline ',xt,yt
 	  end do
 
 	  !  boundary links
 	  if (me /= num_pe-1) then
 	          write (60,'(a)') 'set lstyle 2'
-	          write (60,'(a,2f13.4)') 'aline ',x(npp+1),y(npp+1)
+	          write (60,'(a,2f13.4)') 'aline ',particles(npp+1)%x(1),particles(npp+1)%x(2)
 	  endif
 
 
@@ -249,6 +256,7 @@ module draw_gle
 
 
 	  use treevars
+	  use module_htable
 
 	  implicit none
 
@@ -335,8 +343,8 @@ module draw_gle
 	        write (60,'(a,2f13.4,2a)') 'box ',s,s,' fill ',colors( mod(owner_twig(j),10) )
 	     endif
 
-	     !        write (60,'(a,2f13.4)') 'amove ',xcoc( node_twig(j) ),ycoc( node_twig(j) )        ! Centre of charge of twig node
-	     !         write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(abs_charge( node_twig(j) )),' fill grey'
+	     !        write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%xcoc,tree_nodes( node_twig(j) )%ycoc    ! Centre of charge of twig node
+	     !         write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(tree_nodes( node_twig(j) )%abs_charge),' fill grey'
 	     !        write (60,'(a)') 'set hei 0.01'
 	     !
 	  !   write (60,'(a)') 'set color black'
@@ -391,7 +399,7 @@ module draw_gle
 	  do i=1,npp
 	     write (60,'(a,a)') 'set color ',colors( mod(me,8) )
 
-	     write (60,'(a,2f13.4)') 'amove ',x(i),y(i)
+	     write (60,'(a,2f13.4)') 'amove ',particles(i)%x(1),particles(i)%x(2)
 	     write (60,'(2a)') 'circle psize fill ',colors( mod(me,8))
 	!     write (60,'(2a)') 'circle psize fill ','black'
 	  end do
@@ -404,28 +412,28 @@ module draw_gle
 	  ! recover box coordinates of parents
 	  ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
 	  do j = 1,npp
-	     ix = int(SUM( (/ (2**i*ibits( ishft( pekey(j),-2*ibt ),2*i,1 ), i=0,nbits-2-ibt) /) ))
-	     iy = int(SUM( (/ (2**i*ibits( ishft( pekey(j),-2*ibt ),2*i+1,1 ), i=0,nbits-2-ibt) /) ))
+	     ix = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-2-ibt) /) ))
+	     iy = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-2-ibt) /) ))
 	  end do
 
 
 	  ! first point
-	  xt=x(1)
-	  yt=y(1)
+	  xt=particles(1)%x(1)
+	  yt=particles(1)%x(2)
 	!    write (60,'(a,2f13.4)') 'amove ',xt,yt
 	!     write (60,'(a,a)') 'set color ',colors( mod(me,8) )
 	 !    write (60,'(a,a)') 'set lwidth 0.03'
 
 	  do ip = 2,npp
-	     xt=x(ip)
-	     yt=y(ip)
+	     xt=particles(ip)%x(1)
+	     yt=particles(ip)%x(2)
 	 !    write (60,'(a,2f13.4)') 'aline ',xt,yt
 	  end do
 
 	  !  boundary links
 	  if (me /= num_pe-1) then
 	     !     write (60,'(a)') 'set color grey50'
-	     !     write (60,'(a,2f13.4)') 'aline ',x(npp+1),y(npp+1)
+	     !     write (60,'(a,2f13.4)') 'aline ',particles(npp+1)%x(1),particles(npp+1)%x(2)
 	  endif
 
 
@@ -451,6 +459,7 @@ module draw_gle
 	  !  Centres         ....  tree.comasN
 
 	  use treevars
+	  use module_htable
 
 	  implicit none
 	  real*8, intent(in) :: xl, yl
@@ -515,8 +524,8 @@ module draw_gle
 	     yt=iy(j)*s
 	     write (60,'(a,2f13.4)') 'amove ',xt,yt
 	     write (60,'(a,2f13.4)') 'box ',s,s
-	     write (60,'(a,2f13.4)') 'amove ',xcoc( node_twig(j) ),ycoc( node_twig(j) )        ! Centre of charge of twig node
-	     write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(abs_charge( node_twig(j) )),' fill cyan'
+	     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%xcoc,tree_nodes( node_twig(j) )%ycoc      ! Centre of charge of twig node
+	     write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(tree_nodes( node_twig(j) )%abs_charge),' fill cyan'
 	     !     write (60,'(a)') 'set hei 0.03'
 	     !     write (60,'(a,b10)') 'text ',key_twig(j)         ! write out key
 
@@ -567,8 +576,8 @@ module draw_gle
 
 
 	  do i=1,npp
-	     write (60,'(a,2f13.4)') 'amove ',x(i),y(i)
-	     if (q(i)<0) then
+	     write (60,'(a,2f13.4)') 'amove ',particles(i)%x(1),particles(i)%x(2)
+	     if (particles(i)%q<0) then
 	        write (60,'(a)') 'circle .005 fill red'
 	     else
 	        write (60,'(a)') 'circle .005 fill green'
@@ -654,8 +663,8 @@ module draw_gle
 	     ! recover box coordinates of parents
 	     ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
 	     do j = 1,npp
-	        ix(j) = int(SUM( (/ (2**i*ibits( ishft( pekey(j),-2*ibt ),2*i,1 ), i=0,nbits-1-ibt) /) ))
-	        iy(j) = int(SUM( (/ (2**i*ibits( ishft( pekey(j),-2*ibt ),2*i+1,1 ), i=0,nbits-1-ibt) /) ))
+	        ix(j) = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-1-ibt) /) ))
+	        iy(j) = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-1-ibt) /) ))
 	     end do
 
 	     do ip = 1,npp
@@ -671,7 +680,7 @@ module draw_gle
 
 
 	  do i=1,npp
-	     write (60,'(a,2f13.4)') 'amove ',x(i),y(i)
+	     write (60,'(a,2f13.4)') 'amove ',particles(i)%x(1),particles(i)%x(2)
 	     write (60,'(a)') 'circle .002 fill red'
 	  end do
 
@@ -683,8 +692,8 @@ module draw_gle
 	  ! recover box coordinates of parents
 	  ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
 	  do j = 1,npp
-	     ix(j) = int(SUM( (/ (2**i*ibits( ishft( pekey(j),-2*ibt ),2*i,1 ), i=0,nbits-1-ibt) /) ))
-	     iy(j) = int(SUM( (/ (2**i*ibits( ishft( pekey(j),-2*ibt ),2*i+1,1 ), i=0,nbits-1-ibt) /) ))
+	     ix(j) = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-1-ibt) /) ))
+	     iy(j) = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-1-ibt) /) ))
 	  end do
 
 	! first point
@@ -721,6 +730,7 @@ module draw_gle
 
 
 	  use treevars
+	  use module_htable
 
 	  implicit none
 
@@ -802,8 +812,8 @@ module draw_gle
 	     xt=ix*s + xmin
 	     yt=iy*s + ymin
 	     !write (60,'(a,2f13.4)') 'box ',s,s
-	     !     write (60,'(a,2f13.4)') 'amove ',xcoc( node_twig(j) ),ycoc( node_twig(j) )        ! Centre of charge of twig node
-	     !     write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(abs_charge( node_twig(j) )),' fill cyan'
+	     !     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%xcoc,tree_nodes( node_twig(j) )%ycoc        ! Centre of charge of twig node
+	     !     write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(tree_nodes( node_twig(j) )%abs_charge),' fill cyan'
 	     !     write (60,'(a)') 'set hei 0.01'
 	     !     write (60,'(a,b10)') 'text ',key_twig(j)         ! write out key
 
@@ -875,7 +885,7 @@ module draw_gle
 
 
 	  do i=1,npp
-	!     write (60,'(a,2f13.4)') 'amove ',x(i),y(i)
+	!     write (60,'(a,2f13.4)') 'amove ',particles(i)%x(1),particles(i)%x(2)
 	     !     write (60,'(2a)') 'circle .002 fill ',colors( mod(me,8) )
 	 !    write (60,'(2a)') 'circle psize fill black'
 	  end do
@@ -885,20 +895,20 @@ module draw_gle
 
 
 	  ! first point
-	  xt=x(1)
-	  yt=y(1)
+	  xt=particles(1)%x(1)
+	  yt=particles(1)%x(1)
 	  !  write (60,'(a,2f13.4)') 'amove ',xt,yt
 
 	  do ip = 2,npp
-	     xt=x(ip)
-	     yt=y(ip)
+	     xt=particles(ip)%x(1)
+	     yt=particles(ip)%x(2)
 	     !     write (60,'(a,2f13.4)') 'aline ',xt,yt
 	  end do
 
 	  !  boundary links
 	  if (me /= num_pe-1) then
 	     !     write (60,'(a)') 'set color grey50'
-	     !     write (60,'(a,2f13.4)') 'aline ',x(npp+1),y(npp+1)
+	     !     write (60,'(a,2f13.4)') 'aline ',particles(npp+1)%x(1),particles(npp+1)%x(2)
 	  endif
 
 
@@ -909,4 +919,4 @@ module draw_gle
 	end subroutine draw_domains
 
 
-end module draw_gle
+end module module_gle
