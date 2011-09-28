@@ -1,4 +1,4 @@
-! Plasma sphere
+! Plasma disc 
 
  &pepcdata
  np_mult=-20
@@ -92,7 +92,7 @@
  scheme = 1                          
 
   ! control
-  nt =100
+  nt =10
   dt = 0.2
  restart = .false.
   vis_on = .false.
@@ -101,7 +101,7 @@
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = 20
+  idump = 10
   iprot=10
   itrack=300
   particle_bcs = 1 /

@@ -67,7 +67,7 @@ def plot_raw_data(raw):
 
 
 def plot_particles_for_timestep(ts):
-    filename = "snbs.output." + '%0*d'%(5, ts) + ".dat"
+    filename = "parts_p0000" + '%0*d'%(5, ts)
     if plot_particles_from_file(filename):
         print "Timestep: " + '%0*d'%(5, ts)
         return True

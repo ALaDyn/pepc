@@ -588,7 +588,7 @@ subroutine predef_parts
 	np_local = npartr
 
   ! npp * sizepof(real*8)
-	size1 = npp*sizeof(realdummy)
+	size1 = np_local*sizeof(realdummy)
   ! npp*sizeof(integer)
 	size2 = np_local*sizeof(sid)
 
@@ -740,13 +740,18 @@ subroutine dump(timestamp)
   simtime = dt*timestamp
 
 
+  ! convert rank to character string
+  do i=0,2
+     csubme(4-i:4-i) =  achar(mod(my_rank/10**i,10) + 48)  
+  end do
+  csubme(1:1) = achar(my_rank/10**3 + 48)
+
   ! get filename suffix from dump counter
   do i=0,4
      cdump(6-i:6-i) =  achar(mod(timestamp/10**i,10) + 48)  
   end do
   cdump(1:1) = achar(timestamp/10**5 + 48)
 
-!  cfile="data/pe"//csubme//"/parts_info."//cdump(1:6)
   call system("mkdir -p " // "dumps")
   cfile="dumps/info_p"//csubme//"."//cdump(1:6)
 
