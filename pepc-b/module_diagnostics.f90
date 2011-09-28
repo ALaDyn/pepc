@@ -350,6 +350,7 @@ end subroutine kinenergy
       use module_particle_props
       use module_utilities
       use module_gle
+      use module_htable
 
       implicit none
 !      integer, parameter :: ntest = 3
