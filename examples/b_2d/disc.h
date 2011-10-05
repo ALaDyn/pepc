@@ -1,7 +1,7 @@
 ! Plasma disc 
 
  &pepcdata
- np_mult=-30
+ np_mult=-20
  fetch_mult=2
  ncpu_merge = 1
  debug_level = 1
@@ -24,8 +24,8 @@
  num_walk_threads =1
 
 ! particles
-  ne = 100000
-  ni = 100000 
+  ne = 5000
+  ni = 5000 
 
 ! set up plasma target
  plasma_config = 1  
@@ -98,11 +98,11 @@
  restart = .false.
   vis_on = .false.
  ivis = 5 
- ivis_fields = 10
+ ivis_fields = 2
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = 20
+  idump = 2
   iprot=10
   itrack=300
   particle_bcs = 1 /
