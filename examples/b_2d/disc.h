@@ -24,8 +24,8 @@
  num_walk_threads =1
 
 ! particles
-  ne = 5000
-  ni = 5000 
+  ne = 10000
+  ni = 10000 
 
 ! set up plasma target
  plasma_config = 1  
@@ -53,10 +53,11 @@
 ! plasma width (slab target)
   z_plasma = 0.     
 ! graphics box size
-  xl = 4  
-  yl =4 
+  xl = 6  
+  yl =6 
   zl =4 
  ngx=50
+ ngy=50
  nxh=50
  ngav=50
 ! beam
@@ -92,16 +93,16 @@
  scheme = 1                          
 
   ! control
-  nt =10
+  nt =20
   dt = 0.2
  restart = .false.
   vis_on = .false.
  ivis = 5 
- ivis_fields = 5
+ ivis_fields = 10
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = 10
+  idump = 20
   iprot=10
   itrack=300
   particle_bcs = 1 /
