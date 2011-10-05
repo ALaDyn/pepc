@@ -24,6 +24,7 @@ module module_field_grid
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	public densities	!< Densities
+	public densities_2d	!< 2D densities
 	public sum_fields	!< 3D fields
 	public sum_fieldave	!< time-ave fields
 	public sum_radial	!< 1D, radially symmetric fields
@@ -125,6 +126,81 @@ subroutine densities
 !  call MPI_REDUCE(rhoe_loc, rhoe, ng, MPI_REAL, MPI_SUM, 0,  MPI_COMM_WORLD, ierr)
 
 end subroutine densities
+
+!  =================================
+!
+!    2D Density gather for ion & electron density
+!
+!  =================================
+
+subroutine densities_2d
+
+  use module_physvars
+  use module_particle_props
+
+  implicit none
+  include 'mpif.h'
+
+  real :: rdx, rdy,  dx, dy, cweight
+  real :: fx1, fx2, fy1, fy2, xa, ya
+  integer :: i, ng, i1, i2, j1, j2
+
+
+  dx = xl/ngx
+  dy = yl/ngy
+
+  rdx = 1./dx
+  rdy = 1./dy
+
+  !  field box limits: (0-xl, 0-yl)
+  !  Any particle outside gets put in ghost cells 0, ngx+1
+
+  !      write(15,'(//a,3f12.3)') 'cw,dx,dy',cweight,dx,dy
+
+  rhoi2d_loc(0:ngx+1,0:ngy+1) = 0.
+  rhoe2d_loc(0:ngx+1,0:ngy+1) = 0.
+
+  do i=1,np_local
+
+     xa=x(i)*rdx
+     ya=y(i)*rdy
+
+     !  indices
+     i1=xa+1
+     i2=i1+1
+     j1=ya+1
+     j2=j1+1
+
+     i1 = min(max(0,i1),ngx+1)
+     i2 = min(max(0,i2),ngx+1)
+     j1 = min(max(0,j1),ngy+1)
+     j2 = min(max(0,j2),ngy+1)
+
+     !  linear weighting
+     fx2=min(max(i1-xa,0.),1.)  ! Prevent overflow/negative weighting for particles outside box
+     fx1=1.-fx2
+     fy2=min(max(j1-ya,0.),1.)
+     fy1=1.-fy2
+     cweight = q(i)*rdx*rdy      ! charge weighting factor
+     !  gather charge at nearest grid points
+     if (q(i)>0) then
+        rhoi2d_loc(i1,j1)=rhoi2d_loc(i1,j1) + cweight*fx1*fy1
+        rhoi2d_loc(i2,j1)=rhoi2d_loc(i2,j1) + cweight*fx2*fy1
+        rhoi2d_loc(i1,j2)=rhoi2d_loc(i1,j2) + cweight*fx1*fy2
+        rhoi2d_loc(i2,j2)=rhoi2d_loc(i2,j2) + cweight*fx2*fy2
+     else
+        rhoe2d_loc(i1,j1)=rhoe2d_loc(i1,j1) + cweight*fx1*fy1
+        rhoe2d_loc(i2,j1)=rhoe2d_loc(i2,j1) + cweight*fx2*fy1
+        rhoe2d_loc(i1,j2)=rhoe2d_loc(i1,j2) + cweight*fx1*fy2
+        rhoe2d_loc(i2,j2)=rhoe2d_loc(i2,j2) + cweight*fx2*fy2
+     endif
+  end do
+
+  ng = (ngx+2)*(ngy+2)                         ! total # gridpoints
+
+
+end subroutine densities_2d
+
 
 !  =================================
 !

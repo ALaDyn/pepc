@@ -9,6 +9,7 @@ module module_physvars
   real, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:), & !< field arrays for time-averages
                           ex_ave(:), ey_ave(:,:), ez_ave(:)      !< time-ave field 
   real, allocatable ::  rhoi(:,:,:), rhoe(:,:,:) !< densities
+  real, allocatable ::  rhoi2d_loc(:,:), rhoe2d_loc(:,:) !< 2D densities
   real, allocatable ::  g_ele(:,:,:), g_ion(:,:,:)  !< particle counts (weights for T)
   real, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  !< E-field 
 !  real, allocatable ::  ex_g(:,:,:), ey_g(:,:,:), ez_g(:,:,:), phi_g(:,:,:)  !< Global E-field 

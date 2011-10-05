@@ -45,6 +45,7 @@ module module_io
       public dump		!< Particle dump
       public predef_parts	!< Particle read from checkpoint
       public dump_fields	!< Write out 3D fields and cuts
+      public dump_fields_2d	!< Write out 2D fields and cuts
       public slices		!< Write out 1D cuts
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1374,6 +1375,105 @@ subroutine dump_fields(timestamp)
 
 
 end subroutine dump_fields
+
+! ======================
+!
+!   DUMP_FIELDS
+!
+!   Write out field data for 
+!     postprocessing
+!
+!
+! ======================
+
+subroutine dump_fields_2d(timestamp)
+
+
+  use module_physvars
+
+  implicit none 
+  include 'mpif.h'
+
+  real :: dx, dy, simtime, qbox, qtot
+  real, dimension(0:ngx+1,0:ngy+1) :: rhoe_2d, rhoi_2d
+  real, dimension(0:ngx+1) :: rhoe_slice, rhoi_slice
+  character(30) :: cfile
+
+  character(6) :: cdump
+  integer, intent(in) :: timestamp
+  integer :: i, j
+  integer :: icall, ierr
+  integer :: ng
+
+
+  icall = timestamp/ivis
+  simtime = timestamp*dt
+
+  ! Gather locally accumulated averages
+  ng = (ngx+2)*(ngy+2)                        ! total # gridpoints
+
+  call MPI_ALLREDUCE(rhoe2d_loc, rhoe_2d, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_ALLREDUCE(rhoi2d_loc, rhoi_2d, ng, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+  ! get filename suffix from dump counter
+  do i=0,4
+     cdump(6-i:6-i) =  achar(mod(timestamp/10**i,10) + 48)  
+  end do
+  cdump(1:1) = achar(timestamp/10**5 + 48)
+
+  if (my_rank==0) then
+     ! dump electron and ion densities, electron currents, DC fields within xl*yl
+
+     write(file_pepc_out,'(//a/a,i6,a1,i6)') '2D field dump:', &
+          'writing out densities, fields on grid ',ngx,'*',ngy
+
+     cfile = "fields/"//cdump//".xy"
+     open (file_tempfile_1,file=cfile)
+     dx = xl/ngx
+     dy = yl/ngy
+
+     Qbox = 0.
+
+        do j=1,ngy
+           do i=1,ngx
+              Qbox = Qbox + rhoe_2d(i,j)*dx*dy
+              write(file_tempfile_1,'(2e13.3)') rhoe_2d(i,j), rhoi_2d(i,j) 
+
+           end do
+        end do
+
+     Qtot = SUM(rhoe_2d)*dx*dy ! including ghost cells
+
+     write(file_pepc_out,'(4(a,f14.5/))') &
+          'Total charge on grid:',Qbox, &
+          '         ghost cells:',Qtot-Qbox, &
+          '                 sum:',Qtot, &
+          'Initial charge Q_s*Ne = rho0*Vplas = ',Aplas*rho0
+
+     close(file_tempfile_1)
+
+
+     ! density average line-out along laser axis: nave*nave average, converted to n/nc
+
+     rhoe_slice = 0.
+     rhoi_slice = 0.
+
+     ! Renormalise to EM units
+     cfile = "fields/xslice."//cdump
+     open (file_tempfile_2,file=cfile)
+     write(file_tempfile_2,'(a)') '!   x      rho_e   rho_i '
+     write(file_tempfile_2,'((3(1pe12.4)))') (i*dx,rhoe_2d(i,ngy/2)/omega**2, rhoi_2d(i,ngy/2)/omega**2,i=1,ngx)
+     close(file_tempfile_2)
+  endif
+
+  icall = icall + 1
+
+  ! Rezero local fields
+  rhoe2d_loc = 0.
+  rhoi2d_loc = 0.
+
+end subroutine dump_fields_2d
+
 
 
 ! ======================
