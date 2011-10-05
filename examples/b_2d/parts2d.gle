@@ -22,7 +22,7 @@ yticks length .07
 !title " \;\;\;\omega_pt=0     " hei 0.5 font rmi
 xtitle "       x       "
 ytitle "       y       "
-data dumps/parts_p d1=c1,c2
+data dumps/parts_p0000.000020 d1=c1,c2
 d1 marker dot color green msize .1
 end graph
 amove xg(5) yg(4.5)
@@ -47,7 +47,7 @@ yticks length .07
 !title "  \;\;\;         \omega_pt=10    " hei 0.5 font rmi
 xtitle "        x        "
 ytitle "        z        "
-data dumps/parts_p d1=c1,c3
+data dumps/parts_p0000.000000 d1=c1,c3
 d1  marker dot color green msize .1
 
 end graph
@@ -73,7 +73,7 @@ yticks length .07
 !title "  \;\;\;         \omega_pt=10    " hei 0.5 font rmi
 xtitle "      x    "
 ytitle "       v_x/c       "
-data dumps/parts_p d1=c1,c4
+data dumps/parts_p0000.000000 d1=c1,c4
 d1  marker dot color green msize .1
 
 end graph
@@ -96,7 +96,7 @@ yticks length .07
 !title " \;\;\;\omega_pt=0     " hei 0.5 font rmi
 xtitle "        y     "
 ytitle "        v_y       "
-data dumps/parts_p d1=c2,c5
+data dumps/parts_p0000.000000 d1=c2,c5
 d1 marker dot color green msize .1
 end graph
 amove xg(5) yg(4.5)

@@ -1,11 +1,11 @@
 ! Plasma disc 
 
  &pepcdata
- np_mult=-20
+ np_mult=-30
  fetch_mult=2
  ncpu_merge = 1
  debug_level = 1
- debug_tree = 0
+ debug_tree = 1
  mac=0
 ! Force law 2D
  idim=2
@@ -24,8 +24,8 @@
  num_walk_threads =1
 
 ! particles
-  ne = 10000
-  ni = 10000 
+  ne = 100000
+  ni = 100000 
 
 ! set up plasma target
  plasma_config = 1  
@@ -45,7 +45,7 @@
   coulomb = .true.
   lenjones = .false.
   bond_const = 2.e-3
-  r_sphere = 2. 
+  r_sphere = 3. 
 ! plasma disc thickness/ wire length
   x_plasma = 1    
 ! plasma width (slab target)
@@ -53,17 +53,17 @@
 ! plasma width (slab target)
   z_plasma = 0.     
 ! graphics box size
-  xl = 6  
-  yl =6 
+  xl = 20  
+  yl =20 
   zl =4 
  ngx=50
  ngy=50
  nxh=50
  ngav=50
 ! beam
-   beam_config_in = 0 
+   beam_config_in = 3 
 
-  vosc = 6.0
+  vosc = 3.0
   omega = 0.5
   sigma = 6.
   tpulse = 20.
@@ -93,7 +93,7 @@
  scheme = 1                          
 
   ! control
-  nt =20
+  nt =100
   dt = 0.2
  restart = .false.
   vis_on = .false.
