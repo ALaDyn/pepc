@@ -49,11 +49,9 @@ module particle_pusher
       integer :: p
 
       do p=ips,ipf
-         if (q(p) < 0) then
-           x(p)=x(p)+ux(p)*delt
-           y(p)=y(p)+uy(p)*delt
-           z(p)=z(p)+uz(p)*delt
-         endif
+         x(p)=x(p)+ux(p)*delt
+         y(p)=y(p)+uy(p)*delt
+         z(p)=z(p)+uz(p)*delt
       end do
 
     end subroutine push
