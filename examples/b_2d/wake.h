@@ -63,12 +63,13 @@
 ! beam
    beam_config_in = 5 
 
-  vosc = 1.0
+  vosc = 3.0
   omega = 0.5
   sigma = 6.
   tpulse = 2.
   lambda = 1.0   
-
+  x_offset = -10
+  
 ! fmm-periodicity framework                                                                                                                                
 ! lattice basis vectors                                                                                                                                    
 ! t_lattice_1 = 1. 0. 0.
@@ -93,7 +94,7 @@
  scheme = 1                          
 
   ! control
-  nt =100
+  nt =50
   dt = 0.2
  restart = .false.
   vis_on = .false.
