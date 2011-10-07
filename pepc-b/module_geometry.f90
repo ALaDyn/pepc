@@ -123,6 +123,9 @@ subroutine plasma_start(my_rank, i1, n, nglobal, label_off, target_geometry, idi
   !       11 = hollow sphere
   !       16, 36 = hollow hemisphere
 
+  !  2D geometries allowed in x-y plane: 
+  !    0 = slab
+  !    3 = disc
 
   !  Define target container parameters: volume, area, centre, # faces
 
@@ -131,7 +134,11 @@ subroutine plasma_start(my_rank, i1, n, nglobal, label_off, target_geometry, idi
   case(0) ! slab
      Vplas = x_plasma * y_plasma * z_plasma  ! plasma volume
      Aplas = x_plasma * y_plasma ! plasma area
-     number_faces = 6
+     if (idim.eq.2) then
+	number_faces = 4 ! In 2D, just check particles inside region xplasma*yplasma
+     else 
+     	number_faces = 6
+     endif
 
   case(1) ! sphere
      Vplas = 4 * pi * r_sphere**3 / 3.
