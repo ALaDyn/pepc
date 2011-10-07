@@ -214,7 +214,8 @@ subroutine plasma_start(my_rank, i1, n, nglobal, label_off, target_geometry, idi
      case(0, 5) ! slab or wedge 
         xt = .5 * x_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(1)
         yt = .5 * y_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(2)         
-        zt = .5 * z_plasma * (2 * rano(iseed1) - 1.) + plasma_centre(3)
+        zt = plasma_centre(3)
+        if (idim.eq.3) zt = zt + .5 * z_plasma * (2 * rano(iseed1) - 1.) 
 
      case(1, 11) ! sphere and hollow sphere
         xt = r_sphere * (2 * rano(iseed1) - 1.) + plasma_centre(1)
