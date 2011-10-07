@@ -1026,24 +1026,24 @@ subroutine face(r, c_status, face_nr, &
     select case (target_geometry)
     case (0) ! slab
         select case (face_nr)
-        case(1) ! x-y-plane, negative z
-            normal_vector = (/ 0., 0., +1. /)
-            offset_vector = (/ 0., 0., -z_plasma/2. /) + plasma_centre
-        case(2) ! x-y-plane, positive z
-            normal_vector = (/ 0., 0., -1./)
-            offset_vector = (/ 0., 0., +z_plasma/2. /) + plasma_centre
-        case(3) ! x-z-plane, negative y
+        case(1) ! x-z-plane, negative y
             normal_vector = (/ 0., +1., 0. /)
             offset_vector = (/ 0., -y_plasma/2., 0. /) + plasma_centre
-        case(4) ! x-z-plane, positive y
+        case(2) ! x-z-plane, positive y
             normal_vector = (/ 0., -1., 0. /)
             offset_vector = (/ 0., +y_plasma/2., 0. /) + plasma_centre
-        case(5) ! y-z-plane, negative x
+        case(3) ! y-z-plane, negative x
             normal_vector = (/ +1., 0., 0. /)
             offset_vector = (/ -x_plasma/2., 0., 0. /) + plasma_centre
-        case(6) ! y-z-plane, positive x
+        case(4) ! y-z-plane, positive x
             normal_vector = (/ -1., 0., 0. /)
             offset_vector = (/ +x_plasma/2., 0., 0. /) + plasma_centre
+        case(5) ! x-y-plane, negative z
+            normal_vector = (/ 0., 0., +1. /)
+            offset_vector = (/ 0., 0., -z_plasma/2. /) + plasma_centre
+        case(6) ! x-y-plane, positive z
+            normal_vector = (/ 0., 0., -1./)
+            offset_vector = (/ 0., 0., +z_plasma/2. /) + plasma_centre
         end select
 
         c_status = dot_product(normal_vector, offset_vector - r)
