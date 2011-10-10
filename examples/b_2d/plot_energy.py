@@ -24,7 +24,8 @@ filename='energy.dat'
 #markers=['+','*','.','1','2','3','4','<','>','D','H','^','_','d','h','o','p','s','v','x','|','None',' ','']
 markers=['*','<','>','D','H','^','d','h','o','p','s','v','x','|','None',' ','']
 
-data=genfromtxt(filename)
+#data=genfromtxt(filename)
+data=loadtxt(filename,skiprows=1)
 numlines=data.shape[0]
 numcols=data.shape[1]
 
@@ -58,5 +59,5 @@ plt.xticks(arange(lims[0],lims[1]+1,1.0))
 #plt.yticks(0,1e3,200.)
 plt.minorticks_on()
 	
-plt.savefig(filename +'.png') # Must occur before show()
+plt.savefig(filename +'.pdf') # Must occur before show()
 plt.show()

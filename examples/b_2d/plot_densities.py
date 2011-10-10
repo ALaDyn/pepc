@@ -13,7 +13,9 @@ import locale
 import os
 import os.path
 import sys
-import time
+from time import sleep
+
+
 
 
 print "Plot field data"
@@ -111,8 +113,10 @@ tmax=102
 increment = 2
 plt.ion()
 for timestamp in range(0,tmax,increment):
+	if (timestamp==0): plt.ion() # Need this before 1st plot
 	plot_for_timestep(timestamp)
-	time.sleep(.01)
+	sleep(0.1) # Time in seconds.
+	#raw_input("Press key...")
 	plt.clf()
 #	plt.show()
 #	input = sys.stdin.readline() 
