@@ -868,7 +868,7 @@ module tree_walk_pthreads
       use tree_walk_pthreads_commutils
       use module_htable
       use module_calc_force
-      use module_spacefilling, only : level_from_key
+      use module_spacefilling, only : level_from_key, is_ancestor_of_particle
       implicit none
       integer, intent(in) :: nodeidx, myidx, listlengths
       integer*8 :: todo_list(0:todo_list_length-1)
@@ -884,7 +884,7 @@ module tree_walk_pthreads
 
       real*8 :: dist2
       real*8 :: delta(3)
-      logical :: same_particle, mac_ok
+      logical :: same_particle, same_particle_or_parent_node, mac_ok
       integer :: ierr
 
       todo_list_entries = 0
@@ -922,23 +922,27 @@ module tree_walk_pthreads
               mac_ok = .false.
           endif
 
-          !  always accept leaf-nodes since they cannot be refined any further
-          !  reject root node if we are in the central box
-          mac_ok = (walk_node > 0) .or. ( mac_ok .and. ((.not. in_central_box) .or. walk_key.ne.1 ) )
-
           work_per_particle(nodeidx)        = work_per_particle(nodeidx)        + WORKLOAD_PENALTY_MAC
           my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + 1._8
 
-          ! set ignore flag if leaf node corresponds to particle itself (number in pshort)
-          ! NB: this uses local leaf #, not global particle label
-          ! only ignore particle if we are processing the central box
-          ! when walking through neighbour boxes, it has to be included
-          same_particle = (in_central_box) .and. ( nodeidx == walk_node )
+          ! or one of its ancestor nodes (which never should happen as the MAC should prevent this)
+
+
+          ! we may not interact with the particle itself or its ancestors
+          ! if we are in the central box
+          ! interaction with ancestor nodes should be prevented by the MAC
+          ! but this does not always work (i.e. if theta > 0.7 or if keys and/or coordinates have
+          ! been modified due to 'duplicate keys'-error)
+          same_particle_or_parent_node  = (in_central_box) .and. ( is_ancestor_of_particle(particles(nodeidx)%key, walk_key))
+          ! set ignore flag if leaf node corresponds to particle itself
+          same_particle = same_particle_or_parent_node .and. (walk_node > 0)
+
+          !  always accept leaf-nodes since they cannot be refined any further
+          !  further resolve ancestor nodes if we are in the central box
+          mac_ok = (walk_node > 0) .or. ( mac_ok .and. (.not. same_particle_or_parent_node))
 
           if (.not. same_particle) then
-
           ! ========= Possible courses of action:
-
               if (mac_ok) then
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell
@@ -946,7 +950,6 @@ module tree_walk_pthreads
                   work_per_particle(nodeidx)     = work_per_particle(nodeidx)     + WORKLOAD_PENALTY_INTERACTION
                   partner_leaves                 = partner_leaves                 + htable(walk_addr)%leaves
                   my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
-
               else
                   ! 2) MAC fails for twig node ============
                   if ( children_available(walk_addr) ) then

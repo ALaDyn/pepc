@@ -42,7 +42,7 @@ module module_spacefilling
         !> calculates level from key by finding position of placeholder bit
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function level_from_key(key)
+        pure function level_from_key(key)
           implicit none
           integer*8, intent(in) :: key
           integer :: level_from_key
@@ -51,6 +51,22 @@ module module_spacefilling
           ! level_from_key = int( log(1._8*key) / log(8._8))
           ! counting leading zeros (faster):
           level_from_key = int((bit_size(key) - leadz(key) - 1) / 3)
+
+        end function
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> checks whether key_a is an ancestor of key_c (which must be at highest tree level, i.e. a particle key) 
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        pure function is_ancestor_of_particle(key_c,key_a)
+          use treevars
+          implicit none
+          logical :: is_ancestor_of_particle
+          integer*8, intent(in) :: key_a, key_c
+ 
+          is_ancestor_of_particle = (ishft(key_c,3*(level_from_key(key_a)-nlev)) == key_a)
 
         end function
 
