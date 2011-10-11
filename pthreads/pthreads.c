@@ -15,9 +15,10 @@
 
 pthread_t *__restrict__ my_threads;
 pthread_rwlock_t *my_rwlocks;
+void* *my_thread_args; // array of void pointers for making packup copies of the pthread argument pointers
 pthread_attr_t thread_attr;
 int maxnumthreads = 0;
-int maxnumlocks = 0;
+int maxnumlocks   = 0;
 
 #define CHECKRES do {if (iret != 0) return iret;} while(0);
 
@@ -28,8 +29,9 @@ int pthreads_init(int numthreads)
 {
     int iret = 0;
 
-    maxnumthreads = numthreads;
-    my_threads    = (pthread_t*)malloc(((unsigned int)maxnumthreads)*sizeof(pthread_t));
+    maxnumthreads  = numthreads;
+    my_threads     = (pthread_t*)malloc(((unsigned int)maxnumthreads)*sizeof(pthread_t));
+    my_thread_args =      (void*)malloc(((unsigned int)maxnumthreads)*sizeof(void*));
 
     iret = pthread_attr_init(&thread_attr);
     CHECKRES;
@@ -47,6 +49,7 @@ int pthreads_init(int numthreads)
 int pthreads_uninit()
 {
     int iret = 0;
+    free(my_thread_args);
     free(my_threads);
 
     iret = pthread_attr_destroy(&thread_attr);
@@ -58,7 +61,10 @@ int pthreads_uninit()
 
 int pthreads_createthread(int id, void *(*start_routine) (void *), void *arg, int relative_priority)
 {
-    return pthread_create(&(my_threads[id-1]), &thread_attr, start_routine, arg);
+    // prepare a copy of the argument pointer to prevent it from being inaccessible when the thread actually starts
+    my_thread_args[id] = arg;
+printf("%p\n", my_thread_args[id]);
+    return pthread_create(&(my_threads[id-1]), &thread_attr, start_routine, my_thread_args[id]);
 }
 
 
