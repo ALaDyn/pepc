@@ -1,54 +1,51 @@
 module pthreads_stuff
+  implicit none
 
   interface
-    function get_my_core()
+    integer(c_int) function get_my_core() bind(C, name='get_my_core')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: get_my_core
     end function
   end interface
 
 
   interface
 
-    function pthreads_init(numthreads)
+    integer(c_int) function pthreads_init(numthreads) bind(C, name='pthreads_init')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: pthreads_init
-      integer, intent(in), value :: numthreads
+      integer(c_int), intent(in), value :: numthreads
     end function
 
-    function pthreads_uninit()
+     integer(c_int) function pthreads_uninit() bind(C, name='pthreads_uninit')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: pthreads_uninit
     end function
   end interface
 
   interface
-    function pthreads_createthread(id, start_routine, arg)
-      use iso_c_binding
+    integer(c_int) function pthreads_createthread(id, start_routine, arg) bind(C, name='pthreads_createthread')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: pthreads_createthread
-      integer, intent(in), value :: id
-      type( c_funptr ), value :: start_routine
-      type( c_ptr ), value :: arg
+      integer(c_int),   intent(in), value :: id
+      type( c_funptr ), intent(in), value :: start_routine
+      type( c_ptr ),    intent(in), value :: arg
     end function
 
-    function pthreads_jointhread(id)
-      use iso_c_binding
+    integer(c_int) function pthreads_jointhread(id) bind(C, name='pthreads_jointhread')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: pthreads_jointhread
-      integer, intent(in), value :: id
+      integer(c_int), intent(in), value :: id
     end function
 
-    function pthreads_exitthread()
-      use iso_c_binding
+    integer(c_int) function pthreads_exitthread() bind(C, name='pthreads_exitthread')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: pthreads_exitthread
     end function
 
-    function pthreads_sched_yield()
-      use iso_c_binding
+    integer(c_int) function pthreads_sched_yield() bind(C, name='pthreads_sched_yield')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: pthreads_sched_yield
     end function
 
   end interface
@@ -58,33 +55,33 @@ module pthreads_stuff
 
   interface
 
-    function rwlocks_init(numlocks)
+    integer(c_int) function rwlocks_init(numlocks) bind(C, name='rwlocks_init')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: rwlocks_init
-      integer, intent(in), value :: numlocks
+      integer(c_int), intent(in), value :: numlocks
     end function
 
-    function rwlocks_uninit()
+    integer(c_int) function rwlocks_uninit() bind(C, name='rwlocks_uninit')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: rwlocks_uninit
     end function
 
-    function rwlocks_wrlock(id)
+    integer(c_int) function rwlocks_wrlock(id) bind(C, name='rwlocks_wrlock')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: rwlocks_wrlock
-      integer, intent(in), value :: id
+      integer(c_int), intent(in), value :: id
     end function
 
-    function rwlocks_rdlock(id)
+    integer(c_int) function rwlocks_rdlock(id) bind(C, name='rwlocks_rdlock')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: rwlocks_rdlock
-      integer, intent(in), value :: id
+      integer(c_int), intent(in), value :: id
     end function
 
-    function rwlocks_unlock(id)
+    integer(c_int) function rwlocks_unlock(id) bind(C, name='rwlocks_unlock')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: rwlocks_unlock
-      integer, intent(in), value :: id
+      integer(c_int), intent(in), value :: id
     end function
 
   end interface
@@ -92,14 +89,14 @@ module pthreads_stuff
 
   interface
 
-    function get_my_tid()
+    integer(c_int) function get_my_tid() bind(C, name='get_my_tid')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: get_my_tid
     end function
 
-    function get_my_pid()
+    integer(c_int) function get_my_pid() bind(C, name='get_my_pid')
+      use, intrinsic :: iso_c_binding
       implicit none
-      integer :: get_my_pid
     end function
 
   end interface
