@@ -45,7 +45,7 @@ program pepcs
      allocate(x(nparts), y(nparts), z(nparts), ex(nparts), ey(nparts), ez(nparts))
      allocate(pot(nparts), q(nparts), m(nparts))
 
-     call MPI_ALLREDUCE(nparts, nparts_total, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
+     call MPI_ALLREDUCE(nparts, nparts_total, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
      if(my_rank .eq. 0) write(*,*) " - total number of paricles on rank ", my_rank, " is ", nparts_total
 
