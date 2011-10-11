@@ -63,7 +63,6 @@ int pthreads_createthread(int id, void *(*start_routine) (void *), void *arg, in
 {
     // prepare a copy of the argument pointer to prevent it from being inaccessible when the thread actually starts
     my_thread_args[id] = arg;
-printf("%p\n", my_thread_args[id]);
     return pthread_create(&(my_threads[id-1]), &thread_attr, start_routine, my_thread_args[id]);
 }
 
