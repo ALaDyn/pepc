@@ -13,10 +13,10 @@ import os
 
 print "Plot field data"
 
-timestamp='000000'
-nx=50
-ny=50
-filename='fields/' + timestamp +'.xy'
+timestamp='000010'
+nx=200
+ny=100
+filename='fields_1t/' + timestamp +'.xy'
 
 markers=['*','<','>','D','H','^','d','h','o','p','s','v','x','|','None',' ','']
 

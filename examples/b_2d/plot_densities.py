@@ -23,8 +23,8 @@ print "Plot field data"
 
 plotboxsize   = 5.
 animated = True
-nx=50
-ny=50
+nx=200
+ny=100
 
 fig = plt.figure(figsize=(8,8))
 fig.suptitle("Densities")
@@ -47,13 +47,13 @@ def plot_image(field,position,color,ctitle):
     plt.ylabel('y')
     plt.colorbar()
 #    cb.set_label(ctitle)
-    fig.canvas.draw()
+    plt.draw()
+    return True
 
 # contour the gridded data, plotting dots at the nonuniform data points.
 #CS = plt.contour(xi,yi,zi,15,linewidths=0.5,colors='k')
 #CS = plt.contourf(xi,yi,zi,15,cmap=plt.cm.jet)
 
-    return True
 
 
 def plot_from_file(fn,nx,ny):
@@ -78,7 +78,7 @@ def plot_from_file(fn,nx,ny):
 
 def plot_for_timestep(ts):
     global nx,ny
-    filename = 'fields/%0*d'%(6, ts) + '.xy'
+    filename = 'fields_1t/%0*d'%(6, ts) + '.xy'
     print filename,nx,ny
     if plot_from_file(filename,nx,ny):
         print "Timestep: " + '%0*d'%(6, ts)
@@ -109,16 +109,15 @@ def next_plot():
 #fn='fields/000000.xy'
 #plot_from_file(fn,nx,ny)
 
-tmax=102
-increment = 2
+tmax=125
+increment = 25
 plt.ion()
 for timestamp in range(0,tmax,increment):
-	if (timestamp==0): plt.ion() # Need this before 1st plot
 	plot_for_timestep(timestamp)
 	sleep(0.1) # Time in seconds.
-	#raw_input("Press key...")
+	raw_input("Press key...")
 	plt.clf()
-#	plt.show()
+#'	plt.show()
 #	input = sys.stdin.readline() 
 
 #plt.savefig(filename +'.png') # Must occur before show()

@@ -970,7 +970,10 @@ module tree_walk_pthreads
                       end if
                   end if
               endif
-          endif !(.not. same_particle)
+          else 
+ !(.not. same_particle)
+!	    if (me.eq.19) write(*,*) 'Same ',myidx, nodeidx, walk_node, dist2
+	  endif
       end do ! (while (todo_list_pop_front(walk_key)))
 
       ! if todo_list and defer_list are now empty, the walk has finished

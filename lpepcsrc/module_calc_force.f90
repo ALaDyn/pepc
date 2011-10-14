@@ -303,7 +303,7 @@ module module_calc_force
                + 0.5*t%yyquad*(8*dy3*rd6 - 6*dy*rd4) &                    ! quadrupole 
                + 0.5*t%xxquad*(8*dy*dx**2*rd6 - 2*dy*rd4) & 
                +     t%xyquad*(8*dy2*dx*rd6 - 2*dx*rd4) 
-          
+
         end subroutine calc_force_coulomb_2D
         
         
