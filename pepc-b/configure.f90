@@ -57,9 +57,13 @@ subroutine configure
         ! Setup new plasma or special configuration
 
         ! Thermal velocities - Maxwellian 
-
-        vte = sqrt(Te_keV/511.)  ! convert from keV to /c
-        vti = sqrt(Ti_keV/511./mass_ratio)
+	if (vte.eq.0) then
+          vte = sqrt(Te_keV/511.)  ! convert from keV to /c
+          vti = sqrt(Ti_keV/511./mass_ratio)
+	else
+	  ! Debye units: velocities normalised to vte
+	  vti = vte/sqrt(mass_ratio)
+	endif 
 
         new_config: select case(plasma_config)
 

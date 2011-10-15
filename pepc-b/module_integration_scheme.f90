@@ -25,11 +25,12 @@ module module_integration_scheme
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      public push_em
-      public push_x
-      public push_nonrel
-      public push_full3v
-      public velocities  	!< MD velocity update with constraints
+      public push_TE	!< 2v Boris rotation for TE fields (Ex, Ey, Bz)
+      public push_TM	!< 2v Boris roation for TM fields (Ey, Bx, By)
+      public push_x	!< Position update with relativistic velocities
+      public push_nonrel !< Non-rel. position update
+      public push_full3v !< 3V integrator with all field components
+      public velocities  !< MD velocity update with constraints
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -41,16 +42,88 @@ module module_integration_scheme
       contains
 
 
+
+
 !  ==============================================
 !
-!     3v particle pusher
+!     2v particle pusher
+!
+!  TE fields only (p-pol):  (Ex,Ey,0)  (0,0,Bz)
+!  nonrelativistic for now
+!  ==============================================
+
+
+subroutine push_TE(p_start,p_finish,dts)
+  use module_physvars
+  use module_particle_props
+!  use module_laser
+
+  implicit none
+  integer, intent(in) :: p_start, p_finish
+  real, intent(in) :: dts
+  integer :: p
+  real :: beta, gam1,tt, ss
+  real :: uxd,uyp,uxp,uxm,uym, uzm
+  real :: exi, eyi, ezi, bxi, byi, bzi
+
+
+
+  do p = p_start, p_finish
+     beta=q(p)/m(p)*dts*0.5  ! charge/mass constant
+
+     !  Sum internal and external fields
+     exi = ex(p)
+     eyi = ey(p)
+     ezi = 0.
+     bxi = 0.
+     byi = 0.
+     bzi = bz(p)
+
+     !   half-accn
+
+     uxm = ux(p) + beta*exi
+     uym = uy(p) + beta*eyi
+     uzm = uz(p)
+
+     !   rotation
+
+!     gam1=sqrt(1.0+uxm**2+uym**2+uzm**2)
+     gam1=1.0
+     tt=beta*bzi/gam1
+     ss=2.d0*tt/(1.d0+tt**2)
+
+     uxd = uxm + uym*tt
+     uyp = uym - uxd*ss
+     uxp = uxd + uyp*tt
+
+     !   half-accn
+
+     ux(p)=uxp+beta*exi
+     uy(p)=uyp+beta*eyi
+
+  end do
+
+
+  !   get gamma
+
+!  do l=1,n
+!     ip=ip1+l-1
+!     gamma(ip)=sqrt(1.0+ux(ip)**2+uy(ip)**2+uz(ip)**2)
+!  end do
+
+end subroutine push_TE
+
+
+!  ==============================================
+!
+!     2v particle pusher
 !
 !  TM fields only (s-pol):  (0,0,Ez)  (Bx,By,0)
-!  TE fields to follow (Ex,Ey,0) (0,0,Bz)
+!
 !  ==============================================
 
 
-subroutine push_em(p_start,p_finish,dts)
+subroutine push_TM(p_start,p_finish,dts)
   use module_physvars
   use module_particle_props
   use module_laser
@@ -123,7 +196,7 @@ subroutine push_em(p_start,p_finish,dts)
   end do
 
 
-end subroutine push_em
+end subroutine push_TM
 
  
 !  ==============================================

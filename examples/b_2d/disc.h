@@ -10,11 +10,12 @@
 ! Force law 2D
  idim=2
  force_law=2
- force_const=1.
+ force_const=0.1591549  ! 1/2pi
+  
 ! np_error = 200 ! uncomment to do error test
  
 ! Choose sorting routine and load balancing                                                                                                                
-! 0: no load balacing, 1: load balancing                                                                                                                   
+! 0: no load balancing, 1: load balancing                                                                                                                   
  weighted = 1                                                                                                                                              
 ! Choose tree build routine                                                                                                                                
 ! 0: original, 1: optimized     
@@ -24,8 +25,8 @@
  num_walk_threads =1
 
 ! particles
-  ne = 5000
-  ni = 5000 
+  ne = 100
+  ni = 100 
 
 ! set up plasma target
  plasma_config = 1  
@@ -38,9 +39,9 @@
   eps = 0.1
   
 ! Temperatures in keV
-  Te_keV =0. 
-  Ti_keV =0. 
-  mass_ratio = 2000.
+  Te_keV =0.1 
+  Ti_keV =0.1 
+  mass_ratio = 100.
   q_factor = 1.
   coulomb = .true.
   lenjones = .false.
@@ -60,10 +61,11 @@
  ngy=50
  nxh=50
  ngav=50
-! beam
-   beam_config_in = 3 
+ 
+! external field
+   beam_config_in = 0 
 
-  vosc = 3.0
+  vosc = 1.0
   omega = 0.5
   sigma = 6.
   tpulse = 20.
@@ -102,7 +104,7 @@
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = 2
+  idump = 1
   iprot=10
   itrack=300
   particle_bcs = 1 /

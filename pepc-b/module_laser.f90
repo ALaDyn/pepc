@@ -167,6 +167,7 @@ subroutine laser(I_laser)
       else
         focus(1) = focus(1) + dt  ! propagate forward by c*dt - can include v_g here
         propag_laser=propag_laser + dt
+	write (*,*) focus(1)
       endif
 
     case(4,14,24,94)  ! old fpond model

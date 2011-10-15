@@ -34,7 +34,7 @@ module module_physvars
   integer :: nep, nip     !< # particles/electrons/ions per process
 
   real :: xl, yl, zl     !< simulation box dimensions
-  real :: vte, vti       !< electron, ion thermal velocities
+  real :: vte=0., vti=0.       !< electron, ion thermal velocities; set vte=1 to choose Debye unit system
   real :: Te_keV, Ti_keV !< electron, ion emperatures in keV
   real :: T_scale = 1       !< factor for rescaling Te after restart 
   real :: force_const    !< force constant depending on unit system
@@ -247,7 +247,7 @@ module module_physvars
  namelist /pepcdata/ nep, nip, ne, ni, &
        theta, mac, nint_max, mass_ratio, mass_proton, rho0, &
        plasma_config, target_geometry, velocity_config, ispecial, &
-       Te_keV, Ti_keV, T_scale, Zion, &
+       vte, Te_keV, Ti_keV, T_scale, Zion, &
        r_sphere, x_plasma, y_plasma, z_plasma, delta_mc, &
        n_layer, x_layer, y_layer, z_layer, r_layer, Zion_layer, rho_layer, mratio_layer, layer_geometry, &
        xl, yl, zl, displace, bond_const, fnn, rho_min, lolam, &

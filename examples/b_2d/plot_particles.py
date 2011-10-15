@@ -1,75 +1,104 @@
-#!/usr/bin/python
+#! /usr/bin/python
 
 import gobject
-from numpy import *
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib
-matplotlib.use('GTKAgg') # do this before importing pylab
 import matplotlib.pyplot as plt
+#from matplotlib import rc
+from numpy import *
+import numpy as np
+#import matplotlib.font_manager
+from matplotlib.mlab import griddata
+import matplotlib.delaunay
+import matplotlib.cm as cm
+import locale
+import os
 import os.path
+import sys
+from time import sleep
 
 
-FILE_COLUMN_X   =  0
-FILE_COLUMN_Y   =  1
-FILE_COLUMN_Z   =  2
-FILE_COLUMN_Q   =  3
-FILE_COLUMN_M   =  4
-FILE_COLUMN_VX  =  5
-FILE_COLUMN_VY  =  6
-FILE_COLUMN_VZ  =  7
-FILE_COLUMN_EX  =  8
-FILE_COLUMN_EY  =  9
-FILE_COLUMN_EZ  = 10
-FILE_COLUMN_POT = 11
 
 
-currtimestep  = 0
-stepincrement = 1
+print "Plot field data"
+
+
 plotboxsize   = 5.
-animated      = True
+animated = True
+nx=200
+ny=100
 
 
-fig = plt.figure()
-fig.suptitle("Simulated Particles")
-ax = fig.gca(projection='3d')
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-plt.axis('equal')
-cm = matplotlib.cm.get_cmap('jet')
+fig = plt.figure(figsize=(8,8))
+fig.suptitle("Densities")
+#fig.suptitle(filename, fontsize=26)
+#fig.subplots_adjust(right=0.8) # http://matplotlib.sourceforge.net/faq/howto_faq.html#move-the-edge-of-an-axes-to-make-room-for-tick-labels
 
 
 
-def plot_particles_from_file(fn):
+
+def plot_image(field,position,color,ctitle):
+    global fig
+
+#    print field,position,color,ctitle
+    plt.subplot(position)
+    cmap = plt.get_cmap(color) # Set a colour map
+    cmap.set_under ( 'w' ) # Low values set to 'w'hite
+    cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
+    plt.imshow(field, cmap=cmap, aspect=1, interpolation='bilinear', vmin=0.01, vmax=1.5, origin='lower') 
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.colorbar()
+#    cb.set_label(ctitle)
+    plt.draw()
+    return True
+
+# contour the gridded data, plotting dots at the nonuniform data points.
+#CS = plt.contour(xi,yi,zi,15,linewidths=0.5,colors='k')
+#CS = plt.contourf(xi,yi,zi,15,cmap=plt.cm.jet)
+
+
+
+def plot_from_file(fn):
+    global xmin,xmax,ymin,ymax
     if os.path.isfile(fn):
         try:
-            raw = []
-            raw = loadtxt(fn)
-            return plot_raw_data(raw)
+            data = []
+            data = genfromtxt(fn)
+	    nparts=data.shape[0]
+            numcols=data.shape[1]
+            print "np:",nparts,"numcols:",numcols
+	    datanames=['x','y','z','vx','vy','vz','q','m','ex','ey','ez','pot','proc','label']
+	    plt.xlabel(datanames[0])
+            plt.ylabel(datanames[1])
+            plt.grid(True, which='both')
+	# extract
+	    ilim=nparts/2
+	# electrons xy:
+ 	    axScatter = plt.subplot(221)
+	    axScatter.scatter(data[0:ilim-1,0],data[0:ilim-1,1],c='r',marker='o')
+	    axScatter.scatter(data[ilim:nparts,0],data[ilim:nparts,1],c='b',marker='o')
+	    axScatter.set_aspect(1.)
+	    axScatter.set_xlim( (xmin, xmax) )
+	    axScatter.set_ylim( (ymin, ymax) )
+ 	    plt.draw()
+    	    return True
+# ions xy
+#axScatter = plt.subplot(222)
+#axScatter.scatter(data[ilim:npart-1,0],data[ilim:npart-1,1],c=col[ilim:npart-1],marker='o')
+#axScatter.set_aspect(1.)
+
         except IOError:
+	    print 'File ',fn,' not found'
             return False
     else:
+	print 'File ',fn,' not found'
         return False
 
 
+def plot_for_timestep(ts):
 
-def plot_raw_data(raw):
-    global fig
-    matplotlib.axes.Axes.cla(ax)
-    ax.scatter(raw[:,FILE_COLUMN_X],  raw[:,FILE_COLUMN_Y],  raw[:,FILE_COLUMN_Z], cmap=cm, c=raw[:,FILE_COLUMN_Q], s=5, linewidth=0, vmax=0.01, vmin=-0.01)
-    plt.axes().set_aspect('equal', 'datalim')
-    ax.set_xlim3d(-plotboxsize,plotboxsize)
-    ax.set_ylim3d(-plotboxsize,plotboxsize)
-    ax.set_zlim3d(-plotboxsize,plotboxsize)
-    #ax.mouse_init()
-    fig.canvas.draw()
-    return True
-
-
-def plot_particles_for_timestep(ts):
-    filename = "parts_p0000" + '%0*d'%(5, ts)
-    if plot_particles_from_file(filename):
-        print "Timestep: " + '%0*d'%(5, ts)
+    filename = 'dumps/parts_p0000.%0*d'%(6, ts)
+    if plot_from_file(filename):
+        print "Timestep: " + '%0*d'%(6, ts)
         return True
     else:
         return False
@@ -77,20 +106,41 @@ def plot_particles_for_timestep(ts):
 
 
 def next_plot():
-    global currtimestep
-
-    if plot_particles_for_timestep(currtimestep):
-        currtimestep = currtimestep + stepincrement
+    global timestamp
+    print timestamp
+    if plot_for_timestep(timestamp):
+        timestamp = timestamp + increment
 
     return True
 
 
 # Execute update method every 500ms
-if animated:
+#if animated:
     #gobject.idle_add(next_plot)
-    gobject.timeout_add(250, next_plot)
-else:
-    next_plot()
+#    gobject.timeout_add(250, next_plot)
+#else:
+#    next_plot()
 
-# Display the plot
+#gobject.idle_add(next_plot)
+
+#fn='fields/000000.xy'
+#plot_from_file(fn,nx,ny)
+
+tmax=100
+increment = 1
+xmin=0
+xmax=20
+ymin=0
+ymax=20
+
+plt.ion()
+for timestamp in range(0,tmax,increment):
+	plot_for_timestep(timestamp)
+	sleep(0.1) # Time in seconds.
+#	raw_input("Press key...")
+	plt.clf()
+#'	plt.show()
+#	input = sys.stdin.readline() 
+
+#plt.savefig(filename +'.png') # Must occur before show()
 plt.show()

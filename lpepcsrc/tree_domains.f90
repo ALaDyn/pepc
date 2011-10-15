@@ -241,9 +241,10 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
         ! TODO: need 'ripple' here up to next large gap in keys i+1->npp
 
-        write(*,'(a15,i5,a8,i3,a50,2i9,3i10,a10,o25,a10,o25,a10,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
-             ' WARNING: identical keys found for particle index,#,l-1,l,l+1  ',i,npp,particles(i-1)%label,particles(i)%label,particles(i+1)%label, &
-             ' k(i-1) ',particles(i-1)%key,'k(i)',particles(i)%key,' k(i+1) ',particles(i+1)%key
+        write(*,'(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
+             ' WARNING: identical keys found for index, npp, label1, label2  ', &
+               i,npp,particles(i-1)%label,particles(i)%label,particles(i+1)%label, &
+             ' -  to: ',particles(i)%key,' next key: ',particles(i+1)%key
      endif
   end do
 

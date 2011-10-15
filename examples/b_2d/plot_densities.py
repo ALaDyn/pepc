@@ -26,6 +26,7 @@ animated = True
 nx=200
 ny=100
 
+
 fig = plt.figure(figsize=(8,8))
 fig.suptitle("Densities")
 #fig.suptitle(filename, fontsize=26)
@@ -78,7 +79,7 @@ def plot_from_file(fn,nx,ny):
 
 def plot_for_timestep(ts):
     global nx,ny
-    filename = 'fields_1t/%0*d'%(6, ts) + '.xy'
+    filename = 'fields/%0*d'%(6, ts) + '.xy'
     print filename,nx,ny
     if plot_from_file(filename,nx,ny):
         print "Timestep: " + '%0*d'%(6, ts)
@@ -109,7 +110,7 @@ def next_plot():
 #fn='fields/000000.xy'
 #plot_from_file(fn,nx,ny)
 
-tmax=125
+tmax=250
 increment = 25
 plt.ion()
 for timestamp in range(0,tmax,increment):
