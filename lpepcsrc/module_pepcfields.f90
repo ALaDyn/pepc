@@ -153,7 +153,7 @@ module module_pepcfields
 		  call allocate_tree(theta)
 
 		  ! calculate spherical multipole expansion of central box
-		  call fmm_framework_timestep
+		  if (cf_par%force_law==3) call fmm_framework_timestep
 
 		  ! build local part of tree
 		  call timer_stamp(t_stamp_before_local)
@@ -207,7 +207,7 @@ module module_pepcfields
 
 		  ! add lattice contribution
 		  call timer_start(t_lattice)
-		  call calc_force_per_particle(cf_par)
+		  if (cf_par%force_law==3) call calc_force_per_particle(cf_par)
 		  call timer_stop(t_lattice)
 
 		  ! restore initial particle order specified by calling routine to reassign computed forces

@@ -22,8 +22,8 @@
  num_walk_threads =1
 
 ! particles
-  ne = 200
-  ni = 200 
+  ne = 500
+  ni = 500 
 
  plasma_config = 1  ! set up plasma target
  target_geometry = 0   ! slab in xy plane 
@@ -47,7 +47,7 @@
   bond_const = 2.e-3
   r_sphere = 3. 
   x_plasma = 15    ! plasma disc thickness/ wire length 
-  y_plasma = 15.    ! plasma width (slab target) 
+  y_plasma = 20.    ! plasma width (slab target) 
   z_plasma = 0.     ! plasma width (slab target)
   xl = 20  ! graphics box size
   yl =20 
@@ -58,7 +58,7 @@
  ngav=50
  
 ! external field
-  beam_config_in = 0  ! uniform Bz 
+  beam_config_in = 7  ! uniform Bz 
   vosc = 0.2
 
 ! fmm-periodicity framework
@@ -67,16 +67,17 @@
 ! t_lattice_2 = 0. 1. 0.
 ! t_lattice_3 = 0. 0. 1.
  ! periodicity in x-, y-, and z-direction
+ periodicity = .false., true., false.  ! forces periodic in y (1st neighbour box only)
  particle_wrap = .false.,.true.,.false.
 
   ! extrinsic-to-intrinsic correction
 !  do_extrinsic_correction = .false. 
 
- scheme = 8 ! integration scheme: 2v, TE (Ex, Ey, Bz)                          
+ scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
   nt =100
-  dt = 0.1
+  dt = 0.05
  restart = .false.
   vis_on = .false.
  ivis = 5 
