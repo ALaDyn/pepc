@@ -1,4 +1,5 @@
-! Plasma disc 
+! Plasma slab with perpendicular magnetic field
+! Periodic in y-direction 
 
  &pepcdata
  np_mult=-20
@@ -21,16 +22,16 @@
  num_walk_threads =1
 
 ! particles
-  ne = 50
-  ni = 50 
+  ne = 200
+  ni = 200 
 
  plasma_config = 1  ! set up plasma target
  target_geometry = 0   ! slab in xy plane 
  velocity_config = 4 ! 2D Maxwellian
  idim=2  ! ignore z coord
  force_law=2 ! Force law 2D
-! force_const=0.1591549  ! 1/2pi
- force_const=0.
+ force_const=0.1591549  ! 1/2pi
+! force_const=0.
 
   theta = 0.5
   eps = 1.0  ! smoothing parameter in norm units
@@ -39,13 +40,13 @@
   Te_kev=1.0
   Ti_kev=1.0
 
-  mass_ratio = 10.
+  mass_ratio = 100.
   q_factor = 1.
   coulomb = .false.
   lenjones = .false.
   bond_const = 2.e-3
   r_sphere = 3. 
-  x_plasma = 10    ! plasma disc thickness/ wire length 
+  x_plasma = 15    ! plasma disc thickness/ wire length 
   y_plasma = 15.    ! plasma width (slab target) 
   z_plasma = 0.     ! plasma width (slab target)
   xl = 20  ! graphics box size
@@ -57,7 +58,7 @@
  ngav=50
  
 ! external field
-  beam_config_in = 7  ! uniform Bz 
+  beam_config_in = 0  ! uniform Bz 
   vosc = 0.2
 
 ! fmm-periodicity framework
@@ -66,8 +67,8 @@
 ! t_lattice_2 = 0. 1. 0.
 ! t_lattice_3 = 0. 0. 1.
  ! periodicity in x-, y-, and z-direction
- ! periodicity= .true.  .true.  .true.
-! periodicity= .false.,.false.,.false.
+ particle_wrap = .false.,.true.,.false.
+
   ! extrinsic-to-intrinsic correction
 !  do_extrinsic_correction = .false. 
 
@@ -86,7 +87,7 @@
   idump = 1
   iprot=10
   itrack=300
-  particle_bcs = 1 /
+  particle_bcs = 3 /
 
 
 

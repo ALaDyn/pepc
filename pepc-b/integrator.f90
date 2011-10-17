@@ -45,16 +45,4 @@ subroutine integrator
 
 
 
-  boundaries: select case(particle_bcs)
-
-  case(2)
-     call constrain   ! relective particle bcs for temperature-clamp mode
-  case(3)
-     call earth_plate  ! special bcs for grounded target end 
-  case default
-     ! do nothing
-
-  end select boundaries
-
-
 end subroutine integrator

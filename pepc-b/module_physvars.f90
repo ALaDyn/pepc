@@ -1,6 +1,7 @@
 
 module module_physvars
   use tree_walk_pthreads
+  use module_fmm_framework
   implicit none
 
   real, parameter :: pi=3.141592654
@@ -153,6 +154,7 @@ module module_physvars
   logical :: steering = .false.  !< VISIT steering switch
   logical :: ramp = .false.  !< profile-ramp switch
   logical :: te_perturb = .false.  !< Temperature perturbation switch
+
   integer :: mc_steps !< # MC steps
   integer :: plasma_config = 1  !< Switch for initial configuration (positions, velocities)
   integer :: target_geometry = 0  !< Geometry for plasma target
@@ -163,7 +165,8 @@ module module_physvars
   integer :: beam_config = 0 !< Reduced switch for particle or laser beam 
   integer :: ispecial       !< Switch to select special electron configs 
   integer :: scheme = 1 !< Integrator scheme switch: 2-4= const. Te dynamics, 6=EM
-  integer :: particle_bcs = 1 !< Particle BC switch: 1=open, 2=reflective
+  integer :: particle_bcs = 1 !< Particle BC switch: 1=open, 2=reflective, 3=periodic
+  logical :: particle_wrap(3) = (/.false.,.false.,.false./)
   integer :: debug_level =1 !< Debug level for printed O/P
   integer :: debug_tree =0 !< Debug level for tree diagnostics O/P
   integer :: ncpu_merge=1  !< Restart control: -1= split data amoung all CPUs 
@@ -264,7 +267,7 @@ module module_physvars
        q_factor, netcdf, launch, foam_geom, force_tolerance, dynamic_memalloc, &
        eps, force_const, idim, force_law, &
        xh_start, xh_end, nxh, xgav_start, xgav_end, ngav, xgav_pos, &
-       num_walk_threads
+       num_walk_threads, particle_wrap, periodicity
 !       t1, t2, t3, periodicity, do_extrinsic_correction              ! periodicity config
  
 end module module_physvars

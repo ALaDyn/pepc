@@ -40,6 +40,7 @@ program pepcb
   use module_diagnostics
   use module_fmm_framework
   use module_pepcfields
+  use module_particle_boundaries
 
   implicit none
   include 'mpif.h'
@@ -202,8 +203,9 @@ program pepcb
 !  Velocity and position update - explicit schemes only
      call integrator
 
-     ! periodic systems demand periodic boundary conditions
- !    if (do_periodic) call constrain_periodic(x(1:np_local),y(1:np_local),z(1:np_local),np_local)
+! Check for particle motion constrains
+
+     call check_particle_bounds
 
 !POMP$ INST END(integ)
 
