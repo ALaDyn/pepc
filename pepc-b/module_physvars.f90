@@ -240,8 +240,8 @@ module module_physvars
   character*7 :: beam_configs(0:9)=(/ &
        'eqm    ','beam   ','i-beam ','laser-u','ES pond','LWFA   ', &
        'EMplane','EM pond',' dust  ','       ' /)
-  character*7 :: schemes(1:7)=(/ &
-       'const U','Te, Ti ','glob Te','loc  Te','Ti only','Full 3V','non-rel' /)
+  character*7 :: schemes(1:8)=(/ &
+       'const U','Te, Ti ','glob Te','loc  Te','Ti only','Full 3V','non-rel','2V  TE ' /)
 
 !  Redundant variables retained for namelist compatibility
   real :: q_factor=1.0
