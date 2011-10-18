@@ -74,9 +74,9 @@ subroutine wrap
 ! TODO: need to include periodicity vector
 
     do p = 1, np_local
-	if (particle_wrap(1)) x(p)=modulo(x(p),xl)
-	if (particle_wrap(2)) y(p)=modulo(y(p),yl)
-	if (particle_wrap(3)) z(p)=modulo(z(p),zl)
+	if (particle_wrap(1)) x(p)=modulo(x(p),1.d0*xl)
+	if (particle_wrap(2)) y(p)=modulo(y(p),1.d0*yl)
+	if (particle_wrap(3)) z(p)=modulo(z(p),1.d0*zl)
     end do
 	
 end subroutine wrap

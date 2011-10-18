@@ -2,7 +2,7 @@ MACH     = IBM-BGP-jugene
 
 DEBUG    = 0
 VAMPIR   = 0
-
+SION     = 1
 RANLIB   = ranlib
 
 MAKE     = gmake
@@ -12,7 +12,6 @@ ARFLAGS  = -rs
 
 CPP      = cpp
 CPPFLAGS = -P -C -DLITTLEENDIAN
-
 
 OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck -qkeepparm -qflttrap -qnosmp -qxflag=dvz -Q! -qnounwind -qnounroll
 OPTIMIZATIONFLAGS       = -O3 -qhot -qipa -qipa=list=long:threads=auto \
@@ -41,6 +40,7 @@ else
   LDPRE    =
 endif
 
+
 FC       = mpixlf90_r
 CC       = mpixlc_r
 CFLAGS_NOOPT = -D_BGP $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
@@ -53,6 +53,13 @@ LD       = mpixlf90_r
 #HPCCOUNT_LIB = -L../hpccount/lib -lhpccnt -L$(IHPCT_BASE)/lib -lhpc -llicense $(IHPCT_BASE)/lib/fake_dlfcn.o $(IHPCT_BASE)/lib/average.o
 
 LDLIBS   = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc $(TOTOALVIEW_LIB) $(HPCCOUNT_LIB)
+
+#  Flags for sionlib I/O option
+ifeq ($(SION),1)
+  CPPFLAGS += -DSION  # Preprocessor
+  LDLIBS += `sionconfig --libs --mpi -be`
+  CFLAGS += `sionconfig --cflags --for --mpi -be`
+endif
 
 RM       = rm -rf
 

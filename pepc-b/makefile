@@ -32,13 +32,6 @@ SOURCES.GENERIC.f90 = module_gle.f90
 
 # -------------------------------------------------------------------------------------------
 
-# check for sion usage, add dump_sion or dump_ascii to src-list
-ifeq ($(SION),1)
-#SOURCES.f90 += dump_sion.f90 predef_parts_sion.f90
-LDLIBS += $(LIB_SION)
-else
-#SOURCES.f90 += dump_ascii.f90 predef_parts_ascii.f90
-endif
 
 # Names of application object files derived from sources
 # Prefix added for multi-arch builds

@@ -316,7 +316,7 @@ subroutine dump(timestamp)
   ! Write the inforblock
   call fsion_write(infoblk, 1, size_info, sid, bwrote)
   if (bwrote /= size_info) then
-   write(*,*) 'Error writing Infoblock. Wrote: ', bwrote
+   write(167,*) 'Error writing Infoblock. Wrote: ', bwrote
   else
    write(167,*)'Wrote infoblock: ',bwrote
   end if
@@ -324,59 +324,63 @@ subroutine dump(timestamp)
   ! Write X
   call fsion_write(x, 1, size1, sid, bwrote)
 
-  if (bwrote /= size1) write(167,*) 'Error writing x(). Wrote: ', bwrote
+!  if (bwrote /= size1) then
+!	write(167,*) 'Error writing x(). Wrote: ', bwrote
+!  else
+!	write(*,*) 'bwrote x',size1, bwrote
+!  endif
 
   ! Write Y
   call fsion_write(y, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing y(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing y(). Wrote: ', bwrote
 
   ! Write Z
   call fsion_write(z, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing z(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing z(). Wrote: ', bwrote
 
   ! Write UX
   call fsion_write(ux, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing ux(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing ux(). Wrote: ', bwrote
 
   ! Write UY
   call fsion_write(uy, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing uy(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing uy(). Wrote: ', bwrote
 
   ! Write UY
   call fsion_write(uz, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing uz(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing uz(). Wrote: ', bwrote
 
   ! Write Q
   call fsion_write(q, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing q(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing q(). Wrote: ', bwrote
 
   ! Write M
   call fsion_write(m, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing m(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing m(). Wrote: ', bwrote
 
   ! Write Ex
   call fsion_write(Ex, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing Ex(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing Ex(). Wrote: ', bwrote
 
   ! Write Ey
   call fsion_write(Ey, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing Ey(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing Ey(). Wrote: ', bwrote
 
   ! Write Ez
   call fsion_write(Ez, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing Ez(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing Ez(). Wrote: ', bwrote
 
   ! Write pot
   call fsion_write(pot, 1, size1, sid, bwrote)
-  if (bwrote /= size1) write(167,*) 'Error writing pot(). Wrote: ', bwrote
+!  if (bwrote /= size1) write(167,*) 'Error writing pot(). Wrote: ', bwrote
 
   ! Write pepid
   call fsion_write(pepid, 1, size2, sid, bwrote)
-  if (bwrote /= size2) write(167,*) 'Error writing pepid(). Wrote: ', bwrote
+!  if (bwrote /= size2) write(167,*) 'Error writing pepid(). Wrote: ', bwrote
 
   ! Write pelabel
   call fsion_write(pelabel, 1, size2, sid, bwrote)
-  if (bwrote /= size2) write(167,*) 'Error writing pelabel(). Wrote: ', bwrote
+!  if (bwrote /= size2) write(167,*) 'Error writing pelabel(). Wrote: ', bwrote
 
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   call fsion_parclose_mpi(sid,MPI_COMM_WORLD,ierr)
