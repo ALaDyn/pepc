@@ -294,19 +294,23 @@ subroutine dump(timestamp)
   chunksize = 12*size1 + 2*size2 + size_info
   fsblksize = 2*1024*1024
 
-! if(my_rank == 0) then
-! write(6,*)'**************** np_local=',np_local,' **************'
-! write(6,*)'**************** size_info=',size_info,' **************'
-! write(6,*)'**************** size1    =',size1,' **************'
-! write(6,*)'**************** size2    =',size2,' **************'
-! write(6,*)'**************** chunksize=',chunksize,' **************'
-! end if
+ if(my_rank == 0) then
+ write(6,*)'**************** np_local=',np_local,' **************'
+ write(6,*)'**************** size_info=',size_info,' **************'
+ write(6,*)'**************** size1    =',size1,' **************'
+ write(6,*)'**************** size2    =',size2,' **************'
+ write(6,*)'**************** chunksize=',chunksize,' **************'
+ end if
 
 ! Particles dump file
   cfile="dumps/parts_dump."//cdump(1:6)
 
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   call fsion_paropen_mpi(trim(cfile),'bw',numfiles,MPI_COMM_WORLD,MPI_COMM_WORLD,chunksize,fsblksize,my_rank,cfile_new,sid)
+! call fsion_paropen_mpi(trim(fname), 'bw', nf, MPICOMMM, MPICOMMM, chunksize, FSBLK, rank, newfname, sid)
+!                                         no. files               size per process                  file handle for sion lib
+!                                             global communicator            FS blocksize
+!                                                       local communicator
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   ! Write the inforblock
@@ -319,6 +323,7 @@ subroutine dump(timestamp)
 
   ! Write X
   call fsion_write(x, 1, size1, sid, bwrote)
+
   if (bwrote /= size1) write(167,*) 'Error writing x(). Wrote: ', bwrote
 
   ! Write Y
@@ -461,6 +466,8 @@ subroutine predef_parts
 
   cinfile="dumps/parts_dump."//cdump(1:6)
   call fsion_paropen_mpi(trim(cinfile),"br",numfiles,MPI_COMM_WORLD,MPI_COMM_WORLD,chunksize,fsblksize,my_rank,cfile_new,sid)
+
+
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   size_info = sizeof(infoblk%intarr)+sizeof(infoblk%realarr)+sizeof(infoblk%plasma_centre)+sizeof(infoblk%focus)

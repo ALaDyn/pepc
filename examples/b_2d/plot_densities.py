@@ -23,7 +23,7 @@ print "Plot field data"
 
 plotboxsize   = 5.
 animated = True
-nx=200
+nx=100
 ny=100
 
 
@@ -68,7 +68,9 @@ def plot_from_file(fn,nx,ny):
 	# extract
 	    rhoe = -raw[:,0].reshape(ny,nx)
             rhoi = raw[:,1].reshape(ny,nx)
-            return plot_image(rhoe,111,'Reds','rhoe')
+	    plot_image(rhoe,211,'Reds','rhoe')
+ 	    plot_image(rhoi,212,'YlGn','rhoi')
+            return
         except IOError:
 	    print 'File ',fn,' not found'
             return False
@@ -110,8 +112,8 @@ def next_plot():
 #fn='fields/000000.xy'
 #plot_from_file(fn,nx,ny)
 
-tmax=250
-increment = 25
+tmax=2000
+increment = 100
 plt.ion()
 for timestamp in range(0,tmax,increment):
 	plot_for_timestep(timestamp)
