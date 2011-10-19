@@ -240,7 +240,7 @@ subroutine fields_2d
 
   if (my_rank.lt.ng_rest) ngp=ngp+1
 
-  allocate (ngps(n_cpu), igap(n_cpu) )
+  allocate (ngps(n_cpu+3), igap(n_cpu+3) )
   allocate (p_x(ngp), p_y(ngp), p_z(ngp), p_ex(ngp), p_ey(ngp), p_ez(ngp), p_pot(ngp), p_label(ngp) )
 
 ! Create array of local gps for strides
@@ -255,7 +255,7 @@ subroutine fields_2d
   end do
 
 ! Compute my set of coordinates
-  do k=igap(my_rank)+1, igap(my_rank) + ngps(my_rank)
+  do k=igap(my_rank+1)+1, igap(my_rank+1) + ngps(my_rank+1)
 	i = mod(k-1,ngx)+1  ! x-index
 	j = k/ngx + 1  ! y-index
 	p_x(k) = i*dx-dx/2.
@@ -264,7 +264,7 @@ subroutine fields_2d
 	p_label(k)=k
   end do
 
-  call pepc_grid_fields(np_local,npart_total,p_x, p_y, p_z, p_label, &
+  call pepc_grid_fields(ngp,ng_total,p_x, p_y, p_z, p_label, &
 	     p_Ex, p_Ey, p_Ez, p_pot, &
 	     mac, theta, calc_force_params(eps, force_const, force_law), &
 	     itime,  num_neighbour_boxes, neighbour_boxes)
