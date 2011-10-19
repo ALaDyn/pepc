@@ -56,50 +56,46 @@ module module_io
 
       contains
 
-		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		!>
-		!> Open files for result and debugging output
-		!> - Rank 0:
-		!>          - tree.out (\e 15): Tree stats
-		!>          - pepc.out (\e 24): Physics log
-		!>          - domains.dat (\e 70):
-		!>          - laser.dat (\e 71): Laser parameters
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!>
+	!> Open files for result and debugging output
+	!> - Rank 0:
+	!>          - tree.out (\e 15): Tree stats
+	!>          - pepc.out (\e 24): Physics log
+	!>          - domains.dat (\e 70):
+	!>          - laser.dat (\e 71): Laser parameters
         !>          - energy.dat (\e 75): energies
         !>          - memory.dat (\e 59): memory status information
-		!>          .
-		!> - all ranks (only if \code(debug_level>2 .and. idump>0)\endcode) :
-		!>          - data/out.1234 (\e 20):
-		!>
-		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine openfiles
+	!>          .
+	!> - all ranks (only if \code(debug_level>2 .and. idump>0)\endcode) :
+	!>          - data/out.1234 (\e 20):
+	!>
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	subroutine openfiles
+	  use module_physvars
+	  implicit none
+	  character(30) :: cfile
 
-		  use module_physvars
-		  implicit none
-		  character(30) :: cfile
+	  if (my_rank == 0) then
+	     !  master diagnostics output
+	     open(file_tree_out, file='tree.out')  ! Tree stats
+	     open(file_pepc_out, file='pepc.out') ! Physics log
+	     open(file_domains_dat, file='domains.dat')
+	     open(file_laser_dat,   file='laser.dat')       ! laser parameters
+	     open(file_energy_dat,  file='energy.dat')      ! energies
+	     write(*,*) 'debug level: ',debug_level,' idump',idump
+	  endif
 
-
-		  if (my_rank == 0) then
-		     !  master diagnostics output
-		     open(file_tree_out, file='tree.out')  ! Tree stats
-		     open(file_pepc_out, file='pepc.out') ! Physics log
-
-		     open(file_domains_dat, file='domains.dat')
-		     open(file_laser_dat,   file='laser.dat')       ! laser parameters
-		     open(file_energy_dat,  file='energy.dat')      ! energies
-
-		     write(*,*) 'debug level: ',debug_level,' idump',idump
-		  endif
-
-		  !  stdout for PE my_rank
-		  if (debug_level > 0) then
+	  !  stdout for PE my_rank
+	  if (debug_level > 0) then
             call system("mkdir -p " // "diag")
-		    write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
-		    open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
-		  endif
+	    write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
+	    open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+	  endif
 
-		  ipefile = file_ipefile ! copy file handle to core
+	  ipefile = file_ipefile ! copy file handle to core
 
-		end subroutine openfiles
+	end subroutine openfiles
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -125,57 +121,54 @@ module module_io
         end subroutine flushfiles
 
 
-		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		!>
-		!> Tidy up O/P files
-		!>
-		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine closefiles
-		  use module_physvars
-		  implicit none
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!>
+	!> Tidy up O/P files
+	!>
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	subroutine closefiles
+	  use module_physvars
+	  implicit none
 
-		  if (my_rank == 0) then
-		     close(file_tree_out)
+	  if (my_rank == 0) then
+	     close(file_tree_out)
              close(file_pepc_out)
-		     close(file_domains_dat)
-		     close(file_laser_dat)
+	     close(file_domains_dat)
+	     close(file_laser_dat)
              close(file_energy_dat)
              close(file_memory_dat)
-		     close(90)
-		  endif
-		  if (debug_level > 0) close(file_ipefile)
-		  close(file_parts_info_in)  ! initial particle data
+	     close(90)
+	  endif
+
+	  if (debug_level > 0) close(file_ipefile)
+	  close(file_parts_info_in)  ! initial particle data
+
+	end subroutine closefiles
 
 
-		end subroutine closefiles
+	!     =========================
+	!
+	!     Time stamp
+	!
+	!     =========================
 
+	subroutine stamp(istream,ibegin)
+	  implicit none
+	  character :: cdate*8, ctime*10, czone*5
+	  integer :: ibegin
+	  integer :: istream
 
-		!     =========================
-		!
-		!     Time stamp
-		!
-		!     =========================
+	     !      call DATE_AND_TIME(cdate,ctime,czone,vals)
+	     call DATE_AND_TIME(cdate,ctime,czone)
+	     if (ibegin.eq.1) then
+	        write(istream,'(//a20,a12/a20,a12/a20,a12//)') 'PEPC run on ' &
+	             ,cdate(7:8)//'/'//cdate(5:6)//'/'//cdate(1:4) &
+	             ,'Time: ',ctime(1:2)//':'//ctime(3:4)//':'//ctime(5:6),' GMT+',czone
 
-		subroutine stamp(istream,ibegin)
-		  implicit none
-
-		  character :: cdate*8, ctime*10, czone*5
-		  integer :: ibegin
-		  integer :: istream
-
-		     !      call DATE_AND_TIME(cdate,ctime,czone,vals)
-		     call DATE_AND_TIME(cdate,ctime,czone)
-
-		     if (ibegin.eq.1) then
-
-		        write(istream,'(//a20,a12/a20,a12/a20,a12//)') 'PEPC run on ' &
-		             ,cdate(7:8)//'/'//cdate(5:6)//'/'//cdate(1:4) &
-		             ,'Time: ',ctime(1:2)//':'//ctime(3:4)//':'//ctime(5:6),' GMT+',czone
-
-		     else
-		        write(istream,'(a,a9)') 'Finished run at time: ',ctime(1:2)//':'//ctime(3:4)//':'//ctime(5:6)
-		     endif
-		end subroutine stamp
+	     else
+	        write(istream,'(a,a9)') 'Finished run at time: ',ctime(1:2)//':'//ctime(3:4)//':'//ctime(5:6)
+	     endif
+	end subroutine stamp
 
 
 
@@ -321,66 +314,20 @@ subroutine dump(timestamp)
    write(167,*)'Wrote infoblock: ',bwrote
   end if
 
-  ! Write X
-  call fsion_write(x, 1, size1, sid, bwrote)
-
-!  if (bwrote /= size1) then
-!	write(167,*) 'Error writing x(). Wrote: ', bwrote
-!  else
-!	write(*,*) 'bwrote x',size1, bwrote
-!  endif
-
-  ! Write Y
-  call fsion_write(y, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing y(). Wrote: ', bwrote
-
-  ! Write Z
-  call fsion_write(z, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing z(). Wrote: ', bwrote
-
-  ! Write UX
-  call fsion_write(ux, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing ux(). Wrote: ', bwrote
-
-  ! Write UY
-  call fsion_write(uy, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing uy(). Wrote: ', bwrote
-
-  ! Write UY
-  call fsion_write(uz, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing uz(). Wrote: ', bwrote
-
-  ! Write Q
-  call fsion_write(q, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing q(). Wrote: ', bwrote
-
-  ! Write M
-  call fsion_write(m, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing m(). Wrote: ', bwrote
-
-  ! Write Ex
-  call fsion_write(Ex, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing Ex(). Wrote: ', bwrote
-
-  ! Write Ey
-  call fsion_write(Ey, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing Ey(). Wrote: ', bwrote
-
-  ! Write Ez
-  call fsion_write(Ez, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing Ez(). Wrote: ', bwrote
-
-  ! Write pot
-  call fsion_write(pot, 1, size1, sid, bwrote)
-!  if (bwrote /= size1) write(167,*) 'Error writing pot(). Wrote: ', bwrote
-
-  ! Write pepid
-  call fsion_write(pepid, 1, size2, sid, bwrote)
-!  if (bwrote /= size2) write(167,*) 'Error writing pepid(). Wrote: ', bwrote
-
-  ! Write pelabel
+  call fsion_write(x, 1, size1, sid, bwrote) 
+  call fsion_write(y, 1, size1, sid, bwrote) 
+  call fsion_write(z, 1, size1, sid, bwrote) 
+  call fsion_write(ux, 1, size1, sid, bwrote) 
+  call fsion_write(uy, 1, size1, sid, bwrote) 
+  call fsion_write(uz, 1, size1, sid, bwrote) 
+  call fsion_write(q, 1, size1, sid, bwrote) 
+  call fsion_write(m, 1, size1, sid, bwrote) 
+  call fsion_write(Ex, 1, size1, sid, bwrote) 
+  call fsion_write(Ey, 1, size1, sid, bwrote) 
+  call fsion_write(Ez, 1, size1, sid, bwrote)  
+  call fsion_write(pot, 1, size1, sid, bwrote) 
+  call fsion_write(pepid, 1, size2, sid, bwrote) 
   call fsion_write(pelabel, 1, size2, sid, bwrote)
-!  if (bwrote /= size2) write(167,*) 'Error writing pelabel(). Wrote: ', bwrote
 
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   call fsion_parclose_mpi(sid,MPI_COMM_WORLD,ierr)
@@ -391,17 +338,6 @@ subroutine dump(timestamp)
     write(62,'(a)') cdump(1:6)
     close (62)
 
-! write(166,'(2a)') 'Particle dump',cdump(1:6)
-! write(166,'(//a/7(a9,i8/),9(a9,f12.5/),9(a9,1pe12.5/),2(a9,3(1pe12.5)/))') 'PARTICLE DUMP:', & ! info block
-! 'itime=',timestamp, 'np_local=',np_local, &
-! 'ne=',ne, 'ni=',ni, 'npbeam=',np_beam, 'geometry=', target_geometry, &
-! 'scheme=',scheme, &
-! 'xl=',xl, 'yl=',yl, 'zl=',zl, &
-! 'eps=', eps, 'theta=',theta,' tlaser= ',tlaser,' trun= ',trun, &
-! 'omega=',omega,'lambda=',lambda,'  qe=',qe,'  qi=',qi, &
-! 'mass_e=',mass_e,'mass_i=',mass_i,'Zion=',Zion,'a_ii=',a_ii, &
-! 'Vplas=',Vplas,'Aplas=',Aplas,'Qplas=',Qplas, &
-! 'centre=',plasma_centre(1:3),'focus=',focus(1:3)
 
   endif
   icall = icall + 1
@@ -612,61 +548,33 @@ subroutine predef_parts
 !   	  write(6,*)'**************** chunksize=',chunksize,' **************'
 !    end if
 
-  	! Read X
+
   	call fsion_read(x, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading x(). Read: ', bread
-
-	! Read Y
   	call fsion_read(y, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading y(). Read: ', bread
-
-	! Read Z
   	call fsion_read(z, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading z(). Read: ', bread
-
-	! Read UX
   	call fsion_read(ux, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading ux(). Read: ', bread
-
-	! Read UY
   	call fsion_read(uy, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading uy(). Read: ', bread
-
-	! Read UY
   	call fsion_read(uz, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading uz(). Read: ', bread
-
-  	! Read Q
   	call fsion_read(q, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading q(). Read: ', bread
-
-  	! Read M
   	call fsion_read(m, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading m(). Read: ', bread
 
   	! NOT NEEDED Read Ex
   	call fsion_read(Ex, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading Ex(). Read: ', bread
 
   	! NOT NEEDED Read Ey
   	call fsion_read(Ey, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading Ey(). Read: ', bread
 
   	! NOT NEEDED Read Ez
   	call fsion_read(Ez, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading Ez(). Read: ', bread
 
   	! NOT NEEDED Read pot
   	call fsion_read(pot, 1, size1, sid, bread)
-  	if (bread /= size1) write(167,*) 'Error reading pot(). Read: ', bread
 
   	! NOT NEEDED Read pepid
   	call fsion_read(pepid, 1, size2, sid, bread)
-  	if (bread /= size2) write(167,*) 'Error reading pepid(). Read: ', bread
 
   	! Read pelabel
   	call fsion_read(pelabel, 1, size2, sid, bread)
-  	if (bread /= size2) write(167,*) 'Error reading pelabel(). Read: ', bread
 
 !    do i=1,np_local
 !       if (beam_config.eq.5 .and. q(i)>0 .and. x(i) < window_min+dt .and. x(i) > window_min) then
@@ -704,17 +612,6 @@ subroutine predef_parts
   Ez(1:np_local) = 0.
   work(1:np_local) = 1.
 
-  ! Rescale velocities if different temperature required
-  if (T_scale /= 1) then
-     if (my_rank==0) write(*,*) 'Rescaling temperature by ',T_scale,' to ',Te_keV
-     do i=1,np_local
-        if (q(i)<0) then
-           ux(i) = ux(i)*sqrt(T_scale)
-           uy(i) = uy(i)*sqrt(T_scale)
-           uz(i) = uz(i)*sqrt(T_scale)
-        endif
-     end do
-  endif
 
   if (my_rank==0) write(*,*) "Finished reading particle data"
 
@@ -1389,9 +1286,9 @@ end subroutine dump_fields
 
 ! ======================
 !
-!   DUMP_FIELDS
+!   DUMP_FIELDS 2D
 !
-!   Write out field data for 
+!   Write out 2D field data in xy plane for 
 !     postprocessing
 !
 !
@@ -1433,6 +1330,7 @@ subroutine dump_fields_2d(timestamp)
   cdump(1:1) = achar(timestamp/10**5 + 48)
 
   if (my_rank==0) then
+
      ! dump electron and ion densities, electron currents, DC fields within xl*yl
 
      write(file_pepc_out,'(//a/a,i6,a1,i6)') '2D field dump:', &
@@ -1469,11 +1367,11 @@ subroutine dump_fields_2d(timestamp)
      rhoe_slice = 0.
      rhoi_slice = 0.
 
-     ! Renormalise to EM units
+     ! 
      cfile = "fields/xslice."//cdump
      open (file_tempfile_2,file=cfile)
      write(file_tempfile_2,'(a)') '!   x      rho_e   rho_i '
-     write(file_tempfile_2,'((3(1pe12.4)))') (i*dx,rhoe_2d(i,ngy/2)/omega**2, rhoi_2d(i,ngy/2)/omega**2,i=1,ngx)
+     write(file_tempfile_2,'((3(1pe12.4)))') (i*dx,rhoe_2d(i,ngy/2), rhoi_2d(i,ngy/2),i=1,ngx)
      close(file_tempfile_2)
   endif
 

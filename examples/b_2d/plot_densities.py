@@ -112,13 +112,13 @@ def next_plot():
 #fn='fields/000000.xy'
 #plot_from_file(fn,nx,ny)
 
-tmax=2000
+tmax=10000
 increment = 100
 plt.ion()
 for timestamp in range(0,tmax,increment):
 	plot_for_timestep(timestamp)
 	sleep(0.1) # Time in seconds.
-	raw_input("Press key...")
+#	raw_input("Press key...")
 	plt.clf()
 #'	plt.show()
 #	input = sys.stdin.readline() 

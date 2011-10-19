@@ -52,8 +52,8 @@
   xl = 20  ! graphics box size
   yl =20 
   zl =4 
- ngx=100
- ngy=50
+ ngx=10
+ ngy=5
  nxh=50
  ngav=50
  
@@ -76,16 +76,16 @@
  scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
-  nt =100
+  nt =10
   dt = 0.05
  restart = .false.
   vis_on = .false.
  ivis = 5 
- ivis_fields = 2
+ ivis_fields = 10
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = 1
+  idump = -1
   iprot=10
   itrack=300
   particle_bcs = 3 /

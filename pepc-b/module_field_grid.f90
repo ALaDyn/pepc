@@ -25,6 +25,7 @@ module module_field_grid
 
 	public densities	!< Densities
 	public densities_2d	!< 2D densities
+        public fields_2d        !< 2D densities
 	public sum_fields	!< 3D fields
 	public sum_fieldave	!< time-ave fields
 	public sum_radial	!< 1D, radially symmetric fields
@@ -200,6 +201,83 @@ subroutine densities_2d
 
 
 end subroutine densities_2d
+
+
+!  =================================
+!
+!    2D fields and potential
+!
+!  =================================
+
+subroutine fields_2d
+
+  use module_physvars
+  use module_particle_props
+  use module_pepcfields
+  use treetypes
+  implicit none
+  include 'mpif.h'
+
+  integer :: ng_total ! total # grid points
+  integer :: ngp ! local # gp
+  integer, allocatable :: ngps(:), igap(:) ! gps and strides
+  integer :: ng_rest 
+  integer :: i, ierr, j, k
+  real :: dx,dy
+  logical :: field_debug=.true.
+  real*8, allocatable :: p_x(:), p_y(:), p_z(:), p_ex(:), p_ey(:), p_ez(:), p_pot(:)
+  integer, allocatable :: p_label(:)
+
+
+! Create grid of marker particles to extract fields and potential from tree  
+
+  ng_total = ngx*ngy
+  ngp = ng_total/n_cpu
+  ng_rest = mod(ng_total,n_cpu)
+
+  dx = xl/ngx
+  dy = yl/ngy
+
+  if (my_rank.lt.ng_rest) ngp=ngp+1
+
+  allocate (ngps(n_cpu), igap(n_cpu) )
+  allocate (p_x(ngp), p_y(ngp), p_z(ngp), p_ex(ngp), p_ey(ngp), p_ez(ngp), p_pot(ngp), p_label(ngp) )
+
+! Create array of local gps for strides
+  call mpi_allgather( ngp, 1, MPI_INTEGER, ngps, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+
+  ! work out stride lengths so that partial arrays placed sequentially in global array
+
+  igap(1) = 0
+  igap(2) = ngps(1)
+  do i=3,n_cpu
+	igap(i) = SUM(ngps(1:i-1))
+  end do
+
+! Compute my set of coordinates
+  do k=igap(my_rank)+1, igap(my_rank) + ngps(my_rank)
+	i = mod(k-1,ngx)+1  ! x-index
+	j = k/ngx + 1  ! y-index
+	p_x(k) = i*dx-dx/2.
+	p_y(k) = i*dy-dy/2.
+	p_z(k) = plasma_centre(3)
+	p_label(k)=k
+  end do
+
+  call pepc_grid_fields(np_local,npart_total,p_x, p_y, p_z, p_label, &
+	     p_Ex, p_Ey, p_Ez, p_pot, &
+	     mac, theta, calc_force_params(eps, force_const, force_law), &
+	     itime,  num_neighbour_boxes, neighbour_boxes)
+
+  if (field_debug) then
+     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
+			itime, mac, theta, calc_force_params(eps, force_const, force_law)
+     write (*,'(a7,a20/(i16,5f15.3,i8))') 'PEPC | ','fields: ',(p_label(i), p_x(i), p_y(i), p_ex(i), p_ey(i), p_pot(i),i=1,ngp)
+  endif
+
+! TODO insert particle field results into 2d arrays on root for dump_fields_2d
+end subroutine fields_2d
+
 
 
 !  =================================

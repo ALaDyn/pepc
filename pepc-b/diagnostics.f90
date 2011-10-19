@@ -25,6 +25,7 @@ subroutine diagnostics
  if ( mod(itime,ivis_fields)==0 ) then
   if (idim.eq.2) then
    call densities_2d
+   call fields_2d
    call dump_fields_2d(itime+itime_start)
   else
    call densities

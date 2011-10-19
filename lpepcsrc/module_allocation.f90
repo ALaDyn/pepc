@@ -38,73 +38,72 @@ module module_allocation
         !> Initializes several estimations on maximum used memory
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine allocate_tree(theta)
-		  use treevars
-		  use timings
+	subroutine allocate_tree(theta)
+	  use treevars
+	  use timings
           use module_debug
           use module_htable
           use module_branching
-		  implicit none
+	  implicit none
 
-		  real, intent(in) :: theta
+	  real, intent(in) :: theta
 
-		  integer :: nintest
+	  integer :: nintest
 
-		  call timer_start(t_allocate)
+	  call timer_start(t_allocate)
 
-		  if (allocated(htable)) call deallocate_tree(nppm)
+	  if (allocated(htable)) call deallocate_tree(nppm)
 
-		  nppm=npp
-		  ! Estimate of interaction list length - Hernquist expression
-		  if (theta > 0.01 ) then
-		     nintest = int(35.*log(1.*npartm)/(theta**2))
-		  else
-		     nintest = npartm
-		  endif
+	  nppm=npp
+	  ! Estimate of interaction list length - Hernquist expression
+	  if (theta > 0.01 ) then
+	     nintest = int(35.*log(1.*npartm)/(theta**2))
+	  else
+	     nintest = npartm
+	  endif
 
-		  nintmax=min(nintest,npartm)
+	  nintmax=min(nintest,npartm)
 
-		  !  Space for # table and tree arrays
-		  !  TODO: need good estimate for max # branches
-		  size_tree = max(30*nintmax+4*npp,10000)
+	  !  Space for # table and tree arrays
+	  !  TODO: need good estimate for max # branches
+	  size_tree = max(30*nintmax+4*npp,10000)
 
-		  if (np_mult>0) then
-		      nbaddr = int(max(log(1.*size_tree)/log(2.),15.))
-		      maxaddress = size_tree
-		  else
-		     maxaddress = int(abs(np_mult)*10000)
-		     nbaddr = int(max(log(1.*maxaddress)/log(2.) ,15.))
-		  endif
+	  if (np_mult>0) then
+	      nbaddr = int(max(log(1.*size_tree)/log(2.),15.))
+	      maxaddress = size_tree
+	  else
+	     maxaddress = int(abs(np_mult)*10000)
+	     nbaddr = int(max(log(1.*maxaddress)/log(2.) ,15.))
+	  endif
 
-		  if (num_pe==1) then
-		    maxleaf = npart
-		    maxtwig = maxaddress/2
-		  else if (num_pe.lt.1024) then
-		    maxleaf = maxaddress/3
-		    maxtwig = 2*maxleaf
-		  else
-		!  required # twigs increases with P because of branches
-		    maxleaf = int(maxaddress/(1.+log(1.*num_pe)/3.))
-		    maxtwig = maxaddress-maxleaf
-		  endif
+	  if (num_pe==1) then
+	    maxleaf = npart
+	    maxtwig = maxaddress/2
+	  else if (num_pe.lt.1024) then
+	    maxleaf = maxaddress/3
+	    maxtwig = 2*maxleaf
+	  else
+	!  required # twigs increases with P because of branches
+	    maxleaf = int(maxaddress/(1.+log(1.*num_pe)/3.))
+	    maxtwig = maxaddress-maxleaf
+	  endif
 
-		  hashconst = 2**nbaddr-1
+	  hashconst = 2**nbaddr-1
+	  allocate ( htable(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
+	       treekey(maxaddress), branch_key(branch_max_global), branch_owner(branch_max_global), &
+	       pebranch(branch_max_global), twig_key(maxtwig) )
 
-		  allocate ( htable(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
-		       treekey(maxaddress), branch_key(branch_max_global), branch_owner(branch_max_global), &
-		       pebranch(branch_max_global), twig_key(maxtwig) )
+	  free_addr = 0
 
-		  free_addr = 0
+	  ! Empty hashtable
+	  call htable_clear()
 
-		  ! Empty hashtable
-		  call htable_clear()
+	  ! Allocate memory for tree node properties
+	  allocate ( tree_nodes(-maxtwig:maxleaf) )
 
-		  ! Allocate memory for tree node properties
-		  allocate ( tree_nodes(-maxtwig:maxleaf) )
+	  call timer_stop(t_allocate)
 
-		  call timer_stop(t_allocate)
-
-		end subroutine allocate_tree
+	end subroutine allocate_tree
 
 
 
@@ -113,25 +112,23 @@ module module_allocation
         !> Deallocates all tree- and multipole-specific arrays
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine deallocate_tree(nppm_ori)
-		  use treevars
+	subroutine deallocate_tree(nppm_ori)
+	  use treevars
           use module_debug
           use module_htable
-		  implicit none
+	  implicit none
           integer, intent(in) :: nppm_ori
 
-		  nppm = nppm_ori
+	  nppm = nppm_ori
 
-		  if (me==0 .and. tree_debug) write(*,*) 'Deallocating multipole fields'
+	  if (me==0 .and. tree_debug) write(*,*) 'Deallocating multipole fields'
 
-		  deallocate ( htable, free_addr, point_free, &
-		       treekey, branch_key, branch_owner, &
-		       pebranch, twig_key )
+	  deallocate ( htable, free_addr, point_free, treekey, branch_key, branch_owner, pebranch, twig_key )
 
-		! multipole moments
-		  deallocate ( tree_nodes )
+	! multipole moments
+	  deallocate ( tree_nodes )
 
-		end subroutine deallocate_tree
+	end subroutine deallocate_tree
 
 
 
@@ -161,7 +158,7 @@ module module_allocation
 
           ! array allocation
           allocate (particles(nppm) )    ! Reserve particle array space N/NPE
-          allocate (nbranches(num_pe+2) )
+          allocate (nbranches(num_pe+2) )  ! TODO: DOESN'T THIS BELONG IN ALLOCATE_TREE? (PG)
 
         end subroutine allocate_particles
 
