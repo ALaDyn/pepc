@@ -108,14 +108,14 @@ subroutine configure
         case(3)        ! Spatially separated ion and electron slabs
 
             target_geometry=0
-            velocity_config=2   ! Ions cold, electrons with vx=vosc
-            plasma_centre =  (/ xl/4., yl/2., zl/2. /) ! Centre of plasma
+
+            plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
             offset_i = my_rank*nip + ni_rest
             offset_e = ni + my_rank*nep + ne_rest
 
             ! Ions
             call plasma_start( my_rank, 1, nip, ni, offset_i, target_geometry, idim, &
-                rho0, 1.0, mass_ratio, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre, &
+                rho0, 1.0, mass_ratio, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre-displace, &
                 number_faces, Vplas, Aplas, Qplas, qi, mass_i, a_ii )
 
 	    call set_velocities(1, nip, vti, velocity_config, plasma_centre)

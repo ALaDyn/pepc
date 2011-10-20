@@ -224,7 +224,7 @@ subroutine fields_2d
   integer :: ng_rest 
   integer :: i, ierr, j, k, grid_ind
   real :: dx,dy
-  logical :: field_debug=.true.
+  logical :: field_debug=.false.
   real*8, allocatable :: p_x(:), p_y(:), p_z(:), p_ex(:), p_ey(:), p_ez(:), p_pot(:)
   integer, allocatable :: p_label(:)
 
