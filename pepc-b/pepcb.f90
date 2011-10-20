@@ -128,7 +128,7 @@ program pepcb
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult, mac, theta, calc_force_params(eps, force_const, force_law), &
                       itime, weighted, curve_type, &
-                      num_neighbour_boxes, neighbour_boxes, .false.)
+                      num_neighbour_boxes, neighbour_boxes, .true.)
      
 ! Static error test mode
   if (np_error>0) then
@@ -186,7 +186,7 @@ program pepcb
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult, mac, theta, calc_force_params(eps, force_const, force_law), &
                       itime, weighted, curve_type, &
-                      num_neighbour_boxes, neighbour_boxes, .false.)
+                      num_neighbour_boxes, neighbour_boxes, .true.)
   
 !POMP$ INST END(fields)
 
