@@ -222,7 +222,7 @@ subroutine fields_2d
   integer :: ngp ! local # gp
   integer, allocatable :: ngps(:), igap(:) ! gps and strides
   integer :: ng_rest 
-  integer :: i, ierr, j, k
+  integer :: i, ierr, j, k, grid_ind
   real :: dx,dy
   logical :: field_debug=.true.
   real*8, allocatable :: p_x(:), p_y(:), p_z(:), p_ex(:), p_ey(:), p_ez(:), p_pot(:)
@@ -255,27 +255,39 @@ subroutine fields_2d
   end do
 
 ! Compute my set of coordinates
-  do k=igap(my_rank+1)+1, igap(my_rank+1) + ngps(my_rank+1)
-	i = mod(k-1,ngx)+1  ! x-index
-	j = k/ngx + 1  ! y-index
+  do k=1,ngps(my_rank+1)
+	grid_ind = k+igap(my_rank+1)
+	i = mod(grid_ind-1,ngx)+1  ! x-index
+	j = (grid_ind-1)/ngx   ! y-index
 	p_x(k) = i*dx-dx/2.
-	p_y(k) = i*dy-dy/2.
+	p_y(k) = j*dy+dy/2.
 	p_z(k) = plasma_centre(3)
-	p_label(k)=k
+	p_label(k)=grid_ind
   end do
 
-  call pepc_grid_fields(ngp,ng_total,p_x, p_y, p_z, p_label, &
+  call pepc_grid_fields(ngp,p_x, p_y, p_z, p_label, &
 	     p_Ex, p_Ey, p_Ez, p_pot, &
 	     mac, theta, calc_force_params(eps, force_const, force_law), &
 	     itime,  num_neighbour_boxes, neighbour_boxes)
 
   if (field_debug) then
-     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
+     write (*,'(a7,a50/2i5,3f15.2,i2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
 			itime, mac, theta, calc_force_params(eps, force_const, force_law)
-     write (*,'(a7,a20/(i16,5f15.3,i8))') 'PEPC | ','fields: ',(p_label(i), p_x(i), p_y(i), p_ex(i), p_ey(i), p_pot(i),i=1,ngp)
+     write (*,'(a7,a20/(i10,5(1pe14.5)))') 'PEPC | ','fields: ',(p_label(i), p_x(i), p_y(i), p_ex(i), p_ey(i), p_pot(i),i=1,ngp)
   endif
 
 ! TODO insert particle field results into 2d arrays on root for dump_fields_2d
+  call mpi_allgatherv( p_Ex, ngp, MPI_DOUBLE_PRECISION, ex2d, ngps, igap, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr )
+  call mpi_allgatherv( p_Ey, ngp, MPI_DOUBLE_PRECISION, ey2d, ngps, igap, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr )
+  call mpi_allgatherv( p_pot, ngp, MPI_DOUBLE_PRECISION, pot2d, ngps, igap, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr )
+
+!  if (field_debug) then
+!    do j=1,ngy
+!	do i=1,ngx
+!	write (*,*) j,i,ex2d(i,j)
+!	end do
+!    end do
+!  endif
 end subroutine fields_2d
 
 

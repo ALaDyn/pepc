@@ -290,12 +290,13 @@ module module_pepcfields
         !>   @param[in] no_dealloc if set to .true., deallocation of tree-structures is prevented to allow for front-end triggered diagnostics
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	subroutine pepc_grid_fields(np_local,npart_total,p_x, p_y, p_z, p_label, &
+	subroutine pepc_grid_fields(np_local,p_x, p_y, p_z, p_label, &
 	     p_Ex, p_Ey, p_Ez, p_pot, &
 	     mac, theta, cf_par, itime,  num_neighbours, neighbours)
 
 	  use treevars
 	  use treetypes
+ 	  use module_htable
 	  use timings
 	  use module_calc_force
 	  use module_fmm_framework
@@ -306,7 +307,6 @@ module module_pepcfields
 	  include 'mpif.h'
 
 	  integer, intent(in) :: np_local  ! # particles on this CPU
-	  integer, intent(in) :: npart_total ! total # grid particles
 	  real, intent(in) :: theta     ! multipole opening angle
 	  type(calc_force_params), intent(in) :: cf_par
 	  integer, intent(in) :: itime  ! timestep
@@ -326,7 +326,7 @@ module module_pepcfields
 	  real*8 :: vbox(3)
 
 	  ! copy call parameters to treevars module
-	  npart      = npart_total
+	  ! npart is still total # particles
 	  npp        = np_local
 
           if (allocated(particles)) deallocate(particles)
@@ -406,9 +406,18 @@ module module_pepcfields
 	  endif
 
 
+! TODO This stuff belongs in module_allocation.f90, but need to avoid messing with nppm_ori etc
+
           ! deallocate particle and result arrays
 
-          deallocate(ex_tmp, ey_tmp, ez_tmp, pot_tmp, w_tmp, particles)
+          deallocate (particles )
+          deallocate(ex_tmp, ey_tmp, ez_tmp, pot_tmp, w_tmp)
+
+          ! deallocate tree
+
+	  deallocate ( htable, free_addr, point_free, treekey, branch_key, branch_owner, pebranch, twig_key )
+	  deallocate ( tree_nodes )
+          deallocate ( nbranches )
 
 	end subroutine pepc_grid_fields
 

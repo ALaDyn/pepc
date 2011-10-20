@@ -1346,7 +1346,7 @@ subroutine dump_fields_2d(timestamp)
         do j=1,ngy
            do i=1,ngx
               Qbox = Qbox + rhoe_2d(i,j)*dx*dy
-              write(file_tempfile_1,'(2e13.3)') rhoe_2d(i,j), rhoi_2d(i,j) 
+              write(file_tempfile_1,'(5e13.3)') rhoe_2d(i,j), rhoi_2d(i,j), ex2d(i,j), ey2d(i,j), pot2d(i,j) 
 
            end do
         end do

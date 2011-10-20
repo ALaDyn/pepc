@@ -1,3 +1,3 @@
 echo "Starting eqm  .."
-mpirun -np 1 ../../pepcb bsheath.h
+mpirun -np 2 ../../pepcb bsheath.h
 echo "... done" 

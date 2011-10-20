@@ -11,9 +11,9 @@ module module_physvars
                           ex_ave(:), ey_ave(:,:), ez_ave(:)      !< time-ave field 
   real, allocatable ::  rhoi(:,:,:), rhoe(:,:,:) !< densities
   real, allocatable ::  rhoi2d_loc(:,:), rhoe2d_loc(:,:) !< 2D densities
+  real*8, allocatable ::  ex2d(:,:), ey2d(:,:), pot2d(:,:) !< 2D fields
   real, allocatable ::  g_ele(:,:,:), g_ion(:,:,:)  !< particle counts (weights for T)
   real, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  !< E-field 
-!  real, allocatable ::  ex_g(:,:,:), ey_g(:,:,:), ez_g(:,:,:), phi_g(:,:,:)  !< Global E-field 
   real, allocatable ::  bx_loc(:,:,:), by_loc(:,:,:), bz_loc(:,:,:)  ! B-field 
   real, allocatable ::  jxe_loc(:,:,:), jye_loc(:,:,:), jze_loc(:,:,:)  !< elec current
   real, allocatable ::  Te_loc(:,:,:), Ti_loc(:,:,:) !< local temps

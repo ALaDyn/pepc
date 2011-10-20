@@ -22,8 +22,8 @@
  num_walk_threads =4
 
 ! particles
-  ne = 500000
-  ni = 500000 
+  ne = 5000
+  ni = 5000 
 
  plasma_config = 1  ! set up plasma target
  target_geometry = 0   ! slab in xy plane 
@@ -52,13 +52,8 @@
   xl = 10  ! graphics box size
   yl = 10 
   zl =4 
-<<<<<<< .mine
- ngx=100
- ngy=100
-=======
- ngx=10
- ngy=5
->>>>>>> .r2676
+ ngx=20
+ ngy=20
  nxh=50
  ngav=50
  
@@ -81,29 +76,16 @@
  scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
-<<<<<<< .mine
-  nt =10000
-  dt = 0.1
-=======
-  nt =10
+  nt =1
   dt = 0.05
->>>>>>> .r2676
  restart = .false.
   vis_on = .false.
  ivis = 5 
-<<<<<<< .mine
- ivis_fields = 100
-=======
- ivis_fields = 10
+ ivis_fields = 1
  ivis_domains = 5000
->>>>>>> .r2676
   mc_init = .false.
   mc_steps = 1000
-<<<<<<< .mine
-  idump = 1000 
-=======
   idump = -1
->>>>>>> .r2676
   iprot=10
   itrack=300
   particle_bcs = 3 /

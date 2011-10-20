@@ -28,14 +28,12 @@ subroutine setup_arrays(init_mb)
       jxe_loc(0:ngx+1,0:ngy+1,0:ngz+1), jye_loc(0:ngx+1,0:ngy+1,0:ngz+1), jze_loc(0:ngx+1,0:ngy+1,0:ngz+1) )
   allocate (ex_ave(0:ngav+1),ey_ave(0:ngav+1,3),ez_ave(0:ngav+1) )
 
- allocate (rhoe2d_loc(0:ngx+1,0:ngy+1), rhoi2d_loc(0:ngx+1,0:ngy+1) )
+  allocate (rhoe2d_loc(0:ngx+1,0:ngy+1), rhoi2d_loc(0:ngx+1,0:ngy+1), ex2d(ngx,ngy), ey2d(ngx,ngy), pot2d(ngx,ngy) )
 
 ! Fields for Helmholtz solver
   allocate (rho_helm(0:nxh+1),az_helm(0:nxh+1) )
 
-
   mem_fields = mem_fields + ngx*ngy*ngz * (8*13)
-
 
 ! particle buffers for visualisation
 
