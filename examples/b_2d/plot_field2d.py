@@ -14,8 +14,8 @@ import os
 print "Plot field data"
 
 timestamp='000001'
-nx=20
-ny=20
+nx=100
+ny=50
 filename='fields/' + timestamp +'.xy'
 
 markers=['*','<','>','D','H','^','d','h','o','p','s','v','x','|','None',' ','']
@@ -46,18 +46,19 @@ cmap = plt.cm.Reds # Set a colour map
 cmap.set_under ( 'w' ) # Low values set to 'w'hite
 cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
 plt.imshow(rhoe, cmap=cmap, aspect=1, interpolation='bilinear', vmin=0.01, origin='lower') 
+plt.imshow(rhoi, cmap='YlGn', aspect=1, interpolation='bilinear', vmin=0.01, origin='lower') 
 plt.xlabel('x')
 plt.ylabel('y')
 cb = plt.colorbar()
 cb.set_label('rhoe')
 
 plt.subplot(222)
-cmap = plt.cm.YlGn # Set a colour map
-cmap.set_under ( 'w' ) # Low values set to 'w'hite
-cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
-plt.imshow(rhoi, cmap=cmap, aspect=1, interpolation='bilinear', vmin=0.01, origin='lower') 
-plt.xlabel('x')
-plt.ylabel('y')
+#cmap = plt.cm.YlGn # Set a colour map
+#cmap.set_under ( 'w' ) # Low values set to 'w'hite
+#cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
+#plt.imshow(rhoi, cmap=cmap, aspect=1, interpolation='bilinear', vmin=0.01, origin='lower') 
+#plt.xlabel('x')
+#plt.ylabel('y')
 
 #plt.axis([x.min(), x.max(), y.min(), y.max()])
 cb = plt.colorbar()
