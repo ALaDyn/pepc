@@ -23,13 +23,13 @@ print "Plot field data"
 
 plotboxsize   = 5.
 animated = True
-tmax=1
-increment = 1
-nx=100
-ny=50
+tmax=1900
+increment = 50
+nx=200
+ny=100
 
 
-fig = plt.figure(figsize=(8,8))
+fig = plt.figure(figsize=(10,10))
 fig.suptitle("Densities")
 #fig.suptitle(filename, fontsize=26)
 #fig.subplots_adjust(right=0.8) # http://matplotlib.sourceforge.net/faq/howto_faq.html#move-the-edge-of-an-axes-to-make-room-for-tick-labels

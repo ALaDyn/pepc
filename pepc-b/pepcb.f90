@@ -117,6 +117,7 @@ program pepcb
 
     call configure       ! Set up particles
     call param_dump	 ! Dump input parameters to pepc.out
+    if (do_periodic) call fmm_framework_param_dump(6)
 
     ! Compute initial field values
 
@@ -145,8 +146,10 @@ program pepcb
     call diagnostics     ! Initial config
   endif
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  Start of main loop
+  
   t_start_loop=MPI_WTIME()
-
   
   do itime = 1,nt
      t0=MPI_WTIME()
@@ -260,6 +263,9 @@ program pepcb
   
   t_end_loop=MPI_WTIME()
   t_loop=SUM(t_record(1:irecord))
+
+!  End of main loop
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
   if (scheme ==5 ) then

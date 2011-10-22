@@ -64,12 +64,12 @@
   vosc = 1.0 
 
 ! fmm-periodicity framework
-! lattice basis vectors
+! lattice basis vectors - these get scaled to xl,yl,zl in pepc-b setup
 ! t_lattice_1 = 1. 0. 0.
-! t_lattice_2 = 0. 1. 0.
+ t_lattice_2 = 0. 1. 0.
 ! t_lattice_3 = 0. 0. 1.
  ! periodicity in x-, y-, and z-direction
- periodicity = .false., true., false.  ! forces periodic in y (1st neighbour box only)
+ periodicity = .false., .true., false.  ! forces periodic in y (1st neighbour box only)
  particle_wrap = .false.,.true.,.false.
 
   ! extrinsic-to-intrinsic correction

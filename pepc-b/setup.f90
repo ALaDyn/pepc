@@ -150,6 +150,10 @@ subroutine setup
      if(my_rank .eq. 0) write(*,*) "##### using default parameter #####"
   end if
 
+ ! Scale periodic lattice vectors by box lengths
+  t_lattice_1 = t_lattice_1*xl
+  t_lattice_2 = t_lattice_2*yl
+  t_lattice_3 = t_lattice_3*zl
 
  ! # particles in primary target component
   npart_total = ni+ne

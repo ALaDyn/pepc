@@ -941,6 +941,11 @@ module tree_walk_pthreads
           ! set ignore flag if leaf node corresponds to particle itself
           same_particle = same_particle_or_parent_node .and. (walk_node > 0)
 
+	  ! ** PG 22 Oct 2011
+	  ! Special case for 2D min-image BCs: ignore nodes outside |delta| > L/2 box centred on particle
+	  ! same_particle = same_particle .or. (cf_par%force_law .eq.2 .and. abs(delta).gt. yl/2.)
+
+ 
           !  always accept leaf-nodes since they cannot be refined any further
           !  further resolve ancestor nodes if we are in the central box
           mac_ok = (walk_node > 0) .or. ( mac_ok .and. (.not. same_particle_or_parent_node))

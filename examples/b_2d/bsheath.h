@@ -52,8 +52,8 @@
   xl = 10  ! graphics box size
   yl = 10 
   zl =4 
- ngx=20
- ngy=20
+ ngx=50
+ ngy=50
  nxh=50
  ngav=50
  
@@ -76,12 +76,12 @@
  scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
-  nt =1
+  nt =10
   dt = 0.05
  restart = .false.
   vis_on = .false.
  ivis = 5 
- ivis_fields = 1
+ ivis_fields = 2
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
