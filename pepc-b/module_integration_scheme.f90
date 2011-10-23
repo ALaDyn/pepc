@@ -333,7 +333,6 @@ subroutine push_x(ips,ipf,delt)
      dr2 = dx**2+dy**2+dz**2
      if (dr2 < r_glue2 ) then 
        gamma = sqrt(1.0 + ux(p)**2 + uy(p)**2 + uz(p)**2)
-	gamma=1.0
        x(p)=x(p)+ux(p)/gamma*delt
        if (idim > 1) y(p)=y(p)+uy(p)/gamma*delt
        if (idim == 3) z(p)=z(p)+uz(p)/gamma*delt
