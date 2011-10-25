@@ -70,6 +70,7 @@ module module_pepcfields
 	  use treevars
 	  use treetypes
 	  use timings
+	  use module_tree_domains
 	  use module_calc_force
 	  use module_fmm_framework
 	  use tree_walk_pthreads
@@ -110,7 +111,7 @@ module module_pepcfields
 	  npp        = np_local
 
 	  call allocate_particles(nppm_ori)
-	  allocate(ex_tmp(nppm_ori), ey_tmp(nppm_ori), ez_tmp(nppm_ori), pot_tmp(nppm_ori), w_tmp(nppm_ori))
+	  allocate(particle_results(nppm_ori))
 
 	  call timer_start(t_all)
 	  call timer_start(t_fields_begin)
@@ -161,8 +162,8 @@ module module_pepcfields
 	  call tree_global
 
 	  call timer_stop(t_fields_tree)
-          call timer_reset(t_walk)
-          call timer_reset(t_walk_local)
+      call timer_reset(t_walk)
+      call timer_reset(t_walk_local)
 	  call timer_reset(t_comm_total)
 	  call timer_reset(t_comm_recv)
 	  call timer_reset(t_comm_sendreqs)
@@ -175,11 +176,7 @@ module module_pepcfields
 
 	  call timer_start(t_fields_passes)
 
-	  pot_tmp = 0.
-	  ex_tmp  = 0.
-	  ey_tmp  = 0.
-	  ez_tmp  = 0.
-	  w_tmp   = 1.
+      particle_results(:) = t_particle_results([0., 0., 0.], 0., 1.)
 
 	  call timer_stamp(t_stamp_before_walkloop)
 
@@ -188,10 +185,10 @@ module module_pepcfields
 	    vbox = lattice_vect(neighbours(:,ibox))
 
 	    ! tree walk finds interaction partners and calls interaction routine for particles on short list
-	    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, w_tmp, tcomm)
+	    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, tcomm)
 
-            call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
-            call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
+        call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
+        call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
 	    call timer_add(t_comm_total,    tcomm(TIMING_COMMLOOP))
 	    call timer_add(t_comm_recv,     tcomm(TIMING_RECEIVE))
 	    call timer_add(t_comm_sendreqs, tcomm(TIMING_SENDREQS))
@@ -202,7 +199,8 @@ module module_pepcfields
 
 	  ! add lattice contribution
 	  call timer_start(t_lattice)
-	  if (cf_par%force_law==3) call calc_force_per_particle(cf_par)
+	  ! TODO: do not only do this for cf_par%force_law==3 --> two stage switch for periodicity
+	  if (cf_par%force_law==3) call calc_force_per_particle(particle_results, cf_par)
 	  call timer_stop(t_lattice)
 
 	  ! restore initial particle order specified by calling routine to reassign computed forces
@@ -211,8 +209,7 @@ module module_pepcfields
 	  call timer_stop(t_fields_passes)
 	  call timer_start(t_restore)
 
-	  call restore(npnew,npold,nppm_ori,irnkl,indxl,irlen,islen,gposts,fposts, &
-	       pot_tmp(1:npnew),ex_tmp(1:npnew),ey_tmp(1:npnew),ez_tmp(1:npnew),w_tmp(1:npnew),p_pot,p_ex,p_ey,p_ez,p_w)
+	  call restore(npnew,npold,nppm_ori,irnkl,indxl,irlen,islen,gposts,fposts, particle_results,p_pot,p_ex,p_ey,p_ez,p_w)
 
 	  call timer_stop(t_restore)
 
@@ -249,7 +246,7 @@ module module_pepcfields
           ! deallocate particle and result arrays
           call timer_start(t_deallocate)
 
-          deallocate(ex_tmp, ey_tmp, ez_tmp, pot_tmp, w_tmp)
+          deallocate(particle_results)
           if (.not. no_dealloc) then
             call deallocate_tree(nppm_ori)
             call deallocate_particles()
@@ -266,7 +263,7 @@ module module_pepcfields
         !>   Calculate fields and potential from gridded coordinates x,y,z **using existing tree**
         !>
         !>   Returns fields Ex, Ey, Ez and potential pot excluding external terms
-	!>
+        !>
         !>   @param[in] np_local local number of grid points
         !>   @param[in] npart_total total particle number
         !>   @param[in] p_x dimension(1:np_local) - x-component of particle coordinates
@@ -291,8 +288,7 @@ module module_pepcfields
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	subroutine pepc_grid_fields(np_local,p_x, p_y, p_z, p_label, &
-	     p_Ex, p_Ey, p_Ez, p_pot, &
-	     mac, theta, cf_par, itime,  num_neighbours, neighbours)
+	     p_Ex, p_Ey, p_Ez, p_pot, mac, theta, cf_par, itime,  num_neighbours, neighbours)
 
 	  use treevars
 	  use treetypes
@@ -331,8 +327,8 @@ module module_pepcfields
 
           if (allocated(particles)) deallocate(particles)
 
-! For some bizzare reason ex_tmp etc are declared in module_calc_force
-	  allocate(particles(npp), ex_tmp(npp), ey_tmp(npp), ez_tmp(npp), pot_tmp(npp), w_tmp(npp))
+      ! TODO: For some bizzare reason particle_results etc are declared in module_calc_force
+	  allocate(particles(npp), particle_results(npp))
 
 	  if (force_debug) then
 	     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
@@ -366,30 +362,26 @@ module module_pepcfields
 	  sum_fetches=0      ! total # multipole fetches/iteration
 	  sum_ships=0      ! total # multipole shipments/iteration
 
-	  pot_tmp = 0.
-	  ex_tmp  = 0.
-	  ey_tmp  = 0.
-	  ez_tmp  = 0.
-	  w_tmp   = 1.
+      particle_results(:) = t_particle_results([0., 0., 0.], 0., 1.)
 
 
 	  do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 	    vbox = lattice_vect(neighbours(:,ibox))
 	    ! tree walk finds interaction partners and calls interaction routine for particles on short list
-	    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, w_tmp, tcomm)
+	    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, tcomm)
 	  end do ! ibox = 1,num_neighbours
 
 	  ! add lattice contribution
-	  if (cf_par%force_law==3) call calc_force_per_particle(cf_par)
+	  if (cf_par%force_law==3) call calc_force_per_particle(particle_results, cf_par)
 
 	  nkeys_total = nleaf+ntwig
 
           ! Copy results back to local arrays
           do i=1,npp
-            p_Ex(i) = ex_tmp(i)
-            p_Ey(i) = ey_tmp(i)
-            p_Ez(i) = ez_tmp(i)
-            p_pot(i) = pot_tmp(i)
+            p_Ex(i)  = particle_results(i)%e(1)
+            p_Ey(i)  = particle_results(i)%e(2)
+            p_Ez(i)  = particle_results(i)%e(3)
+            p_pot(i) = particle_results(i)%pot
           end do
 
 
@@ -406,12 +398,11 @@ module module_pepcfields
 	  endif
 
 
-! TODO This stuff belongs in module_allocation.f90, but need to avoid messing with nppm_ori etc
+      ! TODO This stuff belongs in module_allocation.f90, but need to avoid messing with nppm_ori etc
 
           ! deallocate particle and result arrays
 
-          deallocate (particles )
-          deallocate(ex_tmp, ey_tmp, ez_tmp, pot_tmp, w_tmp)
+          deallocate (particles, particle_results)
 
           ! deallocate tree
 

@@ -6,6 +6,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 module module_calc_force
+     use treetypes
      implicit none
      save
      private
@@ -17,8 +18,11 @@ module module_calc_force
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! fields, potential and load weights returned by force-sum: allocated in pepc_fields:
-      ! TODO: wouldn't it be more logical to declare these in module_pepc_fields? (PG)
-      real*8, allocatable, public :: ex_tmp(:),ey_tmp(:),ez_tmp(:),pot_tmp(:),w_tmp(:)
+      ! TODO: wouldn't it be more logical to declare these in module_pepc_fields? (PG) Yes, but moving it is due to dependencies not trivial (MW)
+      type(t_particle_results), allocatable, public :: particle_results(:)
+
+      real*8, public, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
+      real*8, public, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -46,7 +50,7 @@ module module_calc_force
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
-  
+
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Force calculation wrapper.
@@ -55,21 +59,21 @@ module module_calc_force
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	subroutine calc_force_per_interaction(p, inode, delta, dist2, vbox, cf_par)
-          use treetypes
-	  use treevars
-	  implicit none
+        subroutine calc_force_per_interaction(p, res, inode, delta, dist2, vbox, cf_par)
+          use treevars
+          implicit none
 
-	  integer, intent(in) :: p, inode
-	  real*8, intent(in) :: vbox(3), delta(3), dist2
-	  !> Force law struct has following content (defined in module treetypes) 
-	  !> These need to be included/defined in call to fields from frontend 
-	  !>    real    :: eps 
-	  !>    real    :: force_const 
-	  !>    integer :: force_law   0= no interaction (default); 2=2D Coulomb; 3=3D Coulomb
+          integer, intent(in) :: p, inode
+          type(t_particle_results), intent(inout) :: res
+          real*8, intent(in) :: vbox(3), delta(3), dist2
+          !> Force law struct has following content (defined in module treetypes)
+          !> These need to be included/defined in call to fields from frontend
+          !>    real    :: eps
+          !>    real    :: force_const
+          !>    integer :: force_law   0= no interaction (default); 2=2D Coulomb; 3=3D Coulomb
           type(t_calc_force_params), intent(in) :: cf_par
 
-	  real*8 :: exc, eyc, ezc, phic
+          real*8 :: exc, eyc, ezc, phic
 
           select case (cf_par%force_law)
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
@@ -79,20 +83,18 @@ module module_calc_force
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
                 call calc_force_coulomb_3D(inode, delta, dist2, cf_par, exc, eyc, ezc, phic)
 
-		    case default
-		      exc  = 0.
-		      eyc  = 0.
-		      ezc  = 0.
-		      phic = 0.
-		  end select
+            case default
+              exc  = 0.
+              eyc  = 0.
+              ezc  = 0.
+              phic = 0.
+          end select
 
-		  pot_tmp(p) = pot_tmp(p)+ cf_par%force_const * phic
-		  ex_tmp(p)  = ex_tmp(p) + cf_par%force_const * exc
-		  ey_tmp(p)  = ey_tmp(p) + cf_par%force_const * eyc
-		  ez_tmp(p)  = ez_tmp(p) + cf_par%force_const * ezc
+          res%e    = res%e    + cf_par%force_const * [exc, eyc, ezc]
+          res%pot  = res%pot  + cf_par%force_const * phic
+          res%work = res%work + WORKLOAD_PENALTY_INTERACTION
 
-
-		end subroutine calc_force_per_interaction
+        end subroutine calc_force_per_interaction
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -101,13 +103,13 @@ module module_calc_force
         !> to be added once per particle
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_particle(cf_par)
-          use treetypes
+        subroutine calc_force_per_particle(res, cf_par)
           use treevars
           use module_fmm_framework
           implicit none
 
           type(t_calc_force_params), intent(in) :: cf_par
+          type(t_particle_results), intent(inout) :: res(:)
           real*8 :: ex_lattice, ey_lattice, ez_lattice, phi_lattice
           integer :: p
 
@@ -118,18 +120,12 @@ module module_calc_force
 
              do p=1,npp
                 call fmm_sum_lattice_force(p, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
-                
-                ! write(*,*) p,          "|", q(p), "|", pot_tmp(p), "|", phi_lattice
-                ! write(*,*) "            |", x(p), "|", ex_tmp(p),  "|", ex_lattice
-                ! write(*,*) "            |", y(p), "|", ey_tmp(p),  "|", ey_lattice
-                ! write(*,*) "            |", z(p), "|", ez_tmp(p),  "|", ez_lattice
 
                 potfarfield  = potfarfield  + phi_lattice * particles(p)%q
-                potnearfield = potnearfield + pot_tmp(p) * particles(p)%q
-                pot_tmp(p) = pot_tmp(p) + cf_par%force_const * phi_lattice
-                ex_tmp(p)  = ex_tmp(p)  + cf_par%force_const * ex_lattice
-                ey_tmp(p)  = ey_tmp(p)  + cf_par%force_const * ey_lattice
-                ez_tmp(p)  = ez_tmp(p)  + cf_par%force_const * ez_lattice
+                potnearfield = potnearfield + res(p)%pot  * particles(p)%q
+
+                res(p)%e     = res(p)%e     + cf_par%force_const * [ex_lattice, ey_lattice, ez_lattice]
+                res(p)%pot   = res(p)%pot   + cf_par%force_const * phi_lattice
              end do
 
           end if

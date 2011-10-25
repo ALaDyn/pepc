@@ -503,8 +503,6 @@ module tree_walk_pthreads
 
     integer, public :: num_walk_threads = 3 !< number of worker threads
     integer, private :: primary_processor_id = 0
-    real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8
-    real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
     real*8, dimension(:), allocatable :: boxlength2
     integer :: mac
@@ -517,7 +515,6 @@ module tree_walk_pthreads
 
 
     integer :: np_local
-    real*8, dimension(:), pointer :: work_per_particle => NULL()
 
     integer :: next_unassigned_particle !< index of next particle that has not been assigned to a work thread
 
@@ -532,7 +529,7 @@ module tree_walk_pthreads
   contains
 
 
-    subroutine tree_walk(np_local_,theta_,cf_par_,itime,mac_,twalk,twalk_loc_,vbox_,work_per_particle_, tcomm)
+    subroutine tree_walk(np_local_,theta_,cf_par_,itime,mac_,twalk,twalk_loc_,vbox_,tcomm)
       use, intrinsic :: iso_c_binding
       use treetypes
       use tree_utils
@@ -548,15 +545,12 @@ module tree_walk_pthreads
       integer, intent(in) :: itime
       integer, intent(in) :: mac_
       real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
-      real*8, dimension(nppm), intent(inout), target :: work_per_particle_
       real*8, target, intent(inout) :: twalk, twalk_loc_
       real*8, target, intent(out), dimension(3) :: tcomm
 
       if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (HYBRID) for timestep ',itime
 
       np_local = np_local_
-      ! allow global access to workload stuff
-      work_per_particle => work_per_particle_
       ! box shift vector
       vbox = vbox_
       ! force calculation parameters
@@ -926,7 +920,6 @@ module tree_walk_pthreads
               mac_ok = .false.
           endif
 
-          work_per_particle(nodeidx)        = work_per_particle(nodeidx)        + WORKLOAD_PENALTY_MAC
           my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + 1._8
 
           ! or one of its ancestor nodes (which never should happen as the MAC should prevent this)
@@ -941,9 +934,9 @@ module tree_walk_pthreads
           ! set ignore flag if leaf node corresponds to particle itself
           same_particle = same_particle_or_parent_node .and. (walk_node > 0)
 
-	  ! ** PG 22 Oct 2011
-	  ! Special case for 2D min-image BCs: ignore nodes outside |delta| > L/2 box centred on particle
-	  ! same_particle = same_particle .or. (cf_par%force_law .eq.2 .and. abs(delta).gt. yl/2.)
+          ! ** PG 22 Oct 2011
+          ! TODO: Special case for 2D min-image BCs: ignore nodes outside |delta| > L/2 box centred on particle
+          ! same_particle = same_particle .or. (cf_par%force_law .eq.2 .and. abs(delta).gt. yl/2.)
 
  
           !  always accept leaf-nodes since they cannot be refined any further
@@ -955,8 +948,7 @@ module tree_walk_pthreads
               if (mac_ok) then
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell
-                  call calc_force_per_interaction(nodeidx, walk_node, delta, dist2, vbox, cf_par)
-                  work_per_particle(nodeidx)     = work_per_particle(nodeidx)     + WORKLOAD_PENALTY_INTERACTION
+                  call calc_force_per_interaction(nodeidx, particle_results(nodeidx), walk_node, delta, dist2, vbox, cf_par)
                   partner_leaves                 = partner_leaves                 + htable(walk_addr)%leaves
                   my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
               else
@@ -980,10 +972,8 @@ module tree_walk_pthreads
                   end if
               endif
           else 
- !(.not. same_particle)
-!	    if (me.eq.19) write(*,*) 'Same ',myidx, nodeidx, walk_node, dist2
-	  endif
-      end do ! (while (todo_list_pop_front(walk_key)))
+	  endif !(.not. same_particle)
+      end do ! (while (todo_list_pop(walk_key)))
 
       ! if todo_list and defer_list are now empty, the walk has finished
       walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries == 0)

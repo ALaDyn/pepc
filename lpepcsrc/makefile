@@ -8,7 +8,7 @@ pepclib = $(MACH)/liblpepc.a
 PEPCSRC.f90 =   treevars.f90 tree_utils.f90 timings.f90 treetypes.f90 \
                 module_debug.f90 module_math_tools.f90 module_fmm_framework.f90 \
                 module_calc_force.f90 tree_aswalk_pthreads.f90 libpepc_setup.f90 \
-                tree_domains.f90 restore.f90 module_allocation.f90 libpepc_finalize.f90 \
+                module_tree_domains.f90 module_allocation.f90 libpepc_finalize.f90 \
                 tree_stats.f90 tree_local.f90 tree_exchange.f90 tree_global.f90 \
                 module_spacefilling.f90 module_htable.f90 module_pepcfields.f90 \
                 module_branching.f90 tree_walk_communicator.f90

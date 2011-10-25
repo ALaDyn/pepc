@@ -68,7 +68,7 @@ module module_directsum
           real*8, dimension(:), intent(in) :: ey !< y-coordinates of particles, index 1..np_local
           real*8, dimension(:), intent(in) :: ez !< z-coordinates of particles, index 1..np_local
           real*8, dimension(:), intent(in) :: pot !< charges of particles, index 1..np_local
-          type(calc_force_params), intent(in) :: cf_par !< force calculation parameters
+          type(t_calc_force_params), intent(in) :: cf_par !< force calculation parameters
           integer, intent(in) :: verbosity !< verbosity level: 0 - only print max. relative deviations, 1 - additionally print all. relative deviations, 2 - additionally print all. calculated forces
           integer, intent(in) :: np_local !< number of local particles
           integer, dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
@@ -142,7 +142,7 @@ module module_directsum
           real*8, dimension(:), intent(in) :: y !< y-coordinates of particles, index 1..np_local
           real*8, dimension(:), intent(in) :: z !< z-coordinates of particles, index 1..np_local
           real*8, dimension(:), intent(in) :: q !< charges of particles, index 1..np_local
-          type(calc_force_params), intent(in) :: cf_par !< force calculation parameters
+          type(t_calc_force_params), intent(in) :: cf_par !< force calculation parameters
           integer, intent(in) :: np_local !< number of local particles
           integer, dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
           integer, intent(in) :: ntest !< number of particles in testidx
