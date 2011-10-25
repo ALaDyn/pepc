@@ -510,7 +510,7 @@ module tree_walk_pthreads
     integer :: mac
     real*8 :: theta2
     real*8 :: vbox(3)
-    type(calc_force_params) :: cf_par
+    type(t_calc_force_params) :: cf_par
     logical :: in_central_box
     integer*8 :: num_interaction_leaves
     integer :: todo_list_length, defer_list_length
@@ -543,7 +543,7 @@ module tree_walk_pthreads
       include 'mpif.h'
 
       real, intent(in) :: theta_  ! MAC angle
-      type(calc_force_params), intent(in) :: cf_par_
+      type(t_calc_force_params), intent(in) :: cf_par_
       integer, intent(in) :: np_local_
       integer, intent(in) :: itime
       integer, intent(in) :: mac_

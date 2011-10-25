@@ -18,7 +18,7 @@ module treevars
   integer :: me       ! Rank of current task
   integer :: num_pe   ! # cpus used by program
 
-  type (multipole) :: node_dummy
+  type (t_multipole) :: node_dummy
 
   integer :: mpi_type_particle, mpi_type_multipole, mpi_type_results
 
@@ -35,7 +35,7 @@ module treevars
                                 free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
                                 point_free(:)      ! Pointer to free address index
 
-  type(multipole), target, allocatable  :: tree_nodes(:)                 ! Tree node properties
+  type(t_multipole), target, allocatable  :: tree_nodes(:)                 ! Tree node properties
 
   integer*8 ::  max_req_list_length, & ! maximum length of request queue
                  cum_req_list_length, & ! cumulative length of request queue
@@ -94,7 +94,7 @@ module treevars
   
 
   !>  particle data - dimensions filled in when #PEs known
-  type(particle), target, allocatable :: particles(:)
+  type(t_particle), target, allocatable :: particles(:)
 
 ! Memory control
   real :: np_mult=1.5

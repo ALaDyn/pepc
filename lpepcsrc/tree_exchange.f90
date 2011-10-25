@@ -9,9 +9,9 @@ subroutine tree_exchange
 
   integer :: i,ierr, lnode, lcode, lleaves, hashaddr, newleaf, newtwig
   
-  type (multipole), target, dimension(nbranch) :: pack_mult
-  type (multipole), pointer :: packm
-  type (multipole),allocatable :: get_mult(:)
+  type (t_multipole), target, dimension(nbranch) :: pack_mult
+  type (t_multipole), pointer :: packm
+  type (t_multipole),allocatable :: get_mult(:)
   integer, allocatable :: igap(:)    !  stride lengths of local branch arrays
 
   call timer_start(t_exchange_branches)

@@ -96,7 +96,7 @@ module tree_walk_communicator
         integer :: stat(MPI_STATUS_SIZE)
         integer :: reqhandle
         integer*8 :: requested_key
-        type (multipole), allocatable :: child_data(:) ! child data to be received - maximum up to eight children per particle
+        type (t_multipole), allocatable :: child_data(:) ! child data to be received - maximum up to eight children per particle
         integer :: num_children
         integer :: ipe_sender, msg_tag
         integer, intent(inout), dimension(mintag:maxtag) :: nummessages
@@ -263,8 +263,8 @@ module tree_walk_communicator
       integer*8, intent(in) :: requested_key
       integer, intent(in) :: ipe_sender
       integer :: process_addr
-      type(multipole), target :: children_to_send(8)
-      type(multipole), pointer :: c
+      type(t_multipole), target :: children_to_send(8)
+      type(t_multipole), pointer :: c
       integer :: reqhandle
       integer*8, dimension(8) :: key_child
       integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child, owner_child
@@ -336,7 +336,7 @@ module tree_walk_communicator
       use module_spacefilling
       implicit none
       include 'mpif.h'
-      type (multipole) :: child_data(num_children) !< child data that has been received
+      type (t_multipole) :: child_data(num_children) !< child data that has been received
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
       integer*8 :: kchild, kparent

@@ -61,7 +61,7 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
        pos_x, pos_y, pos_z, &
        charge, work, pelabel, &
        ex, ey, ez, pot, &
-       np_mult, mac, theta, calc_force_params(eps, force_const, 3), &
+       np_mult, mac, theta, t_calc_force_params(eps, force_const, 3), &
        itime, weighted, curve_type, &
        num_neighbour_boxes, neighbour_boxes, .false.)
   

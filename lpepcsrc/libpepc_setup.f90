@@ -100,8 +100,8 @@ subroutine libpepc_register_mpi_types(db_level)
 
   integer :: ierr,i
 
-  type (particle) :: ship_props_a, get_props_a
-  type (results) :: ship_props_b, get_props_b
+  type (t_particle) :: ship_props_a, get_props_a
+  type (t_particle_results) :: ship_props_b, get_props_b
 
   integer, dimension(nprops_multipole) :: blocklengths, displacements, types
 
@@ -145,24 +145,23 @@ subroutine libpepc_register_mpi_types(db_level)
 
   ! Create new contiguous datatype for shipping result props (6 arrays)
 
-  blocklengths(1:nprops_results) = 1   
+  blocklengths(1:nprops_particle_results) = 1   
 
   types(1:5) = MPI_REAL8
   types(6) = MPI_INTEGER
 
-  call MPI_GET_ADDRESS( get_props_b%Ex, receive_base, ierr )  ! Base address for receive buffer
-  call MPI_GET_ADDRESS( ship_props_b%Ex, send_base, ierr )  ! Base address for send buffer
+  call MPI_GET_ADDRESS( get_props_b%e(1), receive_base, ierr )  ! Base address for receive buffer
+  call MPI_GET_ADDRESS( ship_props_b%e(1), send_base, ierr )  ! Base address for send buffer
 
-  call MPI_GET_ADDRESS( ship_props_b%Ex, address(1), ierr )
-  call MPI_GET_ADDRESS( ship_props_b%Ey, address(2), ierr )
-  call MPI_GET_ADDRESS( ship_props_b%Ez, address(3), ierr )
-  call MPI_GET_ADDRESS( ship_props_b%pot, address(4), ierr )
+  call MPI_GET_ADDRESS( ship_props_b%e(1), address(1), ierr )
+  call MPI_GET_ADDRESS( ship_props_b%e(2), address(2), ierr )
+  call MPI_GET_ADDRESS( ship_props_b%e(3), address(3), ierr )
+  call MPI_GET_ADDRESS( ship_props_b%pot,  address(4), ierr )
   call MPI_GET_ADDRESS( ship_props_b%work, address(5), ierr )
-  call MPI_GET_ADDRESS( ship_props_b%label, address(6), ierr )
 
-  displacements(1:nprops_results) = int(address(1:nprops_results) - send_base)  !  Addresses relative to start of results (receive) data
+  displacements(1:nprops_particle_results) = int(address(1:nprops_particle_results) - send_base)  !  Addresses relative to start of results (receive) data
 
-  call MPI_TYPE_STRUCT( nprops_results, blocklengths, displacements, types, mpi_type_results, ierr )   ! Create and commit
+  call MPI_TYPE_STRUCT( nprops_particle_results, blocklengths, displacements, types, mpi_type_results, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_results, ierr)
 
   if (me==0 .and. db_level>2) then

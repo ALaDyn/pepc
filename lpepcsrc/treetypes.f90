@@ -2,27 +2,24 @@
 module treetypes
 
   ! Data structure for user-defined variables that are directly involved into the force calculation
-  type calc_force_params
+  type t_calc_force_params
     real    :: eps
     real    :: force_const
     integer :: force_law
-  end type calc_force_params
+  end type t_calc_force_params
 
   ! Data structure for shipping results
-  integer, parameter :: nprops_results = 6       ! # results to ship
-  type results
-     real*8 :: Ex
-     real*8 :: Ey
-     real*8 :: Ez
+  integer, parameter :: nprops_particle_results = 5       ! # results to ship
+  type t_particle_results
+     real*8, dimension(3) :: e
      real*8 :: pot
      real*8 :: work
-     integer :: label
-  end type results
+  end type t_particle_results
 
 
  ! Data structure for shipping single particles
   integer, parameter :: nprops_particle = 11 ! # particle properties to ship
-  type particle
+  type t_particle
      real*8 :: x(1:3)    ! coords
      real*8 :: u(1:3)    ! momenta
      real*8 :: q     ! charge
@@ -30,12 +27,12 @@ module treetypes
      integer*8 :: key           ! Key
      integer :: label    ! label
      integer :: pid      ! owner
-  end type particle
+  end type t_particle
 
 
   ! Data structure for shipping multiple moments of child nodes
   integer, parameter :: nprops_multipole = 22 ! Number of multipole properties to ship
-  type multipole
+  type t_multipole
      integer*8 :: key     ! key
      integer   :: byte    ! byte code
      integer   :: leaves  ! # leaves contained
@@ -58,7 +55,7 @@ module treetypes
      real*8 :: xshift
      real*8 :: yshift
      real*8 :: zshift
-  end type multipole
+  end type t_multipole
 
 
 end module treetypes

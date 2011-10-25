@@ -67,7 +67,7 @@ module module_calc_force
 	  !>    real    :: eps 
 	  !>    real    :: force_const 
 	  !>    integer :: force_law   0= no interaction (default); 2=2D Coulomb; 3=3D Coulomb
-          type(calc_force_params), intent(in) :: cf_par
+          type(t_calc_force_params), intent(in) :: cf_par
 
 	  real*8 :: exc, eyc, ezc, phic
 
@@ -107,7 +107,7 @@ module module_calc_force
           use module_fmm_framework
           implicit none
 
-          type(calc_force_params), intent(in) :: cf_par
+          type(t_calc_force_params), intent(in) :: cf_par
           real*8 :: ex_lattice, ey_lattice, ez_lattice, phi_lattice
           integer :: p
 
@@ -153,12 +153,12 @@ module module_calc_force
 
           integer, intent(in) :: inode !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2
-          type(calc_force_params), intent(in) :: cf_par
+          type(t_calc_force_params), intent(in) :: cf_par
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
 
           real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2
           real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
-          type(multipole), pointer :: t
+          type(t_multipole), pointer :: t
 
              t=>tree_nodes(inode)
 
@@ -257,12 +257,12 @@ module module_calc_force
           integer, intent(in) :: p  !< particle label
           integer, intent(in) :: inode !< index of particle to interact with
           real*8, intent(in) :: vbox(3) !< vector to neighbour box that is currently processed
-          type(calc_force_params), intent(in) :: cf_par
+          type(t_calc_force_params), intent(in) :: cf_par
           real*8, intent(out) ::  sumfx,sumfy,sumphi
 
           real*8 :: dx,dy,d2,rd2,rd4,rd6,dx2,dy2,dx3,dy3
           real :: eps2
-          type(multipole), pointer :: t
+          type(t_multipole), pointer :: t
 
           eps2   = cf_par%eps**2
           sumfx  = 0.

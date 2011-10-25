@@ -16,7 +16,7 @@ subroutine tree_global
   integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
   integer, dimension(maxaddress) ::  parent_node
   logical :: duplicate(maxaddress)
-  type(multipole), pointer :: twig, parent, branch, leaf
+  type(t_multipole), pointer :: twig, parent, branch, leaf
 
   call timer_start(t_global)
   call timer_start(t_fill_local)

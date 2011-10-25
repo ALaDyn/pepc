@@ -81,7 +81,7 @@ module module_pepcfields
 	  integer, intent(in) :: np_local  ! # particles on this CPU
 	  integer, intent(in) :: npart_total ! total # simulation particles
 	  real, intent(in) :: theta, np_mult_       ! multipole opening angle
-	  type(calc_force_params), intent(in) :: cf_par
+	  type(t_calc_force_params), intent(in) :: cf_par
 	  integer, intent(in) :: itime  ! timestep
 	  integer, intent(in) :: mac, weighted
 	  real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc
@@ -124,13 +124,13 @@ module module_pepcfields
 
           ! Copy particle buffers to tree arrays
           do i=1,npp
-            particles(i) = particle([p_x(i), p_y(i), p_z(i)], &  ! position
-                                    [    0.,     0.,     0.], &  ! velocity - not relevant for tree code
-                                     p_q(i),                  &  ! charge
-                                     max(p_w(i), 1._8),       &  ! workload from last step
-                                     -1_8,                    &  ! key - will be assigned later
-                                     p_label(i),              &  ! particle label for tracking purposes
-                                     me )                        ! particle owner
+            particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
+                                      [    0.,     0.,     0.], &  ! velocity - not relevant for tree code
+                                       p_q(i),                  &  ! charge
+                                       max(p_w(i), 1._8),       &  ! workload from last step
+                                       -1_8,                    &  ! key - will be assigned later
+                                       p_label(i),              &  ! particle label for tracking purposes
+                                       me )                        ! particle owner
           end do
 
 	  ! Trap bad particle labels
@@ -308,7 +308,7 @@ module module_pepcfields
 
 	  integer, intent(in) :: np_local  ! # particles on this CPU
 	  real, intent(in) :: theta     ! multipole opening angle
-	  type(calc_force_params), intent(in) :: cf_par
+	  type(t_calc_force_params), intent(in) :: cf_par
 	  integer, intent(in) :: itime  ! timestep
 	  integer, intent(in) :: mac
 	  real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords: x1,x2,x3, y1,y2,y3, etc
@@ -342,13 +342,13 @@ module module_pepcfields
 
           ! Copy particle buffers to tree arrays
           do i=1,npp
-            particles(i) = particle([p_x(i), p_y(i), p_z(i)], &  ! position
-                                    [    0.,     0.,     0.], &  ! velocity - not relevant for tree code
-                                     0.,                      &  ! charge - set to zero
-                                     1._8,       	      &  ! workload
-                                     -1_8,                    &  ! key - will be assigned later
-                                     p_label(i),              &  ! particle label for tracking purposes
-                                     me )                        ! particle owner
+            particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
+                                      [    0.,     0.,     0.], &  ! velocity - not relevant for tree code
+                                       0.,                      &  ! charge - set to zero
+                                       1._8,                    &  ! workload
+                                      -1_8,                     &  ! key - will be assigned later
+                                       p_label(i),              &  ! particle label for tracking purposes
+                                       me )                        ! particle owner
           end do
 
 	  ! Trap bad particle labels

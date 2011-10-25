@@ -42,7 +42,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   ! arrays for parallel sort
 
-  type (particle) :: ship_parts(nppm), get_parts(nppm)
+  type (t_particle) :: ship_parts(nppm), get_parts(nppm)
 
   integer*8 :: w1(nppm)
   integer :: keycheck_pass, ipp
@@ -52,7 +52,7 @@ subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weight
 
   real*8 imba
 
-  type (particle) :: ship_props, get_props
+  type (t_particle) :: ship_props, get_props
 
 
   interface

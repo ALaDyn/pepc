@@ -22,13 +22,13 @@ subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
 
   integer :: i, ierr
 
-  type (results) :: ship_parts(npnew), get_parts(npold)
+  type (t_particle_results) :: ship_parts(npnew), get_parts(npold)
 
   if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | RESTORE..'
 
   do i=1,npnew
-     ship_parts(i) = results( ex_tmp(indxl(i)), ey_tmp(indxl(i)), ez_tmp(indxl(i)), &
-                              pot_tmp(indxl(i)), w_tmp(indxl(i)), particles(indxl(i))%label )
+     ship_parts(i) = t_particle_results( [ex_tmp(indxl(i)), ey_tmp(indxl(i)), ez_tmp(indxl(i))], &
+                              pot_tmp(indxl(i)), w_tmp(indxl(i)) )
   enddo
 
   ! perform permute
@@ -37,12 +37,11 @@ subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
       MPI_COMM_WORLD,ierr ) 
 
   do i=1,npold
-     p_ex(irnkl(i)) = get_parts(i)%Ex
-     p_ey(irnkl(i)) = get_parts(i)%Ey
-     p_ez(irnkl(i)) = get_parts(i)%Ez
+     p_ex(irnkl(i)) = get_parts(i)%e(1)
+     p_ey(irnkl(i)) = get_parts(i)%e(2)
+     p_ez(irnkl(i)) = get_parts(i)%e(3)
      p_pot(irnkl(i)) = get_parts(i)%pot
      p_w(irnkl(i)) = get_parts(i)%work
-     particles(irnkl(i))%label = get_parts(i)%label
   enddo
 
 end subroutine restore
