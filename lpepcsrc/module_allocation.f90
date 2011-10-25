@@ -100,6 +100,8 @@ module module_allocation
 
 	  ! Allocate memory for tree node properties
 	  allocate ( tree_nodes(-maxtwig:maxleaf) )
+	  ! allocate memory for storing number of branches per PE
+      allocate ( nbranches(num_pe+2) )
 
 	  call timer_stop(t_allocate)
 
@@ -114,10 +116,10 @@ module module_allocation
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	subroutine deallocate_tree(nppm_ori)
 	  use treevars
-          use module_debug
-          use module_htable
+      use module_debug
+      use module_htable
 	  implicit none
-          integer, intent(in) :: nppm_ori
+      integer, intent(in) :: nppm_ori
 
 	  nppm = nppm_ori
 
@@ -125,8 +127,10 @@ module module_allocation
 
 	  deallocate ( htable, free_addr, point_free, treekey, branch_key, branch_owner, pebranch, twig_key )
 
-	! multipole moments
+	  ! multipole moments
 	  deallocate ( tree_nodes )
+	  ! number of brnaches per PE
+      deallocate (nbranches )
 
 	end subroutine deallocate_tree
 
@@ -158,7 +162,6 @@ module module_allocation
 
           ! array allocation
           allocate (particles(nppm) )    ! Reserve particle array space N/NPE
-          allocate (nbranches(num_pe+2) )  ! TODO: DOESN'T THIS BELONG IN ALLOCATE_TREE? (PG)
 
         end subroutine allocate_particles
 
@@ -175,7 +178,6 @@ module module_allocation
 
           ! particle array deallocation
           deallocate (particles )
-          deallocate (nbranches )
 
         end subroutine deallocate_particles
 

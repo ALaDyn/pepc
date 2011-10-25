@@ -922,9 +922,6 @@ module tree_walk_pthreads
 
           my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + 1._8
 
-          ! or one of its ancestor nodes (which never should happen as the MAC should prevent this)
-
-
           ! we may not interact with the particle itself or its ancestors
           ! if we are in the central box
           ! interaction with ancestor nodes should be prevented by the MAC

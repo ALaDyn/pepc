@@ -269,13 +269,11 @@ module module_pepcfields
         !>   @param[in] p_x dimension(1:np_local) - x-component of particle coordinates
         !>   @param[in] p_y dimension(1:np_local) - y-component of particle coordinates
         !>   @param[in] p_z dimension(1:np_local) - z-component of particle coordinates
-
         !>   @param[in] p_label dimension(1:np_local) - particle label (may any number except zero)
         !>   @param[out] p_Ex dimension(1:np_local) - x-component of electric field
         !>   @param[out] p_Ey dimension(1:np_local) - y-component of electric field
         !>   @param[out] p_Ez dimension(1:np_local) - z-component of electric field
         !>   @param[out] p_pot dimension(1:np_local) - electric potential
-
         !>   @param[in] selector for multipole acceptance criterion, currently, only 0 (BH-MAC) is supported
         !>   @param[in] theta multipole opening angle
         !>   @param[in] cf_par parameters for force summation
@@ -325,7 +323,7 @@ module module_pepcfields
 	  ! npart is still total # particles
 	  npp        = np_local
 
-          if (allocated(particles)) deallocate(particles)
+      if (allocated(particles)) deallocate(particles)
 
       ! TODO: For some bizzare reason particle_results etc are declared in module_calc_force
 	  allocate(particles(npp), particle_results(npp))
@@ -400,15 +398,14 @@ module module_pepcfields
 
       ! TODO This stuff belongs in module_allocation.f90, but need to avoid messing with nppm_ori etc
 
-          ! deallocate particle and result arrays
+      ! deallocate particle and result arrays
 
-          deallocate (particles, particle_results)
+      deallocate (particles, particle_results)
 
-          ! deallocate tree
-
+      ! deallocate tree
 	  deallocate ( htable, free_addr, point_free, treekey, branch_key, branch_owner, pebranch, twig_key )
 	  deallocate ( tree_nodes )
-          deallocate ( nbranches )
+      deallocate ( nbranches )
 
 	end subroutine pepc_grid_fields
 
