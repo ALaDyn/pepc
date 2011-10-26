@@ -28,7 +28,7 @@ module module_physvars
   complex, allocatable :: Az_helm(:)   !< Helmholtz vector potential
 
   integer :: choose_sort, weighted, choose_build
-  type(t_calc_force_params) ::cf_par
+  type(t_calc_force_params), save :: cf_par
 
   !  physics, target data
 
