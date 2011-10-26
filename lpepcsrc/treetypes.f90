@@ -2,11 +2,13 @@
 module treetypes
 
   !> Data structure for user-defined variables that are directly involved into the force calculation
-  !> TODO: include mac and theta in these parameters and remove anywhere else
   type t_calc_force_params
-    real    :: eps
-    real    :: force_const
-    integer :: force_law
+    real    :: eps          = 0.0    !< short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
+    real    :: force_const  = 1.0    !< force constant
+    integer :: force_law    = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
+    logical :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
+    integer :: mac          = 0      !< selector for multipole acceptance criterion, mac==0: Barnes-Hut, currently unused
+    real    :: theta        = 0.6    !< multipole opening angle
   end type t_calc_force_params
 
   ! Data structure for shipping results

@@ -267,7 +267,7 @@ subroutine fields_2d
 
   call pepc_grid_fields(ngp,p_x, p_y, p_z, p_label, &
 	     p_Ex, p_Ey, p_Ez, p_pot, &
-	     mac, theta, t_calc_force_params(eps, force_const, force_law), &
+	     cf_par, &
 	     itime,  num_neighbour_boxes, neighbour_boxes)
 
   if (field_debug) then

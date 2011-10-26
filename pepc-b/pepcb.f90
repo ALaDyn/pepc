@@ -119,16 +119,23 @@ program pepcb
     call param_dump	 ! Dump input parameters to pepc.out
     if (do_periodic) call fmm_framework_param_dump(6)
 
+    ! initialize calc force params
+    cf_par%theta       = theta
+    cf_par%mac         = mac
+    cf_par%eps         = eps
+    cf_par%force_const = force_const
+    cf_par%force_law   = force_law
+    cf_par%include_far_field_if_periodic = (cf_par%force_law == 3)
+
     ! Compute initial field values
 
     if (my_rank==0) write(*,*) 'Computing initial fields'
    
       
     call pepc_fields(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
-	              q(1:np_local),work(1:np_local),pelabel(1:np_local), &
-        	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult, mac, theta, t_calc_force_params(eps, force_const, force_law), &
-                      itime, weighted, curve_type, &
+                  q(1:np_local),work(1:np_local),pelabel(1:np_local), &
+                  ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
+                      np_mult, cf_par, itime, weighted, curve_type, &
                       num_neighbour_boxes, neighbour_boxes, .true.)
      
 ! Static error test mode
@@ -187,8 +194,7 @@ program pepcb
     call pepc_fields(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult, mac, theta, t_calc_force_params(eps, force_const, force_law), &
-                      itime, weighted, curve_type, &
+              	      np_mult, cf_par, itime, weighted, curve_type, &
                       num_neighbour_boxes, neighbour_boxes, .true.)
   
 !POMP$ INST END(fields)

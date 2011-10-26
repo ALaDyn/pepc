@@ -39,6 +39,7 @@ program pepc
   integer :: vtk_step
 
   integer :: ierr, ifile, provided
+  type(t_calc_force_params) ::cf_par
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! `The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls.`
   type(acf) :: momentum_acf
@@ -99,6 +100,13 @@ program pepc
 
   call benchmark_inner
 
+  ! initialize calc force params
+  cf_par%theta       = theta
+  cf_par%mac         = mac
+  cf_par%eps         = eps
+  cf_par%force_const = force_const
+  cf_par%force_law   = 3
+
   ! Loop over all timesteps
   do while (itime < nt)
     itime = itime + 1
@@ -126,8 +134,7 @@ program pepc
      call pepc_fields(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult,mac, theta, t_calc_force_params(eps, force_const, 3), &
-                      itime, weighted, curve_type, &
+              	      np_mult, cf_par, itime, weighted, curve_type, &
                       num_neighbour_boxes, neighbour_boxes, treediags)
 
   !   call verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, [1, 2, np_local-1, np_local], &

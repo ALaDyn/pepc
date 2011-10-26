@@ -25,6 +25,7 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
   real*8, intent(in), dimension(3) :: lat_x, lat_y, lat_z
   logical, intent(in), dimension(3) :: lat_period
   logical, intent(in) :: lat_corr
+  type(t_calc_force_params) ::cf_par
 
   integer :: ip
   integer :: ierr
@@ -57,11 +58,19 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
 
   itime = 1
 
+  ! initialize calc force params
+  cf_par%theta       = theta
+  cf_par%mac         = mac
+  cf_par%eps         = eps
+  cf_par%force_const = force_const
+  cf_par%force_law   = 3
+
+
   call pepc_fields(np_local, npart_total, &
        pos_x, pos_y, pos_z, &
        charge, work, pelabel, &
        ex, ey, ez, pot, &
-       np_mult, mac, theta, t_calc_force_params(eps, force_const, 3), &
+       np_mult, cf_par, &
        itime, weighted, curve_type, &
        num_neighbour_boxes, neighbour_boxes, .false.)
   

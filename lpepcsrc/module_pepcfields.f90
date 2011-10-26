@@ -51,8 +51,6 @@ module module_pepcfields
         !>   @param[out] p_Ez dimension(1:np_local) - z-component of electric field
         !>   @param[out] p_pot dimension(1:np_local) - electric potential
         !>   @param[in] np_mult_ memory allocation parameter
-        !>   @param[in] selector for multipole acceptance criterion, currently, only 0 (BH-MAC) is supported
-        !>   @param[in] theta multipole opening angle
         !>   @param[in] cf_par parameters for force summation
         !>   @param[in] itime current simulation timestep number
         !>   @param[in] weighted selector for load balancing
@@ -63,8 +61,7 @@ module module_pepcfields
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	subroutine pepc_fields(np_local,npart_total,p_x, p_y, p_z, p_q, p_w, p_label, &
-	     p_Ex, p_Ey, p_Ez, p_pot, np_mult_,&
-	     mac, theta, cf_par, itime, weighted, curve_type, &
+	     p_Ex, p_Ey, p_Ez, p_pot, np_mult_, cf_par, itime, weighted, curve_type, &
 	     num_neighbours, neighbours, no_dealloc)
 
 	  use treevars
@@ -81,10 +78,10 @@ module module_pepcfields
 
 	  integer, intent(in) :: np_local  ! # particles on this CPU
 	  integer, intent(in) :: npart_total ! total # simulation particles
-	  real, intent(in) :: theta, np_mult_       ! multipole opening angle
+	  real, intent(in) :: np_mult_       ! multipole opening angle
 	  type(t_calc_force_params), intent(in) :: cf_par
 	  integer, intent(in) :: itime  ! timestep
-	  integer, intent(in) :: mac, weighted
+	  integer, intent(in) :: weighted
 	  real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc
 	  real*8, intent(in), dimension(np_local) :: p_q ! charges, masses
 	  integer, intent(in), dimension(np_local) :: p_label  ! particle label
@@ -123,7 +120,7 @@ module module_pepcfields
 
 	  if (force_debug) then
 	     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
-				itime, mac, theta, cf_par%eps, cf_par%force_const
+				itime, cf_par%mac, cf_par%theta, cf_par%eps, cf_par%force_const
 	     write (*,'(a7,a20/(i16,4f15.3,i8))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i), &
 				p_label(i),i=1,npp)
 	  endif
@@ -151,10 +148,10 @@ module module_pepcfields
 	  allocate(indxl(nppm_ori),irnkl(nppm_ori))
 	  ! Domain decomposition: allocate particle keys to PEs
 	  call tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted, curve_type)
-	  call allocate_tree(theta)
+	  call allocate_tree(cf_par%theta)
 
 	  ! calculate spherical multipole expansion of central box
-	  if (cf_par%force_law==3) call fmm_framework_timestep
+	  if (cf_par%include_far_field_if_periodic) call fmm_framework_timestep()
 
 	  ! build local part of tree
 	  call timer_stamp(t_stamp_before_local)
@@ -190,7 +187,7 @@ module module_pepcfields
 	    vbox = lattice_vect(neighbours(:,ibox))
 
 	    ! tree walk finds interaction partners and calls interaction routine for particles on short list
-	    call tree_walk(npp,particles,particle_results,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, tcomm)
+	    call tree_walk(npp,particles,particle_results,cf_par,itime,ttrav,ttrav_loc, vbox, tcomm)
 
         call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
         call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
@@ -204,8 +201,8 @@ module module_pepcfields
 
 	  ! add lattice contribution
 	  call timer_start(t_lattice)
-	  ! TODO: do not only do this for cf_par%force_law==3 --> two stage switch for periodicity
-	  if (cf_par%force_law==3) call calc_force_per_particle(particle_results, cf_par)
+	  ! add lattice contribution and other per-particle-forces
+	  call calc_force_per_particle(particle_results, cf_par)
 	  call timer_stop(t_lattice)
 
 	  ! restore initial particle order specified by calling routine to reassign computed forces
@@ -274,7 +271,7 @@ module module_pepcfields
         !>
         !>   Returns fields Ex, Ey, Ez and potential pot excluding external terms
         !>
-        !>   @param[in] np_local local number of grid points
+        !>   @param[in] npgrid local number of grid points
         !>   @param[in] npart_total total particle number
         !>   @param[in] p_x dimension(1:np_local) - x-component of particle coordinates
         !>   @param[in] p_y dimension(1:np_local) - y-component of particle coordinates
@@ -284,8 +281,6 @@ module module_pepcfields
         !>   @param[out] p_Ey dimension(1:np_local) - y-component of electric field
         !>   @param[out] p_Ez dimension(1:np_local) - z-component of electric field
         !>   @param[out] p_pot dimension(1:np_local) - electric potential
-        !>   @param[in] selector for multipole acceptance criterion, currently, only 0 (BH-MAC) is supported
-        !>   @param[in] theta multipole opening angle
         !>   @param[in] cf_par parameters for force summation
         !>   @param[in] itime current simulation timestep number
         !>   @param[in] weighted selector for load balancing
@@ -296,7 +291,7 @@ module module_pepcfields
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	subroutine pepc_grid_fields(npgrid,p_x, p_y, p_z, p_label, &
-	     p_Ex, p_Ey, p_Ez, p_pot, mac, theta, cf_par, itime,  num_neighbours, neighbours)
+	     p_Ex, p_Ey, p_Ez, p_pot, cf_par, itime,  num_neighbours, neighbours)
 
 	  use treevars
 	  use treetypes
@@ -311,10 +306,8 @@ module module_pepcfields
 	  include 'mpif.h'
 
 	  integer, intent(in) :: npgrid  ! # particles on this CPU
-	  real, intent(in) :: theta     ! multipole opening angle
 	  type(t_calc_force_params), intent(in) :: cf_par
 	  integer, intent(in) :: itime  ! timestep
-	  integer, intent(in) :: mac
 	  real*8, intent(in), dimension(npgrid) :: p_x, p_y, p_z  ! coords: x1,x2,x3, y1,y2,y3, etc
 	  integer, intent(in), dimension(npgrid) :: p_label  ! particle label
 	  real*8, intent(out), dimension(npgrid) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
@@ -349,20 +342,16 @@ module module_pepcfields
                                         me )                        ! particle owner
           end do
 
-	  ! calculate spherical multipole expansion of central box ! TODO: improve this condition
-	  if (cf_par%force_law==3) call fmm_framework_timestep()
-
       grid_particle_results(:) = t_particle_results([0., 0., 0.], 0., 1.)
-
 
 	  do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 	    vbox = lattice_vect(neighbours(:,ibox))
 	    ! tree walk finds interaction partners and calls interaction routine for particles on short list
-	    call tree_walk(npgrid,grid_particles,grid_particle_results,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, tcomm)
+	    call tree_walk(npgrid,grid_particles,grid_particle_results,cf_par,itime,ttrav,ttrav_loc, vbox, tcomm)
 	  end do ! ibox = 1,num_neighbours
 
-	  ! add lattice contribution  ! TODO: improve this condition
-	  if (cf_par%force_law==3) call calc_force_per_particle(grid_particle_results, cf_par)
+	  ! add lattice contribution and other per-particle-forces
+	  call calc_force_per_particle(grid_particle_results, cf_par)
 
 	  nkeys_total = nleaf+ntwig
 

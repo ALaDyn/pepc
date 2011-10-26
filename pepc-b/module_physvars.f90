@@ -1,5 +1,6 @@
 
 module module_physvars
+  use treetypes
   use tree_walk_pthreads
   use module_fmm_framework
   implicit none
@@ -27,6 +28,7 @@ module module_physvars
   complex, allocatable :: Az_helm(:)   !< Helmholtz vector potential
 
   integer :: choose_sort, weighted, choose_build
+  type(t_calc_force_params) ::cf_par
 
   !  physics, target data
 

@@ -112,7 +112,9 @@ module module_calc_force
           potfarfield  = 0.
           potnearfield = 0.
 
-          if (do_periodic) then
+          if ((do_periodic) .and. (cf_par%include_far_field_if_periodic)) then
+
+             if ((me==0) .and. (cf_par%force_law .ne. 3)) write(*,*) "Warning: far-field lattice contribution is currently only supported for force_law==3"
 
              do p=1,npp
                 call fmm_sum_lattice_force(p, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
