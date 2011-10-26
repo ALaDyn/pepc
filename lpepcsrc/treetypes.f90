@@ -1,7 +1,8 @@
 
 module treetypes
 
-  ! Data structure for user-defined variables that are directly involved into the force calculation
+  !> Data structure for user-defined variables that are directly involved into the force calculation
+  !> TODO: include mac and theta in these parameters and remove anywhere else
   type t_calc_force_params
     real    :: eps
     real    :: force_const

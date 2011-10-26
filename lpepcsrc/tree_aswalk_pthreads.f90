@@ -514,7 +514,9 @@ module tree_walk_pthreads
     integer :: todo_list_length, defer_list_length
 
 
-    integer :: np_local
+    integer :: num_particles
+    type(t_particle), pointer, dimension(:) :: particle_data
+    type(t_particle_results), pointer, dimension(:) :: my_particle_results
 
     integer :: next_unassigned_particle !< index of next particle that has not been assigned to a work thread
 
@@ -529,7 +531,7 @@ module tree_walk_pthreads
   contains
 
 
-    subroutine tree_walk(np_local_,theta_,cf_par_,itime,mac_,twalk,twalk_loc_,vbox_,tcomm)
+    subroutine tree_walk(nparticles,particles,particle_results,theta_,cf_par_,itime,mac_,twalk,twalk_loc_,vbox_,tcomm)
       use, intrinsic :: iso_c_binding
       use treetypes
       use tree_utils
@@ -541,7 +543,9 @@ module tree_walk_pthreads
 
       real, intent(in) :: theta_  ! MAC angle
       type(t_calc_force_params), intent(in) :: cf_par_
-      integer, intent(in) :: np_local_
+      integer, intent(in) :: nparticles
+      type(t_particle), target, intent(in) :: particles(:)
+      type(t_particle_results), target, intent(inout) :: particle_results(:)
       integer, intent(in) :: itime
       integer, intent(in) :: mac_
       real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
@@ -550,7 +554,9 @@ module tree_walk_pthreads
 
       if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (HYBRID) for timestep ',itime
 
-      np_local = np_local_
+      num_particles = nparticles
+      particle_data => particles
+      my_particle_results => particle_results
       ! box shift vector
       vbox = vbox_
       ! force calculation parameters
@@ -641,9 +647,9 @@ module tree_walk_pthreads
       mac_evaluations_local = sum(threaddata(:)%num_mac_evaluations)
 
       ! check wether all particles really have been processed
-      if (next_unassigned_particle .ne. np_local + 1) then
+      if (next_unassigned_particle .ne. num_particles + 1) then
         write(*,*) "Serious issue on PE", me, ": all walk threads have terminated, but obviously not all particles are finished with walking: next_unassigned_particle =", &
-                            next_unassigned_particle, " np_local =", np_local
+                            next_unassigned_particle, " num_particles =", num_particles
         flush(6)
         call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
       end if
@@ -663,17 +669,13 @@ module tree_walk_pthreads
       ! we have to have at least one walk thread
       num_walk_threads = max(num_walk_threads, 1)
       ! evenly balance particles to threads if there are less than the maximum
-      max_particles_per_thread = max(min(np_local/num_walk_threads, max_particles_per_thread),1)
+      max_particles_per_thread = max(min(num_particles/num_walk_threads, max_particles_per_thread),1)
       ! allocate storage for thread handles, the 0th entry is the walk scheduler thread, the other ones are the walk worker threads
       call retval(pthreads_init(num_walk_threads + 1), "init_walk_data:pthreads_init")
       ! we will only want to reject the root node and the particle itself if we are in the central box
       in_central_box = (dot_product(vbox,vbox) == 0)
       ! every particle has directly or indirectly interact with each other, and outside the central box even with itself
-      if (in_central_box) then
-        num_interaction_leaves = npart - 1
-      else
-        num_interaction_leaves = npart
-      endif
+      num_interaction_leaves = npart
       ! Preprocessed box sizes for each level
       allocate(boxlength2(0:nlev))
       boxlength2(0)=boxsize**2
@@ -706,7 +708,7 @@ module tree_walk_pthreads
       logical, intent(out) :: success
 
       call rwlock_wrlock(RWLOCK_NEXT_FREE_PARTICLE,"get_first_unassigned_particle")
-      if (next_unassigned_particle < np_local + 1) then
+      if (next_unassigned_particle < num_particles + 1) then
         get_first_unassigned_particle = next_unassigned_particle
         next_unassigned_particle      = next_unassigned_particle + 1
         success = .true.
@@ -804,16 +806,12 @@ module tree_walk_pthreads
     !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
 
                   ! walk for particle i has finished
-                  ! check whether it really interacted with all other particles (in central box: excluding itself)
-
-! TODO: NEED WAY OF CHANGING num_interaction_leaves=npart for walk with grid particles
-! Test commented out for time being
-
-!                  if (partner_leaves(i) .ne. num_interaction_leaves) then
-!                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, my_particles(i), particles(my_particles(i))%label
-!                    write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
-!                    write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
-!                  endif
+                  ! check whether it really interacted with all other particles
+                  if (partner_leaves(i) .ne. num_interaction_leaves) then
+                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, my_particles(i), particles(my_particles(i))%label
+                    write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
+                    write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
+                  endif
 
                   !remove entries from defer_list
                   my_particles(i)            = -1
@@ -882,7 +880,7 @@ module tree_walk_pthreads
 
       real*8 :: dist2
       real*8 :: delta(3)
-      logical :: same_particle, same_particle_or_parent_node, mac_ok
+      logical :: same_particle, same_particle_or_parent_node, mac_ok, ignore_node
       integer :: ierr
 
       todo_list_entries = 0
@@ -899,9 +897,9 @@ module tree_walk_pthreads
           walk_addr = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
           walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
 
-          delta     = particles(nodeidx)%x - ([tree_nodes(walk_node)%xcoc, &
-                                               tree_nodes(walk_node)%ycoc, &
-                                               tree_nodes(walk_node)%zcoc] + vbox)  ! Separations
+          delta     = particle_data(nodeidx)%x - ([tree_nodes(walk_node)%xcoc, &
+                                                   tree_nodes(walk_node)%ycoc, &
+                                                   tree_nodes(walk_node)%zcoc] + vbox)  ! Separations
 
           dist2 = DOT_PRODUCT(delta, delta)
 
@@ -927,25 +925,26 @@ module tree_walk_pthreads
           ! interaction with ancestor nodes should be prevented by the MAC
           ! but this does not always work (i.e. if theta > 0.7 or if keys and/or coordinates have
           ! been modified due to 'duplicate keys'-error)
-          same_particle_or_parent_node  = (in_central_box) .and. ( is_ancestor_of_particle(particles(nodeidx)%key, walk_key))
+          same_particle_or_parent_node  = (in_central_box) .and. ( is_ancestor_of_particle(particle_data(nodeidx)%key, walk_key))
           ! set ignore flag if leaf node corresponds to particle itself
           same_particle = same_particle_or_parent_node .and. (walk_node > 0)
 
           ! ** PG 22 Oct 2011
           ! TODO: Special case for 2D min-image BCs: ignore nodes outside |delta| > L/2 box centred on particle
           ! same_particle = same_particle .or. (cf_par%force_law .eq.2 .and. abs(delta).gt. yl/2.)
-
+          ignore_node = same_particle
  
-          !  always accept leaf-nodes since they cannot be refined any further
-          !  further resolve ancestor nodes if we are in the central box
-          mac_ok = (walk_node > 0) .or. ( mac_ok .and. (.not. same_particle_or_parent_node))
 
-          if (.not. same_particle) then
-          ! ========= Possible courses of action:
+          if (.not. ignore_node) then
+              !  always accept leaf-nodes since they cannot be refined any further
+              !  further resolve ancestor nodes if we are in the central box
+              mac_ok = (walk_node > 0) .or. ( mac_ok .and. (.not. same_particle_or_parent_node))
+
+              ! ========= Possible courses of action:
               if (mac_ok) then
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell
-                  call calc_force_per_interaction(nodeidx, particle_results(nodeidx), walk_node, delta, dist2, vbox, cf_par)
+                  call calc_force_per_interaction(nodeidx, my_particle_results(nodeidx), walk_node, delta, dist2, vbox, cf_par)
                   partner_leaves                 = partner_leaves                 + htable(walk_addr)%leaves
                   my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
               else
@@ -968,8 +967,9 @@ module tree_walk_pthreads
                       end if
                   end if
               endif
-          else 
-	  endif !(.not. same_particle)
+          else !(ignore_node)
+            partner_leaves = partner_leaves + htable(walk_addr)%leaves
+          endif !(.not. ignore_node)
       end do ! (while (todo_list_pop(walk_key)))
 
       ! if todo_list and defer_list are now empty, the walk has finished

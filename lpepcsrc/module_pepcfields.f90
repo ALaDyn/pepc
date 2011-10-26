@@ -35,7 +35,7 @@ module module_pepcfields
   
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !>   Calculate fields and potential from coordinates x,y,z:
+        !>   Calculate fields and potential for supplied particle coordinates p_x, p_y, p_z and charges p_q
         !>
         !>   Returns fields Ex, Ey, Ez and potential pot excluding external terms
         !>   @param[in] np_local local number of particles
@@ -71,8 +71,8 @@ module module_pepcfields
 	  use treetypes
 	  use timings
 	  use module_tree_domains
-	  use module_calc_force
-	  use module_fmm_framework
+      use module_fmm_framework
+      use module_calc_force
 	  use tree_walk_pthreads
 	  use tree_walk_communicator
 	  use module_allocation
@@ -104,6 +104,11 @@ module module_pepcfields
 	  integer :: ibox
 	  real*8 :: vbox(3)
 	  character(30) :: cfile
+
+      ! fields, potential and load weights returned by force-sum: allocated in pepc_fields:
+      type(t_particle_results), allocatable :: particle_results(:)
+
+      if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | FIELDS..'
 
 	  ! copy call parameters to treevars module
 	  npart      = npart_total
@@ -185,7 +190,7 @@ module module_pepcfields
 	    vbox = lattice_vect(neighbours(:,ibox))
 
 	    ! tree walk finds interaction partners and calls interaction routine for particles on short list
-	    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, tcomm)
+	    call tree_walk(npp,particles,particle_results,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, tcomm)
 
         call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
         call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
@@ -261,6 +266,11 @@ module module_pepcfields
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !>   Calculate fields and potential from gridded coordinates x,y,z **using existing tree**
+        !>   pepc_fields(...,no_dealloc+.true.) must have been called before
+        !>   this call does not modify the tree excpet that it fetches additionally needed particles
+        !>   ideally, the supplied grid coordinates on each PE should coincide with
+        !>   the spatial volume that is covered by the local branch nodes
+        !>   TODO: add a routine, that produces such a grid automatically
         !>
         !>   Returns fields Ex, Ey, Ez and potential pot excluding external terms
         !>
@@ -285,12 +295,12 @@ module module_pepcfields
         !>   @param[in] no_dealloc if set to .true., deallocation of tree-structures is prevented to allow for front-end triggered diagnostics
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	subroutine pepc_grid_fields(np_local,p_x, p_y, p_z, p_label, &
+	subroutine pepc_grid_fields(npgrid,p_x, p_y, p_z, p_label, &
 	     p_Ex, p_Ey, p_Ez, p_pot, mac, theta, cf_par, itime,  num_neighbours, neighbours)
 
 	  use treevars
 	  use treetypes
- 	  use module_htable
+	  use module_htable
 	  use timings
 	  use module_calc_force
 	  use module_fmm_framework
@@ -300,112 +310,72 @@ module module_pepcfields
 	  implicit none
 	  include 'mpif.h'
 
-	  integer, intent(in) :: np_local  ! # particles on this CPU
+	  integer, intent(in) :: npgrid  ! # particles on this CPU
 	  real, intent(in) :: theta     ! multipole opening angle
 	  type(t_calc_force_params), intent(in) :: cf_par
 	  integer, intent(in) :: itime  ! timestep
 	  integer, intent(in) :: mac
-	  real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords: x1,x2,x3, y1,y2,y3, etc
-	  integer, intent(in), dimension(np_local) :: p_label  ! particle label
-	  real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
+	  real*8, intent(in), dimension(npgrid) :: p_x, p_y, p_z  ! coords: x1,x2,x3, y1,y2,y3, etc
+	  integer, intent(in), dimension(npgrid) :: p_label  ! particle label
+	  real*8, intent(out), dimension(npgrid) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
 	  integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
 	  integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
 
-	  integer :: ierr
-
+      type(t_particle), allocatable :: grid_particles(:)
+      type(t_particle_results), allocatable :: grid_particle_results(:)
 
 	  integer :: i
 	  real*8 :: ttrav, ttrav_loc, tcomm(3) ! timing integrals
 	  integer :: ibox
 	  real*8 :: vbox(3)
 
-	  ! copy call parameters to treevars module
-	  ! npart is still total # particles
-	  npp        = np_local
+      if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | GRID-FIELDS..'
 
-      if (allocated(particles)) deallocate(particles)
+      if (.not. (allocated(htable) .and. allocated(tree_nodes))) then
+         write(*,*) 'pepc_grid_fields(): pepc_fields() must have been called with no_dealloc=.true. before'
+        return
+      endif
 
-      ! TODO: For some bizzare reason particle_results etc are declared in module_calc_force
-	  allocate(particles(npp), particle_results(npp))
+	  allocate(grid_particles(npgrid), grid_particle_results(npgrid))
 
-	  if (force_debug) then
-	     write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
-				itime, mac, theta, cf_par%eps, cf_par%force_const
-	     write (*,'(a7,a20/(i16,3f15.3,i8))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_label(i),i=1,npp)
-	  endif
-
-          ! Copy particle buffers to tree arrays
-          do i=1,npp
-            particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
-                                      [    0.,     0.,     0.], &  ! velocity - not relevant for tree code
-                                       0.,                      &  ! charge - set to zero
-                                       1._8,                    &  ! workload
-                                      -1_8,                     &  ! key - will be assigned later
-                                       p_label(i),              &  ! particle label for tracking purposes
-                                       me )                        ! particle owner
+      ! Copy particle buffers to tree arrays
+      do i=1,npgrid
+        grid_particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
+                                       [    0.,     0.,     0.], &  ! velocity - not relevant for tree code
+                                        0.,                      &  ! charge - set to zero
+                                        1._8,                    &  ! workload
+                                       -1_8,                     &  ! key - will be assigned later
+                                        p_label(i),              &  ! particle label
+                                        me )                        ! particle owner
           end do
 
-	  ! Trap bad particle labels
-	  if (any(p_label(1:npp) == 0)) then
-	    write (*,*) '*** Error: particle labels must be nonzero:', i, p_label(i)
-	    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-	  endif
+	  ! calculate spherical multipole expansion of central box ! TODO: improve this condition
+	  if (cf_par%force_law==3) call fmm_framework_timestep()
 
-	  ! calculate spherical multipole expansion of central box
-	  if (cf_par%force_law==3) call fmm_framework_timestep
-
-	  max_req_list_length = 0
-	  cum_req_list_length = 0
-	  comm_loop_iterations = 0
-	  sum_fetches=0      ! total # multipole fetches/iteration
-	  sum_ships=0      ! total # multipole shipments/iteration
-
-      particle_results(:) = t_particle_results([0., 0., 0.], 0., 1.)
+      grid_particle_results(:) = t_particle_results([0., 0., 0.], 0., 1.)
 
 
 	  do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 	    vbox = lattice_vect(neighbours(:,ibox))
 	    ! tree walk finds interaction partners and calls interaction routine for particles on short list
-	    call tree_walk(npp,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, tcomm)
+	    call tree_walk(npgrid,grid_particles,grid_particle_results,theta,cf_par,itime,mac,ttrav,ttrav_loc, vbox, tcomm)
 	  end do ! ibox = 1,num_neighbours
 
-	  ! add lattice contribution
-	  if (cf_par%force_law==3) call calc_force_per_particle(particle_results, cf_par)
+	  ! add lattice contribution  ! TODO: improve this condition
+	  if (cf_par%force_law==3) call calc_force_per_particle(grid_particle_results, cf_par)
 
 	  nkeys_total = nleaf+ntwig
 
-          ! Copy results back to local arrays
-          do i=1,npp
-            p_Ex(i)  = particle_results(i)%e(1)
-            p_Ey(i)  = particle_results(i)%e(2)
-            p_Ez(i)  = particle_results(i)%e(3)
-            p_pot(i) = particle_results(i)%pot
-          end do
-
-
-	  if (force_debug) then
-	     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)')
-	     write (*,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)')
-	     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)') cf_par%force_const
-
-	     do i=1,np_local
-	        write (ipefile,'(1x,i7,4(1pe14.5))') particles(i)%label, particles(i)%q, particles(i)%u(1), p_pot(i), p_ex(i)
-	        write (*,'(1x,i7,4(1pe14.5))') particles(i)%label, particles(i)%x(1), particles(i)%q, particles(i)%u(1), p_pot(i)
-	     end do
-
-	  endif
-
-
-      ! TODO This stuff belongs in module_allocation.f90, but need to avoid messing with nppm_ori etc
+      ! Copy results back to local arrays
+      do i=1,npgrid
+        p_Ex(i)  = grid_particle_results(i)%e(1)
+        p_Ey(i)  = grid_particle_results(i)%e(2)
+        p_Ez(i)  = grid_particle_results(i)%e(3)
+        p_pot(i) = grid_particle_results(i)%pot
+      end do
 
       ! deallocate particle and result arrays
-
-      deallocate (particles, particle_results)
-
-      ! deallocate tree
-	  deallocate ( htable, free_addr, point_free, treekey, branch_key, branch_owner, pebranch, twig_key )
-	  deallocate ( tree_nodes )
-      deallocate ( nbranches )
+      deallocate (grid_particles, grid_particle_results)
 
 	end subroutine pepc_grid_fields
 

@@ -37,6 +37,7 @@ module treevars
 
   type(t_multipole), target, allocatable  :: tree_nodes(:)                 ! Tree node properties
 
+  ! TODO: put these into tree_aswalk_pthreads module
   integer*8 ::  max_req_list_length, & ! maximum length of request queue
                  cum_req_list_length, & ! cumulative length of request queue
                  comm_loop_iterations(3)! number of comm loop iterations (total, sending, receiving)
@@ -93,7 +94,7 @@ module treevars
   logical :: load_file_debug=.false.
   
 
-  !>  particle data - dimensions filled in when #PEs known
+  !>  particle data - dimensions filled in when #PEs known !TODO: make this variable local to pepc_fields() and pass it as parameter to other functions
   type(t_particle), target, allocatable :: particles(:)
 
 ! Memory control

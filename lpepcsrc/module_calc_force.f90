@@ -17,12 +17,8 @@ module module_calc_force
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      ! fields, potential and load weights returned by force-sum: allocated in pepc_fields:
-      ! TODO: wouldn't it be more logical to declare these in module_pepc_fields? (PG) Yes, but moving it is due to dependencies not trivial (MW)
-      type(t_particle_results), allocatable, public :: particle_results(:)
-
-      real*8, public, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
-      real*8, public, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
+      real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
+      real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
