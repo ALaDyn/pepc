@@ -507,7 +507,7 @@ module tree_walk_pthreads
     real*8, dimension(:), allocatable :: boxlength2
     real*8 :: theta2
     real*8 :: vbox(3)
-    type(t_calc_force_params) :: cf_par
+    type(t_calc_force_params), save :: cf_par
     logical :: in_central_box
     integer*8 :: num_interaction_leaves
     integer :: todo_list_length, defer_list_length
