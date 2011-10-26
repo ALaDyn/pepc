@@ -879,8 +879,12 @@ module module_fmm_framework
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_framework_param_dump(ifile)
+          use treevars
           implicit none
           integer, intent(in) :: ifile
+
+          if (me .ne. 0) return
+
           write(ifile,*) "LATTICE: ------------- Lattice fmm-framework switches ----------------"
           write(ifile,*) "LATTICE: Lmax = ", Lmax
           write(ifile,*) "LATTICE: LmaxL = ", LmaxL
