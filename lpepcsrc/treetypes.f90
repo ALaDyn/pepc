@@ -1,6 +1,8 @@
 
 module treetypes
 
+  real*8, parameter, private :: real8_dummy = 1.
+
   !> Data structure for user-defined variables that are directly involved into the force calculation
   type t_calc_force_params
     real    :: eps          = 0.0    !< short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
@@ -9,6 +11,7 @@ module treetypes
     logical :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
     integer :: mac          = 0      !< selector for multipole acceptance criterion, mac==0: Barnes-Hut, currently unused
     real    :: theta        = 0.6    !< multipole opening angle
+    real*8  :: spatial_interaction_cutoff(3) = huge(real8_dummy) * [1., 1., 1.] !< all nodes, where any(abs(coc(1:3)-particle_position(1:3)) > spatial_interaction_cutoff(1:3) are ignored when calculating interactions
   end type t_calc_force_params
 
   ! Data structure for shipping results

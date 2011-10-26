@@ -924,11 +924,8 @@ module tree_walk_pthreads
           ! set ignore flag if leaf node corresponds to particle itself
           same_particle = same_particle_or_parent_node .and. (walk_node > 0)
 
-          ! ** PG 22 Oct 2011
-          ! TODO: Special case for 2D min-image BCs: ignore nodes outside |delta| > L/2 box centred on particle
-          ! same_particle = same_particle .or. (cf_par%force_law .eq.2 .and. abs(delta).gt. yl/2.)
+          ! ignore interactions with the particle itself (this is the place for possible other exclusion options)
           ignore_node = same_particle
- 
 
           if (.not. ignore_node) then
               !  always accept leaf-nodes since they cannot be refined any further
@@ -938,10 +935,13 @@ module tree_walk_pthreads
               ! ========= Possible courses of action:
               if (mac_ok) then
                   ! 1) leaf node or MAC test OK ===========
-                  !    --> interact with cell
-                  call calc_force_per_interaction(nodeidx, my_particle_results(nodeidx), walk_node, delta, dist2, vbox, cf_par)
-                  partner_leaves                 = partner_leaves                 + htable(walk_addr)%leaves
-                  my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
+                  !    --> interact with cell if it does not lie outside the cutoff box
+                  if (all(abs(delta) < cf_par%spatial_interaction_cutoff)) then
+                      call calc_force_per_interaction(nodeidx, my_particle_results(nodeidx), walk_node, delta, dist2, vbox, cf_par)
+                      my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
+                  endif
+
+                  partner_leaves = partner_leaves + htable(walk_addr)%leaves
               else
                   ! 2) MAC fails for twig node ============
                   if ( children_available(walk_addr) ) then
