@@ -55,11 +55,13 @@ module module_calc_force
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(p, res, inode, delta, dist2, vbox, cf_par)
+        subroutine calc_force_per_interaction(particle, res, inode, delta, dist2, vbox, cf_par)
+          use treetypes
           use treevars
           implicit none
 
-          integer, intent(in) :: p, inode
+          integer, intent(in) :: inode
+          type(t_particle), intent(in) :: particle
           type(t_particle_results), intent(inout) :: res
           real*8, intent(in) :: vbox(3), delta(3), dist2
           !> Force law struct has following content (defined in module treetypes)
@@ -73,7 +75,7 @@ module module_calc_force
 
           select case (cf_par%force_law)
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_2D(p, inode, vbox, cf_par, exc, eyc, phic)
+                call calc_force_coulomb_2D(particle, inode, vbox, cf_par, exc, eyc, phic)
                 ezc = 0.
 
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
@@ -99,11 +101,14 @@ module module_calc_force
         !> to be added once per particle
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_particle(res, cf_par)
-          use treevars
+        subroutine calc_force_per_particle(nparticles, parts, res, cf_par)
+          use treetypes
+          use treevars, only : me
           use module_fmm_framework
           implicit none
 
+          integer, intent(in) :: nparticles
+          type(t_particle), intent(in) :: parts(:)
           type(t_calc_force_params), intent(in) :: cf_par
           type(t_particle_results), intent(inout) :: res(:)
           real*8 :: ex_lattice, ey_lattice, ez_lattice, phi_lattice
@@ -116,11 +121,11 @@ module module_calc_force
 
              if ((me==0) .and. (cf_par%force_law .ne. 3)) write(*,*) "Warning: far-field lattice contribution is currently only supported for force_law==3"
 
-             do p=1,npp
-                call fmm_sum_lattice_force(p, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
+             do p=1,nparticles
+                call fmm_sum_lattice_force(p, ex_lattice, ey_lattice, ez_lattice, phi_lattice) !TODO: use coordinates from particles
 
-                potfarfield  = potfarfield  + phi_lattice * particles(p)%q
-                potnearfield = potnearfield + res(p)%pot  * particles(p)%q
+                potfarfield  = potfarfield  + phi_lattice * parts(p)%q
+                potnearfield = potnearfield + res(p)%pot  * parts(p)%q
 
                 res(p)%e     = res(p)%e     + cf_par%force_const * [ex_lattice, ey_lattice, ez_lattice]
                 res(p)%pot   = res(p)%pot   + cf_par%force_const * phi_lattice
@@ -248,7 +253,7 @@ module module_calc_force
 
           include 'mpif.h'
 
-          integer, intent(in) :: p  !< particle label
+          type(t_particle), intent(in) :: p
           integer, intent(in) :: inode !< index of particle to interact with
           real*8, intent(in) :: vbox(3) !< vector to neighbour box that is currently processed
           type(t_calc_force_params), intent(in) :: cf_par
@@ -266,8 +271,8 @@ module module_calc_force
           t=>tree_nodes(inode)
 
           !  preprocess distances and reciprocals
-          dx = particles(p)%x(1) - ( t%xcoc + vbox(1) )
-          dy = particles(p)%x(2) - ( t%ycoc + vbox(2) )
+          dx = p%x(1) - ( t%xcoc + vbox(1) )
+          dy = p%x(2) - ( t%ycoc + vbox(2) )
 
           d2  = dx**2+dy**2+eps2 
           rd2 = 1./d2 

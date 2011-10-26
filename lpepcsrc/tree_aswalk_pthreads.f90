@@ -937,7 +937,7 @@ module tree_walk_pthreads
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell if it does not lie outside the cutoff box
                   if (all(abs(delta) < cf_par%spatial_interaction_cutoff)) then
-                      call calc_force_per_interaction(nodeidx, my_particle_results(nodeidx), walk_node, delta, dist2, vbox, cf_par)
+                      call calc_force_per_interaction(particle_data(nodeidx), my_particle_results(nodeidx), walk_node, delta, dist2, vbox, cf_par)
                       my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
                   endif
 
