@@ -126,7 +126,7 @@ program pepcb
     cf_par%force_const = force_const
     cf_par%force_law   = force_law
     cf_par%include_far_field_if_periodic = (cf_par%force_law == 3)
-    if (.not. cf_par%include_far_field_if_periodic) cf_par%spatial_interaction_cutoff = [xl, yl, zl] / 2.
+    if ((.not. cf_par%include_far_field_if_periodic) .and. (cf_par%force_law == 2)) cf_par%spatial_interaction_cutoff(2) = yl
 
     ! Compute initial field values
 
