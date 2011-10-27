@@ -389,12 +389,16 @@ module module_tree_domains
 
         integer :: i, ierr
 
-        type (t_particle_results) :: get_parts(npold)
+        type (t_particle_results) :: get_parts(npold), ship_parts(npnew)
 
         if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | RESTORE..'
 
+        do i=1,npnew
+          ship_parts(i) = res(indxl(i))
+        enddo
+
         ! perform permute
-        call MPI_alltoallv(  res, islen, fposts, mpi_type_results, &
+        call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_results, &
         get_parts, irlen, gposts, mpi_type_results, &
         MPI_COMM_WORLD,ierr )
 
