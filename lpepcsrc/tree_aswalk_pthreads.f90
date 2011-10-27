@@ -877,8 +877,11 @@ module tree_walk_pthreads
       real*8 :: delta(3)
       logical :: same_particle, same_particle_or_parent_node, mac_ok, ignore_node
       integer :: ierr
+      integer*8 :: num_interactions, num_mac_evaluations
 
-      todo_list_entries = 0
+      todo_list_entries   = 0
+      num_interactions    = 0
+      num_mac_evaluations = 0
 
       ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
       ! another mac-check for each entry is not necessary here, since due to having requested the children, we already know,
@@ -913,7 +916,7 @@ module tree_walk_pthreads
               mac_ok = .false.
           endif
 
-          my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + 1._8
+          num_mac_evaluations = num_mac_evaluations + 1
 
           ! we may not interact with the particle itself or its ancestors
           ! if we are in the central box
@@ -938,7 +941,8 @@ module tree_walk_pthreads
                   !    --> interact with cell if it does not lie outside the cutoff box
                   if (all(abs(delta) < cf_par%spatial_interaction_cutoff)) then
                       call calc_force_per_interaction(particle_data(nodeidx), my_particle_results(nodeidx), walk_node, delta, dist2, vbox, cf_par)
-                      my_threaddata%num_interactions = my_threaddata%num_interactions + 1._8
+
+                      num_interactions = num_interactions + 1
                   endif
 
                   partner_leaves = partner_leaves + htable(walk_addr)%leaves
@@ -974,6 +978,8 @@ module tree_walk_pthreads
           write(ipefile,'("PE", I6, " particle ", I12, " has an empty todo_list: particle obviously finished walking around :-)")') me, nodeidx
       end if
 
+      my_threaddata%num_interactions    = my_threaddata%num_interactions    + num_interactions
+      my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + num_mac_evaluations
 
     contains
      ! helper routines for todo_list manipulation
