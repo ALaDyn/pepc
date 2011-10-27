@@ -22,6 +22,8 @@ module treetypes
      real*8 :: work
   end type t_particle_results
 
+  type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results([0., 0., 0.], 0., 0.)
+
 
  ! Data structure for shipping single particles
   integer, parameter :: nprops_particle = 11 ! # particle properties to ship

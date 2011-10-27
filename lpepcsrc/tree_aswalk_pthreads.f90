@@ -727,7 +727,8 @@ module tree_walk_pthreads
       type(c_ptr) :: walk_worker_thread
       type(c_ptr), value :: arg
 
-      integer, dimension(:), allocatable :: my_particles
+      integer, dimension(:), allocatable :: thread_particle_indices
+      type(t_particle_results), dimension(:), allocatable :: thread_particle_results
       integer*8, dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
       type(t_defer_list_entry), dimension(:,:), allocatable :: defer_list
       integer, dimension(:), allocatable :: defer_list_entries
@@ -755,18 +756,20 @@ module tree_walk_pthreads
 
       if (my_max_particles_per_thread > 0) then
 
-          allocate(my_particles(my_max_particles_per_thread),                        &
-                                defer_list_entries(my_max_particles_per_thread),      &
-                                partner_leaves(my_max_particles_per_thread))
+          allocate(thread_particle_indices(my_max_particles_per_thread), &
+                    thread_particle_results(my_max_particles_per_thread), &
+                         defer_list_entries(my_max_particles_per_thread), &
+                             partner_leaves(my_max_particles_per_thread))
           allocate(defer_list(0:defer_list_length-1,my_max_particles_per_thread))
 
           ! every particle will start at the root node (one entry per todo_list, no particle is finished)
-          my_particles(:)     = -1 ! no particles assigned to this thread
-          defer_list_entries  =  1 ! one entry in defer_list:
-          defer_list(0,:)     =  t_defer_list_entry(1, 1_8) !     start at root node (addr, and key)
-          partner_leaves      =  0 ! no interactions yet
-          particles_available = .true.
-          particles_active    = .true.
+          thread_particle_indices(:) = -1 ! no particles assigned to this thread
+          thread_particle_results(:) =  EMPTY_PARTICLE_RESULTS
+          defer_list_entries         =  1 ! one entry in defer_list:
+          defer_list(0,:)            =  t_defer_list_entry(1, 1_8) !     start at root node (addr, and key)
+          partner_leaves             =  0 ! no interactions yet
+          particles_available        = .true.
+          particles_active           = .true.
           particles_since_last_yield = 0
 
 
@@ -776,11 +779,11 @@ module tree_walk_pthreads
 
             do i=1,my_max_particles_per_thread
 
-              process_particle = (my_particles(i) .ne. -1)
+              process_particle = (thread_particle_indices(i) .ne. -1)
 
               if ((.not. process_particle) .and. (particles_available)) then ! i.e. the place for a particle is unassigned
-                my_particles(i) = get_first_unassigned_particle(process_particle)
-    !            write(ipefile,*) "PE", me, getfullid(), "my_particles(",i, ") :=", my_particles(i)
+                thread_particle_indices(i) = get_first_unassigned_particle(process_particle)
+    !            write(ipefile,*) "PE", me, getfullid(), "thread_particle_indices(",i, ") :=", thread_particle_indices(i)
               end if
 
               if (process_particle) then
@@ -795,21 +798,28 @@ module tree_walk_pthreads
                   endif
                 endif
 
-                if (walk_single_particle(i, my_particles(i), defer_list, defer_list_entries(i), &
-                                       my_max_particles_per_thread, partner_leaves(i), my_threaddata)) then
+                if (walk_single_particle(i, particle_data(thread_particle_indices(i)), thread_particle_results(i), &
+                                         defer_list, defer_list_entries(i), &
+                                         my_max_particles_per_thread, partner_leaves(i), my_threaddata)) then
                   ! this particle`s walk has finished
-    !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", my_particles(i), " has finished"
+    !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", thread_particle_indices(i), " has finished"
 
                   ! walk for particle i has finished
                   ! check whether it really interacted with all other particles
                   if (partner_leaves(i) .ne. num_interaction_leaves) then
-                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, my_particles(i), particles(my_particles(i))%label
+                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, thread_particle_indices(i), particles(thread_particle_indices(i))%label
                     write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
                     write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
                   endif
 
+                  ! copy forces and potentials to thread-global array
+                  my_particle_results(thread_particle_indices(i))%e    = my_particle_results(thread_particle_indices(i))%e    + thread_particle_results(i)%e
+                  my_particle_results(thread_particle_indices(i))%pot  = my_particle_results(thread_particle_indices(i))%pot  + thread_particle_results(i)%pot
+                  my_particle_results(thread_particle_indices(i))%work = my_particle_results(thread_particle_indices(i))%work + thread_particle_results(i)%work
+
                   !remove entries from defer_list
-                  my_particles(i)            = -1
+                  thread_particle_indices(i) = -1
+                  thread_particle_results(i) =  EMPTY_PARTICLE_RESULTS
                   defer_list_entries(i)      =  1
                   defer_list(0,i)            =  t_defer_list_entry(1, 1_8)
                   partner_leaves(i)          =  0
@@ -825,7 +835,7 @@ module tree_walk_pthreads
 
           end do
 
-          deallocate(my_particles, defer_list_entries, partner_leaves)
+          deallocate(thread_particle_indices, thread_particle_results, defer_list_entries, partner_leaves)
           deallocate(defer_list)
 
       endif
@@ -855,13 +865,15 @@ module tree_walk_pthreads
 
 
 
-   function walk_single_particle(myidx, nodeidx, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
+   function walk_single_particle(myidx, particle, results, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
       use tree_walk_pthreads_commutils
       use module_htable
       use module_calc_force
       use module_spacefilling, only : level_from_key, is_ancestor_of_particle
       implicit none
-      integer, intent(in) :: nodeidx, myidx, listlengths
+      integer, intent(in) :: myidx, listlengths
+      type(t_particle), intent(in) :: particle
+      type(t_particle_results), intent(inout) :: results
       integer*8 :: todo_list(0:todo_list_length-1)
       integer*8, intent(inout) :: partner_leaves
       type(t_defer_list_entry), intent(inout) :: defer_list(0:defer_list_length-1,1:listlengths)
@@ -895,9 +907,9 @@ module tree_walk_pthreads
           walk_addr = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
           walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
 
-          delta     = particle_data(nodeidx)%x - ([tree_nodes(walk_node)%xcoc, &
-                                                   tree_nodes(walk_node)%ycoc, &
-                                                   tree_nodes(walk_node)%zcoc] + vbox)  ! Separations
+          delta     = particle%x - ([tree_nodes(walk_node)%xcoc, &
+                                     tree_nodes(walk_node)%ycoc, &
+                                     tree_nodes(walk_node)%zcoc] + vbox)  ! Separations
 
           dist2 = DOT_PRODUCT(delta, delta)
 
@@ -923,7 +935,7 @@ module tree_walk_pthreads
           ! interaction with ancestor nodes should be prevented by the MAC
           ! but this does not always work (i.e. if theta > 0.7 or if keys and/or coordinates have
           ! been modified due to 'duplicate keys'-error)
-          same_particle_or_parent_node  = (in_central_box) .and. ( is_ancestor_of_particle(particle_data(nodeidx)%key, walk_key))
+          same_particle_or_parent_node  = (in_central_box) .and. ( is_ancestor_of_particle(particle%key, walk_key))
           ! set ignore flag if leaf node corresponds to particle itself
           same_particle = same_particle_or_parent_node .and. (walk_node > 0)
 
@@ -940,7 +952,7 @@ module tree_walk_pthreads
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell if it does not lie outside the cutoff box
                   if (all(abs(delta) < cf_par%spatial_interaction_cutoff)) then
-                      call calc_force_per_interaction(particle_data(nodeidx), my_particle_results(nodeidx), walk_node, delta, dist2, vbox, cf_par)
+                      call calc_force_per_interaction(particle, results, walk_node, delta, dist2, vbox, cf_par)
 
                       num_interactions = num_interactions + 1
                   endif
@@ -962,7 +974,7 @@ module tree_walk_pthreads
                       call defer_list_push(walk_key, walk_addr) ! Deferred list of nodes to search, pending request
                                                                      ! for data from nonlocal PEs
                       if (walk_debug) then
-                          write(ipefile,'("PE ", I6, " adding nonlocal key to tail for particle ", I20, " defer_list_entries=", I6)') me, nodeidx, defer_list_entries
+                          write(ipefile,'("PE ", I6, " adding nonlocal key to tail for particle ", I20, " defer_list_entries=", I6)') me, myidx, defer_list_entries
                       end if
                   end if
               endif
@@ -975,7 +987,7 @@ module tree_walk_pthreads
       walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries == 0)
 
       if (walk_single_particle .and. walk_debug) then
-          write(ipefile,'("PE", I6, " particle ", I12, " has an empty todo_list: particle obviously finished walking around :-)")') me, nodeidx
+          write(ipefile,'("PE", I6, " particle ", I12, " has an empty todo_list: particle obviously finished walking around :-)")') me, myidx
       end if
 
       my_threaddata%num_interactions    = my_threaddata%num_interactions    + num_interactions
@@ -1013,7 +1025,7 @@ module tree_walk_pthreads
      subroutine todo_list_full()
        implicit none
        include 'mpif.h'
-        write(*,'("Rather serious issue on PE ", I6, ": todo_list is full for particle ", I20, " todo_list_length =", I6, " is too small (you should increase nintmax)")') me, nodeidx, todo_list_length
+        write(*,'("Rather serious issue on PE ", I6, ": todo_list is full for particle ", I20, " todo_list_length =", I6, " is too small (you should increase nintmax)")') me, myidx, todo_list_length
         write(*,*) "We could skip the current particle until some child_data has arrive, but this can result in a deadlock... --> aborting."
         flush(6)
         call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
@@ -1056,7 +1068,7 @@ module tree_walk_pthreads
      subroutine defer_list_full()
        implicit none
        include 'mpif.h'
-        write(*,'("Rather serious issue on PE ", I6, ": defer_list is full for particle ", I20, " defer_list_length =", I6, " is too small (you should increase nintmax)")') me, nodeidx, defer_list_length
+        write(*,'("Rather serious issue on PE ", I6, ": defer_list is full for particle ", I20, " defer_list_length =", I6, " is too small (you should increase nintmax)")') me, myidx, defer_list_length
         write(*,*) "We could skip the current particle until some child_data has arrive, but this can result in a deadlock... --> aborting."
         flush(6)
         call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
