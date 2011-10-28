@@ -200,7 +200,8 @@ subroutine dump(timestamp)
   integer :: numfiles=0
   real :: simtime
 
-  integer*8 chunksize, size_info, size1, size2, bwrote
+  integer*8 :: chunksize, size_info, bwrote
+  integer   :: size1, size2
   ! 2MB GPFS
   integer fsblksize
   integer sid
@@ -285,7 +286,7 @@ subroutine dump(timestamp)
   ! np_local*sizeof(integer)
   size2 = np_local*sizeof(sid)
   chunksize = 12*size1 + 2*size2 + size_info
-  fsblksize = 2*1024*1024
+  fsblksize = -1 ! let sionlib determine the FS block size, old: 2*1024*1024
 
  if(my_rank == 0) then
  write(6,*)'**************** np_local=',np_local,' **************'
@@ -372,7 +373,8 @@ subroutine predef_parts
   logical :: stopflag=.false.
 
 
-  integer*8 chunksize, size_info, size1, size2, bread
+  integer*8 :: chunksize, size_info, bread
+  integer   :: size1, size2
   ! 2MB GPFS
   integer 	fsblksize, feof
   integer 	sid, globalrank
