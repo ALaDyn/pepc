@@ -21,13 +21,13 @@ from time import sleep
 print "Plot field data"
 
 
-plotboxsize   = 5.
+plotboxsize   = 10.
 animated = True
 nx=200
 ny=100
 
 
-fig = plt.figure(figsize=(8,8))
+fig = plt.figure(figsize=(10,10))
 fig.suptitle("Densities")
 #fig.suptitle(filename, fontsize=26)
 #fig.subplots_adjust(right=0.8) # http://matplotlib.sourceforge.net/faq/howto_faq.html#move-the-edge-of-an-axes-to-make-room-for-tick-labels
@@ -72,13 +72,21 @@ def plot_from_file(fn):
             plt.grid(True, which='both')
 	# extract
 	    ilim=nparts/2
+	    ilim=0
 	# electrons xy:
- 	    axScatter = plt.subplot(221)
-	    axScatter.scatter(data[0:ilim-1,0],data[0:ilim-1,1],c='r',marker='o')
-	    axScatter.scatter(data[ilim:nparts,0],data[ilim:nparts,1],c='b',marker='o')
-	    axScatter.set_aspect(1.)
-	    axScatter.set_xlim( (xmin, xmax) )
-	    axScatter.set_ylim( (ymin, ymax) )
+ 	    ax1 = plt.subplot(211)
+	    ax1.scatter(data[0:ilim-1,0],data[0:ilim-1,1],c='r',marker='o')
+	    ax1.scatter(data[ilim:nparts,0],data[ilim:nparts,1],c='b',marker='o')
+	    ax1.set_aspect(1.)
+	    ax1.set_xlim( (xmin, xmax) )
+	    ax1.set_ylim( (ymin, ymax) )
+
+ 	    ax2 = plt.subplot(212)
+	    ax2.scatter(data[0:ilim-1,0],data[0:ilim-1,3],c='r',marker='o')
+	    ax2.scatter(data[ilim:nparts,0],data[ilim:nparts,3],c='b',marker='o')
+	    ax2.set_aspect(1.)
+	    ax2.set_xlim( (xmin, xmax) )
+	    ax2.set_ylim( (-5.,5.) )
  	    plt.draw()
     	    return True
 # ions xy
@@ -128,15 +136,15 @@ def next_plot():
 
 tmax=100
 increment = 1
-xmin=0
+xmin=-10
 xmax=20
 ymin=0
-ymax=20
+ymax=10
 
 plt.ion()
 for timestamp in range(0,tmax,increment):
 	plot_for_timestep(timestamp)
-	sleep(0.1) # Time in seconds.
+#	sleep(0.1) # Time in seconds.
 #	raw_input("Press key...")
 	plt.clf()
 #'	plt.show()

@@ -20,7 +20,7 @@
  choose_build=1
  curve_type=0  ! Morton curve
  walk_scheme = 0 
- num_walk_threads =4
+ num_walk_threads =1
 
 ! particles
   ne = 10000
@@ -33,7 +33,7 @@
  force_law=2 ! Force law 2D
  force_const=0.1591549  ! 1/2pi
 ! force_const=0.
-
+    
   theta = 0.5
   eps = 0.1  ! smoothing parameter in norm units
   

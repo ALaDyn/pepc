@@ -61,7 +61,7 @@ subroutine check_particle_bounds
 end subroutine check_particle_bounds
 
 
-! Periodic wrapper
+!> Periodic wrapper
 
 subroutine wrap
     use module_physvars

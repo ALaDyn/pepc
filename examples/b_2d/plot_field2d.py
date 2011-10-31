@@ -14,7 +14,7 @@ import os
 print "Plot field data"
 
 timestamp='000001'
-nx=100
+nx=50
 ny=50
 filename='fields/' + timestamp +'.xy'
 

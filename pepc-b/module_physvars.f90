@@ -28,7 +28,7 @@ module module_physvars
   complex, allocatable :: Az_helm(:)   !< Helmholtz vector potential
 
   integer :: choose_sort, weighted, choose_build
-  type(t_calc_force_params), save :: cf_par
+  type(t_calc_force_params), save ::cf_par
 
   !  physics, target data
 
@@ -270,6 +270,7 @@ module module_physvars
        eps, force_const, idim, force_law, &
        xh_start, xh_end, nxh, xgav_start, xgav_end, ngav, xgav_pos, &
        num_walk_threads, particle_wrap, periodicity,t_lattice_1,t_lattice_2,t_lattice_3
+
 !       t1, t2, t3, periodicity, do_extrinsic_correction              ! periodicity config
  
 end module module_physvars

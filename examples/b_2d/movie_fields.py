@@ -23,9 +23,9 @@ print "Plot field data"
 
 plotboxsize   = 5.
 animated = True
-tmax=1900
-increment = 50
-nx=200
+tmax=4000
+increment = 1000
+nx=400
 ny=100
 
 
@@ -90,7 +90,7 @@ def plot_from_file(fn,nx,ny):
 
 def plot_for_timestep(ts):
     global nx,ny
-    filename = 'fields/%0*d'%(6, ts) + '.xy'
+    filename = 'fields_wake2/%0*d'%(6, ts) + '.xy'
     print filename,nx,ny
     if plot_from_file(filename,nx,ny):
         print "Timestep: " + '%0*d'%(6, ts)
@@ -125,8 +125,8 @@ def next_plot():
 plt.ion()
 for timestamp in range(0,tmax,increment):
 	plot_for_timestep(timestamp)
-	sleep(0.1) # Time in seconds.
-	raw_input("Press key...")
+#	sleep(0.1) # Time in seconds.
+#	raw_input("Press key...")
 	plt.clf()
 #'	plt.show()
 #	input = sys.stdin.readline() 

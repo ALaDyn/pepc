@@ -19,11 +19,11 @@
  choose_build=1
  curve_type=0  ! Morton curve
  walk_scheme = 0 
- num_walk_threads =4
+ num_walk_threads =2
 
 ! particles
-  ne = 5000
-  ni = 5000 
+  ne = 10000
+  ni = 10000 
 
  plasma_config = 1  ! set up plasma target
  target_geometry = 0   ! slab in xy plane 
@@ -64,7 +64,7 @@
 ! fmm-periodicity framework
 ! lattice basis vectors
 ! t_lattice_1 = 1. 0. 0.
-! t_lattice_2 = 0. 1. 0.
+ t_lattice_2 = 0. 1. 0.
 ! t_lattice_3 = 0. 0. 1.
  ! periodicity in x-, y-, and z-direction
  periodicity = .false., true., false.  ! forces periodic in y (1st neighbour box only)
@@ -76,16 +76,16 @@
  scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
-  nt =10
-  dt = 0.05
+  nt =1
+  dt = 0.025
  restart = .false.
   vis_on = .false.
  ivis = 5 
- ivis_fields = 2
+ ivis_fields = 1
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = -1
+  idump = 1
   iprot=10
   itrack=300
   particle_bcs = 3 /

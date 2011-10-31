@@ -990,19 +990,23 @@ end subroutine double_target
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!   FACE
-!
-!  Function to set up bounded geometry targets in conjunction with 
-!  PLASMA_START. 
-!  M. Hammes, U. Wuppertal (Guest student programme, 2002)
-!
-!
-! Generalised description of convex faces described 
-! by a function f(x, y, z) = 0. 
-! Saves f(r) in c_status
-! and means c_status > 0.: particle is out,
-! c_status < 0.: particle is in.
-
+!>   FACE
+!>
+!>  Function to set up bounded geometry targets in conjunction with 
+!>  PLASMA_START. 
+!>  M. Hammes, U. Wuppertal (Guest student programme, 2002)
+!>
+!>
+!> Generalised description of convex faces described 
+!> by a function f(x, y, z) = 0. 
+!> Saves f(r) in c_status
+!> c_status > 0. => particle is outside container
+!> c_status < 0. => particle is inside container
+!> 
+!> NB. Order of face numbers (face_nr) must correspond to those used in cutvector
+!> Care has to be taken generalizing these routines from 3D-> 2D
+!> ie.: put z-dep last so that latter faces can be ignored by taking smaller number_faces in plasma_start
+ 
 subroutine face(r, c_status, face_nr, &
     target_geometry, x_plasma, y_plasma, z_plasma, r_sphere, plasma_centre )
 
@@ -1207,26 +1211,25 @@ subroutine face(r, c_status, face_nr, &
 
     case default  ! revert to slab
         select case (face_nr)
-        case(1) ! x-y-plane, negative z
-            normal_vector = (/ 0., 0., +1. /)
-            offset_vector = (/ 0., 0., -z_plasma/2. /) + plasma_centre
-        case(2) ! x-y-plane, positive z
-            normal_vector = (/ 0., 0., -1./)
-            offset_vector = (/ 0., 0., +z_plasma/2. /) + plasma_centre
-        case(3) ! x-z-plane, negative y
-            normal_vector = (/ 0., +1., 0./)
+        case(1) ! x-z-plane, negative y
+            normal_vector = (/ 0., +1., 0. /)
             offset_vector = (/ 0., -y_plasma/2., 0. /) + plasma_centre
-        case(4) ! x-z-plane, positive y
-            normal_vector = (/ 0., -1., 0./)
+        case(2) ! x-z-plane, positive y
+            normal_vector = (/ 0., -1., 0. /)
             offset_vector = (/ 0., +y_plasma/2., 0. /) + plasma_centre
-        case(5) ! y-z-plane, negative x
+        case(3) ! y-z-plane, negative x
             normal_vector = (/ +1., 0., 0. /)
             offset_vector = (/ -x_plasma/2., 0., 0. /) + plasma_centre
-        case(6) ! y-z-plane, positive x
+        case(4) ! y-z-plane, positive x
             normal_vector = (/ -1., 0., 0. /)
             offset_vector = (/ +x_plasma/2., 0., 0. /) + plasma_centre
+        case(5) ! x-y-plane, negative z
+            normal_vector = (/ 0., 0., +1. /)
+            offset_vector = (/ 0., 0., -z_plasma/2. /) + plasma_centre
+        case(6) ! x-y-plane, positive z
+            normal_vector = (/ 0., 0., -1./)
+            offset_vector = (/ 0., 0., +z_plasma/2. /) + plasma_centre
         end select
-
         c_status = dot_product(normal_vector, offset_vector - r)
 
     end select
@@ -1255,20 +1258,22 @@ subroutine cutvector(r_in, face_nr, n, r_out, &
 
     r_affin = r_in - centre
     select case (geometry) 
+
     case (0) ! slab
         select case (face_nr)
-        case (1, 2) ! x-y-planes
-            n = (/0., 0., 1./)
-            if (face_nr == 2) n = -n
-            r_affin = .5 * z_plasma * r_affin / abs(dot_product(r_affin, n))
-        case (3, 4) ! x-z-planes
+
+        case (1, 2) ! x-z-planes
             n = (/0., 1., 0./)
             if (face_nr == 4) n = -n
             r_affin = .5 * y_plasma * r_affin / abs(dot_product(r_affin, n))
-        case (5, 6) ! y-z-planes
+        case (3, 4) ! y-z-planes
             n = (/1., 0., 0./)
             if (face_nr == 6) n = -n
             r_affin = .5 * x_plasma * r_affin / abs(dot_product(r_affin, n))
+        case (5, 6) ! x-y-planes
+            n = (/0., 0., 1./)
+            if (face_nr == 2) n = -n
+            r_affin = .5 * z_plasma * r_affin / abs(dot_product(r_affin, n))
         end select
         r_out = r_affin + centre
         

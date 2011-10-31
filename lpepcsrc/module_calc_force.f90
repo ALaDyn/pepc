@@ -29,7 +29,9 @@ module module_calc_force
 
       public calc_force_per_interaction
       public calc_force_per_particle
-
+      public calc_force_coulomb_3D
+      public calc_force_coulomb_2D
+      public calc_force_LJ
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -75,11 +77,16 @@ module module_calc_force
 
           select case (cf_par%force_law)
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
+	! TODO use same call pars as coulomb_3D (sep already pre-computed)
                 call calc_force_coulomb_2D(particle, inode, vbox, cf_par, exc, eyc, phic)
                 ezc = 0.
 
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
                 call calc_force_coulomb_3D(inode, delta, dist2, cf_par, exc, eyc, ezc, phic)
+
+	    case (4)  ! LJ potential for quiet start
+                call calc_force_LJ(inode, delta, dist2, cf_par, exc, eyc, ezc, phic)
+		ezc=0.
 
             case default
               exc  = 0.
@@ -151,8 +158,8 @@ module module_calc_force
           include 'mpif.h'
 
           integer, intent(in) :: inode !< index of particle to interact with
-          real*8, intent(in) :: d(3), dist2
-          type(t_calc_force_params), intent(in) :: cf_par
+          real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          type(t_calc_force_params), intent(in) :: cf_par !< Force parameters - see module_treetypes
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
 
           real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2
@@ -307,6 +314,79 @@ module module_calc_force
 
         end subroutine calc_force_coulomb_2D
         
-        
+        !  ===================================================================
+	!
+	!                     CALC_FORCE_LJ
+	!
+	!   Calculate Lennard-Jones forces of particle from interaction list
+	!
+	!  ===================================================================
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates 3D L-J interaction of particle p with tree node inode
+        !> shifted by the lattice vector vbox
+        !> results are returned sumfx, sumfy, sumfz, sumphi
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_LJ(inode, d, dist2, cf_par, sumfx, sumfy, sumfz, sumphi)
+          use treetypes
+          use treevars
+          implicit none
+
+          include 'mpif.h'
+
+          integer, intent(in) :: inode !< index of particle to interact with
+          real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          type(t_calc_force_params), intent(in) :: cf_par
+          real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
+          real*8 :: dx,dy,dz,r
+  	  real*8 :: a_bond, dlj, flj, epsc, plj
+
+          type(t_multipole), pointer :: t
+
+          t=>tree_nodes(inode)
+
+          sumfx  = 0.
+          sumfy  = 0.
+          sumfz  = 0.
+          sumphi = 0.
+
+          !  preprocess distances
+          dx = d(1)
+          dy = d(2)
+          dz = d(3)
+          r = sqrt(dist2)
+
+     	  epsc = .3 ! cutoff (norm to eps)
+  	  a_bond=cf_par%eps  ! eps should be > a_ii to get evenly spaced ions
+
+   	  dlj = r/a_bond
+
+	  if (dlj >= epsc) then 
+ !      		plj = 4*(1./dlj**2 - 1./dlj**6)
+ !      		flj = 24./a_bond*(2./dlj**13 - 1./dlj**7)
+       		plj = 1./dlj**2 - 1./dlj
+       		flj = a_bond*(2./dlj**3 - 1./dlj**2)
+     	  else
+!       		plj = 4*(1./epsc**12-1./epsc**6) 
+!       		flj = 24./a_bond*(2./epsc**13-1/epsc**7 )
+       		plj = 1./epsc**2-1./epsc 
+       		flj = a_bond*(2./epsc**3-1./epsc**2 )
+     	  endif
+
+     !   natoms = abs_charge( jnode) / qi    ! # particles in monopole cluster
+
+
+     	! potential
+     	  sumphi = sumphi + plj
+
+	!  forces
+
+	  sumfx = sumfx + dx/r*flj
+	  sumfy = sumfy + dy/r*flj
+ !    	  sumfz = sumfz + dz/r*flj
+	  sumfz=0.
+
+	end subroutine calc_force_LJ
         
 end module module_calc_force

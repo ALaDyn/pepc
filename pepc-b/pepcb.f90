@@ -125,8 +125,10 @@ program pepcb
     cf_par%eps         = eps
     cf_par%force_const = force_const
     cf_par%force_law   = force_law
-    cf_par%include_far_field_if_periodic = (cf_par%force_law == 3)
-    if ((.not. cf_par%include_far_field_if_periodic) .and. (cf_par%force_law == 2)) cf_par%spatial_interaction_cutoff(2) = yl
+    cf_par%include_far_field_if_periodic = .false. ! switch off far-field box sum
+    cf_par%spatial_interaction_cutoff(1) = xl  ! default min-image cutoffs
+    cf_par%spatial_interaction_cutoff(2) = yl
+    cf_par%spatial_interaction_cutoff(3) = zl
 
     ! Compute initial field values
 
