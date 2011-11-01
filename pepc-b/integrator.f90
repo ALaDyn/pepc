@@ -23,9 +23,14 @@ subroutine integrator
 
   pusher: select case(scheme)
 
-  case(1,2,3,4,5)
+  case(1,2,3,4)
      call velocities(1,np_local,dt)  ! pure ES, NVT ensembles
      call push_x(1,np_local,dt)  ! update positions
+
+  case(5)
+     call velocities(1,np_local,dt)  ! ion quiet start NVT ensemble
+     call push_restrict(1,np_local,dt,a_ii/3.)  ! restricted update
+
 
   case(6) 
      call push_full3v(1,np_local,dt)  ! full EM pusher (all E, B components)

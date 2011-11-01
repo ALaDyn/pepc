@@ -340,7 +340,7 @@ module module_calc_force
           type(t_calc_force_params), intent(in) :: cf_par
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
           real*8 :: dx,dy,dz,r
-  	  real*8 :: a_bond, dlj, flj, epsc, plj
+  	  real*8 :: flj, epsc, plj, aii
 
           type(t_multipole), pointer :: t
 
@@ -357,24 +357,18 @@ module module_calc_force
           dz = d(3)
           r = sqrt(dist2)
 
-     	  epsc = .3 ! cutoff (norm to eps)
-  	  a_bond=cf_par%eps  ! eps should be > a_ii to get evenly spaced ions
+!  	  epsc should be > a_ii to get evenly spaced ions
+	  
+	  aii = cf_par%eps
+	  epsc = 0.9*aii
+	  plj =0.
 
-   	  dlj = r/a_bond
-
-	  if (dlj >= epsc) then 
- !      		plj = 4*(1./dlj**2 - 1./dlj**6)
- !      		flj = 24./a_bond*(2./dlj**13 - 1./dlj**7)
-       		plj = 1./dlj**2 - 1./dlj
-       		flj = a_bond*(2./dlj**3 - 1./dlj**2)
-     	  else
-!       		plj = 4*(1./epsc**12-1./epsc**6) 
-!       		flj = 24./a_bond*(2./epsc**13-1/epsc**7 )
-       		plj = 1./epsc**2-1./epsc 
-       		flj = a_bond*(2./epsc**3-1./epsc**2 )
-     	  endif
-
-     !   natoms = abs_charge( jnode) / qi    ! # particles in monopole cluster
+! Force is repulsive up to and just beyond aii
+	  if (r > epsc) then 
+	    flj =2.*aii**8/r**8 - 1.*aii**4/r**4
+	  else
+	    flj = 2.*aii**8/epsc**8 - 1.*aii**4/epsc**4
+ 	  endif 
 
 
      	! potential

@@ -649,7 +649,7 @@ subroutine configure
 
     ! Ion config - make sure potential repulsive
     if (scheme==5) then
-        eps = a_ii*2.
+        eps = a_ii
     endif
 
 

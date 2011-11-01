@@ -28,6 +28,7 @@ module module_integration_scheme
       public push_TE	!< 2v Boris rotation for TE fields (Ex, Ey, Bz)
       public push_TM	!< 2v Boris roation for TM fields (Ey, Bx, By)
       public push_x	!< Position update with relativistic velocities
+      public push_restrict	!< Position update with restricted delta-x
       public push_nonrel !< Non-rel. position update
       public push_full3v !< 3V integrator with all field components
       public velocities  !< MD velocity update with constraints
@@ -344,6 +345,37 @@ subroutine push_x(ips,ipf,delt)
 
 end subroutine push_x
 
+!  ===============================================================
+!
+!>      Position update for ion quiet start
+!> 	Restrict movement to fraction of aii
+!  ===============================================================
+
+subroutine push_restrict(ips,ipf,delt,drmax)
+
+  use module_physvars
+  use module_particle_props
+  integer, intent(in) :: ips, ipf  ! 1st and last particle numbers
+  real, intent(in) :: delt, drmax
+  integer :: p
+
+  do p=ips,ipf
+       if (abs(ux(p)*delt).lt.drmax) then
+	 x(p)=x(p)+ux(p)*delt
+       else
+	 x(p)=x(p)+drmax*sign(1.d0,ux(p))
+       endif
+       if (abs(uy(p)*delt).lt.drmax) then
+	 y(p)=y(p)+uy(p)*delt
+       else
+	 y(p)=y(p)+drmax*sign(1.d0,uy(p))
+       endif
+
+       if (idim == 3) z(p)=z(p)+uz(p)*delt
+  end do
+
+end subroutine push_restrict
+
 
 !  ===================================================================
 !
@@ -374,7 +406,7 @@ subroutine velocities(p_start,p_finish,delta_t)
   real*8 :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, acmax
   real :: Te0, Te_uncor, Ti0, Ti_uncor, chie, chii, delta_u
   real*8 :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm
-  real*8 :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_local
+  real*8 :: global_v2e, global_v2i, gammah, delta_Te, delta_Ti, Te_local, ac_norm
 
 !  Available ensemble modes
 !      1 = NVE - total energy conserved
@@ -601,12 +633,15 @@ subroutine velocities(p_start,p_finish,delta_t)
      sum_vyi=0.0
      sum_vzi=0.0
      sum_v2i=0.0
-!  Scale down accelerations if too big
-     do p=1,np_local
-	accx(p)=accx(p)/max(1.d0,acmax)
-	accy(p)=accy(p)/max(1.d0,acmax)
-	accz(p)=accz(p)/max(1.d0,acmax)
-     end do
+
+!  Normalize accelerations according to initial velocities
+     ac_norm = 15*vti/dt
+
+!     do p=1,np_local
+!	accx(p)=min(accx(p),accx(p)/max(1.d0,acmax)*ac_norm)
+!	accy(p)=min(accy(p),accy(p)/max(1.d0,acmax)*ac_norm)
+!	accz(p)=min(accz(p),accz(p)/max(1.d0,acmax)*ac_norm)
+ !    end do
 
      do p=1,np_local
            uhx(p) = ux(p) + 0.5*delta_t*accx(p)
@@ -627,11 +662,11 @@ subroutine velocities(p_start,p_finish,delta_t)
 !     call MPI_ALLREDUCE(sum_v2i, global_v2i, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 !     Ti_uncor = 511*2./3.*sum_v2i/np_local  ! This should equal 3/2 kT for 3v Maxwellian
      Ti_uncor = sum_v2i/np_local  ! This should equal 3/2 kT for 3v Maxwellian
-     Ti0 = Ti_keV  ! normalised electron temp
+     Ti0 = Ti_keV  ! normalised target ion temp
 
 
      chii = sqrt(abs(Ti0/Ti_uncor)) 
-     chii = min(1.2,max(chii,0.6))  ! Set bounds of +- 50%
+     chii = min(1.2,max(chii,0.3))  ! Set bounds of +- 50%
 
 
      !  3)  Complete full step

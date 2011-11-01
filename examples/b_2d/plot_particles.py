@@ -21,7 +21,7 @@ from time import sleep
 print "Plot field data"
 
 
-plotboxsize   = 10.
+plotboxsize   = 8.
 animated = True
 nx=200
 ny=100
@@ -134,7 +134,7 @@ def next_plot():
 #fn='fields/000000.xy'
 #plot_from_file(fn,nx,ny)
 
-tmax=100
+tmax=201
 increment = 1
 xmin=-10
 xmax=20
@@ -143,10 +143,10 @@ ymax=10
 
 plt.ion()
 for timestamp in range(0,tmax,increment):
+	plt.clf()
 	plot_for_timestep(timestamp)
 #	sleep(0.1) # Time in seconds.
 #	raw_input("Press key...")
-	plt.clf()
 #'	plt.show()
 #	input = sys.stdin.readline() 
 
