@@ -1340,6 +1340,8 @@ subroutine dump_fields_2d(timestamp)
 
      cfile = "fields/"//cdump//".xy"
      open (file_tempfile_1,file=cfile)
+     write(file_tempfile_1,'(a)') '!   x      rho_e   rho_i  ex   ey   pot'
+ !    write(file_tempfile_1,'(2i8)') ngx, ngy  ! Header for python postproc
      dx = xl/ngx
      dy = yl/ngy
 

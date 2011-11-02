@@ -338,17 +338,20 @@ end subroutine plasma_start
 
 subroutine special_start(iconf)
 
+
   use module_particle_props
   use module_physvars
   use module_utilities
   use module_velocity_setup
   implicit none
+  include 'mpif.h'
 
   integer, intent(in) :: iconf
-  integer :: i,iseed
-  real :: rs,v0,gamma0,vt,xt,yt,zt,thetvel,phivel
+  integer :: i,iseed,j,p, grid_ind, ierr
+  real :: rs,v0,gamma0,vt,xt,yt,zt,thetvel,phivel, dx
   real :: dpx, vx_beam, vy_beam, vz_beam, st, ct, sp, cp, volb
-  integer :: npb
+  integer, allocatable ::  nips(:), igap(:) ! strides
+  integer :: npb, ncols, nrows
   real :: gamma, Ndebye
 
   iseed = -17-my_rank
@@ -356,6 +359,7 @@ subroutine special_start(iconf)
   ! Define default container parameters in absence of plasma target
   Vplas = x_plasma * y_plasma * z_plasma
   Aplas = x_plasma * y_plasma
+  a_ii = sqrt(Aplas/nip)
   focus = (/ xl/4., yl/2., zl/2. /) ! Centre of laser focal spot
   plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
   Qplas = ne
@@ -579,9 +583,66 @@ subroutine special_start(iconf)
      call cold_start(nep+1,nip)
 
 
+  case(7)       ! regular ion grid for quiet start in x,y plane 
+
+! Charge & mass alloc
+     Qplas = Aplas*rho0
+     qi = Qplas/ni   ! particle charge
+     qe = -qi
+     mass_e=abs(qe)
+     mass_i=mass_ratio*mass_e
+
+     allocate ( nips(n_cpu+3), igap(n_cpu+3) )
+
+
+! Create array of local nips for strides
+     call mpi_allgather( nip, 1, MPI_INTEGER, nips, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+! Get strides for grid map
+     igap(1) = 0
+     igap(2) = nips(1)
+     do i=3,n_cpu
+	igap(i) = SUM(nips(1:i-1))
+     end do
+
+! Grid spacing
+     dx = nint(a_ii)  ! TODO: Make sure a_ii is integer
+     ncols = x_plasma/dx
+     nrows = y_plasma/dx
+     write (*,*) 'PEPC-B | Special start 7 - ion grid: ', Aplas, dx, ncols, nrows
+     if (dx.ne.a_ii) write (*,*) 'PEPC-B | non-integer a_ii', a_ii, dx
+
+! Compute my set of ion coordinates
+     do p=1,nip
+	grid_ind = p+igap(my_rank+1)
+	i = mod(grid_ind-1,ncols)+1  ! x-index
+	j = (grid_ind-1)/ncols+1   ! y-index
+	x(p) = i*dx-dx/2.+ plasma_centre(1)-x_plasma/2.
+	y(p) = j*dx-dx/2.+ plasma_centre(2)-y_plasma/2.
+	z(p) = plasma_centre(3)
+        q(p) = qi        ! plasma ions (need Z* here)
+        m(p) = mass_i    ! ion mass
+	write (*,*) p,i,j,x(p),y(p)
+     end do
+
+  !  Place electrons within 1/10 of ave. ion spacing in vicinity of ions
+     iseed = -7901-my_rank
+     do p=1,nep
+       xt = .1*a_ii*(2*rano(iseed)-1.)
+       yt = .1*a_ii*(2*rano(iseed)-1.)          
+       if (idim==3) zt = .1*a_ii*(2*rano(iseed)-1.)  
+
+       x(nip+p) = x(p)+xt
+       y(nip+p) = y(p)+yt
+       z(nip+p) = z(p)
+       q(nip+p) = qe
+       m(nip+p) = mass_e
+     end do
+  !  Set up thermal distribution  - ions come first
+
+     call set_velocities(1, nip, vti, velocity_config, plasma_centre)
+     call set_velocities(nip+1, nep, vte, velocity_config, plasma_centre)
+
   end select config
-
-
 
   pelabel(1:nep)       = my_rank * nep + (/(i, i = 1, nep)/)      ! Electron labels
   pelabel(nep + 1:np_local) = ne + my_rank * nip + (/(i, i = 1, nip)/) ! Ion labels

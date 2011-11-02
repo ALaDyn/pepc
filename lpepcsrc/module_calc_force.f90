@@ -360,7 +360,7 @@ module module_calc_force
 !  	  epsc should be > a_ii to get evenly spaced ions
 	  
 	  aii = cf_par%eps
-	  epsc = 0.9*aii
+	  epsc = 0.8*aii
 	  plj =0.
 
 ! Force is repulsive up to and just beyond aii

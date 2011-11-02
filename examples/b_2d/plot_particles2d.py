@@ -18,7 +18,7 @@ print "Plots phase space from particle dumps"
 #rc('xtick', labelsize='small')
 #rc('ytick', labelsize='small')
 
-filename='dumps/parts_p0000.000100'
+filename='dumps/parts_p0001.000000'
 FILE_COLUMN_X   =  0
 FILE_COLUMN_Y   =  1
 FILE_COLUMN_Z   =  2
@@ -31,7 +31,8 @@ FILE_COLUMN_EX  =  8
 FILE_COLUMN_EY  =  9
 FILE_COLUMN_EZ  = 10
 FILE_COLUMN_POT = 11
-
+xmin=0
+xmax=10
 #markers=['+','*','.','1','2','3','4','<','>','D','H','^','_','d','h','o','p','s','v','x','|','None',' ','']
 markers=['*','<','>','D','H','^','d','h','o','p','s','v','x','|','None',' ','']
 
@@ -60,13 +61,15 @@ print col[0:10]
 ilim=npart/2
 # electrons xy:
 axScatter = plt.subplot(221)
-axScatter.scatter(data[0:ilim-1,0],data[0:ilim-1,1],c='r',marker='o')
+axScatter.scatter(data[0:ilim,0],data[0:ilim,1],c='r',marker='o')
 axScatter.set_aspect(1.)
+axScatter.set_xlim(xmin,xmax)
 
 # ions xy
 axScatter = plt.subplot(222)
-axScatter.scatter(data[ilim:npart-1,0],data[ilim:npart-1,1],c=col[ilim:npart-1],marker='o')
+axScatter.scatter(data[ilim:npart,0],data[ilim:npart,1],c=col[ilim:npart],marker='o')
 axScatter.set_aspect(1.)
+axScatter.set_xlim(xmin,xmax)
 
 # electrons x-px
 axScatter = plt.subplot(223)
