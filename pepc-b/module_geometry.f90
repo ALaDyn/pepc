@@ -607,8 +607,8 @@ subroutine special_start(iconf)
 ! Grid spacing
      dx = a_ii  
 ! TODO: Make sure x_plasma/a_ii, y_plasma/a_ii are integers
-     ncols = x_plasma/dx
-     nrows = y_plasma/dx
+     ncols = nint(x_plasma/dx)
+     nrows = nint(y_plasma/dx)
      write (*,*) 'PEPC-B | Special start 7 - ion grid: ', Aplas, dx, ncols, nrows
      if (dx.ne.a_ii) write (*,*) 'PEPC-B | non-integer a_ii', a_ii, dx
 
@@ -622,7 +622,7 @@ subroutine special_start(iconf)
 	z(p) = plasma_centre(3)
         q(p) = qi        ! plasma ions (need Z* here)
         m(p) = mass_i    ! ion mass
-	write (*,*) p,i,j,x(p),y(p)
+!	write (*,*) p,i,j,x(p),y(p)
      end do
 
   !  Place electrons within 1/10 of ave. ion spacing in vicinity of ions
@@ -666,8 +666,8 @@ subroutine special_start(iconf)
 
 ! Grid spacing
      dx = a_ii  
-     ncols = x_plasma/dx
-     nrows = y_plasma/dx
+     ncols = nint(x_plasma/dx)
+     nrows = nint(y_plasma/dx)
      write (*,*) 'PEPC-B | Special start 8 - ion grid: ', Aplas, dx, ncols, nrows
      if (dx.ne.a_ii) write (*,*) 'PEPC-B | non-integer a_ii', a_ii, dx
 

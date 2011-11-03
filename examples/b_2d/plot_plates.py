@@ -14,7 +14,7 @@ import os
 print "Plot field data"
 
 timestamp='000000'
-nx=100
+nx=50
 ny=50
 xmin=0.
 xmax=20.
@@ -52,7 +52,7 @@ cmap.set_under ( 'w' ) # Low values set to 'w'hite
 cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
 plt.xlim((xmin, xmax))
 plt.ylim((ymin, ymax))
-im=plt.imshow(rhoi+rhoe, cmap='PuOr', aspect=1, interpolation='bilinear', origin='lower') 
+im=plt.imshow(rhoi+rhoe, cmap='PuOr',  interpolation='nearest', origin='lower') 
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('rho_e,i',fontsize=10)
@@ -63,7 +63,7 @@ cb = plt.colorbar(shrink=0.5)
 #cmap = plt.cm.YlGn # Set a colour map
 #cmap.set_under ( 'w' ) # Low values set to 'w'hite
 #cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
-#plt.imshow(rhoi, cmap=cmap, aspect=1, interpolation='bilinear', vmin=0.01, origin='lower') 
+#plt.imshow(rhoi, cmap=cmap,  interpolation='none', vmin=0.01, origin='lower') 
 #plt.xlabel('x')
 #plt.ylabel('y')
 
@@ -75,7 +75,7 @@ plt.subplot(222)
 cmap = plt.cm.RdBu # Set a colour map
 cmap.set_under ( 'w' ) # Low values set to 'w'hite
 cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
-plt.imshow(ex, cmap=cmap, aspect=1, interpolation='bilinear', origin='lower', vmin=-1, vmax=1) 
+plt.imshow(ex, cmap=cmap,  interpolation='bilinear', origin='lower', vmin=-1, vmax=1) 
 plt.xlabel('x')
 plt.ylabel('y')
 #plt.axis([xmin, xmax, ymin, ymax])
@@ -88,7 +88,7 @@ plt.subplot(223)
 #cmap.set_under ( 'w' ) # Low values set to 'w'hite
 #cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
 # User previous color map
-plt.imshow(ey, cmap=cmap, aspect=1, interpolation='bilinear', origin='lower', vmin=-.1,vmax=.1) 
+plt.imshow(ey, cmap=cmap, interpolation='bilinear', origin='lower', vmin=-.1,vmax=.1) 
 plt.xlabel('x')
 plt.ylabel('y')
 #plt.axis([xmin, xmax, ymin, ymax])
@@ -100,7 +100,7 @@ plt.subplot(224)
 cmap = plt.cm.BrBG # Set a colour map
 cmap.set_under ( 'w' ) # Low values set to 'w'hite
 cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
-plt.imshow(pot, cmap=cmap, aspect=1, interpolation='bilinear', origin='lower') 
+plt.imshow(pot, cmap=cmap, interpolation='bilinear', origin='lower') 
 plt.xlabel('x')
 plt.ylabel('y')
 #plt.axis([xmin, xmax, ymin, ymax])

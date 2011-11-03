@@ -23,8 +23,8 @@
  num_walk_threads =1
 
 ! particles
-  ne = 40000
-  ni = 40000 
+  ne = 25600
+  ni = 25600 
 
 ! plasma_config = 3  ! set up ion, electron plates, random particles
 ! target_geometry = 0   ! slab in xy plane 
@@ -36,7 +36,7 @@
  force_const=0.1591549  ! 1/2pi
 ! force_const=0.
     
-  theta = 0.5
+  theta = 0.3
   eps = 0.1  ! smoothing parameter in norm units
   
   vte=1.0  ! Choose Debye norms (vte, wp, lambda_De)
@@ -53,10 +53,10 @@
   y_plasma = 16.    ! plasma width (slab target) 
   z_plasma = 0.     ! plasma width (slab target)
   displace = 10.,0.,0.
-  xl = 40  ! graphics box size
+  xl = 20  ! graphics box size
   yl = 16 
   zl =4 
- ngx=200
+ ngx=50
  ngy=50
  nxh=50
  ngav=50
@@ -89,7 +89,7 @@
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = -1
+  idump = 1
   iprot=10
   itrack=300
   particle_bcs = 3 /

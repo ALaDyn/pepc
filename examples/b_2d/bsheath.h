@@ -22,10 +22,11 @@
  num_walk_threads =2
 
 ! particles
-  ne = 10000
-  ni = 10000 
+  ne = 16000
+  ni = 16000 
 
- plasma_config = 1  ! set up plasma target
+ plasma_config = 2  ! special start
+ ispecial=7  ! gridded ions; electrons placed within a_ii/10
  target_geometry = 0   ! slab in xy plane 
  velocity_config = 4 ! 2D Maxwellian
  idim=2  ! ignore z coord
@@ -46,7 +47,7 @@
   lenjones = .false.
   bond_const = 2.e-3
   r_sphere = 3. 
-  x_plasma = 5    ! plasma disc thickness/ wire length 
+  x_plasma = 4    ! plasma disc thickness/ wire length 
   y_plasma = 10.    ! plasma width (slab target) 
   z_plasma = 0.     ! plasma width (slab target)
   xl = 10  ! graphics box size
@@ -58,7 +59,7 @@
  ngav=50
  
 ! external field
-  beam_config_in = 7  ! uniform Bz 
+  beam_config_in = 0  ! uniform Bz 
   vosc = 1.0 
 
 ! fmm-periodicity framework
@@ -76,7 +77,7 @@
  scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
-  nt =1
+  nt =10
   dt = 0.025
  restart = .false.
   vis_on = .false.

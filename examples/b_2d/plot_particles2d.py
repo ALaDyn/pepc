@@ -18,7 +18,7 @@ print "Plots phase space from particle dumps"
 #rc('xtick', labelsize='small')
 #rc('ytick', labelsize='small')
 
-filename='dumps/parts_p0001.000000'
+filename='dumps/parts_p0000.000000'
 FILE_COLUMN_X   =  0
 FILE_COLUMN_Y   =  1
 FILE_COLUMN_Z   =  2
