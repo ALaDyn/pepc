@@ -102,8 +102,10 @@ subroutine configure
                 call add_ramp(x_plasma)     ! add exponential ramp to target (stretch container)
             endif
 
-        case(2)        ! Special test config
+
+        case(2)        ! Special test configs
             call special_start(ispecial)
+
 
         case(3)        ! Spatially separated ion and electron slabs
 
@@ -554,21 +556,7 @@ subroutine configure
         end select new_config
 
  ! zero fields
-  if (idim==2) uz(1:np_local)=0.
-!  Ex(1:np_local) = 0
-!  Ey(1:np_local) = 0
-!  Ez(1:np_local) = 0
-!  Bx(1:np_local) = 0
-!  By(1:np_local) = 0
-!  Bz(1:np_local) = 0
-!  Ax(1:np_local) = 0
-!  Ay(1:np_local) = 0
-!  Az(1:np_local) = 0
-!  Axo(1:np_local) = 0
-! Ayo(1:np_local) = 0
-!  Azo(1:np_local) = 0
-!  pot(1:np_local) = 0
-  work(1:np_local) = 1.   ! set work load balanced initially
+  	if (idim==2) uz(1:np_local)=0.
 
         laser_config: select case(plasma_config)
         case(0)

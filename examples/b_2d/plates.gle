@@ -1,0 +1,52 @@
+! new page
+size 14 9
+ set font psh hei .6 lwidth .05
+ 
+
+begin translate  1 1
+begin graph 
+	size 14 8
+	nobox
+	ytitle "  Field" hei .7
+	xtitle "    \omega_px/c    " hei .7
+ !       yaxis min 0 max 5
+        xaxis min 0 max 40   
+	xlabels hei 0.7 
+	ylabels hei 0.7 
+        xticks length .08
+        yticks length .08
+!  order: ne, ni, je, ji, ex, te, ti, phi
+
+	data fields/xslice.000000
+
+	key position tr hei .25
+	d2 lstyle 1 color red key "n_i"
+	d1 lstyle 1 color black key "n_e "
+	d3 lstyle 1 color blue key "E_x "
+	d4 lstyle 1 color green key "E_y"
+	d5 lstyle 1 color brown key "\Phi" 
+
+
+
+end graph
+
+end translate
+ 
+
+  
+  
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+

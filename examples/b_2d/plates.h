@@ -23,11 +23,13 @@
  num_walk_threads =1
 
 ! particles
-  ne = 10000
-  ni = 10000 
+  ne = 40000
+  ni = 40000 
 
- plasma_config = 3  ! set up ion, electron plates
- target_geometry = 0   ! slab in xy plane 
+! plasma_config = 3  ! set up ion, electron plates, random particles
+! target_geometry = 0   ! slab in xy plane 
+ plasma_config=2 ! special start
+ ispecial=8  ! slab in xy plane; gridded particles
  velocity_config = 0 ! Cold start
  idim=2  ! ignore z coord
  force_law=2 ! Force law 2D
@@ -47,14 +49,14 @@
   lenjones = .false.
   bond_const = 2.e-3
   r_sphere = 3. 
-  x_plasma = 1    ! plasma disc thickness/ wire length 
-  y_plasma = 20.    ! plasma width (slab target) 
+  x_plasma = 1.    ! plasma disc thickness/ wire length 
+  y_plasma = 16.    ! plasma width (slab target) 
   z_plasma = 0.     ! plasma width (slab target)
-  displace = 2.5,0.,0.
+  displace = 10.,0.,0.
   xl = 40  ! graphics box size
-  yl = 20 
+  yl = 16 
   zl =4 
- ngx=100
+ ngx=200
  ngy=50
  nxh=50
  ngav=50

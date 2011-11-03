@@ -1374,8 +1374,9 @@ subroutine dump_fields_2d(timestamp)
      ! 
      cfile = "fields/xslice."//cdump
      open (file_tempfile_2,file=cfile)
-     write(file_tempfile_2,'(a)') '!   x      rho_e   rho_i '
-     write(file_tempfile_2,'((3(1pe12.4)))') (i*dx,rhoe_2d(i,ngy/2), rhoi_2d(i,ngy/2),i=1,ngx)
+     write(file_tempfile_2,'(a)') '!   x      rho_e   rho_i  Ex  Ey  Pot'
+     write(file_tempfile_2,'((6(1pe12.4)))') (i*dx,rhoe_2d(i,ngy/2), rhoi_2d(i,ngy/2), ex2d(i,ngy/2), &
+	ey2d(i,ngy/2), pot2d(i,ngy/2), i=1,ngx)
      close(file_tempfile_2)
   endif
 
@@ -1419,7 +1420,7 @@ subroutine slices(timestamp)
 
   icall = timestamp/ivis
   simtime = timestamp*dt
-
+ 
   ! get filename suffix from dump counter
   do i=0,4
      cdump(6-i:6-i) =  achar(mod(timestamp/10**i,10) + 48)  

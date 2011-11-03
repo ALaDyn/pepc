@@ -359,7 +359,7 @@ subroutine special_start(iconf)
   ! Define default container parameters in absence of plasma target
   Vplas = x_plasma * y_plasma * z_plasma
   Aplas = x_plasma * y_plasma
-  a_ii = sqrt(Aplas/nip)
+  a_ii = sqrt(Aplas/ni)
   focus = (/ xl/4., yl/2., zl/2. /) ! Centre of laser focal spot
   plasma_centre =  (/ xl/2., yl/2., zl/2. /) ! Centre of plasma
   Qplas = ne
@@ -605,7 +605,8 @@ subroutine special_start(iconf)
      end do
 
 ! Grid spacing
-     dx = nint(a_ii)  ! TODO: Make sure a_ii is integer
+     dx = a_ii  
+! TODO: Make sure x_plasma/a_ii, y_plasma/a_ii are integers
      ncols = x_plasma/dx
      nrows = y_plasma/dx
      write (*,*) 'PEPC-B | Special start 7 - ion grid: ', Aplas, dx, ncols, nrows
@@ -641,6 +642,62 @@ subroutine special_start(iconf)
 
      call set_velocities(1, nip, vti, velocity_config, plasma_centre)
      call set_velocities(nip+1, nep, vte, velocity_config, plasma_centre)
+
+  case(8)       ! capacitor plates with quiet start in x,y plane (as plasma config 3)
+
+! Charge & mass alloc
+     Qplas = Aplas*rho0
+     qi = Qplas/ni   ! particle charge
+     qe = -qi
+     mass_e=abs(qe)
+     mass_i=mass_ratio*mass_e
+
+     allocate ( nips(n_cpu+3), igap(n_cpu+3) )
+
+
+! Create array of local nips for strides
+     call mpi_allgather( nip, 1, MPI_INTEGER, nips, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+! Get strides for grid map
+     igap(1) = 0
+     igap(2) = nips(1)
+     do i=3,n_cpu
+	igap(i) = SUM(nips(1:i-1))
+     end do
+
+! Grid spacing
+     dx = a_ii  
+     ncols = x_plasma/dx
+     nrows = y_plasma/dx
+     write (*,*) 'PEPC-B | Special start 8 - ion grid: ', Aplas, dx, ncols, nrows
+     if (dx.ne.a_ii) write (*,*) 'PEPC-B | non-integer a_ii', a_ii, dx
+
+! Compute my set of ion coordinates
+     do p=1,nip
+	grid_ind = p+igap(my_rank+1)
+	i = mod(grid_ind-1,ncols)+1  ! x-index
+	j = (grid_ind-1)/ncols+1   ! y-index
+	x(p) = i*dx-dx/2.+ plasma_centre(1)-x_plasma/2.-displace(1)/2.
+	y(p) = j*dx-dx/2.+ plasma_centre(2)-y_plasma/2.-displace(2)/2.
+	z(p) = plasma_centre(3)
+        q(p) = qi        ! plasma ions (need Z* here)
+        m(p) = mass_i    ! ion mass
+!	write (*,*) p,i,j,x(p),y(p)
+     end do
+
+  !  Place electrons displaced from ions
+     iseed = -7901-my_rank
+     do p=1,nep
+       x(nip+p) = x(p)+displace(1)/2.
+       y(nip+p) = y(p)+displace(2)/2.
+       z(nip+p) = z(p)
+       q(nip+p) = qe
+       m(nip+p) = mass_e
+     end do
+  !  Set up thermal distribution  - ions come first
+
+     call set_velocities(1, nip, vti, velocity_config, plasma_centre)
+     call set_velocities(nip+1, nep, vte, velocity_config, plasma_centre)
+
 
   end select config
 
