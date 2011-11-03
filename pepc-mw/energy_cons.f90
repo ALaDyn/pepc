@@ -35,11 +35,11 @@ subroutine energy_cons(ekine,ekini)
 
   etot = epot + ekine + ekini
 
-  laser_energy: select case(beam_config)
+  laser_energy: select case(modulo(beam_config_in,10))
   case(4)
-     elaser = 3./8.*omega**2*sigma**2*vosc**2*tlaser
+     elaser = 3./8.*omega**2*sigma**2*vosc**2*t_laser
   case(5)
-     elaser = 3./8.*omega**2*sigma**2*vosc**2*tpulse
+     elaser = 3./8.*omega**2*sigma**2*vosc**2*t_pulse
   case default
      elaser = 0
   end select laser_energy

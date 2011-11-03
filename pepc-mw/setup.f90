@@ -40,7 +40,7 @@ subroutine pepc_setup()
        ispecial, rhoe_nm3, Zion, Aion, Te_eV, Ti_eV, Te_K, Ti_K, &   ! experimental setup
        workflow_setup, &                                             ! workflow
        integrator_scheme, enable_drift_elimination, &                ! pusher configuration
-       beam_config_in, vosc,omega, sigma, tpulse, theta_inc, rho_track, omega_wpl, I0_Wpercm2, & ! laser config
+       beam_config_in, vosc,omega, sigma, t_pulse_fs, theta_inc, rho_track, omega_wpl, I0_Wpercm2, lambda_nm, & ! laser config
        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction, &            ! periodicity config
        field_dump_ncells, ngx, ngy, ngz                              ! diagnostics config
 
@@ -57,7 +57,7 @@ subroutine pepc_setup()
   weighted        = 1
 
   ! particles
-  ne  = 2! Total # plasma electrons
+  ne  = 200! Total # plasma electrons
   ni  = 0 ! total # plasma ions
 
   xl = 1
@@ -78,7 +78,7 @@ subroutine pepc_setup()
   eps           = 1.
 
   ! control
-  nt           = 1
+  nt           = 100
   dt           = 0.01
   trun         = 0.
 
@@ -175,6 +175,7 @@ subroutine pepc_setup()
   !!!!!!!!!!!!!!!  parameters (laser)            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   if (omega_wpl > 0.) omega = omega_wpl * wpl_e
+  if (lambda_nm > 0.) omega = unit_c / (lambda_nm / unit_abohr_in_nm)
   omega_wpl = omega / wpl_e
   omega_hz  = omega / unit_t0_in_s
   lambda    = unit_c / omega
@@ -188,7 +189,7 @@ subroutine pepc_setup()
   E0         = vosc*mass_e*omega/abs(qe)
   I0_Wpercm2 = (E0 / unit_abohr_in_m / unit_Z0)**2. * unit_P0_in_W * 1.E-4
 
-  call setup_laser()
+  call laser_setup()
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

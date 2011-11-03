@@ -22,12 +22,15 @@ module module_param_dump
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       public PrintPhysicalParameters
+      public PrintLaserParameters
+      public WriteParameter
 
       interface WriteParameter
         module procedure WriteParameterReal
         module procedure WriteParameterInt
         module procedure WriteParameterRealSingle
         module procedure WriteParameterIntSingle
+        module procedure WriteParameterCharSingle
       end interface
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -78,6 +81,16 @@ module module_param_dump
 
     end subroutine WriteParameterIntSingle
 
+    subroutine WriteParameterCharSingle(ifile,name, val)
+      implicit none
+      integer, intent(in) :: ifile
+      character(*), intent(in) :: val
+      character(*), intent(in) :: name
+
+      write(ifile,'("| ",a28," | ", 1(a27, " |"))') name, val
+
+    end subroutine WriteParameterCharSingle
+
 
 
 
@@ -89,7 +102,7 @@ module module_param_dump
       implicit none
       integer, intent(in) :: ifile
 ! xl, yl, zl, plasma_centre
-!  call setup_laser()
+!  call laser_setup()
 
       write(ifile,'(92("-"))' )
       write(ifile,'(a1,a31,2(a20,a10))') "| ", "|", "electrons", "|", "ions","|"
@@ -132,7 +145,6 @@ module module_param_dump
       call WriteParameter(ifile, "theta", 1._8*theta)
       write(ifile,'(62("-"))' )
       call WriteParameter(ifile, "beam_config_in", beam_config_in)
-      call WriteParameter(ifile, "beam_config", beam_config)
       call WriteParameter(ifile, "omega / omega_pl", 1._8*omega_wpl)
       call WriteParameter(ifile, "omega (Hz)", 1._8*omega_hz)
       call WriteParameter(ifile, "T_laser (fs)", 2._8*pi/omega * unit_t0_in_fs)
@@ -142,6 +154,7 @@ module module_param_dump
       call WriteParameter(ifile, "crit. e-density (1/nm^3)", rhocrit_nm3)
       call WriteParameter(ifile, "laser intensity (W/cm^2)", I0_Wpercm2)
       call WriteParameter(ifile, "laser field strength (V/cm)", E0*unit_E0_in_Vpercm)
+      call WriteParameter(ifile, "laser pulse length (fs)", t_pulse_fs)
 
       call WriteParameter(ifile, "vosc (abohr/t0)", 1._8*vosc)
       call WriteParameter(ifile, "vosc / vtherm_e", vosc/vte)
@@ -149,5 +162,44 @@ module module_param_dump
 
    end subroutine PrintPhysicalParameters
 
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Outputs time-dependent laser parameters
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine PrintLaserParameters()
+      use physvars, only : my_rank
+      use module_laser
+      use module_units
+      implicit none
+      integer :: ifile
+
+      if (my_rank .ne. 0 .or. beam_config_in.eq.0) return
+
+      do ifile = 6,24,18
+        write(ifile,'(30("-")," LASER ",25("-"))' )
+        call WriteParameter(ifile, "beam_config_in",    beam_config_in)
+        call WriteParameter(ifile, "t_laser",           t_laser)
+        call WriteParameter(ifile, "t_laser (fs)",      t_laser*unit_t0_in_fs)
+        call WriteParameter(ifile, "Laser amplitude",   E_laser)
+        call WriteParameter(ifile, "Laser intensity",   I_laser)
+        call WriteParameter(ifile, "x_crit",            x_crit)
+        call WriteParameter(ifile, "spot size",         sigma)
+        call WriteParameter(ifile, "theta",             theta_beam)
+        call WriteParameter(ifile, "steps per cycle",   navcycle)
+        call WriteParameter(ifile, "Pulse envelope",    beam_envelope)
+        call WriteParameter(ifile, "Pulse length",      t_pulse)
+        call WriteParameter(ifile, "Pulse length (fs)", t_pulse_fs)
+        call WriteParameter(ifile, "Focal width",       sigma)
+        call WriteParameter(ifile, "Focal position",    focus(1))
+        call WriteParameter(ifile, "Beam focus",        config_names(1))
+        call WriteParameter(ifile, "Beam envelope",     config_names(2))
+        call WriteParameter(ifile, "Beam model",        config_names(3))
+        call WriteParameter(ifile, "Beam polarization", config_names(4))
+        write(ifile,'(62("-"))' )
+      end do
+
+    end subroutine
 
 end module module_param_dump

@@ -476,8 +476,6 @@ module module_pusher
 		  real*8 :: xd, yd, zd
 
 
-		  if (itime>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
-
 		  do p = p_start, p_finish
 		     beta=q(p)/m(p)*dts*0.5  ! charge/mass constant
 
@@ -487,13 +485,13 @@ module module_pusher
 
 		     ! evaluate external fields at particle positions
 
-		     if (beam_config.eq.4) then
+		     if (modulo(beam_config_in,10).eq.4) then
 		! pond. standing wave on step-profile
-		        call empond(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
+		        call empond(t_laser,t_pulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
 
-		     else if (beam_config.eq.6) then
+		     else if (modulo(beam_config_in,10).eq.6) then
 		! plane wave with Gaussian spot
-		        call emplane(tlaser,tpulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
+		        call emplane(t_laser,t_pulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
 		     endif
 
 		     !  Sum internal and external fields
@@ -559,8 +557,6 @@ module module_pusher
 		  real*8 :: tt, sx, sy, sz, tz, ty, tx
 		  real*8 :: uxd, uyd, uzd, uyp, uzp, uxp, uxm, uym, uzm
 		  real*8 :: exi, eyi, ezi, bxi, byi, bzi
-
-		  if (itime>0 .and. beam_config==4) focus(1) = x_crit  ! laser tracks n_c
 
 		  do p = p_start, p_finish
 		     beta=q(p)/m(p)*dts*0.5  ! charge/mass constant
