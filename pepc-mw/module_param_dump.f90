@@ -142,6 +142,7 @@ module module_param_dump
       call WriteParameter(ifile, "Gamma", physGamma)
       call WriteParameter(ifile, "force constant", 1._8*force_const)
       call WriteParameter(ifile, "eps", 1._8*eps)
+      call WriteParameter(ifile, "V(r_ion=0) (eV)", V0_eV)
       call WriteParameter(ifile, "theta", 1._8*theta)
       write(ifile,'(62("-"))' )
       call WriteParameter(ifile, "beam_config_in", beam_config_in)

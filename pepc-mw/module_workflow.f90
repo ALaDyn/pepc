@@ -153,13 +153,16 @@ module module_workflow
           integer, intent(in) :: itime
           real*8, intent(in) :: trun, dt
           real*8, parameter :: pulse_length_fs = 100.0
-
           real*8 :: time_fs
+
+          integer, save :: origbeamconfig
+
+          if (itime == 1) origbeamconfig = beam_config_in
 
           time_fs = trun*unit_t0_in_fs
 
           if      (time_fs <= pulse_length_fs) then       ! initial laser pulse
-            beam_config_in = 221
+            beam_config_in = origbeamconfig
             t_pulse = pulse_length_fs
             call laser_setup()
             integrator_scheme = 1

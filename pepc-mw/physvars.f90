@@ -47,6 +47,7 @@ module physvars
   real*8 :: a_ii, a_ee           ! mean ion and electron spacing
   real*8 :: a_i            ! ion sphere radius
   real*8 :: physGamma      ! coupling parameter
+  real*8 :: V0_eV = 0.       ! desired potential at distance r=0 from an ion --> eps is adjusted to match this value
   real :: eps            ! potential/force law cutoff
   integer :: Zion=1, Aion=1       ! ion charge and mass number
   integer :: setup_type = 0 !< for computing volume, interparticle distance, etc: 0-cubic, 1-spherical
@@ -80,7 +81,8 @@ module physvars
    logical, public :: restart = .false. !< Restart switch: config read from parts_all.in
    real*8 :: dt             ! timestep
    real*8 :: trun           ! total run time including restarts
-   integer :: nt, itime   ! # timesteps and current timestep
+   integer :: nt
+   integer :: itime = 0   ! # timesteps and current timestep
    integer :: itime_in    ! timestep to read mpi-io checkpoint from in case of ispecial==-1
    integer :: idump, idump_vtk, idump_checkpoint, idump_binary ! output frequency (timesteps): ascii, vtk and mpi-io-checkpoint
    integer :: db_level = 1  ! printed o/p debug level
