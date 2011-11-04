@@ -575,6 +575,9 @@ module module_setup
           integer :: p
           real*8 :: r(3), xt, yt, zt
 
+             ! "random" initialization of par_rand
+             xt = par_rand(my_rank + 13)
+
              do p=1,np_local/2
                ! get particle position inside the cluster
                r = get_particle(p + fences(my_rank-1)/2-1, currlayer, particletype)
@@ -591,8 +594,8 @@ module module_setup
                !pelabel(np_local-p+1)  = 1 + p + fences(my_rank-1)/2-1
                pelabel(np_local-p+1)  = 1 + particletype
 
-               ! and put an electron into near proximity, "random initialization" of par_rand()
-               xt = 2*pi*par_rand(my_rank + 13)*2*pi
+               ! and put an electron into near proximity
+               xt = 2*pi*par_rand()
                yt =   pi*par_rand()
                zt = 0.01
 
@@ -784,13 +787,13 @@ module module_setup
           integer, parameter :: IR2  = 3791
           integer, parameter :: NTAB = 32
           integer, parameter :: NDIV = 1+IMM1/NTAB
-                  real,    parameter :: eps_ = 1.2e-7 ! epsilon(eps_)
+          real,    parameter :: eps_ = 1.2e-7 ! epsilon(eps_)
           real,    parameter :: RNMX = 1.0 - eps_
 
-                  integer :: j, k
-                  integer, volatile, save :: idum  = -1
-                  integer, volatile, save :: idum2 =  123456789
-                  integer, volatile, save :: iy    =  0
+          integer :: j, k
+          integer, volatile, save :: idum  = -1
+          integer, volatile, save :: idum2 =  123456789
+          integer, volatile, save :: iy    =  0
           integer, volatile, save :: iv(NTAB)
 
 
