@@ -351,7 +351,7 @@ module module_pepcfields
 	  end do ! ibox = 1,num_neighbours
 
 	  ! add lattice contribution and other per-particle-forces
-	  call calc_force_per_particle(npgrid, grid_particles, grid_particle_results, cf_par)
+!	  call calc_force_per_particle(npgrid, grid_particles, grid_particle_results, cf_par)
 
 	  nkeys_total = nleaf+ntwig
 

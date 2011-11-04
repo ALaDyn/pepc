@@ -29,6 +29,7 @@ module module_velocity_setup
       public maxwell2
       public maxwell3
       public scramble_v
+      public scramble_v2
       public perturb_temp
 
 
@@ -94,6 +95,7 @@ module module_velocity_setup
 
      if (vt > 0) then
         call maxwell2(ux(i1:i1+n),uy(i1:i1+n),n,vt)
+        call scramble_v2(ux(i1:i1+n),uy(i1:i1+n),n)   ! remove x,y correlations
 	uz(i1:i1+n-1) = 0.
      else
         call cold_start(i1,n)
@@ -281,6 +283,43 @@ end subroutine set_velocities
 
 		end subroutine scramble_v
 
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>   SCRAMBLE_V2
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		subroutine scramble_v2(ux,uy,n)
+
+		  implicit none
+
+		  integer :: dum1, dum2, n
+		  real*8 :: uxt, uyt
+          	  real*8 :: ux(n), uy(n)
+		  integer :: j, k, p, n1
+
+		  dum1 = -71 - 10*my_rank
+		  dum2 = -113301 - 10*my_rank
+
+		  !  exclude odd one out
+		  if (mod(n,2).ne.0) then
+		     n1=n-1
+		  else
+		    n1 = n
+		  endif
+
+		  !  scramble indices to remove correlation between ux,uy
+		  do p=1,n1
+		     j=int(n1*rano(dum1)+1)
+		     k=int(n1*rano(dum2)+1)
+		     uxt=ux(p)
+		     uyt=uy(p)
+		     ux(p)=ux(k)
+		     uy(p)=uy(j)
+		     ux(k)=uxt
+		     uy(j)=uyt
+		  end do
+
+		end subroutine scramble_v2
 !  ===============================================================
 !
 !                       PERTURB_TEMP 

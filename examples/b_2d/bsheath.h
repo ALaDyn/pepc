@@ -19,11 +19,11 @@
  choose_build=1
  curve_type=0  ! Morton curve
  walk_scheme = 0 
- num_walk_threads =2
+ num_walk_threads =1
 
 ! particles
-  ne = 16000
-  ni = 16000 
+  ne = 10000
+  ni = 10000 
 
  plasma_config = 2  ! special start
  ispecial=7  ! gridded ions; electrons placed within a_ii/10
@@ -34,7 +34,7 @@
  force_const=0.1591549  ! 1/2pi
 ! force_const=0.
 
-  theta = 0.5
+  theta = 0.6
   eps = 1.0  ! smoothing parameter in norm units
   
   vte=1.0  ! Choose Debye norms (vte, wp, lambda_De)
@@ -47,11 +47,11 @@
   lenjones = .false.
   bond_const = 2.e-3
   r_sphere = 3. 
-  x_plasma = 4    ! plasma disc thickness/ wire length 
-  y_plasma = 10.    ! plasma width (slab target) 
+  x_plasma = 5    ! plasma disc thickness/ wire length 
+  y_plasma = 20.    ! plasma width (slab target) 
   z_plasma = 0.     ! plasma width (slab target)
   xl = 10  ! graphics box size
-  yl = 10 
+  yl = 20 
   zl =4 
  ngx=50
  ngy=50
@@ -68,7 +68,7 @@
  t_lattice_2 = 0. 1. 0.
 ! t_lattice_3 = 0. 0. 1.
  ! periodicity in x-, y-, and z-direction
- periodicity = .false., true., false.  ! forces periodic in y (1st neighbour box only)
+ periodicity = .false., .true., false.  ! forces periodic in y (1st neighbour box only)
  particle_wrap = .false.,.true.,.false.
 
   ! extrinsic-to-intrinsic correction

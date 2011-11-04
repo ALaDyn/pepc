@@ -36,7 +36,7 @@
  force_const=0.1591549  ! 1/2pi
 ! force_const=0.
     
-  theta = 0.3
+  theta = 0.5
   eps = 0.1  ! smoothing parameter in norm units
   
   vte=1.0  ! Choose Debye norms (vte, wp, lambda_De)
@@ -80,7 +80,7 @@
  scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
-  nt =1
+  nt =100
   dt = 0.05
  restart = .false.
   vis_on = .false.
