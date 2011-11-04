@@ -561,7 +561,7 @@ module tree_walk_pthreads
       ! Clumping parameter**2 for MAC
       theta2 = cf_par%theta**2
       ! length of todo- and defer-list per particle (estimations)
-      todo_list_length  = nintmax
+      todo_list_length  = max(nintmax, 10)
       defer_list_length = max(todo_list_length / 8, 50)
       ! pure local walk time (i.e. from start of communicator till sned_walk_finished)
       twalk_loc => twalk_loc_
