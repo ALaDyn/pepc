@@ -19,11 +19,11 @@
  choose_build=1
  curve_type=0  ! Morton curve
  walk_scheme = 0 
- num_walk_threads =1
+ num_walk_threads =4
 
 ! particles
-  ne = 10000
-  ni = 10000 
+  ne = 2560000
+  ni = 2560000 
 
  plasma_config = 2  ! special start
  ispecial=7  ! gridded ions; electrons placed within a_ii/10
@@ -42,25 +42,20 @@
   Ti_kev=1.0
 
   mass_ratio = 100.
-  q_factor = 1.
-  coulomb = .false.
-  lenjones = .false.
-  bond_const = 2.e-3
-  r_sphere = 3. 
-  x_plasma = 5    ! plasma disc thickness/ wire length 
-  y_plasma = 20.    ! plasma width (slab target) 
+  x_plasma = 10.    ! plasma disc thickness/ wire length 
+  y_plasma = 40.    ! plasma width (slab target) 
   z_plasma = 0.     ! plasma width (slab target)
-  xl = 10  ! graphics box size
-  yl = 20 
+  xl = 40  ! graphics box size
+  yl = 40 
   zl =4 
- ngx=50
- ngy=50
+ ngx=100
+ ngy=100
  nxh=50
  ngav=50
  
 ! external field
-  beam_config_in = 0  ! uniform Bz 
-  vosc = 1.0 
+  beam_config_in = 7  ! uniform Bz 
+  vosc = 0.2 
 
 ! fmm-periodicity framework
 ! lattice basis vectors
@@ -77,17 +72,17 @@
  scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
-  nt =10
-  dt = 0.025
+  nt =20000
+  dt = 0.05
  restart = .false.
   vis_on = .false.
  ivis = 5 
- ivis_fields = 1
+ ivis_fields = 100
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = 1
-  iprot=10
+  idump = 1000
+  iprot=100
   itrack=300
   particle_bcs = 3 /
 

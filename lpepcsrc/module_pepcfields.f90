@@ -233,7 +233,7 @@ module module_pepcfields
 
 	  endif
 
-	  call tree_stats(itime)
+	  if (tree_debug) call tree_stats(itime)
 
 	  call timer_stop(t_fields_stats)
 

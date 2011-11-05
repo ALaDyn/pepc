@@ -24,8 +24,8 @@
  num_walk_threads =2
 
 ! particles
-  ne = 1000000
-  ni = 1000000 
+  ne = 2000000
+  ni = 2000000 
 
 ! set up plasma target
  plasma_config = 1  
@@ -95,12 +95,12 @@
  scheme = 1                          
 
   ! control
-  nt =250
+  nt =300
   dt = 0.2
  restart = .false.
   vis_on = .false.
  ivis = 5 
- ivis_fields = 25
+ ivis_fields = 10
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000

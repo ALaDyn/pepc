@@ -272,7 +272,7 @@ module module_tree_domains
 
                 ! TODO: need 'ripple' here up to next large gap in keys i+1->npp
 
-                write(*,'(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
+                write(ipefile,'(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
                 ' WARNING: identical keys found for index, npp, label1, label2  ', &
                 i,npp,particles(i-1)%label,particles(i)%label,particles(i+1)%label, &
                 ' -  to: ',particles(i)%key,' next key: ',particles(i+1)%key
@@ -291,7 +291,7 @@ module module_tree_domains
             identical_keys=.false.
             if (particles(ipp+1)%key == particles(ipp)%key) then
                 particles(ipp)%key = particles(ipp)%key-1
-                write(*,'(a15,i9,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
+                write(ipefile,'(a15,i9,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
                 ' WARNING: identical keys found for particles  ',particles(ipp+1)%label,particles(ipp)%label, &
                 'LPEPC | Lower key decreased to:  ',particles(ipp)%key
                 identical_keys=.true.

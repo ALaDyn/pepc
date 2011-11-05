@@ -609,8 +609,8 @@ subroutine special_start(iconf)
 ! TODO: Make sure x_plasma/a_ii, y_plasma/a_ii are integers
      ncols = nint(x_plasma/dx)
      nrows = nint(y_plasma/dx)
-     write (*,*) 'PEPC-B | Special start 7 - ion grid: ', Aplas, dx, ncols, nrows
-     if (dx.ne.a_ii) write (*,*) 'PEPC-B | non-integer a_ii', a_ii, dx
+     if (my_rank==0) write (*,*) 'PEPC-B | Special start 7 - ion grid: ', Aplas, dx, ncols, nrows
+     if (my_rank==0 .and. dx.ne.a_ii) write (*,*) 'PEPC-B | non-integer a_ii', a_ii, dx
 
 ! Compute my set of ion coordinates
      do p=1,nip
@@ -668,8 +668,8 @@ subroutine special_start(iconf)
      dx = a_ii  
      ncols = nint(x_plasma/dx)
      nrows = nint(y_plasma/dx)
-     write (*,*) 'PEPC-B | Special start 8 - ion grid: ', Aplas, dx, ncols, nrows
-     if (dx.ne.a_ii) write (*,*) 'PEPC-B | non-integer a_ii', a_ii, dx
+     if (my_rank==0) write (*,*) 'PEPC-B | Special start 8 - ion grid: ', Aplas, dx, ncols, nrows
+     if (my_rank==0 .and. dx.ne.a_ii) write (*,*) 'PEPC-B | non-integer a_ii', a_ii, dx
 
 ! Compute my set of ion coordinates
      do p=1,nip
