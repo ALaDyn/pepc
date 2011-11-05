@@ -21,6 +21,27 @@ subroutine integrator
 	write(24,*) 'Push with scheme',scheme
  endif
 
+! Perform 1/2 step backwards to centre velocities at t=0
+  if (itime==0) then
+ 
+    centre: select case(scheme)
+
+    case(1,2,3,4,6)
+     call velocities(1,np_local,-dt/2.)  ! pure ES, NVT ensembles
+
+    case(7) 
+     call push_full3v(1,np_local,-dt/2.)  ! full EM pusher (all E, B components)
+
+    case(8) 
+      call push_TE(1,np_local,-dt/2.)  ! full EM pusher (all E, B components)
+
+    case default
+     ! do nothing!
+
+    end select centre
+    return
+  endif
+
   pusher: select case(scheme)
 
   case(1,2,3,4)
@@ -31,14 +52,13 @@ subroutine integrator
      call velocities(1,np_local,dt)  ! ion quiet start NVT ensemble
      call push_restrict(1,np_local,dt,a_ii/3.)  ! restricted update
 
-
-  case(6) 
-     call push_full3v(1,np_local,dt)  ! full EM pusher (all E, B components)
-     call push_x(1,np_local,dt)  ! update positions
-
-  case(7)
+  case(6)
      call velocities(1,np_local,dt)  ! nonrelativistic push
      call push_nonrel(1,np_local,dt)
+
+  case(7) 
+     call push_full3v(1,np_local,dt)  ! full EM pusher (all E, B components)
+     call push_x(1,np_local,dt)  ! update positions
 
   case(8) 
       call push_TE(1,np_local,dt)  ! full EM pusher (all E, B components)

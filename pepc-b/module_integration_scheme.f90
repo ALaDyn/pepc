@@ -63,9 +63,9 @@ subroutine push_TE(p_start,p_finish,dts)
   integer, intent(in) :: p_start, p_finish
   real, intent(in) :: dts
   integer :: p
-  real :: beta, gam1,tt, ss
-  real :: uxd,uyp,uxp,uxm,uym, uzm
-  real :: exi, eyi, ezi, bxi, byi, bzi
+  real*8 :: beta, gam1,tt, ss
+  real*8 :: uxd,uyp,uxp,uxm,uym, uzm
+  real*8 :: exi, eyi, ezi, bxi, byi, bzi
 
 
 
@@ -88,8 +88,8 @@ subroutine push_TE(p_start,p_finish,dts)
 
      !   rotation
 
-!     gam1=sqrt(1.0+uxm**2+uym**2+uzm**2)
-     gam1=1.0
+     gam1=sqrt(1.0+uxm**2+uym**2+uzm**2)
+!     gam1=1.d0
      tt=beta*bzi/gam1
      ss=2.d0*tt/(1.d0+tt**2)
 
@@ -105,12 +105,8 @@ subroutine push_TE(p_start,p_finish,dts)
   end do
 
 
-  !   get gamma
 
-!  do l=1,n
-!     ip=ip1+l-1
-!     gamma(ip)=sqrt(1.0+ux(ip)**2+uy(ip)**2+uz(ip)**2)
-!  end do
+
 
 end subroutine push_TE
 
@@ -293,13 +289,12 @@ subroutine push_nonrel(ips,ipf,delt)
   real, intent(in) :: delt
   integer :: p
 
-
   do p=ips,ipf
 
      x(p)=x(p)+ux(p)*delt
      y(p)=y(p)+uy(p)*delt
-     z(p)=z(p)+uz(p)*delt
-
+     if (idim.eq.3) z(p)=z(p)+uz(p)*delt
+     if (p==1) write(70,*) itime*delt,x(p),y(p),ux(p),uy(p)
   end do
 
 

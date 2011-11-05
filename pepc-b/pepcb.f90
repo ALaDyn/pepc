@@ -79,7 +79,7 @@ program pepcb
   call setup_particle_arrays(np_alloc)    ! Allocate particle memory
 
   call openfiles       ! Set up O/P files
-
+open(70,file='orbit.dat')
 
 
   ! Allocate array space for tree
@@ -140,7 +140,10 @@ program pepcb
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
                       np_mult, cf_par, itime, weighted, curve_type, &
                       num_neighbour_boxes, neighbour_boxes, .true.)
-     
+
+   ! Centre velocities with 1/2 step back     
+    call integrator
+
 ! Static error test mode
   if (np_error>0) then
 	write(6,*) 'Entering error test mode'
@@ -286,6 +289,7 @@ program pepcb
 
   call closefiles      ! Tidy up O/P files
 
+  close(70)
 
 ! ---- Preprocess VISIT setup -----------
  

@@ -397,9 +397,9 @@ subroutine force_laser(p_start,p_finish)
         Ex(p) = Ex(p) + Epon_x
         Ey(p) = Ey(p) + Epon_y
         Ez(p) = Ez(p) + Epon_z
-        Bx(p) = Bx(p) + Bx_em
-        By(p) = By(p) + By_em
-        Bz(p) = Bz(p) + Bz_em
+        Bx(p) = Bx_em ! No internal B-fields yet TODO: these need initialising
+        By(p) = By_em
+        Bz(p) = Bz_em
 
      end do
   endif

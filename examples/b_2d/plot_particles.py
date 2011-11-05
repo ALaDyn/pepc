@@ -134,10 +134,10 @@ def next_plot():
 #fn='fields/000000.xy'
 #plot_from_file(fn,nx,ny)
 
-tmax=201
+tmax=101
 increment = 1
-xmin=-10
-xmax=20
+xmin=0
+xmax=10
 ymin=0
 ymax=10
 

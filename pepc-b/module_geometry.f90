@@ -445,18 +445,19 @@ subroutine special_start(iconf)
         xt =  xl * rano(iseed) 
         yt =  yl * rano(iseed)
 !        zt =  zl * rano(iseed)
-        zt = zl/2.-z_plasma/2.+z_plasma*i/1./np_local
+        zt = plasma_centre(3)
         x(i) = xt
         y(i) = yt
         z(i) = zt
         rs = rano(iseed)
-        v0 = vt*sqrt(-2.0*log(rs))
+!        v0 = vt*sqrt(-2.0*log(rs))
+	v0=vt
         thetvel = 2*pi*rano(iseed)
         phivel = pi*rano(iseed)
         ux(i) = v0*cos(thetvel)
         uy(i) = v0*sin(thetvel)
 !        uz(i) = v0/10.
-        uz(i) = v0*cos(phivel)
+        uz(i) = 0.
      end do
 
   case(4)      !  Special config for FMM comparison
