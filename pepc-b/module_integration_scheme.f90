@@ -88,8 +88,8 @@ subroutine push_TE(p_start,p_finish,dts)
 
      !   rotation
 
-     gam1=sqrt(1.0+uxm**2+uym**2+uzm**2)
-!     gam1=1.d0
+!     gam1=sqrt(1.0+uxm**2+uym**2+uzm**2)
+     gam1=1.d0
      tt=beta*bzi/gam1
      ss=2.d0*tt/(1.d0+tt**2)
 
@@ -103,10 +103,6 @@ subroutine push_TE(p_start,p_finish,dts)
      uy(p)=uyp+beta*eyi
 
   end do
-
-
-
-
 
 end subroutine push_TE
 
