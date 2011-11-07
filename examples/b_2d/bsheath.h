@@ -22,8 +22,8 @@
  num_walk_threads =4
 
 ! particles
-  ne = 2560000
-  ni = 2560000 
+  ne = 10240000
+  ni = 10240000 
 
  plasma_config = 2  ! special start
  ispecial=7  ! gridded ions; electrons placed within a_ii/10
@@ -42,20 +42,20 @@
   Ti_kev=1.0
 
   mass_ratio = 100.
-  x_plasma = 10.    ! plasma disc thickness/ wire length 
-  y_plasma = 40.    ! plasma width (slab target) 
+  x_plasma = 50.    ! plasma disc thickness/ wire length 
+  y_plasma = 100.    ! plasma width (slab target) 
   z_plasma = 0.     ! plasma width (slab target)
-  xl = 40  ! graphics box size
-  yl = 40 
+  xl = 150  ! graphics box size
+  yl = 100 
   zl =4 
- ngx=100
- ngy=100
+ ngx=200
+ ngy=200
  nxh=50
  ngav=50
  
 ! external field
   beam_config_in = 7  ! uniform Bz 
-  vosc = 0.2 
+  vosc = 1.0 
 
 ! fmm-periodicity framework
 ! lattice basis vectors
@@ -69,11 +69,11 @@
   ! extrinsic-to-intrinsic correction
 !  do_extrinsic_correction = .false. 
 
- scheme = 7 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
+ scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
-  nt =20000
-  dt = 0.05
+  nt =10000
+  dt = 0.1
  restart = .false.
   vis_on = .false.
  ivis = 5 

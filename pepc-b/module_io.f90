@@ -200,8 +200,8 @@ subroutine dump(timestamp)
   integer :: numfiles=0
   real :: simtime
 
-  integer*8 :: chunksize, size_info, bwrote
-  integer   :: size1, size2
+  integer*8 :: chunksize,  bwrote
+  integer   :: size1, size2, size_info
   ! 2MB GPFS
   integer fsblksize
   integer sid
@@ -373,8 +373,8 @@ subroutine predef_parts
   logical :: stopflag=.false.
 
 
-  integer*8 :: chunksize, size_info, bread
-  integer   :: size1, size2
+  integer*8 :: chunksize, bread
+  integer   :: size1, size2, size_info
   ! 2MB GPFS
   integer 	fsblksize, feof
   integer 	sid, globalrank
