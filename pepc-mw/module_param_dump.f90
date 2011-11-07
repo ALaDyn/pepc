@@ -154,6 +154,7 @@ module module_param_dump
       call WriteParameter(ifile, "lambda (nm)", 1._8*lambda_nm)
       call WriteParameter(ifile, "crit. e-density (1/nm^3)", rhocrit_nm3)
       call WriteParameter(ifile, "laser intensity (W/cm^2)", I0_Wpercm2)
+      call WriteParameter(ifile, "laser field strength", E0)
       call WriteParameter(ifile, "laser field strength (V/cm)", E0*unit_E0_in_Vpercm)
       call WriteParameter(ifile, "laser pulse length (fs)", t_pulse_fs)
 

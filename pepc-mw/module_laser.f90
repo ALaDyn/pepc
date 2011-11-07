@@ -285,7 +285,7 @@ contains
         !  Laser pulse envelope
         !  =====================
         E_laser = E0 * laser_envelope(beam_envelope, t_pulse, t_laser, vosc, config_names(2))
-        I_Laser = E_laser**2
+        I_Laser = unit_epsilon0*unit_c/2.*E_laser**2
 
         !  Laser focal position and rezoning
         !  ==================================

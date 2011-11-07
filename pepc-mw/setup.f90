@@ -187,11 +187,11 @@ subroutine pepc_setup()
   rhocrit_nm3 = omega*omega*unit_epsilon0*mass_e/(qe*qe) / unit_abohr_in_nm**3.
 
   if (I0_Wpercm2 > 0.) then
-    E0   = unit_Z0 *sqrt(I0_Wpercm2*1.E4 / unit_P0_in_W ) * unit_abohr_in_m
+    E0   =  sqrt( 2./(unit_epsilon0*unit_c) * (I0_Wpercm2 / unit_P0_in_W * (100*unit_abohr_in_m)**2) )
     vosc = (abs(qe)*E0)/(mass_e*omega)
   endif
   E0         = vosc*mass_e*omega/abs(qe)
-  I0_Wpercm2 = (E0 / unit_abohr_in_m / unit_Z0)**2. * unit_P0_in_W * 1.E-4
+  I0_Wpercm2 = (unit_epsilon0 * unit_c * E0**2 / 2. ) * unit_P0_in_W / (100*unit_abohr_in_m)**2
 
   call laser_setup()
 
