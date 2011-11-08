@@ -45,6 +45,7 @@ module module_workflow
 		  integer, intent(in) :: my_rank, itime
 		  real*8, intent(in) :: trun, dt
 		  character(150) :: setup_name
+		  integer :: stage = -1
 
 		  select case(workflow_setup)
 		    case(0) ! no time variation
@@ -52,19 +53,19 @@ module module_workflow
 
             case(1) ! temperature rescaling incl drift after every full laser cycle
               setup_name = 'temp. rescaling after full laser cycle'
-              call workflow_temp_rescaling_after_full_laser_cycle(itime, trun, dt)
+              call workflow_temp_rescaling_after_full_laser_cycle(itime, trun, dt, stage)
 
             case(2) ! [PRE 71, 056408 (2005)] P. Hilse et al: Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation.
               setup_name = '[PRE 71, 056408 (2005)] P. Hilse et al: Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation.'
-              call workflow_PRE_71_056408(itime, trun, dt)
+              call workflow_PRE_71_056408(itime, trun, dt, stage)
 
             case(3) ! [J. Phys. A: Math. Theor 42 (2009), 214048] Th. Raitza et al: Collision frequency of electrons in laser excited small clusters
               setup_name = '[J. Phys. A: Math. Theor 42 (2009), 214048] Th. Raitza et al: Collision frequency of electrons in laser excited small clusters'
-              call workflow_JPhysA_42_214048(itime, trun, dt)
+              call workflow_JPhysA_42_214048(itime, trun, dt, stage)
 
 		  end select
 
-          if (my_rank == 0) write( *,'(/"-- WORKFLOW --"/a20,i8," ", a)') 'workflow_setup = ', workflow_setup, setup_name
+          if (my_rank == 0) write( *,'(/"-- WORKFLOW --"/a20,i8," ", a/a20,i8/)') 'workflow_setup = ', workflow_setup, setup_name, 'stage = ', stage
 
 		end subroutine workflow
 
@@ -75,18 +76,20 @@ module module_workflow
         !> after every full laser cycle
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine workflow_temp_rescaling_after_full_laser_cycle(itime, trun, dt)
+        subroutine workflow_temp_rescaling_after_full_laser_cycle(itime, trun, dt, stage)
           use module_laser
           use module_pusher
           implicit none
           integer, intent(in) :: itime
           real*8, intent(in) :: trun, dt
+          integer, intent(out) :: stage
 
           real*8 :: remainder
 
           integrator_scheme = 2
           remainder = mod(1._8*trun, navcycle)
           enable_drift_elimination = ( (remainder >= -0.5_8) .and. (remainder < 0.5_8) )
+          stage = 0
 
         end subroutine workflow_temp_rescaling_after_full_laser_cycle
 
@@ -99,13 +102,14 @@ module module_workflow
         !> fields: Quantum statistical results and simulation
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine workflow_PRE_71_056408(itime, trun, dt)
+        subroutine workflow_PRE_71_056408(itime, trun, dt, stage)
           use module_laser
           use module_pusher
           use module_units
           implicit none
           integer, intent(in) :: itime
           real*8, intent(in) :: trun, dt
+          integer, intent(out) :: stage
 
           real*8 :: time_fs
 
@@ -115,23 +119,27 @@ module module_workflow
             beam_config_in = 0                   ! relaxation (not into equilibrium due to large ion mass)
             call laser_setup()                   ! ==> 2-temp. plasma
             integrator_scheme = 1
+            stage = 1
 
           elseif (time_fs <= 2.25) then        ! 'thermalization':
             beam_config_in = 0                   ! velocity rescaling ==> coupling to heat bath
             call laser_setup()
             integrator_scheme = 2
             enable_drift_elimination = .true.
+            stage = 2
 
           elseif (time_fs <= 3.50) then        ! 'heat bath off', equilibrium
             beam_config_in = 0                   ! (pot. and kin. energy constant)
             call laser_setup()
             integrator_scheme = 1
             enable_drift_elimination = .false.
+            stage = 3
 
           else                                 ! laser switched on
             beam_config_in = 3
             call laser_setup()
             integrator_scheme = 1
+            stage = 4
 
           endif
 
@@ -145,32 +153,39 @@ module module_workflow
         !> Collision frequency of electrons in laser excited small clusters
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine workflow_JPhysA_42_214048(itime, trun, dt)
+        subroutine workflow_JPhysA_42_214048(itime, trun, dt, stage)
           use module_laser
           use module_pusher
           use module_units
+          use physvars, only : momentum_acf_from_timestep
           implicit none
           integer, intent(in) :: itime
           real*8, intent(in) :: trun, dt
-          real*8, parameter :: pulse_length_fs = 100.0
           real*8 :: time_fs
+          logical, save :: firstcall = .true.
+          integer, intent(out) :: stage
 
           integer, save :: origbeamconfig
 
-          if (itime == 1) origbeamconfig = beam_config_in
+          if (firstcall) then
+            firstcall = .false.
+            origbeamconfig = beam_config_in
+            momentum_acf_from_timestep = int(t_pulse_fs/unit_t0_in_fs/dt)
+          endif
 
           time_fs = trun*unit_t0_in_fs
 
-          if      (time_fs <= pulse_length_fs) then       ! initial laser pulse
+          if      (time_fs <= t_pulse_fs) then       ! initial laser pulse
             beam_config_in = origbeamconfig
-            t_pulse = pulse_length_fs
             call laser_setup()
             integrator_scheme = 1
+            stage = 1
 
           else                                 ! laser switched off
             beam_config_in = 0
             call laser_setup()
             integrator_scheme = 1
+            stage = 2
 
           endif
 

@@ -96,7 +96,10 @@ program pepc
   call write_particles(.false.)
   if (( idump .gt. 0 ) .and. ((ispecial==9).or.(ispecial==10).or.(ispecial==11))) call sum_radial(itime)
 
-  call momentum_acf%initialize(nt, dt*unit_t0_in_fs, my_rank, n_cpu, MPI_COMM_PEPC)
+  ! time-dependent setup stuff
+  call workflow(my_rank, 0, 0._8, dt)
+
+  call momentum_acf%initialize(nt-momentum_acf_from_timestep, dt*unit_t0_in_fs, my_rank, n_cpu, MPI_COMM_PEPC)
 
   call benchmark_inner
 
@@ -133,7 +136,7 @@ program pepc
      call PrintLaserParameters()
 
      call pepc_fields(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
-	              q(1:np_local),work(1:np_local),pelabel(1:np_local), &
+                 q(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult, cf_par, itime, weighted, curve_type, &
                       num_neighbour_boxes, neighbour_boxes, treediags)
@@ -181,8 +184,11 @@ program pepc
 
      ! output total momentum of all negatively charged particles
      call write_total_momentum('momentum_electrons.dat', itime, trun, q(1:np_local) < 0., mom)
-     call momentum_acf%addval(mom(1:3))
-     call momentum_acf%to_file("momentum_electrons_Kt.dat")
+
+     if (itime > momentum_acf_from_timestep) then
+       call momentum_acf%addval(mom(1:3))
+       call momentum_acf%to_file("momentum_electrons_Kt.dat")
+     endif
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags

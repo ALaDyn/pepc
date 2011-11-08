@@ -214,6 +214,7 @@ module module_diagnostics
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine write_total_momentum(filename, itime_, trun_, selection, mom)
         use physvars
+        use module_units
         implicit none
         include 'mpif.h'
 
@@ -244,7 +245,7 @@ module module_diagnostics
           else
              open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
            endif
-           write(87,'(i10,5g25.12)') itime_, trun_, mom
+           write(87,'(i10,5g25.12)') itime_, trun_*unit_t0_in_fs, mom
            close(87)
         endif
       end subroutine write_total_momentum
