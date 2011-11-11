@@ -171,7 +171,7 @@ subroutine pepc_setup()
 
   eps = eps * lambdaD_e
 
-  if (V0_eV > 0.) eps = force_const * qi / (V0_eV / unit_Ryd_in_eV)
+  if (V0_eV > 0.) eps = force_const * qe*qi / (V0_eV / unit_Ryd_in_eV)
 
   V0_eV = (force_const * qi / eps) * unit_Ryd_in_eV
 

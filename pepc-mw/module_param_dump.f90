@@ -184,8 +184,11 @@ module module_param_dump
         call WriteParameter(ifile, "beam_config_in",    beam_config_in)
         call WriteParameter(ifile, "t_laser",           t_laser)
         call WriteParameter(ifile, "t_laser (fs)",      t_laser*unit_t0_in_fs)
-        call WriteParameter(ifile, "Laser amplitude",   E_laser)
-        call WriteParameter(ifile, "Laser intensity",   I_laser)
+        call WriteParameter(ifile, "sin(phase_laser)",  sin(omega*t_laser))
+        call WriteParameter(ifile, "Laser amplitude (max)", E_laser)
+        call WriteParameter(ifile, "Laser amplitude (cur)", E_laser * sin(omega*t_laser))
+        call WriteParameter(ifile, "Laser intensity", I_laser)
+
         call WriteParameter(ifile, "x_crit",            x_crit)
         call WriteParameter(ifile, "spot size",         sigma)
         call WriteParameter(ifile, "theta",             theta_beam)

@@ -272,15 +272,9 @@ contains
         use module_units
         implicit none
 
-        integer :: ifile
-        real*8 :: amplitude, ampl_min, pha
-        real*8 :: Azr(1:nxh)
-        complex :: yi=(0.,1.)
-
         if (beam_config_in == 0) return
 
         t_laser = t_laser + dt
-        pha     = t_laser*omega
 
         !  Laser pulse envelope
         !  =====================
@@ -330,8 +324,12 @@ contains
         do p = p_start, p_finish
             call force_laser_at(x(p), y(p), z(p), ux(p), E_pon, B_em, Phipon)
 
+            !if (p==p_start) then
+            !  write(17,'(9f8.4)') [Ex(p), Ey(p), Ez(p)], E_pon, [Ex(p), Ey(p), Ez(p)] + E_pon
+            !endif
+
             !  ions assumed not to feel laser, so zero fields
-            if (beam_model == LASER_MODEL_UNIFORM_SINUSOID_ONLYELECTRONS) then
+            if ((beam_model == LASER_MODEL_UNIFORM_SINUSOID_ONLYELECTRONS) .and. (q(p) > 0.)) then
                 E_pon = [ 0., 0., 0. ]
                 B_em  = [ 0., 0., 0. ]
             endif
@@ -373,14 +371,17 @@ contains
             case(LASER_MODEL_UNIFORM_SINUSOID, LASER_MODEL_UNIFORM_SINUSOID_ONLYELECTRONS)
                 select case(beam_polarization)
                     case(LASER_POLARIZATION_X)
-                        E_pon = [ E_laser*sin(omega*t_laser), 0._8, 0._8 ]
-                        B_em  = [ 0._8, 0._8, 0._8]
+                        E_pon  = [ E_laser*sin(omega*t_laser), 0._8, 0._8 ]
+                        B_em   = [ 0._8, 0._8, 0._8]
+                        Phipon = 0. ! vosc**2/(4.*q) might disturb energy computation
                     case(LASER_POLARIZATION_Y)
                         E_pon = [ 0._8, E_laser*sin(omega*t_laser), 0._8 ]
                         B_em  = [ 0._8, 0._8, 0._8]
+                        Phipon = 0.
                     case(LASER_POLARIZATION_Z)
                         E_pon = [ 0._8, 0._8, E_laser*sin(omega*t_laser) ]
                         B_em  = [ 0._8, 0._8, 0._8]
+                        Phipon = 0.
                 end select
 
 
