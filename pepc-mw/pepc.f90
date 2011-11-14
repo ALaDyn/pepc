@@ -33,6 +33,7 @@ program pepc
   use module_treediags
   use module_vtk
   use module_directsum
+  use module_energy
   implicit none
   include 'mpif.h'
 
@@ -168,7 +169,7 @@ program pepc
      ! periodic systems demand periodic boundary conditions
      if (do_periodic) call constrain_periodic(x(1:np_local),y(1:np_local),z(1:np_local),np_local)
 
-     call energy_cons(Ukine,Ukini)
+     call energies(Ukine,Ukini)
 
      ! periodic particle dump
      call write_particles(.true.)
