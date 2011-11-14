@@ -43,6 +43,7 @@ contains
         use module_pusher
         use module_io
         use module_units
+        use module_param_dump
 
         implicit none
 
@@ -83,47 +84,6 @@ contains
                                                   Te0, Te_uncor, chie, delta_Te, Ti0, Ti_uncor, chii, delta_Ti
         endif
     end subroutine energies
-
-
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !>
-    !> Output energies in pretty format
-    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine PrintEnergies(ifile, epot, ekini, ekine, etot, tempe, tempi)
-      use physvars
-      use module_units
-      use module_fmm_framework
-      use module_param_dump
-      implicit none
-      integer, intent(in) :: ifile
-      real*8, intent(in) :: epot, ekini, ekine, etot, tempe, tempi
-
-      call WriteTopline(  ifile, "ENERGIES", "")
-      call WriteHeader(   ifile, "Ryd", "eV")
-      call WriteParameter(ifile, "P.E.   (el+ions)   ", epot, epot*unit_Ryd_in_eV)
-      call WriteParameter(ifile, "P.E.   (near field)", potnearfield, potnearfield*unit_Ryd_in_eV)
-      call WriteParameter(ifile, "P.E.   (far field) ", potfarfield, potfarfield*unit_Ryd_in_eV)
-      call WriteParameter(ifile, "K.E.   (electrons) ", ekine, ekine*unit_Ryd_in_eV)
-      call WriteParameter(ifile, "K.E.   (ions)      ", ekini, ekini*unit_Ryd_in_eV)
-      call WriteParameter(ifile, "Energy (total)     ", etot, etot*unit_Ryd_in_eV)
-      call WriteTopline(  ifile, "", "")
-      call WriteHeader(   ifile, "with drift", "without drift")
-      call WriteParameter(ifile, "Te (eV)", unit_Ryd_in_eV*ekine/unit_kB*2./3., unit_Ryd_in_eV*tempe)
-      call WriteParameter(ifile, "Ti (eV)", unit_Ryd_in_eV*ekini/unit_kB*2./3., unit_Ryd_in_eV*tempi)
-      call WriteTopline(  ifile, "", "")
-
-   end subroutine PrintEnergies
-
-
-
-
-
-
-
-
-
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
