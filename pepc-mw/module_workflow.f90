@@ -86,7 +86,7 @@ module module_workflow
 
           real*8 :: remainder
 
-          integrator_scheme = 2
+          integrator_scheme = INTEGRATOR_SCHEME_NVT
           remainder = mod(1._8*trun, navcycle)
           enable_drift_elimination = ( (remainder >= -0.5_8) .and. (remainder < 0.5_8) )
           stage = 0
@@ -118,27 +118,27 @@ module module_workflow
           if      (time_fs <= 1.25) then        ! phase of 'establishment of correlations':
             beam_config_in = 0                   ! relaxation (not into equilibrium due to large ion mass)
             call laser_setup()                   ! ==> 2-temp. plasma
-            integrator_scheme = 1
+            integrator_scheme = INTEGRATOR_SCHEME_NVE
             stage = 1
 
           elseif (time_fs <= 2.25) then        ! 'thermalization':
             beam_config_in = 0                   ! velocity rescaling ==> coupling to heat bath
             call laser_setup()
-            integrator_scheme = 2
+            integrator_scheme = INTEGRATOR_SCHEME_NVT
             enable_drift_elimination = .true.
             stage = 2
 
           elseif (time_fs <= 3.50) then        ! 'heat bath off', equilibrium
             beam_config_in = 0                   ! (pot. and kin. energy constant)
             call laser_setup()
-            integrator_scheme = 1
+            integrator_scheme = INTEGRATOR_SCHEME_NVE
             enable_drift_elimination = .false.
             stage = 3
 
           else                                 ! laser switched on
             beam_config_in = 3
             call laser_setup()
-            integrator_scheme = 1
+            integrator_scheme = INTEGRATOR_SCHEME_NVE
             stage = 4
 
           endif
@@ -178,13 +178,13 @@ module module_workflow
           if      (time_fs <= t_pulse_fs) then       ! initial laser pulse
             beam_config_in = origbeamconfig
             call laser_setup()
-            integrator_scheme = 1
+            integrator_scheme = INTEGRATOR_SCHEME_NVE
             stage = 1
 
           else                                 ! laser switched off
             beam_config_in = 0
             call laser_setup()
-            integrator_scheme = 1
+            integrator_scheme = INTEGRATOR_SCHEME_NVE_IONS_FROZEN
             stage = 2
 
           endif

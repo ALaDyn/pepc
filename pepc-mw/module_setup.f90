@@ -597,7 +597,7 @@ module module_setup
                ! and put an electron into near proximity
                xt = 2*pi*par_rand()
                yt =   pi*par_rand()
-               zt = 0.01
+               zt = 0.025*par_rand()
 
                x(p) = x(np_local-p+1) + zt * cos(xt) * sin(yt)
                y(p) = y(np_local-p+1) + zt * sin(xt) * sin(yt)

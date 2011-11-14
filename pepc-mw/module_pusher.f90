@@ -15,7 +15,17 @@ module module_pusher
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      integer, public :: integrator_scheme = 1
+      !> possible values for integrator_scheme
+      integer, public, parameter :: INTEGRATOR_SCHEME_NVE = 1 !      1 = NVE - total energy conserved
+      integer, public, parameter :: INTEGRATOR_SCHEME_NVT = 2 !      2 = NVT - global Te, Ti conserved
+      integer, public, parameter :: INTEGRATOR_SCHEME_NVT_IONS_FROZEN       = 3 ! 3 = global NVT electron Te conserved; ions frozen
+      integer, public, parameter :: INTEGRATOR_SCHEME_LOCAL_NVT_IONS_FROZEN = 4 ! 4 = local NVT: each PE keeps Te clamped; ions frozen
+      integer, public, parameter :: INTEGRATOR_SCHEME_LOCAL_NVT_IONS_ONLY   = 5 ! 5 = local NVT, ions only; electrons added at end of run
+      integer, public, parameter :: INTEGRATOR_SCHEME_FULL_EM  = 6 ! full EM pusher (all E, B components)
+      integer, public, parameter :: INTEGRATOR_SCHEME_NONREL   = 7 ! nonrelativistic push
+      integer, public, parameter :: INTEGRATOR_SCHEME_NVE_IONS_FROZEN = 8 ! 1 = NVE - total electron energy conserved, ions frozen
+
+      integer, public :: integrator_scheme = INTEGRATOR_SCHEME_NVE
       real*8, public :: Te0 = 0., Te_uncor = 0., chie = 0., delta_Te = 0.
       real*8, public :: Ti0 = 0., Ti_uncor = 0., chii = 0., delta_Ti = 0.
       logical, public :: enable_drift_elimination = .false. !< if .true., the global particle drift is included during velocity rescaling for constant temperature regime (i.e. it is eliminated)
@@ -59,15 +69,15 @@ module module_pusher
 
 		  pusher: select case(scheme)
 
-		  case(1,2,3,4,5)
+		  case(INTEGRATOR_SCHEME_NVE,INTEGRATOR_SCHEME_NVT,INTEGRATOR_SCHEME_NVT_IONS_FROZEN,INTEGRATOR_SCHEME_LOCAL_NVT_IONS_FROZEN,INTEGRATOR_SCHEME_LOCAL_NVT_IONS_ONLY,INTEGRATOR_SCHEME_NVE_IONS_FROZEN)
 		     call velocities(p_start,p_finish,scheme)  ! pure ES, NVT ensembles
 		     call push_x(p_start,p_finish,dt)  ! update positions
 
-		  case(6)
+		  case(INTEGRATOR_SCHEME_FULL_EM)
 		     call push_full3v(p_start,p_finish,dt)  ! full EM pusher (all E, B components)
 		     call push_x(p_start,p_finish,dt)  ! update positions
 
-		  case(7)
+		  case(INTEGRATOR_SCHEME_NONREL)
 		     call velocities(p_start,p_finish,scheme)  ! nonrelativistic push
 		     call push_nonrel(p_start,p_finish,dt)
 		  case default
@@ -160,7 +170,7 @@ module module_pusher
 
 		 pusher: select case(scheme)
 
-		 case(2)
+		 case(INTEGRATOR_SCHEME_NVT)
 		     ! Conserve kinetic energies of electrons and ions (initial Te const)
 		     ! adapted from
 		     !  Allen and Tildesley p230, Brown & Clark, Mol. Phys. 51, 1243 (1984)
@@ -254,7 +264,7 @@ module module_pusher
                write (*,*) ''
              endif
 
-		  case(3)
+		  case(INTEGRATOR_SCHEME_NVT_IONS_FROZEN)
 
 		! electrons clamped, ions frozen
 
@@ -309,7 +319,7 @@ module module_pusher
 		     delta_Te = 2*Te0*(1.0/chie**2-1.0)       !  heating
 
 
-		  case(4)
+		  case(INTEGRATOR_SCHEME_LOCAL_NVT_IONS_FROZEN)
 
 		! electrons clamped locally, ions frozen
 		! - require T=T_e on each PE to avoid local drifts
@@ -364,7 +374,7 @@ module module_pusher
 		     delta_Te = 2*Te0*(1.0/chie**2-1.0)       !  heating
 
 
-		  case(5)
+		  case(INTEGRATOR_SCHEME_LOCAL_NVT_IONS_ONLY)
 
 		     ! Conserve kinetic energy of ions only (initial Ti const)
 		     mass_eqm = 20.  ! artificial ion mass for eqm stage
@@ -425,9 +435,33 @@ module module_pusher
 		        write (*,*) 'Max delta-ux: ',delta_u
 		     endif
 
+          case (INTEGRATOR_SCHEME_NVE_IONS_FROZEN)
+             ! unconstrained motion for negatively charged particles, frozen positively charged particles
+           if (idim==3) then
+             do p = p_start, p_finish
+               if (q(p)<0.) then
+                 ux(p) = ux(p) + dt * accx(p)
+                 uy(p) = uy(p) + dt * accy(p)
+                 uz(p) = uz(p) + dt * accz(p)
+               endif
+             end do
+           else if (idim==2) then
+             do p = p_start, p_finish
+               if (q(p)<0.) then
+                 ux(p) = ux(p) + dt * accx(p)
+                 uy(p) = uy(p) + dt * accy(p)
+               endif
+             end do
+           else
+             do p = p_start, p_finish
+               if (q(p)<0.) then
+                 ux(p) = ux(p) + dt * accx(p)
+               endif
+             end do
+           endif
 
 		  case default
-		     ! unconstrained motion by default (scheme=1,7)
+		     ! unconstrained motion by default (scheme=INTEGRATOR_SCHEME_NVE,INTEGRATOR_SCHEME_NONREL)
 		   if (idim==3) then
 		     do p = p_start, p_finish
 		       ux(p) = ux(p) + dt * accx(p)
