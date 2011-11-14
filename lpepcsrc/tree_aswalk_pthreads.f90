@@ -886,7 +886,7 @@ module tree_walk_pthreads
       integer :: walk_addr, walk_node, childnum
 
       real*8 :: dist2
-      real*8 :: delta(3)
+      real*8 :: delta(3), shifted_particle_position(3)
       logical :: same_particle, same_particle_or_parent_node, mac_ok, ignore_node
       integer :: ierr
       integer*8 :: num_interactions, num_mac_evaluations
@@ -894,6 +894,7 @@ module tree_walk_pthreads
       todo_list_entries   = 0
       num_interactions    = 0
       num_mac_evaluations = 0
+      shifted_particle_position = particle%x - vbox ! precompute shifted particle position to avoid subtracting vbox in every loop iteration below
 
       ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
       ! another mac-check for each entry is not necessary here, since due to having requested the children, we already know,
@@ -907,9 +908,9 @@ module tree_walk_pthreads
           walk_addr = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
           walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
 
-          delta     = particle%x - ([tree_nodes(walk_node)%xcoc, &
-                                     tree_nodes(walk_node)%ycoc, &
-                                     tree_nodes(walk_node)%zcoc] + vbox)  ! Separations
+          delta     = shifted_particle_position - ([tree_nodes(walk_node)%xcoc, &
+                                                    tree_nodes(walk_node)%ycoc, &
+                                                    tree_nodes(walk_node)%zcoc])  ! Separation vector
 
           dist2 = DOT_PRODUCT(delta, delta)
 
