@@ -86,9 +86,7 @@ subroutine tree_global
            twig=>tree_nodes(nodtwig)
                twig%abs_charge = 0.
                twig%charge     = 0.
-               twig%xcoc       = 0.
-               twig%ycoc       = 0.
-               twig%zcoc       = 0.
+               twig%coc        =[0., 0., 0.]
                twig%xdip       = 0.
                twig%ydip       = 0.
                twig%zdip       = 0.
@@ -125,22 +123,22 @@ subroutine tree_global
         parent=>tree_nodes(parent_node(i))
         branch=>tree_nodes(branch_node(i))
             ! Centres of charge
-            parent%xcoc = parent%xcoc + (branch%xcoc * branch%abs_charge )  / parent%abs_charge ! coq
-            parent%ycoc = parent%ycoc + (branch%ycoc * branch%abs_charge )  / parent%abs_charge ! coq
-            parent%zcoc = parent%zcoc + (branch%zcoc * branch%abs_charge )  / parent%abs_charge ! coq
+            parent%coc(1) = parent%coc(1) + (branch%coc(1) * branch%abs_charge )  / parent%abs_charge ! coq
+            parent%coc(2) = parent%coc(2) + (branch%coc(2) * branch%abs_charge )  / parent%abs_charge ! coq
+            parent%coc(3) = parent%coc(3) + (branch%coc(3) * branch%abs_charge )  / parent%abs_charge ! coq
      end do
 
      do i=nuniq,1,-1
         parent=>tree_nodes(parent_node(i))
         branch=>tree_nodes(branch_node(i))
             ! Shifts and multipole moments
-            xss = parent%xcoc - branch%xshift  ! Shift vector for current child node
-            yss = parent%ycoc - branch%yshift
-            zss = parent%zcoc - branch%zshift
+            xss = parent%coc(1) - branch%xshift  ! Shift vector for current child node
+            yss = parent%coc(2) - branch%yshift
+            zss = parent%coc(3) - branch%zshift
 
-            parent%xshift = parent%xcoc ! Shift variable for next level up
-            parent%yshift = parent%ycoc
-            parent%zshift = parent%zcoc
+            parent%xshift = parent%coc(1) ! Shift variable for next level up
+            parent%yshift = parent%coc(2)
+            parent%zshift = parent%coc(3)
 
             ! dipole moment
             parent%xdip = parent%xdip + branch%xdip - branch%charge*xss

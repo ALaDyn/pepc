@@ -47,9 +47,7 @@ module treetypes
      integer :: owner     ! owner where multipole resides
      real*8 :: charge     ! net charge sum
      real*8 :: abs_charge !  absolute charge sum
-     real*8 :: xcoc       ! centre of charge
-     real*8 :: ycoc
-     real*8 :: zcoc
+     real*8 :: coc(3)       ! centre of charge
      integer :: level     ! level of tree node (for fast lookup instead of calculation) - stored in close proximity to coc-coordinates for better caching posibilities in walk
      real*8 :: xdip     ! dipole moment
      real*8 :: ydip

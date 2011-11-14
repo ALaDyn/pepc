@@ -908,9 +908,7 @@ module tree_walk_pthreads
           walk_addr = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
           walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
 
-          delta     = shifted_particle_position - ([tree_nodes(walk_node)%xcoc, &
-                                                    tree_nodes(walk_node)%ycoc, &
-                                                    tree_nodes(walk_node)%zcoc])  ! Separation vector
+          delta     = shifted_particle_position - tree_nodes(walk_node)%coc  ! Separation vector
 
           dist2 = DOT_PRODUCT(delta, delta)
 

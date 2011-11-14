@@ -409,9 +409,7 @@ subroutine tree_local
            me,                                &
            p%q,                               &! Charge
            abs( p%q ),                        &! Absolute charge (needed for c.o.c)
-           p%x(1),                            &! x-Centre of charge
-           p%x(2),                            &! y
-           p%x(3),                            &! z
+           [p%x(1), p%x(2), p%x(3)],          &! Centre of charge
            level_from_key( treekey(i) ),      &! level
            p%x(1) * p%q,                      &! x-Dipole moment
            p%x(2) * p%q,                      &! y
@@ -497,25 +495,25 @@ subroutine tree_local
          res%abs_charge = SUM( tree_nodes(node_child(1:nchild))%abs_charge )  ! Sum |q|
 
          ! Centres of charge
-         res%xcoc = 0.
-         res%ycoc = 0.
-         res%zcoc = 0.
+         res%coc(1) = 0.
+         res%coc(2) = 0.
+         res%coc(3) = 0.
 
          do j=1,nchild
             child=>tree_nodes(node_child(j))
-              res%xcoc = res%xcoc + ( child%xcoc * child%abs_charge) / res%abs_charge
-              res%ycoc = res%ycoc + ( child%ycoc * child%abs_charge) / res%abs_charge
-              res%zcoc = res%zcoc + ( child%zcoc * child%abs_charge) / res%abs_charge
+              res%coc(1) = res%coc(1) + ( child%coc(1) * child%abs_charge) / res%abs_charge
+              res%coc(2) = res%coc(2) + ( child%coc(2) * child%abs_charge) / res%abs_charge
+              res%coc(3) = res%coc(3) + ( child%coc(3) * child%abs_charge) / res%abs_charge
          end do
 
          ! Shifts and multipole moments
-         xs(1:nchild) = res%xcoc - tree_nodes(node_child(1:nchild))%xshift  ! Shift vector for current node
-         ys(1:nchild) = res%ycoc - tree_nodes(node_child(1:nchild))%yshift
-         zs(1:nchild) = res%zcoc - tree_nodes(node_child(1:nchild))%zshift
+         xs(1:nchild) = res%coc(1) - tree_nodes(node_child(1:nchild))%xshift  ! Shift vector for current node
+         ys(1:nchild) = res%coc(2) - tree_nodes(node_child(1:nchild))%yshift
+         zs(1:nchild) = res%coc(3) - tree_nodes(node_child(1:nchild))%zshift
 
-         res%xshift = res%xcoc ! Shift variable for next level up
-         res%yshift = res%ycoc
-         res%zshift = res%zcoc
+         res%xshift = res%coc(1) ! Shift variable for next level up
+         res%yshift = res%coc(2)
+         res%zshift = res%coc(3)
 
          res%xdip = 0.
          res%ydip = 0.

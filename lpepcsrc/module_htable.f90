@@ -498,7 +498,7 @@ contains
         ind_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%node,i=1,ntwig )/)   !  Twig node pointers
 
         do i=1,ntwig
-            rcoc2(i) = tree_nodes(ind_twig(i))%xcoc**2+tree_nodes(ind_twig(i))%ycoc**2 + tree_nodes(ind_twig(i))%zcoc**2
+            rcoc2(i) = tree_nodes(ind_twig(i))%coc(1)**2+tree_nodes(ind_twig(i))%coc(2)**2 + tree_nodes(ind_twig(i))%coc(3)**2
         end do
 
         write (ipefile,'(///a)') 'Tree structure'
@@ -515,9 +515,9 @@ contains
         htable( addr_twig(i) )%leaves, &                           ! # leaves contained in branch
         tree_nodes(ind_twig(i))%abs_charge, &    ! Twig absolute charge
         tree_nodes(ind_twig(i))%charge, &    ! Twig  charge
-        tree_nodes(ind_twig(i))%xcoc, & ! Centre of charge
-        tree_nodes(ind_twig(i))%ycoc, &
-        tree_nodes(ind_twig(i))%zcoc, &
+        tree_nodes(ind_twig(i))%coc(1), & ! Centre of charge
+        tree_nodes(ind_twig(i))%coc(2), &
+        tree_nodes(ind_twig(i))%coc(3), &
         tree_nodes(ind_twig(i))%xdip, &
         tree_nodes(ind_twig(i))%ydip, &
         tree_nodes(ind_twig(i))%zdip, &
@@ -557,8 +557,8 @@ contains
         (i,owner_leaf(i),ind_leaf(i),tree_nodes(ind_leaf(i))%level,key_leaf(i), &
           ishft( key_leaf(i),-3 ), &      ! parent
           plist_leaf(i), & ! global particle label
-          tree_nodes(ind_twig(i))%xcoc,&
-          tree_nodes(ind_twig(i))%ycoc,&
+          tree_nodes(ind_twig(i))%coc(1),&
+          tree_nodes(ind_twig(i))%coc(2),&
           tree_nodes(ind_twig(i))%charge,&
           tree_nodes(ind_twig(i))%xdip, &
         i=1,nleaf-nleaf_me)

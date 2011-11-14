@@ -73,29 +73,27 @@ module module_calc_force
           !>    integer :: force_law   0= no interaction (default); 2=2D Coulomb; 3=3D Coulomb
           type(t_calc_force_params), intent(in) :: cf_par
 
-          real*8 :: exc, eyc, ezc, phic
+          real*8 :: exyz(3), phic
 
           select case (cf_par%force_law)
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
 	! TODO use same call pars as coulomb_3D (sep already pre-computed)
-                call calc_force_coulomb_2D(particle, inode, vbox, cf_par, exc, eyc, phic)
-                ezc = 0.
+                call calc_force_coulomb_2D(particle, inode, vbox, cf_par, exyz(1), exyz(2), phic)
+                exyz(3) = 0.
 
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_3D(inode, delta, dist2, cf_par, exc, eyc, ezc, phic)
+                call calc_force_coulomb_3D(inode, delta, dist2, cf_par, exyz(1), exyz(2), exyz(3), phic)
 
-	    case (4)  ! LJ potential for quiet start
-                call calc_force_LJ(inode, delta, dist2, cf_par, exc, eyc, ezc, phic)
-		ezc=0.
+            case (4)  ! LJ potential for quiet start
+                call calc_force_LJ(inode, delta, dist2, cf_par, exyz(1), exyz(2), exyz(3), phic)
+                exyz(3) = 0.
 
             case default
-              exc  = 0.
-              eyc  = 0.
-              ezc  = 0.
+              exyz = 0.
               phic = 0.
           end select
 
-          res%e    = res%e    + cf_par%force_const * [exc, eyc, ezc]
+          res%e    = res%e    + cf_par%force_const * exyz
           res%pot  = res%pot  + cf_par%force_const * phic
           res%work = res%work + WORKLOAD_PENALTY_INTERACTION
 
@@ -278,8 +276,8 @@ module module_calc_force
           t=>tree_nodes(inode)
 
           !  preprocess distances and reciprocals
-          dx = p%x(1) - ( t%xcoc + vbox(1) )
-          dy = p%x(2) - ( t%ycoc + vbox(2) )
+          dx = p%x(1) - ( t%coc(1) + vbox(1) )
+          dy = p%x(2) - ( t%coc(2) + vbox(2) )
 
           d2  = dx**2+dy**2+eps2 
           rd2 = 1./d2 
@@ -315,12 +313,12 @@ module module_calc_force
         end subroutine calc_force_coulomb_2D
         
         !  ===================================================================
-	!
-	!                     CALC_FORCE_LJ
-	!
-	!   Calculate Lennard-Jones forces of particle from interaction list
-	!
-	!  ===================================================================
+        !
+        !                     CALC_FORCE_LJ
+        !
+        !   Calculate Lennard-Jones forces of particle from interaction list
+        !
+        !  ===================================================================
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates 3D L-J interaction of particle p with tree node inode
@@ -340,7 +338,7 @@ module module_calc_force
           type(t_calc_force_params), intent(in) :: cf_par
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
           real*8 :: dx,dy,dz,r
-  	  real*8 :: flj, epsc, plj, aii
+          real*8 :: flj, epsc, plj, aii
 
           type(t_multipole), pointer :: t
 
@@ -357,30 +355,29 @@ module module_calc_force
           dz = d(3)
           r = sqrt(dist2)
 
-!  	  epsc should be > a_ii to get evenly spaced ions
-	  
-	  aii = cf_par%eps
-	  epsc = 0.8*aii
-	  plj =0.
+          !    epsc should be > a_ii to get evenly spaced ions
+          aii = cf_par%eps
+          epsc = 0.8*aii
+          plj =0.
 
-! Force is repulsive up to and just beyond aii
-	  if (r > epsc) then 
-	    flj =2.*aii**8/r**8 - 1.*aii**4/r**4
-	  else
-	    flj = 2.*aii**8/epsc**8 - 1.*aii**4/epsc**4
- 	  endif 
+          ! Force is repulsive up to and just beyond aii
+          if (r > epsc) then
+              flj =2.*aii**8/r**8 - 1.*aii**4/r**4
+          else
+              flj = 2.*aii**8/epsc**8 - 1.*aii**4/epsc**4
+          endif
 
 
-     	! potential
-     	  sumphi = sumphi + plj
+          ! potential
+          sumphi = sumphi + plj
 
-	!  forces
+          !  forces
 
-	  sumfx = sumfx + dx/r*flj
-	  sumfy = sumfy + dy/r*flj
- !    	  sumfz = sumfz + dz/r*flj
-	  sumfz=0.
+          sumfx = sumfx + dx/r*flj
+          sumfy = sumfy + dy/r*flj
+          !    	  sumfz = sumfz + dz/r*flj
+          sumfz=0.
 
-	end subroutine calc_force_LJ
+      end subroutine calc_force_LJ
         
-end module module_calc_force
+  end module module_calc_force
