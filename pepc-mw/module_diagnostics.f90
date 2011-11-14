@@ -12,10 +12,86 @@ module module_diagnostics
      public write_total_momentum
      public write_particles
      public read_particles
+     public cluster_diagnostics
 
 
 
    contains
+
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          !>
+          !>
+          !>
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          subroutine cluster_diagnostics(itime, time_fs, momentum_acf)
+             use physvars, only : MPI_COMM_PEPC, x, y, z, energy, q, np_local, momentum_acf_from_timestep, my_rank
+             use module_acf
+             implicit none
+             include 'mpif.h'
+             integer, intent(in) :: itime
+             real*8, intent(in) :: time_fs
+             type(acf) :: momentum_acf
+             real*8 :: rsq, r(3), rclustersq
+             integer :: nion, nboundelectrons, p, crit(2)
+             logical, dimension(1:np_local) :: criterion
+             real*8, dimension(1:np_local) :: distsq
+             integer :: ierr
+             real*8 :: mom(4)
+             logical, save :: firstcall = .true.
+             character(*), parameter :: filename = 'cluster.dat'
+
+             ! calculate distance of particles from center [0., 0., 0.]
+             do p = 1, np_local
+               r         = [x(p), y(p), z(p)]
+               distsq(p) = dot_product(r, r)
+             end do
+
+             ! calculate rms radius of ion cluster
+             rsq  = 0
+             nion = 0
+             do p = 1, np_local
+               if (q(p) > 0.) then
+                 rsq  = rsq  + distsq(p)
+                 nion = nion + 1
+               endif
+             end do
+
+             call MPI_ALLREDUCE(MPI_IN_PLACE, nion, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_PEPC, ierr)
+             call MPI_ALLREDUCE(MPI_IN_PLACE, rsq,  1, MPI_REAL8,   MPI_SUM, MPI_COMM_PEPC, ierr)
+
+             rclustersq = 5./3.*rsq/(1.*nion) ! < square of rms cluster radius
+
+             !> only select electrons that are inside the cluster or have negative total energy
+             criterion = ((q(1:np_local) < 0.) .and. ( (distsq(1:np_local) < rclustersq) .or. (energy(3,1:np_local) < 0.) ))
+
+             crit(1) = count( (q(1:np_local) < 0.) .and. (distsq(1:np_local) < rclustersq) )
+             crit(2) = count( (q(1:np_local) < 0.) .and. (energy(3,1:np_local) < 0.)  )
+
+             call MPI_ALLREDUCE(MPI_IN_PLACE, crit, 2, MPI_INTEGER, MPI_SUM, MPI_COMM_PEPC, ierr)
+
+             ! output total momentum of all negatively charged particles
+             call write_total_momentum('momentum_electrons.dat', itime, time_fs, criterion, mom, nboundelectrons)
+
+             if (itime > momentum_acf_from_timestep) then
+               call momentum_acf%addval(mom(1:3)/nboundelectrons)
+               call momentum_acf%to_file("momentum_electrons_Kt.dat")
+             endif
+
+             if (my_rank == 0) then
+               if (firstcall) then
+                 firstcall = .false.
+                 open(88, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
+                 write(88,'("#",8(1x,a16))') "itime", "time_fs", "r_cluster^(rms)", "N_ion", "N_e^(free)", "N_e^(bound)", "N_e^(r<r_cl)", "N_e^(E<0)"
+               else
+                 open(88, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
+               endif
+
+               write(88,'(" ",1(1x,i16),2(1x,g16.6),5(1x,i16))') itime, time_fs, sqrt(rclustersq), nion, nion-nboundelectrons, nboundelectrons, crit
+
+               close(88)
+             endif
+
+          end subroutine
 
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !>
@@ -199,6 +275,9 @@ module module_diagnostics
               call vtk%write_data_array("pelabel", np_local, pelabel)
               call vtk%write_data_array("local index", np_local, [(i,i=1,np_local)])
               call vtk%write_data_array("processor", np_local, [(my_rank,i=1,np_local)])
+              call vtk%write_data_array("Epot", np_local, energy(1,1:np_local))
+              call vtk%write_data_array("Ekin", np_local, energy(2,1:np_local))
+              call vtk%write_data_array("Etot", np_local, energy(3,1:np_local))
             call vtk%finishpointdata()
           call vtk%dont_write_cells()
           call vtk%write_final()
@@ -212,7 +291,7 @@ module module_diagnostics
           !>
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine write_total_momentum(filename, itime_, trun_, selection, mom)
+      subroutine write_total_momentum(filename, itime_, time_fs, selection, mom, ncontributions)
         use physvars
         use module_units
         implicit none
@@ -220,24 +299,28 @@ module module_diagnostics
 
         integer, intent(in) :: itime_
         character(*), intent(in) :: filename
-        real*8, intent(in) :: trun_
+        real*8, intent(in) :: time_fs
         logical, intent(in) :: selection(1:np_local)
         real*8, intent(out) :: mom(4)
+        integer, intent(out) :: ncontributions
         real*8 :: tmp(4)
         real*8 :: r(4)
         integer :: p, ierr
 
         tmp = 0.
+        ncontributions = 0
 
         do p = 1,np_local
           if (selection(p)) then
             r = [ux(p), uy(p), uz(p), 0._8]
             r(4) = sqrt(dot_product(r,r))
             tmp = tmp + r
+            ncontributions = ncontributions + 1
           endif
         end do
 
-        call MPI_ALLREDUCE(tmp, mom, 4, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(tmp, mom, 4, MPI_REAL8, MPI_SUM, MPI_COMM_PEPC, ierr )
+        call MPI_ALLREDUCE(MPI_IN_PLACE, ncontributions, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_PEPC, ierr )
 
         if (my_rank == 0) then
           if (itime_ <= 1) then
@@ -245,7 +328,7 @@ module module_diagnostics
           else
              open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
            endif
-           write(87,'(i10,5g25.12)') itime_, trun_*unit_t0_in_fs, mom
+           write(87,'(i10,5g25.12,i12)') itime_, time_fs, mom/ncontributions, ncontributions
            close(87)
         endif
       end subroutine write_total_momentum

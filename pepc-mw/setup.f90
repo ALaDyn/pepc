@@ -243,7 +243,7 @@ subroutine pepc_setup()
        q(nppm), m(nppm), &
        Ex(nppm), Ey(nppm), Ez(nppm), &
        Ax(nppm), Ay(nppm), Az(nppm), &
-       Bx(nppm), By(nppm), Bz(nppm), pot(nppm), pelabel(nppm), work(nppm) )
+       Bx(nppm), By(nppm), Bz(nppm), pot(nppm), pelabel(nppm), work(nppm), energy(1:3,nppm) )
 
   if (my_rank == 0) then
     write(*,*) "Starting PEPC-MW with",n_cpu," Processors, simulating",np_local, &

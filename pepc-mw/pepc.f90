@@ -43,7 +43,6 @@ program pepc
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! `The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls.`
   type(acf) :: momentum_acf
-   real*8 :: mom(4)
 
   ! Initialization of signal handler - deactivated atm since it outputs the call stack for every mpi rank which results in a very messy output
   !call InitSignalHandler()
@@ -182,13 +181,8 @@ program pepc
        end if
      endif
 
-     ! output total momentum of all negatively charged particles
-     call write_total_momentum('momentum_electrons.dat', itime, trun, q(1:np_local) < 0., mom)
-
-     if (itime > momentum_acf_from_timestep) then
-       call momentum_acf%addval(mom(1:3))
-       call momentum_acf%to_file("momentum_electrons_Kt.dat")
-     endif
+     !> special diagnostics for [J. Phys. A: Math. Theor 42 (2009), 214048] Th. Raitza et al: Collision frequency of electrons in laser excited small clusters
+     if (workflow_setup == 3) call cluster_diagnostics(itime, trun*unit_t0_in_fs, momentum_acf)
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags

@@ -23,6 +23,6 @@ subroutine cleanup(my_rank_l,n_cpu_l)
 
   deallocate ( x, y, z, ux, uy, uz, & 
        q, m, work, pelabel, &
-       Ex, Ey, Ez, Ax, Ay, Az, Bx, By, Bz, pot)
+       Ex, Ey, Ez, Ax, Ay, Az, Bx, By, Bz, pot, energy)
 
 end subroutine cleanup

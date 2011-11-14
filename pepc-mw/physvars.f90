@@ -7,8 +7,9 @@ module physvars
             Ex(:), Ey(:), Ez(:), &   ! E-field
             Ax(:), Ay(:), Az(:), &   ! E-field
             Bx(:), By(:), Bz(:), &   ! E-field
-			pot(:), &	         ! scalar potential
-			work(:)	         ! work load (interaction list length)
+            pot(:), &                ! scalar potential
+            energy(:,:), &           ! potential, kinetic, and total energy
+            work(:)                  ! work load (interaction list length)
 
   integer, allocatable ::  pelabel(:)  ! particle label
     
@@ -17,10 +18,6 @@ module physvars
   real, allocatable ::  ex_loc(:,:,:), ey_loc(:,:,:), ez_loc(:,:,:)  ! E-field 
   real, allocatable ::  bx_loc(:,:,:), by_loc(:,:,:), bz_loc(:,:,:)  ! B-field 
   real, allocatable ::  jxe_loc(:,:,:), jye_loc(:,:,:), jze_loc(:,:,:)  ! elec current
-
-  real, allocatable :: xslice(:),  yslice(:),  zslice(:), &     ! Rezoning slice
-                      uxslice(:), uyslice(:), uzslice(:), &     ! velocity
-                              qslice(:),  mslice(:)    ! charge and mass
 
   !  physics data
 
