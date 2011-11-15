@@ -111,7 +111,7 @@ module module_gle
 	     write (60,'(a,2f13.4)') 'amove ',xt,yt
 	     write (60,'(a,2f13.4)') 'box ',s,s
 
-	     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_list(j) )%xcoc,tree_nodes( node_list(j) )%ycoc     ! Centre of charge of twig node
+	     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_list(j) )%coc(1),tree_nodes( node_list(j) )%coc(2)     ! Centre of charge of twig node
 	     write (60,'(a,f10.5,2a)') 'circle ',(tree_nodes( node_list(j) )%abs_charge)**(.33), &
 	     		'*psize fill ',colors( mod(owner_list(j),10) )
 	    ! write (60,'(a,f10.5,2a)') 'circle ',psize,' fill ',colors( mod(owner_list(j),10) )
@@ -343,7 +343,7 @@ module module_gle
 	        write (60,'(a,2f13.4,2a)') 'box ',s,s,' fill ',colors( mod(owner_twig(j),10) )
 	     endif
 
-	     !        write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%xcoc,tree_nodes( node_twig(j) )%ycoc    ! Centre of charge of twig node
+	     !        write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%coc(1),tree_nodes( node_twig(j) )%coc(2)    ! Centre of charge of twig node
 	     !         write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(tree_nodes( node_twig(j) )%abs_charge),' fill grey'
 	     !        write (60,'(a)') 'set hei 0.01'
 	     !
@@ -524,7 +524,7 @@ module module_gle
 	     yt=iy(j)*s
 	     write (60,'(a,2f13.4)') 'amove ',xt,yt
 	     write (60,'(a,2f13.4)') 'box ',s,s
-	     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%xcoc,tree_nodes( node_twig(j) )%ycoc      ! Centre of charge of twig node
+	     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%coc(1),tree_nodes( node_twig(j) )%coc(2)      ! Centre of charge of twig node
 	     write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(tree_nodes( node_twig(j) )%abs_charge),' fill cyan'
 	     !     write (60,'(a)') 'set hei 0.03'
 	     !     write (60,'(a,b10)') 'text ',key_twig(j)         ! write out key
@@ -812,7 +812,7 @@ module module_gle
 	     xt=ix*s + xmin
 	     yt=iy*s + ymin
 	     !write (60,'(a,2f13.4)') 'box ',s,s
-	     !     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%xcoc,tree_nodes( node_twig(j) )%ycoc        ! Centre of charge of twig node
+	     !     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%coc(1),tree_nodes( node_twig(j) )%coc(2)        ! Centre of charge of twig node
 	     !     write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(tree_nodes( node_twig(j) )%abs_charge),' fill cyan'
 	     !     write (60,'(a)') 'set hei 0.01'
 	     !     write (60,'(a,b10)') 'text ',key_twig(j)         ! write out key
