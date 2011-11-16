@@ -9,15 +9,13 @@ subroutine tree_global
   implicit none
   include 'mpif.h'
 
-  real*8 :: xss, yss, zss
   integer :: i, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr
 
   integer, dimension(nbranch_sum) :: branch_level, branch_addr, branch_node 
   integer*8, dimension(0:maxaddress) :: sub_key, parent_key
   integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
   integer, dimension(maxaddress) ::  parent_node
-  logical :: duplicate(maxaddress)
-  type(t_tree_node), pointer :: twig, parent, branch, leaf
+  type(t_tree_node), pointer :: twig, leaf
   type(t_multipole_data) :: childdata(1:8), parentdata
   integer :: firstchild,j 
 
@@ -109,9 +107,6 @@ subroutine tree_global
                twig%xyquad     = 0.
                twig%yzquad     = 0.
                twig%zxquad     = 0.
-               twig%xshift     = 0.
-               twig%yshift     = 0.
-               twig%zshift     = 0.
                htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will not touch this again
                twig%byte       = htable(hashaddr)%childcode ! TODO: maybe inconsistent with htable data
         endif

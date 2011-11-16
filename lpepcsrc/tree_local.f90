@@ -420,8 +420,7 @@ subroutine tree_local
            0.,                   &! zz
            0.,             &! xy
            0.,             &! yz
-           0.,             &! zx
-           p%x(1), p%x(2), p%x(3))             ! Zero shift vector
+           0.)             ! zx
   end do
 
   call timer_stop(t_props_leafs)
