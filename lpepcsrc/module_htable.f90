@@ -14,15 +14,17 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    public t_hash
+
     ! Hash table datatype - 36 bytes per entry
-    type :: hash
+    type :: t_hash
         integer   :: node          !< Address of particle/pseudoparticle data
         integer*8 :: key           !< Key
         integer   :: link          !< Pointer to next empty address in table in case of collision
         integer   :: leaves        !< # leaves contained within twig (=1 for leaf, npart for root)
         integer   :: childcode     !< Byte code indicating position of children (twig node); particle label (leaf node)
         integer   :: owner         !< Node owner (for branches)
-    end type hash
+    end type t_hash
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -30,9 +32,9 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    type (hash), public, allocatable :: htable(:) !< hash table
-    integer*8,   public ::  hashconst  !< hashing constants
-    integer*8,   public ::  hashchild = b'111' !< bits that contain the child index in a key
+    type (t_hash), public, target, allocatable :: htable(:) !< hash table
+    integer*8,     public ::  hashconst  !< hashing constants
+    integer*8,     public ::  hashchild = b'111' !< bits that contain the child index in a key
 
     ! bits in childcode to be set when children are requested, the request has been sent, and they have arrived
     integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED     =  8 !< this bit is used inside the childcode to denote that a request for children information is already in the request queue
@@ -64,7 +66,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     integer, private, parameter :: start_child_idx = 0 !< index of first child to be used in traversal - do not change, currently not completely implemented
-    type (hash), private, parameter :: HASHENTRY_EMPTY = hash(0,0_8,-1,0,0,0) !< constant for empty hashentry
+    type (t_hash), private, parameter :: HASHENTRY_EMPTY = t_hash(0,0_8,-1,0,0,0) !< constant for empty hashentry
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
