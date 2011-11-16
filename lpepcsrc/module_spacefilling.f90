@@ -108,7 +108,7 @@ module module_spacefilling
           if (domain_debug) then
              write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort:', &
                   '  key,             label   coords     q ', &
-                  (local_key(j),particles(j)%label,particles(j)%x,intcoord(:,j),particles(j)%q,particles(j)%work,j=1,npp)
+                  (local_key(j),particles(j)%label,particles(j)%x,intcoord(:,j),particles(j)%data%q,particles(j)%work,j=1,npp)
 
              write(ipefile,'(/)')
           endif

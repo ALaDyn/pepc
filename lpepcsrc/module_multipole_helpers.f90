@@ -19,17 +19,12 @@ module module_multipole_helpers
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      !> Data structure for shipping single particles
+
+      !> Data structure for storing interaction-specific particle data
       ! TODO: register this inside the current module as separate mpi type
-      integer, parameter :: nprops_particle = 8 ! # particle properties to ship
-      type t_particle
-         real*8 :: x(1:3)    ! coords
-         real*8 :: q     ! charge
-         real*8 :: work  ! work load from force sum
-         integer*8 :: key           ! Key
-         integer :: label    ! label
-         integer :: pid      ! owner
-      end type t_particle
+      type t_particle_data
+         real*8 :: q
+      end type t_particle_data
 
       !> Data structure for shipping results
       ! TODO: register this inside the current module as separate mpi type
@@ -73,14 +68,15 @@ module module_multipole_helpers
       !> Computes multipole properties of a single particle
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine multipole_from_particle(particle, multipole)
+      subroutine multipole_from_particle(particle_pos, particle, multipole)
         implicit none
-        type(t_particle), intent(in) :: particle
+        real*8, intent(in) :: particle_pos(3)
+        type(t_particle_data), intent(in) :: particle
         type(t_multipole_data), intent(out) :: multipole
 
         multipole = t_multipole_data(particle%q,   &
                                  abs(particle%q),  &
-                                     particle%x,   &
+                                     particle_pos, &
                                      [0., 0., 0.], &
                                      [0., 0., 0.], &
                                       0., 0., 0.    )

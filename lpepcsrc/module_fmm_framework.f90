@@ -327,7 +327,7 @@ module module_fmm_framework
               tmp = 0
 
               do p=1,npp
-                tmp = tmp + particles(p)%q * O(ll, mm, particles(p)%x - LatticeCenter)
+                tmp = tmp + particles(p)%data%q * O(ll, mm, particles(p)%x - LatticeCenter)
               end do
 
               omega_tilde( tblinv(ll, mm) ) = tmp
@@ -386,8 +386,8 @@ module module_fmm_framework
 	          do p=1,npp
 	            r = particles(p)%x - LatticeCenter
 
-	            box_dipole = box_dipole + particles(p)%q * r
-	            quad_trace = quad_trace + particles(p)%q * dot_product(r, r)
+	            box_dipole = box_dipole + particles(p)%data%q * r
+	            quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)
 	          end do
 
 	          ! sum contributions from all processors

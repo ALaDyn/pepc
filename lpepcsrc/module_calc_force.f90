@@ -63,7 +63,7 @@ module module_calc_force
           implicit none
 
           integer, intent(in) :: inode
-          type(t_particle), intent(in) :: particle
+          type(t_particle_data), intent(in) :: particle
           type(t_particle_results), intent(inout) :: res
           real*8, intent(in) :: vbox(3), delta(3), dist2
           !> Force law struct has following content (defined in module treetypes)
@@ -77,8 +77,7 @@ module module_calc_force
 
           select case (cf_par%force_law)
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-	! TODO use same call pars as coulomb_3D (sep already pre-computed)
-                call calc_force_coulomb_2D(particle, inode, vbox, cf_par, exyz(1), exyz(2), phic)
+                call calc_force_coulomb_2D(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), cf_par, exyz(1), exyz(2),phic)
                 exyz(3) = 0.
 
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
@@ -129,8 +128,8 @@ module module_calc_force
              do p=1,nparticles
                 call fmm_sum_lattice_force(p, ex_lattice, ey_lattice, ez_lattice, phi_lattice) !TODO: use coordinates from particles
 
-                potfarfield  = potfarfield  + phi_lattice * parts(p)%q
-                potnearfield = potnearfield + res(p)%pot  * parts(p)%q
+                potfarfield  = potfarfield  + phi_lattice * parts(p)%data%q
+                potnearfield = potnearfield + res(p)%pot  * parts(p)%data%q
 
                 res(p)%e     = res(p)%e     + cf_par%force_const * [ex_lattice, ey_lattice, ez_lattice]
                 res(p)%pot   = res(p)%pot   + cf_par%force_const * phi_lattice
@@ -251,16 +250,15 @@ module module_calc_force
         !>   Phi = -2q log R 
         !>   Ex = -dPhi/dx = 2 q x/R^2 etc 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_coulomb_2D(p, inode, vbox, cf_par, sumfx, sumfy, sumphi)
+        subroutine calc_force_coulomb_2D(inode, d, dist2, cf_par, sumfx, sumfy, sumphi)
           use module_multipole_helpers
           use treevars
           implicit none
 
           include 'mpif.h'
 
-          type(t_particle), intent(in) :: p
           integer, intent(in) :: inode !< index of particle to interact with
-          real*8, intent(in) :: vbox(3) !< vector to neighbour box that is currently processed
+          real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           type(t_calc_force_params), intent(in) :: cf_par
           real*8, intent(out) ::  sumfx,sumfy,sumphi
 
@@ -276,10 +274,10 @@ module module_calc_force
           t=>tree_nodes(inode)
 
           !  preprocess distances and reciprocals
-          dx = p%x(1) - ( t%coc(1) + vbox(1) )
-          dy = p%x(2) - ( t%coc(2) + vbox(2) )
+          dx = d(1)
+          dy = d(2)
 
-          d2  = dx**2+dy**2+eps2 
+          d2  = dist2+eps2
           rd2 = 1./d2 
           rd4 = rd2**2 
           rd6 = rd2**3 

@@ -128,11 +128,11 @@ module module_pepcfields
           ! Copy particle buffers to tree arrays
           do i=1,npp
             particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
-                                       p_q(i),                  &  ! charge
                                        max(p_w(i), 1._8),       &  ! workload from last step
                                        -1_8,                    &  ! key - will be assigned later
                                        p_label(i),              &  ! particle label for tracking purposes
-                                       me )                        ! particle owner
+                                       me,                      &  ! particle owner
+                                       t_particle_data(p_q(i)) )   ! charge
           end do
 
 	  ! Trap bad particle labels
@@ -226,8 +226,8 @@ module module_pepcfields
 	     write (ipefile,'("Tree forces:"/"   p    q   m   pot  ",f8.2)') cf_par%force_const
 
 	     do i=1,np_local
-	        write (ipefile,'(1x,i7,3(1pe14.5))') particles(i)%label, particles(i)%q, p_pot(i), p_ex(i)
-	        write (*,'(1x,i7,3(1pe14.5))') particles(i)%label, particles(i)%x(1), particles(i)%q, p_pot(i)
+	        write (ipefile,'(1x,i7,3(1pe14.5))') particles(i)%label, particles(i)%data%q, p_pot(i), p_ex(i)
+	        write (*,'(1x,i7,3(1pe14.5))') particles(i)%label, particles(i)%x(1), particles(i)%data%q, p_pot(i)
 	     end do
 
 	  endif
@@ -333,11 +333,11 @@ module module_pepcfields
       ! Copy particle buffers to tree arrays
       do i=1,npgrid
         grid_particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
-                                        0.,                      &  ! charge - set to zero
                                         1._8,                    &  ! workload
                                        -1_8,                     &  ! key - will be assigned later
                                         p_label(i),              &  ! particle label
-                                        me )                        ! particle owner
+                                        me,                      &  ! particle owner
+                                        t_particle_data(0.)   ) ! charge - set to zero
           end do
 
       grid_particle_results(:) = t_particle_results([0., 0., 0.], 0., 1.)

@@ -5,6 +5,18 @@ module treetypes
 
   real*8, parameter, private :: real8_dummy = 1.
 
+
+  !> Data structure for shipping single particles
+  integer, parameter :: nprops_particle = 8 ! # particle properties to ship
+  type t_particle
+     real*8 :: x(1:3)    ! coords
+     real*8 :: work  ! work load from force sum
+     integer*8 :: key           ! Key
+     integer :: label    ! label
+     integer :: pid      ! owner
+     type(t_particle_data) :: data ! real physics
+  end type t_particle
+
   !> Data structure for user-defined variables that are directly involved into the force calculation
   type t_calc_force_params
     real    :: eps          = 0.0    !< short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)

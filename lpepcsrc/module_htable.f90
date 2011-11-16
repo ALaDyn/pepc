@@ -543,7 +543,7 @@ contains
         (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),level_from_key(key_leaf(i)),key_leaf(i), &
         ishft( key_leaf(i),-3 ), &      ! parent
         particles(ind_leaf(i))%key, &  ! particle key
-        particles(ind_leaf(i))%x, particles(ind_leaf(i))%q, &
+        particles(ind_leaf(i))%x, particles(ind_leaf(i))%data%q, &
         i=1,nleaf_me)
 
         ! get keys of NON-local leaf nodes from hash table

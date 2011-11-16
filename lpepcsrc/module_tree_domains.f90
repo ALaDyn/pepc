@@ -352,7 +352,7 @@ module module_tree_domains
             write (ipefile,'(/a/a/(i5,z21,2i8,3f12.5,1f12.3))') 'Particle list after boundary swap:', &
             ' index   key,     label,   on PE,    x      y     q', &
             (i,particles(i)%key,particles(i)%label,particles(i)%pid,&
-            particles(i)%x(1),particles(i)%x(2),particles(i)%x(3),particles(i)%q,i=1,npp+1+inc)
+            particles(i)%x(1),particles(i)%x(2),particles(i)%x(3),particles(i)%data%q,i=1,npp+1+inc)
 
             write(ipefile,'(/)')
         endif

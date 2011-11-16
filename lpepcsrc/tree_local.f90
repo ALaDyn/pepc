@@ -400,7 +400,7 @@ subroutine tree_local
      htable(addr_leaf)%childcode = IBSET( htable(addr_leaf)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zero its properties (in tree_global)
      node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves
 
-     call multipole_from_particle(particles( p_leaf ), tree_nodes( node_leaf ) )
+     call multipole_from_particle(particles( p_leaf )%x, particles( p_leaf )%data, tree_nodes( node_leaf ) )
 
   end do
 
