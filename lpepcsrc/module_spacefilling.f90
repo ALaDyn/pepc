@@ -42,7 +42,7 @@ module module_spacefilling
         !> calculates level from key by finding position of placeholder bit
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        pure function level_from_key(key)
+        pure elemental function level_from_key(key)
           implicit none
           integer*8, intent(in) :: key
           integer :: level_from_key

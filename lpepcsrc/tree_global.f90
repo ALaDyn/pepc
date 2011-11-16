@@ -5,6 +5,7 @@ subroutine tree_global
   use tree_utils
   use module_htable
   use module_spacefilling
+  use module_multipole_helpers
   implicit none
   include 'mpif.h'
 
@@ -12,11 +13,13 @@ subroutine tree_global
   integer :: i, ierr, maxlevel, ilevel, nparent, nsub, nuniq, child_byte, child_bit, nodtwig, hashaddr
 
   integer, dimension(nbranch_sum) :: branch_level, branch_addr, branch_node 
-  integer*8, dimension(maxaddress) :: sub_key, parent_key
+  integer*8, dimension(0:maxaddress) :: sub_key, parent_key
   integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
   integer, dimension(maxaddress) ::  parent_node
   logical :: duplicate(maxaddress)
   type(t_multipole), pointer :: twig, parent, branch, leaf
+  type(t_multipole_data) :: childdata(1:8), parentdata
+  integer :: firstchild,j 
 
   call timer_start(t_global)
   call timer_start(t_fill_local)
@@ -32,30 +35,40 @@ subroutine tree_global
 	call check_table('after make_branches ')
   endif
   
-! get levels of branch nodes
-  maxlevel=0
-  do i=1,nbranch_sum
-     branch_level(i) = level_from_key(branch_key(i))
-     maxlevel = max( maxlevel, branch_level(i) )        ! Find maximum level
-  end do  
+  ! get levels of branch nodes
+  branch_level(1:nbranch_sum) = level_from_key(branch_key(1:nbranch_sum))
+  maxlevel = maxval( branch_level(1:nbranch_sum) )        ! Find maximum level
 
   nparent = 0
   parent_key(1) = 0
 
   do ilevel = maxlevel,1,-1                                            ! Start at finest branch level
-     nsub = count( mask=branch_level(1:nbranch_sum) == ilevel )        ! Count # branches at this level
-     sub_key(1:nsub) =  pack(branch_key(1:nbranch_sum), mask = branch_level(1:nbranch_sum) == ilevel)        ! Pick out branches at current level
+     nsub=0
+     do i=1,nbranch_sum                                                ! Collect branches at this level
+       if (branch_level(i) == ilevel) then
+         nsub          = nsub + 1
+         sub_key(nsub) = branch_key(i)
+       endif
+     end do
+
      sub_key(nsub+1:nsub+nparent) = parent_key(1:nparent)              ! Augment list with parent keys checked at previous level
-     nsub = nsub + nparent
+     nsub                         = nsub + nparent
 
      call sort(sub_key(1:nsub))                                        ! Sort keys
 
-     sub_key(nsub+1) = 0
-     duplicate(1:nsub) = (/ (sub_key(i) /= sub_key(i+1), i=1,nsub) /)  ! Identify unique keys     
-     nuniq= count(mask = duplicate(1:nsub))                            ! Count them
-     sub_key(1:nuniq) = pack( sub_key(1:nsub), mask = duplicate(1:nsub) )        ! Compress list
+     sub_key(0)   = 0                                                  ! remove all duplicates from the list
+     nuniq = 0
+     do i=1,nsub                                                       
+       if (sub_key(i) .ne. sub_key(i-1)) then
+         nuniq          = nuniq + 1
+         sub_key(nuniq) = sub_key(i)
+       end if
+     end do
 
-     do i=1,nuniq
+     nsub = nuniq
+
+
+     do i=1,nsub
         parent_key(i) = ISHFT( sub_key(i),-3 )             ! Parent key
         child_bit = int(IAND( sub_key(i), hashchild))                    ! extract child bit from key: which child is it?
         child_byte = 0
@@ -80,7 +93,7 @@ subroutine tree_global
            stop
         endif
 
-        ! Set mm-arrays to zero (initially) for all twigs that are parents of branches and have not been initially sett in tree_local
+        ! Set mm-arrays to zero (initially) for all twigs that are parents of branches and have not been initially set in tree_local
         if (.not. BTEST( htable(hashaddr)%childcode, CHILDCODE_NODE_TOUCHED )) then
            ! zero multipole information for any entries that have not been inside the tree before
            twig=>tree_nodes(nodtwig)
@@ -99,7 +112,7 @@ subroutine tree_global
                twig%xshift     = 0.
                twig%yshift     = 0.
                twig%zshift     = 0.
-               htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will now touch this again
+               htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will not touch this again
                twig%byte       = htable(hashaddr)%childcode ! TODO: maybe inconsistent with htable data
         endif
 
@@ -109,55 +122,24 @@ subroutine tree_global
         
      end do
 
-     ! Compute parent properties from children
-     do i=nuniq,1,-1
-        parent=>tree_nodes(parent_node(i))
-        branch=>tree_nodes(branch_node(i))
-            parent%abs_charge = parent%abs_charge + branch%abs_charge           ! Sum |q|
-            parent%charge     = parent%charge     + branch%charge               ! Sum q
+     parent_node(nsub+1) = parent_node(nsub) + 1
+     firstchild = 1
+     do i = 1,nsub
+       if (parent_node(i+1) .ne. parent_node(firstchild)) then
+
+         do j = 0,i-firstchild
+           call multipole_to_data(tree_nodes(branch_node(j+firstchild)), childdata(j+1))
+         end do
+         call shift_nodes_up(parentdata, childdata(1:firstchild-i))
+         call data_to_multipole(parentdata, tree_nodes(parent_node(i)))
+
+         tree_nodes(parent_node(i))%leaves = i-firstchild+1
+         firstchild = i + 1
+       endif
      end do
 
-     ! parent charges should be complete before computing coq`s
-
-     do i=nuniq,1,-1
-        parent=>tree_nodes(parent_node(i))
-        branch=>tree_nodes(branch_node(i))
-            ! Centres of charge
-            parent%coc(1) = parent%coc(1) + (branch%coc(1) * branch%abs_charge )  / parent%abs_charge ! coq
-            parent%coc(2) = parent%coc(2) + (branch%coc(2) * branch%abs_charge )  / parent%abs_charge ! coq
-            parent%coc(3) = parent%coc(3) + (branch%coc(3) * branch%abs_charge )  / parent%abs_charge ! coq
-     end do
-
-     do i=nuniq,1,-1
-        parent=>tree_nodes(parent_node(i))
-        branch=>tree_nodes(branch_node(i))
-            ! Shifts and multipole moments
-            xss = parent%coc(1) - branch%xshift  ! Shift vector for current child node
-            yss = parent%coc(2) - branch%yshift
-            zss = parent%coc(3) - branch%zshift
-
-            parent%xshift = parent%coc(1) ! Shift variable for next level up
-            parent%yshift = parent%coc(2)
-            parent%zshift = parent%coc(3)
-
-            ! dipole moment
-            parent%xdip = parent%xdip + branch%xdip - branch%charge*xss
-            parent%ydip = parent%ydip + branch%ydip - branch%charge*yss
-            parent%zdip = parent%zdip + branch%zdip - branch%charge*zss
-
-            ! quadrupole moment
-            parent%xxquad = parent%xxquad +  branch%xxquad - 2*branch%xdip*xss + branch%charge*xss**2
-            parent%yyquad = parent%yyquad +  branch%yyquad - 2*branch%ydip*yss + branch%charge*yss**2
-            parent%zzquad = parent%zzquad +  branch%zzquad - 2*branch%zdip*zss + branch%charge*zss**2
-
-            parent%xyquad = parent%xyquad +  branch%xyquad - branch%xdip*yss - branch%ydip*xss + branch%charge*xss*yss
-            parent%yzquad = parent%yzquad +  branch%yzquad - branch%ydip*zss - branch%zdip*yss + branch%charge*yss*zss
-            parent%zxquad = parent%zxquad +  branch%zxquad - branch%zdip*xss - branch%xdip*zss + branch%charge*zss*xss
-     end do
-
-     nparent = nuniq
+     nparent = nsub ! parent keys will be add to list in next level and then compressed to get rid of duplicates
   end do
-
   ! Rezero dipole and quadrupole sums of all local leaf nodes
   do i=1,nleaf
     leaf=>tree_nodes(i)

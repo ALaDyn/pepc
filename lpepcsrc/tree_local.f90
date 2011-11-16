@@ -25,6 +25,7 @@ subroutine tree_local
   use module_branching
   use module_htable
   use module_spacefilling
+  use module_multipole_helpers
 
   implicit none
   include 'mpif.h'
@@ -37,7 +38,6 @@ subroutine tree_local
 
   integer*8, dimension(8) :: sub_key, key_child   ! Child partial key
   integer, dimension(8) :: node_child   
-  real*8, dimension(8) :: xs, ys, zs   ! multipole shift vector
 
   integer*8, dimension(nppm+2) :: local_key
   integer, dimension(nppm+2)  :: local_plist, local_owner, local_ind
@@ -45,8 +45,9 @@ subroutine tree_local
   integer, allocatable :: cell_addr(:)
   integer*8, dimension(maxaddress) :: res_key,search_key, resolve_key
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
-  type(t_multipole), pointer :: res, child
+  type(t_multipole), pointer :: res
   type(t_particle), pointer :: p
+  type(t_multipole_data) :: childdata(1:8), parent
 
 !!! --------------- TREE BUILD ---------------
 
@@ -411,16 +412,16 @@ subroutine tree_local
            abs( p%q ),                        &! Absolute charge (needed for c.o.c)
            [p%x(1), p%x(2), p%x(3)],          &! Centre of charge
            level_from_key( treekey(i) ),      &! level
-           p%x(1) * p%q,                      &! x-Dipole moment
-           p%x(2) * p%q,                      &! y
-           p%x(3) * p%q,                      &! z
-           p%q * p%x(1)**2,                   &! xx- Quadrupole moment
-           p%q * p%x(2)**2,                   &! yy
-           p%q * p%x(3)**2,                   &! zz
-           p%q * p%x(1) * p%x(2),             &! xy
-           p%q * p%x(2) * p%x(3),             &! yz
-           p%q * p%x(3) * p%x(1),             &! zx
-           0., 0., 0.)                         ! Zero shift vector
+           0.,                      &! x-Dipole moment
+           0.,                      &! y
+           0.,                      &! z
+           0.,                   &! xx- Quadrupole moment
+           0.,                   &! yy
+           0.,                   &! zz
+           0.,             &! xy
+           0.,             &! yz
+           0.,             &! zx
+           p%x(1), p%x(2), p%x(3))             ! Zero shift vector
   end do
 
   call timer_stop(t_props_leafs)
@@ -489,62 +490,13 @@ subroutine tree_local
             key_child(j) = IOR( ishft( res_key(i),3 ), sub_key(j) )      ! Construct keys of children
             addr_child = key2addr( key_child(j),'PROPERTIES: domain2' )             ! Table address of children
             node_child(j) = htable( addr_child )%node                     ! Child node index
+            call multipole_to_data(tree_nodes(node_child(j)), childdata(j))
          end do
 
-         res%charge     = SUM( tree_nodes(node_child(1:nchild))%charge )      ! Sum charge of child nodes and place
-         res%abs_charge = SUM( tree_nodes(node_child(1:nchild))%abs_charge )  ! Sum |q|
+         call shift_nodes_up(parent, childdata(1:nchild))
+         call data_to_multipole(parent, res)
 
-         ! Centres of charge
-         res%coc(1) = 0.
-         res%coc(2) = 0.
-         res%coc(3) = 0.
-
-         do j=1,nchild
-            child=>tree_nodes(node_child(j))
-              res%coc(1) = res%coc(1) + ( child%coc(1) * child%abs_charge) / res%abs_charge
-              res%coc(2) = res%coc(2) + ( child%coc(2) * child%abs_charge) / res%abs_charge
-              res%coc(3) = res%coc(3) + ( child%coc(3) * child%abs_charge) / res%abs_charge
-         end do
-
-         ! Shifts and multipole moments
-         xs(1:nchild) = res%coc(1) - tree_nodes(node_child(1:nchild))%xshift  ! Shift vector for current node
-         ys(1:nchild) = res%coc(2) - tree_nodes(node_child(1:nchild))%yshift
-         zs(1:nchild) = res%coc(3) - tree_nodes(node_child(1:nchild))%zshift
-
-         res%xshift = res%coc(1) ! Shift variable for next level up
-         res%yshift = res%coc(2)
-         res%zshift = res%coc(3)
-
-         res%xdip = 0.
-         res%ydip = 0.
-         res%zdip = 0.
-
-         res%xxquad = 0.
-         res%yyquad = 0.
-         res%zzquad = 0.
-
-         res%xyquad = 0.
-         res%yzquad = 0.
-         res%zxquad = 0.
-
-         do j = 1,nchild
-            child=>tree_nodes(node_child(j))
-
-                ! dipole moment
-                res%xdip = res%xdip + child%xdip - child%charge*xs(j)
-                res%ydip = res%ydip + child%ydip - child%charge*ys(j)
-                res%zdip = res%zdip + child%zdip - child%charge*zs(j)
-
-                ! quadrupole moment
-                res%xxquad = res%xxquad + child%xxquad - 2*child%xdip*xs(j) + child%charge*xs(j)**2
-                res%yyquad = res%yyquad + child%yyquad - 2*child%ydip*ys(j) + child%charge*ys(j)**2
-                res%zzquad = res%zzquad + child%zzquad - 2*child%zdip*zs(j) + child%charge*zs(j)**2
-
-                res%xyquad = res%xyquad + child%xyquad - child%xdip*ys(j) - child%ydip*xs(j) + child%charge*xs(j)*ys(j)
-                res%yzquad = res%yzquad + child%yzquad - child%ydip*zs(j) - child%zdip*ys(j) + child%charge*ys(j)*zs(j)
-                res%zxquad = res%zxquad + child%zxquad - child%zdip*xs(j) - child%xdip*zs(j) + child%charge*zs(j)*xs(j)
-
-         end do
+         res%leaves = SUM( tree_nodes(node_child(1:nchild))%leaves )
   end do
 
   ! Should now have multipole information up to branch list level(s).
