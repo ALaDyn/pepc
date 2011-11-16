@@ -128,7 +128,6 @@ module module_pepcfields
           ! Copy particle buffers to tree arrays
           do i=1,npp
             particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
-                                      [    0.,     0.,     0.], &  ! velocity - not relevant for tree code
                                        p_q(i),                  &  ! charge
                                        max(p_w(i), 1._8),       &  ! workload from last step
                                        -1_8,                    &  ! key - will be assigned later
@@ -222,13 +221,13 @@ module module_pepcfields
 	  nkeys_total = nleaf+ntwig
 
 	  if (force_debug) then
-	     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)')
+	     write (ipefile,'("Tree forces:"/"   p    q   m   pot  ",f8.2)')
 	     write (*,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)')
-	     write (ipefile,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)') cf_par%force_const
+	     write (ipefile,'("Tree forces:"/"   p    q   m   pot  ",f8.2)') cf_par%force_const
 
 	     do i=1,np_local
-	        write (ipefile,'(1x,i7,4(1pe14.5))') particles(i)%label, particles(i)%q, particles(i)%u(1), p_pot(i), p_ex(i)
-	        write (*,'(1x,i7,4(1pe14.5))') particles(i)%label, particles(i)%x(1), particles(i)%q, particles(i)%u(1), p_pot(i)
+	        write (ipefile,'(1x,i7,3(1pe14.5))') particles(i)%label, particles(i)%q, p_pot(i), p_ex(i)
+	        write (*,'(1x,i7,3(1pe14.5))') particles(i)%label, particles(i)%x(1), particles(i)%q, p_pot(i)
 	     end do
 
 	  endif
@@ -334,7 +333,6 @@ module module_pepcfields
       ! Copy particle buffers to tree arrays
       do i=1,npgrid
         grid_particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
-                                       [    0.,     0.,     0.], &  ! velocity - not relevant for tree code
                                         0.,                      &  ! charge - set to zero
                                         1._8,                    &  ! workload
                                        -1_8,                     &  ! key - will be assigned later

@@ -264,10 +264,7 @@ module module_tree_domains
             if (particles(i)%key == particles(i-1)%key) then
                 particles(  i)%key = particles(  i)%key + 1  ! Augment higher key
                 particles(i+1)%key = particles(i+1)%key + 2  ! Augment next higher key to avoid 'triplet'
-                !  Tweak momenta and positions to ensure particles drift apart
-                particles(i-1)%u(1) = particles(i-1)%u(1) *0.99999
-                particles(i+1)%u(1) = particles(i+1)%u(1) *1.00001
-
+                !  Tweak positions to ensure particles drift apart
                 particles(i-1)%x(1) = particles(i-1)%x(1) *0.99999
                 particles(i+1)%x(1) = particles(i+1)%x(1) *1.00001
 

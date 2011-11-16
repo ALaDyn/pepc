@@ -21,10 +21,9 @@ module module_multipole_helpers
 
       !> Data structure for shipping single particles
       ! TODO: register this inside the current module as separate mpi type
-      integer, parameter :: nprops_particle = 11 ! # particle properties to ship
+      integer, parameter :: nprops_particle = 8 ! # particle properties to ship
       type t_particle
          real*8 :: x(1:3)    ! coords
-         real*8 :: u(1:3)    ! momenta
          real*8 :: q     ! charge
          real*8 :: work  ! work load from force sum
          integer*8 :: key           ! Key

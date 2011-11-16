@@ -111,28 +111,25 @@ subroutine libpepc_register_mpi_types(db_level)
   integer(KIND=MPI_ADDRESS_KIND) :: send_base, receive_base
 
   ! Create new contiguous datatype for shipping particle properties (15 arrays)
-  blocklengths(1:nprops_particle) = 1   
+  blocklengths(1:nprops_particle) = 1
 
-  types(1:8)   = MPI_REAL8
-  types(9)     = MPI_INTEGER8
-  types(10:11) = MPI_INTEGER
+  types(1:5) = MPI_REAL8
+  types(6)   = MPI_INTEGER8
+  types(7:8) = MPI_INTEGER
 
   call MPI_GET_ADDRESS( get_props_a%x, receive_base, ierr )  ! Base address for receive buffer
   call MPI_GET_ADDRESS( ship_props_a%x, send_base, ierr )  ! Base address for send buffer
 
 !  if (me==0) write(*,'(a30,o21)') 'Particle address base:',receive_base
 
-  call MPI_GET_ADDRESS( ship_props_a%x(1), address(1), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%x(2), address(2), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%x(3), address(3), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%u(1), address(4), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%u(2), address(5), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%u(3), address(6), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%q, address(7), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%work, address(8), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%key, address(9), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%label, address(10), ierr )
-  call MPI_GET_ADDRESS( ship_props_a%pid, address(11), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%x(1),  address(1), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%x(2),  address(2), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%x(3),  address(3), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%q,     address(4), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%work,  address(5), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%key,   address(6), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%label, address(7), ierr )
+  call MPI_GET_ADDRESS( ship_props_a%pid,   address(8), ierr )
 
   displacements(1:nprops_particle) = int(address(1:nprops_particle) - send_base)  !  Addresses relative to start of particle (receive) data
 
