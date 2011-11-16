@@ -41,13 +41,12 @@ module treetypes
 
 
   ! Data structure for shipping multiple moments of child nodes
-  integer, parameter :: nprops_tree_node = 19 ! Number of multipole properties to ship
+  integer, parameter :: nprops_tree_node = 18 ! Number of multipole properties to ship
   type t_tree_node
      integer*8 :: key     ! key
      integer   :: byte    ! byte code
      integer   :: leaves  ! # leaves contained
      integer :: owner     ! owner where multipole resides
-     integer :: level     ! level of tree node (for fast lookup instead of calculation) - stored in close proximity to coc-coordinates for better caching posibilities in walk ! TODO: remove this property
      type(t_multipole_data) :: m ! real physics
   end type t_tree_node
 
