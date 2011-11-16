@@ -48,7 +48,7 @@ module module_multipole_helpers
       subroutine multipole_to_data(m,d)
         use treetypes
         implicit none
-        type(t_multipole), intent(in) :: m
+        type(t_tree_node), intent(in) :: m
         type(t_multipole_data), intent(out) :: d
 
         d%charge     =  m%charge
@@ -68,7 +68,7 @@ module module_multipole_helpers
       subroutine data_to_multipole(d,m)
         use treetypes
         implicit none
-        type(t_multipole), intent(inout) :: m
+        type(t_tree_node), intent(inout) :: m
         type(t_multipole_data), intent(in) :: d
 
         m%charge     = d%charge

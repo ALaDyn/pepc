@@ -39,8 +39,8 @@ module treetypes
 
 
   ! Data structure for shipping multiple moments of child nodes
-  integer, parameter :: nprops_multipole = 22 ! Number of multipole properties to ship
-  type t_multipole
+  integer, parameter :: nprops_tree_node = 22 ! Number of multipole properties to ship
+  type t_tree_node
      integer*8 :: key     ! key
      integer   :: byte    ! byte code
      integer   :: leaves  ! # leaves contained
@@ -61,7 +61,7 @@ module treetypes
      real*8 :: xshift
      real*8 :: yshift
      real*8 :: zshift
-  end type t_multipole
+  end type t_tree_node
 
 
 end module treetypes

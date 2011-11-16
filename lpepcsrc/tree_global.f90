@@ -17,7 +17,7 @@ subroutine tree_global
   integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
   integer, dimension(maxaddress) ::  parent_node
   logical :: duplicate(maxaddress)
-  type(t_multipole), pointer :: twig, parent, branch, leaf
+  type(t_tree_node), pointer :: twig, parent, branch, leaf
   type(t_multipole_data) :: childdata(1:8), parentdata
   integer :: firstchild,j 
 
@@ -189,7 +189,7 @@ subroutine tree_global
   !  Sweep back up, and augment leaf count of parent node
   do i=nnodes,2,-1
      if (htable( parent_addr(i) )%owner == me ) then
-        htable( parent_addr(i) )%leaves = htable( parent_addr(i) )%leaves + htable(cell_addr(i) )%leaves 
+        htable( parent_addr(i) )%leaves = htable( parent_addr(i) )%leaves + htable(cell_addr(i) )%leaves
      endif
   end do
 

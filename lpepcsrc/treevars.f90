@@ -18,7 +18,7 @@ module treevars
   integer :: me       ! Rank of current task
   integer :: num_pe   ! # cpus used by program
 
-  type (t_multipole) :: node_dummy
+  type (t_tree_node) :: node_dummy
 
   integer :: mpi_type_particle, mpi_type_multipole, mpi_type_results
 
@@ -35,7 +35,7 @@ module treevars
                                 free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
                                 point_free(:)      ! Pointer to free address index
 
-  type(t_multipole), target, allocatable  :: tree_nodes(:)                 ! Tree node properties
+  type(t_tree_node), target, allocatable  :: tree_nodes(:)                 ! Tree node properties
 
   ! TODO: put these into tree_aswalk_pthreads module
   integer*8 ::  max_req_list_length, & ! maximum length of request queue

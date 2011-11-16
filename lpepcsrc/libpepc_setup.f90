@@ -103,10 +103,10 @@ subroutine libpepc_register_mpi_types(db_level)
   type (t_particle) :: ship_props_a, get_props_a
   type (t_particle_results) :: ship_props_b, get_props_b
 
-  integer, dimension(nprops_multipole) :: blocklengths, displacements, types
+  integer, dimension(nprops_tree_node) :: blocklengths, displacements, types
 
   ! address calculation, 8 byte
-  integer(KIND=MPI_ADDRESS_KIND), dimension(nprops_multipole) :: address
+  integer(KIND=MPI_ADDRESS_KIND), dimension(nprops_tree_node) :: address
   integer(KIND=MPI_ADDRESS_KIND) :: send_base, receive_base
 
   ! Create new contiguous datatype for shipping particle properties (15 arrays)
@@ -172,7 +172,7 @@ subroutine libpepc_register_mpi_types(db_level)
 
   ! Create new contiguous datatype for shipping multipole properties (25 arrays)
 
-  blocklengths(1:nprops_multipole) = 1   
+  blocklengths(1:nprops_tree_node) = 1
 
   types(1)      = MPI_INTEGER8
   types(2:4)    = MPI_INTEGER
@@ -206,9 +206,9 @@ subroutine libpepc_register_mpi_types(db_level)
   call MPI_GET_ADDRESS( node_dummy%yshift,     address(21), ierr )
   call MPI_GET_ADDRESS( node_dummy%zshift,     address(22), ierr )
 
-  displacements(1:nprops_multipole) = int(address(1:nprops_multipole) - send_base)   !  Addresses relative to start of particle (receive) data
+  displacements(1:nprops_tree_node) = int(address(1:nprops_tree_node) - send_base)   !  Addresses relative to start of particle (receive) data
 
-  call MPI_TYPE_STRUCT( nprops_multipole, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
+  call MPI_TYPE_STRUCT( nprops_tree_node, blocklengths, displacements, types, mpi_type_multipole, ierr )   ! Create and commit
   call MPI_TYPE_COMMIT( mpi_type_multipole, ierr)
 
 end subroutine libpepc_register_mpi_types

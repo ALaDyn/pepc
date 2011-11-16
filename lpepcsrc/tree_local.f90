@@ -45,7 +45,7 @@ subroutine tree_local
   integer, allocatable :: cell_addr(:)
   integer*8, dimension(maxaddress) :: res_key,search_key, resolve_key
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
-  type(t_multipole), pointer :: res
+  type(t_tree_node), pointer :: res
   type(t_particle), pointer :: p
   type(t_multipole_data) :: childdata(1:8), parent
 
@@ -403,7 +403,7 @@ subroutine tree_local
      node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves
 
      p => particles( p_leaf )
-       tree_nodes( node_leaf ) = t_multipole( &
+       tree_nodes( node_leaf ) = t_tree_node( &
            treekey(i),                        &
            htable(addr_leaf)%childcode,       &
            1,                                 &! # leaves contained within twig (=1 for leaf, npart for root)
