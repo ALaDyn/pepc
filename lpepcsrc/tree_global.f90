@@ -16,7 +16,7 @@ subroutine tree_global
   integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
   integer, dimension(maxaddress) ::  parent_node
   type(t_multipole_data), pointer :: twig
-  integer :: firstchild
+  integer :: firstchild, atwig, aleaf
 
   call timer_start(t_global)
   call timer_start(t_fill_local)
@@ -139,10 +139,26 @@ subroutine tree_global
     htable( hashaddr )%childcode =  IBSET( htable( hashaddr )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE )   ! Set children_HERE flag for all local twig nodes
   end do
 
-  treekey(1:ntwig) = pack(htable%key,mask = htable%node < 0)                                ! list of all twig keys excluding root
+  atwig = 0
+  aleaf = 0
 
-  call sort(treekey(1:ntwig))                                                               ! Sort keys
-  treekey(ntwig+1:ntwig+nleaf) = pack(htable%key,mask = htable%node > 0)                    ! add list of leaf keys
+  do i=0,maxaddress
+    if (htable(i)%node < 0) then
+      ! it is a twig
+      atwig = atwig + 1
+      treekey(atwig) = htable(i)%key
+    else if (htable(i)%node > 0) then
+      aleaf = aleaf + 1
+      treekey(ntwig+aleaf) = htable(i)%key
+    endif
+  end do
+
+  if ((atwig .ne. ntwig) .or. (aleaf .ne. nleaf)) then
+    write(*,'("tree_global: did not find all leafs / twigs:", 2(" " i10, "/" i10))') atwig, ntwig, aleaf, nleaf
+    call MPI_ABORT(MPI_COMM_WORLD, 1)
+  endif
+
+  call sort(treekey(1:ntwig)) ! Sort keys
 
   allocate(tree_node(nnodes),cell_addr(nnodes),parent_addr(nnodes))
 
