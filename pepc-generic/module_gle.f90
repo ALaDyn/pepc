@@ -577,7 +577,7 @@ module module_gle
 
 	  do i=1,npp
 	     write (60,'(a,2f13.4)') 'amove ',particles(i)%x(1),particles(i)%x(2)
-	     if (particles(i)%q<0) then
+	     if (particles(i)%data%q<0) then
 	        write (60,'(a)') 'circle .005 fill red'
 	     else
 	        write (60,'(a)') 'circle .005 fill green'
