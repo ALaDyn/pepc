@@ -492,7 +492,7 @@ end module tree_walk_pthreads_commutils
 
 
 module tree_walk_pthreads
-  use treetypes
+  use module_multipole_helpers
   use treevars
   use pthreads_stuff
   implicit none

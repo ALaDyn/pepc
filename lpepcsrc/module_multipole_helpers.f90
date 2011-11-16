@@ -19,7 +19,31 @@ module module_multipole_helpers
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      ! Data structure for storing multiple moments of tree nodes
+      !> Data structure for shipping single particles
+      ! TODO: register this inside the current module as separate mpi type
+      integer, parameter :: nprops_particle = 11 ! # particle properties to ship
+      type t_particle
+         real*8 :: x(1:3)    ! coords
+         real*8 :: u(1:3)    ! momenta
+         real*8 :: q     ! charge
+         real*8 :: work  ! work load from force sum
+         integer*8 :: key           ! Key
+         integer :: label    ! label
+         integer :: pid      ! owner
+      end type t_particle
+
+      !> Data structure for shipping results
+      ! TODO: register this inside the current module as separate mpi type
+      integer, parameter :: nprops_particle_results = 5       ! # results to ship
+      type t_particle_results
+         real*8, dimension(3) :: e
+         real*8 :: pot
+         real*8 :: work
+      end type t_particle_results
+
+      type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results([0., 0., 0.], 0., 0.)
+
+      !> Data structure for storing multiple moments of tree nodes
       ! TODO: register this inside the current module as separate mpi type
       type t_multipole_data
         real*8 :: charge     ! net charge sum
@@ -51,7 +75,6 @@ module module_multipole_helpers
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine multipole_from_particle(particle, multipole)
-        use treetypes
         implicit none
         type(t_particle), intent(in) :: particle
         type(t_multipole_data), intent(out) :: multipole

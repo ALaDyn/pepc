@@ -65,7 +65,7 @@ module module_pepcfields
 	     num_neighbours, neighbours, no_dealloc)
 
 	  use treevars
-	  use treetypes
+      use module_multipole_helpers
 	  use timings
 	  use module_tree_domains
       use module_fmm_framework
@@ -294,7 +294,7 @@ module module_pepcfields
 	     p_Ex, p_Ey, p_Ez, p_pot, cf_par, itime,  num_neighbours, neighbours)
 
 	  use treevars
-	  use treetypes
+      use module_multipole_helpers
 	  use module_htable
 	  use timings
 	  use module_calc_force

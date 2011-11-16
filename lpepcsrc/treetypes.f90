@@ -16,30 +16,6 @@ module treetypes
     real*8  :: spatial_interaction_cutoff(3) = huge(real8_dummy) * [1., 1., 1.] !< all nodes, where any(abs(coc(1:3)-particle_position(1:3)) > spatial_interaction_cutoff(1:3) are ignored when calculating interactions
   end type t_calc_force_params
 
-  ! Data structure for shipping results
-  integer, parameter :: nprops_particle_results = 5       ! # results to ship
-  type t_particle_results
-     real*8, dimension(3) :: e
-     real*8 :: pot
-     real*8 :: work
-  end type t_particle_results
-
-  type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results([0., 0., 0.], 0., 0.)
-
-
- ! Data structure for shipping single particles
-  integer, parameter :: nprops_particle = 11 ! # particle properties to ship
-  type t_particle
-     real*8 :: x(1:3)    ! coords
-     real*8 :: u(1:3)    ! momenta
-     real*8 :: q     ! charge
-     real*8 :: work  ! work load from force sum
-     integer*8 :: key           ! Key
-     integer :: label    ! label
-     integer :: pid      ! owner
-  end type t_particle
-
-
   ! Data structure for shipping multiple moments of child nodes
   integer, parameter :: nprops_tree_node = 18 ! Number of multipole properties to ship
   type t_tree_node

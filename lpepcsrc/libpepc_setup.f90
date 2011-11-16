@@ -94,7 +94,7 @@ end subroutine libpepc_setup
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine libpepc_register_mpi_types(db_level)
   use treevars
-  use treetypes
+  use module_multipole_helpers
   implicit none
   include 'mpif.h'
   integer, intent(in) :: db_level
