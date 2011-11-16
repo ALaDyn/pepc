@@ -167,18 +167,18 @@ contains
             case(LASER_ENVELOPE_SINSQUARED)
                 envelope_name = 'LASER_ENVELOPE_SINSQUARED'
                 if (tlaser < tpulse) then
-                    laser_envelope = max(0.,sin(pi*tlaser/tpulse)**2)
+                    laser_envelope = max(0._8,sin(pi*tlaser/tpulse)**2)
                 else
                     laser_envelope = 0.
                 endif
 
             case(LASER_ENVELOPE_LINEAR_RISE)
                 envelope_name = 'LASER_ENVELOPE_LINEAR_RISE'
-                laser_envelope = min(1.,tlaser/tpulse)
+                laser_envelope = min(1._8,tlaser/tpulse)
 
             case(LASER_ENVELOPE_LINEAR_FALL)
                 envelope_name = 'LASER_ENVELOPE_LINEAR_FALL'
-                laser_envelope = max(0.,1.-tlaser/tpulse)
+                laser_envelope = max(0._8,1.-tlaser/tpulse)
 
             case default
                 envelope_name = 'LASER_ENVELOPE_OFF(undefined)'
@@ -1366,7 +1366,7 @@ contains
 
         k0=w0
         if (t <= 2*tpulse) then
-            tenv = max(0.,sin(pi*t/2./tpulse)**2)
+            tenv = max(0._8,sin(pi*t/2./tpulse)**2)
         else
             tenv= 0.
         endif
@@ -1432,7 +1432,7 @@ contains
         phase = w0*t
         k0=w0
         nonc = 1./w0**2 ! density normalised to nc
-        Tenv = min(1.,t/tpulse) ! time envelope
+        Tenv = min(1._8,t/tpulse) ! time envelope
 
 
         !     Standing wave in vacuum; evanescent in overdense plasma
