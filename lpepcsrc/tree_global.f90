@@ -15,7 +15,7 @@ subroutine tree_global
   integer*8, dimension(0:maxaddress) :: sub_key, parent_key
   integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
   integer, dimension(maxaddress) ::  parent_node
-  type(t_multipole_data), pointer :: twig, leaf
+  type(t_multipole_data), pointer :: twig
   integer :: firstchild
 
   call timer_start(t_global)
@@ -123,16 +123,6 @@ subroutine tree_global
      end do
 
      nparent = nsub ! parent keys will be add to list in next level and then compressed to get rid of duplicates
-  end do
-  ! Rezero dipole and quadrupole sums of all local leaf nodes
-  ! TODO: this should not be necessary
-  do i=1,nleaf
-    leaf=>tree_nodes(i)
-      leaf%dip    = [0., 0., 0.]
-      leaf%quad   = [0., 0., 0.]
-      leaf%xyquad = 0.
-      leaf%yzquad = 0.
-      leaf%zxquad = 0.
   end do
 
   if (tree_debug) call check_table('End of local fill    ')
