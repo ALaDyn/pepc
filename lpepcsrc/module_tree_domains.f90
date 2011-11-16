@@ -374,7 +374,8 @@ module module_tree_domains
                              res,p_pot,p_ex,p_ey,p_ez,p_w)
         ! TODO: replace p_ex etc. by t_particle_results
         use module_interaction_specific
-        use treevars, only : num_pe, me, tree_debug, mpi_type_results
+        use treevars, only : num_pe, me, tree_debug
+        use treetypes
         implicit none
         include 'mpif.h'
 
@@ -396,8 +397,8 @@ module module_tree_domains
         enddo
 
         ! perform permute
-        call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_results, &
-        get_parts, irlen, gposts, mpi_type_results, &
+        call MPI_alltoallv(  ship_parts, islen, fposts, MPI_TYPE_particle_results, &
+        get_parts, irlen, gposts, MPI_TYPE_particle_results, &
         MPI_COMM_WORLD,ierr )
 
         do i=1,npold

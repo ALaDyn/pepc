@@ -60,6 +60,7 @@ module tree_walk_communicator
       ! initializes bsend buffer and rwlock objects
       ! returns size of bsend buffer in buffsize in bytes
       subroutine init_comm_data(REQUEST_QUEUE_LENGTH, ANSWER_BUFF_LENGTH)
+        use treetypes
         implicit none
         include 'mpif.h'
         integer, intent(in) :: REQUEST_QUEUE_LENGTH, ANSWER_BUFF_LENGTH
@@ -71,7 +72,7 @@ module tree_walk_communicator
         call MPI_PACK_SIZE(1, MPI_INTEGER8, MPI_COMM_WORLD, msg_size_request, ierr)
         msg_size_request = msg_size_request + MPI_BSEND_OVERHEAD
 
-        call MPI_PACK_SIZE(8, MPI_type_multipole, MPI_COMM_WORLD, msg_size_data, ierr)
+        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node, MPI_COMM_WORLD, msg_size_data, ierr)
         msg_size_data = msg_size_data + MPI_BSEND_OVERHEAD
 
         buffsize = (REQUEST_QUEUE_LENGTH * msg_size_request + ANSWER_BUFF_LENGTH * msg_size_data)
@@ -89,6 +90,7 @@ module tree_walk_communicator
 
 
     subroutine run_communication_loop_inner(walk_finished, nummessages)
+        use treetypes
         implicit none
         include 'mpif.h'
         logical :: msg_avail
@@ -143,9 +145,9 @@ module tree_walk_communicator
              ! some PE answered our request and sends
              case (TAG_REQUESTED_DATA)
                 ! actually receive the data... ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
-                call MPI_GET_COUNT(stat, MPI_type_multipole, num_children, ierr)
+                call MPI_GET_COUNT(stat, MPI_TYPE_tree_node, num_children, ierr)
                 allocate(child_data(num_children))
-                call MPI_RECV( child_data, num_children, MPI_type_multipole, ipe_sender, TAG_REQUESTED_DATA, &
+                call MPI_RECV( child_data, num_children, MPI_TYPE_tree_node, ipe_sender, TAG_REQUESTED_DATA, &
                         MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
                 ! ... and put it into the tree and all other data structures
                 call unpack_data(child_data, num_children, ipe_sender)
@@ -257,6 +259,7 @@ module tree_walk_communicator
 
 
     subroutine send_data(requested_key, ipe_sender)
+      use treetypes
       use module_htable
       implicit none
       include 'mpif.h'
@@ -296,7 +299,7 @@ module tree_walk_communicator
       end do
 
       ! Ship child data back to PE that requested it
-      call MPI_IBSEND( children_to_send(1:nchild), nchild, MPI_type_multipole, ipe_sender, TAG_REQUESTED_DATA, &
+      call MPI_IBSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node, ipe_sender, TAG_REQUESTED_DATA, &
               MPI_COMM_WORLD, reqhandle, ierr )
       call MPI_REQUEST_FREE(reqhandle, ierr)
 

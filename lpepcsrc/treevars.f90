@@ -19,10 +19,6 @@ module treevars
   integer :: me       ! Rank of current task
   integer :: num_pe   ! # cpus used by program
 
-  type (t_tree_node) :: node_dummy
-
-  integer :: mpi_type_particle, mpi_type_multipole, mpi_type_results
-
   !  tree variables
   integer*8, allocatable :: &
                                 treekey(:), &       ! keys of all twig and leaf nodes

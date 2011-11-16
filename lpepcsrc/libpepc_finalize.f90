@@ -8,13 +8,9 @@ subroutine libpepc_finalize()
   use module_fmm_framework
   use module_branching
   implicit none
-  include 'mpif.h'
 
-  integer :: ierr
-
-  call MPI_TYPE_FREE( mpi_type_particle, ierr)
-  call MPI_TYPE_FREE( mpi_type_results, ierr)
-  call MPI_TYPE_FREE( mpi_type_multipole, ierr)
+  ! deregister mpi types
+  call free_lpepc_mpi_types()
 
   ! finalize framework for lattice contributions
   call fmm_framework_finalize()
