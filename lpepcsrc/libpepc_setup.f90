@@ -89,12 +89,12 @@ end subroutine libpepc_setup
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Creates and registers user-defined MPI types
-!> TODO: shift t_multipole_data stuff into module_multipole_helpers
+!> TODO: shift t_multipole_data stuff into module_interaction_specific
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine libpepc_register_mpi_types(db_level)
   use treevars
-  use module_multipole_helpers
+  use module_interaction_specific
   implicit none
   include 'mpif.h'
   integer, intent(in) :: db_level

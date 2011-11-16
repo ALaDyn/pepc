@@ -4,7 +4,7 @@
 !> i.e. shifting along the tree etc.
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-module module_multipole_helpers
+module module_interaction_specific
       implicit none
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -134,4 +134,4 @@ module module_multipole_helpers
       end subroutine
 
 
-end module module_multipole_helpers
+end module module_interaction_specific

@@ -5,7 +5,7 @@ subroutine tree_global
   use tree_utils
   use module_htable
   use module_spacefilling
-  use module_multipole_helpers
+  use module_interaction_specific
   implicit none
   include 'mpif.h'
 

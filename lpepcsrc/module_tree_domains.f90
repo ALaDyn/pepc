@@ -45,7 +45,7 @@ module module_tree_domains
     subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted,curve_type_)
 
         use treevars
-        use module_multipole_helpers
+        use module_interaction_specific
         use tree_utils
         use timings
         use module_spacefilling
@@ -373,7 +373,7 @@ module module_tree_domains
     subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
                              res,p_pot,p_ex,p_ey,p_ez,p_w)
         ! TODO: replace p_ex etc. by t_particle_results
-        use module_multipole_helpers
+        use module_interaction_specific
         use treevars, only : num_pe, me, tree_debug, mpi_type_results
         implicit none
         include 'mpif.h'

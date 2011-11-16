@@ -1,6 +1,6 @@
 
 module treetypes
-  use module_multipole_helpers
+  use module_interaction_specific
   implicit none
 
   real*8, parameter, private :: real8_dummy = 1.

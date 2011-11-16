@@ -7,7 +7,7 @@
  
 module treevars
   
-  use module_multipole_helpers
+  use module_interaction_specific
   use treetypes
 
   implicit none

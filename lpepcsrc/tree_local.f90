@@ -25,7 +25,7 @@ subroutine tree_local
   use module_branching
   use module_htable
   use module_spacefilling
-  use module_multipole_helpers
+  use module_interaction_specific
 
   implicit none
   include 'mpif.h'

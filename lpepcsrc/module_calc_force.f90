@@ -58,7 +58,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_interaction(particle, res, inode, delta, dist2, vbox, cf_par)
-          use module_multipole_helpers
+          use module_interaction_specific
           use treevars
           implicit none
 
@@ -106,7 +106,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_particle(nparticles, parts, res, cf_par)
-          use module_multipole_helpers
+          use module_interaction_specific
           use treevars, only : me
           use module_fmm_framework
           implicit none
@@ -251,7 +251,7 @@ module module_calc_force
         !>   Ex = -dPhi/dx = 2 q x/R^2 etc 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_coulomb_2D(inode, d, dist2, cf_par, sumfx, sumfy, sumphi)
-          use module_multipole_helpers
+          use module_interaction_specific
           use treevars
           implicit none
 
