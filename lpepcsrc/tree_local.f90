@@ -45,9 +45,7 @@ subroutine tree_local
   integer, allocatable :: cell_addr(:)
   integer*8, dimension(maxaddress) :: res_key,search_key, resolve_key
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
-  type(t_tree_node), pointer :: res
-  type(t_particle), pointer :: p
-  type(t_multipole_data) :: childdata(1:8), parent
+  type(t_multipole_data), pointer :: res
 
 !!! --------------- TREE BUILD ---------------
 
@@ -402,25 +400,8 @@ subroutine tree_local
      htable(addr_leaf)%childcode = IBSET( htable(addr_leaf)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zero its properties (in tree_global)
      node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves
 
-     p => particles( p_leaf )
-       tree_nodes( node_leaf ) = t_tree_node( &
-           treekey(i),                        &
-           htable(addr_leaf)%childcode,       &
-           1,                                 &! # leaves contained within twig (=1 for leaf, npart for root)
-           me,                                &
-           p%q,                               &! Charge
-           abs( p%q ),                        &! Absolute charge (needed for c.o.c)
-           [p%x(1), p%x(2), p%x(3)],          &! Centre of charge
-           level_from_key( treekey(i) ),      &! level
-           0.,                      &! x-Dipole moment
-           0.,                      &! y
-           0.,                      &! z
-           0.,                   &! xx- Quadrupole moment
-           0.,                   &! yy
-           0.,                   &! zz
-           0.,             &! xy
-           0.,             &! yz
-           0.)             ! zx
+     call multipole_from_particle(particles( p_leaf ), tree_nodes( node_leaf ) )
+
   end do
 
   call timer_stop(t_props_leafs)
@@ -489,13 +470,10 @@ subroutine tree_local
             key_child(j) = IOR( ishft( res_key(i),3 ), sub_key(j) )      ! Construct keys of children
             addr_child = key2addr( key_child(j),'PROPERTIES: domain2' )             ! Table address of children
             node_child(j) = htable( addr_child )%node                     ! Child node index
-            call multipole_to_data(tree_nodes(node_child(j)), childdata(j))
          end do
 
-         call shift_nodes_up(parent, childdata(1:nchild))
-         call data_to_multipole(parent, res)
+         call shift_nodes_up(res, tree_nodes(node_child(1:nchild)))
 
-         res%leaves = SUM( tree_nodes(node_child(1:nchild))%leaves )
   end do
 
   ! Should now have multipole information up to branch list level(s).

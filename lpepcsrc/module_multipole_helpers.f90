@@ -20,6 +20,7 @@ module module_multipole_helpers
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! Data structure for storing multiple moments of tree nodes
+      ! TODO: register this inside the current module as separate mpi type
       type t_multipole_data
         real*8 :: charge     ! net charge sum
         real*8 :: abs_charge !  absolute charge sum
@@ -44,53 +45,29 @@ module module_multipole_helpers
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
-      !> TODO: remove this function
-      subroutine multipole_to_data(m,d)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> Computes multipole properties of a single particle
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine multipole_from_particle(particle, multipole)
         use treetypes
         implicit none
-        type(t_tree_node), intent(in) :: m
-        type(t_multipole_data), intent(out) :: d
+        type(t_particle), intent(in) :: particle
+        type(t_multipole_data), intent(out) :: multipole
 
-        d%charge     =  m%charge
-        d%abs_charge =  m%abs_charge
-        d%coc        =  m%coc
-        d%dip        = [m%xdip,   m%ydip,   m%zdip]
-        d%quad       = [m%xxquad, m%yyquad, m%zzquad]
-
-        d%xyquad     =  m%xyquad
-        d%yzquad     =  m%yzquad
-        d%zxquad     =  m%zxquad
-
+        multipole = t_multipole_data(particle%q,   &
+                                 abs(particle%q),  &
+                                     particle%x,   &
+                                     [0., 0., 0.], &
+                                     [0., 0., 0.], &
+                                      0., 0., 0.    )
       end subroutine
 
-
-      !> TODO: remove this function
-      subroutine data_to_multipole(d,m)
-        use treetypes
-        implicit none
-        type(t_tree_node), intent(inout) :: m
-        type(t_multipole_data), intent(in) :: d
-
-        m%charge     = d%charge
-        m%abs_charge = d%abs_charge
-        m%coc        = d%coc
-        m%xdip       = d%dip(1)
-        m%ydip       = d%dip(2)
-        m%zdip       = d%dip(3)
-        m%xxquad     = d%quad(1)
-        m%yyquad     = d%quad(2)
-        m%zzquad     = d%quad(3)
-
-        m%xyquad     = d%xyquad
-        m%yzquad     = d%yzquad
-        m%zxquad     = d%zxquad
-
-      end subroutine
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
-      !> Allocates all tree- and multipole-specific arrays,
-      !> Initializes several estimations on maximum used memory
+      !> Accumulates multipole properties of child nodes to parent node
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine shift_nodes_up(parent, children)

@@ -15,9 +15,8 @@ subroutine tree_global
   integer*8, dimension(0:maxaddress) :: sub_key, parent_key
   integer, allocatable :: tree_node(:), cell_addr(:), parent_addr(:)
   integer, dimension(maxaddress) ::  parent_node
-  type(t_tree_node), pointer :: twig, leaf
-  type(t_multipole_data) :: childdata(1:8), parentdata
-  integer :: firstchild,j 
+  type(t_multipole_data), pointer :: twig, leaf
+  integer :: firstchild
 
   call timer_start(t_global)
   call timer_start(t_fill_local)
@@ -98,17 +97,12 @@ subroutine tree_global
                twig%abs_charge = 0.
                twig%charge     = 0.
                twig%coc        =[0., 0., 0.]
-               twig%xdip       = 0.
-               twig%ydip       = 0.
-               twig%zdip       = 0.
-               twig%xxquad     = 0.
-               twig%yyquad     = 0.
-               twig%zzquad     = 0.
+               twig%dip        =[0., 0., 0.]
+               twig%quad       =[0., 0., 0.]
                twig%xyquad     = 0.
                twig%yzquad     = 0.
                twig%zxquad     = 0.
                htable(hashaddr)%childcode = IBSET(htable(hashaddr)%childcode,CHILDCODE_NODE_TOUCHED) ! I will not touch this again
-               twig%byte       = htable(hashaddr)%childcode ! TODO: maybe inconsistent with htable data
         endif
 
         branch_addr(i) = key2addr( sub_key(i),'PROPERTIES: fill' )   !  branches` #table addresses
@@ -122,13 +116,8 @@ subroutine tree_global
      do i = 1,nsub
        if (parent_node(i+1) .ne. parent_node(firstchild)) then
 
-         do j = 0,i-firstchild
-           call multipole_to_data(tree_nodes(branch_node(j+firstchild)), childdata(j+1))
-         end do
-         call shift_nodes_up(parentdata, childdata(1:firstchild-i))
-         call data_to_multipole(parentdata, tree_nodes(parent_node(i)))
+         call shift_nodes_up(tree_nodes(parent_node(i)), tree_nodes(branch_node(firstchild:i)))
 
-         tree_nodes(parent_node(i))%leaves = i-firstchild+1
          firstchild = i + 1
        endif
      end do
@@ -136,14 +125,11 @@ subroutine tree_global
      nparent = nsub ! parent keys will be add to list in next level and then compressed to get rid of duplicates
   end do
   ! Rezero dipole and quadrupole sums of all local leaf nodes
+  ! TODO: this should not be necessary
   do i=1,nleaf
     leaf=>tree_nodes(i)
-      leaf%xdip   = 0.
-      leaf%ydip   = 0.
-      leaf%zdip   = 0.
-      leaf%xxquad = 0.
-      leaf%yyquad = 0.
-      leaf%zzquad = 0.
+      leaf%dip    = [0., 0., 0.]
+      leaf%quad   = [0., 0., 0.]
       leaf%xyquad = 0.
       leaf%yzquad = 0.
       leaf%zxquad = 0.
@@ -187,11 +173,6 @@ subroutine tree_global
         htable( parent_addr(i) )%leaves = htable( parent_addr(i) )%leaves + htable(cell_addr(i) )%leaves
      endif
   end do
-
-  do i=1,nnodes
-    tree_nodes(tree_node(i))%level = level_from_key(treekey(i))  ! get levels from keys and prestore as node property
-  end do
-  tree_nodes(0)%level = 0
 
   ! Check tree integrity: Root node should now contain all particles!
   if (htable(1)%leaves /= npart) then

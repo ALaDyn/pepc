@@ -162,7 +162,7 @@ module module_calc_force
 
           real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2
           real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
-          type(t_tree_node), pointer :: t
+          type(t_multipole_data), pointer :: t
 
              t=>tree_nodes(inode)
 
@@ -201,9 +201,9 @@ module module_calc_force
 
              sumphi = sumphi + t%charge*rd    &                           !  monopole term
                                         !
-                  + (dx*t%xdip + dy*t%ydip + dz*t%zdip)*rd3  &    !  dipole
+                  + (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3  &    !  dipole
                                         !     Dx             Dy            Dz
-                  + 0.5*fd1*t%xxquad + 0.5*fd2*t%yyquad + 0.5*fd3*t%zzquad  &  !  quadrupole
+                  + 0.5*fd1*t%quad(1) + 0.5*fd2*t%quad(2) + 0.5*fd3*t%quad(3)  &  !  quadrupole
                                         !           Qxx                 Qyy                 Qzz
                   + fd4*t%xyquad + fd5*t%yzquad + fd6*t%zxquad
              !   Qxy            Qyz             Qzx
@@ -212,32 +212,32 @@ module module_calc_force
 
              sumfx = sumfx + t%charge*dx*rd3 &      ! monopole term
                                         !
-                  + fd1*t%xdip + fd4*t%ydip + fd6*t%zdip   &   !  dipole term
+                  + fd1*t%dip(1) + fd4*t%dip(2) + fd6*t%dip(3)   &   !  dipole term
                                         !
-                  + (15.*dx3*rd7 - 9.*dx*rd5 )*0.5*t%xxquad &     !
+                  + (15.*dx3*rd7 - 9.*dx*rd5 )*0.5*t%quad(1) &     !
                   + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*t%xyquad &     !
                   + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*t%zxquad &     !   quadrupole term
                   + ( 15*dx*dy*dz*rd7 )*t%yzquad &                !
-                  + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*0.5*t%yyquad & !
-                  + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*0.5*t%zzquad   !
+                  + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*0.5*t%quad(2) & !
+                  + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*0.5*t%quad(3)   !
 
              sumfy = sumfy + t%charge*dy*rd3 &
-                  + fd2*t%ydip + fd4*t%xdip + fd5*t%zdip  &
-                  + ( 15.*dy3*rd7 - 9.*dy*rd5 )*0.5*t%yyquad &
+                  + fd2*t%dip(2) + fd4*t%dip(1) + fd5*t%dip(3)  &
+                  + ( 15.*dy3*rd7 - 9.*dy*rd5 )*0.5*t%quad(2) &
                   + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*t%xyquad &
                   + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*t%yzquad &
                   + ( 15.*dx*dy*dz*rd7 )*t%zxquad &
-                  + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*0.5*t%xxquad &
-                  + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*0.5*t%zzquad
+                  + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*0.5*t%quad(1) &
+                  + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*0.5*t%quad(3)
 
              sumfz = sumfz + t%charge*dz*rd3 &
-                  + fd3*t%zdip + fd5*t%ydip + fd6*t%xdip  &
-                  + ( 15.*dz3*rd7 - 9.*dz*rd5 )*0.5*t%zzquad &
+                  + fd3*t%dip(3) + fd5*t%dip(2) + fd6*t%dip(1)  &
+                  + ( 15.*dz3*rd7 - 9.*dz*rd5 )*0.5*t%quad(3) &
                   + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*t%zxquad &
                   + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*t%yzquad &
                   + ( 15.*dx*dy*dz*rd7 )*t%xyquad &
-                  + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*0.5*t%yyquad &
-                  + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*0.5*t%xxquad
+                  + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*0.5*t%quad(2) &
+                  + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*0.5*t%quad(1)
 
         end subroutine calc_force_coulomb_3D
 
@@ -266,7 +266,7 @@ module module_calc_force
 
           real*8 :: dx,dy,d2,rd2,rd4,rd6,dx2,dy2,dx3,dy3
           real :: eps2
-          type(t_tree_node), pointer :: t
+          type(t_multipole_data), pointer :: t
 
           eps2   = cf_par%eps**2
           sumfx  = 0.
@@ -290,38 +290,33 @@ module module_calc_force
 	  
           sumphi = sumphi - 0.5*t%charge*log(d2)    &                           !  monopole term 
                ! 
-               + (dx*t%xdip + dy*t%ydip )*rd2  &    !  dipole 
+               + (dx*t%dip(1) + dy*t%dip(2) )*rd2  &    !  dipole
                !                               
-               + 0.5*t%xxquad*(dx2*rd4 - rd2) + 0.5*t%yyquad*(dy2*rd4 - rd2) + t%xyquad*dx*dy*rd4  !  quadrupole 
+               + 0.5*t%quad(1)*(dx2*rd4 - rd2) + 0.5*t%quad(2)*(dy2*rd4 - rd2) + t%xyquad*dx*dy*rd4  !  quadrupole
           
           sumfx = sumfx + t%charge*dx*rd2  &   ! monopole 
                ! 
-               + t%xdip*(2*dx2*rd4 - rd2) + t%ydip*2*dx*dy*rd4  &  ! dipole 
+               + t%dip(1)*(2*dx2*rd4 - rd2) + t%dip(2)*2*dx*dy*rd4  &  ! dipole
                ! 
-               + 0.5*t%xxquad*(8*dx3*rd6 - 6*dx*rd4) &                    ! quadrupole 
-               + 0.5*t%yyquad*(8*dx*dy**2*rd6 - 2*dx*rd4) & 
+               + 0.5*t%quad(1)*(8*dx3*rd6 - 6*dx*rd4) &                    ! quadrupole
+               + 0.5*t%quad(2)*(8*dx*dy**2*rd6 - 2*dx*rd4) &
                +     t%xyquad*(8*dx2*dy*rd6 - 2*dy*rd4) 
           
           sumfy = sumfy + t%charge*dy*rd2  &   ! monopole 
                ! 
-               + t%ydip*(2*dy2*rd4 - rd2) + t%xdip*2*dx*dy*rd4  &  ! dipole 
+               + t%dip(2)*(2*dy2*rd4 - rd2) + t%dip(1)*2*dx*dy*rd4  &  ! dipole
                ! 
-               + 0.5*t%yyquad*(8*dy3*rd6 - 6*dy*rd4) &                    ! quadrupole 
-               + 0.5*t%xxquad*(8*dy*dx**2*rd6 - 2*dy*rd4) & 
+               + 0.5*t%quad(2)*(8*dy3*rd6 - 6*dy*rd4) &                    ! quadrupole
+               + 0.5*t%quad(1)*(8*dy*dx**2*rd6 - 2*dy*rd4) &
                +     t%xyquad*(8*dy2*dx*rd6 - 2*dx*rd4) 
 
         end subroutine calc_force_coulomb_2D
         
-        !  ===================================================================
-        !
-        !                     CALC_FORCE_LJ
-        !
-        !   Calculate Lennard-Jones forces of particle from interaction list
-        !
-        !  ===================================================================
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Calculates 3D L-J interaction of particle p with tree node inode
+        !> CALC_FORCE_LJ
+        !>
+        !> Calculates 3D Lennard-Jones interaction of particle p with tree node inode
         !> shifted by the lattice vector vbox
         !> results are returned sumfx, sumfy, sumfz, sumphi
         !>
@@ -340,7 +335,7 @@ module module_calc_force
           real*8 :: dx,dy,dz,r
           real*8 :: flj, epsc, plj, aii
 
-          type(t_tree_node), pointer :: t
+          type(t_multipole_data), pointer :: t
 
           t=>tree_nodes(inode)
 

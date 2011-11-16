@@ -1,5 +1,7 @@
 
 module treetypes
+  use module_multipole_helpers
+  implicit none
 
   real*8, parameter, private :: real8_dummy = 1.
 
@@ -45,19 +47,8 @@ module treetypes
      integer   :: byte    ! byte code
      integer   :: leaves  ! # leaves contained
      integer :: owner     ! owner where multipole resides
-     real*8 :: charge     ! net charge sum
-     real*8 :: abs_charge !  absolute charge sum
-     real*8 :: coc(3)       ! centre of charge
-     integer :: level     ! level of tree node (for fast lookup instead of calculation) - stored in close proximity to coc-coordinates for better caching posibilities in walk
-     real*8 :: xdip     ! dipole moment
-     real*8 :: ydip
-     real*8 :: zdip
-     real*8 :: xxquad   ! quadrupole moment
-     real*8 :: yyquad
-     real*8 :: zzquad
-     real*8 :: xyquad
-     real*8 :: yzquad
-     real*8 :: zxquad
+     integer :: level     ! level of tree node (for fast lookup instead of calculation) - stored in close proximity to coc-coordinates for better caching posibilities in walk ! TODO: remove this property
+     type(t_multipole_data) :: m ! real physics
   end type t_tree_node
 
 

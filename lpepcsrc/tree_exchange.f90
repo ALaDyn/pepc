@@ -30,7 +30,7 @@ subroutine tree_exchange
      lcode   = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%childcode
      lleaves = htable( key2addr( pebranch(i),'EXCHANGE: info' ) )%leaves
      packm=>pack_mult(i)
-         packm        = tree_nodes( lnode )
+         packm%m      = tree_nodes( lnode )
          packm%key    = pebranch(i)   ! TODO: this data is maybe not consistently stored in tree_nodes array
          packm%byte   = lcode  ! therefore, we have to take it directly form the htable --> repair this
          packm%leaves = lleaves
@@ -100,8 +100,7 @@ subroutine tree_exchange
         htable(hashaddr)%childcode = IBSET( htable(hashaddr)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zeor its properties (in tree_global)
 
         !insert received data into local tree
-        tree_nodes( lnode )      = get_mult(i)
-        tree_nodes( lnode )%byte = htable(hashaddr)%childcode ! TODO: otherwise maybe inconsistent with htable data
+        tree_nodes( lnode )      = get_mult(i)%m
      endif
 
   end do  

@@ -452,6 +452,7 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine diagnose_tree
         use treevars
+        use module_spacefilling
         implicit none
 
         integer*8 :: key_twig(ntwig), key_leaf(nleaf)
@@ -498,7 +499,7 @@ contains
         ind_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%node,i=1,ntwig )/)   !  Twig node pointers
 
         do i=1,ntwig
-            rcoc2(i) = tree_nodes(ind_twig(i))%coc(1)**2+tree_nodes(ind_twig(i))%coc(2)**2 + tree_nodes(ind_twig(i))%coc(3)**2
+            rcoc2(i) = dot_product(tree_nodes(ind_twig(i))%coc, tree_nodes(ind_twig(i))%coc)
         end do
 
         write (ipefile,'(///a)') 'Tree structure'
@@ -507,8 +508,8 @@ contains
         write (ipefile,'(/a/a,a/(3i5,2o15,2i8,o15,i8,14(1pe30.19)))') 'Twigs from hash-table:', &
         '    i  level  owner        key     parent-key       #    node  code      1st child #leaves ', &
         ' abs_charge    charge   xcoc   ycoc   zcoc   xdip   ydip   zdip   xxquad   yyquad   zzquad   xyquad   yzquad   zxquad', &
-        (i,tree_nodes(ind_twig(i))%level, &              !  index, level
-        htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%owner, &                            ! Owner-PE of node
+        (i,level_from_key(key_twig(i)), &              !  index, level
+        htable( addr_twig(i) )%owner, &                            ! Owner-PE of node
         key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
         addr_twig(i), ind_twig(i), &    ! Table address and node number
         child_twig(i), &                         ! Children byte-code
@@ -518,12 +519,12 @@ contains
         tree_nodes(ind_twig(i))%coc(1), & ! Centre of charge
         tree_nodes(ind_twig(i))%coc(2), &
         tree_nodes(ind_twig(i))%coc(3), &
-        tree_nodes(ind_twig(i))%xdip, &
-        tree_nodes(ind_twig(i))%ydip, &
-        tree_nodes(ind_twig(i))%zdip, &
-        tree_nodes(ind_twig(i))%xxquad, &
-        tree_nodes(ind_twig(i))%yyquad, &
-        tree_nodes(ind_twig(i))%zzquad, &
+        tree_nodes(ind_twig(i))%dip(1), &
+        tree_nodes(ind_twig(i))%dip(2), &
+        tree_nodes(ind_twig(i))%dip(3), &
+        tree_nodes(ind_twig(i))%quad(1), &
+        tree_nodes(ind_twig(i))%quad(2), &
+        tree_nodes(ind_twig(i))%quad(3), &
         tree_nodes(ind_twig(i))%xyquad, &
         tree_nodes(ind_twig(i))%yzquad, &
         tree_nodes(ind_twig(i))%zxquad, &
@@ -539,7 +540,7 @@ contains
 
         write (ipefile,'(/a/3a5,2a10,2a15,a25,4a11/(3i5,2i10,2o15,o25,4f30.19))') 'Local leaves from hash-table:', &
         'i','owner','plab','i-leaf','lev','key','parent','pkey','x','y','z','q', &
-        (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),tree_nodes(ind_leaf(i))%level,key_leaf(i), &
+        (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),level_from_key(key_leaf(i)),key_leaf(i), &
         ishft( key_leaf(i),-3 ), &      ! parent
         particles(ind_leaf(i))%key, &  ! particle key
         particles(ind_leaf(i))%x, particles(ind_leaf(i))%q, &
@@ -554,13 +555,13 @@ contains
 
         write (ipefile,'(//a/a/(4i5,2o15,i5,2f11.4,f6.1,f11.4))') 'Non-local leaves from hash-table:', &
         '    i   owner    i-leaf    lev    key    parent  plabel  xcoc  ycoc  charge      ', &
-        (i,owner_leaf(i),ind_leaf(i),tree_nodes(ind_leaf(i))%level,key_leaf(i), &
+        (i,owner_leaf(i),ind_leaf(i),level_from_key(key_leaf(i)),key_leaf(i), &
           ishft( key_leaf(i),-3 ), &      ! parent
           plist_leaf(i), & ! global particle label
           tree_nodes(ind_twig(i))%coc(1),&
           tree_nodes(ind_twig(i))%coc(2),&
           tree_nodes(ind_twig(i))%charge,&
-          tree_nodes(ind_twig(i))%xdip, &
+          tree_nodes(ind_twig(i))%dip(1), &
         i=1,nleaf-nleaf_me)
 
     end subroutine diagnose_tree

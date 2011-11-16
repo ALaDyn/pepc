@@ -883,7 +883,7 @@ module tree_walk_pthreads
       logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
 
       integer*8 :: walk_key, childlist(8)
-      integer :: walk_addr, walk_node, childnum
+      integer :: walk_addr, walk_node, childnum, walk_level
 
       real*8 :: dist2
       real*8 :: delta(3), shifted_particle_position(3)
@@ -905,8 +905,9 @@ module tree_walk_pthreads
       ! read all todo_list-entries and start further traversals there
       do while (todo_list_pop(walk_key))
 
-          walk_addr = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
-          walk_node = htable( walk_addr )%node            ! Walk node index - points to multipole moments
+          walk_level = level_from_key(walk_key)
+          walk_addr  = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
+          walk_node  = htable( walk_addr )%node            ! Walk node index - points to multipole moments
 
           delta     = shifted_particle_position - tree_nodes(walk_node)%coc  ! Separation vector
 
@@ -914,7 +915,7 @@ module tree_walk_pthreads
 
           if (cf_par%mac == 0) then
               ! Barnes-Hut-MAC
-              mac_ok = (theta2 * dist2 > boxlength2(tree_nodes(walk_node)%level))
+              mac_ok = (theta2 * dist2 > boxlength2(walk_level))
           else
               ! TODO:  BH MAC is also implemented in mac_choose routine,
               !        which needs tuning and inlining to avoid excessive parameter-passing overhead

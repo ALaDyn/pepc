@@ -288,7 +288,7 @@ module tree_walk_communicator
       ! Package children properties into user-defined multipole array for shipping
       do ic = 1,nchild
          c=>children_to_send(ic)
-           c        = tree_nodes(node_child(ic))
+           c%m      = tree_nodes(node_child(ic))
            c%key    = key_child(ic)   ! TODO: this data is maybe not consistently stored in tree_nodes array
            c%byte   = byte_child(ic)  ! therefore, we have to take it directly form the htable --> repair this
            c%leaves = leaves_child(ic)
@@ -399,7 +399,7 @@ module tree_walk_communicator
         end select
 
         ! Physical properties
-        tree_nodes( nodchild ) = child_data( ic )
+        tree_nodes( nodchild ) = child_data( ic )%m
 
         !  Add child key to list of fetched nodes
         sum_fetches=sum_fetches+1
