@@ -89,6 +89,7 @@ end subroutine libpepc_setup
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Creates and registers user-defined MPI types
+!> TODO: shift t_multipole_data stuff into module_multipole_helpers
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine libpepc_register_mpi_types(db_level)
@@ -178,7 +179,7 @@ subroutine libpepc_register_mpi_types(db_level)
   types(2:4)    = MPI_INTEGER
   types(5:9)    = MPI_REAL8
   types(10)     = MPI_INTEGER
-  types(11:22)  = MPI_REAL8
+  types(11:19)  = MPI_REAL8
 
 
   call MPI_GET_ADDRESS( node_dummy%key, send_base, ierr )  ! Base address for send buffer
@@ -202,9 +203,7 @@ subroutine libpepc_register_mpi_types(db_level)
   call MPI_GET_ADDRESS( node_dummy%xyquad,     address(17), ierr )
   call MPI_GET_ADDRESS( node_dummy%yzquad,     address(18), ierr )
   call MPI_GET_ADDRESS( node_dummy%zxquad,     address(19), ierr )
-  call MPI_GET_ADDRESS( node_dummy%xshift,     address(20), ierr )
-  call MPI_GET_ADDRESS( node_dummy%yshift,     address(21), ierr )
-  call MPI_GET_ADDRESS( node_dummy%zshift,     address(22), ierr )
+
 
   displacements(1:nprops_tree_node) = int(address(1:nprops_tree_node) - send_base)   !  Addresses relative to start of particle (receive) data
 
