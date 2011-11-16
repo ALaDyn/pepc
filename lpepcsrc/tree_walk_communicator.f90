@@ -336,76 +336,30 @@ module tree_walk_communicator
 
     subroutine unpack_data(child_data, num_children, ipe_sender)
       use module_htable
+      use module_tree
       use module_spacefilling
       implicit none
       include 'mpif.h'
       type (t_tree_node) :: child_data(num_children) !< child data that has been received
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
-      integer*8 :: kchild, kparent
-      integer :: hashaddr, lchild,  nodchild, bchild, ownerchild, parent_addr(num_children)
-      integer :: ic, ierr
+      integer*8 :: kparent
+      integer :: ownerchild, parent_addr(num_children)
+      integer :: ic
 
       do ic = 1, num_children
-        kchild      = child_data(ic)%key
-        kparent     = ishft( kchild,-3 )
-        bchild      = child_data(ic)%byte
-        lchild      = child_data(ic)%leaves
-        ownerchild  = child_data(ic)%owner
         ! save parent address - after (!) inserting all (!) children we can flag it: it`s children are then accessible
+        kparent     = ishft( child_data(ic)%key, -3 )
         parent_addr(ic) = key2addr( kparent, 'WALK:unpack_data() - get parent address' )
 
         if (walk_comm_debug) then
           write(ipefile,'("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ",        owner=", I6, ", kchild=", O22)') &
-                         me, kparent, ipe_sender, ownerchild, kchild
+                         me, kparent, ipe_sender, ownerchild, child_data(ic)%key
         end if
 
-        if (lchild == 1 ) then
-           nleaf = nleaf + 1
-           nodchild = nleaf
-           ! Array bound checks
-           if (nleaf>=maxleaf) then
-             write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' leaves',nleaf,' / ',maxleaf
-             flush(6)
-             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-           end if
-
-        else if (lchild > 1) then
-           ntwig = ntwig + 1
-           nodchild = -ntwig
-           ! Array bound checks
-           if (ntwig>=maxtwig) then
-             write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' twigs ',ntwig,' / ',maxtwig
-             flush(6)
-             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-           end if
-
-        else
-           write(ipefile,'(a,o15,a,i7)') '# leaves <= 0 for received child node ',kchild,' from PE ',ipe_sender
-        endif
-
-        ! Insert new node into local #-table
-        call make_hashentry( kchild, nodchild, lchild, bchild, ownerchild, hashaddr, ierr )
-
-        select case (ierr)
-          case (0)
-           ! anything is fine
-          case (1)
-           ! entry with the same key is already existing, so we just overwrite it
-           write(*,*) "PE", me, "has found an already inserted entry unpack_data while calling make_hashentry(", kchild, nodchild, lchild, bchild, ipe_sender, hashaddr, ierr, ") - overwriting it"
-           flush(6)
-          case (2)
-           ! some serious issue happened
-           write(*,*) "PE", me, "has encountered problems in unpack_data while calling make_hashentry(", kchild, nodchild, lchild, bchild, ipe_sender, hashaddr, ierr, ")"
-           flush(6)
-           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-        end select
-
-        ! Physical properties
-        tree_nodes( nodchild ) = child_data( ic )%m
-
-        !  Add child key to list of fetched nodes
-        sum_fetches=sum_fetches+1
+        call tree_insert_node(child_data(ic))
+        ! count number of fetched nodes
+        sum_fetches = sum_fetches+1
      end do
 
      ! set 'children-here'-flag for all parent addresses

@@ -55,10 +55,20 @@ module module_tree
         if ( tree_node%leaves == 1 ) then
            nleaf =  nleaf + 1
            lnode =  nleaf
+           if (nleaf >= maxleaf) then
+             write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' leaves',nleaf,' / ',maxleaf
+             flush(6)
+             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+           end if
         else if ( tree_node%leaves > 1 ) then
            ! twig
            ntwig =  ntwig + 1
            lnode = -ntwig
+           if (ntwig >= maxtwig) then
+             write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' twigs ',ntwig,' / ',maxtwig
+             flush(6)
+             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+           end if
         else
            write(*,*) 'Problem with flagging on remote branches', me
            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
@@ -66,9 +76,19 @@ module module_tree
 
         call make_hashentry( tree_node%key, lnode , tree_node%leaves, IBSET( tree_node%byte, CHILDCODE_NODE_TOUCHED ), tree_node%owner, hashaddr, ierr )
 
-        if (ierr == 1) then
-          write(*,*) 'PE', me, ': Trying to insert already existing node into tree. Updating multipole data instead'
-        endif
+        select case (ierr)
+          case (0)
+           ! anything is fine
+          case (1)
+           ! entry with the same key is already existing, so we just overwrite it
+           write(*,*) "PE", me, "has found an already inserted entry while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr, ierr, ") - overwriting it"
+           flush(6)
+          case (2)
+           ! some serious issue happened
+           write(*,*) "PE", me, "has encountered problems in tree_insert_node while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr, ierr, ")"
+           flush(6)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+        end select
 
         !insert received data into local tree
         tree_nodes( lnode ) = tree_node%m
