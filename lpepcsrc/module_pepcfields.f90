@@ -73,6 +73,7 @@ module module_pepcfields
 	  use tree_walk_pthreads
 	  use tree_walk_communicator
 	  use module_allocation
+	  use module_tree
 	  implicit none
 	  include 'mpif.h'
 
@@ -157,7 +158,9 @@ module module_pepcfields
 	  call tree_local
 	  ! exchange branch nodes
 	  call timer_stamp(t_stamp_before_exchange)
-	  call tree_exchange
+      nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
+      ntwig_me = ntwig
+	  call tree_exchange(pebranch, nbranch, branch_key, nbranch_sum)
 	  ! build global part of tree
 	  call timer_stamp(t_stamp_before_global)
 	  call tree_global
