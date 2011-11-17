@@ -130,6 +130,7 @@ subroutine tree_local
   htable(1)%key    =   1_8            !  key
   htable(1)%link   =  -1              !  collision link
   htable(1)%leaves = npp              ! root contains all leaves, excluding boundary particles
+  htable(1)%childcode = IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE)
   ntwig = 1
   nleaf = 0
 
