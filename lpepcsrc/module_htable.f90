@@ -65,12 +65,12 @@ module module_htable
     integer, private, parameter :: start_child_idx = 0 !< index of first child to be used in traversal - do not change, currently not completely implemented
     type (t_hash), private, parameter :: HASHENTRY_EMPTY = t_hash(0,0_8,-1,0,0,0) !< constant for empty hashentry
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-contains
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    contains
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
@@ -186,6 +186,7 @@ contains
     !>  Resolve collision if necessary
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !> TODO: maybe use t_hash as parameter type instead of different parameters?
     subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, ierror)
 
         use treevars
@@ -195,127 +196,45 @@ contains
         integer*8, intent(in) :: keyin
         integer, intent(in) :: nodein, leavesin, codein, ownerin      ! call input parameters
         integer, intent(out) :: newentry  ! address in # table returned to calling routine
+        integer, intent(out) :: ierror
+
         integer :: ierr
-        integer :: link_addr, cell_addr, ierror, free, addr_count
-        logical :: resolved
 
-        ierror = 0
-        addr_count = 1
-        free = free_addr(iused)
+        if (.not. testaddr(keyin, newentry)) then
+          ! this key does not exist in the htable 
+          ierror = 0
 
-        ! perform address hashing on key
-        cell_addr = int(IAND( keyin, hashconst))
+          if (newentry .eq. -1) then
+            ! the first entry is already empty
+            newentry = int(IAND( keyin, hashconst))
 
-        if ( htable( cell_addr )%node == 0 .and. htable( cell_addr )%key /=-1 ) then       ! Is entry empty?
-            newentry = cell_addr                 ! Yes, so create new entry:
-            htable( cell_addr )%node = nodein          !   local pointer
-            htable( cell_addr )%key =  keyin            !   key
-            htable( cell_addr )%leaves = leavesin       !   # contained nodes
-            htable( cell_addr )%childcode = codein       !  child byte-code or particle #
-            htable( cell_addr )%owner = ownerin       ! PE owning branch node
-
-            if (point_free(cell_addr) /= 0) then     ! Check if new address in collision res. list
-                free_addr( point_free(cell_addr) ) = free_addr(sum_unused)  ! Replace free address with last on list
-                point_free(free_addr(sum_unused)) = point_free(cell_addr)   ! Reset pointer
-                point_free(cell_addr) = 0
+            if (point_free(newentry) /= 0) then     ! Check if new address in collision res. list
+                free_addr( point_free(newentry) ) = free_addr(sum_unused)  ! Replace free address with last on list
+                point_free(free_addr(sum_unused)) = point_free(newentry)  ! Reset pointer
+                point_free(newentry)              = 0
                 sum_unused = sum_unused - 1
             endif
+          else
+            ! we are at the end of a linked list --> create new entry
+            htable( newentry )%link = free_addr(iused)
+            newentry                = htable( newentry )%link
+            iused                   = iused + 1
+          endif
 
-        else if ( htable( cell_addr )%node /= 0 .AND. htable(cell_addr)%key == keyin ) then
-            ! Entry exists and keys match
-            ! => local node or already inserted
-            ierror = 1
-            newentry = cell_addr
+          ! check if new entry is really empty
+          if ((htable(newentry)%node /= 0 ) .or. (htable( newentry )%key/=0)) then
+            write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
+            write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
+            write (*,*) "htable(newentry):  ", htable(newentry)
+            write (*,*) "desired entry:     ", t_hash( nodein, keyin, -1, leavesin, codein, ownerin )
+            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+          endif
 
-        else            ! Entry exists and keys do not match: COLLISION
-
-            if ( htable( cell_addr )%link == -1) then     ! Entry was occupied without existing link
-
-                newentry =  free  ! Pick next free # address from list of unused table positions (computed at end of treebuild)
-
-                if (htable(free)%node /= 0 ) then
-                    write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
-                    write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
-                    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-                endif
-                htable( free )%node = nodein
-                htable( free )%key = keyin
-                htable( free )%childcode = codein
-                htable( free )%leaves = leavesin
-                htable( free )%owner = ownerin
-                htable( free )%link = -1
-                htable( cell_addr )%link = free     ! Create link from 1st duplicate entry to new entry
-                iused = iused + 1        ! increment free address counter
-
-
-            else if ( htable( cell_addr )%link /= -1 ) then     ! Address occupied with link already
-
-                link_addr = cell_addr                          ! Start of chain
-                resolved = .false.                                     ! Resolve flag
-
-                do while (  .not. resolved .and. addr_count < maxaddress)       ! Find end of chain
-                    link_addr = htable(link_addr)%link
-
-                    if ( htable( link_addr )%key == keyin ) then
-                        ! Occupied with same key -> local or boundary node, so skip
-                        resolved = .true.
-                        ierror = 1
-                        newentry = link_addr
-
-                    else if ( htable(link_addr)%node == 0 .and. htable (link_addr)%link == -1 ) then
-                        ! Found end of chain: entry was occupied by boundary node, so reuse entry
-                        ! link from previous chain entry still valid
-                        newentry = link_addr
-                        htable( link_addr )%node = nodein
-                        htable( link_addr )%key = keyin
-                        htable( link_addr )%childcode = codein
-                        htable( link_addr )%leaves = leavesin
-                        htable( link_addr )%owner = ownerin
-
-                        if (point_free(link_addr) /= 0) then     ! Check if new address in collision res. list
-                            free_addr( point_free(link_addr) ) = free_addr(sum_unused)  ! Replace free address with last on list
-                            point_free(free_addr(sum_unused)) = point_free(link_addr)   ! Reset pointer
-                            point_free(link_addr) = 0
-                            sum_unused = sum_unused - 1
-                        endif
-                        resolved = .true.
-
-                    else if ( htable(link_addr)%node /= 0 .and. htable (link_addr)%link == -1 ) then
-                        ! Found end of chain: entry occupied with no link
-                        newentry = free
-
-                        if (htable(free)%node /= 0 ) then
-                            write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
-                            write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
-                            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-                        endif
-
-                        htable( free )%node = nodein
-                        htable( free )%key = keyin
-                        htable( free )%childcode = codein
-                        htable( free )%leaves = leavesin
-                        htable( free )%owner = ownerin
-                        htable( free )%link = -1
-                        htable( link_addr )%link = free     ! Create link from 1st duplicate entry to new entry
-                        iused = iused + 1                  ! Increment free_address counter
-                        resolved = .true.
-                    else
-                        addr_count = addr_count + 1
-                       ! not yet resolved - go to next link in chain
-                    endif
-                end do
-
-                if (addr_count >= maxaddress) then
-                    write (ipefile,'(a5,o20,a)') 'Key ',keyin,' not resolved in MAKE_HASHENTRY'
-                    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-                endif
-            else
-                write (ipefile,'(a5,o20,a)') 'Key ',keyin,' not resolved in MAKE_HASHENTRY'
-                ierror = 2
-            end if
-
-        end if
-
+          htable( newentry ) = t_hash( nodein, keyin, htable( newentry )%link, leavesin, codein, ownerin )
+        else
+          ! this key does already exists in the htable - as 'newentry' we return its current address
+          ierror = 1
+        endif
 
     end subroutine make_hashentry
 
@@ -342,14 +261,13 @@ contains
         character(LEN=*) :: cmark
         integer :: key2addr
 
-        key2addr = testaddr(keyin) ! cell address hash function
-
-        if (key2addr == -1) then
+        if (.not. testaddr(keyin, key2addr)) then
           ! could not find key
           write(*,'("Key not resolved in KEY2ADDR at ",a)') cmark
           write(*,'("Bad address, check #-table and key list for PE", I7)') me
           write(*,'("key             = ", o22)') keyin
           write(*,'("initial address = ", i22)') int(IAND( keyin, hashconst))
+          write(*,'("   last address = ", i22)') key2addr
           write(*,'("# const         = ", i22)') hashconst
           write(*,'("maxaddress      = ", i22)') maxaddress
           call diagnose_tree()
@@ -364,10 +282,11 @@ contains
     !> Calculates inverse mapping from the hash-key to the hash-address.
     !>
     !> @param[in] keyin inverse mapping candidate.
-    !> @return address if candidate exists, else -1
+    !> @return .true. if the key has been found, .false. otherwise
+    !> @param[out] addr address if candidate exists, address of last entry in linked list otherwise, -1 if already the first lookup failed
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    function testaddr(keyin)
+    function testaddr(keyin, addr)
 
         use treevars
         implicit none
@@ -375,24 +294,36 @@ contains
 
         integer*8, intent(in)  :: keyin
         integer :: ires
-        integer :: testaddr
+        logical :: testaddr
+        integer, intent(out), optional :: addr
+        integer :: nextaddr, lastaddr
 
-        testaddr = int(IAND( keyin, hashconst))     ! cell address hash function
-        ires     = 1 ! counter for number of htable lookups
+        nextaddr = int(IAND( keyin, hashconst))     ! cell address hash function
 
-        do while ( htable( testaddr )%key .ne. keyin )
-          testaddr = htable( testaddr )%link    ! look at next linked entry
+        if (htable( nextaddr )%key == 0) then ! already the first entry is empty
+           testaddr                = .false.  ! key does not exist in htable
+           if (present(addr)) addr = -1       ! we return -1
+        endif
 
-          ires = ires + 1
+        ires     =  1 ! counter for number of htable lookups
 
-          if (   (testaddr == -1) & ! reached end of linked list without finding the key --> node is not in htable or htable is corrupt
-            .or. (ires     >= maxaddress) ) & ! we probed at as many positions as the htable has entries --> circular linked list or htable corrupt
+        do while ( htable( nextaddr )%key .ne. keyin )
+          lastaddr = nextaddr
+          nextaddr = htable( nextaddr )%link    ! look at next linked entry
+          ires     = ires + 1
+
+          if (   (nextaddr == -1) & ! reached end of linked list without finding the key --> node is not in htable or htable is corrupt
+            .or. (ires >= maxaddress) ) & ! we probed at as many positions as the htable has entries --> circular linked list or htable corrupt
             then
-              testaddr = -1
+              testaddr                = .false.  ! key does not exist in htable
+              if (present(addr)) addr = lastaddr ! we return last entry in the linked list
               return
           endif
 
         end do
+
+        testaddr                = .true.   ! key has been found in htable
+        if (present(addr)) addr = nextaddr ! we return its address
 
     end function testaddr
 
