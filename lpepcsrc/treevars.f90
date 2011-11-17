@@ -23,7 +23,7 @@ module treevars
   integer*8, allocatable :: &
                                 treekey(:), &       ! keys of all twig and leaf nodes
                                 branch_key(:), &    ! keys of branch nodes covering all domains
-                                pebranch(:), &	    ! keys of branch nodes covering local domain
+                                pebranch(:), &      ! keys of branch nodes covering local domain
                                 twig_key(:)         ! local twig keys
 
   integer, allocatable :: &
@@ -49,7 +49,7 @@ module treevars
              nleaf_me, &       ! total # leaves in local domain
              ntwig_me, &       ! total # twigs in local domain
              nlist, &          ! # particles/PE + boundary bodies (1 or 2)
-             nnodes, &         ! nleaf + ntwig
+             nnodes, &         ! nleaf + ntwig !TODO: remove
              nbranch, &        ! min # branch nodes covering local domain
              nbranch_sum, &    ! total # branch nodes covering all domains
              nintmax, &        ! max # terms allowed in interaction list

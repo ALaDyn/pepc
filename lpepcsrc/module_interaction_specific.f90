@@ -147,7 +147,7 @@ module module_interaction_specific
       !> Accumulates multipole properties of child nodes to parent node
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine shift_nodes_up(parent, children)
+      subroutine shift_multipoles_up(parent, children)
         implicit none
         type(t_multipole_data), intent(out) :: parent
         type(t_multipole_data), intent(in) :: children(:)

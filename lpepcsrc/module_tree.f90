@@ -4,45 +4,92 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_tree
-      implicit none
-      private
+    implicit none
+    private
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! TODO: move tree_nodes array here
 
-      public tree_insert_node
-      public tree_exchange
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    public tree_insert_node
+    public tree_exchange
+    public tree_build_upwards
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      contains
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    contains
 
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !>
-      !> Inserts a given tree node into the next free position in the tree ( -(ntwig+1) or (nleaf+1) )
-      !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine tree_insert_node(tree_node)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> if an entry with tree_node%key already exists in htable, then
+    !> updates htable and tree_nodes with new data
+    !> otherwise: creates new entries
+    !>
+    !> this routine cannot be used to change a tree_node from leaf to twig or similar
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine tree_update_or_insert_node(tree_node)
+        use treevars
+        use treetypes
+        use module_htable
+        implicit none
+        include 'mpif.h'
+
+        type(t_tree_node), intent(in) :: tree_node
+        integer :: addr
+
+        if (testaddr(tree_node%key, addr)) then
+          ! the htable-entry and node already exist --> update
+
+          ! if we change the owner from someting else to 'me', we have to keep track of the leaf/twig counters
+          if ((htable(addr)%owner .ne. me) .and. (tree_node%owner .eq. me)) then
+            if (is_leaf(addr)) then
+              nleaf_me = nleaf_me + 1
+            else
+              ntwig_me = ntwig_me + 1
+            endif
+          endif
+
+          htable( addr )%leaves    = tree_node%leaves
+          htable( addr )%childcode = tree_node%byte
+          htable( addr )%owner     = tree_node%owner
+
+          tree_nodes(htable(addr)%node) = tree_node%m
+        else
+          ! create new htable and nodelist entry
+          call tree_insert_node(tree_node)
+        endif
+
+    end subroutine
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Inserts a given tree node into the next free position in the tree ( -(ntwig+1) or (nleaf+1) )
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine tree_insert_node(tree_node)
         use treevars
         use treetypes
         use module_htable
@@ -52,136 +99,333 @@ module module_tree
         type(t_tree_node), intent(in) :: tree_node
         integer :: hashaddr, lnode, ierr
 
-        if ( tree_node%leaves == 1 ) then
-           nleaf =  nleaf + 1
-           lnode =  nleaf
-           if (nleaf >= maxleaf) then
-             write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' leaves',nleaf,' / ',maxleaf
-             flush(6)
-             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-           end if
-        else if ( tree_node%leaves > 1 ) then
-           ! twig
-           ntwig =  ntwig + 1
-           lnode = -ntwig
-           if (ntwig >= maxtwig) then
-             write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,' twigs ',ntwig,' / ',maxtwig
-             flush(6)
-             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-           end if
-        else
-           write(*,*) 'Problem with flagging on remote branches', me
-           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-        endif
 
-        call make_hashentry( tree_node%key, lnode , tree_node%leaves, IBSET( tree_node%byte, CHILDCODE_NODE_TOUCHED ), tree_node%owner, hashaddr, ierr )
+        call make_hashentry( tree_node%key, 0, tree_node%leaves, IBSET( tree_node%byte, CHILDCODE_NODE_TOUCHED ), tree_node%owner, hashaddr, ierr )
 
         select case (ierr)
           case (0)
-           ! anything is fine
+            ! anything is fine - we will have to assign a node number now
+            if ( tree_node%leaves == 1 ) then
+               nleaf =  nleaf + 1
+               lnode =  nleaf
+               if (tree_node%owner == me) nleaf_me = nleaf_me+1
+            else if ( tree_node%leaves > 1 ) then
+               ! twig
+               ntwig =  ntwig + 1
+               lnode = -ntwig
+               if (tree_node%owner == me) ntwig_me = ntwig_me+1
+            else
+               write(*,*) 'PE', me, ' found a tree node with less than 1 leaves'
+               call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            endif
+
+            ! check for array bound overrun
+            if ((ntwig >= maxtwig) .or. (nleaf >= maxleaf)) then
+              write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,  &
+                               ' twigs: ', ntwig,' / ', maxtwig, &
+                             '; leaves: ', nleaf,' / ', maxleaf
+              flush(6)
+              call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            end if
+
+             htable( hashaddr )%node = lnode
+
           case (1)
            ! entry with the same key is already existing, so we just overwrite it
+           lnode = htable( hashaddr )%node
+
            write(*,*) "PE", me, "has found an already inserted entry while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr, ierr, ") - overwriting it"
            flush(6)
-          case (2)
-           ! some serious issue happened
-           write(*,*) "PE", me, "has encountered problems in tree_insert_node while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr, ierr, ")"
-           flush(6)
-           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         end select
 
-        !insert received data into local tree
+        !insert multipole data into local tree
         tree_nodes( lnode ) = tree_node%m
 
-      end subroutine tree_insert_node
+    end subroutine tree_insert_node
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Accumulates properties of child nodes (given by keys) to parent node
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine shift_nodes_up_key(parent, childkeys, parent_owner)
+      use treetypes
+      use treevars, only : tree_nodes
+      use module_htable
+      implicit none
+      type(t_tree_node), intent(inout) :: parent
+      integer*8, intent(in) :: childkeys(:)
+      integer, intent(in) :: parent_owner
+
+      integer :: nchild, i
+      type(t_tree_node) :: child_nodes(1:8)
+      integer :: child_addr, childnumber(1:8)
+
+      nchild = size(childkeys)
+
+      do i=1,nchild
+        child_addr     = key2addr(childkeys(i), 'shift_nodes_up_key')
+        childnumber(i) = int(IAND( childkeys(i), hashchild))
+        child_nodes(i) = t_tree_node(childkeys(i),                   &
+                                     htable( child_addr )%childcode, &
+                                     htable( child_addr )%leaves,    &
+                                     htable( child_addr )%owner,     &
+                         tree_nodes( htable( child_addr )%node ) )
+      end do
+
+      call shift_nodes_up(parent, child_nodes(1:nchild), childnumber(1:nchild), parent_owner)
+
+    end subroutine
 
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !>
-      !> Exchanges tree nodes that are given in local_branch_keys with remote PEs
-      !> incoming tree nodes are inserted into tree_nodes array and htable, but the
-      !> tree above these nodes is not corrected
-      !> outputs keys of new(and own) htable/tree_node entries in branch_keys
-      !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine tree_exchange(local_branch_keys, nbranch, branch_keys, nbranch_sum)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Accumulates properties of child nodes to parent node
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine shift_nodes_up(parent, children, childnumber, parent_owner)
+      use treetypes
+      use module_htable, only : CHILDCODE_BIT_CHILDREN_AVAILABLE
+      implicit none
+        type(t_tree_node), intent(inout) :: parent
+        type(t_tree_node), intent(in) :: children(:)
+        integer, intent(in) :: childnumber(:)
+        integer, intent(in) :: parent_owner
+        integer*8 :: parent_keys(1:8)
 
-          use treevars, only : me, tree_debug, ipefile, num_pe, tree_nodes, nbranches
-          use treetypes
-          use timings
-          use module_htable
-          implicit none
-          include 'mpif.h'
+        integer :: nchild, i, byte
 
-          integer*8, intent(in) :: local_branch_keys(1:nbranch)
-          integer, intent(in) :: nbranch
-          integer*8, intent(inout), allocatable :: branch_keys(:)
-          integer, intent(out) :: nbranch_sum
+        nchild = size(children)
 
-          integer :: i,ierr
-          type( t_hash ), pointer :: hbranch
-          type (t_tree_node),allocatable :: pack_mult(:), get_mult(:)
-          integer, allocatable :: igap(:)    !  stride lengths of local branch arrays
+        ! check if all keys fit to the same parent
+        parent_keys(1:nchild) = ISHFT( children(1:nchild)%key, -3 )
 
-          if (allocated(branch_keys)) deallocate(branch_keys)
+        if ( any(parent_keys(2:nchild) .ne. parent_keys(1))) then
+          write(*,*) "Error in shift nodes up: not all supplied children contribute to the same parent node"
+        endif
 
-          call timer_start(t_exchange_branches)
-          call timer_start(t_exchange_branches_pack)
+        byte = 0
+        do i = 1,nchild
+          byte = IBSET(byte, childnumber(i))
+        end do
 
-          if (tree_debug) then
-              write(ipefile,'(a)') 'TREE EXCHANGE'
-              if (me==0) write(*,'(a)') 'LPEPC | EXCHANGE'
-          endif
+        ! Set children_HERE flag parent since we just built it from its children
+        byte =  IBSET( byte, CHILDCODE_BIT_CHILDREN_AVAILABLE )
 
-          ! Pack local branches for shipping
-          allocate(pack_mult(nbranch))
-          do i=1,nbranch
-              hbranch      => htable( key2addr( local_branch_keys(i),'EXCHANGE: info' ) )
-              pack_mult(i) =  t_tree_node( local_branch_keys(i), hbranch%childcode, hbranch%leaves, me, tree_nodes(hbranch%node) )
-          end do
+        parent%key    = parent_keys(1)
+        parent%byte   = byte
+        parent%leaves = sum(children(1:nchild)%leaves)
+        parent%owner  = parent_owner
 
-          call timer_stop(t_exchange_branches_pack)
-          call timer_start(t_exchange_branches_admininstrative)
+        call shift_multipoles_up(parent%m, children(1:nchild)%m)
 
-          call mpi_allgather( nbranch, 1, MPI_INTEGER, nbranches, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+    end subroutine
 
-          ! work out stride lengths so that partial arrays placed sequentially in global array
-          allocate (igap(num_pe+3))
 
-          igap(1) = 0
-          do i=2,num_pe+1
-              igap(i) = igap(i-1) + nbranches(i-1)
-          end do
 
-          nbranch_sum = igap(num_pe+1)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Exchanges tree nodes that are given in local_branch_keys with remote PEs
+    !> incoming tree nodes are inserted into tree_nodes array and htable, but the
+    !> tree above these nodes is not corrected
+    !> outputs keys of new(and own) htable/tree_node entries in branch_keys
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine tree_exchange(local_branch_keys, nbranch, branch_keys, nbranch_sum)
 
-          allocate(get_mult(1:nbranch_sum), branch_keys(1:nbranch_sum))
+        use treevars, only : me, tree_debug, ipefile, num_pe, tree_nodes, nbranches
+        use treetypes
+        use timings
+        use module_htable
+        implicit none
+        include 'mpif.h'
 
-          call timer_stop(t_exchange_branches_admininstrative)
-          call timer_start(t_exchange_branches_allgatherv)
+        integer*8, intent(in) :: local_branch_keys(1:nbranch)
+        integer, intent(in) :: nbranch
+        integer*8, intent(inout), allocatable :: branch_keys(:)
+        integer, intent(out) :: nbranch_sum
 
-          ! actually exchange the branch nodes
-          call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node, get_mult, nbranches, igap, MPI_TYPE_tree_node, MPI_COMM_WORLD, ierr)
+        integer :: i,ierr
+        type( t_hash ), pointer :: hbranch
+        type (t_tree_node),allocatable :: pack_mult(:), get_mult(:)
+        integer, allocatable :: igap(:)    !  stride lengths of local branch arrays
 
-          deallocate(pack_mult)
-          deallocate (igap)
+        if (allocated(branch_keys)) deallocate(branch_keys)
 
-          call timer_stop(t_exchange_branches_allgatherv)
-          call timer_start(t_exchange_branches_integrate)
+        call timer_start(t_exchange_branches)
+        call timer_start(t_exchange_branches_pack)
 
-          ! Integrate remote branches into local tree
-          do i = 1,nbranch_sum
-              ! store branch key for later (global tree buildup)
-              branch_keys(i) = get_mult(i)%key
-              ! insert all remote branches into local data structures (this does *not* prepare the internal tree connections, but only copies multipole properties and creates the htable-entries)
-              if (get_mult(i)%owner /= me) call tree_insert_node(get_mult(i))
-          end do
+        if (tree_debug) then
+            write(ipefile,'(a)') 'TREE EXCHANGE'
+            if (me==0) write(*,'(a)') 'LPEPC | EXCHANGE'
+        endif
 
-          deallocate(get_mult)
+        ! Pack local branches for shipping
+        allocate(pack_mult(nbranch))
+        do i=1,nbranch
+            hbranch      => htable( key2addr( local_branch_keys(i),'EXCHANGE: info' ) )
+            pack_mult(i) =  t_tree_node( local_branch_keys(i), hbranch%childcode, hbranch%leaves, me, tree_nodes(hbranch%node) )
+        end do
 
-          call timer_stop(t_exchange_branches_integrate)
-          call timer_stop(t_exchange_branches)
+        call timer_stop(t_exchange_branches_pack)
+        call timer_start(t_exchange_branches_admininstrative)
 
-      end subroutine tree_exchange
+        call mpi_allgather( nbranch, 1, MPI_INTEGER, nbranches, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+
+        ! work out stride lengths so that partial arrays placed sequentially in global array
+        allocate (igap(num_pe+3))
+
+        igap(1) = 0
+        do i=2,num_pe+1
+            igap(i) = igap(i-1) + nbranches(i-1)
+        end do
+
+        nbranch_sum = igap(num_pe+1)
+
+        allocate(get_mult(1:nbranch_sum), branch_keys(1:nbranch_sum))
+
+        call timer_stop(t_exchange_branches_admininstrative)
+        call timer_start(t_exchange_branches_allgatherv)
+
+        ! actually exchange the branch nodes
+        call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node, get_mult, nbranches, igap, MPI_TYPE_tree_node, MPI_COMM_WORLD, ierr)
+
+        deallocate(pack_mult)
+        deallocate (igap)
+
+        call timer_stop(t_exchange_branches_allgatherv)
+        call timer_start(t_exchange_branches_integrate)
+
+        ! Integrate remote branches into local tree
+        do i = 1,nbranch_sum
+
+            ! insert all remote branches into local data structures (this does *not* prepare the internal tree connections, but only copies multipole properties and creates the htable-entries)
+            if (get_mult(i)%owner /= me) then
+              ! delete all custom flags from incoming nodes (e.g. CHILDCODE_BIT_CHILDREN_AVAILABLE)
+              get_mult(i)%byte = IAND(get_mult(i)%byte, CHILDCODE_CHILDBYTE)
+              call tree_insert_node(get_mult(i))
+            endif
+            ! store branch key for later (global tree buildup)
+            branch_keys(i) = get_mult(i)%key
+        end do
+
+        deallocate(get_mult)
+
+        call timer_stop(t_exchange_branches_integrate)
+        call timer_stop(t_exchange_branches)
+
+    end subroutine tree_exchange
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Builds up the tree from the given start keys towards root
+    !>  - expects, that the nodes that correspond to start_keys already
+    !>    have been inserted into htable and tree_nodes array
+    !>  - missing nodes on the way towards root are added automatically
+    !>  - already existing nodes are updated
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine tree_build_upwards(start_keys, numkeys)
+
+        use treevars, only : me, tree_debug, ipefile, proc_debug
+        use timings
+        use tree_utils
+        use module_htable
+        use module_spacefilling
+        use module_interaction_specific
+        use treetypes
+        implicit none
+        include 'mpif.h'
+
+        integer*8, intent(in) :: start_keys(1:numkeys)
+        integer, intent(in) :: numkeys
+        integer, dimension(1:numkeys) :: branch_level
+        integer*8, dimension(0:numkeys+1) :: sub_key, parent_key
+        type(t_tree_node) :: parent_node
+
+        integer :: ilevel, maxlevel, nsub, groupstart, groupend, i, nparent, nuniq
+        integer*8 :: current_parent_key
+
+        call timer_start(t_global)
+
+        if (tree_debug) then
+            write(ipefile,'(a)') 'TREE GLOBAL'
+            if (me==0) write(*,'(a)') 'LPEPC | GLOBAL'
+        endif
+
+        if (tree_debug .and. ((proc_debug.eq.-1) .or. (proc_debug==me))) then
+            call check_table('after make_branches ')
+        endif
+
+        ! get levels of branch nodes
+        branch_level(1:numkeys) = level_from_key(start_keys(1:numkeys))
+        maxlevel = maxval( branch_level(1:numkeys) )        ! Find maximum level
+
+        nparent = 0
+
+        ! iterate through branch levels
+        do ilevel = maxlevel,0,-1                                            ! Start at finest branch level
+            ! Collect all branches at this level
+            nsub = 0
+            do i=1,numkeys
+                if (branch_level(i) == ilevel) then
+                    nsub          = nsub + 1
+                    sub_key(nsub) = start_keys(i)
+                endif
+            end do
+
+            ! Augment list with parent keys checked at previous level
+            sub_key(nsub+1:nsub+nparent) = parent_key(1:nparent)
+            nsub                         = nsub + nparent
+
+            call sort(sub_key(1:nsub))                                        ! Sort keys
+
+            sub_key(0)   = 0                                                  ! remove all duplicates from the list
+            nuniq = 0
+            do i=1,nsub
+                if (sub_key(i) .ne. sub_key(i-1)) then
+                    nuniq          = nuniq + 1
+                    sub_key(nuniq) = sub_key(i)
+                end if
+            end do
+
+            nsub = nuniq
+            sub_key(nsub+1) = 0
+
+            ! now, sub_key(1:nsub) contains a list of all keys (unique) at ilevel that
+            ! (1) just have been inserted into the tree
+            ! (2) have been modified due to additional child data
+            ! tree_nodes() and htable()-entries exist for both cases
+            ! --> their parents need to be created and/or updated
+            i       = 1
+            nparent = 0
+
+            do while (i <= nsub)
+              ! group keys with the same parent
+              current_parent_key = ISHFT( sub_key(i),-3 )
+
+              groupstart = i
+              do while ((ISHFT( sub_key(i+1),-3 ) .eq. current_parent_key) .and. (i+1 <= nsub))
+                i = i + 1
+              end do
+              groupend   = i
+
+              call shift_nodes_up_key(parent_node, sub_key(groupstart:groupend), me)
+              call tree_update_or_insert_node(parent_node)
+
+              nparent             = nparent + 1
+              parent_key(nparent) = current_parent_key
+
+              ! go on with next group
+              i = i + 1
+            end do
+
+        end do
+
+        call timer_stop(t_global)
+
+    end subroutine tree_build_upwards
+
 
 end module module_tree

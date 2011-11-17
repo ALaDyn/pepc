@@ -290,7 +290,8 @@ subroutine tree_local
            ntwig = ntwig + 1
            htable( newentry(i) )%node = -ntwig
            htable( newentry(i) )%owner = me                       ! Set owner
-           htable( newentry(i) )%childcode = 0  ! Zero children byte-code in twig nodes
+           htable( newentry(i) )%childcode = IBSET( 0, CHILDCODE_BIT_CHILDREN_AVAILABLE )   ! Set children_HERE flag for all local twig nodes
+           !htable( newentry(i) )%childcode = 0
         else
            write (ipefile,*) 'Problem with flagging'
            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
@@ -337,7 +338,7 @@ subroutine tree_local
   endif
 
   twig_key(ntwig) = 1  ! add root for later
-  treekey(nleaf+1:nnodes) = twig_key(1:ntwig)  ! add twigs to list 
+  treekey(nleaf+1:nnodes) = twig_key(1:ntwig)  ! add twigs to list
   nsubset=0
 
   do i=1,nnodes-1
@@ -454,8 +455,10 @@ subroutine tree_local
   do i=1,ntwig_domain
      addr_twig = key2addr( res_key(i),'PROPERTIES: domain' )   !  Table address
      res_node(i) = htable( addr_twig )%node   !  Twig node index  
-     res_child(i) = htable( addr_twig )%childcode   !  Twig children byte-code 
-     htable(addr_twig)%childcode = IBSET( htable(addr_twig)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zero its properties (in tree_global)
+     res_child(i) = htable( addr_twig )%childcode   !  Twig children byte-code
+
+     ! I have touched this node, do not zero its properties (in tree_global)
+     htable(addr_twig)%childcode = IBSET( htable(addr_twig)%childcode, CHILDCODE_NODE_TOUCHED )
   end do  
 
   ! Go up through tree, starting at deepest level (largest key first)
@@ -472,7 +475,8 @@ subroutine tree_local
             node_child(j) = htable( addr_child )%node                     ! Child node index
          end do
 
-         call shift_nodes_up(res, tree_nodes(node_child(1:nchild)))
+         call shift_multipoles_up(res, tree_nodes(node_child(1:nchild)))
+
 
   end do
 

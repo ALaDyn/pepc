@@ -163,7 +163,7 @@ module module_pepcfields
 	  call tree_exchange(pebranch, nbranch, branch_key, nbranch_sum)
 	  ! build global part of tree
 	  call timer_stamp(t_stamp_before_global)
-	  call tree_global
+	  call tree_build_upwards(branch_key, nbranch_sum)
 
 	  call timer_stop(t_fields_tree)
       call timer_reset(t_walk)

@@ -37,7 +37,7 @@ module module_htable
     integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED     =  8 !< this bit is used inside the childcode to denote that a request for children information is already in the request queue
     integer, public, parameter :: CHILDCODE_BIT_CHILDREN_AVAILABLE =  9 !< this bit is used inside the childcode to denote that children information for the node is available in the local hashtable
     integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT       = 10 !< this bit is used inside the childcode to denote that children information has already been requested from the owner
-    integer, public, parameter :: CHILDCODE_NODE_TOUCHED           = 11 !< this bit is used inside the childcode to notify of nodes, that already contain valid multipole information and may not be set to zero in tree_global
+    integer, public, parameter :: CHILDCODE_NODE_TOUCHED           = 11 !< this bit is used inside the childcode to notify of nodes, that already contain valid multipole information and may not be set to zero in tree_global !TODO: this should not be necessary
     integer, public, parameter :: CHILDCODE_CHILDBYTE            = b'11111111' !< bits that contain the children information for this node
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -71,6 +71,21 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     contains
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> checks whether the given htable-entry is a leaf or a twig
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! TODO: use this function everywhere consistently
+    function is_leaf(hashaddr)
+      implicit none
+      integer, intent(in) :: hashaddr
+      logical:: is_leaf
+      ! TODO: this way of identifying leaves/twigs is not good -- use number of leaves or (even better) a flag in the childcode, instead
+      is_leaf = (htable(hashaddr)%node > 0)
+    end function
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
@@ -265,11 +280,11 @@ module module_htable
           ! could not find key
           write(*,'("Key not resolved in KEY2ADDR at ",a)') cmark
           write(*,'("Bad address, check #-table and key list for PE", I7)') me
-          write(*,'("key             = ", o22)') keyin
-          write(*,'("initial address = ", i22)') int(IAND( keyin, hashconst))
-          write(*,'("   last address = ", i22)') key2addr
-          write(*,'("# const         = ", i22)') hashconst
-          write(*,'("maxaddress      = ", i22)') maxaddress
+          write(*,'("key (octal)           = ", o22)') keyin
+          write(*,'("initial address (dez) = ", i22)') int(IAND( keyin, hashconst))
+          write(*,'("   last address (dez) = ", i22)') key2addr
+          write(*,'("# const         (dez) = ", i22)') hashconst
+          write(*,'("maxaddress      (dez) = ", i22)') maxaddress
           call diagnose_tree()
           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         endif

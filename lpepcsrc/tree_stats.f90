@@ -49,7 +49,6 @@ subroutine tree_stats(timestamp)
   call MPI_REDUCE(thread_workload(-2), global_thread_workload(-2), 1, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
   call MPI_REDUCE(thread_workload(-3), global_thread_workload(-3), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr )
   call MPI_REDUCE(thread_workload(-4), global_thread_workload(-4), 2, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
-  nnodes=nleaf+ntwig
   call MPI_REDUCE(nleaf, gmax_leaves, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
   call MPI_REDUCE(ntwig, gmax_twigs,  1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
 
