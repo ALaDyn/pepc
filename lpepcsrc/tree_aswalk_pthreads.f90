@@ -549,6 +549,11 @@ module tree_walk_pthreads
       real*8, target, intent(inout) :: twalk, twalk_loc_
       real*8, target, intent(out), dimension(3) :: tcomm
 
+      if (tree_debug) then
+          write(ipefile,'(a)') 'TREE WALK (HYBRID)'
+          if (me==0) write(*,'(a)') 'LPEPC | TREE WALK (HYBRID)'
+      endif
+
       if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (HYBRID) for timestep ',itime
 
       num_particles = nparticles
