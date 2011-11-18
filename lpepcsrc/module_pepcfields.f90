@@ -137,12 +137,6 @@ module module_pepcfields
                                        t_particle_data(p_q(i)) )   ! charge
           end do
 
-	  ! Trap bad particle labels
-	  if (any(p_label(1:npp) == 0)) then
-	    write (*,*) '*** Error: particle labels must be nonzero:', i, p_label(i)
-	    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-	  endif
-
 	  call timer_stop(t_fields_begin)
 	  call timer_start(t_fields_tree)
 

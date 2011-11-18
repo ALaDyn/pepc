@@ -59,6 +59,7 @@ subroutine tree_local
 
   do i=1,npp+2
      local_plist(i) = particles(i)%label       ! Particle (global) label for tracking purposes
+     if (local_plist(i) == 0) local_plist(i) = huge(local_plist(i))
      local_key(i)   = particles(i)%key           ! Particle key
      local_owner(i) = particles(i)%pid
   end do
