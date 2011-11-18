@@ -24,12 +24,19 @@ module module_tree
     public tree_insert_node
     public tree_exchange
     public tree_build_upwards
+    public tree_build_from_particles
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    !> type for storing key and nideindex together in tree_build_from_particles
+    type t_keyidx
+      integer :: idx
+      integer*8 :: key
+    end type
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -365,7 +372,7 @@ module module_tree
         nparent = 0
 
         ! iterate through branch levels
-        do ilevel = maxlevel,0,-1                                            ! Start at finest branch level
+        do ilevel = maxlevel,1,-1                                            ! Start at finest branch level
             ! Collect all branches at this level
             nsub = 0
             do i=1,numkeys
@@ -426,6 +433,141 @@ module module_tree
         call timer_stop(t_global)
 
     end subroutine tree_build_upwards
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> clears the htable and inserts all given particles at the correct level
+    !> by recursively subdividing the cells if necessary
+    !> after function execution, htable- and tree_node-entries for all twig- and
+    !> leaf-keys exist. entries for leaves are completely valid while those
+    !> for twigs have to be updated via a call to tree_build_upwards()
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine tree_build_from_particles(particle_list, nparticles, leaf_keys)
+      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, free_addr, point_free, free_lo, iused, maxaddress, nleaf_me, ntwig_me, sum_unused
+      use treetypes
+      use module_htable
+      implicit none
+      include 'mpif.h'
+      type(t_particle), intent(in) :: particle_list(1:nparticles)
+      integer, intent(in) :: nparticles
+      integer*8, intent(out) :: leaf_keys(1:nparticles)
+
+      type(t_keyidx) :: particles_left(1:2*nparticles) ! each particle might produce one twig --> we need 2*nparticles as storage space
+      integer :: i, k, nremaining, nreinserted, level, ibit, ierr, hashaddr, nremoved
+      integer*8 :: lvlkey
+
+      call htable_clear() ! TODO: move outside this function
+
+      nremaining = nparticles
+
+      do i=1,nparticles
+        particles_left(i)%key = particle_list(i)%key
+        particles_left(i)%idx = i
+      end do
+
+      level = 0
+      nleaf = nparticles
+      ntwig = 1
+
+      htable(1)%node   =  -1              !  node #
+      htable(1)%owner  =  me              ! Owner
+      htable(1)%key    =   1_8            !  key
+      htable(1)%link   =  -1              !  collision link
+      htable(1)%leaves = 0                ! root contains all leaves, excluding boundary particles - we will check this after tree buildup
+      htable(1)%childcode = IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE)
+
+      ! build list of free addresses for faster collision resolution on insertion into htable ! TODO: move free_addr and related fileds to module_htable and add appropriate access routines
+      sum_unused = 0
+      iused      = 1   ! reset used-address counter
+      do i=0, maxaddress
+         if (i > free_lo) then
+            sum_unused            = sum_unused + 1
+            free_addr(sum_unused) = i            ! Free address list for resolving collisions
+            point_free(i)         = sum_unused   ! Index
+         else
+            point_free(i)         = 0
+         endif
+      enddo
+
+! TODO: add timing information
+
+      do while (nremaining > 0)
+
+        level = level + 1
+        nreinserted = 0
+        nremoved    = 0
+
+        if (level>nlev) then
+           write(*,*) 'Problem with tree on PE ',me,' - no more levels '
+           write(*,'(a/(i8,o30))') 'Remaining particles: ', particle_list(1:nparticles)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+         endif
+
+         ibit = nlev - level               ! bit shift factor (0=highest leaf node, nlev-1 = root)
+
+         ! Determine subcell # from key
+         ! At a given level, these will be unique
+         do i=1,nremaining
+           lvlkey = ishft( particles_left(i)%key, -3_8*ibit )
+
+                                         ! V nodeindex for leaves is identical to original particle index
+           call make_hashentry( lvlkey, particles_left(i)%idx, 1, 0, me, hashaddr, ierr )
+
+           if (ierr == 0) then
+             ! this key does not exist until now --> has been inserted as leaf
+             leaf_keys(particles_left(i)%idx) = lvlkey
+             particles_left(i) = t_keyidx(0, 0_8)
+             nremoved = nremoved + 1
+           else
+             ! the key already exists
+             ! do not remove particle from list - we will retry on next level
+
+             ! if current entry at hashaddr is a leaf
+             if (htable(hashaddr)%node > 0) then
+               ! put it onto our list of unfinished particles again
+               nreinserted                              = nreinserted + 1
+               particles_left(nremaining + nreinserted) = t_keyidx(htable(hashaddr)%node, htable(hashaddr)%key)
+               ! TODO !!!: remove this entry from leaf_keys array
+               ! and turn the current entry into a twig
+               ntwig                 =  ntwig + 1
+               htable(hashaddr)%node = -ntwig
+             else
+               ! the entry already was a twig --> nothing to do
+             endif
+           endif
+
+         end do
+
+         ! compact list of remaining particles
+         k = 0
+         do i=1,nremaining + nreinserted
+           if (particles_left(i)%key .ne. 0) then
+             k = k + 1
+             particles_left(k) = particles_left(i)
+           endif
+         end do
+
+         nremaining = nremaining + nreinserted - nremoved
+
+         if (nremaining .ne. k) then
+           write(*,*) 'PE', me, ': error in bookkeeping in local tree buildup'
+           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+         endif
+      end do
+
+      ! now we can use the correspondence between particle list index and tree_node index for setting the multipole properties
+      do i=1,nparticles
+        call multipole_from_particle(particle_list(i)%x, particle_list(i)%data, tree_nodes(i) )
+      end do
+
+      nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
+      ntwig_me = ntwig
+
+    end subroutine
+
+
 
 
 end module module_tree
