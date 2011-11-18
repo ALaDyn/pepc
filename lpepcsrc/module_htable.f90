@@ -198,6 +198,9 @@ module module_htable
     !>
     !>  Make entry in hash-table - returns address 'newentry'
     !>  Resolve collision if necessary
+    !>  ierror == 0 if anything went fine
+    !>  ierror == 1 if key already exists in htable, newentry is set to
+    !>               return current address, but the htable-entry itself is *not* modified
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !> TODO: maybe use t_hash as parameter type instead of different parameters?
@@ -317,6 +320,7 @@ module module_htable
         if (htable( nextaddr )%key == 0) then ! already the first entry is empty
            testaddr                = .false.  ! key does not exist in htable
            if (present(addr)) addr = -1       ! we return -1
+           return
         endif
 
         ires     =  1 ! counter for number of htable lookups
