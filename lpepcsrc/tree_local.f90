@@ -314,6 +314,11 @@ subroutine tree_local
      
      nlist = nlist - newleaf - nbound
 
+     if (nlist.ne.k) then
+       write(*,*) 'PE', me, ': error in bookkeeping in local tree buildup'
+       call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+     endif
+
      if (build_debug) then
         !  Go through list of unresolved entries
         write (ipefile,*) 'So far: ',nleaf,' leaves, ',newleaf, 'new on level,',ntwig,' twigs, ',ncoll,' collisions'
