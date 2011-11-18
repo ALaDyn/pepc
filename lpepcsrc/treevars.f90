@@ -21,7 +21,6 @@ module treevars
 
   !  tree variables
   integer*8, allocatable :: &
-                                treekey(:), &       ! keys of all twig and leaf nodes
                                 branch_key(:), &    ! keys of branch nodes covering all domains
                                 pebranch(:), &      ! keys of branch nodes covering local domain
                                 twig_key(:)         ! local twig keys

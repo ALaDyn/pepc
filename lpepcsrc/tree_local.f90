@@ -26,6 +26,7 @@ subroutine tree_local
   use module_htable
   use module_spacefilling
   use module_interaction_specific
+  use module_tree
 
   implicit none
   include 'mpif.h'
@@ -34,6 +35,8 @@ subroutine tree_local
        link_addr, ipoint, parent_addr, childbyte, treelevel, ncheck, nsubset, newsub, cchild, nchild, addr_leaf, &
        p_leaf, ntwig_domain, node_leaf, addr_twig, addr_child, nsearch
   integer*8 ::  key_lo, cell1, cell2, parent_key
+  integer*8 :: treekey(maxleaf + maxtwig)       ! keys of all twig and leaf nodes
+
   logical :: resolved
 
   integer*8, dimension(8) :: sub_key, key_child   ! Child partial key
@@ -398,7 +401,7 @@ subroutine tree_local
   !  Start with *local* leaf properties
   do i=1, nleaf_me
      addr_leaf = key2addr( treekey(i),'PROPERTIES: local' )   !  Table address
-     p_leaf = htable( addr_leaf )%node   !  Local particle index  - points to properties on PE
+     p_leaf    = htable( addr_leaf )%node   !  Local particle index  - points to properties on PE
      htable(addr_leaf)%childcode = IBSET( htable(addr_leaf)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zero its properties (in tree_global)
      node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves
 
@@ -408,79 +411,12 @@ subroutine tree_local
 
   call timer_stop(t_props_leafs)
   call timer_start(t_props_twigs)
-
-  !  Accumulate local twig properties
-  !  Make list of twig nodes contained within local branch list (pebranch).  Recursive search adapted from make_branches.
-
-  search_key(1:nbranch) = pebranch(1:nbranch)            ! start with branch list
-  ncheck = 0       ! Checksum
-  newsub = 0
-  ntwig_domain = 0  ! # twigs contained in branch list
-  nsearch = nbranch
-  res_key = 0
-
-  do while ( ncheck < nleaf_me )     ! Repeat until all local leaves found
-
-     do i=1,nsearch
-        if (  htable( key2addr( search_key(i),'PROPERTIES: twigs' ) )%node > 0 ) then
-           !  leaf,  so skip and increment checksum
-           ncheck = ncheck +  1  
-
-        else 
-           ! twig: add to list and  subdivide
-           ntwig_domain = ntwig_domain + 1
-           res_key(ntwig_domain) = search_key(i)
-
-           cchild = htable( key2addr( search_key(i),'PROPERTIES: tw2' ) )%childcode   !  Children byte-code
-           nchild = SUM( (/ (ibits(cchild,j,1),j=0,7) /) ) ! # children = sum of bits in byte-code
-           sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(cchild,j),j=0,7) /) )  ! Extract child sub-keys from byte code
-
-           resolve_key(newsub+1:newsub+nchild) = IOR( ishft( search_key(i),3 ), sub_key(1:nchild) ) ! Add keys of children to new search list
-           newsub = newsub + nchild
-
-        endif
-     end do
-
-     search_key(1:newsub) = resolve_key(1:newsub)        ! Put children into search list
-     nsearch = newsub  ! # new nodes to search
-     newsub = 0
-  end do
-
-  call sort(res_key(1:ntwig_domain))
   
-  if (props_debug) then
-     write (ipefile,*) '# Twigs contained in local branch list: ',ntwig_domain
-     write (ipefile,*) 'Found ',ncheck,' out of ',nleaf,' leaves'
-  endif
-
-  do i=1,ntwig_domain
-     addr_twig = key2addr( res_key(i),'PROPERTIES: domain' )   !  Table address
-     res_node(i) = htable( addr_twig )%node   !  Twig node index  
-     res_child(i) = htable( addr_twig )%childcode   !  Twig children byte-code
-
-     ! I have touched this node, do not zero its properties (in tree_global)
-     htable(addr_twig)%childcode = IBSET( htable(addr_twig)%childcode, CHILDCODE_NODE_TOUCHED )
-  end do  
-
-  ! Go up through tree, starting at deepest level (largest key first)
-  ! and accumulate multipole moments onto twig nodes
-  do i = ntwig_domain,1,-1
-     res=>tree_nodes(res_node(i))
-
-         nchild = SUM( (/ (ibits(res_child(i),j,1),j=0,7) /) )                 ! Get # children
-         sub_key(1:nchild) = pack( bitarr, mask=(/ (btest(res_child(i),j),j=0,7) /) )  ! Extract sub key from byte code
-
-         do j=1,nchild
-            key_child(j) = IOR( ishft( res_key(i),3 ), sub_key(j) )      ! Construct keys of children
-            addr_child = key2addr( key_child(j),'PROPERTIES: domain2' )             ! Table address of children
-            node_child(j) = htable( addr_child )%node                     ! Child node index
-         end do
-
-         call shift_multipoles_up(res, tree_nodes(node_child(1:nchild)))
-
-
-  end do
-
+  ! TODO: * group treekeys branchwise (using is_parent_of() and keys from pebranch)
+  !       * restrict tree_build_upwards to only run to a certain level
+  !       * call it several times with keylists and branch_levels
+  call tree_build_upwards(treekey(1:nleaf_me), nleaf_me)
+!
   ! Should now have multipole information up to branch list level(s).
   ! By definition, this is complete: each branch node is self-contained.
   ! This information has to be broadcast to the other PEs so that the top levels can be filled in.

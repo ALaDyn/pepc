@@ -90,8 +90,7 @@ module module_allocation
 
 	  hashconst = 2**nbaddr-1
 	  allocate ( htable(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
-	       treekey(maxaddress), branch_owner(branch_max_global), &
-	       pebranch(branch_max_global), twig_key(maxtwig) )
+	       branch_owner(branch_max_global), pebranch(branch_max_global), twig_key(maxtwig) )
 
 	  free_addr = 0
 
@@ -125,7 +124,7 @@ module module_allocation
 
 	  if (me==0 .and. tree_debug) write(*,*) 'Deallocating multipole fields'
 
-	  deallocate ( htable, free_addr, point_free, treekey, branch_key, branch_owner, pebranch, twig_key )
+	  deallocate ( htable, free_addr, point_free, branch_key, branch_owner, pebranch, twig_key )
 
 	  ! multipole moments
 	  deallocate ( tree_nodes )
