@@ -74,6 +74,7 @@ module module_pepcfields
 	  use tree_walk_communicator
 	  use module_allocation
 	  use module_tree
+	  use module_htable
 	  implicit none
 	  include 'mpif.h'
 
@@ -156,6 +157,12 @@ module module_pepcfields
 	  ! build local part of tree
 	  call timer_stamp(t_stamp_before_local)
 	  call tree_local
+
+      if (htable(1)%leaves .ne. npp) then
+        write(*,*) 'PE', me, ' did not find all its particles inside the htable after local tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp
+        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+      endif
+
 	  ! exchange branch nodes
 	  call timer_stamp(t_stamp_before_exchange)
       nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
@@ -164,6 +171,11 @@ module module_pepcfields
 	  ! build global part of tree
 	  call timer_stamp(t_stamp_before_global)
 	  call tree_build_upwards(branch_key, nbranch_sum)
+
+      if (htable(1)%leaves .ne. npart_total) then
+        write(*,*) 'PE', me, ' did not find all particles inside the htable after global tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp
+        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+      endif
 
 	  call timer_stop(t_fields_tree)
       call timer_reset(t_walk)

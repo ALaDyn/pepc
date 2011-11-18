@@ -391,11 +391,6 @@ subroutine tree_local
   !       * call it several times with keylists and branch_levels
   call tree_build_upwards(leaf_key(1:nleaf_me), nleaf_me)
 
-  if (htable(1)%leaves .ne. npp) then
-    write(*,*) 'PE', me, ' did not find all its particles inside the htable: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp
-    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-  endif
-!
   ! Should now have multipole information up to branch list level(s).
   ! By definition, this is complete: each branch node is self-contained.
   ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
