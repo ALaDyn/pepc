@@ -359,14 +359,6 @@ subroutine tree_local
   ntwig_me = ntwig
   if (tree_debug .and. (proc_debug==me .or. proc_debug==-1)) call check_table('after treebuild     ')
 
-!!! --------------- TREE BRANCHES (local part) ---------------
-
-  call timer_start(t_branches_find)
-  call find_branches(branch_level_D1, branch_level_D2)
-  call timer_stop(t_branches_find)
-
-  if (tree_debug .and. (proc_debug==me .or. proc_debug==-1)) call check_table('after local branches     ')
-
 !!! --------------- TREE PROPERTIES (local part) ---------------
 
 
@@ -397,6 +389,15 @@ subroutine tree_local
   ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
 
   call timer_stop(t_props_twigs)
+
+!!! --------------- TREE BRANCHES (local part) ---------------
+
+  call timer_start(t_branches_find)
+  call find_branches(branch_level_D1, branch_level_D2)
+  call timer_stop(t_branches_find)
+
+  if (tree_debug .and. (proc_debug==me .or. proc_debug==-1)) call check_table('after local branches     ')
+
   call timer_stop(t_local)
 
 end subroutine tree_local
