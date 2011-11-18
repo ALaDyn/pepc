@@ -132,7 +132,7 @@ subroutine tree_local
   htable(1)%owner  =  me              ! Owner
   htable(1)%key    =   1_8            !  key
   htable(1)%link   =  -1              !  collision link
-  htable(1)%leaves = npp              ! root contains all leaves, excluding boundary particles
+  htable(1)%leaves = 0                ! root contains all leaves, excluding boundary particles - we will check this after tree buildup
   htable(1)%childcode = IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE)
   ntwig = 1
   nleaf = 0
@@ -402,7 +402,7 @@ subroutine tree_local
   do i=1, nleaf_me
      addr_leaf = key2addr( treekey(i),'PROPERTIES: local' )   !  Table address
      p_leaf    = htable( addr_leaf )%node   !  Local particle index  - points to properties on PE
-     htable(addr_leaf)%childcode = IBSET( htable(addr_leaf)%childcode, CHILDCODE_NODE_TOUCHED ) ! I have touched this node, do not zero its properties (in tree_global)
+     htable(addr_leaf)%childcode = 0 ! leaves do not have any children, special flags are also not needed
      node_leaf = p_leaf   !  Leaf node index is identical to particle index for *local* leaves
 
      call multipole_from_particle(particles( p_leaf )%x, particles( p_leaf )%data, tree_nodes( node_leaf ) )
@@ -412,10 +412,16 @@ subroutine tree_local
   call timer_stop(t_props_leafs)
   call timer_start(t_props_twigs)
   
+  ! build tree from local particle keys up to root
   ! TODO: * group treekeys branchwise (using is_parent_of() and keys from pebranch)
   !       * restrict tree_build_upwards to only run to a certain level
   !       * call it several times with keylists and branch_levels
   call tree_build_upwards(treekey(1:nleaf_me), nleaf_me)
+
+  if (htable(1)%leaves .ne. npp) then
+    write(*,*) 'PE', me, ' is did not find all its particles inside the htable: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp
+    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+  endif
 !
   ! Should now have multipole information up to branch list level(s).
   ! By definition, this is complete: each branch node is self-contained.

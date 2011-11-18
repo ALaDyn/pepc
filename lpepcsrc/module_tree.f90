@@ -100,7 +100,7 @@ module module_tree
         integer :: hashaddr, lnode, ierr
 
 
-        call make_hashentry( tree_node%key, 0, tree_node%leaves, IBSET( tree_node%byte, CHILDCODE_NODE_TOUCHED ), tree_node%owner, hashaddr, ierr )
+        call make_hashentry( tree_node%key, 0, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr, ierr )
 
         select case (ierr)
           case (0)
