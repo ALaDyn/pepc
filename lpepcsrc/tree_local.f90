@@ -31,24 +31,19 @@ subroutine tree_local
   implicit none
   include 'mpif.h'
 
-  integer :: i, j, k, i1, i2, ierr, level_match, level_diff, ibit, iend, level, nbound, newleaf, nres, ncoll, &
-       link_addr, ipoint, parent_addr, childbyte, treelevel, ncheck, newsub, cchild, nchild, addr_leaf, &
-       p_leaf, ntwig_domain, node_leaf, addr_twig, addr_child, nsearch
-  integer*8 ::  key_lo, cell1, cell2, parent_key
+  integer :: i, k, i1, i2, ierr, level_match, level_diff, ibit, iend, level, nbound, newleaf, nres, ncoll, &
+       link_addr, ipoint, addr_leaf, p_leaf, node_leaf
+  integer*8 ::  key_lo, cell1, cell2
   integer*8 :: leaf_key(maxleaf)       ! keys of all twig and leaf nodes
 
   logical :: resolved
-
-  integer*8, dimension(8) :: sub_key, key_child   ! Child partial key
-  integer, dimension(8) :: node_child   
 
   integer*8, dimension(nppm+2) :: local_key
   integer, dimension(nppm+2)  :: local_plist, local_owner, local_ind
   integer*8, allocatable :: subcell(:)
   integer, allocatable :: cell_addr(:)
-  integer*8, dimension(maxaddress) :: res_key, resolve_key
+  integer*8, dimension(maxaddress) :: res_key
   integer, dimension(maxaddress) :: newentry, res_addr, res_node, res_child, res_owner
-  type(t_multipole_data), pointer :: res
 
 !!! --------------- TREE BUILD ---------------
 
