@@ -357,7 +357,7 @@ module module_tree
         call timer_start(t_global)
 
         if (tree_debug) then
-            write(ipefile,'(a)') 'TREE GLOBAL'
+            write(ipefile,'(a)') 'TREE GLOBAL' !TODO: prepare a function, that performs this output, move the calls outside of the functions
             if (me==0) write(*,'(a)') 'LPEPC | GLOBAL'
         endif
 
@@ -445,7 +445,7 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_from_particles(particle_list, nparticles, leaf_keys)
-      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, free_addr, point_free, free_lo, iused, maxaddress, nleaf_me, ntwig_me, sum_unused
+      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, free_addr, point_free, free_lo, iused, maxaddress, nleaf_me, ntwig_me, sum_unused, tree_debug, ipefile
       use treetypes
       use module_htable
       implicit none
@@ -458,7 +458,14 @@ module module_tree
       integer :: i, k, nremaining, nreinserted, level, ibit, ierr, hashaddr, nremoved
       integer*8 :: lvlkey
 
+      if (tree_debug) then
+         write(ipefile,'(a)') 'TREE LOCAL' !TODO: prepare a function, that performs this output, move the calls outside of the functions
+         if (me==0) write(*,'(a)') 'LPEPC | LOCAL'
+      endif
+!TODO: exchange left and right neighbour  (see tree_local)
       call htable_clear() ! TODO: move outside this function
+
+      leaf_keys(1:nparticles) = 0_8
 
       nremaining = nparticles
 
@@ -478,7 +485,7 @@ module module_tree
       htable(1)%leaves = 0                ! root contains all leaves, excluding boundary particles - we will check this after tree buildup
       htable(1)%childcode = IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE)
 
-      ! build list of free addresses for faster collision resolution on insertion into htable ! TODO: move free_addr and related fileds to module_htable and add appropriate access routines
+      ! build list of free addresses for faster collision resolution on insertion into htable ! TODO: move free_addr and related fields to module_htable and add appropriate access routines
       sum_unused = 0
       iused      = 1   ! reset used-address counter
       do i=0, maxaddress
@@ -493,6 +500,18 @@ module module_tree
 
 ! TODO: add timing information
 
+      ! The following code works as folllows:
+      ! - starting from coarsest level, each particle's key on
+      !   that level is computed and inserted into the htable as a leaf
+      ! - in case of a collision, the respective htable-entry is turned
+      !   into a twig and the former leaf as well as the additional
+      !   particle are put onto a list for later processing at the next level
+      !
+      ! For simplicity, this code makes heavy use of a correspondence between
+      ! the index in the particles(:)-array and the node list. This leads to
+      ! the construction, that
+      !     htable(key2addr(particles(i)%key))%node == i
+      ! which is also desirable for later access
       do while (nremaining > 0)
 
         level = level + 1
@@ -505,7 +524,7 @@ module module_tree
            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
          endif
 
-         ibit = nlev - level               ! bit shift factor (0=highest leaf node, nlev-1 = root)
+         ibit = nlev - level ! bit shift factor (0=highest leaf node, nlev-1 = root)
 
          ! Determine subcell # from key
          ! At a given level, these will be unique
@@ -528,8 +547,9 @@ module module_tree
              if (htable(hashaddr)%node > 0) then
                ! put it onto our list of unfinished particles again
                nreinserted                              = nreinserted + 1
-               particles_left(nremaining + nreinserted) = t_keyidx(htable(hashaddr)%node, htable(hashaddr)%key)
-               ! TODO !!!: remove this entry from leaf_keys array
+               particles_left(nremaining + nreinserted) = t_keyidx(htable(hashaddr)%node, particle_list(htable(hashaddr)%node)%key)
+               ! remove this entry from leaf_keys array
+               leaf_keys(htable(hashaddr)%node) = 0_8
                ! and turn the current entry into a twig
                ntwig                 =  ntwig + 1
                htable(hashaddr)%node = -ntwig
@@ -564,6 +584,11 @@ module module_tree
 
       nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
       ntwig_me = ntwig
+
+      ! check if we did not miss any particles
+      if (any(leaf_keys(1:nparticles) == 0_8)) then
+        write(*,*) 'PE', me, ' did not incorporate all particles into its leaf_keys array'
+      endif
 
     end subroutine
 

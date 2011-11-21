@@ -30,7 +30,7 @@ module treevars
                                 free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
                                 point_free(:)      ! Pointer to free address index
 
-  type(t_multipole_data), target, allocatable  :: tree_nodes(:)                 ! Tree node properties
+  type(t_multipole_data), target, allocatable  :: tree_nodes(:)                 ! Tree node properties TODO: move to module_tree
 
   ! TODO: put these into tree_aswalk_pthreads module
   integer*8 ::  max_req_list_length, & ! maximum length of request queue

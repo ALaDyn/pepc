@@ -75,6 +75,7 @@ module module_pepcfields
 	  use module_allocation
 	  use module_tree
 	  use module_htable
+	  use module_branching
 	  implicit none
 	  include 'mpif.h'
 
@@ -103,6 +104,8 @@ module module_pepcfields
 	  integer :: ibox
 	  real*8 :: vbox(3)
 	  character(30) :: cfile
+	  integer*8, allocatable :: leaf_keys(:)
+	  logical, parameter :: oldlocal = .true.
 
       ! fields, potential and load weights returned by force-sum: allocated in pepc_fields:
       type(t_particle_results), allocatable :: particle_results(:)
@@ -150,12 +153,29 @@ module module_pepcfields
 
 	  ! build local part of tree
 	  call timer_stamp(t_stamp_before_local)
-	  call tree_local
+if (oldlocal) then
+      call tree_local
+else
+      allocate(leaf_keys(npp))
+      call tree_build_from_particles(particles, npp, leaf_keys)
+      ! build tree from local particle keys up to root
+      call tree_build_upwards(leaf_keys(1:npp), npp)
+      deallocate(leaf_keys)
 
       if (htable(1)%leaves .ne. npp) then
         write(*,*) 'PE', me, ' did not find all its particles inside the htable after local tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp
         call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
       endif
+
+      ! Should now have multipole information up to root list level(s) (only up to branch level, the information is correct)
+      ! By definition, this is complete: each branch node is self-contained.
+      ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
+
+      ! identification of branch nodes
+      call timer_start(t_branches_find)
+      call find_branches(branch_level_D1, branch_level_D2)
+      call timer_stop(t_branches_find)
+endif
 
 	  ! exchange branch nodes
 	  call timer_stamp(t_stamp_before_exchange)

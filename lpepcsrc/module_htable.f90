@@ -14,7 +14,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! Hash table datatype - 36 bytes per entry
-    type :: t_hash
+    type :: t_hash ! TODO: exchange order of node and key
         integer   :: node          !< Address of particle/pseudoparticle data
         integer*8 :: key           !< Key
         integer   :: link          !< Pointer to next empty address in table in case of collision
