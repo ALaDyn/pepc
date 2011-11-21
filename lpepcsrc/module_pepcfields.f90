@@ -110,7 +110,7 @@ module module_pepcfields
       ! fields, potential and load weights returned by force-sum: allocated in pepc_fields:
       type(t_particle_results), allocatable :: particle_results(:)
 
-      if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | FIELDS..'
+      call status('FIELDS')
 
 	  ! copy call parameters to treevars module
 	  npart      = npart_total
@@ -285,6 +285,9 @@ endif
           call timer_stop(t_deallocate)
           call timer_stop(t_all)
 
+          call status('FIELDS DONE')
+
+
 	end subroutine pepc_fields
 
 
@@ -350,7 +353,7 @@ endif
 	  integer :: ibox
 	  real*8 :: vbox(3)
 
-      if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | GRID-FIELDS..'
+      call status('FIELDS GRID')
 
       if (.not. (allocated(htable) .and. allocated(tree_nodes))) then
          write(*,*) 'pepc_grid_fields(): pepc_fields() must have been called with no_dealloc=.true. before'
@@ -392,6 +395,8 @@ endif
 
       ! deallocate particle and result arrays
       deallocate (grid_particles, grid_particle_results)
+
+      call status('FIELDS GRID DONE')
 
 	end subroutine pepc_grid_fields
 

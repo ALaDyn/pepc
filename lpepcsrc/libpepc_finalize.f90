@@ -9,6 +9,8 @@ subroutine libpepc_finalize()
   use module_branching
   implicit none
 
+  call status('FINALIZE')
+
   ! deregister mpi types
   call free_lpepc_mpi_types()
 

@@ -13,6 +13,8 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
   implicit none
   integer, intent(in) :: db_level, my_rank, n_cpu
 
+  call status('SETUP')
+
   ! copy call parameters to treevars module
   me     = my_rank
   num_pe = n_cpu

@@ -94,6 +94,20 @@ module treevars
 ! Memory control
   real :: np_mult=1.5
 
+  contains
+
+
+  subroutine status(stat)
+    implicit none
+    character(*), intent(in) :: stat
+
+    if (tree_debug) then
+       write(ipefile,'("LPEPC | ", a)') stat
+       if (me==0) write(*,'("LPEPC | ", a)') stat
+    endif
+
+  end subroutine
+
 end module treevars
 
 

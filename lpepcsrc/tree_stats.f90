@@ -30,6 +30,8 @@ subroutine tree_stats(timestamp)
   integer ::  part_imbal_max, part_imbal_min
   real*8 :: global_thread_workload(-4:4)
 
+   call status('STATS')
+
   ! particle distrib
   call MPI_GATHER(npp,         1, MPI_INTEGER, nparticles, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(ntwig_me,    1, MPI_INTEGER, tot_ntwig,  1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )

@@ -240,7 +240,7 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_exchange(local_branch_keys, nbranch, branch_keys, nbranch_sum)
 
-        use treevars, only : me, tree_debug, ipefile, num_pe, tree_nodes, nbranches
+        use treevars, only : me, num_pe, tree_nodes, nbranches, status
         use treetypes
         use timings
         use module_htable
@@ -262,10 +262,7 @@ module module_tree
         call timer_start(t_exchange_branches)
         call timer_start(t_exchange_branches_pack)
 
-        if (tree_debug) then
-            write(ipefile,'(a)') 'TREE EXCHANGE'
-            if (me==0) write(*,'(a)') 'LPEPC | EXCHANGE'
-        endif
+        call status('EXCHANGE BRANCHES')
 
         ! Pack local branches for shipping
         allocate(pack_mult(nbranch))
@@ -335,7 +332,7 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_upwards(start_keys, numkeys)
 
-        use treevars, only : me, tree_debug, ipefile, proc_debug
+        use treevars, only : me, tree_debug, proc_debug, status
         use timings
         use tree_utils
         use module_htable
@@ -356,10 +353,7 @@ module module_tree
 
         call timer_start(t_global)
 
-        if (tree_debug) then
-            write(ipefile,'(a)') 'TREE GLOBAL' !TODO: prepare a function, that performs this output, move the calls outside of the functions
-            if (me==0) write(*,'(a)') 'LPEPC | GLOBAL'
-        endif
+        call status('BUILD TOWARDS ROOT')
 
         if (tree_debug .and. ((proc_debug.eq.-1) .or. (proc_debug==me))) then
             call check_table('after make_branches ')
@@ -445,7 +439,7 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_from_particles(particle_list, nparticles, leaf_keys)
-      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, free_addr, point_free, free_lo, iused, maxaddress, nleaf_me, ntwig_me, sum_unused, tree_debug, ipefile
+      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, free_addr, point_free, free_lo, iused, maxaddress, nleaf_me, ntwig_me, sum_unused, status
       use treetypes
       use module_htable
       implicit none
@@ -458,10 +452,7 @@ module module_tree
       integer :: i, k, nremaining, nreinserted, level, ibit, ierr, hashaddr, nremoved
       integer*8 :: lvlkey
 
-      if (tree_debug) then
-         write(ipefile,'(a)') 'TREE LOCAL' !TODO: prepare a function, that performs this output, move the calls outside of the functions
-         if (me==0) write(*,'(a)') 'LPEPC | LOCAL'
-      endif
+      call status('INSERT PARTICLES')
 !TODO: exchange left and right neighbour  (see tree_local)
       call htable_clear() ! TODO: move outside this function
 

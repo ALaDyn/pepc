@@ -70,7 +70,7 @@ module module_tree_domains
         logical :: boundary_debug=.false.
         logical :: identical_keys=.false.
 
-        integer :: status(MPI_STATUS_SIZE), ierr
+        integer :: state(MPI_STATUS_SIZE), ierr
 
         ! arrays for parallel sort
 
@@ -108,8 +108,7 @@ module module_tree_domains
 
         sort_debug=domain_debug
 
-        if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | DOMAINS..'
-
+        call status('DOMAIN DECOMPOSITION')
 
         ! Find limits of local simulation region
         xmin_local = minval(particles(1:npp)%x(1))
@@ -310,7 +309,7 @@ module module_tree_domains
 
         ! Place incoming data at end of array
         if ( me /= num_pe-1) then
-            call MPI_RECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, status, ierr )
+            call MPI_RECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, state, ierr )
             particles(npp+1) = get_props
         endif
 
@@ -331,7 +330,7 @@ module module_tree_domains
         endif
 
         if ( me /= 0) then
-            call MPI_RECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, status, ierr )
+            call MPI_RECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, state, ierr )
             particles(ind_recv) = get_props
         endif
 
@@ -360,8 +359,6 @@ module module_tree_domains
         call timer_stop(t_domains_bound)
         call timer_stop(t_domains)
 
-        if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | ..done'
-
     end subroutine tree_domains
 
 
@@ -374,7 +371,7 @@ module module_tree_domains
                              res,p_pot,p_ex,p_ey,p_ez,p_w)
         ! TODO: replace p_ex etc. by t_particle_results
         use module_interaction_specific
-        use treevars, only : num_pe, me, tree_debug
+        use treevars, only : num_pe, status
         use treetypes
         implicit none
         include 'mpif.h'
@@ -390,7 +387,7 @@ module module_tree_domains
 
         type (t_particle_results) :: get_parts(npold), ship_parts(npnew)
 
-        if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | RESTORE..'
+        call status('RESTORE DOMAINS')
 
         do i=1,npnew
           ship_parts(i) = res(indxl(i))

@@ -54,6 +54,8 @@ module module_allocation
 
 	  if (allocated(htable)) call deallocate_tree(nppm)
 
+      call status('ALLOCATE TREE')
+
 	  nppm=npp
 	  ! Estimate of interaction list length - Hernquist expression
 	  if (theta > 0.01 ) then
@@ -120,16 +122,16 @@ module module_allocation
 	  implicit none
       integer, intent(in) :: nppm_ori
 
-	  nppm = nppm_ori
+      call status('DEALLOCATE TREE')
 
-	  if (me==0 .and. tree_debug) write(*,*) 'Deallocating multipole fields'
+	  nppm = nppm_ori
 
 	  deallocate ( htable, free_addr, point_free, branch_key, branch_owner, pebranch )
 
 	  ! multipole moments
 	  deallocate ( tree_nodes )
-	  ! number of brnaches per PE
-      deallocate (nbranches )
+	  ! number of branches per PE
+      deallocate ( nbranches )
 
 	end subroutine deallocate_tree
 
@@ -146,6 +148,8 @@ module module_allocation
           integer, intent(out) :: nppm_ori
 
           if (allocated(particles)) call deallocate_particles()
+
+          call status('ALLOCATE PARTICLES')
 
           npartm = npart
 
@@ -174,6 +178,8 @@ module module_allocation
         subroutine deallocate_particles()
           use treevars
           implicit none
+
+          call status('DEALLOCATE PARTICLES')
 
           ! particle array deallocation
           deallocate (particles )

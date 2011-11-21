@@ -417,8 +417,7 @@ module module_htable
 
         csnap=achar(mod(isnap,10)+48)
 
-        if (me==0) write (*,*) 'DIAGNOSE TREE'
-        write (ipefile,*) 'DIAGNOSE TREE'
+        call status('DIAGNOSE')
 
         ! output hash table
 

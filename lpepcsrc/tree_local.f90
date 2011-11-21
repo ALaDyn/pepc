@@ -52,8 +52,7 @@ subroutine tree_local
   call timer_start(t_build)
   call timer_start(t_build_neigh)
 
-  if (tree_debug) write(ipefile,'(/a)') 'TREE LOCAL'
-  if (me==0 .and. tree_debug) write(*,'(a)') 'LPEPC | LOCAL BUILD'
+  call status('LOCAL')
 
   call htable_clear()
 

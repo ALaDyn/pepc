@@ -227,6 +227,8 @@ contains
         integer*8 :: possible_branch
         integer*8 :: pos
 
+        call status('FIND BRANCHES')
+
         nbranch = 0
 
         ! add placeholder-bit to inner limit L
