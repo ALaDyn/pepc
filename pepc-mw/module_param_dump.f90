@@ -238,6 +238,8 @@ module module_param_dump
       call WriteParameter(ifile, "vosc (abohr/t0)", 1._8*vosc)
       call WriteParameter(ifile, "vosc / vtherm_e", vosc/vte)
       call WriteTopline(  ifile, "")
+      call WriteParameter(ifile, "rngseed", rngseed)
+      call WriteTopline(  ifile, "")
 
    end subroutine PrintPhysicalParameters
 

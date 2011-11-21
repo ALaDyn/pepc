@@ -576,7 +576,7 @@ module module_setup
           real*8 :: r(3), xt, yt, zt
 
              ! "random" initialization of par_rand
-             xt = par_rand(my_rank + 13)
+             xt = par_rand(my_rank + rngseed)
 
              do p=1,np_local/2
                ! get particle position inside the cluster

@@ -37,7 +37,7 @@ subroutine pepc_setup()
        np_mult, num_walk_threads, mac, theta, max_particles_per_thread, &
        weighted, curve_type, &                                      ! algorithm parameters
        ne,  eps, V0_eV, nt, dt, idump, db_level, itime_in, idump_vtk, idump_checkpoint, idump_binary, treediags, & ! fundamental stuff
-       ispecial, rhoe_nm3, Zion, Aion, Te_eV, Ti_eV, Te_K, Ti_K, &   ! experimental setup
+       ispecial, rhoe_nm3, Zion, Aion, Te_eV, Ti_eV, Te_K, Ti_K, rngseed, &   ! experimental setup
        workflow_setup, &                                             ! workflow
        integrator_scheme, enable_drift_elimination, &                ! pusher configuration
        beam_config_in, vosc,omega, sigma, t_pulse_fs, theta_inc, rho_track, omega_wpl, I0_Wpercm2, lambda_nm, & ! laser config
