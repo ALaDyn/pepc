@@ -335,11 +335,7 @@ module module_tree_domains
         endif
 
         ! Initialize VLD-stuff
-        call get_virtual_local_domain()
-        ! CSBE - Cross Sum Branch Node Estimator
-        call get_local_apriori_est()
-        call get_global_apriori_est()
-
+        call branches_initialize_VLD()
 
         if (boundary_debug) then
             if (me /= 0 .and. me /= num_pe-1) then

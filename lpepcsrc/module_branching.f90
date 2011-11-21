@@ -7,6 +7,7 @@ module module_branching
     use treevars
     use module_math_tools
     implicit none
+    private
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -23,8 +24,8 @@ module module_branching
     ! estimation
     integer*8 :: D1, D2                  ! partial domains
     integer*8 :: L                       ! inner limit
-    integer*8 :: branch_max_local        ! estimation for local branches
-    integer*8 :: branch_max_global = -1  ! estimation for global branches
+    integer*8, public :: branch_max_local        ! estimation for local branches
+    integer*8, public :: branch_max_global = -1  ! estimation for global branches
     integer*8, allocatable :: branch_level(:)    ! # branches at every level
     integer*8, allocatable :: branch_level_D1(:) ! partial occupancy of D1
     integer*8, allocatable :: branch_level_D2(:) ! partial occupancy of D2
@@ -33,10 +34,35 @@ module module_branching
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    public find_branches
+    public branches_initialize
+    public branches_finalize
+    public branches_initialize_VLD
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 contains
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> initialize Virtual Local Domain data
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine branches_initialize_VLD()
+        ! Initialize VLD-stuff
+        call get_virtual_local_domain()
+        ! CSBE - Cross Sum Branch Node Estimator
+        call get_local_apriori_est()
+        call get_global_apriori_est()
+    end subroutine
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
@@ -217,13 +243,12 @@ contains
     !> find branches (based on the CSBE)
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine find_branches(branch_level_D1, branch_level_D2)
+    subroutine find_branches()
         use module_htable
         use module_spacefilling
         implicit none
 
         integer*8 :: ilevel, j
-        integer*8, intent(in) :: branch_level_D1(0:nlev), branch_level_D2(0:nlev)
         integer*8 :: possible_branch
         integer*8 :: pos
 

@@ -392,7 +392,7 @@ subroutine tree_local
 !!! --------------- TREE BRANCHES (local part) ---------------
 
   call timer_start(t_branches_find)
-  call find_branches(branch_level_D1, branch_level_D2)
+  call find_branches()
   call timer_stop(t_branches_find)
 
   if (tree_debug .and. (proc_debug==me .or. proc_debug==-1)) call check_table('after local branches     ')
