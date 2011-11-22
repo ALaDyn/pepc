@@ -42,25 +42,22 @@ $(BUILDDIR):
 
 # preprocess files and put into $(BUILDDIR) subdir
 # then compile form there
-# touch module files after compilation so that the are newer than the .o files
-# this prevents make from trying to rebuild them again and again
-# we keep the preprocessed files for easier debugging / correct line information etc.
 $(BUILDDIR)%.o: %.f90
 	$(CPP) $(CPPFLAGS) $< $(BUILDDIR)/$(<F)
-	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(BUILDDIR)/$(<F) -o $(BUILDDIR)/$(<:.f90=.o)
+	cd $(BUILDDIR) ; $(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(<F) -o $(<:.f90=.o)
 
 $(BUILDDIR)%.o: $(FULLBACKENDDIR)%.f90
 	$(CPP) $(CPPFLAGS) $< $(BUILDDIR)/$(<F)
-	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(BUILDDIR)/$(<F) -o $(BUILDDIR)/$(<F:.f90=.o)
+	cd $(BUILDDIR) ; $(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(<F) -o $(<F:.f90=.o)
 
 
 # special rules for "external" modules
 pthreads_stuff.mod:
-	ln -sf ../pthreads/pthreads_stuff.mod ./pthreads_stuff.mod
+	ln -sf ../../../pthreads/pthreads_stuff.mod $(BUILDDIR)pthreads_stuff.mod
 
 
 clean:
-	$(RM) $(BUILDDIR)/liblpepc.a $(OBJS) $(BUILDDIR)/*.mod *.mod *% *~ bin/key rand *.o *.pif core module.deps
+	$(RM) $(BUILDDIR)liblpepc.a $(OBJS) $(BUILDDIR)/*.mod *.mod *% *~ bin/key rand *.o *.pif core module.deps
 	$(RM) -rf $(BUILDDIR) $(MACH)
 
 module.deps:
