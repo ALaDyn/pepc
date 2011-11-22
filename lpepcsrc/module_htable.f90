@@ -39,6 +39,16 @@ module module_htable
     integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT       = 10 !< this bit is used inside the childcode to denote that children information has already been requested from the owner
     integer, public, parameter :: CHILDCODE_CHILDBYTE            = b'11111111' !< bits that contain the children information for this node
 
+    integer, public :: maxaddress                    !< max address allowed in #table
+
+    ! TODO: make the following private
+    integer, public, allocatable :: free_addr(:)    !< List of free #table addresses (for HASHENTRY routine)
+    integer, public, allocatable :: point_free(:)   !< Pointer to free address index
+    integer, parameter :: free_lo = 1024             !< min address allowed for resolving collisions (from 4th level up)
+    integer :: iused                                  !< counter for collision resolution array free_addr()
+    integer :: sum_unused                             !< # free addresses
+
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -52,6 +62,8 @@ module module_htable
     public key2addr
     public testaddr
     public htable_clear
+    public htable_clear_and_insert_root
+    public htable_prepare_address_list
     public check_table
     public diagnose_tree
 
@@ -97,6 +109,53 @@ module module_htable
         htable = HASHENTRY_EMPTY ! TODO: need list of 'live' adresses to speed this up
 
     end subroutine
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> empties the htable, inserts the root node and prepares the
+    !> collision resolution list
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine htable_clear_and_insert_root()
+        use treevars, only : ntwig, me
+        implicit none
+
+        call htable_clear()
+
+        ntwig = 1
+
+        htable(1) = t_hash(-1, 1_8, -1, 0, IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE), me)
+
+        call htable_prepare_address_list()
+
+    end subroutine
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> prepares the collision resolution list by traversing the full htable
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine htable_prepare_address_list()
+        implicit none
+        integer :: i
+
+        ! build list of free addresses for faster collision resolution on insertion into htable ! TODO: move free_addr and related fields to module_htable and add appropriate access routines
+        sum_unused = 0
+        iused      = 1   ! reset used-address counter
+        do i=0, maxaddress
+           if (htable(i)%node == 0 .and. htable(i)%key /=-1 .and. i > free_lo) then
+              sum_unused            = sum_unused + 1
+              free_addr(sum_unused) = i            ! Free address list for resolving collisions
+              point_free(i)         = sum_unused   ! Index
+           else
+              point_free(i)         = 0
+           endif
+        enddo
+
+    end subroutine
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>

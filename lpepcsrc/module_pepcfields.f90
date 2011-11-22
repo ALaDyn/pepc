@@ -156,7 +156,7 @@ if (oldlocal) then
       call tree_local
 else
       call timer_start(t_local)
-        call htable_clear()
+        call htable_clear_and_insert_root()
         allocate(leaf_keys(npp))
         call tree_build_from_particles(particles, npp, leaf_keys)
         ! build tree from local particle keys up to root

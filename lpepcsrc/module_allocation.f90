@@ -161,8 +161,6 @@ module module_allocation
 
           nppm_ori = nppm
 
-          free_lo = 1024      ! lowest free address for collision resolution (from 4th level up)
-
           ! array allocation
           allocate (particles(nppm) )    ! Reserve particle array space N/NPE
 

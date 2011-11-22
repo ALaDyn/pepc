@@ -13,32 +13,30 @@ module treevars
   implicit none
 
   ! Constants
-  integer, dimension(0:7) :: bitarr = (/ 0,1,2,3,4,5,6,7 /)    ! Array of bit positions
+  integer, dimension(0:7) :: bitarr = (/ 0,1,2,3,4,5,6,7 /)    !< Array of bit positions
 
   !  Associated MPI stuff
-  integer :: me       ! Rank of current task
-  integer :: num_pe   ! # cpus used by program
+  integer :: me       !< Rank of current task
+  integer :: num_pe   !< # cpus used by program
 
   !  tree variables
   integer*8, allocatable :: &
-                                branch_key(:), &    ! keys of branch nodes covering all domains
-                                pebranch(:)         ! keys of branch nodes covering local domain
+                                branch_key(:), &    !< keys of branch nodes covering all domains
+                                pebranch(:)         !< keys of branch nodes covering local domain
 
   integer, allocatable :: &
-                                nbranches(:), &       ! # branches in local domain
-                                branch_owner(:), &    ! owners of branch nodes covering all domains
-                                free_addr(:), &    ! List of free #table addresses (for HASHENTRY routine)
-                                point_free(:)      ! Pointer to free address index
+                                nbranches(:), &       !< # branches in local domain
+                                branch_owner(:)       !< owners of branch nodes covering all domains
 
-  type(t_multipole_data), target, allocatable  :: tree_nodes(:)                 ! Tree node properties TODO: move to module_tree
+  type(t_multipole_data), target, allocatable  :: tree_nodes(:)                 !< Tree node properties TODO: move to module_tree
 
   ! TODO: put these into tree_aswalk_pthreads module
-  integer*8 ::  max_req_list_length, & ! maximum length of request queue
-                 cum_req_list_length, & ! cumulative length of request queue
-                 comm_loop_iterations(3)! number of comm loop iterations (total, sending, receiving)
+  integer*8 ::  max_req_list_length, & !< maximum length of request queue
+                 cum_req_list_length, & !< cumulative length of request queue
+                 comm_loop_iterations(3)!< number of comm loop iterations (total, sending, receiving)
 
-  integer,   parameter :: nlev = 20 ! max refinement level
-  integer*8, parameter :: iplace = 2_8**(3*nlev) ! value of place holder bit = 2^(idim*nlev)
+  integer,   parameter :: nlev = 20 !< max refinement level
+  integer*8, parameter :: iplace = 2_8**(3*nlev) !< value of place holder bit = 2^(idim*nlev)
 
   integer :: &
              nbaddr, &         ! # bits in hashing function
@@ -50,20 +48,16 @@ module treevars
              nbranch, &        ! min # branch nodes covering local domain
              nbranch_sum, &    ! total # branch nodes covering all domains
              nintmax, &        ! max # terms allowed in interaction list
-             maxaddress, &     ! max address allowed in #table
              maxleaf, &     ! max leaf allowed in #table
              maxtwig, &     ! max twig allowed in #table
              size_tree, &      ! array space needed for local tree
              maxships, &       ! max # multipole ships per traversal 
              sum_ships, &      ! total # multipole ships per iteration  
              sum_fetches, &    ! total # key fetches  per iteration  
-             free_lo, &        ! min address allowed for resolving collisions
-             sum_unused, &     ! # free addresses
              npartm, &         ! absolute max # particles
              npart, &          ! actual # particles
              nppm, &           ! max # particles/PE
-             npp, &            !  actual  # particles/PE
-             iused          ! counter for collision resolution array free_addr()
+             npp               !  actual  # particles/PE
 
   integer :: ipefile = 20 ! local O/P stream
   integer :: nkeys_total=1 ! total # keys in local tree

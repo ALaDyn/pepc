@@ -349,8 +349,6 @@ module module_tree
         integer :: ilevel, maxlevel, nsub, groupstart, groupend, i, nparent, nuniq
         integer*8 :: current_parent_key
 
-        call timer_start(t_global)
-
         call status('BUILD TOWARDS ROOT')
 
         if (tree_debug .and. ((proc_debug.eq.-1) .or. (proc_debug==me))) then
@@ -422,8 +420,6 @@ module module_tree
 
         end do
 
-        call timer_stop(t_global)
-
     end subroutine tree_build_upwards
 
 
@@ -440,9 +436,10 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_from_particles(particle_list, nparticles, leaf_keys)
-      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, free_addr, point_free, free_lo, iused, maxaddress, nleaf_me, ntwig_me, sum_unused, status
+      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, nleaf_me, ntwig_me, status
       use treetypes
       use module_htable
+      use timings
       implicit none
       include 'mpif.h'
       type(t_particle), intent(in) :: particle_list(1:nparticles)
@@ -464,30 +461,6 @@ module module_tree
         particles_left(i)%idx = i
       end do
 
-      level = 0
-      nleaf = nparticles
-      ntwig = 1
-
-      htable(1)%node   =  -1              !  node #
-      htable(1)%owner  =  me              !  Owner
-      htable(1)%key    =   1_8            !  key
-      htable(1)%link   =  -1              !  collision link
-      htable(1)%leaves = 0                ! root contains all leaves, excluding boundary particles - we will check this after tree buildup
-      htable(1)%childcode = IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE)
-
-      ! build list of free addresses for faster collision resolution on insertion into htable ! TODO: move free_addr and related fields to module_htable and add appropriate access routines
-      sum_unused = 0
-      iused      = 1   ! reset used-address counter
-      do i=0, maxaddress
-         if (i > free_lo) then
-            sum_unused            = sum_unused + 1
-            free_addr(sum_unused) = i            ! Free address list for resolving collisions
-            point_free(i)         = sum_unused   ! Index
-         else
-            point_free(i)         = 0
-         endif
-      enddo
-
       ! The following code works as follows:
       ! - starting from coarsest level, each particle's key on
       !   that level is computed and inserted into the htable as a leaf
@@ -501,6 +474,9 @@ module module_tree
       !     htable(key2addr(particles(i)%key))%node == i
       ! which is also desirable for later access
       call timer_start(t_build_pure)
+
+      nleaf = nparticles
+      level = 0
 
       do while (nremaining > 0)
 

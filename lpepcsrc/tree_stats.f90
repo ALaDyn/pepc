@@ -15,6 +15,7 @@ subroutine tree_stats(timestamp)
   use tree_walk_pthreads
   use tree_walk_pthreads_commutils
   use module_branching
+  use module_htable, only : maxaddress
   implicit none
   include 'mpif.h'
 
