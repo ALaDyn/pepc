@@ -94,11 +94,6 @@ module module_allocation
 	  allocate ( htable(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
 	       branch_owner(branch_max_global), pebranch(branch_max_global) )
 
-	  free_addr = 0
-
-	  ! Empty hashtable
-	  call htable_clear()
-
 	  ! Allocate memory for tree node properties
 	  allocate ( tree_nodes(-maxtwig:maxleaf) )
 	  ! allocate memory for storing number of branches per PE
