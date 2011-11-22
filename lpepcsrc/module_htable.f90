@@ -15,8 +15,8 @@ module module_htable
 
     ! Hash table datatype - 36 bytes per entry
     type :: t_hash ! TODO: exchange order of node and key
-        integer   :: node          !< Address of particle/pseudoparticle data
         integer*8 :: key           !< Key
+        integer   :: node          !< Address of particle/pseudoparticle data
         integer   :: link          !< Pointer to next empty address in table in case of collision
         integer   :: leaves        !< # leaves contained within twig (=1 for leaf, npart for root)
         integer   :: childcode     !< Byte code indicating position of children (twig node); particle label (leaf node)
@@ -74,7 +74,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     integer, private, parameter :: start_child_idx = 0 !< index of first child to be used in traversal - do not change, currently not completely implemented
-    type (t_hash), private, parameter :: HASHENTRY_EMPTY = t_hash(0,0_8,-1,0,0,0) !< constant for empty hashentry
+    type (t_hash), private, parameter :: HASHENTRY_EMPTY = t_hash(0_8,0,-1,0,0,0) !< constant for empty hashentry
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -125,7 +125,7 @@ module module_htable
 
         ntwig = 1
 
-        htable(1) = t_hash(-1, 1_8, -1, 0, IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE), me)
+        htable(1) = t_hash(1_8, -1, -1, 0, IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE), me)
 
         call htable_prepare_address_list()
 
@@ -302,11 +302,11 @@ module module_htable
             write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
             write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
             write (*,*) "htable(newentry):  ", htable(newentry)
-            write (*,*) "desired entry:     ", t_hash( nodein, keyin, -1, leavesin, codein, ownerin )
+            write (*,*) "desired entry:     ", t_hash( keyin, nodein, -1, leavesin, codein, ownerin )
             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
           endif
 
-          htable( newentry ) = t_hash( nodein, keyin, htable( newentry )%link, leavesin, codein, ownerin )
+          htable( newentry ) = t_hash( keyin, nodein, htable( newentry )%link, leavesin, codein, ownerin )
         else
           ! this key does already exists in the htable - as 'newentry' we return its current address
           ierror = 1
