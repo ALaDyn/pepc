@@ -10,7 +10,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1304062991329</id>
+			<id>1305641698929</id>
 			<name></name>
 			<type>22</type>
 			<matcher>
@@ -19,7 +19,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1304062991404</id>
+			<id>1305641698934</id>
 			<name></name>
 			<type>26</type>
 			<matcher>
@@ -28,21 +28,39 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1304062991420</id>
+			<id>1305641698960</id>
 			<name></name>
 			<type>22</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-module.deps</arguments>
+				<arguments>1.0-name-matches-false-false-module*.deps</arguments>
 			</matcher>
 		</filter>
 		<filter>
-			<id>1304062991428</id>
+			<id>1305641698978</id>
 			<name></name>
 			<type>26</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
 				<arguments>1.0-name-matches-false-false-testrun*</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1305641698984</id>
+			<name></name>
+			<type>6</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-*.inline</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1305641698990</id>
+			<name></name>
+			<type>6</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-*.TVD*</arguments>
 			</matcher>
 		</filter>
 	</filteredResources>
