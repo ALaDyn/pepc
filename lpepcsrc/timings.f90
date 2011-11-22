@@ -15,7 +15,7 @@ module timings
     ! global timings
     integer, parameter :: t_domains            =  1
     integer, parameter :: t_allocate           =  2
-    integer, parameter :: t_build              =  3
+    integer, parameter :: t_unused_3           =  3
     integer, parameter :: t_exchange_branches_pack        =  4
     integer, parameter :: t_exchange_branches_allgatherv  =  5
     integer, parameter :: t_exchange_branches_integrate   =  6
@@ -45,9 +45,9 @@ module timings
     ! tree_allocate
     integer, parameter :: t_unused28           = 28
     ! tree_build
-    integer, parameter :: t_build_neigh        = 29
-    integer, parameter :: t_build_part         = 30
-    integer, parameter :: t_build_byte         = 31
+    integer, parameter :: t_unused_29          = 29
+    integer, parameter :: t_unused_30          = 30
+    integer, parameter :: t_unused_31          = 31
     ! tree_branches
     integer, parameter :: t_branches_find      = 32
     integer, parameter :: t_exchange_branches_admininstrative = 33
@@ -57,9 +57,9 @@ module timings
     integer, parameter :: t_unused_36          = 36
     ! tree_props
     integer, parameter :: t_props_leafs        = 37
-    integer, parameter :: t_props_twigs        = 38
-    integer, parameter :: t_unused39           = 39
-    integer, parameter :: t_unused40           = 40
+    integer, parameter :: t_unused_38          = 38
+    integer, parameter :: t_unused_39          = 39
+    integer, parameter :: t_unused_40          = 40
     ! timings for outside fields()
     integer, parameter :: t_tot                = 41
     ! timings for tree_walk_communicator

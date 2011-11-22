@@ -105,7 +105,6 @@ module module_pepcfields
 	  real*8 :: vbox(3)
 	  character(30) :: cfile
 	  integer*8, allocatable :: leaf_keys(:)
-	  logical, parameter :: oldlocal = .true.
 
       ! fields, potential and load weights returned by force-sum: allocated in pepc_fields:
       type(t_particle_results), allocatable :: particle_results(:)
@@ -151,10 +150,7 @@ module module_pepcfields
 	  ! calculate spherical multipole expansion of central box
 	  if (cf_par%include_far_field_if_periodic) call fmm_framework_timestep()
 
-	  ! build local part of tree
-if (oldlocal) then
-      call tree_local
-else
+      ! build local part of tree
       call timer_start(t_local)
         call htable_clear_and_insert_root()
         allocate(leaf_keys(npp))
@@ -177,7 +173,6 @@ else
       call timer_start(t_branches_find)
         call find_branches()
       call timer_stop(t_branches_find)
-endif
 
       ! exchange branch nodes
       nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
