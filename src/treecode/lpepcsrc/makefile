@@ -57,7 +57,7 @@ pthreads_stuff.mod:
 
 
 clean:
-	$(RM) $(BUILDDIR)liblpepc.a $(OBJS) $(BUILDDIR)/*.mod *.mod *% *~ bin/key rand *.o *.pif core module.deps
+	$(RM) $(MYROOT)$(LIBDIR)libpepc.*.a $(OBJS) $(BUILDDIR)/*.mod *.mod *% *~ bin/key rand *.o *.pif core module.deps
 	$(RM) -rf $(BUILDDIR) $(MACH)
 
 module.deps:

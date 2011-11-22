@@ -29,12 +29,14 @@ libpepc.%: libpthreads libsl
 	@echo "============  Making PEPC Library - $(BACKEND) version ============="
 	cd $(LPEPCDIR) && $(MAKE) $(MFLAGS)
 
-
-
-
-pepcmw: pepcbasics
+pepcmw: libpepc.coulomb
+	BACKEND = coulomb
 	@echo "============  Making Frontend PEPC-MW (Mathias Winkel version)  ============="
-	cd pepc-mw && $(MAKE) $(MFLAGS)
+	cd $(FRONTENDDIR)pepc-mw && $(MAKE) $(MFLAGS)
+
+
+
+
 	
 pepcmini: pepcbasics
 	@echo "============  Making Frontend PEPC-MINI (minial version)  ============="
@@ -55,14 +57,14 @@ pepcb:  pepcbasics
 pepcbasics:
 
 clean: clean-doc
-	cd sl_pepc  && $(MAKE) $(MFLAGS) clean
-	cd pthreads && $(MAKE) $(MFLAGS) clean
-	cd lpepcsrc && $(MAKE) $(MFLAGS) clean
-	cd pepc-s   && $(MAKE) $(MFLAGS) clean
-	cd pepc-e   && $(MAKE) $(MFLAGS) clean
-	cd pepc-b   && $(MAKE) $(MFLAGS) clean
-	cd pepc-mw  && $(MAKE) $(MFLAGS) clean
-	cd pepc-mini  && $(MAKE) $(MFLAGS) clean
+	cd $(SLPEPCDIR)   && $(MAKE) $(MFLAGS) clean
+	cd $(PTHREADSDIR) && $(MAKE) $(MFLAGS) clean
+	cd $(LPEPCDIR)    && $(MAKE) $(MFLAGS) clean
+	cd $(FRONTENDDIR)pepc-s     && $(MAKE) $(MFLAGS) clean
+	cd $(FRONTENDDIR)pepc-e     && $(MAKE) $(MFLAGS) clean
+	cd $(FRONTENDDIR)pepc-b     && $(MAKE) $(MFLAGS) clean
+	cd $(FRONTENDDIR)pepc-mw    && $(MAKE) $(MFLAGS) clean
+	cd $(FRONTENDDIR)pepc-mini  && $(MAKE) $(MFLAGS) clean
 
 clean-doc:
 	rm -rf ./doc

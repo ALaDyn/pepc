@@ -18,7 +18,7 @@ program pepc
   use physvars
   use benchmarking
   use timings
-  use module_pepcfields
+  use module_pepc_wrappers
   use module_fmm_framework
   use module_laser
   use module_pusher
