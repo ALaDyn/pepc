@@ -292,8 +292,8 @@ module tree_walk_communicator
       do ic = 1,nchild
          c=>children_to_send(ic)
            c%m      = tree_nodes(node_child(ic))
-           c%key    = key_child(ic)   ! TODO: this data is maybe not consistently stored in tree_nodes array
-           c%byte   = byte_child(ic)  ! therefore, we have to take it directly form the htable --> repair this
+           c%key    = key_child(ic)
+           c%byte   = byte_child(ic)
            c%leaves = leaves_child(ic)
            c%owner  = owner_child(ic)
       end do

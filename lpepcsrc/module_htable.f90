@@ -14,7 +14,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! Hash table datatype - 36 bytes per entry
-    type :: t_hash ! TODO: exchange order of node and key
+    type :: t_hash
         integer*8 :: key           !< Key
         integer   :: node          !< Address of particle/pseudoparticle data
         integer   :: link          !< Pointer to next empty address in table in case of collision
@@ -41,7 +41,6 @@ module module_htable
 
     integer, public :: maxaddress                    !< max address allowed in #table
 
-    ! TODO: make the following private
     integer, public, allocatable :: free_addr(:)    !< List of free #table addresses (for HASHENTRY routine)
     integer, public, allocatable :: point_free(:)   !< Pointer to free address index
     integer, parameter :: free_lo = 1024             !< min address allowed for resolving collisions (from 4th level up)
@@ -141,7 +140,7 @@ module module_htable
         implicit none
         integer :: i
 
-        ! build list of free addresses for faster collision resolution on insertion into htable ! TODO: move free_addr and related fields to module_htable and add appropriate access routines
+        ! build list of free addresses for faster collision resolution on insertion into htable
         sum_unused = 0
         iused      = 1   ! reset used-address counter
         do i=0, maxaddress
