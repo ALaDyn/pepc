@@ -10,7 +10,10 @@
 # only on top level
 ifeq ($(mod),)
 
-all: sl_all
+all: sl_all sl_link
+
+sl_link: sl_all
+	ln -sf ../$(SLPEPCDIR)lib/libsl.a $(MYROOT)$(LIBDIR)/libsl.a
 
 # initial config
 MAKEFILE_IN:=Makefile.pepc

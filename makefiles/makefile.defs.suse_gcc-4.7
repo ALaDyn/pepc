@@ -12,6 +12,21 @@
 
 MACH     = SUSE-Workstations_gcc-4.7
 
+ROOTDIR     = ./
+LIBDIR      = $(ROOTDIR)lib/
+BINDIR      = $(ROOTDIR)bin/
+SRCDIR      = $(ROOTDIR)src/
+TOOLSDIR    = $(ROOTDIR)tools/
+BUILDTOOLSDIR = $(TOOLSDIR)build/
+INTSPECDIR  = $(SRCDIR)interaction_specific/
+FRONTENDDIR = $(SRCDIR)frontends/
+UTILSDIR    = $(SRCDIR)frontends/
+TREECODEDIR = $(SRCDIR)treecode/
+PTHREADSDIR = $(TREECODEDIR)pthreads/
+SLPEPCDIR   = $(TREECODEDIR)sl_pepc/
+LPEPCDIR    = $(TREECODEDIR)lpepcsrc/
+F90MODDEPS  = $(BUILDTOOLSDIR)f90_mod_deps.py
+
 DEBUG    = 0
 
 RANLIB   = ranlib

@@ -4,11 +4,33 @@
 
 include makefile.defs
 
+export BACKEND
+
 default: pepce
 
 benchmark: pepce
 
+info:
+	@echo $(LIBDIR)
+
 all: pepce pepcmini pepcmw pepcs pepcb
+
+
+libpthreads:
+	@echo "============  Making PThreads Fortan wrapper library  ============="
+	cd $(PTHREADSDIR) && $(MAKE) $(MFLAGS)
+
+libsl:
+	@echo "============  Making PEPC Sorting library  ============="
+	cd $(SLPEPCDIR) && $(MAKE) $(MFLAGS)
+
+libpepc.%: libpthreads libsl
+	$(eval BACKEND:=$*)
+	@echo "============  Making PEPC Library - $(BACKEND) version ============="
+	cd $(LPEPCDIR) && $(MAKE) $(MFLAGS)
+
+
+
 
 pepcmw: pepcbasics
 	@echo "============  Making Frontend PEPC-MW (Mathias Winkel version)  ============="
@@ -31,12 +53,6 @@ pepcb:  pepcbasics
 	cd pepc-b && $(MAKE) $(MFLAGS)
 
 pepcbasics:
-	@echo "============  Making PEPC Sorting Library  ============="
-	cd sl_pepc && $(MAKE) $(MFLAGS)
-	@echo "============  Making PEPC Pthreads Interface  ============="
-	cd pthreads && $(MAKE) $(MFLAGS)
-	@echo "============  Making PEPC Library  ============="
-	cd lpepcsrc && $(MAKE) $(MFLAGS)
 
 clean: clean-doc
 	cd sl_pepc  && $(MAKE) $(MFLAGS) clean

@@ -1,7 +1,9 @@
+MYROOT = ../../../
 
-include ../makefile.defs
+include $(MYROOT)/makefile.defs
 
-LIBNAME = libpthreads.a
+LIBNAME = $(MYROOT)/$(LIBDIR)/libpthreads.a
+MODFILE = pthreads_stuff.mod
 
 # -------------------------------------------------------------------------------------------
 # Source files
@@ -13,29 +15,15 @@ SOURCES.c   =   pthreads.c bgp_core.c
 # Prefix added for multi-arch builds
 OBJS = $(addprefix $(MACH)/, $(SOURCES.f90:.f90=_f.o) $(SOURCES.c:.c=_c.o))
 
-# override stupid internal rule for .o files to depend on .mod files and call m2c
-%.o: %.mod
-
-# for creating the .mod files, we only have to compile the .o-files from the respective .f90 files
-# gfortran stores the mod-files in the current directory - just where we need them
-# unfortunately, this rule only works if it actually does somenthing, so we echo some useless info
-%.mod: $(MACH)/%.o
-	@echo 'Making module file' $@
-
-
 default: all
 
 clean:
-	$(RM) $(MACH)/*.o *.mod $(MACH)/$(LIBNAME) $(MACH)
+	$(RM) $(MACH)/*.o *.mod $(LIBNAME) $(MODNAME) $(MACH)
 	
-all:    $(MACH)
-	$(MAKE) $(MFLAGS) $(MACH)/$(LIBNAME)
+all: $(LIBNAME)
 
-$(MACH):  
-	mkdir -p  $(MACH)
-
-$(MACH)/bgp_core_c.o: bgp_core.c
-	$(CCPRE) $(CC) $(CFLAGS_NOOPT) -c $< -o $@
+$(MACH):
+	mkdir -p $(MACH)
 
 $(MACH)/%_f.o: %.f90
 	$(FCPRE) $(FC) $(FFLAGS) -c $< -o $@
@@ -43,8 +31,6 @@ $(MACH)/%_f.o: %.f90
 $(MACH)/%_c.o: %.c
 	$(CCPRE) $(CC) $(CFLAGS) -c $< -o $@
 	
-$(MACH)/$(LIBNAME): $(OBJS)
-	$(AR) $(ARFLAGS) $(MACH)/$(LIBNAME) $(OBJS)
-	$(RANLIB) $(MACH)/$(LIBNAME)
-		
-	
+$(LIBNAME): $(MACH) $(OBJS)
+	$(AR) $(ARFLAGS) $(LIBNAME) $(OBJS)
+	$(RANLIB) $(LIBNAME)
