@@ -66,7 +66,7 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
   cf_par%force_law   = 3
 
 
-  call pepc_fields(np_local, npart_total, &
+  call pepc_fields_coulomb_wrapper(np_local, npart_total, &
        pos_x, pos_y, pos_z, &
        charge, work, pelabel, &
        ex, ey, ez, pot, &

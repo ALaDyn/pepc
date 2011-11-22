@@ -364,8 +364,7 @@ module module_tree_domains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
-                             res,p_pot,p_ex,p_ey,p_ez,p_w)
-        ! TODO: replace p_ex etc. by t_particle_results
+                             res_in,res_out)
         use module_interaction_specific
         use treevars, only : num_pe, status
         use treetypes
@@ -376,8 +375,8 @@ module module_tree_domains
         integer, intent(in) :: indxl(nppm_ori),irnkl(nppm_ori)
         integer, intent(in) :: islen(num_pe),irlen(num_pe)
         integer, intent(in) :: fposts(num_pe+1),gposts(num_pe+1)
-        type(t_particle_results), intent(in), dimension(npnew) :: res
-        real*8, intent(out), dimension(npold) :: p_ex, p_ey, p_ez, p_pot,p_w  ! fields and potential to return
+        type(t_particle_results), intent(in),  dimension(npnew) :: res_in
+        type(t_particle_results), intent(out), dimension(npold) :: res_out  ! fields and potential to return
 
         integer :: i, ierr
 
@@ -386,7 +385,7 @@ module module_tree_domains
         call status('RESTORE DOMAINS')
 
         do i=1,npnew
-          ship_parts(i) = res(indxl(i))
+          ship_parts(i) = res_in(indxl(i))
         enddo
 
         ! perform permute
@@ -395,11 +394,7 @@ module module_tree_domains
         MPI_COMM_WORLD,ierr )
 
         do i=1,npold
-            p_ex(irnkl(i)) = get_parts(i)%e(1)
-            p_ey(irnkl(i)) = get_parts(i)%e(2)
-            p_ez(irnkl(i)) = get_parts(i)%e(3)
-            p_pot(irnkl(i)) = get_parts(i)%pot
-            p_w(irnkl(i)) = get_parts(i)%work
+            res_out(irnkl(i)) = get_parts(i)
         enddo
 
     end subroutine restore
