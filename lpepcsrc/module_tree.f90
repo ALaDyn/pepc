@@ -259,7 +259,6 @@ module module_tree
 
         if (allocated(branch_keys)) deallocate(branch_keys)
 
-        call timer_start(t_exchange_branches)
         call timer_start(t_exchange_branches_pack)
 
         call status('EXCHANGE BRANCHES')
@@ -316,7 +315,6 @@ module module_tree
         deallocate(get_mult)
 
         call timer_stop(t_exchange_branches_integrate)
-        call timer_stop(t_exchange_branches)
 
     end subroutine tree_exchange
 
@@ -437,6 +435,9 @@ module module_tree
     !> leaf-keys exist. entries for leaves are completely valid while those
     !> for twigs have to be updated via a call to tree_build_upwards()
     !>
+    !> warning: in contrast to tree_build_upwards(), this function may *not*
+    !> be called several times to add further particles etc.
+    !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_from_particles(particle_list, nparticles, leaf_keys)
       use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, free_addr, point_free, free_lo, iused, maxaddress, nleaf_me, ntwig_me, sum_unused, status
@@ -453,8 +454,6 @@ module module_tree
       integer*8 :: lvlkey
 
       call status('INSERT PARTICLES')
-!TODO: exchange left and right neighbour  (see tree_local)
-      call htable_clear() ! TODO: move outside this function
 
       leaf_keys(1:nparticles) = 0_8
 
@@ -470,7 +469,7 @@ module module_tree
       ntwig = 1
 
       htable(1)%node   =  -1              !  node #
-      htable(1)%owner  =  me              ! Owner
+      htable(1)%owner  =  me              !  Owner
       htable(1)%key    =   1_8            !  key
       htable(1)%link   =  -1              !  collision link
       htable(1)%leaves = 0                ! root contains all leaves, excluding boundary particles - we will check this after tree buildup
@@ -489,9 +488,7 @@ module module_tree
          endif
       enddo
 
-! TODO: add timing information
-
-      ! The following code works as folllows:
+      ! The following code works as follows:
       ! - starting from coarsest level, each particle's key on
       !   that level is computed and inserted into the htable as a leaf
       ! - in case of a collision, the respective htable-entry is turned
@@ -503,6 +500,8 @@ module module_tree
       ! the construction, that
       !     htable(key2addr(particles(i)%key))%node == i
       ! which is also desirable for later access
+      call timer_start(t_build_pure)
+
       do while (nremaining > 0)
 
         level = level + 1
@@ -568,10 +567,15 @@ module module_tree
          endif
       end do
 
+      call timer_stop(t_build_pure)
+      call timer_start(t_props_leafs)
+
       ! now we can use the correspondence between particle list index and tree_node index for setting the multipole properties
       do i=1,nparticles
         call multipole_from_particle(particle_list(i)%x, particle_list(i)%data, tree_nodes(i) )
       end do
+
+      call timer_stop(t_props_leafs)
 
       nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
       ntwig_me = ntwig

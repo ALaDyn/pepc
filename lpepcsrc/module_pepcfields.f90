@@ -152,20 +152,22 @@ module module_pepcfields
 	  if (cf_par%include_far_field_if_periodic) call fmm_framework_timestep()
 
 	  ! build local part of tree
-	  call timer_stamp(t_stamp_before_local)
 if (oldlocal) then
       call tree_local
 else
-      allocate(leaf_keys(npp))
-      call tree_build_from_particles(particles, npp, leaf_keys)
-      ! build tree from local particle keys up to root
-      call tree_build_upwards(leaf_keys(1:npp), npp)
-      deallocate(leaf_keys)
+      call timer_start(t_local)
+        call htable_clear()
+        allocate(leaf_keys(npp))
+        call tree_build_from_particles(particles, npp, leaf_keys)
+        ! build tree from local particle keys up to root
+        call tree_build_upwards(leaf_keys(1:npp), npp)
+        deallocate(leaf_keys)
 
-      if (htable(1)%leaves .ne. npp) then
-        write(*,*) 'PE', me, ' did not find all its particles inside the htable after local tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp
-        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-      endif
+        if (htable(1)%leaves .ne. npp) then
+          write(*,*) 'PE', me, ' did not find all its particles inside the htable after local tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp
+          call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+        endif
+      call timer_stop(t_local)
 
       ! Should now have multipole information up to root list level(s) (only up to branch level, the information is correct)
       ! By definition, this is complete: each branch node is self-contained.
@@ -173,18 +175,20 @@ else
 
       ! identification of branch nodes
       call timer_start(t_branches_find)
-      call find_branches()
+        call find_branches()
       call timer_stop(t_branches_find)
 endif
 
-	  ! exchange branch nodes
-	  call timer_stamp(t_stamp_before_exchange)
+      ! exchange branch nodes
       nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
       ntwig_me = ntwig
-	  call tree_exchange(pebranch, nbranch, branch_key, nbranch_sum)
-	  ! build global part of tree
-	  call timer_stamp(t_stamp_before_global)
-	  call tree_build_upwards(branch_key, nbranch_sum)
+      call timer_start(t_exchange_branches)
+        call tree_exchange(pebranch, nbranch, branch_key, nbranch_sum)
+      call timer_stop(t_exchange_branches)
+      ! build global part of tree
+      call timer_start(t_global)
+        call tree_build_upwards(branch_key, nbranch_sum)
+      call timer_stop(t_global)
 
       if (htable(1)%leaves .ne. npart_total) then
         write(*,*) 'PE', me, ' did not find all particles inside the htable after global tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp
@@ -208,8 +212,6 @@ endif
 
       particle_results(:) = t_particle_results([0., 0., 0.], 0., 1.)
 
-	  call timer_stamp(t_stamp_before_walkloop)
-
 	  do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 
 	    vbox = lattice_vect(neighbours(:,ibox))
@@ -224,8 +226,6 @@ endif
 	    call timer_add(t_comm_sendreqs, tcomm(TIMING_SENDREQS))
 
 	  end do ! ibox = 1,num_neighbours
-
-	  call timer_stamp(t_stamp_after_walkloop)
 
 	  ! add lattice contribution
 	  call timer_start(t_lattice)

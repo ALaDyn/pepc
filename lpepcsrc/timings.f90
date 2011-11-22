@@ -53,8 +53,8 @@ module timings
     integer, parameter :: t_exchange_branches_admininstrative = 33
     integer, parameter :: t_build_pure         = 34
     ! tree_fill
-    integer, parameter :: t_fill_local         = 35
-    integer, parameter :: t_fill_global        = 36
+    integer, parameter :: t_unused_35          = 35
+    integer, parameter :: t_unused_36          = 36
     ! tree_props
     integer, parameter :: t_props_leafs        = 37
     integer, parameter :: t_props_twigs        = 38
@@ -71,12 +71,12 @@ module timings
     integer, parameter :: t_domains_add_pack   = 46
     integer, parameter :: t_domains_add_unpack = 47
     integer, parameter :: t_domains_add_alltoallv = 48
-    ! time stamps
-    integer, parameter :: t_stamp_before_local     = 49
-    integer, parameter :: t_stamp_before_exchange  = 50
-    integer, parameter :: t_stamp_before_global    = 51
-    integer, parameter :: t_stamp_before_walkloop  = 52
-    integer, parameter :: t_stamp_after_walkloop   = 53
+
+    integer, parameter :: t_unused_49          = 49
+    integer, parameter :: t_unused_50          = 50
+    integer, parameter :: t_unused_51          = 51
+    integer, parameter :: t_unused_52          = 52
+    integer, parameter :: t_unused_53          = 53
 
     !> array for local timings
     real*8, private, dimension(1:numtimings) :: tim = 0.
