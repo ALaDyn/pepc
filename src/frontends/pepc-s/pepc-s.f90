@@ -13,7 +13,7 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
   use treetypes
   use physvars
   use module_fmm_framework
-  use module_pepcfields
+  use module_pepc_wrappers
   implicit none
   include 'mpif.h'
 

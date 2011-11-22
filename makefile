@@ -30,31 +30,24 @@ libpepc.%: libpthreads libsl
 	cd $(LPEPCDIR) && $(MAKE) $(MFLAGS)
 
 pepcmw: libpepc.coulomb
-	BACKEND = coulomb
 	@echo "============  Making Frontend PEPC-MW (Mathias Winkel version)  ============="
 	cd $(FRONTENDDIR)pepc-mw && $(MAKE) $(MFLAGS)
 
-
-
-
-	
-pepcmini: pepcbasics
-	@echo "============  Making Frontend PEPC-MINI (minial version)  ============="
-	cd pepc-mini && $(MAKE) $(MFLAGS)
-	
-pepce:  pepcbasics
-	@echo "============  Making Frontend PEPC-E (Benchmark version)  ============="
-	cd pepc-e && $(MAKE) $(MFLAGS)
-
-pepcs:  pepcbasics
-	@echo "============  Making Frontend PEPC-S (ScaFaCoS-library version + minimal frontend)  ============="
-	cd pepc-s && $(MAKE) $(MFLAGS)
-
-pepcb:  pepcbasics
+pepcb: libpepc.coulomb
 	@echo "============  Making Frontend PEPC-B (Laser/beam-plasma with magnetic fields)  ============="
-	cd pepc-b && $(MAKE) $(MFLAGS)
+	cd $(FRONTENDDIR)pepc-b && $(MAKE) $(MFLAGS)
 
-pepcbasics:
+pepcmini: libpepc.coulomb
+	@echo "============  Making Frontend PEPC-MINI (minial version)  ============="
+	cd $(FRONTENDDIR)pepc-mini && $(MAKE) $(MFLAGS)
+
+pepce: libpepc.coulomb
+	@echo "============  Making Frontend PEPC-E (Benchmark version)  ============="
+	cd $(FRONTENDDIR)pepc-e && $(MAKE) $(MFLAGS)
+
+pepcs: libpepc.coulomb
+	@echo "============  Making Frontend PEPC-S (ScaFaCoS-library version + minimal frontend)  ============="
+	cd $(FRONTENDDIR)pepc-s && $(MAKE) $(MFLAGS)
 
 clean: clean-doc
 	cd $(SLPEPCDIR)   && $(MAKE) $(MFLAGS) clean

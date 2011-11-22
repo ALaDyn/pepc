@@ -1,15 +1,22 @@
-PREFIX = ..
+MYROOT = ../../../
 
 #  Get machine-dependent flags
 
-include ../makefile.defs
+include $(MYROOT)makefile.defs
 
-LIBRARIES = ../lpepcsrc/$(MACH)/liblpepc.a ../sl_pepc/libsl.a ../pthreads/$(MACH)/libpthreads.a
-PEPCGENERIC = ../pepc-generic
+# We set some default backend. TODO: issue a warning message if $BACKEND is not set
+ifeq ($(strip $(BACKEND)),)
+	BACKEND=coulomb
+endif
+
+LIBNAME     = $(MYROOT)$(LIBDIR)lpepce.a
+PEPCGENERIC = $(MYROOT)$(UTILSDIR)
+BUILDDIR    = $(MACH)/$(BACKEND)/
+EXECNAME    = $(MYROOT)$(BINDIR)pepce
+LIBRARIES   = $(LIBNAME) $(MYROOT)$(LIBDIR)libpepc.$(BACKEND).a $(MYROOT)$(LIBDIR)libpthreads.a $(MYROOT)$(LIBDIR)libsl.a
 
 .SUFFIXES: .f90
 
-EXECNAME = ../pepce
 
 # -------------------------------------------------------------------------------------------
 # Source files
@@ -27,10 +34,9 @@ OBJS = $(addprefix $(MACH)/, $(SOURCES:.f90=.o))
 SOURCES.GENERICP.f90 = $(addprefix $(PEPCGENERIC)/, $(SOURCES.GENERIC.f90))
 
 default: all
-all: $(MACH)
-	$(MAKE) $(MFLAGS) $(EXECNAME)
+all: $(MACH) $(EXECNAME)
 
-$(MACH): 	
+$(MACH): 
 	mkdir -p $(MACH)
 
 # preprocess files and put into $(MACH) subdir
@@ -46,24 +52,25 @@ $(MACH)/%.o: $(PEPCGENERIC)/%.f90
 	$(CPP) $(CPPFLAGS) $< $(MACH)/$(<F)
 	$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) $(MACH)/$(<F) -o $(MACH)/$(<F:.f90=.o)
 
-# avoid infinite recursion of rule below
-../lpepcsrc/%.mod: ../lpepcsrc/%.mod
-	@echo "" $@
 # special rules for "external" modules
-%.mod: ../lpepcsrc/%.mod
-	ln -sf ../lpepcsrc/$@ ./$(@F)
+%.mod: ../../treecode/lpepcsrc/$(BUILDDIR)%.mod
+	ln -sf ../../treecode/lpepcsrc/$(BUILDDIR)$@ ./$(@F)
 
 # final rule for executable
-$(EXECNAME): $(LIBRARIES) $(OBJS)
-	@echo "Creating application binary $(EXECNAME) ..."
-	$(LDPRE) $(LD) $(LDFLAGS) -o $(EXECNAME) $(OBJS) $(LIBPEPC) $(LIBRARIES) $(LDLIBS)
-	@echo "... done"
+$(LIBNAME): $(OBJS)
+	$(RM) $(LIBNAME)
+	$(AR) $(ARFLAGS) $(LIBNAME) $^
+	$(RANLIB) $(LIBNAME)
+
+$(EXECNAME): $(LIBRARIES)
+	$(LDPRE) $(LD) $(LDFLAGS) -o $(EXECNAME) $+ $(LDLIBS)
+
 
 clean:
-	$(RM) $(MACH)/*.o  *% *~ bin/key rand *.o *.pif core *.mod $(MACH)/*.mod module.deps $(EXECNAME)
-	$(RM) -r $(MACH)
+	$(RM) $(MACH)/*.o  *% *~ bin/key rand *.o *.pif core *.mod $(MACH)/*.mod module.deps $(LIBNAME) $(EXECNAME)
+	$(RM) -rf $(MACH)
 
 module.deps:
-	../tools/build/f90_mod_deps.py -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(SOURCES.f90) $(SOURCES.GENERICP.f90)
+	$(MYROOT)$(F90MODDEPS) -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(MACH)/" $(SOURCES.f90) $(SOURCES.GENERICP.f90)
 
 include module.deps

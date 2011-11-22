@@ -39,7 +39,7 @@ program pepcb
   use module_io
   use module_diagnostics
   use module_fmm_framework
-  use module_pepcfields
+  use module_pepc_wrappers
   use module_particle_boundaries
 
   implicit none
