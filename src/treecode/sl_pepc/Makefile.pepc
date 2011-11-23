@@ -11,7 +11,7 @@ endif
 
 else
 
-include $(MYROOT)/makefile.defs
+include $(MYROOT)makefile.defs
 
 MPICC:=$(CC)
 MPIFC:=$(FC)

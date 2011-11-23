@@ -30,9 +30,9 @@ OBJSBACKEND = $(addprefix $(BUILDDIR), $(PEPCBACKEND.f90:.f90=.o))
 
 PEPCBACKSRC = $(addprefix $(FULLBACKENDDIR), $(PEPCBACKEND.f90))
 
-default: $(BUILDDIR) libpepc
+default: $(BUILDDIR) $(LIBNAME)
 
-libpepc: $(OBJSBACKEND) $(OBJS)
+$(LIBNAME): $(OBJSBACKEND) $(OBJS)
 	$(RM) $(LIBNAME)
 	$(AR) $(ARFLAGS) $(LIBNAME) $^
 	$(RANLIB) $(LIBNAME)
@@ -52,7 +52,7 @@ $(BUILDDIR)%.o: $(FULLBACKENDDIR)%.f90
 
 
 # special rules for "external" modules
-pthreads_stuff.mod:
+$(BUILDDIR)pthreads_stuff.mod:
 	ln -sf ../../../pthreads/pthreads_stuff.mod $(BUILDDIR)pthreads_stuff.mod
 
 

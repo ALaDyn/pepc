@@ -16,7 +16,7 @@ info:
 all: pepce pepcmini pepcmw pepcs pepcb
 
 
-libpthreads:
+$(LIBDIR)libpthreads.a:
 	@echo "============  Making PThreads Fortan wrapper library  ============="
 	cd $(PTHREADSDIR) && $(MAKE) $(MFLAGS)
 
@@ -24,7 +24,7 @@ libsl:
 	@echo "============  Making PEPC Sorting library  ============="
 	cd $(SLPEPCDIR) && $(MAKE) $(MFLAGS)
 
-libpepc.%: libpthreads libsl
+libpepc.%: $(LIBDIR)libpthreads.a libsl
 	$(eval BACKEND:=$*)
 	@echo "============  Making PEPC Library - $(BACKEND) version ============="
 	cd $(LPEPCDIR) && $(MAKE) $(MFLAGS)
