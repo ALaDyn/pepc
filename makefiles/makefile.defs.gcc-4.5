@@ -1,4 +1,4 @@
-MACH     = SUSE-Workstations_gcc-4.5
+MACH     = gcc-4.5
 
 DEBUG = 1
 
@@ -16,35 +16,41 @@ INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlini
 # -flto-partition=none
 #-fwhopr
 
-FCPRE    = 
-FC       = mpif90
 ifeq ($(DEBUG), 1)
   FFLAGS   = -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
-else
-  FFLAGS   = -Wall -O3 -pg    -ffree-line-length-none $(INLINING)
-endif
-
-CCPRE    = 
-CC       = mpicc
-ifeq ($(DEBUG), 1)
   CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0
 else
-  CFLAGS   = -Wall -O3 -pg
-endif
-
-LDPRE    = 
-LD       = mpif90
-ifeq ($(DEBUG), 1)
-  LDFLAGS   = -pg -O0 -g
-else
-  LDFLAGS   = -pthread -pg -O3 $(INLINING)
+  FFLAGS   = -Wall -O3        -ffree-line-length-none $(INLINING)
+  CFLAGS   = -Wall -O3
+  LDFLAGS  = -pthread -O3 $(INLINING)
 # -fwhole-program 
 #-fuse-linker-plugin
 endif
+
+FCPRE    = 
+FC       = mpif90
+
+CCPRE    = 
+CC       = mpicc
+
+LDPRE    = 
+LD       = mpif90
 LDLIBS   = 
 
 RM       = rm -rf
 
-EXECNAME = ../pepc
-
-
+ROOTDIR     = ./
+LIBDIR      = $(ROOTDIR)lib/
+BINDIR      = $(ROOTDIR)bin/
+SRCDIR      = $(ROOTDIR)src/
+TOOLSDIR    = $(ROOTDIR)tools/
+BUILDTOOLSDIR = $(TOOLSDIR)build/
+INTSPECDIR  = $(SRCDIR)interaction_specific/
+FRONTENDDIR = $(SRCDIR)frontends/
+UTILSDIR    = $(SRCDIR)utils/
+TREECODEDIR = $(SRCDIR)treecode/
+PTHREADSDIR = $(TREECODEDIR)pthreads/
+SLPEPCDIR   = $(TREECODEDIR)sl_pepc/
+LPEPCDIR    = $(TREECODEDIR)lpepcsrc/
+F90MODDEPS  = $(BUILDTOOLSDIR)f90_mod_deps.py

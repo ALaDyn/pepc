@@ -3,10 +3,9 @@
 #  > module unload intel
 #  > module load parastation/gcc-mt
 
-# avoid using any object oriented features if set to 1 (for older compilers)
-NO_CLASSES = 1
-
 MACH     = JUROPA_gcc
+
+DEBUG    = 0
 
 RANLIB   = ranlib
 
@@ -18,27 +17,43 @@ ARFLAGS  = -rs
 CPP      = cpp
 CPPFLAGS = -P -C
 
-INLINING = 
-INLINING = -g -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -mstringop-strategy=unrolled_loop 
+INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop
+# -flto-partition=none
+#-fwhopr
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
+  CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0
+else
+  FFLAGS   = -Wall -O3        -ffree-line-length-none $(INLINING)
+  CFLAGS   = -Wall -O3
+  LDFLAGS  = -pthread -O3 $(INLINING) -fwhole-program -fuse-linker-plugin
+endif
 
 FCPRE    = 
 FC       = mpif90
-#FFLAGS   = -O0 -g -pg -ffree-line-length-none -Wall -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
-FFLAGS   =  -Wall -O3 -pg -ffree-line-length-none $(INLINING)
 
 CCPRE    = 
 CC       = mpicc
-CFLAGS   = -g -pg -O3 -pthread  -Wconversion
-#CFLAGS   = -g -pg -O0
 
 LDPRE    = 
 LD       = mpif90
-#LDFLAGS   = -pg -O0 -g
-LDFLAGS   = -pthread -pg -O3 $(INLINING) -fwhole-program -fuse-linker-plugin
 LDLIBS   = 
 
 RM       = rm -rf
 
-EXECNAME = ../pepc
-
-
+ROOTDIR     = ./
+LIBDIR      = $(ROOTDIR)lib/
+BINDIR      = $(ROOTDIR)bin/
+SRCDIR      = $(ROOTDIR)src/
+TOOLSDIR    = $(ROOTDIR)tools/
+BUILDTOOLSDIR = $(TOOLSDIR)build/
+INTSPECDIR  = $(SRCDIR)interaction_specific/
+FRONTENDDIR = $(SRCDIR)frontends/
+UTILSDIR    = $(SRCDIR)utils/
+TREECODEDIR = $(SRCDIR)treecode/
+PTHREADSDIR = $(TREECODEDIR)pthreads/
+SLPEPCDIR   = $(TREECODEDIR)sl_pepc/
+LPEPCDIR    = $(TREECODEDIR)lpepcsrc/
+F90MODDEPS  = $(BUILDTOOLSDIR)f90_mod_deps.py

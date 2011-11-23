@@ -1,4 +1,4 @@
-# Makefile for gcc 4.7 (self-compiled via the following commands)
+# Makefile for gcc 4.6.1 (self-compiled via the following commands)
 #
 # wget
 #ftp://ftp.mpi-sb.mpg.de/pub/gnu/mirror/gcc.gnu.org/pub/gcc/releases/gcc-4.6.1/gcc-4.6.1.tar.gz
@@ -37,9 +37,9 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -Wall -O0 -pg -g 
   LDFLAGS  =       -O0 -pg -g 
 else
-  FFLAGS   = -Wall -O5 -pg    -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens $(INLINING)
-  CFLAGS   = -Wall -O5 -pg
-  LDFLAGS   = -pthread -pg -O5 $(INLINING) -fwhole-program  
+  FFLAGS   = -Wall -O5 -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens $(INLINING)
+  CFLAGS   = -Wall -O5
+  LDFLAGS   = -pthread -O5 $(INLINING) -fwhole-program  
 #-Wl,--threads
 #-fuse-linker-plugin
 endif
@@ -53,6 +53,17 @@ LDLIBS   =
 
 RM       = rm -rf
 
-EXECNAME = ../pepc
-
-
+ROOTDIR     = ./
+LIBDIR      = $(ROOTDIR)lib/
+BINDIR      = $(ROOTDIR)bin/
+SRCDIR      = $(ROOTDIR)src/
+TOOLSDIR    = $(ROOTDIR)tools/
+BUILDTOOLSDIR = $(TOOLSDIR)build/
+INTSPECDIR  = $(SRCDIR)interaction_specific/
+FRONTENDDIR = $(SRCDIR)frontends/
+UTILSDIR    = $(SRCDIR)utils/
+TREECODEDIR = $(SRCDIR)treecode/
+PTHREADSDIR = $(TREECODEDIR)pthreads/
+SLPEPCDIR   = $(TREECODEDIR)sl_pepc/
+LPEPCDIR    = $(TREECODEDIR)lpepcsrc/
+F90MODDEPS  = $(BUILDTOOLSDIR)f90_mod_deps.py
