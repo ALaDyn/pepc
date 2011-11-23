@@ -27,19 +27,21 @@ call
 
 "make"
 
-to build the pepce frontend. Parallel make (i.e. "make -j")
-is currently unstable.
+to build the pepce frontend into the ./bin/ directory. 
+Parallel make (i.e. "make -j") should work.
 
-There are three different frontends available at the moment:
+There are several different frontends available at the moment:
 
-pepc-e: pure electrostatics
-        simple molecular dynamics, 
-        some diagnostics for energy, performance, vtk output etc.
-pepc-mini: pure electrostatics
-        simple molecular dynamics
-        no diagnostics
-        minimum requirements to get pepc running
-pepc-mw: frontend for laser-plasma interaction (experimental)
+pepcb: Laser/beam-plasma with magnetic fields
+pepce: pure electrostatics
+       simple molecular dynamics, 
+       some diagnostics for energy, performance, vtk output etc.
+pepcmini: pure electrostatics
+       simple molecular dynamics
+       no diagnostics
+       minimum requirements to get pepc running
+pepcmw: frontend for laser-plasma interaction (experimental)
+pepcs: library version for inclusion in ScaFaCoS project
 
 To build an alternative frontend, just call
 
@@ -62,7 +64,7 @@ Then you can run pepc from there, e.g.
 "mkdir rundir"
 "cp run.h rundir/"
 "cd rundir"
-"mpirun -np 4 ../pepce ./run.h"
+"mpirun -np 4 ../bin/pepce ./run.h"
 
 The file run.h contains some user-adjustable parameters which
 are explained therein.
