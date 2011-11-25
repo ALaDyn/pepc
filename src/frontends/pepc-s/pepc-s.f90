@@ -72,7 +72,7 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
        ex, ey, ez, pot, &
        np_mult, cf_par, &
        itime, weighted, curve_type, &
-       num_neighbour_boxes, neighbour_boxes, .false.)
+       num_neighbour_boxes, neighbour_boxes, .false., .false.)
   
   ! cleanup of lpepc static data
   call libpepc_finalize()

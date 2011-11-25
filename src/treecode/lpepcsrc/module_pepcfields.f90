@@ -39,7 +39,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_fields(np_local, npart_total, particles, particle_results, &
-        np_mult_, cf_par, itime, weighted, curve_type, num_neighbours, neighbours, no_dealloc)
+        np_mult_, cf_par, itime, weighted, curve_type, num_neighbours, neighbours, no_dealloc, no_restore)
 
         use treevars
         use module_interaction_specific
@@ -56,18 +56,18 @@ contains
         implicit none
         include 'mpif.h'
 
-        integer, intent(in) :: np_local    !< # particles on this CPU
+        integer, intent(inout) :: np_local    !< # particles on this CPU
         integer, intent(in) :: npart_total !< total # simulation particles
         type(t_particle), allocatable, intent(inout) :: particles(:)
         type(t_particle_results), intent(inout), allocatable :: particle_results(:)
         real, intent(in) :: np_mult_
         type(t_calc_force_params), intent(in) :: cf_par
         integer, intent(in) :: itime  ! timestep
-        integer, intent(in) :: weighted
-        integer, intent(in) :: curve_type ! type of space-filling curve
+        integer, intent(in) :: weighted   ! TODO: put into cf_par
+        integer, intent(in) :: curve_type ! type of space-filling curve TODO: put into cf_par
         integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
         integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
-        logical, intent(in) :: no_dealloc
+        logical, intent(in) :: no_dealloc, no_restore
 
         integer :: ierr
         integer :: npnew, npold
@@ -190,7 +190,12 @@ contains
         call timer_stop(t_fields_passes)
         call timer_start(t_restore)
 
-        call restore(npnew,npold,nppmax,irnkl,indxl,irlen,islen,gposts,fposts, particles, particle_results)
+        if (no_restore) then
+          ! we have to inform the calling routine, that the particle number has changed and all fields have been reallocated
+          np_local = npnew ! is equal to npp
+        else
+          call restore(npnew,npold,nppmax,irnkl,indxl,irlen,islen,gposts,fposts, particles, particle_results)
+        endif
 
         call timer_stop(t_restore)
 

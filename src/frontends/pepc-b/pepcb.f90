@@ -139,7 +139,7 @@ open(70,file='orbit.dat')
                   q(1:np_local),work(1:np_local),pelabel(1:np_local), &
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
                       np_mult, cf_par, itime, weighted, curve_type, &
-                      num_neighbour_boxes, neighbour_boxes, .true.)
+                      num_neighbour_boxes, neighbour_boxes, .true., .false.)
 
    ! Centre velocities with 1/2 step back     
     call integrator
@@ -201,7 +201,7 @@ open(70,file='orbit.dat')
 	              q(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
               	      np_mult, cf_par, itime, weighted, curve_type, &
-                      num_neighbour_boxes, neighbour_boxes, .true.)
+                      num_neighbour_boxes, neighbour_boxes, .true., .false.)
   
 !POMP$ INST END(fields)
 

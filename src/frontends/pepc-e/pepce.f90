@@ -104,7 +104,7 @@ program pepce
                   q(1:np_local),work(1:np_local),pelabel(1:np_local), &
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
                       np_mult, cf_par, itime, weighted, curve_type, &
-                      num_neighbour_boxes, neighbour_boxes, .false.)
+                      num_neighbour_boxes, neighbour_boxes, .false., .false.)
 
      if (itime == nt) then
         call gather_particle_diag()

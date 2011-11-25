@@ -68,12 +68,12 @@ module module_pepc_wrappers
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_fields_coulomb_wrapper(np_local,npart_total,p_x, p_y, p_z, p_q, p_w, p_label, &
                     p_Ex, p_Ey, p_Ez, p_pot, np_mult_, cf_par, itime, weighted, curve_type, &
-                    num_neighbours, neighbours, no_dealloc)
+                    num_neighbours, neighbours, no_dealloc, no_restore)
         use treetypes
         use treevars
         use module_pepcfields
         implicit none
-        integer, intent(in) :: np_local  ! # particles on this CPU
+        integer, intent(inout) :: np_local  ! # particles on this CPU
         integer, intent(in) :: npart_total ! total # simulation particles
         real, intent(in) :: np_mult_       ! multipole opening angle
         type(t_calc_force_params), intent(in) :: cf_par
@@ -87,7 +87,7 @@ module module_pepc_wrappers
         integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
         real*8, dimension(np_local) :: p_w ! work loads
         integer, intent(in) :: curve_type ! type of space-filling curve
-        logical, intent(in) :: no_dealloc
+        logical, intent(in) :: no_dealloc, no_restore
 
         integer :: i
 
@@ -116,7 +116,7 @@ module module_pepc_wrappers
         end do
 
         call pepc_fields(np_local, npart_total, particles, particle_results, &
-                             np_mult_, cf_par, itime, weighted, curve_type, num_neighbours, neighbours, no_dealloc)
+                             np_mult_, cf_par, itime, weighted, curve_type, num_neighbours, neighbours, no_dealloc, no_restore)
 
         ! read data from particle_coordinates, particle_results, particle_properties
         do i=1,np_local
