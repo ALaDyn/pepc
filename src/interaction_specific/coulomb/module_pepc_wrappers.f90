@@ -5,6 +5,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pepc_wrappers
+     use treetypes
      implicit none
      private
 
@@ -14,6 +15,7 @@ module module_pepc_wrappers
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+      type(t_particle), public, dimension(:), allocatable :: particles
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -89,10 +91,13 @@ module module_pepc_wrappers
 
         integer :: i
 
-        real*8, dimension(1:3,1:np_local) :: particle_coordinates
-        type(t_particle_results), dimension(1:np_local) :: particle_results
-        type(t_particle_data), dimension(1:np_local) :: particle_properties
+        type(t_particle_results), dimension(:), allocatable :: particle_results
 
+        if (allocated(particles))        deallocate(particles)
+        if (allocated(particle_results)) deallocate(particle_results)
+
+        allocate(particles(1:np_local))
+        allocate(particle_results(1:np_local))
 
         if (force_debug) then
             write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
@@ -101,14 +106,16 @@ module module_pepc_wrappers
             p_label(i),i=1,npp)
         endif
 
-        ! insert data into particle_coordinates, particle_results, particle_properties
         do i=1,np_local
-          particle_coordinates(1:3,i)  = [p_x(i), p_y(i), p_z(i)]
-          particle_results(i)%work     = p_w(i)
-          particle_properties(i)       = t_particle_data( p_q(i) )
+            particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)],       &  ! position
+                                              max(p_w(i), 1._8),       &  ! workload from last step
+                                                           -1_8,       &  ! key - will be assigned later
+                                                     p_label(i),       &  ! particle label for tracking purposes
+                                                             me,       &  ! particle owner
+                                         t_particle_data( p_q(i) )  )     ! charge etc
         end do
 
-        call pepc_fields(np_local, npart_total, particle_coordinates, p_label, particle_properties, particle_results, &
+        call pepc_fields(np_local, npart_total, particles, particle_results, &
                              np_mult_, cf_par, itime, weighted, curve_type, num_neighbours, neighbours, no_dealloc)
 
         ! read data from particle_coordinates, particle_results, particle_properties

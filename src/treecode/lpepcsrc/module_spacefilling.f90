@@ -76,11 +76,11 @@ module module_spacefilling
         !> calculates keys from local particles (faster than per-particle call to coord_to_key())
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine compute_particle_keys(local_key)
+        subroutine compute_particle_keys(particles)
           use treevars
           implicit none
-          integer*8, intent(out) :: local_key(nppm)
-          integer*8, dimension(3,nppm) :: intcoord
+          type(t_particle), intent(inout) :: particles(1:npp)
+          integer*8, dimension(3,npp) :: intcoord
           real*8 :: s
           integer :: j
 
@@ -95,12 +95,12 @@ module module_spacefilling
           select case (curve_type)
             case (0) ! Z-curve
               do j = 1,npp
-                 local_key(j) = intcoord_to_key_morton(intcoord(:,j))
+                 particles(j)%key = intcoord_to_key_morton(intcoord(:,j))
               end do
 
             case (1) ! Hilbert curve (original pattern)
              do j=1,npp
-                 local_key(j) = intcoord_to_key_hilbert(intcoord(:,j))
+                 particles(j)%key = intcoord_to_key_hilbert(intcoord(:,j))
              end do
 
           end select
@@ -108,7 +108,7 @@ module module_spacefilling
           if (domain_debug) then
              write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort:', &
                   '  key,             label   coords     q ', &
-                  (local_key(j),particles(j)%label,particles(j)%x,intcoord(:,j),particles(j)%data%q,particles(j)%work,j=1,npp)
+                  (particles(j)%key,particles(j)%label,particles(j)%x,intcoord(:,j),particles(j)%data%q,particles(j)%work,j=1,npp)
 
              write(ipefile,'(/)')
           endif

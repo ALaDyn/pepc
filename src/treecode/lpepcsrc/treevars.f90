@@ -54,9 +54,7 @@ module treevars
              maxships, &       ! max # multipole ships per traversal 
              sum_ships, &      ! total # multipole ships per iteration  
              sum_fetches, &    ! total # key fetches  per iteration  
-             npartm, &         ! absolute max # particles
-             npart, &          ! actual # particles
-             nppm, &           ! max # particles/PE
+             npart, &          ! actual # particles (total)
              npp               !  actual  # particles/PE
 
   integer :: ipefile = 20 ! local O/P stream
@@ -80,10 +78,6 @@ module treevars
   logical :: dump_tree=.false.
   logical :: timing_file_debug=.false.
   logical :: load_file_debug=.false.
-  
-
-  !>  particle data - dimensions filled in when #PEs known !TODO: make this variable local to pepc_fields() and pass it as parameter to other functions
-  type(t_particle), target, allocatable :: particles(:)
 
 ! Memory control
   real :: np_mult=1.5

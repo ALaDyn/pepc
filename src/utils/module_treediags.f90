@@ -138,18 +138,14 @@ module module_treediags
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine write_spacecurve_to_vtk(step, tsim, vtk_step)
-          use treevars
+          use treevars, only : npp, me, num_pe
           use module_vtk
+          use module_pepc_wrappers
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
           type(vtkfile_unstructured_grid) :: vtk
           integer :: i
-
-          if (.not. allocated(particles)) then
-            if (me .eq. 0) write(*,*) 'write_spacecurve_to_vtk(): pepc_fields() must have been called with no_dealloc=.true. before'
-            return
-          endif
 
             call vtk%create_parallel("spacecurve", step, me, num_pe, tsim, vtk_step)
               call vtk%write_headers(npp, 1)

@@ -38,7 +38,7 @@ contains
     !>   Calculate fields and potential for supplied particles, work is taken from t_particle_results array
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_fields(np_local, npart_total, particle_coordinates, particle_labels, particle_properties, particle_results, &
+    subroutine pepc_fields(np_local, npart_total, particles, particle_results, &
         np_mult_, cf_par, itime, weighted, curve_type, num_neighbours, neighbours, no_dealloc)
 
         use treevars
@@ -58,10 +58,8 @@ contains
 
         integer, intent(in) :: np_local    !< # particles on this CPU
         integer, intent(in) :: npart_total !< total # simulation particles
-        real*8,  intent(in), dimension(1:3,1:np_local) :: particle_coordinates
-        integer, intent(in), dimension(1:np_local) :: particle_labels
-        type(t_particle_data), intent(in), dimension(1:np_local) :: particle_properties
-        type(t_particle_results), intent(inout), dimension(1:np_local) :: particle_results
+        type(t_particle), allocatable, intent(inout) :: particles(:)
+        type(t_particle_results), intent(inout), allocatable :: particle_results(:)
         real, intent(in) :: np_mult_
         type(t_calc_force_params), intent(in) :: cf_par
         integer, intent(in) :: itime  ! timestep
@@ -71,20 +69,17 @@ contains
         integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
         logical, intent(in) :: no_dealloc
 
-        integer :: nppm_ori, ierr
+        integer :: ierr
         integer :: npnew, npold
         integer, allocatable :: indxl(:),irnkl(:)
         integer :: islen(num_pe),irlen(num_pe)
         integer :: fposts(num_pe+1),gposts(num_pe+1)
-        integer :: i
         real*8 :: ttrav, ttrav_loc, tcomm(3) ! timing integrals
         integer :: ibox
         real*8 :: vbox(3)
         character(30) :: cfile
         integer*8, allocatable :: leaf_keys(:)
-
-        ! fields, potential and load weights returned by force-sum: allocated in pepc_fields:
-        type(t_particle_results), allocatable :: particle_results_local(:)
+        integer :: nppmax
 
         call status('FIELDS')
 
@@ -93,32 +88,23 @@ contains
         np_mult    = np_mult_
         npp        = np_local
 
-        call allocate_particles(nppm_ori)
-        allocate(particle_results_local(nppm_ori))
-
         call timer_start(t_all)
-        call timer_start(t_fields_begin)
 
-        ! Copy particle buffers to tree arrays
-        do i=1,npp
-            particles(i) = t_particle( particle_coordinates(1:3,i),       &  ! position
-                                   max(particle_results(i)%work, 1._8),   &  ! workload from last step
-                                                 -1_8,                    &  ! key - will be assigned later
-                                         particle_labels(i),              &  ! particle label for tracking purposes
-                                                 me,                      &  ! particle owner
-                                          particle_properties(i)  )          ! charge etc
-        end do
+        if (allocated(particle_results)) deallocate(particle_results)
 
-        call timer_stop(t_fields_begin)
         call timer_start(t_fields_tree)
 
-        allocate(indxl(nppm_ori),irnkl(nppm_ori))
+        !TODO: make adjsutable by user or find a good estimation. Additional Question: Does this value have to be globally constant?
+        nppmax = int(1.25 * max(npart/num_pe,1000)) ! allow 25% fluctuation around average particle number per PE in sorting library for load balancing
+
+        allocate(indxl(nppmax),irnkl(nppmax))
         ! Domain decomposition: allocate particle keys to PEs
-        call tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted, curve_type)
+        call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted, curve_type)
         call allocate_tree(cf_par%theta)
+        allocate(particle_results(npp))
 
         ! calculate spherical multipole expansion of central box
-        if (cf_par%include_far_field_if_periodic) call fmm_framework_timestep()
+        if (cf_par%include_far_field_if_periodic) call fmm_framework_timestep(particles)
 
         ! build local part of tree
         call timer_start(t_local)
@@ -175,14 +161,14 @@ contains
 
         call timer_start(t_fields_passes)
 
-        particle_results_local(:) = t_particle_results([0., 0., 0.], 0., 1.)
+        particle_results(:) = EMPTY_PARTICLE_RESULTS
 
         do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 
             vbox = lattice_vect(neighbours(:,ibox))
 
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
-            call tree_walk(npp,particles,particle_results_local,cf_par,itime,ttrav,ttrav_loc, vbox, tcomm)
+            call tree_walk(npp,particles,particle_results,cf_par,itime,ttrav,ttrav_loc, vbox, tcomm)
 
             call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
             call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
@@ -195,7 +181,7 @@ contains
         ! add lattice contribution
         call timer_start(t_lattice)
         ! add lattice contribution and other per-particle-forces
-        call calc_force_per_particle(npp, particles, particle_results_local, cf_par)
+        call calc_force_per_particle(particles, npp, particle_results, cf_par)
         call timer_stop(t_lattice)
 
         ! restore initial particle order specified by calling routine to reassign computed forces
@@ -204,7 +190,7 @@ contains
         call timer_stop(t_fields_passes)
         call timer_start(t_restore)
 
-        call restore(npnew,npold,nppm_ori,irnkl,indxl,irlen,islen,gposts,fposts, particle_results_local,particle_results)
+        call restore(npnew,npold,nppmax,irnkl,indxl,irlen,islen,gposts,fposts, particles, particle_results)
 
         call timer_stop(t_restore)
 
@@ -229,10 +215,8 @@ contains
         ! deallocate particle and result arrays
         call timer_start(t_deallocate)
 
-        deallocate(particle_results_local)
         if (.not. no_dealloc) then
-            call deallocate_tree(nppm_ori)
-            call deallocate_particles()
+            call deallocate_tree()
         endif
 
         call timer_stop(t_deallocate)

@@ -809,7 +809,7 @@ module tree_walk_pthreads
                   ! walk for particle i has finished
                   ! check whether it really interacted with all other particles
                   if (partner_leaves(i) .ne. num_interaction_leaves) then
-                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, thread_particle_indices(i), particles(thread_particle_indices(i))%label
+                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, thread_particle_indices(i), particle_data(thread_particle_indices(i))%label
                     write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
                     write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
                   endif

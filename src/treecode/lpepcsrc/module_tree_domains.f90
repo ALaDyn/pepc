@@ -42,7 +42,7 @@ module module_tree_domains
     !>  - weighting according to load incurred on previous timestep
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine tree_domains(indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted,curve_type_)
+    subroutine tree_domains(particles, nppm, indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted,curve_type_)
 
         use treevars
         use module_interaction_specific
@@ -53,6 +53,9 @@ module module_tree_domains
         implicit none
         include 'mpif.h'
 
+        type(t_particle), allocatable, intent(inout) :: particles(:)
+
+        integer, intent(in) :: nppm !< maximum allowed number of particles on this PE
         integer, intent(in) :: weighted
         integer, intent(out) :: indxl(nppm),irnkl(nppm)
         integer, intent(out) :: islen(num_pe),irlen(num_pe)
@@ -61,7 +64,6 @@ module module_tree_domains
         integer, intent(in) :: curve_type_ !< type of space-filling curve
 
         integer*8, dimension(nppm) :: ixd, iyd, izd
-        integer*8, dimension(nppm) :: local_key
 
         integer :: i, j, ind_recv, inc, prev, next, handle(4)
 
@@ -100,6 +102,7 @@ module module_tree_domains
 
         real*8 work2(nppm)
         integer irnkl2(nppm)
+        integer*8 :: local_keys(nppm)
 
         curve_type = curve_type_
 
@@ -148,8 +151,7 @@ module module_tree_domains
 
         s=boxsize/2**nlev       ! refinement length
 
-        call compute_particle_keys(local_key)
-        particles(1:npp)%key = local_key(1:npp)
+        call compute_particle_keys(particles)
 
         call timer_stop(t_domains_keys)
         call timer_start(t_domains_sort)
@@ -175,12 +177,14 @@ module module_tree_domains
         call timer_start(t_domains_add_sort)
 
         ! start permutation of local key list
-        work2 = particles(:)%work
+        work2(1:npp) = particles(1:npp)%work
 
         call timer_start(t_domains_sort_pure)
 
-        ! perform index sort on keys
-        call slsort_keys(npold,nppm-2,local_key,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
+        local_keys(1:npold) = particles(1:npold)%key
+
+        ! perform index sort on keys !TODO: remove the "-2", compare other cases with "+2" and "npp+1" etc.
+        call slsort_keys(npold,nppm-2,local_keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
 
         ! FIXME: every processor has to have at least one particle
         if (npnew < 2) then
@@ -193,8 +197,6 @@ module module_tree_domains
         call timer_stop(t_domains_sort)
         call timer_start(t_domains_ship)
 
-        npp = npnew
-
         ! Now permute particle properties
         ! Set up particle structure
         call timer_start(t_domains_add_pack)
@@ -205,6 +207,8 @@ module module_tree_domains
 
         call timer_stop(t_domains_add_pack)
 
+        deallocate(particles) ! has size npold until here, i.e. npp == npold
+
         call timer_start(t_domains_add_alltoallv)
 
         ! perform permute
@@ -213,6 +217,9 @@ module module_tree_domains
         MPI_COMM_WORLD,ierr)
 
         call timer_stop(t_domains_add_alltoallv)
+
+        allocate(particles(npnew+2)) ! TODO: the limit particles from neighbouring PEs are put into the final two places - this is only for branching and should be done there with local variables instead
+        npp = npnew
 
         call timer_start(t_domains_add_unpack)
 
@@ -335,7 +342,7 @@ module module_tree_domains
         endif
 
         ! Initialize VLD-stuff
-        call branches_initialize_VLD()
+        call branches_initialize_VLD(particles)
 
         if (boundary_debug) then
             if (me /= 0 .and. me /= num_pe-1) then
@@ -364,9 +371,9 @@ module module_tree_domains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
-                             res_in,res_out)
+                             particles, res)
         use module_interaction_specific
-        use treevars, only : num_pe, status
+        use treevars, only : num_pe, status, npp
         use treetypes
         implicit none
         include 'mpif.h'
@@ -375,26 +382,41 @@ module module_tree_domains
         integer, intent(in) :: indxl(nppm_ori),irnkl(nppm_ori)
         integer, intent(in) :: islen(num_pe),irlen(num_pe)
         integer, intent(in) :: fposts(num_pe+1),gposts(num_pe+1)
-        type(t_particle_results), intent(in),  dimension(npnew) :: res_in
-        type(t_particle_results), intent(out), dimension(npold) :: res_out  ! fields and potential to return
+        type(t_particle_results), intent(inout), allocatable :: res(:)
+        type(t_particle),         intent(inout), allocatable :: particles(:)
 
         integer :: i, ierr
 
-        type (t_particle_results) :: get_parts(npold), ship_parts(npnew)
+        type (t_particle_results) :: get_res(npold),  ship_res(npnew)
+        type (t_particle)         :: get_parts(npold), ship_parts(npnew)
 
         call status('RESTORE DOMAINS')
 
         do i=1,npnew
-          ship_parts(i) = res_in(indxl(i))
+          ship_res(i)   = res(indxl(i))
+          ship_parts(i) = particles(indxl(i))
         enddo
 
+        deallocate(res)       ! had size npnew
+        deallocate(particles) ! had size npnew
+
         ! perform permute
-        call MPI_alltoallv(  ship_parts, islen, fposts, MPI_TYPE_particle_results, &
-        get_parts, irlen, gposts, MPI_TYPE_particle_results, &
-        MPI_COMM_WORLD,ierr )
+        call MPI_alltoallv(  ship_res, islen, fposts, MPI_TYPE_particle_results, &
+              get_res, irlen, gposts, MPI_TYPE_particle_results, &
+              MPI_COMM_WORLD,ierr )
+
+        ! perform permute
+        call MPI_alltoallv(  ship_parts, islen, fposts, MPI_TYPE_particle, &
+              get_parts, irlen, gposts, MPI_TYPE_particle, &
+              MPI_COMM_WORLD,ierr )
+
+        allocate(particles(npold))
+        allocate(res(npold))
+        npp = npold
 
         do i=1,npold
-            res_out(irnkl(i)) = get_parts(i)
+            particles(irnkl(i)) = get_parts(i)
+            res(irnkl(i))       = get_res(i)
         enddo
 
     end subroutine restore

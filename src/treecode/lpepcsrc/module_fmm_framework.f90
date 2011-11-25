@@ -42,7 +42,6 @@ module module_fmm_framework
       !> set to .true. to activate debug mode (table output etc.)
       logical, public :: periodic_debug =.false.
 
-
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -120,10 +119,7 @@ module module_fmm_framework
 
            ! anything above has to be done in any case
           if (do_periodic) then
-            call calc_extrinsic_correction
             call calc_lattice_coefficients
-            ! just for the case someone calls #fmm_sum_lattice_force before invoking #fmm_framework_timestep
-            call fmm_framework_timestep
           end if
 
         end subroutine fmm_framework_init
@@ -240,12 +236,14 @@ module module_fmm_framework
         !> has to be called every timestep
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine fmm_framework_timestep
+        subroutine fmm_framework_timestep(particles)
+          use treetypes
           implicit none
+          type(t_particle), dimension(:), intent(in) :: particles
           if (.not. do_periodic) return
-          call calc_omega_tilde
+          call calc_omega_tilde(particles)
           call calc_mu_cent
-          call calc_extrinsic_correction
+          call calc_extrinsic_correction(particles)
         end subroutine fmm_framework_timestep
 
 
@@ -309,11 +307,14 @@ module module_fmm_framework
         !> central box
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_omega_tilde
+        subroutine calc_omega_tilde(particles)
           use treevars
+          use treetypes
           use module_debug
           implicit none
           include 'mpif.h'
+
+          type(t_particle), dimension(:), intent(in) :: particles
 
           integer :: ll, mm, p
           integer :: ierr
@@ -363,11 +364,14 @@ module module_fmm_framework
         !> (see [J.Chem.Phys. 107, 10131, eqn.(19,20)] for details
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_extrinsic_correction
+        subroutine calc_extrinsic_correction(particles)
           use treevars
           use module_debug
+          use treetypes
           implicit none
           include 'mpif.h'
+
+          type(t_particle), intent(in), dimension(:) :: particles(:)
 
           real, parameter :: pi=3.141592654
           real*8 :: box_dipole(3) = 0.
@@ -478,11 +482,11 @@ module module_fmm_framework
 		!> i.e. the lattice contribution
 		!>
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine fmm_sum_lattice_force(p, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
+		subroutine fmm_sum_lattice_force(particle, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
 		  use treevars
 		  implicit none
 
-		  integer, intent(in) :: p  ! particle label
+		  type(t_particle), intent(in) :: particle
 		  real*8, intent(out) ::  ex_lattice, ey_lattice, ez_lattice, phi_lattice
 
 		  complex*16 :: mu_shift(0:1,0:1), tmp
@@ -499,7 +503,7 @@ module module_fmm_framework
 
 		 ! shift mu_cent to the position of our particle
 		  mu_shift =  0
-		  r        = particles(p)%x - LatticeCenter
+		  r        = particle%x - LatticeCenter
 
 		  do ll = 0,1
 		    do mm = 0,ll

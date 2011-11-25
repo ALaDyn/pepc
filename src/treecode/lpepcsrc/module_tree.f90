@@ -451,7 +451,7 @@ module module_tree
       integer*8 :: lvlkey
 
       call status('INSERT PARTICLES')
-
+      !TODO: check for overlapping keys with particles from neighbour PE
       leaf_keys(1:nparticles) = 0_8
 
       nremaining = nparticles
@@ -486,7 +486,8 @@ module module_tree
 
         if (level>nlev) then
            write(*,*) 'Problem with tree on PE ',me,' - no more levels '
-           write(*,'(a/(i8,o30))') 'Remaining particles: ', particle_list(1:nparticles)
+           write(*,'(a)') 'Remaining particles: '
+           write(*,*) particle_list(1:nparticles)
            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
          endif
 

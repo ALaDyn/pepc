@@ -345,7 +345,6 @@ module module_htable
           write(*,'("   last address (dez) = ", i22)') key2addr
           write(*,'("# const         (dez) = ", i22)') hashconst
           write(*,'("maxaddress      (dez) = ", i22)') maxaddress
-          call diagnose_tree()
           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         endif
 
@@ -456,11 +455,13 @@ module module_htable
     !> Check integrity of tree structure from hash table
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine diagnose_tree
+    subroutine diagnose_tree(particles)
         use treevars
+        use treetypes
         use module_spacefilling
         implicit none
 
+        type(t_particle), intent(in) :: particles(1:npp)
         integer*8 :: key_twig(ntwig), key_leaf(nleaf)
         integer, dimension(ntwig) :: child_twig, addr_twig, ind_twig      ! twig-nodes
         real*8 :: rcoc2(1:ntwig)

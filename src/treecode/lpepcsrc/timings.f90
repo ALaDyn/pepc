@@ -30,7 +30,7 @@ module timings
     integer, parameter :: t_global             = 15
     integer, parameter :: t_lattice            = 16
     ! fields internal
-    integer, parameter :: t_fields_begin       = 17
+    integer, parameter :: t_unused_17          = 17
     integer, parameter :: t_fields_tree        = 18
     integer, parameter :: t_unused19           = 19
     integer, parameter :: t_fields_passes      = 20

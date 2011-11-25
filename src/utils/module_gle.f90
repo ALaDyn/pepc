@@ -29,12 +29,13 @@ module module_gle
 
 	  use treevars
 	  use module_htable
+	  use module_pepc_wrappers
 
 	  implicit none
 
-	  integer*8 :: key_list(nppm)
+	  integer*8 :: key_list(npp)
 
-	  integer, dimension(nppm) ::  addr_list, level_list, node_list, owner_list       ! list data
+	  integer, dimension(npp) ::  addr_list, level_list, node_list, owner_list       ! list data
 
 	  character(15) :: cfile
 	  character(3) :: cme,cip
@@ -141,6 +142,7 @@ module module_gle
 	subroutine draw_map(yl)
 
 	  use treevars
+	  use module_pepc_wrappers
 
 	  implicit none
 
@@ -257,6 +259,7 @@ module module_gle
 
 	  use treevars
 	  use module_htable
+      use module_pepc_wrappers
 
 	  implicit none
 
@@ -460,13 +463,14 @@ module module_gle
 
 	  use treevars
 	  use module_htable
+      use module_pepc_wrappers
 
 	  implicit none
 	  real*8, intent(in) :: xl, yl
 
 	  integer*8 :: key_twig(ntwig), key_leaf(nleaf)
 
-	  integer, dimension(nppm) :: ix, iy
+	  integer, dimension(npp) :: ix, iy
 
 	  integer, dimension(ntwig) :: level_twig, node_twig       ! twig-nodes
 	  integer, dimension(nleaf) :: level_leaf, plist_leaf, ind_leaf       ! leaf-nodes
@@ -611,11 +615,12 @@ module module_gle
 	  !  Centres         ....  tree.comasN
 
 	  use treevars
+      use module_pepc_wrappers
 
 	  implicit none
 
 	  real*8, intent(in) :: xl, yl
-	  integer, dimension(nppm) :: ix, iy
+	  integer, dimension(npp) :: ix, iy
 
 	  character(30) :: cfile
 	  character(1) :: csnap
@@ -731,6 +736,7 @@ module module_gle
 
 	  use treevars
 	  use module_htable
+      use module_pepc_wrappers
 
 	  implicit none
 

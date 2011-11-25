@@ -55,9 +55,12 @@ contains
     !> initialize Virtual Local Domain data
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine branches_initialize_VLD()
+    subroutine branches_initialize_VLD(particles)
+        use treetypes
+        implicit none
+        type(t_particle), intent(in) :: particles(:)
         ! Initialize VLD-stuff
-        call get_virtual_local_domain()
+        call get_virtual_local_domain(particles)
         ! CSBE - Cross Sum Branch Node Estimator
         call get_local_apriori_est()
         call get_global_apriori_est()
@@ -104,8 +107,11 @@ contains
     !> setup virtual local domain (VLD)
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine get_virtual_local_domain()
+    subroutine get_virtual_local_domain(particles)
+        use treetypes
         implicit none
+
+        type(t_particle), intent(in) :: particles(1:npp+2) ! TODO: remove this +2, see tree_domains for details
           
         if (num_pe > 1) then
             ! get local key limits
