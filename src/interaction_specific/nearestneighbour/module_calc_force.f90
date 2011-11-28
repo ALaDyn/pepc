@@ -122,12 +122,12 @@ module module_calc_force
 
           if (dist2 < res%maxdist2) then
             ! add node to NN_list
-            res%neighbour_keys(res%maxidx) = inode !TODONN replace with key
-            res%dist2(res%maxidx)          = dist2
-            tmp                            = maxloc(res%dist2(:)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
-            res%maxidx                     = tmp(1)
-            res%maxdist2                   = res%dist2(res%maxidx)
-            res%work                       = res%work + WORKLOAD_PENALTY_INTERACTION
+            res%neighbour_nodes(res%maxidx) = inode
+            res%dist2(res%maxidx)           = dist2
+            tmp                             = maxloc(res%dist2(:)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
+            res%maxidx                      = tmp(1)
+            res%maxdist2                    = res%dist2(res%maxidx)
+            res%work                        = res%work + WORKLOAD_PENALTY_INTERACTION
           else
 !            ! node is further away than farest particle in nn-list --> this should have been avoided by the MAC
 !            write(*,*) "update_nn_list(): node is further away than farest particle in nn-list --> this should have been avoided by the MAC"

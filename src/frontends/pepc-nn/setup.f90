@@ -42,7 +42,7 @@ subroutine pepc_setup()
 
   weighted        =   1
 
-  num_walk_threads = 1
+  num_walk_threads = 4
 
   ! particles
   nep = 0    ! # plasma electrons per PE
