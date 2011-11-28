@@ -49,6 +49,10 @@ pepcs: libpepc.coulomb
 	@echo "============  Making Frontend PEPC-S (ScaFaCoS-library version + minimal frontend)  ============="
 	cd $(FRONTENDDIR)pepc-s && $(MAKE) $(MFLAGS)
 
+pepcv: libpepc.vortex
+	@echo "============  Making Frontend PEPC-V (Vortex version)  ============="
+	cd $(FRONTENDDIR)pepc-v && $(MAKE) $(MFLAGS) 
+
 clean: clean-doc
 	cd $(SLPEPCDIR)   && $(MAKE) $(MFLAGS) clean
 	cd $(PTHREADSDIR) && $(MAKE) $(MFLAGS) clean

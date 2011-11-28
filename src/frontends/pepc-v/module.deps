@@ -1,0 +1,7 @@
+# DO NOT EDIT --- auto-generated file
+$(BUILDDIR)/files.o: $(BUILDDIR)/physvars.o
+$(BUILDDIR)/pusher.o: $(BUILDDIR)/physvars.o
+$(BUILDDIR)/setup.o: $(BUILDDIR)/physvars.o $(BUILDDIR)/tree_utils.mod $(BUILDDIR)/module_fmm_framework.mod $(BUILDDIR)/tree_walk_pthreads.mod
+$(BUILDDIR)/special_start.o: $(BUILDDIR)/physvars.o $(BUILDDIR)/module_fmm_framework.mod
+$(BUILDDIR)/cleanup.o: $(BUILDDIR)/physvars.o
+$(BUILDDIR)/pepc.o: $(BUILDDIR)/treetypes.mod $(BUILDDIR)/physvars.o $(BUILDDIR)/pusher.o $(BUILDDIR)/timings.mod $(BUILDDIR)/module_fmm_framework.mod $(BUILDDIR)/module_pepc_wrappers.mod $(BUILDDIR)/files.o
