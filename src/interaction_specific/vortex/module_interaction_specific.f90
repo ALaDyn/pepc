@@ -185,12 +185,9 @@ module module_interaction_specific
         type(t_particle_data), intent(in) :: particle
         type(t_multipole_data), intent(out) :: multipole
 
-        multipole = t_multipole_data(particle_pos, &
-                                     particle%q,   &
-                                 abs(particle%q),  &
-                                     [0., 0., 0.], &
-                                     [0., 0., 0.], &
-                                      0., 0., 0.    )
+        multipole = t_multipole_data(particle_pos, sqrt(dot_product(particle%alpha, particle%alpha), particle%alpha(1), particle%alpha(2), particle%alpha(3), &
+                                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
+
       end subroutine
 
 
@@ -210,38 +207,115 @@ module module_interaction_specific
 
         nchild = size(children)
 
-        parent%charge     = SUM( children(1:nchild)%charge )
-        parent%abs_charge = SUM( children(1:nchild)%abs_charge )
+        parent%chargex     = SUM( children(1:nchild)%chargex )
+        parent%chargey     = SUM( children(1:nchild)%chargey )
+        parent%chargez     = SUM( children(1:nchild)%chargez )
+        parent%abs_charge  = SUM( children(1:nchild)%abs_charge )
 
         ! centre of charge
         parent%coc        = [0., 0., 0.]
-
         do j=1,nchild
           parent%coc(1:3) = parent%coc(1:3) + ( children(j)%coc(1:3) * children(j)%abs_charge )
         end do
-
         parent%coc(1:3) = parent%coc(1:3) / parent%abs_charge
 
         ! multipole properties
-        parent%dip    = [0., 0., 0.]
-        parent%quad   = [0., 0., 0.]
-        parent%xyquad = 0.
-        parent%yzquad = 0.
-        parent%zxquad = 0.
+        parent%xdip1    = 0.
+        parent%ydip1    = 0.
+        parent%zdip1    = 0.
+        parent%xdip2    = 0.
+        parent%ydip2    = 0.
+        parent%zdip2    = 0.
+        parent%xdip3    = 0.
+        parent%ydip3    = 0.
+        parent%zdip3    = 0.
+        parent%xxquad1  = 0.
+        parent%xyquad1  = 0.
+        parent%xzquad1  = 0.
+        parent%yzquad1  = 0.
+        parent%yyquad1  = 0.
+        parent%zzquad1  = 0.
+        parent%xxquad2  = 0.
+        parent%xyquad2  = 0.
+        parent%xzquad2  = 0.
+        parent%yzquad2  = 0.
+        parent%yyquad2  = 0.
+        parent%zzquad2  = 0.
+        parent%xxquad3  = 0.
+        parent%xyquad3  = 0.
+        parent%xzquad3  = 0.
+        parent%yzquad3  = 0.
+        parent%yyquad3  = 0.
+        parent%zzquad3  = 0.
 
         do j=1,nchild
           shift(1:3) = parent%coc(1:3) - children(j)%coc
 
           ! dipole moment
-          parent%dip = parent%dip + children(j)%dip - children(j)%charge*shift(1:3)
+          parent%xdip1 = parent%xdip1 + children(j)%xdip1 - children(j)%chargex*shift(1)
+          parent%ydip1 = parent%ydip1 + children(j)%ydip1 - children(j)%chargex*shift(2)
+          parent%zdip1 = parent%zdip1 + children(j)%zdip1 - children(j)%chargex*shift(3)
+
+          parent%xdip2 = parent%xdip2 + children(j)%xdip2 - children(j)%chargey*shift(1)
+          parent%ydip2 = parent%ydip2 + children(j)%ydip2 - children(j)%chargey*shift(2)
+          parent%zdip2 = parent%zdip2 + children(j)%zdip2 - children(j)%chargey*shift(3)
+
+          parent%xdip3 = parent%xdip3 + children(j)%xdip3 - children(j)%chargez*shift(1)
+          parent%ydip3 = parent%ydip3 + children(j)%ydip3 - children(j)%chargez*shift(2)
+          parent%zdip3 = parent%zdip3 + children(j)%zdip3 - children(j)%chargez*shift(3)
 
           ! quadrupole moment
-          parent%quad(1:3) = parent%quad(1:3) + children(j)%quad(1:3) - 2*children(j)%dip(1:3)*shift(1:3) + children(j)%charge*shift(1:3)**2
+          parent%xxquad1 = parent%xxquad1 + children(j)%xxquad1 - children(j)%xdip1*shift(1) - children(j)%xdip1*shift(1) + children(j)%chargex*shift(1)*shift(1)
+          parent%xyquad1 = parent%xyquad1 + children(j)%xyquad1 - children(j)%xdip1*shift(2) - children(j)%ydip1*shift(1) + children(j)%chargex*shift(1)*shift(2)
+          parent%xzquad1 = parent%xzquad1 + children(j)%xzquad1 - children(j)%xdip1*shift(3) - children(j)%zdip1*shift(1) + children(j)%chargex*shift(1)*shift(3)
+          parent%yzquad1 = parent%yzquad1 + children(j)%yzquad1 - children(j)%ydip1*shift(3) - children(j)%zdip1*shift(2) + children(j)%chargex*shift(2)*shift(3)
+          parent%yyquad1 = parent%yyquad1 + children(j)%yyquad1 - children(j)%ydip1*shift(2) - children(j)%ydip1*shift(2) + children(j)%chargex*shift(2)*shift(2)
+          parent%zzquad1 = parent%zzquad1 + children(j)%zzquad1 - children(j)%zdip1*shift(3) - children(j)%zdip1*shift(3) + children(j)%chargex*shift(3)*shift(3)
 
-          parent%xyquad = parent%xyquad + children(j)%xyquad - children(j)%dip(1)*shift(2) - children(j)%dip(2)*shift(1) + children(j)%charge*shift(1)*shift(2)
-          parent%yzquad = parent%yzquad + children(j)%yzquad - children(j)%dip(2)*shift(3) - children(j)%dip(3)*shift(2) + children(j)%charge*shift(2)*shift(3)
-          parent%zxquad = parent%zxquad + children(j)%zxquad - children(j)%dip(3)*shift(1) - children(j)%dip(1)*shift(3) + children(j)%charge*shift(3)*shift(1)
+          parent%xxquad2 = parent%xxquad2 + children(j)%xxquad2 - children(j)%xdip2*shift(1) - children(j)%xdip2*shift(1) + children(j)%chargey*shift(1)*shift(1)
+          parent%xyquad2 = parent%xyquad2 + children(j)%xyquad2 - children(j)%xdip2*shift(2) - children(j)%ydip2*shift(1) + children(j)%chargey*shift(1)*shift(2)
+          parent%xzquad2 = parent%xzquad2 + children(j)%xzquad2 - children(j)%xdip2*shift(3) - children(j)%zdip2*shift(1) + children(j)%chargey*shift(1)*shift(3)
+          parent%yzquad2 = parent%yzquad2 + children(j)%yzquad2 - children(j)%ydip2*shift(3) - children(j)%zdip2*shift(2) + children(j)%chargey*shift(2)*shift(3)
+          parent%yyquad2 = parent%yyquad2 + children(j)%yyquad2 - children(j)%ydip2*shift(2) - children(j)%ydip2*shift(2) + children(j)%chargey*shift(2)*shift(2)
+          parent%zzquad2 = parent%zzquad2 + children(j)%zzquad2 - children(j)%zdip2*shift(3) - children(j)%zdip2*shift(3) + children(j)%chargey*shift(3)*shift(3)
+
+          parent%xxquad3 = parent%xxquad3 + children(j)%xxquad3 - children(j)%xdip3*shift(1) - children(j)%xdip3*shift(1) + children(j)%chargez*shift(1)*shift(1)
+          parent%xyquad3 = parent%xyquad3 + children(j)%xyquad3 - children(j)%xdip3*shift(2) - children(j)%ydip3*shift(1) + children(j)%chargez*shift(1)*shift(2)
+          parent%xzquad3 = parent%xzquad3 + children(j)%xzquad3 - children(j)%xdip3*shift(3) - children(j)%zdip3*shift(1) + children(j)%chargez*shift(1)*shift(3)
+          parent%yzquad3 = parent%yzquad3 + children(j)%yzquad3 - children(j)%ydip3*shift(3) - children(j)%zdip3*shift(2) + children(j)%chargez*shift(2)*shift(3)
+          parent%yyquad3 = parent%yyquad3 + children(j)%yyquad3 - children(j)%ydip3*shift(2) - children(j)%ydip3*shift(2) + children(j)%chargez*shift(2)*shift(2)
+          parent%zzquad3 = parent%zzquad3 + children(j)%zzquad3 - children(j)%zdip3*shift(3) - children(j)%zdip3*shift(3) + children(j)%chargez*shift(3)*shift(3)
+
         end do
+      end subroutine
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> adds res2 to res1
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine results_add(res1, res2)
+        implicit none
+        type(t_particle_results), intent(inout) :: res1
+        type(t_particle_results), intent(in) :: res2
+
+        res1%u    = res1%u    + res2%u
+        res1%af  = res1%af  + res2%af
+        res1%work = res1%work + res2%work
+      end subroutine
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> clears results datatype
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      elemental subroutine results_clear(res)
+        implicit none
+        type(t_particle_results), intent(out) :: res
+        real*8 :: realdummy
+
+        res = EMPTY_PARTICLE_RESULTS
+
       end subroutine
 
 
