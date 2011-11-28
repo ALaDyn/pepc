@@ -505,7 +505,6 @@ module tree_walk_pthreads
     integer, private :: primary_processor_id = 0
 
     real*8, dimension(:), allocatable :: boxlength2
-    real*8 :: theta2
     real*8 :: vbox(3)
     type(t_calc_force_params), save :: cf_par
     logical :: in_central_box
@@ -561,7 +560,7 @@ module tree_walk_pthreads
       ! force calculation parameters
       cf_par = cf_par_
       ! Clumping parameter**2 for MAC
-      theta2 = cf_par%theta**2
+      cf_par%theta2 = cf_par%theta**2
       ! length of todo- and defer-list per particle (estimations)
       todo_list_length  = max(nintmax, 10)
       defer_list_length = max(todo_list_length / 8, 50)
@@ -913,17 +912,7 @@ module tree_walk_pthreads
 
           dist2 = DOT_PRODUCT(delta, delta)
 
-          select case (cf_par%mac)
-              case (0)
-                ! Barnes-Hut-MAC
-                mac_ok = (theta2 * dist2 > boxlength2(walk_level))
-              case (1)
-                ! NN-MAC: we may "interact" with the node if it is further away than maxdist2 --> this leads to the node *not* being put onto the NN-list (strange, i know)
-                mac_ok = (dist2 - sqrt(3.)* boxlength2(walk_level) > results%maxdist2)
-              case default
-                ! N^2 code
-                mac_ok = .false.
-          end select
+          mac_ok = mac(cf_par, dist2, boxlength2(walk_level), results)
 
           num_mac_evaluations = num_mac_evaluations + 1
 

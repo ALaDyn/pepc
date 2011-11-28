@@ -29,9 +29,7 @@ module module_calc_force
 
       public calc_force_per_interaction
       public calc_force_per_particle
-      public calc_force_coulomb_3D
-      public calc_force_coulomb_2D
-      public calc_force_LJ
+      public mac
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -48,6 +46,30 @@ module module_calc_force
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> generic Multipole Acceptance Criterion
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      function mac(cf_par, dist2, boxlength2, results)
+        implicit none
+
+        logical :: mac
+        type(t_calc_force_params), intent(in) :: cf_par
+        real*8, intent(in) :: dist2
+        real*8, intent(in) :: boxlength2
+        type(t_particle_results), intent(in) :: results
+
+        select case (cf_par%mac)
+            case (0)
+              ! Barnes-Hut-MAC
+              mac = (cf_par%theta2 * dist2 > boxlength2)
+            case default
+              ! N^2 code
+              mac = .false.
+        end select
+
+      end function
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>

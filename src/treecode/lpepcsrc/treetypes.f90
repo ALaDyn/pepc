@@ -35,6 +35,7 @@ module treetypes
         logical :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
         integer :: mac          = 0      !< selector for multipole acceptance criterion, mac==0: Barnes-Hut, currently unused
         real    :: theta        = 0.6    !< multipole opening angle
+        real    :: theta2        = 0.6**2. !< (multipole opening angle)^2 - is set automatically by tree_aswalk_pthreads
         real*8  :: spatial_interaction_cutoff(3) = huge(real8_dummy) * [1., 1., 1.] !< all nodes, where any(abs(coc(1:3)-particle_position(1:3)) > spatial_interaction_cutoff(1:3) are ignored when calculating interactions
       end type t_calc_force_params
 

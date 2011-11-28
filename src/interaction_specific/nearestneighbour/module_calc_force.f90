@@ -29,6 +29,7 @@ module module_calc_force
 
       public calc_force_per_interaction
       public calc_force_per_particle
+      public mac
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -44,6 +45,34 @@ module module_calc_force
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> generic Multipole Acceptance Criterion
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      function mac(cf_par, dist2, boxlength2, results)
+        implicit none
+
+        logical :: mac
+        type(t_calc_force_params), intent(in) :: cf_par
+        real*8, intent(in) :: dist2
+        real*8, intent(in) :: boxlength2
+        type(t_particle_results), intent(in) :: results
+
+        select case (cf_par%mac)
+            case (0)
+              ! Barnes-Hut-MAC
+              mac = (cf_par%theta2 * dist2 > boxlength2)
+            case (1)
+              ! NN-MAC: we may "interact" with the node if it is further away than maxdist2 --> this leads to the node *not* being put onto the NN-list (strange, i know)
+              mac = (dist2 - sqrt(3.)* boxlength2 > results%maxdist2)
+            case default
+              ! N^2 code
+              mac = .false.
+        end select
+
+      end function
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -129,11 +158,7 @@ module module_calc_force
             res%maxdist2                    = res%dist2(res%maxidx)
             res%work                        = res%work + WORKLOAD_PENALTY_INTERACTION
           else
-!            ! node is further away than farest particle in nn-list --> this should have been avoided by the MAC
-!            write(*,*) "update_nn_list(): node is further away than farest particle in nn-list --> this should have been avoided by the MAC"
-!            write(*,*) inode, d, dist2
-!            write(*,*) res
-!            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            ! node is further away than farest particle in nn-list --> can be ignored
           endif
 
         end subroutine update_nn_list

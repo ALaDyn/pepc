@@ -92,7 +92,7 @@ program pepce
      call timings_GatherAndOutput(itime)
 
      do i=1, np_local
-       write(37,*) i, "|", particle_results(i)%neighbour_nodes(:)
+       write(37+my_rank,*) i, "|", particle_results(i)%neighbour_nodes(:)
        flush(6)
      end do
 
