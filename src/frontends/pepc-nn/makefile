@@ -3,8 +3,8 @@ MYROOT = ../../../
 include $(MYROOT)makefile.defs
 
 
-FRONTENDNAME = pepcmini
-BACKEND      = coulomb
+FRONTENDNAME = pepcnn
+BACKEND      = nearestneighbour
 
 # -------------------------------------------------------------------------------------------
 # Source files

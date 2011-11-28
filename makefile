@@ -13,7 +13,7 @@ benchmark: pepce
 info:
 	@echo $(LIBDIR)
 
-all: pepce pepcmini pepcmw pepcs pepcb
+all: pepce pepcmini pepcmw pepcs pepcb pepcnn
 
 
 $(LIBDIR)libpthreads.a:
@@ -41,6 +41,10 @@ pepcmini: libpepc.coulomb
 	@echo "============  Making Frontend PEPC-MINI (minial version)  ============="
 	cd $(FRONTENDDIR)pepc-mini && $(MAKE) $(MFLAGS)
 
+pepcnn: libpepc.nearestneighbour
+	@echo "============  Making Frontend PEPC-NN (nearest neighbour search)  ============="
+	cd $(FRONTENDDIR)pepc-nn && $(MAKE) $(MFLAGS)
+
 pepce: libpepc.coulomb
 	@echo "============  Making Frontend PEPC-E (Benchmark version)  ============="
 	cd $(FRONTENDDIR)pepc-e && $(MAKE) $(MFLAGS)
@@ -62,6 +66,7 @@ clean: clean-doc
 	cd $(FRONTENDDIR)pepc-b     && $(MAKE) $(MFLAGS) clean
 	cd $(FRONTENDDIR)pepc-mw    && $(MAKE) $(MFLAGS) clean
 	cd $(FRONTENDDIR)pepc-mini  && $(MAKE) $(MFLAGS) clean
+	cd $(FRONTENDDIR)pepc-nn    && $(MAKE) $(MFLAGS) clean
 
 clean-doc:
 	rm -rf ./doc
