@@ -344,20 +344,21 @@ module module_tree_domains
         ! Initialize VLD-stuff
         call branches_initialize_VLD(particles)
 
-        if (boundary_debug) then
-            if (me /= 0 .and. me /= num_pe-1) then
-                inc = 1
-            else
-                inc = 0
-            endif
-
-            write (ipefile,'(/a/a/(i5,z21,2i8,3f12.5,1f12.3))') 'Particle list after boundary swap:', &
-            ' index   key,     label,   on PE,    x      y     q', &
-            (i,particles(i)%key,particles(i)%label,particles(i)%pid,&
-            particles(i)%x(1),particles(i)%x(2),particles(i)%x(3),particles(i)%data%q,i=1,npp+1+inc)
-
-            write(ipefile,'(/)')
-        endif
+        !TODO: We use particle_data here, this is NOT allowed!!!
+!        if (boundary_debug) then
+!            if (me /= 0 .and. me /= num_pe-1) then
+!                inc = 1
+!            else
+!                inc = 0
+!            endif
+!
+!            write (ipefile,'(/a/a/(i5,z21,2i8,3f12.5,1f12.3))') 'Particle list after boundary swap:', &
+!            ' index   key,     label,   on PE,    x      y     q', &
+!            (i,particles(i)%key,particles(i)%label,particles(i)%pid,&
+!            particles(i)%x(1),particles(i)%x(2),particles(i)%x(3),particles(i)%data%q,i=1,npp+1+inc)
+!
+!            write(ipefile,'(/)')
+!        endif
 
         call timer_stop(t_domains_bound)
         call timer_stop(t_domains)

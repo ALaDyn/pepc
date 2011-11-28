@@ -30,8 +30,11 @@ module module_calc_force
       public calc_force_per_interaction
       public calc_force_per_particle
       private calc_2nd_algebraic_condensed
-      private calc_2nd_algebraic_decomposed
-      private calc_6th_algebraic_decomposed
+      !private calc_2nd_algebraic_decomposed
+      !private calc_6th_algebraic_decomposed
+      private G_core
+      private G_decomp
+
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -57,13 +60,13 @@ module module_calc_force
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(particle, res, inode, delta, dist2, vbox, cf_par)
+        subroutine calc_force_per_interaction(particle_data, res, inode, delta, dist2, vbox, cf_par)
           use module_interaction_specific
-          use treevars
+          !use treevars
           implicit none
 
           integer, intent(in) :: inode
-          type(t_particle_data), intent(in) :: particle
+          type(t_particle_data), intent(in) :: particle_data
           type(t_particle_results), intent(inout) :: res
           real*8, intent(in) :: vbox(3), delta(3), dist2
           !> Force law struct has following content (defined in module treetypes)
@@ -77,7 +80,7 @@ module module_calc_force
 
           select case (cf_par%force_law)
             case (2)  !  use 2nd order algebraic kernel, condensed
-                call calc_2nd_algebraic_condensed(particle, inode, delta, dist2, cf_par, u, af)
+                call calc_2nd_algebraic_condensed(particle_data, inode, delta, dist2, cf_par, u, af)
 
             case (3)  !  TODO: use 2nd order algebraic kernel, decomposed
                 !call calc_2nd_algebraic_decomposed(particle, inode, delta, dist2, cf_par, u, af)
@@ -110,6 +113,15 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_particle(particles, nparticles, res, cf_par)
+          use module_interaction_specific
+          use treevars, only : me
+          !use module_fmm_framework
+          implicit none
+
+          integer, intent(in) :: nparticles
+          type(t_particle), intent(in) :: particles(:)
+          type(t_calc_force_params), intent(in) :: cf_par
+          type(t_particle_results), intent(inout) :: res(:)
 
         end subroutine calc_force_per_particle
 
@@ -122,15 +134,17 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        subroutine calc_2nd_algebraic_condensed(particle, inode, d, dist2, cf_par, u, af)
+        subroutine calc_2nd_algebraic_condensed(particle_data, inode, d, dist2, cf_par, u, af)
             use treetypes
+            use treevars
+            use module_interaction_specific
             implicit none
 
-            type(t_particles), intent(in) :: particle
+            type(t_particle_data), intent(in) :: particle_data
             integer, intent(in) :: inode !< index of particle to interact with
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
             type(t_calc_force_params), intent(in) :: cf_par !< Force parameters - see module_treetypes
-            real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
+            real*8, intent(out) ::  u(1:3), af(1:3)
 
             type(t_multipole_data), pointer :: t
 
@@ -153,7 +167,7 @@ module module_calc_force
 
             sig2 = cf_par%eps**2
 
-            vort = [particle%alpha(1),particle%alpha(2),particle(p)%alpha(3)]  ! need particle's vorticity for cross-product here
+            vort = [particle_data%alpha(1),particle_data%alpha(2),particle_data%alpha(3)]  ! need particle's vorticity for cross-product here
 
             m0 = [t%chargex,t%chargex,t%chargex]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
@@ -250,12 +264,9 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        subroutine calc_2nd_algebraic_decomposed(inode, d, dist2, cf_par, u, af)
-
-
-
-
-        end subroutine calc_2nd_algebraic_condensed
+!        subroutine calc_2nd_algebraic_decomposed(inode, d, dist2, cf_par, u, af)
+!
+!        end subroutine calc_2nd_algebraic_decomposed
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
@@ -266,7 +277,7 @@ module module_calc_force
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-        pure function G_core(r,s,factor)
+        function G_core(r,s,factor)
             implicit none
 
             real*8 :: G_core
@@ -277,7 +288,7 @@ module module_calc_force
         end function
 
 
-        pure function G_decomp(r,s,tau)
+        function G_decomp(r,s,tau)
            implicit none
 
             real*8 :: G_decomp
@@ -288,7 +299,7 @@ module module_calc_force
         end function
 
 
-        pure function cross_prod(vec_a, vec_b)
+        function cross_prod(vec_a, vec_b)
 
             implicit none
 

@@ -185,7 +185,7 @@ module module_interaction_specific
         type(t_particle_data), intent(in) :: particle
         type(t_multipole_data), intent(out) :: multipole
 
-        multipole = t_multipole_data(particle_pos, sqrt(dot_product(particle%alpha, particle%alpha), particle%alpha(1), particle%alpha(2), particle%alpha(3), &
+        multipole = t_multipole_data(particle_pos, sqrt(dot_product(particle%alpha, particle%alpha)), particle%alpha(1), particle%alpha(2), particle%alpha(3), &
                                      0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
 
       end subroutine
