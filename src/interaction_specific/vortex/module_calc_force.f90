@@ -29,6 +29,7 @@ module module_calc_force
 
       public calc_force_per_interaction
       public calc_force_per_particle
+      public mac
       private calc_2nd_algebraic_condensed
       !private calc_2nd_algebraic_decomposed
       !private calc_6th_algebraic_decomposed
@@ -50,6 +51,35 @@ module module_calc_force
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> generic Multipole Acceptance Criterion
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        function mac(node, cf_par, dist2, boxlength2, results)
+            implicit none
+
+            logical :: mac
+            integer, intent(in) :: node
+            type(t_calc_force_params), intent(in) :: cf_par
+            real*8, intent(in) :: dist2
+            real*8, intent(in) :: boxlength2
+            type(t_particle_results), intent(in) :: results
+
+            select case (cf_par%mac)
+                case (0)
+                    ! Barnes-Hut-MAC
+                    mac = (cf_par%theta2 * dist2 > boxlength2)
+                case (1)
+                    ! NN-MAC: we may "interact" with the node if it is further away than maxdist2 --> this leads to the node *not* being put onto the NN-list (strange, i know)
+                    mac = (dist2 - sqrt(3.)* boxlength2 > results%maxdist2)
+                case default
+                    ! N^2 code
+                    mac = .false.
+            end select
+
+        end function
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -73,7 +103,7 @@ module module_calc_force
           !> These need to be included/defined in call to fields from frontend
           !>    real    :: eps
           !>    real    :: force_const
-          !>    integer :: force_law   0= no interaction (default); 2=2nd order algebraic kernel, condensed; 3=2nd order algebraic kernel, decomposed
+          !>    integer :: force_law   0= no interaction (default); 2=2nd order condensed algebraic kernel; 3=2nd order decomposed algebraic kernel
           type(t_calc_force_params), intent(in) :: cf_par
 
           real*8 :: u(3), af(3)
@@ -114,8 +144,6 @@ module module_calc_force
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_particle(particles, nparticles, res, cf_par)
           use module_interaction_specific
-          use treevars, only : me
-          !use module_fmm_framework
           implicit none
 
           integer, intent(in) :: nparticles

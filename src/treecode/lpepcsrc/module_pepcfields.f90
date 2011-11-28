@@ -186,6 +186,7 @@ contains
         ! add lattice contribution
         call timer_start(t_lattice)
         ! add lattice contribution and other per-particle-forces
+        ! TODO: do not call calc_force_per_particle here!
         call calc_force_per_particle(particles, npp, particle_results, cf_par)
         call timer_stop(t_lattice)
 
