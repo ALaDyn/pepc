@@ -460,115 +460,115 @@ module module_htable
         use treetypes
         use module_spacefilling
         implicit none
-
+! TODO: make this generic or remove it
         type(t_particle), intent(in) :: particles(1:npp)
-        integer*8 :: key_twig(ntwig), key_leaf(nleaf)
-        integer, dimension(ntwig) :: child_twig, addr_twig, ind_twig      ! twig-nodes
-        real*8 :: rcoc2(1:ntwig)
-        integer, dimension(nleaf) :: plist_leaf, ind_leaf, owner_leaf       ! leaf-nodes
-
-        character(1) :: csnap, collision
-
-        integer :: i, isnap
-
-        save isnap
-        data isnap/1/
-
-        csnap=achar(mod(isnap,10)+48)
-
-        call status('DIAGNOSE')
-
-        ! output hash table
-
-        write (ipefile,'(/a/8x,a,a)') 'Hash table ', &
-        'entry,    owner    node,            key_8     key_10        parent       next   ', &
-        '    link   #leaves  childcode  collision', &
-        '----------------------------------------------------------------------------------------------- '
-
-        ! flag  collisions
-
-        do i=0,maxaddress
-            collision=" "
-            if (htable(i)%node/=0 .and. htable(i)%link/= -1 ) collision="C"
-
-            if (htable(i)%node /= 0) write (ipefile,'(3i10,o22,i10,o22,i8,i10,z4,4x,a1)') &
-            i,htable(i)%owner,htable(i)%node,htable(i)%key,htable(i)%key,ishft( htable(i)%key,-3 ), &
-            htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
-        end do
-
-
-        ! get keys of twig nodes from hash table
-        key_twig(1:ntwig)  = pack(htable(0:maxaddress)%key,mask=htable(0:maxaddress)%node<0)
-        ! get levels of twigs
-        addr_twig(1:ntwig) = (/( key2addr( key_twig(i),'DIAGNOSE_TREE' ),i=1,ntwig)/)   !  Table address
-        child_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%childcode,i=1,ntwig )/)   !  Children byte-code
-        ind_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%node,i=1,ntwig )/)   !  Twig node pointers
-
-        do i=1,ntwig
-            rcoc2(i) = dot_product(tree_nodes(ind_twig(i))%coc, tree_nodes(ind_twig(i))%coc)
-        end do
-
-        write (ipefile,'(///a)') 'Tree structure'
-
-        !  write (ipefile,'(/a/a/(3i5,2i10,2i8,b11,i2,i8,i10,9(1pe15.4)))') 'Twigs from hash-table:', &
-        write (ipefile,'(/a/a,a/(3i5,2o15,2i8,o15,i8,14(1pe30.19)))') 'Twigs from hash-table:', &
-        '    i  level  owner        key     parent-key       #    node  code      1st child #leaves ', &
-        ' abs_charge    charge   xcoc   ycoc   zcoc   xdip   ydip   zdip   xxquad   yyquad   zzquad   xyquad   yzquad   zxquad', &
-        (i,level_from_key(key_twig(i)), &              !  index, level
-        htable( addr_twig(i) )%owner, &                            ! Owner-PE of node
-        key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
-        addr_twig(i), ind_twig(i), &    ! Table address and node number
-        child_twig(i), &                         ! Children byte-code
-        htable( addr_twig(i) )%leaves, &                           ! # leaves contained in branch
-        tree_nodes(ind_twig(i))%abs_charge, &    ! Twig absolute charge
-        tree_nodes(ind_twig(i))%charge, &    ! Twig  charge
-        tree_nodes(ind_twig(i))%coc(1), & ! Centre of charge
-        tree_nodes(ind_twig(i))%coc(2), &
-        tree_nodes(ind_twig(i))%coc(3), &
-        tree_nodes(ind_twig(i))%dip(1), &
-        tree_nodes(ind_twig(i))%dip(2), &
-        tree_nodes(ind_twig(i))%dip(3), &
-        tree_nodes(ind_twig(i))%quad(1), &
-        tree_nodes(ind_twig(i))%quad(2), &
-        tree_nodes(ind_twig(i))%quad(3), &
-        tree_nodes(ind_twig(i))%xyquad, &
-        tree_nodes(ind_twig(i))%yzquad, &
-        tree_nodes(ind_twig(i))%zxquad, &
-        i=1,ntwig)
-
-
-        ! get keys of local leaf nodes from hash table
-        key_leaf(1:nleaf_me) = pack(htable%key,mask=(htable%node>0 .and. htable%owner == me))
-        ind_leaf(1:nleaf_me) = pack(htable%node,mask=(htable%node>0 .and. htable%owner == me))         ! particle/leaf index
-        plist_leaf(1:nleaf_me) = pack(htable%childcode,mask=(htable%node>0 .and. htable%owner == me))   ! particle label
-        owner_leaf(1:nleaf_me) = pack(htable%owner,mask=(htable%node>0 .and. htable%owner == me))   ! who owns leaf node
-
-
-        write (ipefile,'(/a/3a5,2a10,2a15,a25,4a11/(3i5,2i10,2o15,o25,4f30.19))') 'Local leaves from hash-table:', &
-        'i','owner','plab','i-leaf','lev','key','parent','pkey','x','y','z','q', &
-        (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),level_from_key(key_leaf(i)),key_leaf(i), &
-        ishft( key_leaf(i),-3 ), &      ! parent
-        particles(ind_leaf(i))%key, &  ! particle key
-        particles(ind_leaf(i))%x, particles(ind_leaf(i))%data%q, &
-        i=1,nleaf_me)
-
-        ! get keys of NON-local leaf nodes from hash table
-        key_leaf(1:nleaf-nleaf_me) = pack(htable%key,mask=(htable%node>0 .and. htable%owner /= me))
-        ind_leaf(1:nleaf-nleaf_me) = pack(htable%node,mask=(htable%node>0 .and. htable%owner /= me))         ! leaf index
-        plist_leaf(1:nleaf-nleaf_me) = pack(htable%childcode,mask=(htable%node>0 .and. htable%owner /= me))   ! global particle label
-        owner_leaf(1:nleaf-nleaf_me) = pack(htable%owner,mask=(htable%node>0 .and. htable%owner /= me))   ! who owns leaf node
-
-
-        write (ipefile,'(//a/a/(4i5,2o15,i5,2f11.4,f6.1,f11.4))') 'Non-local leaves from hash-table:', &
-        '    i   owner    i-leaf    lev    key    parent  plabel  xcoc  ycoc  charge      ', &
-        (i,owner_leaf(i),ind_leaf(i),level_from_key(key_leaf(i)),key_leaf(i), &
-          ishft( key_leaf(i),-3 ), &      ! parent
-          plist_leaf(i), & ! global particle label
-          tree_nodes(ind_twig(i))%coc(1),&
-          tree_nodes(ind_twig(i))%coc(2),&
-          tree_nodes(ind_twig(i))%charge,&
-          tree_nodes(ind_twig(i))%dip(1), &
-        i=1,nleaf-nleaf_me)
+!        integer*8 :: key_twig(ntwig), key_leaf(nleaf)
+!        integer, dimension(ntwig) :: child_twig, addr_twig, ind_twig      ! twig-nodes
+!        real*8 :: rcoc2(1:ntwig)
+!        integer, dimension(nleaf) :: plist_leaf, ind_leaf, owner_leaf       ! leaf-nodes
+!
+!        character(1) :: csnap, collision
+!
+!        integer :: i, isnap
+!
+!        save isnap
+!        data isnap/1/
+!
+!        csnap=achar(mod(isnap,10)+48)
+!
+!        call status('DIAGNOSE')
+!
+!        ! output hash table
+!
+!        write (ipefile,'(/a/8x,a,a)') 'Hash table ', &
+!        'entry,    owner    node,            key_8     key_10        parent       next   ', &
+!        '    link   #leaves  childcode  collision', &
+!        '----------------------------------------------------------------------------------------------- '
+!
+!        ! flag  collisions
+!
+!        do i=0,maxaddress
+!            collision=" "
+!            if (htable(i)%node/=0 .and. htable(i)%link/= -1 ) collision="C"
+!
+!            if (htable(i)%node /= 0) write (ipefile,'(3i10,o22,i10,o22,i8,i10,z4,4x,a1)') &
+!            i,htable(i)%owner,htable(i)%node,htable(i)%key,htable(i)%key,ishft( htable(i)%key,-3 ), &
+!            htable(i)%link,htable(i)%leaves,htable(i)%childcode,collision
+!        end do
+!
+!
+!        ! get keys of twig nodes from hash table
+!        key_twig(1:ntwig)  = pack(htable(0:maxaddress)%key,mask=htable(0:maxaddress)%node<0)
+!        ! get levels of twigs
+!        addr_twig(1:ntwig) = (/( key2addr( key_twig(i),'DIAGNOSE_TREE' ),i=1,ntwig)/)   !  Table address
+!        child_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%childcode,i=1,ntwig )/)   !  Children byte-code
+!        ind_twig(1:ntwig) = (/( htable( key2addr( key_twig(i),'DIAGNOSE_TREE' ) )%node,i=1,ntwig )/)   !  Twig node pointers
+!
+!        do i=1,ntwig
+!            rcoc2(i) = dot_product(tree_nodes(ind_twig(i))%coc, tree_nodes(ind_twig(i))%coc)
+!        end do
+!
+!        write (ipefile,'(///a)') 'Tree structure'
+!
+!        !  write (ipefile,'(/a/a/(3i5,2i10,2i8,b11,i2,i8,i10,9(1pe15.4)))') 'Twigs from hash-table:', &
+!        write (ipefile,'(/a/a,a/(3i5,2o15,2i8,o15,i8,14(1pe30.19)))') 'Twigs from hash-table:', &
+!        '    i  level  owner        key     parent-key       #    node  code      1st child #leaves ', &
+!        ' abs_charge    charge   xcoc   ycoc   zcoc   xdip   ydip   zdip   xxquad   yyquad   zzquad   xyquad   yzquad   zxquad', &
+!        (i,level_from_key(key_twig(i)), &              !  index, level
+!        htable( addr_twig(i) )%owner, &                            ! Owner-PE of node
+!        key_twig(i),ishft( key_twig(i),-3 ), &                             ! key, parent key
+!        addr_twig(i), ind_twig(i), &    ! Table address and node number
+!        child_twig(i), &                         ! Children byte-code
+!        htable( addr_twig(i) )%leaves, &                           ! # leaves contained in branch
+!        tree_nodes(ind_twig(i))%abs_charge, &    ! Twig absolute charge
+!        tree_nodes(ind_twig(i))%charge, &    ! Twig  charge
+!        tree_nodes(ind_twig(i))%coc(1), & ! Centre of charge
+!        tree_nodes(ind_twig(i))%coc(2), &
+!        tree_nodes(ind_twig(i))%coc(3), &
+!        tree_nodes(ind_twig(i))%dip(1), &
+!        tree_nodes(ind_twig(i))%dip(2), &
+!        tree_nodes(ind_twig(i))%dip(3), &
+!        tree_nodes(ind_twig(i))%quad(1), &
+!        tree_nodes(ind_twig(i))%quad(2), &
+!        tree_nodes(ind_twig(i))%quad(3), &
+!        tree_nodes(ind_twig(i))%xyquad, &
+!        tree_nodes(ind_twig(i))%yzquad, &
+!        tree_nodes(ind_twig(i))%zxquad, &
+!        i=1,ntwig)
+!
+!
+!        ! get keys of local leaf nodes from hash table
+!        key_leaf(1:nleaf_me) = pack(htable%key,mask=(htable%node>0 .and. htable%owner == me))
+!        ind_leaf(1:nleaf_me) = pack(htable%node,mask=(htable%node>0 .and. htable%owner == me))         ! particle/leaf index
+!        plist_leaf(1:nleaf_me) = pack(htable%childcode,mask=(htable%node>0 .and. htable%owner == me))   ! particle label
+!        owner_leaf(1:nleaf_me) = pack(htable%owner,mask=(htable%node>0 .and. htable%owner == me))   ! who owns leaf node
+!
+!
+!        write (ipefile,'(/a/3a5,2a10,2a15,a25,4a11/(3i5,2i10,2o15,o25,4f30.19))') 'Local leaves from hash-table:', &
+!        'i','owner','plab','i-leaf','lev','key','parent','pkey','x','y','z','q', &
+!        (i,owner_leaf(i),plist_leaf(i),ind_leaf(i),level_from_key(key_leaf(i)),key_leaf(i), &
+!        ishft( key_leaf(i),-3 ), &      ! parent
+!        particles(ind_leaf(i))%key, &  ! particle key
+!        particles(ind_leaf(i))%x, particles(ind_leaf(i))%data%q, &
+!        i=1,nleaf_me)
+!
+!        ! get keys of NON-local leaf nodes from hash table
+!        key_leaf(1:nleaf-nleaf_me) = pack(htable%key,mask=(htable%node>0 .and. htable%owner /= me))
+!        ind_leaf(1:nleaf-nleaf_me) = pack(htable%node,mask=(htable%node>0 .and. htable%owner /= me))         ! leaf index
+!        plist_leaf(1:nleaf-nleaf_me) = pack(htable%childcode,mask=(htable%node>0 .and. htable%owner /= me))   ! global particle label
+!        owner_leaf(1:nleaf-nleaf_me) = pack(htable%owner,mask=(htable%node>0 .and. htable%owner /= me))   ! who owns leaf node
+!
+!
+!        write (ipefile,'(//a/a/(4i5,2o15,i5,2f11.4,f6.1,f11.4))') 'Non-local leaves from hash-table:', &
+!        '    i   owner    i-leaf    lev    key    parent  plabel  xcoc  ycoc  charge      ', &
+!        (i,owner_leaf(i),ind_leaf(i),level_from_key(key_leaf(i)),key_leaf(i), &
+!          ishft( key_leaf(i),-3 ), &      ! parent
+!          plist_leaf(i), & ! global particle label
+!          tree_nodes(ind_twig(i))%coc(1),&
+!          tree_nodes(ind_twig(i))%coc(2),&
+!          tree_nodes(ind_twig(i))%charge,&
+!          tree_nodes(ind_twig(i))%dip(1), &
+!        i=1,nleaf-nleaf_me)
 
     end subroutine diagnose_tree
 

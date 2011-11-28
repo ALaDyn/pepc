@@ -1,17 +1,12 @@
 module physvars
+  use treetypes
+  use module_interaction_specific, only : t_particle_results
 
   real, parameter :: pi=3.141592654
 
-! particle arrays
-  real*8, allocatable :: x(:),  y(:),  z(:), &     ! position
-                      ux(:), uy(:), uz(:), &     ! velocity
-                              q(:),  m(:), &     ! charge and mass
-			Ex(:), Ey(:), Ez(:), &   ! E-field
-			pot(:), &	         ! scalar potential
-			work(:)	         ! work load (interaction list length)
+  type(t_particle), allocatable :: particles(:)
+  type(t_particle_results), allocatable :: particle_results(:)
 
-  integer, allocatable ::  pelabel(:)  ! particle label
-    
   !  physics data
   integer :: ni, ne       !  # ions, electrons
   integer :: nep, nip     ! # particles/electrons/ions per PE

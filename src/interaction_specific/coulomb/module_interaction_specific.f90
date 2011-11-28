@@ -193,4 +193,33 @@ module module_interaction_specific
       end subroutine
 
 
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> adds res2 to res1
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine results_add(res1, res2)
+        implicit none
+        type(t_particle_results), intent(inout) :: res1
+        type(t_particle_results), intent(in) :: res2
+
+        res1%e    = res1%e    + res2%e
+        res1%pot  = res1%pot  + res2%pot
+        res1%work = res1%work + res2%work
+      end subroutine
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> clears results datatype
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      elemental subroutine results_clear(res)
+        implicit none
+        type(t_particle_results), intent(out) :: res
+        real*8 :: realdummy
+
+        res = EMPTY_PARTICLE_RESULTS
+
+      end subroutine
+
 end module module_interaction_specific

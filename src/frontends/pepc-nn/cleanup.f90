@@ -21,8 +21,6 @@ subroutine cleanup(my_rank_l,n_cpu_l)
 
   ! particle array deallocation in physvars
 
-  deallocate ( x, y, z, ux, uy, uz, & 
-       q, m, work, pelabel, &
-       Ex, Ey, Ez, pot)
+  deallocate ( particles, particle_results )
 
 end subroutine cleanup

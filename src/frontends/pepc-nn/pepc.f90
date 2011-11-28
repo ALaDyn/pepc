@@ -20,10 +20,9 @@ program pepce
 
   use treetypes
   use physvars
-  use particle_pusher
   use timings
   use module_fmm_framework
-  use module_pepc_wrappers
+  use module_pepcfields
   use files
   implicit none
   include 'mpif.h'
@@ -69,7 +68,7 @@ program pepce
   cf_par%mac         = mac
   cf_par%eps         = eps
   cf_par%force_const = force_const
-  cf_par%force_law   = 3
+  cf_par%force_law   = 5
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -86,18 +85,8 @@ program pepce
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
 
-     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
-                  q(1:np_local),work(1:np_local),pelabel(1:np_local), &
-                  ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      np_mult, cf_par, itime, weighted, curve_type, &
-                      num_neighbour_boxes, neighbour_boxes, .false., .false.)
-
-     ! Integrator
-     call velocities(1,np_local,dt)
-     call push(1,np_local,dt)  ! update positions
-
-     ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(x(1:np_local),y(1:np_local),z(1:np_local),np_local)
+    call pepc_fields(np_local, npart_total, particles, particle_results, &
+        np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .false., .false.)
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags

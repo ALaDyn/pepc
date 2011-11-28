@@ -161,7 +161,7 @@ contains
 
         call timer_start(t_fields_passes)
 
-        particle_results(:) = EMPTY_PARTICLE_RESULTS
+        call results_clear(particle_results(:))
 
         do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 
@@ -294,51 +294,51 @@ contains
         real*8 :: ttrav, ttrav_loc, tcomm(3) ! timing integrals
         integer :: ibox
         real*8 :: vbox(3)
-
-        call status('FIELDS GRID')
-
-        if (.not. (allocated(htable) .and. allocated(tree_nodes))) then
-            write(*,*) 'pepc_grid_fields(): pepc_fields() must have been called with no_dealloc=.true. before'
-            return
-        endif
-
-        allocate(grid_particles(npgrid), grid_particle_results(npgrid))
-
-        ! Copy particle buffers to tree arrays
-        do i=1,npgrid
-            grid_particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
-            1._8,                    &  ! workload
-            -1_8,                     &  ! key - will be assigned later
-            p_label(i),              &  ! particle label
-            me,                      &  ! particle owner
-            t_particle_data(0.)   ) ! charge - set to zero
-        end do
-
-        grid_particle_results(:) = t_particle_results([0., 0., 0.], 0., 1.)
-
-        do ibox = 1,num_neighbours ! sum over all boxes within ws=1
-            vbox = lattice_vect(neighbours(:,ibox))
-            ! tree walk finds interaction partners and calls interaction routine for particles on short list
-            call tree_walk(npgrid,grid_particles,grid_particle_results,cf_par,itime,ttrav,ttrav_loc, vbox, tcomm)
-        end do ! ibox = 1,num_neighbours
-
-        ! add lattice contribution and other per-particle-forces
-        !	  call calc_force_per_particle(npgrid, grid_particles, grid_particle_results, cf_par)
-
-        nkeys_total = nleaf+ntwig
-
-        ! Copy results back to local arrays
-        do i=1,npgrid
-            p_Ex(i)  = grid_particle_results(i)%e(1)
-            p_Ey(i)  = grid_particle_results(i)%e(2)
-            p_Ez(i)  = grid_particle_results(i)%e(3)
-            p_pot(i) = grid_particle_results(i)%pot
-        end do
-
-        ! deallocate particle and result arrays
-        deallocate (grid_particles, grid_particle_results)
-
-        call status('FIELDS GRID DONE')
+! TODO: adapt to new datastructures
+!        call status('FIELDS GRID')
+!
+!        if (.not. (allocated(htable) .and. allocated(tree_nodes))) then
+!            write(*,*) 'pepc_grid_fields(): pepc_fields() must have been called with no_dealloc=.true. before'
+!            return
+!        endif
+!
+!        allocate(grid_particles(npgrid), grid_particle_results(npgrid))
+!
+!        ! Copy particle buffers to tree arrays
+!        do i=1,npgrid
+!            grid_particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
+!            1._8,                    &  ! workload
+!            -1_8,                     &  ! key - will be assigned later
+!            p_label(i),              &  ! particle label
+!            me,                      &  ! particle owner
+!            t_particle_data(0.)   ) ! charge - set to zero
+!        end do
+!
+!        grid_particle_results(:) = t_particle_results([0., 0., 0.], 0., 1.)
+!
+!        do ibox = 1,num_neighbours ! sum over all boxes within ws=1
+!            vbox = lattice_vect(neighbours(:,ibox))
+!            ! tree walk finds interaction partners and calls interaction routine for particles on short list
+!            call tree_walk(npgrid,grid_particles,grid_particle_results,cf_par,itime,ttrav,ttrav_loc, vbox, tcomm)
+!        end do ! ibox = 1,num_neighbours
+!
+!        ! add lattice contribution and other per-particle-forces
+!        !	  call calc_force_per_particle(npgrid, grid_particles, grid_particle_results, cf_par)
+!
+!        nkeys_total = nleaf+ntwig
+!
+!        ! Copy results back to local arrays
+!        do i=1,npgrid
+!            p_Ex(i)  = grid_particle_results(i)%e(1)
+!            p_Ey(i)  = grid_particle_results(i)%e(2)
+!            p_Ez(i)  = grid_particle_results(i)%e(3)
+!            p_pot(i) = grid_particle_results(i)%pot
+!        end do
+!
+!        ! deallocate particle and result arrays
+!        deallocate (grid_particles, grid_particle_results)
+!
+!        call status('FIELDS GRID DONE')
 
     end subroutine pepc_grid_fields
 

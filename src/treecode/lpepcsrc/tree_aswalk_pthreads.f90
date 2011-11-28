@@ -766,7 +766,7 @@ module tree_walk_pthreads
 
           ! every particle will start at the root node (one entry per todo_list, no particle is finished)
           thread_particle_indices(:) = -1 ! no particles assigned to this thread
-          thread_particle_results(:) =  EMPTY_PARTICLE_RESULTS
+          call results_clear(thread_particle_results(:))
           defer_list_entries         =  1 ! one entry in defer_list:
           defer_list(0,:)            =  t_defer_list_entry(1, 1_8) !     start at root node (addr, and key)
           partner_leaves             =  0 ! no interactions yet
@@ -815,13 +815,11 @@ module tree_walk_pthreads
                   endif
 
                   ! copy forces and potentials to thread-global array
-                  my_particle_results(thread_particle_indices(i))%e    = my_particle_results(thread_particle_indices(i))%e    + thread_particle_results(i)%e
-                  my_particle_results(thread_particle_indices(i))%pot  = my_particle_results(thread_particle_indices(i))%pot  + thread_particle_results(i)%pot
-                  my_particle_results(thread_particle_indices(i))%work = my_particle_results(thread_particle_indices(i))%work + thread_particle_results(i)%work
+                  call results_add(my_particle_results(thread_particle_indices(i)), thread_particle_results(i) )
 
                   !remove entries from defer_list
                   thread_particle_indices(i) = -1
-                  thread_particle_results(i) =  EMPTY_PARTICLE_RESULTS
+                  call results_clear(thread_particle_results(i))
                   defer_list_entries(i)      =  1
                   defer_list(0,i)            =  t_defer_list_entry(1, 1_8)
                   partner_leaves(i)          =  0
