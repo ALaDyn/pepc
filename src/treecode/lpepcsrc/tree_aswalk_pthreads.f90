@@ -912,7 +912,7 @@ module tree_walk_pthreads
 
           dist2 = DOT_PRODUCT(delta, delta)
 
-          mac_ok = mac(cf_par, dist2, boxlength2(walk_level), results)
+          mac_ok = mac(walk_node, cf_par, dist2, boxlength2(walk_level), results)
 
           num_mac_evaluations = num_mac_evaluations + 1
 

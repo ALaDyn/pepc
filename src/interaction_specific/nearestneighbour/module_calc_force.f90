@@ -51,10 +51,11 @@ module module_calc_force
       !> generic Multipole Acceptance Criterion
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      function mac(cf_par, dist2, boxlength2, results)
+      function mac(node, cf_par, dist2, boxlength2, results)
         implicit none
 
         logical :: mac
+        integer, intent(in) :: node
         type(t_calc_force_params), intent(in) :: cf_par
         real*8, intent(in) :: dist2
         real*8, intent(in) :: boxlength2
