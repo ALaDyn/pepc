@@ -27,7 +27,7 @@ program pepce
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, ifile, provided
+  integer :: ierr, ifile, provided, i
   type(t_calc_force_params) ::cf_par
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls."
@@ -64,11 +64,8 @@ program pepce
   call special_start(ispecial)
 
   ! initialize calc force params
-  cf_par%theta       = theta
-  cf_par%mac         = mac
-  cf_par%eps         = eps
-  cf_par%force_const = force_const
-  cf_par%force_law   = 5
+  cf_par%mac         = 1 ! NN MAC
+  cf_par%force_law   = 5 ! NN "Interaction"
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -86,7 +83,7 @@ program pepce
      call timer_start(t_tot)
 
     call pepc_fields(np_local, npart_total, particles, particle_results, &
-        np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .false., .false.)
+        np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .false., .true.)
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
@@ -94,7 +91,11 @@ program pepce
      call timings_LocalOutput(itime)
      call timings_GatherAndOutput(itime)
 
-     flush(6)
+     do i=1, np_local
+       write(37,*) i, "|", particle_results(i)%neighbour_keys(:)
+       flush(6)
+     end do
+
 
   end do
 

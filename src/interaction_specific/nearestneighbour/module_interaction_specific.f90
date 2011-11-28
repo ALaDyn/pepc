@@ -160,7 +160,8 @@ module module_interaction_specific
         type(t_particle_results), intent(inout) :: res1
         type(t_particle_results), intent(in) :: res2
 
-        ! TODONN: muss hier was getan werden?
+        ! TODONN: ist das wirklich alles?
+        res1 = res2
 
       end subroutine
 

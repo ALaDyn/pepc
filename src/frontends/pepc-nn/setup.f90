@@ -42,11 +42,13 @@ subroutine pepc_setup()
 
   weighted        =   1
 
+  num_walk_threads = 1
+
   ! particles
   nep = 0    ! # plasma electrons per PE
   nip = 0
   ne  = 0    ! Total # plasma electrons
-  ni  = 1000 ! total # plasma ions
+  ni  = 51 ! total # plasma ions
 
   ! physics stuff
   force_const = 1.
@@ -58,7 +60,7 @@ subroutine pepc_setup()
   eps           = 0.01
 
   ! control
-  nt           = 10
+  nt           = 1
   dt           = 0.01
   trun         = 0.
 
