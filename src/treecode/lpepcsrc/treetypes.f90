@@ -42,7 +42,7 @@ module treetypes
       integer, private, parameter :: nprops_particle = 6 ! # particle properties to ship
       type t_particle
          real*8 :: x(1:3)    ! coords
-         real*8 :: work  ! work load from force sum
+         real*8 :: work  ! work load from force sum ! TODO: remove this from this structure or from t_particle_results
          integer*8 :: key           ! Key
          integer :: label    ! label
          integer :: pid      ! owner

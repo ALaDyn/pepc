@@ -69,7 +69,7 @@ contains
         integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
         logical, intent(in) :: no_dealloc, no_restore
 
-        integer :: ierr
+        integer :: ierr, i
         integer :: npnew, npold
         integer, allocatable :: indxl(:),irnkl(:)
         integer :: islen(num_pe),irlen(num_pe)
@@ -91,6 +91,11 @@ contains
         call timer_start(t_all)
 
         if (allocated(particle_results)) deallocate(particle_results)
+
+        ! workload per particle must be nonzero
+        do i=1,np_local
+          particles(i)%work = max(particles(i)%work, 1.)
+        end do
 
         call timer_start(t_fields_tree)
 
