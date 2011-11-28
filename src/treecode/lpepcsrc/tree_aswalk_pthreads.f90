@@ -913,20 +913,17 @@ module tree_walk_pthreads
 
           dist2 = DOT_PRODUCT(delta, delta)
 
-          if (cf_par%mac == 0) then
-              ! Barnes-Hut-MAC
-              mac_ok = (theta2 * dist2 > boxlength2(walk_level))
-          else
-              ! TODO:  BH MAC is also implemented in mac_choose routine,
-              !        which needs tuning and inlining to avoid excessive parameter-passing overhead
-              !        Other MACS need additional preprocessed info on tree nodes (box lengths etc)
-              !        before they can be used for performance tests.
-              !        mac=1,2 only useful for accuracy tests at the moment (interaction list comparisons)
-              !             call mac_choose(pshort(p),ex_nps(p),ey_nps(p),ez_nps(p),&
-              !                  walk_node,walk_key(idx),abs_charge(walk_node),boxlength2(tree_nodes(walk_node)%level), &
-              !                  theta2,mac,mac_ok, vbox)
-              mac_ok = .false.
-          endif
+          select case (cf_par%mac)
+              case (0)
+                ! Barnes-Hut-MAC
+                mac_ok = (theta2 * dist2 > boxlength2(walk_level))
+              case (1)
+                ! NN-MAC: we may "interact" with the node if it is further away than maxdist2 --> this leads to the node *not* being put onto the NN-list (strange, i know)
+                mac_ok = (dist2 - sqrt(3.)* boxlength2(walk_level) > results%maxdist2)
+              case default
+                ! N^2 code
+                mac_ok = .false.
+          end select
 
           num_mac_evaluations = num_mac_evaluations + 1
 

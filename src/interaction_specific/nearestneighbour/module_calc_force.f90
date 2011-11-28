@@ -63,21 +63,12 @@ module module_calc_force
           type(t_particle_data), intent(in) :: particle
           type(t_particle_results), intent(inout) :: res
           real*8, intent(in) :: vbox(3), delta(3), dist2
-          !> Force law struct has following content (defined in module treetypes)
-          !> These need to be included/defined in call to fields from frontend
-          !>    real    :: eps
-          !>    real    :: force_const
-          !>    integer :: force_law   0= no interaction (default); 2=2D Coulomb; 3=3D Coulomb
-          type(t_calc_force_params), intent(in) :: cf_par
 
-          real*8 :: exyz(3), phic
+          type(t_calc_force_params), intent(in) :: cf_par
 
           select case (cf_par%force_law)
             case (5)
-                call update_nn_list(inode, delta, dist2, cf_par, exyz(1), exyz(2), exyz(3), phic)
-            case default
-              exyz = 0.
-              phic = 0.
+                call update_nn_list(inode, delta, dist2, cf_par, res)
           end select
 
           res%work = res%work + WORKLOAD_PENALTY_INTERACTION
@@ -115,20 +106,35 @@ module module_calc_force
         !>
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine update_nn_list(inode, d, dist2, cf_par, sumfx, sumfy, sumfz, sumphi)
+        subroutine update_nn_list(inode, d, dist2, cf_par, res)
           use treetypes
           use treevars
+          use module_interaction_specific, only : t_particle_results
           implicit none
-
           include 'mpif.h'
 
           integer, intent(in) :: inode !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           type(t_calc_force_params), intent(in) :: cf_par !< Force parameters - see module_treetypes
-          real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
+          type(t_particle_results), intent(inout) :: res
 
-          ! TODONN: update nn list
+          integer :: ierr, tmp(1)
 
+          if (dist2 < res%maxdist2) then
+            ! add node to NN_list
+            res%neighbour_keys(res%maxidx) = inode !TODONN replace with key
+            res%dist2(res%maxidx)          = dist2
+            tmp                            = maxloc(res%dist2(:)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
+            res%maxidx                     = tmp(1)
+            res%maxdist2                   = res%dist2(res%maxidx)
+            res%work                       = res%work + WORKLOAD_PENALTY_INTERACTION
+          else
+!            ! node is further away than farest particle in nn-list --> this should have been avoided by the MAC
+!            write(*,*) "update_nn_list(): node is further away than farest particle in nn-list --> this should have been avoided by the MAC"
+!            write(*,*) inode, d, dist2
+!            write(*,*) res
+!            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+          endif
 
         end subroutine update_nn_list
         
