@@ -31,7 +31,10 @@ module module_htable
 
     type (t_hash), public, target, allocatable :: htable(:) !< hash table
     integer*8,     public ::  hashconst  !< hashing constants
-    integer*8,     public ::  hashchild = b'111' !< bits that contain the child index in a key
+    integer*8,     public, parameter ::  hashchild = b'111' !< bits that contain the child index in a key
+
+    integer*8, public, parameter :: KEY_INVALID = -1
+    integer*8, public, parameter :: KEY_EMPTY   =  0
 
     ! bits in childcode to be set when children are requested, the request has been sent, and they have arrived
     integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED     =  8 !< this bit is used inside the childcode to denote that a request for children information is already in the request queue
@@ -65,6 +68,7 @@ module module_htable
     public htable_prepare_address_list
     public check_table
     public diagnose_tree
+    public htable_remove_keys
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -73,7 +77,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     integer, private, parameter :: start_child_idx = 0 !< index of first child to be used in traversal - do not change, currently not completely implemented
-    type (t_hash), private, parameter :: HASHENTRY_EMPTY = t_hash(0_8,0,-1,0,0,0) !< constant for empty hashentry
+    type (t_hash), private, parameter :: HASHENTRY_EMPTY = t_hash(KEY_EMPTY,0,-1,0,0,0) !< constant for empty hashentry
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -316,7 +320,28 @@ module module_htable
 
     end subroutine make_hashentry
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Invalidates entries in the htable, i.e. sets their key to KEY_INVALID
+    !> TODO: this function does not free the nodelist-storage and does
+    !> not fix any connections inside the tree, esp. concerning the
+    !> children-available-flag (it even does not care for them)
+    !> additionally, it does not modify nleaf or ntwig which would be
+    !> necessary to survive check_table() if the entry really was removed
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine htable_remove_keys(keys, num_keys)
+      implicit none
+      integer*8, intent(in) :: keys(num_keys)
+      integer, intent(in) :: num_keys
 
+      integer :: i
+
+      do i=1,num_keys
+        htable(  key2addr(keys(i), 'htable_remove_keys')  )%key = KEY_INVALID
+      end do
+
+    end subroutine
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
@@ -377,7 +402,7 @@ module module_htable
 
         nextaddr = int(IAND( keyin, hashconst))     ! cell address hash function
 
-        if (htable( nextaddr )%key == 0) then ! already the first entry is empty
+        if (htable( nextaddr )%key == KEY_EMPTY) then ! already the first entry is empty
            testaddr                = .false.  ! key does not exist in htable
            if (present(addr)) addr = -1       ! we return -1
            return

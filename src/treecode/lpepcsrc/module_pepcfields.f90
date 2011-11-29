@@ -80,6 +80,7 @@ contains
         character(30) :: cfile
         integer*8, allocatable :: leaf_keys(:)
         integer :: nppmax
+        integer :: neighbour_pe_particles !< number of particles that have been fetched from neighbouring PEs durin tree_domains
 
         call status('FIELDS')
 
@@ -104,16 +105,19 @@ contains
 
         allocate(indxl(nppmax),irnkl(nppmax))
         ! Domain decomposition: allocate particle keys to PEs
-        call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted, curve_type)
+        call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted, curve_type, neighbour_pe_particles)
         call allocate_tree(cf_par%theta)
         allocate(particle_results(npp))
 
         ! build local part of tree
         call timer_start(t_local)
         call htable_clear_and_insert_root()
-        allocate(leaf_keys(npp))
-        call tree_build_from_particles(particles, npp, leaf_keys)
-        ! build tree from local particle keys up to root
+        allocate(leaf_keys(npp+neighbour_pe_particles))
+        call tree_build_from_particles(particles, npp+neighbour_pe_particles, leaf_keys)
+        ! remove the boundary particles from the htable - we are not interested in them any more
+        call htable_remove_keys(leaf_keys(npp+1:npp+neighbour_pe_particles), neighbour_pe_particles)
+        neighbour_pe_particles = 0
+        ! build tree from local particle keys up to root (the boundary particles are not included in the tree construction)
         call tree_build_upwards(leaf_keys(1:npp), npp)
         deallocate(leaf_keys)
 

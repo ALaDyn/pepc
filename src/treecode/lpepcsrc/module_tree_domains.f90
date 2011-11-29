@@ -42,7 +42,7 @@ module module_tree_domains
     !>  - weighting according to load incurred on previous timestep
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine tree_domains(particles, nppm, indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted,curve_type_)
+    subroutine tree_domains(particles, nppm, indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted,curve_type_,neighbour_pe_particles)
 
         use treevars
         use module_interaction_specific
@@ -62,10 +62,11 @@ module module_tree_domains
         integer, intent(out) :: fposts(num_pe+1),gposts(num_pe+1)
         integer :: npnew,npold
         integer, intent(in) :: curve_type_ !< type of space-filling curve
+        integer, intent(out) :: neighbour_pe_particles !< number of particles that have been fetched from neighbouring PEs - they are stored in particles(npp+1:npp+neighbour_pe_particles)
 
         integer*8, dimension(nppm) :: ixd, iyd, izd
 
-        integer :: i, j, ind_recv, inc, prev, next, handle(4)
+        integer :: i, j, inc, prev, next, handle(4)
 
         real*8 :: s
         real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
@@ -218,7 +219,7 @@ module module_tree_domains
 
         call timer_stop(t_domains_add_alltoallv)
 
-        allocate(particles(npnew+2)) ! TODO: the limit particles from neighbouring PEs are put into the final two places - this is only for branching and should be done there with local variables instead
+        allocate(particles(npnew+2)) ! TODO: the limit particles from neighbouring PEs are put into the final two places - this is for branching and correct insertion into the tree and should be done there with local variables instead
         npp = npnew
 
         call timer_start(t_domains_add_unpack)
@@ -308,6 +309,7 @@ module module_tree_domains
         ship_props = particles( 1 )
 
         ! Ship 1st particle data to end of list of LH neighbour PE
+        neighbour_pe_particles = 0
 
         if (me /= 0 ) then
             call MPI_ISEND( ship_props, 1, mpi_type_particle, prev, 1, MPI_COMM_WORLD, handle(1), ierr )
@@ -317,7 +319,8 @@ module module_tree_domains
         ! Place incoming data at end of array
         if ( me /= num_pe-1) then
             call MPI_RECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, state, ierr )
-            particles(npp+1) = get_props
+            neighbour_pe_particles = neighbour_pe_particles + 1
+            particles(npp+neighbour_pe_particles) = get_props
         endif
 
         ! Ship  end particle data to start of list of RH neighbour PE
@@ -330,15 +333,10 @@ module module_tree_domains
 
         ! Place incoming data at end of array
 
-        if (me == num_pe-1) then
-            ind_recv = npp+1   ! PEn array has not yet received boundary value
-        else
-            ind_recv = npp+2
-        endif
-
         if ( me /= 0) then
             call MPI_RECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, state, ierr )
-            particles(ind_recv) = get_props
+            neighbour_pe_particles = neighbour_pe_particles + 1
+            particles(npp + neighbour_pe_particles) = get_props
         endif
 
         ! Initialize VLD-stuff
