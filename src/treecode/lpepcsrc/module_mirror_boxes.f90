@@ -94,6 +94,8 @@ module module_mirror_boxes
         integer :: i,j,k,idx
         integer, intent(in) :: ws
 
+          if (allocated(neighbour_boxes)) deallocate(neighbour_boxes)
+
           do i = 1,3
             if (periodicity(i)) then
                periodicity_switches(i) = ws
