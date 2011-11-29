@@ -300,7 +300,7 @@ module module_interaction_specific
         type(t_particle_results), intent(in) :: res2
 
         res1%u    = res1%u    + res2%u
-        res1%af  = res1%af  + res2%af
+        res1%af   = res1%af  + res2%af
         res1%work = res1%work + res2%work
       end subroutine
 

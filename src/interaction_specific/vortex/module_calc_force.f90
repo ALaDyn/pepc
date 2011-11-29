@@ -71,9 +71,6 @@ module module_calc_force
                 case (0)
                     ! Barnes-Hut-MAC
                     mac = (cf_par%theta2 * dist2 > boxlength2)
-                case (1)
-                    ! NN-MAC: we may "interact" with the node if it is further away than maxdist2 --> this leads to the node *not* being put onto the NN-list (strange, i know)
-                    mac = (dist2 - sqrt(3.)* boxlength2 > results%maxdist2)
                 case default
                     ! N^2 code
                     mac = .false.
@@ -128,7 +125,7 @@ module module_calc_force
           end select
 
           ! TODO: factor out multiplication of force_const, does not depend on actual interaction-pair
-          res%u(1:3)   = res%u(1:3)   + cf_par%force_const * u(1:3)
+          res%u(1:3)   = res%u(1:3)     - cf_par%force_const * u(1:3)
           res%af(1:3)   = res%af(1:3)   + cf_par%force_const * af(1:3)
 
           res%work = res%work + WORKLOAD_PENALTY_INTERACTION
