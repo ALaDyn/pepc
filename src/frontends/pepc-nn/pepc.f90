@@ -18,8 +18,29 @@
 
 program pepce
 
-  use treetypes
-  use physvars
+  use treetypes, only: &
+       t_calc_force_params
+
+  use physvars, only: &
+       particle_results, &
+       trun, &
+       particles, &
+       weighted, &
+       nt, &
+       npart_total, &
+       np_mult, &
+       np_local, &
+       n_cpu, &
+       my_rank, &
+       itime, &
+       ispecial, &
+       dt, &
+       db_level, &
+       curve_type
+
+  use module_neighbour_test, only: &
+       validate_n_nearest_neighbour_list
+
   use timings
   use module_mirror_boxes
   use module_pepcfields
@@ -83,7 +104,7 @@ program pepce
      call timer_start(t_tot)
 
     call pepc_fields(np_local, npart_total, particles, particle_results, &
-        np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .false., .true.)
+        np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .true., .true.)
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
@@ -96,6 +117,8 @@ program pepce
        flush(6)
      end do
 
+     call validate_n_nearest_neighbour_list(np_local, npart_total, particles, particle_results, &
+       itime, num_neighbour_boxes, neighbour_boxes)
 
   end do
 
