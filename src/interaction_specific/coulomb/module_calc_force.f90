@@ -87,7 +87,7 @@ module module_calc_force
           implicit none
 
           integer, intent(in) :: inode
-          type(t_particle_data), intent(in) :: particle
+          type(t_particle), intent(inout) :: particle
           type(t_particle_results), intent(inout) :: res
           real*8, intent(in) :: vbox(3), delta(3), dist2
           !> Force law struct has following content (defined in module treetypes)
@@ -116,9 +116,9 @@ module module_calc_force
               phic = 0.
           end select
 
-          res%e    = res%e    + cf_par%force_const * exyz
-          res%pot  = res%pot  + cf_par%force_const * phic
-          res%work = res%work + WORKLOAD_PENALTY_INTERACTION
+          res%e         = res%e    + cf_par%force_const * exyz
+          res%pot       = res%pot  + cf_par%force_const * phic
+          particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
 
         end subroutine calc_force_per_interaction
 

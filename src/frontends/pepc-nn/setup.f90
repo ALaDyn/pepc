@@ -48,7 +48,7 @@ subroutine pepc_setup()
   nep = 0    ! # plasma electrons per PE
   nip = 0
   ne  = 0    ! Total # plasma electrons
-  ni  = 51 ! total # plasma ions
+  ni  = 11 ! total # plasma ions
 
   ! physics stuff
   force_const = 1.

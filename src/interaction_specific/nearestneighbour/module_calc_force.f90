@@ -90,7 +90,7 @@ module module_calc_force
           implicit none
 
           integer, intent(in) :: inode
-          type(t_particle_data), intent(in) :: particle
+          type(t_particle), intent(inout) :: particle
           type(t_particle_results), intent(inout) :: res
           real*8, intent(in) :: vbox(3), delta(3), dist2
 
@@ -99,9 +99,9 @@ module module_calc_force
           select case (cf_par%force_law)
             case (5)
                 call update_nn_list(inode, delta, dist2, cf_par, res)
+                particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
           end select
 
-          res%work = res%work + WORKLOAD_PENALTY_INTERACTION
 
         end subroutine calc_force_per_interaction
 
@@ -121,8 +121,8 @@ module module_calc_force
           type(t_particle), intent(in) :: particles(:)
           type(t_calc_force_params), intent(in) :: cf_par
           type(t_particle_results), intent(inout) :: res(:)
-          real*8 :: ex_lattice, ey_lattice, ez_lattice, phi_lattice
-          integer :: p
+
+          ! currently nothing to do here
 
         end subroutine calc_force_per_particle
 
@@ -153,7 +153,6 @@ module module_calc_force
             tmp                             = maxloc(res%dist2(:)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
             res%maxidx                      = tmp(1)
             res%maxdist2                    = res%dist2(res%maxidx)
-            res%work                        = res%work + WORKLOAD_PENALTY_INTERACTION
           else
             ! node is further away than farest particle in nn-list --> can be ignored
           endif

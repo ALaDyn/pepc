@@ -871,7 +871,7 @@ module tree_walk_pthreads
       use module_spacefilling, only : level_from_key, is_ancestor_of_particle
       implicit none
       integer, intent(in) :: myidx, listlengths
-      type(t_particle), intent(in) :: particle
+      type(t_particle), intent(inout) :: particle
       type(t_particle_results), intent(inout) :: results
       integer*8 :: todo_list(0:todo_list_length-1)
       integer*8, intent(inout) :: partner_leaves
@@ -938,7 +938,7 @@ module tree_walk_pthreads
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell if it does not lie outside the cutoff box
                   if (all(abs(delta) < cf_par%spatial_interaction_cutoff)) then
-                      call calc_force_per_interaction(particle%data, results, walk_node, delta, dist2, vbox, cf_par)
+                      call calc_force_per_interaction(particle, results, walk_node, delta, dist2, vbox, cf_par)
 
                       num_interactions = num_interactions + 1
                   endif

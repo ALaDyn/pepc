@@ -33,9 +33,8 @@ module module_interaction_specific
          integer :: maxidx       !< maxloc(dist2)
          integer*8:: neighbour_nodes(num_neighbour_particles)
          real*8 :: dist2(num_neighbour_particles)
-         real*8 :: work
       end type t_particle_results
-      integer, private, parameter :: nprops_particle_results = 5
+      integer, private, parameter :: nprops_particle_results = 4
 
       !> Data structure for storing multiple moments of tree nodes
       type t_multipole_data
@@ -88,14 +87,13 @@ module module_interaction_specific
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
 
         ! register results data type
-        blocklengths(1:nprops_particle_results)  = [1, 1, num_neighbour_particles, num_neighbour_particles, 1]
-        types(1:nprops_particle_results)         = [MPI_REAL8, MPI_INTEGER, MPI_INTEGER8, MPI_REAL8, MPI_REAL8]
+        blocklengths(1:nprops_particle_results)  = [1, 1, num_neighbour_particles, num_neighbour_particles]
+        types(1:nprops_particle_results)         = [MPI_REAL8, MPI_INTEGER, MPI_INTEGER8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_particle_results,                 address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%maxdist2,        address(1), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%maxidx,          address(2), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%neighbour_nodes, address(3), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%dist2,           address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%work,            address(5), ierr )
         displacements(1:nprops_particle_results) = int(address(1:nprops_particle_results) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_results, blocklengths, displacements, types, mpi_type_particle_results, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
@@ -182,7 +180,6 @@ module module_interaction_specific
         res%maxidx          = 1
         res%neighbour_nodes = 0
         res%dist2           = huge(realdummy)
-        res%work            = 1.
 
       end subroutine
 

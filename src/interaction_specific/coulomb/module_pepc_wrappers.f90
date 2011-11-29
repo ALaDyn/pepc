@@ -121,11 +121,11 @@ module module_pepc_wrappers
 
         ! read data from particle_coordinates, particle_results, particle_properties
         do i=1,np_local
-          p_ex(i) = particle_results(i)%e(1)
-          p_ey(i) = particle_results(i)%e(2)
-          p_ez(i) = particle_results(i)%e(3)
+          p_ex(i)  = particle_results(i)%e(1)
+          p_ey(i)  = particle_results(i)%e(2)
+          p_ez(i)  = particle_results(i)%e(3)
           p_pot(i) = particle_results(i)%pot
-          p_w(i) =  particle_results(i)%work
+          p_w(i)   =  particles(i)%work
         end do
 
         if (force_debug) then
