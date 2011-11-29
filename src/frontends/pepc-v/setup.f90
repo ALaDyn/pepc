@@ -17,8 +17,7 @@ subroutine pepc_setup()
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, npart_tmp
-  real*8, parameter :: pi=3.141592654
+  integer :: ierr
 
   character(50) :: parameterfile
   integer :: read_param_file

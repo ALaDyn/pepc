@@ -16,6 +16,7 @@ module physvars
   real     :: kernel_c       ! mod. remeshing kernel parameter
   real     :: nu             ! viscosity parameter
   real     :: rmax    ! radius of torus segment
+  real     :: rl      ! temp radius of current circle
   real     :: r_torus ! radius of torus
   integer  :: nc      ! # circles per torus segment
   integer  :: nphi    ! # torus segments

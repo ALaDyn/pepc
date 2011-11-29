@@ -83,13 +83,13 @@ subroutine par_rand(res, iseed)
 end subroutine par_rand
 
 
-subroutine special_start(iconf)
+subroutine special_start()
 
      use physvars
      implicit none
      include 'mpif.h'
 
-     integer :: j, k, ind, ind0, i, m
+     integer :: j, k, ind, ind0, i, m, nscan, ierr, l
      real*8 :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3)
      real*8, dimension(3,3) :: D1, D2, D3, D4   !< rotation matrices for ring setup
      real*8, allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
@@ -190,19 +190,19 @@ subroutine special_start(iconf)
                  call MPI_ABORT(MPI_COMM_WORLD,ierr)
                  stop
               end if
-              part(ind)%x(1) = xp(i) - (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
-              part(ind)%x(2) = yp(i)
-              part(ind)%x(3) = zp(i)
-              part(ind)%alpha(1) = wxp(i)*volp(i)
-              part(ind)%alpha(2) = wyp(i)*volp(i)
-              part(ind)%alpha(3) = wzp(i)*volp(i)
+              vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
+              vortex_particles(ind)%x(2) = yp(i)
+              vortex_particles(ind)%x(3) = zp(i)
+              vortex_particles(ind)%data%alpha(1) = wxp(i)*volp(i)
+              vortex_particles(ind)%data%alpha(2) = wyp(i)*volp(i)
+              vortex_particles(ind)%data%alpha(3) = wzp(i)*volp(i)
               ind = ind + 1
-              part(ind)%x(1) = xp(i) + (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
-              part(ind)%x(2) = yp(i)
-              part(ind)%x(3) = zp(i)
-              part(ind)%alpha(1) = wxp(i)*volp(i)
-              part(ind)%alpha(2) = wyp(i)*volp(i)
-              part(ind)%alpha(3) = wzp(i)*volp(i)
+              vortex_particles(ind)%x(1) = xp(i) + (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
+              vortex_particles(ind)%x(2) = yp(i)
+              vortex_particles(ind)%x(3) = zp(i)
+              vortex_particles(ind)%data%alpha(1) = wxp(i)*volp(i)
+              vortex_particles(ind)%data%alpha(2) = wyp(i)*volp(i)
+              vortex_particles(ind)%data%alpha(3) = wzp(i)*volp(i)
            end if
         end do
      end do
@@ -296,12 +296,12 @@ subroutine special_start(iconf)
                  call MPI_ABORT(MPI_COMM_WORLD,ierr)
                  stop
               end if
-              part(ind)%x(1) = xp(i) - (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
-              part(ind)%x(2) = yp(i) - (torus_offset(2)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
-              part(ind)%x(3) = zp(i) - (torus_offset(3)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
-              part(ind)%alpha(1) = wxp(i)*volp(i)
-              part(ind)%alpha(2) = wyp(i)*volp(i)
-              part(ind)%alpha(3) = wzp(i)*volp(i)
+              vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
+              vortex_particles(ind)%x(2) = yp(i) - (torus_offset(2)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
+              vortex_particles(ind)%x(3) = zp(i) - (torus_offset(3)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
+              vortex_particles(ind)%data%alpha(1) = wxp(i)*volp(i)
+              vortex_particles(ind)%data%alpha(2) = wyp(i)*volp(i)
+              vortex_particles(ind)%data%alpha(3) = wzp(i)*volp(i)
            end if
         end do
      end do
@@ -355,7 +355,7 @@ subroutine special_start(iconf)
         do i = 1, Ns
            if (m==1) then
               v(1) = xp(i) + (r_torus+rmax)*cos(eta)
-              v(2) = yp(i) + (r_torus+max)*sin(eta)
+              v(2) = yp(i) + (r_torus+rmax)*sin(eta)
               v(3) = zp(i);
               xp(i) = dot_product(v,D2(1:3,1))
               yp(i) = dot_product(v,D2(1:3,2))
@@ -384,16 +384,16 @@ subroutine special_start(iconf)
            if (mod(ind0-1,n_cpu) == my_rank) then
               ind = ind + 1
               if (ind .gt. nppm-1) then
-                 write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,nppm,N_all
+                 write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,nppm,n
                  call MPI_ABORT(MPI_COMM_WORLD,ierr)
                  stop
               end if
-              part(ind)%x(1) = xp(i) + (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
-              part(ind)%x(2) = yp(i) + (torus_offset(2)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
-              part(ind)%x(3) = zp(i) + (torus_offset(3)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
-              part(ind)%alpha(1) = wxp(i)*volp(i)
-              part(ind)%alpha(2) = wyp(i)*volp(i)
-              part(ind)%alpha(3) = wzp(i)*volp(i)
+              vortex_particles(ind)%x(1) = xp(i) + (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
+              vortex_particles(ind)%x(2) = yp(i) + (torus_offset(2)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
+              vortex_particles(ind)%x(3) = zp(i) + (torus_offset(3)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
+              vortex_particles(ind)%data%alpha(1) = wxp(i)*volp(i)
+              vortex_particles(ind)%data%alpha(2) = wyp(i)*volp(i)
+              vortex_particles(ind)%data%alpha(3) = wzp(i)*volp(i)
            end if
         end do
      end do
@@ -401,10 +401,18 @@ subroutine special_start(iconf)
 
      deallocate(xp,yp,zp,volp,wxp,wyp,wzp)
 
-     if (dbo_main) write(*,*) 'Using spacings h,sigma,m_h,m_sigma:',h,4*h,m_h,G*m_h**0.95
-
   end select config
 
   call MPI_ALLREDUCE(np,n,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+  ! Define valid labels for all local particles
+  nscan = 0
+  call MPI_SCAN(np,nscan,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+  nscan = nscan-np
+  do i=1,np
+     vortex_particles(i)%label = nscan+i
+  end do
+
+end subroutine special_start
 
 

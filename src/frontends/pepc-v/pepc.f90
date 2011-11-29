@@ -62,7 +62,7 @@ program pepce
   call libpepc_setup(my_rank,n_cpu,db_level)
 
   ! Set up particles
-  call special_start(ispecial)
+  call special_start()
 
   ! initialize calc force params
   cf_par%theta       = theta
