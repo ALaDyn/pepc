@@ -16,7 +16,7 @@
 !   See README.compile for summary of program units
 !  ==============================================================
 
-program pepce
+program pepcmini
 
   use treetypes
   use physvars
@@ -24,7 +24,7 @@ program pepce
   use timings
   use module_fmm_framework
   use module_mirror_boxes
-  use module_pepc_wrappers
+  use module_pepcfields
   use files
   implicit none
   include 'mpif.h'
@@ -90,18 +90,15 @@ program pepce
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
 
-     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
-                  q(1:np_local),work(1:np_local),pelabel(1:np_local), &
-                  ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      np_mult, cf_par, itime, weighted, curve_type, &
-                      num_neighbour_boxes, neighbour_boxes, .false., .false.)
+    call pepc_fields(np_local, npart_total, particles, particle_results, &
+        np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .false., .false.)
 
      ! Integrator
      call velocities(1,np_local,dt)
      call push(1,np_local,dt)  ! update positions
 
      ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(x(1:np_local),y(1:np_local),z(1:np_local),np_local)
+     if (do_periodic) call constrain_periodic(particles(1:np_local)%x(1),particles(1:np_local)%x(2),particles(1:np_local)%x(3),np_local)
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
@@ -132,4 +129,4 @@ program pepce
   ! End the MPI run
   call MPI_FINALIZE(ierr)
 
-end program pepce
+end program pepcmini

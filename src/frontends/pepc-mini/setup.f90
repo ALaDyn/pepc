@@ -127,8 +127,7 @@ subroutine pepc_setup()
   end if
 
 
-  allocate ( x(nppm), y(nppm), z(nppm), ux(nppm), uy(nppm), uz(nppm), & 
-       q(nppm), m(nppm), Ex(nppm), Ey(nppm), Ez(nppm), pot(nppm), pelabel(nppm), work(nppm) )
+  allocate ( particles(nppm), particle_results(nppm), u(1:3, nppm), m(nppm) )
 
 
   if (my_rank == 0) then

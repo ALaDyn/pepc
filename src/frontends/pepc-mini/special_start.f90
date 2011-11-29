@@ -160,13 +160,9 @@ subroutine special_start(iconf)
 
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
               
-              ux(p) = 0.
-              uy(p) = 0.
-              uz(p) = 0.
+              u(1:3,p) = [0., 0., 0.]
               
-              z(p) = zt 
-              y(p) = yt
-              x(p) = xt
+              particles(p)%x = [xt, yt, zt]
               
            end if
         end do
@@ -198,13 +194,9 @@ subroutine special_start(iconf)
               yt = yt*0.1
               zt = zt*0.1
               
-              ux(p) = 0.
-              uy(p) = 0.
-              uz(p) = 0.
+              u(1:3, p) = 0.
               
-              z(p) = 0.5 + zt 
-              y(p) = 0.5 + yt
-              x(p) = 0.5 + xt
+              particles(p)%x = [xt, yt, zt] + 0.5
               
            end if
         end do
@@ -242,13 +234,9 @@ subroutine special_start(iconf)
            
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
                             
-              ux(p) = 0.
-              uy(p) = 0.
-              uz(p) = 0.
+              u(1:3, p) = 0.
               
-              z(p) = 0.5 + zt 
-              y(p) = 0.5 + yt
-              x(p) = 0.5 + xt
+              particles(p)%x = [xt, yt, zt] + 0.5
               
            end if
         end do
@@ -281,13 +269,9 @@ subroutine special_start(iconf)
 
            delta = 1._8*GetSphereCenter(nint(42.*par_rand_res))
 
-           x(p) = xt*r_sphere + delta(1)
-           y(p) = yt*r_sphere + delta(2)
-           z(p) = zt*r_sphere + delta(3)
+           particles(p)%x = [xt, yt, zt] * r_sphere + delta
 
-           ux(p) = 0.
-           uy(p) = 0.
-           uz(p) = 0.
+           u(1:3, p) = 0.
 
         end do
 
@@ -315,17 +299,13 @@ subroutine special_start(iconf)
            zt = (0.1D01-0.2D01*par_rand_res)*r1
            call par_rand(par_rand_res)
            xt = (r1**0.2D01-zt**0.2D01)**(0.5D00)*cos(0.2D01*pi*par_rand_res)
-           yt = (r1**0.2D01-zt**0.2D01)**(0.5D00)*sin(0.2D01*pi*par_rand_res)                     
+           yt = (r1**0.2D01-zt**0.2D01)**(0.5D00)*sin(0.2D01*pi*par_rand_res)
 
            if ( my_rank == mpi_cnt .and. p <= np_local) then
 
-              ux(p) = 0.
-              uy(p) = 0.
-              uz(p) = 0.
+              u(1:3, p) = 0.
               
-              z(p) = zt 
-              y(p) = yt
-              x(p) = xt
+              particles(p)%x = [xt, yt, zt]
 
            end if
         end do
@@ -358,13 +338,9 @@ subroutine special_start(iconf)
               xt = xt*0.1
               yt = yt*0.1
               
-              ux(p) = 0.
-              uy(p) = 0.
-              uz(p) = 0.
+              u(1:3, p) = 0.
               
-              z(p) = 0.5
-              y(p) = 0.5 + yt
-              x(p) = 0.5 + xt
+              particles(p)%x = [xt, yt, 0._8] + 0.5
               
            end if
         end do
@@ -396,13 +372,9 @@ subroutine special_start(iconf)
            
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
               
-              ux(p) = 0.
-              uy(p) = 0.
-              uz(p) = 0.
+              u(1:3, p) = 0.
               
-              z(p) = zt 
-              y(p) = yt
-              x(p) = xt
+              particles(p)%x = [xt, yt, zt]
               
            end if
         end do
@@ -436,19 +408,16 @@ subroutine special_start(iconf)
           if ( mod((globalidx-1)/2,n_cpu) == my_rank) then ! distribute pairs of electron and ion, since np_local is constructed a bit weird
             myidx = myidx + 1
 
-            x(myidx)  = (i + 0.5)*delta(1)
-            y(myidx)  = (j + 0.5)*delta(2)
-            z(myidx)  = (k + 0.5)*delta(3)
-            ux(myidx) = 0
-            uy(myidx) = 0
-            uz(myidx) = 0
+            particles(myidx)%x = ([i, j, k] + 0.5) * delta
+
+            u(1:3, myidx) = 0.
 
             if (mod(i+j+k, 2) == 0) then
-              q(myidx) = qe
-              m(myidx) = mass_e
+              particles(myidx)%data%q = qe
+              m(myidx)                = mass_e
             else
-              q(myidx) = qi
-              m(myidx) = mass_i
+              particles(myidx)%data%q = qi
+              m(myidx)                = mass_i
             end if
 
           end if
@@ -457,14 +426,8 @@ subroutine special_start(iconf)
       end do
     end do
 
-    pelabel(1:nep)            = my_rank * nep + (/(i, i = 1, nep)/)      ! Electron labels
-    pelabel(nep + 1:np_local) = ne + my_rank * nip + (/(i, i = 1, nip)/) ! Ion labels
-    ex(1:np_local) = 0.
-    ey(1:np_local) = 0.
-    ez(1:np_local) = 0.
-    pot(1:np_local) = 0.
-
-    work(1:np_local) = 1.
+    particles(1:nep)%label            = my_rank * nep + (/(i, i = 1, nep)/)      ! Electron labels
+    particles(nep + 1:np_local)%label = ne + my_rank * nip + (/(i, i = 1, nip)/) ! Ion labels
 
     if (myidx .ne. np_local) write(*,*) "ERROR in special_start(7): PE", my_rank, "set up", myidx, &
         "particles, but np_local=", np_local, "globalidx=", globalidx, "npart_total=",npart_total
@@ -486,33 +449,25 @@ subroutine special_start(iconf)
      do p = 1, (fances(my_rank) - fances(my_rank-1))
            
         call par_rand(par_rand_res)
-        x(p) = par_rand_res
+        xt = par_rand_res
         call par_rand(par_rand_res)
-        y(p) = par_rand_res
+        yt = par_rand_res
         call par_rand(par_rand_res)
-        z(p) = par_rand_res
+        zt = par_rand_res
 
-        ux(p) = 0.
-        uy(p) = 0.
-        uz(p) = 0.
+        particles(p)%x = [xt, yt, zt]
+        u(1:3, p) = 0.
               
      end do
 
   end select config
 
-  q(1:nep)                  = qe        ! plasma electrons
-  q(nep + 1:np_local)       = qi        ! plasma ions (need Z* here)
+  particles(1:nep)%data%q             = qe        ! plasma electrons
+  particles(nep + 1:np_local)%data%q  = qi        ! plasma ions (need Z* here)
   m(1:nep)                  = mass_e    ! electron mass
   m(nep + 1:np_local)       = mass_i    ! ion mass
-  pelabel(1:nep)            = fances(my_rank-1) + (/(i, i = 1, nep)/)      ! Electron labels
-  pelabel(nep + 1:np_local) = ne + fances(my_rank-1) + nep + (/(i, i = 1, (fances(my_rank) - fances(my_rank-1) - nep))/) ! Ion labels
-
-  ex(1:np_local) = 0.
-  ey(1:np_local) = 0.
-  ez(1:np_local) = 0.
-  pot(1:np_local) = 0.
-
-  work(1:np_local) = 1.
+  particles(1:nep)%label            = fances(my_rank-1) + (/(i, i = 1, nep)/)      ! Electron labels
+  particles(nep + 1:np_local)%label = ne + fances(my_rank-1) + nep + (/(i, i = 1, (fances(my_rank) - fances(my_rank-1) - nep))/) ! Ion labels
 
 end subroutine special_start
 

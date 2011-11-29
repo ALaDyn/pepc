@@ -28,9 +28,7 @@ module particle_pusher
 
       ! unconstrained motion by default (scheme=1)
       do p = p_start, p_finish
-         ux(p) = ux(p) + delta_t * q(p)*ex(p)/m(p)
-         uy(p) = uy(p) + delta_t * q(p)*ey(p)/m(p)
-         uz(p) = uz(p) + delta_t * q(p)*ez(p)/m(p)
+         u(1:3,p) = u(1:3,p) + delta_t * particles(p)%data%q * particle_Results(p)%e(1:3) / m(p)
       end do
 
     end subroutine velocities
@@ -49,9 +47,7 @@ module particle_pusher
       integer :: p
 
       do p=ips,ipf
-         x(p)=x(p)+ux(p)*delt
-         y(p)=y(p)+uy(p)*delt
-         z(p)=z(p)+uz(p)*delt
+         particles(p)%x(1:3) = particles(p)%x(1:3) + u(1:3,p) * delt
       end do
 
     end subroutine push
