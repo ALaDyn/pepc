@@ -2,7 +2,7 @@
 module module_physvars
   use treetypes
   use tree_walk_pthreads
-  use module_fmm_framework
+  use module_mirror_boxes
   implicit none
 
   real, parameter :: pi=3.141592654

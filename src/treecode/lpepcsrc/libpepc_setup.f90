@@ -8,8 +8,8 @@
 subroutine libpepc_setup(my_rank,n_cpu,db_level)
   use treevars
   use treetypes
-  use module_fmm_framework
   use module_branching
+  use module_mirror_boxes
   implicit none
   integer, intent(in) :: db_level, my_rank, n_cpu
 
@@ -79,8 +79,8 @@ subroutine libpepc_setup(my_rank,n_cpu,db_level)
   ! create and register mpi types
   call register_lpepc_mpi_types()
 
-  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
-  call fmm_framework_init(me, wellsep = 1)
+  ! initialize mirror boxes
+  call calc_neighbour_boxes(ws=1)
 
   ! initialize data structures in module_branches
   call branches_initialize()

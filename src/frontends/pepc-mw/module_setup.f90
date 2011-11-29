@@ -474,7 +474,7 @@ module module_setup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine particle_setup_madelung()
-          use module_fmm_framework
+          use module_mirror_boxes
           implicit none
           real*8 :: delta(3)
           integer :: i,j,k,n(3), myidx, globalidx

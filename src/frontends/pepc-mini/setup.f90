@@ -14,6 +14,7 @@ subroutine pepc_setup()
   use physvars
   use tree_utils
   use module_fmm_framework
+  use module_mirror_boxes
   use tree_walk_pthreads
   implicit none
   include 'mpif.h'

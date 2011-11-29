@@ -85,6 +85,9 @@ open(70,file='orbit.dat')
   ! Allocate array space for tree
   call libpepc_setup(my_rank, n_cpu, debug_level)
 
+  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
+  call fmm_framework_init(my_rank, wellsep = 1)
+
 ! call closefiles
 !  call MPI_FINALIZE(ierr)
 ! stop 
@@ -325,6 +328,12 @@ endif
      write (ifile,'(a20,f14.4)') 'Total run time: ',t_end_prog-t_start_prog
     end do
   endif 
+
+  ! finalize framework for lattice contributions
+  call fmm_framework_finalize()
+
+  ! cleanup of lpepc static data
+  call libpepc_finalize()
 
   ! End the MPI run
   call MPI_FINALIZE(ierr)

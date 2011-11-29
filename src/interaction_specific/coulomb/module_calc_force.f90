@@ -27,6 +27,7 @@ module module_calc_force
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+      ! currently, all public functions in module_calc_force are obligatory
       public calc_force_per_interaction
       public calc_force_per_particle
       public mac
@@ -132,6 +133,7 @@ module module_calc_force
           use module_interaction_specific
           use treevars, only : me
           use module_fmm_framework
+          use module_mirror_boxes
           implicit none
 
           integer, intent(in) :: nparticles
@@ -140,6 +142,9 @@ module module_calc_force
           type(t_particle_results), intent(inout) :: res(:)
           real*8 :: ex_lattice, ey_lattice, ez_lattice, phi_lattice
           integer :: p
+
+          ! calculate spherical multipole expansion of central box
+          if (cf_par%include_far_field_if_periodic) call fmm_framework_timestep(particles)
 
           potfarfield  = 0.
           potnearfield = 0.
@@ -395,5 +400,6 @@ module module_calc_force
           sumfz=0.
 
       end subroutine calc_force_LJ
-        
+
+
   end module module_calc_force

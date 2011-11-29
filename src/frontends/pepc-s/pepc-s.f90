@@ -13,6 +13,7 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
   use treetypes
   use physvars
   use module_fmm_framework
+  use module_mirror_boxes
   use module_pepc_wrappers
   implicit none
   include 'mpif.h'
@@ -52,6 +53,9 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
   ! Allocate array space for tree
   call libpepc_setup(my_rank,n_cpu,db_level)
 
+  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
+  call fmm_framework_init(my_rank, wellsep = 1)
+
   do ip=1, nparts
      pelabel(ip) = ip
   end do
@@ -74,6 +78,9 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
        itime, weighted, curve_type, &
        num_neighbour_boxes, neighbour_boxes, .false., .false.)
   
+  ! finalize framework for lattice contributions
+  call fmm_framework_finalize()
+
   ! cleanup of lpepc static data
   call libpepc_finalize()
 

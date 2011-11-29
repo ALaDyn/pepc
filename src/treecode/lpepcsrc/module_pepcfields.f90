@@ -45,7 +45,6 @@ contains
         use module_interaction_specific
         use timings
         use module_tree_domains
-        use module_fmm_framework
         use module_calc_force
         use tree_walk_pthreads
         use tree_walk_communicator
@@ -53,6 +52,7 @@ contains
         use module_tree
         use module_htable
         use module_branching
+        use module_mirror_boxes
         implicit none
         include 'mpif.h'
 
@@ -107,9 +107,6 @@ contains
         call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted, curve_type)
         call allocate_tree(cf_par%theta)
         allocate(particle_results(npp))
-
-        ! calculate spherical multipole expansion of central box
-        if (cf_par%include_far_field_if_periodic) call fmm_framework_timestep(particles)
 
         ! build local part of tree
         call timer_start(t_local)
@@ -277,7 +274,6 @@ contains
         use module_htable
         use timings
         use module_calc_force
-        use module_fmm_framework
         use tree_walk_pthreads
         use tree_walk_communicator
 

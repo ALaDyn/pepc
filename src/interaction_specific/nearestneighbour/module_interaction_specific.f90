@@ -168,7 +168,6 @@ module module_interaction_specific
       end subroutine
 
 
-
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> clears results datatype
@@ -178,7 +177,7 @@ module module_interaction_specific
         implicit none
         type(t_particle_results), intent(out) :: res
         real*8 :: realdummy
-
+        ! TODONN insert 50 local (or otherwise near) particles to avoid unnecessary fetches
         res%maxdist2        = huge(realdummy)
         res%maxidx          = 1
         res%neighbour_nodes = 0

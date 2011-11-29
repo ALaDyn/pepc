@@ -12,6 +12,7 @@
 
 subroutine setup
   use module_fmm_framework
+  use module_mirror_boxes
 !  use tree_walk_pthreads
   use module_physvars
 

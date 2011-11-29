@@ -115,7 +115,6 @@ module module_calc_force
         subroutine calc_force_per_particle(particles, nparticles, res, cf_par)
           use module_interaction_specific
           use treevars, only : me
-          use module_fmm_framework
           implicit none
 
           integer, intent(in) :: nparticles
@@ -124,9 +123,6 @@ module module_calc_force
           type(t_particle_results), intent(inout) :: res(:)
           real*8 :: ex_lattice, ey_lattice, ez_lattice, phi_lattice
           integer :: p
-
-          potfarfield  = 0.
-          potnearfield = 0.
 
         end subroutine calc_force_per_particle
 
@@ -163,5 +159,6 @@ module module_calc_force
           endif
 
         end subroutine update_nn_list
+
         
   end module module_calc_force

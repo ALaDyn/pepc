@@ -21,7 +21,7 @@ program pepce
   use treetypes
   use physvars
   use timings
-  use module_fmm_framework
+  use module_mirror_boxes
   use module_pepcfields
   use files
   implicit none

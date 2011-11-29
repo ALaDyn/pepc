@@ -23,6 +23,7 @@ program pepce
   use particle_pusher
   use timings
   use module_fmm_framework
+  use module_mirror_boxes
   use module_pepc_wrappers
   use files
   implicit none
@@ -60,6 +61,9 @@ program pepce
 
   ! Allocate array space for tree
   call libpepc_setup(my_rank,n_cpu,db_level)
+
+  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
+  call fmm_framework_init(my_rank, wellsep = 1)
 
   ! Set up particles
   call special_start(ispecial)
@@ -108,6 +112,9 @@ program pepce
      flush(6)
 
   end do
+
+  ! finalize framework for lattice contributions
+  call fmm_framework_finalize()
 
   ! cleanup of lpepc static data
   call libpepc_finalize()

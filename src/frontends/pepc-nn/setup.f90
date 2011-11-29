@@ -13,7 +13,7 @@
 subroutine pepc_setup()
   use physvars
   use tree_utils
-  use module_fmm_framework
+  use module_mirror_boxes
   use tree_walk_pthreads
   implicit none
   include 'mpif.h'
@@ -30,7 +30,7 @@ subroutine pepc_setup()
   namelist /pepcdata/ np_mult, ne, ni, num_walk_threads, max_particles_per_thread, &
        mac, theta, q_factor, eps, ispecial, weighted, curve_type, &
        r_sphere, idim, nt, dt, db_level, &
-       t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction
+       t_lattice_1, t_lattice_2, t_lattice_3, periodicity
 
 
   !  Default input set

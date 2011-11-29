@@ -2,6 +2,7 @@
 !>
 !> Contains all routines that are specific to a certain multipole expansion
 !> i.e. shifting along the tree etc.
+!> all subroutines and types within this module are obligatory
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_interaction_specific

@@ -88,7 +88,7 @@ end subroutine par_rand
 subroutine special_start(iconf)
 
   use physvars
-  use module_fmm_framework
+  use module_mirror_boxes
   implicit none
   include 'mpif.h'
 

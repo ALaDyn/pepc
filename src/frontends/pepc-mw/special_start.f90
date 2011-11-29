@@ -14,7 +14,7 @@
 subroutine special_start(iconf)
 
   use physvars
-  use module_fmm_framework
+  use module_mirror_boxes
   use module_icosahedron
   use module_diagnostics
   use module_units

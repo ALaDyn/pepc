@@ -13,6 +13,7 @@
 subroutine pepc_setup()
   use physvars
   use tree_utils
+  use module_mirror_boxes
   use module_fmm_framework
   use tree_walk_pthreads
   implicit none

@@ -15,13 +15,15 @@ FULLBACKENDDIR = $(MYROOT)$(INTSPECDIR)$(BACKEND)/
 # -------------------------------------------------------------------------------------------
 # Source files
 PEPCSRC.f90 =   treevars.f90 tree_utils.f90 timings.f90 treetypes.f90 \
-                module_debug.f90 module_math_tools.f90 module_fmm_framework.f90 \
+                module_debug.f90 module_math_tools.f90 module_mirror_boxes.f90\
                 tree_aswalk_pthreads.f90 libpepc_setup.f90 module_tree_domains.f90 \
                 module_allocation.f90 libpepc_finalize.f90 tree_stats.f90 \
                 module_tree.f90 module_spacefilling.f90 module_htable.f90 \
                 module_pepcfields.f90 module_branching.f90 tree_walk_communicator.f90
 PEPCBACKEND.f90 = module_calc_force.f90 module_interaction_specific.f90 module_pepc_wrappers.f90
 #-------------------------------------------------------------------------------------------
+
+-include $(FULLBACKENDDIR)makefile.backend
 
 # Names of application object files derived from sources
 # Prefix added for multi-arch builds
