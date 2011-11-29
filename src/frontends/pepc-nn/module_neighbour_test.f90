@@ -57,6 +57,9 @@ contains
        itime, num_neighbour_boxes, neighbour_boxes)
     
     use treetypes
+
+    use treevars, only: &
+         tree_nodes
     
     use physvars, only: &
          n_cpu, &
@@ -66,6 +69,9 @@ contains
          htable, &
          key2addr
     
+    use module_spacefilling, only: &
+         coord_to_key_lastlevel
+
     implicit none
     include 'mpif.h'
 
@@ -100,7 +106,8 @@ contains
     integer :: index_in_test_neighbour_list
     integer :: index_in_result_neighbour_list
     real*8 :: dist2
-    integer :: actual_node
+    integer*8 :: actual_node
+    integer*8 :: node_key
     integer :: actual_address
 
     character(100) :: filename
@@ -114,7 +121,7 @@ contains
     allocate( distances2( num_neighbour_particles +1, np_local), keys( num_neighbour_particles +1, np_local), STAT= ierr )
 
     distances2(1:num_neighbour_particles+1, 1:np_local) = huge(0._8)
-    keys(1:num_neighbour_particles+1, 1:np_local) = -13
+    keys(1:num_neighbour_particles+1, 1:np_local) = -13_8
     maxdist = 1
 
 
@@ -143,41 +150,36 @@ contains
           y_buffer( 1:np_local )   = particles( 1:np_local )%x(2)
           z_buffer( 1:np_local )   = particles( 1:np_local )%x(3)
 
-          call MPI_BCAST( key_buffer, all_np_local( actual_pe+1 ), MPI_INTEGER8, actual_pe, MPI_COMM_WORLD, ierr )
-          call MPI_BCAST( x_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
-          call MPI_BCAST( y_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
-          call MPI_BCAST( z_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
+       end if
+       
+       call MPI_BCAST( key_buffer, all_np_local( actual_pe+1 ), MPI_INTEGER8, actual_pe, MPI_COMM_WORLD, ierr )
+       call MPI_BCAST( x_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
+       call MPI_BCAST( y_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
+       call MPI_BCAST( z_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
+       
+!       write(*,*), all_np_local( actual_pe +1)
+!       write(*,'(30(O30,x))'), particles( 1:np_local )%key
+!       write(*,'(30(O30,x))'), key_buffer(1:np_local )
 
-          write(*,*), all_np_local( actual_pe +1)
-          write(*,'(30(O30,x))'), particles( 1:np_local )%key
-          write(*,'(30(O30,x))'), key_buffer(1:np_local )
-
-          write(*,*) 'testing key2addr'
-          call flush
-          write(*,*) 'key2addr: ', key2addr( particles(1)%key, 'key2addr test' )
-
+       do local_particle_index = 1, np_local
           
-          do local_particle_index = 1, np_local
+          do remote_particle_index = 1, all_np_local( actual_pe+1 )
              
-             do remote_particle_index = 1, all_np_local( actual_pe+1 )
-                
-                dist2 = ( x_buffer( remote_particle_index ) - particles( local_particle_index )%x(1) ) **2 &
-                     + ( y_buffer( remote_particle_index )  - particles( local_particle_index )%x(2) ) **2 &
-                     + ( z_buffer( remote_particle_index )  - particles( local_particle_index )%x(3) ) **2
-                
-                if( dist2 < distances2(maxdist, local_particle_index ) ) then
-                   distances2(maxdist, local_particle_index ) = dist2
-                   keys(maxdist, local_particle_index ) = key_buffer( remote_particle_index )
-                   tmp_loc = maxloc(distances2(1:num_neighbour_particles+1, local_particle_index ) )
-                   maxdist = tmp_loc(1)        !< this is needed because maxloc returns an array
-                end if
-                
-             end do
+             dist2 = ( x_buffer( remote_particle_index ) - particles( local_particle_index )%x(1) ) **2 &
+                  + ( y_buffer( remote_particle_index )  - particles( local_particle_index )%x(2) ) **2 &
+                  + ( z_buffer( remote_particle_index )  - particles( local_particle_index )%x(3) ) **2
+             
+             if( dist2 < distances2(maxdist, local_particle_index ) ) then
+                distances2(maxdist, local_particle_index ) = dist2
+                keys(maxdist, local_particle_index ) = key_buffer( remote_particle_index )
+                tmp_loc = maxloc(distances2(1:num_neighbour_particles+1, local_particle_index ) )
+                maxdist = tmp_loc(1)        !< this is needed because maxloc returns an array
+             end if
              
           end do
           
-       end if
-
+       end do
+       
     end do
 
     ! now distances2 and keys contain the num_neighbour_particles closest neighbours and the particle itself
@@ -235,22 +237,21 @@ contains
     not_found = 0
     
     do local_particle_index = 1, np_local
-       do index_in_test_neighbour_list = 1, num_neighbour_particles   ! ignore particle self (num_neighbour_particles+1)
+       do index_in_result_neighbour_list = 1, num_neighbour_particles
 
-          write(*,'(a,O30)') 'key: ', keys(index_in_test_neighbour_list, local_particle_index)
-          call flush
-          actual_address = key2addr( keys(index_in_test_neighbour_list, local_particle_index), 'neighbour test' )
-          actual_node = htable(actual_address)%node
+          actual_node = particle_results(local_particle_index)%neighbour_nodes(index_in_result_neighbour_list)
+          node_key = coord_to_key_lastlevel(tree_nodes(actual_node)%coc(1), tree_nodes(actual_node)%coc(2), tree_nodes(actual_node)%coc(3))
 
           found = .false.
-
-          do index_in_result_neighbour_list = 1, num_neighbour_particles
-             if( actual_node .eq. particle_results(local_particle_index)%neighbour_nodes(index_in_result_neighbour_list) ) then
+          
+          do index_in_test_neighbour_list = 1, num_neighbour_particles   ! ignore particle self (num_neighbour_particles+1)
+             
+             if( node_key .eq. keys(index_in_test_neighbour_list, local_particle_index) ) then
                 found = .true.
                 exit
              end if
           end do
-
+          
           if( .not. found ) then
              
              write( filename, '(a,i6.6,a,i6.6,a)' ) "validation_", itime-1, "_", my_rank, ".errors"
@@ -260,7 +261,7 @@ contains
              open(76, FILE= filename, POSITION='Append')
              ! use format O30 for keys for octal
              write( 76 , '(a,i6,a,i19.19,a,i6)' ) "for particle ", particles(local_particle_index)%label, " the neighbour with key ", &
-                  keys(index_in_test_neighbour_list, local_particle_index), " was not found in the result neighbour list"
+                  node_key, " was not found in the result neighbour list"
 !             WRITE( 76, *) '  ', nn_keys(1:n_nn)
 !             WRITE( 76, *) '  ', xcoc( nodelist(1:n_nn,i) )
 !             WRITE( 76, *) '  ', sqrt(dist2_list(1:n_nn,i))
@@ -276,6 +277,9 @@ contains
        end do
 
     end do
+
+
+    write(*,*) my_rank, 'not found: ', not_found
 
   end subroutine validate_n_nearest_neighbour_list
 
