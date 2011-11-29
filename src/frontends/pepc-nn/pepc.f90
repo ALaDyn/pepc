@@ -39,7 +39,9 @@ program pepce
        curve_type
 
   use module_neighbour_test, only: &
-       validate_n_nearest_neighbour_list
+       validate_n_nearest_neighbour_list, &
+       draw_neighbours
+  
 
   use timings
   use module_mirror_boxes
@@ -111,6 +113,9 @@ program pepce
 
      call timings_LocalOutput(itime)
      call timings_GatherAndOutput(itime)
+
+     call draw_neighbours(np_local, npart_total, particles, particle_results, itime)
+
 
      do i=1, np_local
        write(37+my_rank,*) i, "|", particle_results(i)%neighbour_nodes(:)

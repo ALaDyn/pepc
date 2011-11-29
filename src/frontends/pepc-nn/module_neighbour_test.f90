@@ -284,4 +284,150 @@ contains
   end subroutine validate_n_nearest_neighbour_list
 
 
+
+
+
+! ======================
+!
+!   DRAW all particles colored by domain and neighbours
+!   for postprocessing by GLE 
+
+!   call from fields.f90 after 
+!
+! ======================
+
+
+  subroutine draw_neighbours(np_local, npart_total, particles, particle_results, itime)
+    
+    use treetypes
+
+    use treevars, only: &
+         xmin, &
+         ymin, &
+         boxsize, &
+         tree_nodes
+    
+    use physvars, only: &
+         n_cpu, &
+         my_rank
+    
+    implicit none
+    include 'mpif.h'
+
+    
+    integer, intent(in) :: np_local    !< # particles on this CPU
+    integer, intent(in) :: npart_total !< total # simulation particles
+    type(t_particle), allocatable, intent(in) :: particles(:)
+    type(t_particle_results), intent(in), allocatable :: particle_results(:)
+    integer, intent(in) :: itime  ! timestep
+    
+    integer :: ierr
+    character(30) :: cfile
+    character(40) :: outfile    
+    integer :: actual_pe
+    integer :: local_particle_index
+    integer :: actual_neighbour
+    integer*8 :: actual_node
+
+  ! integer*8 :: key_twig(ntwig), key_leaf(nleaf)
+
+  ! integer, dimension(ntwig) :: level_twig, node_twig, owner_twig       ! twig-nodes
+  ! integer, dimension(nleaf) :: level_leaf, plist_leaf, ind_leaf, owner_leaf       ! leaf-nodes
+
+
+
+
+  ! character(3) :: cme
+
+    character(12), parameter :: colors(0:15) = (/"orange      ", "cyan        ", "magenta     ", "blue        ", "green       ", &
+         "red         ","yellow      ","grey20      ","brown       ", "yellowgreen ", "violet      ", "royalblue   ", &
+         "plum        ", "goldenrod   ",  "powderblue  ", "lime        "/) 
+    
+
+!  integer :: i, ip, j, ilev, isnap, ibt, ix, iy, nbits, p
+!  real :: s, xt, yt
+
+
+
+
+
+  
+  write(cfile, '(a,i6.6)') 'particles_neighbours_', itime
+
+  !  Header file written out by root PE: does box and includes particle O/P from all PEs
+  if ( my_rank .eq. 0 ) then
+     
+     outfile = TRIM(cfile) // "_header.gle"
+     open(60,file=outfile)
+     
+     !  initialise graphics filter
+     write (60,'(a,4(/a),2(/a,2f13.4))'), &
+          'size 18 18', &
+          'set font rm', &
+          'set lwidth 0.05 lstyle 1', &
+          'psize=0.01', &
+          'begin translate 0.5 0.5', &
+          'begin scale ', 17./boxsize, 17./boxsize, &
+          'begin translate ', -xmin, -ymin
+
+     !     write (60,'(a,2f13.4)') 'amove', xmin, ymin
+     !     write (60,'(a,2f13.4)') 'box ',boxsize,boxsize
+
+     do actual_pe =0, n_cpu-1
+        
+!        cme = achar(i/100+48) // achar(i/10+48) // achar(mod(i,10)+48)  ! Convert 3-digit PE number into character string
+        write (60,'(3a,i3.3,a)') 'include ', TRIM(cfile), "_dom", actual_pe, ".gle"
+     end do
+     close(60)
+  endif
+
+
+  !  Now do particles and boxes belonging to each processor domain
+
+  !  cme = achar(me/100+48) // achar(me/10+48) // achar(mod(me,10)+48)  ! Convert 3-digit PE number into character string
+  write (outfile,'(2a,i3.3,a)') TRIM(cfile), "_dom", my_rank, ".gle"
+  open (60,file=outfile) 
+
+
+  do local_particle_index=1,np_local
+     write (60,'(a,a)') 'set color ',colors( mod(my_rank,8) )
+     
+     write (60,'(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1), particles(local_particle_index)%x(2)
+     write (60,'(2a)') 'circle psize fill ',colors( mod(my_rank,8))
+     !     write (60,'(2a)') 'circle psize fill ','black'
+  end do
+  
+  close(60)
+
+
+  do local_particle_index =1, np_local
+  
+     write (outfile, '(a,a,i6.6,a)') TRIM(cfile), '_', particles(local_particle_index)%label, '.gle'
+ 
+     open (60,file=outfile)
+     write (60,'(3a)') 'include ', TRIM(cfile), "_header.gle"
+
+     do actual_neighbour = 1, num_neighbour_particles
+        actual_node = particle_results(local_particle_index)%neighbour_nodes(actual_neighbour)
+        
+        write (60, '(a)') 'set color white'
+        write (60, '(a,2f13.4)') 'amove ', tree_nodes(actual_node)%coc(1), tree_nodes(actual_node)%coc(2)
+        !        write (60, '(a,2f13.4)') 'amove ', xcoc(next_neighbours(j,p)), ycoc(next_neighbours(j,i))
+        write (60, '(a)') 'circle psize fill white'
+     end do
+
+!  write (60, '(a)') 'set color black'
+!  write (60, '(a,2f13.4)') 'amove ', xcoc(i), ycoc(i)
+!  write (60, '(a,f13.4,a)') 'circle ', r_nn(i), ' '
+
+     write (60,'(a/a/a)') 'end translate','end scale','end translate'
+     close(60)
+     
+  end do
+  
+end subroutine draw_neighbours
+
+
+
+
 end module module_neighbour_test
