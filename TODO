@@ -1,0 +1,34 @@
+TODO-List for pepc-newstruct (partially also mentioned in code)
+===============================================================
+
+- split datatypes into t_leaf and t_twig. Then, every twig should be able to contain a number of sub-twigs and/or leaves. 
+    --> leaves may have particle properties e.g. label, which do not make sense for twigs (and the other way round, e.g. childcode) 
+    --> perform walk for all leaves below a some twig instead of particles
+
+- find an idea for module_timings to split lpepc-timings from frontend-specific timings (which are conflicting and-/or difficult to integrate)
+
+- make checkpointing-stuff independet of t_particle_data type
+
+- fix pepc_fields_grid which is currently nonfunctional
+
+- make all particle numbers, leaves, etc integer*8 to support >2000000000particles
+
+- put weighted and curve_type into cf_par
+
+- remove mac.f90
+
+- build infrastructure for additional parallelization approaches (SMPSs etc.)
+
+- add bitmap for htable occupancy instead of clearing the complete htable in each timestep
+
+- find good estimation for nppmax or make it adjustable by the user
+
+- think about calc_force_per_particle - does it really have to be called from module_pepcfields --> possibly call it from the frontend directly
+
+- remove further variables from treevars (e.g. tree_nodes --> module_tree)
+
+- include HAns Peschke's work on hierarchical parallel tree construction
+
+- see TODO's in code
+
+- see SmallProjects and PUDG reports in wiki
