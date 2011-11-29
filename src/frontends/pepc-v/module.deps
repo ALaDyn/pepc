@@ -1,8 +1,0 @@
-# DO NOT EDIT --- auto-generated file
-$(BUILDDIR)/physvars.o: $(BUILDDIR)/treetypes.mod
-$(BUILDDIR)/files.o: $(BUILDDIR)/physvars.o
-$(BUILDDIR)/setup.o: $(BUILDDIR)/physvars.o $(BUILDDIR)/tree_utils.mod $(BUILDDIR)/tree_walk_pthreads.mod
-$(BUILDDIR)/special_start.o: $(BUILDDIR)/physvars.o
-$(BUILDDIR)/pusher.o: $(BUILDDIR)/physvars.o
-$(BUILDDIR)/cleanup.o: $(BUILDDIR)/physvars.o
-$(BUILDDIR)/pepc.o: $(BUILDDIR)/module_pepcfields.mod $(BUILDDIR)/physvars.o $(BUILDDIR)/pusher.o $(BUILDDIR)/timings.mod $(BUILDDIR)/files.o
