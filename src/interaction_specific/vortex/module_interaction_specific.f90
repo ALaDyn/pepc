@@ -23,8 +23,10 @@ module module_interaction_specific
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
          real*8 :: alpha(3)   ! vorticity or better: alpha = vorticity * volume
+         real*8 :: u_rk(3)    ! velocity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+         real*8 :: af_rk(3)   ! vorticity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
       end type t_particle_data
-      integer, private, parameter :: nprops_particle_data = 1
+      integer, private, parameter :: nprops_particle_data = 3
 
       !> Data structure for shipping results
       type t_particle_results
@@ -108,10 +110,12 @@ module module_interaction_specific
         type(t_multipole_data)   :: dummy_multipole_data
 
         ! register particle data type
-        blocklengths(1:nprops_particle_data)  = [3]
-        types(1:nprops_particle_data)         = [MPI_REAL8]
+        blocklengths(1:nprops_particle_data)  = [3,3,3]
+        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_particle_data,       address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%alpha, address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%u_rk, address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%af_rk, address(3), ierr )
         displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
@@ -298,7 +302,7 @@ module module_interaction_specific
         type(t_particle_results), intent(in) :: res2
 
         res1%u    = res1%u    + res2%u
-        res1%af   = res1%af  + res2%af
+        res1%af   = res1%af   + res2%af
       end subroutine
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -2,33 +2,24 @@
 ! ==============================================================
 !
 !
-!                  PEPC-MINI
+!                  PEPC-V
 !
-!    Parallel Efficient Parallel Coulomb-solver: Electrostatics 
+!    Parallel Efficient Parallel Coulomb-solver: Vortex particles
 !
-!   $ Revision $
-!
-!   Driver code for Coulomb-solver library lpepc
-!
-!  Major changes:
-!   June 2005: Development begun
-!
-!   See README.compile for summary of program units
 !  ==============================================================
 
-program pepce
+program pepcv
 
-  use treetypes
+  !use treetypes
+  use module_pepcfields
   use physvars
   use particle_pusher
   use timings
-  !use module_fmm_framework
-  !use module_pepc_wrappers
   use files
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, ifile, provided
+  integer :: ierr, provided, stage
   type(t_calc_force_params) ::cf_par
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls."
@@ -73,39 +64,32 @@ program pepce
 
   ! Loop over all timesteps
   do while (itime < nt)
-     itime = itime + 1
-     trun  = trun  + dt
 
      if (my_rank==0 ) then
-        ifile=6
-           write(ifile,'(//a,i8,(3x,a,f12.3))') &
-                ' Timestep ',itime &
-                ,' total run time = ',trun 
+        write(*,*) 'Time:',trun,'/',te,'--------------------------------------'
+        write(*,'(a5,i8,a3,i8,a7,i8,a)') 'Step',itime,' of',nt,', using',n,' particles'
      endif
      
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
 
-     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
-                  q(1:np_local),work(1:np_local),pelabel(1:np_local), &
-                  ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      np_mult, cf_par, itime, weighted, curve_type, &
-                      num_neighbour_boxes, neighbour_boxes, .false., .false.)
-
-     ! Integrator
-     call velocities(1,np_local,dt)
-     call push(1,np_local,dt)  ! update positions
-
-     ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(x(1:np_local),y(1:np_local),z(1:np_local),np_local)
+     ! Runge-Kutta time integration
+     do stage = 1,rk_stages
+        call pepc_fields(np, n, vortex_particles, particle_results, &
+                         np_mult, cf_par, itime, weighted, curve_type, 1, [0, 0, 0], .false., .false.)
+        call push_rk2(stage)
+     end do
 
      ! timings dump
-     call timer_stop(t_tot) ! total loop time without diags
+     call timer_stop(t_tot)   ! total loop time without diags
 
      call timings_LocalOutput(itime)
      call timings_GatherAndOutput(itime)
 
      flush(6)
+
+     itime = itime + 1
+     trun  = trun  + dt
 
   end do
 
@@ -125,4 +109,4 @@ program pepce
   ! End the MPI run
   call MPI_FINALIZE(ierr)
 
-end program pepce
+end program pepcv

@@ -27,7 +27,7 @@ subroutine pepc_setup()
 
 
   namelist /pepcdata/ np_mult, n, num_walk_threads, max_particles_per_thread, &
-       mac, theta, eps, ispecial, weighted, curve_type, nt, dt, db_level, &
+       mac, theta, eps, ispecial, weighted, curve_type, dt, ts, te, db_level, &
        h, m_h, nu, rem_freq, &
        rmax, r_torus, nc, nphi, g, torus_offset
 
@@ -37,9 +37,10 @@ subroutine pepc_setup()
   np_mult         = -45
   ispecial        =   1
   weighted        =   1
+  curve_type      =   0
+
 
   ! particles
-
   np = 0
   n  = 1000 ! total # vortex particles
 
@@ -59,9 +60,9 @@ subroutine pepc_setup()
   torus_offset = [0., 0., 0.]
 
   ! control
-  nt           = 10
+  ts           = 0.
+  te           = 0.
   dt           = 0.01
-  trun         = 0.
 
   ! rank 0 reads in first command line argument
   read_param_file = 0
@@ -100,6 +101,10 @@ subroutine pepc_setup()
      call MPI_ABORT(MPI_COMM_WORLD,ierr)
      stop
   end select init
+
+  trun = ts
+  nt = int((te-ts)/dt) ! Number of timesteps
+  rk_stages = 2   ! TODO: inflexible RK time integration scheme, hard-wired so far
 
   if (n_cpu.eq.1) then
      nppm=int(1.5*n + 1000)  ! allow for additional ghost particles for field plots

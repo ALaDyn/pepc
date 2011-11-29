@@ -13,7 +13,7 @@ benchmark: pepce
 info:
 	@echo $(LIBDIR)
 
-all: pepce pepcmini pepcmw pepcs pepcb pepcnn
+all: pepce pepcmini pepcmw pepcs pepcb pepcnn pepcv
 
 
 $(LIBDIR)libpthreads.a:
@@ -67,6 +67,7 @@ clean: clean-doc
 	cd $(FRONTENDDIR)pepc-mw    && $(MAKE) $(MFLAGS) clean
 	cd $(FRONTENDDIR)pepc-mini  && $(MAKE) $(MFLAGS) clean
 	cd $(FRONTENDDIR)pepc-nn    && $(MAKE) $(MFLAGS) clean
+	cd $(FRONTENDDIR)pepc-v     && $(MAKE) $(MFLAGS) clean
 
 clean-doc:
 	rm -rf ./doc

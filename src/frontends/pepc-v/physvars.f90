@@ -3,6 +3,7 @@ module physvars
   use treetypes
 
   type(t_particle), allocatable :: vortex_particles(:)
+  type(t_particle_results), allocatable :: particle_results(:)
 
   real*8, parameter :: pi=3.141592654
     
@@ -27,7 +28,7 @@ module physvars
 
  ! tree stuff
   real :: theta       ! Clumping parameter
-  integer :: mac = 0  ! MAC (default=BH)
+  integer :: mac      ! MAC (default=BH)
 
 !  Variables needing 'copy' for tree routines
   integer :: npart_total  ! Total # particles (npart)
@@ -41,12 +42,13 @@ module physvars
 
 ! Control stuff
   integer :: ispecial       ! Switch to select special electron configs 
-  integer :: weighted
-  real :: dt             ! timestep
-  real :: trun           ! total run time including restarts
-  integer :: nt, itime   ! # timesteps and current timestep
-  integer :: db_level = 1  ! printed o/p debug level
-  integer :: curve_type = 0 !< type of space-filling curve, 0=z-curve, 1=Hilbert-curve
+  integer :: weighted       ! load balancing switch
+  real :: dt, ts, te        ! timestep, start-time, end-time
+  real :: trun              ! total run time including restarts and offset
+  integer :: nt, itime      ! # timesteps and current timestep
+  integer :: rk_stages      ! # Runge-Kutta stages
+  integer :: db_level       ! printed o/p debug level
+  integer :: curve_type     !< type of space-filling curve, 0=z-curve, 1=Hilbert-curve
 
   integer :: ifile_cpu    ! O/P stream
 
