@@ -59,10 +59,10 @@ $(BUILDDIR)pthreads_stuff.mod:
 
 
 clean:
-	$(RM) $(MYROOT)$(LIBDIR)libpepc.*.a $(OBJS) $(BUILDDIR)/*.mod *.mod *% *~ bin/key rand *.o *.pif core module.deps
+	$(RM) $(MYROOT)$(LIBDIR)libpepc.*.a $(OBJS) $(BUILDDIR)*.mod $(BUILDDIR)*.o $(BUILDDIR)module.deps
 	$(RM) -rf $(BUILDDIR) $(MACH)
 
-module.deps:
+$(BUILDDIR)module.deps: $(BUILDDIR)
 	$(MYROOT)$(F90MODDEPS) -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(BUILDDIR)" $(PEPCSRC.f90) $(PEPCBACKSRC)
 
-include module.deps
+include $(BUILDDIR)module.deps
