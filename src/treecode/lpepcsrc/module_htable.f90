@@ -106,6 +106,9 @@ module module_htable
         implicit none
 
         htable = HASHENTRY_EMPTY ! TODO: need list of 'live' adresses to speed this up
+                                 ! possible solution: use a "bitmap" of occupied addresses in htable
+                                 ! then, only this bitmap has to be cleared upon startup
+                                 ! and every test for occupancy of a htable entry is done in this bitmap
 
     end subroutine
 
