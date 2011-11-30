@@ -5,7 +5,7 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
     --> leaves may have particle properties e.g. label, which do not make sense for twigs (and the other way round, e.g. childcode) 
     --> perform walk for all leaves below a some twig instead of particles
 
-- make checkpointing-stuff independet of t_particle_data type
+- make checkpointing-stuff independent of t_particle_data type
 
 - fix pepc_fields_grid which is currently nonfunctional
 
@@ -30,3 +30,7 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 - see TODO's in code
 
 - see SmallProjects and PUDG reports in wiki
+
+- move MPI_INIT to lpepcsrc
+
+- make module_tree_domains%restore() callable from the frontend after pepc_fields() has been called using no_backsort==.true.
