@@ -10,7 +10,6 @@
 
 program pepcv
 
-  !use treetypes
   use module_pepcfields
   use physvars
   use particle_pusher
@@ -66,30 +65,33 @@ program pepcv
   do while (itime < nt)
 
      if (my_rank==0 ) then
-        write(*,*) 'Time:',trun,'/',te,'--------------------------------------'
         write(*,'(a5,i8,a3,i8,a7,i8,a)') 'Step',itime,' of',nt,', using',n,' particles'
      endif
      
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
-     call timer_start(t_tot)
-
      ! Runge-Kutta time integration
      do stage = 1,rk_stages
+
+        if (my_rank == 0) write(*,*) 'Time:',trun,'/',te,'--------------------------------------'
+
+        call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+        call timer_start(t_tot)
+
         call pepc_fields(np, n, vortex_particles, particle_results, &
                          np_mult, cf_par, itime, weighted, curve_type, 1, [0, 0, 0], .false., .false.)
         call push_rk2(stage)
+
+        call timer_stop(t_tot)   ! total loop time without diags
+
+        call timings_LocalOutput(itime,stage)
+        call timings_GatherAndOutput(itime,stage)
+
+        flush(6)
+
+        trun  = trun  + dt/rk_stages
+
      end do
 
-     ! timings dump
-     call timer_stop(t_tot)   ! total loop time without diags
-
-     call timings_LocalOutput(itime)
-     call timings_GatherAndOutput(itime)
-
-     flush(6)
-
      itime = itime + 1
-     trun  = trun  + dt
 
   end do
 
