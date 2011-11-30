@@ -15,10 +15,6 @@ subroutine cleanup(my_rank_l,n_cpu_l)
   my_rank = my_rank_l
   n_cpu = n_cpu_l
  
-  if (my_rank==0) then
-     write(*,'(a)') 'LPEPC | De-allocating particle arrays in ...'
-  endif
-
   ! particle array deallocation in physvars
 
   deallocate ( x, y, z, ux, uy, uz, & 
