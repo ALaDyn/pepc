@@ -181,7 +181,9 @@ contains
 
        do local_particle_index = 1, np_local
 
-          maxdist = 1
+          tmp_loc = maxloc(distances2(1:num_neighbour_particles+1, local_particle_index ) )
+          maxdist = tmp_loc(1)        !< this is needed because maxloc returns an array
+          
           ! actual_pe+1 because actual_pe is from 0 to n_cpu-1 and fortran arrays are normally from 1 to ...
           do remote_particle_index = 1, all_np_local( actual_pe+1 )
              
