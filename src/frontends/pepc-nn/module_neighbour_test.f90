@@ -55,6 +55,8 @@ contains
 
   subroutine validate_n_nearest_neighbour_list(np_local, particles, particle_results, &
        itime, num_neighbour_boxes, neighbour_boxes)
+
+    use omp_lib
     
     use treetypes
 
@@ -180,6 +182,8 @@ contains
 !       write(*,'(30(O30,x))'), particles( 1:np_local )%key
 !       write(*,'(30(O30,x))'), key_buffer(1:np_local )
 
+
+       !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, tmp_loc, maxdist, remote_particle_index, dist2)
        do local_particle_index = 1, np_local
 
           tmp_loc = maxloc(distances2(1:num_neighbour_particles+1, local_particle_index ) )
@@ -204,6 +208,7 @@ contains
           end do
           
        end do
+       !$OMP END PARALLEL DO
        
     end do
 

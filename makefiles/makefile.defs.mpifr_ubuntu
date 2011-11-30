@@ -23,11 +23,11 @@ INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlini
 #-fwhopr
 
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -I/usr/lib/mpich-shmem/include -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation -Wcharacter-truncation -Wunderflow
+  FFLAGS   = -fopenmp -I/usr/lib/mpich-shmem/include -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation -Wcharacter-truncation -Wunderflow
 # -pedantic
 # -Wnonstd-intrinsics
   CFLAGS   = -I/usr/lib/mpich-shmem/include -g -pg -O0
-  LDFLAGS  = -g -pg -O0
+  LDFLAGS  = -g -pg -O0 -fopenmp
 else
   FFLAGS   = -I/usr/lib/mpich-shmem/include -Wall -O3        -ffree-line-length-none $(INLINING)
   CFLAGS   = -I/usr/lib/mpich-shmem/include -Wall -O3
