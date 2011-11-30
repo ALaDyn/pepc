@@ -1,7 +1,9 @@
 # call before compilation to activate GNU Compiler Collection instead of Intel compiler:
-#  > module unload parastation/intel
 #  > module unload intel
-#  > module load parastation/gcc-mt
+#  > module unload parastation
+#  > module load parastation/mpi2-gcc-mt-5.0.26-1
+#  > module load GCC
+
 
 MACH     = JUROPA_gcc
 
