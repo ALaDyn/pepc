@@ -30,7 +30,7 @@ ifeq ($(DEBUG), 1)
 else
   FFLAGS   = -Wall -O3        -ffree-line-length-none $(INLINING)
   CFLAGS   = -Wall -O3
-  LDFLAGS  = -pthread -O3 $(INLINING) -fwhole-program -fuse-linker-plugin
+  LDFLAGS  = -pthread -O3 $(INLINING) -fwhole-program 
 endif
 
 FCPRE    = 
