@@ -213,7 +213,7 @@ subroutine fields_2d
 
   use module_physvars
   use module_particle_props
-  use module_pepcfields
+  use module_pepc_wrappers
   use treetypes
   implicit none
   include 'mpif.h'
@@ -265,10 +265,9 @@ subroutine fields_2d
 	p_label(k)=grid_ind
   end do
 
-  call pepc_grid_fields(ngp,p_x, p_y, p_z, p_label, &
+  call pepc_grid_fields_coulomb_wrapper(ngp,p_x, p_y, p_z, p_label, &
 	     p_Ex, p_Ey, p_Ez, p_pot, &
-	     cf_par, &
-	     itime,  num_neighbour_boxes, neighbour_boxes)
+	     cf_par, num_neighbour_boxes, neighbour_boxes)
 
   if (field_debug) then
      write (*,'(a7,a50/2i5,3f15.2,i2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &

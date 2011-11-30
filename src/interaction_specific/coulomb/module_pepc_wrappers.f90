@@ -6,7 +6,8 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pepc_wrappers
-     use treetypes
+     use treetypes, only : t_particle, t_calc_force_params
+     use module_interaction_specific, only : t_particle_results, t_particle_data
      implicit none
      private
 
@@ -25,6 +26,7 @@ module module_pepc_wrappers
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       public pepc_fields_coulomb_wrapper
+      public pepc_grid_fields_coulomb_wrapper
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -70,7 +72,6 @@ module module_pepc_wrappers
     subroutine pepc_fields_coulomb_wrapper(np_local,npart_total,p_x, p_y, p_z, p_q, p_w, p_label, &
                     p_Ex, p_Ey, p_Ez, p_pot, np_mult_, cf_par, itime, weighted, curve_type, &
                     num_neighbours, neighbours, no_dealloc, no_restore)
-        use treetypes
         use treevars
         use module_pepcfields
         implicit none
@@ -139,6 +140,51 @@ module module_pepc_wrappers
             end do
 
         endif
+
+    end subroutine
+
+
+
+    subroutine pepc_grid_fields_coulomb_wrapper(ngp,p_x, p_y, p_z, p_label, p_Ex, p_Ey, p_Ez, p_pot, &
+                              cf_par, num_neighbour_boxes, neighbour_boxes)
+      use treevars, only : me
+      use module_pepcfields
+      implicit none
+      integer, intent(in) :: ngp
+      real*8, intent(in) :: p_x(ngp), p_y(ngp), p_z(ngp)
+      integer, intent(in) :: p_label(ngp)
+      real*8, intent(out) :: p_Ex(ngp), p_Ey(ngp), p_Ez(ngp), p_pot(ngp)
+      type(t_calc_force_params), intent(in) :: cf_par
+      integer, intent(in) :: num_neighbour_boxes !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
+      integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
+
+      type(t_particle),         dimension(:), allocatable :: grid_particles
+      type(t_particle_results), dimension(:), allocatable :: grid_particle_results
+
+      integer :: i
+
+      allocate(grid_particles(ngp), grid_particle_results(ngp))
+
+      do i=1,ngp
+        grid_particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)],       &  ! position
+                                                              1.,       &  ! workload from last step
+                                                            -1_8,       &  ! key - will be assigned later
+                                                      p_label(i),       &  ! particle label for tracking purposes
+                                                              me,       &  ! particle owner
+                                          t_particle_data( 0.0 )  )        ! charge etc
+      end do
+
+
+      call pepc_grid_fields(ngp, grid_particles, grid_particle_results, cf_par, num_neighbour_boxes, neighbour_boxes)
+
+        do i=1,ngp
+          p_ex(i)  = grid_particle_results(i)%e(1)
+          p_ey(i)  = grid_particle_results(i)%e(2)
+          p_ez(i)  = grid_particle_results(i)%e(3)
+          p_pot(i) = grid_particle_results(i)%pot
+        end do
+
+      deallocate(grid_particles, grid_particle_results)
 
     end subroutine
 

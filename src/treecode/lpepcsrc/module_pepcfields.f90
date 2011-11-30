@@ -269,7 +269,7 @@ contains
         implicit none
         include 'mpif.h'
 
-        integer, intent(inout) :: npoints_local    !< # points on this CPU
+        integer, intent(in) :: npoints_local    !< # points on this CPU
         type(t_particle), intent(inout) :: particles(:)
         type(t_particle_results), intent(inout) :: particle_results(:)
         type(t_calc_force_params), intent(in) :: cf_par
