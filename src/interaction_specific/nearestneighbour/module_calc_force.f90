@@ -67,8 +67,13 @@ module module_calc_force
               mac = (cf_par%theta2 * dist2 > boxlength2)
             case (1)
               ! NN-MAC: we may "interact" with the node if it is further away than maxdist2 --> this leads to the node *not* being put onto the NN-list (strange, i know)
-              ! TODO NN: this estimation must be evaluated without (!!) any square roots (which does not seem to be trivial)
-              mac = (sqrt(dist2) - sqrt(3.* boxlength2) > sqrt(results%maxdist2))
+              ! first line: original formulation, last line: after transition to formulation with only one square root
+              ! mac = sqrt(dist2) - sqrt(3.* boxlength2)  >  sqrt(results%maxdist2)                                ! + sqrt(3.*boxlength2)
+              !     = sqrt(dist2)                         >  sqrt(results%maxdist2) + sqrt(3.*boxlength2)          ! ^2
+              !     =      dist2                          > (sqrt(results%maxdist2) + sqrt(3.*boxlength2))**2
+              !     =      dist2                          > results%maxdist2 + 2.*sqrt( 3.*results%maxdist2*boxlength2) + 3.*boxlength2
+                mac =      dist2                          > results%maxdist2 +    sqrt(12.*results%maxdist2*boxlength2) + 3.*boxlength2
+              ! TODO NN: this estimation should be evaluated without (!!) any square roots for performance reasons (which does not seem to be trivial)
             case default
               ! N^2 code
               mac = .false.
