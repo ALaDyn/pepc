@@ -41,6 +41,8 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 
 - call make_hashentry with t_hash datastructure instead of several single parameters
 
+- move t_multipole_data%coc out of userdefined structures: the centre of charge is necessary in any case for performing the tree_walk
+
 Renaming-List (Please add any inconsistencies that you encounter)
 =================================================================
 - module_htable%get_next_node() --> get_key_of_next_node() - the function returns a key, not a node number
