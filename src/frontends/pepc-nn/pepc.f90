@@ -90,6 +90,11 @@ program pepce
   cf_par%mac         = 1 ! NN MAC
   cf_par%force_law   = 5 ! NN "Interaction"
 
+
+  particles(:)%work = 1._8
+
+
+
   ! Loop over all timesteps
   do while (itime < nt)
      itime = itime + 1
@@ -104,25 +109,25 @@ program pepce
      
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
-
-    call pepc_fields(np_local, npart_total, particles, particle_results, &
-        np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .true., .true.)
-
+     
+     call pepc_fields(np_local, npart_total, particles, particle_results, &
+          np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .true., .true.)
+     
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
 
      call timings_LocalOutput(itime)
      call timings_GatherAndOutput(itime)
 
-     call draw_neighbours(np_local, npart_total, particles, particle_results, itime)
+!     call draw_neighbours(np_local, particles, particle_results, itime)
 
 
-     do i=1, np_local
-       write(37+my_rank,*) i, "|", particle_results(i)%neighbour_nodes(:)
-       flush(6)
-     end do
+     ! do i=1, np_local
+     !   write(37+my_rank,*) i, "|", particle_results(i)%neighbour_nodes(:)
+     !   flush(6)
+     ! end do
 
-     call validate_n_nearest_neighbour_list(np_local, npart_total, particles, particle_results, &
+     call validate_n_nearest_neighbour_list(np_local, particles, particle_results, &
        itime, num_neighbour_boxes, neighbour_boxes)
 
   end do

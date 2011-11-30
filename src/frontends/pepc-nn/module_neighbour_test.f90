@@ -53,7 +53,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-  subroutine validate_n_nearest_neighbour_list(np_local, npart_total, particles, particle_results, &
+  subroutine validate_n_nearest_neighbour_list(np_local, particles, particle_results, &
        itime, num_neighbour_boxes, neighbour_boxes)
     
     use treetypes
@@ -82,7 +82,6 @@ contains
 
     
     integer, intent(in) :: np_local    !< # particles on this CPU
-    integer, intent(in) :: npart_total !< total # simulation particles
     type(t_particle), allocatable, intent(in) :: particles(:)
     type(t_particle_results), intent(in), allocatable :: particle_results(:)
     integer, intent(in) :: itime  ! timestep
@@ -99,12 +98,13 @@ contains
     integer :: local_particle_index
     integer :: remote_particle_index
     real*8, allocatable :: distances2(:,:)
-    integer*8, allocatable :: keys(:,:)
-    integer*8 :: tmp_key
-    real*8 :: tmp_dist2
+    real*8, allocatable :: positions(:,:,:)
+    real*8 :: tmp_real8
     logical :: found
     integer :: not_found
     integer, dimension(1) :: tmp_loc
+    logical :: tree_nn_debug
+    logical :: draw_neighbour_test
 
     integer :: maxdist
     integer :: index_in_test_neighbour_list
@@ -112,10 +112,9 @@ contains
     real*8 :: dist2
     integer*8 :: actual_node
     integer*8 :: node_key
-    integer :: actual_address
+    integer*8 :: neighbour_key
 
     character(100) :: filename
-
 
     integer, dimension(n_cpu) :: all_np_local
     integer :: max_np_local
@@ -125,7 +124,6 @@ contains
     character(40) :: cfile
     character(50) :: outfile    
     integer :: actual_neighbour
-    integer*8 :: actual_key
     real*8 :: neighbour_x
     real*8 :: neighbour_y
     real*8 :: neighbour_z
@@ -137,16 +135,18 @@ contains
     ! end variable declaration
 
 
+    tree_nn_debug = .false.
+    draw_neighbour_test = .false.
+
     ! num_neighbour_particles+1 because the particle itself is stored within the lists first and removed later
-    allocate( distances2( num_neighbour_particles +1, np_local), keys( num_neighbour_particles +1, np_local), STAT= ierr )
+    allocate( distances2( num_neighbour_particles +1, np_local), positions( 3, num_neighbour_particles +1, np_local), STAT= ierr )
 
     if( ierr .ne. 0 ) then
        write (*,*) 'allocate of fields for keys and distances to next neighbours in validate_n_nearest_neighbour_list failed in module_neighbour_test.f90'
     end if
 
     distances2(1:num_neighbour_particles+1, 1:np_local) = huge(0._8)
-    keys(1:num_neighbour_particles+1, 1:np_local) = -13_8
-    maxdist = 1
+    positions(1:3, 1:num_neighbour_particles+1, 1:np_local) = -13._8
 
     call MPI_ALLGATHER( np_local, 1, MPI_INTEGER, all_np_local, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
 
@@ -193,7 +193,9 @@ contains
              
              if( dist2 < distances2(maxdist, local_particle_index ) ) then
                 distances2(maxdist, local_particle_index ) = dist2
-                keys(maxdist, local_particle_index ) = key_buffer( remote_particle_index )
+                positions(1, maxdist, local_particle_index ) = x_buffer( remote_particle_index )
+                positions(2, maxdist, local_particle_index ) = y_buffer( remote_particle_index )
+                positions(3, maxdist, local_particle_index ) = z_buffer( remote_particle_index )
                 tmp_loc = maxloc(distances2(1:num_neighbour_particles+1, local_particle_index ) )
                 maxdist = tmp_loc(1)        !< this is needed because maxloc returns an array
              end if
@@ -211,13 +213,13 @@ contains
        ! find closest particle, should be self
        tmp_loc = minloc(distances2(1:num_neighbour_particles+1, local_particle_index ) )
        ! move this particle to the end of the list
-       tmp_dist2 = distances2( tmp_loc(1), local_particle_index )
+       tmp_real8 = distances2( tmp_loc(1), local_particle_index )
        distances2( tmp_loc(1), local_particle_index ) = distances2( num_neighbour_particles+1, local_particle_index )
-       distances2( num_neighbour_particles+1, local_particle_index ) = tmp_dist2
+       distances2( num_neighbour_particles+1, local_particle_index ) = tmp_real8
 
-       tmp_key = keys( tmp_loc(1), local_particle_index )
-       keys( tmp_loc(1), local_particle_index ) = keys( num_neighbour_particles+1, local_particle_index )
-       keys( num_neighbour_particles+1, local_particle_index ) = tmp_key
+       tmp_real8 = positions( 1, tmp_loc(1), local_particle_index )
+       positions( 1, tmp_loc(1), local_particle_index ) = positions( 1, num_neighbour_particles+1, local_particle_index )
+       positions( 1, num_neighbour_particles+1, local_particle_index ) = tmp_real8
     end do
 
     ! now distances2 and keys contain the num_neighbour_particles closest neighbours, ignore last element
@@ -229,120 +231,126 @@ contains
     end do
 
    
-!     IF( tree_nn_debug ) THEN
+    if( tree_nn_debug ) then
 
-!    write( NN_filename, '(a,i6.6,a,i6.6,a)' ) "nn_validate_", itime-1, "_", my_rank, ".list"
+       write( filename, '(a,i6.6,a,i6.6,a)' ) "nn_validate_", itime-1, "_", my_rank, ".list"
 
-!        ! \bug ab: with ACCESS='APPEND' compilation failes on jugene
-! !       OPEN(99, FILE=NN_filename, ACCESS='APPEND')
-!    open(99, FILE= NN_filename, POSITION='APPEND')
+       !        ! \bug ab: with ACCESS='APPEND' compilation failes on jugene
+       ! !       OPEN(99, FILE=NN_filename, ACCESS='APPEND')
+       open(99, file= filename, position='APPEND')
+      
+       do local_particle_index = 1, np_local
        
-    DO local_particle_index = 1, np_local
-       
-       write( 99, '(i6.6,3(E12.5),i6,O30)' ) local_particle_index, particles(local_particle_index)%x(1), particles(local_particle_index)%x(2), particles(local_particle_index)%x(3), particles(local_particle_index)%label, particles(local_particle_index)%key
-       write(99,*) keys(1:num_neighbour_particles, local_particle_index)
-    
-!           DO j = 1, num_stored( i )
-!              WRITE( 99, '(O30,E12.5)' ) stored_keys( i , j ), sqrt( stored_distances( i , j ) )
-!           END DO
+          write( 99, '(i6.6,3(E12.5),i6,O30)' ) local_particle_index, particles(local_particle_index)%x(1), particles(local_particle_index)%x(2), particles(local_particle_index)%x(3), particles(local_particle_index)%label, particles(local_particle_index)%key
+          do actual_neighbour = 1, num_neighbour_particles
+             write(99,*) coord_to_key_lastlevel(positions( 1, actual_neighbour, local_particle_index), positions( 2, actual_neighbour, local_particle_index), positions( 3, actual_neighbour, local_particle_index) )
+          end do
           
-    !END DO
+       end do
        
-!       CLOSE(99)
+       close(99)
        
-    END DO
-
-    close(99)
+    end if ! tree_nn_debug
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!  draw neighbours  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    write(cfile, '(a,i6.6)') 'test_particles_neighbours_', itime
-    
-    !  Header file written out by root PE: does box and includes particle O/P from all PEs
-    if ( my_rank .eq. 0 ) then
+    ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! !!!!!!!!!!!!!!  draw neighbours  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    ! This block is basically a copy of the draw_neighbours subroutine.
+    ! Because the smoothing-length and the coodinates of the neighbours cannot be accessed with particle_results,
+    ! these two parts below have to be adjusted
+
+
+    if( draw_neighbour_test ) then
+
+       write(cfile, '(a,i6.6)') 'test_particles_neighbours_', itime
        
-       outfile = TRIM(cfile) // "_header.gle"
-       open(60,file=outfile)
+       !  Header file written out by root PE: does box and includes particle O/P from all PEs
+       if ( my_rank .eq. 0 ) then
+          
+          outfile = TRIM(cfile) // "_header.gle"
+          open(60,file=outfile)
+          
+          !  initialise graphics filter
+          write (60,'(a,4(/a),2(/a,2f13.4))'), &
+               'size 18 18', &
+               'set font rm', &
+               'set lwidth 0.001 lstyle 1', &
+               'psize=0.005', &
+               'begin translate 0.5 0.5', &
+               'begin scale ', 17./boxsize, 17./boxsize, &
+               'begin translate ', -xmin, -ymin
+          
+          !     write (60,'(a,2f13.4)') 'amove', xmin, ymin
+          !     write (60,'(a,2f13.4)') 'box ',boxsize,boxsize
+          
+          close(60)
+       endif
        
-       !  initialise graphics filter
-       write (60,'(a,4(/a),2(/a,2f13.4))'), &
-            'size 18 18', &
-            'set font rm', &
-            'set lwidth 0.001 lstyle 1', &
-            'psize=0.005', &
-            'begin translate 0.5 0.5', &
-            'begin scale ', 17./boxsize, 17./boxsize, &
-            'begin translate ', -xmin, -ymin
        
-       !     write (60,'(a,2f13.4)') 'amove', xmin, ymin
-       !     write (60,'(a,2f13.4)') 'box ',boxsize,boxsize
+       !  Now do particles belonging to each processor domain
+       write (outfile,'(2a,i3.3,a)') TRIM(cfile), "_dom", my_rank, ".gle"
+       open (60,file=outfile) 
+       
+       do local_particle_index=1,np_local
+          write (60,'(a,a)') 'set color ',colors( mod(my_rank,8) )
+          write (60,'(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1), particles(local_particle_index)%x(2)
+          write (60,'(2a)') 'circle psize fill ',colors( mod(my_rank,8))
+       end do
        
        close(60)
-    endif
-
-    
-    !  Now do particles belonging to each processor domain
-    write (outfile,'(2a,i3.3,a)') TRIM(cfile), "_dom", my_rank, ".gle"
-    open (60,file=outfile) 
-    
-    do local_particle_index=1,np_local
-       write (60,'(a,a)') 'set color ',colors( mod(my_rank,8) )
-       write (60,'(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1), particles(local_particle_index)%x(2)
-       write (60,'(2a)') 'circle psize fill ',colors( mod(my_rank,8))
-    end do
-    
-    close(60)
-
-
-    ! Now write one gle file for each particle, which includes above written files with all particles and overplots the actual particle
-    ! in black, the neighbours of this particle with a black circle and a big grey circle for the maximum neighbour radius
-    do local_particle_index =1, np_local
-  
-       write (outfile, '(a,a,i6.6,a)') TRIM(cfile), '_', particles(local_particle_index)%label, '.gle'
-       open (60,file=outfile)
-
-       ! include the header file
-       write (60,'(3a)') 'include ', TRIM(cfile), "_header.gle"
-
-       ! print smoothing-length circle
-       smoothing_length = sqrt(maxval(distances2(1:num_neighbour_particles, local_particle_index)))
-
-       write (60, '(a)') 'set color black'
-       write (60, '(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1), particles(local_particle_index)%x(2)
-       ! TODO change g30.10 back to f13.4
-       write (60, '(a,g30.10,a)') 'circle ', smoothing_length, ' fill lightgray'
-
-       ! include files with local particles from all domains
-       do actual_pe =0, n_cpu-1
-          write (60,'(3a,i3.3,a)') 'include ', TRIM(cfile), "_dom", actual_pe, ".gle"
-       end do
-
-       ! overplot neighbours with a black circle
-       do actual_neighbour = 1, num_neighbour_particles
-          actual_key = keys(actual_neighbour, local_particle_index)
-          call key_to_coord(actual_key, neighbour_x, neighbour_y, neighbour_z)
+       
+       
+       ! Now write one gle file for each particle, which includes above written files with all particles and overplots the actual particle
+       ! in black, the neighbours of this particle with a black circle and a big grey circle for the maximum neighbour radius
+       do local_particle_index =1, np_local
+          
+          write (outfile, '(a,a,i6.6,a)') TRIM(cfile), '_', particles(local_particle_index)%label, '.gle'
+          open (60,file=outfile)
+          
+          ! include the header file
+          write (60,'(3a)') 'include ', TRIM(cfile), "_header.gle"
+          
+          ! print smoothing-length circle
+          smoothing_length = sqrt(maxval(distances2(1:num_neighbour_particles, local_particle_index)))
           
           write (60, '(a)') 'set color black'
-          write (60, '(a,2f13.4)') 'amove ', neighbour_x, neighbour_y
-          !        write (60, '(a,2f13.4)') 'amove ', xcoc(next_neighbours(j,p)), ycoc(next_neighbours(j,i))
-          write (60, '(a)') 'circle psize'
+          write (60, '(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1), particles(local_particle_index)%x(2)
+          ! TODO change g30.10 back to f13.4
+          write (60, '(a,g30.10,a)') 'circle ', smoothing_length, ' fill lightgray'
+          
+          ! include files with local particles from all domains
+          do actual_pe =0, n_cpu-1
+             write (60,'(3a,i3.3,a)') 'include ', TRIM(cfile), "_dom", actual_pe, ".gle"
+          end do
+          
+          ! overplot neighbours with a black circle
+          do actual_neighbour = 1, num_neighbour_particles
+             neighbour_x = positions( 1, actual_neighbour, local_particle_index )
+             neighbour_y = positions( 2, actual_neighbour, local_particle_index )
+             neighbour_z = positions( 3, actual_neighbour, local_particle_index )
+             
+             write (60, '(a)') 'set color black'
+             write (60, '(a,2f13.4)') 'amove ', neighbour_x, neighbour_y
+             write (60, '(a)') 'circle psize'
+          end do
+          
+          ! highlight current particle
+          write (60, '(a)') 'set color black'
+          write (60, '(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1), particles(local_particle_index)%x(2)
+          write (60, '(a)') 'circle psize fill black'
+          
+          ! footer
+          write (60,'(a/a/a)') 'end translate','end scale','end translate'
+          close(60)
+          
        end do
-       
-       ! highlight current particle
-       write (60, '(a)') 'set color black'
-       write (60, '(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1), particles(local_particle_index)%x(2)
-       write (60, '(a)') 'circle psize fill black'
 
-       ! footer
-       write (60,'(a/a/a)') 'end translate','end scale','end translate'
-       close(60)
-       
-    end do
+    end if
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -365,7 +373,11 @@ contains
           
           do index_in_test_neighbour_list = 1, num_neighbour_particles   ! ignore particle self (num_neighbour_particles+1)
              
-             if( node_key .eq. keys(index_in_test_neighbour_list, local_particle_index) ) then
+             neighbour_key = coord_to_key_lastlevel( positions( 1, index_in_test_neighbour_list, local_particle_index), &
+                  positions( 2, index_in_test_neighbour_list, local_particle_index), &
+                  positions( 3, index_in_test_neighbour_list, local_particle_index) )
+
+             if( node_key .eq. neighbour_key ) then
                 found = .true.
                 exit
              end if
@@ -400,6 +412,11 @@ contains
 
     write(*,*) my_rank, 'not found: ', not_found
 
+    deallocate( distances2, positions )
+    deallocate( key_buffer, x_buffer, y_buffer, z_buffer )
+
+
+
   end subroutine validate_n_nearest_neighbour_list
 
 
@@ -416,7 +433,7 @@ contains
 ! ======================
 
 
-  subroutine draw_neighbours(np_local, npart_total, particles, particle_results, itime)
+  subroutine draw_neighbours(np_local, particles, particle_results, itime)
     
     use treetypes
     
@@ -435,12 +452,10 @@ contains
     
     
     integer, intent(in) :: np_local    !< # particles on this CPU
-    integer, intent(in) :: npart_total !< total # simulation particles
     type(t_particle), allocatable, intent(in) :: particles(:)
     type(t_particle_results), intent(in), allocatable :: particle_results(:)
     integer, intent(in) :: itime  ! timestep
     
-    integer :: ierr
     character(30) :: cfile
     character(40) :: outfile    
     integer :: actual_pe
