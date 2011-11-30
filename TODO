@@ -5,8 +5,6 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
     --> leaves may have particle properties e.g. label, which do not make sense for twigs (and the other way round, e.g. childcode) 
     --> perform walk for all leaves below a some twig instead of particles
 
-- find an idea for module_timings to split lpepc-timings from frontend-specific timings (which are conflicting and-/or difficult to integrate)
-
 - make checkpointing-stuff independet of t_particle_data type
 
 - fix pepc_fields_grid which is currently nonfunctional
