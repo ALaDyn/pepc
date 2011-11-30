@@ -7,8 +7,6 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 
 - make checkpointing-stuff independent of t_particle_data type
 
-- fix pepc_fields_grid which is currently nonfunctional
-
 - make all particle numbers, leaves, labels, etc integer*8 to support >2000000000particles
 
 - put weighted and curve_type into cf_par

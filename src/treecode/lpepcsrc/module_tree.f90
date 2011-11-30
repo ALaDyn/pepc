@@ -451,7 +451,7 @@ module module_tree
       integer*8 :: lvlkey
 
       call status('INSERT PARTICLES')
-      !TODO: check for overlapping keys with particles from neighbour PE
+
       leaf_keys(1:nparticles) = 0_8
 
       nremaining = nparticles
