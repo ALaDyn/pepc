@@ -4,13 +4,15 @@
 !> array. certain entries therein are addressed via integer
 !> parameters, eg.   tim(t_allocate) = 0.1234
 !>
+!> you can use own (frontend-defined) timer constants in the range
+!> t_userdefined_first .. t_userdefined_last, e.g.
+!> call timer_start(t_userdefined + 0)
+!> call timer_start(t_userdefined + 7)
+!> etc.
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module timings
   implicit none
-
-    !> number of timing entries - dont forget to adjust if you add some timing variables
-    integer, private, parameter :: numtimings = 53
 
     ! global timings
     integer, parameter :: t_domains            =  1
@@ -77,6 +79,12 @@ module timings
     integer, parameter :: t_unused_51          = 51
     integer, parameter :: t_unused_52          = 52
     integer, parameter :: t_unused_53          = 53
+
+    integer, parameter :: t_userdefined_first  = 60
+    integer, parameter :: t_userdefined_last   = 90
+
+    !> number of timing entries - dont forget to adjust if you add some timing variables
+    integer, private, parameter :: numtimings = t_userdefined_last
 
     !> array for local timings
     real*8, private, dimension(1:numtimings) :: tim = 0.
@@ -191,15 +199,29 @@ module timings
     !> @todo: add file header
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine timings_ToFile(itime, tdata, filename)
+    subroutine timings_ToFile(itime, iuserflag, tdata, filename, printheader)
       implicit none
       integer, intent(in) :: itime !< current timestep
+      integer, intent(in) :: iuserflag !< frontend-defined flag that is passed through and output to the second column
       character(*), intent(in) :: filename !< output filename
       real*8, dimension(1:numtimings), intent(in) :: tdata !< array with timing data
+      logical, optional, intent(in) :: printheader !< if set to true, a header with column numbers is output
 
-      open  (60, file=filename,STATUS='UNKNOWN', POSITION = 'APPEND')
-      write (60,*) itime, tdata
-      close (60)
+      integer, parameter :: ifile = 60
+      integer :: i
+      character(30) :: formatstring
+
+      open  (ifile, file=filename,STATUS='UNKNOWN', POSITION = 'APPEND')
+
+
+      if (printheader) then
+        write(formatstring,'(a,i5,a)' ) '(a1,2(1x,a20),', numtimings, '(1x,i20))'
+        write (ifile,formatstring) "#", "timestep", "userflag", [ (i,i=1,numtimings) ]
+      endif
+
+      write(formatstring,'(a,i5,a)' ) '(x,2(1x,i20),', numtimings, '(1x,e20.5))'
+      write (ifile,formatstring) itime, iuserflag, tdata
+      close (ifile)
 
     end subroutine timings_ToFile
 
@@ -209,19 +231,28 @@ module timings
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Outputs all local timing data to timing_XXXX.dat
+    !> if itime <=1, an additional header is printed
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine timings_LocalOutput(itime)
+    subroutine timings_LocalOutput(itime, iuserflag)
       use treevars
 
       implicit none
       integer, intent(in) :: itime !< current timestep
+      integer, optional, intent(in) :: iuserflag !< frontend-defined flag that is passed through and output to the second column
       character(30) :: cfile
+      integer :: flag
+
+      if (present(iuserflag)) then
+        flag = iuserflag
+      else
+        flag = 0
+      endif
 
       if ( timing_file_debug ) then
          call system("mkdir -p " // "timing")
          write(cfile,'("timing/timing_",i6.6,".dat")') me
-         call timings_ToFile(itime, tim, cfile)
+         call timings_ToFile(itime, flag, tim, cfile, itime<=1)
       end if
 
     end subroutine timings_LocalOutput
@@ -231,19 +262,29 @@ module timings
     !>
     !> Gathers global timing data and outputs to
     !> timing_avg.dat, timing_min.dat, timing_max.dat
+    !> if itime <=1, an additional header is printed
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine timings_GatherAndOutput(itime)
+    subroutine timings_GatherAndOutput(itime, iuserflag)
       use treevars
       implicit none
       include 'mpif.h'
       integer, intent(in) :: itime !< current timestep
+      integer, optional, intent(in) :: iuserflag !< frontend-defined flag that is passed through and output to the second column
       integer :: ierr
+
+      integer :: flag
 
       real*8, dimension(1:numtimings) :: tim_max
       real*8, dimension(1:numtimings) :: tim_avg
       real*8, dimension(1:numtimings) :: tim_min
       real*8, dimension(1:numtimings) :: tim_dev
+
+      if (present(iuserflag)) then
+        flag = iuserflag
+      else
+        flag = 0
+      endif
 
       call MPI_REDUCE(tim, tim_max, numtimings, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD,ierr);
       call MPI_REDUCE(tim, tim_min, numtimings, MPI_REAL8, MPI_MIN, 0, MPI_COMM_WORLD,ierr);
@@ -252,13 +293,12 @@ module timings
      if (me==0) then
         tim_avg = tim_avg / num_pe
         tim_dev = tim_max - tim_min
-        call timings_ToFile(itime, tim_max, 'timing_max.dat')
-        call timings_ToFile(itime, tim_avg, 'timing_avg.dat')
-        call timings_ToFile(itime, tim_min, 'timing_min.dat')
-        call timings_ToFile(itime, tim_dev, 'timing_dev_abs.dat')
+        call timings_ToFile(itime, flag, tim_max, 'timing_max.dat', itime<=1)
+        call timings_ToFile(itime, flag, tim_avg, 'timing_avg.dat', itime<=1)
+        call timings_ToFile(itime, flag, tim_min, 'timing_min.dat', itime<=1)
+        call timings_ToFile(itime, flag, tim_dev, 'timing_dev_abs.dat', itime<=1)
         tim_dev = tim_dev / tim_min
-        call timings_ToFile(itime, tim_dev, 'timing_dev_rel.dat')
-
+        call timings_ToFile(itime, flag, tim_dev, 'timing_dev_rel.dat', itime<=1)
 
         write(*,'(a20,f16.10," s")') "t_all = ",       tim(t_all)
         write(*,'(a20,f16.10," s")') "t_tot = ",       tim(t_tot)
