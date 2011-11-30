@@ -106,6 +106,7 @@ contains
     logical :: tree_nn_debug
     logical :: draw_neighbour_test
 
+    integer :: i
     integer :: maxdist
     integer :: index_in_test_neighbour_list
     integer :: index_in_result_neighbour_list
@@ -217,9 +218,12 @@ contains
        distances2( tmp_loc(1), local_particle_index ) = distances2( num_neighbour_particles+1, local_particle_index )
        distances2( num_neighbour_particles+1, local_particle_index ) = tmp_real8
 
-       tmp_real8 = positions( 1, tmp_loc(1), local_particle_index )
-       positions( 1, tmp_loc(1), local_particle_index ) = positions( 1, num_neighbour_particles+1, local_particle_index )
-       positions( 1, num_neighbour_particles+1, local_particle_index ) = tmp_real8
+       do i = 1, 3
+          tmp_real8 = positions( i, tmp_loc(1), local_particle_index )
+          positions( i, tmp_loc(1), local_particle_index ) = positions( i, num_neighbour_particles+1, local_particle_index )
+          positions( i, num_neighbour_particles+1, local_particle_index ) = tmp_real8
+       end do
+
     end do
 
     ! now distances2 and keys contain the num_neighbour_particles closest neighbours, ignore last element
