@@ -35,7 +35,7 @@ contains
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !>   Calculate fields and potential for supplied particles, work is taken from t_particle_results array
+    !> Calculate fields and potential for supplied particles, work is taken from t_particle array
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_fields(np_local, npart_total, particles, particle_results, &
@@ -242,109 +242,77 @@ contains
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !>   Calculate fields and potential from gridded coordinates x,y,z **using existing tree**
-    !>   pepc_fields(...,no_dealloc+.true.) must have been called before
-    !>   this call does not modify the tree excpet that it fetches additionally needed particles
-    !>   ideally, the supplied grid coordinates on each PE should coincide with
-    !>   the spatial volume that is covered by the local branch nodes
-    !>   TODO: add a routine, that produces such a grid automatically
+    !> Calculate fields and potential for coordinates of supplied particles
+    !> without inserting them into the tree or including them in the actual computation
+    !> everything in the supplied t_particle structure except the coordinates is simply ignored
+    !> i.e. these particles behave like neutral testparticles
     !>
-    !>   Returns fields Ex, Ey, Ez and potential pot excluding external terms
+    !> before invoking this function, pepc_fields() must have been call with no_dealloc=.true.
     !>
-    !>   @param[in] npgrid local number of grid points
-    !>   @param[in] npart_total total particle number
-    !>   @param[in] p_x dimension(1:np_local) - x-component of particle coordinates
-    !>   @param[in] p_y dimension(1:np_local) - y-component of particle coordinates
-    !>   @param[in] p_z dimension(1:np_local) - z-component of particle coordinates
-    !>   @param[in] p_label dimension(1:np_local) - particle label (may any number except zero)
-    !>   @param[out] p_Ex dimension(1:np_local) - x-component of electric field
-    !>   @param[out] p_Ey dimension(1:np_local) - y-component of electric field
-    !>   @param[out] p_Ez dimension(1:np_local) - z-component of electric field
-    !>   @param[out] p_pot dimension(1:np_local) - electric potential
-    !>   @param[in] cf_par parameters for force summation
-    !>   @param[in] itime current simulation timestep number
-    !>   @param[in] weighted selector for load balancing
-    !>   @param[in] curve_type selector for type of space filling curve
-    !>   @param[in] num_neighbours number of neighbour boxes to be considered during tree walk
-    !>   @param[in] neighbours shift vectors to neighbour boxes
-    !>   @param[in] no_dealloc if set to .true., deallocation of tree-structures is prevented to allow for front-end triggered diagnostics
-    !>
+    !> the coordinates should overlap with the local tree(!) domain
+    !> TODO: provide function to prepare such a grid, take care whether no_backsort=.true./.false.
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_grid_fields(npgrid,p_x, p_y, p_z, p_label, &
-    p_Ex, p_Ey, p_Ez, p_pot, cf_par, itime,  num_neighbours, neighbours)
+    subroutine pepc_grid_fields(npoints_local, particles, particle_results, cf_par, itime, num_neighbours, neighbours)
 
         use treevars
         use module_interaction_specific
-        use module_htable
         use timings
+        use module_tree_domains
         use module_calc_force
         use tree_walk_pthreads
         use tree_walk_communicator
-
+        use module_allocation
+        use module_tree
+        use module_htable
+        use module_branching
+        use module_mirror_boxes
         implicit none
         include 'mpif.h'
 
-        integer, intent(in) :: npgrid  ! # particles on this CPU
+        integer, intent(inout) :: npoints_local    !< # points on this CPU
+        type(t_particle), intent(inout) :: particles(:)
+        type(t_particle_results), intent(inout) :: particle_results(:)
         type(t_calc_force_params), intent(in) :: cf_par
         integer, intent(in) :: itime  ! timestep
-        real*8, intent(in), dimension(npgrid) :: p_x, p_y, p_z  ! coords: x1,x2,x3, y1,y2,y3, etc
-        integer, intent(in), dimension(npgrid) :: p_label  ! particle label
-        real*8, intent(out), dimension(npgrid) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
         integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
         integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
 
-        type(t_particle), allocatable :: grid_particles(:)
-        type(t_particle_results), allocatable :: grid_particle_results(:)
-
-        integer :: i
         real*8 :: ttrav, ttrav_loc, tcomm(3) ! timing integrals
         integer :: ibox
         real*8 :: vbox(3)
-! TODO: adapt to new datastructures
-!        call status('FIELDS GRID')
-!
-!        if (.not. (allocated(htable) .and. allocated(tree_nodes))) then
-!            write(*,*) 'pepc_grid_fields(): pepc_fields() must have been called with no_dealloc=.true. before'
-!            return
-!        endif
-!
-!        allocate(grid_particles(npgrid), grid_particle_results(npgrid))
-!
-!        ! Copy particle buffers to tree arrays
-!        do i=1,npgrid
-!            grid_particles(i) = t_particle([p_x(i), p_y(i), p_z(i)], &  ! position
-!            1._8,                    &  ! workload
-!            -1_8,                     &  ! key - will be assigned later
-!            p_label(i),              &  ! particle label
-!            me,                      &  ! particle owner
-!            t_particle_data(0.)   ) ! charge - set to zero
-!        end do
-!
-!        grid_particle_results(:) = t_particle_results([0., 0., 0.], 0., 1.)
-!
-!        do ibox = 1,num_neighbours ! sum over all boxes within ws=1
-!            vbox = lattice_vect(neighbours(:,ibox))
-!            ! tree walk finds interaction partners and calls interaction routine for particles on short list
-!            call tree_walk(npgrid,grid_particles,grid_particle_results,cf_par,itime,ttrav,ttrav_loc, vbox, tcomm)
-!        end do ! ibox = 1,num_neighbours
-!
-!        ! add lattice contribution and other per-particle-forces
-!        !	  call calc_force_per_particle(npgrid, grid_particles, grid_particle_results, cf_par)
-!
-!        nkeys_total = nleaf+ntwig
-!
-!        ! Copy results back to local arrays
-!        do i=1,npgrid
-!            p_Ex(i)  = grid_particle_results(i)%e(1)
-!            p_Ey(i)  = grid_particle_results(i)%e(2)
-!            p_Ez(i)  = grid_particle_results(i)%e(3)
-!            p_pot(i) = grid_particle_results(i)%pot
-!        end do
-!
-!        ! deallocate particle and result arrays
-!        deallocate (grid_particles, grid_particle_results)
-!
-!        call status('FIELDS GRID DONE')
+
+
+        call status('GRID FIELDS')
+
+        call timer_start(t_walk_grid)
+
+        call results_clear(particle_results(:))
+
+        do ibox = 1,num_neighbours ! sum over all boxes within ws=1
+
+            vbox = lattice_vect(neighbours(:,ibox))
+
+            ! tree walk finds interaction partners and calls interaction routine for particles on short list
+            call tree_walk(npoints_local,particles,particle_results,cf_par,itime,ttrav,ttrav_loc, vbox, tcomm)
+
+            call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
+            call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
+            call timer_add(t_comm_total,    tcomm(TIMING_COMMLOOP))
+            call timer_add(t_comm_recv,     tcomm(TIMING_RECEIVE))
+            call timer_add(t_comm_sendreqs, tcomm(TIMING_SENDREQS))
+
+        end do ! ibox = 1,num_neighbours
+
+        call timer_stop(t_walk_grid)
+
+        ! add lattice contribution
+        call timer_start(t_lattice_grid)
+        ! add lattice contribution and other per-particle-forces
+        ! TODO: do not call calc_force_per_particle here!
+        call calc_force_per_particle(particles, npp, particle_results, cf_par)
+        call timer_stop(t_lattice_grid)
+
+        call status('GRID FIELDS DONE')
 
     end subroutine pepc_grid_fields
 

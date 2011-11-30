@@ -54,9 +54,9 @@ module timings
     integer, parameter :: t_branches_find      = 32
     integer, parameter :: t_exchange_branches_admininstrative = 33
     integer, parameter :: t_build_pure         = 34
-    ! tree_fill
-    integer, parameter :: t_unused_35          = 35
-    integer, parameter :: t_unused_36          = 36
+    ! pepc_grid_fields
+    integer, parameter :: t_walk_grid          = 35
+    integer, parameter :: t_lattice_grid       = 36
     ! tree_props
     integer, parameter :: t_props_leafs        = 37
     integer, parameter :: t_unused_38          = 38
