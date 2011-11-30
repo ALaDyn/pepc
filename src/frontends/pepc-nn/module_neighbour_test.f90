@@ -364,8 +364,8 @@ contains
      write (60,'(a,4(/a),2(/a,2f13.4))'), &
           'size 18 18', &
           'set font rm', &
-          'set lwidth 0.05 lstyle 1', &
-          'psize=0.01', &
+          'set lwidth 0.001 lstyle 1', &
+          'psize=0.005', &
           'begin translate 0.5 0.5', &
           'begin scale ', 17./boxsize, 17./boxsize, &
           'begin translate ', -xmin, -ymin
@@ -410,15 +410,19 @@ contains
      do actual_neighbour = 1, num_neighbour_particles
         actual_node = particle_results(local_particle_index)%neighbour_nodes(actual_neighbour)
         
-        write (60, '(a)') 'set color white'
+        write (60, '(a)') 'set color red'
         write (60, '(a,2f13.4)') 'amove ', tree_nodes(actual_node)%coc(1), tree_nodes(actual_node)%coc(2)
         !        write (60, '(a,2f13.4)') 'amove ', xcoc(next_neighbours(j,p)), ycoc(next_neighbours(j,i))
-        write (60, '(a)') 'circle psize fill white'
+        write (60, '(a)') 'circle psize'
      end do
 
-!  write (60, '(a)') 'set color black'
-!  write (60, '(a,2f13.4)') 'amove ', xcoc(i), ycoc(i)
-!  write (60, '(a,f13.4,a)') 'circle ', r_nn(i), ' '
+     ! highlight current particle
+     write (60, '(a)') 'set color black'
+     write (60, '(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1), particles(local_particle_index)%x(2)
+     write (60, '(a)') 'circle psize fill black'
+     ! print smoothing-length circle
+     write (60, '(a)') 'set color black'
+     write (60, '(a,f13.4,a)') 'circle ', sqrt(particle_results(local_particle_index)%maxdist2), ' '
 
      write (60,'(a/a/a)') 'end translate','end scale','end translate'
      close(60)
