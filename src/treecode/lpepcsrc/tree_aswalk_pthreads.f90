@@ -529,7 +529,7 @@ module tree_walk_pthreads
   contains
 
 
-    subroutine tree_walk(nparticles,particles,particle_results,cf_par_,itime,twalk,twalk_loc_,vbox_,tcomm)
+    subroutine tree_walk(nparticles,particles,particle_results,cf_par_,twalk,twalk_loc_,vbox_,tcomm)
       use, intrinsic :: iso_c_binding
       use treetypes
       use tree_utils
@@ -543,14 +543,13 @@ module tree_walk_pthreads
       integer, intent(in) :: nparticles
       type(t_particle), target, intent(in) :: particles(:)
       type(t_particle_results), target, intent(inout) :: particle_results(:)
-      integer, intent(in) :: itime
       real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
       real*8, target, intent(inout) :: twalk, twalk_loc_
       real*8, target, intent(out), dimension(3) :: tcomm
 
       call status('WALK HYBRID')
 
-      if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (HYBRID) for timestep ',itime
+      if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (HYBRID)'
 
       num_particles = nparticles
       particle_data => particles

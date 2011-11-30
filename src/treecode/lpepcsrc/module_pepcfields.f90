@@ -174,7 +174,7 @@ contains
             vbox = lattice_vect(neighbours(:,ibox))
 
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
-            call tree_walk(npp,particles,particle_results,cf_par,itime,ttrav,ttrav_loc, vbox, tcomm)
+            call tree_walk(npp,particles,particle_results,cf_par,ttrav,ttrav_loc, vbox, tcomm)
 
             call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
             call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
@@ -252,7 +252,7 @@ contains
     !> the coordinates should overlap with the local tree(!) domain
     !> TODO: provide function to prepare such a grid, take care whether no_backsort=.true./.false.
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_grid_fields(npoints_local, particles, particle_results, cf_par, itime, num_neighbours, neighbours)
+    subroutine pepc_grid_fields(npoints_local, particles, particle_results, cf_par, num_neighbours, neighbours)
 
         use treevars
         use module_interaction_specific
@@ -273,7 +273,6 @@ contains
         type(t_particle), intent(inout) :: particles(:)
         type(t_particle_results), intent(inout) :: particle_results(:)
         type(t_calc_force_params), intent(in) :: cf_par
-        integer, intent(in) :: itime  ! timestep
         integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
         integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
 
@@ -293,7 +292,7 @@ contains
             vbox = lattice_vect(neighbours(:,ibox))
 
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
-            call tree_walk(npoints_local,particles,particle_results,cf_par,itime,ttrav,ttrav_loc, vbox, tcomm)
+            call tree_walk(npoints_local,particles,particle_results,cf_par,ttrav,ttrav_loc, vbox, tcomm)
 
             call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
             call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
