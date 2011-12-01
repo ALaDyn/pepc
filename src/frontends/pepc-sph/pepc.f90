@@ -128,6 +128,8 @@ program pepce
   ! initialize calc force params
   cf_par%mac         = 1 ! NN MAC
   cf_par%force_law   = 5 ! NN "Interaction"
+  cf_par%weighted    = weighted
+  cf_par%curve_type  = curve_type
 
 
   particles(:)%work = 1._8
@@ -149,7 +151,7 @@ program pepce
      call timer_start(t_tot)
      
      call pepc_fields(np_local, npart_total, particles, &
-          np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .true., .true.)
+          np_mult, cf_par, itime, num_neighbour_boxes, neighbour_boxes, .true., .true.)
      
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags

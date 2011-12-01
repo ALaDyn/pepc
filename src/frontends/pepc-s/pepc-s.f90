@@ -63,11 +63,13 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
   itime = 1
 
   ! initialize calc force params
-  cf_par%theta       = theta
+  cf_par%theta2      = theta**2
   cf_par%mac         = mac
-  cf_par%eps         = eps
+  cf_par%eps2        = eps**2
   cf_par%force_const = force_const
   cf_par%force_law   = 3
+  cf_par%weighted    = weighted
+  cf_par%curve_type   = curve_type
 
 
   call pepc_fields_coulomb_wrapper(np_local, npart_total, &
@@ -75,7 +77,7 @@ subroutine pepc(nparts, npart_tot, pos_x, pos_y, pos_z, charge, mass, Ex, Ey, Ez
        charge, work, pelabel, &
        ex, ey, ez, pot, &
        np_mult, cf_par, &
-       itime, weighted, curve_type, &
+       itime, &
        num_neighbour_boxes, neighbour_boxes, .false., .false.)
   
   ! finalize framework for lattice contributions

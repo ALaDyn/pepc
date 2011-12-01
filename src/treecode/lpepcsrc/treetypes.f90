@@ -29,14 +29,14 @@ module treetypes
 
       !> Data structure for user-defined variables that are directly involved into the force calculation
       type t_calc_force_params
-        !TODO: make this eps2
-        real    :: eps          = 0.0    !< short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
+        real    :: eps2         = 0.0    !< ssquare of hort-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
         real    :: force_const  = 1.0    !< force constant
         integer :: force_law    = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
         logical :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
         integer :: mac          = 0      !< selector for multipole acceptance criterion, mac==0: Barnes-Hut, currently unused
-        real    :: theta        = 0.6    !< multipole opening angle
-        real    :: theta2        = 0.6**2. !< (multipole opening angle)^2 - is set automatically by tree_aswalk_pthreads
+        real    :: theta2       = 0.6**2.  !< square of multipole opening angle
+        integer :: weighted     = 1 !< set to 0 to disable load balancing, 1 to enable load balancing
+        integer :: curve_type   = 1 !< selector for space-filling curve: 0-Morton, 1-Hilbert curve
         real*8  :: spatial_interaction_cutoff(3) = huge(real8_dummy) * [1., 1., 1.] !< all nodes, where any(abs(coc(1:3)-particle_position(1:3)) > spatial_interaction_cutoff(1:3) are ignored when calculating interactions
       end type t_calc_force_params
 

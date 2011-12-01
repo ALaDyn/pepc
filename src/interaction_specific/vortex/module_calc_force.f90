@@ -204,7 +204,7 @@ module module_calc_force
             dy = d(2)
             dz = d(3)
 
-            sig2 = cf_par%eps**2 !TODO: precompute this
+            sig2 = cf_par%eps2
 
             vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
 

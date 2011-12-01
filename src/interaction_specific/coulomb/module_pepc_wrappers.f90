@@ -70,7 +70,7 @@ module module_pepc_wrappers
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_fields_coulomb_wrapper(np_local,npart_total,p_x, p_y, p_z, p_q, p_w, p_label, &
-                    p_Ex, p_Ey, p_Ez, p_pot, np_mult_, cf_par, itime, weighted, curve_type, &
+                    p_Ex, p_Ey, p_Ez, p_pot, np_mult_, cf_par, itime,  &
                     num_neighbours, neighbours, no_dealloc, no_restore)
         use treevars
         use module_pepcfields
@@ -80,7 +80,6 @@ module module_pepc_wrappers
         real, intent(in) :: np_mult_       ! multipole opening angle
         type(t_calc_force_params), intent(in) :: cf_par
         integer, intent(in) :: itime  ! timestep
-        integer, intent(in) :: weighted
         real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc
         real*8, intent(in), dimension(np_local) :: p_q ! charges, masses
         integer, intent(in), dimension(np_local) :: p_label  ! particle label
@@ -88,7 +87,6 @@ module module_pepc_wrappers
         integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
         integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
         real*8, dimension(np_local) :: p_w ! work loads
-        integer, intent(in) :: curve_type ! type of space-filling curve
         logical, intent(in) :: no_dealloc, no_restore
 
         integer :: i
@@ -98,7 +96,7 @@ module module_pepc_wrappers
 
         if (force_debug) then
             write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
-            itime, cf_par%mac, cf_par%theta, cf_par%eps, cf_par%force_const
+            itime, cf_par%mac, sqrt(cf_par%theta2), sqrt(cf_par%eps2), cf_par%force_const
             write (*,'(a7,a20/(i16,4f15.3,i8))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i), &
             p_label(i),i=1,npp)
         endif
@@ -114,7 +112,7 @@ module module_pepc_wrappers
         end do
 
         call pepc_fields(np_local, npart_total, particles, &
-                             np_mult_, cf_par, itime, weighted, curve_type, num_neighbours, neighbours, no_dealloc, no_restore)
+                             np_mult_, cf_par, itime, num_neighbours, neighbours, no_dealloc, no_restore)
 
         ! read data from particle_coordinates, particle_results, particle_properties
         do i=1,np_local

@@ -148,7 +148,6 @@ module module_directsum
           integer, intent(in) :: ntest !< number of particles in testidx
           type(direct_particle), dimension(:), allocatable, intent(out) :: directresults !< test results
           integer, intent(in) :: my_rank, n_cpu, comm
-          real :: eps2
 
           integer :: maxtest !< maximum ntest
           type(direct_particle), dimension(:), allocatable :: received, sending
@@ -161,8 +160,6 @@ module module_directsum
           ! determine right and left neighbour
           nextrank = modulo(my_rank + 1, n_cpu)
           prevrank = modulo(my_rank - 1 + n_cpu, n_cpu)
-
-          eps2 = cf_par%eps**2
 
           ! insert initial data into input array
           nreceived = ntest
@@ -180,7 +177,7 @@ module module_directsum
               ! loop over all local particles
               do i=1,np_local
                 if ((currank .ne. 0) .or. (testidx(j).ne.i)) then
-                  call calc_direct_coulomb_force_3D(received(j), [x(i), y(i), z(i)], q(i), eps2)
+                  call calc_direct_coulomb_force_3D(received(j), [x(i), y(i), z(i)], q(i), cf_par%eps2)
                 endif
               end do
             end do

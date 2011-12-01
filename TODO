@@ -9,8 +9,6 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 
 - make all particle numbers, leaves, labels, etc integer*8 to support >2000000000particles
 
-- put weighted and curve_type into cf_par
-
 - remove mac.f90
 
 - build infrastructure for additional parallelization approaches (SMPSs etc.)
@@ -18,6 +16,8 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 - add bitmap for htable occupancy instead of clearing the complete htable in each timestep
 
 - find good estimation for nppmax or make it adjustable by the user
+
+- solve problem with defer_list_length being too small for very inhomogeneous particle distributions (e.g. for the vortex sphere, the division of nintmax by 8 should be removed)
 
 - think about calc_force_per_particle - does it really have to be called from module_pepcfields --> possibly call it from the frontend directly
 
@@ -35,8 +35,6 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 
 - in frontend-makefiles: make clear, what can be changed and what should not be touched
 
-- possibly join t_particle_data and t_particle_results ?
-
 - call make_hashentry with t_hash datastructure instead of several single parameters
 
 - move t_multipole_data%coc out of userdefined structures: the centre of charge is necessary in any case for performing the tree_walk
@@ -49,8 +47,6 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
    to new datastructures
    
 - update info in pepc.f90 comment-headers in all frontends
-
-- change cf_par%eps to cf_par%eps2, do not have to compute power each time 
 
 
 Renaming-List (Please add any inconsistencies that you encounter)

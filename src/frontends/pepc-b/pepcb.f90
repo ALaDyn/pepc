@@ -123,11 +123,13 @@ open(70,file='orbit.dat')
     if (do_periodic) call fmm_framework_param_dump(6)
 
     ! initialize calc force params
-    cf_par%theta       = theta
+    cf_par%theta2      = theta**2
     cf_par%mac         = mac
-    cf_par%eps         = eps
+    cf_par%eps2        = eps**2
     cf_par%force_const = force_const
     cf_par%force_law   = force_law
+    cf_par%weighted    = weighted
+    cf_par%curve_type  = curve_type
     cf_par%include_far_field_if_periodic = .false. ! switch off far-field box sum
     cf_par%spatial_interaction_cutoff(1) = xl  ! default min-image cutoffs
     cf_par%spatial_interaction_cutoff(2) = yl
@@ -141,7 +143,7 @@ open(70,file='orbit.dat')
     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
                   q(1:np_local),work(1:np_local),pelabel(1:np_local), &
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      np_mult, cf_par, itime, weighted, curve_type, &
+                      np_mult, cf_par, itime, &
                       num_neighbour_boxes, neighbour_boxes, .true., .false.)
 
    ! Centre velocities with 1/2 step back     
@@ -203,7 +205,7 @@ open(70,file='orbit.dat')
     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
 	              q(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult, cf_par, itime, weighted, curve_type, &
+              	      np_mult, cf_par, itime, &
                       num_neighbour_boxes, neighbour_boxes, .true., .false.)
   
 !POMP$ INST END(fields)

@@ -39,7 +39,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_fields(np_local, npart_total, particles, &
-        np_mult_, cf_par, itime, weighted, curve_type, num_neighbours, neighbours, no_dealloc, no_restore)
+        np_mult_, cf_par, itime, num_neighbours, neighbours, no_dealloc, no_restore)
 
         use treevars
         use module_interaction_specific
@@ -62,8 +62,6 @@ contains
         real, intent(in) :: np_mult_
         type(t_calc_force_params), intent(in) :: cf_par
         integer, intent(in) :: itime  ! timestep
-        integer, intent(in) :: weighted   ! TODO: put into cf_par
-        integer, intent(in) :: curve_type ! type of space-filling curve TODO: put into cf_par
         integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
         integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
         logical, intent(in) :: no_dealloc, no_restore
@@ -102,8 +100,8 @@ contains
 
         allocate(indxl(nppmax),irnkl(nppmax))
         ! Domain decomposition: allocate particle keys to PEs
-        call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted, curve_type, neighbour_pe_particles)
-        call allocate_tree(cf_par%theta)
+        call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, cf_par%weighted, cf_par%curve_type, neighbour_pe_particles)
+        call allocate_tree(cf_par%theta2)
 
         ! build local part of tree
         call timer_start(t_local)
@@ -163,7 +161,7 @@ contains
 
         call timer_start(t_fields_passes)
 
-        call particleresults_clear(particles(1:npp), npp)
+        call particleresults_clear(particles, npp)
 
         do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 
@@ -280,7 +278,7 @@ contains
 
         call timer_start(t_walk_grid)
 
-        call particleresults_clear(particles(1:npp), npp)
+        call particleresults_clear(particles, npp)
 
         do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 

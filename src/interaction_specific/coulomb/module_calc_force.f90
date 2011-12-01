@@ -221,7 +221,7 @@ module module_calc_force
              dz = d(3)
 
 
-             r = sqrt(dist2+cf_par%eps**2)
+             r = sqrt(dist2+cf_par%eps2)
              rd = 1./r
              rd3 = rd**3
              rd5 = rd**5
@@ -311,7 +311,7 @@ module module_calc_force
           real :: eps2
           type(t_multipole_data), pointer :: t
 
-          eps2   = cf_par%eps**2
+          eps2   = cf_par%eps2
           sumfx  = 0.
           sumfy  = 0.
           sumphi = 0.
@@ -375,8 +375,8 @@ module module_calc_force
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           type(t_calc_force_params), intent(in) :: cf_par
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
-          real*8 :: dx,dy,dz,r
-          real*8 :: flj, epsc, plj, aii
+          real*8 :: dx,dy,dz,r2
+          real*8 :: flj, epsc2, plj, aii2, aii2_r2, r
 
           type(t_multipole_data), pointer :: t
 
@@ -388,29 +388,30 @@ module module_calc_force
           sumphi = 0.
 
           !  preprocess distances
-          dx = d(1)
-          dy = d(2)
-          dz = d(3)
-          r = sqrt(dist2)
+          dx  = d(1)
+          dy  = d(2)
+          dz  = d(3)
+          r2 = dist2
 
           !    epsc should be > a_ii to get evenly spaced ions
-          aii = cf_par%eps
-          epsc = 0.8*aii
-          plj =0.
+          aii2  = cf_par%eps2
+          epsc2 = 0.8*aii2
+          plj   = 0.
 
           ! Force is repulsive up to and just beyond aii
-          if (r > epsc) then
-              flj =2.*aii**8/r**8 - 1.*aii**4/r**4
+          if (r2 > epsc2) then
+              aii2_r2 = aii2/r2
           else
-              flj = 2.*aii**8/epsc**8 - 1.*aii**4/epsc**4
+              aii2_r2 = aii2/epsc2
           endif
 
+          flj = 2.*(aii2_r2)**4 - 1.*(aii2_r2  )**2
 
           ! potential
           sumphi = sumphi + plj
 
           !  forces
-
+          r     = sqrt(r2)
           sumfx = sumfx + dx/r*flj
           sumfy = sumfy + dy/r*flj
           !    	  sumfz = sumfz + dz/r*flj

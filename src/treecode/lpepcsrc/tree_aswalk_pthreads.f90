@@ -555,8 +555,6 @@ module tree_walk_pthreads
       vbox = vbox_
       ! force calculation parameters
       cf_par = cf_par_
-      ! Clumping parameter**2 for MAC
-      cf_par%theta2 = cf_par%theta**2
       ! length of todo- and defer-list per particle (estimations)
       todo_list_length  = max(nintmax, 10)
       defer_list_length = max(todo_list_length / 8, 50)

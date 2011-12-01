@@ -39,7 +39,7 @@ module module_allocation
     !> Initializes several estimations on maximum used memory
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine allocate_tree(theta)
+    subroutine allocate_tree(theta2)
         use treevars
         use timings
         use module_debug
@@ -47,7 +47,7 @@ module module_allocation
         use module_branching
         implicit none
 
-        real, intent(in) :: theta
+        real, intent(in) :: theta2
 
         integer :: nintest
         integer :: nbaddr ! number of bits in the hashing function
@@ -59,8 +59,8 @@ module module_allocation
         call status('ALLOCATE TREE')
 
         ! Estimate of interaction list length - Hernquist expression
-        if (theta > 0.01 ) then
-            nintest = int(35.*log(1.*npart)/(theta**2))
+        if (theta2 > 0.0001 ) then
+            nintest = int(35.*log(1.*npart)/theta2)
         else
             nintest = npart
         endif
