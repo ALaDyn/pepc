@@ -23,7 +23,7 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 
 - remove further variables from treevars (e.g. tree_nodes --> module_tree)
 
-- include HAns Peschke's work on hierarchical parallel tree construction
+- include Hans Peschke's work on hierarchical parallel tree construction
 
 - see TODO's in code
 
@@ -42,6 +42,14 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 - move t_multipole_data%coc out of userdefined structures: the centre of charge is necessary in any case for performing the tree_walk
 
 - rename num_walk_threads to something like num_threads, because it is also used for openmp. Move num_threads out of the walk_pthreads module
+
+- fix diagnose_tree() with more or less generic output
+
+- adapt call verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, [(i, i=1,np_local)], cf_par, 3, my_rank, n_cpu, MPI_COMM_PEPC)
+   to new datastructures
+   
+- update info in pepc.f90 comment-headers in all frontends
+
 
 Renaming-List (Please add any inconsistencies that you encounter)
 =================================================================
