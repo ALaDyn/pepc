@@ -50,6 +50,7 @@ module module_allocation
         real, intent(in) :: theta
 
         integer :: nintest
+        integer :: nbaddr ! number of bits in the hashing function
 
         call timer_start(t_allocate)
 

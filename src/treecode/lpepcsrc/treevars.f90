@@ -39,7 +39,6 @@ module treevars
   integer*8, parameter :: iplace = 2_8**(3*nlev) !< value of place holder bit = 2^(idim*nlev)
 
   integer :: &
-             nbaddr, &         ! # bits in hashing function
              nleaf, &          ! total # leaf nodes in local #table 
              ntwig, &          ! total # twig nodes in local #table
              nleaf_me, &       ! total # leaves in local domain
