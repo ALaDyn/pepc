@@ -94,14 +94,32 @@ module module_calc_force
         implicit none
         type(t_particle), intent(inout) :: particles(nparticles)
         integer, intent(in) :: nparticles
-        integer :: i
+        integer :: i, j, tmp(1), counter
+        real*8 :: delta(3)
 
         do i=1,nparticles
-            ! TODONN insert 50 local (or otherwise near) particles to avoid unnecessary fetches
-            particles(i)%results%maxdist2        = huge(0._8)
-            particles(i)%results%maxidx          = 1
-            particles(i)%results%neighbour_nodes = 0
-            particles(i)%results%dist2           = huge(0._8)
+
+            particles(i)%results%dist2(:)           = huge(0._8)
+            particles(i)%results%neighbour_nodes(:) = 0
+
+            ! we insert (num_neighbour_particles) arbitrary local particles into the neighbour list to avoid unneccessary fetches during traversal
+            counter = 0
+            do j=1,nparticles
+              if (i.ne.j) then
+                counter = counter + 1
+                delta   = particles(i)%x - particles(j)%x
+                ! here, we use the fact, that for local particles their index in the particle list is identical to their leaf`s nodeindex
+                ! otherwise it should be particles(i)%results%neighbour_nodes(counter) = htable( key2addr(particles(j)%key) )%node
+                particles(i)%results%neighbour_nodes(counter) = j
+                particles(i)%results%dist2(counter)           = dot_product(delta, delta)
+
+                if (counter >= num_neighbour_particles) exit ! we found enough NN-candidates
+              endif
+            end do
+
+            tmp                           = maxloc(particles(i)%results%dist2(1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
+            particles(i)%results%maxidx   = tmp(1)
+            particles(i)%results%maxdist2 = particles(i)%results%dist2(particles(i)%results%maxidx)
         end do
 
       end subroutine
