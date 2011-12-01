@@ -45,6 +45,10 @@ pepcnn: libpepc.nearestneighbour
 	@echo "============  Making Frontend PEPC-NN (nearest neighbour search)  ============="
 	cd $(FRONTENDDIR)pepc-nn && $(MAKE) $(MFLAGS)
 
+pepcsph: libpepc.nearestneighbour
+	@echo "============  Making Frontend PEPC-SPH (next neighbour + SPH)  ============="
+	cd $(FRONTENDDIR)pepc-sph && $(MAKE) $(MFLAGS)
+
 pepce: libpepc.coulomb
 	@echo "============  Making Frontend PEPC-E (Benchmark version)  ============="
 	cd $(FRONTENDDIR)pepc-e && $(MAKE) $(MFLAGS)
@@ -67,6 +71,7 @@ clean: clean-doc
 	cd $(FRONTENDDIR)pepc-mw    && $(MAKE) $(MFLAGS) clean
 	cd $(FRONTENDDIR)pepc-mini  && $(MAKE) $(MFLAGS) clean
 	cd $(FRONTENDDIR)pepc-nn    && $(MAKE) $(MFLAGS) clean
+	cd $(FRONTENDDIR)pepc-sph   && $(MAKE) $(MFLAGS) clean
 	cd $(FRONTENDDIR)pepc-v     && $(MAKE) $(MFLAGS) clean
 
 clean-doc:
@@ -80,7 +85,7 @@ doc: clean-doc
 clean-dist:
 	rm -rf ./benchmark
 	rm -f benchmark-VER.tgz
-	
+
 dist: clean-dist	
 	@echo "--- exporting svn directory structure ---"
 	svn export ./ ./benchmark
@@ -90,4 +95,4 @@ dist: clean-dist
 	@echo "--- removing temporary files ---"
 	rm -rf ./benchmark
 	@echo "--- before publishing do not forget to update revision number in filename ---"
-	
+
