@@ -10,6 +10,6 @@
 # @ job_type = bluegene
 # @ bg_size = 32 
 # @ queue
-PEPC=../../pepcb
+PEPC=../../bin/pepcb
 cp sphere.h run.h
 mpirun -env BG_APPTHREADDEPTH=2 -label -exe $PEPC -mode SMP -args "./sphere.h"
