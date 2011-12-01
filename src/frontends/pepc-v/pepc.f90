@@ -12,7 +12,7 @@ program pepcv
 
   use module_pepcfields
   use physvars
-  use particle_pusher
+  use manipulate_particles
   use timings
   use files
   use diagnostics
