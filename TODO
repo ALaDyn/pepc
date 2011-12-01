@@ -41,6 +41,8 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 
 - move t_multipole_data%coc out of userdefined structures: the centre of charge is necessary in any case for performing the tree_walk
 
+- rename num_walk_threads to something like num_threads, because it is also used for openmp. Move num_threads out of the walk_pthreads module
+
 Renaming-List (Please add any inconsistencies that you encounter)
 =================================================================
 - module_htable%get_next_node() --> get_key_of_next_node() - the function returns a key, not a node number
