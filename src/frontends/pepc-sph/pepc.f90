@@ -2,7 +2,7 @@
 ! ==============================================================
 !
 !
-!                  PEPC-MINI
+!                  PEPC-SPH
 !
 !    Parallel Efficient Parallel Coulomb-solver: Electrostatics 
 !
@@ -45,6 +45,9 @@ program pepce
   use module_neighbour_test, only: &
        validate_n_nearest_neighbour_list, &
        draw_neighbours
+
+  use module_sph, only: &
+       sph_density
   
   use timings, only: &
        timer_start, &
@@ -92,9 +95,6 @@ program pepce
   ! Get the number of MPI tasks
   call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
 
-
-
-
   ! Set up O/P files
   call openfiles
 
@@ -119,8 +119,6 @@ program pepce
   
   !$OMP END PARALLEL
 
-
-
   ! Allocate array space for tree
   call libpepc_setup(my_rank,n_cpu,db_level)
 
@@ -133,7 +131,6 @@ program pepce
 
 
   particles(:)%work = 1._8
-
 
 
   ! Loop over all timesteps
@@ -170,6 +167,8 @@ program pepce
 
      call validate_n_nearest_neighbour_list(np_local, particles, &
           itime, num_neighbour_boxes, neighbour_boxes)
+
+     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
      
   end do
 
