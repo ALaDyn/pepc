@@ -781,11 +781,14 @@ module tree_walk_pthreads
               if ((.not. process_particle) .and. (particles_available)) then ! i.e. the place for a particle is unassigned
                 thread_particle_indices(i) = get_first_unassigned_particle(process_particle)
     !            write(ipefile,*) "PE", me, getfullid(), "thread_particle_indices(",i, ") :=", thread_particle_indices(i)
+
+                process_particle = (thread_particle_indices(i) .ne. -1)
+
+                ! we make a copy of all particle data to avoid thread-concurrent acces to particle_data array
+                if (process_particle) thread_particle_data(i) = particle_data(thread_particle_indices(i))
               end if
 
               if (process_particle) then
-                ! we make a copy of all particle data to avoid thread-concurrent acces to particle_data array
-                thread_particle_data(i)    = particle_data(thread_particle_indices(i))
 
                 ! after processing a number of particles: handle control to other (possibly comm) thread
                 if (same_core_as_communicator) then
