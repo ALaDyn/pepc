@@ -209,7 +209,7 @@ module module_calc_force
 
             vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
 
-            m0 = [t%chargex,t%chargex,t%chargex]       ! monopole moment tensor
+            m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
 
             m1 = reshape([t%xdip1,t%xdip2,t%xdip3, &    ! dipole moment tensor
