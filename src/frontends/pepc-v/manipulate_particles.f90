@@ -454,8 +454,8 @@ contains
 
         ! kick out particles with vorticity magnitude below threshold
         thresh2 = thresh**2
+        k = 0
         do i = 1,np
-            k = 0
             if (dot_product(vortex_particles(i)%data%alpha,vortex_particles(i)%data%alpha) .gt. thresh2) then
                 k = k+1
                 vortex_particles(k) = vortex_particles(i)

@@ -24,6 +24,9 @@ module files
          open(66,file='linear_diag.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
      endif
 
+     ! for MPI I/O
+     call system("mkdir -p " // "part_data")
+
      if (db_level > 0) then
        call system("mkdir -p " // "diag")
        write(cfile,'("diag/diag_",i6.6,".dat")') my_rank

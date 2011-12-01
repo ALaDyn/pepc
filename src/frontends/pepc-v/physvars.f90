@@ -90,11 +90,6 @@ contains
         weighted        =   1
         curve_type      =   0
 
-
-        ! particles
-        np = 0
-        n  = 1000 ! total # vortex particles
-
         ! physics stuff
         force_const  = 0.25D00/pi  ! 3D prefactor for u and af
         mac          = 0
@@ -108,7 +103,7 @@ contains
         r_torus      = 0.
         nc           = 0
         nphi         = 0
-        g            = 0
+        g            = 2
         torus_offset = [0., 0., 0.]
 
         ! control
@@ -162,7 +157,7 @@ contains
                 n = n_in
                 np = ceiling(1.0*n/n_cpu)
                 h = sqrt(4.0D00*pi/n)
-                eps = G*h
+                eps = g*h
 
             case(99)                          ! Setup MPI checkpoint readin
 
