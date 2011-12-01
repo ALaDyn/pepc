@@ -118,7 +118,7 @@ program pepce
      call timings_LocalOutput(itime)
      call timings_GatherAndOutput(itime)
 
-     call draw_neighbours(np_local, particles, itime)
+!     call draw_neighbours(np_local, particles, itime)
 
 
      ! do i=1, np_local
@@ -126,8 +126,8 @@ program pepce
      !   flush(6)
      ! end do
 
-     call validate_n_nearest_neighbour_list(np_local, particles, &
-       itime, num_neighbour_boxes, neighbour_boxes)
+!     call validate_n_nearest_neighbour_list(np_local, particles, &
+!       itime, num_neighbour_boxes, neighbour_boxes)
 
   end do
 

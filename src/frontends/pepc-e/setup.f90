@@ -59,7 +59,7 @@ subroutine pepc_setup()
   nep = 0    ! # plasma electrons per PE
   nip = 0
   ne  = 0    ! Total # plasma electrons
-  ni  = 1000 ! total # plasma ions
+  ni  = 10000 ! total # plasma ions
 
   xl = 1
   yl = 1

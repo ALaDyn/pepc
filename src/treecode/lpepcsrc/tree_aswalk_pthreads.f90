@@ -762,7 +762,6 @@ module tree_walk_pthreads
 
           ! every particle will start at the root node (one entry per todo_list, no particle is finished)
           thread_particle_indices(:) = -1 ! no particles assigned to this thread
-          call particleresults_clear(thread_particle_data(:))
           defer_list_entries         =  1 ! one entry in defer_list:
           defer_list(0,:)            =  t_defer_list_entry(1, 1_8) !     start at root node (addr, and key)
           partner_leaves             =  0 ! no interactions yet
@@ -785,6 +784,8 @@ module tree_walk_pthreads
               end if
 
               if (process_particle) then
+                ! we make a copy of all particle data to avoid thread-concurrent acces to particle_data array
+                thread_particle_data(i)    = particle_data(thread_particle_indices(i))
 
                 ! after processing a number of particles: handle control to other (possibly comm) thread
                 if (same_core_as_communicator) then
@@ -804,18 +805,16 @@ module tree_walk_pthreads
                   ! walk for particle i has finished
                   ! check whether it really interacted with all other particles
                   if (partner_leaves(i) .ne. num_interaction_leaves) then
-                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, thread_particle_indices(i), particle_data(thread_particle_indices(i))%label
+                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, thread_particle_indices(i), thread_particle_data(i)%label
                     write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
                     write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
                   endif
 
                   ! copy forces and potentials to thread-global array
-                  call results_add(particle_data(thread_particle_indices(i))%results, thread_particle_data(i)%results )
-                  !TODO: don't we have to copy %work from thread_particle_data to particle_data
+                  particle_data(thread_particle_indices(i)) = thread_particle_data(i)
 
                   !remove entries from defer_list
                   thread_particle_indices(i) = -1
-                  call results_clear(thread_particle_data(i)%results)
                   defer_list_entries(i)      =  1
                   defer_list(0,i)            =  t_defer_list_entry(1, 1_8)
                   partner_leaves(i)          =  0
