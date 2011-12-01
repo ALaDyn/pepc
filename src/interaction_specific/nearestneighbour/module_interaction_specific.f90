@@ -23,24 +23,34 @@ module module_interaction_specific
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
-         real*8 :: q
+         real*8 :: q                 !< charge
+         real*8 :: v(1:3)            !< velocity
+         real*8 :: temperature
       end type t_particle_data
-      integer, private, parameter :: nprops_particle_data = 1
+      integer, private, parameter :: nprops_particle_data = 3
 
       !> Data structure for results
       type t_particle_results
-         real*8 :: maxdist2      !< maxval(dist2)
-         integer :: maxidx       !< maxloc(dist2)
+         real*8 :: maxdist2       !< maxval(dist2)
+         integer :: maxidx        !< maxloc(dist2)
          integer*8:: neighbour_nodes(num_neighbour_particles)
          real*8 :: dist2(num_neighbour_particles)
+         real*8 :: rho            !< density for sph
+         real*8 :: h              !< smoothing-length for sph
+         real*8 :: sph_force(1:3)
+         real*8 :: temperature_change
       end type t_particle_results
-      integer, private, parameter :: nprops_particle_results = 4
+      integer, private, parameter :: nprops_particle_results = 8
 
       !> Data structure for storing multiple moments of tree nodes
       type t_multipole_data
         real*8 :: coc(3)     !< center of charge
+        real*8 :: q          !< charge (for particles)
+        real*8 :: v(1:3)     !< velocity
+        real*8 :: temperature
+        real*8 :: rho        !< sph density
       end type t_multipole_data
-      integer, private, parameter :: nprops_multipole_data = 1
+      integer, private, parameter :: nprops_multipole_data = 5
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -78,31 +88,41 @@ module module_interaction_specific
         type(t_multipole_data)   :: dummy_multipole_data
 
         ! register particle data type
-        blocklengths(1:nprops_particle_data)  = [1]
-        types(1:nprops_particle_data)         = [MPI_REAL8]
-        call MPI_GET_ADDRESS( dummy_particle_data,       address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%q,     address(1), ierr )
+        blocklengths(1:nprops_particle_data)  = [1, 3, 1]
+        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        call MPI_GET_ADDRESS( dummy_particle_data,             address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%q,           address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%v,           address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%temperature, address(3), ierr )
         displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
 
         ! register results data type
-        blocklengths(1:nprops_particle_results)  = [1, 1, num_neighbour_particles, num_neighbour_particles]
-        types(1:nprops_particle_results)         = [MPI_REAL8, MPI_INTEGER, MPI_INTEGER8, MPI_REAL8]
-        call MPI_GET_ADDRESS( dummy_particle_results,                 address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%maxdist2,        address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%maxidx,          address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%neighbour_nodes, address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%dist2,           address(4), ierr )
+        blocklengths(1:nprops_particle_results)  = [1, 1, num_neighbour_particles, num_neighbour_particles, 1, 1, 3, 1]
+        types(1:nprops_particle_results)         = [MPI_REAL8, MPI_INTEGER, MPI_INTEGER8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        call MPI_GET_ADDRESS( dummy_particle_results,                    address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%maxdist2,           address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%maxidx,             address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%neighbour_nodes,    address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%dist2,              address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%rho,                address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%h,                  address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%sph_force,          address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%temperature_change, address(8), ierr )
         displacements(1:nprops_particle_results) = int(address(1:nprops_particle_results) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_results, blocklengths, displacements, types, mpi_type_particle_results, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_multipole_data)  = [3]
-        types(1:nprops_multipole_data)         = [MPI_REAL8]
-        call MPI_GET_ADDRESS( dummy_multipole_data,            address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_multipole_data%coc,        address(1), ierr )
+        blocklengths(1:nprops_multipole_data)  = [3, 1, 3, 1, 1]
+        types(1:nprops_multipole_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        call MPI_GET_ADDRESS( dummy_multipole_data,             address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_data%coc,         address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_data%q,           address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_data%v,           address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_data%temperature, address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_data%rho,         address(5), ierr )
         displacements(1:nprops_multipole_data) = int(address(1:nprops_multipole_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_multipole_data, blocklengths, displacements, types, mpi_type_multipole_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_multipole_data, ierr)
@@ -120,7 +140,9 @@ module module_interaction_specific
         type(t_particle_data), intent(in) :: particle
         type(t_multipole_data), intent(out) :: multipole
 
-        multipole = t_multipole_data(particle_pos)
+        multipole = t_multipole_data(particle_pos,particle%q, particle%v, particle%temperature, -13._8)
+        ! set rho to -13 as dummy.
+        ! TODO: find a better place to store rho
 
       end subroutine
 
@@ -139,13 +161,20 @@ module module_interaction_specific
 
         nchild = size(children)
 
-        parent%coc = [0., 0., 0.]
+        parent%coc = [0._8, 0._8, 0._8]
+        parent%q = 0._8
 
         do i=1,nchild
           parent%coc = parent%coc + children(i)%coc
+          parent%q   = parent%q   + children(i)%q
         end do
 
         parent%coc = parent%coc / nchild
+
+        ! set velocity, temperature and rho for tree node to a nonsense value which may be recognised as nonsense when one tries to use them
+        parent%v = [-13._8,-13._8,-13._8]
+        parent%temperature = -13._8
+        parent%rho = -13._8
 
       end subroutine
 
