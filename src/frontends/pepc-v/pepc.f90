@@ -18,7 +18,9 @@ program pepcv
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, provided, stage
+  integer :: ierr, provided
+  real :: trun                     ! total run time including restarts and offset
+  integer :: itime, stage
   type(t_calc_force_params) ::cf_par
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls."
@@ -61,6 +63,8 @@ program pepcv
   cf_par%force_const = force_const
   cf_par%force_law   = 3
 
+  itime = 0
+  trun = ts
   ! Loop over all timesteps
   do while (itime < nt)
 

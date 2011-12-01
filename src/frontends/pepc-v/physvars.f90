@@ -44,8 +44,7 @@ module physvars
   integer :: ispecial       ! Switch to select special electron configs 
   integer :: weighted       ! load balancing switch
   real :: dt, ts, te        ! timestep, start-time, end-time
-  real :: trun              ! total run time including restarts and offset
-  integer :: nt, itime      ! # timesteps and current timestep
+  integer :: nt             ! # timesteps and current timestep
   integer :: rk_stages      ! # Runge-Kutta stages
   integer :: db_level       ! printed o/p debug level
   integer :: curve_type     !< type of space-filling curve, 0=z-curve, 1=Hilbert-curve

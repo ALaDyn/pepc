@@ -102,7 +102,6 @@ subroutine pepc_setup()
      stop
   end select init
 
-  trun = ts
   nt = int((te-ts)/dt) ! Number of timesteps
   rk_stages = 2   ! TODO: inflexible RK time integration scheme, hard-wired so far
 
