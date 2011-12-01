@@ -56,9 +56,12 @@ contains
   subroutine validate_n_nearest_neighbour_list(np_local, particles, &
        itime, num_neighbour_boxes, neighbour_boxes)
 
+    ! TODO: use the openmp module only, when compiling with openmp: !$ use omp_lib
+    ! module_deps has to be changed to remove "!$" when using openmp
     use omp_lib
     
-    use treetypes
+    use treetypes, only: &
+         t_particle
 
     use treevars, only: &
          xmin, &
@@ -90,7 +93,6 @@ contains
     
     integer :: ierr
     integer :: actual_pe
-    integer*8, allocatable :: key_buffer(:)
     real*8, allocatable :: x_buffer(:)
     real*8, allocatable :: y_buffer(:)
     real*8, allocatable :: z_buffer(:)
@@ -153,32 +155,31 @@ contains
 
     max_np_local = maxval(all_np_local)
     
-    allocate( key_buffer( max_np_local ), x_buffer( max_np_local ), y_buffer( max_np_local ), z_buffer( max_np_local ), STAT=ierr )
+    allocate( x_buffer( max_np_local ), y_buffer( max_np_local ), z_buffer( max_np_local ), STAT=ierr )
     
     if( ierr .ne. 0 ) then
        write (*,*) 'allocate of buffers in validate_n_nearest_neighbour_list failed in module_neighbour_test.f90'
     end if
+
+
 
     
     do actual_pe =0 , n_cpu-1                                  ! each process sends data
 
        if( actual_pe .eq. my_rank ) then
           
-          key_buffer( 1:np_local ) = particles( 1:np_local )%key 
           x_buffer( 1:np_local )   = particles( 1:np_local )%x(1)
           y_buffer( 1:np_local )   = particles( 1:np_local )%x(2)
           z_buffer( 1:np_local )   = particles( 1:np_local )%x(3)
 
        end if
        
-       call MPI_BCAST( key_buffer, all_np_local( actual_pe+1 ), MPI_INTEGER8, actual_pe, MPI_COMM_WORLD, ierr )
        call MPI_BCAST( x_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
        call MPI_BCAST( y_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
        call MPI_BCAST( z_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
        
 !       write(*,*), all_np_local( actual_pe +1)
 !       write(*,'(30(O30,x))'), particles( 1:np_local )%key
-!       write(*,'(30(O30,x))'), key_buffer(1:np_local )
 
 
        !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, tmp_loc, maxdist, remote_particle_index, dist2)
@@ -420,8 +421,7 @@ contains
     write(*,*) my_rank, 'not found: ', not_found
 
     deallocate( distances2, positions )
-    deallocate( key_buffer, x_buffer, y_buffer, z_buffer )
-
+    deallocate( x_buffer, y_buffer, z_buffer )
 
 
   end subroutine validate_n_nearest_neighbour_list
@@ -434,8 +434,6 @@ contains
 !
 !   DRAW all particles colored by domain and neighbours
 !   for postprocessing by GLE 
-
-!   call from fields.f90 after 
 !
 ! ======================
 
@@ -553,6 +551,7 @@ contains
     end do
     
   end subroutine draw_neighbours
-  
 
 end module module_neighbour_test
+
+

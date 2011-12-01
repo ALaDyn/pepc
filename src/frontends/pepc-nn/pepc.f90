@@ -18,6 +18,11 @@
 
 program pepce
 
+  ! TODO: use the openmp module only, when compiling with openmp: !$ use omp_lib
+  ! module_deps has to be changed to remove "!$" when using openmp
+  ! TODO: use omp_lib, only: ...
+  use omp_lib
+
   use treetypes, only: &
        t_calc_force_params
 
@@ -41,11 +46,28 @@ program pepce
        validate_n_nearest_neighbour_list, &
        draw_neighbours
   
+  use timings, only: &
+       timer_start, &
+       timer_stop, &
+       timings_LocalOutput, &
+       timings_GatherAndOutput, &
+       t_tot
+       
+  use module_mirror_boxes, only: &
+       neighbour_boxes, &
+       num_neighbour_boxes
 
-  use timings
-  use module_mirror_boxes
-  use module_pepcfields
-  use files
+  use module_pepcfields, only: &
+       pepc_fields
+
+  use files, only: &
+       openfiles, &
+       closefiles
+
+  use tree_walk_pthreads, only: &
+       num_walk_threads
+
+
   implicit none
   include 'mpif.h'
 
@@ -68,6 +90,16 @@ program pepce
 
   ! Get the number of MPI tasks
   call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
+
+  ! Set the number of openmp threads.
+  ! Set this only, when compiling with openmp (with !$)
+  ! Set number of openmp threads to the same number as pthreads used in the walk
+  !$ call omp_set_num_threads(num_walk_threads)
+
+  ! Inform the user that openmp is used, and with how many threads
+  !$ if (my_rank .eq. 0) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
+
+
 
   ! Set up O/P files
   call openfiles
@@ -126,9 +158,9 @@ program pepce
      !   flush(6)
      ! end do
 
-!     call validate_n_nearest_neighbour_list(np_local, particles, &
-!       itime, num_neighbour_boxes, neighbour_boxes)
-
+     call validate_n_nearest_neighbour_list(np_local, particles, &
+          itime, num_neighbour_boxes, neighbour_boxes)
+     
   end do
 
   ! cleanup of lpepc static data
