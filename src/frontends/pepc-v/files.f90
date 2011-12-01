@@ -73,7 +73,7 @@ module files
 
         if ((dump_time.ne.0).and.(mod(i,dump_time) == 0)) then
 
-            !TODO: call write_particles_to_vtk(i,simtime)
+            call write_particles_to_vtk(i,simtime)
 
         end if
 
@@ -146,7 +146,47 @@ module files
     end subroutine read_in_checkpoint
 
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>   Dump particles to binary parallel VTK
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine write_particles_to_vtk(step,time)
 
+        use physvars
+        use module_vtk
+        implicit none
 
+        real, intent(in) :: time
+        integer, intent(in) :: step
+        integer :: i
+        type(vtkfile_unstructured_grid) :: vtk
+        integer :: vtk_step
+
+        if (step .eq. 0) then
+            vtk_step = VTK_STEP_FIRST
+        else if (step .eq. nt) then
+            vtk_step = VTK_STEP_LAST
+        else
+            vtk_step = VTK_STEP_NORMAL
+        endif
+
+        call vtk%create_parallel("particles", step, my_rank, n_cpu, 0.1D01*time, vtk_step)
+        call vtk%write_headers(np,0)
+        call vtk%startpoints()
+            call vtk%write_data_array("xyz", np, vortex_particles(1:np)%x(1), vortex_particles(1:np)%x(2), vortex_particles(1:np)%x(3))
+        call vtk%finishpoints()
+        call vtk%startpointdata()
+            call vtk%write_data_array("velocity", np, vortex_particles(1:np)%results%u(1), vortex_particles(1:np)%results%u(2), vortex_particles(1:np)%results%u(3))
+            call vtk%write_data_array("vorticity", np, vortex_particles(1:np)%data%alpha(1), vortex_particles(1:np)%data%alpha(2), vortex_particles(1:np)%data%alpha(3))
+            call vtk%write_data_array("work", np, vortex_particles(1:np)%work)
+            call vtk%write_data_array("label", np, vortex_particles(1:np)%label)
+            call vtk%write_data_array("pid", np, [(my_rank,i=1,np)])
+        call vtk%finishpointdata()
+        call vtk%dont_write_cells()
+        call vtk%write_final()
+        call vtk%close()
+
+    end subroutine write_particles_to_vtk
 
 end module files

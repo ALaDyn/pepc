@@ -22,6 +22,21 @@ contains
         real*8, dimension(3,3) :: D1, D2, D3, D4   !< rotation matrices for ring setup
         real*8, allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
 
+        ! weird helper variables for sphere setup (ask Holger Dachsel)
+        real*8 a,b,c,cth,sth,cphi,sphi,s
+        real*8 zero
+        parameter(zero=0.d0)
+        real*8 one
+        parameter(one=1.d0)
+        real*8 mone
+        parameter(mone=-one)
+        real*8 two
+        parameter(two=2.d0)
+        real*8 five
+        parameter(five=5.d0)
+        real*8 nine
+        parameter(nine=9.d0)
+
 
         !     interface
         !         subroutine par_rand(res, iseed)
@@ -330,6 +345,53 @@ contains
             np = ind
 
             deallocate(xp,yp,zp,volp,wxp,wyp,wzp)
+
+        case(3)  ! Sphere setup
+
+            h = sqrt(4.0*pi/n)
+            m_h = h
+
+            a = nine/five*sqrt(dble(n-1)/dble(n))
+            j = 0
+            do i = 1,n
+
+                if(i.eq.1) then
+                    cth = mone
+                    sth = zero
+                    cphi = one
+                    sphi = zero
+                    b = cphi
+                    c = sphi
+                elseif(i.eq.n) then
+                    cth = one
+                    sth = zero
+                    cphi = one
+                    sphi = zero
+                else
+                    cth = dble(2*i-n-1)/dble(n-1)
+                    sth = two*(sqrt(dble(i-1)/dble(n-1))*sqrt(dble(n-i)/dble(n-1)))
+                    s = a*sqrt(dble(n-1)/(dble(i-1)*dble(n-i)))
+                    cphi = b*cos(s)-c*sin(s)
+                    sphi = c*cos(s)+b*sin(s)
+                    b = cphi
+                    c = sphi
+                endif
+                if (mod(i+my_rank,n_cpu) == 0) then
+                    if (j .gt. np-1) then
+                        write(*,*) 'something is wrong here: to many particles in init',my_rank,j,np,i
+                        call MPI_ABORT(MPI_COMM_WORLD,ierr)
+                        stop
+                    end if
+                    j = j+1
+                    vortex_particles(j)%x(1) = sth*cphi
+                    vortex_particles(j)%x(2) = sth*sphi
+                    vortex_particles(j)%x(3) = cth
+                    vortex_particles(j)%data%alpha(1) = 0.3D01/(0.8D01*pi)*sth*sphi*h**2
+                    vortex_particles(j)%data%alpha(2) = 0.3D01/(0.8D01*pi)*sth*(-cphi)*h**2
+                    vortex_particles(j)%data%alpha(3) = 0.
+                end if
+            end do
+            np = j
 
         case(99) ! Read-in MPI checkpoints
 
