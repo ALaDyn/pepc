@@ -106,15 +106,7 @@ subroutine pepc_setup()
   nt = int((te-ts)/dt) ! Number of timesteps
   rk_stages = 2   ! TODO: inflexible RK time integration scheme, hard-wired so far
 
-  if (n_cpu.eq.1) then
-     nppm=int(1.5*n + 1000)  ! allow for additional ghost particles for field plots
-!  else if (np_mult<0) then 
-!     nppm = abs(np_mult)*max(npart_total/n_cpu,1000) ! allow 50% fluctuation
-  else
-     nppm = int(1.5*max(n/n_cpu,1000)) ! allow 50% fluctuation
-  end if
-
-  allocate ( vortex_particles(nppm) )
+  allocate ( vortex_particles(np) )
 
   if (my_rank == 0) then
      write(*,*) "Starting PEPC-MINI with",n_cpu," Processors, simulating",np, &

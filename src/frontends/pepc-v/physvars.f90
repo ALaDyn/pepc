@@ -25,28 +25,22 @@ module physvars
   real     :: g       ! # vorticity amplifier
   real, dimension(3) :: torus_offset  ! shifts coords of both tori (one with +, one with -)
 
-
  ! tree stuff
   real :: theta       ! Clumping parameter
   integer :: mac      ! MAC (default=BH)
 
-!  Variables needing 'copy' for tree routines
-  integer :: npart_total  ! Total # particles (npart)
-  integer :: np_local 
-  integer :: nppm  ! Total # particles (npart)
+ ! Variables needing 'copy' for tree routines
   real    :: np_mult
-
-!  Associated MPI stuff
   integer :: my_rank       ! Rank of current task
-  integer :: n_cpu   ! # cpus used by program
+  integer :: n_cpu         ! # cpus used by program
+  integer :: db_level      ! printed o/p debug level
 
-! Control stuff
+  ! Control stuff
   integer :: ispecial       ! Switch to select special electron configs 
   integer :: weighted       ! load balancing switch
   real :: dt, ts, te        ! timestep, start-time, end-time
   integer :: nt             ! # timesteps and current timestep
   integer :: rk_stages      ! # Runge-Kutta stages
-  integer :: db_level       ! printed o/p debug level
   integer :: curve_type     !< type of space-filling curve, 0=z-curve, 1=Hilbert-curve
 
   integer :: ifile_cpu    ! O/P stream
