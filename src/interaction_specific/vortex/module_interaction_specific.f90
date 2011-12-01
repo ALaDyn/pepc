@@ -305,18 +305,5 @@ module module_interaction_specific
         res1%af   = res1%af   + res2%af
       end subroutine
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !>
-      !> clears results datatype
-      !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      elemental subroutine results_clear(res)
-        implicit none
-        type(t_particle_results), intent(out) :: res
-
-        res = EMPTY_PARTICLE_RESULTS
-
-      end subroutine
-
 
 end module module_interaction_specific

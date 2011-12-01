@@ -89,10 +89,11 @@ module module_calc_force
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         elemental subroutine particleresults_clear(particle)
           use treetypes
+          use module_interaction_specific
           implicit none
           type(t_particle), intent(inout) :: particle
 
-          call results_clear(particle%results)
+          particle%results = EMPTY_PARTICLE_RESULTS
 
         end subroutine
 

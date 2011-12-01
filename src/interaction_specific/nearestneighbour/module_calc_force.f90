@@ -93,7 +93,11 @@ module module_calc_force
         implicit none
         type(t_particle), intent(inout) :: particle
 
-        call results_clear(particle%results)
+        ! TODONN insert 50 local (or otherwise near) particles to avoid unnecessary fetches
+        particle%results%maxdist2        = huge(0._8)
+        particle%results%maxidx          = 1
+        particle%results%neighbour_nodes = 0
+        particle%results%dist2           = huge(0._8)
 
       end subroutine
 

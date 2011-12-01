@@ -85,7 +85,7 @@ module module_calc_force
         implicit none
         type(t_particle), intent(inout) :: particle
 
-        call results_clear(particle%results)
+        particle%results = EMPTY_PARTICLE_RESULTS
 
       end subroutine
 
