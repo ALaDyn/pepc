@@ -1,16 +1,17 @@
 module files
   implicit none
-  private
+
 
     public openfiles
     public closefiles
 
-
-
   contains
 
-
-
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>   Open plain text output files
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine openfiles
       use physvars
 
@@ -32,8 +33,11 @@ module files
     end subroutine openfiles
 
 
-
-
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>   Close plain text output files
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine closefiles
       use physvars
 
@@ -47,6 +51,102 @@ module files
       close(80)  ! initial particle data
 
     end subroutine closefiles
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>   Dump VTK or checkpoint
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine dump(i,simtime)
+
+        use physvars
+        implicit none
+        include 'mpif.h'
+
+        integer, intent(in) :: i
+        real, intent(in) :: simtime
+        integer :: p, fh, ierr, err, status(MPI_STATUS_SIZE)
+        integer(KIND=MPI_OFFSET_KIND) :: disp, header_disp=1024
+
+        character(50) :: cfile
+
+        if ((dump_time.ne.0).and.(mod(i,dump_time) == 0)) then
+
+            !TODO: call write_particles_to_vtk(i,simtime)
+
+        end if
+
+        if ((cp_time.ne.0).and.(mod(i,cp_time) == 0)) then
+            ! Open new file for i-th timestep
+            write(mpifile,'(a,i6.6,a)') "part_data/particle_", i,".mpi"
+            call MPI_FILE_OPEN(MPI_COMM_WORLD,mpifile,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
+            if (ierr .ne. MPI_SUCCESS) then
+                write(*,*) 'something is wrong here: file open failed',my_rank,ierr,cfile
+                call MPI_ABORT(MPI_COMM_WORLD,err,ierr)
+                stop
+            end if
+            ! Set file view to BYTE for header, only rank 0 writes it
+            call MPI_FILE_SET_VIEW(fh,0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
+            if (my_rank == 0) then
+                call MPI_FILE_WRITE(fh,n,1,MPI_INTEGER,status,ierr)    ! # particles
+                call MPI_FILE_WRITE(fh,dt,1,MPI_REAL,status,ierr)          ! timestep
+                call MPI_FILE_WRITE(fh,ts,1,MPI_REAL,status,ierr)          ! Starting time
+                call MPI_FILE_WRITE(fh,i,1,MPI_INTEGER,status,ierr)        ! Last successful timestep (number)
+                call MPI_FILE_WRITE(fh,te,1,MPI_REAL,status,ierr)          ! Final time
+                call MPI_FILE_WRITE(fh,nu,1,MPI_REAL,status,ierr)          ! Viscousity
+                call MPI_FILE_WRITE(fh,h,1,MPI_REAL,status,ierr)           ! Original particle distance
+                call MPI_FILE_WRITE(fh,m_h,1,MPI_REAL,status,ierr)         ! Remeshing distance
+                call MPI_FILE_WRITE(fh,rem_freq,1,MPI_INTEGER,status,ierr) ! Remeshing frequence
+                call MPI_FILE_WRITE(fh,thresh,1,MPI_REAL8,status,ierr)     ! threshold for pop. control
+                call MPI_FILE_WRITE(fh,eps,1,MPI_REAL,status,ierr)         ! core size
+                call MPI_FILE_GET_POSITION(fh, disp, ierr)
+                if (disp .gt. header_disp) then
+                    write(*,*) "header_size is too small: ", header_disp, "<", disp
+                    call MPI_ABORT(MPI_COMM_WORLD,err,ierr)
+                    stop
+                end if
+            end if
+
+            ! Redefine file view, now with our custom type
+            call MPI_FILE_SET_VIEW(fh, header_disp, MPI_TYPE_PARTICLE, MPI_TYPE_PARTICLE, 'native', MPI_INFO_NULL, ierr)
+            ! Write particle data
+            call MPI_FILE_WRITE_ORDERED(fh, vortex_particles(1:np), np, MPI_TYPE_PARTICLE, status, ierr)
+            ! Take care before closing
+            call MPI_FILE_SYNC(fh,ierr)
+            call MPI_FILE_CLOSE(fh,ierr)
+        end if
+
+    end subroutine dump
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>   Read in data from MPI checkpoint file
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine read_in_checkpoint
+
+        use physvars
+        implicit none
+        include 'mpif.h'
+
+        integer :: ierr, fh
+        integer(KIND=MPI_OFFSET_KIND) :: header_disp=1024
+        integer :: status(MPI_STATUS_SIZE)
+
+        ! Open new file for i-th timestep
+        call MPI_FILE_OPEN(MPI_COMM_WORLD,mpifile,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
+        ! Redefine file view, now with our custom type
+        call MPI_FILE_SET_VIEW(fh, header_disp, MPI_TYPE_PARTICLE, MPI_TYPE_PARTICLE, 'native', MPI_INFO_NULL, ierr)
+        ! Read particle data
+        call MPI_FILE_READ_ORDERED(fh, vortex_particles(1:np), np, MPI_TYPE_PARTICLE, status, ierr)
+        call MPI_FILE_CLOSE(fh,ierr)
+
+    end subroutine read_in_checkpoint
+
+
+
 
 
 end module files

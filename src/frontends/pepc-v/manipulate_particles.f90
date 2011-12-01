@@ -13,6 +13,7 @@ contains
     subroutine special_start()
 
         use physvars
+        use files
         implicit none
         include 'mpif.h'
 
@@ -20,6 +21,7 @@ contains
         real*8 :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3), thresh2
         real*8, dimension(3,3) :: D1, D2, D3, D4   !< rotation matrices for ring setup
         real*8, allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
+
 
         !     interface
         !         subroutine par_rand(res, iseed)
@@ -329,10 +331,17 @@ contains
 
             deallocate(xp,yp,zp,volp,wxp,wyp,wzp)
 
+        case(99) ! Read-in MPI checkpoints
+
+            call read_in_checkpoint()
+
         end select config
 
         call kick_out_particles()
         call reset_labels()
+
+        ! initial dump if we did not read in via MPI
+        if (ispecial .ne. 99) call dump(0,ts)
 
     end subroutine special_start
 

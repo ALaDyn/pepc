@@ -10,9 +10,9 @@
 
 program pepcv
 
-  use module_pepcfields
   use physvars
   use manipulate_particles
+  use module_pepcfields
   use timings
   use files
   use diagnostics
@@ -49,7 +49,7 @@ program pepcv
   if (my_rank==0) call stamp(15,1)
 
   ! Each CPU gets copy of initial data
-  call pepc_setup()
+  call pepc_setup(itime, trun)
 
   ! Allocate array space for tree
   call libpepc_setup(my_rank,n_cpu,db_level)
@@ -64,11 +64,10 @@ program pepcv
   cf_par%force_const = force_const
   cf_par%force_law   = 2
 
-  itime = 0
-  trun = ts
   ! Loop over all timesteps
   do while (itime < nt)
 
+     itime = itime + 1
      if (my_rank==0 ) write(*,'(a5,i8,a3,i8,a7,i8,a)') 'Step',itime,' of',nt,', using',n,' particles -------------'
      
      ! Runge-Kutta time integration
@@ -94,9 +93,11 @@ program pepcv
 
      end do
 
+     ! Some linear diagnostics
      call linear_diagnostics(itime,trun)
 
-     itime = itime + 1
+     ! dump, if needed
+     call dump(itime, trun)
 
   end do
 
