@@ -15,6 +15,7 @@ program pepcv
   use particle_pusher
   use timings
   use files
+  use diagnostics
   implicit none
   include 'mpif.h'
 
@@ -94,6 +95,8 @@ program pepcv
         trun  = trun  + dt/rk_stages
 
      end do
+
+     call linear_diagnostics(itime,trun)
 
      itime = itime + 1
 

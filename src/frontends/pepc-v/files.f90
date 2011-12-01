@@ -20,6 +20,7 @@ module files
          !  master diagnostics output
          open(15,file='run.out')
          open(70,file='domains.dat')
+         open(66,file='linear_diag.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
      endif
 
      if (db_level > 0) then
@@ -39,6 +40,7 @@ module files
       if (my_rank == 0) then
          close(15)
          close(70)
+         close(66)
       endif
 
       close(20)
