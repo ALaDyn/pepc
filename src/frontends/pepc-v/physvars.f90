@@ -16,14 +16,15 @@ module physvars
   real*8   :: kernel_c       ! mod. remeshing kernel parameter
   real*8   :: thresh         ! vorticity threshold: particles with lower vorticity mag. will be kicked out (mandatory to avoid zero abs_charge)
   real     :: nu             ! viscosity parameter
-  real     :: rmax    ! radius of torus segment
-  real     :: rl      ! temp radius of current circle
-  real     :: r_torus ! radius of torus
-  integer  :: nc      ! # circles per torus segment
-  integer  :: nphi    ! # torus segments
-  integer  :: ns      ! # particles per torus segment
-  real     :: g       ! # vorticity amplifier
-  real, dimension(3) :: torus_offset  ! shifts coords of both tori (one with +, one with -)
+  real     :: rmax    ! radius of torus segment (ispecial=1,2)
+  real     :: rl      ! temp radius of current circle (ispecial=1,2)
+  real     :: r_torus ! radius of torus (ispecial=1,2)
+  integer  :: nc      ! # circles per torus segment (ispecial=1,2)
+  integer  :: nphi    ! # torus segments (ispecial=1,2)
+  integer  :: ns      ! # particles per torus segment (ispecial=1,2)
+  integer  :: n_in    ! # particles on the sphere (ispecial=3)
+  real     :: g       ! # vorticity/smoothing amplifier (ispecial=1,2,3)
+  real, dimension(3) :: torus_offset  ! shifts coords of both tori, one with +, one with - (ispecial=1,2)
 
  ! tree stuff
   real :: theta       ! Clumping parameter
@@ -78,7 +79,7 @@ contains
         namelist /pepcdata/ np_mult, n, num_walk_threads, max_particles_per_thread, &
         mac, theta, eps, ispecial, weighted, curve_type, dt, ts, te, db_level, &
         h, m_h, nu, rem_freq, thresh, &
-        rmax, r_torus, nc, nphi, g, torus_offset, &
+        rmax, r_torus, nc, nphi, g, torus_offset, n_in, &
         dump_time, cp_time, input_itime
 
 
@@ -156,7 +157,14 @@ contains
                 n  = 2*Ns*Nphi
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
-            case(99)                          ! Setup MPI checpoint readin
+            case(3)                           ! Sphere
+
+                n = n_in
+                np = ceiling(1.0*n/n_cpu)
+                h = sqrt(4.0D00*pi/n)
+                eps = G*h
+
+            case(99)                          ! Setup MPI checkpoint readin
 
                 call setup_MPI_IO_readin(itime)
                 trun = ts
