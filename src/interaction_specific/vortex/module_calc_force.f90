@@ -87,13 +87,13 @@ module module_calc_force
         !> function cannot reside in module_interaction_specific that may not include treetypes
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        elemental subroutine particleresults_clear(particle)
+        subroutine particleresults_clear(particles, nparticles)
           use treetypes
-          use module_interaction_specific
           implicit none
-          type(t_particle), intent(inout) :: particle
+          type(t_particle), intent(inout) :: particles(nparticles)
+          integer, intent(in) :: nparticles
 
-          particle%results = EMPTY_PARTICLE_RESULTS
+          particles(1:nparticles)%results = EMPTY_PARTICLE_RESULTS
 
         end subroutine
 

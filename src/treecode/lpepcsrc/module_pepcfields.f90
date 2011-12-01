@@ -163,7 +163,7 @@ contains
 
         call timer_start(t_fields_passes)
 
-        call particleresults_clear(particles(:))
+        call particleresults_clear(particles(1:npp), npp)
 
         do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 
@@ -280,7 +280,7 @@ contains
 
         call timer_start(t_walk_grid)
 
-        call particleresults_clear(particles(:))
+        call particleresults_clear(particles(1:npp), npp)
 
         do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 

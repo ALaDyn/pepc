@@ -89,15 +89,20 @@ module module_calc_force
       !> function cannot reside in module_interaction_specific that may not include treetypes
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      elemental subroutine particleresults_clear(particle)
+      subroutine particleresults_clear(particles, nparticles)
+        use treetypes
         implicit none
-        type(t_particle), intent(inout) :: particle
+        type(t_particle), intent(inout) :: particles(nparticles)
+        integer, intent(in) :: nparticles
+        integer :: i
 
-        ! TODONN insert 50 local (or otherwise near) particles to avoid unnecessary fetches
-        particle%results%maxdist2        = huge(0._8)
-        particle%results%maxidx          = 1
-        particle%results%neighbour_nodes = 0
-        particle%results%dist2           = huge(0._8)
+        do i=1,nparticles
+            ! TODONN insert 50 local (or otherwise near) particles to avoid unnecessary fetches
+            particles(i)%results%maxdist2        = huge(0._8)
+            particles(i)%results%maxidx          = 1
+            particles(i)%results%neighbour_nodes = 0
+            particles(i)%results%dist2           = huge(0._8)
+        end do
 
       end subroutine
 
