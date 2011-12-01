@@ -79,7 +79,7 @@ program pepcv
         call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
         call timer_start(t_tot)
 
-        call pepc_fields(np, n, vortex_particles, particle_results, &
+        call pepc_fields(np, n, vortex_particles, &
                          np_mult, cf_par, itime, weighted, curve_type, 1, [0, 0, 0], .false., .false.)
         call push_rk2(stage)
 

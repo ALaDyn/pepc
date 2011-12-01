@@ -214,7 +214,6 @@ module module_interaction_specific
       elemental subroutine results_clear(res)
         implicit none
         type(t_particle_results), intent(out) :: res
-        real*8 :: realdummy
 
         res = EMPTY_PARTICLE_RESULTS
 

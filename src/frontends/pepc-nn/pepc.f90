@@ -22,7 +22,6 @@ program pepce
        t_calc_force_params
 
   use physvars, only: &
-       particle_results, &
        trun, &
        particles, &
        weighted, &
@@ -50,7 +49,7 @@ program pepce
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, ifile, provided, i
+  integer :: ierr, ifile, provided
   type(t_calc_force_params) ::cf_par
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
                                                                   !  must ensure that only the main thread makes MPI calls."
@@ -110,7 +109,7 @@ program pepce
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
      
-     call pepc_fields(np_local, npart_total, particles, particle_results, &
+     call pepc_fields(np_local, npart_total, particles, &
           np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .true., .true.)
      
      ! timings dump
@@ -119,7 +118,7 @@ program pepce
      call timings_LocalOutput(itime)
      call timings_GatherAndOutput(itime)
 
-!     call draw_neighbours(np_local, particles, particle_results, itime)
+     call draw_neighbours(np_local, particles, itime)
 
 
      ! do i=1, np_local
@@ -127,7 +126,7 @@ program pepce
      !   flush(6)
      ! end do
 
-     call validate_n_nearest_neighbour_list(np_local, particles, particle_results, &
+     call validate_n_nearest_neighbour_list(np_local, particles, &
        itime, num_neighbour_boxes, neighbour_boxes)
 
   end do

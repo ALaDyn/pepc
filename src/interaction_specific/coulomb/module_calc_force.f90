@@ -31,6 +31,7 @@ module module_calc_force
       public calc_force_per_interaction
       public calc_force_per_particle
       public mac
+      public particleresults_clear
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -52,15 +53,15 @@ module module_calc_force
       !> generic Multipole Acceptance Criterion
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      function mac(node, cf_par, dist2, boxlength2, results)
+      function mac(particle, node, cf_par, dist2, boxlength2)
         implicit none
 
         logical :: mac
         integer, intent(in) :: node
+        type(t_particle), intent(in) :: particle
         type(t_calc_force_params), intent(in) :: cf_par
         real*8, intent(in) :: dist2
         real*8, intent(in) :: boxlength2
-        type(t_particle_results), intent(in) :: results
 
         select case (cf_par%mac)
             case (0)
@@ -73,6 +74,22 @@ module module_calc_force
 
       end function
 
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> clears result in t_particle datatype - usually, this function does not need to be touched
+      !> due to dependency on treetypes and(!) on module_interaction_specific, the
+      !> function cannot reside in module_interaction_specific that may not include treetypes
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      elemental subroutine particleresults_clear(particle)
+        implicit none
+        type(t_particle), intent(inout) :: particle
+
+        call results_clear(particle%results)
+
+      end subroutine
+
+
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Force calculation wrapper.
@@ -81,14 +98,13 @@ module module_calc_force
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(particle, res, inode, delta, dist2, vbox, cf_par)
+        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox, cf_par)
           use module_interaction_specific
           use treevars
           implicit none
 
           integer, intent(in) :: inode
           type(t_particle), intent(inout) :: particle
-          type(t_particle_results), intent(inout) :: res
           real*8, intent(in) :: vbox(3), delta(3), dist2
           !> Force law struct has following content (defined in module treetypes)
           !> These need to be included/defined in call to fields from frontend
@@ -116,9 +132,9 @@ module module_calc_force
               phic = 0.
           end select
 
-          res%e         = res%e    + cf_par%force_const * exyz
-          res%pot       = res%pot  + cf_par%force_const * phic
-          particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
+          particle%results%e         = particle%results%e    + cf_par%force_const * exyz
+          particle%results%pot       = particle%results%pot  + cf_par%force_const * phic
+          particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
 
         end subroutine calc_force_per_interaction
 
@@ -129,7 +145,7 @@ module module_calc_force
         !> to be added once per particle
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_particle(particles, nparticles, res, cf_par)
+        subroutine calc_force_per_particle(particles, nparticles, cf_par)
           use module_interaction_specific
           use treevars, only : me
           use module_fmm_framework
@@ -137,9 +153,8 @@ module module_calc_force
           implicit none
 
           integer, intent(in) :: nparticles
-          type(t_particle), intent(in) :: particles(:)
+          type(t_particle), intent(inout) :: particles(:)
           type(t_calc_force_params), intent(in) :: cf_par
-          type(t_particle_results), intent(inout) :: res(:)
           real*8 :: ex_lattice, ey_lattice, ez_lattice, phi_lattice
           integer :: p
 
@@ -157,10 +172,10 @@ module module_calc_force
                 call fmm_sum_lattice_force(particles(p), ex_lattice, ey_lattice, ez_lattice, phi_lattice) !TODO: use coordinates from particles
 
                 potfarfield  = potfarfield  + phi_lattice * particles(p)%data%q
-                potnearfield = potnearfield + res(p)%pot  * particles(p)%data%q
+                potnearfield = potnearfield + particles(p)%results%pot  * particles(p)%data%q
 
-                res(p)%e     = res(p)%e     + cf_par%force_const * [ex_lattice, ey_lattice, ez_lattice]
-                res(p)%pot   = res(p)%pot   + cf_par%force_const * phi_lattice
+                particles(p)%results%e     = particles(p)%results%e     + cf_par%force_const * [ex_lattice, ey_lattice, ez_lattice]
+                particles(p)%results%pot   = particles(p)%results%pot   + cf_par%force_const * phi_lattice
              end do
 
           end if

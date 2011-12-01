@@ -7,7 +7,6 @@ module physvars
 
   real*8, allocatable :: u(:,:), m(:)
   type(t_particle), allocatable :: particles(:)
-  type(t_particle_results), allocatable :: particle_results(:)
 
   !  physics data
   integer :: ni, ne       !  # ions, electrons

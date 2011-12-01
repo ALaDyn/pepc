@@ -514,7 +514,6 @@ module tree_walk_pthreads
 
     integer :: num_particles
     type(t_particle), pointer, dimension(:) :: particle_data
-    type(t_particle_results), pointer, dimension(:) :: my_particle_results
 
     integer :: next_unassigned_particle !< index of next particle that has not been assigned to a work thread
 
@@ -529,7 +528,7 @@ module tree_walk_pthreads
   contains
 
 
-    subroutine tree_walk(nparticles,particles,particle_results,cf_par_,twalk,twalk_loc_,vbox_,tcomm)
+    subroutine tree_walk(nparticles,particles,cf_par_,twalk,twalk_loc_,vbox_,tcomm)
       use, intrinsic :: iso_c_binding
       use treetypes
       use tree_utils
@@ -542,7 +541,6 @@ module tree_walk_pthreads
       type(t_calc_force_params), intent(in) :: cf_par_
       integer, intent(in) :: nparticles
       type(t_particle), target, intent(in) :: particles(:)
-      type(t_particle_results), target, intent(inout) :: particle_results(:)
       real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
       real*8, target, intent(inout) :: twalk, twalk_loc_
       real*8, target, intent(out), dimension(3) :: tcomm
@@ -553,7 +551,6 @@ module tree_walk_pthreads
 
       num_particles = nparticles
       particle_data => particles
-      my_particle_results => particle_results
       ! box shift vector
       vbox = vbox_
       ! force calculation parameters
@@ -722,13 +719,14 @@ module tree_walk_pthreads
       use tree_walk_pthreads_commutils
       use tree_walk_communicator
       use pthreads_stuff
+      use module_calc_force
       implicit none
       include 'mpif.h'
       type(c_ptr) :: walk_worker_thread
       type(c_ptr), value :: arg
 
       integer, dimension(:), allocatable :: thread_particle_indices
-      type(t_particle_results), dimension(:), allocatable :: thread_particle_results
+      type(t_particle), dimension(:), allocatable :: thread_particle_data
       integer*8, dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
       type(t_defer_list_entry), dimension(:,:), allocatable :: defer_list
       integer, dimension(:), allocatable :: defer_list_entries
@@ -757,14 +755,14 @@ module tree_walk_pthreads
       if (my_max_particles_per_thread > 0) then
 
           allocate(thread_particle_indices(my_max_particles_per_thread), &
-                    thread_particle_results(my_max_particles_per_thread), &
+                       thread_particle_data(my_max_particles_per_thread), &
                          defer_list_entries(my_max_particles_per_thread), &
                              partner_leaves(my_max_particles_per_thread))
           allocate(defer_list(0:defer_list_length-1,my_max_particles_per_thread))
 
           ! every particle will start at the root node (one entry per todo_list, no particle is finished)
           thread_particle_indices(:) = -1 ! no particles assigned to this thread
-          call results_clear(thread_particle_results(:))
+          call particleresults_clear(thread_particle_data(:))
           defer_list_entries         =  1 ! one entry in defer_list:
           defer_list(0,:)            =  t_defer_list_entry(1, 1_8) !     start at root node (addr, and key)
           partner_leaves             =  0 ! no interactions yet
@@ -798,8 +796,7 @@ module tree_walk_pthreads
                   endif
                 endif
 
-                if (walk_single_particle(i, particle_data(thread_particle_indices(i)), thread_particle_results(i), &
-                                         defer_list, defer_list_entries(i), &
+                if (walk_single_particle(i, thread_particle_data(i), defer_list, defer_list_entries(i), &
                                          my_max_particles_per_thread, partner_leaves(i), my_threaddata)) then
                   ! this particle`s walk has finished
     !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", thread_particle_indices(i), " has finished"
@@ -813,11 +810,12 @@ module tree_walk_pthreads
                   endif
 
                   ! copy forces and potentials to thread-global array
-                  call results_add(my_particle_results(thread_particle_indices(i)), thread_particle_results(i) )
+                  call results_add(particle_data(thread_particle_indices(i))%results, thread_particle_data(i)%results )
+                  !TODO: don't we have to copy %work from thread_particle_data to particle_data
 
                   !remove entries from defer_list
                   thread_particle_indices(i) = -1
-                  call results_clear(thread_particle_results(i))
+                  call results_clear(thread_particle_data(i)%results)
                   defer_list_entries(i)      =  1
                   defer_list(0,i)            =  t_defer_list_entry(1, 1_8)
                   partner_leaves(i)          =  0
@@ -833,7 +831,7 @@ module tree_walk_pthreads
 
           end do
 
-          deallocate(thread_particle_indices, thread_particle_results, defer_list_entries, partner_leaves)
+          deallocate(thread_particle_indices, thread_particle_data, defer_list_entries, partner_leaves)
           deallocate(defer_list)
 
       endif
@@ -863,7 +861,7 @@ module tree_walk_pthreads
 
 
 
-   function walk_single_particle(myidx, particle, results, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
+   function walk_single_particle(myidx, particle, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
       use tree_walk_pthreads_commutils
       use module_htable
       use module_calc_force
@@ -871,7 +869,6 @@ module tree_walk_pthreads
       implicit none
       integer, intent(in) :: myidx, listlengths
       type(t_particle), intent(inout) :: particle
-      type(t_particle_results), intent(inout) :: results
       integer*8 :: todo_list(0:todo_list_length-1)
       integer*8, intent(inout) :: partner_leaves
       type(t_defer_list_entry), intent(inout) :: defer_list(0:defer_list_length-1,1:listlengths)
@@ -911,7 +908,7 @@ module tree_walk_pthreads
 
           dist2 = DOT_PRODUCT(delta, delta)
 
-          mac_ok = mac(walk_node, cf_par, dist2, boxlength2(walk_level), results)
+          mac_ok = mac(particle, walk_node, cf_par, dist2, boxlength2(walk_level))
 
           num_mac_evaluations = num_mac_evaluations + 1
 
@@ -937,7 +934,7 @@ module tree_walk_pthreads
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell if it does not lie outside the cutoff box
                   if (all(abs(delta) < cf_par%spatial_interaction_cutoff)) then
-                      call calc_force_per_interaction(particle, results, walk_node, delta, dist2, vbox, cf_par)
+                      call calc_force_per_interaction(particle, walk_node, delta, dist2, vbox, cf_par)
 
                       num_interactions = num_interactions + 1
                   endif

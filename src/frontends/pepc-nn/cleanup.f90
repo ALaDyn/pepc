@@ -17,6 +17,6 @@ subroutine cleanup(my_rank_l,n_cpu_l)
  
   ! particle array deallocation in physvars
 
-  deallocate ( particles, particle_results )
+  deallocate ( particles )
 
 end subroutine cleanup

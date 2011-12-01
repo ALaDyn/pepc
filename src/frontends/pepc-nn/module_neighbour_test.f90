@@ -53,7 +53,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-  subroutine validate_n_nearest_neighbour_list(np_local, particles, particle_results, &
+  subroutine validate_n_nearest_neighbour_list(np_local, particles, &
        itime, num_neighbour_boxes, neighbour_boxes)
 
     use omp_lib
@@ -71,7 +71,6 @@ contains
          my_rank
     
     use module_htable, only: & 
-         htable, &
          key2addr
     
     use module_spacefilling, only: &
@@ -84,8 +83,7 @@ contains
 
     
     integer, intent(in) :: np_local    !< # particles on this CPU
-    type(t_particle), allocatable, intent(in) :: particles(:)
-    type(t_particle_results), intent(in), allocatable :: particle_results(:)
+    type(t_particle), intent(in) :: particles(:)
     integer, intent(in) :: itime  ! timestep
     integer, intent(in) :: num_neighbour_boxes !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
     integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
@@ -375,7 +373,7 @@ contains
     do local_particle_index = 1, np_local
        do index_in_result_neighbour_list = 1, num_neighbour_particles
 
-          actual_node = particle_results(local_particle_index)%neighbour_nodes(index_in_result_neighbour_list)
+          actual_node = particles(local_particle_index)%results%neighbour_nodes(index_in_result_neighbour_list)
           node_key = coord_to_key_lastlevel(tree_nodes(actual_node)%coc(1), tree_nodes(actual_node)%coc(2), tree_nodes(actual_node)%coc(3))
 
           found = .false.
@@ -442,7 +440,7 @@ contains
 ! ======================
 
 
-  subroutine draw_neighbours(np_local, particles, particle_results, itime)
+  subroutine draw_neighbours(np_local, particles, itime)
     
     use treetypes
     
@@ -461,8 +459,7 @@ contains
     
     
     integer, intent(in) :: np_local    !< # particles on this CPU
-    type(t_particle), allocatable, intent(in) :: particles(:)
-    type(t_particle_results), intent(in), allocatable :: particle_results(:)
+    type(t_particle), intent(in) :: particles(:)
     integer, intent(in) :: itime  ! timestep
     
     character(30) :: cfile
@@ -527,7 +524,7 @@ contains
        ! print smoothing-length circle
        write (60, '(a)') 'set color black'
        write (60, '(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1), particles(local_particle_index)%x(2)
-       write (60, '(a,f13.4,a)') 'circle ', sqrt(particle_results(local_particle_index)%maxdist2), ' fill lightgray'
+       write (60, '(a,f13.4,a)') 'circle ', sqrt(particles(local_particle_index)%results%maxdist2), ' fill lightgray'
 
        ! include files with local particles from all domains
        do actual_pe =0, n_cpu-1
@@ -536,7 +533,7 @@ contains
 
        ! overplot neighbours with a black circle
        do actual_neighbour = 1, num_neighbour_particles
-          actual_node = particle_results(local_particle_index)%neighbour_nodes(actual_neighbour)
+          actual_node = particles(local_particle_index)%results%neighbour_nodes(actual_neighbour)
           
           write (60, '(a)') 'set color black'
           write (60, '(a,2f13.4)') 'amove ', tree_nodes(actual_node)%coc(1), tree_nodes(actual_node)%coc(2)

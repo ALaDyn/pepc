@@ -3,7 +3,6 @@ module physvars
   use treetypes
 
   type(t_particle), allocatable :: vortex_particles(:)
-  type(t_particle_results), allocatable :: particle_results(:)
 
   real*8, parameter :: pi=3.141592654
     

@@ -90,7 +90,7 @@ program pepcmini
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
 
-    call pepc_fields(np_local, npart_total, particles, particle_results, &
+    call pepc_fields(np_local, npart_total, particles, &
         np_mult, cf_par, itime, weighted, curve_type, num_neighbour_boxes, neighbour_boxes, .false., .false.)
 
      ! Integrator

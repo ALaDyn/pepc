@@ -370,7 +370,7 @@ module module_tree_domains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
-                             particles, res)
+                             particles)
         use module_interaction_specific
         use treevars, only : num_pe, status, npp
         use treetypes
@@ -381,28 +381,19 @@ module module_tree_domains
         integer, intent(in) :: indxl(nppm_ori),irnkl(nppm_ori)
         integer, intent(in) :: islen(num_pe),irlen(num_pe)
         integer, intent(in) :: fposts(num_pe+1),gposts(num_pe+1)
-        type(t_particle_results), intent(inout), allocatable :: res(:)
         type(t_particle),         intent(inout), allocatable :: particles(:)
 
         integer :: i, ierr
 
-        type (t_particle_results) :: get_res(npold),  ship_res(npnew)
         type (t_particle)         :: get_parts(npold), ship_parts(npnew)
 
         call status('RESTORE DOMAINS')
 
         do i=1,npnew
-          ship_res(i)   = res(indxl(i))
           ship_parts(i) = particles(indxl(i))
         enddo
 
-        deallocate(res)       ! had size npnew
         deallocate(particles) ! had size npnew
-
-        ! perform permute
-        call MPI_alltoallv(  ship_res, islen, fposts, MPI_TYPE_particle_results, &
-              get_res, irlen, gposts, MPI_TYPE_particle_results, &
-              MPI_COMM_WORLD,ierr )
 
         ! perform permute
         call MPI_alltoallv(  ship_parts, islen, fposts, MPI_TYPE_particle, &
@@ -410,12 +401,10 @@ module module_tree_domains
               MPI_COMM_WORLD,ierr )
 
         allocate(particles(npold))
-        allocate(res(npold))
         npp = npold
 
         do i=1,npold
             particles(irnkl(i)) = get_parts(i)
-            res(irnkl(i))       = get_res(i)
         enddo
 
     end subroutine restore

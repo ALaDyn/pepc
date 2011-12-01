@@ -28,7 +28,7 @@ module particle_pusher
 
       ! unconstrained motion by default (scheme=1)
       do p = p_start, p_finish
-         u(1:3,p) = u(1:3,p) + delta_t * particles(p)%data%q * particle_Results(p)%e(1:3) / m(p)
+         u(1:3,p) = u(1:3,p) + delta_t * particles(p)%data%q * particles(p)%results%e(1:3) / m(p)
       end do
 
     end subroutine velocities

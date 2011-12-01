@@ -38,7 +38,7 @@ contains
     !> Calculate fields and potential for supplied particles, work is taken from t_particle array
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_fields(np_local, npart_total, particles, particle_results, &
+    subroutine pepc_fields(np_local, npart_total, particles, &
         np_mult_, cf_par, itime, weighted, curve_type, num_neighbours, neighbours, no_dealloc, no_restore)
 
         use treevars
@@ -59,7 +59,6 @@ contains
         integer, intent(inout) :: np_local    !< # particles on this CPU
         integer, intent(in) :: npart_total !< total # simulation particles
         type(t_particle), allocatable, intent(inout) :: particles(:)
-        type(t_particle_results), intent(inout), allocatable :: particle_results(:)
         real, intent(in) :: np_mult_
         type(t_calc_force_params), intent(in) :: cf_par
         integer, intent(in) :: itime  ! timestep
@@ -91,8 +90,6 @@ contains
 
         call timer_start(t_all)
 
-        if (allocated(particle_results)) deallocate(particle_results)
-
         ! workload per particle must be nonzero
         do i=1,np_local
           particles(i)%work = max(particles(i)%work, 1.)
@@ -100,14 +97,13 @@ contains
 
         call timer_start(t_fields_tree)
 
-        !TODO: make adjsutable by user or find a good estimation. Additional Question: Does this value have to be globally constant?
+        !TODO: make adjustable by user or find a good estimation. Additional Question: Does this value have to be globally constant?
         nppmax = int(1.25 * max(npart/num_pe,1000)) ! allow 25% fluctuation around average particle number per PE in sorting library for load balancing
 
         allocate(indxl(nppmax),irnkl(nppmax))
         ! Domain decomposition: allocate particle keys to PEs
         call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, weighted, curve_type, neighbour_pe_particles)
         call allocate_tree(cf_par%theta)
-        allocate(particle_results(npp))
 
         ! build local part of tree
         call timer_start(t_local)
@@ -167,14 +163,14 @@ contains
 
         call timer_start(t_fields_passes)
 
-        call results_clear(particle_results(:))
+        call particleresults_clear(particles(:))
 
         do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 
             vbox = lattice_vect(neighbours(:,ibox))
 
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
-            call tree_walk(npp,particles,particle_results,cf_par,ttrav,ttrav_loc, vbox, tcomm)
+            call tree_walk(npp,particles,cf_par,ttrav,ttrav_loc, vbox, tcomm)
 
             call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
             call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
@@ -188,7 +184,7 @@ contains
         call timer_start(t_lattice)
         ! add lattice contribution and other per-particle-forces
         ! TODO: do not call calc_force_per_particle here!
-        call calc_force_per_particle(particles, npp, particle_results, cf_par)
+        call calc_force_per_particle(particles, npp, cf_par)
         call timer_stop(t_lattice)
 
         ! restore initial particle order specified by calling routine to reassign computed forces
@@ -201,7 +197,7 @@ contains
           ! we have to inform the calling routine, that the particle number has changed and all fields have been reallocated
           np_local = npnew ! is equal to npp
         else
-          call restore(npnew,npold,nppmax,irnkl,indxl,irlen,islen,gposts,fposts, particles, particle_results)
+          call restore(npnew,npold,nppmax,irnkl,indxl,irlen,islen,gposts,fposts, particles)
         endif
 
         call timer_stop(t_restore)
@@ -252,7 +248,7 @@ contains
     !> the coordinates should overlap with the local tree(!) domain
     !> TODO: provide function to prepare such a grid, take care whether no_backsort=.true./.false.
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_grid_fields(npoints_local, particles, particle_results, cf_par, num_neighbours, neighbours)
+    subroutine pepc_grid_fields(npoints_local, particles, cf_par, num_neighbours, neighbours)
 
         use treevars
         use module_interaction_specific
@@ -271,7 +267,6 @@ contains
 
         integer, intent(in) :: npoints_local    !< # points on this CPU
         type(t_particle), intent(inout) :: particles(:)
-        type(t_particle_results), intent(inout) :: particle_results(:)
         type(t_calc_force_params), intent(in) :: cf_par
         integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
         integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
@@ -285,14 +280,14 @@ contains
 
         call timer_start(t_walk_grid)
 
-        call results_clear(particle_results(:))
+        call particleresults_clear(particles(:))
 
         do ibox = 1,num_neighbours ! sum over all boxes within ws=1
 
             vbox = lattice_vect(neighbours(:,ibox))
 
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
-            call tree_walk(npoints_local,particles,particle_results,cf_par,ttrav,ttrav_loc, vbox, tcomm)
+            call tree_walk(npoints_local,particles,cf_par,ttrav,ttrav_loc, vbox, tcomm)
 
             call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
             call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
@@ -308,7 +303,7 @@ contains
         call timer_start(t_lattice_grid)
         ! add lattice contribution and other per-particle-forces
         ! TODO: do not call calc_force_per_particle here!
-        call calc_force_per_particle(particles, npp, particle_results, cf_par)
+        call calc_force_per_particle(particles, npp, cf_par)
         call timer_stop(t_lattice_grid)
 
         call status('GRID FIELDS DONE')

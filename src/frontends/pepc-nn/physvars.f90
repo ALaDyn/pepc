@@ -1,11 +1,9 @@
 module physvars
   use treetypes
-  use module_interaction_specific, only : t_particle_results
 
   real, parameter :: pi=3.141592654
 
   type(t_particle), allocatable :: particles(:)
-  type(t_particle_results), allocatable :: particle_results(:)
 
   !  physics data
   integer :: ni, ne       !  # ions, electrons

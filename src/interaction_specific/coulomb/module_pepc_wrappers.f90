@@ -7,7 +7,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pepc_wrappers
      use treetypes, only : t_particle, t_calc_force_params
-     use module_interaction_specific, only : t_particle_results, t_particle_data
+     use module_interaction_specific, only : t_particle_data, EMPTY_PARTICLE_RESULTS
      implicit none
      private
 
@@ -93,13 +93,8 @@ module module_pepc_wrappers
 
         integer :: i
 
-        type(t_particle_results), dimension(:), allocatable :: particle_results
-
         if (allocated(particles))        deallocate(particles)
-        if (allocated(particle_results)) deallocate(particle_results)
-
         allocate(particles(1:np_local))
-        allocate(particle_results(1:np_local))
 
         if (force_debug) then
             write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
@@ -114,18 +109,19 @@ module module_pepc_wrappers
                                                            -1_8,       &  ! key - will be assigned later
                                                      p_label(i),       &  ! particle label for tracking purposes
                                                              me,       &  ! particle owner
-                                         t_particle_data( p_q(i) )  )     ! charge etc
+                                       t_particle_data( p_q(i)),       &  ! charge etc
+                                       EMPTY_PARTICLE_RESULTS )
         end do
 
-        call pepc_fields(np_local, npart_total, particles, particle_results, &
+        call pepc_fields(np_local, npart_total, particles, &
                              np_mult_, cf_par, itime, weighted, curve_type, num_neighbours, neighbours, no_dealloc, no_restore)
 
         ! read data from particle_coordinates, particle_results, particle_properties
         do i=1,np_local
-          p_ex(i)  = particle_results(i)%e(1)
-          p_ey(i)  = particle_results(i)%e(2)
-          p_ez(i)  = particle_results(i)%e(3)
-          p_pot(i) = particle_results(i)%pot
+          p_ex(i)  = particles(i)%results%e(1)
+          p_ey(i)  = particles(i)%results%e(2)
+          p_ez(i)  = particles(i)%results%e(3)
+          p_pot(i) = particles(i)%results%pot
           p_w(i)   =  particles(i)%work
         end do
 
@@ -159,11 +155,10 @@ module module_pepc_wrappers
       integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
 
       type(t_particle),         dimension(:), allocatable :: grid_particles
-      type(t_particle_results), dimension(:), allocatable :: grid_particle_results
 
       integer :: i
 
-      allocate(grid_particles(ngp), grid_particle_results(ngp))
+      allocate(grid_particles(ngp))
 
       do i=1,ngp
         grid_particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)],       &  ! position
@@ -171,20 +166,21 @@ module module_pepc_wrappers
                                                             -1_8,       &  ! key - will be assigned later
                                                       p_label(i),       &  ! particle label for tracking purposes
                                                               me,       &  ! particle owner
-                                          t_particle_data( 0.0 )  )        ! charge etc
+                                          t_particle_data( 0.0 ),       &  ! charge etc
+                                       EMPTY_PARTICLE_RESULTS )
       end do
 
 
-      call pepc_grid_fields(ngp, grid_particles, grid_particle_results, cf_par, num_neighbour_boxes, neighbour_boxes)
+      call pepc_grid_fields(ngp, grid_particles, cf_par, num_neighbour_boxes, neighbour_boxes)
 
         do i=1,ngp
-          p_ex(i)  = grid_particle_results(i)%e(1)
-          p_ey(i)  = grid_particle_results(i)%e(2)
-          p_ez(i)  = grid_particle_results(i)%e(3)
-          p_pot(i) = grid_particle_results(i)%pot
+          p_ex(i)  = grid_particles(i)%results%e(1)
+          p_ey(i)  = grid_particles(i)%results%e(2)
+          p_ez(i)  = grid_particles(i)%results%e(3)
+          p_pot(i) = grid_particles(i)%results%pot
         end do
 
-      deallocate(grid_particles, grid_particle_results)
+      deallocate(grid_particles)
 
     end subroutine
 

@@ -176,10 +176,10 @@ module module_interaction_specific
         type(t_particle_results), intent(out) :: res
         real*8 :: realdummy
         ! TODONN insert 50 local (or otherwise near) particles to avoid unnecessary fetches
-        res%maxdist2        = huge(realdummy)
+        res%maxdist2        = 0.1!huge(realdummy)
         res%maxidx          = 1
         res%neighbour_nodes = 0
-        res%dist2           = huge(realdummy)
+        res%dist2           = res%maxdist2!huge(realdummy)
 
       end subroutine
 

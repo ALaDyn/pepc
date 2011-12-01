@@ -30,6 +30,7 @@ module module_calc_force
       public calc_force_per_interaction
       public calc_force_per_particle
       public mac
+      public particleresults_clear
       private calc_2nd_algebraic_condensed
       !private calc_2nd_algebraic_decomposed
       !private calc_6th_algebraic_decomposed
@@ -57,7 +58,7 @@ module module_calc_force
         !> generic Multipole Acceptance Criterion
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function mac(node, cf_par, dist2, boxlength2, results)
+        function mac(particle, node, cf_par, dist2, boxlength2)
             implicit none
 
             logical :: mac
@@ -65,7 +66,7 @@ module module_calc_force
             type(t_calc_force_params), intent(in) :: cf_par
             real*8, intent(in) :: dist2
             real*8, intent(in) :: boxlength2
-            type(t_particle_results), intent(in) :: results
+            type(t_particle), intent(in) :: particle
 
             select case (cf_par%mac)
                 case (0)
@@ -78,6 +79,21 @@ module module_calc_force
 
         end function
 
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> clears result in t_particle datatype - usually, this function does not need to be touched
+        !> due to dependency on treetypes and(!) on module_interaction_specific, the
+        !> function cannot reside in module_interaction_specific that may not include treetypes
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        elemental subroutine particleresults_clear(particle)
+          implicit none
+          type(t_particle), intent(inout) :: particle
+
+          call results_clear(particle%results)
+
+        end subroutine
+
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
@@ -87,14 +103,13 @@ module module_calc_force
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(particle, res, inode, delta, dist2, vbox, cf_par)
+        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox, cf_par)
           use treetypes
           use module_interaction_specific
           implicit none
 
           integer, intent(in) :: inode
           type(t_particle), intent(inout) :: particle
-          type(t_particle_results), intent(inout) :: res
           real*8, intent(in) :: vbox(3), delta(3), dist2
           !> Force law struct has following content (defined in module treetypes)
           !> These need to be included/defined in call to fields from frontend
@@ -125,8 +140,8 @@ module module_calc_force
           end select
 
           ! TODO: factor out multiplication of force_const, does not depend on actual interaction-pair
-          res%u(1:3)   = res%u(1:3)     - cf_par%force_const * u(1:3)
-          res%af(1:3)   = res%af(1:3)   + cf_par%force_const * af(1:3)
+          particle%results%u(1:3)    = particle%results%u(1:3)     - cf_par%force_const * u(1:3)
+          particle%results%af(1:3)   = particle%results%af(1:3)    + cf_par%force_const * af(1:3)
 
           particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
 
@@ -139,14 +154,13 @@ module module_calc_force
         !> to be added once per particle (not required in vortex bubu, yet)
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_particle(particles, nparticles, res, cf_par)
+        subroutine calc_force_per_particle(particles, nparticles, cf_par)
           use module_interaction_specific
           implicit none
 
           integer, intent(in) :: nparticles
-          type(t_particle), intent(in) :: particles(:)
+          type(t_particle), intent(inout) :: particles(:)
           type(t_calc_force_params), intent(in) :: cf_par
-          type(t_particle_results), intent(inout) :: res(:)
 
         end subroutine calc_force_per_particle
 

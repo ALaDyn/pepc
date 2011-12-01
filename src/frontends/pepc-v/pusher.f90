@@ -22,14 +22,14 @@ module particle_pusher
 
         if (stage == 1) then
             ! Euler predictor
-            vortex_particles(i)%data%u_rk(1:3)  = particle_results(i)%u(1:3)
-            vortex_particles(i)%data%af_rk(1:3) = particle_results(i)%af(1:3)
-            vortex_particles(i)%x(1:3)     = vortex_particles(i)%x(1:3) + dt*particle_results(i)%u(1:3)
-            vortex_particles(i)%data%alpha(1:3) = vortex_particles(i)%data%alpha(1:3) + dt*particle_results(i)%af(1:3)
+            vortex_particles(i)%data%u_rk(1:3)  = vortex_particles(i)%results%u(1:3)
+            vortex_particles(i)%data%af_rk(1:3) = vortex_particles(i)%results%af(1:3)
+            vortex_particles(i)%x(1:3)     = vortex_particles(i)%x(1:3) + dt*vortex_particles(i)%results%u(1:3)
+            vortex_particles(i)%data%alpha(1:3) = vortex_particles(i)%data%alpha(1:3) + dt*vortex_particles(i)%results%af(1:3)
         else
             ! Trapezoidal corrector
-            vortex_particles(i)%x(1:3) = vortex_particles(i)%x(1:3)-dt*vortex_particles(i)%data%u_rk(1:3) + 0.5*dt*(vortex_particles(i)%data%u_rk(1:3)+particle_results(i)%u(1:3))
-            vortex_particles(i)%data%alpha(1:3) = vortex_particles(i)%data%alpha(1:3)-dt*vortex_particles(i)%data%af_rk(1:3) + 0.5*dt*(vortex_particles(i)%data%af_rk(1:3)+particle_results(i)%af(1:3))
+            vortex_particles(i)%x(1:3) = vortex_particles(i)%x(1:3)-dt*vortex_particles(i)%data%u_rk(1:3) + 0.5*dt*(vortex_particles(i)%data%u_rk(1:3)+vortex_particles(i)%results%u(1:3))
+            vortex_particles(i)%data%alpha(1:3) = vortex_particles(i)%data%alpha(1:3)-dt*vortex_particles(i)%data%af_rk(1:3) + 0.5*dt*(vortex_particles(i)%data%af_rk(1:3)+vortex_particles(i)%results%af(1:3))
         end if
 
       end do

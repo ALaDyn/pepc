@@ -48,10 +48,10 @@ subroutine error_norms(itime)
                uy_ori(i) = 1.0/(8.0*r1)*vortex_particles(i)%x(1)
                uz_ori(i) = 0.
             end if
-            u_err_part_max = max(u_err_part_max,sqrt((ux_ori(i)-particle_results(i)%u(1))**2 + (uy_ori(i)-particle_results(i)%u(2))**2))
+            u_err_part_max = max(u_err_part_max,sqrt((ux_ori(i)-vortex_particles(i)%results%u(1))**2 + (uy_ori(i)-vortex_particles(i)%results%u(2))**2))
             u_max_part = max(u_max_part,sqrt(ux_ori(i)**2 + uy_ori(i)**2))
             u_err_rel_part = u_err_rel_part + ux_ori(i)**2 + uy_ori(i)**2
-            u_err_part = u_err_part + ((ux_ori(i)-particle_results(i)%u(1))**2 + (uy_ori(i)-particle_results(i)%u(2))**2)
+            u_err_part = u_err_part + ((ux_ori(i)-vortex_particles(i)%results%u(1))**2 + (uy_ori(i)-vortex_particles(i)%results%u(2))**2)
          end if
       end if
 
@@ -64,10 +64,10 @@ subroutine error_norms(itime)
             uy_ori(i) = (0.1D01)/((0.24D02)*(r1**2))*(0.1D01-&
                  exp(-0.12D02*(r1**2)))*vortex_particles(i)%x(1)
             uz_ori(i) = 0.
-            u_err_part_max = max(u_err_part_max,sqrt((ux_ori(i)-particle_results(i)%u(1))**2 + (uy_ori(i)-particle_results(i)%u(2))**2))
+            u_err_part_max = max(u_err_part_max,sqrt((ux_ori(i)-vortex_particles(i)%results%u(1))**2 + (uy_ori(i)-vortex_particles(i)%results%u(2))**2))
             u_max_part = max(u_max_part,sqrt(ux_ori(i)**2 + uy_ori(i)**2))
             u_err_rel_part = u_err_rel_part + ux_ori(i)**2 + uy_ori(i)**2
-            u_err_part = u_err_part + ((ux_ori(i)-particle_results(i)%u(1))**2 + (uy_ori(i)-particle_results(i)%u(2))**2)
+            u_err_part = u_err_part + ((ux_ori(i)-vortex_particles(i)%results%u(1))**2 + (uy_ori(i)-vortex_particles(i)%results%u(2))**2)
          end if
       end if
 
