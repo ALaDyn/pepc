@@ -71,6 +71,7 @@ program pepce
   implicit none
   include 'mpif.h'
 
+  integer :: omp_thread_num
   integer :: ierr, ifile, provided
   type(t_calc_force_params) ::cf_par
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
@@ -91,13 +92,6 @@ program pepce
   ! Get the number of MPI tasks
   call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
 
-  ! Set the number of openmp threads.
-  ! Set this only, when compiling with openmp (with !$)
-  ! Set number of openmp threads to the same number as pthreads used in the walk
-  !$ call omp_set_num_threads(num_walk_threads)
-
-  ! Inform the user that openmp is used, and with how many threads
-  !$ if (my_rank .eq. 0) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
 
 
 
@@ -110,6 +104,22 @@ program pepce
 
   ! Each CPU gets copy of initial data
   call pepc_setup()
+
+
+  !$OMP PARALLEL PRIVATE(omp_thread_num)
+  ! Set the number of openmp threads.
+  ! Set this only, when compiling with openmp (with !$)
+  ! Set number of openmp threads to the same number as pthreads used in the walk
+  !$ call omp_set_num_threads(num_walk_threads)
+
+  !$ omp_thread_num = OMP_GET_THREAD_NUM()
+  
+  ! Inform the user that openmp is used, and with how many threads
+  !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
+  
+  !$OMP END PARALLEL
+
+
 
   ! Allocate array space for tree
   call libpepc_setup(my_rank,n_cpu,db_level)
