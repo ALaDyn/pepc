@@ -69,14 +69,12 @@ program pepcv
   ! Loop over all timesteps
   do while (itime < nt)
 
-     if (my_rank==0 ) then
-        write(*,'(a5,i8,a3,i8,a7,i8,a)') 'Step',itime,' of',nt,', using',n,' particles'
-     endif
+     if (my_rank==0 ) write(*,'(a5,i8,a3,i8,a7,i8,a)') 'Step',itime,' of',nt,', using',n,' particles -------------'
      
      ! Runge-Kutta time integration
      do stage = 1,rk_stages
 
-        if (my_rank == 0) write(*,*) 'Time:',trun,'/',te,'--------------------------------------'
+        if (my_rank == 0) write(*,*) 'Time:',trun,'/',te
 
         call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
         call timer_start(t_tot)

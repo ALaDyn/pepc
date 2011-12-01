@@ -12,7 +12,6 @@
 ! the first numbers should be 0.2853809, 0.2533582 and 0.2533582
 subroutine par_rand(res, iseed)
   
-  use physvars
   implicit none
 
   integer :: idum, idum2, iy, j, k

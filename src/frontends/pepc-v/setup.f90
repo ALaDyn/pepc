@@ -11,8 +11,8 @@
 
 
 subroutine pepc_setup()
+
   use physvars
-  use tree_utils
   use tree_walk_pthreads
   implicit none
   include 'mpif.h'
