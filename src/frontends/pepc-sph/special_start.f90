@@ -434,6 +434,29 @@ subroutine special_start(iconf)
               
      end do
 
+  case(9)
+
+     if (my_rank == 0) write(*,*) "Using special start... case 9 (fast homogeneous distribution with initial velocities set to 0)"
+
+     ! initialize random number generator with some arbitrary seed
+     call par_rand(par_rand_res, my_rank + 13)
+
+     do p = 1, (fances(my_rank) - fances(my_rank-1))
+           
+        call par_rand(par_rand_res)
+        xt = par_rand_res
+        call par_rand(par_rand_res)
+        yt = par_rand_res
+        call par_rand(par_rand_res)
+        zt = par_rand_res
+
+        particles(p)%x = [xt, yt, zt]
+        particles(p)%data%v = [0._8, 0._8, 0._8]
+        particles(p)%data%temperature = 1
+
+     end do
+
+
   end select config
 
   particles(1:nep)%data%q             = qe        ! plasma electrons
