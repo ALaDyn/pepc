@@ -85,11 +85,12 @@ end subroutine par_rand
 subroutine special_start()
 
      use physvars
+     use module_remesh
      implicit none
      include 'mpif.h'
 
      integer :: j, k, ind, ind0, i, m, nscan, ierr, l
-     real*8 :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3)
+     real*8 :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3), thresh2
      real*8, dimension(3,3) :: D1, D2, D3, D4   !< rotation matrices for ring setup
      real*8, allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
 
@@ -101,6 +102,7 @@ subroutine special_start()
 !     end interface
 
       ! Set up particle data
+
      config: select case(ispecial)
      case(1)                               ! Vortex ring setup, side-by-side
 
@@ -402,15 +404,8 @@ subroutine special_start()
 
   end select config
 
-  call MPI_ALLREDUCE(np,n,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
-
-  ! Define valid labels for all local particles
-  nscan = 0
-  call MPI_SCAN(np,nscan,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
-  nscan = nscan-np
-  do i=1,np
-     vortex_particles(i)%label = nscan+i
-  end do
+  call kick_out_particles()
+  call reset_labels()
 
 end subroutine special_start
 

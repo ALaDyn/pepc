@@ -13,7 +13,8 @@ module physvars
   real     :: eps            ! potential/force law cutoff
   real     :: h, m_h         ! initial particle distance and mesh width for remeshing
   integer  :: rem_freq       ! remeshing frequence
-  real     :: kernel_c       ! mod. remeshing kernel parameter
+  real*8   :: kernel_c       ! mod. remeshing kernel parameter
+  real*8   :: thresh         ! vorticity threshold: particles with lower vorticity mag. will be kicked out (mandatory to avoid zero abs_charge)
   real     :: nu             ! viscosity parameter
   real     :: rmax    ! radius of torus segment
   real     :: rl      ! temp radius of current circle

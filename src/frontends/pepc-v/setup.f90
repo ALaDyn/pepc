@@ -28,7 +28,7 @@ subroutine pepc_setup()
 
   namelist /pepcdata/ np_mult, n, num_walk_threads, max_particles_per_thread, &
        mac, theta, eps, ispecial, weighted, curve_type, dt, ts, te, db_level, &
-       h, m_h, nu, rem_freq, &
+       h, m_h, nu, rem_freq, thresh, &
        rmax, r_torus, nc, nphi, g, torus_offset
 
 
@@ -52,6 +52,7 @@ subroutine pepc_setup()
   h            = 0.
   m_h          = 0.
   rem_freq     = 0
+  thresh       = 0.
   rmax         = 0.
   r_torus      = 0.
   nc           = 0

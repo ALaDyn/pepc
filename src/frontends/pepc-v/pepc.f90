@@ -62,7 +62,7 @@ program pepcv
   cf_par%mac         = mac
   cf_par%eps         = eps
   cf_par%force_const = force_const
-  cf_par%force_law   = 3
+  cf_par%force_law   = 2
 
   itime = 0
   trun = ts
@@ -79,8 +79,8 @@ program pepcv
         call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
         call timer_start(t_tot)
 
-        call pepc_fields(np, n, vortex_particles, &
-                         np_mult, cf_par, itime, weighted, curve_type, 1, [0, 0, 0], .false., .false.)
+        call pepc_fields(np, n, vortex_particles, np_mult, cf_par, itime, weighted, curve_type, &
+                         1, [0, 0, 0], .false., .false.)
         call push_rk2(stage)
 
         call timer_stop(t_tot)   ! total loop time without diags

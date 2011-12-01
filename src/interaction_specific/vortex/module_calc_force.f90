@@ -6,7 +6,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 module module_calc_force
-     use treetypes
+
      implicit none
      save
      private
@@ -59,6 +59,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function mac(particle, node, cf_par, dist2, boxlength2)
+            use treetypes
             implicit none
 
             logical :: mac
@@ -87,6 +88,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         elemental subroutine particleresults_clear(particle)
+          use treetypes
           implicit none
           type(t_particle), intent(inout) :: particle
 
@@ -105,7 +107,6 @@ module module_calc_force
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox, cf_par)
           use treetypes
-          use module_interaction_specific
           implicit none
 
           integer, intent(in) :: inode
@@ -155,7 +156,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_particle(particles, nparticles, cf_par)
-          use module_interaction_specific
+          use treetypes
           implicit none
 
           integer, intent(in) :: nparticles
@@ -168,8 +169,7 @@ module module_calc_force
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates 3D 2nd order condensed algebraic kernel interaction
-        !> of particle p with tree node inode that is shifted by the lattice
-        !> vector vbox results are returned in u and af
+        !> of particle p with tree node inode, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -317,9 +317,9 @@ module module_calc_force
 
 
         function G_core(r,s,factor)
-            implicit none
+           implicit none
 
-            real*8 :: G_core
+           real*8 :: G_core
            real*8, intent(in) :: r,s,factor
 
            G_core = (r+factor*s)/((r+s)**factor)
@@ -330,8 +330,8 @@ module module_calc_force
         function G_decomp(r,s,tau)
            implicit none
 
-            real*8 :: G_decomp
-            real*8, intent(in) :: r,s,tau
+           real*8 :: G_decomp
+           real*8, intent(in) :: r,s,tau
 
            G_decomp = 1.0/((r+s)**tau)
 
@@ -339,7 +339,6 @@ module module_calc_force
 
 
         function cross_prod(vec_a, vec_b)
-
             implicit none
 
             real*8, dimension(3) :: cross_prod

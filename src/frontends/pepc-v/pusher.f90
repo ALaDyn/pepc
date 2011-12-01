@@ -15,6 +15,7 @@ module particle_pusher
     subroutine push_rk2(stage)
 
       use physvars
+      use module_remesh
       integer, intent(in) :: stage   ! In which RK stage are we?
       integer :: i
 
@@ -33,6 +34,8 @@ module particle_pusher
         end if
 
       end do
+
+      call kick_out_particles()
 
     end subroutine push_rk2
 
