@@ -45,8 +45,8 @@ contains
         !         end subroutine
         !     end interface
 
-         ! Set up particle data
 
+        ! Set up particle data
         config: select case(ispecial)
         case(1)                               ! Vortex ring setup, side-by-side
 
@@ -402,6 +402,8 @@ contains
         call kick_out_particles()
         call reset_labels()
 
+        vortex_particles(1:np)%work = 0.
+
         ! initial dump if we did not read in via MPI
         if (ispecial .ne. 99) call dump(0,ts)
 
@@ -424,7 +426,7 @@ contains
             ! Euler predictor
             vortex_particles(i)%data%u_rk(1:3)  = vortex_particles(i)%results%u(1:3)
             vortex_particles(i)%data%af_rk(1:3) = vortex_particles(i)%results%af(1:3)
-            vortex_particles(i)%x(1:3)     = vortex_particles(i)%x(1:3) + dt*vortex_particles(i)%results%u(1:3)
+            vortex_particles(i)%x(1:3) = vortex_particles(i)%x(1:3) + dt*vortex_particles(i)%results%u(1:3)
             vortex_particles(i)%data%alpha(1:3) = vortex_particles(i)%data%alpha(1:3) + dt*vortex_particles(i)%results%af(1:3)
         else
             ! Trapezoidal corrector

@@ -29,6 +29,7 @@ module treetypes
 
       !> Data structure for user-defined variables that are directly involved into the force calculation
       type t_calc_force_params
+        !TODO: make this eps2
         real    :: eps          = 0.0    !< short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
         real    :: force_const  = 1.0    !< force constant
         integer :: force_law    = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb

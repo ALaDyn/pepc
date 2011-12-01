@@ -50,6 +50,8 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
    
 - update info in pepc.f90 comment-headers in all frontends
 
+- change cf_par%eps to cf_par%eps2, do not have to compute power each time 
+
 
 Renaming-List (Please add any inconsistencies that you encounter)
 =================================================================

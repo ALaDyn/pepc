@@ -144,7 +144,6 @@ module module_calc_force
           ! TODO: factor out multiplication of force_const, does not depend on actual interaction-pair
           particle%results%u(1:3)    = particle%results%u(1:3)     - cf_par%force_const * u(1:3)
           particle%results%af(1:3)   = particle%results%af(1:3)    + cf_par%force_const * af(1:3)
-
           particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
 
         end subroutine calc_force_per_interaction
@@ -205,7 +204,7 @@ module module_calc_force
             dy = d(2)
             dz = d(3)
 
-            sig2 = cf_par%eps**2
+            sig2 = cf_par%eps**2 !TODO: precompute this
 
             vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
 

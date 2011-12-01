@@ -79,7 +79,8 @@ program pepcv
         call timer_start(t_tot)
 
         call pepc_fields(np, n, vortex_particles, np_mult, cf_par, itime, weighted, curve_type, &
-                         1, [0, 0, 0], .false., .false.)
+                         1, [0, 0, 0], .false., .true.)
+
         call push_rk2(stage)
 
         call timer_stop(t_tot)   ! total loop time without diags
