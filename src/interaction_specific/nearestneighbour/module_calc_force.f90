@@ -91,36 +91,51 @@ module module_calc_force
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine particleresults_clear(particles, nparticles)
         use treetypes
+        use module_htable
+        use treevars
+        use module_spacefilling
         implicit none
         type(t_particle), intent(inout) :: particles(nparticles)
         integer, intent(in) :: nparticles
-        integer :: i, j, tmp(1), counter
-        real*8 :: delta(3)
 
+        integer*8 :: key
+        integer :: addr, i
+        real*8, dimension(:), allocatable :: boxdiag2
+
+        allocate(boxdiag2(0:nlev))
+        boxdiag2(0) = (sqrt(3.)*boxsize)**2
+        do i=1,nlev
+           boxdiag2(i) =  boxdiag2(i-1)/4.
+        end do
+
+
+        ! for each particle, we traverse the tree upwards, until the current twig
+        ! contains more leaves than number of necessary neighbours - as a first guess for the
+        ! search radius, we use its diameter
         do i=1,nparticles
+            key = particles(i)%key
 
-            particles(i)%results%dist2(:)           = huge(0._8)
+            particles(i)%results%maxdist2 = huge(0._8)
             particles(i)%results%neighbour_nodes(:) = 0
+            particles(i)%results%maxidx             = 1
 
-            ! we insert (num_neighbour_particles) arbitrary local particles into the neighbour list to avoid unneccessary fetches during traversal
-            counter = 0
-            do j=1,nparticles
-              if (i.ne.j) then
-                counter = counter + 1
-                delta   = particles(i)%x - particles(j)%x
-                ! here, we use the fact, that for local particles their index in the particle list is identical to their leaf`s nodeindex
-                ! otherwise it should be particles(i)%results%neighbour_nodes(counter) = htable( key2addr(particles(j)%key) )%node
-                particles(i)%results%neighbour_nodes(counter) = j
-                particles(i)%results%dist2(counter)           = dot_product(delta, delta)
+            do while (key .ne. 0)
+              if (testaddr(key, addr)) then
+                if (htable(addr)%leaves > num_neighbour_particles) then
+                  ! this twig contains enough particles --> we use its diameter as search radius
+                  particles(i)%results%maxdist2 = boxdiag2(level_from_key(key))
+                  particles(i)%results%neighbour_nodes(:) = htable(addr)%node
 
-                if (counter >= num_neighbour_particles) exit ! we found enough NN-candidates
+                  exit ! from this loop
+                endif
               endif
+
+              key = ishft(key, -3)
             end do
 
-            tmp                           = maxloc(particles(i)%results%dist2(1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
-            particles(i)%results%maxidx   = tmp(1)
-            particles(i)%results%maxdist2 = particles(i)%results%dist2(particles(i)%results%maxidx)
+            particles(i)%results%dist2(:) = particles(i)%results%maxdist2
         end do
+
 
       end subroutine
 
