@@ -47,7 +47,8 @@ program pepce
        draw_neighbours
 
   use module_sph, only: &
-       sph_density
+       sph_density, &
+       update_particle_props
   
   use timings, only: &
        timer_start, &
@@ -78,6 +79,7 @@ program pepce
   integer :: ierr, ifile, provided
   type(t_calc_force_params) ::cf_par
   integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
+
                                                                   !  must ensure that only the main thread makes MPI calls."
   ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
   call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
@@ -169,8 +171,11 @@ program pepce
      call validate_n_nearest_neighbour_list(np_local, particles, &
           itime, num_neighbour_boxes, neighbour_boxes)
 
-     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
-     
+!     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+
+     call update_particle_props(np_local, particles)
+
+
   end do
 
   ! cleanup of lpepc static data

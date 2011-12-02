@@ -299,13 +299,6 @@ contains
     real*8 :: grad_kernel
     integer*8 :: actual_node
 
-  ! USE treevars, &
-  !      ONLY: &
-  !      tree_ux => ux, &    ! ux from treevars here known as tree_vx
-  !      tree_uy => uy, &
-  !      tree_uz => uz, &
-  !      temperature
-
     INTEGER :: actual_particle
     REAL*8 :: const
     REAL*8 :: T
@@ -491,6 +484,228 @@ contains
 !close(50)
     
   end subroutine sph_sum_force
+
+
+!   subroutine sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+
+!     use treetypes, only: &
+!          t_particle
+
+!     use treevars, only: &
+!          tree_nodes
+
+
+!     implicit none
+!     include 'mpif.h'
+
+    
+!     integer, intent(in) :: np_local    !< # particles on this CPU
+!     type(t_particle), intent(inout) :: particles(:)
+!     integer, intent(in) :: itime  ! timestep
+!     integer, intent(in) :: num_neighbour_boxes !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
+!     integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
+    
+!     integer :: ierr
+
+
+! !  subroutine sph_force(nppm_ori, ex_tmp, ey_tmp, ez_tmp, n_nn_tmp, nshortm, itime_tmp, periodic_x, periodic_y, periodic_z, &
+! !       boxlength_x, boxlength_y, boxlength_z, idim_tmp, max_npass_tmp, nshort_tmp, pstart_tmp, thermal_constant, art_vis_alpha, art_vis_beta!, temperature_change_tmp, kappa, sph_factor )
+
+
+! !    use treevars, &
+! !         ONLY: &
+! !         nlev, &
+! !         boxsize, &
+! !         xmin, ymin, zmin, &
+! !         ntwig, &
+! !         ntwigp, &
+! !         nleaf, &
+! !         x, &     ! \bug ab: for testing
+! !         xcoc     ! \bug ab: for testing
+
+
+!     implicit none
+!     include 'mpif.h'
+
+
+!     INTEGER, INTENT(in) :: n_nn_tmp
+!     INTEGER, INTENT(in) :: nshortm
+!     INTEGER, INTENT(in) :: itime_tmp
+!     LOGICAL, INTENT(in) :: periodic_x
+!     LOGICAL, INTENT(in) :: periodic_y
+!     LOGICAL, INTENT(in) :: periodic_z
+!     REAL*8, INTENT(in) :: boxlength_x
+!     REAL*8, INTENT(in) :: boxlength_y
+!     REAL*8, INTENT(in) :: boxlength_z
+!     INTEGER, INTENT(in) :: idim_tmp
+!     INTEGER, INTENT(in) :: max_npass_tmp
+!     INTEGER, INTENT(in), DIMENSION(max_npass_tmp) :: nshort_tmp
+!     INTEGER, INTENT(in), DIMENSION(max_npass_tmp) :: pstart_tmp
+!     REAL, INTENT(in) :: sph_factor
+    
+! !    INTEGER, INTENT(in) :: npshort                          !< number of particles in current chunk
+! !    INTEGER, DIMENSION(npshort), INTENT(in) :: pshort       !< array with particle indices
+! !    INTEGER, INTENT(in) :: pass
+!     INTEGER, INTENT(in) :: nppm_ori
+!     REAL*8, DIMENSION(nppm_ori), INTENT(inout) :: ex_tmp,ey_tmp,ez_tmp
+!     REAL*8, INTENT(in) :: thermal_constant
+!     REAL, INTENT(in) :: art_vis_alpha
+!     REAL, INTENT(in) :: art_vis_beta
+!     REAL, INTENT(in) :: kappa
+!     REAL*8, DIMENSION(nppm_ori), INTENT(out) :: temperature_change_tmp
+    
+!     INTEGER :: nps
+!     INTEGER :: ip1
+!     REAL :: eps
+!     INTEGER :: i
+!     INTEGER :: jpass
+!     REAL*8 :: ttrav_nn, tfetch_nn            ! timing for search_nn
+
+!     REAL*8 :: s
+!     INTEGER*8 :: ix, iy, iz
+!     INTEGER :: nbits
+!     INTEGER*8 :: local_key
+
+!     REAL*8 kernel
+!     REAL*8 dist
+
+!     CHARACTER(100) :: nn_filename
+
+
+
+!     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+
+!     call update_particle_props(np_local, particles)
+  
+!     call sph_sum_force(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+    
+!   end subroutine sph
+
+
+  subroutine update_particle_props(np_local, particles)
+    
+    use treetypes, only: &
+         t_particle
+    
+    use treevars, only: &
+         tree_nodes, &
+         nleaf, &
+         nleaf_me
+    
+    use module_htable
+    
+    ! only for sort test
+    use tree_utils
+    
+    
+    use physvars, only: &
+         my_rank, &
+         n_cpu
+    
+    implicit none
+    include 'mpif.h'
+    
+    
+    integer, intent(in) :: np_local    !< # particles on this CPU
+    type(t_particle), intent(inout) :: particles(:)
+    
+    integer :: nleaf_non_local
+    integer*8, allocatable :: non_local_node_keys(:)
+    integer*8, allocatable :: key_arr_cp(:)
+    integer*8, allocatable :: non_local_node_owner(:)
+    integer, allocatable :: int_arr(:)
+    integer :: num_request
+    integer :: i
+    integer :: ierr
+    integer, allocatable :: requests_per_process(:)
+ 
+    nleaf_non_local = nleaf ! bigger than necessary, TODO: find a better estimation for this
+
+    allocate( non_local_node_keys(nleaf_non_local), non_local_node_owner(nleaf_non_local), requests_per_process(n_cpu), &
+         key_arr_cp(nleaf_non_local), int_arr(nleaf_non_local), STAT=ierr )
+    ! TODO: remove key_arr_cp and int_arr after sort test
+    ! TODO: test STAT
+
+    num_request = 0
+
+    ! get leafs from hashtabel with owner .ne. my_rank
+    do i = 1, maxaddress
+       if( htable_entry_is_valid(i) ) then
+          if( (htable(i)%owner .ne. my_rank) .and. htable(i)%node>0 ) then
+             if( htable(i)%owner .ne. mod(my_rank+1,2)) write(*,*) 'strange owner:', my_rank, htable(i)%owner, htable(i)%key
+
+             num_request = num_request + 1
+             non_local_node_keys(num_request) = htable(i)%key
+             non_local_node_owner(num_request) = htable(i)%owner
+          end if
+       end if
+    end do
+    
+    if( nleaf_non_local > num_request) write (*,*) 'on rank', my_rank, 'nleaf_non_local:', nleaf_non_local, 'num_request:', num_request
+
+
+    ! write (*,*) my_rank, num_request
+    
+    ! ! test sort with keys
+    ! write(*,*) ' starting sort test'
+    ! key_arr_cp = non_local_node_keys
+    
+    ! call sort(non_local_node_keys, int_arr)
+    
+    ! do i= 1, nleaf_non_local
+    !    if( key_arr_cp(int_arr(i)) .ne. non_local_node_keys(i) ) write(*,*) 'Error in sort.'
+    ! end do
+    
+    ! do i= 1, nleaf_non_local-1
+    !    if( non_local_node_keys(i) > non_local_node_keys(i+1)) write(*,*) 'Error in sort.'
+    ! end do
+  
+    ! write(*,*) 'sort test finished'
+
+
+    ! sort keys accorting to owner
+
+    do i = 1, num_request
+       if(non_local_node_owner(i) > n_cpu -1 ) write(*,*) 'owner > n_cpu:', i, non_local_node_owner(i), non_local_node_keys(i)
+    end do
+
+
+    
+    call sort(non_local_node_owner(1:num_request), int_arr(1:num_request))
+    
+    key_arr_cp(1:num_request) = non_local_node_keys(1:num_request)
+
+    do i= 1, num_request
+       non_local_node_keys(i) = key_arr_cp(int_arr(i))
+    end do
+
+    requests_per_process = 0
+
+    do i = 1, num_request
+       ! use owner + 1, because owner is from 0 and array index from 1
+       requests_per_process(non_local_node_owner(i)+1) = requests_per_process(non_local_node_owner(i)+1) + 1
+    end do
+
+    if( requests_per_process(my_rank+1) .ne. 0) write (*,*) 'on rank', my_rank, 'requests for self is non-zero:', & 
+         requests_per_process(my_rank+1)
+
+
+!    call MPI_ALLTOALL(
+
+
+
+
+
+
+    deallocate( non_local_node_keys, non_local_node_owner, requests_per_process, key_arr_cp, int_arr, STAT=ierr )
+
+    
+    
+    
+    
+    
+    
+  end subroutine update_particle_props
   
 
 
