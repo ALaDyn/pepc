@@ -1021,10 +1021,12 @@ module module_tree_walk
        integer, intent(in) :: addr_
        integer*8, intent(in) :: key_
 
-       if (defer_list_entries == defer_list_length) call defer_list_full()
-
-       defer_list(defer_list_entries, myidx) = t_defer_list_entry(addr_, key_)
-       defer_list_entries                    = defer_list_entries + 1
+       if (defer_list_entries == defer_list_length) then
+         call defer_list_full()
+       else
+         defer_list(defer_list_entries, myidx) = t_defer_list_entry(addr_, key_)
+         defer_list_entries                    = defer_list_entries + 1
+       endif
      end subroutine
 
      subroutine defer_list_parse_and_compact()
