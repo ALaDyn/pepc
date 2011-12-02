@@ -557,11 +557,9 @@ module tree_walk_pthreads
       cf_par = cf_par_
       ! length of todo- and defer-list per particle (estimations)
       todo_list_length  = max(nintmax, 10)
-<<<<<<< .mine
-      defer_list_length = max(todo_list_length / 1, 50) !TODO: defer_list_length is way too large, needed for testing
-=======
-      defer_list_length = max(todo_list_length / 1, 50)
->>>>>>> .r2913
+
+      defer_list_length = max(todo_list_length / 8, 50)
+
       ! pure local walk time (i.e. from start of communicator till sned_walk_finished)
       twalk_loc => twalk_loc_
 
