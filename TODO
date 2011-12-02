@@ -1,6 +1,8 @@
 TODO-List for pepc-newstruct (partially also mentioned in code)
 ===============================================================
 
+- move all TODOS into ticketing system
+
 - split datatypes into t_leaf and t_twig. Then, every twig should be able to contain a number of sub-twigs and/or leaves. 
     --> leaves may have particle properties e.g. label, which do not make sense for twigs (and the other way round, e.g. childcode) 
     --> perform walk for all leaves below a some twig instead of particles
@@ -46,6 +48,15 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
    to new datastructures
    
 - update info in pepc.f90 comment-headers in all frontends
+
+- make module_pepc_wrappers non-obligatory (like module_fmm_framework) and remove it from frontends where it is not needed
+
+- split pepcfields into three parts: 1. tree buildup, 2. tree traversal, 3. cleanup --> this avoids the need for no_deallocate and pepc_grid_fields
+
+- provide grid generator for pepc_grid_fields
+
+- use several namelists in a single run.h: walk-stuff, lpepc-stuff, forntend-stuff ; name namelists according to frontend names
+
 
 
 Renaming-List (Please add any inconsistencies that you encounter)
