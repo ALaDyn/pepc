@@ -48,10 +48,10 @@ $(EXECNAME): $(LIBRARIES)
 
 
 clean:
-	$(RM) $(BUILDDIR)/*.o  *% *~ bin/key rand *.o *.pif core *.mod $(BUILDDIR)/*.mod module.deps $(LIBNAME) $(EXECNAME)
-	$(RM) -rf $(MACH)
+	$(RM) $(BUILDDIR)*.o  $(BUILDDIR)*.mod $(BUILDDIR)module.deps $(LIBNAME) $(EXECNAME)
+	$(RM) -rf $(BUILDDIR) $(MACH)
 
-module.deps:
+$(BUILDDIR)module.deps: $(BUILDDIR)
 	$(MYROOT)$(F90MODDEPS) -o $@ --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "\$$(BUILDDIR)/" $(SOURCES.f90) $(SOURCES.UTILSP.f90)
 
-include module.deps
+include $(BUILDDIR)module.deps
