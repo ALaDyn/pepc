@@ -46,8 +46,8 @@ contains
         use timings
         use module_tree_domains
         use module_calc_force
-        use tree_walk_pthreads
-        use tree_walk_communicator
+        use module_tree_walk
+        use module_tree_walk_communicator
         use module_allocation
         use module_tree
         use module_htable
@@ -253,8 +253,8 @@ contains
         use timings
         use module_tree_domains
         use module_calc_force
-        use tree_walk_pthreads
-        use tree_walk_communicator
+        use module_tree_walk
+        use module_tree_walk_communicator
         use module_allocation
         use module_tree
         use module_htable

@@ -67,7 +67,7 @@ program pepce
        openfiles, &
        closefiles
 
-  use tree_walk_pthreads, only: &
+  use module_tree_walk, only: &
        num_walk_threads
 
 

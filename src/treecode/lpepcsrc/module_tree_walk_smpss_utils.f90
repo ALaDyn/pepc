@@ -1,7 +1,7 @@
-module tree_walk_smpss_utils
+module module_tree_walk_smpss_utils
 
   use treetypes
-  use tree_walk_communicator
+  use module_tree_walk_communicator
 
   integer :: nparticles
   type(t_particle), pointer, dimension(:) :: particles
@@ -557,6 +557,6 @@ contains
 
   end subroutine tree_walk_smpss_comm_serve_inner
   
-end module tree_walk_smpss_utils
+end module module_tree_walk_smpss_utils
 
 

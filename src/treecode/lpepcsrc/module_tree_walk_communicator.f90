@@ -3,7 +3,7 @@
 !>  Encapsulates helper functions that simplify communication during tree traversal
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-module tree_walk_communicator
+module module_tree_walk_communicator
   use treevars
   use pthreads_stuff
   implicit none
@@ -53,6 +53,9 @@ module tree_walk_communicator
     public uninit_comm_data
     public notify_walk_finished
     public send_request
+    public send_data
+    public unpack_data
+    public send_walk_finished
 
   contains
 
@@ -371,4 +374,4 @@ module tree_walk_communicator
 
     end subroutine unpack_data
 
-end module tree_walk_communicator
+end module module_tree_walk_communicator

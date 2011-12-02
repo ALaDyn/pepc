@@ -16,10 +16,15 @@ FULLBACKENDDIR = $(MYROOT)$(INTSPECDIR)$(BACKEND)/
 # Source files
 PEPCSRC.f90 =   treevars.f90 tree_utils.f90 timings.f90 treetypes.f90 \
                 module_debug.f90 module_math_tools.f90 module_mirror_boxes.f90\
-                tree_aswalk_pthreads.f90 libpepc_setup.f90 module_tree_domains.f90 \
+                libpepc_setup.f90 module_tree_domains.f90 \
                 module_allocation.f90 libpepc_finalize.f90 tree_stats.f90 \
                 module_tree.f90 module_spacefilling.f90 module_htable.f90 \
-                module_pepcfields.f90 module_branching.f90 tree_walk_communicator.f90
+                module_pepcfields.f90 module_branching.f90 module_tree_walk_communicator.f90
+ifeq ($(SMPSS), 1)
+PEPCSMPSS.f90   = module_tree_walk_smpss_utils.f90 module_tree_walk_smpss.f90
+else
+PEPCSRC.f90    += module_tree_walk_pthreads.f90
+endif
 PEPCBACKEND.f90 = module_calc_force.f90 module_interaction_specific.f90 module_pepc_wrappers.f90
 #-------------------------------------------------------------------------------------------
 

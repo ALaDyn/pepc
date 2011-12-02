@@ -15,7 +15,7 @@ subroutine pepc_setup()
   use tree_utils
   use module_mirror_boxes
   use module_fmm_framework
-  use tree_walk_pthreads
+  use module_tree_walk
   implicit none
   include 'mpif.h'
 

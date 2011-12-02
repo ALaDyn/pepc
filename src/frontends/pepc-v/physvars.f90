@@ -62,7 +62,7 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_setup(itime, trun)
 
-        use tree_walk_pthreads
+        use module_tree_walk
         implicit none
         include 'mpif.h'
 

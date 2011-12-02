@@ -1,7 +1,7 @@
 
 module module_physvars
   use treetypes
-  use tree_walk_pthreads
+  use module_tree_walk
   use module_mirror_boxes
   implicit none
 
