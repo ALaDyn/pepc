@@ -163,11 +163,21 @@ module module_interaction_specific
         ! centre of charge
         parent%coc        = [0., 0., 0.]
 
-        do j=1,nchild
-          parent%coc(1:3) = parent%coc(1:3) + ( children(j)%coc(1:3) * children(j)%abs_charge )
-        end do
+        if (parent%abs_charge .ne. 0.) then
+          ! use center-of-charge because we may divide by abs_charge
+          do j=1,nchild
+            parent%coc(1:3) = parent%coc(1:3) + ( children(j)%coc(1:3) * children(j)%abs_charge )
+          end do
 
-        parent%coc(1:3) = parent%coc(1:3) / parent%abs_charge
+          parent%coc(1:3) = parent%coc(1:3) / parent%abs_charge
+        else
+          ! use geometric center
+          do j=1,nchild
+            parent%coc(1:3) = parent%coc(1:3) +   children(j)%coc(1:3)
+          end do
+ 
+         parent%coc(1:3) = parent%coc(1:3) / nchild
+        endif
 
         ! multipole properties
         parent%dip    = [0., 0., 0.]
