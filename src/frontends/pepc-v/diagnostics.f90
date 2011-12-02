@@ -194,8 +194,8 @@ subroutine linear_diagnostics(itime,trun)
    ! std and file output
    if (my_rank == 0) then
       write(*,*) '=============Linear diagnostics============='
-      write(*,*) 'Omega: ', sqrt(omega(1)**2+omega(2)**2+omega(3)**2), omega(1)+omega(2)+omega(3), omega(1), omega(2), omega(3)
-      write(*,*) 'Linear Impulse: ', sqrt(linear(1)**2+linear(2)**2+linear(3)**2), linear(1)+linear(2)+linear(3), linear(1), linear(2), linear(3)
+      write(*,*) 'Omega:           ', sqrt(omega(1)**2+omega(2)**2+omega(3)**2), omega(1)+omega(2)+omega(3), omega(1), omega(2), omega(3)
+      write(*,*) 'Linear Impulse:  ', sqrt(linear(1)**2+linear(2)**2+linear(3)**2), linear(1)+linear(2)+linear(3), linear(1), linear(2), linear(3)
       write(*,*) 'Angular Impulse: ', sqrt(angular(1)**2+angular(2)**2+angular(3)**2), angular(1)+angular(2)+angular(3), angular(1), angular(2), angular(3)
       write(*,*) '============================================'
       write(66,*) itime, trun, sqrt(omega(1)**2+omega(2)**2+omega(3)**2),' ', omega(1)+omega(2)+omega(3),' ', omega(1),' ', omega(2),' ', omega(3) ,' ', &
