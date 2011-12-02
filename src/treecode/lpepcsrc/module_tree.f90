@@ -71,7 +71,7 @@ module module_tree
 
           ! if we change the owner from someting else to 'me', we have to keep track of the leaf/twig counters
           if ((htable(addr)%owner .ne. me) .and. (tree_node%owner .eq. me)) then
-            if (is_leaf(addr)) then
+            if (htable_entry_is_leaf(addr)) then
               nleaf_me = nleaf_me + 1
             else
               ntwig_me = ntwig_me + 1
@@ -107,10 +107,7 @@ module module_tree
         integer :: hashaddr, lnode, ierr
 
 
-        call make_hashentry( tree_node%key, 0, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr, ierr )
-
-        select case (ierr)
-          case (0)
+        if (make_hashentry( t_hash(tree_node%key, 0, -1, tree_node%leaves, tree_node%byte, tree_node%owner), hashaddr)) then
             ! anything is fine - we will have to assign a node number now
             if ( tree_node%leaves == 1 ) then
                nleaf =  nleaf + 1
@@ -137,13 +134,13 @@ module module_tree
 
              htable( hashaddr )%node = lnode
 
-          case (1)
+        else
            ! entry with the same key is already existing, so we just overwrite it
            lnode = htable( hashaddr )%node
 
-           write(*,*) "PE", me, "has found an already inserted entry while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr, ierr, ") - overwriting it"
+           write(*,*) "PE", me, "has found an already inserted entry while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr,") - overwriting it"
            flush(6)
-        end select
+        endif
 
         !insert multipole data into local tree
         tree_nodes( lnode ) = tree_node%m
@@ -498,10 +495,8 @@ module module_tree
          do i=1,nremaining
            lvlkey = ishft( particles_left(i)%key, -3_8*ibit )
 
-                                         ! V nodeindex for leaves is identical to original particle index
-           call make_hashentry( lvlkey, particles_left(i)%idx, 1, 0, me, hashaddr, ierr )
-
-           if (ierr == 0) then
+                                             ! V nodeindex for leaves is identical to original particle index
+           if (make_hashentry( t_hash(lvlkey, particles_left(i)%idx, -1, 1, 0, me), hashaddr)) then
              ! this key does not exist until now --> has been inserted as leaf
              leaf_keys(particles_left(i)%idx) = lvlkey
              particles_left(i) = t_keyidx(0, 0_8)

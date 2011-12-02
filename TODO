@@ -4,6 +4,7 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 - split datatypes into t_leaf and t_twig. Then, every twig should be able to contain a number of sub-twigs and/or leaves. 
     --> leaves may have particle properties e.g. label, which do not make sense for twigs (and the other way round, e.g. childcode) 
     --> perform walk for all leaves below a some twig instead of particles
+    --> establish connection between particles and leaves
 
 - make checkpointing-stuff independent of t_particle_data type
 
@@ -35,8 +36,6 @@ TODO-List for pepc-newstruct (partially also mentioned in code)
 
 - in frontend-makefiles: make clear, what can be changed and what should not be touched
 
-- call make_hashentry with t_hash datastructure instead of several single parameters
-
 - move t_multipole_data%coc out of userdefined structures: the centre of charge is necessary in any case for performing the tree_walk
 
 - rename num_walk_threads to something like num_threads, because it is also used for openmp. Move num_threads out of the walk_pthreads module
@@ -55,5 +54,6 @@ Renaming-List (Please add any inconsistencies that you encounter)
 - childcode --> flags (everywhere)
 - t_multipole_data --> t_interaction_data
 - t_tree_node%byte --> flags (or even separate childbyte from that)
-
-
+- t_tree_node --> t_node_transport_package or similar
+- status() --> pepc_status()
+- pure elemental --> elemental (which is automatically pure)

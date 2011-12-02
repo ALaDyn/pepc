@@ -69,6 +69,8 @@ module module_htable
     public check_table
     public diagnose_tree
     public htable_remove_keys
+    public htable_entry_is_valid
+    public htable_entry_is_leaf
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -93,13 +95,32 @@ module module_htable
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! TODO: use this function everywhere consistently
-    function is_leaf(hashaddr)
+    function htable_entry_is_leaf(hashaddr)
       implicit none
       integer, intent(in) :: hashaddr
-      logical:: is_leaf
+      logical:: htable_entry_is_leaf
       ! TODO: this way of identifying leaves/twigs is not good -- use number of leaves or (even better) a flag in the childcode, instead
-      is_leaf = (htable(hashaddr)%node > 0)
+      htable_entry_is_leaf = (htable(hashaddr)%node > 0)
     end function
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> checks whether the given htable-entry is valid and not empty
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! TODO: use this function everywhere consistently
+    function htable_entry_is_valid(hashaddr)
+      implicit none
+      integer, intent(in) :: hashaddr
+      logical:: htable_entry_is_valid
+      integer*8 :: key
+
+      key = htable(hashaddr)%key
+
+      htable_entry_is_valid = (key .ne. KEY_EMPTY) .and. (key .ne. KEY_INVALID)
+    end function
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
@@ -261,64 +282,66 @@ module module_htable
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !>  Make entry in hash-table - returns address 'newentry'
-    !>  Resolve collision if necessary
-    !>  ierror == 0 if anything went fine
-    !>  ierror == 1 if key already exists in htable, newentry is set to
-    !>               return current address, but the htable-entry itself is *not* modified
+    !> Make entry in hash-table - returns address 'hashaddr'
+    !> Resolve collision if necessary
+    !> make_hashentry == .true. if anything went fine
+    !> make_hashentry == .false. if key already exists in htable, hashaddr is set to
+    !> return current address, but the htable-entry itself is *not* modified
+    !>
+    !> value of hashentry%link is ignored
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !> TODO: maybe use t_hash as parameter type instead of different parameters?
-    subroutine make_hashentry( keyin, nodein, leavesin, codein, ownerin, newentry, ierror)
+    function make_hashentry(hashentry, hashaddr)
 
         use treevars
         implicit none
         include 'mpif.h'
 
-        integer*8, intent(in) :: keyin
-        integer, intent(in) :: nodein, leavesin, codein, ownerin      ! call input parameters
-        integer, intent(out) :: newentry  ! address in # table returned to calling routine
-        integer, intent(out) :: ierror
+        logical :: make_hashentry
+        type(t_hash), intent(in) :: hashentry
+        integer, intent(out) :: hashaddr ! address in # table returned to calling routine
 
-        integer :: ierr
+        integer :: ierr, link
 
-        if (.not. testaddr(keyin, newentry)) then
+        if (.not. testaddr(hashentry%key, hashaddr)) then
           ! this key does not exist in the htable 
-          ierror = 0
+          make_hashentry = .true.
 
-          if (newentry .eq. -1) then
+          if (hashaddr .eq. -1) then
             ! the first entry is already empty
-            newentry = int(IAND( keyin, hashconst))
+            hashaddr = int(IAND( hashentry%key, hashconst))
 
-            if (point_free(newentry) /= 0) then     ! Check if new address in collision res. list
-                free_addr( point_free(newentry) ) = free_addr(sum_unused)  ! Replace free address with last on list
-                point_free(free_addr(sum_unused)) = point_free(newentry)  ! Reset pointer
-                point_free(newentry)              = 0
+            if (point_free(hashaddr) /= 0) then     ! Check if new address in collision res. list
+                free_addr( point_free(hashaddr) ) = free_addr(sum_unused)  ! Replace free address with last on list
+                point_free(free_addr(sum_unused)) = point_free(hashaddr)  ! Reset pointer
+                point_free(hashaddr)              = 0
                 sum_unused = sum_unused - 1
             endif
           else
             ! we are at the end of a linked list --> create new entry
-            htable( newentry )%link = free_addr(iused)
-            newentry                = htable( newentry )%link
+            htable( hashaddr )%link = free_addr(iused)
+            hashaddr                = htable( hashaddr )%link
             iused                   = iused + 1
           endif
 
           ! check if new entry is really empty
-          if ((htable(newentry)%node /= 0 ) .or. (htable( newentry )%key/=0)) then
+          if ((htable(hashaddr)%node /= 0 ) .or. (htable( hashaddr )%key/=0)) then
             write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
-            write (*,*) 'PE ',me,' key ',keyin,' entry',newentry,' used ',iused,'/',sum_unused
-            write (*,*) "htable(newentry):  ", htable(newentry)
-            write (*,*) "desired entry:     ", t_hash( keyin, nodein, -1, leavesin, codein, ownerin )
+            write (*,*) 'PE ',me,' key ',hashentry%key,' entry',hashaddr,' used ',iused,'/',sum_unused
+            write (*,*) "htable(hashaddr):  ", htable(hashaddr)
+            write (*,*) "desired entry:     ", hashentry
             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
           endif
 
-          htable( newentry ) = t_hash( keyin, nodein, htable( newentry )%link, leavesin, codein, ownerin )
+          link = htable( hashaddr )%link ! would be overwritten by the next code line
+          htable( hashaddr ) = hashentry
+          htable( hashaddr )%link = link
         else
-          ! this key does already exists in the htable - as 'newentry' we return its current address
-          ierror = 1
+          ! this key does already exists in the htable - as 'hashaddr' we return its current address
+          make_hashentry = .false.
         endif
 
-    end subroutine make_hashentry
+    end function
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
