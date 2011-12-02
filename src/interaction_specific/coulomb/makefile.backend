@@ -4,4 +4,4 @@
 
 # it can be left empty if there is no demand for manipulating
 
-PEPCBACKEND.f90 += module_fmm_framework.f90
+PEPCBACKEND.f90 += module_fmm_framework.f90 module_pepc_wrappers.f90

@@ -25,7 +25,7 @@ PEPCSMPSS.f90   = module_tree_walk_smpss_utils.f90 module_tree_walk_smpss.f90
 else
 PEPCSRC.f90    += module_tree_walk_pthreads.f90
 endif
-PEPCBACKEND.f90 = module_calc_force.f90 module_interaction_specific.f90 module_pepc_wrappers.f90
+PEPCBACKEND.f90 = module_calc_force.f90 module_interaction_specific.f90
 #-------------------------------------------------------------------------------------------
 
 -include $(FULLBACKENDDIR)makefile.backend
