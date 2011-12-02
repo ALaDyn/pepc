@@ -106,18 +106,17 @@ program pepce
   call pepc_setup()
 
 
-  !$OMP PARALLEL PRIVATE(omp_thread_num)
   ! Set the number of openmp threads.
   ! Set this only, when compiling with openmp (with !$)
   ! Set number of openmp threads to the same number as pthreads used in the walk
   !$ call omp_set_num_threads(num_walk_threads)
 
-  !$ omp_thread_num = OMP_GET_THREAD_NUM()
-  
   ! Inform the user that openmp is used, and with how many threads
+  !$OMP PARALLEL PRIVATE(omp_thread_num)
+  !$ omp_thread_num = OMP_GET_THREAD_NUM()
   !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
-  
   !$OMP END PARALLEL
+
 
   ! Allocate array space for tree
   call libpepc_setup(my_rank,n_cpu,db_level)
