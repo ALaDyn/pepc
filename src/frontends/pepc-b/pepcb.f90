@@ -27,7 +27,7 @@
 !
 !  ==============================================================
 
-program pepcb
+program program_pepcb
 
   use treetypes
   use module_particle_props
@@ -341,4 +341,4 @@ endif
 
 !POMP$ INST END(pepcb)
 
-end program pepcb
+end program program_pepcb
