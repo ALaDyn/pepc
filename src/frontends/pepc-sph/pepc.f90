@@ -70,9 +70,6 @@ program pepce
        openfiles, &
        closefiles
 
-  use module_tree_walk, only: &
-       num_walk_threads
-
 
   implicit none
   include 'mpif.h'
@@ -131,9 +128,6 @@ program pepce
   ! initialize calc force params
   cf_par%mac         = 1 ! NN MAC
   cf_par%force_law   = 5 ! NN "Interaction"
-  cf_par%weighted    = weighted
-  cf_par%curve_type  = curve_type
-
 
   particles(:)%work = 1._8
 
@@ -154,7 +148,7 @@ program pepce
      call timer_start(t_tot)
      
      call pepc_fields(np_local, npart_total, particles, &
-          np_mult, cf_par, itime, num_neighbour_boxes, neighbour_boxes, .true., .true.)
+          cf_par, itime, num_neighbour_boxes, neighbour_boxes, .true., .true.)
      
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
