@@ -31,18 +31,14 @@ program pepce
   use physvars, only: &
        trun, &
        particles, &
-       weighted, &
        nt, &
        npart_total, &
-       np_mult, &
        np_local, &
        n_cpu, &
        my_rank, &
        itime, &
        ispecial, &
-       dt, &
-       db_level, &
-       curve_type
+       dt
 
   use module_neighbour_test, only: &
        validate_n_nearest_neighbour_list, &
@@ -124,7 +120,7 @@ program pepce
 
 
   ! Allocate array space for tree
-  call libpepc_setup(my_rank,n_cpu,db_level)
+  call libpepc_setup(my_rank,n_cpu)
 
   ! Set up particles
   call special_start(ispecial)
@@ -132,12 +128,8 @@ program pepce
   ! initialize calc force params
   cf_par%mac         = 1 ! NN MAC
   cf_par%force_law   = 5 ! NN "Interaction"
-  cf_par%weighted    = weighted
-  cf_par%curve_type  = curve_type
-
 
   particles(:)%work = 1._8
-
 
 
   ! Loop over all timesteps
@@ -156,7 +148,7 @@ program pepce
      call timer_start(t_tot)
      
      call pepc_fields(np_local, npart_total, particles, &
-          np_mult, cf_par, itime, num_neighbour_boxes, neighbour_boxes, .true., .true.)
+          cf_par, itime, num_neighbour_boxes, neighbour_boxes, .true., .true.)
 write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nleaf_me
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags

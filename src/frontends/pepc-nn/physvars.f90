@@ -24,7 +24,6 @@ module physvars
   integer :: npart_total  ! Total # particles (npart)
   integer :: np_local 
   integer :: nppm  ! Total # particles (npart)
-  real :: np_mult=1.5
 
 !  Associated MPI stuff
 
@@ -34,14 +33,11 @@ module physvars
 ! Control stuff
   integer :: idim=3  ! # dimensions (velocity and position updates)
   integer :: ispecial       ! Switch to select special electron configs 
-  integer :: weighted
   integer :: debug_level =0 ! Debug level for printed O/P
 
    real :: dt             ! timestep
    real :: trun           ! total run time including restarts
    integer :: nt, itime   ! # timesteps and current timestep
-   integer :: db_level = 1  ! printed o/p debug level
-   integer :: curve_type = 0 !< type of space-filling curve, 0=z-curve, 1=Hilbert-curve
 
    integer :: ifile_cpu    ! O/P stream
 
