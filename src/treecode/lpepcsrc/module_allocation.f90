@@ -47,7 +47,7 @@ module module_allocation
         use module_branching
         implicit none
 
-        real, intent(in) :: theta2
+        real*8, intent(in) :: theta2
 
         integer :: nintest
         integer :: nbaddr ! number of bits in the hashing function
