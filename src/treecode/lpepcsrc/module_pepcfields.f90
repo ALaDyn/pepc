@@ -39,7 +39,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_fields(np_local, npart_total, particles, &
-        np_mult_, cf_par, itime, num_neighbours, neighbours, no_dealloc, no_restore)
+        cf_par, itime, num_neighbours, neighbours, no_dealloc, no_restore)
 
         use treevars
         use module_interaction_specific
@@ -59,7 +59,6 @@ contains
         integer, intent(inout) :: np_local    !< # particles on this CPU
         integer, intent(in) :: npart_total !< total # simulation particles
         type(t_particle), allocatable, intent(inout) :: particles(:)
-        real, intent(in) :: np_mult_
         type(t_calc_force_params), intent(in) :: cf_par
         integer, intent(in) :: itime  ! timestep
         integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
@@ -83,7 +82,6 @@ contains
 
         ! copy call parameters to treevars module
         npart      = npart_total
-        np_mult    = np_mult_
         npp        = np_local
 
         call timer_start(t_all)

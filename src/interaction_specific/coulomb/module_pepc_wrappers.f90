@@ -59,7 +59,6 @@ module module_pepc_wrappers
     !>   @param[out] p_Ey dimension(1:np_local) - y-component of electric field
     !>   @param[out] p_Ez dimension(1:np_local) - z-component of electric field
     !>   @param[out] p_pot dimension(1:np_local) - electric potential
-    !>   @param[in] np_mult_ memory allocation parameter
     !>   @param[in] cf_par parameters for force summation
     !>   @param[in] itime current simulation timestep number
     !>   @param[in] weighted selector for load balancing
@@ -70,14 +69,13 @@ module module_pepc_wrappers
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_fields_coulomb_wrapper(np_local,npart_total,p_x, p_y, p_z, p_q, p_w, p_label, &
-                    p_Ex, p_Ey, p_Ez, p_pot, np_mult_, cf_par, itime,  &
+                    p_Ex, p_Ey, p_Ez, p_pot, cf_par, itime,  &
                     num_neighbours, neighbours, no_dealloc, no_restore)
         use treevars
         use module_pepcfields
         implicit none
         integer, intent(inout) :: np_local  ! # particles on this CPU
         integer, intent(in) :: npart_total ! total # simulation particles
-        real, intent(in) :: np_mult_       ! multipole opening angle
         type(t_calc_force_params), intent(in) :: cf_par
         integer, intent(in) :: itime  ! timestep
         real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc
@@ -112,7 +110,7 @@ module module_pepc_wrappers
         end do
 
         call pepc_fields(np_local, npart_total, particles, &
-                             np_mult_, cf_par, itime, num_neighbours, neighbours, no_dealloc, no_restore)
+                             cf_par, itime, num_neighbours, neighbours, no_dealloc, no_restore)
 
         ! read data from particle_coordinates, particle_results, particle_properties
         do i=1,np_local
