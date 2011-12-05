@@ -66,7 +66,7 @@ program pepce
   call pepc_setup()
 
   ! Allocate array space for tree
-  call libpepc_setup(my_rank, n_cpu, db_level)
+  call libpepc_setup(my_rank, n_cpu)
 
   ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
   call fmm_framework_init(my_rank, wellsep = 1)
@@ -88,8 +88,6 @@ program pepce
   cf_par%eps2        = eps**2
   cf_par%force_const = force_const
   cf_par%force_law   = 3
-  cf_par%weighted    = weighted
-  cf_par%curve_type  = curve_type
 
   ! Loop over all timesteps
   do while (itime < nt)
