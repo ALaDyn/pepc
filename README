@@ -3,6 +3,8 @@
 =       PEPC -  Pretty Efficient Parallel Coulomb-solver
 =
 =       Author:   Paul Gibbon
+                  Forschungszentrum Juelich GmbH
+                  Juelich Supercomputing Centre
 =
 ============================================================
 
@@ -32,16 +34,20 @@ Parallel make (i.e. "make -j") should work.
 
 There are several different frontends available at the moment:
 
-pepcb: Laser/beam-plasma with magnetic fields
-pepce: pure electrostatics
-       simple molecular dynamics, 
-       some diagnostics for energy, performance, vtk output etc.
+pepcb:    Laser/beam-plasma with magnetic fields
+pepce:    pure electrostatics
+            simple molecular dynamics, 
+            some diagnostics for energy, performance, vtk output etc.
 pepcmini: pure electrostatics
-       simple molecular dynamics
-       no diagnostics
-       minimum requirements to get pepc running
-pepcmw: frontend for laser-plasma interaction (experimental)
-pepcs: library version for inclusion in ScaFaCoS project
+            simple molecular dynamics
+            no diagnostics
+            minimum requirements to get pepc running
+pepcmw:   frontend for laser-plasma interaction (experimental)
+pepcs:    library version for inclusion in ScaFaCoS project
+pepcnn:   tree-based nearest neighbour search
+pepcsph:  gravitation and smoothed particle hydrodynamics (sph)
+            for astrophysics research (experimental)
+pepcv:    vortex dynamics using the vortex particle method
 
 To build an alternative frontend, just call
 
@@ -51,7 +57,11 @@ or
 
 All frontends can be built using 
 
-"make all"
+"make (-j) all"
+
+At the current stage, there is no real documentation available for the
+different frontends. However, you might simply want to take a look at 
+the respective sourcecode to find out what they are doing.
 
 
 ============================================================
@@ -73,7 +83,7 @@ If you want to use checkpointing, particle data output and
 vtk file creation (see idump_XXX-parameters for details), 
 you have to provide two additional directories inside rundir:
 
-,,,
+
 "cd rundir"
 "mkdir vtk"
 "mkdir "particles"
@@ -88,3 +98,47 @@ Rudimentary doxygen documentation is available by calling
 "make doc"
 
 from the root directory. A users guide is in preparation. 
+
+
+============================================================
+
+4. DIRECTORY STRUCTURE / ADDING OWN FUNCTIONALITY
+
+Inside the ./src/ directory, you will find four subdirectories:
+ - treecode: PEPC kernel, everything that is necessary for
+             the pure algorithmic part of the treecode
+ - interaction_specific: interaction specific backends. The different
+             subdirectories herein (currently: coulomb, vortex, and
+             nearestneighbour) provide data structures and functions
+             for the different applications. See inline documentation
+             in the sourcecode (especially inside the coulomb-subdir,
+             which should be well documented) to finc out about what the
+             functions should do and which of them are necessary.
+             The only files that must be provided in this directory are
+             (names may not be changed, public functions and datastructures 
+             inside these files are mandatory):
+              - module_interaction_specific.f90: data structures and functions
+                  for manipulating them
+              - module_calc_force.f90: functions for actual force-law and
+                  multipole acceptance criterion etc.
+              - makefile.backend: backend specific modifications to
+                  treecode makefile, may be empty
+ - utils: source code of utilities (mainly for treecode diagnostics,
+             vtk-output etc.)
+ - frontends: different applications that utilize the treecode for their
+             respective very specific purpose
+            
+In case you want to use pepc for developing an own treecode-based N-body code,
+you might start by copying and modifying the pepc-mini frontend, which is a 
+very simple coulomb-MD programme. It uses the coulomb backend, that implements
+an expansion of the plummer potential 1/sqrt(r^2+eps^2) up to quadrupole order.
+
+For being able to compile your frontend, you have to add some lines to the
+main makefile (inside the pepc root directory). Again, you can copy and modify 
+the pepc-mini lines there as a first start.
+
+If you want to provide an own interaction-specific backend (for using other
+multipole orders and/or force laws), just copy and modify the coulomb subdirectory
+there. The backends do not have to be registered in some makefile, but are selected 
+inside the main makefile by creating a dependency on lippepc.backend_directory_name
+instead of libpepc.coulomb.
