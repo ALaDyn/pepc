@@ -21,11 +21,12 @@
  cp_time = 1
 /
 
-&walk_para
-
- num_walk_threads = 2
+&libpepc
 
 /
 
-&libpepc
-  /
+&walk_para
+
+ num_walk_threads = 2
+/
+
