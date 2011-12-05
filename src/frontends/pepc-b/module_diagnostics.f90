@@ -136,10 +136,10 @@ subroutine param_dump
 
         if (debug_level>=2) then
            write (ifile,'(/a)') 'Other inputs:'
-           write(ifile,NML=pepcdata)
+           write(ifile,NML=pepcb)
         else 
            write (24,'(/a)') 'Other inputs:'
-           write(24,NML=pepcdata)
+           write(24,NML=pepcb)
         endif
 
 

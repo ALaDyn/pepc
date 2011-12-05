@@ -27,7 +27,6 @@ module module_physvars
   real, allocatable :: rho_helm(:)  !< Helmholtz density
   complex, allocatable :: Az_helm(:)   !< Helmholtz vector potential
 
-  integer :: choose_sort, weighted, choose_build
   type(t_calc_force_params), save ::cf_par
 
   !  physics, target data
@@ -131,8 +130,6 @@ module module_physvars
   integer :: npart_total  !< Total # particles (npart)
   integer :: np_local  !< Local # particles (npp)
   integer :: np_alloc  !< Memory allocation for particle arrays
-  real :: np_mult=1.5   !< particle array safety margin
-  integer :: fetch_mult=3 !< fetch array factor
   integer :: ipefile=20  !< Output file number for process-dep diagnostics
   logical :: dynamic_memalloc=.false. !< Switch for memory manager
 
@@ -217,10 +214,8 @@ module module_physvars
   real :: force_tolerance=1.      !< Permitted error in force calculation
   integer :: nint_max = 2500
   integer :: mac = 0  !< MAC (default=BH)
-  integer :: walk_scheme = 0  !< Asynch/Collective walk algorithm 
   integer :: balance = 1  !< Load balancing switch
   integer :: ifreeze = 1  !< Tree-freezing control
-  integer :: curve_type = 0  !< Morton or Hilbert curve
 
   character*10 :: plasma_configs(0:50)= (/ &
        'no plasma ','rand-geom ','special   ','i+e slab  ','i+e sphere', &
@@ -249,7 +244,7 @@ module module_physvars
   real :: q_factor=1.0
   logical :: target_dup = .false.  
 
- namelist /pepcdata/ nep, nip, ne, ni, &
+ namelist /pepcb/ nep, nip, ne, ni, &
        theta, mac, nint_max, mass_ratio, mass_proton, rho0, &
        plasma_config, target_geometry, velocity_config, ispecial, &
        vte, Te_keV, Ti_keV, T_scale, Zion, &
@@ -260,12 +255,12 @@ module module_physvars
        r_beam, u_beam, theta_beam, phi_beam, x_beam, start_beam, rho_beam, mass_beam, & 
        lambda, sigma, tpulse, vosc, omega, focus, x_offset,  z_offset, &
        nt, dt, mc_steps, idump, ivis, ivis_fields, ivis_domains, iprot, itrack, &
-       ncpu_merge, ngx, ngy, ngz, choose_sort, weighted, choose_build, &
+       ncpu_merge, ngx, ngy, ngz, &
        vis_on, steering,  vis_select, mc_init, restart, scheme, particle_bcs, &
        coulomb,  bfields,  bonds, lenjones, target_dup, ramp, &
-       debug_level, debug_tree, ncpu_merge, balance, curve_type, ifreeze, walk_scheme, &
+       ncpu_merge, balance, ifreeze, &
        constrain_proof, len_tripod, struct_step, uthresh, domain_cut, glue_radius, &
-       debug_rank, np_mult, fetch_mult,nbuf_max, te_perturb, tpert, kpert, &
+       debug_rank, debug_level, nbuf_max, te_perturb, tpert, kpert, &
        q_factor, netcdf, launch, foam_geom, force_tolerance, dynamic_memalloc, &
        eps, force_const, idim, force_law, &
        xh_start, xh_end, nxh, xgav_start, xgav_end, ngav, xgav_pos, &

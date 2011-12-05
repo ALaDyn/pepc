@@ -13,14 +13,14 @@
 subroutine setup
   use module_fmm_framework
   use module_mirror_boxes
-!  use module_tree_walk
   use module_physvars
+  use module_setup
 
   implicit none
   include 'mpif.h'
   integer :: ne_rest, ni_rest, ierr
 
-  character(50) :: parameterfile
+  character(len=255) :: parameterfile
   integer :: read_param_file
 
   integer*4 IARGC
@@ -115,10 +115,6 @@ subroutine setup
   constrain_proof = .001
   struct_step = 0
 
-  choose_sort = 2
-  weighted = 0
-  choose_build = 0
-
 ! Vectors for periodic bcs
   t_lattice_1(1:3)=(/1.,0.,0./)
   t_lattice_2(1:3)=(/0.,1.,0./)
@@ -126,26 +122,13 @@ subroutine setup
   periodicity(1:3) = (/.false., .false., .false./)  !< boolean switches for determining periodicity directions
   do_extrinsic_correction = .false.
 
- ! rank 0 reads in first command line argument
-  read_param_file = 0
-  if (my_rank .eq. 0) then
-     if( IARGC() .ne. 0 ) then
-        call GETARG(1, parameterfile)
-        read_param_file = 1
-     end if
-  end if
-
-  call MPI_BCAST( read_param_file, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr )
-
-  ! broadcast file name, read actual inputs from namelist file
+ ! read in first command line argument
+  call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
 
   if (read_param_file .eq. 1) then
-
-     call MPI_BCAST( parameterfile, 50, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr )
-
      if(my_rank .eq. 0) write(*,*) "reading parameter file: ", parameterfile
      open(10,file=parameterfile)
-     read(10,NML=pepcdata)
+     read(10,NML=pepcb)
      close(10)
   else
      if(my_rank .eq. 0) write(*,*) "##### using default parameter #####"
@@ -177,7 +160,7 @@ subroutine setup
   new_label = npart_total  ! Rezone label
 
 
-  if (target_dup .or. scheme==5) np_mult = np_mult*2  ! double up particle array size if multi-target or ion config mode 
+  !if (target_dup .or. scheme==5) np_mult = np_mult*2  ! double up particle array size if multi-target or ion config mode 
 
   if (.not. restart .and. plasma_config .ge. 10) npart_total = npart_total + 2*SUM(n_layer) ! Include particles from remaining layers for array setup.
 
