@@ -24,6 +24,7 @@ program pepce
   use omp_lib
 
   use module_setup
+  use module_tree_walk, only: num_walk_threads
 
   use treetypes, only: &
        t_calc_force_params
