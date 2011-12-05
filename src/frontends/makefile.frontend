@@ -1,3 +1,12 @@
+# This is the generic frontend-makefile for pepc.
+# Please do not touch anything here unless you really know what you are
+# doing. This file has to be compatible to *all* frontends: No
+# frontend-specific modifications are allowed here.
+#
+# Consider your frontend-makefile about who to perform frontend-specific 
+# modifications to the build system.
+#
+#
 LIBNAME     = $(MYROOT)$(LIBDIR)l$(FRONTENDNAME).a
 PEPCUTILS   = $(MYROOT)$(UTILSDIR)
 BUILDDIR    = $(MACH)/$(BACKEND)/

@@ -66,7 +66,7 @@ program pepce
 
   use module_tree_walk, only: &
        num_walk_threads
-
+  use treevars, only : nleaf, nleaf_me, ntwig, ntwig_me
 
   implicit none
   include 'mpif.h'
@@ -155,7 +155,7 @@ program pepce
      
      call pepc_fields(np_local, npart_total, particles, &
           np_mult, cf_par, itime, num_neighbour_boxes, neighbour_boxes, .true., .true.)
-     
+write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nleaf_me
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
 
