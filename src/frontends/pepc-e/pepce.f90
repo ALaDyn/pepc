@@ -107,7 +107,7 @@ program pepce
      call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
                   q(1:np_local),work(1:np_local),pelabel(1:np_local), &
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      np_mult, cf_par, itime, &
+                      cf_par, itime, &
                       num_neighbour_boxes, neighbour_boxes, .false., .false.)
 
      if (itime == nt) then
