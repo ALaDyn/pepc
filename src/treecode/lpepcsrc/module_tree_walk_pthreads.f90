@@ -498,7 +498,7 @@ module module_tree_walk
   implicit none
 
   private
-
+  
     integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
 
     integer, public :: num_walk_threads = 3 !< number of worker threads
@@ -521,9 +521,11 @@ module module_tree_walk
       integer  :: addr
       integer*8 :: key
     end type t_defer_list_entry
-
+    
+    namelist /walk_para/ num_walk_threads, max_particles_per_thread
 
     public tree_walk
+    public walk_para
 
   contains
 
@@ -579,8 +581,6 @@ module module_tree_walk
       tcomm = timings_comm
 
     end subroutine tree_walk
-
-
 
     subroutine walk_hybrid()
       use module_tree_walk_pthreads_commutils
