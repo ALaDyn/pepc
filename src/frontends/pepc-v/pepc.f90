@@ -53,7 +53,7 @@ program pepcv
   call pepc_setup(itime, trun)
 
   ! Allocate array space for tree
-  call libpepc_setup(my_rank,n_cpu,db_level)
+  call libpepc_setup(my_rank,n_cpu)
 
   ! Set up particles
   call special_start()
@@ -64,8 +64,6 @@ program pepcv
   cf_par%eps2        = eps**2
   cf_par%force_const = force_const
   cf_par%force_law   = 2
-  cf_par%weighted    = weighted
-  cf_par%curve_type  = curve_type
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -81,7 +79,7 @@ program pepcv
         call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
         call timer_start(t_tot)
 
-        call pepc_fields(np, n, vortex_particles, np_mult, cf_par, itime, &
+        call pepc_fields(np, n, vortex_particles, cf_par, itime, &
                          1, [0, 0, 0], .false., .true.)
 
         call push_rk2(stage)
