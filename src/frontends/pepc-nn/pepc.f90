@@ -23,6 +23,8 @@ program pepce
   ! TODO: use omp_lib, only: ...
   use omp_lib
 
+  use module_setup
+
   use treetypes, only: &
        t_calc_force_params
 

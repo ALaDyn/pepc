@@ -16,8 +16,8 @@ FULLBACKENDDIR = $(MYROOT)$(INTSPECDIR)$(BACKEND)/
 # Source files
 PEPCSRC.f90 =   treevars.f90 tree_utils.f90 timings.f90 treetypes.f90 \
                 module_debug.f90 module_math_tools.f90 module_mirror_boxes.f90\
-                libpepc_setup.f90 module_tree_domains.f90 \
-                module_allocation.f90 libpepc_finalize.f90 tree_stats.f90 \
+                module_setup.f90 module_tree_domains.f90 \
+                module_allocation.f90 tree_stats.f90 \
                 module_tree.f90 module_spacefilling.f90 module_htable.f90 \
                 module_pepcfields.f90 module_branching.f90 module_tree_walk_communicator.f90
 ifeq ($(SMPSS), 1)

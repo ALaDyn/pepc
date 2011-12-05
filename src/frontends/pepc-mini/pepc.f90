@@ -26,6 +26,7 @@ program pepcmini
   use module_mirror_boxes
   use module_pepcfields
   use files
+  use module_setup
   implicit none
   include 'mpif.h'
 

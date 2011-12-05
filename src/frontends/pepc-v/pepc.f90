@@ -16,6 +16,7 @@ program pepcv
   use timings
   use files
   use diagnostics
+  use module_setup
   implicit none
   include 'mpif.h'
 

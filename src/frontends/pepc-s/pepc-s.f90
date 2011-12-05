@@ -25,6 +25,7 @@ module module_pepcs
         use module_fmm_framework
         use module_mirror_boxes
         use module_pepcfields
+        use module_setup
         implicit none
         include 'mpif.h'
 
@@ -74,7 +75,7 @@ module module_pepcs
         ! Get the number of MPI tasks
         call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
         ! pepc-initialization
-        call libpepc_setup(my_rank,n_cpu,int(db_level)) ! TODO: db_level is currently ignored
+        call libpepc_setup(my_rank,n_cpu,int(db_level))
         ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
         t_lattice_1 = lat_x
         t_lattice_2 = lat_y

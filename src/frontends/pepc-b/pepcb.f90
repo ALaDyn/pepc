@@ -41,6 +41,7 @@ program pepcb
   use module_fmm_framework
   use module_pepc_wrappers
   use module_particle_boundaries
+  use module_setup
 
   implicit none
   include 'mpif.h'
