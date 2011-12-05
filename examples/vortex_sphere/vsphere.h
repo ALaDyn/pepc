@@ -1,8 +1,7 @@
-&pepcdata
+&pepcv
 
  ispecial = 3
 
- num_walk_threads = 2
  mac = 0
  theta = 0.0
 
@@ -20,6 +19,11 @@
 
  dump_time = 1
  cp_time = 1
+/
+
+&walk_para
+
+ num_walk_threads = 2
 
 /
 

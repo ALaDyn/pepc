@@ -110,7 +110,7 @@ contains
 
             if(my_rank .eq. 0) write(*,*) "reading parameter file: ", parameterfile
             open(10,file=parameterfile)
-            read(10,NML=pepcdata)
+            read(10,NML=pepcv)
             close(10)
 
         else
