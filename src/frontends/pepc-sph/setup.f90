@@ -20,7 +20,7 @@ subroutine pepc_setup()
 
   integer :: ierr, npart_tmp
 
-  character(50) :: parameterfile
+  character(255) :: parameterfile
   integer :: read_param_file
 
 

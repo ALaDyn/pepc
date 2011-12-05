@@ -67,12 +67,10 @@ contains
 
         integer :: ierr
 
-        character(50) :: parameterfile
+        character(255) :: parameterfile
         integer :: read_param_file
 
-        integer*4 IARGC
-
-        namelist /pepcdata/ n, mac, theta, eps, ispecial, dt, ts, te, &
+        namelist /pepcv/ n, mac, theta, eps, ispecial, dt, ts, te, &
         h, m_h, nu, rem_freq, thresh, &
         rmax, r_torus, nc, nphi, g, torus_offset, n_in, &
         dump_time, cp_time, input_itime

@@ -28,7 +28,7 @@ subroutine pepc_setup()
 
   integer :: ierr, ifile
 
-  character(50) :: parameterfile
+  character(255) :: parameterfile
   integer :: read_param_file
 
   namelist /pepcmw/ &
