@@ -22,11 +22,11 @@ module files
          open(70,file='domains.dat')
      endif
 
-     if (db_level > 0) then
-       call system("mkdir -p " // "diag")
-       write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
-       open(20, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
-     endif
+     !if (db_level > 0) then
+     !  call system("mkdir -p " // "diag")
+     !  write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
+     !  open(20, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
+     !endif
 
     end subroutine openfiles
 

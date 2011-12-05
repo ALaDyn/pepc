@@ -46,9 +46,6 @@ subroutine pepc_setup()
   system_config   =   2
   target_geometry =   0
 
-  weighted = 1
-  curve_type = 1
-
   ! particles
   nep = 0    ! # plasma electrons per PE
   nip = 0
@@ -246,11 +243,11 @@ subroutine pepc_setup()
      !write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
   end if
 
-  if (db_level > 4) then
-     call system("mkdir -p " // "diag")
-     write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
-     open(20, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
-  endif
+  !if (db_level > 4) then
+  !   call system("mkdir -p " // "diag")
+  !   write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
+  !   open(20, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
+  !endif
 
 
 end subroutine pepc_setup

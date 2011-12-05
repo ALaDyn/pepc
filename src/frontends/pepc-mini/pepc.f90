@@ -61,7 +61,7 @@ program pepcmini
   call pepc_setup()
 
   ! Allocate array space for tree
-  call libpepc_setup(my_rank,n_cpu,db_level)
+  call libpepc_setup(my_rank,n_cpu)
 
   ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
   call fmm_framework_init(my_rank, wellsep = 1)

@@ -25,7 +25,7 @@ subroutine pepc_setup()
   integer :: read_param_file
 
 
-  namelist /pepcdata/ np_mult, ne, ni, &
+  namelist /pepcmini/ ne, ni, &
        mac, theta, q_factor, eps, ispecial, &
        r_sphere, idim, nt, dt, &
        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction
@@ -61,7 +61,7 @@ subroutine pepc_setup()
 
      if(my_rank .eq. 0) write(*,*) "reading parameter file: ", parameterfile
      open(10,file=parameterfile)
-     read(10,NML=pepcdata)
+     read(10,NML=pepcmini)
      close(10)
 
   else
