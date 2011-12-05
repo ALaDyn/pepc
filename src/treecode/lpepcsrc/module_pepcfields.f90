@@ -100,7 +100,7 @@ contains
 
         allocate(indxl(nppmax),irnkl(nppmax))
         ! Domain decomposition: allocate particle keys to PEs
-        call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, cf_par%weighted, cf_par%curve_type, neighbour_pe_particles)
+        call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, neighbour_pe_particles)
         call allocate_tree(cf_par%theta2)
 
         ! build local part of tree

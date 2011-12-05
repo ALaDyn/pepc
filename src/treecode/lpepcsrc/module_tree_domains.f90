@@ -14,6 +14,8 @@ module module_tree_domains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    integer, public :: weighted = 1 !< set to 0 to disable load balancing, 1 to enable load balancing
+
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -42,7 +44,7 @@ module module_tree_domains
     !>  - weighting according to load incurred on previous timestep
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine tree_domains(particles, nppm, indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,weighted,curve_type_,neighbour_pe_particles)
+    subroutine tree_domains(particles, nppm, indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold,neighbour_pe_particles)
 
         use treevars
         use module_interaction_specific
@@ -56,12 +58,10 @@ module module_tree_domains
         type(t_particle), allocatable, intent(inout) :: particles(:)
 
         integer, intent(in) :: nppm !< maximum allowed number of particles on this PE
-        integer, intent(in) :: weighted
         integer, intent(out) :: indxl(nppm),irnkl(nppm)
         integer, intent(out) :: islen(num_pe),irlen(num_pe)
         integer, intent(out) :: fposts(num_pe+1),gposts(num_pe+1)
         integer :: npnew,npold
-        integer, intent(in) :: curve_type_ !< type of space-filling curve
         integer, intent(out) :: neighbour_pe_particles !< number of particles that have been fetched from neighbouring PEs - they are stored in particles(npp+1:npp+neighbour_pe_particles)
 
         integer*8, dimension(nppm) :: ixd, iyd, izd
@@ -104,8 +104,6 @@ module module_tree_domains
         real*8 work2(nppm)
         integer irnkl2(nppm)
         integer*8 :: local_keys(nppm)
-
-        curve_type = curve_type_
 
         call timer_start(t_domains)
         call timer_start(t_domains_keys)
