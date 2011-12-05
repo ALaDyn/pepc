@@ -85,11 +85,11 @@ module module_io
 		  endif
 
 		  !  stdout for PE me
-		  if (db_level > 0) then
-            call system("mkdir -p " // "diag")
-            write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
-		    open(file_ipefile, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
-		  endif
+                  !if (db_level > 0) then
+                  !call system("mkdir -p " // "diag")
+                  !write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
+		  !  open(file_ipefile, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
+		  !endif
 
 		  ipefile = file_ipefile ! copy file handle to core
 
@@ -134,7 +134,7 @@ module module_io
              close(file_energy_dat)
 		     close(90)
 		  endif
-		  if (db_level > 0) close(file_ipefile)
+		  !if (db_level > 0) close(file_ipefile)
 		  close(file_parts_info_in)  ! initial particle data
 
 

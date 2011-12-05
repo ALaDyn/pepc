@@ -82,7 +82,7 @@ program pepc
   call pepc_setup()
 
   ! Allocate array space for tree
-  call libpepc_setup(my_rank,n_cpu,db_level)
+  call libpepc_setup(my_rank,n_cpu)
 
   ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
   call fmm_framework_init(my_rank, wellsep = 1)
@@ -114,8 +114,6 @@ program pepc
   cf_par%eps2        = eps**2
   cf_par%force_const = force_const
   cf_par%force_law   = 3
-  cf_par%weighted    = weighted
-  cf_par%curve_type  = curve_type
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -145,7 +143,7 @@ program pepc
      call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
                  q(1:np_local),work(1:np_local),pelabel(1:np_local), &
         	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      np_mult, cf_par, itime,  &
+              	      cf_par, itime,  &
                       num_neighbour_boxes, neighbour_boxes, treediags, .false.)
 
   !   call verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, [1, 2, np_local-1, np_local], &

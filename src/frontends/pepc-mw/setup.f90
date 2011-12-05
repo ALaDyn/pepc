@@ -16,7 +16,7 @@ subroutine pepc_setup()
   use module_setup
   use module_fmm_framework
   use module_mirror_boxes
-  use module_tree_walk
+  use module_setup
   use module_icosahedron
   use module_laser
   use module_pusher
@@ -31,13 +31,9 @@ subroutine pepc_setup()
   character(50) :: parameterfile
   integer :: read_param_file
 
-  integer*4 IARGC
-
-
-  namelist /pepcdata/ &
-       np_mult, num_walk_threads, mac, theta, max_particles_per_thread, &
-       weighted, curve_type, &                                      ! algorithm parameters
-       ne,  eps, V0_eV, nt, dt, idump, db_level, itime_in, idump_vtk, idump_checkpoint, idump_binary, treediags, & ! fundamental stuff
+  namelist /pepcmw/ &
+       mac, theta, &
+       ne,  eps, V0_eV, nt, dt, idump, itime_in, idump_vtk, idump_checkpoint, idump_binary, treediags, & ! fundamental stuff
        ispecial, rhoe_nm3, Zion, Aion, Te_eV, Ti_eV, Te_K, Ti_K, rngseed, &   ! experimental setup
        workflow_setup, &                                             ! workflow
        integrator_scheme, enable_drift_elimination, &                ! pusher configuration
@@ -49,13 +45,7 @@ subroutine pepc_setup()
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  default parameters            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  db_level        = 0
-
-  np_mult         = -45
-
   ispecial        = 1
-
-  weighted        = 1
 
   ! particles
   ne  = 200! Total # plasma electrons
@@ -96,27 +86,15 @@ subroutine pepc_setup()
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  read parameter file           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! rank 0 reads in first command line argument
-  read_param_file = 0
-  if (my_rank .eq. 0) then
-     if( IARGC() .ne. 0 ) then
-        call GETARG(1, parameterfile)
-        read_param_file = 1
-     end if
-  end if
-
-  call MPI_BCAST( read_param_file, 1, MPI_INTEGER, 0, MPI_COMM_PEPC, ierr )
-
-  ! broadcast file name, read actual inputs from namelist file
-
+  ! read in first command line argument
+  call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
   if (read_param_file .eq. 1) then
-
-     call MPI_BCAST( parameterfile, 50, MPI_CHARACTER, 0, MPI_COMM_PEPC, ierr )
 
      if(my_rank .eq. 0) write(*,*) "reading parameter file: ", parameterfile
      open(10,file=parameterfile)
-     read(10,NML=pepcdata)
+     read(10,NML=pepcmw)
      close(10)
+
   else
      if(my_rank .eq. 0) write(*,*) "##### using default parameter #####"
   end if
@@ -249,8 +227,8 @@ subroutine pepc_setup()
   if (my_rank == 0) then
     write(*,*) "Starting PEPC-MW with",n_cpu," Processors, simulating",np_local, &
 			" Particles on each Processor in",nt,"timesteps..."
-	write(*,*) "Using",num_walk_threads,"worker-threads in treewalk on each processor (i.e. per MPI rank)"
-    write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
+    !write(*,*) "Using",num_walk_threads,"worker-threads in treewalk on each processor (i.e. per MPI rank)"
+    !write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
   end if
 
 
