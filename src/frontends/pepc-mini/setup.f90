@@ -15,33 +15,24 @@ subroutine pepc_setup()
   use tree_utils
   use module_fmm_framework
   use module_mirror_boxes
-  use module_tree_walk
+  use module_setup
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, npart_tmp
+  integer :: npart_tmp
 
-  character(50) :: parameterfile
+  character(len=255) :: parameterfile
   integer :: read_param_file
 
-  integer*4 IARGC
 
-
-
-  namelist /pepcdata/ np_mult, ne, ni, num_walk_threads, max_particles_per_thread, &
-       mac, theta, q_factor, eps, ispecial, weighted, curve_type, &
-       r_sphere, idim, nt, dt, db_level, &
+  namelist /pepcdata/ np_mult, ne, ni, &
+       mac, theta, q_factor, eps, ispecial, &
+       r_sphere, idim, nt, dt, &
        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction
 
 
   !  Default input set
-  db_level        =   0
-
-  np_mult         = -45
-
   ispecial        =   1
-
-  weighted        =   1
 
   ! particles
   nep = 0    ! # plasma electrons per PE
@@ -63,27 +54,16 @@ subroutine pepc_setup()
   dt           = 0.01
   trun         = 0.
 
-  ! rank 0 reads in first command line argument
-  read_param_file = 0
-  if (my_rank .eq. 0) then
-     if( IARGC() .ne. 0 ) then
-        call GETARG(1, parameterfile)
-        read_param_file = 1
-     end if
-  end if
-
-  call MPI_BCAST( read_param_file, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr )
-
-  ! broadcast file name, read actual inputs from namelist file
+  ! read in first command line argument
+  call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
 
   if (read_param_file .eq. 1) then
-
-     call MPI_BCAST( parameterfile, 50, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr )
 
      if(my_rank .eq. 0) write(*,*) "reading parameter file: ", parameterfile
      open(10,file=parameterfile)
      read(10,NML=pepcdata)
      close(10)
+
   else
      if(my_rank .eq. 0) write(*,*) "##### using default parameter #####"
   end if
@@ -133,8 +113,8 @@ subroutine pepc_setup()
   if (my_rank == 0) then
      write(*,*) "Starting PEPC-MINI with",n_cpu," Processors, simulating",np_local, &
                          " Particles on each Processor in",nt,"timesteps..."
-     write(*,*) "Using",num_walk_threads,"worker-threads and 1 communication thread in treewalk on each processor (i.e. per MPI rank)"
-     write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
+     !write(*,*) "Using",num_walk_threads,"worker-threads and 1 communication thread in treewalk on each processor (i.e. per MPI rank)"
+     !write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
   end if
 
 end subroutine pepc_setup

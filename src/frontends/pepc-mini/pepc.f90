@@ -75,8 +75,6 @@ program pepcmini
   cf_par%eps2        = eps**2
   cf_par%force_const = force_const
   cf_par%force_law   = 3
-  cf_par%weighted    = weighted
-  cf_par%curve_type  = curve_type
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -94,7 +92,7 @@ program pepcmini
      call timer_start(t_tot)
 
     call pepc_fields(np_local, npart_total, particles, &
-        np_mult, cf_par, itime, num_neighbour_boxes, neighbour_boxes, .false., .false.)
+        cf_par, itime, num_neighbour_boxes, neighbour_boxes, .false., .false.)
 
      ! Integrator
      call velocities(1,np_local,dt)
