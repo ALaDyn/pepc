@@ -58,7 +58,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     public children_available
-    public get_next_node
+    public get_next_node_key
     public get_childkeys
     public make_hashentry
     public key2addr
@@ -206,12 +206,12 @@ module module_htable
     !> i.e. search for next sibling, uncle, great-uncle etc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    function get_next_node(keyin)
+    function get_next_node_key(keyin)
 
         use treevars
 
         implicit none
-        integer*8 :: get_next_node
+        integer*8 :: get_next_node_key
         integer*8, intent(in) :: keyin
 
         integer*8 :: search_key, parent_key
@@ -239,15 +239,15 @@ module module_htable
 
                 ! if sibling exists: next_node has been found
                 if ( btest(parent_child_byte, search_child_idx) ) then
-                    get_next_node = ior(int(ishft(parent_key, 3), kind(search_child_idx)), search_child_idx) ! assemble next_node out of parent-key and new sibling-index
+                    get_next_node_key = ior(int(ishft(parent_key, 3), kind(search_child_idx)), search_child_idx) ! assemble next_node out of parent-key and new sibling-index
                     return
                 endif
             end do
         end do
 
-        get_next_node  = 1 ! nothing has been found, i.e. top-right corner reached: set pointer=root
+        get_next_node_key  = 1 ! nothing has been found, i.e. top-right corner reached: set pointer=root
 
-    end function get_next_node
+    end function get_next_node_key
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>

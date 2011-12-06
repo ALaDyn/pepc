@@ -329,7 +329,7 @@ subroutine tree_walk_smpss_walk_and_interact(particle_list, particle_status, par
 
         caddr = key2addr(cstat, 'SMPSS-WALK')
         cnode = htable( caddr ) % node
-        cnext = get_next_node( cstat )
+        cnext = get_next_node_key( cstat )
         clevl = level_from_key( cstat )
 
 !!!!! not myself in central box
@@ -451,7 +451,7 @@ subroutine tree_walk_smpss_walk_prefetch(x, particle_requests, size)
 
         caddr = key2addr(cstat, 'SMPSS-WALK')
         cnode = htable( caddr ) % node
-        cnext = get_next_node( cstat )
+        cnext = get_next_node_key( cstat )
         clevl = level_from_key( cstat )
 
 !!!!! not myself in central box
