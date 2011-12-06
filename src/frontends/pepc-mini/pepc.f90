@@ -27,11 +27,11 @@ program pepcmini
   use module_pepcfields
   use files
   use module_setup
+  use module_calc_force, only : theta2, eps2, mac_select, force_law
   implicit none
   include 'mpif.h'
 
   integer :: ierr, ifile
-  type(t_calc_force_params) ::cf_par
 
   ! Allocate array space for tree
   call libpepc_setup("pepc-mini", my_rank, n_cpu)
@@ -53,11 +53,10 @@ program pepcmini
   call special_start(ispecial)
 
   ! initialize calc force params
-  cf_par%theta2      = theta**2
-  cf_par%mac         = mac
-  cf_par%eps2        = eps**2
-  cf_par%force_const = force_const
-  cf_par%force_law   = 3
+  theta2      = theta**2
+  mac_select  = mac
+  eps2        = eps**2
+  force_law   = 3
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -75,7 +74,7 @@ program pepcmini
      call timer_start(t_tot)
 
     call pepc_fields(np_local, npart_total, particles, &
-        cf_par, itime, num_neighbour_boxes, neighbour_boxes, .false., .false.)
+        itime, num_neighbour_boxes, neighbour_boxes, .false., .false.)
 
      ! Integrator
      call velocities(1,np_local,dt)

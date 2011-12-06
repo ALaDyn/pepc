@@ -214,6 +214,7 @@ subroutine fields_2d
   use module_physvars
   use module_particle_props
   use module_pepc_wrappers
+  use module_calc_force, only : eps2
   use treetypes
   implicit none
   include 'mpif.h'
@@ -267,11 +268,11 @@ subroutine fields_2d
 
   call pepc_grid_fields_coulomb_wrapper(ngp,p_x, p_y, p_z, p_label, &
 	     p_Ex, p_Ey, p_Ez, p_pot, &
-	     cf_par, num_neighbour_boxes, neighbour_boxes)
+	     num_neighbour_boxes, neighbour_boxes)
 
   if (field_debug) then
-     write (*,'(a7,a50/2i5,3f15.2,i2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
-			itime, mac, theta, t_calc_force_params(eps, force_const, force_law)
+     write (*,'(a7,a50/2i5,3f15.2,i2)') 'PEPC | ','Params: itime, mac, theta, eps:', &
+			itime, mac, theta, sqrt(eps2)
      write (*,'(a7,a20/(i10,5(1pe14.5)))') 'PEPC | ','fields: ',(p_label(i), p_x(i), p_y(i), p_ex(i), p_ey(i), p_pot(i),i=1,ngp)
   endif
 

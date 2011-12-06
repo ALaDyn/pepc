@@ -25,8 +25,7 @@ program pepce
 
   use module_setup
 
-  use treetypes, only: &
-       t_calc_force_params
+  use module_calc_force, only : mac_select, force_law
 
   use physvars, only: &
        trun, &
@@ -71,7 +70,6 @@ program pepce
 
   integer :: omp_thread_num
   integer :: ierr, ifile
-  type(t_calc_force_params) ::cf_par
 
   ! Allocate array space for tree
   call libpepc_setup("pepc-nn", my_rank, n_cpu)
@@ -104,8 +102,8 @@ program pepce
   call special_start(ispecial)
 
   ! initialize calc force params
-  cf_par%mac         = 1 ! NN MAC
-  cf_par%force_law   = 5 ! NN "Interaction"
+  mac_select  = 1 ! NN MAC
+  force_law   = 5 ! NN "Interaction"
 
   particles(:)%work = 1._8
 
@@ -126,7 +124,7 @@ program pepce
      call timer_start(t_tot)
      
      call pepc_fields(np_local, npart_total, particles, &
-          cf_par, itime, num_neighbour_boxes, neighbour_boxes, .true., .true.)
+          itime, num_neighbour_boxes, neighbour_boxes, .true., .true.)
 write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nleaf_me
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags

@@ -9,7 +9,7 @@ module module_tree_walk
 contains
   
   subroutine tree_walk(nparticles_, particles_, &
-       cf_par_, twalk, twalk_loc_, vbox_, tcomm)
+       twalk, twalk_loc_, vbox_, tcomm)
     use treetypes
     use tree_utils
     use timings
@@ -19,7 +19,6 @@ contains
     implicit none
     include 'mpif.h'
     
-    type(t_calc_force_params), intent(in) :: cf_par_
     integer, intent(in) :: nparticles_
     type(t_particle), target, intent(in) :: particles_(:)
     real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed                           
@@ -89,7 +88,7 @@ contains
     twalk = MPI_WTIME()
 
     !!!!! init constants in common module
-    call tree_walk_smpss_setconst(nparticles_, particles_, cf_par_, vbox_)
+    call tree_walk_smpss_setconst(nparticles_, particles_, vbox_)
 
     !!!!! setup chunks 
     call tree_walk_smpss_setup_chunks
@@ -307,7 +306,7 @@ subroutine tree_walk_smpss_walk_and_interact(particle_list, particle_status, par
         tdist  = particles(cpart)%x - (tree_nodes(cnode)%coc + vbox)
         tdist2 = tdist(1)**2 + tdist(2)**2 + tdist(3)**2 
 
-        fmac = mac(particles(cpart), cnode, cf_par, tdist2, boxlength2(clevl))
+        fmac = mac(particles(cpart), cnode, tdist2, boxlength2(clevl))
 
         if(flog) write(*,'(a,l2,i5,o21)') "** mac & cnode & cnext", fmac, cnode, cnext
 
@@ -317,7 +316,7 @@ subroutine tree_walk_smpss_walk_and_interact(particle_list, particle_status, par
            if(flog) write(*,'(a)') "** compute force"
 
 !!!!! compute force
-           call calc_force_per_interaction(particles(cpart), cnode, tdist, tdist2, vbox, cf_par)
+           call calc_force_per_interaction(particles(cpart), cnode, tdist, tdist2, vbox)
 
 !!!!! need to traverse deeper, cnode is a twig (node < 0)
         else if ( .not.fmac .and. cnode .lt. 0 ) then
@@ -429,7 +428,7 @@ subroutine tree_walk_smpss_walk_prefetch(x, particle_requests, size)
         tdist = x - (tree_nodes(cnode)%coc + vbox(1))
         tdist2 = tdist(1)**2 + tdist(2)**2 + tdist(3)**2 
 
-        fmac = (cf_par%theta2 * tdist2 > boxlength2(clevl))
+        fmac = (theta2 * tdist2 > boxlength2(clevl))
 
 !!!!! mac fits, or node is a leaf (node > 0), but not myself
         if ( (fmac .or. cnode.gt.0) .and. .not.fsamenode ) then

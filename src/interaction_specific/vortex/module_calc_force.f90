@@ -20,6 +20,10 @@ module module_calc_force
       real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
       real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
+      integer, public :: force_law    = 2      !< 2 = calc_2nd_algebraic_condensed
+      integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
+      real*8, public  :: theta2       = 0.6**2.  !< square of multipole opening angle
+      real*8, public  :: sig2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -58,21 +62,20 @@ module module_calc_force
         !> generic Multipole Acceptance Criterion
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function mac(particle, node, cf_par, dist2, boxlength2)
+        function mac(particle, node, dist2, boxlength2)
             use treetypes
             implicit none
 
             logical :: mac
             integer, intent(in) :: node
-            type(t_calc_force_params), intent(in) :: cf_par
             real*8, intent(in) :: dist2
             real*8, intent(in) :: boxlength2
             type(t_particle), intent(in) :: particle
 
-            select case (cf_par%mac)
+            select case (mac_select)
                 case (0)
                     ! Barnes-Hut-MAC
-                    mac = (cf_par%theta2 * dist2 > boxlength2)
+                    mac = (theta2 * dist2 > boxlength2)
                 case default
                     ! N^2 code
                     mac = .false.
@@ -106,7 +109,7 @@ module module_calc_force
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox, cf_par)
+        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox)
           use treetypes
           implicit none
 
@@ -118,21 +121,20 @@ module module_calc_force
           !>    real    :: eps
           !>    real    :: force_const
           !>    integer :: force_law   0= no interaction (default); 2=2nd order condensed algebraic kernel; 3=2nd order decomposed algebraic kernel
-          type(t_calc_force_params), intent(in) :: cf_par
 
           real*8 :: u(3), af(3)
 
-          select case (cf_par%force_law)
+          select case (force_law)
             case (2)  !  use 2nd order algebraic kernel, condensed
-                call calc_2nd_algebraic_condensed(particle, inode, delta, dist2, cf_par, u, af)
+                call calc_2nd_algebraic_condensed(particle, inode, delta, dist2, u, af)
 
             case (3)  !  TODO: use 2nd order algebraic kernel, decomposed
-                !call calc_2nd_algebraic_decomposed(particle, inode, delta, dist2, cf_par, u, af)
+                !call calc_2nd_algebraic_decomposed(particle, inode, delta, dist2, u, af)
                 u = 0.
                 af = 0.
 
             case (4)  !  TODO: use 6th order algebraic kernel, decomposed
-                !call calc_6th_algebraic_decomposed(inode, delta, dist2, cf_par, u, af)
+                !call calc_6th_algebraic_decomposed(inode, delta, dist2, u, af)
                 u = 0.
                 af = 0.
 
@@ -142,8 +144,8 @@ module module_calc_force
           end select
 
           ! TODO: factor out multiplication of force_const, does not depend on actual interaction-pair
-          particle%results%u(1:3)    = particle%results%u(1:3)     - cf_par%force_const * u(1:3)
-          particle%results%af(1:3)   = particle%results%af(1:3)    + cf_par%force_const * af(1:3)
+          particle%results%u(1:3)    = particle%results%u(1:3)     -  u(1:3)
+          particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
           particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
 
         end subroutine calc_force_per_interaction
@@ -155,13 +157,12 @@ module module_calc_force
         !> to be added once per particle (not required in vortex bubu, yet)
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_particle(particles, nparticles, cf_par)
+        subroutine calc_force_per_particle(particles, nparticles)
           use treetypes
           implicit none
 
           integer, intent(in) :: nparticles
           type(t_particle), intent(inout) :: particles(:)
-          type(t_calc_force_params), intent(in) :: cf_par
 
         end subroutine calc_force_per_particle
 
@@ -173,7 +174,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        subroutine calc_2nd_algebraic_condensed(particle, inode, d, dist2, cf_par, u, af)
+        subroutine calc_2nd_algebraic_condensed(particle, inode, d, dist2, u, af)
             use treetypes
             use treevars
             use module_interaction_specific
@@ -182,7 +183,6 @@ module module_calc_force
             type(t_particle), intent(in) :: particle
             integer, intent(in) :: inode !< index of particle to interact with
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-            type(t_calc_force_params), intent(in) :: cf_par !< Force parameters - see module_treetypes
             real*8, intent(out) ::  u(1:3), af(1:3)
 
             type(t_multipole_data), pointer :: t
@@ -203,8 +203,6 @@ module module_calc_force
             dx = d(1)
             dy = d(2)
             dz = d(3)
-
-            sig2 = cf_par%eps2
 
             vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
 
@@ -303,7 +301,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!        subroutine calc_2nd_algebraic_decomposed(inode, d, dist2, cf_par, u, af)
+!        subroutine calc_2nd_algebraic_decomposed(inode, d, dist2, u, af)
 !
 !        end subroutine calc_2nd_algebraic_decomposed
 

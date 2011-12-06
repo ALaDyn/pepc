@@ -20,6 +20,12 @@ module module_calc_force
       real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
       real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
+      integer, public :: force_law    = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
+      integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
+      logical, public :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
+      real*8, public  :: theta2       = 0.6**2.  !< square of multipole opening angle
+      real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
+
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -53,20 +59,19 @@ module module_calc_force
       !> generic Multipole Acceptance Criterion
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      function mac(particle, node, cf_par, dist2, boxlength2)
+      function mac(particle, node, dist2, boxlength2)
         implicit none
 
         logical :: mac
         integer, intent(in) :: node
         type(t_particle), intent(in) :: particle
-        type(t_calc_force_params), intent(in) :: cf_par
         real*8, intent(in) :: dist2
         real*8, intent(in) :: boxlength2
 
-        select case (cf_par%mac)
+        select case (mac_select)
             case (0)
               ! Barnes-Hut-MAC
-              mac = (cf_par%theta2 * dist2 > boxlength2)
+              mac = (theta2 * dist2 > boxlength2)
             case default
               ! N^2 code
               mac = .false.
@@ -100,7 +105,7 @@ module module_calc_force
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox, cf_par)
+        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox)
           use module_interaction_specific
           use treevars
           implicit none
@@ -108,25 +113,20 @@ module module_calc_force
           integer, intent(in) :: inode
           type(t_particle), intent(inout) :: particle
           real*8, intent(in) :: vbox(3), delta(3), dist2
-          !> Force law struct has following content (defined in module treetypes)
-          !> These need to be included/defined in call to fields from frontend
-          !>    real    :: eps
-          !>    real    :: force_const
-          !>    integer :: force_law   0= no interaction (default); 2=2D Coulomb; 3=3D Coulomb
-          type(t_calc_force_params), intent(in) :: cf_par
+
 
           real*8 :: exyz(3), phic
 
-          select case (cf_par%force_law)
+          select case (force_law)
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_2D(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), cf_par, exyz(1), exyz(2),phic)
+                call calc_force_coulomb_2D(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
                 exyz(3) = 0.
 
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_3D(inode, delta, dist2, cf_par, exyz(1), exyz(2), exyz(3), phic)
+                call calc_force_coulomb_3D(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
 
             case (4)  ! LJ potential for quiet start
-                call calc_force_LJ(inode, delta, dist2, cf_par, exyz(1), exyz(2), exyz(3), phic)
+                call calc_force_LJ(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
                 exyz(3) = 0.
 
             case default
@@ -134,8 +134,8 @@ module module_calc_force
               phic = 0.
           end select
 
-          particle%results%e         = particle%results%e    + cf_par%force_const * exyz
-          particle%results%pot       = particle%results%pot  + cf_par%force_const * phic
+          particle%results%e         = particle%results%e    + exyz
+          particle%results%pot       = particle%results%pot  + phic
           particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
 
         end subroutine calc_force_per_interaction
@@ -147,7 +147,7 @@ module module_calc_force
         !> to be added once per particle
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_particle(particles, nparticles, cf_par)
+        subroutine calc_force_per_particle(particles, nparticles)
           use module_interaction_specific
           use treevars, only : me
           use module_fmm_framework
@@ -156,19 +156,18 @@ module module_calc_force
 
           integer, intent(in) :: nparticles
           type(t_particle), intent(inout) :: particles(:)
-          type(t_calc_force_params), intent(in) :: cf_par
           real*8 :: ex_lattice, ey_lattice, ez_lattice, phi_lattice
           integer :: p
 
           ! calculate spherical multipole expansion of central box
-          if (cf_par%include_far_field_if_periodic) call fmm_framework_timestep(particles)
+          if (include_far_field_if_periodic) call fmm_framework_timestep(particles)
 
           potfarfield  = 0.
           potnearfield = 0.
 
-          if ((do_periodic) .and. (cf_par%include_far_field_if_periodic)) then
+          if ((do_periodic) .and. (include_far_field_if_periodic)) then
 
-             if ((me==0) .and. (cf_par%force_law .ne. 3)) write(*,*) "Warning: far-field lattice contribution is currently only supported for force_law==3"
+             if ((me==0) .and. (force_law .ne. 3)) write(*,*) "Warning: far-field lattice contribution is currently only supported for force_law==3"
 
              do p=1,nparticles
                 call fmm_sum_lattice_force(particles(p), ex_lattice, ey_lattice, ez_lattice, phi_lattice) !TODO: use coordinates from particles
@@ -176,8 +175,8 @@ module module_calc_force
                 potfarfield  = potfarfield  + phi_lattice * particles(p)%data%q
                 potnearfield = potnearfield + particles(p)%results%pot  * particles(p)%data%q
 
-                particles(p)%results%e     = particles(p)%results%e     + cf_par%force_const * [ex_lattice, ey_lattice, ez_lattice]
-                particles(p)%results%pot   = particles(p)%results%pot   + cf_par%force_const * phi_lattice
+                particles(p)%results%e     = particles(p)%results%e     + [ex_lattice, ey_lattice, ez_lattice]
+                particles(p)%results%pot   = particles(p)%results%pot   +  phi_lattice
              end do
 
           end if
@@ -192,7 +191,7 @@ module module_calc_force
         !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_coulomb_3D(inode, d, dist2, cf_par, sumfx, sumfy, sumfz, sumphi)
+        subroutine calc_force_coulomb_3D(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use treetypes
           use treevars
           implicit none
@@ -201,7 +200,6 @@ module module_calc_force
 
           integer, intent(in) :: inode !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-          type(t_calc_force_params), intent(in) :: cf_par !< Force parameters - see module_treetypes
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
 
           real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2
@@ -221,7 +219,7 @@ module module_calc_force
              dz = d(3)
 
 
-             r = sqrt(dist2+cf_par%eps2)
+             r = sqrt(dist2+eps2)
              rd = 1./r
              rd3 = rd**3
              rd5 = rd**5
@@ -295,7 +293,7 @@ module module_calc_force
         !>   Phi = -2q log R 
         !>   Ex = -dPhi/dx = 2 q x/R^2 etc 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_coulomb_2D(inode, d, dist2, cf_par, sumfx, sumfy, sumphi)
+        subroutine calc_force_coulomb_2D(inode, d, dist2, sumfx, sumfy, sumphi)
           use module_interaction_specific
           use treevars
           implicit none
@@ -304,14 +302,11 @@ module module_calc_force
 
           integer, intent(in) :: inode !< index of particle to interact with
           real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-          type(t_calc_force_params), intent(in) :: cf_par
           real*8, intent(out) ::  sumfx,sumfy,sumphi
 
           real*8 :: dx,dy,d2,rd2,rd4,rd6,dx2,dy2,dx3,dy3
-          real :: eps2
           type(t_multipole_data), pointer :: t
 
-          eps2   = cf_par%eps2
           sumfx  = 0.
           sumfy  = 0.
           sumphi = 0.
@@ -364,7 +359,7 @@ module module_calc_force
         !> results are returned sumfx, sumfy, sumfz, sumphi
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_LJ(inode, d, dist2, cf_par, sumfx, sumfy, sumfz, sumphi)
+        subroutine calc_force_LJ(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use treetypes
           use treevars
           implicit none
@@ -373,7 +368,6 @@ module module_calc_force
 
           integer, intent(in) :: inode !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-          type(t_calc_force_params), intent(in) :: cf_par
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
           real*8 :: dx,dy,dz,r2
           real*8 :: flj, epsc2, plj, aii2, aii2_r2, r
@@ -394,7 +388,7 @@ module module_calc_force
           r2 = dist2
 
           !    epsc should be > a_ii to get evenly spaced ions
-          aii2  = cf_par%eps2
+          aii2  = eps2
           epsc2 = 0.8*aii2
           plj   = 0.
 

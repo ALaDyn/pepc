@@ -5,7 +5,6 @@ module module_tree_walk_smpss_utils
 
   integer :: nparticles
   type(t_particle), pointer, dimension(:) :: particles
-  type(t_calc_force_params) :: cf_par
   real*8 :: vbox(3) !< real space shift vector of box to be processed
 
   !!!!! simiplification, max_rank = num_pe-1
@@ -44,7 +43,7 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine tree_walk_smpss_setconst(nparticles_, particles_, cf_par_, vbox_)
+  subroutine tree_walk_smpss_setconst(nparticles_, particles_, vbox_)
 
     use treevars, only: num_pe
     
@@ -52,15 +51,11 @@ contains
     
     integer, intent(in) :: nparticles_
     type(t_particle), target, intent(in) :: particles_(:)
-    type(t_calc_force_params), intent(in) :: cf_par_
     real*8, intent(in) :: vbox_(3) 
     
     nparticles       =  nparticles_
     particles        => particles_
-    cf_par           =  cf_par_
     vbox             =  vbox_
-
-    !cf_par%theta2 = cf_par%theta**2
 
     fcentral    = (vbox(1)**2 + vbox(2)**2 + vbox(3)**2 ) .eq. 0
  

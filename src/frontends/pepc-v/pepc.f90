@@ -17,13 +17,13 @@ program pepcv
   use files
   use diagnostics
   use module_setup
+  use module_calc_force, only : theta2, sig2, mac_select, force_law
   implicit none
   include 'mpif.h'
 
   integer :: ierr
   real :: trun                     ! total run time including restarts and offset
   integer :: itime, stage
-  type(t_calc_force_params) ::cf_par
 
   ! Allocate array space for tree
   call libpepc_setup("pepc-v", my_rank, n_cpu)
@@ -42,11 +42,10 @@ program pepcv
   call special_start()
 
   ! initialize calc force params
-  cf_par%theta2      = theta**2
-  cf_par%mac         = mac
-  cf_par%eps2        = eps**2
-  cf_par%force_const = force_const
-  cf_par%force_law   = 2
+  theta2      = theta**2
+  mac_select  = mac
+  sig2        = eps**2
+  force_law   = 2
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -62,8 +61,7 @@ program pepcv
         call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
         call timer_start(t_tot)
 
-        call pepc_fields(np, n, vortex_particles, cf_par, itime, &
-                         1, [0, 0, 0], .false., .true.)
+        call pepc_fields(np, n, vortex_particles, itime, 1, [0, 0, 0], .false., .true.)
 
         call push_rk2(stage)
 

@@ -20,6 +20,8 @@ module module_calc_force
       real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
       real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
+      integer, public :: force_law    = 5      !< 5=NN-list "interaction"
+      integer, public :: mac_select   = 1      !< selector for multipole acceptance criterion, 1 = NN-MAC
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -52,20 +54,19 @@ module module_calc_force
       !> generic Multipole Acceptance Criterion
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      function mac(particle, node, cf_par, dist2, boxlength2)
+      function mac(particle, node, dist2, boxlength2)
         implicit none
 
         logical :: mac
         integer, intent(in) :: node
         type(t_particle), intent(in) :: particle
-        type(t_calc_force_params), intent(in) :: cf_par
         real*8, intent(in) :: dist2
         real*8, intent(in) :: boxlength2
 
-        select case (cf_par%mac)
+        select case (mac_select)
             case (0)
               ! Barnes-Hut-MAC
-              mac = (cf_par%theta2 * dist2 > boxlength2)
+              ! mac = (theta2 * dist2 > boxlength2)
             case (1)
               ! NN-MAC: we may "interact" with the node if it is further away than maxdist2 --> this leads to the node *not* being put onto the NN-list (strange, i know)
               ! first line: original formulation, last line: after transition to formulation with only one square root
@@ -150,7 +151,7 @@ module module_calc_force
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox, cf_par)
+        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox)
           use module_interaction_specific
           use treevars
           implicit none
@@ -159,11 +160,9 @@ module module_calc_force
           type(t_particle), intent(inout) :: particle
           real*8, intent(in) :: vbox(3), delta(3), dist2
 
-          type(t_calc_force_params), intent(in) :: cf_par
-
-          select case (cf_par%force_law)
+          select case (force_law)
             case (5)
-                call update_nn_list(particle, inode, delta, dist2, cf_par)
+                call update_nn_list(particle, inode, delta, dist2)
                 particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
           end select
 
@@ -177,14 +176,13 @@ module module_calc_force
         !> to be added once per particle
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_particle(particles, nparticles, cf_par)
+        subroutine calc_force_per_particle(particles, nparticles)
           use module_interaction_specific
           use treevars, only : me
           implicit none
 
           integer, intent(in) :: nparticles
           type(t_particle), intent(inout) :: particles(:)
-          type(t_calc_force_params), intent(in) :: cf_par
 
           ! currently nothing to do here
 
@@ -196,7 +194,7 @@ module module_calc_force
         !>
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine update_nn_list(particle, inode, d, dist2, cf_par)
+        subroutine update_nn_list(particle, inode, d, dist2)
           use treetypes
           use treevars
           implicit none
@@ -204,7 +202,6 @@ module module_calc_force
 
           integer, intent(in) :: inode !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-          type(t_calc_force_params), intent(in) :: cf_par !< Force parameters - see module_treetypes
           type(t_particle), intent(inout) :: particle
 
           integer :: ierr, tmp(1)

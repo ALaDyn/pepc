@@ -36,6 +36,10 @@ module module_mirror_boxes
       logical, public :: do_periodic
       ! number of boxes to include into each direction
       integer, public :: periodicity_switches(3)
+      !> all nodes, where any(abs(coc(1:3)-particle_position(1:3)) > spatial_interaction_cutoff(1:3) are
+      !> ignored when calculating interactions (for convenient minimum image method, where only half
+      !> of the mirror boxes is included)
+      real*8 , public :: spatial_interaction_cutoff(3) = huge(0._8) * [1., 1., 1.]
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

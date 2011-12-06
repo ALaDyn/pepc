@@ -55,7 +55,7 @@ module module_directsum
         !>
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, testidx, cf_par, verbosity, my_rank, n_cpu, comm)
+        subroutine verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, testidx, verbosity, my_rank, n_cpu, comm)
           use treetypes
           implicit none
           include 'mpif.h'
@@ -68,7 +68,6 @@ module module_directsum
           real*8, dimension(:), intent(in) :: ey !< y-coordinates of particles, index 1..np_local
           real*8, dimension(:), intent(in) :: ez !< z-coordinates of particles, index 1..np_local
           real*8, dimension(:), intent(in) :: pot !< charges of particles, index 1..np_local
-          type(t_calc_force_params), intent(in) :: cf_par !< force calculation parameters
           integer, intent(in) :: verbosity !< verbosity level: 0 - only print max. relative deviations, 1 - additionally print all. relative deviations, 2 - additionally print all. calculated forces
           integer, intent(in) :: np_local !< number of local particles
           integer, dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
@@ -86,7 +85,7 @@ module module_directsum
 
           if (my_rank ==0) write(*,'("-- DIRECT VERIFICATION --")')
 
-          call directforce(x, y, z, q, np_local, testidx, ntest, cf_par, res, my_rank, n_cpu, comm)
+          call directforce(x, y, z, q, np_local, testidx, ntest, res, my_rank, n_cpu, comm)
 
           deviation     = 0.
           deviation_max = 0.
@@ -133,8 +132,9 @@ module module_directsum
         !> due to contributions of all (also remote) other particles
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine directforce(x, y, z, q, np_local, testidx, ntest, cf_par, directresults, my_rank, n_cpu, comm)
+        subroutine directforce(x, y, z, q, np_local, testidx, ntest, directresults, my_rank, n_cpu, comm)
           use treetypes
+          use module_calc_force, only : eps2
           implicit none
           include 'mpif.h'
 
@@ -142,7 +142,6 @@ module module_directsum
           real*8, dimension(:), intent(in) :: y !< y-coordinates of particles, index 1..np_local
           real*8, dimension(:), intent(in) :: z !< z-coordinates of particles, index 1..np_local
           real*8, dimension(:), intent(in) :: q !< charges of particles, index 1..np_local
-          type(t_calc_force_params), intent(in) :: cf_par !< force calculation parameters
           integer, intent(in) :: np_local !< number of local particles
           integer, dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
           integer, intent(in) :: ntest !< number of particles in testidx
@@ -177,7 +176,7 @@ module module_directsum
               ! loop over all local particles
               do i=1,np_local
                 if ((currank .ne. 0) .or. (testidx(j).ne.i)) then
-                  call calc_direct_coulomb_force_3D(received(j), [x(i), y(i), z(i)], q(i), cf_par%eps2)
+                  call calc_direct_coulomb_force_3D(received(j), [x(i), y(i), z(i)], q(i), eps2)
                 endif
               end do
             end do
@@ -200,8 +199,8 @@ module module_directsum
           directresults(1:ntest) = received(1:nreceived)
 
           do i=1,ntest
-            directresults(i)%field     = directresults(i)%field     * cf_par%force_const
-            directresults(i)%potential = directresults(i)%potential * cf_par%force_const
+            directresults(i)%field     = directresults(i)%field
+            directresults(i)%potential = directresults(i)%potential
           end do
 
           deallocate(received, sending)

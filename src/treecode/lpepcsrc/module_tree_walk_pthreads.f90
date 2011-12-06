@@ -510,7 +510,6 @@ module module_tree_walk
 
     real*8, dimension(:), allocatable :: boxlength2
     real*8 :: vbox(3)
-    type(t_calc_force_params), save :: cf_par
     logical :: in_central_box
     integer*8 :: num_interaction_leaves
     integer :: todo_list_length, defer_list_length
@@ -534,7 +533,7 @@ module module_tree_walk
   contains
 
 
-    subroutine tree_walk(nparticles,particles,cf_par_,twalk,twalk_loc_,vbox_,tcomm)
+    subroutine tree_walk(nparticles,particles,twalk,twalk_loc_,vbox_,tcomm)
       use, intrinsic :: iso_c_binding
       use treetypes
       use tree_utils
@@ -545,7 +544,6 @@ module module_tree_walk
       implicit none
       include 'mpif.h'
 
-      type(t_calc_force_params), intent(in) :: cf_par_
       integer, intent(in) :: nparticles
       type(t_particle), target, intent(in) :: particles(:)
       real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
@@ -558,8 +556,6 @@ module module_tree_walk
       particle_data => particles
       ! box shift vector
       vbox = vbox_
-      ! force calculation parameters
-      cf_par = cf_par_
       ! length of todo- and defer-list per particle (estimations)
       todo_list_length  = max(nintmax, 10)
 
@@ -870,6 +866,7 @@ module module_tree_walk
       use module_calc_force
       use module_spacefilling, only : level_from_key, is_ancestor_of_particle
       use module_debug, only : ipefile
+      use module_mirror_boxes, only : spatial_interaction_cutoff
       implicit none
       integer, intent(in) :: myidx, listlengths
       type(t_particle), intent(inout) :: particle
@@ -912,7 +909,7 @@ module module_tree_walk
 
           dist2 = DOT_PRODUCT(delta, delta)
 
-          mac_ok = mac(particle, walk_node, cf_par, dist2, boxlength2(walk_level))
+          mac_ok = mac(particle, walk_node, dist2, boxlength2(walk_level))
 
           num_mac_evaluations = num_mac_evaluations + 1
 
@@ -937,8 +934,8 @@ module module_tree_walk
               if (mac_ok) then
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell if it does not lie outside the cutoff box
-                  if (all(abs(delta) < cf_par%spatial_interaction_cutoff)) then
-                      call calc_force_per_interaction(particle, walk_node, delta, dist2, vbox, cf_par)
+                  if (all(abs(delta) < spatial_interaction_cutoff)) then
+                      call calc_force_per_interaction(particle, walk_node, delta, dist2, vbox)
 
                       num_interactions = num_interactions + 1
                   endif

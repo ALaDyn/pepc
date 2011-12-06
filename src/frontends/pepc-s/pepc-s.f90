@@ -27,6 +27,7 @@ module module_pepcs
         use module_pepcfields
         use module_setup
         use treevars
+        use module_calc_force, only : theta2, eps2, mac_select, force_law
         implicit none
         include 'mpif.h'
 
@@ -44,7 +45,6 @@ module module_pepcs
         real, parameter :: np_mult_ = -45
 
         type(t_particle), allocatable :: particles(:)
-        type(t_calc_force_params) :: cf_par
         integer :: i
         integer :: my_rank, n_cpu, ierr
 
@@ -61,11 +61,10 @@ module module_pepcs
         end do
 
         ! initialize calc force params
-        cf_par%theta2      = theta**2
-        cf_par%mac         = 0 ! Barnes-Hut MAC, everything else leads to an N^2 code
-        cf_par%eps2        = eps**2
-        cf_par%force_const = 1.
-        cf_par%force_law   = 3 ! 3D-Coulomb
+        theta2      = theta**2
+        mac_select  = 0 ! Barnes-Hut MAC, everything else leads to an N^2 code
+        eps2        = eps**2
+        force_law   = 3 ! 3D-Coulomb
 
         ! =============================================================
         ! TODO: do this in some scafacos_init function instead
@@ -80,7 +79,7 @@ module module_pepcs
         ! =============================================================
 
         call pepc_fields(local_particles, total_particles, particles, &
-                cf_par, itime, num_neighbour_boxes, neighbour_boxes, .false., .false.)
+                itime, num_neighbour_boxes, neighbour_boxes, .false., .false.)
 
         ! read fields and potentials from internal data structures
         do i=1,local_particles

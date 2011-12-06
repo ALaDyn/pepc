@@ -27,8 +27,6 @@ module module_physvars
   real, allocatable :: rho_helm(:)  !< Helmholtz density
   complex, allocatable :: Az_helm(:)   !< Helmholtz vector potential
 
-  type(t_calc_force_params), save ::cf_par
-
   !  physics, target data
 
   integer, parameter :: maxlayers=10
@@ -192,7 +190,7 @@ module module_physvars
    integer :: ivis_fields=10    !<  frequency for field shipping to VISIT
    integer :: ivis_domains=10    !<  frequency for domain shipping to VISIT
    integer :: vis_select = 1  !< select switch for particles
-   integer :: field_select(1:4) = 0. !< field selection switches for vis.
+   integer :: field_select(1:4) = 0 !< field selection switches for vis.
    integer :: itrack=1       !< frequency for computing ion density (tracking)
    integer :: navcycle     !< # timesteps in a laser cycle 
    integer :: ngx=50, ngy=10, ngz=10  !< Plot grid dimensions

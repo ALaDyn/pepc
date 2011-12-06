@@ -6,7 +6,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pepc_wrappers
-     use treetypes, only : t_particle, t_calc_force_params
+     use treetypes, only : t_particle
      use module_interaction_specific, only : t_particle_data, EMPTY_PARTICLE_RESULTS
      implicit none
      private
@@ -59,7 +59,6 @@ module module_pepc_wrappers
     !>   @param[out] p_Ey dimension(1:np_local) - y-component of electric field
     !>   @param[out] p_Ez dimension(1:np_local) - z-component of electric field
     !>   @param[out] p_pot dimension(1:np_local) - electric potential
-    !>   @param[in] cf_par parameters for force summation
     !>   @param[in] itime current simulation timestep number
     !>   @param[in] weighted selector for load balancing
     !>   @param[in] curve_type selector for type of space filling curve
@@ -67,16 +66,16 @@ module module_pepc_wrappers
     !>   @param[in] neighbours shift vectors to neighbour boxes
     !>   @param[in] no_dealloc if set to .true., deallocation of tree-structures is prevented to allow for front-end triggered diagnostics
     !>
+    !>  TODO: update function documentation
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_fields_coulomb_wrapper(np_local,npart_total,p_x, p_y, p_z, p_q, p_w, p_label, &
-                    p_Ex, p_Ey, p_Ez, p_pot, cf_par, itime,  &
+                    p_Ex, p_Ey, p_Ez, p_pot, itime,  &
                     num_neighbours, neighbours, no_dealloc, no_restore)
         use treevars
         use module_pepcfields
         implicit none
         integer, intent(inout) :: np_local  ! # particles on this CPU
         integer, intent(in) :: npart_total ! total # simulation particles
-        type(t_calc_force_params), intent(in) :: cf_par
         integer, intent(in) :: itime  ! timestep
         real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc
         real*8, intent(in), dimension(np_local) :: p_q ! charges, masses
@@ -103,7 +102,7 @@ module module_pepc_wrappers
         end do
 
         call pepc_fields(np_local, npart_total, particles, &
-                             cf_par, itime, num_neighbours, neighbours, no_dealloc, no_restore)
+                             itime, num_neighbours, neighbours, no_dealloc, no_restore)
 
         ! read data from particle_coordinates, particle_results, particle_properties
         do i=1,np_local
@@ -119,7 +118,7 @@ module module_pepc_wrappers
 
 
     subroutine pepc_grid_fields_coulomb_wrapper(ngp,p_x, p_y, p_z, p_label, p_Ex, p_Ey, p_Ez, p_pot, &
-                              cf_par, num_neighbour_boxes, neighbour_boxes)
+                              num_neighbour_boxes, neighbour_boxes)
       use treevars, only : me
       use module_pepcfields
       implicit none
@@ -127,7 +126,6 @@ module module_pepc_wrappers
       real*8, intent(in) :: p_x(ngp), p_y(ngp), p_z(ngp)
       integer, intent(in) :: p_label(ngp)
       real*8, intent(out) :: p_Ex(ngp), p_Ey(ngp), p_Ez(ngp), p_pot(ngp)
-      type(t_calc_force_params), intent(in) :: cf_par
       integer, intent(in) :: num_neighbour_boxes !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
       integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
 
@@ -148,7 +146,7 @@ module module_pepc_wrappers
       end do
 
 
-      call pepc_grid_fields(ngp, grid_particles, cf_par, num_neighbour_boxes, neighbour_boxes)
+      call pepc_grid_fields(ngp, grid_particles, num_neighbour_boxes, neighbour_boxes)
 
         do i=1,ngp
           p_ex(i)  = grid_particles(i)%results%e(1)

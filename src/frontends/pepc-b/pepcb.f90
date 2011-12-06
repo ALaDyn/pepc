@@ -42,6 +42,8 @@ program program_pepcb
   use module_pepc_wrappers
   use module_particle_boundaries
   use module_setup
+  use module_calc_force, only : theta2, mac_select, eps2, cf_force_law => force_law, include_far_field_if_periodic
+  use module_mirror_boxes, only : spatial_interaction_cutoff
 
   implicit none
   include 'mpif.h'
@@ -110,19 +112,16 @@ open(70,file='orbit.dat')
 
 
     call configure       ! Set up particles
-    call param_dump	 ! Dump input parameters to pepc.out
+    call param_dump  ! Dump input parameters to pepc.out
     if (do_periodic) call fmm_framework_param_dump(6)
 
     ! initialize calc force params
-    cf_par%theta2      = theta**2
-    cf_par%mac         = mac
-    cf_par%eps2        = eps**2
-    cf_par%force_const = force_const
-    cf_par%force_law   = force_law
-    cf_par%include_far_field_if_periodic = .false. ! switch off far-field box sum
-    cf_par%spatial_interaction_cutoff(1) = xl  ! default min-image cutoffs
-    cf_par%spatial_interaction_cutoff(2) = yl
-    cf_par%spatial_interaction_cutoff(3) = zl
+    theta2      = theta**2
+    mac_select  = mac
+    eps2        = eps**2
+    cf_force_law   = force_law
+    include_far_field_if_periodic = .false. ! switch off far-field box sum
+    spatial_interaction_cutoff(1:3) = [xl, yl, zl]  ! default min-image cutoffs
 
     ! Compute initial field values
 
@@ -132,8 +131,7 @@ open(70,file='orbit.dat')
     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
                   q(1:np_local),work(1:np_local),pelabel(1:np_local), &
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      cf_par, itime, &
-                      num_neighbour_boxes, neighbour_boxes, .true., .false.)
+                      itime, num_neighbour_boxes, neighbour_boxes, .true., .false.)
 
    ! Centre velocities with 1/2 step back     
     call integrator
@@ -192,10 +190,9 @@ open(70,file='orbit.dat')
 
 
     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
-	              q(1:np_local),work(1:np_local),pelabel(1:np_local), &
-        	      ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-              	      cf_par, itime, &
-                      num_neighbour_boxes, neighbour_boxes, .true., .false.)
+                  q(1:np_local),work(1:np_local),pelabel(1:np_local), &
+                  ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
+                      itime, num_neighbour_boxes, neighbour_boxes, .true., .false.)
   
 !POMP$ INST END(fields)
 
