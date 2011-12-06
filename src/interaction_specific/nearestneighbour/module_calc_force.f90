@@ -125,7 +125,7 @@ module module_calc_force
                   ! this twig contains enough particles --> we use its diameter as search radius
                   particles(i)%results%maxdist2 = boxdiag2(level_from_key(key))
                   particles(i)%results%neighbour_nodes(:) = htable(addr)%node
-write(*,*) level_from_key(key), boxdiag2(level_from_key(key)), htable(addr)%leaves, boxdiag2(0)
+
                   exit ! from this loop
                 endif
               endif
