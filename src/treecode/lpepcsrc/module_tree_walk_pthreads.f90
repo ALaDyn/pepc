@@ -525,12 +525,41 @@ module module_tree_walk
       integer*8 :: key
     end type t_defer_list_entry
     
-    namelist /walk_para/ num_walk_threads, max_particles_per_thread
+    namelist /walk_para_pthreads/ num_walk_threads, max_particles_per_thread
 
     public tree_walk
-    public walk_para
+    public tree_walk_init
 
   contains
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> initializes walk specific parameters, reads them from file
+      !> if optional argument para_file_name is given
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine tree_walk_init(para_file_available, para_file_name, my_rank)
+        implicit none
+        logical, intent(in) :: para_file_available
+        character(*), intent(in) :: para_file_name
+        integer, intent(in) :: my_rank
+        integer, parameter :: para_file_id = 47
+
+        if (para_file_available) then
+            open(para_file_id,file=para_file_name)
+
+            if(my_rank .eq. 0) write(*,*) "reading parameter file, section walk_para_pthreads: ", para_file_name
+            read(para_file_id,NML=walk_para_pthreads)
+
+            close(para_file_id)
+        endif
+
+        if (my_rank == 0) then
+          write(*,'("MPI-PThreads walk: Using ", I0," worker-threads in treewalk on each processor (i.e. per MPI rank)")') num_walk_threads
+          write(*,'("Maximum number of particles per work_thread = ", I0)') max_particles_per_thread
+        endif
+
+      end subroutine
 
 
     subroutine tree_walk(nparticles,particles,twalk,twalk_loc_,vbox_,tcomm)

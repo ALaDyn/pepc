@@ -34,7 +34,6 @@ contains
         integer, intent(in), optional :: db_level_in
 
         integer, parameter :: para_file_id = 10
-        integer :: file_start=0
         character(len=255) :: para_file_name
         logical :: para_file_available
         integer :: ierr, provided
@@ -90,6 +89,7 @@ contains
         call libpepc_get_para_file(para_file_available, para_file_name, my_rank)
 
         call calc_force_init(para_file_available, para_file_name, my_rank)
+        call  tree_walk_init(para_file_available, para_file_name, my_rank)
 
         if (para_file_available) then
 
@@ -97,11 +97,6 @@ contains
 
             if(my_rank .eq. 0) write(*,*) "reading parameter file, section libpepc: ", para_file_name
             read(para_file_id,NML=libpepc)
-
-            rewind(para_file_id, iostat=file_start)
-
-            if(my_rank .eq. 0) write(*,*) "reading parameter file, section walk_para: ", para_file_name
-            read(para_file_id,NML=walk_para)
 
             close(para_file_id)
 

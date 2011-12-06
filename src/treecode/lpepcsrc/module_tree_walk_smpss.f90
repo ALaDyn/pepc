@@ -5,8 +5,41 @@ module module_tree_walk
   !integer, public, parameter :: TIMING_RECEIVE  = 2
   !integer, public, parameter :: TIMING_SENDREQS = 3
   
+  namelist /walk_para_smpss/
+
+  public tree_walk
+  public tree_walk_init
   
 contains
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> initializes walk specific parameters, reads them from file
+  !> if optional argument para_file_name is given
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine tree_walk_init(para_file_available, para_file_name, my_rank)
+    implicit none
+    logical, intent(in) :: para_file_available
+    character(*), intent(in) :: para_file_name
+    integer, intent(in) :: my_rank
+    integer, parameter :: para_file_id = 47
+
+    if (para_file_available) then
+        open(para_file_id,file=para_file_name)
+
+        if(my_rank .eq. 0) write(*,*) "reading parameter file, section walk_para_smpss: ", para_file_name
+        read(para_file_id,NML=walk_para_smpss)
+
+        close(para_file_id)
+    endif
+
+    if (my_rank == 0) then
+      write(*,'("MPI-MPSs walk")')
+    endif
+
+  end subroutine
+
   
   subroutine tree_walk(nparticles_, particles_, &
        twalk, twalk_loc_, vbox_, tcomm)
