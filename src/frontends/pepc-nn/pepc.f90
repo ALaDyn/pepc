@@ -70,28 +70,11 @@ program pepce
   include 'mpif.h'
 
   integer :: omp_thread_num
-  integer :: ierr, ifile, provided
+  integer :: ierr, ifile
   type(t_calc_force_params) ::cf_par
-  integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
-                                                                  !  must ensure that only the main thread makes MPI calls."
-  ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
-  call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
 
-  ! Get the id number of the current task
-  call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
-
-  ! inform the user about possible issues concerning MPI thread safety
-  if ((my_rank == 0) .and. (provided < MPI_THREAD_LEVEL)) then
-    write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
-         MPI_THREAD_LEVEL, provided
-    write(*,*) "Initializing with provided level of multithreading. Stability is possibly not guaranteed."
-  end if
-
-  ! Get the number of MPI tasks
-  call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
-
-
-
+  ! Allocate array space for tree
+  call libpepc_setup("pepc-nn", my_rank, n_cpu)
 
   ! Set up O/P files
   call openfiles
@@ -116,11 +99,6 @@ program pepce
   !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
   
   !$OMP END PARALLEL
-
-
-
-  ! Allocate array space for tree
-  call libpepc_setup(my_rank,n_cpu)
 
   ! Set up particles
   call special_start(ispecial)
@@ -169,9 +147,6 @@ write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nl
      
   end do
 
-  ! cleanup of lpepc static data
-  call libpepc_finalize()
-
   ! deallocate array space for particles
   call cleanup(my_rank,n_cpu)
   
@@ -182,7 +157,7 @@ write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nl
   ! Tidy up O/P files
   call closefiles
 
-  ! End the MPI run
-  call MPI_FINALIZE(ierr)
+  ! cleanup of lpepc static data
+  call libpepc_finalize()
 
 end program pepce

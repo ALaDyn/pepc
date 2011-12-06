@@ -70,12 +70,6 @@ module module_pepcs
         ! =============================================================
         ! TODO: do this in some scafacos_init function instead
         ! of in every timestep
-        ! Get the id number of the current task
-        call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
-        ! Get the number of MPI tasks
-        call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
-        ! pepc-initialization
-        call libpepc_setup(my_rank,n_cpu,int(db_level))
         ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
         t_lattice_1 = lat_x
         t_lattice_2 = lat_y
@@ -102,8 +96,6 @@ module module_pepcs
         ! of in every timestep
         ! finalize framework for lattice contributions
         call fmm_framework_finalize()
-        ! cleanup of lpepc static data
-        call libpepc_finalize()
         ! =============================================================
 
 

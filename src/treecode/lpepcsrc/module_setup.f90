@@ -16,7 +16,7 @@ contains
     !> Calls initialization for periodic framework
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine libpepc_setup(my_rank,n_cpu, db_level_in)
+    subroutine libpepc_setup(frontendname, my_rank,n_cpu, db_level_in)
         use treevars
         use treetypes
         use module_branching
@@ -26,18 +26,52 @@ contains
         use module_tree_domains
         use module_debug, only : pepc_status, debug_level
         implicit none
+        include 'mpif.h'
   
-        integer, intent(in) :: my_rank, n_cpu
+        character(*), intent(in) :: frontendname
+        integer, intent(out) :: my_rank, n_cpu
         integer, intent(in), optional :: db_level_in
 
         integer, parameter :: para_file_id = 10
         integer :: file_start=0
         character(len=255) :: para_file_name
         integer :: para_file_available
+        integer :: ierr, provided
+
+        integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
+                                                                       !  must ensure that only the main thread makes MPI calls."
 
         namelist /libpepc/ debug_level, np_mult, curve_type, weighted
 
         call pepc_status('SETUP')
+
+        ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
+        call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
+        ! Get the id number of the current task
+        call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
+        ! Get the number of MPI tasks
+        call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
+
+        if (my_rank == 0) then
+          ! verbose startup-output
+          write(*,'(a)') "   ____    ____    ____    ____        "
+          write(*,'(a)') "  /\  _`\ /\  _`\ /\  _`\ /\  _`\      "
+          write(*,'(a)') "  \ \ \L\ \ \ \L\_\ \ \L\ \ \ \/\_\      The Pretty Efficient"
+          write(*,'(a)') "   \ \ ,__/\ \  _\L\ \ ,__/\ \ \/_/_           Parallel Coulomb Solver"
+          write(*,'(a)') "    \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \  "
+          write(*,'(a)') "     \ \_\   \ \____/\ \_\   \ \____/           p.gibbon@fz-juelich.de"
+          write(*,'(a)') "      \/_/    \/___/  \/_/    \/___/   "
+          write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."//)') &
+                         SVNVERSION, frontendname, n_cpu
+
+          if (provided < MPI_THREAD_LEVEL) then
+            !inform the user about possible issues concerning MPI thread safety
+            write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
+                           MPI_THREAD_LEVEL, provided
+            write(*,'(a/)') "Initializing with provided level of multithreading. Usually, this is no problem."
+          end if
+        endif
+
 
         ! copy call parameters to treevars module
         me     = my_rank
@@ -135,6 +169,8 @@ contains
         use module_branching
         use module_debug, only : pepc_status
         implicit none
+        include 'mpif.h'
+        integer :: ierr
 
         call pepc_status('FINALIZE')
 
@@ -143,6 +179,8 @@ contains
 
         ! finalize data structures in module_branches
         call branches_finalize()
+
+        call MPI_FINALIZE(ierr)
 
     end subroutine libpepc_finalize
 

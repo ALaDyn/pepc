@@ -54,22 +54,16 @@ program program_pepcb
   real*4 :: I_laser  ! current laser amplitude
 
 
-  integer :: ierr, ifile, i, init_mb
+  integer :: ifile, i, init_mb
   integer :: irecord=0
 
 !POMP$ INST INIT
 !POMP$ INST BEGIN(pepcb)
 
-  ! Initialize the MPI system
-  call MPI_INIT(ierr)
+  ! Allocate array space for tree
+  call libpepc_setup("pepc-b", my_rank, n_cpu)
 
   t_start_prog=MPI_WTIME()
-
-  ! Get the id number of the current task
-  call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
-
-  ! Get the number of MPI tasks
-  call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
 
   ! Time stamp
   if (my_rank==0) call stamp(6,1)
@@ -81,10 +75,6 @@ program program_pepcb
 
   call openfiles       ! Set up O/P files
 open(70,file='orbit.dat')
-
-
-  ! Allocate array space for tree
-  call libpepc_setup(my_rank, n_cpu, debug_level)
 
   ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
   call fmm_framework_init(my_rank, wellsep = 1)
@@ -335,9 +325,6 @@ endif
 
   ! cleanup of lpepc static data
   call libpepc_finalize()
-
-  ! End the MPI run
-  call MPI_FINALIZE(ierr)
 
 !POMP$ INST END(pepcb)
 
