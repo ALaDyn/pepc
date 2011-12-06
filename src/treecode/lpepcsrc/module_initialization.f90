@@ -1,4 +1,4 @@
-module module_setup
+module module_initialization
   implicit none
   private
 
@@ -22,8 +22,8 @@ contains
         use module_branching
         use module_mirror_boxes
         use module_spacefilling
-        use module_tree_walk
-        use module_tree_domains
+        use module_walk
+        use module_domains
         use module_debug, only : pepc_status, debug_level
         use module_calc_force, only : calc_force_init
         implicit none

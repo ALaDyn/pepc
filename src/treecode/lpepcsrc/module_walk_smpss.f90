@@ -1,4 +1,4 @@
-module module_tree_walk
+module module_walk
 
   ! IDs for internal timing measurement
   !integer, public, parameter :: TIMING_COMMLOOP = 1
@@ -44,10 +44,9 @@ contains
   subroutine tree_walk(nparticles_, particles_, &
        twalk, twalk_loc_, vbox_, tcomm)
     use treetypes
-    use tree_utils
-    use timings
+    use module_timings
     
-    use module_tree_walk_smpss_utils
+    use module_walk_smpss_utils
     
     implicit none
     include 'mpif.h'
@@ -195,13 +194,13 @@ contains
 
   end subroutine tree_walk
 
-end module module_tree_walk
+end module module_walk
 
 
 !$CSS TASK
 subroutine tree_walk_smpss_local_finish(status, cs1, cs2)
   
-  use module_tree_walk_smpss_utils
+  use module_walk_smpss_utils
 
   implicit none
   integer*8, intent(inout), dimension(cs1,cs2) :: status
@@ -236,7 +235,7 @@ end subroutine tree_walk_smpss_local_finish
 subroutine tree_walk_smpss_communicate(full_requests, full_size)
   
   use treevars, only: me
-  use module_tree_walk_smpss_utils
+  use module_walk_smpss_utils
   
   implicit none
   
@@ -284,7 +283,7 @@ subroutine tree_walk_smpss_communicate(full_requests, full_size)
 subroutine tree_walk_smpss_walk_and_interact(particle_list, particle_status, particle_requests, rlvl1, size)
 
   use treevars
-  use module_tree_walk_smpss_utils
+  use module_walk_smpss_utils
   use module_htable
   use module_calc_force
   use module_spacefilling
@@ -408,7 +407,7 @@ end subroutine tree_walk_smpss_walk_and_interact
 subroutine tree_walk_smpss_walk_prefetch(x, particle_requests, size)
 
   use treevars
-  use module_tree_walk_smpss_utils
+  use module_walk_smpss_utils
   use module_htable
   use module_calc_force
   use module_spacefilling
@@ -507,7 +506,7 @@ end subroutine tree_walk_smpss_walk_prefetch
 !TARGET(COMM_THREAD) 
 subroutine tree_walk_smpss_comm_serve(dummy)
 
-  use module_tree_walk_smpss_utils
+  use module_walk_smpss_utils
 
   implicit none
 

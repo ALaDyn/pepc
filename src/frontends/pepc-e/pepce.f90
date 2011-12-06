@@ -22,14 +22,14 @@ program pepce
   use physvars
   use particle_pusher
   use benchmarking
-  use timings
+  use module_timings
   use module_fmm_framework
   use module_mirror_boxes
   use files
   use energies
   use module_diagnostics
   use module_pepc_wrappers
-  use module_setup
+  use module_initialization
   use module_calc_force, only : theta2, eps2, mac_select, force_law
   implicit none
   include 'mpif.h'

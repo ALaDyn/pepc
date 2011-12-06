@@ -3,7 +3,7 @@
 !> Encapsulates domain decomposition and restoration of original particle order
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-module module_tree_domains
+module module_domains
     implicit none
     save
     private
@@ -48,8 +48,8 @@ module module_tree_domains
 
         use treevars
         use module_interaction_specific
-        use tree_utils
-        use timings
+        use module_utils
+        use module_timings
         use module_spacefilling
         use module_branching
         use module_debug
@@ -399,4 +399,4 @@ module module_tree_domains
 
    end subroutine
 
-end module module_tree_domains
+end module module_domains

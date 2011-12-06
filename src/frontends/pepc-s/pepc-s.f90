@@ -24,8 +24,8 @@ module module_pepcs
         use treetypes
         use module_fmm_framework
         use module_mirror_boxes
-        use module_pepcfields
-        use module_setup
+        use module_fields
+        use module_initialization
         use treevars
         use module_calc_force, only : theta2, eps2, mac_select, force_law
         implicit none

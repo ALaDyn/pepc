@@ -1,7 +1,7 @@
 program pepcs
 
   use module_pepcs
-  use module_setup
+  use module_initialization
   implicit none
   include 'mpif.h'
 

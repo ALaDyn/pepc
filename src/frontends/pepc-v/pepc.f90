@@ -12,11 +12,11 @@ program pepcv
 
   use physvars
   use manipulate_particles
-  use module_pepcfields
-  use timings
+  use module_fields
+  use module_timings
   use files
   use diagnostics
-  use module_setup
+  use module_initialization
   use module_calc_force, only : theta2, sig2, mac_select, force_law
   implicit none
   include 'mpif.h'

@@ -522,7 +522,7 @@ module module_htable
         use treevars
         use treetypes
         use module_spacefilling
-        use tree_utils
+        use module_utils
         use module_debug
         implicit none
 

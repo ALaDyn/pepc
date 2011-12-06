@@ -14,7 +14,7 @@ subroutine setup
   use module_fmm_framework
   use module_mirror_boxes
   use module_physvars
-  use module_setup
+  use module_initialization
 
   implicit none
   include 'mpif.h'

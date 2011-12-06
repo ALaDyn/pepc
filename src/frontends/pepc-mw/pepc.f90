@@ -17,7 +17,7 @@ program pepc
   use treetypes
   use physvars
   use benchmarking
-  use timings
+  use module_timings
   use module_pepc_wrappers
   use module_fmm_framework
   use module_mirror_boxes
@@ -29,7 +29,7 @@ program pepc
   use module_diagnostics
   use module_workflow
   use module_units
-  use module_setup
+  use module_initialization
   use module_param_dump
   use module_treediags
   use module_vtk

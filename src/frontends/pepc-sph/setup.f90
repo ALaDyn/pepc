@@ -12,9 +12,8 @@
 
 subroutine pepc_setup()
   use physvars
-  use tree_utils
   use module_mirror_boxes
-  use module_setup
+  use module_initialization
   implicit none
   include 'mpif.h'
 

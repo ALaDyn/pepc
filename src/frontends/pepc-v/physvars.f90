@@ -58,7 +58,7 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_setup(itime, trun)
 
-        use module_setup
+        use module_initialization
         implicit none
         include 'mpif.h'
 

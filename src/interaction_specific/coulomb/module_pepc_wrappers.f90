@@ -72,7 +72,7 @@ module module_pepc_wrappers
                     p_Ex, p_Ey, p_Ez, p_pot, itime,  &
                     num_neighbours, neighbours, no_dealloc, no_restore, force_const)
         use treevars
-        use module_pepcfields
+        use module_fields
         implicit none
         integer, intent(inout) :: np_local  ! # particles on this CPU
         integer, intent(in) :: npart_total ! total # simulation particles
@@ -121,7 +121,7 @@ module module_pepc_wrappers
     subroutine pepc_grid_fields_coulomb_wrapper(ngp,p_x, p_y, p_z, p_label, p_Ex, p_Ey, p_Ez, p_pot, &
                               num_neighbour_boxes, neighbour_boxes, force_const)
       use treevars, only : me
-      use module_pepcfields
+      use module_fields
       implicit none
       integer, intent(in) :: ngp
       real*8, intent(in) :: p_x(ngp), p_y(ngp), p_z(ngp)

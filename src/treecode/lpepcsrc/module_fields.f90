@@ -1,5 +1,5 @@
 
-module module_pepcfields
+module module_fields
     implicit none
     private
 
@@ -43,11 +43,11 @@ contains
 
         use treevars
         use module_interaction_specific
-        use timings
-        use module_tree_domains
+        use module_timings
+        use module_domains
         use module_calc_force
-        use module_tree_walk
-        use module_tree_walk_communicator
+        use module_walk
+        use module_walk_communicator
         use module_allocation
         use module_tree
         use module_htable
@@ -248,11 +248,11 @@ contains
 
         use treevars
         use module_interaction_specific
-        use timings
-        use module_tree_domains
+        use module_timings
+        use module_domains
         use module_calc_force
-        use module_tree_walk
-        use module_tree_walk_communicator
+        use module_walk
+        use module_walk_communicator
         use module_allocation
         use module_tree
         use module_htable
@@ -307,7 +307,7 @@ contains
     end subroutine pepc_grid_fields
 
 
-end module module_pepcfields
+end module module_fields
 
 
 

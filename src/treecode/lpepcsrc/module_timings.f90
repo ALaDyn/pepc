@@ -11,7 +11,7 @@
 !> etc.
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-module timings
+module module_timings
   implicit none
 
     ! global timings
@@ -307,4 +307,4 @@ module timings
 
     end subroutine timings_GatherAndOutput
 
-end module timings
+end module module_timings

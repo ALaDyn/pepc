@@ -23,7 +23,7 @@ program pepce
   ! TODO: use omp_lib, only: ...
   use omp_lib
 
-  use module_setup
+  use module_initialization
 
   use module_calc_force, only : mac_select, force_law
 
@@ -43,7 +43,7 @@ program pepce
        validate_n_nearest_neighbour_list, &
        draw_neighbours
   
-  use timings, only: &
+  use module_timings, only: &
        timer_start, &
        timer_stop, &
        timings_LocalOutput, &
@@ -54,14 +54,14 @@ program pepce
        neighbour_boxes, &
        num_neighbour_boxes
 
-  use module_pepcfields, only: &
+  use module_fields, only: &
        pepc_fields
 
   use files, only: &
        openfiles, &
        closefiles
 
-  use module_tree_walk, only: &
+  use module_walk, only: &
        num_walk_threads
   use treevars, only : nleaf, nleaf_me, ntwig, ntwig_me
 

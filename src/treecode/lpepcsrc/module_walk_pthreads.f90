@@ -110,8 +110,8 @@
 !
 !
 ! ===========================================
-module module_tree_walk_pthreads_commutils
-  use module_tree_walk_communicator
+module module_walk_pthreads_commutils
+  use module_walk_communicator
   use pthreads_stuff
   implicit none
   private
@@ -196,7 +196,7 @@ module module_tree_walk_pthreads_commutils
 
 
       subroutine uninit_commutils
-        use module_tree_walk_communicator
+        use module_walk_communicator
         implicit none
 
         initialized = .false.
@@ -259,7 +259,7 @@ module module_tree_walk_pthreads_commutils
       subroutine post_request(request_key, request_addr)
         use treevars
         use module_htable
-        use module_tree_walk_communicator
+        use module_walk_communicator
         use module_debug, only : ipefile
         implicit none
         include 'mpif.h'
@@ -317,7 +317,7 @@ module module_tree_walk_pthreads_commutils
 
 
     subroutine send_requests()
-      use module_tree_walk_communicator
+      use module_walk_communicator
       use treevars
       use module_debug, only : ipefile
       implicit none
@@ -488,14 +488,14 @@ module module_tree_walk_pthreads_commutils
       end subroutine comm_sched_yield
 
 
-end module module_tree_walk_pthreads_commutils
+end module module_walk_pthreads_commutils
 
 
 
 
 
 
-module module_tree_walk
+module module_walk
   use module_interaction_specific
   use treevars
   use pthreads_stuff
@@ -565,10 +565,9 @@ module module_tree_walk
     subroutine tree_walk(nparticles,particles,twalk,twalk_loc_,vbox_,tcomm)
       use, intrinsic :: iso_c_binding
       use treetypes
-      use tree_utils
-      use timings
-      use module_tree_walk_pthreads_commutils
-      use module_tree_walk_communicator
+      use module_timings
+      use module_walk_pthreads_commutils
+      use module_walk_communicator
       use module_debug, only : pepc_status
       implicit none
       include 'mpif.h'
@@ -612,7 +611,7 @@ module module_tree_walk
 
     subroutine walk_hybrid()
         use module_debug, only : ipefile, dbg, DBG_WALKSUMMARY
-      use module_tree_walk_pthreads_commutils
+      use module_walk_pthreads_commutils
       use, intrinsic :: iso_c_binding
       implicit none
       include 'mpif.h'
@@ -681,7 +680,7 @@ module module_tree_walk
 
     subroutine init_walk_data()
       use, intrinsic :: iso_c_binding
-      use module_tree_walk_pthreads_commutils
+      use module_walk_pthreads_commutils
       implicit none
       integer :: i
 
@@ -712,7 +711,7 @@ module module_tree_walk
 
 
     subroutine uninit_walk_data()
-      use module_tree_walk_pthreads_commutils
+      use module_walk_pthreads_commutils
       implicit none
       deallocate(boxlength2)
       call retval(pthreads_uninit(), "uninit_walk_data:pthreads_uninit")
@@ -721,7 +720,7 @@ module module_tree_walk
 
 
     function get_first_unassigned_particle(success)
-      use module_tree_walk_pthreads_commutils
+      use module_walk_pthreads_commutils
       implicit none
       integer :: get_first_unassigned_particle
       logical, intent(out) :: success
@@ -743,8 +742,8 @@ module module_tree_walk
 
     function walk_worker_thread(arg) bind(c)
       use, intrinsic :: iso_c_binding
-      use module_tree_walk_pthreads_commutils
-      use module_tree_walk_communicator
+      use module_walk_pthreads_commutils
+      use module_walk_communicator
       use pthreads_stuff
       use module_calc_force
       use module_debug, only : ipefile
@@ -890,7 +889,7 @@ module module_tree_walk
 
 
    function walk_single_particle(myidx, particle, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
-      use module_tree_walk_pthreads_commutils
+      use module_walk_pthreads_commutils
       use module_htable
       use module_calc_force
       use module_spacefilling, only : level_from_key, is_ancestor_of_particle
@@ -1090,5 +1089,5 @@ module module_tree_walk
 
     end function walk_single_particle
 
-end module module_tree_walk
+end module module_walk
 

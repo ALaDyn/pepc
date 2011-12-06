@@ -3,7 +3,7 @@
 !                       *   Parallel Sorting
 !
 
-module tree_utils
+module module_utils
 
   interface sort
      module procedure sort_i
@@ -117,4 +117,4 @@ contains
     q = dum
   end subroutine swap_ab
 
-end module tree_utils
+end module module_utils

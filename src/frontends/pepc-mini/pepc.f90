@@ -21,12 +21,12 @@ program pepcmini
   use treetypes
   use physvars
   use particle_pusher
-  use timings
+  use module_timings
   use module_fmm_framework
   use module_mirror_boxes
-  use module_pepcfields
+  use module_fields
   use files
-  use module_setup
+  use module_initialization
   use module_calc_force, only : theta2, eps2, mac_select, force_law
   implicit none
   include 'mpif.h'

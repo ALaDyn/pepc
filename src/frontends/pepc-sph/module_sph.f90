@@ -518,7 +518,7 @@ contains
     use module_htable
     
     ! only for sort test
-    use tree_utils
+    use module_utils
 
     use physvars, only: &
          my_rank, &

@@ -41,7 +41,7 @@ module module_allocation
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine allocate_tree(theta2)
         use treevars
-        use timings
+        use module_timings
         use module_debug
         use module_htable
         use module_branching

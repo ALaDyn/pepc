@@ -41,7 +41,7 @@ program program_pepcb
   use module_fmm_framework
   use module_pepc_wrappers
   use module_particle_boundaries
-  use module_setup
+  use module_initialization
   use module_calc_force, only : theta2, mac_select, eps2, cf_force_law => force_law, include_far_field_if_periodic
   use module_mirror_boxes, only : spatial_interaction_cutoff
 

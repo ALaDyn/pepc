@@ -1,7 +1,6 @@
 
 module module_physvars
   use treetypes
-  use module_tree_walk
   use module_mirror_boxes
   implicit none
 
@@ -262,7 +261,7 @@ module module_physvars
        q_factor, netcdf, launch, foam_geom, force_tolerance, dynamic_memalloc, &
        eps, force_const, idim, force_law, &
        xh_start, xh_end, nxh, xgav_start, xgav_end, ngav, xgav_pos, &
-       num_walk_threads, particle_wrap, periodicity,t_lattice_1,t_lattice_2,t_lattice_3
+       particle_wrap, periodicity,t_lattice_1,t_lattice_2,t_lattice_3
 
 !       t1, t2, t3, periodicity, do_extrinsic_correction              ! periodicity config
  

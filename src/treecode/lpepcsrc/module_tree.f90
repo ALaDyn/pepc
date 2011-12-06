@@ -240,7 +240,7 @@ module module_tree
         use treevars, only : me, num_pe, tree_nodes, nbranches
         use module_debug, only : pepc_status
         use treetypes
-        use timings
+        use module_timings
         use module_htable
         implicit none
         include 'mpif.h'
@@ -330,8 +330,8 @@ module module_tree
 
         use treevars, only : me
         use module_debug, only : pepc_status, DBG_TREE, dbg
-        use timings
-        use tree_utils
+        use module_timings
+        use module_utils
         use module_htable
         use module_spacefilling
         use module_interaction_specific
@@ -437,7 +437,7 @@ module module_tree
       use module_debug, only : pepc_status
       use treetypes
       use module_htable
-      use timings
+      use module_timings
       implicit none
       include 'mpif.h'
       type(t_particle), intent(in) :: particle_list(1:nparticles)

@@ -12,8 +12,7 @@
 
 subroutine pepc_setup()
   use physvars
-  use tree_utils
-  use module_setup
+  use module_initialization
   use module_fmm_framework
   use module_mirror_boxes
   use module_particle_setup

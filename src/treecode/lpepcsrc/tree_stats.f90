@@ -11,8 +11,8 @@
 subroutine tree_stats(timestamp)
 
   use treevars
-  use module_tree_walk_communicator
-  use module_tree_walk
+  use module_walk_communicator
+  use module_walk
   use module_branching
   use module_debug, only : pepc_status
   use module_htable, only : maxaddress
