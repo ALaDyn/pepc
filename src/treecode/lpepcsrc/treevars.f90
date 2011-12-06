@@ -25,7 +25,7 @@ module treevars
                                 nbranches(:), &       !< # branches in local domain
                                 branch_owner(:)       !< owners of branch nodes covering all domains
 
-  type(t_multipole_data), target, allocatable  :: tree_nodes(:)                 !< Tree node properties TODO: move to module_tree
+  type(t_tree_node_interaction_data), target, allocatable  :: tree_nodes(:)                 !< Tree node properties TODO: move to module_tree
 
   ! TODO: put these into tree_aswalk_pthreads module
   integer*8 ::  max_req_list_length, & !< maximum length of request queue

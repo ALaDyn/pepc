@@ -585,7 +585,7 @@ module module_htable
         node_twig(  1:ntwig)   = pack(htable(0:maxaddress)%node,mask=htable(0:maxaddress)%node<0)
         call sort(node_twig(:))
 
-        write(ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Twigs from hash-table', 'node', 'data (see module_interaction_specific::t_multipole_data for meaning of the columns)'
+        write(ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Twigs from hash-table', 'node', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
         do i=ntwig,1,-1
           write(ipefile,'(x,i10,x)',advance='no') node_twig(i)
@@ -596,7 +596,7 @@ module module_htable
         node_leaf(  1:nleaf)   = pack(htable(0:maxaddress)%node,mask=htable(0:maxaddress)%node>0)
         call sort(node_leaf(:))
 
-        write(ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Leaves from hash-table', 'node', 'data (see module_interaction_specific::t_multipole_data for meaning of the columns)'
+        write(ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Leaves from hash-table', 'node', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
         do i=1,nleaf
           write(ipefile,'(x,i10,x)',advance='no') node_leaf(i)

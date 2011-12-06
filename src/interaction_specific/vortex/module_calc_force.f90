@@ -213,7 +213,7 @@ module module_calc_force
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
             real*8, intent(out) ::  u(1:3), af(1:3)
 
-            type(t_multipole_data), pointer :: t
+            type(t_tree_node_interaction_data), pointer :: t
 
             integer :: i1, i2, i3 !< helper variables for the tensor structures
 

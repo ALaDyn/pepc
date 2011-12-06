@@ -232,7 +232,7 @@ module module_calc_force
 
           real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2
           real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
-          type(t_multipole_data), pointer :: t
+          type(t_tree_node_interaction_data), pointer :: t
 
              t=>tree_nodes(inode)
 
@@ -333,7 +333,7 @@ module module_calc_force
           real*8, intent(out) ::  sumfx,sumfy,sumphi
 
           real*8 :: dx,dy,d2,rd2,rd4,rd6,dx2,dy2,dx3,dy3
-          type(t_multipole_data), pointer :: t
+          type(t_tree_node_interaction_data), pointer :: t
 
           sumfx  = 0.
           sumfy  = 0.
@@ -400,7 +400,7 @@ module module_calc_force
           real*8 :: dx,dy,dz,r2
           real*8 :: flj, epsc2, plj, aii2, aii2_r2, r
 
-          type(t_multipole_data), pointer :: t
+          type(t_tree_node_interaction_data), pointer :: t
 
           t=>tree_nodes(inode)
 

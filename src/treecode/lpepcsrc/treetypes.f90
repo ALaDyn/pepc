@@ -14,7 +14,7 @@ module treetypes
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       integer :: MPI_TYPE_particle_data,   &
-                 MPI_TYPE_multipole_data,   &
+                 MPI_TYPE_tree_node_interaction_data,   &
                  MPI_TYPE_particle_results, &
                  MPI_TYPE_particle,         &
                  MPI_TYPE_tree_node_transport_package
@@ -44,7 +44,7 @@ module treetypes
          integer   :: byte    ! byte code
          integer   :: leaves  ! # leaves contained
          integer   :: owner   ! owner where multipole resides
-         type(t_multipole_data) :: m ! real physics
+         type(t_tree_node_interaction_data) :: m ! real physics
       end type t_tree_node_transport_package
 
 
@@ -82,7 +82,7 @@ module treetypes
         type(t_tree_node_transport_package) :: dummy_tree_node
 
         ! first register the interaction-specific MPI types since they are embedded into the lpepc-datatypes
-        call register_interaction_specific_mpi_types(MPI_TYPE_particle_data, MPI_TYPE_multipole_data, MPI_TYPE_particle_results)
+        call register_interaction_specific_mpi_types(MPI_TYPE_particle_data, MPI_TYPE_tree_node_interaction_data, MPI_TYPE_particle_results)
 
         ! register particle type
         blocklengths(1:nprops_particle)  = [3, 1, 1, 1, 1, 1, 1]
@@ -101,7 +101,7 @@ module treetypes
 
         ! register tree_node type
         blocklengths(1:nprops_tree_node)  = [1, 1, 1, 1, 1]
-        types(1:nprops_tree_node)         = [MPI_INTEGER8, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_TYPE_multipole_data]
+        types(1:nprops_tree_node)         = [MPI_INTEGER8, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_TYPE_tree_node_interaction_data]
         call MPI_GET_ADDRESS( dummy_tree_node,        address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node%key,    address(1), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node%byte,   address(2), ierr )
@@ -128,7 +128,7 @@ module treetypes
         call MPI_TYPE_FREE( MPI_TYPE_tree_node_transport_package,        ierr)
         call MPI_TYPE_FREE( MPI_TYPE_particle,         ierr)
         call MPI_TYPE_FREE( MPI_TYPE_particle_results, ierr)
-        call MPI_TYPE_FREE( MPI_TYPE_multipole_data,   ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_tree_node_interaction_data,   ierr)
         call MPI_TYPE_FREE( MPI_TYPE_particle_data,    ierr)
 
       end subroutine free_lpepc_mpi_types

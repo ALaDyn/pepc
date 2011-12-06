@@ -37,7 +37,7 @@ module module_interaction_specific
       type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results([0., 0., 0.], 0.)
 
       !> Data structure for storing multiple moments of tree nodes
-      type t_multipole_data
+      type t_tree_node_interaction_data
         real*8 :: coc(3)     ! centre of charge
         real*8 :: charge     ! net charge sum
         real*8 :: abs_charge !  absolute charge sum
@@ -46,8 +46,8 @@ module module_interaction_specific
         real*8 :: xyquad     ! other quadrupole moments
         real*8 :: yzquad
         real*8 :: zxquad
-      end type t_multipole_data
-      integer, private, parameter :: nprops_multipole_data = 8
+      end type t_tree_node_interaction_data
+      integer, private, parameter :: nprops_tree_node_interaction_data = 8
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -68,12 +68,12 @@ module module_interaction_specific
       !> is automatically called from register_libpepc_mpi_types()
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine register_interaction_specific_mpi_types(mpi_type_particle_data, mpi_type_multipole_data, mpi_type_particle_results)
+      subroutine register_interaction_specific_mpi_types(mpi_type_particle_data, MPI_TYPE_tree_node_interaction_data, mpi_type_particle_results)
         implicit none
         include 'mpif.h'
-        integer, intent(out) :: mpi_type_particle_data, mpi_type_multipole_data, mpi_type_particle_results
+        integer, intent(out) :: mpi_type_particle_data, MPI_TYPE_tree_node_interaction_data, mpi_type_particle_results
 
-        integer, parameter :: max_props = maxval([nprops_particle_data, nprops_particle_results, nprops_multipole_data])
+        integer, parameter :: max_props = maxval([nprops_particle_data, nprops_particle_results, nprops_tree_node_interaction_data])
 
         integer :: ierr
         ! address calculation
@@ -82,7 +82,7 @@ module module_interaction_specific
         ! dummies for address calculation
         type(t_particle_data)    :: dummy_particle_data
         type(t_particle_results) :: dummy_particle_results
-        type(t_multipole_data)   :: dummy_multipole_data
+        type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
 
         ! register particle data type
         blocklengths(1:nprops_particle_data)  = [1]
@@ -104,20 +104,20 @@ module module_interaction_specific
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_multipole_data)  = [3, 1, 1, 3, 3, 1, 1, 1]
-        types(1:nprops_multipole_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
-        call MPI_GET_ADDRESS( dummy_multipole_data,            address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_multipole_data%coc,        address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_multipole_data%charge,     address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_multipole_data%abs_charge, address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_multipole_data%dip,        address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_multipole_data%quad,       address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_multipole_data%xyquad,     address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_multipole_data%yzquad,     address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_multipole_data%zxquad,     address(8), ierr )
-        displacements(1:nprops_multipole_data) = int(address(1:nprops_multipole_data) - address(0))
-        call MPI_TYPE_STRUCT( nprops_multipole_data, blocklengths, displacements, types, mpi_type_multipole_data, ierr )
-        call MPI_TYPE_COMMIT( mpi_type_multipole_data, ierr)
+        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 3, 3, 1, 1, 1]
+        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,            address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,        address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,     address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%abs_charge, address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%dip,        address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quad,       address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xyquad,     address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad,     address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zxquad,     address(8), ierr )
+        displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))
+        call MPI_TYPE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr )
+        call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)
 
       end subroutine register_interaction_specific_mpi_types
 
@@ -130,9 +130,9 @@ module module_interaction_specific
         implicit none
         real*8, intent(in) :: particle_pos(3)
         type(t_particle_data), intent(in) :: particle
-        type(t_multipole_data), intent(out) :: multipole
+        type(t_tree_node_interaction_data), intent(out) :: multipole
 
-        multipole = t_multipole_data(particle_pos, &
+        multipole = t_tree_node_interaction_data(particle_pos, &
                                      particle%q,   &
                                  abs(particle%q),  &
                                      [0., 0., 0.], &
@@ -148,8 +148,8 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine shift_multipoles_up(parent, children)
         implicit none
-        type(t_multipole_data), intent(out) :: parent
-        type(t_multipole_data), intent(in) :: children(:)
+        type(t_tree_node_interaction_data), intent(out) :: parent
+        type(t_tree_node_interaction_data), intent(in) :: children(:)
 
         integer :: nchild, j
 
