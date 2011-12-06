@@ -17,7 +17,7 @@ module treetypes
                  MPI_TYPE_multipole_data,   &
                  MPI_TYPE_particle_results, &
                  MPI_TYPE_particle,         &
-                 MPI_TYPE_tree_node
+                 MPI_TYPE_tree_node_transport_package
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -39,13 +39,13 @@ module treetypes
 
       ! Data structure for shipping multiple moments of child nodes
       integer, private, parameter :: nprops_tree_node = 5 ! Number of multipole properties to ship
-      type t_tree_node
+      type t_tree_node_transport_package
          integer*8 :: key     ! key
          integer   :: byte    ! byte code
          integer   :: leaves  ! # leaves contained
          integer   :: owner   ! owner where multipole resides
          type(t_multipole_data) :: m ! real physics
-      end type t_tree_node
+      end type t_tree_node_transport_package
 
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -79,7 +79,7 @@ module treetypes
         integer(KIND=MPI_ADDRESS_KIND), dimension(0:max_props) :: address
         ! dummies for address calculation
         type(t_particle)  :: dummy_particle
-        type(t_tree_node) :: dummy_tree_node
+        type(t_tree_node_transport_package) :: dummy_tree_node
 
         ! first register the interaction-specific MPI types since they are embedded into the lpepc-datatypes
         call register_interaction_specific_mpi_types(MPI_TYPE_particle_data, MPI_TYPE_multipole_data, MPI_TYPE_particle_results)
@@ -109,8 +109,8 @@ module treetypes
         call MPI_GET_ADDRESS( dummy_tree_node%owner,  address(4), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node%m    ,  address(5), ierr )
         displacements(1:nprops_tree_node) = int(address(1:nprops_tree_node) - address(0))
-        call MPI_TYPE_STRUCT( nprops_tree_node, blocklengths, displacements, types, MPI_TYPE_tree_node, ierr )
-        call MPI_TYPE_COMMIT( MPI_TYPE_tree_node, ierr)
+        call MPI_TYPE_STRUCT( nprops_tree_node, blocklengths, displacements, types, MPI_TYPE_tree_node_transport_package, ierr )
+        call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_transport_package, ierr)
 
     end subroutine register_lpepc_mpi_types
 
@@ -125,7 +125,7 @@ module treetypes
         include 'mpif.h'
         integer :: ierr
 
-        call MPI_TYPE_FREE( MPI_TYPE_tree_node,        ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_tree_node_transport_package,        ierr)
         call MPI_TYPE_FREE( MPI_TYPE_particle,         ierr)
         call MPI_TYPE_FREE( MPI_TYPE_particle_results, ierr)
         call MPI_TYPE_FREE( MPI_TYPE_multipole_data,   ierr)

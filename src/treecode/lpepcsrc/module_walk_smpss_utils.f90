@@ -208,7 +208,7 @@ contains
     integer :: stat(MPI_STATUS_SIZE)
     integer :: reqhandle
     integer*8 :: requested_key
-    type (t_tree_node) :: child_data(8) ! child data to be received - maximum up to eight children per particle
+    type (t_tree_node_transport_package) :: child_data(8) ! child data to be received - maximum up to eight children per particle
     integer :: num_children
     integer :: ipe_sender
 
@@ -267,8 +267,8 @@ contains
           case (TAG_REQUESTED_DATA)
              !call Extrae_eventandcounters(1001, 2) 
              ! actually receive the data... 
-             call MPI_GET_COUNT(stat, MPI_TYPE_tree_node, num_children, ierr)
-             call MPI_RECV( child_data, num_children, MPI_TYPE_tree_node, ipe_sender, TAG_REQUESTED_DATA, &
+             call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_transport_package, num_children, ierr)
+             call MPI_RECV( child_data, num_children, MPI_TYPE_tree_node_transport_package, ipe_sender, TAG_REQUESTED_DATA, &
                   MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
              !call Extrae_eventandcounters(1001, 3) 
              ! ... and put it into the tree and all other data structures
@@ -488,7 +488,7 @@ contains
     integer :: stat(MPI_STATUS_SIZE)
     integer :: reqhandle
     integer*8 :: requested_key
-    type (t_tree_node) :: child_data(8) ! child data to be received - maximum up to eight children per particle
+    type (t_tree_node_transport_package) :: child_data(8) ! child data to be received - maximum up to eight children per particle
     integer :: num_children
     integer :: ipe_sender
     

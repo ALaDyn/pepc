@@ -63,7 +63,7 @@ module module_tree
         implicit none
         include 'mpif.h'
 
-        type(t_tree_node), intent(in) :: tree_node
+        type(t_tree_node_transport_package), intent(in) :: tree_node
         integer :: addr
 
         if (testaddr(tree_node%key, addr)) then
@@ -103,7 +103,7 @@ module module_tree
         implicit none
         include 'mpif.h'
 
-        type(t_tree_node), intent(in) :: tree_node
+        type(t_tree_node_transport_package), intent(in) :: tree_node
         integer :: hashaddr, lnode, ierr
 
 
@@ -157,12 +157,12 @@ module module_tree
       use treevars, only : tree_nodes
       use module_htable
       implicit none
-      type(t_tree_node), intent(inout) :: parent
+      type(t_tree_node_transport_package), intent(inout) :: parent
       integer*8, intent(in) :: childkeys(:)
       integer, intent(in) :: parent_owner
 
       integer :: nchild, i
-      type(t_tree_node) :: child_nodes(1:8)
+      type(t_tree_node_transport_package) :: child_nodes(1:8)
       integer :: child_addr, childnumber(1:8)
 
       nchild = size(childkeys)
@@ -170,7 +170,7 @@ module module_tree
       do i=1,nchild
         child_addr     = key2addr(childkeys(i), 'shift_nodes_up_key')
         childnumber(i) = int(IAND( childkeys(i), hashchild))
-        child_nodes(i) = t_tree_node(childkeys(i),                   &
+        child_nodes(i) = t_tree_node_transport_package(childkeys(i),                   &
                                      htable( child_addr )%childcode, &
                                      htable( child_addr )%leaves,    &
                                      htable( child_addr )%owner,     &
@@ -191,8 +191,8 @@ module module_tree
       use treetypes
       use module_htable, only : CHILDCODE_BIT_CHILDREN_AVAILABLE
       implicit none
-        type(t_tree_node), intent(inout) :: parent
-        type(t_tree_node), intent(in) :: children(:)
+        type(t_tree_node_transport_package), intent(inout) :: parent
+        type(t_tree_node_transport_package), intent(in) :: children(:)
         integer, intent(in) :: childnumber(:)
         integer, intent(in) :: parent_owner
         integer*8 :: parent_keys(1:8)
@@ -252,7 +252,7 @@ module module_tree
 
         integer :: i,ierr
         type( t_hash ), pointer :: hbranch
-        type (t_tree_node),allocatable :: pack_mult(:), get_mult(:)
+        type (t_tree_node_transport_package),allocatable :: pack_mult(:), get_mult(:)
         integer, allocatable :: igap(:)    !  stride lengths of local branch arrays
 
         if (allocated(branch_keys)) deallocate(branch_keys)
@@ -265,7 +265,7 @@ module module_tree
         allocate(pack_mult(nbranch))
         do i=1,nbranch
             hbranch      => htable( key2addr( local_branch_keys(i),'EXCHANGE: info' ) )
-            pack_mult(i) =  t_tree_node( local_branch_keys(i), hbranch%childcode, hbranch%leaves, me, tree_nodes(hbranch%node) )
+            pack_mult(i) =  t_tree_node_transport_package( local_branch_keys(i), hbranch%childcode, hbranch%leaves, me, tree_nodes(hbranch%node) )
         end do
 
         call timer_stop(t_exchange_branches_pack)
@@ -289,7 +289,7 @@ module module_tree
         call timer_start(t_exchange_branches_allgatherv)
 
         ! actually exchange the branch nodes
-        call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node, get_mult, nbranches, igap, MPI_TYPE_tree_node, MPI_COMM_WORLD, ierr)
+        call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node_transport_package, get_mult, nbranches, igap, MPI_TYPE_tree_node_transport_package, MPI_COMM_WORLD, ierr)
 
         deallocate(pack_mult)
         deallocate (igap)
@@ -343,7 +343,7 @@ module module_tree
         integer, intent(in) :: numkeys
         integer, dimension(1:numkeys) :: branch_level
         integer*8, dimension(0:numkeys+1) :: sub_key, parent_key
-        type(t_tree_node) :: parent_node
+        type(t_tree_node_transport_package) :: parent_node
 
         integer :: ilevel, maxlevel, nsub, groupstart, groupend, i, nparent, nuniq
         integer*8 :: current_parent_key

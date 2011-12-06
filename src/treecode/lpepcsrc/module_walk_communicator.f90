@@ -75,7 +75,7 @@ module module_walk_communicator
         call MPI_PACK_SIZE(1, MPI_INTEGER8, MPI_COMM_WORLD, msg_size_request, ierr)
         msg_size_request = msg_size_request + MPI_BSEND_OVERHEAD
 
-        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node, MPI_COMM_WORLD, msg_size_data, ierr)
+        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node_transport_package, MPI_COMM_WORLD, msg_size_data, ierr)
         msg_size_data = msg_size_data + MPI_BSEND_OVERHEAD
 
         buffsize = (REQUEST_QUEUE_LENGTH * msg_size_request + ANSWER_BUFF_LENGTH * msg_size_data)
@@ -102,7 +102,7 @@ module module_walk_communicator
         integer :: stat(MPI_STATUS_SIZE)
         integer :: reqhandle
         integer*8 :: requested_key
-        type (t_tree_node), allocatable :: child_data(:) ! child data to be received - maximum up to eight children per particle
+        type (t_tree_node_transport_package), allocatable :: child_data(:) ! child data to be received - maximum up to eight children per particle
         integer :: num_children
         integer :: ipe_sender, msg_tag
         integer, intent(inout), dimension(mintag:maxtag) :: nummessages
@@ -149,9 +149,9 @@ module module_walk_communicator
              ! some PE answered our request and sends
              case (TAG_REQUESTED_DATA)
                 ! actually receive the data... ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
-                call MPI_GET_COUNT(stat, MPI_TYPE_tree_node, num_children, ierr)
+                call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_transport_package, num_children, ierr)
                 allocate(child_data(num_children))
-                call MPI_RECV( child_data, num_children, MPI_TYPE_tree_node, ipe_sender, TAG_REQUESTED_DATA, &
+                call MPI_RECV( child_data, num_children, MPI_TYPE_tree_node_transport_package, ipe_sender, TAG_REQUESTED_DATA, &
                         MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
                 ! ... and put it into the tree and all other data structures
                 call unpack_data(child_data, num_children, ipe_sender)
@@ -271,8 +271,8 @@ module module_walk_communicator
       integer*8, intent(in) :: requested_key
       integer, intent(in) :: ipe_sender
       integer :: process_addr
-      type(t_tree_node), target :: children_to_send(8)
-      type(t_tree_node), pointer :: c
+      type(t_tree_node_transport_package), target :: children_to_send(8)
+      type(t_tree_node_transport_package), pointer :: c
       integer :: reqhandle
       integer*8, dimension(8) :: key_child
       integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child, owner_child
@@ -304,7 +304,7 @@ module module_walk_communicator
       end do
 
       ! Ship child data back to PE that requested it
-      call MPI_IBSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node, ipe_sender, TAG_REQUESTED_DATA, &
+      call MPI_IBSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node_transport_package, ipe_sender, TAG_REQUESTED_DATA, &
               MPI_COMM_WORLD, reqhandle, ierr )
       call MPI_REQUEST_FREE(reqhandle, ierr)
 
@@ -346,7 +346,7 @@ module module_walk_communicator
       use module_debug, only : ipefile
       implicit none
       include 'mpif.h'
-      type (t_tree_node) :: child_data(num_children) !< child data that has been received
+      type (t_tree_node_transport_package) :: child_data(num_children) !< child data that has been received
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
       integer*8 :: kparent
