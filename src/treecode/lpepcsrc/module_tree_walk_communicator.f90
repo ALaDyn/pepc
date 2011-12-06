@@ -94,6 +94,7 @@ module module_tree_walk_communicator
 
     subroutine run_communication_loop_inner(walk_finished, nummessages)
         use treetypes
+        use module_debug, only : ipefile
         implicit none
         include 'mpif.h'
         logical :: msg_avail
@@ -263,6 +264,7 @@ module module_tree_walk_communicator
 
     subroutine send_data(requested_key, ipe_sender)
       use treetypes
+      use module_debug, only : ipefile
       use module_htable
       implicit none
       include 'mpif.h'
@@ -341,6 +343,7 @@ module module_tree_walk_communicator
       use module_htable
       use module_tree
       use module_spacefilling
+      use module_debug, only : ipefile
       implicit none
       include 'mpif.h'
       type (t_tree_node) :: child_data(num_children) !< child data that has been received

@@ -252,13 +252,14 @@ contains
     subroutine find_branches()
         use module_htable
         use module_spacefilling
+        use module_debug, only : pepc_status
         implicit none
 
         integer*8 :: ilevel, j
         integer*8 :: possible_branch
         integer*8 :: pos
 
-        call status('FIND BRANCHES')
+        call pepc_status('FIND BRANCHES')
 
         nbranch = 0
 

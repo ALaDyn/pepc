@@ -161,7 +161,7 @@ module module_fmm_framework
             end do
           end do
 
-          if ((myrank == 0) .and. periodic_debug) then
+          if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('Mstar.tab', Mstar)
             call WriteTableToFile('Lstar.tab', Lstar)
           end if
@@ -180,7 +180,7 @@ module module_fmm_framework
 
           ! MLattice(1:tblinv(3,3))=0
 
-          if ((myrank == 0) .and. periodic_debug) then
+          if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('MLattice.tab', MLattice)
           end if
 
@@ -224,13 +224,13 @@ module module_fmm_framework
           ! sum multipole contributions from all processors
           call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde, Lmax*(Lmax+1)/2+Lmax+1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-          if ((myrank == 0) .and. periodic_debug) then
+          if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('omega_tilde.tab', omega_tilde)
           end if
 
-          if (real(omega_tilde( tblinv(0, 0))) > 1.E-14) then
+          if (real(omega_tilde( tblinv(0, 0))) > 1.E-8) then
 
-            write (debug, *) 'WARNIG: The central box is not charge-neutral. Switching off calculation of lattice contribution. omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0))
+            write (debug, *) 'WARNING: The central box is not charge-neutral. Switching off calculation of lattice contribution. omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0))
             call print_debug(.true., 2, [ipefile, 6], [.true., myrank.eq.0])
 
             do_periodic         = .false.
@@ -322,7 +322,7 @@ module module_fmm_framework
             end do
           end do
 
-          if ((myrank == 0) .and. periodic_debug) then
+          if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('mu_cent.tab', mu_cent)
           end if
 

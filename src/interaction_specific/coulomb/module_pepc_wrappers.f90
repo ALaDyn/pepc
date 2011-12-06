@@ -92,13 +92,6 @@ module module_pepc_wrappers
         if (allocated(particles))        deallocate(particles)
         allocate(particles(1:np_local))
 
-        if (force_debug) then
-            write (*,'(a7,a50/2i5,4f15.2)') 'PEPC | ','Params: itime, mac, theta, eps, force_const:', &
-            itime, cf_par%mac, sqrt(cf_par%theta2), sqrt(cf_par%eps2), cf_par%force_const
-            write (*,'(a7,a20/(i16,4f15.3,i8))') 'PEPC | ','Initial buffers: ',(p_label(i), p_x(i), p_y(i), p_z(i), p_q(i), &
-            p_label(i),i=1,npp)
-        endif
-
         do i=1,np_local
             particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)],       &  ! position
                                               max(p_w(i), 1._8),       &  ! workload from last step
@@ -120,18 +113,6 @@ module module_pepc_wrappers
           p_pot(i) = particles(i)%results%pot
           p_w(i)   =  particles(i)%work
         end do
-
-        if (force_debug) then
-            write (ipefile,'("Tree forces:"/"   p    q   m   pot  ",f8.2)')
-            write (*,'("Tree forces:"/"   p    q   m   ux   pot  ",f8.2)')
-            write (ipefile,'("Tree forces:"/"   p    q   m   pot  ",f8.2)') cf_par%force_const
-
-            do i=1,np_local
-                write (ipefile,'(1x,i7,3(1pe14.5))') particles(i)%label, particles(i)%data%q, p_pot(i), p_ex(i)
-                write (*,'(1x,i7,3(1pe14.5))') particles(i)%label, particles(i)%x(1), particles(i)%data%q, p_pot(i)
-            end do
-
-        endif
 
     end subroutine
 

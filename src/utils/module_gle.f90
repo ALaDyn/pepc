@@ -30,6 +30,7 @@ module module_gle
 	  use treevars
 	  use module_htable
 	  use module_pepc_wrappers
+	  use module_debug, only : ipefile
 
 	  implicit none
 
@@ -143,6 +144,7 @@ module module_gle
 
 	  use treevars
 	  use module_pepc_wrappers
+      use module_debug, only : ipefile
 
 	  implicit none
 
@@ -260,6 +262,7 @@ module module_gle
 	  use treevars
 	  use module_htable
       use module_pepc_wrappers
+      use module_debug, only : ipefile
 
 	  implicit none
 
@@ -464,6 +467,7 @@ module module_gle
 	  use treevars
 	  use module_htable
       use module_pepc_wrappers
+      use module_debug, only : ipefile
 
 	  implicit none
 	  real*8, intent(in) :: xl, yl
@@ -737,6 +741,7 @@ module module_gle
 	  use treevars
 	  use module_htable
       use module_pepc_wrappers
+      use module_debug, only : ipefile
 
 	  implicit none
 

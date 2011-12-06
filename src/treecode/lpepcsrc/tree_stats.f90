@@ -14,6 +14,7 @@ subroutine tree_stats(timestamp)
   use module_tree_walk_communicator
   use module_tree_walk
   use module_branching
+  use module_debug, only : pepc_status
   use module_htable, only : maxaddress
   implicit none
   include 'mpif.h'
@@ -30,7 +31,7 @@ subroutine tree_stats(timestamp)
   integer ::  part_imbal_max, part_imbal_min
   real*8 :: global_thread_workload(-4:4)
 
-   call status('STATS')
+   call pepc_status('STATISTICS')
 
   ! particle distrib
   call MPI_GATHER(npp,         1, MPI_INTEGER, nparticles, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )

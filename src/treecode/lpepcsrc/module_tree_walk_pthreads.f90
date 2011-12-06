@@ -235,6 +235,7 @@ module module_tree_walk_pthreads_commutils
 
 
       subroutine retval(iret, msg)
+        use module_debug, only : ipefile
         use treevars
         use, intrinsic :: iso_c_binding
         implicit none
@@ -259,6 +260,7 @@ module module_tree_walk_pthreads_commutils
         use treevars
         use module_htable
         use module_tree_walk_communicator
+        use module_debug, only : ipefile
         implicit none
         include 'mpif.h'
         integer*8, intent(in) :: request_key
@@ -317,6 +319,7 @@ module module_tree_walk_pthreads_commutils
     subroutine send_requests()
       use module_tree_walk_communicator
       use treevars
+      use module_debug, only : ipefile
       implicit none
       include 'mpif.h'
 
@@ -363,6 +366,7 @@ module module_tree_walk_pthreads_commutils
       subroutine run_communication_loop(max_particles_per_thread)
         use pthreads_stuff
         use treevars
+        use module_debug, only : ipefile
         use, intrinsic :: iso_c_binding
         implicit none
         include 'mpif.h'
@@ -537,6 +541,7 @@ module module_tree_walk
       use timings
       use module_tree_walk_pthreads_commutils
       use module_tree_walk_communicator
+      use module_debug, only : pepc_status
       implicit none
       include 'mpif.h'
 
@@ -547,9 +552,7 @@ module module_tree_walk
       real*8, target, intent(inout) :: twalk, twalk_loc_
       real*8, target, intent(out), dimension(3) :: tcomm
 
-      call status('WALK HYBRID')
-
-      if (me.eq.0 .and. walk_summary) write(*,'(2(a,i6))') 'LPEPC | TREE WALK (HYBRID)'
+      call pepc_status('WALK HYBRID')
 
       num_particles = nparticles
       particle_data => particles
@@ -583,6 +586,7 @@ module module_tree_walk
     end subroutine tree_walk
 
     subroutine walk_hybrid()
+        use module_debug, only : ipefile, dbg, DBG_WALKSUMMARY
       use module_tree_walk_pthreads_commutils
       use, intrinsic :: iso_c_binding
       implicit none
@@ -620,9 +624,7 @@ module module_tree_walk
         thread_workload(-displ-2) = max(thread_workload(-displ-2),  1._8*threaddata(ith)%runtime_seconds)
 
 
-        if (walk_summary) then
-          write(ipefile,*) "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith)
-        end if
+        if (dbg(DBG_WALKSUMMARY)) write(ipefile,*) "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith)
       end do
 
       ! compute relative deviation
@@ -720,6 +722,7 @@ module module_tree_walk
       use module_tree_walk_communicator
       use pthreads_stuff
       use module_calc_force
+      use module_debug, only : ipefile
       implicit none
       include 'mpif.h'
       type(c_ptr) :: walk_worker_thread
@@ -846,9 +849,7 @@ module module_tree_walk
 
         twalk_loc = MPI_WTIME() - twalk_loc
 
-        if (walk_debug) then
-          write(ipefile,*) "PE", me, "has finished walking"
-        end if
+        if (walk_debug) write(ipefile,*) "PE", me, "has finished walking"
 
       endif
 
@@ -868,6 +869,7 @@ module module_tree_walk
       use module_htable
       use module_calc_force
       use module_spacefilling, only : level_from_key, is_ancestor_of_particle
+      use module_debug, only : ipefile
       implicit none
       integer, intent(in) :: myidx, listlengths
       type(t_particle), intent(inout) :: particle

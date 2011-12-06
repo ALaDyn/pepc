@@ -235,6 +235,7 @@ module timings
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine timings_LocalOutput(itime, iuserflag)
+      use module_debug
       use treevars
 
       implicit none
@@ -249,7 +250,7 @@ module timings
         flag = 0
       endif
 
-      if ( timing_file_debug ) then
+      if ( dbg(DBG_TIMINGFILE) ) then
          call system("mkdir -p " // "timing")
          write(cfile,'("timing/timing_",i6.6,".dat")') me
          call timings_ToFile(itime, flag, tim, cfile, itime<=1)

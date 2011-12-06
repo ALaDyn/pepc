@@ -12,9 +12,6 @@ module treevars
 
   implicit none
 
-  ! Constants
-  integer, dimension(0:7) :: bitarr = (/ 0,1,2,3,4,5,6,7 /)    !< Array of bit positions
-
   !  Associated MPI stuff
   integer :: me       !< Rank of current task
   integer :: num_pe   !< # cpus used by program
@@ -47,8 +44,8 @@ module treevars
              nbranch, &        ! min # branch nodes covering local domain
              nbranch_sum, &    ! total # branch nodes covering all domains
              nintmax, &        ! max # terms allowed in interaction list
-             maxleaf, &     ! max leaf allowed in #table
-             maxtwig, &     ! max twig allowed in #table
+             maxleaf, &        ! max leaf allowed in #table
+             maxtwig, &        ! max twig allowed in #table
              size_tree, &      ! array space needed for local tree
              maxships, &       ! max # multipole ships per traversal 
              sum_ships, &      ! total # multipole ships per iteration  
@@ -56,9 +53,7 @@ module treevars
              npart, &          ! actual # particles (total)
              npp               !  actual  # particles/PE
 
-  integer :: ipefile = 20 ! local O/P stream
   integer :: nkeys_total=1 ! total # keys in local tree
-  integer :: proc_debug=0     ! Debug rank: set to -1 for all
   real*8 :: xmin, xmax    ! box limits
   real*8 :: ymin, ymax  
   real*8 :: zmin, zmax
@@ -66,34 +61,10 @@ module treevars
   real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
   real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
   real*8 :: thread_workload(-4:4) !< stores average particles and runtime per thread for diagnostic purposes, entry 0 contains number of worker threads
-  ! Debugging switches (all off by default)
-  logical :: tree_debug=.false.
-  logical :: build_debug=.false.
-  logical :: domain_debug = .false.
-  logical :: branch_debug=.false.
-  logical :: props_debug=.false.
-  logical :: walk_summary=.false.
-  logical :: force_debug=.false.
-  logical :: dump_tree=.false.
-  logical :: timing_file_debug=.false.
-  logical :: load_file_debug=.false.
 
 ! Memory control
   real :: np_mult=1.5
 
-  contains
-
-
-  subroutine status(stat)
-    implicit none
-    character(*), intent(in) :: stat
-
-    if (tree_debug) then
-       write(ipefile,'("LPEPC | ", a)') stat
-       if (me==0) write(*,'("LPEPC | ", a)') stat
-    endif
-
-  end subroutine
 
 end module treevars
 

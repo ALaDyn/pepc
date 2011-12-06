@@ -56,7 +56,7 @@ module module_allocation
 
         if (allocated(htable)) call deallocate_tree()
 
-        call status('ALLOCATE TREE')
+        call pepc_status('ALLOCATE TREE')
 
         ! Estimate of interaction list length - Hernquist expression
         if (theta2 > 0.0001 ) then
@@ -117,7 +117,7 @@ module module_allocation
         use module_htable
         implicit none
 
-        call status('DEALLOCATE TREE')
+        call pepc_status('DEALLOCATE TREE')
 
         deallocate ( htable, free_addr, point_free, branch_key, branch_owner, pebranch )
 

@@ -52,6 +52,7 @@ module module_tree_domains
         use timings
         use module_spacefilling
         use module_branching
+        use module_debug
         implicit none
         include 'mpif.h'
 
@@ -64,13 +65,10 @@ module module_tree_domains
         integer :: npnew,npold
         integer, intent(out) :: neighbour_pe_particles !< number of particles that have been fetched from neighbouring PEs - they are stored in particles(npp+1:npp+neighbour_pe_particles)
 
-        integer*8, dimension(nppm) :: ixd, iyd, izd
-
-        integer :: i, j, inc, prev, next, handle(4)
+        integer :: i, prev, next, handle(4)
 
         real*8 :: s
         real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
-        logical :: boundary_debug=.false.
         logical :: identical_keys=.false.
 
         integer :: state(MPI_STATUS_SIZE), ierr
@@ -82,7 +80,6 @@ module module_tree_domains
         integer*8 :: w1(nppm)
         integer :: keycheck_pass, ipp
 
-        logical :: sort_debug
         real*8 :: xboxsize, yboxsize, zboxsize
 
         real*8 imba
@@ -108,9 +105,7 @@ module module_tree_domains
         call timer_start(t_domains)
         call timer_start(t_domains_keys)
 
-        sort_debug=domain_debug
-
-        call status('DOMAIN DECOMPOSITION')
+        call pepc_status('DOMAIN DECOMPOSITION')
 
         ! Find limits of local simulation region
         xmin_local = minval(particles(1:npp)%x(1))
@@ -142,7 +137,7 @@ module module_tree_domains
 
         boxsize = max(xmax-xmin, ymax-ymin, zmax-zmin)
 
-        if (domain_debug) write (ipefile,'(4(a15,f12.4/))') &
+        if (dbg(DBG_DOMAIN)) write (ipefile,'(4(a15,f12.4/))') &
         'xmin = ',xmin,'xmax = ',xmax, &
         'ymin = ',ymin,'ymax = ',ymax, &
         'zmin = ',zmin,'zmax = ',zmax, &
@@ -151,6 +146,9 @@ module module_tree_domains
         s=boxsize/2**nlev       ! refinement length
 
         call compute_particle_keys(particles)
+
+        if (dbg(DBG_DOMAIN)) call print_particle_list(particles, npp, &
+                                     'Particle list before key sort (see t_particle in treetypes.f90 for meaning of the columns)')
 
         call timer_stop(t_domains_keys)
         call timer_start(t_domains_sort)
@@ -240,22 +238,8 @@ module module_tree_domains
         call timer_stop(t_domains_add_sort)
         call timer_start(t_domains_bound)
 
-        if (domain_debug) then
-            do j=1,npp
-                ixd(j) = SUM( (/ (2_8**i*ibits( particles(j)%key-iplace,3*i,1 ), i=0,nlev-1) /) )
-                iyd(j) = SUM( (/ (2_8**i*ibits( particles(j)%key-iplace,3*i+1,1 ), i=0,nlev-1) /) )
-                izd(j) = SUM( (/ (2_8**i*ibits( particles(j)%key-iplace,3*i+2,1 ), i=0,nlev-1) /) )
-            end do
-            write (ipefile,'(/a/a/(z21,i6,a2,i8,6f12.4))') 'Particle list after key sort:', &
-            '  key,                owner,    from PE  |  label  Fetched coords      derived from key', &
-            (particles(i)%key, particles(i)%pid, '|', &
-            particles(i)%label, &
-            particles(i)%x(1),particles(i)%x(2),particles(i)%x(3),&
-            ixd(i)*s+xmin,iyd(i)*s+ymin,izd(i)*s+zmin,&
-            i=1,npp)
-
-            write(ipefile,'(/)')
-        endif
+        if (dbg(DBG_DOMAIN)) call print_particle_list(particles, npp, &
+                                     'Particle list after key sort (see t_particle in treetypes.f90 for meaning of the columns)')
 
         particles(1:npp)%pid = me  ! new owner
 
@@ -340,21 +324,8 @@ module module_tree_domains
         ! Initialize VLD-stuff
         call branches_initialize_VLD(particles)
 
-        !TODO: We use particle_data here, this is NOT allowed!!!
-!        if (boundary_debug) then
-!            if (me /= 0 .and. me /= num_pe-1) then
-!                inc = 1
-!            else
-!                inc = 0
-!            endif
-!
-!            write (ipefile,'(/a/a/(i5,z21,2i8,3f12.5,1f12.3))') 'Particle list after boundary swap:', &
-!            ' index   key,     label,   on PE,    x      y     q', &
-!            (i,particles(i)%key,particles(i)%label,particles(i)%pid,&
-!            particles(i)%x(1),particles(i)%x(2),particles(i)%x(3),particles(i)%data%q,i=1,npp+1+inc)
-!
-!            write(ipefile,'(/)')
-!        endif
+        if (dbg(DBG_DOMAIN)) call print_particle_list(particles, npp + neighbour_pe_particles, &
+                                     'Particle list after boundary swap (see t_particle in treetypes.f90 for meaning of the columns)')
 
         call timer_stop(t_domains_bound)
         call timer_stop(t_domains)
@@ -370,8 +341,9 @@ module module_tree_domains
     subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
                              particles)
         use module_interaction_specific
-        use treevars, only : num_pe, status, npp
+        use treevars, only : num_pe, npp
         use treetypes
+        use module_debug, only : pepc_status
         implicit none
         include 'mpif.h'
 
@@ -385,7 +357,7 @@ module module_tree_domains
 
         type (t_particle)         :: get_parts(npold), ship_parts(npnew)
 
-        call status('RESTORE DOMAINS')
+        call pepc_status('RESTORE DOMAINS')
 
         do i=1,npnew
           ship_parts(i) = particles(indxl(i))
@@ -407,5 +379,24 @@ module module_tree_domains
 
     end subroutine restore
 
+
+    subroutine print_particle_list(particles, npart, callinfo)
+      use treetypes
+      use module_debug
+      implicit none
+      type(t_particle), intent(in) :: particles(:)
+      integer, intent(in) :: npart
+      character(*), intent(in) :: callinfo
+
+      integer :: j
+
+      write (ipefile,'(/a/)') callinfo
+      do j=1,npart
+        write(ipefile,'(i10)',advance='no') j
+        write(ipefile,*)                     particles(j)
+      end do
+      write(ipefile,'(/)')
+
+   end subroutine
 
 end module module_tree_domains

@@ -237,7 +237,8 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_exchange(local_branch_keys, nbranch, branch_keys, nbranch_sum)
 
-        use treevars, only : me, num_pe, tree_nodes, nbranches, status
+        use treevars, only : me, num_pe, tree_nodes, nbranches
+        use module_debug, only : pepc_status
         use treetypes
         use timings
         use module_htable
@@ -258,7 +259,7 @@ module module_tree
 
         call timer_start(t_exchange_branches_pack)
 
-        call status('EXCHANGE BRANCHES')
+        call pepc_status('EXCHANGE BRANCHES')
 
         ! Pack local branches for shipping
         allocate(pack_mult(nbranch))
@@ -327,7 +328,8 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_upwards(start_keys, numkeys)
 
-        use treevars, only : me, tree_debug, proc_debug, status
+        use treevars, only : me
+        use module_debug, only : pepc_status, DBG_TREE, dbg
         use timings
         use tree_utils
         use module_htable
@@ -346,11 +348,9 @@ module module_tree
         integer :: ilevel, maxlevel, nsub, groupstart, groupend, i, nparent, nuniq
         integer*8 :: current_parent_key
 
-        call status('BUILD TOWARDS ROOT')
+        call pepc_status('BUILD TOWARDS ROOT')
 
-        if (tree_debug .and. ((proc_debug.eq.-1) .or. (proc_debug==me))) then
-            call check_table('after make_branches ')
-        endif
+        if (dbg(DBG_TREE)) call check_table('after make_branches ')
 
         ! get levels of branch nodes
         branch_level(1:numkeys) = level_from_key(start_keys(1:numkeys))
@@ -433,7 +433,8 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_from_particles(particle_list, nparticles, leaf_keys)
-      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, nleaf_me, ntwig_me, status
+      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, nleaf_me, ntwig_me
+      use module_debug, only : pepc_status
       use treetypes
       use module_htable
       use timings
@@ -447,7 +448,7 @@ module module_tree
       integer :: i, k, nremaining, nreinserted, level, ibit, ierr, hashaddr, nremoved
       integer*8 :: lvlkey
 
-      call status('INSERT PARTICLES')
+      call pepc_status('INSERT PARTICLES')
 
       leaf_keys(1:nparticles) = 0_8
 

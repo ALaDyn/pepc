@@ -53,6 +53,7 @@ contains
         use module_htable
         use module_branching
         use module_mirror_boxes
+        use module_debug, only : pepc_status, dbg, DBG_STATS, DBG_LOADFILE
         implicit none
         include 'mpif.h'
 
@@ -78,7 +79,7 @@ contains
         integer :: nppmax
         integer :: neighbour_pe_particles !< number of particles that have been fetched from neighbouring PEs durin tree_domains
 
-        call status('FIELDS')
+        call pepc_status('FIELDS')
 
         ! copy call parameters to treevars module
         npart      = npart_total
@@ -204,11 +205,11 @@ contains
 
         nkeys_total = nleaf+ntwig
 
-        if (tree_debug) call tree_stats(itime)
+        if (dbg(DBG_STATS)) call tree_stats(itime)
 
         call timer_stop(t_fields_stats)
 
-        if( load_file_debug ) then
+        if( dbg(DBG_LOADFILE) ) then
             call system("mkdir -p " // "load")
             write(cfile,'("load/load_",i6.6,".dat")') me
             open(60, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
@@ -226,7 +227,7 @@ contains
         call timer_stop(t_deallocate)
         call timer_stop(t_all)
 
-        call status('FIELDS DONE')
+        call pepc_status('FIELDS DONE')
 
 
     end subroutine pepc_fields
@@ -258,6 +259,7 @@ contains
         use module_htable
         use module_branching
         use module_mirror_boxes
+        use module_debug, only : pepc_status
         implicit none
         include 'mpif.h'
 
@@ -272,7 +274,7 @@ contains
         real*8 :: vbox(3)
 
 
-        call status('GRID FIELDS')
+        call pepc_status('GRID FIELDS')
 
         call timer_start(t_walk_grid)
 
@@ -302,7 +304,7 @@ contains
         call calc_force_per_particle(particles, npp, cf_par)
         call timer_stop(t_lattice_grid)
 
-        call status('GRID FIELDS DONE')
+        call pepc_status('GRID FIELDS DONE')
 
     end subroutine pepc_grid_fields
 

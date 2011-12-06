@@ -462,9 +462,15 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine check_table(callpoint)
         use treevars
+        use module_debug, only : pepc_status
         implicit none
         character(*) :: callpoint
         integer :: nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
+        logical :: error
+
+        call pepc_status('CHECK TABLE')
+
+        error = .false.
 
         ntwig_check = count(mask =  htable%node <0 )
         nleaf_check = count(mask =  htable%node >0 )
@@ -474,28 +480,33 @@ module module_htable
         if (nleaf /= nleaf_check) then
             write(*,'(3a,i4)') 'Table check called ',callpoint,' by PE',me
             write(*,*) '# leaves in table = ',nleaf_check,'vs ',nleaf,'accumulated'
-            write(*,*) 'Fixing and continuing for now..'
         !     nleaf = nleaf_check
+            error = .true.
         endif
 
         if (ntwig /= ntwig_check) then
             write(*,'(3a,i4)') 'Table check called ',callpoint,' by PE',me
             write(*,*) ' # twigs in table = ',ntwig_check,'vs ',ntwig,'accumulated'
-            write(*,*) 'Fixing and continuing for now..'
         !     ntwig = ntwig_check
+            error = .true.
         endif
 
         if (nleaf_me /= nleaf_me_check) then
             write(*,'(3a,i4)') 'Table check called ',callpoint,' by PE',me
             write(*,*) ' # own leaves in table = ',nleaf_me_check,'vs ',nleaf_me,'accumulated'
-            write(*,*) 'Fixing and continuing for now..'
             nleaf_me = nleaf_me_check
+            error = .true.
         endif
         if (ntwig_me /= ntwig_me_check) then
             write(*,'(3a,i4)') 'Table check called ',callpoint,' by PE',me
             write(*,*) ' # own twigs in table = ',ntwig_me_check,'vs ',ntwig_me,'accumulated'
-            write(*,*) 'Fixing and continuing for now..'
             ntwig_me = ntwig_me_check
+            error = .true.
+        endif
+
+        if (error) then
+          write(*,*) 'Fixing and continuing for now..'
+          call diagnose_tree()
         endif
 
     end subroutine check_table
@@ -512,6 +523,7 @@ module module_htable
         use treetypes
         use module_spacefilling
         use tree_utils
+        use module_debug
         implicit none
 
         type(t_particle), optional, intent(in) :: particles(1:npp)
@@ -521,7 +533,7 @@ module module_htable
         character(1) :: collision
         integer :: i
 
-        call status('DIAGNOSE')
+        call pepc_status('DIAGNOSE')
 
         ! output hash table
 

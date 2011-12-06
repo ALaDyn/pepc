@@ -36,8 +36,6 @@ module module_mirror_boxes
       logical, public :: do_periodic
       ! number of boxes to include into each direction
       integer, public :: periodicity_switches(3)
-      !> set to .true. to activate debug mode (table output etc.)
-      logical, public :: periodic_debug =.false.
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -186,7 +184,6 @@ module module_mirror_boxes
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine constrain_periodic(x, y, z, np_local)
             use module_math_tools
-            use module_debug
 
             implicit none
 

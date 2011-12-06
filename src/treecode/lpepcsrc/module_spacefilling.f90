@@ -78,6 +78,7 @@ module module_spacefilling
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine compute_particle_keys(particles)
           use treevars
+          use module_debug
           implicit none
           type(t_particle), intent(inout) :: particles(1:npp)
           integer*8, dimension(3,npp) :: intcoord
@@ -104,14 +105,6 @@ module module_spacefilling
              end do
 
           end select
-          !TODO: We use particle_data here, this is NOT allowed!!!
-!          if (domain_debug) then
-!             write (ipefile,'(/a/a/(z21,i8,3f12.4,3i8,2f12.4))') 'Particle list before key sort:', &
-!                  '  key,             label   coords     q ', &
-!                  (particles(j)%key,particles(j)%label,particles(j)%x,intcoord(:,j),particles(j)%data%q,particles(j)%work,j=1,npp)
-!
-!             write(ipefile,'(/)')
-!          endif
 
         end subroutine compute_particle_keys
 

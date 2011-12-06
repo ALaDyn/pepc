@@ -24,30 +24,29 @@ contains
         use module_spacefilling
         use module_tree_walk
         use module_tree_domains
+        use module_debug, only : pepc_status, debug_level
         implicit none
   
         integer, intent(in) :: my_rank, n_cpu
         integer, intent(in), optional :: db_level_in
-
-        integer :: db_level
 
         integer, parameter :: para_file_id = 10
         integer :: file_start=0
         character(len=255) :: para_file_name
         integer :: para_file_available
 
-        namelist /libpepc/ db_level, np_mult, curve_type, weighted
+        namelist /libpepc/ debug_level, np_mult, curve_type, weighted
 
-        call status('SETUP')
+        call pepc_status('SETUP')
 
         ! copy call parameters to treevars module
         me     = my_rank
         num_pe = n_cpu
 
         if (present(db_level_in)) then
-            db_level = db_level_in
+            debug_level = db_level_in
         else
-            db_level        =   0
+            debug_level = 0
         endif
         np_mult         = -45
         weighted        =   1
@@ -70,66 +69,9 @@ contains
             close(para_file_id)
 
         else
-            if(my_rank .eq. 0) write(*,*) "##### using default parameter for libpepc #####"
+            if ((my_rank .eq. 0) .and. (debug_level > 0)) write(*,*) "##### using default parameter for libpepc #####"
         end if
 
-
-        force_debug=.false.
-        tree_debug=.false.
-        build_debug=.false.
-        domain_debug = .false.
-        branch_debug=.false.
-        walk_summary=.false.
-        dump_tree=.false.
-        periodic_debug=.false.
-
-        load_file_debug=.false.
-        timing_file_debug=.false.
-
-
-        if (db_level==1) then
-            !      domain_debug = .true.
-            tree_debug=.true.  ! location information only
-	
-        else if (db_level==2) then
-            tree_debug=.true.  ! location information only
-            walk_summary=.true.
-
-        else if (db_level==3) then
-            tree_debug=.true.
-            force_debug=.false.
-            walk_summary=.true.
-            domain_debug = .true.
-            periodic_debug=.true.
-
-        else if (db_level==4) then
-            tree_debug=.true.
-            domain_debug = .true.
-            build_debug=.true.
-            branch_debug=.true.
-            props_debug=.true.
-            walk_summary=.true.
-            force_debug=.true.
-            periodic_debug=.true.
-
-        else if (db_level==5) then
-            dump_tree=.true.
-
-        else if (db_level==6) then
-            tree_debug=.true.
-            domain_debug = .true.
-            build_debug=.true.
-            branch_debug=.true.
-            walk_summary=.true.
-            force_debug=.true.
-            dump_tree=.true.
-            periodic_debug=.true.
-            load_file_debug=.true.
-            timing_file_debug=.true.
-
-        else
-          ! all off by default
-        endif
 
         ! create and register mpi types
         call register_lpepc_mpi_types()
@@ -191,9 +133,10 @@ contains
     subroutine libpepc_finalize()
         use treevars
         use module_branching
+        use module_debug, only : pepc_status
         implicit none
 
-        call status('FINALIZE')
+        call pepc_status('FINALIZE')
 
         ! deregister mpi types
         call free_lpepc_mpi_types()

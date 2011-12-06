@@ -68,6 +68,7 @@ module module_io
 		subroutine openfiles
 
 		  use physvars
+          use module_debug, only : ipefile
 		  implicit none
 		  character(30) :: cfile
 
@@ -84,6 +85,7 @@ module module_io
 		     write(*,*) 'debug level: ',debug_level,' idump',idump
 		  endif
 
+           !  TODO: this code must be somewhere (also for all other frontends)
 		  !  stdout for PE me
                   !if (db_level > 0) then
                   !call system("mkdir -p " // "diag")
