@@ -63,6 +63,8 @@ endif
 
 RM       = rm -rf
 
+SVNVERSION = svnversion
+
 ROOTDIR     = ./
 LIBDIR      = $(ROOTDIR)lib/
 BINDIR      = $(ROOTDIR)bin/

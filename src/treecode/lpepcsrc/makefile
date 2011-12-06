@@ -1,6 +1,7 @@
 MYROOT = ../../../
 
 include $(MYROOT)/makefile.defs
+CPPFLAGS+=-DSVNVERSION="'`cd $(MYROOT); $(SVNVERSION)`'"
 
 # We set some default backend. TODO: issue a warning message if $BACKEND is not set
 ifeq ($(strip $(BACKEND)),)
