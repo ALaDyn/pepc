@@ -50,8 +50,7 @@ program pepce
        draw_neighbours
 
   use module_sph, only: &
-       sph_density, &
-       update_particle_props
+       sph
   
   use module_timings, only: &
        timer_start, &
@@ -148,7 +147,7 @@ program pepce
      call validate_n_nearest_neighbour_list(np_local, particles, &
           itime, num_neighbour_boxes, neighbour_boxes)
 
-     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+     call sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
 
   end do

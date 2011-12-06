@@ -19,6 +19,16 @@ module module_sph
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
   integer, parameter :: num_neighbour_particles = 50      !< TODO: set this variable from pepc.f90
+
+  integer :: idim = 3
+
+  real*8 :: thermal_constant             
+  real*8 :: kappa                        
+  real*8 :: art_vis_alpha                
+  real*8 :: art_vis_beta                 
+  logical :: use_artificial_viscosity
+
+  real*8, parameter :: pi = 3.141592653589793  
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -34,6 +44,48 @@ module module_sph
 contains
 
 
+
+  subroutine sph_initialize(idim_tmp, thermal_constant_tmp, kappa_tmp, art_vis_alpha_tmp, art_vis_beta_tmp)
+    
+    implicit none
+    include 'mpif.h'
+    
+    integer, intent(in) :: idim_tmp
+    real*8, intent(in) :: thermal_constant_tmp
+    real*8, intent(in) :: kappa_tmp
+    real*8, intent(in) :: art_vis_alpha_tmp
+    real*8, intent(in) :: art_vis_beta_tmp
+
+    integer :: ierr
+    
+    
+    ! set module variables
+    idim             = idim_tmp
+    thermal_constant = thermal_constant_tmp
+    kappa            = kappa_tmp
+    art_vis_alpha    = art_vis_alpha_tmp
+    art_vis_beta     = art_vis_beta_tmp
+
+    use_artificial_viscosity = .true.
+
+
+  end subroutine sph_initialize
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> \brief compute the kernel for sph
   !> 
@@ -47,54 +99,45 @@ contains
   !> \param[in]      h         
   !> \param[out]     kernel    
 
-  subroutine sph_kernel(distance, h, kernel)
-
+  subroutine sph_kernel(r, h, kernel)
+    
     implicit none
     include 'mpif.h'
-
+    
     ! \bug ab: using idim for dimensions, be carefull with idim .ne. 3 because of pepc
-    real*8, intent(in) :: distance                          !< scalar distance between two particles
+    real*8, intent(in) :: r                                 !< scalar distance between two particles, should allways be >= 0
     real*8, intent(in) :: h                                 !< sph smoothing length h
     real*8, intent(out) :: kernel                           !< scalar sph kernel, W
-
-    real*8, parameter :: pi = 3.141592653589793
-    real*8 :: r                                             !< absolute distance
+    
     real*8 :: q                                             !< r/h
-    real*8 :: factor
-
-    integer :: idim                                         !< dimension, change to module variable
-
+    real*8 :: sph_kernel_factor
+    
     integer :: ierr
-
-
-
-    r = distance  ! should always be positive
+    
     q = r/h
 
-    ! TODO: idim as parameter or module variable
-
-    idim = 3
-
     if( idim .eq. 3 ) then
-       factor = 1._8/pi/h**3                                     ! for 3d , see monaghan 1992, S. 554, 555
+       sph_kernel_factor = 1._8/pi/h**3                                     ! see monaghan 1992, S. 554, 555
     else if( idim .eq. 2 ) then
-       factor = 10._8/7._8/pi/h**2
+       sph_kernel_factor = 10._8/7._8/pi/h**2
     else if( idim .eq. 1 ) then
-       factor = 2._8/3._8/h
+       sph_kernel_factor = 2._8/3._8/h
     else 
-       write (*,*) "idim not one of 1, 2, 3. Terminating."
-
+       write (*,*) "idim not one of 1, 2, 3. Terminating:", idim
+       
        call MPI_ABORT(MPI_COMM_WORLD, 666, ierr)
     end if
 
 
+    
+    ! see monaghan 1992, S. 554, 555
     if (q >= 0._8 .and. q <= 1._8) then
-       kernel       = factor * (1._8 - 3._8/2._8 *(r/h)**2 + 3._8/4._8 * (r/h)**3)
+       kernel       = sph_kernel_factor * (1._8 - 3._8/2._8 *(r/h)**2 + 3._8/4._8 * (r/h)**3)
     else if ( q <= 2._8 ) then
-       kernel       = factor * (1._8/4._8 * (2._8 - (r/h) )**3)
+       kernel       = sph_kernel_factor * (1._8/4._8 * (2._8 - (r/h) )**3)
     else ! q > 2, or negative
        write (*,*) "SPH kernel: q not in [0,2]. Should never happen:", q
-
+       
        call MPI_ABORT(MPI_COMM_WORLD, 666, ierr)
     end if
 
@@ -124,17 +167,6 @@ contains
     use treevars, only: &
          tree_nodes
     
-!    use physvars, only: &
-!         n_cpu, &
-!         my_rank
-    
-!    use module_htable, only: & 
-!         key2addr
-    
-!    use module_spacefilling, only: &
-!         coord_to_key_lastlevel, &
-!         key_to_coord
-
     implicit none
     include 'mpif.h'
 
@@ -152,7 +184,7 @@ contains
     real*8 :: h
     real*8 :: kernel
     integer*8 :: actual_node
-
+    
 !     IF( me == 0) then 
        
 !        write(87, *) me, idim
@@ -170,18 +202,18 @@ contains
     ! compute smoothing length (h) for all local particles
     ! TODO: move this out of sph_density
     ! TODO: parallelize with OpenMP
-
+    
     !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index)
     do local_particle_index = 1, np_local
        particles(local_particle_index)%results%h = sqrt(particles(local_particle_index)%results%maxdist2)/2._8
     end do
     !$OMP END PARALLEL DO
 
-
-
+    
+    
     !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h, kernel, actual_neighbour, actual_node)
     do local_particle_index = 1, np_local
-
+       
        h = particles(local_particle_index)%results%h
 
        call sph_kernel( 0._8, h, kernel) ! particle self
@@ -218,54 +250,47 @@ contains
   !> \param[in]      h         
   !> \param[out]     nabla_kernel
 
-  subroutine sph_grad_kernel(distance, h, grad_kernel)
+  subroutine sph_grad_kernel(r, h, grad_kernel)
 
     implicit none
     include 'mpif.h'
-
+    
     ! \bug ab: using idim for dimensions, be carefull with idim .ne. 3 because of pepc
-    real*8, intent(in) :: distance                          !< scalar distance between two particles
+    real*8, intent(in) :: r                                 !< scalar distance between two particles, should be >= 0
     real*8, intent(in) :: h                                 !< sph smoothing length h
     real*8, intent(out) :: grad_kernel                      !< scalar part of gradient of sph kernel, Nabla W,
     ! has to be multiplied by the distance vector by the calling function
 
-    real*8, parameter :: pi = 3.141592653589793
-    real*8 :: r                                             !< absolute distance
     real*8 :: q                                             !< r/h
-    real*8 :: factor
-    
+    real*8 :: sph_kernel_factor
+
     integer :: ierr
-    integer :: idim
 
-    ! TODO: make idim module variable
-    idim = 3
-
-    r = distance             ! should always be positive
     q = r/h
-    
-    ! TODO: make kernel factor a module variable and initialise it once!
+
+
     if( idim .eq. 3 ) then
-       factor = 1._8/pi/h**3                                     ! for 3d , see monaghan 1992, S. 554, 555
+       sph_kernel_factor = 1._8/pi/h**3                                     ! see monaghan 1992, S. 554, 555
     else if( idim .eq. 2 ) then
-       factor = 10._8/7._8/pi/h**2
+       sph_kernel_factor = 10._8/7._8/pi/h**2
     else if( idim .eq. 1 ) then
-       factor = 2._8/3._8/h
+       sph_kernel_factor = 2._8/3._8/h
     else 
        write (*,*) "idim not one of 1, 2, 3. Terminating."
-
+       
        call MPI_ABORT(MPI_COMM_WORLD, 666, ierr)
     end if
 
-
+    
     if (q >= 0._8 .and. q <= 1._8) then
-       grad_kernel = factor * (9._8 * r - 12._8 * h )/(4._8 * h**3 )
+       grad_kernel = sph_kernel_factor * (9._8 * r - 12._8 * h )/(4._8 * h**3 )
     else if ( q > 1._8 .and. q <= 2._8 ) then
-       grad_kernel = factor * (-3._8) * (2._8 -  r/h )**2 / (4._8 * h * r )
+       grad_kernel = sph_kernel_factor * (-3._8) * (2._8 -  r/h )**2 / (4._8 * h * r )
     else ! q > 2, or negative
        write (*,*) "SPH grad kernel: q not in [0,2]. Should never happen:", q
-
-       ! \bug ab: contribution of last particle is always 0 besause h is defined as half of the distance to this particle 
-
+       
+       ! ab: contribution of last particle is always 0, because h is defined as half of the distance to this particle, so we are really using n-1 neighbours
+       
        call MPI_ABORT(MPI_COMM_WORLD, 666, ierr)
     end if
 
@@ -306,7 +331,6 @@ contains
     real*8 :: grad_kernel
     integer*8 :: actual_node
 
-    integer :: actual_particle
     real*8 :: const
     real*8, dimension(3) :: dist           !< never more than 3 dimensions
     real*8 :: artificial_viscosity
@@ -321,31 +345,19 @@ contains
 
 
     CHARACTER(100) :: forcefile
-    LOGICAL :: use_artificial_viscosity
-
-    real*8 :: thermal_constant             ! TODO: make this a parameter
-    real*8 :: kappa                        ! TODO: make this a parameter
-    integer :: idim                        ! TODO: make this a parameter
-    real*8 :: art_vis_alpha                ! TODO: make this a parameter
-    real*8 :: art_vis_beta                 ! TODO: make this a parameter
-
-
-
-    thermal_constant = 1.
-    kappa = 1.
-    idim = 1
 
     
-    const = real(thermal_constant,8)  ! m**2 s**-2 K
+    
+    const = thermal_constant  ! m**2 s**-2 K
+
     ! p = rho *const*T , quick n dirty
-
-
+    
+    
     energy_factor = 1._8 * ( kappa - 1._8 ) /const /2._8 
 
 
 !write(forcefile,'(a,i6.6,a,i6.6,a)') "sph_", itime-1, "_", me, ".list"
 !open(50, FILE=forcefile)
-
 
 
     ! thermal energy change:
@@ -356,16 +368,15 @@ contains
     
     ! acceleration:
     ! dv_i/dt = -SUM (m_j ( P_b/rho_b^2 + P_a/rho_a^2 ) grad_kernel ) (Monaghan 1992 S. 546)
-
+    
     ! for artificial viscosity (art_vis) see Monaghan 1992, S. 550
-
-
-    ! TODO: make this a parameter
-    use_artificial_viscosity = .true.
+    
+    
 
     
     
-    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel)
+    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel, rr, vr, dim, dist, dvx, &
+    !$OMP& thermal_energy_factor, eta, sound_speed, mu, artificial_viscosity, scalar_force)
     do local_particle_index = 1, np_local
        
        h = particles(local_particle_index)%results%h
@@ -394,7 +405,7 @@ contains
           ! rr: art_vis, distance squared
           rr =  particles(local_particle_index)%results%dist2(actual_neighbour)
           
-          vr = 0.
+          vr = 0._8
           
           ! for all dimension
           do dim = 1, idim
@@ -489,6 +500,8 @@ contains
     integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
     
     integer :: ierr
+
+    call sph_initialize(3, 1._8, 1.4_8, 2._8, 1._8)
 
     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
     
@@ -618,14 +631,14 @@ contains
     ! write(*,*) 'sort test finished'
 
 
-    ! sort keys accorting to owner
 
+    ! TODO: remove this test or change it to debug
     do i = 1, num_request
        if(non_local_node_owner(i) > n_cpu -1 ) write(*,*) 'owner > n_cpu:', i, non_local_node_owner(i), non_local_node_keys(i)
     end do
-
-
     
+    
+    ! sort keys accorting to owner    
     call sort(non_local_node_owner(1:num_request), int_arr(1:num_request))
 
     do i = 1, num_request
