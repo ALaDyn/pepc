@@ -170,11 +170,16 @@ contains
     ! compute smoothing length (h) for all local particles
     ! TODO: move this out of sph_density
     ! TODO: parallelize with OpenMP
+
+    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index)
     do local_particle_index = 1, np_local
        particles(local_particle_index)%results%h = sqrt(particles(local_particle_index)%results%maxdist2)/2._8
     end do
+    !$OMP END PARALLEL DO
 
 
+
+    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h, kernel, actual_neighbour, actual_node)
     do local_particle_index = 1, np_local
 
        h = particles(local_particle_index)%results%h
@@ -193,6 +198,8 @@ contains
        end do
 
     end do
+    !$OMP END PARALLEL DO
+
 
   end subroutine sph_density
 
@@ -299,19 +306,19 @@ contains
     real*8 :: grad_kernel
     integer*8 :: actual_node
 
-    INTEGER :: actual_particle
-    REAL*8 :: const
-    REAL*8 :: T
-    REAL*8 :: xdist, ydist, zdist
-    REAL*8 :: force_contribution                  ! \bug ab: only for testing
-    REAL*8 :: artificial_viscosity
-    REAL*8 :: vr, rr, mu, eta
-    REAL*8 :: sound_speed
-    REAL*8 :: scalar_force
-    REAL*8 :: thermal_energy_sum
-    REAL*8 :: thermal_energy_factor
-    REAL*8 :: dvx, dvy, dvz
-    REAL*8 :: energy_factor
+    integer :: actual_particle
+    real*8 :: const
+    real*8, dimension(3) :: dist           !< never more than 3 dimensions
+    real*8 :: artificial_viscosity
+    real*8 :: vr, rr, mu, eta
+    real*8 :: sound_speed
+    real*8 :: scalar_force
+    real*8 :: thermal_energy_sum
+    real*8 :: thermal_energy_factor
+    real*8, dimension(3) :: dvx            !< never more than 3 dimensions
+    real*8 :: energy_factor
+    integer :: dim
+
 
     CHARACTER(100) :: forcefile
     LOGICAL :: use_artificial_viscosity
@@ -333,6 +340,9 @@ contains
     ! p = rho *const*T , quick n dirty
 
 
+    energy_factor = 1._8 * ( kappa - 1._8 ) /const /2._8 
+
+
 !write(forcefile,'(a,i6.6,a,i6.6,a)') "sph_", itime-1, "_", me, ".list"
 !open(50, FILE=forcefile)
 
@@ -343,7 +353,7 @@ contains
     ! dT/dt = (gamma -1) /k_B du/dt
     ! gamma = kappa (adiabatic exponent)
     ! \todo ab: correction factor f_i (siehe Springel 2010, SEREN 2011) ??
-
+    
     ! acceleration:
     ! dv_i/dt = -SUM (m_j ( P_b/rho_b^2 + P_a/rho_a^2 ) grad_kernel ) (Monaghan 1992 S. 546)
 
@@ -355,6 +365,7 @@ contains
 
     
     
+    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel)
     do local_particle_index = 1, np_local
        
        h = particles(local_particle_index)%results%h
@@ -379,49 +390,29 @@ contains
           ! a = charge / mass * e(x|y|z). For gravity charge/mass = 1, so the fields and accelerations are equal. 
           ! Because of this the accelerations caused by sph_force can be added to the fields.
           
-          ! always at least one dimensional
-          
-          xdist = tree_nodes(actual_node)%coc(1) &
-               ! TODO:       + periodic_shift_vectors( shift_list( actual_neighbour, actual_particle ) , 1 ) &
-               - particles(local_particle_index)%x(1)
 
-          dvx = tree_nodes(actual_node)%v(1) - particles(local_particle_index)%data%v(1)
-          
-          ! vr: art_vis, scalar product of velocity difference and distance
-          vr =  xdist * dvx
-          
           ! rr: art_vis, distance squared
           rr =  particles(local_particle_index)%results%dist2(actual_neighbour)
           
+          vr = 0.
+          
+          ! for all dimension
+          do dim = 1, idim
+             dist(dim) = tree_nodes(actual_node)%coc(dim) &
+                  ! TODO:       + periodic_shift_vectors( shift_list( actual_neighbour, actual_particle ) , dim ) &
+                  - particles(local_particle_index)%x(dim)
+             
+             dvx(dim) = tree_nodes(actual_node)%v(dim) - particles(local_particle_index)%data%v(dim)
+             
+             ! vr: art_vis, scalar product of velocity difference and distance
+             vr =  vr + dist(dim) * dvx(dim)
+             
+          end do
+          
           thermal_energy_factor = vr
           
-          if( idim > 1 ) then
-             ydist = tree_nodes(actual_node)%coc(2) &
-                  ! TODO:       + periodic_shift_vectors( shift_list( actual_neighbour, actual_particle ) , 1 ) &
-                  - particles(local_particle_index)%x(2)
-             
-             dvy = tree_nodes(actual_node)%v(2) - particles(local_particle_index)%data%v(2)
-             
-             vr = vr + ydist * dvy
-             
-             thermal_energy_factor = thermal_energy_factor + dvy *ydist
-             
-             
-             if (idim > 2 ) then
-                zdist = tree_nodes(actual_node)%coc(3) &
-                     ! TODO:       + periodic_shift_vectors( shift_list( actual_neighbour, actual_particle ) , 1 ) &
-                     - particles(local_particle_index)%x(3)
-                
-                dvz = tree_nodes(actual_node)%v(3) - particles(local_particle_index)%data%v(3)
-                
-                vr = vr + zdist * dvz
-                
-                thermal_energy_factor = thermal_energy_factor + dvz * zdist
-                
-             end if
-          end if
           
-          
+          ! TODO: make eta parameter???
           eta = real(0.1,8) * h                                                ! art_vis
           sound_speed = ( sqrt( const * particles(local_particle_index)%data%temperature )  &
                + sqrt( const * tree_nodes(actual_node)%temperature ) )/ 2. ! mean sound_speed 
@@ -448,138 +439,70 @@ contains
                ) * grad_kernel
           ! \todo ab: use both kernels here (i, j)
           
-          particles(local_particle_index)%results%sph_force(1) = &
-               particles(local_particle_index)%results%sph_force(1) + scalar_force * xdist
-          
-          if( idim > 1 ) then
-             
-             particles(local_particle_index)%results%sph_force(2) = &
-                  particles(local_particle_index)%results%sph_force(2) + scalar_force * ydist
-             
-             if (idim > 2 ) then
-                
-                particles(local_particle_index)%results%sph_force(3) = &
-                     particles(local_particle_index)%results%sph_force(3) + scalar_force * ydist
-                
-             end if
-          end if
-          
+
+          particles(local_particle_index)%results%sph_force = particles(local_particle_index)%results%sph_force + scalar_force * dist
+
+
+
 !write(50+me, *) scalar_force, vr, grad_kernel, xdist, dvx, artificial_viscosity
 
           thermal_energy_sum = thermal_energy_sum + vr * scalar_force
           
        end do ! end of loop over neighbours
+       
 
+       ! TODO: add temperature change
 !       temperature_change_tmp( part_indices( actual_particle ) ) = real( pelabel( part_indices( actual_particle) ), 8 ) 
 
        
-       energy_factor = 1._8 * ( kappa - 1._8 ) /const /2._8 
        
-       particles(local_particle_index)%results%sph_force(2) = energy_factor * thermal_energy_sum
+       particles(local_particle_index)%results%temperature_change = energy_factor * thermal_energy_sum
        ! TODO: add art_visc term to temp_change
        
-!write(50+me, *) temperature_change_tmp( part_indices( actual_particle ) )
+       !write(50+me, *) temperature_change_tmp( part_indices( actual_particle ) )
        
     end do
-!close(50)
+    !close(50)
     
   end subroutine sph_sum_force
-
-
-!   subroutine sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
-
-!     use treetypes, only: &
-!          t_particle
-
-!     use treevars, only: &
-!          tree_nodes
-
-
-!     implicit none
-!     include 'mpif.h'
-
-    
-!     integer, intent(in) :: np_local    !< # particles on this CPU
-!     type(t_particle), intent(inout) :: particles(:)
-!     integer, intent(in) :: itime  ! timestep
-!     integer, intent(in) :: num_neighbour_boxes !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
-!     integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
-    
-!     integer :: ierr
-
-
-! !  subroutine sph_force(nppm_ori, ex_tmp, ey_tmp, ez_tmp, n_nn_tmp, nshortm, itime_tmp, periodic_x, periodic_y, periodic_z, &
-! !       boxlength_x, boxlength_y, boxlength_z, idim_tmp, max_npass_tmp, nshort_tmp, pstart_tmp, thermal_constant, art_vis_alpha, art_vis_beta!, temperature_change_tmp, kappa, sph_factor )
-
-
-! !    use treevars, &
-! !         ONLY: &
-! !         nlev, &
-! !         boxsize, &
-! !         xmin, ymin, zmin, &
-! !         ntwig, &
-! !         ntwigp, &
-! !         nleaf, &
-! !         x, &     ! \bug ab: for testing
-! !         xcoc     ! \bug ab: for testing
-
-
-!     implicit none
-!     include 'mpif.h'
-
-
-!     INTEGER, INTENT(in) :: n_nn_tmp
-!     INTEGER, INTENT(in) :: nshortm
-!     INTEGER, INTENT(in) :: itime_tmp
-!     LOGICAL, INTENT(in) :: periodic_x
-!     LOGICAL, INTENT(in) :: periodic_y
-!     LOGICAL, INTENT(in) :: periodic_z
-!     REAL*8, INTENT(in) :: boxlength_x
-!     REAL*8, INTENT(in) :: boxlength_y
-!     REAL*8, INTENT(in) :: boxlength_z
-!     INTEGER, INTENT(in) :: idim_tmp
-!     INTEGER, INTENT(in) :: max_npass_tmp
-!     INTEGER, INTENT(in), DIMENSION(max_npass_tmp) :: nshort_tmp
-!     INTEGER, INTENT(in), DIMENSION(max_npass_tmp) :: pstart_tmp
-!     REAL, INTENT(in) :: sph_factor
-    
-! !    INTEGER, INTENT(in) :: npshort                          !< number of particles in current chunk
-! !    INTEGER, DIMENSION(npshort), INTENT(in) :: pshort       !< array with particle indices
-! !    INTEGER, INTENT(in) :: pass
-!     INTEGER, INTENT(in) :: nppm_ori
-!     REAL*8, DIMENSION(nppm_ori), INTENT(inout) :: ex_tmp,ey_tmp,ez_tmp
-!     REAL*8, INTENT(in) :: thermal_constant
-!     REAL, INTENT(in) :: art_vis_alpha
-!     REAL, INTENT(in) :: art_vis_beta
-!     REAL, INTENT(in) :: kappa
-!     REAL*8, DIMENSION(nppm_ori), INTENT(out) :: temperature_change_tmp
-    
-!     INTEGER :: nps
-!     INTEGER :: ip1
-!     REAL :: eps
-!     INTEGER :: i
-!     INTEGER :: jpass
-!     REAL*8 :: ttrav_nn, tfetch_nn            ! timing for search_nn
-
-!     REAL*8 :: s
-!     INTEGER*8 :: ix, iy, iz
-!     INTEGER :: nbits
-!     INTEGER*8 :: local_key
-
-!     REAL*8 kernel
-!     REAL*8 dist
-
-!     CHARACTER(100) :: nn_filename
-
-
-
-!     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
-
-!     call update_particle_props(np_local, particles)
   
-!     call sph_sum_force(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+  
+
+
+  subroutine sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
     
-!   end subroutine sph
+    use treetypes, only: &
+         t_particle
+    
+    use treevars, only: &
+         tree_nodes
+
+
+    implicit none
+    include 'mpif.h'
+
+    
+    integer, intent(in) :: np_local    !< # particles on this CPU
+    type(t_particle), intent(inout) :: particles(:)
+    integer, intent(in) :: itime  ! timestep
+    integer, intent(in) :: num_neighbour_boxes !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
+    integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
+    
+    integer :: ierr
+
+    call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+    
+    call update_particle_props(np_local, particles)
+    
+    call sph_sum_force(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+
+
+  end subroutine sph
+
+
+
+
+
 
 
   subroutine update_particle_props(np_local, particles)
@@ -830,14 +753,12 @@ contains
     ! TODO: update tree_nodes%h for all parents
 
 
-
-
     deallocate( non_local_node_keys, non_local_node_owner, requests_per_process, key_arr_cp, int_arr, STAT=ierr )
 
     
     deallocate( requested_keys, STAT=ierr ) 
     
-    deallocate( packed_updates, received_updates )
+    deallocate( packed_updates, received_updates, STAT=ierr )
     
     
     
