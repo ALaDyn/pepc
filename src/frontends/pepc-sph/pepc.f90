@@ -148,9 +148,7 @@ program pepce
      call validate_n_nearest_neighbour_list(np_local, particles, &
           itime, num_neighbour_boxes, neighbour_boxes)
 
-!     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
-
-     call update_particle_props(np_local, particles)
+     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
 
   end do
