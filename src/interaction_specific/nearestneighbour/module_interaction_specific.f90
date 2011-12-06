@@ -49,8 +49,9 @@ module module_interaction_specific
         real*8 :: v(1:3)     !< velocity
         real*8 :: temperature
         real*8 :: rho        !< sph density
+        real*8 :: h          !< sph smoothing-length
       end type t_multipole_data
-      integer, private, parameter :: nprops_multipole_data = 5
+      integer, private, parameter :: nprops_multipole_data = 6
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -115,14 +116,15 @@ module module_interaction_specific
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_multipole_data)  = [3, 1, 3, 1, 1]
-        types(1:nprops_multipole_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        blocklengths(1:nprops_multipole_data)  = [3, 1, 3, 1, 1, 1]
+        types(1:nprops_multipole_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_multipole_data,             address(0), ierr )
         call MPI_GET_ADDRESS( dummy_multipole_data%coc,         address(1), ierr )
         call MPI_GET_ADDRESS( dummy_multipole_data%q,           address(2), ierr )
         call MPI_GET_ADDRESS( dummy_multipole_data%v,           address(3), ierr )
         call MPI_GET_ADDRESS( dummy_multipole_data%temperature, address(4), ierr )
         call MPI_GET_ADDRESS( dummy_multipole_data%rho,         address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_data%h,           address(6), ierr )
         displacements(1:nprops_multipole_data) = int(address(1:nprops_multipole_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_multipole_data, blocklengths, displacements, types, mpi_type_multipole_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_multipole_data, ierr)
@@ -140,7 +142,7 @@ module module_interaction_specific
         type(t_particle_data), intent(in) :: particle
         type(t_multipole_data), intent(out) :: multipole
 
-        multipole = t_multipole_data(particle_pos,particle%q, particle%v, particle%temperature, -13._8)
+        multipole = t_multipole_data(particle_pos,particle%q, particle%v, particle%temperature, -13._8, -17._8 )
         ! set rho to -13 as dummy.
         ! TODO: find a better place to store rho
 
