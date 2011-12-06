@@ -596,16 +596,27 @@ contains
     
     ! only for sort test
     use tree_utils
-    
-    
+
     use physvars, only: &
          my_rank, &
          n_cpu
-    
+
     implicit none
     include 'mpif.h'
+
+    ! Data structure for shipping updated sph properties
+    type t_property_update
+       integer*8 :: key                                                  !< key
+       integer   :: owner                                                !< owner
+       real*8    :: smoothing_length                                     !< \bug ab: comments needed
+       real*8    :: rho                                                  !<
+       real*8    :: v(1:3)                                               !< velocity
+       REAL*8    :: temperature                                          !< SPH temperature
+    end type t_property_update
+
+    integer, parameter :: nprops_property_update = 6
     
-    
+        
     integer, intent(in) :: np_local    !< # particles on this CPU
     type(t_particle), intent(inout) :: particles(:)
     
@@ -618,21 +629,42 @@ contains
     integer :: i
     integer :: ierr
     integer, allocatable :: requests_per_process(:)
- 
-    nleaf_non_local = nleaf ! bigger than necessary, TODO: find a better estimation for this
+    integer, allocatable :: requests_from_process(:)
+    integer*8, allocatable :: requested_keys(:)
+    integer, allocatable :: sdispls(:)
+    integer, allocatable :: rdispls(:)
+    integer :: total_num_requests_from_others
+    integer :: disp
+    integer :: actual_address
+    integer :: actual_node
+
+    type(t_property_update), allocatable :: packed_updates(:)
+    type(t_property_update), allocatable :: received_updates(:)
+
+    type(t_property_update)  :: dummy_property_update
+    integer :: mpi_type_property_update
+    integer, parameter :: max_props = nprops_property_update
+    ! address calculation
+    integer, dimension(1:max_props) :: blocklengths, displacements, types
+    integer(KIND=MPI_ADDRESS_KIND), dimension(0:max_props) :: address
+        
+   
+    nleaf_non_local = nleaf - nleaf_me ! bigger than necessary, TODO: find a better estimation for this
 
     allocate( non_local_node_keys(nleaf_non_local), non_local_node_owner(nleaf_non_local), requests_per_process(n_cpu), &
-         key_arr_cp(nleaf_non_local), int_arr(nleaf_non_local), STAT=ierr )
+         key_arr_cp(nleaf_non_local), int_arr(nleaf_non_local), requests_from_process(n_cpu), &
+         sdispls(n_cpu), rdispls(n_cpu), STAT=ierr )
     ! TODO: remove key_arr_cp and int_arr after sort test
     ! TODO: test STAT
 
     num_request = 0
 
     ! get leafs from hashtabel with owner .ne. my_rank
+    ! TODO: do not search in htable, but in array containing nodes ? (Idee von Lukas)
     do i = 1, maxaddress
        if( htable_entry_is_valid(i) ) then
           if( (htable(i)%owner .ne. my_rank) .and. htable(i)%node>0 ) then
-             if( htable(i)%owner .ne. mod(my_rank+1,2)) write(*,*) 'strange owner:', my_rank, htable(i)%owner, htable(i)%key
+             if( htable(i)%owner > n_cpu-1) write(*,*) 'strange owner:', my_rank, htable(i)%owner, htable(i)%key
 
              num_request = num_request + 1
              non_local_node_keys(num_request) = htable(i)%key
@@ -641,7 +673,7 @@ contains
        end if
     end do
     
-    if( nleaf_non_local > num_request) write (*,*) 'on rank', my_rank, 'nleaf_non_local:', nleaf_non_local, 'num_request:', num_request
+!    if( nleaf_non_local > num_request) write (*,*) 'on rank', my_rank, 'nleaf_non_local:', nleaf_non_local, 'num_request:', num_request
 
 
     ! write (*,*) my_rank, num_request
@@ -672,6 +704,11 @@ contains
 
     
     call sort(non_local_node_owner(1:num_request), int_arr(1:num_request))
+
+    do i = 1, num_request
+       if(non_local_node_owner(i) > n_cpu -1 ) write(*,*) 'after sort, owner > n_cpu:', i, non_local_node_owner(i), non_local_node_keys(i)
+    end do
+
     
     key_arr_cp(1:num_request) = non_local_node_keys(1:num_request)
 
@@ -686,13 +723,111 @@ contains
        requests_per_process(non_local_node_owner(i)+1) = requests_per_process(non_local_node_owner(i)+1) + 1
     end do
 
+
     if( requests_per_process(my_rank+1) .ne. 0) write (*,*) 'on rank', my_rank, 'requests for self is non-zero:', & 
          requests_per_process(my_rank+1)
 
+!    write(*,*) 'requests 1:', my_rank, requests_per_process
 
-!    call MPI_ALLTOALL(
+    call MPI_ALLTOALL(requests_per_process, 1, MPI_INTEGER, requests_from_process, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
+
+    
+    total_num_requests_from_others = sum(requests_from_process)
+
+!    write(*,*) 'requests 2:', my_rank, requests_from_process
 
 
+    allocate(requested_keys(total_num_requests_from_others))
+
+    disp = 0
+    do i = 1, n_cpu
+       sdispls(i) = disp
+       disp = disp + requests_per_process(i)
+    end do
+       
+    disp = 0
+    do i = 1, n_cpu
+       rdispls(i) = disp
+       disp = disp + requests_from_process(i)
+    end do
+
+!    write (*,*) 'sdispls:', my_rank, sdispls
+!    write (*,*) 'rdispls:', my_rank, rdispls
+
+
+    call MPI_ALLTOALLV(non_local_node_keys, requests_per_process, sdispls, MPI_INTEGER8, &
+         requested_keys, requests_from_process, rdispls, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
+
+    do i = 1, total_num_requests_from_others
+       actual_address = key2addr(requested_keys(i), 'update properties')
+    end do
+
+    
+    ! register propertyupdate data type
+    blocklengths(1:nprops_property_update)  = [1, 1, 1, 1, 3, 1]
+    types(1:nprops_property_update)         = [MPI_INTEGER8, MPI_INTEGER, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+    call MPI_GET_ADDRESS( dummy_property_update,                  address(0), ierr )
+    call MPI_GET_ADDRESS( dummy_property_update%key,              address(1), ierr )
+    call MPI_GET_ADDRESS( dummy_property_update%owner,            address(2), ierr )
+    call MPI_GET_ADDRESS( dummy_property_update%smoothing_length, address(3), ierr )
+    call MPI_GET_ADDRESS( dummy_property_update%rho,              address(4), ierr )
+    call MPI_GET_ADDRESS( dummy_property_update%v,                address(5), ierr )
+    call MPI_GET_ADDRESS( dummy_property_update%temperature,      address(6), ierr )
+    displacements(1:nprops_property_update) = int(address(1:nprops_property_update) - address(0))
+    call MPI_TYPE_STRUCT( nprops_property_update, blocklengths, displacements, types, mpi_type_property_update, ierr )
+    call MPI_TYPE_COMMIT( mpi_type_property_update, ierr)
+
+
+    allocate( packed_updates(total_num_requests_from_others), received_updates(num_request) )
+
+    do i = 1, total_num_requests_from_others
+       actual_address = key2addr(requested_keys(i), 'update properties')
+
+       actual_node = htable(actual_address)%node
+
+       packed_updates(i) = t_property_update( htable(actual_address)%key, htable(actual_address)%owner, particles(actual_node)%results%h, &
+            particles(actual_node)%results%rho, tree_nodes(actual_node)%v, tree_nodes(actual_node)%temperature )
+
+       ! test whether requested key is parent of particle key
+       ! TODO: write a test funciton for this?
+       ! write(*,'(i3,a,O30,O30)') my_rank, 'packing:', htable(actual_address)%key, particles(actual_node)%key
+
+    end do
+    
+    disp = 0
+    do i = 1, n_cpu
+       sdispls(i) = disp
+       disp = disp + requests_from_process(i)
+    end do
+       
+    disp = 0
+    do i = 1, n_cpu
+       rdispls(i) = disp
+       disp = disp + requests_per_process(i)
+    end do
+
+
+    call MPI_ALLTOALLV(packed_updates, requests_from_process, sdispls, mpi_type_property_update, &
+         received_updates, requests_per_process, rdispls, mpi_type_property_update, MPI_COMM_WORLD, ierr)
+
+
+    do i= 1, num_request
+       if( received_updates(i)%key .ne. non_local_node_keys(i) ) write(*,*) 'Error in update on', my_rank, 'key mismatch', received_updates(i)%key, non_local_node_keys(i)
+    end do
+
+    do i= 1, num_request
+       actual_address = key2addr( received_updates(i)%key, 'update properties' )
+       actual_node = htable( actual_address )%node
+
+       tree_nodes(actual_node)%rho         = received_updates(i)%rho
+       tree_nodes(actual_node)%temperature = received_updates(i)%temperature
+       tree_nodes(actual_node)%v           = received_updates(i)%v
+       tree_nodes(actual_node)%h           = received_updates(i)%smoothing_length
+       
+    end do
+
+
+    ! TODO: update tree_nodes%h for all parents
 
 
 
@@ -700,8 +835,9 @@ contains
     deallocate( non_local_node_keys, non_local_node_owner, requests_per_process, key_arr_cp, int_arr, STAT=ierr )
 
     
+    deallocate( requested_keys, STAT=ierr ) 
     
-    
+    deallocate( packed_updates, received_updates )
     
     
     
