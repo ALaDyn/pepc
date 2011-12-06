@@ -26,6 +26,7 @@ module module_pepcs
         use module_mirror_boxes
         use module_pepcfields
         use module_setup
+        use treevars
         implicit none
         include 'mpif.h'
 
@@ -40,15 +41,14 @@ module module_pepcs
         fcs_integer, intent(in) :: db_level
 
         integer, parameter :: itime = 1
-        real, parameter :: np_mult = -45
+        real, parameter :: np_mult_ = -45
 
         type(t_particle), allocatable :: particles(:)
         type(t_calc_force_params) :: cf_par
         integer :: i
         integer :: my_rank, n_cpu, ierr
-        real :: np_mult_
 
-        np_mult_ = real(np_mult) ! variable must be copied for datatype conversion
+        np_mult = np_mult_
 
         allocate(particles(local_particles))
 
@@ -86,7 +86,7 @@ module module_pepcs
         ! =============================================================
 
         call pepc_fields(local_particles, total_particles, particles, &
-        np_mult_, cf_par, itime, num_neighbour_boxes, neighbour_boxes, .false., .false.)
+                cf_par, itime, num_neighbour_boxes, neighbour_boxes, .false., .false.)
 
         ! read fields and potentials from internal data structures
         do i=1,local_particles
