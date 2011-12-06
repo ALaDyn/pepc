@@ -506,6 +506,7 @@ module module_walk
     integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
 
     integer, public :: num_walk_threads = 3 !< number of worker threads
+    integer, public :: defer_list_length_factor = 1 !< factor for increasing defer_list_length in case of respective warning (e.g. for very inhomogeneous or 2D cases set to 2..8)
     integer, private :: primary_processor_id = 0
 
     real*8, dimension(:), allocatable :: boxlength2
@@ -525,7 +526,7 @@ module module_walk
       integer*8 :: key
     end type t_defer_list_entry
     
-    namelist /walk_para_pthreads/ num_walk_threads, max_particles_per_thread
+    namelist /walk_para_pthreads/ num_walk_threads, max_particles_per_thread, defer_list_length_factor
 
     public tree_walk
     public tree_walk_init
@@ -587,7 +588,7 @@ module module_walk
       ! length of todo- and defer-list per particle (estimations)
       todo_list_length  = max(nintmax, 10)
 
-      defer_list_length = max(todo_list_length / 8, 50)
+      defer_list_length = max(todo_list_length * defer_list_length_factor / 8, 50)
 
       ! pure local walk time (i.e. from start of communicator till sned_walk_finished)
       twalk_loc => twalk_loc_
