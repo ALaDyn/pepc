@@ -4,7 +4,7 @@
 !>  i.e. the old configure() and special_start() routines
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-module module_setup
+module module_particle_setup
       use physvars
       implicit none
       save
@@ -905,4 +905,4 @@ module module_setup
 
         end function GetSphereCenter
 
-end module module_setup
+end module module_particle_setup

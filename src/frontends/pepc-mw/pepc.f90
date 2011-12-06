@@ -35,7 +35,7 @@ program pepc
   use module_vtk
   use module_directsum
   use module_energy
-  use module_setup
+  use module_particle_setup
   implicit none
   include 'mpif.h'
 

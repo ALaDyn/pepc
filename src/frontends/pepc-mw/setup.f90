@@ -16,7 +16,7 @@ subroutine pepc_setup()
   use module_setup
   use module_fmm_framework
   use module_mirror_boxes
-  use module_setup
+  use module_particle_setup
   use module_icosahedron
   use module_laser
   use module_pusher
