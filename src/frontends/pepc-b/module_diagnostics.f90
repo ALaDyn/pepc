@@ -481,7 +481,8 @@ end subroutine kinenergy
 
 subroutine force_direct(n,ntest,x,y,z,q, list, eps, const, ex, ey, ez, pot)
   implicit none
-  real, intent(in) :: eps, const
+  real, intent(in) :: eps
+  real*8, intent(in) :: const
   integer, intent(in) :: n, ntest
   integer, intent(in), dimension(n) :: list 
   real*8, intent(in), dimension(n) :: x, y, z, q  ! coords and charge 
@@ -531,7 +532,8 @@ end subroutine force_direct
 
 subroutine force_direct_2d(n,ntest,x,y,q, list, eps, const, ex, ey, pot)
   implicit none
-  real, intent(in) :: eps, const
+  real, intent(in) :: eps
+  real*8, intent(in) :: const
   integer, intent(in) :: n, ntest
   integer, intent(in), dimension(n) :: list 
   real*8, intent(in), dimension(n) :: x, y, q  ! coords and charge 

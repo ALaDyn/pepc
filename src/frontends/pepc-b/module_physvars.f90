@@ -37,7 +37,7 @@ module module_physvars
   real :: vte=0., vti=0.       !< electron, ion thermal velocities; set vte=1 to choose Debye unit system
   real :: Te_keV, Ti_keV !< electron, ion emperatures in keV
   real :: T_scale = 1       !< factor for rescaling Te after restart 
-  real :: force_const    !< force constant depending on unit system
+  real*8 :: force_const    !< force constant depending on unit system
   real :: eps = 1.       !< potential/force law cutoff
   integer :: force_law = 3 !< force law  0 = no interactions; 2 = 2D Coulomb; 3 = 3D Coulomb
   integer :: idim=3      !< # dimensions (velocity and position updates - indep of force_law)

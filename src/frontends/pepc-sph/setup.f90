@@ -40,7 +40,6 @@ subroutine pepc_setup()
   ni  = 10000 ! total # plasma ions
 
   ! physics stuff
-  force_const = 1.
   mac         = 0
   theta       = 0.6
   q_factor    = 1.

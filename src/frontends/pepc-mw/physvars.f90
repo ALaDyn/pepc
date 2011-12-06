@@ -30,7 +30,7 @@ module physvars
   real*8 :: Te = 0., Ti = 0. ! electron, ion emperatures in program units
   real*8 :: Te_eV = 0., Ti_eV = 0. ! electron, ion emperatures in electron Volts
   real*8 :: Te_K = 0., Ti_K = 0. ! electron, ion emperatures in Kelvin
-  real :: force_const    ! force constant depending on unit system
+  real*8 :: force_const    ! force constant depending on unit system
   real*8 :: rhoe_nm3 = 1., rhoi_nm3 = 0.       ! number of electrons and ions per nm^3
   real*8 :: qe, qi         ! electron, ion charge
   real*8 :: mass_e, mass_i   ! electron, ion mass

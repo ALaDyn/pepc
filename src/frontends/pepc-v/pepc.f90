@@ -21,7 +21,7 @@ program pepcv
   implicit none
   include 'mpif.h'
 
-  integer :: ierr
+  integer :: ierr, i
   real :: trun                     ! total run time including restarts and offset
   integer :: itime, stage
 
@@ -62,6 +62,12 @@ program pepcv
         call timer_start(t_tot)
 
         call pepc_fields(np, n, vortex_particles, itime, 1, [0, 0, 0], .false., .true.)
+
+        ! TODO: check, if this is correct (moved force_const out of calc_force)
+        do i=1,np
+          vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
+          vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
+        end do
 
         call push_rk2(stage)
 

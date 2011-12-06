@@ -9,8 +9,8 @@ module physvars
   !  physics data
   integer  :: n   ! # vortices
   integer  :: np  ! # vortices per PE
-  real     :: force_const    ! force constant depending on unit system
-  real     :: eps            ! potential/force law cutoff
+  real*8   :: force_const    ! force constant depending on unit system
+  real*8   :: eps            ! potential/force law cutoff
   real     :: h, m_h         ! initial particle distance and mesh width for remeshing
   integer  :: rem_freq       ! remeshing frequence
   real*8   :: kernel_c       ! mod. remeshing kernel parameter

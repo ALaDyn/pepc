@@ -268,7 +268,7 @@ subroutine fields_2d
 
   call pepc_grid_fields_coulomb_wrapper(ngp,p_x, p_y, p_z, p_label, &
 	     p_Ex, p_Ey, p_Ez, p_pot, &
-	     num_neighbour_boxes, neighbour_boxes)
+	     num_neighbour_boxes, neighbour_boxes,force_const)
 
   if (field_debug) then
      write (*,'(a7,a50/2i5,3f15.2,i2)') 'PEPC | ','Params: itime, mac, theta, eps:', &

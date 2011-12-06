@@ -121,7 +121,7 @@ program pepc
      call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
                  q(1:np_local),work(1:np_local),pelabel(1:np_local), &
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      itime,  num_neighbour_boxes, neighbour_boxes, treediags, .false.)
+                      itime,  num_neighbour_boxes, neighbour_boxes, treediags, .false., force_const)
 
   !   call verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, [1, 2, np_local-1, np_local], &
   !                     0, my_rank, n_cpu, MPI_COMM_PEPC)

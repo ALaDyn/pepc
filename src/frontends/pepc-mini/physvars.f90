@@ -11,7 +11,6 @@ module physvars
   !  physics data
   integer :: ni, ne       !  # ions, electrons
   integer :: nep, nip     ! # particles/electrons/ions per PE
-  real :: force_const    ! force constant depending on unit system
   real :: qe = -1.0
   real :: qi = 1.0         ! electron, ion charge
   real :: mass_e = 1.0, mass_i = 1856.0   ! electron, ion mass

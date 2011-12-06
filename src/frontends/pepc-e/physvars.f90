@@ -19,7 +19,7 @@ module physvars
   real :: vte, vti       ! electron, ion thermal velocities
   real :: Te_keV, Ti_keV ! electron, ion emperatures in keV
   real :: T_scale = 1       ! factor for rescaling Te after restart 
-  real :: force_const    ! force constant depending on unit system
+  real*8 :: force_const    ! force constant depending on unit system
   real :: mass_ratio     ! ion:electron mass ratio
   real :: qe, qi         ! electron, ion charge
   real :: mass_e, mass_i   ! electron, ion mass
