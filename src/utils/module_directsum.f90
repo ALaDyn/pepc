@@ -218,7 +218,7 @@ module module_directsum
         subroutine calc_direct_coulomb_force_3D(p1, r2, q2, eps2)
           implicit none
           real*8, intent(in) :: r2(3), q2
-          real, intent(in) :: eps2
+          real*8, intent(in) :: eps2
           type(direct_particle), intent(inout) :: p1
 
           real*8 :: delta(3), dr, dr2, dr3
