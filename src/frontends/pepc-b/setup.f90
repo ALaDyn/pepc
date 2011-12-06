@@ -21,7 +21,7 @@ subroutine setup
   integer :: ne_rest, ni_rest, ierr
 
   character(len=255) :: parameterfile
-  integer :: read_param_file
+  logical :: read_param_file
 
   integer*4 IARGC
 
@@ -125,8 +125,8 @@ subroutine setup
  ! read in first command line argument
   call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
 
-  if (read_param_file .eq. 1) then
-     if(my_rank .eq. 0) write(*,*) "reading parameter file: ", parameterfile
+  if (read_param_file) then
+     if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepcb: ", parameterfile
      open(10,file=parameterfile)
      read(10,NML=pepcb)
      close(10)

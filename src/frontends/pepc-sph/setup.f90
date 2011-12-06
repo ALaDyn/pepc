@@ -21,7 +21,7 @@ subroutine pepc_setup()
   integer :: ierr, npart_tmp
 
   character(255) :: parameterfile
-  integer :: read_param_file
+  logical :: read_param_file
 
 
   namelist /pepcsph/ ne, ni, &
@@ -55,13 +55,11 @@ subroutine pepc_setup()
   ! read in first command line argument
   call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
 
-  if (read_param_file .eq. 1) then
-
-     if(my_rank .eq. 0) write(*,*) "reading parameter file: ", parameterfile
+  if (read_param_file) then
+     if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepcsph: ", parameterfile
      open(10,file=parameterfile)
      read(10,NML=pepcsph)
      close(10)
-
   else
      if(my_rank .eq. 0) write(*,*) "##### using default parameter #####"
   end if

@@ -25,6 +25,7 @@ contains
         use module_tree_walk
         use module_tree_domains
         use module_debug, only : pepc_status, debug_level
+        use module_calc_force, only : calc_force_init
         implicit none
         include 'mpif.h'
   
@@ -35,7 +36,7 @@ contains
         integer, parameter :: para_file_id = 10
         integer :: file_start=0
         character(len=255) :: para_file_name
-        integer :: para_file_available
+        logical :: para_file_available
         integer :: ierr, provided
 
         integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
@@ -88,7 +89,9 @@ contains
         ! read in parameter file
         call libpepc_get_para_file(para_file_available, para_file_name, my_rank)
 
-        if (para_file_available .eq. 1) then
+        call calc_force_init(para_file_available, para_file_name, my_rank)
+
+        if (para_file_available) then
 
             open(para_file_id,file=para_file_name)
 
@@ -132,26 +135,26 @@ contains
         implicit none
         include 'mpif.h'
 
-        integer,   intent(out)          :: available
+        logical,   intent(out)          :: available
         character(len=255), intent(out) :: file_name
         integer,   intent(in)           :: my_rank
 
         integer :: ierr
 
         ! rank 0 reads in first command line argument
-        available = 0
+        available = .false.
         if (my_rank .eq. 0) then
             if( COMMAND_ARGUMENT_COUNT() .ne. 0 ) then
                 call GET_COMMAND_ARGUMENT(1, file_name)
-                available = 1
-                if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepce: ", file_name
+                available = .true.
+                if(my_rank .eq. 0) write(*,*) "found parameter file: ", file_name
             end if
         end if
 
-        call MPI_BCAST( available, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr )
+        call MPI_BCAST( available, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr )
 
         ! broadcast file name, read actual inputs from namelist file
-        if (available .eq. 1) then
+        if (available) then
             call MPI_BCAST( file_name, 255, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr )
         end if
 

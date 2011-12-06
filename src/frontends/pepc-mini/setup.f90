@@ -22,7 +22,7 @@ subroutine pepc_setup()
   integer :: npart_tmp
 
   character(len=255) :: parameterfile
-  integer :: read_param_file
+  logical :: read_param_file
 
 
   namelist /pepcmini/ ne, ni, &
@@ -56,9 +56,9 @@ subroutine pepc_setup()
   ! read in first command line argument
   call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
 
-  if (read_param_file .eq. 1) then
+  if (read_param_file) then
 
-     if(my_rank .eq. 0) write(*,*) "reading parameter file: ", parameterfile
+     if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepcmini: ", parameterfile
      open(10,file=parameterfile)
      read(10,NML=pepcmini)
      close(10)

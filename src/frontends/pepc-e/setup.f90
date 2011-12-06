@@ -24,7 +24,7 @@ subroutine pepc_setup()
   integer :: ierr, npart_tmp
 
   character(len=255) :: para_file_name
-  integer :: para_file_available
+  logical :: para_file_available
 
   character(30) :: cfile
 
@@ -84,7 +84,7 @@ subroutine pepc_setup()
 
   call libpepc_get_para_file(para_file_available, para_file_name, my_rank)
 
-  if (para_file_available .eq. 1) then
+  if (para_file_available) then
      if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepce: ", para_file_name
      open(10,file=para_file_name)
      read(10,NML=pepce)

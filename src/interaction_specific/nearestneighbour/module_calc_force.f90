@@ -23,6 +23,8 @@ module module_calc_force
       integer, public :: force_law    = 5      !< 5=NN-list "interaction"
       integer, public :: mac_select   = 1      !< selector for multipole acceptance criterion, 1 = NN-MAC
 
+      namelist /calc_force_nearestneighbour/ force_law, mac_select
+
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -33,6 +35,7 @@ module module_calc_force
       public calc_force_per_particle
       public mac
       public particleresults_clear
+      public calc_force_init
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -48,6 +51,31 @@ module module_calc_force
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> initializes interaction specific parameters, redas them from file
+      !> if optional argument para_file_name is given
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_init(para_file_available, para_file_name, my_rank)
+        implicit none
+        logical, intent(in) :: para_file_available
+        character(*), intent(in) :: para_file_name
+        integer, intent(in) :: my_rank
+        integer, parameter :: para_file_id = 47
+
+        if (para_file_available) then
+            open(para_file_id,file=para_file_name)
+
+            if(my_rank .eq. 0) write(*,*) "reading parameter file, section calc_force_nearestneighbour: ", para_file_name
+            read(para_file_id,NML=calc_force_nearestneighbour)
+
+            close(para_file_id)
+        endif
+
+      end subroutine
+
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
