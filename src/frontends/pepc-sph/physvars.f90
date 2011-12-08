@@ -15,6 +15,11 @@ module physvars
   real :: eps            ! potential/force law cutoff
   real :: q_factor = 1.0       ! Charge factor
 
+  real :: thermal_constant = 1.           ! TODO: is this the boltzmann constant?
+
+
+
+
  ! tree stuff
   real :: theta       ! Clumping parameter
   integer :: mac = 0  ! MAC (default=BH)
@@ -43,6 +48,20 @@ module physvars
    integer :: curve_type = 0 !< type of space-filling curve, 0=z-curve, 1=Hilbert-curve
 
    integer :: ifile_cpu    ! O/P stream
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 end module physvars

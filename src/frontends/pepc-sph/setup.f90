@@ -11,13 +11,42 @@
 
 
 subroutine pepc_setup()
-  use physvars
-  use module_pepc
-  use module_mirror_boxes
+
+  use physvars, only: &
+       particles, &
+       theta, &
+       q_factor, &
+       r_sphere, &
+       nt, &
+       np_local, &
+       npart_total, &
+       nppm, &
+       ni, &
+       ne, &
+       nip, &
+       nep, &
+       trun, &
+       n_cpu, &
+       my_rank, &
+       mac, &
+       ispecial, &
+       idim, &
+       eps, &
+       dt
+
+  use module_mirror_boxes, only: &
+       t_lattice_1, &
+       t_lattice_2, &
+       t_lattice_3, &
+       periodicity
+
+  use module_pepc, only: &
+       pepc_get_para_file
+
   implicit none
   include 'mpif.h'
 
-  integer :: npart_tmp
+  integer :: ierr, npart_tmp
 
   character(255) :: parameterfile
   logical :: read_param_file
@@ -43,7 +72,7 @@ subroutine pepc_setup()
   theta       = 0.6
   q_factor    = 1.
 
-  r_sphere      = 4
+  r_sphere      = 4.
   eps           = 0.01
 
   ! control
@@ -62,6 +91,13 @@ subroutine pepc_setup()
   else
      if(my_rank .eq. 0) write(*,*) "##### using default parameter #####"
   end if
+
+
+  write(*,*) 'periodicity:', periodicity
+  write(*,*) 't_lattice_1:', t_lattice_1
+
+
+
 
   ! Derived parameters
 

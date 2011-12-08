@@ -23,8 +23,12 @@ program pepce
   ! TODO: use omp_lib, only: ...
   use omp_lib
 
-  use module_pepc
-  use module_walk, only: num_walk_threads
+!  use module_initialization, only: &
+!       libpepc_setup, &
+!       libpepc_finalize
+
+  use module_walk, only: &
+       num_walk_threads
 
   use module_calc_force, only: &
        mac_select, force_law
@@ -61,7 +65,15 @@ program pepce
        
   use module_mirror_boxes, only: &
        neighbour_boxes, &
-       num_neighbour_boxes
+       num_neighbour_boxes, &
+       calc_neighbour_boxes
+
+  use module_pepc, only: &
+       pepc_initialize, &
+       pepc_finalize, &
+       pepc_grow_tree, &
+       pepc_traverse_tree
+
 
   use files, only: &
        openfiles, &
@@ -108,6 +120,9 @@ program pepce
   particles(:)%work = 1._8
 
 
+  call calc_neighbour_boxes()
+
+
   ! Loop over all timesteps
   do while (itime < nt)
      itime = itime + 1
@@ -122,18 +137,23 @@ program pepce
      
      call timer_start(t_tot)
      
-     call pepc_grow_and_traverse(np_local, npart_total, particles, itime, .true., .true., .true.)
+     call pepc_grow_tree(np_local, npart_total, particles)
+
+
+     mac_select = 1 ! nn-mac
+     force_law = 5  ! neighbour list force law
+
+
+     write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
+     write(*,*) 'neigbour_boxes:', neighbour_boxes
+
+
+     call pepc_traverse_tree(np_local, particles)
+
+
+     call draw_neighbours(np_local, particles, itime)
 
      
-     ! timings dump
-     call timer_stop(t_tot) ! total loop time without diags
-
-     call timings_LocalOutput(itime)
-     call timings_GatherAndOutput(itime)
-
-!     call draw_neighbours(np_local, particles, itime)
-
-
      ! do i=1, np_local
      !   write(37+my_rank,*) i, "|", particle_results(i)%neighbour_nodes(:)
      !   flush(6)
@@ -141,9 +161,19 @@ program pepce
 
      call validate_n_nearest_neighbour_list(np_local, particles, &
           itime, num_neighbour_boxes, neighbour_boxes)
+     
+     ! call sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+     
+     
 
-     call sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
+
+     
+     ! timings dump
+     call timer_stop(t_tot) ! total loop time without diags
+
+     call timings_LocalOutput(itime)
+     call timings_GatherAndOutput(itime)
 
   end do
 

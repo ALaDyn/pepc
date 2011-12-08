@@ -80,6 +80,9 @@ contains
          coord_to_key_lastlevel, &
          key_to_coord
 
+    use module_mirror_boxes, only: &
+         lattice_vect
+
     implicit none
     include 'mpif.h'
 
@@ -93,9 +96,9 @@ contains
     
     integer :: ierr
     integer :: actual_pe
-    real*8, allocatable :: x_buffer(:)
-    real*8, allocatable :: y_buffer(:)
-    real*8, allocatable :: z_buffer(:)
+    real*8, allocatable :: coord_buffer(:,:)
+!    real*8, allocatable :: y_buffer(:)
+!    real*8, allocatable :: z_buffer(:)
 
     integer :: local_particle_index
     integer :: remote_particle_index
@@ -121,6 +124,9 @@ contains
 
     integer, dimension(n_cpu) :: all_np_local
     integer :: max_np_local
+    integer :: ibox
+
+    real*8, dimension(3) :: vbox
     
 
     ! variables for gle output
@@ -155,7 +161,7 @@ contains
 
     max_np_local = maxval(all_np_local)
     
-    allocate( x_buffer( max_np_local ), y_buffer( max_np_local ), z_buffer( max_np_local ), STAT=ierr )
+    allocate( coord_buffer( 3, max_np_local ) , STAT=ierr )
     
     if( ierr .ne. 0 ) then
        write (*,*) 'allocate of buffers in validate_n_nearest_neighbour_list failed in module_neighbour_test.f90'
@@ -168,51 +174,62 @@ contains
 
        if( actual_pe .eq. my_rank ) then
           
-          x_buffer( 1:np_local )   = particles( 1:np_local )%x(1)
-          y_buffer( 1:np_local )   = particles( 1:np_local )%x(2)
-          z_buffer( 1:np_local )   = particles( 1:np_local )%x(3)
+          coord_buffer( 1, 1:np_local)   = particles( 1:np_local )%x(1)
+          coord_buffer( 2, 1:np_local)   = particles( 1:np_local )%x(2)
+          coord_buffer( 3, 1:np_local)   = particles( 1:np_local )%x(3)
 
        end if
        
-       call MPI_BCAST( x_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
-       call MPI_BCAST( y_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
-       call MPI_BCAST( z_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
+       call MPI_BCAST( coord_buffer,   all_np_local( actual_pe+1 )*3, MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
+!       call MPI_BCAST( y_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
+!       call MPI_BCAST( z_buffer,   all_np_local( actual_pe+1 ), MPI_REAL8,    actual_pe, MPI_COMM_WORLD, ierr )
        
 !       write(*,*), all_np_local( actual_pe +1)
 !       write(*,'(30(O30,x))'), particles( 1:np_local )%key
 
 
-       !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, tmp_loc, maxdist, remote_particle_index, dist2)
+       !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, tmp_loc, maxdist, remote_particle_index, dist2, ibox, vbox)
        do local_particle_index = 1, np_local
 
           tmp_loc = maxloc(distances2(1:num_neighbour_particles+1, local_particle_index ) )
           maxdist = tmp_loc(1)        !< this is needed because maxloc returns an array
+
+          ! loop over all periodic neighbour boxes
+          do ibox = 1, num_neighbour_boxes
           
-          ! actual_pe+1 because actual_pe is from 0 to n_cpu-1 and fortran arrays are normally from 1 to ...
-          do remote_particle_index = 1, all_np_local( actual_pe+1 )
+             vbox = lattice_vect( neighbour_boxes(:,ibox) )
              
-             dist2 = ( x_buffer( remote_particle_index ) - particles( local_particle_index )%x(1) ) **2 &
-                  + ( y_buffer( remote_particle_index )  - particles( local_particle_index )%x(2) ) **2 &
-                  + ( z_buffer( remote_particle_index )  - particles( local_particle_index )%x(3) ) **2
+             ! actual_pe+1 because actual_pe is from 0 to n_cpu-1 and fortran arrays are normally from 1 to ...
+             do remote_particle_index = 1, all_np_local( actual_pe+1 )
              
-             if( dist2 < distances2(maxdist, local_particle_index ) ) then
-                distances2(maxdist, local_particle_index ) = dist2
-                positions(1, maxdist, local_particle_index ) = x_buffer( remote_particle_index )
-                positions(2, maxdist, local_particle_index ) = y_buffer( remote_particle_index )
-                positions(3, maxdist, local_particle_index ) = z_buffer( remote_particle_index )
-                tmp_loc = maxloc(distances2(1:num_neighbour_particles+1, local_particle_index ) )
-                maxdist = tmp_loc(1)        !< this is needed because maxloc returns an array
-             end if
-             
+                dist2 = sum( ( coord_buffer(1:3, remote_particle_index ) - particles( local_particle_index )%x + vbox )**2 )
+
+!( x_buffer( remote_particle_index ) - particles( local_particle_index )%x(1) ) **2 &
+!                     + ( y_buffer( remote_particle_index )  - particles( local_particle_index )%x(2) ) **2 &
+!                     + ( z_buffer( remote_particle_index )  - particles( local_particle_index )%x(3) ) **2
+                
+                if( dist2 < distances2(maxdist, local_particle_index ) ) then
+                   distances2(maxdist, local_particle_index ) = dist2
+                   positions(1:3, maxdist, local_particle_index ) = coord_buffer( 1:3, remote_particle_index )
+
+!                   positions(1, maxdist, local_particle_index ) = x_buffer( remote_particle_index )
+!                   positions(2, maxdist, local_particle_index ) = y_buffer( remote_particle_index )
+!                   positions(3, maxdist, local_particle_index ) = z_buffer( remote_particle_index )
+                   tmp_loc = maxloc(distances2(1:num_neighbour_particles+1, local_particle_index ) )
+                   maxdist = tmp_loc(1)        !< this is needed because maxloc returns an array
+                end if
+                
+             end do
+
           end do
           
        end do
        !$OMP END PARALLEL DO
        
     end do
-
+    
     ! now distances2 and keys contain the num_neighbour_particles closest neighbours and the particle itself
-
+    
     ! move particle self to end of list and ignore in the following
     do local_particle_index = 1, np_local
        ! find closest particle, should be self
@@ -237,16 +254,16 @@ contains
           write(*,*) 'particle self was not removed from neighbour list in validate_n_nearest_neighbour_list failed in module_neighbour_test.f90', local_particle_index
        end if
     end do
-
-   
+    
+    
     if( tree_nn_debug ) then
-
+       
        write( filename, '(a,i6.6,a,i6.6,a)' ) "nn_validate_", itime-1, "_", my_rank, ".list"
-
+       
        !        ! \bug ab: with ACCESS='APPEND' compilation failes on jugene
        ! !       OPEN(99, FILE=NN_filename, ACCESS='APPEND')
        open(99, file= filename, position='APPEND')
-      
+       
        do local_particle_index = 1, np_local
        
           write( 99, '(i6.6,3(E12.5),i6,O30)' ) local_particle_index, particles(local_particle_index)%x(1), particles(local_particle_index)%x(2), particles(local_particle_index)%x(3), particles(local_particle_index)%label, particles(local_particle_index)%key
@@ -421,7 +438,7 @@ contains
     write(*,*) my_rank, 'not found: ', not_found
 
     deallocate( distances2, positions )
-    deallocate( x_buffer, y_buffer, z_buffer )
+    deallocate( coord_buffer )
 
 
   end subroutine validate_n_nearest_neighbour_list
@@ -452,6 +469,11 @@ contains
          n_cpu, &
          my_rank
     
+    use module_mirror_boxes, only: &
+         num_neighbour_boxes, &
+         neighbour_boxes, &
+         lattice_vect
+
     implicit none
     include 'mpif.h'
     
@@ -466,10 +488,13 @@ contains
     integer :: local_particle_index
     integer :: actual_neighbour
     integer*8 :: actual_node
+    integer :: ibox
+    real*8, dimension(3) :: vbox
+
     
-    character(12), parameter :: colors(0:15) = (/"orange      ", "cyan        ", "magenta     ", "blue        ", "green       ", &
+    character(12), parameter :: colors(0:15) = [ "orange      ", "cyan        ", "magenta     ", "blue        ", "green       ", &
          "red         ","yellow      ","grey20      ","brown       ", "yellowgreen ", "violet      ", "royalblue   ", &
-         "plum        ", "goldenrod   ",  "powderblue  ", "lime        "/) 
+         "plum        ", "goldenrod   ",  "powderblue  ", "lime        "] 
     
     write(cfile, '(a,i6.6)') 'particles_neighbours_', itime
     
@@ -507,8 +532,8 @@ contains
     end do
     
     close(60)
-
-
+    
+    
     ! Now write one gle file for each particle, which includes above written files with all particles and overplots the actual particle
     ! in black, the neighbours of this particle with a black circle and a big grey circle for the maximum neighbour radius
     do local_particle_index =1, np_local
@@ -520,9 +545,16 @@ contains
        write (60,'(3a)') 'include ', TRIM(cfile), "_header.gle"
 
        ! print smoothing-length circle
-       write (60, '(a)') 'set color black'
-       write (60, '(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1), particles(local_particle_index)%x(2)
-       write (60, '(a,f13.4,a)') 'circle ', sqrt(particles(local_particle_index)%results%maxdist2), ' fill lightgray'
+       ! for all periodic neighbour boxes
+       do ibox = 1, num_neighbour_boxes
+          
+          vbox = lattice_vect( neighbour_boxes(:,ibox) )
+
+          write (60, '(a)') 'set color black'
+          write (60, '(a,2f13.4)') 'amove ', particles(local_particle_index)%x(1)+ vbox(1), particles(local_particle_index)%x(2) + vbox(2)
+          write (60, '(a,f13.4,a)') 'circle ', sqrt(particles(local_particle_index)%results%maxdist2), ' fill lightgray'
+
+       end do
 
        ! include files with local particles from all domains
        do actual_pe =0, n_cpu-1
