@@ -14,7 +14,7 @@
 
 program pepc
 
-  use treetypes
+  use module_pepc_types
   use physvars
   use benchmarking
   use module_timings

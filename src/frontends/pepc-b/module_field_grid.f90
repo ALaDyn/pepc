@@ -215,7 +215,7 @@ subroutine fields_2d
   use module_particle_props
   use module_pepc_wrappers
   use module_calc_force, only : eps2
-  use treetypes
+  use module_pepc_types
   implicit none
   include 'mpif.h'
 

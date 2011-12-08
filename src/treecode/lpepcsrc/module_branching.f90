@@ -56,7 +56,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine branches_initialize_VLD(particles)
-        use treetypes
+        use module_pepc_types
         implicit none
         type(t_particle), intent(in) :: particles(:)
         ! Initialize VLD-stuff
@@ -108,7 +108,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine get_virtual_local_domain(particles)
-        use treetypes
+        use module_pepc_types
         implicit none
 
         type(t_particle), intent(in) :: particles(1:npp+2) ! TODO: remove this +2, see tree_domains for details

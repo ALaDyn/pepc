@@ -18,7 +18,7 @@
 
 program pepcmini
 
-  use treetypes
+  use module_pepc_types
   use physvars
   use particle_pusher
   use module_timings

@@ -62,7 +62,7 @@ module module_pepc
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi , db_level_in)
       use treevars, only : me, num_pe, np_mult
-      use treetypes, only : register_lpepc_mpi_types
+      use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
       use module_mirror_boxes
       use module_spacefilling
@@ -170,7 +170,7 @@ module module_pepc
     subroutine pepc_finalize()
       use module_branching
       use module_debug, only : pepc_status
-      use treetypes, only : free_lpepc_mpi_types
+      use module_pepc_types, only : free_lpepc_mpi_types
       implicit none
       include 'mpif.h'
       integer :: ierr
@@ -231,7 +231,7 @@ module module_pepc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_grow_and_traverse(np_local, npart_total, particles, itime, clearresults_before_traversal, no_dealloc, no_restore)
-      use treetypes
+      use module_pepc_types
       use module_libpepc_main
       use module_debug
       implicit none
@@ -268,7 +268,7 @@ module module_pepc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_grow_tree(np_local, npart_total, particles)
-      use treetypes
+      use module_pepc_types
       use module_libpepc_main
       implicit none
       integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
@@ -294,7 +294,7 @@ module module_pepc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_traverse_tree(nparticles, particles, clearresults_before_traversal)
-      use treetypes
+      use module_pepc_types
       use module_libpepc_main
       implicit none
       integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
@@ -342,7 +342,7 @@ module module_pepc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_restore_particles(np_local, particles)
-      use treetypes
+      use module_pepc_types
       use module_libpepc_main
       implicit none
       integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array

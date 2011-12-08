@@ -148,7 +148,7 @@ module module_domains
         call compute_particle_keys(particles)
 
         if (dbg(DBG_DOMAIN)) call print_particle_list(particles, npp, &
-                                     'Particle list before key sort (see t_particle in treetypes.f90 for meaning of the columns)')
+                                     'Particle list before key sort (see t_particle in module_pepc_types.f90 for meaning of the columns)')
 
         call timer_stop(t_domains_keys)
         call timer_start(t_domains_sort)
@@ -239,7 +239,7 @@ module module_domains
         call timer_start(t_domains_bound)
 
         if (dbg(DBG_DOMAIN)) call print_particle_list(particles, npp, &
-                                     'Particle list after key sort (see t_particle in treetypes.f90 for meaning of the columns)')
+                                     'Particle list after key sort (see t_particle in module_pepc_types.f90 for meaning of the columns)')
 
         particles(1:npp)%pid = me  ! new owner
 
@@ -325,7 +325,7 @@ module module_domains
         call branches_initialize_VLD(particles)
 
         if (dbg(DBG_DOMAIN)) call print_particle_list(particles, npp + neighbour_pe_particles, &
-                                     'Particle list after boundary swap (see t_particle in treetypes.f90 for meaning of the columns)')
+                                     'Particle list after boundary swap (see t_particle in module_pepc_types.f90 for meaning of the columns)')
 
         call timer_stop(t_domains_bound)
         call timer_stop(t_domains)
@@ -342,7 +342,7 @@ module module_domains
                              particles)
         use module_interaction_specific
         use treevars, only : num_pe, npp
-        use treetypes
+        use module_pepc_types
         use module_debug, only : pepc_status
         implicit none
         include 'mpif.h'
@@ -381,7 +381,7 @@ module module_domains
 
 
     subroutine print_particle_list(particles, npart, callinfo)
-      use treetypes
+      use module_pepc_types
       use module_debug
       implicit none
       type(t_particle), intent(in) :: particles(:)

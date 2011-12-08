@@ -1,5 +1,5 @@
 module physvars
-  use treetypes, only : t_particle
+  use module_pepc_types, only : t_particle
   use module_interaction_specific, only : t_particle_results
   implicit none
 

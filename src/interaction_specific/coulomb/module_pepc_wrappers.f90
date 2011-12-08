@@ -6,7 +6,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pepc_wrappers
-     use treetypes, only : t_particle
+     use module_pepc_types, only : t_particle
      use module_interaction_specific, only : t_particle_data, EMPTY_PARTICLE_RESULTS
      implicit none
      private

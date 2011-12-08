@@ -18,7 +18,7 @@
 
 program pepce
 
-  use treetypes
+  use module_pepc_types
   use physvars
   use module_pepc
   use module_pepc_wrappers

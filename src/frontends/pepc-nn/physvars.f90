@@ -1,5 +1,5 @@
 module physvars
-  use treetypes
+  use module_pepc_types
 
   real, parameter :: pi=3.141592654
 

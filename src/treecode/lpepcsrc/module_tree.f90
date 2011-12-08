@@ -58,7 +58,7 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_update_or_insert_node(tree_node)
         use treevars
-        use treetypes
+        use module_pepc_types
         use module_htable
         implicit none
         include 'mpif.h'
@@ -98,7 +98,7 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_insert_node(tree_node)
         use treevars
-        use treetypes
+        use module_pepc_types
         use module_htable
         implicit none
         include 'mpif.h'
@@ -153,7 +153,7 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine shift_nodes_up_key(parent, childkeys, parent_owner)
-      use treetypes
+      use module_pepc_types
       use treevars, only : tree_nodes
       use module_htable
       implicit none
@@ -188,7 +188,7 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine shift_nodes_up(parent, children, childnumber, parent_owner)
-      use treetypes
+      use module_pepc_types
       use module_htable, only : CHILDCODE_BIT_CHILDREN_AVAILABLE
       implicit none
         type(t_tree_node_transport_package), intent(inout) :: parent
@@ -239,7 +239,7 @@ module module_tree
 
         use treevars, only : me, num_pe, tree_nodes, nbranches
         use module_debug, only : pepc_status
-        use treetypes
+        use module_pepc_types
         use module_timings
         use module_htable
         implicit none
@@ -335,7 +335,7 @@ module module_tree
         use module_htable
         use module_spacefilling
         use module_interaction_specific
-        use treetypes
+        use module_pepc_types
         implicit none
         include 'mpif.h'
 
@@ -435,7 +435,7 @@ module module_tree
     subroutine tree_build_from_particles(particle_list, nparticles, leaf_keys)
       use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, nleaf_me, ntwig_me
       use module_debug, only : pepc_status
-      use treetypes
+      use module_pepc_types
       use module_htable
       use module_timings
       implicit none

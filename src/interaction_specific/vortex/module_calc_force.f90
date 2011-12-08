@@ -91,7 +91,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function mac(particle, node, dist2, boxlength2)
-            use treetypes
+            use module_pepc_types
             implicit none
 
             logical :: mac
@@ -114,12 +114,12 @@ module module_calc_force
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> clears result in t_particle datatype - usually, this function does not need to be touched
-        !> due to dependency on treetypes and(!) on module_interaction_specific, the
-        !> function cannot reside in module_interaction_specific that may not include treetypes
+        !> due to dependency on module_pepc_types and(!) on module_interaction_specific, the
+        !> function cannot reside in module_interaction_specific that may not include module_pepc_types
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine particleresults_clear(particles, nparticles)
-          use treetypes
+          use module_pepc_types
           implicit none
           type(t_particle), intent(inout) :: particles(nparticles)
           integer, intent(in) :: nparticles
@@ -138,13 +138,13 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox)
-          use treetypes
+          use module_pepc_types
           implicit none
 
           integer, intent(in) :: inode
           type(t_particle), intent(inout) :: particle
           real*8, intent(in) :: vbox(3), delta(3), dist2
-          !> Force law struct has following content (defined in module treetypes)
+          !> Force law struct has following content (defined in module module_pepc_types)
           !> These need to be included/defined in call to fields from frontend
           !>    real    :: eps
           !>    real    :: force_const
@@ -186,7 +186,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_particle(particles, nparticles)
-          use treetypes
+          use module_pepc_types
           implicit none
 
           integer, intent(in) :: nparticles
@@ -203,7 +203,7 @@ module module_calc_force
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         subroutine calc_2nd_algebraic_condensed(particle, inode, d, dist2, u, af)
-            use treetypes
+            use module_pepc_types
             use treevars
             use module_interaction_specific
             implicit none

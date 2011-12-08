@@ -43,7 +43,7 @@ contains
   
   subroutine tree_walk(nparticles_, particles_, &
        twalk, twalk_loc_, vbox_, tcomm)
-    use treetypes
+    use module_pepc_types
     use module_timings
     
     use module_walk_smpss_utils

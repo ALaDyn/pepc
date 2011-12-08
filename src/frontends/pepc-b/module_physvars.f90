@@ -1,6 +1,6 @@
 
 module module_physvars
-  use treetypes
+  use module_pepc_types
   use module_mirror_boxes
   implicit none
 

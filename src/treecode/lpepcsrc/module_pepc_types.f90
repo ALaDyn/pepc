@@ -3,7 +3,7 @@
 !> Contains all lpepc-specific types and routines for registering them to MPI
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-module treetypes
+module module_pepc_types
   use module_interaction_specific
   implicit none
 
@@ -133,4 +133,4 @@ module treetypes
 
       end subroutine free_lpepc_mpi_types
 
-end module treetypes
+end module module_pepc_types

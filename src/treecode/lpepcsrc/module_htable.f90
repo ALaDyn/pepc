@@ -520,7 +520,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine diagnose_tree(particles)
         use treevars
-        use treetypes
+        use module_pepc_types
         use module_spacefilling
         use module_utils
         use module_debug
@@ -605,7 +605,7 @@ module module_htable
 
         if (present(particles)) then
           ! local particles
-          write(ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Local particles', 'index', 'data (see module_treetypes::t_particle for meaning of the columns)'
+          write(ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Local particles', 'index', 'data (see module_module_pepc_types::t_particle for meaning of the columns)'
 
           do i=1,npp
             write(ipefile,'(x,i10,x)',advance='no') i

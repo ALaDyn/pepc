@@ -1,6 +1,6 @@
 module physvars
 
-  use treetypes
+  use module_pepc_types
 
   type(t_particle), allocatable :: vortex_particles(:)
 

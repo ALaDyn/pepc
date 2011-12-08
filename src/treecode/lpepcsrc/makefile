@@ -15,7 +15,7 @@ FULLBACKENDDIR = $(MYROOT)$(INTSPECDIR)$(BACKEND)/
 .SUFFIXES: .f90
 # -------------------------------------------------------------------------------------------
 # Source files
-PEPCSRC.f90 =   treevars.f90 module_utils.f90 module_timings.f90 treetypes.f90 \
+PEPCSRC.f90 =   treevars.f90 module_utils.f90 module_timings.f90 module_pepc_types.f90 \
                 module_debug.f90 module_math_tools.f90 module_mirror_boxes.f90\
                 module_domains.f90 module_allocation.f90 tree_stats.f90 module_pepc.f90 \
                 module_tree.f90 module_spacefilling.f90 module_htable.f90 \

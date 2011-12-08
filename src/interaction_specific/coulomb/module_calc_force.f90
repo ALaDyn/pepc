@@ -6,7 +6,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 module module_calc_force
-     use treetypes
+     use module_pepc_types
      implicit none
      save
      private
@@ -114,12 +114,12 @@ module module_calc_force
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> clears result in t_particle datatype - usually, this function does not need to be touched
-      !> due to dependency on treetypes and(!) on module_interaction_specific, the
-      !> function cannot reside in module_interaction_specific that may not include treetypes
+      !> due to dependency on module_pepc_types and(!) on module_interaction_specific, the
+      !> function cannot reside in module_interaction_specific that may not include module_pepc_types
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine particleresults_clear(particles, nparticles)
-        use treetypes
+        use module_pepc_types
         implicit none
         type(t_particle), intent(inout) :: particles(nparticles)
         integer, intent(in) :: nparticles
@@ -224,7 +224,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_coulomb_3D(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
-          use treetypes
+          use module_pepc_types
           use treevars
           implicit none
 
@@ -392,7 +392,7 @@ module module_calc_force
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_LJ(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
-          use treetypes
+          use module_pepc_types
           use treevars
           implicit none
 

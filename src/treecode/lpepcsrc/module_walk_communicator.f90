@@ -63,7 +63,7 @@ module module_walk_communicator
       ! initializes bsend buffer and rwlock objects
       ! returns size of bsend buffer in buffsize in bytes
       subroutine init_comm_data(REQUEST_QUEUE_LENGTH, ANSWER_BUFF_LENGTH)
-        use treetypes
+        use module_pepc_types
         implicit none
         include 'mpif.h'
         integer, intent(in) :: REQUEST_QUEUE_LENGTH, ANSWER_BUFF_LENGTH
@@ -93,7 +93,7 @@ module module_walk_communicator
 
 
     subroutine run_communication_loop_inner(walk_finished, nummessages)
-        use treetypes
+        use module_pepc_types
         use module_debug, only : ipefile
         implicit none
         include 'mpif.h'
@@ -263,7 +263,7 @@ module module_walk_communicator
 
 
     subroutine send_data(requested_key, ipe_sender)
-      use treetypes
+      use module_pepc_types
       use module_debug, only : ipefile
       use module_htable
       implicit none

@@ -60,7 +60,7 @@ contains
     ! module_deps has to be changed to remove "!$" when using openmp
     use omp_lib
     
-    use treetypes, only: &
+    use module_pepc_types, only: &
          t_particle
 
     use treevars, only: &
@@ -440,7 +440,7 @@ contains
 
   subroutine draw_neighbours(np_local, particles, itime)
     
-    use treetypes
+    use module_pepc_types
     
     use treevars, only: &
          xmin, &

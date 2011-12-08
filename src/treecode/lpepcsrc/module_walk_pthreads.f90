@@ -565,7 +565,7 @@ module module_walk
 
     subroutine tree_walk(nparticles,particles,twalk,twalk_loc_,vbox_,tcomm)
       use, intrinsic :: iso_c_binding
-      use treetypes
+      use module_pepc_types
       use module_timings
       use module_walk_pthreads_commutils
       use module_walk_communicator

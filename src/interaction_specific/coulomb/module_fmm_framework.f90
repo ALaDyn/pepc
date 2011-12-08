@@ -107,7 +107,7 @@ module module_fmm_framework
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_framework_timestep(particles)
-          use treetypes
+          use module_pepc_types
           implicit none
           type(t_particle), dimension(:), intent(in) :: particles
           if (.not. do_periodic) return
@@ -179,7 +179,7 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_omega_tilde(particles)
           use treevars
-          use treetypes
+          use module_pepc_types
           use module_debug
           implicit none
           include 'mpif.h'
@@ -237,7 +237,7 @@ module module_fmm_framework
         subroutine calc_extrinsic_correction(particles)
           use treevars
           use module_debug
-          use treetypes
+          use module_pepc_types
           implicit none
           include 'mpif.h'
 

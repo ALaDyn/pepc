@@ -29,7 +29,7 @@
 
 program program_pepcb
 
-  use treetypes
+  use module_pepc_types
   use module_particle_props
   use module_physvars
   use module_pepc

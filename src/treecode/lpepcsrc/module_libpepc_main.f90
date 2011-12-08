@@ -52,7 +52,7 @@ contains
         use module_htable
         use module_branching
         use treevars
-        use treetypes
+        use module_pepc_types
         use module_timings
         use module_tree
         use module_domains
@@ -167,7 +167,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine libpepc_traverse_tree(nparticles, particles, clearresults_before_traversal)
-        use treetypes
+        use module_pepc_types
         use treevars
         use module_walk
         use module_mirror_boxes
@@ -242,7 +242,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine libpepc_restore_particles(np_local, particles)
-        use treetypes
+        use module_pepc_types
         use module_timings
         use module_debug, only : pepc_status
         use module_domains, only : restore

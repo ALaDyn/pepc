@@ -1,6 +1,6 @@
 module module_walk_smpss_utils
 
-  use treetypes
+  use module_pepc_types
   use module_walk_communicator
 
   integer :: nparticles

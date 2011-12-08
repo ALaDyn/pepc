@@ -161,7 +161,7 @@ contains
   subroutine sph_density(np_local, particles, &
        itime, num_neighbour_boxes, neighbour_boxes)
 
-    use treetypes, only: &
+    use module_pepc_types, only: &
          t_particle
 
     use treevars, only: &
@@ -306,7 +306,7 @@ contains
 
 !  subroutine sph_sum_forces(num_part, part_indices, nppm_ori, ex_tmp, ey_tmp, ez_tmp, thermal_constant, art_vis_alpha, art_vis_beta, temperature_change_tmp, kappa, sph_factor)
 
-    use treetypes, only: &
+    use module_pepc_types, only: &
          t_particle
 
     use treevars, only: &
@@ -482,7 +482,7 @@ contains
 
   subroutine sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
     
-    use treetypes, only: &
+    use module_pepc_types, only: &
          t_particle
     
     use treevars, only: &
@@ -520,7 +520,7 @@ contains
 
   subroutine update_particle_props(np_local, particles)
     
-    use treetypes, only: &
+    use module_pepc_types, only: &
          t_particle
     
     use treevars, only: &
