@@ -2,9 +2,14 @@
 =
 =       PEPC -  Pretty Efficient Parallel Coulomb-solver
 =
-=       Author:   Paul Gibbon
-                  Forschungszentrum Juelich GmbH
-                  Juelich Supercomputing Centre
+=       Authors:  Paul Gibbon
+=		  Lukas Arnold
+=		  Mathias Winkel
+=		  Robert Speck
+=                 Forschungszentrum Juelich GmbH
+=                 Juelich Supercomputing Centre
+=
+=       Webpage: http://www.fz-juelich.de/ias/jsc/pepc
 =
 ============================================================
 
@@ -25,6 +30,13 @@ comments on correct MPI implementations etc. - do not
 forget to take a look there for hints.
 
 After providing the makefile.defs file, you can simply
+call 
+
+"make help"
+
+to show information/recommendation on machine specifics.
+
+After setting the proper environment (modules, paths) 
 call 
 
 "make"
