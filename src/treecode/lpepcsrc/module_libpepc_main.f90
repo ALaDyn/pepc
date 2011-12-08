@@ -186,7 +186,7 @@ contains
 
         clearresults = .true.
 
-        if (present(clearresults_before_traversal)) clearresults = .not. clearresults_before_traversal
+        if (present(clearresults_before_traversal)) clearresults = clearresults_before_traversal
 
         call timer_reset(t_walk)
         call timer_reset(t_walk_local)
