@@ -41,6 +41,7 @@ module module_calc_force
       public mac
       public particleresults_clear
       public calc_force_init
+      public calc_force_finalize
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -84,6 +85,14 @@ module module_calc_force
         call fmm_framework_init(my_rank, wellsep=mirror_box_layers)
 
       end subroutine
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> finalizes the calc force module at end of simulation
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_finalize()
+      end subroutine calc_force_finalize
 
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -530,6 +530,7 @@ module module_walk
 
     public tree_walk
     public tree_walk_init
+    public tree_walk_finalize
 
   contains
 
@@ -561,6 +562,15 @@ module module_walk
         endif
 
       end subroutine
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> finilizes walk, currently this is not needed by this walk-type,
+      !> but needs to be implemented in the module_walk
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine tree_walk_finalize()
+      end subroutine tree_walk_finalize
 
 
     subroutine tree_walk(nparticles,particles,twalk,twalk_loc_,vbox_,tcomm)

@@ -171,6 +171,8 @@ module module_pepc
       use module_branching
       use module_debug, only : pepc_status
       use module_pepc_types, only : free_lpepc_mpi_types
+      use module_walk, only : tree_walk_finalize 
+      use module_calc_force, only : calc_force_finalize 
       implicit none
       include 'mpif.h'
       integer :: ierr
@@ -178,8 +180,8 @@ module module_pepc
       call pepc_status('FINALIZE')
       ! finalize internal data structures
       call branches_finalize()
-      !call calc_force_finalize()
-      !call tree_walk_finalize()
+      call calc_force_finalize()
+      call tree_walk_finalize()
       ! deregister mpi types
       call free_lpepc_mpi_types()
 
