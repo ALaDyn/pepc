@@ -10,8 +10,10 @@ default: pepce
 
 benchmark: pepce
 
-info:
-	@echo $(LIBDIR)
+help:
+	@echo -e "## target architecture: $(MACH)"
+	@echo -e "## code version:" `$(SVNVERSION)`
+	@echo -e $(HELP)
 
 all: pepce pepcmini pepcmw pepcs pepcb pepcnn pepcv
 

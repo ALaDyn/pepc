@@ -12,9 +12,13 @@ HELP = "\
 module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 "
 
+SMPSS        = 1
+SMPSSCC      = smpss-cc
+SMPSSCCFLAGS = -k
+
 MACH     = JUROPA_gcc
 
-DEBUG    = 0
+DEBUG    = 1
 
 RANLIB   = ranlib
 

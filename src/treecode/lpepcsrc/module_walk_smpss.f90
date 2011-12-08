@@ -9,6 +9,7 @@ module module_walk
 
   public tree_walk
   public tree_walk_init
+  public tree_walk_finalize
   
 contains
 
@@ -39,6 +40,9 @@ contains
     endif
 
   end subroutine
+
+  subroutine tree_walk_finalize()
+  end subroutine tree_walk_finalize
 
   
   subroutine tree_walk(nparticles_, particles_, &
