@@ -32,7 +32,6 @@ program pepce
   use module_pepc_wrappers
   use module_calc_force, only : theta2, eps2, mac_select, force_law
   implicit none
-  include 'mpif.h'
 
   integer :: ierr, ifile
 
@@ -80,7 +79,6 @@ program pepce
                 ,' total run time = ',trun 
      endif
      
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
 
      call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &

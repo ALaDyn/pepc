@@ -18,7 +18,6 @@ program pepcv
   use diagnostics
   use module_calc_force, only : theta2, sig2, mac_select, force_law
   implicit none
-  include 'mpif.h'
 
   integer :: ierr, i
   real :: trun                     ! total run time including restarts and offset
@@ -57,7 +56,6 @@ program pepcv
 
         if (my_rank == 0) write(*,*) 'Time:',trun,'/',te
 
-        call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
         call timer_start(t_tot)
 
         call pepc_grow_and_traverse(np, n, vortex_particles, itime, .true., .false., .true.)

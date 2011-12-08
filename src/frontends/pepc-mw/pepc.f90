@@ -37,7 +37,6 @@ program pepc
   use module_particle_setup
   use module_calc_force, only : theta2, eps2, mac_select, force_law
   implicit none
-  include 'mpif.h'
 
   integer :: vtk_step
 

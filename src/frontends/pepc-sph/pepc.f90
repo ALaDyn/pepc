@@ -69,7 +69,6 @@ program pepce
 
 
   implicit none
-  include 'mpif.h'
 
   integer :: omp_thread_num
   integer :: ierr, ifile
@@ -121,7 +120,6 @@ program pepce
                 ,' total run time = ',trun 
      endif
      
-     call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
      
      call pepc_grow_and_traverse(np_local, npart_total, particles, itime, .true., .true., .true.)
