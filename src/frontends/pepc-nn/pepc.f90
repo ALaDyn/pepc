@@ -23,7 +23,7 @@ program pepce
   ! TODO: use omp_lib, only: ...
   use omp_lib
 
-  use module_initialization
+  use module_pepc
 
   use module_calc_force, only : mac_select, force_law
 
@@ -54,9 +54,6 @@ program pepce
        neighbour_boxes, &
        num_neighbour_boxes
 
-  use module_fields, only: &
-       pepc_fields
-
   use files, only: &
        openfiles, &
        closefiles
@@ -72,7 +69,7 @@ program pepce
   integer :: ierr, ifile
 
   ! Allocate array space for tree
-  call libpepc_setup("pepc-nn", my_rank, n_cpu)
+  call pepc_initialize("pepc-nn", my_rank, n_cpu, .true.)
 
   ! Set up O/P files
   call openfiles
@@ -123,9 +120,10 @@ program pepce
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
      
-     call pepc_fields(np_local, npart_total, particles, &
-          itime, num_neighbour_boxes, neighbour_boxes, .true., .true.)
+     call pepc_grow_and_traverse(np_local, npart_total, particles, itime, .true., .true., .true.)
+
 write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nleaf_me
+
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
 
@@ -156,6 +154,6 @@ write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nl
   call closefiles
 
   ! cleanup of lpepc static data
-  call libpepc_finalize()
+  call pepc_finalize()
 
 end program pepce

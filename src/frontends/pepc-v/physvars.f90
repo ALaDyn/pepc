@@ -58,7 +58,7 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_setup(itime, trun)
 
-        use module_initialization
+        use module_pepc
         implicit none
         include 'mpif.h'
 
@@ -104,7 +104,7 @@ contains
         cp_time      = 0
 
         ! read in first command line argument
-        call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
+        call pepc_get_para_file(read_param_file, parameterfile, my_rank)
 
         if (read_param_file) then
 
@@ -159,7 +159,7 @@ contains
         allocate ( vortex_particles(np) )
 
         if (my_rank == 0) then
-            write(*,*) "Starting PEPC-MINI with",n_cpu," Processors, simulating",np, &
+            write(*,*) "Starting PEPC-V with",n_cpu," Processors, simulating",np, &
             " Particles on each Processor in",nt,"timesteps..."
             !write(*,*) "Using",num_walk_threads,"worker-threads and 1 communication thread in treewalk on each processor (i.e. per MPI rank)"
             !write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread

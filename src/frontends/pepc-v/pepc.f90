@@ -12,11 +12,10 @@ program pepcv
 
   use physvars
   use manipulate_particles
-  use module_fields
+  use module_pepc
   use module_timings
   use files
   use diagnostics
-  use module_initialization
   use module_calc_force, only : theta2, sig2, mac_select, force_law
   implicit none
   include 'mpif.h'
@@ -26,7 +25,7 @@ program pepcv
   integer :: itime, stage
 
   ! Allocate array space for tree
-  call libpepc_setup("pepc-v", my_rank, n_cpu)
+  call pepc_initialize("pepc-v", my_rank, n_cpu, .true.)
 
   ! Set up O/P files
   call openfiles
@@ -61,7 +60,7 @@ program pepcv
         call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
         call timer_start(t_tot)
 
-        call pepc_fields(np, n, vortex_particles, itime, 1, [0, 0, 0], .false., .true.)
+        call pepc_grow_and_traverse(np, n, vortex_particles, itime, .true., .false., .true.)
 
         ! TODO: check, if this is correct (moved force_const out of calc_force)
         do i=1,np
@@ -101,6 +100,6 @@ program pepcv
   call closefiles
 
   ! cleanup of lpepc static data
-  call libpepc_finalize()
+  call pepc_finalize()
 
 end program pepcv

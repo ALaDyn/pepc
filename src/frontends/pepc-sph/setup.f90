@@ -12,12 +12,12 @@
 
 subroutine pepc_setup()
   use physvars
+  use module_pepc
   use module_mirror_boxes
-  use module_initialization
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, npart_tmp
+  integer :: npart_tmp
 
   character(255) :: parameterfile
   logical :: read_param_file
@@ -52,7 +52,7 @@ subroutine pepc_setup()
   trun         = 0.
 
   ! read in first command line argument
-  call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
+  call pepc_get_para_file(read_param_file, parameterfile, my_rank)
 
   if (read_param_file) then
      if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepcsph: ", parameterfile
