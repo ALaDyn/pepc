@@ -47,7 +47,8 @@ program pepce
        ispecial, &
        dt, &
        db_level, &
-       curve_type
+       curve_type, &
+       idim
 
   use module_neighbour_test, only: &
        validate_n_nearest_neighbour_list, &
@@ -162,7 +163,7 @@ program pepce
      call validate_n_nearest_neighbour_list(np_local, particles, &
           itime, num_neighbour_boxes, neighbour_boxes)
      
-     ! call sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+     call sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes, idim)
      
      
 

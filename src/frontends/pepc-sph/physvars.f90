@@ -15,9 +15,10 @@ module physvars
   real :: eps            ! potential/force law cutoff
   real :: q_factor = 1.0       ! Charge factor
 
-  real :: thermal_constant = 1.           ! TODO: is this the boltzmann constant?
-
-
+  real*8 :: thermal_constant = 1.           !< TODO: is this the boltzmann constant?
+  real*8 :: kappa            = 1.4          !< kappa = gamma: Heat capacity ratio for gas
+  real*8 :: art_vis_alpha    = 1.           !< artificial viscosity parameter
+  real*8 :: art_vis_beta     = 2.           !< artificial viscosity parameter
 
 
  ! tree stuff
