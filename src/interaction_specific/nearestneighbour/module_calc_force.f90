@@ -175,6 +175,7 @@ module module_calc_force
             end do
 
             particles(i)%results%dist2(:) = particles(i)%results%maxdist2
+            particles(i)%results%dist_vector(:,:) = -13._8 
         end do
 
 
@@ -247,6 +248,7 @@ module module_calc_force
             ! add node to NN_list
             particle%results%neighbour_nodes(particle%results%maxidx) = inode
             particle%results%dist2(particle%results%maxidx)           = dist2
+            particle%results%dist_vector(:,particle%results%maxidx) = d
             tmp                       = maxloc(particle%results%dist2(:)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
             particle%results%maxidx   = tmp(1)
             particle%results%maxdist2 = particle%results%dist2(particle%results%maxidx)

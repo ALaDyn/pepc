@@ -409,9 +409,11 @@ contains
           
           ! for all dimension
           do dim = 1, idim
-             dist(dim) = tree_nodes(actual_node)%coc(dim) &
-                  ! TODO:       + periodic_shift_vectors( shift_list( actual_neighbour, actual_particle ) , dim ) &
-                  - particles(local_particle_index)%x(dim)
+             dist(1:3) = particles(local_particle_index)%results%dist_vector(1:3, actual_neighbour)
+
+!             dist(dim) = tree_nodes(actual_node)%coc(dim) &
+!                  ! TODO:       + periodic_shift_vectors( shift_list( actual_neighbour, actual_particle ) , dim ) &
+!                  - particles(local_particle_index)%x(dim)
              
              dvx(dim) = tree_nodes(actual_node)%v(dim) - particles(local_particle_index)%data%v(dim)
              
@@ -424,7 +426,7 @@ contains
           
           
           ! TODO: make eta parameter???
-          eta = real(0.1,8) * h                                                ! art_vis
+          eta = 0.1_8 * h                                                ! art_vis
           sound_speed = ( sqrt( const * particles(local_particle_index)%data%temperature )  &
                + sqrt( const * tree_nodes(actual_node)%temperature ) )/ 2. ! mean sound_speed 
           
@@ -462,11 +464,6 @@ contains
        end do ! end of loop over neighbours
        
 
-       ! TODO: add temperature change
-!       temperature_change_tmp( part_indices( actual_particle ) ) = real( pelabel( part_indices( actual_particle) ), 8 ) 
-
-       
-       
        particles(local_particle_index)%results%temperature_change = energy_factor * thermal_energy_sum
        ! TODO: add art_visc term to temp_change
        
@@ -480,7 +477,7 @@ contains
   
 
 
-  subroutine sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+  subroutine sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes, idim)
     
     use module_pepc_types, only: &
          t_particle
@@ -498,10 +495,11 @@ contains
     integer, intent(in) :: itime  ! timestep
     integer, intent(in) :: num_neighbour_boxes !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
     integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
-    
+    integer, intent(in) :: idim    ! dimension
+
     integer :: ierr
 
-    call sph_initialize(3, 1._8, 1.4_8, 2._8, 1._8)
+    call sph_initialize(idim, 1._8, 1.4_8, 2._8, 1._8)
 
     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
     
