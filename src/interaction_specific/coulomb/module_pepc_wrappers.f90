@@ -69,8 +69,7 @@ module module_pepc_wrappers
     !>  TODO: update function documentation
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_fields_coulomb_wrapper(np_local,npart_total,p_x, p_y, p_z, p_q, p_w, p_label, &
-                    p_Ex, p_Ey, p_Ez, p_pot, itime,  &
-                    num_neighbours, neighbours, no_dealloc, no_restore, force_const)
+                    p_Ex, p_Ey, p_Ez, p_pot, itime, no_dealloc, no_restore, force_const)
         use treevars
         use module_pepc
         implicit none
@@ -81,8 +80,6 @@ module module_pepc_wrappers
         real*8, intent(in), dimension(np_local) :: p_q ! charges, masses
         integer, intent(in), dimension(np_local) :: p_label  ! particle label
         real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
-        integer, intent(in) :: num_neighbours !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
-        integer, intent(in) :: neighbours(3, num_neighbours) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
         real*8, dimension(np_local) :: p_w ! work loads
         logical, intent(in) :: no_dealloc, no_restore
         real*8, intent(in) :: force_const
@@ -102,8 +99,7 @@ module module_pepc_wrappers
                                        EMPTY_PARTICLE_RESULTS )
         end do
 
-        call pepc_fields(np_local, npart_total, particles, &
-                             itime, num_neighbours, neighbours, no_dealloc, no_restore)
+        call pepc_grow_and_traverse(np_local, npart_total, particles, itime, .true., no_dealloc, no_restore)
 
         ! read data from particle_coordinates, particle_results, particle_properties
         do i=1,np_local
@@ -111,7 +107,7 @@ module module_pepc_wrappers
           p_ey(i)  = force_const*particles(i)%results%e(2)
           p_ez(i)  = force_const*particles(i)%results%e(3)
           p_pot(i) = force_const*particles(i)%results%pot
-          p_w(i)   =  particles(i)%work
+          p_w(i)   = particles(i)%work
         end do
 
     end subroutine
@@ -131,7 +127,7 @@ module module_pepc_wrappers
       integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
       real*8, intent(in) :: force_const
 
-      type(t_particle),         dimension(:), allocatable :: grid_particles
+      type(t_particle), dimension(:), allocatable :: grid_particles
 
       integer :: i
 
@@ -147,15 +143,14 @@ module module_pepc_wrappers
                                        EMPTY_PARTICLE_RESULTS )
       end do
 
+      call pepc_traverse_tree(ngp, particles, .true.)
 
-      call pepc_grid_fields(ngp, grid_particles, num_neighbour_boxes, neighbour_boxes)
-
-        do i=1,ngp
-          p_ex(i)  = force_const*grid_particles(i)%results%e(1)
-          p_ey(i)  = force_const*grid_particles(i)%results%e(2)
-          p_ez(i)  = force_const*grid_particles(i)%results%e(3)
-          p_pot(i) = force_const*grid_particles(i)%results%pot
-        end do
+      do i=1,ngp
+        p_ex(i)  = force_const*grid_particles(i)%results%e(1)
+        p_ey(i)  = force_const*grid_particles(i)%results%e(2)
+        p_ez(i)  = force_const*grid_particles(i)%results%e(3)
+        p_pot(i) = force_const*grid_particles(i)%results%pot
+      end do
 
       deallocate(grid_particles)
 

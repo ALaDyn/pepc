@@ -11,10 +11,10 @@
 
 
 subroutine setup
-  use module_fmm_framework
+  use module_pepc
   use module_mirror_boxes
+  use module_fmm_framework
   use module_physvars
-  use module_initialization
 
   implicit none
   include 'mpif.h'
@@ -123,7 +123,7 @@ subroutine setup
   do_extrinsic_correction = .false.
 
  ! read in first command line argument
-  call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
+  call pepc_get_para_file(read_param_file, parameterfile, my_rank)
 
   if (read_param_file) then
      if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepcb: ", parameterfile

@@ -32,18 +32,18 @@ program program_pepcb
   use treetypes
   use module_particle_props
   use module_physvars
+  use module_pepc
+  use module_pepc_wrappers
+  use module_mirror_boxes, only : do_periodic, constrain_periodic, spatial_interaction_cutoff
+  use module_fmm_framework, only : fmm_framework_param_dump
   use module_utilities
   use module_geometry
   use module_laser
   use module_field_grid
   use module_io
   use module_diagnostics
-  use module_fmm_framework
-  use module_pepc_wrappers
   use module_particle_boundaries
-  use module_initialization
   use module_calc_force, only : theta2, mac_select, eps2, cf_force_law => force_law, include_far_field_if_periodic
-  use module_mirror_boxes, only : spatial_interaction_cutoff
 
   implicit none
   include 'mpif.h'
@@ -63,7 +63,7 @@ program program_pepcb
 !POMP$ INST BEGIN(pepcb)
 
   ! Allocate array space for tree
-  call libpepc_setup("pepc-b", my_rank, n_cpu)
+  call pepc_initialize("pepc-b", my_rank, n_cpu, .true.)
 
   t_start_prog=MPI_WTIME()
 
@@ -77,9 +77,6 @@ program program_pepcb
 
   call openfiles       ! Set up O/P files
 open(70,file='orbit.dat')
-
-  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
-  call fmm_framework_init(my_rank, wellsep = 1)
 
 ! call closefiles
 !  call MPI_FINALIZE(ierr)
@@ -131,7 +128,7 @@ open(70,file='orbit.dat')
     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
                   q(1:np_local),work(1:np_local),pelabel(1:np_local), &
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      itime, num_neighbour_boxes, neighbour_boxes, .true., .false., force_const)
+                      itime, .true., .false., force_const)
 
    ! Centre velocities with 1/2 step back     
     call integrator
@@ -192,7 +189,7 @@ open(70,file='orbit.dat')
     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
                   q(1:np_local),work(1:np_local),pelabel(1:np_local), &
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      itime, num_neighbour_boxes, neighbour_boxes, .true., .false., force_const)
+                      itime, .true., .false., force_const)
   
 !POMP$ INST END(fields)
 
@@ -317,11 +314,8 @@ endif
     end do
   endif 
 
-  ! finalize framework for lattice contributions
-  call fmm_framework_finalize()
-
   ! cleanup of lpepc static data
-  call libpepc_finalize()
+  call pepc_finalize()
 
 !POMP$ INST END(pepcb)
 

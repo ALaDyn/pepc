@@ -20,16 +20,16 @@ program pepce
 
   use treetypes
   use physvars
+  use module_pepc
+  use module_pepc_wrappers
+  use module_mirror_boxes, only : do_periodic, constrain_periodic
   use particle_pusher
   use benchmarking
   use module_timings
-  use module_fmm_framework
-  use module_mirror_boxes
   use files
   use energies
   use module_diagnostics
   use module_pepc_wrappers
-  use module_initialization
   use module_calc_force, only : theta2, eps2, mac_select, force_law
   implicit none
   include 'mpif.h'
@@ -37,7 +37,7 @@ program pepce
   integer :: ierr, ifile
 
   ! Allocate array space for tree
-  call libpepc_setup("pepc-e", my_rank, n_cpu)
+  call pepc_initialize("pepc-e", my_rank, n_cpu, .true.)
 
   call benchmark_pre
 
@@ -51,11 +51,8 @@ program pepce
   ! Each CPU gets copy of initial data
   call pepc_setup()
 
-  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
-  call fmm_framework_init(my_rank, wellsep = 1)
-
   ! Set up particles
-  call configure
+  call configure()
 
   ! initial particle output
   ! no initial checkpoint since this would override the current checkpoint if in resume-mode
@@ -89,7 +86,7 @@ program pepce
      call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
                   q(1:np_local),work(1:np_local),pelabel(1:np_local), &
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      itime, num_neighbour_boxes, neighbour_boxes, .false., .false., force_const)
+                      itime, .false., .false., force_const)
 
      if (itime == nt) then
         call gather_particle_diag()
@@ -120,9 +117,6 @@ program pepce
 
   call benchmark_post
 
-  ! finalize framework for lattice contributions
-  call fmm_framework_finalize()
-
   ! final particle dump
   call write_particles(.true.)
 
@@ -139,6 +133,6 @@ program pepce
   call benchmark_end
 
   ! cleanup of lpepc static data
-  call libpepc_finalize()
+  call pepc_finalize()
 
 end program pepce

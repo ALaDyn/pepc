@@ -1,7 +1,7 @@
 program pepcs
 
   use module_pepcs
-  use module_initialization
+  use module_pepc
   implicit none
   include 'mpif.h'
 
@@ -15,12 +15,13 @@ program pepcs
   real*8, parameter :: theta = 0.30
   integer, parameter :: db_level = 2
 
+  integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED
+  integer :: my_rank, n_cpu, ierr, provided
 
   integer :: it, ip
 
-  integer :: my_rank, n_cpu, ierr
-
-  call libpepc_setup("pepc-s", my_rank, n_cpu)
+  call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
+  call pepc_initialize("pepc-s", my_rank, n_cpu, .false.) ! this forntend cares for mpi initilization by itself
 
   lx = [1, 0, 0]
   ly = [0, 1, 0]
@@ -60,6 +61,8 @@ program pepcs
   end do
 
   ! cleanup of lpepc static data
-  call libpepc_finalize()
+  call pepc_finalize()
+
+  call MPI_FINALIZE(ierr)
 
 end program pepcs

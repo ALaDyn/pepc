@@ -14,7 +14,7 @@ subroutine pepc_setup()
   use physvars
   use module_mirror_boxes
   use module_fmm_framework
-  use module_initialization
+  use module_pepc
   implicit none
   include 'mpif.h'
 
@@ -81,7 +81,7 @@ subroutine pepc_setup()
   idump_checkpoint  = 0
   idump_binary = 0
 
-  call libpepc_get_para_file(para_file_available, para_file_name, my_rank)
+  call pepc_get_para_file(para_file_available, para_file_name, my_rank)
 
   if (para_file_available) then
      if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepce: ", para_file_name

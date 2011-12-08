@@ -32,7 +32,7 @@ program pepcmini
   integer :: ierr, ifile
 
   ! Allocate array space for tree
-  call pepc_initialize("pepc-mini", my_rank, n_cpu)
+  call pepc_initialize("pepc-mini", my_rank, n_cpu, .true.)
 
   ! Set up O/P files
   call openfiles

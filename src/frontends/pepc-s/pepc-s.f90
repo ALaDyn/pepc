@@ -24,8 +24,7 @@ module module_pepcs
         use treetypes
         use module_fmm_framework
         use module_mirror_boxes
-        use module_fields
-        use module_initialization
+        use module_pepc
         use treevars
         use module_calc_force, only : theta2, eps2, mac_select, force_law
         implicit none
@@ -75,11 +74,11 @@ module module_pepcs
         t_lattice_3 = lat_z
         periodicity(1:3) = (lat_period(1:3) == 1)
         do_extrinsic_correction = (lat_corr == 1)
+        call calc_neighbour_boxes()
         call fmm_framework_init(my_rank, wellsep = 1)
         ! =============================================================
 
-        call pepc_fields(local_particles, total_particles, particles, &
-                itime, num_neighbour_boxes, neighbour_boxes, .false., .false.)
+       call pepc_grow_and_traverse(local_particles, total_particles, particles, itime)
 
         ! read fields and potentials from internal data structures
         do i=1,local_particles
@@ -89,14 +88,6 @@ module module_pepcs
 
         virial_tensor = 0. !TODO
         if (my_rank==0) write(*,*) "TODO: Virial unsupported in this version of pepc"
-
-        ! =============================================================
-        ! TODO: do this in some scafacos_finalize function instead
-        ! of in every timestep
-        ! finalize framework for lattice contributions
-        call fmm_framework_finalize()
-        ! =============================================================
-
 
         deallocate(particles)
 

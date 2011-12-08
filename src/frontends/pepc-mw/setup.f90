@@ -12,7 +12,7 @@
 
 subroutine pepc_setup()
   use physvars
-  use module_initialization
+  use module_pepc
   use module_fmm_framework
   use module_mirror_boxes
   use module_particle_setup
@@ -86,7 +86,7 @@ subroutine pepc_setup()
   !!!!!!!!!!!!!!!  read parameter file           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! read in first command line argument
-  call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
+  call pepc_get_para_file(read_param_file, parameterfile, my_rank)
 
   if (read_param_file) then
      if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepcmw: ", parameterfile
