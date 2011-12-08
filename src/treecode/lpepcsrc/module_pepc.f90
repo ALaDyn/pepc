@@ -178,8 +178,8 @@ module module_pepc
       call pepc_status('FINALIZE')
       ! finalize internal data structures
       call branches_finalize()
-      call calc_force_finalize()
-      call tree_walk_finalize()
+      !call calc_force_finalize()
+      !call tree_walk_finalize()
       ! deregister mpi types
       call free_lpepc_mpi_types()
 
@@ -240,8 +240,8 @@ module module_pepc
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
       integer, intent(in) :: itime !> current timestep (used as filename suffix for statistics output)
       logical, intent(in), optional :: clearresults_before_traversal !< if set to .false., the function does not call particleresults_clear(particles) before traversal
-      logical, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
-      logical, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
+      logical, optional, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
+      logical, optional, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
 
       logical :: restore, dealloc
 
