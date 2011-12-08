@@ -14,7 +14,7 @@ subroutine pepc_setup()
   use physvars
   use module_fmm_framework
   use module_mirror_boxes
-  use module_initialization
+  use module_pepc
   implicit none
   include 'mpif.h'
 
@@ -27,7 +27,7 @@ subroutine pepc_setup()
   namelist /pepcmini/ ne, ni, &
        mac, theta, q_factor, eps, ispecial, &
        r_sphere, idim, nt, dt, &
-       t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction
+       t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction, mirror_box_layers
 
 
   !  Default input set
@@ -53,7 +53,7 @@ subroutine pepc_setup()
   trun         = 0.
 
   ! read in first command line argument
-  call libpepc_get_para_file(read_param_file, parameterfile, my_rank)
+  call pepc_get_para_file(read_param_file, parameterfile, my_rank)
 
   if (read_param_file) then
 

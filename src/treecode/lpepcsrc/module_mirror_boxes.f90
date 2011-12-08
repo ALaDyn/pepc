@@ -28,6 +28,7 @@ module module_mirror_boxes
       real*8, public :: LatticeInv(3,3) !< holds the inverse lattice transformation matrix
       real*8, public :: LatticeCenter(3) !< holds the central point of the lattice box
       logical, public :: periodicity(3) = [.false., .false., .false.]  !< boolean switches for determining periodicity directions
+      integer, public :: mirror_box_layers = 1 !< size of near-field layer (nmber of shells)
       !> variables that should not be written to
       integer, public :: num_neighbour_boxes = 1
       integer, dimension(:,:), allocatable, public :: neighbour_boxes !dimensions in 3D case (3,27)
@@ -91,16 +92,15 @@ module module_mirror_boxes
         !> indices/coordinates in neighbour_boxes
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_neighbour_boxes(ws)
+        subroutine calc_neighbour_boxes()
         implicit none
         integer :: i,j,k,idx
-        integer, intent(in) :: ws
 
           if (allocated(neighbour_boxes)) deallocate(neighbour_boxes)
 
           do i = 1,3
             if (periodicity(i)) then
-               periodicity_switches(i) = ws
+               periodicity_switches(i) = mirror_box_layers
              else
                periodicity_switches(i) = 0
              end if
@@ -144,6 +144,8 @@ module module_mirror_boxes
           end do
 
           neighbour_boxes(:,idx+1) = [0, 0, 0] ! center box is put to the back of the boxlist for easier iteration
+
+          call init_movement_constraint()
 
         end subroutine calc_neighbour_boxes
 

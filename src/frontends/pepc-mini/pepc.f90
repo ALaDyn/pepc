@@ -22,11 +22,9 @@ program pepcmini
   use physvars
   use particle_pusher
   use module_timings
-  use module_fmm_framework
-  use module_mirror_boxes
-  use module_fields
+  use module_pepc
+  use module_mirror_boxes, only: do_periodic, constrain_periodic
   use files
-  use module_initialization
   use module_calc_force, only : theta2, eps2, mac_select, force_law
   implicit none
   include 'mpif.h'
@@ -34,7 +32,7 @@ program pepcmini
   integer :: ierr, ifile
 
   ! Allocate array space for tree
-  call libpepc_setup("pepc-mini", my_rank, n_cpu)
+  call pepc_initialize("pepc-mini", my_rank, n_cpu)
 
   ! Set up O/P files
   call openfiles
@@ -45,9 +43,6 @@ program pepcmini
 
   ! Each CPU gets copy of initial data
   call pepc_setup()
-
-  ! initialize framework for lattice contributions (is automatically ignored if periodicity = [false, false, false]
-  call fmm_framework_init(my_rank, wellsep = 1)
 
   ! Set up particles
   call special_start(ispecial)
@@ -73,8 +68,7 @@ program pepcmini
      call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
      call timer_start(t_tot)
 
-    call pepc_fields(np_local, npart_total, particles, &
-        itime, num_neighbour_boxes, neighbour_boxes, .false., .false.)
+     call pepc_grow_and_traverse(np_local, npart_total, particles, itime)
 
      ! Integrator
      call velocities(1,np_local,dt)
@@ -93,9 +87,6 @@ program pepcmini
 
   end do
 
-  ! finalize framework for lattice contributions
-  call fmm_framework_finalize()
-
   ! deallocate array space for particles
   call cleanup(my_rank,n_cpu)
   
@@ -107,6 +98,6 @@ program pepcmini
   call closefiles
 
   ! cleanup of lpepc static data
-  call libpepc_finalize()
+  call pepc_finalize()
 
 end program pepcmini

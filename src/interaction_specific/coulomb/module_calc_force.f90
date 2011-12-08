@@ -59,11 +59,13 @@ module module_calc_force
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
-      !> initializes interaction specific parameters, redas them from file
+      !> initializes interaction specific parameters, reads them from file
       !> if optional argument para_file_name is given
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine calc_force_init(para_file_available, para_file_name, my_rank)
+        use module_fmm_framework
+        use module_mirror_boxes
         implicit none
         logical, intent(in) :: para_file_available
         character(*), intent(in) :: para_file_name
@@ -78,6 +80,8 @@ module module_calc_force
 
             close(para_file_id)
         endif
+
+        call fmm_framework_init(my_rank, wellsep=mirror_box_layers)
 
       end subroutine
 

@@ -31,12 +31,10 @@ module module_fmm_framework
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       public fmm_framework_init
-      public fmm_framework_finalize
       public fmm_framework_timestep
       public fmm_sum_lattice_force
       public lattice_vect
       public fmm_framework_param_dump
-      public constrain_periodic
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -88,13 +86,11 @@ module module_fmm_framework
           myrank = mpi_rank
           ws     = wellsep
 
-          call init_movement_constraint
-
           LatticeCenter = 0.5*(t_lattice_1 + t_lattice_2 + t_lattice_3)
 
           do_periodic = periodicity(1) .or. periodicity(2) .or. periodicity(3)
 
-          call calc_neighbour_boxes(ws)
+          call calc_neighbour_boxes()
 
            ! anything above has to be done in any case
           if (do_periodic) then
@@ -102,18 +98,6 @@ module module_fmm_framework
           end if
 
         end subroutine fmm_framework_init
-
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
-        !> Clean up the allocated memory
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine fmm_framework_finalize
-          implicit none
-          deallocate(neighbour_boxes)
-
-        end subroutine fmm_framework_finalize
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -336,8 +320,8 @@ module module_fmm_framework
         !> this is formally identical to #Mvec, however #O also treats negative m
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		complex*16 function O(l, m, r)
-		  use module_math_tools
+        complex*16 function O(l, m, r)
+          use module_math_tools
           implicit none
           integer, intent(in) :: l, m
           real*8, intent(in) :: r(3)
@@ -361,51 +345,51 @@ module module_fmm_framework
 		end function O
 
 
-		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		!>
-		!> Calculates force onto individual particles that results
-		!> from mirror boxes beyond the near field region,
-		!> i.e. the lattice contribution
-		!>
-		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine fmm_sum_lattice_force(particle, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
-		  use treevars
-		  implicit none
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates force onto individual particles that results
+        !> from mirror boxes beyond the near field region,
+        !> i.e. the lattice contribution
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine fmm_sum_lattice_force(particle, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
+          use treevars
+          implicit none
 
-		  type(t_particle), intent(in) :: particle
-		  real*8, intent(out) ::  ex_lattice, ey_lattice, ez_lattice, phi_lattice
+          type(t_particle), intent(in) :: particle
+          real*8, intent(out) ::  ex_lattice, ey_lattice, ez_lattice, phi_lattice
 
-		  complex*16 :: mu_shift(0:1,0:1), tmp
-		  integer :: ll, mm, j, k
-		  real*8 :: r(3)
+          complex*16 :: mu_shift(0:1,0:1), tmp
+          integer :: ll, mm, j, k
+          real*8 :: r(3)
 
-		  if (.not. do_periodic) then
+          if (.not. do_periodic) then
             ex_lattice = 0
             ey_lattice = 0
             ez_lattice = 0
             phi_lattice = 0
-		    return
-		  end if
+            return
+        end if
 
-		 ! shift mu_cent to the position of our particle
-		  mu_shift =  0
-		  r        = particle%x - LatticeCenter
+         ! shift mu_cent to the position of our particle
+          mu_shift =  0
+          r        = particle%x - LatticeCenter
 
-		  do ll = 0,1
-		    do mm = 0,ll
+          do ll = 0,1
+            do mm = 0,ll
 
-		      tmp = 0
+              tmp = 0
 
-		      do j = ll,LmaxL
-		        do k=-j,j
-		           tmp = tmp + O(j-ll, k-mm, r) * tbl( mu_cent, j, k )
-		        end do
-		      end do
+              do j = ll,LmaxL
+                do k=-j,j
+                   tmp = tmp + O(j-ll, k-mm, r) * tbl( mu_cent, j, k )
+                end do
+              end do
 
-		      mu_shift(ll, mm) = tmp
+              mu_shift(ll, mm) = tmp
 
-		    end do
-		  end do
+            end do
+          end do
 
                          ! E = -grad(Phi)
           if (do_extrinsic_correction) then    ! extrinsic correction
@@ -419,7 +403,7 @@ module module_fmm_framework
             ez_lattice  = -real(mu_shift(1,0))
             phi_lattice =  real(mu_shift(0,0))
           endif
-		end subroutine fmm_sum_lattice_force
+        end subroutine fmm_sum_lattice_force
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
