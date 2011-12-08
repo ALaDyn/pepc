@@ -40,6 +40,8 @@ module module_pepc
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    logical :: pepcs_initializes_mpi !< is set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -58,7 +60,7 @@ module module_pepc
     !> Call this function at program startup before any MPI calls
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_initialize(frontendname, my_rank,n_cpu, db_level_in)
+    subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi , db_level_in)
       use treevars, only : me, num_pe, np_mult
       use treetypes, only : register_lpepc_mpi_types
       use module_walk
@@ -73,6 +75,7 @@ module module_pepc
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
       integer, intent(out) :: my_rank !< MPI rank of this instance as returned from MPI
       integer, intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
+      logical, intent(in) :: init_mpi !< if set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
       integer, intent(in), optional :: db_level_in !< sets debug level for treecode kernel (overrides settings, that may be read from libpepc-section in input file)
 
       integer, parameter :: para_file_id = 10
@@ -87,8 +90,13 @@ module module_pepc
 
       call pepc_status('SETUP')
 
-      ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
-      call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
+      pepcs_initializes_mpi = init_mpi
+
+      if (pepcs_initializes_mpi) then
+        ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
+        call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
+      endif
+
       ! Get the id number of the current task
       call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
       ! Get the number of MPI tasks
@@ -106,7 +114,7 @@ module module_pepc
         write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."//)') &
                        SVNVERSION, frontendname, n_cpu
 
-        if (provided < MPI_THREAD_LEVEL) then
+        if ((pepcs_initializes_mpi) .and. (provided < MPI_THREAD_LEVEL)) then
           !inform the user about possible issues concerning MPI thread safety
           write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
                          MPI_THREAD_LEVEL, provided
@@ -168,12 +176,14 @@ module module_pepc
       integer :: ierr
 
       call pepc_status('FINALIZE')
+      ! finalize internal data structures
+      call branches_finalize()
+      call calc_force_finalize()
+      call tree_walk_finalize()
       ! deregister mpi types
       call free_lpepc_mpi_types()
-      ! finalize data structures in module_branches
-      call branches_finalize()
 
-      call MPI_FINALIZE(ierr)
+      if (pepcs_initializes_mpi) call MPI_FINALIZE(ierr)
     end subroutine
 
 
@@ -220,7 +230,7 @@ module module_pepc
     !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_grow_and_traverse(np_local, npart_total, particles, itime, clearresults_before_traversal)
+    subroutine pepc_grow_and_traverse(np_local, npart_total, particles, itime, clearresults_before_traversal, no_dealloc, no_restore)
       use treetypes
       use module_libpepc_main
       use module_debug
@@ -230,14 +240,22 @@ module module_pepc
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
       integer, intent(in) :: itime !> current timestep (used as filename suffix for statistics output)
       logical, intent(in), optional :: clearresults_before_traversal !< if set to .false., the function does not call particleresults_clear(particles) before traversal
+      logical, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
+      logical, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
+
+      logical :: restore, dealloc
+
+      restore = .true.
+      dealloc = .true.
+
+      if (present(no_dealloc)) dealloc = .not. no_dealloc
+      if (present(no_restore)) restore = .not. no_restore
 
       call pepc_grow_tree(np_local, npart_total, particles)
       call pepc_traverse_tree(np_local, particles, clearresults_before_traversal)
-      if (dbg(DBG_STATS)) then
-        call pepc_statistics(itime)
-      endif
-      call pepc_restore_particles(np_local, particles)
-      call pepc_timber_tree()
+      if (dbg(DBG_STATS)) call pepc_statistics(itime)
+      if (restore)        call pepc_restore_particles(np_local, particles)
+      if (dealloc)        call pepc_timber_tree()
 
     end subroutine
 
