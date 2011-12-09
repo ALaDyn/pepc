@@ -47,6 +47,8 @@ program pepcmini
   ! Set up particles
   call special_start(ispecial)
 
+  particles(1:np_local)%work = 1.0
+
   ! initialize calc force params
   theta2      = theta**2
   mac_select  = mac
