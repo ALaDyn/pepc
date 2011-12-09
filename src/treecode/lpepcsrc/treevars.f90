@@ -27,11 +27,6 @@ module treevars
 
   type(t_tree_node_interaction_data), target, allocatable  :: tree_nodes(:)                 !< Tree node properties TODO: move to module_tree
 
-  ! TODO: put these into tree_aswalk_pthreads module
-  integer*8 ::  max_req_list_length, & !< maximum length of request queue
-                 cum_req_list_length, & !< cumulative length of request queue
-                 comm_loop_iterations(3)!< number of comm loop iterations (total, sending, receiving)
-
   integer,   parameter :: nlev = 20 !< max refinement level
   integer*8, parameter :: iplace = 2_8**(3*nlev) !< value of place holder bit = 2^(idim*nlev)
 
@@ -60,7 +55,6 @@ module treevars
   real*8 :: boxsize       ! length of box
   real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
   real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
-  real*8 :: thread_workload(-4:4) !< stores average particles and runtime per thread for diagnostic purposes, entry 0 contains number of worker threads
 
 ! Memory control
   real :: np_mult=1.5

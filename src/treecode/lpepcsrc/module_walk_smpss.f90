@@ -11,8 +11,21 @@ module module_walk
   public tree_walk_init
   public tree_walk_finalize
   public tree_walk_prepare
+  public tree_walk_statistics
   
 contains
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> writes walk-specific data to file steam ifile
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine tree_walk_statistics(ifile)
+    implicit none
+    integer, intent(in) :: ifile !< file stream to write to
+    ! TODO: fill with life here
+  end subroutine
+
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>

@@ -120,6 +120,9 @@ module module_walk_pthreads_commutils
     logical, parameter :: rwlock_debug    = .false.
     logical, parameter, public  :: walk_debug     = .false.
 
+    integer*8, public ::  max_req_list_length, & !< maximum length of request queue
+                           cum_req_list_length     !< cumulative length of request queue
+
     ! variables for adjusting the thread`s workload
     real, public :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
     integer, public :: particles_per_yield = 500 !< number of particles to process in a work_thread before it shall call sched_yield to hand the processor over to some other thread
@@ -515,6 +518,7 @@ module module_walk
     integer*8 :: num_interaction_leaves
     integer :: todo_list_length, defer_list_length
 
+    real*8, public :: thread_workload(-4:4) !< stores average particles and runtime per thread for diagnostic purposes, entry 0 contains number of worker threads
 
     integer :: num_particles
     type(t_particle), pointer, dimension(:) :: particle_data
@@ -532,8 +536,46 @@ module module_walk
     public tree_walk_init
     public tree_walk_finalize
     public tree_walk_prepare
+    public tree_walk_statistics
 
   contains
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> writes walk-specific data to file steam ifile
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine tree_walk_statistics(ifile)
+        use module_walk_pthreads_commutils
+        use module_walk_communicator
+        implicit none
+        include 'mpif.h'
+        integer, intent(in) :: ifile !< file stream to write to
+        integer :: ierr
+        real*8 :: global_thread_workload(-4:4)
+
+        call MPI_REDUCE(thread_workload( 1), global_thread_workload( 1), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr )
+        call MPI_REDUCE(thread_workload( 2), global_thread_workload( 2), 1, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
+        call MPI_REDUCE(thread_workload( 3), global_thread_workload( 3), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr )
+        call MPI_REDUCE(thread_workload( 4), global_thread_workload( 4), 2, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
+        call MPI_REDUCE(thread_workload(-1), global_thread_workload(-1), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr )
+        call MPI_REDUCE(thread_workload(-2), global_thread_workload(-2), 1, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
+        call MPI_REDUCE(thread_workload(-3), global_thread_workload(-3), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr )
+        call MPI_REDUCE(thread_workload(-4), global_thread_workload(-4), 2, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
+
+        write (ifile,'(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_particles_per_thread
+        write (ifile,'(a50,2i12)') 'cumulative/maximum # of entries in request queue: ', cum_req_list_length, max_req_list_length
+        write (ifile,'(a50,3i12)') '# of comm-loop iterations (tot,send,recv): ', comm_loop_iterations(:)
+        write (ifile,*) '######## WALK-WORKER-THREAD WORKLOAD ######################################################'
+        write (ifile,'(a50)')              'average # processed nparticles per thread    '
+        write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', thread_workload(1), thread_workload(3)
+        write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', thread_workload(2), thread_workload(4)
+        write (ifile,'(a50)')              'average wallclocktime per thread    '
+        write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', thread_workload(-1) , thread_workload(-3)
+        write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', thread_workload(-2), thread_workload(-4)
+
+      end subroutine
+
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
@@ -571,8 +613,11 @@ module module_walk
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine tree_walk_prepare()
+        use module_walk_pthreads_commutils
         implicit none
         ! nothing to do here
+        max_req_list_length  = 0
+        cum_req_list_length  = 0
       end subroutine
 
 

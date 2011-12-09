@@ -196,8 +196,6 @@ contains
         call timer_reset(t_comm_recv)
         call timer_reset(t_comm_sendreqs)
 
-        max_req_list_length  = 0
-        cum_req_list_length  = 0
         comm_loop_iterations = 0
         sum_fetches          = 0 ! total # multipole fetches/iteration
         sum_ships            = 0 ! total # multipole shipments/iteration

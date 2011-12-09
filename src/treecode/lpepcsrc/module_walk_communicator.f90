@@ -11,6 +11,7 @@ module module_walk_communicator
   private
 
     integer, public :: walk_status
+    integer*8, public :: comm_loop_iterations(3) !< number of comm loop iterations (total, sending, receiving)
 
     !> debug flags - cannot be modified at runtime due to performance reasons
     logical, public, parameter :: walk_comm_debug = .false.
@@ -210,10 +211,6 @@ module module_walk_communicator
         endif
 
     end subroutine
-
-
-
-
 
 
 
