@@ -10,6 +10,7 @@ module module_walk
   public tree_walk
   public tree_walk_init
   public tree_walk_finalize
+  public tree_walk_prepare
   
 contains
 
@@ -42,8 +43,13 @@ contains
   end subroutine
 
   subroutine tree_walk_finalize()
+    implicit none
   end subroutine tree_walk_finalize
 
+  subroutine tree_walk_prepare()
+    implicit none
+    ! nothing to do here
+  end subroutine
   
   subroutine tree_walk(nparticles_, particles_, &
        twalk, twalk_loc_, vbox_, tcomm)

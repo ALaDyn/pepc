@@ -74,8 +74,7 @@ module module_pepcs
         t_lattice_3 = lat_z
         periodicity(1:3) = (lat_period(1:3) == 1)
         do_extrinsic_correction = (lat_corr == 1)
-        call calc_neighbour_boxes()
-        call fmm_framework_init(my_rank, wellsep = 1)
+        call pepc_prepare()
         ! =============================================================
 
        call pepc_grow_and_traverse(local_particles, total_particles, particles, itime)

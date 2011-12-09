@@ -45,6 +45,8 @@ program pepcv
   sig2        = eps**2
   force_law   = 2
 
+  call pepc_prepare()
+
   ! Loop over all timesteps
   do while (itime < nt)
 

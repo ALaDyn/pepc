@@ -531,6 +531,7 @@ module module_walk
     public tree_walk
     public tree_walk_init
     public tree_walk_finalize
+    public tree_walk_prepare
 
   contains
 
@@ -562,6 +563,18 @@ module module_walk
         endif
 
       end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> computes derived parameters for tree walk
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine tree_walk_prepare()
+        implicit none
+        ! nothing to do here
+      end subroutine
+
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>

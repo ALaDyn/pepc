@@ -22,6 +22,8 @@ module module_pepc
 
     public pepc_initialize                !< once per simulation
 
+    public pepc_prepare
+
     public pepc_grow_tree                 !< once per timestep
     public pepc_traverse_tree             !< several times per timestep
     public pepc_statistics                !< once per timestep
@@ -64,12 +66,10 @@ module module_pepc
       use treevars, only : me, num_pe, np_mult
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
-      use module_mirror_boxes
       use module_spacefilling
       use module_domains
       use module_debug, only : pepc_status, debug_level
       use module_calc_force, only : calc_force_init
-      use module_branching, only : branches_initialize
       implicit none
       include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
@@ -151,14 +151,33 @@ module module_pepc
       ! create and register mpi types
       call register_lpepc_mpi_types()
 
+      call pepc_prepare()
+
+    end subroutine
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Initializes derived variables in pepc, walk, and clac_force
+    !> should be called after changing those module`s variables and
+    !> before performing tree buildup
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine pepc_prepare()
+      use module_walk
+      use module_branching, only : branches_initialize
+      use module_calc_force
+      use module_mirror_boxes
+      implicit none
+
+      call calc_force_prepare()
+
+      call tree_walk_prepare()
       ! initialize mirror boxes
       call calc_neighbour_boxes()
-
       ! initialize data structures in module_branches
       call branches_initialize()
 
     end subroutine
-
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -103,6 +103,7 @@ program pepce
 
   particles(:)%work = 1._8
 
+  call pepc_prepare()
 
   ! Loop over all timesteps
   do while (itime < nt)

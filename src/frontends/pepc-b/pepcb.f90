@@ -120,6 +120,8 @@ open(70,file='orbit.dat')
     include_far_field_if_periodic = .false. ! switch off far-field box sum
     spatial_interaction_cutoff(1:3) = [xl, yl, zl]  ! default min-image cutoffs
 
+    call pepc_prepare()
+
     ! Compute initial field values
 
     if (my_rank==0) write(*,*) 'Computing initial fields'

@@ -73,7 +73,8 @@ program pepce
        pepc_initialize, &
        pepc_finalize, &
        pepc_grow_tree, &
-       pepc_traverse_tree
+       pepc_traverse_tree, &
+       pepc_prepare
 
 
   use files, only: &
@@ -120,9 +121,7 @@ program pepce
 
   particles(:)%work = 1._8
 
-
-  call calc_neighbour_boxes()
-
+  call pepc_prepare()
 
   ! Loop over all timesteps
   do while (itime < nt)
