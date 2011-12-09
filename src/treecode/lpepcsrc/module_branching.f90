@@ -77,6 +77,11 @@ contains
         implicit none
         integer :: ilevel
 
+        if (allocated(branch_level))    deallocate(branch_level)
+        if (allocated(branch_level_D1)) deallocate(branch_level_D1)
+        if (allocated(branch_level_D2)) deallocate(branch_level_D2)
+        if (allocated(speedup_potenz))  deallocate(speedup_potenz)
+
         allocate(branch_level(0:nlev))
         allocate(branch_level_D1(0:nlev))
         allocate(branch_level_D2(0:nlev))
