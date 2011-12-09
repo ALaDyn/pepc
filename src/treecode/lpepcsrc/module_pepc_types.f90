@@ -38,7 +38,7 @@ module module_pepc_types
       end type t_particle
 
       ! Data structure for shipping multiple moments of child nodes
-      integer, private, parameter :: nprops_tree_node = 5 ! Number of multipole properties to ship
+      integer, private, parameter :: nprops_tree_node_transport_package = 5 ! Number of multipole properties to ship
       type t_tree_node_transport_package
          integer*8 :: key     ! key
          integer   :: byte    ! byte code
@@ -71,7 +71,7 @@ module module_pepc_types
         use module_interaction_specific
         implicit none
         include 'mpif.h'
-        integer, parameter :: max_props = maxval([nprops_particle, nprops_tree_node])
+        integer, parameter :: max_props = maxval([nprops_particle, nprops_tree_node_transport_package])
 
         integer :: ierr
         ! address calculation
@@ -100,16 +100,16 @@ module module_pepc_types
         call MPI_TYPE_COMMIT( MPI_TYPE_particle, ierr)
 
         ! register tree_node type
-        blocklengths(1:nprops_tree_node)  = [1, 1, 1, 1, 1]
-        types(1:nprops_tree_node)         = [MPI_INTEGER8, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_TYPE_tree_node_interaction_data]
+        blocklengths(1:nprops_tree_node_transport_package)  = [1, 1, 1, 1, 1]
+        types(1:nprops_tree_node_transport_package)         = [MPI_INTEGER8, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_TYPE_tree_node_interaction_data]
         call MPI_GET_ADDRESS( dummy_tree_node,        address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node%key,    address(1), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node%byte,   address(2), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node%leaves, address(3), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node%owner,  address(4), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node%m    ,  address(5), ierr )
-        displacements(1:nprops_tree_node) = int(address(1:nprops_tree_node) - address(0))
-        call MPI_TYPE_STRUCT( nprops_tree_node, blocklengths, displacements, types, MPI_TYPE_tree_node_transport_package, ierr )
+        displacements(1:nprops_tree_node_transport_package) = int(address(1:nprops_tree_node_transport_package) - address(0))
+        call MPI_TYPE_STRUCT( nprops_tree_node_transport_package, blocklengths, displacements, types, MPI_TYPE_tree_node_transport_package, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_transport_package, ierr)
 
     end subroutine register_lpepc_mpi_types
