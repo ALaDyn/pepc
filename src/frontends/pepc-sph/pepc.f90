@@ -23,10 +23,6 @@ program pepce
   ! TODO: use omp_lib, only: ...
   use omp_lib
 
-!  use module_initialization, only: &
-!       libpepc_setup, &
-!       libpepc_finalize
-
   use module_walk, only: &
        num_walk_threads
 
@@ -36,18 +32,14 @@ program pepce
   use physvars, only: &
        trun, &
        particles, &
-       weighted, &
        nt, &
        npart_total, &
-       np_mult, &
        np_local, &
        n_cpu, &
        my_rank, &
        itime, &
        ispecial, &
        dt, &
-       db_level, &
-       curve_type, &
        idim
 
   use module_neighbour_test, only: &
@@ -67,7 +59,9 @@ program pepce
   use module_mirror_boxes, only: &
        neighbour_boxes, &
        num_neighbour_boxes, &
-       calc_neighbour_boxes
+       calc_neighbour_boxes, &
+       do_periodic, &
+       constrain_periodic
 
   use module_pepc, only: &
        pepc_initialize, &
@@ -81,6 +75,9 @@ program pepce
        openfiles, &
        closefiles
 
+  use particle_pusher, only: &
+       velocities, &
+       push
 
   implicit none
 
@@ -143,29 +140,27 @@ program pepce
      mac_select = 1 ! nn-mac
      force_law = 5  ! neighbour list force law
 
-
+     ! TODO: remove this debug output
      write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
      write(*,*) 'neigbour_boxes:', neighbour_boxes
 
 
      call pepc_traverse_tree(np_local, particles)
 
+     ! call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
-     call draw_neighbours(np_local, particles, itime)
+     ! call draw_neighbours(np_local, particles, itime)
 
-     
-     ! do i=1, np_local
-     !   write(37+my_rank,*) i, "|", particle_results(i)%neighbour_nodes(:)
-     !   flush(6)
-     ! end do
-
-     call validate_n_nearest_neighbour_list(np_local, particles, &
-          itime, num_neighbour_boxes, neighbour_boxes)
-     
      call sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes, idim)
      
      
-
+     ! Integrator
+     call velocities(1,np_local,dt)
+     call push(1,np_local,dt)  ! update positions
+     
+     
+     ! periodic systems demand periodic boundary conditions
+     if (do_periodic) call constrain_periodic(particles(1:np_local)%x(1),particles(1:np_local)%x(2),particles(1:np_local)%x(3),np_local)
 
 
      

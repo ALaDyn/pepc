@@ -1,5 +1,6 @@
 module physvars
-  use module_pepc_types
+  use module_pepc_types, only: &
+       t_particle
 
   real, parameter :: pi=3.141592654
 

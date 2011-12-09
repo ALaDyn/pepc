@@ -300,12 +300,15 @@ contains
 
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+  !
+  ! subroutine to sum the sph acceleration, not the force, becaue the tree_walk returns the field,
+  ! which, in case of gravity, equals the acceleration.
+  !
+  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine sph_sum_force(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
-!  subroutine sph_sum_forces(num_part, part_indices, nppm_ori, ex_tmp, ey_tmp, ez_tmp, thermal_constant, art_vis_alpha, art_vis_beta, temperature_change_tmp, kappa, sph_factor)
-
+    
     use module_pepc_types, only: &
          t_particle
 
@@ -339,7 +342,7 @@ contains
     real*8 :: scalar_force
     real*8 :: thermal_energy_sum
     real*8 :: thermal_energy_factor
-    real*8, dimension(3) :: dvx            !< never more than 3 dimensions
+    real*8, dimension(3) :: dv            !< never more than 3 dimensions
     real*8 :: energy_factor
     integer :: dim
 
@@ -375,7 +378,7 @@ contains
 
     
     
-    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel, rr, vr, dim, dist, dvx, &
+    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel, rr, vr, dim, dist, dv, &
     !$OMP& thermal_energy_factor, eta, sound_speed, mu, artificial_viscosity, scalar_force)
     do local_particle_index = 1, np_local
        
@@ -415,10 +418,10 @@ contains
 !                  ! TODO:       + periodic_shift_vectors( shift_list( actual_neighbour, actual_particle ) , dim ) &
 !                  - particles(local_particle_index)%x(dim)
              
-             dvx(dim) = tree_nodes(actual_node)%v(dim) - particles(local_particle_index)%data%v(dim)
+             dv(dim) = tree_nodes(actual_node)%v(dim) - particles(local_particle_index)%data%v(dim)
              
              ! vr: art_vis, scalar product of velocity difference and distance
-             vr =  vr + dist(dim) * dvx(dim)
+             vr =  vr + dist(dim) * dv(dim)
              
           end do
           

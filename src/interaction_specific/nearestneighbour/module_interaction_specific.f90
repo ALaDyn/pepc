@@ -24,10 +24,11 @@ module module_interaction_specific
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
          real*8 :: q                 !< charge
-         real*8 :: v(1:3)            !< velocity
+         real*8 :: v(3)              !< velocity (same time as x)
+         real*8 :: v_and_half(3)     !< velocity (1/2 time step after x (t+1/2), for leap frog integrator)
          real*8 :: temperature
       end type t_particle_data
-      integer, private, parameter :: nprops_particle_data = 3
+      integer, private, parameter :: nprops_particle_data = 4
 
       !> Data structure for results
       type t_particle_results
@@ -90,12 +91,13 @@ module module_interaction_specific
         type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
 
         ! register particle data type
-        blocklengths(1:nprops_particle_data)  = [1, 3, 1]
-        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        blocklengths(1:nprops_particle_data)  = [1, 3, 3, 1]
+        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_particle_data,             address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%q,           address(1), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%v,           address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%temperature, address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%v_and_half,  address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%temperature, address(4), ierr )
         displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
@@ -144,6 +146,7 @@ module module_interaction_specific
         type(t_particle_data), intent(in) :: particle
         type(t_tree_node_interaction_data), intent(out) :: multipole
 
+        ! use velocity (v) at same time step as coordinate, not v_and_half
         multipole = t_tree_node_interaction_data(particle_pos,particle%q, particle%v, particle%temperature, -13._8, -13._8 )
         ! set rho to -13 as dummy.
         ! TODO: find a better place to store rho
