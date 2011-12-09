@@ -27,6 +27,7 @@ module particle_pusher
       integer :: p
 
       ! unconstrained motion by default
+      !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(p)
       do p = p_start, p_finish
          ! for gravity, mass and charge are equal so q * e / m = e
          ! because the velocity at the same timestep as the coordinate is needed for sph ( v(t + dt) ):
@@ -34,6 +35,8 @@ module particle_pusher
          ! v(t + dt *(1 + 1/2)) for leap frog
          particles(p)%data%v_and_half = particles(p)%data%v_and_half + delta_t * particles(p)%results%sph_force
       end do
+      !$OMP END PARALLEL DO
+      
 
     end subroutine velocities
 
@@ -54,10 +57,12 @@ module particle_pusher
       real, intent(in) :: delt
       integer :: p
 
+      
+      !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(p)
       do p=ips,ipf
          particles(p)%x = particles(p)%x + particles(p)%data%v_and_half * delt
       end do
-
+      !$OMP END PARALLEL DO
 
     end subroutine push
 

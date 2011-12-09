@@ -67,7 +67,8 @@ contains
          xmin, &
          ymin, &
          boxsize, &
-         tree_nodes
+         tree_nodes, &
+         npart
     
     use physvars, only: &
          n_cpu, &
@@ -107,6 +108,7 @@ contains
     real*8 :: tmp_real8
     logical :: found
     integer :: not_found
+    integer :: all_not_found
     integer, dimension(1) :: tmp_loc
     logical :: tree_nn_debug
     logical :: draw_neighbour_test
@@ -434,11 +436,26 @@ contains
 
     end do
 
-
-    write(*,*) my_rank, 'not found: ', not_found
+    ! TODO: remove this debugging output
+    ! write(*,*) my_rank, 'not found: ', not_found
 
     deallocate( distances2, positions )
     deallocate( coord_buffer )
+
+
+    call MPI_REDUCE( not_found, all_not_found, 1, MPI_INTEGER, MPI_SUM, 0 , MPI_COMM_WORLD, ierr)
+    
+    if( my_rank == 0 ) then
+       
+       open( 55 , file='nn_validation_results.dat', status='UNKNOWN', position = 'APPEND')
+       
+       write( 55 ,* ) itime, "nn_validate found ", all_not_found, "differences in nn-lists (", (npart * num_neighbour_particles), "neighbours total, ~ ", &
+            int(all_not_found*100./(npart * num_neighbour_particles)), "% )"
+       
+       close( 55 )
+       
+    end if
+    
 
 
   end subroutine validate_n_nearest_neighbour_list

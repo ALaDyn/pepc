@@ -141,8 +141,8 @@ program pepce
      force_law = 5  ! neighbour list force law
 
      ! TODO: remove this debug output
-     write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
-     write(*,*) 'neigbour_boxes:', neighbour_boxes
+     ! write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
+     ! write(*,*) 'neigbour_boxes:', neighbour_boxes
 
 
      call pepc_traverse_tree(np_local, particles)

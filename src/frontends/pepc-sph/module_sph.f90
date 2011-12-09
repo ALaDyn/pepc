@@ -330,19 +330,20 @@ contains
 
     integer :: local_particle_index
     integer :: actual_neighbour
-    real*8 :: h
-    real*8 :: grad_kernel
+    real*8 :: h1, h2                          !< smoothing length of particle and current interaction partner
+    real*8 :: grad_kernel_1, grad_kernel_2    !< kernel gradient for particle and current interaction partner with h1 and h2
     integer*8 :: actual_node
 
     real*8 :: const
-    real*8, dimension(3) :: dist           !< never more than 3 dimensions
+    real*8, dimension(3) :: dist              !< distance vector from particle to current interaction partner
+    real*8 :: distance                        !< scalar distance from particle to current interaction partner
     real*8 :: artificial_viscosity
     real*8 :: vr, rr, mu, eta
     real*8 :: sound_speed
     real*8 :: scalar_force
     real*8 :: thermal_energy_sum
     real*8 :: thermal_energy_factor
-    real*8, dimension(3) :: dv            !< never more than 3 dimensions
+    real*8, dimension(3) :: dv                !< velocity difference between particle and current interaction partner
     real*8 :: energy_factor
     integer :: dim
 
@@ -382,7 +383,7 @@ contains
     !$OMP& thermal_energy_factor, eta, sound_speed, mu, artificial_viscosity, scalar_force)
     do local_particle_index = 1, np_local
        
-       h = particles(local_particle_index)%results%h
+       h1 = particles(local_particle_index)%results%h
        
 !write(50+me, *) "new part:", part_indices( actual_particle ), pelabel( part_indices( actual_particle ) ), tree_x( part_indices( actual_particle) ), h
        
@@ -393,36 +394,37 @@ contains
           
           actual_node = particles(local_particle_index)%results%neighbour_nodes(actual_neighbour)
           
-          call sph_grad_kernel(  sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) ), h, grad_kernel)
-          ! grad_kernel is negative, so the minus in the force turns to a plus
+          ! scalar distance
+          distance = sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) )
 
+          h2 = tree_nodes(actual_node)%h
           
-!write(50+me, *) '  ', sqrt( dist2_list(actual_neighbour, actual_particle))
+          call sph_grad_kernel( distance , h1, grad_kernel_1 )
+          call sph_grad_kernel( distance , h2, grad_kernel_2 )
+          ! grad_kernel is negative, so the minus in the force turns to a plus
+          
+          
+          !write(50+me, *) '  ', sqrt( dist2_list(actual_neighbour, actual_particle))
           
           
           ! PEPCs sum_force returns the electric field components ex, ey, ez. In velocities the accelerations are then computed as
           ! a = charge / mass * e(x|y|z). For gravity charge/mass = 1, so the fields and accelerations are equal. 
           ! Because of this the accelerations caused by sph_force can be added to the fields.
           
+          ! distance vector
+          dist = particles(local_particle_index)%results%dist_vector(:, actual_neighbour)
 
           ! rr: art_vis, distance squared
           rr =  particles(local_particle_index)%results%dist2(actual_neighbour)
           
           vr = 0._8
-          
+
           ! for all dimension
           do dim = 1, idim
-             dist(1:3) = particles(local_particle_index)%results%dist_vector(1:3, actual_neighbour)
-
-!             dist(dim) = tree_nodes(actual_node)%coc(dim) &
-!                  ! TODO:       + periodic_shift_vectors( shift_list( actual_neighbour, actual_particle ) , dim ) &
-!                  - particles(local_particle_index)%x(dim)
-             
              dv(dim) = tree_nodes(actual_node)%v(dim) - particles(local_particle_index)%data%v(dim)
              
              ! vr: art_vis, scalar product of velocity difference and distance
              vr =  vr + dist(dim) * dv(dim)
-             
           end do
           
           thermal_energy_factor = vr
@@ -452,27 +454,28 @@ contains
                const * tree_nodes(actual_node)%temperature / tree_nodes(actual_node)%rho + &
                const * particles(local_particle_index)%data%temperature / particles(local_particle_index)%results%rho + &
                artificial_viscosity &
-               ) * grad_kernel
-          ! \todo ab: use both kernels here (i, j)
+               ) * ( grad_kernel_1 + grad_kernel_2 ) / 2._8
           
 
           particles(local_particle_index)%results%sph_force = particles(local_particle_index)%results%sph_force + scalar_force * dist
 
 
-
+          
 !write(50+me, *) scalar_force, vr, grad_kernel, xdist, dvx, artificial_viscosity
 
           thermal_energy_sum = thermal_energy_sum + vr * scalar_force
           
        end do ! end of loop over neighbours
        
-
+       
        particles(local_particle_index)%results%temperature_change = energy_factor * thermal_energy_sum
        ! TODO: add art_visc term to temp_change
        
        !write(50+me, *) temperature_change_tmp( part_indices( actual_particle ) )
        
     end do
+    !$OMP END PARALLEL DO
+      
     !close(50)
     
   end subroutine sph_sum_force
