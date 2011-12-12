@@ -4,7 +4,6 @@
 
  ncpu_merge = 1
  debug_level = 1
- debug_tree = 1
  mac=0
 
 ! Force law 2D
@@ -101,7 +100,7 @@
 
 &libpepc
       np_mult=-20
-      db_level = 0
+      debug_level = 1
       
       ! Choose sorting routine and load balancing
   ! 0: no load balancing, 1: load balancing
@@ -110,6 +109,10 @@
       curve_type=0  ! Morton curve
       /
 
-&walk_para
+&calc_force_coulomb
+
+/
+
+&walk_para_pthreads
        num_walk_threads = 1
       /
