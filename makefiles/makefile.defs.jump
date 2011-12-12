@@ -1,3 +1,7 @@
+HELP = "\
+\# Makefile for JuMP\
+"
+
 MACH     = IBM-SP6-JuMP
 
 RANLIB   = ranlib

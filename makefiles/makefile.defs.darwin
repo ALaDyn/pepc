@@ -1,3 +1,7 @@
+HELP = "\
+\# Makefile for darwin\
+"
+
 MACH     = darwin
 
 RANLIB   = ranlib -c

@@ -14,8 +14,26 @@ help:
 	@echo -e "## target architecture: $(MACH)"
 	@echo -e "## code version:" `$(SVNVERSION)`
 	@echo -e $(HELP)
+	
+readme:
+	cat README | less
+	
+MAKEFILEDEFSINFO = "\n\n !!! To create be able to build pepc, you first have to create a file called makefile.defs\n\
+inside the pepc root directory. The makefiles directory contains a number of \n\
+samples, which you usually can use via\n\n\
+ >  ln -sf makefiles/makefile.defs.extension ./makefile.defs\n\n\
+After creating this link to a certain file, a call of\n\n\
+ >  make help\n\n\
+might give you further information. Additionally, consider calling\n\n\
+ >  make readme\n\n\
+for a detailed description of what has to be done for getting pepc running.\n\
+"
 
-all: pepce pepcmini pepcmw pepcs pepcb pepcnn pepcv
+makefile.defs:
+	@echo -e $(MAKEFILEDEFSINFO)
+	@exit 1
+
+all: pepce pepcmini pepcmw pepcs pepcb pepcnn pepcv pepcsph
 
 
 $(LIBDIR)libpthreads.a:
@@ -98,3 +116,4 @@ dist: clean-dist
 	rm -rf ./benchmark
 	@echo "--- before publishing do not forget to update revision number in filename ---"
 
+.PHONY: readme

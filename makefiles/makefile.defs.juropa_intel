@@ -1,4 +1,8 @@
-MACH     = JUROPA-JSC
+HELP = "\
+\# Makefile for JuRoPa with Intel Compiler\
+"
+
+MACH     = JUROPA_intel
 
 RANLIB   = ranlib
 

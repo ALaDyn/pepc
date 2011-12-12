@@ -1,7 +1,10 @@
-
-# makefile for the ubuntu server in MPIfR
-# used by abreslau
-# replaced gmake with make and specified special path for the mpich includes
+HELP = "\
+\# Makefile for Ubuntu server in MPIfR\n\
+\# used by abreslau\n\
+\# replaced gmake with make and specified special path for the mpich includes\n\n\
+\# Info: some pepc extensions (e.g. vtk-file output) are not available\n\
+\# since this old compiler version does not support object oriented fFortran features\
+"
 
 # set OPENMPFLAG to -fopenmp to compile with openmp (with gcc) and to empty to compile without openmp
 OPENMPFLAG = -fopenmp

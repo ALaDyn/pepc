@@ -1,13 +1,15 @@
-# Makefile for gcc 4.7 (self-compiled via the following commands)
-#
-# svn checkout svn://gcc.gnu.org/svn/gcc/trunk workspace/gcc
-# cd workspace/gcc
-# ./configure --enable-bootstrap --prefix=/home/zam/m.winkel/programs/gcc/ --enable-gold=yes --enable-lto --disable-checking --enable-languages=c,c++,fortran --enable-multiarch --enable-shared --enable-threads=posix --with-gmp=/usr/local/lib --with-mpc=/home/zam/m.winkel/programs/mpc --with-mpfr=/usr/lib --without-included-gettext --with-system-zlib --with-tune=generic
-# make -j 6
-# make install
-# export PATH=${HOME}/programs/gcc/bin:${PATH}
-# export I_MPI_CC=gcc
-# export I_MPI_F90=gfortran
+HELP = "\
+\# Makefile for gcc 4.7 (self-compiled via the following commands)\n\
+\# \n\
+\# svn checkout svn://gcc.gnu.org/svn/gcc/trunk workspace/gcc\n\
+\# cd workspace/gcc\n\
+\# ./configure --enable-bootstrap --prefix=/home/zam/m.winkel/programs/gcc/ --enable-gold=yes --enable-lto --disable-checking --enable-languages=c,c++,fortran --enable-multiarch --enable-shared --enable-threads=posix --with-gmp=/usr/local/lib --with-mpc=/home/zam/m.winkel/programs/mpc --with-mpfr=/usr/lib --without-included-gettext --with-system-zlib --with-tune=generic\n\
+\# make -j 6\n\
+\# make install\n\
+\# export PATH=${HOME}/programs/gcc/bin:${PATH}\n\
+\# export I_MPI_CC=gcc\n\
+\# export I_MPI_F90=gfortran\n\
+"
 
 
 MACH     = gcc-4.7

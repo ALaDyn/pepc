@@ -1,4 +1,8 @@
-# module load sionlib
+HELP = "\
+\# Makefile for JuGene\n\
+\# \n\
+\# for sionlib support in pepcb, call\n\nmodule load sionlib\n\n\# before compiling and running\
+"
 
 MACH     = IBM-BGP-jugene
 

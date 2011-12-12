@@ -8,6 +8,7 @@ MOD_UNLOAD = "intel parastation"
 MOD_LOAD   = "parastation/mpi2-gcc-mt-5.0.26-1 GCC"
 
 HELP = "\
+\# Makefile for JuRoPa using gcc and SMPSs\n\
 \# recommended module commands\n\
 module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 "
