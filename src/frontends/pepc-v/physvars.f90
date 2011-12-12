@@ -68,9 +68,9 @@ contains
         logical :: read_param_file
 
         namelist /pepcv/ n, eps, ispecial, dt, ts, te, &
-        h, m_h, nu, rem_freq, thresh, &
-        rmax, r_torus, nc, nphi, g, torus_offset, n_in, &
-        dump_time, cp_time, input_itime
+                         h, m_h, nu, rem_freq, thresh, &
+                         rmax, r_torus, nc, nphi, g, torus_offset, n_in, &
+                         dump_time, cp_time, input_itime
 
 
         !  Default input set
@@ -132,6 +132,7 @@ contains
                 h = sqrt(4.0D00*pi/n)
                 m_h = h
                 eps = g*h
+                kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(99)                          ! Setup MPI checkpoint readin
 

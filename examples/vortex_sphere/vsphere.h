@@ -5,8 +5,8 @@
  g = 4.
  nu = 0.
 
- rem_freq = 0
- thresh = 0.
+ rem_freq = 1
+ thresh = 0.0D-08
 
  n_in = 1000
 

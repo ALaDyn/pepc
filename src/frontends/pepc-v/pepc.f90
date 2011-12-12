@@ -75,6 +75,8 @@ program pepcv
 
      end do
 
+     call remeshing(itime)
+
      ! Some linear diagnostics
      call linear_diagnostics(itime,trun)
 
