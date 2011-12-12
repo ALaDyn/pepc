@@ -91,7 +91,7 @@
 &libpepc
 
   np_mult=-20
-  db_level = 0
+  debug_level = 1
 
   ! 0: no load balacing, 1: load 
   weighted = 1                    
@@ -101,6 +101,10 @@
 
  /
 
-&walk_para
-  num_walk_threads =2
+&calc_force_coulomb
+
+/
+
+&walk_para_pthreads
+  num_walk_threads = 2
  /
