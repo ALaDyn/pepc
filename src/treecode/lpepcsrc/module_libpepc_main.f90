@@ -39,7 +39,7 @@ module module_libpepc_main
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-contains
+    contains
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -81,7 +81,7 @@ contains
 
         ! workload per particle must be nonzero
         do i=1,np_local
-          particles(i)%work = max(particles(i)%work, 1.)
+          particles(i)%work = max(particles(i)%work, 1._8)
         end do
 
         call timer_start(t_fields_tree)
