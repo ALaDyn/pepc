@@ -42,7 +42,7 @@ module module_pepc
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    logical :: pepcs_initializes_mpi !< is set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
+    logical :: pepc_initializes_mpi !< is set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -90,9 +90,9 @@ module module_pepc
 
       call pepc_status('SETUP')
 
-      pepcs_initializes_mpi = init_mpi
+      pepc_initializes_mpi = init_mpi
 
-      if (pepcs_initializes_mpi) then
+      if (pepc_initializes_mpi) then
         ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
         call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
       endif
@@ -114,7 +114,7 @@ module module_pepc
         write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."//)') &
                        SVNVERSION, frontendname, n_cpu
 
-        if ((pepcs_initializes_mpi) .and. (provided < MPI_THREAD_LEVEL)) then
+        if ((pepc_initializes_mpi) .and. (provided < MPI_THREAD_LEVEL)) then
           !inform the user about possible issues concerning MPI thread safety
           write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
                          MPI_THREAD_LEVEL, provided
@@ -204,7 +204,7 @@ module module_pepc
       ! deregister mpi types
       call free_lpepc_mpi_types()
 
-      if (pepcs_initializes_mpi) call MPI_FINALIZE(ierr)
+      if (pepc_initializes_mpi) call MPI_FINALIZE(ierr)
     end subroutine
 
 

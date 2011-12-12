@@ -26,10 +26,6 @@ module physvars
   real     :: g       ! # vorticity/smoothing amplifier (ispecial=1,2,3)
   real, dimension(3) :: torus_offset  ! shifts coords of both tori, one with +, one with - (ispecial=1,2)
 
- ! tree stuff
-  real :: theta       ! Clumping parameter
-  integer :: mac      ! MAC (default=BH)
-
  ! Variables needing 'copy' for tree routines
   integer :: my_rank       ! Rank of current task
   integer :: n_cpu         ! # cpus used by program
@@ -70,7 +66,7 @@ contains
         character(255) :: parameterfile
         logical :: read_param_file
 
-        namelist /pepcv/ n, mac, theta, eps, ispecial, dt, ts, te, &
+        namelist /pepcv/ n, eps, ispecial, dt, ts, te, &
         h, m_h, nu, rem_freq, thresh, &
         rmax, r_torus, nc, nphi, g, torus_offset, n_in, &
         dump_time, cp_time, input_itime
@@ -81,8 +77,6 @@ contains
 
         ! physics stuff
         force_const  = 0.25D00/pi  ! 3D prefactor for u and af
-        mac          = 0
-        theta        = 0.6
         eps          = 0.01      ! this is my smoothing radius, will adapt it in special_start
         h            = 0.
         m_h          = 0.

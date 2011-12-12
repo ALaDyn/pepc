@@ -40,10 +40,7 @@ program pepcv
   call special_start()
 
   ! initialize calc force params
-  theta2      = theta**2
-  mac_select  = mac
   sig2        = eps**2
-  force_law   = 2
 
   call pepc_prepare()
 

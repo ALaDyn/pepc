@@ -2,9 +2,6 @@
 
  ispecial = 3
 
- mac = 0
- theta = 0.0
-
  g = 4.
  nu = 0.
 
@@ -25,7 +22,6 @@
   force_law  = 2
   mac_select = 0
   theta2     = 0.36
-  sig2       = 0.0
 /
 
 &libpepc
@@ -36,5 +32,10 @@
  num_walk_threads         = 2
  max_particles_per_thread = 2000
  defer_list_length_factor = 8
+/
+
+&calc_force_vortex
+
+  
 /
 
