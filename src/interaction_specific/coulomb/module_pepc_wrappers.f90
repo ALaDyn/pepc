@@ -143,7 +143,7 @@ module module_pepc_wrappers
                                        EMPTY_PARTICLE_RESULTS )
       end do
 
-      call pepc_traverse_tree(ngp, particles, .true.)
+      call pepc_traverse_tree(ngp, grid_particles, .true.)
 
       do i=1,ngp
         p_ex(i)  = force_const*grid_particles(i)%results%e(1)
