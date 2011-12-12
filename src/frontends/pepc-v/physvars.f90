@@ -55,6 +55,7 @@ contains
     subroutine pepc_setup(itime, trun)
 
         use module_pepc
+        use module_calc_force, only : sig2
         implicit none
         include 'mpif.h'
 
@@ -77,7 +78,7 @@ contains
 
         ! physics stuff
         force_const  = 0.25D00/pi  ! 3D prefactor for u and af
-        eps          = 0.01      ! this is my smoothing radius, will adapt it in special_start
+        eps          = 0.01      ! this is my smoothing radius, will adapt it in below
         h            = 0.
         m_h          = 0.
         rem_freq     = 0
@@ -129,6 +130,7 @@ contains
                 n = n_in
                 np = ceiling(1.0*n/n_cpu)
                 h = sqrt(4.0D00*pi/n)
+                m_h = h
                 eps = g*h
 
             case(99)                          ! Setup MPI checkpoint readin
@@ -144,6 +146,9 @@ contains
                 stop
 
         end select init
+
+        ! initialize calc force params
+        sig2 = eps**2
 
         ! Setup time variables
         trun = ts

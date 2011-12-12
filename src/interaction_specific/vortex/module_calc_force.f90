@@ -178,6 +178,7 @@ module module_calc_force
 
           select case (force_law)
             case (2)  !  use 2nd order algebraic kernel, condensed
+
                 call calc_2nd_algebraic_condensed(particle, inode, delta, dist2, u, af)
 
             case (3)  !  TODO: use 2nd order algebraic kernel, decomposed
@@ -241,7 +242,7 @@ module module_calc_force
 
             integer :: i1, i2, i3 !< helper variables for the tensor structures
 
-            real*8 :: dx, dy, dz, sig2 !< temp variables for distance and smoothing radius
+            real*8 :: dx, dy, dz !< temp variables for distance
             real*8 :: Gc25,Gc35,Gc45,Gc55,MPa1,DPa1,DPa2,QPa1,QPa2 !< prefactors for the multipole expansion
             real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 

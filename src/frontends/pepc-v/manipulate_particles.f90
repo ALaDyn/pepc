@@ -348,9 +348,6 @@ contains
 
         case(3)  ! Sphere setup
 
-            h = sqrt(4.0*pi/n)
-            m_h = h
-
             a = nine/five*sqrt(dble(n-1)/dble(n))
             j = 0
             do i = 1,n

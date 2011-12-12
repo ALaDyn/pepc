@@ -16,7 +16,6 @@ program pepcv
   use module_timings
   use files
   use diagnostics
-  use module_calc_force, only : theta2, sig2, mac_select, force_law
   implicit none
 
   integer :: ierr, i
@@ -39,9 +38,6 @@ program pepcv
   ! Set up particles
   call special_start()
 
-  ! initialize calc force params
-  sig2        = eps**2
-
   call pepc_prepare()
 
   ! Loop over all timesteps
@@ -60,6 +56,7 @@ program pepcv
         call pepc_grow_and_traverse(np, n, vortex_particles, itime, .true., .false., .true.)
 
         ! TODO: check, if this is correct (moved force_const out of calc_force)
+
         do i=1,np
           vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
           vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
