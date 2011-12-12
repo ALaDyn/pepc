@@ -53,7 +53,11 @@ module physvars
 
 
 
-
+   ! I/O stuff
+   integer :: dump_time, cp_time   ! When to dump, when to do a checkpoint (read-in)
+   integer :: input_itime          ! Which step shpuld we read in?
+   character(50) :: mpifile        ! MPI-IO-file
+   
 
 
 

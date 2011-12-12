@@ -73,11 +73,15 @@ program pepce
 
   use files, only: &
        openfiles, &
-       closefiles
+       closefiles, &
+       write_particles
 
   use particle_pusher, only: &
        velocities, &
        push
+
+!  use module_particle_setup, only: &
+!       particle_setup
 
   implicit none
 
@@ -110,6 +114,8 @@ program pepce
   !$OMP END PARALLEL
 
   ! Set up particles
+!  call particle_setup(ispecial)
+
   call special_start(ispecial)
 
   ! initialize calc force params
@@ -152,6 +158,13 @@ program pepce
      ! call draw_neighbours(np_local, particles, itime)
 
      call sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes, idim)
+
+
+
+     ! periodic particle dump
+     call write_particles(itime, trun)
+
+
      
      
      ! Integrator

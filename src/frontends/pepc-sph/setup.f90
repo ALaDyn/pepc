@@ -32,7 +32,9 @@ subroutine pepc_setup()
        ispecial, &
        idim, &
        eps, &
-       dt
+       dt, &
+       dump_time, &
+       cp_time
 
   use module_mirror_boxes, only: &
        t_lattice_1, &
@@ -55,7 +57,8 @@ subroutine pepc_setup()
   namelist /pepcsph/ ne, ni, &
        mac, theta, q_factor, eps, ispecial, &
        r_sphere, idim, nt, dt, &
-       t_lattice_1, t_lattice_2, t_lattice_3, periodicity
+       t_lattice_1, t_lattice_2, t_lattice_3, periodicity, &
+       dump_time, cp_time
 
 
   !  Default input set

@@ -379,8 +379,8 @@ contains
 
     
     
-    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel, rr, vr, dim, dist, dv, &
-    !$OMP& thermal_energy_factor, eta, sound_speed, mu, artificial_viscosity, scalar_force)
+    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h1, h2, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel_1, grad_kernel_2, &
+    !$OMP& rr, vr, dim, dist, dv, thermal_energy_factor, eta, sound_speed, mu, artificial_viscosity, scalar_force, distance)
     do local_particle_index = 1, np_local
        
        h1 = particles(local_particle_index)%results%h
@@ -400,7 +400,7 @@ contains
           h2 = tree_nodes(actual_node)%h
           
           call sph_grad_kernel( distance , h1, grad_kernel_1 )
-          call sph_grad_kernel( distance , h2, grad_kernel_2 )
+!          call sph_grad_kernel( distance , h2, grad_kernel_2 )
           ! grad_kernel is negative, so the minus in the force turns to a plus
           
           
@@ -431,13 +431,13 @@ contains
           
           
           ! TODO: make eta parameter???
-          eta = 0.1_8 * h                                                ! art_vis
+          eta = 0.1_8 * h1                                                ! art_vis
           sound_speed = ( sqrt( const * particles(local_particle_index)%data%temperature )  &
                + sqrt( const * tree_nodes(actual_node)%temperature ) )/ 2. ! mean sound_speed 
           
           if ( use_artificial_viscosity .and. (vr < 0._8) ) then
              
-             mu = ( h * vr ) / ( rr + eta * eta )                        ! art_vis
+             mu = ( h1 * vr ) / ( rr + eta * eta )                        ! art_vis
              
              artificial_viscosity = ( - art_vis_alpha * sound_speed * mu + art_vis_beta * mu * mu ) / &
                   ( ( tree_nodes(actual_node)%temperature +  particles(local_particle_index)%results%rho )/2. )
@@ -454,7 +454,8 @@ contains
                const * tree_nodes(actual_node)%temperature / tree_nodes(actual_node)%rho + &
                const * particles(local_particle_index)%data%temperature / particles(local_particle_index)%results%rho + &
                artificial_viscosity &
-               ) * ( grad_kernel_1 + grad_kernel_2 ) / 2._8
+               ) * grad_kernel_1
+! + grad_kernel_2 ) / 2._8
           
 
           particles(local_particle_index)%results%sph_force = particles(local_particle_index)%results%sph_force + scalar_force * dist
