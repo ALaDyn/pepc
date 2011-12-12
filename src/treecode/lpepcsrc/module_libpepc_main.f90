@@ -202,7 +202,7 @@ module module_libpepc_main
 
         call timer_start(t_fields_passes)
 
-        if (clearresults) call particleresults_clear(particles, npp)
+        if (clearresults) call particleresults_clear(particles, nparticles)
 
 
         do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
