@@ -1,0 +1,15 @@
+FILES_S   = pepc-s.f90 main.f90 fcs_fconfig.h
+FILES_S_U = 
+
+SRC        += $(FILES_S)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-s/, $(FILES_S))
+
+SRC        += $(FILES_S_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_S_U))
+
+LDLIBS += libsl.a
+
+include $(LPEPCDIR)/makefile.include
+include $(PTHREADSDIR)/makefile.include
+include $(INTSPECDIR)/coulomb/makefile.include
+

@@ -1,0 +1,4 @@
+FILES_INT   = module_calc_force.f90 module_interaction_specific.f90 \
+	      module_fmm_framework.f90  module_pepc_wrappers.f90
+SRC        += $(FILES_INT)
+SRC_COPY   += $(addprefix ./src/interaction_specific/coulomb/, $(FILES_INT))

@@ -10,10 +10,8 @@
 # only on top level
 ifeq ($(mod),)
 
-all: $(MYROOT)$(LIBDIR)libsl.a
-
-$(MYROOT)$(LIBDIR)libsl.a: sl_all
-	ln -sf ../$(SLPEPCDIR)$(LIBDIR)libsl.a $(MYROOT)$(LIBDIR)libsl.a
+all: libsl.a
+	@echo "==== building the sorting library" 
 
 # initial config
 MAKEFILE_IN:=Makefile.pepc

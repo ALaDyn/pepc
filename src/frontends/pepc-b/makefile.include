@@ -1,0 +1,28 @@
+FILES_B  =  module_physvars.f90 \
+            module_particle_props.f90 \
+            module_utilities.f90 \
+            module_velocity_setup.f90 \
+            module_field_grid.f90 \
+            module_laser.f90 \
+            module_io.f90 \
+            module_geometry.f90 \
+            module_integration_scheme.f90 \
+            module_diagnostics.f90 \
+            module_particle_beam.f90 \
+            module_particle_boundaries.f90 \
+            setup_arrays.f90 setup.f90 configure.f90 integrator.f90 diagnostics.f90 pepcb.f90 
+#           module_xnbody.f90
+
+SRC        += $(FILES_B)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-b/, $(FILES_B))
+
+FILES_B_U   = module_gle.f90
+SRC        += $(FILES_B_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_B_U))
+
+LDLIBS += libsl.a
+
+include $(LPEPCDIR)/makefile.include
+include $(PTHREADSDIR)/makefile.include
+include $(INTSPECDIR)/coulomb/makefile.include
+

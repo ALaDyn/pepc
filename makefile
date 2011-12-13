@@ -1,23 +1,81 @@
 #
-#  Makefile for pepc
+#  top-level makefile for pepc
 #
 
+include makefiles/makefile.paths
 include makefile.defs
 
-export BACKEND
+ROOTDIR    = $(shell "pwd")
+SVNVERSION = $(shell "svnversion")
 
-default: pepce
-
-benchmark: pepce
-
-help:
-	@echo -e "## target architecture: $(MACH)"
-	@echo -e "## code version:" `$(SVNVERSION)`
+help: info
 	@echo -e $(HELP)
-	
+
+info:
+	@echo -e "======== make info"
+	@echo -e "==== target architecture: $(MACH)"
+	@echo -e "==== code version: $(SVNVERSION)"
+	@echo -e "==== pepc directory: $(ROOTDIR)"
+	@echo -e ""
+
+buildenv:
+	@echo -e "======== build environment"
+	@echo -e "== CPP      : $(CPP)"
+	@echo -e "== CPPFLAGS : $(CPPFLAGS)"
+	@echo -e "== FCPRE    : $(FCPRE)"
+	@echo -e "== FC       : $(FC)"
+	@echo -e "== FCFLAGS  : $(FCFLAGS)"
+	@echo -e "== CCPRE    : $(CCPRE)"
+	@echo -e "== CC       : $(CC)"
+	@echo -e "== CCFLAGS  : $(CCFLAGS)"
+	@echo -e "== LDPRE    : $(LDPRE)"
+	@echo -e "== LD       : $(LD)"
+	@echo -e "== LDFLAGS  : $(LDFLAGS)"
+	@echo -e ""
+
 readme:
 	cat README | less
-	
+
+libsl: $(LIBDIR)
+	@echo -e "==== building libsl"
+	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
+	@$(MAKE) -C $(SLPEPCDIR) $(MFLAGS)
+	@cp -p $(SLPEPCDIR)/libsl.a $(LIBDIR)/libsl.a
+
+clean:
+	@echo "==== cleaning build and bin"
+	@$(RM) makefile.envs
+	@$(RM) $(BUILDDIR) $(BINDIR)
+	@echo -e ""
+
+cleanlib:
+	@echo "==== cleaning libraries"
+	@$(RM) $(LIBDIR)
+	@cd src/treecode/sl_pepc && $(MAKE) $(MAKEFLAGS) clean 
+	@echo -e ""
+
+cleanall: clean cleanlib
+	@echo "==== all cleaned"
+
+pepc-%: pepclogo info buildenv
+	@echo "======== start building frontend ** $@ **"
+	@echo "==== date: " $(shell "date")
+	@echo "==== make target: " $@
+	@$(RM) makefile.envs
+	@echo "FRONTEND=$@" >> makefile.envs
+	@echo "ROOTDIR=$(ROOTDIR)" >> makefile.envs
+	@echo "SVNVERSION=$(SVNVERSION)" >> makefile.envs
+	@echo "WORKDIR=$(BUILDDIR)/$(MACH)/$@" >> makefile.envs
+	@$(MAKE) $(MFLAGS) -f $(MAKEDIR)/makefile.prepare
+	@cp -p $(BUILDDIR)/$(MACH)/$@/$@ $(BINDIR)
+	@echo -e ""
+	@echo "======== successfully build frontend ** $@ **"
+	@echo -e ""
+
+$(LIBDIR):
+	@mkdir $(LIBDIR)
+
+
 MAKEFILEDEFSINFO = "\n\n !!! To create be able to build pepc, you first have to create a file called makefile.defs\n\
 inside the pepc root directory. The makefiles directory contains a number of \n\
 samples, which you usually can use via\n\n\
@@ -33,87 +91,11 @@ makefile.defs:
 	@echo -e $(MAKEFILEDEFSINFO)
 	@exit 1
 
-all: pepce pepcmini pepcmw pepcs pepcb pepcnn pepcv pepcsph
-
-
-$(LIBDIR)libpthreads.a:
-	@echo "============  Making PThreads Fortan wrapper library  ============="
-	cd $(PTHREADSDIR) && $(MAKE) $(MFLAGS)
-
-libsl:
-	@echo "============  Making PEPC Sorting library  ============="
-	cd $(SLPEPCDIR) && $(MAKE) $(MFLAGS)
-
-libpepc.%: $(LIBDIR)libpthreads.a libsl
-	$(eval BACKEND:=$*)
-	@echo "============  Making PEPC Library - $(BACKEND) version ============="
-	cd $(LPEPCDIR) && $(MAKE) $(MFLAGS)
-
-pepcmw: libpepc.coulomb
-	@echo "============  Making Frontend PEPC-MW (Mathias Winkel version)  ============="
-	cd $(FRONTENDDIR)pepc-mw && $(MAKE) $(MFLAGS)
-
-pepcb: libpepc.coulomb
-	@echo "============  Making Frontend PEPC-B (Laser/beam-plasma with magnetic fields)  ============="
-	cd $(FRONTENDDIR)pepc-b && $(MAKE) $(MFLAGS)
-
-pepcmini: libpepc.coulomb
-	@echo "============  Making Frontend PEPC-MINI (minial version)  ============="
-	cd $(FRONTENDDIR)pepc-mini && $(MAKE) $(MFLAGS)
-
-pepcnn: libpepc.nearestneighbour
-	@echo "============  Making Frontend PEPC-NN (nearest neighbour search)  ============="
-	cd $(FRONTENDDIR)pepc-nn && $(MAKE) $(MFLAGS)
-
-pepcsph: libpepc.nearestneighbour
-	@echo "============  Making Frontend PEPC-SPH (next neighbour + SPH)  ============="
-	cd $(FRONTENDDIR)pepc-sph && $(MAKE) $(MFLAGS)
-
-pepce: libpepc.coulomb
-	@echo "============  Making Frontend PEPC-E (Benchmark version)  ============="
-	cd $(FRONTENDDIR)pepc-e && $(MAKE) $(MFLAGS)
-
-pepcs: libpepc.coulomb
-	@echo "============  Making Frontend PEPC-S (ScaFaCoS-library version + minimal frontend)  ============="
-	cd $(FRONTENDDIR)pepc-s && $(MAKE) $(MFLAGS)
-
-pepcv: libpepc.vortex
-	@echo "============  Making Frontend PEPC-V (Vortex version)  ============="
-	cd $(FRONTENDDIR)pepc-v && $(MAKE) $(MFLAGS) 
-
-clean: clean-doc
-	cd $(SLPEPCDIR)   && $(MAKE) $(MFLAGS) clean
-	cd $(PTHREADSDIR) && $(MAKE) $(MFLAGS) clean
-	cd $(LPEPCDIR)    && $(MAKE) $(MFLAGS) clean
-	cd $(FRONTENDDIR)pepc-s     && $(MAKE) $(MFLAGS) clean
-	cd $(FRONTENDDIR)pepc-e     && $(MAKE) $(MFLAGS) clean
-	cd $(FRONTENDDIR)pepc-b     && $(MAKE) $(MFLAGS) clean
-	cd $(FRONTENDDIR)pepc-mw    && $(MAKE) $(MFLAGS) clean
-	cd $(FRONTENDDIR)pepc-mini  && $(MAKE) $(MFLAGS) clean
-	cd $(FRONTENDDIR)pepc-nn    && $(MAKE) $(MFLAGS) clean
-	cd $(FRONTENDDIR)pepc-sph   && $(MAKE) $(MFLAGS) clean
-	cd $(FRONTENDDIR)pepc-v     && $(MAKE) $(MFLAGS) clean
-
-clean-doc:
-	rm -rf ./doc
-
-doc: clean-doc
-	mkdir ./doc
-	doxygen ./tools/Doxyfile
-	@echo "--- you can view the source code documentation by opening ./doc/index.html with your favourite web browser ---"
-
-clean-dist:
-	rm -rf ./benchmark
-	rm -f benchmark-VER.tgz
-
-dist: clean-dist	
-	@echo "--- exporting svn directory structure ---"
-	svn export ./ ./benchmark
-	rm -rf ./benchmark/jube
-	@echo "--- creating tarball ---"
-	tar -czvf ./benchmark-VER.tgz ./benchmark/
-	@echo "--- removing temporary files ---"
-	rm -rf ./benchmark
-	@echo "--- before publishing do not forget to update revision number in filename ---"
-
-.PHONY: readme
+pepclogo:
+	@echo -e "    ____    ____    ____    ____                                       "
+	@echo -e "   /\  _\`\ /\  _\`\ /\  _\`\ /\  _\`\                       "
+	@echo -e "   \ \ \L\ \ \ \L\_\ \ \L\ \ \ \/\_\      The Pretty Efficient      "
+	@echo -e "    \ \ ,__/\ \  _\L\ \ ,__/\ \ \/_/_           Parallel Coulomb Solver "
+	@echo -e "     \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \                                 "
+	@echo -e "      \ \_\   \ \____/\ \_\   \ \____/           p.gibbon@fz-juelich.de"
+	@echo -e "       \/_/    \/___/  \/_/    \/___/                                  "

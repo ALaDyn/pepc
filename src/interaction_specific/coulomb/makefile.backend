@@ -1,7 +1,0 @@
-# this file is intended for including additional backend-specific
-# source files or modifying the general lpepcsrc-makefile in 
-# some other way
-
-# it can be left empty if there is no demand for manipulating
-
-PEPCBACKEND.f90 += module_fmm_framework.f90 module_pepc_wrappers.f90

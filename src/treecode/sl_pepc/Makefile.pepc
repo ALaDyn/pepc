@@ -1,5 +1,3 @@
-MYROOT = ../../../
-
 # use Makefile.in if it exists, makefile.defs otherwise
 ifneq ($(wildcard Makefile.in),)
 
@@ -11,7 +9,7 @@ endif
 
 else
 
-include $(MYROOT)makefile.defs
+include makefile.defs
 
 MPICC:=$(CC)
 MPIFC:=$(FC)

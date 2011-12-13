@@ -1,0 +1,4 @@
+FILES_INT   = module_calc_force.f90 module_interaction_specific.f90 
+
+SRC        += $(FILES_INT)
+SRC_COPY   += $(addprefix $(INTSPECDIR)/nearestneighbour/, $(FILES_INT))

@@ -1,0 +1,42 @@
+#
+#  prepare-level makefile for pepc
+#
+
+include makefile.envs
+include makefiles/makefile.paths
+include makefile.defs
+
+include $(FRONTENDDIR)/$(FRONTEND)/makefile.include
+
+prepare: $(WORKDIR) $(BINDIR) clearlog $(SRC)
+	@echo "==== building frontend :" $(FRONTEND)
+	@echo "==== working directory :" $(WORKDIR)
+	@echo "LDLIBS=$(LDLIBS)" >> makefile.envs
+	@echo "SRC=$(SRC)" >> makefile.envs
+	@cp makefile.defs makefile.envs makefiles/makefile.paths makefiles/makefile.build $(WORKDIR)
+	@cp $(addprefix $(LIBDIR)/, $(LDLIBS)) $(WORKDIR)
+	@echo -e ""
+	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.build
+
+%.c: 
+	@echo "== preparing C file, origin   : $@, $(filter %/$@, $(SRC_COPY))" 
+	@cp -p $(filter %/$@, $(SRC_COPY)) $(WORKDIR)
+
+%.h: 
+	@echo "== preparing H file, origin   : $@, $(filter %/$@, $(SRC_COPY))" 
+	@cp -p $(filter %/$@, $(SRC_COPY)) $(WORKDIR)
+
+%.f90: 
+	@echo "== preparing F90 file, origin : $@, $(filter %/$@, $(SRC_COPY))" 
+	@cp -p $(filter %/$@, $(SRC_COPY)) $(WORKDIR)
+
+$(WORKDIR): 
+	@echo "==== setup build directory"
+	@mkdir -p $@
+
+$(BINDIR):
+	@echo "==== setup bin directory"
+	@mkdir -p $@
+
+clearlog:
+	@$(RM) $(WORKDIR)/compile.log

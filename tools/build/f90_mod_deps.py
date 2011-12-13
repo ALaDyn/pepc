@@ -205,7 +205,8 @@ def main():
             objectfile = opts.o_prefix+os.path.basename(filebase+".o")
             for cdeps in deps:
                 if modlist.get(cdeps, opts.o_prefix+cdeps) != objectfile:
-                    new_deps.append(modlist.get(cdeps, opts.o_prefix+cdeps))
+                    if cdeps in modlist:
+                        new_deps.append(modlist.get(cdeps, opts.o_prefix+cdeps))
 	    write_deps(outf, filename, new_deps, opts)
 
 	if opts.verbose:
