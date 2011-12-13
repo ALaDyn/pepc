@@ -145,7 +145,8 @@ contains
          particles, &
          n_cpu, &
          my_rank, &
-         nt
+         nt, &
+         dump_time
 
     use module_interaction_specific
 
@@ -164,7 +165,7 @@ contains
 
     if (step .eq. 0) then
        vtk_step = VTK_STEP_FIRST
-    else if (step .eq. nt) then
+    else if (step .eq. (nt - mod(nt, dump_time)  ) ) then ! last call of write_particles_to_vtk according to dump_time
        vtk_step = VTK_STEP_LAST
     else
        vtk_step = VTK_STEP_NORMAL

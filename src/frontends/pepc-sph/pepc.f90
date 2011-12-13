@@ -80,8 +80,8 @@ program pepce
        velocities, &
        push
 
-!  use module_particle_setup, only: &
-!       particle_setup
+  use module_particle_setup, only: &
+       particle_setup
 
   implicit none
 
@@ -114,7 +114,7 @@ program pepce
   !$OMP END PARALLEL
 
   ! Set up particles
-!  call particle_setup(ispecial)
+  ! call particle_setup(ispecial)
 
   call special_start(ispecial)
 
@@ -126,10 +126,8 @@ program pepce
 
   call pepc_prepare()
 
-  ! Loop over all timesteps
-  do while (itime < nt)
-     itime = itime + 1
-     trun  = trun  + dt
+  ! Loop over all timesteps. <= nt to write out the last timestep
+  do while (itime <= nt)
 
      if (my_rank==0 ) then
         ifile=6
@@ -161,10 +159,14 @@ program pepce
 
 
 
-     ! periodic particle dump
+     ! Because the density and force is computed according to the current particle positions and velocities, everything is written out here.
      call write_particles(itime, trun)
 
-
+     ! Now the time-step is incremented and the particles are moved.
+     ! The result is not written out again, so the particles_...000000...dat/vtk contains the initial particle configuration with the densities and forces.
+     ! To test the integration based on the computed forces, at least 2 time-steps have to be computed.
+     itime = itime + 1
+     trun  = trun  + dt
      
      
      ! Integrator
@@ -184,6 +186,12 @@ program pepce
      call timings_GatherAndOutput(itime)
 
   end do
+
+  ! The final particle positions could be written out here, but the densities and forces would belong to the previous timestep.
+  ! This could lead to misinterpretations in the postprocessing and is explicitly NOT done.
+  ! So we knowingly throw away the result of the last time-step.
+  ! To get nt timesteps written out, the time-loop is while itime <= nt
+
 
   ! deallocate array space for particles
   call cleanup(my_rank,n_cpu)

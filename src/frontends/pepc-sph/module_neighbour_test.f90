@@ -260,7 +260,7 @@ contains
     
     if( tree_nn_debug ) then
        
-       write( filename, '(a,i6.6,a,i6.6,a)' ) "nn_validate_", itime-1, "_", my_rank, ".list"
+       write( filename, '(a,i6.6,a,i6.6,a)' ) "nn_validate_", itime, "_", my_rank, ".list"
        
        !        ! \bug ab: with ACCESS='APPEND' compilation failes on jugene
        ! !       OPEN(99, FILE=NN_filename, ACCESS='APPEND')
@@ -412,7 +412,7 @@ contains
           
           if( .not. found ) then
              
-             write( filename, '(a,i6.6,a,i6.6,a)' ) "validation_", itime-1, "_", my_rank, ".errors"
+             write( filename, '(a,i6.6,a,i6.6,a)' ) "validation_", itime, "_", my_rank, ".errors"
              
              ! \bug ab: with ACCESS='APPEND' compilation failes on jugene
              !             OPEN( 76, FILE=filename, ACCESS='APPEND')
