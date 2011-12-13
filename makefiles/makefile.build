@@ -15,7 +15,6 @@ COBJ = $(CSRC:%.c=%.o)
 $(FRONTEND): $(FOBJ) $(COBJ)
 	@echo "==== building executable :" $@
 	@echo "==== using libraries     :" $(LDLIBS)
-	@echo "==== objects             :" $(OBJ)
 	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS) >> compile.log
 	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
 
