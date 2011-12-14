@@ -29,6 +29,4 @@ LDLIBS   = #LDLIBS#
 
 RM       = #RM#
 
-SVNVERSION = svnversion
-
 EXECNAME = #EXECNAME#

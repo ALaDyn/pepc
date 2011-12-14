@@ -48,8 +48,7 @@ CC       = mpicc
 LDPRE    = 
 LD       = mpif90
 
-#LDLIBS   += 
+LDLIBS   = 
 
 RM       = rm -rf
 
-#SVNVERSION = svnversion
