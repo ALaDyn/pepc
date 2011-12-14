@@ -69,7 +69,7 @@ module module_pepc
       use module_spacefilling
       use module_domains
       use module_debug, only : pepc_status, debug_level
-      use module_calc_force, only : calc_force_init
+      use module_interaction_specific, only : calc_force_init
       implicit none
       include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
@@ -165,7 +165,7 @@ module module_pepc
     subroutine pepc_prepare()
       use module_walk
       use module_branching, only : branches_initialize
-      use module_calc_force
+      use module_interaction_specific
       use module_mirror_boxes
       implicit none
 
@@ -191,7 +191,7 @@ module module_pepc
       use module_debug, only : pepc_status
       use module_pepc_types, only : free_lpepc_mpi_types
       use module_walk, only : tree_walk_finalize 
-      use module_calc_force, only : calc_force_finalize 
+      use module_interaction_specific, only : calc_force_finalize
       implicit none
       include 'mpif.h'
       integer :: ierr

@@ -35,7 +35,7 @@ program pepc
   use module_directsum
   use module_energy
   use module_particle_setup
-  use module_calc_force, only : theta2, eps2, mac_select, force_law
+  use module_interaction_specific, only : theta2, eps2, mac_select, force_law
   implicit none
 
   integer :: vtk_step

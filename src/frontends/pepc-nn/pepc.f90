@@ -25,7 +25,7 @@ program pepce
 
   use module_pepc
 
-  use module_calc_force, only : mac_select, force_law
+  use module_interaction_specific, only : mac_select, force_law
 
   use physvars, only: &
        trun, &

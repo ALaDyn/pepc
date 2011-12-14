@@ -43,7 +43,7 @@ program program_pepcb
   use module_io
   use module_diagnostics
   use module_particle_boundaries
-  use module_calc_force, only : theta2, mac_select, eps2, cf_force_law => force_law, include_far_field_if_periodic
+  use module_interaction_specific, only : theta2, mac_select, eps2, cf_force_law => force_law, include_far_field_if_periodic
 
   implicit none
   include 'mpif.h'

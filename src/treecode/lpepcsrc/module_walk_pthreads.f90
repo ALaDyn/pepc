@@ -814,7 +814,7 @@ module module_walk
       use module_walk_pthreads_commutils
       use module_walk_communicator
       use pthreads_stuff
-      use module_calc_force
+      use module_interaction_specific
       use module_debug, only : ipefile
       implicit none
       include 'mpif.h'
@@ -960,7 +960,7 @@ module module_walk
    function walk_single_particle(myidx, particle, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
       use module_walk_pthreads_commutils
       use module_htable
-      use module_calc_force
+      use module_interaction_specific
       use module_spacefilling, only : level_from_key, is_ancestor_of_particle
       use module_debug, only : ipefile
       use module_mirror_boxes, only : spatial_interaction_cutoff

@@ -173,7 +173,7 @@ module module_libpepc_main
         use module_mirror_boxes
         use module_walk_communicator
         use module_timings
-        use module_calc_force
+        use module_interaction_specific
         use module_debug, only : pepc_status
         implicit none
         integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array

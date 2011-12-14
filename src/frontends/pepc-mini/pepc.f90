@@ -25,7 +25,7 @@ program pepcmini
   use module_pepc
   use module_mirror_boxes, only: do_periodic, constrain_periodic
   use files
-  use module_calc_force, only : theta2, eps2, mac_select, force_law
+  use module_interaction_specific, only : theta2, eps2, mac_select, force_law
   implicit none
   include 'mpif.h'
 

@@ -4,7 +4,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pepc_types
-  use module_interaction_specific
+  use module_interaction_specific_types
   implicit none
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -68,7 +68,7 @@ module module_pepc_types
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine register_lpepc_mpi_types()
-        use module_interaction_specific
+        use module_interaction_specific_types
         implicit none
         include 'mpif.h'
         integer, parameter :: max_props = maxval([nprops_particle, nprops_tree_node_transport_package])

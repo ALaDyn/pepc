@@ -1,6 +1,6 @@
 module physvars
   use module_pepc_types, only : t_particle
-  use module_interaction_specific, only : t_particle_results
+  use module_interaction_specific_types, only : t_particle_results
   implicit none
 
   real, parameter :: pi=3.141592654

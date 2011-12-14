@@ -26,7 +26,7 @@ module module_pepcs
         use module_mirror_boxes
         use module_pepc
         use treevars
-        use module_calc_force, only : theta2, eps2, mac_select, force_law
+        use module_interaction_specific, only : theta2, eps2, mac_select, force_law
         implicit none
         include 'mpif.h'
 

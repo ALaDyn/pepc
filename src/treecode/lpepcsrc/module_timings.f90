@@ -196,7 +196,6 @@ module module_timings
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Outputs the given timing array to a file with the given filename
-    !> @todo: add file header
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine timings_ToFile(itime, iuserflag, tdata, filename, printheader)

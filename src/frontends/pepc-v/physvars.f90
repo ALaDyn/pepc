@@ -55,7 +55,7 @@ contains
     subroutine pepc_setup(itime, trun)
 
         use module_pepc
-        use module_calc_force, only : sig2
+        use module_interaction_specific, only : sig2
         implicit none
         include 'mpif.h'
 

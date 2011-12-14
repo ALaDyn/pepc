@@ -30,7 +30,7 @@ program pepce
   use energies
   use module_diagnostics
   use module_pepc_wrappers
-  use module_calc_force, only : theta2, eps2, mac_select, force_law
+  use module_interaction_specific, only : theta2, eps2, mac_select, force_law
   implicit none
 
   integer :: ierr, ifile

@@ -134,7 +134,7 @@ module module_directsum
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine directforce(x, y, z, q, np_local, testidx, ntest, directresults, my_rank, n_cpu, comm)
           use module_pepc_types
-          use module_calc_force, only : eps2
+          use module_interaction_specific, only : eps2
           implicit none
           include 'mpif.h'
 

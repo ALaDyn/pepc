@@ -7,7 +7,7 @@
  
 module treevars
   
-  use module_interaction_specific
+  use module_interaction_specific_types
   use module_pepc_types
 
   implicit none

@@ -1,11 +1,16 @@
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
-!> Contains all routines that are specific to a certain multipole expansion
-!> i.e. shifting along the tree etc.
+!> Encapsulates anything that is directly involved in force calculation
+!> and multipole expansion manipulation
+!> i.e. shifting along the tree, computing forces between particles and cluster, etc.
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_interaction_specific
-      implicit none
+     use module_pepc_types
+     use module_interaction_specific_types
+     implicit none
+     save
+     private
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -13,47 +18,31 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+      real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
+      real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
+
+      integer, public :: force_law    = 5      !< 5=NN-list "interaction"
+      integer, public :: mac_select   = 1      !< selector for multipole acceptance criterion, 1 = NN-MAC
+
+      namelist /calc_force_nearestneighbour/ force_law, mac_select
+
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public type declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      integer, parameter :: num_neighbour_particles = 50
-
-      !> Data structure for storing interaction-specific particle data
-      type t_particle_data
-         real*8 :: q                 !< charge
-         real*8 :: v(3)              !< velocity (same time as x)
-         real*8 :: v_and_half(3)     !< velocity (1/2 time step after x (t+1/2), for leap frog integrator)
-         real*8 :: temperature
-      end type t_particle_data
-      integer, private, parameter :: nprops_particle_data = 4
-
-      !> Data structure for results
-      type t_particle_results
-         real*8 :: maxdist2       !< maxval(dist2)
-         integer :: maxidx        !< maxloc(dist2)
-         integer*8:: neighbour_nodes(num_neighbour_particles)
-         real*8 :: dist2(num_neighbour_particles)
-         real*8 :: dist_vector(3,num_neighbour_particles)                           ! distance_vectors from particle to neighbour with respact to periodic shift vector
-         real*8 :: rho            !< density for sph
-         real*8 :: h              !< smoothing-length for sph
-         real*8 :: sph_force(1:3)
-         real*8 :: temperature_change
-      end type t_particle_results
-      integer, private, parameter :: nprops_particle_results = 9
-
-      !> Data structure for storing multiple moments of tree nodes
-      type t_tree_node_interaction_data
-        real*8 :: coc(3)     !< center of charge
-        real*8 :: q          !< charge (for particles)
-        real*8 :: v(1:3)     !< velocity
-        real*8 :: temperature
-        real*8 :: rho        !< sph density
-        real*8 :: h          !< sph smoothing-length
-      end type t_tree_node_interaction_data
-      integer, private, parameter :: nprops_tree_node_interaction_data = 6
+      ! currently, all public functions in module_interaction_specific are obligatory
+      public multipole_from_particle
+      public shift_multipoles_up
+      public results_add
+      public calc_force_per_interaction
+      public calc_force_per_particle
+      public mac
+      public particleresults_clear
+      public calc_force_init
+      public calc_force_finalize
+      public calc_force_prepare
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -61,79 +50,14 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+
+
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !>
-      !> Creates and registers interaction-specific MPI-types
-      !> is automatically called from register_libpepc_mpi_types()
-      !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine register_interaction_specific_mpi_types(mpi_type_particle_data, MPI_TYPE_tree_node_interaction_data, mpi_type_particle_results)
-        implicit none
-        include 'mpif.h'
-        integer, intent(out) :: mpi_type_particle_data, MPI_TYPE_tree_node_interaction_data, mpi_type_particle_results
-
-        integer, parameter :: max_props = maxval([nprops_particle_data, nprops_particle_results, nprops_tree_node_interaction_data])
-
-        integer :: ierr
-        ! address calculation
-        integer, dimension(1:max_props) :: blocklengths, displacements, types
-        integer(KIND=MPI_ADDRESS_KIND), dimension(0:max_props) :: address
-        ! dummies for address calculation
-        type(t_particle_data)    :: dummy_particle_data
-        type(t_particle_results) :: dummy_particle_results
-        type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
-
-        ! register particle data type
-        blocklengths(1:nprops_particle_data)  = [1, 3, 3, 1]
-        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
-        call MPI_GET_ADDRESS( dummy_particle_data,             address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%q,           address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%v,           address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%v_and_half,  address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%temperature, address(4), ierr )
-        displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
-        call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
-        call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
-
-        ! register results data type
-        blocklengths(1:nprops_particle_results)  = [1, 1, num_neighbour_particles, num_neighbour_particles, 3*num_neighbour_particles, 1, 1, 3, 1]
-        types(1:nprops_particle_results)         = [MPI_REAL8, MPI_INTEGER, MPI_INTEGER8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
-        call MPI_GET_ADDRESS( dummy_particle_results,                    address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%maxdist2,           address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%maxidx,             address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%neighbour_nodes,    address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%dist2,              address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%dist_vector,        address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%rho,                address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%h,                  address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%sph_force,          address(8), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%temperature_change, address(9), ierr )
-        displacements(1:nprops_particle_results) = int(address(1:nprops_particle_results) - address(0))
-        call MPI_TYPE_STRUCT( nprops_particle_results, blocklengths, displacements, types, mpi_type_particle_results, ierr )
-        call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
-
-        ! register multipole data type
-        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 3, 1, 1, 1]
-        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,             address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,         address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%q,           address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%v,           address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%temperature, address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%rho,         address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%h,           address(6), ierr )
-        displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))
-        call MPI_TYPE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr )
-        call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)
-
-      end subroutine register_interaction_specific_mpi_types
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
@@ -203,4 +127,224 @@ module module_interaction_specific
       end subroutine
 
 
-end module module_interaction_specific
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> initializes interaction specific parameters, redas them from file
+      !> if optional argument para_file_name is given
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_init(para_file_available, para_file_name, my_rank)
+        implicit none
+        logical, intent(in) :: para_file_available
+        character(*), intent(in) :: para_file_name
+        integer, intent(in) :: my_rank
+        integer, parameter :: para_file_id = 47
+
+        if (para_file_available) then
+            open(para_file_id,file=para_file_name)
+
+            if(my_rank .eq. 0) write(*,*) "reading parameter file, section calc_force_nearestneighbour: ", para_file_name
+            read(para_file_id,NML=calc_force_nearestneighbour)
+
+            close(para_file_id)
+        endif
+
+      end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> computes derived parameters for calc force module
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_prepare()
+        implicit none
+        ! nothing to do here
+      end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> finalizes the calc force module at end of simulation
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_finalize()
+        implicit none
+        ! nothing to do here
+      end subroutine calc_force_finalize
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> generic Multipole Acceptance Criterion
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      function mac(particle, node, dist2, boxlength2)
+        implicit none
+
+        logical :: mac
+        integer, intent(in) :: node
+        type(t_particle), intent(in) :: particle
+        real*8, intent(in) :: dist2
+        real*8, intent(in) :: boxlength2
+
+        select case (mac_select)
+            case (0)
+              ! Barnes-Hut-MAC
+              ! mac = (theta2 * dist2 > boxlength2)
+            case (1)
+              ! NN-MAC: we may "interact" with the node if it is further away than maxdist2 --> this leads to the node *not* being put onto the NN-list (strange, i know)
+              ! first line: original formulation, last line: after transition to formulation with only one square root
+              ! mac = sqrt(dist2) - sqrt(3.* boxlength2)  >  sqrt(results%maxdist2)                                ! + sqrt(3.*boxlength2)
+              !     = sqrt(dist2)                         >  sqrt(results%maxdist2) + sqrt(3.*boxlength2)          ! ^2
+              !     =      dist2                          > (sqrt(results%maxdist2) + sqrt(3.*boxlength2))**2
+              !     =      dist2                          > results%maxdist2 + 2.*sqrt( 3.*results%maxdist2*boxlength2) + 3.*boxlength2
+                mac =      dist2                          > particle%results%maxdist2 +    sqrt(12.*particle%results%maxdist2*boxlength2) + 3.*boxlength2
+              ! TODO NN: this estimation should be evaluated without (!!) any square roots for performance reasons (which does not seem to be trivial)
+            case default
+              ! N^2 code
+              mac = .false.
+        end select
+
+      end function
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> clears result in t_particle datatype - usually, this function does not need to be touched
+      !> due to dependency on module_pepc_types and(!) on module_interaction_specific, the
+      !> function cannot reside in module_interaction_specific that may not include module_pepc_types
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine particleresults_clear(particles, nparticles)
+        use module_pepc_types
+        use module_htable
+        use treevars
+        use module_spacefilling
+        implicit none
+        type(t_particle), intent(inout) :: particles(nparticles)
+        integer, intent(in) :: nparticles
+
+        integer*8 :: key
+        integer :: addr, i
+        real*8, dimension(:), allocatable :: boxdiag2
+
+        allocate(boxdiag2(0:nlev))
+        boxdiag2(0) = (sqrt(3.)*boxsize)**2
+        do i=1,nlev
+           boxdiag2(i) =  boxdiag2(i-1)/4.
+        end do
+
+
+        ! for each particle, we traverse the tree upwards, until the current twig
+        ! contains more leaves than number of necessary neighbours - as a first guess for the
+        ! search radius, we use its diameter
+        do i=1,nparticles
+            key = particles(i)%key
+
+            particles(i)%results%maxdist2 = huge(0._8)
+            particles(i)%results%neighbour_nodes(:) = 0
+            particles(i)%results%maxidx             = 1
+
+            do while (key .ne. 0)
+              if (testaddr(key, addr)) then
+                if (htable(addr)%leaves > num_neighbour_particles) then
+                  ! this twig contains enough particles --> we use its diameter as search radius
+                  particles(i)%results%maxdist2 = boxdiag2(level_from_key(key))
+                  particles(i)%results%neighbour_nodes(:) = htable(addr)%node
+
+                  exit ! from this loop
+                endif
+              endif
+
+              key = ishft(key, -3)
+              if (key.eq.0) then
+               write(*,*) particles(i)
+              endif
+            end do
+
+            particles(i)%results%dist2(:) = particles(i)%results%maxdist2
+            particles(i)%results%dist_vector(:,:) = -13._8 
+        end do
+
+
+      end subroutine
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Force calculation wrapper.
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox)
+          use module_interaction_specific_types
+          use treevars
+          implicit none
+
+          integer, intent(in) :: inode
+          type(t_particle), intent(inout) :: particle
+          real*8, intent(in) :: vbox(3), delta(3), dist2
+
+          select case (force_law)
+            case (5)
+                call update_nn_list(particle, inode, delta, dist2)
+                particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
+          end select
+
+
+        end subroutine calc_force_per_interaction
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Force calculation wrapper for contributions that only have
+        !> to be added once per particle
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_per_particle(particles, nparticles)
+          use module_interaction_specific_types
+          use treevars, only : me
+          implicit none
+
+          integer, intent(in) :: nparticles
+          type(t_particle), intent(inout) :: particles(:)
+
+          ! currently nothing to do here
+
+        end subroutine calc_force_per_particle
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine update_nn_list(particle, inode, d, dist2)
+          use module_pepc_types
+          use treevars
+          implicit none
+          include 'mpif.h'
+
+          integer, intent(in) :: inode !< index of particle to interact with
+          real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          type(t_particle), intent(inout) :: particle
+
+          integer :: ierr, tmp(1)
+
+          if (dist2 < particle%results%maxdist2) then
+            ! add node to NN_list
+            particle%results%neighbour_nodes(particle%results%maxidx) = inode
+            particle%results%dist2(particle%results%maxidx)           = dist2
+            particle%results%dist_vector(:,particle%results%maxidx) = d
+            tmp                       = maxloc(particle%results%dist2(:)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
+            particle%results%maxidx   = tmp(1)
+            particle%results%maxdist2 = particle%results%dist2(particle%results%maxidx)
+          else
+            ! node is further away than farest particle in nn-list --> can be ignored
+          endif
+
+        end subroutine update_nn_list
+
+        
+  end module module_interaction_specific

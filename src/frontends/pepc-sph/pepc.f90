@@ -26,7 +26,7 @@ program pepce
   use module_walk, only: &
        num_walk_threads
 
-  use module_calc_force, only: &
+  use module_interaction_specific, only: &
        mac_select, force_law
 
   use physvars, only: &

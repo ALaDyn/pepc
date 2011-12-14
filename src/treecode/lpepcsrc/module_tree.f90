@@ -190,6 +190,7 @@ module module_tree
     subroutine shift_nodes_up(parent, children, childnumber, parent_owner)
       use module_pepc_types
       use module_htable, only : CHILDCODE_BIT_CHILDREN_AVAILABLE
+      use module_interaction_specific, only : shift_multipoles_up
       implicit none
         type(t_tree_node_transport_package), intent(inout) :: parent
         type(t_tree_node_transport_package), intent(in) :: children(:)
@@ -437,6 +438,7 @@ module module_tree
       use module_debug, only : pepc_status
       use module_pepc_types
       use module_htable
+      use module_interaction_specific, only : multipole_from_particle
       use module_timings
       implicit none
       include 'mpif.h'

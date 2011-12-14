@@ -308,7 +308,7 @@ subroutine tree_walk_smpss_walk_and_interact(particle_list, particle_status, par
   use treevars
   use module_walk_smpss_utils
   use module_htable
-  use module_calc_force
+  use module_interaction_specific
   use module_spacefilling
 
   implicit none
@@ -432,7 +432,7 @@ subroutine tree_walk_smpss_walk_prefetch(x, particle_requests, size)
   use treevars
   use module_walk_smpss_utils
   use module_htable
-  use module_calc_force
+  use module_interaction_specific
   use module_spacefilling
 
   implicit none
