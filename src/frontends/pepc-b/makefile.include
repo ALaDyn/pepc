@@ -20,8 +20,6 @@ FILES_B_U   = module_gle.f90
 SRC        += $(FILES_B_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_B_U))
 
-LDLIBS += libsl.a
-
 include $(LPEPCDIR)/makefile.include
 include $(PTHREADSDIR)/makefile.include
 include $(INTSPECDIR)/coulomb/makefile.include

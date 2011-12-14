@@ -12,7 +12,7 @@ AR       = xiar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
 FCPRE    = 
 FC       = mpif90

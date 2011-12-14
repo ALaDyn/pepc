@@ -5,8 +5,8 @@
 include makefiles/makefile.paths
 include makefile.defs
 
-ROOTDIR    = $(shell "pwd")
-SVNVERSION = $(shell "svnversion")
+ROOTDIR     = $(shell "pwd")
+SVNREVISION = $(shell "svnversion")
 
 help: info
 	@echo -e $(HELP)
@@ -14,7 +14,7 @@ help: info
 info:
 	@echo -e "======== make info"
 	@echo -e "==== target architecture: $(MACH)"
-	@echo -e "==== code version: $(SVNVERSION)"
+	@echo -e "==== code version: $(SVNREVISION)"
 	@echo -e "==== pepc directory: $(ROOTDIR)"
 	@echo -e ""
 
@@ -66,9 +66,11 @@ pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a
 	@$(RM) makefile.envs
 	@echo "FRONTEND=$@" >> makefile.envs
 	@echo "ROOTDIR=$(ROOTDIR)" >> makefile.envs
-	@echo "SVNVERSION=$(SVNVERSION)" >> makefile.envs
+	@echo "SVNREVISION=$(SVNREVISION)" >> makefile.envs
 	@echo "WORKDIR=$(BUILDDIR)/$(MACH)/$@" >> makefile.envs
+	@mkdir -p $(BUILDDIR)/$(MACH)/$@
 	@$(MAKE) $(MFLAGS) -f $(MAKEDIR)/makefile.prepare
+	@mkdir -p $(BINDIR)
 	@cp -p $(BUILDDIR)/$(MACH)/$@/$@ $(BINDIR)
 	@echo -e ""
 	@echo "======== successfully build frontend ** $@ **"

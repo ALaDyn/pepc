@@ -112,7 +112,7 @@ module module_pepc
         write(*,'(a)') "     \ \_\   \ \____/\ \_\   \ \____/           p.gibbon@fz-juelich.de"
         write(*,'(a)') "      \/_/    \/___/  \/_/    \/___/   "
         write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."//)') &
-                       SVNVERSION, frontendname, n_cpu
+                       SVNREVISION, frontendname, n_cpu
 
         if ((pepc_initializes_mpi) .and. (provided < MPI_THREAD_LEVEL)) then
           !inform the user about possible issues concerning MPI thread safety

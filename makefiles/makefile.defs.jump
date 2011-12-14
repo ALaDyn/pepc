@@ -12,7 +12,7 @@ AR       = ar
 ARFLAGS  = -X64 -rs
 
 CPP      = /usr/lib/cpp
-CPPFLAGS = -P -C
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
 FCPRE    = 
 FC       = mpxlf90_r

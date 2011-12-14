@@ -17,17 +17,17 @@ LDLIBS += libsl.a
 $(FRONTEND): $(FOBJ) $(COBJ)
 	@echo "==== building executable :" $@
 	@echo "==== using libraries     :" $(LDLIBS)
-	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS) >> compile.log
+	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
 
 %.o: %.f90
 	@echo "== compiling F90 file :" $<
-	@$(CPP) $(CPPFLAGS) $< -o pp_$< 2>> compile.log
-	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@ >> compile.log
+	$(CPP) $(CPPFLAGS) $< -o pp_$< 2>> compile.log
+	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
 
 %.o: %.c
 	@echo "== compiling C file   :" $<
-	@$(CCPRE) $(CC) -c $(CFLAGS) $(DBFLAGS) $< -o $@ >> compile.log
+	@$(CCPRE) $(CC) -c $(CFLAGS) $(DBFLAGS) $< -o $@
 
 makefile.deps: 
 	@echo "==== creating dependencies"

@@ -12,8 +12,6 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-e/, $(FILES_E))
 SRC        += $(FILES_E_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_E_U))
 
-LDLIBS += libsl.a
-
 include $(LPEPCDIR)/makefile.include
 include $(PTHREADSDIR)/makefile.include
 include $(INTSPECDIR)/coulomb/makefile.include

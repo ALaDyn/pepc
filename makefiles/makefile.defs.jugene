@@ -17,7 +17,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DLITTLEENDIAN
+CPPFLAGS = -P -C -DLITTLEENDIAN -DSVNREVISION="\"$(SVNREVISION)\""
 
 OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck -qkeepparm -qflttrap -qnosmp -qxflag=dvz -Q! -qnounwind -qnounroll
 OPTIMIZATIONFLAGS       = -O3 -qhot -qipa -qipa=list=long:threads=auto \

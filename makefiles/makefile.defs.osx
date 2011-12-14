@@ -16,7 +16,7 @@ AR       = libtool
 ARFLAGS  = -o
 
 CPP      = cpp
-CPPFLAGS = -P -C 
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
 FCPRE    = 
 FC       = mpif90

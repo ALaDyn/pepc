@@ -4,8 +4,6 @@ FILES_MINI  = cleanup.f90 pepc.f90 setup.f90 \
 SRC        += $(FILES_MINI)
 SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-mini/, $(FILES_MINI))
 
-LDLIBS += libsl.a
-
 include ./src/treecode/lpepcsrc/makefile.include
 include ./src/treecode/pthreads/makefile.include
 include ./src/interaction_specific/coulomb/makefile.include
