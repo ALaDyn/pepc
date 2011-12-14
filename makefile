@@ -59,6 +59,8 @@ cleanlib:
 cleanall: cleanlib clean
 	@echo "==== all cleaned"
 
+allclean: cleanall
+
 pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a
 	@echo "======== start building frontend ** $@ **"
 	@echo "==== date: " $(shell "date")
