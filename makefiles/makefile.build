@@ -12,6 +12,8 @@ FOBJ = $(FSRC:%.f90=%.o)
 CSRC = $(filter %.c, $(SRC))
 COBJ = $(CSRC:%.c=%.o)
 
+LDLIBS += libsl.a
+
 $(FRONTEND): $(FOBJ) $(COBJ)
 	@echo "==== building executable :" $@
 	@echo "==== using libraries     :" $(LDLIBS)

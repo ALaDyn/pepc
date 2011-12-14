@@ -36,7 +36,8 @@ buildenv:
 readme:
 	cat README | less
 
-libsl: $(LIBDIR)
+libsl: 
+$(LIBDIR)/libsl.a: $(LIBDIR)
 	@echo -e "==== building libsl"
 	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
 	@$(MAKE) -C $(SLPEPCDIR) $(MFLAGS)
@@ -51,13 +52,14 @@ clean:
 cleanlib:
 	@echo "==== cleaning libraries"
 	@$(RM) $(LIBDIR)
+	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
 	@cd src/treecode/sl_pepc && $(MAKE) $(MAKEFLAGS) clean 
 	@echo -e ""
 
-cleanall: clean cleanlib
+cleanall: cleanlib clean
 	@echo "==== all cleaned"
 
-pepc-%: pepclogo info buildenv
+pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a
 	@echo "======== start building frontend ** $@ **"
 	@echo "==== date: " $(shell "date")
 	@echo "==== make target: " $@
@@ -99,3 +101,4 @@ pepclogo:
 	@echo -e "     \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \                                 "
 	@echo -e "      \ \_\   \ \____/\ \_\   \ \____/           p.gibbon@fz-juelich.de"
 	@echo -e "       \/_/    \/___/  \/_/    \/___/                                  "
+	@echo -e ""
