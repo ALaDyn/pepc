@@ -17,8 +17,8 @@ LDLIBS += libsl.a
 $(FRONTEND): $(FOBJ) $(COBJ)
 	@echo "==== building executable :" $@
 	@echo "==== using libraries     :" $(LDLIBS)
-	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
-	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
+	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
+#	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
 
 %.o: %.f90
 	@echo "== compiling F90 file :" $<

@@ -7,7 +7,5 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-v/, $(FILES_V))
 SRC        += $(FILES_V_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_V_U))
 
-include $(LPEPCDIR)/makefile.include
-include $(PTHREADSDIR)/makefile.include
-include $(INTSPECDIR)/vortex/makefile.include
+BACKEND = vortex
 

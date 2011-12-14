@@ -2,20 +2,23 @@
 #  top-level makefile for pepc
 #
 
+ROOTDIR      = $(shell pwd)
+SVNREVISION  = $(shell svnversion)
+
 include makefiles/makefile.paths
 include makefile.defs
 
-ROOTDIR     = $(shell "pwd")
-SVNREVISION = $(shell "svnversion")
+ALLFRONTENDS = $(shell ls $(FRONTENDDIR))
 
 help: info
 	@echo -e $(HELP)
 
 info:
 	@echo -e "======== make info"
-	@echo -e "==== target architecture: $(MACH)"
-	@echo -e "==== code version: $(SVNREVISION)"
-	@echo -e "==== pepc directory: $(ROOTDIR)"
+	@echo -e "==== target architecture : $(MACH)"
+	@echo -e "==== code version        : $(SVNREVISION)"
+	@echo -e "==== pepc directory      : $(ROOTDIR)"
+	@echo -e "==== available frontends : $(ALLFRONTENDS)"
 	@echo -e ""
 
 buildenv:
@@ -36,7 +39,14 @@ buildenv:
 readme:
 	cat README | less
 
-libsl: 
+all: $(ALLFRONTENDS)
+	@echo -e ""
+	@echo -e "======== build all results:"
+	@echo -e "== available: " $(ALLFRONTENDS)
+	@echo -e "== build    : " $(shell ls $(BINDIR))
+	@echo -e ""
+
+libsl: $(LIBDIR)/libsl.a
 $(LIBDIR)/libsl.a: $(LIBDIR)
 	@echo -e "==== building libsl"
 	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
@@ -65,13 +75,8 @@ pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a
 	@echo "======== start building frontend ** $@ **"
 	@echo "==== date: " $(shell "date")
 	@echo "==== make target: " $@
-	@$(RM) makefile.envs
-	@echo "FRONTEND=$@" >> makefile.envs
-	@echo "ROOTDIR=$(ROOTDIR)" >> makefile.envs
-	@echo "SVNREVISION=$(SVNREVISION)" >> makefile.envs
-	@echo "WORKDIR=$(BUILDDIR)/$(MACH)/$@" >> makefile.envs
 	@mkdir -p $(BUILDDIR)/$(MACH)/$@
-	@$(MAKE) $(MFLAGS) -f $(MAKEDIR)/makefile.prepare
+	@FRONTEND=$@ ROOTDIR=$(ROOTDIR) SVNREVISION=$(SVNREVISION) WORKDIR=$(BUILDDIR)/$(MACH)/$@ $(MAKE) $(MFLAGS) -f $(MAKEDIR)/makefile.prepare
 	@mkdir -p $(BINDIR)
 	@cp -p $(BUILDDIR)/$(MACH)/$@/$@ $(BINDIR)
 	@echo -e ""

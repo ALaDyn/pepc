@@ -2,18 +2,31 @@
 #  prepare-level makefile for pepc
 #
 
-include makefile.envs
+BACKEND = coulomb
+WALK    = pthreads
+
 include makefiles/makefile.paths
 include makefile.defs
 
 include $(FRONTENDDIR)/$(FRONTEND)/makefile.include
+include $(LPEPCDIR)/makefile.include
+include $(INTSPECDIR)/$(BACKEND)/makefile.include
+
+MAKEENVS = $(WORKDIR)/makefile.envs
 
 prepare: $(SRC)
 	@echo "==== building frontend :" $(FRONTEND)
+	@echo "==== building walk     :" $(WALK)
+	@echo "==== building backend  :" $(BACKEND)
 	@echo "==== working directory :" $(WORKDIR)
-	@echo "LDLIBS=$(LDLIBS)" >> makefile.envs
-	@echo "SRC=$(SRC)" >> makefile.envs
-	@cp makefile.defs makefile.envs makefiles/makefile.paths makefiles/makefile.build $(WORKDIR)
+	@$(RM) $(MAKEENVS)
+	@echo "FRONTEND=$(FRONTEND)"       >> $(MAKEENVS)
+	@echo "ROOTDIR=$(ROOTDIR)"         >> $(MAKEENVS)
+	@echo "SVNREVISION=$(SVNREVISION)" >> $(MAKEENVS)
+	@echo "WORKDIR=$(WORKDIR)"         >> $(MAKEENVS)
+	@echo "LDLIBS=$(LDLIBS)"           >> $(MAKEENVS)
+	@echo "SRC=$(SRC)"                 >> $(MAKEENVS)
+	@cp makefile.defs makefiles/makefile.paths makefiles/makefile.build $(WORKDIR)
 	@cp $(LIBDIR)/libsl.a $(WORKDIR)
 	@echo -e ""
 	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.build

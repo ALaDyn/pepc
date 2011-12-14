@@ -11,7 +11,5 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-sph/, $(FILES_SPH))
 SRC        += $(FILES_SPH_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_SPH_U))
 
-include $(LPEPCDIR)/makefile.include
-include $(PTHREADSDIR)/makefile.include
-include $(INTSPECDIR)/nearestneighbour/makefile.include
+BACKEND = nearestneighbour
 

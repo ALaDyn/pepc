@@ -20,7 +20,5 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-mw/, $(FILES_MW))
 SRC        += $(FILES_MW_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_MW_U))
 
-include $(LPEPCDIR)/makefile.include
-include $(PTHREADSDIR)/makefile.include
-include $(INTSPECDIR)/coulomb/makefile.include
+
 

@@ -46,7 +46,7 @@ CCPRE    =
 CC       = mpicc
 
 LDPRE    = 
-LD       = mpif90
+LD       = mpif90 -fopenmp
 
 LDLIBS   = 
 
