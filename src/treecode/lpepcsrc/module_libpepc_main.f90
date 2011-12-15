@@ -140,7 +140,7 @@ module module_libpepc_main
         call timer_stop(t_global)
 
         if (htable(1)%leaves .ne. npart_total) then
-            write(*,*) 'PE', me, ' did not find all particles inside the htable after global tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp
+            write(*,*) 'PE', me, ' did not find all particles inside the htable after global tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npart_total =', npart_total
             call diagnose_tree(particles)
             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
         endif
