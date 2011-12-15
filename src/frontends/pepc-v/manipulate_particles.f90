@@ -502,14 +502,21 @@ contains
                             m_part(k)%data%alpha(1) = frac*vortex_particles(i)%data%alpha(1)
                             m_part(k)%data%alpha(2) = frac*vortex_particles(i)%data%alpha(2)
                             m_part(k)%data%alpha(3) = frac*vortex_particles(i)%data%alpha(3)
-                            m_part(k)%work = vortex_particles(i)%work
+                            m_part(k)%work = frac*vortex_particles(i)%work
                             m_part(k)%data%u_rk(1:3) = 0.
                             m_part(k)%data%af_rk(1:3) = 0.
+                            m_part(k)%results%u(1:3) = 0.
+                            m_part(k)%results%af(1:3) = 0.
                         end do
                     end do
                 end do
             end do
-            m_np = k
+
+            if (k .ne. m_np) then
+                write(*,*) 'something is wrong here: #remeshed particles not equal to prediciton', my_rank, k, m_np
+                call MPI_ABORT(MPI_COMM_WORLD,ierr)
+                stop
+            end if
 
             deallocate(vortex_particles)
 
@@ -532,7 +539,7 @@ contains
 
             if (my_rank == 0) then
                 write(*,*) 'Vorticity before remeshing (x,y,z,norm2):', total_vort_full_pre, sqrt(dot_product(total_vort_full_pre,total_vort_full_pre))
-                write(*,*) '   Vorticity after merging (x,y,z,norm2):', total_vort_full_post, sqrt(dot_product(total_vort_full_post,total_vort_full_post))
+                write(*,*) ' Vorticity after remeshing (x,y,z,norm2):', total_vort_full_post, sqrt(dot_product(total_vort_full_post,total_vort_full_post))
             end if
 
         end if
@@ -568,14 +575,14 @@ contains
     !>   Sorting function for remeshing
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine sort_remesh(m_part, m_np, m_nppm)
+    subroutine sort_remesh(particles, m_np, m_nppm)
 
         use physvars
         use treevars, only : iplace, nlev
         implicit none
         include 'mpif.h'
 
-        type (t_particle),intent(inout) :: m_part(*)
+        type (t_particle), intent(inout) :: particles(*)
         integer, intent(inout) :: m_np
         integer, intent(in) :: m_nppm
 
@@ -600,11 +607,11 @@ contains
             end subroutine slsort_keys
         end interface
 
-        !! Define new particle counts
-
         kick_part = 0
         indxl = 0
         irnkl = 0
+        islen = 0
+        irlen = 0
         sort_step = 0
         dcount_glo = -1
         dcount = 0
@@ -622,12 +629,12 @@ contains
             next = my_rank+1
         endif
 
-        xmin_local = minval(m_part(1:m_np)%x(1))
-        xmax_local = maxval(m_part(1:m_np)%x(1))
-        ymin_local = minval(m_part(1:m_np)%x(2))
-        ymax_local = maxval(m_part(1:m_np)%x(2))
-        zmin_local = minval(m_part(1:m_np)%x(3))
-        zmax_local = maxval(m_part(1:m_np)%x(3))
+        xmin_local = minval(particles(1:m_np)%x(1))
+        xmax_local = maxval(particles(1:m_np)%x(1))
+        ymin_local = minval(particles(1:m_np)%x(2))
+        ymax_local = maxval(particles(1:m_np)%x(2))
+        zmin_local = minval(particles(1:m_np)%x(3))
+        zmax_local = maxval(particles(1:m_np)%x(3))
 
         ! Find global limits
         call MPI_ALLREDUCE(xmin_local, xmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
@@ -653,33 +660,35 @@ contains
 
         s=boxsize/2**nlev       ! refinement length
 
-        ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
+        !! Start key generation
+        ! TODO: Use module_spacefilling here, problem: this module uses treevars variables, but we do not (e.g. npp vs. m_np)
 
-        ix(1:m_np) = ( m_part(1:m_np)%x(1) - xmin )/s           ! partial keys
-        iy(1:m_np) = ( m_part(1:m_np)%x(2) - ymin )/s           !
-        iz(1:m_np) = ( m_part(1:m_np)%x(3) - zmin )/s
+        ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
+        ix(1:m_np) = ( particles(1:m_np)%x(1) - xmin )/s           ! partial keys
+        iy(1:m_np) = ( particles(1:m_np)%x(2) - ymin )/s           !
+        iz(1:m_np) = ( particles(1:m_np)%x(3) - zmin )/s
 
         ! construct keys by interleaving coord bits and add placeholder bit
         ! - note use of 64-bit constants to ensure correct arithmetic
         nbits = nlev+1
         do j = 1,m_np
-            m_part(j)%key = iplace
+            particles(j)%key = iplace
             do i=0,nbits-1
-                m_part(j)%key = m_part(j)%key &
+                particles(j)%key = particles(j)%key &
                 + 8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) )
             end do
         end do
 
         do while (dcount_glo .ne. 0) ! BEGIN: Loop over soring algorithm, as long as we find doublets
-                                      !        (should stop after two steps!)
+                                     !        (should stop after two steps!)
             sort_step = sort_step +1
-            if (sort_step .ge. 3) then
+            if (sort_step .gt. 2) then
                 write(*,*) 'something is wrong here: still finding doublets',my_rank,dcount_glo
                 call MPI_ABORT(MPI_COMM_WORLD,ierr)
                 stop
             end if
 
-            ! If we have doublets...
+            ! If we may have doublets...
             if (sort_step .gt. 1) then
                 ! Check for local doublets (kick_part(.,1) == 1), accumulate w and eliminate by in-place copy
                 i = 0
@@ -693,13 +702,13 @@ contains
                             call MPI_ABORT(MPI_COMM_WORLD,ierr)
                             stop
                         end if
-                        m_part(j)%data%alpha(1) = m_part(j)%data%alpha(1) + m_part(i)%data%alpha(1)
-                        m_part(j)%data%alpha(2) = m_part(j)%data%alpha(2) + m_part(i)%data%alpha(2)
-                        m_part(j)%data%alpha(3) = m_part(j)%data%alpha(3) + m_part(i)%data%alpha(3)
-                        m_part(j)%work = m_part(j)%work + m_part(i)%work
+                        particles(j)%data%alpha(1) = particles(j)%data%alpha(1) + particles(i)%data%alpha(1)
+                        particles(j)%data%alpha(2) = particles(j)%data%alpha(2) + particles(i)%data%alpha(2)
+                        particles(j)%data%alpha(3) = particles(j)%data%alpha(3) + particles(i)%data%alpha(3)
+                        particles(j)%work = particles(j)%work + particles(i)%work
                      else
                         k = k+1
-                        m_part(k) = m_part(i)
+                        particles(k) = particles(i)
                     end if
                 end do
 
@@ -714,14 +723,14 @@ contains
 
                 !TODO: Only necessary if boundary doublets detected previously (flagging?)
                 ! Gather boundary particles from every process
-                bound_parts_loc(1) = m_part(1)
-                bound_parts_loc(2) = m_part(k)
+                bound_parts_loc(1) = particles(1)
+                bound_parts_loc(2) = particles(k)
                 call MPI_ALLGATHER(bound_parts_loc, 2, MPI_TYPE_PARTICLE, &
-                bound_parts, 2, MPI_TYPE_PARTICLE, MPI_COMM_WORLD, ierr)
+                                   bound_parts, 2, MPI_TYPE_PARTICLE, MPI_COMM_WORLD, ierr)
 
                 ! Eliminate right boundary, if doublet with at least on neighbor
                 if (bound_parts(2*my_rank+1)%key .eq. bound_parts(2*next)%key) then
-                    !write(*,*) my_rank, 'is looking towards', next, 'for elimination'
+                    write(*,*) my_rank, 'is looking towards', next, 'for elimination'
                     k = k-1
                 end if
                 m_np = k
@@ -729,11 +738,11 @@ contains
                 ! Accumulate boundary particles, looking left for doublets
                 i = prev
                 do while (bound_parts(2*my_rank)%key .eq. bound_parts(2*i+1)%key)
-                    !write(*,*) my_rank, 'is looking towards', i, 'for accumulation'
-                    m_part(1)%data%alpha(1) = m_part(1)%data%alpha(1) + bound_parts(2*i+1)%data%alpha(1)
-                    m_part(1)%data%alpha(2) = m_part(1)%data%alpha(2) + bound_parts(2*i+1)%data%alpha(2)
-                    m_part(1)%data%alpha(3) = m_part(1)%data%alpha(3) + bound_parts(2*i+1)%data%alpha(3)
-                    m_part(1)%work = m_part(1)%work + bound_parts(2*i+1)%work
+                    write(*,*) my_rank, 'is looking towards', i, 'for accumulation'
+                    particles(1)%data%alpha(1) = particles(1)%data%alpha(1) + bound_parts(2*i+1)%data%alpha(1)
+                    particles(1)%data%alpha(2) = particles(1)%data%alpha(2) + bound_parts(2*i+1)%data%alpha(2)
+                    particles(1)%data%alpha(3) = particles(1)%data%alpha(3) + bound_parts(2*i+1)%data%alpha(3)
+                    particles(1)%work = particles(1)%work + bound_parts(2*i+1)%work
                     i = i-1
                     if (i.lt.0) exit
                 end do
@@ -748,15 +757,16 @@ contains
             npnew = m_np
             load_balance = 1
             imba = 0.05
-            local_keys(1:npold) = m_part(1:npold)%key
-            local_work(1:npold) = m_part(1:npold)%work
+            local_keys(1:npold) = particles(1:npold)%key
+            local_work(1:npold) = particles(1:npold)%work
+
             call slsort_keys(npold,m_nppm,local_keys,local_work,load_balance,imba,&
                              npnew,indxl,irnkl,islen,irlen,fposts,gposts,sorted_keys,irnkl2,n_cpu,my_rank)
 
             ! Check if sort finished and find inner doublets
             do i=2,npnew
                 if (sorted_keys(i) .lt. sorted_keys(i-1)) then
-                    write (*,'(a,i5,2z20)') 'Sorting locally failed i,sorted_keys(i),sorted_keys(i-1)=',i,sorted_keys(i),sorted_keys(i-1)
+                    write (*,'(a,i5,2z20)') 'Sorting locally failed: i,sorted_keys(i),sorted_keys(i-1)=',i,sorted_keys(i),sorted_keys(i-1)
                     call MPI_ABORT(MPI_COMM_WORLD,ierr)
                     stop
                 endif
@@ -797,14 +807,14 @@ contains
 
             ! Set up particle structure - keys and source_pe are dummies
             m_np = npnew
-            ship_parts(1:npold) = m_part(indxl(1:npold))
+            ship_parts(1:npold) = particles(indxl(1:npold))
 
             ! perform permute
             call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle, &
                                get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_WORLD,ierr)
-            m_part(irnkl(1:m_np)) = get_parts(1:m_np)
-            m_part(1:m_np)%key = sorted_keys(1:m_np)
-            m_part(1:m_np)%pid = my_rank
+            particles(irnkl(1:m_np)) = get_parts(1:m_np)
+            particles(1:m_np)%key = sorted_keys(1:m_np)
+            particles(1:m_np)%pid = my_rank
 
         end do ! END: Loop over sorting algorithm, as long as we find doublets (should stop after two steps!)
 
