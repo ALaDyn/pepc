@@ -20,9 +20,10 @@ contains
   !> writes walk-specific data to file steam ifile
   !>
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine tree_walk_statistics(ifile)
+  subroutine tree_walk_statistics(ifile, perform_output)
     implicit none
     integer, intent(in) :: ifile !< file stream to write to
+    logical, intent(out) :: perform_output !< if set to .false., output in this routine is prevented (e.g. for MPI ranks that shall not write any statistics)
     ! TODO: fill with life here
   end subroutine
 

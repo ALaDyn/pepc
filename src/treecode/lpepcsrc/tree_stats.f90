@@ -90,7 +90,11 @@ subroutine tree_stats(timestamp)
     write (60,'(a50,2i12)') '#branches global sum estimated, sum actual: ',branch_max_global,nbranch_sum
     write (60,'(a50,2i12)') 'max res.space for local branches, global br.: ', branch_max_local,branch_max_global
     write (60,*) '######## TREE TRAVERSAL MODULE ############################################################'
-    call tree_walk_statistics(60)
+  endif
+
+    call tree_walk_statistics(60, me .eq. 0)
+
+  if (me.eq.0) then
     write (60,*) '######## WALK-COMMUNICATION ###############################################################'
     write (60,'(a50,2i12)') 'Max # multipole fetches/ships per cpu: ',maxval(fetches), maxval(ships)
     write (60,'(a50,2i12)') 'Min # multipole fetches/ships per cpu: ',minval(fetches), minval(ships)

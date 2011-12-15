@@ -545,12 +545,13 @@ module module_walk
       !> writes walk-specific data to file steam ifile
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine tree_walk_statistics(ifile)
+      subroutine tree_walk_statistics(ifile, perform_output)
         use module_walk_pthreads_commutils
         use module_walk_communicator
         implicit none
         include 'mpif.h'
         integer, intent(in) :: ifile !< file stream to write to
+        logical, intent(in) :: perform_output !< if set to false, output is disabled (e.g. for MPI ranks that shall not print anything)
         integer :: ierr
         real*8 :: global_thread_workload(-4:4)
 
@@ -563,16 +564,18 @@ module module_walk
         call MPI_REDUCE(thread_workload(-3), global_thread_workload(-3), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr )
         call MPI_REDUCE(thread_workload(-4), global_thread_workload(-4), 2, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
 
-        write (ifile,'(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_particles_per_thread
-        write (ifile,'(a50,2i12)') 'cumulative/maximum # of entries in request queue: ', cum_req_list_length, max_req_list_length
-        write (ifile,'(a50,3i12)') '# of comm-loop iterations (tot,send,recv): ', comm_loop_iterations(:)
-        write (ifile,*) '######## WALK-WORKER-THREAD WORKLOAD ######################################################'
-        write (ifile,'(a50)')              'average # processed nparticles per thread    '
-        write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', thread_workload(1), thread_workload(3)
-        write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', thread_workload(2), thread_workload(4)
-        write (ifile,'(a50)')              'average wallclocktime per thread    '
-        write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', thread_workload(-1) , thread_workload(-3)
-        write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', thread_workload(-2), thread_workload(-4)
+        if (perform_output) then
+          write (ifile,'(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_particles_per_thread
+          write (ifile,'(a50,2i12)') 'cumulative/maximum # of entries in request queue: ', cum_req_list_length, max_req_list_length
+          write (ifile,'(a50,3i12)') '# of comm-loop iterations (tot,send,recv): ', comm_loop_iterations(:)
+          write (ifile,*) '######## WALK-WORKER-THREAD WORKLOAD ######################################################'
+          write (ifile,'(a50)')              'average # processed nparticles per thread    '
+          write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', thread_workload(1), thread_workload(3)
+          write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', thread_workload(2), thread_workload(4)
+          write (ifile,'(a50)')              'average wallclocktime per thread    '
+          write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', thread_workload(-1) , thread_workload(-3)
+          write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', thread_workload(-2), thread_workload(-4)
+        endif
 
       end subroutine
 
