@@ -11,44 +11,45 @@ include makefile.defs
 ALLFRONTENDS = $(shell ls $(FRONTENDDIR))
 
 help: info
-	@echo -e $(HELP)
+	@printf $(HELP)
+	@echo ""
 
 info:
-	@echo -e "======== make info"
-	@echo -e "==== target architecture : $(MACH)"
-	@echo -e "==== code version        : $(SVNREVISION)"
-	@echo -e "==== pepc directory      : $(ROOTDIR)"
-	@echo -e "==== available frontends : $(ALLFRONTENDS)"
-	@echo -e ""
+	@echo "======== make info"
+	@echo "==== target architecture : $(MACH)"
+	@echo "==== code version        : $(SVNREVISION)"
+	@echo "==== pepc directory      : $(ROOTDIR)"
+	@echo "==== available frontends : $(ALLFRONTENDS)"
+	@echo ""
 
 buildenv:
-	@echo -e "======== build environment"
-	@echo -e "== CPP      : $(CPP)"
-	@echo -e "== CPPFLAGS : $(CPPFLAGS)"
-	@echo -e "== FCPRE    : $(FCPRE)"
-	@echo -e "== FC       : $(FC)"
-	@echo -e "== FCFLAGS  : $(FCFLAGS)"
-	@echo -e "== CCPRE    : $(CCPRE)"
-	@echo -e "== CC       : $(CC)"
-	@echo -e "== CCFLAGS  : $(CCFLAGS)"
-	@echo -e "== LDPRE    : $(LDPRE)"
-	@echo -e "== LD       : $(LD)"
-	@echo -e "== LDFLAGS  : $(LDFLAGS)"
-	@echo -e ""
+	@echo "======== build environment"
+	@echo "== CPP      : $(CPP)"
+	@echo "== CPPFLAGS : $(CPPFLAGS)"
+	@echo "== FCPRE    : $(FCPRE)"
+	@echo "== FC       : $(FC)"
+	@echo "== FCFLAGS  : $(FCFLAGS)"
+	@echo "== CCPRE    : $(CCPRE)"
+	@echo "== CC       : $(CC)"
+	@echo "== CCFLAGS  : $(CCFLAGS)"
+	@echo "== LDPRE    : $(LDPRE)"
+	@echo "== LD       : $(LD)"
+	@echo "== LDFLAGS  : $(LDFLAGS)"
+	@echo ""
 
 readme:
 	cat README | less
 
 all: $(ALLFRONTENDS)
-	@echo -e ""
-	@echo -e "======== build all results:"
-	@echo -e "== available: " $(ALLFRONTENDS)
-	@echo -e "== build    : " $(shell ls $(BINDIR))
-	@echo -e ""
+	@echo ""
+	@echo "======== build all results:"
+	@echo "== available: " $(ALLFRONTENDS)
+	@echo "== build    : " $(shell ls $(BINDIR))
+	@echo ""
 
 libsl: $(LIBDIR)/libsl.a
 $(LIBDIR)/libsl.a: $(LIBDIR)
-	@echo -e "==== building libsl"
+	@echo "==== building libsl"
 	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
 	@$(MAKE) -C $(SLPEPCDIR) $(MFLAGS)
 	@cp -p $(SLPEPCDIR)/libsl.a $(LIBDIR)/libsl.a
@@ -57,14 +58,14 @@ clean:
 	@echo "==== cleaning build and bin"
 	@$(RM) makefile.envs
 	@$(RM) $(BUILDDIR) $(BINDIR)
-	@echo -e ""
+	@echo ""
 
 cleanlib:
 	@echo "==== cleaning libraries"
 	@$(RM) $(LIBDIR)
 	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
 	@cd src/treecode/sl_pepc && $(MAKE) $(MAKEFLAGS) clean 
-	@echo -e ""
+	@echo ""
 
 cleanall: cleanlib clean
 	@echo "==== all cleaned"
@@ -72,42 +73,48 @@ cleanall: cleanlib clean
 allclean: cleanall
 
 pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a
-	@echo "======== start building frontend ** $@ **"
+	@echo "======== start building frontend { $@ }"
 	@echo "==== date: " $(shell "date")
 	@echo "==== make target: " $@
 	@mkdir -p $(BUILDDIR)/$(MACH)/$@
 	@FRONTEND=$@ ROOTDIR=$(ROOTDIR) SVNREVISION=$(SVNREVISION) WORKDIR=$(BUILDDIR)/$(MACH)/$@ $(MAKE) $(MFLAGS) -f $(MAKEDIR)/makefile.prepare
 	@mkdir -p $(BINDIR)
 	@cp -p $(BUILDDIR)/$(MACH)/$@/$@ $(BINDIR)
-	@echo -e ""
-	@echo "======== successfully build frontend ** $@ **"
-	@echo -e ""
+	@echo ""
+	@echo "======== successfully built frontend { $@ } :-)"
+	@echo ""
 
 $(LIBDIR):
 	@mkdir $(LIBDIR)
 
 
-MAKEFILEDEFSINFO = "\n\n !!! To create be able to build pepc, you first have to create a file called makefile.defs\n\
-inside the pepc root directory. The makefiles directory contains a number of \n\
-samples, which you usually can use via\n\n\
+MAKEFILEDEFSINFO = "\n\n\
+!!! To be able to build pepc, you first have to create a \n\
+file called 'makefile.defs' inside the pepc root directory. \n\
+A number of example files is contained in the\n\
+'makefiles' directory. They usually can be used use by creating a symbolic link\n\n\
  >  ln -sf makefiles/makefile.defs.extension ./makefile.defs\n\n\
 After creating this link to a certain file, a call of\n\n\
  >  make help\n\n\
 might give you further information. Additionally, consider calling\n\n\
  >  make readme\n\n\
 for a detailed description of what has to be done for getting pepc running.\n\
+For some special configuration you might have to adapt\n\
+the makefile.defs file to refelct your particular setup\n\
+(copiler names, pathes, etc.)\n\
 "
 
 makefile.defs:
-	@echo -e $(MAKEFILEDEFSINFO)
+	@printf $(MAKEFILEDEFSINFO)
+	@echo ""
 	@exit 1
 
 pepclogo:
-	@echo -e "    ____    ____    ____    ____                                       "
-	@echo -e "   /\  _\`\ /\  _\`\ /\  _\`\ /\  _\`\                       "
-	@echo -e "   \ \ \L\ \ \ \L\_\ \ \L\ \ \ \/\_\      The Pretty Efficient      "
-	@echo -e "    \ \ ,__/\ \  _\L\ \ ,__/\ \ \/_/_           Parallel Coulomb Solver "
-	@echo -e "     \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \                                 "
-	@echo -e "      \ \_\   \ \____/\ \_\   \ \____/           p.gibbon@fz-juelich.de"
-	@echo -e "       \/_/    \/___/  \/_/    \/___/                                  "
-	@echo -e ""
+	@echo "    ____    ____    ____    ____                                       "
+	@echo "   /\  _\`\ /\  _\`\ /\  _\`\ /\  _\`\                       "
+	@echo "   \ \ \L\ \ \ \L\_\ \ \L\ \ \ \/\_\      The Pretty Efficient      "
+	@echo "    \ \ ,__/\ \  _\L\ \ ,__/\ \ \/_/_           Parallel Coulomb Solver "
+	@echo "     \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \                                 "
+	@echo "      \ \_\   \ \____/\ \_\   \ \____/           p.gibbon@fz-juelich.de"
+	@echo "       \/_/    \/___/  \/_/    \/___/                                  "
+	@echo ""

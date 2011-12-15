@@ -28,7 +28,7 @@ prepare: $(SRC)
 	@echo "SRC=$(SRC)"                 >> $(MAKEENVS)
 	@cp makefile.defs makefiles/makefile.paths makefiles/makefile.build $(WORKDIR)
 	@cp $(LIBDIR)/libsl.a $(WORKDIR)
-	@echo -e ""
+	@echo ""
 	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.build
 
 %.c: 
