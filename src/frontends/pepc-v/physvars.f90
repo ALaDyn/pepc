@@ -130,7 +130,6 @@ contains
                 n = n_in
                 np = ceiling(1.0*n/n_cpu)
                 h = sqrt(4.0D00*pi/n)
-                m_h = h
                 eps = g*h
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 

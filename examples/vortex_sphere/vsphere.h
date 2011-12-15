@@ -6,7 +6,8 @@
  nu = 0.
 
  rem_freq = 1
- thresh = 0.0D-08
+ thresh = 0.1D-04
+ m_h = 0.1
 
  n_in = 1000
 
@@ -25,7 +26,7 @@
 /
 
 &libpepc
-
+ debug_level = 99
 /
 
 &walk_para_pthreads

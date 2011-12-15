@@ -399,7 +399,7 @@ contains
         call kick_out_particles()
         call reset_labels()
 
-        vortex_particles(1:np)%work = 0.
+        vortex_particles(1:np)%work = 1.
 
         ! initial dump if we did not read in via MPI
         if (ispecial .ne. 99) call dump(0,ts)
@@ -515,8 +515,9 @@ contains
 
             call sort_remesh(m_part, m_np, m_nppm)
 
-            allocate(vortex_particles(m_np))
-            vortex_particles(1:m_np) = m_part(1:m_np)
+            np = m_np
+            allocate(vortex_particles(np))
+            vortex_particles(1:np) = m_part(1:m_np)
 
             deallocate(mesh_offset, m_part)
 
@@ -530,8 +531,8 @@ contains
             call MPI_ALLREDUCE(total_vort,total_vort_full_post,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
             if (my_rank == 0) then
-                write(*,*) 'Vorticity before remeshing:', total_vort_full_pre
-                write(*,*) '   Vorticity after merging:', total_vort_full_post
+                write(*,*) 'Vorticity before remeshing (x,y,z,norm2):', total_vort_full_pre, sqrt(dot_product(total_vort_full_pre,total_vort_full_pre))
+                write(*,*) '   Vorticity after merging (x,y,z,norm2):', total_vort_full_post, sqrt(dot_product(total_vort_full_post,total_vort_full_post))
             end if
 
         end if
@@ -749,7 +750,7 @@ contains
             imba = 0.05
             local_keys(1:npold) = m_part(1:npold)%key
             local_work(1:npold) = m_part(1:npold)%work
-            call slsort_keys(npold,m_nppm-2,local_keys,local_work,load_balance,imba,&
+            call slsort_keys(npold,m_nppm,local_keys,local_work,load_balance,imba,&
                              npnew,indxl,irnkl,islen,irlen,fposts,gposts,sorted_keys,irnkl2,n_cpu,my_rank)
 
             ! Check if sort finished and find inner doublets
