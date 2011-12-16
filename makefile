@@ -40,14 +40,16 @@ buildenv:
 readme:
 	cat README | less
 
-all: $(ALLFRONTENDS)
+all:
+	-$(MAKE) $(MFLAGS) $(ALLFRONTENDS)
 	@echo ""
 	@echo "======== build all results:"
 	@echo "== available: " $(ALLFRONTENDS)
-	@echo "== build    : " $(shell ls $(BINDIR))
+	@echo "== build    : " $(shell cd $(BINDIR) ; ls $(ALLFRONTENDS))
 	@echo ""
 
 libsl: $(LIBDIR)/libsl.a
+
 $(LIBDIR)/libsl.a: $(LIBDIR)
 	@echo "==== building libsl"
 	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
@@ -64,7 +66,7 @@ cleanlib:
 	@echo "==== cleaning libraries"
 	@$(RM) $(LIBDIR)
 	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
-	@cd src/treecode/sl_pepc && $(MAKE) $(MAKEFLAGS) clean 
+	@cd src/treecode/sl_pepc && $(MAKE) $(MFLAGS) clean 
 	@echo ""
 
 cleanall: cleanlib clean
@@ -77,8 +79,9 @@ pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a
 	@echo "==== date: " $(shell "date")
 	@echo "==== make target: " $@
 	@mkdir -p $(BUILDDIR)/$(MACH)/$@
-	@FRONTEND=$@ ROOTDIR=$(ROOTDIR) SVNREVISION=$(SVNREVISION) WORKDIR=$(BUILDDIR)/$(MACH)/$@ $(MAKE) $(MFLAGS) -f $(MAKEDIR)/makefile.prepare
 	@mkdir -p $(BINDIR)
+	@-$(RM) $(BINDIR)/$@
+	@FRONTEND=$@ ROOTDIR=$(ROOTDIR) SVNREVISION=$(SVNREVISION) WORKDIR=$(BUILDDIR)/$(MACH)/$@ $(MAKE) $(MFLAGS) -f $(MAKEDIR)/makefile.prepare
 	@cp -p $(BUILDDIR)/$(MACH)/$@/$@ $(BINDIR)
 	@echo ""
 	@echo "======== successfully built frontend { $@ } :-)"
