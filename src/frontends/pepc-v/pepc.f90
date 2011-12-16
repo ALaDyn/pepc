@@ -18,7 +18,7 @@ program pepcv
   use diagnostics
   implicit none
 
-  integer :: ierr, i
+  integer :: i
   real :: trun                     ! total run time including restarts and offset
   integer :: itime, stage
   integer, parameter :: t_remesh = t_userdefined_first + 1

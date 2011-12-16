@@ -448,8 +448,8 @@ contains
         implicit none
         include 'mpif.h'
 
-        integer :: mesh_supp, m_np, m_nppm, tmp, ierr, k, i, i1, i2, i3
-        real*8 :: frac
+        integer :: mesh_supp, m_np, m_nppm, tmp, ierr, k, i, i1, i2, i3, xtn, ytn, ztn
+        real*8 :: frac, xt, yt, zt, axt, ayt, azt, wt
         real*8, allocatable :: mesh_offset(:)
         real*8, dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_post
 
@@ -485,21 +485,31 @@ contains
         !! Start required remeshing, i.e. project particles onto mesh
         k=0
         do i=1,np
+            xt  = vortex_particles(i)%x(1)
+            yt  = vortex_particles(i)%x(2)
+            zt  = vortex_particles(i)%x(3)
+            xtn = nint(xt/m_h)
+            ytn = nint(yt/m_h)
+            ztn = nint(zt/m_h)
+            axt = vortex_particles(i)%data%alpha(1)
+            ayt = vortex_particles(i)%data%alpha(2)
+            azt = vortex_particles(i)%data%alpha(3)
+            wt  = vortex_particles(i)%work
             ! For each particle i define its neighbor mesh points and project onto them
             do i1 = 1,mesh_supp
                 do i2 = 1,mesh_supp
                     do i3 = 1,mesh_supp
                         k=k+1
-                        m_part(k)%x(1) = m_h*(nint(vortex_particles(i)%x(1)/m_h) + mesh_offset(i1))
-                        m_part(k)%x(2) = m_h*(nint(vortex_particles(i)%x(2)/m_h) + mesh_offset(i2))
-                        m_part(k)%x(3) = m_h*(nint(vortex_particles(i)%x(3)/m_h) + mesh_offset(i3))
-                        frac = ip_kernel(dabs(vortex_particles(i)%x(1)-m_part(k)%x(1))/m_h,kernel_c)*&
-                        ip_kernel(dabs(vortex_particles(i)%x(2)-m_part(k)%x(2))/m_h,kernel_c)*&
-                        ip_kernel(dabs(vortex_particles(i)%x(3)-m_part(k)%x(3))/m_h,kernel_c)
-                        m_part(k)%data%alpha(1) = frac*vortex_particles(i)%data%alpha(1)
-                        m_part(k)%data%alpha(2) = frac*vortex_particles(i)%data%alpha(2)
-                        m_part(k)%data%alpha(3) = frac*vortex_particles(i)%data%alpha(3)
-                        m_part(k)%work = frac*vortex_particles(i)%work
+                        m_part(k)%x(1) = m_h*(xt + mesh_offset(i1))
+                        m_part(k)%x(2) = m_h*(yt + mesh_offset(i2))
+                        m_part(k)%x(3) = m_h*(zt + mesh_offset(i3))
+                        frac = ip_kernel(dabs(xt-m_part(k)%x(1))/m_h,kernel_c)*&
+                               ip_kernel(dabs(yt-m_part(k)%x(2))/m_h,kernel_c)*&
+                               ip_kernel(dabs(zt-m_part(k)%x(3))/m_h,kernel_c)
+                        m_part(k)%data%alpha(1) = frac*axt
+                        m_part(k)%data%alpha(2) = frac*ayt
+                        m_part(k)%data%alpha(3) = frac*azt
+                        m_part(k)%work = frac*wt
                         m_part(k)%data%u_rk(1:3) = 0.
                         m_part(k)%data%af_rk(1:3) = 0.
                         m_part(k)%results%u(1:3) = 0.
@@ -678,7 +688,7 @@ contains
             particles(j)%key = iplace
             do i=0,nbits-1
                 particles(j)%key = particles(j)%key &
-                + 8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) )
+                                 + 8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) )
             end do
         end do
 
