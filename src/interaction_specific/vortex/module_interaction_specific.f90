@@ -44,6 +44,7 @@ module module_interaction_specific
       public calc_force_init
       public calc_force_finalize
       public calc_force_prepare
+      public get_number_of_interactions_per_particle
       private calc_2nd_algebraic_condensed
       !private calc_2nd_algebraic_decomposed
       !private calc_6th_algebraic_decomposed
@@ -231,6 +232,27 @@ module module_interaction_specific
           implicit none
           ! nothing to do here
         end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> subroutine must return the estimated number of iteractions per particle
+      !> for the current mac and/or parameters and the supplied total number of particles
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
+        implicit none
+        integer, intent(in) :: npart_total !< total number of particles
+        integer, intent(out) :: nintmax !< maximum number of interactions per particle
+
+        real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
+
+        ! Estimate of interaction list length - Hernquist expression
+        ! applies for BH-MAC
+        invnintmax = max(theta2 / (35.*log(1.*npart_total)) , 1._8/npart_total)
+        nintmax    = int(1._8/invnintmax)
+
+      end subroutine
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

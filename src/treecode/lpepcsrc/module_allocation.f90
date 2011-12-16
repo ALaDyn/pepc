@@ -39,17 +39,15 @@ module module_allocation
     !> Initializes several estimations on maximum used memory
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine allocate_tree(theta2)
+    subroutine allocate_tree()
         use treevars
         use module_timings
         use module_debug
         use module_htable
         use module_branching
+        use module_interaction_specific, only : get_number_of_interactions_per_particle
         implicit none
 
-        real*8, intent(in) :: theta2
-
-        integer :: nintest
         integer :: nbaddr ! number of bits in the hashing function
 
         call timer_start(t_allocate)
@@ -58,14 +56,7 @@ module module_allocation
 
         call pepc_status('ALLOCATE TREE')
 
-        ! Estimate of interaction list length - Hernquist expression
-        if (theta2 > 0.0001 ) then
-            nintest = int(35.*log(1.*npart)/theta2)
-        else
-            nintest = npart
-        endif
-
-        nintmax=min(nintest,npart)
+        call get_number_of_interactions_per_particle(npart, nintmax)
 
         !  Space for # table and tree arrays
         !  TODO: need good estimate for max # branches

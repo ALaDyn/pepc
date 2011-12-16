@@ -96,7 +96,7 @@ module module_libpepc_main
         ! Domain decomposition: allocate particle keys to PEs
         call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, neighbour_pe_particles)
         np_local = npnew ! == npp, just to inform the calling routine about the current size of the particles-field
-        call allocate_tree(0.09_8) !(theta2) TODO: the argument of this function should be theta^2 for BH-MAC, something else (what) for other cases, maybe, make this a call parameter for tree_Walk or make it interaction-specific
+        call allocate_tree()
 
         ! build local part of tree
         call timer_start(t_local)
