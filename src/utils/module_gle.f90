@@ -30,6 +30,7 @@ module module_gle
 	  use treevars
 	  use module_htable
 	  use module_pepc_wrappers
+	  use module_spacefilling
 	  use module_debug, only : ipefile
 
 	  implicit none
@@ -93,7 +94,7 @@ module module_gle
 	  addr_list(1:nlist) = (/ ( key2addr( key_list(i),'DRAW_LISTS' ),i=1,nlist) /)   !  Table address
 
 	  ! get levels of twigs
-	  level_list(1:nlist) = int(log( 1.*key_list(1:nlist) )/log(8.))
+	  level_list(1:nlist) = level_from_key(key_list(1:nlist))
 	  node_list(1:nlist) =   htable( addr_list(1:nlist))%node   !  nodes
 	  owner_list(1:nlist) =   htable( addr_list(1:nlist))%owner      ! owner
 
@@ -262,6 +263,7 @@ module module_gle
 	  use treevars
 	  use module_htable
       use module_pepc_wrappers
+      use module_spacefilling
       use module_debug, only : ipefile
 
 	  implicit none
@@ -325,7 +327,7 @@ module module_gle
 	  key_twig = pack(htable%key,mask=htable%node<0)
 
 	  ! get levels of twigs
-	  level_twig = int(log( 1.*key_twig )/log(8.))
+	  level_twig = level_from_key(key_twig)
 	  node_twig = pack(htable%node,mask=htable%node<0)         ! twig index
 	  owner_twig = pack(htable%owner,mask=htable%node<0)         ! twig owner
 
@@ -368,7 +370,7 @@ module module_gle
 	  plist_leaf(1:nleaf) = pack(htable%childcode,mask=htable%node>0)   ! particle label
 
 	  ! get levels of leaves
-	  level_leaf(1:nleaf) = int(log(1.*key_leaf(1:nleaf))/log(8.))
+	  level_leaf(1:nleaf) = level_from_key(key_leaf(1:nleaf))
 
 
 	  do j=1,nleaf
@@ -741,6 +743,7 @@ module module_gle
 	  use treevars
 	  use module_htable
       use module_pepc_wrappers
+      use module_spacefilling
       use module_debug, only : ipefile
 
 	  implicit none
@@ -806,7 +809,7 @@ module module_gle
 	  key_twig = pack(htable%key,mask=htable%node<0)
 
 	  ! get levels of twigs
-	  level_twig = int(log( 1.*key_twig )/log(8.))
+	  level_twig = level_from_key(key_twig)
 	  node_twig = pack(htable%node,mask=htable%node<0)         ! twig index
 
 
@@ -839,7 +842,7 @@ module module_gle
 	!  branch_owner = (/ ( htable( key2addr( branch_key(j) ) )%owner, j=1,nbranch_sum) /)         ! Owner-PE of branch
 
 	  do j=1,nbranch_sum
-	     ilev = int(log( 1.*branch_key(j) )/log(8.))
+	     ilev = level_from_key(branch_key(j))
 	     ix = int(SUM( (/ (2**i*ibits( branch_key(j),3*i,1 ), i=0,ilev-1) /) ))
 	     iy = int(SUM( (/ (2**i*ibits( branch_key(j),3*i+1,1 ), i=0,ilev-1) /) ))
 	     iz = int(SUM( (/ (2**i*ibits( branch_key(j),3*i+2,1 ), i=0,ilev-1) /) ))
@@ -868,7 +871,7 @@ module module_gle
 	  plist_leaf(1:nleaf) = pack(htable%childcode,mask=htable%node>0)   ! particle label
 
 	  ! get levels of leaves
-	  level_leaf(1:nleaf) = int(log(1.*key_leaf(1:nleaf))/log(8.))
+	  level_leaf(1:nleaf) = level_from_key(key_leaf(1:nleaf))
 
 	  write (60,'(a)') 'set lwidth .001 color black'
 

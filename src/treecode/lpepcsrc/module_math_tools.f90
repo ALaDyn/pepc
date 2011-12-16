@@ -30,8 +30,6 @@ module module_math_tools
       public inverse3
       public sort_abs
       public bpi
-      public bpi_log
-      public bpi_bits
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -401,81 +399,6 @@ module module_math_tools
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Calculates the biggest power to \a base in a given interval with the limits \a a and \a b.
-        !> Be careful, that \f$a<b\f$ !!!
-        !>
-        !> @param[in] a First Limit of interval.
-        !> @param[in] b Second Limit of interval.
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        integer*8 function bpi_log(a, b)
-
-          implicit none
-          include 'mpif.h'
-
-          integer :: ierr
-
-          integer*8,intent(inout) :: a, b
-          integer*8 :: k
-          integer*8 :: i 
-          integer*8 :: powr
-          integer*8 :: res
-          
-          powr = floor(log(REAL(b))/log(REAL(8_8)))
-          do i = powr, 0, -1
-             
-             k = b/8_8**i
-             res = k * 8_8**i
-             if (a.lt.res) then
-                bpi_log=res ! return
-                return
-             end if
-          end do
-
-          bpi_log=-1
-          call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-          
-        end function bpi_log
-        
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
-        !> Calculates the biggest power to \a base in a given interval with the limits \a a and \a b. In this 
-        !> routine it is done by bit operations. Be careful, that \f$a<b\f$ !!!
-        !>
-        !> @param[in] a First Limit of interval.
-        !> @param[in] b Second Limit of interval.
-        !> @param[in] levels The number of levels in the tree.\see{treevars::nlev}
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        integer*8 function bpi_bits(a, b, levels)
-
-          implicit none
-          include 'mpif.h'
-
-          integer :: ierr
-
-          integer*8,intent(inout) :: a, b
-          integer,intent(in) :: levels
-          integer*8 :: i
-          integer*8 :: bn, pos
-
-          do i=1,levels
-             pos=3*(levels-i)
-             if(ibits(a,pos,3).ne.ibits(b,pos,3))then
-                bn=8_8**(levels-i)
-                bpi_bits=b/bn*bn  ! return, Note: is an integer division
-                return
-             end if
-          end do
-          
-          bpi_bits=-1
-          call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-
-        end function bpi_bits
-        
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
         !> Calculates the biggest power to \a base in a given interval with the limits \a a and \a b. In this
         !> routine it is done by a more direct expression. Be careful, that \f$a<b\f$ !!!
         !>
@@ -484,17 +407,26 @@ module module_math_tools
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         integer*8 function bpi(a, b)
-
+          use module_spacefilling
           implicit none
           include 'mpif.h'
 
-          integer*8,intent(inout) :: a, b
-          integer*8 :: i
-          integer*8 :: bn
+          integer :: ierr
 
-          i = int(log(1._8*real(ieor(a,b), kind(1._8)))/log(8._8))
-          bn = 8_8**i
-          bpi = b/bn*bn
+          integer*8,intent(in) :: a, b
+
+          integer*8 :: axorb, mask
+          integer :: bpilevel
+
+          if (b < a) then
+            write(*,*) "Error: b < a in math_tools::bpi(a,b)"
+            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+          endif
+
+          axorb             = ieor(a,b)
+          bpilevel          = level_from_key(axorb)
+          mask              = not(2_8**(3*bpilevel) - 1)
+          bpi               = iand(b,mask) ! extract highgest bits from b (which has to be the larger of both parameters)
 
         end function bpi
 

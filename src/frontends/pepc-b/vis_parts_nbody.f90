@@ -12,6 +12,7 @@ subroutine vis_parts_nbody(vcount)
 
   use physvars
   use treevars
+  use module_spacefilling
   implicit none
   include 'mpif.h'
 
@@ -231,7 +232,7 @@ subroutine vis_parts_nbody(vcount)
 	        boxz_min=zl
                 do k=1,nbranch_sum
              
-                 ilev = log( 1.*branch_key(k) )/log(8.)
+                 ilev = level_from_key(1.*branch_key(k))
                  ixd = SUM( (/ (2**i*ibits( branch_key(k),3*i,1 ), i=0,ilev-1) /) )
                  iyd = SUM( (/ (2**i*ibits( branch_key(k),3*i+1,1 ), i=0,ilev-1) /) )
                  izd = SUM( (/ (2**i*ibits( branch_key(k),3*i+2,1 ), i=0,ilev-1) /) )
@@ -246,7 +247,7 @@ subroutine vis_parts_nbody(vcount)
                 ivisdom = 0
                 do k=1,nbranch_sum
              
-                 ilev = log( 1.*branch_key(k) )/log(8.)
+                 ilev = level_from_key(branch_key(k))
                  ixd = SUM( (/ (2**i*ibits( branch_key(k),3*i,1 ), i=0,ilev-1) /) )
                  iyd = SUM( (/ (2**i*ibits( branch_key(k),3*i+1,1 ), i=0,ilev-1) /) )
                  izd = SUM( (/ (2**i*ibits( branch_key(k),3*i+2,1 ), i=0,ilev-1) /) )
@@ -310,7 +311,7 @@ subroutine vis_parts_nbody(vcount)
                 do k=1,num_pe
 
 		  iglobal = istrid(k)+1  ! branches are sorted, so 1st one will have lowest level #
-                  rlev = log( 1.*branch_key(iglobal) )/log(8.)
+          rlev = level_from_key(branch_key(iglobal))
 		  ilev = rlev
  		  ibox = iglobal
 		  bkey=branch_key(iglobal)
@@ -387,7 +388,7 @@ subroutine vis_parts_nbody(vcount)
 
 		 do k=1,nbranches(proc_vis(p))
 		  iglobal = istrid(proc_vis(p))+k  ! global branch index
-                  rlev = log( 1.*branch_key(iglobal) )/log(8.)
+          rlev = level_from_key(branch_key(iglobal))
 		  ilev = rlev
  		  ibox = iglobal
 		  bkey=branch_key(iglobal)

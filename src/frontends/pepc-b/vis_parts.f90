@@ -12,6 +12,7 @@ subroutine vis_parts
 
   use physvars
   use treevars
+  use module_spacefilling
   implicit none   
   include 'mpif.h'
 
@@ -169,7 +170,7 @@ subroutine vis_parts
 
         ! ship branch nodes to show domains
         do j=1,nbranch_sum
-           ilev = log( 1.*branch_key(j) )/log(8.)
+           ilev = level_from_key(branch_key(j))
            ixd = SUM( (/ (2**i*ibits( branch_key(j),3*i,1 ), i=0,ilev-1) /) )
            iyd = SUM( (/ (2**i*ibits( branch_key(j),3*i+1,1 ), i=0,ilev-1) /) )
            izd = SUM( (/ (2**i*ibits( branch_key(j),3*i+2,1 ), i=0,ilev-1) /) )
