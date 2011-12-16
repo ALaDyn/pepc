@@ -21,6 +21,7 @@ program pepcv
   integer :: ierr, i
   real :: trun                     ! total run time including restarts and offset
   integer :: itime, stage
+  integer, parameter :: t_remesh = t_userdefined_first + 1
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-v", my_rank, n_cpu, .true.)
@@ -75,7 +76,22 @@ program pepcv
 
      end do
 
-     call remeshing(itime)
+     ! if remeshing is requested at all and if it is time right now, do it!
+     if ((rem_freq .gt. 0) .and. (mod(itime,rem_freq)==0)) then
+
+        if (my_rank==0) write(*,'("PEPC-V | ", a)') 'Starting remeshing...'
+        call timer_start(t_remesh)
+
+        call remeshing()
+
+        call timer_stop(t_remesh)
+        if (my_rank==0) write(*,'("PEPC-V | ", a,f12.8,a)') 'Finished remeshing after ',timer_read(t_remesh),' seconds'
+
+        call timings_LocalOutput(itime,-1)
+        call timings_GatherAndOutput(itime,-1)
+     end if
+
+
 
      ! Some linear diagnostics
      call linear_diagnostics(itime,trun)

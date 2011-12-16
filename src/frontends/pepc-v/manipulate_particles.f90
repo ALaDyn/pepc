@@ -442,109 +442,112 @@ contains
     !>   4th order remeshing using parallel sorting
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine remeshing(step)
+    subroutine remeshing()
 
         use physvars
         implicit none
         include 'mpif.h'
 
-        integer, intent(in) :: step
         integer :: mesh_supp, m_np, m_nppm, tmp, ierr, k, i, i1, i2, i3
         real*8 :: frac
         real*8, allocatable :: mesh_offset(:)
-        real*8, dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_post
+        real*8, dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_post
 
         type(t_particle), allocatable :: m_part(:)
 
-        if ((rem_freq .gt. 0) .and. (mod(step,rem_freq)==0)) then
+        total_vort = 0.
+        do i = 1,np
+            total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
+        end do
+        call MPI_ALLREDUCE(total_vort,total_vort_full_pre,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-            total_vort = 0.
-            do i = 1,np
-                total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
-            end do
-            call MPI_ALLREDUCE(total_vort,total_vort_full_pre,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+        !! Define mesh structure and support, currently only none or 4 are possible
+        mesh_supp = 4 !TODO: make this a parameter (and adapt remeshing itself to it)
+        allocate(mesh_offset(mesh_supp))
+        mesh_offset = (/-0.15D+01, -0.5D+00, 0.5D+00, 0.15D+01/)
 
-            !! Define mesh structure and support, currently only none or 4 are possible
-            mesh_supp = 4 !TODO: make this a parameter (and adapt remeshing itself to it)
-            allocate(mesh_offset(mesh_supp))
-            mesh_offset = (/-0.15D+01, -0.5D+00, 0.5D+00, 0.15D+01/)
+        ! Define array limits for new particles on the mesh
+        m_np = np*mesh_supp**3
+        m_nppm = int(1.1*max(m_np,1000)) ! allow 10% fluctuation
 
-            ! Define array limits for new particles on the mesh
-            m_np = np*mesh_supp**3
-            m_nppm = int(1.1*max(m_np,1000)) ! allow 10% fluctuation
+        ! TODO: Define global max. #particles (do we need this?)
+        call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ierr)
+        m_nppm = tmp
 
-            ! TODO: Define global max. #particles (do we need this?)
-            call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ierr)
-            m_nppm = tmp
+        allocate(m_part(m_nppm),STAT=ierr)
 
-            allocate(m_part(m_nppm),STAT=ierr)
+        if (ierr .ne. 0) then
+            write(*,*) 'something is wrong here: remeshing allocation failed', my_rank, ierr
+            call MPI_ABORT(MPI_COMM_WORLD,ierr)
+            stop
+        end if
 
-            if (ierr .ne. 0) then
-                write(*,*) 'something is wrong here: remeshing allocation failed', my_rank, ierr
-                call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                stop
-            end if
-
-            !! Start required remeshing, i.e. project particles onto mesh
-            k=0
-            do i=1,np
-                ! For each particle i define its neighbor mesh points and project onto them
-                do i1 = 1,mesh_supp
-                    do i2 = 1,mesh_supp
-                        do i3 = 1,mesh_supp
-                            k=k+1
-                            m_part(k)%x(1) = m_h*(nint(vortex_particles(i)%x(1)/m_h) + mesh_offset(i1))
-                            m_part(k)%x(2) = m_h*(nint(vortex_particles(i)%x(2)/m_h) + mesh_offset(i2))
-                            m_part(k)%x(3) = m_h*(nint(vortex_particles(i)%x(3)/m_h) + mesh_offset(i3))
-                            frac = ip_kernel(dabs(vortex_particles(i)%x(1)-m_part(k)%x(1))/m_h,kernel_c)*&
-                                   ip_kernel(dabs(vortex_particles(i)%x(2)-m_part(k)%x(2))/m_h,kernel_c)*&
-                                   ip_kernel(dabs(vortex_particles(i)%x(3)-m_part(k)%x(3))/m_h,kernel_c)
-                            m_part(k)%data%alpha(1) = frac*vortex_particles(i)%data%alpha(1)
-                            m_part(k)%data%alpha(2) = frac*vortex_particles(i)%data%alpha(2)
-                            m_part(k)%data%alpha(3) = frac*vortex_particles(i)%data%alpha(3)
-                            m_part(k)%work = frac*vortex_particles(i)%work
-                            m_part(k)%data%u_rk(1:3) = 0.
-                            m_part(k)%data%af_rk(1:3) = 0.
-                            m_part(k)%results%u(1:3) = 0.
-                            m_part(k)%results%af(1:3) = 0.
-                        end do
+        !! Start required remeshing, i.e. project particles onto mesh
+        k=0
+        do i=1,np
+            ! For each particle i define its neighbor mesh points and project onto them
+            do i1 = 1,mesh_supp
+                do i2 = 1,mesh_supp
+                    do i3 = 1,mesh_supp
+                        k=k+1
+                        m_part(k)%x(1) = m_h*(nint(vortex_particles(i)%x(1)/m_h) + mesh_offset(i1))
+                        m_part(k)%x(2) = m_h*(nint(vortex_particles(i)%x(2)/m_h) + mesh_offset(i2))
+                        m_part(k)%x(3) = m_h*(nint(vortex_particles(i)%x(3)/m_h) + mesh_offset(i3))
+                        frac = ip_kernel(dabs(vortex_particles(i)%x(1)-m_part(k)%x(1))/m_h,kernel_c)*&
+                        ip_kernel(dabs(vortex_particles(i)%x(2)-m_part(k)%x(2))/m_h,kernel_c)*&
+                        ip_kernel(dabs(vortex_particles(i)%x(3)-m_part(k)%x(3))/m_h,kernel_c)
+                        m_part(k)%data%alpha(1) = frac*vortex_particles(i)%data%alpha(1)
+                        m_part(k)%data%alpha(2) = frac*vortex_particles(i)%data%alpha(2)
+                        m_part(k)%data%alpha(3) = frac*vortex_particles(i)%data%alpha(3)
+                        m_part(k)%work = frac*vortex_particles(i)%work
+                        m_part(k)%data%u_rk(1:3) = 0.
+                        m_part(k)%data%af_rk(1:3) = 0.
+                        m_part(k)%results%u(1:3) = 0.
+                        m_part(k)%results%af(1:3) = 0.
                     end do
                 end do
             end do
+        end do
 
-            if (k .ne. m_np) then
-                write(*,*) 'something is wrong here: #remeshed particles not equal to prediciton', my_rank, k, m_np
-                call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                stop
-            end if
+        if (k .ne. m_np) then
+            write(*,*) 'something is wrong here: #remeshed particles not equal to prediciton', my_rank, k, m_np
+            call MPI_ABORT(MPI_COMM_WORLD,ierr)
+            stop
+        end if
 
-            deallocate(vortex_particles)
+        deallocate(vortex_particles)
 
-            call sort_remesh(m_part, m_np, m_nppm)
+        call sort_remesh(m_part, m_np, m_nppm)
 
-            np = m_np
-            allocate(vortex_particles(np))
-            vortex_particles(1:np) = m_part(1:m_np)
+        np = m_np
+        allocate(vortex_particles(np))
+        vortex_particles(1:np) = m_part(1:m_np)
 
-            deallocate(mesh_offset, m_part)
+        deallocate(mesh_offset, m_part)
 
-            call kick_out_particles()
-            call reset_labels()
+        total_vort = 0.
+        do i = 1,np
+            total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
+        end do
+        call MPI_ALLREDUCE(total_vort,total_vort_full_mid,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-            total_vort = 0.
-            do i = 1,np
-                total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
-            end do
-            call MPI_ALLREDUCE(total_vort,total_vort_full_post,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call kick_out_particles()
+        call reset_labels()
 
-            if (my_rank == 0) then
-                write(*,*) 'Vorticity before remeshing (x,y,z,norm2):', total_vort_full_pre, sqrt(dot_product(total_vort_full_pre,total_vort_full_pre))
-                write(*,*) ' Vorticity after remeshing (x,y,z,norm2):', total_vort_full_post, sqrt(dot_product(total_vort_full_post,total_vort_full_post))
-            end if
+        total_vort = 0.
+        do i = 1,np
+            total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
+        end do
+        call MPI_ALLREDUCE(total_vort,total_vort_full_post,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
+        if (my_rank == 0) then
+            write(*,*) '   Vorticity before remeshing (x,y,z,norm2):', total_vort_full_pre, sqrt(dot_product(total_vort_full_pre,total_vort_full_pre))
+            write(*,*) 'Vorticity before pop. control (x,y,z,norm2):', total_vort_full_mid, sqrt(dot_product(total_vort_full_mid,total_vort_full_mid))
+            write(*,*) '    Vorticity after remeshing (x,y,z,norm2):', total_vort_full_post, sqrt(dot_product(total_vort_full_post,total_vort_full_post))
         end if
 
     end subroutine remeshing
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
