@@ -87,7 +87,6 @@ module files
             if (ierr .ne. MPI_SUCCESS) then
                 write(*,*) 'something is wrong here: file open failed',my_rank,ierr,cfile
                 call MPI_ABORT(MPI_COMM_WORLD,err,ierr)
-                stop
             end if
             ! Set file view to BYTE for header, only rank 0 writes it
             call MPI_FILE_SET_VIEW(fh,0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
@@ -102,12 +101,11 @@ module files
                 call MPI_FILE_WRITE(fh,m_h,1,MPI_REAL,status,ierr)         ! Remeshing distance
                 call MPI_FILE_WRITE(fh,rem_freq,1,MPI_INTEGER,status,ierr) ! Remeshing frequence
                 call MPI_FILE_WRITE(fh,thresh,1,MPI_REAL8,status,ierr)     ! threshold for pop. control
-                call MPI_FILE_WRITE(fh,eps,1,MPI_REAL,status,ierr)         ! core size
+                call MPI_FILE_WRITE(fh,eps,1,MPI_REAL8,status,ierr)         ! core size
                 call MPI_FILE_GET_POSITION(fh, disp, ierr)
                 if (disp .gt. header_disp) then
                     write(*,*) "header_size is too small: ", header_disp, "<", disp
                     call MPI_ABORT(MPI_COMM_WORLD,err,ierr)
-                    stop
                 end if
             end if
 

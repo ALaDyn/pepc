@@ -130,20 +130,17 @@ contains
                 n = n_in
                 np = ceiling(1.0*n/n_cpu)
                 h = sqrt(4.0D00*pi/n)
-                eps = g*h
+                !eps = g*h
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(99)                          ! Setup MPI checkpoint readin
 
                 call setup_MPI_IO_readin(itime)
-                trun = ts
-                nt = int((te-ts)/dt) ! Number of timesteps (ts, te have changed)
 
             case default
 
                 write(*,*) 'ERROR: need to specify setup via ispecial in your .h file'
-                call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                stop
+                call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
 
         end select init
 
@@ -151,7 +148,7 @@ contains
         sig2 = eps**2
 
         ! Setup time variables
-        trun = ts
+        trun = ts+itime*dt
         nt = int((te-ts)/dt) ! Number of timesteps
         rk_stages = 2   ! TODO: inflexible RK time integration scheme, hard-wired so far
 
@@ -213,7 +210,6 @@ contains
         if (ierr .ne. MPI_SUCCESS) then
             write(*,*) 'something is wrong here: file open failed',my_rank,ierr,mpifile
             call MPI_ABORT(MPI_COMM_WORLD,err,ierr)
-            stop
         end if
 
         ! Set file view to BYTE for header and read
@@ -236,7 +232,7 @@ contains
         nu = tmp_nu
         h = tmp_h
         m_h = tmp_m_h
-        itime = tmp_i+1
+        itime = tmp_i
         rem_freq = tmp_rem_freq
         thresh = tmp_thresh
         eps = tmp_eps

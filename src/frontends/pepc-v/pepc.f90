@@ -20,7 +20,7 @@ program pepcv
 
   integer :: i
   real :: trun                     ! total run time including restarts and offset
-  integer :: itime, stage
+  integer :: itime, stage, t_flag
   integer, parameter :: t_remesh = t_userdefined_first + 1
 
   ! Allocate array space for tree
@@ -56,8 +56,6 @@ program pepcv
 
         call pepc_grow_and_traverse(np, n, vortex_particles, itime, .true., .false., .true.)
 
-        ! TODO: check, if this is correct (moved force_const out of calc_force)
-
         do i=1,np
           vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
           vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
@@ -65,10 +63,12 @@ program pepcv
 
         call push_rk2(stage)
 
-        call timer_stop(t_tot)   ! total loop time without diags
+        if (stage .lt. rk_stages) then
+            call timer_stop(t_tot)   ! total loop time without diags
 
-        call timings_LocalOutput(itime,stage)
-        call timings_GatherAndOutput(itime,stage)
+            call timings_LocalOutput(itime,stage)
+            call timings_GatherAndOutput(itime,stage)
+        end if
 
         flush(6)
 
@@ -86,12 +86,17 @@ program pepcv
 
         call timer_stop(t_remesh)
         if (my_rank==0) write(*,'("PEPC-V | ", a,f12.8,a)') 'Finished remeshing after ',timer_read(t_remesh),' seconds'
+        t_flag = -rk_stages
 
-        call timings_LocalOutput(itime,-1)
-        call timings_GatherAndOutput(itime,-1)
+     else
+
+        t_flag = rk_stages
+
      end if
 
-
+     call timer_stop(t_tot)   ! total loop time incl. remeshing if requested
+     call timings_LocalOutput(itime,t_flag)
+     call timings_GatherAndOutput(itime,t_flag)
 
      ! Some linear diagnostics
      call linear_diagnostics(itime,trun)

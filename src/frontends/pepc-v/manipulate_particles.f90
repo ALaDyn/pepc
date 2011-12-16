@@ -132,8 +132,7 @@ contains
                         ind = ind + 1
                         if (ind .gt.np-1) then
                             write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n
-                            call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                            stop
+                            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
                         vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
                         vortex_particles(ind)%x(2) = yp(i)
@@ -238,8 +237,7 @@ contains
                         ind = ind + 1
                         if (ind .gt. np-1) then
                             write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n
-                            call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                            stop
+                            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
                         vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
                         vortex_particles(ind)%x(2) = yp(i) - (torus_offset(2)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
@@ -330,8 +328,7 @@ contains
                         ind = ind + 1
                         if (ind .gt. np-1) then
                             write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n
-                            call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                            stop
+                            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
                         vortex_particles(ind)%x(1) = xp(i) + (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
                         vortex_particles(ind)%x(2) = yp(i) + (torus_offset(2)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
@@ -376,8 +373,7 @@ contains
                 if (mod(i+my_rank,n_cpu) == 0) then
                     if (j .gt. np-1) then
                         write(*,*) 'something is wrong here: to many particles in init',my_rank,j,np,i
-                        call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                        stop
+                        call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                     end if
                     j = j+1
                     vortex_particles(j)%x(1) = sth*cphi
@@ -396,13 +392,13 @@ contains
 
         end select config
 
-        call kick_out_particles()
-        call reset_labels()
-
-        vortex_particles(1:np)%work = 1.
-
         ! initial dump if we did not read in via MPI
-        if (ispecial .ne. 99) call dump(0,ts)
+        if (ispecial .ne. 99) then
+            call dump(0,ts)
+            call kick_out_particles()
+            call reset_labels()
+            vortex_particles(1:np)%work = 1.
+        end if
 
     end subroutine special_start
 
@@ -478,8 +474,7 @@ contains
 
         if (ierr .ne. 0) then
             write(*,*) 'something is wrong here: remeshing allocation failed', my_rank, ierr
-            call MPI_ABORT(MPI_COMM_WORLD,ierr)
-            stop
+            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
         end if
 
         !! Start required remeshing, i.e. project particles onto mesh
@@ -500,9 +495,9 @@ contains
                 do i2 = 1,mesh_supp
                     do i3 = 1,mesh_supp
                         k=k+1
-                        m_part(k)%x(1) = m_h*(xt + mesh_offset(i1))
-                        m_part(k)%x(2) = m_h*(yt + mesh_offset(i2))
-                        m_part(k)%x(3) = m_h*(zt + mesh_offset(i3))
+                        m_part(k)%x(1) = m_h*(xtn + mesh_offset(i1))
+                        m_part(k)%x(2) = m_h*(ytn + mesh_offset(i2))
+                        m_part(k)%x(3) = m_h*(ztn + mesh_offset(i3))
                         frac = ip_kernel(dabs(xt-m_part(k)%x(1))/m_h,kernel_c)*&
                                ip_kernel(dabs(yt-m_part(k)%x(2))/m_h,kernel_c)*&
                                ip_kernel(dabs(zt-m_part(k)%x(3))/m_h,kernel_c)
@@ -521,8 +516,7 @@ contains
 
         if (k .ne. m_np) then
             write(*,*) 'something is wrong here: #remeshed particles not equal to prediciton', my_rank, k, m_np
-            call MPI_ABORT(MPI_COMM_WORLD,ierr)
-            stop
+            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
         end if
 
         deallocate(vortex_particles)
@@ -697,8 +691,7 @@ contains
             sort_step = sort_step +1
             if (sort_step .gt. 2) then
                 write(*,*) 'something is wrong here: still finding doublets',my_rank,dcount_glo
-                call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                stop
+                call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
             end if
 
             ! If we may have doublets...
@@ -712,8 +705,7 @@ contains
                         j = kick_part(i,2)
                         if (j .gt. m_np) then
                             write(*,*) 'something is wrong here: accumulating to bad address',my_rank,j,m_np
-                            call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                            stop
+                            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
                         particles(j)%data%alpha(1) = particles(j)%data%alpha(1) + particles(i)%data%alpha(1)
                         particles(j)%data%alpha(2) = particles(j)%data%alpha(2) + particles(i)%data%alpha(2)
@@ -728,7 +720,6 @@ contains
                 if (k == 0) then
                     write(*,*) 'something is wrong here: no particles left after compression',my_rank
                     call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                    stop
                 end if
                 if (k == 1) then
                     write(*,*) 'Warning: Only one particle left on this process, candidate for m_np=0',my_rank
@@ -781,7 +772,6 @@ contains
                 if (sorted_keys(i) .lt. sorted_keys(i-1)) then
                     write (*,'(a,i5,2z20)') 'Sorting locally failed: i,sorted_keys(i),sorted_keys(i-1)=',i,sorted_keys(i),sorted_keys(i-1)
                     call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                    stop
                 endif
                 if (sorted_keys(i) == sorted_keys(i-1)) then
                     kick_part(i-1,1) = 1
@@ -803,7 +793,6 @@ contains
                 if (tmp_next .lt. sorted_keys(npnew)) then
                     write (*,*) 'sorted_keys(npnew), sorted_keys(1) from',my_rank+1, '=',sorted_keys(npnew),tmp_next,npnew
                     call MPI_ABORT(MPI_COMM_WORLD,ierr)
-                    stop
                 endif
             endif
 

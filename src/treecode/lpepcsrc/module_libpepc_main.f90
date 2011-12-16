@@ -89,6 +89,11 @@ module module_libpepc_main
         !TODO: make adjustable by user or find a good estimation. Additional Question: Does this value have to be globally constant?
         nppmax = int(1.25 * max(npart/num_pe,1000)) ! allow 25% fluctuation around average particle number per PE in sorting library for load balancing
 
+        if (nppmax .lt. np_local) then
+            write(*,*) 'uh, oh, that is too bad, but nppmax=',nppmax, 'is smaller than np_local=',np_local,' on rank ',me,' - see ticket no. 10'
+            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+         end if
+
         ! fields for sorting library results, we have to deallocate them in case someone did not call restore()
         if (allocated(indxl)) deallocate(indxl, irnkl, fposts, gposts, islen, irlen)
         allocate(indxl(nppmax), irnkl(nppmax), fposts(num_pe+1), gposts(num_pe+1), islen(num_pe), irlen(num_pe))
