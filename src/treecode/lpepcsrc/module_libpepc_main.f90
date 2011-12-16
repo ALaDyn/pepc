@@ -101,6 +101,10 @@ module module_libpepc_main
         ! Domain decomposition: allocate particle keys to PEs
         call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, neighbour_pe_particles)
         np_local = npnew ! == npp, just to inform the calling routine about the current size of the particles-field
+
+        ! reset work load, do not need a (overflowing) history of all my sins...
+        particles(1:np_local)%work = 1.
+
         call allocate_tree()
 
         ! build local part of tree
