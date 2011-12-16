@@ -37,8 +37,9 @@ program pepc
   use module_particle_setup
   use module_interaction_specific, only : theta2, eps2, mac_select, force_law
   implicit none
+  include 'mpif.h'
 
-  integer :: vtk_step
+  integer :: vtk_step, ierr
 
   integer :: ifile
   type(acf) :: momentum_acf
@@ -48,6 +49,9 @@ program pepc
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-mw", my_rank, n_cpu, .true.)
+
+  ! prepare a copy of the MPI-communicator
+  call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_PEPC, ierr)
 
   call benchmark_pre
 
