@@ -22,11 +22,13 @@ module module_interaction_specific_types
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
-         real*8 :: alpha(3)   ! vorticity or better: alpha = vorticity * volume
-         real*8 :: u_rk(3)    ! velocity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
-         real*8 :: af_rk(3)   ! vorticity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+         real*8 :: alpha(3)    ! vorticity or better: alpha = vorticity * volume
+         real*8 :: x_rk(3)     ! position temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+         real*8 :: alpha_rk(3) ! vorticity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+         real*8 :: u_rk(3)     ! velocity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+         real*8 :: af_rk(3)    ! vorticity RHS temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
       end type t_particle_data
-      integer, private, parameter :: nprops_particle_data = 3
+      integer, private, parameter :: nprops_particle_data = 5
 
       !> Data structure for shipping results
       type t_particle_results
@@ -71,8 +73,9 @@ module module_interaction_specific_types
         real*8 :: yzquad3
         real*8 :: yyquad3
         real*8 :: zzquad3
+        real*8 :: bmax
       end type t_tree_node_interaction_data
-      integer, private, parameter :: nprops_tree_node_interaction_data = 32
+      integer, private, parameter :: nprops_tree_node_interaction_data = 33
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -110,12 +113,14 @@ module module_interaction_specific_types
         type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
 
         ! register particle data type
-        blocklengths(1:nprops_particle_data)  = [3,3,3]
-        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        blocklengths(1:nprops_particle_data)  = [3,3,3,3,3]
+        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_particle_data,       address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%alpha, address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%u_rk, address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%af_rk, address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%x_rk, address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%alpha_rk, address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%u_rk, address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%af_rk, address(5), ierr )
         displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
@@ -131,8 +136,8 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, &
+        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, &
                                                   MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, &
                                                   MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, &
                                                   MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, &
@@ -170,6 +175,7 @@ module module_interaction_specific_types
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad3,    address(30), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yyquad3,    address(31), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zzquad3,    address(32), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,       address(33), ierr )
         displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)

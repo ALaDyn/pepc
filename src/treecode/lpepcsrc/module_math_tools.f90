@@ -73,6 +73,8 @@ module module_math_tools
           integer :: i,ll
           real*8 :: fact,pll,pmm,pmmp1,somx2
 
+          pll = 0.
+
           if ( (m < 0) .or. (m > l) .or. (abs(x) > 1) ) then
             write(*,*) 'Invalid arguments for LegendreP'
             stop

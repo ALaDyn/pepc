@@ -80,7 +80,7 @@ module module_interaction_specific
         type(t_tree_node_interaction_data), intent(out) :: multipole
 
         multipole = t_tree_node_interaction_data(particle_pos, sqrt(dot_product(particle%alpha, particle%alpha)), particle%alpha(1), particle%alpha(2), particle%alpha(3), &
-                                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
+                                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
 
       end subroutine
 
@@ -181,6 +181,9 @@ module module_interaction_specific
           parent%zzquad3 = parent%zzquad3 + children(j)%zzquad3 - children(j)%zdip3*shift(3) - children(j)%zdip3*shift(3) + children(j)%chargez*shift(3)*shift(3)
 
         end do
+
+        parent%bmax = maxval(sqrt((parent%coc(1)-children(1:nchild)%coc(1))**2+(parent%coc(2)-children(1:nchild)%coc(2))**2+(parent%coc(3)-children(1:nchild)%coc(3))**2) + children(1:nchild)%bmax)
+
       end subroutine
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -273,6 +276,7 @@ module module_interaction_specific
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function mac(particle, node, dist2, boxlength2)
             use module_pepc_types
+            use treevars, only : tree_nodes
             implicit none
 
             logical :: mac
@@ -285,6 +289,9 @@ module module_interaction_specific
                 case (0)
                     ! Barnes-Hut-MAC
                     mac = (theta2 * dist2 > boxlength2)
+                case (1)
+                    ! Barnes-Hut-MAC
+                    mac = (theta2 * dist2 > tree_nodes(node)%bmax**2)
                 case default
                     ! N^2 code
                     mac = .false.
