@@ -129,7 +129,7 @@ contains
 
                 n = n_in
                 np = ceiling(1.0*n/n_cpu)
-                h = sqrt(4.0D00*pi/n)
+                h = sqrt(4.0*pi/n)
                 !eps = g*h
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
@@ -202,8 +202,8 @@ contains
 
         integer :: status(MPI_STATUS_SIZE)
         integer :: ierr, err, fh, tmp_rem_freq, tmp_i, remain
-        real ::tmp_dt, tmp_te, tmp_nu, tmp_ts, tmp_h, tmp_m_h, tmp_eps
-        real*8 :: tmp_thresh
+        real ::tmp_dt, tmp_te, tmp_nu, tmp_ts, tmp_h, tmp_m_h
+        real*8 :: tmp_thresh, tmp_eps
 
         write(mpifile,'(a,i6.6,a)') "part_data/particle_", input_itime,".mpi"
         call MPI_FILE_OPEN(MPI_COMM_WORLD,mpifile,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
@@ -224,7 +224,7 @@ contains
         call MPI_FILE_READ(fh,tmp_m_h,1,MPI_REAL,status,ierr)         ! Remeshing distance
         call MPI_FILE_READ(fh,tmp_rem_freq,1,MPI_INTEGER,status,ierr) ! Remeshing frequence
         call MPI_FILE_READ(fh,tmp_thresh,1,MPI_REAL8,status,ierr)     ! threshold for pop. control
-        call MPI_FILE_READ(fh,tmp_eps,1,MPI_REAL,status,ierr)         ! core size
+        call MPI_FILE_READ(fh,tmp_eps,1,MPI_REAL8,status,ierr)         ! core size
         call MPI_FILE_CLOSE(fh,ierr)
 
         dt = tmp_dt

@@ -69,7 +69,7 @@ module files
 
         integer, intent(in) :: i
         real, intent(in) :: simtime
-        integer :: p, fh, ierr, err, status(MPI_STATUS_SIZE)
+        integer :: fh, ierr, err, status(MPI_STATUS_SIZE)
         integer(KIND=MPI_OFFSET_KIND) :: disp, header_disp=1024
 
         character(50) :: cfile

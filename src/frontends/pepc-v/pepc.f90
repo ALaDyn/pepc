@@ -65,7 +65,6 @@ program pepcv
 
         if (stage .lt. rk_stages) then
             call timer_stop(t_tot)   ! total loop time without diags
-
             call timings_LocalOutput(itime,stage)
             call timings_GatherAndOutput(itime,stage)
         end if

@@ -17,8 +17,8 @@ contains
         implicit none
         include 'mpif.h'
 
-        integer :: j, k, ind, ind0, i, m, nscan, ierr, l
-        real*8 :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3), thresh2
+        integer :: j, k, ind, ind0, i, m, ierr, l
+        real*8 :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3)
         real*8, dimension(3,3) :: D1, D2, D3, D4   !< rotation matrices for ring setup
         real*8, allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
 
@@ -441,15 +441,17 @@ contains
     subroutine remeshing()
 
         use physvars
+        use module_timings
         implicit none
         include 'mpif.h'
 
-        integer :: mesh_supp, m_np, m_nppm, tmp, ierr, k, i, i1, i2, i3, xtn, ytn, ztn
+        integer :: mesh_supp, m_np, m_nppm, tmp, ierr, k, i, i1, i2, i3, xtn, ytn, ztn, m_n
         real*8 :: frac, xt, yt, zt, axt, ayt, azt, wt
         real*8, allocatable :: mesh_offset(:)
         real*8, dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_post
-
         type(t_particle), allocatable :: m_part(:)
+        integer, parameter :: t_remesh_interpol = t_userdefined_first + 2
+        integer, parameter :: t_remesh_sort = t_userdefined_first + 3
 
         total_vort = 0.
         do i = 1,np
@@ -464,7 +466,12 @@ contains
 
         ! Define array limits for new particles on the mesh
         m_np = np*mesh_supp**3
-        m_nppm = int(1.1*max(m_np,1000)) ! allow 10% fluctuation
+        m_n  = n *mesh_supp**3
+        m_nppm = int(1.25*max(m_n/n_cpu,1000)) ! allow 25% fluctuation
+        if (m_nppm .lt. m_np) then
+            write(*,*) 'uh, oh, that is too bad, but m_nppm=',m_nppm, 'is smaller than m_np=',m_np,' on rank ',my_rank,' - see ticket no. 10'
+            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+         end if
 
         ! TODO: Define global max. #particles (do we need this?)
         call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ierr)
@@ -478,6 +485,7 @@ contains
         end if
 
         !! Start required remeshing, i.e. project particles onto mesh
+        call timer_start(t_remesh_interpol)
         k=0
         do i=1,np
             xt  = vortex_particles(i)%x(1)
@@ -513,6 +521,7 @@ contains
                 end do
             end do
         end do
+        call timer_stop(t_remesh_interpol)
 
         if (k .ne. m_np) then
             write(*,*) 'something is wrong here: #remeshed particles not equal to prediciton', my_rank, k, m_np
@@ -521,7 +530,9 @@ contains
 
         deallocate(vortex_particles)
 
+        call timer_start(t_remesh_sort)
         call sort_remesh(m_part, m_np, m_nppm)
+        call timer_stop(t_remesh_sort)
 
         np = m_np
         allocate(vortex_particles(np))
@@ -593,9 +604,9 @@ contains
         integer, intent(inout) :: m_np
         integer, intent(in) :: m_nppm
 
-        integer :: i,j,ierr,k, loc_hconst, coll
+        integer :: i,j,ierr,k
         type (t_particle) :: bound_parts_loc(2), bound_parts(0:2*n_cpu-1), ship_parts(m_nppm), get_parts(m_nppm)
-        integer :: prev, next, dcount_glo, dcount, nbits, handle(4), sort_step, Nscan, status(MPI_STATUS_SIZE)
+        integer :: prev, next, dcount_glo, dcount, nbits, handle(4), sort_step, status(MPI_STATUS_SIZE)
         integer :: irnkl2(m_nppm), indxl(m_nppm), irnkl(m_nppm), kick_part(m_nppm,2)
         real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local, s, imba, local_work(m_nppm)
         real*8 :: xboxsize, yboxsize, zboxsize, boxsize, xmax, xmin, ymax, ymin, zmax, zmin
@@ -834,7 +845,7 @@ contains
         implicit none
         include 'mpif.h'
 
-        integer :: i, k, ierr, nscan
+        integer :: i, k, ierr
         real*8 :: thresh2
 
         ! kick out particles with vorticity magnitude below threshold
@@ -848,6 +859,10 @@ contains
         end do
         np = k
         call MPI_ALLREDUCE(np,n,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+        if (1.25*n/n_cpu .lt. np) then
+            write(*,*) 'warning, rank',my_rank,' appears to be heavily imbalanced:',1.0*np/(1.0*n/n_cpu)
+        end if
 
     end subroutine kick_out_particles
 
