@@ -469,11 +469,7 @@ contains
         ! Define array limits for new particles on the mesh
         m_np = np*mesh_supp**3
         m_n  = n *mesh_supp**3
-        m_nppm = int(1.25*max(m_n/n_cpu,1000)) ! allow 25% fluctuation
-        if (m_nppm .lt. m_np) then
-            write(*,*) 'uh, oh, that is too bad, but m_nppm=',m_nppm, 'is smaller than m_np=',m_np,' on rank ',my_rank,' - see ticket no. 10'
-            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-         end if
+        m_nppm = ceiling(1.05*max(1.0*m_n/n_cpu,1.0*m_np)) ! allow 5% fluctuation, just a safety factor, no load balancing here
 
         ! TODO: Define global max. #particles (do we need this?)
         call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ierr)
@@ -699,7 +695,7 @@ contains
             end do
         end do
 
-        do while (dcount_glo .ne. 0) ! BEGIN: Loop over soring algorithm, as long as we find doublets
+        do while (dcount_glo .ne. 0) ! BEGIN: Loop over sorting algorithm, as long as we find doublets
                                      !        (should stop after two steps!)
             sort_step = sort_step +1
             if (sort_step .gt. 2) then
@@ -772,8 +768,8 @@ contains
             ! Use Parallel Sort by Parallel Search (SLSORT by M. Hofmann, Chemnitz)
             npold = m_np
             npnew = m_np
-            load_balance = 1
-            imba = 0.05
+            load_balance = 0
+            imba = 0.00
             local_keys(1:npold) = particles(1:npold)%key
             local_work(1:npold) = particles(1:npold)%work
 
