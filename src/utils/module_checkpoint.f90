@@ -3,6 +3,7 @@
 !> Helper functions for checkpointing and restarting purposes
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#include "pepc_debug.h"
 module module_checkpoint
       implicit none
       include 'mpif.h'
@@ -149,6 +150,7 @@ module module_checkpoint
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine write_particles_mpiio(comm, my_rank, itime, trun, np_local, n_total, dp)
+            use module_debug
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
             integer*8, intent(in) :: n_total
@@ -166,8 +168,7 @@ module module_checkpoint
             call MPI_FILE_OPEN(comm,filename,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
 
             if (ierr .ne. MPI_SUCCESS) then
-              write(*,*) 'write_particles_mpiio(): file open failed', my_rank, ierr, filename
-              call MPI_ABORT(comm,1,ierr)
+              DEBUG_ERROR(*, 'write_particles_mpiio(): file open failed', my_rank, ierr, filename)
             end if
 
             ! Set file view to BYTE for header, only rank 0 writes it
@@ -179,8 +180,7 @@ module module_checkpoint
               call MPI_FILE_GET_POSITION(fh, disp, ierr)
 
               if (disp > max_header_size) then
-                write(*,*) "header_size is too small: ", max_header_size, "<", disp
-                call MPI_ABORT(comm, 1,ierr)
+                DEBUG_ERROR(*, "header_size is too small: ", max_header_size, "<", disp)
               end if
             end if
 
@@ -205,6 +205,7 @@ module module_checkpoint
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine read_particles_mpiio(itime_in, comm, my_rank, n_cpu, itime, trun, np_local, n_total, dp)
+            use module_debug
             implicit none
             integer, intent(in) :: my_rank, n_cpu, itime_in
             integer, intent(out) :: itime, np_local
@@ -222,8 +223,7 @@ module module_checkpoint
             call MPI_FILE_OPEN(comm,trim(filename),MPI_MODE_RDONLY,MPI_INFO_NULL,fh,ierr)
 
             if (ierr .ne. MPI_SUCCESS) then
-              write(*,*) 'read_particles_mpiio(): file open failed', my_rank, ierr, filename
-              call MPI_ABORT(comm,1,ierr)
+              DEBUG_ERROR(*,'read_particles_mpiio(): file open failed', my_rank, ierr, filename)
             end if
 
             ! Set file view to BYTE for header, only rank 0 writes it

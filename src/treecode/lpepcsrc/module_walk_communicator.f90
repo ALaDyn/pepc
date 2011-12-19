@@ -3,6 +3,7 @@
 !>  Encapsulates helper functions that simplify communication during tree traversal
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#include "pepc_debug.h"
 module module_walk_communicator
   use treevars
   use pthreads_stuff
@@ -95,7 +96,7 @@ module module_walk_communicator
 
     subroutine run_communication_loop_inner(walk_finished, nummessages)
         use module_pepc_types
-        use module_debug, only : ipefile
+        use module_debug
         implicit none
         include 'mpif.h'
         logical :: msg_avail
@@ -166,8 +167,7 @@ module module_walk_communicator
                         MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
 
                 if (walk_comm_debug) then
-                  write(ipefile,'("PE", I6, " has been told that PE", I6, "has finished walking")') &
-                          me, ipe_sender
+                  DEBUG_INFO('("PE", I6, " has been told that PE", I6, "has finished walking")', me, ipe_sender)
                 end if
 
                 walk_finished(ipe_sender+1) = .true.
@@ -176,8 +176,7 @@ module module_walk_communicator
                   ! all PEs have to be informed
                   ! TODO: need better idea here...
                   if (walk_comm_debug) then
-                    write(ipefile,'("PE", I6, " has found out that all PEs have finished walking - telling them to exit now")') &
-                            me
+                    DEBUG_INFO('("PE", I6, " has found out that all PEs have finished walking - telling them to exit now")', me)
                   end if
 
                   do i=0,num_pe-1
@@ -194,8 +193,7 @@ module module_walk_communicator
                             MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
 
                 if (walk_comm_debug) then
-                  write(ipefile,'("PE", I6, " has been told to terminate by PE", I6, " since all walks on all PEs are finished")') &
-                          me, ipe_sender
+                  DEBUG_INFO('("PE", I6, " has been told to terminate by PE", I6, " since all walks on all PEs are finished")', me, ipe_sender)
                 end if
 
                 walk_status = WALK_ALL_FINISHED
@@ -261,7 +259,7 @@ module module_walk_communicator
 
     subroutine send_data(requested_key, ipe_sender)
       use module_pepc_types
-      use module_debug, only : ipefile
+      use module_debug
       use module_htable
       implicit none
       include 'mpif.h'
@@ -276,8 +274,8 @@ module module_walk_communicator
       integer :: j, ic, ierr, nchild
 
       if (walk_comm_debug) then
-        write(ipefile,'("PE", I6, " answering request.                         request_key=", O22, ",        sender=", I6)') &
-                       me, requested_key, ipe_sender
+        DEBUG_INFO('("PE", I6, " answering request.                         request_key=", O22, ",        sender=", I6)',
+                       me, requested_key, ipe_sender )
       end if
 
       j = 0
@@ -340,7 +338,7 @@ module module_walk_communicator
       use module_htable
       use module_tree
       use module_spacefilling
-      use module_debug, only : ipefile
+      use module_debug
       implicit none
       include 'mpif.h'
       type (t_tree_node_transport_package) :: child_data(num_children) !< child data that has been received
@@ -356,8 +354,8 @@ module module_walk_communicator
         parent_addr(ic) = key2addr( kparent, 'WALK:unpack_data() - get parent address' )
 
         if (walk_comm_debug) then
-          write(ipefile,'("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ",        owner=", I6, ", kchild=", O22)') &
-                         me, kparent, ipe_sender, ownerchild, child_data(ic)%key
+          DEBUG_INFO('("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ",        owner=", I6, ", kchild=", O22)',
+                         me, kparent, ipe_sender, ownerchild, child_data(ic)%key)
         end if
 
         call tree_insert_node(child_data(ic))
