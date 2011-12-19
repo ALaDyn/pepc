@@ -44,8 +44,8 @@ module module_laser
     integer, public :: beam_polarization = 0 !< 4th digit of beam_config_in
     character(40), public :: config_names(4)
 
-    real, public :: omega     =  0.5    !< frequency
-    real, public :: omega_wpl =  0.0    !< frequency omega in wpl_e
+    real*8, public :: omega     =  0.5    !< frequency
+    real*8, public :: omega_wpl =  0.0    !< frequency omega in wpl_e
     real, public :: omega_hz  =  0.0    !< frequency omega in Hz
     real, public :: lambda    =  0.0    !< laser wavelength
     real, public :: lambda_nm =  0.0    !< laser wavelength in nm
@@ -1350,7 +1350,7 @@ contains
         real*8, intent(in) :: tpulse ! pulse duration or rise-time
         real*8, intent(in) :: a0 ! quiver strength
         real*8, intent(in) :: sigma0 ! pulse width (1/e)
-        real, intent(in) :: w0 ! laser frequency
+        real*8, intent(in) :: w0 ! laser frequency
         real*8, intent(in) :: x,y,z ! position to evaluate force; x is distance into target from surface (x_c)
 
         real*8, intent(out) :: phipon, ez, by, bx, az ! pond. potential and fields
@@ -1415,7 +1415,7 @@ contains
         real*8, intent(in) :: tpulse ! pulse duration or rise-time
         real*8, intent(in) :: a0 ! quiver strength
         real*8, intent(in) :: sigma0 ! pulse width (1/e)
-        real, intent(in) :: w0 ! laser frequency
+        real*8, intent(in) :: w0 ! laser frequency
         real*8, intent(in) :: x,y,z ! position to evaluate force; x is distance into target from surface (x_c)
 
         real*8, intent(out) :: phipon, ez, by, bx, az ! pond. potential and fields

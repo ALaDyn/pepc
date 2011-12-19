@@ -46,7 +46,7 @@ module physvars
   real*8 :: a_i            ! ion sphere radius
   real*8 :: physGamma      ! coupling parameter
   real*8 :: V0_eV = 0.       ! desired potential at distance r=0 from an ion --> eps is adjusted to match this value
-  real :: eps            ! potential/force law cutoff
+  real*8 :: eps            ! potential/force law cutoff
   integer :: Zion=1, Aion=1       ! ion charge and mass number
   integer :: setup_type = 0 !< for computing volume, interparticle distance, etc: 0-cubic, 1-spherical
   integer :: momentum_acf_from_timestep = 0

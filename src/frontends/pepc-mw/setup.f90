@@ -23,9 +23,8 @@ subroutine pepc_setup()
   use module_units
   use module_fields
   implicit none
-  include 'mpif.h'
 
-  integer :: ierr, ifile
+  integer :: ifile
 
   character(255) :: parameterfile
   logical :: read_param_file
@@ -195,7 +194,7 @@ subroutine pepc_setup()
       end do
     end if
 
-    nt = nt * dt / minval(maxdt)
+    nt = int(nt * dt / minval(maxdt))
     dt = minval(maxdt)
   endif
 
