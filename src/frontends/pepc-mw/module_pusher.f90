@@ -23,7 +23,7 @@ module module_pusher
       integer, public, parameter :: INTEGRATOR_SCHEME_LOCAL_NVT_IONS_ONLY   = 5 ! 5 = local NVT, ions only; electrons added at end of run
       integer, public, parameter :: INTEGRATOR_SCHEME_FULL_EM  = 6 ! full EM pusher (all E, B components)
       integer, public, parameter :: INTEGRATOR_SCHEME_NONREL   = 7 ! nonrelativistic push
-      integer, public, parameter :: INTEGRATOR_SCHEME_NVE_IONS_FROZEN = 8 ! 1 = NVE - total electron energy conserved, ions frozen
+      integer, public, parameter :: INTEGRATOR_SCHEME_NVE_IONS_FROZEN = 8 ! NVE - total electron energy conserved, ions frozen
 
       integer, public :: integrator_scheme = INTEGRATOR_SCHEME_NVE
       real*8, public :: Te0 = 0., Te_uncor = 0., chie = 0., delta_Te = 0.
@@ -150,6 +150,8 @@ module module_pusher
 		  real*8 :: global_v2e, gammah, Te_local
 		  real*8 :: uprime(1:3), uprime2, sum_ve(1:3), sum_vi(1:3)
 
+		  real*8 :: dimfac(3)
+
 		!  Available ensemble modes
 		!      1 = NVE - total energy conserved
 		!      2 = NVT - global Te, Ti conserved
@@ -165,6 +167,9 @@ module module_pusher
 		     accz(i) = q(i)*ez(i)/m(i)
 		     acmax = max(abs(accx(i)),abs(accy(i)),abs(accz(i)),acmax)
 		  end do
+
+		  dimfac         = 0._8
+		  dimfac(1:idim) = 1._8
 
 		  delta_u = acmax*dt
 
@@ -436,29 +441,18 @@ module module_pusher
 		     endif
 
           case (INTEGRATOR_SCHEME_NVE_IONS_FROZEN)
-             ! unconstrained motion for negatively charged particles, frozen positively charged particles
-           if (idim==3) then
-             do p = p_start, p_finish
-               if (q(p)<0.) then
-                 ux(p) = ux(p) + dt * accx(p)
-                 uy(p) = uy(p) + dt * accy(p)
-                 uz(p) = uz(p) + dt * accz(p)
-               endif
-             end do
-           else if (idim==2) then
-             do p = p_start, p_finish
-               if (q(p)<0.) then
-                 ux(p) = ux(p) + dt * accx(p)
-                 uy(p) = uy(p) + dt * accy(p)
-               endif
-             end do
-           else
-             do p = p_start, p_finish
-               if (q(p)<0.) then
-                 ux(p) = ux(p) + dt * accx(p)
-               endif
-             end do
-           endif
+           ! unconstrained motion for negatively charged particles, frozen positively charged particles
+           do p = p_start, p_finish
+             if (q(p)<0.) then
+               ux(p) = ux(p) + dt * accx(p) * dimfac(1)
+               uy(p) = uy(p) + dt * accy(p) * dimfac(2)
+               uz(p) = uz(p) + dt * accz(p) * dimfac(3)
+             else
+               ux(p) = 0.
+               uy(p) = 0.
+               uz(p) = 0.
+             endif
+           end do
 
 		  case default
 		     ! unconstrained motion by default (scheme=INTEGRATOR_SCHEME_NVE,INTEGRATOR_SCHEME_NONREL)
