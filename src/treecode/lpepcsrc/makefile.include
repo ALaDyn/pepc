@@ -14,6 +14,8 @@ FILES_TC += module_htable.f90 module_utils.f90 \
 
 
 SRC      += $(FILES_TC)
-SRC_COPY += $(addprefix $(LPEPCDIR)/, $(FILES_TC))
 
+FILES_TC += pepc_debug.h
+
+SRC_COPY += $(addprefix $(LPEPCDIR)/, $(FILES_TC))
 

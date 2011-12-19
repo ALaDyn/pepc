@@ -3,6 +3,7 @@
 !> Encapsulates domain decomposition and restoration of original particle order
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#include "pepc_debug.h"
 module module_domains
     implicit none
     save
@@ -185,8 +186,7 @@ module module_domains
 
         ! FIXME: every processor has to have at least one particle
         if (npnew < 2) then
-            write(*,'("PE ", I8, " has less than two particles after sorting (had ", I8, " before) - currently this can lead to errors --> aborting")') me, npold
-            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            DEBUG_ERROR('("rank less than two particles after sorting (had ", I8, " before) - currently this can lead to errors --> aborting")', npold)
         endif
 
         call timer_stop(t_domains_sort_pure)
@@ -225,7 +225,6 @@ module module_domains
         enddo
 
         call timer_stop(t_domains_add_unpack)
-
 
         if (npp > nppm) then
             write(*,*) "Something went seriously wrong during sorting: there are more than nppm local particles now."

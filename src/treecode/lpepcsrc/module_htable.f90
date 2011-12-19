@@ -523,7 +523,7 @@ module module_htable
         use module_pepc_types
         use module_spacefilling
         use module_utils
-        use module_debug
+        use module_debug, only : debug_ipefile_open, debug_ipefile_close, debug_ipefile, pepc_status
         implicit none
 
         type(t_particle), optional, intent(in) :: particles(1:npp)
@@ -535,9 +535,11 @@ module module_htable
 
         call pepc_status('DIAGNOSE')
 
+        call debug_ipefile_open()
+
         ! output hash table
 
-        write (ipefile,'(/a/,5(x,a10),3(x,a22),x,a14,x,a10,4x,a35,/,189("-"),/)') &
+        write (debug_ipefile,'(/a/,5(x,a10),3(x,a22),x,a14,x,a10,4x,a35,/,189("-"),/)') &
                      'Hash table ',    &
                      'entry_10', &
                      'entry_8', &
@@ -560,7 +562,7 @@ module module_htable
                 collision=" "
               endif
 
-              write (ipefile,'(x,i10,x,o10,3(x,i10),x,o22,x,i22,x,o22,x,a1,xi12,x,i10,4x,3(b8.8,"."),b8.8)') &
+              write (debug_ipefile,'(x,i10,x,o10,3(x,i10),x,o22,x,i22,x,o22,x,a1,xi12,x,i10,4x,3(b8.8,"."),b8.8)') &
                       i,                   &
                       i,                   &
                       htable(i)%owner,     &
@@ -579,40 +581,41 @@ module module_htable
            end if
         end do
 
-        write (ipefile,'(///a)') 'Tree structure'
+        write (debug_ipefile,'(///a)') 'Tree structure'
 
         ! get node indices of twig nodes from hash table
         node_twig(  1:ntwig)   = pack(htable(0:maxaddress)%node,mask=htable(0:maxaddress)%node<0)
         call sort(node_twig(:))
 
-        write(ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Twigs from hash-table', 'node', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
+        write(debug_ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Twigs from hash-table', 'node', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
         do i=ntwig,1,-1
-          write(ipefile,'(x,i10,x)',advance='no') node_twig(i)
-          write(ipefile,*) tree_nodes(node_twig(i))
+          write(debug_ipefile,'(x,i10,x)',advance='no') node_twig(i)
+          write(debug_ipefile,*) tree_nodes(node_twig(i))
         end do
 
         ! get node indices of leaf nodes from hash table
         node_leaf(  1:nleaf)   = pack(htable(0:maxaddress)%node,mask=htable(0:maxaddress)%node>0)
         call sort(node_leaf(:))
 
-        write(ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Leaves from hash-table', 'node', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
+        write(debug_ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Leaves from hash-table', 'node', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
         do i=1,nleaf
-          write(ipefile,'(x,i10,x)',advance='no') node_leaf(i)
-          write(ipefile,*) tree_nodes(node_leaf(i))
+          write(debug_ipefile,'(x,i10,x)',advance='no') node_leaf(i)
+          write(debug_ipefile,*) tree_nodes(node_leaf(i))
         end do
 
         if (present(particles)) then
           ! local particles
-          write(ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Local particles', 'index', 'data (see module_module_pepc_types::t_particle for meaning of the columns)'
+          write(debug_ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Local particles', 'index', 'data (see module_module_pepc_types::t_particle for meaning of the columns)'
 
           do i=1,npp
-            write(ipefile,'(x,i10,x)',advance='no') i
-            write(ipefile,*) particles(i)
+            write(debug_ipefile,'(x,i10,x)',advance='no') i
+            write(debug_ipefile,*) particles(i)
           end do
         endif
 
+        call debug_ipefile_close()
 
     end subroutine diagnose_tree
 

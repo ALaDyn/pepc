@@ -87,11 +87,11 @@ module module_io
 	  endif
 
 	  !  stdout for PE my_rank
-	  if (debug_level > 0) then
-            call system("mkdir -p " // "diag")
-	    write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
-	    open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
-	  endif
+	  !if (debug_level > 0) then
+      !      call system("mkdir -p " // "diag")
+	  !  write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
+	  !  open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+	  !endif
 
 	  ipefile = file_ipefile ! copy file handle to core
 

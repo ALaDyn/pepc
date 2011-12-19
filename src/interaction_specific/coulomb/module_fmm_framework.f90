@@ -4,6 +4,7 @@
 !> of the FMM-approach to the lattice
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#include "pepc_debug.h"
 module module_fmm_framework
       use module_debug
       use module_mirror_boxes
@@ -130,8 +131,7 @@ module module_fmm_framework
           integer :: l, m
           integer :: iter
 
-          write (debug, *) 'LATTICE COEFFICIENTS: Starting calculation'
-          call print_debug(.true., 2, [6, 15], myrank.eq.0 .and. [.true., .true.])
+          call pepc_status('LATTICE COEFFICIENTS: Starting calculation')
 
           Mstar    = 0
           Lstar    = 0
@@ -163,6 +163,7 @@ module module_fmm_framework
           end do
 
           ! MLattice(1:tblinv(3,3))=0
+          call pepc_status('LATTICE COEFFICIENTS: finished calculation')
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('MLattice.tab', MLattice)
@@ -213,9 +214,7 @@ module module_fmm_framework
           end if
 
           if (real(omega_tilde( tblinv(0, 0))) > 1.E-8) then
-
-            write (debug, *) 'WARNING: The central box is not charge-neutral. Switching off calculation of lattice contribution. omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0))
-            call print_debug(.true., 2, [ipefile, 6], [.true., myrank.eq.0])
+            DEBUG_WARNING(*, 'WARNING: The central box is not charge-neutral. Switching off calculation of lattice contribution. omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0)) )
 
             do_periodic         = .false.
             num_neighbour_boxes = 1

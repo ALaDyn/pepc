@@ -1,4 +1,9 @@
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>
+!> main internal pepc routines
+!>
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#include "pepc_debug.h"
 module module_libpepc_main
     implicit none
     private
@@ -58,6 +63,7 @@ module module_libpepc_main
         use module_domains
         use module_debug, only : pepc_status
         use module_allocation, only : allocate_tree
+        use module_debug
         implicit none
         include 'mpif.h'
 
@@ -90,8 +96,7 @@ module module_libpepc_main
         nppmax = int(1.25 * max(npart/num_pe,1000)) ! allow 25% fluctuation around average particle number per PE in sorting library for load balancing
 
         if (nppmax .lt. np_local) then
-            write(*,*) 'uh, oh, that is too bad, but nppmax=',nppmax, 'is smaller than np_local=',np_local,' on rank ',me,' - see ticket no. 10'
-            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            DEBUG_ERROR(*, 'uh, oh, that is too bad, but nppmax=',nppmax, 'is smaller than np_local=',np_local,' - see ticket no. 10')
          end if
 
         ! fields for sorting library results, we have to deallocate them in case someone did not call restore()
@@ -120,9 +125,8 @@ module module_libpepc_main
         deallocate(leaf_keys)
 
         if (htable(1)%leaves .ne. npp) then
-            write(*,*) 'PE', me, ' did not find all its particles inside the htable after local tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp
             call diagnose_tree(particles)
-            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            DEBUG_ERROR(*, 'did not find all its particles inside the htable after local tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npp =', npp)
         endif
         call timer_stop(t_local)
 
@@ -149,9 +153,8 @@ module module_libpepc_main
         call timer_stop(t_global)
 
         if (htable(1)%leaves .ne. npart_total) then
-            write(*,*) 'PE', me, ' did not find all particles inside the htable after global tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npart_total =', npart_total
             call diagnose_tree(particles)
-            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npart_total =', npart_total)
         endif
 
         nkeys_total = nleaf+ntwig

@@ -14,7 +14,9 @@ module module_debug
       !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      character(len=255), public :: debug !< string that will be output by the print_debug()-routine
+      integer, public :: debug_ipefile = 21
+      integer, public :: debug_my_rank = -1
+      integer, public :: debug_stdout  =  6
 
       integer, public :: debug_level = 0 !< or-combination of the bitmasks below
       ! set to the following values to get the old behaviour:
@@ -43,12 +45,24 @@ module module_debug
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      logical, private       :: debug_initialized = .false.
+      character(30), private :: debug_ipefile_name
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      public print_debug
       public dbg
       public pepc_status
+
+      public debug_ipefile_open
+      public debug_ipefile_close
+      public debug_mpi_abort
 
 
    contains
@@ -64,10 +78,101 @@ module module_debug
        character(*), intent(in) :: stat
 
        if (dbg(DBG_STATUS)) then
-          write(ipefile,'("LPEPC | ", a)') stat
+          if (debug_initialized) then ! output to ipefile only if it already has been created
+            call debug_ipefile_open()
+            write(debug_ipefile,'("LPEPC | ", a)') stat
+            call debug_ipefile_close()
+          endif
+
           if (me==0) write(*,'("LPEPC | ", a)') stat
        endif
 
+     end subroutine
+
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !>
+     !>  module initialization (is called automatically on first call to debug_ipefile_open)
+     !>
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     subroutine debug_initialize()
+       use treevars
+       implicit none
+
+       debug_my_rank = me
+
+       call system("mkdir -p " // "diag")
+       write(debug_ipefile_name,'("diag/diag_",i6.6,".dat")') me
+
+       open(debug_ipefile, file=trim(debug_ipefile_name),STATUS='UNKNOWN', POSITION = 'REWIND')
+       call timstamp(debug_ipefile, "creating PEPC debug file")
+       close(debug_ipefile)
+
+       debug_initialized = .true.
+
+     end subroutine debug_initialize
+
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !>
+     !>  prints timestamp and reason to istream
+     !>
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     subroutine timstamp(istream,reason)
+       implicit none
+
+       character :: cdate*8, ctime*10, czone*5
+       integer, intent(in) :: istream
+       character(*), intent(in) :: reason
+
+       call DATE_AND_TIME(cdate,ctime,czone)
+
+       write(istream, '(2(a2,"/"),a4,", ",2(a2,":"),a2, " (GMT", a5") - ", a, //)') &
+             cdate(7:8), cdate(5:6), cdate(1:4), &
+             ctime(1:2), ctime(3:4), ctime(5:6), &
+             czone, &
+             reason
+
+     end subroutine
+
+
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !>
+     !>  opens the processor diagnostic file, afterwards, the application may
+     !>  write to file stream debug_ipefile
+     !>
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     subroutine debug_ipefile_open()
+       implicit none
+
+       if (.not. debug_initialized) call debug_initialize()
+
+       open(debug_ipefile, file=trim(debug_ipefile_name),STATUS='UNKNOWN', POSITION = 'APPEND')
+     end subroutine
+
+
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !>
+     !>  calls MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+     !>
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     subroutine debug_mpi_abort()
+       implicit none
+       include 'mpif.h'
+       integer :: ierr
+
+       call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+
+     end subroutine
+
+
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !>
+     !>  closes the processor diagnostic file, afterwards, the application may not
+     !>  write to file stream debug_ipefile
+     !>
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     subroutine debug_ipefile_close()
+       implicit none
+       close(debug_ipefile)
      end subroutine
 
 
@@ -86,34 +191,5 @@ module module_debug
 
        dbg = (iand(debug_level, flag) .ne. 0)
      end function
-
-
-
-     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     !>
-     !>  Debug output helper routine
-     !>
-     !>  Usage:
-     !>      write (debug, *) 'Debug output text and', number
-     !>      call print_debug(general_condition_logical, 2, [ipefile, 6], [.true., myrank.eq.0])
-     !>
-     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     subroutine print_debug(condition, nstreams, streams, conditions)
-       logical, intent(in) :: condition !< debug output is only prnted if condition==.true.
-       integer*4, intent(in) :: nstreams !< number of output streams given in
-       integer*4, intent(in) :: streams(nstreams) !< output-stream numbers to be printed to
-       logical, intent(in) :: conditions(nstreams)!< debug output will only be printed if condition(i) is true for stream(i)
-
-       integer*4 :: idx
-
-       if (condition) then
-         do idx = 1,nstreams
-           if (conditions(idx) .eqv. .true.) then
-             write(streams(idx),*) trim(debug)
-           end if
-         end do
-       end if
-
-     end subroutine print_debug
 
 end module module_debug
