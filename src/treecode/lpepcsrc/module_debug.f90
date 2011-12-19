@@ -97,14 +97,19 @@ module module_debug
      subroutine debug_initialize()
        use treevars
        implicit none
+       include 'mpif.h'
+
+       character(MPI_MAX_PROCESSOR_NAME) :: procname
+       integer :: resultlen, ierr
 
        debug_my_rank = me
+       call MPI_GET_PROCESSOR_NAME( procname, resultlen, ierr )
 
        call system("mkdir -p " // "diag")
        write(debug_ipefile_name,'("diag/diag_",i6.6,".dat")') me
 
        open(debug_ipefile, file=trim(debug_ipefile_name),STATUS='UNKNOWN', POSITION = 'REWIND')
-       call timstamp(debug_ipefile, "creating PEPC debug file")
+       call timstamp(debug_ipefile, "PEPC on ["//procname(1:resultlen)//"]")
        close(debug_ipefile)
 
        debug_initialized = .true.
