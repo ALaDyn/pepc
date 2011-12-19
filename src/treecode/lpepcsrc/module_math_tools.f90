@@ -5,6 +5,7 @@
 !> functions to calculate the biggest power in given interval
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#include "pepc_debug.h"
 module module_math_tools
       implicit none
       save
@@ -410,6 +411,7 @@ module module_math_tools
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         integer*8 function bpi(a, b)
           use module_spacefilling
+          use module_debug
           implicit none
           include 'mpif.h'
 
@@ -421,8 +423,7 @@ module module_math_tools
           integer :: bpilevel
 
           if (b < a) then
-            write(*,*) "Error: b < a in math_tools::bpi(a,b)"
-            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            DEBUG_ERROR('("Error: b < a in math_tools::bpi(a = ",O64,", b = ",O64,")")', a,b)
           endif
 
           axorb             = ieor(a,b)

@@ -227,10 +227,7 @@ module module_domains
         call timer_stop(t_domains_add_unpack)
 
         if (npp > nppm) then
-            write(*,*) "Something went seriously wrong during sorting: there are more than nppm local particles now."
-            write(*,*) "npp = ", npp, ">   nppm = ", nppm
-            write(*,*) "All local particle fields are too short. Aborting..."
-            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            DEBUG_ERROR('("More than nppm particles after sorting: nppm = ", I0, " < npp = ",I0,". All local particle fields are too shirt. Aborting.")', nppm, npp)
         endif
 
         call timer_stop(t_domains_ship)

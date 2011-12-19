@@ -110,6 +110,7 @@
 !
 !
 ! ===========================================
+#include "pepc_debug.h"
 module module_walk_pthreads_commutils
   use module_walk_communicator
   use pthreads_stuff
@@ -238,20 +239,15 @@ module module_walk_pthreads_commutils
 
 
       subroutine retval(iret, msg)
-        use module_debug, only : ipefile
-        use treevars
+        use module_debug
         use, intrinsic :: iso_c_binding
+        use module_debug
         implicit none
-        include 'mpif.h'
         integer( kind= c_int) :: iret
-        character(*) :: msg
-        integer :: ierr
+        character(*), intent(in) :: msg
 
         if (iret .ne. 0) then
-          write(*,*)       "PE:", me, "[", msg, "] iret == ", iret
-          write(ipefile,*) "PE:", me, "[", msg, "] iret == ", iret
-          flush(6)
-          call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+          DEBUG_ERROR('("[",a,"] iret = ", I0)',msg, iret)
         end if
 
       end subroutine retval
@@ -371,6 +367,7 @@ module module_walk_pthreads_commutils
         use treevars
         use module_debug, only : ipefile
         use, intrinsic :: iso_c_binding
+        use module_debug
         implicit none
         include 'mpif.h'
         integer, intent(in) :: max_particles_per_thread
@@ -379,7 +376,6 @@ module module_walk_pthreads_commutils
         logical :: walk_finished(num_pe) ! will hold information on PE 0 about which processor
                                           ! is still working and which ones are finished
                                           ! to emulate a non-blocking barrier
-        integer :: ierr
         nummessages = 0
 
         if (me==0) walk_finished = .false.
@@ -388,9 +384,7 @@ module module_walk_pthreads_commutils
 
         ! check whether initialization has correctly been performed
         if (.not. initialized) then
-           write(*,*) "Serious issue in PE", me, ": walk_communicator has not been initialized. Call init_comm_data() before run_communication_loop(..)"
-           flush(6)
-           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+           DEBUG_ERROR(*,"walk_communicator has not been initialized. Call init_comm_data() before run_communication_loop(..)")
         endif
 
         if (walk_comm_debug) write(ipefile,'("PE", I6, " run_communication_loop start. walk_status = ", I6)') me, walk_status
@@ -682,13 +676,12 @@ module module_walk
     end subroutine tree_walk
 
     subroutine walk_hybrid()
-        use module_debug, only : ipefile, dbg, DBG_WALKSUMMARY
+      use module_debug
       use module_walk_pthreads_commutils
       use, intrinsic :: iso_c_binding
       implicit none
-      include 'mpif.h'
 
-      integer :: ith, displ, ierr
+      integer :: ith, displ
 
       allocate(threaddata(num_walk_threads))
 
@@ -720,7 +713,9 @@ module module_walk
         thread_workload(-displ-2) = max(thread_workload(-displ-2),  1._8*threaddata(ith)%runtime_seconds)
 
 
-        if (dbg(DBG_WALKSUMMARY)) write(ipefile,*) "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith)
+        if (dbg(DBG_WALKSUMMARY)) then
+          DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith) )
+        endif
       end do
 
       ! compute relative deviation
@@ -738,10 +733,8 @@ module module_walk
 
       ! check wether all particles really have been processed
       if (next_unassigned_particle .ne. num_particles + 1) then
-        write(*,*) "Serious issue on PE", me, ": all walk threads have terminated, but obviously not all particles are finished with walking: next_unassigned_particle =", &
-                            next_unassigned_particle, " num_particles =", num_particles
-        flush(6)
-        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+        DEBUG_ERROR(*, "Serious issue on PE", me, ": all walk threads have terminated, but obviously not all particles are finished with walking: next_unassigned_particle =",
+                            next_unassigned_particle, " num_particles =", num_particles )
       end if
 
       deallocate(threaddata)
@@ -984,7 +977,6 @@ module module_walk
       real*8 :: dist2
       real*8 :: delta(3), shifted_particle_position(3)
       logical :: same_particle, same_particle_or_parent_node, mac_ok, ignore_node
-      integer :: ierr
       integer*8 :: num_interactions, num_mac_evaluations
 
       todo_list_entries   = 0
@@ -1092,12 +1084,15 @@ module module_walk
      end function
 
      subroutine todo_list_push(numkeys, keys)
+       use module_debug
        implicit none
        integer, intent(in) :: numkeys
        integer*8, dimension(numkeys), intent(in) :: keys
        integer :: i
 
-       if (todo_list_entries + numkeys >= todo_list_length) call todo_list_full()
+       if (todo_list_entries + numkeys >= todo_list_length) then
+         DEBUG_ERROR('("todo_list is full for particle ", I20, " todo_list_length =", I6, " is too small (you should increase nintmax)")', myidx, todo_list_length)
+       endif
 
        do i=1,numkeys
          todo_list(todo_list_entries) = keys(i)
@@ -1105,23 +1100,15 @@ module module_walk
        end do
      end subroutine
 
-     subroutine todo_list_full()
-       implicit none
-       include 'mpif.h'
-        write(*,'("Rather serious issue on PE ", I6, ": todo_list is full for particle ", I20, " todo_list_length =", I6, " is too small (you should increase nintmax)")') me, myidx, todo_list_length
-        write(*,*) "We could skip the current particle until some child_data has arrive, but this can result in a deadlock... --> aborting."
-        flush(6)
-        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-     end subroutine
-
      ! helper routines for defer_list manipulation
      subroutine defer_list_push(key_, addr_)
+       use module_debug
        implicit none
        integer, intent(in) :: addr_
        integer*8, intent(in) :: key_
 
        if (defer_list_entries == defer_list_length) then
-         call defer_list_full()
+         DEBUG_ERROR('("defer_list is full for particle ", I20, " defer_list_length =", I6, " is too small (you should increase nintmax)")', myidx, defer_list_length)
        else
          defer_list(defer_list_entries, myidx) = t_defer_list_entry(addr_, key_)
          defer_list_entries                    = defer_list_entries + 1
@@ -1148,15 +1135,6 @@ module module_walk
        end do
 
        defer_list_entries = inew
-     end subroutine
-
-     subroutine defer_list_full()
-       implicit none
-       include 'mpif.h'
-        write(*,'("Rather serious issue on PE ", I6, ": defer_list is full for particle ", I20, " defer_list_length =", I6, " is too small (you should increase nintmax)")') me, myidx, defer_list_length
-        write(*,*) "We could skip the current particle until some child_data has arrive, but this can result in a deadlock... --> aborting."
-        flush(6)
-        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
      end subroutine
 
     end function walk_single_particle

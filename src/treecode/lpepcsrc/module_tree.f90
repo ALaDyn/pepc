@@ -3,6 +3,7 @@
 !> Contains all tree specific helper routines and data fields
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#include "pepc_debug.h"
 module module_tree
     implicit none
     private
@@ -100,11 +101,11 @@ module module_tree
         use treevars
         use module_pepc_types
         use module_htable
+        use module_debug
         implicit none
-        include 'mpif.h'
 
         type(t_tree_node_transport_package), intent(in) :: tree_node
-        integer :: hashaddr, lnode, ierr
+        integer :: hashaddr, lnode
 
 
         if (make_hashentry( t_hash(tree_node%key, 0, -1, tree_node%leaves, tree_node%byte, tree_node%owner), hashaddr)) then
@@ -119,17 +120,12 @@ module module_tree
                lnode = -ntwig
                if (tree_node%owner == me) ntwig_me = ntwig_me+1
             else
-               write(*,*) 'PE', me, ' found a tree node with less than 1 leaves'
-               call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+               DEBUG_ERROR(*, "Found a tree node with less than 1 leaf.")
             endif
 
             ! check for array bound overrun
             if ((ntwig >= maxtwig) .or. (nleaf >= maxleaf)) then
-              write (6,*) 'LPEPC | WARNING: tree arrays full on CPU ',me,  &
-                               ' twigs: ', ntwig,' / ', maxtwig, &
-                             '; leaves: ', nleaf,' / ', maxleaf
-              flush(6)
-              call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+              DEBUG_ERROR('("Tree arrays full. Twigs: ", I0,"/",I0 ,"; Leaves: ", I0,"/",I0)', ntwig, maxtwig, nleaf, maxleaf)
             end if
 
              htable( hashaddr )%node = lnode
@@ -191,6 +187,7 @@ module module_tree
       use module_pepc_types
       use module_htable, only : CHILDCODE_BIT_CHILDREN_AVAILABLE
       use module_interaction_specific, only : shift_multipoles_up
+      use module_debug
       implicit none
         type(t_tree_node_transport_package), intent(inout) :: parent
         type(t_tree_node_transport_package), intent(in) :: children(:)
@@ -206,7 +203,7 @@ module module_tree
         parent_keys(1:nchild) = ISHFT( children(1:nchild)%key, -3 )
 
         if ( any(parent_keys(2:nchild) .ne. parent_keys(1))) then
-          write(*,*) "Error in shift nodes up: not all supplied children contribute to the same parent node"
+          DEBUG_ERROR(*,"Error in shift nodes up: not all supplied children contribute to the same parent node")
         endif
 
         byte = 0
@@ -338,7 +335,6 @@ module module_tree
         use module_interaction_specific
         use module_pepc_types
         implicit none
-        include 'mpif.h'
 
         integer*8, intent(in) :: start_keys(1:numkeys)
         integer, intent(in) :: numkeys
@@ -440,14 +436,14 @@ module module_tree
       use module_htable
       use module_interaction_specific, only : multipole_from_particle
       use module_timings
+      use module_debug
       implicit none
-      include 'mpif.h'
       type(t_particle), intent(in) :: particle_list(1:nparticles)
       integer, intent(in) :: nparticles
       integer*8, intent(out) :: leaf_keys(1:nparticles)
 
       type(t_keyidx) :: particles_left(1:2*nparticles) ! each particle might produce one twig --> we need 2*nparticles as storage space
-      integer :: i, k, nremaining, nreinserted, level, ibit, ierr, hashaddr, nremoved
+      integer :: i, k, nremaining, nreinserted, level, ibit, hashaddr, nremoved
       integer*8 :: lvlkey
 
       call pepc_status('INSERT PARTICLES')
@@ -485,10 +481,7 @@ module module_tree
         nremoved    = 0
 
         if (level>nlev) then
-           write(*,*) 'Problem with tree on PE ',me,' - no more levels '
-           write(*,'(a)') 'Remaining particles: '
-           write(*,*) particle_list(1:nparticles)
-           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+           DEBUG_ERROR(*,"Problem with tree: No more levels. Remaining particles: ", particle_list(1:nparticles))
          endif
 
          ibit = nlev - level ! bit shift factor (0=highest leaf node, nlev-1 = root)
@@ -537,8 +530,7 @@ module module_tree
          nremaining = nremaining + nreinserted - nremoved
 
          if (nremaining .ne. k) then
-           write(*,*) 'PE', me, ': error in bookkeeping in local tree buildup'
-           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+           DEBUG_ERROR(*,"Error in bookkeeping in local tree buildup. nremaining = ", nremaining, " but k = ", k)
          endif
       end do
 
@@ -557,7 +549,7 @@ module module_tree
 
       ! check if we did not miss any particles
       if (any(leaf_keys(1:nparticles) == 0_8)) then
-        write(*,*) 'PE', me, ' did not incorporate all particles into its leaf_keys array'
+        DEBUG_WARNING_ALL(*, ' did not incorporate all particles into its leaf_keys array')
       endif
 
     end subroutine
