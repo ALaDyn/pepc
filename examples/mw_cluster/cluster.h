@@ -36,7 +36,7 @@ itime_in = 5
  rhoe_nm3 = 35.0
  Zion     =  1
  Aion     = 22
- V0_eV    =  5.1
+ V0_eV    = -5.1
 
 !  Available ensemble modes
 ! pure ES, NVT ensembles
@@ -70,7 +70,7 @@ workflow_setup = 3
   ! BH-mac
   mac_select = 0
   ! theta = 0.3
-  theta2     = 0.036
+  theta2     = 0.09
 /
 
 &libpepc
