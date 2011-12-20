@@ -3,7 +3,6 @@
 !> Contains all tree specific helper routines and data fields
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#include "pepc_debug.h"
 module module_tree
     implicit none
     private

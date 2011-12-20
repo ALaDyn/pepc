@@ -3,7 +3,6 @@
 !>  Encapsulates helper functions that simplify communication during tree traversal
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#include "pepc_debug.h"
 module module_walk_communicator
   use treevars
   use pthreads_stuff

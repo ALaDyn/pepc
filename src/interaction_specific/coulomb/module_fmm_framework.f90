@@ -4,7 +4,6 @@
 !> of the FMM-approach to the lattice
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#include "pepc_debug.h"
 module module_fmm_framework
       use module_debug
       use module_mirror_boxes

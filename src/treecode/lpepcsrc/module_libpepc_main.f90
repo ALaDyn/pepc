@@ -3,7 +3,6 @@
 !> main internal pepc routines
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#include "pepc_debug.h"
 module module_libpepc_main
     implicit none
     private

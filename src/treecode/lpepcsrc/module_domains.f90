@@ -3,7 +3,6 @@
 !> Encapsulates domain decomposition and restoration of original particle order
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#include "pepc_debug.h"
 module module_domains
     implicit none
     save

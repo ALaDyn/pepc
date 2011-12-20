@@ -5,7 +5,6 @@
 !> functions to calculate the biggest power in given interval
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#include "pepc_debug.h"
 module module_math_tools
       implicit none
       save

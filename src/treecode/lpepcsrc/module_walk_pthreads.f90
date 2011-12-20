@@ -110,7 +110,6 @@
 !
 !
 ! ===========================================
-#include "pepc_debug.h"
 module module_walk_pthreads_commutils
   use module_walk_communicator
   use pthreads_stuff
