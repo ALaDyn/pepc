@@ -22,6 +22,7 @@ subroutine pepc_setup()
   use module_workflow
   use module_units
   use module_fields
+  use module_interaction_specific, only : eps2
   implicit none
 
   integer :: ifile
@@ -30,7 +31,6 @@ subroutine pepc_setup()
   logical :: read_param_file
 
   namelist /pepcmw/ &
-       mac, theta, &
        ne,  eps, V0_eV, nt, dt, idump, itime_in, idump_vtk, idump_checkpoint, idump_binary, treediags, & ! fundamental stuff
        ispecial, rhoe_nm3, Zion, Aion, Te_eV, Ti_eV, Te_K, Ti_K, rngseed, &   ! experimental setup
        workflow_setup, &                                             ! workflow
@@ -55,8 +55,6 @@ subroutine pepc_setup()
 
   ! physics stuff
   force_const = 1.
-  mac         = 0
-  theta       = 0.6
   Te_eV       = 50
   Ti_eV       = 10
 
@@ -148,9 +146,11 @@ subroutine pepc_setup()
 
   eps = eps * lambdaD_e
 
-  if (V0_eV > 0.) eps = force_const * qe*qi / (V0_eV / unit_Ryd_in_eV)
+  if (V0_eV .ne. 0.) eps = force_const * qe*qi / (V0_eV / unit_Ryd_in_eV)
 
-  V0_eV = (force_const * qi / eps) * unit_Ryd_in_eV
+  V0_eV = (force_const * qe*qi / eps) * unit_Ryd_in_eV
+
+  eps2 = eps**2.
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  parameters (laser)            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

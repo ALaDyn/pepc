@@ -35,7 +35,6 @@ program pepc
   use module_directsum
   use module_energy
   use module_particle_setup
-  use module_interaction_specific, only : theta2, eps2, mac_select, force_law
   implicit none
   include 'mpif.h'
 
@@ -85,12 +84,6 @@ program pepc
   call momentum_acf%initialize(nt-momentum_acf_from_timestep, dt*unit_t0_in_fs, my_rank, n_cpu, MPI_COMM_PEPC)
 
   call benchmark_inner
-
-  ! initialize calc force params
-  theta2      = theta**2
-  mac_select  = mac
-  eps2        = eps**2
-  force_law   = 3
 
   call pepc_prepare()
 

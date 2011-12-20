@@ -178,6 +178,7 @@ module module_param_dump
       use module_laser
       use module_units
       use module_workflow
+      use module_interaction_specific
       implicit none
       integer, intent(in) :: ifile
 ! xl, yl, zl, plasma_centre
@@ -221,7 +222,11 @@ module module_param_dump
       call WriteParameter(ifile, "force constant", 1._8*force_const)
       call WriteParameter(ifile, "eps", 1._8*eps)
       call WriteParameter(ifile, "V(r_ion=0) (eV)", V0_eV)
-      call WriteParameter(ifile, "theta", 1._8*theta)
+      call WriteTopline(  ifile, "")
+      call WriteParameter(ifile, "theta", 1._8*sqrt(theta2))
+      call WriteParameter(ifile, "eps(calc_force)", 1._8*sqrt(eps2))
+      call WriteParameter(ifile, "mac_select", mac_select)
+      call WriteParameter(ifile, "force_law", force_law)
       call WriteTopline(  ifile, "")
       call WriteParameter(ifile, "beam_config_in", beam_config_in)
       call WriteParameter(ifile, "omega / omega_pl", 1._8*omega_wpl)

@@ -54,10 +54,6 @@ module physvars
   real*8 :: Ukine          ! Electron kinetic energy
   real*8 :: Ukini          ! Ion kinetic energy
 
- ! tree stuff
-  real :: theta       ! Clumping parameter
-  integer :: mac = 0  ! MAC (default=BH)
-
 !  Variables needing 'copy' for tree routines
   integer :: npart_total  ! Total # particles (npart)
   integer :: np_local 
