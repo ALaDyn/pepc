@@ -83,15 +83,16 @@ module module_io
 	     open(file_domains_dat, file='domains.dat')
 	     open(file_laser_dat,   file='laser.dat')       ! laser parameters
 	     open(file_energy_dat,  file='energy.dat')      ! energies
+	     open(70,file='orbit.dat') 
 	     write(*,*) 'debug level: ',debug_level,' idump',idump
 	  endif
 
 	  !  stdout for PE my_rank
-	  !if (debug_level > 0) then
-      !      call system("mkdir -p " // "diag")
-	  !  write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
-	  !  open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
-	  !endif
+	  if (debug_level > 0) then
+            call system("mkdir -p " // "diag")
+	    write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
+	    open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
+	  endif
 
 	  ipefile = file_ipefile ! copy file handle to core
 
@@ -137,6 +138,7 @@ module module_io
 	     close(file_laser_dat)
              close(file_energy_dat)
              close(file_memory_dat)
+ 	     close(70) 
 	     close(90)
 	  endif
 
@@ -200,8 +202,9 @@ subroutine dump(timestamp)
   integer :: numfiles=0
   real :: simtime
 
-  integer*8 :: chunksize,  bwrote
-  integer   :: size1, size2, size_info
+  integer*8 :: chunksize 
+  integer :: size_info, bwrote
+  integer   :: size1, size2
   ! 2MB GPFS
   integer fsblksize
   integer sid
@@ -373,8 +376,9 @@ subroutine predef_parts
   logical :: stopflag=.false.
 
 
-  integer*8 :: chunksize, bread
-  integer   :: size1, size2, size_info
+  integer*8 :: chunksize
+  integer ::  size_info, bread
+  integer   :: size1, size2
   ! 2MB GPFS
   integer 	fsblksize, feof
   integer 	sid, globalrank

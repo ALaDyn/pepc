@@ -27,8 +27,8 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -g -pg -O0
   LDFLAGS  = -g -pg -O0
 else
-  FFLAGS   = -Wall -O3        -ffree-line-length-none $(INLINING)
-  CFLAGS   = -Wall -O3
+  FFLAGS   = -O3        -ffree-line-length-none $(INLINING)
+  CFLAGS   = -O3
   LDFLAGS  = -pthread -O3 $(INLINING)
 # -fwhole-program 
 #-fuse-linker-plugin

@@ -26,8 +26,8 @@ module module_particle_boundaries
       public check_particle_bounds
       public constrain
       public wrap
-      public reinject
-
+      public reinject_rel
+      public reinject_2v
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -52,6 +52,11 @@ subroutine check_particle_bounds
 
   case(3)
      call wrap  ! periodic particles
+
+  case(4)
+ ! TODO need to generalize boundary directions
+     call wrap ! periodic in y
+     call reflect_thermal  ! thermal reinjection on RHB of x-axis
 
   case default
      ! open (vacuum) boundaries - do nothing 
@@ -188,19 +193,72 @@ subroutine constrain
  
 end subroutine constrain
 
+! =========================================
+!> Reflecting RHB with thermal reinjection
+! =========================================
 
+subroutine reflect_thermal
+    use module_physvars
+    use module_particle_props
+    use module_fmm_framework
+    implicit none
+
+    integer p
+
+    do p = 1, np_local
+
+      if (x(p).gt.xl) then
+	if (q(p).lt.0) then
+	  call reinject_2v(vte,-1,ux(p),uy(p),my_rank)
+        else 
+	  call reinject_2v(vti,-1,ux(p),uy(p),my_rank)
+	endif
+	x(p)=xl+dt*ux(p)
+      end if
+    end do
+	
+end subroutine reflect_thermal
+
+
+!  ========================================
+!
+!     2V thermal particle reinjection via direct inversion
+!    - conserves  background temp. 
+!
+!  ========================================
+
+ subroutine reinject_2v(vt,idir,vxi,vyi,my_rank)
+
+ use module_utilities
+
+ implicit none
+ real, parameter :: pi=3.14159265
+ integer :: my_rank, idir
+ real :: vt
+ real*8 :: theta, v0, rs, vxi, vyi
+ integer, save :: idum=-3193191
+
+!  Flux in x-dirn: invert Int (vx f(ux) dux) directly
+     
+  rs=rano(idum)
+  v0 = vt*sqrt(-2.*log(rs))
+  theta=pi*rano(idum)
+  vxi = idir*v0*sin(theta)
+  vyi = v0*cos(theta)
+		
+ end subroutine reinject_2v
 
 
 
 !  ========================================
 !
-!     Thermal particle reinjection
+!     Relativistic thermal particle reinjection
 !    - conserves  background temp. 
 !    - pairwise injection for uy,uz to give zero transverse current
 !
 !  ========================================
 
- subroutine reinject(vt,idir,uxi,uyi,uzi)
+ subroutine reinject_rel(vt,idir,uxi,uyi,uzi)
 
  use module_utilities
 
@@ -282,7 +340,7 @@ end subroutine constrain
       isamp = isamp + 1
       if (isamp.gt.nsamp) isamp = 1
 
-  end subroutine reinject
+  end subroutine reinject_rel
 
 
 !  ===============================================================

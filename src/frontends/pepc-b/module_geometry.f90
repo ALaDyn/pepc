@@ -618,7 +618,7 @@ subroutine special_start(iconf)
 	grid_ind = p+igap(my_rank+1)
 	i = mod(grid_ind-1,ncols)+1  ! x-index
 	j = (grid_ind-1)/ncols+1   ! y-index
-	x(p) = i*dx-dx/2.+ plasma_centre(1)-x_plasma/2.
+	x(p) = i*dx-dx/2.+ displace(1) ! place at given position in grid box
 	y(p) = j*dx-dx/2.+ plasma_centre(2)-y_plasma/2.
 	z(p) = plasma_centre(3)
         q(p) = qi        ! plasma ions (need Z* here)

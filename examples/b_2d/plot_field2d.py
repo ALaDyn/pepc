@@ -14,9 +14,9 @@ import os
 print "Plot field data"
 
 timestamp='000001'
-nx=50
-ny=50
-filename='fields/' + timestamp +'.xy'
+nx=200
+ny=200
+filename='sheath8/' + timestamp +'.xy'
 
 markers=['*','<','>','D','H','^','d','h','o','p','s','v','x','|','None',' ','']
 

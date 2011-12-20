@@ -23,32 +23,50 @@ print "Plot field data"
 
 plotboxsize   = 5.
 animated = True
+tmax=8001
+increment = 25
+dt=0.1
 nx=200
 ny=200
+xmin = 0.
+xmax = 100.
+ymin = 0.
+ymax = 125.
 
-
-fig = plt.figure(figsize=(8,8))
-fig.suptitle("Densities")
+fig = plt.figure(figsize=(8,6))
+#fig.suptitle("Fields")
 #fig.suptitle(filename, fontsize=26)
 #fig.subplots_adjust(right=0.8) # http://matplotlib.sourceforge.net/faq/howto_faq.html#move-the-edge-of-an-axes-to-make-room-for-tick-labels
 
 
 
 
-def plot_image(field,position,color,ctitle):
+def plot_image(field,position,color,ctitle,fmin,fmax):
     global fig
+    global xmin, xmax, ymin, ymax
 
 #    print field,position,color,ctitle
+
     plt.subplot(position)
+#    plt.subplots_adjust(bottom=0.1) 
     cmap = plt.get_cmap(color) # Set a colour map
-    cmap.set_under ( 'w' ) # Low values set to 'w'hite
-    cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
-    plt.imshow(field, cmap=cmap, aspect=1, interpolation='bilinear', vmin=0.01, vmax=1.5, origin='lower') 
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.colorbar()
-#    cb.set_label(ctitle)
-    plt.draw()
+#    cmap.set_under ( 'w' ) # Low values set to 'w'hite
+#    cmap.set_bad ( 'w' ) # Bad values set to 'w'hite
+    extent = [xmin, xmax, ymin, ymax]
+    im=plt.imshow(field, cmap=cmap, aspect=1., extent=extent, interpolation='bilinear', origin='lower', vmin=fmin, vmax=fmax) 
+    plt.xlabel('$x/\lambda_D$')
+    plt.ylabel('$y/\lambda_D$')
+    ax = im.get_axes()
+
+#    plt.xticks(arange(xmin,xmax,25)) 
+#    plt.yticks(arange(ymin,ymax,20))
+    plt.minorticks_on()
+
+    plt.colorbar(shrink=0.5)
+    plt.title(ctitle,fontsize=15)
+#    plt.set_label(ctitle)
+    plt.savefig(filename +'.png')
+#    plt.draw()
     return True
 
 # contour the gridded data, plotting dots at the nonuniform data points.
@@ -60,16 +78,22 @@ def plot_image(field,position,color,ctitle):
 def plot_from_file(fn,nx,ny):
     if os.path.isfile(fn):
         try:
-            raw = []
-            raw = genfromtxt(fn)
-	    ng=raw.shape[0]
-            numcols=raw.shape[1]
-            print "ng:",ng,"numcols:",numcols
+            data = []
+            data = genfromtxt(fn,skiprows=1)
+	    ng=data.shape[0]
+            numcols=data.shape[1]
+#            print "ng:",ng,"numcols:",numcols
 	# extract
-	    rhoe = -raw[:,0].reshape(ny,nx)
-            rhoi = raw[:,1].reshape(ny,nx)
-	    plot_image(rhoe,211,'Reds','rhoe')
- 	    plot_image(rhoi,212,'YlGn','rhoi')
+	    rhoe = -data[:,0].reshape(ny,nx)
+            rhoi = data[:,1].reshape(ny,nx)
+	    ex = data[:,2].reshape(ny,nx)
+	    ey = data[:,3].reshape(ny,nx)
+	    pot = data[:,4].reshape(ny,nx)
+	    plot_image(rhoe,221,'Reds','$n_e$',0.,1.0)
+#  	    plot_image(pot,222,'BrBG','$\Phi$',-2.,2.)
+ 	    plot_image(rhoi,222,'YlGn','$n_i$',0.,1.0)
+ 	    plot_image(ex,223,'RdBu','Ex',-.2,.2)
+ 	    plot_image(ey,224,'RdBu','Ey',-.2,.2)
             return
         except IOError:
 	    print 'File ',fn,' not found'
@@ -80,8 +104,11 @@ def plot_from_file(fn,nx,ny):
 
 
 def plot_for_timestep(ts):
-    global nx,ny
-    filename = 'fields7/%0*d'%(6, ts) + '.xy'
+    global nx,ny, filename, fig, dt
+
+    filename = '%0*d'%(6, ts) + '.xy'
+    tsname = '$\omega_pt$=%0*d'%(6, ts*dt)
+    fig.suptitle(tsname)
     print filename,nx,ny
     if plot_from_file(filename,nx,ny):
         print "Timestep: " + '%0*d'%(6, ts)
@@ -109,20 +136,18 @@ def next_plot():
 
 #gobject.idle_add(next_plot)
 
-fn='fields/002000.xy'
-plot_from_file(fn,nx,ny)
-exit
+#fn='fields/000000.xy'
+#plot_from_file(fn,nx,ny)
 
-tmax=10000
-increment = 100
+
 plt.ion()
 for timestamp in range(0,tmax,increment):
 	plot_for_timestep(timestamp)
-	sleep(0.1) # Time in seconds.
-	raw_input("Press key...")
+#	sleep(0.1) # Time in seconds.
+#	raw_input("Press key...")
 	plt.clf()
 #'	plt.show()
 #	input = sys.stdin.readline() 
 
 #plt.savefig(filename +'.png') # Must occur before show()
-plt.show()
+#plt.show()

@@ -27,7 +27,7 @@ nx=200
 ny=100
 
 
-fig = plt.figure(figsize=(10,10))
+fig = plt.figure(figsize=(8,8))
 fig.suptitle("Densities")
 #fig.suptitle(filename, fontsize=26)
 #fig.subplots_adjust(right=0.8) # http://matplotlib.sourceforge.net/faq/howto_faq.html#move-the-edge-of-an-axes-to-make-room-for-tick-labels
@@ -136,10 +136,10 @@ def next_plot():
 
 tmax=101
 increment = 1
-xmin=0
+xmin=-10
 xmax=10
 ymin=0
-ymax=10
+ymax=4
 
 plt.ion()
 for timestamp in range(0,tmax,increment):

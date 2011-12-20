@@ -24,7 +24,7 @@ module module_interaction_specific
       integer, public :: force_law    = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
       integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
       logical, public :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
-      real*8, public  :: theta2       = 0.6**2.  !< square of multipole opening angle
+      real*8, public  :: theta2       = 0.36  !< square of multipole opening angle
       real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
 
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2

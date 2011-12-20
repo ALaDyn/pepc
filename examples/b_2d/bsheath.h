@@ -56,7 +56,7 @@
   ! extrinsic-to-intrinsic correction
 !  do_extrinsic_correction = .false. 
 
- scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
+ scheme = 7 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
   nt =10000
