@@ -290,8 +290,8 @@ module module_interaction_specific
                     ! Barnes-Hut-MAC
                     mac = (theta2 * dist2 > boxlength2)
                 case (1)
-                    ! Barnes-Hut-MAC
-                    mac = (theta2 * dist2 > tree_nodes(node)%bmax**2)
+                    ! Bmax-MAC
+                    mac = (theta2 * dist2 > min(tree_nodes(node)%bmax**2,3.0*boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
                 case default
                     ! N^2 code
                     mac = .false.

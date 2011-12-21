@@ -414,8 +414,6 @@ module module_math_tools
           implicit none
           include 'mpif.h'
 
-          integer :: ierr
-
           integer*8,intent(in) :: a, b
 
           integer*8 :: axorb, mask

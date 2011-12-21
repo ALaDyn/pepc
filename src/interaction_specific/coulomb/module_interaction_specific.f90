@@ -81,7 +81,7 @@ module module_interaction_specific
                                  abs(particle%q),  &
                                      [0., 0., 0.], &
                                      [0., 0., 0.], &
-                                      0., 0., 0.    )
+                                      0., 0., 0., 0. )
       end subroutine
 
 
@@ -143,6 +143,9 @@ module module_interaction_specific
           parent%yzquad = parent%yzquad + children(j)%yzquad - children(j)%dip(2)*shift(3) - children(j)%dip(3)*shift(2) + children(j)%charge*shift(2)*shift(3)
           parent%zxquad = parent%zxquad + children(j)%zxquad - children(j)%dip(3)*shift(1) - children(j)%dip(1)*shift(3) + children(j)%charge*shift(3)*shift(1)
         end do
+
+        parent%bmax = maxval(sqrt((parent%coc(1)-children(1:nchild)%coc(1))**2+(parent%coc(2)-children(1:nchild)%coc(2))**2+(parent%coc(3)-children(1:nchild)%coc(3))**2) + children(1:nchild)%bmax)
+
       end subroutine
 
 
@@ -240,6 +243,8 @@ module module_interaction_specific
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       function mac(particle, node, dist2, boxlength2)
+
+        use treevars, only : tree_nodes
         implicit none
 
         logical :: mac
@@ -252,6 +257,9 @@ module module_interaction_specific
             case (0)
               ! Barnes-Hut-MAC
               mac = (theta2 * dist2 > boxlength2)
+            case (1)
+               ! Bmax-MAC
+              mac = (theta2 * dist2 > min(tree_nodes(node)%bmax**2,3.0*boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
             case default
               ! N^2 code
               mac = .false.
