@@ -343,7 +343,13 @@ module module_interaction_specific
           select case (force_law)
             case (2)  !  use 2nd order algebraic kernel, condensed
 
-                call calc_2nd_algebraic_condensed(particle, inode, delta, dist2, u, af)
+                if (inode > 0) then
+                    ! It's a leaf, do direct summation without ME stuff
+                    call calc_2nd_algebraic_condensed_direct(particle, inode, delta, dist2, u, af)
+                else
+                    ! It's not a leaf, do ME
+                    call calc_2nd_algebraic_condensed(particle, inode, delta, dist2, u, af)
+                end if
 
             case (3)  !  TODO: use 2nd order algebraic kernel, decomposed
                 !call calc_2nd_algebraic_decomposed(particle, inode, delta, dist2, u, af)
@@ -360,7 +366,6 @@ module module_interaction_specific
               af = 0.
           end select
 
-          ! TODO: factor out multiplication of force_const, does not depend on actual interaction-pair
           particle%results%u(1:3)    = particle%results%u(1:3)     -  u(1:3)
           particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
           particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
@@ -521,6 +526,47 @@ module module_interaction_specific
 !        subroutine calc_2nd_algebraic_decomposed(inode, d, dist2, u, af)
 !
 !        end subroutine calc_2nd_algebraic_decomposed
+
+
+        subroutine calc_2nd_algebraic_condensed_direct(particle, inode, d, dist2, u, af)
+
+            use module_pepc_types
+            use treevars, only : tree_nodes
+            implicit none
+
+            integer, intent(in) :: inode
+            type(t_particle), intent(inout) :: particle
+            real*8, intent(in) :: d(3), dist2
+            real*8, intent(out) :: u(1:3), af(1:3)
+
+            type(t_tree_node_interaction_data), pointer :: t
+            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
+            real*8 :: dx, dy, dz, Gc25, MPa1
+            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+
+
+            t=>tree_nodes(inode)
+
+            dx = d(1)
+            dy = d(2)
+            dz = d(3)
+
+            m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+            CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
+
+            Gc25 = G_core(dist2,sig2,2.5D00)
+            MPa1 = 3.0D00*G_core(dist2,sig2,3.5D00)*dot_product(d,CP0)
+
+            u(1) = Gc25* (dy*m0(3)-dz*m0(2))
+            u(2) = Gc25* (dz*m0(1)-dx*m0(3))
+            u(3) = Gc25* (dx*m0(2)-dy*m0(1))
+
+            af(1) = Mpa1*dx - Gc25*CP0(1)
+            af(2) = Mpa1*dy - Gc25*CP0(2)
+            af(3) = Mpa1*dz - Gc25*CP0(3)
+
+        end subroutine calc_2nd_algebraic_condensed_direct
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
