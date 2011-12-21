@@ -12,7 +12,8 @@ module module_particle_setup
        ne, &
        ni, &
        np_local, &
-       npart_total
+       npart_total, &
+       idim
 
   implicit none
   save
@@ -72,10 +73,8 @@ contains
 
     case(2)
        if (my_rank == 0) write(*,*) "Using special start... case 2 (one sphere benchmark)"
-!       call particle_setup_sphere(fences)
-!       call rescale_coordinates_spherical()
-!       call init_generic(fences)
-!       call init_fields_zero()
+       call init_generic(fences)
+       call particle_setup_sphere(fences)
 
     case(3)
        if (my_rank == 0) write(*,*) "Using special start... case 3 (two sphere benchmark)"
@@ -108,43 +107,25 @@ contains
 !       call init_fields_zero()
 
     case(6)
-       if (my_rank == 0) write(*,*) "Using special start... case 6 (2D-homogeneous distribution)"!
+       if (my_rank == 0) write(*,*) "Using special start... case 6 (2D homogeneous distribution)"
        call init_generic(fences)
-       call particle_setup_homogeneous(fences, 3)
+       call particle_setup_homogeneous(fences, 2)
 
     case(7)
-!       call update_particle_numbers((nint((npart_total/8)**(1./3.))**3)*8)
-
-       if (my_rank == 0) then
-          write(*,*) "Using special start... case 7 (3D Madelung Setup)"
-          write(*,*) "Total particle number must be representable by 8*k^3. Set npart_total =", npart_total
-       endif
-
-!       call particle_setup_madelung()
- !      call rescale_coordinates_cuboid()
- !      call cold_start(ux,uy,uz,nppm,1,np_local)
- !      call init_fields_zero()
-
-    case(8)
-       if (my_rank == 0) write(*,*) "Using special start... case 8 (fast homogeneous distribution)"
-!       call particle_setup_homogeneous_fast(fences)
-!       call rescale_coordinates_cuboid()
+       if (my_rank == 0) write(*,*) "Using special start... case 7 (3D homogeneous distribution xyz periodic)"
 !       call init_generic(fences)
-!       call init_fields_zero()
+!       call particle_setup_homogeneous(fences, 3)
+
+ 
+    case(8)
+       if (my_rank == 0) write(*,*) "Using special start... case 8 (fast 3D homogeneous distribution)"
+       call init_generic(fences)
+       call particle_setup_homogeneous_fast(fences, 3)
 
     case(12)
-!       npart_total   = get_nextlower_particles(npart_total/2)*2
-
-!       call update_particle_numbers(npart_total)
-       if (my_rank == 0) then
-          write(*,*) "Using special start... case 12 (Mackay Icosahedron)"
-          write(*,*) "Total particle number must be two times a magic cluster number. Setting npart_total =", npart_total
-       endif
-
-!       call particle_setup_icosahedron(fences)
-!       call rescale_coordinates_spherical()
-!       work(1:np_local) = 1.
-!       call init_fields_zero()
+       if (my_rank == 0) write(*,*) "Using special start... case 12 (1D wave)"
+       call init_generic(fences)
+       call particle_setup_1d_wave(fences)
 
     case(13)
 !       ni = nint((ne/Zion)**(1./3.))**3
@@ -162,6 +143,7 @@ contains
 !       call init_fields_zero()
 
     end select
+
   end subroutine particle_setup
 
 
@@ -183,6 +165,8 @@ contains
     real*8, dimension(3) :: tmp
     
     tmp = [ 0._8, 0._8, 0._8 ]
+
+    idim = dim
     
     do mpi_cnt = 0, n_cpu-1
        do p = 1, (fences(mpi_cnt) - fences(mpi_cnt-1))
@@ -191,9 +175,9 @@ contains
              tmp(i) = par_rand()
           end do
 
-          if ( my_rank == mpi_cnt .and. p <= np_local ) then
+          if ( my_rank .eq. mpi_cnt .and. p .le. np_local ) then
              particles(p)%x = tmp
-             particles(p)%data%v_and_half = [ 0._8, 0._8, 0._8 ]
+!             particles(p)%data%v_and_half = [ 0._8, 0._8, 0._8 ]
           end if
 
        end do
@@ -203,38 +187,169 @@ contains
 
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !>
-  !>
-  !>
+  ! >
+  ! >
+  ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! subroutine particle_setup_sphere(fences)
-  !   implicit none
-  !   integer, intent(in) :: fences(-1:n_cpu-1)
-  !   integer :: mpi_cnt, p
-  !   real*8 :: xt, yt, zt
+  subroutine particle_setup_sphere(fences)
 
-  !   do mpi_cnt = 0, n_cpu-1
-  !      do p = 1, (fences(mpi_cnt) - fences(mpi_cnt-1))
+    implicit none
+    integer, intent(in) :: fences(-1:n_cpu-1)
+    integer :: mpi_cnt, p
+    real*8 :: xt, yt, zt
+    
+    do mpi_cnt = 0, n_cpu-1
+       do p = 1, (fences(mpi_cnt) - fences(mpi_cnt-1))
+          
+          xt = 1.0_8
+          yt = 1.0_8
+          zt = 1.0_8
+          
+          do while ( (xt*xt + yt*yt + zt*zt) > 0.5_8)
+             xt = par_rand() - 0.5_8
+             yt = par_rand() - 0.5_8
+             zt = par_rand() - 0.5_8
+          end do
 
-  !         xt = 1.0_8
-  !         yt = 1.0_8
-  !         zt = 1.0_8
+          if ( my_rank .eq. mpi_cnt .and. p .le. np_local ) then
+             particles(p)%x = [ xt, yt, zt ]
+          end if
+       end do
+    end do
 
-  !         do while ( (xt*xt + yt*yt + zt*zt) > 0.5_8)
-  !            xt = par_rand() - 0.5_8
-  !            yt = par_rand() - 0.5_8
-  !            zt = par_rand() - 0.5_8
-  !         end do
+  end subroutine particle_setup_sphere
 
-  !         if ( my_rank == mpi_cnt .and. p <= np_local ) then
-  !            z(p) = zt
-  !            y(p) = yt
-  !            x(p) = xt
-  !         end if
-  !      end do
-  !   end do
 
-  ! end subroutine particle_setup_sphere
+  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! >
+  ! >
+  ! >
+  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine particle_setup_1d_wave(fences)
+
+    use physvars, only: &
+         dt, &
+         n_cpu, &
+         thermal_constant
+
+    use module_mirror_boxes, only: &
+         periodicity, &
+         t_lattice_1
+
+    use module_interaction_specific_types, only: &
+         num_neighbour_particles
+
+    
+    implicit none
+    include 'mpif.h'
+
+    integer, intent(in) :: fences(-1:n_cpu-1)
+    integer :: mpi_cnt, p
+    real*8 :: xt, yt, zt
+
+    real*8 :: medium_temperature
+    integer :: part_counter
+    integer :: part_before_me
+    integer :: part_including_mine
+    real*8 :: offset
+    integer :: n_nn
+    real*8 :: left_y
+    real*8 :: right_y
+    real*8 :: area1, area2
+    real*8 :: sound_speed
+    real*8 :: setup_rho0, setup_rho1
+    real*8 :: dx
+    integer :: i, ierr
+    integer :: actual_particle
+    real*8 :: actual_x
+    integer, dimension(n_cpu) :: all_np_local
+    integer :: all_part
+
+    ! set number of dimension. important for factor for sph kernel
+    idim = 1
+
+    ! set periodicity
+    periodicity = [.true., .false., .false.]
+
+    ! if periodic set boxlength
+    t_lattice_1 = [1, 0, 0]
+    
+    sound_speed = 1._8
+      
+    ! temperature of the medium the wave moves in
+    medium_temperature = 100._8
+    thermal_constant = sound_speed**2 /medium_temperature
+    
+    ! n_nn = 6 does not work! try shepard correction rho = (sum m_i *W )/(sum W)
+!    n_nn = 8
+ 
+ !   num_neighbour_particles = n_nn
+
+ 
+    call MPI_ALLGATHER( np_local, 1, MPI_INTEGER, all_np_local, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+    call MPI_REDUCE(np_local, all_part, 1, MPI_INTEGER, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(all_part, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+    call MPI_SCAN(np_local, part_including_mine, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+ 
+    part_before_me = part_including_mine - np_local
+    
+    setup_rho0 = 1000._8
+    setup_rho1 = 1._8
+    
+    dx = 0.000000001_8
+    
+    area1 = 0._8
+    
+    do i= 0, int(t_lattice_1(1)/dx) -1
+       left_y  = setup_rho0 + setup_rho1 * sin(dx * real(i,   8) /t_lattice_1(1)*2._8*3.141592653589793)
+       right_y = setup_rho0 + setup_rho1 * sin(dx * real(i+1, 8) /t_lattice_1(1)*2._8*3.141592653589793)
+         
+       area1 = area1 +(left_y + right_y )/2._8*dx
+    end do
+
+ 
+    offset = area1/(all_part*2)
+ 
+    write (*,*) 'area1:' , area1, 'offset:', offset
+ 
+    actual_x = 0._8
+    area2 = 0._8
+ 
+    do part_counter = 1, all_part
+    
+       do while(area2 < area1/real(all_part,8)*real(part_counter-1,8)+offset )
+          left_y  = setup_rho0 + setup_rho1 * sin( actual_x      /t_lattice_1(1)*2._8*3.141592653589793)
+          right_y = setup_rho0 + setup_rho1 * sin((actual_x +dx) /t_lattice_1(1)*2._8*3.141592653589793)
+          
+          area2 = area2 +(left_y + right_y )/2._8*dx
+          actual_x = actual_x + dx
+       end do
+    
+       if( (part_counter > part_before_me) .and. (part_counter <= part_including_mine) ) then
+          
+          actual_particle = part_counter - part_before_me
+          particles(actual_particle)%x = [ actual_x, 0._8, 0._8 ]
+
+          ! sound_speed * 0.760429
+          particles(actual_particle)%data%v = [ - sound_speed * setup_rho1/setup_rho0 * sin( particles(actual_particle)%x(1) * 2.* 3.141592653589793 / t_lattice_1(1) ) , 0._8, 0._8 ]
+          
+          particles(actual_particle)%data%temperature =  medium_temperature
+       
+       end if
+    
+    end do
+ 
+    ! timestep length
+    dt = 0.001
+    !* sqrt(thermal_constant * medium_temperature /10.)
+ 
+    
+    ! Initial neighbour search radius
+    !      r_neighbour = boxlength_x * 1.1 / all_part *n_nn
+ 
+    !if (my_rank == 0) write(*,*) "Using timestep:", dt
+ 
+  end subroutine particle_setup_1d_wave
 
 
 
@@ -459,26 +574,33 @@ contains
 
 
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !>
-  !>
-  !>
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! subroutine particle_setup_homogeneous_fast(fences)
-  !   implicit none
-  !   integer, intent(in) :: fences(-1:n_cpu-1)
-  !   integer :: p
+  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! >
+  ! >
+  ! >
+  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  !   ! initialize random number generator with some arbitrary seed
-  !   x(1) = par_rand(my_rank + 13)
+  subroutine particle_setup_homogeneous_fast(fences, dim)
 
-  !   do p = 1, (fences(my_rank) - fences(my_rank-1))
-  !      x(p) = par_rand()
-  !      y(p) = par_rand()
-  !      z(p) = par_rand()
-  !   end do
+    implicit none
+    integer, intent(in) :: fences(-1:n_cpu-1)
+    integer :: p, dim, i
+    real*8, dimension(3) :: tmp
+    
+    ! initialize random number generator with some arbitrary seed
+    tmp(1) = par_rand(my_rank + 13)
 
-  ! end subroutine particle_setup_homogeneous_fast
+    tmp = [ 0._8, 0._8, 0._8 ]
+    
+    do p = 1, (fences(my_rank) - fences(my_rank-1))
+       do i = 1, dim
+          tmp(i) = par_rand()
+       end do
+
+       particles(p)%x = tmp
+    end do
+
+  end subroutine particle_setup_homogeneous_fast
 
 
 
@@ -628,10 +750,10 @@ contains
     do p = 1, np_local
        particles(p)%data%q           = 1._8
        particles(p)%label            = fences(my_rank-1) + p
-       particles(p)%work             = 1.
+       particles(p)%work             = 1._8
        particles(p)%data%v_and_half  = [ 0._8, 0._8, 0._8 ]
        particles(p)%data%v           = [ 0._8, 0._8, 0._8 ]
-       particles(p)%data%temperature = 1._8
+       particles(p)%data%temperature = 0._8
     end do
 
   end subroutine init_generic
