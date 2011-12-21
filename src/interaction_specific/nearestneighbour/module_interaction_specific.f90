@@ -319,6 +319,32 @@ module module_interaction_specific
 
         end subroutine calc_force_per_interaction
 
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Force calculation wrapper dor direct interaction (no difference for NN, hopefully!).
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_per_interaction_direct(particle, inode, delta, dist2, vbox)
+          use module_interaction_specific_types
+          use treevars
+          implicit none
+
+          integer, intent(in) :: inode
+          type(t_particle), intent(inout) :: particle
+          real*8, intent(in) :: vbox(3), delta(3), dist2
+
+          select case (force_law)
+            case (5)
+                call update_nn_list(particle, inode, delta, dist2)
+                particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
+          end select
+
+
+        end subroutine calc_force_per_interaction_direct
+
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>

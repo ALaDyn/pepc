@@ -307,11 +307,23 @@ module module_interaction_specific
 
           select case (force_law)
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_2D(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
+
+                if (inode > 0) then
+                    ! It's a leaf, do direct summation (TODO: Remove this, put it directly in tree_walk_pthreads via calc_force_per_interaction_direct)
+                    call calc_force_coulomb_2D_direct(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
+                else
+                    call calc_force_coulomb_2D(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
+                end if
                 exyz(3) = 0.
 
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_3D(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+
+                if (inode > 0) then
+                    ! It's a leaf, do direct summation (TODO: Remove this, put it directly in tree_walk_pthreads via calc_force_per_interaction_direct)
+                    call calc_force_coulomb_3D_direct(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+                else
+                    call calc_force_coulomb_3D(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+                end if
 
             case (4)  ! LJ potential for quiet start
                 call calc_force_LJ(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
@@ -327,6 +339,52 @@ module module_interaction_specific
           particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
 
         end subroutine calc_force_per_interaction
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Force calculation wrapper for direct summation
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_per_interaction_direct(particle, inode, delta, dist2, vbox)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          integer, intent(in) :: inode
+          type(t_particle), intent(inout) :: particle
+          real*8, intent(in) :: vbox(3), delta(3), dist2
+
+
+          real*8 :: exyz(3), phic
+
+          select case (force_law)
+            case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
+                ! It's a leaf, use direct summation
+                call calc_force_coulomb_2D_direct(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
+                exyz(3) = 0.
+
+            case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
+                ! It's a leaf, use direct summation
+                call calc_force_coulomb_3D_direct(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+
+            case (4)  ! LJ potential for quiet start
+                ! It's a leaf, use direct summation (which is the same for LJ...)
+                call calc_force_LJ(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+                exyz(3) = 0.
+
+            case default
+              exyz = 0.
+              phic = 0.
+          end select
+
+          particle%results%e         = particle%results%e    + exyz
+          particle%results%pot       = particle%results%pot  + phic
+          particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
+
+        end subroutine calc_force_per_interaction_direct
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -600,6 +658,97 @@ module module_interaction_specific
           sumfz=0.
 
       end subroutine calc_force_LJ
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> Calculates 3D Coulomb interaction of particle p with particle inode
+      !> that is shifted by the lattice vector vbox
+      !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_coulomb_3D_direct(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          include 'mpif.h'
+
+          integer, intent(in) :: inode !< index of particle to interact with
+          real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
+
+          real*8 :: rd,dx,dy,dz,r,charge, rd3
+          type(t_tree_node_interaction_data), pointer :: t
+
+          t=>tree_nodes(inode)
+
+          !  preprocess distances
+          dx = d(1)
+          dy = d(2)
+          dz = d(3)
+
+          r = sqrt(dist2+eps2)
+          rd = 1./r
+          rd3 = rd**3
+
+          charge = t%charge
+
+          ! potential
+          sumphi = charge*rd
+
+          !  forces
+
+          sumfx = charge*dx*rd3
+
+          sumfy = charge*dy*rd3
+
+          sumfz = charge*dz*rd3
+
+      end subroutine calc_force_coulomb_3D_direct
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> Calculates 2D Coulomb interaction of particle p with tree node inode
+      !> that is shifted by the lattice vector vbox
+      !> results are returned in eps, sumfx, sumfy, sumphi
+      !> Unregularized force law is:
+      !>   Phi = -2q log R
+      !>   Ex = -dPhi/dx = 2 q x/R^2 etc
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_coulomb_2D_direct(inode, d, dist2, sumfx, sumfy, sumphi)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          include 'mpif.h'
+
+          integer, intent(in) :: inode !< index of particle to interact with
+          real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          real*8, intent(out) ::  sumfx,sumfy,sumphi
+
+          real*8 :: dx,dy,d2,rd2,charge
+          type(t_tree_node_interaction_data), pointer :: t
+
+          t=>tree_nodes(inode)
+
+          !  preprocess distances and reciprocals
+          dx = d(1)
+          dy = d(2)
+
+          d2  = dist2+eps2
+          rd2 = 1./d2
+
+
+          charge = t%charge
+
+          sumphi = - 0.5*charge*log(d2)
+
+          sumfx = charge*dx*rd2
+
+          sumfy = charge*dy*rd2
+
+      end subroutine calc_force_coulomb_2D_direct
 
 
   end module module_interaction_specific
