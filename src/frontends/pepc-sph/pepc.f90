@@ -29,25 +29,27 @@ program pepce
   use module_interaction_specific, only: &
        mac_select, force_law
 
-  use physvars, only: &
-       trun, &
-       particles, &
-       nt, &
-       npart_total, &
-       np_local, &
-       n_cpu, &
-       my_rank, &
-       itime, &
-       ispecial, &
-       dt, &
-       idim
+  use physvars
+! , only: &
+!        trun, &
+!        particles, &
+!        nt, &
+!        npart_total, &
+!        np_local, &
+!        n_cpu, &
+!        my_rank, &
+!        itime, &
+!        ispecial, &
+!        dt, &
+!        idim
 
   use module_neighbour_test, only: &
        validate_n_nearest_neighbour_list, &
        draw_neighbours
 
   use module_sph, only: &
-       sph
+       sph, &
+       sph_kernel_tests
   
   use module_timings, only: &
        timer_start, &
@@ -56,12 +58,13 @@ program pepce
        timings_GatherAndOutput, &
        t_tot
        
-  use module_mirror_boxes, only: &
+  use module_mirror_boxes , only: &
        neighbour_boxes, &
        num_neighbour_boxes, &
        calc_neighbour_boxes, &
        do_periodic, &
-       constrain_periodic
+       constrain_periodic, &
+       periodicity
 
   use module_pepc, only: &
        pepc_initialize, &
@@ -87,6 +90,7 @@ program pepce
 
   integer :: omp_thread_num
   integer :: ierr, ifile
+
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-sph", my_rank, n_cpu, .true.)
@@ -114,9 +118,9 @@ program pepce
   !$OMP END PARALLEL
 
   ! Set up particles
-  ! call particle_setup(ispecial)
+  call particle_setup(ispecial)
 
-  call special_start(ispecial)
+!  call special_start(ispecial)
 
   ! initialize calc force params
   mac_select  = 1 ! NN MAC
@@ -124,7 +128,18 @@ program pepce
 
   particles(:)%work = 1._8
 
+  call write_particles(itime-1, -0.1)
+
+
   call pepc_prepare()
+
+  ! TODO: where should do_periodic be set?
+  do_periodic = periodicity(1) .or. periodicity(2) .or. periodicity(3)
+
+
+  call sph_kernel_tests(idim)
+
+
 
   ! Loop over all timesteps. <= nt to write out the last timestep
   do while (itime <= nt)
@@ -151,7 +166,7 @@ program pepce
 
      call pepc_traverse_tree(np_local, particles)
 
-     ! call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+     call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
      ! call draw_neighbours(np_local, particles, itime)
 
@@ -173,6 +188,8 @@ program pepce
      call velocities(1,np_local,dt)
      call push(1,np_local,dt)  ! update positions
      
+
+     write(*,*) "do_periodic:", do_periodic
      
      ! periodic systems demand periodic boundary conditions
      if (do_periodic) call constrain_periodic(particles(1:np_local)%x(1),particles(1:np_local)%x(2),particles(1:np_local)%x(3),np_local)
@@ -184,6 +201,12 @@ program pepce
 
      call timings_LocalOutput(itime)
      call timings_GatherAndOutput(itime)
+
+
+     ! TODO: calculate work for sph
+     particles(:)%work = 1._8
+
+
 
   end do
 
