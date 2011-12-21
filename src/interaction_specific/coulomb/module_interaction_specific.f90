@@ -342,53 +342,6 @@ module module_interaction_specific
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Force calculation wrapper for direct summation
-        !> This function is thought for pre- and postprocessing of
-        !> calculated fields, and for being able to call several
-        !> (different) force calculation routines
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction_direct(particle, inode, delta, dist2, vbox)
-          use module_pepc_types
-          use treevars
-          implicit none
-
-          integer, intent(in) :: inode
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
-
-
-          real*8 :: exyz(3), phic
-
-          select case (force_law)
-            case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-                ! It's a leaf, use direct summation
-                call calc_force_coulomb_2D_direct(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
-                exyz(3) = 0.
-
-            case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-                ! It's a leaf, use direct summation
-                call calc_force_coulomb_3D_direct(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
-
-            case (4)  ! LJ potential for quiet start
-                ! It's a leaf, use direct summation (which is the same for LJ...)
-                call calc_force_LJ(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
-                exyz(3) = 0.
-
-            case default
-              exyz = 0.
-              phic = 0.
-          end select
-
-          particle%results%e         = particle%results%e    + exyz
-          particle%results%pot       = particle%results%pot  + phic
-          particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
-
-        end subroutine calc_force_per_interaction_direct
-
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
         !> Force calculation wrapper for contributions that only have
         !> to be added once per particle
         !>

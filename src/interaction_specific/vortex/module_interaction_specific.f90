@@ -375,58 +375,6 @@ module module_interaction_specific
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Force calculation wrapper for direct interaction.
-        !> This function is thought for pre- and postprocessing of
-        !> calculated fields, and for being able to call several
-        !> (different) force calculation routines
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction_direct(particle, inode, delta, dist2, vbox)
-          use module_pepc_types
-          implicit none
-
-          integer, intent(in) :: inode
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
-          !> Force law struct has following content (defined in module module_pepc_types)
-          !> These need to be included/defined in call to fields from frontend
-          !>    real    :: eps
-          !>    real    :: force_const
-          !>    integer :: force_law   0= no interaction (default); 2=2nd order condensed algebraic kernel; 3=2nd order decomposed algebraic kernel
-
-          real*8 :: u(3), af(3)
-
-          select case (force_law)
-            case (2)  !  use 2nd order algebraic kernel, condensed
-
-                ! It's a leaf, do direct summation without ME stuff
-                call calc_2nd_algebraic_condensed_direct(particle, inode, delta, dist2, u, af)
-
-            case (3)  !  TODO: use 2nd order algebraic kernel, decomposed
-
-                !call calc_2nd_algebraic_decomposed(particle, inode, delta, dist2, u, af)
-                u = 0.
-                af = 0.
-
-            case (4)  !  TODO: use 6th order algebraic kernel, decomposed
-                !call calc_6th_algebraic_decomposed(inode, delta, dist2, u, af)
-                u = 0.
-                af = 0.
-
-            case default
-              u = 0.
-              af = 0.
-          end select
-
-          particle%results%u(1:3)    = particle%results%u(1:3)     -  u(1:3)
-          particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
-          particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
-
-        end subroutine calc_force_per_interaction_direct
-
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
         !> Force calculation wrapper for contributions that only have
         !> to be added once per particle (not required in vortex bubu, yet)
         !>

@@ -1000,9 +1000,12 @@ module module_walk
 
           dist2 = DOT_PRODUCT(delta, delta)
 
-          mac_ok = mac(particle, walk_node, dist2, boxlength2(walk_level))
-
-          num_mac_evaluations = num_mac_evaluations + 1
+          if (walk_node > 0) then
+              mac_ok = .true.
+          else
+              mac_ok = mac(particle, walk_node, dist2, boxlength2(walk_level))
+              num_mac_evaluations = num_mac_evaluations + 1
+          end if
 
           ! we may not interact with the particle itself or its ancestors
           ! if we are in the central box
