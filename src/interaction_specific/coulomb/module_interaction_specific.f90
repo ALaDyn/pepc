@@ -309,9 +309,10 @@ module module_interaction_specific
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
 
                 if (inode > 0) then
-                    ! It's a leaf, do direct summation (TODO: Remove this, put it directly in tree_walk_pthreads via calc_force_per_interaction_direct)
+                    ! It's a leaf, do direct summation
                     call calc_force_coulomb_2D_direct(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
                 else
+                    ! It's a twig, do ME
                     call calc_force_coulomb_2D(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
                 end if
                 exyz(3) = 0.
@@ -319,9 +320,10 @@ module module_interaction_specific
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
 
                 if (inode > 0) then
-                    ! It's a leaf, do direct summation (TODO: Remove this, put it directly in tree_walk_pthreads via calc_force_per_interaction_direct)
+                    ! It's a leaf, do direct summation
                     call calc_force_coulomb_3D_direct(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
                 else
+                    ! It's a twig, do ME
                     call calc_force_coulomb_3D(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
                 end if
 
