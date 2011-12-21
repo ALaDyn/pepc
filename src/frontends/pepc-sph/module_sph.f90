@@ -4,6 +4,10 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_sph
+
+  use module_interaction_specific_types, only: &
+       num_neighbour_particles
+
   implicit none
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -18,8 +22,6 @@ module module_sph
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
-  integer, parameter :: num_neighbour_particles = 50      !< TODO: set this variable from pepc.f90
-
   integer :: idim = 3
 
   real*8 :: thermal_constant             
@@ -28,7 +30,7 @@ module module_sph
   real*8 :: art_vis_beta                 
   logical :: use_artificial_viscosity
 
-  real*8, parameter :: pi = 3.141592653589793  
+  real*8, parameter :: pi = 3.1415926535897932384626433832795028842   ! 64-bit
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -66,7 +68,7 @@ contains
     art_vis_alpha    = art_vis_alpha_tmp
     art_vis_beta     = art_vis_beta_tmp
 
-    use_artificial_viscosity = .true.
+    use_artificial_viscosity = .false.
 
 
   end subroutine sph_initialize
@@ -76,6 +78,39 @@ contains
 
 
 
+  subroutine sph_kernel_tests(idim_)
+    
+    implicit none
+    
+    integer, intent(in) :: idim_
+
+    real*8 :: r
+    real*8 :: h
+    real*8 :: kernel
+    real*8 :: grad_kernel
+    integer :: i, steps
+
+
+    idim = idim_
+
+    steps = 100
+    h = 1.
+
+    do i = 0, steps
+       
+       r = -2. + 4./steps*i
+       call sph_kernel(abs(r),h,kernel)
+       call sph_grad_kernel(abs(r), h, grad_kernel)
+       
+       grad_kernel = grad_kernel * r
+
+       write(77, *) i, r, kernel, grad_kernel
+
+    end do
+
+    close(77)
+
+  end subroutine sph_kernel_tests
 
 
 
@@ -116,8 +151,8 @@ contains
     
     q = r/h
 
-    if( idim .eq. 3 ) then
-       sph_kernel_factor = 1._8/pi/h**3                                     ! see monaghan 1992, S. 554, 555
+    if( idim .eq. 3 ) then 
+      sph_kernel_factor = 1._8/pi/h**3                                     ! see monaghan 1992, S. 554, 555
     else if( idim .eq. 2 ) then
        sph_kernel_factor = 10._8/7._8/pi/h**2
     else if( idim .eq. 1 ) then
@@ -225,7 +260,7 @@ contains
           call sph_kernel(  sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) ), h, kernel)
 
           particles(local_particle_index)%results%rho = particles(local_particle_index)%results%rho + &
-               tree_nodes(actual_node)%q
+               tree_nodes(actual_node)%q *kernel
 
        end do
 
@@ -315,6 +350,8 @@ contains
     use treevars, only: &
          tree_nodes
 
+    use physvars, only: &
+         my_rank
 
     implicit none
     include 'mpif.h'
@@ -350,6 +387,10 @@ contains
 
     CHARACTER(100) :: forcefile
 
+
+    do local_particle_index = 1, np_local
+       particles(local_particle_index)%results%sph_force = [ 0._8, 0._8, 0._8 ]
+    end do
     
     
     const = thermal_constant  ! m**2 s**-2 K
@@ -360,7 +401,7 @@ contains
     energy_factor = 1._8 * ( kappa - 1._8 ) /const /2._8 
 
 
-!write(forcefile,'(a,i6.6,a,i6.6,a)') "sph_", itime-1, "_", me, ".list"
+!write(forcefile,'(a,i6.6,a,i6.6,a)') "sph_", itime, "_", me, ".list"
 !open(50, FILE=forcefile)
 
 
@@ -379,8 +420,8 @@ contains
 
     
     
-    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h1, h2, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel_1, grad_kernel_2, &
-    !$OMP& rr, vr, dim, dist, dv, thermal_energy_factor, eta, sound_speed, mu, artificial_viscosity, scalar_force, distance)
+    ! _$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h1, h2, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel_1, grad_kernel_2, &
+    ! _$OMP& rr, vr, dim, dist, dv, thermal_energy_factor, eta, sound_speed, mu, artificial_viscosity, scalar_force, distance)
     do local_particle_index = 1, np_local
        
        h1 = particles(local_particle_index)%results%h
@@ -413,6 +454,15 @@ contains
           
           ! distance vector
           dist = particles(local_particle_index)%results%dist_vector(:, actual_neighbour)
+
+          if( abs(sqrt(dist(1)**2 + dist(2)**2 + dist(3)**2) - distance ) > 1E-7 ) then
+             write(*,*) '|dist| - distance > 1E-7:', my_rank, local_particle_index, actual_neighbour, distance, dist
+          end if
+
+
+
+
+
 
           ! rr: art_vis, distance squared
           rr =  particles(local_particle_index)%results%dist2(actual_neighbour)
@@ -447,6 +497,9 @@ contains
              artificial_viscosity = 0._8
           end if
           
+
+
+
           
           ! compute scalar part of the force: mass * ( p1/rho1^2 + p2/rho2^2 + art_vis ) * grad_kernel
           scalar_force = tree_nodes(actual_node)%q * &
@@ -460,6 +513,7 @@ contains
 
           particles(local_particle_index)%results%sph_force = particles(local_particle_index)%results%sph_force + scalar_force * dist
 
+          write(78, *) my_rank, local_particle_index, h1, particles(local_particle_index)%data%temperature, particles(local_particle_index)%results%rho, actual_neighbour, distance, grad_kernel_1, tree_nodes(actual_node)%q, tree_nodes(actual_node)%temperature, tree_nodes(actual_node)%h, tree_nodes(actual_node)%rho, scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
 
           
 !write(50+me, *) scalar_force, vr, grad_kernel, xdist, dvx, artificial_viscosity
@@ -475,7 +529,7 @@ contains
        !write(50+me, *) temperature_change_tmp( part_indices( actual_particle ) )
        
     end do
-    !$OMP END PARALLEL DO
+    ! _$OMP END PARALLEL DO
       
     !close(50)
     
@@ -492,6 +546,8 @@ contains
     use treevars, only: &
          tree_nodes
 
+    use physvars, only: &
+         thermal_constant
 
     implicit none
     include 'mpif.h'
@@ -506,12 +562,16 @@ contains
 
     integer :: ierr
 
-    call sph_initialize(idim, 1._8, 1.4_8, 2._8, 1._8)
+    call sph_initialize(idim, thermal_constant, 1.4_8, 2._8, 1._8)
 
     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
     
     call update_particle_props(np_local, particles)
     
+    do ierr = 1, np_local
+       particles(ierr)%results%sph_force = 0.
+    end do
+
     call sph_sum_force(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
 
@@ -565,6 +625,8 @@ contains
     integer*8, allocatable :: non_local_node_keys(:)
     integer*8, allocatable :: key_arr_cp(:)
     integer*8, allocatable :: non_local_node_owner(:)
+    integer, allocatable :: non_local_node_node(:)
+    integer, allocatable :: node_arr_cp(:)
     integer, allocatable :: int_arr(:)
     integer :: num_request
     integer :: i
@@ -592,8 +654,8 @@ contains
    
     nleaf_non_local = nleaf - nleaf_me ! bigger than necessary, TODO: find a better estimation for this
 
-    allocate( non_local_node_keys(nleaf_non_local), non_local_node_owner(nleaf_non_local), requests_per_process(n_cpu), &
-         key_arr_cp(nleaf_non_local), int_arr(nleaf_non_local), requests_from_process(n_cpu), &
+    allocate( non_local_node_node(nleaf_non_local), non_local_node_keys(nleaf_non_local), non_local_node_owner(nleaf_non_local), requests_per_process(n_cpu), &
+         key_arr_cp(nleaf_non_local), node_arr_cp(nleaf_non_local), int_arr(nleaf_non_local), requests_from_process(n_cpu), &
          sdispls(n_cpu), rdispls(n_cpu), STAT=ierr )
     ! TODO: remove key_arr_cp and int_arr after sort test
     ! TODO: test STAT
@@ -610,6 +672,7 @@ contains
              num_request = num_request + 1
              non_local_node_keys(num_request) = htable(i)%key
              non_local_node_owner(num_request) = htable(i)%owner
+             non_local_node_node(num_request) = htable(i)%node
           end if
        end if
     end do
@@ -650,12 +713,20 @@ contains
        if(non_local_node_owner(i) > n_cpu -1 ) write(*,*) 'after sort, owner > n_cpu:', i, non_local_node_owner(i), non_local_node_keys(i)
     end do
 
-    
-    key_arr_cp(1:num_request) = non_local_node_keys(1:num_request)
 
+    ! sort keys according to owners
+    key_arr_cp(1:num_request) = non_local_node_keys(1:num_request)
     do i= 1, num_request
        non_local_node_keys(i) = key_arr_cp(int_arr(i))
     end do
+
+    ! sort nodes according to owners
+    node_arr_cp(1:num_request) = non_local_node_node(1:num_request)
+    do i= 1, num_request
+       non_local_node_node(i) = node_arr_cp(int_arr(i))
+    end do
+
+
 
     requests_per_process = 0
 
@@ -699,8 +770,9 @@ contains
     call MPI_ALLTOALLV(non_local_node_keys, requests_per_process, sdispls, MPI_INTEGER8, &
          requested_keys, requests_from_process, rdispls, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
 
+    ! test whether requested keys are locally known
     do i = 1, total_num_requests_from_others
-       actual_address = key2addr(requested_keys(i), 'update properties')
+       actual_address = key2addr(requested_keys(i), 'update properties: test requested keys')
     end do
 
     
@@ -721,8 +793,9 @@ contains
 
     allocate( packed_updates(total_num_requests_from_others), received_updates(num_request) )
 
+    ! pack everything together
     do i = 1, total_num_requests_from_others
-       actual_address = key2addr(requested_keys(i), 'update properties')
+       actual_address = key2addr(requested_keys(i), 'update properties: packaging particles')
 
        actual_node = htable(actual_address)%node
 
@@ -757,8 +830,13 @@ contains
     end do
 
     do i= 1, num_request
-       actual_address = key2addr( received_updates(i)%key, 'update properties' )
+       actual_address = key2addr( received_updates(i)%key, 'update properties: updating properties of remote nodes' )
        actual_node = htable( actual_address )%node
+       
+       if(actual_node .ne. non_local_node_node(i) ) then 
+          write(76, *) my_rank, i, received_updates(i)%key, actual_node, non_local_node_node(i)
+       end if
+
 
        tree_nodes(actual_node)%rho         = received_updates(i)%rho
        tree_nodes(actual_node)%temperature = received_updates(i)%temperature
@@ -768,10 +846,23 @@ contains
     end do
 
 
+    do i = 1, np_local
+       
+       tree_nodes(i)%rho         = particles(i)%results%rho
+       tree_nodes(i)%temperature = particles(i)%data%temperature
+       tree_nodes(i)%h           = particles(i)%results%h
+
+    end do
+
+
+
+
+
+
     ! TODO: update tree_nodes%h for all parents
 
 
-    deallocate( non_local_node_keys, non_local_node_owner, requests_per_process, key_arr_cp, int_arr, STAT=ierr )
+    deallocate( non_local_node_node, non_local_node_keys, non_local_node_owner, requests_per_process, key_arr_cp, int_arr, node_arr_cp, STAT=ierr )
 
     
     deallocate( requested_keys, STAT=ierr ) 
