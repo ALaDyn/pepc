@@ -214,6 +214,7 @@ module module_walk_pthreads_commutils
 
 
     subroutine check_comm_finished()
+      use module_debug
       use treevars
       implicit none
       ! if request_balance contains positive values, not all requested data has arrived
@@ -221,15 +222,13 @@ module module_walk_pthreads_commutils
       ! negative values denote more received datasets than requested, which implies
       ! a bug in bookkeeping on the sender`s side
         if (req_queue_top .ne. req_queue_bottom) then
-           write(*,*) "PE", me, " has finished its walk, but the request list is not empty"
-           write(*,*) "obviously, there is an error in the todo_list bookkeeping"
-           write(*,*) "Trying to recover from that"
-           flush(6)
+           DEBUG_WARNING_ALL('(a,I0,a,/,a,/,a)', "PE ", me, " has finished its walk, but the request list is not empty",
+                                                 "obviously, there is an error in the todo_list bookkeeping",
+                                                 "Trying to recover from that")
         elseif (request_balance .ne. 0) then
-           write(*,*) "PE", me, " finished walking but is are still waiting for requested data: request_balance =", request_balance
-           write(*,*) "This should never happen - obviously, the request_queue or some todo_list is corrupt"
-           write(*,*) "Trying to recover from this situation anyway: Waiting until everything arrived although we will not interact with it."
-           flush(6)
+           DEBUG_WARNING_ALL('(a,I0,a,I0,/,a,/,a)', "PE ", me, " finished walking but is are still waiting for requested data: request_balance =", request_balance,
+                                                    "This should never happen - obviously, the request_queue or some todo_list is corrupt",
+                                                    "Trying to recover from this situation anyway: Waiting until everything arrived although we will not interact with it.")
         else
            walk_status = WALK_ALL_MSG_DONE
         end if
@@ -258,7 +257,7 @@ module module_walk_pthreads_commutils
         use treevars
         use module_htable
         use module_walk_communicator
-        use module_debug, only : ipefile
+        use module_debug
         implicit none
         include 'mpif.h'
         integer*8, intent(in) :: request_key
@@ -286,7 +285,7 @@ module module_walk_pthreads_commutils
 
         if (local_queue_bottom == req_queue_top) then
           if (.not. warned) then
-            write(*,*) "Issue with request sending queue: REQUEST_QUEUE_LENGTH is too small: ", REQUEST_QUEUE_LENGTH, ". Will try again later."
+            DEBUG_WARNING(*, "Issue with request sending queue: REQUEST_QUEUE_LENGTH is too small: ", REQUEST_QUEUE_LENGTH, ". Will try again later.")
             warned = .true.
           end if
 
@@ -301,8 +300,8 @@ module module_walk_pthreads_commutils
         req_queue(local_queue_bottom)   = t_request_queue_entry( request_key, request_addr, htable( request_addr )%owner )
 
         if (walk_comm_debug) then
-          write(ipefile,'("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6, " request_addr=", I12)') &
-                         me, local_queue_bottom, request_key, htable( request_addr )%owner, request_addr
+          DEBUG_INFO('("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6, " request_addr=", I12)',
+                         me, local_queue_bottom, request_key, htable( request_addr )%owner, request_addr )
         end if
 
         ! now, we can tell the communicator that there is new data available
@@ -317,7 +316,7 @@ module module_walk_pthreads_commutils
     subroutine send_requests()
       use module_walk_communicator
       use treevars
-      use module_debug, only : ipefile
+      use module_debug
       implicit none
       include 'mpif.h'
 
@@ -343,8 +342,8 @@ module module_walk_pthreads_commutils
           req_queue_top = mod(req_queue_top, REQUEST_QUEUE_LENGTH) + 1
 
           if (walk_comm_debug) then
-            write(ipefile,'("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)') &
-                         me, req_queue_top, req_queue(req_queue_top)%key, req_queue(req_queue_top)%owner
+              DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)',
+                         me, req_queue_top, req_queue(req_queue_top)%key, req_queue(req_queue_top)%owner)
           end if
 
           if (send_request(req_queue(req_queue_top))) then
@@ -364,7 +363,6 @@ module module_walk_pthreads_commutils
       subroutine run_communication_loop(max_particles_per_thread)
         use pthreads_stuff
         use treevars
-        use module_debug, only : ipefile
         use, intrinsic :: iso_c_binding
         use module_debug
         implicit none
@@ -386,7 +384,9 @@ module module_walk_pthreads_commutils
            DEBUG_ERROR(*,"walk_communicator has not been initialized. Call init_comm_data() before run_communication_loop(..)")
         endif
 
-        if (walk_comm_debug) write(ipefile,'("PE", I6, " run_communication_loop start. walk_status = ", I6)') me, walk_status
+        if (walk_comm_debug) then
+          DEBUG_INFO('("PE", I6, " run_communication_loop start. walk_status = ", I6)', me, walk_status)
+        endif
 
         timings_comm(TIMING_COMMLOOP) = MPI_WTIME()
 
@@ -410,10 +410,14 @@ module module_walk_pthreads_commutils
           ! adjust the sched_yield()-timeout for the thread that shares its processor with the communicator
           if (messages_per_iteration > MAX_MESSAGES_PER_ITERATION) then
             particles_per_yield = int(max(0.75 * particles_per_yield, 0.01*max_particles_per_thread))
-            if (walk_debug) write(ipefile,'("messages_per_iteration = ", I6, " > ", I6, " --> Decreased particles_per_yield to", I10)') messages_per_iteration, MAX_MESSAGES_PER_ITERATION, particles_per_yield
+            if (walk_debug) then
+              DEBUG_INFO('("messages_per_iteration = ", I6, " > ", I6, " --> Decreased particles_per_yield to", I10)', messages_per_iteration, MAX_MESSAGES_PER_ITERATION, particles_per_yield)
+            endif
           elseif ((particles_per_yield < max_particles_per_thread) .and. (messages_per_iteration < MIN_MESSAGES_PER_ITERATION)) then
             particles_per_yield = int(min(1.5 * particles_per_yield, 1.*max_particles_per_thread))
-            if (walk_debug) write(ipefile,'("messages_per_iteration = ", I6, " < ", I6, " --> Increased particles_per_yield to", I10)') messages_per_iteration, MIN_MESSAGES_PER_ITERATION, particles_per_yield
+            if (walk_debug) then
+              DEBUG_INFO('("messages_per_iteration = ", I6, " < ", I6, " --> Increased particles_per_yield to", I10)', messages_per_iteration, MIN_MESSAGES_PER_ITERATION, particles_per_yield)
+            endif
           endif
 
           ! currently, there is no further communication request --> other threads may do something interesting
@@ -421,7 +425,9 @@ module module_walk_pthreads_commutils
 
         end do ! while (walk_status .ne. WALK_ALL_FINISHED)
 
-        if (walk_comm_debug) write(ipefile,'("PE", I6, " run_communication_loop end.   walk_status = ", I6)') me, walk_status
+        if (walk_comm_debug) then
+          DEBUG_INFO('("PE", I6, " run_communication_loop end.   walk_status = ", I6)', me, walk_status)
+        endif
 
         timings_comm(TIMING_COMMLOOP) = MPI_WTIME() - timings_comm(TIMING_COMMLOOP)
 
@@ -430,6 +436,7 @@ module module_walk_pthreads_commutils
 
 
       subroutine rwlock_rdlock(idx, reason)
+        use module_debug
         implicit none
         integer, intent(in) :: idx
         character(*), intent(in) :: reason
@@ -437,8 +444,7 @@ module module_walk_pthreads_commutils
         call retval(rwlocks_rdlock(idx), "pthread_rwlock_rdlock:"//reason)
 
         if (rwlock_debug) then
-          write(*,*) "pthread_rwlock_rdlock:"//reason, ", idx =", idx
-          flush(6)
+          DEBUG_INFO(*,"pthread_rwlock_rdlock:", reason, ", idx =", idx)
         end if
 
       end subroutine rwlock_rdlock
@@ -446,6 +452,7 @@ module module_walk_pthreads_commutils
 
 
       subroutine rwlock_wrlock(idx, reason)
+        use module_debug
         implicit none
         integer, intent(in) :: idx
         character(*), intent(in) :: reason
@@ -453,8 +460,7 @@ module module_walk_pthreads_commutils
         call retval(rwlocks_wrlock(idx), "pthread_rwlock_wrlock:"//reason)
 
         if (rwlock_debug) then
-          write(*,*) "pthread_rwlock_wrlock:"//reason, ", idx =", idx
-          flush(6)
+          DEBUG_INFO(*,"pthread_rwlock_wrlock:", reason, ", idx =", idx)
         end if
 
       end subroutine rwlock_wrlock
@@ -810,7 +816,7 @@ module module_walk
       use module_walk_communicator
       use pthreads_stuff
       use module_interaction_specific
-      use module_debug, only : ipefile
+      use module_debug
       implicit none
       include 'mpif.h'
       type(c_ptr) :: walk_worker_thread
@@ -871,7 +877,7 @@ module module_walk
 
               if ((.not. process_particle) .and. (particles_available)) then ! i.e. the place for a particle is unassigned
                 thread_particle_indices(i) = get_first_unassigned_particle(process_particle)
-    !            write(ipefile,*) "PE", me, getfullid(), "thread_particle_indices(",i, ") :=", thread_particle_indices(i)
+    !            DEBUG_INFO(*, "PE", me, getfullid(), "thread_particle_indices(",i, ") :=", thread_particle_indices(i))
 
                 process_particle = (thread_particle_indices(i) .ne. -1)
 
@@ -894,7 +900,7 @@ module module_walk
                 if (walk_single_particle(i, thread_particle_data(i), defer_list, defer_list_entries(i), &
                                          my_max_particles_per_thread, partner_leaves(i), my_threaddata)) then
                   ! this particle`s walk has finished
-    !              write(ipefile,*) "PE", me, getfullid(), " walk for particle", i, " nodeidx =", thread_particle_indices(i), " has finished"
+    !              DEBUG_INFO(*, "PE", me, getfullid(), " walk for particle", i, " nodeidx =", thread_particle_indices(i), " has finished")
 
                   ! walk for particle i has finished
                   ! check whether it really interacted with all other particles
@@ -937,7 +943,9 @@ module module_walk
 
         twalk_loc = MPI_WTIME() - twalk_loc
 
-        if (walk_debug) write(ipefile,*) "PE", me, "has finished walking"
+        if (walk_debug) then
+          DEBUG_INFO(*, "PE", me, "has finished walking")
+        endif
 
       endif
 
@@ -957,7 +965,7 @@ module module_walk
       use module_htable
       use module_interaction_specific
       use module_spacefilling, only : level_from_key, is_ancestor_of_particle
-      use module_debug, only : ipefile
+      use module_debug
       use module_mirror_boxes, only : spatial_interaction_cutoff
       implicit none
       integer, intent(in) :: myidx, listlengths
@@ -1051,7 +1059,7 @@ module module_walk
                       call defer_list_push(walk_key, walk_addr) ! Deferred list of nodes to search, pending request
                                                                      ! for data from nonlocal PEs
                       if (walk_debug) then
-                          write(ipefile,'("PE ", I6, " adding nonlocal key to tail for particle ", I20, " defer_list_entries=", I6)') me, myidx, defer_list_entries
+                          DEBUG_INFO('("PE ", I6, " adding nonlocal key to tail for particle ", I20, " defer_list_entries=", I6)',  me, myidx, defer_list_entries)
                       end if
                   end if
               endif
@@ -1064,7 +1072,7 @@ module module_walk
       walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries == 0)
 
       if (walk_single_particle .and. walk_debug) then
-          write(ipefile,'("PE", I6, " particle ", I12, " has an empty todo_list: particle obviously finished walking around :-)")') me, myidx
+          DEBUG_INFO('("PE", I6, " particle ", I12, " has an empty todo_list: particle obviously finished walking around :-)")', me, myidx)
       end if
 
       my_threaddata%num_interactions    = my_threaddata%num_interactions    + num_interactions

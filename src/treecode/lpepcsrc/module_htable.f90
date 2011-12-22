@@ -294,14 +294,14 @@ module module_htable
     function make_hashentry(hashentry, hashaddr)
 
         use treevars
+        use module_debug
         implicit none
-        include 'mpif.h'
 
         logical :: make_hashentry
         type(t_hash), intent(in) :: hashentry
         integer, intent(out) :: hashaddr ! address in # table returned to calling routine
 
-        integer :: ierr, link
+        integer :: link
 
         if (.not. testaddr(hashentry%key, hashaddr)) then
           ! this key does not exist in the htable 
@@ -330,7 +330,7 @@ module module_htable
             write (*,*) 'PE ',me,' key ',hashentry%key,' entry',hashaddr,' used ',iused,'/',sum_unused
             write (*,*) "htable(hashaddr):  ", htable(hashaddr)
             write (*,*) "desired entry:     ", hashentry
-            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            call debug_mpi_abort()
           endif
 
           link = htable( hashaddr )%link ! would be overwritten by the next code line
@@ -379,25 +379,24 @@ module module_htable
     function key2addr(keyin,cmark)
 
         use treevars
+        use module_debug
         implicit none
-        include 'mpif.h'
 
         integer*8, intent(in)  :: keyin
-        integer :: ierr
         character(LEN=*) :: cmark
         integer :: key2addr
 
         if (.not. testaddr(keyin, key2addr)) then
           ! could not find key
-          write(*,'("Key not resolved in KEY2ADDR at ",a)') cmark
-          write(*,'("Bad address, check #-table and key list for PE", I7)') me
-          write(*,'("key (octal)           = ", o22)') keyin
-          write(*,'("initial address (dez) = ", i22)') int(IAND( keyin, hashconst))
-          write(*,'("   last address (dez) = ", i22)') key2addr
-          write(*,'("# const         (dez) = ", i22)') hashconst
-          write(*,'("maxaddress      (dez) = ", i22)') maxaddress
+          DEBUG_WARNING_ALL('("Key not resolved in KEY2ADDR at ",a)', cmark)
+          DEBUG_WARNING_ALL('("Bad address, check #-table and key list for PE", I7)', me)
+          DEBUG_WARNING_ALL('("key (octal)           = ", o22)', keyin)
+          DEBUG_WARNING_ALL('("initial address (dez) = ", i22)', int(IAND( keyin, hashconst)))
+          DEBUG_WARNING_ALL('("   last address (dez) = ", i22)', key2addr)
+          DEBUG_WARNING_ALL('("# const         (dez) = ", i22)', hashconst)
+          DEBUG_WARNING_ALL('("maxaddress      (dez) = ", i22)', maxaddress)
           call diagnose_tree()
-          call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+          call debug_mpi_abort()
         endif
 
     end function key2addr
@@ -462,7 +461,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine check_table(callpoint)
         use treevars
-        use module_debug, only : pepc_status
+        use module_debug
         implicit none
         character(*) :: callpoint
         integer :: nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
@@ -478,34 +477,38 @@ module module_htable
         ntwig_me_check = count(mask = htable%owner==me .and. htable%node <0 )
 
         if (nleaf /= nleaf_check) then
-            write(*,'(3a,i4)') 'Table check called ',callpoint,' by PE',me
-            write(*,*) '# leaves in table = ',nleaf_check,'vs ',nleaf,'accumulated'
+            DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
+                                                       '# leaves in table = ',nleaf_check,'vs ',nleaf,'accumulated',
+                                                       'Fixing and continuing for now..')
         !     nleaf = nleaf_check
             error = .true.
         endif
 
         if (ntwig /= ntwig_check) then
-            write(*,'(3a,i4)') 'Table check called ',callpoint,' by PE',me
-            write(*,*) ' # twigs in table = ',ntwig_check,'vs ',ntwig,'accumulated'
+            DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
+                                                       '# twigs in table = ',ntwig_check,'vs ',ntwig,'accumulated',
+                                                       'Fixing and continuing for now..')
         !     ntwig = ntwig_check
             error = .true.
         endif
 
         if (nleaf_me /= nleaf_me_check) then
-            write(*,'(3a,i4)') 'Table check called ',callpoint,' by PE',me
-            write(*,*) ' # own leaves in table = ',nleaf_me_check,'vs ',nleaf_me,'accumulated'
+            DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
+                                                       '# own leaves in table = ',nleaf_me_check,'vs ',nleaf_me,'accumulated',
+                                                       'Fixing and continuing for now..')
             nleaf_me = nleaf_me_check
             error = .true.
         endif
         if (ntwig_me /= ntwig_me_check) then
-            write(*,'(3a,i4)') 'Table check called ',callpoint,' by PE',me
-            write(*,*) ' # own twigs in table = ',ntwig_me_check,'vs ',ntwig_me,'accumulated'
+            DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
+                                                       '# own twigs in table = ',ntwig_me_check,'vs ',ntwig_me,'accumulated',
+                                                       'Fixing and continuing for now..')
+
             ntwig_me = ntwig_me_check
             error = .true.
         endif
 
         if (error) then
-          write(*,*) 'Fixing and continuing for now..'
           call diagnose_tree()
         endif
 

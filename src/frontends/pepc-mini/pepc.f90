@@ -29,7 +29,7 @@ program pepcmini
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, ifile
+  integer :: ifile
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-mini", my_rank, n_cpu, .true.)

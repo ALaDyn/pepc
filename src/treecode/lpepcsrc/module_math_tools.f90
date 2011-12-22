@@ -66,6 +66,7 @@ module module_math_tools
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         real*8 function LegendreP(l,m,x)
+          use module_debug
           implicit none
           integer, intent(in) :: l, m
           real*8 ::x
@@ -76,8 +77,7 @@ module module_math_tools
           pll = 0.
 
           if ( (m < 0) .or. (m > l) .or. (abs(x) > 1) ) then
-            write(*,*) 'Invalid arguments for LegendreP'
-            stop
+            DEBUG_ERROR(*,'Invalid arguments for LegendreP(',l,m,x,')')
           endif
 
           pmm = 1.0     ! Compute P_m^m
@@ -252,12 +252,12 @@ module module_math_tools
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         recursive integer*8 function factorial(n) result(fact)
+            use module_debug
             implicit none
             integer, intent(in) :: n
 
             if (n<0) then
-              write(*,*) "tried to calculate factorial of negative argument - you are evil"
-              stop
+              DEBUG_ERROR(*,"tried to calculate factorial of negative argument - you are evil")
             end if
 
             select case (n)

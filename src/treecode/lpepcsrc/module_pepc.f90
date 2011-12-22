@@ -122,6 +122,14 @@ module module_pepc
         end if
       endif
 
+      ! create all necessary directories TODO: use C-mkdir-calls instead of system()
+      if (my_rank == 0) then
+        call system("mkdir -p " // "diag")
+        call system("mkdir -p " // "load")
+        call system("mkdir -p " // "stats")
+        call system("mkdir -p " // "timing")
+      endif
+
       ! copy call parameters to treevars module
       me     = my_rank
       num_pe = n_cpu
@@ -345,7 +353,6 @@ module module_pepc
         call tree_stats(itime)
 
         if( dbg(DBG_LOADFILE) ) then
-            call system("mkdir -p " // "load")
             write(cfile,'("load/load_",i6.6,".dat")') me
             open(60, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
             write(60,'(i5,2f20.10, i12)') itime,interactions_local, mac_evaluations_local,npp

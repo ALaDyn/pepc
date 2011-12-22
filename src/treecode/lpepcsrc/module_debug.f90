@@ -105,7 +105,6 @@ module module_debug
        debug_my_rank = me
        call MPI_GET_PROCESSOR_NAME( procname, resultlen, ierr )
 
-       call system("mkdir -p " // "diag")
        write(debug_ipefile_name,'("diag/diag_",i6.6,".dat")') me
 
        open(debug_ipefile, file=trim(debug_ipefile_name),STATUS='UNKNOWN', POSITION = 'REWIND')

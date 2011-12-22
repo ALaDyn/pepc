@@ -133,8 +133,7 @@ module module_tree
            ! entry with the same key is already existing, so we just overwrite it
            lnode = htable( hashaddr )%node
 
-           write(*,*) "PE", me, "has found an already inserted entry while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr,") - overwriting it"
-           flush(6)
+           DEBUG_WARNING_ALL(*, "PE", me, "has found an already inserted entry while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr,") - overwriting it")
         endif
 
         !insert multipole data into local tree

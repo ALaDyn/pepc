@@ -137,11 +137,13 @@ module module_domains
 
         boxsize = max(xmax-xmin, ymax-ymin, zmax-zmin)
 
-        if (dbg(DBG_DOMAIN)) write (ipefile,'(4(a15,f12.4/))') &
-        'xmin = ',xmin,'xmax = ',xmax, &
-        'ymin = ',ymin,'ymax = ',ymax, &
-        'zmin = ',zmin,'zmax = ',zmax, &
-        'boxsize = ',boxsize
+        if (dbg(DBG_DOMAIN)) then
+          DEBUG_WARNING('(4(a15,f12.4/))',
+            'xmin = ',xmin,'xmax = ',xmax,
+            'ymin = ',ymin,'ymax = ',ymax,
+            'zmin = ',zmin,'zmax = ',zmax,
+            'boxsize = ',boxsize )
+        endif
 
         s=boxsize/2**nlev       ! refinement length
 
@@ -254,10 +256,10 @@ module module_domains
 
                 ! TODO: need 'ripple' here up to next large gap in keys i+1->npp
 
-                write(ipefile,'(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
-                ' WARNING: identical keys found for index, npp, label1, label2  ', &
-                i,npp,particles(i-1)%label,particles(i)%label,particles(i+1)%label, &
-                ' -  to: ',particles(i)%key,' next key: ',particles(i+1)%key
+                DEBUG_WARNING_ALL('(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)', 'LPEPC | PE ',me,' pass ',keycheck_pass,
+                ' WARNING: identical keys found for index, npp, label1, label2  ',
+                i,npp,particles(i-1)%label,particles(i)%label,particles(i+1)%label,
+                ' -  to: ',particles(i)%key,' next key: ',particles(i+1)%key)
             endif
         end do
 
@@ -273,9 +275,9 @@ module module_domains
             identical_keys=.false.
             if (particles(ipp+1)%key == particles(ipp)%key) then
                 particles(ipp)%key = particles(ipp)%key-1
-                write(ipefile,'(a15,i9,a8,i3,a30,2i15/a25,o30)') 'LPEPC | PE ',me,' pass ',keycheck_pass, &
-                ' WARNING: identical keys found for particles  ',particles(ipp+1)%label,particles(ipp)%label, &
-                'LPEPC | Lower key decreased to:  ',particles(ipp)%key
+                DEBUG_WARNING_ALL('(a15,i9,a8,i3,a30,2i15/a25,o30)', 'LPEPC | PE ',me,' pass ',keycheck_pass,
+                ' WARNING: identical keys found for particles  ',particles(ipp+1)%label,particles(ipp)%label,
+                'LPEPC | Lower key decreased to:  ',particles(ipp)%key)
                 identical_keys=.true.
             endif
             ipp=ipp-1
@@ -385,12 +387,15 @@ module module_domains
 
       integer :: j
 
-      write (ipefile,'(/a/)') callinfo
+      call debug_ipefile_open()
+      write (debug_ipefile,'(/a/)') callinfo
       do j=1,npart
-        write(ipefile,'(i10)',advance='no') j
-        write(ipefile,*)                     particles(j)
+        write(debug_ipefile,'(i10)',advance='no') j
+        write(debug_ipefile,*)                     particles(j)
+        write(debug_ipefile,'(/)')
       end do
-      write(ipefile,'(/)')
+      write(debug_ipefile,'(/)')
+      call debug_ipefile_close()
 
    end subroutine
 

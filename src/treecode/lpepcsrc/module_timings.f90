@@ -250,7 +250,6 @@ module module_timings
       endif
 
       if ( dbg(DBG_TIMINGFILE) ) then
-         call system("mkdir -p " // "timing")
          write(cfile,'("timing/timing_",i6.6,".dat")') me
          call timings_ToFile(itime, flag, tim, cfile, itime<=1)
       end if

@@ -31,7 +31,7 @@ module module_gle
 	  use module_htable
 	  use module_pepc_wrappers
 	  use module_spacefilling
-	  use module_debug, only : ipefile
+	  use module_debug
 
 	  implicit none
 
@@ -56,7 +56,7 @@ module module_gle
 	  cme = achar(me/100+48) // achar(me/10+48) // achar(mod(me,10)+48)  ! Convert 3-digit PE number into character string
 	  cip = achar(ip/100+48) // achar(ip/10+48) // achar(mod(ip,10)+48)  ! Convert 3-digit particle number into character string
 	  cfile="list_"//cme//cip//".gle"
-	  write (ipefile,'(a)') cfile
+	  DEBUG_INFO('(a)', cfile)
 	 open(60,file=cfile)
 
 	  !  initialise graphics filter
@@ -145,7 +145,7 @@ module module_gle
 
 	  use treevars
 	  use module_pepc_wrappers
-      use module_debug, only : ipefile
+      use module_debug
 
 	  implicit none
 
@@ -168,7 +168,7 @@ module module_gle
 	  !  Header file written out by root PE: does box and includes particle O/P from all PEs
 	  if ( me==0 ) then
 	     cfile="tree2d.gle"
-	     write (ipefile,'(a)') cfile
+	     DEBUG_INFO('(a)', cfile)
 	     open(60,file=cfile)
 
 	     !  initialise graphics filter
@@ -264,7 +264,7 @@ module module_gle
 	  use module_htable
       use module_pepc_wrappers
       use module_spacefilling
-      use module_debug, only : ipefile
+      use module_debug
 
 	  implicit none
 
@@ -291,7 +291,7 @@ module module_gle
 	  !  Header file written out by root PE: does box and includes particle O/P from all PEs
 	  if ( me==0 ) then
 	     cfile="tree2d.gle"
-	     write (ipefile,'(a)') cfile
+	      DEBUG_INFO('(a)', cfile)
 	     open(60,file=cfile)
 
 	     !  initialise graphics filter
@@ -469,7 +469,7 @@ module module_gle
 	  use treevars
 	  use module_htable
       use module_pepc_wrappers
-      use module_debug, only : ipefile
+      use module_debug
 
 	  implicit none
 	  real*8, intent(in) :: xl, yl
@@ -499,7 +499,7 @@ module module_gle
 	  nbits=nlev+1
 
 	  cfile="box2d_"//csnap//".gle"
-	  write (ipefile,'(a)') cfile
+	  DEBUG_INFO('(a)', cfile)
 	  open(60,file=cfile)
 
 
@@ -744,7 +744,7 @@ module module_gle
 	  use module_htable
       use module_pepc_wrappers
       use module_spacefilling
-      use module_debug, only : ipefile
+      use module_debug
 
 	  implicit none
 
@@ -772,7 +772,7 @@ module module_gle
 	  !  Header file written out by root PE: does box and includes particle O/P from all PEs
 	  if ( me==0 ) then
 	     cfile="domains.gle"
-	     write (ipefile,'(a)') cfile
+	     DEBUG_INFO('(a)', cfile)
 	     open(61,file=cfile)
 
 

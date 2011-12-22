@@ -66,7 +66,6 @@ subroutine tree_stats(timestamp)
   total_part = sum(nparticles)
 
   if (me.eq.0) then
-    call system("mkdir -p " // "stats")
     write(cfile,'("stats/stats.",i6.6)') timestamp
   
     open (60,file=trim(cfile))
