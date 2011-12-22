@@ -30,13 +30,16 @@ contains
   !  ================================
 
   subroutine sort_i(iarr, map)
+    use module_debug
     implicit none
     integer*8, intent(inout) :: iarr(:)
     integer, optional, intent(out) :: map(:)           !< the optional integer array filled with positions for sorting other arrays according to iarr
     integer :: i,n
 
-    if( (present(map)) .and. (size(map) .ne. size(iarr)) ) then
-       write(*,*) 'Error in tree_utils sort_i: optional second parameter has not the same size as first argument. Ignoring second argument.'
+    if (present(map)) then
+      if (size(map) .ne. size(iarr)) then
+         DEBUG_ERROR(*, "Error in tree_utils sort_i: optional second parameter has not the same size as first argument. Ignoring second argument.")
+      endif
     end if
 
     n = size(iarr)
