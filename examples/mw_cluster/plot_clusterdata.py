@@ -6,7 +6,7 @@ from matplotlib import rc
 
 
 filename = 'cluster.dat'
-columns = ['itime', '$t / {\\rm fs}$', '$r_{\\rm cluster}^{\\rm (rms)}$', '$N_{\\rm ion}$', '$N_{\\rm e}^{\\rm (free)}$', '$N_{\\rm e}^{\\rm (bound)}$', '$N_{\\rm  e}^{(r<r_{\\rm cluster}^{\\rm (rms)})}$', '$N_{\\rm e}^{\\rm (E<0)}$']
+columns = ['itime', '$t / {\\rm fs}$', '$r_{\\rm cluster}^{\\rm (rms)} / a_{\\rm B}$', '$N_{\\rm ion}$', '$N_{\\rm e}^{\\rm (free)}$', '$N_{\\rm e}^{\\rm (bound)}$', '$N_{\\rm  e}^{(r<r_{\\rm cluster}^{\\rm (rms)})}$', '$N_{\\rm e}^{\\rm (E<0)}$']
 
 
 data = np.loadtxt(filename)
