@@ -15,6 +15,10 @@ module module_particle_setup
        npart_total, &
        idim
 
+!  use module_files, only: &
+!       read_particles
+
+
   implicit none
   save
   private
@@ -50,8 +54,13 @@ contains
   !>
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine particle_setup(iconf)
+
+!    use module_files, only: &
+!         read_in_checkpoint
+
     implicit none
     include 'mpif.h'
+
     integer, intent(in) :: iconf
     integer :: fences(-1:n_cpu-1)
     integer :: ierr
@@ -63,7 +72,7 @@ contains
     select case (iconf)
     case (-1)
 !       if (my_rank == 0) write(*,*) "Using special start... case -1 (reading mpi-io checkpoint from timestep itime_in=", itime_in ,")"
-!       call read_particles(itime_in)
+!       call read_in_checkpoint()
        particles(:)%work = 1._8
 
     case(1)
@@ -264,6 +273,8 @@ contains
     real*8 :: actual_x
     integer, dimension(n_cpu) :: all_np_local
     integer :: all_part
+    real*8 :: omega_t_for_half_velocity
+    real*8 :: const_pi = acos(-1.0)
 
     ! set number of dimension. important for factor for sph kernel
     idim = 1
@@ -285,6 +296,11 @@ contains
  
  !   num_neighbour_particles = n_nn
 
+    ! timestep length
+    dt = 0.0001
+    !* sqrt(thermal_constant * medium_temperature /10.)
+
+
  
     call MPI_ALLGATHER( np_local, 1, MPI_INTEGER, all_np_local, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
     call MPI_REDUCE(np_local, all_part, 1, MPI_INTEGER, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
@@ -296,7 +312,7 @@ contains
     setup_rho0 = 1000._8
     setup_rho1 = 1._8
     
-    dx = 0.000000001_8
+    dx = 0.00000001_8
     
     area1 = 0._8
     
@@ -314,7 +330,11 @@ contains
  
     actual_x = 0._8
     area2 = 0._8
- 
+
+
+    ! omega*t for the velocity for t = 0+1/2 (leap frog)
+    omega_t_for_half_velocity = const_pi * sound_speed* dt /t_lattice_1(1)
+    
     do part_counter = 1, all_part
     
        do while(area2 < area1/real(all_part,8)*real(part_counter-1,8)+offset )
@@ -331,7 +351,9 @@ contains
           particles(actual_particle)%x = [ actual_x, 0._8, 0._8 ]
 
           ! sound_speed * 0.760429
-          particles(actual_particle)%data%v = [ - sound_speed * setup_rho1/setup_rho0 * sin( particles(actual_particle)%x(1) * 2.* 3.141592653589793 / t_lattice_1(1) ) , 0._8, 0._8 ]
+!          particles(actual_particle)%data%v = [ - sound_speed * setup_rho1/setup_rho0 * sin( particles(actual_particle)%x(1) * 2._8* 3.141592653589793 / t_lattice_1(1) ) , 0._8, 0._8 ]
+
+          particles(actual_particle)%data%v_and_half = [ - sound_speed * setup_rho1/setup_rho0 * sin( particles(actual_particle)%x(1) * 2._8* 3.141592653589793 / t_lattice_1(1) + omega_t_for_half_velocity ) , 0._8, 0._8 ]
           
           particles(actual_particle)%data%temperature =  medium_temperature
        
@@ -339,9 +361,6 @@ contains
     
     end do
  
-    ! timestep length
-    dt = 0.001
-    !* sqrt(thermal_constant * medium_temperature /10.)
  
     
     ! Initial neighbour search radius
