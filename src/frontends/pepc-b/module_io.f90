@@ -90,7 +90,7 @@ module module_io
 	  !  stdout for PE my_rank
 	  if (debug_level > 0) then
             call system("mkdir -p " // "diag")
-	    write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
+	    write(cfile,'("diag/frontend_diag_",i6.6,".dat")') my_rank
 	    open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
 	  endif
 
