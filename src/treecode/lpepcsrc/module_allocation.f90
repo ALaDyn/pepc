@@ -82,6 +82,11 @@ module module_allocation
             maxtwig = maxaddress-maxleaf
         endif
 
+        if (maxleaf < npp) then
+          DEBUG_WARNING('("maxleaf = ", I0, " < npp+2 = ", I0, ".",/,"Setting maxleaf = npp+2 for now, but expect that to fail during walk. You should increase np_mult.")',maxleaf, npp+2)
+          maxleaf = npp + 2
+        endif
+
         hashconst = 2**nbaddr-1
         allocate ( htable(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
         branch_owner(branch_max_global), pebranch(branch_max_global) )
