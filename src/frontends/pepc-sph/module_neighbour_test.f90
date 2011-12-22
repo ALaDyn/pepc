@@ -305,7 +305,7 @@ contains
           open(60,file=outfile)
           
           !  initialise graphics filter
-          write (60,'(a,4(/a),2(/a,2f13.4))'), &
+          write (60,'(a,4(/a),2(/a,2f13.4))') &
                'size 18 18', &
                'set font rm', &
                'set lwidth 0.001 lstyle 1', &
@@ -524,7 +524,7 @@ contains
        open(60,file=outfile)
        
        !  initialise graphics filter
-       write (60,'(a,4(/a),2(/a,2f13.4))'), &
+       write (60,'(a,4(/a),2(/a,2f13.4))') &
             'size 18 18', &
             'set font rm', &
             'set lwidth 0.001 lstyle 1', &

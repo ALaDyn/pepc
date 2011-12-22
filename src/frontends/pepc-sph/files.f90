@@ -249,25 +249,25 @@ contains
 
  
      if(my_rank == 0) write(*,*) "IO: write particles in mpi-io ascii mode"
-     call flush()
+     flush(6)
      call MPI_BARRIER(MPI_COMM_WORLD,ierr)
  
      call MPI_SCAN(np_local, part_including_mine, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
      part_before_me = part_including_mine - np_local
  
      write(*,*) my_rank, 'scan done', part_before_me
-     call flush()
+     flush(6)
  
  
      all_part = 0
      call MPI_REDUCE(np_local, all_part, 1, MPI_INTEGER, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
  
      write(*,*) my_rank, 'reduce done', np_local, all_part
-     call flush()
+     flush(6)
  
  
      write(*,*) my_rank, 'starting open ', trim(filename)
-     call flush()
+     flush(6)
      call MPI_BARRIER(MPI_COMM_WORLD,ierr)
  
  
@@ -281,7 +281,7 @@ contains
      call MPI_BARRIER(MPI_COMM_WORLD,ierr)
  
      write(*,*) my_rank, 'open done'
-     call flush()
+     flush(6)
  
  
  
@@ -290,19 +290,19 @@ contains
      if( my_rank == 0 ) then
  
         write(*,*) 'writing header', all_part, step
-        call flush()
+        flush(6)
  
         write(header, '(a,I10,a)') '# SPH_ASCII02 ', all_part, new_line('A')
         headerlength = len_trim(header)
  
         write(*,*) 'writing header 1 ', headerlength, trim(header)
-        call flush()
+        flush(6)
  
         offset = 0_8
         call MPI_FILE_WRITE_AT(fh, offset, header, headerlength, MPI_CHARACTER, status, ierr)
  
         write(*,*) 'writing header 2 ', status
-        call flush()
+        flush(6)
  
         write(namelist, '(a,I6,a,a,a)' ) "# particle properties for timestep ", step, new_line('A'), &
              '# pelabel   x            y            z            vx           vy           vz           m            r_nn         sph_density  temperature p            ex           ey           ez           temp_change', new_line('A')
@@ -310,13 +310,13 @@ contains
         namelistlength = len_trim(namelist)
  
         write(*,*) 'writing header 3'
-        call flush()
+        flush(6)
  
         offset = int(headerlength, 8)
         call MPI_FILE_WRITE_AT(fh, offset, namelist, namelistlength, MPI_CHARACTER, status, ierr)
  
         write(*,*) 'writing header done'
-        call flush()
+        flush(6)
  
         current_offset = int(headerlength, 8) + int(namelistlength, 8)
  

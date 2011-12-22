@@ -607,6 +607,7 @@ contains
 
     ! Data structure for shipping updated sph properties
     type t_property_update
+       sequence
        integer*8 :: key                                                  !< key
        integer   :: owner                                                !< owner
        real*8    :: smoothing_length                                     !< \bug ab: comments needed
