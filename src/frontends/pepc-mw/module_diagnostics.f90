@@ -24,14 +24,14 @@ module module_diagnostics
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine cluster_diagnostics(itime, time_fs, momentum_acf)
-             use physvars, only : MPI_COMM_PEPC, x, y, z, energy, q, np_local, momentum_acf_from_timestep, my_rank
+             use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, momentum_acf_from_timestep, my_rank
              use module_acf
              implicit none
              include 'mpif.h'
              integer, intent(in) :: itime
              real*8, intent(in) :: time_fs
              type(acf) :: momentum_acf
-             real*8 :: rsq, r(3), rclustersq
+             real*8 :: rsq, rclustersq
              integer :: nion, nboundelectrons, p, crit(2)
              logical, dimension(1:np_local) :: criterion
              real*8, dimension(1:np_local) :: distsq
@@ -42,15 +42,14 @@ module module_diagnostics
 
              ! calculate distance of particles from center [0., 0., 0.]
              do p = 1, np_local
-               r         = [x(p), y(p), z(p)]
-               distsq(p) = dot_product(r, r)
+               distsq(p) = dot_product(particles(p)%x, particles(p)%x)
              end do
 
              ! calculate rms radius of ion cluster
              rsq  = 0
              nion = 0
              do p = 1, np_local
-               if (q(p) > 0.) then
+               if (particles(p)%data%q > 0.) then
                  rsq  = rsq  + distsq(p)
                  nion = nion + 1
                endif
@@ -62,10 +61,10 @@ module module_diagnostics
              rclustersq = 5./3.*rsq/(1.*nion) ! < square of rms cluster radius
 
              !> only select electrons that are inside the cluster or have negative total energy
-             criterion = ((q(1:np_local) < 0.) .and. ( (distsq(1:np_local) < rclustersq) .or. (energy(3,1:np_local) < 0.) ))
+             criterion = ((particles(1:np_local)%data%q < 0.) .and. ( (distsq(1:np_local) < rclustersq) .or. (energy(3,1:np_local) < 0.) ))
 
-             crit(1) = count( (q(1:np_local) < 0.) .and. (distsq(1:np_local) < rclustersq) )
-             crit(2) = count( (q(1:np_local) < 0.) .and. (energy(3,1:np_local) < 0.)  )
+             crit(1) = count( (particles(1:np_local)%data%q < 0.) .and. (distsq(1:np_local) < rclustersq) )
+             crit(2) = count( (particles(1:np_local)%data%q < 0.) .and. (energy(3,1:np_local) < 0.)  )
 
              call MPI_ALLREDUCE(MPI_IN_PLACE, crit, 2, MPI_INTEGER, MPI_SUM, MPI_COMM_PEPC, ierr)
 
@@ -136,31 +135,21 @@ module module_diagnostics
             implicit none
             include 'mpif.h'
             logical, intent(in) :: binary, ascii, mpiio, vtk, final
-            integer :: p
-            type(t_dumpparticle), allocatable :: dp(:)
             integer*8 :: npart
 
             if (binary .or. ascii .or. mpiio) then
 
               npart = npart_total ! TODO: conversion real*4 --> real*8 will be unneccessary soon
 
-              allocate(dp(np_local))
-
-              ! pack our data
-              do p=1,np_local
-                dp(p) = t_dumpparticle( x(p), y(p), z(p), ux(p), uy(p), uz(p), q(p), m(p), pot(p), ex(p), ey(p), ez(p), pelabel(p))
-              end do
-
               !!! write particle date as a binary file
-              if (binary) call write_particles_binary(my_rank, itime, np_local, dp)
+              if (binary) call write_particles_binary(my_rank, itime, np_local, particles)
 
               !!! write particle date as a text file
-              if (ascii) call write_particles_ascii(my_rank, itime, np_local, dp)
+              if (ascii) call write_particles_ascii(my_rank, itime, np_local, particles)
 
               !!! write particle checkpoint data using mpi-io
-              if (mpiio) call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, trun, np_local, npart, dp)
+              if (mpiio) call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, trun, np_local, npart, particles)
 
-              deallocate(dp)
             endif
 
 
@@ -196,8 +185,6 @@ module module_diagnostics
             include 'mpif.h'
             logical, intent(in) :: binary, ascii, mpiio
             integer, intent(in) :: itime_in_
-            integer :: p
-            type(t_dumpparticle), allocatable :: dp(:)
             integer*8 :: npart
 
             if (binary .or. ascii .or. mpiio) then
@@ -209,28 +196,10 @@ module module_diagnostics
               if (ascii)  write(*,*) "read_particles(): ascii mode unsupported" !call read_particles_ascii(my_rank, itime, np_local, dp)
 
               !!! read particle checkpoint data using mpi-io
-              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, trun, np_local, npart, dp)
+              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, trun, np_local, npart, particles)
 
               npart_total = npart
 
-              ! unpack our data
-              do p=1,np_local
-                 x(p) = dp(p)%x
-                 y(p) = dp(p)%y
-                 z(p) = dp(p)%z
-                ux(p) = dp(p)%ux
-                uy(p) = dp(p)%uy
-                uz(p) = dp(p)%uz
-                 q(p) = dp(p)%q
-                 m(p) = dp(p)%m
-               pot(p) = dp(p)%pot
-                ex(p) = dp(p)%ex
-                ey(p) = dp(p)%ey
-                ez(p) = dp(p)%ez
-                pelabel(p) = dp(p)%pelabel
-              end do
-
-              if (allocated(dp)) deallocate(dp)
             endif
 
         end subroutine read_particles_type
@@ -264,15 +233,15 @@ module module_diagnostics
         call vtk%create_parallel("particles", step, my_rank, n_cpu, trun*unit_t0_in_fs, vtk_step)
           call vtk%write_headers(np_local, 0)
             call vtk%startpoints()
-              call vtk%write_data_array("xyz", np_local, x, y, z)
+              call vtk%write_data_array("xyz", np_local, particles(:)%x(1), particles(:)%x(2), particles(:)%x(3))
             call vtk%finishpoints()
             call vtk%startpointdata()
-              call vtk%write_data_array("velocity", np_local, ux, uy, uz)
-              call vtk%write_data_array("el_field", np_local, ex, ey, ez)
-              call vtk%write_data_array("el_pot", np_local, pot)
-              call vtk%write_data_array("charge", np_local, q)
-              call vtk%write_data_array("mass", np_local, m)
-              call vtk%write_data_array("pelabel", np_local, pelabel)
+              call vtk%write_data_array("velocity", np_local, particles(:)%data%v(1),    particles(:)%data%v(2),    particles(:)%data%v(3))
+              call vtk%write_data_array("el_field", np_local, particles(:)%results%e(1), particles(:)%results%e(2), particles(:)%results%e(3))
+              call vtk%write_data_array("el_pot", np_local, particles(:)%results%pot)
+              call vtk%write_data_array("charge", np_local, particles(:)%data%q)
+              call vtk%write_data_array("mass", np_local, particles(:)%data%m)
+              call vtk%write_data_array("pelabel", np_local, particles(:)%label)
               call vtk%write_data_array("local index", np_local, [(i,i=1,np_local)])
               call vtk%write_data_array("processor", np_local, [(my_rank,i=1,np_local)])
               call vtk%write_data_array("Epot", np_local, energy(1,1:np_local))
@@ -312,8 +281,8 @@ module module_diagnostics
 
         do p = 1,np_local
           if (selection(p)) then
-            r = [ux(p), uy(p), uz(p), 0._8]
-            r(4) = sqrt(dot_product(r,r))
+            r(1:3) = particles(p)%data%v
+            r(4)   = sqrt(dot_product(r,r))
             tmp = tmp + r
             ncontributions = ncontributions + 1
           endif

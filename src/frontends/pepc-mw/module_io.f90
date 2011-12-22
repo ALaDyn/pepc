@@ -70,7 +70,6 @@ module module_io
 		  use physvars
           use module_debug, only : ipefile
 		  implicit none
-		  character(30) :: cfile
 
 
 		  if (my_rank == 0) then
@@ -84,14 +83,6 @@ module module_io
 
 		     write(*,*) 'debug level: ',debug_level,' idump',idump
 		  endif
-
-           !  TODO: this code must be somewhere (also for all other frontends)
-		  !  stdout for PE me
-                  !if (db_level > 0) then
-                  !call system("mkdir -p " // "diag")
-                  !write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
-		  !  open(file_ipefile, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
-		  !endif
 
 		  ipefile = file_ipefile ! copy file handle to core
 

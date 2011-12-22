@@ -1,17 +1,9 @@
 module physvars
+  use module_pepc_types
 
 ! particle arrays
-  real*8, allocatable :: x(:),  y(:),  z(:), &     ! position
-                      ux(:), uy(:), uz(:), &     ! velocity
-                              q(:),  m(:), &     ! charge and mass
-            Ex(:), Ey(:), Ez(:), &   ! E-field
-            Ax(:), Ay(:), Az(:), &   ! E-field
-            Bx(:), By(:), Bz(:), &   ! E-field
-            pot(:), &                ! scalar potential
-            energy(:,:), &           ! potential, kinetic, and total energy
-            work(:)                  ! work load (interaction list length)
-
-  integer, allocatable ::  pelabel(:)  ! particle label
+  type(t_particle), allocatable :: particles(:)     ! position
+  real*8, allocatable :: energy(:,:)         ! potential, kinetic, and total energy
     
   real, allocatable ::  rhoe_loc(:,:,:), rhoi_loc(:,:,:)  ! field arrays for time-averages
   real, allocatable ::  rhoi(:,:,:), rhoe(:,:,:)

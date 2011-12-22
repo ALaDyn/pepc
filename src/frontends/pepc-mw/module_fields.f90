@@ -47,12 +47,12 @@ module module_fields
         real*8 :: deltathresh(3)
         character(18) :: filename
 
-        mincoord(1) = minval(x(1:np_local))
-        mincoord(2) = minval(y(1:np_local))
-        mincoord(3) = minval(z(1:np_local))
-        maxcoord(1) = maxval(x(1:np_local))
-        maxcoord(2) = maxval(y(1:np_local))
-        maxcoord(3) = maxval(z(1:np_local))
+        mincoord(1) = minval(particles(1:np_local)%x(1))
+        mincoord(2) = minval(particles(1:np_local)%x(2))
+        mincoord(3) = minval(particles(1:np_local)%x(3))
+        maxcoord(1) = maxval(particles(1:np_local)%x(1))
+        maxcoord(2) = maxval(particles(1:np_local)%x(2))
+        maxcoord(3) = maxval(particles(1:np_local)%x(3))
         call MPI_ALLREDUCE(MPI_IN_PLACE, mincoord, 3, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
         call MPI_ALLREDUCE(MPI_IN_PLACE, maxcoord, 3, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
         deltathresh = threshhold*(maxcoord-mincoord)
@@ -71,10 +71,10 @@ module module_fields
           call field_write_vtk_header(87)
         end if
 
-        call field_dump_data_v(87, 'Exyz', Ex, Ey, Ez,.true.)
-        call field_dump_data_s(87, 'Pot', Pot,.true.)
-        call field_dump_data_v(87, 'v', ux, uy, uz,.true.)
-        call field_dump_data_s(87, 'q', q,.false.)
+        call field_dump_data_v(87, 'Exyz', particles(:)%results%e(1), particles(:)%results%e(2), particles(:)%results%e(3),.true.)
+        call field_dump_data_s(87, 'Pot', particles(:)%results%pot,.true.)
+        call field_dump_data_v(87, 'v', particles(:)%data%v(1),particles(:)%data%v(2),particles(:)%data%v(3),.true.)
+        call field_dump_data_s(87, 'q', particles(:)%data%q,.false.)
 
         close(87)
 
@@ -150,11 +150,11 @@ module module_fields
         real*8 :: cellr(3),coord(3)
 
         do p = 1,np_local
-          coord = [x(p), y(p), z(p)]
+          coord = [particles(p)%x(1), particles(p)%x(2), particles(p)%x(3)]
           cellr = (coord - mincoord)/delta+1
           cell  = nint(cellr)
 
-          if (q(p) > 0) then
+          if (particles(p)%data%q > 0) then
             ffieldi(    cell(1),cell(2), cell(3),:) = ffieldi(    cell(1),cell(2), cell(3),:) + [xvals(p), yvals(p), zvals(p)]
             npartfi(cell(1),cell(2), cell(3)  )     = npartfi(cell(1),cell(2), cell(3)  ) + 1
           else
@@ -174,11 +174,11 @@ module module_fields
         real*8 :: cellr(3),coord(3)
 
         do p = 1,np_local
-          coord = [x(p), y(p), z(p)]
+          coord = [particles(p)%x(1), particles(p)%x(2), particles(p)%x(3)]
           cellr = (coord - mincoord)/delta+1
           cell  = nint(cellr)
 
-          if (q(p) > 0) then
+          if (particles(p)%data%q > 0) then
             ffieldi(    cell(1),cell(2), cell(3),:) = ffieldi(    cell(1),cell(2), cell(3),:) + vals(p)
             npartfi(cell(1),cell(2), cell(3)  )     = npartfi(cell(1),cell(2), cell(3)  ) + 1
           else
@@ -332,7 +332,7 @@ module module_fields
         do k=mydims(1,3),mydims(2,3)
           do j=mydims(1,2),mydims(2,2)
             do i=mydims(1,1),mydims(2,1)
-              call force_laser_at(xcoords(i), ycoords(j), zcoords(k), 0._8, E_pon, B_em, Phi_pon)
+              call force_laser_at([xcoords(i), ycoords(j), zcoords(k)], 0._8, E_pon, B_em, Phi_pon)
               efield(i, j, k, 1:3) = E_pon
                  pot(i, j, k)      = Phi_pon
             end do

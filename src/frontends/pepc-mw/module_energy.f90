@@ -101,7 +101,7 @@ contains
 
         real*8, intent(out) :: epot_total
 
-        energy(1,1:np_local) = 0.5 * q(1:np_local)*pot(1:np_local)
+        energy(1,1:np_local) = 0.5 * particles(1:np_local)%data%q*particles(1:np_local)%results%pot
         epot_total           = sum(energy(1,1:np_local))
         call MPI_ALLREDUCE(MPI_IN_PLACE, epot_total,1, MPI_REAL8, MPI_SUM, MPI_COMM_PEPC, ierr)
 
@@ -143,16 +143,16 @@ contains
 
         do p=1, np_local
             ! Velocities at previous 1/2-step to synch with P.E.
-            uh(1) = ux(p)-dt*q(p)*Ex(p)/m(p)/2.
-            uh(2) = uy(p)-dt*q(p)*Ey(p)/m(p)/2.
-            uh(3) = uz(p)-dt*q(p)*Ez(p)/m(p)/2.
+            uh(1) = particles(p)%data%v(1)-dt*particles(p)%data%q*particles(p)%results%e(1)/particles(p)%data%m/2.
+            uh(2) = particles(p)%data%v(2)-dt*particles(p)%data%q*particles(p)%results%e(2)/particles(p)%data%m/2.
+            uh(3) = particles(p)%data%v(3)-dt*particles(p)%data%q*particles(p)%results%e(3)/particles(p)%data%m/2.
             uh2   = dot_product(uh,uh)
             gamma = sqrt(1.0 + uh2/unit_c2)
 
-            en          = m(p)*unit_c2*(gamma - 1.0)
+            en          = particles(p)%data%m*unit_c2*(gamma - 1.0)
             energy(2,p) = en
 
-            if (q(p) <= 0.) then
+            if (particles(p)%data%q <= 0.) then
                 ekine   = ekine   + en
                 sum_v2e = sum_v2e + uh2/gamma**2.
                 sum_ve  = sum_ve  + uh/gamma

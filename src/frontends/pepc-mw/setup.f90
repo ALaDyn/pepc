@@ -214,13 +214,7 @@ subroutine pepc_setup()
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  array allocation                !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  allocate ( &
-       x(nppm), y(nppm), z(nppm), &
-       ux(nppm), uy(nppm), uz(nppm), &
-       q(nppm), m(nppm), &
-       Ex(nppm), Ey(nppm), Ez(nppm), &
-       Ax(nppm), Ay(nppm), Az(nppm), &
-       Bx(nppm), By(nppm), Bz(nppm), pot(nppm), pelabel(nppm), work(nppm), energy(1:3,nppm) )
+  allocate ( particles(nppm), energy(1:3,nppm) )
 
   if (my_rank == 0) then
     write(*,*) "Starting PEPC-MW with",n_cpu," Processors, simulating",np_local, &

@@ -47,9 +47,9 @@ subroutine density_helmholtz
 
   do i=1,np_local
 
-     xa=(x(i) - xh_start)*rdx
-     ya=(y(i) - yh_start)*rdy
-     za=(z(i) - zh_start)*rdz
+     xa=(particles(i)%x(1) - xh_start)*rdx
+     ya=(particles(i)%x(2) - yh_start)*rdy
+     za=(particles(i)%x(3) - zh_start)*rdz
 
      !  indices
      i1=xa+1
@@ -75,7 +75,7 @@ subroutine density_helmholtz
      fz1=1.-fz2
 
      !  gather ion charge at nearest grid points
-     if (q(i)>0) then
+     if (particles(i)%data%q>0) then
 
         rho_loc(i1,j1,k1)=rho_loc(i1,j1,k1) + cweight*fx1*fy1*fz1
         rho_loc(i2,j1,k1)=rho_loc(i2,j1,k1) + cweight*fx2*fy1*fz1

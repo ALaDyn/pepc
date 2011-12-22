@@ -47,11 +47,11 @@ subroutine sum_radial(timestamp)
   !  Accumulate local radial moments
   do i=1,np_local-ngr
      ! particle position relative to box centre
-     xt = x(i)-xl/2.
-     yt = y(i)-yl/2.
-     zt = z(i)-zl/2.
+     xt = particles(i)%x(1)-xl/2.
+     yt = particles(i)%x(2)-yl/2.
+     zt = particles(i)%x(3)-zl/2.
      ! radial velocity
-     vradial=dot_product([ux(i), uy(i), uz(i)], [xt, yt, zt])/sqrt(dot_product([xt, yt, zt],[xt, yt, zt]))
+     vradial=dot_product([particles(i)%data%v(1), particles(i)%data%v(2), particles(i)%data%v(3)], [xt, yt, zt])/sqrt(dot_product([xt, yt, zt],[xt, yt, zt]))
      ! radius
      rt = sqrt(xt**2+yt**2+zt**2)
      ra = rt*rdr
@@ -62,7 +62,7 @@ subroutine sum_radial(timestamp)
      fr1 = fraction(ra)
      fr2 = 1.- fr1
 
-     cweight = abs(q(i))    !  charge weighting factor - densities computed later 
+     cweight = abs(particles(i)%data%q)    !  charge weighting factor - densities computed later 
 
         if (fr1>fr2) then
           vi_loc_min(i1) = min(vi_loc_min(i1), vradial)
@@ -110,7 +110,7 @@ subroutine sum_radial(timestamp)
      write(60,'(7(a12))') '#   r      ','ni   ','rhoi   ','vi_min','vi_max','er',' phi'
      write(60,'((7(1pe12.4)))') &
           ((i-1)*dr, gi_glob(i)/max(1,ni), ni_glob(i), &
-		 vi_glob_min(i), vi_glob_max(i), ex(np_local-ngr+i), pot(np_local-ngr+i), i=1,ngr)
+		 vi_glob_min(i), vi_glob_max(i), particles(np_local-ngr+i)%results%e(1), particles(np_local-ngr+i)%results%pot, i=1,ngr)
      close(60)
 
   endif

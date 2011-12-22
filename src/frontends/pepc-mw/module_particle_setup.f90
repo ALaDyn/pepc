@@ -78,8 +78,8 @@ module module_particle_setup
           real*8 :: minc(3), maxc(3), h(3)
           integer :: ierr
 
-          minc = [minval(x(1:np_local)), minval(y(1:np_local)), minval(z(1:np_local))]
-          maxc = [maxval(x(1:np_local)), maxval(y(1:np_local)), maxval(z(1:np_local))]
+          minc = [minval(particles(1:np_local)%x(1)), minval(particles(1:np_local)%x(2)), minval(particles(1:np_local)%x(3))]
+          maxc = [maxval(particles(1:np_local)%x(1)), maxval(particles(1:np_local)%x(2)), maxval(particles(1:np_local)%x(3))]
 
           call MPI_ALLREDUCE(MPI_IN_PLACE, minc, 3, MPI_REAL8, MPI_MIN, MPI_COMM_PEPC, ierr)
           call MPI_ALLREDUCE(MPI_IN_PLACE, maxc, 3, MPI_REAL8, MPI_MAX, MPI_COMM_PEPC, ierr)
@@ -90,9 +90,9 @@ module module_particle_setup
             h = 1.
           end where
 
-          x(1:np_local) = ((x(1:np_local) - minc(1))/h(1) - 0.5_8) * x_plasma
-          y(1:np_local) = ((y(1:np_local) - minc(2))/h(2) - 0.5_8) * y_plasma
-          z(1:np_local) = ((z(1:np_local) - minc(3))/h(3) - 0.5_8) * z_plasma
+          particles(1:np_local)%x(1) = ((particles(1:np_local)%x(1) - minc(1))/h(1) - 0.5_8) * x_plasma
+          particles(1:np_local)%x(2) = ((particles(1:np_local)%x(2) - minc(2))/h(2) - 0.5_8) * y_plasma
+          particles(1:np_local)%x(3) = ((particles(1:np_local)%x(3) - minc(3))/h(3) - 0.5_8) * z_plasma
 
           plasma_centre =  (/ 0., 0., 0./) ! Centre of plasma
         end subroutine
@@ -142,7 +142,7 @@ module module_particle_setup
             case (-1)
               if (my_rank == 0) write(*,*) "Using special start... case -1 (reading mpi-io checkpoint from timestep itime_in=", itime_in ,")"
               call read_particles(itime_in)
-              work(1:np_local) = 1.
+              particles(1:np_local)%work = 1.
 
             case(1)
               if (my_rank == 0) write(*,*) "Using special start... case 1 (homogeneous distribution)"
@@ -185,7 +185,7 @@ module module_particle_setup
               z_plasma = 0
               call rescale_coordinates_spherical()
               call init_generic(fences)
-              uz(1:np_local) = 0.
+              particles(1:np_local)%data%v(3) = 0.
               call init_fields_zero()
 
             case(6)
@@ -194,7 +194,7 @@ module module_particle_setup
               z_plasma = 0
               call rescale_coordinates_cuboid()
               call init_generic(fences)
-              uz(1:np_local) = 0.
+              particles(1:np_local)%data%v(3) = 0.
               call init_fields_zero()
 
             case(7)
@@ -207,7 +207,7 @@ module module_particle_setup
 
               call particle_setup_madelung()
               call rescale_coordinates_cuboid()
-              call cold_start(ux,uy,uz,nppm,1,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),nppm,1,np_local)
               call init_fields_zero()
 
             case(8)
@@ -228,7 +228,7 @@ module module_particle_setup
 
               call particle_setup_icosahedron(fences)
               call rescale_coordinates_spherical()
-              work(1:np_local) = 1.
+              particles(1:np_local)%work = 1.
               call init_fields_zero()
 
             case(13)
@@ -243,7 +243,7 @@ module module_particle_setup
 
               call particle_setup_ionlattice()
               call rescale_coordinates_cuboid()
-              call cold_start(ux,uy,uz,nppm,1,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),nppm,1,np_local)
               call init_fields_zero()
 
          end select
@@ -271,9 +271,9 @@ module module_particle_setup
               zt = par_rand()
 
               if ( my_rank == mpi_cnt .and. p <= np_local ) then
-                z(p) = zt
-                y(p) = yt
-                x(p) = xt
+                particles(p)%x(3) = zt
+                particles(p)%x(2) = yt
+                particles(p)%x(1) = xt
               end if
             end do
           end do
@@ -306,9 +306,9 @@ module module_particle_setup
               end do
 
               if ( my_rank == mpi_cnt .and. p <= np_local ) then
-                z(p) = zt
-                y(p) = yt
-                x(p) = xt
+                particles(p)%x(3) = zt
+                particles(p)%x(2) = yt
+                particles(p)%x(1) = xt
               end if
             end do
           end do
@@ -348,9 +348,9 @@ module module_particle_setup
               endif
 
               if ( my_rank == mpi_cnt .and. p <= np_local ) then
-                z(p) = zt
-                y(p) = yt
-                x(p) = xt
+                particles(p)%x(3) = zt
+                particles(p)%x(2) = yt
+                particles(p)%x(1) = xt
               end if
             end do
           end do
@@ -386,9 +386,9 @@ module module_particle_setup
               delta = 20._8*GetSphereCenter(nint(42.*par_rand())) - 10._8
 
               if ( my_rank == mpi_cnt .and. p <= np_local ) then
-                z(p) = zt + delta(1)
-                y(p) = yt + delta(2)
-                x(p) = xt + delta(3)
+                particles(p)%x(3) = zt + delta(1)
+                particles(p)%x(2) = yt + delta(2)
+                particles(p)%x(1) = xt + delta(3)
               end if
             end do
           end do
@@ -423,9 +423,9 @@ module module_particle_setup
               yt = (r1**0.2D01-zt**0.2D01)**(0.5D00)*sin(0.2D01*pi*r2)
 
               if ( my_rank == mpi_cnt .and. p <= np_local ) then
-                z(p) = zt
-                y(p) = yt
-                x(p) = xt
+                particles(p)%x(3) = zt
+                particles(p)%x(2) = yt
+                particles(p)%x(1) = xt
               end if
             end do
           end do
@@ -458,9 +458,9 @@ module module_particle_setup
               end do
 
               if ( my_rank == mpi_cnt .and. p <= np_local ) then
-                z(p) = zt
-                y(p) = yt
-                x(p) = xt
+                particles(p)%x(3) = zt
+                particles(p)%x(2) = yt
+                particles(p)%x(1) = xt
               end if
             end do
           end do
@@ -501,21 +501,21 @@ module module_particle_setup
                   if ( mod((globalidx-1)/2,n_cpu) == my_rank) then ! distribute pairs of electron and ion, since np_local is constructed a bit weird
                     myidx = myidx + 1
 
-                    x(myidx)  = (i + 0.5)*delta(1)
-                    y(myidx)  = (j + 0.5)*delta(2)
-                    z(myidx)  = (k + 0.5)*delta(3)
-                    ux(myidx) = 0
-                    uy(myidx) = 0
-                    uz(myidx) = 0
+                    particles(myidx)%x(1)  = (i + 0.5)*delta(1)
+                    particles(myidx)%x(2)  = (j + 0.5)*delta(2)
+                    particles(myidx)%x(3)  = (k + 0.5)*delta(3)
+                    particles(myidx)%data%v(1) = 0
+                    particles(myidx)%data%v(2) = 0
+                    particles(myidx)%data%v(3) = 0
 
                     if (mod(i+j+k, 2) == 0) then
-                      q(myidx)       = qe
-                      m(myidx)       = mass_e
-                      pelabel(myidx) = -globalidx
+                      particles(myidx)%data%q       = qe
+                      particles(myidx)%data%m       = mass_e
+                      particles(myidx)%label = -globalidx
                     else
-                      q(myidx)       = qi
-                      m(myidx)       = mass_i
-                      pelabel(myidx) = globalidx
+                      particles(myidx)%data%q       = qi
+                      particles(myidx)%data%m       = mass_i
+                      particles(myidx)%label = globalidx
                     end if
 
                   end if
@@ -524,7 +524,7 @@ module module_particle_setup
               end do
             end do
 
-            work(1:np_local) = 1.
+            particles(1:np_local)%work = 1.
 
             if (myidx .ne. np_local) write(*,*) "ERROR in special_start(7): PE", my_rank, "set up", myidx, &
                 "particles, but np_local=", np_local, "globalidx=", globalidx, "npart_total=",npart_total
@@ -549,12 +549,12 @@ module module_particle_setup
           integer :: p
 
              ! initialize random number generator with some arbitrary seed
-             x(1) = par_rand(my_rank + 13)
+             particles(1)%x(1) = par_rand(my_rank + 13)
 
              do p = 1, (fences(my_rank) - fences(my_rank-1))
-                x(p) = par_rand()
-                y(p) = par_rand()
-                z(p) = par_rand()
+                particles(p)%x(1) = par_rand()
+                particles(p)%x(2) = par_rand()
+                particles(p)%x(3) = par_rand()
              end do
 
         end subroutine
@@ -583,37 +583,37 @@ module module_particle_setup
                r = get_particle(p + fences(my_rank-1)/2-1, currlayer, particletype)
 
                ! put an ion there
-               x(np_local-p+1)   = r(1)
-               y(np_local-p+1)   = r(2)
-               z(np_local-p+1)   = r(3)
-               ux(np_local-p+1)  = 0.
-               uy(np_local-p+1)  = 0.
-               uz(np_local-p+1)  = 0.
-                q(np_local-p+1)  = qi
-                m(np_local-p+1)  = mass_i
-               !pelabel(np_local-p+1)  = 1 + p + fences(my_rank-1)/2-1
-               pelabel(np_local-p+1)  = 1 + particletype
+               particles(np_local-p+1)%x(1)   = r(1)
+               particles(np_local-p+1)%x(2)   = r(2)
+               particles(np_local-p+1)%x(3)   = r(3)
+               particles(np_local-p+1)%data%v(1)  = 0.
+               particles(np_local-p+1)%data%v(2)  = 0.
+               particles(np_local-p+1)%data%v(3)  = 0.
+                particles(np_local-p+1)%data%q  = qi
+                particles(np_local-p+1)%data%m  = mass_i
+               !particles(np_local-p+1)%label  = 1 + p + fences(my_rank-1)/2-1
+               particles(np_local-p+1)%label  = 1 + particletype
 
                ! and put an electron into near proximity
                xt = 2*pi*par_rand()
                yt =   pi*par_rand()
                zt = 0.025*par_rand()
 
-               x(p) = x(np_local-p+1) + zt * cos(xt) * sin(yt)
-               y(p) = y(np_local-p+1) + zt * sin(xt) * sin(yt)
-               z(p) = z(np_local-p+1) + zt * cos(yt)
+               particles(p)%x(1) = particles(np_local-p+1)%x(1) + zt * cos(xt) * sin(yt)
+               particles(p)%x(2) = particles(np_local-p+1)%x(2) + zt * sin(xt) * sin(yt)
+               particles(p)%x(3) = particles(np_local-p+1)%x(3) + zt * cos(yt)
 
                ! chose random velocity
                xt = par_rand()*2*pi
                yt = par_rand()  *pi
                zt = par_rand()  *vte
 
-               ux(p)  = zt * cos(xt) * sin(yt)
-               uy(p)  = zt * cos(xt) * sin(yt)
-               uz(p)  = zt * cos(yt)
-                q(p)  = qe
-                m(p)  = mass_e
-               pelabel(p)  = -(1 + particletype)
+                particles(p)%data%v(1)  = zt * cos(xt) * sin(yt)
+                particles(p)%data%v(2)  = zt * cos(xt) * sin(yt)
+                particles(p)%data%v(3)  = zt * cos(yt)
+                particles(p)%data%q  = qe
+                particles(p)%data%m  = mass_e
+               particles(p)%label  = -(1 + particletype)
              end do
 
         end subroutine
@@ -648,15 +648,15 @@ module module_particle_setup
                    if ( mod((globalidx-1)/2,n_cpu) == my_rank) then ! distribute pairs of electron and ion, since np_local is constructed a bit weird
                      myidx = myidx + 1
 
-                     x(np_local-myidx+1)  = (i + 0.5)*delta(1)
-                     y(np_local-myidx+1)  = (j + 0.5)*delta(2)
-                     z(np_local-myidx+1)  = (k + 0.5)*delta(3)
-                     ux(np_local-myidx+1) = 0
-                     uy(np_local-myidx+1) = 0
-                     uz(np_local-myidx+1) = 0
+                     particles(np_local-myidx+1)%x(1)  = (i + 0.5)*delta(1)
+                     particles(np_local-myidx+1)%x(2)  = (j + 0.5)*delta(2)
+                     particles(np_local-myidx+1)%x(3)  = (k + 0.5)*delta(3)
+                     particles(np_local-myidx+1)%data%v(1) = 0
+                     particles(np_local-myidx+1)%data%v(2) = 0
+                     particles(np_local-myidx+1)%data%v(3) = 0
 
-                     q(np_local-myidx+1) = qi
-                     m(np_local-myidx+1) = mass_i
+                     particles(np_local-myidx+1)%data%q = qi
+                     particles(np_local-myidx+1)%data%m = mass_i
                    end if
 
                  end do
@@ -669,16 +669,16 @@ module module_particle_setup
                if ( mod((globalidx-1)/2,n_cpu) == my_rank) then ! distribute pairs of electron and ion, since np_local is constructed a bit weird
                  myidx = myidx + 1
 
-                 x(np_local-myidx+1)  = par_rand()
-                 y(np_local-myidx+1)  = par_rand()
-                 z(np_local-myidx+1)  = par_rand()
+                 particles(np_local-myidx+1)%x(1)  = par_rand()
+                 particles(np_local-myidx+1)%x(2)  = par_rand()
+                 particles(np_local-myidx+1)%x(3)  = par_rand()
 
-                 ux(np_local-myidx+1) = 0
-                 uy(np_local-myidx+1) = 0
-                 uz(np_local-myidx+1) = 0
+                 particles(np_local-myidx+1)%data%v(1) = 0
+                 particles(np_local-myidx+1)%data%v(2) = 0
+                 particles(np_local-myidx+1)%data%v(3) = 0
 
-                 q(np_local-myidx+1) = qe
-                 m(np_local-myidx+1) = mass_e
+                 particles(np_local-myidx+1)%data%q = qe
+                 particles(np_local-myidx+1)%data%m = mass_e
                end if
              end do
 
@@ -708,12 +708,12 @@ module module_particle_setup
           nep = np_local / 2
           nip = nep
 
-          q(1:np_local-1:2)         = qe        ! plasma electrons
-          q(2:np_local:2)           = qi        ! plasma ions
-          m(1:np_local-1:2)         = mass_e    ! electron mass
-          m(2:np_local:2)           = mass_i    ! ion mass
-          pelabel(1:np_local-1:2)   = -fences(my_rank-1) - (/(i, i = 1, nep)/)      ! Electron labels
-          pelabel(2:np_local:2)     =  fences(my_rank-1) + (/(i, i = 1, nep)/)      ! Ion labels
+          particles(1:np_local-1:2)%data%q         = qe        ! plasma electrons
+          particles(2:np_local:2)%data%q           = qi        ! plasma ions
+          particles(1:np_local-1:2)%data%m         = mass_e    ! electron mass
+          particles(2:np_local:2)%data%m           = mass_i    ! ion mass
+          particles(1:np_local-1:2)%label   = -fences(my_rank-1) - (/(i, i = 1, nep)/)      ! Electron labels
+          particles(2:np_local:2)%label     =  fences(my_rank-1) + (/(i, i = 1, nep)/)      ! Ion labels
 
           if (my_rank==0) write(*,*) 'INIT_GENERIC: Initializing particle velocities to vte =',vte,' vti =',vti
 
@@ -730,14 +730,14 @@ module module_particle_setup
              call cold_start(tmp1,tmp2,tmp3,nppm,nep+1,nip)
           endif
           ! we redistribute them to the pairwise ordering
-          ux(1:np_local-1:2) = tmp1(    1:nep)
-          ux(1:np_local-0:2) = tmp1(nep+1:nep+nip)
-          uy(1:np_local-1:2) = tmp2(    1:nep)
-          uy(1:np_local-0:2) = tmp2(nep+1:nep+nip)
-          uz(1:np_local-1:2) = tmp3(    1:nep)
-          uz(1:np_local-0:2) = tmp3(nep+1:nep+nip)
+          particles(1:np_local-1:2)%data%v(1) = tmp1(    1:nep)
+          particles(1:np_local-0:2)%data%v(1) = tmp1(nep+1:nep+nip)
+          particles(1:np_local-1:2)%data%v(2) = tmp2(    1:nep)
+          particles(1:np_local-0:2)%data%v(2) = tmp2(nep+1:nep+nip)
+          particles(1:np_local-1:2)%data%v(3) = tmp3(    1:nep)
+          particles(1:np_local-0:2)%data%v(3) = tmp3(nep+1:nep+nip)
 
-          work(1:np_local) = 1.
+          particles(1:np_local)%work = 1.
 
         end subroutine
 
@@ -752,10 +752,10 @@ module module_particle_setup
         subroutine init_fields_zero()
           implicit none
 
-          ex(1:np_local) = 0.
-          ey(1:np_local) = 0.
-          ez(1:np_local) = 0.
-          pot(1:np_local) = 0.
+          particles(1:np_local)%results%e(1) = 0.
+          particles(1:np_local)%results%e(2) = 0.
+          particles(1:np_local)%results%e(3) = 0.
+          particles(1:np_local)%results%pot = 0.
 
         end subroutine
 

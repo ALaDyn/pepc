@@ -322,38 +322,33 @@ contains
 
         ! Include force from laser/external field on electrons
         do p = p_start, p_finish
-            call force_laser_at(x(p), y(p), z(p), ux(p), E_pon, B_em, Phipon)
+            call force_laser_at(particles(p)%x, particles(p)%data%v(1), E_pon, B_em, Phipon)
 
             !if (p==p_start) then
             !  write(17,'(9f8.4)') [Ex(p), Ey(p), Ez(p)], E_pon, [Ex(p), Ey(p), Ez(p)] + E_pon
             !endif
 
             !  ions assumed not to feel laser, so zero fields
-            if ((beam_model == LASER_MODEL_UNIFORM_SINUSOID_ONLYELECTRONS) .and. (q(p) > 0.)) then
+            if ((beam_model == LASER_MODEL_UNIFORM_SINUSOID_ONLYELECTRONS) .and. (particles(p)%data%q > 0.)) then
                 E_pon = [ 0., 0., 0. ]
                 B_em  = [ 0., 0., 0. ]
             endif
 
             fpon_max = max(fpon_max, abs(E_pon(1)))
             ! Add external fields to new particle field
-            Pot(p)=Pot(p) + Phipon
-            Ex(p) = Ex(p) + E_pon(1)
-            Ey(p) = Ey(p) + E_pon(2)
-            Ez(p) = Ez(p) + E_pon(3)
-            Bx(p) = Bx(p) + B_em(1)
-            By(p) = By(p) + B_em(2)
-            Bz(p) = Bz(p) + B_em(3)
+            particles(p)%results%pot     = particles(p)%results%pot     + Phipon
+            particles(p)%results%e(1:3)  = particles(p)%results%E(1:3)  + E_pon
 
         end do
 
     end subroutine force_laser
 
 
-    subroutine force_laser_at(x, y, z, ux, E_pon, B_em, Phipon)
+    subroutine force_laser_at(pos, ux, E_pon, B_em, Phipon)
         use physvars, only : plasma_centre, zl
         implicit none
         real*8, intent(out) :: E_pon(3), B_em(3), Phipon
-        real*8, intent(in) :: x, y, z, ux
+        real*8, intent(in) :: pos(3), ux
 
         real*8 :: dc(3)  ! positions relative to centre of plasma
         real*8 :: uxd ! x-momentum
@@ -362,8 +357,8 @@ contains
 
         dxh = (xh_end-xh_start)/nxh  ! HH grid spacing
 
-        df = [ x, y, z ] - focus
-        dc = [ x, y, z ] - plasma_centre
+        df = pos - focus
+        dc = pos - plasma_centre
         rt = sqrt(dc(1)**2+dc(2)**2)
 
         select case(beam_model)
@@ -1355,9 +1350,8 @@ contains
 
         real*8, intent(out) :: phipon, ez, by, bx, az ! pond. potential and fields
 
-        real*8 :: tenv, theta_r, gamma0
+        real*8 :: tenv, theta_r, gamma0, k0
         real :: pi=3.141592654
-        real :: k0
         real*8 :: r2, phase, earg
 
         !     linear rise
@@ -1420,9 +1414,8 @@ contains
 
         real*8, intent(out) :: phipon, ez, by, bx, az ! pond. potential and fields
 
-        real*8 :: tenv, Rpon, dRpon
-        real :: pi=3.141592654, phi, phase
-        real :: k0, lskin, gamma_c, wp_r, nonc
+        real*8 :: tenv, Rpon, dRpon, phase, k0, nonc, gamma_c, wp_r, lskin, phi
+        real :: pi=3.141592654
         real*8 :: Z_R  ! Rayleigh length
         real*8 :: r, f_helm, g_helm, chi, atten, theta
         real*8 :: sigma
@@ -1518,7 +1511,7 @@ contains
         real*8, intent(out) :: phipon, epon_x, epon_y, epon_z ! pond. potential and fields
         real*8, intent(out) :: Ez, By, Bx  ! laser fields
 
-        real*8 :: xf, yf, zf, Rpon, Xpon, Ypon, Zpon, intensity, gamma, atten, alpha, eps, dXpon, sigma0
+        real*8 :: xf, yf, zf, Rpon, Xpon, intensity, gamma, atten, alpha, eps, dXpon, sigma0
         real :: pi=3.141592654, a02
         real :: rho0_up, f2d
         real :: kx, ky, k0, thetar
@@ -1641,7 +1634,7 @@ contains
 
         real*8, intent(out) :: phipon, ez, by, bx, az ! pond. potential and fields
 
-        real :: tenv, gamma0, sigma
+        real :: tenv, gamma0
         real*8 :: earg
         real :: k0
         real*8 :: phase, r2, theta_r

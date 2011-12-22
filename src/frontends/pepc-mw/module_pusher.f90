@@ -39,7 +39,6 @@ module module_pusher
       public integrator
       public push_em
       public push_nonrel
-      public push_full3v
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -74,8 +73,8 @@ module module_pusher
 		     call push_x(p_start,p_finish,dt)  ! update positions
 
 		  case(INTEGRATOR_SCHEME_FULL_EM)
-		     call push_full3v(p_start,p_finish,dt)  ! full EM pusher (all E, B components)
-		     call push_x(p_start,p_finish,dt)  ! update positions
+!		     call push_full3v(p_start,p_finish,dt)  ! full EM pusher (all E, B components)
+!		     call push_x(p_start,p_finish,dt)  ! update positions
 
 		  case(INTEGRATOR_SCHEME_NONREL)
 		     call velocities(p_start,p_finish,scheme)  ! nonrelativistic push
@@ -103,15 +102,16 @@ module module_pusher
 		  use module_units
 		  integer, intent(in) :: ips, ipf  ! 1st and last particle numbers
 		  real*8, intent(in) :: delt
-		  integer :: p
+		  integer :: p,i
 		  real*8 :: gam
 
 		  !  relativistic particle push in space
 		  do p=ips,ipf
-		       gam  = sqrt(1.0 + (ux(p)**2 + uy(p)**2 + uz(p)**2)/unit_c2)
-		                      x(p) = x(p) + ux(p)/gam*delt
-		       if (idim > 1)  y(p) = y(p) + uy(p)/gam*delt
-		       if (idim == 3) z(p) = z(p) + uz(p)/gam*delt
+		       gam  = sqrt(1.0 + (dot_product(particles(p)%data%v,particles(p)%data%v))/unit_c2)
+
+		       do i=1,idim
+                  particles(p)%x(i) = particles(p)%x(i) + particles(p)%data%v(i)/gam*delt
+               end do
 		  end do
 
 		end subroutine push_x
@@ -162,9 +162,9 @@ module module_pusher
 		! Accelerations
 		  acmax=0.
 		  do i=p_start,p_finish
-		     accx(i) = q(i)*ex(i)/m(i)
-		     accy(i) = q(i)*ey(i)/m(i)
-		     accz(i) = q(i)*ez(i)/m(i)
+		     accx(i) = particles(i)%data%q*particles(i)%results%e(1)/particles(i)%data%m
+		     accy(i) = particles(i)%data%q*particles(i)%results%e(2)/particles(i)%data%m
+		     accz(i) = particles(i)%data%q*particles(i)%results%e(3)/particles(i)%data%m
 		     acmax = max(abs(accx(i)),abs(accy(i)),abs(accz(i)),acmax)
 		  end do
 
@@ -192,17 +192,17 @@ module module_pusher
              sum_vi =0.0
 
 		     do p=p_start,p_finish
-		           uprime(1) = ux(p) + 0.5*dt*accx(p)
-		           uprime(2) = uy(p) + 0.5*dt*accy(p)
-		           uprime(3) = uz(p) + 0.5*dt*accz(p)
+		           uprime(1) = particles(p)%data%v(1) + 0.5*dt*accx(p)
+		           uprime(2) = particles(p)%data%v(2) + 0.5*dt*accy(p)
+		           uprime(3) = particles(p)%data%v(3) + 0.5*dt*accz(p)
 		           uprime2   = dot_product(uprime,uprime)
 		           gammah = sqrt(1.0 + uprime2/unit_c2)
 
-		        if (pelabel(p)<=ne) then
+		        if (particles(p)%label<=ne) then
 		           ! electrons
 		           sum_v2e = sum_v2e + uprime2/gammah**2.
 		           sum_ve  = sum_ve  + uprime/gammah
-		        else if (pelabel(p)<=ne+ni) then
+		        else if (particles(p)%label<=ne+ni) then
 		           ! ions
                    sum_v2i = sum_v2i + uprime2/gammah**2.
                    sum_vi  = sum_vi  + uprime/gammah
@@ -239,15 +239,15 @@ module module_pusher
 
 		     !  3)  Complete full step
 		     do p=p_start,p_finish
-		        if (pelabel(p)<=ne) then
-		           ux(p) = (2.*chie-1.)*ux(p) + chie*dt*accx(p)
-		           uy(p) = (2.*chie-1.)*uy(p) + chie*dt*accy(p)
-		           if (idim==3) uz(p) = (2.*chie-1.)*uz(p) + chie*dt*accz(p)
+		        if (particles(p)%label<=ne) then
+		           particles(p)%data%v(1) = (2.*chie-1.)*particles(p)%data%v(1) + chie*dt*accx(p)
+		           particles(p)%data%v(2) = (2.*chie-1.)*particles(p)%data%v(2) + chie*dt*accy(p)
+		           if (idim==3) particles(p)%data%v(3) = (2.*chie-1.)*particles(p)%data%v(3) + chie*dt*accz(p)
 
-		        elseif (pelabel(p)<=ne+ ni) then
-		           ux(p) = (2.*chii-1.)*ux(p) + chii*dt*accx(p)
-		           uy(p) = (2.*chii-1.)*uy(p) + chii*dt*accy(p)
-		           if (idim==3) uz(p) = (2.*chii-1.)*uz(p) + chii*dt*accz(p)
+		        elseif (particles(p)%label<=ne+ ni) then
+		           particles(p)%data%v(1) = (2.*chii-1.)*particles(p)%data%v(1) + chii*dt*accx(p)
+		           particles(p)%data%v(2) = (2.*chii-1.)*particles(p)%data%v(2) + chii*dt*accy(p)
+		           if (idim==3) particles(p)%data%v(3) = (2.*chii-1.)*particles(p)%data%v(3) + chii*dt*accz(p)
 		        endif
 		     end do
 
@@ -281,12 +281,12 @@ module module_pusher
 
 		     do p=p_start,p_finish
 
-		        if (pelabel(p)<=ne) then
+		        if (particles(p)%label<=ne) then
 		           ! electrons
 		           ne_loc = ne_loc + 1
-		           uhx(p) = ux(p) + 0.5*dt*accx(p)
-		           uhy(p) = uy(p) + 0.5*dt*accy(p)
-		           uhz(p) = uz(p) + 0.5*dt*accz(p)
+		           uhx(p) = particles(p)%data%v(1) + 0.5*dt*accx(p)
+		           uhy(p) = particles(p)%data%v(2) + 0.5*dt*accy(p)
+		           uhz(p) = particles(p)%data%v(3) + 0.5*dt*accz(p)
 		           gammah = sqrt(1.0 +(uhx(p)**2 + uhy(p)**2 + uhz(p)**2)/unit_c2)
 		           sum_vxe  = sum_vxe  + uhx(p)/gammah
 		           sum_vye  = sum_vye  + uhy(p)/gammah
@@ -313,10 +313,10 @@ module module_pusher
 		     !  3)  Complete full step
 
 		     do p=p_start,p_finish
-		        if (pelabel(p)<=ne) then
-		           ux(p) = (2*chie-1.)*ux(p) + chie*dt*accx(p)
-		           uy(p) = (2*chie-1.)*uy(p) + chie*dt*accy(p)
-		           if (idim==3) uz(p) = (2*chie-1.)*uz(p) + chie*dt*accz(p)
+		        if (particles(p)%label<=ne) then
+		           particles(p)%data%v(1) = (2*chie-1.)*particles(p)%data%v(1) + chie*dt*accx(p)
+		           particles(p)%data%v(2) = (2*chie-1.)*particles(p)%data%v(2) + chie*dt*accy(p)
+		           if (idim==3) particles(p)%data%v(3) = (2*chie-1.)*particles(p)%data%v(3) + chie*dt*accz(p)
 		        endif
 		     end do
 
@@ -337,12 +337,12 @@ module module_pusher
 
 		     do p=p_start,p_finish
 
-		        if (pelabel(p)<=ne) then
+		        if (particles(p)%label<=ne) then
 		           ! electrons
 		           ne_loc = ne_loc+1
-		           uhx(p) = ux(p) + 0.5*dt*accx(p)
-		           uhy(p) = uy(p) + 0.5*dt*accy(p)
-		           uhz(p) = uz(p) + 0.5*dt*accz(p)
+		           uhx(p) = particles(p)%data%v(1) + 0.5*dt*accx(p)
+		           uhy(p) = particles(p)%data%v(2) + 0.5*dt*accy(p)
+		           uhz(p) = particles(p)%data%v(3) + 0.5*dt*accz(p)
 		           gammah = sqrt(1.0 +(uhx(p)**2 + uhy(p)**2 + uhz(p)**2)/unit_c2)
 		           sum_vxe  = sum_vxe  + uhx(p)/gammah
 		           sum_vye  = sum_vye  + uhy(p)/gammah
@@ -368,10 +368,10 @@ module module_pusher
 		     !  3)  Complete full step
 
 		     do p=p_start,p_finish
-		        if (pelabel(p)<=ne) then
-		           ux(p) = (2*chie-1.)*ux(p) + chie*dt*accx(p)
-		           uy(p) = (2*chie-1.)*uy(p) + chie*dt*accy(p)
-		           if (idim==3) uz(p) = (2*chie-1.)*uz(p) + chie*dt*accz(p)
+		        if (particles(p)%label<=ne) then
+		           particles(p)%data%v(1) = (2*chie-1.)*particles(p)%data%v(1) + chie*dt*accx(p)
+		           particles(p)%data%v(2) = (2*chie-1.)*particles(p)%data%v(2) + chie*dt*accy(p)
+		           if (idim==3) particles(p)%data%v(3) = (2*chie-1.)*particles(p)%data%v(3) + chie*dt*accz(p)
 		        endif
 		     end do
 
@@ -395,11 +395,11 @@ module module_pusher
 		     end do
 
 		     do p=p_start,p_finish
-		           uhx(p) = ux(p) + 0.5*dt*accx(p)
-		           uhy(p) = uy(p) + 0.5*dt*accy(p)
-		           uhz(p) = uz(p) + 0.5*dt*accz(p)
+		           uhx(p) = particles(p)%data%v(1) + 0.5*dt*accx(p)
+		           uhy(p) = particles(p)%data%v(2) + 0.5*dt*accy(p)
+		           uhz(p) = particles(p)%data%v(3) + 0.5*dt*accz(p)
 
-		        if (pelabel(p)>=ne) then
+		        if (particles(p)%label>=ne) then
 		           ! ions
 		           sum_vxi  = sum_vxi  + uhx(p)
 		           sum_vyi  = sum_vyi  + uhy(p)
@@ -423,14 +423,14 @@ module module_pusher
 
 		     do p=p_start,p_finish
 
-		        if (pelabel(p)>=ne) then
+		        if (particles(p)%label>=ne) then
 		       ! make ions lighter for eqm phase
-		           ux(p) = (2*chii-1.)*ux(p) + chii*dt*accx(p)
-		           uy(p) = (2*chii-1.)*uy(p) + chii*dt*accy(p)
-		           if (idim==3) uz(p) = (2*chii-1.)*uz(p) + chii*dt*accz(p)
-		!           ux(p) = ux(p)*sqrt(Ti0/Ti_uncor)
-		!           uy(p) = uy(p)*sqrt(Ti0/Ti_uncor)
-		!           uz(p) = uz(p)*sqrt(Ti0/Ti_uncor)
+		           particles(p)%data%v(1) = (2*chii-1.)*particles(p)%data%v(1) + chii*dt*accx(p)
+		           particles(p)%data%v(2) = (2*chii-1.)*particles(p)%data%v(2) + chii*dt*accy(p)
+		           if (idim==3) particles(p)%data%v(3) = (2*chii-1.)*particles(p)%data%v(3) + chii*dt*accz(p)
+		!           particles(p)%data%v(1) = particles(p)%data%v(1)*sqrt(Ti0/Ti_uncor)
+		!           particles(p)%data%v(2) = particles(p)%data%v(2)*sqrt(Ti0/Ti_uncor)
+		!           particles(p)%data%v(3) = particles(p)%data%v(3)*sqrt(Ti0/Ti_uncor)
 
 		        endif
 		     end do
@@ -443,14 +443,14 @@ module module_pusher
           case (INTEGRATOR_SCHEME_NVE_IONS_FROZEN)
            ! unconstrained motion for negatively charged particles, frozen positively charged particles
            do p = p_start, p_finish
-             if (q(p)<0.) then
-               ux(p) = ux(p) + dt * accx(p) * dimfac(1)
-               uy(p) = uy(p) + dt * accy(p) * dimfac(2)
-               uz(p) = uz(p) + dt * accz(p) * dimfac(3)
+             if (particles(p)%data%q<0.) then
+               particles(p)%data%v(1) = particles(p)%data%v(1) + dt * accx(p) * dimfac(1)
+               particles(p)%data%v(2) = particles(p)%data%v(2) + dt * accy(p) * dimfac(2)
+               particles(p)%data%v(3) = particles(p)%data%v(3) + dt * accz(p) * dimfac(3)
              else
-               ux(p) = 0.
-               uy(p) = 0.
-               uz(p) = 0.
+               particles(p)%data%v(1) = 0.
+               particles(p)%data%v(2) = 0.
+               particles(p)%data%v(3) = 0.
              endif
            end do
 
@@ -458,18 +458,18 @@ module module_pusher
 		     ! unconstrained motion by default (scheme=INTEGRATOR_SCHEME_NVE,INTEGRATOR_SCHEME_NONREL)
 		   if (idim==3) then
 		     do p = p_start, p_finish
-		       ux(p) = ux(p) + dt * accx(p)
-		       uy(p) = uy(p) + dt * accy(p)
-		       uz(p) = uz(p) + dt * accz(p)
+		       particles(p)%data%v(1) = particles(p)%data%v(1) + dt * accx(p)
+		       particles(p)%data%v(2) = particles(p)%data%v(2) + dt * accy(p)
+		       particles(p)%data%v(3) = particles(p)%data%v(3) + dt * accz(p)
 		     end do
 		   else if (idim==2) then
 		     do p = p_start, p_finish
-		       ux(p) = ux(p) + dt * accx(p)
-		       uy(p) = uy(p) + dt * accy(p)
+		       particles(p)%data%v(1) = particles(p)%data%v(1) + dt * accx(p)
+		       particles(p)%data%v(2) = particles(p)%data%v(2) + dt * accy(p)
 		     end do
 		   else
 		     do p = p_start, p_finish
-		       ux(p) = ux(p) + dt * accx(p)
+		       particles(p)%data%v(1) = particles(p)%data%v(1) + dt * accx(p)
 		     end do
 		   endif
 
@@ -505,11 +505,11 @@ module module_pusher
 
 
 		  do p = p_start, p_finish
-		     beta=q(p)/m(p)*dts*0.5  ! charge/mass constant
+		     beta=particles(p)%data%q/particles(p)%data%m*dts*0.5  ! charge/mass constant
 
-		     xd = x(p)-focus(1)
-		     yd = y(p)-focus(2)
-		     zd = z(p)-focus(3)
+		     xd = particles(p)%x(1)-focus(1)
+		     yd = particles(p)%x(2)-focus(2)
+		     zd = particles(p)%x(3)-focus(3)
 
 		     ! evaluate external fields at particle positions
 
@@ -523,22 +523,22 @@ module module_pusher
 		     endif
 
 		     !  Sum internal and external fields
-		     exi = ex(p)
-		     eyi = ey(p)
-		     ezi = ez(p)+ez_em
+		     exi = particles(p)%results%e(1)
+		     eyi = particles(p)%results%e(2)
+		     ezi = particles(p)%results%e(3)+ez_em
 		     bxi = bx_em
 		     byi = by_em
 		     bzi = 0.
 
 		     ! transverse momentum from pz=az including thermal motion
-		     !  uzi = -q(p)/m(p)*az_em + uz(p)
+		     !  uzi = -particles(p)%data%q/particles(p)%data%m*az_em + particles(p)%data%v(3)
 
 
 		     !   first half-accn
-		     uxm = ux(p) + beta*exi
-		     uym = uy(p) + beta*eyi
-		     uzm = uz(p) + beta*ezi
-		     !     uzm = uz(p) - q(p)/m(p)*az_em
+		     uxm = particles(p)%data%v(1) + beta*exi
+		     uym = particles(p)%data%v(2) + beta*eyi
+		     uzm = particles(p)%data%v(3) + beta*ezi
+		     !     uzm = particles(p)%data%v(3) - particles(p)%data%q/particles(p)%data%m*az_em
 		     !   rotation
 		     gam1=dsqrt(1.d0 + (uxm**2 + uym**2 + uzm**2)/unit_c2)
 		     ty = beta*byi/gam1
@@ -553,92 +553,14 @@ module module_pusher
 		     uxp = uxd + uyp*tz - uzp*ty
 
 		     !   second half-accn
-		     ux(p) = uxp + beta*exi
-		     uy(p) = uyp + beta*eyi
-		     uz(p) = uzp + beta*ezi
+		     particles(p)%data%v(1) = uxp + beta*exi
+		     particles(p)%data%v(2) = uyp + beta*eyi
+		     particles(p)%data%v(3) = uzp + beta*ezi
 
 		  end do
 
 
 		end subroutine push_em
-
-
-
-		!  ==============================================
-		!
-		!     Full 3v particle pusher (Boris rotation scheme)
-		!
-		!  TM fields only (s-pol):  (Ex,0,Ez)  (0,By,0)
-		!  TE fields  (0,Ey,0) (Bx,0,Bz)
-		!  ==============================================
-
-
-		subroutine push_full3v(p_start,p_finish,dts)
-		  use physvars
-		  use module_laser
-		  implicit none
-		  integer, intent(in) :: p_start, p_finish
-		  real*8, intent(in) :: dts
-
-		  integer :: p
-		  real*8 :: beta, gam1, xd, yd, zd
-		  real*8 :: tt, sx, sy, sz, tz, ty, tx
-		  real*8 :: uxd, uyd, uzd, uyp, uzp, uxp, uxm, uym, uzm
-		  real*8 :: exi, eyi, ezi, bxi, byi, bzi
-
-		  do p = p_start, p_finish
-		     beta=q(p)/m(p)*dts*0.5  ! charge/mass constant
-
-		     xd = x(p)-focus(1)
-		     yd = y(p)-focus(2)
-		     zd = z(p)-focus(3)
-
-		     exi = ex(p)
-		     eyi = ey(p)
-		     ezi = ez(p)
-		     ! magnetic fields are currently not implemented in the code
-		     ! TODO: use the missing stuff from sum_bfield.f90, fields_p.f90
-		     ! and put it into calc_force_per_interaction()
-		     ! then reactivate this stuff here and some lines below
-		     bxi = Bx(p)
-		     byi = By(p)
-		     bzi = Bz(p)
-
-		     !   first half-accn
-		     uxm = ux(p) + beta*exi
-		     uym = uy(p) + beta*eyi
-		     uzm = uz(p) + beta*ezi
-
-		     !   rotation
-		     gam1=dsqrt(1.d0 + (uxm**2 + uym**2 + uzm**2)/unit_c2)
-
-		     tx = beta*bxi/gam1
-		     ty = beta*byi/gam1
-		     tz = beta*bzi/gam1
-		     tt = 1.0 + tx**2 + ty**2 + tz**2
-
-		     sx = 2.0*tx/tt
-		     sy = 2.0*ty/tt
-		     sz = 2.0*tz/tt
-
-		     uxd = uxm + uym*tz - uzm*ty
-		     uyd = uym + uzm*tx - uxm*tz
-		     uzd = uzm + uxm*ty - uym*tx
-
-		     uxp = uxm + uyd*sz - uzd*sy
-		     uyp = uym + uzd*sx - uxd*sz
-		     uzp = uzm + uxd*sy - uyd*sx
-
-		     !   second half-accn
-		     ux(p) = uxp + beta*exi
-		     uy(p) = uyp + beta*eyi
-		     uz(p) = uzp + beta*ezi
-
-		  end do
-
-
-		end subroutine push_full3v
-
 
 
 		!  ===============================================================
@@ -659,9 +581,9 @@ module module_pusher
 
 		  do p=ips,ipf
 
-		     x(p)=x(p)+ux(p)*delt
-		     y(p)=y(p)+uy(p)*delt
-		     z(p)=z(p)+uz(p)*delt
+		     particles(p)%x(1)=particles(p)%x(1)+particles(p)%data%v(1)*delt
+		     particles(p)%x(2)=particles(p)%x(2)+particles(p)%data%v(2)*delt
+		     particles(p)%x(3)=particles(p)%x(3)+particles(p)%data%v(3)*delt
 
 		  end do
 

@@ -16,10 +16,8 @@ program pepc
 
   use module_pepc_types
   use physvars
-  use benchmarking
   use module_timings
   use module_pepc
-  use module_pepc_wrappers
   use module_mirror_boxes, only : do_periodic, constrain_periodic
   use module_laser
   use module_pusher
@@ -52,7 +50,7 @@ program pepc
   ! prepare a copy of the MPI-communicator
   call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_PEPC, ierr)
 
-  call benchmark_pre
+!  call benchmark_pre
 
   ! Set up O/P files
   call openfiles
@@ -83,7 +81,7 @@ program pepc
 
   call momentum_acf%initialize(nt-momentum_acf_from_timestep, dt*unit_t0_in_fs, my_rank, n_cpu, MPI_COMM_PEPC)
 
-  call benchmark_inner
+!  call benchmark_inner
 
   call pepc_prepare()
 
@@ -104,7 +102,7 @@ program pepc
      call workflow(my_rank, itime, trun, dt)
 
      ! dump trajectory
-     if (my_rank == 0 .and. itime == nt) call dump_trajectory()
+ !    if (my_rank == 0 .and. itime == nt) call dump_trajectory()
 
      call timer_start(t_tot)
 
@@ -112,10 +110,11 @@ program pepc
      call laser_update()
      call PrintLaserParameters()
 
-     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
-                 q(1:np_local),work(1:np_local),pelabel(1:np_local), &
-                  ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
-                      itime, treediags, .false., force_const)
+     call pepc_grow_and_traverse(np_local, npart_total, particles, itime, .true., treediags, .false.)
+     particles(1:np_local)%results%e(1) = particles(1:np_local)%results%e(1) * force_const
+     particles(1:np_local)%results%e(2) = particles(1:np_local)%results%e(2) * force_const
+     particles(1:np_local)%results%e(3) = particles(1:np_local)%results%e(3) * force_const
+     particles(1:np_local)%results%pot  = particles(1:np_local)%results%pot  * force_const
 
   !   call verifydirect(x, y, z, q, ex, ey, ez, pot, np_local, [1, 2, np_local-1, np_local], &
   !                     0, my_rank, n_cpu, MPI_COMM_PEPC)
@@ -131,19 +130,19 @@ program pepc
        endif
 
        call write_branches_to_vtk(itime,   trun*unit_t0_in_fs, vtk_step)
-       call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, vtk_step)
+       call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, vtk_step, particles)
      endif
 
      ! add any external forces (laser field etc)
      call force_laser(1, np_local)
 
-     if (itime == nt) call gather_particle_diag()
+!     if (itime == nt) call gather_particle_diag()
 
      ! Velocity and position update - explicit schemes only
      call integrator(1, np_local, integrator_scheme)
 
      ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(x(1:np_local),y(1:np_local),z(1:np_local),np_local)
+     if (do_periodic) call constrain_periodic(particles(1:np_local)%x(1), particles(1:np_local)%x(2), particles(1:np_local)%x(3),np_local)
 
      call energies(Ukine,Ukini)
 
@@ -171,7 +170,7 @@ program pepc
 
   end do
 
-  call benchmark_post
+ ! call benchmark_post
 
   ! final particle dump
   call write_particles(.true.)
@@ -186,7 +185,7 @@ program pepc
   ! Tidy up O/P files
   call closefiles
 
-  call benchmark_end
+ ! call benchmark_end
 
   ! cleanup of lpepc static data
   call pepc_finalize()
