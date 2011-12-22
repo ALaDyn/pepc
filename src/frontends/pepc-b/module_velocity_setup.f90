@@ -169,8 +169,8 @@ end subroutine set_velocities
 		        u(ip1) = vip
 		        u(ip2) = -vip
 		        cntr = cntr + 1
-		        ip1 = ip1-1
-		        ip2 = ip2+1
+		        ip1 = max(ip1-1,1)
+		        ip2 = min(ip2+1,n)
 		     endif
 		  end do
 
