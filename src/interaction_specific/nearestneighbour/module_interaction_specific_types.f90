@@ -19,7 +19,7 @@ module module_interaction_specific_types
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      integer, parameter :: num_neighbour_particles = 50
+      integer, parameter :: num_neighbour_particles = 12
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data

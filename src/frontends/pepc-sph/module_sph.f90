@@ -511,9 +511,9 @@ contains
 ! + grad_kernel_2 ) / 2._8
           
 
-          particles(local_particle_index)%results%sph_force = particles(local_particle_index)%results%sph_force + scalar_force * dist
+          particles(local_particle_index)%results%sph_force = particles(local_particle_index)%results%sph_force - scalar_force * dist
 
-          write(78, *) my_rank, local_particle_index, h1, particles(local_particle_index)%data%temperature, particles(local_particle_index)%results%rho, actual_neighbour, distance, grad_kernel_1, tree_nodes(actual_node)%q, tree_nodes(actual_node)%temperature, tree_nodes(actual_node)%h, tree_nodes(actual_node)%rho, scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
+          write(60+my_rank, *) my_rank, local_particle_index, particles(local_particle_index)%x(1), h1, particles(local_particle_index)%data%temperature, particles(local_particle_index)%results%rho, actual_neighbour, tree_nodes(actual_node)%coc(1), distance, dist(1), grad_kernel_1, tree_nodes(actual_node)%q, tree_nodes(actual_node)%temperature, tree_nodes(actual_node)%h, tree_nodes(actual_node)%rho, scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
 
           
 !write(50+me, *) scalar_force, vr, grad_kernel, xdist, dvx, artificial_viscosity
