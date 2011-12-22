@@ -6,7 +6,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_interaction_specific
-
+     use module_pepc_types
      use module_interaction_specific_types
      implicit none
      save
@@ -356,10 +356,17 @@ module module_interaction_specific
                 u = 0.
                 af = 0.
 
-            case (4)  !  TODO: use 6th order algebraic kernel, decomposed
-                !call calc_6th_algebraic_decomposed(inode, delta, dist2, u, af)
-                u = 0.
-                af = 0.
+            case (6)  ! use 6th order algebraic kernel, condensed
+
+
+                if (inode > 0) then
+                    ! It's a leaf, do direct summation without ME stuff
+                    call calc_6th_algebraic_condensed_direct(particle, inode, delta, dist2, u, af) !TODO: 6xth order direct summation
+                else
+                    ! It's not a leaf, do ME
+                    call calc_6th_algebraic_condensed(particle, inode, delta, dist2, u, af)
+                end if
+
 
             case default
               u = 0.
@@ -517,15 +524,149 @@ module module_interaction_specific
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Calculates 3D 2nd order decomposed algebraic kernel interaction
-        !> of particle p with tree node inode that is shifted by the lattice
-        !> vector vbox results are returned in u and af
+        !> Calculates 3D 2nd order condensed algebraic kernel interaction
+        !> of particle p with tree node inode, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_6th_algebraic_condensed(particle, inode, d, dist2, u, af)
+            use module_pepc_types
+            use treevars
+            use module_interaction_specific_types
+            implicit none
 
-!        subroutine calc_2nd_algebraic_decomposed(inode, d, dist2, u, af)
-!
-!        end subroutine calc_2nd_algebraic_decomposed
+            type(t_particle), intent(in) :: particle
+            integer, intent(in) :: inode !< index of particle to interact with
+            real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+            real*8, intent(out) ::  u(1:3), af(1:3)
+
+            type(t_tree_node_interaction_data), pointer :: t
+
+            integer :: i1, i2, i3 !< helper variables for the tensor structures
+
+            real*8 :: dx, dy, dz !< temp variables for distance
+            real*8 :: MPa1,DPa1,DPa2,QPa1,QPa2 !< prefactors for the multipole expansion
+            real*8 :: pre1, pre2, pre3, pre4, pre5, pre6
+            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+
+            ! tensors allow nice and short code and better comparison with (my!) theory
+            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
+            real*8, dimension(3,3) :: m1, CP1 !< data structures for the dipole moments
+            real*8, dimension(3,3,3) :: m2, CP2 !< data structures for the quadrupole moments
+
+            t=>tree_nodes(inode)
+
+            dx = d(1)
+            dy = d(2)
+            dz = d(3)
+
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+
+            m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
+            CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
+
+            m1 = reshape([t%xdip1,t%xdip2,t%xdip3, &    ! dipole moment tensor
+                          t%ydip1,t%ydip2,t%ydip3, &
+                          t%zdip1,t%zdip2,t%zdip3],[3,3])
+            CP1 = reshape([cross_prod(m1(:,1),vort), &                ! cross-product for 2nd expansion term
+                           cross_prod(m1(:,2),vort), &
+                           cross_prod(m1(:,3),vort)],[3,3])
+
+            m2 = reshape([t%xxquad1,t%xxquad2,t%xxquad3, &                                                  ! quadrupole moment tensor
+                          t%xyquad1,t%xyquad2,t%xyquad3, &
+                          t%xzquad1,t%xzquad2,t%xzquad3, &
+                          t%xyquad1,t%xyquad2,t%xyquad3, &
+                          t%yyquad1,t%yyquad2,t%yyquad3, &
+                          t%yzquad1,t%yzquad2,t%yzquad3, &
+                          t%xzquad1,t%xzquad2,t%xzquad3, &
+                          t%yzquad1,t%yzquad2,t%yzquad3, &
+                          t%zzquad1,t%zzquad2,t%zzquad3],[3,3,3])
+            CP2 = reshape([cross_prod(m2(:,1,1),vort),cross_prod(m2(:,2,1),vort),cross_prod(m2(:,3,1),vort), &          ! cross-product for 3rd expansion term
+                           cross_prod(m2(:,1,2),vort),cross_prod(m2(:,2,2),vort),cross_prod(m2(:,3,2),vort), &
+                           cross_prod(m2(:,1,3),vort),cross_prod(m2(:,2,3),vort),cross_prod(m2(:,3,3),vort)],[3,3,3])
+
+            ! precompute kernel function evaluations of various order
+
+            pre1 = 0.0078125*(128.0*1.0*G_decomp(dist2,sig2,1.5D00) + 64.0*sig2*3.0*G_decomp(dist2,sig2,2.5D00) + 48.0*sig2**2*5.0*G_decomp(dist2,sig2,3.5D00) + &
+                       40.0*sig2**3*7.0*G_decomp(dist2,sig2,4.5D00) - 70.0*sig2**4*9.0*G_decomp(dist2,sig2,5.5D00) + 315.0*sig2**5*11.0*G_decomp(dist2,sig2,6.5D00)) ! only Monopole u prefactor
+                                                                                                                                                                     ! 2nd Dipole u prefactor
+                                                                                                                                                                     ! 1st Monopole af prefactor
+
+            pre2 = 0.0078125*(128.0*3.0*G_decomp(dist2,sig2,2.5D00) + 64.0*sig2*15.0*G_decomp(dist2,sig2,3.5D00) + 48.0*sig2**2*35.0*G_decomp(dist2,sig2,4.5D00) + &
+                       40.0*sig2**3*63.0*G_decomp(dist2,sig2,5.5D00) - 70.0*sig2**4*99.0*G_decomp(dist2,sig2,6.5D00) + 315.0*sig2**5*143.0*G_decomp(dist2,sig2,7.5D00)) ! 1st Dipole u prefactor
+                                                                                                                                                                        ! 2nd Monopole af prefactor (+dot_product)
+                                                                                                                                                                        ! 2nd Dipole af prefactor
+
+            pre3 = 0.5*0.0078125*(128.0*3.0*G_decomp(dist2,sig2,2.5D00) + 64.0*sig2*15.0*G_decomp(dist2,sig2,3.5D00) + 48.0*sig2**2*35.0*G_decomp(dist2,sig2,4.5D00) + &
+                       40.0*sig2**3*63.0*G_decomp(dist2,sig2,5.5D00) - 70.0*sig2**4*99.0*G_decomp(dist2,sig2,6.5D00) + 315.0*sig2**5*143.0*G_decomp(dist2,sig2,7.5D00)) ! 1st Quadrupole u prefactor
+
+            pre4 = 0.5*0.0078125*(128.0*15.0*G_decomp(dist2,sig2,3.5D00) + 64.0*sig2*105.0*G_decomp(dist2,sig2,4.5D00) + 48.0*sig2**2*315.0*G_decomp(dist2,sig2,5.5D00) + &
+                       40.0*sig2**3*693.0*G_decomp(dist2,sig2,6.5D00) - 70.0*sig2**4*1287.0*G_decomp(dist2,sig2,7.5D00) + 315.0*sig2**5*2145.0*G_decomp(dist2,sig2,8.5D00)) ! 2nd Quadrupole u prefactor
+                                                                                                                                                                           ! 2nd Quadrupole af prefactor (+...)
+
+            pre5 = 0.0078125*(128.0*3.0*G_decomp(dist2,sig2,2.5D00) + 64.0*sig2*15.0*G_decomp(dist2,sig2,3.5D00) + 48.0*sig2**2*35.0*G_decomp(dist2,sig2,4.5D00) + &
+                       40.0*sig2**3*63.0*G_decomp(dist2,sig2,5.5D00) - 70.0*sig2**4*99.0*G_decomp(dist2,sig2,6.5D00) + 315.0*sig2**5*143.0*G_decomp(dist2,sig2,7.5D00)) ! 1st Dipole af prefactor (+sumsum)
+
+            pre6 = 0.5*0.0078125*(128.0*105.0*G_decomp(dist2,sig2,4.5D00) + 64.0*sig2*945.0*G_decomp(dist2,sig2,5.5D00) + 48.0*sig2**2*3465.0*G_decomp(dist2,sig2,6.5D00) + &
+                       40.0*sig2**3*9009.0*G_decomp(dist2,sig2,7.5D00) - 70.0*sig2**4*19305.0*G_decomp(dist2,sig2,8.5D00) + 315.0*sig2**5*36465.0*G_decomp(dist2,sig2,9.5D00)) ! 3rd Quadrupole af prefactor (+...)
+
+
+            MPa1 = pre2 * dot_product(d,CP0)   ! monopole prefactor for af
+            DPa1 = pre5 * sum( (/ (sum( (/ (CP1(i2,i1)*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) )  ! dipole prefators for af
+            DPa2 = (CP1(1,1)+CP1(2,2)+CP1(3,3))
+            QPa1 = pre6 * sum( (/ (sum( (/ (sum( (/ (CP2(i3,i2,i1)*d(i3),i3=1,3) /) )*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) ) ! quadrupole prefactors for af
+            QPa2 = dot_product(d,CP2(1,1,:)+CP2(2,2,:)+CP2(3,3,:)+CP2(1,:,1)+CP2(2,:,2)+CP2(3,:,3)+CP2(:,1,1)+CP2(:,2,2)+CP2(:,3,3))
+
+            u(1) = pre1 * (dy*m0(3)-dz*m0(2)) &                                                                                       ! MONOPOLE
+
+                    + pre2 * sum( (/ ((m1(3,i1)*dy-m1(2,i1)*dz)*d(i1),i1=1,3) /) ) - pre1 * (m1(3,2)-m1(2,3)) &                 ! DIPOLE
+
+                    - pre3 * ( sum( (/ (m2(3,i1,i1)*dy-m2(2,i1,i1)*dz,i1=1,3) /) ) + 2.0*sum( (/ ((m2(3,i1,2)-m2(2,i1,3))*d(i1),i1=1,3) /) ) ) + &
+                      pre4 * sum( (/ (sum( (/ ((dy*m2(3,i2,i1)-dz*m2(2,i2,i1))*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) )           ! QUADRUPOLE
+
+
+            u(2) = pre1 * (dz*m0(1)-dx*m0(3)) &                                                                                       ! MONOPOLE
+
+                    + pre2 * sum( (/ ((m1(1,i1)*dz-m1(3,i1)*dx)*d(i1),i1=1,3) /) ) - pre1 * (m1(1,3)-m1(3,1)) &                 ! DIPOLE
+
+                    - pre3 * ( sum( (/ (m2(1,i1,i1)*dz-m2(3,i1,i1)*dx,i1=1,3) /) ) + 2.0*sum( (/ ((m2(1,i1,3)-m2(3,i1,1))*d(i1),i1=1,3) /) ) ) + &
+                      pre4 * sum( (/ (sum( (/ ((dz*m2(1,i2,i1)-dx*m2(3,i2,i1))*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) )           ! QUADRUPOLE
+
+
+            u(3) = pre1 * (dx*m0(2)-dy*m0(1)) &                                                                                       ! MONOPOLE
+
+                    + pre2 * sum( (/ ((m1(2,i1)*dx-m1(1,i1)*dy)*d(i1),i1=1,3) /) ) - pre1 * (m1(2,1)-m1(1,2)) &                 ! DIPOLE
+
+                    - pre3 * ( sum( (/ (m2(2,i1,i1)*dx-m2(1,i1,i1)*dy,i1=1,3) /) ) + 2.0*sum( (/ ((m2(2,i1,1)-m2(1,i1,2))*d(i1),i1=1,3) /) ) ) + &
+                      pre4 * sum( (/ (sum( (/ ((dx*m2(2,i2,i1)-dy*m2(1,i2,i1))*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) )           ! QUADRUPOLE
+
+
+            af(1) = Mpa1*dx - pre1 * CP0(1)  &                                                                                               ! MONOPOLE
+
+                    + DPa1*dx - pre2 * ( dot_product(CP1(:,1)+CP1(1,:),d) + dx*DPa2 ) &                                              ! DIPOLE
+
+                    + QPa1*dx - &
+                        pre4 * ( sum( (/ (sum( (/ ((CP2(i2,i1,1)+CP2(i2,1,i1)+CP2(1,i2,i1))*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) ) + dx*QPa2) + &
+                        pre3 * ( CP2(1,1,1)+CP2(2,2,1)+CP2(3,3,1)+CP2(1,1,1)+CP2(2,1,2)+CP2(3,1,3)+CP2(1,1,1)+CP2(1,2,2)+CP2(1,3,3) ) ! QUADRUPOLE
+
+
+            af(2) = Mpa1*dy - pre1 * CP0(2)  &                                                                                               ! MONOPOLE
+
+                    + DPa1*dy - pre2 * ( dot_product(CP1(:,2)+CP1(2,:),d) + dy*DPa2 ) &                                              ! DIPOLE
+
+                    + QPa1*dy - &
+                        pre4 * ( sum( (/ (sum( (/ ((CP2(i2,i1,2)+CP2(i2,2,i1)+CP2(2,i2,i1))*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) ) + dy*QPa2) + &
+                        pre3 * ( CP2(1,1,2)+CP2(2,2,2)+CP2(3,3,2)+CP2(1,2,1)+CP2(2,2,2)+CP2(3,2,3)+CP2(2,1,1)+CP2(2,2,2)+CP2(2,3,3) ) ! QUADRUPOLE
+
+
+            af(3) = Mpa1*dz - pre1 * CP0(3)  &                                                                                               ! MONOPOLE
+
+                    + DPa1*dz - pre2 * ( dot_product(CP1(:,3)+CP1(3,:),d) + dz*DPa2 ) &                                              ! DIPOLE
+
+                    + QPa1*dz - &
+                        pre4 * ( sum( (/ (sum( (/ ((CP2(i2,i1,3)+CP2(i2,3,i1)+CP2(3,i2,i1))*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) ) + dz*QPa2) + &
+                        pre3 * ( CP2(1,1,3)+CP2(2,2,3)+CP2(3,3,3)+CP2(1,3,1)+CP2(2,3,2)+CP2(3,3,3)+CP2(3,1,1)+CP2(3,2,2)+CP2(3,3,3) ) ! QUADRUPOLE
+
+        end subroutine calc_6th_algebraic_condensed
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
@@ -533,7 +674,6 @@ module module_interaction_specific
         !> of particle p with tree *particle*, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
         subroutine calc_2nd_algebraic_condensed_direct(particle, inode, d, dist2, u, af)
 
             use module_pepc_types
@@ -549,7 +689,6 @@ module module_interaction_specific
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
             real*8 :: dx, dy, dz, Gc25, MPa1
             real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
-
 
             t=>tree_nodes(inode)
 
@@ -576,13 +715,81 @@ module module_interaction_specific
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
+        !> Calculates 3D 2nd order condensed algebraic kernel interaction
+        !> of particle p with tree node inode, results are returned in u and af
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_6th_algebraic_condensed_direct(particle, inode, d, dist2, u, af)
+            use module_pepc_types
+            use treevars
+            use module_interaction_specific_types
+            implicit none
+
+            type(t_particle), intent(in) :: particle
+            integer, intent(in) :: inode !< index of particle to interact with
+            real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+            real*8, intent(out) ::  u(1:3), af(1:3)
+
+            type(t_tree_node_interaction_data), pointer :: t
+
+            real*8 :: dx, dy, dz !< temp variables for distance
+            real*8 :: sig4, sig6, sig8, sig10, Gd15, Gd25, Gd35, Gd45, Gd55, Gd65, Gd75
+            real*8 :: pre1, pre2, MPa1
+            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
+
+
+            t=>tree_nodes(inode)
+
+            dx = d(1)
+            dy = d(2)
+            dz = d(3)
+
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+
+            m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
+            CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
+
+
+            ! precompute kernel function evaluations of various order
+            Gd15 = G_decomp(dist2,sig2,1.5D00)
+            Gd25 = G_decomp(dist2,sig2,2.5D00)
+            Gd35 = G_decomp(dist2,sig2,3.5D00)
+            Gd45 = G_decomp(dist2,sig2,4.5D00)
+            Gd55 = G_decomp(dist2,sig2,5.5D00)
+            Gd65 = G_decomp(dist2,sig2,6.5D00)
+            Gd75 = G_decomp(dist2,sig2,7.5D00)
+
+            sig4  = sig2*sig2
+            sig6  = sig4*sig2
+            sig8  = sig6*sig2
+            sig10 = sig8*sig2
+
+            pre1 = 0.0078125*(128.0*Gd15 + 192.0*sig2*Gd25 + 240.0*sig4*Gd35 + 280.0*sig6*Gd45 - 630.0*sig8*Gd55 + 3465.0*sig10*Gd65)
+            pre2 = 0.0078125*(384.0*Gd25 + 960.0**sig2*Gd35 + 1680.0*sig4*Gd45 + 2520.0*sig6*Gd55 - 6930.0*sig8*Gd65 + 45045.0*sig10*Gd75)
+
+            MPa1 = pre2 * dot_product(d,CP0)   ! monopole prefactor for af
+
+            u(1) = pre1 * (dy*m0(3)-dz*m0(2))                                                                                        ! MONOPOLE
+            u(2) = pre1 * (dz*m0(1)-dx*m0(3))                                                                                        ! MONOPOLE
+            u(3) = pre1 * (dx*m0(2)-dy*m0(1))                                                                                        ! MONOPOLE
+
+            af(1) = Mpa1*dx - pre1 * CP0(1)                                                                                                 ! MONOPOLE
+            af(2) = Mpa1*dy - pre1 * CP0(2)                                                                                                 ! MONOPOLE
+            af(3) = Mpa1*dz - pre1 * CP0(3)                                                                                                 ! MONOPOLE
+
+        end subroutine calc_6th_algebraic_condensed_direct
+
+
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
         !> Helper functions for multipole expansion
         !> of particle p with tree node inode that is shifted by the lattice
         !> vector vbox results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
         function G_core(r,s,factor)
            implicit none
 
