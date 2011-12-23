@@ -8,23 +8,11 @@ module module_checkpoint
       implicit none
       include 'mpif.h'
 
-      type, public :: t_dumpparticle
-        sequence
-        real*8 :: x, y, z, ux, uy, uz, q, m, pot, ex, ey, ez
-        integer :: pelabel
-      end type t_dumpparticle
-
       private
 
       integer, parameter :: filehandle = 91
       character(12), parameter :: directory = './particles/'
       integer(KIND=MPI_OFFSET_KIND) :: max_header_size = 1024
-
-      integer, parameter :: nprops_dumpparticle = 13
-
-
-      integer :: MPI_TYPE_DUMPPARTICLE
-      logical :: registered_dumpparticle = .false.
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -64,9 +52,10 @@ module module_checkpoint
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine write_particles_ascii(my_rank, itime, np_local, dp)
+            use module_pepc_types
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
-            type(t_dumpparticle), intent(in), dimension(np_local) :: dp
+            type(t_particle), intent(in), dimension(np_local) :: dp
             character(50) :: filename
 
             call system("mkdir -p " // trim(directory))
@@ -87,9 +76,10 @@ module module_checkpoint
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine write_particles_binary(my_rank, itime, np_local, dp)
+            use module_pepc_types
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
-            type(t_dumpparticle), intent(in), dimension(np_local) :: dp
+            type(t_particle), intent(in), dimension(np_local) :: dp
             character(50) :: filename
 
             call system("mkdir -p " // trim(directory))
@@ -108,55 +98,15 @@ module module_checkpoint
           !>
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          subroutine register_dumpparticle_type()
-            implicit none
-            integer :: ierr
-            integer(KIND=MPI_ADDRESS_KIND), dimension(nprops_dumpparticle) :: displacements
-            integer, dimension(nprops_dumpparticle) :: blocklengths, types
-            integer(KIND=MPI_ADDRESS_KIND) :: base
-            type(t_dumpparticle) :: dummy
-
-            if (.not. registered_dumpparticle) then
-              types = [ MPI_REAL8,  MPI_REAL8,  MPI_REAL8,  MPI_REAL8, MPI_REAL8,  MPI_REAL8,  MPI_REAL8,  MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_INTEGER ]
-              blocklengths = 1
-
-              call MPI_GET_ADDRESS(dummy, base, ierr)
-              call MPI_GET_ADDRESS(dummy%x,  displacements(1),  ierr)
-              call MPI_GET_ADDRESS(dummy%y,  displacements(2),  ierr)
-              call MPI_GET_ADDRESS(dummy%z,  displacements(3),  ierr)
-              call MPI_GET_ADDRESS(dummy%ux, displacements(4),  ierr)
-              call MPI_GET_ADDRESS(dummy%uy, displacements(5),  ierr)
-              call MPI_GET_ADDRESS(dummy%uz, displacements(6),  ierr)
-              call MPI_GET_ADDRESS(dummy%q,  displacements(7),  ierr)
-              call MPI_GET_ADDRESS(dummy%m,  displacements(8),  ierr)
-              call MPI_GET_ADDRESS(dummy%pot,displacements(9),  ierr)
-              call MPI_GET_ADDRESS(dummy%ex, displacements(10), ierr)
-              call MPI_GET_ADDRESS(dummy%ey, displacements(11), ierr)
-              call MPI_GET_ADDRESS(dummy%ez, displacements(12), ierr)
-              call MPI_GET_ADDRESS(dummy%pelabel,  displacements(13), ierr)
-
-              displacements = displacements - base
-
-              call MPI_TYPE_CREATE_STRUCT(nprops_dumpparticle, blocklengths, displacements, types, MPI_TYPE_DUMPPARTICLE, ierr)
-              registered_dumpparticle = .true.
-            endif
-
-          end subroutine
-
-
-          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          !>
-          !>
-          !>
-          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine write_particles_mpiio(comm, my_rank, itime, trun, np_local, n_total, dp)
+            use module_pepc_types
             use module_debug
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
             integer*8, intent(in) :: n_total
             integer, intent(in) :: comm
             real*8, intent(in) :: trun
-            type(t_dumpparticle), intent(in) :: dp(np_local)
+            type(t_particle), intent(in) :: dp(np_local)
             character(50) :: filename
             integer :: fh, ierr, status(MPI_STATUS_SIZE)
             integer(KIND=MPI_OFFSET_KIND) :: disp
@@ -184,13 +134,10 @@ module module_checkpoint
               end if
             end if
 
-            ! register dumpparticle type (if not already done)
-            call register_dumpparticle_type()
-
             ! Redefine file view, now with our custom type
-            call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_DUMPPARTICLE, MPI_TYPE_DUMPPARTICLE, 'native', MPI_INFO_NULL, ierr)
+            call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle, MPI_TYPE_particle, 'native', MPI_INFO_NULL, ierr)
             ! Write particle data
-            call MPI_FILE_WRITE_ORDERED(fh, dp(:), np_local, MPI_TYPE_DUMPPARTICLE, status, ierr)
+            call MPI_FILE_WRITE_ORDERED(fh, dp(:), np_local, MPI_TYPE_particle, status, ierr)
             ! Take care before closing
             call MPI_FILE_SYNC(fh,ierr)
             call MPI_FILE_CLOSE(fh,ierr)
@@ -205,6 +152,7 @@ module module_checkpoint
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine read_particles_mpiio(itime_in, comm, my_rank, n_cpu, itime, trun, np_local, n_total, dp)
+            use module_pepc_types
             use module_debug
             implicit none
             integer, intent(in) :: my_rank, n_cpu, itime_in
@@ -212,7 +160,7 @@ module module_checkpoint
             integer*8, intent(out) :: n_total
             real*8, intent(out) :: trun
             integer, intent(in) :: comm
-            type(t_dumpparticle), allocatable :: dp(:)
+            type(t_particle), allocatable :: dp(:)
             character(50) :: filename
             integer :: fh, ierr, status(MPI_STATUS_SIZE)
             integer*8 :: remain
@@ -236,16 +184,13 @@ module module_checkpoint
             remain = n_total-np_local*n_cpu
             if ((remain > 0) .and. (my_rank < remain)) np_local = np_local+1
 
-            ! register dumpparticle type (if not already done)
-            call register_dumpparticle_type()
-
             if (allocated(dp)) deallocate(dp)
             allocate(dp(1:np_local))
 
             ! Redefine file view, now with our custom type
-            call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_DUMPPARTICLE, MPI_TYPE_DUMPPARTICLE, 'native', MPI_INFO_NULL, ierr)
+            call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle, MPI_TYPE_particle, 'native', MPI_INFO_NULL, ierr)
             ! Read particle data
-            call MPI_FILE_READ_ORDERED(fh, dp, np_local, MPI_TYPE_DUMPPARTICLE, status, ierr)
+            call MPI_FILE_READ_ORDERED(fh, dp, np_local, MPI_TYPE_particle, status, ierr)
             ! Close file
             call MPI_FILE_CLOSE(fh,ierr)
 

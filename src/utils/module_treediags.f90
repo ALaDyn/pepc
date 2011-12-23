@@ -137,13 +137,14 @@ module module_treediags
         !> pepc_fields must have been called with no_dealloc=.true. before
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine write_spacecurve_to_vtk(step, tsim, vtk_step)
+        subroutine write_spacecurve_to_vtk(step, tsim, vtk_step, particles)
           use treevars, only : npp, me, num_pe
           use module_vtk
-          use module_pepc_wrappers
+          use module_pepc_types
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
+          type(t_particle), intent(in) :: particles(:)
           type(vtkfile_unstructured_grid) :: vtk
           integer :: i
 
