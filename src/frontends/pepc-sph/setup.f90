@@ -45,6 +45,10 @@ subroutine pepc_setup()
   use module_pepc, only: &
        pepc_get_para_file
 
+  use module_interaction_specific_types, only: &
+       num_neighbour_particles
+
+
   implicit none
   include 'mpif.h'
 
@@ -58,7 +62,7 @@ subroutine pepc_setup()
        mac, theta, q_factor, eps, ispecial, &
        r_sphere, idim, nt, dt, &
        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, &
-       dump_time, cp_time
+       dump_time, cp_time, num_neighbour_particles
 
 
   !  Default input set

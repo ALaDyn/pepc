@@ -19,7 +19,10 @@ module module_interaction_specific_types
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      integer, parameter :: num_neighbour_particles = 12
+      integer, private, parameter :: max_neighbour_particles = 50
+
+      integer :: num_neighbour_particles = 12
+
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
@@ -34,9 +37,9 @@ module module_interaction_specific_types
       type t_particle_results
          real*8 :: maxdist2       !< maxval(dist2)
          integer :: maxidx        !< maxloc(dist2)
-         integer*8:: neighbour_nodes(num_neighbour_particles)
-         real*8 :: dist2(num_neighbour_particles)
-         real*8 :: dist_vector(3,num_neighbour_particles)                           ! distance_vectors from particle to neighbour with respact to periodic shift vector
+         integer*8:: neighbour_nodes(max_neighbour_particles)
+         real*8 :: dist2(max_neighbour_particles)
+         real*8 :: dist_vector(3,max_neighbour_particles)                           ! distance_vectors from particle to neighbour with respact to periodic shift vector
          real*8 :: rho            !< density for sph
          real*8 :: h              !< smoothing-length for sph
          real*8 :: sph_force(1:3)
@@ -103,7 +106,7 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
 
         ! register results data type
-        blocklengths(1:nprops_particle_results)  = [1, 1, num_neighbour_particles, num_neighbour_particles, 3*num_neighbour_particles, 1, 1, 3, 1]
+        blocklengths(1:nprops_particle_results)  = [1, 1, max_neighbour_particles, max_neighbour_particles, 3*max_neighbour_particles, 1, 1, 3, 1]
         types(1:nprops_particle_results)         = [MPI_REAL8, MPI_INTEGER, MPI_INTEGER8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_particle_results,                    address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%maxdist2,           address(1), ierr )

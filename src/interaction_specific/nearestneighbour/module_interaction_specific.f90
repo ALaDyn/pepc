@@ -274,7 +274,7 @@ module module_interaction_specific
                 if (htable(addr)%leaves > num_neighbour_particles) then
                   ! this twig contains enough particles --> we use its diameter as search radius
                   particles(i)%results%maxdist2 = boxdiag2(level_from_key(key))
-                  particles(i)%results%neighbour_nodes(:) = htable(addr)%node
+                  particles(i)%results%neighbour_nodes(1:num_neighbour_particles) = htable(addr)%node
 
                   exit ! from this loop
                 endif
@@ -286,8 +286,8 @@ module module_interaction_specific
               endif
             end do
 
-            particles(i)%results%dist2(:) = particles(i)%results%maxdist2
-            particles(i)%results%dist_vector(:,:) = -13._8 
+            particles(i)%results%dist2(1:num_neighbour_particles) = particles(i)%results%maxdist2
+            particles(i)%results%dist_vector(:,1:num_neighbour_particles) = -13._8 
         end do
 
 
@@ -361,7 +361,7 @@ module module_interaction_specific
             particle%results%neighbour_nodes(particle%results%maxidx) = inode
             particle%results%dist2(particle%results%maxidx)           = dist2
             particle%results%dist_vector(:,particle%results%maxidx) = d
-            tmp                       = maxloc(particle%results%dist2(:)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
+            tmp                       = maxloc(particle%results%dist2(1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
             particle%results%maxidx   = tmp(1)
             particle%results%maxdist2 = particle%results%dist2(particle%results%maxidx)
           else
