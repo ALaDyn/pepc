@@ -2,6 +2,10 @@ module files
   implicit none
   private
 
+  logical, public :: IO_debug = .false.
+  integer, public :: SPH_ASCII02_columnwidth = 12
+
+
   public openfiles
   public closefiles
   public write_particles
@@ -104,7 +108,7 @@ contains
 
     write(filename, '(a,I6.6)' ) 'particles_', i          ! all processes start write subroutine with the correct filename so BCAST before
     call MPI_BCAST(filename, 100, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr )     ! just to make sure all write to same file
-    call write_particles_sph_ascii01(filename,i)
+    call write_particles_sph_ascii02(filename,i)
 
 
   end subroutine write_particles
@@ -204,8 +208,11 @@ contains
 
 
 
-  subroutine write_particles_sph_ascii01(filename, step)
+  subroutine write_particles_sph_ascii02(filename, step)
     ! write particle data as ascii using MPI-IO using own SPH_ASCII02 format
+    ! SPH_ASCII02 format allows the specification of the with of the columns
+    ! This output method is probably very slow due to the conversion.
+    ! It is not intended to be used for real simulations, only for tests with low particle numbers.
     
     use physvars, only: &
          my_rank, &
@@ -221,7 +228,9 @@ contains
  
      character(*), intent(in) :: filename             ! all processes start this subroutine with the correct filename so BCAST before
      integer, intent(in) :: step
- 
+
+     integer :: width                     ! width of the data columns in the file. columns are seperated by a blank
+
      integer :: p, ierr
      real*8 :: writesize, t1, t2, t3, t4
  
@@ -237,120 +246,143 @@ contains
      character :: buffer*400
      integer :: headerlength
      character :: header*30
-     integer :: namelistlength = 5000
-     character :: namelist*5000
+     integer :: extended_header_length = 5000
+     character :: extended_header*5000
      integer, dimension(MPI_STATUS_SIZE) :: status
      integer :: i
      integer :: all_part
- 
-     integer :: int_length, num_int, float_length, float_mantissa, float_exponent, num_float
-     character(100) :: intformat, floatformat, formatstring
 
 
  
-     if(my_rank == 0) write(*,*) "IO: write particles in mpi-io ascii mode"
+     character(100) :: formatstring
+
+     !TODO: should be set for inputfile
+     SPH_ASCII02_columnwidth = 16
+
+     if(my_rank == 0) write(*,*) "IO: write particles in mpi-io ascii 02 mode. Step:", step
      flush(6)
-     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
+     width = SPH_ASCII02_columnwidth
+
+     if(width<12) then
+        write(*,*) 'width of SPH_ASCII02 datacolumns is below 12. Set to a value >=12.'
+        ! width < 12 makes no sense and is therefore not implemented.
+        call MPI_ABORT(MPI_COMM_WORLD, ierr)
+     end if
+
+
  
      call MPI_SCAN(np_local, part_including_mine, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
      part_before_me = part_including_mine - np_local
  
-     write(*,*) my_rank, 'scan done', part_before_me
-     flush(6)
- 
- 
      all_part = 0
      call MPI_REDUCE(np_local, all_part, 1, MPI_INTEGER, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+
+     if(IO_debug) then
+        write(*,*) 'opening file'
+        flush(6)
+     end if
+
  
-     write(*,*) my_rank, 'reduce done', np_local, all_part
-     flush(6)
- 
- 
-     write(*,*) my_rank, 'starting open ', trim(filename)
-     flush(6)
-     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
- 
- 
-     t1=MPI_WTIME()
- 
- 
+
      call MPI_FILE_OPEN(MPI_COMM_WORLD, trim(filename), MPI_MODE_CREATE + MPI_MODE_WRONLY, MPI_INFO_NULL, fh, ierr)
  
-     t2=MPI_WTIME()
- 
-     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
- 
-     write(*,*) my_rank, 'open done'
-     flush(6)
- 
- 
- 
-     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
  
      if( my_rank == 0 ) then
- 
-        write(*,*) 'writing header', all_part, step
-        flush(6)
+
+        if(IO_debug) then
+           write(*,*) 'writing header', all_part, step
+           flush(6)
+        end if
  
         write(header, '(a,I10,a)') '# SPH_ASCII02 ', all_part, new_line('A')
         headerlength = len_trim(header)
  
-        write(*,*) 'writing header 1 ', headerlength, trim(header)
-        flush(6)
+        
+        if(IO_debug) then
+           write(*,*) 'writing header 1 ', headerlength, trim(header)
+           flush(6)
+        end if
  
         offset = 0_8
         call MPI_FILE_WRITE_AT(fh, offset, header, headerlength, MPI_CHARACTER, status, ierr)
  
-        write(*,*) 'writing header 2 ', status
-        flush(6)
+        if(IO_debug) then
+           write(*,*) 'writing header 2 ', status
+           flush(6)
+        end if
+
+        write( formatstring, '(a,I2,a,I2,a)' ) '(a,I6,2a,I2,2a,a', width-2, ',x,14(a', width, ',x),a)'
+        
+        if(IO_debug) then
+           write (*,*) 'format string for header:', formatstring
+        end if
+
+
+        write(extended_header, formatstring ) "# particle properties for timestep ", step, new_line('A'), &
+             "# width of datacolumns ", width, new_line('A'), &
+             "# ", &
+             "pelabel", &
+             "x", "y", "z", &
+             "vx", "vy", "vz", &
+             "m", "h", "rho", "temperature", &
+             "ex", "ey", "ez", "temp_change", &
+             new_line('A')
  
-        write(namelist, '(a,I6,a,a,a)' ) "# particle properties for timestep ", step, new_line('A'), &
-             '# pelabel   x            y            z            vx           vy           vz           m            r_nn         sph_density  temperature p            ex           ey           ez           temp_change', new_line('A')
+        extended_header_length = len_trim(extended_header)
  
-        namelistlength = len_trim(namelist)
- 
-        write(*,*) 'writing header 3'
-        flush(6)
- 
+        if(IO_debug) then
+           write(*,*) 'writing header 3'
+           flush(6)
+        end if
+
         offset = int(headerlength, 8)
-        call MPI_FILE_WRITE_AT(fh, offset, namelist, namelistlength, MPI_CHARACTER, status, ierr)
+        call MPI_FILE_WRITE_AT(fh, offset, extended_header, extended_header_length, MPI_CHARACTER, status, ierr)
  
-        write(*,*) 'writing header done'
-        flush(6)
- 
-        current_offset = int(headerlength, 8) + int(namelistlength, 8)
- 
+        if(IO_debug) then
+           write(*,*) 'writing header done'
+           flush(6)
+        end if
+        
+        current_offset = int(headerlength, 8) + int(extended_header_length, 8)
+
      end if
- 
-     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
  
  
      call MPI_BCAST(current_offset, 1, MPI_INTEGER8, 0, MPI_COMM_WORLD, ierr)
+
+
+     bufferlength = 15*(width+1)
  
-     bufferlength = 10+1+10*(22+1)+6+1+3*(22+1)+22+1
- 
+
+     if( width-7 > 9) then
+        write( formatstring, '(a,I2,a,I2,a,I2,a)' ) '(I', width, ',14(x,E', width, '.', width-7, 'E2),a)'
+     else
+        write( formatstring, '(a,I2,a,I2,a,I1,a)' ) '(I', width, ',14(x,E', width, '.', width-7, 'E2),a)'
+     end if
+     
+     if(IO_debug) then
+        write (*,*) 'format string for ascii conversion:', formatstring
+     end if
 
      do p =1, np_local
-
-     !if the format string is changed, the bufferlength has to be changed, too.
-        write(buffer, '(I10.10,x,10(E22.15E2,x),I6.6,x,3(E22.15E2,x),E22.15E2,a)' ) particles(p)%label, particles(p)%x(1), particles(p)%x(2), particles(p)%x(3), &
+        
+        !if the number of written values is changed, the formatstring and bufferlength has to be changed, too.
+        write(buffer, formatstring ) particles(p)%label, particles(p)%x(1), particles(p)%x(2), particles(p)%x(3), &
              particles(p)%data%v(1), particles(p)%data%v(2), particles(p)%data%v(3), particles(p)%data%q, particles(p)%results%h, particles(p)%results%rho, &
-             particles(p)%data%temperature, p, particles(p)%results%sph_force(1), particles(p)%results%sph_force(2), particles(p)%results%sph_force(3), &
+             particles(p)%data%temperature, particles(p)%results%sph_force(1), particles(p)%results%sph_force(2), particles(p)%results%sph_force(3), &
              particles(p)%results%temperature_change, new_line('A')
         offset = current_offset + ( (part_before_me + p -1 ) * bufferlength )
         call MPI_FILE_WRITE_AT(fh, offset, buffer, bufferlength, MPI_CHARACTER, status, ierr)
      end do
- 
-     t3=MPI_WTIME()
- 
+     
+     
      call MPI_FILE_CLOSE(fh, ierr)
- 
-     t4=MPI_WTIME()
  
      !\bug ab: update writesize
      writesize = real(current_offset + npart_total * bufferlength )/1024.0/1024.0
  
-   end subroutine write_particles_sph_ascii01
+   end subroutine write_particles_sph_ascii02
  
  
 
