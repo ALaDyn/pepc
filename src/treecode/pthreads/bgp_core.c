@@ -1,5 +1,9 @@
 //////////////// BGP-Core Identification //////////////////////
-#ifdef _BGP
+#ifdef __TOS_BGP__
+// see "Using the IBM XL Compilers for Blue Gene", pg. 7:
+// "
+// __TOS_BGP__ Indicates that the target architecture is PowerPC 450
+// "
 
 #include <spi/kernel_interface.h>
 

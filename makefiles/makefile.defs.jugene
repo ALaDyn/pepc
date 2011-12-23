@@ -28,11 +28,11 @@ STANDARDFLAGS           = -qtune=450 -qarch=450 -qthreaded -qsmp=noauto
 
 ifeq ($(DEBUG), 1)
   FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -qxlf2003=polymorphic -qddim
-  CFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG)
+  CFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
   LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG)
 else
   FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS) -qxlf2003=polymorphic
-  CFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS)
+  CFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
   LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS)
 endif
 
@@ -49,8 +49,6 @@ endif
 
 FC       = mpixlf90_r
 CC       = mpixlc_r
-CFLAGS_NOOPT = -D_BGP $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
-
 LD       = mpixlf90_r
 
 #TOTALVIEW_LIB = -L/bgsys/local/totalview/toolworks/totalview.8.8.0-1/linux-power/lib/ -ltvheap_bluegene
