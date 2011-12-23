@@ -1,14 +1,18 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!>
-!>
-!>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-module module_sph
+!> A module to apply the sph-method to pepc particles
+!> 
 
+!> \author Andreas Breslau
+!> \date 2011.12
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+module module_sph
+  
   use module_interaction_specific_types, only: &
        num_neighbour_particles
-
+  
   implicit none
+  private
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -23,14 +27,16 @@ module module_sph
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
   integer :: idim = 3
-
+  
   real*8 :: thermal_constant             
   real*8 :: kappa                        
   real*8 :: art_vis_alpha                
   real*8 :: art_vis_beta                 
-  logical :: use_artificial_viscosity
+  logical :: use_artificial_viscosity = .true.
+  
+  real*8 :: pi = acos(-1.0)
 
-  real*8, parameter :: pi = 3.1415926535897932384626433832795028842   ! 64-bit
+  logical :: sph_debug = .false.
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -43,9 +49,21 @@ module module_sph
 !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  public sph
+  public sph_kernel_tests
+!  public sph_initialize
+!  public sph_kernel
+!  public sph_density
+!  public sph_grad_kernel
+!  public sph_sum_force
+!  public update_particle_props
+
+
+
 contains
-
-
+  
+  
 
   subroutine sph_initialize(idim_tmp, thermal_constant_tmp, kappa_tmp, art_vis_alpha_tmp, art_vis_beta_tmp)
     
@@ -75,9 +93,15 @@ contains
 
 
 
+  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> \brief output the values of the sph kernel and grad_kernel for 100 steps from -2h to 2h into a file
+  !> 
 
+  !> \author Andreas Breslau
+  !> \date 2011.12
 
-
+  !   param[in,out]  Name      Description
+  !> \param[in]      idim_     the dimension, changes the normalisation factor in the kernel
   subroutine sph_kernel_tests(idim_)
     
     implicit none
@@ -96,6 +120,8 @@ contains
     steps = 100
     h = 1.
 
+    open(77, FILE = 'sph_kernel_test.dat', STATUS = 'NEW')
+
     do i = 0, steps
        
        r = -2. + 4./steps*i
@@ -103,11 +129,11 @@ contains
        call sph_grad_kernel(abs(r), h, grad_kernel)
        
        grad_kernel = grad_kernel * r
-
+       
        write(77, *) i, r, kernel, grad_kernel
-
+       
     end do
-
+    
     close(77)
 
   end subroutine sph_kernel_tests
@@ -139,7 +165,6 @@ contains
     implicit none
     include 'mpif.h'
     
-    ! \bug ab: using idim for dimensions, be carefull with idim .ne. 3 because of pepc
     real*8, intent(in) :: r                                 !< scalar distance between two particles, should allways be >= 0
     real*8, intent(in) :: h                                 !< sph smoothing length h
     real*8, intent(out) :: kernel                           !< scalar sph kernel, W
@@ -150,9 +175,9 @@ contains
     integer :: ierr
     
     q = r/h
-
+    
     if( idim .eq. 3 ) then 
-      sph_kernel_factor = 1._8/pi/h**3                                     ! see monaghan 1992, S. 554, 555
+       sph_kernel_factor = 1._8/pi/h**3                                     ! see monaghan 1992, S. 554, 555
     else if( idim .eq. 2 ) then
        sph_kernel_factor = 10._8/7._8/pi/h**2
     else if( idim .eq. 1 ) then
@@ -193,8 +218,7 @@ contains
   !> \param[in]      
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine sph_density(np_local, particles, &
-       itime, num_neighbour_boxes, neighbour_boxes)
+  subroutine sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
     use module_pepc_types, only: &
          t_particle
@@ -281,9 +305,9 @@ contains
   !> \date 2011.12.01
 
   !   param[in,out]  Name      Description
-  !> \param[in]      distance   
+  !> \param[in]      r   
   !> \param[in]      h         
-  !> \param[out]     nabla_kernel
+  !> \param[out]     grad_kernel
 
   subroutine sph_grad_kernel(r, h, grad_kernel)
 
@@ -336,7 +360,7 @@ contains
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !
-  ! subroutine to sum the sph acceleration, not the force, becaue the tree_walk returns the field,
+  ! Subroutine to sum the sph acceleration, not the force. The tree_walk returns the field,
   ! which, in case of gravity, equals the acceleration.
   !
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -400,9 +424,10 @@ contains
     
     energy_factor = 1._8 * ( kappa - 1._8 ) /const /2._8 
 
-
-!write(forcefile,'(a,i6.6,a,i6.6,a)') "sph_", itime, "_", me, ".list"
-!open(50, FILE=forcefile)
+    if(sph_debug) then
+       write(forcefile,'(a,i6.6,a,i6.6,a)') "sph_debug_", itime, "_", my_rank, ".list"
+       open(50, FILE=forcefile, STATUS= 'NEW')
+    end if
 
 
     ! thermal energy change:
@@ -420,13 +445,11 @@ contains
 
     
     
-    ! _$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h1, h2, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel_1, grad_kernel_2, &
-    ! _$OMP& rr, vr, dim, dist, dv, thermal_energy_factor, eta, sound_speed, mu, artificial_viscosity, scalar_force, distance)
+    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(local_particle_index, h1, h2, thermal_energy_sum, actual_neighbour, actual_node, grad_kernel_1, grad_kernel_2, &
+    !$OMP& rr, vr, dim, dist, dv, thermal_energy_factor, eta, sound_speed, mu, artificial_viscosity, scalar_force, distance)
     do local_particle_index = 1, np_local
        
        h1 = particles(local_particle_index)%results%h
-       
-!write(50+me, *) "new part:", part_indices( actual_particle ), pelabel( part_indices( actual_particle ) ), tree_x( part_indices( actual_particle) ), h
        
        thermal_energy_sum = 0._8
 
@@ -441,11 +464,7 @@ contains
           h2 = tree_nodes(actual_node)%h
           
           call sph_grad_kernel( distance , h1, grad_kernel_1 )
-!          call sph_grad_kernel( distance , h2, grad_kernel_2 )
-          ! grad_kernel is negative, so the minus in the force turns to a plus
-          
-          
-          !write(50+me, *) '  ', sqrt( dist2_list(actual_neighbour, actual_particle))
+          !          call sph_grad_kernel( distance , h2, grad_kernel_2 )
           
           
           ! PEPCs sum_force returns the electric field components ex, ey, ez. In velocities the accelerations are then computed as
@@ -455,14 +474,11 @@ contains
           ! distance vector
           dist = particles(local_particle_index)%results%dist_vector(:, actual_neighbour)
 
-          if( abs(sqrt(dist(1)**2 + dist(2)**2 + dist(3)**2) - distance ) > 1E-7 ) then
-             write(*,*) '|dist| - distance > 1E-7:', my_rank, local_particle_index, actual_neighbour, distance, dist
+          if( sph_debug) then
+             if( abs(sqrt(dist(1)**2 + dist(2)**2 + dist(3)**2) - distance ) > 1E-7 ) then
+                write(50,*) '|dist| - distance > 1E-7:', my_rank, local_particle_index, actual_neighbour, distance, dist
+             end if
           end if
-
-
-
-
-
 
           ! rr: art_vis, distance squared
           rr =  particles(local_particle_index)%results%dist2(actual_neighbour)
@@ -497,9 +513,6 @@ contains
              artificial_viscosity = 0._8
           end if
           
-
-
-
           
           ! compute scalar part of the force: mass * ( p1/rho1^2 + p2/rho2^2 + art_vis ) * grad_kernel
           scalar_force = tree_nodes(actual_node)%q * &
@@ -508,16 +521,20 @@ contains
                const * particles(local_particle_index)%data%temperature / particles(local_particle_index)%results%rho + &
                artificial_viscosity &
                ) * grad_kernel_1
-! + grad_kernel_2 ) / 2._8
+          ! + grad_kernel_2 ) / 2._8
           
 
+          ! for an explanation for the minus see diploma thesis andreas breslau, eq. 3.10 (note: there is a missing '-' in the equation before: a = - grad(p)/rho
           particles(local_particle_index)%results%sph_force = particles(local_particle_index)%results%sph_force - scalar_force * dist
 
-          write(60+my_rank, *) my_rank, local_particle_index, particles(local_particle_index)%x(1), h1, particles(local_particle_index)%data%temperature, particles(local_particle_index)%results%rho, actual_neighbour, tree_nodes(actual_node)%coc(1), distance, dist(1), grad_kernel_1, tree_nodes(actual_node)%q, tree_nodes(actual_node)%temperature, tree_nodes(actual_node)%h, tree_nodes(actual_node)%rho, scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
-
+          if( sph_debug ) then
+             write(50, *) my_rank, local_particle_index, particles(local_particle_index)%x(1), h1, &
+                  particles(local_particle_index)%data%temperature, particles(local_particle_index)%results%rho, &
+                  actual_neighbour, tree_nodes(actual_node)%coc(1), distance, dist(1), grad_kernel_1, tree_nodes(actual_node)%q, & 
+                  tree_nodes(actual_node)%temperature, tree_nodes(actual_node)%h, tree_nodes(actual_node)%rho, &
+                  scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
+          end if
           
-!write(50+me, *) scalar_force, vr, grad_kernel, xdist, dvx, artificial_viscosity
-
           thermal_energy_sum = thermal_energy_sum + vr * scalar_force
           
        end do ! end of loop over neighbours
@@ -526,13 +543,18 @@ contains
        particles(local_particle_index)%results%temperature_change = energy_factor * thermal_energy_sum
        ! TODO: add art_visc term to temp_change
        
-       !write(50+me, *) temperature_change_tmp( part_indices( actual_particle ) )
+       if(sph_debug) then
+          write(50, *) particles(local_particle_index)%results%temperature_change
+       end if
        
     end do
-    ! _$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
       
-    !close(50)
-    
+    if(sph_debug) then
+       close(50)
+    end if
+
+
   end subroutine sph_sum_force
   
   
@@ -560,7 +582,7 @@ contains
     integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
     integer, intent(in) :: idim    ! dimension
 
-    integer :: ierr
+    integer :: local_particle_index
 
     call sph_initialize(idim, thermal_constant, 1.4_8, 2._8, 1._8)
 
@@ -568,10 +590,6 @@ contains
     
     call update_particle_props(np_local, particles)
     
-    do ierr = 1, np_local
-       particles(ierr)%results%sph_force = 0.
-    end do
-
     call sph_sum_force(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
 
@@ -678,11 +696,9 @@ contains
        end if
     end do
     
-!    if( nleaf_non_local > num_request) write (*,*) 'on rank', my_rank, 'nleaf_non_local:', nleaf_non_local, 'num_request:', num_request
 
 
-    ! write (*,*) my_rank, num_request
-    
+    ! TODO: find a better place for this test
     ! ! test sort with keys
     ! write(*,*) ' starting sort test'
     ! key_arr_cp = non_local_node_keys
@@ -696,23 +712,30 @@ contains
     ! do i= 1, nleaf_non_local-1
     !    if( non_local_node_keys(i) > non_local_node_keys(i+1)) write(*,*) 'Error in sort.'
     ! end do
-  
-    ! write(*,*) 'sort test finished'
-
-
-
-    ! TODO: remove this test or change it to debug
-    do i = 1, num_request
-       if(non_local_node_owner(i) > n_cpu -1 ) write(*,*) 'owner > n_cpu:', i, non_local_node_owner(i), non_local_node_keys(i)
-    end do
     
+    ! write(*,*) 'sort test finished'
+    
+
+
+
+    ! a test for debugging
+    if( sph_debug) then
+       do i = 1, num_request
+          if(non_local_node_owner(i) > n_cpu -1 ) write(*,*) 'owner > n_cpu:', i, non_local_node_owner(i), non_local_node_keys(i)
+       end do
+    end if
+
     
     ! sort keys accorting to owner    
     call sort(non_local_node_owner(1:num_request), int_arr(1:num_request))
 
-    do i = 1, num_request
-       if(non_local_node_owner(i) > n_cpu -1 ) write(*,*) 'after sort, owner > n_cpu:', i, non_local_node_owner(i), non_local_node_keys(i)
-    end do
+
+    ! a test for debugging
+    if( sph_debug) then
+       do i = 1, num_request
+          if(non_local_node_owner(i) > n_cpu -1 ) write(*,*) 'after sort, owner > n_cpu:', i, non_local_node_owner(i), non_local_node_keys(i)
+       end do
+    end if
 
 
     ! sort keys according to owners
@@ -721,6 +744,7 @@ contains
        non_local_node_keys(i) = key_arr_cp(int_arr(i))
     end do
 
+    ! TODO: remove this debugging stuff
     ! sort nodes according to owners
     node_arr_cp(1:num_request) = non_local_node_node(1:num_request)
     do i= 1, num_request
@@ -834,9 +858,10 @@ contains
        actual_address = key2addr( received_updates(i)%key, 'update properties: updating properties of remote nodes' )
        actual_node = htable( actual_address )%node
        
-       if(actual_node .ne. non_local_node_node(i) ) then 
-          write(76, *) my_rank, i, received_updates(i)%key, actual_node, non_local_node_node(i)
-       end if
+       ! TODO: remove this debugging stuff
+       !       if(actual_node .ne. non_local_node_node(i) ) then 
+       !          write(76, *) my_rank, i, received_updates(i)%key, actual_node, non_local_node_node(i)
+       !       end if
 
 
        tree_nodes(actual_node)%rho         = received_updates(i)%rho
