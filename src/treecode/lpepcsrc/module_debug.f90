@@ -28,8 +28,6 @@ module module_debug
       !             db_level = 5      --> debug_level = 128
       !             db_level = 6      --> debug_level = 1 + 2 + 32 + 64 + 8 + 2048 + 4 + 16 + 128 + 256 + 512 = 3071
       !
-      integer, public :: ipefile        = 20 !< local output stream, TODO: open this file on demand only (for all frontends)
-
       integer, parameter, public :: DBG_STATUS      = B'0000000000000001'    ! 1
       integer, parameter, public :: DBG_TREE        = B'0000000000000010'    ! 2
       integer, parameter, public :: DBG_BUILD       = B'0000000000000100'    ! 4

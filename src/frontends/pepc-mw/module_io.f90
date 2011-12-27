@@ -68,7 +68,6 @@ module module_io
 		subroutine openfiles
 
 		  use physvars
-          use module_debug, only : ipefile
 		  implicit none
 
 
@@ -83,8 +82,6 @@ module module_io
 
 		     write(*,*) 'debug level: ',debug_level,' idump',idump
 		  endif
-
-		  ipefile = file_ipefile ! copy file handle to core
 
 		end subroutine openfiles
 
