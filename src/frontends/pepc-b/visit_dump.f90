@@ -14,6 +14,7 @@ subroutine visit_dump(timestamp)
 
   use treevars
   use module_spacefilling
+  use module_utils
   implicit none   
 
   integer, parameter :: npart_visit_max = 250000  ! Max 25k data points for VIS
@@ -52,7 +53,7 @@ subroutine visit_dump(timestamp)
   end do
   cvis(1:1) = achar(icall/10**5 + 48)
 
-  call system("mkdir -p " // cme)
+  call create_directory(cme)
 
   cfile=cme//"/wf_info."//cdump
   open (60,file=cfile)    

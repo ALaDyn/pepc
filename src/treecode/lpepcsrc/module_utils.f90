@@ -5,6 +5,15 @@
 
 module module_utils
 
+  interface
+    subroutine create_directory_c(dirname) bind(c)
+      use, intrinsic :: iso_c_binding, only : c_char
+      implicit none
+      character(kind=c_char), dimension(*) :: dirname
+    end subroutine
+  end interface
+
+
   interface sort
      module procedure sort_i
   end interface
@@ -14,6 +23,15 @@ module module_utils
   end interface
 
 contains
+
+  !> creates the directory with te relative pathname dirname
+  subroutine create_directory(dirname)
+    use, intrinsic :: iso_c_binding, only : c_char, c_null_char
+    implicit none
+    character(*), intent(in) :: dirname
+
+    call create_directory_c(dirname//c_null_char)
+  end subroutine
 
 
   !  ================================

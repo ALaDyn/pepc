@@ -25,9 +25,6 @@ subroutine pepc_setup()
   character(len=255) :: para_file_name
   logical :: para_file_available
 
-  character(30) :: cfile
-
-
   namelist /pepce/ nep, nip, ne, ni, &
        mac, theta, mass_ratio, q_factor, eps, &
        ispecial, system_config, target_geometry, &
@@ -239,13 +236,6 @@ subroutine pepc_setup()
      write(*,*) "Starting PEPC-E with",n_cpu," Processors, simulating",np_local, &
                          " Particles on each Processor in",nt,"timesteps..."
   end if
-
-  !if (db_level > 4) then
-  !   call system("mkdir -p " // "diag")
-  !   write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
-  !   open(20, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
-  !endif
-
 
 end subroutine pepc_setup
 

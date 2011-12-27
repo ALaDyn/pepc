@@ -70,6 +70,7 @@ module module_pepc
       use module_domains
       use module_debug, only : pepc_status, debug_level
       use module_interaction_specific, only : calc_force_init
+      use module_utils, only : create_directory
       implicit none
       include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
@@ -122,12 +123,12 @@ module module_pepc
         end if
       endif
 
-      ! create all necessary directories TODO: use C-mkdir-calls instead of system()
+      ! create all necessary directories
       if (my_rank == 0) then
-        call system("mkdir -p " // "diag")
-        call system("mkdir -p " // "load")
-        call system("mkdir -p " // "stats")
-        call system("mkdir -p " // "timing")
+        call create_directory("diag")
+        call create_directory("load")
+        call create_directory("stats")
+        call create_directory("timing")
       endif
 
       ! copy call parameters to treevars module

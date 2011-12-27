@@ -10,7 +10,8 @@ FILES_TC += module_htable.f90 module_utils.f90 \
 	    module_allocation.f90  module_pepc_types.f90    tree_stats.f90 \
 	    module_branching.f90   module_spacefilling.f90  treevars.f90 \
 	    module_debug.f90       module_timings.f90 \
-	    module_domains.f90     module_tree.f90
+	    module_domains.f90     module_tree.f90 \
+	    pepc_c_utils.c
 
 
 SRC      += $(FILES_TC)

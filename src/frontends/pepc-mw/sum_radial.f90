@@ -16,6 +16,7 @@ subroutine sum_radial(timestamp)
 
   use physvars
   use module_units
+  use module_utils
   implicit none
   include 'mpif.h'
 
@@ -104,7 +105,7 @@ subroutine sum_radial(timestamp)
 
   ! Write out to file
   if (my_rank == 0) then
-     call system("mkdir -p " // "radial_fields")
+     call create_directory("radial_fields")
      write(cfile,'("radial_fields/radial_fields.",i6.6)') timestamp
      open (60,file=trim(cfile))
      write(60,'(7(a12))') '#   r      ','ni   ','rhoi   ','vi_min','vi_max','er',' phi'

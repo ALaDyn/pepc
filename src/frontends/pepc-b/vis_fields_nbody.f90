@@ -12,6 +12,7 @@ subroutine vis_fields_nbody(timestamp)
 
   use physvars
   use treevars
+  use module_utils
   implicit none   
   include 'mpif.h'
 
@@ -330,7 +331,7 @@ subroutine vis_fields_nbody(timestamp)
 
 ! TODO : Put this in dump_fields
      return
-     call system("mkdir -p " // fields)
+     call create_directory("fields")
      cfile = "fields/tslice."//cdump
      open (62,file=cfile)
 

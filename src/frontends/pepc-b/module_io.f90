@@ -73,6 +73,7 @@ module module_io
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	subroutine openfiles
 	  use module_physvars
+	  use module_utils
 	  implicit none
 	  character(30) :: cfile
 
@@ -89,7 +90,7 @@ module module_io
 
 	  !  stdout for PE my_rank
 	  if (debug_level > 0) then
-            call system("mkdir -p " // "diag")
+            call create_directory("diag")
 	    write(cfile,'("diag/frontend_diag_",i6.6,".dat")') my_rank
 	    open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
 	  endif
@@ -640,6 +641,7 @@ subroutine dump(timestamp)
 
   use module_physvars
   use module_particle_props
+  use module_utils
 
   implicit none   
   include 'mpif.h'
@@ -667,7 +669,7 @@ subroutine dump(timestamp)
   end do
   cdump(1:1) = achar(timestamp/10**5 + 48)
 
-  call system("mkdir -p " // "dumps")
+  call create_directory("dumps")
   cfile="dumps/info_p"//csubme//"."//cdump(1:6)
 
   open (60,file=cfile)    

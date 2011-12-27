@@ -14,8 +14,8 @@ module files
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine openfiles
       use physvars
+      use module_utils
 
-      !character(30) :: cfile
 
       if (my_rank == 0) then
          !  master diagnostics output
@@ -25,13 +25,7 @@ module files
      endif
 
      ! for MPI I/O
-     call system("mkdir -p " // "part_data")
-
-     !if (db_level > 0) then
-     !  call system("mkdir -p " // "diag")
-     !  write(cfile,'("diag/diag_",i6.6,".dat")') my_rank
-     !  open(20, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
-     !endif
+     call create_directory("part_data")
 
     end subroutine openfiles
 

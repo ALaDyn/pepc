@@ -160,6 +160,7 @@ module module_vtk
 
 
       subroutine vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
+        use module_utils
         implicit none
         include 'mpif.h'
         class(vtkfile) :: vtk
@@ -180,7 +181,7 @@ module module_vtk
         write(tmp,'(I6.6)') vtk%my_rank
         fn = trim(subfolder)//trim(vtk%filename)//"."//tmp//"."//trim(vtk%filesuffix)
 
-        call system("mkdir -p " // trim(subfolder))
+        call create_directory(trim(subfolder))
         open(vtk%filehandle, file=fn)
 
         if (vtk%my_rank == 0) then

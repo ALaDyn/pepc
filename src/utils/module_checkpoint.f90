@@ -53,12 +53,13 @@ module module_checkpoint
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine write_particles_ascii(my_rank, itime, np_local, dp)
             use module_pepc_types
+            use module_utils
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
             type(t_particle), intent(in), dimension(np_local) :: dp
             character(50) :: filename
 
-            call system("mkdir -p " // trim(directory))
+            call create_directory(trim(directory))
             write(filename,'(a,"particle_",i6.6,"_",i6.6,".dat")') trim(directory), itime, my_rank
             if(my_rank == 0) write(*,*) "write particles in text mode to file ", filename
             open(filehandle, file=trim(filename), STATUS='REPLACE')
@@ -77,12 +78,13 @@ module module_checkpoint
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine write_particles_binary(my_rank, itime, np_local, dp)
             use module_pepc_types
+            use module_utils
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
             type(t_particle), intent(in), dimension(np_local) :: dp
             character(50) :: filename
 
-            call system("mkdir -p " // trim(directory))
+            call create_directory(trim(directory))
             write(filename,'(a,"particle_",i6.6,"_",i6.6,".bin")') trim(directory), itime, my_rank
             if(my_rank == 0) write(*,*) "write particles in binary mode to file ", filename
             open(filehandle, file=trim(filename), STATUS='REPLACE', ACCESS="STREAM")
@@ -101,6 +103,7 @@ module module_checkpoint
           subroutine write_particles_mpiio(comm, my_rank, itime, trun, np_local, n_total, dp)
             use module_pepc_types
             use module_debug
+            use module_utils
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
             integer*8, intent(in) :: n_total
@@ -111,7 +114,7 @@ module module_checkpoint
             integer :: fh, ierr, status(MPI_STATUS_SIZE)
             integer(KIND=MPI_OFFSET_KIND) :: disp
 
-            call system("mkdir -p " // trim(directory))
+            call create_directory(trim(directory))
             write(filename,'(a,"particle_",i6.6,".mpi")') trim(directory), itime
             if(my_rank == 0) write(*,*) "write particles using MPI-IO to file ", filename
 

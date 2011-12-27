@@ -627,6 +627,7 @@ subroutine field_lineout(timestamp)
 
   use module_physvars
   use module_particle_props
+  use module_utils
   implicit none
   include 'mpif.h'
 
@@ -695,7 +696,7 @@ subroutine field_lineout(timestamp)
 ! Write out to file
 
   if (my_rank == 0) then
-     call system("mkdir -p " // "fields")
+     call create_directory("fields")
      cfile = "fields/lineout."//cdump
      open (60,file=cfile)
      write(60,'(3(a12))') '!   x   ','Ex','Phi'
@@ -722,6 +723,7 @@ subroutine sum_radial(timestamp)
 
   use module_physvars
   use module_particle_props
+  use module_utils
   implicit none
   include 'mpif.h'
 
@@ -903,7 +905,7 @@ subroutine sum_radial(timestamp)
 
   if (my_rank == 0) then
      write(*,*) 'number density integrals: ',nelecs, nions
-     call system("mkdir -p " // "fields")
+     call create_directory("fields")
      cfile = "fields/radial."//cdump
      open (60,file=trim(cfile))
      write(60,'(9(a12))') '!   r      ',' r/r0   ','ne    ','ni   ','rhoe   ','rhoi   ','ve   ','vi   ','er'
