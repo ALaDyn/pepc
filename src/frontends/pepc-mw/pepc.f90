@@ -110,7 +110,8 @@ program pepc
      call laser_update()
      call PrintLaserParameters()
 
-     call pepc_grow_and_traverse(np_local, npart_total, particles, itime, .true., treediags, .false.)
+     call pepc_particleresults_clear(particles, np_local)
+     call pepc_grow_and_traverse(np_local, npart_total, particles, itime, treediags, .false.)
      particles(1:np_local)%results%e(1) = particles(1:np_local)%results%e(1) * force_const
      particles(1:np_local)%results%e(2) = particles(1:np_local)%results%e(2) * force_const
      particles(1:np_local)%results%e(3) = particles(1:np_local)%results%e(3) * force_const

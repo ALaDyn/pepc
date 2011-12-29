@@ -186,6 +186,7 @@ module module_tree
       use module_htable, only : CHILDCODE_BIT_CHILDREN_AVAILABLE
       use module_interaction_specific, only : shift_multipoles_up
       use module_debug
+      use module_htable
       implicit none
         type(t_tree_node_transport_package), intent(inout) :: parent
         type(t_tree_node_transport_package), intent(in) :: children(:)
@@ -206,8 +207,16 @@ module module_tree
 
         byte = 0
         do i = 1,nchild
+          ! set bits for available children
           byte = IBSET(byte, childnumber(i))
+          ! parents of nodes with local contributions also contain local contributions
+          if (btest(children(i)%byte, CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS)) byte = ibset(byte, CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS)
+          ! parents of nodes with remote contributions also contain remote contributions
+          if (btest(children(i)%byte, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)) byte = ibset(byte, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)
+          ! parents of branch and fill nodes will also be fill nodes
+          if (btest(children(i)%byte, CHILDCODE_BIT_IS_FILL_NODE) .or. btest(children(i)%byte, CHILDCODE_BIT_IS_BRANCH_NODE)) byte = ibset(byte, CHILDCODE_BIT_IS_FILL_NODE)
         end do
+
 
         ! Set children_HERE flag parent since we just built it from its children
         byte =  IBSET( byte, CHILDCODE_BIT_CHILDREN_AVAILABLE )
@@ -261,6 +270,10 @@ module module_tree
         allocate(pack_mult(nbranch))
         do i=1,nbranch
             hbranch      => htable( key2addr( local_branch_keys(i),'EXCHANGE: info' ) )
+
+            ! additionally, we mark all local branches as branches since this is only done for remote branches during unpack (is used for fill node identification)
+            hbranch%childcode = ibset(hbranch%childcode, CHILDCODE_BIT_IS_BRANCH_NODE)
+
             pack_mult(i) =  t_tree_node_transport_package( local_branch_keys(i), hbranch%childcode, hbranch%leaves, me, tree_nodes(hbranch%node) )
         end do
 
@@ -300,6 +313,11 @@ module module_tree
             if (get_mult(i)%owner /= me) then
               ! delete all custom flags from incoming nodes (e.g. CHILDCODE_BIT_CHILDREN_AVAILABLE)
               get_mult(i)%byte = IAND(get_mult(i)%byte, CHILDCODE_CHILDBYTE)
+              ! after clearing all bits we have to set the flag for branches again to propagate this property upwards during global buildup
+              get_mult(i)%byte = ibset(get_mult(i)%byte, CHILDCODE_BIT_IS_BRANCH_NODE)
+              ! additionally, we mark all remote branches as remote nodes (this information is propagated upwards later)
+              get_mult(i)%byte = ibset(get_mult(i)%byte, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)
+
               call tree_insert_node(get_mult(i))
             endif
             ! store branch key for later (global tree buildup)
@@ -493,6 +511,7 @@ module module_tree
            if (make_hashentry( t_hash(lvlkey, particles_left(i)%idx, -1, 1, 0, me), hashaddr)) then
              ! this key does not exist until now --> has been inserted as leaf
              leaf_keys(particles_left(i)%idx) = lvlkey
+             htable(hashaddr)%childcode = ibset(htable(hashaddr)%childcode, CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS) ! we mark this node as having local contributions since it is a leaf, i.e. a node for some local particle
              particles_left(i) = t_keyidx(0, 0_8)
              nremoved = nremoved + 1
            else

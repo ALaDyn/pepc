@@ -71,7 +71,8 @@ program pepce
        pepc_finalize, &
        pepc_grow_tree, &
        pepc_traverse_tree, &
-       pepc_prepare
+       pepc_prepare, &
+       pepc_particleresults_clear
 
 
   use files, only: &
@@ -163,6 +164,7 @@ program pepce
      ! write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
      ! write(*,*) 'neigbour_boxes:', neighbour_boxes
 
+     call pepc_particleresults_clear(particles, np_local)
 
      call pepc_traverse_tree(np_local, particles)
 

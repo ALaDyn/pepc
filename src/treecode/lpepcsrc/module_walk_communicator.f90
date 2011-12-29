@@ -357,6 +357,9 @@ module module_walk_communicator
                          me, kparent, ipe_sender, ownerchild, child_data(ic)%key)
         end if
 
+        ! tree nodes coming from remote PEs are flagged for easier identification
+        child_data(ic)%byte = ibset(child_data(ic)%byte, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)
+
         call tree_insert_node(child_data(ic))
         ! count number of fetched nodes
         sum_fetches = sum_fetches+1

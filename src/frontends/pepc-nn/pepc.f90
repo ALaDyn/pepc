@@ -119,7 +119,8 @@ program pepce
      
      call timer_start(t_tot)
      
-     call pepc_grow_and_traverse(np_local, npart_total, particles, itime, .true., .true., .true.)
+     call pepc_particleresults_clear(particles, np_local)
+     call pepc_grow_and_traverse(np_local, npart_total, particles, itime, .true., .true.)
 
 write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nleaf_me
 

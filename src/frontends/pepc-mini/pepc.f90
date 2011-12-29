@@ -71,6 +71,7 @@ program pepcmini
      
      call timer_start(t_tot)
 
+     call pepc_particleresults_clear(particles, np_local)
      call pepc_grow_and_traverse(np_local, npart_total, particles, itime)
 
      ! Integrator

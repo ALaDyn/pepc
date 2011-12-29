@@ -24,6 +24,8 @@ module module_pepc
 
     public pepc_prepare
 
+    public pepc_particleresults_clear     ! usually once per timestep
+
     public pepc_grow_tree                 !< once per timestep
     public pepc_traverse_tree             !< several times per timestep
     public pepc_statistics                !< once per timestep
@@ -260,7 +262,7 @@ module module_pepc
     !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_grow_and_traverse(np_local, npart_total, particles, itime, clearresults_before_traversal, no_dealloc, no_restore)
+    subroutine pepc_grow_and_traverse(np_local, npart_total, particles, itime, no_dealloc, no_restore)
       use module_pepc_types
       use module_libpepc_main
       use module_debug
@@ -269,7 +271,6 @@ module module_pepc
       integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
       integer, intent(in) :: itime !> current timestep (used as filename suffix for statistics output)
-      logical, intent(in), optional :: clearresults_before_traversal !< if set to .false., the function does not call particleresults_clear(particles) before traversal
       logical, optional, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
       logical, optional, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
 
@@ -282,7 +283,7 @@ module module_pepc
       if (present(no_restore)) restore = .not. no_restore
 
       call pepc_grow_tree(np_local, npart_total, particles)
-      call pepc_traverse_tree(np_local, particles, clearresults_before_traversal)
+      call pepc_traverse_tree(np_local, particles)
       if (dbg(DBG_STATS)) call pepc_statistics(itime)
       if (restore)        call pepc_restore_particles(np_local, particles)
       if (dealloc)        call pepc_timber_tree()
@@ -323,15 +324,14 @@ module module_pepc
     !> from to pepc_grow_tree()
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_traverse_tree(nparticles, particles, clearresults_before_traversal)
+    subroutine pepc_traverse_tree(nparticles, particles)
       use module_pepc_types
       use module_libpepc_main
       implicit none
       integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
-      logical, intent(in), optional :: clearresults_before_traversal !< if set to .false., the function does not call particleresults_clear(particles) before traversal
 
-      call libpepc_traverse_tree(nparticles, particles, clearresults_before_traversal)
+      call libpepc_traverse_tree(nparticles, particles)
 
     end subroutine
 
@@ -403,6 +403,22 @@ module module_pepc
       call timer_stop(t_all)
 
       call pepc_status('TREE HAS FALLEN')
+
+    end subroutine
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> clears result in t_particle datatype
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine pepc_particleresults_clear(particles, nparticles)
+      use module_pepc_types
+      use module_interaction_specific
+      implicit none
+      type(t_particle), intent(inout) :: particles(nparticles)
+      integer, intent(in) :: nparticles
+
+      call particleresults_clear(particles, nparticles)
 
     end subroutine
 

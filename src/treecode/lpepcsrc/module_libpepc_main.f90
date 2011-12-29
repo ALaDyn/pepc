@@ -179,7 +179,7 @@ module module_libpepc_main
     !> from to pepc_grow_tree()
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine libpepc_traverse_tree(nparticles, particles, clearresults_before_traversal)
+    subroutine libpepc_traverse_tree(nparticles, particles)
         use module_pepc_types
         use treevars
         use module_walk
@@ -191,17 +191,12 @@ module module_libpepc_main
         implicit none
         integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
         type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
-        logical, intent(in), optional :: clearresults_before_traversal
 
-        logical :: clearresults
         integer :: ibox
         real*8 :: ttrav, ttrav_loc, tcomm(3) ! timing integrals
 
         call pepc_status('TRAVERSE TREE')
 
-        clearresults = .true.
-
-        if (present(clearresults_before_traversal)) clearresults = clearresults_before_traversal
 
         call timer_reset(t_walk)
         call timer_reset(t_walk_local)
@@ -214,9 +209,6 @@ module module_libpepc_main
         sum_ships            = 0 ! total # multipole shipments/iteration
 
         call timer_start(t_fields_passes)
-
-        if (clearresults) call particleresults_clear(particles, nparticles)
-
 
         do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
 

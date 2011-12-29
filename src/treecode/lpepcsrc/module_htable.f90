@@ -37,10 +37,14 @@ module module_htable
     integer*8, public, parameter :: KEY_EMPTY   =  0
 
     ! bits in childcode to be set when children are requested, the request has been sent, and they have arrived
-    integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED     =  8 !< this bit is used inside the childcode to denote that a request for children information is already in the request queue
-    integer, public, parameter :: CHILDCODE_BIT_CHILDREN_AVAILABLE =  9 !< this bit is used inside the childcode to denote that children information for the node is available in the local hashtable
-    integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT       = 10 !< this bit is used inside the childcode to denote that children information has already been requested from the owner
-    integer, public, parameter :: CHILDCODE_CHILDBYTE            = b'11111111' !< bits that contain the children information for this node
+    integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED           =  8 !< this bit is used inside the childcode to denote that a request for children information is already in the request queue
+    integer, public, parameter :: CHILDCODE_BIT_CHILDREN_AVAILABLE       =  9 !< this bit is used inside the childcode to denote that children information for the node is available in the local hashtable
+    integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT             = 10 !< this bit is used inside the childcode to denote that children information has already been requested from the owner
+    integer, public, parameter :: CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS  = 11 !< this bit is set for all nodes that contain some local nodes beneath them
+    integer, public, parameter :: CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS = 12 !< this bit is set for all nodes that contain some remote nodes beneath them
+    integer, public, parameter :: CHILDCODE_BIT_IS_BRANCH_NODE           = 13 !< this bit is set for all branch nodes (set in tree_exchange)
+    integer, public, parameter :: CHILDCODE_BIT_IS_FILL_NODE             = 14 !< this bit is set for all nodes that are above (towards root) branch nodes
+    integer, public, parameter :: CHILDCODE_CHILDBYTE                    = b'11111111' !< bits that contain the children information for this node
 
     integer, public :: maxaddress                    !< max address allowed in #table
 
@@ -542,8 +546,18 @@ module module_htable
 
         ! output hash table
 
-        write (debug_ipefile,'(/a/,5(x,a10),3(x,a22),x,a14,x,a10,4x,a35,/,189("-"),/)') &
-                     'Hash table ',    &
+        write(debug_ipefile,'(/a)') 'Hash table'
+
+        write(debug_ipefile,'(164x,a35)') &
+                    "IS_FILL_NODE              ", &
+                    "|IS_BRANCH_NODE           ", &
+                    "||HAS_REMOTE_CONTRIBUTIONS", &
+                    "|||HAS_LOCAL_CONTRIBUTIONS", &
+                    "||||REQUEST_SENT          ", &
+                    "|||||CHILDREN_AVAILABLE   ", &
+                    "||||||REQUEST_POSTED      "
+
+        write(debug_ipefile,'(5(x,a10),3(x,a22),x,a14,x,a10,4x,a5,a30,/,173("-"),7("V")," 76543210")') &
                      'entry_10', &
                      'entry_8', &
                      'owner', &
@@ -554,7 +568,11 @@ module module_htable
                      'parent_8', &
                      'collision link', &
                      'leaves', &
-                     'flags.childcod'
+                     'flags', &
+                     '||||||| childcod'
+
+        ! write(debug_ipefile,'(154x,a)') " 3      .   2    .     1  .        "
+        ! write(debug_ipefile,'(154x,a)') "10987654.32109876.54321098.76543210"
 
         do i=0,maxaddress
             if (htable_entry_is_valid(i)) then

@@ -77,6 +77,7 @@ module module_pepcs
         call pepc_prepare()
         ! =============================================================
 
+       call pepc_particleresults_clear(particles, local_particles)
        call pepc_grow_and_traverse(local_particles, total_particles, particles, itime)
 
         ! read fields and potentials from internal data structures

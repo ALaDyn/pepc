@@ -99,7 +99,8 @@ module module_pepc_wrappers
                                        EMPTY_PARTICLE_RESULTS )
         end do
 
-        call pepc_grow_and_traverse(np_local, npart_total, particles, itime, .true., no_dealloc, no_restore)
+        call pepc_particleresults_clear(particles, np_local)
+        call pepc_grow_and_traverse(np_local, npart_total, particles, itime, no_dealloc, no_restore)
 
         ! read data from particle_coordinates, particle_results, particle_properties
         do i=1,np_local
@@ -143,7 +144,9 @@ module module_pepc_wrappers
                                        EMPTY_PARTICLE_RESULTS )
       end do
 
-      call pepc_traverse_tree(ngp, grid_particles, .true.)
+      call pepc_particleresults_clear(grid_particles, ngp)
+
+      call pepc_traverse_tree(ngp, grid_particles)
 
       do i=1,ngp
         p_ex(i)  = force_const*grid_particles(i)%results%e(1)

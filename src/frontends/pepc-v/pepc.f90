@@ -54,7 +54,8 @@ program pepcv
 
         call timer_start(t_tot)
 
-        call pepc_grow_and_traverse(np, n, vortex_particles, itime, .true., .false., .true.)
+        call pepc_particleresults_clear(vortex_particles, np)
+        call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .true.)
 
         do i=1,np
           vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
