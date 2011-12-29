@@ -5,7 +5,7 @@
 ROOTDIR      = $(shell pwd)
 SVNREVISION  = $(shell svnversion)
 
-include makefiles/makefile.paths
+include tools/build/makefile.paths
 include makefile.defs
 
 ALLFRONTENDS = $(shell ls $(FRONTENDDIR))
