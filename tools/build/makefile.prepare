@@ -5,7 +5,7 @@
 BACKEND = coulomb
 WALK    = pthreads
 
-include makefiles/makefile.paths
+include tools/build/makefile.paths
 include makefile.defs
 
 include $(FRONTENDDIR)/$(FRONTEND)/makefile.include
@@ -26,7 +26,7 @@ prepare: $(SRC)
 	@echo "WORKDIR=$(WORKDIR)"         >> $(MAKEENVS)
 	@echo "LDLIBS=$(LDLIBS)"           >> $(MAKEENVS)
 	@echo "SRC=$(SRC)"                 >> $(MAKEENVS)
-	@cp makefile.defs makefiles/makefile.paths makefiles/makefile.build $(WORKDIR)
+	@cp makefile.defs $(MAKEDIR)/makefile.paths $(MAKEDIR)/makefile.build $(WORKDIR)
 	@cp $(LIBDIR)/libsl.a $(WORKDIR)
 	@echo ""
 	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.build
