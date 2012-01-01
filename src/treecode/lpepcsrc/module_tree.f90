@@ -497,7 +497,8 @@ module module_tree
         nremoved    = 0
 
         if (level>nlev) then
-           DEBUG_ERROR(*,"Problem with tree: No more levels. Remaining particles: ", particle_list(1:nparticles))
+           DEBUG_WARNING_ALL('("Problem with tree: No more levels. Remaining particles 1..",I0,"  [i, local index, key, x,y,z, label]:")', nremaining)
+           DEBUG_ERROR('(I6,x,I6,x,2(O32.32,x),3(g20.12,x),I0)' , (i,particles_left(i)%idx,  particles_left(i)%key, particle_list(particles_left(i)%idx)%key, particle_list(particles_left(i)%idx)%x(1:3), particle_list(particles_left(i)%idx)%label, i=1,nremaining ) )
          endif
 
          ibit = nlev - level ! bit shift factor (0=highest leaf node, nlev-1 = root)
