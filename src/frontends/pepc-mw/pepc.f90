@@ -33,10 +33,11 @@ program pepc
   use module_directsum
   use module_energy
   use module_particle_setup
+  use module_debug
   implicit none
   include 'mpif.h'
 
-  integer :: vtk_step, ierr
+  integer :: vtk_step, ierr, num_force_particles
 
   integer :: ifile
   type(acf) :: momentum_acf
@@ -111,7 +112,15 @@ program pepc
      call PrintLaserParameters()
 
      call pepc_particleresults_clear(particles, np_local)
-     call pepc_grow_and_traverse(np_local, npart_total, particles, itime, treediags, .false.)
+
+     call pepc_grow_tree(np_local, npart_total, particles)
+     ! if necessary, reorder particles here: particles(1:nep) - electrons, particles(nep+1:nep*nip)) - ions
+     ! e.g. if we only traverse the tree for electrons but not for ions
+     call reorder_particles(np_local, particles, num_force_particles)
+
+     call pepc_traverse_tree(num_force_particles, particles)
+     if (dbg(DBG_STATS)) call pepc_statistics(itime)
+
      particles(1:np_local)%results%e(1) = particles(1:np_local)%results%e(1) * force_const
      particles(1:np_local)%results%e(2) = particles(1:np_local)%results%e(2) * force_const
      particles(1:np_local)%results%e(3) = particles(1:np_local)%results%e(3) * force_const
@@ -133,6 +142,9 @@ program pepc
        call write_branches_to_vtk(itime,   trun*unit_t0_in_fs, vtk_step)
        call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, vtk_step, particles)
      endif
+
+     call pepc_restore_particles(np_local, particles)
+     call pepc_timber_tree()
 
      ! add any external forces (laser field etc)
      call force_laser(1, np_local)

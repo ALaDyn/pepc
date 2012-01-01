@@ -39,6 +39,7 @@ module module_pusher
       public integrator
       public push_em
       public push_nonrel
+      public reorder_particles
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -48,6 +49,48 @@ module module_pusher
 
 
       contains
+
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!>
+	!> reorders particles for more efficient force computation (e.g. if only forces
+        !> for some particles are needed)
+	!>
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine reorder_particles(np_local, particles, num_force_particles)
+          use module_pepc_types
+          implicit none
+          integer, intent(in) :: np_local
+          type(t_particle), intent(inout) :: particles(1:np_local)
+          integer, intent(out) :: num_force_particles
+
+          type(t_particle) :: temp(1:np_local)
+          integer :: num_electrons, num_ions, i
+
+          select case (integrator_scheme)
+            case(INTEGRATOR_SCHEME_NVE_IONS_FROZEN)
+                temp(1:np_local) = particles(1:np_local)
+                num_electrons = 0
+                num_ions      = 0
+
+                do i=1,np_local
+                   if (temp(i)%data%q < 0.) then
+                     num_electrons = num_electrons + 1
+                     particles(num_electrons) = temp(i)
+                   else
+                     num_ions = num_ions + 1
+                     particles(np_local-num_ions+1) = temp(i)
+                   end if
+                end do
+
+                num_force_particles = num_electrons
+
+            case default
+              ! nothing to do
+              num_force_particles = np_local
+          end select
+
+        end subroutine
+
 
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		!>
