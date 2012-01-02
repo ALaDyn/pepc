@@ -18,8 +18,6 @@ void create_directory_c(char dirname[])
   char cwd[PATH_MAX];
   char fullpath[PATH_MAX];
 
-  printf("%s\n", dirname);
-
   getcwd(cwd, PATH_MAX);
   sprintf(fullpath, "%s/%s", cwd, dirname);
 
