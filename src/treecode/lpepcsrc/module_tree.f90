@@ -496,7 +496,7 @@ module module_tree
         nreinserted = 0
         nremoved    = 0
 
-        if (.true. .or. (level>nlev)) then
+        if (level>nlev) then
            DEBUG_WARNING_ALL('("Problem with tree: No more levels. Remaining particles 1..",I0,"  [i, local index, key, label, x, y, z]:")', nremaining)
            DEBUG_ERROR_NO_HEADER('(2(I6,x),O22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)' , (i, particles_left(i)%idx, particle_list(particles_left(i)%idx)%key, particle_list(particles_left(i)%idx)%label, particle_list(particles_left(i)%idx)%x(1:3), i=1,nremaining ) )
          endif
