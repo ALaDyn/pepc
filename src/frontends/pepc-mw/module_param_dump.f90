@@ -197,6 +197,7 @@ module module_param_dump
       call WriteParameter(ifile, "Temp (Ry)", Te,    Ti)
       call WriteParameter(ifile, "therm. velocity", vte, vti)
       call WriteParameter(ifile, "plasma frequency", wpl_e, wpl_i)
+      call WriteParameter(ifile, "plasma frequency (fs^-1)", wpl_e/unit_t0_in_fs, wpl_i/unit_t0_in_fs)
       call WriteParameter(ifile, "Debye length", lambdaD_e, lambdaD_i)
       call WriteParameter(ifile, "ion sphere radius", 0._8, a_i)
       call WriteTopline(  ifile, "", "")
