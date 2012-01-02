@@ -198,6 +198,7 @@ contains
     call vtk%write_data_array("density",          np, particles(1:np)%results%rho)
     call vtk%write_data_array("pid",              np, [(my_rank,i=1,np)])
     call vtk%write_data_array("sph-force",        np, particles(1:np)%results%sph_force(1), particles(1:np)%results%sph_force(2), particles(1:np)%results%sph_force(3) )
+    call vtk%write_data_array("particle-type",    np, particles(1:np)%data%type)
     call vtk%finishpointdata()
     call vtk%dont_write_cells()
     call vtk%write_final()
@@ -209,8 +210,8 @@ contains
 
 
   subroutine write_particles_sph_ascii02(filename, step)
-    ! write particle data as ascii using MPI-IO using own SPH_ASCII02 format
-    ! SPH_ASCII02 format allows the specification of the with of the columns
+    ! write particle data as ascii using MPI-IO with own SPH_ASCII02 format.
+    ! SPH_ASCII02 format allows the specification of the width of the columns.
     ! This output method is probably very slow due to the conversion.
     ! It is not intended to be used for real simulations, only for tests with low particle numbers.
     
@@ -312,7 +313,7 @@ contains
            flush(6)
         end if
 
-        write( formatstring, '(a,I2,a,I2,a)' ) '(a,I6,2a,I2,2a,a', width-2, ',x,14(a', width, ',x),a)'
+        write( formatstring, '(a,I2,a,I2,a)' ) '(a,I6,2a,I2,2a,a', width-2, ',x,15(a', width, ',x),a)'
         
         if(IO_debug) then
            write (*,*) 'format string for header:', formatstring
@@ -322,10 +323,11 @@ contains
         write(extended_header, formatstring ) "# particle properties for timestep ", step, new_line('A'), &
              "# width of datacolumns ", width, new_line('A'), &
              "# ", &
-             "pelabel", &
+             "pelabel", "type", &
              "x", "y", "z", &
              "vx", "vy", "vz", &
-             "m", "h", "rho", "temperature", &
+             "m", "temperature", &
+             "h", "rho", &
              "ex", "ey", "ez", "temp_change", &
              new_line('A')
  
@@ -356,9 +358,9 @@ contains
  
 
      if( width-7 > 9) then
-        write( formatstring, '(a,I2,a,I2,a,I2,a)' ) '(I', width, ',14(x,E', width, '.', width-7, 'E2),a)'
+        write( formatstring, '(a,I2,a,I2,a,I2,a,I2,a)' ) '(I', width, ',x,I', width, ',14(x,E', width, '.', width-7, 'E2),a)'
      else
-        write( formatstring, '(a,I2,a,I2,a,I1,a)' ) '(I', width, ',14(x,E', width, '.', width-7, 'E2),a)'
+        write( formatstring, '(a,I2,a,I2,a,I2,a,I1,a)' ) '(I', width, ',x,I', width, ',14(x,E', width, '.', width-7, 'E2),a)'
      end if
      
      if(IO_debug) then
@@ -368,9 +370,10 @@ contains
      do p =1, np_local
         
         !if the number of written values is changed, the formatstring and bufferlength has to be changed, too.
-        write(buffer, formatstring ) particles(p)%label, particles(p)%x(1), particles(p)%x(2), particles(p)%x(3), &
-             particles(p)%data%v(1), particles(p)%data%v(2), particles(p)%data%v(3), particles(p)%data%q, particles(p)%results%h, particles(p)%results%rho, &
-             particles(p)%data%temperature, particles(p)%results%sph_force(1), particles(p)%results%sph_force(2), particles(p)%results%sph_force(3), &
+        write(buffer, formatstring ) particles(p)%label, particles(p)%data%type, particles(p)%x(1), particles(p)%x(2), particles(p)%x(3), &
+             particles(p)%data%v(1), particles(p)%data%v(2), particles(p)%data%v(3), particles(p)%data%q, particles(p)%data%temperature, &
+             particles(p)%results%h, particles(p)%results%rho, &
+             particles(p)%results%sph_force(1), particles(p)%results%sph_force(2), particles(p)%results%sph_force(3), &
              particles(p)%results%temperature_change, new_line('A')
         offset = current_offset + ( (part_before_me + p -1 ) * bufferlength )
         call MPI_FILE_WRITE_AT(fh, offset, buffer, bufferlength, MPI_CHARACTER, status, ierr)
