@@ -137,19 +137,9 @@ contains
        call particle_setup_1d_wave(fences)
 
     case(13)
-!       ni = nint((ne/Zion)**(1./3.))**3
-!       ne = ni * Zion
-!       call update_particle_numbers(ne + ni)
-
-       if (my_rank == 0) then
-          write(*,*) "Using special start... case 13 (homogeneous electron distribution, ionic lattice)"
-          write(*,*) "Number of Ions per edge must be integer, setting ne =", ne, ", ni=", ni
-       endif
-
-!       call particle_setup_ionlattice()
-!       call rescale_coordinates_cuboid()
-!       call cold_start(ux,uy,uz,nppm,1,np_local)
-!       call init_fields_zero()
+       if (my_rank == 0) write(*,*) "Using special start... case 13 (1. 1D shock test)"
+       call init_generic(fences)
+       call particle_setup_1d_shock_1(fences)
 
     end select
 
@@ -300,15 +290,11 @@ contains
     dt = 0.0001
     !* sqrt(thermal_constant * medium_temperature /10.)
 
+    all_part = fences(n_cpu-1)
+    part_before_me = fences(my_rank-1)
+    part_including_mine = fences(my_rank)
 
  
-    call MPI_ALLGATHER( np_local, 1, MPI_INTEGER, all_np_local, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
-    call MPI_REDUCE(np_local, all_part, 1, MPI_INTEGER, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(all_part, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-    call MPI_SCAN(np_local, part_including_mine, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
- 
-    part_before_me = part_including_mine - np_local
-    
     setup_rho0 = 1000._8
     setup_rho1 = 1._8
     
@@ -370,6 +356,137 @@ contains
  
   end subroutine particle_setup_1d_wave
 
+
+  
+  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! >
+  ! >
+  ! >
+  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine particle_setup_1d_shock_1(fences)
+    
+    use physvars, only: &
+         dt, &
+         n_cpu, &
+         thermal_constant
+    
+    use module_mirror_boxes, only: &
+         periodicity, &
+         t_lattice_1
+
+    use module_interaction_specific_types, only: &
+         num_neighbour_particles, &
+         PARTICLE_TYPE_FIXED
+    
+    
+    implicit none
+    include 'mpif.h'
+    
+    integer, intent(in) :: fences(-1:n_cpu-1)
+    integer :: mpi_cnt, p
+    real*8 :: xt, yt, zt
+
+    real*8 :: medium_temperature
+    integer :: part_counter
+    integer :: part_before_me
+    integer :: part_including_mine
+    real*8 :: offset
+    integer :: n_nn
+    real*8 :: left_y
+    real*8 :: right_y
+    real*8 :: area1, area2
+    real*8 :: sound_speed
+    real*8 :: setup_rho0, setup_rho1
+    real*8 :: dx
+    integer :: i, ierr
+    integer :: actual_particle
+    real*8 :: actual_x
+    integer, dimension(n_cpu) :: all_np_local
+    integer :: all_part
+    real*8 :: omega_t_for_half_velocity
+    real*8 :: const_pi = acos(-1.0)
+
+    
+    write(*,*) "Creating setup for the first 1D shock test."
+    write(*,*) "Using some particles as boundary particles."
+
+    ! set number of dimension. important for factor for sph kernel
+    idim = 1
+    
+    ! set periodicity
+    periodicity = [.false., .false., .false.]
+    
+    all_part = fences(n_cpu-1)
+    part_before_me = fences(my_rank-1)
+    part_including_mine = fences(my_rank)
+    
+    
+    setup_rho0 = 1._8
+    setup_rho1 = 0.125_8
+    
+    dx = 0.00000001
+    
+    ! fill from 0 to 2 to avoid outflow out of box
+    area1 = setup_rho0 * 1. + setup_rho1 * 1.
+    
+    
+    offset = area1/(all_part*2)
+    
+    actual_x = 0._8
+    area2 = 0._8
+    
+    
+    do part_counter = 1, all_part
+
+       do while(area2 < area1/real(all_part,8)*real(part_counter-1,8)+offset )
+          if(actual_x <= 1.) then
+             left_y = setup_rho0
+          else
+             left_y = setup_rho1
+          end if
+          
+          if( (actual_x + dx ) <= 1.) then
+             right_y = setup_rho0
+          else
+             right_y = setup_rho1
+          end if
+          
+          area2 = area2 +(left_y + right_y )/2._8*dx
+          actual_x = actual_x + dx
+       end do
+       
+       
+       if( (part_counter > part_before_me) .and. (part_counter <= part_including_mine) ) then
+          
+          actual_particle = part_counter - part_before_me
+          particles(actual_particle)%x = [ actual_x, 0._8, 0._8 ]
+          
+          particles(actual_particle)%data%q = offset*2
+          
+          
+          particles(actual_particle)%data%v = [ 0._8, 0._8, 0._8 ]
+          particles(actual_particle)%data%v_and_half = [ 0._8, 0._8, 0._8 ]
+          
+          if(actual_x <= 1.) then
+             particles(actual_particle)%data%temperature = 1.0 /(thermal_constant * 1.0)
+          else
+             particles(actual_particle)%data%temperature = 0.1 /(thermal_constant * 0.125)
+          end if
+          
+          if(part_counter < 2* num_neighbour_particles .or. (all_part - part_counter) < 2 * num_neighbour_particles) then
+             particles(actual_particle)%data%type = ibset(particles(actual_particle)%data%type, PARTICLE_TYPE_FIXED)
+          end if
+          
+       end if
+       
+    end do
+
+     
+    ! timestep length
+    dt = 0.001
+    !* sqrt(thermal_constant * medium_temperature /10.)
+    
+   end subroutine particle_setup_1d_shock_1
 
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -761,6 +878,9 @@ contains
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine init_generic(fences)
 
+    use module_interaction_specific_types, only: &
+         PARTICLE_TYPE_DEFAULT
+
     implicit none
     integer, intent(in) :: fences(-1:n_cpu-1)
     integer :: p
@@ -773,6 +893,7 @@ contains
        particles(p)%data%v_and_half  = [ 0._8, 0._8, 0._8 ]
        particles(p)%data%v           = [ 0._8, 0._8, 0._8 ]
        particles(p)%data%temperature = 0._8
+       particles(p)%data%type        = PARTICLE_TYPE_DEFAULT   ! moving, gas..., see module_interaction_specific_types
     end do
 
   end subroutine init_generic
