@@ -256,7 +256,7 @@ module module_domains
 
                 ! TODO: need 'ripple' here up to next large gap in keys i+1->npp
 
-                DEBUG_WARNING_ALL('(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)', 'LPEPC | PE ',me,' pass ',keycheck_pass,
+                DEBUG_WARNING('(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)', 'LPEPC | PE ',me,' pass ',keycheck_pass,
                 ' WARNING: identical keys found for index, npp, label1, label2  ',
                 i,npp,particles(i-1)%label,particles(i)%label,particles(i+1)%label,
                 ' -  to: ',particles(i)%key,' next key: ',particles(i+1)%key)
