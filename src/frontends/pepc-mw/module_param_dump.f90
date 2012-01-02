@@ -44,6 +44,7 @@ module module_param_dump
         module procedure WriteParameterRealSingle
         module procedure WriteParameterIntSingle
         module procedure WriteParameterCharSingle
+        module procedure WriteParameterRealCoord
       end interface
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -170,6 +171,16 @@ module module_param_dump
 
     end subroutine WriteParameterCharSingle
 
+    subroutine WriteParameterRealCoord(ifile,name, val)
+      implicit none
+      integer, intent(in) :: ifile
+      real*8, intent(in) :: val(3)
+      character(*), intent(in) :: name
+
+      write(ifile,'("| ", a28," |       [ ", 3(g13.6,x), "]       |")') " "//name//" ", val(1:3)
+      write(ifile,'("| ", a28," |         ", 28x,g13.6,x, "        |")') "|"//name//"|", sqrt(dot_product(val, val))
+
+    end subroutine WriteParameterRealCoord
 
 
 
@@ -297,13 +308,13 @@ module module_param_dump
     !> Output energies in pretty format
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine PrintEnergies(ifile, epot, ekini, ekine, etot, tempe, tempi)
+    subroutine PrintEnergies(ifile, epot, ekini, ekine, etot, tempe, tempi, totalmomentum)
       use physvars
       use module_units
       use module_fmm_framework
       implicit none
       integer, intent(in) :: ifile
-      real*8, intent(in) :: epot, ekini, ekine, etot, tempe, tempi
+      real*8, intent(in) :: epot, ekini, ekine, etot, tempe, tempi, totalmomentum(3)
 
       call WriteTopline(  ifile, "ENERGIES", "")
       call WriteHeader(   ifile, "Ryd", "eV")
@@ -317,6 +328,8 @@ module module_param_dump
       call WriteHeader(   ifile, "with drift", "without drift")
       call WriteParameter(ifile, "Te (eV)", unit_Ryd_in_eV*ekine/unit_kB*2./3., unit_Ryd_in_eV*tempe)
       call WriteParameter(ifile, "Ti (eV)", unit_Ryd_in_eV*ekini/unit_kB*2./3., unit_Ryd_in_eV*tempi)
+      call WriteTopline(  ifile, "", "")
+      call WriteParameter(ifile, "Total Momentum", totalmomentum(1:3))
       call WriteTopline(  ifile, "", "")
 
    end subroutine PrintEnergies

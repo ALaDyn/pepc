@@ -47,13 +47,13 @@ contains
 
         implicit none
 
-        real*8 :: epot, ekine, ekini, etot, tempe, tempi
+        real*8 :: epot, ekine, ekini, etot, tempe, tempi, totalmomentum(3)
         integer :: ifile
         logical, save :: firstcall = .true.
 
         call energy_pot(epot)
 
-        call energy_kin(ekine, ekini, tempe, tempi)
+        call energy_kin(ekine, ekini, tempe, tempi, totalmomentum)
 
         ! rescale total potential and kinetic energy by energy per particle
         ekine        = ekine        / ne
@@ -68,7 +68,7 @@ contains
 
         if (my_rank == 0) then
             do ifile = 6,15,9
-              call PrintEnergies(ifile, epot, ekini, ekine, etot, tempe, tempi)
+              call PrintEnergies(ifile, epot, ekini, ekine, etot, tempe, tempi, totalmomentum)
             end do
 
             ! Write out to energy.dat file
@@ -121,7 +121,7 @@ contains
     !> Calculate kinetic energies
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine energy_kin(ekine,ekini,tempe,tempi)
+    subroutine energy_kin(ekine,ekini,tempe,tempi, totalmomentum)
         use physvars
         use module_units
 
@@ -129,7 +129,7 @@ contains
         include 'mpif.h'
 
         integer :: p,ierr
-        real*8 :: ekine, ekini,tempe,tempi, gamma
+        real*8 :: ekine, ekini,tempe,tempi, gamma, totalmomentum(3)
         real*8 :: uh(3), uh2
         real*8 :: sum_v2e, sum_v2i, sum_ve(1:3), sum_vi(1:3)
         real*8 :: en
@@ -140,6 +140,7 @@ contains
         sum_v2i    = 0.0
         sum_ve     = 0.0
         sum_vi     = 0.0
+        totalmomentum = 0.0
 
         do p=1, np_local
             ! Velocities at previous 1/2-step to synch with P.E.
@@ -151,6 +152,8 @@ contains
 
             en          = particles(p)%data%m*unit_c2*(gamma - 1.0)
             energy(2,p) = en
+
+            totalmomentum = totalmomentum + particles(p)%data%m * uh
 
             if (particles(p)%data%q <= 0.) then
                 ekine   = ekine   + en
