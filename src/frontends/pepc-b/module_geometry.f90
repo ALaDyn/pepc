@@ -548,12 +548,14 @@ subroutine special_start(iconf)
      !  Adjust force constant
      force_const = 1./3./Ndebye
 
-     write (*,*) "Ewald Setup:"
-     write (*,'(5(a30,f15.5/))') "Particle spacing ",a_ee, &
+     if (my_rank==0) then
+	write (*,*) "Ewald Setup:"
+        write (*,'(5(a30,f15.5/))') "Particle spacing ",a_ee, &
           "Softening parameter:",eps, &
           "Gamma:",gamma, &
           "# electrons in Debye sphere:",Ndebye, &
           "force const:",force_const
+     endif
 
      do i=1,np_local
         if (i<=nep) then

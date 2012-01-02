@@ -611,6 +611,11 @@ subroutine configure
 	convert_erg = 2*(ni*4.8e-10)**2/r_layer(1)  ! Radius in cm
 	convert_kev = convert_erg/1.6e-9
 
+    case(2)
+        convert_kev=1.
+        if (ispecial.eq.6 .and. ne>0) convert_kev = 1./Ne  ! energy per particle
+        convert_erg = convert_kev
+
     case default
       if (ne>0) then
         convert_keV = 511./abs(qe)     ! convert from code energy units to keV
