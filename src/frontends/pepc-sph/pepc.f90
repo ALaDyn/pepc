@@ -90,7 +90,7 @@ program pepce
   implicit none
 
   integer :: omp_thread_num
-  integer :: ierr, ifile
+  integer :: ierr, ifile, i
 
 
   ! Allocate array space for tree
@@ -137,9 +137,9 @@ program pepce
   ! TODO: where should do_periodic be set?
   do_periodic = periodicity(1) .or. periodicity(2) .or. periodicity(3)
 
-
-  call sph_kernel_tests(idim)
-
+  if(my_rank .eq. 0 ) then
+     call sph_kernel_tests(idim)
+  end if
 
 
   ! Loop over all timesteps. <= nt to write out the last timestep
@@ -189,6 +189,16 @@ program pepce
      ! Integrator
      call velocities(1,np_local,dt)
      call push(1,np_local,dt)  ! update positions
+
+
+     do i = 1, np_local
+        particles(i)%data%temperature = particles(i)%data%temperature + particles(i)%results%temperature_change * dt
+        if(particles(i)%data%temperature < 0.000000001 ) then
+           particles(i)%data%temperature = 0.000000001
+        end if
+     end do
+
+
      
 
      write(*,*) "do_periodic:", do_periodic
