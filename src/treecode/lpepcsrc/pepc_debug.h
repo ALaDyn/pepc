@@ -4,6 +4,7 @@
 
 #define DEBUG_INFO(format, ...)                    \
         call debug_ipefile_open();                  \
+          DEBUG_HEADER(debug_ipefile);              \
           write(debug_ipefile, format) __VA_ARGS__; \
         call debug_ipefile_close();
 

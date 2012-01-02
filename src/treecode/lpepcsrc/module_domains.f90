@@ -69,7 +69,6 @@ module module_domains
 
         real*8 :: s
         real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
-        logical :: identical_keys=.false.
 
         integer :: state(MPI_STATUS_SIZE), ierr
 
@@ -78,7 +77,6 @@ module module_domains
         type (t_particle) :: ship_parts(nppm), get_parts(nppm)
 
         integer*8 :: w1(nppm)
-        integer :: keycheck_pass, ipp
 
         real*8 :: xboxsize, yboxsize, zboxsize
 
@@ -243,45 +241,47 @@ module module_domains
         ! Each PE now has sorted segment of particles of length npp
         ! Note that now npp /= npart/num_pe, only approx depending on key distribution, or target shape.
 
-        ! Check for identical keys
-        keycheck_pass=1
+        ! check for duplicate keys
+        ! we expect the sorting library to avoid duplicate keys across processor boundaries
+        ! hence, we should not modify the first and the last particles keys to avoid damaging this restriction
+        do i=1,npp-2
+            if (particles(i)%key == particles(i+1)%key) then
+                DEBUG_INFO('("Identical keys found for i = ", I0, " and its successor, key = ", O0, ", labels = ", I0,x, I0)', i, particles(i)%key, particles(i)%label, particles(i+1)%label)
 
-        do i=2,npp-1
-            if (particles(i)%key == particles(i-1)%key) then
-                particles(  i)%key = particles(  i)%key + 1  ! Augment higher key
-                particles(i+1)%key = particles(i+1)%key + 2  ! Augment next higher key to avoid 'triplet'
-                !  Tweak positions to ensure particles drift apart
-                particles(i-1)%x(1) = particles(i-1)%x(1) *0.99999
-                particles(i+1)%x(1) = particles(i+1)%x(1) *1.00001
-
-                ! TODO: need 'ripple' here up to next large gap in keys i+1->npp
-
-                DEBUG_WARNING('(a15,i5,a8,i3,a30,2i9,3i10,a25,o25,a12,o25)', 'LPEPC | PE ',me,' pass ',keycheck_pass,
-                ' WARNING: identical keys found for index, npp, label1, label2  ',
-                i,npp,particles(i-1)%label,particles(i)%label,particles(i+1)%label,
-                ' -  to: ',particles(i)%key,' next key: ',particles(i+1)%key)
+                ! first, we try to shift down the lower key
+                if ((i >= 2) .and. (particles(i)%key - 1 .ne. particles(i-1)%key)) then
+                  particles(i)%key = particles(i)%key - 1
+                  ! adjust position to fit key
+                  call key_to_coord(particles(i)%key, particles(i)%x(1), particles(i)%x(2), particles(i)%x(3))
+                  DEBUG_INFO('("shifting (i)-th particles key down to ", O0)', particles(i)%key)
+                else
+                  ! we have to shift up the upper key - if the keys are dense, this might propagate further
+                  ! upwards until a gap, i.e. particles(i+1)%key - particles(i)%key > 1, exists
+                  particles(i+1)%key = particles(i+1)%key + 1
+                  ! adjust position
+                  call key_to_coord(particles(i+1)%key, particles(i+1)%x(1), particles(i+1)%x(2), particles(i+1)%x(3))
+                  DEBUG_INFO('("shifting (i+1)-th particles key up to ", O0)', particles(i+1)%key)
+                endif
             endif
         end do
+        ! we did not check the pair (npp-1) (npp) for duplicate keys since we did not want to touch processor boundaries --> work downwards again
+        do i=npp,2,-1
+          if (particles(i)%key == particles(i-1)%key) then
+            DEBUG_INFO('("Identical keys found in second pass for i = ", I0, " and its predecessor, key = ", O0, ", labels = ", I0,x, I0)', i, particles(i)%key, particles(i)%label, particles(i+1)%label)
 
-
-        ! Special case for last pair to avoid possibility of identical keys across processor boundary
-        ! - work back down from last key
-
-        ipp=npp-1
-        identical_keys=.true.
-        keycheck_pass=2
-
-        do while (identical_keys .and. ipp.gt.2)
-            identical_keys=.false.
-            if (particles(ipp+1)%key == particles(ipp)%key) then
-                particles(ipp)%key = particles(ipp)%key-1
-                DEBUG_WARNING_ALL('(a15,i9,a8,i3,a30,2i15/a25,o30)', 'LPEPC | PE ',me,' pass ',keycheck_pass,
-                ' WARNING: identical keys found for particles  ',particles(ipp+1)%label,particles(ipp)%label,
-                'LPEPC | Lower key decreased to:  ',particles(ipp)%key)
-                identical_keys=.true.
+            if (i == 2) then
+              DEBUG_ERROR(*, "Obviously, keys are dense on this PE, i.e. there is no gap between any keys to resolve the identical-key-conflicts. Aborting.")
             endif
-            ipp=ipp-1
+
+            ! we have to shift down the lower key
+            particles(i-1)%key = particles(i-1)%key - 1
+            call key_to_coord(particles(i-1)%key, particles(i-1)%x(1), particles(i-1)%x(2), particles(i-1)%x(3))
+            DEBUG_INFO('("shifting (i-1)-th particles key down to ", O0)', particles(i-1)%key)
+          else
+            exit ! from this loop - no more duplicate keys left
+          endif
         end do
+
 
         ! Copy boundary particles to adjacent PEs to ensure proper tree construction
         !  - if we do not do this, can get two particles on separate PEs 'sharing' a leaf
