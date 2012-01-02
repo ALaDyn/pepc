@@ -18,6 +18,9 @@ module particle_pusher
     subroutine velocities(p_start,p_finish,delta_t)
       use physvars, only: &
            particles
+
+      use module_interaction_specific_types, only: &
+           PARTICLE_TYPE_FIXED
            
       implicit none
 
@@ -29,11 +32,17 @@ module particle_pusher
       ! unconstrained motion by default
       !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(p)
       do p = p_start, p_finish
-         ! for gravity, mass and charge are equal so q * e / m = e
-         ! because the velocity at the same timestep as the coordinate is needed for sph ( v(t + dt) ):
-         particles(p)%data%v          = particles(p)%data%v_and_half + delta_t * particles(p)%results%sph_force / 2._8
-         ! v(t + dt *(1 + 1/2)) for leap frog
-         particles(p)%data%v_and_half = particles(p)%data%v_and_half + delta_t * particles(p)%results%sph_force
+         if( btest(particles(p)%data%type, PARTICLE_TYPE_FIXED) ) then
+            ! don't move this particle
+            particles(p)%data%v          = 0
+            particles(p)%data%v_and_half = 0
+         else
+            ! for gravity, mass and charge are equal so q * e / m = e
+            ! because the velocity at the same timestep as the coordinate is needed for sph ( v(t + dt) ):
+            particles(p)%data%v          = particles(p)%data%v_and_half + delta_t * particles(p)%results%sph_force / 2._8
+            ! v(t + dt *(1 + 1/2)) for leap frog
+            particles(p)%data%v_and_half = particles(p)%data%v_and_half + delta_t * particles(p)%results%sph_force
+         end if
       end do
       !$OMP END PARALLEL DO
       

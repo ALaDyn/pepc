@@ -30,8 +30,9 @@ module module_interaction_specific_types
          real*8 :: v(3)              !< velocity (same time as x)
          real*8 :: v_and_half(3)     !< velocity (1/2 time step after x (t+1/2), for leap frog integrator)
          real*8 :: temperature
+         integer :: type             !< a bitfield for storing particle properties
       end type t_particle_data
-      integer, private, parameter :: nprops_particle_data = 4
+      integer, private, parameter :: nprops_particle_data = 5
 
       !> Data structure for results
       type t_particle_results
@@ -57,6 +58,14 @@ module module_interaction_specific_types
         real*8 :: h          !< sph smoothing-length
       end type t_tree_node_interaction_data
       integer, private, parameter :: nprops_tree_node_interaction_data = 6
+
+
+      ! bit switches for particles types. use only powers of 2, combine with IOR, eg.: ior(PARTICLE_TYPE_FIXED, PARTICLE_TYPE_NONGAS)
+      integer, parameter :: PARTICLE_TYPE_DEFAULT  = 0               !< for setting all bits to 0, default values: moving, sph, ...
+      integer, parameter :: PARTICLE_TYPE_FIXED    = 1               !< fixed particles are not moved
+      integer, parameter :: PARTICLE_TYPE_NONGAS   = 2               !< treat particle as non-gas and compute no sph force
+      ! TODO: implement nongas particles in neighbour search and force summation
+
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -94,13 +103,14 @@ module module_interaction_specific_types
         type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
 
         ! register particle data type
-        blocklengths(1:nprops_particle_data)  = [1, 3, 3, 1]
-        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        blocklengths(1:nprops_particle_data)  = [1, 3, 3, 1, 1]
+        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_INTEGER]
         call MPI_GET_ADDRESS( dummy_particle_data,             address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%q,           address(1), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%v,           address(2), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%v_and_half,  address(3), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%temperature, address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%type,        address(5), ierr )
         displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
