@@ -354,7 +354,7 @@ contains
      call MPI_BCAST(current_offset, 1, MPI_INTEGER8, 0, MPI_COMM_WORLD, ierr)
 
 
-     bufferlength = 15*(width+1)
+     bufferlength = 16*(width+1)
  
 
      if( width-7 > 9) then
