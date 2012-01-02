@@ -86,7 +86,7 @@ contains
     art_vis_alpha    = art_vis_alpha_tmp
     art_vis_beta     = art_vis_beta_tmp
 
-    use_artificial_viscosity = .false.
+    use_artificial_viscosity = .true.
 
 
   end subroutine sph_initialize
@@ -472,7 +472,8 @@ contains
           ! Because of this the accelerations caused by sph_force can be added to the fields.
           
           ! distance vector
-          dist = particles(local_particle_index)%results%dist_vector(:, actual_neighbour)
+          ! pointing from actual_particle to actual_neighbour
+          dist = - particles(local_particle_index)%results%dist_vector(:, actual_neighbour)
 
           if( sph_debug) then
              if( abs(sqrt(dist(1)**2 + dist(2)**2 + dist(3)**2) - distance ) > 1E-7 ) then
@@ -506,7 +507,7 @@ contains
              mu = ( h1 * vr ) / ( rr + eta * eta )                        ! art_vis
              
              artificial_viscosity = ( - art_vis_alpha * sound_speed * mu + art_vis_beta * mu * mu ) / &
-                  ( ( tree_nodes(actual_node)%temperature +  particles(local_particle_index)%results%rho )/2. )
+                  ( ( tree_nodes(actual_node)%rho +  particles(local_particle_index)%results%rho )/2. )
              
           else 
              
@@ -524,8 +525,8 @@ contains
           ! + grad_kernel_2 ) / 2._8
           
 
-          ! for an explanation for the minus see diploma thesis andreas breslau, eq. 3.10 (note: there is a missing '-' in the equation before: a = - grad(p)/rho
-          particles(local_particle_index)%results%sph_force = particles(local_particle_index)%results%sph_force - scalar_force * dist
+          ! see diploma thesis andreas breslau, eq. 3.10 (note: there is a missing '-' in the equation before: a = - grad(p)/rho
+          particles(local_particle_index)%results%sph_force = particles(local_particle_index)%results%sph_force + scalar_force * dist
 
           if( sph_debug ) then
              write(50, *) my_rank, local_particle_index, particles(local_particle_index)%x(1), h1, &
