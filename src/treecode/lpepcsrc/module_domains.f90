@@ -252,14 +252,14 @@ module module_domains
                 if ((i >= 2) .and. (particles(i)%key - 1 .ne. particles(i-1)%key)) then
                   particles(i)%key = particles(i)%key - 1
                   ! adjust position to fit key
-                  call key_to_coord(particles(i)%key, particles(i)%x(1), particles(i)%x(2), particles(i)%x(3))
+                  call key_to_coord_dim(particles(i)%key, particles(i)%x, idim, particles(i)%x)
                   DEBUG_INFO('("shifting (i)-th particles key down to ", O0)', particles(i)%key)
                 else
                   ! we have to shift up the upper key - if the keys are dense, this might propagate further
                   ! upwards until a gap, i.e. particles(i+1)%key - particles(i)%key > 1, exists
                   particles(i+1)%key = particles(i+1)%key + 1
                   ! adjust position
-                  call key_to_coord(particles(i+1)%key, particles(i+1)%x(1), particles(i+1)%x(2), particles(i+1)%x(3))
+                  call key_to_coord_dim(particles(i+1)%key, particles(i+1)%x, idim, particles(i+1)%x)
                   DEBUG_INFO('("shifting (i+1)-th particles key up to ", O0)', particles(i+1)%key)
                 endif
             endif
@@ -275,7 +275,7 @@ module module_domains
 
             ! we have to shift down the lower key
             particles(i-1)%key = particles(i-1)%key - 1
-            call key_to_coord(particles(i-1)%key, particles(i-1)%x(1), particles(i-1)%x(2), particles(i-1)%x(3))
+            call key_to_coord_dim(particles(i-1)%key, particles(i-1)%x, idim, particles(i-1)%x)
             DEBUG_INFO('("shifting (i-1)-th particles key down to ", O0)', particles(i-1)%key)
           else
             exit ! from this loop - no more duplicate keys left

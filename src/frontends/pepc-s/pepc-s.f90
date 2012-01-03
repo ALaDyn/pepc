@@ -74,7 +74,7 @@ module module_pepcs
         t_lattice_3 = lat_z
         periodicity(1:3) = (lat_period(1:3) == 1)
         do_extrinsic_correction = (lat_corr == 1)
-        call pepc_prepare()
+        call pepc_prepare(3)
         ! =============================================================
 
        call pepc_particleresults_clear(particles, local_particles)

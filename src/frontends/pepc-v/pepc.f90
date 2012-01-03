@@ -39,7 +39,7 @@ program pepcv
   ! Set up particles
   call special_start()
 
-  call pepc_prepare()
+  call pepc_prepare(3)
 
   ! Loop over all timesteps
   do while (itime < nt)

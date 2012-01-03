@@ -132,7 +132,7 @@ program pepce
   call write_particles(itime-1, -0.1)
 
 
-  call pepc_prepare()
+  call pepc_prepare(idim)
 
   ! TODO: where should do_periodic be set?
   do_periodic = periodicity(1) .or. periodicity(2) .or. periodicity(3)

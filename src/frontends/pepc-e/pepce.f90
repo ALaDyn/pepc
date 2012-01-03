@@ -67,7 +67,7 @@ program pepce
   eps2        = eps**2
   force_law   = 3
 
-  call pepc_prepare()
+  call pepc_prepare(idim)
 
   ! Loop over all timesteps
   do while (itime < nt)

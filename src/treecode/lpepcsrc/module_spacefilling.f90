@@ -161,7 +161,7 @@ module module_spacefilling
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> calculates particle coordiante from key
+        !> calculates particle coordinate from key
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_coord(key, x, y, z)
@@ -192,6 +192,53 @@ module module_spacefilling
           z = (real(iz,kind(1._8)) + 0.5_8) * s + zmin
 
         end subroutine key_to_coord
+
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> calculates particle coordinate from key  and respects given dimension
+        !> \@todo This function should use real 1D, 2D, 3D-spacefilling curves instead
+        !> of simply restricting the 3D-curve to lower dimensions
+        !> using the default_coordinates parameter, the default value for
+        !> coordinates that lie outside the idim range can be given
+        !> e.g. default_coordinates=[0.,0.,5.],  idim=2 --> particles are restricted to a xy-plane with z=5.
+        !>      default_coordinates=coordinates, idim=1 --> only x-coordinate of coordinates is changed according to spacefilling curve
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine key_to_coord_dim(key, coordinates, idim, default_coordinates)
+          use treevars, only : nlev, boxsize, xmin, ymin, zmin
+          implicit none
+          integer*8, intent(in) :: key
+          real*8, intent(out) :: coordinates(3)
+          integer, intent(in) :: idim !< dimension of the system (1,2,3)
+          real*8, intent(in) :: default_coordinates(3) !< values for coordinates that are not affected by spacefilling curve (due to idim restriction)
+          integer*8 :: ix, iy, iz
+          real*8 :: s, x(3)
+
+          ! construct particle coordiantes
+          select case (curve_type)
+            case (0) ! Z-curve
+              call key_to_intcoord_morton(key, ix, iy, iz)
+            case (1) ! Hilbert curve (original pattern)
+              call key_to_intcoord_hilbert(key, ix, iy, iz)
+            case default
+              ix = 0
+              iy = 0
+              iz = 0
+          end select
+
+          s=boxsize/2**nlev       ! refinement length
+
+          ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
+          x = [ (real(ix,kind(1._8)) + 0.5_8) * s + xmin, &
+                (real(iy,kind(1._8)) + 0.5_8) * s + ymin, &
+                (real(iz,kind(1._8)) + 0.5_8) * s + zmin  ]
+
+          coordinates(1:idim)   = x(1:idim)
+          coordinates(idim+1:3) = default_coordinates(idim+1:3)
+
+        end subroutine key_to_coord_dim
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

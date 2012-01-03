@@ -26,7 +26,7 @@ subroutine pepc_setup()
 
   namelist /pepcmini/ ne, ni, &
        mac, theta, q_factor, eps, ispecial, &
-       r_sphere, idim, nt, dt, &
+       r_sphere, nt, dt, &
        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction, mirror_box_layers
 
 

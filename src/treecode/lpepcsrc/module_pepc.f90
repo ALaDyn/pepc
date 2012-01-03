@@ -65,7 +65,7 @@ module module_pepc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi , db_level_in)
-      use treevars, only : me, num_pe, np_mult
+      use treevars, only : me, num_pe, np_mult, treevars_idim => idim
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
       use module_spacefilling
@@ -162,23 +162,27 @@ module module_pepc
       ! create and register mpi types
       call register_lpepc_mpi_types()
 
-      call pepc_prepare()
+      call pepc_prepare(treevars_idim)
 
     end subroutine
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !> Initializes derived variables in pepc, walk, and clac_force
+    !> Initializes derived variables in pepc, walk, and calc_force
     !> should be called after changing those module`s variables and
     !> before performing tree buildup
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_prepare()
+    subroutine pepc_prepare(idim)
+      use treevars, only : treevars_idim => idim
       use module_walk
       use module_branching, only : branches_initialize
       use module_interaction_specific
       use module_mirror_boxes
       implicit none
+      integer, intent(in) :: idim
+
+      treevars_idim = idim
 
       call calc_force_prepare()
 

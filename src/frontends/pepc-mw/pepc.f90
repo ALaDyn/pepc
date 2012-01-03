@@ -84,7 +84,7 @@ program pepc
 
 !  call benchmark_inner
 
-  call pepc_prepare()
+  call pepc_prepare(idim)
 
   ! Loop over all timesteps
   do while (itime < nt)

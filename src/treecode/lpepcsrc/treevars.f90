@@ -46,7 +46,8 @@ module treevars
              sum_ships, &      ! total # multipole ships per iteration  
              sum_fetches, &    ! total # key fetches  per iteration  
              npart, &          ! actual # particles (total)
-             npp               !  actual  # particles/PE
+             npp, &            ! actual  # particles/PE
+             idim = 3          ! dimension of the system (currently only used in tree_domains)
 
   integer :: nkeys_total=1 ! total # keys in local tree
   real*8 :: xmin, xmax    ! box limits

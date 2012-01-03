@@ -33,7 +33,6 @@ module physvars
   integer :: n_cpu   ! # cpus used by program
 
 ! Control stuff
-  integer :: idim=3  ! # dimensions (velocity and position updates)
   integer :: ispecial       ! Switch to select special electron configs 
 
   real :: dt             ! timestep
