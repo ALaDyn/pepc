@@ -29,6 +29,9 @@ program pepce
   use module_interaction_specific, only: &
        mac_select, force_law
 
+  use module_interaction_specific_types, only: &
+       PARTICLE_TYPE_FIXED
+  
   use physvars
 ! , only: &
 !        trun, &
@@ -140,6 +143,57 @@ program pepce
   if(my_rank .eq. 0 ) then
      call sph_kernel_tests(idim)
   end if
+
+
+
+
+
+
+
+
+
+
+
+
+  ! 
+  if( .not. initialized_v_minus_half ) then
+
+     call pepc_grow_tree(np_local, npart_total, particles)
+
+     mac_select = 1 ! nn-mac
+     force_law = 5  ! neighbour list force law
+     
+     call pepc_particleresults_clear(particles, np_local)
+     
+     call pepc_traverse_tree(np_local, particles)
+
+     call sph(np_local, particles, -1, num_neighbour_boxes, neighbour_boxes, idim)
+
+     ! Integrate velocity for t-dt/2
+     do i = 1, np_local
+        if( btest(particles(i)%data%type, PARTICLE_TYPE_FIXED) ) then
+           ! don't move this particle
+        else
+           particles(i)%data%v_minus_half = particles(i)%data%v - particles(i)%results%sph_force * dt/2.
+           ! this is not perfect, but better than nothing
+        end if
+     end do
+
+
+     ! the temperature is currently not integrated here, knowing that that produces an energy error
+     ! do i = 1, np_local
+     !    particles(i)%data%temperature = particles(i)%data%temperature + particles(i)%results%temperature_change * dt
+     !    if(particles(i)%data%temperature < 0.000000001 ) then
+     !       particles(i)%data%temperature = 0.000000001
+     !    end if
+     ! end do
+
+     ! TODO: calculate work for sph
+     particles(:)%work = 1._8
+
+     
+  end if
+
 
 
   ! Loop over all timesteps. <= nt to write out the last timestep
