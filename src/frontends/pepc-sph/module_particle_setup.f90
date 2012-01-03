@@ -253,25 +253,21 @@ contains
     include 'mpif.h'
 
     integer, intent(in) :: fences(-1:n_cpu-1)
-    integer :: mpi_cnt, p
-    real*8 :: xt, yt, zt
 
     real*8 :: medium_temperature
     integer :: part_counter
     integer :: part_before_me
     integer :: part_including_mine
     real*8 :: offset
-    integer :: n_nn
     real*8 :: left_y
     real*8 :: right_y
     real*8 :: area1, area2
     real*8 :: sound_speed
     real*8 :: setup_rho0, setup_rho1
     real*8 :: dx
-    integer :: i, ierr
+    integer :: i
     integer :: actual_particle
     real*8 :: actual_x
-    integer, dimension(n_cpu) :: all_np_local
     integer :: all_part
     real*8 :: omega_t_for_half_velocity
     real*8 :: const_pi = acos(-1.0)
@@ -292,9 +288,7 @@ contains
     thermal_constant = sound_speed**2 /medium_temperature
     
     ! n_nn = 6 does not work! try shepard correction rho = (sum m_i *W )/(sum W)
-!    n_nn = 8
- 
- !   num_neighbour_particles = n_nn
+    ! num_neighbour_particles = 8
 
     ! timestep length
     dt = 0.0001
@@ -357,13 +351,6 @@ contains
        
     end do
     
-    
-    
-    ! Initial neighbour search radius
-    !      r_neighbour = boxlength_x * 1.1 / all_part *n_nn
-    
-    !if (my_rank == 0) write(*,*) "Using timestep:", dt
-    
   end subroutine particle_setup_1d_wave
   
 
@@ -386,6 +373,7 @@ contains
          dt, &
          n_cpu, &
          my_rank, &
+         thermal_constant, &
          nt
     
     use module_mirror_boxes, only: &
@@ -630,7 +618,7 @@ contains
        write(*,*) "Using some particles as boundary particles."
        write(*,*) "Use only 0.0 < x< 1.0 for comparison."
     end if
-    
+
     ! set number of dimension. important for factor for sph kernel
     idim = 1
     
@@ -650,9 +638,9 @@ contains
        particles(actual_particle)%data%v = [ 0._8, 0._8, 0._8 ]
        particles(actual_particle)%data%v_and_half = [ 0._8, 0._8, 0._8 ]
 
-       particles(actual_particle)%data%q = 2./real(all_part)
+       particles(actual_particle)%data%q = dx ! to get a density of 1.0: 1/(particles between 0 and 1), this are half of the particles, so 1/real(all_part/2), which equals dx
        
-       if(particles(actual_particle)%x(1) <= 1. ) then
+       if(particles(actual_particle)%x(1) <= 0.5 ) then
           particles(actual_particle)%data%temperature = 1000.0 /(thermal_constant * 1.0)
        else
           particles(actual_particle)%data%temperature = 0.01 /(thermal_constant * 1.0)
