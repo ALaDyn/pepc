@@ -33,7 +33,7 @@ program pepce
   use module_interaction_specific, only : theta2, eps2, mac_select, force_law
   implicit none
 
-  integer :: ierr, ifile
+  integer :: ifile
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-e", my_rank, n_cpu, .true.)

@@ -56,12 +56,11 @@ module module_diagnostics
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine write_particles_type(binary, ascii, mpiio, vtk, final)
             use physvars
+            use module_pepc_wrappers, only : particles
             use module_checkpoint
             implicit none
             include 'mpif.h'
             logical, intent(in) :: binary, ascii, mpiio, vtk, final
-            integer :: p
-            type(t_dumpparticle), allocatable :: dp(:)
             integer*8 :: npart
             real*8 :: trun_
 
@@ -70,23 +69,14 @@ module module_diagnostics
               npart = npart_total ! TODO: conversion real*4 --> real*8 will be unneccessary soon
               trun_ = trun
 
-              allocate(dp(np_local))
-
-              ! pack our data
-              do p=1,np_local
-                dp(p) = t_dumpparticle( x(p), y(p), z(p), ux(p), uy(p), uz(p), q(p), m(p), pot(p), ex(p), ey(p), ez(p), pelabel(p))
-              end do
-
               !!! write particle date as a binary file
-              if (binary) call write_particles_binary(my_rank, itime, np_local, dp)
+              if (binary) call write_particles_binary(my_rank, itime, np_local, particles)
 
               !!! write particle date as a text file
-              if (ascii) call write_particles_ascii(my_rank, itime, np_local, dp)
+              if (ascii) call write_particles_ascii(my_rank, itime, np_local, particles)
 
               !!! write particle checkpoint data using mpi-io
-              if (mpiio) call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, trun_, np_local, npart, dp)
-
-              deallocate(dp)
+              if (mpiio) call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, trun_, np_local, npart, particles)
             endif
 
 
@@ -118,12 +108,11 @@ module module_diagnostics
           subroutine read_particles_type(itime_in_, binary, ascii, mpiio)
             use physvars
             use module_checkpoint
+            use module_pepc_wrappers, only : particles
             implicit none
             include 'mpif.h'
             logical, intent(in) :: binary, ascii, mpiio
             integer, intent(in) :: itime_in_
-            integer :: p
-            type(t_dumpparticle), allocatable :: dp(:)
             integer*8 :: npart
             real*8 :: trun_
 
@@ -136,29 +125,11 @@ module module_diagnostics
               if (ascii)  write(*,*) "read_particles(): ascii mode unsupported" !call read_particles_ascii(my_rank, itime, np_local, dp)
 
               !!! read particle checkpoint data using mpi-io
-              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, trun_, np_local, npart, dp)
+              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, trun_, np_local, npart, particles)
 
               npart_total = npart
               trun = trun_
 
-              ! unpack our data
-              do p=1,np_local
-                 x(p) = dp(p)%x
-                 y(p) = dp(p)%y
-                 z(p) = dp(p)%z
-                ux(p) = dp(p)%ux
-                uy(p) = dp(p)%uy
-                uz(p) = dp(p)%uz
-                 q(p) = dp(p)%q
-                 m(p) = dp(p)%m
-               pot(p) = dp(p)%pot
-                ex(p) = dp(p)%ex
-                ey(p) = dp(p)%ey
-                ez(p) = dp(p)%ez
-                pelabel(p) = dp(p)%pelabel
-              end do
-
-              if (allocated(dp)) deallocate(dp)
             endif
 
         end subroutine read_particles_type
