@@ -369,8 +369,15 @@ contains
 
   
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! > 1D shock Problem 1, see Springel, V. 2010, ARA&A, 48, 391
   ! >
+  ! > Initial conditions given by density (rho), velocity (v) and pressure (P)
+  ! > on the left and right side of a discontinuity:
+  ! > | rho_L | v_L | P_L | rho_R | v_R | P_R |
+  ! > | 1.0   | 0.0 | 1.0 | 0.125 | 0.0 | 0.1 |
   ! >
+  ! > Particles are distributed from -0.5 to 1.5 to provide a stable medium
+  ! > outside of the test box from 0.0 to 1.0.
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine particle_setup_1d_shock_1(fences)
@@ -378,11 +385,11 @@ contains
     use physvars, only: &
          dt, &
          n_cpu, &
-         thermal_constant
+         my_rank, &
+         nt
     
     use module_mirror_boxes, only: &
-         periodicity, &
-         t_lattice_1
+         periodicity
     
     use module_interaction_specific_types, only: &
          num_neighbour_particles, &
@@ -393,34 +400,26 @@ contains
     include 'mpif.h'
     
     integer, intent(in) :: fences(-1:n_cpu-1)
-    integer :: mpi_cnt, p
-    real*8 :: xt, yt, zt
 
-    real*8 :: medium_temperature
     integer :: part_counter
     integer :: part_before_me
     integer :: part_including_mine
     real*8 :: offset
-    integer :: n_nn
     real*8 :: left_y
     real*8 :: right_y
     real*8 :: area1, area2
-    real*8 :: sound_speed
     real*8 :: setup_rho0, setup_rho1
     real*8 :: dx
-    integer :: i, ierr
     integer :: actual_particle
     real*8 :: actual_x
-    integer, dimension(n_cpu) :: all_np_local
     integer :: all_part
-    real*8 :: omega_t_for_half_velocity
-    real*8 :: const_pi = acos(-1.0)
 
-    
-    write(*,*) "Creating setup for the 1st 1D shock test."
-    write(*,*) "Using some particles as boundary particles."
-    write(*,*) "Use only 0.5 < x< 1.5 for comparison."
- 
+    if( my_rank .eq. 0 ) then
+       write(*,*) "Creating setup for the 1st 1D shock test."
+       write(*,*) "Using some particles as boundary particles."
+       write(*,*) "Use only 0.0 < x< 1.0 for comparison."
+    end if
+
     ! set number of dimension. important for factor for sph kernel
     idim = 1
     
@@ -437,26 +436,26 @@ contains
     
     dx = 0.00000001
     
-    ! fill from 0 to 2 to avoid outflow out of box
+    ! fill from -0.5 to 1.5 to avoid outflow out of box
     area1 = setup_rho0 * 1. + setup_rho1 * 1.
     
     
     offset = area1/(all_part*2)
     
-    actual_x = 0._8
+    actual_x = -0.5_8
     area2 = 0._8
     
     
     do part_counter = 1, all_part
 
        do while(area2 < area1/real(all_part,8)*real(part_counter-1,8)+offset )
-          if(actual_x <= 1.) then
+          if(actual_x <= 0.5) then
              left_y = setup_rho0
           else
              left_y = setup_rho1
           end if
           
-          if( (actual_x + dx ) <= 1.) then
+          if( (actual_x + dx ) <= 0.5) then
              right_y = setup_rho0
           else
              right_y = setup_rho1
@@ -478,7 +477,7 @@ contains
           particles(actual_particle)%data%v = [ 0._8, 0._8, 0._8 ]
           particles(actual_particle)%data%v_and_half = [ 0._8, 0._8, 0._8 ]
           
-          if(actual_x <= 1.) then
+          if(actual_x <= 0.5) then
              particles(actual_particle)%data%temperature = 1.0 /(thermal_constant * 1.0)
           else
              particles(actual_particle)%data%temperature = 0.1 /(thermal_constant * 0.125)
@@ -495,14 +494,26 @@ contains
     
     ! timestep length
     dt = 0.001
-    !* sqrt(thermal_constant * medium_temperature /10.)
+
+    ! num timesteps for comparison with analytical results
+    nt = 250
+
+    ! number of neighbour particles known to produce reasonable results
+    num_neighbour_particles = 8
     
   end subroutine particle_setup_1d_shock_1
   
   
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! > 1D shock Problem 2, see Springel, V. 2010, ARA&A, 48, 391
   ! >
+  ! > Initial conditions given by density (rho), velocity (v) and pressure (P)
+  ! > on the left and right side of a discontinuity:
+  ! > | rho_L | v_L  | P_L | rho_R | v_R | P_R |
+  ! > | 1.0   | −2.0 | 0.4 | 1.0   | 2.0 | 0.4 |
   ! >
+  ! > Particles are distributed from -0.5 to 1.5 to provide a stable medium
+  ! > outside of the test box from 0.0 to 1.0.
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine particle_setup_1d_shock_2(fences)
@@ -510,48 +521,34 @@ contains
     use physvars, only: &
          dt, &
          n_cpu, &
+         my_rank, &
          thermal_constant
     
     use module_mirror_boxes, only: &
-         periodicity, &
-         t_lattice_1
+         periodicity
     
     use module_interaction_specific_types, only: &
-         num_neighbour_particles, &
-         PARTICLE_TYPE_FIXED
+         num_neighbour_particles
     
     
     implicit none
     include 'mpif.h'
     
     integer, intent(in) :: fences(-1:n_cpu-1)
-    integer :: mpi_cnt, p
-    real*8 :: xt, yt, zt
 
-    real*8 :: medium_temperature
-    integer :: part_counter
     integer :: part_before_me
     integer :: part_including_mine
     real*8 :: offset
-    integer :: n_nn
-    real*8 :: left_y
-    real*8 :: right_y
-    real*8 :: area1, area2
-    real*8 :: sound_speed
-    real*8 :: setup_rho0, setup_rho1
     real*8 :: dx
-    integer :: i, ierr
     integer :: actual_particle
-    real*8 :: actual_x
-    integer, dimension(n_cpu) :: all_np_local
     integer :: all_part
-    real*8 :: omega_t_for_half_velocity
-    real*8 :: const_pi = acos(-1.0)
 
     
-    write(*,*) "Creating setup for the 2nd 1D shock test."
-    write(*,*) "Using some particles as boundary particles."
-    write(*,*) "Use only 0.5 < x< 1.5 for comparison."
+    if( my_rank .eq. 0 ) then
+       write(*,*) "Creating setup for the 2nd 1D shock test."
+       write(*,*) "Using some particles as boundary particles."
+       write(*,*) "Use only 0.0 < x< 1.0 for comparison."
+    end if
 
     ! set number of dimension. important for factor for sph kernel
     idim = 1
@@ -563,21 +560,16 @@ contains
     part_before_me = fences(my_rank-1)
     part_including_mine = fences(my_rank)
 
-    
     dx = 2./real(all_part)
-    offset = dx/2. + dx * part_before_me
-    
-    !write(*,*) "rank:", my_rank, "all part", all_part, "dx", dx
+    offset = dx/2. + dx * part_before_me - 0.5
     
     do actual_particle = 1, np_local
        
        particles(actual_particle)%x = [ offset + dx * (actual_particle-1), 0._8, 0._8 ]
-
        particles(actual_particle)%data%temperature = 0.4 /(thermal_constant * 1.0)
-
        particles(actual_particle)%data%q = 2./real(all_part)
        
-       if(particles(actual_particle)%x(1) <= 1. ) then
+       if(particles(actual_particle)%x(1) <= 0.5 ) then
           particles(actual_particle)%data%v = [ -2._8, 0._8, 0._8 ]
           particles(actual_particle)%data%v_and_half = [ -2._8, 0._8, 0._8 ]
        else
@@ -585,24 +577,24 @@ contains
           particles(actual_particle)%data%v_and_half = [ 2._8, 0._8, 0._8 ]
        end if
        
-!       if( (actual_particle + part_before_me) < 2* num_neighbour_particles .or. (all_part - (part_before_me + actual_particle ) ) < 2 * num_neighbour_particles) then
-!          particles(actual_particle)%data%type = ibset(particles(actual_particle)%data%type, PARTICLE_TYPE_FIXED)
-!       end if
-       
     end do
     
-    
     ! timestep length
-    dt = 0.0001
-    !* sqrt(thermal_constant * medium_temperature /10.)
-
+    dt = 0.0002
 
   end subroutine particle_setup_1d_shock_2
 
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! > 1D shock Problem 3, see Springel, V. 2010, ARA&A, 48, 391
   ! >
+  ! > Initial conditions given by density (rho), velocity (v) and pressure (P)
+  ! > on the left and right side of a discontinuity:
+  ! > | rho_L | v_L | P_L  | rho_R | v_R | P_R  |
+  ! > | 1.0   | 0.0 | 1000 | 1.0   | 0.0 | 0.01 |
   ! >
+  ! > Particles are distributed from -0.5 to 1.5 to provide a stable medium
+  ! > outside of the test box from 0.0 to 1.0.
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine particle_setup_1d_shock_3(fences)
@@ -610,11 +602,11 @@ contains
     use physvars, only: &
          dt, &
          n_cpu, &
+         my_rank, &
          thermal_constant
     
     use module_mirror_boxes, only: &
-         periodicity, &
-         t_lattice_1
+         periodicity
 
     use module_interaction_specific_types, only: &
          num_neighbour_particles, &
@@ -625,33 +617,19 @@ contains
     include 'mpif.h'
     
     integer, intent(in) :: fences(-1:n_cpu-1)
-    integer :: mpi_cnt, p
-    real*8 :: xt, yt, zt
 
-    real*8 :: medium_temperature
-    integer :: part_counter
     integer :: part_before_me
     integer :: part_including_mine
     real*8 :: offset
-    integer :: n_nn
-    real*8 :: left_y
-    real*8 :: right_y
-    real*8 :: area1, area2
-    real*8 :: sound_speed
-    real*8 :: setup_rho0, setup_rho1
     real*8 :: dx
-    integer :: i, ierr
     integer :: actual_particle
-    real*8 :: actual_x
-    integer, dimension(n_cpu) :: all_np_local
     integer :: all_part
-    real*8 :: omega_t_for_half_velocity
-    real*8 :: const_pi = acos(-1.0)
 
-    
-    write(*,*) "Creating setup for the 3rd 1D shock test."
-    write(*,*) "Using some particles as boundary particles."
-    write(*,*) "Use only 0.5 < x< 1.5 for comparison."
+    if( my_rank .eq. 0 ) then
+       write(*,*) "Creating setup for the 3rd 1D shock test."
+       write(*,*) "Using some particles as boundary particles."
+       write(*,*) "Use only 0.0 < x< 1.0 for comparison."
+    end if
     
     ! set number of dimension. important for factor for sph kernel
     idim = 1
@@ -663,11 +641,8 @@ contains
     part_before_me = fences(my_rank-1)
     part_including_mine = fences(my_rank)
     
-    
     dx = 2./real(all_part)
-    offset = dx/2. + dx * part_before_me
-    
-    !write(*,*) "rank:", my_rank, "all part", all_part, "dx", dx
+    offset = dx/2. + dx * part_before_me -0.5
     
     do actual_particle = 1, np_local
        
@@ -692,7 +667,6 @@ contains
     
     ! timestep length
     dt = 0.00001
-    !* sqrt(thermal_constant * medium_temperature /10.)
     
   end subroutine particle_setup_1d_shock_3
 
