@@ -473,6 +473,7 @@ contains
           
           ! distance vector
           ! pointing from actual_particle to actual_neighbour
+          ! the dist_vector stored by the walk points form actual_neighbour to actual_particle, therefore the "-"
           dist = - particles(local_particle_index)%results%dist_vector(:, actual_neighbour)
 
           if( sph_debug) then
@@ -499,6 +500,8 @@ contains
           
           ! TODO: make eta parameter???
           eta = 0.1_8 * h1                                                ! art_vis
+
+          ! TODO: make this a bit faster
           sound_speed = ( sqrt( const * particles(local_particle_index)%data%temperature )  &
                + sqrt( const * tree_nodes(actual_node)%temperature ) )/ 2. ! mean sound_speed 
           
@@ -523,9 +526,9 @@ contains
                artificial_viscosity &
                ) * grad_kernel_1
           ! + grad_kernel_2 ) / 2._8
-          
 
           ! see diploma thesis andreas breslau, eq. 3.10 (note: there is a missing '-' in the equation before: a = - grad(p)/rho
+          ! Here is no "-" because in eq. 3.10 the distance vector (r_a - r_b) is used, here (r_b - r_a)
           particles(local_particle_index)%results%sph_force = particles(local_particle_index)%results%sph_force + scalar_force * dist
 
           if( sph_debug ) then
@@ -536,6 +539,7 @@ contains
                   scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
           end if
           
+          ! No "-" is correct. see explanation for force
           thermal_energy_sum = thermal_energy_sum + vr * scalar_force
           
        end do ! end of loop over neighbours
