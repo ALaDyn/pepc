@@ -186,7 +186,7 @@ contains
 
           if ( my_rank .eq. mpi_cnt .and. p .le. np_local ) then
              particles(p)%x = tmp
-!             particles(p)%data%v_and_half = [ 0._8, 0._8, 0._8 ]
+!             particles(p)%data%v_minus_half = [ 0._8, 0._8, 0._8 ]
           end if
 
        end do
@@ -230,8 +230,8 @@ contains
 
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! >
+  ! > A simple 1D sound wave in a periodic medium for testing sph.
+  ! > Wavenumber is currently k=1, soundspeed=1.
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine particle_setup_1d_wave(fences)
@@ -239,7 +239,8 @@ contains
     use physvars, only: &
          dt, &
          n_cpu, &
-         thermal_constant
+         thermal_constant, &
+         initialized_v_minus_half
 
     use module_mirror_boxes, only: &
          periodicity, &
@@ -307,14 +308,14 @@ contains
     area1 = 0._8
     
     do i= 0, int(t_lattice_1(1)/dx) -1
-       left_y  = setup_rho0 + setup_rho1 * sin(dx * real(i,   8) /t_lattice_1(1)*2._8*3.141592653589793)
-       right_y = setup_rho0 + setup_rho1 * sin(dx * real(i+1, 8) /t_lattice_1(1)*2._8*3.141592653589793)
+       left_y  = setup_rho0 + setup_rho1 * sin(dx * real(i,   8) /t_lattice_1(1) * 2._8 * const_pi)
+       right_y = setup_rho0 + setup_rho1 * sin(dx * real(i+1, 8) /t_lattice_1(1) * 2._8 * const_pi)
          
-       area1 = area1 +(left_y + right_y )/2._8*dx
+       area1 = area1 + (left_y + right_y ) /2._8 * dx
     end do
 
  
-    offset = area1/(all_part*2)
+    offset = area1 /(all_part*2)
  
     write (*,*) 'area1:' , area1, 'offset:', offset
  
@@ -328,8 +329,8 @@ contains
     do part_counter = 1, all_part
     
        do while(area2 < area1/real(all_part,8)*real(part_counter-1,8)+offset )
-          left_y  = setup_rho0 + setup_rho1 * sin( actual_x      /t_lattice_1(1)*2._8*3.141592653589793)
-          right_y = setup_rho0 + setup_rho1 * sin((actual_x +dx) /t_lattice_1(1)*2._8*3.141592653589793)
+          left_y  = setup_rho0 + setup_rho1 * sin( actual_x      /t_lattice_1(1) * 2._8 * const_pi)
+          right_y = setup_rho0 + setup_rho1 * sin((actual_x +dx) /t_lattice_1(1) * 2._8 * const_pi)
           
           area2 = area2 +(left_y + right_y )/2._8*dx
           actual_x = actual_x + dx
@@ -339,11 +340,18 @@ contains
           
           actual_particle = part_counter - part_before_me
           particles(actual_particle)%x = [ actual_x, 0._8, 0._8 ]
+          
+          ! v not necessary for integration. no need to initialize it (besides the initial output).
 
-          ! sound_speed * 0.760429
-!          particles(actual_particle)%data%v = [ - sound_speed * setup_rho1/setup_rho0 * sin( particles(actual_particle)%x(1) * 2._8* 3.141592653589793 / t_lattice_1(1) ) , 0._8, 0._8 ]
+          ! v is initialized and v_minus_half computed before entering the loop over timesteps
+          particles(actual_particle)%data%v = [ -sound_speed * setup_rho1/setup_rho0 * sin( particles(actual_particle)%x(1) * 2._8* const_pi / t_lattice_1(1) ) , 0._8, 0._8 ]
 
-          particles(actual_particle)%data%v_and_half = [ - sound_speed * setup_rho1/setup_rho0 * sin( particles(actual_particle)%x(1) * 2._8* 3.141592653589793 / t_lattice_1(1) + omega_t_for_half_velocity ) , 0._8, 0._8 ]
+          ! v_minus_half is the velocity used for the leapfrog.
+          ! TODO correct this v_minus_half
+!          particles(actual_particle)%data%v_minus_half = [ -sound_speed * setup_rho1/setup_rho0 * sin( particles(actual_particle)%x(1) * 2._8* const_pi / t_lattice_1(1) + omega_t_for_half_velocity ) , 0._8, 0._8 ]
+
+!          initialized_v_minus_half = .true.
+
           
           particles(actual_particle)%data%temperature =  medium_temperature
        
@@ -374,7 +382,8 @@ contains
          n_cpu, &
          my_rank, &
          thermal_constant, &
-         nt
+         nt, &
+         initialized_v_minus_half
     
     use module_mirror_boxes, only: &
          periodicity
@@ -463,8 +472,9 @@ contains
           
           
           particles(actual_particle)%data%v = [ 0._8, 0._8, 0._8 ]
-          particles(actual_particle)%data%v_and_half = [ 0._8, 0._8, 0._8 ]
-          
+          ! this is the best possible initialisation for v_minus_half 
+          particles(actual_particle)%data%v_minus_half = [ 0._8, 0._8, 0._8 ]
+
           if(actual_x <= 0.5) then
              particles(actual_particle)%data%temperature = 1.0 /(thermal_constant * 1.0)
           else
@@ -478,7 +488,8 @@ contains
        end if
        
     end do
-    
+
+    initialized_v_minus_half = .true.
     
     ! timestep length
     dt = 0.001
@@ -510,7 +521,8 @@ contains
          dt, &
          n_cpu, &
          my_rank, &
-         thermal_constant
+         thermal_constant, &
+         initialized_v_minus_half
     
     use module_mirror_boxes, only: &
          periodicity
@@ -559,13 +571,16 @@ contains
        
        if(particles(actual_particle)%x(1) <= 0.5 ) then
           particles(actual_particle)%data%v = [ -2._8, 0._8, 0._8 ]
-          particles(actual_particle)%data%v_and_half = [ -2._8, 0._8, 0._8 ]
+          ! v_minus_half will be computed from v and the force in pepc.f90
+          particles(actual_particle)%data%v_minus_half = [ -2._8, 0._8, 0._8 ]
        else
           particles(actual_particle)%data%v = [ 2._8, 0._8, 0._8 ]
-          particles(actual_particle)%data%v_and_half = [ 2._8, 0._8, 0._8 ]
+          particles(actual_particle)%data%v_minus_half = [ 2._8, 0._8, 0._8 ]
        end if
        
     end do
+
+    initialized_v_minus_half = .true.
     
     ! timestep length
     dt = 0.0002
@@ -591,8 +606,9 @@ contains
          dt, &
          n_cpu, &
          my_rank, &
-         thermal_constant
-    
+         thermal_constant, &
+         initialized_v_minus_half
+   
     use module_mirror_boxes, only: &
          periodicity
 
@@ -636,7 +652,8 @@ contains
        
        particles(actual_particle)%x = [ offset + dx * (actual_particle-1), 0._8, 0._8 ]
        particles(actual_particle)%data%v = [ 0._8, 0._8, 0._8 ]
-       particles(actual_particle)%data%v_and_half = [ 0._8, 0._8, 0._8 ]
+! v_minus_half will be computed from v and the force in pepc.f90
+       particles(actual_particle)%data%v_minus_half = [ 0._8, 0._8, 0._8 ]
 
        particles(actual_particle)%data%q = dx ! to get a density of 1.0: 1/(particles between 0 and 1), this are half of the particles, so 1/real(all_part/2), which equals dx
        
@@ -652,7 +669,8 @@ contains
        
     end do
     
-    
+    initialized_v_minus_half = .true.
+
     ! timestep length
     dt = 0.00001
     
@@ -1063,7 +1081,7 @@ contains
        particles(p)%data%q           = 1._8
        particles(p)%label            = fences(my_rank-1) + p
        particles(p)%work             = 1._8
-       particles(p)%data%v_and_half  = [ 0._8, 0._8, 0._8 ]
+       particles(p)%data%v_minus_half  = [ 0._8, 0._8, 0._8 ]
        particles(p)%data%v           = [ 0._8, 0._8, 0._8 ]
        particles(p)%data%temperature = 0._8
        particles(p)%data%type        = PARTICLE_TYPE_DEFAULT   ! moving, gas..., see module_interaction_specific_types
