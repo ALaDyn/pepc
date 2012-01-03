@@ -51,7 +51,7 @@ module physvars
 
    integer :: ifile_cpu    ! O/P stream
 
-
+   logical :: initialized_v_minus_half = .false.  ! set this to .true. then v_minus_half is initialized in particle_setup or when data are read. otherwhise v_minus_half is computed from v befor entering the loop over timesteps
 
    ! I/O stuff
    integer :: dump_time, cp_time   ! When to dump, when to do a checkpoint (read-in)

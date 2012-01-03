@@ -28,7 +28,7 @@ module module_interaction_specific_types
       type t_particle_data
          real*8 :: q                 !< charge
          real*8 :: v(3)              !< velocity (same time as x)
-         real*8 :: v_and_half(3)     !< velocity (1/2 time step after x (t+1/2), for leap frog integrator)
+         real*8 :: v_minus_half(3)   !< velocity (1/2 time step after x (t-1/2), for leap frog integrator)
          real*8 :: temperature
          integer :: type             !< a bitfield for storing particle properties
       end type t_particle_data
@@ -105,12 +105,12 @@ module module_interaction_specific_types
         ! register particle data type
         blocklengths(1:nprops_particle_data)  = [1, 3, 3, 1, 1]
         types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_INTEGER]
-        call MPI_GET_ADDRESS( dummy_particle_data,             address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%q,           address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%v,           address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%v_and_half,  address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%temperature, address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%type,        address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data,              address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%q,            address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%v,            address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%v_minus_half, address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%temperature,  address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%type,         address(5), ierr )
         displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)

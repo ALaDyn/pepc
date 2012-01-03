@@ -35,13 +35,13 @@ module particle_pusher
          if( btest(particles(p)%data%type, PARTICLE_TYPE_FIXED) ) then
             ! don't move this particle
             particles(p)%data%v          = 0
-            particles(p)%data%v_and_half = 0
+            particles(p)%data%v_minus_half = 0
          else
             ! for gravity, mass and charge are equal so q * e / m = e
             ! because the velocity at the same timestep as the coordinate is needed for sph ( v(t + dt) ):
-            particles(p)%data%v          = particles(p)%data%v_and_half + delta_t * particles(p)%results%sph_force / 2._8
+            particles(p)%data%v          = particles(p)%data%v_minus_half + 3._8/2._8 * delta_t * particles(p)%results%sph_force
             ! v(t + dt *(1 + 1/2)) for leap frog
-            particles(p)%data%v_and_half = particles(p)%data%v_and_half + delta_t * particles(p)%results%sph_force
+            particles(p)%data%v_minus_half = particles(p)%data%v_minus_half + delta_t * particles(p)%results%sph_force
          end if
       end do
       !$OMP END PARALLEL DO
@@ -69,7 +69,7 @@ module particle_pusher
       
       !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(p)
       do p=ips,ipf
-         particles(p)%x = particles(p)%x + particles(p)%data%v_and_half * delt
+         particles(p)%x = particles(p)%x + particles(p)%data%v_minus_half * delt
       end do
       !$OMP END PARALLEL DO
 

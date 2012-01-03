@@ -71,7 +71,7 @@ module module_interaction_specific
         type(t_particle_data), intent(in) :: particle
         type(t_tree_node_interaction_data), intent(out) :: multipole
 
-        ! use velocity (v) at same time step as coordinate, not v_and_half
+        ! use velocity (v) at same time step as coordinate, not v_minus_half
         multipole = t_tree_node_interaction_data(particle_pos,particle%q, particle%v, particle%temperature, -13._8, -13._8 )
         ! set rho to -13 as dummy.
         ! TODO: find a better place to store rho
