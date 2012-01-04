@@ -27,6 +27,7 @@ module module_interaction_specific
   ! 1 = Bmax-MAC
   ! 2 = N^2 MAC
   ! 3 = asymmetric NN-MAC
+  ! 4 = symmetric NN-MAC
 
   real*8, public  :: theta2       = 0.36  !< square of multipole opening angle
   real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
@@ -230,6 +231,7 @@ contains
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine calc_force_prepare()
+    
     implicit none
     ! nothing to do here
   end subroutine calc_force_prepare
@@ -288,16 +290,16 @@ contains
     real*8, intent(in) :: boxlength2
 
     select case (mac_select)
-    case (0)
+    case(0)
        ! Barnes-Hut-MAC
        ! mac = (theta2 * dist2 > boxlength2)
-    case (1)
+    case(1)
        ! Bmax-MAC
        mac = (theta2 * dist2 > min(tree_nodes(node)%bmax**2,3.0*boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
     case(2)
        ! N^2 code
        mac = .false.
-    case (3)
+    case(3)
        ! NN-MAC: we may "interact" with the node if it is further away than maxdist2 --> this leads to the node *not* being put onto the NN-list (strange, i know)
        ! first line: original formulation, last line: after transition to formulation with only one square root
        ! mac = sqrt(dist2) - sqrt(3.* boxlength2)  >  sqrt(results%maxdist2)                                ! + sqrt(3.*boxlength2)
@@ -306,6 +308,15 @@ contains
        !     =      dist2                          > results%maxdist2 + 2.*sqrt( 3.*results%maxdist2*boxlength2) + 3.*boxlength2
        mac =      dist2                          > particle%results%maxdist2 +    sqrt(12.*particle%results%maxdist2*boxlength2) + 3.*boxlength2
        ! TODO NN: this estimation should be evaluated without (!!) any square roots for performance reasons (which does not seem to be trivial)
+    case(4)
+       ! dist - node_diagonal > maxdist2                             .OR. dist - node_diagonal > 2*h2
+       ! sqrt(dist2) - sqrt(3.*boxlength2) > sqrt(results%maxdist2)  .OR. sqrt(dist2) - sqrt(3.*boxlength2) > tree_nodes(node)%h*2.  ! + sqrt(3. * boxlength2)
+       ! sqrt(dist2) > sqrt(results%maxdist2) + sqrt(3.*boxlength2)  .OR. sqrt(dist2) > tree_nodes(node)%h*2. + sqrt(3.*boxlength2)  ! ^2
+       ! dist2 > results%maxdist2 + 2.*sqrt(results%maxdist2*3.*boxlength2) + 3.*boxlength2 .OR. dist2 > 4.*tree_nodes(node)%h**2 + 2.*sqrt(2.*tree_nodes(node)%h*3.*boxlength2) + 3. *boxlength2
+       ! 
+       mac = ( (dist2 > particle%results%maxdist2 + sqrt(12.*particle%results%maxdist2*boxlength2) + 3.*boxlength2) .or. &
+            (   dist2 > 4.*tree_nodes(node)%h**2 + sqrt(24.*tree_nodes(node)%h *boxlength2) + 3.*boxlength2) )
+
     case default
        write(*,*) "!!! value of mac_select is not allowed in mac:", mac_select
     end select
@@ -473,6 +484,10 @@ contains
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine update_nn_list(particle, inode, d, dist2)
+
+    use module_interaction_specific_types, only: &
+         max_neighbour_particles
+
     use module_pepc_types
     use treevars
     implicit none
@@ -483,19 +498,44 @@ contains
     type(t_particle), intent(inout) :: particle
 
     integer :: ierr, tmp(1)
-    
-    if (dist2 < particle%results%maxdist2) then
-       ! add node to NN_list
-       particle%results%neighbour_nodes(particle%results%maxidx) = inode
-       particle%results%dist2(particle%results%maxidx)           = dist2
-       particle%results%dist_vector(:,particle%results%maxidx) = d
-       tmp                       = maxloc(particle%results%dist2(1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
-       particle%results%maxidx   = tmp(1)
-       particle%results%maxdist2 = particle%results%dist2(particle%results%maxidx)
-    else
-       ! node is further away than furthest particle in nn-list --> can be ignored
-    endif
 
+    select case (mac_select)
+    case(3)
+
+       if (dist2 < particle%results%maxdist2) then
+          ! add node to NN_list
+          particle%results%neighbour_nodes(particle%results%maxidx) = inode
+          particle%results%dist2(particle%results%maxidx)           = dist2
+          particle%results%dist_vector(:,particle%results%maxidx) = d
+          tmp                       = maxloc(particle%results%dist2(1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
+          particle%results%maxidx   = tmp(1)
+          particle%results%maxdist2 = particle%results%dist2(particle%results%maxidx)
+       else
+          ! node is further away than furthest particle in nn-list --> can be ignored
+       endif
+
+    case(4)
+       
+       if ( (dist2 < particle%results%maxdist2) .or. ( dist2 < 4.*tree_nodes(inode)%h**2 ) ) then
+          ! add node to NN_list
+          particle%results%neighbour_nodes(particle%results%maxidx) = inode
+          particle%results%dist2(particle%results%maxidx)           = dist2
+          particle%results%dist_vector(:,particle%results%maxidx) = d
+          particle%results%maxidx   = particle%results%maxidx + 1
+          if( particle%results%maxidx > max_neighbour_particles ) then
+             write(*,*) "Number of neighbours found in symmetric neighbour search bigger than max_neighbour_particles. Increase this value, recompile and try again."
+             call MPI_ABORT(MPI_COMM_WORLD, ierr)
+          end if
+
+       else
+          ! node to far away --> can be ignored
+       endif
+
+    case default
+       write(*,*) "value of mac_select not allowed in update_nn_list:", mac_select
+       
+    end select
+    
   end subroutine update_nn_list
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

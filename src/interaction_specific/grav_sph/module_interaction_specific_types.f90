@@ -19,7 +19,7 @@ module module_interaction_specific_types
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      integer, private, parameter :: max_neighbour_particles = 50
+      integer, parameter :: max_neighbour_particles = 50
 
       integer :: num_neighbour_particles = 12
 

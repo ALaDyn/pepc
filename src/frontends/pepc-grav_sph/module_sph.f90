@@ -570,6 +570,9 @@ contains
     use module_pepc_types, only: &
          t_particle
     
+    use module_tree, only: &
+         tree_build_upwards
+
     use treevars, only: &
          tree_nodes
 
@@ -594,6 +597,16 @@ contains
     call sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
     
     call update_particle_props(np_local, particles)
+
+!    call tree_build_upwards(particles(1:np_local)%key, np_local)
+ 
+    particles(1:np_local)%results%maxidx = 1
+     
+   
+     
+
+
+
     
     call sph_sum_force(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
