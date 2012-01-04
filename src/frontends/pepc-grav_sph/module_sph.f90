@@ -284,7 +284,7 @@ contains
           call sph_kernel(  sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) ), h, kernel)
 
           particles(local_particle_index)%results%rho = particles(local_particle_index)%results%rho + &
-               tree_nodes(actual_node)%q *kernel
+               tree_nodes(actual_node)%charge *kernel
 
        end do
 
@@ -519,7 +519,7 @@ contains
           
           
           ! compute scalar part of the force: mass * ( p1/rho1^2 + p2/rho2^2 + art_vis ) * grad_kernel
-          scalar_force = tree_nodes(actual_node)%q * &
+          scalar_force = tree_nodes(actual_node)%charge * &
                ( &
                const * tree_nodes(actual_node)%temperature / tree_nodes(actual_node)%rho + &
                const * particles(local_particle_index)%data%temperature / particles(local_particle_index)%results%rho + &
@@ -534,7 +534,7 @@ contains
           if( sph_debug ) then
              write(50, *) my_rank, local_particle_index, particles(local_particle_index)%x(1), h1, &
                   particles(local_particle_index)%data%temperature, particles(local_particle_index)%results%rho, &
-                  actual_neighbour, tree_nodes(actual_node)%coc(1), distance, dist(1), grad_kernel_1, tree_nodes(actual_node)%q, & 
+                  actual_neighbour, tree_nodes(actual_node)%coc(1), distance, dist(1), grad_kernel_1, tree_nodes(actual_node)%charge, & 
                   tree_nodes(actual_node)%temperature, tree_nodes(actual_node)%h, tree_nodes(actual_node)%rho, &
                   scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
           end if

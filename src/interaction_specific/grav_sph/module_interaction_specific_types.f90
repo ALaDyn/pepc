@@ -26,7 +26,7 @@ module module_interaction_specific_types
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
-         real*8 :: q                 !< charge
+         real*8 :: q                 !< charge (equals mass in case of gravity)
          real*8 :: v(3)              !< velocity (same time as x)
          real*8 :: v_minus_half(3)   !< velocity (1/2 time step after x (t-1/2), for leap frog integrator)
          real*8 :: temperature
@@ -51,7 +51,7 @@ module module_interaction_specific_types
       !> Data structure for storing multiple moments of tree nodes
       type t_tree_node_interaction_data
         real*8 :: coc(3)     !< center of charge
-        real*8 :: q          !< charge (for particles)
+        real*8 :: charge     !< charge (for particles)
         real*8 :: v(1:3)     !< velocity
         real*8 :: temperature
         real*8 :: rho        !< sph density
@@ -137,7 +137,7 @@ module module_interaction_specific_types
         types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,             address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,         address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%q,           address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,           address(2), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%v,           address(3), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%temperature, address(4), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%rho,         address(5), ierr )

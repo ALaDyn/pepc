@@ -94,11 +94,11 @@ module module_interaction_specific
         nchild = size(children)
 
         parent%coc = [0._8, 0._8, 0._8]
-        parent%q = 0._8
+        parent%charge = 0._8
 
         do i=1,nchild
           parent%coc = parent%coc + children(i)%coc
-          parent%q   = parent%q   + children(i)%q
+          parent%charge   = parent%charge   + children(i)%charge
         end do
 
         parent%coc = parent%coc / nchild
