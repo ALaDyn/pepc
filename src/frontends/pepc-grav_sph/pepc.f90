@@ -127,7 +127,7 @@ program pepce
 !  call special_start(ispecial)
 
   ! initialize calc force params
-  mac_select  = 1 ! NN MAC
+  mac_select  = 3 ! NN MAC
   force_law   = 5 ! NN "Interaction"
 
   particles(:)%work = 1._8
@@ -160,10 +160,10 @@ program pepce
 
      call pepc_grow_tree(np_local, npart_total, particles)
 
-     mac_select = 1 ! nn-mac
-     force_law = 5  ! neighbour list force law
-     
      call pepc_particleresults_clear(particles, np_local)
+     
+     mac_select = 3 ! nn-mac
+     force_law = 5  ! neighbour list force law
      
      call pepc_traverse_tree(np_local, particles)
 
@@ -210,15 +210,14 @@ program pepce
      
      call pepc_grow_tree(np_local, npart_total, particles)
 
-
-     mac_select = 1 ! nn-mac
-     force_law = 5  ! neighbour list force law
-
      ! TODO: remove this debug output
      ! write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
      ! write(*,*) 'neigbour_boxes:', neighbour_boxes
 
      call pepc_particleresults_clear(particles, np_local)
+
+     mac_select = 3 ! nn-mac
+     force_law = 5  ! neighbour list force law
 
      call pepc_traverse_tree(np_local, particles)
 
