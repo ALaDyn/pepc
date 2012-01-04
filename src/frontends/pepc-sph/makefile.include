@@ -11,5 +11,4 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-sph/, $(FILES_SPH))
 SRC        += $(FILES_SPH_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_SPH_U))
 
-BACKEND = nearestneighbour
-
+BACKEND = sph

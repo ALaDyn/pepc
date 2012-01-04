@@ -1,4 +1,4 @@
 FILES_INT   = module_interaction_specific_types.f90 module_interaction_specific.f90 
 
 SRC        += $(FILES_INT)
-SRC_COPY   += $(addprefix $(INTSPECDIR)/nearestneighbour/, $(FILES_INT))
+SRC_COPY   += $(addprefix $(INTSPECDIR)/sph/, $(FILES_INT))
