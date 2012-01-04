@@ -118,6 +118,6 @@ pepclogo:
 	@echo "   \ \ \L\ \ \ \L\_\ \ \L\ \ \ \/\_\      The Pretty Efficient      "
 	@echo "    \ \ ,__/\ \  _\L\ \ ,__/\ \ \/_/_           Parallel Coulomb Solver "
 	@echo "     \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \                                 "
-	@echo "      \ \_\   \ \____/\ \_\   \ \____/           p.gibbon@fz-juelich.de"
+	@echo "      \ \_\   \ \____/\ \_\   \ \____/           pepc@fz-juelich.de"
 	@echo "       \/_/    \/___/  \/_/    \/___/                                  "
 	@echo ""

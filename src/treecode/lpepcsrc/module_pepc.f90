@@ -112,7 +112,7 @@ module module_pepc
         write(*,'(a)') "  \ \ \L\ \ \ \L\_\ \ \L\ \ \ \/\_\      The Pretty Efficient"
         write(*,'(a)') "   \ \ ,__/\ \  _\L\ \ ,__/\ \ \/_/_           Parallel Coulomb Solver"
         write(*,'(a)') "    \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \  "
-        write(*,'(a)') "     \ \_\   \ \____/\ \_\   \ \____/           p.gibbon@fz-juelich.de"
+        write(*,'(a)') "     \ \_\   \ \____/\ \_\   \ \____/           pepc@fz-juelich.de"
         write(*,'(a)') "      \/_/    \/___/  \/_/    \/___/   "
         write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."//)') &
                        SVNREVISION, frontendname, n_cpu
