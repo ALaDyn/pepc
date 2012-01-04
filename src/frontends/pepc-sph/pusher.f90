@@ -38,9 +38,9 @@ module particle_pusher
             particles(p)%data%v_minus_half = 0
          else
             ! for gravity, mass and charge are equal so q * e / m = e
-            ! because the velocity at the same timestep as the coordinate is needed for sph ( v(t + dt) ):
+            ! because the velocity at the same timestep as the coordinate is needed for sph ( v(t + dt) ), and v_minus_half is dt/2 behind:
             particles(p)%data%v          = particles(p)%data%v_minus_half + 3._8/2._8 * delta_t * particles(p)%results%sph_force
-            ! v(t + dt *(1 + 1/2)) for leap frog
+            ! v(t - dt/2) for leap frog
             particles(p)%data%v_minus_half = particles(p)%data%v_minus_half + delta_t * particles(p)%results%sph_force
          end if
       end do

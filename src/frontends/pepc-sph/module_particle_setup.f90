@@ -492,10 +492,10 @@ contains
     initialized_v_minus_half = .true.
     
     ! timestep length
-    dt = 0.001
+    dt = 0.0001
 
     ! num timesteps for comparison with analytical results
-    nt = 250
+    nt = 2500
 
     ! number of neighbour particles known to produce reasonable results
     num_neighbour_particles = 8
