@@ -59,7 +59,7 @@ $(LIBDIR)/libsl.a: $(LIBDIR)
 clean:
 	@echo "==== cleaning build and bin"
 	@$(RM) makefile.envs
-	@$(RM) $(BUILDDIR) $(BINDIR)
+	@$(RM) $(BUILDDIR) $(BINDIR)/*
 	@echo ""
 
 cleanlib:
@@ -70,6 +70,7 @@ cleanlib:
 	@echo ""
 
 cleanall: cleanlib clean
+	@(RM) @(BINDIR)
 	@echo "==== all cleaned"
 
 allclean: cleanall
