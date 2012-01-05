@@ -71,6 +71,7 @@ program pepce
 
   use module_pepc, only: &
        pepc_initialize, &
+       pepc_read_parameters_from_first_argument, &
        pepc_finalize, &
        pepc_grow_tree, &
        pepc_traverse_tree, &
@@ -98,6 +99,7 @@ program pepce
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-sph", my_rank, n_cpu, .true.)
+  call pepc_read_parameters_from_first_argument()
 
   ! Set up O/P files
   call openfiles

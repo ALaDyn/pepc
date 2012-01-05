@@ -64,6 +64,7 @@ program program_pepcb
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-b", my_rank, n_cpu, .true.)
+  call pepc_read_parameters_from_first_argument()
 
   t_start_prog=MPI_WTIME()
 

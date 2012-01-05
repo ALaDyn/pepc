@@ -24,24 +24,28 @@ module module_pepc
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    public pepc_initialize                !< once per simulation
+    public pepc_initialize                !< mandatory, once per simulation
 
-    public pepc_prepare                   !< once per simulation or after changing internal parameters
+    ! for intializing internal parameters, you might want to consider calling one of the following functions at least once per simulation
+    public pepc_read_parameters
+    public pepc_read_parameters_from_file_name
+    public pepc_read_parameters_from_first_argument
+
+    public pepc_prepare                   !< mandatory, once per simulation or after changing internal parameters
 
     public pepc_particleresults_clear     ! usually once per timestep
 
-    public pepc_grow_tree                 !< once per timestep
-    public pepc_traverse_tree             !< several times per timestep
-    public pepc_statistics                !< once per timestep
+    public pepc_grow_tree                 !< mandatory, once per timestep
+    public pepc_traverse_tree             !< mandatory, several times per timestep with different particles possible
+    public pepc_statistics                !< once or never per timestep
     public pepc_restore_particles         !< once or never per timestep
     public pepc_timber_tree               !< once or never per timestep
 
     public pepc_grow_and_traverse         !< once per timestep, calls pepc_grow_tree, pepc_traverse_tree, pepc_statistics, pepc_restore_particles, pepc_timber_tree
 
-    public pepc_finalize                  !< once per simulation
+    public pepc_finalize                  !< mandatory, once per simulation
 
     public pepc_get_para_file
-    public pepc_read_parameters
     public pepc_write_parameters
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -71,7 +75,7 @@ module module_pepc
     !> Call this function at program startup before any MPI calls
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi , db_level_in)
+    subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi, db_level_in)
       use treevars, only : me, num_pe, treevars_idim => idim
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
@@ -85,10 +89,6 @@ module module_pepc
       integer, intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
       logical, intent(in) :: init_mpi !< if set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
       integer, intent(in), optional :: db_level_in !< sets debug level for treecode kernel (overrides settings, that may be read from libpepc-section in input file)
-
-      integer, parameter :: para_file_id = 10
-      character(len=255) :: para_file_name
-      logical :: para_file_available
       integer :: ierr, provided
 
       integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
@@ -148,17 +148,6 @@ module module_pepc
       np_mult         = -45.
       weighted        =   1
 
-      ! read in parameter file
-      call pepc_get_para_file(para_file_available, para_file_name, my_rank)
-
-      if (para_file_available) then
-        open(para_file_id,file=para_file_name)
-        call pepc_read_parameters(para_file_id)
-        close(para_file_id)
-      else
-        call pepc_status("INIT WITH DEFAULT PARAMETERS")
-      end if
-
       ! create and register mpi types
       call register_lpepc_mpi_types()
 
@@ -166,10 +155,57 @@ module module_pepc
 
     end subroutine
 
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Initializes internal variables by reading them from the given a file
+    !> that is given as first argument to the actual executable
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine pepc_read_parameters_from_first_argument()
+      use module_debug, only : pepc_status
+      use treevars, only : me
+      implicit none
+      integer, parameter :: para_file_id = 10
+      character(len=255) :: para_file_name
+      logical :: para_file_available
+
+      ! read in parameter file
+      call pepc_get_para_file(para_file_available, para_file_name, me)
+
+      if (para_file_available) then
+        call pepc_status("INIT FROM FILE "//para_file_name)
+        call pepc_read_parameters_from_file_name(para_file_name)
+      else
+        call pepc_status("INIT WITH DEFAULT PARAMETERS")
+      end if
+    end subroutine
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Initializes internal variables by reading them from the given
+    !> filename using several namelists and initializes derived variables
+    !> if you just want to pass a handle of an open file,
+    !> consider using pepc_read_parameters()
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine pepc_read_parameters_from_file_name(filename)
+      implicit none
+      character(*), intent(in) :: filename
+      integer, parameter :: para_file_id = 10
+
+      open(para_file_id,file=trim(filename))
+      call pepc_read_parameters(para_file_id)
+      close(para_file_id)
+    end subroutine
+
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Initializes internal variables by reading them from the given
     !> filehandle using several namelists and initializes derived variables
+    !> if you just want to pass a filename, consider using pepc_read_parameters_from_file_name()
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_read_parameters(filehandle)

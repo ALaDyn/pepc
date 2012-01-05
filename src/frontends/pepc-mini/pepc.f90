@@ -33,6 +33,7 @@ program pepcmini
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-mini", my_rank, n_cpu, .true.)
+  call pepc_read_parameters_from_first_argument()
 
   ! Set up O/P files
   call openfiles

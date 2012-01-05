@@ -37,6 +37,7 @@ program pepce
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-e", my_rank, n_cpu, .true.)
+  call pepc_read_parameters_from_first_argument()
 
   call benchmark_pre
 

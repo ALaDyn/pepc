@@ -48,6 +48,7 @@ program pepc
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-mw", my_rank, n_cpu, .true.)
+  call pepc_read_parameters_from_first_argument()
 
   ! prepare a copy of the MPI-communicator
   call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_PEPC, ierr)
