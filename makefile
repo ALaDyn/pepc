@@ -45,7 +45,7 @@ all:
 	@echo ""
 	@echo "======== build all results:"
 	@echo "== available: " $(ALLFRONTENDS)
-	@echo "== build    : " `cd $(BINDIR) && ls $(ALLFRONTENDS)`
+	@echo "== build    : " `cd $(BINDIR) && ls $(ALLFRONTENDS) 2>/dev/null`
 	@echo ""
 
 libsl: $(LIBDIR)/libsl.a
