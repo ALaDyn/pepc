@@ -441,6 +441,9 @@ module module_tree
     !> leaf-keys exist. entries for leaves are completely valid while those
     !> for twigs have to be updated via a call to tree_build_upwards()
     !>
+    !> upon exit, the key_leaf property of any particle_list entry
+    !> is set appropriately
+    !>
     !> warning: in contrast to tree_build_upwards(), this function may *not*
     !> be called several times to add further particles etc.
     !>
@@ -454,7 +457,7 @@ module module_tree
       use module_timings
       use module_debug
       implicit none
-      type(t_particle), intent(in) :: particle_list(1:nparticles)
+      type(t_particle), intent(inout) :: particle_list(1:nparticles)
       integer, intent(in) :: nparticles
       integer*8, intent(out) :: leaf_keys(1:nparticles)
 
@@ -564,6 +567,9 @@ module module_tree
 
       nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
       ntwig_me = ntwig
+
+      ! copy leaf keys to particle datafield
+      particle_list(1:nparticles)%key_leaf = leaf_keys(1:nparticles)
 
       ! check if we did not miss any particles
       if (any(leaf_keys(1:nparticles) == 0_8)) then

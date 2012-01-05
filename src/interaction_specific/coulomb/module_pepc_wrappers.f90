@@ -93,6 +93,7 @@ module module_pepc_wrappers
             particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)],       &  ! position
                                               max(p_w(i), 1._8),       &  ! workload from last step
                                                            -1_8,       &  ! key - will be assigned later
+                                                           -1_8,       &  ! leaf key - will be assigned later
                                                      p_label(i),       &  ! particle label for tracking purposes
                                                              me,       &  ! particle owner
                                        t_particle_data( p_q(i)),       &  ! charge etc
@@ -138,6 +139,7 @@ module module_pepc_wrappers
         grid_particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)],       &  ! position
                                                               1.,       &  ! workload from last step
                                                             -1_8,       &  ! key - will be assigned later
+                                                            -1_8,       &  ! leaf key - will be assigned later
                                                       p_label(i),       &  ! particle label for tracking purposes
                                                               me,       &  ! particle owner
                                           t_particle_data( 0.0 ),       &  ! charge etc
