@@ -8,11 +8,12 @@ module module_walk
   namelist /walk_para_smpss/
 
   public tree_walk
-  public tree_walk_init
   public tree_walk_finalize
   public tree_walk_prepare
   public tree_walk_statistics
-  
+  public tree_walk_read_parameters
+  public tree_walk_write_parameters
+
 contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -30,39 +31,46 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
-  !> initializes walk specific parameters, reads them from file
-  !> if optional argument para_file_name is given
+  !> reads walk specific parameters from file
   !>
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine tree_walk_init(para_file_available, para_file_name, my_rank)
+  subroutine tree_walk_read_parameters(filehandle)
+    use module_debug, only: pepc_status
     implicit none
-    logical, intent(in) :: para_file_available
-    character(*), intent(in) :: para_file_name
-    integer, intent(in) :: my_rank
-    integer, parameter :: para_file_id = 47
+    integer, intent(in) :: filehandle
 
-    if (para_file_available) then
-        open(para_file_id,file=para_file_name)
-
-        if(my_rank .eq. 0) write(*,*) "reading parameter file, section walk_para_smpss: ", para_file_name
-        read(para_file_id,NML=walk_para_smpss)
-
-        close(para_file_id)
-    endif
-
-    if (my_rank == 0) then
-      write(*,'("MPI-MPSs walk")')
-    endif
+    call pepc_status("READ PARAMETERS, section walk_para_smpss")
+    read(filehandle, NML=walk_para_smpss)
 
   end subroutine
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> writes walk specific parameters to file
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine tree_walk_write_parameters(filehandle)
+    use module_debug, only: pepc_status
+    implicit none
+    integer, intent(in) :: filehandle
+
+    write(filehandle, NML=walk_para_smpss)
+
+  end subroutine
+
 
   subroutine tree_walk_finalize()
     implicit none
   end subroutine tree_walk_finalize
 
   subroutine tree_walk_prepare()
+    use treevars, only : me
     implicit none
-    ! nothing to do here
+
+    if (me == 0) then
+      write(*,'("MPI-MPSs walk")')
+    endif
   end subroutine
   
   subroutine tree_walk(nparticles_, particles_, &

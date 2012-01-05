@@ -5,6 +5,10 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pepc
+    use module_debug, only : debug_level
+    use treevars, only : np_mult
+    use module_spacefilling, only : curve_type
+    use module_domains, only : weighted
     implicit none
     private
 
@@ -22,7 +26,7 @@ module module_pepc
 
     public pepc_initialize                !< once per simulation
 
-    public pepc_prepare
+    public pepc_prepare                   !< once per simulation or after changing internal parameters
 
     public pepc_particleresults_clear     ! usually once per timestep
 
@@ -37,6 +41,8 @@ module module_pepc
     public pepc_finalize                  !< once per simulation
 
     public pepc_get_para_file
+    public pepc_read_parameters
+    public pepc_write_parameters
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -45,6 +51,7 @@ module module_pepc
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     logical :: pepc_initializes_mpi !< is set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
+    namelist /libpepc/ debug_level, np_mult, curve_type, weighted
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -65,13 +72,11 @@ module module_pepc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi , db_level_in)
-      use treevars, only : me, num_pe, np_mult, treevars_idim => idim
+      use treevars, only : me, num_pe, treevars_idim => idim
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
-      use module_spacefilling
       use module_domains
       use module_debug, only : pepc_status, debug_level
-      use module_interaction_specific, only : calc_force_init
       use module_utils, only : create_directory
       implicit none
       include 'mpif.h'
@@ -88,8 +93,6 @@ module module_pepc
 
       integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
                                                                    !  must ensure that only the main thread makes MPI calls."
-
-      namelist /libpepc/ debug_level, np_mult, curve_type, weighted
 
       call pepc_status('SETUP')
 
@@ -147,16 +150,13 @@ module module_pepc
 
       ! read in parameter file
       call pepc_get_para_file(para_file_available, para_file_name, my_rank)
-      call calc_force_init(para_file_available, para_file_name, my_rank)
-      call tree_walk_init(para_file_available, para_file_name, my_rank)
 
       if (para_file_available) then
         open(para_file_id,file=para_file_name)
-        if(my_rank .eq. 0) write(*,*) "reading parameter file, section libpepc: ", para_file_name
-        read(para_file_id,NML=libpepc)
+        call pepc_read_parameters(para_file_id)
         close(para_file_id)
       else
-        if ((my_rank .eq. 0) .and. (debug_level > 0)) write(*,*) "##### using default parameter for libpepc #####"
+        call pepc_status("INIT WITH DEFAULT PARAMETERS")
       end if
 
       ! create and register mpi types
@@ -165,6 +165,50 @@ module module_pepc
       call pepc_prepare(treevars_idim)
 
     end subroutine
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Initializes internal variables by reading them from the given
+    !> filehandle using several namelists and initializes derived variables
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine pepc_read_parameters(filehandle)
+      use module_debug, only : pepc_status
+      use module_interaction_specific, only : calc_force_read_parameters
+      use module_walk, only: tree_walk_read_parameters
+      implicit none
+      integer, intent(in) :: filehandle
+
+      call pepc_status("READ PARAMETERS")
+      rewind(filehandle)
+      call calc_force_read_parameters(filehandle)
+      rewind(filehandle)
+      call tree_walk_read_parameters(filehandle)
+      rewind(filehandle)
+      call pepc_status("READ PARAMETERS, section libpepc")
+      read(filehandle,NML=libpepc)
+
+    end subroutine
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Writes internal variables to the given filehandle
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine pepc_write_parameters(filehandle)
+      use module_debug, only : pepc_status
+      use module_interaction_specific, only : calc_force_write_parameters
+      use module_walk, only: tree_walk_write_parameters
+      implicit none
+      integer, intent(in) :: filehandle
+
+      call pepc_status("WRITE PARAMETERS")
+      call calc_force_write_parameters(filehandle)
+      call tree_walk_write_parameters(filehandle)
+      write(filehandle,NML=libpepc)
+
+    end subroutine
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>

@@ -14,6 +14,7 @@
 
 program pepc
 
+  use module_frontendsetup
   use module_pepc_types
   use physvars
   use module_timings

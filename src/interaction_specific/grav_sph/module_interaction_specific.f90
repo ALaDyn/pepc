@@ -49,7 +49,8 @@ module module_interaction_specific
   public calc_force_per_particle
   public mac
   public particleresults_clear
-  public calc_force_init
+  public calc_force_read_parameters
+  public calc_force_write_parameters
   public calc_force_finalize
   public calc_force_prepare
   public get_number_of_interactions_per_particle
@@ -190,39 +191,34 @@ contains
   end subroutine results_add
 
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > initializes interaction specific parameters, reads them from file
-  ! > if optional argument para_file_name is given
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_force_init(para_file_available, para_file_name, my_rank)
-    !        use module_fmm_framework, only: &
-    !             fmm_framework_init
-
-    !        use module_mirror_boxes, only: &
-    !             mirror_box_layers
-
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> reads interaction-specific parameters from file
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine calc_force_read_parameters(filehandle)
+    use module_debug, only: pepc_status
     implicit none
-    logical, intent(in) :: para_file_available
-    character(*), intent(in) :: para_file_name
-    integer, intent(in) :: my_rank
-    integer, parameter :: para_file_id = 47
+    integer, intent(in) :: filehandle
 
-    if (para_file_available) then
-       open(para_file_id,file=para_file_name)
+    call pepc_status("READ PARAMETERS, section calc_force_nearestneighbour")
+    read(filehandle, NML=calc_force_nearestneighbour)
 
-       if(my_rank .eq. 0) write(*,*) "reading parameter file, section calc_force_nearestneighbour: ", para_file_name
-       read(para_file_id,NML=calc_force_nearestneighbour)
+  end subroutine
 
-       close(para_file_id)
-    endif
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> writes interaction-specific parameters to file
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine calc_force_write_parameters(filehandle)
+    use module_debug, only: pepc_status
+    implicit none
+    integer, intent(in) :: filehandle
 
-    !        call fmm_framework_init(my_rank, wellsep=mirror_box_layers)
-    ! TODO: what ist that good for?
-    ! currently no periodic gravity
+    write(filehandle, NML=calc_force_nearestneighbour)
 
-  end subroutine calc_force_init
+  end subroutine
 
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -234,6 +230,9 @@ contains
     
     implicit none
     ! nothing to do here
+    !        call fmm_framework_init(my_rank, wellsep=mirror_box_layers)
+    ! TODO: what ist that good for?
+    ! currently no periodic gravity
   end subroutine calc_force_prepare
 
 

@@ -3,7 +3,6 @@
 !> Helper functions for checkpointing and restarting purposes
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#include "pepc_debug.h"
 module module_checkpoint
       implicit none
       include 'mpif.h'
@@ -11,8 +10,8 @@ module module_checkpoint
       private
 
       integer, parameter :: filehandle = 91
-      character(12), parameter :: directory = './particles/'
-      integer(KIND=MPI_OFFSET_KIND) :: max_header_size = 1024
+      character(12), parameter :: directory = './particles'
+      integer(KIND=MPI_OFFSET_KIND) :: max_header_size = 128
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -51,23 +50,41 @@ module module_checkpoint
           !>
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          subroutine write_particles_ascii(my_rank, itime, np_local, dp)
+          subroutine write_particles_ascii(my_rank, itime, np_local, dp, filename)
             use module_pepc_types
             use module_utils
+            use module_pepc, only : pepc_write_parameters
+            use module_debug, only : pepc_status
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
             type(t_particle), intent(in), dimension(np_local) :: dp
-            character(50) :: filename
+            character(100), intent(out) :: filename
+            logical :: firstcall  = .true.
+            character(50) :: dir
+            integer :: i
 
-            call create_directory(trim(directory))
-            write(filename,'(a,"particle_",i6.6,"_",i6.6,".dat")') trim(directory), itime, my_rank
-            if(my_rank == 0) write(*,*) "write particles in text mode to file ", filename
+            dir = trim(directory)//"/ascii/"
+            write(filename,'(a,"particle_",i6.6,"_",i6.6,".dat")') trim(dir), itime, my_rank
+            call pepc_status("DUMP PARTICLES ASCII: "//filename)
+
+            if (firstcall) then
+              call create_directory(trim(directory))
+              call create_directory(trim(dir))
+              firstcall = .false.
+            endif
+
             open(filehandle, file=trim(filename), STATUS='REPLACE')
-
-            write(filehandle,*) "# particle positions at timestep ", itime, ": x y z vx vy vz q m pot ex ey ez pelabel"
-            write(filehandle,'(12E14.4E2," ",I16.12)') dp(1:np_local)
-
+            do i=1, np_local
+              write(filehandle,*) dp(i)
+            end do
             close(filehandle)
+
+            filename = trim(filename)//".h"
+            if (my_rank == 0) then
+              open(filehandle,file=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
+              call pepc_write_parameters(filehandle)
+              close(filehandle)
+            endif
           end subroutine
 
 
@@ -76,22 +93,39 @@ module module_checkpoint
           !>
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          subroutine write_particles_binary(my_rank, itime, np_local, dp)
+          subroutine write_particles_binary(my_rank, itime, np_local, dp, filename)
             use module_pepc_types
             use module_utils
+            use module_pepc, only : pepc_write_parameters
+            use module_debug, only : pepc_status
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
             type(t_particle), intent(in), dimension(np_local) :: dp
-            character(50) :: filename
+            character(100), intent(out) :: filename
+            logical :: firstcall  = .true.
 
-            call create_directory(trim(directory))
-            write(filename,'(a,"particle_",i6.6,"_",i6.6,".bin")') trim(directory), itime, my_rank
-            if(my_rank == 0) write(*,*) "write particles in binary mode to file ", filename
+            character(50) :: dir
+
+            dir = trim(directory)//"/binary/"
+            write(filename,'(a,"particle_",i6.6,"_",i6.6,".bin")') trim(dir), itime, my_rank
+            call pepc_status("DUMP PARTICLES BINARY: "//filename)
+
+            if (firstcall) then
+              call create_directory(trim(directory))
+              call create_directory(trim(dir))
+              firstcall = .false.
+            endif
+
             open(filehandle, file=trim(filename), STATUS='REPLACE', ACCESS="STREAM")
-
-             write(filehandle) dp(1:np_local)
-
+            write(filehandle) dp(1:np_local)
             close(filehandle)
+
+            filename = trim(filename)//".h"
+            if (my_rank == 0) then
+              open(filehandle,file=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
+              call pepc_write_parameters(filehandle)
+              close(filehandle)
+            endif
           end subroutine
 
 
@@ -100,23 +134,31 @@ module module_checkpoint
           !>
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          subroutine write_particles_mpiio(comm, my_rank, itime, trun, np_local, n_total, dp)
+          subroutine write_particles_mpiio(comm, my_rank, itime, np_local, n_total, dp, filename)
             use module_pepc_types
             use module_debug
             use module_utils
+            use module_pepc, only : pepc_write_parameters
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
             integer*8, intent(in) :: n_total
             integer, intent(in) :: comm
-            real*8, intent(in) :: trun
             type(t_particle), intent(in) :: dp(np_local)
-            character(50) :: filename
+            character(100), intent(out) :: filename
             integer :: fh, ierr, status(MPI_STATUS_SIZE)
             integer(KIND=MPI_OFFSET_KIND) :: disp
+            logical :: firstcall  = .true.
+            character(50) :: dir
 
-            call create_directory(trim(directory))
-            write(filename,'(a,"particle_",i6.6,".mpi")') trim(directory), itime
-            if(my_rank == 0) write(*,*) "write particles using MPI-IO to file ", filename
+            dir = trim(directory)//"/mpi/"
+            write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime
+            call pepc_status("DUMP PARTICLES MPI: "//filename)
+
+            if (firstcall) then
+              call create_directory(trim(directory))
+              call create_directory(trim(dir))
+              firstcall = .false.
+            endif
 
             call MPI_FILE_OPEN(comm,filename,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
 
@@ -129,7 +171,6 @@ module module_checkpoint
             if (my_rank == 0) then
               call MPI_FILE_WRITE(fh, n_total, 1, MPI_INTEGER8, status, ierr) ! # particles
               call MPI_FILE_WRITE(fh, itime,   1, MPI_INTEGER,  status, ierr) ! Last successful timestep (new ts)
-              call MPI_FILE_WRITE(fh, trun,    1, MPI_REAL,     status, ierr) ! current simulation time
               call MPI_FILE_GET_POSITION(fh, disp, ierr)
 
               if (disp > max_header_size) then
@@ -145,6 +186,13 @@ module module_checkpoint
             call MPI_FILE_SYNC(fh,ierr)
             call MPI_FILE_CLOSE(fh,ierr)
 
+            filename = trim(filename)//".h"
+            if (my_rank == 0) then
+              open(filehandle,file=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
+              call pepc_write_parameters(filehandle)
+              close(filehandle)
+            endif
+
           end subroutine
 
 
@@ -154,22 +202,25 @@ module module_checkpoint
           !>
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          subroutine read_particles_mpiio(itime_in, comm, my_rank, n_cpu, itime, trun, np_local, n_total, dp)
+          subroutine read_particles_mpiio(itime_in, comm, my_rank, n_cpu, itime, np_local, n_total, dp)
             use module_pepc_types
             use module_debug
+            use module_pepc, only : pepc_read_parameters
             implicit none
             integer, intent(in) :: my_rank, n_cpu, itime_in
             integer, intent(out) :: itime, np_local
             integer*8, intent(out) :: n_total
-            real*8, intent(out) :: trun
             integer, intent(in) :: comm
             type(t_particle), allocatable :: dp(:)
             character(50) :: filename
             integer :: fh, ierr, status(MPI_STATUS_SIZE)
             integer*8 :: remain
 
-            write(filename,'(a,"particle_",i6.6,".mpi")') trim(directory), itime_in
-            if(my_rank == 0) write(*,*) "loading particles using MPI-IO from file", filename
+            character(50) :: dir
+
+            dir = trim(directory)//"/mpi/"
+            write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime
+            call pepc_status("READ PARTICLES MPI: "//filename)
 
             call MPI_FILE_OPEN(comm,trim(filename),MPI_MODE_RDONLY,MPI_INFO_NULL,fh,ierr)
 
@@ -181,7 +232,6 @@ module module_checkpoint
             call MPI_FILE_SET_VIEW(fh, 0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
             call MPI_FILE_READ(fh, n_total, 1, MPI_INTEGER8, status, ierr) ! # particles
             call MPI_FILE_READ(fh, itime,   1, MPI_INTEGER,  status, ierr) ! Last successful timestep (new ts)
-            call MPI_FILE_READ(fh, trun,    1, MPI_REAL,     status, ierr) ! current simulation time
 
             np_local = int(n_total/n_cpu, kind(np_local))
             remain = n_total-np_local*n_cpu
@@ -197,6 +247,11 @@ module module_checkpoint
             ! Close file
             call MPI_FILE_CLOSE(fh,ierr)
 
+            if (my_rank == 0) then
+              open(filehandle)
+              call pepc_read_parameters(filehandle)
+              close(filehandle)
+            endif
           end subroutine
 
 

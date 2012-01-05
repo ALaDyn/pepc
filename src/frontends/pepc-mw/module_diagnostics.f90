@@ -132,23 +132,34 @@ module module_diagnostics
           subroutine write_particles_type(binary, ascii, mpiio, vtk, final)
             use physvars
             use module_checkpoint
+            use module_namelist
             implicit none
             include 'mpif.h'
             logical, intent(in) :: binary, ascii, mpiio, vtk, final
             integer*8 :: npart
+            character(100) :: filename
 
             if (binary .or. ascii .or. mpiio) then
 
               npart = npart_total ! TODO: conversion real*4 --> real*8 will be unneccessary soon
 
               !!! write particle date as a binary file
-              if (binary) call write_particles_binary(my_rank, itime, np_local, particles)
+              if (binary) then
+                call write_particles_binary(my_rank, itime, np_local, particles, filename)
+                call write_frontend_parameters_to_file(filename)
+              endif
 
               !!! write particle date as a text file
-              if (ascii) call write_particles_ascii(my_rank, itime, np_local, particles)
+              if (ascii) then
+                call write_particles_ascii(my_rank, itime, np_local, particles, filename)
+                call write_frontend_parameters_to_file(filename)
+              endif
 
               !!! write particle checkpoint data using mpi-io
-              if (mpiio) call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, trun, np_local, npart, particles)
+              if (mpiio) then
+                call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, np_local, npart, particles, filename)
+                call write_frontend_parameters_to_file(filename)
+              endif
 
             endif
 
@@ -196,7 +207,7 @@ module module_diagnostics
               if (ascii)  write(*,*) "read_particles(): ascii mode unsupported" !call read_particles_ascii(my_rank, itime, np_local, dp)
 
               !!! read particle checkpoint data using mpi-io
-              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, trun, np_local, npart, particles)
+              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, np_local, npart, particles)
 
               npart_total = npart
 

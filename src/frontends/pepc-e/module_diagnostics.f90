@@ -62,21 +62,23 @@ module module_diagnostics
             include 'mpif.h'
             logical, intent(in) :: binary, ascii, mpiio, vtk, final
             integer*8 :: npart
-            real*8 :: trun_
+            character(100) :: filename
 
             if (binary .or. ascii .or. mpiio) then
 
               npart = npart_total ! TODO: conversion real*4 --> real*8 will be unneccessary soon
-              trun_ = trun
 
               !!! write particle date as a binary file
-              if (binary) call write_particles_binary(my_rank, itime, np_local, particles)
+              if (binary) call write_particles_binary(my_rank, itime, np_local, particles, filename)
+              ! TODO: at this point, we should also write all frontend-parameters to file "filename", see pepc-mw
 
               !!! write particle date as a text file
-              if (ascii) call write_particles_ascii(my_rank, itime, np_local, particles)
+              if (ascii) call write_particles_ascii(my_rank, itime, np_local, particles, filename)
+              ! TODO: at this point, we should also write all frontend-parameters to file "filename", see pepc-mw
 
               !!! write particle checkpoint data using mpi-io
-              if (mpiio) call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, trun_, np_local, npart, particles)
+              if (mpiio) call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, np_local, npart, particles, filename)
+              ! TODO: at this point, we should also write all frontend-parameters to file "filename", see pepc-mw
             endif
 
 
@@ -114,7 +116,6 @@ module module_diagnostics
             logical, intent(in) :: binary, ascii, mpiio
             integer, intent(in) :: itime_in_
             integer*8 :: npart
-            real*8 :: trun_
 
             if (binary .or. ascii .or. mpiio) then
 
@@ -125,10 +126,9 @@ module module_diagnostics
               if (ascii)  write(*,*) "read_particles(): ascii mode unsupported" !call read_particles_ascii(my_rank, itime, np_local, dp)
 
               !!! read particle checkpoint data using mpi-io
-              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, trun_, np_local, npart, particles)
+              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, np_local, npart, particles)
 
               npart_total = npart
-              trun = trun_
 
             endif
 

@@ -9,6 +9,9 @@
 !
 !  ================================
 
+module module_frontendsetup
+
+contains
 
 subroutine pepc_setup()
   use physvars
@@ -23,6 +26,7 @@ subroutine pepc_setup()
   use module_units
   use module_fields
   use module_interaction_specific, only : eps2
+  use module_namelist
   implicit none
 
   integer :: ifile
@@ -30,14 +34,6 @@ subroutine pepc_setup()
   character(255) :: parameterfile
   logical :: read_param_file
 
-  namelist /pepcmw/ &
-       ne,  eps, V0_eV, nt, dt, idump, itime_in, idump_vtk, idump_checkpoint, idump_binary, treediags, & ! fundamental stuff
-       ispecial, rhoe_nm3, Zion, Aion, Te_eV, Ti_eV, Te_K, Ti_K, rngseed, &   ! experimental setup
-       workflow_setup, &                                             ! workflow
-       integrator_scheme, enable_drift_elimination, &                ! pusher configuration
-       beam_config_in, vosc,omega, sigma, t_pulse_fs, theta_inc, rho_track, omega_wpl, I0_Wpercm2, lambda_nm, & ! laser config
-       t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction, &            ! periodicity config
-       field_dump_ncells, ngx, ngy, ngz                              ! diagnostics config
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -224,6 +220,6 @@ subroutine pepc_setup()
 
 end subroutine pepc_setup
 
-
+end module
 
 

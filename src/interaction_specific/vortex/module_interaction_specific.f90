@@ -41,7 +41,8 @@ module module_interaction_specific
       public calc_force_per_particle
       public mac
       public particleresults_clear
-      public calc_force_init
+      public calc_force_read_parameters
+      public calc_force_write_parameters
       public calc_force_finalize
       public calc_force_prepare
       public get_number_of_interactions_per_particle
@@ -201,29 +202,34 @@ module module_interaction_specific
       end subroutine
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
-        !> initializes interaction specific parameters, redas them from file
-        !> if optional argument para_file_name is given
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_init(para_file_available, para_file_name, my_rank)
-          implicit none
-          logical, intent(in) :: para_file_available
-          character(*), intent(in) :: para_file_name
-          integer, intent(in) :: my_rank
-          integer, parameter :: para_file_id = 47
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> reads interaction-specific parameters from file
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_read_parameters(filehandle)
+        use module_debug, only: pepc_status
+        implicit none
+        integer, intent(in) :: filehandle
 
-          if (para_file_available) then
-            open(para_file_id,file=para_file_name)
+        call pepc_status("READ PARAMETERS, section calc_force_vortex")
+        read(filehandle, NML=calc_force_vortex)
 
-            if(my_rank .eq. 0) write(*,*) "reading parameter file, section calc_force_vortex: ", para_file_name
-            read(para_file_id,NML=calc_force_vortex)
+      end subroutine
 
-            close(para_file_id)
-          endif
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> writes interaction-specific parameters to file
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_write_parameters(filehandle)
+        use module_debug, only: pepc_status
+        implicit none
+        integer, intent(in) :: filehandle
 
-        end subroutine
+        write(filehandle, NML=calc_force_vortex)
+
+      end subroutine
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
