@@ -71,6 +71,7 @@ module module_domains
         real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
 
         integer :: state(MPI_STATUS_SIZE), ierr
+        logical :: fixedduplicate
 
         ! arrays for parallel sort
 
@@ -248,13 +249,20 @@ module module_domains
             if (particles(i)%key == particles(i+1)%key) then
                 DEBUG_INFO('("Identical keys found for i = ", I0, " and its successor, key = ", O0, ", labels = ", I0,x, I0)', i, particles(i)%key, particles(i)%label, particles(i+1)%label)
 
+                fixedduplicate = .false.
+
                 ! first, we try to shift down the lower key
-                if ((i >= 2) .and. (particles(i)%key - 1 .ne. particles(i-1)%key)) then
-                  particles(i)%key = particles(i)%key - 1
-                  ! adjust position to fit key
-                  call key_to_coord_dim(particles(i)%key, particles(i)%x, idim, particles(i)%x)
-                  DEBUG_INFO('("shifting (i)-th particles key down to ", O0)', particles(i)%key)
-                else
+                if (i >= 2) then ! do not merge both if-statements, since in case of compiler optimization rearranging both conditions, an acces to particles(i-1=0) might occur
+                  if (particles(i)%key - 1 .ne. particles(i-1)%key) then
+                    particles(i)%key = particles(i)%key - 1
+                    ! adjust position to fit key
+                    call key_to_coord_dim(particles(i)%key, particles(i)%x, idim, particles(i)%x)
+                    DEBUG_INFO('("shifting (i)-th particles key down to ", O0)', particles(i)%key)
+                    fixedduplicate = .true.
+                  endif
+                endif
+
+                if (.not. fixedduplicate) then
                   ! we have to shift up the upper key - if the keys are dense, this might propagate further
                   ! upwards until a gap, i.e. particles(i+1)%key - particles(i)%key > 1, exists
                   particles(i+1)%key = particles(i+1)%key + 1
