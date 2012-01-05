@@ -40,6 +40,10 @@
         write(debug_stdout, format) __VA_ARGS__;    \
         call debug_mpi_abort();
 
+#define DEBUG_ERROR_NO_DIAGFILE(format, ...)         \
+        write(debug_stdout, format) __VA_ARGS__;    \
+        call debug_mpi_abort();
+
 #define DEBUG_DATA(format, ...)                    \
         call debug_ipefile_open();                  \
           write(debug_ipefile, format) __VA_ARGS__; \

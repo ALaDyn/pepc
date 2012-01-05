@@ -34,6 +34,31 @@ contains
   end subroutine
 
 
+  !> checks if MPI_IN_PLACE might be damaged and aborts the application if necessary
+  subroutine MPI_IN_PLACE_test()
+    use module_debug
+    implicit none
+    include 'mpif.h'
+
+    integer :: ierr, n_cpu
+    integer, parameter :: initval = 47
+    integer :: data = initval
+
+
+    ! Get the number of MPI tasks
+    call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
+
+    call MPI_ALLREDUCE(MPI_IN_PLACE, data, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+    if (initval*n_cpu .ne. data) then
+      DEBUG_ERROR_NO_DIAGFILE('(a,/)','Serious Issue: MPI_IN_PLACE is not working in your configuration of MPI distribution, compiler(flags) and compiler-optimization.',
+                          'If you are using GCC, you might want to deactivate link time optimization (flags -flto, -fwhole-program, etc.).',
+                          'If running on OSX, please update to at least OpenMPI 1.5.5 ore use MPICH2 (see also https://svn.open-mpi.org/trac/ompi/ticket/1982).')
+    endif
+
+  end subroutine
+
+
   !  ================================
   !
   !         SORT_HEAP

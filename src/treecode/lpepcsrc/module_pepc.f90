@@ -81,7 +81,7 @@ module module_pepc
       use module_walk
       use module_domains
       use module_debug, only : pepc_status, debug_level
-      use module_utils, only : create_directory
+      use module_utils, only : create_directory, MPI_IN_PLACE_test
       implicit none
       include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
@@ -102,6 +102,8 @@ module module_pepc
         ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
         call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
       endif
+
+      call MPI_IN_PLACE_test()
 
       ! Get the id number of the current task
       call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
