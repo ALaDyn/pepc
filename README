@@ -3,9 +3,9 @@
 =       PEPC -  Pretty Efficient Parallel Coulomb-solver
 =
 =       Authors:  Paul Gibbon
-=		  Lukas Arnold
-=		  Mathias Winkel
-=		  Robert Speck
+=                 Lukas Arnold
+=                 Mathias Winkel
+=                 Robert Speck
 =                 Forschungszentrum Juelich GmbH
 =                 Juelich Supercomputing Centre
 =
@@ -40,33 +40,33 @@ to show information/recommendation on machine specifics.
 After setting the proper environment (modules, paths) 
 call 
 
-"make"
+"make pepc-e"
 
 to build the pepce frontend into the ./bin/ directory. 
 Parallel make (i.e. "make -j") should work.
 
 There are several different frontends available at the moment:
 
-pepcb:    Laser/beam-plasma with magnetic fields
-pepce:    pure electrostatics
-            simple molecular dynamics, 
-            some diagnostics for energy, performance, vtk output etc.
-pepcmini: pure electrostatics
-            simple molecular dynamics
-            no diagnostics
-            minimum requirements to get pepc running
-pepcmw:   frontend for laser-plasma interaction (experimental)
-pepcs:    library version for inclusion in ScaFaCoS project
-pepcnn:   tree-based nearest neighbour search
-pepcsph:  gravitation and smoothed particle hydrodynamics (sph)
-            for astrophysics research (experimental)
-pepcv:    vortex dynamics using the vortex particle method
+pepc-b:    Laser/beam-plasma with magnetic fields
+pepc-e:    pure electrostatics
+             simple molecular dynamics, 
+             some diagnostics for energy, performance, vtk output etc.
+pepc-mini: pure electrostatics
+             simple molecular dynamics
+             no diagnostics
+             minimum requirements to get pepc running
+pepc-mw:   frontend for laser-plasma interaction (experimental)
+pepc-s:    library version for inclusion in ScaFaCoS project
+pepc-nn:   tree-based nearest neighbour search
+pepc-sph:  gravitation and smoothed particle hydrodynamics (sph)
+           for astrophysics research (experimental)
+pepc-v:    vortex dynamics using the vortex particle method
 
 To build an alternative frontend, just call
 
-"make pepcmini"
+"make pepc-mini"
 or
-"make pepcmw"
+"make pepc-mw"
 
 All frontends can be built using 
 
@@ -87,19 +87,18 @@ Then you can run pepc from there, e.g.
 "mkdir rundir"
 "cp run.h rundir/"
 "cd rundir"
-"mpirun -np 4 ../bin/pepce ./run.h"
+"mpirun -np 4 ../bin/pepc-e ./run.h"
 
 The file run.h contains some user-adjustable parameters which
 are explained therein.
 
 If you want to use checkpointing, particle data output and
 vtk file creation (see idump_XXX-parameters for details), 
-you have to provide two additional directories inside rundir:
+you will find the output in two additional directories 
+inside rundir that are created automatically:
 
-
-"cd rundir"
-"mkdir vtk"
-"mkdir "particles"
+"vtk"
+"particles"
 
 
 ============================================================
@@ -146,12 +145,16 @@ you might start by copying and modifying the pepc-mini frontend, which is a
 very simple coulomb-MD programme. It uses the coulomb backend, that implements
 an expansion of the plummer potential 1/sqrt(r^2+eps^2) up to quadrupole order.
 
-For being able to compile your frontend, you have to add some lines to the
-main makefile (inside the pepc root directory). Again, you can copy and modify 
-the pepc-mini lines there as a first start.
+Take care that your frontend-directory is called "pepc-something" with no 
+further minus sign ("-") to be automatically recognized in the build system.
 
 If you want to provide an own interaction-specific backend (for using other
 multipole orders and/or force laws), just copy and modify the coulomb subdirectory
 there. The backends do not have to be registered in some makefile, but are selected 
 inside the main makefile by creating a dependency on lippepc.backend_directory_name
-instead of libpepc.coulomb.
+instead of libpepc.coulomb. In case you only need to modify the interaction specific
+types but not the functions that are dealing with them (for example for adding 
+velocity, mass, etc.), take a look at the coulomb-backend. There, this is done for the
+pepc-mini frontend, that uses other types than for example pepc-b while still
+using the same force expression. See also variable BACKENDTYPE in pepc-mini's 
+makefile.include.
