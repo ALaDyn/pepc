@@ -207,6 +207,9 @@ contains
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine particle_setup_sphere(fences)
 
+    use physvars, only: &
+         initialized_v_minus_half
+
     implicit none
     integer, intent(in) :: fences(-1:n_cpu-1)
     integer :: mpi_cnt, p
@@ -219,7 +222,7 @@ contains
           yt = 1.0_8
           zt = 1.0_8
           
-          do while ( (xt*xt + yt*yt + zt*zt) > 0.5_8)
+          do while ( (xt*xt + yt*yt + zt*zt) > 0.5_8**2)
              xt = par_rand() - 0.5_8
              yt = par_rand() - 0.5_8
              zt = par_rand() - 0.5_8
@@ -227,9 +230,16 @@ contains
 
           if ( my_rank .eq. mpi_cnt .and. p .le. np_local ) then
              particles(p)%x = [ xt, yt, zt ]
+             particles(p)%data%q = 1._8/real(npart_total, 8)
+             particles(p)%data%temperature = 1.
+                      
+             
           end if
        end do
     end do
+
+    initialized_v_minus_half = .true.
+
 
   end subroutine particle_setup_sphere
 
