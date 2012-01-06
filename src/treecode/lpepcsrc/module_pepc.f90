@@ -161,12 +161,17 @@ module module_pepc
     !>
     !> Initializes internal variables by reading them from the given a file
     !> that is given as first argument to the actual executable
+    !> the optional parameters file_available and filename return
+    !> whether and which file was used
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_read_parameters_from_first_argument()
+    subroutine pepc_read_parameters_from_first_argument(file_available, filename)
       use module_debug, only : pepc_status
       use treevars, only : me
       implicit none
+      character(*), optional :: filename
+      logical, optional :: file_available
+
       integer, parameter :: para_file_id = 10
       character(len=255) :: para_file_name
       logical :: para_file_available
@@ -174,11 +179,15 @@ module module_pepc
       ! read in parameter file
       call pepc_get_para_file(para_file_available, para_file_name, me)
 
+      if (present(file_available)) file_available = para_file_available
+
       if (para_file_available) then
         call pepc_status("INIT FROM FILE "//para_file_name)
         call pepc_read_parameters_from_file_name(para_file_name)
+        if (present(filename)) filename = para_file_name
       else
         call pepc_status("INIT WITH DEFAULT PARAMETERS")
+        if (present(filename)) filename = ''
       end if
     end subroutine
 
