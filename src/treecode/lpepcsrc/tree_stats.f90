@@ -16,6 +16,7 @@ subroutine tree_stats(timestamp)
   use module_branching
   use module_debug, only : pepc_status
   use module_htable, only : maxaddress
+  use module_utils, only : create_directory
   implicit none
   include 'mpif.h'
 
@@ -29,6 +30,8 @@ subroutine tree_stats(timestamp)
   real*8 :: work_imbal=0.
   real*8 :: work_imbal_max, work_imbal_min  ! load stats
   integer ::  part_imbal_max, part_imbal_min
+
+  logical :: firstcall = .true.
 
    call pepc_status('STATISTICS')
 
@@ -66,6 +69,11 @@ subroutine tree_stats(timestamp)
   total_part = sum(nparticles)
 
   if (me.eq.0) then
+    if (firstcall) then
+      call create_directory("stats")
+      firstcall = .false.
+    endif
+
     write(cfile,'("stats/stats.",i6.6)') timestamp
   
     open (60,file=trim(cfile))

@@ -80,7 +80,7 @@ module module_pepc
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
       use module_domains
-      use module_debug, only : pepc_status, debug_level
+      use module_debug, only : pepc_status, debug_level, dbg, DBG_LOADFILE, DBG_TIMINGFILE
       use module_utils, only : create_directory, MPI_IN_PLACE_test
       implicit none
       include 'mpif.h'
@@ -133,9 +133,8 @@ module module_pepc
       ! create all necessary directories
       if (my_rank == 0) then
         call create_directory("diag")
-        call create_directory("load")
-        call create_directory("stats")
-        call create_directory("timing")
+        if( dbg(DBG_LOADFILE) )    call create_directory("load")
+        if ( dbg(DBG_TIMINGFILE) ) call create_directory("timing")
       endif
 
       ! copy call parameters to treevars module
