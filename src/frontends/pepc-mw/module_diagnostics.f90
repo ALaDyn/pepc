@@ -137,7 +137,7 @@ module module_diagnostics
             include 'mpif.h'
             logical, intent(in) :: binary, ascii, mpiio, vtk, final
             integer*8 :: npart
-            character(100) :: filename
+            character(255) :: filename
 
             if (binary .or. ascii .or. mpiio) then
 
@@ -192,11 +192,14 @@ module module_diagnostics
           subroutine read_particles_type(itime_in_, binary, ascii, mpiio)
             use physvars
             use module_checkpoint
+            use module_namelist
+            use module_prepare
             implicit none
             include 'mpif.h'
             logical, intent(in) :: binary, ascii, mpiio
             integer, intent(in) :: itime_in_
             integer*8 :: npart
+            character(255) :: filename
 
             if (binary .or. ascii .or. mpiio) then
 
@@ -207,9 +210,14 @@ module module_diagnostics
               if (ascii)  write(*,*) "read_particles(): ascii mode unsupported" !call read_particles_ascii(my_rank, itime, np_local, dp)
 
               !!! read particle checkpoint data using mpi-io
-              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, np_local, npart, particles)
+              if (mpiio) then
+                call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, np_local, npart, particles, filename)
+                call read_frontend_parameters_from_file(filename)
+              endif
 
               npart_total = npart
+
+              call pepcmw_prepare()
 
             endif
 

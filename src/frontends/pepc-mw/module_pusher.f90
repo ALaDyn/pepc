@@ -186,7 +186,7 @@ module module_pusher
 		  integer, intent(in) :: scheme
 
 		  integer p, i, ne_loc, ierr
-		  real*8, dimension(nppm) :: uhx, uhy, uhz, accx, accy, accz
+		  real*8, dimension(np_local) :: uhx, uhy, uhz, accx, accy, accz
 		  real*8 :: sum_vxe, sum_vye, sum_vze, sum_v2e, sum_2ve, acmax
 		  real*8 :: delta_u
 		  real*8 :: sum_vxi, sum_vyi, sum_vzi, sum_v2i, sum_2vi, mass_eqm

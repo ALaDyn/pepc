@@ -14,7 +14,8 @@
 
 program pepc
 
-  use module_frontendsetup
+  use module_prepare
+  use module_namelist
   use module_pepc_types
   use physvars
   use module_timings
@@ -39,6 +40,8 @@ program pepc
   include 'mpif.h'
 
   integer :: vtk_step, ierr, num_force_particles
+  logical :: para_file_available
+  character(255) :: para_file_name
 
   integer :: ifile
   type(acf) :: momentum_acf
@@ -48,7 +51,7 @@ program pepc
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-mw", my_rank, n_cpu, .true.)
-  call pepc_read_parameters_from_first_argument()
+  call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)
 
   ! prepare a copy of the MPI-communicator
   call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_PEPC, ierr)
@@ -63,9 +66,13 @@ program pepc
   if (my_rank==0) call stamp(15,1)
 
   ! Each CPU gets copy of initial data
-  call pepc_setup()
+  if (para_file_available) call read_frontend_parameters_from_file(para_file_name)
 
-  ! Set up particles
+  call pepcmw_prepare()
+
+  if (my_rank == 0) write(*,*) "Starting PEPC-MW with",n_cpu," Processors, simulating",np_local, " Particles on each Processor in",nt,"timesteps..."
+
+  ! Set up particles - in case if ispecial ==-1, particles and parameters are automatically read from a file again
   call particle_setup(ispecial)
 
   ! parameter output

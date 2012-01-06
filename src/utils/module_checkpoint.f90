@@ -58,7 +58,7 @@ module module_checkpoint
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
             type(t_particle), intent(in), dimension(np_local) :: dp
-            character(100), intent(out) :: filename
+            character(*), intent(out) :: filename
             logical :: firstcall  = .true.
             character(50) :: dir
             integer :: i
@@ -101,7 +101,7 @@ module module_checkpoint
             implicit none
             integer, intent(in) :: my_rank, itime, np_local
             type(t_particle), intent(in), dimension(np_local) :: dp
-            character(100), intent(out) :: filename
+            character(*), intent(out) :: filename
             logical :: firstcall  = .true.
 
             character(50) :: dir
@@ -144,7 +144,7 @@ module module_checkpoint
             integer*8, intent(in) :: n_total
             integer, intent(in) :: comm
             type(t_particle), intent(in) :: dp(np_local)
-            character(100), intent(out) :: filename
+            character(*), intent(out) :: filename
             integer :: fh, ierr, status(MPI_STATUS_SIZE)
             integer(KIND=MPI_OFFSET_KIND) :: disp
             logical :: firstcall  = .true.
@@ -202,7 +202,7 @@ module module_checkpoint
           !>
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          subroutine read_particles_mpiio(itime_in, comm, my_rank, n_cpu, itime, np_local, n_total, dp)
+          subroutine read_particles_mpiio(itime_in, comm, my_rank, n_cpu, itime, np_local, n_total, dp, filename)
             use module_pepc_types
             use module_debug
             use module_pepc, only : pepc_read_parameters
@@ -211,15 +211,15 @@ module module_checkpoint
             integer, intent(out) :: itime, np_local
             integer*8, intent(out) :: n_total
             integer, intent(in) :: comm
+            character(*), intent(out) :: filename
             type(t_particle), allocatable :: dp(:)
-            character(50) :: filename
             integer :: fh, ierr, status(MPI_STATUS_SIZE)
             integer*8 :: remain
 
             character(50) :: dir
 
             dir = trim(directory)//"/mpi/"
-            write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime
+            write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime_in
             call pepc_status("READ PARTICLES MPI: "//filename)
 
             call MPI_FILE_OPEN(comm,trim(filename),MPI_MODE_RDONLY,MPI_INFO_NULL,fh,ierr)
@@ -247,11 +247,14 @@ module module_checkpoint
             ! Close file
             call MPI_FILE_CLOSE(fh,ierr)
 
+            filename = trim(filename)//".h"
+
             if (my_rank == 0) then
-              open(filehandle)
+              open(filehandle, file=trim(filename))
               call pepc_read_parameters(filehandle)
               close(filehandle)
             endif
+
           end subroutine
 
 

@@ -14,31 +14,34 @@ module physvars
   !  physics data
 
   integer :: rngseed = 13
-  integer :: ni, ne       !  # ions, electrons
+  integer :: ne = 200     !  # electrons
+  integer :: ni = 0       !  # ions
   real*8 :: maxdt(4)       ! maximum allowed dt from different constraints
-  real*8 :: xl, yl, zl      ! box size
-  integer :: ngx, ngy, ngz  ! Plot grid dimensions
+  real*8 :: xl = 1.      ! box size
+  real*8 :: yl = 1.      ! box size
+  real*8 :: zl = 1.      ! box size
+  integer :: ngx = 25, ngy = 25, ngz = 25  ! Plot grid dimensions
   real*8 :: vte, vti       ! electron, ion thermal velocities
   real*8 :: Te = 0., Ti = 0. ! electron, ion emperatures in program units
-  real*8 :: Te_eV = 0., Ti_eV = 0. ! electron, ion emperatures in electron Volts
+  real*8 :: Te_eV = 50., Ti_eV = 10. ! electron, ion emperatures in electron Volts
   real*8 :: Te_K = 0., Ti_K = 0. ! electron, ion emperatures in Kelvin
-  real*8 :: force_const    ! force constant depending on unit system
+  real*8 :: force_const = 1.   ! force constant depending on unit system
   real*8 :: rhoe_nm3 = 1., rhoi_nm3 = 0.       ! number of electrons and ions per nm^3
   real*8 :: qe, qi         ! electron, ion charge
   real*8 :: mass_e, mass_i   ! electron, ion mass
   real*8 :: wpl_e, wpl_i !< electron and ion plasma frequency
   real*8 :: lambdaD_e, lambdaD_i !< electron and ion Debye length
-  real*8 :: r_sphere       ! initial radius of plasma sphere
-  real*8 :: x_plasma       ! initial plasma length (slab or disc targets)
-  real*8:: y_plasma       ! initial plasma y-width (slab)
-  real*8 :: z_plasma       ! initial plasma z-width (slab)
+  real*8 :: r_sphere = 4.      ! initial radius of plasma sphere
+  real*8 :: x_plasma = 1.      ! initial plasma length (slab or disc targets)
+  real*8 :: y_plasma = 1.      ! initial plasma y-width (slab)
+  real*8 :: z_plasma = 1.      ! initial plasma z-width (slab)
   real*8 :: plasma_centre(3) ! vector defining centre of plasma target
   real*8 :: Vplas          ! plasma volume
   real*8 :: a_ii, a_ee           ! mean ion and electron spacing
   real*8 :: a_i            ! ion sphere radius
   real*8 :: physGamma      ! coupling parameter
   real*8 :: V0_eV = 0.       ! desired potential at distance r=0 from an ion --> eps is adjusted to match this value
-  real*8 :: eps            ! potential/force law cutoff
+  real*8 :: eps = 1.           ! potential/force law cutoff
   integer :: Zion=1, Aion=1       ! ion charge and mass number
   integer :: setup_type = 0 !< for computing volume, interparticle distance, etc: 0-cubic, 1-spherical
   integer :: momentum_acf_from_timestep = 0
@@ -49,7 +52,6 @@ module physvars
 !  Variables needing 'copy' for tree routines
   integer :: npart_total  ! Total # particles (npart)
   integer :: np_local 
-  integer :: nppm  ! Total # particles (npart)
 
 !  Associated MPI stuff
 
@@ -59,17 +61,17 @@ module physvars
 
 ! Control stuff
   integer :: idim=3  ! # dimensions (velocity and position updates)
-  integer :: ispecial       ! Switch to select special electron configs 
+  integer :: ispecial = 1      ! Switch to select special electron configs
   integer :: debug_level = 0 ! Debug level for printed O/P
   logical :: treediags = .false.
 
    logical, public :: restart = .false. !< Restart switch: config read from parts_all.in
-   real*8 :: dt             ! timestep
-   real*8 :: trun           ! total run time including restarts
-   integer :: nt
+   real*8 :: dt = 0.01            ! timestep
+   real*8 :: trun = 0.          ! total run time including restarts
+   integer :: nt = 100
    integer :: itime = 0   ! # timesteps and current timestep
    integer :: itime_in    ! timestep to read mpi-io checkpoint from in case of ispecial==-1
-   integer :: idump, idump_vtk, idump_checkpoint, idump_binary ! output frequency (timesteps): ascii, vtk and mpi-io-checkpoint
+   integer :: idump = 0, idump_vtk = 0, idump_checkpoint = 0, idump_binary = 0 ! output frequency (timesteps): ascii, vtk and mpi-io-checkpoint
 
    integer :: ifile_cpu    ! O/P stream
 

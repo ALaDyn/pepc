@@ -1,19 +1,8 @@
-!  ================================
-!
-!         SETUP
-!
-!   $Revision: 1841 $
-!
-!     Initialise constants and 
-!      simulation variables
-!
-!  ================================
-
-module module_frontendsetup
+module module_prepare
 
 contains
 
-subroutine pepc_setup()
+subroutine pepcmw_prepare()
   use physvars
   use module_pepc
   use module_fmm_framework
@@ -28,69 +17,7 @@ subroutine pepc_setup()
   use module_interaction_specific, only : eps2
   use module_namelist
   implicit none
-
   integer :: ifile
-
-  character(255) :: parameterfile
-  logical :: read_param_file
-
-
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!  default parameters            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ispecial        = 1
-
-  ! particles
-  ne  = 200! Total # plasma electrons
-  ni  = 0 ! total # plasma ions
-
-  xl = 1
-  yl = 1
-  zl = 1
-
-  ! physics stuff
-  force_const = 1.
-  Te_eV       = 50
-  Ti_eV       = 10
-
-  r_sphere      = 4
-  x_plasma      = 1.
-  y_plasma      = 1.
-  z_plasma      = 1.
-  eps           = 1.
-
-  ! control
-  nt           = 100
-  dt           = 0.01
-  trun         = 0.
-
-  idump        = 0
-  idump_vtk    = 0
-  idump_checkpoint  = 0
-  idump_binary = 0
-
-  ngx = 25
-  ngy = 25
-  ngz = 25
-
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!  read parameter file           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! read in first command line argument
-  call pepc_get_para_file(read_param_file, parameterfile, my_rank)
-
-  if (read_param_file) then
-     if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepcmw: ", parameterfile
-     open(10,file=parameterfile)
-     read(10,NML=pepcmw)
-     close(10)
-
-  else
-     if(my_rank .eq. 0) write(*,*) "##### using default parameter #####"
-  end if
-
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  derived parameters (physics)  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -194,31 +121,10 @@ subroutine pepc_setup()
     dt = minval(maxdt)
   endif
 
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!  derived parameters (tree code)  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  call update_particle_numbers(ne + ni)
-
-  if (n_cpu.eq.1) then
-     nppm = nint(1.5*npart_total + 1000)  ! allow for additional ghost particles for field plots
-  else
-     nppm = nint(1.5*max(npart_total/n_cpu,1000)) ! allow 50% fluctuation
-  end if
+  trun = itime * dt
 
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!  array allocation                !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  allocate ( particles(nppm), energy(1:3,nppm) )
-
-  if (my_rank == 0) then
-    write(*,*) "Starting PEPC-MW with",n_cpu," Processors, simulating",np_local, &
-			" Particles on each Processor in",nt,"timesteps..."
-  end if
-
-
-end subroutine pepc_setup
+end subroutine pepcmw_prepare
 
 end module
 

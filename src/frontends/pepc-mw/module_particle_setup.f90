@@ -133,16 +133,22 @@ module module_particle_setup
           integer, intent(in) :: iconf
           integer :: fences(-1:n_cpu-1)
           integer :: ierr
+          integer :: npp
+
+          call update_particle_numbers(ne + ni)
 
           call MPI_SCAN(np_local, fences(my_rank), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
           call MPI_ALLGATHER(MPI_IN_PLACE, 1, MPI_INTEGER, fences(0), 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
           fences(-1) = 0
 
+          npp = fences(my_rank) - fences(my_rank-1)
+
+          allocate ( particles(npp) )
+
           select case (iconf)
             case (-1)
               if (my_rank == 0) write(*,*) "Using special start... case -1 (reading mpi-io checkpoint from timestep itime_in=", itime_in ,")"
               call read_particles(itime_in)
-              particles(1:np_local)%work = 1.
 
             case(1)
               if (my_rank == 0) write(*,*) "Using special start... case 1 (homogeneous distribution)"
@@ -207,7 +213,7 @@ module module_particle_setup
 
               call particle_setup_madelung()
               call rescale_coordinates_cuboid()
-              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),nppm,1,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
               call init_fields_zero()
 
             case(8)
@@ -243,10 +249,13 @@ module module_particle_setup
 
               call particle_setup_ionlattice()
               call rescale_coordinates_cuboid()
-              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),nppm,1,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
               call init_fields_zero()
 
          end select
+
+         allocate(energy(1:3,np_local))
+
         end subroutine
 
 
@@ -719,23 +728,23 @@ module module_particle_setup
 
           ! The following routines distribute their results to array slices
           if (vte > 0) then
-             call maxwell3(tmp1,tmp2,tmp3,nppm,1,nep,vte)
+             call maxwell3(tmp1,tmp2,tmp3,np_local,1,nep,vte)
           else
-             call cold_start(tmp1,tmp2,tmp3,nppm,1,nep)
+             call cold_start(tmp1,tmp2,tmp3,np_local,1,nep)
           endif
 
           if (vti > 0) then
-             call maxwell3(tmp1,tmp2,tmp3,nppm,nep+1,nip,vti)
+             call maxwell3(tmp1,tmp2,tmp3,np_local,nep+1,nip,vti)
           else
-             call cold_start(tmp1,tmp2,tmp3,nppm,nep+1,nip)
+             call cold_start(tmp1,tmp2,tmp3,np_local,nep+1,nip)
           endif
           ! we redistribute them to the pairwise ordering
           particles(1:np_local-1:2)%data%v(1) = tmp1(    1:nep)
-          particles(1:np_local-0:2)%data%v(1) = tmp1(nep+1:nep+nip)
+          particles(2:np_local-0:2)%data%v(1) = tmp1(nep+1:nep+nip)
           particles(1:np_local-1:2)%data%v(2) = tmp2(    1:nep)
-          particles(1:np_local-0:2)%data%v(2) = tmp2(nep+1:nep+nip)
+          particles(2:np_local-0:2)%data%v(2) = tmp2(nep+1:nep+nip)
           particles(1:np_local-1:2)%data%v(3) = tmp3(    1:nep)
-          particles(1:np_local-0:2)%data%v(3) = tmp3(nep+1:nep+nip)
+          particles(2:np_local-0:2)%data%v(3) = tmp3(nep+1:nep+nip)
 
           particles(1:np_local)%work = 1.
 

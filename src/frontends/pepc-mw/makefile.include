@@ -1,6 +1,6 @@
 FILES_MW   = module_units.f90 physvars.f90 module_io.f90 module_laser.f90 \
              module_pusher.f90 \
-             module_workflow.f90 module_param_dump.f90 setup.f90 \
+             module_workflow.f90 module_param_dump.f90 module_prepare.f90 \
              density_helmholtz.f90 \
              module_energy.f90 cleanup.f90 pepc.f90 \
              module_acf.f90 sum_radial.f90 \

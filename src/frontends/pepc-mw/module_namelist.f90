@@ -36,4 +36,17 @@ module module_namelist
     end subroutine
 
 
+    subroutine read_frontend_parameters_from_file(filename)
+      implicit none
+      character(*), intent(in) :: filename
+      integer, parameter :: filehandle = 91
+
+      if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepcmw: ", filename
+      open(filehandle,file=trim(filename))
+      read(filehandle, nml=pepcmw)
+      close(filehandle)
+
+    end subroutine
+
+
 end module
