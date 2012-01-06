@@ -116,6 +116,7 @@ module module_diagnostics
             logical, intent(in) :: binary, ascii, mpiio
             integer, intent(in) :: itime_in_
             integer*8 :: npart
+            character(100) :: filename
 
             if (binary .or. ascii .or. mpiio) then
 
@@ -126,7 +127,7 @@ module module_diagnostics
               if (ascii)  write(*,*) "read_particles(): ascii mode unsupported" !call read_particles_ascii(my_rank, itime, np_local, dp)
 
               !!! read particle checkpoint data using mpi-io
-              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, np_local, npart, particles)
+              if (mpiio) call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, np_local, npart, particles, filename)
 
               npart_total = npart
 
