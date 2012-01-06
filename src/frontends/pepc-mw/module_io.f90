@@ -78,7 +78,6 @@ module module_io
 
 		     open(file_domains_dat, file='domains.dat')
 		     open(file_laser_dat,   file='laser.dat')       ! laser parameters
-		     open(file_energy_dat,  file='energy.dat')      ! energies
 
 		     write(*,*) 'debug level: ',debug_level,' idump',idump
 		  endif
@@ -101,7 +100,6 @@ module module_io
 
              flush(file_domains_dat)
              flush(file_laser_dat)
-             flush(file_energy_dat)
           endif
 
         end subroutine flushfiles

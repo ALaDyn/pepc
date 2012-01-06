@@ -24,7 +24,7 @@ module module_diagnostics
           !>
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine cluster_diagnostics(itime, time_fs, momentum_acf)
-             use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, momentum_acf_from_timestep, my_rank
+             use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, momentum_acf_from_timestep, my_rank, restart
              use module_acf
              implicit none
              include 'mpif.h'
@@ -77,7 +77,7 @@ module module_diagnostics
              endif
 
              if (my_rank == 0) then
-               if (firstcall) then
+               if (firstcall .and. .not. restart) then
                  firstcall = .false.
                  open(88, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
                  write(88,'("#",8(1x,a16))') "itime", "time_fs", "r_cluster^(rms)", "N_ion", "N_e^(free)", "N_e^(bound)", "N_e^(r<r_cl)", "N_e^(E<0)"
@@ -311,7 +311,7 @@ module module_diagnostics
         call MPI_ALLREDUCE(MPI_IN_PLACE, ncontributions, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_PEPC, ierr )
 
         if (my_rank == 0) then
-          if (itime_ <= 1) then
+          if (itime_ <= 1 .and. .not. restart) then
              open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
           else
              open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')

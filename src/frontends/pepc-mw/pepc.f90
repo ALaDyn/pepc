@@ -90,7 +90,7 @@ program pepc
   call workflow(my_rank, 0, 0._8, dt)
 
   call momentum_acf%initialize(nt-momentum_acf_from_timestep, dt*unit_t0_in_fs, my_rank, n_cpu, MPI_COMM_PEPC)
-
+  if (restart) call momentum_acf%from_file("momentum_electrons_Kt.dat")
 !  call benchmark_inner
 
   call pepc_prepare(idim)

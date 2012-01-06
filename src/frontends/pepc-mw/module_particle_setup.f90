@@ -149,6 +149,7 @@ module module_particle_setup
             case (-1)
               if (my_rank == 0) write(*,*) "Using special start... case -1 (reading mpi-io checkpoint from timestep itime_in=", itime_in ,")"
               call read_particles(itime_in)
+              restart = .true.
 
             case(1)
               if (my_rank == 0) write(*,*) "Using special start... case 1 (homogeneous distribution)"

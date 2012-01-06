@@ -22,12 +22,14 @@ module module_acf
           integer :: num_pe, my_rank, comm
           real*8, allocatable :: Kt(:)
           real*8,  allocatable :: oldvals(:,:)
+          integer, allocatable :: num_contributions(:)
 
         contains
           procedure :: initialize => acf_initialize
           procedure :: finalize => acf_finalize
           procedure :: addval => acf_addval
           procedure :: to_file => acf_to_file
+          procedure :: from_file => acf_from_file
 
       end type acf
 
@@ -60,11 +62,37 @@ module module_acf
         integer :: i
 
         if (acf_%my_rank == 0) then
-          open(47,file=trim(filename))
-          do i=0,acf_%Ntau-1
-            write(47,'(2(g18.8,x))') acf_%dt*i, acf_%Kt(i) / (1.*acf_%Ntau-i)
+          open(47,file=trim(filename),position='rewind')
+          do i=0,acf_%tau-1
+            write(47,'(6(g18.8,x),I8)') acf_%dt*i, acf_%Kt(i) / acf_%num_contributions(i), acf_%Kt(i), acf_%oldvals(1:3,i-1), acf_%num_contributions(i)
           end do
           close(47)
+        endif
+
+      end subroutine
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !> Reads the values of the ACF(delta_t) from a file
+      !> first colum:   delta_t in physical time (see parameter dt of acf_initialize() )
+      !> second column: ACF(delta_t)
+      !> @param filename name of target file
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine acf_from_file(acf_, filename)
+        implicit none
+        class(acf) :: acf_
+        character(*) :: filename
+        integer :: i
+        real*8 :: tmp(2)
+
+        acf_%tau = 0
+
+        if (acf_%my_rank == 0) then
+          open(47,file=trim(filename),action='read')
+          do i=0,acf_%Ntau-1
+            acf_%tau = acf_%tau + 1
+            read(47,'(6(g18.8,x),I8)', end=300) tmp(1), tmp(2), acf_%Kt(acf_%tau-1), acf_%oldvals(1:3,acf_%tau), acf_%num_contributions(acf_%tau-1)
+          end do
+          300 close(47)
         endif
 
       end subroutine
@@ -94,6 +122,8 @@ module module_acf
 
         allocate(acf_%Kt(0:acf_%Ntau-1))
         acf_%Kt = 0.
+        allocate(acf_%num_contributions(0:acf_%Ntau-1))
+        acf_%num_contributions = 0
         allocate(acf_%oldvals(1:3,1:acf_%Ntau))
       end subroutine
 
@@ -105,8 +135,9 @@ module module_acf
         implicit none
         class(acf) :: acf_
 
-        if (allocated(acf_%Kt))      deallocate(acf_%Kt)
-        if (allocated(acf_%oldvals)) deallocate(acf_%oldvals)
+        if (allocated(acf_%Kt))                deallocate(acf_%Kt)
+        if (allocated(acf_%num_contributions)) deallocate(acf_%num_contributions)
+        if (allocated(acf_%oldvals))           deallocate(acf_%oldvals)
       end subroutine
 
 
@@ -152,11 +183,12 @@ module module_acf
         myend   = myend + mystart
 
         do s = mystart,myend-1
-          acf_%Kt(s)  = acf_%Kt(s)  + dot_product(val, acf_%oldvals(1:3,acf_%tau - s))
+          acf_%Kt(s)                = acf_%Kt(s)  + dot_product(val, acf_%oldvals(1:3,acf_%tau - s))
+          acf_%num_contributions(s) = acf_%num_contributions(s) + 1
         end do
 
-
-        call MPI_ALLGATHERV(MPI_IN_PLACE, recvcounts(acf_%my_rank), MPI_REAL8,   acf_%Kt,  recvcounts, displs, MPI_REAL8,   acf_%comm, ierr)
+        call MPI_ALLGATHERV(MPI_IN_PLACE, recvcounts(acf_%my_rank), MPI_REAL8,   acf_%Kt,                recvcounts, displs, MPI_REAL8,   acf_%comm, ierr)
+        call MPI_ALLGATHERV(MPI_IN_PLACE, recvcounts(acf_%my_rank), MPI_INTEGER, acf_%num_contributions, recvcounts, displs, MPI_INTEGER, acf_%comm, ierr)
 
         deallocate(recvcounts, displs)
 

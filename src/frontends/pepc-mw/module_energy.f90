@@ -72,16 +72,21 @@ contains
             end do
 
             ! Write out to energy.dat file
-            if (firstcall) then
+            if (firstcall .and. .not. restart) then
               firstcall = .false.
+              open(file_energy_dat, FILE='energy.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
               write(file_energy_dat,'("#",18(1x,a20))') "time", "Upot(total)", "Upot(near field)", "Upot(far field)", &
                                          "Ukin_e" ,"Ukin_i" ,"Ukin_tot", "Ukine(wo drift)" ,"Ukini(wo drift)" ,"Utot" ,&
                                          "Te0", "Te_uncor", "chie", "delta_Te", "Ti0", "Ti_uncor", "chii", "delta_Ti"
+            else
+              open(file_energy_dat, FILE='energy.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
             endif
 
             write(file_energy_dat,'(" ",1(1x,f20.6),17(1x,1pe20.10))') trun*unit_t0_in_fs, epot, potnearfield, potfarfield, &
                                                   ekine, ekini, ekine+ekini, 3./2.*unit_kB*tempe, 3./2.*unit_kB*tempi, etot, &
                                                   Te0, Te_uncor, chie, delta_Te, Ti0, Ti_uncor, chii, delta_Ti
+
+            close(file_energy_dat)
         endif
     end subroutine energies
 

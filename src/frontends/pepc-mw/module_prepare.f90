@@ -7,7 +7,6 @@ subroutine pepcmw_prepare()
   use module_pepc
   use module_fmm_framework
   use module_mirror_boxes
-  use module_particle_setup
   use module_icosahedron
   use module_laser
   use module_pusher

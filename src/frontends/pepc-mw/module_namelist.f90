@@ -42,7 +42,7 @@ module module_namelist
       integer, parameter :: filehandle = 91
 
       if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepcmw: ", filename
-      open(filehandle,file=trim(filename))
+      open(filehandle,file=trim(filename),action='read')
       read(filehandle, nml=pepcmw)
       close(filehandle)
 
