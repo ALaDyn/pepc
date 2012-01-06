@@ -151,6 +151,11 @@ contains
        call init_generic(fences)
        call particle_setup_1d_shock_3(fences)
 
+    case(16)
+       if (my_rank == 0) write(*,*) "Using special start... case 16 (3D sphere collapse (grav + sph) )"
+       call init_generic(fences)
+       call particle_setup_3d_sphere_grid(fences)
+
     end select
 
   end subroutine particle_setup
@@ -675,6 +680,212 @@ contains
     dt = 0.00001
     
   end subroutine particle_setup_1d_shock_3
+
+
+  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! > 3D sphere collapse test for gravity and sph
+  ! >
+  ! >
+  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine particle_setup_3d_sphere_grid(fences)
+    
+    use physvars, only: &
+         dt, &
+         n_cpu, &
+         my_rank, &
+         thermal_constant, &
+         initialized_v_minus_half
+   
+    use module_mirror_boxes, only: &
+         periodicity
+
+    use module_interaction_specific_types, only: &
+         num_neighbour_particles, &
+         PARTICLE_TYPE_FIXED
+    
+    
+    implicit none
+    include 'mpif.h'
+    
+    integer, intent(in) :: fences(-1:n_cpu-1)
+
+    integer :: particles_per_dimension
+    real*8, dimension(3) :: sphere_center
+    real*8 :: sphere_radius
+    real*8 :: sphere_radius2
+    real*8, dimension(3) :: xyz_min_corner
+    real*8 :: particle_separation
+    integer :: grid_x, grid_y, grid_z
+    real*8, dimension(3) :: coord
+    real*8 :: dist_from_center2
+    integer :: local_particle_counter = 0
+    integer :: my_n_x_grid
+    integer :: n_rest
+    integer :: my_start_x
+    integer :: ierr
+    integer :: n_grid
+    real :: pi = acos(-1.0)
+    real, dimension(1000) :: area
+    real :: total_area
+    real :: actual_area_sum
+    integer :: actual_cpu
+    integer :: actual_level_counter
+    integer :: already_distributed_levels
+    
+
+
+    if( my_rank .eq. 0 ) then
+       write(*,*) "Creating setup for the 3D sphere collapse test."
+       write(*,*) "Placing particles on a grid inside a sphere with given center (0,0,0) and radius (0.5 AU)."
+    end if
+
+
+    
+    ! for a 3D grid only 6, 14, 20, ?? neighbours are valid.
+    ! but since h is determined as half of the distance to the furthest neighbour and so the density- and force-contribution of the furthest particle is 0,
+    ! the number of neighbour has to be one more: 7, 15, 21, ??
+    num_neighbour_particles = 20
+
+
+    ! set number of dimension. important for factor for sph kernel
+    idim = 3
+    
+    ! set periodicity
+    periodicity = [.false., .false., .false.]
+    
+    ! sphere parameter
+    sphere_center = [0., 0., 0.]
+    sphere_radius = 0.5
+
+    ! Estimate the number of grid-points needed to get approximately npart_total particles:
+    ! The volume of the sphere inside the cube is pi/6 * the volume of the cube.
+    ! We want n_grid^3 * pi/6 > npart_total
+    n_grid = int( (6.*npart_total/pi)**(1./3.)*0.6 )
+
+    particles_per_dimension = n_grid
+
+!    write(*,*) "n_grid:", n_grid
+
+    ! derived values
+    sphere_radius2= sphere_radius**2
+    xyz_min_corner = sphere_center - [sphere_radius, sphere_radius, sphere_radius]
+    particle_separation = sphere_radius * 2. / real(particles_per_dimension-1)
+
+!    write(*,*) "particle separation:", particle_separation
+
+    
+    ! distribute the particles to the processes with approximately the same number of particles per process.
+    ! we go through the sphere grid-level by grid-level and estimate the number of particles on this level inside the sphere.
+    do actual_level_counter = 1, particles_per_dimension
+       area(actual_level_counter) = pi * (sphere_radius**2 - (sphere_radius - (actual_level_counter-1)*particle_separation)**2)
+    end do
+
+!    write(*,*) "area:", area(1:particles_per_dimension)
+
+    total_area = sum(area(1:particles_per_dimension))
+
+!    write(*,*) "total area:", total_area
+
+
+    
+    
+    ! Now the grid-levels are distributed to the processes that the area per process is approximately area/n_cpu
+
+    already_distributed_levels = 0
+    
+    do actual_cpu = 0, n_cpu-2 ! the last process gets the rest
+       actual_area_sum = 0
+       actual_level_counter = 1
+       
+       do while((actual_area_sum + area(already_distributed_levels + actual_level_counter))  < total_area/n_cpu)
+          actual_area_sum = actual_area_sum + area(already_distributed_levels + actual_level_counter)
+          actual_level_counter = actual_level_counter + 1
+       end do
+       
+       if(my_rank .eq. actual_cpu) then
+          my_n_x_grid = actual_level_counter - 1
+          my_start_x = already_distributed_levels + 1
+       end if
+       
+       already_distributed_levels = already_distributed_levels + (actual_level_counter - 1)
+    end do
+       
+    if(my_rank .eq. n_cpu -1) then
+       my_n_x_grid = particles_per_dimension - already_distributed_levels
+       my_start_x = already_distributed_levels + 1
+    end if
+
+    ! ! for positions on a 3d regular grid it is tested whether they are inside the sphere with sphere_radius around sphere_center.
+    ! ! for n_cpu processes the grid is split in x direction.
+    ! ! first, all cpus get the same number of gridpoints in x direction.
+    ! my_n_x_grid = int(particles_per_dimension / n_cpu)
+
+    ! ! the rest
+    ! n_rest = mod(particles_per_dimension, n_cpu)
+
+    ! ! is distributed to the first n_rest cpus
+    ! if( my_rank < n_rest) then
+    !    my_n_x_grid = my_n_x_grid +1
+    ! end if
+    
+    ! ! now calculate the starting x coordinate
+    ! if( my_rank < n_rest) then ! this process and all processes before got one more
+    !    my_start_x = my_rank * my_n_x_grid
+    ! else ! n_rest processes got one more and the others the same as this process
+    !    my_start_x = n_rest * (my_n_x_grid + 1) + ( my_rank - n_rest ) * my_n_x_grid
+    ! end if
+
+    write(*,*) "3d grid distribution:", my_rank, my_n_x_grid, my_start_x
+    call flush()
+    
+!    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+    
+    ! if( my_n_x_grid * particles_per_dimension * particles_per_dimension > np_local) then
+    !    write(*,*) "3d grid, local particle number could be to big. Exiting."
+    !    ! I know that this is a very rough estimation but its enough for now.
+    !    call flush()
+       
+    !    call MPI_ABORT(MPI_COMM_WORLD, ierr)
+    ! end if
+
+
+    do grid_x = my_start_x, my_start_x + my_n_x_grid
+       do grid_y = 1, particles_per_dimension
+          do grid_z = 1, particles_per_dimension
+
+             coord = xyz_min_corner + particle_separation * [grid_x-1, grid_y-1, grid_z-1]
+             dist_from_center2 = ( coord(1)**2 + coord(2)**2 + coord(3)**2)
+
+             if( dist_from_center2 <= sphere_radius2 ) then ! use this particle
+                particles(local_particle_counter + 1)%x = coord
+                
+                local_particle_counter = local_particle_counter + 1
+             end if
+          end do
+       end do
+    end do
+
+    np_local = local_particle_counter
+
+    call MPI_ALLREDUCE(np_local, npart_total, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+    initialized_v_minus_half = .true.
+
+!    call MPI_ABORT(MPI_COMM_WORLD, ierr)
+
+
+    particles(1:np_local)%data%q           = 1._8/real(npart_total, 8)
+    particles(1:np_local)%data%temperature = 1.
+
+
+
+
+
+  end subroutine particle_setup_3d_sphere_grid
+
+
+
+
 
   
 
