@@ -70,7 +70,7 @@ cleanlib:
 	@echo ""
 
 cleanall: cleanlib clean
-	@(RM) @(BINDIR)
+	@(RM) $(BINDIR)
 	@echo "==== all cleaned"
 
 allclean: cleanall
