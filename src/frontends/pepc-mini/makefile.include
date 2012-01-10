@@ -1,0 +1,12 @@
+FILES_L   = pepc.f90 module_helper.f90
+
+FILES_L_U = module_vtk.f90 module_base64.f90
+
+
+SRC        += $(FILES_L)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-l/, $(FILES_L))
+
+SRC        += $(FILES_L_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
+
+BACKENDTYPE = XYZQVM
