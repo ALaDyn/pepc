@@ -1,7 +1,7 @@
 &pepcmini
 
 ! total number of particles
-tnp = 10005
+tnp = 100005
 
 ! mac theta
 theta = 0.3
@@ -17,5 +17,35 @@ eps = 1e-1
 
 ! turn vtk output on/off
 vtk_output = .true.
+!vtk_output = .false.
 
 /
+
+&calc_force_coulomb
+  ! 3D coulomb
+  force_law  = 3
+  ! BH-mac
+  mac_select = 0
+  ! theta = 0.3
+  theta2     = 0.09
+  ! eps = 1e-1
+  eps2 = 1e-2
+/
+
+&libpepc
+ debug_level = 2
+ np_mult = -300
+
+! Choose sorting routine and load balancing
+! 0: no load balancing, 1: load balancing
+ weighted = 1
+
+! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
+ curve_type = 1
+/
+
+&walk_para_pthreads
+ num_walk_threads = 4
+ max_particles_per_thread = 50
+/
+

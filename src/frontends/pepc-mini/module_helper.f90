@@ -27,8 +27,8 @@ module helper
       use module_interaction_specific, only : theta2, eps2, force_law
       implicit none
       
-      character(255) :: parameterfile
-      logical :: read_param_file
+      character(255) :: para_file
+      logical :: read_para_file
       namelist /pepcmini/ theta, eps, tnp, nt, dt, vtk_output
       
       ! set default parameter values
@@ -40,26 +40,19 @@ module helper
       vtk_output = .true.
       
       ! read in namelist file
-      call pepc_get_para_file(read_param_file, parameterfile, my_rank)
+      call pepc_read_parameters_from_first_argument(read_para_file, para_file)
+      !call pepc_get_para_file(read_para_file, para_file, my_rank)
 
-      if (read_param_file) then
+      if (read_para_file) then
         if(my_rank .eq. 0) write(*,*) \
-          " == reading parameter file, section pepc-mini: ", parameterfile
-        open(10,file=parameterfile)
+          " == reading parameter file, section pepc-mini: ", para_file
+        open(10,file=para_file)
         read(10,NML=pepcmini)
         close(10)
       else
         if(my_rank .eq. 0) write(*,*) " == no param file, using default parameter "
       end if
   
-      ! initialize calc force params
-      theta2      = theta**2
-      eps2        = eps**2
-      force_law   = 3
-
-      ! set pepc parameter
-      call pepc_prepare(3)
-
       if(my_rank .eq. 0) then
         write(*,*) " == theta                     : ", theta
         write(*,*) " == eps                       : ", eps
@@ -69,6 +62,8 @@ module helper
         write(*,*) " == vtk output                : ", vtk_output
       end if
 
+      call pepc_prepare(3)
+
     end subroutine
 
 	subroutine init_particles(p)
@@ -76,11 +71,18 @@ module helper
 	  
 	  type(t_particle), allocatable, intent(inout) :: p(:)
 	  integer :: n, ip
+      integer :: rsize 
+      integer, allocatable :: rseed(:)
 
 	  n = size(p)		
 	  if(my_rank.eq.0) write(*,*) " == init particles "
 	  
-	  call random_seed()
+	  call random_seed(size = rsize)
+	  if(my_rank.eq.0) write(*,*) " == random size ", rsize
+	  allocate(rseed(rsize))
+      rsize = my_rank + 144
+	  call random_seed(put = rseed)
+	  deallocate(rseed)
 	  
 	  ! setup random qubic particle cloud
 	  do ip=1, n
@@ -93,6 +95,7 @@ module helper
 	    p(ip)%data%q = p(ip)%data%q / abs(p(ip)%data%q)
 	    p(ip)%results%e = 0
 	    p(ip)%results%pot = 0
+	    p(ip)%work = 0
 	  end do
 	
 	  ! setup two massive and charged particles
@@ -116,12 +119,11 @@ module helper
 	  integer :: n, ip
       real*8  :: fact
 
-      n = size(p) - 2
       if(my_rank.eq.0) write(*,*) " == push particles "
 
       fact = dt
 
-      do ip=1, n
+      do ip=1, np
         p(ip)%data%v = p(ip)%data%v + fact * p(ip)%results%e 
         p(ip)%x      = p(ip)%x      + \
                        fact * p(ip)%data%v * p(ip)%data%q / p(ip)%data%m
@@ -148,7 +150,6 @@ module helper
 	  
 	  if(my_rank.eq.0) write(*,*) " == write particles "
 
-      n = size(p) - 2
       time = 0.1_8 * step
 
       if (step .eq. 0) then
@@ -163,21 +164,21 @@ module helper
            time, vtk_step)
       call vtk%write_headers(np, 0)
 	  call vtk%startpoints()
-	  call vtk%write_data_array("xyz", n, p(:)%x(1), \
+	  call vtk%write_data_array("xyz", np, p(:)%x(1), \
 	       p(:)%x(2), p(:)%x(3))
 	  call vtk%finishpoints()
 	  call vtk%startpointdata()
-	  call vtk%write_data_array("velocity", n, p(:)%data%v(1), \
+	  call vtk%write_data_array("velocity", np, p(:)%data%v(1), \
 	       p(:)%data%v(2), p(:)%data%v(3))
-	  call vtk%write_data_array("el_field", n, \
+	  call vtk%write_data_array("el_field", np, \
 	       p(:)%results%e(1), \
 	       p(:)%results%e(2), p(:)%results%e(3))
-	  call vtk%write_data_array("el_pot", n, p(:)%results%pot)
+	  call vtk%write_data_array("el_pot", np, p(:)%results%pot)
 	  call vtk%write_data_array("charge", np, p(:)%data%q)
 	  call vtk%write_data_array("mass", np, p(:)%data%m)
-	  call vtk%write_data_array("pelabel", n, p(:)%label)
-	  call vtk%write_data_array("local index", n, [(i,i=1,n)])
-	  call vtk%write_data_array("processor", n, [(my_rank,i=1,n)])
+	  call vtk%write_data_array("pelabel", np, p(:)%label)
+	  call vtk%write_data_array("local index", np, [(i,i=1,np)])
+	  call vtk%write_data_array("processor", np, [(my_rank,i=1,np)])
 	  call vtk%finishpointdata()
       call vtk%dont_write_cells()
       call vtk%write_final()
