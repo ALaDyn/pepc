@@ -129,7 +129,7 @@ program pepc
      call pepc_traverse_tree(num_force_particles, particles)
      if (dbg(DBG_STATS)) call pepc_statistics(itime)
 
-     call verifydirect(particles, np_local, [1, 2, np_local-1, np_local], 3, my_rank, n_cpu, MPI_COMM_PEPC)
+     !call verifydirect(particles, np_local, [1, 2, np_local-1, np_local], 3, my_rank, n_cpu, MPI_COMM_PEPC)
 
      particles(1:np_local)%results%e(1) = particles(1:np_local)%results%e(1) * force_const
      particles(1:np_local)%results%e(2) = particles(1:np_local)%results%e(2) * force_const
