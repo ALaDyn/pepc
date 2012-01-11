@@ -41,7 +41,7 @@ program pepc
   if(my_rank.eq.0) write(*,*) " === init time [s]: ", timer(2) - timer(1)
  
   do it=0, nt
-    write(*,*) " == computing step ", it
+    if(my_rank.eq.0) write(*,*) " == computing step ", it
     
     timer(3) = get_time()
     call pepc_grow_tree(np, tnp, particles)

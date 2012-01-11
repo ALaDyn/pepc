@@ -78,7 +78,7 @@ module helper
 	  integer :: n, ip
 
 	  n = size(p)		
-	  write(*,*) " == init particles "
+	  if(my_rank.eq.0) write(*,*) " == init particles "
 	  
 	  call random_seed()
 	  
@@ -117,7 +117,7 @@ module helper
       real*8  :: fact
 
       n = size(p) - 2
-      write(*,*) " == push particles "
+      if(my_rank.eq.0) write(*,*) " == push particles "
 
       fact = dt
 
@@ -142,8 +142,11 @@ module helper
       integer :: vtk_step
 	  integer :: n
 	  real*8 :: time
+	  real*8 :: ta, tb
 	  
-	  write(*,*) " == write particles "
+	  ta = get_time()
+	  
+	  if(my_rank.eq.0) write(*,*) " == write particles "
 
       n = size(p) - 2
       time = 0.1_8 * step
@@ -179,6 +182,10 @@ module helper
       call vtk%dont_write_cells()
       call vtk%write_final()
       call vtk%close()
+
+      tb = get_time()
+
+      if(my_rank.eq.0) write(*,*) " == time in vtk output [s]: ", tb - ta
 
 	end subroutine write_particles
 	
