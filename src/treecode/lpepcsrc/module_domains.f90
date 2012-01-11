@@ -65,26 +65,14 @@ module module_domains
         integer :: npnew,npold
         integer, intent(out) :: neighbour_pe_particles !< number of particles that have been fetched from neighbouring PEs - they are stored in particles(npp+1:npp+neighbour_pe_particles)
 
-        integer :: i, prev, next, handle(4)
-
+        integer :: i, j
         real*8 :: s
         real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
-
-        integer :: state(MPI_STATUS_SIZE), ierr
-        logical :: fixedduplicate
-
-        ! arrays for parallel sort
-
-        type (t_particle) :: ship_parts(nppm), get_parts(nppm)
-
+        integer :: ierr
+        type (t_particle) :: ship_parts(nppm), get_parts(nppm) !< arrays for parallel sort
         integer*8 :: w1(nppm)
-
         real*8 :: xboxsize, yboxsize, zboxsize
-
         real*8 imba
-
-        type (t_particle) :: ship_props, get_props
-
 
         interface
             subroutine slsort_keys(nin,nmax,keys,workload,balance_weight,max_imbalance,nout,indxl,irnkl,scounts,rcounts,sdispls,rdispls,keys2,irnkl2,size,rank)
@@ -97,9 +85,10 @@ module module_domains
             end subroutine slsort_keys
         end interface
 
-        real*8 work2(nppm)
-        integer irnkl2(nppm)
+        real*8 :: work2(nppm)
+        integer :: irnkl2(nppm)
         integer*8 :: local_keys(nppm)
+        integer*8, allocatable :: key_diffs(:)
 
         call timer_start(t_domains)
         call timer_start(t_domains_keys)
@@ -153,19 +142,6 @@ module module_domains
 
         call timer_stop(t_domains_keys)
         call timer_start(t_domains_sort)
-
-        ! Define wraps for ring network  0 -> 1 -> 2 -> ... ... -> num_pe-1 -> 0 ...
-        if (me == 0) then
-            prev = num_pe - 1
-        else
-            prev = me-1
-        endif
-
-        if (me == num_pe-1 ) then
-            next = 0
-        else
-            next = me+1
-        endif
 
         imba = 0.01
 
@@ -243,88 +219,62 @@ module module_domains
         ! Note that now npp /= npart/num_pe, only approx depending on key distribution, or target shape.
 
         ! check for duplicate keys
-        ! we expect the sorting library to avoid duplicate keys across processor boundaries
-        ! hence, we should not modify the first and the last particles keys to avoid damaging this restriction
-        do i=1,npp-2
-            if (particles(i)%key == particles(i+1)%key) then
-                DEBUG_INFO('("Identical keys found for i = ", I0, " and its successor, key = ", O0, ", labels = ", I0,x, I0)', i, particles(i)%key, particles(i)%label, particles(i+1)%label)
 
-                fixedduplicate = .false.
+        ! first, we exchange boundary particles to avoid duplicate keys across processor boundaries in the following
+        call exchange_boundary_particles(particles, npp, neighbour_pe_particles, me, num_pe)
 
-                ! first, we try to shift down the lower key
-                if (i >= 2) then ! do not merge both if-statements, since in case of compiler optimization rearranging both conditions, an acces to particles(i-1=0) might occur
-                  if (particles(i)%key - 1 .ne. particles(i-1)%key) then
-                    particles(i)%key = particles(i)%key - 1
-                    ! adjust position to fit key
-                    call key_to_coord_dim(particles(i)%key, particles(i)%x, idim, particles(i)%x)
-                    DEBUG_INFO('("shifting (i)-th particles key down to ", O0)', particles(i)%key)
-                    fixedduplicate = .true.
-                  endif
-                endif
+        ! we will first work on a copy of the original keys to be able to only adjust coordinates
+        ! of particles where the key really has changed (instead of being shifted up and down only)
+        local_keys(1:npp+1) = particles(1:npp+1)%key
 
-                if (.not. fixedduplicate) then
-                  ! we have to shift up the upper key - if the keys are dense, this might propagate further
-                  ! upwards until a gap, i.e. particles(i+1)%key - particles(i)%key > 1, exists
-                  particles(i+1)%key = particles(i+1)%key + 1
-                  ! adjust position
-                  call key_to_coord_dim(particles(i+1)%key, particles(i+1)%x, idim, particles(i+1)%x)
-                  DEBUG_INFO('("shifting (i+1)-th particles key up to ", O0)', particles(i+1)%key)
-                endif
+        ! check whether there is enough space in the local key domain
+        if ( ( local_keys(npp) - local_keys(1) + 1) < npp) then
+          DEBUG_ERROR('("There are more particles than available keys in the local domain: npp=",I0,", but upper and lower key (octal) =", 2(x,O0),"; upper-lower (dec) = ",I0)',
+                           npp, local_keys(npp), local_keys(1), local_keys(npp) - local_keys(1))
+        endif
+
+        ! key differences for identifiying duplicates and/or overlap, be aware of the problem, that for me==num_pe-1, key_diffs(npp) is invalid since there is no right neighbour
+        allocate(key_diffs(npp))
+        key_diffs(1:npp) = local_keys(2:npp+1) - local_keys(1:npp) ! key_diffs(i) = local_keys(i+1) - local_keys(i)
+        if (me==num_pe-1) key_diffs(npp) = 1
+
+        do i=1,npp
+            if (key_diffs(i) < 1) then
+                DEBUG_INFO('("Identical keys found for i = ", I0, " and its successor, key = ", O0, ", labels = ", I0,x,I0)', i, local_keys(i), particles(i)%label, particles(i+1)%label)
+
+                ! looking upwards and downwards synchronously, we try to find the nearest gap
+                do j=1,max(npp-i,i)
+                  if (key_diffs(max(1,i-j)) > 1) then
+                    ! there is a near gap below the current keys --> shift keys downwards
+                    DEBUG_INFO('("Fixing by shifting keys of section ", I0,":",I0," downwards")', i-j+1, i)
+                    local_keys(i-j+1:i) = local_keys(i-j+1:i) - 1
+                    key_diffs(i)        = key_diffs(i)        + 1
+                    key_diffs(i-j)      = key_diffs(i-j)      - 1
+                    exit ! from inner loop
+                  else if (key_diffs(min(npp-1,i+j)) > 1) then
+                    ! there is a near gap above the current keys --> shift keys upwards
+                    DEBUG_INFO('("Fixing by shifting keys of section ", I0,":",I0," upwards")', i+1, i+j)
+                    local_keys(i+1:i+j) = local_keys(i+1:i+j) + 1
+                    key_diffs(i)        = key_diffs(i)        + 1
+                    key_diffs(i+j)      = key_diffs(i+j)      - 1
+                    exit ! from inner loop
+                  end if
+                end do
             endif
         end do
-        ! we did not check the pair (npp-1) (npp) for duplicate keys since we did not want to touch processor boundaries --> work downwards again
-        do i=npp,2,-1
-          if (particles(i)%key == particles(i-1)%key) then
-            DEBUG_INFO('("Identical keys found in second pass for i = ", I0, " and its predecessor, key = ", O0, ", labels = ", I0,x, I0)', i, particles(i)%key, particles(i)%label, particles(i+1)%label)
 
-            if (i == 2) then
-              DEBUG_ERROR(*, "Obviously, keys are dense on this PE, i.e. there is no gap between any keys to resolve the identical-key-conflicts. Aborting.")
-            endif
+        deallocate(key_diffs)
 
-            ! we have to shift down the lower key
-            particles(i-1)%key = particles(i-1)%key - 1
-            call key_to_coord_dim(particles(i-1)%key, particles(i-1)%x, idim, particles(i-1)%x)
-            DEBUG_INFO('("shifting (i-1)-th particles key down to ", O0)', particles(i-1)%key)
-          else
-            exit ! from this loop - no more duplicate keys left
+        ! adjust particle coordinates to new keys if necessary
+        do i=1,npp
+          if (local_keys(i) .ne. particles(i)%key) then
+            particles(i)%key = local_keys(i)
+            call key_to_coord_dim(particles(i)%key, particles(i)%x, idim, particles(i)%x)
           endif
         end do
 
-
-        ! Copy boundary particles to adjacent PEs to ensure proper tree construction
-        !  - if we do not do this, can get two particles on separate PEs 'sharing' a leaf
-        ship_props = particles( 1 )
-
-        ! Ship 1st particle data to end of list of LH neighbour PE
-        neighbour_pe_particles = 0
-
-        if (me /= 0 ) then
-            call MPI_ISEND( ship_props, 1, mpi_type_particle, prev, 1, MPI_COMM_WORLD, handle(1), ierr )
-            call MPI_REQUEST_FREE(handle(1),ierr)
-        endif
-
-        ! Place incoming data at end of array
-        if ( me /= num_pe-1) then
-            call MPI_RECV( get_props, 1, mpi_type_particle, next, 1,  MPI_COMM_WORLD, state, ierr )
-            neighbour_pe_particles = neighbour_pe_particles + 1
-            particles(npp+neighbour_pe_particles) = get_props
-        endif
-
-        ! Ship  end particle data to start of list of RH neighbour PE
-        ship_props = particles( npp )
-
-        if (me /= num_pe-1 ) then
-            call MPI_ISEND( ship_props, 1, mpi_type_particle, next, 2, MPI_COMM_WORLD, handle(3), ierr )
-            call MPI_REQUEST_FREE(handle(3),ierr)
-        endif
-
-        ! Place incoming data at end of array
-
-        if ( me /= 0) then
-            call MPI_RECV( get_props, 1, mpi_type_particle, prev, 2,  MPI_COMM_WORLD, state, ierr )
-            neighbour_pe_particles = neighbour_pe_particles + 1
-            particles(npp + neighbour_pe_particles) = get_props
-        endif
+        ! since we possibly modified the key of particles(npp), we repeat the boundary exchange
+        call exchange_boundary_particles(particles, npp, neighbour_pe_particles, me, num_pe)
 
         ! Initialize VLD-stuff
         call branches_initialize_VLD(particles)
@@ -336,6 +286,77 @@ module module_domains
         call timer_stop(t_domains)
 
     end subroutine tree_domains
+
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>  Copy boundary particles to adjacent PEs to ensure proper tree construction
+    !>  - if we do not do this, can get two particles on separate PEs 'sharing' a leaf
+    !> after calling this routine,
+    !> if (me == 0)
+    !>    particles[me](npp+1)   == particles[me+1](1)
+    !>    neighbour_pe_particles == 1
+    !>  elseif (me == num_pe)
+    !>    particles[me](npp+1)   == particles[me-1](npp)
+    !>    neighbour_pe_particles == 1
+    !>  else
+    !>    particles[me](npp+1)   == particles[me+1](1)
+    !>    particles[me](npp+2)   == particles[me-1](npp)
+    !>    neighbour_pe_particles == 2
+    !>  endif
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine exchange_boundary_particles(particles, npp, neighbour_pe_particles, me, num_pe)
+      use module_pepc_types
+      implicit none
+      include 'mpif.h'
+      integer, intent(out) :: neighbour_pe_particles
+      integer, intent(in) :: me, num_pe, npp
+      type(t_particle), intent(inout) :: particles(1:npp+2)
+
+      integer :: prev, next, ierr, reqhandle, state(MPI_STATUS_SIZE)
+
+
+        ! Define wraps for ring network  0 -> 1 -> 2 -> ... ... -> num_pe-1 -> 0 ...
+        if (me == 0) then
+            prev = num_pe - 1
+        else
+            prev = me-1
+        endif
+
+        if (me == num_pe-1 ) then
+            next = 0
+        else
+            next = me+1
+        endif
+
+        ! Copy boundary particles to adjacent PEs to ensure proper tree construction
+        !  - if we do not do this, can get two particles on separate PEs 'sharing' a leaf
+        neighbour_pe_particles = 0
+
+        ! Ship 1st particle data to end of list of LH neighbour PE
+        if (me /= 0 ) then
+            call MPI_ISEND(  particles( 1 ),                          1, mpi_type_particle, prev, 1, MPI_COMM_WORLD, reqhandle, ierr )
+            call MPI_REQUEST_FREE(reqhandle,ierr)
+        endif
+        ! Place incoming data at end of array
+        if ( me /= num_pe-1) then
+            neighbour_pe_particles = neighbour_pe_particles + 1
+            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, next, 1, MPI_COMM_WORLD, state, ierr )
+        endif
+
+        ! Ship  end particle data to end of list of RH neighbour PE
+        if (me /= num_pe-1 ) then
+            call MPI_ISEND(  particles( npp ),                        1, mpi_type_particle, next, 2, MPI_COMM_WORLD, reqhandle, ierr )
+            call MPI_REQUEST_FREE(reqhandle,ierr)
+        endif
+        ! Place incoming data at end of array
+        if ( me /= 0) then
+            neighbour_pe_particles = neighbour_pe_particles + 1
+            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, prev, 2, MPI_COMM_WORLD, state, ierr )
+        endif
+    end subroutine
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
