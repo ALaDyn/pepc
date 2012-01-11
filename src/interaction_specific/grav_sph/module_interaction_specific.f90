@@ -356,7 +356,7 @@ contains
        key = particles(i)%key
 
        particles(i)%results%maxdist2 = huge(0._8)
-       particles(i)%results%neighbour_nodes(:) = 0
+       particles(i)%results%neighbour_keys(:)  = 0_8
        particles(i)%results%maxidx             = 1
 
        do while (key .ne. 0)
@@ -364,7 +364,7 @@ contains
              if (htable(addr)%leaves > num_neighbour_particles) then
                 ! this twig contains enough particles --> we use its diameter as search radius
                 particles(i)%results%maxdist2 = boxdiag2(level_from_key(key))
-                particles(i)%results%neighbour_nodes(1:num_neighbour_particles) = htable(addr)%node
+                particles(i)%results%neighbour_keys(1:num_neighbour_particles) = key
 
                 exit ! from this loop
              endif
@@ -397,13 +397,15 @@ contains
   ! > (different) force calculation routines
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox)
-    use module_interaction_specific_types
+  subroutine calc_force_per_interaction(particle, node, key, delta, dist2, vbox, node_is_leaf)
+    use module_pepc_types
     use treevars
     implicit none
-    
-    integer, intent(in) :: inode
+
+    type(t_tree_node_interaction_data), intent(in) :: node
+    integer*8, intent(in) :: key
     type(t_particle), intent(inout) :: particle
+    logical, intent(in) :: node_is_leaf
     real*8, intent(in) :: vbox(3), delta(3), dist2
     
     real*8 :: exyz(3), phic
@@ -412,12 +414,12 @@ contains
     select case (force_law)
     case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
 
-       if (inode > 0) then
+       if (node_is_leaf) then
           ! It's a leaf, do direct summation
-          call calc_force_coulomb_2D_direct(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
+          call calc_force_coulomb_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
        else
           ! It's a twig, do ME
-          call calc_force_coulomb_2D(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
+          call calc_force_coulomb_2D(node, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
        end if
        exyz(3) = 0.
 
@@ -426,26 +428,26 @@ contains
 
     case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
 
-       if (inode > 0) then
+       if (node_is_leaf) then
           ! It's a leaf, do direct summation
-          call calc_force_coulomb_3D_direct(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+          call calc_force_coulomb_3D_direct(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
        else
           ! It's a twig, do ME
-          call calc_force_coulomb_3D(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+          call calc_force_coulomb_3D(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
        end if
 
        particle%results%e         = particle%results%e    + exyz
        particle%results%pot       = particle%results%pot  + phic
 
     case (4)  ! LJ potential for quiet start
-       call calc_force_LJ(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+       call calc_force_LJ(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
        exyz(3) = 0.
 
        particle%results%e         = particle%results%e    + exyz
        particle%results%pot       = particle%results%pot  + phic
 
     case (5)
-       call update_nn_list(particle, inode, delta, dist2)
+       call update_nn_list(particle, node, key, delta, dist2)
 
     case default
        write(*,*) "value of force_law is not allowed in calc_force_per_interaction:", force_law
@@ -482,7 +484,7 @@ contains
   ! > the distance to the furthest particle.
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine update_nn_list(particle, inode, d, dist2)
+  subroutine update_nn_list(particle, node, key, d, dist2)
 
     use module_interaction_specific_types, only: &
          max_neighbour_particles
@@ -492,7 +494,8 @@ contains
     implicit none
     include 'mpif.h'
 
-    integer, intent(in) :: inode !< index of particle to interact with
+    integer*8, intent(in) :: key !< index of particle to interact with
+    type(t_tree_node_interaction_data), intent(in) :: node
     real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
     type(t_particle), intent(inout) :: particle
 
@@ -503,9 +506,9 @@ contains
 
        if (dist2 < particle%results%maxdist2) then
           ! add node to NN_list
-          particle%results%neighbour_nodes(particle%results%maxidx) = inode
-          particle%results%dist2(particle%results%maxidx)           = dist2
-          particle%results%dist_vector(:,particle%results%maxidx) = d
+          particle%results%neighbour_keys(particle%results%maxidx) = key
+          particle%results%dist2(particle%results%maxidx)          = dist2
+          particle%results%dist_vector(:,particle%results%maxidx)  = d
           tmp                       = maxloc(particle%results%dist2(1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
           particle%results%maxidx   = tmp(1)
           particle%results%maxdist2 = particle%results%dist2(particle%results%maxidx)
@@ -515,11 +518,11 @@ contains
 
     case(4)
        
-       if ( (dist2 < particle%results%maxdist2) .or. ( dist2 < 4.*tree_nodes(inode)%h**2 ) ) then
+       if ( (dist2 < particle%results%maxdist2) .or. ( dist2 < 4.*node%h**2 ) ) then
           ! add node to NN_list
-          particle%results%neighbour_nodes(particle%results%maxidx) = inode
+          particle%results%neighbour_keys(particle%results%maxidx)  = key
           particle%results%dist2(particle%results%maxidx)           = dist2
-          particle%results%dist_vector(:,particle%results%maxidx) = d
+          particle%results%dist_vector(:,particle%results%maxidx)   = d
           particle%results%maxidx   = particle%results%maxidx + 1
           if( particle%results%maxidx > max_neighbour_particles ) then
              write(*,*) "Number of neighbours found in symmetric neighbour search bigger than max_neighbour_particles. Increase this value, recompile and try again."
@@ -537,324 +540,308 @@ contains
     
   end subroutine update_nn_list
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > Calculates 3D Coulomb interaction of particle p with tree node inode
-  ! > that is shifted by the lattice vector vbox
-  ! > results are returned in eps, sumfx, sumfy, sumfz, sumphi
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_force_coulomb_3D(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
-    use module_pepc_types
-    use treevars
-    implicit none
-
-    include 'mpif.h'
-
-    integer, intent(in) :: inode !< index of particle to interact with
-    real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-    real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
-
-    real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2
-    real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
-    type(t_tree_node_interaction_data), pointer :: t
-
-    t=>tree_nodes(inode)
-
-    sumfx  = 0.
-    sumfy  = 0.
-    sumfz  = 0.
-    sumphi = 0.
-
-    !  preprocess distances
-    dx = d(1)
-    dy = d(2)
-    dz = d(3)
-
-
-    r = sqrt(dist2+eps2)
-    rd = 1./r
-    rd3 = rd**3
-    rd5 = rd**5
-    rd7 = rd**7
-
-    dx2 = dx**2
-    dy2 = dy**2
-    dz2 = dz**2
-    dx3 = dx**3
-    dy3 = dy**3
-    dz3 = dz**3
-
-    fd1 = 3.*dx2*rd5 - rd3
-    fd2 = 3.*dy2*rd5 - rd3
-    fd3 = 3.*dz2*rd5 - rd3
-    fd4 = 3.*dx*dy*rd5
-    fd5 = 3.*dy*dz*rd5
-    fd6 = 3.*dx*dz*rd5
-
-    ! potential
-
-    sumphi = sumphi + t%charge*rd    &                           !  monopole term
-                                !
-         + (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3  &    !  dipole
-                                !     Dx             Dy            Dz
-         + 0.5*fd1*t%quad(1) + 0.5*fd2*t%quad(2) + 0.5*fd3*t%quad(3)  &  !  quadrupole
-                                !           Qxx                 Qyy                 Qzz
-         + fd4*t%xyquad + fd5*t%yzquad + fd6*t%zxquad
-    !   Qxy            Qyz             Qzx
-
-    !  forces
-
-    sumfx = sumfx + t%charge*dx*rd3 &      ! monopole term
-                                !
-         + fd1*t%dip(1) + fd4*t%dip(2) + fd6*t%dip(3)   &   !  dipole term
-                                !
-         + (15.*dx3*rd7 - 9.*dx*rd5 )*0.5*t%quad(1) &     !
-         + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*t%xyquad &     !
-         + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*t%zxquad &     !   quadrupole term
-         + ( 15*dx*dy*dz*rd7 )*t%yzquad &                !
-         + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*0.5*t%quad(2) & !
-         + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*0.5*t%quad(3)   !
-
-    sumfy = sumfy + t%charge*dy*rd3 &
-         + fd2*t%dip(2) + fd4*t%dip(1) + fd5*t%dip(3)  &
-         + ( 15.*dy3*rd7 - 9.*dy*rd5 )*0.5*t%quad(2) &
-         + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*t%xyquad &
-         + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*t%yzquad &
-         + ( 15.*dx*dy*dz*rd7 )*t%zxquad &
-         + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*0.5*t%quad(1) &
-         + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*0.5*t%quad(3)
-
-    sumfz = sumfz + t%charge*dz*rd3 &
-         + fd3*t%dip(3) + fd5*t%dip(2) + fd6*t%dip(1)  &
-         + ( 15.*dz3*rd7 - 9.*dz*rd5 )*0.5*t%quad(3) &
-         + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*t%zxquad &
-         + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*t%yzquad &
-         + ( 15.*dx*dy*dz*rd7 )*t%xyquad &
-         + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*0.5*t%quad(2) &
-         + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*0.5*t%quad(1)
-
-  end subroutine calc_force_coulomb_3D
-
-
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > Calculates 2D Coulomb interaction of particle p with tree node inode
-  ! > that is shifted by the lattice vector vbox
-  ! > results are returned in eps, sumfx, sumfy, sumphi
-  ! > Unregularized force law is:
-  ! >   Phi = -2q log R
-  ! >   Ex = -dPhi/dx = 2 q x/R^2 etc
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_force_coulomb_2D(inode, d, dist2, sumfx, sumfy, sumphi)
-    use module_pepc_types
-    use treevars
-    implicit none
-
-    include 'mpif.h'
-
-    integer, intent(in) :: inode !< index of particle to interact with
-    real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-    real*8, intent(out) ::  sumfx,sumfy,sumphi
-
-    real*8 :: dx,dy,d2,rd2,rd4,rd6,dx2,dy2,dx3,dy3
-    type(t_tree_node_interaction_data), pointer :: t
-
-    sumfx  = 0.
-    sumfy  = 0.
-    sumphi = 0.
-
-    t=>tree_nodes(inode)
-
-    !  preprocess distances and reciprocals
-    dx = d(1)
-    dy = d(2)
-
-    d2  = dist2+eps2
-    rd2 = 1./d2
-    rd4 = rd2**2
-    rd6 = rd2**3
-    dx2 = dx**2
-    dy2 = dy**2
-    dx3 = dx**3
-    dy3 = dy**3
-
-    sumphi = sumphi - 0.5*t%charge*log(d2)    &                           !  monopole term
-                                !
-         + (dx*t%dip(1) + dy*t%dip(2) )*rd2  &    !  dipole
-                                !                               
-         + 0.5*t%quad(1)*(dx2*rd4 - rd2) + 0.5*t%quad(2)*(dy2*rd4 - rd2) + t%xyquad*dx*dy*rd4  !  quadrupole
-
-    sumfx = sumfx + t%charge*dx*rd2  &   ! monopole
-                                !
-         + t%dip(1)*(2*dx2*rd4 - rd2) + t%dip(2)*2*dx*dy*rd4  &  ! dipole
-                                !
-         + 0.5*t%quad(1)*(8*dx3*rd6 - 6*dx*rd4) &                    ! quadrupole
-         + 0.5*t%quad(2)*(8*dx*dy**2*rd6 - 2*dx*rd4) &
-         +     t%xyquad*(8*dx2*dy*rd6 - 2*dy*rd4)
-
-    sumfy = sumfy + t%charge*dy*rd2  &   ! monopole
-                                !
-         + t%dip(2)*(2*dy2*rd4 - rd2) + t%dip(1)*2*dx*dy*rd4  &  ! dipole
-                                !
-         + 0.5*t%quad(2)*(8*dy3*rd6 - 6*dy*rd4) &                    ! quadrupole
-         + 0.5*t%quad(1)*(8*dy*dx**2*rd6 - 2*dy*rd4) &
-         +     t%xyquad*(8*dy2*dx*rd6 - 2*dx*rd4)
-
-  end subroutine calc_force_coulomb_2D
-
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > CALC_FORCE_LJ
-  ! >
-  ! > Calculates 3D Lennard-Jones interaction of particle p with tree node inode
-  ! > shifted by the lattice vector vbox
-  ! > results are returned sumfx, sumfy, sumfz, sumphi
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_force_LJ(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
-    use module_pepc_types
-    use treevars
-    implicit none
-
-    include 'mpif.h'
-
-    integer, intent(in) :: inode !< index of particle to interact with
-    real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-    real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
-    real*8 :: dx,dy,dz,r2
-    real*8 :: flj, epsc2, plj, aii2, aii2_r2, r
-
-    type(t_tree_node_interaction_data), pointer :: t
-
-    t=>tree_nodes(inode)
-
-    sumfx  = 0.
-    sumfy  = 0.
-    sumfz  = 0.
-    sumphi = 0.
-
-    !  preprocess distances
-    dx  = d(1)
-    dy  = d(2)
-    dz  = d(3)
-    r2 = dist2
-
-    !    epsc should be > a_ii to get evenly spaced ions
-    aii2  = eps2
-    epsc2 = 0.8*aii2
-    plj   = 0.
-
-    ! Force is repulsive up to and just beyond aii
-    if (r2 > epsc2) then
-       aii2_r2 = aii2/r2
-    else
-       aii2_r2 = aii2/epsc2
-    endif
-
-    flj = 2.*(aii2_r2)**4 - 1.*(aii2_r2  )**2
-
-    ! potential
-    sumphi = sumphi + plj
-
-    !  forces
-    r     = sqrt(r2)
-    sumfx = sumfx + dx/r*flj
-    sumfy = sumfy + dy/r*flj
-    !       sumfz = sumfz + dz/r*flj
-    sumfz=0.
-
-  end subroutine calc_force_LJ
-
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > Calculates 3D Coulomb interaction of particle p with particle inode
-  ! > that is shifted by the lattice vector vbox
-  ! > results are returned in eps, sumfx, sumfy, sumfz, sumphi
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_force_coulomb_3D_direct(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
-    use module_pepc_types
-    use treevars
-    implicit none
-
-    include 'mpif.h'
-
-    integer, intent(in) :: inode !< index of particle to interact with
-    real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-    real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
-
-    real*8 :: rd,dx,dy,dz,r,charge, rd3
-    type(t_tree_node_interaction_data), pointer :: t
-
-    t=>tree_nodes(inode)
-
-    !  preprocess distances
-    dx = d(1)
-    dy = d(2)
-    dz = d(3)
-
-    r = sqrt(dist2+eps2)
-    rd = 1./r
-    rd3 = rd**3
-
-    charge = t%charge
-
-    ! potential
-    sumphi = charge*rd
-
-    !  forces
-
-    sumfx = charge*dx*rd3
-
-    sumfy = charge*dy*rd3
-
-    sumfz = charge*dz*rd3
-
-  end subroutine calc_force_coulomb_3D_direct
-
-
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > Calculates 2D Coulomb interaction of particle p with tree node inode
-  ! > that is shifted by the lattice vector vbox
-  ! > results are returned in eps, sumfx, sumfy, sumphi
-  ! > Unregularized force law is:
-  ! >   Phi = -2q log R
-  ! >   Ex = -dPhi/dx = 2 q x/R^2 etc
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_force_coulomb_2D_direct(inode, d, dist2, sumfx, sumfy, sumphi)
-    use module_pepc_types
-    use treevars
-    implicit none
-
-    include 'mpif.h'
-
-    integer, intent(in) :: inode !< index of particle to interact with
-    real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-    real*8, intent(out) ::  sumfx,sumfy,sumphi
-
-    real*8 :: dx,dy,d2,rd2,charge
-    type(t_tree_node_interaction_data), pointer :: t
-
-    t=>tree_nodes(inode)
-
-    !  preprocess distances and reciprocals
-    dx = d(1)
-    dy = d(2)
-
-    d2  = dist2+eps2
-    rd2 = 1./d2
-
-
-    charge = t%charge
-
-    sumphi = - 0.5*charge*log(d2)
-
-    sumfx = charge*dx*rd2
-
-    sumfy = charge*dy*rd2
-
-  end subroutine calc_force_coulomb_2D_direct
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates 3D Coulomb interaction of particle p with tree node inode
+        !> that is shifted by the lattice vector vbox
+        !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_coulomb_3D(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          include 'mpif.h'
+
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
+
+          real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2
+          real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
+
+             sumfx  = 0.
+             sumfy  = 0.
+             sumfz  = 0.
+             sumphi = 0.
+
+             !  preprocess distances
+             dx = d(1)
+             dy = d(2)
+             dz = d(3)
+
+
+             r = sqrt(dist2+eps2)
+             rd = 1./r
+             rd3 = rd**3
+             rd5 = rd**5
+             rd7 = rd**7
+
+             dx2 = dx**2
+             dy2 = dy**2
+             dz2 = dz**2
+             dx3 = dx**3
+             dy3 = dy**3
+             dz3 = dz**3
+
+             fd1 = 3.*dx2*rd5 - rd3
+             fd2 = 3.*dy2*rd5 - rd3
+             fd3 = 3.*dz2*rd5 - rd3
+             fd4 = 3.*dx*dy*rd5
+             fd5 = 3.*dy*dz*rd5
+             fd6 = 3.*dx*dz*rd5
+
+             ! potential
+
+             sumphi = sumphi + t%charge*rd    &                           !  monopole term
+                                        !
+                  + (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3  &    !  dipole
+                                        !     Dx             Dy            Dz
+                  + 0.5*fd1*t%quad(1) + 0.5*fd2*t%quad(2) + 0.5*fd3*t%quad(3)  &  !  quadrupole
+                                        !           Qxx                 Qyy                 Qzz
+                  + fd4*t%xyquad + fd5*t%yzquad + fd6*t%zxquad
+             !   Qxy            Qyz             Qzx
+
+             !  forces
+
+             sumfx = sumfx + t%charge*dx*rd3 &      ! monopole term
+                                        !
+                  + fd1*t%dip(1) + fd4*t%dip(2) + fd6*t%dip(3)   &   !  dipole term
+                                        !
+                  + (15.*dx3*rd7 - 9.*dx*rd5 )*0.5*t%quad(1) &     !
+                  + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*t%xyquad &     !
+                  + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*t%zxquad &     !   quadrupole term
+                  + ( 15*dx*dy*dz*rd7 )*t%yzquad &                !
+                  + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*0.5*t%quad(2) & !
+                  + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*0.5*t%quad(3)   !
+
+             sumfy = sumfy + t%charge*dy*rd3 &
+                  + fd2*t%dip(2) + fd4*t%dip(1) + fd5*t%dip(3)  &
+                  + ( 15.*dy3*rd7 - 9.*dy*rd5 )*0.5*t%quad(2) &
+                  + ( 15.*dx*dy2*rd7 - 3.*dx*rd5 )*t%xyquad &
+                  + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*t%yzquad &
+                  + ( 15.*dx*dy*dz*rd7 )*t%zxquad &
+                  + ( 15.*dy*dx2*rd7 - 3.*dy*rd5 )*0.5*t%quad(1) &
+                  + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*0.5*t%quad(3)
+
+             sumfz = sumfz + t%charge*dz*rd3 &
+                  + fd3*t%dip(3) + fd5*t%dip(2) + fd6*t%dip(1)  &
+                  + ( 15.*dz3*rd7 - 9.*dz*rd5 )*0.5*t%quad(3) &
+                  + ( 15.*dx*dz2*rd7 - 3.*dx*rd5 )*t%zxquad &
+                  + ( 15.*dy*dz2*rd7 - 3.*dy*rd5 )*t%yzquad &
+                  + ( 15.*dx*dy*dz*rd7 )*t%xyquad &
+                  + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*0.5*t%quad(2) &
+                  + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*0.5*t%quad(1)
+
+        end subroutine calc_force_coulomb_3D
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates 2D Coulomb interaction of particle p with tree node inode
+        !> that is shifted by the lattice vector vbox
+        !> results are returned in eps, sumfx, sumfy, sumphi
+        !> Unregularized force law is:
+        !>   Phi = -2q log R
+        !>   Ex = -dPhi/dx = 2 q x/R^2 etc
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_coulomb_2D(t, d, dist2, sumfx, sumfy, sumphi)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          include 'mpif.h'
+
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          real*8, intent(out) ::  sumfx,sumfy,sumphi
+
+          real*8 :: dx,dy,d2,rd2,rd4,rd6,dx2,dy2,dx3,dy3
+
+          sumfx  = 0.
+          sumfy  = 0.
+          sumphi = 0.
+
+          !  preprocess distances and reciprocals
+          dx = d(1)
+          dy = d(2)
+
+          d2  = dist2+eps2
+          rd2 = 1./d2
+          rd4 = rd2**2
+          rd6 = rd2**3
+          dx2 = dx**2
+          dy2 = dy**2
+          dx3 = dx**3
+          dy3 = dy**3
+
+          sumphi = sumphi - 0.5*t%charge*log(d2)    &                           !  monopole term
+               !
+               + (dx*t%dip(1) + dy*t%dip(2) )*rd2  &    !  dipole
+               !
+               + 0.5*t%quad(1)*(dx2*rd4 - rd2) + 0.5*t%quad(2)*(dy2*rd4 - rd2) + t%xyquad*dx*dy*rd4  !  quadrupole
+
+          sumfx = sumfx + t%charge*dx*rd2  &   ! monopole
+               !
+               + t%dip(1)*(2*dx2*rd4 - rd2) + t%dip(2)*2*dx*dy*rd4  &  ! dipole
+               !
+               + 0.5*t%quad(1)*(8*dx3*rd6 - 6*dx*rd4) &                    ! quadrupole
+               + 0.5*t%quad(2)*(8*dx*dy**2*rd6 - 2*dx*rd4) &
+               +     t%xyquad*(8*dx2*dy*rd6 - 2*dy*rd4)
+
+          sumfy = sumfy + t%charge*dy*rd2  &   ! monopole
+               !
+               + t%dip(2)*(2*dy2*rd4 - rd2) + t%dip(1)*2*dx*dy*rd4  &  ! dipole
+               !
+               + 0.5*t%quad(2)*(8*dy3*rd6 - 6*dy*rd4) &                    ! quadrupole
+               + 0.5*t%quad(1)*(8*dy*dx**2*rd6 - 2*dy*rd4) &
+               +     t%xyquad*(8*dy2*dx*rd6 - 2*dx*rd4)
+
+        end subroutine calc_force_coulomb_2D
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> CALC_FORCE_LJ
+        !>
+        !> Calculates 3D Lennard-Jones interaction of particle p with tree node inode
+        !> shifted by the lattice vector vbox
+        !> results are returned sumfx, sumfy, sumfz, sumphi
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_LJ(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          include 'mpif.h'
+
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
+          real*8 :: dx,dy,dz,r2
+          real*8 :: flj, epsc2, plj, aii2, aii2_r2, r
+
+          sumfx  = 0.
+          sumfy  = 0.
+          sumfz  = 0.
+          sumphi = 0.
+
+          !  preprocess distances
+          dx  = d(1)
+          dy  = d(2)
+          dz  = d(3)
+          r2 = dist2
+
+          !    epsc should be > a_ii to get evenly spaced ions
+          aii2  = eps2
+          epsc2 = 0.8*aii2
+          plj   = 0.
+
+          ! Force is repulsive up to and just beyond aii
+          if (r2 > epsc2) then
+              aii2_r2 = aii2/r2
+          else
+              aii2_r2 = aii2/epsc2
+          endif
+
+          flj = 2.*(aii2_r2)**4 - 1.*(aii2_r2  )**2
+
+          ! potential
+          sumphi = sumphi + plj
+
+          !  forces
+          r     = sqrt(r2)
+          sumfx = sumfx + dx/r*flj
+          sumfy = sumfy + dy/r*flj
+          !       sumfz = sumfz + dz/r*flj
+          sumfz=0.
+
+      end subroutine calc_force_LJ
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> Calculates 3D Coulomb interaction of particle p with particle inode
+      !> that is shifted by the lattice vector vbox
+      !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_coulomb_3D_direct(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          include 'mpif.h'
+
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
+
+          real*8 :: rd,dx,dy,dz,r,charge, rd3
+
+          !  preprocess distances
+          dx = d(1)
+          dy = d(2)
+          dz = d(3)
+
+          r = sqrt(dist2+eps2)
+          rd = 1./r
+          rd3 = rd**3
+
+          charge = t%charge
+
+          ! potential
+          sumphi = charge*rd
+
+          !  forces
+
+          sumfx = charge*dx*rd3
+
+          sumfy = charge*dy*rd3
+
+          sumfz = charge*dz*rd3
+
+      end subroutine calc_force_coulomb_3D_direct
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> Calculates 2D Coulomb interaction of particle p with tree node inode
+      !> that is shifted by the lattice vector vbox
+      !> results are returned in eps, sumfx, sumfy, sumphi
+      !> Unregularized force law is:
+      !>   Phi = -2q log R
+      !>   Ex = -dPhi/dx = 2 q x/R^2 etc
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_coulomb_2D_direct(t, d, dist2, sumfx, sumfy, sumphi)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          include 'mpif.h'
+
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          real*8, intent(out) ::  sumfx,sumfy,sumphi
+
+          real*8 :: dx,dy,d2,rd2,charge
+
+          !  preprocess distances and reciprocals
+          dx = d(1)
+          dy = d(2)
+
+          d2  = dist2+eps2
+          rd2 = 1./d2
+
+
+          charge = t%charge
+
+          sumphi = - 0.5*charge*log(d2)
+
+          sumfx = charge*dx*rd2
+
+          sumfy = charge*dy*rd2
+
+      end subroutine calc_force_coulomb_2D_direct
 
 end module module_interaction_specific

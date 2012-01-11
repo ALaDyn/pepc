@@ -272,7 +272,7 @@ module module_interaction_specific
             key = particles(i)%key
 
             particles(i)%results%maxdist2 = huge(0._8)
-            particles(i)%results%neighbour_nodes(:) = 0
+            particles(i)%results%neighbour_keys(:)  = 0_8
             particles(i)%results%maxidx             = 1
 
             do while (key .ne. 0)
@@ -280,7 +280,7 @@ module module_interaction_specific
                 if (htable(addr)%leaves > num_neighbour_particles) then
                   ! this twig contains enough particles --> we use its diameter as search radius
                   particles(i)%results%maxdist2 = boxdiag2(level_from_key(key))
-                  particles(i)%results%neighbour_nodes(1:num_neighbour_particles) = htable(addr)%node
+                  particles(i)%results%neighbour_keys(1:num_neighbour_particles) = key
 
                   exit ! from this loop
                 endif
@@ -307,18 +307,20 @@ module module_interaction_specific
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox)
-          use module_interaction_specific_types
+        subroutine calc_force_per_interaction(particle, node, key, delta, dist2, vbox, node_is_leaf)
+          use module_pepc_types
           use treevars
           implicit none
 
-          integer, intent(in) :: inode
+          type(t_tree_node_interaction_data), intent(in) :: node
+          integer*8, intent(in) :: key
           type(t_particle), intent(inout) :: particle
+          logical, intent(in) :: node_is_leaf
           real*8, intent(in) :: vbox(3), delta(3), dist2
 
           select case (force_law)
             case (5)
-                call update_nn_list(particle, inode, delta, dist2)
+                call update_nn_list(particle, key, delta, dist2)
                 particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
           end select
 
@@ -350,13 +352,13 @@ module module_interaction_specific
         !>
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine update_nn_list(particle, inode, d, dist2)
+        subroutine update_nn_list(particle, key, d, dist2)
           use module_pepc_types
           use treevars
           implicit none
           include 'mpif.h'
 
-          integer, intent(in) :: inode !< index of particle to interact with
+          integer*8, intent(in) :: key !< key of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           type(t_particle), intent(inout) :: particle
 
@@ -364,9 +366,9 @@ module module_interaction_specific
 
           if (dist2 < particle%results%maxdist2) then
             ! add node to NN_list
-            particle%results%neighbour_nodes(particle%results%maxidx) = inode
-            particle%results%dist2(particle%results%maxidx)           = dist2
-            particle%results%dist_vector(:,particle%results%maxidx) = d
+            particle%results%neighbour_keys(particle%results%maxidx) = key
+            particle%results%dist2(particle%results%maxidx)          = dist2
+            particle%results%dist_vector(:,particle%results%maxidx)  = d
             tmp                       = maxloc(particle%results%dist2(1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
             particle%results%maxidx   = tmp(1)
             particle%results%maxdist2 = particle%results%dist2(particle%results%maxidx)

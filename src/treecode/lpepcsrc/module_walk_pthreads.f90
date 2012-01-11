@@ -1045,7 +1045,7 @@ module module_walk
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell if it does not lie outside the cutoff box
                   if (all(abs(delta) < spatial_interaction_cutoff)) then
-                      call calc_force_per_interaction(particle, walk_node, delta, dist2, vbox)
+                      call calc_force_per_interaction(particle, tree_nodes(walk_node), walk_key, delta, dist2, vbox, walk_node > 0)
 
                       num_interactions = num_interactions + 1
                   endif

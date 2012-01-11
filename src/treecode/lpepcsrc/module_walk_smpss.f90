@@ -380,7 +380,7 @@ subroutine tree_walk_smpss_walk_and_interact(particle_list, particle_status, par
            if(flog) write(*,'(a)') "** compute force"
 
 !!!!! compute force
-           call calc_force_per_interaction(particles(cpart), cnode, tdist, tdist2, vbox)
+           call calc_force_per_interaction(particles(cpart), tree_nodes(cnode), cstat, tdist, tdist2, vbox, cnode > 0)
 
 !!!!! need to traverse deeper, cnode is a twig (node < 0)
         else if ( .not.fmac .and. cnode .lt. 0 ) then

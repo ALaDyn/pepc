@@ -13,6 +13,7 @@ module module_diagnostics
      public write_particles
      public read_particles
      public cluster_diagnostics
+     public verifydirect
 
 
 
@@ -321,4 +322,74 @@ module module_diagnostics
         endif
       end subroutine write_total_momentum
 
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine verifydirect(particles, np_local, testidx, verbosity, my_rank, n_cpu, comm)
+          use module_directsum
+          use module_pepc_types
+          implicit none
+          include 'mpif.h'
+
+          type(t_particle), intent(in) :: particles(1:np_local)
+          integer, intent(in) :: verbosity !< verbosity level: 0 - only print max. relative deviations, 1 - additionally print all. relative deviations, 2 - additionally print all. calculated forces
+          integer, intent(in) :: np_local !< number of local particles
+          integer, dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
+          integer :: ntest !< number of particles in testidx
+          integer, intent(in) :: my_rank, n_cpu, comm
+          real*8 :: deviation(4), deviation_max(4)
+          real*8 :: field_abssum(4), field_average(4)
+
+          integer :: i, ntest_total, ierr
+          type(t_particle_results), target, dimension(:), allocatable :: res !< test results
+          type(t_particle_results), pointer :: re
+          integer :: p
+
+          ntest = size(testidx)
+
+          if (my_rank ==0) write(*,'("-- DIRECT VERIFICATION --")')
+
+          call directforce(particles, np_local, testidx, ntest, res, my_rank, n_cpu, comm)
+
+          deviation     = 0.
+          deviation_max = 0.
+          field_abssum  = 0.
+
+          do i=1,ntest
+            p = testidx(i)
+            re=>res(i)
+              deviation(1:3)       = abs( re%e - particles(p)%results%e )
+              field_abssum(1:3)    = field_abssum(1:3)    + abs(re%e)
+              deviation(4)         = abs( re%pot - particles(p)%results%pot )
+              field_abssum(4)      = field_abssum(4)      + abs(re%pot)
+
+              deviation_max  = max(deviation, deviation_max)
+
+              if (verbosity > 1) then
+                write(*,'("[",I6.6,":",I6.6,"]",3(x,F10.4), " | PEPC    ", 4(x,E20.13))') my_rank, p, particles(p)%x, particles(p)%results
+                write(*,'("[",I6.6,":",I6.6,"]",33x,        " | DIRECT  ", 4(x,E20.13))') my_rank, p, re
+              endif
+
+              if (verbosity > 0) then
+                write(*,'("[",I6.6,":",I6.6,"]",33x,        " | Abs.err ", 4(x,E20.13),"__")') my_rank, p, deviation
+              endif
+          end do
+
+          call MPI_REDUCE(deviation_max,   deviation,             4, MPI_REAL8,   MPI_MAX, 0, comm, ierr)
+          call MPI_REDUCE(field_abssum,    field_average,         4, MPI_REAL8,   MPI_SUM, 0, comm, ierr)
+          call MPI_REDUCE(ntest,           ntest_total,           1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+          field_average         = field_average         / ntest_total
+
+          if ((verbosity > -1) .and. (my_rank == 0)) then
+            write(*,'("Maximum absolute deviation (ex, ey, ez, pot):             ", 4(x,E20.13))') deviation
+            write(*,'("Average field values       (ex, ey, ez, pot):             ", 4(x,E20.13))') field_average
+            write(*,'("Maximum relative deviation (ex, ey, ez, pot):             ", 4(x,F20.3))') deviation / field_average
+          endif
+
+          deallocate(res)
+
+        end subroutine
 end module module_diagnostics

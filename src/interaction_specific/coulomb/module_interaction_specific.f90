@@ -300,13 +300,15 @@ module module_interaction_specific
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox)
+        subroutine calc_force_per_interaction(particle, node, key, delta, dist2, vbox, node_is_leaf)
           use module_pepc_types
           use treevars
           implicit none
 
-          integer, intent(in) :: inode
+          type(t_tree_node_interaction_data), intent(in) :: node
+          integer*8, intent(in) :: key
           type(t_particle), intent(inout) :: particle
+          logical, intent(in) :: node_is_leaf
           real*8, intent(in) :: vbox(3), delta(3), dist2
 
 
@@ -315,27 +317,27 @@ module module_interaction_specific
           select case (force_law)
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
 
-                if (inode > 0) then
+                if (node_is_leaf) then
                     ! It's a leaf, do direct summation
-                    call calc_force_coulomb_2D_direct(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
+                    call calc_force_coulomb_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
                 else
                     ! It's a twig, do ME
-                    call calc_force_coulomb_2D(inode, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
+                    call calc_force_coulomb_2D(node, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
                 end if
                 exyz(3) = 0.
 
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
 
-                if (inode > 0) then
+                if (node_is_leaf) then
                     ! It's a leaf, do direct summation
-                    call calc_force_coulomb_3D_direct(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+                    call calc_force_coulomb_3D_direct(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
                 else
                     ! It's a twig, do ME
-                    call calc_force_coulomb_3D(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+                    call calc_force_coulomb_3D(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
                 end if
 
             case (4)  ! LJ potential for quiet start
-                call calc_force_LJ(inode, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+                call calc_force_LJ(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
                 exyz(3) = 0.
 
             case default
@@ -399,22 +401,19 @@ module module_interaction_specific
         !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_coulomb_3D(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
+        subroutine calc_force_coulomb_3D(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use module_pepc_types
           use treevars
           implicit none
 
           include 'mpif.h'
 
-          integer, intent(in) :: inode !< index of particle to interact with
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
 
           real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2
           real*8 :: dx3,dy3,dz3,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
-          type(t_tree_node_interaction_data), pointer :: t
-
-             t=>tree_nodes(inode)
 
              sumfx  = 0.
              sumfy  = 0.
@@ -501,25 +500,22 @@ module module_interaction_specific
         !>   Phi = -2q log R 
         !>   Ex = -dPhi/dx = 2 q x/R^2 etc 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_coulomb_2D(inode, d, dist2, sumfx, sumfy, sumphi)
+        subroutine calc_force_coulomb_2D(t, d, dist2, sumfx, sumfy, sumphi)
           use module_pepc_types
           use treevars
           implicit none
 
           include 'mpif.h'
 
-          integer, intent(in) :: inode !< index of particle to interact with
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumphi
 
           real*8 :: dx,dy,d2,rd2,rd4,rd6,dx2,dy2,dx3,dy3
-          type(t_tree_node_interaction_data), pointer :: t
 
           sumfx  = 0.
           sumfy  = 0.
           sumphi = 0.
-
-          t=>tree_nodes(inode)
 
           !  preprocess distances and reciprocals
           dx = d(1)
@@ -567,22 +563,18 @@ module module_interaction_specific
         !> results are returned sumfx, sumfy, sumfz, sumphi
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_LJ(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
+        subroutine calc_force_LJ(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use module_pepc_types
           use treevars
           implicit none
 
           include 'mpif.h'
 
-          integer, intent(in) :: inode !< index of particle to interact with
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
           real*8 :: dx,dy,dz,r2
           real*8 :: flj, epsc2, plj, aii2, aii2_r2, r
-
-          type(t_tree_node_interaction_data), pointer :: t
-
-          t=>tree_nodes(inode)
 
           sumfx  = 0.
           sumfy  = 0.
@@ -628,21 +620,18 @@ module module_interaction_specific
       !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine calc_force_coulomb_3D_direct(inode, d, dist2, sumfx, sumfy, sumfz, sumphi)
+      subroutine calc_force_coulomb_3D_direct(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use module_pepc_types
           use treevars
           implicit none
 
           include 'mpif.h'
 
-          integer, intent(in) :: inode !< index of particle to interact with
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
 
           real*8 :: rd,dx,dy,dz,r,charge, rd3
-          type(t_tree_node_interaction_data), pointer :: t
-
-          t=>tree_nodes(inode)
 
           !  preprocess distances
           dx = d(1)
@@ -678,21 +667,18 @@ module module_interaction_specific
       !>   Phi = -2q log R
       !>   Ex = -dPhi/dx = 2 q x/R^2 etc
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine calc_force_coulomb_2D_direct(inode, d, dist2, sumfx, sumfy, sumphi)
+      subroutine calc_force_coulomb_2D_direct(t, d, dist2, sumfx, sumfy, sumphi)
           use module_pepc_types
           use treevars
           implicit none
 
           include 'mpif.h'
 
-          integer, intent(in) :: inode !< index of particle to interact with
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumphi
 
           real*8 :: dx,dy,d2,rd2,charge
-          type(t_tree_node_interaction_data), pointer :: t
-
-          t=>tree_nodes(inode)
 
           !  preprocess distances and reciprocals
           dx = d(1)

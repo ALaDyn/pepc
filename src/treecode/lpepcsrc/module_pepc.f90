@@ -205,7 +205,7 @@ module module_pepc
       character(*), intent(in) :: filename
       integer, parameter :: para_file_id = 10
 
-      open(para_file_id,file=trim(filename))
+      open(para_file_id,file=trim(filename),action='read')
       call pepc_read_parameters(para_file_id)
       close(para_file_id)
     end subroutine

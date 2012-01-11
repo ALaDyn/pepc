@@ -225,6 +225,10 @@ contains
 
     use treevars, only: &
          tree_nodes
+
+    use module_htable, only: &
+         htable, &
+         key2addr
     
     implicit none
     include 'mpif.h'
@@ -279,7 +283,7 @@ contains
        particles(local_particle_index)%results%rho = particles(local_particle_index)%data%q *kernel
 
        do actual_neighbour = 1, num_neighbour_particles
-          actual_node = particles(local_particle_index)%results%neighbour_nodes(actual_neighbour)
+          actual_node = htable( key2addr(particles(local_particle_index)%results%neighbour_keys(actual_neighbour), "sph_density") )%node
 
           call sph_kernel(  sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) ), h, kernel)
 
@@ -377,6 +381,10 @@ contains
     use physvars, only: &
          my_rank
 
+    use module_htable, only: &
+         htable, &
+         key2addr
+
     implicit none
     include 'mpif.h'
 
@@ -456,7 +464,7 @@ contains
 
        do actual_neighbour = 1, num_neighbour_particles
           
-          actual_node = particles(local_particle_index)%results%neighbour_nodes(actual_neighbour)
+          actual_node = htable( key2addr(particles(local_particle_index)%results%neighbour_keys(actual_neighbour), "sph_sum_force") )%node
           
           ! scalar distance
           distance = sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) )

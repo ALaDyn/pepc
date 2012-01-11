@@ -4,6 +4,10 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_neighbour_test
+  use module_interaction_specific_types, only: &
+       num_neighbour_particles
+
+
   implicit none
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -17,8 +21,6 @@ module module_neighbour_test
 !!!!!!!!!!!!!!!  public type declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  
-  integer, parameter :: num_neighbour_particles = 50
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -74,7 +76,8 @@ contains
          my_rank
     
     use module_htable, only: & 
-         key2addr
+         key2addr, &
+         htable
     
     use module_spacefilling, only: &
          coord_to_key_lastlevel, &
@@ -374,7 +377,7 @@ contains
     do local_particle_index = 1, np_local
        do index_in_result_neighbour_list = 1, num_neighbour_particles
 
-          actual_node = particles(local_particle_index)%results%neighbour_nodes(index_in_result_neighbour_list)
+          actual_node = htable( key2addr(particles(local_particle_index)%results%neighbour_keys(index_in_result_neighbour_list), "validate_n_nearest_neighbour_list()") )%node
           node_key = coord_to_key_lastlevel(tree_nodes(actual_node)%coc(1), tree_nodes(actual_node)%coc(2), tree_nodes(actual_node)%coc(3))
 
           found = .false.
@@ -452,6 +455,10 @@ contains
          n_cpu, &
          my_rank
     
+    use module_htable, only: &
+         key2addr, &
+         htable
+
     implicit none
     include 'mpif.h'
     
@@ -531,7 +538,7 @@ contains
 
        ! overplot neighbours with a black circle
        do actual_neighbour = 1, num_neighbour_particles
-          actual_node = particles(local_particle_index)%results%neighbour_nodes(actual_neighbour)
+          actual_node = htable( key2addr(particles(local_particle_index)%results%neighbour_keys(actual_neighbour), "draw_neighbours()") )%node
           
           write (60, '(a)') 'set color black'
           write (60, '(a,2f13.4)') 'amove ', tree_nodes(actual_node)%coc(1), tree_nodes(actual_node)%coc(2)

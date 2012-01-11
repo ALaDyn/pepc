@@ -331,30 +331,28 @@ module module_interaction_specific
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(particle, inode, delta, dist2, vbox)
+        subroutine calc_force_per_interaction(particle, node, key, delta, dist2, vbox, node_is_leaf)
           use module_pepc_types
+          use treevars
           implicit none
 
-          integer, intent(in) :: inode
+          type(t_tree_node_interaction_data), intent(in) :: node
+          integer*8, intent(in) :: key
           type(t_particle), intent(inout) :: particle
+          logical, intent(in) :: node_is_leaf
           real*8, intent(in) :: vbox(3), delta(3), dist2
-          !> Force law struct has following content (defined in module module_pepc_types)
-          !> These need to be included/defined in call to fields from frontend
-          !>    real    :: eps
-          !>    real    :: force_const
-          !>    integer :: force_law   0= no interaction (default); 2=2nd order condensed algebraic kernel; 3=2nd order decomposed algebraic kernel
 
           real*8 :: u(3), af(3)
 
           select case (force_law)
             case (2)  !  use 2nd order algebraic kernel, condensed
 
-                if (inode > 0) then
+                if (node_is_leaf) then
                     ! It's a leaf, do direct summation without ME stuff
-                    call calc_2nd_algebraic_condensed_direct(particle, inode, delta, dist2, u, af)
+                    call calc_2nd_algebraic_condensed_direct(particle, node, delta, dist2, u, af)
                 else
                     ! It's not a leaf, do ME
-                    call calc_2nd_algebraic_condensed(particle, inode, delta, dist2, u, af)
+                    call calc_2nd_algebraic_condensed(particle, node, delta, dist2, u, af)
                 end if
 
             case (3)  !  TODO: use 2nd order algebraic kernel, decomposed
@@ -365,12 +363,12 @@ module module_interaction_specific
             case (6)  ! use 6th order algebraic kernel, condensed
 
 
-                if (inode > 0) then
+                if (node_is_leaf) then
                     ! It's a leaf, do direct summation without ME stuff
-                    call calc_6th_algebraic_condensed_direct(particle, inode, delta, dist2, u, af) !TODO: 6xth order direct summation
+                    call calc_6th_algebraic_condensed_direct(particle, node, delta, dist2, u, af) !TODO: 6xth order direct summation
                 else
                     ! It's not a leaf, do ME
-                    call calc_6th_algebraic_condensed(particle, inode, delta, dist2, u, af)
+                    call calc_6th_algebraic_condensed(particle, node, delta, dist2, u, af)
                 end if
 
 
@@ -405,22 +403,19 @@ module module_interaction_specific
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates 3D 2nd order condensed algebraic kernel interaction
-        !> of particle p with tree node inode, results are returned in u and af
+        !> of particle p with tree node t, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        subroutine calc_2nd_algebraic_condensed(particle, inode, d, dist2, u, af)
+        subroutine calc_2nd_algebraic_condensed(particle, t, d, dist2, u, af)
             use module_pepc_types
-            use treevars
             use module_interaction_specific_types
             implicit none
 
             type(t_particle), intent(in) :: particle
-            integer, intent(in) :: inode !< index of particle to interact with
+            type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
             real*8, intent(out) ::  u(1:3), af(1:3)
-
-            type(t_tree_node_interaction_data), pointer :: t
 
             integer :: i1, i2, i3 !< helper variables for the tensor structures
 
@@ -432,8 +427,6 @@ module module_interaction_specific
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
             real*8, dimension(3,3) :: m1, CP1 !< data structures for the dipole moments
             real*8, dimension(3,3,3) :: m2, CP2 !< data structures for the quadrupole moments
-
-            t=>tree_nodes(inode)
 
             dx = d(1)
             dy = d(2)
@@ -531,21 +524,19 @@ module module_interaction_specific
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates 3D 2nd order condensed algebraic kernel interaction
-        !> of particle p with tree node inode, results are returned in u and af
+        !> of particle p with tree node t, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_6th_algebraic_condensed(particle, inode, d, dist2, u, af)
+        subroutine calc_6th_algebraic_condensed(particle, t, d, dist2, u, af)
             use module_pepc_types
             use treevars
             use module_interaction_specific_types
             implicit none
 
             type(t_particle), intent(in) :: particle
-            integer, intent(in) :: inode !< index of particle to interact with
+            type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
             real*8, intent(out) ::  u(1:3), af(1:3)
-
-            type(t_tree_node_interaction_data), pointer :: t
 
             integer :: i1, i2, i3 !< helper variables for the tensor structures
 
@@ -558,8 +549,6 @@ module module_interaction_specific
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
             real*8, dimension(3,3) :: m1, CP1 !< data structures for the dipole moments
             real*8, dimension(3,3,3) :: m2, CP2 !< data structures for the quadrupole moments
-
-            t=>tree_nodes(inode)
 
             dx = d(1)
             dy = d(2)
@@ -680,23 +669,20 @@ module module_interaction_specific
         !> of particle p with tree *particle*, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_2nd_algebraic_condensed_direct(particle, inode, d, dist2, u, af)
+        subroutine calc_2nd_algebraic_condensed_direct(particle, t, d, dist2, u, af)
 
             use module_pepc_types
             use treevars, only : tree_nodes
             implicit none
 
-            integer, intent(in) :: inode
+            type(t_tree_node_interaction_data), intent(in) :: t
             type(t_particle), intent(inout) :: particle
             real*8, intent(in) :: d(3), dist2
             real*8, intent(out) :: u(1:3), af(1:3)
 
-            type(t_tree_node_interaction_data), pointer :: t
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
             real*8 :: dx, dy, dz, Gc25, MPa1
             real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
-
-            t=>tree_nodes(inode)
 
             dx = d(1)
             dy = d(2)
@@ -725,27 +711,22 @@ module module_interaction_specific
         !> of particle p with tree node inode, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_6th_algebraic_condensed_direct(particle, inode, d, dist2, u, af)
+        subroutine calc_6th_algebraic_condensed_direct(particle, t, d, dist2, u, af)
             use module_pepc_types
             use treevars
             use module_interaction_specific_types
             implicit none
 
             type(t_particle), intent(in) :: particle
-            integer, intent(in) :: inode !< index of particle to interact with
+            type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
             real*8, intent(out) ::  u(1:3), af(1:3)
-
-            type(t_tree_node_interaction_data), pointer :: t
 
             real*8 :: dx, dy, dz !< temp variables for distance
             real*8 :: sig4, sig6, sig8, sig10, Gd15, Gd25, Gd35, Gd45, Gd55, Gd65, Gd75
             real*8 :: pre1, pre2, MPa1
             real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
-
-
-            t=>tree_nodes(inode)
 
             dx = d(1)
             dy = d(2)
