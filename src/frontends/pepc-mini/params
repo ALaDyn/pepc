@@ -1,35 +1,30 @@
 &pepcmini
 
 ! total number of particles
-tnp = 100005
-
-! mac theta
-theta = 0.3
+tnp = 10005
 
 ! number of time steps
-nt = 20
+nt = 100
 
 ! time step
-dt = 1e-3
+dt = 1e-5
 
-! eps in force field
-eps = 1e-1
-
-! turn vtk output on/off
-vtk_output = .true.
-!vtk_output = .false.
+! turn data and domain output on/off
+particle_output = .true.
+!particle_output = .false.
+domain_output = .true.
 
 /
 
 &calc_force_coulomb
-  ! 3D coulomb
-  force_law  = 3
-  ! BH-mac
-  mac_select = 0
-  ! theta = 0.3
-  theta2     = 0.09
-  ! eps = 1e-1
-  eps2 = 1e-2
+! 3D coulomb
+force_law  = 3
+! BH-mac
+mac_select = 0
+! theta = 0.3
+theta2     = 0.09
+! eps squared
+eps2 = 1e1
 /
 
 &libpepc
@@ -41,11 +36,11 @@ vtk_output = .true.
  weighted = 1
 
 ! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
- curve_type = 1
+ curve_type = 0
 /
 
 &walk_para_pthreads
  num_walk_threads = 4
- max_particles_per_thread = 50
+ max_particles_per_thread = 250
 /
 

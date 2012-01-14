@@ -10,29 +10,13 @@ program pepc
     
   ! timing variables
   real*8 :: timer(5)
-    
-  ! loop variables
-  integer :: it
-  
-  ! return code variable
-  integer :: rc
-  
-  ! particle data (position, velocity, mass, charge)
-  type(t_particle), allocatable :: particles(:)
- 
+      
   timer(1) = get_time()
  
   !!! initialize pepc library and MPI
   call pepc_initialize("pepc-mini", my_rank, n_ranks, .true.)
 
   call set_parameter()
-
-  ! set initially number of local particles
-  np = tnp / n_ranks
-  if(my_rank.eq.0) np = np + MOD(tnp, n_ranks)
-
-  allocate(particles(np), stat=rc)
-  if(rc.ne.0) write(*,*) " === particle allocation error!"
   
   call init_particles(particles)
 
@@ -40,22 +24,24 @@ program pepc
 
   if(my_rank.eq.0) write(*,*) " === init time [s]: ", timer(2) - timer(1)
  
-  do it=0, nt
-    if(my_rank.eq.0) write(*,*) " == computing step ", it
+  do step=0, nt
+    if(my_rank.eq.0) write(*,*) " == computing step ", step
     
     timer(3) = get_time()
     call pepc_grow_tree(np, tnp, particles)
     call pepc_traverse_tree(np, particles)
+    
+    if(domain_output) call write_domain(particles)
+    
     call pepc_timber_tree()
+    !call pepc_restore_particles(np, particles)
     
-    ! get new particle number, no resorting
-    ! reduce size by two, due to the boundary partices
-    np = size(particles) - 2
-    
-    call push_particles(particles)
-    
-    if(vtk_output) call write_particles(particles, it, (it.eq.nt))
+    if(particle_output) call write_particles(particles)
 
+    call filter_particles(particles)
+        
+    call push_particles(particles)    
+    
     timer(4) = get_time()
     if(my_rank.eq.0) write(*,*) " == time in step [s]: ", timer(4) - timer(3)
     
