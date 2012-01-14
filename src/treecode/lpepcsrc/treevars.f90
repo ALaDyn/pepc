@@ -50,10 +50,9 @@ module treevars
              idim = 3          ! dimension of the system (currently only used in tree_domains)
 
   integer :: nkeys_total=1 ! total # keys in local tree
-  real*8 :: xmin, xmax    ! box limits
-  real*8 :: ymin, ymax  
-  real*8 :: zmin, zmax
-  real*8 :: boxsize       ! length of box
+  real*8 :: boxmin(3)  ! box min limits
+  real*8 :: boxmax(3)  ! box max limits
+  real*8 :: boxsize(3) ! box extension
   real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
   real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
 

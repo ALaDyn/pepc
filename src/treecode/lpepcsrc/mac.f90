@@ -80,9 +80,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
      pz = z(p) 
   
    
-     xt= ( ix*boxl + vbox(1) ) + xmin
-     yt= ( iy*boxl + vbox(2) ) + ymin
-     zt= ( iz*boxl + vbox(3) ) + zmin
+     xt= ( ix*boxl + vbox(1) ) + boxmin(1)
+     yt= ( iy*boxl + vbox(2) ) + boxmin(2)
+     zt= ( iz*boxl + vbox(3) ) + boxmin(3)
      
      
      x_min = xt
@@ -124,10 +124,10 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
      dz = z(p) - z_wn
 
      
-     xt= ( ix*boxl + vbox(1) ) + xmin
-     yt= ( iy*boxl + vbox(2) ) + ymin
-     zt= ( iz*boxl + vbox(3) ) + zmin
-     !    write(*,*) xmin,ymin,zmin
+     xt= ( ix*boxl + vbox(1) ) + boxmin(1)
+     yt= ( iy*boxl + vbox(2) ) + boxmin(2)
+     zt= ( iz*boxl + vbox(3) ) + boxmin(3)
+     !    write(*,*) boxmin
      
 !     b_max2 = 0
 !     b_temp = 0
@@ -208,9 +208,9 @@ subroutine mac_choose(p,p_ex_p,p_ey_p,p_ez_p,walk_node,walk_key,walk_abs_charge,
      dz = z(p) - ( tree_nodes( walk_node )%coc(3) + vbox(3) )
 
 
-     xt= ( ix*boxl + vbox(1) ) + xmin
-     yt= ( iy*boxl + vbox(2) ) + ymin
-     zt= ( iz*boxl + vbox(3) ) + zmin
+     xt= ( ix*boxl + vbox(1) ) + boxmin(1)
+     yt= ( iy*boxl + vbox(2) ) + boxmin(2)
+     zt= ( iz*boxl + vbox(3) ) + boxmin(3)
 
     
      x_wn = tree_nodes( walk_node )%coc(1) + vbox(1)

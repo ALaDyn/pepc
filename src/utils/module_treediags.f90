@@ -54,7 +54,7 @@ module module_treediags
 
           integer :: i,j, baddr, bnode
           integer*8 :: bkey
-          real*8 :: bcocx(nbranch_sum),bcocy(nbranch_sum),bcocz(nbranch_sum), bsize, bq(nbranch_sum)
+          real*8 :: bcocx(nbranch_sum),bcocy(nbranch_sum),bcocz(nbranch_sum), bsize(3), bq(nbranch_sum)
           real*8, dimension(nbranch_sum*8) :: bcornersx, bcornersy, bcornersz
           integer, dimension(nbranch_sum*8) :: bcornersidx
           integer, dimension(nbranch_sum) :: bcornersoffsets, bcornerstypes, bowner, blevel
@@ -98,7 +98,7 @@ module module_treediags
 
             do j=1,8
               bcornersidx(8*(i-1)+j) = 8*(i-1)+j - 1
-              bshift(1:3) = box_shift(1:3,j) * bsize
+              bshift(1:3) = box_shift(1:3,j) * bsize(1:3)
               bcornersx(8*(i-1)+j)   = bx + bshift(1)
               bcornersy(8*(i-1)+j)   = by + bshift(2)
               bcornersz(8*(i-1)+j)   = bz + bshift(3)

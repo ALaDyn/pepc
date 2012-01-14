@@ -123,7 +123,7 @@ contains
     ! setup box lengths for the mac evaluation
     allocate(boxlength2(0:nlev))
 
-    boxlength2(0) = boxsize**2
+    boxlength2(0) = maxval(boxsize)**2
     do lcnt=1, nlev
        boxlength2(lcnt) =  boxlength2(lcnt-1)/4._8
     end do

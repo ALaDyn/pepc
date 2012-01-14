@@ -72,7 +72,7 @@ module module_gle
 
 	  write (60,'(a)')  'psize=0.1'
 
-	  scale = 15./boxsize
+	  scale = 15./maxval(boxsize)
 	  write (60,'(a/a,2f12.2)') 'set lwidth .01 hei .02', &
 			     'begin scale ',scale,scale
 	  write (60,'(a)') 'set color black hei .3'

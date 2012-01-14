@@ -82,14 +82,14 @@ module module_spacefilling
           implicit none
           type(t_particle), intent(inout) :: particles(1:npp)
           integer*8, dimension(3,npp) :: intcoord
-          real*8 :: s
+          real*8 :: s(3)
           integer :: j
 
           s=boxsize/2**nlev       ! refinement length
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
           do j = 1,npp
-            intcoord(:,j) = int(( particles(j)%x - [xmin, ymin, zmin] )/s) ! partial keys
+            intcoord(:,j) = int(( particles(j)%x - boxmin )/s) ! partial keys
           end do
 
           ! construct particle keys
@@ -115,26 +115,24 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function coord_to_key_lastlevel(x, y, z)
-          use treevars, only : nlev, boxsize, xmin, ymin, zmin
+          use treevars, only : nlev, boxsize, boxmin
           implicit none
           integer*8 :: coord_to_key_lastlevel
           real*8, intent(in) :: x, y, z
-          integer*8 :: ix, iy, iz
-          real*8 :: s
+          integer*8 :: ix(3)
+          real*8 :: s(3)
 
           s=boxsize/2**nlev       ! refinement length
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
-          ix = int(( x - xmin )/s)           ! partial keys
-          iy = int(( y - ymin )/s)           !
-          iz = int(( z - zmin )/s)
+          ix = int(( [x, y, z] - boxmin )/s)           ! partial keys
 
           ! construct particle keys
           select case (curve_type)
             case (0) ! Z-curve
-              coord_to_key_lastlevel = intcoord_to_key_morton([ix, iy, iz])
+              coord_to_key_lastlevel = intcoord_to_key_morton(ix)
             case (1) ! Hilbert curve (original pattern)
-              coord_to_key_lastlevel = intcoord_to_key_hilbert([ix, iy, iz])
+              coord_to_key_lastlevel = intcoord_to_key_hilbert(ix)
             case default
               coord_to_key_lastlevel = 0
           end select
@@ -165,12 +163,12 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_coord(key, x, y, z)
-          use treevars, only : nlev, boxsize, xmin, ymin, zmin
+          use treevars, only : nlev, boxsize, boxmin
           implicit none
           integer*8, intent(in) :: key
           real*8, intent(out) :: x, y, z
           integer*8 :: ix, iy, iz
-          real*8 :: s
+          real*8 :: s(3)
 
           ! construct particle coordiantes
           select case (curve_type)
@@ -187,9 +185,9 @@ module module_spacefilling
           s=boxsize/2**nlev       ! refinement length
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
-          x = (real(ix,kind(1._8)) + 0.5_8) * s + xmin
-          y = (real(iy,kind(1._8)) + 0.5_8) * s + ymin
-          z = (real(iz,kind(1._8)) + 0.5_8) * s + zmin
+          x = (real(ix,kind(1._8)) + 0.5_8) * s(1) + boxmin(1)
+          y = (real(iy,kind(1._8)) + 0.5_8) * s(2) + boxmin(2)
+          z = (real(iz,kind(1._8)) + 0.5_8) * s(3) + boxmin(3)
 
         end subroutine key_to_coord
 
@@ -207,14 +205,14 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_coord_dim(key, coordinates, idim, default_coordinates)
-          use treevars, only : nlev, boxsize, xmin, ymin, zmin
+          use treevars, only : nlev, boxsize, boxmin
           implicit none
           integer*8, intent(in) :: key
           real*8, intent(out) :: coordinates(3)
           integer, intent(in) :: idim !< dimension of the system (1,2,3)
           real*8, intent(in) :: default_coordinates(3) !< values for coordinates that are not affected by spacefilling curve (due to idim restriction)
           integer*8 :: ix, iy, iz
-          real*8 :: s, x(3)
+          real*8 :: s(3), x(3)
 
           ! construct particle coordiantes
           select case (curve_type)
@@ -231,9 +229,9 @@ module module_spacefilling
           s=boxsize/2**nlev       ! refinement length
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
-          x = [ (real(ix,kind(1._8)) + 0.5_8) * s + xmin, &
-                (real(iy,kind(1._8)) + 0.5_8) * s + ymin, &
-                (real(iz,kind(1._8)) + 0.5_8) * s + zmin  ]
+          x = [ (real(ix,kind(1._8)) + 0.5_8) * s(1) + boxmin(1), &
+                (real(iy,kind(1._8)) + 0.5_8) * s(2) + boxmin(2), &
+                (real(iz,kind(1._8)) + 0.5_8) * s(3) + boxmin(3)  ]
 
           coordinates(1:idim)   = x(1:idim)
           coordinates(idim+1:3) = default_coordinates(idim+1:3)

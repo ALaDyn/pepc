@@ -625,8 +625,8 @@ module module_walk
         cum_req_list_length  = 0
 
         if (me == 0) then
-          write(*,'("MPI-PThreads walk: Using ", I0," worker-threads in treewalk on each processor (i.e. per MPI rank)")') num_walk_threads
-          write(*,'("Maximum number of particles per work_thread = ", I0)') max_particles_per_thread
+          !write(*,'("MPI-PThreads walk: Using ", I0," worker-threads in treewalk on each processor (i.e. per MPI rank)")') num_walk_threads
+          !write(*,'("Maximum number of particles per work_thread = ", I0)') max_particles_per_thread
         endif
       end subroutine
 
@@ -774,7 +774,7 @@ module module_walk
       num_interaction_leaves = npart
       ! Preprocessed box sizes for each level
       allocate(boxlength2(0:nlev))
-      boxlength2(0)=boxsize**2
+      boxlength2(0)=maxval(boxsize)**2
       do i=1,nlev
          boxlength2(i) =  boxlength2(i-1)/4.
       end do

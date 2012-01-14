@@ -66,12 +66,10 @@ module module_domains
         integer, intent(out) :: neighbour_pe_particles !< number of particles that have been fetched from neighbouring PEs - they are stored in particles(npp+1:npp+neighbour_pe_particles)
 
         integer :: i, j
-        real*8 :: s
-        real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local
+        real*8 :: min_local(3), max_local(3)
         integer :: ierr
         type (t_particle) :: ship_parts(nppm), get_parts(nppm) !< arrays for parallel sort
         integer*8 :: w1(nppm)
-        real*8 :: xboxsize, yboxsize, zboxsize
         real*8 imba
 
         interface
@@ -96,44 +94,30 @@ module module_domains
         call pepc_status('DOMAIN DECOMPOSITION')
 
         ! Find limits of local simulation region
-        xmin_local = minval(particles(1:npp)%x(1))
-        xmax_local = maxval(particles(1:npp)%x(1))
-        ymin_local = minval(particles(1:npp)%x(2))
-        ymax_local = maxval(particles(1:npp)%x(2))
-        zmin_local = minval(particles(1:npp)%x(3))
-        zmax_local = maxval(particles(1:npp)%x(3))
+        min_local(1) = minval(particles(1:npp)%x(1))
+        max_local(1) = maxval(particles(1:npp)%x(1))
+        min_local(2) = minval(particles(1:npp)%x(2))
+        max_local(2) = maxval(particles(1:npp)%x(2))
+        min_local(3) = minval(particles(1:npp)%x(3))
+        max_local(3) = maxval(particles(1:npp)%x(3))
 
         ! Find global limits
-        call MPI_ALLREDUCE(xmin_local, xmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(xmax_local, xmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(ymin_local, ymin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(ymax_local, ymax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(zmin_local, zmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(zmax_local, zmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(min_local, boxmin, 3, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(max_local, boxmax, 3, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
 
-        xboxsize = xmax-xmin
-        yboxsize = ymax-ymin
-        zboxsize = zmax-zmin
+        boxsize = boxmax - boxmin
 
         ! Safety margin - put buffer region around particles
-        xmax = xmax + xboxsize/10000.
-        xmin = xmin - xboxsize/10000.
-        ymax = ymax + yboxsize/10000.
-        ymin = ymin - yboxsize/10000.
-        zmax = zmax + zboxsize/10000.
-        zmin = zmin - zboxsize/10000.
-
-        boxsize = max(xmax-xmin, ymax-ymin, zmax-zmin)
+        boxmin = boxmin - boxsize/10000.0
+        boxmax = boxmax + boxsize/10000.0
 
         if (dbg(DBG_DOMAIN)) then
           DEBUG_WARNING('(4(a15,f12.4/))',
-            'xmin = ',xmin,'xmax = ',xmax,
-            'ymin = ',ymin,'ymax = ',ymax,
-            'zmin = ',zmin,'zmax = ',zmax,
+            'xmin = ',boxmin(1),'xmax = ',boxmax(1),
+            'ymin = ',boxmin(2),'ymax = ',boxmax(2),
+            'zmin = ',boxmin(3),'zmax = ',boxmax(3),
             'boxsize = ',boxsize )
         endif
-
-        s=boxsize/2**nlev       ! refinement length
 
         call compute_particle_keys(particles)
 
