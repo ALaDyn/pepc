@@ -46,7 +46,7 @@ module module_gle
 
 
 	  integer :: i, ip, j, ix, iy, nbits
-	  real*8 :: xt, yt, scale, s
+	  real*8 :: xt, yt, zt, scale, s
 	  logical :: write_keys=.false.
 
 
@@ -65,16 +65,15 @@ module module_gle
 	!       'size 18 18' &
 	!       , 'set font rm' &
 	!       , 'set lwidth 0.001 lstyle 1' &
-	!       , 'begin scale ',15./boxsize,15./boxsize &
+	!       , 'begin scale ',15./boxsize(1),15./boxsize(2) &
 	!       , 'begin translate ',.01*boxsize,.01*yl
 
-	!  write (60,'(a/a,2f13.4)') 'amove 0 0','box ',boxsize,yl
+	!  write (60,'(a/a,2f13.4)') 'amove 0 0','box ',boxsize(1),boxsize(2)
 
 	  write (60,'(a)')  'psize=0.1'
 
-	  scale = 15./maxval(boxsize)
 	  write (60,'(a/a,2f12.2)') 'set lwidth .01 hei .02', &
-			     'begin scale ',scale,scale
+			     'begin scale ',15./boxsize(1),15./boxsize(2)
 	  write (60,'(a)') 'set color black hei .3'
 	  write (60,'(a,2f13.4)') 'amove ',particles(ip)%x(1),particles(ip)%x(2)
 	  write (60,'(a,f10.5,2a)') 'marker otimes '
@@ -103,16 +102,9 @@ module module_gle
 
 	  do j=1,nlist
 	    write (60,'(a,a7)') 'set color ',colors( mod(owner_list(j),10) )
-	     ! get box coords from keys
-	     nbits = level_list(j)
-	     ix = int(SUM( (/ (2**i*ibits( key_list(j),3*i,1 ), i=0,nbits-1) /) ))
-	     iy = int(SUM( (/ (2**i*ibits( key_list(j),3*i+1,1 ), i=0,nbits-1) /) ))
-
-	     s = boxsize/2**(level_list(j))          !  box length
-	     xt=ix*s + xmin
-	     yt=iy*s + ymin
+             call key_to_coord(key_list(j), xt, yt, zt)
 	     write (60,'(a,2f13.4)') 'amove ',xt,yt
-	     write (60,'(a,2f13.4)') 'box ',s,s
+	     write (60,'(a,2f13.4)') 'box ',boxsize(1)/2**(level_list(j)), boxsize(2)/2**(level_list(j))
 
 	     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_list(j) )%coc(1),tree_nodes( node_list(j) )%coc(2)     ! Centre of charge of twig node
 	     write (60,'(a,f10.5,2a)') 'circle ',(tree_nodes( node_list(j) )%abs_charge)**(.33), &
@@ -120,7 +112,7 @@ module module_gle
 	    ! write (60,'(a,f10.5,2a)') 'circle ',psize,' fill ',colors( mod(owner_list(j),10) )
 	     !
 	     write (60,'(a)') 'set color black'
-	     write (60,'(a,2f13.4)') 'amove ',xt+s/2,yt+s/2
+	     write (60,'(a,2f13.4)') 'amove ',xt+boxsize(1)/2**(level_list(j))/2,yt+boxsize(2)/2**(level_list(j))/2
 	     if (write_keys) write (60,'(a,i6)') 'text ',key_list(j)  ! write out key
 
 	  end do
@@ -159,7 +151,7 @@ module module_gle
 
 
 	  integer :: i, ip, j, ilev, ibt, ix, iy, nbits
-	  real*8 :: s, xt, yt
+	  real*8 :: s, xt, yt, zt
 
 
 	  csnap=achar(mod(me,10)+48)
@@ -178,10 +170,10 @@ module module_gle
 	      , 'set font rm' &
 	      , 'set lwidth 0.05 lstyle 1' &
 	      , 'psize=0.04' &
-	      , 'begin scale ',15./boxsize,15./boxsize &
-	      , 'begin translate ',.01*boxsize,.01*yl
+	      , 'begin scale ',15./boxsize(1),15./boxsize(2) &
+	      , 'begin translate ',.01*boxsize(1),.01*boxsize(2)
 
-	     write (60,'(a/a,2f13.4)') 'amove 0 0','box ',boxsize,yl
+	     write (60,'(a/a,2f13.4)') 'amove 0 0','box ',boxsize(1),boxsize(2)
 
 	     do i=0, num_pe-1
 	    cme = achar(i/100+48) // achar(i/10+48) // achar(mod(i,10)+48)  ! Convert 3-digit PE number into character string
@@ -212,14 +204,14 @@ module module_gle
 
 	  ! map of interleaved bits
 
-	  ilev = nlev
-	  s = boxsize/2**(ilev)          !  box length
-	  ! recover box coordinates of parents
-	  ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
-	  do j = 1,npp
-	     ix = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-2-ibt) /) ))
-	     iy = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-2-ibt) /) ))
-	  end do
+!	  ilev = nlev
+!	  s = boxsize/2**(ilev)          !  box length
+!	  ! recover box coordinates of parents
+!	  ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
+!	  do j = 1,npp
+!	     ix = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-2-ibt) /) ))
+!	     iy = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-2-ibt) /) ))
+!	  end do
 
 
 	  ! first point
@@ -282,7 +274,7 @@ module module_gle
 
 
 	  integer :: i, ip, j, ilev, ibt, ix, iy, nbits
-	  real*8 :: s, xt, yt
+	  real*8 :: s, xt, yt, zt
 
 
 	  csnap=achar(mod(me,10)+48)
@@ -301,10 +293,10 @@ module module_gle
 	      , 'set font rm' &
 	      , 'set lwidth 0.05 lstyle 1' &
 	      , 'psize=0.04' &
-	      , 'begin scale ',15./boxsize,15./boxsize &
-	      , 'begin translate ',.01*boxsize,.01*yl
+	      , 'begin scale ',15./boxsize(1),15./boxsize(2) &
+	      , 'begin translate ',.01*boxsize(1),.01*boxsize(2)
 
-	     write (60,'(a/a,2f13.4)') 'amove 0 0','box ',boxsize,yl
+	     write (60,'(a/a,2f13.4)') 'amove 0 0','box ',boxsize(1),boxsize(2)
 
 	     do i=0, num_pe-1
 	    cme = achar(i/100+48) // achar(i/10+48) // achar(mod(i,10)+48)  ! Convert 3-digit PE number into character string
@@ -336,19 +328,13 @@ module module_gle
 	  do j=2,ntwig
 	     write (60,'(a/a,a7)') 'set hei .02','set color ',colors( mod(owner_twig(j),10) )
 	     ! get coords from keys
-	     nbits = level_twig(j)
-	     ix = int(SUM( (/ (2**i*ibits( key_twig(j),3*i,1 ), i=0,nbits-1) /) ))
-	     iy = int(SUM( (/ (2**i*ibits( key_twig(j),3*i+1,1 ), i=0,nbits-1) /) ))
-
-	     s = boxsize/2**(level_twig(j))          !  box length
-	     xt=ix*s + xmin
-	     yt=iy*s + ymin
+             call key_to_coord(key_twig(j), xt, yt, zt)
 	     write (60,'(a)') 'set color black'
 	     write (60,'(a,2f13.4)') 'amove ',xt,yt
 	     if (owner_twig(j) == me) then
-	        write (60,'(a,2f13.4)') 'box ',s,s
+	        write (60,'(a,2f13.4)') 'box ',boxsize(1)/2**(level_twig(j)),boxsize(2)/2**(level_twig(j))
 	     else
-	        write (60,'(a,2f13.4,2a)') 'box ',s,s,' fill ',colors( mod(owner_twig(j),10) )
+	        write (60,'(a,2f13.4,2a)') 'box ',boxsize(1)/2**(level_twig(j)),boxsize(2)/2**(level_twig(j)),' fill ',colors( mod(owner_twig(j),10) )
 	     endif
 
 	     !        write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%coc(1),tree_nodes( node_twig(j) )%coc(2)    ! Centre of charge of twig node
@@ -375,13 +361,7 @@ module module_gle
 
 	  do j=1,nleaf
 	     ! get box coords from keys
-	     nbits = level_leaf(j)    ! # bits per ordinate
-	     ix = int(SUM( (/ (2**i*ibits( key_leaf(j),3*i,1 ), i=0,nbits-1) /) ))
-	     iy = int(SUM( (/ (2**i*ibits( key_leaf(j),3*i+1,1 ), i=0,nbits-1) /) ))
-
-	     s = boxsize/2**(level_leaf(j))          !  box length
-	     xt=ix*s + xmin
-	     yt=iy*s + ymin
+             call key_to_coord(key_leaf(j), xt, yt, zt)
 	!         write (60,'(a,a)') 'set color ',colors( mod(owner_leaf(j),10) )
 	     ! keys
 	     !     write (60,'(a)') 'set hei 0.01'
@@ -389,9 +369,9 @@ module module_gle
 
 	     write (60,'(a,2f13.4)') 'amove ',xt,yt
 	     if (owner_leaf(j) == me) then
-	        write (60,'(a,2f13.4)') 'box ',s,s
+	        write (60,'(a,2f13.4)') 'box ',boxsize(1)/2**(level_leaf(j)),boxsize(2)/2**(level_leaf(j))
 	     else
-	        write (60,'(a,2f13.4,2a)') 'box ',s,s,' fill ',colors( mod(owner_leaf(j),10) )
+	        write (60,'(a,2f13.4,2a)') 'box ',boxsize(1)/2**(level_leaf(j)),boxsize(2)/2**(level_leaf(j)),' fill ',colors( mod(owner_leaf(j),10) )
 	 !       write (60,'(a,2f13.4)') 'amove ',xt+s/2,yt+s/2
 	!        write (60,'(a,i6)') 'text ',key_leaf(j)
 	     endif
@@ -415,14 +395,14 @@ module module_gle
 
 	  ! map of interleaved bits
 
-	  ilev = nlev
-	  s = boxsize/2**(ilev)          !  box length
-	  ! recover box coordinates of parents
-	  ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
-	  do j = 1,npp
-	     ix = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-2-ibt) /) ))
-	     iy = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-2-ibt) /) ))
-	  end do
+!	  ilev = nlev
+!	  s = boxsize/2**(ilev)          !  box length
+!	  ! recover box coordinates of parents
+!	  ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
+!	  do j = 1,npp
+!	     ix = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-2-ibt) /) ))
+!	     iy = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-2-ibt) /) ))
+!	  end do
 
 
 	  ! first point
@@ -783,10 +763,10 @@ module module_gle
 	      , 'set font rm' &
 	      , 'set lwidth 0.001 lstyle 1' &
 	      , 'psize=0.04' &
-	      , 'begin scale ',15./boxsize,15./boxsize &
-	      , 'begin translate ',.05*boxsize,.05*boxsize
+	      , 'begin scale ',15./boxsize(1),15./boxsize(2) &
+	      , 'begin translate ',.05*boxsize(1),.05*boxsize(2)
 
-	!     write (61,'(a/a,2f13.4)') 'amove 0 0','box ',boxsize,boxsize
+	!     write (61,'(a/a,2f13.4)') 'amove 0 0','box ',boxsize(1),boxsize(2)
 
 	     do i=0, num_pe-1
 	    cme = achar(i/100+48) // achar(mod(i/10,10)+48) // achar(mod(i,10)+48)  ! Convert 3-digit PE number into character string
@@ -818,19 +798,12 @@ module module_gle
 
 	  do j=2,ntwig
 	     ! get coords from keys
-	     nbits = level_twig(j)
-	     ix = int(SUM( (/ (2**i*ibits( key_twig(j),3*i,1 ), i=0,nbits-1) /) ))
-	     iy = int(SUM( (/ (2**i*ibits( key_twig(j),3*i+1,1 ), i=0,nbits-1) /) ))
-
-	     s = boxsize/2**(level_twig(j))          !  box length
-	     xt=ix*s + xmin
-	     yt=iy*s + ymin
-	     !write (60,'(a,2f13.4)') 'box ',s,s
+             call key_to_coord(key_twig(j), xt, yt, zt)
+	     !write (60,'(a,2f13.4)') 'box ',boxsize(1)/2**(level_twig(j)) ,boxsize(2)/2**(level_twig(j)) 
 	     !     write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%coc(1),tree_nodes( node_twig(j) )%coc(2)        ! Centre of charge of twig node
 	     !     write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(tree_nodes( node_twig(j) )%abs_charge),' fill cyan'
 	     !     write (60,'(a)') 'set hei 0.01'
 	     !     write (60,'(a,b10)') 'text ',key_twig(j)         ! write out key
-
 	  end do
 
 
@@ -843,23 +816,16 @@ module module_gle
 
 	  do j=1,nbranch_sum
 	     ilev = level_from_key(branch_key(j))
-	     ix = int(SUM( (/ (2**i*ibits( branch_key(j),3*i,1 ), i=0,ilev-1) /) ))
-	     iy = int(SUM( (/ (2**i*ibits( branch_key(j),3*i+1,1 ), i=0,ilev-1) /) ))
-	     iz = int(SUM( (/ (2**i*ibits( branch_key(j),3*i+2,1 ), i=0,ilev-1) /) ))
-
-	     s = boxsize/2**(ilev)          !  box length
-	     xt=ix*s + xmin
-	     yt=iy*s + ymin
-	     zt=iz*s + zmin
+             call key_to_coord(branch_key(j), xt, yt, zt)
 	     write (60,'(a)') 'set color white'
 	     write (60,'(a,2f13.4)') 'amove ',xt,yt
 	     if (branch_owner(j) == me ) then
-	        write (60,'(a,2f13.4,a,a15)') 'box ',s,s,' fill ',colors( mod(me,10) )
+	        write (60,'(a,2f13.4,a,a15)') 'box ',boxsize(1)/2**(ilev),boxsize(2)/2**(ilev),' fill ',colors( mod(me,10) )
 	     else
 	!        write (60,'(a,2f13.4,a)') 'box ',s,s,' fill grey5'
 	     endif
 
-	     if (me==0) write (61,'(4f15.5,i6,2f15.5)') xt, yt, zt, s, branch_owner(j), s, s
+	     if (me==0) write (61,'(4f15.5,i6,2f15.5)') xt, yt, zt, maxval(boxsize)/2**(ilev), branch_owner(j), boxsize(1)/2**(ilev), boxsize(2)/2**(ilev)
 
 	  !     write (60,'(a)') 'set hei 0.01 color black'
 	  !     write (60,'(a,i5)') 'text ',branch_key(j)
@@ -878,12 +844,7 @@ module module_gle
 	  do j=1,nleaf
 	     ! get box coords from keys
 	     nbits = level_leaf(j)    ! # bits per ordinate
-	     ix = int(SUM( (/ (2**i*ibits( key_leaf(j),3*i,1 ), i=0,nbits-1) /) ))
-	     iy = int(SUM( (/ (2**i*ibits( key_leaf(j),3*i+1,1 ), i=0,nbits-1) /) ))
-
-	     s = boxsize/2**(level_leaf(j))          !  box length
-	     xt=ix*s + xmin
-	     yt=iy*s + ymin
+             call key_to_coord(key_leaf(j), xt, yt, zt)
 	     !     write (60,'(a/a)') 'set color black','set lwidth .002'
 	!     write (60,'(a,2f13.4)') 'amove ',xt,yt
 	     !     write (60,'(a,2f13.4)') 'box ',s,s

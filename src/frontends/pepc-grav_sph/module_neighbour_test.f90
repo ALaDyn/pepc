@@ -66,8 +66,7 @@ contains
          t_particle
 
     use treevars, only: &
-         xmin, &
-         ymin, &
+         boxmin, &
          boxsize, &
          tree_nodes, &
          npart
@@ -312,11 +311,11 @@ contains
                'set lwidth 0.001 lstyle 1', &
                'psize=0.005', &
                'begin translate 0.5 0.5', &
-               'begin scale ', 17./boxsize, 17./boxsize, &
-               'begin translate ', -xmin, -ymin
+               'begin scale ', 17./boxsize(1), 17./boxsize(2), &
+               'begin translate ', -boxmin(1), -boxmin(2)
           
-          !     write (60,'(a,2f13.4)') 'amove', xmin, ymin
-          !     write (60,'(a,2f13.4)') 'box ',boxsize,boxsize
+          !     write (60,'(a,2f13.4)') 'amove', boxmin(1), boxmin(2)
+          !     write (60,'(a,2f13.4)') 'box ',boxsize(1),boxsize(2)
           
           close(60)
        endif
@@ -480,8 +479,7 @@ contains
     use module_pepc_types
     
     use treevars, only: &
-         xmin, &
-         ymin, &
+         boxmin, &
          boxsize, &
          tree_nodes
     
@@ -535,11 +533,11 @@ contains
             'set lwidth 0.001 lstyle 1', &
             'psize=0.005', &
             'begin translate 0.5 0.5', &
-            'begin scale ', 17./boxsize, 17./boxsize, &
-            'begin translate ', -xmin, -ymin
+            'begin scale ', 17./boxsize(1), 17./boxsize(2), &
+            'begin translate ', -boxmin(1), -boxmin(2)
        
-       !     write (60,'(a,2f13.4)') 'amove', xmin, ymin
-       !     write (60,'(a,2f13.4)') 'box ',boxsize,boxsize
+       !     write (60,'(a,2f13.4)') 'amove', boxmin(1), boxmin(2)
+       !     write (60,'(a,2f13.4)') 'box ',boxsize(1),boxsize(2)
        
        close(60)
     endif

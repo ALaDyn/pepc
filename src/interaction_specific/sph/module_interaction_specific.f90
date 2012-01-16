@@ -259,7 +259,7 @@ module module_interaction_specific
         real*8, dimension(:), allocatable :: boxdiag2
 
         allocate(boxdiag2(0:nlev))
-        boxdiag2(0) = (sqrt(3.)*boxsize)**2
+        boxdiag2(0) = 3.*dot_product(boxsize, boxsize)
         do i=1,nlev
            boxdiag2(i) =  boxdiag2(i-1)/4.
         end do
