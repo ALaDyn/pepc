@@ -38,7 +38,7 @@ program pepc
     
     if(particle_output) call write_particles(particles)
 
-    call filter_particles(particles)
+    if(particle_filter) call filter_particles(particles)
         
     call push_particles(particles)    
     

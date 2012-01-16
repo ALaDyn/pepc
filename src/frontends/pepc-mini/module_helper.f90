@@ -20,6 +20,7 @@ module helper
   integer :: np              ! local number of particles
   logical :: particle_output ! turn vtk output on/off
   logical :: domain_output   ! turn vtk output on/off
+  logical :: particle_filter ! filter particles leaving simulation domain
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
@@ -35,7 +36,7 @@ module helper
       
       character(255) :: para_file
       logical :: read_para_file
-      namelist /pepcmini/ tnp, nt, dt, particle_output, domain_output
+      namelist /pepcmini/ tnp, nt, dt, particle_output, domain_output, particle_filter
       
       ! set default parameter values
       tnp             = 1441
@@ -43,6 +44,7 @@ module helper
       dt              = 1e-3
       particle_output = .true.
       domain_output   = .true.
+      particle_filter = .true.
       
       ! read in namelist file
       call pepc_read_parameters_from_first_argument(read_para_file, para_file)
