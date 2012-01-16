@@ -18,6 +18,7 @@ module helper
   integer :: nt              ! number of timesteps
   integer :: tnp             ! total number of particles
   integer :: np              ! local number of particles
+  real*8  :: particle_direct ! fraction of local particles to be tested
   logical :: particle_output ! turn vtk output on/off
   logical :: domain_output   ! turn vtk output on/off
   logical :: particle_filter ! filter particles leaving simulation domain
@@ -36,12 +37,13 @@ module helper
       
       character(255) :: para_file
       logical :: read_para_file
-      namelist /pepcmini/ tnp, nt, dt, particle_output, domain_output, particle_filter
+      namelist /pepcmini/ tnp, nt, dt, particle_output, domain_output, particle_filter, particle_direct
       
       ! set default parameter values
       tnp             = 1441
       nt              = 20
       dt              = 1e-3
+      particle_direct = 0.001
       particle_output = .true.
       domain_output   = .true.
       particle_filter = .true.
@@ -64,6 +66,7 @@ module helper
         write(*,*) " == total number of particles : ", tnp
         write(*,*) " == number of time steps      : ", nt
         write(*,*) " == time step                 : ", dt
+        write(*,*) " == particle test fraction    : ", particle_direct
         write(*,*) " == particle output           : ", particle_output
         write(*,*) " == domain output             : ", domain_output
       end if
@@ -154,7 +157,7 @@ module helper
       dmin = [-2.0, -2.0, -2.0]
       dmax = dmin * (-1.0)
 
-      if(my_rank.eq.0) write(*,*) " == filter particles "
+      !if(my_rank.eq.0) write(*,*) " == filter particles "
 
       do ip=1, np
         if(any(p(ip)%x .lt. dmin .or. p(ip)%x .gt. dmax)) then
@@ -166,9 +169,56 @@ module helper
       call MPI_ALLREDUCE(np, tnp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
 
       !write(*,*) " == particles on rank", my_rank, ": ", np
-      if(my_rank.eq.0) write(*,*) " == total number of particles : ", tnp
+      if(my_rank.eq.0) write(*,*) " == [filter] total number of particles : ", tnp
 
 	end subroutine filter_particles
+	
+	subroutine test_particles()
+	
+	  use module_pepc_types
+      use module_directsum
+	  implicit none
+	  include 'mpif.h'
+	
+	  integer, allocatable                  :: tindx(:)
+	  real*8, allocatable                   :: trnd(:)
+	  type(t_particle_results), allocatable :: trslt(:)
+	  integer                               :: tn, tn_global, ti, rc
+	  real*8                                :: L2sum_local, L2sum_global
+	
+	  tn = int(particle_direct * np)
+	
+	  allocate(tindx(tn), trnd(tn), trslt(tn))
+	
+	  call random_number(trnd)
+	
+	  tindx = int(trnd * (np-1)) + 1
+	
+      call directforce(particles, np, tindx, tn, trslt, my_rank, n_ranks, MPI_COMM_WORLD)
+	
+	  L2sum_local  = 0.0
+	  L2sum_global = 0.0
+	  do ti = 1, tn
+	    L2sum_local = L2sum_local + &
+	                  (particles(tindx(ti))%results%e(1) - trslt(ti)%e(1))**2+ &
+	                  (particles(tindx(ti))%results%e(2) - trslt(ti)%e(2))**2+ &
+	                  (particles(tindx(ti))%results%e(3) - trslt(ti)%e(3))**2 
+	    !if(my_rank.eq.0) write(*,*) particles(tindx(ti))%results%e(1), trslt(ti)%e(1)
+	  end do
+	  	  
+	  call MPI_ALLREDUCE(tn, tn_global, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+	  call MPI_ALLREDUCE(L2sum_local, L2sum_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+	  
+	  L2sum_global = sqrt(L2sum_global) / tn_global
+	  
+	  if(my_rank.eq.0) write(*,*) " == [direct test] number probed particles : ", tn_global
+	  if(my_rank.eq.0) write(*,*) " == [direct test] L2 error in probed particles : ", L2sum_global
+	  
+	  deallocate(tindx)
+	  deallocate(trnd)
+	  deallocate(trslt)
+	
+	end subroutine test_particles
 	
 	subroutine write_particles(p)
 	  use module_vtk

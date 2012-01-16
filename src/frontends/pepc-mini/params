@@ -1,13 +1,13 @@
 &pepcmini
 
 ! total number of particles
-tnp = 12005
+tnp = 200
 
 ! number of time steps
-nt = 100
+nt = 0
 
 ! time step
-dt = 1e-5
+dt = 1e-4
 
 ! turn data and domain output on/off
 particle_output = .true.
@@ -16,6 +16,10 @@ domain_output = .true.
 
 ! turn particle filtering (leaving simulation box) on/off 
 particle_filter = .true.
+
+! set fraction of particle to be tested in a direct summation
+particle_direct = 1.0
+
 /
 
 &calc_force_coulomb
@@ -23,10 +27,10 @@ particle_filter = .true.
 force_law  = 3
 ! BH-mac
 mac_select = 0
-! theta = 0.3
+! theta = 0.0
 theta2     = 0.09
 ! eps squared
-eps2 = 1e0
+eps2 = 1e-0
 /
 
 &libpepc
@@ -38,7 +42,7 @@ eps2 = 1e0
  weighted = 1
 
 ! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
- curve_type = 0
+ curve_type = 1
 /
 
 &walk_para_pthreads

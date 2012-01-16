@@ -25,9 +25,13 @@ program pepc
   if(my_rank.eq.0) write(*,*) " === init time [s]: ", timer(2) - timer(1)
  
   do step=0, nt
-    if(my_rank.eq.0) write(*,*) " == computing step ", step
+    if(my_rank.eq.0) write(*,*) " "
+    if(my_rank.eq.0) write(*,*) " ====== computing step ", step
     
     timer(3) = get_time()
+    
+    call pepc_particleresults_clear(particles, np)
+    
     call pepc_grow_tree(np, tnp, particles)
     call pepc_traverse_tree(np, particles)
     
@@ -39,6 +43,8 @@ program pepc
     if(particle_output) call write_particles(particles)
 
     if(particle_filter) call filter_particles(particles)
+        
+    if(particle_direct .gt. 0.0) call test_particles()    
         
     call push_particles(particles)    
     
