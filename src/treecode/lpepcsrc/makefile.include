@@ -4,7 +4,7 @@ FILES_TC  = module_walk_pthreads.f90
 endif
 
 ifeq ($(WALK), smpss)
-FILES_TC  = module_smpss.f90
+FILES_TC  = module_walk_smpss_utils.f90 module_walk_smpss.f90
 endif
 
 

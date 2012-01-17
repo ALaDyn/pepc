@@ -15,7 +15,7 @@ module module_walk_smpss_utils
 
   !!!!! chunk variables
   integer :: chunk_number
-  integer :: chunk_size_default
+  integer :: chunk_size_default = 100
   integer, dimension(:), allocatable :: chunk_sizes
   integer*8, dimension(:,:), allocatable :: chunk_status
   integer*8, dimension(:,:), allocatable :: chunk_requests
@@ -58,8 +58,6 @@ contains
     vbox             =  vbox_
 
     fcentral    = (vbox(1)**2 + vbox(2)**2 + vbox(3)**2 ) .eq. 0
- 
-    chunk_size_default = 500
    
     max_rank = num_pe-1
 

@@ -1,11 +1,14 @@
 module module_walk
 
+  use module_walk_smpss_utils, only: chunk_size_default
+  implicit none
+
   ! IDs for internal timing measurement
   !integer, public, parameter :: TIMING_COMMLOOP = 1
   !integer, public, parameter :: TIMING_RECEIVE  = 2
   !integer, public, parameter :: TIMING_SENDREQS = 3
   
-  namelist /walk_para_smpss/
+  namelist /walk_para_smpss/ chunk_size_default
 
   public tree_walk
   public tree_walk_finalize
@@ -24,7 +27,7 @@ contains
   subroutine tree_walk_statistics(ifile, perform_output)
     implicit none
     integer, intent(in) :: ifile !< file stream to write to
-    logical, intent(out) :: perform_output !< if set to .false., output in this routine is prevented (e.g. for MPI ranks that shall not write any statistics)
+    logical, intent(in) :: perform_output !< if set to .false., output in this routine is prevented (e.g. for MPI ranks that shall not write any statistics)
     ! TODO: fill with life here
   end subroutine
 
@@ -71,6 +74,7 @@ contains
     if (me == 0) then
       write(*,'("MPI-MPSs walk")')
     endif
+    
   end subroutine
   
   subroutine tree_walk(nparticles_, particles_, &
@@ -178,6 +182,7 @@ contains
        end do
 
     end do
+
 
     pcnt = 0
     icnt = 0
@@ -481,7 +486,7 @@ subroutine tree_walk_smpss_walk_prefetch(x, particle_requests, size)
 !!!!! traverse as long as possible (no request), or finished (status.eq.0)
      do while ((creqs .eq. 0) .and. (cstat .ge. 0))
 
-        caddr = key2addr(cstat, 'SMPSS-WALK')
+        caddr = key2addr(cstat, 'SMPSS-WALK-PREFETCH')
         cnode = htable( caddr ) % node
         cnext = get_next_node_key( cstat )
         clevl = level_from_key( cstat )
@@ -505,20 +510,22 @@ subroutine tree_walk_smpss_walk_prefetch(x, particle_requests, size)
 
 !!!!! are the nodes children available? yes -> set first child as next node
            if ( children_available( caddr ) ) then
-              if(flog) write(*,*) "** traverse, child available"
+              
               call get_childkeys(caddr, ch_num, ch_addr)
               cstat = ch_addr(1)
               cnext = ch_addr(1)
+              if(flog) write(*,'(a,2o21,i5)') "** traverse, child available: ", cstat, ch_addr(1), ch_num
 
 !!!!! no -> stop traversal and put it on request list
            else
-              if(flog) write(*,'(a,o21)') "** traverse, child NOT available -> request list entry: ", cstat
+              if(flog) write(*,'(a,2o21)') "** traverse, child NOT available -> request list entry: ", cstat, cnext
               creqs = cstat
            end if
 
         end if
 
         cstat = cnext
+        if(flog) write(*,'(a,o21)') "** next node: ", cnext
 
 !!!!! if next key is 1 (root) -> traversal is finished!
         if (cnext.eq.1) cstat = -1
