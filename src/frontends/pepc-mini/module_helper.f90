@@ -163,6 +163,7 @@ module helper
         if(any(p(ip)%x .lt. dmin .or. p(ip)%x .gt. dmax)) then
           p(ip) = p(np)
           np = np - 1
+          ip = ip - 1
         end if
       end do
 
@@ -203,7 +204,6 @@ module helper
 	                  (particles(tindx(ti))%results%e(1) - trslt(ti)%e(1))**2+ &
 	                  (particles(tindx(ti))%results%e(2) - trslt(ti)%e(2))**2+ &
 	                  (particles(tindx(ti))%results%e(3) - trslt(ti)%e(3))**2 
-	    !if(my_rank.eq.0) write(*,*) particles(tindx(ti))%results%e(1), trslt(ti)%e(1)
 	  end do
 	  	  
 	  call MPI_ALLREDUCE(tn, tn_global, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
