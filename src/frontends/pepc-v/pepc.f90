@@ -16,6 +16,7 @@ program pepcv
   use module_timings
   use files
   use diagnostics
+  use module_interaction_specific, only: theta2
   implicit none
 
   integer :: i
@@ -56,7 +57,12 @@ program pepcv
         call timer_start(t_tot)
 
         call pepc_particleresults_clear(vortex_particles, np)
-        call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .true.)
+
+        if (theta2 .ne. 0.0) then
+            call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .true.)
+        else
+            call direct_sum(np, vortex_particles, vortex_particles%results, my_rank, n_cpu)
+         end if
 
         do i=1,np
           vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const

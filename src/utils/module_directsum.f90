@@ -4,6 +4,8 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_directsum
+
+      use omp_lib
       implicit none
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -128,5 +130,34 @@ module module_directsum
           deallocate(received, sending, local_nodes)
 
         end subroutine
+
+        subroutine omp_init(my_rank)
+
+            use module_walk, only: num_walk_threads
+            implicit none
+
+            integer, intent(in) :: my_rank
+            integer :: omp_thread_num
+
+            ! Set the number of openmp threads.
+            ! Set this only, when compiling with openmp (with !$)
+            ! Set number of openmp threads to the same number as pthreads used in the walk
+            !$ call omp_set_num_threads(num_walk_threads)
+
+            ! Inform the user that openmp is used, and with how many threads
+            !$OMP PARALLEL PRIVATE(omp_thread_num)
+            !$ omp_thread_num = OMP_GET_THREAD_NUM()
+            !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
+            !$OMP END PARALLEL
+
+        end subroutine omp_init
+
+        subroutine omp_clear()
+
+            implicit none
+            ! Reset the number of openmp threads to 1.
+            ! Set this only, when compiling with openmp (with !$)
+            !$ call omp_set_num_threads(1)
+        end subroutine omp_clear
 
 end module module_directsum
