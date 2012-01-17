@@ -219,8 +219,9 @@ module module_htable
         integer*8, intent(in) :: keyin
 
         integer*8 :: search_key, parent_key
-        integer :: parent_addr
-        integer :: parent_child_byte, search_child_idx
+        integer   :: parent_addr
+        integer   :: parent_child_byte 
+        integer*8 :: search_child_idx
 
         search_key = keyin
 
