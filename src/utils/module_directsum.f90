@@ -5,7 +5,6 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_directsum
 
-      use omp_lib
       implicit none
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -56,6 +55,8 @@ module module_directsum
           use module_pepc_types
           use module_interaction_specific_types
           use module_interaction_specific
+          use omp_lib
+          use module_walk, only: num_walk_threads
           implicit none
           include 'mpif.h'
 
@@ -73,8 +74,19 @@ module module_directsum
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real*8 :: delta(3)
 
+          integer :: omp_thread_num
+
           call MPI_ALLREDUCE(ntest, maxtest, 1, MPI_INTEGER, MPI_MAX, comm, ierr)
           allocate(received(1:maxtest), sending(1:maxtest))
+
+          ! Set number of openmp threads to the same number as pthreads used in the walk
+          !$ call omp_set_num_threads(num_walk_threads)
+
+          ! Inform the user that openmp is used, and with how many threads
+          !$OMP PARALLEL PRIVATE(omp_thread_num)
+          !$ omp_thread_num = OMP_GET_THREAD_NUM()
+          !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
+          !$OMP END PARALLEL
 
           ! determine right and left neighbour
           nextrank = modulo(my_rank + 1, n_cpu)
@@ -100,15 +112,20 @@ module module_directsum
 
             ! calculate force from local particles i onto particles j in received-buffer
             ! loop over all received particles
+
+            !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
             do j=1,nreceived
               ! loop over all local particles
+
               do i=1,np_local
                 if ((currank .ne. 0) .or. (testidx(j).ne.i)) then
                   delta = received(j)%x - local_nodes(i)%coc
                   call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), [0._8, 0._8, 0._8], .true.)
                 endif
               end do
+
             end do
+            !$OMP END PARALLEL DO
 
             ! copy particles to process to send-buffer
             nsending = nreceived
@@ -129,35 +146,9 @@ module module_directsum
 
           deallocate(received, sending, local_nodes)
 
+          ! Reset the number of openmp threads to 1.
+          !$ call omp_set_num_threads(1)
+
         end subroutine
-
-        subroutine omp_init(my_rank)
-
-            use module_walk, only: num_walk_threads
-            implicit none
-
-            integer, intent(in) :: my_rank
-            integer :: omp_thread_num
-
-            ! Set the number of openmp threads.
-            ! Set this only, when compiling with openmp (with !$)
-            ! Set number of openmp threads to the same number as pthreads used in the walk
-            !$ call omp_set_num_threads(num_walk_threads)
-
-            ! Inform the user that openmp is used, and with how many threads
-            !$OMP PARALLEL PRIVATE(omp_thread_num)
-            !$ omp_thread_num = OMP_GET_THREAD_NUM()
-            !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
-            !$OMP END PARALLEL
-
-        end subroutine omp_init
-
-        subroutine omp_clear()
-
-            implicit none
-            ! Reset the number of openmp threads to 1.
-            ! Set this only, when compiling with openmp (with !$)
-            !$ call omp_set_num_threads(1)
-        end subroutine omp_clear
 
 end module module_directsum

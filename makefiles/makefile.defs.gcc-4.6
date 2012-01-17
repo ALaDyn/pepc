@@ -7,6 +7,7 @@ HELP = "\
 MACH     = gcc-4.6
 
 DEBUG    = 0
+OMP      = 1
 
 RANLIB   = ranlib
 
@@ -31,6 +32,13 @@ else
   CFLAGS   =  -Wall -Ofast 
   LDFLAGS   =       -Ofast -pthread $(INLINING) -fwhole-program  
 endif
+
+ifeq ($(OMP), 1)
+  FFLAGS   += -fopenmp
+  LDFLAGS  += -fopenmp 
+else
+endif
+
 
 CCPRE    = 
 CC       = mpicc
