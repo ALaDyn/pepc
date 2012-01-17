@@ -5,7 +5,6 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_walk_communicator
   use treevars
-  use pthreads_stuff
   implicit none
 
   private
