@@ -150,7 +150,7 @@ module helper
 	  include 'mpif.h'
 	  
 	  type(t_particle), allocatable, intent(inout) :: p(:)
-	  integer :: ip, rc
+	  integer :: ip, rp, rc
 
       real*8 :: dmin(3), dmax(3)
 
@@ -159,11 +159,15 @@ module helper
 
       !if(my_rank.eq.0) write(*,*) " == filter particles "
 
+      rp = 1
       do ip=1, np
-        if(any(p(ip)%x .lt. dmin .or. p(ip)%x .gt. dmax)) then
-          p(ip) = p(np)
-          np = np - 1
-          ip = ip - 1
+        if(any(p(rp)%x .lt. dmin .or. p(rp)%x .gt. dmax)) then
+          if(rp .ne. np) then
+            p(rp) = p(np)
+            np = np - 1
+          end if
+        else
+          rp = rp + 1
         end if
       end do
 
