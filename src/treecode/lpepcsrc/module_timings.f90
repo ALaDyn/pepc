@@ -17,7 +17,7 @@ module module_timings
     ! global timings
     integer, parameter :: t_domains            =  1
     integer, parameter :: t_allocate           =  2
-    integer, parameter :: t_unused_3           =  3
+    integer, parameter :: t_unused_3            =  3
     integer, parameter :: t_exchange_branches_pack        =  4
     integer, parameter :: t_exchange_branches_allgatherv  =  5
     integer, parameter :: t_exchange_branches_integrate   =  6
@@ -74,8 +74,8 @@ module module_timings
     integer, parameter :: t_domains_add_unpack = 47
     integer, parameter :: t_domains_add_alltoallv = 48
 
-    integer, parameter :: t_unused_49          = 49
-    integer, parameter :: t_unused_50          = 50
+    integer, parameter :: t_direct_force       = 49
+    integer, parameter :: t_direct_comm        = 50
     integer, parameter :: t_unused_51          = 51
     integer, parameter :: t_unused_52          = 52
     integer, parameter :: t_unused_53          = 53

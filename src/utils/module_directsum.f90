@@ -57,6 +57,7 @@ module module_directsum
           use module_interaction_specific
           use omp_lib
           use module_walk, only: num_walk_threads
+          use module_timings
           implicit none
           include 'mpif.h'
 
@@ -74,10 +75,14 @@ module module_directsum
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real*8 :: delta(3)
 
+          real*8 :: t1
           integer :: omp_thread_num
 
           call MPI_ALLREDUCE(ntest, maxtest, 1, MPI_INTEGER, MPI_MAX, comm, ierr)
           allocate(received(1:maxtest), sending(1:maxtest))
+
+          call timer_reset(t_direct_force)
+          call timer_reset(t_direct_comm)
 
           ! Set number of openmp threads to the same number as pthreads used in the walk
           !$ call omp_set_num_threads(num_walk_threads)
@@ -113,6 +118,8 @@ module module_directsum
             ! calculate force from local particles i onto particles j in received-buffer
             ! loop over all received particles
 
+            t1 = MPI_WTIME()
+
             !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
             do j=1,nreceived
               ! loop over all local particles
@@ -127,6 +134,10 @@ module module_directsum
             end do
             !$OMP END PARALLEL DO
 
+            call timer_add(t_direct_force,MPI_WTIME()-t1)
+
+            t1 = MPI_WTIME()
+
             ! copy particles to process to send-buffer
             nsending = nreceived
             sending(1:nsending) = received(1:nreceived)
@@ -138,6 +149,9 @@ module module_directsum
             call MPI_ISEND(sending, nsending,  MPI_TYPE_PARTICLE, nextrank, MPI_TAG_DIRECT_DATA_PACKAGE, comm,  req, ierr)
             call MPI_RECV(received, nreceived, MPI_TYPE_PARTICLE, prevrank, MPI_TAG_DIRECT_DATA_PACKAGE, comm, stat, ierr)
             call MPI_WAIT(req, stat, ierr)
+
+            call timer_add(t_direct_comm,MPI_WTIME()-t1)
+
           end do
 
           ! copy results to output array
