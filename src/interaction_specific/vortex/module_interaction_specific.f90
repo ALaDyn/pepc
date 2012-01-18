@@ -348,14 +348,14 @@ module module_interaction_specific
 
           select case (force_law)
 
-            case (21)  !  use 2nd order algebraic kernel, classical scheme
+            case (21)  !  use 2nd order Gaussian kernel, transposed scheme
 
                 if (node_is_leaf) then
                     ! It's a leaf, do direct summation without ME stuff
-                    call calc_2nd_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div)
+                    call calc_2nd_gaussian_transposed_direct(particle, node, delta, dist2, u, af, div)
                 else
                     ! TODO: ME 2nd order classical scheme
-                    write(*,*) 'ME 2nd order classical scheme not yet implemented, aborting ...'
+                    write(*,*) 'ME not implemented for Gaussian kernels, aborting ...'
                     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
                 end if
 
@@ -373,10 +373,10 @@ module module_interaction_specific
 
                 if (node_is_leaf) then
                     ! It's a leaf, do direct summation without ME stuff
-                    call calc_6th_algebraic_classical_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
+                    call calc_6th_gaussian_transposed_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
                 else
                     ! TODO: ME 6th order classical scheme
-                    write(*,*) 'ME 6th order classical scheme not yet implemented, aborting ...'
+                    write(*,*) 'ME not implemented for Gaussian kernels, aborting ...'
                     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
                 end if
 
@@ -702,7 +702,7 @@ module module_interaction_specific
             real*8, intent(out) :: u(1:3), af(1:3), div
 
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
-            real*8 :: dx, dy, dz, Gc25, MPa1
+            real*8 :: dx, dy, dz, Gc25, MPa1, nom, nom45, nom35, nom25
             real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             dx = d(1)
@@ -713,8 +713,13 @@ module module_interaction_specific
             vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
 
-            Gc25 = G_core(dist2,sig2,2.5D00)
-            MPa1 = 3.0D00*G_core(dist2,sig2,3.5D00)*dot_product(d,CP0)
+            nom = dist2+sig2
+            nom45 = nom**(-4.5)
+            nom35 = nom45*nom
+            nom25 = nom35*nom
+
+            Gc25 = (dist2+2.5*sig2)*nom25
+            MPa1 = 3.0*(dist2+3.5*sig2)*nom35*dot_product(d,CP0)
 
             u(1) = Gc25* (dy*m0(3)-dz*m0(2))
             u(2) = Gc25* (dz*m0(1)-dx*m0(3))
@@ -724,7 +729,7 @@ module module_interaction_specific
             af(2) = Mpa1*dy - Gc25*CP0(2)
             af(3) = Mpa1*dz - Gc25*CP0(3)
 
-            div = -52.5*G_decomp(dist2,sig2,4.5D00)*sig2**2*dot_product(d,m0)
+            div = -52.5*nom45*sig2**2*dot_product(d,m0)
 
         end subroutine calc_2nd_algebraic_transposed_direct
 
@@ -746,8 +751,8 @@ module module_interaction_specific
             real*8, intent(out) ::  u(1:3), af(1:3), div
 
             real*8 :: dx, dy, dz !< temp variables for distance
-            real*8 :: sig4, sig6, sig8, sig10, Gd15, Gd25, Gd35, Gd45, Gd55, Gd65, Gd75
-            real*8 :: pre1, pre2, MPa1
+            real*8 :: sig4, sig8, nom, nom25, nom35, nom45, nom55, nom65, nom75, nom85, pre_u, pre_a1, pre_a2, &
+                      D52u, D92u, D132u, D52a, D72a, D92a, D112a, D132a, D152a, D92div, D132div, D152div, D172div
             real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
 
@@ -760,35 +765,43 @@ module module_interaction_specific
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
 
-
             ! precompute kernel function evaluations of various order
-            Gd15 = G_decomp(dist2,sig2,1.5D00)
-            Gd25 = G_decomp(dist2,sig2,2.5D00)
-            Gd35 = G_decomp(dist2,sig2,3.5D00)
-            Gd45 = G_decomp(dist2,sig2,4.5D00)
-            Gd55 = G_decomp(dist2,sig2,5.5D00)
-            Gd65 = G_decomp(dist2,sig2,6.5D00)
-            Gd75 = G_decomp(dist2,sig2,7.5D00)
+            nom = dist2+sig2
+            nom85 = nom**(-8.5)
+            nom75 = nom85*nom
+            nom65 = nom75*nom
+            nom55 = nom65*nom
+            nom45 = nom55*nom
+            nom35 = nom45*nom
+            nom25 = nom35*nom
+            sig4 = sig2*sig2
+            sig8 = sig4*sig4
 
-            sig4  = sig2*sig2
-            sig6  = sig4*sig2
-            sig8  = sig6*sig2
-            sig10 = sig8*sig2
+            D52u = (dist2+2.5*sig2)*nom25
+            D92u = 1.875*(sig4)*(dist2+2.1666667*sig2)*nom45
+            D132u = 4.921875*(sig8)*(dist2-4.5*sig2)*nom65
 
-            pre1 = 0.0078125*(128.0*Gd15 + 192.0*sig2*Gd25 + 240.0*sig4*Gd35 + 280.0*sig6*Gd45 - 630.0*sig8*Gd55 + 3465.0*sig10*Gd65)
-            pre2 = 0.0078125*(384.0*Gd25 + 960.0**sig2*Gd35 + 1680.0*sig4*Gd45 + 2520.0*sig6*Gd55 - 6930.0*sig8*Gd65 + 45045.0*sig10*Gd75)
+            pre_u = D52u+D92u-D132u
 
-            MPa1 = pre2 * dot_product(d,CP0)   ! monopole prefactor for af
+            D72a = 3.0*(dist2+3.5*sig2)*nom35
+            D112a = 13.125*(sig4)*(dist2+2.5*sig2)*nom55
+            D152a = 54.140625*(sig8)*(dist2-5.5*sig2)*nom75
 
-            u(1) = pre1 * (dy*m0(3)-dz*m0(2))                                                                                        ! MONOPOLE
-            u(2) = pre1 * (dz*m0(1)-dx*m0(3))                                                                                        ! MONOPOLE
-            u(3) = pre1 * (dx*m0(2)-dy*m0(1))                                                                                        ! MONOPOLE
+            pre_a2 = (D72a+D112a-D152a)*dot_product(d,CP0)
 
-            af(1) = Mpa1*dx - pre1 * CP0(1)                                                                                                 ! MONOPOLE
-            af(2) = Mpa1*dy - pre1 * CP0(2)                                                                                                 ! MONOPOLE
-            af(3) = Mpa1*dz - pre1 * CP0(3)                                                                                                 ! MONOPOLE
+            D132div = 649.6875*(sig8)*nom65
+            D152div = 4222.96875*(sig2**5)*nom75
+            D172div = 5278.7109375*(sig2**6)*nom85
 
-            div = -(649.6875*(sig2**4)*G_decomp(dist2,sig2,6.5D00)-4222.96875*(sig2**5)*G_decomp(dist2,sig2,7.5D00)+5278.7109375*(sig2**6)*G_decomp(dist2,sig2,8.5D00))*dot_product(d,m0)
+            u(1) = pre_u * (dy*m0(3)-dz*m0(2))                                                                                        ! MONOPOLE
+            u(2) = pre_u * (dz*m0(1)-dx*m0(3))                                                                                        ! MONOPOLE
+            u(3) = pre_u * (dx*m0(2)-dy*m0(1))                                                                                        ! MONOPOLE
+
+            af(1) = pre_a2*dx - pre_u * CP0(1)                                                                                                 ! MONOPOLE
+            af(2) = pre_a2*dy - pre_u * CP0(2)                                                                                                 ! MONOPOLE
+            af(3) = pre_a2*dz - pre_u * CP0(3)                                                                                                 ! MONOPOLE
+
+            div = -(D132div-D152div+D172div)*dot_product(d,m0)
 
         end subroutine calc_6th_algebraic_transposed_direct
 
@@ -799,7 +812,7 @@ module module_interaction_specific
         !> of particle p with tree *particle*, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_2nd_algebraic_classical_direct(particle, t, d, dist2, u, af, div)
+        subroutine calc_2nd_gaussian_transposed_direct(particle, t, d, dist2, u, af, div)
 
             use module_pepc_types
             use treevars, only : tree_nodes
@@ -811,7 +824,7 @@ module module_interaction_specific
             real*8, intent(out) :: u(1:3), af(1:3), div
 
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
-            real*8 :: dx, dy, dz, Gc25, MPa1
+            real*8 :: dx, dy, dz, exp3,sig3, dist, dist3, K2, K2div, dK2
             real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             dx = d(1)
@@ -822,20 +835,29 @@ module module_interaction_specific
             vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
 
-            Gc25 = G_core(dist2,sig2,2.5D00)
-            MPa1 = 3.0D00*G_core(dist2,sig2,3.5D00)*dot_product(d,CP0)
+            dist = sqrt(dist2)
+            dist3 = dist2*dist
+            sig3 = sig2**(-1.5)
 
-            u(1) = Gc25* (dy*m0(3)-dz*m0(2))
-            u(2) = Gc25* (dz*m0(1)-dx*m0(3))
-            u(3) = Gc25* (dx*m0(2)-dy*m0(1))
+            exp3 = exp(-dist3*sig3)
 
-            af(1) = Mpa1*dx - Gc25*CP0(1)
-            af(2) = Mpa1*dy - Gc25*CP0(2)
-            af(3) = Mpa1*dz - Gc25*CP0(3)
+            K2 = (1.0-exp3)/dist3
 
-            div = -52.5*G_decomp(dist2,sig2,4.5D00)*sig2**2*dot_product(d,m0)
+            dK2 = 3.0*(exp3*sig3-K2)/dist2*dot_product(d,CP0)
 
-        end subroutine calc_2nd_algebraic_classical_direct
+            K2div = 9.0*dist*sig3*exp3
+
+            u(1) = K2 * (dy*m0(3)-dz*m0(2))                                                                                        ! MONOPOLE
+            u(2) = K2 * (dz*m0(1)-dx*m0(3))                                                                                        ! MONOPOLE
+            u(3) = K2 * (dx*m0(2)-dy*m0(1))
+
+            af(1) = -dK2*dx - K2*CP0(1)
+            af(2) = -dK2*dy - K2*CP0(2)
+            af(3) = -dK2*dz - K2*CP0(3)
+
+            div = -K2div*dot_product(d,m0)
+
+        end subroutine calc_2nd_gaussian_transposed_direct
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
@@ -843,7 +865,7 @@ module module_interaction_specific
         !> of particle p with tree node inode, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_6th_algebraic_classical_direct(particle, t, d, dist2, u, af, div)
+        subroutine calc_6th_gaussian_transposed_direct(particle, t, d, dist2, u, af, div)
             use module_pepc_types
             use treevars
             use module_interaction_specific_types
@@ -855,7 +877,7 @@ module module_interaction_specific
             real*8, intent(out) ::  u(1:3), af(1:3), div
 
             real*8 :: dx, dy, dz !< temp variables for distance
-            real*8 :: sig4, sig6, sig8, sig10, Gd15, Gd25, Gd35, Gd45, Gd55, Gd65, Gd75
+            real*8 :: dist, dist3, sig3, ds3, exp3, exp83, exp273, K6, dK6, K6div
             real*8 :: pre1, pre2, MPa1
             real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
@@ -869,37 +891,33 @@ module module_interaction_specific
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
 
-
             ! precompute kernel function evaluations of various order
-            Gd15 = G_decomp(dist2,sig2,1.5D00)
-            Gd25 = G_decomp(dist2,sig2,2.5D00)
-            Gd35 = G_decomp(dist2,sig2,3.5D00)
-            Gd45 = G_decomp(dist2,sig2,4.5D00)
-            Gd55 = G_decomp(dist2,sig2,5.5D00)
-            Gd65 = G_decomp(dist2,sig2,6.5D00)
-            Gd75 = G_decomp(dist2,sig2,7.5D00)
+            dist = sqrt(dist2)
+            dist3 = dist2*dist
+            sig3 = sig2**(-1.5)
+            ds3 = dist3*sig3
 
-            sig4  = sig2*sig2
-            sig6  = sig4*sig2
-            sig8  = sig6*sig2
-            sig10 = sig8*sig2
+            exp3 = exp(-ds3)
+            exp83 = exp(-8.0*ds3)
+            exp273 = exp(-27.0*ds3)
 
-            pre1 = 0.0078125*(128.0*Gd15 + 192.0*sig2*Gd25 + 240.0*sig4*Gd35 + 280.0*sig6*Gd45 - 630.0*sig8*Gd55 + 3465.0*sig10*Gd65)
-            pre2 = 0.0078125*(384.0*Gd25 + 960.0**sig2*Gd35 + 1680.0*sig4*Gd45 + 2520.0*sig6*Gd55 - 6930.0*sig8*Gd65 + 45045.0*sig10*Gd75)
+            K6 = (1.0-0.041666667*exp3+1.0666667*exp83-2.025*exp273)/dist3
 
-            MPa1 = pre2 * dot_product(d,CP0)   ! monopole prefactor for af
+            dK6 = ((0.125*exp3-25.6*exp83+164.025*exp273)*sig3-3.0*K6)/dist2*dot_product(d,CP0)
 
-            u(1) = pre1 * (dy*m0(3)-dz*m0(2))                                                                                        ! MONOPOLE
-            u(2) = pre1 * (dz*m0(1)-dx*m0(3))                                                                                        ! MONOPOLE
-            u(3) = pre1 * (dx*m0(2)-dy*m0(1))                                                                                        ! MONOPOLE
+            K6div = 0.075*dist*(sig3**2)*(5.0*exp3-8192.0*exp83+177147.0*exp273)
 
-            af(1) = Mpa1*dx - pre1 * CP0(1)                                                                                                 ! MONOPOLE
-            af(2) = Mpa1*dy - pre1 * CP0(2)                                                                                                 ! MONOPOLE
-            af(3) = Mpa1*dz - pre1 * CP0(3)                                                                                                 ! MONOPOLE
+            u(1) = K6 * (dy*m0(3)-dz*m0(2))                                                                                        ! MONOPOLE
+            u(2) = K6 * (dz*m0(1)-dx*m0(3))                                                                                        ! MONOPOLE
+            u(3) = K6 * (dx*m0(2)-dy*m0(1))                                                                                        ! MONOPOLE
 
-            div = -(649.6875*(sig2**4)*G_decomp(dist2,sig2,6.5D00)-4222.96875*(sig2**5)*G_decomp(dist2,sig2,7.5D00)+5278.7109375*(sig2**6)*G_decomp(dist2,sig2,8.5D00))*dot_product(d,m0)
+            af(1) = -dK6*dx - K6 * CP0(1)                                                                                                 ! MONOPOLE
+            af(2) = -dK6*dy - K6 * CP0(2)                                                                                                 ! MONOPOLE
+            af(3) = -dK6*dz - K6 * CP0(3)                                                                                                 ! MONOPOLE
 
-        end subroutine calc_6th_algebraic_classical_direct
+            div = -K6div*dot_product(d,m0)
+
+        end subroutine calc_6th_gaussian_transposed_direct
 
 
 
