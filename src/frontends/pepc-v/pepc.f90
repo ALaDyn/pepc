@@ -67,6 +67,7 @@ program pepcv
         do i=1,np
           vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
           vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
+          vortex_particles(i)%results%div     = vortex_particles(i)%results%div * force_const
         end do
 
         call push_rk2(stage)
@@ -107,6 +108,7 @@ program pepcv
 
      ! Some linear diagnostics
      call linear_diagnostics(itime,trun)
+     call divergence_diag(itime,trun)
 
      ! dump, if needed
      call dump(itime, trun)

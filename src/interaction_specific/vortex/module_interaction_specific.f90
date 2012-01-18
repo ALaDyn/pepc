@@ -46,12 +46,6 @@ module module_interaction_specific
       public calc_force_finalize
       public calc_force_prepare
       public get_number_of_interactions_per_particle
-      private calc_2nd_algebraic_condensed
-      !private calc_2nd_algebraic_decomposed
-      !private calc_6th_algebraic_decomposed
-      private G_core
-      private G_decomp
-
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -199,6 +193,8 @@ module module_interaction_specific
 
         res1%u    = res1%u    + res2%u
         res1%af   = res1%af   + res2%af
+        res1%div  = res1%div  + res2%div
+
       end subroutine
 
 
@@ -335,6 +331,7 @@ module module_interaction_specific
           use module_pepc_types
           use treevars
           implicit none
+          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: node
           integer*8, intent(in) :: key
@@ -342,43 +339,67 @@ module module_interaction_specific
           logical, intent(in) :: node_is_leaf
           real*8, intent(in) :: vbox(3), delta(3), dist2
 
-          real*8 :: u(3), af(3)
+          integer :: ierr
+          real*8 :: u(3), af(3), div
+
+          u = 0.
+          af = 0.
+          div = 0.
 
           select case (force_law)
-            case (2)  !  use 2nd order algebraic kernel, condensed
+
+            case (21)  !  use 2nd order algebraic kernel, classical scheme
 
                 if (node_is_leaf) then
                     ! It's a leaf, do direct summation without ME stuff
-                    call calc_2nd_algebraic_condensed_direct(particle, node, delta, dist2, u, af)
+                    call calc_2nd_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div)
                 else
-                    ! It's not a leaf, do ME
-                    call calc_2nd_algebraic_condensed(particle, node, delta, dist2, u, af)
+                    ! TODO: ME 2nd order classical scheme
+                    write(*,*) 'ME 2nd order classical scheme not yet implemented, aborting ...'
+                    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
                 end if
 
-            case (3)  !  TODO: use 2nd order algebraic kernel, decomposed
-                !call calc_2nd_algebraic_decomposed(particle, inode, delta, dist2, u, af)
-                u = 0.
-                af = 0.
-
-            case (6)  ! use 6th order algebraic kernel, condensed
-
+            case (22)  !  use 2nd order algebraic kernel, transposed scheme
 
                 if (node_is_leaf) then
                     ! It's a leaf, do direct summation without ME stuff
-                    call calc_6th_algebraic_condensed_direct(particle, node, delta, dist2, u, af) !TODO: 6xth order direct summation
+                    call calc_2nd_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div)
                 else
                     ! It's not a leaf, do ME
-                    call calc_6th_algebraic_condensed(particle, node, delta, dist2, u, af)
+                    call calc_2nd_algebraic_transposed(particle, node, delta, dist2, u, af)
                 end if
 
+            case (61)  ! use 6th order algebraic kernel, classical scheme
+
+                if (node_is_leaf) then
+                    ! It's a leaf, do direct summation without ME stuff
+                    call calc_6th_algebraic_classical_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
+                else
+                    ! TODO: ME 6th order classical scheme
+                    write(*,*) 'ME 6th order classical scheme not yet implemented, aborting ...'
+                    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+                end if
+
+            case (62)  ! use 6th order algebraic kernel, transposed scheme
+
+                if (node_is_leaf) then
+                    ! It's a leaf, do direct summation without ME stuff
+                    call calc_6th_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
+                else
+                    ! It's not a leaf, do ME
+                    call calc_6th_algebraic_transposed(particle, node, delta, dist2, u, af)
+                end if
 
             case default
-              u = 0.
-              af = 0.
+
+                write(*,*) 'What force law is this?',force_law
+                call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+
           end select
 
           particle%results%u(1:3)    = particle%results%u(1:3)     -  u(1:3)
           particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
+          particle%results%div       = particle%results%div        + div
           particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
 
         end subroutine calc_force_per_interaction
@@ -407,7 +428,7 @@ module module_interaction_specific
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        subroutine calc_2nd_algebraic_condensed(particle, t, d, dist2, u, af)
+        subroutine calc_2nd_algebraic_transposed(particle, t, d, dist2, u, af)
             use module_pepc_types
             use module_interaction_specific_types
             implicit none
@@ -519,7 +540,7 @@ module module_interaction_specific
                         7.5D00*Gc45*( sum( (/ (sum( (/ ((CP2(i2,i1,3)+CP2(i2,3,i1)+CP2(3,i2,i1))*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) ) + dz*QPa2) + &
                         1.5D00*Gc35*( CP2(1,1,3)+CP2(2,2,3)+CP2(3,3,3)+CP2(1,3,1)+CP2(2,3,2)+CP2(3,3,3)+CP2(3,1,1)+CP2(3,2,2)+CP2(3,3,3) ) ! QUADRUPOLE
 
-        end subroutine calc_2nd_algebraic_condensed
+        end subroutine calc_2nd_algebraic_transposed
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
@@ -527,7 +548,7 @@ module module_interaction_specific
         !> of particle p with tree node t, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_6th_algebraic_condensed(particle, t, d, dist2, u, af)
+        subroutine calc_6th_algebraic_transposed(particle, t, d, dist2, u, af)
             use module_pepc_types
             use treevars
             use module_interaction_specific_types
@@ -661,15 +682,15 @@ module module_interaction_specific
                         pre4 * ( sum( (/ (sum( (/ ((CP2(i2,i1,3)+CP2(i2,3,i1)+CP2(3,i2,i1))*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) ) + dz*QPa2) + &
                         pre3 * ( CP2(1,1,3)+CP2(2,2,3)+CP2(3,3,3)+CP2(1,3,1)+CP2(2,3,2)+CP2(3,3,3)+CP2(3,1,1)+CP2(3,2,2)+CP2(3,3,3) ) ! QUADRUPOLE
 
-        end subroutine calc_6th_algebraic_condensed
+        end subroutine calc_6th_algebraic_transposed
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Calculates 3D 2nd order condensed algebraic kernel interaction
+        !> Calculates 3D 2nd order algebraic kernel interaction, transposed scheme
         !> of particle p with tree *particle*, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_2nd_algebraic_condensed_direct(particle, t, d, dist2, u, af)
+        subroutine calc_2nd_algebraic_transposed_direct(particle, t, d, dist2, u, af, div)
 
             use module_pepc_types
             use treevars, only : tree_nodes
@@ -678,7 +699,7 @@ module module_interaction_specific
             type(t_tree_node_interaction_data), intent(in) :: t
             type(t_particle), intent(inout) :: particle
             real*8, intent(in) :: d(3), dist2
-            real*8, intent(out) :: u(1:3), af(1:3)
+            real*8, intent(out) :: u(1:3), af(1:3), div
 
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
             real*8 :: dx, dy, dz, Gc25, MPa1
@@ -703,15 +724,17 @@ module module_interaction_specific
             af(2) = Mpa1*dy - Gc25*CP0(2)
             af(3) = Mpa1*dz - Gc25*CP0(3)
 
-        end subroutine calc_2nd_algebraic_condensed_direct
+            div = -52.5*G_decomp(dist2,sig2,4.5D00)*sig2**2*dot_product(d,m0)
+
+        end subroutine calc_2nd_algebraic_transposed_direct
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Calculates 3D 2nd order condensed algebraic kernel interaction
+        !> Calculates 3D 2nd order algebraic kernel interaction, transposed scheme
         !> of particle p with tree node inode, results are returned in u and af
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_6th_algebraic_condensed_direct(particle, t, d, dist2, u, af)
+        subroutine calc_6th_algebraic_transposed_direct(particle, t, d, dist2, u, af, div)
             use module_pepc_types
             use treevars
             use module_interaction_specific_types
@@ -720,7 +743,7 @@ module module_interaction_specific
             type(t_particle), intent(in) :: particle
             type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-            real*8, intent(out) ::  u(1:3), af(1:3)
+            real*8, intent(out) ::  u(1:3), af(1:3), div
 
             real*8 :: dx, dy, dz !< temp variables for distance
             real*8 :: sig4, sig6, sig8, sig10, Gd15, Gd25, Gd35, Gd45, Gd55, Gd65, Gd75
@@ -765,7 +788,119 @@ module module_interaction_specific
             af(2) = Mpa1*dy - pre1 * CP0(2)                                                                                                 ! MONOPOLE
             af(3) = Mpa1*dz - pre1 * CP0(3)                                                                                                 ! MONOPOLE
 
-        end subroutine calc_6th_algebraic_condensed_direct
+            div = -(649.6875*(sig2**4)*G_decomp(dist2,sig2,6.5D00)-4222.96875*(sig2**5)*G_decomp(dist2,sig2,7.5D00)+5278.7109375*(sig2**6)*G_decomp(dist2,sig2,8.5D00))*dot_product(d,m0)
+
+        end subroutine calc_6th_algebraic_transposed_direct
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates 3D 2nd order algebraic kernel interaction, classical scheme
+        !> of particle p with tree *particle*, results are returned in u and af
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_2nd_algebraic_classical_direct(particle, t, d, dist2, u, af, div)
+
+            use module_pepc_types
+            use treevars, only : tree_nodes
+            implicit none
+
+            type(t_tree_node_interaction_data), intent(in) :: t
+            type(t_particle), intent(inout) :: particle
+            real*8, intent(in) :: d(3), dist2
+            real*8, intent(out) :: u(1:3), af(1:3), div
+
+            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
+            real*8 :: dx, dy, dz, Gc25, MPa1
+            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+
+            dx = d(1)
+            dy = d(2)
+            dz = d(3)
+
+            m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+            CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
+
+            Gc25 = G_core(dist2,sig2,2.5D00)
+            MPa1 = 3.0D00*G_core(dist2,sig2,3.5D00)*dot_product(d,CP0)
+
+            u(1) = Gc25* (dy*m0(3)-dz*m0(2))
+            u(2) = Gc25* (dz*m0(1)-dx*m0(3))
+            u(3) = Gc25* (dx*m0(2)-dy*m0(1))
+
+            af(1) = Mpa1*dx - Gc25*CP0(1)
+            af(2) = Mpa1*dy - Gc25*CP0(2)
+            af(3) = Mpa1*dz - Gc25*CP0(3)
+
+            div = -52.5*G_decomp(dist2,sig2,4.5D00)*sig2**2*dot_product(d,m0)
+
+        end subroutine calc_2nd_algebraic_classical_direct
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates 3D 2nd order algebraic kernel interaction, classical scheme
+        !> of particle p with tree node inode, results are returned in u and af
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_6th_algebraic_classical_direct(particle, t, d, dist2, u, af, div)
+            use module_pepc_types
+            use treevars
+            use module_interaction_specific_types
+            implicit none
+
+            type(t_particle), intent(in) :: particle
+            type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+            real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+            real*8, intent(out) ::  u(1:3), af(1:3), div
+
+            real*8 :: dx, dy, dz !< temp variables for distance
+            real*8 :: sig4, sig6, sig8, sig10, Gd15, Gd25, Gd35, Gd45, Gd55, Gd65, Gd75
+            real*8 :: pre1, pre2, MPa1
+            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
+
+            dx = d(1)
+            dy = d(2)
+            dz = d(3)
+
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+
+            m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
+            CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
+
+
+            ! precompute kernel function evaluations of various order
+            Gd15 = G_decomp(dist2,sig2,1.5D00)
+            Gd25 = G_decomp(dist2,sig2,2.5D00)
+            Gd35 = G_decomp(dist2,sig2,3.5D00)
+            Gd45 = G_decomp(dist2,sig2,4.5D00)
+            Gd55 = G_decomp(dist2,sig2,5.5D00)
+            Gd65 = G_decomp(dist2,sig2,6.5D00)
+            Gd75 = G_decomp(dist2,sig2,7.5D00)
+
+            sig4  = sig2*sig2
+            sig6  = sig4*sig2
+            sig8  = sig6*sig2
+            sig10 = sig8*sig2
+
+            pre1 = 0.0078125*(128.0*Gd15 + 192.0*sig2*Gd25 + 240.0*sig4*Gd35 + 280.0*sig6*Gd45 - 630.0*sig8*Gd55 + 3465.0*sig10*Gd65)
+            pre2 = 0.0078125*(384.0*Gd25 + 960.0**sig2*Gd35 + 1680.0*sig4*Gd45 + 2520.0*sig6*Gd55 - 6930.0*sig8*Gd65 + 45045.0*sig10*Gd75)
+
+            MPa1 = pre2 * dot_product(d,CP0)   ! monopole prefactor for af
+
+            u(1) = pre1 * (dy*m0(3)-dz*m0(2))                                                                                        ! MONOPOLE
+            u(2) = pre1 * (dz*m0(1)-dx*m0(3))                                                                                        ! MONOPOLE
+            u(3) = pre1 * (dx*m0(2)-dy*m0(1))                                                                                        ! MONOPOLE
+
+            af(1) = Mpa1*dx - pre1 * CP0(1)                                                                                                 ! MONOPOLE
+            af(2) = Mpa1*dy - pre1 * CP0(2)                                                                                                 ! MONOPOLE
+            af(3) = Mpa1*dz - pre1 * CP0(3)                                                                                                 ! MONOPOLE
+
+            div = -(649.6875*(sig2**4)*G_decomp(dist2,sig2,6.5D00)-4222.96875*(sig2**5)*G_decomp(dist2,sig2,7.5D00)+5278.7109375*(sig2**6)*G_decomp(dist2,sig2,8.5D00))*dot_product(d,m0)
+
+        end subroutine calc_6th_algebraic_classical_direct
+
 
 
 

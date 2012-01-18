@@ -34,10 +34,11 @@ module module_interaction_specific_types
       type t_particle_results
          real*8, dimension(3) :: u   ! velocities
          real*8, dimension(3) :: af  ! RHS for vorticity/alpha ODE
+         real*8 :: div               ! divergence
       end type t_particle_results
-      integer, private, parameter :: nprops_particle_results = 2
+      integer, private, parameter :: nprops_particle_results = 3
 
-      type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results([0., 0., 0.], [0., 0., 0.])
+      type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results([0., 0., 0.], [0., 0., 0.], 0.)
 
       !> Data structure for storing multiple moments of tree nodes
       type t_tree_node_interaction_data
@@ -126,11 +127,12 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
 
         ! register results data type
-        blocklengths(1:nprops_particle_results)  = [3, 3]
-        types(1:nprops_particle_results)         = [MPI_REAL8, MPI_REAL8]
+        blocklengths(1:nprops_particle_results)  = [3, 3, 1]
+        types(1:nprops_particle_results)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_particle_results,      address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%u,    address(1), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%af,   address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%div,  address(3), ierr )
         displacements(1:nprops_particle_results) = int(address(1:nprops_particle_results) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_results, blocklengths, displacements, types, mpi_type_particle_results, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)

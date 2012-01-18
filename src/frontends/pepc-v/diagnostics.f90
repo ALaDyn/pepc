@@ -206,4 +206,34 @@ subroutine linear_diagnostics(itime,trun)
 
 end subroutine linear_diagnostics
 
+
+subroutine divergence_diag(itime,trun)
+
+   use physvars
+   implicit none
+   include 'mpif.h'
+
+   integer, intent(in) :: itime
+   real, intent(in) :: trun
+   integer :: i, ierr
+   real*8 :: div_max_local, div_min_local, div_mean_local, div_max, div_mean, div_min
+
+   div_mean_local = 0.
+
+   div_max_local = maxval(vortex_particles(1:np)%results%div)
+   div_min_local = minval(vortex_particles(1:np)%results%div)
+   do i = 1,np
+      div_mean_local = div_mean_local + vortex_particles(i)%results%div**2
+   end do
+
+   call MPI_ALLREDUCE(div_max_local,div_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
+   call MPI_ALLREDUCE(div_min_local,div_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,ierr)
+   call MPI_ALLREDUCE(div_mean_local,div_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+   div_mean = sqrt(div_mean/n)
+
+   if (my_rank==0) write(*,*) 'Divergence (max/min/mean/denorm):', div_max,div_min,div_mean,div_mean*n
+
+end subroutine divergence_diag
+
+
 end module diagnostics
