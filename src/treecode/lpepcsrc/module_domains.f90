@@ -105,11 +105,12 @@ module module_domains
         call MPI_ALLREDUCE(min_local, boxmin, 3, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
         call MPI_ALLREDUCE(max_local, boxmax, 3, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
 
-        boxsize = boxmax - boxmin
-
         ! Safety margin - put buffer region around particles
         boxmin = boxmin - boxsize/10000.0
         boxmax = boxmax + boxsize/10000.0
+
+        boxsize = boxmax - boxmin
+
 
         if (dbg(DBG_DOMAIN)) then
           DEBUG_WARNING('(4(a15,f12.4/))',
