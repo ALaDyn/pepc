@@ -106,9 +106,9 @@ module module_domains
         call MPI_ALLREDUCE(max_local, boxmax, 3, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
 
         ! Safety margin - put buffer region around particles
-        boxmin = boxmin - boxsize/10000.0
-        boxmax = boxmax + boxsize/10000.0
-
+        boxsize = boxmax - boxmin
+        boxmin  = boxmin - boxsize/10000.0
+        boxmax  = boxmax + boxsize/10000.0
         boxsize = boxmax - boxmin
 
 
