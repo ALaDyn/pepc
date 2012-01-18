@@ -25,6 +25,7 @@ module helper
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
+  real*8, allocatable :: direct_L2(:)
 
 
   contains
@@ -79,7 +80,7 @@ module helper
 	  implicit none
 	  
 	  type(t_particle), allocatable, intent(inout) :: p(:)
-	  integer :: ip, rc
+	  integer :: i, ip, rc
       integer :: rsize 
       integer, allocatable :: rseed(:)
 
@@ -87,44 +88,57 @@ module helper
 	  
 	  ! set initially number of local particles
       np = tnp / n_ranks
-      if(my_rank.eq.0) np = np + MOD(tnp, n_ranks)
+      if(my_rank.eq.(n_ranks-1)) np = np + MOD(tnp, n_ranks)
 
       allocate(particles(np), stat=rc)
       if(rc.ne.0) write(*,*) " === particle allocation error!"
 	  
 	  call random_seed(size = rsize)
 	  allocate(rseed(rsize))
-      rsize = my_rank + 144
+      rseed = my_rank*my_rank + [(i*144,i=1,rsize)]
 	  call random_seed(put = rseed)
 	  deallocate(rseed)
 	  
 	  ! setup random qubic particle cloud
 	  do ip=1, np
 	    call random_number(p(ip)%x)
-	    p(ip)%x      = p(ip)%x*2 - 1
-	    p(ip)%data%v = 0.0
-	    p(ip)%data%m = 1.0
+	    p(ip)%x      = p(ip)%x*2.0_8 - 1.0_8
+	    p(ip)%data%v = 0.0_8
+	    p(ip)%data%m = 1.0_8
 	    call random_number(p(ip)%data%q)
-	    p(ip)%data%q = (2.0*p(ip)%data%q) - 1.0
+	    p(ip)%data%q = (2.0_8*p(ip)%data%q) - 1.0_8
 	    p(ip)%data%q = p(ip)%data%q / abs(p(ip)%data%q)
-	    p(ip)%results%e = 0
-	    p(ip)%results%pot = 0
+	    p(ip)%results%e = 0.0_8
+	    p(ip)%results%pot = 0.0_8
 	    p(ip)%work = 0
+	    p(ip)%label = my_rank * (tnp / n_ranks) + ip
 	  end do
 	
 	  ! setup two massive and charged particles
 	  if(my_rank .eq. 0) then
-	    p(1)%x      = [0.0, 0.0, -1.8]
-	    p(1)%data%v = [0.0, 0.0, 0.0]
-	    p(1)%data%m = 1000.0 * tnp
-	    p(1)%data%q = 10.0 * tnp
-	    p(2)%x      = p(1)%x      * (-1.0)
+	    p(1)%x      = [0.0_8, 0.0_8, -1.8_8]
+	    p(1)%data%v = [0.0_8, 0.0_8, 0.0_8]
+	    p(1)%data%m = 1000.0_8 * tnp
+	    p(1)%data%q = 10.0_8 * tnp
+	    p(2)%x      = p(1)%x      * (-1.0_8)
 	    p(2)%data%v = p(1)%data%v
 	    p(2)%data%m = p(1)%data%m
-	    p(2)%data%q = p(1)%data%q * (-1.0)
+	    p(2)%data%q = p(1)%data%q * (-1.0_8)
 	  end if
 	
 	end subroutine init_particles
+	
+	subroutine print_main(pos)
+	
+	  implicit none
+	  character(*), intent(in) :: pos
+      integer :: ip
+	
+	  do ip=1, np
+        if(particles(ip)%label .le. 2) write(*,*) " == main particle: ", pos, ":", particles(ip)%label, particles(ip)%x
+	  end do
+	
+	end subroutine print_main
 	
 	subroutine push_particles(p)
 	  implicit none
@@ -137,11 +151,13 @@ module helper
 
       fact = dt
 
+      call print_main("pre  push")
       do ip=1, np
         p(ip)%data%v = p(ip)%data%v + fact * p(ip)%results%e 
         p(ip)%x      = p(ip)%x      + \
                        fact * p(ip)%data%v * p(ip)%data%q / p(ip)%data%m
       end do
+      call print_main("post push")
 
 	end subroutine push_particles
 	
@@ -161,10 +177,12 @@ module helper
 
       rp = 1
       do ip=1, np
+        if(p(ip)%label .le. 2) write(*,*) " == filter 1,2 particle: ", p(ip)%x, p(ip)%label
         if(any(p(rp)%x .lt. dmin .or. p(rp)%x .gt. dmax)) then
           if(rp .ne. np) then
             p(rp) = p(np)
             np = np - 1
+            write(*,*) " == filtered particle "
           end if
         else
           rp = rp + 1
@@ -189,7 +207,13 @@ module helper
 	  real*8, allocatable                   :: trnd(:)
 	  type(t_particle_results), allocatable :: trslt(:)
 	  integer                               :: tn, tn_global, ti, rc
-	  real*8                                :: L2sum_local, L2sum_global
+	  real*8                                :: L2sum_local, L2sum_global, L2
+	
+	  if(allocated(direct_L2)) then
+	    deallocate(direct_L2)
+	  end if
+	  allocate(direct_L2(np))
+	  direct_L2 = 0.0
 	
 	  tn = int(particle_direct * np)
 	
@@ -204,10 +228,12 @@ module helper
 	  L2sum_local  = 0.0
 	  L2sum_global = 0.0
 	  do ti = 1, tn
-	    L2sum_local = L2sum_local + &
+	    L2          = &
 	                  (particles(tindx(ti))%results%e(1) - trslt(ti)%e(1))**2+ &
 	                  (particles(tindx(ti))%results%e(2) - trslt(ti)%e(2))**2+ &
 	                  (particles(tindx(ti))%results%e(3) - trslt(ti)%e(3))**2 
+	    L2sum_local = L2sum_local + L2
+	    direct_L2(tindx(ti)) = L2
 	  end do
 	  	  
 	  call MPI_ALLREDUCE(tn, tn_global, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
@@ -269,6 +295,7 @@ module helper
 	  call vtk%write_data_array("pelabel", np, p(:)%label)
 	  call vtk%write_data_array("local index", np, [(i,i=1,np)])
 	  call vtk%write_data_array("processor", np, p(:)%pid)
+	  call vtk%write_data_array("L2 error", np, direct_L2(:))
 	  call vtk%finishpointdata()
       call vtk%dont_write_cells()
       call vtk%write_final()

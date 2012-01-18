@@ -13,3 +13,5 @@ SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 
 BACKENDTYPE = XYZQVM
+
+#WALK = smpss
