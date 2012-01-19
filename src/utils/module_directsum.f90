@@ -74,7 +74,6 @@ module module_directsum
           integer :: ierr, req, stat(MPI_STATUS_SIZE), i, j, currank, nextrank, prevrank
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real*8 :: delta(3)
-          logical :: may_interact
 
           real*8 :: t1
           integer :: omp_thread_num
@@ -123,7 +122,6 @@ module module_directsum
 
             t1 = MPI_WTIME()
 
-<<<<<<< .mine
             ! if we use our own particles, test for equality
             if (currank .eq.0) then
                 !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
@@ -146,25 +144,6 @@ module module_directsum
                 end do
                 !$OMP END PARALLEL DO
             end if
-=======
-            !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
-            do j=1,nreceived
-              ! loop over all local particles
-              do i=1,np_local
-
-                ! avoid interaction with the particle itself
-                may_interact = .true.
-
-                if (currank == 0) then ! do not merge thes two if-statements becaus optimization might change their order which might lead to access beyond limits of testidx
-                  if (testidx(j) == i) may_interact = .false.
-                endif
-
-                if (may_interact) then
-                  delta = received(j)%x - local_nodes(i)%coc
-                  call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), [0._8, 0._8, 0._8], .true.)
-                endif
-              end do
->>>>>>> .r3188
 
            call timer_add(t_direct_force,MPI_WTIME()-t1)
 
