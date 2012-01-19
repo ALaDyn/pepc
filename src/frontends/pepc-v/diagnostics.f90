@@ -235,5 +235,89 @@ subroutine divergence_diag(itime,trun)
 
 end subroutine divergence_diag
 
+subroutine verify_direct
+
+    use physvars
+    use module_interaction_specific_types, only: t_particle_results
+    use manipulate_particles
+    implicit none
+    include 'mpif.h'
+
+    integer :: i, ierr
+    type(t_particle_results) :: direct_results(1:np)
+    real*8 :: diff_u_mean_local, diff_u_mean, diff_af_mean_local, diff_af_mean, u_mean_local, af_mean_local, u_mean, af_mean, diff_u_mean_rel, diff_af_mean_rel, &
+              diff_u_max_local, diff_af_max_local, diff_u_max, diff_af_max, diff_u_max_rel, diff_af_max_rel, t1
+
+
+    if (my_rank == 0) write(*,*) 'Starting direct sum ...'
+    t1 = MPI_WTIME()
+    call direct_sum(np, vortex_particles, direct_results, my_rank, n_cpu)
+    if (my_rank == 0) write(*,*) '                    ... done in',MPI_WTIME()-t1,'sec.'
+
+    if (my_rank == 0) write(*,*) 'Starting post-processing ...'
+    t1 = MPI_WTIME()
+    do i=1,np
+        vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
+        vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
+        !vortex_particles(i)%results%div     = vortex_particles(i)%results%div * force_const
+        direct_results(i)%u( 1:3) = direct_results(i)%u( 1:3) * force_const
+        direct_results(i)%af(1:3) = direct_results(i)%af(1:3) * force_const
+        !direct_results(i)%div     = direct_results(i)%div * force_const
+    end do
+
+    diff_u_max_local = 0.
+    diff_u_mean_local = 0.
+    u_mean_local = 0.
+    diff_af_max_local = 0.
+    diff_af_mean_local = 0.
+    af_mean_local = 0.
+
+    do i = 1,np
+
+        diff_u_max_local = max( diff_u_max_local, sqrt( (direct_results(i)%u(1) - vortex_particles(i)%results%u(1))**2 + &
+                                                        (direct_results(i)%u(2) - vortex_particles(i)%results%u(2))**2 + &
+                                                        (direct_results(i)%u(3) - vortex_particles(i)%results%u(3))**2 ) )
+        diff_u_mean_local = diff_u_mean_local + (direct_results(i)%u(1) - vortex_particles(i)%results%u(1))**2 + &
+                                                (direct_results(i)%u(2) - vortex_particles(i)%results%u(2))**2 + &
+                                                (direct_results(i)%u(3) - vortex_particles(i)%results%u(3))**2
+        u_mean_local = u_mean_local + dot_product(direct_results(i)%u,direct_results(i)%u)
+
+        diff_af_max_local = max( diff_af_max_local, sqrt( (direct_results(i)%af(1) - vortex_particles(i)%results%af(1))**2 + &
+                                                          (direct_results(i)%af(2) - vortex_particles(i)%results%af(2))**2 + &
+                                                          (direct_results(i)%af(3) - vortex_particles(i)%results%af(3))**2 ) )
+        diff_af_mean_local = diff_af_mean_local + (direct_results(i)%af(1) - vortex_particles(i)%results%af(1))**2 + &
+                                                  (direct_results(i)%af(2) - vortex_particles(i)%results%af(2))**2 + &
+                                                  (direct_results(i)%af(3) - vortex_particles(i)%results%af(3))**2
+        af_mean_local = af_mean_local + dot_product(direct_results(i)%af,direct_results(i)%af)
+
+    end do
+
+    call MPI_ALLREDUCE(diff_u_max_local,diff_u_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(diff_af_max_local,diff_af_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
+
+    call MPI_ALLREDUCE(diff_u_mean_local,diff_u_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(diff_af_mean_local,diff_af_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+    call MPI_ALLREDUCE(u_mean_local,u_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(af_mean_local,af_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+    diff_u_mean = sqrt(diff_u_mean/n)
+    diff_af_mean = sqrt(diff_af_mean/n)
+
+    diff_u_mean_rel = diff_u_mean/sqrt(u_mean/n)
+    diff_af_mean_rel = diff_af_mean/sqrt(af_mean/n)
+
+    diff_u_max_rel = diff_u_max/sqrt(u_mean/n)
+    diff_af_max_rel = diff_af_max/sqrt(af_mean/n)
+
+    if (my_rank == 0) write(*,*) '                        ... done in',MPI_WTIME()-t1,'sec.'
+
+    if (my_rank == 0) then
+        write(*,*) 'Error in u (abs. mean / rel. mean / abs. max / rel. max)', diff_u_mean, diff_u_mean_rel, diff_u_max, diff_u_max_rel
+        write(*,*) 'Error in af (abs. mean / rel. mean / abs. max / rel. max)', diff_af_mean, diff_af_mean_rel, diff_af_max, diff_af_max_rel
+    end if
+
+end subroutine verify_direct
+
 
 end module diagnostics

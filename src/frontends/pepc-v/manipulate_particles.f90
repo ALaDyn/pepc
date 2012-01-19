@@ -444,10 +444,12 @@ contains
 
         use physvars
         use module_timings
+        use omp_lib
+        use module_walk, only: num_walk_threads
         implicit none
         include 'mpif.h'
 
-        integer :: mesh_supp, m_np, m_nppm, tmp, ierr, k, i, i1, i2, i3, xtn, ytn, ztn, m_n
+        integer :: mesh_supp, m_np, m_nppm, tmp, ierr, k, i, i1, i2, i3, xtn, ytn, ztn, m_n, omp_thread_num
         real*8 :: frac, xt, yt, zt, axt, ayt, azt, wt
         real*8, allocatable :: mesh_offset(:)
         real*8, dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_post
@@ -482,9 +484,18 @@ contains
             call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
         end if
 
-        !! Start required remeshing, i.e. project particles onto mesh
         call timer_start(t_remesh_interpol)
-        k=0
+
+        ! Set number of openmp threads to the same number as pthreads used in the walk
+        !$ call omp_set_num_threads(num_walk_threads)
+
+        ! Inform the user that openmp is used, and with how many threads
+        !$OMP PARALLEL PRIVATE(omp_thread_num)
+        !$ omp_thread_num = OMP_GET_THREAD_NUM()
+        !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
+        !$OMP END PARALLEL
+
+        !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(i,xt,yt,zt,xtn,ytn,ztn,axt,ayt,azt,wt,k,frac)
         do i=1,np
             xt  = vortex_particles(i)%x(1)
             yt  = vortex_particles(i)%x(2)
@@ -497,6 +508,7 @@ contains
             azt = vortex_particles(i)%data%alpha(3)
             wt  = vortex_particles(i)%work
             ! For each particle i define its neighbor mesh points and project onto them
+            k = (i-1)*mesh_supp**3
             do i1 = 1,mesh_supp
                 do i2 = 1,mesh_supp
                     do i3 = 1,mesh_supp
@@ -521,6 +533,11 @@ contains
                 end do
             end do
         end do
+        !$OMP END PARALLEL DO
+
+        ! Reset the number of openmp threads to 1.
+        !$ call omp_set_num_threads(1)
+
         call timer_stop(t_remesh_interpol)
 
         if (k .ne. m_np) then
@@ -690,7 +707,7 @@ contains
             local_keys(j) = iplace
             do i=0,nbits-1
                 local_keys(j) = local_keys(j) &
-                                 + 8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) )
+                + 8_8**i*(4_8*ibits( iz(j),i,1) + 2_8*ibits( iy(j),i,1 ) + 1_8*ibits( ix(j),i,1) )
             end do
         end do
 
@@ -735,7 +752,7 @@ contains
         m_np = npnew
         ship_parts(1:npold) = particles(indxl(1:npold))
         call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle, &
-                           get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_WORLD,ierr)
+        get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_WORLD,ierr)
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
         particles(1:m_np)%pid = my_rank
@@ -771,7 +788,7 @@ contains
         bound_parts_loc(1) = particles(1)
         bound_parts_loc(2) = particles(k)
         call MPI_ALLGATHER(bound_parts_loc, 2, MPI_TYPE_PARTICLE, &
-                           bound_parts, 2, MPI_TYPE_PARTICLE, MPI_COMM_WORLD, ierr)
+        bound_parts, 2, MPI_TYPE_PARTICLE, MPI_COMM_WORLD, ierr)
 
         ! Eliminate right boundary, if doublet with at least on neighbor
         if (bound_parts(2*my_rank+1)%key .eq. bound_parts(2*next)%key) then

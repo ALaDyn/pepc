@@ -60,6 +60,7 @@ program pepcv
 
         if (theta2 .gt. 0.0) then
             call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .true.)
+            call verify_direct
         else
             call direct_sum(np, vortex_particles, vortex_particles%results, my_rank, n_cpu)
          end if
