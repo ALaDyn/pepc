@@ -244,7 +244,7 @@ subroutine verify_direct
     include 'mpif.h'
 
     integer :: i, ierr
-    type(t_particle_results) :: direct_results(1:np)
+    type(t_particle_results) :: direct_results(1:np), pepc_results(1:np)
     real*8 :: diff_u_mean_local, diff_u_mean, diff_af_mean_local, diff_af_mean, u_mean_local, af_mean_local, u_mean, af_mean, diff_u_mean_rel, diff_af_mean_rel, &
               diff_u_max_local, diff_af_max_local, diff_u_max, diff_af_max, diff_u_max_rel, diff_af_max_rel, t1
 
@@ -256,10 +256,11 @@ subroutine verify_direct
 
     if (my_rank == 0) write(*,*) 'Starting post-processing ...'
     t1 = MPI_WTIME()
+
     do i=1,np
-        vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
-        vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
-        !vortex_particles(i)%results%div     = vortex_particles(i)%results%div * force_const
+        pepc_results(i)%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
+        pepc_results(i)%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
+        !pepc_results(i)%div     = vortex_particles(i)%results%div * force_const
         direct_results(i)%u( 1:3) = direct_results(i)%u( 1:3) * force_const
         direct_results(i)%af(1:3) = direct_results(i)%af(1:3) * force_const
         !direct_results(i)%div     = direct_results(i)%div * force_const
@@ -274,20 +275,20 @@ subroutine verify_direct
 
     do i = 1,np
 
-        diff_u_max_local = max( diff_u_max_local, sqrt( (direct_results(i)%u(1) - vortex_particles(i)%results%u(1))**2 + &
-                                                        (direct_results(i)%u(2) - vortex_particles(i)%results%u(2))**2 + &
-                                                        (direct_results(i)%u(3) - vortex_particles(i)%results%u(3))**2 ) )
-        diff_u_mean_local = diff_u_mean_local + (direct_results(i)%u(1) - vortex_particles(i)%results%u(1))**2 + &
-                                                (direct_results(i)%u(2) - vortex_particles(i)%results%u(2))**2 + &
-                                                (direct_results(i)%u(3) - vortex_particles(i)%results%u(3))**2
+        diff_u_max_local = max( diff_u_max_local, sqrt( (direct_results(i)%u(1) - pepc_results(i)%u(1))**2 + &
+                                                        (direct_results(i)%u(2) - pepc_results(i)%u(2))**2 + &
+                                                        (direct_results(i)%u(3) - pepc_results(i)%u(3))**2 ) )
+        diff_u_mean_local = diff_u_mean_local + (direct_results(i)%u(1) - pepc_results(i)%u(1))**2 + &
+                                                (direct_results(i)%u(2) - pepc_results(i)%u(2))**2 + &
+                                                (direct_results(i)%u(3) - pepc_results(i)%u(3))**2
         u_mean_local = u_mean_local + dot_product(direct_results(i)%u,direct_results(i)%u)
 
-        diff_af_max_local = max( diff_af_max_local, sqrt( (direct_results(i)%af(1) - vortex_particles(i)%results%af(1))**2 + &
-                                                          (direct_results(i)%af(2) - vortex_particles(i)%results%af(2))**2 + &
-                                                          (direct_results(i)%af(3) - vortex_particles(i)%results%af(3))**2 ) )
-        diff_af_mean_local = diff_af_mean_local + (direct_results(i)%af(1) - vortex_particles(i)%results%af(1))**2 + &
-                                                  (direct_results(i)%af(2) - vortex_particles(i)%results%af(2))**2 + &
-                                                  (direct_results(i)%af(3) - vortex_particles(i)%results%af(3))**2
+        diff_af_max_local = max( diff_af_max_local, sqrt( (direct_results(i)%af(1) - pepc_results(i)%af(1))**2 + &
+                                                          (direct_results(i)%af(2) - pepc_results(i)%af(2))**2 + &
+                                                          (direct_results(i)%af(3) - pepc_results(i)%af(3))**2 ) )
+        diff_af_mean_local = diff_af_mean_local + (direct_results(i)%af(1) - pepc_results(i)%af(1))**2 + &
+                                                  (direct_results(i)%af(2) - pepc_results(i)%af(2))**2 + &
+                                                  (direct_results(i)%af(3) - pepc_results(i)%af(3))**2
         af_mean_local = af_mean_local + dot_product(direct_results(i)%af,direct_results(i)%af)
 
     end do
