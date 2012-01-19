@@ -1,26 +1,26 @@
 &pepcmini
 
 ! total number of particles
-tnp = 45678
+tnp = 456789
 
 ! number of time steps
-nt = 50
+nt = 10
 
 ! time step
 dt = 2e-1
 
 ! turn data and domain output on/off
-particle_output = .true.
-domain_output = .true.
+particle_output = .false.
+domain_output = .false.
 
 ! turn particle filtering (leaving simulation box) on/off 
-particle_filter = .true.
+particle_filter = .false.
 
 ! turn field probing on/off
-particle_probe = .true.
+particle_probe = .false.
 
 ! turn direct summantion test on/off
-particle_test = .true.
+particle_test = .false.
 
 /
 
