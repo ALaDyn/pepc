@@ -9,11 +9,10 @@ module module_particle_setup
        particles, &
        n_cpu, &
        my_rank, &
-       ne, &
-       ni, &
        np_local, &
        npart_total, &
-       idim
+       idim, &
+       do_sph
 
 !  use module_files, only: &
 !       read_particles
@@ -55,8 +54,8 @@ contains
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine particle_setup(iconf)
 
-!    use module_files, only: &
-!         read_in_checkpoint
+    use files, only: &
+         read_particles
 
     implicit none
     include 'mpif.h'
@@ -71,9 +70,8 @@ contains
 
     select case (iconf)
     case (-1)
-!       if (my_rank == 0) write(*,*) "Using special start... case -1 (reading mpi-io checkpoint from timestep itime_in=", itime_in ,")"
-!       call read_in_checkpoint()
-       particles(:)%work = 1._8
+       if (my_rank == 0) write(*,*) "Using special start... case -1 (reading data file)"
+       call read_particles()
 
     case(1)
        if (my_rank == 0) write(*,*) "Using special start... case 1 (3D homogeneous distribution)"
@@ -152,6 +150,12 @@ contains
        call particle_setup_1d_shock_3(fences)
 
     case(16)
+       if (my_rank == 0) write(*,*) "Using special start... case 16 (3D sphere collapse (grav only) )"
+       call init_generic(fences)
+       call particle_setup_3d_sphere_grid(fences)
+       do_sph = .false.
+
+    case(17)
        if (my_rank == 0) write(*,*) "Using special start... case 16 (3D sphere collapse (grav + sph) )"
        call init_generic(fences)
        call particle_setup_3d_sphere_grid(fences)
@@ -208,7 +212,16 @@ contains
   subroutine particle_setup_sphere(fences)
 
     use physvars, only: &
-         initialized_v_minus_half
+         initialized_v_minus_half, &
+         thermal_constant, &
+         kappa, &
+         dt
+
+    use module_interaction_specific_types, only: &
+         num_neighbour_particles
+
+    use module_mirror_boxes, only: &
+         periodicity
 
     implicit none
     integer, intent(in) :: fences(-1:n_cpu-1)
@@ -231,7 +244,7 @@ contains
           if ( my_rank .eq. mpi_cnt .and. p .le. np_local ) then
              particles(p)%x = [ xt, yt, zt ]
              particles(p)%data%q = 1._8/real(npart_total, 8)
-             particles(p)%data%temperature = 1.
+             particles(p)%data%temperature = 100.
                       
              
           end if
@@ -239,6 +252,21 @@ contains
     end do
 
     initialized_v_minus_half = .true.
+
+    num_neighbour_particles = 40
+
+
+    ! set number of dimension. important for factor for sph kernel
+    idim = 3
+    
+    ! set periodicity
+    periodicity = [.false., .false., .false.]
+    
+    dt = 0.001
+
+    kappa = 1.66666666
+
+    thermal_constant = 1. /(kappa * 100.) ! soundspeed^2 /( kappa * temperature)
 
 
   end subroutine particle_setup_sphere
@@ -749,8 +777,6 @@ contains
        write(*,*) "Placing particles on a grid inside a sphere with given center (0,0,0) and radius (0.5 AU)."
     end if
 
-
-    
     ! for a 3D grid only 6, 14, 20, ?? neighbours are valid.
     ! but since h is determined as half of the distance to the furthest neighbour and so the density- and force-contribution of the furthest particle is 0,
     ! the number of neighbour has to be one more: 7, 15, 21, ??
@@ -1222,7 +1248,6 @@ contains
   !   real*8 :: delta(3)
   !   integer :: globalidx, myidx
 
-  !   n = NINT(ni**(1./3.))
   !   delta(1) = 1./real(n)
   !   delta(2) = 1./real(n)
   !   delta(3) = 1./real(n)

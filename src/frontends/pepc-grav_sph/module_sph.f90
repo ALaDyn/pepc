@@ -426,6 +426,7 @@ contains
     
     
     const = thermal_constant  ! m**2 s**-2 K
+    ! this is the specific gas constant R_s = k_B / m_M (with m_M the mass of a molecule)
 
     ! p = rho *const*T , quick n dirty
     

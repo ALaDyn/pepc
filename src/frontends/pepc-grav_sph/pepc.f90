@@ -82,7 +82,9 @@ program pepce
   use files, only: &
        openfiles, &
        closefiles, &
-       write_particles
+       write_particles, &
+       process_commandline_arguments, &
+       run_type
 
   use particle_pusher, only: &
        velocities, &
@@ -92,14 +94,24 @@ program pepce
        particle_setup
 
   implicit none
+  include 'mpif.h'
 
   integer :: omp_thread_num
   integer :: ierr, ifile, i
 
+  logical            :: param_file_avail
+  character(len=255) :: param_file_name
+  logical            :: data_file_avail
+  character(len=255) :: data_file_name
+
+
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-sph", my_rank, n_cpu, .true.)
-  call pepc_read_parameters_from_first_argument()
+
+
+  call process_commandline_arguments()
+
 
   ! Set up O/P files
   call openfiles
@@ -109,8 +121,8 @@ program pepce
   if (my_rank==0) call stamp(15,1)
 
   ! Each CPU gets copy of initial data
+  ! Read in parameter file and allocate particles array
   call pepc_setup()
-
 
   ! Set the number of openmp threads.
   ! Set this only, when compiling with openmp (with !$)
@@ -123,6 +135,7 @@ program pepce
   !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
   !$OMP END PARALLEL
 
+  if( (run_type .eq. 3) .or. (run_type .eq. 2) ) ispecial = -1
   ! Set up particles
   call particle_setup(ispecial)
 
@@ -134,7 +147,12 @@ program pepce
 
   particles(:)%work = 1._8
 
-  call write_particles(itime-1, -0.1)
+  if(run_type .eq. 3) then ! convert
+     call write_particles(itime, 0.)
+  else
+     call write_particles(itime-1, -0.1)
+  end if
+
 
 
   call pepc_prepare(idim)
@@ -146,61 +164,90 @@ program pepce
      call sph_kernel_tests(idim)
   end if
 
+  write(*,*) "pepc run_type:", run_type
+  call flush()
 
+  if( run_type .eq. 1) then ! normal simulation from default or with initial particle distribution
+     write(*,*) "run_type = 1"
 
+     ! 
+     if( .not. initialized_v_minus_half ) then
+        
+        call pepc_grow_tree(np_local, npart_total, particles)
+        
+        call pepc_particleresults_clear(particles, np_local)
 
-
-
-
-
-
-
-
-
-  ! 
-  if( .not. initialized_v_minus_half ) then
-
-     call pepc_grow_tree(np_local, npart_total, particles)
-
-     call pepc_particleresults_clear(particles, np_local)
-     
-     mac_select = 3 ! nn-mac
-     force_law = 5  ! neighbour list force law
-     
-     call pepc_traverse_tree(np_local, particles)
-
-     call sph(np_local, particles, -1, num_neighbour_boxes, neighbour_boxes, idim)
-
-     ! Integrate velocity for t-dt/2
-     do i = 1, np_local
-        if( btest(particles(i)%data%type, PARTICLE_TYPE_FIXED) ) then
-           ! don't move this particle
-        else
-           particles(i)%data%v_minus_half = particles(i)%data%v - particles(i)%results%sph_force * dt/2.
-           ! this is not perfect, but better than nothing
+        if (do_gravity) then
+           ! summing gravitational forces
+           mac_select = 1 ! nn-mac
+           force_law = 3  ! neighbour list force law
+           call pepc_traverse_tree(np_local, particles)
         end if
-     end do
+        
+        if (do_sph) then
+           ! search neighbours for sph
+           mac_select = 3 ! nn-mac
+           force_law = 5  ! neighbour list force law
+           
+           call pepc_traverse_tree(np_local, particles)
+           
+           !     call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+           
+           ! call draw_neighbours(np_local, particles, itime)
+           
+           call sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes, idim)
+           
+        end if
+
+        ! quick n dirty
+        do i = 1, np_local
+           particles(i)%results%sph_force = particles(i)%results%sph_force - 39.4784176 *  particles(i)%results%e
+        end do
+        
+        
+        ! Integrate velocity for t-dt/2
+        do i = 1, np_local
+           if( btest(particles(i)%data%type, PARTICLE_TYPE_FIXED) ) then
+              ! don't move this particle
+           else
+              particles(i)%data%v_minus_half = particles(i)%data%v - particles(i)%results%sph_force * dt/2.
+              ! this is not perfect, but better than nothing
+           end if
+        end do
 
 
-     ! the temperature is currently not integrated here, knowing that that produces an energy error
-     ! do i = 1, np_local
-     !    particles(i)%data%temperature = particles(i)%data%temperature + particles(i)%results%temperature_change * dt
-     !    if(particles(i)%data%temperature < 0.000000001 ) then
-     !       particles(i)%data%temperature = 0.000000001
-     !    end if
-     ! end do
+        ! the temperature is currently not integrated here, knowing that that produces an energy error
+        ! do i = 1, np_local
+        !    particles(i)%data%temperature = particles(i)%data%temperature + particles(i)%results%temperature_change * dt
+        !    if(particles(i)%data%temperature < 0.000000001 ) then
+        !       particles(i)%data%temperature = 0.000000001
+        !    end if
+        ! end do
 
-     ! TODO: calculate work for sph
-     particles(:)%work = 1._8
+        ! TODO: calculate work for sph
+        particles(:)%work = 1._8
 
+
+     end if
+     
+  else if( run_type .eq. 2) then 
+     write(*,*) "run_type = 2"
+     
+  else if( run_type .eq. 3) then
+     write(*,*) "run_type = 3"
+     itime = nt +1
+     
+  else
+     write(*,*) "Error: unknown run_type in pepc.f90."
+     call MPI_ABORT( MPI_COMM_WORLD, ierr )
      
   end if
-
-
-
+  
+  
+  
   ! Loop over all timesteps. <= nt to write out the last timestep
   do while (itime <= nt)
-
+     
      if (my_rank==0 ) then
         ifile=6
            write(ifile,'(//a,i8,(3x,a,f12.3))') &
@@ -218,17 +265,34 @@ program pepce
 
      call pepc_particleresults_clear(particles, np_local)
 
-     mac_select = 3 ! nn-mac
-     force_law = 5  ! neighbour list force law
+     if (do_gravity) then
+        ! summing gravitational forces
+        mac_select = 1 ! nn-mac
+        force_law = 3  ! neighbour list force law
+        call pepc_traverse_tree(np_local, particles)
+     end if
 
-     call pepc_traverse_tree(np_local, particles)
+     if (do_sph) then
+        ! search neighbours for sph
+        mac_select = 3 ! nn-mac
+        force_law = 5  ! neighbour list force law
+        
+        call pepc_traverse_tree(np_local, particles)
+        
+        !     call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+        
+        ! call draw_neighbours(np_local, particles, itime)
+        
+        call sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes, idim)
+        
+     end if
 
-     call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
-
-     ! call draw_neighbours(np_local, particles, itime)
-
-     call sph(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes, idim)
-
+     
+     ! quick n dirty
+     do i = 1, np_local
+        particles(i)%results%sph_force = particles(i)%results%sph_force - 39.4784176 *  particles(i)%results%e
+     end do
+        
 
 
      ! Because the density and force is computed according to the current particle positions and velocities, everything is written out here.

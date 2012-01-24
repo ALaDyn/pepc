@@ -7,19 +7,14 @@ module physvars
   type(t_particle), allocatable :: particles(:)
 
   !  physics data
-  integer :: ni, ne       !  # ions, electrons
-  integer :: nep, nip     ! # particles/electrons/ions per PE
-  real :: qe = -1.0
-  real :: qi = 1.0         ! electron, ion charge
-  real :: mass_e = 1.0, mass_i = 1856.0   ! electron, ion mass
-  real :: r_sphere       ! initial radius of plasma sphere
   real :: eps            ! potential/force law cutoff
-  real :: q_factor = 1.0       ! Charge factor
 
-  real*8 :: thermal_constant = 1.           !< TODO: is this the boltzmann constant?
-  real*8 :: kappa            = 1.4          !< kappa = gamma: Heat capacity ratio for gas
-  real*8 :: art_vis_alpha    = 1.           !< artificial viscosity parameter
-  real*8 :: art_vis_beta     = 2.           !< artificial viscosity parameter
+
+  real*8 :: boltzmann_constant = 1.
+  real*8 :: thermal_constant   = 1.           !< this is R_s, the specific gas constant (k_B / (mass of one molecule) ).
+  real*8 :: kappa              = 1.6666666666 !< kappa = gamma: Heat capacity ratio for gas
+  real*8 :: art_vis_alpha      = 1.           !< artificial viscosity parameter
+  real*8 :: art_vis_beta       = 2.           !< artificial viscosity parameter
 
 
  ! tree stuff
@@ -52,6 +47,9 @@ module physvars
    integer :: ifile_cpu    ! O/P stream
 
    logical :: initialized_v_minus_half = .false.  ! set this to .true. then v_minus_half is initialized in particle_setup or when data are read. otherwhise v_minus_half is computed from v befor entering the loop over timesteps
+
+   logical :: do_gravity = .true.
+   logical :: do_sph     = .true.
 
    ! I/O stuff
    integer :: dump_time, cp_time   ! When to dump, when to do a checkpoint (read-in)
