@@ -42,8 +42,6 @@ module physvars
   integer :: input_itime          ! Which step shpuld we read in?
   character(50) :: mpifile        ! MPI-IO-file
 
-
-
 contains
 
 
@@ -130,7 +128,15 @@ contains
                 n = n_in
                 np = ceiling(1.0*n/n_cpu)
                 h = sqrt(4.0*pi/n)
+                !force_const = force_const*h**3
                 !eps = g*h
+                kernel_c = sqrt(nu*rem_freq*dt)/m_h
+
+            case(4)
+
+                n = n_in
+                np = ceiling(1.0*n/n_cpu)
+                h = 1.0/n
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(99)                          ! Setup MPI checkpoint readin

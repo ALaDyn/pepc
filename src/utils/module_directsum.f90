@@ -78,6 +78,7 @@ module module_directsum
           real*8 :: t1
           integer :: omp_thread_num
 
+
           call MPI_ALLREDUCE(ntest, maxtest, 1, MPI_INTEGER, MPI_MAX, comm, ierr)
           allocate(received(1:maxtest), sending(1:maxtest))
 
@@ -113,8 +114,6 @@ module module_directsum
 
 ! TODO: loop over vbox-vectors
           ! we will send our data packet to every other mpi rank
-
-
           do currank=0,n_cpu-1
 
             ! calculate force from local particles i onto particles j in received-buffer
@@ -123,7 +122,7 @@ module module_directsum
             t1 = MPI_WTIME()
 
             ! if we use our own particles, test for equality
-            if (currank .eq.0) then
+            if (currank .eq. 0) then
                 !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
                 do j=1,nreceived
                     do i=1,np_local
@@ -145,7 +144,7 @@ module module_directsum
                 !$OMP END PARALLEL DO
             end if
 
-           call timer_add(t_direct_force,MPI_WTIME()-t1)
+            call timer_add(t_direct_force,MPI_WTIME()-t1)
 
             t1 = MPI_WTIME()
 

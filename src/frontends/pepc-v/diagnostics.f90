@@ -235,7 +235,7 @@ subroutine divergence_diag(itime,trun)
 
 end subroutine divergence_diag
 
-subroutine verify_direct
+subroutine verify_direct()
 
     use physvars
     use module_interaction_specific_types, only: t_particle_results
@@ -243,11 +243,16 @@ subroutine verify_direct
     implicit none
     include 'mpif.h'
 
+    real*8, dimension(np) :: rel_error_u, rel_error_af
+
     integer :: i, ierr
     type(t_particle_results) :: direct_results(1:np), pepc_results(1:np)
-    real*8 :: diff_u_mean_local, diff_u_mean, diff_af_mean_local, diff_af_mean, u_mean_local, af_mean_local, u_mean, af_mean, diff_u_mean_rel, diff_af_mean_rel, &
-              diff_u_max_local, diff_af_max_local, diff_u_max, diff_af_max, diff_u_max_rel, diff_af_max_rel, t1
+    real*8 :: diff_u_mean_local, diff_u_mean, diff_af_mean_local, diff_af_mean,  &
+              diff_u_max_local, diff_af_max_local, diff_u_max, diff_af_max, t1, &
+              L2_u_mean_local, L2_u_mean, L2_af_mean_local, L2_af_mean
 
+    rel_error_u = 0.
+    rel_error_af = 0.
 
     if (my_rank == 0) write(*,*) 'Starting direct sum ...'
     t1 = MPI_WTIME()
@@ -258,38 +263,39 @@ subroutine verify_direct
     t1 = MPI_WTIME()
 
     do i=1,np
-        pepc_results(i)%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
-        pepc_results(i)%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
-        !pepc_results(i)%div     = vortex_particles(i)%results%div * force_const
-        direct_results(i)%u( 1:3) = direct_results(i)%u( 1:3) * force_const
+        pepc_results(i)%u(1:3) = vortex_particles(i)%results%u(1:3)
+        pepc_results(i)%af(1:3) = vortex_particles(i)%results%af(1:3)
+        direct_results(i)%u(1:3) = direct_results(i)%u(1:3) * force_const
         direct_results(i)%af(1:3) = direct_results(i)%af(1:3) * force_const
-        !direct_results(i)%div     = direct_results(i)%div * force_const
     end do
 
     diff_u_max_local = 0.
     diff_u_mean_local = 0.
-    u_mean_local = 0.
     diff_af_max_local = 0.
     diff_af_mean_local = 0.
-    af_mean_local = 0.
+    L2_u_mean_local = 0.
+    L2_af_mean_local = 0.
 
     do i = 1,np
 
-        diff_u_max_local = max( diff_u_max_local, sqrt( (direct_results(i)%u(1) - pepc_results(i)%u(1))**2 + &
-                                                        (direct_results(i)%u(2) - pepc_results(i)%u(2))**2 + &
-                                                        (direct_results(i)%u(3) - pepc_results(i)%u(3))**2 ) )
-        diff_u_mean_local = diff_u_mean_local + (direct_results(i)%u(1) - pepc_results(i)%u(1))**2 + &
-                                                (direct_results(i)%u(2) - pepc_results(i)%u(2))**2 + &
-                                                (direct_results(i)%u(3) - pepc_results(i)%u(3))**2
-        u_mean_local = u_mean_local + dot_product(direct_results(i)%u,direct_results(i)%u)
+        rel_error_u(i) = sqrt( (direct_results(i)%u(1) - pepc_results(i)%u(1))**2 + &
+                               (direct_results(i)%u(2) - pepc_results(i)%u(2))**2 + &
+                               (direct_results(i)%u(3) - pepc_results(i)%u(3))**2    ) / sqrt(dot_product(direct_results(i)%u,direct_results(i)%u))
+        rel_error_af(i) = sqrt( (direct_results(i)%af(1) - pepc_results(i)%af(1))**2 + &
+                                (direct_results(i)%af(2) - pepc_results(i)%af(2))**2 + &
+                                (direct_results(i)%af(3) - pepc_results(i)%af(3))**2 ) / sqrt(dot_product(direct_results(i)%af,direct_results(i)%af))
 
-        diff_af_max_local = max( diff_af_max_local, sqrt( (direct_results(i)%af(1) - pepc_results(i)%af(1))**2 + &
-                                                          (direct_results(i)%af(2) - pepc_results(i)%af(2))**2 + &
-                                                          (direct_results(i)%af(3) - pepc_results(i)%af(3))**2 ) )
-        diff_af_mean_local = diff_af_mean_local + (direct_results(i)%af(1) - pepc_results(i)%af(1))**2 + &
-                                                  (direct_results(i)%af(2) - pepc_results(i)%af(2))**2 + &
-                                                  (direct_results(i)%af(3) - pepc_results(i)%af(3))**2
-        af_mean_local = af_mean_local + dot_product(direct_results(i)%af,direct_results(i)%af)
+        diff_u_max_local = max( diff_u_max_local, rel_error_u(i) )
+        diff_u_mean_local = diff_u_mean_local + rel_error_u(i)
+        L2_u_mean_local = L2_u_mean_local + ( (direct_results(i)%u(1) - pepc_results(i)%u(1))**2 + &
+                                              (direct_results(i)%u(2) - pepc_results(i)%u(2))**2 + &
+                                              (direct_results(i)%u(3) - pepc_results(i)%u(3))**2     ) / dot_product(direct_results(i)%u,direct_results(i)%u)
+
+        diff_af_max_local = max( diff_af_max_local, rel_error_af(i) )
+        diff_af_mean_local = diff_af_mean_local + rel_error_af(i)
+        L2_af_mean_local = L2_af_mean_local + ( (direct_results(i)%af(1) - pepc_results(i)%af(1))**2 + &
+                                                (direct_results(i)%af(2) - pepc_results(i)%af(2))**2 + &
+                                                (direct_results(i)%af(3) - pepc_results(i)%af(3))**2    ) / dot_product(direct_results(i)%af,direct_results(i)%af)
 
     end do
 
@@ -298,25 +304,22 @@ subroutine verify_direct
 
     call MPI_ALLREDUCE(diff_u_mean_local,diff_u_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
     call MPI_ALLREDUCE(diff_af_mean_local,diff_af_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(L2_u_mean_local,L2_u_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(L2_af_mean_local,L2_af_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-    call MPI_ALLREDUCE(u_mean_local,u_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-    call MPI_ALLREDUCE(af_mean_local,af_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-
-    diff_u_mean = sqrt(diff_u_mean/n)
-    diff_af_mean = sqrt(diff_af_mean/n)
-
-    diff_u_mean_rel = diff_u_mean/sqrt(u_mean/n)
-    diff_af_mean_rel = diff_af_mean/sqrt(af_mean/n)
-
-    diff_u_max_rel = diff_u_max/sqrt(u_mean/n)
-    diff_af_max_rel = diff_af_max/sqrt(af_mean/n)
+    diff_u_mean = diff_u_mean/n
+    diff_af_mean = diff_af_mean/n
+    L2_u_mean = sqrt(L2_u_mean)/n
+    L2_af_mean = sqrt(L2_af_mean)/n
 
     if (my_rank == 0) write(*,*) '                        ... done in',MPI_WTIME()-t1,'sec.'
 
     if (my_rank == 0) then
-        write(*,*) 'Error in u (abs. mean / rel. mean / abs. max / rel. max)', diff_u_mean, diff_u_mean_rel, diff_u_max, diff_u_max_rel
-        write(*,*) 'Error in af (abs. mean / rel. mean / abs. max / rel. max)', diff_af_mean, diff_af_mean_rel, diff_af_max, diff_af_max_rel
+        write(*,*) 'Error in u (rel. L2 mean / rel. mean / rel. max) ', L2_u_mean, diff_u_mean, diff_u_max
+        write(*,*) 'Error in af (rel. L2 mean / rel. mean / rel. max)', L2_af_mean, diff_af_mean, diff_af_max
     end if
+
+    !call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
 
 end subroutine verify_direct
 

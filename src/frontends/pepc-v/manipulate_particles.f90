@@ -18,7 +18,8 @@ contains
         include 'mpif.h'
 
         integer :: j, k, ind, ind0, i, m, ierr, l
-        real*8 :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3)
+        real :: par_rand_res
+        real*8 :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3), xt, yt, zt
         real*8, dimension(3,3) :: D1, D2, D3, D4   !< rotation matrices for ring setup
         real*8, allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
 
@@ -382,6 +383,42 @@ contains
                     vortex_particles(j)%data%alpha(1) = 0.3D01/(0.8D01*pi)*sth*sphi*h**2
                     vortex_particles(j)%data%alpha(2) = 0.3D01/(0.8D01*pi)*sth*(-cphi)*h**2
                     vortex_particles(j)%data%alpha(3) = 0.
+                end if
+            end do
+            np = j
+
+        case(4)
+
+            j = 0
+
+            do i = 1, n
+
+                xt = 0.
+                yt = 0.
+                zt = 0.
+
+                call par_rand(par_rand_res)
+                xt = par_rand_res
+                call par_rand(par_rand_res)
+                yt = par_rand_res
+                call par_rand(par_rand_res)
+                zt = par_rand_res
+
+                if (mod(i+my_rank,n_cpu) == 0) then
+                    j = j+1
+                    if (j .gt. np) then
+                        write(*,*) 'something is wrong here: to many particles in init',my_rank,j,n
+                        call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+                    end if
+                    vortex_particles(j)%x(1) = xt
+                    vortex_particles(j)%x(2) = yt
+                    vortex_particles(j)%x(3) = zt
+                    call par_rand(par_rand_res)
+                    vortex_particles(j)%data%alpha(1) = par_rand_res*h**3
+                    call par_rand(par_rand_res)
+                    vortex_particles(j)%data%alpha(2) = -par_rand_res*h**3
+                    call par_rand(par_rand_res)
+                    vortex_particles(j)%data%alpha(3) = par_rand_res*h**3
                 end if
             end do
             np = j
@@ -894,9 +931,86 @@ contains
         call directforce(particles, np_local, indices, np_local, directresults, my_rank, n_cpu, MPI_COMM_WORLD)
         results(1:np_local) = directresults(1:np_local)
 
+        deallocate(directresults)
+
         if (my_rank==0) write(*,'("PEPC-V | ", a)') '                          ... done!'
 
     end subroutine direct_sum
+
+    ! portable random number generator, see numerical recipes
+    ! check for the random numbers:
+    ! the first numbers should be 0.2853809, 0.2533582 and 0.2533582
+    subroutine par_rand(res, iseed)
+
+        !use physvars
+        implicit none
+
+        integer :: idum, idum2, iy, j, k
+        integer :: iv(32)
+
+        real, intent(inout) :: res
+        integer, intent(in), optional :: iseed
+
+        integer :: IM1, IM2, IMM1, IA1, IA2, IQ1, IQ2, IR1, IR2, NTAB, NDIV
+        real    :: AM, RNMX
+
+        save
+
+        data idum, idum2 /-1, 123456789/
+
+        IM1 = 2147483563
+        IM2 = 2147483399
+        AM  = 1.0/IM1
+        IMM1 = IM1-1
+        IA1 = 40014
+        IA2 = 40692
+        IQ1 = 53668
+        IQ2 = 52774
+        IR1 = 12211
+        IR2 = 3791
+        NTAB = 32
+        NDIV = 1+IMM1/NTAB
+        RNMX = 1.0 - 1.2e-7
+
+        if (idum < 0) then
+
+            if (present(iseed)) then
+                idum = iseed
+            else
+                idum = 1
+            endif
+
+            idum2 = idum
+
+            do j = NTAB+7,0,-1
+                k = idum/IQ1
+                idum = IA1 * (idum-k*IQ1) - k*IR1
+                if (idum < 0 ) idum = idum + IM1
+
+                if (j<NTAB) iv(j+1) = idum
+
+            end do
+            iy = iv(1)
+
+        end if
+
+        k = idum/IQ1
+        idum = IA1 * (idum-k*IQ1) - k*IR1
+        if (idum < 0) idum = idum + IM1
+
+        k = idum2/IQ2
+        idum2 = IA2 * (idum2-k*IQ2) - k*IR2
+        if (idum2 < 0) idum2 = idum2 + IM2
+
+        j = iy/NDIV + 1
+        iy = iv(j)-idum2
+        iv(j) = idum
+
+        if (iy < 1) iy = iy + IMM1
+        res = AM*iy
+        if (res > RNMX) res = RNMX
+
+    end subroutine par_rand
 
 
 end module manipulate_particles
