@@ -234,7 +234,7 @@ module module_htable
             search_child_idx  = int(ibits( search_key, 0, 3), kind(search_child_idx) ) ! lower three bits of key
 
             do ! loop over all siblings
-                search_child_idx   = modulo(search_child_idx + 1, 8) ! get next sibling, possibly starting again from first one
+                search_child_idx   = modulo(search_child_idx + 1_8, 8_8) ! get next sibling, possibly starting again from first one
 
                 ! if sibling-loop wrapped and reached starting point again --> go up one level
                 if ( search_child_idx == start_child_idx ) then
