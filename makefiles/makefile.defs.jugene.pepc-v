@@ -1,0 +1,77 @@
+HELP = "\
+\# Makefile for JuGene\n\
+\# \n\
+\# for sionlib support in pepcb, call\n\nmodule load sionlib\n\n\# before compiling and running\
+"
+
+MACH     = IBM-BGP-jugene
+
+DEBUG    = 0
+INLINE   = 1
+VAMPIR   = 0
+SION     = 0
+RANLIB   = ranlib
+
+MAKE     = gmake
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C -DLITTLEENDIAN -DSVNREVISION="\"$(SVNREVISION)\""
+
+OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck -qkeepparm -qflttrap -qnosmp -qxflag=dvz -Q! -qnounwind -qnounroll
+OPTIMIZATIONFLAGS       = -O3 -qhot -qipa -qipa=list=long:threads=auto 
+INLINING                = -qipa=inline=limit=50000:inline=threshold=50000:level=0 \
+                          -Q+__module_walk_communicator_NMOD_run_communication_loop_inner:__module_walk_NMOD_walk_single_particle:__module_htable_NMOD_get_next_node_key:__module_htable_NMOD_key2addr:__module_htable_NMOD_make_hashentry:rwlocks_unlock:rwlocks_wrlock:rwlocks_rdlock:__module_interaction_specific_NMOD_calc_force_per_particle:__module_interaction_specific_NMOD_calc_force_per_interaction:__module_math_tools_NMOD_div_by_fac:__module_walk_communicator_NMOD_unpack_data:__module_walk_NMOD_get_first_unassigned_particle:__module_walk_pthreads_commutils_NMOD_send_requests:__module_walk_communicator_NMOD_send_data:__module_htable_NMOD_testaddr:__module_htable_NMOD_htable_entry_is_valid:__module_htable_NMOD_htable_entry_is_leaf:__module_htable_NMOD_children_available:__module_htable_NMOD_get_childkeys:__module_interaction_specific_NMOD_mac:__module_spacefilling_NMOD_level_from_key:__module_spacefilling_NMOD_is_ancestor_of_particle:__module_interaction_specific_NMOD_multipole_from_particle:__module_interaction_specific_NMOD_shift_multipoles_up:__module_interaction_specific_NMOD_calc_2nd_algebraic_transposed:__module_interaction_specific_NMOD_calc_6th_algebraic_transposed:__module_interaction_specific_NMOD_calc_2nd_algebraic_transposed_direct:__module_interaction_specific_NMOD_calc_6th_algebraic_transposed_direct:__module_interaction_specific_NMOD_calc_2nd_gaussian_transposed_direct:__module_interaction_specific_NMOD_calc_6th_gaussian_transposed_direct:__module_interaction_specific_NMOD_g_core:__module_interaction_specific_NMOD_g_decomp:__module_interaction_specific_NMOD_cross_prod:__manipulate_particles_NMOD_ip_kernel
+
+STANDARDFLAGS           = -qtune=450 -qarch=450 -qthreaded -qsmp=noauto -qsmp=omp
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = $(STANDARDFLAGS) -qxlf2003=polymorphic -qddim $(OPTIMIZATIONFLAGS_DEBUG) 
+  CFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
+  LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG)
+else
+  FFLAGS   = $(STANDARDFLAGS) -qxlf2003=polymorphic $(OPTIMIZATIONFLAGS)
+  CFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
+  LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS) 
+endif
+
+ifeq ($(INLINE), 1)
+  FFLAGS  += $(INLINING)
+  LDFLAGS += $(INLINING)
+endif
+
+ifeq ($(VAMPIR), 1)
+  FCPRE    = bgvtf90 -vt:f90
+  CCPRE    = bgvtcc  -vt:cc
+  LDPRE    = bgvtf90 -vt:f90
+else
+  FCPRE    = 
+  CCPRE    =
+  LDPRE    =
+endif
+
+
+FC       = mpixlf90_r
+CC       = mpixlc_r
+LD       = mpixlf90_r
+
+#TOTALVIEW_LIB = -L/bgsys/local/totalview/toolworks/totalview.8.8.0-1/linux-power/lib/ -ltvheap_bluegene
+
+#IHPCT_BASE=/bgsys/local/ihpct
+#HPCCOUNT_LIB = -L../hpccount/lib -lhpccnt -L$(IHPCT_BASE)/lib -lhpc -llicense $(IHPCT_BASE)/lib/fake_dlfcn.o $(IHPCT_BASE)/lib/average.o
+
+LDLIBS   = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc $(TOTOALVIEW_LIB) $(HPCCOUNT_LIB)
+
+#  Flags for sionlib I/O option
+ifeq ($(SION),1)
+  CPPFLAGS += -DSION  # Preprocessor
+  LDLIBS += `sionconfig --libs --mpi -be`
+  CFLAGS += `sionconfig --cflags --for --mpi -be`
+endif
+
+RM       = rm -rf
+
+
+
