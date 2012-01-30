@@ -1,23 +1,29 @@
 &pepcv
 
- ispecial = 3
+ ispecial = 2
 
- g = 4.
- nu = 0.
+ g = 23.8
+ rmax = 0.4
+ r_torus = 1.
+ nc = 15
+ nphi = 244
+ torus_offset = 2.8 0. 1.
 
- rem_freq = 0
- eps = 0.1
- thresh = 0.0D-04
- m_h = 0.1
+ nu = 0.00555
+
+ rem_freq = 2
+ eps = 0.2
+ thresh = 0.5D-06
+ m_h = 0.02581
 
  n_in = 1000000
 
- dt = 0.5
+ dt = 0.02
  ts = 0.
  te = 30.
 
- dump_time = 1
- cp_time = 0
+ dump_time = 5
+ cp_time = 10
 /
 
 &calc_force_vortex

@@ -70,7 +70,7 @@ program pepcv
           vortex_particles(i)%results%div     = vortex_particles(i)%results%div * force_const
         end do
 
-        call verify_direct()
+        !call verify_direct()
 
         !if (stage == rk_stages)  call dump(itime, trun)
 
