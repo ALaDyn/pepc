@@ -131,7 +131,7 @@ contains
                     ind0 = ind0 + 1
                     if (mod(ind0-1,n_cpu) == my_rank) then
                         ind = ind + 1
-                        if (ind .gt.np-1) then
+                        if (ind .gt.np) then
                             write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n
                             call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
@@ -327,7 +327,7 @@ contains
                     ind0 = ind0 + 1
                     if (mod(ind0-1,n_cpu) == my_rank) then
                         ind = ind + 1
-                        if (ind .gt. np-1) then
+                        if (ind .gt. np) then
                             write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n
                             call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
