@@ -22,7 +22,7 @@
  ts = 0.
  te = 30.
 
- dump_time = 5
+ dump_time = 1
  cp_time = 10
 /
 
@@ -34,12 +34,13 @@
 
 &libpepc
  debug_level = 0
+ weighted = 0
 /
 
 &walk_para_pthreads
  num_walk_threads         = 4
  max_particles_per_thread = 2000
- defer_list_length_factor = 1
+ defer_list_length_factor = 4
 /
 
 &calc_force_vortex

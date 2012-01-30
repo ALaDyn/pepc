@@ -119,8 +119,8 @@ contains
 
                 rl = rmax/(2*nc+1)
                 ns = 1+4*nc*(nc+1)
-                np = int(2.0*Ns*Nphi/n_cpu)
-                n  = 2*Ns*Nphi
+                n = 2*ns*nphi
+                np = ceiling(1.0*n/n_cpu)
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(3)                           ! Sphere

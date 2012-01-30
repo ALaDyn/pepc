@@ -255,7 +255,7 @@ module module_interaction_specific
         ! Estimate of interaction list length - Hernquist expression
         ! applies for BH-MAC
         invnintmax = max(theta2 / (35.*log(1.*npart_total)) , 1._8/npart_total)
-        nintmax    = int(1._8/invnintmax)
+        nintmax    = 4*int(1._8/invnintmax)
 
       end subroutine
 

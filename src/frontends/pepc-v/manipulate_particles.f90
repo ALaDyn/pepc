@@ -236,8 +236,8 @@ contains
                     ind0 = ind0 + 1
                     if (mod(ind0-1,n_cpu) == my_rank) then
                         ind = ind + 1
-                        if (ind .gt. np-1) then
-                            write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n
+                        if (ind .gt. np) then
+                            write(*,*) 'something is wrong here: to many particles in init of first ring',my_rank,ind,np,n
                             call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
                         vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
@@ -328,7 +328,7 @@ contains
                     if (mod(ind0-1,n_cpu) == my_rank) then
                         ind = ind + 1
                         if (ind .gt. np) then
-                            write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n
+                            write(*,*) 'something is wrong here: to many particles in init of second ring',my_rank,ind,np,n
                             call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
                         vortex_particles(ind)%x(1) = xp(i) + (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
@@ -600,7 +600,13 @@ contains
         end do
         call MPI_ALLREDUCE(total_vort,total_vort_full_mid,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-        call kick_out_particles()
+        !call kick_out_particles()
+        call MPI_ALLREDUCE(np,n,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+        if (1.25*n/n_cpu .lt. np) then
+            write(*,*) 'warning, rank',my_rank,' appears to be heavily imbalanced:',1.0*np/(1.0*n/n_cpu)
+        end if
+        
         call reset_labels()
 
         total_vort = 0.
@@ -664,7 +670,7 @@ contains
         integer :: prev, next, nbits
         integer :: irnkl2(m_nppm), indxl(m_np), irnkl(m_nppm)
         real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local, s, local_work(m_nppm)
-        real*8 :: xboxsize, yboxsize, zboxsize, boxsize, xmax, xmin, ymax, ymin, zmax, zmin
+        real*8 :: xboxsize, yboxsize, zboxsize, boxsize, xmax, xmin, ymax, ymin, zmax, zmin, thresh2
         integer*8 :: ix(m_np), iy(m_np), iz(m_np), sorted_keys(m_nppm), local_keys(m_nppm)
         integer :: fposts(n_cpu+1),gposts(n_cpu+1),islen(n_cpu),irlen(n_cpu)
         integer :: npnew, npold
@@ -783,7 +789,7 @@ contains
         local_keys(1:npold) = particles(1:npold)%key
         local_work(1:npold) = particles(1:npold)%work
 
-        call slsort_keys(npold, m_nppm, local_keys, local_work, 1, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu, my_rank)
+        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu, my_rank)
 
         ! Permute particles according to arrays from slsort
         m_np = npnew
@@ -847,6 +853,35 @@ contains
 
         m_np = k
 
+        ! Kick out particles (cannot use subroutinee here, since we work on a temp-array) 
+        thresh2 = thresh**2
+        k = 0
+        do i = 1,m_np
+            if (dot_product(particles(i)%data%alpha,particles(i)%data%alpha) .gt. thresh2) then
+                k = k+1
+                particles(k) = particles(i)
+            end if
+        end do
+        m_np = k
+        
+        ! Rebalance: Use Parallel Sort by Parallel Search (SLSORT by M. Hofmann, Chemnitz)
+        indxl = 0
+        npold = m_np
+        npnew = m_np
+        local_keys(1:npold) = particles(1:npold)%key
+        local_work(1:npold) = particles(1:npold)%work
+
+        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu, my_rank)
+
+        ! Permute particles according to arrays from slsort
+        m_np = npnew
+        ship_parts(1:npold) = particles(indxl(1:npold))
+        call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle, &
+        get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_WORLD,ierr)
+        particles(irnkl(1:m_np)) = get_parts(1:m_np)
+        particles(1:m_np)%key = sorted_keys(1:m_np)
+        particles(1:m_np)%pid = my_rank
+        particles(1:m_np)%work = 1. !TODO: is this elegant? 
 
     end subroutine sort_remesh
 
