@@ -10,7 +10,7 @@
  thresh = 0.0D-04
  m_h = 0.1
 
- n_in = 1000000
+ n_in = 10000
 
  dt = 0.5
  ts = 0.
@@ -28,6 +28,7 @@
 
 &libpepc
  debug_level = 0
+ weighted = 1
 /
 
 &walk_para_pthreads

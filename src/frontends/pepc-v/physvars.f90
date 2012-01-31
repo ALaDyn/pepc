@@ -115,7 +115,7 @@ contains
 
         init: select case(ispecial)
 
-            case(1,2)                         ! Vortex rings
+            case(1,2,4)                         ! Vortex rings
 
                 rl = rmax/(2*nc+1)
                 ns = 1+4*nc*(nc+1)
@@ -132,7 +132,7 @@ contains
                 !eps = g*h
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
-            case(4)
+            case(98)
 
                 n = n_in
                 np = ceiling(1.0*n/n_cpu)
