@@ -191,20 +191,30 @@ def main():
         for cmod in mods:
             modlist[cmod] = opts.o_prefix+os.path.basename(filebase+".o")
 
+    if opts.verbose:
+        sys.stderr.write("modlist: %s\n" % " ".join(modlist))
+
     for filename in filenames:
-	(deps, mods) = get_deps_and_mods(filename, opts)
 	if opts.verbose:
-            sys.stderr.write("deps: %s\n" % " ".join(deps))
-	    sys.stderr.write("mods: %s\n" % " ".join(mods))
+	    sys.stderr.write("========= filename: %s\n" % filename)
+	
+	(deps, mods) = get_deps_and_mods(filename, opts)
 	if deps:
             new_deps = []
             filebase, fileext = os.path.splitext(filename)
             objectfile = opts.o_prefix+os.path.basename(filebase+".o")
             for cdeps in deps:
-                if modlist.get(cdeps, cdeps) != objectfile:
-                    new_deps.append(modlist.get(cdeps, cdeps))
-
+                if modlist.get(cdeps, opts.o_prefix+cdeps) != objectfile:
+                    if cdeps in modlist:
+                        new_deps.append(modlist.get(cdeps, opts.o_prefix+cdeps))
 	    write_deps(outf, filename, new_deps, opts)
+
+	if opts.verbose:
+            sys.stderr.write("deps: %s\n" % " ".join(deps))
+	    sys.stderr.write("mods: %s\n" % " ".join(mods))
+	    sys.stderr.write("newdeps: %s\n" % " ".join(new_deps))
+
+
     outf.close()
 
 if __name__ == "__main__":

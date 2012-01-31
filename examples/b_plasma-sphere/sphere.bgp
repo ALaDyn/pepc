@@ -5,11 +5,10 @@
 # @ environment = COPY_ALL;
 # @ bg_connection = MESH 
 # @ wall_clock_limit = 00:20:00
-# @ notification = complete
-# @ notify_user = p.gibbon@fz-juelich.de
+# @ notification = never
 # @ job_type = bluegene
 # @ bg_size = 32 
 # @ queue
-PEPC=../../pepcb
+PEPC=../../bin/pepcb
 cp sphere.h run.h
 mpirun -env BG_APPTHREADDEPTH=2 -label -exe $PEPC -mode SMP -args "./sphere.h"

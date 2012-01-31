@@ -1,0 +1,15 @@
+LIBDIR        = $(ROOTDIR)/lib
+BINDIR        = $(ROOTDIR)/bin
+SRCDIR        = $(ROOTDIR)/src
+BUILDDIR      = $(ROOTDIR)/build
+TOOLSDIR      = $(ROOTDIR)/tools
+BUILDTOOLSDIR = $(TOOLSDIR)/build
+MAKEDIR       = $(BUILDTOOLSDIR)
+INTSPECDIR    = $(SRCDIR)/interaction_specific
+FRONTENDDIR   = $(SRCDIR)/frontends
+UTILSDIR      = $(SRCDIR)/utils
+TREECODEDIR   = $(SRCDIR)/treecode
+PTHREADSDIR   = $(TREECODEDIR)/pthreads
+SLPEPCDIR     = $(TREECODEDIR)/sl_pepc
+LPEPCDIR      = $(TREECODEDIR)/lpepcsrc
+F90MODDEPS    = $(BUILDTOOLSDIR)/f90_mod_deps.py

@@ -1,72 +1,124 @@
 #
-#  Makefile for pepc
+#  top-level makefile for pepc
 #
 
+ROOTDIR      = $(shell pwd)
+SVNREVISION  = $(shell svnversion)
+
+include tools/build/makefile.paths
 include makefile.defs
 
-default: pepce
+ALLFRONTENDS = $(shell ls $(FRONTENDDIR))
 
-benchmark: pepce
+help: info
+	@printf $(HELP)
+	@echo ""
 
-all: pepce pepcmini pepcmw pepcs pepcb
+info:
+	@echo "======== make info"
+	@echo "==== target architecture : $(MACH)"
+	@echo "==== code version        : $(SVNREVISION)"
+	@echo "==== pepc directory      : $(ROOTDIR)"
+	@echo "==== available frontends : $(ALLFRONTENDS)"
+	@echo ""
 
-pepcmw: pepcbasics
-	@echo "============  Making Frontend PEPC-MW (Mathias Winkel version)  ============="
-	cd pepc-mw && $(MAKE) $(MFLAGS)
-	
-pepcmini: pepcbasics
-	@echo "============  Making Frontend PEPC-MINI (minial version)  ============="
-	cd pepc-mini && $(MAKE) $(MFLAGS)
-	
-pepce:  pepcbasics
-	@echo "============  Making Frontend PEPC-E (Benchmark version)  ============="
-	cd pepc-e && $(MAKE) $(MFLAGS)
+buildenv:
+	@echo "======== build environment"
+	@echo "== CPP      : $(CPP)"
+	@echo "== CPPFLAGS : $(CPPFLAGS)"
+	@echo "== FCPRE    : $(FCPRE)"
+	@echo "== FC       : $(FC)"
+	@echo "== FCFLAGS  : $(FCFLAGS)"
+	@echo "== CCPRE    : $(CCPRE)"
+	@echo "== CC       : $(CC)"
+	@echo "== CCFLAGS  : $(CCFLAGS)"
+	@echo "== LDPRE    : $(LDPRE)"
+	@echo "== LD       : $(LD)"
+	@echo "== LDFLAGS  : $(LDFLAGS)"
+	@echo ""
 
-pepcs:  pepcbasics
-	@echo "============  Making Frontend PEPC-S (ScaFaCoS-library version + minimal frontend)  ============="
-	cd pepc-s && $(MAKE) $(MFLAGS)
+readme:
+	cat README | less
 
-pepcb:  pepcbasics
-	@echo "============  Making Frontend PEPC-B (Laser/beam-plasma with magnetic fields)  ============="
-	cd pepc-b && $(MAKE) $(MFLAGS)
+all:
+	-$(MAKE) $(MFLAGS) $(ALLFRONTENDS)
+	@echo ""
+	@echo "======== build all results:"
+	@echo "== available: " $(ALLFRONTENDS)
+	@echo "== build    : " `cd $(BINDIR) && ls $(ALLFRONTENDS) 2>/dev/null`
+	@echo ""
 
-pepcbasics:
-	@echo "============  Making PEPC Sorting Library  ============="
-	cd sl_pepc && $(MAKE) $(MFLAGS)
-	@echo "============  Making PEPC Pthreads Interface  ============="
-	cd pthreads && $(MAKE) $(MFLAGS)
-	@echo "============  Making PEPC Library  ============="
-	cd lpepcsrc && $(MAKE) $(MFLAGS)
+libsl: $(LIBDIR)/libsl.a
 
-clean: clean-doc
-	cd sl_pepc  && $(MAKE) $(MFLAGS) clean
-	cd pthreads && $(MAKE) $(MFLAGS) clean
-	cd lpepcsrc && $(MAKE) $(MFLAGS) clean
-	cd pepc-s   && $(MAKE) $(MFLAGS) clean
-	cd pepc-e   && $(MAKE) $(MFLAGS) clean
-	cd pepc-b   && $(MAKE) $(MFLAGS) clean
-	cd pepc-mw  && $(MAKE) $(MFLAGS) clean
-	cd pepc-mini  && $(MAKE) $(MFLAGS) clean
+$(LIBDIR)/libsl.a: $(LIBDIR)
+	@echo "==== building libsl"
+	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
+	@$(MAKE) -C $(SLPEPCDIR) $(MFLAGS)
+	@cp -p $(SLPEPCDIR)/libsl.a $(LIBDIR)/libsl.a
 
-clean-doc:
-	rm -rf ./doc
+clean:
+	@echo "==== cleaning build and bin"
+	@$(RM) makefile.envs
+	@$(RM) $(BUILDDIR) $(BINDIR)/*
+	@echo ""
 
-doc: clean-doc
-	mkdir ./doc
-	doxygen ./tools/Doxyfile
-	@echo "--- you can view the source code documentation by opening ./doc/index.html with your favourite web browser ---"
+cleanlib:
+	@echo "==== cleaning libraries"
+	@$(RM) $(LIBDIR)
+	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
+	@cd src/treecode/sl_pepc && $(MAKE) $(MFLAGS) clean 
+	@echo ""
 
-clean-dist:
-	rm -rf ./benchmark
-	rm -f benchmark-VER.tgz
-	
-dist: clean-dist	
-	@echo "--- exporting svn directory structure ---"
-	svn export ./ ./benchmark
-	rm -rf ./benchmark/jube
-	@echo "--- creating tarball ---"
-	tar -czvf ./benchmark-VER.tgz ./benchmark/
-	@echo "--- removing temporary files ---"
-	rm -rf ./benchmark
-	@echo "--- before publishing do not forget to update revision number in filename ---"
-	
+cleanall: cleanlib clean
+	@-$(RM) $(BINDIR)
+	@echo "==== all cleaned"
+
+allclean: cleanall
+
+pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a
+	@echo "======== start building frontend { $@ }"
+	@echo "==== date: " $(shell "date")
+	@echo "==== make target: " $@
+	@mkdir -p $(BUILDDIR)/$(MACH)/$@
+	@mkdir -p $(BINDIR)
+	@-$(RM) $(BINDIR)/$@
+	@FRONTEND=$@ ROOTDIR=$(ROOTDIR) SVNREVISION=$(SVNREVISION) WORKDIR=$(BUILDDIR)/$(MACH)/$@ $(MAKE) $(MFLAGS) -f $(MAKEDIR)/makefile.prepare
+	@cp -p $(BUILDDIR)/$(MACH)/$@/$@ $(BINDIR)
+	@echo ""
+	@echo "======== successfully built frontend { $@ } :-)"
+	@echo ""
+
+$(LIBDIR):
+	@mkdir $(LIBDIR)
+
+
+MAKEFILEDEFSINFO = "\n\n\
+!!! To be able to build pepc, you first have to create a \n\
+file called 'makefile.defs' inside the pepc root directory. \n\
+A number of example files is contained in the\n\
+'makefiles' directory. They usually can be used use by creating a symbolic link\n\n\
+ >  ln -sf makefiles/makefile.defs.extension ./makefile.defs\n\n\
+After creating this link to a certain file, a call of\n\n\
+ >  make help\n\n\
+might give you further information. Additionally, consider calling\n\n\
+ >  make readme\n\n\
+for a detailed description of what has to be done for getting pepc running.\n\
+For some special configuration you might have to adapt\n\
+the makefile.defs file to refelct your particular setup\n\
+(copiler names, pathes, etc.)\n\
+"
+
+makefile.defs:
+	@printf $(MAKEFILEDEFSINFO)
+	@echo ""
+	@exit 1
+
+pepclogo:
+	@echo "    ____    ____    ____    ____                                       "
+	@echo "   /\  _\`\ /\  _\`\ /\  _\`\ /\  _\`\                       "
+	@echo "   \ \ \L\ \ \ \L\_\ \ \L\ \ \ \/\_\      The Pretty Efficient      "
+	@echo "    \ \ ,__/\ \  _\L\ \ ,__/\ \ \/_/_           Parallel Coulomb Solver "
+	@echo "     \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \                                 "
+	@echo "      \ \_\   \ \____/\ \_\   \ \____/           pepc@fz-juelich.de"
+	@echo "       \/_/    \/___/  \/_/    \/___/                                  "
+	@echo ""

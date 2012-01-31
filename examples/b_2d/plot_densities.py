@@ -23,8 +23,8 @@ print "Plot field data"
 
 plotboxsize   = 5.
 animated = True
-nx=100
-ny=100
+nx=200
+ny=200
 
 
 fig = plt.figure(figsize=(8,8))
@@ -81,7 +81,7 @@ def plot_from_file(fn,nx,ny):
 
 def plot_for_timestep(ts):
     global nx,ny
-    filename = 'fields/%0*d'%(6, ts) + '.xy'
+    filename = 'fields7/%0*d'%(6, ts) + '.xy'
     print filename,nx,ny
     if plot_from_file(filename,nx,ny):
         print "Timestep: " + '%0*d'%(6, ts)
@@ -109,8 +109,9 @@ def next_plot():
 
 #gobject.idle_add(next_plot)
 
-#fn='fields/000000.xy'
-#plot_from_file(fn,nx,ny)
+fn='fields/002000.xy'
+plot_from_file(fn,nx,ny)
+exit
 
 tmax=10000
 increment = 100
@@ -118,7 +119,7 @@ plt.ion()
 for timestamp in range(0,tmax,increment):
 	plot_for_timestep(timestamp)
 	sleep(0.1) # Time in seconds.
-#	raw_input("Press key...")
+	raw_input("Press key...")
 	plt.clf()
 #'	plt.show()
 #	input = sys.stdin.readline() 

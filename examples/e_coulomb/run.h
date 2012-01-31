@@ -1,9 +1,4 @@
-&pepcdata
-
- db_level = 2
- np_mult = -300
- num_walk_threads = 4
- max_particles_per_thread = 2000
+&pepce
 
 ! number of particles, here ions
  ne = 1000
@@ -28,12 +23,6 @@ itime_in = 5
 ! extrinsic-to-intrinsic correction
 !  do_extrinsic_correction = .false.
 
-! Choose sorting routine and load balancing
-! 0: no load balancing, 1: load balancing
- weighted = 1
-
-! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
- curve_type = 1
 
 ! determies the particle dump interval
 ! 0: never write anything
@@ -43,4 +32,21 @@ itime_in = 5
  idump_vtk = 1
  idump_binary = 0
  idump_checkpoint = 5
+  /
+
+&libpepc
+ db_level = 2
+ np_mult = -300
+
+! Choose sorting routine and load balancing
+! 0: no load balancing, 1: load balancing
+ weighted = 1
+
+! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
+ curve_type = 1
+  /
+
+&tree_walk_nml
+ num_walk_threads = 4
+ max_particles_per_thread = 2000
   /

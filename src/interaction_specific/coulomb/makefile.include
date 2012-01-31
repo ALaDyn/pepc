@@ -1,0 +1,13 @@
+ifeq ($(BACKENDTYPE), XYZQVM)
+# include charge, velocity and mass in particle data type
+FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQVM.f90 \
+              module_fmm_framework.f90 
+else
+# only include charge in particle_data type (default)
+FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQ.f90 \
+              module_fmm_framework.f90  module_pepc_wrappers.f90
+endif
+
+
+SRC        += $(FILES_INT)
+SRC_COPY   += $(addprefix ./src/interaction_specific/coulomb/, $(FILES_INT))

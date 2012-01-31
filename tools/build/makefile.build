@@ -1,0 +1,37 @@
+#
+#  build-level makefile for pepc
+#
+
+include makefile.envs
+include makefile.paths
+include makefile.defs
+
+FSRC = $(filter %.f90, $(SRC))
+FOBJ = $(FSRC:%.f90=%.o)
+
+CSRC = $(filter %.c, $(SRC))
+COBJ = $(CSRC:%.c=%.o)
+
+LDLIBS += libsl.a
+
+$(FRONTEND): $(FOBJ) $(COBJ)
+	@echo "==== building executable :" $@
+	@echo "==== using libraries     :" $(LDLIBS)
+	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
+#	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
+
+%.o: %.f90
+	@echo "== compiling F90 file :" $<
+	@$(CPP) -include pepc_debug.h $(CPPFLAGS) $< > pp_$< 2>> compile.log
+	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
+
+%.o: %.c
+	@echo "== compiling C file   :" $<
+	@$(CCPRE) $(CC) -c $(CFLAGS) $(DBFLAGS) $< -o $@
+
+makefile.deps: 
+	@echo "==== creating dependencies"
+	@$(F90MODDEPS) -o makefile.deps --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "" $(filter %.f90, $(SRC)) >> compile.log
+
+include makefile.deps
+

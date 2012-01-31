@@ -1,56 +1,59 @@
-# call before compilation to activate GNU Compiler Collection instead of Intel compiler:
-#  > module unload parastation/intel
-#  > module unload intel
-#  > module load parastation/gcc-mt
-#  > module use ~/modulefiles
-#  > module load vampirtrace/5.10.1-parastation-gnu-papi 
-#
-#  > make pepcmini
-#
-# start interactive session:
-# > msub -I -l nodes=2:ppn=8
-
-# there:
-# > module use ~/modulefiles
-# > module load vampirtrace/5.10.1-parastation-gnu-papi
-# > export VT_SYNC_FLUSH=yes
-# > export VT_BUFFER_SIZE=1024M
-# > export VT_COMPRESSION=yes
-# > export VT_FILE_UNIQUE=yes
-# > export VT_MAX_FLUSHES=20
-# > export VT_UNIFY=yes
-# > export VT_CPUIDTRACE=yes
-# > export VT_ETIMESYNC=yes
-# > export VT_IOTRACE=yes
-# > export VT_LIBCTRACE=yes
-# > export VT_GROUPS_SPEC=~/vtgroups.txt
-# > export VT_FILTER_SPEC=~/vtfilter.txt
-# > export VT_METRICS=PAPI_FP_OPS:PAPI_TOT_CYC:PAPI_FP_INS
-# > mpiexec -x -n 4 ../pepcmini ./run.h
-#
-# content of vtfilter.txt:
-# par_rand* -- 0
-# key2addr* -- 0
-# __tree_walk_utils_NMOD_walk_single_par* -- 0
-#
-# content of vtgroups.txt:
-# YIELD=pthreads_sched_yield
-# PTHREADS_CONDS=pthreads_conds*
-# RWLOCKS=rwlocks_*
-# SCHED_YIELD=pthreads_sched_yield
-# PTHREADS_THREAD=pthreads_createthread;pthreads_jointhread;pthreads_exitthread;pthreads_init;pthreads_uninit
-# COMMUNICATOR=__tree_walk_communicator_*
-# FIELDS=pepc_fields
-# SORTING=slsort_*
-# WALKWORKER=WALK_WORKER_THREAD
-# CALC_FORCE=*calc_force*
-# PT_FIRST_PARTICLE=__tree_walk_utils_NMOD_get_*
-#
-# to view traces:
-# > module load vampirserver vampir
-# vngd &
-# vampir
-
+HELP = "\
+\# Makefile for JuRoPa using vampirtrace\n\
+\#\n\
+\# call before compilation to activate GNU Compiler Collection instead of Intel compiler:\n\
+\#  > module unload parastation/intel\n\
+\#  > module unload intel\n\
+\#  > module load parastation/gcc-mt\n\
+\#  > module use ~/modulefiles\n\
+\#  > module load vampirtrace/5.10.1-parastation-gnu-papi\n\
+\#\n\
+\#  > make pepcmini\n\
+\#\n\
+\# start interactive session:\n\
+\# > msub -I -l nodes=2:ppn=8\n\
+\#\n\
+\# there:\n\
+\# > module use ~/modulefiles\n\
+\# > module load vampirtrace/5.10.1-parastation-gnu-papi\n\
+\# > export VT_SYNC_FLUSH=yes\n\
+\# > export VT_BUFFER_SIZE=1024M\n\
+\# > export VT_COMPRESSION=yes\n\
+\# > export VT_FILE_UNIQUE=yes\n\
+\# > export VT_MAX_FLUSHES=20\n\
+\# > export VT_UNIFY=yes\n\
+\# > export VT_CPUIDTRACE=yes\n\
+\# > export VT_ETIMESYNC=yes\n\
+\# > export VT_IOTRACE=yes\n\
+\# > export VT_LIBCTRACE=yes\n\
+\# > export VT_GROUPS_SPEC=~/vtgroups.txt\n\
+\# > export VT_FILTER_SPEC=~/vtfilter.txt\n\
+\# > export VT_METRICS=PAPI_FP_OPS:PAPI_TOT_CYC:PAPI_FP_INS\n\
+\# > mpiexec -x -n 4 ../pepcmini ./run.h\n\
+\#\n\
+\# content of vtfilter.txt:\n\
+\# par_rand* -- 0\n\
+\# key2addr* -- 0\n\
+\# __tree_walk_utils_NMOD_walk_single_par* -- 0\n\
+\#\n\
+\# content of vtgroups.txt (out of date, please update):\n\
+\# YIELD=pthreads_sched_yield\n\
+\# PTHREADS_CONDS=pthreads_conds*\n\
+\# RWLOCKS=rwlocks_*\n\
+\# SCHED_YIELD=pthreads_sched_yield\n\
+\# PTHREADS_THREAD=pthreads_createthread;pthreads_jointhread;pthreads_exitthread;pthreads_init;pthreads_uninit\n\
+\# COMMUNICATOR=__tree_walk_communicator_*\n\
+\# FIELDS=pepc_fields\n\
+\# SORTING=slsort_*\n\
+\# WALKWORKER=WALK_WORKER_THREAD\n\
+\# CALC_FORCE=*calc_force*\n\
+\# PT_FIRST_PARTICLE=__tree_walk_utils_NMOD_get_*\n\
+\#\n\
+\# to view traces:\n\
+\# > module load vampirserver vampir\n\
+\# vngd &\n\
+\# vampir\n\
+"
 
 MACH     = JUROPA_gcc_vampirtrace
 
@@ -62,7 +65,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
 INLINING = 
 INLINING = -g -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -mstringop-strategy=unrolled_loop 
@@ -84,7 +87,3 @@ LDFLAGS   = -pthread -pg -O3 $(INLINING) -fwhole-program -fuse-linker-plugin
 LDLIBS   = 
 
 RM       = rm -rf
-
-EXECNAME = ../pepc
-
-

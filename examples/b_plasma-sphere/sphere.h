@@ -1,22 +1,10 @@
 ! Plasma sphere
 
- &pepcdata
- np_mult=-20
- fetch_mult=2
- ncpu_merge = 1
+ &pepcb
  debug_level = 1
- debug_tree = 0
+ ncpu_merge = 1
  mac=0
-! Choose sorting routine and load balancing                                                                                                                
-! 0: no load balacing, 1: load balancing                                                                                                                   
- weighted = 1                                                                                                                                              
-! Choose tree build routine                                                                                                                                
-! 0: original, 1: optimized     
-! choose_build=0
- curve_type=0
- walk_scheme = 0 
- num_walk_threads =2
-
+! Choose sorting routine and load balancing
 ! particles
   ne = 3500
   ni = 3500 
@@ -100,5 +88,23 @@
   itrack=300
   particle_bcs = 1 /
 
+&libpepc
 
+  np_mult=-20
+  debug_level = 1
 
+  ! 0: no load balacing, 1: load 
+  weighted = 1                    
+
+  ! space filling curve
+  curve_type=0
+
+ /
+
+&calc_force_coulomb
+
+/
+
+&walk_para_pthreads
+  num_walk_threads = 2
+ /

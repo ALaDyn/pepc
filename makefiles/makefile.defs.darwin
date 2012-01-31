@@ -1,3 +1,7 @@
+HELP = "\
+\# Makefile for darwin\
+"
+
 MACH     = darwin
 
 RANLIB   = ranlib -c
@@ -8,7 +12,7 @@ AR       = ar
 ARFLAGS  = -r 
 
 CPP      = cpp
-CPPFLAGS = -P -C
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
 FCPRE    = 
 FC       = /opt/local/lib/openmpi/bin/mpif90
@@ -24,7 +28,4 @@ LDFLAGS  =
 LDLIBS   = 
 
 RM       = rm -rf
-
-EXECNAME = ../pepc
-
 

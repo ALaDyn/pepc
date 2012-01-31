@@ -1,4 +1,8 @@
-MACH     = JUROPA-JSC
+HELP = "\
+\# Makefile for JuRoPa with Intel Compiler\
+"
+
+MACH     = JUROPA_intel
 
 RANLIB   = ranlib
 
@@ -8,7 +12,7 @@ AR       = xiar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
 FCPRE    = 
 FC       = mpif90
@@ -25,4 +29,3 @@ LDLIBS   =
 
 RM       = rm -rf
 
-EXECNAME = ../pepc

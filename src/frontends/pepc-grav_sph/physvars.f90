@@ -1,0 +1,76 @@
+module physvars
+  use module_pepc_types, only: &
+       t_particle
+
+  real, parameter :: pi=3.141592654
+
+  type(t_particle), allocatable :: particles(:)
+
+  !  physics data
+  real :: eps            ! potential/force law cutoff
+
+
+  real*8 :: boltzmann_constant = 1.
+  real*8 :: thermal_constant   = 1.           !< this is R_s, the specific gas constant (k_B / (mass of one molecule) ).
+  real*8 :: kappa              = 1.6666666666 !< kappa = gamma: Heat capacity ratio for gas
+  real*8 :: art_vis_alpha      = 1.           !< artificial viscosity parameter
+  real*8 :: art_vis_beta       = 2.           !< artificial viscosity parameter
+
+
+ ! tree stuff
+  real :: theta       ! Clumping parameter
+  integer :: mac = 0  ! MAC (default=BH)
+
+!  Variables needing 'copy' for tree routines
+  integer :: npart_total  ! Total # particles (npart)
+  integer :: np_local 
+  integer :: nppm  ! Total # particles (npart)
+  real :: np_mult=1.5
+
+!  Associated MPI stuff
+
+  integer :: my_rank       ! Rank of current task
+  integer :: n_cpu   ! # cpus used by program
+
+! Control stuff
+  integer :: idim=3  ! # dimensions (velocity and position updates)
+  integer :: ispecial       ! Switch to select special electron configs 
+  integer :: weighted
+  integer :: debug_level =0 ! Debug level for printed O/P
+
+   real :: dt             ! timestep
+   real :: trun           ! total run time including restarts
+   integer :: nt, itime   ! # timesteps and current timestep
+   integer :: db_level = 1  ! printed o/p debug level
+   integer :: curve_type = 0 !< type of space-filling curve, 0=z-curve, 1=Hilbert-curve
+
+   integer :: ifile_cpu    ! O/P stream
+
+   logical :: initialized_v_minus_half = .false.  ! set this to .true. then v_minus_half is initialized in particle_setup or when data are read. otherwhise v_minus_half is computed from v befor entering the loop over timesteps
+
+   logical :: do_gravity = .true.
+   logical :: do_sph     = .true.
+
+   ! I/O stuff
+   integer :: dump_time, cp_time   ! When to dump, when to do a checkpoint (read-in)
+   integer :: input_itime          ! Which step shpuld we read in?
+   character(50) :: mpifile        ! MPI-IO-file
+   
+
+
+
+
+
+
+
+
+
+
+
+
+end module physvars
+
+
+
+
+

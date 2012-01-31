@@ -1,0 +1,48 @@
+# use Makefile.in if it exists, makefile.defs otherwise
+ifneq ($(wildcard Makefile.in),)
+
+include Makefile.in
+
+ifeq ($(MPIFC),)
+  MPIFC:=$(MPIF90)
+endif
+
+else
+
+include makefile.defs
+
+MPICC:=$(CC)
+MPIFC:=$(FC)
+
+# reset fancy CPPFLAGS of PEPC so that SL can use it for regular compiling with CC
+CPPFLAGS:=
+
+# defaults are set in the SL Makefile
+#ECHO:=echo
+#MKDIR_P:=mkdir -p
+#RANLIB:=ranlib
+
+endif
+
+MODULES_NOT+=sl_pepcparts
+
+PREREQ+=config.h
+
+CPPFLAGS+=-DHAVE_CONFIG_H
+
+config.h:
+	@echo "making $@"
+	@echo > $@
+	@ftype=integer ; for fkind in 2 4 8 ; do \
+  echo "program main"                    > conftest.f90 ;  \
+  echo "implicit none"                   >> conftest.f90 ; \
+  echo "$${ftype}::dt"                   >> conftest.f90 ; \
+  echo "integer,parameter::dk=kind(dt)"  >> conftest.f90 ; \
+  echo "integer::dka(dk),tka($${fkind})" >> conftest.f90 ; \
+  echo "dka(1:dk)=tka(1:$${fkind})"      >> conftest.f90 ; \
+  echo "end program"                     >> conftest.f90 ; \
+  $(MPIFC) $(FFLAGS) -c conftest.f90 2>conftest.err ; \
+  if [ $$? = 0 ] ; then echo "#define FINT_DEFAULT  $${fkind}  /*  fortran compiler and flags: $(MPIFC) $(FFLAGS) */" >> $@ ; break ; fi ; \
+done ; rm conftest.*
+
+CLEAN_FILES:=config.h

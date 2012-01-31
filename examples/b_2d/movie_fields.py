@@ -24,9 +24,9 @@ print "Plot field data"
 plotboxsize   = 5.
 animated = True
 tmax=4000
-increment = 1000
-nx=400
-ny=100
+increment = 50
+nx=200
+ny=200
 
 
 fig = plt.figure(figsize=(10,10))

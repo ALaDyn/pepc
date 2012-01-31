@@ -1,26 +1,13 @@
 ! Plasma slab with perpendicular magnetic field
 ! Periodic in y-direction 
 
- &pepcdata
- np_mult=-20
- fetch_mult=2
+ &pepcb
  ncpu_merge = 1
  debug_level = 1
- debug_tree = 1
  mac=0
 
 ! np_error = 200 ! uncomment to do error test
  
-! Choose sorting routine and load balancing
-! 0: no load balancing, 1: load balancing
- weighted = 1                                                                     
-! Choose tree build routine 
-! 0: original, 1: optimized     
- choose_build=1
- curve_type=0  ! Morton curve
- walk_scheme = 0 
- num_walk_threads =4
-
 ! particles
   ne = 10240000
   ni = 10240000 
@@ -69,7 +56,7 @@
   ! extrinsic-to-intrinsic correction
 !  do_extrinsic_correction = .false. 
 
- scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
+ scheme = 7 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
   nt =10000
@@ -87,4 +74,22 @@
   particle_bcs = 3 /
 
 
+&libpepc
+      np_mult=-20
+      debug_level = 0
+      
+      ! Choose sorting routine and load balancing
+      ! 0: no load balancing, 1: load balancing
+      weighted = 1                                                                     
+
+      curve_type=0  ! Morton curve
+      /
+
+&calc_force_coulomb
+
+/
+
+&walk_para_pthreads
+       num_walk_threads =4
+      /
 

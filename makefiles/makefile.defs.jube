@@ -1,3 +1,7 @@
+HELP = "\
+\# Makefile for JuBE\
+"
+
 MACH     = #ARCH#
 
 RANLIB   = #RANLIB#

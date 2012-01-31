@@ -1,12 +1,11 @@
 ! Plasma disc 
 
- &pepcdata
- np_mult=-20
- fetch_mult=2
+ &pepcb
+
  ncpu_merge = 1
  debug_level = 1
- debug_tree = 1
  mac=0
+
 ! Force law 2D
  idim=2
  force_law=2
@@ -14,16 +13,6 @@
   
 ! np_error = 200 ! uncomment to do error test
  
-! Choose sorting routine and load balancing                                                                                                                
-! 0: no load balancing, 1: load balancing                                                                                                                   
- weighted = 1                                                                                                                                              
-! Choose tree build routine                                                                                                                                
-! 0: original, 1: optimized     
-! choose_build=0
- curve_type=0
- walk_scheme = 0 
- num_walk_threads =1
-
 ! particles
   ne = 100
   ni = 100 
@@ -109,5 +98,21 @@
   itrack=300
   particle_bcs = 1 /
 
+&libpepc
+      np_mult=-20
+      debug_level = 1
+      
+      ! Choose sorting routine and load balancing
+  ! 0: no load balancing, 1: load balancing
+      weighted = 1                                                                     
 
+      curve_type=0  ! Morton curve
+      /
 
+&calc_force_coulomb
+
+/
+
+&walk_para_pthreads
+       num_walk_threads = 1
+      /
