@@ -17,7 +17,6 @@ module module_io
 
       character*4, public :: csubme   !< Character string of data subdirectory 'data/peXXXX'
 
-      integer, parameter, public :: file_tree_out    = 15
       integer, parameter, public :: file_pepc_out    = 24
       integer, parameter, public :: file_domains_dat = 70
       integer, parameter, public :: file_laser_dat   = 71
@@ -73,7 +72,6 @@ module module_io
 
 		  if (my_rank == 0) then
 		     !  master diagnostics output
-		     open(file_tree_out, file='tree.out')  ! Tree stats
 		     open(file_pepc_out, file='pepc.out') ! Physics log
 
 		     open(file_domains_dat, file='domains.dat')
@@ -95,7 +93,6 @@ module module_io
 
           if (my_rank == 0) then
              !  master diagnostics output
-             flush(file_tree_out)
              flush(file_pepc_out)
 
              flush(file_domains_dat)
@@ -115,7 +112,6 @@ module module_io
 		  implicit none
 
 		  if (me == 0) then
-		     close(file_tree_out)
              close(file_pepc_out)
 		     close(file_domains_dat)
 		     close(file_laser_dat)

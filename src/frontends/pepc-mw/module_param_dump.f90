@@ -268,6 +268,7 @@ module module_param_dump
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine PrintLaserParameters()
       use physvars, only : my_rank
+      use module_io
       use module_laser
       use module_units
       implicit none
@@ -275,7 +276,7 @@ module module_param_dump
 
       if (my_rank .ne. 0 .or. beam_config_in.eq.0) return
 
-      do ifile = 6,24,18
+      do ifile = file_stdout,file_pepc_out,file_pepc_out-file_stdout
         call WriteTopline(  ifile, "LASER")
         call WriteParameter(ifile, "beam_config_in",    beam_config_in)
         call WriteParameter(ifile, "t_laser",           t_laser)

@@ -101,12 +101,13 @@ module module_pusher
 		subroutine integrator(p_start,p_finish,scheme)
 
 		  use physvars
+		  use module_io
 		  implicit none
           integer, intent(in) :: p_start,p_finish,scheme
 
 		 if (my_rank==0) then
-            write( 6,'(/"-- PUSHER --"/a20,i8)') 'scheme = ',scheme
-            write(24,'(/"-- PUSHER --"/a20,i8)') 'scheme = ',scheme
+            write(file_stdout  ,'(/"-- PUSHER --"/a20,i8)') 'scheme = ',scheme
+            write(file_pepc_out,'(/"-- PUSHER --"/a20,i8)') 'scheme = ',scheme
 		 endif
 
 		  pusher: select case(scheme)

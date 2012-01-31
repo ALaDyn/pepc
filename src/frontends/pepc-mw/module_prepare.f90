@@ -15,6 +15,7 @@ subroutine pepcmw_prepare()
   use module_fields
   use module_interaction_specific, only : eps2
   use module_namelist
+  use module_io
   implicit none
   integer :: ifile
 
@@ -110,7 +111,7 @@ subroutine pepcmw_prepare()
 
   if (any(maxdt < dt)) then
     if (my_rank == 0) then
-      do ifile = 6,24,18
+      do ifile = file_stdout,file_pepc_out,file_pepc_out-file_stdout
         write(ifile,*) "!!!!!!!! WARNING: timestep dt is too large: dt =", dt, "   maxdt = ", maxdt
         write(ifile,*) "Adjusting parameters appropriately to ensure sufficient resolution while keeping simulation length"
       end do

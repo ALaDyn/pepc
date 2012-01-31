@@ -67,7 +67,7 @@ contains
         energy(3,1:np_local) = energy(1,1:np_local) + energy(2,1:np_local)
 
         if (my_rank == 0) then
-            do ifile = 6,15,9
+            do ifile = file_stdout,file_pepc_out,file_pepc_out-file_stdout
               call PrintEnergies(ifile, epot, ekini, ekine, etot, tempe, tempi, totalmomentum)
             end do
 

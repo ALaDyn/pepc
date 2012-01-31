@@ -61,8 +61,8 @@ program pepc
   call openfiles
 
   ! Time stamp
-  if (my_rank==0) call stamp(6,1)
-  if (my_rank==0) call stamp(15,1)
+  if (my_rank==0) call stamp(file_stdout,1)
+  if (my_rank==0) call stamp(file_pepc_out,1)
 
   ! Each CPU gets copy of initial data
   if (para_file_available) call read_frontend_parameters_from_file(para_file_name)
@@ -76,8 +76,8 @@ program pepc
 
   ! parameter output
   if (my_rank == 0) then
-    call PrintPhysicalParameters(6)
-    call PrintPhysicalParameters(24)
+    call PrintPhysicalParameters(file_stdout)
+    call PrintPhysicalParameters(file_pepc_out)
   endif
 
   ! initial particle output
@@ -199,8 +199,8 @@ program pepc
   call cleanup(my_rank,n_cpu)
   
   ! Time stamp
-  if (my_rank==0) call stamp(6,2)
-  if (my_rank==0) call stamp(15,2)
+  if (my_rank==0) call stamp(file_stdout,2)
+  if (my_rank==0) call stamp(file_pepc_out,2)
 
   ! Tidy up O/P files
   call closefiles
