@@ -36,15 +36,14 @@ module module_diagnostics
 
         call pepc_status('PEPC-MW: DIRECTSUM')
 
-        call timer_start(t_walk)
+        call timer_start(t_all)
 
         call directforce(particles, nparticles, [(i,i=1,nparticles)], nparticles, directresults, my_rank, n_cpu, MPI_COMM_PEPC)
         particles(1:nparticles)%results = directresults(1:nparticles)
 
         deallocate(directresults)
 
-
-        call timer_stop(t_walk)
+        call timer_stop(t_all)
 
     end subroutine
 
