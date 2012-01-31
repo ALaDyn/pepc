@@ -6,8 +6,6 @@
 !
 !    Parallel Efficient Parallel Coulomb-solver
 !
-!   $ Revision $
-!
 !   Driver code for Coulomb-solver library lpepc
 !
 !  ==============================================================
