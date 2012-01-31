@@ -152,7 +152,7 @@ program pepc
 
      else
 
-       call compute_force_direct(num_force_particles, particles)
+       call compute_force_direct(np_local, particles, num_force_particles)
 
      endif
 

@@ -20,7 +20,7 @@ module module_diagnostics
 
    contains
 
-    subroutine compute_force_direct(nparticles, particles)
+    subroutine compute_force_direct(nparticles, particles, nforceparticles)
         use physvars, only : my_rank, n_cpu, MPI_COMM_PEPC
         use module_pepc_types
         use module_timings
@@ -29,6 +29,7 @@ module module_diagnostics
         use module_interaction_specific_types, only: t_particle_results
         implicit none
         integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
+        integer, intent(in) :: nforceparticles    !< number of particles to compute the force for, i.e. force is computed for particles(1:nforceparticles)
         type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data appropriately (and optionally set %label) before calling this function
 
         integer :: i
@@ -38,8 +39,8 @@ module module_diagnostics
 
         call timer_start(t_all)
 
-        call directforce(particles, nparticles, [(i,i=1,nparticles)], nparticles, directresults, my_rank, n_cpu, MPI_COMM_PEPC)
-        particles(1:nparticles)%results = directresults(1:nparticles)
+        call directforce(particles, nparticles, [(i,i=1,nforceparticles)], nforceparticles, directresults, my_rank, n_cpu, MPI_COMM_PEPC)
+        particles(1:nforceparticles)%results = directresults(1:nforceparticles)
 
         deallocate(directresults)
 
