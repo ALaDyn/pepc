@@ -119,37 +119,47 @@ program pepc
 
      call pepc_particleresults_clear(particles, np_local)
 
-     call pepc_grow_tree(np_local, npart_total, particles)
+     if (.not. directforce) then
+       call pepc_grow_tree(np_local, npart_total, particles)
+     endif
+
      ! if necessary, reorder particles here: particles(1:nep) - electrons, particles(nep+1:nep*nip)) - ions
      ! e.g. if we only traverse the tree for electrons but not for ions
      call reorder_particles(np_local, particles, num_force_particles)
 
-     call pepc_traverse_tree(num_force_particles, particles)
-     if (dbg(DBG_STATS)) call pepc_statistics(itime)
+     if (.not. directforce) then
+       call pepc_traverse_tree(num_force_particles, particles)
+       if (dbg(DBG_STATS)) call pepc_statistics(itime)
 
-     !call verifydirect(particles, np_local, [1, 2, np_local-1, np_local], 3, my_rank, n_cpu, MPI_COMM_PEPC)
+       !call verifydirect(particles, np_local, [1, 2, np_local-1, np_local], 3, my_rank, n_cpu, MPI_COMM_PEPC)
+
+       ! output of tree diagnostics
+       if (treediags) then
+         if (itime == 1) then
+           vtk_step = VTK_STEP_FIRST
+         else if (itime == nt) then
+           vtk_step = VTK_STEP_LAST
+         else
+           vtk_step = VTK_STEP_NORMAL
+         endif
+
+         call write_branches_to_vtk(itime,   trun*unit_t0_in_fs, vtk_step)
+         call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, vtk_step, particles)
+       endif
+
+       call pepc_restore_particles(np_local, particles)
+       call pepc_timber_tree()
+
+     else
+
+       call compute_force_direct(num_force_particles, particles)
+
+     endif
 
      particles(1:np_local)%results%e(1) = particles(1:np_local)%results%e(1) * force_const
      particles(1:np_local)%results%e(2) = particles(1:np_local)%results%e(2) * force_const
      particles(1:np_local)%results%e(3) = particles(1:np_local)%results%e(3) * force_const
      particles(1:np_local)%results%pot  = particles(1:np_local)%results%pot  * force_const
-
-     ! output of tree diagnostics
-     if (treediags) then
-       if (itime == 1) then
-         vtk_step = VTK_STEP_FIRST
-       else if (itime == nt) then
-         vtk_step = VTK_STEP_LAST
-       else
-         vtk_step = VTK_STEP_NORMAL
-       endif
-
-       call write_branches_to_vtk(itime,   trun*unit_t0_in_fs, vtk_step)
-       call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, vtk_step, particles)
-     endif
-
-     call pepc_restore_particles(np_local, particles)
-     call pepc_timber_tree()
 
      ! add any external forces (laser field etc)
      call force_laser(1, np_local)

@@ -14,7 +14,8 @@ HELP = "\
 
 MACH     = gcc-4.7
 
-DEBUG    = 1
+DEBUG    = 0
+OMP      = 1
 
 RANLIB   = ranlib
 
@@ -42,6 +43,12 @@ else
   LDFLAGS   = -pthread -pg -O5 $(INLINING) -fwhole-program  
 #-Wl,--threads
 #-fuse-linker-plugin
+endif
+
+ifeq ($(OMP), 1)
+  FFLAGS   += -fopenmp
+  LDFLAGS  += -fopenmp 
+else
 endif
 
 CCPRE    = 

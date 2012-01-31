@@ -75,6 +75,8 @@ module physvars
 
    integer :: ifile_cpu    ! O/P stream
 
+   logical :: directforce = .false. !< if set to true, the frontend only performs a direct force computation instead of utilizing the treecode
+
 end module physvars
 
 

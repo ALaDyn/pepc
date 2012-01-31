@@ -14,10 +14,39 @@ module module_diagnostics
      public read_particles
      public cluster_diagnostics
      public verifydirect
+     public compute_force_direct
 
 
 
    contains
+
+    subroutine compute_force_direct(nparticles, particles)
+        use physvars, only : my_rank, n_cpu, MPI_COMM_PEPC
+        use module_pepc_types
+        use module_timings
+        use module_directsum
+        use module_debug, only : pepc_status
+        use module_interaction_specific_types, only: t_particle_results
+        implicit none
+        integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
+        type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data appropriately (and optionally set %label) before calling this function
+
+        integer :: i
+        type(t_particle_results), allocatable :: directresults(:)
+
+        call pepc_status('PEPC-MW: DIRECTSUM')
+
+        call timer_start(t_walk)
+
+        call directforce(particles, nparticles, [(i,i=1,nparticles)], nparticles, directresults, my_rank, n_cpu, MPI_COMM_PEPC)
+        particles(1:nparticles)%results = directresults(1:nparticles)
+
+        deallocate(directresults)
+
+
+        call timer_stop(t_walk)
+
+    end subroutine
 
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !>

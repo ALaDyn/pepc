@@ -91,7 +91,7 @@ module module_directsum
           ! Inform the user that openmp is used, and with how many threads
           !$OMP PARALLEL PRIVATE(omp_thread_num)
           !$ omp_thread_num = OMP_GET_THREAD_NUM()
-          !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
+          !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_walk_threads parameter.'
           !$OMP END PARALLEL
 
           ! determine right and left neighbour
