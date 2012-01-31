@@ -441,14 +441,14 @@ contains
                         vortex_particles(ind)%x(3) = zp(i)
                         vortex_particles(ind)%data%alpha(1) = 0.
                         vortex_particles(ind)%data%alpha(2) = 0.
-                        vortex_particles(ind)%data%alpha(3) = +(exp(-(zp(i)-pi)**2)+exp(-(zp(i)+pi)**2))*wzp(i)*volp(i)
+                        vortex_particles(ind)%data%alpha(3) = -(exp(-(zp(i)-pi)**2)+exp(-(zp(i)+pi)**2))*wzp(i)*volp(i)
                         ind = ind + 1
                         vortex_particles(ind)%x(1) = xp(i)
                         vortex_particles(ind)%x(2) = yp(i) + torus_offset(2)
                         vortex_particles(ind)%x(3) = zp(i)
                         vortex_particles(ind)%data%alpha(1) = 0.
                         vortex_particles(ind)%data%alpha(2) = 0.
-                        vortex_particles(ind)%data%alpha(3) = -(exp(-(zp(i)-pi)**2)+exp(-zp(i)**2)+exp(-(zp(i)+pi)**2))*wzp(i)*volp(i)
+                        vortex_particles(ind)%data%alpha(3) = +(exp(-(zp(i)-pi)**2)+exp(-zp(i)**2)+exp(-(zp(i)+pi)**2))*wzp(i)*volp(i)
                     end if
                 end do
 
