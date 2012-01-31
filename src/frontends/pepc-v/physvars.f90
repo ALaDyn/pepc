@@ -115,7 +115,7 @@ contains
 
         init: select case(ispecial)
 
-            case(1,2,4)                         ! Vortex rings
+            case(1,2,4,5)                         ! Vortex rings/wakes
 
                 rl = rmax/(2*nc+1)
                 ns = 1+4*nc*(nc+1)
