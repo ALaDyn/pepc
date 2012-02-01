@@ -248,12 +248,9 @@ module module_checkpoint
             call MPI_FILE_CLOSE(fh,ierr)
 
             filename = trim(filename)//".h"
-
-            if (my_rank == 0) then
-              open(filehandle, file=trim(filename))
-              call pepc_read_parameters(filehandle)
-              close(filehandle)
-            endif
+            open(filehandle, file=trim(filename),action='read')
+            call pepc_read_parameters(filehandle)
+            close(filehandle)
 
           end subroutine
 
