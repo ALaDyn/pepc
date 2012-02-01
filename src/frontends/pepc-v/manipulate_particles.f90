@@ -458,72 +458,41 @@ contains
 
         case(5)  ! Different wakes
 
-            allocate(xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
-
-            j = 0
-
-            do k = 1, nc
-                part_2d = 2*pi/(8*k)
-                rc = (1+12*k**2)/(6*k)*rl
-
-                do l = 1,8*k
-                    j = j+1
-                    xi1 = part_2d*(l-1)
-                    xi2 = part_2d*l
-                    xi = (xi2-xi1)/2+xi1
-                    xp(j) = rc*cos(xi)
-                    yp(j) = rc*sin(xi)
-                    zp(j) = 0
-                    volp(j) = (2*pi**2*(r_torus+(2*k+1)*rl)*((2*k+1)*rl)**2-2*pi**2*(r_torus+(2*k-1)*rl)*((2*k-1)*rl)**2)/(8*k*Nphi)
-                    wxp(j) = 0.
-                    wyp(j) = 0.
-                    wzp(j) = 0.
-                end do
-            end do
-
-            xp(ns) = 0.
-            yp(ns) = 0.
-            zp(ns) = 0.
-            wxp(ns) = 0.
-            wyp(ns) = 0.
-            wzp(ns) = g
-            volp(ns) = 2*pi**2*(r_torus+rl)*rl**2/Nphi
-
-            part_3d = 2*pi/nphi
             ind0 = 0
             ind = 0
-            zp(1:ns) = zp(1:ns) - pi - part_3d
-            do k = 1,nphi
+            do i=1,nphi
+                do j=1,ceiling(2*pi/h)
+                    do k=1,nc
+                        ind0 = ind0 + 1
+                        if (mod(ind0+my_rank,n_cpu) == 0) then
+                            ind = ind+1
+                            if (ind .gt. np-1) then
+                                write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n,n_cpu
+                                call MPI_ABORT(MPI_COMM_WORLD,1, ierr)
+                            end if
+                            xt = (i-1)*h !+ h/2
+                            yt = -pi + (j-1)*h !+ h/2
+                            zt = -2*pi + (k-1)*h
 
-                zp(1:ns) = zp(1:ns)+part_3d
-
-                do i = 1, ns
-                    ind0 = ind0 + 1
-                    if (mod(ind0-1,n_cpu) == my_rank) then
-                        ind = ind + 1
-                        if (ind .gt.np) then
-                            write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n
-                            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+                            vortex_particles(ind)%x(1) = xt + torus_offset(1)
+                            vortex_particles(ind)%x(2) = yt + torus_offset(2)
+                            vortex_particles(ind)%x(3) = zt + torus_offset(3)
+                            vortex_particles(ind)%data%alpha(1) = 0.
+                            vortex_particles(ind)%data%alpha(2) = 0.
+                            vortex_particles(ind)%data%alpha(3) = +g/2*(1-tanh(yt)**2)*h**3 * (exp(-zt**2/2)+exp(-(zt-pi/2)**2/2)+exp(-(zt+pi/2)**2/2))
+                            ind = ind + 1
+                            vortex_particles(ind)%x(1) = xt - torus_offset(1)
+                            vortex_particles(ind)%x(2) = yt - torus_offset(2)
+                            vortex_particles(ind)%x(3) = zt - torus_offset(3)
+                            vortex_particles(ind)%data%alpha(1) = 0.
+                            vortex_particles(ind)%data%alpha(2) = 0.
+                            vortex_particles(ind)%data%alpha(3) = -g/2*(1-tanh(yt)**2)*h**3 * (exp(-zt**2/2)+exp(-(zt-pi/2)**2/2)+exp(-(zt+pi/2)**2/2))
                         end if
-                        vortex_particles(ind)%x(1) = xp(i)
-                        vortex_particles(ind)%x(2) = yp(i) - torus_offset(2)
-                        vortex_particles(ind)%x(3) = zp(i)
-                        vortex_particles(ind)%data%alpha(2) = 0.
-                        vortex_particles(ind)%data%alpha(1) = +g/2*(1-tanh(zp(i))**2)*volp(i)
-                        vortex_particles(ind)%data%alpha(3) = 0.
-                        ind = ind + 1
-                        vortex_particles(ind)%x(1) = xp(i)
-                        vortex_particles(ind)%x(2) = yp(i) + torus_offset(2)
-                        vortex_particles(ind)%x(3) = zp(i)
-                        vortex_particles(ind)%data%alpha(2) = 0.
-                        vortex_particles(ind)%data%alpha(1) = -g/2*(1-tanh(zp(i))**2)*volp(i)
-                        vortex_particles(ind)%data%alpha(3) = 0.
-                    end if
+                    end do
                 end do
-
             end do
-
             np = ind
+
 
         case(98) ! Random cubic setup (for testing purpose only)
 

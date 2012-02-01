@@ -508,7 +508,6 @@ module module_walk
     integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
 
     integer, public :: num_walk_threads = 3 !< number of worker threads
-    integer, public :: defer_list_length_factor = 1 !< factor for increasing defer_list_length in case of respective warning (e.g. for very inhomogeneous or 2D cases set to 2..8)
     integer, private :: primary_processor_id = 0
 
     real*8, dimension(:), allocatable :: boxlength2

@@ -88,6 +88,9 @@ program pepcv
 
      end do
 
+     ! dump, if needed (need to do this before remeshing or we will loose velocity information)
+     call dump(itime, trun)
+
      ! if remeshing is requested at all and if it is time right now, do it!
      if ((rem_freq .gt. 0) .and. (mod(itime,rem_freq)==0)) then
 
@@ -113,9 +116,6 @@ program pepcv
      ! Some linear diagnostics
      call linear_diagnostics(itime,trun)
      call divergence_diag(itime,trun)
-
-     ! dump, if needed
-     call dump(itime, trun)
 
   end do
 

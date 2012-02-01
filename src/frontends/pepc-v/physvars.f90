@@ -115,7 +115,7 @@ contains
 
         init: select case(ispecial)
 
-            case(1,2,4,5)                         ! Vortex rings/wakes
+            case(1,2,4)                         ! Vortex rings/wakes
 
                 rl = rmax/(2*nc+1)
                 ns = 1+4*nc*(nc+1)
@@ -132,11 +132,18 @@ contains
                 !eps = g*h
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
+            case(5)
+                                    ! Vortex wake
+                h = 4*pi/nc
+                n = 2*nc*nphi*ceiling(2.0*pi/h)
+                np = ceiling(1.0*n/n_cpu)
+                kernel_c = sqrt(nu*rem_freq*dt)/m_h
+
             case(98)
 
-                n = n_in
+                n=n_in
                 np = ceiling(1.0*n/n_cpu)
-                h = 1.0/n
+                h = 1./n
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(99)                          ! Setup MPI checkpoint readin
