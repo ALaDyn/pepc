@@ -460,7 +460,7 @@ contains
 
             ind0 = 0
             ind = 0
-            do i=1,nphi
+            do i=1,ceiling(1.0/h)
                 do j=1,ceiling(2*pi/h)
                     do k=1,nc
                         ind0 = ind0 + 1
@@ -479,14 +479,14 @@ contains
                             vortex_particles(ind)%x(3) = zt + torus_offset(3)
                             vortex_particles(ind)%data%alpha(1) = 0.
                             vortex_particles(ind)%data%alpha(2) = 0.
-                            vortex_particles(ind)%data%alpha(3) = +g/2*(1-tanh(yt)**2)*h**3 * (exp(-zt**2/2)+exp(-(zt-pi/2)**2/2)+exp(-(zt+pi/2)**2/2))
+                            vortex_particles(ind)%data%alpha(3) = -g/2*(1-tanh(yt)**2)*h**3 !* (exp(-zt**2/2)+exp(-(zt-pi/2)**2/2)+exp(-(zt+pi/2)**2/2))
                             ind = ind + 1
                             vortex_particles(ind)%x(1) = xt - torus_offset(1)
                             vortex_particles(ind)%x(2) = yt - torus_offset(2)
                             vortex_particles(ind)%x(3) = zt - torus_offset(3)
                             vortex_particles(ind)%data%alpha(1) = 0.
                             vortex_particles(ind)%data%alpha(2) = 0.
-                            vortex_particles(ind)%data%alpha(3) = -g/2*(1-tanh(yt)**2)*h**3 * (exp(-zt**2/2)+exp(-(zt-pi/2)**2/2)+exp(-(zt+pi/2)**2/2))
+                            vortex_particles(ind)%data%alpha(3) = +g/2*(1-tanh(yt)**2)*h**3 !* (exp(-zt**2/2)+exp(-(zt-pi/2)**2/2)+exp(-(zt+pi/2)**2/2))
                         end if
                     end do
                 end do

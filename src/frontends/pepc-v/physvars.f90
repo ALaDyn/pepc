@@ -135,8 +135,8 @@ contains
             case(5)
                                     ! Vortex wake
                 h = 4*pi/nc
-                n = 2*nc*nphi*ceiling(2.0*pi/h)
-                np = ceiling(1.0*n/n_cpu)
+                n = 2*nc*ceiling(1.0/h)*ceiling(2*pi/h)
+                np = ceiling(1.0*n/n_cpu)+1
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(98)
