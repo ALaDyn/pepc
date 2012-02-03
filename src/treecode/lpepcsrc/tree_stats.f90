@@ -30,6 +30,7 @@ subroutine tree_stats(timestamp)
   real*8 :: work_imbal=0.
   real*8 :: work_imbal_max, work_imbal_min  ! load stats
   integer ::  part_imbal_max, part_imbal_min
+  integer :: nkeys_total ! total # keys in local tree
 
   logical :: firstcall = .true.
 
@@ -39,6 +40,7 @@ subroutine tree_stats(timestamp)
   call MPI_GATHER(npp,         1, MPI_INTEGER, nparticles, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(ntwig_me,    1, MPI_INTEGER, tot_ntwig,  1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(nleaf_me,    1, MPI_INTEGER, tot_nleaf,  1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
+  nkeys_total = nleaf+ntwig
   call MPI_GATHER(nkeys_total, 1, MPI_INTEGER, total_keys, 1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(sum_fetches, 1, MPI_INTEGER, fetches,    1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )
   call MPI_GATHER(sum_ships,   1, MPI_INTEGER, ships,      1, MPI_INTEGER, 0,  MPI_COMM_WORLD, ierr )

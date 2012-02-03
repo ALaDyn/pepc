@@ -49,7 +49,6 @@ module treevars
              npp, &            ! actual  # particles/PE
              idim = 3          ! dimension of the system (currently only used in tree_domains)
 
-  integer :: nkeys_total=1 ! total # keys in local tree
   real*8 :: boxmin(3)  ! box min limits
   real*8 :: boxmax(3)  ! box max limits
   real*8 :: boxsize(3) ! box extension

@@ -156,8 +156,6 @@ module module_libpepc_main
             DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: htable(1)%leaves =', htable(1)%leaves, ' but npart_total =', npart_total)
         endif
 
-        nkeys_total = nleaf+ntwig
-
         call timer_stop(t_fields_tree)
 
         call pepc_status('TREE GROWN')
@@ -231,8 +229,6 @@ module module_libpepc_main
         call timer_stop(t_lattice)
 
         call timer_stop(t_fields_passes)
-
-        nkeys_total = nleaf+ntwig
 
         call pepc_status('TRAVERSAL DONE')
 
