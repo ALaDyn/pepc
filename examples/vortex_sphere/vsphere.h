@@ -6,7 +6,8 @@
  nu = 0.
 
  rem_freq = 0
- eps = 0.1
+ !eps = 0.1
+ eps = 0.4641588834
  thresh = 0.0D-04
  m_h = 0.1
 
@@ -21,7 +22,7 @@
 /
 
 &calc_force_vortex
-  force_law  = 22
+  force_law  = 62
   mac_select = 0
   theta2     = 0.0
 /

@@ -6,7 +6,7 @@
 # @ notify_user      = r.speck@fz-juelich.de
 # @ job_type         = BLUEGENE
 # @ environment      = COPY_ALL 
-# @ bg_size          = 512
+# @ bg_size          = 32
 # @ bg_connection    = MESH
 # @ wall_clock_limit = 00:30:00
 # @ queue

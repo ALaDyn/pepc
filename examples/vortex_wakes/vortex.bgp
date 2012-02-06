@@ -6,9 +6,9 @@
 # @ notify_user      = r.speck@fz-juelich.de
 # @ job_type         = BLUEGENE
 # @ environment      = COPY_ALL 
-# @ bg_size          = 1024
+# @ bg_size          = 512
 # @ bg_connection    = MESH
-# @ wall_clock_limit = 01:00:00
+# @ wall_clock_limit = 02:00:00
 # @ queue
 
 mpirun -env BG_APPTHREADDEPTH=3 -label -exe ./pepc -mode SMP -args "./run.h"
