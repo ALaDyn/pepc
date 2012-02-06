@@ -72,7 +72,7 @@ module module_pepc_types
         use module_interaction_specific_types
         implicit none
         include 'mpif.h'
-        integer, parameter :: max_props = maxval([nprops_particle, nprops_tree_node_transport_package])
+        integer :: max_props
 
         integer :: ierr
         ! address calculation
@@ -81,6 +81,8 @@ module module_pepc_types
         ! dummies for address calculation
         type(t_particle)  :: dummy_particle
         type(t_tree_node_transport_package) :: dummy_tree_node
+
+        max_props = maxval([nprops_particle, nprops_tree_node_transport_package])
 
         ! first register the interaction-specific MPI types since they are embedded into the lpepc-datatypes
         call register_interaction_specific_mpi_types(MPI_TYPE_particle_data, MPI_TYPE_tree_node_interaction_data, MPI_TYPE_particle_results)
