@@ -102,7 +102,7 @@ module module_interaction_specific_types
         include 'mpif.h'
         integer, intent(out) :: mpi_type_particle_data, MPI_TYPE_tree_node_interaction_data, mpi_type_particle_results
 
-        integer :: max_props
+        integer, parameter :: max_props = maxval([nprops_particle_data, nprops_particle_results, nprops_tree_node_interaction_data])
 
         integer :: ierr
         ! address calculation
@@ -112,8 +112,6 @@ module module_interaction_specific_types
         type(t_particle_data)    :: dummy_particle_data
         type(t_particle_results) :: dummy_particle_results
         type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
-
-        max_props = maxval([nprops_particle_data, nprops_particle_results, nprops_tree_node_interaction_data])
 
         ! register particle data type
         blocklengths(1:nprops_particle_data)  = [3,3,3,3,3]
