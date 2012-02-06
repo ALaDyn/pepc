@@ -6,7 +6,7 @@ HELP = "\
 
 MACH     = gcc-4.6
 
-DEBUG    = 0
+OPTLEV   = 5
 OMP      = 1
 
 RANLIB   = ranlib
@@ -23,20 +23,34 @@ INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -fi
 
 FCPRE    = 
 FC       = mpif90
-ifeq ($(DEBUG), 1)
+
+ifeq ($(OPTLEV), -1)
   FFLAGS   = -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -fbacktrace -fcheck=all
   CFLAGS   = -Wall -O0 -g 
-  LDFLAGS  =       -O0 -g 
-else
+  LDFLAGS  =       -O0 -g
+endif
+
+ifeq ($(OPTLEV), 0)
+  FFLAGS   =  -Wall -O0 -ffree-line-length-none -fsign-zero -pthread 
+  CFLAGS   =  -Wall -O0 
+  LDFLAGS   =       -O0 -pthread   
+endif
+
+ifeq ($(OPTLEV), 3)
+  FFLAGS   =  -Wall -O3 -ffree-line-length-none -fsign-zero -pthread 
+  CFLAGS   =  -Wall -O3 
+  LDFLAGS   =       -O3 -pthread  
+endif  
+
+ifeq ($(OPTLEV), 5)
   FFLAGS   =  -Wall -Ofast -ffree-line-length-none -fsign-zero -pthread $(INLINING)
   CFLAGS   =  -Wall -Ofast 
   LDFLAGS   =       -Ofast -pthread $(INLINING) -fwhole-program  
-endif
+endif  
 
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
   LDFLAGS  += -fopenmp 
-else
 endif
 
 

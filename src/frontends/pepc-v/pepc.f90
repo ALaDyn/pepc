@@ -58,11 +58,11 @@ program pepcv
 
         call pepc_particleresults_clear(vortex_particles, np)
 
-        !if (theta2 .gt. 0.0) then
+        if (theta2 .gt. 0.0) then
             call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .true.)
-        !else
-        !    call direct_sum(np, vortex_particles, vortex_particles%results, my_rank, n_cpu)
-        ! end if
+        else
+            call direct_sum(np, vortex_particles, vortex_particles%results, my_rank, n_cpu)
+        end if
 
         do i=1,np
           vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
@@ -70,7 +70,7 @@ program pepcv
           vortex_particles(i)%results%div     = vortex_particles(i)%results%div * force_const
         end do
 
-        !call verify_direct()
+        call verify_direct()
 
         !if (stage == rk_stages)  call dump(itime, trun)
 

@@ -1,13 +1,12 @@
 &pepcv
 
- ispecial = 4
+ ispecial = 5
 
- g = 4
+ g = 2
  rmax = 0.4
  r_torus = 1.
- nc = 5
- nphi = 60
- torus_offset = 0. 1. 0.
+ nc = 20
+ torus_offset = 1. 0. 0.
 
  nu = 0.00555
 
@@ -20,7 +19,7 @@
 
  dt = 0.5
  ts = 0.
- te = 50
+ te = 500
 
  dump_time = 1
  cp_time = 10

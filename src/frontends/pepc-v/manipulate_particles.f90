@@ -472,7 +472,7 @@ contains
                             end if
                             xt = (i-1)*h !+ h/2
                             yt = -pi + (j-1)*h !+ h/2
-                            zt = -2*pi + (k-1)*h
+                            zt = -pi + (k-1)*h
 
                             vortex_particles(ind)%x(1) = xt + torus_offset(1)
                             vortex_particles(ind)%x(2) = yt + torus_offset(2)
