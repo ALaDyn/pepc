@@ -9,7 +9,7 @@ module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 
 MACH     = JUROPA_intel
 
-DEBUG    = 0
+OPTLEV   = 0
 
 RANLIB   = ranlib
 
@@ -23,14 +23,28 @@ CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
 OPTIMIZATION = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -O3
 
-ifeq ($(DEBUG), 1)
-  FFLAGS   = -g -pg -O0 -warn all -reentrancy threaded
+ifeq ($(OPTLEV), -1)
+  FFLAGS   = -g -pg -O0 -warn all -reentrancy threaded -openmp
   CFLAGS   = -g -pg -O0
-  LDFLAGS  = -g -pg -O0 -warn all -reentrancy threaded
-else
-  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded
+  LDFLAGS  = -g -pg -O0 -warn all -reentrancy threaded -openmp
+endif
+
+ifeq ($(OPTLEV), 0)
+  FFLAGS   = -warn all -O0 -reentrancy threaded -openmp
+  CFLAGS   = -O0
+  LDFLAGS  = -warn all -O0 -reentrancy threaded -openmp
+endif
+
+ifeq ($(OPTLEV), 3)
+  FFLAGS   = -warn all -O3 -reentrancy threaded -openmp
+  CFLAGS   = -O3
+  LDFLAGS  = -warn all -O3 -reentrancy threaded -openmp
+endif
+
+ifeq ($(OPTLEV), 5)
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
   CFLAGS   =           $(OPTIMIZATION)
-  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
 endif
 
 FCPRE    = 
