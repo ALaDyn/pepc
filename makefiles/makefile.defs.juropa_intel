@@ -1,8 +1,15 @@
+MOD_UNLOAD = gcc
+MOD_LOAD   = intel/12.1.2 parastation/mpi2-intel-mt-5.0.26-1
+
 HELP = "\
-\# Makefile for JuRoPa with Intel Compiler\
+\# Makefile for JuRoPa using ifort/icc\n\
+\# recommended module commands\n\
+module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 "
 
 MACH     = JUROPA_intel
+
+DEBUG    = 0
 
 RANLIB   = ranlib
 
@@ -14,18 +21,27 @@ ARFLAGS  = -rs
 CPP      = cpp
 CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
+OPTIMIZATION = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -O3
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -g -pg -O0 -warn all -reentrancy threaded
+  CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0 -warn all -reentrancy threaded
+else
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded
+  CFLAGS   =           $(OPTIMIZATION)
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded
+endif
+
 FCPRE    = 
 FC       = mpif90
-FFLAGS   = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -ipo-c -ipo-S -O3 -reentrancy threaded
 
 CCPRE    = 
 CC       = mpicc
-CFLAGS   = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -ipo-c -ipo-S -O3 -reentrancy threaded
 
 LDPRE    = 
 LD       = mpif90
-LDFLAGS  = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -ipo-c -ipo-S -O3 -reentrancy threaded
+
 LDLIBS   = 
 
 RM       = rm -rf
-
