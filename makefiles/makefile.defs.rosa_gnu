@@ -1,0 +1,65 @@
+HELP = "\
+\# Makefile for gcc 4.6 (self-compiled on Mac OSX 10.6)\n\
+\# Warning: no gprof on OSX available, executable seems to stall\n\
+\# Note: gcc has no -O5 (at least not until gcc-4.7), use -Ofast for all available (even non-standard) acceleration\
+"
+
+MACH     = ROSA_gcc-4.6
+
+OPTLEV   = 5
+OMP      = 1
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rsl # Mac OSX requires a -l here, how about the others? 
+
+CPP      = cpp
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+
+INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg 
+
+FCPRE    = 
+FC       = ftn
+
+ifeq ($(OPTLEV), -1)
+  FFLAGS   = -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -fbacktrace -fcheck=all
+  CFLAGS   = -Wall -O0 -g 
+  LDFLAGS  =       -O0 -g
+endif
+
+ifeq ($(OPTLEV), 0)
+  FFLAGS   =  -Wall -O0 -ffree-line-length-none -fsign-zero -pthread 
+  CFLAGS   =  -Wall -O0 
+  LDFLAGS   =       -O0 -pthread   
+endif
+
+ifeq ($(OPTLEV), 3)
+  FFLAGS   =  -Wall -O3 -ffree-line-length-none -fsign-zero -pthread 
+  CFLAGS   =  -Wall -O3 
+  LDFLAGS   =       -O3 -pthread  
+endif  
+
+ifeq ($(OPTLEV), 5)
+  FFLAGS   =  -Wall -Ofast -ffree-line-length-none -fsign-zero -pthread $(INLINING)
+  CFLAGS   =  -Wall -Ofast 
+  LDFLAGS   =       -Ofast -pthread $(INLINING) -fwhole-program  
+endif  
+
+ifeq ($(OMP), 1)
+  FFLAGS   += -fopenmp
+  LDFLAGS  += -fopenmp 
+endif
+
+
+CCPRE    = 
+CC       = cc
+
+LDPRE    = 
+LD       = ftn
+LDLIBS   = 
+
+RM       = rm -rf
+

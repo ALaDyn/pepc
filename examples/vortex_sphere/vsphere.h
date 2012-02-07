@@ -33,7 +33,7 @@
 /
 
 &walk_para_pthreads
- num_walk_threads         = 4
+ num_walk_threads         = 32
  max_particles_per_thread = 2000
  defer_list_length_factor = 4
 /
