@@ -13,3 +13,4 @@ PTHREADSDIR   = $(TREECODEDIR)/pthreads
 SLPEPCDIR     = $(TREECODEDIR)/sl_pepc
 LPEPCDIR      = $(TREECODEDIR)/lpepcsrc
 F90MODDEPS    = $(BUILDTOOLSDIR)/f90_mod_deps.py
+DOCDIR        = $(ROOTDIR)/doc

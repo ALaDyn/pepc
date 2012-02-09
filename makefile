@@ -69,7 +69,11 @@ cleanlib:
 	@cd src/treecode/sl_pepc && $(MAKE) $(MFLAGS) clean 
 	@echo ""
 
-cleanall: cleanlib clean
+cleandoc:
+	@echo "==== cleaning Doxygen documentation"
+	@$(RM) $(DOCDIR)
+
+cleanall: cleanlib cleandoc clean
 	@-$(RM) $(BINDIR)
 	@echo "==== all cleaned"
 
@@ -91,6 +95,13 @@ pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a
 $(LIBDIR):
 	@mkdir $(LIBDIR)
 
+$(DOCDIR):
+	@mkdir $(DOCDIR)
+
+doc: $(LIBDIR)
+	@echo "======== start building Doxygen documentation"
+	@doxygen $(TOOLSDIR)/Doxyfile
+	@echo "=== you can view the source code documentation by opening ./doc/index.html with your favourite web browser"
 
 MAKEFILEDEFSINFO = "\n\n\
 !!! To be able to build pepc, you first have to create a \n\
