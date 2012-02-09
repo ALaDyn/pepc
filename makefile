@@ -98,10 +98,10 @@ $(LIBDIR):
 $(DOCDIR):
 	@mkdir $(DOCDIR)
 
-doc: $(LIBDIR)
+doc: $(DOCDIR)
 	@echo "======== start building Doxygen documentation"
 	@doxygen $(TOOLSDIR)/Doxyfile
-	@echo "=== you can view the source code documentation by opening ./doc/index.html with your favourite web browser"
+	@echo "=== you can view the source code documentation by opening $(DOCDIR)/index.html with your favourite web browser"
 
 MAKEFILEDEFSINFO = "\n\n\
 !!! To be able to build pepc, you first have to create a \n\
