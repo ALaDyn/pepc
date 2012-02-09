@@ -10,6 +10,9 @@ program pepc
     
   ! timing variables
   real*8 :: timer(5)
+  
+  ! control variable
+  logical :: doDiag
       
   !!! initialize pepc library and MPI
   call pepc_initialize("pepc-mini", my_rank, n_ranks, .true.)
@@ -35,24 +38,28 @@ program pepc
     
     timer(3) = get_time()
     
+    doDiag = MOD(step, diag_interval) .eq. 0
+    
     call pepc_particleresults_clear(particles, np)
     call pepc_grow_tree(np, tnp, particles)
     call pepc_traverse_tree(np, particles)
+
+    call apply_external_field()
     
-    if(domain_output) call write_domain(particles)
+    if(doDiag .and. domain_output) call write_domain(particles)
     
-    if(particle_probe) call compute_field()
+    if(doDiag .and. particle_probe) call compute_field()
     
     call pepc_timber_tree()
     !call pepc_restore_particles(np, particles)
     
-    if(particle_test) call test_particles()  
-    
-    if(particle_output) call write_particles(particles)
+    if(doDiag .and. particle_test) call test_particles()  
 
-    if(particle_filter) call filter_particles(particles)
+    if(doDiag .and. particle_output) call write_particles(particles)
         
     call push_particles(particles)    
+    
+    if(particle_filter) call filter_particles(particles)
     
     timer(4) = get_time()
     if(root) write(*,'(a,es12.4)') " == time in step [s]                              : ", timer(4) - timer(3)
