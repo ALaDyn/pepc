@@ -353,7 +353,7 @@ contains
     ! contains more leaves than number of necessary neighbours - as a first guess for the
     ! search radius, we use its diameter
     do i=1,nparticles
-       key = particles(i)%key
+       key = particles(i)%key_leaf
 
        particles(i)%results%maxdist2 = huge(0._8)
        particles(i)%results%neighbour_keys(:)  = 0_8
