@@ -73,7 +73,7 @@ module module_pepc_types
         implicit none
         include 'mpif.h'
 
-        integer, parameter :: max_props = maxval([nprops_particle, nprops_tree_node_transport_package])
+        integer, parameter :: max_props = nprops_particle + nprops_tree_node_transport_package
 
         integer :: ierr
         ! address calculation
