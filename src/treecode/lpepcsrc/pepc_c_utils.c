@@ -13,12 +13,19 @@
 #include <stdio.h>
 #include <errno.h>
 
+#ifndef PATH_MAX 
+  #define MYPATH_MAX 255 
+#else 
+  #define MYPATH_MAX PATH_MAX 
+#endif 
+
+
 void create_directory_c(char dirname[])
 {
-  char cwd[PATH_MAX];
-  char fullpath[PATH_MAX];
+  char cwd[MYPATH_MAX];
+  char fullpath[MYPATH_MAX];
 
-  getcwd(cwd, PATH_MAX);
+  getcwd(cwd, MYPATH_MAX);
   sprintf(fullpath, "%s/%s", cwd, dirname);
 
   if (0 != mkdir(fullpath, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
