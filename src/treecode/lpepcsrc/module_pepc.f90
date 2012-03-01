@@ -102,13 +102,13 @@ module module_pepc
       if (pepc_initializes_mpi) then
         ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
         call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
-        call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_lpepc)
-        if (present(comm)) call MPI_COMM_DUP(MPI_COMM_lpepc, comm)
+        call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_lpepc, ierr)
+        if (present(comm)) call MPI_COMM_DUP(MPI_COMM_lpepc, comm, ierr)
       else
         if (present(comm)) then
-           call MPI_COMM_DUP(comm, MPI_COMM_lpepc)
+           call MPI_COMM_DUP(comm, MPI_COMM_lpepc, ierr)
         else
-          call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_lpepc)
+          call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_lpepc, ierr)
         endif
       endif
 
