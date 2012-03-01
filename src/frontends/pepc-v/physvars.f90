@@ -26,14 +26,9 @@ module physvars
   real     :: g       ! # vorticity/smoothing amplifier (ispecial=1,2,3)
   real, dimension(3) :: torus_offset  ! shifts coords of both tori, one with +, one with - (ispecial=1,2)
 
- ! MPI-stuff
-  integer :: my_rank_space       ! Space-rank of current task
-  integer :: n_cpu_space         ! #space-cpus used by program
-
-  integer :: my_rank_time       ! Time-rank of current task
-  integer :: n_cpu_time         ! #time-cpus used by program
-
-  integer :: MPI_COMM_TIME, MPI_COMM_SPACE
+ ! Variables needing 'copy' for tree routines
+  integer :: my_rank       ! Rank of current task
+  integer :: n_cpu         ! # cpus used by program
 
   ! Control stuff
   integer :: ispecial       ! Switch to select special electron configs 
@@ -48,57 +43,6 @@ module physvars
   character(50) :: mpifile        ! MPI-IO-file
 
 contains
-
-
-    subroutine init_communication()
-
-        use module_pepc
-        use pfasst_parameters_module
-
-        implicit none
-        include 'mpif.h'
-
-        integer :: ierr, provided, color
-        character(255) :: parameterfile
-        logical :: read_param_file
-
-        integer :: my_rank       !  Global rank of current task
-        integer :: n_cpu         ! global #cpus used by program
-
-        integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
-                                                                       !  must ensure that only the main thread makes MPI calls."
-         call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
-
-        call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
-        call MPI_COMM_SIZE(MPI_COMM_WORLD, n_cpu, ierr)
-
-        num_space_instances = 1
-
-        call init_pfasst_parameters(my_rank, MPI_COMM_WORLD)
-
-        if (mod(n_cpu,num_space_instances) .ne. 0) then
-            if (my_rank == 0) write(*,*) "Well, this is not going to work, num_space_instances must be a factor of n_cpu."
-            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
-        end if
-
-        color = my_rank/(n_cpu/num_space_instances)
-
-        call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, my_rank, MPI_COMM_SPACE, ierr)
-        call MPI_COMM_RANK(MPI_COMM_SPACE, my_rank_space, ierr)
-        call MPI_COMM_SIZE(MPI_COMM_SPACE, n_cpu_space, ierr)
-
-        if (my_rank == 0) write(*,*) "Alright, I can use",n_cpu,"prozessors and these will be split up into",num_space_instances,"instances with",n_cpu_space,"prozessors each."
-
-        color = mod(my_rank, n_cpu_space)
-
-        call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, my_rank, MPI_COMM_TIME, ierr)
-        call MPI_COMM_RANK(MPI_COMM_TIME, my_rank_time, ierr)
-        call MPI_COMM_SIZE(MPI_COMM_TIME, n_cpu_time, ierr)
-
-        !write(*,*) my_rank, n_cpu, my_rank_space, n_cpu_space, my_rank_time, n_cpu_time
-        !call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
-
-    end subroutine init_communication
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -153,17 +97,17 @@ contains
         cp_time      = 0
 
         ! read in first command line argument
-        call pepc_get_para_file(read_param_file, parameterfile, my_rank_space)
+        call pepc_get_para_file(read_param_file, parameterfile, my_rank)
 
         if (read_param_file) then
 
-            if(my_rank_space .eq. 0) write(*,*) "reading parameter file, section pepcv: ", parameterfile
+            if(my_rank .eq. 0) write(*,*) "reading parameter file, section pepcv: ", parameterfile
             open(10,file=parameterfile)
             read(10,NML=pepcv)
             close(10)
 
         else
-            if(my_rank_space .eq. 0) write(*,*) "##### using default parameter #####"
+            if(my_rank .eq. 0) write(*,*) "##### using default parameter #####"
         end if
 
         ! Setup itime to standard value, may change for ispecial=99 (if not: fine)
@@ -176,13 +120,13 @@ contains
                 rl = rmax/(2*nc+1)
                 ns = 1+4*nc*(nc+1)
                 n = 2*ns*nphi
-                np = ceiling(1.0*n/n_cpu_space)
+                np = ceiling(1.0*n/n_cpu)
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(3)                           ! Sphere
 
                 n = n_in
-                np = ceiling(1.0*n/n_cpu_space)
+                np = ceiling(1.0*n/n_cpu)
                 h = sqrt(4.0*pi/n)
                 !force_const = force_const*h**3
                 !eps = g*h
@@ -192,13 +136,13 @@ contains
                                     ! Vortex wake
                 h = 2*pi/nc
                 n = 2*nc*ceiling(1.0/h)*ceiling(2*pi/h)
-                np = ceiling(1.0*n/n_cpu_space)+1
+                np = ceiling(1.0*n/n_cpu)+1
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(98)
 
                 n=n_in
-                np = ceiling(1.0*n/n_cpu_space)
+                np = ceiling(1.0*n/n_cpu)
                 h = 1./n
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
@@ -209,7 +153,7 @@ contains
             case default
 
                 write(*,*) 'ERROR: need to specify setup via ispecial in your .h file'
-                call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+                call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
 
         end select init
 
@@ -223,8 +167,8 @@ contains
 
         allocate ( vortex_particles(np) )
 
-        if (my_rank_space == 0) then
-            write(*,*) "Starting PEPC-V with",n_cpu_space," Processors, simulating",np, &
+        if (my_rank == 0) then
+            write(*,*) "Starting PEPC-V with",n_cpu," Processors, simulating",np, &
             " Particles on each Processor in",nt,"timesteps..."
             !write(*,*) "Using",num_walk_threads,"worker-threads and 1 communication thread in treewalk on each processor (i.e. per MPI rank)"
             !write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
@@ -238,9 +182,18 @@ contains
     !>   Deallocate physvars arrays, copy back variables
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine cleanup()
+    subroutine cleanup(my_rank_l,n_cpu_l)
 
         implicit none
+        include 'mpif.h'
+
+        integer, intent(in) :: my_rank_l ! MPI cpu rank
+        integer, intent(in) :: n_cpu_l  ! MPI # CPUs
+
+        ! copy call parameters to physvars module
+
+        my_rank = my_rank_l
+        n_cpu = n_cpu_l
 
         ! particle array deallocation in physvars
 
@@ -266,10 +219,10 @@ contains
         real*8 :: tmp_thresh, tmp_eps
 
         write(mpifile,'(a,i6.6,a)') "part_data/particle_", input_itime,".mpi"
-        call MPI_FILE_OPEN(MPI_COMM_SPACE,mpifile,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
+        call MPI_FILE_OPEN(MPI_COMM_WORLD,mpifile,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
         if (ierr .ne. MPI_SUCCESS) then
-            write(*,*) 'something is wrong here: file open failed',my_rank_space,ierr,mpifile
-            call MPI_ABORT(MPI_COMM_SPACE,err,ierr)
+            write(*,*) 'something is wrong here: file open failed',my_rank,ierr,mpifile
+            call MPI_ABORT(MPI_COMM_WORLD,err,ierr)
         end if
 
         ! Set file view to BYTE for header and read
@@ -297,9 +250,9 @@ contains
         thresh = tmp_thresh
         eps = tmp_eps
 
-        np = n/n_cpu_space
-        remain = n-np*n_cpu_space
-        if ((remain .gt. 0) .and. (my_rank_space .lt. remain)) np = np+1
+        np = n/n_cpu
+        remain = n-np*n_cpu
+        if ((remain .gt. 0) .and. (my_rank .lt. remain)) np = np+1
 
     end subroutine setup_MPI_IO_readin
 

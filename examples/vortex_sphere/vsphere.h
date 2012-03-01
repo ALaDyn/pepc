@@ -15,7 +15,7 @@
 
  dt = 0.5
  ts = 0.
- te = 25.
+ te = 50.
 
  dump_time = 0
  cp_time = 0
@@ -23,8 +23,8 @@
 
 &calc_force_vortex
   force_law  = 62
-  mac_select = 0
-  theta2     = 0.0
+  mac_select = 1
+  theta2     = 0.09
 /
 
 &libpepc
@@ -33,7 +33,7 @@
 /
 
 &walk_para_pthreads
- num_walk_threads         = 32
+ num_walk_threads         = 4
  max_particles_per_thread = 2000
  defer_list_length_factor = 4
 /
@@ -41,5 +41,11 @@
 &calc_force_vortex
 
   
+/
+
+&pfasst
+ 
+ num_space_instances = 2
+
 /
 

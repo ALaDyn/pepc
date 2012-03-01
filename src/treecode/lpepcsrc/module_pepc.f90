@@ -329,7 +329,7 @@ module module_pepc
     !> broadcasts the filename to all mpi processes
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_get_para_file(available, file_name, my_rank)
+    subroutine pepc_get_para_file(available, file_name, my_rank, comm)
         use treevars, only : MPI_COMM_lpepc
         implicit none
         include 'mpif.h'
@@ -337,8 +337,15 @@ module module_pepc
         logical,   intent(out)          :: available
         character(len=255), intent(out) :: file_name
         integer,   intent(in)           :: my_rank
+        integer,   intent(in), optional :: comm
 
-        integer :: ierr
+        integer :: ierr, MPI_COMM_local
+
+        if (present(comm)) then
+            MPI_COMM_local = comm
+        else
+            MPI_COMM_local = MPI_COMM_lpepc
+        end if
 
         ! rank 0 reads in first command line argument
         available = .false.
@@ -350,11 +357,11 @@ module module_pepc
             end if
         end if
 
-        call MPI_BCAST( available, 1, MPI_LOGICAL, 0, MPI_COMM_lpepc, ierr )
+        call MPI_BCAST( available, 1, MPI_LOGICAL, 0, MPI_COMM_local, ierr )
 
         ! broadcast file name, read actual inputs from namelist file
         if (available) then
-            call MPI_BCAST( file_name, 255, MPI_CHARACTER, 0, MPI_COMM_lpepc, ierr )
+            call MPI_BCAST( file_name, 255, MPI_CHARACTER, 0, MPI_COMM_local, ierr )
         end if
 
     end subroutine pepc_get_para_file

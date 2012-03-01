@@ -129,11 +129,11 @@ contains
                         wzp(i) = dot_product(v,D4(1:3,3))
                     end if
                     ind0 = ind0 + 1
-                    if (mod(ind0-1,n_cpu_space) == my_rank_space) then
+                    if (mod(ind0-1,n_cpu) == my_rank) then
                         ind = ind + 1
                         if (ind .gt.np) then
-                            write(*,*) 'something is wrong here: to many particles in init',my_rank_space,ind,np,n
-                            call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+                            write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n
+                            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
                         vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
                         vortex_particles(ind)%x(2) = yp(i)
@@ -234,11 +234,11 @@ contains
                         wzp(i) = dot_product(v,D4(1:3,3))
                     end if
                     ind0 = ind0 + 1
-                    if (mod(ind0-1,n_cpu_space) == my_rank_space) then
+                    if (mod(ind0-1,n_cpu) == my_rank) then
                         ind = ind + 1
                         if (ind .gt. np) then
-                            write(*,*) 'something is wrong here: to many particles in init of first ring',my_rank_space,ind,np,n
-                            call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+                            write(*,*) 'something is wrong here: to many particles in init of first ring',my_rank,ind,np,n
+                            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
                         vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
                         vortex_particles(ind)%x(2) = yp(i) - (torus_offset(2)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
@@ -325,11 +325,11 @@ contains
                         wzp(i) = dot_product(v,D4(1:3,3))
                     end if
                     ind0 = ind0 + 1
-                    if (mod(ind0-1,n_cpu_space) == my_rank_space) then
+                    if (mod(ind0-1,n_cpu) == my_rank) then
                         ind = ind + 1
                         if (ind .gt. np) then
-                            write(*,*) 'something is wrong here: to many particles in init of second ring',my_rank_space,ind,np,n
-                            call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+                            write(*,*) 'something is wrong here: to many particles in init of second ring',my_rank,ind,np,n
+                            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
                         vortex_particles(ind)%x(1) = xp(i) + (torus_offset(1)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
                         vortex_particles(ind)%x(2) = yp(i) + (torus_offset(2)-(rmax-(1+12*nc**2)/(6*nc)*rl))/2.0
@@ -371,10 +371,10 @@ contains
                     b = cphi
                     c = sphi
                 endif
-                if (mod(i+my_rank_space,n_cpu_space) == 0) then
+                if (mod(i+my_rank,n_cpu) == 0) then
                     if (j .gt. np-1) then
-                        write(*,*) 'something is wrong here: to many particles in init',my_rank_space,j,np,i
-                        call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+                        write(*,*) 'something is wrong here: to many particles in init',my_rank,j,np,i
+                        call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                     end if
                     j = j+1
                     vortex_particles(j)%x(1) = sth*cphi
@@ -430,11 +430,11 @@ contains
 
                 do i = 1, ns
                     ind0 = ind0 + 1
-                    if (mod(ind0-1,n_cpu_space) == my_rank_space) then
+                    if (mod(ind0-1,n_cpu) == my_rank) then
                         ind = ind + 1
                         if (ind .gt.np) then
-                            write(*,*) 'something is wrong here: to many particles in init',my_rank_space,ind,np,n
-                            call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+                            write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n
+                            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                         end if
                         vortex_particles(ind)%x(1) = xp(i)
                         vortex_particles(ind)%x(2) = yp(i) - torus_offset(2)
@@ -464,11 +464,11 @@ contains
                 do j=1,ceiling(2*pi/h)
                     do k=1,nc
                         ind0 = ind0 + 1
-                        if (mod(ind0+my_rank_space,n_cpu_space) == 0) then
+                        if (mod(ind0+my_rank,n_cpu) == 0) then
                             ind = ind+1
                             if (ind .gt. np-1) then
-                                write(*,*) 'something is wrong here: to many particles in init',my_rank_space,ind,np,n,n_cpu_space
-                                call MPI_ABORT(MPI_COMM_SPACE,1, ierr)
+                                write(*,*) 'something is wrong here: to many particles in init',my_rank,ind,np,n,n_cpu
+                                call MPI_ABORT(MPI_COMM_WORLD,1, ierr)
                             end if
                             xt = (i-1)*h !+ h/2
                             yt = -pi + (j-1)*h !+ h/2
@@ -511,11 +511,11 @@ contains
                 call par_rand(par_rand_res)
                 zt = par_rand_res
 
-                if (mod(i+my_rank_space,n_cpu_space) == 0) then
+                if (mod(i+my_rank,n_cpu) == 0) then
                     j = j+1
                     if (j .gt. np) then
-                        write(*,*) 'something is wrong here: to many particles in init',my_rank_space,j,n
-                        call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+                        write(*,*) 'something is wrong here: to many particles in init',my_rank,j,n
+                        call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
                     end if
                     vortex_particles(j)%x(1) = xt
                     vortex_particles(j)%x(2) = yt
@@ -605,7 +605,7 @@ contains
         do i = 1,np
             total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
         end do
-        call MPI_ALLREDUCE(total_vort,total_vort_full_pre,3,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
+        call MPI_ALLREDUCE(total_vort,total_vort_full_pre,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
         !! Define mesh structure and support, currently only none or 4 are possible
         mesh_supp = 4 !TODO: make this a parameter (and adapt remeshing itself to it)
@@ -615,17 +615,17 @@ contains
         ! Define array limits for new particles on the mesh
         m_np = np*mesh_supp**3
         m_n  = n *mesh_supp**3
-        m_nppm = ceiling(1.05*max(1.0*m_n/n_cpu_space,1.0*m_np)) ! allow 5% fluctuation, just a safety factor, since we'll kick out particles beforehand
+        m_nppm = ceiling(1.05*max(1.0*m_n/n_cpu,1.0*m_np)) ! allow 5% fluctuation, just a safety factor, since we'll kick out particles beforehand
 
         ! TODO: Define global max. #particles (do we need this?)
-        call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_INTEGER,MPI_MAX,MPI_COMM_SPACE,ierr)
+        call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ierr)
         m_nppm = tmp
 
         allocate(m_part(m_nppm),STAT=ierr)
 
         if (ierr .ne. 0) then
-            write(*,*) 'something is wrong here: remeshing allocation failed', my_rank_space, ierr
-            call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+            write(*,*) 'something is wrong here: remeshing allocation failed', my_rank, ierr
+            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
         end if
 
         call timer_start(t_remesh_interpol)
@@ -636,7 +636,7 @@ contains
         ! Inform the user that openmp is used, and with how many threads
         !$OMP PARALLEL PRIVATE(omp_thread_num)
         !$ omp_thread_num = OMP_GET_THREAD_NUM()
-        !$ if( (my_rank_space .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
+        !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
         !$OMP END PARALLEL
 
         !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(i,xt,yt,zt,xtn,ytn,ztn,axt,ayt,azt,wt,k,frac)
@@ -685,8 +685,8 @@ contains
         call timer_stop(t_remesh_interpol)
 
         if (k .ne. m_np) then
-            write(*,*) 'something is wrong here: #remeshed particles not equal to prediciton', my_rank_space, k, m_np
-            call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+            write(*,*) 'something is wrong here: #remeshed particles not equal to prediciton', my_rank, k, m_np
+            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
         end if
 
         deallocate(vortex_particles)
@@ -705,13 +705,13 @@ contains
         do i = 1,np
             total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
         end do
-        call MPI_ALLREDUCE(total_vort,total_vort_full_mid,3,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
+        call MPI_ALLREDUCE(total_vort,total_vort_full_mid,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
         !call kick_out_particles()
-        call MPI_ALLREDUCE(np,n,1,MPI_INTEGER,MPI_SUM,MPI_COMM_SPACE,ierr)
+        call MPI_ALLREDUCE(np,n,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-        if (1.25*n/n_cpu_space .lt. np) then
-            write(*,*) 'warning, rank',my_rank_space,' appears to be heavily imbalanced:',1.0*np/(1.0*n/n_cpu_space)
+        if (1.25*n/n_cpu .lt. np) then
+            write(*,*) 'warning, rank',my_rank,' appears to be heavily imbalanced:',1.0*np/(1.0*n/n_cpu)
         end if
         
         call reset_labels()
@@ -720,9 +720,9 @@ contains
         do i = 1,np
             total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
         end do
-        call MPI_ALLREDUCE(total_vort,total_vort_full_post,3,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
+        call MPI_ALLREDUCE(total_vort,total_vort_full_post,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-        if (my_rank_space == 0) then
+        if (my_rank == 0) then
             write(*,*) '   Vorticity before remeshing (x,y,z,norm2):', total_vort_full_pre, sqrt(dot_product(total_vort_full_pre,total_vort_full_pre))
             write(*,*) 'Vorticity before pop. control (x,y,z,norm2):', total_vort_full_mid, sqrt(dot_product(total_vort_full_mid,total_vort_full_mid))
             write(*,*) '    Vorticity after remeshing (x,y,z,norm2):', total_vort_full_post, sqrt(dot_product(total_vort_full_post,total_vort_full_post))
@@ -773,13 +773,13 @@ contains
         integer, intent(in) :: m_nppm
 
         integer :: i,j,ierr,k
-        type (t_particle) :: bound_parts_loc(2), bound_parts(0:2*n_cpu_space-1), ship_parts(m_np), get_parts(m_nppm)
+        type (t_particle) :: bound_parts_loc(2), bound_parts(0:2*n_cpu-1), ship_parts(m_np), get_parts(m_nppm)
         integer :: prev, next, nbits
         integer :: irnkl2(m_nppm), indxl(m_np), irnkl(m_nppm)
         real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local, s, local_work(m_nppm)
         real*8 :: xboxsize, yboxsize, zboxsize, boxsize, xmax, xmin, ymax, ymin, zmax, zmin, thresh2
         integer*8 :: ix(m_np), iy(m_np), iz(m_np), sorted_keys(m_nppm), local_keys(m_nppm)
-        integer :: fposts(n_cpu_space+1),gposts(n_cpu_space+1),islen(n_cpu_space),irlen(n_cpu_space)
+        integer :: fposts(n_cpu+1),gposts(n_cpu+1),islen(n_cpu),irlen(n_cpu)
         integer :: npnew, npold
 
         interface
@@ -799,16 +799,16 @@ contains
         irlen = 0
 
         ! Define wraps for ring network  0 -> 1 -> 2 -> ... ... -> num_pe-1 -> 0 ...
-        if (my_rank_space == 0) then
-            prev = n_cpu_space - 1
+        if (my_rank == 0) then
+            prev = n_cpu - 1
         else
-            prev = my_rank_space-1
+            prev = my_rank-1
         endif
 
-        if (my_rank_space == n_cpu_space-1 ) then
+        if (my_rank == n_cpu-1 ) then
             next = 0
         else
-            next = my_rank_space+1
+            next = my_rank+1
         endif
 
         xmin_local = minval(particles(1:m_np)%x(1))
@@ -819,12 +819,12 @@ contains
         zmax_local = maxval(particles(1:m_np)%x(3))
 
         ! Find global limits
-        call MPI_ALLREDUCE(xmin_local, xmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_SPACE, ierr )
-        call MPI_ALLREDUCE(xmax_local, xmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_SPACE, ierr )
-        call MPI_ALLREDUCE(ymin_local, ymin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_SPACE, ierr )
-        call MPI_ALLREDUCE(ymax_local, ymax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_SPACE, ierr )
-        call MPI_ALLREDUCE(zmin_local, zmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_SPACE, ierr )
-        call MPI_ALLREDUCE(zmax_local, zmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_SPACE, ierr )
+        call MPI_ALLREDUCE(xmin_local, xmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(xmax_local, xmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(ymin_local, ymin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(ymax_local, ymax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(zmin_local, zmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(zmax_local, zmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
 
         xboxsize = xmax-xmin
         yboxsize = ymax-ymin
@@ -872,7 +872,7 @@ contains
         do i=2,m_np
             if (particles(i)%key .lt. particles(i-1)%key) then
                 write (*,'(a,i5,2z20)') 'Sorting locally failed: i,particles(i)%key,particles(i-1)%key=',i,particles(i)%key,particles(i-1)%key
-                call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+                call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
             else if (particles(i)%key == particles(i-1)%key) then
                 particles(i)%data%alpha(1) = particles(i)%data%alpha(1) + particles(i-1)%data%alpha(1)
                 particles(i)%data%alpha(2) = particles(i)%data%alpha(2) + particles(i-1)%data%alpha(2)
@@ -896,23 +896,23 @@ contains
         local_keys(1:npold) = particles(1:npold)%key
         local_work(1:npold) = particles(1:npold)%work
 
-        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu_space, my_rank_space)
+        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu, my_rank)
 
         ! Permute particles according to arrays from slsort
         m_np = npnew
         ship_parts(1:npold) = particles(indxl(1:npold))
         call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle, &
-        get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_SPACE,ierr)
+        get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_WORLD,ierr)
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
-        particles(1:m_np)%pid = my_rank_space
+        particles(1:m_np)%pid = my_rank
 
         ! Check if sort finished and find inner doublets
         k = 0
         do i=2,m_np
             if (particles(i)%key .lt. particles(i-1)%key) then
                 write (*,'(a,i5,2z20)') 'Sorting globally failed: i,particles(i)%key,particles(i-1)%key=',i,particles(i)%key,particles(i-1)%key
-                call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+                call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
             else if (particles(i)%key == particles(i-1)%key) then
                 particles(i)%data%alpha(1) = particles(i)%data%alpha(1) + particles(i-1)%data%alpha(1)
                 particles(i)%data%alpha(2) = particles(i)%data%alpha(2) + particles(i-1)%data%alpha(2)
@@ -928,28 +928,28 @@ contains
         particles(k) = particles(m_np)
 
         if (k == 0) then
-            write(*,*) 'something is wrong here: no particles left after compression',my_rank_space
-            call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+            write(*,*) 'something is wrong here: no particles left after compression',my_rank
+            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
         end if
         if (k == 1) then
-            write(*,*) 'Warning: Only one particle left on this process, candidate for m_np=0',my_rank_space
+            write(*,*) 'Warning: Only one particle left on this process, candidate for m_np=0',my_rank
         end if
 
         bound_parts_loc(1) = particles(1)
         bound_parts_loc(2) = particles(k)
         call MPI_ALLGATHER(bound_parts_loc, 2, MPI_TYPE_PARTICLE, &
-        bound_parts, 2, MPI_TYPE_PARTICLE, MPI_COMM_SPACE, ierr)
+        bound_parts, 2, MPI_TYPE_PARTICLE, MPI_COMM_WORLD, ierr)
 
         ! Eliminate right boundary, if doublet with at least on neighbor
-        if (bound_parts(2*my_rank_space+1)%key .eq. bound_parts(2*next)%key) then
-            write(*,*) my_rank_space, 'is looking towards', next, 'for elimination'
+        if (bound_parts(2*my_rank+1)%key .eq. bound_parts(2*next)%key) then
+            write(*,*) my_rank, 'is looking towards', next, 'for elimination'
             k = k-1
         end if
 
         ! Accumulate boundary particles, looking left for doublets
         i = prev
-        do while (bound_parts(2*my_rank_space)%key .eq. bound_parts(2*i+1)%key)
-            write(*,*) my_rank_space, 'is looking towards', i, 'for accumulation'
+        do while (bound_parts(2*my_rank)%key .eq. bound_parts(2*i+1)%key)
+            write(*,*) my_rank, 'is looking towards', i, 'for accumulation'
             particles(1)%data%alpha(1) = particles(1)%data%alpha(1) + bound_parts(2*i+1)%data%alpha(1)
             particles(1)%data%alpha(2) = particles(1)%data%alpha(2) + bound_parts(2*i+1)%data%alpha(2)
             particles(1)%data%alpha(3) = particles(1)%data%alpha(3) + bound_parts(2*i+1)%data%alpha(3)
@@ -978,16 +978,16 @@ contains
         local_keys(1:npold) = particles(1:npold)%key
         local_work(1:npold) = particles(1:npold)%work
 
-        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu_space, my_rank_space)
+        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu, my_rank)
 
         ! Permute particles according to arrays from slsort
         m_np = npnew
         ship_parts(1:npold) = particles(indxl(1:npold))
         call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle, &
-        get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_SPACE,ierr)
+        get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_WORLD,ierr)
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
-        particles(1:m_np)%pid = my_rank_space
+        particles(1:m_np)%pid = my_rank
         particles(1:m_np)%work = 1. !TODO: is this elegant? 
 
     end subroutine sort_remesh
@@ -1017,10 +1017,10 @@ contains
             end if
         end do
         np = k
-        call MPI_ALLREDUCE(np,n,1,MPI_INTEGER,MPI_SUM,MPI_COMM_SPACE,ierr)
+        call MPI_ALLREDUCE(np,n,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-        if (1.25*n/n_cpu_space .lt. np) then
-            write(*,*) 'warning, rank',my_rank_space,' appears to be heavily imbalanced:',1.0*np/(1.0*n/n_cpu_space)
+        if (1.25*n/n_cpu .lt. np) then
+            write(*,*) 'warning, rank',my_rank,' appears to be heavily imbalanced:',1.0*np/(1.0*n/n_cpu)
         end if
 
     end subroutine kick_out_particles
@@ -1040,7 +1040,7 @@ contains
 
         ! Define valid labels for all local particles
         nscan = 0
-        call MPI_SCAN(np,nscan,1,MPI_INTEGER,MPI_SUM,MPI_COMM_SPACE,ierr)
+        call MPI_SCAN(np,nscan,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
         nscan = nscan-np
         do i=1,np
             vortex_particles(i)%label = nscan+i
@@ -1048,16 +1048,15 @@ contains
 
     end subroutine reset_labels
 
-    subroutine direct_sum(np_local,particles,results,my_rank_space,n_cpu_space)
+    subroutine direct_sum(np_local,particles,results,my_rank,n_cpu)
 
-        use physvars, only: MPI_COMM_SPACE
         use module_pepc_types, only: t_particle
         use module_interaction_specific_types, only: t_particle_results
         use module_directsum
         implicit none
         include 'mpif.h'
 
-        integer, intent(in) :: np_local, my_rank_space, n_cpu_space
+        integer, intent(in) :: np_local, my_rank, n_cpu
         type(t_particle), intent(in) :: particles(1:np_local)
         type(t_particle_results), intent(out) :: results(1:np_local)
 
@@ -1065,18 +1064,18 @@ contains
         type(t_particle_results), allocatable :: directresults(:)
         integer :: indices(1:np_local)
 
-        if (my_rank_space==0) write(*,'("PEPC-V | ", a)') 'Starting direct summation ...'
+        if (my_rank==0) write(*,'("PEPC-V | ", a)') 'Starting direct summation ...'
 
         do i = 1,np_local
             indices(i) = i
         end do
 
-        call directforce(particles, np_local, indices, np_local, directresults, my_rank_space, n_cpu_space, MPI_COMM_SPACE)
+        call directforce(particles, np_local, indices, np_local, directresults, my_rank, n_cpu, MPI_COMM_WORLD)
         results(1:np_local) = directresults(1:np_local)
 
         deallocate(directresults)
 
-        if (my_rank_space==0) write(*,'("PEPC-V | ", a)') '                          ... done!'
+        if (my_rank==0) write(*,'("PEPC-V | ", a)') '                          ... done!'
 
     end subroutine direct_sum
 
