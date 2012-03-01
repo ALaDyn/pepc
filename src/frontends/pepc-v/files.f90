@@ -17,7 +17,7 @@ module files
       use module_utils
 
 
-      if (my_rank == 0) then
+      if (my_rank_space == 0) then
          !  master diagnostics output
          open(15,file='run.out')
          open(70,file='domains.dat')
@@ -38,7 +38,7 @@ module files
     subroutine closefiles
       use physvars
 
-      if (my_rank == 0) then
+      if (my_rank_space == 0) then
          close(15)
          close(70)
          close(66)
@@ -79,12 +79,12 @@ module files
             write(mpifile,'(a,i6.6,a)') "part_data/particle_", i,".mpi"
             call MPI_FILE_OPEN(MPI_COMM_WORLD,mpifile,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
             if (ierr .ne. MPI_SUCCESS) then
-                write(*,*) 'something is wrong here: file open failed',my_rank,ierr,cfile
+                write(*,*) 'something is wrong here: file open failed',my_rank_space,ierr,cfile
                 call MPI_ABORT(MPI_COMM_WORLD,err,ierr)
             end if
             ! Set file view to BYTE for header, only rank 0 writes it
             call MPI_FILE_SET_VIEW(fh,0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
-            if (my_rank == 0) then
+            if (my_rank_space == 0) then
                 call MPI_FILE_WRITE(fh,n,1,MPI_INTEGER,status,ierr)    ! # particles
                 call MPI_FILE_WRITE(fh,dt,1,MPI_REAL,status,ierr)          ! timestep
                 call MPI_FILE_WRITE(fh,ts,1,MPI_REAL,status,ierr)          ! Starting time
@@ -166,7 +166,7 @@ module files
             vtk_step = VTK_STEP_NORMAL
         endif
 
-        call vtk%create_parallel("particles", step, my_rank, n_cpu, 0.1D01*time, vtk_step)
+        call vtk%create_parallel("particles", step, my_rank_space, n_cpu_space, 0.1D01*time, vtk_step)
         call vtk%write_headers(np,0)
         call vtk%startpoints()
             call vtk%write_data_array("xyz", np, vortex_particles(1:np)%x(1), vortex_particles(1:np)%x(2), vortex_particles(1:np)%x(3))
@@ -176,7 +176,7 @@ module files
             call vtk%write_data_array("vorticity", np, vortex_particles(1:np)%data%alpha(1), vortex_particles(1:np)%data%alpha(2), vortex_particles(1:np)%data%alpha(3))
             call vtk%write_data_array("work", np, vortex_particles(1:np)%work)
             call vtk%write_data_array("label", np, vortex_particles(1:np)%label)
-            call vtk%write_data_array("pid", np, [(my_rank,i=1,np)])
+            call vtk%write_data_array("pid", np, [(my_rank_space,i=1,np)])
         call vtk%finishpointdata()
         call vtk%dont_write_cells()
         call vtk%write_final()

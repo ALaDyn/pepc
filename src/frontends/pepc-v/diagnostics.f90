@@ -88,16 +88,16 @@ subroutine error_norms(itime)
    end do
 
    if (ispecial == 11) then
-      call MPI_ALLREDUCE(u_max_part,u_max_all,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(u_err_part_max,u_err_all_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(u_err_part,u_err_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(u_err_rel_part,u_err_rel_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(u_max_part,u_max_all,1,MPI_REAL8,MPI_MAX,MPI_COMM_SPACE,ierr)
+      call MPI_ALLREDUCE(u_err_part_max,u_err_all_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_SPACE,ierr)
+      call MPI_ALLREDUCE(u_err_part,u_err_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
+      call MPI_ALLREDUCE(u_err_rel_part,u_err_rel_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
 
       u_err_all_max = u_err_all_max/u_max_all
       u_err_rel_all = sqrt(u_err_all)/sqrt(u_err_rel_all)
       u_err_all = sqrt(u_err_all)*h
 
-      if (my_rank == 0) then
+      if (my_rank_space == 0) then
          open(666,file='error_u_isp11.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
          write(666,*) itime, u_err_all, u_err_all/U_norm, u_err_rel_all, u_err_all_max, u_err_all*n*h
          close(666)
@@ -105,16 +105,16 @@ subroutine error_norms(itime)
    end if
 
    if (ispecial == 10) then
-      call MPI_ALLREDUCE(u_max_part,u_max_all,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(u_err_part_max,u_err_all_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(u_err_part,u_err_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(u_err_rel_part,u_err_rel_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(u_max_part,u_max_all,1,MPI_REAL8,MPI_MAX,MPI_COMM_SPACE,ierr)
+      call MPI_ALLREDUCE(u_err_part_max,u_err_all_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_SPACE,ierr)
+      call MPI_ALLREDUCE(u_err_part,u_err_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
+      call MPI_ALLREDUCE(u_err_rel_part,u_err_rel_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
 
       u_err_all_max = u_err_all_max/u_max_all
       u_err_rel_all = sqrt(u_err_all)/sqrt(u_err_rel_all)
       u_err_all = sqrt(u_err_all/n)
 
-      if (my_rank == 0) then
+      if (my_rank_space == 0) then
          open(666,file='error_u_isp10.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
          write(666,*) itime, u_err_all, u_err_all/U_norm, u_err_rel_all, u_err_all_max, u_err_all*n*h
          close(666)
@@ -123,16 +123,16 @@ subroutine error_norms(itime)
 
    if (ispecial == 15) then
    ! TODO: use alpha notation here
-      call MPI_ALLREDUCE(w_max_part,w_max_all,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(w_err_part_max,w_err_all_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(w_err_part,w_err_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(w_err_rel_part,w_err_rel_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(w_max_part,w_max_all,1,MPI_REAL8,MPI_MAX,MPI_COMM_SPACE,ierr)
+      call MPI_ALLREDUCE(w_err_part_max,w_err_all_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_SPACE,ierr)
+      call MPI_ALLREDUCE(w_err_part,w_err_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
+      call MPI_ALLREDUCE(w_err_rel_part,w_err_rel_all,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
 
       w_err_all_max = w_err_all_max/w_max_all
       w_err_rel_all = sqrt(w_err_all)/sqrt(w_err_rel_all)
       w_err_all = sqrt(w_err_all)/n
 
-      if (my_rank == 0) then
+      if (my_rank_space == 0) then
          open(666,file='error_w_isp15.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
          write(666,*) itime, w_err_all, w_err_all*n, w_err_rel_all, w_err_all_max, w_err_all*n*h
          close(666)
@@ -162,7 +162,7 @@ subroutine linear_diagnostics(itime,trun)
 
    ! global total vortiticy
    omega = 0.
-   call MPI_ALLREDUCE(sendbuf_O,omega,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+   call MPI_ALLREDUCE(sendbuf_O,omega,3,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
 
    ! local linear impulse
    sendbuf_I = 0
@@ -174,7 +174,7 @@ subroutine linear_diagnostics(itime,trun)
 
    ! global linear impulse
    linear = 0.
-   call MPI_ALLREDUCE(sendbuf_I,linear,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+   call MPI_ALLREDUCE(sendbuf_I,linear,3,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
 
    ! local angular impulse
    sendbuf_A = 0
@@ -189,10 +189,10 @@ subroutine linear_diagnostics(itime,trun)
 
    ! global angular impulse
    angular = 0.
-   call MPI_ALLREDUCE(sendbuf_A,angular,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+   call MPI_ALLREDUCE(sendbuf_A,angular,3,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
 
    ! std and file output
-   if (my_rank == 0) then
+   if (my_rank_space == 0) then
       write(*,*) '=============Linear diagnostics============='
       write(*,*) 'Omega:           ', sqrt(omega(1)**2+omega(2)**2+omega(3)**2), omega(1)+omega(2)+omega(3), omega(1), omega(2), omega(3)
       write(*,*) 'Linear Impulse:  ', sqrt(linear(1)**2+linear(2)**2+linear(3)**2), linear(1)+linear(2)+linear(3), linear(1), linear(2), linear(3)
@@ -226,12 +226,12 @@ subroutine divergence_diag(itime,trun)
       div_mean_local = div_mean_local + vortex_particles(i)%results%div**2
    end do
 
-   call MPI_ALLREDUCE(div_max_local,div_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
-   call MPI_ALLREDUCE(div_min_local,div_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,ierr)
-   call MPI_ALLREDUCE(div_mean_local,div_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+   call MPI_ALLREDUCE(div_max_local,div_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_SPACE,ierr)
+   call MPI_ALLREDUCE(div_min_local,div_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_SPACE,ierr)
+   call MPI_ALLREDUCE(div_mean_local,div_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
    div_mean = sqrt(div_mean/n)
 
-   if (my_rank==0) write(*,*) 'Divergence (max/min/mean/denorm):', div_max,div_min,div_mean,div_mean*n
+   if (my_rank_space==0) write(*,*) 'Divergence (max/min/mean/denorm):', div_max,div_min,div_mean,div_mean*n
 
 end subroutine divergence_diag
 
@@ -254,12 +254,12 @@ subroutine verify_direct()
     rel_error_u = 0.
     rel_error_af = 0.
 
-    if (my_rank == 0) write(*,*) 'Starting direct sum ...'
+    if (my_rank_space == 0) write(*,*) 'Starting direct sum ...'
     t1 = MPI_WTIME()
-    call direct_sum(np, vortex_particles, direct_results, my_rank, n_cpu)
-    if (my_rank == 0) write(*,*) '                    ... done in',MPI_WTIME()-t1,'sec.'
+    call direct_sum(np, vortex_particles, direct_results, my_rank_space, n_cpu_space)
+    if (my_rank_space == 0) write(*,*) '                    ... done in',MPI_WTIME()-t1,'sec.'
 
-    if (my_rank == 0) write(*,*) 'Starting post-processing ...'
+    if (my_rank_space == 0) write(*,*) 'Starting post-processing ...'
     t1 = MPI_WTIME()
 
     do i=1,np
@@ -299,27 +299,27 @@ subroutine verify_direct()
 
     end do
 
-    call MPI_ALLREDUCE(diff_u_max_local,diff_u_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
-    call MPI_ALLREDUCE(diff_af_max_local,diff_af_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(diff_u_max_local,diff_u_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_SPACE,ierr)
+    call MPI_ALLREDUCE(diff_af_max_local,diff_af_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_SPACE,ierr)
 
-    call MPI_ALLREDUCE(diff_u_mean_local,diff_u_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-    call MPI_ALLREDUCE(diff_af_mean_local,diff_af_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-    call MPI_ALLREDUCE(L2_u_mean_local,L2_u_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-    call MPI_ALLREDUCE(L2_af_mean_local,L2_af_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(diff_u_mean_local,diff_u_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
+    call MPI_ALLREDUCE(diff_af_mean_local,diff_af_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
+    call MPI_ALLREDUCE(L2_u_mean_local,L2_u_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
+    call MPI_ALLREDUCE(L2_af_mean_local,L2_af_mean,1,MPI_REAL8,MPI_SUM,MPI_COMM_SPACE,ierr)
 
     diff_u_mean = diff_u_mean/n
     diff_af_mean = diff_af_mean/n
     L2_u_mean = sqrt(L2_u_mean)/n
     L2_af_mean = sqrt(L2_af_mean)/n
 
-    if (my_rank == 0) write(*,*) '                        ... done in',MPI_WTIME()-t1,'sec.'
+    if (my_rank_space == 0) write(*,*) '                        ... done in',MPI_WTIME()-t1,'sec.'
 
-    if (my_rank == 0) then
+    if (my_rank_space == 0) then
         write(*,*) 'Error in u (rel. L2 mean / rel. mean / rel. max) ', L2_u_mean, diff_u_mean, diff_u_max
         write(*,*) 'Error in af (rel. L2 mean / rel. mean / rel. max)', L2_af_mean, diff_af_mean, diff_af_max
     end if
 
-    !call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+    !call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
 
 end subroutine verify_direct
 

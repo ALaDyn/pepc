@@ -25,15 +25,14 @@ program pepcv
   integer, parameter :: t_remesh = t_userdefined_first + 1
 
   ! Allocate array space for tree
-  call pepc_initialize("pepc-v", my_rank, n_cpu, .true.)
+
+  call init_communication()
+
+  call pepc_initialize("pepc-v" ,my_rank_space, n_cpu_space, .false., MPI_COMM_SPACE)
   call pepc_read_parameters_from_first_argument()
 
   ! Set up O/P files
   call openfiles
-
-  ! Time stamp
-  if (my_rank==0) call stamp(6,1)
-  if (my_rank==0) call stamp(15,1)
 
   ! Each CPU gets copy of initial data
   call pepc_setup(itime, trun)
@@ -58,21 +57,13 @@ program pepcv
 
         call pepc_particleresults_clear(vortex_particles, np)
 
-        if (theta2 .gt. 0.0) then
-            call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .true.)
-        else
-            call direct_sum(np, vortex_particles, vortex_particles%results, my_rank, n_cpu)
-        end if
+        call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .true.)
 
         do i=1,np
           vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
           vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
           vortex_particles(i)%results%div     = vortex_particles(i)%results%div * force_const
         end do
-
-        !call verify_direct()
-
-        !if (stage == rk_stages)  call dump(itime, trun)
 
         call push_rk2(stage)
 
@@ -120,12 +111,8 @@ program pepcv
   end do
 
   ! deallocate array space for particles
-  call cleanup(my_rank,n_cpu)
+  call cleanup()
   
-  ! Time stamp
-  if (my_rank==0) call stamp(6,2)
-  if (my_rank==0) call stamp(15,2)
-
   ! Tidy up O/P files
   call closefiles
 
