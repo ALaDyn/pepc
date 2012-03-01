@@ -76,7 +76,7 @@ module module_libpepc_main
 
         call pepc_status('GROW TREE')
 
-        call MPI_BARRIER( MPI_COMM_WORLD, ierr)  ! Wait for everyone to catch up
+        call MPI_BARRIER( MPI_COMM_lpepc, ierr)  ! Wait for everyone to catch up
 
         ! copy call parameters to treevars module
         npart      = npart_total

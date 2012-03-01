@@ -190,7 +190,7 @@ contains
         integer :: ierr
            
         ! get global estimation
-        call MPI_ALLREDUCE(branch_max_local, branch_max_global, 1, MPI_INTEGER8, MPI_SUM, MPI_COMM_WORLD, ierr)
+        call MPI_ALLREDUCE(branch_max_local, branch_max_global, 1, MPI_INTEGER8, MPI_SUM, MPI_COMM_lpepc, ierr)
 
     end subroutine get_global_apriori_est
 
@@ -214,9 +214,9 @@ contains
         integer :: resultidx
 
         ! get D1 and D2 of all tasks
-        call MPI_Allgather( D1, 1, MPI_INTEGER8, allD1, 1, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
-        call MPI_Allgather( D2, 1, MPI_INTEGER8, allD2, 1, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
-        call MPI_Allgather(  L, 1, MPI_INTEGER8, allL,  1, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
+        call MPI_Allgather( D1, 1, MPI_INTEGER8, allD1, 1, MPI_INTEGER8, MPI_COMM_lpepc, ierr)
+        call MPI_Allgather( D2, 1, MPI_INTEGER8, allD2, 1, MPI_INTEGER8, MPI_COMM_lpepc, ierr)
+        call MPI_Allgather(  L, 1, MPI_INTEGER8, allL,  1, MPI_INTEGER8, MPI_COMM_lpepc, ierr)
 
         resultidx = 0
         do i=0,num_pe-1

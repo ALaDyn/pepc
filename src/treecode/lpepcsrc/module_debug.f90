@@ -153,15 +153,16 @@ module module_debug
 
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      !>
-     !>  calls MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+     !>  calls MPI_ABORT(MPI_COMM_lpepc, 1, ierr)
      !>
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      subroutine debug_mpi_abort()
+       use treevars, only : MPI_COMM_lpepc
        implicit none
        include 'mpif.h'
        integer :: ierr
 
-       call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+       call MPI_ABORT(MPI_COMM_lpepc, 1, ierr)
 
      end subroutine
 

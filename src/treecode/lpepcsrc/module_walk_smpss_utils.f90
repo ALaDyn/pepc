@@ -180,7 +180,7 @@ contains
 
        call MPI_IBSEND(short_requests(rcnt), 1, MPI_INTEGER8, &
             short_req_owner(rcnt), TAG_REQUEST_KEY, &
-            MPI_COMM_WORLD, reqhandle, ierr )
+            MPI_COMM_lpepc, reqhandle, ierr )
        call MPI_REQUEST_FREE( reqhandle, ierr)
 
     end do
@@ -235,10 +235,10 @@ contains
        ! probe for incoming messages
        ! non blocking for "just checking" the inbox, and potentially exit routine
        if(short_size .eq. received_answers) then
-          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, msg_avail, stat, ierr)
+          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_lpepc, msg_avail, stat, ierr)
        ! blocking, as there must/will be communication, due to outstanding answers
        else
-          call MPI_PROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, stat, ierr)
+          call MPI_PROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_lpepc, stat, ierr)
           msg_avail = .true.
        end if
 
@@ -257,7 +257,7 @@ contains
              !call Extrae_eventandcounters(1001, 1) 
              ! actually receive this request...
              call MPI_RECV( requested_key, 1, MPI_INTEGER8, ipe_sender, TAG_REQUEST_KEY, &
-                  MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+                  MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr)
              ! ... and answer it
              call send_data(requested_key, ipe_sender)
 
@@ -267,7 +267,7 @@ contains
              ! actually receive the data... 
              call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_transport_package, num_children, ierr)
              call MPI_RECV( child_data, num_children, MPI_TYPE_tree_node_transport_package, ipe_sender, TAG_REQUESTED_DATA, &
-                  MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+                  MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr)
              !call Extrae_eventandcounters(1001, 3) 
              ! ... and put it into the tree and all other data structures
              call unpack_data(child_data, num_children, ipe_sender)
@@ -280,7 +280,7 @@ contains
              !call Extrae_eventandcounters(1001, 4) 
              ! actually receive the data (however, we are not interested in it here)
              call MPI_RECV( comm_dummy, 1, MPI_INTEGER, ipe_sender, TAG_FINISHED_PE, &
-                  MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+                  MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr)
 
              walk_finished(ipe_sender+1) = .true.
 
@@ -291,7 +291,7 @@ contains
 
                 do i=0,num_pe-1
                    call MPI_IBSEND(comm_dummy, 1, MPI_INTEGER, i, TAG_FINISHED_ALL, &
-                        MPI_COMM_WORLD, reqhandle, ierr )
+                        MPI_COMM_lpepc, reqhandle, ierr )
                    call MPI_REQUEST_FREE( reqhandle, ierr)
                 end do
              end if
@@ -301,7 +301,7 @@ contains
           case (TAG_FINISHED_ALL)
              !call Extrae_eventandcounters(1001, 5) 
              call MPI_RECV( comm_dummy, 1, MPI_INTEGER, ipe_sender, TAG_FINISHED_ALL, &
-                  MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr) 
+                  MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr) 
 
              walk_status = WALK_ALL_FINISHED
 
@@ -354,7 +354,7 @@ contains
     end do
 
     !!! exchange req numbers -> snumber
-    call MPI_ALLTOALL(rnumber, 1, MPI_INTEGER, snumber, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
+    call MPI_ALLTOALL(rnumber, 1, MPI_INTEGER, snumber, 1, MPI_INTEGER, MPI_COMM_lpepc, ierr)
 
     do pcnt=0, max_rank
        write(*,*) "rank ", me, " sends ", snumber(pcnt), " to ", pcnt
@@ -448,7 +448,7 @@ contains
 
     integer :: ierr
 
-    call MPI_ALLREDUCE(local_finished, global_finished, 1, MPI_LOGICAL, MPI_LAND, MPI_COMM_WORLD, ierr)
+    call MPI_ALLREDUCE(local_finished, global_finished, 1, MPI_LOGICAL, MPI_LAND, MPI_COMM_lpepc, ierr)
 
   end subroutine tree_walk_smpss_global_finish
 
@@ -496,7 +496,7 @@ contains
 
     msg_avail = .true.
     do while(msg_avail .eqv. .true.)
-       call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, msg_avail, stat, ierr)
+       call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_lpepc, msg_avail, stat, ierr)
      
        if (msg_avail) then
           
@@ -509,7 +509,7 @@ contains
              !call Extrae_eventandcounters(1001, 1) 
              ! actually receive this request...
              call MPI_RECV( requested_key, 1, MPI_INTEGER8, ipe_sender, TAG_REQUEST_KEY, &
-                  MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+                  MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr)
              ! ... and answer it
              call send_data(requested_key, ipe_sender)
              
@@ -517,7 +517,7 @@ contains
              !call Extrae_eventandcounters(1001, 4) 
              ! actually receive the data (however, we are not interested in it here)
              call MPI_RECV( comm_dummy, 1, MPI_INTEGER, ipe_sender, TAG_FINISHED_PE, &
-                  MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+                  MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr)
              
              walk_finished(ipe_sender+1) = .true.
              
@@ -528,7 +528,7 @@ contains
                 
                 do i=0,num_pe-1
                    call MPI_IBSEND(comm_dummy, 1, MPI_INTEGER, i, TAG_FINISHED_ALL, &
-                        MPI_COMM_WORLD, reqhandle, ierr )
+                        MPI_COMM_lpepc, reqhandle, ierr )
                    call MPI_REQUEST_FREE( reqhandle, ierr)
                 end do
              end if
@@ -538,7 +538,7 @@ contains
           case (TAG_FINISHED_ALL)
              !call Extrae_eventandcounters(1001, 5) 
              call MPI_RECV( comm_dummy, 1, MPI_INTEGER, ipe_sender, TAG_FINISHED_ALL, &
-                  MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr) 
+                  MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr) 
              
              walk_status = WALK_ALL_FINISHED
              

@@ -165,7 +165,7 @@ contains
 
     prefetch_reqs(:,:) = 0
 
-    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+    call MPI_BARRIER(MPI_COMM_lpepc, ierr)
 
     walk_status = WALK_STILL_RUNNING
 

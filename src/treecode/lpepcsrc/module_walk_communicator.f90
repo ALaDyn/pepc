@@ -72,10 +72,10 @@ module module_walk_communicator
         integer :: ierr
 
         ! compute upper bounds for request and data message size
-        call MPI_PACK_SIZE(1, MPI_INTEGER8, MPI_COMM_WORLD, msg_size_request, ierr)
+        call MPI_PACK_SIZE(1, MPI_INTEGER8, MPI_COMM_lpepc, msg_size_request, ierr)
         msg_size_request = msg_size_request + MPI_BSEND_OVERHEAD
 
-        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node_transport_package, MPI_COMM_WORLD, msg_size_data, ierr)
+        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node_transport_package, MPI_COMM_lpepc, msg_size_data, ierr)
         msg_size_data = msg_size_data + MPI_BSEND_OVERHEAD
 
         buffsize = (REQUEST_QUEUE_LENGTH * msg_size_request + ANSWER_BUFF_LENGTH * msg_size_data)
@@ -123,7 +123,7 @@ module module_walk_communicator
           ! if a blocking probe is used,
           ! the calls to send_requests() and send_walk_finished() have
           ! to be performed asynchonously (i.e. from the walk threads)
-          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, msg_avail, stat, ierr)
+          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_lpepc, msg_avail, stat, ierr)
           if (msg_avail) then
 
             comm_loop_iterations(3) = comm_loop_iterations(3) + 1
@@ -142,7 +142,7 @@ module module_walk_communicator
              case (TAG_REQUEST_KEY)
                 ! actually receive this request... ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
                 call MPI_RECV( requested_key, 1, MPI_INTEGER8, ipe_sender, TAG_REQUEST_KEY, &
-                        MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+                        MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr)
                 ! ... and answer it
                 call send_data(requested_key, ipe_sender)
 
@@ -152,7 +152,7 @@ module module_walk_communicator
                 call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_transport_package, num_children, ierr)
                 allocate(child_data(num_children))
                 call MPI_RECV( child_data, num_children, MPI_TYPE_tree_node_transport_package, ipe_sender, TAG_REQUESTED_DATA, &
-                        MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+                        MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr)
                 ! ... and put it into the tree and all other data structures
                 call unpack_data(child_data, num_children, ipe_sender)
                 deallocate(child_data)
@@ -162,7 +162,7 @@ module module_walk_communicator
              case (TAG_FINISHED_PE)
                 ! actually receive the data (however, we are not interested in it here) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
                 call MPI_RECV( dummy, 1, MPI_INTEGER, ipe_sender, TAG_FINISHED_PE, &
-                        MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+                        MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr)
 
                 if (walk_comm_debug) then
                   DEBUG_INFO('("PE", I6, " has been told that PE", I6, "has finished walking")', me, ipe_sender)
@@ -179,7 +179,7 @@ module module_walk_communicator
 
                   do i=0,num_pe-1
                     call MPI_IBSEND(comm_dummy, 1, MPI_INTEGER, i, TAG_FINISHED_ALL, &
-                       MPI_COMM_WORLD, reqhandle, ierr )
+                       MPI_COMM_lpepc, reqhandle, ierr )
                     call MPI_REQUEST_FREE( reqhandle, ierr)
                   end do
                 end if
@@ -188,7 +188,7 @@ module module_walk_communicator
              ! all PEs have finished their walk
              case (TAG_FINISHED_ALL)
                 call MPI_RECV( dummy, 1, MPI_INTEGER, ipe_sender, TAG_FINISHED_ALL, &
-                            MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
+                            MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
 
                 if (walk_comm_debug) then
                   DEBUG_INFO('("PE", I6, " has been told to terminate by PE", I6, " since all walks on all PEs are finished")', me, ipe_sender)
@@ -198,7 +198,7 @@ module module_walk_communicator
 
           end select
 
-          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, msg_avail, stat, ierr)
+          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_lpepc, msg_avail, stat, ierr)
 
         end do ! while (msg_avail)
 
@@ -247,7 +247,7 @@ module module_walk_communicator
 
         ! notify rank 0 that we are finished with our walk
         call MPI_IBSEND(comm_dummy, 1, MPI_INTEGER, 0, TAG_FINISHED_PE, &
-                        MPI_COMM_WORLD, reqhandle, ierr )
+                        MPI_COMM_lpepc, reqhandle, ierr )
         call MPI_REQUEST_FREE( reqhandle, ierr)
 
         walk_status = WALK_I_NOTIFIED_0
@@ -298,7 +298,7 @@ module module_walk_communicator
 
       ! Ship child data back to PE that requested it
       call MPI_IBSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node_transport_package, ipe_sender, TAG_REQUESTED_DATA, &
-              MPI_COMM_WORLD, reqhandle, ierr )
+              MPI_COMM_lpepc, reqhandle, ierr )
       call MPI_REQUEST_FREE(reqhandle, ierr)
 
       ! statistics on number of sent children-packages
@@ -318,7 +318,7 @@ module module_walk_communicator
       if (.not. BTEST( htable(req%addr)%childcode, CHILDCODE_BIT_REQUEST_SENT ) ) then
         ! send a request to PE req_queue_owners(req_queue_top)
         ! telling, that we need child data for particle request_key(req_queue_top)
-        call MPI_IBSEND(req%key, 1, MPI_INTEGER8, req%owner, TAG_REQUEST_KEY, MPI_COMM_WORLD, reqhandle, ierr )
+        call MPI_IBSEND(req%key, 1, MPI_INTEGER8, req%owner, TAG_REQUEST_KEY, MPI_COMM_lpepc, reqhandle, ierr )
         call MPI_REQUEST_FREE( reqhandle, ierr)
 
         htable(req%addr)%childcode = ibset(htable(req%addr)%childcode, CHILDCODE_BIT_REQUEST_SENT )

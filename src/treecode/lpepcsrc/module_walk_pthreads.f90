@@ -554,14 +554,14 @@ module module_walk
         integer :: ierr
         real*8 :: global_thread_workload(-4:4)
 
-        call MPI_REDUCE(thread_workload( 1), global_thread_workload( 1), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr )
-        call MPI_REDUCE(thread_workload( 2), global_thread_workload( 2), 1, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
-        call MPI_REDUCE(thread_workload( 3), global_thread_workload( 3), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr )
-        call MPI_REDUCE(thread_workload( 4), global_thread_workload( 4), 2, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
-        call MPI_REDUCE(thread_workload(-1), global_thread_workload(-1), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr )
-        call MPI_REDUCE(thread_workload(-2), global_thread_workload(-2), 1, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
-        call MPI_REDUCE(thread_workload(-3), global_thread_workload(-3), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr )
-        call MPI_REDUCE(thread_workload(-4), global_thread_workload(-4), 2, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD, ierr )
+        call MPI_REDUCE(thread_workload( 1), global_thread_workload( 1), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr )
+        call MPI_REDUCE(thread_workload( 2), global_thread_workload( 2), 1, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
+        call MPI_REDUCE(thread_workload( 3), global_thread_workload( 3), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr )
+        call MPI_REDUCE(thread_workload( 4), global_thread_workload( 4), 2, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
+        call MPI_REDUCE(thread_workload(-1), global_thread_workload(-1), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr )
+        call MPI_REDUCE(thread_workload(-2), global_thread_workload(-2), 1, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
+        call MPI_REDUCE(thread_workload(-3), global_thread_workload(-3), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr )
+        call MPI_REDUCE(thread_workload(-4), global_thread_workload(-4), 2, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
 
         if (perform_output) then
           write (ifile,'(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_particles_per_thread

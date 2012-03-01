@@ -102,8 +102,8 @@ module module_domains
         max_local(3) = maxval(particles(1:npp)%x(3))
 
         ! Find global limits
-        call MPI_ALLREDUCE(min_local, boxmin, 3, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(max_local, boxmax, 3, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(min_local, boxmin, 3, MPI_REAL8, MPI_MIN,  MPI_COMM_lpepc, ierr )
+        call MPI_ALLREDUCE(max_local, boxmax, 3, MPI_REAL8, MPI_MAX,  MPI_COMM_lpepc, ierr )
 
         ! Safety margin - put buffer region around particles
         boxsize = boxmax - boxmin
@@ -143,7 +143,7 @@ module module_domains
         local_keys(1:npold) = particles(1:npold)%key
 
         ! perform index sort on keys !TODO: remove the "-2", compare other cases with "+2" and "npp+1" etc.
-        call slsort_keys(npold,nppm-2,local_keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me,MPI_COMM_WORLD)
+        call slsort_keys(npold,nppm-2,local_keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me,MPI_COMM_lpepc)
 
         ! FIXME: every processor has to have at least one particle
         if (npnew < 2) then
@@ -172,7 +172,7 @@ module module_domains
         ! perform permute
         call MPI_alltoallv(  ship_parts, islen, fposts, mpi_type_particle, &
         get_parts, irlen, gposts, mpi_type_particle, &
-        MPI_COMM_WORLD,ierr)
+        MPI_COMM_lpepc,ierr)
 
         call timer_stop(t_domains_add_alltoallv)
 
@@ -293,6 +293,7 @@ module module_domains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine exchange_boundary_particles(particles, npp, neighbour_pe_particles, me, num_pe)
+      use treevars, only : MPI_COMM_lpepc
       use module_pepc_types
       implicit none
       include 'mpif.h'
@@ -322,24 +323,24 @@ module module_domains
 
         ! Ship 1st particle data to end of list of LH neighbour PE
         if (me /= 0 ) then
-            call MPI_ISEND(  particles( 1 ),                          1, mpi_type_particle, prev, 1, MPI_COMM_WORLD, reqhandle, ierr )
+            call MPI_ISEND(  particles( 1 ),                          1, mpi_type_particle, prev, 1, MPI_COMM_lpepc, reqhandle, ierr )
             call MPI_REQUEST_FREE(reqhandle,ierr)
         endif
         ! Place incoming data at end of array
         if ( me /= num_pe-1) then
             neighbour_pe_particles = neighbour_pe_particles + 1
-            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, next, 1, MPI_COMM_WORLD, state, ierr )
+            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, next, 1, MPI_COMM_lpepc, state, ierr )
         endif
 
         ! Ship  end particle data to end of list of RH neighbour PE
         if (me /= num_pe-1 ) then
-            call MPI_ISEND(  particles( npp ),                        1, mpi_type_particle, next, 2, MPI_COMM_WORLD, reqhandle, ierr )
+            call MPI_ISEND(  particles( npp ),                        1, mpi_type_particle, next, 2, MPI_COMM_lpepc, reqhandle, ierr )
             call MPI_REQUEST_FREE(reqhandle,ierr)
         endif
         ! Place incoming data at end of array
         if ( me /= 0) then
             neighbour_pe_particles = neighbour_pe_particles + 1
-            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, prev, 2, MPI_COMM_WORLD, state, ierr )
+            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, prev, 2, MPI_COMM_lpepc, state, ierr )
         endif
     end subroutine
 
@@ -352,7 +353,7 @@ module module_domains
     subroutine restore(npnew,npold,nppm_ori,indxl,irnkl,islen,irlen,fposts,gposts,&
                              particles)
         use module_interaction_specific
-        use treevars, only : num_pe, npp
+        use treevars, only : num_pe, npp, MPI_COMM_lpepc
         use module_pepc_types
         use module_debug, only : pepc_status
         implicit none
@@ -379,7 +380,7 @@ module module_domains
         ! perform permute
         call MPI_alltoallv(  ship_parts, islen, fposts, MPI_TYPE_particle, &
               get_parts, irlen, gposts, MPI_TYPE_particle, &
-              MPI_COMM_WORLD,ierr )
+              MPI_COMM_lpepc, ierr )
 
         allocate(particles(npold))
         npp = npold

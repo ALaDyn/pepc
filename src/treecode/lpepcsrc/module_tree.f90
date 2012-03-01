@@ -242,7 +242,7 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_exchange(local_branch_keys, nbranch, branch_keys, nbranch_sum)
 
-        use treevars, only : me, num_pe, tree_nodes, nbranches
+        use treevars, only : me, num_pe, tree_nodes, nbranches, MPI_COMM_lpepc
         use module_debug, only : pepc_status
         use module_pepc_types
         use module_timings
@@ -280,7 +280,7 @@ module module_tree
         call timer_stop(t_exchange_branches_pack)
         call timer_start(t_exchange_branches_admininstrative)
 
-        call mpi_allgather( nbranch, 1, MPI_INTEGER, nbranches, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+        call mpi_allgather( nbranch, 1, MPI_INTEGER, nbranches, 1, MPI_INTEGER, MPI_COMM_lpepc, ierr )
 
         ! work out stride lengths so that partial arrays placed sequentially in global array
         allocate (igap(num_pe+3))
@@ -298,7 +298,7 @@ module module_tree
         call timer_start(t_exchange_branches_allgatherv)
 
         ! actually exchange the branch nodes
-        call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node_transport_package, get_mult, nbranches, igap, MPI_TYPE_tree_node_transport_package, MPI_COMM_WORLD, ierr)
+        call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node_transport_package, get_mult, nbranches, igap, MPI_TYPE_tree_node_transport_package, MPI_COMM_lpepc, ierr)
 
         deallocate(pack_mult)
         deallocate (igap)

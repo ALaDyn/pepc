@@ -1,10 +1,9 @@
-!
-!   Header module for treemp: global arrays and variables
-!
-!   $ Revision:   $ 
-!   All key variables defined 64 bit (8 byte)
-!
- 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>
+!>  Encapsulates all global variables for lpepc
+!>
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 module treevars
   
   use module_interaction_specific_types
@@ -15,6 +14,7 @@ module treevars
   !  Associated MPI stuff
   integer :: me       !< Rank of current task
   integer :: num_pe   !< # cpus used by program
+  integer :: MPI_COMM_lpepc !> communicator that has been supplied to or created by pepc_initialize
 
   !  tree variables
   integer*8, allocatable :: &

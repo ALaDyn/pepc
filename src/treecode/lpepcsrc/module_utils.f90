@@ -37,6 +37,7 @@ contains
   !> checks if MPI_IN_PLACE might be damaged and aborts the application if necessary
   subroutine MPI_IN_PLACE_test()
     use module_debug
+    use treevars, only : MPI_COMM_lpepc
     implicit none
     include 'mpif.h'
 
@@ -46,9 +47,9 @@ contains
 
 
     ! Get the number of MPI tasks
-    call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
+    call MPI_COMM_size(MPI_COMM_lpepc, n_cpu, ierr)
 
-    call MPI_ALLREDUCE(MPI_IN_PLACE, data, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    call MPI_ALLREDUCE(MPI_IN_PLACE, data, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_lpepc, ierr)
 
     if (initval*n_cpu .ne. data) then
       DEBUG_ERROR_NO_DIAGFILE('(a,/)','Serious Issue: MPI_IN_PLACE is not working in your configuration of MPI distribution, compiler(flags) and compiler-optimization.',

@@ -75,8 +75,8 @@ module module_pepc
     !> Call this function at program startup before any MPI calls
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi, db_level_in)
-      use treevars, only : me, num_pe, treevars_idim => idim
+    subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi, db_level_in, comm)
+      use treevars, only : me, num_pe, treevars_idim => idim, MPI_COMM_lpepc
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
       use module_domains
@@ -89,6 +89,7 @@ module module_pepc
       integer, intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
       logical, intent(in) :: init_mpi !< if set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
       integer, intent(in), optional :: db_level_in !< sets debug level for treecode kernel (overrides settings, that may be read from libpepc-section in input file)
+      integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator; otherwise, it uses an MPI_COMM_DUP copy of the given comm
       integer :: ierr, provided
 
       integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
@@ -101,16 +102,25 @@ module module_pepc
       if (pepc_initializes_mpi) then
         ! Initialize the MPI system (thread safe version, will fallback automatically if thread safety cannot be guaranteed)
         call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
+        call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_lpepc)
+        if (present(comm)) call MPI_COMM_DUP(MPI_COMM_lpepc, comm)
+      else
+        if (present(comm)) then
+           call MPI_COMM_DUP(comm, MPI_COMM_lpepc)
+        else
+          call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_lpepc)
+        endif
       endif
 
       call MPI_IN_PLACE_test()
 
-      ! Get the id number of the current task
-      call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
-      ! Get the number of MPI tasks
-      call MPI_COMM_size(MPI_COMM_WORLD, n_cpu, ierr)
 
-      if (my_rank == 0) then
+      ! Get the id number of the current task
+      call MPI_COMM_RANK(MPI_COMM_lpepc, my_rank, ierr)
+      ! Get the number of MPI tasks
+      call MPI_COMM_size(MPI_COMM_lpepc, n_cpu, ierr)
+
+      if (my_rank == 0 .and. pepc_initializes_mpi) then
         ! verbose startup-output
         write(*,'(a)') "   ____    ____    ____    ____        "
         write(*,'(a)') "  /\  _`\ /\  _`\ /\  _`\ /\  _`\      "
@@ -320,7 +330,7 @@ module module_pepc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_get_para_file(available, file_name, my_rank)
-
+        use treevars, only : MPI_COMM_lpepc
         implicit none
         include 'mpif.h'
 
@@ -340,11 +350,11 @@ module module_pepc
             end if
         end if
 
-        call MPI_BCAST( available, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr )
+        call MPI_BCAST( available, 1, MPI_LOGICAL, 0, MPI_COMM_lpepc, ierr )
 
         ! broadcast file name, read actual inputs from namelist file
         if (available) then
-            call MPI_BCAST( file_name, 255, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr )
+            call MPI_BCAST( file_name, 255, MPI_CHARACTER, 0, MPI_COMM_lpepc, ierr )
         end if
 
     end subroutine pepc_get_para_file

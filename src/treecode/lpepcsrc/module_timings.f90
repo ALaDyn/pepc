@@ -285,9 +285,9 @@ module module_timings
         flag = 0
       endif
 
-      call MPI_REDUCE(tim, tim_max, numtimings, MPI_REAL8, MPI_MAX, 0, MPI_COMM_WORLD,ierr);
-      call MPI_REDUCE(tim, tim_min, numtimings, MPI_REAL8, MPI_MIN, 0, MPI_COMM_WORLD,ierr);
-      call MPI_REDUCE(tim, tim_avg, numtimings, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD,ierr);
+      call MPI_REDUCE(tim, tim_max, numtimings, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc,ierr);
+      call MPI_REDUCE(tim, tim_min, numtimings, MPI_REAL8, MPI_MIN, 0, MPI_COMM_lpepc,ierr);
+      call MPI_REDUCE(tim, tim_avg, numtimings, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc,ierr);
 
      if (me==0) then
         tim_avg = tim_avg / num_pe
