@@ -73,8 +73,8 @@ module module_domains
         real*8 imba
 
         interface
-            subroutine slsort_keys(nin,nmax,keys,workload,balance_weight,max_imbalance,nout,indxl,irnkl,scounts,rcounts,sdispls,rdispls,keys2,irnkl2,size,rank)
-                integer,intent(in) :: nin,nmax,balance_weight,size,rank
+            subroutine slsort_keys(nin,nmax,keys,workload,balance_weight,max_imbalance,nout,indxl,irnkl,scounts,rcounts,sdispls,rdispls,keys2,irnkl2,size,rank,comm)
+                integer,intent(in) :: nin,nmax,balance_weight,size,rank,comm
                 real*8,intent(in) :: max_imbalance
                 integer,intent(out) :: nout,indxl(*),irnkl(*),scounts(*),rcounts(*),sdispls(*),rdispls(*),irnkl2(*)
                 integer*8,intent(out) :: keys2(*)
@@ -143,7 +143,7 @@ module module_domains
         local_keys(1:npold) = particles(1:npold)%key
 
         ! perform index sort on keys !TODO: remove the "-2", compare other cases with "+2" and "npp+1" etc.
-        call slsort_keys(npold,nppm-2,local_keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me)
+        call slsort_keys(npold,nppm-2,local_keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me,MPI_COMM_WORLD)
 
         ! FIXME: every processor has to have at least one particle
         if (npnew < 2) then

@@ -71,11 +71,12 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
                  finteger_t *fsdispls, finteger_t *frdispls,            /* OUT */
                  pepckeys_slkey_t *keys2,                               /* SCRATCH */
                  finteger_t *irnkl2,                                    /* SCRATCH */
-                 finteger_t *fsize, finteger_t *frank)                  /* IN */
+                 finteger_t *fsize, finteger_t *frank, MPI_Fint *fcomm) /* IN */
 {
   int size = *fsize;
   int rank = *frank;
-  MPI_Comm comm = MPI_COMM_WORLD;
+  // see http://www.open-mpi.org/community/lists/users/2006/09/1812.php for conversion of fortran communicator to C
+  MPI_Comm comm = MPI_Comm_f2c(*fcomm);
 
   slint_t i;
 
@@ -404,7 +405,7 @@ void slsort_keys_(finteger_t *nin,                                       /* IN *
                   finteger_t *fsdispls, finteger_t *frdispls,            /* OUT */
                   pepckeys_slkey_t *keys2,                               /* SCRATCH */
                   finteger_t *irnkl2,                                    /* SCRATCH */
-                  finteger_t *fsize, finteger_t *frank)                  /* IN */
+                  finteger_t *fsize, finteger_t *frank, MPI_Fint* fcomm) /* IN */
 {
-  slsort_keys(nin, nmax, keys, work, balance_weight, max_imbalance, nout, indxl, irnkl, fscounts, frcounts, fsdispls, frdispls, keys2, irnkl2, fsize, frank);
+  slsort_keys(nin, nmax, keys, work, balance_weight, max_imbalance, nout, indxl, irnkl, fscounts, frcounts, fsdispls, frdispls, keys2, irnkl2, fsize, frank, fcomm);
 }
