@@ -53,7 +53,7 @@ contains
     subroutine init_communication()
 
         use module_pepc
-        use pfasst_parameters_module
+        use pfasst_module
 
         implicit none
         include 'mpif.h'
@@ -74,7 +74,7 @@ contains
 
         num_space_instances = 1
 
-        call init_pfasst_parameters(my_rank, MPI_COMM_WORLD)
+        call init_pfasst_parameters(my_rank_time, MPI_COMM_WORLD)
 
         if (mod(n_cpu,num_space_instances) .ne. 0) then
             if (my_rank == 0) write(*,*) "Well, this is not going to work, num_space_instances must be a factor of n_cpu."
@@ -95,6 +95,7 @@ contains
         call MPI_COMM_RANK(MPI_COMM_TIME, my_rank_time, ierr)
         call MPI_COMM_SIZE(MPI_COMM_TIME, n_cpu_time, ierr)
 
+        call init_pfasst_comm(my_rank_time, n_cpu_time, MPI_COMM_TIME)
         !write(*,*) my_rank, n_cpu, my_rank_space, n_cpu_space, my_rank_time, n_cpu_time
         !call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
 

@@ -17,7 +17,7 @@ program pepcv
   use files
   use diagnostics
   use module_interaction_specific, only: theta2
-  use pfasst_parameters_module
+  use pfasst_module
   implicit none
 
   integer :: i
@@ -42,6 +42,8 @@ program pepcv
   call special_start()
 
   call pepc_prepare(3)
+
+  call init_pfasst(np)
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -114,6 +116,8 @@ program pepcv
   ! deallocate array space for particles
   call cleanup()
   
+  call finish_pfasst()
+
   ! Tidy up O/P files
   call closefiles
 
