@@ -53,7 +53,7 @@ contains
     subroutine init_communication()
 
         use module_pepc
-        use pfasst_module
+        use pfasst_helper_module
 
         implicit none
         include 'mpif.h'

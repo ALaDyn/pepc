@@ -17,7 +17,8 @@ program pepcv
   use files
   use diagnostics
   use module_interaction_specific, only: theta2
-  use pfasst_module
+  use pfasst_helper_module
+  use pfasst_calc_module
   implicit none
 
   integer :: i
@@ -29,7 +30,7 @@ program pepcv
 
   call init_communication()
 
-  call pepc_initialize("pepc-v" ,my_rank_space, n_cpu_space, .false., comm=MPI_COMM_SPACE)
+  call pepc_initialize("pepc-v" ,my_rank_space, n_cpu_space, .false., 0, comm=MPI_COMM_SPACE)
   call pepc_read_parameters_from_first_argument()
 
   ! Set up O/P files
@@ -44,6 +45,8 @@ program pepcv
   call pepc_prepare(3)
 
   call init_pfasst(np)
+
+  call pepc_to_pfasst(vortex_particles,np, y0)
 
   ! Loop over all timesteps
   do while (itime < nt)

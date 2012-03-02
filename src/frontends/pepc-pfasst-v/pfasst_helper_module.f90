@@ -1,4 +1,4 @@
-module pfasst_module
+module pfasst_helper_module
 
   implicit none
 
@@ -220,6 +220,64 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  subroutine pepc_to_pfasst(particles, np, arr)
+
+    use module_pepc_types
+    implicit none
+
+    integer, intent(in) :: np
+    type(t_particle), intent(in) :: particles(np)
+    real(kind=8), intent(out) :: arr(np*pepc_to_pfasst_attributes)
+
+    integer :: counter, i
+
+    counter = 1
+    do i = 1,np
+
+       arr(counter+0) = particles(i)%results%u(1)
+       arr(counter+1) = particles(i)%results%u(2)
+       arr(counter+2) = particles(i)%results%u(3)
+       arr(counter+3) = particles(i)%results%af(1)
+       arr(counter+4) = particles(i)%results%af(2)
+       arr(counter+5) = particles(i)%results%af(3)
+
+       counter = counter + 6
+
+    end do
+
+  end subroutine pepc_to_pfasst
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine pfasst_to_pepc(particles, np, arr)
+
+    use module_pepc_types
+    implicit none
+
+    integer, intent(in) :: np
+    type(t_particle), intent(out) :: particles(np)
+    real(kind=8), intent(in) :: arr(np*pepc_to_pfasst_attributes)
+
+    integer :: counter, i
+
+    counter = 1
+    do i = 1,np
+
+       particles(i)%x(1) = arr(counter+0)
+       particles(i)%x(2) = arr(counter+1)
+       particles(i)%x(3) = arr(counter+2)
+       particles(i)%data%alpha(1) = arr(counter+3)
+       particles(i)%data%alpha(2) = arr(counter+4)
+       particles(i)%data%alpha(3) = arr(counter+5)
+
+       counter = counter + 6
+
+    end do
+
+  end subroutine pfasst_to_pepc
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine receive(y, nvar, dest, tag)
     implicit none
     include 'mpif.h'
@@ -438,4 +496,11 @@ contains
 
   end subroutine quadrature_close
 
-end module pfasst_module
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!  subroutine init_feval(filename)
+!    implicit none
+!    character(len=*), intent(in) :: filename
+! end subroutine init_feval
+
+end module pfasst_helper_module
