@@ -160,15 +160,32 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine init_pfasst(np)
+  subroutine init_pfasst(particles,np)
+    use module_pepc_types
     implicit none
 
     integer, intent(in) :: np
-    integer :: nvars
+    type(t_particle), intent(in) :: particles(1:np)
+    integer :: nvars, i, counter
 
     nvars = pepc_to_pfasst_attributes*np
 
     allocate(y0(nvars))
+
+    counter = 1
+    do i = 1,np
+
+       y0(counter+0) = particles(i)%x(1)
+       y0(counter+1) = particles(i)%x(2)
+       y0(counter+2) = particles(i)%x(3)
+       y0(counter+3) = particles(i)%data%alpha(1)
+       y0(counter+4) = particles(i)%data%alpha(2)
+       y0(counter+5) = particles(i)%data%alpha(3)
+
+       counter = counter + 6
+
+    end do
+
 
     NvarF = nvars
     NvarG = nvars

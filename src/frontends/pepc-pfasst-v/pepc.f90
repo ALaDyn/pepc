@@ -45,9 +45,7 @@ program pepcv
 
   call pepc_prepare(3)
 
-  call init_pfasst(np)
-
-  call pepc_to_pfasst(vortex_particles,np, y0)
+  call init_pfasst(vortex_particles(1:np),np)
 
   call run_parallel(y0, 1.0D00*dt, 1.0D00*te)
 

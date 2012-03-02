@@ -30,9 +30,11 @@ contains
     do i = 1, nblock
 
        step = my_rank_pfasst + (i-1)*num_space_instances
+
        t0   = step * Dt
 
        y0newF = y0F
+
        call restrict(y0F, y0G, NvarF, NvarG, 1)
        y0newG = y0G
 
@@ -42,7 +44,6 @@ contains
        fSDC_F(:,:,1) = spread(fF, DIM=2, NCOPIES=nnodesF)
        call eval_f2(y0F, t0, NvarF, 1, fF)
        fSDC_F(:,:,2) = spread(fF, DIM=2, NCOPIES=nnodesF)
-
 
        !!!! predictor loop
 
@@ -78,6 +79,7 @@ contains
        !!!! pfasst iterations
 
        do k = 1, Niter
+
           call start_timer(TITERATION)
 
           ! interpolate G to F
