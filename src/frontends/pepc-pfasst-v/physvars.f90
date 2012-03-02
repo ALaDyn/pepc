@@ -96,8 +96,12 @@ contains
         call MPI_COMM_SIZE(MPI_COMM_TIME, n_cpu_time, ierr)
 
         call init_pfasst_comm(my_rank_time, n_cpu_time, MPI_COMM_TIME)
-        !write(*,*) my_rank, n_cpu, my_rank_space, n_cpu_space, my_rank_time, n_cpu_time
-        !call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+
+        if (my_rank_space == 0) then
+            echo_timings = 1
+        else
+            echo_timings = 0
+        end if
 
     end subroutine init_communication
 

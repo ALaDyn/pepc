@@ -17,7 +17,7 @@
  ts = 0.
  te = 50.
 
- dump_time = 0
+ dump_time = 1
  cp_time = 0
 /
 
@@ -43,4 +43,9 @@
   
 /
 
+&pfasst
 
+ num_space_instances = 1
+ niter = 4
+
+/

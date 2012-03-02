@@ -70,10 +70,11 @@ module pfasst_helper_module
        TRECEIVE     = 8, &
        TSEND        = 9, &
        TIO          = 10,&
-       MAXTIMERS    = 11
+       TINITIAL     = 11,&
+       MAXTIMERS    = 12
 
 
-  character(len=14), parameter :: timer_names(10) = (/ &
+  character(len=14), parameter :: timer_names(11) = (/ &
        'total      ', &
        'predictor  ', &
        'iteration  ', &
@@ -83,7 +84,8 @@ module pfasst_helper_module
        'restrict   ', &
        'receive    ', &
        'send       ', &
-       'io         '/)
+       'io         ',&
+       'initial    ' /)
 
   real(kind=8), save :: timers(MAXTIMERS)   = 0.0
   real(kind=8), save :: runtimes(MAXTIMERS) = 0.0
@@ -512,6 +514,26 @@ contains
     deallocate(InterpMat)
 
   end subroutine quadrature_close
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine compute_residual(y0, Dt, fSDC, yend, res)
+
+    implicit none
+
+    real(kind=8), intent(in)  :: Dt
+    real(kind=8), intent(in)  :: y0(NvarF), yend(NvarF)
+    real(kind=8), intent(in)  :: fSDC(NvarF,NnodesF,2)
+    real(kind=8), intent(out) :: res
+
+    real(kind=8) :: Irhs(NvarF,1:NnodesF-1), Itot(NvarF)
+
+    Irhs = Dt*(matmul(fSDC(:,:,1) + fSDC(:,:,2), transpose(SmatF)))
+    Itot = sum(Irhs, dim=2)
+
+    res = maxval(abs(y0 + Itot - yend))
+
+  end subroutine compute_residual
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
