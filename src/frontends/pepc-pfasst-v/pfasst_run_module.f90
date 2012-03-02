@@ -143,8 +143,9 @@ contains
        do k = 1, my_rank_pfasst + 1
 
           ! get new initial value (skip on first iteration)
-          if (k > 1) &
+          if (k > 1) then
                call receive(y0newG, NvarG, my_rank_pfasst-1, k-1)
+          end if
 
           ! sweep with new initial value
           do j = 1, num_coarse_sweeps
@@ -159,6 +160,7 @@ contains
           yendG = ySDC_G(:,NnodesG)
 
           call send(yendG, NvarG, my_rank_pfasst+1, k)
+
           !call echo_error(y0newG, t0, delta_t, yendG, NvarG, step, -k)
        end do
        call end_timer(TPREDICTOR,echo_timings=echo_timings)
