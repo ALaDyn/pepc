@@ -23,7 +23,7 @@ module pfasst_helper_module
                                    ! -2: serial run, using Runge-Kutta-3 instead of SDC
        echo_timings      = 0, &    ! echo timings if non-zero
        echo_errors       = 0, &    ! echo errors if non-zero
-       num_coarse_sweeps = 3, &    ! number of coarse SDC sweeps to perform
+       num_coarse_sweeps = 1, &    ! number of coarse SDC sweeps to perform
        num_fine_sweeps   = 1, &    ! number of fine SDC sweeps to perform
        use_coarse_nodes  = 0, &    ! use "coarse" nodes fine level?
        use_fas = 1                 ! apply fas corrections?
