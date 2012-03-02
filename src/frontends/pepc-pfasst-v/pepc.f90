@@ -19,6 +19,7 @@ program pepcv
   use module_interaction_specific, only: theta2
   use pfasst_helper_module
   use pfasst_calc_module
+  use pfasst_run_module
   implicit none
 
   integer :: i
@@ -48,73 +49,75 @@ program pepcv
 
   call pepc_to_pfasst(vortex_particles,np, y0)
 
+  call run_parallel(y0, 1.0D00*dt, 1.0D00*te)
+
   ! Loop over all timesteps
-  do while (itime < nt)
-
-     itime = itime + 1
-     !if (my_rank==0 ) write(*,'(a5,i8,a3,i8,a7,i8,a)') 'Step',itime,' of',nt,', using',n,' particles -------------'
-     
-     ! Runge-Kutta time integration
-     do stage = 1,rk_stages
-
-        !if (my_rank == 0) write(*,*) 'Time:',trun,'/',te
-
-        call timer_start(t_tot)
-
-        call pepc_particleresults_clear(vortex_particles, np)
-
-        call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .false.)
-
-        do i=1,np
-          vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
-          vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
-          vortex_particles(i)%results%div     = vortex_particles(i)%results%div * force_const
-        end do
-
-        call push_rk2(stage)
-
-        if (stage .lt. rk_stages) then
-            call timer_stop(t_tot)   ! total loop time without diags
-            call timings_LocalOutput(itime,stage)
-            call timings_GatherAndOutput(itime,stage)
-        end if
-
-        flush(6)
-
-        trun  = trun  + dt/rk_stages
-
-     end do
-
-     ! dump, if needed (need to do this before remeshing or we will loose velocity information)
-     call dump(itime, trun)
-
-     ! if remeshing is requested at all and if it is time right now, do it!
-     if ((rem_freq .gt. 0) .and. (mod(itime,rem_freq)==0)) then
-
-        !if (my_rank==0) write(*,'("PEPC-V | ", a)') 'Starting remeshing...'
-        call timer_start(t_remesh)
-
-        call remeshing()
-
-        call timer_stop(t_remesh)
-        !if (my_rank==0) write(*,'("PEPC-V | ", a,f12.8,a)') 'Finished remeshing after ',timer_read(t_remesh),' seconds'
-        t_flag = -rk_stages
-
-     else
-
-        t_flag = rk_stages
-
-     end if
-
-     call timer_stop(t_tot)   ! total loop time incl. remeshing if requested
-     call timings_LocalOutput(itime,t_flag)
-     call timings_GatherAndOutput(itime,t_flag)
-
-     ! Some linear diagnostics
-     call linear_diagnostics(itime,trun)
-     call divergence_diag(itime,trun)
-
-  end do
+!  do while (itime < nt)
+!
+!     itime = itime + 1
+!     !if (my_rank==0 ) write(*,'(a5,i8,a3,i8,a7,i8,a)') 'Step',itime,' of',nt,', using',n,' particles -------------'
+!
+!     ! Runge-Kutta time integration
+!     do stage = 1,rk_stages
+!
+!        !if (my_rank == 0) write(*,*) 'Time:',trun,'/',te
+!
+!        call timer_start(t_tot)
+!
+!        call pepc_particleresults_clear(vortex_particles, np)
+!
+!        call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .false.)
+!
+!        do i=1,np
+!          vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
+!          vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
+!          vortex_particles(i)%results%div     = vortex_particles(i)%results%div * force_const
+!        end do
+!
+!        call push_rk2(stage)
+!
+!        if (stage .lt. rk_stages) then
+!            call timer_stop(t_tot)   ! total loop time without diags
+!            call timings_LocalOutput(itime,stage)
+!            call timings_GatherAndOutput(itime,stage)
+!        end if
+!
+!        flush(6)
+!
+!        trun  = trun  + dt/rk_stages
+!
+!     end do
+!
+!     ! dump, if needed (need to do this before remeshing or we will loose velocity information)
+!     call dump(itime, trun)
+!
+!     ! if remeshing is requested at all and if it is time right now, do it!
+!     if ((rem_freq .gt. 0) .and. (mod(itime,rem_freq)==0)) then
+!
+!        !if (my_rank==0) write(*,'("PEPC-V | ", a)') 'Starting remeshing...'
+!        call timer_start(t_remesh)
+!
+!        call remeshing()
+!
+!        call timer_stop(t_remesh)
+!        !if (my_rank==0) write(*,'("PEPC-V | ", a,f12.8,a)') 'Finished remeshing after ',timer_read(t_remesh),' seconds'
+!        t_flag = -rk_stages
+!
+!     else
+!
+!        t_flag = rk_stages
+!
+!     end if
+!
+!     call timer_stop(t_tot)   ! total loop time incl. remeshing if requested
+!     call timings_LocalOutput(itime,t_flag)
+!     call timings_GatherAndOutput(itime,t_flag)
+!
+!     ! Some linear diagnostics
+!     call linear_diagnostics(itime,trun)
+!     call divergence_diag(itime,trun)
+!
+!  end do
 
   ! deallocate array space for particles
   call cleanup()
