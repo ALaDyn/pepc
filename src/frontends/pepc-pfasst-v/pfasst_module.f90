@@ -88,8 +88,40 @@ module pfasst_module
   real(kind=8), save :: timers(MAXTIMERS)   = 0.0
   real(kind=8), save :: runtimes(MAXTIMERS) = 0.0
 
+  real(8), allocatable, save :: qnodesF(:)
+  real(8), allocatable, save :: qnodesG(:)
+  real(8), allocatable, save :: SmatF(:,:)       ! F Integration table
+  real(8), allocatable, save :: SmatG(:,:)       ! G Integration table
+  real(8), allocatable, save :: StilLF(:,:)      ! F Approx Integration table
+  real(8), allocatable, save :: StilLG(:,:)      ! G Approx Integration table
+  real(8), allocatable, save :: StilnoLF(:,:)    ! F Approx Integration table
+  real(8), allocatable, save :: StilnoLG(:,:)    ! G Approx Integration table
+  real(8), allocatable, save :: dtfac_sdcF(:)
+  real(8), allocatable, save :: dtfac_sdcG(:)
+  real(8), allocatable, save :: InterpMat(:,:)    ! Interpolates G to F
+
   integer, parameter :: pepc_to_pfasst_attributes = 6
   real(kind=8), allocatable :: y0(:)
+
+  ! solutions (flattened)
+  real(kind=8), save, allocatable, dimension(:) :: &
+       y0F, &                   !  Fine initial condition
+       y0G, &                   !  Coarse initial condition
+       y0newF, &                !  Parareal initial condition
+       y0newG, &                !  Parareal initial condition
+       yendG, &                 !  Coarse value to be sent forward
+       yendF                    !  Fine value to be sent forward
+
+  ! sdc, indexed by: (i, sdc node)
+  real(kind=8), save, allocatable, dimension(:,:) :: &
+       ySDC_F, &                !  All y on fine nodes
+       ySDC_G, &                !  All y on coarse nodes
+       tau_G                    !  Correction
+
+  ! imex sdc, indexed by (i, sdc node, implicit/explicit)
+  real(kind=8), save, allocatable, dimension(:,:,:) :: &
+       fSDC_F, &                !  All function values (fine)
+       fSDC_G                   !  All function values (coarse)
 
 contains
 
@@ -112,6 +144,7 @@ contains
 
   end subroutine init_pfasst_parameters
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine init_pfasst_comm(rank, nprocs, comm)
     implicit none
@@ -125,25 +158,67 @@ contains
 
   end subroutine init_pfasst_comm
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine init_pfasst(np)
     implicit none
 
     integer, intent(in) :: np
+    integer :: nvars
 
-    allocate(y0(pepc_to_pfasst_attributes*np))
+    nvars = pepc_to_pfasst_attributes*np
 
+    allocate(y0(nvars))
+
+    NvarF = nvars
+    NvarG = nvars
+    NnodesF = 5
+    NnodesG = 3
+
+    call init_quadrature()
+
+    if ((n_cpu_pfasst == 1) .and. (parallel == 1)) then
+       parallel = 0
+    end if
+
+    !  Allocate
+    allocate(y0F(NvarF))
+    allocate(y0newF(NvarF))
+    allocate(yendF(NvarF))
+
+    allocate(ySDC_F(NvarF,NnodesF))
+    allocate(fSDC_F(NvarF,NnodesF,2))
+
+    if (parallel > 0) then
+       allocate(y0G(NvarG))
+       allocate(y0newG(NvarG))
+       allocate(yendG(NvarG))
+
+       allocate(ySDC_G(NvarG,NnodesG))
+       allocate(fSDC_G(NvarG,NnodesG,2))
+       allocate(tau_G(NvarG,NnodesG-1))
+    end if
 
   end subroutine init_pfasst
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine finish_pfasst()
     implicit none
+
+    deallocate(y0F, y0newF, yendF, ySDC_F, fSDC_F)
+
+    if (parallel > 0) then
+        deallocate( y0G, y0newG, yendG, ySDC_G, fSDC_G, tau_G)
+    end if
+
+    call quadrature_close()
 
     deallocate(y0)
 
   end subroutine finish_pfasst
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine receive(y, nvar, dest, tag)
     implicit none
@@ -158,6 +233,7 @@ contains
 
   end subroutine receive
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine send(y, nvar, dest, tag)
     implicit none
@@ -172,6 +248,8 @@ contains
 
   end subroutine send
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine broadcast(y, nvar, root)
     implicit none
     include 'mpif.h'
@@ -184,6 +262,8 @@ contains
 
   end subroutine broadcast
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine barrier()
     implicit none
     include 'mpif.h'
@@ -194,6 +274,8 @@ contains
 
   end subroutine barrier
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine start_timer(timer)
     implicit none
     include 'mpif.h'
@@ -203,6 +285,8 @@ contains
     timers(timer) = mpi_wtime()
 
   end subroutine start_timer
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine end_timer(timer, iteration_in, echo_timings)
     implicit none
@@ -225,5 +309,133 @@ contains
     end if
 
   end subroutine end_timer
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine init_quadrature()
+
+    use quadrature_smat
+
+    implicit none
+
+    integer :: k, kk, j, m, Ndiff
+    real(8) :: den, num, trat
+
+    allocate(qnodesF(1:NnodesF))
+    allocate(qnodesG(1:NnodesG))
+
+    allocate(SmatF(1:NnodesF-1,1:NnodesF))
+    allocate(SmatG(1:NnodesG-1,1:NnodesG))
+
+    allocate(StilLF(1:NnodesF-1,1:NnodesF))
+    allocate(StilLG(1:NnodesG-1,1:NnodesG))
+    allocate(StilnoLF(1:NnodesF-1,1:NnodesF))
+    allocate(StilnoLG(1:NnodesG-1,1:NnodesG))
+
+    allocate(dtfac_sdcF(1:NnodesF-1))
+    allocate(dtfac_sdcG(1:NnodesG-1))
+
+    Ndiff = NnodesF-NnodesG
+    if (Ndiff > 0) then
+       allocate(InterpMat(1:Ndiff,1:NnodesG))
+    else
+       allocate(InterpMat(1,1:NnodesG))
+    end if
+
+    !  Nodes and integration matrices
+    select case (Nodes)
+    case (1)                    ! GL
+
+       if (use_coarse_nodes == 1) then
+          call sdcquadGL(NnodesF, 2, SmatF, qnodesF)
+       else
+          call sdcquadGL(NnodesF, 1, SmatF, qnodesF)
+          call sdcquadGL(NnodesF, 2, SmatG, qnodesG)
+       end if
+
+    case (2)                    ! CC
+
+       if (use_coarse_nodes == 1) then
+          call sdcquadCC(NnodesF, 2, SmatF, qnodesF)
+       else
+          call sdcquadCC(NnodesF, 1, SmatF, qnodesF)
+          call sdcquadCC(NnodesF, 2, SmatG, qnodesG)
+       end if
+
+    case (3)
+
+       if (use_coarse_nodes == 1) then
+          call sdcquadGR(NnodesF, 2, SmatF, qnodesF)
+       else
+          call sdcquadGR(NnodesF, 1, SmatF, qnodesF)
+          call sdcquadGR(NnodesF, 2, SmatG, qnodesG)
+       end if
+
+    case default
+       print *, 'Bad case in quadrature_init, Nodes=', Nodes
+
+    end select
+
+    !  Make the Stil matrices
+    dtfac_sdcF = qnodesF(2:NnodesF)-qnodesF(1:NnodesF-1)
+    dtfac_sdcG = qnodesG(2:NnodesG)-qnodesG(1:NnodesG-1)
+
+    StilLG = 0.0d0
+    StilnoLG = 0.0d0
+    do m = 1,NnodesG-1
+       StilLG(m,m)=dtfac_sdcG(m)
+       StilnoLG(m,m+1)=dtfac_sdcG(m)
+    end do
+
+    StilLF = 0.0d0
+    StilnoLF = 0.0d0
+    do m = 1,NnodesF-1
+       StilLF(m,m)=dtfac_sdcF(m)
+       StilnoLF(m,m+1)=dtfac_sdcF(m)
+    end do
+
+    ! Make an interpolation matrix
+    ! XXX: there are more loops than necessary here...
+    InterpMat=0.0d0
+    trat = (NnodesF-1)/(NnodesG-1)
+    if (trat == 2) then
+       do j = 1,NnodesG
+          den = 1.0d0
+          do k = 1,NnodesG
+             if (j /= k) then
+                den = den*(qnodesG(j)-qnodesG(k))
+             end if
+             do  m = 1,Ndiff
+                num = 1.0d0
+                do kk = 1,NnodesG
+                   if (j /= kk) then
+                      num = num*(qnodesF(2*m)-qnodesG(kk))
+                   end if
+                end do
+                InterpMat(m,j)=num/den
+             end do
+          end do
+       end do
+    end if
+
+  end subroutine init_quadrature
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine quadrature_close()
+
+    deallocate(dtfac_sdcF)
+    deallocate(dtfac_sdcG)
+    deallocate(SmatF)
+    deallocate(SmatG)
+    deallocate(StilLF)
+    deallocate(StilnoLF)
+    deallocate(StilLG)
+    deallocate(StilnoLG)
+    deallocate(qnodesF)
+    deallocate(qnodesG)
+    deallocate(InterpMat)
+
+  end subroutine quadrature_close
 
 end module pfasst_module
