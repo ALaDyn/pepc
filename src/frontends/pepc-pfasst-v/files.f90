@@ -166,7 +166,7 @@ module files
             vtk_step = VTK_STEP_NORMAL
         endif
 
-        call vtk%create_parallel("particles", step, my_rank_space, n_cpu_space, 0.1D01*time, vtk_step)
+        call vtk%create_parallel("particles", step, my_rank_space, n_cpu_space, 0.1D01*time, vtk_step, MPI_COMM_SPACE)
         call vtk%write_headers(np,0)
         call vtk%startpoints()
             call vtk%write_data_array("xyz", np, vortex_particles(1:np)%x(1), vortex_particles(1:np)%x(2), vortex_particles(1:np)%x(3))

@@ -159,7 +159,7 @@ module module_vtk
       end subroutine vtkfile_create
 
 
-      subroutine vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
+      subroutine vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_, comm_)
         use module_utils
         implicit none
         include 'mpif.h'
@@ -170,12 +170,19 @@ module module_vtk
         real*8 :: simtime_
         integer :: my_rank_, num_pe_, step_
         integer :: vtk_step_
+        integer, optional :: comm_
 
         vtk%num_pe   = max(num_pe_, 1)
         vtk%my_rank  = my_rank_
         vtk%simtime  = simtime_
         vtk%vtk_step = vtk_step_
-        vtk%communicator = MPI_COMM_WORLD
+
+        if (present(comm_)) then
+            vtk%communicator = comm_
+        else
+            vtk%communicator = MPI_COMM_WORLD
+        end if
+
         write(vtk%filename, '(a, "_", I6.6)') filename_, step_
 
         write(tmp,'(I6.6)') vtk%my_rank
@@ -637,16 +644,17 @@ module module_vtk
      end subroutine vtkfile_unstructured_grid_create
 
 
-     subroutine vtkfile_unstructured_grid_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
+     subroutine vtkfile_unstructured_grid_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_, comm_)
         implicit none
         class(vtkfile_unstructured_grid) :: vtk
         character(*) :: filename_
         real*8 :: simtime_
         integer :: my_rank_, num_pe_, step_
         integer :: vtk_step_
+        integer, optional :: comm_
 
         vtk%filesuffix = 'vtu'
-        call vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
+        call vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_, comm_)
 
      end subroutine vtkfile_unstructured_grid_create_parallel
 
@@ -760,16 +768,17 @@ module module_vtk
      end subroutine vtkfile_rectilinear_grid_create
 
 
-     subroutine vtkfile_rectilinear_grid_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
+     subroutine vtkfile_rectilinear_grid_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_, comm_)
         implicit none
         class(vtkfile_rectilinear_grid) :: vtk
         character(*) :: filename_
         real*8 :: simtime_
         integer :: my_rank_, num_pe_, step_
         integer :: vtk_step_
+        integer, optional :: comm_
 
         vtk%filesuffix = 'vtr'
-        call vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_)
+        call vtkfile_create_parallel(vtk, filename_, step_, my_rank_, num_pe_, simtime_, vtk_step_, comm_)
 
      end subroutine vtkfile_rectilinear_grid_create_parallel
 
