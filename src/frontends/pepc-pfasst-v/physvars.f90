@@ -74,7 +74,7 @@ contains
 
         num_space_instances = 1
 
-        call init_pfasst_parameters(my_rank_time, MPI_COMM_WORLD)
+        call init_pfasst_parameters(my_rank, MPI_COMM_WORLD)
 
         if (mod(n_cpu,num_space_instances) .ne. 0) then
             if (my_rank == 0) write(*,*) "Well, this is not going to work, num_space_instances must be a factor of n_cpu."

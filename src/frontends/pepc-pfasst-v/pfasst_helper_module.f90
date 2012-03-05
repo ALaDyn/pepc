@@ -6,8 +6,8 @@ module pfasst_helper_module
        NvarF = -1, &           ! number of fine variables in system
        NvarG = -1, &           ! number of coarse variables in system
        Nodes = 1, &            ! type of nodes: 1 GL, 2: CC
-       NnodesF = -1, &         ! number of fine time nodes
-       NnodesG = -1, &         ! number of coarse time nodes
+       NnodesF = 5, &          ! number of fine time nodes
+       NnodesG = 3, &          ! number of coarse time nodes
        Niter = 7               ! number of pfasst iterations
   integer :: num_space_instances
 
@@ -191,8 +191,6 @@ contains
 
     NvarF = nvars
     NvarG = nvars
-    NnodesF = 5
-    NnodesG = 3
 
     call init_quadrature()
 

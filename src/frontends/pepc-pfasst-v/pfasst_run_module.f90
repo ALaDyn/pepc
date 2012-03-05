@@ -26,6 +26,8 @@ contains
     do i = 1, int(ceiling(tend/delta_t))
 
        !step = my_rank_pfasst + (i-1)*Nproc
+       call start_timer(TIO)
+
        step = i-1
        t0   = step * delta_t
 
@@ -78,6 +80,8 @@ contains
        end do
 
        y0F = yendF
+
+       call end_timer(TIO, step, echo_timings=echo_timings)
 
        call dump(step,real(t0))
     end do
