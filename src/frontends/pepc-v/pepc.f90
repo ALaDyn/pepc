@@ -59,7 +59,7 @@ program pepcv
         call pepc_particleresults_clear(vortex_particles, np)
 
         if (theta2 .gt. 0.0) then
-            call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .true.)
+            call pepc_grow_and_traverse(np, n, vortex_particles, itime, .false., .false.)
         else
             call direct_sum(np, vortex_particles, vortex_particles%results, my_rank, n_cpu)
         end if
@@ -70,7 +70,7 @@ program pepcv
           vortex_particles(i)%results%div     = vortex_particles(i)%results%div * force_const
         end do
 
-        call verify_direct()
+        !call verify_direct()
 
         !if (stage == rk_stages)  call dump(itime, trun)
 
@@ -118,6 +118,8 @@ program pepcv
      call divergence_diag(itime,trun)
 
   end do
+
+  call dump_results()
 
   ! deallocate array space for particles
   call cleanup(my_rank,n_cpu)

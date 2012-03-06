@@ -55,7 +55,7 @@ program pepcv
     call run_serial(y0, 1.0D00*dt, 1.0D00*te)
   end if
 
-  if (my_rank_time == 0) call dump_results()
+  if (my_rank_time == n_cpu_time-1) call dump_results()
 
   ! Loop over all timesteps
 !  do while (itime < nt)

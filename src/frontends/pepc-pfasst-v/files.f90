@@ -68,6 +68,8 @@ module files
 
         character(50) :: cfile
 
+
+
         if ((dump_time.ne.0).and.(mod(i,dump_time) == 0)) then
 
             call write_particles_to_vtk(i,simtime)

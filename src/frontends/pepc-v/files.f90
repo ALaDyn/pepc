@@ -115,6 +115,27 @@ module files
     end subroutine dump
 
 
+    subroutine dump_results()
+
+        use physvars
+        implicit none
+
+        integer :: i
+        character(50) :: resfile
+
+        write(resfile,'(a,i6.6,a)') "part_data/results_", my_rank,".dat"
+
+        open(11,file=resfile)
+
+        do i = 1, np
+            write(11,*) my_rank, i, vortex_particles(i)%label, vortex_particles(i)%x(1:3), vortex_particles(i)%data%alpha(1:3)
+        end do
+
+        close(11)
+
+    end subroutine dump_results
+
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !>   Read in data from MPI checkpoint file

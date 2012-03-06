@@ -162,7 +162,7 @@ contains
 
         ! Setup time variables
         trun = ts+itime*dt
-        nt = int((te-ts)/dt) ! Number of timesteps
+        nt = ceiling((te-ts)/dt) ! Number of timesteps
         rk_stages = 2   ! TODO: inflexible RK time integration scheme, hard-wired so far
 
         allocate ( vortex_particles(np) )

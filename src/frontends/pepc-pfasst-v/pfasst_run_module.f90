@@ -8,6 +8,7 @@ contains
     use pfasst_helper_module
     use pfasst_calc_module
     use pfasst_transfer_module
+    use physvars
     use files, only : dump
 
     implicit none
@@ -83,7 +84,10 @@ contains
 
        call end_timer(TIO, step, echo_timings=echo_timings)
 
+       call pfasst_to_pepc(vortex_particles(1:np), np, y0F(1:NvarF))
+
        call dump(step,real(t0))
+
     end do
 
     call end_timer(TTOTAL, echo_timings=echo_timings)
