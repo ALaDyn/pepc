@@ -10,6 +10,7 @@ contains
   subroutine eval_f1(y, t, Nvar, level, f1)
 
     use physvars
+    use module_interaction_specific
     use module_pepc
     use pfasst_helper_module
     implicit none
@@ -22,6 +23,8 @@ contains
 
     ! reshape y to vortex_particles
     call pfasst_to_pepc(vortex_particles(1:np), np, y(1:Nvar))
+
+    call pepc_particleresults_clear(vortex_particles, np)
 
     call pepc_grow_and_traverse(np, n, vortex_particles, 1, .false., .false.)
 
