@@ -95,7 +95,8 @@ module module_libpepc_main
         nppmax = int(1.25 * max(npart/num_pe,1000)) ! allow 25% fluctuation around average particle number per PE in sorting library for load balancing
 
         if (nppmax .lt. np_local) then
-            DEBUG_ERROR(*, 'uh, oh, that is too bad, but nppmax=',nppmax, 'is smaller than np_local=',np_local,' - see ticket no. 10')
+            DEBUG_WARNING_ALL(*, 'nppmax=',nppmax, 'is smaller than np_local=',np_local,' - fixing and continuing. This could lead to load balancing issues. See ticket no. 10')
+            nppmax = max(nppmax, np_local)
          end if
 
         ! fields for sorting library results, we have to deallocate them in case someone did not call restore()
