@@ -262,7 +262,7 @@ module helper
 
         p(ip)%results%e   = 0.0_8
         p(ip)%results%pot = 0.0_8
-        p(ip)%work        = 0
+        p(ip)%work        = 1.0_8
       
       end do
     
