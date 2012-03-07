@@ -528,7 +528,7 @@ module module_walk
       integer*8 :: key
     end type t_defer_list_entry
     
-    namelist /walk_para_pthreads/ num_walk_threads, max_particles_per_thread, defer_list_length_factor
+    namelist /walk_para_pthreads/ num_walk_threads, max_particles_per_thread
 
     public tree_walk
     public tree_walk_finalize
@@ -665,7 +665,7 @@ module module_walk
       ! length of todo- and defer-list per particle (estimations)
       todo_list_length  = max(nintmax, 10)
 
-      defer_list_length = max(todo_list_length * defer_list_length_factor / 8, 50)
+      defer_list_length = todo_list_length
 
       ! pure local walk time (i.e. from start of communicator till sned_walk_finished)
       twalk_loc => twalk_loc_
@@ -1108,7 +1108,7 @@ module module_walk
        integer :: i
 
        if (todo_list_entries + numkeys >= todo_list_length) then
-         DEBUG_ERROR('("todo_list is full for particle ", I20, " todo_list_length =", I6, " is too small (you should increase nintmax)")', myidx, todo_list_length)
+         DEBUG_ERROR('("todo_list is full for particle ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor)")', myidx, todo_list_length)
        endif
 
        do i=1,numkeys
@@ -1125,7 +1125,7 @@ module module_walk
        integer*8, intent(in) :: key_
 
        if (defer_list_entries == defer_list_length) then
-         DEBUG_ERROR('("defer_list is full for particle ", I20, " defer_list_length =", I6, " is too small (you should increase nintmax)")', myidx, defer_list_length)
+         DEBUG_ERROR('("defer_list is full for particle ", I20, " defer_list_length =", I6, " is too small (you should increase interaction_list_length_factor)")', myidx, defer_list_length)
        else
          defer_list(defer_list_entries, myidx) = t_defer_list_entry(addr_, key_)
          defer_list_entries                    = defer_list_entries + 1

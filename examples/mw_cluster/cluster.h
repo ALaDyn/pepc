@@ -57,11 +57,11 @@ workflow_setup = 3
 ! determies the particle dump interval
 ! 0: never write anything
 ! n: each n-th step, plus first and last step
- idump = 0
+ idump = 10
 ! dito for vtk, binary and checkpoint-output
  idump_vtk = 1000
- idump_binary = 0
- idump_checkpoint = 0
+ idump_binary = 10
+ idump_checkpoint = 10
 /
 
 &calc_force_coulomb
@@ -74,12 +74,12 @@ workflow_setup = 3
 /
 
 &libpepc
- debug_level = 0
+ debug_level = 1
+ interaction_list_length_factor = 2
 /
 
 &walk_para_pthreads
  num_walk_threads         = 4
  max_particles_per_thread = 2000
- defer_list_length_factor = 8
 /
 

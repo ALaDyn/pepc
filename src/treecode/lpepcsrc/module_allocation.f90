@@ -57,6 +57,7 @@ module module_allocation
         call pepc_status('ALLOCATE TREE')
 
         call get_number_of_interactions_per_particle(npart, nintmax)
+        nintmax = interaction_list_length_factor * nintmax
 
         !  Space for # table and tree arrays
         !  TODO: need good estimate for max # branches

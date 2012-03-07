@@ -52,6 +52,8 @@ eps2 = 1e-4
 
 ! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
  curve_type = 1
+ 
+ interaction_list_length_factor = 30
 /
 
 &walk_para_smpss 
@@ -63,6 +65,5 @@ chunk_size_default = 21
 &walk_para_pthreads
  num_walk_threads = 11
  max_particles_per_thread = 100
- defer_list_length_factor = 4
 /
 

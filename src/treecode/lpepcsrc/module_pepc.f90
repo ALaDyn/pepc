@@ -6,7 +6,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pepc
     use module_debug, only : debug_level
-    use treevars, only : np_mult
+    use treevars, only : np_mult, interaction_list_length_factor
     use module_spacefilling, only : curve_type
     use module_domains, only : weighted
     implicit none
@@ -55,7 +55,7 @@ module module_pepc
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     logical :: pepc_initializes_mpi !< is set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
-    namelist /libpepc/ debug_level, np_mult, curve_type, weighted
+    namelist /libpepc/ debug_level, np_mult, curve_type, weighted, interaction_list_length_factor
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -246,7 +246,6 @@ module module_interaction_specific
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
-        use treevars, only : defer_list_length_factor
         implicit none
 
         integer, intent(in) :: npart_total !< total number of particles
@@ -257,7 +256,7 @@ module module_interaction_specific
         ! Estimate of interaction list length - Hernquist expression
         ! applies for BH-MAC
         invnintmax = max(theta2 / (35.*log(1.*npart_total)) , 1._8/npart_total)
-        nintmax    = defer_list_length_factor*int(1._8/invnintmax)
+        nintmax    = int(1._8/invnintmax)
 
       end subroutine
 

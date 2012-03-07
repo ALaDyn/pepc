@@ -99,7 +99,7 @@
 
 
 &libpepc
-      np_mult=-20
+      np_mult=-300
       debug_level = 0
       
       ! Choose sorting routine and load balancing

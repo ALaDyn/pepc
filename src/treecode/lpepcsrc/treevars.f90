@@ -56,8 +56,8 @@ module treevars
   real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
 
 ! Memory control
-  real    :: np_mult=1.5
-  integer :: defer_list_length_factor = 1 !< factor for increasing defer_list_length in case of respective warning (e.g. for very inhomogeneous or 2D cases set to 2..8)
+  real    :: np_mult = 1.5
+  integer :: interaction_list_length_factor = 1 !< factor for increasing todo_list_length and defer_list_length in case of respective warning (e.g. for very inhomogeneous or 2D cases set to 2..8)
 
 
 end module treevars

@@ -45,6 +45,8 @@ eps2 = 1e-2
 
 ! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
  curve_type = 1
+
+ interaction_list_length_factor = 30
 /
 
 &walk_para_smpss 
