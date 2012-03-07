@@ -58,7 +58,7 @@ module helper
 
   ! current measurement
   real*8 :: current_q, current_I
-  real*8, parameter :: current_emission = 1.0e6_8
+  real*8, parameter :: current_emission = 1.0e4_8
   integer, parameter :: current_file_id = 14
   
   ! particle data (position, velocity, mass, charge)

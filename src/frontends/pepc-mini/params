@@ -1,13 +1,13 @@
 &pepcmini
 
 ! total number of particles
-tnp = 50000
+tnp = 12500
 
 ! number of time steps
-nt = 500
+nt = 50
 
 ! time step
-dt = 2.5e-3
+dt = 2.5e-2
 
 ! vessel voltage
 vessel_ez = 1000
@@ -37,13 +37,13 @@ force_law  = 3
 ! BH-mac
 mac_select = 0
 ! theta = 0.0
-theta2     = 0.09
+theta2     = 0.36
 ! eps squared
 eps2 = 1e-4
 /
 
 &libpepc
- debug_level = 2
+ debug_level = 0
  np_mult = -50
 
 ! Choose sorting routine and load balancing
@@ -53,7 +53,7 @@ eps2 = 1e-4
 ! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
  curve_type = 1
  
- interaction_list_length_factor = 30
+ interaction_list_length_factor = 8
 /
 
 &walk_para_smpss 
@@ -63,7 +63,7 @@ chunk_size_default = 21
 /
 
 &walk_para_pthreads
- num_walk_threads = 11
- max_particles_per_thread = 100
+ num_walk_threads = 2
+ max_particles_per_thread = 1000
 /
 
