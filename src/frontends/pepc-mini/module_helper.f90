@@ -547,7 +547,7 @@ module helper
     
     type(t_particle) :: tmp_p(oldn)
     
-    tmp_p = list
+    tmp_p(1:oldn) = list(1:oldn)
     deallocate(list)
     allocate(list(newn))
     list(1:oldn) = tmp_p
