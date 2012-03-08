@@ -650,16 +650,16 @@ contains
 
         call timer_start(t_remesh_interpol)
 
-        ! Set number of openmp threads to the same number as pthreads used in the walk
-        !$ call omp_set_num_threads(num_walk_threads)
+        !! Set number of openmp threads to the same number as pthreads used in the walk
+        !!$ call omp_set_num_threads(num_walk_threads)
 
-        ! Inform the user that openmp is used, and with how many threads
-        !$OMP PARALLEL PRIVATE(omp_thread_num)
-        !$ omp_thread_num = OMP_GET_THREAD_NUM()
-        !$ if( (my_rank_space .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
-        !$OMP END PARALLEL
+        !! Inform the user that openmp is used, and with how many threads
+        !!$OMP PARALLEL PRIVATE(omp_thread_num)
+        !!$ omp_thread_num = OMP_GET_THREAD_NUM()
+        !!$ if( (my_rank_space .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
+        !!$OMP END PARALLEL
 
-        !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(i,xt,yt,zt,xtn,ytn,ztn,axt,ayt,azt,wt,k,frac)
+        !!$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(i,xt,yt,zt,xtn,ytn,ztn,axt,ayt,azt,wt,k,frac)
         do i=1,np
             xt  = vortex_particles(i)%x(1)
             yt  = vortex_particles(i)%x(2)
@@ -697,16 +697,16 @@ contains
                 end do
             end do
         end do
-        !$OMP END PARALLEL DO
+        !!$OMP END PARALLEL DO
 
-        ! Reset the number of openmp threads to 1.
-        !$ call omp_set_num_threads(1)
+        !! Reset the number of openmp threads to 1.
+        !!$ call omp_set_num_threads(1)
 
         call timer_stop(t_remesh_interpol)
 
         if (k .ne. m_np) then
             write(*,*) 'something is wrong here: #remeshed particles not equal to prediciton', my_rank_space, k, m_np
-            call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
+            !call MPI_ABORT(MPI_COMM_SPACE,1,ierr)
         end if
 
         deallocate(vortex_particles)
@@ -803,8 +803,8 @@ contains
         integer :: npnew, npold
 
         interface
-            subroutine slsort_keys(nin,nmax,keys,workload,balance_weight,max_imbalance,nout,indxl,irnkl,scounts,rcounts,sdispls,rdispls,keys2,irnkl2,size,rank)
-                integer,intent(in) :: nin,nmax,balance_weight,size,rank
+            subroutine slsort_keys(nin,nmax,keys,workload,balance_weight,max_imbalance,nout,indxl,irnkl,scounts,rcounts,sdispls,rdispls,keys2,irnkl2,size,rank,comm)
+                integer,intent(in) :: nin,nmax,balance_weight,size,rank,comm
                 real*8,intent(in) :: max_imbalance
                 integer,intent(out) :: nout,indxl(*),irnkl(*),scounts(*),rcounts(*),sdispls(*),rdispls(*),irnkl2(*)
                 integer*8,intent(out) :: keys2(*)
@@ -916,7 +916,7 @@ contains
         local_keys(1:npold) = particles(1:npold)%key
         local_work(1:npold) = particles(1:npold)%work
 
-        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu_space, my_rank_space)
+        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu_space, my_rank_space, MPI_COMM_SPACE)
 
         ! Permute particles according to arrays from slsort
         m_np = npnew
@@ -998,7 +998,7 @@ contains
         local_keys(1:npold) = particles(1:npold)%key
         local_work(1:npold) = particles(1:npold)%work
 
-        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu_space, my_rank_space)
+        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu_space, my_rank_space, MPI_COMM_SPACE)
 
         ! Permute particles according to arrays from slsort
         m_np = npnew
