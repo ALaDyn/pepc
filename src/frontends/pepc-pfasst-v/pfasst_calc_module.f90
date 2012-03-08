@@ -33,6 +33,7 @@ contains
     use module_interaction_specific
     use module_pepc
     use pfasst_helper_module
+    use manipulate_particles
     implicit none
 
     integer,      intent(in ) :: Nvar, level
@@ -45,6 +46,8 @@ contains
     call pfasst_to_pepc(vortex_particles(1:np), np, y(1:Nvar))
 
     call pepc_particleresults_clear(vortex_particles, np)
+
+    !call direct_sum(np, vortex_particles, vortex_particles%results, my_rank_space, n_cpu_space)
 
     call pepc_grow_and_traverse(np, n, vortex_particles, 1, .false., .false.)
 

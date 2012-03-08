@@ -23,7 +23,7 @@ module pfasst_run_module
 
 contains
 
-  subroutine run_serial(y_start, delta_t, tend)
+  subroutine run_serial(y_start, delta_t, nsteps)
 
     use pfasst_helper_module
     use pfasst_calc_module
@@ -33,7 +33,8 @@ contains
 
     implicit none
 
-    real(kind=8), intent(in) :: y_start(NvarF), delta_t, tend
+    real(kind=8), intent(in) :: y_start(NvarF), delta_t
+    integer, intent(in) :: nsteps
 
     integer :: i, k, step
     real(kind=8) :: t0, res, err
@@ -43,9 +44,11 @@ contains
     y0F = y_start
     call start_timer(TTOTAL)
 
+    !write(*,*) tend, delta_t, int(tend/delta_t), int(ceiling(tend/delta_t))
 
+    !write(*,*) nsteps
     !!!! time step loop
-    do i = 1, int(ceiling(tend/delta_t))
+    do i = 1, nsteps
 
        !step = my_rank_pfasst + (i-1)*Nproc
        call start_timer(TIO)

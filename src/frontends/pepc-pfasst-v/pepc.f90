@@ -72,8 +72,10 @@ program pepcv
   if (parallel == 1) then
     call run_parallel(y0, 1.0D00*dt, 1.0D00*te)
   else
-    call run_serial(y0, 1.0D00*dt, 1.0D00*te)
+    call run_serial(y0, 1.0D00*dt, nt)
   end if
+
+  call remeshing()
 
   if (my_rank_time == n_cpu_time-1) call dump_results()
 
