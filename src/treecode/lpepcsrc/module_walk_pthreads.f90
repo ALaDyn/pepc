@@ -682,12 +682,11 @@ module module_walk
       particle_data => particles
       ! box shift vector
       vbox = vbox_
-      ! length of todo- and defer-list per particle (estimations)
-      todo_list_length  = max(nintmax, 10)
+      ! defer-list per particle (estimations) - will set total_defer_list_length = defer_list_length*my_max_particles_per_thread later
+      defer_list_length = max(nintmax, 10)
+      todo_list_length  = defer_list_length
 
-      defer_list_length = todo_list_length
-
-      ! pure local walk time (i.e. from start of communicator till sned_walk_finished)
+      ! pure local walk time (i.e. from start of communicator till send_walk_finished)
       twalk_loc => twalk_loc_
 
       twalk  = MPI_WTIME()
@@ -852,17 +851,20 @@ module module_walk
       integer, dimension(:), allocatable :: thread_particle_indices
       type(t_particle), dimension(:), allocatable :: thread_particle_data
       integer*8, dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
-      type(t_defer_list_entry), dimension(:,:), allocatable :: defer_list
-      integer, dimension(:), allocatable :: defer_list_entries
+      type(t_defer_list_entry), dimension(:), pointer :: defer_list_old,           defer_list_new, ptr_defer_list_old, ptr_defer_list_new
+      integer, dimension(:), allocatable :: defer_list_start_pos
+      integer :: defer_list_entries_new, defer_list_entries_old, total_defer_list_length
+      integer :: defer_list_new_tail
       integer :: i
       logical :: particles_available
       logical :: particles_active
-      logical :: process_particle
       type(t_threaddata), pointer :: my_threaddata
       integer :: particles_since_last_yield
       logical :: same_core_as_communicator
       integer :: my_max_particles_per_thread
       integer :: my_processor_id
+
+      type(t_defer_list_entry), dimension(1), target :: defer_list_root_only = t_defer_list_entry(1, 1_8) ! start at root node (addr, and key)
 
       my_processor_id = get_my_core()
       same_core_as_communicator = (my_processor_id == primary_processor_id)
@@ -878,87 +880,79 @@ module module_walk
 
       if (my_max_particles_per_thread > 0) then
 
+          total_defer_list_length = defer_list_length*my_max_particles_per_thread
+
           allocate(thread_particle_indices(my_max_particles_per_thread), &
                        thread_particle_data(my_max_particles_per_thread), &
-                         defer_list_entries(my_max_particles_per_thread), &
+                         defer_list_start_pos(my_max_particles_per_thread+1), &
                              partner_leaves(my_max_particles_per_thread))
-          allocate(defer_list(0:defer_list_length-1,my_max_particles_per_thread))
+          allocate(defer_list_old(1:total_defer_list_length), &
+                   defer_list_new(1:total_defer_list_length) )
 
-          ! every particle will start at the root node (one entry per todo_list, no particle is finished)
-          thread_particle_indices(:) = -1 ! no particles assigned to this thread
-          defer_list_entries         =  1 ! one entry in defer_list:
-          defer_list(0,:)            =  t_defer_list_entry(1, 1_8) !     start at root node (addr, and key)
-          partner_leaves             =  0 ! no interactions yet
-          particles_available        = .true.
-          particles_active           = .true.
-          particles_since_last_yield = 0
-
+          thread_particle_indices(:) = -1     ! no particles assigned to this thread
+          particles_available        = .true. ! but there might be particles to be picked by the thread
+          particles_since_last_yield =  0
 
           do while (particles_active .or. particles_available)
+
+            call swap_defer_lists() ! swap _old and _new - lists
+                                    ! we will always read entries from _old and write/copy entries to _new and swap again later
 
             particles_active = .false.
 
             do i=1,my_max_particles_per_thread
 
-              process_particle = (thread_particle_indices(i) .ne. -1)
+              if (process_particle(i, ptr_defer_list_old, defer_list_entries_old)) then
 
-              if ((.not. process_particle) .and. (particles_available)) then ! i.e. the place for a particle is unassigned
-                thread_particle_indices(i) = get_first_unassigned_particle(process_particle)
-    !            DEBUG_INFO(*, "PE", me, getfullid(), "thread_particle_indices(",i, ") :=", thread_particle_indices(i))
+                call do_sched_yield_if_necessary()
 
-                process_particle = (thread_particle_indices(i) .ne. -1)
+                ptr_defer_list_new      => defer_list_new(defer_list_new_tail:total_defer_list_length)
+                defer_list_start_pos(i) =  defer_list_new_tail
 
-                ! we make a copy of all particle data to avoid thread-concurrent acces to particle_data array
-                if (process_particle) thread_particle_data(i) = particle_data(thread_particle_indices(i))
-              end if
-
-              if (process_particle) then
-
-                ! after processing a number of particles: handle control to other (possibly comm) thread
-                if (same_core_as_communicator) then
-                  if (particles_since_last_yield >= particles_per_yield) then
-                    call comm_sched_yield()
-                    particles_since_last_yield = 0
-                  else
-                    particles_since_last_yield = particles_since_last_yield + 1
-                  endif
-                endif
-
-                if (walk_single_particle(i, thread_particle_data(i), defer_list, defer_list_entries(i), &
-                                         my_max_particles_per_thread, partner_leaves(i), my_threaddata)) then
-                  ! this particle`s walk has finished
-    !              DEBUG_INFO(*, "PE", me, getfullid(), " walk for particle", i, " nodeidx =", thread_particle_indices(i), " has finished")
-
+                if (walk_single_particle(thread_particle_data(i), &
+                                          ptr_defer_list_old, defer_list_entries_old, &
+                                          ptr_defer_list_new, defer_list_entries_new, &
+                                          partner_leaves(i), my_threaddata)) then
                   ! walk for particle i has finished
-                  ! check whether it really interacted with all other particles
+                  if (walk_debug) then
+                      DEBUG_INFO('("PE", I6, " particle ", I12, " obviously finished walking around :-)")', me, i)
+                  end if
+
+                  ! check whether the particle really interacted with all other particles
                   if (partner_leaves(i) .ne. num_interaction_leaves) then
                     write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') me, thread_particle_indices(i), thread_particle_data(i)%label
                     write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
                     write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
+                    call debug_mpi_abort()
                   endif
 
-                  ! copy forces and potentials to thread-global array
+                  ! copy forces and potentials back to thread-global array
                   particle_data(thread_particle_indices(i)) = thread_particle_data(i)
-
-                  !remove entries from defer_list
-                  thread_particle_indices(i) = -1
-                  defer_list_entries(i)      =  1
-                  defer_list(0,i)            =  t_defer_list_entry(1, 1_8)
-                  partner_leaves(i)          =  0
-                  my_threaddata%num_processed_particles = my_threaddata%num_processed_particles + 1
-                else
-                  particles_active = .true.
+                  ! mark particle entry i as free
+                  thread_particle_indices(i)                = -1
+                  ! count total processed particles for this thread (only for statistics)
+                  my_threaddata%num_processed_particles     = my_threaddata%num_processed_particles + 1
+                else 
+                  ! walk for particle i has not been finished
+                  defer_list_new_tail = defer_list_new_tail + defer_list_entries_new
+                  particles_active    = .true.
                 end if
+
+               if (defer_list_new_tail > total_defer_list_length) then
+                  DEBUG_ERROR('("defer_list is full for particle ", I20, " defer_list_length =", I6, ", total =", I0," is too small (you should increase interaction_list_length_factor)")', i, defer_list_length, total_defer_list_length)
+               endif
               else
-                particles_available = .false.
+                defer_list_start_pos(i) = defer_list_new_tail
               end if
 
-            end do
+            end do ! i=1,my_max_particles_per_thread
+
+            defer_list_start_pos(my_max_particles_per_thread+1) = defer_list_new_tail ! this entry is needed to store the length of the (max_particles_per_thread)th particles defer_list
 
           end do
 
-          deallocate(thread_particle_indices, thread_particle_data, defer_list_entries, partner_leaves)
-          deallocate(defer_list)
+          deallocate(thread_particle_indices, thread_particle_data, defer_list_start_pos, partner_leaves)
+          deallocate(defer_list_old, defer_list_new)
 
       endif
 
@@ -982,12 +976,73 @@ module module_walk
 
       call retval(pthreads_exitthread(), "walk_worker_thread:pthread_exit")
 
+    contains
+    
+      subroutine swap_defer_lists()
+        implicit none
+        type(t_defer_list_entry), dimension(:), pointer :: tmp_list
+
+        tmp_list       => defer_list_old
+        defer_list_old => defer_list_new
+        defer_list_new => tmp_list
+
+        defer_list_new_tail = 1 ! position of first free entry in defer_list_new (i.e. it is considered as empty now)
+      end subroutine
+
+      function process_particle(idx, ptr_defer_list_old, defer_list_entries_old)
+        implicit none
+        integer, intent(in) :: idx
+        type(t_defer_list_entry), dimension(:), pointer, intent(out) :: ptr_defer_list_old
+        integer, intent(out) :: defer_list_entries_old
+        logical :: process_particle
+
+        process_particle = (thread_particle_indices(idx) .ne. -1)
+
+        if (process_particle) then
+          ptr_defer_list_old     => defer_list_old(defer_list_start_pos(idx):defer_list_start_pos(idx+1)-1)
+          defer_list_entries_old =  defer_list_start_pos(idx+1) - defer_list_start_pos(idx)
+        else
+          ! the place i for a particle is not assigned --> check whether there are still particles to be processed
+          if (particles_available) then
+            thread_particle_indices(i) = get_first_unassigned_particle(process_particle)
+
+            process_particle = (thread_particle_indices(i) .ne. -1)
+
+            if (process_particle) then
+              ! we make a copy of all particle data to avoid thread-concurrent access to particle_data array
+              thread_particle_data(i) = particle_data(thread_particle_indices(i))
+              ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
+              ptr_defer_list_old      => defer_list_root_only
+              defer_list_entries_old  =  1
+              partner_leaves(idx)     =  0 ! no interactions yet
+            else
+              particles_available     = .false.
+            end if ! process_particle after trying to pick a new one
+          end if ! particles_available
+        end if ! process_particle
+      end function
+
+      subroutine do_sched_yield_if_necessary()
+        implicit none
+        ! after processing a number of particles: handle control to other (possibly comm) thread
+        if (same_core_as_communicator) then
+          if (particles_since_last_yield >= particles_per_yield) then
+            call comm_sched_yield()
+            particles_since_last_yield = 0
+          else
+            particles_since_last_yield = particles_since_last_yield + 1
+          endif
+        endif
+      end subroutine
+
     end function walk_worker_thread
 
 
 
 
-   function walk_single_particle(myidx, particle, defer_list, defer_list_entries, listlengths, partner_leaves, my_threaddata)
+   function walk_single_particle(particle, defer_list_old, defer_list_entries_old, &
+                                           defer_list_new, defer_list_entries_new, &
+                                           partner_leaves, my_threaddata)
       use module_walk_pthreads_commutils
       use module_htable
       use module_interaction_specific
@@ -995,27 +1050,27 @@ module module_walk
       use module_debug
       use module_mirror_boxes, only : spatial_interaction_cutoff
       implicit none
-      integer, intent(in) :: myidx, listlengths
       type(t_particle), intent(inout) :: particle
-      integer*8 :: todo_list(0:todo_list_length-1)
+      type(t_defer_list_entry), dimension(:), pointer, intent(in) :: defer_list_old
+      integer, intent(in) :: defer_list_entries_old
+      type(t_defer_list_entry), dimension(:), pointer, intent(out) :: defer_list_new
+      integer, intent(out) :: defer_list_entries_new
       integer*8, intent(inout) :: partner_leaves
-      type(t_defer_list_entry), intent(inout) :: defer_list(0:defer_list_length-1,1:listlengths)
-      integer, intent(inout) :: defer_list_entries
-      integer :: todo_list_entries
       type(t_threaddata), intent(inout) :: my_threaddata
       logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
 
+      integer*8 :: todo_list(0:todo_list_length-1) 
+      integer :: todo_list_entries
       integer*8 :: walk_key, childlist(8)
       integer :: walk_addr, walk_node, childnum, walk_level
-
       real*8 :: dist2
       real*8 :: delta(3), shifted_particle_position(3)
       logical :: same_particle, same_particle_or_parent_node, mac_ok, ignore_node
       integer*8 :: num_interactions, num_mac_evaluations
 
-      todo_list_entries   = 0
-      num_interactions    = 0
-      num_mac_evaluations = 0
+      todo_list_entries      = 0
+      num_interactions       = 0
+      num_mac_evaluations    = 0
       shifted_particle_position = particle%x - vbox ! precompute shifted particle position to avoid subtracting vbox in every loop iteration below
 
       ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
@@ -1031,8 +1086,7 @@ module module_walk
           walk_addr  = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
           walk_node  = htable( walk_addr )%node            ! Walk node index - points to multipole moments
 
-          delta     = shifted_particle_position - tree_nodes(walk_node)%coc  ! Separation vector
-
+          delta = shifted_particle_position - tree_nodes(walk_node)%coc  ! Separation vector
           dist2 = DOT_PRODUCT(delta, delta)
 
           if (walk_node > 0) then
@@ -1086,7 +1140,7 @@ module module_walk
                       call defer_list_push(walk_key, walk_addr) ! Deferred list of nodes to search, pending request
                                                                      ! for data from nonlocal PEs
                       if (walk_debug) then
-                          DEBUG_INFO('("PE ", I6, " adding nonlocal key to tail for particle ", I20, " defer_list_entries=", I6)',  me, myidx, defer_list_entries)
+                          DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  me, defer_list_entries_new)
                       end if
                   end if
               endif
@@ -1096,11 +1150,7 @@ module module_walk
       end do ! (while (todo_list_pop(walk_key)))
 
       ! if todo_list and defer_list are now empty, the walk has finished
-      walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries == 0)
-
-      if (walk_single_particle .and. walk_debug) then
-          DEBUG_INFO('("PE", I6, " particle ", I12, " has an empty todo_list: particle obviously finished walking around :-)")', me, myidx)
-      end if
+      walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries_new == 0)
 
       my_threaddata%num_interactions    = my_threaddata%num_interactions    + num_interactions
       my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + num_mac_evaluations
@@ -1127,8 +1177,8 @@ module module_walk
        integer*8, dimension(numkeys), intent(in) :: keys
        integer :: i
 
-       if (todo_list_entries + numkeys >= todo_list_length) then
-         DEBUG_ERROR('("todo_list is full for particle ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor)")', myidx, todo_list_length)
+       if (todo_list_entries + numkeys > todo_list_length) then
+         DEBUG_ERROR('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor)")', particle%label, todo_list_length)
        endif
 
        do i=1,numkeys
@@ -1144,34 +1194,28 @@ module module_walk
        integer, intent(in) :: addr_
        integer*8, intent(in) :: key_
 
-       if (defer_list_entries == defer_list_length) then
-         DEBUG_ERROR('("defer_list is full for particle ", I20, " defer_list_length =", I6, " is too small (you should increase interaction_list_length_factor)")', myidx, defer_list_length)
-       else
-         defer_list(defer_list_entries, myidx) = t_defer_list_entry(addr_, key_)
-         defer_list_entries                    = defer_list_entries + 1
-       endif
+       defer_list_entries_new                 = defer_list_entries_new + 1
+       defer_list_new(defer_list_entries_new) = t_defer_list_entry(addr_, key_)
      end subroutine
 
      subroutine defer_list_parse_and_compact()
        use module_htable
        implicit none
-       integer :: iold, inew, cnum
+       integer :: iold, cnum
        integer*8 :: clist(8)
 
-       inew = 0
-       do iold = 0,defer_list_entries-1
-         if ( children_available(defer_list(iold, myidx)%addr) ) then
+       defer_list_entries_new = 0
+       do iold = 1,defer_list_entries_old
+         if ( children_available(defer_list_old(iold)%addr) ) then
            ! children for deferred node have arrived --> put children onto todo_list
-           call get_childkeys(defer_list(iold, myidx)%addr, cnum, clist)
+           call get_childkeys(defer_list_old(iold)%addr, cnum, clist)
            call todo_list_push(cnum, clist)
          else
-           ! children for deferred node are still unavailable - put back onto defer_list
-           defer_list(inew, myidx) = defer_list(iold, myidx)
-           inew                    = inew + 1
+           ! children for deferred node are still unavailable - put onto defer_list_new (do not use defer_list_push for performance reasons)
+           defer_list_entries_new                 = defer_list_entries_new + 1
+           defer_list_new(defer_list_entries_new) = defer_list_old(iold)
          end if
        end do
-
-       defer_list_entries = inew
      end subroutine
 
     end function walk_single_particle
