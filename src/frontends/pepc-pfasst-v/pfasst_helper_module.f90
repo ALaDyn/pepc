@@ -257,7 +257,7 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine pepc_to_pfasst(particles, np, arr)
+  subroutine pepc_to_pfasst_res(particles, np, arr)
 
     use module_pepc_types
     implicit none
@@ -282,7 +282,36 @@ contains
 
     end do
 
-  end subroutine pepc_to_pfasst
+  end subroutine pepc_to_pfasst_res
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine pepc_to_pfasst_part(particles, np, arr)
+
+    use module_pepc_types
+    implicit none
+
+    integer, intent(in) :: np
+    type(t_particle), intent(in) :: particles(np)
+    real(kind=8), intent(out) :: arr(np*pepc_to_pfasst_attributes)
+
+    integer :: counter, i
+
+    counter = 1
+    do i = 1,np
+
+       arr(counter+0) = particles(i)%x(1)
+       arr(counter+1) = particles(i)%x(2)
+       arr(counter+2) = particles(i)%x(3)
+       arr(counter+3) = particles(i)%data%alpha(1)
+       arr(counter+4) = particles(i)%data%alpha(2)
+       arr(counter+5) = particles(i)%data%alpha(3)
+
+       counter = counter + 6
+
+    end do
+
+  end subroutine pepc_to_pfasst_part
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

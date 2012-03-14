@@ -29,6 +29,7 @@ contains
     use pfasst_calc_module
     use pfasst_transfer_module
     use physvars
+    use manipulate_particles
     use files, only : dump
 
     implicit none
@@ -110,6 +111,14 @@ contains
 
        call pfasst_to_pepc(vortex_particles(1:np), np, y0F(1:NvarF))
 
+       if ((rem_freq .gt. 0) .and. (mod(i,rem_freq)==0)) then
+
+          call remeshing()
+          ! TODO: reallocate variables for pfasst
+          call pepc_to_pfasst_part(vortex_particles(1:np), np, y0F(1:NvarF))
+
+       end if
+
        call dump(step,real(t0))
 
     end do
@@ -126,7 +135,7 @@ contains
     use pfasst_helper_module
     use pfasst_calc_module
     use pfasst_transfer_module
-    !use physvars
+    use physvars
     use files, only : dump
 
     implicit none
@@ -148,6 +157,7 @@ contains
     nblock = int(ceiling(tend/delta_t/num_space_instances))
     do i = 1, nblock
 
+       call start_timer(TIO)
        step = my_rank_pfasst + (i-1)*num_space_instances
 
        t0   = step * delta_t
@@ -299,6 +309,10 @@ contains
             call broadcast(yendF, NvarF, n_cpu_pfasst-1)
 
        y0F = yendF
+
+       call end_timer(TIO, step, echo_timings=echo_timings)
+
+       call pfasst_to_pepc(vortex_particles(1:np), np, y0F(1:NvarF))
 
        call dump(step,real(t0))
 

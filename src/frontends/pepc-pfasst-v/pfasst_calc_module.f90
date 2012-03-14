@@ -47,9 +47,9 @@ contains
 
     call pepc_particleresults_clear(vortex_particles, np)
 
-    !call direct_sum(np, vortex_particles, vortex_particles%results, my_rank_space, n_cpu_space)
+    call direct_sum(np, vortex_particles, vortex_particles%results, my_rank_space, n_cpu_space)
 
-    call pepc_grow_and_traverse(np, n, vortex_particles, 1, .false., .false.)
+    !call pepc_grow_and_traverse(np, n, vortex_particles, 1, .false., .false.)
 
     do i=1,np
        vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
@@ -57,7 +57,7 @@ contains
     end do
 
     ! reshape vortex_particles to f1
-    call pepc_to_pfasst(vortex_particles(1:np), np, f1(1:Nvar))
+    call pepc_to_pfasst_res(vortex_particles(1:np), np, f1(1:Nvar))
 
   end subroutine eval_f1
 

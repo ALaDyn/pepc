@@ -42,7 +42,7 @@ program pepcv
   use pfasst_run_module
   implicit none
 
-  integer :: i
+  integer :: i, ierr
   real :: trun                     ! total run time including restarts and offset
   integer :: itime, stage, t_flag
   integer, parameter :: t_remesh = t_userdefined_first + 1
@@ -75,9 +75,13 @@ program pepcv
     call run_serial(y0, 1.0D00*dt, nt)
   end if
 
-  call remeshing()
+  !call remeshing()
+  !if (my_rank_time == 0) write(*,*) n,'particles now in use'
 
   if (my_rank_time == n_cpu_time-1) call dump_results()
+
+  call MPI_BARRIER(MPI_COMM_TIME,ierr)
+  call MPI_BARRIER(MPI_COMM_SPACE,ierr)
 
   ! Loop over all timesteps
 !  do while (itime < nt)
