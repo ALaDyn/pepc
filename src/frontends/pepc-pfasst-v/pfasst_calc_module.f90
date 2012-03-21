@@ -47,19 +47,22 @@ contains
 
     call pepc_particleresults_clear(vortex_particles, np)
 
-    if (level == 1) then
-        theta2 = 0.09 ! Fine = slow
-        call pepc_grow_and_traverse(np, n, vortex_particles, 1, .false., .false.)
+    if (theta2 == 0.0) then
+        call direct_sum(np, vortex_particles, vortex_particles%results, my_rank_space, n_cpu_space)
     else
-        theta2 = 0.2401 ! Coarse = fast
-        call pepc_grow_and_traverse(np, n, vortex_particles, 1, .false., .false.)
+        if (level == 1) then
+            theta2 = 0.09 ! Fine = slow
+            call pepc_grow_and_traverse(np, n, vortex_particles, 1, .false., .false.)
+        else
+            theta2 = 0.2401 ! Coarse = fast
+            call pepc_grow_and_traverse(np, n, vortex_particles, 1, .false., .false.)
+        end if
     end if
-
-    !call direct_sum(np, vortex_particles, vortex_particles%results, my_rank_space, n_cpu_space)
 
     do i=1,np
        vortex_particles(i)%results%u( 1:3) = vortex_particles(i)%results%u( 1:3) * force_const
        vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
+       vortex_particles(i)%results%div     = vortex_particles(i)%results%div * force_const
     end do
 
     ! reshape vortex_particles to f1
