@@ -564,23 +564,28 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine compute_residual(y0, Dt, fSDC, yend, res)
+  subroutine dump_residual(iter, step, delta_t, y_start, fSDC, yend, rank)
+
+    !use quadrature_module, only: SmatF
 
     implicit none
 
-    real(kind=8), intent(in)  :: Dt
-    real(kind=8), intent(in)  :: y0(NvarF), yend(NvarF)
-    real(kind=8), intent(in)  :: fSDC(NvarF,NnodesF,2)
-    real(kind=8), intent(out) :: res
+    integer, intent(in) :: iter, step, rank
+    real(kind=8), intent(in) :: delta_t
+    real(kind=8), intent(in) :: y_start(NvarF), yend(NvarF)
+    real(kind=8), intent(in) :: fSDC(NvarF,NnodesF,2)
 
-    real(kind=8) :: Irhs(NvarF,1:NnodesF-1), Itot(NvarF)
+    real(kind=8) :: Irhs(NvarF,1:NnodesF-1), Itot(NvarF), res
 
-    Irhs = Dt*(matmul(fSDC(:,:,1) + fSDC(:,:,2), transpose(SmatF)))
+    !  Do the integration
+    Irhs = delta_t*(matmul(fSDC(:,:,1) + fSDC(:,:,2), transpose(SmatF)))
     Itot = sum(Irhs, dim=2)
 
-    res = maxval(abs(y0 + Itot - yend))
+    res = maxval(abs(y_start + Itot - yend))
 
-  end subroutine compute_residual
+    if (rank == 0) write(*,*) 'Residual/iteration/step/time_rank:', res,iter,step, my_rank_pfasst
+
+  end subroutine dump_residual
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

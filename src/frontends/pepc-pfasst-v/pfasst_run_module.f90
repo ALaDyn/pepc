@@ -91,7 +91,7 @@ contains
           !call echo_error(y0F, t0, delta_t, yendF, NvarF, step, k)
 
           !call start_timer(TIO)
-          !call dump_residual(k, step, delta_t, y0newF, fSDC_F, yendF)
+          call dump_residual(k, step, delta_t, y0newF, fSDC_F, yendF, my_rank_space)
           !call end_timer(TIO,echo_timings=0)
 
           !if (parallel > -1) then
@@ -251,7 +251,7 @@ contains
           ! end if
 
           !call start_timer(TIO)
-          !call dump_residual(k, step, delta_t, y0newF, fSDC_F, yendF)
+          call dump_residual(k, step, delta_t, y0newF, fSDC_F, yendF, my_rank_space)
           !call end_timer(TIO,1)
 
           ! restrict ySDC_F to get ySDC_G guess and compute FAS correction
