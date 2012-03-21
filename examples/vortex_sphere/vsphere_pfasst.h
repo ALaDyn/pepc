@@ -11,7 +11,7 @@
  thresh = 0.0D-04
  m_h = 0.1
 
- n_in = 10001
+ n_in = 10000
 
  dt = 0.5
  ts = 0.
@@ -24,7 +24,7 @@
 &calc_force_vortex
   force_law  = 62
   mac_select = 0
-  theta2     = 0.2401
+  theta2     = 0.09
 /
 
 &libpepc
