@@ -684,7 +684,8 @@ module module_walk
       vbox = vbox_
       ! defer-list per particle (estimations) - will set total_defer_list_length = defer_list_length*my_max_particles_per_thread later
       defer_list_length = max(nintmax, 10)
-      todo_list_length  = defer_list_length
+      ! in worst case, each entry in the defer list can spawn 8 children in the todo_list
+      todo_list_length  = 8*defer_list_length
 
       ! pure local walk time (i.e. from start of communicator till send_walk_finished)
       twalk_loc => twalk_loc_
@@ -1130,7 +1131,10 @@ module module_walk
                       ! 2a) children for twig are present --------
                       ! --> resolve cell & put all children in front of todo_list
                       call get_childkeys(walk_addr, childnum, childlist)
-                      call todo_list_push(childnum, childlist)
+                      if (.not. todo_list_push(childnum, childlist)) then
+                        ! the todo_list is full --> put parent back onto defer_list
+                        call defer_list_push(walk_key, walk_addr)
+                      endif
                   else
                       ! 2b) children for twig are _absent_ --------
                       ! --> put node on REQUEST list and put walk_key on bottom of todo_list
@@ -1170,22 +1174,27 @@ module module_walk
        endif
      end function
 
-     subroutine todo_list_push(numkeys, keys)
+     function todo_list_push(numkeys, keys)
        use module_debug
        implicit none
        integer, intent(in) :: numkeys
        integer*8, dimension(numkeys), intent(in) :: keys
+       logical :: todo_list_push
        integer :: i
 
        if (todo_list_entries + numkeys > todo_list_length) then
-         DEBUG_ERROR('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor)")', particle%label, todo_list_length)
+         DEBUG_WARNING_ALL('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor). Putting particles back onto defer_list. Programme will continue without errors.")', particle%label, todo_list_length)
+         todo_list_push = .false.
+       else
+         do i=1,numkeys
+           todo_list(todo_list_entries) = keys(i)
+           todo_list_entries            = todo_list_entries + 1
+         end do
+
+         todo_list_push = .true.
        endif
 
-       do i=1,numkeys
-         todo_list(todo_list_entries) = keys(i)
-         todo_list_entries            = todo_list_entries + 1
-       end do
-     end subroutine
+     end function
 
      ! helper routines for defer_list manipulation
      subroutine defer_list_push(key_, addr_)
@@ -1209,7 +1218,11 @@ module module_walk
          if ( children_available(defer_list_old(iold)%addr) ) then
            ! children for deferred node have arrived --> put children onto todo_list
            call get_childkeys(defer_list_old(iold)%addr, cnum, clist)
-           call todo_list_push(cnum, clist)
+           if (.not. todo_list_push(cnum, clist)) then
+             ! the todo_list is full --> put parent back onto defer_list
+             defer_list_entries_new                 = defer_list_entries_new + 1
+             defer_list_new(defer_list_entries_new) = defer_list_old(iold)
+           endif
          else
            ! children for deferred node are still unavailable - put onto defer_list_new (do not use defer_list_push for performance reasons)
            defer_list_entries_new                 = defer_list_entries_new + 1
