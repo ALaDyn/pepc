@@ -343,24 +343,24 @@ module module_domains
 
         ! Ship 1st particle data to end of list of LH neighbour PE
         if (me /= 0 ) then
-            call MPI_ISEND(  particles( 1 ),                          1, mpi_type_particle, prev, 1, MPI_COMM_lpepc, reqhandle, ierr )
+            call MPI_ISEND(  particles( 1 ),                          1, mpi_type_particle, prev, 1990, MPI_COMM_lpepc, reqhandle, ierr )
             call MPI_REQUEST_FREE(reqhandle,ierr)
         endif
         ! Place incoming data at end of array
         if ( me /= num_pe-1) then
             neighbour_pe_particles = neighbour_pe_particles + 1
-            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, next, 1, MPI_COMM_lpepc, state, ierr )
+            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, next, 1990, MPI_COMM_lpepc, state, ierr )
         endif
 
         ! Ship  end particle data to end of list of RH neighbour PE
         if (me /= num_pe-1 ) then
-            call MPI_ISEND(  particles( npp ),                        1, mpi_type_particle, next, 2, MPI_COMM_lpepc, reqhandle, ierr )
+            call MPI_ISEND(  particles( npp ),                        1, mpi_type_particle, next, 2990, MPI_COMM_lpepc, reqhandle, ierr )
             call MPI_REQUEST_FREE(reqhandle,ierr)
         endif
         ! Place incoming data at end of array
         if ( me /= 0) then
             neighbour_pe_particles = neighbour_pe_particles + 1
-            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, prev, 2, MPI_COMM_lpepc, state, ierr )
+            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, prev, 2990, MPI_COMM_lpepc, state, ierr )
         endif
     end subroutine
 
