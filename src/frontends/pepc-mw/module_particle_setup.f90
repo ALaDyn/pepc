@@ -273,6 +273,20 @@ module module_particle_setup
               call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
               call init_fields_zero()
 
+            case(14)
+              if (my_rank == 0) write(*,*) "Using special start... case 14 (spherical cluster with linearly shifted electrons)"
+              call particle_setup_sphere_shifted_electrons(fences, 1)
+              call rescale_coordinates_spherical()
+              call init_generic(fences)
+              call init_fields_zero()
+
+            case(15)
+              if (my_rank == 0) write(*,*) "Using special start... case 15 (spherical cluster with radially shifted electrons)"
+              call particle_setup_sphere_shifted_electrons(fences, 2)
+              call rescale_coordinates_spherical()
+              call init_generic(fences)
+              call init_fields_zero()
+
          end select
 
          allocate(energy(1:3,np_local))
@@ -342,6 +356,83 @@ module module_particle_setup
               end if
             end do
           end do
+
+        end subroutine
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine particle_setup_sphere_shifted_electrons(fences, shiftmode)
+          use module_units, only : pi
+          implicit none
+          integer, intent(in) :: fences(-1:n_cpu-1)
+          integer, intent(in) :: shiftmode
+          integer :: mpi_cnt, p
+          real*8 :: xt, yt, zt, xe, ye, ze, scaleval
+          real*8, parameter :: shiftval = 0.025
+
+          ! "random" initialization of par_rand
+          xt = par_rand(rngseed)
+
+          do mpi_cnt = 0, n_cpu-1
+            do p = 1, (fences(mpi_cnt) - fences(mpi_cnt-1)) / 2
+
+              xt = 1.0_8
+              yt = 1.0_8
+              zt = 1.0_8
+
+              do while ( (xt*xt + yt*yt + zt*zt) > 0.5_8)
+                xt = par_rand() - 0.5_8
+                yt = par_rand() - 0.5_8
+                zt = par_rand() - 0.5_8
+              end do
+
+              if ( my_rank == mpi_cnt .and. p <= np_local/2 ) then
+
+                ! distribute ion
+                particles(p)%x(1:3)      = [xt, yt, zt]
+                particles(p)%data%v(1:3) = [0., 0., 0.]
+                particles(p)%data%q      =  qi
+                particles(p)%data%m      =  mass_i
+                particles(p)%label       =  fences(my_rank-1) + p
+
+                ! distribute electron respectively
+                select case (shiftmode)
+                  case (1) ! linearly shifted electrons
+                    xe = xt + shiftval
+                    ye = yt
+                    ze = zt
+                  case (2) ! radially shifted electrons
+                    scaleval = sqrt(dot_product([xt, yt, zt], [xt, yt, zt]))
+                    scaleval = (scaleval + shiftval) / scaleval
+                    xe = xt * scaleval
+                    ye = yt * scaleval
+                    ze = zt * scaleval
+                  case default
+                    xe = xt
+                    ye = yt
+                    ze = zt
+                end select
+
+                particles(np_local-p+1)%x(1:3) = [xe, ye, ze]
+                particles(np_local-p+1)%data%q =  qe
+                particles(np_local-p+1)%data%m =  mass_e
+                particles(np_local-p+1)%label  = -fences(my_rank) + p
+
+                ! chose random velocity
+                xt = par_rand()*2*pi
+                yt = par_rand()  *pi
+                zt = par_rand()  *vte
+
+                particles(p)%data%v(1:3) = [zt * cos(xt) * sin(yt), zt * cos(xt) * sin(yt), zt * cos(yt)]
+              end if
+            end do
+          end do
+
+          particles(1:np_local)%work = 1.
 
         end subroutine
 
@@ -619,8 +710,8 @@ module module_particle_setup
                particles(np_local-p+1)%data%v(1)  = 0.
                particles(np_local-p+1)%data%v(2)  = 0.
                particles(np_local-p+1)%data%v(3)  = 0.
-                particles(np_local-p+1)%data%q  = qi
-                particles(np_local-p+1)%data%m  = mass_i
+               particles(np_local-p+1)%data%q  = qi
+               particles(np_local-p+1)%data%m  = mass_i
                !particles(np_local-p+1)%label  = 1 + p + fences(my_rank-1)/2-1
                particles(np_local-p+1)%label  = 1 + particletype
 
@@ -638,11 +729,11 @@ module module_particle_setup
                yt = par_rand()  *pi
                zt = par_rand()  *vte
 
-                particles(p)%data%v(1)  = zt * cos(xt) * sin(yt)
-                particles(p)%data%v(2)  = zt * cos(xt) * sin(yt)
-                particles(p)%data%v(3)  = zt * cos(yt)
-                particles(p)%data%q  = qe
-                particles(p)%data%m  = mass_e
+               particles(p)%data%v(1)  = zt * cos(xt) * sin(yt)
+               particles(p)%data%v(2)  = zt * cos(xt) * sin(yt)
+               particles(p)%data%v(3)  = zt * cos(yt)
+               particles(p)%data%q  = qe
+               particles(p)%data%m  = mass_e
                particles(p)%label  = -(1 + particletype)
              end do
 
