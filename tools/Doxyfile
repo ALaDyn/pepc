@@ -31,7 +31,6 @@ SHORT_NAMES            = NO
 JAVADOC_AUTOBRIEF      = NO
 QT_AUTOBRIEF           = NO
 MULTILINE_CPP_IS_BRIEF = NO
-DETAILS_AT_TOP         = NO
 INHERIT_DOCS           = YES
 SEPARATE_MEMBER_PAGES  = NO
 TAB_SIZE               = 4
@@ -140,7 +139,8 @@ EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = .* \
                          .*/* \
                          */GNU*/* \
-                         */SUSE*/*
+                         */SUSE*/* \
+                         */treecode/sl_pepc/*
 EXCLUDE_SYMBOLS        = 
 EXAMPLE_PATH           = 
 EXAMPLE_PATTERNS       = *.h \
