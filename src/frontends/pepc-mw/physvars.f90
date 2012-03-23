@@ -55,6 +55,7 @@ module physvars
   real*8 :: x_plasma = 1.      ! initial plasma length (slab or disc targets)
   real*8 :: y_plasma = 1.      ! initial plasma y-width (slab)
   real*8 :: z_plasma = 1.      ! initial plasma z-width (slab)
+  real*8 :: particle_shift = 0.025
   real*8 :: plasma_centre(3) ! vector defining centre of plasma target
   real*8 :: Vplas          ! plasma volume
   real*8 :: a_ii, a_ee           ! mean ion and electron spacing

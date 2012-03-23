@@ -277,14 +277,12 @@ module module_particle_setup
               if (my_rank == 0) write(*,*) "Using special start... case 14 (spherical cluster with linearly shifted electrons)"
               call particle_setup_sphere_shifted_electrons(fences, 1)
               call rescale_coordinates_spherical()
-              call init_generic(fences)
               call init_fields_zero()
 
             case(15)
               if (my_rank == 0) write(*,*) "Using special start... case 15 (spherical cluster with radially shifted electrons)"
               call particle_setup_sphere_shifted_electrons(fences, 2)
               call rescale_coordinates_spherical()
-              call init_generic(fences)
               call init_fields_zero()
 
          end select
@@ -343,7 +341,7 @@ module module_particle_setup
               yt = 1.0_8
               zt = 1.0_8
 
-              do while ( (xt*xt + yt*yt + zt*zt) > 0.5_8)
+              do while ( (xt*xt + yt*yt + zt*zt) > 0.25_8)
                 xt = par_rand() - 0.5_8
                 yt = par_rand() - 0.5_8
                 zt = par_rand() - 0.5_8
@@ -367,12 +365,12 @@ module module_particle_setup
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine particle_setup_sphere_shifted_electrons(fences, shiftmode)
           use module_units, only : pi
+          use physvars, only : particle_shift
           implicit none
           integer, intent(in) :: fences(-1:n_cpu-1)
           integer, intent(in) :: shiftmode
           integer :: mpi_cnt, p
           real*8 :: xt, yt, zt, xe, ye, ze, scaleval
-          real*8, parameter :: shiftval = 0.025
 
           ! "random" initialization of par_rand
           xt = par_rand(rngseed)
@@ -384,7 +382,7 @@ module module_particle_setup
               yt = 1.0_8
               zt = 1.0_8
 
-              do while ( (xt*xt + yt*yt + zt*zt) > 0.5_8)
+              do while ( (xt*xt + yt*yt + zt*zt) > 0.25_8)
                 xt = par_rand() - 0.5_8
                 yt = par_rand() - 0.5_8
                 zt = par_rand() - 0.5_8
@@ -402,12 +400,12 @@ module module_particle_setup
                 ! distribute electron respectively
                 select case (shiftmode)
                   case (1) ! linearly shifted electrons
-                    xe = xt + shiftval
+                    xe = xt + particle_shift
                     ye = yt
                     ze = zt
                   case (2) ! radially shifted electrons
                     scaleval = sqrt(dot_product([xt, yt, zt], [xt, yt, zt]))
-                    scaleval = (scaleval + shiftval) / scaleval
+                    scaleval = (scaleval + particle_shift) / scaleval
                     xe = xt * scaleval
                     ye = yt * scaleval
                     ze = zt * scaleval
@@ -456,7 +454,7 @@ module module_particle_setup
               yt = 1.0_8
               zt = 1.0_8
 
-              do while ( (xt*xt + yt*yt + zt*zt) > 0.5_8)
+              do while ( (xt*xt + yt*yt + zt*zt) > 0.25_8)
                 xt = par_rand() - 0.5_8
                 yt = par_rand() - 0.5_8
                 zt = par_rand() - 0.5_8
@@ -498,7 +496,7 @@ module module_particle_setup
               yt = 1.0_8
               zt = 1.0_8
 
-              do while ( (xt*xt + yt*yt + zt*zt) > 0.5_8)
+              do while ( (xt*xt + yt*yt + zt*zt) > 0.25_8)
                 xt = par_rand() - 0.5_8
                 yt = par_rand() - 0.5_8
                 zt = par_rand() - 0.5_8
@@ -573,7 +571,7 @@ module module_particle_setup
               yt = 1.0_8
               zt = 0.0_8
 
-              do while ( (xt*xt + yt*yt) > 0.5_8)
+              do while ( (xt*xt + yt*yt) > 0.25_8)
                 xt = par_rand() - 0.5_8
                 yt = par_rand() - 0.5_8
               end do
@@ -690,6 +688,7 @@ module module_particle_setup
         subroutine particle_setup_icosahedron(fences)
           use module_units
           use module_icosahedron
+          use physvars, only : particle_shift
           implicit none
           integer, intent(in) :: fences(-1:n_cpu-1)
           integer :: currlayer, particletype
@@ -718,7 +717,7 @@ module module_particle_setup
                ! and put an electron into near proximity
                xt = 2*pi*par_rand()
                yt =   pi*par_rand()
-               zt = 0.025*par_rand()
+               zt = particle_shift*par_rand()
 
                particles(p)%x(1) = particles(np_local-p+1)%x(1) + zt * cos(xt) * sin(yt)
                particles(p)%x(2) = particles(np_local-p+1)%x(2) + zt * sin(xt) * sin(yt)
