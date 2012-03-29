@@ -84,7 +84,6 @@ program pepce
   use module_mirror_boxes , only: &
        neighbour_boxes, &
        num_neighbour_boxes, &
-       calc_neighbour_boxes, &
        do_periodic, &
        constrain_periodic, &
        periodicity

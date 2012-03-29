@@ -186,14 +186,6 @@ program pepc
 
 !     if (itime == nt) call gather_particle_diag()
 
-     ! Velocity and position update - explicit schemes only
-     call integrator(1, np_local, integrator_scheme)
-
-     ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(particles(1:np_local)%x(1), particles(1:np_local)%x(2), particles(1:np_local)%x(3),np_local)
-
-     call energies(Ukine,Ukini)
-
      ! periodic particle dump
      call write_particles(.true.)
 
@@ -204,6 +196,14 @@ program pepc
          call field_dump(itime)
        end if
      endif
+
+     ! Velocity and position update - explicit schemes only
+     call integrator(1, np_local, integrator_scheme)
+
+     ! periodic systems demand periodic boundary conditions
+     if (do_periodic) call constrain_periodic(particles(1:np_local)%x(1), particles(1:np_local)%x(2), particles(1:np_local)%x(3),np_local)
+
+     call energies(Ukine,Ukini)
 
      !> special diagnostics for [J. Phys. A: Math. Theor 42 (2009), 214048] Th. Raitza et al: Collision frequency of electrons in laser excited small clusters
      if (workflow_setup == 3) call cluster_diagnostics(itime, trun*unit_t0_in_fs, momentum_acf)

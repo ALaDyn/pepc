@@ -304,11 +304,12 @@ module module_pepc
 
       treevars_idim = idim
 
+      ! initialize mirror boxes
+      call calc_neighbour_boxes()
+      ! prepare interaction-specific routines
       call calc_force_prepare()
 
       call tree_walk_prepare()
-      ! initialize mirror boxes
-      call calc_neighbour_boxes()
       ! initialize data structures in module_branches
       call branches_initialize()
 

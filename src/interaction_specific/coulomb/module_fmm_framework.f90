@@ -28,11 +28,10 @@ module module_fmm_framework
       use module_debug
       use module_mirror_boxes
       implicit none
-      save
+      include 'mpif.h'
       private
 
       !! TODO: set dipole- and low-order stuff in MLattice to zero
-      !! TODO: add formal dipole correction as surface term
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -64,23 +63,27 @@ module module_fmm_framework
 
       ! general stuff
       integer :: myrank
+      integer :: MPI_COMM_fmm
+      ! precision flags
+      integer, parameter :: kind_fmm_precision = 8
+      integer, parameter :: MPI_REAL_fmm = MPI_REAL8
       ! FMM-PARAMETERS
-      integer, parameter :: Lmax = 8
-      integer, parameter :: LmaxL = 4
-      integer, parameter :: MaxIter = 16
+      integer, parameter :: Lmax    = 20
+      integer, parameter :: MaxIter = 32
       integer :: ws = 1
       ! FMM-VARIABLES
-      complex*16 :: mu_cent(1:Lmax*(Lmax+1)/2+Lmax+1)
+      integer, parameter :: fmm_array_length = Lmax*(Lmax+1)/2+Lmax+1
+      complex(kind_fmm_precision) :: mu_cent(1:fmm_array_length)
       ! externally calculated FMM variables
-      complex*16 :: omega_tilde(1:Lmax*(Lmax+1)/2+Lmax+1)
-      complex*16 :: MLattice(1:Lmax*(Lmax+1)/2+Lmax+1)
+      complex(kind_fmm_precision) :: omega_tilde(1:fmm_array_length)
+      complex(kind_fmm_precision) :: MLattice(1:fmm_array_length)
       !> variables for extrinsic to intrinsic correction
-      real*8 :: box_dipole(3) = 0.
-      real*8 :: quad_trace    = 0.
+      real(kind_fmm_precision) :: box_dipole(3) = 0.
+      real(kind_fmm_precision) :: quad_trace    = 0.
 
       ! Variables for lattice coefficient calculation
-      complex*16 :: Mstar(1:Lmax*(Lmax+1)/2+Lmax+1)
-      complex*16 :: Lstar(1:Lmax*(Lmax+1)/2+Lmax+1)
+      complex(kind_fmm_precision) :: Mstar(1:fmm_array_length)
+      complex(kind_fmm_precision) :: Lstar(1:fmm_array_length)
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -93,28 +96,36 @@ module module_fmm_framework
         !>
         !> Module Initialization, should be called on program startup
         !> after setting up all geometric parameters etc.
+        !>  - well-separation criterion is automatically set to module_mirror_boxes::mirror_box_layers
+        !>  - module_mirror_boxes::calc_neighbour_boxes() must have been called before calling this routine
+        !>
         !> @param[in] mpi_rank MPI rank of process for controlling debug output
-        !> @param[in] wellsep well-separation criterion parmater
+        !> @param[in] mpi_comm MPI communicator to be used
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine fmm_framework_init(mpi_rank, wellsep)
-          use module_math_tools
+        subroutine fmm_framework_init(mpi_rank, mpi_comm)
+          use module_mirror_boxes, only : mirror_box_layers
           implicit none
           integer, intent(in) :: mpi_rank
-          integer, intent(in) :: wellsep
+          integer, intent(in) :: mpi_comm
 
-          myrank = mpi_rank
-          ws     = wellsep
+          myrank       = mpi_rank
+          MPI_COMM_fmm = mpi_comm
+          ws           = mirror_box_layers
 
           LatticeCenter = 0.5*(t_lattice_1 + t_lattice_2 + t_lattice_3)
 
-          do_periodic = periodicity(1) .or. periodicity(2) .or. periodicity(3)
-
-          call calc_neighbour_boxes()
+          do_periodic = any(periodicity(1:3))
 
            ! anything above has to be done in any case
           if (do_periodic) then
-            call calc_lattice_coefficients
+            MLattice = 0
+            !call calc_lattice_coefficients(MLattice)
+            call load_lattice_coefficients(MLattice)
+
+            if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
+              call WriteTableToFile('MLattice.tab', MLattice)
+            end if
           end if
 
         end subroutine fmm_framework_init
@@ -123,17 +134,20 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Refreshes Multipole information and Taylor coefficients,
-        !> has to be called every timestep
+        !> has to be called every timestep with particles that were used in tree buildup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine fmm_framework_timestep(particles)
+        subroutine fmm_framework_timestep(particles, nparticles)
           use module_pepc_types
           implicit none
-          type(t_particle), dimension(:), intent(in) :: particles
-          if (.not. do_periodic) return
-          call calc_omega_tilde(particles)
-          call calc_mu_cent
-          call calc_extrinsic_correction(particles)
+          integer, intent(in) :: nparticles
+          type(t_particle), dimension(nparticles), intent(in) :: particles
+
+          if (do_periodic) then
+            call calc_omega_tilde(particles, nparticles)
+            call calc_mu_cent()
+            call calc_extrinsic_correction(particles, nparticles)
+          endif
         end subroutine fmm_framework_timestep
 
 
@@ -142,19 +156,18 @@ module module_fmm_framework
         !> Calculates the lattice coefficients for computing mu_cent
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_lattice_coefficients
+        subroutine calc_lattice_coefficients(ML)
           use module_debug
           implicit none
-          include 'mpif.h'
 
-          integer :: l, m
-          integer :: iter
+          complex(kind_fmm_precision), intent(out) :: ML(1:fmm_array_length)
+
+          integer :: l, m, iter
 
           call pepc_status('LATTICE COEFFICIENTS: Starting calculation')
 
-          Mstar    = 0
-          Lstar    = 0
-          MLattice = 0
+          Mstar = 0
+          Lstar = 0
 
           ! pretabulation of necessary values
           do l = 0,Lmax
@@ -170,25 +183,80 @@ module module_fmm_framework
           end if
 
           ! zeroth step of iteration
-          MLattice = Lstar
+          ML = Lstar
 
           do iter = 1,MaxIter
 
-            MLattice = M2M( UL( MLattice ) , MStar ) + Lstar
+            ML = M2L( UL( ML ) , MStar ) + Lstar
 
             !DEBUG
             !write(*,*) "----------- After Iteration ", iter
-            !write(*,*) "MLattice = ", MLattice
+            !write(*,*) "ML = ", ML
           end do
 
-          ! MLattice(1:tblinv(3,3))=0
+          ! ML(1:tblinv(3,3))=0
           call pepc_status('LATTICE COEFFICIENTS: finished calculation')
+
+        end subroutine calc_lattice_coefficients
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Sets the lattice coefficients for computing mu_cent
+        !> data taken from [Challacombe, White, Head-Gordon: J. Chem. Phys. 107, 10131]
+        !> only works if Lmax = 20
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine load_lattice_coefficients(M)
+          use module_debug
+          implicit none
+
+          complex(kind_fmm_precision), intent(inout) :: M(1:fmm_array_length)
+
+          call pepc_status('LATTICE COEFFICIENTS: Loading')
+
+          M(tblinv( 4,  0)) =   2.8119304871888668206200481879919D+00
+          M(tblinv( 4,  4)) =   1.4059652435944334103100240939959D+01
+          M(tblinv( 6,  0)) =   5.4795908739321644069327702900830D-01
+          M(tblinv( 6,  4)) =  -3.8357136117525150848529392030580D+00
+          M(tblinv( 8,  0)) =   1.2156157302097918942115948482762D+02
+          M(tblinv( 8,  4)) =   1.2156157302097918942115948482762D+02
+          M(tblinv( 8,  8)) =   7.9015022463636473123753665137950D+03
+          M(tblinv(10,  0)) =   3.1179916736109123107822587274280D+02
+          M(tblinv(10,  4)) =  -6.8595816819440070837209692003420D+02
+          M(tblinv(10,  8)) =  -1.1661288859304812042325647640581D+04
+          M(tblinv(12,  0)) =   2.4245612747359092217199640516493D+05
+          M(tblinv(12,  4)) =   2.0375858264140266510162557633886D+05
+          M(tblinv(12,  8)) =   7.0682666545985000701644635107790D+05
+          M(tblinv(12, 12)) =   2.3702435984527078287639617913271D+08
+          M(tblinv(14,  0)) =   2.0954087119885542648713979286402D+06
+          M(tblinv(14,  4)) =  -2.6940969154138554834060830511089D+06
+          M(tblinv(14,  8)) =  -1.7062613797621084728238525990356D+07
+          M(tblinv(14, 12)) =  -6.5406686224214158124914349629700D+08
+          M(tblinv(16,  0)) =   5.4279858299650169624382885076980D+08
+          M(tblinv(16,  4)) =   2.2841041529105412872383486949334D+08
+          M(tblinv(16,  8)) =   1.2973301854895758582918144058332D+09
+          M(tblinv(16, 12)) =   2.5882484900055575638355343741650D+10
+          M(tblinv(16, 16)) =   6.9973653547984205656745320248030D+12
+          M(tblinv(18,  0)) =   1.4686049951258450810632984509870D+10
+          M(tblinv(18,  4)) =  -1.5376346487994712576061405817891D+10
+          M(tblinv(18,  8)) =  -2.4226921558569614141580552133902D+10
+          M(tblinv(18, 12)) =  -1.0692416604738659056152567751127D+12
+          M(tblinv(18, 16)) =  -3.9585194668444324327226917843820D+13
+          M(tblinv(20,  0)) =   2.9414124910043233182340700935067D+12
+          M(tblinv(20,  4)) =   5.0799363324581667612792095666680D+11
+          M(tblinv(20,  8)) =   4.3319375525806128280090124574150D+12
+          M(tblinv(20, 12)) =   4.7785845726839660008475961329560D+13
+          M(tblinv(20, 16)) =   1.6103883836731949966180674427718D+15
+          M(tblinv(20, 20)) =   5.0103139602723200237451484155740D+17
+
+          call pepc_status('LATTICE COEFFICIENTS: finished')
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('MLattice.tab', MLattice)
           end if
 
-        end subroutine calc_lattice_coefficients
+        end subroutine load_lattice_coefficients
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -197,28 +265,29 @@ module module_fmm_framework
         !> central box
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_omega_tilde(particles)
-          use treevars
+        subroutine calc_omega_tilde(particles, nparticles)
           use module_pepc_types
           use module_debug
           implicit none
-          include 'mpif.h'
 
-          type(t_particle), dimension(:), intent(in) :: particles
+          type(t_particle), dimension(nparticles), intent(in) :: particles
+          integer, intent(in) :: nparticles
 
           integer :: ll, mm, p
           integer :: ierr
-          complex*16 :: tmp
+          complex(kind_fmm_precision) :: tmp
+          real*8 :: R(3)
 
           omega_tilde = 0
 
           ! calculate multipole contributions of all local particles
-          do ll=0,LmaxL
+          do ll=0,Lmax
             do mm=0,ll
               tmp = 0
 
-              do p=1,npp
-                tmp = tmp + particles(p)%data%q * O(ll, mm, particles(p)%x - LatticeCenter)
+              do p=1,nparticles
+                R   = particles(p)%x - LatticeCenter
+                tmp = tmp + omega(ll, mm, R, particles(p)%data%q)
               end do
 
               omega_tilde( tblinv(ll, mm) ) = tmp
@@ -226,17 +295,14 @@ module module_fmm_framework
           end do
 
           ! sum multipole contributions from all processors
-          call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde, Lmax*(Lmax+1)/2+Lmax+1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde, 2*fmm_array_length, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('omega_tilde.tab', omega_tilde)
           end if
 
           if (real(omega_tilde( tblinv(0, 0))) > 1.E-8) then
-            DEBUG_WARNING(*, 'WARNING: The central box is not charge-neutral. Switching off calculation of lattice contribution. omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0)) )
-
-            do_periodic         = .false.
-            num_neighbour_boxes = 1
+            DEBUG_WARNING(*, 'WARNING: The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0)), ' Ignoring, but this could lead to infinite energies etc.' )
           end if
 
         end subroutine calc_omega_tilde
@@ -252,18 +318,15 @@ module module_fmm_framework
         !> (see [J.Chem.Phys. 107, 10131, eqn.(19,20)] for details
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_extrinsic_correction(particles)
-          use treevars
+        subroutine calc_extrinsic_correction(particles, nparticles)
           use module_debug
           use module_pepc_types
           implicit none
-          include 'mpif.h'
 
-          type(t_particle), intent(in), dimension(:) :: particles(:)
+          type(t_particle), intent(in), dimension(nparticles) :: particles(:)
+          integer, intent(in) :: nparticles
 
-          real, parameter :: pi=3.141592654
-          real*8 :: box_dipole(3) = 0.
-          real*8 :: quad_trace    = 0.
+          real(kind_fmm_precision), parameter :: pi=acos(-1.0)
           real*8 :: r(3)
 
           integer :: p
@@ -274,22 +337,22 @@ module module_fmm_framework
 
           if (do_extrinsic_correction) then
 
-	          ! calculate multipole contributions of all local particles
-	          do p=1,npp
-	            r = particles(p)%x - LatticeCenter
+              ! calculate multipole contributions of all local particles
+              do p=1,nparticles
+                r = particles(p)%x - LatticeCenter
 
-	            box_dipole = box_dipole + particles(p)%data%q * r
-	            quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)
-	          end do
+                box_dipole = box_dipole + particles(p)%data%q * r
+                quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)
+              end do
 
-	          ! sum contributions from all processors
-	          call MPI_ALLREDUCE(MPI_IN_PLACE, box_dipole, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-	          call MPI_ALLREDUCE(MPI_IN_PLACE, quad_trace, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+              ! sum contributions from all processors
+              call MPI_ALLREDUCE(MPI_IN_PLACE, box_dipole, 3, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+              call MPI_ALLREDUCE(MPI_IN_PLACE, quad_trace, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
 
-	          box_dipole = 4.*pi/3. * box_dipole
-	          quad_trace = 2.*pi/3. * quad_trace
+              box_dipole = 4.*pi/3. * box_dipole
+              quad_trace = 2.*pi/3. * quad_trace
 
-	      end if
+          end if
 
         end subroutine calc_extrinsic_correction
 
@@ -303,26 +366,8 @@ module module_fmm_framework
         subroutine calc_mu_cent
           implicit none
 
-          integer :: j, k, lambda, nu
-          complex*16 :: tmp
-
-          mu_cent = 0;
-
           ! contribution of all outer lattice cells, with regards to the centre of the original box
-          do j = 0,LmaxL
-            do k = 0,j
-
-              tmp = 0
-
-              do lambda = 0,LmaxL
-                do nu = -lambda,lambda
-                  tmp = tmp + (-1.)**lambda*tbl(MLattice,j+lambda,k+nu) * tbl(omega_tilde, lambda, nu)
-                end do
-              end do
-
-              mu_cent( tblinv(j, k) ) = tmp
-            end do
-          end do
+          mu_cent = M2L(MLattice, omega_tilde)
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('mu_cent.tab', mu_cent)
@@ -333,150 +378,182 @@ module module_fmm_framework
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Calculates the chargeless moments of the multipole expansion
-        !> for a certain particle
-        !> this is formally identical to #Mvec, however #O also treats negative m
+        !> Calculates P^~ as given by [Challacombe et al, eq. (7)]
+        !> This is consistent with [Kudin, eq(2)],
+        !> but contradicts with [White, eq. (2a)]
+        !>
+        !> uses negative order relation as given by
+        !>  http://mathworld.wolfram.com/AssociatedLegendrePolynomial.html
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex*16 function O(l, m, r)
-          use module_math_tools
+        recursive real(kind_fmm_precision) function Ptilda(l, m, x) result(Pt)
+          implicit none
+          integer, intent(in) :: l, m
+          real(kind_fmm_precision), intent(in) :: x
+
+          if (m >=0) then
+            Pt = div_by_fac(LegendreP(l, m, x), l + m)
+          else
+            Pt = (-1)**abs(m) * Ptilda(l, abs(m), x)
+          endif
+
+        end function Ptilda
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates P^~ as given by [Challocombe et al, eq. (8)]
+        !> This is (almost) consistent with [Kudin, eq(3)],
+        !> but contradicts with [White, eq. (2b)]
+        !>
+        !> uses negative order relation as given by
+        !>  http://mathworld.wolfram.com/AssociatedLegendrePolynomial.html
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        recursive real(kind_fmm_precision) function P2tilda(l, m, x) result(P2t)
+          implicit none
+          integer, intent(in) :: l, m
+          real(kind_fmm_precision), intent(in) :: x
+
+          if (m >=0) then
+            P2t = mult_by_fac(LegendreP(l, m, x), l - m)
+          else
+            P2t = (-1)**abs(m) * P2tilda(l, abs(m), x)
+          endif
+
+        end function P2tilda
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates the chargeless moments of the multipole expansion
+        !> for a certain particle
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        complex(kind_fmm_precision) function OMultipole(l, m, r)
           implicit none
           integer, intent(in) :: l, m
           real*8, intent(in) :: r(3)
-          integer :: mm
 
-          real*8 :: s(3)
-          complex*16, parameter :: i = (0,1)
+          real(kind_fmm_precision) :: s(3)
+          complex(kind_fmm_precision), parameter :: i = (0,1)
 
           if ((l<0) .or. (m<-l) .or. (m>l)) then
-              O = 0 ! these are zero per definition
+              OMultipole = 0 ! these are zero per definition
           else
-	          call cartesian_to_spherical(r, s)
-	          mm = abs(m)
+              call cartesian_to_spherical(r, s)
 
-	          O = div_by_fac(LegendreP(l, mm, s(2)) * Exp(-i*mm*s(3) ), l+mm)
+              if (s(1) > 0) then
+                OMultipole = s(1)**l * Ptilda(l, m, s(2)) * exp(-i*m*s(3) )
+              else
+                ! avoid having to compute 0^0 = 1 since some runtimes do not like that
+                OMultipole =       1 * Ptilda(l, m, s(2)) * exp(-i*m*s(3) )
+              endif
 
-	          if (s(1) > 0) O = O * s(1)**l
-	          if (m    < 0) O = (-1)**mm * conjg(O)
           endif
 
-		end function O
+        end function OMultipole
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates the chargeless moments of the Taylor expansion
+        !> for a certain particle
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        complex(kind_fmm_precision) function MTaylor(l, m, r)
+          implicit none
+          integer, intent(in) :: l, m
+          real*8, intent(in) :: r(3)
+
+          real(kind_fmm_precision) :: s(3)
+          complex(kind_fmm_precision), parameter :: i = (0,1)
+
+          if ((l<0) .or. (m<-l) .or. (m>l)) then
+              MTaylor = 0 ! these are zero per definition
+          else
+              call cartesian_to_spherical(r, s)
+
+              MTaylor = 1./(s(1)**(l+1)) * P2tilda(l, m, s(2)) * exp( i*m*s(3) )
+
+          endif
+
+        end function MTaylor
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates the charged moments of the multipole expansion
+        !> for a certain particle
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        complex(kind_fmm_precision) function omega(l, m, r, q)
+          implicit none
+          integer, intent(in) :: l, m
+          real*8, intent(in) :: r(3), q
+
+          omega = q * OMultipole(l, m, r)
+
+        end function omega
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Calculates force onto individual particles that results
+        !> Calculates the charged moments of the Taylor expansion
+        !> for a certain particle
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        complex(kind_fmm_precision) function mu(l, m, r, q)
+          implicit none
+          integer, intent(in) :: l, m
+          real*8, intent(in) :: r(3), q
+
+          mu = q * MTaylor(l, m, r)
+
+        end function mu
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates force at individual position that results
         !> from mirror boxes beyond the near field region,
         !> i.e. the lattice contribution
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine fmm_sum_lattice_force(particle, ex_lattice, ey_lattice, ez_lattice, phi_lattice)
-          use treevars
+        subroutine fmm_sum_lattice_force(pos, e_lattice, phi_lattice)
           implicit none
 
-          type(t_particle), intent(in) :: particle
-          real*8, intent(out) ::  ex_lattice, ey_lattice, ez_lattice, phi_lattice
+          real*8, intent(in) :: pos(3)
+          real*8, intent(out) ::  e_lattice(3), phi_lattice
 
-          complex*16 :: mu_shift(0:1,0:1), tmp
-          integer :: ll, mm, j, k
-          real*8 :: r(3)
+          complex(kind_fmm_precision) :: mu_shift(1:fmm_array_length), O_R(1:fmm_array_length)
+          integer :: l, m
+          real*8 :: R(3)
 
           if (.not. do_periodic) then
-            ex_lattice = 0
-            ey_lattice = 0
-            ez_lattice = 0
-            phi_lattice = 0
-            return
-        end if
+              e_lattice   = 0
+              phi_lattice = 0
+            else
+              ! shift mu_cent to the position of our particle
+              R        = pos - LatticeCenter !TODO : stimmt das so?
 
-         ! shift mu_cent to the position of our particle
-          mu_shift =  0
-          r        = particle%x - LatticeCenter
-
-          do ll = 0,1
-            do mm = 0,ll
-
-              tmp = 0
-
-              do j = ll,LmaxL
-                do k=-j,j
-                   tmp = tmp + O(j-ll, k-mm, r) * tbl( mu_cent, j, k )
+              do l = 0,Lmax
+                do m = 0,l
+                  O_R(tblinv(l,m)) = OMultipole(l, m, R)
                 end do
               end do
 
-              mu_shift(ll, mm) = tmp
+              mu_shift = L2L(O_R, mu_cent) ! TODO: eigentlich brauchen wir nur l=0,1; m=0..l
 
-            end do
-          end do
+              ! E = -grad(Phi)
+              e_lattice  = -[  real(tbl(mu_shift,1,1)), aimag(tbl(mu_shift,1,1)), real(tbl(mu_shift,1,0)) ]
+              phi_lattice =    real(tbl(mu_shift,0,0))
 
-                         ! E = -grad(Phi)
-          if (do_extrinsic_correction) then    ! extrinsic correction
-		    ex_lattice  = -real(mu_shift(1,1))  + box_dipole(1)
-		    ey_lattice  = -aimag(mu_shift(1,1)) + box_dipole(2)
-            ez_lattice  = -real(mu_shift(1,0))  + box_dipole(3)
-		    phi_lattice =  real(mu_shift(0,0))  - dot_product(r, box_dipole) + quad_trace
-		  else
-            ex_lattice  = -real(mu_shift(1,1))
-            ey_lattice  = -aimag(mu_shift(1,1))
-            ez_lattice  = -real(mu_shift(1,0))
-            phi_lattice =  real(mu_shift(0,0))
-          endif
+              if (do_extrinsic_correction) then    ! extrinsic correction
+                e_lattice   = e_lattice   + box_dipole
+                phi_lattice = phi_lattice - dot_product(R, box_dipole) + quad_trace
+              endif
+
+          end if
+
         end subroutine fmm_sum_lattice_force
-
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
-        !> Calculate Spherical Multipole coefficients \f$\mathcal{M}\f$ for a cartesian vector
-        !> @param[in] l multipole order
-        !> @param[in] m
-        !> @param[in] r cartesian vector [x, y, z]
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex*16 function Mvec(l,m,r)
-          use module_math_tools
-          implicit none
-          integer, intent(in) :: l, m
-          real*8, intent(in) :: r(3)
-
-          real*8 :: s(3)
-          complex*16, parameter :: i = (0,1)
-
-          call cartesian_to_spherical(r, s)
-
-          Mvec = div_by_fac(LegendreP(l, m, s(2)) * Exp(-i*m*s(3) ), l+m)
-
-          if (s(1) > 0) Mvec = Mvec * s(1)**l
-
-          ! DEBUG (for comparison with Mathematica worksheet)
-          !write(*, '("Mvec[", I2.2, ", ", I2.2, ", {", F8.5,",",F8.5,",",F8.5, "}],  ", D20.10, D20.10)') &
-          !                l, m, r(1), r(2), r(3), real(Mvec), aimag(Mvec)
-          !write(*, '("M[", I2.2, ", ", I2.2, ", ", F8.5,",",F8.5,",",F8.5, "],  ", D20.10, D20.10)') &
-          !                l, m, s(1), s(2), s(3), real(Mvec), aimag(Mvec)
-
-        end function Mvec
-
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
-        !> Calculate Spherical Taylor coefficients \f$\mathcal{L}\f$ for a cartesian vector
-        !> @param[in] l multipole order
-        !> @param[in] m
-        !> @param[in] r cartesian vector [x, y, z]
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex*16 function Lvec(l,m,r)
-          use module_math_tools
-          implicit none
-          integer, intent(in) :: l, m
-          real*8, intent(in) :: r(3)
-          real*8 :: s(3)
-          complex*16, parameter :: i = (0,1)
-
-          call cartesian_to_spherical(r, s)
-
-          Lvec = mult_by_fac(LegendreP(l, m, s(2)) / s(1)**(l+1) * Exp( i*m*s(3) ), l-m)
-
-        end function Lvec
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -491,10 +568,10 @@ module module_fmm_framework
         !> @param[in] A table
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex*16 function tbl(A,l,m)
+        complex(kind_fmm_precision) function tbl(A,l,m)
           implicit none
           integer, intent(in) :: l, m
-          complex*16, intent(in) :: A(1:Lmax*(Lmax+1)/2+Lmax+1)
+          complex(kind_fmm_precision), intent(in) :: A(1:Lmax*(Lmax+1)/2+Lmax+1)
 
           if (l>Lmax) then
             tbl = 0
@@ -529,38 +606,35 @@ module module_fmm_framework
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> M2M-Operator (denoted with \f$\otimes\f$ )
-        !>
-        !> @param[in] l multipole order
-        !> @param[in] m
-        !> @param[in] A table
+        !> M2M-Operator (denoted with \f$\triangleleft\f$ )
+        !> eq. (6) in [Kudin]
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function M2M(L, M)
+        function M2M(O_a, O_b)
           implicit none
-          complex*16, intent(in) :: L(1:Lmax*(Lmax+1)/2+Lmax+1)
-          complex*16, intent(in) :: M(1:Lmax*(Lmax+1)/2+Lmax+1)
-          complex*16, dimension(1:Lmax*(Lmax+1)/2+Lmax+1) :: M2M
+          complex(kind_fmm_precision), intent(in) :: O_a(1:fmm_array_length)
+          complex(kind_fmm_precision), intent(in) :: O_b(1:fmm_array_length)
+          complex(kind_fmm_precision), dimension(1:fmm_array_length) :: M2M
 
-          complex*16 :: t
-          integer :: ll, mm, j, k
+          complex(kind_fmm_precision) :: t
+          integer :: l, m, j, k
 
           ! DEBUG
-          !write(*,*) "L = ", L
-          !write(*,*) "M = ", M
+          !write(*,*) "O1 = ", O1
+          !write(*,*) "O2 = ", O2
 
-          do ll = 0,Lmax
-            do mm = 0,ll
+          do l = 0,Lmax
+            do m = 0,l
 
               t = 0
 
-              do j = 0,Lmax
+              do j = 0,l ! Attention, this sum only runs to l instead of infty|Lmax
                 do k = -j,j
-                  t = t + tbl(L,ll+j, mm+k) * tbl(M,j,k)
+                  t = t + tbl(O_b, l-j, m-k) * tbl(O_a, j, k)
                 end do
               end do
 
-              M2M( tblinv(ll, mm) ) = t
+              M2M( tblinv(l, m) ) = t
             end do
           end do
 
@@ -572,16 +646,96 @@ module module_fmm_framework
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
+        !> M2L-Operator (denoted with \f$\otimes\f$ )
+        !> eq. (7) in [Kudin]
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        function M2L(M_b, O_a)
+          implicit none
+          complex(kind_fmm_precision), intent(in) :: M_b(1:fmm_array_length)
+          complex(kind_fmm_precision), intent(in) :: O_a(1:fmm_array_length)
+          complex(kind_fmm_precision), dimension(1:fmm_array_length) :: M2L
+
+          complex(kind_fmm_precision) :: t
+          integer :: l, m, j, k
+
+          ! DEBUG
+          !write(*,*) "M_b = ", M_b
+          !write(*,*) "O_a = ", O_a
+
+          do l = 0,Lmax
+            do m = 0,l
+
+              t = 0
+
+              do j = 0,Lmax
+                do k = -j,j
+                  t = t + (-1)**j * tbl(M_b, j+l, k+m) * tbl(O_a, j, k) !TODO: evtl. (-1)**j oder 1/(j+l-k-m)! hinzufuegen (vgl. S. 82 bzw. 21 bei Ivo) ??
+                end do
+              end do
+
+              M2L( tblinv(l, m) ) = t
+            end do
+          end do
+
+          ! DEBUG
+          !write(*,*) "M2L = ", M2L
+
+        end function M2L
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> L2L-Operator (denoted with \f$\triangleright\f$ )
+        !> eq. (8) in [Kudin]
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        function L2L(O_b, M_r)
+          implicit none
+          complex(kind_fmm_precision), intent(in) :: O_b(1:fmm_array_length)
+          complex(kind_fmm_precision), intent(in) :: M_r(1:fmm_array_length)
+          complex(kind_fmm_precision), dimension(1:fmm_array_length) :: L2L
+
+          complex(kind_fmm_precision) :: t
+          integer :: l, m, j, k
+
+          ! DEBUG
+          !write(*,*) "O_b = ", O_b
+          !write(*,*) "M_r = ", M_r
+
+          do l = 0,Lmax
+            do m = 0,l
+
+              t = 0
+
+              do j = 0,Lmax ! TODO: Ivos Diss. S.23: Summe beginnt erst bei l ??
+                do k = -j,j
+                  t = t + tbl(O_b, j-l, k-m) * tbl(M_r, j, k)
+                end do
+              end do
+
+              L2L( tblinv(l, m) ) = t
+            end do
+          end do
+
+          ! DEBUG
+          !write(*,*) "L2L = ", L2L
+
+        end function L2L
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
         !> Scaling Operator \f$\mathcal{U}_L\f$ for Taylor coefficients
         !> @param[in] L table with Taylor coefficients
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function UL(L)
           implicit none
-          complex*16, intent(in) :: L(1:Lmax*(Lmax+1)/2+Lmax+1)
-          complex*16, dimension(1:Lmax*(Lmax+1)/2+Lmax+1) :: UL
+          complex(kind_fmm_precision), intent(in) :: L(1:fmm_array_length)
+          complex(kind_fmm_precision), dimension(1:fmm_array_length) :: UL
 
-          integer :: ll,mm
+          integer :: ll, mm
 
           ! DEBUG
           !write(*,*) "L = ", L
@@ -603,7 +757,7 @@ module module_fmm_framework
         !> Formal summation of \f$M\f$ over NF, ie all (27) neighbouring boxes
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex*16 function MstarFunc(l,m)
+        complex(kind_fmm_precision) function MstarFunc(l,m)
           implicit none
           integer, intent(in) :: l, m
 
@@ -612,7 +766,7 @@ module module_fmm_framework
           MstarFunc = 0
 
           do i = 1,num_neighbour_boxes
-             MstarFunc = MstarFunc + Mvec(l, m, -lattice_vect(neighbour_boxes(:,i)) )
+             MstarFunc = MstarFunc + OMultipole(l, m, -lattice_vect(neighbour_boxes(:,i)) )
           end do
 
         end function MstarFunc
@@ -624,21 +778,21 @@ module module_fmm_framework
         !> with some overhead to avoid numerical elimination of small values
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex*16 function LstarFunc(l,m)
-          use module_math_tools
+        complex(kind_fmm_precision) function LstarFunc(l,m)
           implicit none
           integer, intent(in) :: l, m
-          real*8 :: rpart(num_neighbour_boxes*(num_neighbour_boxes-1)), ipart(num_neighbour_boxes*(num_neighbour_boxes-1)),rp,ip
-          complex*16 :: tmp
-          complex*16, parameter :: ic = (0,1)
+          real(kind_fmm_precision) :: rpart(num_neighbour_boxes*(num_neighbour_boxes-1)), ipart(num_neighbour_boxes*(num_neighbour_boxes-1)),rp,ip
+          complex(kind_fmm_precision) :: tmp
+          complex(kind_fmm_precision), parameter :: ic = (0,1)
           integer :: i, ii, k
 
           LstarFunc = 0
           k = 0
 
+          ! sum over all boxes within FF' (cells in the far field of the central cell but in the near field of the central supercell 3x3x3 that embeds cell {0,0,0} in the center)
           do i = 1,num_neighbour_boxes-1 ! central box is being omitted in this loop
             do ii = 1,num_neighbour_boxes
-              tmp = Lvec(l, m, -lattice_vect(neighbour_boxes(:,ii)) + (2*ws+1)*lattice_vect(neighbour_boxes(:,i)))
+              tmp = MTaylor(l, m, (2*ws+1)*lattice_vect(neighbour_boxes(:,i)) + lattice_vect(neighbour_boxes(:,ii)))
               k   = k+1
               ! we store the summands and order them before performing the sum
               ! to avoid numeric elimination
@@ -673,7 +827,7 @@ module module_fmm_framework
         subroutine cartesian_to_spherical(cartesian, spherical)
           implicit none
           real*8, intent(in)  :: cartesian(3)
-          real*8, intent(out) :: spherical(3)
+          real(kind_fmm_precision), intent(out) :: spherical(3)
 
           spherical(1) = sqrt(dot_product(cartesian, cartesian))
 
@@ -699,7 +853,7 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine PrintTable(s, T)
           implicit none
-          complex*16, intent(in) :: T(1:Lmax*(Lmax+1)/2+Lmax+1)
+          complex(kind_fmm_precision), intent(in) :: T(1:fmm_array_length)
           integer, intent(in) :: s
 
           integer :: ll,mm,idx
@@ -725,12 +879,13 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine WriteTableToFile(s, T)
           implicit none
-          complex*16, intent(in) :: T(1:Lmax*(Lmax+1)/2+Lmax+1)
+          complex(kind_fmm_precision), intent(in) :: T(1:fmm_array_length)
           character(len=*) :: s
           integer, parameter :: temp_file = 60
 
           open(temp_file, file=trim(s))
 
+          write(temp_file,*) "# filename    = ", trim(s)
           write(temp_file,*) "# t_lattice_1 = ", t_lattice_1
           write(temp_file,*) "# t_lattice_2 = ", t_lattice_2
           write(temp_file,*) "# t_lattice_3 = ", t_lattice_3
@@ -754,25 +909,247 @@ module module_fmm_framework
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_framework_param_dump(ifile)
-          use treevars
           implicit none
           integer, intent(in) :: ifile
 
-          if (me .ne. 0) return
+          if (myrank .ne. 0) return
 
           write(ifile,*) "LATTICE: ------------- Lattice fmm-framework switches ----------------"
-          write(ifile,*) "LATTICE: Lmax = ", Lmax
-          write(ifile,*) "LATTICE: LmaxL = ", LmaxL
-          write(ifile,*) "LATTICE: MaxIter = ", MaxIter
-          write(ifile,*) "LATTICE: ws = ", ws
+          write(ifile,*) "LATTICE: Lmax        = ", Lmax
+          write(ifile,*) "LATTICE: MaxIter     = ", MaxIter
+          write(ifile,*) "LATTICE: ws          = ", ws
           write(ifile,*) "LATTICE: t_lattice_1 = ", t_lattice_1
           write(ifile,*) "LATTICE: t_lattice_2 = ", t_lattice_2
           write(ifile,*) "LATTICE: t_lattice_3 = ", t_lattice_3
           write(ifile,*) "LATTICE: periodicity = ", periodicity
           write(ifile,*) "LATTICE: # neighbours = ", num_neighbour_boxes
-          write (ifile,*)
+          write(ifile,*)
         end subroutine fmm_framework_param_dump
 
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Computes the associated Legendre polynomial \f$P_l_m (x)\f$.
+        !> Here m and l are integers satisfying  \f$0 \leq m \leq l\f$,
+        !> while x lies in the range \f$-1 \leq x \leq 1\f$.
+        !>
+        !> Code fragment for \f$P_l^m(x)\f$ taken from
+        !>
+        !> Numerical Recipes in Fortran 77: The Art of Scientific Computing
+        !>              (ISBN 0-521-43064-X)
+        !> pg. 246ff
+        !>
+        !> and modified to give \f$P_l_m (x)\f$:
+        !> \f$ P_l_m (x) = (-1)^m P_l^m (x) \f$, see
+        !>
+        !> Abramowitz and Stegun: Handbook of Mathematical Functions
+        !> Section 8. Legendre Functions (pg. 332)
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        real(kind_fmm_precision) function LegendreP(l,m,x)
+          use module_debug
+          implicit none
+          integer, intent(in) :: l, m
+          real(kind_fmm_precision) ::x
+
+          integer :: i,ll
+          real(kind_fmm_precision) :: fact,pll,pmm,pmmp1,somx2
+
+          pll = 0.
+
+          if ( (m < 0) .or. (m > l) .or. (abs(x) > 1) ) then
+            DEBUG_ERROR(*,'Invalid arguments for LegendreP(',l,m,x,')')
+          endif
+
+          pmm = 1.0     ! Compute P_m^m
+
+          if (m > 0) then
+            somx2 = sqrt((1.-x)*(1.+x))
+            fact  = 1.0
+
+            do i = 1,m
+               pmm  = -pmm * fact * somx2
+               fact = fact+2.
+            enddo
+          endif
+
+          if (l == m) then
+            LegendreP = pmm
+          else
+            pmmp1 = x*(2*m+1)*pmm  ! Compute P_m+1^m
+
+            if (l == m+1) then
+              LegendreP = pmmp1
+            else                  ! Compute P_l^m , l > m + 1
+              do ll = m+2,l
+                pll   = (x*(2*ll-1)*pmmp1-(ll+m-1)*pmm)/(ll-m)
+                pmm   = pmmp1
+                pmmp1 = pll
+              enddo
+
+              LegendreP = pll
+            endif
+          endif
+
+          LegendreP = (-1)**m * LegendreP
+
+          ! DEBUG (for comparison with Mathematica worksheet)
+          !write(*, '("LegendreP[", I2.2, ", ", I2.2, ", ", F10.5, "],  ", D20.10)') l, m, x, LegendreP
+
+        end function LegendreP
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates the factorial of the argument
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        recursive integer(kind_fmm_precision) function factorial(n) result(fact)
+            use module_debug
+            implicit none
+            integer, intent(in) :: n
+
+            if (n<0) then
+              DEBUG_ERROR(*,"tried to calculate factorial of negative argument - you are evil")
+            end if
+
+            select case (n)
+              case ( 0)
+                fact =             1
+              case ( 1)
+                fact =             1
+              case ( 2)
+                fact =             2
+              case ( 3)
+                fact =             6
+              case ( 4)
+                fact =            24
+              case ( 5)
+                fact =           120
+              case ( 6)
+                fact =           720
+              case ( 7)
+                fact =          5040
+              case ( 8)
+                fact =         40320
+              case ( 9)
+                fact =        362880
+              case (10)
+                fact =       3628800
+              case (11)
+                fact =      39916800
+              case (12)
+                fact =     479001600
+              case default
+                fact = n * factorial(n-1)
+            end select
+        end function factorial
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Divides the argument x by n!
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        real(kind_fmm_precision) function div_by_fac(x, n)
+            implicit none
+            real(kind_fmm_precision), intent(in) :: x
+            integer, intent(in) :: n
+
+            integer :: i
+
+            if (n <= 12) then
+              div_by_fac = x / factorial(n)
+            else
+              div_by_fac = x / factorial(12)
+
+              do i=13,n
+                div_by_fac = div_by_fac / i
+              end do
+            end if
+        end function div_by_fac
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Multiplies the argument x by n!
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        real(kind_fmm_precision) function mult_by_fac(x, n)
+            implicit none
+            real(kind_fmm_precision), intent(in) :: x
+            integer, intent(in) :: n
+
+            integer :: i
+
+            if (n <= 12) then
+              mult_by_fac = x * factorial(n)
+            else
+              mult_by_fac = x * factorial(12)
+
+              do i=13,n
+                mult_by_fac = mult_by_fac * i
+              end do
+            end if
+        end function mult_by_fac
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Sorts the given values with a heap sort approach
+        !> in order of ther absolute value
+        !> compare (Numerical Recipes f90, p1171)
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          subroutine sort_abs(arr)
+            implicit none
+            real(kind_fmm_precision), intent(inout) :: arr(:)
+            integer :: i,n
+
+            n = size(arr)
+
+            do i=n/2,1,-1                      ! Left range - hiring phase (heap creation)
+               call sift_down(i,n)
+            end do
+
+            do i=n,2,-1                        ! Right range of sift-down is decr. from n-1 ->1
+               ! during retirement/promotion (heap selection) phase.
+               call swap( arr(1),arr(i) )      ! Clear space at end of array and retire top of heap into it
+               call sift_down( 1,i-1)
+            end do
+
+          contains
+            subroutine sift_down(l,r)        ! Carry out the sift-down on element arr(l) to maintain
+              integer, intent(in) :: l,r     ! the heap structure
+              integer :: j,jold    ! index
+              real(kind_fmm_precision) :: a
+
+              a = arr(l)
+
+              jold = l
+              j = l + l
+              do                   ! do while j <= r
+                 if (j > r) exit
+                 if (j < r) then
+                   if (abs(arr(j)) < abs(arr(j+1))) j = j+1
+                 endif
+                 if (abs(a) >= abs(arr(j))) exit       ! Found a`s level, so terminate sift-down
+                 arr(jold) = arr(j)
+                 jold = j                    ! Demote a and continue
+                 j = j+j
+              end do
+              arr(jold) = a                  ! Put a into its slot
+
+            end subroutine sift_down
+
+            subroutine swap(p,q)
+                real(kind_fmm_precision) :: p,q, dum
+                dum = p
+                p=q
+                q = dum
+            end subroutine swap
+
+          end subroutine sort_abs
 
 
 

@@ -52,6 +52,13 @@ subroutine pepcmw_prepare()
   Vplas    =  ne/rhoe_nm3 / unit_abohr_in_nm**3. ! adjust simulation volume to fit requested electron density while keeping particle number constant
   rhoi_nm3 =  ni/Vplas / unit_abohr_in_nm**3.
   x_plasma = (ne/rhoe_nm3)**(1./3.) / unit_abohr_in_nm ! (assume cubic volume)
+
+  if (ispecial == 7) then
+    x_plasma =  1.0 ! Madelung setup
+    qe       = -1.0
+    qi       = +1.0
+  endif
+
   y_plasma = x_plasma
   z_plasma = x_plasma
   xl       = x_plasma

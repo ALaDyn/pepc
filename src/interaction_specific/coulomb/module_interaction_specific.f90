@@ -222,11 +222,11 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine calc_force_prepare()
         use module_mirror_boxes, only : mirror_box_layers
-        use treevars, only : me
+        use treevars, only : me, MPI_COMM_lpepc
         use module_fmm_framework, only : fmm_framework_init
         implicit none
 
-        call fmm_framework_init(me, wellsep=mirror_box_layers)
+        call fmm_framework_init(me, MPI_COMM_lpepc)
 
       end subroutine
 
@@ -386,11 +386,11 @@ module module_interaction_specific
 
           integer, intent(in) :: nparticles
           type(t_particle), intent(inout) :: particles(:)
-          real*8 :: ex_lattice, ey_lattice, ez_lattice, phi_lattice
+          real*8 :: e_lattice(3), phi_lattice
           integer :: p
 
           ! calculate spherical multipole expansion of central box
-          if (include_far_field_if_periodic) call fmm_framework_timestep(particles)
+          if (include_far_field_if_periodic) call fmm_framework_timestep(particles, nparticles)
 
           potfarfield  = 0.
           potnearfield = 0.
@@ -400,13 +400,18 @@ module module_interaction_specific
              if ((me==0) .and. (force_law .ne. 3)) write(*,*) "Warning: far-field lattice contribution is currently only supported for force_law==3"
 
              do p=1,nparticles
-                call fmm_sum_lattice_force(particles(p), ex_lattice, ey_lattice, ez_lattice, phi_lattice) !TODO: use coordinates from particles
+                call fmm_sum_lattice_force(particles(p)%x, e_lattice, phi_lattice)
 
                 potfarfield  = potfarfield  + phi_lattice * particles(p)%data%q
                 potnearfield = potnearfield + particles(p)%results%pot  * particles(p)%data%q
 
-                particles(p)%results%e     = particles(p)%results%e     + [ex_lattice, ey_lattice, ez_lattice]
+                write(*,*) p, particles(p)%x, particles(p)%data%q
+                write(*,*) "prev     ", particles(p)%results%e, particles(p)%results%pot
+                write(*,*) "lattice  ", e_lattice, phi_lattice
+
+                particles(p)%results%e     = particles(p)%results%e     + e_lattice
                 particles(p)%results%pot   = particles(p)%results%pot   +  phi_lattice
+                write(*,*) "after    ", particles(p)%results%e, particles(p)%results%pot
              end do
 
           end if

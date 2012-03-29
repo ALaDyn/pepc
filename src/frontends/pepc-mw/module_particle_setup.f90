@@ -233,7 +233,7 @@ module module_particle_setup
               endif
 
               call particle_setup_madelung()
-              call rescale_coordinates_cuboid()
+              !call rescale_coordinates_cuboid()
               call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
               call init_fields_zero()
 
