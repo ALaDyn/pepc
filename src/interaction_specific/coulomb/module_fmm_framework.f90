@@ -65,11 +65,11 @@ module module_fmm_framework
       integer :: myrank
       integer :: MPI_COMM_fmm
       ! precision flags
-      integer, parameter :: kind_fmm_precision = 8
-      integer, parameter :: MPI_REAL_fmm = MPI_REAL8
+      integer, parameter :: kind_fmm_precision = 16
+      integer, parameter :: MPI_REAL_fmm       = MPI_REAL16
       ! FMM-PARAMETERS
-      integer, parameter :: Lmax    = 20
-      integer, parameter :: MaxIter = 32
+      integer, parameter :: Lmax    = 32
+      integer, parameter :: MaxIter = 64
       integer :: ws = 1
       ! FMM-VARIABLES
       integer, parameter :: fmm_array_length = Lmax*(Lmax+1)/2+Lmax+1
@@ -215,40 +215,70 @@ module module_fmm_framework
 
           call pepc_status('LATTICE COEFFICIENTS: Loading')
 
-          M(tblinv( 4,  0)) =   2.8119304871888668206200481879919D+00
-          M(tblinv( 4,  4)) =   1.4059652435944334103100240939959D+01
-          M(tblinv( 6,  0)) =   5.4795908739321644069327702900830D-01
-          M(tblinv( 6,  4)) =  -3.8357136117525150848529392030580D+00
-          M(tblinv( 8,  0)) =   1.2156157302097918942115948482762D+02
-          M(tblinv( 8,  4)) =   1.2156157302097918942115948482762D+02
-          M(tblinv( 8,  8)) =   7.9015022463636473123753665137950D+03
-          M(tblinv(10,  0)) =   3.1179916736109123107822587274280D+02
-          M(tblinv(10,  4)) =  -6.8595816819440070837209692003420D+02
-          M(tblinv(10,  8)) =  -1.1661288859304812042325647640581D+04
-          M(tblinv(12,  0)) =   2.4245612747359092217199640516493D+05
-          M(tblinv(12,  4)) =   2.0375858264140266510162557633886D+05
-          M(tblinv(12,  8)) =   7.0682666545985000701644635107790D+05
-          M(tblinv(12, 12)) =   2.3702435984527078287639617913271D+08
-          M(tblinv(14,  0)) =   2.0954087119885542648713979286402D+06
-          M(tblinv(14,  4)) =  -2.6940969154138554834060830511089D+06
-          M(tblinv(14,  8)) =  -1.7062613797621084728238525990356D+07
-          M(tblinv(14, 12)) =  -6.5406686224214158124914349629700D+08
-          M(tblinv(16,  0)) =   5.4279858299650169624382885076980D+08
-          M(tblinv(16,  4)) =   2.2841041529105412872383486949334D+08
-          M(tblinv(16,  8)) =   1.2973301854895758582918144058332D+09
-          M(tblinv(16, 12)) =   2.5882484900055575638355343741650D+10
-          M(tblinv(16, 16)) =   6.9973653547984205656745320248030D+12
-          M(tblinv(18,  0)) =   1.4686049951258450810632984509870D+10
-          M(tblinv(18,  4)) =  -1.5376346487994712576061405817891D+10
-          M(tblinv(18,  8)) =  -2.4226921558569614141580552133902D+10
-          M(tblinv(18, 12)) =  -1.0692416604738659056152567751127D+12
-          M(tblinv(18, 16)) =  -3.9585194668444324327226917843820D+13
-          M(tblinv(20,  0)) =   2.9414124910043233182340700935067D+12
-          M(tblinv(20,  4)) =   5.0799363324581667612792095666680D+11
-          M(tblinv(20,  8)) =   4.3319375525806128280090124574150D+12
-          M(tblinv(20, 12)) =   4.7785845726839660008475961329560D+13
-          M(tblinv(20, 16)) =   1.6103883836731949966180674427718D+15
-          M(tblinv(20, 20)) =   5.0103139602723200237451484155740D+17
+          if (Lmax >= 4) then
+            M(tblinv( 4,  0)) =   2.8119304871888668206200481879919E+00_kind_fmm_precision
+            M(tblinv( 4,  4)) =   1.4059652435944334103100240939959E+01_kind_fmm_precision
+          endif
+
+          if (Lmax >= 6) then
+            M(tblinv( 6,  0)) =   5.4795908739321644069327702900830E-01_kind_fmm_precision
+            M(tblinv( 6,  4)) =  -3.8357136117525150848529392030580E+00_kind_fmm_precision
+          endif
+
+          if (Lmax >= 8) then
+            M(tblinv( 8,  0)) =   1.2156157302097918942115948482762E+02_kind_fmm_precision
+            M(tblinv( 8,  4)) =   1.2156157302097918942115948482762E+02_kind_fmm_precision
+            M(tblinv( 8,  8)) =   7.9015022463636473123753665137950E+03_kind_fmm_precision
+          endif
+
+          if (Lmax >= 10) then
+            M(tblinv(10,  0)) =   3.1179916736109123107822587274280E+02_kind_fmm_precision
+            M(tblinv(10,  4)) =  -6.8595816819440070837209692003420E+02_kind_fmm_precision
+            M(tblinv(10,  8)) =  -1.1661288859304812042325647640581E+04_kind_fmm_precision
+          endif
+
+          if (Lmax >= 12) then
+            M(tblinv(12,  0)) =   2.4245612747359092217199640516493E+05_kind_fmm_precision
+            M(tblinv(12,  4)) =   2.0375858264140266510162557633886E+05_kind_fmm_precision
+            M(tblinv(12,  8)) =   7.0682666545985000701644635107790E+05_kind_fmm_precision
+            M(tblinv(12, 12)) =   2.3702435984527078287639617913271E+08_kind_fmm_precision
+          endif
+
+          if (Lmax >= 14) then
+            M(tblinv(14,  0)) =   2.0954087119885542648713979286402E+06_kind_fmm_precision
+            M(tblinv(14,  4)) =  -2.6940969154138554834060830511089E+06_kind_fmm_precision
+            M(tblinv(14,  8)) =  -1.7062613797621084728238525990356E+07_kind_fmm_precision
+            M(tblinv(14, 12)) =  -6.5406686224214158124914349629700E+08_kind_fmm_precision
+          endif
+
+          if (Lmax >= 16) then
+            M(tblinv(16,  0)) =   5.4279858299650169624382885076980E+08_kind_fmm_precision
+            M(tblinv(16,  4)) =   2.2841041529105412872383486949334E+08_kind_fmm_precision
+            M(tblinv(16,  8)) =   1.2973301854895758582918144058332E+09_kind_fmm_precision
+            M(tblinv(16, 12)) =   2.5882484900055575638355343741650E+10_kind_fmm_precision
+            M(tblinv(16, 16)) =   6.9973653547984205656745320248030E+12_kind_fmm_precision
+          endif
+
+          if (Lmax >= 18) then
+            M(tblinv(18,  0)) =   1.4686049951258450810632984509870E+10_kind_fmm_precision
+            M(tblinv(18,  4)) =  -1.5376346487994712576061405817891E+10_kind_fmm_precision
+            M(tblinv(18,  8)) =  -2.4226921558569614141580552133902E+10_kind_fmm_precision
+            M(tblinv(18, 12)) =  -1.0692416604738659056152567751127E+12_kind_fmm_precision
+            M(tblinv(18, 16)) =  -3.9585194668444324327226917843820E+13_kind_fmm_precision
+          endif
+
+          if (Lmax >= 20) then
+            M(tblinv(20,  0)) =   2.9414124910043233182340700935067E+12_kind_fmm_precision
+            M(tblinv(20,  4)) =   5.0799363324581667612792095666680E+11_kind_fmm_precision
+            M(tblinv(20,  8)) =   4.3319375525806128280090124574150E+12_kind_fmm_precision
+            M(tblinv(20, 12)) =   4.7785845726839660008475961329560E+13_kind_fmm_precision
+            M(tblinv(20, 16)) =   1.6103883836731949966180674427718E+15_kind_fmm_precision
+            M(tblinv(20, 20)) =   5.0103139602723200237451484155740E+17_kind_fmm_precision
+          endif
+
+          if (Lmax >= 21) then
+            DEBUG_WARNING_ALL(*, 'load_lattice_coefficients(): Lmax >= 21')
+          endif
 
           call pepc_status('LATTICE COEFFICIENTS: finished')
 
@@ -391,7 +421,7 @@ module module_fmm_framework
           integer, intent(in) :: l, m
           real(kind_fmm_precision), intent(in) :: x
 
-          if (m >=0) then
+          if (m >= 0) then
             Pt = div_by_fac(LegendreP(l, m, x), l + m)
           else
             Pt = (-1)**abs(m) * Ptilda(l, abs(m), x)
@@ -415,7 +445,7 @@ module module_fmm_framework
           integer, intent(in) :: l, m
           real(kind_fmm_precision), intent(in) :: x
 
-          if (m >=0) then
+          if (m >= 0) then
             P2t = mult_by_fac(LegendreP(l, m, x), l - m)
           else
             P2t = (-1)**abs(m) * P2tilda(l, abs(m), x)
@@ -440,7 +470,7 @@ module module_fmm_framework
           if ((l<0) .or. (m<-l) .or. (m>l)) then
               OMultipole = 0 ! these are zero per definition
           else
-              call cartesian_to_spherical(r, s)
+              s = cartesian_to_spherical(r)
 
               if (s(1) > 0) then
                 OMultipole = s(1)**l * Ptilda(l, m, s(2)) * exp(-i*m*s(3) )
@@ -470,7 +500,7 @@ module module_fmm_framework
           if ((l<0) .or. (m<-l) .or. (m>l)) then
               MTaylor = 0 ! these are zero per definition
           else
-              call cartesian_to_spherical(r, s)
+              s = cartesian_to_spherical(r)
 
               MTaylor = 1./(s(1)**(l+1)) * P2tilda(l, m, s(2)) * exp( i*m*s(3) )
 
@@ -571,7 +601,7 @@ module module_fmm_framework
         complex(kind_fmm_precision) function tbl(A,l,m)
           implicit none
           integer, intent(in) :: l, m
-          complex(kind_fmm_precision), intent(in) :: A(1:Lmax*(Lmax+1)/2+Lmax+1)
+          complex(kind_fmm_precision), intent(in) :: A(1:fmm_array_length)
 
           if (l>Lmax) then
             tbl = 0
@@ -708,7 +738,7 @@ module module_fmm_framework
 
               t = 0
 
-              do j = 0,Lmax ! TODO: Ivos Diss. S.23: Summe beginnt erst bei l ??
+              do j = l,Lmax ! Attention, this sum starts at l since O_b(j-l<0,..) = 0 anyway
                 do k = -j,j
                   t = t + tbl(O_b, j-l, k-m) * tbl(M_r, j, k)
                 end do
@@ -821,29 +851,28 @@ module module_fmm_framework
         !>
         !> Converts cartesian coordinates to spherical system
         !> @param[in]  cartesian  cartesian vector [x, y, z]
-        !> @param[out] spherical  spherical coordinates [ |r|, Cos(Theta), phi ]
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine cartesian_to_spherical(cartesian, spherical)
+        function cartesian_to_spherical(cartesian)
           implicit none
           real*8, intent(in)  :: cartesian(3)
-          real(kind_fmm_precision), intent(out) :: spherical(3)
+          real(kind_fmm_precision), dimension(3) :: cartesian_to_spherical
 
-          spherical(1) = sqrt(dot_product(cartesian, cartesian))
+          cartesian_to_spherical(1) = sqrt(dot_product(cartesian, cartesian))
 
-          if (spherical(1) == 0) then
-            spherical(2) = 1
+          if (cartesian_to_spherical(1) == 0) then
+            cartesian_to_spherical(2) = 1
           else
-            spherical(2) = cartesian(3) / spherical(1)
+            cartesian_to_spherical(2) = cartesian(3) / cartesian_to_spherical(1)
           end if
 
           if ((cartesian(1) == 0) .and. (cartesian(2) == 0)) then
-            spherical(3) = 0
+            cartesian_to_spherical(3) = 0
           else
-            spherical(3) = atan2(cartesian(2), cartesian(1))
+            cartesian_to_spherical(3) = atan2(cartesian(2), cartesian(1))
           end if
 
-        end subroutine cartesian_to_spherical
+        end function cartesian_to_spherical
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
