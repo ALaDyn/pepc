@@ -70,23 +70,21 @@ module module_fmm_framework
       logical, parameter  :: chop_arrays         = .false.
       real(kind_fmm_precision), parameter :: prec = 1.E-16
       ! FMM-PARAMETERS
-      integer, parameter :: Lmax    = 20
-      integer, parameter :: MaxIter = 64
+      integer, parameter :: Lmax_multipole = 50
+      integer, parameter :: Lmax_taylor    = Lmax_multipole * 2
+      integer, parameter :: MaxIter = 16
       integer :: ws = 1
       logical, parameter :: use_pretabulated_lattice_coefficients = .true.
       ! FMM-VARIABLES
-      integer, parameter :: fmm_array_length = Lmax*(Lmax+1)/2+Lmax+1
-      complex(kind_fmm_precision) :: mu_cent(1:fmm_array_length)
-      ! externally calculated FMM variables
-      complex(kind_fmm_precision) :: omega_tilde(1:fmm_array_length)
-      complex(kind_fmm_precision) :: MLattice(1:fmm_array_length)
+      integer, parameter :: fmm_array_length_multipole = Lmax_multipole*(Lmax_multipole+1)/2+Lmax_multipole+1
+      integer, parameter :: fmm_array_length_taylor    = Lmax_taylor   *(Lmax_taylor   +1)/2+Lmax_taylor   +1
+      ! internally calculated FMM variables
+      complex(kind_fmm_precision) :: mu_cent(1:fmm_array_length_taylor)
+      complex(kind_fmm_precision) :: omega_tilde(1:fmm_array_length_multipole)
+      complex(kind_fmm_precision) :: MLattice(1:fmm_array_length_taylor)
       !> variables for extrinsic to intrinsic correction
       real(kind_fmm_precision) :: box_dipole(3) = 0.
       real(kind_fmm_precision) :: quad_trace    = 0.
-
-      ! Variables for lattice coefficient calculation
-      complex(kind_fmm_precision) :: Mstar(1:fmm_array_length)
-      complex(kind_fmm_precision) :: Lstar(1:fmm_array_length)
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -133,7 +131,7 @@ module module_fmm_framework
             endif
 
             if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
-              call WriteTableToFile('MLattice.tab', MLattice)
+              call WriteTableToFile('MLattice.tab', MLattice, Lmax_taylor)
             end if
           end if
 
@@ -169,7 +167,10 @@ module module_fmm_framework
           use module_debug
           implicit none
 
-          complex(kind_fmm_precision), intent(out) :: ML(1:fmm_array_length)
+          complex(kind_fmm_precision), intent(out) :: ML(1:fmm_array_length_taylor)
+          ! Variables for lattice coefficient calculation
+          complex(kind_fmm_precision) :: Mstar(1:fmm_array_length_multipole)
+          complex(kind_fmm_precision) :: Lstar(1:fmm_array_length_taylor)
 
           integer :: l, m, iter
 
@@ -179,10 +180,16 @@ module module_fmm_framework
           Lstar = 0
 
           ! pretabulation of necessary values
-          do l = 0,Lmax
+          do l = 0,Lmax_multipole
             do m = 0,l
-              Mstar( tblinv(l, m) ) = MstarFunc(l, m)
-              Lstar( tblinv(l, m) ) = LstarFunc(l, m)
+              Mstar( tblinv(l, m, Lmax_multipole) ) = MstarFunc(l, m)
+            end do
+          end do
+
+
+          do l = 0,Lmax_taylor
+            do m = 0,l
+              Lstar( tblinv(l, m, Lmax_taylor) ) = LstarFunc(l, m)
             end do
           end do
 
@@ -190,8 +197,8 @@ module module_fmm_framework
           call chop(Lstar)
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
-            call WriteTableToFile('Mstar.tab', Mstar)
-            call WriteTableToFile('Lstar.tab', Lstar)
+            call WriteTableToFile('Mstar.tab', Mstar, Lmax_multipole)
+            call WriteTableToFile('Lstar.tab', Lstar, Lmax_taylor)
           end if
 
           ! zeroth step of iteration
@@ -225,80 +232,76 @@ module module_fmm_framework
           use module_debug
           implicit none
 
-          complex(kind_fmm_precision), intent(inout) :: M(1:fmm_array_length)
+          complex(kind_fmm_precision), intent(inout) :: M(1:fmm_array_length_taylor)
 
           call pepc_status('LATTICE COEFFICIENTS: Loading')
 
-          if (Lmax >= 4) then
-            M(tblinv( 4,  0)) =   2.8119304871888668206200481879919E+00_kind_fmm_precision
-            M(tblinv( 4,  4)) =   1.4059652435944334103100240939959E+01_kind_fmm_precision
+          if (Lmax_taylor >= 4) then
+            M(tblinv( 4,  0, Lmax_taylor)) =   2.8119304871888668206200481879919E+00_kind_fmm_precision
+            M(tblinv( 4,  4, Lmax_taylor)) =   1.4059652435944334103100240939959E+01_kind_fmm_precision
           endif
 
-          if (Lmax >= 6) then
-            M(tblinv( 6,  0)) =   5.4795908739321644069327702900830E-01_kind_fmm_precision
-            M(tblinv( 6,  4)) =  -3.8357136117525150848529392030580E+00_kind_fmm_precision
+          if (Lmax_taylor >= 6) then
+            M(tblinv( 6,  0, Lmax_taylor)) =   5.4795908739321644069327702900830E-01_kind_fmm_precision
+            M(tblinv( 6,  4, Lmax_taylor)) =  -3.8357136117525150848529392030580E+00_kind_fmm_precision
           endif
 
-          if (Lmax >= 8) then
-            M(tblinv( 8,  0)) =   1.2156157302097918942115948482762E+02_kind_fmm_precision
-            M(tblinv( 8,  4)) =   1.2156157302097918942115948482762E+02_kind_fmm_precision
-            M(tblinv( 8,  8)) =   7.9015022463636473123753665137950E+03_kind_fmm_precision
+          if (Lmax_taylor >= 8) then
+            M(tblinv( 8,  0, Lmax_taylor)) =   1.2156157302097918942115948482762E+02_kind_fmm_precision
+            M(tblinv( 8,  4, Lmax_taylor)) =   1.2156157302097918942115948482762E+02_kind_fmm_precision
+            M(tblinv( 8,  8, Lmax_taylor)) =   7.9015022463636473123753665137950E+03_kind_fmm_precision
           endif
 
-          if (Lmax >= 10) then
-            M(tblinv(10,  0)) =   3.1179916736109123107822587274280E+02_kind_fmm_precision
-            M(tblinv(10,  4)) =  -6.8595816819440070837209692003420E+02_kind_fmm_precision
-            M(tblinv(10,  8)) =  -1.1661288859304812042325647640581E+04_kind_fmm_precision
+          if (Lmax_taylor >= 10) then
+            M(tblinv(10,  0, Lmax_taylor)) =   3.1179916736109123107822587274280E+02_kind_fmm_precision
+            M(tblinv(10,  4, Lmax_taylor)) =  -6.8595816819440070837209692003420E+02_kind_fmm_precision
+            M(tblinv(10,  8, Lmax_taylor)) =  -1.1661288859304812042325647640581E+04_kind_fmm_precision
           endif
 
-          if (Lmax >= 12) then
-            M(tblinv(12,  0)) =   2.4245612747359092217199640516493E+05_kind_fmm_precision
-            M(tblinv(12,  4)) =   2.0375858264140266510162557633886E+05_kind_fmm_precision
-            M(tblinv(12,  8)) =   7.0682666545985000701644635107790E+05_kind_fmm_precision
-            M(tblinv(12, 12)) =   2.3702435984527078287639617913271E+08_kind_fmm_precision
+          if (Lmax_taylor >= 12) then
+            M(tblinv(12,  0, Lmax_taylor)) =   2.4245612747359092217199640516493E+05_kind_fmm_precision
+            M(tblinv(12,  4, Lmax_taylor)) =   2.0375858264140266510162557633886E+05_kind_fmm_precision
+            M(tblinv(12,  8, Lmax_taylor)) =   7.0682666545985000701644635107790E+05_kind_fmm_precision
+            M(tblinv(12, 12, Lmax_taylor)) =   2.3702435984527078287639617913271E+08_kind_fmm_precision
           endif
 
-          if (Lmax >= 14) then
-            M(tblinv(14,  0)) =   2.0954087119885542648713979286402E+06_kind_fmm_precision
-            M(tblinv(14,  4)) =  -2.6940969154138554834060830511089E+06_kind_fmm_precision
-            M(tblinv(14,  8)) =  -1.7062613797621084728238525990356E+07_kind_fmm_precision
-            M(tblinv(14, 12)) =  -6.5406686224214158124914349629700E+08_kind_fmm_precision
+          if (Lmax_taylor >= 14) then
+            M(tblinv(14,  0, Lmax_taylor)) =   2.0954087119885542648713979286402E+06_kind_fmm_precision
+            M(tblinv(14,  4, Lmax_taylor)) =  -2.6940969154138554834060830511089E+06_kind_fmm_precision
+            M(tblinv(14,  8, Lmax_taylor)) =  -1.7062613797621084728238525990356E+07_kind_fmm_precision
+            M(tblinv(14, 12, Lmax_taylor)) =  -6.5406686224214158124914349629700E+08_kind_fmm_precision
           endif
 
-          if (Lmax >= 16) then
-            M(tblinv(16,  0)) =   5.4279858299650169624382885076980E+08_kind_fmm_precision
-            M(tblinv(16,  4)) =   2.2841041529105412872383486949334E+08_kind_fmm_precision
-            M(tblinv(16,  8)) =   1.2973301854895758582918144058332E+09_kind_fmm_precision
-            M(tblinv(16, 12)) =   2.5882484900055575638355343741650E+10_kind_fmm_precision
-            M(tblinv(16, 16)) =   6.9973653547984205656745320248030E+12_kind_fmm_precision
+          if (Lmax_taylor >= 16) then
+            M(tblinv(16,  0, Lmax_taylor)) =   5.4279858299650169624382885076980E+08_kind_fmm_precision
+            M(tblinv(16,  4, Lmax_taylor)) =   2.2841041529105412872383486949334E+08_kind_fmm_precision
+            M(tblinv(16,  8, Lmax_taylor)) =   1.2973301854895758582918144058332E+09_kind_fmm_precision
+            M(tblinv(16, 12, Lmax_taylor)) =   2.5882484900055575638355343741650E+10_kind_fmm_precision
+            M(tblinv(16, 16, Lmax_taylor)) =   6.9973653547984205656745320248030E+12_kind_fmm_precision
           endif
 
-          if (Lmax >= 18) then
-            M(tblinv(18,  0)) =   1.4686049951258450810632984509870E+10_kind_fmm_precision
-            M(tblinv(18,  4)) =  -1.5376346487994712576061405817891E+10_kind_fmm_precision
-            M(tblinv(18,  8)) =  -2.4226921558569614141580552133902E+10_kind_fmm_precision
-            M(tblinv(18, 12)) =  -1.0692416604738659056152567751127E+12_kind_fmm_precision
-            M(tblinv(18, 16)) =  -3.9585194668444324327226917843820E+13_kind_fmm_precision
+          if (Lmax_taylor >= 18) then
+            M(tblinv(18,  0, Lmax_taylor)) =   1.4686049951258450810632984509870E+10_kind_fmm_precision
+            M(tblinv(18,  4, Lmax_taylor)) =  -1.5376346487994712576061405817891E+10_kind_fmm_precision
+            M(tblinv(18,  8, Lmax_taylor)) =  -2.4226921558569614141580552133902E+10_kind_fmm_precision
+            M(tblinv(18, 12, Lmax_taylor)) =  -1.0692416604738659056152567751127E+12_kind_fmm_precision
+            M(tblinv(18, 16, Lmax_taylor)) =  -3.9585194668444324327226917843820E+13_kind_fmm_precision
           endif
 
-          if (Lmax >= 20) then
-            M(tblinv(20,  0)) =   2.9414124910043233182340700935067E+12_kind_fmm_precision
-            M(tblinv(20,  4)) =   5.0799363324581667612792095666680E+11_kind_fmm_precision
-            M(tblinv(20,  8)) =   4.3319375525806128280090124574150E+12_kind_fmm_precision
-            M(tblinv(20, 12)) =   4.7785845726839660008475961329560E+13_kind_fmm_precision
-            M(tblinv(20, 16)) =   1.6103883836731949966180674427718E+15_kind_fmm_precision
-            M(tblinv(20, 20)) =   5.0103139602723200237451484155740E+17_kind_fmm_precision
+          if (Lmax_taylor >= 20) then
+            M(tblinv(20,  0, Lmax_taylor)) =   2.9414124910043233182340700935067E+12_kind_fmm_precision
+            M(tblinv(20,  4, Lmax_taylor)) =   5.0799363324581667612792095666680E+11_kind_fmm_precision
+            M(tblinv(20,  8, Lmax_taylor)) =   4.3319375525806128280090124574150E+12_kind_fmm_precision
+            M(tblinv(20, 12, Lmax_taylor)) =   4.7785845726839660008475961329560E+13_kind_fmm_precision
+            M(tblinv(20, 16, Lmax_taylor)) =   1.6103883836731949966180674427718E+15_kind_fmm_precision
+            M(tblinv(20, 20, Lmax_taylor)) =   5.0103139602723200237451484155740E+17_kind_fmm_precision
           endif
 
-          if (Lmax >= 21) then
-            DEBUG_WARNING_ALL(*, 'load_lattice_coefficients(): Lmax >= 21')
+          if (Lmax_taylor >= 21) then
+            DEBUG_WARNING_ALL(*, 'load_lattice_coefficients(): Lmax_taylor >= 21')
           endif
 
           call pepc_status('LATTICE COEFFICIENTS: finished')
-
-          if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
-            call WriteTableToFile('MLattice.tab', MLattice)
-          end if
 
         end subroutine load_lattice_coefficients
 
@@ -330,9 +333,9 @@ module module_fmm_framework
             R   = particles(p)%x - LatticeCenter
             S   = cartesian_to_spherical(R)
 
-            do ll=0,Lmax
+            do ll=0,Lmax_multipole
               do mm=0,ll
-                omega_tilde( tblinv(ll, mm) ) = omega_tilde( tblinv(ll, mm) ) + omega(ll, mm, S, particles(p)%data%q)
+                omega_tilde( tblinv(ll, mm, Lmax_multipole) ) = omega_tilde( tblinv(ll, mm, Lmax_multipole) ) + omega(ll, mm, S, particles(p)%data%q)
               end do
             end do
 
@@ -340,15 +343,15 @@ module module_fmm_framework
 
           call chop(omega_tilde)
 
-          ! sum multipole contributions from all processors
-          call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde, 2*fmm_array_length, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+          ! sum multipole contributions from all processors - treat complex as two real numbers since e.g. complex*32 is not supported by mpi
+          call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde, 2*fmm_array_length_multipole, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
-            call WriteTableToFile('omega_tilde.tab', omega_tilde)
+            call WriteTableToFile('omega_tilde.tab', omega_tilde, Lmax_multipole)
           end if
 
-          if (real(omega_tilde( tblinv(0, 0))) > prec) then
-            DEBUG_WARNING(*, 'WARNING: The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0)), ' Ignoring, but this could lead to infinite energies etc.' )
+          if (real(omega_tilde( tblinv(0, 0, Lmax_multipole))) > prec) then
+            DEBUG_WARNING(*, 'WARNING: The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0, Lmax_multipole)), ' Ignoring, but this could lead to infinite energies etc.' )
           end if
 
         end subroutine calc_omega_tilde
@@ -411,8 +414,8 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_mu_cent(omega, mu)
           implicit none
-          complex(kind_fmm_precision), intent(in) :: omega(1:fmm_array_length)
-          complex(kind_fmm_precision), intent(out) :: mu(1:fmm_array_length)
+          complex(kind_fmm_precision), intent(in) :: omega(1:fmm_array_length_multipole)
+          complex(kind_fmm_precision), intent(out) :: mu(1:fmm_array_length_taylor)
 
           ! contribution of all outer lattice cells, with regards to the centre of the original box
           mu = M2L(MLattice, omega)
@@ -420,7 +423,7 @@ module module_fmm_framework
           call chop(mu)
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
-            call WriteTableToFile('mu_cent.tab', mu_cent)
+            call WriteTableToFile('mu_cent.tab', mu_cent, Lmax_taylor)
           end if
 
         end subroutine calc_mu_cent
@@ -566,7 +569,7 @@ module module_fmm_framework
           real*8, intent(in) :: pos(3)
           real*8, intent(out) ::  e_lattice(3), phi_lattice
 
-          complex(kind_fmm_precision) :: mu_shift(1:fmm_array_length), O_R(1:fmm_array_length)
+          complex(kind_fmm_precision) :: mu_shift(1:fmm_array_length_taylor), O_R(1:fmm_array_length_multipole)
           integer :: l, m
           real*8 :: R(3)
           real(kind_fmm_precision) :: S(3)
@@ -579,17 +582,17 @@ module module_fmm_framework
               R        = pos - LatticeCenter
               S        = cartesian_to_spherical(R)
 
-              do l = 0,Lmax
+              do l = 0,Lmax_multipole
                 do m = 0,l
-                  O_R(tblinv(l,m)) = OMultipole(l, m, S)
+                  O_R(tblinv(l, m, Lmax_multipole)) = OMultipole(l, m, S)
                 end do
               end do
 
               mu_shift = L2L(O_R, mu_cent, 1) ! TODO: eigentlich brauchen wir nur l=0,1; m=0..l
 
               ! E = -grad(Phi)
-              e_lattice  = -[  real(tbl(mu_shift,1,1)), aimag(tbl(mu_shift,1,1)), real(tbl(mu_shift,1,0)) ]
-              phi_lattice =    real(tbl(mu_shift,0,0))
+              e_lattice  = -[  real(tbl(mu_shift,1,1, Lmax_taylor)), aimag(tbl(mu_shift,1,1, Lmax_taylor)), real(tbl(mu_shift,1,0, Lmax_taylor)) ]
+              phi_lattice =    real(tbl(mu_shift,0,0, Lmax_taylor))
 
               if (do_extrinsic_correction) then    ! extrinsic correction
                 e_lattice   = e_lattice   + box_dipole
@@ -613,10 +616,10 @@ module module_fmm_framework
         !> @param[in] A table
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex(kind_fmm_precision) function tbl(A,l,m)
+        complex(kind_fmm_precision) function tbl(A, l, m, Lmax)
           implicit none
-          integer, intent(in) :: l, m
-          complex(kind_fmm_precision), intent(in) :: A(1:fmm_array_length)
+          integer, intent(in) :: l, m, Lmax
+          complex(kind_fmm_precision), intent(in) :: A(*)
 
           if ((l<0)) then
             DEBUG_ERROR(*,'("tbl(A,l,m) - invalid arguments. l=", I0, " m=", I0)', l, m)
@@ -625,7 +628,7 @@ module module_fmm_framework
           if ((l>Lmax) .or. (abs(m)>l)) then
             tbl = 0
           else
-            tbl = A( tblinv(l, abs(m)) )
+            tbl = A( tblinv(l, abs(m), Lmax) )
 
             if (m<0) tbl = (-1)**m * conjg(tbl)
           end if
@@ -644,10 +647,10 @@ module module_fmm_framework
         !> @param[in] m
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        integer function tblinv(l,m)
+        integer function tblinv(l,m,Lmax)
           use module_debug
           implicit none
-          integer, intent(in) :: l, m
+          integer, intent(in) :: l, m,Lmax
 
           if ((l<0) .or. (m<0) .or. (m>l) .or. (l>Lmax)) then
             DEBUG_ERROR(*,'("tblinv(l,m) - invalid arguments. l=", I0, " m=", I0)', l, m)
@@ -666,9 +669,9 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function M2M(O_a, O_b)
           implicit none
-          complex(kind_fmm_precision), intent(in) :: O_a(1:fmm_array_length)
-          complex(kind_fmm_precision), intent(in) :: O_b(1:fmm_array_length)
-          complex(kind_fmm_precision), dimension(1:fmm_array_length) :: M2M
+          complex(kind_fmm_precision), intent(in) :: O_a(1:fmm_array_length_multipole)
+          complex(kind_fmm_precision), intent(in) :: O_b(1:fmm_array_length_multipole)
+          complex(kind_fmm_precision), dimension(1:fmm_array_length_multipole) :: M2M
 
           complex(kind_fmm_precision) :: t
           integer :: l, m, j, k
@@ -677,18 +680,18 @@ module module_fmm_framework
           !write(*,*) "O1 = ", O1
           !write(*,*) "O2 = ", O2
 
-          do l = 0,Lmax
+          do l = 0,Lmax_multipole
             do m = 0,l
 
               t = 0
 
               do j = 0,l ! Attention, this sum only runs to l instead of infty|Lmax
                 do k = -j,j
-                  t = t + tbl(O_b, l-j, m-k) * tbl(O_a, j, k)
+                  t = t + tbl(O_b, l-j, m-k, Lmax_multipole) * tbl(O_a, j, k, Lmax_multipole)
                 end do
               end do
 
-              M2M( tblinv(l, m) ) = t
+              M2M( tblinv(l, m, Lmax_multipole) ) = t
             end do
           end do
 
@@ -708,9 +711,9 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function M2L(M_b, O_a)
           implicit none
-          complex(kind_fmm_precision), intent(in) :: M_b(1:fmm_array_length)
-          complex(kind_fmm_precision), intent(in) :: O_a(1:fmm_array_length)
-          complex(kind_fmm_precision), dimension(1:fmm_array_length) :: M2L
+          complex(kind_fmm_precision), intent(in) :: M_b(1:fmm_array_length_taylor)
+          complex(kind_fmm_precision), intent(in) :: O_a(1:fmm_array_length_multipole)
+          complex(kind_fmm_precision), dimension(1:fmm_array_length_taylor) :: M2L
 
           complex(kind_fmm_precision) :: t
           integer :: l, m, j, k
@@ -719,18 +722,18 @@ module module_fmm_framework
           !write(*,*) "M_b = ", M_b
           !write(*,*) "O_a = ", O_a
 
-          do l = 0,Lmax
+          do l = 0,Lmax_taylor
             do m = 0,l
 
               t = 0
 
-              do j = 0,Lmax
+              do j = 0,Lmax_multipole-l ! should be infinity, but see last page of [Kudin]
                 do k = -j,j
-                  t = t + (-1)**j * tbl(M_b, j+l, k+m) * tbl(O_a, j, k) !TODO: evtl. (-1)**j oder 1/(j+l-k-m)! hinzufuegen (vgl. S. 82 bzw. 21 bei Ivo) ??
+                  t = t + (-1)**j * tbl(M_b, j+l, k+m, Lmax_taylor) * tbl(O_a, j, k, Lmax_multipole) !TODO: evtl. (-1)**j oder 1/(j+l-k-m)! hinzufuegen (vgl. S. 82 bzw. 21 bei Ivo) ??
                 end do
               end do
 
-              M2L( tblinv(l, m) ) = t
+              M2L( tblinv(l, m, Lmax_taylor) ) = t
             end do
           end do
 
@@ -750,9 +753,9 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function L2L(O_b, M_r, max_l)
           implicit none
-          complex(kind_fmm_precision), intent(in) :: O_b(1:fmm_array_length)
-          complex(kind_fmm_precision), intent(in) :: M_r(1:fmm_array_length)
-          complex(kind_fmm_precision), dimension(1:fmm_array_length) :: L2L
+          complex(kind_fmm_precision), intent(in) :: O_b(1:fmm_array_length_multipole)
+          complex(kind_fmm_precision), intent(in) :: M_r(1:fmm_array_length_taylor)
+          complex(kind_fmm_precision), dimension(1:fmm_array_length_taylor) :: L2L
           integer, intent(in), optional :: max_l
 
           complex(kind_fmm_precision) :: t
@@ -762,7 +765,7 @@ module module_fmm_framework
           if (present(max_l)) then
             maxl = max_l
           else
-            maxl = Lmax
+            maxl = Lmax_taylor
           endif
 
           ! DEBUG
@@ -774,13 +777,13 @@ module module_fmm_framework
 
               t = 0
 
-              do j = l,Lmax ! Attention, this sum starts at l since O_b(j-l<0,..) = 0 anyway
+              do j = l,Lmax_multipole ! Attention, this sum starts at l since O_b(j-l<0,..) = 0 anyway
                 do k = -j,j
-                  t = t + tbl(O_b, j-l, k-m) * tbl(M_r, j, k)
+                  t = t + tbl(O_b, j-l, k-m, Lmax_multipole) * tbl(M_r, j, k, Lmax_taylor)
                 end do
               end do
 
-              L2L( tblinv(l, m) ) = t
+              L2L( tblinv(l, m, Lmax_taylor) ) = t
             end do
           end do
 
@@ -800,17 +803,17 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function UL(L)
           implicit none
-          complex(kind_fmm_precision), intent(in) :: L(1:fmm_array_length)
-          complex(kind_fmm_precision), dimension(1:fmm_array_length) :: UL
+          complex(kind_fmm_precision), intent(in) :: L(1:fmm_array_length_taylor)
+          complex(kind_fmm_precision), dimension(1:fmm_array_length_taylor) :: UL
 
           integer :: ll, mm
 
           ! DEBUG
           !write(*,*) "L = ", L
 
-          do ll = 0,Lmax
+          do ll = 0,Lmax_taylor
             do mm = 0,ll
-              UL( tblinv(ll, mm) ) = tbl(L,ll,mm) / (2*ws+1)**(ll+1)
+              UL( tblinv(ll, mm, Lmax_taylor) ) = UL( tblinv(ll, mm, Lmax_taylor) ) / (2*ws+1)**(ll+1)
             end do
           end do
 
@@ -920,9 +923,10 @@ module module_fmm_framework
         !> Writes contents of table T to a output stream s in a structured way
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine PrintTable(s, T)
+        subroutine PrintTable(s, T, Lmax)
           implicit none
-          complex(kind_fmm_precision), intent(in) :: T(1:fmm_array_length)
+          complex(kind_fmm_precision), intent(in) :: T(:)
+          integer, intent(in) :: Lmax
           integer, intent(in) :: s
 
           integer :: ll,mm,idx
@@ -933,7 +937,7 @@ module module_fmm_framework
             do mm = 0,ll
               idx = idx + 1
 
-              write(s,'(I6, I6, I6, D50.35, D50.35)') idx, ll, mm, tbl(T, ll, mm)
+              write(s,'(I6, I6, I6, D50.35, D50.35)') idx, ll, mm, tbl(T, ll, mm, Lmax)
             end do
           end do
 
@@ -945,9 +949,10 @@ module module_fmm_framework
         !> Writes contents of table T to file s
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine WriteTableToFile(s, T)
+        subroutine WriteTableToFile(s, T, Lmax)
           implicit none
-          complex(kind_fmm_precision), intent(in) :: T(1:fmm_array_length)
+          complex(kind_fmm_precision), intent(in) :: T(:)
+          integer, intent(in) :: Lmax
           character(len=*) :: s
           integer, parameter :: temp_file = 60
 
@@ -958,13 +963,15 @@ module module_fmm_framework
           write(temp_file,*) "# t_lattice_2 = ", t_lattice_2
           write(temp_file,*) "# t_lattice_3 = ", t_lattice_3
           write(temp_file,*) "# periodicity_switches = ", periodicity_switches
+          write(temp_file,*) "# Lmax_multipole = ", Lmax_multipole
+          write(temp_file,*) "# Lmax_taylor    = ", Lmax_taylor
 
           write(temp_file,*) "# Lmax    = ", Lmax
           write(temp_file,*) "# MaxIter = ", MaxIter
           write(temp_file,*) "##########################"
           write(temp_file,*) "  idx     l     m           real-part                                         imaginary-part"
 
-          call PrintTable(temp_file, T)
+          call PrintTable(temp_file, T, Lmax)
 
           close(temp_file)
 
@@ -983,14 +990,15 @@ module module_fmm_framework
           if (myrank .ne. 0) return
 
           write(ifile,*) "LATTICE: ------------- Lattice fmm-framework switches ----------------"
-          write(ifile,*) "LATTICE: Lmax        = ", Lmax
-          write(ifile,*) "LATTICE: MaxIter     = ", MaxIter
-          write(ifile,*) "LATTICE: ws          = ", ws
-          write(ifile,*) "LATTICE: t_lattice_1 = ", t_lattice_1
-          write(ifile,*) "LATTICE: t_lattice_2 = ", t_lattice_2
-          write(ifile,*) "LATTICE: t_lattice_3 = ", t_lattice_3
-          write(ifile,*) "LATTICE: periodicity = ", periodicity
-          write(ifile,*) "LATTICE: # neighbours = ", num_neighbour_boxes
+          write(ifile,*) "LATTICE: Lmax_multipole = ", Lmax_multipole
+          write(ifile,*) "LATTICE: Lmax_taylor    = ", Lmax_taylor
+          write(ifile,*) "LATTICE: MaxIter        = ", MaxIter
+          write(ifile,*) "LATTICE: ws             = ", ws
+          write(ifile,*) "LATTICE: t_lattice_1    = ", t_lattice_1
+          write(ifile,*) "LATTICE: t_lattice_2    = ", t_lattice_2
+          write(ifile,*) "LATTICE: t_lattice_3    = ", t_lattice_3
+          write(ifile,*) "LATTICE: periodicity    = ", periodicity
+          write(ifile,*) "LATTICE: # neighbours    = ", num_neighbour_boxes
           write(ifile,*)
         end subroutine fmm_framework_param_dump
 
@@ -1229,7 +1237,7 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine chop(a)
           implicit none
-          complex(kind_fmm_precision), intent(inout) :: a(1:fmm_array_length)
+          complex(kind_fmm_precision), intent(inout) :: a(:)
           integer :: i
           real(kind_fmm_precision) :: re, im
 
@@ -1237,7 +1245,7 @@ module module_fmm_framework
 
           DEBUG_WARNING(*, 'chopping some array')
 
-          do i=1,fmm_array_length
+          do i=1,size(a)
             re = real(a(i))
             im = imag(a(i))
 
