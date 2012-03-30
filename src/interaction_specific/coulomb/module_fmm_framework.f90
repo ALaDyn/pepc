@@ -70,9 +70,10 @@ module module_fmm_framework
       logical, parameter  :: chop_arrays         = .false.
       real(kind_fmm_precision), parameter :: prec = 1.E-16
       ! FMM-PARAMETERS
-      integer, parameter :: Lmax    = 32
+      integer, parameter :: Lmax    = 20
       integer, parameter :: MaxIter = 64
       integer :: ws = 1
+      logical, parameter :: use_pretabulated_lattice_coefficients = .true.
       ! FMM-VARIABLES
       integer, parameter :: fmm_array_length = Lmax*(Lmax+1)/2+Lmax+1
       complex(kind_fmm_precision) :: mu_cent(1:fmm_array_length)
@@ -123,9 +124,13 @@ module module_fmm_framework
            ! anything above has to be done in any case
           if (do_periodic) then
             MLattice = 0
-            !call calc_lattice_coefficients(MLattice)
-            call load_lattice_coefficients(MLattice)
-            DEBUG_WARNING(*,'(a)', "Using pretabulated lattice coefficients from [J.Chem. Phys. 107, 10131]")
+
+            if (use_pretabulated_lattice_coefficients) then
+              call load_lattice_coefficients(MLattice)
+              DEBUG_WARNING(*,'(a)', "Using pretabulated lattice coefficients from [J.Chem. Phys. 107, 10131]. These are only valid for unit-box simulations regions.")
+            else
+              call calc_lattice_coefficients(MLattice)
+            endif
 
             if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
               call WriteTableToFile('MLattice.tab', MLattice)
@@ -580,7 +585,7 @@ module module_fmm_framework
                 end do
               end do
 
-              mu_shift = L2L(O_R, mu_cent) ! TODO: eigentlich brauchen wir nur l=0,1; m=0..l
+              mu_shift = L2L(O_R, mu_cent, 1) ! TODO: eigentlich brauchen wir nur l=0,1; m=0..l
 
               ! E = -grad(Phi)
               e_lattice  = -[  real(tbl(mu_shift,1,1)), aimag(tbl(mu_shift,1,1)), real(tbl(mu_shift,1,0)) ]
@@ -743,20 +748,28 @@ module module_fmm_framework
         !> eq. (8) in [Kudin]
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function L2L(O_b, M_r)
+        function L2L(O_b, M_r, max_l)
           implicit none
           complex(kind_fmm_precision), intent(in) :: O_b(1:fmm_array_length)
           complex(kind_fmm_precision), intent(in) :: M_r(1:fmm_array_length)
           complex(kind_fmm_precision), dimension(1:fmm_array_length) :: L2L
+          integer, intent(in), optional :: max_l
 
           complex(kind_fmm_precision) :: t
           integer :: l, m, j, k
+          integer :: maxl
+
+          if (present(max_l)) then
+            maxl = max_l
+          else
+            maxl = Lmax
+          endif
 
           ! DEBUG
           !write(*,*) "O_b = ", O_b
           !write(*,*) "M_r = ", M_r
 
-          do l = 0,Lmax
+          do l = 0,maxl
             do m = 0,l
 
               t = 0
