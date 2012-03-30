@@ -92,6 +92,26 @@ module module_fmm_framework
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
+        subroutine trunc_array_entries(a)
+          implicit none
+          complex(kind_fmm_precision), intent(inout) :: a(1:fmm_array_length)
+          integer :: i
+          real(kind_fmm_precision), parameter :: tr = 1.e-16
+          real(kind_fmm_precision) :: re, im
+
+          DEBUG_WARNING(*, 'cleaning some array')
+
+          do i=1,fmm_array_length
+            re = real(a(i))
+            im = imag(a(i))
+
+            if (abs(re) < tr) re = 0.
+            if (abs(im) < tr) im = 0.
+
+            a(i) = cmplx(re, im)
+          end do
+        end subroutine
+
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Module Initialization, should be called on program startup
@@ -145,7 +165,7 @@ module module_fmm_framework
 
           if (do_periodic) then
             call calc_omega_tilde(particles, nparticles)
-            call calc_mu_cent()
+            call calc_mu_cent(omega_tilde, mu_cent)
             call calc_extrinsic_correction(particles, nparticles)
           endif
         end subroutine fmm_framework_timestep
@@ -306,26 +326,28 @@ module module_fmm_framework
           integer :: ll, mm, p
           integer :: ierr
           complex(kind_fmm_precision) :: tmp
+          real(kind_fmm_precision) :: S(3)
           real*8 :: R(3)
 
           omega_tilde = 0
 
           ! calculate multipole contributions of all local particles
-          do ll=0,Lmax
-            do mm=0,ll
-              tmp = 0
+          do p=1,nparticles
+            R   = particles(p)%x - LatticeCenter
+            S   = cartesian_to_spherical(R)
 
-              do p=1,nparticles
-                R   = particles(p)%x - LatticeCenter
-                tmp = tmp + omega(ll, mm, R, particles(p)%data%q)
+            do ll=0,Lmax
+              do mm=0,ll
+                omega_tilde( tblinv(ll, mm) ) = omega_tilde( tblinv(ll, mm) ) + omega(ll, mm, S, particles(p)%data%q)
               end do
-
-              omega_tilde( tblinv(ll, mm) ) = tmp
             end do
+
           end do
 
           ! sum multipole contributions from all processors
           call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde, 2*fmm_array_length, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+
+call trunc_array_entries(omega_tilde)
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('omega_tilde.tab', omega_tilde)
@@ -393,11 +415,13 @@ module module_fmm_framework
         !> centre of the original box
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_mu_cent
+        subroutine calc_mu_cent(omega, mu)
           implicit none
+          complex(kind_fmm_precision), intent(in) :: omega(1:fmm_array_length)
+          complex(kind_fmm_precision), intent(out) :: mu(1:fmm_array_length)
 
           ! contribution of all outer lattice cells, with regards to the centre of the original box
-          mu_cent = M2L(MLattice, omega_tilde)
+          mu = M2L(MLattice, omega)
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('mu_cent.tab', mu_cent)
@@ -424,9 +448,8 @@ module module_fmm_framework
           if (m >= 0) then
             Pt = div_by_fac(LegendreP(l, m, x), l + m)
           else
-            Pt = (-1)**abs(m) * Ptilda(l, abs(m), x)
+            Pt = (-1)**m * Ptilda(l, abs(m), x)
           endif
-
         end function Ptilda
 
 
@@ -456,22 +479,19 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the chargeless moments of the multipole expansion
-        !> for a certain particle
+        !> for a certain particle (position given in spherical coordinates
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex(kind_fmm_precision) function OMultipole(l, m, r)
+        complex(kind_fmm_precision) function OMultipole(l, m, s)
           implicit none
           integer, intent(in) :: l, m
-          real*8, intent(in) :: r(3)
+          real(kind_fmm_precision), intent(in) :: s(3)
 
-          real(kind_fmm_precision) :: s(3)
           complex(kind_fmm_precision), parameter :: i = (0,1)
 
           if ((l<0) .or. (m<-l) .or. (m>l)) then
               OMultipole = 0 ! these are zero per definition
           else
-              s = cartesian_to_spherical(r)
-
               if (s(1) > 0) then
                 OMultipole = s(1)**l * Ptilda(l, m, s(2)) * exp(-i*m*s(3) )
               else
@@ -486,24 +506,20 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the chargeless moments of the Taylor expansion
-        !> for a certain particle
+        !> for a certain particle (coordinates given in spherical system)
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex(kind_fmm_precision) function MTaylor(l, m, r)
+        complex(kind_fmm_precision) function MTaylor(l, m, s)
           implicit none
           integer, intent(in) :: l, m
-          real*8, intent(in) :: r(3)
+          real(kind_fmm_precision), intent(in) :: s(3)
 
-          real(kind_fmm_precision) :: s(3)
           complex(kind_fmm_precision), parameter :: i = (0,1)
 
           if ((l<0) .or. (m<-l) .or. (m>l)) then
               MTaylor = 0 ! these are zero per definition
           else
-              s = cartesian_to_spherical(r)
-
               MTaylor = 1./(s(1)**(l+1)) * P2tilda(l, m, s(2)) * exp( i*m*s(3) )
-
           endif
 
         end function MTaylor
@@ -511,15 +527,16 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the charged moments of the multipole expansion
-        !> for a certain particle
+        !> for a certain particle (position in spherical coordinates)
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex(kind_fmm_precision) function omega(l, m, r, q)
+        complex(kind_fmm_precision) function omega(l, m, s, q)
           implicit none
           integer, intent(in) :: l, m
-          real*8, intent(in) :: r(3), q
+          real(kind_fmm_precision), intent(in) :: s(3)
+          real*8, intent(in) :: q
 
-          omega = q * OMultipole(l, m, r)
+          omega = real(q, kind=kind_fmm_precision) * OMultipole(l, m, s)
 
         end function omega
 
@@ -527,15 +544,16 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the charged moments of the Taylor expansion
-        !> for a certain particle
+        !> for a certain particle (coordinates in spherical system)
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        complex(kind_fmm_precision) function mu(l, m, r, q)
+        complex(kind_fmm_precision) function mu(l, m, s, q)
           implicit none
           integer, intent(in) :: l, m
-          real*8, intent(in) :: r(3), q
+          real(kind_fmm_precision), intent(in) :: s(3)
+          real*8, intent(in) :: q
 
-          mu = q * MTaylor(l, m, r)
+          mu = q * MTaylor(l, m, s)
 
         end function mu
 
@@ -556,6 +574,7 @@ module module_fmm_framework
           complex(kind_fmm_precision) :: mu_shift(1:fmm_array_length), O_R(1:fmm_array_length)
           integer :: l, m
           real*8 :: R(3)
+          real(kind_fmm_precision) :: S(3)
 
           if (.not. do_periodic) then
               e_lattice   = 0
@@ -563,10 +582,11 @@ module module_fmm_framework
             else
               ! shift mu_cent to the position of our particle
               R        = pos - LatticeCenter !TODO : stimmt das so?
+              S        = cartesian_to_spherical(R)
 
               do l = 0,Lmax
                 do m = 0,l
-                  O_R(tblinv(l,m)) = OMultipole(l, m, R)
+                  O_R(tblinv(l,m)) = OMultipole(l, m, S)
                 end do
               end do
 
@@ -603,7 +623,11 @@ module module_fmm_framework
           integer, intent(in) :: l, m
           complex(kind_fmm_precision), intent(in) :: A(1:fmm_array_length)
 
-          if (l>Lmax) then
+          if ((l<0)) then
+            DEBUG_ERROR(*,'("tbl(A,l,m) - invalid arguments. l=", I0, " m=", I0)', l, m)
+          endif
+
+          if ((l>Lmax) .or. (abs(m)>l)) then
             tbl = 0
           else
             tbl = A( tblinv(l, abs(m)) )
@@ -626,8 +650,13 @@ module module_fmm_framework
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         integer function tblinv(l,m)
+          use module_debug
           implicit none
           integer, intent(in) :: l, m
+
+          if ((l<0) .or. (m<0) .or. (m>l) .or. (l>Lmax)) then
+            DEBUG_ERROR(*,'("tblinv(l,m) - invalid arguments. l=", I0, " m=", I0)', l, m)
+          endif
 
           tblinv = l*(l+1)/2 + 1 + m
 
@@ -796,7 +825,7 @@ module module_fmm_framework
           MstarFunc = 0
 
           do i = 1,num_neighbour_boxes
-             MstarFunc = MstarFunc + OMultipole(l, m, -lattice_vect(neighbour_boxes(:,i)) )
+             MstarFunc = MstarFunc + OMultipole(l, m, cartesian_to_spherical(-lattice_vect(neighbour_boxes(:,i))) )
           end do
 
         end function MstarFunc
@@ -811,7 +840,7 @@ module module_fmm_framework
         complex(kind_fmm_precision) function LstarFunc(l,m)
           implicit none
           integer, intent(in) :: l, m
-          real(kind_fmm_precision) :: rpart(num_neighbour_boxes*(num_neighbour_boxes-1)), ipart(num_neighbour_boxes*(num_neighbour_boxes-1)),rp,ip
+          real(kind_fmm_precision) :: rpart(num_neighbour_boxes*(num_neighbour_boxes-1)), ipart(num_neighbour_boxes*(num_neighbour_boxes-1)),rp,ip, s(3)
           complex(kind_fmm_precision) :: tmp
           complex(kind_fmm_precision), parameter :: ic = (0,1)
           integer :: i, ii, k
@@ -822,7 +851,8 @@ module module_fmm_framework
           ! sum over all boxes within FF' (cells in the far field of the central cell but in the near field of the central supercell 3x3x3 that embeds cell {0,0,0} in the center)
           do i = 1,num_neighbour_boxes-1 ! central box is being omitted in this loop
             do ii = 1,num_neighbour_boxes
-              tmp = MTaylor(l, m, (2*ws+1)*lattice_vect(neighbour_boxes(:,i)) + lattice_vect(neighbour_boxes(:,ii)))
+              s   = cartesian_to_spherical((2*ws+1)*lattice_vect(neighbour_boxes(:,i)) + lattice_vect(neighbour_boxes(:,ii)))
+              tmp = MTaylor(l, m, s)
               k   = k+1
               ! we store the summands and order them before performing the sum
               ! to avoid numeric elimination
@@ -871,7 +901,6 @@ module module_fmm_framework
           else
             cartesian_to_spherical(3) = atan2(cartesian(2), cartesian(1))
           end if
-
         end function cartesian_to_spherical
 
 
