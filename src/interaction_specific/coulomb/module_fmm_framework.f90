@@ -65,8 +65,10 @@ module module_fmm_framework
       integer :: myrank
       integer :: MPI_COMM_fmm
       ! precision flags
-      integer, parameter :: kind_fmm_precision = 16
-      integer, parameter :: MPI_REAL_fmm       = MPI_REAL16
+      integer, parameter :: kind_fmm_precision   = 8
+      integer, parameter :: MPI_REAL_fmm         = MPI_REAL8
+      logical, parameter  :: chop_arrays         = .false.
+      real(kind_fmm_precision), parameter :: prec = 1.E-16
       ! FMM-PARAMETERS
       integer, parameter :: Lmax    = 32
       integer, parameter :: MaxIter = 64
@@ -92,26 +94,6 @@ module module_fmm_framework
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
-        subroutine trunc_array_entries(a)
-          implicit none
-          complex(kind_fmm_precision), intent(inout) :: a(1:fmm_array_length)
-          integer :: i
-          real(kind_fmm_precision), parameter :: tr = 1.e-16
-          real(kind_fmm_precision) :: re, im
-
-          DEBUG_WARNING(*, 'cleaning some array')
-
-          do i=1,fmm_array_length
-            re = real(a(i))
-            im = imag(a(i))
-
-            if (abs(re) < tr) re = 0.
-            if (abs(im) < tr) im = 0.
-
-            a(i) = cmplx(re, im)
-          end do
-        end subroutine
-
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Module Initialization, should be called on program startup
@@ -124,6 +106,7 @@ module module_fmm_framework
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_framework_init(mpi_rank, mpi_comm)
+          use module_debug
           use module_mirror_boxes, only : mirror_box_layers
           implicit none
           integer, intent(in) :: mpi_rank
@@ -142,6 +125,7 @@ module module_fmm_framework
             MLattice = 0
             !call calc_lattice_coefficients(MLattice)
             call load_lattice_coefficients(MLattice)
+            DEBUG_WARNING(*,'(a)', "Using pretabulated lattice coefficients from [J.Chem. Phys. 107, 10131]")
 
             if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
               call WriteTableToFile('MLattice.tab', MLattice)
@@ -197,6 +181,9 @@ module module_fmm_framework
             end do
           end do
 
+          call chop(Mstar)
+          call chop(Lstar)
+
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('Mstar.tab', Mstar)
             call WriteTableToFile('Lstar.tab', Lstar)
@@ -213,6 +200,8 @@ module module_fmm_framework
             !write(*,*) "----------- After Iteration ", iter
             !write(*,*) "ML = ", ML
           end do
+
+          call chop(ML)
 
           ! ML(1:tblinv(3,3))=0
           call pepc_status('LATTICE COEFFICIENTS: finished calculation')
@@ -344,16 +333,16 @@ module module_fmm_framework
 
           end do
 
+          call chop(omega_tilde)
+
           ! sum multipole contributions from all processors
           call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde, 2*fmm_array_length, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
-
-call trunc_array_entries(omega_tilde)
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('omega_tilde.tab', omega_tilde)
           end if
 
-          if (real(omega_tilde( tblinv(0, 0))) > 1.E-8) then
+          if (real(omega_tilde( tblinv(0, 0))) > prec) then
             DEBUG_WARNING(*, 'WARNING: The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0)), ' Ignoring, but this could lead to infinite energies etc.' )
           end if
 
@@ -423,6 +412,8 @@ call trunc_array_entries(omega_tilde)
           ! contribution of all outer lattice cells, with regards to the centre of the original box
           mu = M2L(MLattice, omega)
 
+          call chop(mu)
+
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('mu_cent.tab', mu_cent)
           end if
@@ -451,7 +442,6 @@ call trunc_array_entries(omega_tilde)
             Pt = (-1)**m * Ptilda(l, abs(m), x)
           endif
         end function Ptilda
-
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
@@ -581,7 +571,7 @@ call trunc_array_entries(omega_tilde)
               phi_lattice = 0
             else
               ! shift mu_cent to the position of our particle
-              R        = pos - LatticeCenter !TODO : stimmt das so?
+              R        = pos - LatticeCenter
               S        = cartesian_to_spherical(R)
 
               do l = 0,Lmax
@@ -697,6 +687,8 @@ call trunc_array_entries(omega_tilde)
             end do
           end do
 
+          call chop(M2M)
+
           ! DEBUG
           !write(*,*) "M2M = ", M2M
 
@@ -736,6 +728,8 @@ call trunc_array_entries(omega_tilde)
               M2L( tblinv(l, m) ) = t
             end do
           end do
+
+          call chop(M2L)
 
           ! DEBUG
           !write(*,*) "M2L = ", M2L
@@ -777,6 +771,8 @@ call trunc_array_entries(omega_tilde)
             end do
           end do
 
+          call chop(L2L)
+
           ! DEBUG
           !write(*,*) "L2L = ", L2L
 
@@ -804,6 +800,8 @@ call trunc_array_entries(omega_tilde)
               UL( tblinv(ll, mm) ) = tbl(L,ll,mm) / (2*ws+1)**(ll+1)
             end do
           end do
+
+          call chop(UL)
 
           ! DEBUG
           !write(*,*) "UL(L) = ", UL
@@ -925,7 +923,6 @@ call trunc_array_entries(omega_tilde)
               write(s,'(I6, I6, I6, D50.35, D50.35)') idx, ll, mm, tbl(T, ll, mm)
             end do
           end do
-
 
         end subroutine PrintTable
 
@@ -1209,6 +1206,34 @@ call trunc_array_entries(omega_tilde)
 
           end subroutine sort_abs
 
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>  Sets all matrix entries that are smaller than 1.e-16 to 0.
+        !> (separately for real and imaginary part)
+        !> This is the same as Mathematicas Chop[]-function
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine chop(a)
+          implicit none
+          complex(kind_fmm_precision), intent(inout) :: a(1:fmm_array_length)
+          integer :: i
+          real(kind_fmm_precision) :: re, im
+
+          if (.not. chop_arrays) return
+
+          DEBUG_WARNING(*, 'chopping some array')
+
+          do i=1,fmm_array_length
+            re = real(a(i))
+            im = imag(a(i))
+
+            if (abs(re) < prec) re = 0.
+            if (abs(im) < prec) im = 0.
+
+            a(i) = cmplx(re, im)
+          end do
+        end subroutine chop
 
 
 end module module_fmm_framework

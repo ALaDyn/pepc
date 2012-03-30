@@ -402,7 +402,7 @@ module module_interaction_specific
              do p=1,nparticles
                 call fmm_sum_lattice_force(particles(p)%x, e_lattice, phi_lattice)
 
-                potfarfield  = potfarfield  + phi_lattice * particles(p)%data%q
+                potfarfield  = potfarfield  + phi_lattice               * particles(p)%data%q
                 potnearfield = potnearfield + particles(p)%results%pot  * particles(p)%data%q
 
                 write(*,*) p, particles(p)%x, particles(p)%data%q
@@ -413,6 +413,11 @@ module module_interaction_specific
                 particles(p)%results%pot   = particles(p)%results%pot   +  phi_lattice
                 write(*,*) "after    ", particles(p)%results%e, particles(p)%results%pot
              end do
+
+write(*,*) 'near field pp:',  potnearfield               / nparticles / 2
+write(*,*) 'far  field pp:',  potfarfield                / nparticles / 2
+write(*,*) 'total pp:     ', (potfarfield+potnearfield)  / nparticles / 2
+
 
           end if
 
