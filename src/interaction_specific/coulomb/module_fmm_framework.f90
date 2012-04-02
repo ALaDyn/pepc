@@ -67,14 +67,14 @@ module module_fmm_framework
       ! precision flags
       integer, parameter :: kind_fmm_precision   = 8
       integer, parameter :: MPI_REAL_fmm         = MPI_REAL8
-      logical, parameter  :: chop_arrays         = .true.
+      logical, parameter  :: chop_arrays         = .false.
       real(kind_fmm_precision), parameter :: prec = 1.E-16
       ! FMM-PARAMETERS
-      integer, parameter :: Lmax_multipole = 50
+      integer, parameter :: Lmax_multipole = 20
       integer, parameter :: Lmax_taylor    = Lmax_multipole * 2
       integer, parameter :: MaxIter = 16
       integer :: ws = 1
-      logical, parameter :: use_pretabulated_lattice_coefficients = .false.
+      logical, parameter :: use_pretabulated_lattice_coefficients = .true.
       ! FMM-VARIABLES
       integer, parameter :: fmm_array_length_multipole = Lmax_multipole*(Lmax_multipole+1)/2+Lmax_multipole+1
       integer, parameter :: fmm_array_length_taylor    = Lmax_taylor   *(Lmax_taylor   +1)/2+Lmax_taylor   +1
@@ -125,7 +125,7 @@ module module_fmm_framework
 
             if (use_pretabulated_lattice_coefficients) then
               call load_lattice_coefficients(MLattice)
-              DEBUG_WARNING(*,'(a)', "Using pretabulated lattice coefficients from [J.Chem. Phys. 107, 10131]. These are only valid for unit-box simulations regions.")
+              DEBUG_WARNING('(a)', "Using pretabulated lattice coefficients from [J.Chem. Phys. 107, 10131]. These are only valid for unit-box simulations regions.")
             else
               call calc_lattice_coefficients(MLattice)
             endif
@@ -209,10 +209,7 @@ module module_fmm_framework
 
             ML = M2L( UL( ML ) , MStar ) + Lstar
 
-            !DEBUG
-            !write(*,*) "----------- After Iteration ", iter
-            !write(*,*) "ML = ", ML
-           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
+            if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
               write(fn,'("MLattice.", I2.2, ".tab")') iter
               call WriteTableToFile(trim(fn), ML, Lmax_taylor)
             endif
@@ -355,7 +352,7 @@ module module_fmm_framework
           end if
 
           if (real(omega_tilde( tblinv(0, 0, Lmax_multipole))) > prec) then
-            DEBUG_WARNING(*, 'WARNING: The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0, Lmax_multipole)), ' Ignoring, but this could lead to infinite energies etc.' )
+            DEBUG_WARNING(*, 'The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0, Lmax_multipole)), ' Ignoring, but this could lead to infinite energies etc.' )
           end if
 
         end subroutine calc_omega_tilde
@@ -449,7 +446,7 @@ module module_fmm_framework
           real(kind_fmm_precision), intent(in) :: x
 
           if (m >= 0) then
-            Pt = div_by_fac(LegendreP(l, m, x), l + m)
+            Pt = LegendreP(l, m, x) / factorial(l + m)
           else
             Pt = (-1)**m * Ptilda(l, abs(m), x)
           endif
@@ -471,7 +468,7 @@ module module_fmm_framework
           real(kind_fmm_precision), intent(in) :: x
 
           if (m >= 0) then
-            P2t = mult_by_fac(LegendreP(l, m, x), l - m)
+            P2t = LegendreP(l, m, x) * factorial(l - m)
           else
             P2t = (-1)**abs(m) * P2tilda(l, abs(m), x)
           endif
@@ -626,7 +623,7 @@ module module_fmm_framework
           complex(kind_fmm_precision), intent(in) :: A(*)
 
           if ((l<0)) then
-            DEBUG_ERROR(*,'("tbl(A,l,m) - invalid arguments. l=", I0, " m=", I0)', l, m)
+            DEBUG_ERROR('("tbl(A,l,m) - invalid arguments. l=", I0, " m=", I0)', l, m)
           endif
 
           if ((l>Lmax) .or. (abs(m)>l)) then
@@ -657,7 +654,7 @@ module module_fmm_framework
           integer, intent(in) :: l, m,Lmax
 
           if ((l<0) .or. (m<0) .or. (m>l) .or. (l>Lmax)) then
-            DEBUG_ERROR(*,'("tblinv(l,m) - invalid arguments. l=", I0, " m=", I0)', l, m)
+            DEBUG_ERROR('("tblinv(l,m) - invalid arguments. l=", I0, " m=", I0)', l, m)
           endif
 
           tblinv = l*(l+1)/2 + 1 + m
@@ -680,10 +677,6 @@ module module_fmm_framework
           complex(kind_fmm_precision) :: t
           integer :: l, m, j, k
 
-          ! DEBUG
-          !write(*,*) "O1 = ", O1
-          !write(*,*) "O2 = ", O2
-
           do l = 0,Lmax_multipole
             do m = 0,l
 
@@ -700,9 +693,6 @@ module module_fmm_framework
           end do
 
           call chop(M2M)
-
-          ! DEBUG
-          !write(*,*) "M2M = ", M2M
 
         end function M2M
 
@@ -722,10 +712,6 @@ module module_fmm_framework
           complex(kind_fmm_precision) :: t
           integer :: l, m, j, k
 
-          ! DEBUG
-          !write(*,*) "M_b = ", M_b
-          !write(*,*) "O_a = ", O_a
-
           do l = 0,Lmax_taylor
             do m = 0,l
 
@@ -742,9 +728,6 @@ module module_fmm_framework
           end do
 
           call chop(M2L)
-
-          ! DEBUG
-          !write(*,*) "M2L = ", M2L
 
         end function M2L
 
@@ -772,10 +755,6 @@ module module_fmm_framework
             maxl = Lmax_taylor
           endif
 
-          ! DEBUG
-          !write(*,*) "O_b = ", O_b
-          !write(*,*) "M_r = ", M_r
-
           do l = 0,maxl
             do m = 0,l
 
@@ -793,9 +772,6 @@ module module_fmm_framework
 
           call chop(L2L)
 
-          ! DEBUG
-          !write(*,*) "L2L = ", L2L
-
         end function L2L
 
 
@@ -812,9 +788,6 @@ module module_fmm_framework
 
           integer :: ll, mm
 
-          ! DEBUG
-          !write(*,*) "L = ", L
-
           do ll = 0,Lmax_taylor
             do mm = 0,ll
               UL( tblinv(ll, mm, Lmax_taylor) ) = L( tblinv(ll, mm, Lmax_taylor) ) / (2*ws+1)**(ll+1)
@@ -822,9 +795,6 @@ module module_fmm_framework
           end do
 
           call chop(UL)
-
-          ! DEBUG
-          !write(*,*) "UL(L) = ", UL
 
         end function UL
 
@@ -1073,9 +1043,6 @@ module module_fmm_framework
 
           LegendreP = (-1)**m * LegendreP
 
-          ! DEBUG (for comparison with Mathematica worksheet)
-          !write(*, '("LegendreP[", I2.2, ", ", I2.2, ", ", F10.5, "],  ", D20.10)') l, m, x, LegendreP
-
         end function LegendreP
 
 
@@ -1084,7 +1051,7 @@ module module_fmm_framework
         !> Calculates the factorial of the argument
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        recursive integer(kind_fmm_precision) function factorial(n) result(fact)
+        real(kind_fmm_precision) function factorial(n)
             use module_debug
             implicit none
             integer, intent(in) :: n
@@ -1095,83 +1062,59 @@ module module_fmm_framework
 
             select case (n)
               case ( 0)
-                fact =             1_kind_fmm_precision
+                factorial =                            1._kind_fmm_precision
               case ( 1)
-                fact =             1_kind_fmm_precision
+                factorial =                            1._kind_fmm_precision
               case ( 2)
-                fact =             2_kind_fmm_precision
+                factorial =                            2._kind_fmm_precision
               case ( 3)
-                fact =             6_kind_fmm_precision
+                factorial =                            6._kind_fmm_precision
               case ( 4)
-                fact =            24_kind_fmm_precision
+                factorial =                           24._kind_fmm_precision
               case ( 5)
-                fact =           120_kind_fmm_precision
+                factorial =                          120._kind_fmm_precision
               case ( 6)
-                fact =           720_kind_fmm_precision
+                factorial =                          720._kind_fmm_precision
               case ( 7)
-                fact =          5040_kind_fmm_precision
+                factorial =                         5040._kind_fmm_precision
               case ( 8)
-                fact =         40320_kind_fmm_precision
+                factorial =                        40320._kind_fmm_precision
               case ( 9)
-                fact =        362880_kind_fmm_precision
+                factorial =                       362880._kind_fmm_precision
               case (10)
-                fact =       3628800_kind_fmm_precision
+                factorial =                      3628800._kind_fmm_precision
               case (11)
-                fact =      39916800_kind_fmm_precision
+                factorial =                     39916800._kind_fmm_precision
               case (12)
-                fact =     479001600_kind_fmm_precision
+                factorial =                    479001600._kind_fmm_precision
+              case (13)
+                factorial =                   6227020800._kind_fmm_precision
+              case (14)
+                factorial =                  87178291200._kind_fmm_precision
+              case (15)
+                factorial =                1307674368000._kind_fmm_precision
+              case (16)
+                factorial =               20922789888000._kind_fmm_precision
+              case (17)
+                factorial =              355687428096000._kind_fmm_precision
+              case (18)
+                factorial =             6402373705728000._kind_fmm_precision
+              case (19)
+                factorial =           121645100408832000._kind_fmm_precision
+              case (20)
+                factorial =          2432902008176640000._kind_fmm_precision
+              case (21)
+                factorial =         51090942171709440000._kind_fmm_precision
+              case (22)
+                factorial =       1124000727777607680000._kind_fmm_precision
+              case (23)
+                factorial =      25852016738884976640000._kind_fmm_precision
+              case (24)
+                factorial =     620448401733239439360000._kind_fmm_precision
               case default
-                fact = n * factorial(n-1)
+                factorial = gamma(real(n+1, kind_fmm_precision))
             end select
         end function factorial
-
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
-        !> Divides the argument x by n!
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        real(kind_fmm_precision) function div_by_fac(x, n)
-            implicit none
-            real(kind_fmm_precision), intent(in) :: x
-            integer, intent(in) :: n
-
-            integer :: i
-
-            if (n <= 12) then
-              div_by_fac = x / factorial(n)
-            else
-              div_by_fac = x / factorial(12)
-
-              do i=13,n
-                div_by_fac = div_by_fac / i
-              end do
-            end if
-        end function div_by_fac
-
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
-        !> Multiplies the argument x by n!
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        real(kind_fmm_precision) function mult_by_fac(x, n)
-            implicit none
-            real(kind_fmm_precision), intent(in) :: x
-            integer, intent(in) :: n
-
-            integer :: i
-
-            if (n <= 12) then
-              mult_by_fac = x * factorial(n)
-            else
-              mult_by_fac = x * factorial(12)
-
-              do i=13,n
-                mult_by_fac = mult_by_fac * i
-              end do
-            end if
-        end function mult_by_fac
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
