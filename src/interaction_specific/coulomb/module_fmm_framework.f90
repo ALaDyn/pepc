@@ -67,14 +67,14 @@ module module_fmm_framework
       ! precision flags
       integer, parameter :: kind_fmm_precision   = 8
       integer, parameter :: MPI_REAL_fmm         = MPI_REAL8
-      logical, parameter  :: chop_arrays         = .false.
+      logical, parameter  :: chop_arrays         = .true.
       real(kind_fmm_precision), parameter :: prec = 1.E-16
       ! FMM-PARAMETERS
       integer, parameter :: Lmax_multipole = 50
       integer, parameter :: Lmax_taylor    = Lmax_multipole * 2
       integer, parameter :: MaxIter = 16
       integer :: ws = 1
-      logical, parameter :: use_pretabulated_lattice_coefficients = .true.
+      logical, parameter :: use_pretabulated_lattice_coefficients = .false.
       ! FMM-VARIABLES
       integer, parameter :: fmm_array_length_multipole = Lmax_multipole*(Lmax_multipole+1)/2+Lmax_multipole+1
       integer, parameter :: fmm_array_length_taylor    = Lmax_taylor   *(Lmax_taylor   +1)/2+Lmax_taylor   +1
@@ -173,6 +173,7 @@ module module_fmm_framework
           complex(kind_fmm_precision) :: Lstar(1:fmm_array_length_taylor)
 
           integer :: l, m, iter
+          character(20) :: fn
 
           call pepc_status('LATTICE COEFFICIENTS: Starting calculation')
 
@@ -189,7 +190,7 @@ module module_fmm_framework
 
           do l = 0,Lmax_taylor
             do m = 0,l
-              Lstar( tblinv(l, m, Lmax_taylor) ) = LstarFunc(l, m)
+              Lstar( tblinv(l, m, Lmax_taylor) )   = LstarFunc(l, m)
             end do
           end do
 
@@ -211,6 +212,10 @@ module module_fmm_framework
             !DEBUG
             !write(*,*) "----------- After Iteration ", iter
             !write(*,*) "ML = ", ML
+           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
+              write(fn,'("MLattice.", I2.2, ".tab")') iter
+              call WriteTableToFile(trim(fn), ML, Lmax_taylor)
+            endif
           end do
 
           call chop(ML)
@@ -322,7 +327,6 @@ module module_fmm_framework
 
           integer :: ll, mm, p
           integer :: ierr
-          complex(kind_fmm_precision) :: tmp
           real(kind_fmm_precision) :: S(3)
           real*8 :: R(3)
 
@@ -727,7 +731,7 @@ module module_fmm_framework
 
               t = 0
 
-              do j = 0,Lmax_multipole-l ! should be infinity, but see last page of [Kudin]
+              do j = 0,Lmax_taylor ! should be infinity, but see last page of [Kudin]: there they state, that (p-l) is enough
                 do k = -j,j
                   t = t + (-1)**j * tbl(M_b, j+l, k+m, Lmax_taylor) * tbl(O_a, j, k, Lmax_multipole) !TODO: evtl. (-1)**j oder 1/(j+l-k-m)! hinzufuegen (vgl. S. 82 bzw. 21 bei Ivo) ??
                 end do
@@ -813,7 +817,7 @@ module module_fmm_framework
 
           do ll = 0,Lmax_taylor
             do mm = 0,ll
-              UL( tblinv(ll, mm, Lmax_taylor) ) = UL( tblinv(ll, mm, Lmax_taylor) ) / (2*ws+1)**(ll+1)
+              UL( tblinv(ll, mm, Lmax_taylor) ) = L( tblinv(ll, mm, Lmax_taylor) ) / (2*ws+1)**(ll+1)
             end do
           end do
 
@@ -870,8 +874,8 @@ module module_fmm_framework
               k   = k+1
               ! we store the summands and order them before performing the sum
               ! to avoid numeric elimination
-              rpart(k) =  real(tmp)
-              ipart(k) = aimag(tmp)
+              rpart(k) =       real(tmp,  kind=kind_fmm_precision)
+              ipart(k) = real(aimag(tmp), kind=kind_fmm_precision)
             end do
           end do
 
@@ -886,7 +890,7 @@ module module_fmm_framework
             ip = ip + ipart(i)
           end do
 
-          LStarFunc = rp + ic*ip
+          LStarFunc = rp + ic*ip ! do not use cmplx()-function since it yields wrong results with complex*32 types
 
         end function LstarFunc
 
@@ -1091,31 +1095,31 @@ module module_fmm_framework
 
             select case (n)
               case ( 0)
-                fact =             1
+                fact =             1_kind_fmm_precision
               case ( 1)
-                fact =             1
+                fact =             1_kind_fmm_precision
               case ( 2)
-                fact =             2
+                fact =             2_kind_fmm_precision
               case ( 3)
-                fact =             6
+                fact =             6_kind_fmm_precision
               case ( 4)
-                fact =            24
+                fact =            24_kind_fmm_precision
               case ( 5)
-                fact =           120
+                fact =           120_kind_fmm_precision
               case ( 6)
-                fact =           720
+                fact =           720_kind_fmm_precision
               case ( 7)
-                fact =          5040
+                fact =          5040_kind_fmm_precision
               case ( 8)
-                fact =         40320
+                fact =         40320_kind_fmm_precision
               case ( 9)
-                fact =        362880
+                fact =        362880_kind_fmm_precision
               case (10)
-                fact =       3628800
+                fact =       3628800_kind_fmm_precision
               case (11)
-                fact =      39916800
+                fact =      39916800_kind_fmm_precision
               case (12)
-                fact =     479001600
+                fact =     479001600_kind_fmm_precision
               case default
                 fact = n * factorial(n-1)
             end select
@@ -1239,6 +1243,7 @@ module module_fmm_framework
           implicit none
           complex(kind_fmm_precision), intent(inout) :: a(:)
           integer :: i
+          complex(kind_fmm_precision), parameter :: ic = (0,1)
           real(kind_fmm_precision) :: re, im
 
           if (.not. chop_arrays) return
@@ -1246,13 +1251,13 @@ module module_fmm_framework
           DEBUG_WARNING(*, 'chopping some array')
 
           do i=1,size(a)
-            re = real(a(i))
-            im = imag(a(i))
+            re =       real(a(i),  kind=kind_fmm_precision)
+            im = real(aimag(a(i)), kind=kind_fmm_precision)
 
-            if (abs(re) < prec) re = 0.
-            if (abs(im) < prec) im = 0.
+            if (abs(re) < prec) re = 0._kind_fmm_precision
+            if (abs(im) < prec) im = 0._kind_fmm_precision
 
-            a(i) = cmplx(re, im)
+            a(i) = re + ic*im ! do not use cmplx()-function here (see above)
           end do
         end subroutine chop
 
