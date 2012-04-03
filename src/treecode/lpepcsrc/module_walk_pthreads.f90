@@ -721,7 +721,8 @@ module module_walk
       do ith = 1,num_walk_threads
         threaddata(ith)%id = ith
         threaddata(ith)%finished = .false.
-        call retval(pthreads_createthread(ith, c_funloc(walk_worker_thread), c_loc(threaddata(ith))), "walk_schedule_thread_inner:pthread_create")
+        call retval(pthreads_createthread(ith, c_funloc(walk_worker_thread), c_loc(threaddata(ith))), &
+                 "walk_schedule_thread_inner:pthread_create. Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
       end do
 
       call run_communication_loop(num_walk_threads)
@@ -870,8 +871,8 @@ module module_walk
       my_processor_id = get_my_core()
       same_core_as_communicator = (my_processor_id == primary_processor_id)
 
-      if (same_core_as_communicator) then
-            my_max_particles_per_thread = int(work_on_communicator_particle_number_factor * max_particles_per_thread)
+      if ((same_core_as_communicator) .and. (num_walk_threads > 1)) then
+            my_max_particles_per_thread = max(int(work_on_communicator_particle_number_factor * max_particles_per_thread), 1)
       else
             my_max_particles_per_thread = max_particles_per_thread
       endif
