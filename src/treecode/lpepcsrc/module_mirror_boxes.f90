@@ -72,6 +72,8 @@ module module_mirror_boxes
       public init_movement_constraint
       public constrain_periodic
       public lattice_vect
+      public system_is_unit_cube
+      public system_uses_principal_axes
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -250,5 +252,56 @@ module module_mirror_boxes
             end if
 
         end subroutine
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>  returns |r|^2
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        real*8 function normsq(r)
+          implicit none
+          real*8, intent(in) :: r(3)
+
+          normsq = dot_product(r, r)
+
+        end function
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>  returns .true. if t_lattice_1,2,3 are aligned to the cartesian axes x,y,z
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        logical function system_uses_principal_axes()
+          implicit none
+
+          system_uses_principal_axes = (t_lattice_1(1) >  0.) .and. &
+                                       (t_lattice_1(2) == 0.) .and. &
+                                       (t_lattice_1(3) == 0.) .and. &
+                                       (t_lattice_2(1) == 0.) .and. &
+                                       (t_lattice_2(2) >  0.) .and. &
+                                       (t_lattice_2(3) == 0.) .and. &
+                                       (t_lattice_3(1) == 0.) .and. &
+                                       (t_lattice_3(2) == 0.) .and. &
+                                       (t_lattice_3(3) >  0.)
+        end function
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>  returns .true. if t_lattice_1,2,3 span a unit box
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        logical function system_is_unit_cube()
+          implicit none
+
+          system_is_unit_cube = system_uses_principal_axes() .and.  &
+                                (normsq(t_lattice_1) == 1.0) .and.  &
+                                (normsq(t_lattice_2) == 1.0) .and.  &
+                                (normsq(t_lattice_3) == 1.0)
+
+        end function
+
 
 end module module_mirror_boxes

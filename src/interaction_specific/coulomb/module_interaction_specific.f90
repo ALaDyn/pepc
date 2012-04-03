@@ -378,6 +378,7 @@ module module_interaction_specific
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_particle(particles, nparticles)
+          use module_debug, only : pepc_status
           use module_pepc_types
           use treevars, only : me
           use module_fmm_framework
@@ -388,6 +389,8 @@ module module_interaction_specific
           type(t_particle), intent(inout) :: particles(:)
           real*8 :: e_lattice(3), phi_lattice
           integer :: p
+
+          call pepc_status('CALC FORCE PER PARTICLE')
 
           ! calculate spherical multipole expansion of central box
           if (include_far_field_if_periodic) call fmm_framework_timestep(particles, nparticles)
@@ -405,21 +408,13 @@ module module_interaction_specific
                 potfarfield  = potfarfield  + phi_lattice               * particles(p)%data%q
                 potnearfield = potnearfield + particles(p)%results%pot  * particles(p)%data%q
 
-                write(*,*) p, particles(p)%x, particles(p)%data%q
-                write(*,*) "prev     ", particles(p)%results%e, particles(p)%results%pot
-                write(*,*) "lattice  ", e_lattice, phi_lattice
-
                 particles(p)%results%e     = particles(p)%results%e     + e_lattice
                 particles(p)%results%pot   = particles(p)%results%pot   +  phi_lattice
-                write(*,*) "after    ", particles(p)%results%e, particles(p)%results%pot
              end do
 
-write(*,*) 'near field pp:',  potnearfield               / nparticles / 2
-write(*,*) 'far  field pp:',  potfarfield                / nparticles / 2
-write(*,*) 'total pp:     ', (potfarfield+potnearfield)  / nparticles / 2
-
-
           end if
+
+          call pepc_status('CALC FORCE PER PARTICLE DONE')
 
         end subroutine calc_force_per_particle
 

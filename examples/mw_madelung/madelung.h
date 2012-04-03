@@ -23,7 +23,11 @@ itime_in = 5
   t_lattice_2 = 0.0   1.0   0.0
   t_lattice_3 = 0.0   0.0   1.0
 ! periodicity in x-, y-, and z-direction
+! 3D
   periodicity = .true.  .true.  .true.
+! 2D
+!   periodicity = .false. .true.  .true.
+! 1D
 !  periodicity = .false.  .false. .true.
 ! extrinsic-to-intrinsic correction
   do_extrinsic_correction = .false.
@@ -56,7 +60,7 @@ workflow_setup = 0
 ! determies the particle dump interval
 ! 0: never write anything
 ! n: each n-th step, plus first and last step
- idump = 0
+ idump = 1
 ! dito for vtk, binary and checkpoint-output
  idump_vtk = 1
  idump_binary = 0
