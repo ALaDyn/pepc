@@ -206,7 +206,7 @@ module module_libpepc_main
         use module_walk_communicator
         use module_timings
         use module_interaction_specific
-        use module_debug, only : pepc_status
+        use module_debug
         implicit none
         integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
         type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
@@ -215,7 +215,6 @@ module module_libpepc_main
         real*8 :: ttrav, ttrav_loc, tcomm(3) ! timing integrals
 
         call pepc_status('TRAVERSE TREE')
-
 
         call timer_reset(t_walk)
         call timer_reset(t_walk_local)
@@ -230,6 +229,8 @@ module module_libpepc_main
         call timer_start(t_fields_passes)
 
         do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
+
+            if (ibox .ne. 1) call debug_barrier() ! we have to synchronize the different walks to prevent problems with recognition of finished ranks by rank 0
 
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
             call tree_walk(nparticles,particles,ttrav,ttrav_loc, lattice_vect(neighbour_boxes(:,ibox)), tcomm)

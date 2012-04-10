@@ -81,6 +81,7 @@ module module_debug
       public debug_ipefile_open
       public debug_ipefile_close
       public debug_mpi_abort
+      public debug_barrier
 
 
    contains
@@ -186,6 +187,20 @@ module module_debug
 
      end subroutine
 
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !>
+     !>  calls MPI_BARRIER(MPI_COMM_lpepc, ierr)
+     !>
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     subroutine debug_barrier()
+       use treevars, only : MPI_COMM_lpepc
+       implicit none
+       include 'mpif.h'
+       integer :: ierr
+
+       call MPI_BARRIER(MPI_COMM_lpepc, ierr)
+
+     end subroutine
 
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      !>
