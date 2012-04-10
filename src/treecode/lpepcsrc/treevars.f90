@@ -61,7 +61,6 @@ module treevars
              nintmax, &        ! max # terms allowed in interaction list
              maxleaf, &        ! max leaf allowed in #table
              maxtwig, &        ! max twig allowed in #table
-             size_tree, &      ! array space needed for local tree
              maxships, &       ! max # multipole ships per traversal 
              sum_ships, &      ! total # multipole ships per iteration  
              sum_fetches, &    ! total # key fetches  per iteration  

@@ -103,7 +103,7 @@ subroutine tree_stats(timestamp)
     write (60,'(a20,i7,a22)') 'Tree stats for CPU ', me, ' and global statistics'
     write (60,*) '######## GENERAL DATA #####################################################################'
     write (60,'(a50,1i12)') '# procs', num_pe
-    write (60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, size_tree: ',nintmax, np_mult,size_tree
+    write (60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, maxaddress: ',nintmax, np_mult,maxaddress
     write (60,'(a50,2i12)') 'npp, npart: ',npp,npart
     write (60,'(a50,2i12)') 'total # nparticles, N/P: ',total_part,int(npart/num_pe)
     write (60,*) '######## TREE STRUCTURES ##################################################################'

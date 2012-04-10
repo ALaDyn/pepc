@@ -80,15 +80,10 @@ module module_allocation
         nintmax = interaction_list_length_factor * nintmax
 
         !  Space for # table and tree arrays
-        !  TODO: need good estimate for max # branches
-        size_tree = max(30*nintmax+4*npp,10000)
-
         if (np_mult>0) then
-            nbaddr = int(max(log(1.*size_tree)/log(2.),15.))
-            maxaddress = size_tree
+            maxaddress = max(30*nintmax+4*npp, 10000)
         else
             maxaddress = int(abs(np_mult)*10000)
-            nbaddr = int(max(log(1.*maxaddress)/log(2.) ,15.))
         endif
 
         if (num_pe==1) then
@@ -103,12 +98,17 @@ module module_allocation
             maxtwig = maxaddress-maxleaf
         endif
 
+        ! TODO: at this stage, maxleaf should not be larger than npart_total and maxtwig should not be larger than maxleaf
+        ! in some cases, this is not fulfilled currently
+
         if (maxleaf < npp) then
           DEBUG_WARNING('("maxleaf = ", I0, " < npp+2 = ", I0, ".",/,"Setting maxleaf = npp+2 for now, but expect that to fail during walk. You should increase np_mult.")',maxleaf, npp+2)
           maxleaf = npp + 2
         endif
 
+        nbaddr    = int(max(log(1.*maxaddress)/log(2.), 15.))
         hashconst = 2**nbaddr-1
+
         allocate ( htable(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
         branch_owner(branch_max_global), pebranch(branch_max_global) )
 

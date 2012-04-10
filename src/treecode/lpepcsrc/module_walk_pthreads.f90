@@ -657,6 +657,7 @@ module module_walk
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine tree_walk_finalize()
+        implicit none
       end subroutine tree_walk_finalize
 
 
@@ -717,10 +718,11 @@ module module_walk
 
       allocate(threaddata(num_walk_threads))
 
+      threaddata(1:num_walk_threads)%finished = .false. ! we do not do this within the following loop because all (!) entries have to be .false. before the first (!) thread starts
+
       ! start the worker threads...
       do ith = 1,num_walk_threads
         threaddata(ith)%id = ith
-        threaddata(ith)%finished = .false.
         call retval(pthreads_createthread(ith, c_funloc(walk_worker_thread), c_loc(threaddata(ith))), &
                  "walk_schedule_thread_inner:pthread_create. Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
       end do
@@ -934,7 +936,7 @@ module module_walk
                   thread_particle_indices(i)                = -1
                   ! count total processed particles for this thread (only for statistics)
                   my_threaddata%num_processed_particles     = my_threaddata%num_processed_particles + 1
-                else 
+                else
                   ! walk for particle i has not been finished
                   defer_list_new_tail = defer_list_new_tail + defer_list_entries_new
                   particles_active    = .true.
