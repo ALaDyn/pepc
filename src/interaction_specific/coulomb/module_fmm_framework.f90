@@ -532,8 +532,9 @@ module module_fmm_framework
             call WriteTableToFile('omega_tilde.tab', omega_tilde, Lmax_multipole)
           end if
 
-          if (real(omega_tilde( tblinv(0, 0, Lmax_multipole))) > prec) then
-            DEBUG_WARNING(*, 'The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0, Lmax_multipole)), ' Ignoring, but this could lead to infinite energies etc.' )
+          if (abs(omega_tilde( tblinv(0, 0, Lmax_multipole))) > 0.) then
+            DEBUG_WARNING(*, 'The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0, Lmax_multipole)), ' Setting to zero, resulting potentials might be wrong.' )
+            omega_tilde( tblinv(0, 0, Lmax_multipole)) = (zero, zero)
           end if
 
         end subroutine calc_omega_tilde
