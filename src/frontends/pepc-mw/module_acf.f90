@@ -84,7 +84,7 @@ module module_acf
         if (acf_%my_rank == 0) then
           open(47,file=trim(filename),position='rewind')
           do i=0,acf_%tau-1
-            write(47,'(6(g18.8,x),I8)') acf_%dt*i, acf_%Kt(i) / acf_%num_contributions(i), acf_%Kt(i), acf_%oldvals(1:3,i-1), acf_%num_contributions(i)
+            write(47,'(6(g18.8,x),I8)') acf_%dt*i, acf_%Kt(i) / acf_%num_contributions(i), acf_%Kt(i), acf_%oldvals(1:3,i+1), acf_%num_contributions(i)
           end do
           close(47)
         endif
