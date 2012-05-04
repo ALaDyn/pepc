@@ -72,7 +72,8 @@ program pepcv
   if (parallel == 1) then
     call run_parallel(y0, 1.0D00*dt, 1.0D00*te)
   else
-    call run_serial(y0, 1.0D00*dt, nt)
+    call run_rk3(y0, 1.0D00*dt, nt)
+    !call run_serial(y0, 1.0D00*dt, nt)
   end if
 
   !call remeshing()
