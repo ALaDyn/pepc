@@ -1188,7 +1188,7 @@ module module_fmm_framework
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Computes the associated Legendre polynomial \f$P_l_m (x)\f$.
+        !> Computes the associated Legendre polynomial \f$P_{lm}(x)\f$.
         !> Here m and l are integers satisfying  \f$0 \leq m \leq l\f$,
         !> while x lies in the range \f$-1 \leq x \leq 1\f$.
         !>
@@ -1198,8 +1198,8 @@ module module_fmm_framework
         !>              (ISBN 0-521-43064-X)
         !> pg. 246ff
         !>
-        !> and modified to give \f$P_l_m (x)\f$:
-        !> \f$ P_l_m (x) = (-1)^m P_l^m (x) \f$, see
+        !> and modified to give \f$P_{lm}(x)\f$:
+        !> \f$ P_{lm}(x) = (-1)^m P_l^m (x) \f$, see
         !>
         !> Abramowitz and Stegun: Handbook of Mathematical Functions
         !> Section 8. Legendre Functions (pg. 332)
