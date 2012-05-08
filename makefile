@@ -96,9 +96,9 @@ $(LIBDIR):
 	@mkdir $(LIBDIR)
 
 $(DOCDIR):
-	@mkdir $(DOCDIR)
+	@mkdir -p $(DOCDIR)
 
-doc: $(DOCDIR)
+doc: $(DOCDIR) $(TOOLSDIR)/Doxyfile
 	@echo "======== start building Doxygen documentation"
 	@doxygen $(TOOLSDIR)/Doxyfile
 	@echo "=== you can view the source code documentation by opening $(DOCDIR)/index.html with your favourite web browser"
