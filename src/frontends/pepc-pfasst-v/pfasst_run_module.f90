@@ -23,6 +23,68 @@ module pfasst_run_module
 
 contains
 
+  subroutine run_rk4(y_start, delta_t, nsteps)
+
+    use pfasst_helper_module
+    use pfasst_calc_module
+    use pfasst_transfer_module
+    use physvars
+    use manipulate_particles
+    use files, only : dump
+
+    implicit none
+
+    real(kind=8), intent(in) :: y_start(NvarF), delta_t
+    integer, intent(in) :: nsteps
+
+    integer :: i, k, step
+    real(kind=8) :: t0, res, err
+    real(kind=8) :: fF(NvarF), y_tmp(NvarF)
+
+    !!!! set initial conditions
+    y0F = y_start
+    call start_timer(TTOTAL)
+
+    y_tmp = 0.
+
+    !!!! time step loop
+    do i = 1,nsteps
+
+       call start_timer(TIO)
+
+       step = (i-1)
+       t0   = step * delta_t
+
+       call eval_f1(y0F, t0, NvarF, 1, fF)
+       y0newF = y0F + (1.0/2.0)*delta_t*fF
+       y_tmp = y0F + 1.0/6.0*delta_t*fF
+
+       call eval_f1(y0newF, t0, NvarF, 1, fF)
+       y0newF = y0F + (1.0/2.0)*delta_t*fF
+       y_tmp = y_tmp + 1.0/3.0*delta_t*fF
+
+       call eval_f1(y0newF, t0, NvarF, 1, fF)
+       y0newF = y0F + (1.0/1.0)*delta_t*fF
+       y_tmp = y_tmp + 1.0/3.0*delta_t*fF
+
+       call eval_f1(y0newF, t0, NvarF, 1, fF)
+       y_tmp = y_tmp + 1.0/6.0*delta_t*fF
+
+       y0F = y_tmp
+       y0newF = y_tmp
+
+       call end_timer(TIO, step, echo_timings=echo_timings)
+
+       call pfasst_to_pepc(vortex_particles(1:np), np, y0F(1:NvarF))
+
+       call dump(step,real(t0))
+
+    end do
+
+    call end_timer(TTOTAL, echo_timings=echo_timings)
+
+  end subroutine run_rk4
+
 
   subroutine run_rk3(y_start, delta_t, nsteps)
 
