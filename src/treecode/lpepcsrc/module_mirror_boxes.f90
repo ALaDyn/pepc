@@ -47,6 +47,7 @@ module module_mirror_boxes
       real*8, public :: Lattice(3,3) !< holds the lattice transformation matrix
       real*8, public :: LatticeInv(3,3) !< holds the inverse lattice transformation matrix
       real*8, public :: LatticeCenter(3) !< holds the central point of the lattice box
+      real*8, public :: LatticeOrigin(3) = [0., 0., 0.] !< holds the lattice origin - can be modified by calling program
       logical, public :: periodicity(3) = [.false., .false., .false.]  !< boolean switches for determining periodicity directions
       integer, public :: mirror_box_layers = 1 !< size of near-field layer (nmber of shells)
       !> variables that should not be written to
@@ -118,15 +119,13 @@ module module_mirror_boxes
         implicit none
         integer :: i,j,k,idx
 
+         LatticeCenter = 0.5*(t_lattice_1 + t_lattice_2 + t_lattice_3) + LatticeOrigin
+
           if (allocated(neighbour_boxes)) deallocate(neighbour_boxes)
 
-          do i = 1,3
-            if (periodicity(i)) then
-               periodicity_switches(i) = mirror_box_layers
-             else
-               periodicity_switches(i) = 0
-             end if
-          end do
+          where (periodicity(:))
+            periodicity_switches = mirror_box_layers
+          end where
 
           idx = 0
 
@@ -189,17 +188,7 @@ module module_mirror_boxes
           LatticeInv = Inverse3(Lattice)
 
           ! simplify the movement constraint if the lattice is really simple
-          simplelattice = .true.
-          do i = 1,3
-            do j = 1,3
-              if (i.ne.j) then
-                simplelattice = simplelattice .and. (Lattice(i,j) == 0)
-              else
-                simplelattice = simplelattice .and. (Lattice(i,j) >  0)
-              end if
-            end do
-          end do
-
+          simplelattice = system_uses_principal_axes()
 
         end subroutine init_movement_constraint
 
@@ -210,32 +199,30 @@ module module_mirror_boxes
         !> back into it
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine constrain_periodic(x, y, z, np_local)
+        subroutine constrain_periodic(particles, np_local)
             use module_math_tools
+            use module_pepc_types
 
             implicit none
 
-            real*8, intent(inout), dimension(1:np_local) :: x,y,z
+            type(t_particle), intent(inout) :: particles(:)
             integer, intent(in) :: np_local
 
             integer :: p !< loop variable
-            real*8 :: lattice_coord(3), real_coord(3)
+            real*8 :: lattice_coord(3), real_coord(3), latticewalls(3)
 
             if (simplelattice) then
+                latticewalls(1:3) = [t_lattice_1(1), t_lattice_2(2), t_lattice_3(3)]
 
                 do p = 1,np_local
-
-                  if (periodicity(1)) x(p) = modulo(x(p), t_lattice_1(1))
-                  if (periodicity(2)) y(p) = modulo(y(p), t_lattice_2(2))
-                  if (periodicity(3)) z(p) = modulo(z(p), t_lattice_3(3))
-
+                  where (periodicity) particles(p)%x = modulo(particles(p)%x-LatticeCenter, latticewalls) + LatticeCenter
                 end do
 
             else
               ! the lattice axes are not parallel to the outer cartesian axes
                 do p = 1,np_local
 
-                    lattice_coord = matmul([x(p), y(p), z(p)], LatticeInv)
+                    lattice_coord = matmul(particles(p)%x, LatticeInv)
 
                     if (any(lattice_coord > 1.D+0) .or. any(lattice_coord < 0.D+0)) then
 
@@ -243,9 +230,7 @@ module module_mirror_boxes
 
                       real_coord = matmul(lattice_coord, Lattice)
 
-                      if (periodicity(1)) x(p) = real_coord(1)
-                      if (periodicity(2)) y(p) = real_coord(2)
-                      if (periodicity(3)) z(p) = real_coord(3)
+                      where (periodicity) particles(p)%x = real_coord
 
                     end if
                 end do

@@ -201,7 +201,7 @@ program pepc
      call integrator(1, np_local, integrator_scheme)
 
      ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(particles(1:np_local)%x(1), particles(1:np_local)%x(2), particles(1:np_local)%x(3),np_local)
+     if (do_periodic) call constrain_periodic(particles,np_local)
 
      call energies(Ukine,Ukini)
 

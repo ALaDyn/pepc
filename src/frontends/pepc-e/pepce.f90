@@ -119,7 +119,7 @@ program pepce
      call push(1,np_local,dt)  ! update positions
 
      ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(x(1:np_local),y(1:np_local),z(1:np_local),np_local)
+     !if (do_periodic) call constrain_periodic(transpose([x(1:np_local),y(1:np_local),z(1:np_local)]),np_local)
 
      call energy_cons(Ukine,Ukini)
 

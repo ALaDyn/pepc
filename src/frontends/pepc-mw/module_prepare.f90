@@ -91,6 +91,8 @@ subroutine pepcmw_prepare()
   t_lattice_2 = t_lattice_2*y_plasma
   t_lattice_3 = t_lattice_3*z_plasma
 
+  LatticeOrigin = -0.5*(t_lattice_1 + t_lattice_2 + t_lattice_3)
+
   a_i       = (4.*pi/3. * ni/Vplas)**(-1./3.)
   physGamma = (qi*qi) / (a_i * unit_kB*Te)
 

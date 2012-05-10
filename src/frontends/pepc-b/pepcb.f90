@@ -54,7 +54,7 @@ program program_pepcb
   use module_physvars
   use module_pepc
   use module_pepc_wrappers
-  use module_mirror_boxes, only : do_periodic, constrain_periodic, spatial_interaction_cutoff
+  use module_mirror_boxes, only : do_periodic, spatial_interaction_cutoff
   use module_fmm_framework, only : fmm_framework_param_dump
   use module_utilities
   use module_geometry

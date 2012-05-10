@@ -342,7 +342,7 @@ program pepce
      write(*,*) "do_periodic:", do_periodic
      
      ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(particles(1:np_local)%x(1),particles(1:np_local)%x(2),particles(1:np_local)%x(3),np_local)
+     if (do_periodic) call constrain_periodic(particles(1:np_local),np_local)
 
 
      

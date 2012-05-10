@@ -42,6 +42,7 @@ module module_param_dump
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       public PrintPhysicalParameters
+      public PrintPeriodicityParameters
       public PrintLaserParameters
       public PrintEnergies
       public WriteParameter
@@ -65,6 +66,7 @@ module module_param_dump
         module procedure WriteParameterIntSingle
         module procedure WriteParameterCharSingle
         module procedure WriteParameterRealCoord
+        module procedure WriteParameterLogicalCoord
       end interface
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -191,16 +193,39 @@ module module_param_dump
 
     end subroutine WriteParameterCharSingle
 
-    subroutine WriteParameterRealCoord(ifile,name, val)
+    subroutine WriteParameterRealCoord(ifile,name, val, showlength)
       implicit none
       integer, intent(in) :: ifile
       real*8, intent(in) :: val(3)
+      logical, intent(in), optional :: showlength
       character(*), intent(in) :: name
 
-      write(ifile,'("| ", a28," |       [ ", 3(g13.6,x), "]       |")') " "//name//" ", val(1:3)
-      write(ifile,'("| ", a28," |         ", 28x,g13.6,x, "        |")') "|"//name//"|", sqrt(dot_product(val, val))
+      logical :: showlen
+
+      showlen = .true.
+      if (present(showlength)) showlen = showlength
+
+                   write(ifile,'("| ", a28," |       [ ", 3(g13.6,x), "]       |")') " "//name//" ", val(1:3)
+      if (showlen) write(ifile,'("| ", a28," |         ", 28x,g13.6,x, "        |")') "|"//name//"|", sqrt(dot_product(val, val))
 
     end subroutine WriteParameterRealCoord
+
+    subroutine WriteParameterLogicalCoord(ifile,name, val)
+      implicit none
+      integer, intent(in) :: ifile
+      logical, intent(in) :: val(3)
+      character(*), intent(in) :: name
+      character :: text(3)
+
+      where (val)
+        text = 'T'
+      elsewhere
+        text = 'F'
+      end where
+
+      write(ifile,'("| ", a28," |       [ ", 3(12x,a1,x), "]       |")') " "//name//" ", text(1:3)
+
+    end subroutine WriteParameterLogicalCoord
 
 
 
@@ -276,7 +301,9 @@ module module_param_dump
       call WriteParameter(ifile, "vosc / vtherm_e", vosc/vte)
       call WriteTopline(  ifile, "")
       call WriteParameter(ifile, "rngseed", rngseed)
-      call WriteTopline(  ifile, "")
+      !call WriteTopline(  ifile, "")
+
+       call PrintPeriodicityParameters(ifile)
 
    end subroutine PrintPhysicalParameters
 
@@ -319,6 +346,7 @@ module module_param_dump
         call WriteParameter(ifile, "Beam model",        config_names(3))
         call WriteParameter(ifile, "Beam polarization", config_names(4))
         call WriteTopline(  ifile, "")
+
       end do
 
     end subroutine
@@ -354,5 +382,35 @@ module module_param_dump
       call WriteTopline(  ifile, "", "")
 
    end subroutine PrintEnergies
+
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Output periodicity parameters in pretty format
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine PrintPeriodicityParameters(ifile)
+      use physvars
+      use module_units
+      use module_fmm_framework
+      use module_mirror_boxes
+      implicit none
+      integer, intent(in) :: ifile
+
+      call WriteTopline(  ifile, "", "")
+      call WriteParameter(ifile, "periodicity", periodicity)
+      call WriteParameter(ifile, "t_lattice_1", t_lattice_1, .false.)
+      call WriteParameter(ifile, "t_lattice_2", t_lattice_2, .false.)
+      call WriteParameter(ifile, "t_lattice_3", t_lattice_3, .false.)
+      call WriteParameter(ifile, "LatticeCenter", LatticeCenter, .false.)
+      call WriteParameter(ifile, "LatticeOrigin", LatticeOrigin, .false.)
+      call WriteParameter(ifile, "spatial_interaction_cutoff", spatial_interaction_cutoff, .false.)
+      call WriteTopline(  ifile, "", "")
+      call WriteParameter(ifile, "mirror_box_layers", mirror_box_layers)
+      call WriteParameter(ifile, "num_neighbour_boxes", num_neighbour_boxes)
+      call WriteTopline(  ifile, "")
+
+   end subroutine PrintPeriodicityParameters
 
 end module module_param_dump

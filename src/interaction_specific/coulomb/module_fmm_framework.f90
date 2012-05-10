@@ -119,8 +119,6 @@ module module_fmm_framework
           MPI_COMM_fmm = mpi_comm
           ws           = mirror_box_layers
 
-          LatticeCenter = 0.5*(t_lattice_1 + t_lattice_2 + t_lattice_3)
-
           do_periodic = any(periodicity(1:3))
 
            ! anything above has to be done in any case
