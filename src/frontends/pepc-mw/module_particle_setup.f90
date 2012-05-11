@@ -26,6 +26,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_particle_setup
       use physvars
+      use module_mirror_boxes, only : LatticeOrigin
       implicit none
       save
       private
@@ -51,6 +52,8 @@ module module_particle_setup
       !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      real*8 :: BoxDimensions(3)
 
     contains
 
@@ -84,17 +87,15 @@ module module_particle_setup
         end subroutine
 
 
-
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> rescales coordinates to fit into x_plasma x y_plasma x z_plasma cuboid
-        !> centered around the coordinate origin
-        !> sets plasma_centre accordingly
+        !> Measures Actual Dimension and Origin of Simulation Box
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine rescale_coordinates_cuboid()
+        subroutine  measure_dimensions(LatticeOrigin, BoxDimensions)
           implicit none
           include 'mpif.h'
+          real*8, intent(out) :: LatticeOrigin(3), BoxDimensions(3)
           real*8 :: minc(3), maxc(3), h(3)
           integer :: ierr
 
@@ -110,11 +111,33 @@ module module_particle_setup
             h = 1.
           end where
 
-          particles(1:np_local)%x(1) = ((particles(1:np_local)%x(1) - minc(1))/h(1) - 0.5_8) * x_plasma
-          particles(1:np_local)%x(2) = ((particles(1:np_local)%x(2) - minc(2))/h(2) - 0.5_8) * y_plasma
-          particles(1:np_local)%x(3) = ((particles(1:np_local)%x(3) - minc(3))/h(3) - 0.5_8) * z_plasma
+          LatticeOrigin = minc
+          BoxDimensions = h
+
+        end subroutine
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> rescales coordinates to fit into x_plasma x y_plasma x z_plasma cuboid
+        !> centered around the coordinate origin
+        !> sets plasma_centre, LatticeOrigin, BoxDimensions accordingly
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine rescale_coordinates_cuboid()
+          implicit none
+          integer :: i
+          real*8 :: bb(3)
+
+          bb = [x_plasma, y_plasma, z_plasma]
+
+          do i = 1,np_local
+            particles(i)%x = ((particles(i)%x - LatticeOrigin)/BoxDimensions - 0.5_8) * bb
+          end do
 
           plasma_centre =  (/ 0., 0., 0./) ! Centre of plasma
+          LatticeOrigin = -0.5*bb
+          BoxDimensions =      bb
         end subroutine
 
 
@@ -320,6 +343,8 @@ module module_particle_setup
             end do
           end do
 
+          LatticeOrigin = [-0.5, -0.5, -0.5]
+          BoxDimensions = [ 1.0,  1.0,  1.0]
         end subroutine
 
 
@@ -355,6 +380,8 @@ module module_particle_setup
             end do
           end do
 
+          LatticeOrigin = [-0.5, -0.5, -0.5]
+          BoxDimensions = [ 1.0,  1.0,  1.0]
         end subroutine
 
 
@@ -432,6 +459,8 @@ module module_particle_setup
 
           particles(1:np_local)%work = 1.
 
+          LatticeOrigin = [-0.5, -0.5, -0.5]
+          BoxDimensions = [ 1.0,  1.0,  1.0]
         end subroutine
 
 
@@ -474,6 +503,8 @@ module module_particle_setup
             end do
           end do
 
+          LatticeOrigin = [-2.5, -0.5, -0.5]
+          BoxDimensions = [ 5.0,  1.0,  1.0]
         end subroutine
 
 
@@ -512,6 +543,8 @@ module module_particle_setup
             end do
           end do
 
+          LatticeOrigin = [-10.5, -10.5, -10.5]
+          BoxDimensions = [ 21.0,  21.0,  21.0]
         end subroutine
 
 
@@ -549,6 +582,8 @@ module module_particle_setup
             end do
           end do
 
+          call measure_dimensions(LatticeOrigin, BoxDimensions)
+
         end subroutine
 
 
@@ -584,6 +619,8 @@ module module_particle_setup
             end do
           end do
 
+          LatticeOrigin = [-0.5, -0.5, -0.5]
+          BoxDimensions = [ 1.0,  1.0,  1.0]
         end subroutine
 
 
@@ -653,6 +690,9 @@ module module_particle_setup
             !  write(*,*) my_rank,i,x(i), y(i), z(i), q(i), pelabel(i)
             !end do
 
+          LatticeOrigin = [ 0.0,  0.0,  0.0]
+          BoxDimensions = [ 1.0,  1.0,  1.0]
+
         end subroutine
 
 
@@ -676,6 +716,8 @@ module module_particle_setup
                 particles(p)%x(3) = par_rand()
              end do
 
+          LatticeOrigin = [-0.5, -0.5, -0.5]
+          BoxDimensions = [ 1.0,  1.0,  1.0]
         end subroutine
 
 
@@ -735,6 +777,8 @@ module module_particle_setup
                particles(p)%data%m  = mass_e
                particles(p)%label  = -(1 + particletype)
              end do
+
+             call measure_dimensions(LatticeOrigin, BoxDimensions)
 
         end subroutine
 
@@ -805,6 +849,9 @@ module module_particle_setup
              if (myidx .ne. np_local) write(*,*) "ERROR in special_start(8): PE", my_rank, "set up", myidx, &
                    "particles, but np_local=", np_local, "globalidx=", globalidx, "npart_total=",npart_total
              if (globalidx .ne. npart_total) write(*,*) "ERROR in special_start(8): PE", my_rank, "set up globalidx=", globalidx, ", but npart_total=",npart_total
+
+          LatticeOrigin = [ 0.0,  0.0,  0.0]
+          BoxDimensions = [ 1.0,  1.0,  1.0]
 
         end subroutine
 

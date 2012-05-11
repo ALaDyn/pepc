@@ -33,7 +33,7 @@ subroutine pepcmw_prepare()
   use module_workflow
   use module_units
   use module_fields
-  use module_interaction_specific, only : eps2
+  use module_interaction_specific, only : eps2, include_far_field_if_periodic
   use module_namelist
   use module_io
   implicit none
@@ -91,14 +91,18 @@ subroutine pepcmw_prepare()
   t_lattice_2 = t_lattice_2*y_plasma
   t_lattice_3 = t_lattice_3*z_plasma
 
-  LatticeOrigin = -0.5*(t_lattice_1 + t_lattice_2 + t_lattice_3)
+  LatticeOrigin = LatticeOrigin*[x_plasma, y_plasma, z_plasma]
+
+  ! MW: only doing nearest image periodicity for now
+  include_far_field_if_periodic = .false.
+  spatial_interaction_cutoff = [x_plasma, y_plasma, z_plasma]
+
 
   a_i       = (4.*pi/3. * ni/Vplas)**(-1./3.)
   physGamma = (qi*qi) / (a_i * unit_kB*Te)
 
-  eps = eps * lambdaD_e
-
-  if (V0_eV .ne. 0.) eps = force_const * qe*qi / (V0_eV / unit_Ryd_in_eV)
+  if (lambdaD_e > 0.) eps = eps * lambdaD_e
+  if (V0_eV .ne. 0.)  eps = force_const * qe*qi / (V0_eV / unit_Ryd_in_eV)
 
   V0_eV = (force_const * qe*qi / eps) * unit_Ryd_in_eV
 

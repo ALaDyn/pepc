@@ -33,6 +33,7 @@ module module_diagnostics
     public write_particles
     public read_particles
     public cluster_diagnostics
+    public periodic_system_diagnostics
     public verifydirect
     public compute_force_direct
 
@@ -138,6 +139,37 @@ contains
             write(88,'(" ",1(1x,i16),2(1x,g16.6),5(1x,i16))') itime, time_fs, sqrt(rclustersq), nion, nion-nboundelectrons, nboundelectrons, crit
 
             close(88)
+        endif
+
+    end subroutine
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine periodic_system_diagnostics(itime, time_fs, momentum_acf)
+        use physvars, only : particles, np_local, momentum_acf_from_timestep, restart
+        use module_acf
+        implicit none
+             include 'mpif.h'
+        integer, intent(in) :: itime
+        real*8, intent(in) :: time_fs
+        type(acf) :: momentum_acf
+        logical, dimension(1:np_local) :: criterion
+        integer :: nelectrons
+        real*8 :: mom(4)
+        character(*), parameter :: filename = 'cluster.dat'
+
+        !> only select electrons
+        criterion = (particles(1:np_local)%data%q < 0.)
+
+        ! output total momentum of all negatively charged particles
+        call write_total_momentum('momentum_electrons.dat', itime, time_fs, criterion, mom, nelectrons)
+
+        if (itime > momentum_acf_from_timestep) then
+            call momentum_acf%addval(mom(1:3)/nelectrons)
+            call momentum_acf%to_file("momentum_electrons_Kt.dat")
         endif
 
     end subroutine

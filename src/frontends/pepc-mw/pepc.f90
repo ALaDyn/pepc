@@ -92,12 +92,6 @@ program pepc
   ! Set up particles - in case if ispecial ==-1, particles and parameters are automatically read from a file again
   call particle_setup(ispecial)
 
-  ! parameter output
-  if (my_rank == 0) then
-    call PrintPhysicalParameters(file_stdout)
-    call PrintPhysicalParameters(file_pepc_out)
-  endif
-
   ! initial particle output
   ! no initial checkpoint since this would override the current checkpoint if in resume-mode
   call write_particles(.false.)
@@ -111,6 +105,12 @@ program pepc
 !  call benchmark_inner
 
   call pepc_prepare(idim)
+
+  ! parameter output
+  if (my_rank == 0) then
+    call PrintPhysicalParameters(file_stdout)
+    call PrintPhysicalParameters(file_pepc_out)
+  endif
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -206,7 +206,13 @@ program pepc
      call energies(Ukine,Ukini)
 
      !> special diagnostics for [J. Phys. A: Math. Theor 42 (2009), 214048] Th. Raitza et al: Collision frequency of electrons in laser excited small clusters
-     if (workflow_setup == 3) call cluster_diagnostics(itime, trun*unit_t0_in_fs, momentum_acf)
+     if (workflow_setup == 3) then
+       if (do_periodic) then
+         call periodic_system_diagnostics(itime, trun*unit_t0_in_fs, momentum_acf)
+       else
+         call cluster_diagnostics(itime, trun*unit_t0_in_fs, momentum_acf)
+       endif
+     endif
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
