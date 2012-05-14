@@ -23,6 +23,7 @@ program pepc
   ! pepc modules
   use module_pepc
   use module_pepc_types
+  use module_timings
   
   ! frontend helper routines
   use helper
@@ -83,6 +84,8 @@ program pepc
     
     timer(4) = get_time()
     if(root) write(*,'(a,es12.4)') " == time in step [s]                              : ", timer(4) - timer(3)
+
+    call timings_GatherAndOutput(step, 0)
     
   end do 
  
