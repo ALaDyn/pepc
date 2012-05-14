@@ -24,6 +24,7 @@ program pepc
   use module_pepc
   use module_pepc_types
   use module_timings
+  use module_debug
   
   ! frontend helper routines
   use helper
@@ -71,6 +72,7 @@ program pepc
     
     if(doDiag .and. particle_probe) call compute_field()
     
+    if (dbg(DBG_STATS)) call pepc_statistics(step)
     call pepc_timber_tree()
     !call pepc_restore_particles(np, particles)
     
