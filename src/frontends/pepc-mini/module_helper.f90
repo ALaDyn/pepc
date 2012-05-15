@@ -173,7 +173,7 @@ module helper
     
     call random_seed(size = rsize)
     allocate(rseed(rsize))
-      rseed = my_rank + [(i*144,i=1,rsize)]
+    rseed = my_rank + [(my_rank*my_rank + 144,i=1,rsize)]
     call random_seed(put = rseed)
     deallocate(rseed)
     
