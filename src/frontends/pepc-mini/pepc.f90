@@ -32,6 +32,7 @@ program pepc
     
   ! timing variables
   real*8 :: timer(5)
+  real*8 :: t1, t2
   
   ! control variable
   logical :: doDiag
@@ -63,8 +64,14 @@ program pepc
     doDiag = MOD(step, diag_interval) .eq. 0
     
     call pepc_particleresults_clear(particles, np)
+    t1 = get_time()
     call pepc_grow_tree(np, tnp, particles)
+    t2 = get_time()
+    if(root) write(*,'(a,es12.4)') " ====== tree grow time  :", t2-t1
+    t1 = get_time()
     call pepc_traverse_tree(np, particles)
+    t2 = get_time()
+    if(root) write(*,'(a,es12.4)') " ====== tree walk time  :", t2-t1
 
     call apply_external_field()
     
