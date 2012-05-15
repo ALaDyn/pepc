@@ -27,13 +27,13 @@ OPTIMIZATIONFLAGS       = -g -O5 -qhot -qipa -qipa=list=long:threads=auto \
 STANDARDFLAGS           = -qtune=450 -qarch=450 -qthreaded -qsmp=noauto -qsmp=omp
 
 ifeq ($(DEBUG), 1)
-  FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -qxlf2003=polymorphic -qddim
-  CFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
-  LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG)
+  FFLAGS   = $(OPTIMIZATIONFLAGS_DEBUG) -qxlf2003=polymorphic -qddim $(STANDARDFLAGS)
+  CFLAGS   = $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include $(STANDARDFLAGS)
+  LDFLAGS  = $(OPTIMIZATIONFLAGS_DEBUG) $(STANDARDFLAGS)
 else
-  FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS) -qxlf2003=polymorphic
-  CFLAGS   = $(STANDARDFLAGS) -O3 -I/bgsys/drivers/ppcfloor/arch/include
-  LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS)
+  FFLAGS   = $(OPTIMIZATIONFLAGS) -qxlf2003=polymorphic $(STANDARDFLAGS)
+  CFLAGS   = -O3 -I/bgsys/drivers/ppcfloor/arch/include $(STANDARDFLAGS)
+  LDFLAGS  = $(OPTIMIZATIONFLAGS) $(STANDARDFLAGS) 
 endif
 
 ifeq ($(VAMPIR), 1)
