@@ -93,10 +93,10 @@ subroutine pepcmw_prepare()
 
   LatticeOrigin = LatticeOrigin*[x_plasma, y_plasma, z_plasma]
 
-  ! MW: only doing nearest image periodicity for now
-  include_far_field_if_periodic = .false.
-  spatial_interaction_cutoff = [x_plasma, y_plasma, z_plasma]
-
+  if (periodicity_nearest_image) then
+    include_far_field_if_periodic = .false.
+    spatial_interaction_cutoff = [x_plasma, y_plasma, z_plasma]
+  endif
 
   a_i       = (4.*pi/3. * ni/Vplas)**(-1./3.)
   physGamma = (qi*qi) / (a_i * unit_kB*Te)
