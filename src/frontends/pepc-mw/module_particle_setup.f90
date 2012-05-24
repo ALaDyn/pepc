@@ -138,6 +138,8 @@ module module_particle_setup
           plasma_centre =  (/ 0., 0., 0./) ! Centre of plasma
           LatticeOrigin = -0.5*bb
           BoxDimensions =      bb
+
+          particle_shift_simunits = particle_shift * x_plasma
         end subroutine
 
 

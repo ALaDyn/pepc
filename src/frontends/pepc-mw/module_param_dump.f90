@@ -65,6 +65,7 @@ module module_param_dump
         module procedure WriteParameterRealSingle
         module procedure WriteParameterIntSingle
         module procedure WriteParameterCharSingle
+        module procedure WriteParameterLogicalSingle
         module procedure WriteParameterRealCoord
         module procedure WriteParameterLogicalCoord
       end interface
@@ -228,6 +229,24 @@ module module_param_dump
     end subroutine WriteParameterLogicalCoord
 
 
+    subroutine WriteParameterLogicalSingle(ifile,name, val)
+      implicit none
+      integer, intent(in) :: ifile
+      logical, intent(in) :: val
+      character(*), intent(in) :: name
+      character :: text
+
+      if (val) then
+        text = 'T'
+      else
+        text = 'F'
+      endif
+
+      write(ifile,'("| ",a28," | ", 1(a27, " |"))') name, text
+
+    end subroutine WriteParameterLogicalSingle
+
+
 
     subroutine PrintPhysicalParameters(ifile)
       use physvars
@@ -275,6 +294,7 @@ module module_param_dump
       call WriteParameter(ifile, "y_plasma", y_plasma)
       call WriteParameter(ifile, "z_plasma", z_plasma)
       call WriteParameter(ifile, "r_sphere", r_sphere)
+      call WriteParameter(ifile, "particle_shift", particle_shift_simunits)
       call WriteParameter(ifile, "Gamma", physGamma)
       call WriteParameter(ifile, "force constant", 1._8*force_const)
       call WriteParameter(ifile, "eps", 1._8*eps)
@@ -407,6 +427,7 @@ module module_param_dump
       call WriteParameter(ifile, "LatticeOrigin", LatticeOrigin, .false.)
       call WriteParameter(ifile, "spatial_interaction_cutoff", spatial_interaction_cutoff, .false.)
       call WriteTopline(  ifile, "", "")
+      call WriteParameter(ifile, "periodicity_nearest_image", periodicity_nearest_image)
       call WriteParameter(ifile, "mirror_box_layers", mirror_box_layers)
       call WriteParameter(ifile, "num_neighbour_boxes", num_neighbour_boxes)
       call WriteTopline(  ifile, "")
