@@ -65,7 +65,6 @@ module physvars
   real*8 :: eps = 1.           ! potential/force law cutoff
   integer :: Zion=1, Aion=1       ! ion charge and mass number
   integer :: setup_type = 0 !< for computing volume, interparticle distance, etc: 0-cubic, 1-spherical
-  integer :: momentum_acf_from_timestep = 0
   logical :: periodicity_nearest_image = .false. !< if set to true, only nearest image boxes are used in periodic case
 
   real*8 :: Ukine          ! Electron kinetic energy

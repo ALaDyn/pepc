@@ -43,7 +43,6 @@ program pepc
   use module_pusher
   use module_io
   use module_fields
-  use module_acf
   use module_diagnostics
   use module_workflow
   use module_units
@@ -61,7 +60,6 @@ program pepc
   character(255) :: para_file_name
 
   integer :: ifile
-  type(acf) :: momentum_acf
 
   ! Initialization of signal handler - deactivated atm since it outputs the call stack for every mpi rank which results in a very messy output
   !call InitSignalHandler()
@@ -100,8 +98,6 @@ program pepc
   ! time-dependent setup stuff
   call workflow(my_rank, 0, 0._8, dt)
 
-  call momentum_acf%initialize(nt-momentum_acf_from_timestep, dt*unit_t0_in_fs, my_rank, n_cpu, MPI_COMM_PEPC)
-  if (restart) call momentum_acf%from_file("momentum_electrons_Kt.dat")
 !  call benchmark_inner
 
   call pepc_prepare(idim)
@@ -208,9 +204,9 @@ program pepc
      !> special diagnostics for [J. Phys. A: Math. Theor 42 (2009), 214048] Th. Raitza et al: Collision frequency of electrons in laser excited small clusters
      if (workflow_setup == 3) then
        if (do_periodic) then
-         call periodic_system_diagnostics(itime, trun*unit_t0_in_fs, momentum_acf)
+         call periodic_system_diagnostics(itime, trun*unit_t0_in_fs)
        else
-         call cluster_diagnostics(itime, trun*unit_t0_in_fs, momentum_acf)
+         call cluster_diagnostics(itime, trun*unit_t0_in_fs)
        endif
      endif
 

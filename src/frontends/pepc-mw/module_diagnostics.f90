@@ -74,14 +74,12 @@ contains
     !>
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine cluster_diagnostics(itime, time_fs, momentum_acf)
-        use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, momentum_acf_from_timestep, my_rank, restart
-        use module_acf
+    subroutine cluster_diagnostics(itime, time_fs)
+        use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, my_rank, restart
         implicit none
              include 'mpif.h'
         integer, intent(in) :: itime
         real*8, intent(in) :: time_fs
-        type(acf) :: momentum_acf
         real*8 :: rsq, rclustersq
         integer :: nion, nboundelectrons, p, crit(2)
         logical, dimension(1:np_local) :: criterion
@@ -122,11 +120,6 @@ contains
         ! output total momentum of all negatively charged particles
         call write_total_momentum('momentum_electrons.dat', itime, time_fs, criterion, mom, nboundelectrons)
 
-        if (itime > momentum_acf_from_timestep) then
-            call momentum_acf%addval(mom(1:3)/nboundelectrons)
-            call momentum_acf%to_file("momentum_electrons_Kt.dat")
-        endif
-
         if (my_rank == 0) then
             if (firstcall .and. .not. restart) then
                 firstcall = .false.
@@ -148,14 +141,12 @@ contains
     !>
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine periodic_system_diagnostics(itime, time_fs, momentum_acf)
-        use physvars, only : particles, np_local, momentum_acf_from_timestep, restart
-        use module_acf
+    subroutine periodic_system_diagnostics(itime, time_fs)
+        use physvars, only : particles, np_local, restart
         implicit none
              include 'mpif.h'
         integer, intent(in) :: itime
         real*8, intent(in) :: time_fs
-        type(acf) :: momentum_acf
         logical, dimension(1:np_local) :: criterion
         integer :: nelectrons
         real*8 :: mom(4)
@@ -166,11 +157,6 @@ contains
 
         ! output total momentum of all negatively charged particles
         call write_total_momentum('momentum_electrons.dat', itime, time_fs, criterion, mom, nelectrons)
-
-        if (itime > momentum_acf_from_timestep) then
-            call momentum_acf%addval(mom(1:3)/nelectrons)
-            call momentum_acf%to_file("momentum_electrons_Kt.dat")
-        endif
 
     end subroutine
 

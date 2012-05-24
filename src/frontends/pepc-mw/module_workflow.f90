@@ -177,7 +177,6 @@ module module_workflow
           use module_laser
           use module_pusher
           use module_units
-          use physvars, only : momentum_acf_from_timestep
           implicit none
           integer, intent(in) :: itime
           real*8, intent(in) :: trun, dt
@@ -190,7 +189,6 @@ module module_workflow
           if (firstcall) then
             firstcall = .false.
             origbeamconfig = beam_config_in
-            momentum_acf_from_timestep = int(t_pulse_fs/unit_t0_in_fs/dt)
           endif
 
           time_fs = trun*unit_t0_in_fs
