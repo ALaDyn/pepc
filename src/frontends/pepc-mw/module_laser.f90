@@ -66,9 +66,9 @@ module module_laser
 
     real*8, public :: omega     =  0.5    !< frequency
     real*8, public :: omega_wpl =  0.0    !< frequency omega in wpl_e
-    real, public :: omega_hz  =  0.0    !< frequency omega in Hz
-    real, public :: lambda    =  0.0    !< laser wavelength
-    real, public :: lambda_nm =  0.0    !< laser wavelength in nm
+    real*8, public :: omega_hz  =  0.0    !< frequency omega in Hz
+    real*8, public :: lambda    =  0.0    !< laser wavelength
+    real*8, public :: lambda_nm =  0.0    !< laser wavelength in nm
     real*8, public :: rhocrit_nm3 = 0.      !< critical electron density in electrons per nm^3
     real*8, public :: I0_Wpercm2 = 0.   !< initial intensity in W/cm^2
     real*8, public :: E0 = 0.   !< laser field strength amplitude
