@@ -366,6 +366,7 @@ contains
 
         tmp = 0.
         ncontributions = 0
+        r   = 0.
 
         do p = 1,np_local
             if (selection(p)) then
