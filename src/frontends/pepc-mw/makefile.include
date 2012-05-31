@@ -20,5 +20,5 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-mw/, $(FILES_MW))
 SRC        += $(FILES_MW_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_MW_U))
 
-BACKENDTYPE = XYZQVM
+BACKENDTYPE = XYZQVMB
 

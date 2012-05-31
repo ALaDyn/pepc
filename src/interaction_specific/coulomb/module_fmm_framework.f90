@@ -152,7 +152,7 @@ module module_fmm_framework
           use module_pepc_types
           implicit none
           integer, intent(in) :: nparticles
-          type(t_particle), dimension(nparticles), intent(in) :: particles
+          type(t_particle), intent(in) :: particles(:)
 
           if (do_periodic) then
             call calc_omega_tilde(particles, nparticles)
@@ -498,7 +498,7 @@ module module_fmm_framework
           use module_debug
           implicit none
 
-          type(t_particle), dimension(nparticles), intent(in) :: particles
+          type(t_particle), intent(in) :: particles(:)
           integer, intent(in) :: nparticles
 
           integer :: ll, mm, p
@@ -553,7 +553,7 @@ module module_fmm_framework
           use module_pepc_types
           implicit none
 
-          type(t_particle), intent(in), dimension(nparticles) :: particles(:)
+          type(t_particle), intent(in) :: particles(:)
           integer, intent(in) :: nparticles
 
           real(kfp), parameter :: pi=acos(-one)

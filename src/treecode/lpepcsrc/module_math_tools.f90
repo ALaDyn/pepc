@@ -45,6 +45,12 @@ module module_math_tools
 
       public inverse3
       public bpi
+      public cross_product
+
+      interface cross_product
+        module procedure cross_product3
+      end interface
+
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -60,6 +66,21 @@ module module_math_tools
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Vector (cross) product of two 3D-vectors
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        function cross_product3(a, b)
+          implicit none
+          real*8, dimension(1:3) :: cross_product3
+          real*8, dimension(1:3), intent(in) :: a, b
+
+          cross_product3 = [ a(2)*b(3) - a(3)*b(2), &
+                             a(3)*b(1) - a(1)*b(3), &
+                             a(1)*b(2) - a(2)*b(1)  ]
+
+        end function cross_product3
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

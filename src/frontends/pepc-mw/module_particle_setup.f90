@@ -920,11 +920,13 @@ module module_particle_setup
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine init_fields_zero()
           implicit none
+          integer :: p
 
-          particles(1:np_local)%results%e(1) = 0.
-          particles(1:np_local)%results%e(2) = 0.
-          particles(1:np_local)%results%e(3) = 0.
-          particles(1:np_local)%results%pot = 0.
+          do p=1,np_local
+            particles(p)%data%b(1:3)    = 0.
+            particles(p)%results%e(1:3) = 0.
+            particles(p)%results%pot    = 0.
+          end do
 
         end subroutine
 

@@ -57,8 +57,6 @@ module module_pusher
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     public integrator
-    public push_em
-    public push_nonrel
     public reorder_particles
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -134,15 +132,15 @@ module module_pusher
 
             case(INTEGRATOR_SCHEME_NVE,INTEGRATOR_SCHEME_NVT,INTEGRATOR_SCHEME_NVT_IONS_FROZEN,INTEGRATOR_SCHEME_LOCAL_NVT_IONS_FROZEN,INTEGRATOR_SCHEME_LOCAL_NVT_IONS_ONLY,INTEGRATOR_SCHEME_NVE_IONS_FROZEN)
                 call velocities(p_start,p_finish,scheme)  ! pure ES, NVT ensembles
-                call push_x(p_start,p_finish,dt)  ! update positions
+                call push_rel(p_start,p_finish,dt)  ! update positions
 
             case(INTEGRATOR_SCHEME_FULL_EM)
-            !		     call push_full3v(p_start,p_finish,dt)  ! full EM pusher (all E, B components)
-            !		     call push_x(p_start,p_finish,dt)  ! update positions
+                call velocities_boris(p_start,p_finish,dt)  ! full EM pusher (all E, B components)
+                call push_rel(p_start,p_finish,dt)  ! update positions
 
             case(INTEGRATOR_SCHEME_NONREL)
-                call velocities(p_start,p_finish,scheme)  ! nonrelativistic push
-                call push_nonrel(p_start,p_finish,dt)
+                call velocities(p_start,p_finish,scheme)
+                call push_nonrel(p_start,p_finish,dt)       ! nonrelativistic push
             case default
            ! do nothing!
 
@@ -152,56 +150,18 @@ module module_pusher
     end subroutine integrator
 
 
-
-    !  ===============================================================
-    !
-    !                           PMOVE
-    !
-    !   Update particle positions - used with leap-frog scheme
-    !
-    !  ===============================================================
-
-    subroutine push_x(ips,ipf,delt)
-        use physvars
-        use module_units
-        integer, intent(in) :: ips, ipf  ! 1st and last particle numbers
-        real*8, intent(in) :: delt
-        integer :: p,i
-        real*8 :: gam
-
-        !  relativistic particle push in space
-        do p=ips,ipf
-            gam  = sqrt(1.0 + (dot_product(particles(p)%data%v,particles(p)%data%v))/unit_c2)
-
-            do i=1,idim
-                particles(p)%x(i) = particles(p)%x(i) + particles(p)%data%v(i)/gam*delt
-            end do
-        end do
-
-    end subroutine push_x
-
-
-    !  ===================================================================
-    !
-    !                              VELOCITIES
-    !
-    !   $Revision: 1264 $
-    !
-    !   Calculate velocities from accelerations
-    !
-    !   apply thermodynamic constraint according to ensemble
-    !
-    !
-    !
-    !  ===================================================================
-
-
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Calculate velocities from accelerations due to electric field
+    !> respect certain thermodynamic constraints due to using specific ensembles
+    !> (does not (!) apply to bors pusher)
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine velocities(p_start,p_finish,scheme)
-
 
         use physvars
         implicit none
-		  include 'mpif.h'
+        include 'mpif.h'
 
         integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
         integer, intent(in) :: scheme
@@ -543,98 +503,49 @@ module module_pusher
 
 
 
-
-    !  ==============================================
-    !
-    !     3v particle pusher
-    !
-    !  TM fields only (s-pol):  (0,0,Ez)  (Bx,By,0)
-    !  TE fields to follow (Ex,Ey,0) (0,0,Bz)
-    !  ==============================================
-
-
-    subroutine push_em(p_start,p_finish,dts)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> 3v particle velocity update (Boris rotation scheme)
+    !> Notation follows Birdsall and Langdon:
+    !>   "Plasma Physics via Computer Simulations", Chapter 15-4
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine velocities_boris(ips,ipf,delt)
         use physvars
-        use module_laser
+        use module_math_tools
         implicit none
-        integer, intent(in) :: p_start, p_finish
-        real*8, intent(in) :: dts
+        integer, intent(in) :: ips,ipf
+        real*8, intent(in) :: delt
 
         integer :: p
-        real*8 :: beta, gam1,tt, sy, sz, tz, ty
-        real*8 :: uxd,uyp,uzp,uxp,uxm,uym,uzm
-        real*8 :: exi, eyi, ezi, bxi, byi, bzi
-        real*8 :: phipon, ez_em, bx_em, by_em, az_em
-        real*8 :: xd, yd, zd
+        real*8 :: beta, gam
+        real*8, dimension(3) :: uminus, uprime, uplus, t, s
 
 
-        do p = p_start, p_finish
-            beta=particles(p)%data%q/particles(p)%data%m*dts*0.5  ! charge/mass constant
-
-            xd = particles(p)%x(1)-focus(1)
-            yd = particles(p)%x(2)-focus(2)
-            zd = particles(p)%x(3)-focus(3)
-
-            ! evaluate external fields at particle positions
-
-            if (modulo(beam_config_in,10).eq.4) then
-                ! pond. standing wave on step-profile
-                call empond(t_laser,t_pulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
-
-            else if (modulo(beam_config_in,10).eq.6) then
-                ! plane wave with Gaussian spot
-                call emplane(t_laser,t_pulse,sigma,vosc,omega,xd,yd,zd,ez_em,by_em,bx_em,az_em,phipon)
-            endif
-
-            !  Sum internal and external fields
-            exi = particles(p)%results%e(1)
-            eyi = particles(p)%results%e(2)
-            ezi = particles(p)%results%e(3)+ez_em
-            bxi = bx_em
-            byi = by_em
-            bzi = 0.
-
-            ! transverse momentum from pz=az including thermal motion
-            !  uzi = -particles(p)%data%q/particles(p)%data%m*az_em + particles(p)%data%v(3)
-
-
-            !   first half-accn
-            uxm = particles(p)%data%v(1) + beta*exi
-            uym = particles(p)%data%v(2) + beta*eyi
-            uzm = particles(p)%data%v(3) + beta*ezi
-            !     uzm = particles(p)%data%v(3) - particles(p)%data%q/particles(p)%data%m*az_em
-            !   rotation
-            gam1=dsqrt(1.d0 + (uxm**2 + uym**2 + uzm**2)/unit_c2)
-            ty = beta*byi/gam1
-            tz = beta*bzi/gam1
-            tt = 1.0 + ty**2+tz**2
-            sy = 2.0*ty/tt
-            sz = 2.0*tz/tt
-
-            uxd = uxm + uym*tz - uzm*ty
-            uyp = uym - uxd*sz
-            uzp = uzm + uxd*sy
-            uxp = uxd + uyp*tz - uzp*ty
-
-            !   second half-accn
-            particles(p)%data%v(1) = uxp + beta*exi
-            particles(p)%data%v(2) = uyp + beta*eyi
-            particles(p)%data%v(3) = uzp + beta*ezi
-
+        do p=ips,ipf
+            ! charge/mass*time-constant
+            beta   = particles(p)%data%q / (2. * particles(p)%data%m) * delt
+            ! first half step with electric field
+            uminus = particles(p)%data%v + beta * particles(p)%results%e
+            ! gamma factor
+            gam    = sqrt( 1.0 + ( dot_product(uminus, uminus) ) / unit_c2 )
+            ! rotation with magnetic field
+            t      = beta/gam * particles(p)%data%b
+            uprime = uminus + cross_product(uminus, t)
+            s      = 2. * t / (1 + dot_product(t, t))
+            uplus  = uminus + cross_product(uprime, s)
+            ! second half step with electric field
+            particles(p)%data%v = uplus + beta * particles(p)%results%e
         end do
 
+    end subroutine velocities_boris
 
-    end subroutine push_em
 
-
-    !  ===============================================================
-    !
-    !                           PUSH_NONREL
-    !
-    !   Nonrelativistic particle position update - used with leap-frog scheme
-    !
-    !  ===============================================================
-
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Nonrelativistic particle position update - used with leap-frog scheme
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine push_nonrel(ips,ipf,delt)
 
         use physvars
@@ -642,17 +553,33 @@ module module_pusher
         real*8, intent(in) :: delt
         integer :: p
 
-
         do p=ips,ipf
-
-            particles(p)%x(1)=particles(p)%x(1)+particles(p)%data%v(1)*delt
-            particles(p)%x(2)=particles(p)%x(2)+particles(p)%data%v(2)*delt
-            particles(p)%x(3)=particles(p)%x(3)+particles(p)%data%v(3)*delt
-
+            particles(p)%x = particles(p)%x + particles(p)%data%v * delt
         end do
 
     end subroutine push_nonrel
 
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Relativistic particle position update - used with leap-frog scheme
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine push_rel(ips,ipf,delt)
+
+        use physvars
+        integer, intent(in) :: ips, ipf  ! 1st and last particle numbers
+        real*8, intent(in) :: delt
+        integer :: p
+        real*8 :: gam
+
+        do p=ips,ipf
+            gam  = sqrt( 1.0 + ( dot_product(particles(p)%data%v,particles(p)%data%v) ) / unit_c2 )
+
+            particles(p)%x = particles(p)%x + particles(p)%data%v/gam * delt
+        end do
+
+    end subroutine push_rel
 
 
 end module module_pusher
