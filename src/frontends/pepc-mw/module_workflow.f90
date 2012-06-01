@@ -130,8 +130,15 @@ module module_workflow
           integer, intent(in) :: itime
           real*8, intent(in) :: trun, dt
           integer, intent(out) :: stage
+          logical, save :: firstcall = .true.
+          integer, save :: origbeamconfig
 
           real*8 :: time_fs
+
+          if (firstcall) then
+            firstcall = .false.
+            origbeamconfig = beam_config_in
+          endif
 
           time_fs = trun*unit_t0_in_fs
 
@@ -156,7 +163,7 @@ module module_workflow
             stage = 3
 
           else                                 ! laser switched on
-            beam_config_in = 3
+            beam_config_in = origbeamconfig
             call laser_setup()
             integrator_scheme = INTEGRATOR_SCHEME_NVE
             stage = 4

@@ -26,7 +26,7 @@
 ! extrinsic-to-intrinsic correction
   do_extrinsic_correction = .true.
 
-! beam_config_in = 0221 ! automatically set by workflow setup
+ beam_config_in = 0121
  I0_Wpercm2     = 1.0E16
 ! lambda_nm      = 436.0 ! is automatically set since omega_wpl is given
 ! t_pulse_fs     = 100.0 ! does not apply here

@@ -74,8 +74,8 @@ module module_laser
     real*8, public :: E0 = 0.   !< laser field strength amplitude
     real*8, public :: vosc      =  0.1    !< pump strength
 
-    real*8, public :: I_laser           !< Laser intensity (= amplitude**2), updated by each call to laser()
-    real*8, public :: E_laser           !< Laser amplitude (= intensity**1/2), updated by each call to laser()
+    real*8, public :: I_laser           !< Laser intensity (= amplitude**2), updated by each call to laser_update()
+    real*8, public :: E_laser           !< Laser amplitude (= intensity**1/2), updated by each call to laser_update()
     real, public :: x_offset  =  0.     !< coordinate offset
     real, public :: z_offset  =  0.     !< coordinate offset
     real*8, public :: focus(3)  = [0., 0., 0.] !< centre of focal spot
