@@ -1,8 +1,6 @@
 &pepcmw
 
-! setup foolows Figure 2 in [PRE 7, 056408]
-
- treediags = .false.
+! setup follows Figure 2 in [PRE 7, 056408]
 
 ! number of particles, here electrons
  ne = 2000
@@ -22,9 +20,11 @@
   t_lattice_2 = 0.0   1.0   0.0
   t_lattice_3 = 0.0   0.0   1.0
 ! periodicity in x-, y-, and z-direction
-!  periodicity = .true.  .true.  .true.
+  periodicity = .true.  .true.  .true.
 ! extrinsic-to-intrinsic correction
-  do_extrinsic_correction = .true.
+  do_extrinsic_correction = .false.
+! only perform nearest-image-periodicity
+!  periodicity_nearest_image = .true.
 
  beam_config_in = 0121
  I0_Wpercm2     = 1.0E16
@@ -32,8 +32,8 @@
 ! t_pulse_fs     = 100.0 ! does not apply here
  omega_wpl      = 3.
 
- Te_eV    = 22.0
- Ti_eV    = 22.0
+ Te_eV    = 15.0
+ Ti_eV    = 15.0
  rhoe_nm3 = 10.0 ! rhoe_e = 1e21cm^-3 = 1.0nm^-3
  Zion     =  1
  Aion     =  1
@@ -54,7 +54,7 @@
 ! integrator_scheme = 1              ! automatically set by workflow setup
 ! enable_drift_elimination = .true. ! automatically set by workflow setup
 
-workflow_setup = 2 ! [PRE 71, 056408 (2005)] P. Hilse et al: Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation.
+workflow_setup = 2 ! [PRE 71, 056408 (2005)] P. Hilse et al: "Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation."
 
 ! determies the particle dump interval
 ! 0: never write anything
@@ -63,7 +63,10 @@ workflow_setup = 2 ! [PRE 71, 056408 (2005)] P. Hilse et al: Collisional absorpt
 ! dito for vtk, binary and checkpoint-output
  idump_vtk = 0
  idump_binary = 0
- idump_checkpoint = 1000
+ idump_checkpoint = 100
+! activate output of branch nodes and space-filling curve as vtk-file
+!  treediags = .true.
+
 /
 
 &calc_force_coulomb

@@ -73,7 +73,7 @@ workflow_setup = 0
   ! BH-mac
   mac_select = 0
   ! theta = 0.3
-  theta2     = 0.09
+  theta2     = 0.0
 /
 
 &libpepc

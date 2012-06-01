@@ -345,7 +345,7 @@ module module_particle_setup
             end do
           end do
 
-          LatticeOrigin = [-0.5, -0.5, -0.5]
+          LatticeOrigin = [ 0.0,  0.0,  0.0]
           BoxDimensions = [ 1.0,  1.0,  1.0]
         end subroutine
 

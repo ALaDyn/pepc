@@ -215,7 +215,7 @@ module module_mirror_boxes
                 latticewalls(1:3) = [t_lattice_1(1), t_lattice_2(2), t_lattice_3(3)]
 
                 do p = 1,np_local
-                  where (periodicity) particles(p)%x = modulo(particles(p)%x-LatticeCenter, latticewalls) + LatticeCenter
+                  where (periodicity) particles(p)%x = modulo(particles(p)%x-LatticeOrigin, latticewalls) + LatticeOrigin
                 end do
 
             else
