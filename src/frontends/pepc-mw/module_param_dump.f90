@@ -266,10 +266,16 @@ module module_param_dump
       call WriteParameter(ifile, "charge", qe, qi)
       call WriteParameter(ifile, "mass", mass_e, mass_i)
       call WriteParameter(ifile, "number density per nm^3", rhoe_nm3, rhoi_nm3)
-      call WriteParameter(ifile, "av. distance", a_ee, a_ii)
+      call WriteParameter(ifile, "av. distance (sim. units)", a_ee, a_ii)
       call WriteParameter(ifile, "Temp (K)",  Te_K,  Ti_K)
       call WriteParameter(ifile, "Temp (eV)", Te_eV, Ti_eV)
       call WriteParameter(ifile, "Temp (Ry)", Te,    Ti)
+      call WriteParameter(ifile, "Theta (degen. param.)", &
+                                   unit_kB*Te / (unit_hbar**2/(2.*unit_me)                 * (3.*pi**2*rhoe_nm3*unit_abohr_in_nm**3.)**(2./3.)), &
+                                   unit_kB*Ti / (unit_hbar**2/(2.*unit_mp_over_me*unit_me) * (3.*pi**2*rhoi_nm3*unit_abohr_in_nm**3.)**(2./3.))  )
+      call WriteParameter(ifile, "Gamma (coupl. param.)", &
+                                   qe**2 / (4*pi*unit_epsilon0*a_ee) / (unit_kB*Te), &
+                                   qi**2 / (4*pi*unit_epsilon0*a_ii) / (unit_kB*Ti)  )
       call WriteParameter(ifile, "therm. velocity", vte, vti)
       call WriteParameter(ifile, "plasma frequency", wpl_e, wpl_i)
       call WriteParameter(ifile, "plasma frequency (fs^-1)", wpl_e/unit_t0_in_fs, wpl_i/unit_t0_in_fs)
