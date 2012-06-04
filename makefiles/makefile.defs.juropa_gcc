@@ -13,7 +13,7 @@ module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 
 MACH     = JUROPA_gcc
 
-DEBUG    = 0
+DEBUG    = 1
 
 RANLIB   = ranlib
 
