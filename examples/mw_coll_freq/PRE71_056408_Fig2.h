@@ -3,7 +3,7 @@
 ! setup follows Figure 2 in [PRE 7, 056408]
 
 ! number of particles, here electrons
- ne = 2000
+ ne = 5000
 
 ! initial particle distribution
  ispecial = 1
@@ -34,10 +34,10 @@
 
  Te_eV    = 15.0
  Ti_eV    = 15.0
- rhoe_nm3 = 10.0 ! rhoe_e = 1e21cm^-3 = 1.0nm^-3
+ rhoe_nm3 = 10.0 ! 1.0e21cm^-3 = 1.0nm^-3
  Zion     =  1
  Aion     =  1
- eps      =  1.0 ! in units of the Debye length
+ eps      =  0.5 ! in units of the Debye length
 ! V0_eV    = -5.1 ! eps is set explicitly here
 
 !  Available ensemble modes
