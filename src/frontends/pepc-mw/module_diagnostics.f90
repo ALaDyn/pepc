@@ -142,7 +142,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine periodic_system_diagnostics(itime, time_fs)
-        use physvars, only : particles, np_local, restart
+        use physvars, only : particles, np_local
         implicit none
              include 'mpif.h'
         integer, intent(in) :: itime
