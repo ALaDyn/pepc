@@ -218,10 +218,9 @@ module module_pusher
                 !
                 !   unconstrained velocities    uh(x,y,z) = v'(x,y,z)
 
-                !  1)  Unconstrained half-step for electrons and ions
-
                 sums = 0.0
 
+                !  1)  Unconstrained half-step for electrons and ions
                 do p=p_start,p_finish
                     uprime(1:3) = particles(p)%data%v(1:3) + 0.5*dt*acc(1:3, p)
                     uprime2     = dot_product(uprime,uprime)
@@ -259,9 +258,9 @@ module module_pusher
                 chie = sqrt(abs(Te0/Te_uncor))     ! multipliers from Temperature ratio - reset once every cycle
                 chii = sqrt(abs(Ti0/Ti_uncor))
 
-                ! reduce artificial friction factor by 1./2. for both species
-                !chie = 1./( (1./2.)*(1./chie - 1) + 1.)
-                !chii = 1./( (1./2.)*(1./chii - 1) + 1.)
+                ! reduce artificial friction factor by 1./2. for both species - this does not comply with Allen & Tildesley but works fine :-S
+                chie = 1./( (1./2.)*(1./chie - 1) + 1.)
+                chii = 1./( (1./2.)*(1./chii - 1) + 1.)
 
                 !  3)  Complete full step
                 do p=p_start,p_finish

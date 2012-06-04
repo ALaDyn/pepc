@@ -156,57 +156,57 @@ contains
         integer :: p,ierr
         real*8 :: ekine, ekini,tempe,tempi, gamma, totalmomentum(3)
         real*8 :: uh(3), uh2
-        real*8 :: sum_v2e, sum_v2i, sum_ve(1:3), sum_vi(1:3)
-        real*8 :: en
 
-        ekine = 0.0
-        ekini = 0.0
-        sum_v2e    = 0.0
-        sum_v2i    = 0.0
-        sum_ve     = 0.0
-        sum_vi     = 0.0
+        integer, parameter :: V2E  =  1
+        integer, parameter :: VEX  =  2
+        integer, parameter :: VEY  =  3
+        integer, parameter :: VEZ  =  4
+        integer, parameter :: V2I  =  5
+        integer, parameter :: VIX  =  6
+        integer, parameter :: VIY  =  7
+        integer, parameter :: VIZ  =  8
+        integer, parameter :: KINE =  9
+        integer, parameter :: KINI = 10
+
+        real*8 :: sums(1:10)
+
+        sums = 0.0
         totalmomentum = 0.0
 
         do p=1, np_local
-            ! Velocities at previous 1/2-step to synch with P.E.
-            uh(1) = particles(p)%data%v(1)-dt*particles(p)%data%q*particles(p)%results%e(1)/particles(p)%data%m/2.
-            uh(2) = particles(p)%data%v(2)-dt*particles(p)%data%q*particles(p)%results%e(2)/particles(p)%data%m/2.
-            uh(3) = particles(p)%data%v(3)-dt*particles(p)%data%q*particles(p)%results%e(3)/particles(p)%data%m/2.
+            ! Velocities at next 1/2-step to synch with P.E.
+            uh(1:3) = particles(p)%data%v(1:3) + dt*particles(p)%data%q * particles(p)%results%e(1:3) / particles(p)%data%m / 2.
             uh2   = dot_product(uh,uh)
             gamma = sqrt(1.0 + uh2/unit_c2)
 
-            en          = particles(p)%data%m*unit_c2*(gamma - 1.0)
-            energy(2,p) = en
+            energy(2,p) = particles(p)%data%m*unit_c2*(gamma - 1.0)
 
             totalmomentum = totalmomentum + particles(p)%data%m * uh
 
-            if (particles(p)%data%q <= 0.) then
-                ekine   = ekine   + en
-                sum_v2e = sum_v2e + uh2/gamma**2.
-                sum_ve  = sum_ve  + uh/gamma
+            if (particles(p)%data%q < 0.) then
+                ! electrons
+                sums(V2E)     = sums(V2E)     + uh2 / gamma**2.
+                sums(VEX:VEZ) = sums(VEX:VEZ) + uh  / gamma
+                sums(KINE)    = sums(KINE)    + energy(2,p)
             else
-                ekini   = ekini   + en
-                sum_v2i = sum_v2i + uh2/gamma**2.
-                sum_vi  = sum_vi  + uh/gamma
+                ! ions
+                sums(V2I)     = sums(V2I)     + uh2 / gamma**2.
+                sums(VIX:VIZ) = sums(VIX:VIZ) + uh  / gamma
+                sums(KINI)    = sums(KINI)    + energy(2,p)
             endif
         end do
 
-        ! Gather partial sums together for global energies
-        call MPI_ALLREDUCE(MPI_IN_PLACE, ekine, 1, MPI_REAL8, MPI_SUM, MPI_COMM_PEPC, ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE, ekini, 1, MPI_REAL8, MPI_SUM, MPI_COMM_PEPC, ierr)
         ! Find global KE sums
-        call MPI_ALLREDUCE(MPI_IN_PLACE,sum_v2e, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,sum_v2i, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE, sum_ve, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE, sum_vi, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, sums, size(sums), MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-        sum_v2e = sum_v2e / ne
-        sum_ve  = sum_ve  / ne
-        sum_v2i = sum_v2i / ni
-        sum_vi  = sum_vi  / ni
+        sums(V2E:VEZ) = sums(V2E:VEZ) / ne
+        sums(V2I:VIZ) = sums(V2I:VIZ) / ni
 
-        tempe =  mass_e/(3.*unit_kB)*(sum_v2e - dot_product(sum_ve,sum_ve))
-        tempi =  mass_i/(3.*unit_kB)*(sum_v2i - dot_product(sum_vi,sum_vi))
+        ekine = sums(KINE)
+        ekini = sums(KINI)
+
+        tempe =  mass_e/(3.*unit_kB)*(sums(V2E) - dot_product(sums(VEX:VEZ),sums(VEX:VEZ)))
+        tempi =  mass_i/(3.*unit_kB)*(sums(V2I) - dot_product(sums(VIX:VIZ),sums(VIX:VIZ)))
 
     end subroutine energy_kin
 

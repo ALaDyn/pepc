@@ -438,11 +438,6 @@ module module_pepc
       integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
-      !integer :: i
-      !do i=1,np_local
-      !    write(*,*)particles(i)%x
-      !end do
-
       call libpepc_grow_tree(np_local, npart_total, particles)
 
     end subroutine
