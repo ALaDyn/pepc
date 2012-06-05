@@ -46,6 +46,7 @@ module module_interaction_specific
       logical, public :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
       real*8, public  :: theta2       = 0.36  !< square of multipole opening angle
       real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
+      real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2
 
@@ -360,6 +361,17 @@ module module_interaction_specific
                 call calc_force_LJ(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
                 exyz(3) = 0.
 
+            case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
+                      !  and Kelbg for particle-particle interaction
+
+                if (node_is_leaf) then
+                    ! It's a leaf, do direct summation with kelbg
+                    call calc_force_kelbg_3D_direct(particle, node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+                else
+                    ! It's a twig, do ME with coulomb
+                    call calc_force_coulomb_3D(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+                end if
+
             case default
               exyz = 0.
               phic = 0.
@@ -430,8 +442,6 @@ module module_interaction_specific
           use module_pepc_types
           use treevars
           implicit none
-
-          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
@@ -530,8 +540,6 @@ module module_interaction_specific
           use treevars
           implicit none
 
-          include 'mpif.h'
-
           type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumphi
@@ -593,8 +601,6 @@ module module_interaction_specific
           use treevars
           implicit none
 
-          include 'mpif.h'
-
           type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
@@ -650,8 +656,6 @@ module module_interaction_specific
           use treevars
           implicit none
 
-          include 'mpif.h'
-
           type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
@@ -685,6 +689,60 @@ module module_interaction_specific
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
+      !> Calculates 3D Kelbg interaction of particle p with particle inode
+      !> that is shifted by the lattice vector vbox
+      !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_kelbg_3D_direct(particle, t, d, dist2, sumfx, sumfy, sumfz, sumphi)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          type(t_particle), intent(inout) :: particle
+          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+          real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
+          real*8 :: rd,r,rd3
+          real*8, parameter :: sqrtpi = sqrt(acos(-1.0_8))
+          real*8 :: ome, rol, lambda, q, fprefac
+
+          q           = t%charge
+
+          ! TODO: lambda must be adjusted depending on mass and temperature of interacting partners - currently it is fixed for electron-proton interactions
+          if (particle%data%q * q < 0.) then
+            ! e-i or i-e interaction
+            lambda = 1.00027227 * kelbg_invsqrttemp
+          else
+            if ( q > 0. ) then
+              ! i-i interaction
+              lambda = 0.03300355 * kelbg_invsqrttemp
+            else
+              ! e-e interaction
+              lambda = 1.41421356 * kelbg_invsqrttemp
+            endif
+          endif
+
+          r   = sqrt(dist2)
+          rd  = 1. / r
+          rd3 = rd**3
+          rol = r  / lambda        !< "r over lambda"
+          ome = 1  - exp(-rol*rol) !< "one minus exp(stuff)"
+
+          ! potential
+          sumphi  = q * rd  * (ome + sqrtpi*rol*(1-erf(rol)))
+          !  forces
+          fprefac = q * rd3 * ome
+
+          sumfx = fprefac*d(1)
+          sumfy = fprefac*d(2)
+          sumfz = fprefac*d(3)
+
+      end subroutine calc_force_kelbg_3D_direct
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
       !> Calculates 2D Coulomb interaction of particle p with tree node inode
       !> that is shifted by the lattice vector vbox
       !> results are returned in eps, sumfx, sumfy, sumphi
@@ -696,8 +754,6 @@ module module_interaction_specific
           use module_pepc_types
           use treevars
           implicit none
-
-          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle

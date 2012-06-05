@@ -76,6 +76,9 @@ subroutine pepcmw_prepare()
   Te_K  = Te_eV / unit_kB_in_eVperK
   Ti_K  = Ti_eV / unit_kB_in_eVperK
 
+  tempe = Te
+  tempi = Ti
+
   vte = sqrt(3*unit_kB*Te/mass_e)
   vti = sqrt(3*unit_kB*Ti/mass_i)
 

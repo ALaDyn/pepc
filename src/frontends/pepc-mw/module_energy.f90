@@ -67,7 +67,7 @@ contains
 
         implicit none
 
-        real*8 :: epot, ekine, ekini, etot, tempe, tempi, totalmomentum(3)
+        real*8 :: epot, ekine, ekini, etot, totalmomentum(3)
         integer :: ifile
         logical, save :: firstcall = .true.
 
@@ -146,7 +146,7 @@ contains
     !> Calculate kinetic energies
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine energy_kin(ekine,ekini,tempe,tempi, totalmomentum)
+    subroutine energy_kin(ekine,ekini,ltempe,ltempi, totalmomentum)
         use physvars
         use module_units
 
@@ -154,7 +154,7 @@ contains
         include 'mpif.h'
 
         integer :: p,ierr
-        real*8 :: ekine, ekini,tempe,tempi, gamma, totalmomentum(3)
+        real*8 :: ekine, ekini,ltempe,ltempi, gamma, totalmomentum(3)
         real*8 :: uh(3), uh2
 
         integer, parameter :: V2E  =  1
@@ -205,8 +205,8 @@ contains
         ekine = sums(KINE)
         ekini = sums(KINI)
 
-        tempe =  mass_e/(3.*unit_kB)*(sums(V2E) - dot_product(sums(VEX:VEZ),sums(VEX:VEZ)))
-        tempi =  mass_i/(3.*unit_kB)*(sums(V2I) - dot_product(sums(VIX:VIZ),sums(VIX:VIZ)))
+        ltempe =  mass_e/(3.*unit_kB)*(sums(V2E) - dot_product(sums(VEX:VEZ),sums(VEX:VEZ)))
+        ltempi =  mass_i/(3.*unit_kB)*(sums(V2I) - dot_product(sums(VIX:VIZ),sums(VIX:VIZ)))
 
     end subroutine energy_kin
 

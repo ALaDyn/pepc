@@ -385,7 +385,6 @@ module module_param_dump
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine PrintEnergies(ifile, epot, ekini, ekine, etot, tempe, tempi, totalmomentum)
-      use physvars
       use module_units
       use module_fmm_framework
       implicit none

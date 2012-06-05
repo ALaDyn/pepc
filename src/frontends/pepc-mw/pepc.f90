@@ -52,6 +52,7 @@ program pepc
   use module_energy
   use module_particle_setup
   use module_debug
+  use module_interaction_specific, only : kelbg_invsqrttemp
   implicit none
   include 'mpif.h'
 
@@ -142,6 +143,9 @@ program pepc
      ! if necessary, reorder particles here: particles(1:nep) - electrons, particles(nep+1:nep*nip)) - ions
      ! e.g. if we only traverse the tree for electrons but not for ions
      call reorder_particles(np_local, particles, num_force_particles)
+
+     ! set temperature in each timestep for kelbg interaction
+     kelbg_invsqrttemp = tempe
 
      if (.not. directforce) then
        call pepc_traverse_tree(num_force_particles, particles)

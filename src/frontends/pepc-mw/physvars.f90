@@ -71,6 +71,8 @@ module physvars
   real*8 :: Ukine          ! Electron kinetic energy
   real*8 :: Ukini          ! Ion kinetic energy
 
+  real*8 :: tempe, tempi ! temperature of electrons and ions (drift-corrected)
+
 !  Variables needing 'copy' for tree routines
   integer :: npart_total  ! Total # particles (npart)
   integer :: np_local 
