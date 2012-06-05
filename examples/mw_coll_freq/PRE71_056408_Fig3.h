@@ -32,8 +32,8 @@
 ! t_pulse_fs     = 100.0 ! does not apply here
  omega_wpl      = 3.
 
- Te_eV    = 7.5
- Ti_eV    = 7.5
+ Te_eV    = 5.0
+ Ti_eV    = 5.0
  rhoe_nm3 = 10.0 ! 1.0e21cm^-3 = 1.0nm^-3
  Zion     =  1
  Aion     =  1
