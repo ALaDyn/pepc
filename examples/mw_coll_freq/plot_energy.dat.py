@@ -7,6 +7,9 @@ import matplotlib.font_manager
 import matplotlib.cm as cm
 import locale
 import os
+import sys
+
+print "Usage: %s [datafilename]" % sys.argv[0]
 
 print "Plots data from energy.dat"
 print "optimized for pepc-mw frontend"
@@ -21,6 +24,10 @@ rc('xtick', labelsize='small')
 rc('ytick', labelsize='small')
 
 filename='energy.dat'
+
+additionalfiles = sys.argv[1:]
+
+print "Adding information from files ", additionalfiles
 
 #markers=['+','*','.','1','2','3','4','<','>','D','H','^','_','d','h','o','p','s','v','x','|','None',' ','']
 markers=['*','<','>','D','H','^','d','h','o','p','s','v','x','|','None',' ','']
@@ -64,6 +71,12 @@ plt.grid(True, which='both')
 
 for colidx in range(1,10):
 	plt.plot(data[:,0],data[:,colidx],label=datanames[colidx], linewidth=1.0,color=cm.hsv(24*colidx))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
+
+for f in additionalfiles:
+	raw = loadtxt(f)
+	plt.plot(raw[:,0],raw[:,1],label="\\verb+%s+" % f, linewidth=1.0)#,color=cm.hsv(24*colidx))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
+
+
 plt.legend(numpoints=1, prop=prop, ncol=1, frameon=True, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
 ####################################
