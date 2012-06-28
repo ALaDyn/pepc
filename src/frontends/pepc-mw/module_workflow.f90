@@ -126,6 +126,8 @@ module module_workflow
           use module_laser
           use module_pusher
           use module_units
+          use module_interaction_specific, only : kelbg_invsqrttemp
+          use physvars, only : Te
           implicit none
           integer, intent(in) :: itime
           real*8, intent(in) :: trun, dt
@@ -148,12 +150,20 @@ module module_workflow
             integrator_scheme = INTEGRATOR_SCHEME_NVE
             stage = 1
 
+            ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
+            ! to avoid problems due to invalid rescaling in next stage
+            kelbg_invsqrttemp = 1._8/sqrt(Te)
+
           elseif (time_fs <= 2.25) then        ! 'thermalization':
             beam_config_in = 0                   ! velocity rescaling ==> coupling to heat bath
             call laser_setup()
             integrator_scheme = INTEGRATOR_SCHEME_NVT
             enable_drift_elimination = .true.
             stage = 2
+
+            ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
+            ! to avoid problems due to invalid rescaling in this stage
+            kelbg_invsqrttemp = 1._8/sqrt(Te)
 
           elseif (time_fs <= 3.50) then        ! 'heat bath off', equilibrium
             beam_config_in = 0                   ! (pot. and kin. energy constant)

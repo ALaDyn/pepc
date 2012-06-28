@@ -48,7 +48,7 @@ module module_interaction_specific
       real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
       real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
-      namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2
+      namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
 
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -222,7 +222,6 @@ module module_interaction_specific
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine calc_force_prepare()
-        use module_mirror_boxes, only : mirror_box_layers
         use treevars, only : me, MPI_COMM_lpepc
         use module_fmm_framework, only : fmm_framework_init
         implicit none
@@ -712,14 +711,14 @@ module module_interaction_specific
           ! TODO: lambda must be adjusted depending on mass and temperature of interacting partners - currently it is fixed for electron-proton interactions
           if (particle%data%q * q < 0.) then
             ! e-i or i-e interaction
-            lambda = 1.00027227 * kelbg_invsqrttemp
+            lambda = 1.00027227_8 * kelbg_invsqrttemp
           else
             if ( q > 0. ) then
               ! i-i interaction
-              lambda = 0.03300355 * kelbg_invsqrttemp
+              lambda = 0.03300355_8 * kelbg_invsqrttemp
             else
               ! e-e interaction
-              lambda = 1.41421356 * kelbg_invsqrttemp
+              lambda = 1.41421356_8 * kelbg_invsqrttemp
             endif
           endif
 

@@ -122,6 +122,9 @@ program pepc
                 ,' total run time = ',trun, trun*unit_t0_in_fs
      endif
      
+     ! set temperature in each timestep for kelbg interaction
+     kelbg_invsqrttemp = 1._8/sqrt(tempe)
+
      ! time-dependent setup stuff
      call workflow(my_rank, itime, trun, dt)
 
@@ -143,9 +146,6 @@ program pepc
      ! if necessary, reorder particles here: particles(1:nep) - electrons, particles(nep+1:nep*nip)) - ions
      ! e.g. if we only traverse the tree for electrons but not for ions
      call reorder_particles(np_local, particles, num_force_particles)
-
-     ! set temperature in each timestep for kelbg interaction
-     kelbg_invsqrttemp = tempe
 
      if (.not. directforce) then
        call pepc_traverse_tree(num_force_particles, particles)
