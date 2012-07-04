@@ -78,6 +78,7 @@ module module_directsum
           use omp_lib
           use module_walk, only: num_walk_threads
           use module_timings
+          use module_mirror_boxes
           implicit none
           include 'mpif.h'
 
@@ -94,6 +95,7 @@ module module_directsum
           integer :: ierr, req, stat(MPI_STATUS_SIZE), i, j, currank, nextrank, prevrank
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real*8 :: delta(3)
+          integer :: ibox
 
           real*8 :: t1
           integer :: omp_thread_num
@@ -132,7 +134,6 @@ module module_directsum
             call multipole_from_particle(particles(i)%x, particles(i)%data, local_nodes(i))
           end do
 
-! TODO: loop over vbox-vectors
           ! we will send our data packet to every other mpi rank
           do currank=0,n_cpu-1
 
@@ -146,10 +147,12 @@ module module_directsum
                 !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
                 do j=1,nreceived
                     do i=1,np_local
-                        if (testidx(j).ne.i) then
-                            delta = received(j)%x - local_nodes(i)%coc
-                            call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), [0._8, 0._8, 0._8], .true.)
-                        endif
+                        do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
+                          if ((ibox < num_neighbour_boxes) .or. (testidx(j).ne.i)) then !exclude particle itslef if we are in central box
+                              delta = received(j)%x - (local_nodes(i)%coc - lattice_vect(neighbour_boxes(:,ibox)))
+                              call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), [0._8, 0._8, 0._8], .true.)
+                          endif
+                        end do
                     end do
                 end do
                 !$OMP END PARALLEL DO
@@ -157,8 +160,10 @@ module module_directsum
                 !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
                 do j=1,nreceived
                     do i=1,np_local
-                        delta = received(j)%x - local_nodes(i)%coc
+                      do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
+                        delta = received(j)%x - (local_nodes(i)%coc - lattice_vect(neighbour_boxes(:,ibox)))
                         call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), [0._8, 0._8, 0._8], .true.)
+                      end do
                     end do
                 end do
                 !$OMP END PARALLEL DO
@@ -192,6 +197,13 @@ module module_directsum
 
           ! Reset the number of openmp threads to 1.
           !$ call omp_set_num_threads(1)
+
+          !TODO: call calc_force_per_particle here: add lattice contribution, compare module_libpepc_main
+          !call timer_start(t_lattice)
+          ! add lattice contribution and other per-particle-forces
+          ! TODO: do not call calc_force_per_particle here!
+          !call calc_force_per_particle(particles, npp)
+          !call timer_stop(t_lattice)
 
         end subroutine
 
