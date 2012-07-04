@@ -64,6 +64,7 @@ module physvars
   real*8 :: physGamma      ! coupling parameter
   real*8 :: V0_eV = 0.       ! desired potential at distance r=0 from an ion --> eps is adjusted to match this value
   real*8 :: eps = 1.           ! potential/force law cutoff
+  real*8 :: forceconst = 1.0 ! coulomb force factor (essentially used for deactivating interaction)
   integer :: Zion=1, Aion=1       ! ion charge and mass number
   integer :: setup_type = 0 !< for computing volume, interparticle distance, etc: 0-cubic, 1-spherical
   logical :: periodicity_nearest_image = .false. !< if set to true, only nearest image boxes are used in periodic case

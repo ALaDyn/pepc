@@ -82,7 +82,7 @@ subroutine pepcmw_prepare()
   vte = sqrt(3*unit_kB*Te/mass_e)
   vti = sqrt(3*unit_kB*Ti/mass_i)
 
-  force_const = 1./(unit_4piepsilon0)
+  force_const = forceconst/(unit_4piepsilon0)
 
   wpl_e = sqrt( (ne/Vplas * qe *qe) / (unit_epsilon0 * mass_e) )
   wpl_i = sqrt( (ni/Vplas * qi *qi) / (unit_epsilon0 * mass_i) )
@@ -140,7 +140,11 @@ subroutine pepcmw_prepare()
 
   if (vte>0.) then
     maxdt(3) = lambdaD_e/10./vte
-    maxdt(4) = abs(mass_e/qe * eps*eps / (10.*qe) * vte/10.)
+    if (eps > 0.) then
+      maxdt(4) = abs(mass_e/qe * eps*eps / (10.*qe) * vte/10.)
+    else
+      maxdt(4) = huge(maxdt(4))
+    endif
   else
     maxdt(3:4) = 1./epsilon(maxdt(3))
   endif

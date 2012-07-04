@@ -32,7 +32,7 @@ module module_namelist
   use module_interaction_specific, only : eps2
 
   namelist /pepcmw/ &
-       ne,  eps, V0_eV, nt, dt, idump, itime_in, idump_vtk, idump_checkpoint, idump_binary, treediags, directforce, & ! fundamental stuff
+       ne,  eps, forceconst, V0_eV, nt, dt, idump, itime_in, idump_vtk, idump_checkpoint, idump_binary, treediags, directforce, & ! fundamental stuff
        ispecial, rhoe_nm3, Zion, Aion, Te_eV, Ti_eV, Te_K, Ti_K, rngseed, particle_shift, periodicity_nearest_image, &   ! experimental setup
        workflow_setup, &                                             ! workflow
        integrator_scheme, enable_drift_elimination, &                ! pusher configuration
