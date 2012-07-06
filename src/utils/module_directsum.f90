@@ -142,32 +142,25 @@ module module_directsum
 
             t1 = MPI_WTIME()
 
-            ! if we use our own particles, test for equality
-            if (currank .eq. 0) then
-                !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
-                do j=1,nreceived
-                    do i=1,np_local
-                        do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
-                          if ((ibox < num_neighbour_boxes) .or. (testidx(j).ne.i)) then !exclude particle itslef if we are in central box
-                              delta = received(j)%x - (local_nodes(i)%coc - lattice_vect(neighbour_boxes(:,ibox)))
+            !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
+            do j=1,nreceived
+                do i=1,np_local
+
+                    do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
+                      ! if we use our own particles, test for equality; exclude particle itself if we are in central box
+                      if ((currank .ne. 0) .or. (ibox < num_neighbour_boxes) .or. (testidx(j).ne.i)) then
+                          delta = received(j)%x - (local_nodes(i)%coc - lattice_vect(neighbour_boxes(:,ibox)))
+
+                          if (all(abs(delta) < spatial_interaction_cutoff)) then
                               call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), [0._8, 0._8, 0._8], .true.)
                           endif
-                        end do
+
+                      endif
                     end do
+
                 end do
-                !$OMP END PARALLEL DO
-            else
-                !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
-                do j=1,nreceived
-                    do i=1,np_local
-                      do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
-                        delta = received(j)%x - (local_nodes(i)%coc - lattice_vect(neighbour_boxes(:,ibox)))
-                        call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), [0._8, 0._8, 0._8], .true.)
-                      end do
-                    end do
-                end do
-                !$OMP END PARALLEL DO
-            end if
+            end do
+            !$OMP END PARALLEL DO
 
             call timer_add(t_direct_force,MPI_WTIME()-t1)
 
