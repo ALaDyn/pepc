@@ -252,7 +252,6 @@ module module_param_dump
       use physvars
       use module_laser
       use module_units
-      use module_workflow
       use module_interaction_specific
       implicit none
       integer, intent(in) :: ifile

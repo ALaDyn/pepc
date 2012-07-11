@@ -30,7 +30,6 @@ subroutine pepcmw_prepare()
   use module_icosahedron
   use module_laser
   use module_pusher
-  use module_workflow
   use module_units
   use module_fields
   use module_interaction_specific, only : eps2, include_far_field_if_periodic
