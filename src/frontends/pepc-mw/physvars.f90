@@ -33,6 +33,7 @@ module physvars
 
   !  physics data
 
+  integer, public :: workflow_setup = 0 !< time-dependent setup (0 = no time dependence of configuration, other values: see workflow()-routine)
   integer :: rngseed = 13
   integer :: ne = 200     !  # electrons
   integer :: ni = 0       !  # ions

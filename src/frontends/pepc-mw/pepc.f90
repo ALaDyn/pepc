@@ -97,7 +97,7 @@ program pepc
   if (( idump .gt. 0 ) .and. ((ispecial==9).or.(ispecial==10).or.(ispecial==11))) call sum_radial(itime)
 
   ! time-dependent setup stuff
-  call workflow(my_rank, 0, 0._8, dt)
+  call workflow(my_rank, 0, 0._8, dt, WORKFLOW_STEP_PRE)
 
 !  call benchmark_inner
 
@@ -126,7 +126,7 @@ program pepc
      kelbg_invsqrttemp = 1._8/sqrt(tempe)
 
      ! time-dependent setup stuff
-     call workflow(my_rank, itime, trun, dt)
+     call workflow(my_rank, itime, trun, dt, WORKFLOW_STEP_PRE)
 
      ! dump trajectory
  !    if (my_rank == 0 .and. itime == nt) call dump_trajectory()
@@ -205,14 +205,8 @@ program pepc
 
      call energies(Ukine,Ukini)
 
-     !> special diagnostics for [J. Phys. A: Math. Theor 42 (2009), 214048] Th. Raitza et al: Collision frequency of electrons in laser excited small clusters
-     if (workflow_setup == 3) then
-       if (do_periodic) then
-         call periodic_system_diagnostics(itime, trun*unit_t0_in_fs)
-       else
-         call cluster_diagnostics(itime, trun*unit_t0_in_fs)
-       endif
-     endif
+     ! time-dependent diagnostics stuff
+     call workflow(my_rank, itime, trun, dt, WORKFLOW_STEP_POST)
 
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
