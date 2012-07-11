@@ -119,6 +119,7 @@ contains
 
         ! output total momentum of all negatively charged particles
         call write_total_momentum('momentum_electrons.dat', itime, time_fs, criterion, mom, nboundelectrons)
+        call write_spatially_resolved_data(itime, time_fs, criterion)
 
         if (my_rank == 0) then
             if (firstcall .and. .not. restart) then
@@ -391,6 +392,184 @@ contains
         endif
     end subroutine write_total_momentum
 
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine write_spatially_resolved_data(itime_, time_fs, selection)
+        use physvars
+        use module_units
+        implicit none
+        include 'mpif.h'
+
+        integer, intent(in) :: itime_
+        real*8, intent(in) :: time_fs
+        logical, intent(in) :: selection(1:np_local)
+
+        integer, parameter :: NR     = 8
+        integer, parameter :: NTheta = 4
+        integer, parameter :: NPhi   = 4
+
+        real*8 :: maxR
+
+        integer, parameter :: RAWDATA_PX = 1
+        integer, parameter :: RAWDATA_PY = 2
+        integer, parameter :: RAWDATA_PZ = 3
+        integer, parameter :: RAWDATA_P  = 4
+        integer, parameter :: RAWDATA_N  = 5
+
+        real*8,  dimension(RAWDATA_PX:RAWDATA_N, 1:NR, 1:NTheta, 1:NPhi) :: rawdata
+        character*50, parameter :: filename = 'spatially_resolved.dat'
+       
+        integer :: p, ierr, iR, iTheta, iPhi, idata
+        real*8 :: rspherical(3), deltaR, deltaPhi, deltaTheta
+
+        rawdata = 0.
+        maxR    = r_sphere
+
+        deltaR     = maxr / NR
+        deltaPhi   = 2*pi / NPhi
+        deltaTheta =   pi / NTheta
+
+        do p = 1,np_local
+            if (selection(p)) then
+                ! determine box indices
+                rspherical    = cartesian_to_spherical(particles(p)%x)
+                ! cartesian_to_spherical returns cos(theta) as second argument
+                rspherical(2) = acos(rspherical(2))
+
+                iR     =        floor( rspherical(1) / deltaR     )          + 1
+                iPhi   = modulo(floor( rspherical(2) / deltaTheta ), NTheta) + 1
+                iTheta = modulo(floor( rspherical(3) / deltaPhi   ), NPhi  ) + 1
+
+                if (iR <= NR) then ! other particles lie outside the grid
+                  rawdata(RAWDATA_PX:RAWDATA_PZ, iR, iTheta, iPhi) =             particles(p)%data%v
+                  rawdata(RAWDATA_P,             iR, iTheta, iPhi) = dot_product(particles(p)%data%v, particles(p)%data%v)
+                  rawdata(RAWDATA_N,             iR, iTheta, iPhi) = rawdata(RAWDATA_N, iR, iTheta, iPhi) + 1
+                endif
+
+            endif
+        end do
+
+        ! collect data globally
+        if (my_rank == 0) then
+          call MPI_REDUCE(MPI_IN_PLACE, rawdata, 5*NR*NTheta*NPhi, MPI_REAL8, MPI_SUM, 0, MPI_COMM_PEPC, ierr )
+        else
+          call MPI_REDUCE(rawdata,      rawdata, 5*NR*NTheta*NPhi, MPI_REAL8, MPI_SUM, 0, MPI_COMM_PEPC, ierr )
+        endif
+
+        ! output data to file
+        if (my_rank == 0) then
+            if (itime_ <= 1 .and. .not. restart) then
+                open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
+                ! write header
+                write(87, '("# maxR   = ", g15.5)') maxR
+                write(87, '("# NR     = ",   i15)') NR
+                write(87, '("# NTheta = ",   i15)') NTheta
+                write(87, '("# NPhi   = ",   i15)') NPhi
+
+                write(87, '(a24)',advance='no') '# itime time_fs / iR    '
+                do iR = 1,NR
+                  do iTheta = 1,NTheta
+                    do iPhi = 1,NPhi
+                      do idata = 1, 5
+                        write (87, '(i25)',advance='no') iR
+                      end do
+                    end do
+                  end do
+                end do
+                write(87, *)
+
+                write(87, '(a24)',advance='no') '# itime time_fs / iTheta'
+                do iR = 1,NR
+                  do iTheta = 1,NTheta
+                    do iPhi = 1,NPhi
+                      do idata = 1, 5
+                        write (87, '(i25)',advance='no') iTheta
+                      end do
+                    end do
+                  end do
+                end do
+                write(87, *)
+
+                write(87, '(a24)',advance='no') '# itime time_fs / iPhi  '
+                do iR = 1,NR
+                  do iTheta = 1,NTheta
+                    do iPhi = 1,NPhi
+                      do idata = 1, 5
+                        write (87, '(i25)',advance='no') iPhi
+                      end do
+                    end do
+                  end do
+                end do
+                write(87, *)
+
+                write(87, '(a24)',advance='no') '# itime time_fs / idata'
+                do iR = 1,NR
+                  do iTheta = 1,NTheta
+                    do iPhi = 1,NPhi
+                      do idata = 1, 5
+                        write (87, '(i25)',advance='no') idata
+                      end do
+                    end do
+                  end do
+                end do
+                write(87, *)
+            else
+                open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
+            endif
+
+            write(87,'(i10,g25.12)', advance='no') itime_, time_fs
+            do iR = 1,NR
+              do iTheta = 1,NTheta
+                do iPhi = 1,NPhi
+                  do idata = 1, 5
+                    write (87, '(g25.12)',advance='no') rawdata(idata, iR, iTheta, iPhi)
+                  end do
+                end do
+              end do
+            end do
+            write(87, *)
+
+            close(87)
+        endif
+
+    end subroutine write_spatially_resolved_data
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Converts cartesian coordinates to spherical system
+        !> @param[in]  cartesian  cartesian vector [x, y, z]
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        function cartesian_to_spherical(cartesian)
+          implicit none
+          integer, parameter :: kfp = 8
+          real(kfp), parameter :: zero = 0._kfp
+          real(kfp), parameter :: one  = 1._kfp
+          real(kfp), parameter :: two  = 2._kfp
+          real*8, intent(in)  :: cartesian(3)
+          real(kfp), dimension(3) :: cartesian_to_spherical, c
+
+          c = real(cartesian, kind=kfp)
+
+          cartesian_to_spherical(1) = sqrt(dot_product(c, c))
+
+          if (cartesian_to_spherical(1) == 0) then
+            cartesian_to_spherical(2) = one
+          else
+            cartesian_to_spherical(2) = c(3) / cartesian_to_spherical(1)
+          end if
+
+          if ((c(1) == 0) .and. (c(2) == 0)) then
+            cartesian_to_spherical(3) = zero
+          else
+            cartesian_to_spherical(3) = atan2(c(2), c(1))
+          end if
+        end function cartesian_to_spherical
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>

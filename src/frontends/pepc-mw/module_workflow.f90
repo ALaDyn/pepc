@@ -36,6 +36,8 @@ module module_workflow
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       integer, public :: workflow_setup = 0 !< time-dependent setup (0 = no time dependence of configuration, other values: see workflow()-routine)
+      integer, public, parameter :: WORKFLOW_STEP_PRE  = 0
+      integer, public, parameter :: WORKFLOW_STEP_POST = 1
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -60,9 +62,9 @@ module module_workflow
 		!> workflows are defined via workflow_setup variable
 		!>
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine workflow(my_rank, itime, trun, dt)
+		subroutine workflow(my_rank, itime, trun, dt, workflow_step)
 		  implicit none
-		  integer, intent(in) :: my_rank, itime
+		  integer, intent(in) :: my_rank, itime, workflow_step
 		  real*8, intent(in) :: trun, dt
 		  character(150) :: setup_name
 		  integer :: stage = -1
@@ -73,15 +75,15 @@ module module_workflow
 
             case(1) ! temperature rescaling incl drift after every full laser cycle
               setup_name = 'temp. rescaling after full laser cycle'
-              call workflow_temp_rescaling_after_full_laser_cycle(itime, trun, dt, stage)
+              call workflow_temp_rescaling_after_full_laser_cycle(itime, trun, dt, workflow_step, stage)
 
             case(2) ! [PRE 71, 056408 (2005)] P. Hilse et al: Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation.
               setup_name = '[PRE 71, 056408 (2005)] P. Hilse et al: Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation.'
-              call workflow_PRE_71_056408(itime, trun, dt, stage)
+              call workflow_PRE_71_056408(itime, trun, dt, workflow_step, stage)
 
             case(3) ! [J. Phys. A: Math. Theor 42 (2009), 214048] Th. Raitza et al: Collision frequency of electrons in laser excited small clusters
               setup_name = '[J. Phys. A: Math. Theor 42 (2009), 214048] Th. Raitza et al: Collision frequency of electrons in laser excited small clusters'
-              call workflow_JPhysA_42_214048(itime, trun, dt, stage)
+              call workflow_JPhysA_42_214048(itime, trun, dt, workflow_step, stage)
 
 		  end select
 
@@ -96,11 +98,11 @@ module module_workflow
         !> after every full laser cycle
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine workflow_temp_rescaling_after_full_laser_cycle(itime, trun, dt, stage)
+        subroutine workflow_temp_rescaling_after_full_laser_cycle(itime, trun, dt, workflow_step, stage)
           use module_laser
           use module_pusher
           implicit none
-          integer, intent(in) :: itime
+          integer, intent(in) :: itime, workflow_step
           real*8, intent(in) :: trun, dt
           integer, intent(out) :: stage
 
@@ -122,14 +124,14 @@ module module_workflow
         !> fields: Quantum statistical results and simulation
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine workflow_PRE_71_056408(itime, trun, dt, stage)
+        subroutine workflow_PRE_71_056408(itime, trun, dt, workflow_step, stage)
           use module_laser
           use module_pusher
           use module_units
           use module_interaction_specific, only : kelbg_invsqrttemp
           use physvars, only : Te
           implicit none
-          integer, intent(in) :: itime
+          integer, intent(in) :: itime, workflow_step
           real*8, intent(in) :: trun, dt
           integer, intent(out) :: stage
           logical, save :: firstcall = .true.
@@ -144,41 +146,50 @@ module module_workflow
 
           time_fs = trun*unit_t0_in_fs
 
-          if      (time_fs <= 1.25) then        ! phase of 'establishment of correlations':
-            beam_config_in = 0                   ! relaxation (not into equilibrium due to large ion mass)
-            call laser_setup()                   ! ==> 2-temp. plasma
-            integrator_scheme = INTEGRATOR_SCHEME_NVE
-            stage = 1
+          select case (workflow_step)
 
-            ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
-            ! to avoid problems due to invalid rescaling in next stage
-            kelbg_invsqrttemp = 1._8/sqrt(Te)
+            case (WORKFLOW_STEP_PRE)
 
-          elseif (time_fs <= 2.25) then        ! 'thermalization':
-            beam_config_in = 0                   ! velocity rescaling ==> coupling to heat bath
-            call laser_setup()
-            integrator_scheme = INTEGRATOR_SCHEME_NVT
-            enable_drift_elimination = .true.
-            stage = 2
+              if      (time_fs <= 1.25) then        ! phase of 'establishment of correlations':
+                beam_config_in = 0                   ! relaxation (not into equilibrium due to large ion mass)
+                call laser_setup()                   ! ==> 2-temp. plasma
+                integrator_scheme = INTEGRATOR_SCHEME_NVE
+                stage = 1
 
-            ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
-            ! to avoid problems due to invalid rescaling in this stage
-            kelbg_invsqrttemp = 1._8/sqrt(Te)
+                ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
+                ! to avoid problems due to invalid rescaling in next stage
+                kelbg_invsqrttemp = 1._8/sqrt(Te)
 
-          elseif (time_fs <= 3.50) then        ! 'heat bath off', equilibrium
-            beam_config_in = 0                   ! (pot. and kin. energy constant)
-            call laser_setup()
-            integrator_scheme = INTEGRATOR_SCHEME_NVE
-            enable_drift_elimination = .false.
-            stage = 3
+              elseif (time_fs <= 2.25) then        ! 'thermalization':
+                beam_config_in = 0                   ! velocity rescaling ==> coupling to heat bath
+                call laser_setup()
+                integrator_scheme = INTEGRATOR_SCHEME_NVT
+                enable_drift_elimination = .true.
+                stage = 2
 
-          else                                 ! laser switched on
-            beam_config_in = origbeamconfig
-            call laser_setup()
-            integrator_scheme = INTEGRATOR_SCHEME_NVE
-            stage = 4
+                ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
+                ! to avoid problems due to invalid rescaling in this stage
+                kelbg_invsqrttemp = 1._8/sqrt(Te)
 
-          endif
+              elseif (time_fs <= 3.50) then        ! 'heat bath off', equilibrium
+                beam_config_in = 0                   ! (pot. and kin. energy constant)
+                call laser_setup()
+                integrator_scheme = INTEGRATOR_SCHEME_NVE
+                enable_drift_elimination = .false.
+                stage = 3
+
+              else                                 ! laser switched on
+                beam_config_in = origbeamconfig
+                call laser_setup()
+                integrator_scheme = INTEGRATOR_SCHEME_NVE
+                stage = 4
+
+              endif
+
+          case (WORKFLOW_STEP_POST)
+            ! no special diagnostics here
+          end select
+
 
         end subroutine workflow_PRE_71_056408
 
@@ -190,12 +201,14 @@ module module_workflow
         !> Collision frequency of electrons in laser excited small clusters
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine workflow_JPhysA_42_214048(itime, trun, dt, stage)
+        subroutine workflow_JPhysA_42_214048(itime, trun, dt, workflow_step, stage)
           use module_laser
           use module_pusher
           use module_units
+          use module_mirror_boxes, only : do_periodic
+          use module_diagnostics
           implicit none
-          integer, intent(in) :: itime
+          integer, intent(in) :: itime, workflow_step
           real*8, intent(in) :: trun, dt
           real*8 :: time_fs
           logical, save :: firstcall = .true.
@@ -210,19 +223,32 @@ module module_workflow
 
           time_fs = trun*unit_t0_in_fs
 
-          if      (time_fs <= t_pulse_fs) then       ! initial laser pulse
-            beam_config_in = origbeamconfig
-            call laser_setup()
-            integrator_scheme = INTEGRATOR_SCHEME_NVE
-            stage = 1
+          select case (workflow_step)
+            case (WORKFLOW_STEP_PRE)
 
-          else                                 ! laser switched off
-            beam_config_in = 0
-            call laser_setup()
-            integrator_scheme = INTEGRATOR_SCHEME_NVE_IONS_FROZEN
-            stage = 2
+              if      (time_fs <= t_pulse_fs) then       ! initial laser pulse
+                beam_config_in = origbeamconfig
+                call laser_setup()
+                integrator_scheme = INTEGRATOR_SCHEME_NVE
+                stage = 1
 
-          endif
+              else                                 ! laser switched off
+                beam_config_in = 0
+                call laser_setup()
+                integrator_scheme = INTEGRATOR_SCHEME_NVE_IONS_FROZEN
+                stage = 2
+
+              endif
+
+            case (WORKFLOW_STEP_POST)
+
+              if (do_periodic) then
+                call periodic_system_diagnostics(itime, trun*unit_t0_in_fs)
+              else
+                call cluster_diagnostics(itime, trun*unit_t0_in_fs)
+              endif
+
+          end select
 
         end subroutine workflow_JPhysA_42_214048
 
