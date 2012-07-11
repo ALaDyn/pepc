@@ -35,7 +35,6 @@ module module_workflow
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      integer, public :: workflow_setup = 0 !< time-dependent setup (0 = no time dependence of configuration, other values: see workflow()-routine)
       integer, public, parameter :: WORKFLOW_STEP_PRE  = 0
       integer, public, parameter :: WORKFLOW_STEP_POST = 1
 
@@ -63,6 +62,7 @@ module module_workflow
 		!>
 		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		subroutine workflow(my_rank, itime, trun, dt, workflow_step)
+		  use physvars, only: workflow_setup
 		  implicit none
 		  integer, intent(in) :: my_rank, itime, workflow_step
 		  real*8, intent(in) :: trun, dt
