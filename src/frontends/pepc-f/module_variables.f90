@@ -19,7 +19,7 @@
 !
 
 !!!!!!!!!!!!!!!!!!!!
-!! helper module
+!! variables module
 !!!!!!!!!!!!!!!!!!!!
 
 module variables
@@ -32,24 +32,32 @@ module variables
   ! MPI variables
   integer :: my_rank, n_ranks
   logical :: root
+  integer :: ierr
 
   ! time variables
   real*8 :: dt
-  integer :: step
+  integer :: step,startstep
 
   ! control variables
   integer :: nt               ! number of timesteps
   integer :: tnp              ! total number of particles (wall +plasma)
+  integer*8 :: npart          ! total number of particles, needed as int8 for checkpoints
   integer :: np               ! local number of particles (wall +plasma)
+  integer :: diag_interval    
+  integer :: checkp_interval
 
   ! type of source
   integer :: quelltyp
+  ! type of rng (0=standard fortran,1=par_rand from module_zufall)
+  integer :: rng
 
   
   real*8  :: delx      ! length of plasma (multiples of lambda_debye)
   real*8  :: dely       ! width of plasma (multiples of lamor radius)
   real*8  :: delz       ! width of plasma (multiples of lamor radius)
   real*8  :: dx,dy,dz           ! lenght/width in m
+  real*8  :: xmin,ymin,zmin     ! used if the domain does not start at (0,0,0)
+  real*8  :: xmax,ymax,zmax     ! 
   
   ! physics constants
   real*8, parameter  ::  e=1.602176565e-19
@@ -89,5 +97,15 @@ module variables
   type(t_particle), allocatable :: plasma_particles(:)
   integer :: tnpp              ! total number of plasma particles 
   integer :: npp               ! local number of plasma particles 
+
+  !aux strings
+  character(255) :: filename,argument1!,argument2
+
+  !other
+  integer :: chunk_size_default
+
+  namelist /pepcf/ tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /walk_para_smpss/ chunk_size_default
+
 
 end module

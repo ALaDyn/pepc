@@ -21,118 +21,117 @@
 
 program pepc
 
-  ! pepc modules
-  use module_pepc
-  use module_pepc_types
-  use module_mirror_boxes
+    ! pepc modules
+    use module_pepc
+    use module_pepc_types
+    use module_mirror_boxes
+    use module_checkpoint
+    use module_timings
+    use module_debug
   
-  ! frontend helper routines
-  use helper
-  use variables
-  use particlehandling
-  use integrator
+    ! frontend helper routines
+    use helper
+    use variables
+    use particlehandling
+    use integrator
+    use output
+    use diagnostics
 
+    implicit none
+    include 'mpif.h'
+  
+    ! timing variables
+    real*8 :: timer(10)
+
+
+    !!! initialize pepc library and MPI
+    call pepc_initialize("pepc-f", my_rank, n_ranks, .true.)
+
+    root = my_rank.eq.0
+  
+    timer(1) = get_time()
    
-  implicit none
-    
-  ! timing variables
-  real*8 :: timer(10)
-  integer :: j
+    call GET_COMMAND_ARGUMENT(1, argument1)
+    !call GET_COMMAND_ARGUMENT(2, argument2)
+    if (argument1=="resume")then
+        call init_after_resume()
+    !else if (argument1=="particle_config")then
 
-      
-  !!! initialize pepc library and MPI
-  call pepc_initialize("pepc-f", my_rank, n_ranks, .true.)
+    else
+        call set_parameter()
+        call init()
 
-  root = my_rank.eq.0
+        call init_particles(plasma_particles)
+        call init_wall_particles(wall_particles)          !wall particles and plasma particles are initialized seperately
 
-  timer(1) = get_time()
-
-  call set_parameter()
-  call init()
-
-  open(unit=100, file="/lustre/jwork/fsnafzj/fsafzj08/test0.dat", status='unknown', position='rewind')
-  open(unit=101, file="/lustre/jwork/fsnafzj/fsafzj08/test1.dat", status='unknown', position='rewind')
-  open(unit=102, file="/lustre/jwork/fsnafzj/fsafzj08/test2.dat", status='unknown', position='rewind')
-  open(unit=103, file="/lustre/jwork/fsnafzj/fsafzj08/test3.dat", status='unknown', position='rewind')
-  open(unit=104, file="/lustre/jwork/fsnafzj/fsafzj08/test4.dat", status='unknown', position='rewind')
-  open(unit=105, file="/lustre/jwork/fsnafzj/fsafzj08/test5.dat", status='unknown', position='rewind')
-  open(unit=106, file="/lustre/jwork/fsnafzj/fsafzj08/test6.dat", status='unknown', position='rewind')
-  open(unit=107, file="/lustre/jwork/fsnafzj/fsafzj08/test7.dat", status='unknown', position='rewind')
-
-  call init_particles(plasma_particles)
-  call init_wall_particles(wall_particles)
-
-  particles(1:npp)=plasma_particles(:)
-  particles(npp+1:npp+nwp)=wall_particles(:)
-
-  timer(2) = get_time()
-
-      !do j=1,np
-      !    write(0,*)particles(j)%label,particles(j)%x,particles(j)%data%v
-      !end do
-
-  if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
-
- 
-  DO step=0, nt-1
-    if(root) then
-      write(*,*) " "
-      write(*,'(a,i12)')    " ====== computing step  :", step
-      write(*,'(a,es12.4)') " ====== simulation time :", step * dt
+        particles(1:npp)=plasma_particles(:)              !and than combined in one array for the pepc routines
+        particles(npp+1:npp+nwp)=wall_particles(:)
     end if
-    
-    timer(3) = get_time()
-
-
-    call pepc_particleresults_clear(particles, np)
-    call pepc_grow_tree(np, tnp, particles)
-    call pepc_traverse_tree(np, particles)
-
-    call pepc_timber_tree()
-    call pepc_restore_particles(np, particles)
-
-    timer(4) = get_time()
-
-    call boris_nonrel(particles)    
-
-    call hits_on_boundaries(particles)
-!do j=1,np
-!if (particles(j)%label==1092) THEN
-! write(*,*) step, " in pepc",particles(j)%data%B,particles(j)%x,particles(j)%data%q,particles(j)%data%v
-!endif   
-!end do  
-do j=1,np
-if (IsNaN(particles(j)%data%B(1))) THEN
- write(*,*) step, " NAN in pepc",particles(j)%label,particles(j)%data%B,particles(j)%x,particles(j)%data%q,particles(j)%data%v
-endif   
-end do  
-
-
-      !do j=1,np
-      !    write(step+1,*)particles(j)%label,particles(j)%x,particles(j)%data%v
-      !end do
-
-    timer(5) = get_time()
-    
-    if(root) write(*,'(a,es12.4)') " == time in pepc routines [s]                              : ", timer(4) - timer(3)
-    if(root) write(*,'(a,es12.4)') " == time in integrator and particlehandling [s]            : ", timer(5) - timer(4)
-    
-  END DO 
  
-  
+    timer(2) = get_time()
+    if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
 
-  deallocate(particles)
 
-  timer(6) = get_time()
+    do step=startstep, nt-1+startstep
+        if(root) then
+            write(*,*) " "
+            write(*,'(a,i12)')    " ====== computing step  :", step
+            write(*,'(a,es12.4)') " ====== simulation time :", step * dt
+        end if
+    
+        !pepc routines and timing
+        timer(3) = get_time()
+        call pepc_particleresults_clear(particles, np)
+        call pepc_grow_tree(np, tnp, particles)
+        call pepc_traverse_tree(np, particles)
+        if (dbg(DBG_STATS)) call pepc_statistics(step)
+        call pepc_restore_particles(np, particles)
+        call pepc_timber_tree()
+        timer(4) = get_time()
 
-  if(root) then
-    write(*,*)            " "
-    write(*,'(a)')        " ===== finished pepc simulation"
-    write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(6) - timer(1)
-  end if
 
-  !!! cleanup pepc and MPI
-  call pepc_finalize()
+        !diagnostics and checkpoints with timing
+        !diagnostics are carried out, when fields are computed according to current positions
+        !afterwards, they are moved and filtered (boundary-hits, ionization...)
+        !checkpoint
+        if ((MOD(step,checkp_interval)==0).and.(checkp_interval.ne.0)) then
+            call set_checkpoint()
+        end if
+        !vtk output
+        if (((MOD(step,diag_interval)==0).or.(step==nt-1+startstep)).and.(diag_interval.ne.0)) THEN
+            call write_particles(particles)
+        end if
+        !timing output for different processes
+        !call timings_LocalOutput(step)
+        call timings_GatherAndOutput(step)
+        timer(5) = get_time()
+
+
+        !integrator and filtering with timing
+        !particles get their new velocities and positions, particles are filtered and new particles created
+        call boris_nonrel(particles)
+        call hits_on_boundaries(particles)
+        timer(6) = get_time()
+    
+
+        !output for root process
+        if(root) write(*,'(a,es12.4)') " == time in pepc routines [s]                     : ", timer(4) - timer(3)
+        if(root) write(*,'(a,es12.4)') " == time in output routines [s]                   : ", timer(5) - timer(4)
+        if(root) write(*,'(a,es12.4)') " == time in integrator and particlehandling [s]   : ", timer(6) - timer(5)
+
+    end do
+
+    deallocate(particles)
+    timer(7) = get_time()
+
+    if(root) then
+        write(*,*)            " "
+        write(*,'(a)')        " ===== finished pepc simulation"
+        write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(7) - timer(1)
+    end if
+
+    !!! cleanup pepc and MPI
+    call pepc_finalize()
 
 end program pepc
 
