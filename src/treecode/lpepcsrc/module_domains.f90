@@ -35,6 +35,7 @@ module module_domains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     integer, public :: weighted = 1 !< set to 0 to disable load balancing, 1 to enable load balancing
+    logical, public :: force_cubic_domain = .false. !< if set to .true., pepc uses an overall cubic enclosure of the particle cloud instead of the cuboid (closer) one
 
 
 
@@ -120,6 +121,11 @@ module module_domains
         max_local(2) = maxval(particles(1:npp)%x(2))
         min_local(3) = minval(particles(1:npp)%x(3))
         max_local(3) = maxval(particles(1:npp)%x(3))
+
+        if (force_cubic_domain) then
+           min_local(1:3) = minval(min_local(1:3))
+           max_local(1:3) = maxval(max_local(1:3))
+        endif
 
         ! Find global limits
         call MPI_ALLREDUCE(min_local, boxmin, 3, MPI_REAL8, MPI_MIN,  MPI_COMM_lpepc, ierr )
