@@ -112,8 +112,7 @@ module module_pepc
       integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator; otherwise, it uses an MPI_COMM_DUP copy of the given comm
       integer :: ierr, provided
 
-      integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
-                                                                   !  must ensure that only the main thread makes MPI calls."
+      integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE ! " If the process is multithreaded, multiple threads may call MPI at once with no restrictions."
 
       call pepc_status('SETUP')
 

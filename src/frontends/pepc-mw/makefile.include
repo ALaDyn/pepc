@@ -22,3 +22,5 @@ SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_MW_U))
 
 BACKENDTYPE = XYZQVMB
 
+#WALK = pthreads_blocking
+

@@ -145,21 +145,13 @@ module module_walk_pthreads_commutils
 
     ! variables for adjusting the thread`s workload
     real, public :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
-    integer, public :: particles_per_yield = 500 !< number of particles to process in a work_thread before it shall call sched_yield to hand the processor over to some other thread
-    integer, parameter :: MAX_MESSAGES_PER_ITERATION = 20
-    integer, parameter :: MIN_MESSAGES_PER_ITERATION = 5
 
     integer, parameter :: ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
-    integer, parameter :: REQUEST_QUEUE_LENGTH = 400000 !< maximum length of request queue
-
-    type(t_request_queue_entry), volatile, private, target :: req_queue(REQUEST_QUEUE_LENGTH)
-    integer, private, volatile :: req_queue_top, req_queue_bottom ! we will insert data at bottom and take from top
-    integer, private :: request_balance !< total (#requests - #answers), should be zero after complete traversal
+    integer, parameter :: REQUEST_BUFF_LENGTH   = 400000 !< amount of possible entries in the BSend buffer for sending requests for child data
 
     ! rwlocks for regulating concurrent access
-    integer, private, parameter :: NUM_RWLOCKS = 2
-    integer, public, parameter :: RWLOCK_REQUEST_QUEUE      = 1
-    integer, public, parameter :: RWLOCK_NEXT_FREE_PARTICLE = 2
+    integer, private, parameter :: NUM_RWLOCKS              = 1
+    integer, public, parameter :: RWLOCK_NEXT_FREE_PARTICLE = 1
 
     ! internal initialization status
     logical, private :: initialized = .false.
@@ -183,12 +175,10 @@ module module_walk_pthreads_commutils
 
 
     public run_communication_loop
-    public send_requests
     public post_request
     public rwlock_rdlock
     public rwlock_wrlock
     public rwlock_unlock
-    public comm_sched_yield
     public retval
     public init_commutils
     public uninit_commutils
@@ -201,14 +191,10 @@ module module_walk_pthreads_commutils
 
         if (.not. initialized) then
 
-          call init_comm_data(REQUEST_QUEUE_LENGTH, ANSWER_BUFF_LENGTH)
+          call init_comm_data(REQUEST_BUFF_LENGTH, ANSWER_BUFF_LENGTH)
 
           ! initialize rwlock objects
           call retval(rwlocks_init(NUM_RWLOCKS), "rwlocks_init")
-
-          req_queue_top    = 0
-          req_queue_bottom = 0
-          request_balance  = 0
 
           initialized = .true.
 
@@ -237,21 +223,11 @@ module module_walk_pthreads_commutils
       use module_debug
       use treevars
       implicit none
-      ! if request_balance contains positive values, not all requested data has arrived
-      ! this means, that there were algorithmically unnecessary requests, which would be a bug
-      ! negative values denote more received datasets than requested, which implies
-      ! a bug in bookkeeping on the sender`s side
-        if (req_queue_top .ne. req_queue_bottom) then
-           DEBUG_WARNING_ALL('(a,I0,a,/,a,/,a)', "PE ", me, " has finished its walk, but the request list is not empty",
-                                                 "obviously, there is an error in the todo_list bookkeeping",
-                                                 "Trying to recover from that")
-        elseif (request_balance .ne. 0) then
-           DEBUG_WARNING_ALL('(a,I0,a,I0,/,a,/,a)', "PE ", me, " finished walking but is are still waiting for requested data: request_balance =", request_balance,
-                                                    "This should never happen - obviously, the request_queue or some todo_list is corrupt",
-                                                    "Trying to recover from this situation anyway: Waiting until everything arrived although we will not interact with it.")
-        else
-           walk_status = WALK_ALL_MSG_DONE
-        end if
+
+       ! this is the place to implement bookkeeping to ensure that everything has been finished
+       ! nothing is implemented currently
+       walk_status = WALK_ALL_MSG_DONE
+
     end subroutine
 
 
@@ -272,124 +248,53 @@ module module_walk_pthreads_commutils
 
 
 
-      ! this routine is thread-safe to prevent concurrent write access to the queue
-      subroutine post_request(request_key, request_addr)
-        use treevars
-        use module_htable
-        use module_walk_communicator
-        use module_debug
-        implicit none
-        include 'mpif.h'
-        integer*8, intent(in) :: request_key
-        integer, intent(in) :: request_addr
-        integer :: local_queue_bottom
-        logical, save :: warned = .false.
+    subroutine post_request(request_key, request_addr)
+      use module_walk_communicator
+      use treevars
+      use module_debug
+      use module_htable
+      implicit none
+      include 'mpif.h'
+      integer*8, intent(in) :: request_key
+      integer, intent(in) :: request_addr
+      integer :: request_owner
 
-        ! check wether the node has already been requested
-        ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
-        ! otherwise it will be possible that two walk threads can synchronously post a prticle to the request queue
-        if (BTEST( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ) then
-          return
-        endif
-
+      ! check wether the node has already been requested
+      ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
+      ! otherwise it will be possible that two walk threads can synchronously post a prticle to the request queue
+      if (.not. BTEST( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ) then
         ! we first flag the particle as having been already requested to prevent other threads from doing it while
         ! we are inside this function
         !call rwlock_wrlock(RWLOCK_CHILDBYTE, "walk_single_particle")
         htable(request_addr)%childcode   =  IBSET( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ! Set requested flag
-        !call rwlock_unlock(RWLOCK_CHILDBYTE, "walk_single_particle")
+      else
+        return
+      endif
 
-        call rwlock_wrlock(RWLOCK_REQUEST_QUEUE, "post_request")
+      ! actually send the request
+      request_owner = htable( request_addr )%owner
 
-        ! use a thread safe list to put the requests onto
-        local_queue_bottom = mod(req_queue_bottom, REQUEST_QUEUE_LENGTH) + 1
+      if (walk_comm_debug) then
+          DEBUG_INFO('("PE", I6, " sending request, request_key=", O22, ", request_owner=", I6)',
+                     me, request_key, request_owner)
+      end if
 
-        if (local_queue_bottom == req_queue_top) then
-          if (.not. warned) then
-            DEBUG_WARNING(*, "Issue with request sending queue: REQUEST_QUEUE_LENGTH is too small: ", REQUEST_QUEUE_LENGTH, ". Will try again later.")
-            warned = .true.
-          end if
-
-          call rwlock_unlock(RWLOCK_REQUEST_QUEUE, "post_request")
-          ! since posting the request failed due to a too short queue, we have to flag the particle as to be procssed again
-          !call rwlock_wrlock(RWLOCK_CHILDBYTE, "walk_single_particle")
-          htable(request_addr)%childcode   =  IBCLR( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED )
-          !call rwlock_unlock(RWLOCK_CHILDBYTE, "walk_single_particle")
-          return
-        end if
-
-        req_queue(local_queue_bottom)   = t_request_queue_entry( request_key, request_addr, htable( request_addr )%owner )
-
-        if (walk_comm_debug) then
-          DEBUG_INFO('("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6, " request_addr=", I12)',
-                         me, local_queue_bottom, request_key, htable( request_addr )%owner, request_addr )
-        end if
-
-        ! now, we can tell the communicator that there is new data available
-        req_queue_bottom = local_queue_bottom
-
-        call rwlock_unlock(RWLOCK_REQUEST_QUEUE, "post_request")
+      if (send_request( t_request_queue_entry( request_key, request_addr, request_owner) )) then
+        ! everything is fine
+      endif
 
     end subroutine post_request
 
 
 
-    subroutine send_requests()
-      use module_walk_communicator
-      use treevars
-      use module_debug
-      implicit none
-      include 'mpif.h'
-
-      integer :: local_queue_bottom ! buffer for avoiding interference with threads that post data to the queue
-      real*8 :: tsend
-      integer*8 :: req_queue_length
-
-      ! send all requests from our thread-safe list
-
-      local_queue_bottom = req_queue_bottom
-
-      if (req_queue_top .ne. local_queue_bottom) then
-
-        req_queue_length    = modulo(local_queue_bottom-req_queue_top, REQUEST_QUEUE_LENGTH)
-        max_req_list_length = max(max_req_list_length,  req_queue_length)
-        cum_req_list_length =     cum_req_list_length + req_queue_length
-        comm_loop_iterations(2) = comm_loop_iterations(2) + 1
-
-        tsend = MPI_WTIME()
-
-        do while (req_queue_top .ne. local_queue_bottom)
-
-          req_queue_top = mod(req_queue_top, REQUEST_QUEUE_LENGTH) + 1
-
-          if (walk_comm_debug) then
-              DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)',
-                         me, req_queue_top, req_queue(req_queue_top)%key, req_queue(req_queue_top)%owner)
-          end if
-
-          if (send_request(req_queue(req_queue_top))) then
-            request_balance = request_balance + 1
-          endif
-
-        end do
-
-       timings_comm(TIMING_SENDREQS) = timings_comm(TIMING_SENDREQS) + ( MPI_WTIME() - tsend )
-
-     end if
-
-    end subroutine send_requests
-
-
-
-      subroutine run_communication_loop(max_particles_per_thread)
+      subroutine run_communication_loop()
         use pthreads_stuff
         use treevars
         use, intrinsic :: iso_c_binding
         use module_debug
         implicit none
         include 'mpif.h'
-        integer, intent(in) :: max_particles_per_thread
         integer, dimension(mintag:maxtag) :: nummessages
-        integer :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
         logical :: walk_finished(num_pe) ! will hold information on PE 0 about which processor
                                           ! is still working and which ones are finished
                                           ! to emulate a non-blocking barrier
@@ -414,34 +319,13 @@ module module_walk_pthreads_commutils
 
           comm_loop_iterations(1) = comm_loop_iterations(1) + 1
 
-          ! send our requested keys
-          call send_requests()
-
           ! check whether we are still waiting for data or some other communication
           if (walk_status == WALK_IAM_FINISHED) call check_comm_finished()
 
           ! process any incoming answers
           call run_communication_loop_inner(walk_finished, nummessages)
 
-          messages_per_iteration = messages_per_iteration + sum(nummessages)
-          request_balance = request_balance - nummessages(TAG_REQUESTED_DATA)
           nummessages(TAG_REQUESTED_DATA) = 0
-
-          ! adjust the sched_yield()-timeout for the thread that shares its processor with the communicator
-          if (messages_per_iteration > MAX_MESSAGES_PER_ITERATION) then
-            particles_per_yield = int(max(0.75 * particles_per_yield, 0.01*max_particles_per_thread))
-            if (walk_debug) then
-              DEBUG_INFO('("messages_per_iteration = ", I6, " > ", I6, " --> Decreased particles_per_yield to", I10)', messages_per_iteration, MAX_MESSAGES_PER_ITERATION, particles_per_yield)
-            endif
-          elseif ((particles_per_yield < max_particles_per_thread) .and. (messages_per_iteration < MIN_MESSAGES_PER_ITERATION)) then
-            particles_per_yield = int(min(1.5 * particles_per_yield, 1.*max_particles_per_thread))
-            if (walk_debug) then
-              DEBUG_INFO('("messages_per_iteration = ", I6, " < ", I6, " --> Increased particles_per_yield to", I10)', messages_per_iteration, MIN_MESSAGES_PER_ITERATION, particles_per_yield)
-            endif
-          endif
-
-          ! currently, there is no further communication request --> other threads may do something interesting
-          call comm_sched_yield()
 
         end do ! while (walk_status .ne. WALK_ALL_FINISHED)
 
@@ -455,6 +339,7 @@ module module_walk_pthreads_commutils
 
 
 
+
     subroutine run_communication_loop_inner(walk_finished, nummessages)
         use treevars, only : num_pe, me, MPI_COMM_lpepc
         use module_pepc_types
@@ -462,7 +347,6 @@ module module_walk_pthreads_commutils
         use module_walk_communicator
         implicit none
         include 'mpif.h'
-        logical :: msg_avail
         integer :: ierr
         integer :: stat(MPI_STATUS_SIZE)
         integer*8 :: requested_key
@@ -474,26 +358,17 @@ module module_walk_pthreads_commutils
         integer :: dummy
         real*8 :: tcomm
 
-          ! notify rank 0 if we completed our traversal
-          if (walk_status == WALK_ALL_MSG_DONE) call send_walk_finished()
+        ! notify rank 0 if we completed our traversal
+        if (walk_status == WALK_ALL_MSG_DONE) call send_walk_finished()
 
           ! probe for incoming messages
-          ! TODO: could be done with a blocking probe, but
-          ! since my Open-MPI Version is *not thread-safe*,
-          ! we will have to guarantee, that there is only one thread
-          ! doing all the communication during walk...
-          ! otherwise, we cannot send any messages while this thread is idling in a blocking probe
-          ! and hence cannot abort this block
-          ! if a blocking probe is used,
+          ! since a blocking probe is used,
           ! the calls to send_requests() and send_walk_finished() have
           ! to be performed asynchonously (i.e. from the walk threads)
-          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_lpepc, msg_avail, stat, ierr)
-          if (msg_avail) then
+          call MPI_PROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_lpepc, stat, ierr)
 
-            comm_loop_iterations(3) = comm_loop_iterations(3) + 1
-            tcomm = MPI_WTIME()
-
-          do while (msg_avail)
+          comm_loop_iterations(3) = comm_loop_iterations(3) + 1
+          tcomm = MPI_WTIME()
 
           ipe_sender = stat(MPI_SOURCE)
           msg_tag    = stat(MPI_TAG)
@@ -552,17 +427,9 @@ module module_walk_pthreads_commutils
 
           end select
 
-          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_lpepc, msg_avail, stat, ierr)
-
-        end do ! while (msg_avail)
-
           timings_comm(TIMING_RECEIVE) = timings_comm(TIMING_RECEIVE) +  (MPI_WTIME() - tcomm)
 
-        endif
-
     end subroutine
-
-
 
 
       subroutine rwlock_rdlock(idx, reason)
@@ -610,15 +477,6 @@ module module_walk_pthreads_commutils
         end if
 
       end subroutine rwlock_unlock
-
-
-      subroutine comm_sched_yield()
-        use pthreads_stuff
-        implicit none
-
-        call retval(pthreads_sched_yield(), "pthreads_sched_yield()")
-      end subroutine comm_sched_yield
-
 
 end module module_walk_pthreads_commutils
 
@@ -837,7 +695,7 @@ module module_walk
                  "walk_schedule_thread_inner:pthread_create. Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
       end do
 
-      call run_communication_loop(num_walk_threads)
+      call run_communication_loop()
 
       ! ... and wait for work thread completion
       thread_workload = 0.
@@ -973,7 +831,6 @@ module module_walk
       logical :: particles_available
       logical :: particles_active
       type(t_threaddata), pointer :: my_threaddata
-      integer :: particles_since_last_yield
       logical :: same_core_as_communicator
       integer :: my_max_particles_per_thread
       integer :: my_processor_id
@@ -1005,7 +862,6 @@ module module_walk
 
           thread_particle_indices(:) = -1     ! no particles assigned to this thread
           particles_available        = .true. ! but there might be particles to be picked by the thread
-          particles_since_last_yield =  0
 
           do while (particles_active .or. particles_available)
 
@@ -1017,8 +873,6 @@ module module_walk
             do i=1,my_max_particles_per_thread
 
               if (process_particle(i, ptr_defer_list_old, defer_list_entries_old)) then
-
-                call do_sched_yield_if_necessary()
 
                 ptr_defer_list_new      => defer_list_new(defer_list_new_tail:total_defer_list_length)
                 defer_list_start_pos(i) =  defer_list_new_tail
@@ -1135,19 +989,6 @@ module module_walk
           end if ! particles_available
         end if ! process_particle
       end function
-
-      subroutine do_sched_yield_if_necessary()
-        implicit none
-        ! after processing a number of particles: handle control to other (possibly comm) thread
-        if (same_core_as_communicator) then
-          if (particles_since_last_yield >= particles_per_yield) then
-            call comm_sched_yield()
-            particles_since_last_yield = 0
-          else
-            particles_since_last_yield = particles_since_last_yield + 1
-          endif
-        endif
-      end subroutine
 
     end function walk_worker_thread
 
