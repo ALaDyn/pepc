@@ -51,7 +51,7 @@ contains
         implicit none
         integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
         integer, intent(in) :: nforceparticles    !< number of particles to compute the force for, i.e. force is computed for particles(1:nforceparticles)
-        type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data appropriately (and optionally set %label) before calling this function
+        type(t_particle), intent(inout) :: particles(:) !< input particle data, initializes %x, %data appropriately (and optionally set %label) before calling this function
 
         integer :: i
         type(t_particle_results), allocatable :: directresults(:)
@@ -326,7 +326,11 @@ contains
         call vtk%startpointdata()
         call vtk%write_data_array("velocity", np_local, particles(:)%data%v(1),    particles(:)%data%v(2),    particles(:)%data%v(3))
         call vtk%write_data_array("el_field", np_local, particles(:)%results%e(1), particles(:)%results%e(2), particles(:)%results%e(3))
+        call vtk%write_data_array("el_field_near", np_local, particles(:)%results%e_near(1), particles(:)%results%e_near(2), particles(:)%results%e_near(3))
+        call vtk%write_data_array("el_field_far", np_local, particles(:)%results%e_far(1), particles(:)%results%e_far(2), particles(:)%results%e_far(3))
         call vtk%write_data_array("el_pot", np_local, particles(:)%results%pot)
+        call vtk%write_data_array("el_pot_near", np_local, particles(:)%results%pot_near)
+        call vtk%write_data_array("el_pot_far", np_local, particles(:)%results%pot_far)
         call vtk%write_data_array("charge", np_local, particles(:)%data%q)
         call vtk%write_data_array("mass", np_local, particles(:)%data%m)
         call vtk%write_data_array("pelabel", np_local, particles(:)%label)
@@ -465,6 +469,7 @@ contains
             if (itime_ <= 1 .and. .not. restart) then
                 open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
                 ! write header
+                write(87, '("# Nt     = ",   i15)') nt
                 write(87, '("# maxR   = ", g15.5)') maxR
                 write(87, '("# NR     = ",   i15)') NR
                 write(87, '("# NTheta = ",   i15)') NTheta
@@ -580,9 +585,9 @@ contains
         use module_directsum
         use module_pepc_types
         implicit none
-          include 'mpif.h'
+        include 'mpif.h'
 
-        type(t_particle), intent(in) :: particles(1:np_local)
+        type(t_particle), intent(inout) :: particles(1:np_local)
         integer, intent(in) :: verbosity !< verbosity level: 0 - only print max. relative deviations, 1 - additionally print all. relative deviations, 2 - additionally print all. calculated forces
         integer, intent(in) :: np_local !< number of local particles
         integer, dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
