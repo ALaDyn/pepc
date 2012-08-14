@@ -33,7 +33,7 @@ module module_walk_communicator
     integer*8, public :: comm_loop_iterations(3) !< number of comm loop iterations (total, sending, receiving)
 
     !> debug flags - cannot be modified at runtime due to performance reasons
-    logical, public, parameter :: walk_comm_debug = .true.
+    logical, public, parameter :: walk_comm_debug = .false.
 
     ! tags to be used in communication
     integer, public, parameter :: TAG_REQUEST_KEY    = 1257 !< message tag for walk communication: message for requesting child data for a certain key
