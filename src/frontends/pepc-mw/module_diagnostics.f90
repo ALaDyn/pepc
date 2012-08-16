@@ -27,8 +27,6 @@ module module_diagnostics
     implicit none
     private
 
-
-
     public write_total_momentum
     public write_particles
     public read_particles
@@ -36,6 +34,7 @@ module module_diagnostics
     public periodic_system_diagnostics
     public verifydirect
     public compute_force_direct
+    public fields_on_spherical_grid
 
 
 
@@ -203,7 +202,7 @@ contains
         use module_checkpoint
         use module_namelist
         implicit none
-            include 'mpif.h'
+        include 'mpif.h'
         logical, intent(in) :: binary, ascii, mpiio, vtk, final
         integer*8 :: npart
         character(255) :: filename
@@ -645,4 +644,128 @@ contains
         deallocate(res)
 
     end subroutine
+    
+    
+    subroutine create_spherical_grid(grid, ngrid, rmax, Nr, Ntheta, Nphi, my_rank, num_pe)
+      use module_pepc_types
+      use module_units
+      implicit none
+      type(t_particle), dimension(:), allocatable :: grid
+      integer, intent(out) :: ngrid
+      real*8, intent(in) :: rmax
+      integer, intent(in) :: Nr, Ntheta, Nphi, my_rank, num_pe
+      
+      integer :: ir, itheta, iphi, idx
+      real*8 :: r, theta, phi
+      
+      if (my_rank .ne. 0) then
+        ngrid = 0
+        allocate(grid(ngrid))
+      else
+        ngrid = (Nr+1)*(Ntheta+1)*(Nphi+1)
+	idx = 0
+        allocate(grid(ngrid))
+      
+        do ir=0,Nr
+          do itheta=0,Ntheta
+	    do iphi=0,Nphi
+	      idx   = idx + 1
+	      theta =      pi / Ntheta * itheta
+	      phi   = 2._8*pi / Nphi   * iphi
+	      r     =    rmax / Nr     * ir
+	      
+	      grid(idx)%x       = r * [ cos(phi)*sin(theta) , sin(phi)*sin(theta), cos(theta) ]
+	      grid(idx)%work    = 1._8
+	      grid(idx)%data%q  = 1._8
+	    
+	    end do
+	  end do
+	end do
+      end if
+      
+    end subroutine create_spherical_grid
+    
+    subroutine fields_on_spherical_grid(itime, time_fs, filename_dump, rmax, my_rank, num_pe)
+      use module_pepc
+      use module_pepc_types
+      use physvars, only : spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi
+      implicit none
+      character(*), intent(in) :: filename_dump
+      real*8, intent(in) :: rmax
+      integer, intent(in) :: itime
+      real*8, intent(in) :: time_fs
+      integer, intent(in) :: my_rank, num_pe
+      type(t_particle), dimension(:), allocatable :: grid
+      integer :: ngrid
+      
+      call create_spherical_grid(grid, ngrid, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, my_rank, num_pe) 
+      call pepc_particleresults_clear(grid, ngrid)
+      call pepc_traverse_tree(ngrid, grid)
+      call dump_spherical_grid(filename_dump, itime, time_fs, grid, ngrid, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
+      
+      deallocate(grid)   
+      
+    end subroutine fields_on_spherical_grid
+    
+
+
+    subroutine dump_spherical_grid(filename, itime, time_fs, grid, ngrid, rmax, Nr, Ntheta, Nphi)
+        use module_pepc_types
+	use physvars, only : nt, restart
+        implicit none
+
+        integer, intent(in) :: itime
+        real*8, intent(in) :: time_fs
+        integer, intent(in) :: Nr, Ntheta, Nphi
+	real*8, intent(in) :: rmax
+        type(t_particle), dimension(:), intent(in) :: grid
+        integer, intent(in) :: ngrid
+        character(*), intent(in) :: filename
+
+        integer :: p, iR, iTheta, iPhi, idata, idx
+        real*8 :: rspherical(3), deltaR, deltaPhi, deltaTheta
+
+        ! output data to file
+        if (itime <= 1 .and. .not. restart) then
+            open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
+            ! write header
+            write(87, '("# Nt     = ",   i15)') nt
+            write(87, '("# maxR   = ", g15.5)') rmax
+            write(87, '("# NR     = ",   i15)') Nr
+            write(87, '("# NTheta = ",   i15)') Ntheta
+            write(87, '("# NPhi   = ",   i15)') Nphi
+
+            write(87, '(a37)',advance='no') '# itime          time_fs             '
+            do iR = 0,NR
+              do iTheta = 0,NTheta
+                do iPhi = 0,NPhi
+                  do idata = 1, 4
+                    write (87, '("[iR=",I3.3,",iT=",I3.3,",iP=",I3.3,"|",I1.1,"] ")',advance='no') iR, iTheta, iPhi, idata
+                  end do
+                end do
+              end do
+            end do
+            write(87, *)
+        else
+            open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
+        endif
+	
+	idx = 0
+
+        write(87,'(i10,g25.12)', advance='no') itime, time_fs
+        do iR = 0,NR
+          do iTheta = 0,NTheta
+            do iPhi = 0,NPhi
+	      idx = idx + 1
+              write (87, '(4g25.12)',advance='no') grid(idx)%results%e(1:3), grid(idx)%results%pot
+            end do
+          end do
+        end do
+        write(87, *)
+
+        close(87)
+
+    end subroutine dump_spherical_grid
+
+      
 end module module_diagnostics

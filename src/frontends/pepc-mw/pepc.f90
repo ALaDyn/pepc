@@ -150,6 +150,8 @@ program pepc
      if (.not. directforce) then
        call pepc_traverse_tree(num_force_particles, particles)
        if (dbg(DBG_STATS)) call pepc_statistics(itime)
+       
+       call fields_on_spherical_grid(itime, trun*unit_t0_in_fs, 'field_spherical.dat', r_sphere, my_rank, n_cpu)
 
        !call verifydirect(particles, np_local, [1, 2, np_local-1, np_local], 3, my_rank, n_cpu, MPI_COMM_PEPC)
 
