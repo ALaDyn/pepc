@@ -604,7 +604,7 @@ module module_htable
                 collision=" "
               endif
 
-              write (debug_ipefile,'(x,i10,x,o10,3(x,i10),x,o22,x,i22,x,o22,x,a1,xi12,x,i10,4x,3(b8.8,"."),b8.8)') &
+              write (debug_ipefile,'(x,i10,x,o10,3(x,i10),x,o22,x,i22,x,o22,x,a1,x,i12,x,i10,4x,3(b8.8,"."),b8.8)') &
                       i,                   &
                       i,                   &
                       htable(i)%owner,     &
