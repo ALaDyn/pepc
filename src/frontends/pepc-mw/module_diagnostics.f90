@@ -74,9 +74,9 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine cluster_diagnostics(itime, time_fs)
-        use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, my_rank, restart
+        use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, my_rank, restart, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi
         implicit none
-             include 'mpif.h'
+        include 'mpif.h'
         integer, intent(in) :: itime
         real*8, intent(in) :: time_fs
         real*8 :: rsq, rclustersq
@@ -118,7 +118,7 @@ contains
 
         ! output total momentum of all negatively charged particles
         call write_total_momentum('momentum_electrons.dat', itime, time_fs, criterion, mom, nboundelectrons)
-        call write_spatially_resolved_data(itime, time_fs, criterion)
+        call write_spatially_resolved_data(itime, time_fs, criterion, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
 
         if (my_rank == 0) then
             if (firstcall .and. .not. restart) then
@@ -401,7 +401,7 @@ contains
         !>
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine write_spatially_resolved_data(itime_, time_fs, selection)
+    subroutine write_spatially_resolved_data(itime_, time_fs, selection, NR, NTheta, NPhi)
         use physvars
         use module_units
         implicit none
@@ -411,9 +411,7 @@ contains
         real*8, intent(in) :: time_fs
         logical, intent(in) :: selection(1:np_local)
 
-        integer, parameter :: NR     = 8
-        integer, parameter :: NTheta = 4
-        integer, parameter :: NPhi   = 4
+        integer, intent(in) :: NR, NTheta, NPhi
 
         real*8 :: maxR
 
@@ -466,76 +464,23 @@ contains
         ! output data to file
         if (my_rank == 0) then
             if (itime_ <= 1 .and. .not. restart) then
-                open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
+                open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION='REWIND', FORM='unformatted')
                 ! write header
-                write(87, '("# Nt     = ",   i15)') nt
-                write(87, '("# maxR   = ", g15.5)') maxR
-                write(87, '("# NR     = ",   i15)') NR
-                write(87, '("# NTheta = ",   i15)') NTheta
-                write(87, '("# NPhi   = ",   i15)') NPhi
-
-                write(87, '(a24)',advance='no') '# itime time_fs / iR    '
-                do iR = 1,NR
-                  do iTheta = 1,NTheta
-                    do iPhi = 1,NPhi
-                      do idata = 1, 5
-                        write (87, '(i25)',advance='no') iR
-                      end do
-                    end do
-                  end do
-                end do
-                write(87, *)
-
-                write(87, '(a24)',advance='no') '# itime time_fs / iTheta'
-                do iR = 1,NR
-                  do iTheta = 1,NTheta
-                    do iPhi = 1,NPhi
-                      do idata = 1, 5
-                        write (87, '(i25)',advance='no') iTheta
-                      end do
-                    end do
-                  end do
-                end do
-                write(87, *)
-
-                write(87, '(a24)',advance='no') '# itime time_fs / iPhi  '
-                do iR = 1,NR
-                  do iTheta = 1,NTheta
-                    do iPhi = 1,NPhi
-                      do idata = 1, 5
-                        write (87, '(i25)',advance='no') iPhi
-                      end do
-                    end do
-                  end do
-                end do
-                write(87, *)
-
-                write(87, '(a24)',advance='no') '# itime time_fs / idata'
-                do iR = 1,NR
-                  do iTheta = 1,NTheta
-                    do iPhi = 1,NPhi
-                      do idata = 1, 5
-                        write (87, '(i25)',advance='no') idata
-                      end do
-                    end do
-                  end do
-                end do
-                write(87, *)
+                write(87) nt, maxR, NR, NTheta, NPhi
             else
-                open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
+                open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION='APPEND', FORM='unformatted')
             endif
 
-            write(87,'(i10,g25.12)', advance='no') itime_, time_fs
+            write(87) itime_, time_fs
             do iR = 1,NR
               do iTheta = 1,NTheta
                 do iPhi = 1,NPhi
                   do idata = 1, 5
-                    write (87, '(g25.12)',advance='no') rawdata(idata, iR, iTheta, iPhi)
+                    write (87) rawdata(idata, iR, iTheta, iPhi)
                   end do
                 end do
               end do
             end do
-            write(87, *)
 
             close(87)
         endif
@@ -727,41 +672,24 @@ contains
 
         ! output data to file
         if (itime <= 1 .and. .not. restart) then
-            open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
+            open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND', FORM='unformatted')
             ! write header
-            write(87, '("# Nt     = ",   i15)') nt
-            write(87, '("# maxR   = ", g15.5)') rmax
-            write(87, '("# NR     = ",   i15)') Nr
-            write(87, '("# NTheta = ",   i15)') Ntheta
-            write(87, '("# NPhi   = ",   i15)') Nphi
-
-            write(87, '(a37)',advance='no') '# itime          time_fs             '
-            do iR = 0,NR
-              do iTheta = 0,NTheta
-                do iPhi = 0,NPhi
-                  do idata = 1, 4
-                    write (87, '("[iR=",I3.3,",iT=",I3.3,",iP=",I3.3,"|",I1.1,"] ")',advance='no') iR, iTheta, iPhi, idata
-                  end do
-                end do
-              end do
-            end do
-            write(87, *)
+            write(87) nt, rmax, Nr, Ntheta, Nphi
         else
-            open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
+            open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND', FORM='unformatted')
         endif
 	
 	idx = 0
 
-        write(87,'(i10,g25.12)', advance='no') itime, time_fs
+        write(87) itime, time_fs
         do iR = 0,NR
           do iTheta = 0,NTheta
             do iPhi = 0,NPhi
 	      idx = idx + 1
-              write (87, '(4g25.12)',advance='no') grid(idx)%results%e(1:3), grid(idx)%results%pot
+              write (87) grid(idx)%results%e(1:3), grid(idx)%results%pot
             end do
           end do
         end do
-        write(87, *)
 
         close(87)
 

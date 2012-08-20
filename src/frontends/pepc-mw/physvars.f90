@@ -103,9 +103,9 @@ module physvars
 
    logical :: directforce = .false. !< if set to true, the frontend only performs a direct force computation instead of utilizing the treecode
 
-    integer, public :: spherical_grid_Nr     = 8
-    integer, public :: spherical_grid_Ntheta = 4
-    integer, public :: spherical_grid_Nphi   = 4
+    integer, public :: spherical_grid_Nr     = 16
+    integer, public :: spherical_grid_Ntheta = 5
+    integer, public :: spherical_grid_Nphi   = 8
 
 end module physvars
 
