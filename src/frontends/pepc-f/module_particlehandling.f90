@@ -6,7 +6,7 @@ module particlehandling
 
     contains
 
-!==================================== hits_on_boundaries ==========================================================
+!================================== hits_on_boundaries ========================================================
 !hits_on_boundaries identifies the particles that hit the target or that left the simulation domain at 
 !x(1)==0 (source)
 !those particles are placed in the plasma again, according to the chosen source distribution

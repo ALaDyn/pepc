@@ -8,6 +8,7 @@
 
 MODULE diagnostics
 
+
     use variables
 
     implicit none

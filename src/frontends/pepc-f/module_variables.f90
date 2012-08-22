@@ -25,7 +25,7 @@
 module variables
   use module_pepc_types
   implicit none
-  ! output variables
+
   integer,parameter :: err_output_id=666
 
   ! MPI variables
@@ -42,7 +42,7 @@ module variables
   integer :: tnp              ! total number of particles (wall +plasma)
   integer*8 :: npart          ! total number of particles, needed as int8 for checkpoints
   integer :: np               ! local number of particles (wall +plasma)
-  integer :: diag_interval
+  integer :: diag_interval    
   integer :: checkp_interval
 
   ! type of source
@@ -54,11 +54,14 @@ module variables
   ! treat electrons in guiding centre approximation
   logical :: guiding_centre_electrons
 
+  
   real*8  :: delx      ! length of plasma (multiples of lambda_debye)
   real*8  :: dely       ! width of plasma (multiples of lamor radius)
   real*8  :: delz       ! width of plasma (multiples of lamor radius)
   real*8  :: dx,dy,dz           ! lenght/width in m
-
+  real*8  :: xmin,ymin,zmin     ! used if the domain does not start at (0,0,0)
+  real*8  :: xmax,ymax,zmax     ! 
+  
   ! physics constants
   real*8, parameter  ::  e=1.602176565e-19
   real*8, parameter  ::  me=9.1093829e-31
@@ -70,46 +73,44 @@ module variables
   real*8             ::  fc                  !force constant: SI: 1/4/Pi/eps0
 
   ! Parameters
-  real*8 :: ti_ev
-  real*8 :: te_ev
+  real*8 :: ti_ev  
+  real*8 :: te_ev 
   real*8 :: Bx               !für räumlich
   real*8 :: By               !konstantes
   real*8 :: Bz               !Magnetfeld
   real*8 :: B
-  real*8 :: ni
-  real*8 :: ne
+  real*8 :: ni  
+  real*8 :: ne 
   real*8 :: l_debye, omega_p, r_lamor
   real*8 :: fsup             !superparticle factor
 
+  ! particle data (position, velocity, mass, charge)
+  type(t_particle), allocatable :: particles(:)
+  integer                       :: next_label
+
   !wall particles
+  type(t_particle), allocatable :: wall_particles(:)
   integer                       :: tnwpy                          !total number of wall particles in y dir
   integer                       :: tnwpz                          !total number of wall particles in z dir
-
+  integer                       :: nwp                            !local number of wall particles
+  integer                       :: tnwp
+  real*8,allocatable            :: wall_pos(:,:)
 
   !plasma particles
   type(t_particle), allocatable :: plasma_particles(:)
-  integer :: tnpp              ! total number of plasma particles
-
-  integer :: cmd_args
-
-  !aux
-  integer(kind=8)::j
-
-  ! particle data (position, velocity, mass, charge)
-  type(t_particle), allocatable :: particles(:)
-  type(t_particle), allocatable :: all_particles(:)
-  DOUBLE PRECISION, allocatable :: particles_npy(:)
-  DOUBLE PRECISION, allocatable :: particles_npy_reshaped(:,:)
-
-  ! timing variables
-  real*8 :: timer(10)
-
-  logical :: vtk
+  integer :: tnpp              ! total number of plasma particles 
+  integer :: npp               ! local number of plasma particles 
 
   !aux strings
-  character(255) :: file_in,file_out,filenameh
+  character(255) :: filename,argument1,argument2
+  !aux ints
+  integer :: cmd_args
+
+  !other
+  integer :: chunk_size_default
 
   namelist /pepcf/ guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /walk_para_smpss/ chunk_size_default
 
 
 end module

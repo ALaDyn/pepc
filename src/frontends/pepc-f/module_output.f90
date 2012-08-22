@@ -7,6 +7,7 @@
 MODULE output
     use helper
 
+
     implicit none
 
     CONTAINS
@@ -28,7 +29,7 @@ MODULE output
     
         ta = get_time()
     
-        time = dt * step
+        time = dt* step
 
         if (step .eq. 0) then
           vtk_step = VTK_STEP_FIRST

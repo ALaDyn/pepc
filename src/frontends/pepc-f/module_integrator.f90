@@ -31,7 +31,7 @@ MODULE integrator
         END IF
 
         DO ip=1, np
-            IF (p(ip)%label>0) THEN                           ! wall particles have negative labels
+            IF (p(ip)%label>0) THEN                            ! wall particles have negative labels
                 beta=p(ip)%data%q / p(ip)%data%m *fact*0.5     ! charge/mass constant needed in Boris-algorithm
                 !   first half-accn <-> first part of Boris-algorithm
                 uxm = p(ip)%data%v(1) + beta * p(ip)%results%e(1) * fc
