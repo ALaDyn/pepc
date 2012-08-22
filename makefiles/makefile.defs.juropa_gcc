@@ -13,7 +13,7 @@ module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 
 MACH     = JUROPA_gcc
 
-DEBUG    = 1
+DEBUG    = 0
 
 RANLIB   = ranlib
 
@@ -49,7 +49,7 @@ CC       = mpicc
 LDPRE    = 
 LD       = mpif90 -fopenmp
 
-LDLIBS   = 
+LDLIBS   = libnpy.a
 
 RM       = rm -rf
 
