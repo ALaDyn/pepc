@@ -26,22 +26,12 @@ module helper
 
   use module_pepc_types
   use variables
-  use zufall
 
   contains
 
-!======================================================================================
-  subroutine set_parameter()
-      
-    use module_pepc
-    use module_interaction_specific
-    use module_mirror_boxes
-    implicit none
-      
-    integer, parameter :: fid = 12
-    character(255)     :: para_file
-    logical            :: read_para_file
 
+<<<<<<< .mine
+=======
 
   
      ! set default parameter values
@@ -192,18 +182,38 @@ module helper
 
 !====================================================================================== 
 
+>>>>>>> .r3385
   subroutine init_after_resume()
       
     use module_pepc
     use module_interaction_specific
-    use module_mirror_boxes
     use module_checkpoint
+
     implicit none
     include 'mpif.h'
       
+<<<<<<< .mine
+    vtk=.false.
+    cmd_args = COMMAND_ARGUMENT_COUNT()
+    if (cmd_args > 1) then
+        call GET_COMMAND_ARGUMENT(1, file_in)
+        call GET_COMMAND_ARGUMENT(2, file_out)
+    end if
+    if (file_out=="vtk") vtk=.true.
+    call read_particles_mpiio_from_filename(MPI_COMM_WORLD,my_rank,n_ranks,step,np,npart,particles,file_in)
+=======
     integer, parameter :: fid = 666
     integer :: global_max_label,local_max_label,i
+>>>>>>> .r3385
 
+<<<<<<< .mine
+    if (vtk) then
+        filenameh = trim(file_in)//".h"
+        open(123, file=trim(filenameh),action='read')
+        read(123,NML=pepcf)
+        close(123)
+    end if
+=======
     ! set default parameter values
     tnpp             = 1337
     nt              = 20
@@ -320,8 +330,11 @@ module helper
 
     call init_periodicity()
 
+>>>>>>> .r3385
     call pepc_prepare(3)
 
+<<<<<<< .mine
+=======
     global_max_label = 0
     local_max_label  = 0
     DO i=1,np
@@ -375,115 +388,54 @@ module helper
       
     end if
 
+>>>>>>> .r3385
   end subroutine
 
+!===============================================================================
 
-!======================================================================================
-
-    subroutine set_checkpoint()
-        use module_checkpoint
-
+    subroutine write_particles_vtk(p)
+        use module_vtk
         implicit none
-        include 'mpif.h'
 
-        integer, parameter :: fid = 666 
-     
-        npart=tnp
-        !call write_particles_ascii(my_rank,step,np,particles,filename)
-        call write_particles_mpiio(MPI_COMM_WORLD,my_rank,step,np,npart,particles,filename)
-        
-        if (root) then
-            open(fid,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
-            write(fid,NML=pepcf)
-            write(fid,NML=walk_para_smpss)
-            close(fid)
+        type(t_particle), allocatable, intent(in) :: p(:)
 
-        endif
+        integer :: i
+        type(vtkfile_unstructured_grid) :: vtk
+        integer :: vtk_step
+        real*8 :: time
+        real*8 :: ta, tb
 
-        if (root) write(*,*)
-        if (root) write(*,*)"=================================================="
-        if (root) write(*,'(a,i6)')"Saving particle data: checkpoint at timestep",step
-        if (root) write(*,*)"=================================================="
-        if (root) write(*,*)
-    end subroutine
+        ta = get_time()
 
-!====================================================================================== 
- 
-   subroutine init()
-        implicit none
-        integer :: rc,i,iy,iz
-        !integer :: rsize
-        !integer, allocatable :: rseed(:)
-        real*8  :: dist_wpz,dist_wpy
+        time = dt * step
 
-        dist_wpz=dz/tnwpz
-        dist_wpy=dy/tnwpy
+        vtk_step = VTK_STEP_NORMAL
 
-        if(my_rank.eq.0) write(*,'(a)') " == [init] init particles "
-    
-        ! set initially number of local wall particles
-        nwp = tnwp / n_ranks
-        if(my_rank.eq.(n_ranks-1)) nwp = nwp + MOD(tnwp, n_ranks)
-        allocate(wall_particles(nwp), stat=rc)
-        if(rc.ne.0) write(*,*) " === wall particle allocation error!"
-        ! set possible wall_particle positions
-        allocate(wall_pos(tnwp,2), stat=rc)
-        if(rc.ne.0) write(*,*) " === wallpos allocation error!"
- 
-        iz=1
-        iy=1
-        DO i=1,tnwp
-            wall_pos(i,1) = iy*dist_wpy-dist_wpy/2.
-            wall_pos(i,2) = iz*dist_wpz-dist_wpz/2.
+        call vtk%create_parallel("particles", step, my_rank, n_ranks, time, vtk_step)
+        call vtk%write_headers(np, 0)
+        call vtk%startpoints()
+        call vtk%write_data_array("xyz", np, p(:)%x(1), p(:)%x(2), p(:)%x(3))
+        call vtk%finishpoints()
+        call vtk%startpointdata()
+        call vtk%write_data_array("velocity", np, p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
+        call vtk%write_data_array("el_field", np, p(:)%results%e(1),p(:)%results%e(2), p(:)%results%e(3))
+        call vtk%write_data_array("el_pot", np, p(:)%results%pot)
+        call vtk%write_data_array("charge", np, p(:)%data%q)
+        call vtk%write_data_array("mass", np, p(:)%data%m)
+        call vtk%write_data_array("work", np, p(:)%work)
+        call vtk%write_data_array("pelabel", np, p(:)%label)
+        call vtk%write_data_array("local index", np, [(i,i=1,np)])
+        call vtk%write_data_array("processor", np, p(:)%pid)
+        call vtk%finishpointdata()
+        call vtk%dont_write_cells()
+        call vtk%write_final()
+        call vtk%close()
 
-            IF (iy==tnwpy) THEN
-                iy=0
-                iz=iz+1
-            END IF        
-            iy=iy+1
-        END DO
+        tb = get_time()
 
-        ! set initially number of local plasma particles
-        npp = tnpp / n_ranks
-        if(my_rank.eq.(n_ranks-1)) npp = npp + MOD(tnpp, n_ranks)
-        allocate(plasma_particles(npp), stat=rc)
-        if(rc.ne.0) write(*,*) " === plasma particle allocation error!"
-  
-        ! set initially number of local particles (wall+plasma)
-        tnp=tnwp+tnpp
-        np = npp + nwp
-        allocate(particles(np), stat=rc)
-        if(rc.ne.0) write(*,*) " === particle allocation error!"
+        !if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
 
-        call init_rng()
-        if (root) write(*,*) "========== Random Number Generator ========="
-        if (root) write(*,'(a,i12)') " == Random Number Generator          : ", rng
-        !call random_seed(size = rsize)
-        !allocate(rseed(rsize))
-        !rseed = my_rank + [(i*144,i=1,rsize)]
-        !call random_seed(put = rseed)
-        !deallocate(rseed)
-
-    end subroutine
-
-
-!======================================================================================
-
-    subroutine init_periodicity()
-        use module_mirror_boxes
-
-        implicit none
-  
-        periodicity=[.false.,.false.,.false.]
-         
-        t_lattice_1=[dx,0.0_8,0.0_8]
-        t_lattice_2=[0.0_8,dy,0.0_8]
-        t_lattice_3=[0.0_8,0.0_8,dz]
-
-        LatticeOrigin=[xmin,ymin,zmin]
-
-    end subroutine
-        
+    end subroutine write_particles_vtk
 
 !======================================================================================
   real*8 function get_time()
@@ -494,6 +446,8 @@ module helper
     
   end function get_time
 
+<<<<<<< .mine
+=======
 !======================================================================================
   logical function hit_wall(p)
     implicit none
@@ -550,4 +504,5 @@ module helper
   
   end subroutine
 
+>>>>>>> .r3385
 end module

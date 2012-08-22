@@ -24,116 +24,84 @@ program pepc
     ! pepc modules
     use module_pepc
     use module_pepc_types
-    use module_mirror_boxes
     use module_checkpoint
-    use module_timings
-    use module_debug
   
     ! frontend helper routines
     use helper
     use variables
-    use particlehandling
-    use integrator
-    use output
-    use diagnostics
+    use fnpy
 
     implicit none
     include 'mpif.h'
-  
-    ! timing variables
-    real*8 :: timer(10)
-
 
     !!! initialize pepc library and MPI
-    call pepc_initialize("pepc-f", my_rank, n_ranks, .true.)
+    call pepc_initialize("pepc-numpy", my_rank, n_ranks, .true.)
 
     root = my_rank.eq.0
   
     timer(1) = get_time()
    
-    call GET_COMMAND_ARGUMENT(1, argument1)
-    if (argument1=="resume")then
-        call init_after_resume()
-    else
-        call set_parameter()
-        call init()
+    call init_after_resume()
 
-        call init_particles(plasma_particles)
-        call init_wall_particles(wall_particles)          !wall particles and plasma particles are initialized seperately
-
-        particles(1:npp)=plasma_particles(:)              !and than combined in one array for the pepc routines
-        particles(npp+1:npp+nwp)=wall_particles(:)
-    end if
- 
     timer(2) = get_time()
-    if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
-
-    do step=startstep, nt-1+startstep
-        if(root) then
-            write(*,*) " "
-            write(*,'(a,i12)')    " ====== computing step  :", step
-            write(*,'(a,es12.4)') " ====== simulation time :", step * dt
-        end if
-    
-        !pepc routines and timing
+    if (vtk) then
+        call write_particles_vtk(particles)
         timer(3) = get_time()
-        call pepc_particleresults_clear(particles, np)
-        call pepc_grow_tree(np, tnp, particles)
-        call pepc_traverse_tree(np, particles)
-        if (dbg(DBG_STATS)) call pepc_statistics(step)
-        call pepc_restore_particles(np, particles)
-        call pepc_timber_tree()
-        timer(4) = get_time()
+        deallocate(particles)
+        if (root) write(*,'(a)')        " ===== finished file conversion to VTK format"
+
+    else
+        if (root) allocate(all_particles(npart))
+        if (root) allocate(particles_npy(0:18*npart-1))
+        if (root) allocate(particles_npy_reshaped(0:17,0:npart-1))
+
+        call MPI_GATHER(particles,np,MPI_TYPE_PARTICLE,all_particles,npart,MPI_TYPE_PARTICLE,0,MPI_COMM_WORLD,ierr)
+
+        if (root) then
+        do j=0,npart-1
+            particles_npy(j)=all_particles(j+1)%x(1)
+            particles_npy(j+1*npart)=all_particles(j+1)%x(2)
+            particles_npy(j+2*npart)=all_particles(j+1)%x(3)
+            particles_npy(j+3*npart)=all_particles(j+1)%data%v(1)
+            particles_npy(j+4*npart)=all_particles(j+1)%data%v(2)
+            particles_npy(j+5*npart)=all_particles(j+1)%data%v(3)
+            particles_npy(j+6*npart)=sqrt(particles_npy(j+5*npart)**2+particles_npy(j+3*npart)**2+particles_npy(j+4*npart)**2)
+            particles_npy(j+7*npart)=all_particles(j+1)%results%e(1)
+            particles_npy(j+8*npart)=all_particles(j+1)%results%e(2)
+            particles_npy(j+9*npart)=all_particles(j+1)%results%e(3)
+            particles_npy(j+10*npart)=sqrt(particles_npy(j+9*npart)**2+particles_npy(j+8*npart)**2+particles_npy(j+7*npart)**2)
+            particles_npy(j+11*npart)=all_particles(j+1)%results%pot
+            particles_npy(j+12*npart)=all_particles(j+1)%data%m
+            particles_npy(j+13*npart)=all_particles(j+1)%data%q
+            particles_npy(j+14*npart)=j+1
+            particles_npy(j+15*npart)=all_particles(j+1)%label
+            particles_npy(j+16*npart)=all_particles(j+1)%work
+            particles_npy(j+17*npart)=all_particles(j+1)%pid
+        end do
+        endif
+        particles_npy_reshaped=reshape(particles_npy,[18_8,npart],order=[2,1])
+        timer(3) = get_time()
+
+        call save_double(file_out, shape(particles_npy_reshaped), particles_npy_reshaped)
+
+        deallocate(particles,all_particles,particles_npy_reshaped,particles_npy)
+        if (root) write(*,'(a)')        " ===== finished file conversion to npy format"
+    end if
 
 
-        !diagnostics and checkpoints with timing
-        !diagnostics are carried out, when fields are computed according to current positions
-        !afterwards, they are moved and filtered (boundary-hits, ionization...)
-        !checkpoint
-        if(checkp_interval.ne.0) then
-            if (MOD(step,checkp_interval)==0) then
-                call set_checkpoint()
-            end if
-        end if
-        !vtk output
-        if(diag_interval.ne.0) then
-            if ((MOD(step,diag_interval)==0).or.(step==nt-1+startstep)) THEN
-                call write_particles(particles)
-            end if
-        end if
-        !timing output for different processes
-        !call timings_LocalOutput(step)
-        call timings_GatherAndOutput(step)
-        timer(5) = get_time()
-
-
-        !integrator and filtering with timing
-        !particles get their new velocities and positions, particles are filtered and new particles created
-        call boris_nonrel(particles)
-        if (open_sides) then
-            !open sides (particles leave and are refluxed)
-            call hits_on_boundaries_with_open_sides(particles)
-        else
-            !periodic sides (particles enter on other side after leaving domain)
-            call hits_on_boundaries(particles)
-        end if
-        timer(6) = get_time()
-    
-
-        !output for root process
-        if(root) write(*,'(a,es12.4)') " == time in pepc routines [s]                     : ", timer(4) - timer(3)
-        if(root) write(*,'(a,es12.4)') " == time in output routines [s]                   : ", timer(5) - timer(4)
-        if(root) write(*,'(a,es12.4)') " == time in integrator and particlehandling [s]   : ", timer(6) - timer(5)
-
-    end do
-
-    deallocate(particles)
-    timer(7) = get_time()
+    timer(4) = get_time()
 
     if(root) then
         write(*,*)            " "
-        write(*,'(a)')        " ===== finished pepc simulation"
-        write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(7) - timer(1)
+        write(*,'(a,es12.4)') " ===== time for initialization [s]: ", timer(2) - timer(1)
+        if (vtk) then
+            write(*,'(a,es12.4)') " ===== time for writing data [s]:   ", timer(3) - timer(2)
+            write(*,'(a,es12.4)') " ===== total run time [s]:          ", timer(4) - timer(1)
+        else
+            write(*,'(a,es12.4)') " ===== time for creating array [s]: ", timer(3) - timer(2)
+            write(*,'(a,es12.4)') " ===== time for writing file [s]:   ", timer(4) - timer(3)
+            write(*,'(a,es12.4)') " ===== total run time [s]:          ", timer(4) - timer(1)
+        end if
     end if
 
     !!! cleanup pepc and MPI
