@@ -1,7 +1,6 @@
 #
 #  build-level makefile for pepc
 #
-
 include makefile.envs
 include makefile.paths
 include makefile.defs

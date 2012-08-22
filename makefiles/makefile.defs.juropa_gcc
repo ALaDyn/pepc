@@ -49,7 +49,7 @@ CC       = mpicc
 LDPRE    = 
 LD       = mpif90 -fopenmp
 
-LDLIBS   = libnpy.a
+LDLIBS   += 
 
 RM       = rm -rf
 
