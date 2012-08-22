@@ -1,16 +1,20 @@
-! Plasma slab with perpendicular magnetic field
+! Inputs for Kelvin-Helmholtz instability in
+! plasma slab with perpendicular magnetic field
 ! Periodic in y-direction 
+! Should take about 4 hours on BG/Q midplane (512 nodes) @ 4 ranks/node, 8 threads
 
  &pepcb
+
  ncpu_merge = 1
- debug_level = 1
+ debug_level = 1 
  mac=0
 
 ! np_error = 200 ! uncomment to do error test
- 
+    
+
 ! particles
-  ne = 1024000
-  ni = 1024000 
+  ne = 20000000
+  ni = 20000000
 
  plasma_config = 2  ! special start
  ispecial=7  ! gridded ions; electrons placed within a_ii/10
@@ -22,27 +26,28 @@
 ! force_const=0.
 
   theta = 0.6
-  eps = 1.0  ! smoothing parameter in norm units
+  eps = 0.2  ! smoothing parameter in norm units
   
   vte=1.0  ! Choose Debye norms (vte, wp, lambda_De)
   Te_kev=1.0
-  Ti_kev=1.0
+  Ti_kev=1.0    ! Ti/Te=1/4
 
   mass_ratio = 100.
   x_plasma = 50.    ! plasma disc thickness/ wire length 
-  y_plasma = 100.    ! plasma width (slab target) 
+  y_plasma = 125.    ! plasma width (slab target) 
   z_plasma = 0.     ! plasma width (slab target)
-  xl = 150  ! graphics box size
-  yl = 100 
-  zl =4 
- ngx=200
- ngy=200
+  xl = 100  ! graphics box size
+  yl = 125 
+  zl =4
+ displace = 50.,0.,0. 
+ ngx=400
+ ngy=400
  nxh=50
  ngav=50
  
 ! external field
   beam_config_in = 7  ! uniform Bz 
-  vosc = 1.0 
+  vosc = 1.0 ! Omega_e/omega_p 
 
 ! fmm-periodicity framework
 ! lattice basis vectors
@@ -56,40 +61,41 @@
   ! extrinsic-to-intrinsic correction
 !  do_extrinsic_correction = .false. 
 
- scheme = 7 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
+ scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
-  nt =10
-  dt = 0.1
+  nt = 3000
+  dt = 0.15
  restart = .false.
   vis_on = .false.
  ivis = 5 
- ivis_fields = 10
+ ivis_fields = 100 
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
-  idump = 1000
+  idump = -500
   iprot=100
   itrack=300
-  particle_bcs = 3 /
+  particle_bcs = 4 /
 
 
 &libpepc
-      np_mult=-40
-      debug_level = 0
-      
-      ! Choose sorting routine and load balancing
-      ! 0: no load balancing, 1: load balancing
-      weighted = 1                                                                     
 
-      curve_type=0  ! Morton curve
-      /
+  np_mult=-50
+  debug_level = 1
+
+  ! 0: no load balacing, 1: load 
+  weighted = 1                    
+
+  ! space filling curve
+  curve_type=0
+
+ /
 
 &calc_force_coulomb
 
 /
 
 &walk_para_pthreads
-       num_walk_threads =4
-      /
-
+  num_walk_threads = 8
+ /
