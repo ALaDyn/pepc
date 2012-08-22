@@ -10,6 +10,7 @@ MODULE integrator
 
     CONTAINS
 
+
 !=======================================================================================================
 !takes array of type t_particle, calculates new velocities and positions using the boris algorithm
     SUBROUTINE boris_nonrel(p)
@@ -31,11 +32,11 @@ MODULE integrator
 
         DO ip=1, np
             IF (p(ip)%label>0) THEN                           ! wall particles have negative labels
-                beta=p(ip)%data%q / p(ip)%data%m *fact*0.5    ! charge/mass constant needed in Boris-algorithm
+                beta=p(ip)%data%q / p(ip)%data%m *fact*0.5     ! charge/mass constant needed in Boris-algorithm
                 !   first half-accn <-> first part of Boris-algorithm
-                uxm = p(ip)%data%v(1) + beta * p(ip)%results%e(1)
-                uym = p(ip)%data%v(2) + beta * p(ip)%results%e(2)
-                uzm = p(ip)%data%v(3) + beta * p(ip)%results%e(3)
+                uxm = p(ip)%data%v(1) + beta * p(ip)%results%e(1) * fc
+                uym = p(ip)%data%v(2) + beta * p(ip)%results%e(2) * fc
+                uzm = p(ip)%data%v(3) + beta * p(ip)%results%e(3) * fc
 
                 !   rotation
                 tx = beta * p(ip)%data%B(1)
@@ -43,9 +44,9 @@ MODULE integrator
                 tz = beta * p(ip)%data%B(3)
                 tt = 1.0 + tx**2 + ty**2 + tz**2
 
-                sx = 2.0*tx/tt
-                sy = 2.0*ty/tt
-                sz = 2.0*tz/tt
+                sx = 2.0 * tx/tt
+                sy = 2.0 * ty/tt
+                sz = 2.0 * tz/tt
 
                 uxd = uxm + uym*tz - uzm*ty
                 uyd = uym + uzm*tx - uxm*tz

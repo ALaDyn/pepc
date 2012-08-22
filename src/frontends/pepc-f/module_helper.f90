@@ -67,6 +67,8 @@ module helper
     dz=0.
     diag_interval   =0
     checkp_interval =0
+    open_sides =.false.
+    guiding_centre_electrons=.false.
     
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
@@ -148,6 +150,7 @@ module helper
       write(*,'(a,es12.4)') " == superparticle factor             : ", fsup
       write(*,'(a,es12.4)') " == particles / debye spehere        : ", 0.5*tnpp/(dx*dy*dz)*l_debye**3
       write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
+      write(*,'(a,l)')      " == open side walls                  : ", open_sides
       write(*,*)
       write(*,*) "========== Magnetic Field ========="
       write(*,'(a,f12.4)')  " == Bx                               : ", Bx
@@ -200,9 +203,6 @@ module helper
       
     integer, parameter :: fid = 666
     integer :: global_max_label,local_max_label,i
-    !integer :: rsize,i
-    !integer, allocatable :: rseed(:)
-
 
     ! set default parameter values
     tnpp             = 1337
@@ -226,6 +226,9 @@ module helper
     dz=0.
     diag_interval   =0
     checkp_interval =0
+    open_sides =.false.
+    guiding_centre_electrons=.false.
+
 
     if (root) CALL SYSTEM ('python last_succ_ts.py > resume_int.dat')
     if (root) open(unit = 666, file = "resume_int.dat")
@@ -241,6 +244,14 @@ module helper
       
     call read_particles_mpiio(startstep,MPI_COMM_WORLD,my_rank,n_ranks,step,np,npart,particles,filename)    
     startstep=step
+
+    cmd_args = COMMAND_ARGUMENT_COUNT()
+    if (cmd_args > 1) then
+        call GET_COMMAND_ARGUMENT(2, argument2)
+        !if (root) write (*,*) "cmd_args > 1",cmd_args
+        filename=argument2
+        call pepc_read_parameters_from_file_name(filename)
+    end if
 
     if(root) write(*,'(a)') " == reading parameter file, section pepc-f: ", filename
     open(fid,file=filename)
@@ -328,6 +339,7 @@ module helper
       write(*,'(a,es12.4)') " == superparticle factor             : ", fsup
       write(*,'(a,es12.4)') " == particles / debye spehere        : ", 0.5*tnpp/(dx*dy*dz)*l_debye**3
       write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
+      write(*,'(a,l)')      " == open side walls                  : ", open_sides
       write(*,*)
       write(*,*) "========== Magnetic Field ========="
       write(*,'(a,f12.4)')  " == Bx                               : ", Bx
@@ -507,6 +519,20 @@ module helper
     end if
      
   end function hit_src
+
+
+!======================================================================================
+  logical function hit_side(p)
+    implicit none
+    type(t_particle), intent(in) :: p
+
+    if (((p%x(2) < ymin).or.(p%x(2) > ymax).or.(p%x(3) < zmin).or.(p%x(3) > zmax)) .and. p%label > 0) then
+        hit_side = .true.
+    else
+        hit_side = .false.
+    end if
+
+  end function hit_side
 
 !======================================================================================
   subroutine reallocate_particles(list, oldn, newn)

@@ -52,11 +52,8 @@ program pepc
     timer(1) = get_time()
    
     call GET_COMMAND_ARGUMENT(1, argument1)
-    !call GET_COMMAND_ARGUMENT(2, argument2)
     if (argument1=="resume")then
         call init_after_resume()
-    !else if (argument1=="particle_config")then
-
     else
         call set_parameter()
         call init()
@@ -70,7 +67,6 @@ program pepc
  
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
-
 
     do step=startstep, nt-1+startstep
         if(root) then
@@ -94,12 +90,16 @@ program pepc
         !diagnostics are carried out, when fields are computed according to current positions
         !afterwards, they are moved and filtered (boundary-hits, ionization...)
         !checkpoint
-        if ((MOD(step,checkp_interval)==0).and.(checkp_interval.ne.0)) then
-            call set_checkpoint()
+        if(checkp_interval.ne.0) then
+            if (MOD(step,checkp_interval)==0) then
+                call set_checkpoint()
+            end if
         end if
         !vtk output
-        if (((MOD(step,diag_interval)==0).or.(step==nt-1+startstep)).and.(diag_interval.ne.0)) THEN
-            call write_particles(particles)
+        if(diag_interval.ne.0) then
+            if ((MOD(step,diag_interval)==0).or.(step==nt-1+startstep)) THEN
+                call write_particles(particles)
+            end if
         end if
         !timing output for different processes
         !call timings_LocalOutput(step)
@@ -110,7 +110,13 @@ program pepc
         !integrator and filtering with timing
         !particles get their new velocities and positions, particles are filtered and new particles created
         call boris_nonrel(particles)
-        call hits_on_boundaries(particles)
+        if (open_sides) then
+            !open sides (particles leave and are refluxed)
+            call hits_on_boundaries_with_open_sides(particles)
+        else
+            !periodic sides (particles enter on other side after leaving domain)
+            call hits_on_boundaries(particles)
+        end if
         timer(6) = get_time()
     
 

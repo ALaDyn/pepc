@@ -50,6 +50,10 @@ module variables
   integer :: quelltyp
   ! type of rng (0=standard fortran,1=par_rand from module_zufall)
   integer :: rng
+  ! open sides or periodic sides
+  logical :: open_sides
+  ! treat electrons in guiding centre approximation
+  logical :: guiding_centre_electrons
 
   
   real*8  :: delx      ! length of plasma (multiples of lambda_debye)
@@ -99,12 +103,14 @@ module variables
   integer :: npp               ! local number of plasma particles 
 
   !aux strings
-  character(255) :: filename,argument1!,argument2
+  character(255) :: filename,argument1,argument2
+  !aux ints
+  integer :: cmd_args
 
   !other
   integer :: chunk_size_default
 
-  namelist /pepcf/ tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /pepcf/ guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 
