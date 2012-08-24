@@ -787,7 +787,7 @@ module spherical_fourier
       real*8 :: Scnlm_w(1:NUMCOMPONENTS, 1:NR/2, 0:NTheta/2, 0:NTheta/2)
       integer, intent(in) :: component
       character(*), intent(in) :: filename
-      character*11 :: formatstring = '????(g15.5)'
+      character*11 :: formatstring = '(????g15.5)'
       
       integer :: i
       
@@ -796,7 +796,7 @@ module spherical_fourier
 
       write(*,'("[STATUS] ", "spherical_fourier_decomposition_for_all")')
       
-      write(formatstring(1:4),'(I4.4)') NR/2*(NTheta/2+1)*(NTheta/2+1) + 1
+      write(formatstring(2:5),'(I4.4)') NR/2*(NTheta/2+1)*(NTheta/2+1) + 1
 
 
       open(24,file=trim(filename),status='unknown',position='rewind',action='write')
