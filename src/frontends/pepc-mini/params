@@ -1,10 +1,10 @@
 &pepcmini
 
 ! total number of particles
-tnp = 12500
+tnp = 50000
 
 ! number of time steps
-nt = 50
+nt = 1
 
 ! time step
 dt = 2.5e-2
@@ -63,7 +63,7 @@ chunk_size_default = 21
 /
 
 &walk_para_pthreads
- num_walk_threads = 2
+ num_walk_threads = 8
  max_particles_per_thread = 1000
 /
 

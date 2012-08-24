@@ -74,7 +74,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine cluster_diagnostics(itime, time_fs)
-        use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, my_rank, restart, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi
+        use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, my_rank, restart, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, rcluster
         implicit none
         include 'mpif.h'
         integer, intent(in) :: itime
@@ -119,6 +119,8 @@ contains
         ! output total momentum of all negatively charged particles
         call write_total_momentum('momentum_electrons.dat', itime, time_fs, criterion, mom, nboundelectrons)
         call write_spatially_resolved_data(itime, time_fs, criterion, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
+	
+	rcluster = sqrt(rclustersq)
 
         if (my_rank == 0) then
             if (firstcall .and. .not. restart) then
@@ -466,7 +468,7 @@ contains
             if (itime_ <= 1 .and. .not. restart) then
                 open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION='REWIND', FORM='unformatted')
                 ! write header
-                write(87) nt, maxR, NR, NTheta, NPhi
+                write(87) nt, maxR, rcluster, NR, NTheta, NPhi
             else
                 open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION='APPEND', FORM='unformatted')
             endif
@@ -656,7 +658,7 @@ contains
 
     subroutine dump_spherical_grid(filename, itime, time_fs, grid, ngrid, rmax, Nr, Ntheta, Nphi)
         use module_pepc_types
-	use physvars, only : nt, restart
+	use physvars, only : nt, restart, rcluster
         implicit none
 
         integer, intent(in) :: itime
@@ -666,6 +668,7 @@ contains
         type(t_particle), dimension(:), intent(in) :: grid
         integer, intent(in) :: ngrid
         character(*), intent(in) :: filename
+	logical, save :: dumpedgrid = .false.
 
         integer :: p, iR, iTheta, iPhi, idata, idx
         real*8 :: rspherical(3), deltaR, deltaPhi, deltaTheta
@@ -674,7 +677,7 @@ contains
         if (itime <= 1 .and. .not. restart) then
             open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND', FORM='unformatted')
             ! write header
-            write(87) nt, rmax, Nr, Ntheta, Nphi
+            write(87) nt, rmax, rcluster, Nr, Ntheta, Nphi
         else
             open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND', FORM='unformatted')
         endif
@@ -692,6 +695,24 @@ contains
         end do
 
         close(87)
+	
+	if (.not. dumpedgrid) then
+	  dumpedgrid = .true.
+          open(87, FILE=trim(filename)//"_grid.dat",STATUS='UNKNOWN', POSITION = 'REWIND', FORM='unformatted')
+          ! write header
+          write(87) nt, rmax, Nr, Ntheta, Nphi
+          idx = 0
+	  
+          do iR = 0,NR
+            do iTheta = 0,NTheta
+              do iPhi = 0,NPhi
+	        idx = idx + 1
+                write (87) grid(idx)%x
+              end do
+            end do
+          end do
+	  
+	endif
 
     end subroutine dump_spherical_grid
 
