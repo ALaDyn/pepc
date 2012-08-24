@@ -137,10 +137,14 @@ module module_data
       integer :: ios, iR, iTheta, iPhi
       integer :: datindex, lineindex
       real*8, allocatable :: dummy(:,:,:,:)
+      
+      load_data = .false.
 
       write(*,'("[STATUS] ", "load_data")')
 
-      open(87,file=trim(filename),status='old',position='rewind',action='read', FORM='unformatted')
+      open(87,file=trim(filename),status='old',position='rewind',action='read', FORM='unformatted',iostat=ios)
+      
+      if (ios .ne. 0) return
       
       read(87) Nt_max, maxR, rcl, NR, NTheta, NPhi
 
@@ -679,8 +683,6 @@ module spherical_fourier
 	  end do
         end do
       
-      write(*,*) freqindex, abscissa(freqindex), Scnlm_w(1,:,:,:)
-      
     end subroutine
     
 
@@ -793,18 +795,16 @@ module spherical_fourier
       
       call spherical_fourier_decomposition_init()
 
-
       write(*,'("[STATUS] ", "spherical_fourier_decomposition_for_all")')
       
       write(formatstring(2:5),'(I4.4)') NR/2*(NTheta/2+1)*(NTheta/2+1) + 1
-
 
       open(24,file=trim(filename),status='unknown',position='rewind',action='write')
 
       do i=1,Nt/2 ! second half of spectrum is boring anyway
         call progress(i, Nt/2)
         call spherical_fourier_decomposition(i, Scnlm_w)
-        write(24,formatstring, advance='no') abscissa(i), Scnlm_w(component, :, :, :)
+        write(24,formatstring) abscissa(i), Scnlm_w(component, :, :, :)
       end do
       
       close(24)
@@ -900,7 +900,7 @@ module computations
       call abscissa_convert_to_frequencies()
       !call observable_write_to_vtk('fields/spherical_fields_fft')
       call observable_spectrum_to_file('./spectrum.dat') ! TODO: rename this file
-      call spherical_fourier_decomposition_for_all(4,'./sperical_fourier_coeffs_phi.dat') ! TODO: rename this file
+      call spherical_fourier_decomposition_for_all(4,'./spherical_fourier_coeffs_phi.dat') ! TODO: rename this file
     endif
 
     call free_data()
@@ -923,7 +923,7 @@ program spatially_resolved_spherical_fields
   call system('mkdir -p fields')
 
   if (argc < 1) then
-    write(*,*) 'Call with file to be processed as first argument. Exiting.'
+    write(*,*) 'Call with directories to be processed as arguments. Exiting.'
     stop
   endif
 
