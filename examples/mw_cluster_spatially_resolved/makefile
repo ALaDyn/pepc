@@ -17,10 +17,9 @@ all: loadmodules $(EXECUTABLES)
 clean:
 	rm -rf $(EXECUTABLES) *.mod
 
-%: %.f90
+%: %.f90 makefile
 	@echo "== compiling F90 file :" $<
-	$(FCPRE) $(FC) -c $(FFLAGS) $< -o $@ $(LIBS)
+	$(FCPRE) $(FC) $(FFLAGS) $< -o $@ $(LIBS)
 
 loadmodules:
 	@echo "Do not forget to 'source modules.sh' before compiling and running"
-	@echo $(FFTW_ROOT)
