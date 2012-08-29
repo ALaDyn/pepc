@@ -9,17 +9,28 @@ else
   FFLAGS   = -O5 -openmp 
 endif
 
-EXECUTABLES = spatially_resolved_ccf spatially_resolved_ccf_jackknife spatially_resolved_spherical_fields
+EXECUTABLES = spatially_resolved_ccf spatially_resolved_ccf_jackknife spatially_resolved_spherical_fields spatially_resolved_spherical_fields_jackknife
+MODULES     = progress.o module_math.o
 FC          = mpif90
 
-all: loadmodules $(EXECUTABLES)
+all: loadmodules $(EXECUTABLES) bfunc.so
 
 clean:
-	rm -rf $(EXECUTABLES) *.mod
+	rm -rf $(EXECUTABLES) *.mod *.o *.so
 
-%: %.f90 makefile
+%: %.f90 makefile $(MODULES)
 	@echo "== compiling F90 file :" $<
-	$(FCPRE) $(FC) $(FFLAGS) $< -o $@ $(LIBS)
+	$(FCPRE) $(FC) $(FFLAGS) $< -o $@ $(MODULES) $(LIBS)
+	
+%.o: %.f90 makefile
+	@echo "== compiling F90 file :" $<
+	$(FCPRE) $(FC) $(FFLAGS) -fPIC $< -c -o $@ $(LIBS)
+	
+bfunc.so: bfunc_python.f90 module_math.o makefile
+	f2py -m bfunc -c module_math.o bfunc_python.f90
 
 loadmodules:
 	@echo "Do not forget to 'source modules.sh' before compiling and running"
+
+# this rule prevents the .o-files from being deleted
+.SECONDARY: $(MODULES)
