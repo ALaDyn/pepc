@@ -3,6 +3,7 @@
 from pylab import *
 #from scipy import *
 import numpy as numpy
+from mpl_toolkits.mplot3d import axes3d
 
 #from scipy import optimize
 #from scipy import odr
@@ -58,6 +59,16 @@ def plotfile_spherical_fourier_coeffs(filename, NR_NTheta_NPhi, lims):
   gca().set_yscale('symlog', linthreshy=lims[2])
   gca().set_xscale('log')
   
+
+def contourplotstuff(nrows, ncols, irow, icol, xvals, yvals, values, xlabel, ylabel):
+    ax = plt.subplot(nrows, ncols, icol + 1 + ncols*(irow-1))
+    ax.contour( xvals, yvals, values, 15, linewidths=0.5,colors='k')
+    ax.contourf(xvals, yvals, values, 15, cmap=plt.cm.jet)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
+
   
 
 def plotfile_excitation_image_at_frequency(frequencies, filename, NR_NTheta_NPhi, maxR, use_raitza_definition):
@@ -72,7 +83,7 @@ def plotfile_excitation_image_at_frequency(frequencies, filename, NR_NTheta_NPhi
   maxn      = NR_NTheta_NPhi[0]/2
   numfreqs  = len(frequencies)
 
-  fig = plt.figure(figsize=(plotsize*numfreqs,2*plotsize))
+  fig = plt.figure(figsize=(plotsize*numfreqs,6*plotsize))
   fig.suptitle(filename)
 
   for ifreq in range(numfreqs):
@@ -100,40 +111,56 @@ def plotfile_excitation_image_at_frequency(frequencies, filename, NR_NTheta_NPhi
         n = n + 1
 
       coeffs[n-1, l, m] = raw[freqidx,i]
-  
-    nx, nz = (100, 100)
+      
+    nx, ny = (100, 100)
     x      = numpy.linspace(-maxR, maxR, nx)
-    z      = numpy.linspace(-maxR, maxR, nz)
-    xv, zv = meshgrid(x, z)
+    y      = numpy.linspace(-maxR, maxR, ny)
+    xv, yv = meshgrid(x, y)
   
-    values = numpy.zeros((nx,nz))
+    values = numpy.zeros((nx,ny))
   
     for i in range(nx):
-      for j in range(nz):
-        # treat xv[i,j], yv[i,j]
+      for j in range(ny):
         for n in range(1,maxn+1):
           for l in range(0,maxl+1):
-            for m in range(0,l+1):
-	      values[i,j] = values[i,j] + coeffs[n-1,l,m] * bfunc.bindings.my_bfunc(n, l, m, [xv[i,j], 0., zv[i,j]], use_raitza_definition, maxR)
+            for m in range(0,l+1): # TODO: m=-l..l
+	      values[i,j] = values[i,j] + coeffs[n-1,l,m] * bfunc.bindings.my_bfunc(n, l, m, [xv[i,j], yv[i,j], 0.], use_raitza_definition, maxR)
 	    
-    plt.subplot(2, numfreqs, ifreq + 1)
-    plt.contour( xv, zv, values, 15, linewidths=0.5,colors='k')
-    plt.contourf(xv, zv, values, 15, cmap=plt.cm.jet)
-    plt.title("$\omega = %f fs^{-1}$" % realfreq)
+    contourplotstuff(6, numfreqs, 1, ifreq, xv, yv,     values,  'X', 'Y')
+    contourplotstuff(6, numfreqs, 2, ifreq, xv, yv, abs(values), 'X', 'Y')
+
   
-    plt.subplot(2, numfreqs, ifreq + 1 + numfreqs)
-    plt.contour( xv, zv, abs(values), 15, linewidths=0.5,colors='k')
-    plt.contourf(xv, zv, abs(values), 15, cmap=plt.cm.jet)
+    values = numpy.zeros((nx,ny))
   
+    for i in range(nx):
+      for j in range(ny):
+        for n in range(1,maxn+1):
+          for l in range(0,maxl+1):
+            for m in range(0,l+1): # TODO: m=-l..l
+	      values[i,j] = values[i,j] + coeffs[n-1,l,m] * bfunc.bindings.my_bfunc(n, l, m, [xv[i,j], 0., yv[i,j]], use_raitza_definition, maxR)
+	    
+    contourplotstuff(6, numfreqs, 3, ifreq, xv, yv,     values,  'X', 'Z')
+    contourplotstuff(6, numfreqs, 4, ifreq, xv, yv, abs(values), 'X', 'Z')
+
   
+    values = numpy.zeros((nx,ny))
   
+    for i in range(nx):
+      for j in range(ny):
+        for n in range(1,maxn+1):
+          for l in range(0,maxl+1):
+            for m in range(0,l+1): # TODO: m=-l..l
+	      values[i,j] = values[i,j] + coeffs[n-1,l,m] * bfunc.bindings.my_bfunc(n, l, m, [0., xv[i,j], yv[i,j]], use_raitza_definition, maxR)
+	    
+    contourplotstuff(6, numfreqs, 5, ifreq, xv, yv,     values,  'Y', 'Z')
+    contourplotstuff(6, numfreqs, 6, ifreq, xv, yv, abs(values), 'Y', 'Z')
 
   
 	
 NR_NTheta_NPhi = [16, 6, 6]	
 
 
-plotfile_spherical_fourier_coeffs("field_spherical_fourier_coeffs_raitza_phi", NR_NTheta_NPhi, [[3.0,15.0], [-1.5e9, 1.5e10], 5.0e5])
+#plotfile_spherical_fourier_coeffs("field_spherical_fourier_coeffs_raitza_phi", NR_NTheta_NPhi, [[3.0,15.0], [-1.5e9, 1.5e10], 5.0e5])
 plotfile_excitation_image_at_frequency([4.65, 6.48, 6.85, 7.18, 7.48, 7.81, 8.18], "field_spherical_fourier_coeffs_raitza_phi", NR_NTheta_NPhi, 1.0, True)
 
 #plotfile_spherical_fourier_coeffs("field_spherical_fourier_coeffs_wang_phi", NR_NTheta_NPhi,   [[3.0,15.0], [-8.0e-5, 5.0e-5 ], 3.0e-5])

@@ -304,7 +304,7 @@ module spherical_fourier
     real*8, allocatable, dimension(:,:,:) :: Rtilda
     real*8, allocatable, dimension(:,:)   :: MM
     real*8, allocatable, dimension(:,:,:) :: P
-    real*8, allocatable, dimension(:,:)   :: E
+    complex*16, allocatable, dimension(:,:)   :: E
   
   contains
 
@@ -337,11 +337,11 @@ module spherical_fourier
       use module_data
       implicit none
       integer, intent(in) :: freqindex
-      real*8, intent(out) :: Scnlm_w(1:NUMCOMPONENTS, 1:NR/2, 0:NTheta/2*(NTheta/2+1)/2+NTheta/2)
+      complex*16, intent(out) :: Scnlm_w(1:NUMCOMPONENTS, 1:NR/2, 0:NTheta/2*(NTheta/2+1)/2+NTheta/2)
       integer :: n,l,m
       integer :: iR, iTheta, iPhi, ic
       
-      real*8 :: tmp
+      complex*16 :: tmp
       
       Scnlm_w(:, :, :) = 0._8
       
@@ -446,7 +446,7 @@ module spherical_fourier
       use progress_bar
       use module_data
       implicit none
-      real*8 :: Scnlm_w(1:NUMCOMPONENTS, 1:NR/2, 0:NTheta/2*(NTheta/2+1)/2+NTheta/2)
+      complex*16 :: Scnlm_w(1:NUMCOMPONENTS, 1:NR/2, 0:NTheta/2*(NTheta/2+1)/2+NTheta/2)
       integer, intent(in) :: component
       character(*), intent(in) :: filename
       character*11 :: formatstring = '(????g15.5)'
@@ -462,7 +462,7 @@ module spherical_fourier
         write(*,'("[STATUS] ", "spherical_fourier_decomposition_for_all, component=",I0," - Wang basis")') component
       endif
       
-      write(formatstring(2:5),'(I4.4)') NR/2*(NTheta/2+1)*(NTheta/2+1) + 1
+      write(formatstring(2:5),'(I4.4)') 2*(NR/2*(NTheta/2+1)*(NTheta/2+1)) + 1 ! factor 2 since we store real and imaginary part, additional +1 for frequency in first column
 
       open(24,file=trim(filename),status='unknown',position='rewind',action='write')
 

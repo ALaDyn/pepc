@@ -2,6 +2,7 @@ module math
   implicit none
 
     real*8, parameter :: pi = 3.14159265358979323846_8
+    complex*16, parameter :: complex_i = (0._8, 1._8)
     
     integer, parameter :: MAXN = 16
     integer, parameter :: MAXL = 12
@@ -301,12 +302,12 @@ module math
       endif
     end function
 
-    real*8 function Efunc(m,Phi)
+    complex*16 function Efunc(m,Phi)
       implicit none
       integer, intent(in) :: m
       real*8, intent(in) :: Phi
       
-      Efunc = cos(m*Phi)
+      Efunc = exp(complex_i*m*Phi)
       
     end function
     
@@ -350,7 +351,7 @@ module math
       end if
     end function
     
-    real*8 function Bfunc(n, l, m, rv, use_Raitza_definition, maxR)
+    complex*16 function Bfunc(n, l, m, rv, use_Raitza_definition, maxR)
       implicit none
       integer, intent(in) :: n, l, m
       real*8, intent(in)  :: rv(3), maxR

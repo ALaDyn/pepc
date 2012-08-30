@@ -12,7 +12,8 @@ module data
   
   integer :: Nt, Nev, Nfiles
   
-  real*8, allocatable, dimension(:,:,:) :: rawdata_all
+  real*8, allocatable, dimension(:,:,:) :: rawdata_all ! we treat real and imaginary parts independently anyway - so everything is real here, but the number of columns is doubled
+  real*8, allocatable, dimension(:,:) :: abscissa
   logical, allocatable, dimension(:)  :: valid
   integer, allocatable, dimension(:)  :: nvalues
   real*8, allocatable, dimension(:,:) :: theta_hat, stddev
@@ -27,14 +28,16 @@ module data
       Nev    = Nev_
       Nfiles = Nfiles_
       
-      allocate(rawdata_all(Nfiles, Nt, Nev + 1)) ! first column is left for frequency argument
-      rawdata_all = 0.
+      allocate(rawdata_all(Nfiles, Nt, Nev))
+      allocate(abscissa(Nfiles, Nt))
+      rawdata_all = 0._8
+      abscissa    = 0._8
       
       allocate(valid(NFiles))
       allocate(nvalues(NFiles))
       
-      allocate(theta_hat(Nt, Nev + 1))
-      allocate(stddev(Nt, Nev + 1))
+      allocate(theta_hat(Nt, Nev))
+      allocate(stddev(Nt, Nev))
       
     end subroutine
     
@@ -43,6 +46,7 @@ module data
       implicit none
       
       deallocate(rawdata_all)
+      deallocatE(abscissa)
       deallocate(valid)
       deallocate(nvalues)
       deallocate(theta_hat)
@@ -86,21 +90,21 @@ module data
       
       if (ios .eq. 0) then
             
-        write(formatstring,'("(",I5.5,"g15.5)")') Nev + 1
+        write(formatstring,'("(",I5.5,"g15.5)")') 1 + Nev ! +1 for abscissa column
             
         datindex = 0
       
         do
           datindex = datindex + 1
-	
-          read(87,formatstring,iostat=ios) rawdata_all(index, datindex, :)
+	  
+          read(87,formatstring,iostat=ios) abscissa(index, datindex), rawdata_all(index, datindex, 1:Nev)
 	
 	  if (ios .ne. 0) exit
-	
+	  
         end do
       
         close(87)
-
+	
         valid(index)   = (datindex == Nt) ! TODO: validity is only checked through comparing the number of lines in data tables
         nvalues(index) = datindex
       else
@@ -110,14 +114,20 @@ module data
       
     end subroutine
     
+    
     subroutine write_data(filename_avg, filename_stddev)
       use progress_bar
       implicit none
       character(*), intent(in) :: filename_avg, filename_stddev
       character*24 :: formatstring
-      integer :: i
+      integer :: i, svalid
       
       write(*,'("[STATUS] ", "write_data")')
+      
+      svalid = 1
+      do while (.not. valid(svalid))
+        svalid = svalid + 1
+      end do
       
       write(formatstring,'("(g25.12,",I5.5,"(x,g25.12))")') Nev
       
@@ -126,14 +136,14 @@ module data
       open(24,file=trim(filename_avg),status='unknown',position='rewind',action='write')
       do i=1,Nt-1
         call progress(i,2*(Nt-1))
-        write(24, formatstring) theta_hat(i,:)
+        write(24, formatstring) abscissa(svalid, i), theta_hat(i,:)
       end do
       close(24)
       
       open(24,file=trim(filename_stddev),status='unknown',position='rewind',action='write')
       do i=1,Nt-1
         call progress(i+Nt-1,2*(Nt-1),.true.)
-        write(24, formatstring) stddev(i,:)
+        write(24, formatstring) abscissa(svalid, i), stddev(i,:)
       end do
       close(24)
 
@@ -145,27 +155,28 @@ end module
 
 module computations
   use data
-  use progresS_bar
+  use progress_bar
   implicit none
-  
-  logical, parameter :: showprogress = .false.
   
   contains
   
   subroutine jackknife()
     implicit none
     integer :: nvalid, i, j
-    real*8, dimension(Nt, Nev + 1) :: theta_dot
-    real*8, dimension(Nfiles, Nt, Nev + 1) :: theta_i
+    real*8, allocatable, dimension(:, :) :: theta_dot
+    real*8, allocatable, dimension(:, :, :) :: theta_i
     
     write(*,'("[STATUS] ", "jackknife")')
 
     nvalid = 0
     
-    theta_hat   = 0.
-    theta_dot   = 0.
-    theta_i     = 0.
-    stddev      = 0.
+    allocate(theta_dot(1:Nt, 1:Nev))
+    allocate(theta_i(Nfiles, Nt, Nev))
+    
+    theta_hat(1:Nt, 1:Nev)        = 0.
+    theta_dot(1:Nt, 1:Nev)        = 0.
+    theta_i(1:Nfiles,1:Nt, 1:Nev) = 0.
+    stddev(1:Nt, 1:Nev)           = 0.
     
     call progress(0,Nfiles)
 
@@ -207,6 +218,9 @@ module computations
     
     stddev = sqrt(stddev)
     
+    deallocate(theta_dot)
+    deallocate(theta_i)
+
     write(*,*) ! progress bar line break
         
   end subroutine
@@ -252,8 +266,9 @@ program spatially_resolved_spherical_fields_jackknife
   
     call count_num_lines(trim(filename_in), numlines)
   
-    call allocate_data(argc, numlines, 81) ! TODO: determine the parameters automatically
+    call allocate_data(argc, numlines, 2*81) ! factor 2 since we read complex values ! TODO: determine the parameters automatically
     
+    write(*,'("[STATUS] ", "load_data")')
     call progress(0,argc)
 
     do i=1,argc
