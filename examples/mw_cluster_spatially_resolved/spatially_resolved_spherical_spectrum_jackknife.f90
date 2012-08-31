@@ -12,7 +12,7 @@ module data
   
   integer :: Nt, Nev, Nfiles
   
-  real*8, allocatable, dimension(:,:,:) :: rawdata_all ! we treat real and imaginary parts independently anyway - so everything is real here, but the number of columns is doubled
+  real*8, allocatable, dimension(:,:,:) :: rawdata_all
   real*8, allocatable, dimension(:,:) :: abscissa
   logical, allocatable, dimension(:)  :: valid
   integer, allocatable, dimension(:)  :: nvalues
@@ -81,7 +81,7 @@ module data
       implicit none
       character(*), intent(in) :: filename
       integer, intent(in) :: index
-      character*13 :: formatstring
+      character*22 :: formatstring
       integer :: ios
       integer :: datindex
 
@@ -89,7 +89,7 @@ module data
       
       if (ios .eq. 0) then
             
-        write(formatstring,'("(",I5.5,"g15.5)")') 1 + Nev ! +1 for abscissa column
+        write(formatstring,'("(g15.5,",I5.5,"(x,g15.5))")') Nev
             
         datindex = 0
       
@@ -228,7 +228,7 @@ module computations
 end module
 
 
-program spatially_resolved_spherical_fields_jackknife
+program spatially_resolved_spherical_spectrum_jackknife
   use data
   use computations
   use progress_bar
@@ -237,16 +237,9 @@ program spatially_resolved_spherical_fields_jackknife
   character*256, filename_in, dirname_in
   integer :: numlines
   
-  character*256 :: filelist(8)
+  character*256 :: filelist(1)
   
-  filelist = ['field_spherical_fourier_coeffs_wang_phi',    &
-              'field_spherical_fourier_coeffs_raitza_phi',  &
-	      'field_spherical_fourier_coeffs_wang_ex',     &
-              'field_spherical_fourier_coeffs_raitza_ex',   &
-	      'field_spherical_fourier_coeffs_wang_ey',     &
-              'field_spherical_fourier_coeffs_raitza_ey',   &
-	      'field_spherical_fourier_coeffs_wang_ez',     &
-              'field_spherical_fourier_coeffs_raitza_ez']
+  filelist = ['field_spherical_spectrum' ]
   
   argc = command_argument_count()
 
@@ -265,7 +258,7 @@ program spatially_resolved_spherical_fields_jackknife
   
     call count_num_lines(trim(filename_in), numlines)
   
-    call allocate_data(argc, numlines, 2*81) ! factor 2 since we read complex values ! TODO: determine the parameters automatically
+    call allocate_data(argc, numlines, 835) ! TODO: determine the parameters automatically
     
     write(*,'("[STATUS] ", "load_data")')
     call progress(0,argc)

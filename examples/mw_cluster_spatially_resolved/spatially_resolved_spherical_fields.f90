@@ -170,7 +170,7 @@ module module_data
         do iR = 0,NR
           do iTheta = 0,NTheta
             do iPhi = 0,NPhi
-	      write(24,'(3(x,g15.5))', advance='no') observable(4, iR, iTheta, iPhi, i) ! TODO: for now we only dump the potential
+	      write(24,'(x,g15.5)', advance='no') observable(4, iR, iTheta, iPhi, i) ! TODO: for now we only dump the potential
             end do	
 	  end do
         end do
@@ -390,7 +390,7 @@ module spherical_fourier
       
       ! initialize Rtilda
       do iR=0,NR
-        r = spherical_r( grid(NR, iTheta, NPhi, 1:3), r2 )
+        r = spherical_r( grid(NR, NTheta, NPhi, 1:3), r2 )
 
         do n=1,NR/2
 	  do l=0,NTheta/2

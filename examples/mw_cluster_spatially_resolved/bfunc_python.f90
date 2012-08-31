@@ -2,7 +2,7 @@ module bindings
 
   contains
   
-    real*8 function my_bfunc(n, l, m, rv, use_Raitza_definition, maxR)
+    complex*16 function my_bfunc(n, l, m, rv, use_Raitza_definition, maxR)
       use math
       implicit none
       integer, intent(in) :: n, l, m

@@ -9,7 +9,7 @@ else
   FFLAGS   = -O5 -openmp 
 endif
 
-EXECUTABLES = spatially_resolved_ccf spatially_resolved_ccf_jackknife spatially_resolved_spherical_fields spatially_resolved_spherical_fields_jackknife
+EXECUTABLES = spatially_resolved_ccf spatially_resolved_ccf_jackknife spatially_resolved_spherical_fields spatially_resolved_spherical_fields_jackknife spatially_resolved_spherical_spectrum_jackknife
 MODULES     = progress.o module_math.o
 FC          = mpif90
 

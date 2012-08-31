@@ -138,18 +138,21 @@ module math
     !> Section 8. Legendre Functions (pg. 332)
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    real*8 function LegendreP(l,m,x)
+    real*8 function LegendreP(l,mm,x)
       implicit none
-      integer, intent(in) :: l, m
+      integer, intent(in) :: l, mm
+      integer :: m
       real*8 ::x
 
       integer :: i,ll
       real*8 :: fact,pll,pmm,pmmp1,somx2
 
       pll = 0._8
+      
+      m = abs(mm)
 
-      if ( (m < 0) .or. (m > l) .or. (abs(x) > 1) .or.  (l<0)) then
-        write(*,*) 'Invalid arguments for LegendreP(',l,m,x,')'
+      if ((m > l) .or. (abs(x) > 1) .or.  (l<0)) then
+        write(*,*) 'Invalid arguments for LegendreP(',l,mm,x,')'
 	stop
       endif
 
@@ -182,7 +185,13 @@ module math
           LegendreP = pll
         endif
       endif
-
+      
+      ! correction for negative m
+      if (mm < 0) then
+        LegendreP = (-1._8)**m * factorial(l-m)/factorial(l+m) * LegendreP
+      endif
+      
+      ! correction for P_lm = (-1)^m * P_l^m
       LegendreP = (-1._8)**m * LegendreP
 
     end function LegendreP
@@ -283,8 +292,8 @@ module math
       implicit none
       integer, intent(in) :: l,m
       
-      if (m<=l) then
-        MMfunc = sqrt( (2._8*l+1._8)/(4._8*pi) * factorial(l-m)/factorial(l+m) )
+      if (abs(m)<=l) then
+        MMfunc = sqrt( (2._8*l+1._8)/(4._8*pi) * factorial(l-abs(m))/factorial(l+abs(m)) )
       else
         MMfunc = 0._8
       endif
@@ -295,7 +304,7 @@ module math
       integer, intent(in) :: l,m
       real*8, intent(in) :: costheta
       
-      if (m<=l) then
+      if (abs(m)<=l) then
         Pfunc = LegendreP(l,m,costheta) * sqrt(1._8-costheta*costheta)
       else
         Pfunc = 0._8
