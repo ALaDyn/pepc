@@ -25,10 +25,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pepc
-    use module_debug, only : debug_level
-    use treevars, only : np_mult, interaction_list_length_factor
-    use module_spacefilling, only : curve_type
-    use module_domains, only : weighted, force_cubic_domain
+
     implicit none
     private
 
@@ -50,7 +47,6 @@ module module_pepc
     public pepc_read_parameters
     public pepc_read_parameters_from_file_name
     public pepc_read_parameters_from_first_argument
-    public libpepc_read_parameters
 
     public pepc_prepare                   !< mandatory, once per simulation or after changing internal parameters
 
@@ -76,7 +72,6 @@ module module_pepc
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     logical :: pepc_initializes_mpi !< is set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
-    namelist /libpepc/ debug_level, np_mult, curve_type, force_cubic_domain, weighted, interaction_list_length_factor
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -97,7 +92,7 @@ module module_pepc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi, db_level_in, comm)
-      use treevars, only : me, num_pe, treevars_idim => idim, MPI_COMM_lpepc
+      use treevars, only : np_mult, me, num_pe, treevars_idim => idim, MPI_COMM_lpepc
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
       use module_domains
@@ -252,6 +247,7 @@ module module_pepc
       use module_debug, only : pepc_status
       use module_interaction_specific, only : calc_force_read_parameters
       use module_walk, only: tree_walk_read_parameters
+      use module_libpepc_main, only: libpepc_read_parameters
       implicit none
       integer, intent(in) :: filehandle
 
@@ -265,15 +261,6 @@ module module_pepc
 
     end subroutine
 
-    subroutine libpepc_read_parameters(filehandle)
-        use module_debug, only: pepc_status
-        implicit none
-        integer, intent(in) :: filehandle
-
-        call pepc_status("READ PARAMETERS, section libpepc")
-        read(filehandle,NML=libpepc)
-
-    end subroutine libpepc_read_parameters
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
@@ -284,13 +271,14 @@ module module_pepc
       use module_debug, only : pepc_status
       use module_interaction_specific, only : calc_force_write_parameters
       use module_walk, only: tree_walk_write_parameters
+      use module_libpepc_main, only: libpepc_write_parameters
       implicit none
       integer, intent(in) :: filehandle
 
       call pepc_status("WRITE PARAMETERS")
       call calc_force_write_parameters(filehandle)
       call tree_walk_write_parameters(filehandle)
-      write(filehandle,NML=libpepc)
+      call libpepc_write_parameters(filehandle)
 
     end subroutine
 

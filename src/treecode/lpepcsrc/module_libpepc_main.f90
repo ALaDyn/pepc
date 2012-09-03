@@ -24,6 +24,11 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_libpepc_main
+    use module_debug, only : debug_level
+    use treevars, only : np_mult, interaction_list_length_factor
+    use module_spacefilling, only : curve_type
+    use module_domains, only : weighted, force_cubic_domain
+
     implicit none
     private
 
@@ -42,6 +47,8 @@ module module_libpepc_main
     public libpepc_restore_particles
     public libpepc_traverse_tree
     public libpepc_grow_tree
+    public libpepc_read_parameters
+    public libpepc_write_parameters
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -62,9 +69,39 @@ module module_libpepc_main
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    namelist /libpepc/ debug_level, np_mult, curve_type, force_cubic_domain, weighted, interaction_list_length_factor
 
     contains
 
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> reads libpepc-specific parameters from file
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine libpepc_read_parameters(filehandle)
+        use module_debug, only: pepc_status
+        implicit none
+        integer, intent(in) :: filehandle
+
+        call pepc_status("READ PARAMETERS, section libpepc")
+        read(filehandle,NML=libpepc)
+
+    end subroutine libpepc_read_parameters
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> writes libpepc-specific parameters to file
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine libpepc_write_parameters(filehandle)
+        use module_debug, only: pepc_status
+        implicit none
+        integer, intent(in) :: filehandle
+
+        write(filehandle, NML=libpepc)
+
+    end subroutine
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
