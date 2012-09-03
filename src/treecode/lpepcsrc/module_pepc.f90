@@ -50,6 +50,7 @@ module module_pepc
     public pepc_read_parameters
     public pepc_read_parameters_from_file_name
     public pepc_read_parameters_from_first_argument
+    public libpepc_read_parameters
 
     public pepc_prepare                   !< mandatory, once per simulation or after changing internal parameters
 
@@ -260,10 +261,19 @@ module module_pepc
       rewind(filehandle)
       call tree_walk_read_parameters(filehandle)
       rewind(filehandle)
-      call pepc_status("READ PARAMETERS, section libpepc")
-      read(filehandle,NML=libpepc)
+      call libpepc_read_parameters(filehandle)
 
     end subroutine
+
+    subroutine libpepc_read_parameters(filehandle)
+        use module_debug, only: pepc_status
+        implicit none
+        integer, intent(in) :: filehandle
+
+        call pepc_status("READ PARAMETERS, section libpepc")
+        read(filehandle,NML=libpepc)
+
+    end subroutine libpepc_read_parameters
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
