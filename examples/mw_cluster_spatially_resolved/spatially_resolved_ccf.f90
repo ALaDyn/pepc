@@ -22,7 +22,7 @@ module data
   integer :: Nc, Na, Nt, Nt_max
   
   integer :: NR, NTheta, NPhi
-  real*8 :: maxR
+  real*8 :: maxR, rcluster
 
   ! indices: spatial component (c), location index (a), time/frequency index (t/w)
   complex(C_DOUBLE_COMPLEX), allocatable, dimension(:,:,:) :: observable
@@ -51,76 +51,87 @@ module data
     
     
     logical function load_data(filename, fields, starttime_fs)
+      use progress_bar
       implicit none
       character(*), intent(in) :: filename
       integer, intent(in) :: fields(:)
       real*8, intent(in) :: starttime_fs
-      integer :: ncolumns
+      integer :: iR, iTheta, iPhi, idata
       integer :: itime
       real*8 :: time_fs
-      real*8, allocatable, dimension(:) :: rawdata
-      character*26 :: formatstring
       integer :: ios
       integer :: datindex, a, c
+      real*8, allocatable :: tmp(:,:,:,:)
+      
+      load_data = .false.
 
-      open(87,file=trim(filename),status='old',position='rewind',action='read')
+      open(87,file=trim(filename),status='old',position='rewind',action='read', FORM='unformatted',iostat=ios)
       
-      read(87, '("# Nt     = ",   i15)') Nt_max
-      read(87, '("# maxR   = ", g15.5)') maxR
-      read(87, '("# NR     = ",   i15)') NR
-      read(87, '("# NTheta = ",   i15)') NTheta
-      read(87, '("# NPhi   = ",   i15)') NPhi
-      
+      if (ios .ne. 0) return
+
+      read(87) Nt_max, maxR, rcluster, NR, NTheta, NPhi
+
       Nc = size(fields)
       Na = NR * NTheta * NPhi
-      ncolumns = NUM_RAWDATA * Na ! one entry of each single observable per position
 
       write(*, '("# Nt_max   = ",   i15)') Nt_max
       write(*, '("# maxR     = ", g15.5)') maxR
+      write(*, '("# rcluster = ", g15.5)') rcluster
       write(*, '("# NR       = ",   i15)') NR
       write(*, '("# NTheta   = ",   i15)') NTheta
       write(*, '("# NPhi     = ",   i15)') NPhi
       write(*, '("# Nc       = ",   i15)') Nc
       write(*, '("# Na       = ",   i15)') Na
-      write(*, '("# ncolumns = ",   i15)') ncolumns
       
-      ! skip 4 lines in input file
-      read(87,*)
-      read(87,*)
-      read(87,*)
-      read(87,*)
-      
-      write(formatstring, '("(i10,g25.12,",I5.5,"(g25.12))")') ncolumns
-      allocate(rawdata(ncolumns))
       allocate(observable(Nc, Na, 2*Nt_max))
       allocate(abscissa(Nt_max))
+      allocate(tmp(5, NR, NTheta, NPhi))
       observable = 0. ! this automatically ensures padding, i.e. the second half of the array is zero
       
       datindex = 0
       
+      call progress(0, Nt_max)
+      
       do
-        read(87,formatstring,iostat=ios) itime, time_fs, rawdata
+
+        read(87,iostat=ios) itime, time_fs
 	
 	if (ios .ne. 0) exit
-      
-        !write(*,*) itime, time_fs
-	
+
+        do iR = 1,NR
+          do iTheta = 1,NTheta
+            do iPhi = 1,NPhi
+              do idata = 1, 5
+                read(87) tmp(idata, iR, iTheta, iPhi)
+              end do
+            end do
+          end do
+        end do
+
 	if (time_fs >= starttime_fs) then
+          call progress(itime, Nt_max, .true.)
 	  datindex = datindex + 1
 	  
-	  abscissa(datindex) = time_fs
+	  a=0
 	  
-	  do a=1,Na
-	    do c=1,Nc
-              observable(c, a, datindex) = rawdata((a-1)*NUM_RAWDATA+fields(c))
-	    end do
-	  end do
+          do iR = 1,NR
+            do iTheta = 1,NTheta
+              do iPhi = 1,NPhi
+	        a = a + 1
+                observable(1:Nc, a, datindex) = tmp(fields,iR, iTheta, iPhi)
+              end do
+            end do
+          end do
+       	else
+          call progress(itime, Nt_max, .false.)
 	endif
+
       end do
       
-      deallocate(rawdata)
 
       close(87)
+      
+      write(*,*) ! progress bar linebreak
       
       Nt = datindex ! store number of actually available timesteps
       write(*, '("# Nt       = ",   i15)') Nt
@@ -131,6 +142,8 @@ module data
         write(*,'(a,/,a)') 'Did not find a sufficient number of timesteps.', 'Reduce starttime_fs or check your data'
       endif
       
+      deallocate(tmp)
+      
     end function
   
 end module
@@ -139,11 +152,10 @@ module computations
   use data
   implicit none
   
-  logical, parameter :: showprogress = .false.
-  
   contains
   
   subroutine observable_fourier_forward()
+    use progress_bar
     use, intrinsic :: iso_c_binding
     use FFTW3
     implicit none
@@ -156,8 +168,12 @@ module computations
 
     fftw_plan = fftw_plan_dft_1d(size(tmparray), tmparray, tmparray, FFTW_BACKWARD, FFTW_ESTIMATE)
 
+    call progress(0, Nc*Na)
+
     do c=1,Nc
       do a=1,Na
+        call progress((c-1)*Na + a, Nc*Na)
+      
         tmparray(1:2*Nt) = observable(c,a,1:2*Nt)
       
         ! perform FFT
@@ -166,6 +182,8 @@ module computations
         observable(c,a,1:2*Nt) = tmparray(1:2*Nt)
       end do
     end do
+    
+    write(*,*) ! progress bar line break
     
     call fftw_destroy_plan(fftw_plan)
 
@@ -189,35 +207,47 @@ module computations
 
   
   subroutine observable_spatial_average()
+    use progress_bar
     implicit none
     integer :: a, t
     
     write(*,'("[STATUS] ", "observable_spatial_average")')
 
+    call progress(0,2*Nt*Na)
+
     do a=1,Na
       do t=1,2*Nt
+        call progress((a-1)*2*Nt + t,2*Nt*Na)
         observable(1,a,t) = 1./3. * sum(observable(1:3, a, t))
       end do
     end do
     
+    write(*,*) ! progress bar line break
+
   end subroutine
 
 
   subroutine observable_cross_correlate()
+    use progress_bar
     implicit none
     integer :: a, aprime
     
     write(*,'("[STATUS] ", "observable_cross_correlate")')
 
-    !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(a, aprime)
+    call progress(0,Na)
+
     do a=1,Na
-      if (showprogress) write(*, '(15x,i0,"/",i0)') a, Na
+      call progress(a,Na)
+
+      !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(aprime)
       do aprime = 1,Na
         observableCCF(a, aprime, 1:2*Nt) = observable(1,a,1:2*Nt) * conjg(observable(1,aprime,1:2*Nt))
       end do
+      !$OMP END PARALLEL DO
     end do
-    !$OMP END PARALLEL DO
     
+    write(*,*) ! progress bar line break
+
   end subroutine
   
   
@@ -235,7 +265,6 @@ module computations
     fftw_plan = fftw_plan_dft_1d(size(tmparray), tmparray, tmparray, FFTW_FORWARD, FFTW_ESTIMATE)
     
     do a=1,Na
-      if (showprogress) write(*, '(15x,i0,"/",i0)') a, Na
       do aprime=1,Na
         tmparray(1:2*Nt) = observableCCF(a,aprime,1:2*Nt)
       
@@ -265,7 +294,6 @@ module computations
     fftw_plan = fftw_plan_dft_1d(size(tmparray), tmparray, tmparray, FFTW_BACKWARD, FFTW_ESTIMATE)
     
     do a=1,Na
-      if (showprogress) write(*, '(15x,i0,"/",i0)') a, Na
       do aprime=1,Na
         tmparray(1:2*Nt) = observableCCF(a,aprime,1:2*Nt)
       
@@ -282,6 +310,7 @@ module computations
     
     
   subroutine identify_eigenvalues_for_all_frequencies(num_ev,filename_ev)
+    use progress_bar
     implicit none
     
     integer :: t,a,aprime
@@ -308,10 +337,13 @@ module computations
     write(formatstring,'("(g25.12,",I5.5,"(x,g25.12))")') num_ev
     open(24,file=trim(filename_ev),status='unknown',position='rewind',action='write')
     
+    call progress(0, Nt)
+    
     do t=1,Nt
+      call progress(t, Nt)
    
       do a=1,Na
-        do aprime=a,Na                         ! we are only interested inthe real part here
+        do aprime=a,Na                         ! we are only interested in the real part here
 	  tmparray(a + (aprime-1)*aprime/2) = (real(observableCCF(a,aprime,t)) + real(observableCCF(aprime,a,t)))/2._8 ! average over both (symmetric) contributions
 	end do
       end do
@@ -337,14 +369,14 @@ module computations
 
       if (INFO .ne. 0) write (*,'("Error while calling DSTEGR:", I0)') INFO
 
-      if (showprogress) write(*, '(15x,i0,"/",i0," - Found ",i0,"/",i0," eigenvalues.")') t, Nt, num_ev_found, num_ev
-
       ! output them in reverse order, i.e. largest first
       write(24,formatstring) abscissa(t), eigenvalues(num_ev:1:-1)
     end do
     
     close(24)
     
+    write(*,*) ! progress bar line break
+
   end subroutine
   
   
@@ -383,18 +415,19 @@ program spatially_resolved_ccf
   use computations
   implicit none
   integer :: argc, i
-  character*256, filename_in, filename_out
+  character*256, filename_in, filename_out, dirname
   
   argc = command_argument_count()
 
   if (argc < 1) then
-    write(*,*) 'Call with file to be processed as first argument. Exiting.'
+    write(*,*) 'Call with directories to be processed as arguments. Exiting.'
     stop
   endif
-
+  
   do i=1,argc
-    call get_command_argument(i, filename_in)
-    filename_out = trim(filename_in(1:len(trim(filename_in))-4))//'_momentum_eigenvalues.dat'
+    call get_command_argument(i, dirname)
+    filename_in = trim(dirname) // '/spatially_resolved.dat'
+    filename_out = trim(dirname) // '/spatially_resolved_momentum_eigenvalues.dat'
     
     write(*,'(2/"Reading data from file ",a,/,"Writing data to file   ", a)') trim(filename_in), trim(filename_out)
 

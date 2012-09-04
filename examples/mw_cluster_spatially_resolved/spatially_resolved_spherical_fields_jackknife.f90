@@ -237,16 +237,12 @@ program spatially_resolved_spherical_fields_jackknife
   character*256, filename_in, dirname_in
   integer :: numlines
   
-  character*256 :: filelist(8)
+  character*256 :: filelist(4)
   
-  filelist = ['field_spherical_fourier_coeffs_wang_phi',    &
-              'field_spherical_fourier_coeffs_raitza_phi',  &
-	      'field_spherical_fourier_coeffs_wang_ex',     &
-              'field_spherical_fourier_coeffs_raitza_ex',   &
-	      'field_spherical_fourier_coeffs_wang_ey',     &
-              'field_spherical_fourier_coeffs_raitza_ey',   &
-	      'field_spherical_fourier_coeffs_wang_ez',     &
-              'field_spherical_fourier_coeffs_raitza_ez']
+  filelist = ['field_spherical_fourier_coeffs_phi',    &
+              'field_spherical_fourier_coeffs_ex',     &
+              'field_spherical_fourier_coeffs_ey',     &
+              'field_spherical_fourier_coeffs_ez']
   
   argc = command_argument_count()
 

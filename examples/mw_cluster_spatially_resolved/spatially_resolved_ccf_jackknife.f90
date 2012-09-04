@@ -202,7 +202,7 @@ program spatially_resolved_ccf_jackknife
   use computations
   implicit none
   integer :: argc, i
-  character*256, filename_in
+  character*256, filename_in, dirname
   integer :: numlines
   
   argc = command_argument_count()
@@ -212,14 +212,16 @@ program spatially_resolved_ccf_jackknife
     stop
   endif
   
-  ! we use the number of lines in the first file as array size indicator
-  call get_command_argument(1, filename_in)
+  ! we use the number of lines in the last file as array size indicator
+  call get_command_argument(argc, dirname)
+  filename_in = trim(dirname) // '/spatially_resolved_momentum_eigenvalues.dat'
   call count_num_lines(trim(filename_in), numlines)
   
   call allocate_data(argc, numlines, 10) ! TODO: determine the parameters automatically
 
   do i=1,argc
-    call get_command_argument(i, filename_in)
+    call get_command_argument(i, dirname)
+    filename_in = trim(dirname) // '/spatially_resolved_momentum_eigenvalues.dat'
     
     write(*,'("Reading data from file ",a)') trim(filename_in)
 

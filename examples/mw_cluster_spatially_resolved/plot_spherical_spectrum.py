@@ -118,6 +118,8 @@ def plotfile_excitation_image_at_frequency_cone_theta(frequencies, filename, NR_
       ax.set_ylim([0.,1.])
       ax.set_title("$\Theta=%4.2f\pi$" % (thetavals[iTheta]/np.pi), fontsize=8)
       ax.set_alpha(0.25)
+      if (iTheta==0):
+        ax.set_title("$\omega=%6.4f\,\mathrm{fs}^{-1}$" % realfreq)
 
   saveplot("%s_excitation_at_frequency_coneTheta" % filename)
 
@@ -183,6 +185,8 @@ def plotfile_excitation_image_at_frequency_slice_phi(frequencies, filename, NR_N
       ax.set_ylim([0.,1.])
       ax.set_title("$\Phi=%4.2f\pi$" % (phivals[iPhi]/np.pi), fontsize=8)
       ax.set_alpha(0.25)
+      if (iPhi==0):
+        ax.set_title("$\omega=%6.4f\,\mathrm{fs}^{-1}$" % realfreq)
 
   saveplot("%s_excitation_at_frequency_slicePhi" % filename)
 
@@ -235,6 +239,7 @@ def plotfile_excitation_image_at_frequency_3d(frequencies, filename, NR_NTheta_N
 	  vals[i] = raw[freqidx,i+1]
 	  
     ax = plt.subplot(1, numfreqs, ifreq + 1, projection='3d')
+    ax.set_title("$\omega=%6.4f\,\mathrm{fs}^{-1}$" % realfreq)
     ax.scatter(x, y, z, c=vals, linewidth=0.)
         
     ax.set_xlabel("X")
@@ -254,11 +259,16 @@ def plotfile_excitation_image_at_frequency_3d(frequencies, filename, NR_NTheta_N
 
 NR_NTheta_NPhi = [16, 6, 6]	
 
+# high-density case
+#frequencies=[4.65, 6.48, 6.85, 7.18, 7.48, 7.81, 8.18]
+# low-density case
+frequencies=[4.33, 5.55, 6.37, 6.60, 6.68, 6.85, 7.13, 7.40]
 
 plotfile_spherical_spectrum("field_spherical_spectrum", NR_NTheta_NPhi, [[3.0,15.0], [0.5, 300.0]])
-plotfile_excitation_image_at_frequency_cone_theta([4.65, 6.48, 6.85, 7.18, 7.48, 7.81, 8.18], "field_spherical_spectrum", NR_NTheta_NPhi)
-plotfile_excitation_image_at_frequency_slice_phi([4.65, 6.48, 6.85, 7.18, 7.48, 7.81, 8.18], "field_spherical_spectrum", NR_NTheta_NPhi)
-plotfile_excitation_image_at_frequency_3d([4.65, 6.48, 6.85, 7.18, 7.48, 7.81, 8.18], "field_spherical_spectrum", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_cone_theta(frequencies, "field_spherical_spectrum", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_slice_phi(frequencies, "field_spherical_spectrum", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_3d(frequencies, "field_spherical_spectrum", NR_NTheta_NPhi)
 
 
-#plt.show()
+
+plt.show()

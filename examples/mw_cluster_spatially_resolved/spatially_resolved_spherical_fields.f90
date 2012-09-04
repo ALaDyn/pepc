@@ -373,13 +373,12 @@ module spherical_fourier
     end subroutine
     
 
-    subroutine spherical_fourier_decomposition_init(use_Raitza_definition)
+    subroutine spherical_fourier_decomposition_init()
       use module_data
       use math
       implicit none
       integer :: n, l, m, iR, iTheta, iPhi
       real*8 :: r, r2, rv(3), costheta, Phi
-      logical, intent(in) :: use_Raitza_definition
       
       write(*,'("[STATUS] ", "spherical_fourier_decomposition_init")')
       
@@ -394,11 +393,7 @@ module spherical_fourier
 
         do n=1,NR/2
 	  do l=0,NTheta/2
-            if (use_Raitza_definition) then
-	      Rtilda(n, l, iR) = Rfunc_Raitza(n,l,maxR,r) * r2
-	    else
-	      Rtilda(n, l, iR) = Rfunc_Wang(  n,l,maxR,r) * r2
-	    endif
+	    Rtilda(n, l, iR) = Rfunc(n,l,maxR,r) * r2
 	  end do
 	end do
       end do
@@ -415,7 +410,7 @@ module spherical_fourier
         costheta = spherical_costheta( grid(NR, iTheta, NPhi, 1:3) )
 	do l=0,NTheta/2
 	  do m=0,NTheta/2
-            P(l, m, iTheta) = Pfunc(l,m,costheta)
+            P(l, m, iTheta) = Pfunc(l,m,costheta) * sqrt(1-costheta*costheta)
 	  end do
 	end do
       end do
@@ -442,7 +437,7 @@ module spherical_fourier
     end subroutine
     
     
-    subroutine spherical_fourier_decomposition_for_all(component, filename, use_raitza)
+    subroutine spherical_fourier_decomposition_for_all(component, filename)
       use progress_bar
       use module_data
       implicit none
@@ -450,17 +445,12 @@ module spherical_fourier
       integer, intent(in) :: component
       character(*), intent(in) :: filename
       character*11 :: formatstring = '(????g15.5)'
-      logical, intent(in) :: use_raitza
       
       integer :: i
       
-      call spherical_fourier_decomposition_init(use_raitza)
+      call spherical_fourier_decomposition_init()
 
-      if (use_raitza) then
-        write(*,'("[STATUS] ", "spherical_fourier_decomposition_for_all, component=",I0," - Raitza basis")') component
-      else
-        write(*,'("[STATUS] ", "spherical_fourier_decomposition_for_all, component=",I0," - Wang basis")') component
-      endif
+      write(*,'("[STATUS] ", "spherical_fourier_decomposition_for_all, component=",I0," - Wang basis")') component
       
       write(formatstring(2:5),'(I4.4)') 2*(NR/2*(NTheta/2+1)*(NTheta/2+1)) + 1 ! factor 2 since we store real and imaginary part, additional +1 for frequency in first column
 
@@ -576,17 +566,13 @@ module computations
       
       call observable_spectrum_to_file(trim(dirname_in)//'/field_spherical_spectrum.dat')
       
-      call spherical_fourier_decomposition_for_all(4, trim(dirname_in)//'/field_spherical_fourier_coeffs_wang_phi.dat', .false.)
-      call spherical_fourier_decomposition_for_all(4, trim(dirname_in)//'/field_spherical_fourier_coeffs_raitza_phi.dat', .true.)
+      call spherical_fourier_decomposition_for_all(1, trim(dirname_in)//'/field_spherical_fourier_coeffs_ex.dat')
 
-      call spherical_fourier_decomposition_for_all(1, trim(dirname_in)//'/field_spherical_fourier_coeffs_wang_ex.dat', .false.)
-      call spherical_fourier_decomposition_for_all(1, trim(dirname_in)//'/field_spherical_fourier_coeffs_raitza_ex.dat', .true.)
+      call spherical_fourier_decomposition_for_all(2, trim(dirname_in)//'/field_spherical_fourier_coeffs_ey.dat')
 
-      call spherical_fourier_decomposition_for_all(2, trim(dirname_in)//'/field_spherical_fourier_coeffs_wang_ey.dat', .false.)
-      call spherical_fourier_decomposition_for_all(2, trim(dirname_in)//'/field_spherical_fourier_coeffs_raitza_ey.dat', .true.)
+      call spherical_fourier_decomposition_for_all(3, trim(dirname_in)//'/field_spherical_fourier_coeffs_ez.dat')
 
-      call spherical_fourier_decomposition_for_all(3, trim(dirname_in)//'/field_spherical_fourier_coeffs_wang_ez.dat', .false.)
-      call spherical_fourier_decomposition_for_all(3, trim(dirname_in)//'/field_spherical_fourier_coeffs_raitza_ez.dat', .true.)
+      call spherical_fourier_decomposition_for_all(4, trim(dirname_in)//'/field_spherical_fourier_coeffs_phi.dat')
     endif
 
     call free_data()

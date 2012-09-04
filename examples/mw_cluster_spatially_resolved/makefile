@@ -26,7 +26,7 @@ clean:
 	@echo "== compiling F90 file :" $<
 	$(FCPRE) $(FC) $(FFLAGS) -fPIC $< -c -o $@ $(LIBS)
 	
-bfunc.so: bfunc_python.f90 module_math.o makefile
+bfunc.so: bfunc_python.f90 module_math.o
 	f2py -m bfunc -c module_math.o bfunc_python.f90
 
 loadmodules:

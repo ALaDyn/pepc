@@ -259,32 +259,19 @@ module math
       endif
       
     end function
-    
-    
-    real*8 function Rfunc_Raitza(n,l,a,r)
+        
+    ! vgl. Besselstuff.nb und (5), (75), (84), (87) bei Wang
+    real*8 function Rfunc(n,l,a,r)
       implicit none
       integer, intent(in) :: n, l
       real*8, intent(in) :: r, a
       
-      real*8 :: xnl, NNnl
+      real*8 :: x_ln, k_nl, sqrtNN_nl
       
-      xnl          = SphericalBesselJZero(l,n)
-      NNnl         = (a*a*a)/2._8*SphericalBesselJ(l+1,xnl)
-      Rfunc_Raitza = NNnl * SphericalBesselJ(l, xnl/a * r)
-      
-    end function
-    
-    
-    real*8 function Rfunc_Wang(n,l,a,r)
-      implicit none
-      integer, intent(in) :: n, l
-      real*8, intent(in) :: r, a
-      
-      real*8 :: xnl, NNnl
-      
-      xnl        = BesselJZero(l,n)
-      NNnl       = a*a/2._8 * ( bessel_jn(l+1, xnl) )**2
-      Rfunc_Wang = bessel_jn(l, xnl/a * r) / sqrt( NNnl)
+      x_ln       = SphericalBesselJZero(l,n)
+      k_nl       = x_ln/a
+      sqrtNN_nl  = sqrt(a*a*a/2._8) * SphericalBesselJ(l+1, x_ln)
+      Rfunc      = SphericalBesselJ(l, k_nl * r) / sqrtNN_nl
       
     end function
     
@@ -305,7 +292,7 @@ module math
       real*8, intent(in) :: costheta
       
       if (abs(m)<=l) then
-        Pfunc = LegendreP(l,m,costheta) * sqrt(1._8-costheta*costheta)
+        Pfunc = LegendreP(l,m,costheta)
       else
         Pfunc = 0._8
       endif
@@ -360,11 +347,11 @@ module math
       end if
     end function
     
-    complex*16 function Bfunc(n, l, m, rv, use_Raitza_definition, maxR)
+    
+    complex*16 function Bfunc(n, l, m, rv, maxR)
       implicit none
       integer, intent(in) :: n, l, m
       real*8, intent(in)  :: rv(3), maxR
-      logical, intent(in) :: use_Raitza_definition
       
       real*8 :: r, r2, costheta, phi
       
@@ -372,12 +359,23 @@ module math
       costheta = spherical_costheta(rv    )
       phi      = spherical_phi(     rv    )
       
-      if (use_Raitza_definition) then ! second factor is identical
-        Bfunc = Rfunc_Raitza(n,l,maxR,r) * r2 * ( MMFunc(l,m) * Pfunc(l,m,costheta) * Efunc(m,Phi) )
-      else
-	Bfunc = Rfunc_Wang(  n,l,maxR,r) * r2 * ( MMFunc(l,m) * Pfunc(l,m,costheta) * Efunc(m,Phi) )
-      endif
+      Bfunc = Rfunc(  n,l,maxR,r) * MMFunc(l,m) * Pfunc(l,m,costheta) * Efunc(m,Phi)
 
     end function
 
+
+    complex*16 function Bfunc_volelem(n, l, m, rv, maxR)
+      implicit none
+      integer, intent(in) :: n, l, m
+      real*8, intent(in)  :: rv(3), maxR
+      
+      real*8 :: r, r2, costheta, phi
+      
+      r        = spherical_r(       rv, r2)
+      costheta = spherical_costheta(rv    )
+      phi      = spherical_phi(     rv    )
+      
+      Bfunc_volelem = Rfunc(  n,l,maxR,r) * MMFunc(l,m) * Pfunc(l,m,costheta) * Efunc(m,Phi) * r2 * sqrt(1-costheta*costheta)
+
+    end function
 end module
