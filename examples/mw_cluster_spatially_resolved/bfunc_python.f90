@@ -2,14 +2,18 @@ module bindings
 
   contains
   
-    complex*16 function my_bfunc(n, l, m, rv, maxR)
+    subroutine my_bfunc(n, l, m, rv, maxR, re, im)
       use math
       implicit none
       integer, intent(in) :: n, l, m
       real*8, intent(in)  :: rv(3), maxR
+      real*8, intent(out) :: re, im
+      complex*16 :: tmp
       
-      my_bfunc = Bfunc(n, l, m, rv, maxR)
-    end function
+      tmp = Bfunc(n, l, m, rv, maxR)
+      re  = real(tmp)
+      im  = aimag(tmp)
+    end subroutine
 
     real*8 function my_pfunc(l,m,costheta)
       use math
@@ -28,14 +32,18 @@ module bindings
       my_mmfunc = MMFunc(l,m)      
     end function
     
-    complex*16 function my_efunc(m,Phi)
+    subroutine my_efunc(m,Phi, re, im)
       use math
       implicit none
       integer, intent(in) :: m
       real*8, intent(in) :: Phi
+      real*8, intent(out) :: re, im
+      complex*16 :: tmp
 
-      my_efunc = Efunc(m, Phi)
-    end function    
+      tmp = Efunc(m, Phi)
+      re  = real(tmp)
+      im  = aimag(tmp)
+    end subroutine    
     
     real*8 function my_rfunc(n,l,a,r)
       use math
