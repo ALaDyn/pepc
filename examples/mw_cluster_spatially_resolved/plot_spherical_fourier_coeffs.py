@@ -18,6 +18,8 @@ def saveplot(filenameout):
 
 
 def plotfile_spherical_fourier_coeffs(filename, NR_NTheta_NPhi, lims):
+  print "plotfile_spherical_fourier_coeffs: %s" % filename
+  
   raw  = loadtxt("%s_jackknife.dat"        % filename)
   raws = loadtxt("%s_jackknife_stddev.dat" % filename) # TODO: plot stddev
   
@@ -98,10 +100,12 @@ def tbl(c, n, l, m):
   
 
 def plotfile_excitation_image_at_frequency(frequencies, filename, NR_NTheta_NPhi, maxR):
+  print "plotfile_excitation_image_at_frequency: %s" % filename
+
   raw  = loadtxt("%s_jackknife.dat" % filename)
   
   plotsize = 2
-  nx, ny   = (25, 25)
+  nx, ny   = (100, 100)
   
   numcols   = shape(raw)[1]
   xvals     = raw[:,0]
@@ -150,7 +154,7 @@ def plotfile_excitation_image_at_frequency(frequencies, filename, NR_NTheta_NPhi
       for j in range(ny):
         for n in range(1,maxn+1):
           for l in range(0,maxl+1):
-            for m in range(0,l+1):
+            for m in range(-l,l+1):
 	      values[i,j] = values[i,j] + tbl(coeffs,n,l,m) * bfunc.bindings.my_bfunc(n, l, m, [xv[i,j], yv[i,j], 0.], maxR)
 	    
     contourplotstuff(6, numfreqs, 1, ifreq, xv, yv,     values.real,  'X', 'Y', realfreq)
@@ -163,7 +167,7 @@ def plotfile_excitation_image_at_frequency(frequencies, filename, NR_NTheta_NPhi
       for j in range(ny):
         for n in range(1,maxn+1):
           for l in range(0,maxl+1):
-            for m in range(0,l+1):
+            for m in range(-l,l+1):
 	      values[i,j] = values[i,j] + tbl(coeffs,n,l,m) * bfunc.bindings.my_bfunc(n, l, m, [xv[i,j], 0., yv[i,j]], maxR)
 	    
     contourplotstuff(6, numfreqs, 3, ifreq, xv, yv,     values.real,  'X', 'Z', realfreq)
@@ -176,7 +180,7 @@ def plotfile_excitation_image_at_frequency(frequencies, filename, NR_NTheta_NPhi
       for j in range(ny):
         for n in range(1,maxn+1):
           for l in range(0,maxl+1):
-            for m in range(0,l+1):
+            for m in range(-l,l+1):
 	      values[i,j] = values[i,j] + tbl(coeffs,n,l,m) * bfunc.bindings.my_bfunc(n, l, m, [0., xv[i,j], yv[i,j]], maxR)
 	    
     contourplotstuff(6, numfreqs, 5, ifreq, xv, yv,     values.real,  'Y', 'Z', realfreq)
@@ -198,9 +202,11 @@ plotfile_excitation_image_at_frequency(frequencies, "field_spherical_fourier_coe
 plotfile_spherical_fourier_coeffs("field_spherical_fourier_coeffs_ex", NR_NTheta_NPhi,   [[3.0,15.0], [-5.0e-7, 5.0e-7 ], 1.0e-8])
 plotfile_excitation_image_at_frequency(frequencies, "field_spherical_fourier_coeffs_ex", NR_NTheta_NPhi, 1.0)
 
-#plotfile_spherical_fourier_coeffs("field_spherical_fourier_coeffs_ey",   [[3.0,15.0], [-1.5e5, 2.0e5 ], 2.5e2])
+plotfile_spherical_fourier_coeffs("field_spherical_fourier_coeffs_ey", NR_NTheta_NPhi,   [[3.0,15.0], [-5.0e-7, 5.0e-7 ], 1.0e-8])
+plotfile_excitation_image_at_frequency(frequencies, "field_spherical_fourier_coeffs_ey", NR_NTheta_NPhi, 1.0)
 
-#plotfile_spherical_fourier_coeffs("field_spherical_fourier_coeffs_ez",   [[3.0,15.0], [-1.5e5, 2.0e5 ], 2.5e2])
+plotfile_spherical_fourier_coeffs("field_spherical_fourier_coeffs_ez", NR_NTheta_NPhi,   [[3.0,15.0], [-5.0e-7, 5.0e-7 ], 1.0e-8])
+plotfile_excitation_image_at_frequency(frequencies, "field_spherical_fourier_coeffs_ez", NR_NTheta_NPhi, 1.0)
 
 
 plt.show()
