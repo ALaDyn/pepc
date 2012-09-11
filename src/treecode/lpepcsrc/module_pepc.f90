@@ -395,6 +395,7 @@ module module_pepc
       use module_pepc_types
       use module_libpepc_main
       use module_debug
+      use module_timings, only: timer_stop, t_all
       implicit none
       integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
@@ -415,7 +416,11 @@ module module_pepc
       call pepc_traverse_tree(np_local, particles)
       if (dbg(DBG_STATS)) call pepc_statistics(itime)
       if (restore)        call pepc_restore_particles(np_local, particles)
-      if (dealloc)        call pepc_timber_tree()
+      if (dealloc) then
+        call pepc_timber_tree()
+      else ! t_all should be stopped, do it either in pepc_timber_tree or here
+        call timer_stop(t_all)
+      end if
 
     end subroutine
 
