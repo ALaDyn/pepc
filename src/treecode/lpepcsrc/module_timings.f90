@@ -284,15 +284,17 @@ module module_timings
     !> if itime <=1, an additional header is printed
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine timings_GatherAndOutput(itime, iuserflag)
+    subroutine timings_GatherAndOutput(itime, iuserflag, printheader)
       use treevars
       implicit none
       include 'mpif.h'
       integer, intent(in) :: itime !< current timestep
       integer, optional, intent(in) :: iuserflag !< frontend-defined flag that is passed through and output to the second column
+      logical, optional, intent(in) :: printheader
       integer :: ierr
 
       integer :: flag
+      logical :: do_printheader
 
       real*8, dimension(1:numtimings) :: tim_max
       real*8, dimension(1:numtimings) :: tim_avg
@@ -305,6 +307,12 @@ module module_timings
         flag = 0
       endif
 
+      if (present(printheader)) then
+        do_printheader = printheader
+      else
+        do_printheader = itime <= 1
+      end if
+
       call MPI_REDUCE(tim, tim_max, numtimings, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc,ierr);
       call MPI_REDUCE(tim, tim_min, numtimings, MPI_REAL8, MPI_MIN, 0, MPI_COMM_lpepc,ierr);
       call MPI_REDUCE(tim, tim_avg, numtimings, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc,ierr);
@@ -312,12 +320,12 @@ module module_timings
      if (me==0) then
         tim_avg = tim_avg / num_pe
         tim_dev = tim_max - tim_min
-        call timings_ToFile(itime, flag, tim_max, 'timing_max.dat', itime<=1)
-        call timings_ToFile(itime, flag, tim_avg, 'timing_avg.dat', itime<=1)
-        call timings_ToFile(itime, flag, tim_min, 'timing_min.dat', itime<=1)
-        call timings_ToFile(itime, flag, tim_dev, 'timing_dev_abs.dat', itime<=1)
+        call timings_ToFile(itime, flag, tim_max, 'timing_max.dat', do_printheader)
+        call timings_ToFile(itime, flag, tim_avg, 'timing_avg.dat', do_printheader)
+        call timings_ToFile(itime, flag, tim_min, 'timing_min.dat', do_printheader)
+        call timings_ToFile(itime, flag, tim_dev, 'timing_dev_abs.dat', do_printheader)
         tim_dev = tim_dev / tim_min
-        call timings_ToFile(itime, flag, tim_dev, 'timing_dev_rel.dat', itime<=1)
+        call timings_ToFile(itime, flag, tim_dev, 'timing_dev_rel.dat', do_printheader)
 
         write(*,'(a20,f16.10," s")') "t_all = ",       tim(t_all)
         write(*,'(a20,f16.10," s")') "t_tot = ",       tim(t_tot)
