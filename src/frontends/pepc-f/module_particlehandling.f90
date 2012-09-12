@@ -189,6 +189,7 @@ module particlehandling
             p_new_e(ip)%results%e   = 0.0_8
             p_new_e(ip)%results%pot = 0.0_8
             p_new_e(ip)%work        = 1.0_8
+            p_new_e(ip)%data%species= -1
 
             p_new_e(ip)%data%B(1)=Bx
             p_new_e(ip)%data%B(2)=By
@@ -205,6 +206,7 @@ module particlehandling
             p_new_i(ip)%results%e   = 0.0_8
             p_new_i(ip)%results%pot = 0.0_8
             p_new_i(ip)%work        = 1.0_8
+            p_new_i(ip)%data%species= 1
 
             p_new_i(ip)%data%B(1)=Bx
             p_new_i(ip)%data%B(2)=By
@@ -328,18 +330,22 @@ module particlehandling
             END IF
 
             !Periodic behaviour (seems to cause heating of the electrons if periodic condiations are not used for fields as well)
-            IF(p(rp)%x(2) < ymin) THEN
-                p(rp)%x(2) = p(rp)%x(2) + dy
-            ELSE IF(p(rp)%x(2) > ymax) THEN
-                p(rp)%x(2) = p(rp)%x(2) - dy
-            END IF
+            DO WHILE (.true.)
+                IF(p(rp)%x(2) < ymin) THEN
+                    p(rp)%x(2) = p(rp)%x(2) + dy
+                ELSE IF(p(rp)%x(2) > ymax) THEN
+                    p(rp)%x(2) = p(rp)%x(2) - dy
+                END IF
 
-            IF(p(rp)%x(3) < zmin) THEN
-                p(rp)%x(3) = p(rp)%x(3) + dz
-            ELSE IF(p(rp)%x(3) > zmax) THEN
-                p(rp)%x(3) = p(rp)%x(3) - dz
-            END IF
-
+                IF(p(rp)%x(3) < zmin) THEN
+                    p(rp)%x(3) = p(rp)%x(3) + dz
+                ELSE IF(p(rp)%x(3) > zmax) THEN
+                    p(rp)%x(3) = p(rp)%x(3) - dz
+                END IF
+                IF (hit_side(p(rp)).eqv. .false.) THEN
+                    EXIT
+                END IF
+            END DO
             rp = rp + 1
 
         END DO
@@ -379,6 +385,7 @@ module particlehandling
             p_new_e(ip)%results%e   = 0.0_8
             p_new_e(ip)%results%pot = 0.0_8
             p_new_e(ip)%work        = 1.0_8
+            p_new_e(ip)%data%species= -1
 
             p_new_e(ip)%data%B(1)=Bx
             p_new_e(ip)%data%B(2)=By
@@ -395,6 +402,7 @@ module particlehandling
             p_new_i(ip)%results%e   = 0.0_8
             p_new_i(ip)%results%pot = 0.0_8
             p_new_i(ip)%work        = 1.0_8
+            p_new_i(ip)%data%species= 1
 
             p_new_i(ip)%data%B(1)=Bx
             p_new_i(ip)%data%B(2)=By
@@ -445,11 +453,12 @@ module particlehandling
             p(ip)%data%B(1)=Bx
             p(ip)%data%B(2)=By
             p(ip)%data%B(3)=Bz
-
             p(ip)%label       = my_rank * (tnpp / n_ranks) + ip
             p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2))*e*fsup
             p(ip)%data%m      = me*fsup
+            p(ip)%data%species=-1
             if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = mp*fsup
+            if(p(ip)%data%q .gt. 0.0) p(ip)%data%species=1
             p(ip)%results%e   = 0.0_8
             p(ip)%results%pot = 0.0_8
             p(ip)%work        = 1.0_8
@@ -480,6 +489,7 @@ module particlehandling
             p(ip)%results%e   = 0.0_8
             p(ip)%results%pot = 0.0_8
             p(ip)%work        = 1.0_8
+            p(ip)%data%species= 0
 
             p(ip)%data%v      =0.0_8
             p(ip)%x(1)        =xmax

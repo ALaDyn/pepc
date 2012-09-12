@@ -52,8 +52,8 @@ program pepc
 
     else
         if (root) allocate(all_particles(npart))
-        if (root) allocate(particles_npy(0:18*npart-1))
-        if (root) allocate(particles_npy_reshaped(0:17,0:npart-1))
+        if (root) allocate(particles_npy(0:19*npart-1))
+        if (root) allocate(particles_npy_reshaped(0:18,0:npart-1))
 
         call MPI_GATHER(particles,np,MPI_TYPE_PARTICLE,all_particles,npart,MPI_TYPE_PARTICLE,0,MPI_COMM_WORLD,ierr)
 
@@ -77,9 +77,10 @@ program pepc
             particles_npy(j+15*npart)=all_particles(j+1)%label
             particles_npy(j+16*npart)=all_particles(j+1)%work
             particles_npy(j+17*npart)=all_particles(j+1)%pid
+            particles_npy(j+18*npart)=all_particles(j+1)%data%species
         end do
         endif
-        particles_npy_reshaped=reshape(particles_npy,[18_8,npart],order=[2,1])
+        particles_npy_reshaped=reshape(particles_npy,[19_8,npart],order=[2,1])
         timer(3) = get_time()
 
         call save_double(file_out, shape(particles_npy_reshaped), particles_npy_reshaped)

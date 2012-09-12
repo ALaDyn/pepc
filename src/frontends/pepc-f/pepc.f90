@@ -18,7 +18,6 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-
 program pepc
 
     ! pepc modules
@@ -36,6 +35,8 @@ program pepc
     use integrator
     use output
     use diagnostics
+    use module_cmdline
+    use module_interaction_partners
 
     implicit none
     include 'mpif.h'
@@ -47,11 +48,12 @@ program pepc
     call pepc_initialize("pepc-f", my_rank, n_ranks, .true.)
 
     root = my_rank.eq.0
-  
+
     timer(1) = get_time()
-   
-    call GET_COMMAND_ARGUMENT(1, argument1)
-    if (argument1=="resume")then
+
+    call read_args()
+
+    if (do_resume)then
         call init_after_resume()
     else
         call set_parameter()
@@ -63,9 +65,14 @@ program pepc
         particles(1:npp)=plasma_particles(:)              !and than combined in one array for the pepc routines
         particles(npp+1:npp+nwp)=wall_particles(:)
     end if
- 
+
+    !probes for analysign interaction partners
+    call init_probes(6)
+
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
+
+
 
     do step=startstep, nt-1+startstep
         if(root) then
@@ -79,11 +86,14 @@ program pepc
         call pepc_particleresults_clear(particles, np)
         call pepc_grow_tree(np, tnp, particles)
         call pepc_traverse_tree(np, particles)
+
+        !tree traversal to get interaction partners of the probe particles
+        call get_interaction_partners(6)
+
         if (dbg(DBG_STATS)) call pepc_statistics(step)
         call pepc_restore_particles(np, particles)
         call pepc_timber_tree()
         timer(4) = get_time()
-
 
         !diagnostics and checkpoints with timing
         !diagnostics are carried out, when fields are computed according to current positions
@@ -109,6 +119,7 @@ program pepc
         !integrator and filtering with timing
         !particles get their new velocities and positions, particles are filtered and new particles created
         call boris_nonrel(particles)
+
         if (open_sides) then
             !open sides (particles leave and are refluxed)
             call hits_on_boundaries_with_open_sides(particles)

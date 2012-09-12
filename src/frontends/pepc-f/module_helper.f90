@@ -28,6 +28,7 @@ module helper
   use module_pepc_types
   use variables
   use zufall
+  use module_cmdline
 
   contains
 
@@ -37,13 +38,10 @@ module helper
     use module_pepc
     use module_interaction_specific
     use module_mirror_boxes
+    use module_interaction_specific
     implicit none
       
     integer, parameter :: fid = 12
-    character(255)     :: para_file
-    logical            :: read_para_file
-
-
   
      ! set default parameter values
      
@@ -70,19 +68,17 @@ module helper
     checkp_interval =0
     open_sides =.false.
     guiding_centre_electrons=.false.
+    mirror_layers=1
     
     ! read in namelist file
-    call pepc_read_parameters_from_first_argument(read_para_file, para_file)
+    !call pepc_read_parameters_from_first_argument(read_para_file, para_file)
+    call pepc_read_parameters_from_file_name(trim(input_file))
 
-    if (read_para_file) then
-      if(root) write(*,'(a)') " == reading parameter file, section pepc-f: ", para_file
-      open(fid,file=para_file)
-      read(fid,NML=pepcf)
-      read(fid,NML=walk_para_smpss)
-      close(fid)
-    else
-      if(root) write(*,*) " == no param file, using default parameter "
-    end if    
+    if(root) write(*,'(a)') " == reading parameter file, section pepc-f: ", input_file
+    open(fid,file=input_file)
+    read(fid,NML=pepcf)
+    read(fid,NML=walk_para_smpss)
+    close(fid)
 
     tnpp = tnpp
 
@@ -152,6 +148,8 @@ module helper
       write(*,'(a,es12.4)') " == particles / debye spehere        : ", 0.5*tnpp/(dx*dy*dz)*l_debye**3
       write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
       write(*,'(a,l)')      " == open side walls                  : ", open_sides
+      write(*,'(a,l)')      " == far_field_if_periodic            : ", include_far_field_if_periodic
+      write(*,'(a,i12)')    " == mirror_layers                    : ", mirror_layers
       write(*,*)
       write(*,*) "========== Magnetic Field ========="
       write(*,'(a,f12.4)')  " == Bx                               : ", Bx
@@ -199,6 +197,7 @@ module helper
     use module_interaction_specific
     use module_mirror_boxes
     use module_checkpoint
+    use module_interaction_specific
     implicit none
     include 'mpif.h'
       
@@ -229,30 +228,18 @@ module helper
     checkp_interval =0
     open_sides =.false.
     guiding_centre_electrons=.false.
+    mirror_layers=1
 
+    startstep=resume_step
 
-    if (root) CALL SYSTEM ('python last_succ_ts.py > resume_int.dat')
-    if (root) open(unit = 666, file = "resume_int.dat")
-    if (root) read(666,*)startstep
-    if (root) close(666)
-    if (root) write(*,*)
     if (root) write(*,*)"=================================================="
     if (root) write(*,*)"Restarting from checkpoint at timestep",startstep
     if (root) write(*,*)"=================================================="
-    if (root) write(*,*)
-    if (root) CALL SYSTEM ('rm resume_int.dat')
-    call MPI_BCAST(startstep, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-      
+
     call read_particles_mpiio(startstep,MPI_COMM_WORLD,my_rank,n_ranks,step,np,npart,particles,filename)    
     startstep=step
 
-    cmd_args = COMMAND_ARGUMENT_COUNT()
-    if (cmd_args > 1) then
-        call GET_COMMAND_ARGUMENT(2, argument2)
-        !if (root) write (*,*) "cmd_args > 1",cmd_args
-        filename=argument2
-        call pepc_read_parameters_from_file_name(filename)
-    end if
+    call pepc_read_parameters_from_file_name(input_file)
 
     if(root) write(*,'(a)') " == reading parameter file, section pepc-f: ", filename
     open(fid,file=filename)
@@ -304,11 +291,6 @@ module helper
     fsup = (ne+ni)*dx*dy*dz/tnpp
 
     call init_rng()
-    !call random_seed(size = rsize)
-    !allocate(rseed(rsize))
-    !rseed = my_rank + [(i*144,i=1,rsize)]
-    !call random_seed(put = rseed)
-    !deallocate(rseed)
 
 !========== used if domain does not start in 0,0,0; origin can be set in input later
 !right now it is still 0,0,0, but the subroutines are already adapted
@@ -341,6 +323,8 @@ module helper
       write(*,'(a,es12.4)') " == particles / debye spehere        : ", 0.5*tnpp/(dx*dy*dz)*l_debye**3
       write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
       write(*,'(a,l)')      " == open side walls                  : ", open_sides
+      write(*,'(a,l)')      " == far_field_if_periodic            : ", include_far_field_if_periodic
+      write(*,'(a,i12)')    " == mirror_layers                    : ", mirror_layers
       write(*,*)
       write(*,*) "========== Magnetic Field ========="
       write(*,'(a,f12.4)')  " == Bx                               : ", Bx
@@ -474,14 +458,20 @@ module helper
         use module_mirror_boxes
 
         implicit none
-  
-        periodicity=[.false.,.false.,.false.]
+        mirror_box_layers=mirror_layers
+        periodicity=[.false.,.true.,.true.]
          
         t_lattice_1=[dx,0.0_8,0.0_8]
         t_lattice_2=[0.0_8,dy,0.0_8]
         t_lattice_3=[0.0_8,0.0_8,dz]
 
         LatticeOrigin=[xmin,ymin,zmin]
+
+        !used to check if problem with potential is due to asymmetries when using mirror_layers
+        !basically switches from nearest box to nearest image method
+        !spatial_interaction_cutoff(2)=0.5*dy
+        !spatial_interaction_cutoff(3)=0.5*dz
+
 
     end subroutine
         

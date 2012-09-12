@@ -17,5 +17,11 @@ FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_
               module_fmm_framework.f90
 endif
 
+ifeq ($(BACKENDTYPE), XYZQVMBS)
+# include charge, velocity, mass, magnetic field and species in particle data type
+FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQVMBS.f90 \
+              module_fmm_framework.f90
+endif
+
 SRC        += $(FILES_INT)
 SRC_COPY   += $(addprefix ./src/interaction_specific/coulomb/, $(FILES_INT))

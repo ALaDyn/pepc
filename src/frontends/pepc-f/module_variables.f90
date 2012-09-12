@@ -44,6 +44,7 @@ module variables
   integer :: np               ! local number of particles (wall +plasma)
   integer :: diag_interval    
   integer :: checkp_interval
+  integer :: mirror_layers    ! input variable. Is copied to mirror_box_layers (module_mirror_boxes)
 
   ! type of source
   integer :: quelltyp
@@ -102,14 +103,14 @@ module variables
   integer :: npp               ! local number of plasma particles 
 
   !aux strings
-  character(255) :: filename,argument1,argument2
+  character(255) :: filename
   !aux ints
   integer :: cmd_args
 
   !other
   integer :: chunk_size_default
 
-  namelist /pepcf/ guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /pepcf/ mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 

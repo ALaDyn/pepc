@@ -90,6 +90,7 @@ module helper
         call vtk%write_data_array("charge", np, p(:)%data%q)
         call vtk%write_data_array("mass", np, p(:)%data%m)
         call vtk%write_data_array("work", np, p(:)%work)
+        call vtk%write_data_array("species", np, p(:)%data%species)
         call vtk%write_data_array("pelabel", np, p(:)%label)
         call vtk%write_data_array("local index", np, [(i,i=1,np)])
         call vtk%write_data_array("processor", np, p(:)%pid)

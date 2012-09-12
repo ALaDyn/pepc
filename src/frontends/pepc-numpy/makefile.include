@@ -14,6 +14,6 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-numpy/, $(FILES_L))
 SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 
-BACKENDTYPE = XYZQVMB
+BACKENDTYPE = XYZQVMBS
 
 #WALK = smpss
