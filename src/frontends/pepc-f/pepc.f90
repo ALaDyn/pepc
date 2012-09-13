@@ -67,11 +67,10 @@ program pepc
     end if
 
     !probes for analysign interaction partners
-    call init_probes(6)
+    call init_probes(5)
 
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
-
 
 
     do step=startstep, nt-1+startstep
@@ -85,13 +84,17 @@ program pepc
         timer(3) = get_time()
         call pepc_particleresults_clear(particles, np)
         call pepc_grow_tree(np, tnp, particles)
+
         call pepc_traverse_tree(np, particles)
-
-        !tree traversal to get interaction partners of the probe particles
-        call get_interaction_partners(6)
-
         if (dbg(DBG_STATS)) call pepc_statistics(step)
         call pepc_restore_particles(np, particles)
+
+        !tree traversal to get interaction partners of the probe particles
+        timer(7) = get_time()
+        call get_interaction_partners(5)
+        timer(8) = get_time()
+
+
         call pepc_timber_tree()
         timer(4) = get_time()
 
@@ -100,7 +103,7 @@ program pepc
         !afterwards, they are moved and filtered (boundary-hits, ionization...)
         !checkpoint
         if(checkp_interval.ne.0) then
-            if (MOD(step,checkp_interval)==0) then
+            if ((MOD(step,checkp_interval)==0).or.(step==nt-1+startstep)) then
                 call set_checkpoint()
             end if
         end if
@@ -134,6 +137,7 @@ program pepc
         if(root) write(*,'(a,es12.4)') " == time in pepc routines [s]                     : ", timer(4) - timer(3)
         if(root) write(*,'(a,es12.4)') " == time in output routines [s]                   : ", timer(5) - timer(4)
         if(root) write(*,'(a,es12.4)') " == time in integrator and particlehandling [s]   : ", timer(6) - timer(5)
+        if(root) write(*,'(a,es12.4)') " == time in interaction partner subroutine [s]    : ", timer(8) - timer(7)
 
     end do
 

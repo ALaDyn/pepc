@@ -49,10 +49,10 @@ module module_interaction_specific
       real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
 ! CS DEBUG KRAM FÜR INTERACTION PARTNER
-      integer*8, dimension(5,1000000),public :: interaction_keylist
-      integer, dimension(5),public :: no_interaction_partners=(/0,0,0,0,0/)
-      real*8, dimension(5,1000000,3),public :: interaction_vbox
-! ENDE
+      integer*8, allocatable,public :: interaction_keylist(:,:)
+      integer, allocatable,public :: no_interaction_partners(:)
+      real*8, allocatable,public :: interaction_vbox(:,:,:)
+! ENDE CS
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
 
 
@@ -383,9 +383,8 @@ module module_interaction_specific
                 interaction_keylist(particle%label,no_interaction_partners(particle%label))=key
                 interaction_vbox(particle%label,no_interaction_partners(particle%label),1:3)=vbox(1:3)
 
-                !if (no_interaction_partners(particle%label)==1) write(*,*)boxsize
 
-! END
+! END CS
 
 
             case default
