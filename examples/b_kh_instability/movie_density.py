@@ -26,11 +26,11 @@ print "Plot field data"
 
 plotboxsize   = 5.
 animated = True
-tmax=3100
-increment = 1000
+tmax=410
+increment = 20
 dt=0.15
-nx=400
-ny=400
+nx=200
+ny=200
 xmin = 0.
 xmax = 100.
 ymin = 0.

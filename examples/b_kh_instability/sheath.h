@@ -40,8 +40,8 @@
   yl = 125 
   zl =4
  displace = 50.,0.,0. 
- ngx=400
- ngy=400
+ ngx=200
+ ngy=200
  nxh=50
  ngav=50
  
@@ -64,12 +64,12 @@
  scheme = 8 ! integration scheme: 2v, non-rel TE (Ex, Ey, Bz)                          
 
   ! control
-  nt = 3000
+  nt = 200
   dt = 0.15
  restart = .false.
   vis_on = .false.
  ivis = 5 
- ivis_fields = 100 
+ ivis_fields = 20 
  ivis_domains = 5000
   mc_init = .false.
   mc_steps = 1000
@@ -81,7 +81,7 @@
 
 &libpepc
 
-  np_mult=-50
+  np_mult=-80
   debug_level = 1
 
   ! 0: no load balacing, 1: load 
@@ -97,5 +97,5 @@
 /
 
 &walk_para_pthreads
-  num_walk_threads = 8
+  num_walk_threads = 15
  /
