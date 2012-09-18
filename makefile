@@ -57,9 +57,9 @@ $(LIBDIR)/libsl.a: $(LIBDIR)
 	@cp -p $(SLPEPCDIR)/libsl.a $(LIBDIR)/libsl.a
 
 clean:
-	@echo "==== cleaning build and bin"
+	@echo "==== cleaning build directory and binaries in bin directory"
 	@$(RM) makefile.envs
-	@$(RM) $(BUILDDIR) $(BINDIR)/*
+	@$(RM) $(BUILDDIR) $(addprefix $(BINDIR)/, $(ALLFRONTENDS))
 	@echo ""
 
 cleanlib:
