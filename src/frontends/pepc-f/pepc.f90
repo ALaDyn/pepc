@@ -67,7 +67,7 @@ program pepc
     end if
 
     !probes for analysign interaction partners
-    call init_probes(5)
+    !call init_probes(5)
 
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
@@ -90,9 +90,9 @@ program pepc
         call pepc_restore_particles(np, particles)
 
         !tree traversal to get interaction partners of the probe particles
-        timer(7) = get_time()
-        call get_interaction_partners(5)
-        timer(8) = get_time()
+        !timer(7) = get_time()
+        !call get_interaction_partners(5)
+        !timer(8) = get_time()
 
 
         call pepc_timber_tree()
@@ -137,7 +137,7 @@ program pepc
         if(root) write(*,'(a,es12.4)') " == time in pepc routines [s]                     : ", timer(4) - timer(3)
         if(root) write(*,'(a,es12.4)') " == time in output routines [s]                   : ", timer(5) - timer(4)
         if(root) write(*,'(a,es12.4)') " == time in integrator and particlehandling [s]   : ", timer(6) - timer(5)
-        if(root) write(*,'(a,es12.4)') " == time in interaction partner subroutine [s]    : ", timer(8) - timer(7)
+        !if(root) write(*,'(a,es12.4)') " == time in interaction partner subroutine [s]    : ", timer(8) - timer(7)
 
     end do
 

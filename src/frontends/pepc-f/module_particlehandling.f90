@@ -46,19 +46,19 @@ module particlehandling
 
         rp = 1
         DO WHILE (rp <= np)
-            IF( hit_wall(p(rp)) ) THEN                     !hit target
+            IF( hit_r(p(rp)) ) THEN                     !hit target
                 if (p(rp)%data%q > 0.) local_ihits=local_ihits+1
                 if (p(rp)%data%q < 0.) local_ehits=local_ehits+1
                 local_q=local_q+p(rp)%data%q
                 IF(rp .ne. np) THEN
                     DO
-                        IF ( hit_wall(p(np)) .or. hit_src(p(np)).or. hit_side(p(np)) ) THEN !third condition for open walls
+                        IF ( hit_r(p(np)) .or. hit_l(p(np)).or. hit_side(p(np)) ) THEN !third condition for open walls
                             IF (np==rp) EXIT
-                            IF ( hit_wall(p(np)) ) THEN
+                            IF ( hit_r(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits=local_ihits+1  
                                 IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
                                 local_q=local_q+p(rp)%data%q
-                            ELSE IF ( hit_src(p(np)) ) THEN
+                            ELSE IF ( hit_l(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1  
                                 IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1 
                             ! new part for open walls
@@ -76,18 +76,18 @@ module particlehandling
                 END IF
 
                 np = np - 1
-            ELSE IF( hit_src(p(rp)) ) THEN               !hit source wall
+            ELSE IF( hit_l(p(rp)) ) THEN               !hit source wall
                 if (p(rp)%data%q > 0.) local_ihits_src=local_ihits_src+1
                 if (p(rp)%data%q < 0.) local_ehits_src=local_ehits_src+1
                 IF(rp .ne. np) THEN
                     DO
-                        IF ( hit_wall(p(np)) .or. hit_src(p(np)).or. hit_side(p(np)) ) THEN !third condition for open walls
+                        IF ( hit_r(p(np)) .or. hit_l(p(np)).or. hit_side(p(np)) ) THEN !third condition for open walls
                             IF (np==rp) EXIT
-                            IF ( hit_wall(p(np)) ) THEN
+                            IF ( hit_r(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits=local_ihits+1  
                                 IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
                                 local_q=local_q+p(rp)%data%q
-                            ELSE IF ( hit_src(p(np)) ) THEN
+                            ELSE IF ( hit_l(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1  
                                 IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1
                             ! new part for open walls
@@ -112,13 +112,13 @@ module particlehandling
                 if (p(rp)%data%q < 0.) local_ehits_side=local_ehits_side+1
                 IF(rp .ne. np) THEN
                     DO
-                        IF ( hit_wall(p(np)) .or. hit_src(p(np)) .or. hit_side(p(np)) ) THEN
+                        IF ( hit_r(p(np)) .or. hit_l(p(np)) .or. hit_side(p(np)) ) THEN
                             IF (np==rp) EXIT
-                            IF ( hit_wall(p(np)) ) THEN
+                            IF ( hit_r(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits=local_ihits+1
                                 IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
                                 local_q=local_q+p(rp)%data%q
-                            ELSE IF ( hit_src(p(np)) ) THEN
+                            ELSE IF ( hit_l(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1
                                 IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1
                             ELSE IF ( hit_side(p(np)) ) THEN
@@ -136,19 +136,6 @@ module particlehandling
                 np = np - 1
             END IF
 
-            !Periodic behaviour (seems to cause heating of the electrons if periodic condiations are not used for fields as well)
-            !IF(p(rp)%x(2) < ymin) THEN
-            !    p(rp)%x(2) = p(rp)%x(2) + dy
-            !ELSE IF(p(rp)%x(2) > ymax) THEN
-            !    p(rp)%x(2) = p(rp)%x(2) - dy
-            !END IF
-        
-            !IF(p(rp)%x(3) < zmin) THEN
-            !    p(rp)%x(3) = p(rp)%x(3) + dz
-            !ELSE IF(p(rp)%x(3) > zmax) THEN
-            !    p(rp)%x(3) = p(rp)%x(3) - dz
-            !END IF
-            
             rp = rp + 1
       
         END DO
@@ -257,42 +244,45 @@ module particlehandling
         type(t_particle), allocatable                :: p_new_e(:)
         type(t_particle), allocatable                :: p_new_i(:)
 
-        integer :: ip, rp, rc, local_ihits,global_ihits,local_ehits,global_ehits
-        integer :: local_ihits_src,global_ihits_src,local_ehits_src,global_ehits_src
-        real*8 :: local_q, global_q,local_wall_q,global_wall_q                             !q transfered on target on local proc and total in this timestep, total q on wall at this moment
-        integer :: new_e,new_i,new_e_global,new_i_global
+        integer      :: ip,rp,rc
+        real(kind=8) :: dq_r_loc,dq_r_glob,dq_l_loc,dq_l_glob
+        real(kind=8) :: q_r_loc,q_r_glob,q_l_loc,q_l_glob
+        integer      :: e_hits_r_loc,e_hits_r_glob,e_hits_l_loc,e_hits_l_glob
+        integer      :: i_hits_r_loc,i_hits_r_glob,i_hits_l_loc,i_hits_l_glob
+        integer      :: new_e,new_i
 
-        local_q=0.0_8
-        global_q=0.0_8
-        local_wall_q=0.0_8
-        global_wall_q=0.0_8
-        local_ihits=0
-        global_ihits=0
-        local_ehits=0
-        global_ehits=0
-        local_ihits_src=0
-        global_ihits_src=0
-        local_ehits_src=0
-        global_ehits_src=0
-
+        dq_r_loc=0.0_8
+        dq_l_loc=0.0_8
+        dq_r_glob=0.0_8
+        dq_l_glob=0.0_8
+        q_r_loc=0.0_8
+        q_l_loc=0.0_8
+        q_r_glob=0.0_8
+        q_l_glob=0.0_8
+        e_hits_r_loc=0
+        e_hits_l_loc=0
+        e_hits_r_glob=0
+        e_hits_l_glob=0
+        i_hits_r_loc=0
+        i_hits_l_loc=0
+        i_hits_r_glob=0
+        i_hits_l_glob=0
 
         rp = 1
         DO WHILE (rp <= np)
-            IF( hit_wall(p(rp)) ) THEN                     !hit target
-                if (p(rp)%data%q > 0.) local_ihits=local_ihits+1
-                if (p(rp)%data%q < 0.) local_ehits=local_ehits+1
-                local_q=local_q+p(rp)%data%q
+            IF( hit_r(p(rp)) ) THEN                     !hit right wall
+                if (p(rp)%data%q > 0.) i_hits_r_loc=i_hits_r_loc+1
+                if (p(rp)%data%q < 0.) e_hits_r_loc=e_hits_r_loc+1
                 IF(rp .ne. np) THEN
                     DO
-                        IF ( hit_wall(p(np)) .or. hit_src(p(np)) ) THEN
+                        IF ( hit_r(p(np)) .or. hit_l(p(np)) ) THEN
                             IF (np==rp) EXIT
-                            IF ( hit_wall(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits=local_ihits+1
-                                IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
-                                local_q=local_q+p(rp)%data%q
-                            ELSE IF ( hit_src(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1
-                                IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1
+                            IF ( hit_r(p(np)) ) THEN
+                                IF (p(np)%data%q > 0.) i_hits_r_loc=i_hits_r_loc+1
+                                IF (p(np)%data%q < 0.) e_hits_r_loc=e_hits_r_loc+1
+                            ELSE IF ( hit_l(p(np)) ) THEN
+                                IF (p(np)%data%q > 0.) i_hits_l_loc=i_hits_l_loc+1
+                                IF (p(np)%data%q < 0.) e_hits_l_loc=e_hits_l_loc+1
                             END IF
                             np = np - 1
                         ELSE
@@ -303,20 +293,19 @@ module particlehandling
                 END IF
 
                 np = np - 1
-            ELSE IF( hit_src(p(rp)) ) THEN               !hit source wall
-                if (p(rp)%data%q > 0.) local_ihits_src=local_ihits_src+1
-                if (p(rp)%data%q < 0.) local_ehits_src=local_ehits_src+1
+            ELSE IF( hit_l(p(rp)) ) THEN               !hit left wall
+                if (p(rp)%data%q > 0.) i_hits_l_loc=i_hits_l_loc+1
+                if (p(rp)%data%q < 0.) e_hits_l_loc=e_hits_l_loc+1
                 IF(rp .ne. np) THEN
                     DO
-                        IF ( hit_wall(p(np)) .or. hit_src(p(np))) THEN
+                        IF ( hit_r(p(np)) .or. hit_l(p(np))) THEN
                             IF (np==rp) EXIT
-                            IF ( hit_wall(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits=local_ihits+1
-                                IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
-                                local_q=local_q+p(rp)%data%q
-                            ELSE IF ( hit_src(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1
-                                IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1
+                            IF ( hit_r(p(np)) ) THEN
+                                IF (p(np)%data%q > 0.) i_hits_r_loc=i_hits_r_loc+1
+                                IF (p(np)%data%q < 0.) e_hits_r_loc=e_hits_r_loc+1
+                            ELSE IF ( hit_l(p(np)) ) THEN
+                                IF (p(np)%data%q > 0.) i_hits_l_loc=i_hits_l_loc+1
+                                IF (p(np)%data%q < 0.) e_hits_l_loc=e_hits_l_loc+1
                             END IF
                             np = np - 1
                         ELSE
@@ -329,7 +318,6 @@ module particlehandling
                 np = np - 1
             END IF
 
-            !Periodic behaviour (seems to cause heating of the electrons if periodic condiations are not used for fields as well)
             DO WHILE (.true.)
                 IF(p(rp)%x(2) < ymin) THEN
                     p(rp)%x(2) = p(rp)%x(2) + dy
@@ -350,26 +338,25 @@ module particlehandling
 
         END DO
 
-        call MPI_ALLREDUCE(local_ehits, global_ehits, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(local_ihits, global_ihits, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(local_ehits_src, global_ehits_src, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(local_ihits_src, global_ihits_src, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(i_hits_l_loc, i_hits_l_glob, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(e_hits_l_loc, e_hits_l_glob, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(i_hits_r_loc, i_hits_r_glob, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(e_hits_r_loc, e_hits_r_glob, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
 
+        dq_r_loc= (i_hits_r_loc-e_hits_r_loc)*e*fsup
+        dq_l_loc= (i_hits_l_loc-e_hits_l_loc)*e*fsup
+        dq_r_glob= (i_hits_r_glob-e_hits_r_glob)*e*fsup
+        dq_l_glob= (i_hits_l_glob-e_hits_l_glob)*e*fsup
 
-        local_q = (local_ihits-local_ehits)*e*fsup
-        global_q = (global_ihits-global_ehits)*e*fsup
+        new_e = (e_hits_l_glob + e_hits_r_glob) / n_ranks
+        new_i = (i_hits_l_glob + i_hits_r_glob) / n_ranks
 
-        new_e_global = global_ehits + global_ehits_src
-        new_i_global = global_ihits + global_ihits_src
+        next_label = next_label + my_rank * (new_e + new_i)
 
-        new_e = new_e_global / n_ranks
-        new_i = new_i_global / n_ranks
         if (my_rank .eq. (n_ranks-1)) then
-            new_e = new_e + MOD(new_e_global, n_ranks)
-            new_i = new_i + MOD(new_i_global, n_ranks)
+            new_e = new_e + MOD((e_hits_l_glob + e_hits_r_glob), n_ranks)
+            new_i = new_i + MOD((i_hits_l_glob + i_hits_r_glob), n_ranks)
         end if
-
-        next_label = next_label + my_rank * (new_e_global/n_ranks + new_i_global/n_ranks)
 
         allocate(p_new_e(new_e),stat=rc)
         allocate(p_new_i(new_i),stat=rc)
@@ -378,7 +365,7 @@ module particlehandling
 
         DO ip=1, new_e   !electrons first
             p_new_e(ip)%label       = next_label
-            next_label        = next_label + 1
+            next_label              = next_label + 1
             p_new_e(ip)%data%q      = -e*fsup
             p_new_e(ip)%data%m      = me*fsup
 
@@ -395,7 +382,7 @@ module particlehandling
 
         DO ip=1, new_i   !ions
             p_new_i(ip)%label       = next_label
-            next_label        = next_label + 1
+            next_label              = next_label + 1
             p_new_i(ip)%data%q      = e*fsup
             p_new_i(ip)%data%m      = mp*fsup
 
@@ -410,7 +397,6 @@ module particlehandling
         END DO
         call source(p_new_i,quelltyp)
 
-
         p(np+1:np+new_e)=p_new_e(:)
         p(np+new_e+1:np+new_e+new_i)=p_new_i(:)
         np = np + new_e + new_i
@@ -421,22 +407,28 @@ module particlehandling
         deallocate(p_new_e)
         deallocate(p_new_i)
 
-        DO ip=1, np                                         ! charge wall by adding charge to the wall particles
-            IF (p(ip)%label<0) THEN                           ! wall particles have negative labels
-                p(ip)%data%q = p(ip)%data%q + global_q/tnwp
-                local_wall_q=local_wall_q+p(ip)%data%q
+        DO ip=1, np                                            ! charge wall by adding charge to the wall particles
+            IF (p(ip)%data%species==0) THEN
+                IF(p(ip)%x(1)>xmin+0.999*dx) THEN
+                    p(ip)%data%q = p(ip)%data%q + dq_r_glob / tnwp          !has to be modiefied to work with 2 walls
+                    q_r_loc=q_r_loc + p(ip)%data%q
+                ELSE IF (p(ip)%x(1)<xmin+0.001*dx) THEN
+                    p(ip)%data%q = p(ip)%data%q + dq_l_glob / tnwp          !has to be modiefied to work with 2 walls
+                    q_l_loc=q_l_loc + p(ip)%data%q
+                END IF
             END IF
         END DO
-        call MPI_ALLREDUCE(local_wall_q, global_wall_q, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(q_r_loc, q_r_glob, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(q_l_loc, q_l_glob, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 
         if(root) open(unit=99,file='current_on_wall.dat',status='UNKNOWN',position='APPEND')
-        if(root) write(99,*)global_ehits_src,",",global_ihits_src,",",global_ehits,",",global_ihits,",",global_q,",",global_wall_q
+        if(root) write(99,*)e_hits_l_glob,",",i_hits_l_glob,",",e_hits_r_glob,",",i_hits_r_glob,",",dq_r_glob,",",q_r_glob
         if(root)close(99)
-        if(root) write(*,'(a,i12)')    " == [filter] total number of particles            : ", tnp
-        if(root) write(*,'(a,i12)')    " == [target_hits] number of ion hits              : ", global_ihits
-        if(root) write(*,'(a,i12)')    " == [target_hits] number of electron hits         : ", global_ehits
-        if(root) write(*,'(a,i12)')    " == [source_hits] number of ion hits              : ", global_ihits_src
-        if(root) write(*,'(a,i12)')    " == [source_hits] number of electron hits         : ", global_ehits_src
+        if(root) write(*,'(a,i12)')    " == [filter] total number of particles                 : ", tnp
+        if(root) write(*,'(a,i12)')    " == [target_hits] number of ion hits on right wall     : ", i_hits_r_glob
+        if(root) write(*,'(a,i12)')    " == [target_hits] number of electron hits on right wall: ", e_hits_r_glob
+        if(root) write(*,'(a,i12)')    " == [source_hits] number of ion hits on left wall      : ", i_hits_l_glob
+        if(root) write(*,'(a,i12)')    " == [source_hits] number of electron hits on left wall : ", e_hits_l_glob
 
     END SUBROUTINE
 
@@ -504,7 +496,7 @@ module particlehandling
 
     SUBROUTINE source(p,i)
         type(t_particle), allocatable, intent(inout) :: p(:)
-        integer, intent(in)                          :: i
+        integer, intent(in)                           :: i
 
         quelle: SELECT case(i)
             case(0)
@@ -513,6 +505,17 @@ module particlehandling
             case(1)
                 call source_emmert(p)
                 !write(*,*)"EMMERT"
+            case(2)
+                call source_bissel_johnson(p)
+                !write(*,*)"BISSEL JOHNSON"
+            case(3)  !test case with uniform plasma in timestep 0 and afterwards berberichs source
+                if (step==0) then
+                    call source_uniform_gaussian_plasma(p)
+                    write(*,*)"UNIFORM"
+                else
+                    call source_berberich(p)
+                    write(*,*)"BERBERICH"
+                end if
             case default
                 !do nothing
         END SELECT quelle
@@ -526,10 +529,8 @@ module particlehandling
         real               :: ran
         integer            :: n,ip
         real*8             :: mu,sigma
-        real*8             :: vpar(3),b,E_tot(3),E_ext(3),vd(3),omega_c
 
-        !Just done now, because Eext is not introduced yet
-        E_ext=0.0_8
+
         mu=0.0
         n=size(p) 
         DO ip=1, n
@@ -549,33 +550,7 @@ module particlehandling
             !If treated in guding centre approximation, electrons just need other startign values in
             !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
             IF (guiding_centre_electrons) THEN
-                IF ((p(ip)%label > 0) .AND. (p(ip)%data%q < 0.)) THEN
-                    !Electric Field at particle position
-                    E_tot=E_ext+p(ip)%results%e
-                    !abs(B)
-                    b=sqrt(p(ip)%data%b(1)**2+p(ip)%data%b(2)**2+p(ip)%data%b(3))
-                    !electron gyro frequency
-                    omega_c=p(ip)%data%q*b/p(ip)%data%m
-
-                    IF (b<0.0000001) THEN
-                        write(*,*) '##### vanishing B-Field for particle:', ip,np,my_rank,p(ip)%label
-                    ELSE
-                        !Parallel velocity components
-                        vpar(1) = (p(ip)%data%b(1)/b**2) * (p(ip)%data%b(1)*p(ip)%data%v(1) + p(ip)%data%b(2)*p(ip)%data%v(2) + p(ip)%data%b(3)*p(ip)%data%v(3))
-                        vpar(2) = (p(ip)%data%b(2)/b**2) * (p(ip)%data%b(1)*p(ip)%data%v(1) + p(ip)%data%b(2)*p(ip)%data%v(2) + p(ip)%data%b(3)*p(ip)%data%v(3))
-                        vpar(3) = (p(ip)%data%b(3)/b**2) * (p(ip)%data%b(1)*p(ip)%data%v(1) + p(ip)%data%b(2)*p(ip)%data%v(2) + p(ip)%data%b(3)*p(ip)%data%v(3))
-                        !particle velocity without drifts (here only ExB) v - v_ExB
-                        vd(1) = p(ip)%data%v(1) - (1/b**2) * (E_tot(2)*p(ip)%data%b(3)-E_tot(3)*p(ip)%data%b(2))
-                        vd(2) = p(ip)%data%v(2) - (1/b**2) * (E_tot(3)*p(ip)%data%b(1)-E_tot(1)*p(ip)%data%b(3))
-                        vd(3) = p(ip)%data%v(3) - (1/b**2) * (E_tot(1)*p(ip)%data%b(2)-E_tot(2)*p(ip)%data%b(1))
-                        !new velocities (vpar + v_ExB)
-                        p(ip)%data%v=vpar - vd + p(ip)%data%v
-                        !new positions (moved by Lamor raduis to guiding centre position)
-                        p(ip)%x(1) = p(ip)%x(1) - (1./(omega_c*b)) * (p(ip)%data%b(2)*vd(3) - p(ip)%data%b(3)*vd(2))
-                        p(ip)%x(2) = p(ip)%x(2) - (1./(omega_c*b)) * (p(ip)%data%b(3)*vd(1) - p(ip)%data%b(1)*vd(3))
-                        p(ip)%x(3) = p(ip)%x(3) - (1./(omega_c*b)) * (p(ip)%data%b(1)*vd(2) - p(ip)%data%b(2)*vd(1))
-                    END IF
-                END IF
+                call transform_electrons_to_gc(p)
             END IF
 
         END DO     
@@ -589,10 +564,7 @@ module particlehandling
         real               :: ran
         integer            :: n,ip
         real*8             :: mu,sigma
-        real*8             :: vpar(3),b,E_tot(3),E_ext(3),vd(3),omega_c
 
-        !Just done now, because Eext is not introduced yet
-        E_ext=0.0_8
 
         mu=0.0
         n=size(p) 
@@ -619,36 +591,112 @@ module particlehandling
             !If treated in guding centre approximation, electrons just need other startign values in
             !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
             IF (guiding_centre_electrons) THEN
-                IF ((p(ip)%label > 0) .AND. (p(ip)%data%q < 0.)) THEN
-                    !Electric Field at particle position
-                    E_tot=E_ext+p(ip)%results%e
-                    !abs(B)
-                    b=sqrt(p(ip)%data%b(1)**2+p(ip)%data%b(2)**2+p(ip)%data%b(3))
-                    !electron gyro frequency
-                    omega_c=p(ip)%data%q*b/p(ip)%data%m
-
-                    IF (b<0.0000001) THEN
-                        write(*,*) '##### vanishing B-Field for particle:', ip,np,my_rank,p(ip)%label
-                    ELSE
-                        !Parallel velocity components
-                        vpar(1) = (p(ip)%data%b(1)/b**2) * (p(ip)%data%b(1)*p(ip)%data%v(1) + p(ip)%data%b(2)*p(ip)%data%v(2) + p(ip)%data%b(3)*p(ip)%data%v(3))
-                        vpar(2) = (p(ip)%data%b(2)/b**2) * (p(ip)%data%b(1)*p(ip)%data%v(1) + p(ip)%data%b(2)*p(ip)%data%v(2) + p(ip)%data%b(3)*p(ip)%data%v(3))
-                        vpar(3) = (p(ip)%data%b(3)/b**2) * (p(ip)%data%b(1)*p(ip)%data%v(1) + p(ip)%data%b(2)*p(ip)%data%v(2) + p(ip)%data%b(3)*p(ip)%data%v(3))
-                        !particle velocity without drifts (here only ExB) v - v_ExB
-                        vd(1) = p(ip)%data%v(1) - (1/b**2) * (E_tot(2)*p(ip)%data%b(3)-E_tot(3)*p(ip)%data%b(2))
-                        vd(2) = p(ip)%data%v(2) - (1/b**2) * (E_tot(3)*p(ip)%data%b(1)-E_tot(1)*p(ip)%data%b(3))
-                        vd(3) = p(ip)%data%v(3) - (1/b**2) * (E_tot(1)*p(ip)%data%b(2)-E_tot(2)*p(ip)%data%b(1))
-                        !new velocities (vpar + v_ExB)
-                        p(ip)%data%v=vpar - vd + p(ip)%data%v
-                        !new positions (moved by Lamor raduis to guiding centre position)
-                        p(ip)%x(1) = p(ip)%x(1) - (1./(omega_c*b)) * (p(ip)%data%b(2)*vd(3) - p(ip)%data%b(3)*vd(2))
-                        p(ip)%x(2) = p(ip)%x(2) - (1./(omega_c*b)) * (p(ip)%data%b(3)*vd(1) - p(ip)%data%b(1)*vd(3))
-                        p(ip)%x(3) = p(ip)%x(3) - (1./(omega_c*b)) * (p(ip)%data%b(1)*vd(2) - p(ip)%data%b(2)*vd(1))
-                    END IF
-                END IF
+                call transform_electrons_to_gc(p)
             END IF
 
         END DO     
+    END SUBROUTINE
+
+!======================================================================================
+
+    SUBROUTINE source_bissel_johnson(p)
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        integer            :: n,ip
+        real*8             :: mu,sigma
+
+        mu=0.0
+        n=size(p)
+        DO ip=1, n
+            sigma=sqrt(ti_ev*e / (p(ip)%data%m/fsup))
+            p(ip)%x(1)=rnd_num()
+            p(ip)%x(2)=rnd_num()
+            p(ip)%x(3)=rnd_num()
+            !call random_number(p(ip)%x)
+            p(ip)%x(1)         = p(ip)%x(1)*0.5*dx + xmin
+            p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
+            p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
+
+            call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
+
+            !If treated in guding centre approximation, electrons just need other startign values in
+            !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
+            IF (guiding_centre_electrons) THEN
+                call transform_electrons_to_gc(p)
+            END IF
+
+        END DO
+    END SUBROUTINE
+
+!======================================================================================
+
+    SUBROUTINE source_uniform_gaussian_plasma(p)
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        integer            :: n,ip
+        real*8             :: mu,sigma
+
+        mu=0.0
+        n=size(p)
+        DO ip=1, n
+            sigma=sqrt(ti_ev*e / (p(ip)%data%m/fsup))
+            p(ip)%x(1)=rnd_num()
+            p(ip)%x(2)=rnd_num()
+            p(ip)%x(3)=rnd_num()
+
+            p(ip)%x(1)         = p(ip)%x(1)*dx + xmin
+            p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
+            p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
+
+            call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
+
+            !If treated in guding centre approximation, electrons just need other starting values in
+            !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
+            IF (guiding_centre_electrons) THEN
+                call transform_electrons_to_gc(p)
+            END IF
+
+        END DO
+    END SUBROUTINE
+
+!======================================================================================
+
+    SUBROUTINE transform_electrons_to_gc(p)
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        integer            :: n,ip
+        real*8             :: vpar(3),b,E_tot(3),E_ext(3),vd(3),omega_c
+
+
+        E_ext=0.0_8 !Just done for now, because Eext is not introduced yet
+
+        n=size(p)
+        DO ip=1, n
+            IF ((p(ip)%label > 0) .AND. (p(ip)%data%q < 0.)) THEN
+                !Electric Field at particle position
+                E_tot=E_ext+p(ip)%results%e
+                !abs(B)
+                b=sqrt(p(ip)%data%b(1)**2+p(ip)%data%b(2)**2+p(ip)%data%b(3))
+                !electron gyro frequency
+                omega_c=p(ip)%data%q*b/p(ip)%data%m
+
+                IF (b<0.0000001) THEN
+                    write(*,*) '##### vanishing B-Field for particle:', ip,np,my_rank,p(ip)%label
+                ELSE
+                    !Parallel velocity components
+                    vpar(1) = (p(ip)%data%b(1)/b**2) * (p(ip)%data%b(1)*p(ip)%data%v(1) + p(ip)%data%b(2)*p(ip)%data%v(2) + p(ip)%data%b(3)*p(ip)%data%v(3))
+                    vpar(2) = (p(ip)%data%b(2)/b**2) * (p(ip)%data%b(1)*p(ip)%data%v(1) + p(ip)%data%b(2)*p(ip)%data%v(2) + p(ip)%data%b(3)*p(ip)%data%v(3))
+                    vpar(3) = (p(ip)%data%b(3)/b**2) * (p(ip)%data%b(1)*p(ip)%data%v(1) + p(ip)%data%b(2)*p(ip)%data%v(2) + p(ip)%data%b(3)*p(ip)%data%v(3))
+                    !particle velocity without drifts (here only ExB) v - v_ExB
+                    vd(1) = p(ip)%data%v(1) - (1/b**2) * (E_tot(2)*p(ip)%data%b(3)-E_tot(3)*p(ip)%data%b(2))
+                    vd(2) = p(ip)%data%v(2) - (1/b**2) * (E_tot(3)*p(ip)%data%b(1)-E_tot(1)*p(ip)%data%b(3))
+                    vd(3) = p(ip)%data%v(3) - (1/b**2) * (E_tot(1)*p(ip)%data%b(2)-E_tot(2)*p(ip)%data%b(1))
+                    !new velocities (vpar + v_ExB)
+                    p(ip)%data%v=vpar - vd + p(ip)%data%v
+                    !new positions (moved by Lamor raduis to guiding centre position)
+                    p(ip)%x(1) = p(ip)%x(1) - (1./(omega_c*b)) * (p(ip)%data%b(2)*vd(3) - p(ip)%data%b(3)*vd(2))
+                    p(ip)%x(2) = p(ip)%x(2) - (1./(omega_c*b)) * (p(ip)%data%b(3)*vd(1) - p(ip)%data%b(1)*vd(3))
+                    p(ip)%x(3) = p(ip)%x(3) - (1./(omega_c*b)) * (p(ip)%data%b(1)*vd(2) - p(ip)%data%b(2)*vd(1))
+                END IF
+            END IF
+        END DO
     END SUBROUTINE
 
 end module

@@ -53,6 +53,8 @@ module variables
   logical :: open_sides
   ! treat electrons in guiding centre approximation
   logical :: guiding_centre_electrons
+  integer :: mirror_layers    ! input variable. Is copied to mirror_box_layers (module_mirror_boxes)
+
 
   real*8  :: delx      ! length of plasma (multiples of lambda_debye)
   real*8  :: dely       ! width of plasma (multiples of lamor radius)
@@ -109,7 +111,7 @@ module variables
   !aux strings
   character(255) :: file_in,file_out,filenameh
 
-  namelist /pepcf/ guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /pepcf/ mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
 
 
 end module

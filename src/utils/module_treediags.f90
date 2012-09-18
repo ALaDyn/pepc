@@ -162,7 +162,6 @@ module module_treediags
                 call vtk%finishcells()
                 call vtk%startcelldata()
                   call vtk%write_data_array("processor", no_interaction_partners(label), bowner)
-                  call vtk%write_data_array("key", no_interaction_partners(label), branch_key)
                   call vtk%write_data_array("level", no_interaction_partners(label), blevel)
                   call vtk%write_data_array("center_of_charge", no_interaction_partners(label), bcocx, bcocy, bcocz)
                   call vtk%write_data_array("total_charge", no_interaction_partners(label), bq)

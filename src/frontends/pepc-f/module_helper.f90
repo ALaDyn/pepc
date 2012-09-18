@@ -74,8 +74,8 @@ module helper
     !call pepc_read_parameters_from_first_argument(read_para_file, para_file)
     call pepc_read_parameters_from_file_name(trim(input_file))
 
-    if(root) write(*,'(a)') " == reading parameter file, section pepc-f: ", input_file
-    open(fid,file=input_file)
+    if(root) write(*,'(a)') " == reading parameter file, section pepc-f: ", trim(input_file)
+    open(fid,file=trim(input_file))
     read(fid,NML=pepcf)
     read(fid,NML=walk_para_smpss)
     close(fid)
@@ -184,6 +184,7 @@ module helper
 
     end if
     startstep=0
+    step=0
 
  
   end subroutine
@@ -239,11 +240,12 @@ module helper
     call read_particles_mpiio(startstep,MPI_COMM_WORLD,my_rank,n_ranks,step,np,npart,particles,filename)    
     startstep=step
 
-    call pepc_read_parameters_from_file_name(input_file)
+    call pepc_read_parameters_from_file_name(trim(input_file))
 
-    if(root) write(*,'(a)') " == reading parameter file, section pepc-f: ", filename
-    open(fid,file=filename)
+    if(root) write(*,'(a)') " == reading parameter file, section pepc-f: ", trim(input_file)
+    open(fid,file=trim(input_file))
     read(fid,NML=pepcf)
+    read(fid,NML=walk_para_smpss)
     close(fid)
 
     !constants
@@ -486,30 +488,30 @@ module helper
   end function get_time
 
 !======================================================================================
-  logical function hit_wall(p)
+  logical function hit_r(p)
     implicit none
     type(t_particle), intent(in) :: p
 
-    if (p%x(1) > xmax .and. p%label > 0) then
-        hit_wall = .true.
+    if (p%x(1) > xmax .and. p%data%species /= 0) then
+        hit_r = .true.
     else
-        hit_wall = .false.
+        hit_r = .false.
     end if
      
-  end function hit_wall
+  end function hit_r
 
 !======================================================================================
-  logical function hit_src(p)
+  logical function hit_l(p)
     implicit none
     type(t_particle), intent(in) :: p
 
-    if (p%x(1) < xmin .and. p%label > 0) then
-        hit_src = .true.
+    if (p%x(1) < xmin .and. p%data%species /= 0) then
+        hit_l = .true.
     else
-        hit_src = .false.
+        hit_l = .false.
     end if
      
-  end function hit_src
+  end function hit_l
 
 
 !======================================================================================
