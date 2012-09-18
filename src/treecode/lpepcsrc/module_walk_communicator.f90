@@ -146,6 +146,8 @@ module module_walk_communicator
         integer :: ierr
         integer :: reqhandle
 
+write(*,*) 'Sending finished'
+
         ! notify rank 0 that we are finished with our walk
         call MPI_IBSEND(comm_dummy, 1, MPI_INTEGER, 0, TAG_FINISHED_PE, &
                         MPI_COMM_lpepc, reqhandle, ierr )

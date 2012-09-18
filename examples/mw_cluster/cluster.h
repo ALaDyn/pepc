@@ -12,7 +12,7 @@
 itime_in = 5
 
 ! number of timesteps
- nt = 3500
+ nt = 35
  dt = 2.0
 
 ! fmm-periodicity framework
@@ -28,7 +28,7 @@ itime_in = 5
  beam_config_in = 0221
  I0_Wpercm2     = 1.0E13
  lambda_nm      = 436.0
- t_pulse_fs     = 100.0
+ t_pulse_fs     = 0.25
  !omega_wpl      = 3.
 
  Te_eV    =  0.0
@@ -57,11 +57,11 @@ workflow_setup = 3
 ! determies the particle dump interval
 ! 0: never write anything
 ! n: each n-th step, plus first and last step
- idump = 10
+ idump = 0
 ! dito for vtk, binary and checkpoint-output
- idump_vtk = 1000
- idump_binary = 10
- idump_checkpoint = 10
+ idump_vtk = 0
+ idump_binary = 0
+ idump_checkpoint = 0
 /
 
 &calc_force_coulomb
@@ -74,7 +74,7 @@ workflow_setup = 3
 /
 
 &libpepc
- debug_level = 1
+ debug_level = 0
  interaction_list_length_factor = 2
 /
 

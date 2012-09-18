@@ -182,6 +182,7 @@ module module_walk_pthreads_commutils
     public retval
     public init_commutils
     public uninit_commutils
+    public check_comm_finished
 
   contains
   
@@ -227,6 +228,10 @@ module module_walk_pthreads_commutils
        ! this is the place to implement bookkeeping to ensure that everything has been finished
        ! nothing is implemented currently
        walk_status = WALK_ALL_MSG_DONE
+
+       ! hence, we simpy
+       ! notify rank 0 if we completed our traversal
+       call send_walk_finished()
 
     end subroutine
 
@@ -319,9 +324,6 @@ module module_walk_pthreads_commutils
 
           comm_loop_iterations(1) = comm_loop_iterations(1) + 1
 
-          ! check whether we are still waiting for data or some other communication
-          if (walk_status == WALK_IAM_FINISHED) call check_comm_finished()
-
           ! process any incoming answers
           call run_communication_loop_inner(walk_finished, nummessages)
 
@@ -357,9 +359,6 @@ module module_walk_pthreads_commutils
         logical, intent(inout) :: walk_finished(num_pe)
         integer :: dummy
         real*8 :: tcomm
-
-        ! notify rank 0 if we completed our traversal
-        if (walk_status == WALK_ALL_MSG_DONE) call send_walk_finished()
 
           ! probe for incoming messages
           ! since a blocking probe is used,
@@ -929,6 +928,8 @@ module module_walk
       ! tell rank 0 that we are finished with our walk
       if (all(threaddata(:)%finished)) then
         call notify_walk_finished()
+        ! check whether we are still waiting for data or some other communication
+        call check_comm_finished()
 
         twalk_loc = MPI_WTIME() - twalk_loc
 

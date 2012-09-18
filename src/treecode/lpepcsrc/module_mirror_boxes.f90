@@ -180,8 +180,6 @@ module module_mirror_boxes
           use module_math_tools
           implicit none
 
-          integer :: i,j
-
           Lattice(1,:) = t_lattice_1
           Lattice(2,:) = t_lattice_2
           Lattice(3,:) = t_lattice_3
