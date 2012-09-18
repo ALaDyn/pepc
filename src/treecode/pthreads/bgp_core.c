@@ -20,7 +20,7 @@
 */
 
 //////////////// BGP-Core Identification //////////////////////
-#ifdef __TOS_BGP__
+#if defined(__TOS_BGP__)
 // see "Using the IBM XL Compilers for Blue Gene", pg. 7:
 // "
 // __TOS_BGP__ Indicates that the target architecture is PowerPC 450
@@ -32,7 +32,17 @@ int get_my_core()
 {
   return Kernel_PhysicalProcessorID();
 }
-#else
+#elif defined(__TOS_BGQ__)
+// see XL C/C++ for Blue Gene/Q, V12.1 > Compiler Reference > 
+//       Compiler predefined macros > Macros related to the platform
+
+#include <spi/include/kernel/location.h>
+
+int get_my_core()
+{
+  return Kernel_ProcessorCoreID();
+}
+#else /* !defined(__TOS_BGP__) && !defined(__TOS_BGQ__) */
 int get_my_core()
 {
   // we have to be sure that on machines with a standard scheduler
