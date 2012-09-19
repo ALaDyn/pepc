@@ -22,12 +22,16 @@
 !>
 !> All stuff concerning timing: timings are contained in a single
 !> array. certain entries therein are addressed via integer
-!> parameters, eg.   tim(t_allocate) = 0.1234
+!> parameters, eg.
+!>
+!>      tim(t_allocate) = 0.1234
 !>
 !> you can use own (frontend-defined) timer constants in the range
-!> t_userdefined_first .. t_userdefined_last, e.g.
-!> call timer_start(t_userdefined + 0)
-!> call timer_start(t_userdefined + 7)
+!> `t_userdefined_first` .. `t_userdefined_last`, e.g.
+!>
+!>      call timer_start(t_userdefined + 0)
+!>      call timer_start(t_userdefined + 7)
+!>
 !> etc.
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -152,24 +156,9 @@ module module_timings
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !> Logs current time, i.e. sets
-    !>      tim(id) = MPI_WTIME()
-    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine timer_stamp(id)
-      implicit none
-      include 'mpif.h'
-      integer, intent(in) :: id !< the affected timer address
-
-      tim(id) = MPI_WTIME()
-
-    end subroutine timer_stamp
-
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !>
     !> Starts a timer, i.e. sets
-    !>      tim(id) = MPI_WTIME()
+    !>
+    !>      tim(id) = - MPI_WTIME()
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine timer_start(id)
@@ -177,7 +166,7 @@ module module_timings
       include 'mpif.h'
       integer, intent(in) :: id !< the affected timer address
 
-      tim(id) = MPI_WTIME()
+      tim(id) = - MPI_WTIME()
 
     end subroutine timer_start
 
@@ -185,7 +174,8 @@ module module_timings
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Stops a timer, i.e. sets
-    !>      tim(id) = MPI_WTIME() - tim(id)
+    !>
+    !>      tim(id) = tim(id) + MPI_WTIME()
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine timer_stop(id)
@@ -193,9 +183,41 @@ module module_timings
       include 'mpif.h'
       integer, intent(in) :: id !< the affected timer address
 
-      tim(id) = MPI_WTIME() - tim(id)
+      tim(id) = tim(id) + MPI_WTIME()
 
     end subroutine timer_stop
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Resumes a timer, i.e. sets
+    !>
+    !>      tim(id) = tim(id) - MPI_WTIME()
+    !>
+    !> This can be used to accumulate the durations of a task that is
+    !> performed repeatedly between accesses to the timer, e.g.
+    !> multiple particles are treated per timestep. Before use, the
+    !> timer has to be reset.
+    !>
+    !>      call timer_reset(t_example)
+    !>      do i=1,n
+    !>        ...
+    !>        call timer_resume(t_example)
+    !>        call subroutine_to_be_timed()
+    !>        call timer_stop(t_example)
+    !>        ...
+    !>      end do
+    !>      accumulated_time = timer_read(t_example)
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine timer_resume(id)
+      implicit none
+      include 'mpif.h'
+      integer, intent(in) :: id !< the affected timer address
+
+      tim(id) = tim(id) - MPI_WTIME()
+
+    end subroutine timer_resume
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -250,7 +272,7 @@ module module_timings
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Outputs all local timing data to timing_XXXX.dat
-    !> if itime <=1, an additional header is printed
+    !> if `itime <=1`, an additional header is printed
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine timings_LocalOutput(itime, iuserflag)
@@ -280,8 +302,10 @@ module module_timings
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Gathers global timing data and outputs to
-    !> timing_avg.dat, timing_min.dat, timing_max.dat
-    !> if itime <=1, an additional header is printed
+    !> timing_avg.dat, timing_min.dat, timing_max.dat.
+    !> If `printheader` is present, its value controls the output of
+    !> descriptive column headers, otherwise, if `itime <=1`, headers
+    !> are printed.
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine timings_GatherAndOutput(itime, iuserflag, printheader)
