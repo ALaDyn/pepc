@@ -35,6 +35,72 @@
 !> etc.
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+! The following is a diagram of the hierarchy of a subset of the timers 
+! provided by this module.
+!
+!
+!  t_all
+!  +
+!  |
+!  +-> t_fields_tree
+!  |   +
+!  |   |
+!  |   +-> t_domains
+!  |   |   +
+!  |   |   |
+!  |   |   +-> t_domains_keys
+!  |   |   |
+!  |   |   +-> t_domains_add_sort
+!  |   |   |   +
+!  |   |   |   |
+!  |   |   |   +-> t_domains_sort
+!  |   |   |   |   +
+!  |   |   |   |   |
+!  |   |   |   |   +-> t_domains_sort_pure
+!  |   |   |   |
+!  |   |   |   +-> t_domains_ship
+!  |   |   |       +
+!  |   |   |       |
+!  |   |   |       +-> t_domains_add_pack
+!  |   |   |       |
+!  |   |   |       +-> t_domains_add_alltoallv
+!  |   |   |       |
+!  |   |   |       +-> t_domains_add_unpack
+!  |   |   |
+!  |   |   +-> t_domains_bound
+!  |   |
+!  |   +-> t_allocate
+!  |   |
+!  |   +-> t_local
+!  |   |   +
+!  |   |   |
+!  |   |   +-> t_build_pure
+!  |   |   |
+!  |   |   +-> t_props_leafs
+!  |   |
+!  |   +-> t_branches_find
+!  |   |
+!  |   +-> t_exchange_branches
+!  |   |
+!  |   +-> t_global
+!  |
+!  +-> t_fields_passes
+!      +
+!      |
+!      +-> t_walk
+!      |   +
+!      |   |
+!      |   +-> t_comm_total
+!      |       +
+!      |       |
+!      |       +-> t_comm_sendreqs
+!      |       |
+!      |       +-> t_comm_recv
+!      |
+!      +-> t_lattice
+!
+
 module module_timings
   implicit none
 
