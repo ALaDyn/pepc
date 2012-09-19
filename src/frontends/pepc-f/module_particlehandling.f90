@@ -511,10 +511,10 @@ module particlehandling
             case(3)  !test case with uniform plasma in timestep 0 and afterwards berberichs source
                 if (step==0) then
                     call source_uniform_gaussian_plasma(p)
-                    write(*,*)"UNIFORM"
+                    !write(*,*)"UNIFORM"
                 else
                     call source_berberich(p)
-                    write(*,*)"BERBERICH"
+                    !write(*,*)"BERBERICH"
                 end if
             case default
                 !do nothing

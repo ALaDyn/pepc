@@ -149,6 +149,7 @@ module helper
       write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
       write(*,'(a,l)')      " == open side walls                  : ", open_sides
       write(*,'(a,l)')      " == far_field_if_periodic            : ", include_far_field_if_periodic
+      write(*,'(a,l)')      " == do_restore_particles             : ", do_restore_particles
       write(*,'(a,i12)')    " == mirror_layers                    : ", mirror_layers
       write(*,*)
       write(*,*) "========== Magnetic Field ========="
@@ -326,6 +327,7 @@ module helper
       write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
       write(*,'(a,l)')      " == open side walls                  : ", open_sides
       write(*,'(a,l)')      " == far_field_if_periodic            : ", include_far_field_if_periodic
+      write(*,'(a,l)')      " == do_restore_particles             : ", do_restore_particles
       write(*,'(a,i12)')    " == mirror_layers                    : ", mirror_layers
       write(*,*)
       write(*,*) "========== Magnetic Field ========="

@@ -1,7 +1,7 @@
 module module_cmdline
   implicit none
 
-  logical :: do_resume, input_specified
+  logical :: do_resume, input_specified,do_restore_particles
   character(len=255) :: resume_file,input_file
   integer :: resume_step
 
@@ -24,6 +24,7 @@ module module_cmdline
       file_exists=.false.
       arg_is_val=.false.
       input_specified=.false.
+      do_restore_particles=.true.
 
       if (command_argument_count()==0) then
         write (*,*)
@@ -84,6 +85,8 @@ module module_cmdline
               write (*,*)
               stop
             end if
+          case ('--no-particle-restore')
+            do_restore_particles=.false.
           case default
             write (*,*)
             write (*,*) "*******************************************"

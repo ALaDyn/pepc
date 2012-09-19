@@ -66,28 +66,31 @@ program pepc
         particles(npp+1:npp+nwp)=wall_particles(:)
     end if
 
-    !probes for analysign interaction partners
+    !probes for analysing interaction partners
     !call init_probes(5)
 
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
 
-
     do step=startstep, nt-1+startstep
+        timer(3) = get_time()
         if(root) then
             write(*,*) " "
             write(*,'(a,i12)')    " ====== computing step  :", step
             write(*,'(a,es12.4)') " ====== simulation time :", step * dt
+            write(*,'(a,es12.4)') " ====== run time        :", timer(3)-timer(1)
         end if
     
         !pepc routines and timing
-        timer(3) = get_time()
         call pepc_particleresults_clear(particles, np)
         call pepc_grow_tree(np, tnp, particles)
-
         call pepc_traverse_tree(np, particles)
-        if (dbg(DBG_STATS)) call pepc_statistics(step)
-        call pepc_restore_particles(np, particles)
+
+        if (MOD(step,checkp_interval)==0) then
+            if (dbg(DBG_STATS)) call pepc_statistics(step)
+        end if
+
+        if (do_restore_particles) call pepc_restore_particles(np, particles)
 
         !tree traversal to get interaction partners of the probe particles
         !timer(7) = get_time()
@@ -117,7 +120,6 @@ program pepc
         !call timings_LocalOutput(step)
         call timings_GatherAndOutput(step)
         timer(5) = get_time()
-
 
         !integrator and filtering with timing
         !particles get their new velocities and positions, particles are filtered and new particles created
