@@ -167,20 +167,40 @@ module module_walk_pthreads_commutils
     ! local walktime (i.e. from comm_loop start until send_walk_finished() )
     real*8, public, pointer :: twalk_loc
 
+    integer, public, parameter :: NUM_THREAD_TIMERS = 4
+    integer, public, parameter :: THREAD_TIMER_TOTAL = 1
+    integer, public, parameter :: THREAD_TIMER_POST_REQUEST = 2
+    integer, public, parameter :: THREAD_TIMER_PROCESS_PARTICLE = 3
+    integer, public, parameter :: THREAD_TIMER_WALK_SINGLE_PARTICLE = 4
+
+    integer, public, parameter :: NUM_THREAD_COUNTERS = 4
+    integer, public, parameter :: THREAD_COUNTER_PROCESSED_PARTICLES = 1
+    integer, public, parameter :: THREAD_COUNTER_INTERACTIONS = 2
+    integer, public, parameter :: THREAD_COUNTER_MAC_EVALUATIONS = 3
+    integer, public, parameter :: THREAD_COUNTER_POST_REQUEST = 4
+
     !> type for input and return values of walk_threads
     type, public :: t_threaddata
       integer :: id                         !< just a running number to distinguish the threads, currently unused
-      integer :: num_processed_particles  !< thread output value: number of particles that it has processed
-      real*8  :: num_interactions !< thread output value: number of interactions that were performed
-      real*8  :: num_mac_evaluations !< thread output value: number of mac evaluations that have been performed
       logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
       integer :: coreid !< thread output value: id of thread`s processor
-      real*8 :: runtime_seconds !< thread wallclock-runtime in seconds, measured with MPI_WTIME()
       logical :: finished !< will be set to .true. when the thread has finished
+      real*8 :: timers(NUM_THREAD_TIMERS)
+      integer*8 :: counters(NUM_THREAD_COUNTERS)
     end type t_threaddata
 
     type(t_threaddata), public, allocatable, target :: threaddata(:)
 
+    real*8, public :: thread_timers_nonshared_avg(NUM_THREAD_TIMERS)
+    real*8, public :: thread_timers_nonshared_dev(NUM_THREAD_TIMERS)
+    real*8, public :: thread_timers_shared_avg(NUM_THREAD_TIMERS)
+    real*8, public :: thread_timers_shared_dev(NUM_THREAD_TIMERS)
+    real*8, public :: thread_counters_nonshared_avg(NUM_THREAD_COUNTERS)
+    real*8, public :: thread_counters_nonshared_dev(NUM_THREAD_COUNTERS)
+    real*8, public :: thread_counters_shared_avg(NUM_THREAD_COUNTERS)
+    real*8, public :: thread_counters_shared_dev(NUM_THREAD_COUNTERS)
+
+    integer, public :: num_nonshared_threads, num_shared_threads
 
     public run_communication_loop
     public send_requests
@@ -646,8 +666,6 @@ module module_walk
     integer*8 :: num_interaction_leaves
     integer :: todo_list_length, defer_list_length
 
-    real*8, public :: thread_workload(-4:4) !< stores average particles and runtime per thread for diagnostic purposes, entry 0 contains number of worker threads
-
     integer :: num_particles
     type(t_particle), pointer, dimension(:) :: particle_data
 
@@ -677,21 +695,34 @@ module module_walk
       subroutine tree_walk_statistics(ifile, perform_output)
         use module_walk_pthreads_commutils
         use module_walk_communicator
+        use treevars, only: num_pe
         implicit none
         include 'mpif.h'
         integer, intent(in) :: ifile !< file stream to write to
         logical, intent(in) :: perform_output !< if set to false, output is disabled (e.g. for MPI ranks that shall not print anything)
         integer :: ierr
-        real*8 :: global_thread_workload(-4:4)
+        real*8 :: global_thread_timers_nonshared_avg(NUM_THREAD_TIMERS)
+        real*8 :: global_thread_timers_nonshared_dev(NUM_THREAD_TIMERS)
+        real*8 :: global_thread_timers_shared_avg(NUM_THREAD_TIMERS)
+        real*8 :: global_thread_timers_shared_dev(NUM_THREAD_TIMERS)
+        real*8 :: global_thread_counters_nonshared_avg(NUM_THREAD_COUNTERS)
+        real*8 :: global_thread_counters_nonshared_dev(NUM_THREAD_COUNTERS)
+        real*8 :: global_thread_counters_shared_avg(NUM_THREAD_COUNTERS)
+        real*8 :: global_thread_counters_shared_dev(NUM_THREAD_COUNTERS)
 
-        call MPI_REDUCE(thread_workload( 1), global_thread_workload( 1), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr )
-        call MPI_REDUCE(thread_workload( 2), global_thread_workload( 2), 1, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
-        call MPI_REDUCE(thread_workload( 3), global_thread_workload( 3), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr )
-        call MPI_REDUCE(thread_workload( 4), global_thread_workload( 4), 2, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
-        call MPI_REDUCE(thread_workload(-1), global_thread_workload(-1), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr )
-        call MPI_REDUCE(thread_workload(-2), global_thread_workload(-2), 1, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
-        call MPI_REDUCE(thread_workload(-3), global_thread_workload(-3), 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr )
-        call MPI_REDUCE(thread_workload(-4), global_thread_workload(-4), 2, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
+        call MPI_REDUCE(thread_timers_nonshared_avg(:), global_thread_timers_nonshared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
+        call MPI_REDUCE(thread_timers_shared_avg(:), global_thread_timers_shared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
+        call MPI_REDUCE(thread_counters_nonshared_avg(:), global_thread_counters_nonshared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
+        call MPI_REDUCE(thread_counters_shared_avg(:), global_thread_counters_shared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
+        call MPI_REDUCE(thread_timers_nonshared_dev(:), global_thread_timers_nonshared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
+        call MPI_REDUCE(thread_timers_shared_dev(:), global_thread_timers_shared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
+        call MPI_REDUCE(thread_counters_nonshared_dev(:), global_thread_counters_nonshared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
+        call MPI_REDUCE(thread_counters_shared_dev(:), global_thread_counters_shared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
+
+        global_thread_timers_nonshared_avg   = global_thread_timers_nonshared_avg / num_pe
+        global_thread_timers_shared_avg      = global_thread_timers_shared_avg / num_pe
+        global_thread_counters_nonshared_avg = global_thread_counters_nonshared_avg / num_pe
+        global_thread_counters_shared_avg    = global_thread_counters_shared_avg / num_pe
 
         if (perform_output) then
           write (ifile,'(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_particles_per_thread
@@ -699,11 +730,19 @@ module module_walk
           write (ifile,'(a50,3i12)') '# of comm-loop iterations (tot,send,recv): ', comm_loop_iterations(:)
           write (ifile,*) '######## WALK-WORKER-THREAD WORKLOAD ######################################################'
           write (ifile,'(a50)')              'average # processed nparticles per thread    '
-          write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', thread_workload(1), thread_workload(3)
-          write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', thread_workload(2), thread_workload(4)
+          write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', &
+                                             thread_counters_nonshared_avg(THREAD_COUNTER_PROCESSED_PARTICLES), &
+                                             thread_counters_shared_avg(THREAD_COUNTER_PROCESSED_PARTICLES)
+          write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', &
+                                             thread_counters_nonshared_dev(THREAD_COUNTER_PROCESSED_PARTICLES), &
+                                             thread_counters_shared_dev(THREAD_COUNTER_PROCESSED_PARTICLES)
           write (ifile,'(a50)')              'average wallclocktime per thread    '
-          write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', thread_workload(-1) , thread_workload(-3)
-          write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', thread_workload(-2), thread_workload(-4)
+          write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', &
+                                             thread_timers_nonshared_avg(THREAD_TIMER_TOTAL), &
+                                             thread_timers_shared_avg(THREAD_TIMER_TOTAL)
+          write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', &
+                                             thread_timers_nonshared_dev(THREAD_TIMER_TOTAL), &
+                                             thread_timers_shared_dev(THREAD_TIMER_TOTAL)
         endif
 
       end subroutine
@@ -824,7 +863,7 @@ module module_walk
       use, intrinsic :: iso_c_binding
       implicit none
 
-      integer :: ith, displ
+      integer :: ith
 
       allocate(threaddata(num_walk_threads))
 
@@ -840,41 +879,17 @@ module module_walk
       call run_communication_loop(num_walk_threads)
 
       ! ... and wait for work thread completion
-      thread_workload = 0.
 
       do ith = 1,num_walk_threads
         call retval( pthreads_jointhread( ith ), "walk_schedule_thread_inner:pthread_join" )
-
-        if (threaddata(ith)%is_on_shared_core) then
-          displ = 2
-        else
-          displ = 0
-          thread_workload(0) = thread_workload(0) + 1
-        endif
-
-        thread_workload( displ+1) =     thread_workload( displ+1) + 1._8*threaddata(ith)%num_processed_particles
-        thread_workload( displ+2) = max(thread_workload( displ+2),  1._8*threaddata(ith)%num_processed_particles)
-        thread_workload(-displ-1) =     thread_workload(-displ-1) + 1._8*threaddata(ith)%runtime_seconds
-        thread_workload(-displ-2) = max(thread_workload(-displ-2),  1._8*threaddata(ith)%runtime_seconds)
-
 
         if (dbg(DBG_WALKSUMMARY)) then
           DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith) )
         endif
       end do
 
-      ! compute relative deviation
-      thread_workload( 2) = abs(thread_workload( 2) - thread_workload( 1)) / thread_workload( 1)
-      thread_workload( 4) = abs(thread_workload( 4) - thread_workload( 1)) / thread_workload( 1)
-      thread_workload( 1) =     thread_workload( 1)                        / thread_workload( 0)
-      thread_workload( 3) =     thread_workload( 3)                        / (num_walk_threads - thread_workload(0))
-      thread_workload(-2) = abs(thread_workload(-2) - thread_workload(-1)) / thread_workload(-1)
-      thread_workload(-4) = abs(thread_workload(-4) - thread_workload(-1)) / thread_workload(-1)
-      thread_workload(-1) =     thread_workload(-1)                        / thread_workload( 0)
-      thread_workload(-3) =     thread_workload(-3)                        / (num_walk_threads - thread_workload(0))
       ! store workload data
-      interactions_local    = sum(threaddata(:)%num_interactions)
-      mac_evaluations_local = sum(threaddata(:)%num_mac_evaluations)
+      call collect_thread_counters_timers()
 
       ! check wether all particles really have been processed
       if (next_unassigned_particle .ne. num_particles + 1) then
@@ -883,6 +898,37 @@ module module_walk
       end if
 
       deallocate(threaddata)
+
+      contains
+
+      subroutine collect_thread_counters_timers()
+        implicit none
+
+        integer :: icounter, itimer
+
+        num_shared_threads = count( threaddata(:)%is_on_shared_core )
+        num_nonshared_threads = num_walk_threads - num_shared_threads
+
+        do itimer = 1,NUM_THREAD_TIMERS
+          thread_timers_shared_avg(itimer) = sum(threaddata(:)%timers(itimer), mask = threaddata(:)%is_on_shared_core) / num_shared_threads
+          thread_timers_nonshared_avg(itimer) = sum(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) / num_nonshared_threads
+
+          thread_timers_shared_dev(itimer) = (maxval(threaddata(:)%timers(itimer), mask = threaddata(:)%is_on_shared_core) - thread_timers_shared_avg(itimer)) / thread_timers_shared_avg(itimer)
+          thread_timers_nonshared_dev(itimer) = (maxval(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) - thread_timers_nonshared_avg(itimer)) / thread_timers_nonshared_avg(itimer)
+        end do
+
+        do icounter = 1,NUM_THREAD_COUNTERS
+          thread_counters_shared_avg(icounter) = sum(threaddata(:)%counters(icounter), mask = threaddata(:)%is_on_shared_core) / real(num_shared_threads, kind = 8)
+          thread_counters_nonshared_avg(icounter) = sum(threaddata(:)%counters(icounter), mask = .not. threaddata(:)%is_on_shared_core) / real(num_nonshared_threads, kind = 8)
+
+          thread_counters_shared_dev(icounter) = (maxval(threaddata(:)%counters(icounter), mask = threaddata(:)%is_on_shared_core) - thread_counters_shared_avg(icounter)) / thread_counters_shared_avg(icounter)
+          thread_counters_nonshared_dev(icounter) = (maxval(threaddata(:)%counters(icounter), mask = .not. threaddata(:)%is_on_shared_core) - thread_counters_nonshared_avg(icounter)) / thread_counters_nonshared_avg(icounter)
+        end do
+
+        interactions_local    = sum(threaddata(:)%counters(THREAD_COUNTER_INTERACTIONS))
+        mac_evaluations_local = sum(threaddata(:)%counters(THREAD_COUNTER_MAC_EVALUATIONS))
+
+      end subroutine collect_thread_counters_timers
 
     end subroutine walk_hybrid
 
@@ -977,8 +1023,13 @@ module module_walk
       logical :: same_core_as_communicator
       integer :: my_max_particles_per_thread
       integer :: my_processor_id
+      logical :: do_process_particle, do_walk_single_particle
+      real*8  :: t_process_particle, t_walk_single_particle
 
       type(t_defer_list_entry), dimension(1), target :: defer_list_root_only = t_defer_list_entry(1, 1_8) ! start at root node (addr, and key)
+
+      t_process_particle = 0._8
+      t_walk_single_particle = 0._8
 
       my_processor_id = get_my_core()
       same_core_as_communicator = (my_processor_id == primary_processor_id)
@@ -990,7 +1041,11 @@ module module_walk
       endif
 
       call c_f_pointer(arg, my_threaddata)
-      my_threaddata = t_threaddata(my_threaddata%id, 0, 0._8, 0._8, same_core_as_communicator, my_processor_id, MPI_WTIME(), .false.)
+      my_threaddata%is_on_shared_core = same_core_as_communicator
+      my_threaddata%coreid = my_processor_id
+      my_threaddata%finished = .false.
+      my_threaddata%timers(THREAD_TIMER_TOTAL) = - MPI_WTIME()
+      my_threaddata%counters = 0
 
       if (my_max_particles_per_thread > 0) then
 
@@ -1016,17 +1071,25 @@ module module_walk
 
             do i=1,my_max_particles_per_thread
 
-              if (process_particle(i, ptr_defer_list_old, defer_list_entries_old)) then
+              t_process_particle = t_process_particle - MPI_WTIME()
+              do_process_particle = process_particle(i, ptr_defer_list_old, defer_list_entries_old)
+              t_process_particle = t_process_particle + MPI_WTIME()
+
+              if (do_process_particle) then
 
                 call do_sched_yield_if_necessary()
 
                 ptr_defer_list_new      => defer_list_new(defer_list_new_tail:total_defer_list_length)
                 defer_list_start_pos(i) =  defer_list_new_tail
 
-                if (walk_single_particle(thread_particle_data(i), &
+                t_walk_single_particle = t_walk_single_particle - MPI_WTIME()
+                do_walk_single_particle = walk_single_particle(thread_particle_data(i), &
                                           ptr_defer_list_old, defer_list_entries_old, &
                                           ptr_defer_list_new, defer_list_entries_new, &
-                                          partner_leaves(i), my_threaddata)) then
+                                          partner_leaves(i), my_threaddata)
+                t_walk_single_particle = t_walk_single_particle + MPI_WTIME()
+
+                if (do_walk_single_particle) then
                   ! walk for particle i has finished
                   if (walk_debug) then
                       DEBUG_INFO('("PE", I6, " particle ", I12, " obviously finished walking around :-)")', me, i)
@@ -1045,7 +1108,7 @@ module module_walk
                   ! mark particle entry i as free
                   thread_particle_indices(i)                = -1
                   ! count total processed particles for this thread (only for statistics)
-                  my_threaddata%num_processed_particles     = my_threaddata%num_processed_particles + 1
+                  my_threaddata%counters(THREAD_COUNTER_PROCESSED_PARTICLES) = my_threaddata%counters(THREAD_COUNTER_PROCESSED_PARTICLES) + 1
                 else
                   ! walk for particle i has not been finished
                   defer_list_new_tail = defer_list_new_tail + defer_list_entries_new
@@ -1086,7 +1149,9 @@ module module_walk
 
       walk_worker_thread = c_null_ptr
 
-      my_threaddata%runtime_seconds = MPI_WTIME() - my_threaddata%runtime_seconds
+      my_threaddata%timers(THREAD_TIMER_TOTAL) = my_threaddata%timers(THREAD_TIMER_TOTAL) + MPI_WTIME()
+      my_threaddata%timers(THREAD_TIMER_PROCESS_PARTICLE) = t_process_particle
+      my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
 
       call retval(pthreads_exitthread(), "walk_worker_thread:pthread_exit")
 
@@ -1164,6 +1229,7 @@ module module_walk
       use module_debug
       use module_mirror_boxes, only : spatial_interaction_cutoff
       implicit none
+      include 'mpif.h'
       type(t_particle), intent(inout) :: particle
       type(t_defer_list_entry), dimension(:), pointer, intent(in) :: defer_list_old
       integer, intent(in) :: defer_list_entries_old
@@ -1180,11 +1246,14 @@ module module_walk
       real*8 :: dist2
       real*8 :: delta(3), shifted_particle_position(3)
       logical :: same_particle, same_particle_or_parent_node, mac_ok, ignore_node
-      integer*8 :: num_interactions, num_mac_evaluations
+      integer*8 :: num_interactions, num_mac_evaluations, num_post_request
+      real*8 :: t_post_request
 
       todo_list_entries      = 0
       num_interactions       = 0
       num_mac_evaluations    = 0
+      t_post_request         = 0._8
+      num_post_request       = 0
       shifted_particle_position = particle%x - vbox ! precompute shifted particle position to avoid subtracting vbox in every loop iteration below
 
       ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
@@ -1251,7 +1320,10 @@ module module_walk
                   else
                       ! 2b) children for twig are _absent_ --------
                       ! --> put node on REQUEST list and put walk_key on bottom of todo_list
+                      t_post_request = t_post_request - MPI_WTIME()
                       call post_request(walk_key, walk_addr)        ! tell the communicator about our needs
+                      t_post_request = t_post_request + MPI_WTIME()
+                      num_post_request = num_post_request + 1
                       ! if posting the request failed, this is not a problem, since we defer the particle anyway
                       ! since it will not be available then, the request will simply be repeated
                       call defer_list_push(walk_key, walk_addr) ! Deferred list of nodes to search, pending request
@@ -1269,8 +1341,10 @@ module module_walk
       ! if todo_list and defer_list are now empty, the walk has finished
       walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries_new == 0)
 
-      my_threaddata%num_interactions    = my_threaddata%num_interactions    + num_interactions
-      my_threaddata%num_mac_evaluations = my_threaddata%num_mac_evaluations + num_mac_evaluations
+      my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) = my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) + num_interactions
+      my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) = my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) + num_mac_evaluations
+      my_threaddata%timers(THREAD_TIMER_POST_REQUEST) = my_threaddata%timers(THREAD_TIMER_POST_REQUEST) + t_post_request
+      my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) = my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) + num_post_request
 
     contains
      ! helper routines for todo_list manipulation
