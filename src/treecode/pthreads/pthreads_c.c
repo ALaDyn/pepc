@@ -36,10 +36,16 @@
 
 pthread_t *__restrict__ my_threads;
 pthread_rwlock_t *my_rwlocks;
+pthread_barrier_t *my_barriers;
 void* *my_thread_args; // array of void pointers for making packup copies of the pthread argument pointers
 pthread_attr_t thread_attr;
-int maxnumthreads = 0;
-int maxnumlocks   = 0;
+int maxnumthreads  = 0;
+int maxnumlocks    = 0;
+int maxnumbarriers = 0;
+
+// these two are used in here, provide prototypes.
+int barriers_allocate(int);
+int barriers_init_single(int, int);
 
 #define CHECKRES do {if (iret != 0) return iret;} while(0);
 
@@ -159,6 +165,66 @@ int rwlocks_wrlock(int id)
 int rwlocks_unlock(int id)
 {
     return pthread_rwlock_unlock(&my_rwlocks[id-1]);
+}
+
+///////////////// Barriers //////////////////////
+
+int barriers_allocate(int numbarriers)
+{
+    maxnumbarriers = numbarriers;
+    my_barriers    = (pthread_barrier_t*)malloc(((unsigned int)maxnumbarriers)*sizeof(pthread_barrier_t));
+
+    return 0;
+}
+
+int barriers_init(int numbarriers, int numthreads)
+{
+    int iret = 0;
+    int i = 0;
+
+    barriers_allocate(numbarriers);
+
+    for (i=0;i<maxnumbarriers;i++)
+    {
+      iret = barriers_init_single(i, numthreads);
+      CHECKRES;
+    }
+
+    return 0;
+}
+
+int barriers_init_single(int idx, int numthreads)
+{
+    return pthread_barrier_init(&my_barriers[idx], NULL, numthreads);
+}
+
+int barriers_uninit()
+{
+    int iret = 0;
+    int i = 0;
+
+    for (i=0;i<maxnumbarriers;i++)
+    {
+      iret = pthread_barrier_destroy(&my_barriers[i]);
+      CHECKRES;
+    }
+
+    free(my_barriers);
+
+    return 0;
+}
+
+
+int barriers_wait(int id)
+{
+  int retval;
+
+  retval = pthread_barrier_wait(&my_barriers[id-1]);
+
+  // In case of success, PTHREAD_BARRIER_SERIAL_THREAD is returned on one of
+  // the waiting threads, zero on all others. Map this return value to zero as 
+  // well to appease retval() higher up.
+  return (retval == PTHREAD_BARRIER_SERIAL_THREAD) ? 0 : retval;
 }
 
 ///////////////// Utils //////////////////////

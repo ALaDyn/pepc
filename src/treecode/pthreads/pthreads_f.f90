@@ -109,6 +109,40 @@ module pthreads_stuff
 
   interface
 
+    integer(c_int) function barriers_allocate(numbarriers) bind(C, name='barriers_allocate')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: numbarriers
+    end function
+
+    integer(c_int) function barriers_init(numbarriers, numthreads) bind(C, name='barriers_init')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: numbarriers, numthreads
+    end function
+
+    integer(c_int) function barriers_init_single(id, numthreads) bind(C, name='barriers_init_single')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: id, numthreads
+    end function
+
+    integer(c_int) function barriers_uninit() bind(C, name='barriers_uninit')
+      use, intrinsic :: iso_c_binding
+      implicit none
+    end function
+
+    integer(c_int) function barriers_wait(id) bind(C, name='barriers_wait')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: id
+    end function
+
+  end interface
+
+
+  interface
+
     integer(c_int) function get_my_tid() bind(C, name='get_my_tid')
       use, intrinsic :: iso_c_binding
       implicit none
