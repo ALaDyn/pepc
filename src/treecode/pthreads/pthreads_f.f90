@@ -19,7 +19,10 @@
 !
 
 module pthreads_stuff
+  use, intrinsic :: iso_c_binding
   implicit none
+
+  integer(kind = c_int), bind(c) :: RWLOCKS_BUSY
 
   interface
     integer(c_int) function get_my_core() bind(C, name='get_my_core')
@@ -92,7 +95,19 @@ module pthreads_stuff
       integer(c_int), intent(in), value :: id
     end function
 
+    integer(c_int) function rwlocks_trywrlock(id) bind(C, name='rwlocks_trywrlock')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: id
+    end function
+
     integer(c_int) function rwlocks_rdlock(id) bind(C, name='rwlocks_rdlock')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: id
+    end function
+
+    integer(c_int) function rwlocks_tryrdlock(id) bind(C, name='rwlocks_tryrdlock')
       use, intrinsic :: iso_c_binding
       implicit none
       integer(c_int), intent(in), value :: id
