@@ -170,7 +170,7 @@ module module_walk_pthreads_commutils
     integer, public, parameter :: NUM_THREAD_TIMERS = 4
     integer, public, parameter :: THREAD_TIMER_TOTAL = 1
     integer, public, parameter :: THREAD_TIMER_POST_REQUEST = 2
-    integer, public, parameter :: THREAD_TIMER_PROCESS_PARTICLE = 3
+    integer, public, parameter :: THREAD_TIMER_GET_NEW_PARTICLE = 3
     integer, public, parameter :: THREAD_TIMER_WALK_SINGLE_PARTICLE = 4
 
     integer, public, parameter :: NUM_THREAD_COUNTERS = 4
@@ -975,20 +975,17 @@ module module_walk
 
 
 
-    function get_first_unassigned_particle(success)
+    function get_first_unassigned_particle()
       use module_walk_pthreads_commutils
       implicit none
       integer :: get_first_unassigned_particle
-      logical, intent(out) :: success
 
       call rwlock_wrlock(RWLOCK_NEXT_FREE_PARTICLE,"get_first_unassigned_particle")
       if (next_unassigned_particle < num_particles + 1) then
         get_first_unassigned_particle = next_unassigned_particle
         next_unassigned_particle      = next_unassigned_particle + 1
-        success = .true.
       else
         get_first_unassigned_particle = -1
-        success = .false.
       end if
       call rwlock_unlock(RWLOCK_NEXT_FREE_PARTICLE,"get_first_unassigned_particle")
 
@@ -1023,12 +1020,12 @@ module module_walk
       logical :: same_core_as_communicator
       integer :: my_max_particles_per_thread
       integer :: my_processor_id
-      logical :: do_process_particle, do_walk_single_particle
-      real*8  :: t_process_particle, t_walk_single_particle
+      logical :: particle_has_finished
+      real*8  :: t_get_new_particle, t_walk_single_particle
 
       type(t_defer_list_entry), dimension(1), target :: defer_list_root_only = t_defer_list_entry(1, 1_8) ! start at root node (addr, and key)
 
-      t_process_particle = 0._8
+      t_get_new_particle = 0._8
       t_walk_single_particle = 0._8
 
       my_processor_id = get_my_core()
@@ -1071,11 +1068,15 @@ module module_walk
 
             do i=1,my_max_particles_per_thread
 
-              t_process_particle = t_process_particle - MPI_WTIME()
-              do_process_particle = process_particle(i, ptr_defer_list_old, defer_list_entries_old)
-              t_process_particle = t_process_particle + MPI_WTIME()
+              if (contains_particle(i)) then
+                call setup_defer_list(i)
+              else
+                t_get_new_particle = t_get_new_particle - MPI_WTIME()
+                call get_new_particle_and_setup_defer_list(i)
+                t_get_new_particle = t_get_new_particle + MPI_WTIME()
+              end if
 
-              if (do_process_particle) then
+              if (contains_particle(i)) then
 
                 call do_sched_yield_if_necessary()
 
@@ -1083,13 +1084,13 @@ module module_walk
                 defer_list_start_pos(i) =  defer_list_new_tail
 
                 t_walk_single_particle = t_walk_single_particle - MPI_WTIME()
-                do_walk_single_particle = walk_single_particle(thread_particle_data(i), &
+                particle_has_finished  = walk_single_particle(thread_particle_data(i), &
                                           ptr_defer_list_old, defer_list_entries_old, &
                                           ptr_defer_list_new, defer_list_entries_new, &
                                           partner_leaves(i), my_threaddata)
                 t_walk_single_particle = t_walk_single_particle + MPI_WTIME()
 
-                if (do_walk_single_particle) then
+                if (particle_has_finished) then
                   ! walk for particle i has finished
                   if (walk_debug) then
                       DEBUG_INFO('("PE", I6, " particle ", I12, " obviously finished walking around :-)")', me, i)
@@ -1115,10 +1116,11 @@ module module_walk
                   particles_active    = .true.
                 end if
 
-               if (defer_list_new_tail > total_defer_list_length) then
+                if (defer_list_new_tail > total_defer_list_length) then
                   DEBUG_ERROR('("defer_list is full for particle ", I20, " defer_list_length =", I6, ", total =", I0," is too small (you should increase interaction_list_length_factor)")', i, defer_list_length, total_defer_list_length)
-               endif
+                endif
               else
+                ! there is no particle to process at position i, set the corresponding defer list to size 0
                 defer_list_start_pos(i) = defer_list_new_tail
               end if
 
@@ -1150,7 +1152,7 @@ module module_walk
       walk_worker_thread = c_null_ptr
 
       my_threaddata%timers(THREAD_TIMER_TOTAL) = my_threaddata%timers(THREAD_TIMER_TOTAL) + MPI_WTIME()
-      my_threaddata%timers(THREAD_TIMER_PROCESS_PARTICLE) = t_process_particle
+      my_threaddata%timers(THREAD_TIMER_GET_NEW_PARTICLE) = t_get_new_particle
       my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
 
       call retval(pthreads_exitthread(), "walk_worker_thread:pthread_exit")
@@ -1168,38 +1170,40 @@ module module_walk
         defer_list_new_tail = 1 ! position of first free entry in defer_list_new (i.e. it is considered as empty now)
       end subroutine
 
-      function process_particle(idx, ptr_defer_list_old, defer_list_entries_old)
+      logical function contains_particle(idx)
         implicit none
         integer, intent(in) :: idx
-        type(t_defer_list_entry), dimension(:), pointer, intent(out) :: ptr_defer_list_old
-        integer, intent(out) :: defer_list_entries_old
-        logical :: process_particle
 
-        process_particle = (thread_particle_indices(idx) .ne. -1)
+        contains_particle = ( thread_particle_indices(idx) .ge. 0 )
+      end function contains_particle
 
-        if (process_particle) then
-          ptr_defer_list_old     => defer_list_old(defer_list_start_pos(idx):defer_list_start_pos(idx+1)-1)
-          defer_list_entries_old =  defer_list_start_pos(idx+1) - defer_list_start_pos(idx)
-        else
-          ! the place i for a particle is not assigned --> check whether there are still particles to be processed
-          if (particles_available) then
-            thread_particle_indices(i) = get_first_unassigned_particle(process_particle)
+      subroutine get_new_particle_and_setup_defer_list(idx)
+        implicit none
+        integer, intent(in) :: idx
 
-            process_particle = (thread_particle_indices(i) .ne. -1)
+        if (particles_available) then
+          thread_particle_indices(idx) = get_first_unassigned_particle()
 
-            if (process_particle) then
-              ! we make a copy of all particle data to avoid thread-concurrent access to particle_data array
-              thread_particle_data(i) = particle_data(thread_particle_indices(i))
-              ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
-              ptr_defer_list_old      => defer_list_root_only
-              defer_list_entries_old  =  1
-              partner_leaves(idx)     =  0 ! no interactions yet
-            else
-              particles_available     = .false.
-            end if ! process_particle after trying to pick a new one
-          end if ! particles_available
-        end if ! process_particle
-      end function
+          if (contains_particle(idx)) then
+            ! we make a copy of all particle data to avoid thread-concurrent access to particle_data array
+            thread_particle_data(idx) = particle_data(thread_particle_indices(idx))
+            ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
+            ptr_defer_list_old      => defer_list_root_only
+            defer_list_entries_old  =  1
+            partner_leaves(idx)     =  0 ! no interactions yet
+          else
+            particles_available     = .false.
+          end if ! contains_particle(idx)
+        end if ! particles_available
+      end subroutine get_new_particle_and_setup_defer_list
+
+      subroutine setup_defer_list(idx)
+        implicit none
+        integer, intent(in) :: idx
+
+        ptr_defer_list_old     => defer_list_old(defer_list_start_pos(idx):defer_list_start_pos(idx+1)-1)
+        defer_list_entries_old =  defer_list_start_pos(idx+1) - defer_list_start_pos(idx)
+      end subroutine setup_defer_list
 
       subroutine do_sched_yield_if_necessary()
         implicit none
