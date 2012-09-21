@@ -22,7 +22,7 @@ module pthreads_stuff
   use, intrinsic :: iso_c_binding
   implicit none
 
-  integer(kind = c_int), bind(c) :: RWLOCKS_BUSY
+  integer(kind = c_int), bind(C, name='RWLOCKS_BUSY') :: RWLOCKS_BUSY
 
   interface
     integer(c_int) function get_my_core() bind(C, name='get_my_core')
