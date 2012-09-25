@@ -71,6 +71,7 @@ module module_interaction_partners
       force_law=3
       do i=1,help_num_of_probes
           call write_interaction_partners_to_vtk(step, i,0.0_8, -1)
+          write(*,*)i,no_interaction_partners(i)
       end do
       no_interaction_partners=0
     end subroutine get_interaction_partners

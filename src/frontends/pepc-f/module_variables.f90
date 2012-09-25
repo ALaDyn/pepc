@@ -50,6 +50,7 @@ module variables
   integer :: quelltyp
   ! type of rng (0=standard fortran,1=par_rand from module_zufall)
   integer :: rng
+  logical, public :: periodicity_in(3) = [.false., .false., .false.]
   ! open sides or periodic sides
   logical :: open_sides
   ! treat electrons in guiding centre approximation
@@ -110,7 +111,7 @@ module variables
   !other
   integer :: chunk_size_default
 
-  namelist /pepcf/ mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /pepcf/ periodicity_in,mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 

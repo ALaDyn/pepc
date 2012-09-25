@@ -67,7 +67,7 @@ program pepc
     end if
 
     !probes for analysing interaction partners
-    !call init_probes(5)
+    call init_probes(5)
 
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)

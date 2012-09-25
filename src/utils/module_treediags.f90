@@ -70,17 +70,18 @@ module module_treediags
           use module_spacefilling
           use module_htable
           use module_interaction_specific
+          use module_mirror_boxes
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           integer, intent(in) :: label
           real*8, intent(in) :: tsim
 
-          integer :: i,j, baddr, bnode
+          integer :: i,j, baddr, bnode, mirror_level_y,mirror_level_z
           integer*8 :: bkey
           real*8 :: bcocx(no_interaction_partners(label)),bcocy(no_interaction_partners(label)),bcocz(no_interaction_partners(label)), bsize(3), bq(no_interaction_partners(label))
           real*8, dimension(no_interaction_partners(label)*8) :: bcornersx, bcornersy, bcornersz
           integer, dimension(no_interaction_partners(label)*8) :: bcornersidx
-          integer, dimension(no_interaction_partners(label)) :: bcornersoffsets, bcornerstypes, bowner, blevel
+          integer, dimension(no_interaction_partners(label)) :: bcornersoffsets, bcornerstypes, bowner, blevel,mirror_level,mirror_index_y,mirror_index_z
           real*8 :: bx, by, bz
 
           real, parameter, dimension(3,8) :: box_shift = reshape([ 0., 0., 0., &
@@ -117,6 +118,14 @@ module module_treediags
             bcocx(i)           = tree_nodes(bnode)%coc(1)+interaction_vbox(label,i,1)
             bcocy(i)           = tree_nodes(bnode)%coc(2)+interaction_vbox(label,i,2)
             bcocz(i)           = tree_nodes(bnode)%coc(3)+interaction_vbox(label,i,3)
+
+            mirror_index_y(i)=interaction_vbox(label,i,2)/t_lattice_2(2)
+            mirror_index_z(i)=interaction_vbox(label,i,3)/t_lattice_3(3)
+            mirror_level_y=abs(mirror_index_z(i))
+            mirror_level_z=abs(mirror_index_z(i))
+            mirror_level(i)=max(mirror_level_y,mirror_level_z)
+            !write(*,*) interaction_vbox(label,i,1:3),mirror_level_y,mirror_level_z,max(mirror_level_y,mirror_level_z)
+
             ! compute real center coordinate
             call key_to_coord(bkey, bx, by, bz)
             bx=bx+interaction_vbox(label,i,1)
@@ -135,39 +144,45 @@ module module_treediags
         write(dateiname,"(a,i3.3)") "int_partner_coc",label
         call vtk2%create(trim(dateiname), step, tsim, vtk_step)
         call vtk2%write_headers(no_interaction_partners(label), 0)
-          call vtk2%startpoints()
+        call vtk2%startpoints()
           call vtk2%write_data_array("xyz", no_interaction_partners(label), bcocx, bcocy, bcocz)
         call vtk2%finishpoints()
         call vtk2%startpointdata()
           call vtk2%write_data_array("level", no_interaction_partners(label), blevel)
+          call vtk2%write_data_array("mirror_level", no_interaction_partners(label), mirror_level)
+          call vtk2%write_data_array("mirror_index_y", no_interaction_partners(label), mirror_index_y)
+          call vtk2%write_data_array("mirror_index_z", no_interaction_partners(label), mirror_index_z)
           call vtk2%write_data_array("charge", no_interaction_partners(label), bq)
         call vtk2%finishpointdata()
         call vtk2%dont_write_cells()
         call vtk2%write_final()
         call vtk2%close()
 
-            write(dateiname,"(a,i3.3)") "int_partner_box",label
-            call vtk%create(trim(dateiname), step, tsim, vtk_step)
-              call vtk%write_headers(no_interaction_partners(label)*8, no_interaction_partners(label))
-                call vtk%startpoints()
-                  call vtk%write_data_array("corners", 8*no_interaction_partners(label), bcornersx, bcornersy, bcornersz)
-                call vtk%finishpoints()
-                call vtk%startpointdata()
-                  ! no point data here
-                call vtk%finishpointdata()
-                call vtk%startcells()
-                  call vtk%write_data_array("connectivity", no_interaction_partners(label)*8, bcornersidx)
-                  call vtk%write_data_array("offsets", no_interaction_partners(label), bcornersoffsets)
-                  call vtk%write_data_array("types", no_interaction_partners(label), bcornerstypes)
-                call vtk%finishcells()
-                call vtk%startcelldata()
-                  call vtk%write_data_array("processor", no_interaction_partners(label), bowner)
-                  call vtk%write_data_array("level", no_interaction_partners(label), blevel)
-                  call vtk%write_data_array("center_of_charge", no_interaction_partners(label), bcocx, bcocy, bcocz)
-                  call vtk%write_data_array("total_charge", no_interaction_partners(label), bq)
-                call vtk%finishcelldata()
-              call vtk%write_final()
-            call vtk%close()
+        write(dateiname,"(a,i3.3)") "int_partner_box",label
+        call vtk%create(trim(dateiname), step, tsim, vtk_step)
+        call vtk%write_headers(no_interaction_partners(label)*8, no_interaction_partners(label))
+        call vtk%startpoints()
+          call vtk%write_data_array("corners", 8*no_interaction_partners(label), bcornersx, bcornersy, bcornersz)
+        call vtk%finishpoints()
+        call vtk%startpointdata()
+          ! no point data here
+        call vtk%finishpointdata()
+        call vtk%startcells()
+          call vtk%write_data_array("connectivity", no_interaction_partners(label)*8, bcornersidx)
+          call vtk%write_data_array("offsets", no_interaction_partners(label), bcornersoffsets)
+          call vtk%write_data_array("types", no_interaction_partners(label), bcornerstypes)
+        call vtk%finishcells()
+        call vtk%startcelldata()
+          call vtk%write_data_array("processor", no_interaction_partners(label), bowner)
+          call vtk%write_data_array("level", no_interaction_partners(label), blevel)
+          call vtk%write_data_array("mirror_level", no_interaction_partners(label), mirror_level)
+          call vtk%write_data_array("mirror_index_y", no_interaction_partners(label), mirror_index_y)
+          call vtk%write_data_array("mirror_index_z", no_interaction_partners(label), mirror_index_z)
+          call vtk%write_data_array("center_of_charge", no_interaction_partners(label), bcocx, bcocy, bcocz)
+          call vtk%write_data_array("total_charge", no_interaction_partners(label), bq)
+        call vtk%finishcelldata()
+        call vtk%write_final()
+        call vtk%close()
 
         end subroutine
 
