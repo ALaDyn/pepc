@@ -12,5 +12,6 @@ TREECODEDIR   = $(SRCDIR)/treecode
 PTHREADSDIR   = $(TREECODEDIR)/pthreads
 SLPEPCDIR     = $(TREECODEDIR)/sl_pepc
 LPEPCDIR      = $(TREECODEDIR)/lpepcsrc
+OPADIR        = $(TREECODEDIR)/openpa
 F90MODDEPS    = $(BUILDTOOLSDIR)/f90_mod_deps.py
 DOCDIR        = $(ROOTDIR)/doc

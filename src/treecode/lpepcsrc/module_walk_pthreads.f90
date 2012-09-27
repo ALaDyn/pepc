@@ -133,6 +133,7 @@
 module module_walk_pthreads_commutils
   use module_walk_communicator
   use pthreads_stuff
+  use module_atomic_ops
   implicit none
   private
 
@@ -157,9 +158,11 @@ module module_walk_pthreads_commutils
     integer, private :: request_balance !< total (#requests - #answers), should be zero after complete traversal
 
     ! rwlocks for regulating concurrent access
-    integer, private, parameter :: NUM_RWLOCKS = 2
+    integer, private, parameter :: NUM_RWLOCKS = 1
     integer, public, parameter :: RWLOCK_REQUEST_QUEUE      = 1
-    integer, public, parameter :: RWLOCK_NEXT_FREE_PARTICLE = 2
+
+    ! atomic variables for regulating concurrent access
+    type(t_atomic_int), pointer, public :: next_unassigned_particle
 
     ! internal initialization status
     logical, private :: initialized = .false.
@@ -216,6 +219,7 @@ module module_walk_pthreads_commutils
   contains
   
     subroutine init_commutils()
+        use module_debug
         use treevars
         implicit none
 
@@ -226,9 +230,17 @@ module module_walk_pthreads_commutils
           ! initialize rwlock objects
           call retval(rwlocks_init(NUM_RWLOCKS), "rwlocks_init")
 
+          ! initialize atomic variables
+          call atomic_allocate_int(next_unassigned_particle)
+          if (.not. associated(next_unassigned_particle)) then
+            DEBUG_ERROR('("atomic_allocate_int(): could not allocate atomic storage!")')
+          end if
+
           req_queue_top    = 0
           req_queue_bottom = 0
           request_balance  = 0
+
+          call atomic_store_int(next_unassigned_particle, 1)
 
           initialized = .true.
 
@@ -669,8 +681,6 @@ module module_walk
     integer :: num_particles
     type(t_particle), pointer, dimension(:) :: particle_data
 
-    integer :: next_unassigned_particle !< index of next particle that has not been assigned to a work thread
-
     type t_defer_list_entry
       integer  :: addr
       integer*8 :: key
@@ -860,6 +870,7 @@ module module_walk
     subroutine walk_hybrid()
       use module_debug
       use module_walk_pthreads_commutils
+      use module_atomic_ops
       use, intrinsic :: iso_c_binding
       implicit none
 
@@ -892,9 +903,9 @@ module module_walk
       call collect_thread_counters_timers()
 
       ! check wether all particles really have been processed
-      if (next_unassigned_particle .ne. num_particles + 1) then
+      if(atomic_load_int(next_unassigned_particle) .ne. num_particles + 1) then
         DEBUG_ERROR(*, "Serious issue on PE", me, ": all walk threads have terminated, but obviously not all particles are finished with walking: next_unassigned_particle =",
-                            next_unassigned_particle, " num_particles =", num_particles )
+                            atomic_load_int(next_unassigned_particle), " num_particles =", num_particles )
       end if
 
       deallocate(threaddata)
@@ -957,8 +968,6 @@ module module_walk
          boxlength2(i) =  boxlength2(i-1)/4.
       end do
 
-      next_unassigned_particle = 1
-
       ! store ID of primary (comm-thread) processor
       primary_processor_id = get_my_core()
 
@@ -977,17 +986,20 @@ module module_walk
 
     function get_first_unassigned_particle()
       use module_walk_pthreads_commutils
+      use module_atomic_ops
       implicit none
       integer :: get_first_unassigned_particle
 
-      call rwlock_wrlock(RWLOCK_NEXT_FREE_PARTICLE,"get_first_unassigned_particle")
-      if (next_unassigned_particle < num_particles + 1) then
-        get_first_unassigned_particle = next_unassigned_particle
-        next_unassigned_particle      = next_unassigned_particle + 1
+      integer :: next_unassigned_particle_local
+
+      next_unassigned_particle_local = atomic_fetch_and_increment_int(next_unassigned_particle)
+
+      if (next_unassigned_particle_local < num_particles + 1) then
+        get_first_unassigned_particle = next_unassigned_particle_local
       else
+        call atomic_store_int(next_unassigned_particle, num_particles + 1)
         get_first_unassigned_particle = -1
       end if
-      call rwlock_unlock(RWLOCK_NEXT_FREE_PARTICLE,"get_first_unassigned_particle")
 
     end function get_first_unassigned_particle
 

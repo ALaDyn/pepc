@@ -1,5 +1,6 @@
 ifeq ($(WALK), pthreads)
 include $(PTHREADSDIR)/makefile.include
+include $(OPADIR)/makefile.include
 FILES_TC  = module_walk_pthreads.f90
 endif
 

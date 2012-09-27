@@ -1,0 +1,3 @@
+FILES_OPA  = atomic_ops.c module_atomic_ops.f90
+SRC       += $(FILES_OPA)
+SRC_COPY  += $(addprefix $(OPADIR)/, $(FILES_OPA))

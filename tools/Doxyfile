@@ -141,7 +141,8 @@ EXCLUDE_PATTERNS       = .* \
                          */GNU*/* \
                          */SUSE*/* \
                          */treecode/sl_pepc/* \
-                         */treecode/lpepcsrc/*smpss*
+                         */treecode/lpepcsrc/*smpss* \
+                         */treecode/openpa/openpa/*
 EXCLUDE_SYMBOLS        = 
 EXAMPLE_PATH           = 
 EXAMPLE_PATTERNS       = *.h \

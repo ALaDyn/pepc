@@ -28,10 +28,10 @@ buildenv:
 	@echo "== CPPFLAGS : $(CPPFLAGS)"
 	@echo "== FCPRE    : $(FCPRE)"
 	@echo "== FC       : $(FC)"
-	@echo "== FCFLAGS  : $(FFLAGS)"
+	@echo "== FFLAGS   : $(FFLAGS)"
 	@echo "== CCPRE    : $(CCPRE)"
 	@echo "== CC       : $(CC)"
-	@echo "== CCFLAGS  : $(CFLAGS)"
+	@echo "== CFLAGS   : $(CFLAGS)"
 	@echo "== LDPRE    : $(LDPRE)"
 	@echo "== LD       : $(LD)"
 	@echo "== LDFLAGS  : $(LDFLAGS)"
@@ -56,6 +56,10 @@ $(LIBDIR)/libsl.a: $(LIBDIR)
 	@$(MAKE) -C $(SLPEPCDIR) $(MFLAGS)
 	@cp -p $(SLPEPCDIR)/libsl.a $(LIBDIR)/libsl.a
 
+libopa: $(LIBDIR)
+	@echo "==== building openpa"
+	@ROOTDIR=$(ROOTDIR) $(MAKE) -C $(OPADIR) $(MFLAGS)
+
 clean:
 	@echo "==== cleaning build directory and binaries in bin directory"
 	@$(RM) makefile.envs
@@ -67,6 +71,7 @@ cleanlib:
 	@$(RM) $(LIBDIR)
 	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
 	@cd src/treecode/sl_pepc && $(MAKE) $(MFLAGS) clean 
+	@ROOTDIR=$(ROOTDIR) $(MAKE) -C $(OPADIR) $(MFLAGS) clean
 	@echo ""
 
 cleandoc:
@@ -79,7 +84,7 @@ cleanall: cleanlib cleandoc clean
 
 allclean: cleanall
 
-pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a
+pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a libopa
 	@echo "======== start building frontend { $@ }"
 	@echo "==== date: " $(shell "date")
 	@echo "==== make target: " $@

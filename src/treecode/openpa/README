@@ -1,0 +1,20 @@
+This directory contains a copy of the OpenPA (Open Portable Atomics) library
+[1]. Atomic operations are used in PEPC as a lightweight alternative to locks 
+for thread synchronization. The content of each entry in this directory is as
+follows:
+
+  - README: This text
+  - atomic_ops.c: A thin wrapper around a subset of OpenPA functions similar to
+                  src/treecode/pthreads/pthreads_c.c
+  - module_atomic_ops.f90: Fortran bindings for the functions defined in
+                           atomic_ops.c
+  - makefile: Instructions for the PEPC build system to build OpenPA itself and
+              copy the results to lib/, similar to the sorting library. This
+              makefile is run by its own make process.
+  - makefile.include: Instructions for the PEPC build system to include the
+                      OpenPA wrappers and bindings in atomic_ops.c and
+                      module_atomic_ops.f90 into the regular PEPC build. This
+                      makefile is included into the main build makefile.
+  - openpa: The OpenPA library distribution as found at [1]
+
+  [1] http://trac.mcs.anl.gov/projects/openpa
