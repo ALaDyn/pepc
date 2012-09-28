@@ -43,7 +43,6 @@ int maxnumthreads  = 0;
 int maxnumlocks    = 0;
 
 int RWLOCKS_BUSY = EBUSY;
-int BARRIER_THEONE = PTHREAD_BARRIER_SERIAL_THREAD;
 
 #define CHECKRES do {if (iret != 0) return iret;} while(0);
 
@@ -175,43 +174,6 @@ int rwlocks_trywrlock(int id)
 int rwlocks_unlock(int id)
 {
     return pthread_rwlock_unlock(&my_rwlocks[id-1]);
-}
-
-///////////////// Barriers //////////////////////
-
-pthread_barrier_t* _barrier_alloc()
-{
-    return (pthread_barrier_t*)malloc(sizeof(pthread_barrier_t));
-} 
-
-
-int _barrier_init(pthread_barrier_t* barrier, unsigned numthreads)
-{
-    return pthread_barrier_init(barrier, NULL, numthreads);
-}
-
-
-int _barrier_destroy_and_free(pthread_barrier_t* barrier)
-{
-    int ret;
-
-    ret = pthread_barrier_destroy(barrier);
-    if (ret != 0) return ret;
-
-    free(barrier);
-    return 0;
-}
-
-
-void _barrier_free(pthread_barrier_t* barrier)
-{
-    free(barrier);
-}
-
-
-int _barrier_wait(pthread_barrier_t* barrier)
-{
-  return pthread_barrier_wait(barrier);
 }
 
 ///////////////// Utils //////////////////////
