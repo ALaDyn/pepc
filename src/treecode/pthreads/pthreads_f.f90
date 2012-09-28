@@ -23,6 +23,11 @@ module pthreads_stuff
   implicit none
 
   integer(kind = c_int), bind(C, name='RWLOCKS_BUSY') :: RWLOCKS_BUSY
+  integer(kind = c_int), bind(C, name='BARRIER_THEONE') :: BARRIER_THEONE
+
+  type t_barrier
+    type(c_ptr) :: p
+  end type t_barrier
 
   interface
     integer(c_int) function get_my_core() bind(C, name='get_my_core')
@@ -124,33 +129,34 @@ module pthreads_stuff
 
   interface
 
-    integer(c_int) function barriers_allocate(numbarriers) bind(C, name='barriers_allocate')
-      use, intrinsic :: iso_c_binding
-      implicit none
-      integer(c_int), intent(in), value :: numbarriers
-    end function
-
-    integer(c_int) function barriers_init(numbarriers, numthreads) bind(C, name='barriers_init')
-      use, intrinsic :: iso_c_binding
-      implicit none
-      integer(c_int), intent(in), value :: numbarriers, numthreads
-    end function
-
-    integer(c_int) function barriers_init_single(id, numthreads) bind(C, name='barriers_init_single')
-      use, intrinsic :: iso_c_binding
-      implicit none
-      integer(c_int), intent(in), value :: id, numthreads
-    end function
-
-    integer(c_int) function barriers_uninit() bind(C, name='barriers_uninit')
+    type(c_ptr) function c_barrier_alloc() bind(C, name='_barrier_alloc')
       use, intrinsic :: iso_c_binding
       implicit none
     end function
 
-    integer(c_int) function barriers_wait(id) bind(C, name='barriers_wait')
+    integer(c_int) function c_barrier_init(barrier, numthreads) bind(C, name='_barrier_init')
       use, intrinsic :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: id
+      type(c_ptr), intent(in), value :: barrier
+      integer(c_int), intent(in), value :: numthreads
+    end function
+
+    integer(c_int) function c_barrier_destroy_and_free(barrier) bind(C, name='_barrier_destroy_and_free')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), intent(in), value :: barrier
+    end function
+
+    subroutine c_barrier_free(barrier) bind(C, name='_barrier_free')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), intent(in), value :: barrier
+    end subroutine
+
+    integer(c_int) function c_barrier_wait(barrier) bind(C, name='_barrier_wait')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), intent(in), value :: barrier
     end function
 
   end interface
@@ -179,5 +185,60 @@ module pthreads_stuff
 
       write(getfullid,'("{", I8, ".", I8, "}")') get_my_pid(), get_my_tid()
    end function
+
+  subroutine barrier_allocate(barrier)
+    implicit none
+
+    type(t_barrier), pointer, intent(out) :: barrier
+
+    type(t_barrier), pointer :: tmp_f
+    type(c_ptr) :: tmp_c
+
+    allocate(tmp_f)
+    tmp_c = c_barrier_alloc()
+
+    if (.not. (associated(tmp_f) .and. c_associated(tmp_c))) then
+      call c_barrier_free(tmp_c)
+      deallocate(tmp_f)
+      barrier => null()
+    else
+      tmp_f%p = tmp_c
+      barrier => tmp_f
+    end if
+  end subroutine
+
+  integer function barrier_init(barrier, numthreads)
+    implicit none
+
+    type(t_barrier), intent(in) :: barrier
+    integer, intent(in) :: numthreads
+
+    barrier_init = c_barrier_init(barrier%p, numthreads)
+  end function
+
+  integer function barrier_destroy_and_deallocate(barrier)
+    implicit none
+
+    type(t_barrier), pointer, intent(inout) :: barrier
+
+    integer :: ret
+
+    ret = c_barrier_destroy_and_free(barrier%p)
+    
+    if (ret == 0) then
+      deallocate(barrier)
+      barrier => null()
+    end if
+
+    barrier_destroy_and_deallocate = ret
+  end function
+
+  integer function barrier_wait(barrier)
+    implicit none
+
+    type(t_barrier), intent(in) :: barrier
+
+    barrier_wait = c_barrier_wait(barrier%p)
+  end function
 
 end module pthreads_stuff

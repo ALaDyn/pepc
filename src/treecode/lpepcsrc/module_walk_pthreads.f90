@@ -672,6 +672,9 @@ module module_walk
     integer, public :: num_walk_threads = 3 !< number of worker threads
     integer, private :: primary_processor_id = 0
 
+    ! barrier for end of work
+    type(t_barrier), pointer, public :: workers_done
+
     real*8, dimension(:), allocatable :: boxlength2
     real*8 :: vbox(3)
     logical :: in_central_box
@@ -948,6 +951,7 @@ module module_walk
     subroutine init_walk_data()
       use, intrinsic :: iso_c_binding
       use module_walk_pthreads_commutils
+      use module_debug
       implicit none
       integer :: i
 
@@ -957,6 +961,16 @@ module module_walk
       max_particles_per_thread = max(min(num_particles/num_walk_threads, max_particles_per_thread),1)
       ! allocate storage for thread handles, the 0th entry is the walk scheduler thread, the other ones are the walk worker threads
       call retval(pthreads_init(num_walk_threads + 1), "init_walk_data:pthreads_init")
+
+      ! allocate storage for barriers and initialize
+      call barrier_allocate(workers_done)
+      if (.not. associated(workers_done)) then
+        DEBUG_ERROR('("barrier_allocate(): could not allocate barrier storage!")')
+      end if
+
+      ! only worker threads wait in this barrier
+      call retval(barrier_init(workers_done, num_walk_threads), "init_walk_data:barrier_init")
+
       ! we will only want to reject the root node and the particle itself if we are in the central box
       in_central_box = (dot_product(vbox,vbox) == 0)
       ! every particle has directly or indirectly interact with each other, and outside the central box even with itself
@@ -980,6 +994,7 @@ module module_walk
       implicit none
       deallocate(boxlength2)
       call retval(pthreads_uninit(), "uninit_walk_data:pthreads_uninit")
+      call retval(barrier_destroy_and_deallocate(workers_done), "uninit_walk_data:barrier_destroy_and_deallocate")
     end subroutine uninit_walk_data
 
 
@@ -1148,9 +1163,12 @@ module module_walk
       endif
 
       my_threaddata%finished = .true.
+      my_threaddata%timers(THREAD_TIMER_TOTAL) = my_threaddata%timers(THREAD_TIMER_TOTAL) + MPI_WTIME()
+      my_threaddata%timers(THREAD_TIMER_GET_NEW_PARTICLE) = t_get_new_particle
+      my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
 
       ! tell rank 0 that we are finished with our walk
-      if (all(threaddata(:)%finished)) then
+      if (barrier_wait(workers_done) == BARRIER_THEONE) then
         call notify_walk_finished()
 
         twalk_loc = MPI_WTIME() - twalk_loc
@@ -1162,11 +1180,6 @@ module module_walk
       endif
 
       walk_worker_thread = c_null_ptr
-
-      my_threaddata%timers(THREAD_TIMER_TOTAL) = my_threaddata%timers(THREAD_TIMER_TOTAL) + MPI_WTIME()
-      my_threaddata%timers(THREAD_TIMER_GET_NEW_PARTICLE) = t_get_new_particle
-      my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
-
       call retval(pthreads_exitthread(), "walk_worker_thread:pthread_exit")
 
     contains
