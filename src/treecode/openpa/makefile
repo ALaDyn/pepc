@@ -11,7 +11,7 @@ default: makeopa
 	@cp $(COPY_FILES) $(LIBDIR)
 	@mkdir -p $(LIBDIR)/primitives
 	@cp $(OPA_DIR)/src/primitives/* $(LIBDIR)/primitives
-	@libtool --mode=install cp $(LIBTOOL_FILES) $(LIBDIR)
+	@$(OPA_DIR)/libtool --mode=install cp $(LIBTOOL_FILES) $(LIBDIR)
 
 makeopa: $(OPA_MAKEFILE)
 	@echo "     calling make for openpa"
