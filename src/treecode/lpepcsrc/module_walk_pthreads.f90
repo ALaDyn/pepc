@@ -876,6 +876,7 @@ module module_walk
       implicit none
 
       integer :: ith
+      integer*8 :: num_processed_particles
 
       allocate(threaddata(num_walk_threads))
 
@@ -904,9 +905,10 @@ module module_walk
       call collect_thread_counters_timers()
 
       ! check wether all particles really have been processed
-      if(atomic_load_int(next_unassigned_particle) .ne. num_particles + 1) then
-        DEBUG_ERROR(*, "Serious issue on PE", me, ": all walk threads have terminated, but obviously not all particles are finished with walking: next_unassigned_particle =",
-                            atomic_load_int(next_unassigned_particle), " num_particles =", num_particles )
+      num_processed_particles = sum(threaddata(:)%counters(THREAD_COUNTER_PROCESSED_PARTICLES))
+      if (num_processed_particles .ne. num_particles) then
+        DEBUG_ERROR(*, "Serious issue on PE", me, ": all walk threads have terminated, but obviously not all particles are finished with walking: num_processed_particles =",
+                            num_processed_particles, " num_particles =", num_particles )
       end if
 
       deallocate(threaddata)
@@ -1123,7 +1125,7 @@ module module_walk
                   particle_data(thread_particle_indices(i)) = thread_particle_data(i)
                   ! mark particle entry i as free
                   thread_particle_indices(i)                = -1
-                  ! count total processed particles for this thread (only for statistics)
+                  ! count total processed particles for this thread
                   my_threaddata%counters(THREAD_COUNTER_PROCESSED_PARTICLES) = my_threaddata%counters(THREAD_COUNTER_PROCESSED_PARTICLES) + 1
                 else
                   ! walk for particle i has not been finished
