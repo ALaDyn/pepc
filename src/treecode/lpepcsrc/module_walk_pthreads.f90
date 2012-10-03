@@ -1029,6 +1029,7 @@ module module_walk
       integer, dimension(:), allocatable :: defer_list_start_pos
       integer :: defer_list_entries_new, defer_list_entries_old, total_defer_list_length
       integer :: defer_list_new_tail
+      integer*8, dimension(:), allocatable :: todo_list
       integer :: i
       logical :: particles_available
       logical :: particles_active
@@ -1071,6 +1072,7 @@ module module_walk
                              partner_leaves(my_max_particles_per_thread))
           allocate(defer_list_old(1:total_defer_list_length), &
                    defer_list_new(1:total_defer_list_length) )
+          allocate(todo_list(0:todo_list_length - 1))
 
           thread_particle_indices(:) = -1     ! no particles assigned to this thread
           particles_available        = .true. ! but there might be particles to be picked by the thread
@@ -1104,7 +1106,7 @@ module module_walk
                 particle_has_finished  = walk_single_particle(thread_particle_data(i), &
                                           ptr_defer_list_old, defer_list_entries_old, &
                                           ptr_defer_list_new, defer_list_entries_new, &
-                                          partner_leaves(i), my_threaddata)
+                                          todo_list, partner_leaves(i), my_threaddata)
                 t_walk_single_particle = t_walk_single_particle + MPI_WTIME()
 
                 if (particle_has_finished) then
@@ -1149,6 +1151,7 @@ module module_walk
 
           deallocate(thread_particle_indices, thread_particle_data, defer_list_start_pos, partner_leaves)
           deallocate(defer_list_old, defer_list_new)
+          deallocate(todo_list)
 
       endif
 
@@ -1243,7 +1246,7 @@ module module_walk
 
    function walk_single_particle(particle, defer_list_old, defer_list_entries_old, &
                                            defer_list_new, defer_list_entries_new, &
-                                           partner_leaves, my_threaddata)
+                                           todo_list, partner_leaves, my_threaddata)
       use module_walk_pthreads_commutils
       use module_htable
       use module_interaction_specific
@@ -1257,11 +1260,11 @@ module module_walk
       integer, intent(in) :: defer_list_entries_old
       type(t_defer_list_entry), dimension(:), pointer, intent(out) :: defer_list_new
       integer, intent(out) :: defer_list_entries_new
+      integer*8, intent(inout) :: todo_list(0:todo_list_length-1) 
       integer*8, intent(inout) :: partner_leaves
       type(t_threaddata), intent(inout) :: my_threaddata
       logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
 
-      integer*8 :: todo_list(0:todo_list_length-1) 
       integer :: todo_list_entries
       integer*8 :: walk_key, childlist(8)
       integer :: walk_addr, walk_node, childnum, walk_level
