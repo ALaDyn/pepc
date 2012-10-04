@@ -6,10 +6,13 @@ HELP = "\
 
 MACH     = IBM-BGQ-juqueen
 
-DEBUG    = 0
-VAMPIR   = 0
-SION     = 0
-RANLIB   = ranlib
+DEBUG      = 0
+VAMPIR     = 0
+SION       = 0
+RANLIB     = ranlib
+# for HPCTOOLKIT usage see end of this file
+# do not name the following variable to HPCTOOLKIT since this is already used externally
+HPCTOOLKT  = 0
 
 MAKE     = gmake
 
@@ -40,23 +43,18 @@ ifeq ($(VAMPIR), 1)
   FCPRE    = bgvtf90 -vt:f90
   CCPRE    = bgvtcc  -vt:cc
   LDPRE    = bgvtf90 -vt:f90
-else
-  FCPRE    = 
-  CCPRE    =
-  LDPRE    =
 endif
 
+ifeq ($(HPCTOOLKT), 1)
+  LDPRE    = hpclink
+  LDFLAGS += -qnoipa
+endif
 
 FC       = mpixlf90_r
 CC       = mpixlc_r
 LD       = mpixlf90_r
 
-#TOTALVIEW_LIB = -L/bgsys/local/totalview/toolworks/totalview.8.8.0-1/linux-power/lib/ -ltvheap_bluegene
-
-#IHPCT_BASE=/bgsys/local/ihpct
-#HPCCOUNT_LIB = -L../hpccount/lib -lhpccnt -L$(IHPCT_BASE)/lib -lhpc -llicense $(IHPCT_BASE)/lib/fake_dlfcn.o $(IHPCT_BASE)/lib/average.o
-
-LDLIBS   = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc $(TOTOALVIEW_LIB) $(HPCCOUNT_LIB)
+LDLIBS   = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc
 
 #  Flags for sionlib I/O option
 ifeq ($(SION),1)
@@ -67,5 +65,18 @@ endif
 
 RM       = rm -rf
 
+
+# HPCTOOLKIT USAGE
+# Call 
+# $>  module load UNITE hpctoolkit papi
+# Before compiling and execution. You should include those modules into your ~/.bashrc to also have them on the compute nodes.
+# After (re)compiling the application (e.g. pepc-mini) start it with
+# $>  runjob --envs  HPCRUN_EVENT_LIST="WALLCLOCK@10000" HPCRUN_TRACE=1 --label : ./pepc-mini ./params
+# Then generate the structure info (on the frontend node) using
+# $>  hpcstruct  ./pepc-mini
+# Build the measurement database from the measurements:
+# $>  hpcprof -S pepc-mini.hpcstruct -I ../build/IBM-BGQ-juqueen/pepc-mini/ hpctoolkit-pepc-mini-measurements
+# 
+#
 
 
