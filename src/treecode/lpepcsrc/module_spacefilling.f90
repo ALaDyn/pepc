@@ -87,10 +87,10 @@ module module_spacefilling
         pure function is_ancestor_of_particle_nolevel(key_c,key_a)
           use treevars
           implicit none
-          logical :: is_ancestor_of_particle
+          logical :: is_ancestor_of_particle_nolevel
           integer*8, intent(in) :: key_a, key_c
  
-          is_ancestor_of_particle = (ishft(key_c,3*(level_from_key(key_a)-nlev)) == key_a)
+          is_ancestor_of_particle_nolevel = (ishft(key_c,3*(level_from_key(key_a)-nlev)) == key_a)
 
         end function
 
@@ -103,11 +103,11 @@ module module_spacefilling
         pure function is_ancestor_of_particle_withlevel(key_c,key_a,level_a)
           use treevars
           implicit none
-          logical :: is_ancestor_of_particle
+          logical :: is_ancestor_of_particle_withlevel
           integer*8, intent(in) :: key_a, key_c
-	  integer, intent :: level_a
+	  integer, intent(in) :: level_a
  
-          is_ancestor_of_particle = (ishft(key_c,3*(level_a-nlev)) == key_a)
+          is_ancestor_of_particle_withlevel = (ishft(key_c,3*(level_a-nlev)) == key_a)
 
         end function
 
