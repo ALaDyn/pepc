@@ -426,7 +426,8 @@ module module_walk_pthreads_commutils
         logical :: walk_finished(num_pe) ! will hold information on PE 0 about which processor
                                           ! is still working and which ones are finished
                                           ! to emulate a non-blocking barrier
-        nummessages = 0
+        nummessages            = 0
+	messages_per_iteration = 0
 
         if (me==0) walk_finished = .false.
 
@@ -924,10 +925,10 @@ module module_walk
         num_nonshared_threads = num_walk_threads - num_shared_threads
 
         do itimer = 1,NUM_THREAD_TIMERS
-          thread_timers_shared_avg(itimer) = sum(threaddata(:)%timers(itimer), mask = threaddata(:)%is_on_shared_core) / num_shared_threads
-          thread_timers_nonshared_avg(itimer) = sum(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) / num_nonshared_threads
+          thread_timers_shared_avg(itimer)    =  sum(threaddata(:)%timers(itimer), mask =       threaddata(:)%is_on_shared_core) / num_shared_threads
+          thread_timers_nonshared_avg(itimer) =  sum(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) / num_nonshared_threads
 
-          thread_timers_shared_dev(itimer) = (maxval(threaddata(:)%timers(itimer), mask = threaddata(:)%is_on_shared_core) - thread_timers_shared_avg(itimer)) / thread_timers_shared_avg(itimer)
+          thread_timers_shared_dev(itimer)    = (maxval(threaddata(:)%timers(itimer), mask =       threaddata(:)%is_on_shared_core) - thread_timers_shared_avg(itimer))    / thread_timers_shared_avg(itimer)
           thread_timers_nonshared_dev(itimer) = (maxval(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) - thread_timers_nonshared_avg(itimer)) / thread_timers_nonshared_avg(itimer)
         end do
 
@@ -1076,6 +1077,7 @@ module module_walk
 
           thread_particle_indices(:) = -1     ! no particles assigned to this thread
           particles_available        = .true. ! but there might be particles to be picked by the thread
+	  particles_active           = .false.
           particles_since_last_yield =  0
 
           do while (particles_active .or. particles_available)
