@@ -192,7 +192,7 @@ module module_walk_communicator
       type(t_tree_node_transport_package), pointer :: c
       integer :: reqhandle
       integer*8, dimension(8) :: key_child
-      integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child, owner_child
+      integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child, owner_child, level_child
       integer :: j, ic, ierr, nchild
 
       if (walk_comm_debug) then
@@ -210,6 +210,7 @@ module module_walk_communicator
       byte_child(1:nchild)   = int(IAND( htable( addr_child(1:nchild) )%childcode, CHILDCODE_CHILDBYTE ))! Catch lowest 8 bits of childbyte - filter off requested and here flags
       leaves_child(1:nchild) = htable( addr_child(1:nchild) )%leaves                      ! # contained leaves
       owner_child(1:nchild)  = htable( addr_child(1:nchild) )%owner                       ! real owner of child (does not necessarily have to be identical to me, at least after futural modifications)
+      level_child(1:nchild)  = htable( addr_child(1:nchild) )%level                       ! level of child node
       ! Package children properties into user-defined multipole array for shipping
       do ic = 1,nchild
          c=>children_to_send(ic)
@@ -218,8 +219,9 @@ module module_walk_communicator
            c%byte   = byte_child(ic)
            c%leaves = leaves_child(ic)
            c%owner  = owner_child(ic)
+	   c%level  = level_child(ic)
       end do
-
+      
       ! Ship child data back to PE that requested it
       call MPI_IBSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node_transport_package, ipe_sender, TAG_REQUESTED_DATA, &
               MPI_COMM_lpepc, reqhandle, ierr )

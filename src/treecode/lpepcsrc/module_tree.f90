@@ -206,6 +206,7 @@ module module_tree
       use module_pepc_types
       use module_htable, only : CHILDCODE_BIT_CHILDREN_AVAILABLE
       use module_interaction_specific, only : shift_multipoles_up
+      use module_spacefilling, only : level_from_key
       use module_debug
       use module_htable
       implicit none
@@ -246,6 +247,7 @@ module module_tree
         parent%byte   = byte
         parent%leaves = sum(children(1:nchild)%leaves)
         parent%owner  = parent_owner
+	parent%level  = level_from_key( parent_keys(1) )
 
         call shift_multipoles_up(parent%m, children(1:nchild)%m)
 
@@ -344,7 +346,7 @@ module module_tree
             ! store branch key for later (global tree buildup)
             branch_keys(i) = get_mult(i)%key
         end do
-
+	
         deallocate(get_mult)
 
         call timer_stop(t_exchange_branches_integrate)
