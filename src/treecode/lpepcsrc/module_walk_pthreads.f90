@@ -1250,7 +1250,7 @@ module module_walk
       use module_walk_pthreads_commutils
       use module_htable
       use module_interaction_specific
-      use module_spacefilling, only : level_from_key, is_ancestor_of_particle
+      use module_spacefilling, only : is_ancestor_of_particle
       use module_debug
       use module_mirror_boxes, only : spatial_interaction_cutoff
       implicit none
@@ -1290,9 +1290,9 @@ module module_walk
       ! read all todo_list-entries and start further traversals there
       do while (todo_list_pop(walk_key))
 
-          walk_level = level_from_key(walk_key)
           walk_addr  = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
           walk_node  = htable( walk_addr )%node            ! Walk node index - points to multipole moments
+          walk_level = htable( walk_addr )%level
 
           delta = shifted_particle_position - tree_nodes(walk_node)%coc  ! Separation vector
           dist2 = DOT_PRODUCT(delta, delta)
@@ -1309,7 +1309,7 @@ module module_walk
           ! interaction with ancestor nodes should be prevented by the MAC
           ! but this does not always work (i.e. if theta > 0.7 or if keys and/or coordinates have
           ! been modified due to 'duplicate keys'-error)
-          same_particle_or_parent_node  = (in_central_box) .and. ( is_ancestor_of_particle(particle%key, walk_key))
+          same_particle_or_parent_node  = (in_central_box) .and. ( is_ancestor_of_particle(particle%key, walk_key, walk_level))
           ! set ignore flag if leaf node corresponds to particle itself
           same_particle = same_particle_or_parent_node .and. (walk_node > 0)
 
