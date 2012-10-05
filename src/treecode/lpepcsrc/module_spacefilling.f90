@@ -44,6 +44,10 @@ module module_spacefilling
         module procedure coord_to_key_lastlevel, coord_to_key_level
       end interface coord_to_key
 
+      interface is_ancestor_of_particle
+        module procedure is_ancestor_of_particle_nolevel, is_ancestor_of_particle_withlevel
+      end interface is_ancestor_of_particle
+
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -80,7 +84,7 @@ module module_spacefilling
         !> checks whether key_a is an ancestor of key_c (which must be at highest tree level, i.e. a particle key) 
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        pure function is_ancestor_of_particle(key_c,key_a)
+        pure function is_ancestor_of_particle_nolevel(key_c,key_a)
           use treevars
           implicit none
           logical :: is_ancestor_of_particle
@@ -90,6 +94,22 @@ module module_spacefilling
 
         end function
 
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> checks whether key_a is an ancestor of key_c (which must be at highest tree level, i.e. a particle key) 
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        pure function is_ancestor_of_particle_withlevel(key_c,key_a,level_a)
+          use treevars
+          implicit none
+          logical :: is_ancestor_of_particle
+          integer*8, intent(in) :: key_a, key_c
+	  integer, intent :: level_a
+ 
+          is_ancestor_of_particle = (ishft(key_c,3*(level_a-nlev)) == key_a)
+
+        end function
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>

@@ -127,7 +127,7 @@ module module_tree
         integer :: hashaddr, lnode
 
 
-        if (make_hashentry( t_hash(tree_node%key, 0, -1, tree_node%leaves, tree_node%byte, tree_node%owner), hashaddr)) then
+        if (make_hashentry( t_hash(tree_node%key, 0, -1, tree_node%leaves, tree_node%byte, tree_node%owner, tree_node%level), hashaddr)) then
             ! anything is fine - we will have to assign a node number now
             if ( tree_node%leaves == 1 ) then
                nleaf =  nleaf + 1
@@ -153,7 +153,7 @@ module module_tree
            ! entry with the same key is already existing, so we just overwrite it
            lnode = htable( hashaddr )%node
 
-           DEBUG_WARNING_ALL(*, "PE", me, "has found an already inserted entry while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, hashaddr,") - overwriting it")
+           DEBUG_WARNING_ALL(*, "PE", me, "has found an already inserted entry while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, tree_node%level, hashaddr,") - overwriting it")
         endif
 
         !insert multipole data into local tree
@@ -188,6 +188,7 @@ module module_tree
                                      htable( child_addr )%childcode, &
                                      htable( child_addr )%leaves,    &
                                      htable( child_addr )%owner,     &
+                                     htable( child_addr )%level,     &
                          tree_nodes( htable( child_addr )%node ) )
       end do
 
@@ -294,7 +295,7 @@ module module_tree
             ! additionally, we mark all local branches as branches since this is only done for remote branches during unpack (is used for fill node identification)
             hbranch%childcode = ibset(hbranch%childcode, CHILDCODE_BIT_IS_BRANCH_NODE)
 
-            pack_mult(i) =  t_tree_node_transport_package( local_branch_keys(i), hbranch%childcode, hbranch%leaves, me, tree_nodes(hbranch%node) )
+            pack_mult(i) =  t_tree_node_transport_package( local_branch_keys(i), hbranch%childcode, hbranch%leaves, me, hbranch%level, tree_nodes(hbranch%node) )
         end do
 
         call timer_stop(t_exchange_branches_pack)
@@ -532,7 +533,7 @@ module module_tree
            lvlkey = ishft( particles_left(i)%key, -3_8*ibit )
 
                                              ! V nodeindex for leaves is identical to original particle index
-           if (make_hashentry( t_hash(lvlkey, particles_left(i)%idx, -1, 1, 0, me), hashaddr)) then
+           if (make_hashentry( t_hash(lvlkey, particles_left(i)%idx, -1, 1, 0, me, level), hashaddr)) then
              ! this key does not exist until now --> has been inserted as leaf
              leaf_keys(particles_left(i)%idx) = lvlkey
              htable(hashaddr)%childcode = ibset(htable(hashaddr)%childcode, CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS) ! we mark this node as having local contributions since it is a leaf, i.e. a node for some local particle

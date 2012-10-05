@@ -41,6 +41,7 @@ module module_htable
         integer   :: leaves        !< # leaves contained within twig (=1 for leaf, npart for root)
         integer   :: childcode     !< Byte code indicating position of children (twig node); particle label (leaf node)
         integer   :: owner         !< Node owner (for branches)
+	integer   :: level         !< level_from_key(key)
     end type t_hash
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -103,7 +104,7 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     integer, private, parameter :: start_child_idx = 0 !< index of first child to be used in traversal - do not change, currently not completely implemented
-    type (t_hash), private, parameter :: HASHENTRY_EMPTY = t_hash(KEY_EMPTY,0,-1,0,0,0) !< constant for empty hashentry
+    type (t_hash), private, parameter :: HASHENTRY_EMPTY = t_hash(KEY_EMPTY,0,-1,0,0,0, 0) !< constant for empty hashentry
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -170,13 +171,14 @@ module module_htable
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine htable_clear_and_insert_root()
         use treevars, only : ntwig, me
+	use module_spacefilling, only : level_from_key
         implicit none
 
         call htable_clear()
 
         ntwig = 1
 
-        htable(1) = t_hash(1_8, -1, -1, 0, IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE), me)
+        htable(1) = t_hash(1_8, -1, -1, 0, IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE), me, level_from_key(1_8))
 
         call htable_prepare_address_list()
 
@@ -338,7 +340,7 @@ module module_htable
 
             if (point_free(hashaddr) /= 0) then     ! Check if new address in collision res. list
                 free_addr( point_free(hashaddr) ) = free_addr(sum_unused)  ! Replace free address with last on list
-                point_free(free_addr(sum_unused)) = point_free(hashaddr)  ! Reset pointer
+                point_free(free_addr(sum_unused)) = point_free(hashaddr)   ! Reset pointer
                 point_free(hashaddr)              = 0
                 sum_unused = sum_unused - 1
             endif
