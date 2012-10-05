@@ -12,7 +12,7 @@ SION       = 0
 RANLIB     = ranlib
 # for HPCTOOLKIT usage see end of this file
 # do not name the following variable to HPCTOOLKIT since this is already used externally
-HPCTOOLKT  = 1
+HPCTOOLKT  = 0
 
 MAKE     = gmake
 

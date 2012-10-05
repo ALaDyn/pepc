@@ -175,7 +175,9 @@ module module_libpepc_main
         allocate(leaf_keys(npp+neighbour_pe_particles))
         call tree_build_from_particles(particles, npp+neighbour_pe_particles, leaf_keys)
         ! remove the boundary particles from the htable - we are not interested in them any more
-        call htable_remove_keys(leaf_keys(npp+1:npp+neighbour_pe_particles), neighbour_pe_particles)
+        if (neighbour_pe_particles > 0) then
+          call htable_remove_keys(leaf_keys(npp+1:npp+neighbour_pe_particles), neighbour_pe_particles)
+        end if
         neighbour_pe_particles = 0
         ! build tree from local particle keys up to root (the boundary particles are not included in the tree construction)
         call tree_build_upwards(leaf_keys(1:npp), npp)
