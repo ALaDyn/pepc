@@ -460,7 +460,7 @@ contains
         if (my_rank == 0) then
           call MPI_REDUCE(MPI_IN_PLACE, rawdata, 5*NR*NTheta*NPhi, MPI_REAL8, MPI_SUM, 0, MPI_COMM_PEPC, ierr )
         else
-          call MPI_REDUCE(rawdata,      rawdata, 5*NR*NTheta*NPhi, MPI_REAL8, MPI_SUM, 0, MPI_COMM_PEPC, ierr )
+          call MPI_REDUCE(rawdata, MPI_IN_PLACE, 5*NR*NTheta*NPhi, MPI_REAL8, MPI_SUM, 0, MPI_COMM_PEPC, ierr )
         endif
 
         ! output data to file
@@ -648,7 +648,7 @@ contains
       call create_spherical_grid(grid, ngrid, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, my_rank, num_pe) 
       call pepc_particleresults_clear(grid, ngrid)
       call pepc_traverse_tree(ngrid, grid)
-      call dump_spherical_grid(filename_dump, itime, time_fs, grid, ngrid, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
+      call dump_spherical_grid(my_rank, filename_dump, itime, time_fs, grid, ngrid, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
       
       deallocate(grid)   
       
@@ -656,12 +656,12 @@ contains
     
 
 
-    subroutine dump_spherical_grid(filename, itime, time_fs, grid, ngrid, rmax, Nr, Ntheta, Nphi)
+    subroutine dump_spherical_grid(my_rank, filename, itime, time_fs, grid, ngrid, rmax, Nr, Ntheta, Nphi)
         use module_pepc_types
 	use physvars, only : nt, restart, rcluster
         implicit none
 
-        integer, intent(in) :: itime
+        integer, intent(in) :: itime, my_rank
         real*8, intent(in) :: time_fs
         integer, intent(in) :: Nr, Ntheta, Nphi
 	real*8, intent(in) :: rmax
@@ -672,6 +672,8 @@ contains
 
         integer :: p, iR, iTheta, iPhi, idata, idx
         real*8 :: rspherical(3), deltaR, deltaPhi, deltaTheta
+
+        if (my_rank .ne. 0) return
 
         ! output data to file
         if (itime <= 1 .and. .not. restart) then
