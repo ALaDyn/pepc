@@ -269,13 +269,19 @@ module module_walk_communicator
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
       integer*8 :: kparent
-      integer :: ownerchild, parent_addr(num_children)
+      integer :: ownerchild, parent_addr(0:num_children), num_parents
       integer :: ic
+
+      num_parents = 0
+      parent_addr(0) = maxaddress + 1
 
       do ic = 1, num_children
         ! save parent address - after (!) inserting all (!) children we can flag it: it`s children are then accessible
         kparent     = ishft( child_data(ic)%key, -3 )
-        parent_addr(ic) = key2addr( kparent, 'WALK:unpack_data() - get parent address' )
+        parent_addr(num_parents + 1) = key2addr( kparent, 'WALK:unpack_data() - get parent address' )
+        if (parent_addr(num_parents) .ne. parent_addr(num_parents + 1)) then
+          num_parents = num_parents + 1
+        end if
 
         if (walk_comm_debug) then
           DEBUG_INFO('("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ",        owner=", I6, ", kchild=", O22)',
@@ -292,7 +298,7 @@ module module_walk_communicator
 
      ! set 'children-here'-flag for all parent addresses
      ! may only be done *after inserting all* children, hence not(!) during the loop above
-     do ic=1,num_children
+     do ic=1,num_parents
          htable( parent_addr(ic) )%childcode = IBSET(  htable( parent_addr(ic) )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
      end do
 
