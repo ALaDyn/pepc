@@ -417,11 +417,12 @@ module module_htable
           ! could not find key
           DEBUG_WARNING_ALL('("Key not resolved in KEY2ADDR at ",a)', cmark)
           DEBUG_WARNING_ALL('("Bad address, check #-table and key list for PE", I7)', me)
-          DEBUG_WARNING_ALL('("key (octal)           = ", o22)', keyin)
-          DEBUG_WARNING_ALL('("initial address (dez) = ", i22)', int(IAND( keyin, hashconst)))
-          DEBUG_WARNING_ALL('("   last address (dez) = ", i22)', key2addr)
-          DEBUG_WARNING_ALL('("# const         (dez) = ", i22)', hashconst)
-          DEBUG_WARNING_ALL('("maxaddress      (dez) = ", i22)', maxaddress)
+          DEBUG_WARNING_ALL('("key                  (oct) = ", o22)', keyin)
+          DEBUG_WARNING_ALL('("initial address      (dez) = ", i22)', int(IAND( keyin, hashconst)))
+          DEBUG_WARNING_ALL('("   last address      (dez) = ", i22)', key2addr)
+          DEBUG_WARNING_ALL('("htable(lastaddr)%key (oct) = ", o22)', htable(key2addr)%key)
+          DEBUG_WARNING_ALL('("# const              (dez) = ", i22)', hashconst)
+          DEBUG_WARNING_ALL('("     maxaddress      (dez) = ", i22)', maxaddress)
           call diagnose_tree()
           call debug_mpi_abort()
         endif
