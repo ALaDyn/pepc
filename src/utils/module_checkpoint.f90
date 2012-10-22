@@ -234,44 +234,15 @@ module module_checkpoint
             integer, intent(in) :: comm
             character(*), intent(out) :: filename
             type(t_particle), allocatable :: dp(:)
-            integer :: fh, ierr, status(MPI_STATUS_SIZE)
-            integer*8 :: remain
 
             character(50) :: dir
 
             dir = trim(directory)//"/mpi/"
             write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime_in
-            call pepc_status("READ PARTICLES MPI: "//filename)
 
-            call MPI_FILE_OPEN(comm,trim(filename),MPI_MODE_RDONLY,MPI_INFO_NULL,fh,ierr)
-
-            if (ierr .ne. MPI_SUCCESS) then
-              DEBUG_ERROR(*,'read_particles_mpiio(): file open failed', my_rank, ierr, filename)
-            end if
-
-            ! Set file view to BYTE for header, only rank 0 writes it
-            call MPI_FILE_SET_VIEW(fh, 0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
-            call MPI_FILE_READ(fh, n_total, 1, MPI_INTEGER8, status, ierr) ! # particles
-            call MPI_FILE_READ(fh, itime,   1, MPI_INTEGER,  status, ierr) ! Last successful timestep (new ts)
-
-            np_local = int(n_total/n_cpu, kind(np_local))
-            remain = n_total-np_local*n_cpu
-            if ((remain > 0) .and. (my_rank < remain)) np_local = np_local+1
-
-            if (allocated(dp)) deallocate(dp)
-            allocate(dp(1:np_local))
-
-            ! Redefine file view, now with our custom type
-            call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle, MPI_TYPE_particle, 'native', MPI_INFO_NULL, ierr)
-            ! Read particle data
-            call MPI_FILE_READ_ORDERED(fh, dp, np_local, MPI_TYPE_particle, status, ierr)
-            ! Close file
-            call MPI_FILE_CLOSE(fh,ierr)
+            call read_particles_mpiio_from_filename(comm, my_rank, n_cpu, itime, np_local, n_total, dp, filename)
 
             filename = trim(filename)//".h"
-            open(filehandle, file=trim(filename),action='read')
-            call pepc_read_parameters(filehandle)
-            close(filehandle)
 
           end subroutine
 
