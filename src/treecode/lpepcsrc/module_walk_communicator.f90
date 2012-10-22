@@ -263,6 +263,7 @@ module module_walk_communicator
       use module_tree
       use module_spacefilling
       use module_debug
+      use module_atomic_ops
       implicit none
       include 'mpif.h'
       type (t_tree_node_transport_package) :: child_data(num_children) !< child data that has been received
@@ -295,6 +296,8 @@ module module_walk_communicator
         ! count number of fetched nodes
         sum_fetches = sum_fetches+1
      end do
+
+     call atomic_read_write_barrier()
 
      ! set 'children-here'-flag for all parent addresses
      ! may only be done *after inserting all* children, hence not(!) during the loop above

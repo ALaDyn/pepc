@@ -1255,6 +1255,7 @@ module module_walk
       use module_spacefilling, only : is_ancestor_of_particle
       use module_debug
       use module_mirror_boxes, only : spatial_interaction_cutoff
+      use module_atomic_ops
       implicit none
       include 'mpif.h'
       type(t_particle), intent(inout) :: particle
@@ -1292,6 +1293,7 @@ module module_walk
       ! read all todo_list-entries and start further traversals there
       do while (todo_list_pop(walk_key))
 
+          call atomic_read_write_barrier()
           walk_addr  = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
           walk_node  = htable( walk_addr )%node            ! Walk node index - points to multipole moments
           walk_level = htable( walk_addr )%level

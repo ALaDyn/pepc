@@ -30,6 +30,9 @@ module module_atomic_ops
   public atomic_store_int
   public atomic_load_int
   public atomic_fetch_and_increment_int
+  public atomic_write_barrier
+  public atomic_read_barrier
+  public atomic_read_write_barrier
 
   type t_atomic_int
     type(c_ptr) :: p
@@ -66,6 +69,21 @@ module module_atomic_ops
       implicit none
       type(c_ptr), intent(in), value :: storage
     end function c_atomic_fetch_and_increment_int
+
+    subroutine atomic_write_barrier() bind(C, name='_atomic_write_barrier')
+      use, intrinsic :: iso_c_binding
+      implicit none
+    end subroutine atomic_write_barrier
+
+    subroutine atomic_read_barrier() bind(C, name='_atomic_read_barrier')
+      use, intrinsic :: iso_c_binding
+      implicit none
+    end subroutine atomic_read_barrier
+
+    subroutine atomic_read_write_barrier() bind(C, name='_atomic_read_write_barrier')
+      use, intrinsic :: iso_c_binding
+      implicit none
+    end subroutine atomic_read_write_barrier
 
   end interface
 

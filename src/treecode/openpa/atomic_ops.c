@@ -54,3 +54,18 @@ int _atomic_fetch_and_increment_int(OPA_int_t* storage)
 {
   return OPA_fetch_and_incr_int(storage);
 }
+
+void _atomic_write_barrier()
+{
+  OPA_write_barrier();
+}
+
+void _atomic_read_barrier()
+{
+  OPA_read_barrier();
+}
+
+void _atomic_read_write_barrier()
+{
+  OPA_read_write_barrier();
+}
