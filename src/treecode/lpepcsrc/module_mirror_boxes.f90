@@ -20,7 +20,7 @@
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
-!>  Encapsulates functions for accessing, manipulating, and verifying hash table data
+!>  Encapsulates functions for periodic boundary conditions
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -73,6 +73,7 @@ module module_mirror_boxes
       public init_movement_constraint
       public constrain_periodic
       public lattice_vect
+      public lattice_indices
       public system_is_unit_cube
       public system_uses_principal_axes
 
@@ -106,6 +107,23 @@ module module_mirror_boxes
           lattice_vect = ijk(1)*t_lattice_1 + ijk(2)*t_lattice_2 + ijk(3)*t_lattice_3
 
         end function lattice_vect
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Calculates the lattice indices of the unit cell into which the
+        !> argument vector points
+        !> @param[in] xyz vector
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        function lattice_indices(xyz)
+          implicit none
+          real*8, intent(in) :: xyz(3)
+          integer :: lattice_indices(3)
+
+          lattice_indices = floor(matmul(xyz, LatticeInv))
+
+        end function lattice_indices
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

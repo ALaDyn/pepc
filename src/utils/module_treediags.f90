@@ -60,28 +60,36 @@ module module_treediags
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> Writes the tree branches structure into a vtk file
-        !> pepc_fields must have been called with no_dealloc=.true. before
+        !> Writes a collection of nodes into vtk files, once as boxes, once
+        !> as points
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine write_interaction_partners_to_vtk(step, label,tsim, vtk_step)
+        subroutine write_nodes_to_vtk(step, tsim, vtk_step, num_nodes, &
+          node_keys, filename_box, filename_point, node_vbox)
           use treevars
           use module_vtk
           use module_spacefilling
           use module_htable
-          use module_interaction_specific
           use module_mirror_boxes
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
-          integer, intent(in) :: label
           real*8, intent(in) :: tsim
+          integer, intent(in) :: num_nodes
+          integer*8, dimension(:), intent(in) :: node_keys
+          character(*), intent(in), optional :: filename_box
+          character(*), intent(in), optional :: filename_point
+          real*8, dimension(:,:), intent(in), optional :: node_vbox
+          
 
-          integer :: i,j, baddr, bnode, mirror_level_y,mirror_level_z
+          integer :: i,j, baddr, bnode
           integer*8 :: bkey
-          real*8 :: bcocx(no_interaction_partners(label)),bcocy(no_interaction_partners(label)),bcocz(no_interaction_partners(label)), bsize(3), bq(no_interaction_partners(label))
-          real*8, dimension(no_interaction_partners(label)*8) :: bcornersx, bcornersy, bcornersz
-          integer, dimension(no_interaction_partners(label)*8) :: bcornersidx
-          integer, dimension(no_interaction_partners(label)) :: bcornersoffsets, bcornerstypes, bowner, blevel,mirror_level,mirror_index_y,mirror_index_z
+          real*8 :: bsize(3)
+          real*8, dimension(:), allocatable  :: bcocx, bcocy, bcocz, bq, &
+                                                bcornersx, bcornersy, bcornersz
+          integer, dimension(:), allocatable :: bcornersidx, bcornersoffsets, &
+                                                bcornerstypes, bowner, blevel, &
+                                                mirror_level
+          integer, dimension(:, :), allocatable :: mirror_indices
           real*8 :: bx, by, bz
 
           real, parameter, dimension(3,8) :: box_shift = reshape([ 0., 0., 0., &
@@ -93,44 +101,54 @@ module module_treediags
                                                                        1., 1., 0., &
                                                                        1., 1., 1. ], shape(box_shift))
           real*8, dimension(3) :: bshift
-          type(vtkfile_unstructured_grid) :: vtk,vtk2
-          character(255) :: dateiname
+          type(vtkfile_unstructured_grid) :: vtk_box, vtk_point
 
           if (me .ne. 0) return
 
-          if (.not. (allocated(htable) .and. allocated(branch_key) .and. allocated(tree_nodes))) then
-            write(*,*) 'write_branches_to_vtk(): pepc_fields() must have been called with no_dealloc=.true. before'
-            return
-          endif
+          allocate(bcocx(num_nodes), bcocy(num_nodes), bcocz(num_nodes), &
+            bq(num_nodes))
+          allocate(bcornersx(num_nodes*8), bcornersy(num_nodes*8), &
+            bcornersz(num_nodes*8))
+          allocate(bcornersidx(num_nodes * 8))
+          allocate(bcornersoffsets(num_nodes), bcornerstypes(num_nodes), &
+            bowner(num_nodes), blevel(num_nodes), mirror_level(num_nodes))
+          allocate(mirror_indices(num_nodes, 3))
 
-          do i = 1,no_interaction_partners(label)
-            bkey      = interaction_keylist(label,i)
-            baddr     = key2addr(bkey, "write_interaction_partners_to_vtk")
+          do i = 1, num_nodes
+            bkey      = node_keys(i)
+            baddr     = key2addr(bkey, "write_nodes_to_vtk")
             bnode     = htable(baddr)%node
             bowner(i) = htable(baddr)%owner
             blevel(i) = level_from_key(bkey)
-            bsize     = boxsize/2**blevel(i)
+            bsize     = boxsize / 2**blevel(i)
             !write(*,'(O10, Z8, I12, I8, I8, 1G12.3, " | ", 3G12.3)') bkey, baddr, bnode, bowner, blevel, bsize, bcoc
+
             ! prepare voxel data structure
             bcornerstypes(i)   = VTK_VOXEL
             bcornersoffsets(i) = 8*i
             bq(i)              = tree_nodes(bnode)%charge
-            bcocx(i)           = tree_nodes(bnode)%coc(1)+interaction_vbox(label,i,1)
-            bcocy(i)           = tree_nodes(bnode)%coc(2)+interaction_vbox(label,i,2)
-            bcocz(i)           = tree_nodes(bnode)%coc(3)+interaction_vbox(label,i,3)
+            bcocx(i)           = tree_nodes(bnode)%coc(1)
+            bcocy(i)           = tree_nodes(bnode)%coc(2)
+            bcocz(i)           = tree_nodes(bnode)%coc(3)
 
-            mirror_index_y(i)=interaction_vbox(label,i,2)/t_lattice_2(2)
-            mirror_index_z(i)=interaction_vbox(label,i,3)/t_lattice_3(3)
-            mirror_level_y=abs(mirror_index_z(i))
-            mirror_level_z=abs(mirror_index_z(i))
-            mirror_level(i)=max(mirror_level_y,mirror_level_z)
-            !write(*,*) interaction_vbox(label,i,1:3),mirror_level_y,mirror_level_z,max(mirror_level_y,mirror_level_z)
+            if ( present(node_vbox) ) then
+              bcocx(i) = bcocx(i) + node_vbox(i, 1)
+              bcocy(i) = bcocy(i) + node_vbox(i, 2)
+              bcocz(i) = bcocz(i) + node_vbox(i, 3)
+
+              mirror_indices(i, 1:3) = lattice_indices(node_vbox(i, 1:3))
+              mirror_level(i) = maxval(abs(mirror_indices(i, :)))
+            end if
+            !write(*,*) node_vbox(i,1:3),mirror_indices(i, 1:3),mirror_level(i)
 
             ! compute real center coordinate
             call key_to_coord(bkey, bx, by, bz)
-            bx=bx+interaction_vbox(label,i,1)
-            by=by+interaction_vbox(label,i,2)
-            bz=bz+interaction_vbox(label,i,3)
+            
+            if ( present(node_vbox) ) then
+              bx = bx + node_vbox(i, 1)
+              by = by + node_vbox(i, 2)
+              bz = bz + node_vbox(i, 3)
+            end if
 
             do j=1,8
               bcornersidx(8*(i-1)+j) = 8*(i-1)+j - 1
@@ -141,48 +159,90 @@ module module_treediags
             end do
           end do
 
-        write(dateiname,"(a,i3.3)") "int_partner_coc",label
-        call vtk2%create(trim(dateiname), step, tsim, vtk_step)
-        call vtk2%write_headers(no_interaction_partners(label), 0)
-        call vtk2%startpoints()
-          call vtk2%write_data_array("xyz", no_interaction_partners(label), bcocx, bcocy, bcocz)
-        call vtk2%finishpoints()
-        call vtk2%startpointdata()
-          call vtk2%write_data_array("level", no_interaction_partners(label), blevel)
-          call vtk2%write_data_array("mirror_level", no_interaction_partners(label), mirror_level)
-          call vtk2%write_data_array("mirror_index_y", no_interaction_partners(label), mirror_index_y)
-          call vtk2%write_data_array("mirror_index_z", no_interaction_partners(label), mirror_index_z)
-          call vtk2%write_data_array("charge", no_interaction_partners(label), bq)
-        call vtk2%finishpointdata()
-        call vtk2%dont_write_cells()
-        call vtk2%write_final()
-        call vtk2%close()
+          if ( present(filename_point) ) then
+            call vtk_point%create(filename_point, step, tsim, vtk_step)
+            call vtk_point%write_headers(num_nodes, 0)
+            call vtk_point%startpoints()
+              call vtk_point%write_data_array("xyz", num_nodes, bcocx, bcocy, bcocz)
+            call vtk_point%finishpoints()
+            call vtk_point%startpointdata()
+              call vtk_point%write_data_array("level", num_nodes, blevel)
+              if ( present(node_vbox) ) then
+                call vtk_point%write_data_array("mirror_level", num_nodes, mirror_level)
+                call vtk_point%write_data_array("mirror_indices", num_nodes, &
+                  mirror_indices(:, 1), mirror_indices(:, 2), mirror_indices(:, 3))
+              end if
+              call vtk_point%write_data_array("charge", num_nodes, bq)
+            call vtk_point%finishpointdata()
+            call vtk_point%dont_write_cells()
+            call vtk_point%write_final()
+            call vtk_point%close()
+          end if
 
-        write(dateiname,"(a,i3.3)") "int_partner_box",label
-        call vtk%create(trim(dateiname), step, tsim, vtk_step)
-        call vtk%write_headers(no_interaction_partners(label)*8, no_interaction_partners(label))
-        call vtk%startpoints()
-          call vtk%write_data_array("corners", 8*no_interaction_partners(label), bcornersx, bcornersy, bcornersz)
-        call vtk%finishpoints()
-        call vtk%startpointdata()
-          ! no point data here
-        call vtk%finishpointdata()
-        call vtk%startcells()
-          call vtk%write_data_array("connectivity", no_interaction_partners(label)*8, bcornersidx)
-          call vtk%write_data_array("offsets", no_interaction_partners(label), bcornersoffsets)
-          call vtk%write_data_array("types", no_interaction_partners(label), bcornerstypes)
-        call vtk%finishcells()
-        call vtk%startcelldata()
-          call vtk%write_data_array("processor", no_interaction_partners(label), bowner)
-          call vtk%write_data_array("level", no_interaction_partners(label), blevel)
-          call vtk%write_data_array("mirror_level", no_interaction_partners(label), mirror_level)
-          call vtk%write_data_array("mirror_index_y", no_interaction_partners(label), mirror_index_y)
-          call vtk%write_data_array("mirror_index_z", no_interaction_partners(label), mirror_index_z)
-          call vtk%write_data_array("center_of_charge", no_interaction_partners(label), bcocx, bcocy, bcocz)
-          call vtk%write_data_array("total_charge", no_interaction_partners(label), bq)
-        call vtk%finishcelldata()
-        call vtk%write_final()
-        call vtk%close()
+          if ( present(filename_box) ) then
+            call vtk_box%create(filename_box, step, tsim, vtk_step)
+            call vtk_box%write_headers(num_nodes*8, num_nodes)
+            call vtk_box%startpoints()
+              call vtk_box%write_data_array("corners", 8*num_nodes, bcornersx, bcornersy, bcornersz)
+            call vtk_box%finishpoints()
+            call vtk_box%startpointdata()
+              ! no point data here
+            call vtk_box%finishpointdata()
+            call vtk_box%startcells()
+              call vtk_box%write_data_array("connectivity", num_nodes*8, bcornersidx)
+              call vtk_box%write_data_array("offsets", num_nodes, bcornersoffsets)
+              call vtk_box%write_data_array("types", num_nodes, bcornerstypes)
+            call vtk_box%finishcells()
+            call vtk_box%startcelldata()
+              call vtk_box%write_data_array("processor", num_nodes, bowner)
+              call vtk_box%write_data_array("level", num_nodes, blevel)
+              if ( present(node_vbox) ) then
+                call vtk_box%write_data_array("mirror_level", num_nodes, mirror_level)
+                call vtk_point%write_data_array("mirror_indices", num_nodes, &
+                  mirror_indices(:, 1), mirror_indices(:, 2), mirror_indices(:, 3))
+              end if
+              call vtk_box%write_data_array("center_of_charge", num_nodes, bcocx, bcocy, bcocz)
+              call vtk_box%write_data_array("total_charge", num_nodes, bq)
+            call vtk_box%finishcelldata()
+            call vtk_box%write_final()
+            call vtk_box%close()
+          end if
+
+          deallocate(bcocx, bcocy, bcocz, bq)
+          deallocate(bcornersx, bcornersy, bcornersz)
+          deallocate(bcornersidx)
+          deallocate(bcornersoffsets, bcornerstypes, bowner, blevel, &
+            mirror_level)
+          deallocate(mirror_indices)
+
+        end subroutine
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Writes the interaction partners of the particle with the 
+        !> specified label into vtk files, once as boxes, once as points
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine write_interaction_partners_to_vtk(step, label,tsim, vtk_step)
+          use treevars
+          use module_interaction_specific
+          integer, intent(in) :: step
+          integer, intent(in) :: vtk_step
+          integer, intent(in) :: label
+          real*8, intent(in) :: tsim
+
+          character(255) :: fn_box, fn_point
+
+          if (me .ne. 0) return
+
+          write(fn_point,"(a,i3.3)") "int_partner_coc",label
+          write(fn_box  ,"(a,i3.3)") "int_partner_box",label
+
+          call write_nodes_to_vtk(step, tsim, vtk_step, &
+            no_interaction_partners(label), interaction_keylist(label, :), &
+            node_vbox = interaction_vbox(label, :, :), &
+            filename_box = trim(fn_box), filename_point = trim(fn_point))
 
         end subroutine
 
@@ -196,31 +256,10 @@ module module_treediags
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine write_branches_to_vtk(step, tsim, vtk_step)
           use treevars
-          use module_vtk
-          use module_spacefilling
           use module_htable
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
-
-          integer :: i,j, baddr, bnode
-          integer*8 :: bkey
-          real*8 :: bcocx(nbranch_sum),bcocy(nbranch_sum),bcocz(nbranch_sum), bsize(3), bq(nbranch_sum)
-          real*8, dimension(nbranch_sum*8) :: bcornersx, bcornersy, bcornersz
-          integer, dimension(nbranch_sum*8) :: bcornersidx
-          integer, dimension(nbranch_sum) :: bcornersoffsets, bcornerstypes, bowner, blevel
-          real*8 :: bx, by, bz
-
-          real, parameter, dimension(3,8) :: box_shift = reshape([ 0., 0., 0., &
-                                                                       0., 0., 1., &
-                                                                       0., 1., 0., &
-                                                                       0., 1., 1., &
-                                                                       1., 0., 0., &
-                                                                       1., 0., 1., &
-                                                                       1., 1., 0., &
-                                                                       1., 1., 1. ], shape(box_shift))
-          real*8, dimension(3) :: bshift
-          type(vtkfile_unstructured_grid) :: vtk
 
           if (me .ne. 0) return
 
@@ -229,56 +268,8 @@ module module_treediags
             return
           endif
 
-          do i = 1,nbranch_sum
-            bkey      = branch_key(i)
-            baddr     = key2addr(bkey, "write_branches_to_vtk")
-            bnode     = htable(baddr)%node
-            bowner(i) = htable(baddr)%owner
-            blevel(i) = level_from_key(bkey)
-            bsize     = boxsize/2**blevel(i)
-            !write(*,'(O10, Z8, I12, I8, I8, 1G12.3, " | ", 3G12.3)') bkey, baddr, bnode, bowner, blevel, bsize, bcoc
-            ! prepare voxel data structure
-            bcornerstypes(i)   = VTK_VOXEL
-            bcornersoffsets(i) = 8*i
-            bq(i)              = tree_nodes(bnode)%charge
-            bcocx(i)           = tree_nodes(bnode)%coc(1)
-            bcocy(i)           = tree_nodes(bnode)%coc(2)
-            bcocz(i)           = tree_nodes(bnode)%coc(3)
-            ! compute real center coordinate
-            call key_to_coord(bkey, bx, by, bz)
-
-            do j=1,8
-              bcornersidx(8*(i-1)+j) = 8*(i-1)+j - 1
-              bshift(1:3) = box_shift(1:3,j) * bsize(1:3)
-              bcornersx(8*(i-1)+j)   = bx + bshift(1)
-              bcornersy(8*(i-1)+j)   = by + bshift(2)
-              bcornersz(8*(i-1)+j)   = bz + bshift(3)
-            end do
-          end do
-
-
-            call vtk%create("branches", step, tsim, vtk_step)
-              call vtk%write_headers(nbranch_sum*8, nbranch_sum)
-                call vtk%startpoints()
-                  call vtk%write_data_array("corners", 8*nbranch_sum, bcornersx, bcornersy, bcornersz)
-                call vtk%finishpoints()
-                call vtk%startpointdata()
-                  ! no point data here
-                call vtk%finishpointdata()
-                call vtk%startcells()
-                  call vtk%write_data_array("connectivity", nbranch_sum*8, bcornersidx)
-                  call vtk%write_data_array("offsets", nbranch_sum, bcornersoffsets)
-                  call vtk%write_data_array("types", nbranch_sum, bcornerstypes)
-                call vtk%finishcells()
-                call vtk%startcelldata()
-                  call vtk%write_data_array("processor", nbranch_sum, bowner)
-                  call vtk%write_data_array("key", nbranch_sum, branch_key)
-                  call vtk%write_data_array("level", nbranch_sum, blevel)
-                  call vtk%write_data_array("center_of_charge", nbranch_sum, bcocx, bcocy, bcocz)
-                  call vtk%write_data_array("total_charge", nbranch_sum, bq)
-                call vtk%finishcelldata()
-              call vtk%write_final()
-            call vtk%close()
+          call write_nodes_to_vtk(step, tsim, vtk_step, nbranch_sum, &
+            branch_key, filename_box = "branches")
 
         end subroutine
 
