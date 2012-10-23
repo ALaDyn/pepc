@@ -135,7 +135,7 @@ subroutine pepcmw_prepare()
   !!!!!!!!!!!!!!!  parameters (simulation generic)   !!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   maxdt(1) = 2*pi/max(omega,1.e-10_8) * 1./10.
-  maxdt(2) = 2*pi/max(wpl_e,1.e-10_8) * 1./50.
+  maxdt(2) = 2*pi/max(wpl_e,1.e-10_8) * 1./12.5
 
   if (vte>0.) then
     maxdt(3) = lambdaD_e/10./vte
