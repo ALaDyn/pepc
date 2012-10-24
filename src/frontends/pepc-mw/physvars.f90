@@ -107,7 +107,7 @@ module physvars
     integer, public :: spherical_grid_Ntheta = 6
     integer, public :: spherical_grid_Nphi   = 6
     
-    real*8 :: rcluster
+    real*8 :: rioncluster, relectroncluster
 
 end module physvars
 

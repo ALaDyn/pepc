@@ -74,7 +74,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine cluster_diagnostics(itime, time_fs)
-        use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, my_rank, restart, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, rcluster
+        use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, my_rank, restart, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, rioncluster, relectroncluster
         implicit none
         include 'mpif.h'
         integer, intent(in) :: itime
@@ -120,18 +120,29 @@ contains
         call write_total_momentum('momentum_electrons.dat', itime, time_fs, criterion, mom, nboundelectrons)
         call write_spatially_resolved_data(itime, time_fs, criterion, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
 	
-	rcluster = sqrt(rclustersq)
+	rioncluster = sqrt(rclustersq)
+
+        ! calculate rms radius of (bound-)electron cluster
+        rsq  = 0
+        do p = 1, np_local
+            if (criterion(p)) then
+                rsq  = rsq  + distsq(p)
+            endif
+        end do
+	
+        call MPI_ALLREDUCE(MPI_IN_PLACE, rsq,  1, MPI_REAL8,   MPI_SUM, MPI_COMM_PEPC, ierr)
+        relectroncluster = sqrt(5./3.*rsq/(1.*nboundelectrons)) ! < rms electron cluster radius
 
         if (my_rank == 0) then
             if (firstcall .and. .not. restart) then
                 firstcall = .false.
                 open(88, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
-                write(88,'("#",8(1x,a16))') "itime", "time_fs", "r_cluster^(rms)", "N_ion", "N_e^(free)", "N_e^(bound)", "N_e^(r<r_cl)", "N_e^(E<0)"
+                write(88,'("#",8(1x,a19))') "itime", "time_fs", "r_cluster^(rms,ion)", "r_cluster^(rms,el.)", "N_ion", "N_e^(free)", "N_e^(bound)", "N_e^(r<r_cl)", "N_e^(E<0)"
             else
                 open(88, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
             endif
 
-            write(88,'(" ",1(1x,i16),2(1x,g16.6),5(1x,i16))') itime, time_fs, sqrt(rclustersq), nion, nion-nboundelectrons, nboundelectrons, crit
+            write(88,'(" ",1(1x,i19),3(1x,g19.6),5(1x,i19))') itime, time_fs, rioncluster, relectroncluster, nion, nion-nboundelectrons, nboundelectrons, crit
 
             close(88)
         endif
@@ -468,7 +479,7 @@ contains
             if (itime_ <= 1 .and. .not. restart) then
                 open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION='REWIND', FORM='unformatted')
                 ! write header
-                write(87) nt, maxR, rcluster, NR, NTheta, NPhi
+                write(87) nt, maxR, rioncluster, relectroncluster, NR, NTheta, NPhi
             else
                 open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION='APPEND', FORM='unformatted')
             endif
@@ -658,7 +669,7 @@ contains
 
     subroutine dump_spherical_grid(my_rank, filename, itime, time_fs, grid, ngrid, rmax, Nr, Ntheta, Nphi)
         use module_pepc_types
-	use physvars, only : nt, restart, rcluster
+	use physvars, only : nt, restart, rioncluster, relectroncluster
         implicit none
 
         integer, intent(in) :: itime, my_rank
@@ -679,7 +690,7 @@ contains
         if (itime <= 1 .and. .not. restart) then
             open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND', FORM='unformatted')
             ! write header
-            write(87) nt, rmax, rcluster, Nr, Ntheta, Nphi
+            write(87) nt, rmax, rioncluster, relectroncluster, Nr, Ntheta, Nphi
         else
             open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND', FORM='unformatted')
         endif
