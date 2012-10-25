@@ -25,7 +25,7 @@ ARFLAGS  = -rs
 CPP      = cpp
 CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
-INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop
+INLINING = -ftree-vectorize -ftree-vectorizer-verbose=2 -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop
 # -flto # deactivated since it lead to problems with MPI_IN_PLACE
 # -flto-partition=none
 #-fwhopr
@@ -35,9 +35,9 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -g -pg -O0
   LDFLAGS  = -g -pg -O0
 else
-  FFLAGS   = -Wall -O3        -ffree-line-length-none $(INLINING)
-  CFLAGS   = -Wall -O3
-  LDFLAGS  = -pthread -O3 $(INLINING) -fwhole-program 
+  FFLAGS   = -g -Wall -O3        -ffree-line-length-none $(INLINING)
+  CFLAGS   = -g -Wall -O3
+  LDFLAGS  = -g -pthread -O3 $(INLINING) -fwhole-program 
 endif
 
 FCPRE    = 
