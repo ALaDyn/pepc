@@ -27,23 +27,27 @@ def plotfile_spherical_spectrum(filename, NR_NTheta_NPhi, lims):
   textidx = numpy.nonzero(xvals > textx)[0][0]
   textx   = xvals[textidx]
   
+  NR     = NR_NTheta_NPhi[0]
+  NTheta = NR_NTheta_NPhi[1]
+  NPhi   = NR_NTheta_NPhi[2]
+
   fig = plt.figure(figsize=[15,10])
   
   fig.suptitle(filename)
   
   i = 0
-  ntot = (NR_NTheta_NPhi[0]+1) * (NR_NTheta_NPhi[1]+1) * (NR_NTheta_NPhi[2]+1)
+  ntot = (NR+1) * (NTheta+1) * (NPhi+1)
   
-  for iR in range(0,NR_NTheta_NPhi[0]+1):
-    for iTheta in range(0,NR_NTheta_NPhi[1]+1):
-      for iPhi in range(0,NR_NTheta_NPhi[2]+1):
+  for iR in range(0,NR+1):
+    for iTheta in range(0,NTheta+1):
+      for iPhi in range(0,NPhi+1):
         i = i + 1
 
         plot(xvals, raw[:,i], "-",  color=cm.jet((1.*i)/ntot), linewidth=0.25, alpha=0.25)
    
         texty = raw[textidx,i]
     
-        gca().text(textx, texty, "$iR= %d, i\Theta=%d, i\Phi=%d$" % (iR, iTheta, iPhi), color=cm.jet((1.*i)/ntot) )
+        gca().text(textx, texty, "$iR= %d, i\Theta=%d, i\Phi=%d$" % (iR, iTheta, iPhi), color=cm.jet((1.*iR)/NR) )
     
   gca().set_xlim(lims[0])
   gca().set_ylim(lims[1])
@@ -93,9 +97,9 @@ def plotfile_excitation_image_at_frequency_cone_theta(frequencies, filename, NR_
     
     i = 0
   
-    for iR in range(0,NR_NTheta_NPhi[0]+1):
-      for iTheta in range(0,NR_NTheta_NPhi[1]+1):
-        for iPhi in range(0,NR_NTheta_NPhi[2]+1):
+    for iR in range(0,NR+1):
+      for iTheta in range(0,NTheta+1):
+        for iPhi in range(0,NPhi+1):
 	  i = i + 1
           raw_spherical[iR, iTheta, iPhi] = raw[freqidx,i]
 	  
@@ -264,11 +268,27 @@ NR_NTheta_NPhi = [16, 6, 6]
 # low-density case
 frequencies=[4.33, 5.55, 6.37, 6.60, 6.68, 6.85, 7.13, 7.40]
 
-plotfile_spherical_spectrum("field_spherical_spectrum", NR_NTheta_NPhi, [[3.0,15.0], [0.5, 300.0]])
-plotfile_excitation_image_at_frequency_cone_theta(frequencies, "field_spherical_spectrum", NR_NTheta_NPhi)
-plotfile_excitation_image_at_frequency_slice_phi(frequencies, "field_spherical_spectrum", NR_NTheta_NPhi)
-plotfile_excitation_image_at_frequency_3d(frequencies, "field_spherical_spectrum", NR_NTheta_NPhi)
+
+plotfile_spherical_spectrum("field_spherical_spectrum_phi", NR_NTheta_NPhi, [[3.0,15.0], [0.5, 300.0]])
+plotfile_excitation_image_at_frequency_cone_theta(frequencies, "field_spherical_spectrum_phi", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_slice_phi(frequencies, "field_spherical_spectrum_phi", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_3d(frequencies, "field_spherical_spectrum_phi", NR_NTheta_NPhi)
+
+plotfile_spherical_spectrum("field_spherical_spectrum_ex", NR_NTheta_NPhi, [[3.0,15.0], [0.5, 300.0]])
+plotfile_excitation_image_at_frequency_cone_theta(frequencies, "field_spherical_spectrum_ex", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_slice_phi(frequencies, "field_spherical_spectrum_ex", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_3d(frequencies, "field_spherical_spectrum_ex", NR_NTheta_NPhi)
+
+plotfile_spherical_spectrum("field_spherical_spectrum_ey", NR_NTheta_NPhi, [[3.0,15.0], [0.5, 300.0]])
+plotfile_excitation_image_at_frequency_cone_theta(frequencies, "field_spherical_spectrum_ey", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_slice_phi(frequencies, "field_spherical_spectrum_ey", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_3d(frequencies, "field_spherical_spectrum_ey", NR_NTheta_NPhi)
+
+plotfile_spherical_spectrum("field_spherical_spectrum_ez", NR_NTheta_NPhi, [[3.0,15.0], [0.5, 300.0]])
+plotfile_excitation_image_at_frequency_cone_theta(frequencies, "field_spherical_spectrum_ez", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_slice_phi(frequencies, "field_spherical_spectrum_ez", NR_NTheta_NPhi)
+plotfile_excitation_image_at_frequency_3d(frequencies, "field_spherical_spectrum_ez", NR_NTheta_NPhi)
 
 
 
-plt.show()
+#plt.show()

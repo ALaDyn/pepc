@@ -209,4 +209,4 @@ plotfile_spherical_fourier_coeffs("field_spherical_fourier_coeffs_ez", NR_NTheta
 plotfile_excitation_image_at_frequency(frequencies, "field_spherical_fourier_coeffs_ez", NR_NTheta_NPhi, 1.0)
 
 
-plt.show()
+#plt.show()

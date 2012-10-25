@@ -151,36 +151,43 @@ module module_data
       
     end function load_data
     
-    subroutine observable_spectrum_to_file(filename)
+    subroutine observable_spectrum_to_file(filename_in)
       use progress_bar
       implicit none
-      character(*), intent(in) :: filename
+      character(*), intent(in) :: filename_in
+      character(256) :: filename
 
-      integer :: i, iR, iTheta, iPhi
- 
-      write(*,'("[STATUS] ", "observable_spectrum_to_file: ",a)') filename
- 
-      open(24,file=trim(filename),status='unknown',position='rewind',action='write')
-
-      do i=1,Nt
-        call progress(i, Nt)
-
-        write(24,'(g15.5)', advance='no') abscissa(i)
-
-        do iR = 0,NR
-          do iTheta = 0,NTheta
-            do iPhi = 0,NPhi
-	      write(24,'(x,g15.5)', advance='no') observable(4, iR, iTheta, iPhi, i) ! TODO: for now we only dump the potential
-            end do	
-	  end do
-        end do
-	
-	write(24,*) ! line break in output file
-      end do
-
-      close(24)
+      integer :: i, iR, iTheta, iPhi, c
       
-      write(*,*) ! progress bar line break
+      character(8) :: endings(4) = ['_ex.dat', '_ey.dat', '_ez.dat', '_phi.dat']
+      
+      do c=1,4
+        filename = trim(filename_in)//trim(endings(c))
+ 
+	write(*,'("[STATUS] ", "observable_spectrum_to_file: ",a)') filename
+
+	open(24,file=trim(filename),status='unknown',position='rewind',action='write')
+
+	do i=1,Nt
+          call progress(i, Nt)
+
+          write(24,'(g15.5)', advance='no') abscissa(i)
+
+          do iR = 0,NR
+            do iTheta = 0,NTheta
+              do iPhi = 0,NPhi
+		write(24,'(x,g15.5)', advance='no') observable(c, iR, iTheta, iPhi, i) ! TODO: for now we only dump the potential
+              end do	
+	    end do
+          end do
+
+	  write(24,*) ! line break in output file
+	end do
+
+	close(24)
+
+	write(*,*) ! progress bar line break
+      end do
       
     end subroutine
     
@@ -340,6 +347,7 @@ module spherical_fourier
       complex*16, intent(out) :: Scnlm_w(1:NUMCOMPONENTS, 1:NR/2, 0:NTheta/2*(NTheta/2+1)/2+NTheta/2)
       integer :: n,l,m
       integer :: iR, iTheta, iPhi, ic
+      logical :: omitpoint
       
       complex*16 :: tmp
       
@@ -350,15 +358,28 @@ module spherical_fourier
 	    do m=0,NTheta/2
 	  
 	      if (m <= l) then
-                do iR = 0,NR
-                  do iTheta = 0,NTheta
-                    do iPhi = 0,NPhi
+                do iR = 0,NR    
+                  do iTheta = 0,NTheta 
+                    do iPhi = 0,NPhi-1    ! we omit the last entry since is identical to the first one and we want to avoid double counting
 		    
-		      tmp = Rtilda(n, l, iR) * MM(l, m) * P(l, m, iTheta) * E(m, iPhi)
+		      omitpoint = .false.
+		      ! additionally, the following compbinations are degenrate in the spherical coordinate system
+		      ! and we only use the repsective first combination
+		      ! origin:         iR=0,     iTheta=0..NTheta, iPhi=0..NPhi
+		      omitpoint = omitpoint .or. ((iR==0)          .and. (iPhi>0))
+		      ! north pole(s):  iR=fixed, iTheta=0,         iPhi=0..NPhi
+		      omitpoint = omitpoint .or. ((iTheta==0)      .and. (iPhi>0))
+		      ! south pole(s):  iR=fixed, iTheta=NTheta,    iPhi=0..NPhi
+		      omitpoint = omitpoint .or. ((iTheta==NTheta) .and. (iPhi>0))
+		      
+		      if (.not. omitpoint) then
 		    
-                      do ic = 1,NUMCOMPONENTS
-		        Scnlm_w(ic, n, tblinv(l, m)) = Scnlm_w(ic, n, tblinv(l, m)) + observable(ic, iR, iTheta, iPhi, freqindex) * tmp
-                      end do
+		        tmp = Rtilda(n, l, iR) * MM(l, m) * P(l, m, iTheta) * E(m, iPhi)
+		    
+                        do ic = 1,NUMCOMPONENTS
+		          Scnlm_w(ic, n, tblinv(l, m)) = Scnlm_w(ic, n, tblinv(l, m)) + observable(ic, iR, iTheta, iPhi, freqindex) * tmp
+                        end do
+	              endif
 
 		    end do
 		  end do
@@ -564,7 +585,7 @@ module computations
          call observable_write_to_vtk(trim(dirname_in)//'/field_vtk/spherical_fields_fft')
       endif
       
-      call observable_spectrum_to_file(trim(dirname_in)//'/field_spherical_spectrum.dat')
+      call observable_spectrum_to_file(trim(dirname_in)//'/field_spherical_spectrum')
       
       call spherical_fourier_decomposition_for_all(1, trim(dirname_in)//'/field_spherical_fourier_coeffs_ex.dat')
 

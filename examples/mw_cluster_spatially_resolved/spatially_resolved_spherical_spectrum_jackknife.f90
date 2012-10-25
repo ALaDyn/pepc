@@ -237,9 +237,12 @@ program spatially_resolved_spherical_spectrum_jackknife
   character*256, filename_in, dirname_in
   integer :: numlines
   
-  character*256 :: filelist(1)
+  character*256 :: filelist(4)
   
-  filelist = ['field_spherical_spectrum' ]
+  filelist = ['field_spherical_spectrum_phi', &
+              'field_spherical_spectrum_ex' , &
+	      'field_spherical_spectrum_ey' , &
+	      'field_spherical_spectrum_ez' ]
   
   argc = command_argument_count()
 
