@@ -4,7 +4,7 @@
  treediags = .false.
 
 ! number of particles, here electrons
- ne = 1000
+ ne = 300000
 
 ! initial particle distribution
 ! 1 homogen, 2: one sphere, 3: two spheres, 4: Plummer (core cut)
@@ -34,7 +34,7 @@ itime_in = 5
 
  Te_eV    =  0.0
  Ti_eV    =  0.0
- rhoe_nm3 = 35.0
+ rhoe_nm3 = 28.0
  Zion     =  1
  Aion     = 22
  V0_eV    = -5.1
@@ -62,7 +62,7 @@ workflow_setup = 3
 ! dito for vtk, binary and checkpoint-output
  idump_vtk = 0
  idump_binary = 0
- idump_checkpoint = 50
+ idump_checkpoint = 0
 /
 
 &calc_force_coulomb
@@ -77,11 +77,11 @@ workflow_setup = 3
 &libpepc
  debug_level = 0
  np_mult = -300
- interaction_list_length_factor = 8
+ interaction_list_length_factor = 2
 /
 
 &walk_para_pthreads
  num_walk_threads         = 16
- max_particles_per_thread = 2000
+ max_particles_per_thread = 250
 /
 
