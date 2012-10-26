@@ -64,9 +64,9 @@ to show information/recommendation on machine specifics.
 After setting the proper environment (modules, paths) 
 call 
 
-"make pepc-e"
+"make pepc-mini"
 
-to build the pepce frontend into the ./bin/ directory. 
+to build the pepc-mini frontend into the ./bin/ directory. 
 Parallel make (i.e. "make -j") should work.
 
 There are several different frontends available at the moment:
@@ -88,7 +88,7 @@ pepc-v:    vortex dynamics using the vortex particle method
 
 To build an alternative frontend, just call
 
-"make pepc-mini"
+"make pepc-e"
 or
 "make pepc-mw"
 
@@ -105,25 +105,15 @@ the respective sourcecode to find out what they are doing.
 
 2. RUNNING THE PROGRAM
 
-Create a run directory, and copy the file run.h there.
-Then you can run pepc from there, e.g.
+The directory "examples/" contains several subdirectories
+with setups for different frontends. E.g., to use the
+pepc-mini frontend, do
 
-"mkdir rundir"
-"cp run.h rundir/"
-"cd rundir"
-"mpirun -np 4 ../bin/pepc-e ./run.h"
+$ cd examples/mini-tube
+$ ./run.sh
 
-The file run.h contains some user-adjustable parameters which
-are explained therein.
-
-If you want to use checkpointing, particle data output and
-vtk file creation (see idump_XXX-parameters for details), 
-you will find the output in two additional directories 
-inside rundir that are created automatically:
-
-"vtk"
-"particles"
-
+The file "params" contains some user-adjustable parameters
+which are explained therein.
 
 ============================================================
 
