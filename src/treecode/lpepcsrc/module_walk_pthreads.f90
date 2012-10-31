@@ -563,14 +563,24 @@ module module_walk_pthreads_commutils
                         MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr)
 
                 if (walk_comm_debug) then
-                  DEBUG_INFO('("PE", I6, " has been told that PE", I6, "has finished walking")', me, ipe_sender)
+                  DEBUG_INFO('("PE", I6, " has been told that PE", I6, " has finished walking")', me, ipe_sender)
+                  DEBUG_INFO(*, 'walk_finished = ', walk_finished)
+                  DEBUG_INFO('("nummessages(TAG_FINISHED_PE) = ", I6, ", count(walk_finished) = ", I6)', nummessages(TAG_FINISHED_PE), count(walk_finished))
                 end if
 
-                walk_finished(ipe_sender+1) = .true.
+                if (.not. walk_finished(ipe_sender+1)) then
+                  walk_finished(ipe_sender+1) = .true.
 
-                if ( all(walk_finished) ) then
-                  call broadcast_walk_finished()
-                end if
+                  if ( all(walk_finished) ) then
+                    call broadcast_walk_finished()
+		    if (walk_comm_debug) then
+                      DEBUG_INFO(*, 'BCWF: walk_finished = ', walk_finished)
+                      DEBUG_INFO('("BCWF: nummessages(TAG_FINISHED_PE) = ", I6, ", count(walk_finished) = ", I6)', nummessages(TAG_FINISHED_PE), count(walk_finished))
+		    endif
+                  end if
+		else
+                  DEBUG_WARNING_ALL('("PE", I6, " has been told that PE", I6, " has finished walking, but already knew that. Obviously received duplicate TAG_FINISHED_PE, ignoring.")', me, ipe_sender)
+		endif
 
 
              ! all PEs have finished their walk

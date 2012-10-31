@@ -269,7 +269,9 @@ module module_libpepc_main
 
         do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
 
-            if (ibox .ne. 1) call debug_barrier() ! we have to synchronize the different walks to prevent problems with recognition of finished ranks by rank 0
+            call debug_barrier() ! we have to synchronize the different walks to prevent problems with recognition of finished ranks by rank 0
+                                 ! just for the case that some frontend calls traverse_tree() several times, all of them have to be
+                                 ! synchronized individually - hence in any case there must be a barrier here
 
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
             call tree_walk(nparticles,particles,ttrav,ttrav_loc, lattice_vect(neighbour_boxes(:,ibox)), tcomm)
