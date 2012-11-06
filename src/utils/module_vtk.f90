@@ -532,7 +532,7 @@ module module_vtk
         integer*4 :: data1(:), data2(:), data3(:)
         integer*4 :: numbytes
         type(base64_encoder) :: base64
-        call vtk%write_data_array_header(name, 1, "Int32")
+        call vtk%write_data_array_header(name, 3, "Int32")
 
         if (vtk%binary) then
           numbytes = ndata*3*4
@@ -592,7 +592,7 @@ module module_vtk
         integer*8 :: data1(:), data2(:), data3(:)
         integer*4 :: numbytes
         type(base64_encoder) :: base64
-        call vtk%write_data_array_header(name, 1, "Int64")
+        call vtk%write_data_array_header(name, 3, "Int64")
 
         if (vtk%binary) then
           numbytes = ndata*3*8
