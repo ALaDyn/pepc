@@ -52,7 +52,6 @@ module module_htable
 
     type (t_hash), public, target, allocatable :: htable(:) !< hash table
     integer*8,     public ::  hashconst  !< hashing constants
-    integer*8,     public, parameter ::  hashchild = b'111' !< bits that contain the child index in a key
 
     integer*8, public, parameter :: KEY_INVALID = -1
     integer*8, public, parameter :: KEY_EMPTY   =  0
@@ -235,6 +234,7 @@ module module_htable
     function get_next_node_key(keyin)
 
         use treevars
+        use module_spacefilling
 
         implicit none
         integer*8 :: get_next_node_key
@@ -243,20 +243,20 @@ module module_htable
         integer*8 :: search_key, parent_key
         integer   :: parent_addr
         integer   :: parent_child_byte 
-        integer*8 :: search_child_idx
+        integer   :: search_child_idx
 
         search_key = keyin
 
         ! search for next sibling, uncle, great-uncle etc
         do while (search_key > 1) ! loop through parent nodes up to root
-            parent_key        = ishft(search_key,-3)
+            parent_key        = parent_key_from_key(search_key)
             parent_addr       = key2addr( parent_key ,"next_node(), get parent_addr" )
-            parent_child_byte = ibits( htable( parent_addr ) % childcode, 0, 8)
+            parent_child_byte = ibits( htable( parent_addr ) % childcode, 0, 2**idim)
 
-            search_child_idx  = int(ibits( search_key, 0, 3), kind(search_child_idx) ) ! lower three bits of key
+            search_child_idx  = child_number_from_key(search_key) ! lower three bits of key
 
             do ! loop over all siblings
-                search_child_idx   = modulo(search_child_idx + 1_8, 8_8) ! get next sibling, possibly starting again from first one
+                search_child_idx   = modulo(search_child_idx + 1, 2**idim) ! get next sibling, possibly starting again from first one
 
                 ! if sibling-loop wrapped and reached starting point again --> go up one level
                 if ( search_child_idx == start_child_idx ) then
@@ -266,7 +266,7 @@ module module_htable
 
                 ! if sibling exists: next_node has been found
                 if ( btest(parent_child_byte, search_child_idx) ) then
-                    get_next_node_key = ior(int(ishft(parent_key, 3), kind(search_child_idx)), search_child_idx) ! assemble next_node out of parent-key and new sibling-index
+                    get_next_node_key = child_key_from_parent_key(parent_key, search_child_idx) ! assemble next_node out of parent-key and new sibling-index
                     return
                 endif
             end do
@@ -283,7 +283,8 @@ module module_htable
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine get_childkeys(addr, childnum, childkeys)
-        use treevars
+        use treevars, only: idim
+        use module_spacefilling
         implicit none
         integer, intent(in) :: addr
         integer, intent(out) :: childnum
@@ -293,11 +294,11 @@ module module_htable
         integer*8 :: keyhead
         integer :: childcode
 
-        keyhead   = ishft(htable(addr)%key, 3)
+        keyhead   = shift_key_by_level(htable(addr)%key, 1)
         childcode = htable(addr)%childcode
         childnum = 0
 
-        do i=0,7
+        do i=0,2**idim - 1
           if (btest(childcode, i)) then
             childnum            = childnum + 1
             childkeys(childnum) = ior(keyhead, 1_8*i)
@@ -615,7 +616,7 @@ module module_htable
                       htable(i)%node,      &
                       htable(i)%key,       &
                       htable(i)%key,       &
-                      ishft( htable(i)%key,-3 ), &
+                      parent_key_from_key(htable(i)%key), &
                       collision,           &
                       htable(i)%link,      &
                       htable(i)%leaves,    &

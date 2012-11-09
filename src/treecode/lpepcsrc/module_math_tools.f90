@@ -219,6 +219,7 @@ module module_math_tools
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         integer*8 function bpi(a, b)
+          use treevars, only: idim
           use module_spacefilling
           use module_debug
           implicit none
@@ -230,12 +231,12 @@ module module_math_tools
           integer :: bpilevel
 
           if (b < a) then
-            DEBUG_ERROR('("Error: b < a in math_tools::bpi(a = ",O64,", b = ",O64,")")', a,b)
+            DEBUG_ERROR('("Error: b < a in math_tools::bpi(a = ",o22,"(oct), ",i22,"(dec), b = ",o22,"(oct), ",i22,"(dec))")', a,a,b,b)
           endif
 
           axorb             = ieor(a,b)
           bpilevel          = level_from_key(axorb)
-          mask              = not(2_8**(3*bpilevel) - 1)
+          mask              = not(2_8**(idim*bpilevel) - 1)
           bpi               = iand(b,mask) ! extract highgest bits from b (which has to be the larger of both parameters)
 
         end function bpi

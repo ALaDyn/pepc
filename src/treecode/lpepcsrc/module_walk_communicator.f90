@@ -278,7 +278,7 @@ module module_walk_communicator
 
       do ic = 1, num_children
         ! save parent address - after (!) inserting all (!) children we can flag it: it`s children are then accessible
-        kparent     = ishft( child_data(ic)%key, -3 )
+        kparent     = parent_key_from_key( child_data(ic)%key )
         parent_addr(num_parents + 1) = key2addr( kparent, 'WALK:unpack_data() - get parent address' )
         if (parent_addr(num_parents) .ne. parent_addr(num_parents + 1)) then
           num_parents = num_parents + 1

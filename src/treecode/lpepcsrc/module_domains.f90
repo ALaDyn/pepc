@@ -167,7 +167,6 @@ module module_domains
         call timer_start(t_domains_sort_pure)
 
         local_keys(1:npold) = particles(1:npold)%key
-
         ! perform index sort on keys !TODO: remove the "-2", compare other cases with "+2" and "npp+1" etc.
         call slsort_keys(npold,nppm-2,local_keys,work2,weighted,imba,npnew,indxl,irnkl,islen,irlen,fposts,gposts,w1,irnkl2,num_pe,me,MPI_COMM_lpepc)
 
@@ -280,7 +279,7 @@ module module_domains
         do i=1,npp
           if (local_keys(i) .ne. particles(i)%key) then
             particles(i)%key = local_keys(i)
-            call key_to_coord_dim(particles(i)%key, particles(i)%x, idim, particles(i)%x)
+            call key_to_coord(particles(i)%key, particles(i)%x)
           endif
         end do
 

@@ -170,6 +170,7 @@ module module_tree
       use module_pepc_types
       use treevars, only : tree_nodes
       use module_htable
+      use module_spacefilling
       implicit none
       type(t_tree_node_transport_package), intent(inout) :: parent
       integer*8, intent(in) :: childkeys(:)
@@ -183,7 +184,7 @@ module module_tree
 
       do i=1,nchild
         child_addr     = key2addr(childkeys(i), 'shift_nodes_up_key')
-        childnumber(i) = int(IAND( childkeys(i), hashchild))
+        childnumber(i) = child_number_from_key(childkeys(i))
         child_nodes(i) = t_tree_node_transport_package(childkeys(i),                   &
                                      htable( child_addr )%childcode, &
                                      htable( child_addr )%leaves,    &
@@ -203,10 +204,11 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine shift_nodes_up(parent, children, childnumber, parent_owner)
+      use treevars, only: idim
       use module_pepc_types
       use module_htable, only : CHILDCODE_BIT_CHILDREN_AVAILABLE
       use module_interaction_specific, only : shift_multipoles_up
-      use module_spacefilling, only : level_from_key
+      use module_spacefilling
       use module_debug
       use module_htable
       implicit none
@@ -221,7 +223,7 @@ module module_tree
         nchild = size(children)
 
         ! check if all keys fit to the same parent
-        parent_keys(1:nchild) = ISHFT( children(1:nchild)%key, -3 )
+        parent_keys(1:nchild) = parent_key_from_key(children(1:nchild)%key)
 
         if ( any(parent_keys(2:nchild) .ne. parent_keys(1))) then
           DEBUG_ERROR(*,"Error in shift nodes up: not all supplied children contribute to the same parent node")
@@ -365,7 +367,7 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_upwards(start_keys, numkeys)
 
-        use treevars, only : me
+        use treevars, only : idim, me
         use module_debug, only : pepc_status, DBG_TREE, dbg
         use module_timings
         use module_utils
@@ -433,10 +435,10 @@ module module_tree
 
             do while (i <= nsub)
               ! group keys with the same parent
-              current_parent_key = ISHFT( sub_key(i),-3 )
+              current_parent_key = parent_key_from_key(sub_key(i))
 
               groupstart = i
-              do while ((ISHFT( sub_key(i+1),-3 ) .eq. current_parent_key) .and. (i+1 <= nsub))
+              do while ((parent_key_from_key(sub_key(i+1)) .eq. current_parent_key) .and. (i+1 <= nsub))
                 i = i + 1
               end do
               groupend   = i
@@ -472,9 +474,9 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_from_particles(particle_list, nparticles, leaf_keys)
-      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, nleaf_me, ntwig_me
-      use module_debug, only : pepc_status
+      use treevars, only : idim, nleaf, ntwig, nlev, me, tree_nodes, nleaf_me, ntwig_me
       use module_pepc_types
+      use module_spacefilling
       use module_htable
       use module_interaction_specific, only : multipole_from_particle
       use module_timings
@@ -532,7 +534,7 @@ module module_tree
          ! Determine subcell # from key
          ! At a given level, these will be unique
          do i=1,nremaining
-           lvlkey = ishft( particles_left(i)%key, -3_8*ibit )
+           lvlkey = shift_key_by_level( particles_left(i)%key, - ibit )
 
                                              ! V nodeindex for leaves is identical to original particle index
            if (make_hashentry( t_hash(lvlkey, particles_left(i)%idx, -1, 1, 0, me, level), hashaddr)) then

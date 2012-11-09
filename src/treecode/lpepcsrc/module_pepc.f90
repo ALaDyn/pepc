@@ -91,7 +91,7 @@ module module_pepc
     !> Call this function at program startup before any MPI calls
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi, db_level_in, comm)
+    subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi, db_level_in, comm, idim)
       use treevars, only : np_mult, me, num_pe, treevars_idim => idim, MPI_COMM_lpepc
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
@@ -106,6 +106,7 @@ module module_pepc
       logical, intent(in) :: init_mpi !< if set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
       integer, intent(in), optional :: db_level_in !< sets debug level for treecode kernel (overrides settings, that may be read from libpepc-section in input file)
       integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator; otherwise, it uses an MPI_COMM_DUP copy of the given comm
+      integer, intent(in), optional :: idim
       integer :: ierr, provided
 
       integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE ! " If the process is multithreaded, multiple threads may call MPI at once with no restrictions."
@@ -177,7 +178,11 @@ module module_pepc
       ! create and register mpi types
       call register_lpepc_mpi_types()
 
-      call pepc_prepare(treevars_idim)
+      if (present(idim)) then
+        call pepc_prepare(idim)
+      else
+        call pepc_prepare(3)
+      end if
 
     end subroutine
 
@@ -291,7 +296,7 @@ module module_pepc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_prepare(idim)
-      use treevars, only : treevars_idim => idim
+      use treevars, only : treevars_prepare
       use module_walk
       use module_branching, only : branches_initialize
       use module_interaction_specific
@@ -299,7 +304,7 @@ module module_pepc
       implicit none
       integer, intent(in) :: idim
 
-      treevars_idim = idim
+      call treevars_prepare(idim)
 
       ! initialize mirror boxes
       call calc_neighbour_boxes()
@@ -325,6 +330,7 @@ module module_pepc
       use module_pepc_types, only : free_lpepc_mpi_types
       use module_walk, only : tree_walk_finalize 
       use module_interaction_specific, only : calc_force_finalize
+      use treevars, only : treevars_finalize
       implicit none
       include 'mpif.h'
       integer :: ierr
@@ -336,6 +342,8 @@ module module_pepc
       call tree_walk_finalize()
       ! deregister mpi types
       call free_lpepc_mpi_types()
+
+      call treevars_finalize()
 
       if (pepc_initializes_mpi) call MPI_FINALIZE(ierr)
     end subroutine
