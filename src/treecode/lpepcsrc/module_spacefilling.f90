@@ -558,17 +558,6 @@ module module_spacefilling
 
             ! transform partial curve with the gene rules for the next level step
             ! exchange
-            do j=1,idim-1
-              if (.not. btest(exchange, j - 1)) cycle
-
-              do k=j+1,idim
-                if (btest(exchange, k - 1)) then
-                  change = itemp(j)
-                  itemp(j) = itemp(k)
-                  itemp(k) = change
-                end if
-              end do
-            end do
             select case (exchange)
               case (5)
                 change = itemp(1)
