@@ -10,6 +10,14 @@ from mpl_toolkits.mplot3d import axes3d
 import matplotlib.cm as cm
 import sys
 
+import json
+
+f = open('./simparams.dat', 'r')
+simparams = json.load(f)
+f.close()
+
+
+
 def saveplot(filenameout):
   plt.savefig("%s.pdf" % filenameout)
   plt.savefig("%s.png" % filenameout)

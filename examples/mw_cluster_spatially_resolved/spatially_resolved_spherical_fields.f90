@@ -13,7 +13,7 @@ module module_data
   integer, parameter :: NUMCOMPONENTS = 4
   
   integer :: NR, NTheta, NPhi
-  real*8 :: maxR, rcl
+  real*8 :: maxR, rion, relectron
   
   ! indices: spatial component (iR,iT,iP), time/frequency index (t/w)
   real*8, allocatable, dimension(:,:,:,:,:) :: observable
@@ -92,17 +92,18 @@ module module_data
       
       if (ios .ne. 0) return
       
-      read(87) Nt_max, maxR, rcl, NR, NTheta, NPhi
+      read(87) Nt_max, maxR, rion, relectron, NR, NTheta, NPhi
 
       Na = (NR+1) * (NTheta+1) * (NPhi+1)
 
-      write(*, '("# Nt_max   = ",   i15)') Nt_max
-      write(*, '("# maxR     = ", g15.5)') maxR
-      write(*, '("# rcl      = ", g15.5)') rcl
-      write(*, '("# NR       = ",   i15)') NR
-      write(*, '("# NTheta   = ",   i15)') NTheta
-      write(*, '("# NPhi     = ",   i15)') NPhi
-      write(*, '("# Na       = ",   i15)') Na
+      write(*, '("# Nt_max    = ",   i15)') Nt_max
+      write(*, '("# maxR      = ", g15.5)') maxR
+      write(*, '("# rion      = ", g15.5)') rion
+      write(*, '("# relectron = ", g15.5)') relectron
+      write(*, '("# NR        = ",   i15)') NR
+      write(*, '("# NTheta    = ",   i15)') NTheta
+      write(*, '("# NPhi      = ",   i15)') NPhi
+      write(*, '("# Na        = ",   i15)') Na
       
       allocate(observable(1:NUMCOMPONENTS, 0:NR, 0:NTheta, 0:NPhi, Nt_max))
       allocate(dummy(1:NUMCOMPONENTS, 0:NR, 0:NTheta, 0:NPhi))

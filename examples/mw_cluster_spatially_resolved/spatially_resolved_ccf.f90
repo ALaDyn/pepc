@@ -22,7 +22,7 @@ module data
   integer :: Nc, Na, Nt, Nt_max
   
   integer :: NR, NTheta, NPhi
-  real*8 :: maxR, rcluster
+  real*8 :: maxR, rion, relectron
 
   ! indices: spatial component (c), location index (a), time/frequency index (t/w)
   complex(C_DOUBLE_COMPLEX), allocatable, dimension(:,:,:) :: observable
@@ -69,19 +69,20 @@ module data
       
       if (ios .ne. 0) return
 
-      read(87) Nt_max, maxR, rcluster, NR, NTheta, NPhi
+      read(87) Nt_max, maxR, rion, relectron, NR, NTheta, NPhi
 
       Nc = size(fields)
       Na = NR * NTheta * NPhi
 
-      write(*, '("# Nt_max   = ",   i15)') Nt_max
-      write(*, '("# maxR     = ", g15.5)') maxR
-      write(*, '("# rcluster = ", g15.5)') rcluster
-      write(*, '("# NR       = ",   i15)') NR
-      write(*, '("# NTheta   = ",   i15)') NTheta
-      write(*, '("# NPhi     = ",   i15)') NPhi
-      write(*, '("# Nc       = ",   i15)') Nc
-      write(*, '("# Na       = ",   i15)') Na
+      write(*, '("# Nt_max    = ",   i15)') Nt_max
+      write(*, '("# maxR      = ", g15.5)') maxR
+      write(*, '("# rion      = ", g15.5)') rion
+      write(*, '("# relectron = ", g15.5)') relectron
+      write(*, '("# NR        = ",   i15)') NR
+      write(*, '("# NTheta    = ",   i15)') NTheta
+      write(*, '("# NPhi      = ",   i15)') NPhi
+      write(*, '("# Nc        = ",   i15)') Nc
+      write(*, '("# Na        = ",   i15)') Na
       
       allocate(observable(Nc, Na, 2*Nt_max))
       allocate(abscissa(Nt_max))
