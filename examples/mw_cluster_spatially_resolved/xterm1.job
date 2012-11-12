@@ -1,0 +1,18 @@
+# @ job_name = XTERM-JUQUEEN1
+# @ job_type = bluegene
+# @ comment = "xterm job"
+# @ error = $(job_name).$(jobid).out
+# @ output = $(job_name).$(jobid).out
+# @ environment = COPY_ALL;
+# @ requirements = (Machine == "juqueen1" )
+# @ wall_clock_limit = 00:30:00
+# @ notification = never
+# @ notify_user = m.winkel@fz-juelich.de
+# @ bg_size = 4
+## @ bg_shape = 1x2x3x4
+## @bg_rotate = TRUE
+# @ bg_connectivity = MESH
+# @ executable = /usr/bin/xterm
+# @ arguments = -ls -sb -sl 10000 -bg black -fg lightgreen -geometry 160x75 -font 6x12
+## @ class = sysmall
+# @ queue

@@ -1,4 +1,4 @@
-DEBUG    = 1
+DEBUG    = 0
 
 
 LIBS     = -I$(FFTW_ROOT)/include -lfftw3 -llapack
