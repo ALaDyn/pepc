@@ -8,6 +8,6 @@ mpixlf90_r -g -O5 -I${FFTW_INCLUDE} spatially_resolved_spherical_fields.f90 prog
 
 echo "now call llsubmit xterm1.job"
 echo "and therein:"
-echo "for dir in `ls ../../spatially_resolved_spherical_fields.juqueen /work/jzam04/jzam0415/cluster.spatially_resolved/300k/rundir-?????`; do"
+echo "for dir in ../../spatially_resolved_spherical_fields.juqueen /work/jzam04/jzam0415/cluster.spatially_resolved/300k/rundir-?????; do"
 echo "  runjob --np 1 : ../../spatially_resolved_spherical_fields.juqueen /work/jzam04/jzam0415/cluster.spatially_resolved/300k/rundir-?????"
 echo "done"

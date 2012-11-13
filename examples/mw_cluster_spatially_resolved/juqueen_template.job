@@ -1,0 +1,14 @@
+# @ job_name = CLUSTER300kBLA
+# @ job_type = bluegene
+# @ comment = "xterm job"
+# @ error = $(job_name).$(jobid).out
+# @ output = $(job_name).$(jobid).out
+# @ environment = COPY_ALL;
+# @ wall_clock_limit = 00:15:00
+# @ notification = never
+# @ notify_user = m.winkel@fz-juelich.de
+# @ bg_size = 4
+# @ bg_connectivity = MESH
+# @ queue
+
+runjob --np 1 : ../../spatially_resolved_spherical_fields.juqueen /work/jzam04/jzam0415/cluster.spatially_resolved/300k/rundir-00BLA
