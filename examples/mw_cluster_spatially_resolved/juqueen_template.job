@@ -11,4 +11,5 @@
 # @ bg_connectivity = MESH
 # @ queue
 
-runjob --np 1 : ../../spatially_resolved_spherical_fields.juqueen /work/jzam04/jzam0415/cluster.spatially_resolved/300k/rundir-00BLA
+runjob --np 1 : ./spatially_resolved_spherical_fields.juqueen /work/jzam04/jzam0415/cluster.spatially_resolved/300k/rundir-00BLA
+runjob --np 1 : ./spatially_resolved_ccf.juqueen /work/jzam04/jzam0415/cluster.spatially_resolved/300k/rundir-00BLA

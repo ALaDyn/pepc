@@ -156,7 +156,7 @@ module module_data
       use progress_bar
       implicit none
       character(*), intent(in) :: filename_in
-      character(256) :: filename
+      character(1024) :: filename
 
       integer :: i, iR, iTheta, iPhi, c
       
