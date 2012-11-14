@@ -44,6 +44,7 @@ module variables
   integer :: np               ! local number of particles (wall +plasma)
   integer :: diag_interval    
   integer :: checkp_interval
+  logical :: diags
   integer :: mirror_layers    ! input variable. Is copied to mirror_box_layers (module_mirror_boxes)
 
   ! type of source
@@ -55,6 +56,7 @@ module variables
   logical :: open_sides
   ! treat electrons in guiding centre approximation
   logical :: guiding_centre_electrons
+
 
   
   real*8  :: delx      ! length of plasma (multiples of lambda_debye)

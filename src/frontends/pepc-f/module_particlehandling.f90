@@ -57,7 +57,7 @@ module particlehandling
                             IF ( hit_r(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits=local_ihits+1  
                                 IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
-                                local_q=local_q+p(rp)%data%q
+                                local_q=local_q+p(np)%data%q
                             ELSE IF ( hit_l(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1  
                                 IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1 
@@ -86,7 +86,7 @@ module particlehandling
                             IF ( hit_r(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits=local_ihits+1  
                                 IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
-                                local_q=local_q+p(rp)%data%q
+                                local_q=local_q+p(np)%data%q
                             ELSE IF ( hit_l(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1  
                                 IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1
@@ -117,7 +117,7 @@ module particlehandling
                             IF ( hit_r(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits=local_ihits+1
                                 IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
-                                local_q=local_q+p(rp)%data%q
+                                local_q=local_q+p(np)%data%q
                             ELSE IF ( hit_l(p(np)) ) THEN
                                 IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1
                                 IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1
@@ -422,7 +422,7 @@ module particlehandling
         call MPI_ALLREDUCE(q_l_loc, q_l_glob, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 
         if(root) open(unit=99,file='current_on_wall.dat',status='UNKNOWN',position='APPEND')
-        if(root) write(99,*)e_hits_l_glob,",",i_hits_l_glob,",",e_hits_r_glob,",",i_hits_r_glob,",",dq_r_glob,",",q_r_glob
+        if(root) write(99,'(i6,a,i6,a,i6,a,i6,a,es12.4,a,es12.4)')e_hits_l_glob,",",i_hits_l_glob,",",e_hits_r_glob,",",i_hits_r_glob,",",dq_r_glob,",",q_r_glob
         if(root)close(99)
         if(root) write(*,'(a,i12)')    " == [filter] total number of particles                 : ", tnp
         if(root) write(*,'(a,i12)')    " == [target_hits] number of ion hits on right wall     : ", i_hits_r_glob

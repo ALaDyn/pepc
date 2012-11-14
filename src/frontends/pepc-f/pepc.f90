@@ -27,7 +27,9 @@ program pepc
     use module_checkpoint
     use module_timings
     use module_debug
-  
+    use module_treediags
+    use module_vtk
+
     ! frontend helper routines
     use helper
     use variables
@@ -43,6 +45,7 @@ program pepc
   
     ! timing variables
     real*8 :: timer(10)
+    integer :: vtk_step
 
     !!! initialize pepc library and MPI
     call pepc_initialize("pepc-f", my_rank, n_ranks, .true.)
@@ -72,6 +75,9 @@ program pepc
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
 
+
+
+    !MAIN LOOP ====================================================================================================
     do step=startstep, nt-1+startstep
         timer(3) = get_time()
         if(root) then
@@ -86,16 +92,29 @@ program pepc
         call pepc_grow_tree(np, tnp, particles)
         call pepc_traverse_tree(np, particles)
 
-        if (MOD(step,checkp_interval)==0) then
-            if (dbg(DBG_STATS)) call pepc_statistics(step)
-        end if
+
+        diags=.true.
+        ! output of tree diagnostics
+        if (diags) then
+          if (step == 1) then
+            vtk_step = VTK_STEP_FIRST
+          else if (step == nt) then
+            vtk_step = VTK_STEP_LAST
+          else
+            vtk_step = VTK_STEP_NORMAL
+          endif
+          call pepc_statistics(step)
+          call write_branches_to_vtk(step,   step*dt, vtk_step)
+          call write_spacecurve_to_vtk(step, step*dt, vtk_step, particles)
+        endif
+
 
         if (do_restore_particles) call pepc_restore_particles(np, particles)
 
         !tree traversal to get interaction partners of the probe particles
-        !timer(7) = get_time()
-        !call get_interaction_partners(5)
-        !timer(8) = get_time()
+        timer(7) = get_time()
+        call get_interaction_partners(5)
+        timer(8) = get_time()
 
 
         call pepc_timber_tree()
@@ -139,9 +158,10 @@ program pepc
         if(root) write(*,'(a,es12.4)') " == time in pepc routines [s]                     : ", timer(4) - timer(3)
         if(root) write(*,'(a,es12.4)') " == time in output routines [s]                   : ", timer(5) - timer(4)
         if(root) write(*,'(a,es12.4)') " == time in integrator and particlehandling [s]   : ", timer(6) - timer(5)
-        !if(root) write(*,'(a,es12.4)') " == time in interaction partner subroutine [s]    : ", timer(8) - timer(7)
+        if(root) write(*,'(a,es12.4)') " == time in interaction partner subroutine [s]    : ", timer(8) - timer(7)
 
     end do
+    !END OF MAIN LOOP ====================================================================================================
 
     deallocate(particles)
     timer(7) = get_time()
