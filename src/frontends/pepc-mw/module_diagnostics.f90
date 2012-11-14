@@ -35,6 +35,8 @@ module module_diagnostics
     public verifydirect
     public compute_force_direct
     public fields_on_spherical_grid
+    public add_grid_particles
+    public dump_grid_particles
 
 
 
@@ -120,7 +122,7 @@ contains
         call write_total_momentum('momentum_electrons.dat', itime, time_fs, criterion, mom, nboundelectrons)
         call write_spatially_resolved_data(itime, time_fs, criterion, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
 	
-	rioncluster = sqrt(rclustersq)
+        rioncluster = sqrt(rclustersq)
 
         ! calculate rms radius of (bound-)electron cluster
         rsq  = 0
@@ -602,43 +604,104 @@ contains
         deallocate(res)
 
     end subroutine
+
+    
+    subroutine add_grid_particles(particles, np_local, npart_total, rmax, my_rank, num_pe)
+      use module_pepc_types
+      use physvars, only : spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, ngrid_local, ngrid_global, grid_rmax
+      implicit none
+      integer, intent(inout) :: np_local, npart_total
+      type(t_particle), allocatable, intent(inout), dimension(:) :: particles
+      real*8, intent(in) :: rmax
+      integer, intent(in) :: my_rank, num_pe
+
+      type(t_particle), dimension(:), allocatable :: grid, tmp
+      integer :: i
+      
+      grid_rmax = rmax
+
+      call create_spherical_grid(grid, ngrid_local, ngrid_global, grid_rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, my_rank, num_pe)      
+      
+      npart_total = npart_total + ngrid_global
+      
+      if (my_rank .eq. 0) then
+      
+        write(*,*) 'add_grid_particles() - adding ", ngrid_local, " grid particles on rank 0'
+        
+        do i=1,ngrid_local
+          grid(i)%label     = i
+          grid(i)%data%q    = 0
+          grid(i)%data%m    = huge(1._8)
+          grid(i)%data%v(:) = 0.
+        end do
+      
+        allocate(tmp(np_local))
+        tmp(1:np_local) = particles(1:np_local)
+        deallocate(particles)
+        allocate(particles(np_local+ngrid_local))
+        
+        particles(            1:ngrid_local         ) = grid(:)
+        particles(ngrid_local+1:ngrid_local+np_local) = tmp(:)
+        
+        deallocate(grid, tmp)
+
+        np_local = np_local + ngrid_local
+        
+      endif
+      
+    end subroutine
+    
+    subroutine dump_grid_particles(my_rank, filename, particles, itime, time_fs)
+      use module_pepc_types
+      use physvars, only : spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, ngrid_local, ngrid_global, grid_rmax
+      implicit none
+      type(t_particle), intent(in), dimension(:) :: particles
+      integer, intent(in) :: itime, my_rank
+      real*8, intent(in) :: time_fs
+      character(*), intent(in) :: filename
+      
+      call dump_spherical_grid(my_rank, filename, itime, time_fs, particles, ngrid_local, grid_rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
+    end subroutine
+
     
     
-    subroutine create_spherical_grid(grid, ngrid, rmax, Nr, Ntheta, Nphi, my_rank, num_pe)
+    subroutine create_spherical_grid(grid, ngrid_local, ngrid_global, rmax, Nr, Ntheta, Nphi, my_rank, num_pe)
       use module_pepc_types
       use module_units
       implicit none
       type(t_particle), dimension(:), allocatable :: grid
-      integer, intent(out) :: ngrid
+      integer, intent(out) :: ngrid_local, ngrid_global
       real*8, intent(in) :: rmax
       integer, intent(in) :: Nr, Ntheta, Nphi, my_rank, num_pe
       
       integer :: ir, itheta, iphi, idx
       real*8 :: r, theta, phi
       
+      ngrid_global = (Nr+1)*(Ntheta+1)*(Nphi+1)
+      
       if (my_rank .ne. 0) then
-        ngrid = 0
-        allocate(grid(ngrid))
+        ngrid_local = 0
+        allocate(grid(ngrid_local))
       else
-        ngrid = (Nr+1)*(Ntheta+1)*(Nphi+1)
-	idx = 0
-        allocate(grid(ngrid))
+        ngrid_local = ngrid_global
+        idx = 0
+        allocate(grid(ngrid_local))
       
         do ir=0,Nr
           do itheta=0,Ntheta
-	    do iphi=0,Nphi
-	      idx   = idx + 1
-	      theta =      pi / Ntheta * itheta
-	      phi   = 2._8*pi / Nphi   * iphi
-	      r     =    rmax / Nr     * ir
+            do iphi=0,Nphi
+              idx   = idx + 1
+              theta =      pi / Ntheta * itheta
+              phi   = 2._8*pi / Nphi   * iphi
+              r     =    rmax / Nr     * ir
 	      
-	      grid(idx)%x       = r * [ cos(phi)*sin(theta) , sin(phi)*sin(theta), cos(theta) ]
-	      grid(idx)%work    = 1._8
-	      grid(idx)%data%q  = 1._8
+              grid(idx)%x       = r * [ cos(phi)*sin(theta) , sin(phi)*sin(theta), cos(theta) ]
+              grid(idx)%work    = 1._8
+              grid(idx)%data%q  = 1._8
 	    
-	    end do
-	  end do
-	end do
+            end do
+          end do
+        end do
       end if
       
     end subroutine create_spherical_grid
@@ -654,12 +717,12 @@ contains
       real*8, intent(in) :: time_fs
       integer, intent(in) :: my_rank, num_pe
       type(t_particle), dimension(:), allocatable :: grid
-      integer :: ngrid
+      integer :: ngrid_local, ngrid_global
       
-      call create_spherical_grid(grid, ngrid, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, my_rank, num_pe) 
-      call pepc_particleresults_clear(grid, ngrid)
-      call pepc_traverse_tree(ngrid, grid)
-      call dump_spherical_grid(my_rank, filename_dump, itime, time_fs, grid, ngrid, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
+      call create_spherical_grid(grid, ngrid_local, ngrid_global, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, my_rank, num_pe) 
+      call pepc_particleresults_clear(grid, ngrid_local)
+      call pepc_traverse_tree(ngrid_local, grid)
+      call dump_spherical_grid(my_rank, filename_dump, itime, time_fs, grid, ngrid_local, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
       
       deallocate(grid)   
       
@@ -669,17 +732,17 @@ contains
 
     subroutine dump_spherical_grid(my_rank, filename, itime, time_fs, grid, ngrid, rmax, Nr, Ntheta, Nphi)
         use module_pepc_types
-	use physvars, only : nt, restart, rioncluster, relectroncluster
+        use physvars, only : nt, restart, rioncluster, relectroncluster
         implicit none
 
         integer, intent(in) :: itime, my_rank
         real*8, intent(in) :: time_fs
         integer, intent(in) :: Nr, Ntheta, Nphi
-	real*8, intent(in) :: rmax
+        real*8, intent(in) :: rmax
         type(t_particle), dimension(:), intent(in) :: grid
         integer, intent(in) :: ngrid
         character(*), intent(in) :: filename
-	logical, save :: dumpedgrid = .false.
+        logical, save :: dumpedgrid = .false.
 
         integer :: p, iR, iTheta, iPhi, idata, idx
         real*8 :: rspherical(3), deltaR, deltaPhi, deltaTheta
@@ -695,7 +758,7 @@ contains
             open(87, FILE=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND', FORM='unformatted')
         endif
 	
-	idx = 0
+        idx = 0
 
         write(87) itime, time_fs
         do iR = 0,NR
@@ -709,8 +772,8 @@ contains
 
         close(87)
 	
-	if (.not. dumpedgrid) then
-	  dumpedgrid = .true.
+        if (.not. dumpedgrid) then
+          dumpedgrid = .true.
           open(87, FILE=trim(filename)//"_grid.dat",STATUS='UNKNOWN', POSITION = 'REWIND', FORM='unformatted')
           ! write header
           write(87) nt, rmax, Nr, Ntheta, Nphi
@@ -725,7 +788,7 @@ contains
             end do
           end do
 	  
-	endif
+        endif
 
     end subroutine dump_spherical_grid
 

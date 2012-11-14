@@ -178,7 +178,6 @@ module module_particle_setup
           integer, intent(in) :: iconf
           integer :: fences(-1:n_cpu-1)
           integer :: ierr
-          integer :: npp
 
           call update_particle_numbers(ne + ni)
 
@@ -186,9 +185,7 @@ module module_particle_setup
           call MPI_ALLGATHER(MPI_IN_PLACE, 1, MPI_INTEGER, fences(0), 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
           fences(-1) = 0
 
-          npp = fences(my_rank) - fences(my_rank-1)
-
-          allocate ( particles(npp) )
+          allocate ( particles(fences(my_rank) - fences(my_rank-1)) )
 
           select case (iconf)
             case (-1)
@@ -280,6 +277,9 @@ module module_particle_setup
 
               call particle_setup_icosahedron(fences)
               call rescale_coordinates_spherical()
+              
+              call add_grid_particles(particles, np_local, npart_total, 2.*r_sphere, my_rank, n_cpu)
+              
               particles(1:np_local)%work = 1.
               call init_fields_zero()
 

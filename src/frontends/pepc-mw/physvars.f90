@@ -61,7 +61,7 @@ module physvars
   real*8 :: plasma_centre(3) ! vector defining centre of plasma target
   real*8 :: Vplas          ! plasma volume
   real*8 :: a_ii, a_ee           ! mean ion and electron spacing
-  real*8 :: a_i            ! ion sphere radius
+  real*8 :: a_i            ! ion sphere radius
   real*8 :: physGamma      ! coupling parameter
   real*8 :: V0_eV = 0.       ! desired potential at distance r=0 from an ion --> eps is adjusted to match this value
   real*8 :: eps = 1.           ! potential/force law cutoff
@@ -103,9 +103,11 @@ module physvars
 
    logical :: directforce = .false. !< if set to true, the frontend only performs a direct force computation instead of utilizing the treecode
 
-    integer, public :: spherical_grid_Nr     = 16
-    integer, public :: spherical_grid_Ntheta = 6
-    integer, public :: spherical_grid_Nphi   = 6
+    integer, public :: spherical_grid_Nr     = 64
+    integer, public :: spherical_grid_Ntheta = 12
+    integer, public :: spherical_grid_Nphi   = 12
+    integer :: ngrid_local, ngrid_global
+    real*8 :: grid_rmax
     
     real*8 :: rioncluster, relectroncluster
 
