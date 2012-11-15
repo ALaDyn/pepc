@@ -1,0 +1,61 @@
+MOD_LOAD   = intel/13.0.079 bullxmpi
+
+HELP = "\
+\# Makefile for HELIOS using ifort/icc\n\
+\# recommended module commands\n\
+module load $(MOD_LOAD)\
+"
+
+MACH     = HELIOS_intel
+
+OPTLEV   = 5
+
+RANLIB   = ranlib
+
+MAKE     = gmake
+
+AR       = xiar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+
+#OPTIMIZATION = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -O3
+OPTIMIZATION = -O3 -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip
+
+ifeq ($(OPTLEV), -1)
+  FFLAGS   = -g -pg -O0 -warn all -reentrancy threaded -openmp
+  CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0 -warn all -reentrancy threaded -openmp
+endif
+
+ifeq ($(OPTLEV), 0)
+  FFLAGS   = -warn all -O0 -reentrancy threaded -openmp
+  CFLAGS   = -O0
+  LDFLAGS  = -warn all -O0 -reentrancy threaded -openmp
+endif
+
+ifeq ($(OPTLEV), 3)
+  FFLAGS   = -warn all -O3 -reentrancy threaded -openmp
+  CFLAGS   = -O3
+  LDFLAGS  = -warn all -O3 -reentrancy threaded -openmp
+endif
+
+ifeq ($(OPTLEV), 5)
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  CFLAGS   =           $(OPTIMIZATION)
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+endif
+
+FCPRE    = 
+FC       = mpif90
+
+CCPRE    = 
+CC       = mpicc
+
+LDPRE    = 
+LD       = mpif90
+
+LDLIBS   = 
+
+RM       = rm -rf
