@@ -46,6 +46,7 @@ module variables
   integer :: checkp_interval
   logical :: diags
   integer :: mirror_layers    ! input variable. Is copied to mirror_box_layers (module_mirror_boxes)
+  logical :: fixed_density    ! if .true. number of particles is fixed (tnpp), else number of particles fluxed into the sim domain is fixed
 
   ! type of source
   integer :: quelltyp
@@ -90,7 +91,8 @@ module variables
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
-  integer                       :: next_label
+  integer                        :: next_label
+  integer                        :: new_e_r_last_ts, new_i_r_last_ts
 
   !wall particles
   type(t_particle), allocatable :: wall_particles(:)
@@ -113,7 +115,7 @@ module variables
   !other
   integer :: chunk_size_default
 
-  namelist /pepcf/ periodicity_in,mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /pepcf/ fixed_density,periodicity_in,mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 

@@ -93,7 +93,7 @@ program pepc
         call pepc_traverse_tree(np, particles)
 
 
-        diags=.true.
+        diags=.false.
         ! output of tree diagnostics
         if (diags) then
           if (step == 1) then
@@ -112,10 +112,9 @@ program pepc
         if (do_restore_particles) call pepc_restore_particles(np, particles)
 
         !tree traversal to get interaction partners of the probe particles
-        timer(7) = get_time()
-        call get_interaction_partners(5)
-        timer(8) = get_time()
-
+        !timer(7) = get_time()
+        !call get_interaction_partners(5)
+        !timer(8) = get_time()
 
         call pepc_timber_tree()
         timer(4) = get_time()
@@ -158,7 +157,7 @@ program pepc
         if(root) write(*,'(a,es12.4)') " == time in pepc routines [s]                     : ", timer(4) - timer(3)
         if(root) write(*,'(a,es12.4)') " == time in output routines [s]                   : ", timer(5) - timer(4)
         if(root) write(*,'(a,es12.4)') " == time in integrator and particlehandling [s]   : ", timer(6) - timer(5)
-        if(root) write(*,'(a,es12.4)') " == time in interaction partner subroutine [s]    : ", timer(8) - timer(7)
+        !if(root) write(*,'(a,es12.4)') " == time in interaction partner subroutine [s]    : ", timer(8) - timer(7)
 
     end do
     !END OF MAIN LOOP ====================================================================================================

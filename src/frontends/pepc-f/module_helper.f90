@@ -69,6 +69,7 @@ module helper
     open_sides =.false.
     guiding_centre_electrons=.false.
     mirror_layers=1
+    fixed_density=.true.
     
     ! read in namelist file
     !call pepc_read_parameters_from_first_argument(read_para_file, para_file)
