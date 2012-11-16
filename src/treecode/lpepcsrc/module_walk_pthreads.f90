@@ -138,7 +138,6 @@ module module_walk_pthreads_commutils
   private
 
     !> debug flags - cannot be modified at runtime due to performance reasons
-    logical, parameter :: rwlock_debug    = .false.
     logical, parameter, public  :: walk_debug     = .false.
 
     ! variables for adjusting the thread`s workload
@@ -155,12 +154,9 @@ module module_walk_pthreads_commutils
     type(t_atomic_int), pointer :: req_queue_bottom ! this variable is shared by the worker threads, while req_queue_top is only used by the communicator
     integer, private :: request_balance !< total (#requests - #answers), should be zero after complete traversal
 
-    ! rwlocks for regulating concurrent access
-    integer, private, parameter :: NUM_RWLOCKS = 1
-    integer, public, parameter :: RWLOCK_WORKERS_FINISHED   = 1
-
     ! atomic variables for regulating concurrent access
     type(t_atomic_int), pointer, public :: next_unassigned_particle
+    type(t_atomic_int), pointer, public :: threads_finished
 
     ! internal initialization status
     logical, private :: initialized = .false.
@@ -168,17 +164,17 @@ module module_walk_pthreads_commutils
     ! local walktime (i.e. from comm_loop start until send_walk_finished() )
     real*8, public, pointer :: twalk_loc
 
-    integer, public, parameter :: NUM_THREAD_TIMERS = 4
-    integer, public, parameter :: THREAD_TIMER_TOTAL = 1
-    integer, public, parameter :: THREAD_TIMER_POST_REQUEST = 2
-    integer, public, parameter :: THREAD_TIMER_GET_NEW_PARTICLE = 3
+    integer, public, parameter :: NUM_THREAD_TIMERS                 = 4
+    integer, public, parameter :: THREAD_TIMER_TOTAL                = 1
+    integer, public, parameter :: THREAD_TIMER_POST_REQUEST         = 2
+    integer, public, parameter :: THREAD_TIMER_GET_NEW_PARTICLE     = 3
     integer, public, parameter :: THREAD_TIMER_WALK_SINGLE_PARTICLE = 4
 
-    integer, public, parameter :: NUM_THREAD_COUNTERS = 4
+    integer, public, parameter :: NUM_THREAD_COUNTERS                = 4
     integer, public, parameter :: THREAD_COUNTER_PROCESSED_PARTICLES = 1
-    integer, public, parameter :: THREAD_COUNTER_INTERACTIONS = 2
-    integer, public, parameter :: THREAD_COUNTER_MAC_EVALUATIONS = 3
-    integer, public, parameter :: THREAD_COUNTER_POST_REQUEST = 4
+    integer, public, parameter :: THREAD_COUNTER_INTERACTIONS        = 2
+    integer, public, parameter :: THREAD_COUNTER_MAC_EVALUATIONS     = 3
+    integer, public, parameter :: THREAD_COUNTER_POST_REQUEST        = 4
 
     !> type for input and return values of walk_threads
     type, public :: t_threaddata
@@ -206,9 +202,6 @@ module module_walk_pthreads_commutils
     public run_communication_loop
     public send_requests
     public post_request
-    public rwlock_rdlock
-    public rwlock_wrlock
-    public rwlock_unlock
     public comm_sched_yield
     public retval
     public init_commutils
@@ -225,14 +218,14 @@ module module_walk_pthreads_commutils
 
           call init_comm_data(REQUEST_QUEUE_LENGTH, ANSWER_BUFF_LENGTH)
 
-          ! initialize rwlock objects
-          call retval(rwlocks_init(NUM_RWLOCKS), "rwlocks_init")
-
           ! initialize atomic variables
           call atomic_allocate_int(next_unassigned_particle)
           call atomic_allocate_int(req_queue_bottom)
+          call atomic_allocate_int(threads_finished)
+	  
           if (.not. (associated(next_unassigned_particle) .and. &
-	             associated(req_queue_bottom)))             then
+	             associated(req_queue_bottom)         .and. &
+	             associated(threads_finished)))            then
             DEBUG_ERROR('("atomic_allocate_int(): could not allocate atomic storage!")')
           end if
 
@@ -242,6 +235,7 @@ module module_walk_pthreads_commutils
 
           call atomic_store_int(next_unassigned_particle, 1)
           call atomic_store_int(req_queue_bottom,         0)
+          call atomic_store_int(threads_finished,         0)
 
           initialized = .true.
 
@@ -259,11 +253,9 @@ module module_walk_pthreads_commutils
 
         call uninit_comm_data
 	
-	call atomic_deallocate_int(req_queue_bottom)
-	call atomic_deallocate_int(next_unassigned_particle)
-
-        ! free the rwlock objects
-        call retval(rwlocks_uninit(), "rwlocks_uninit")
+        call atomic_deallocate_int(threads_finished)
+        call atomic_deallocate_int(req_queue_bottom)
+        call atomic_deallocate_int(next_unassigned_particle)
 
       end subroutine uninit_commutils
 
@@ -329,9 +321,7 @@ module module_walk_pthreads_commutils
 
         ! we first flag the particle as having been already requested to prevent other threads from doing it while
         ! we are inside this function
-        !call rwlock_wrlock(RWLOCK_CHILDBYTE, "walk_single_particle")
         htable(request_addr)%childcode   =  IBSET( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ! Set requested flag
-        !call rwlock_unlock(RWLOCK_CHILDBYTE, "walk_single_particle")
 
         ! thread-safe way of reserving storage for our request
         local_queue_bottom = atomic_mod_increment_and_fetch_int(req_queue_bottom, REQUEST_QUEUE_LENGTH)
@@ -590,64 +580,6 @@ module module_walk_pthreads_commutils
     end subroutine
 
 
-
-
-      subroutine rwlock_rdlock(idx, reason)
-        use module_debug
-	use module_atomic_ops
-        implicit none
-        integer, intent(in) :: idx
-        character(*), intent(in) :: reason
-
-        call retval(rwlocks_rdlock(idx), "pthread_rwlock_rdlock:"//reason)
-
-	call atomic_read_write_barrier()
-
-        if (rwlock_debug) then
-          DEBUG_INFO(*,"pthread_rwlock_rdlock:", reason, ", idx =", idx)
-        end if
-
-      end subroutine rwlock_rdlock
-
-
-
-      subroutine rwlock_wrlock(idx, reason)
-        use module_debug
-	use module_atomic_ops
-        implicit none
-        integer, intent(in) :: idx
-        character(*), intent(in) :: reason
-
-        call retval(rwlocks_wrlock(idx), "pthread_rwlock_wrlock:"//reason)
-	
-	call atomic_read_write_barrier()
-
-        if (rwlock_debug) then
-          DEBUG_INFO(*,"pthread_rwlock_wrlock:", reason, ", idx =", idx)
-        end if
-
-      end subroutine rwlock_wrlock
-
-
-
-      subroutine rwlock_unlock(idx, reason)
-        use module_debug
-	use module_atomic_ops
-        implicit none
-        integer, intent(in) :: idx
-        character(*), intent(in) :: reason
-
-	call atomic_read_write_barrier()
-
-        call retval(rwlocks_unlock(idx), "pthread_rwlock_unlock:"//reason)
-
-        if (rwlock_debug) then
-          DEBUG_INFO(*,"pthread_rwlock_unlock:", reason, ", idx =", idx)
-        end if
-
-      end subroutine rwlock_unlock
-
-
       subroutine comm_sched_yield()
         use pthreads_stuff
         implicit none
@@ -868,6 +800,8 @@ module module_walk
 
     end subroutine tree_walk
 
+
+
     subroutine walk_hybrid()
       use module_debug
       use module_walk_pthreads_commutils
@@ -1017,6 +951,7 @@ module module_walk
       use pthreads_stuff
       use module_interaction_specific
       use module_debug
+      use module_atomic_ops
       implicit none
       include 'mpif.h'
       type(c_ptr) :: walk_worker_thread
@@ -1037,7 +972,7 @@ module module_walk
       integer :: particles_since_last_yield
       logical :: same_core_as_communicator
       integer :: my_max_particles_per_thread
-      integer :: my_processor_id
+      integer :: my_processor_id, num_finished
       logical :: particle_has_finished
       real*8  :: t_get_new_particle, t_walk_single_particle
 
@@ -1160,11 +1095,11 @@ module module_walk
       my_threaddata%timers(THREAD_TIMER_GET_NEW_PARTICLE) = t_get_new_particle
       my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
 
-      call rwlock_wrlock(RWLOCK_WORKERS_FINISHED, "workers_finished")
       my_threaddata%finished = .true.
+      num_finished = atomic_fetch_and_increment_int(threads_finished) + 1
 
       ! tell rank 0 that we are finished with our walk
-      if (all(threaddata(:)%finished)) then
+      if (num_finished == num_walk_threads) then
         call notify_walk_finished()
 
         twalk_loc = MPI_WTIME() - twalk_loc
@@ -1174,7 +1109,6 @@ module module_walk
         endif
 
       endif
-      call rwlock_unlock(RWLOCK_WORKERS_FINISHED, "workers_finished")
 
       walk_worker_thread = c_null_ptr
       call retval(pthreads_exitthread(), "walk_worker_thread:pthread_exit")
