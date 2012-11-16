@@ -30,6 +30,7 @@ module module_atomic_ops
   public atomic_store_int
   public atomic_load_int
   public atomic_fetch_and_increment_int
+  public atomic_mod_increment_and_fetch_int
   public atomic_write_barrier
   public atomic_read_barrier
   public atomic_read_write_barrier
@@ -70,6 +71,13 @@ module module_atomic_ops
       type(c_ptr), intent(in), value :: storage
     end function c_atomic_fetch_and_increment_int
 
+    integer(kind=c_int) function c_atomic_mod_increment_and_fetch_int(storage, mod) bind(C, name='_atomic_mod_increment_and_fetch_int')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), intent(in), value :: storage
+      integer(kind=c_int), intent(in), value :: mod
+    end function c_atomic_mod_increment_and_fetch_int    
+
     subroutine atomic_write_barrier() bind(C, name='_atomic_write_barrier')
       use, intrinsic :: iso_c_binding
       implicit none
@@ -88,6 +96,7 @@ module module_atomic_ops
   end interface
 
   contains
+
 
   subroutine atomic_allocate_int(storage)
     implicit none
@@ -110,6 +119,7 @@ module module_atomic_ops
     end if
   end subroutine atomic_allocate_int
 
+
   subroutine atomic_deallocate_int(storage)
     implicit none
 
@@ -120,6 +130,7 @@ module module_atomic_ops
     storage => null()
   end subroutine atomic_deallocate_int
 
+
   integer function atomic_load_int(storage)
     implicit none
 
@@ -127,6 +138,7 @@ module module_atomic_ops
 
     atomic_load_int = c_atomic_load_int(storage%p)
   end function atomic_load_int
+
 
   subroutine atomic_store_int(storage, val)
     implicit none
@@ -137,6 +149,7 @@ module module_atomic_ops
     call c_atomic_store_int(storage%p, val)
   end subroutine atomic_store_int
 
+
   integer function atomic_fetch_and_increment_int(storage)
     implicit none
 
@@ -145,4 +158,14 @@ module module_atomic_ops
     atomic_fetch_and_increment_int = c_atomic_fetch_and_increment_int(storage%p)
   end function atomic_fetch_and_increment_int
 
+
+  integer function atomic_mod_increment_and_fetch_int(storage, mod)
+    implicit none
+
+    type(t_atomic_int), intent(in) :: storage
+    integer, intent(in) :: mod
+
+    atomic_mod_increment_and_fetch_int = c_atomic_mod_increment_and_fetch_int(storage%p, mod)
+  end function atomic_mod_increment_and_fetch_int
+  
 end module module_atomic_ops

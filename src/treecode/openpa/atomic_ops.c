@@ -55,6 +55,19 @@ int _atomic_fetch_and_increment_int(OPA_int_t* storage)
   return OPA_fetch_and_incr_int(storage);
 }
 
+int _atomic_mod_increment_and_fetch_int(OPA_int_t* storage, int mod)
+{
+  int cmp;
+  int prev = OPA_load_int(storage);
+
+  do {
+      cmp = prev;
+      prev = OPA_cas_int(storage, cmp, prev % mod + 1);
+  } while (prev != cmp);
+
+  return prev % mod + 1;
+}
+
 void _atomic_write_barrier()
 {
   OPA_write_barrier();
