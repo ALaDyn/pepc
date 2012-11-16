@@ -151,9 +151,9 @@ module module_libpepc_main
         !TODO: make adjustable by user or find a good estimation. Additional Question: Does this value have to be globally constant?
         nppmax = int(1.25 * max(npart/num_pe,1000)) ! allow 25% fluctuation around average particle number per PE in sorting library for load balancing
 
-        if (nppmax .lt. np_local) then
-            DEBUG_WARNING_ALL(*, 'nppmax=',nppmax, 'is smaller than np_local=',np_local,' - fixing and continuing. This could lead to load balancing issues. See ticket no. 10')
-            nppmax = max(nppmax, np_local)
+        if (nppmax-2 .lt. np_local) then
+            DEBUG_WARNING_ALL(*, 'nppmax-2=',nppmax-2, 'is smaller than np_local=',np_local,' - fixing and continuing. This could lead to load balancing issues. See ticket no. 10')
+            nppmax = max(nppmax, np_local) + 2
          end if
 
         ! fields for sorting library results, we have to deallocate them in case someone did not call restore()
