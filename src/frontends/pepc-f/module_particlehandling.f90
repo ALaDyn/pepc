@@ -428,12 +428,11 @@ module particlehandling
 
         type(t_particle), allocatable, intent(inout) :: p(:)
 
-        integer      :: ip,rp,rc
+        integer      :: ip,rc
         real(kind=8) :: dq_r_loc,dq_r_glob,dq_l_loc,dq_l_glob
         real(kind=8) :: q_r_loc,q_r_glob,q_l_loc,q_l_glob
         integer      :: e_hits_r_loc,e_hits_r_glob,e_hits_l_loc,e_hits_l_glob
         integer      :: i_hits_r_loc,i_hits_r_glob,i_hits_l_loc,i_hits_l_glob
-        integer      :: new_e_l,new_i_l,new_e_r,new_i_r
 
         dq_r_loc=0.0_8
         dq_l_loc=0.0_8
