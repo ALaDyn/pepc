@@ -141,9 +141,6 @@ module module_walk_pthreads_commutils
     logical, parameter :: rwlock_debug    = .false.
     logical, parameter, public  :: walk_debug     = .false.
 
-    integer*8, public ::  max_req_list_length, & !< maximum length of request queue
-                           cum_req_list_length     !< cumulative length of request queue
-
     ! variables for adjusting the thread`s workload
     real, public :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
     integer, public :: particles_per_yield = 500 !< number of particles to process in a work_thread before it shall call sched_yield to hand the processor over to some other thread
@@ -154,13 +151,13 @@ module module_walk_pthreads_commutils
     integer, parameter :: REQUEST_QUEUE_LENGTH = 400000 !< maximum length of request queue
 
     type(t_request_queue_entry), volatile, private, target :: req_queue(REQUEST_QUEUE_LENGTH)
-    integer, private, volatile :: req_queue_top, req_queue_bottom ! we will insert data at bottom and take from top
+    integer, private :: req_queue_top ! we will insert data at bottom and take from top
+    type(t_atomic_int), pointer :: req_queue_bottom ! this variable is shared by the worker threads, while req_queue_top is only used by the communicator
     integer, private :: request_balance !< total (#requests - #answers), should be zero after complete traversal
 
     ! rwlocks for regulating concurrent access
-    integer, private, parameter :: NUM_RWLOCKS = 2
-    integer, public, parameter :: RWLOCK_REQUEST_QUEUE      = 1
-    integer, public, parameter :: RWLOCK_WORKERS_FINISHED   = 2
+    integer, private, parameter :: NUM_RWLOCKS = 1
+    integer, public, parameter :: RWLOCK_WORKERS_FINISHED   = 1
 
     ! atomic variables for regulating concurrent access
     type(t_atomic_int), pointer, public :: next_unassigned_particle
@@ -233,15 +230,18 @@ module module_walk_pthreads_commutils
 
           ! initialize atomic variables
           call atomic_allocate_int(next_unassigned_particle)
-          if (.not. associated(next_unassigned_particle)) then
+          call atomic_allocate_int(req_queue_bottom)
+          if (.not. (associated(next_unassigned_particle) .and. &
+	             associated(req_queue_bottom)))             then
             DEBUG_ERROR('("atomic_allocate_int(): could not allocate atomic storage!")')
           end if
 
-          req_queue_top    = 0
-          req_queue_bottom = 0
-          request_balance  = 0
+          req_queue_top      =  0
+          request_balance    =  0
+	  req_queue(:)%owner = -1 ! used in send_requests() to ensure that only completely stored entries are sent form the list
 
           call atomic_store_int(next_unassigned_particle, 1)
+          call atomic_store_int(req_queue_bottom,         0)
 
           initialized = .true.
 
@@ -258,6 +258,9 @@ module module_walk_pthreads_commutils
         initialized = .false.
 
         call uninit_comm_data
+	
+	call atomic_deallocate_int(req_queue_bottom)
+	call atomic_deallocate_int(next_unassigned_particle)
 
         ! free the rwlock objects
         call retval(rwlocks_uninit(), "rwlocks_uninit")
@@ -274,7 +277,7 @@ module module_walk_pthreads_commutils
       ! this means, that there were algorithmically unnecessary requests, which would be a bug
       ! negative values denote more received datasets than requested, which implies
       ! a bug in bookkeeping on the sender`s side
-        if (req_queue_top .ne. req_queue_bottom) then
+        if (req_queue_top .ne. atomic_load_int(req_queue_bottom)) then
            DEBUG_WARNING_ALL('(a,I0,a,/,a,/,a)', "PE ", me, " has finished its walk, but the request list is not empty",
                                                  "obviously, there is an error in the todo_list bookkeeping",
                                                  "Trying to recover from that")
@@ -316,11 +319,10 @@ module module_walk_pthreads_commutils
         integer*8, intent(in) :: request_key
         integer, intent(in) :: request_addr
         integer :: local_queue_bottom
-        logical, save :: warned = .false.
 
         ! check wether the node has already been requested
         ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
-        ! otherwise it will be possible that two walk threads can synchronously post a prticle to the request queue
+        ! otherwise it will be possible that two walk threads can synchronously post a particle to the request queue
         if (BTEST( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ) then
           return
         endif
@@ -331,25 +333,14 @@ module module_walk_pthreads_commutils
         htable(request_addr)%childcode   =  IBSET( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ! Set requested flag
         !call rwlock_unlock(RWLOCK_CHILDBYTE, "walk_single_particle")
 
-        call rwlock_wrlock(RWLOCK_REQUEST_QUEUE, "post_request")
-
-        ! use a thread safe list to put the requests onto
-        local_queue_bottom = mod(req_queue_bottom, REQUEST_QUEUE_LENGTH) + 1
+        ! thread-safe way of reserving storage for our request
+        local_queue_bottom = atomic_mod_increment_and_fetch_int(req_queue_bottom, REQUEST_QUEUE_LENGTH)
 
         if (local_queue_bottom == req_queue_top) then
-          if (.not. warned) then
-            DEBUG_WARNING(*, "Issue with request sending queue: REQUEST_QUEUE_LENGTH is too small: ", REQUEST_QUEUE_LENGTH, ". Will try again later.")
-            warned = .true.
-          end if
-
-          call rwlock_unlock(RWLOCK_REQUEST_QUEUE, "post_request")
-          ! since posting the request failed due to a too short queue, we have to flag the particle as to be procssed again
-          !call rwlock_wrlock(RWLOCK_CHILDBYTE, "walk_single_particle")
-          htable(request_addr)%childcode   =  IBCLR( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED )
-          !call rwlock_unlock(RWLOCK_CHILDBYTE, "walk_single_particle")
-          return
+          DEBUG_ERROR(*, "Issue with request sending queue: REQUEST_QUEUE_LENGTH is too small: ", REQUEST_QUEUE_LENGTH)
         end if
 
+        ! the communicator will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
         req_queue(local_queue_bottom)   = t_request_queue_entry( request_key, request_addr, htable( request_addr )%owner )
 
         if (walk_comm_debug) then
@@ -357,15 +348,10 @@ module module_walk_pthreads_commutils
                          me, local_queue_bottom, request_key, htable( request_addr )%owner, request_addr )
         end if
 
-        ! now, we can tell the communicator that there is new data available
-        req_queue_bottom = local_queue_bottom
-
-        call rwlock_unlock(RWLOCK_REQUEST_QUEUE, "post_request")
-
     end subroutine post_request
 
 
-
+    !> send all requests from our thread-safe list until we find an invalid one
     subroutine send_requests()
       use module_walk_communicator
       use treevars
@@ -373,41 +359,38 @@ module module_walk_pthreads_commutils
       implicit none
       include 'mpif.h'
 
-      integer :: local_queue_bottom ! buffer for avoiding interference with threads that post data to the queue
       real*8 :: tsend
-      integer*8 :: req_queue_length
+      integer :: tmp_top
 
-      ! send all requests from our thread-safe list
+      tsend = MPI_WTIME()
 
-      local_queue_bottom = req_queue_bottom
+      do while (req_queue_top .ne. atomic_load_int(req_queue_bottom))
 
-      if (req_queue_top .ne. local_queue_bottom) then
+          tmp_top = mod(req_queue_top, REQUEST_QUEUE_LENGTH) + 1
+	  
+          ! first check whether the entry is actually valid	  
+	  if (req_queue(tmp_top)%owner >= 0) then
+	    req_queue_top = tmp_top
 
-        req_queue_length    = modulo(local_queue_bottom-req_queue_top, REQUEST_QUEUE_LENGTH)
-        max_req_list_length = max(max_req_list_length,  req_queue_length)
-        cum_req_list_length =     cum_req_list_length + req_queue_length
-        comm_loop_iterations(2) = comm_loop_iterations(2) + 1
+            if (walk_comm_debug) then
+                DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)',
+                           me, req_queue_top, req_queue(req_queue_top)%key, req_queue(req_queue_top)%owner)
+            end if
 
-        tsend = MPI_WTIME()
+            if (send_request(req_queue(req_queue_top))) then
+              request_balance = request_balance + 1
+            endif
+	    
+	    ! we have to invalidate this request queue entry. this shows that we actually processed it and prevents it from accidentially being resent after the req_queue wrapped around
+	    req_queue(req_queue_top)%owner = -1
+	  else
+	    ! the next entry is not valid (obviously it has not been stored completely until now -> we abort here and try again later
+	    exit
+	  endif
 
-        do while (req_queue_top .ne. local_queue_bottom)
+      end do
 
-          req_queue_top = mod(req_queue_top, REQUEST_QUEUE_LENGTH) + 1
-
-          if (walk_comm_debug) then
-              DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)',
-                         me, req_queue_top, req_queue(req_queue_top)%key, req_queue(req_queue_top)%owner)
-          end if
-
-          if (send_request(req_queue(req_queue_top))) then
-            request_balance = request_balance + 1
-          endif
-
-        end do
-
-       timings_comm(TIMING_SENDREQS) = timings_comm(TIMING_SENDREQS) + ( MPI_WTIME() - tsend )
-
-     end if
+      timings_comm(TIMING_SENDREQS) = timings_comm(TIMING_SENDREQS) + ( MPI_WTIME() - tsend )
 
     end subroutine send_requests
 
@@ -611,11 +594,14 @@ module module_walk_pthreads_commutils
 
       subroutine rwlock_rdlock(idx, reason)
         use module_debug
+	use module_atomic_ops
         implicit none
         integer, intent(in) :: idx
         character(*), intent(in) :: reason
 
         call retval(rwlocks_rdlock(idx), "pthread_rwlock_rdlock:"//reason)
+
+	call atomic_read_write_barrier()
 
         if (rwlock_debug) then
           DEBUG_INFO(*,"pthread_rwlock_rdlock:", reason, ", idx =", idx)
@@ -627,11 +613,14 @@ module module_walk_pthreads_commutils
 
       subroutine rwlock_wrlock(idx, reason)
         use module_debug
+	use module_atomic_ops
         implicit none
         integer, intent(in) :: idx
         character(*), intent(in) :: reason
 
         call retval(rwlocks_wrlock(idx), "pthread_rwlock_wrlock:"//reason)
+	
+	call atomic_read_write_barrier()
 
         if (rwlock_debug) then
           DEBUG_INFO(*,"pthread_rwlock_wrlock:", reason, ", idx =", idx)
@@ -642,15 +631,18 @@ module module_walk_pthreads_commutils
 
 
       subroutine rwlock_unlock(idx, reason)
+        use module_debug
+	use module_atomic_ops
         implicit none
         integer, intent(in) :: idx
         character(*), intent(in) :: reason
 
+	call atomic_read_write_barrier()
+
         call retval(rwlocks_unlock(idx), "pthread_rwlock_unlock:"//reason)
 
         if (rwlock_debug) then
-          write(*,*) "pthread_rwlock_unlock:"//reason, ", idx =", idx
-          flush(6)
+          DEBUG_INFO(*,"pthread_rwlock_unlock:", reason, ", idx =", idx)
         end if
 
       end subroutine rwlock_unlock
@@ -748,7 +740,6 @@ module module_walk
 
         if (perform_output) then
           write (ifile,'(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_particles_per_thread
-          write (ifile,'(a50,2i12)') 'cumulative/maximum # of entries in request queue: ', cum_req_list_length, max_req_list_length
           write (ifile,'(a50,3i12)') '# of comm-loop iterations (tot,send,recv): ', comm_loop_iterations(:)
           write (ifile,*) '######## WALK-WORKER-THREAD WORKLOAD ######################################################'
           write (ifile,'(a50)')              'average # processed nparticles per thread    '
@@ -811,13 +802,11 @@ module module_walk
         use treevars, only: me
         implicit none
         ! nothing to do here
-        max_req_list_length  = 0
-        cum_req_list_length  = 0
 
-        if (me == 0) then
-          !write(*,'("MPI-PThreads walk: Using ", I0," worker-threads in treewalk on each processor (i.e. per MPI rank)")') num_walk_threads
-          !write(*,'("Maximum number of particles per work_thread = ", I0)') max_particles_per_thread
-        endif
+        !if (me == 0) then
+        !  write(*,'("MPI-PThreads walk: Using ", I0," worker-threads in treewalk on each processor (i.e. per MPI rank)")') num_walk_threads
+        !  write(*,'("Maximum number of particles per work_thread = ", I0)') max_particles_per_thread
+        !endif
       end subroutine
 
 
