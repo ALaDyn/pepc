@@ -39,11 +39,12 @@ def saveplot(filenameout):
   plt.savefig("%s.png" % filenameout)
 
 
-def plotfile_spherical_spectrum(filename, NR_NTheta_NPhi, lims, ylabel):
+def plotfile_spherical_spectrum(filename, NR_NTheta_NPhi, lims, ylabel, frequencies):
   raw  = loadtxt("%s_jackknife.dat"        % filename)
   raws = loadtxt("%s_jackknife_stddev.dat" % filename) # TODO: plot stddev
   
   numcols = shape(raw)[1]
+  numfreqs  = frequencies.size
   
   xvals = raw[:,0]
   
@@ -79,6 +80,24 @@ def plotfile_spherical_spectrum(filename, NR_NTheta_NPhi, lims, ylabel):
 
     plot(xvals, mydata/numdat, "-",  color=cm.jet((1.*i)/ntot), linewidth=1.5)
     
+  ylims = lims[1]
+
+  for ifreq in range(numfreqs):
+    frequency = frequencies[ifreq]
+    freqidx   = numpy.nonzero(xvals >= frequency)[0][0]
+    realfreq  = xvals[freqidx]
+    yval      = ylims[1]
+    
+    print "Processing frequency %d/%d: omega=%f fs^-1" % (ifreq+1, numfreqs, frequency)
+    print realfreq, yval, ylims
+    
+    gca().annotate("",
+            xy    = (realfreq, yval), xycoords='data',
+            xytext= (realfreq, 0.75*yval), textcoords='data',
+            arrowprops=dict(color="0.5", arrowstyle="->",
+                            connectionstyle="arc3"),
+            )
+
   gca().set_yscale('log')
   gca().set_xscale('log')
   
@@ -336,7 +355,12 @@ NR_NTheta_NPhi = [16, 6, 6]
 
 plotlims=np.loadtxt('./in_plotlims.dat')
 
-plotfile_spherical_spectrum("field_spherical_spectrum_phi", NR_NTheta_NPhi, plotlims, r'$\tilde{\Phi}(\omega,\vec{r})\,[\mathrm{a.u.}]$')
+if os.path.exists("./in_frequencies.dat"):
+  frequencies=np.loadtxt("./in_frequencies.dat")
+else:
+  frequencies = []
+
+plotfile_spherical_spectrum("field_spherical_spectrum_phi", NR_NTheta_NPhi, plotlims, r'$\tilde{\Phi}(\omega,\vec{r})\,[\mathrm{a.u.}]$', frequencies)
 
 if os.path.exists("./in_frequencies.dat") and (not freqsonly):
   frequencies=np.loadtxt("./in_frequencies.dat")
@@ -345,4 +369,4 @@ if os.path.exists("./in_frequencies.dat") and (not freqsonly):
   plotfile_excitation_image_at_frequency_radial_dependence(frequencies, "field_spherical_spectrum_phi", NR_NTheta_NPhi, frequencies[-1])
 
 
-plt.show()
+#plt.show()
