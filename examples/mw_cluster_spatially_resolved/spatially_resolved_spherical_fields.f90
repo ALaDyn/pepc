@@ -588,13 +588,14 @@ module computations
       
       call observable_spectrum_to_file(trim(dirname_in)//'/field_spherical_spectrum')
       
+      call spherical_fourier_decomposition_for_all(4, trim(dirname_in)//'/field_spherical_fourier_coeffs_phi.dat')
+
       call spherical_fourier_decomposition_for_all(1, trim(dirname_in)//'/field_spherical_fourier_coeffs_ex.dat')
 
       call spherical_fourier_decomposition_for_all(2, trim(dirname_in)//'/field_spherical_fourier_coeffs_ey.dat')
 
       call spherical_fourier_decomposition_for_all(3, trim(dirname_in)//'/field_spherical_fourier_coeffs_ez.dat')
 
-      call spherical_fourier_decomposition_for_all(4, trim(dirname_in)//'/field_spherical_fourier_coeffs_phi.dat')
     endif
 
     call free_data()
@@ -608,8 +609,10 @@ program spatially_resolved_spherical_fields
   use module_data
   use computations
   implicit none
+  include 'mpif.h'
   integer :: argc, i
   character*256 :: dirname_in
+  integer rank, size, ierror
   
   argc = command_argument_count()
   
@@ -618,14 +621,22 @@ program spatially_resolved_spherical_fields
     stop
   endif
 
+  call MPI_INIT(ierror)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD, size, ierror)
+  call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierror)
+  
   do i=1,argc
-    call get_command_argument(i, dirname_in)
+    if (modulo(argc, size) == rank) then
+      write(*,*) 'Rank ', rank, ' processing arg', i
+      call get_command_argument(i, dirname_in)
     
-    write(*,'(2/"Reading data from directory ",a)') trim(dirname_in)
+      write(*,'(2/"Reading data from directory ",a)') trim(dirname_in)
 
-    call analysis_workflow(trim(dirname_in), 100.0_8, .false.)
+      call analysis_workflow(trim(dirname_in), 100.0_8, .false.)
+    endif
   end do
 
+  call MPI_FINALIZE(ierror)  
    
 
 end program

@@ -415,8 +415,10 @@ program spatially_resolved_ccf
   use data
   use computations
   implicit none
+  include 'mpif.h'
   integer :: argc, i
   character*256, filename_in, filename_out, dirname
+  integer rank, size, ierror
   
   argc = command_argument_count()
 
@@ -425,18 +427,24 @@ program spatially_resolved_ccf
     stop
   endif
   
+  call MPI_INIT(ierror)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD, size, ierror)
+  call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierror)
+  
   do i=1,argc
-    call get_command_argument(i, dirname)
-    filename_in = trim(dirname) // '/spatially_resolved.dat'
-    filename_out = trim(dirname) // '/spatially_resolved_momentum_eigenvalues.dat'
+    if (modulo(argc, size) == rank) then
+      write(*,*) 'Rank ', rank, ' processing arg', i
+      call get_command_argument(i, dirname)
+      filename_in = trim(dirname) // '/spatially_resolved.dat'
+      filename_out = trim(dirname) // '/spatially_resolved_momentum_eigenvalues.dat'
     
-    write(*,'(2/"Reading data from file ",a,/,"Writing data to file   ", a)') trim(filename_in), trim(filename_out)
+      write(*,'(2/"Reading data from file ",a,/,"Writing data to file   ", a)') trim(filename_in), trim(filename_out)
 
-    call analysis_workflow(trim(filename_in), [RAWDATA_PX, RAWDATA_PY, RAWDATA_PZ], 100.0_8, 10, trim(filename_out))
+      call analysis_workflow(trim(filename_in), [RAWDATA_PX, RAWDATA_PY, RAWDATA_PZ], 100.0_8, 10, trim(filename_out))
+    endif
   end do
 
-  
-  
+  call MPI_FINALIZE(ierror)  
  
 
 end program
