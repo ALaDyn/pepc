@@ -127,6 +127,7 @@ module module_cmdline
       print '(a)', '  -r(--resume) resumefile   resume run from specified checkpoint'
       print '(a)', '                            the .mpi file has to be selected'
       print '(a)', '  -h, --help                print usage information and exit'
+      print '(a)', '  --no-particle-restore     do not call pepc_restore_particles'
     end subroutine print_help
 
 !==============================================================

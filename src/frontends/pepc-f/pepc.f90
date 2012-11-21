@@ -27,7 +27,6 @@ program pepc
     use module_checkpoint
     use module_timings
     use module_debug
-    use module_treediags
     use module_vtk
 
     ! frontend helper routines
@@ -40,17 +39,23 @@ program pepc
     use module_cmdline
     use module_interaction_partners
 
+
     implicit none
     include 'mpif.h'
-  
+
     ! timing variables
     real*8 :: timer(10)
-    integer :: vtk_step
 
     !!! initialize pepc library and MPI
     call pepc_initialize("pepc-f", my_rank, n_ranks, .true.)
 
     root = my_rank.eq.0
+
+
+    !temporary aux variables
+    diags=.false.
+    interaction_partner_diags=.false.
+
 
     timer(1) = get_time()
 
@@ -59,7 +64,8 @@ program pepc
     if (do_resume)then
         call init_after_resume()
     else
-        call set_parameter()
+        call set_default_parameters()
+        call set_parameters()
         call init()
 
         call init_particles(plasma_particles)
@@ -69,106 +75,93 @@ program pepc
         particles(npp+1:npp+nwp)=wall_particles(:)
     end if
 
-    !probes for analysing interaction partners
-    call init_probes(5)
+    !probes for analysing interaction partner diags
+    if (interaction_partner_diags) call init_probes(5)
+
+    !get initial field configuration
+    call pepc_particleresults_clear(particles, np)
+    call pepc_grow_tree(np, tnp, particles)
+    call pepc_traverse_tree(np, particles)
+    if (diags) call pepc_tree_diagnostics()
+    if (do_restore_particles) call pepc_restore_particles(np, particles)
+    call pepc_timber_tree()
+
+
+    !write initial configuration
+    if(checkp_interval.ne.0) then
+        call set_checkpoint()
+    end if
+    if(diag_interval.ne.0) then
+        call write_particles(particles)
+    end if
 
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
 
-
-
     !MAIN LOOP ====================================================================================================
-    do step=startstep, nt-1+startstep
+    DO step=startstep+1, nt+startstep
         timer(3) = get_time()
-        if(root) then
-            write(*,*) " "
-            write(*,'(a,i12)')    " ====== computing step  :", step
-            write(*,'(a,es12.4)') " ====== simulation time :", step * dt
-            write(*,'(a,es12.4)') " ====== run time        :", timer(3)-timer(1)
-        end if
-    
+
+        ! Move particles according to electric field configuration
+        call boris_nonrel(particles)
+        timer(4) = get_time()
+
+        ! Remove particles that left the simulation domain and reflux particles
+        call hits_on_boundaries(particles)
+        timer(5) = get_time()
+
         !pepc routines and timing
         call pepc_particleresults_clear(particles, np)
         call pepc_grow_tree(np, tnp, particles)
         call pepc_traverse_tree(np, particles)
-
-
-        diags=.false.
-        ! output of tree diagnostics
-        if (diags) then
-          if (step == 1) then
-            vtk_step = VTK_STEP_FIRST
-          else if (step == nt) then
-            vtk_step = VTK_STEP_LAST
-          else
-            vtk_step = VTK_STEP_NORMAL
-          endif
-          call pepc_statistics(step)
-          call write_branches_to_vtk(step,   step*dt, vtk_step)
-          call write_spacecurve_to_vtk(step, step*dt, vtk_step, particles)
-        endif
-
-
+        if (diags) call pepc_tree_diagnostics()
         if (do_restore_particles) call pepc_restore_particles(np, particles)
-
-        !tree traversal to get interaction partners of the probe particles
-        !timer(7) = get_time()
-        !call get_interaction_partners(5)
-        !timer(8) = get_time()
-
+        if (interaction_partner_diags) call get_interaction_partners(5)
         call pepc_timber_tree()
-        timer(4) = get_time()
+        if (diags) call timings_GatherAndOutput(step)
+        timer(6)=get_time()
 
-        !diagnostics and checkpoints with timing
-        !diagnostics are carried out, when fields are computed according to current positions
-        !afterwards, they are moved and filtered (boundary-hits, ionization...)
-        !checkpoint
+        !diagnostics and checkpoints (positions and fields after current timestep)
         if(checkp_interval.ne.0) then
-            if ((MOD(step,checkp_interval)==0).or.(step==nt-1+startstep)) then
+            if ((MOD(step,checkp_interval)==0).or.(step==nt+startstep)) then
                 call set_checkpoint()
             end if
         end if
-        !vtk output
         if(diag_interval.ne.0) then
-            if ((MOD(step,diag_interval)==0).or.(step==nt-1+startstep)) THEN
+            if ((MOD(step,diag_interval)==0).or.(step==nt+startstep)) THEN
                 call write_particles(particles)
             end if
         end if
-        !timing output for different processes
-        !call timings_LocalOutput(step)
-        call timings_GatherAndOutput(step)
-        timer(5) = get_time()
+        timer(7)=get_time()
 
-        !integrator and filtering with timing
-        !particles get their new velocities and positions, particles are filtered and new particles created
-        call boris_nonrel(particles)
-
-        if (open_sides) then
-            !open sides (particles leave and are refluxed)
-            call hits_on_boundaries_with_open_sides(particles)
-        else
-            !periodic sides (particles enter on other side after leaving domain)
-            call hits_on_boundaries(particles)
+        !output for root
+        if(root) then
+            write(*,*) " "
+            write(*,'(a,i12)')    " ====== finished computing step  : ", step
+            write(*,'(a,es12.4)') " == time in integrator [s]       : ", timer(4) - timer(3)
+            write(*,'(a,es12.4)') " == time in particlehandling [s] : ", timer(5) - timer(4)
+            write(*,'(a,es12.4)') " == time in pepc routines [s]    : ", timer(6) - timer(5)
+            write(*,'(a,es12.4)') " == time in output routines [s]  : ", timer(7) - timer(6)
+            write(*,'(a,es12.4)') " ====== simulation time          : ", step * dt
+            write(*,'(a,es12.4)') " ====== run time                 : ", timer(3)-timer(1)
+            write(*,*) " "
+            write(*,*) " ================================================================================== "
+            write(*,*) " ================================================================================== "
+            write(*,*) " "
+            write(*,*) " "
         end if
-        timer(6) = get_time()
-    
 
-        !output for root process
-        if(root) write(*,'(a,es12.4)') " == time in pepc routines [s]                     : ", timer(4) - timer(3)
-        if(root) write(*,'(a,es12.4)') " == time in output routines [s]                   : ", timer(5) - timer(4)
-        if(root) write(*,'(a,es12.4)') " == time in integrator and particlehandling [s]   : ", timer(6) - timer(5)
-        !if(root) write(*,'(a,es12.4)') " == time in interaction partner subroutine [s]    : ", timer(8) - timer(7)
 
     end do
     !END OF MAIN LOOP ====================================================================================================
 
     deallocate(particles)
-    timer(7) = get_time()
+    timer(8) = get_time()
 
     if(root) then
         write(*,*)            " "
         write(*,'(a)')        " ===== finished pepc simulation"
-        write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(7) - timer(1)
+        write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(8) - timer(1)
     end if
 
     !!! cleanup pepc and MPI

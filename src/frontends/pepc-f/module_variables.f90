@@ -45,8 +45,9 @@ module variables
   integer :: diag_interval    
   integer :: checkp_interval
   logical :: diags
+  logical :: interaction_partner_diags
   integer :: mirror_layers    ! input variable. Is copied to mirror_box_layers (module_mirror_boxes)
-  logical :: fixed_density    ! if .true. number of particles is fixed (tnpp), else number of particles fluxed into the sim domain is fixed
+  logical :: fixed_npp        ! if .true. number of particles is fixed (tnpp), else number of particles fluxed into the sim domain is fixed
 
   ! type of source
   integer :: quelltyp
@@ -60,9 +61,6 @@ module variables
 
 
   
-  real*8  :: delx      ! length of plasma (multiples of lambda_debye)
-  real*8  :: dely       ! width of plasma (multiples of lamor radius)
-  real*8  :: delz       ! width of plasma (multiples of lamor radius)
   real*8  :: dx,dy,dz           ! lenght/width in m
   real*8  :: xmin,ymin,zmin     ! used if the domain does not start at (0,0,0)
   real*8  :: xmax,ymax,zmax     ! 
@@ -92,7 +90,11 @@ module variables
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
   integer                        :: next_label
-  integer                        :: new_e_r_last_ts, new_i_r_last_ts
+
+  !variables for reflux in every 2nd timestep
+  integer                        :: new_e_r_last_ts=0
+  integer                        :: new_i_r_last_ts=0
+  logical                        :: need_to_reflux=.false.
 
   !wall particles
   type(t_particle), allocatable :: wall_particles(:)
@@ -106,6 +108,7 @@ module variables
   type(t_particle), allocatable :: plasma_particles(:)
   integer :: tnpp              ! total number of plasma particles 
   integer :: npp               ! local number of plasma particles 
+  integer :: tfpp              ! total flux of plasma particles per timestep (even number, 50% electrons)
 
   !aux strings
   character(255) :: filename
@@ -115,7 +118,7 @@ module variables
   !other
   integer :: chunk_size_default
 
-  namelist /pepcf/ fixed_density,periodicity_in,mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, delx, dely, delz, ni, ne, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /pepcf/ fsup,tfpp,fixed_npp,periodicity_in,mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 

@@ -62,8 +62,11 @@ MODULE output
 
         tb = get_time()
 
-        if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
-
+        if (root) write(*,*)
+        if (root) write(*,*)"====================================================="
+        if (root) write(*,'(a,i6)')" Writing particle data: vtk output at timestep",step
+        if (root) write(*,*)"====================================================="
+        if (root) write(*,*)
     end subroutine write_particles  
 
 END MODULE
