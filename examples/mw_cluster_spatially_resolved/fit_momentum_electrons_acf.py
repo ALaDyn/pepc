@@ -1,21 +1,31 @@
 #!/lustre/jhome2/jzam04/jzam0415/programs/python/bin/python
 
-from pylab import *
+#from pylab import *
 from scipy import optimize
 from scipy import odr
-import numpy as numpy
+import numpy as np
+from numpy import *
 import matplotlib.cm as cm
+from matplotlib import pyplot as plt
+from matplotlib.pyplot import *
 import sys
 import os as os
 import json
 
-print "Usage: %s [freqs]" % sys.argv[0]
+print "Usage: %s [freqs] [noscale] [nofit] [showsep] [raitza]" % sys.argv[0]
 
-freqsonly  = False
-for arg in sys.argv:
-	if (arg == 'freqs'):
-		freqsonly = True
+freqsonly = ('freqs'   in sys.argv)
+noscale   = ('noscale' in sys.argv)
+nofit     = ('nofit'   in sys.argv)
+showsep   = ('showsep' in sys.argv)
+raitza    = ('raitza'  in sys.argv)
 
+if (raitza):
+  if (not os.path.exists('./raitza_ReKt.dat')):
+    print "./raitza_ReKt.dat is missing - cannot plot his data"
+    raitza = False
+
+scalefac = 2.
 
 f = open('./simparams.dat', 'r')
 simparams = json.load(f)
@@ -48,8 +58,11 @@ def enlargeticks():
 	    l.set_markersize(3) 
 	    l.set_markeredgewidth(1.2) 
 
+#def myfunc(p, w):
+#	return p[0] / (1 + (  (w**2-(p[2])**2)/(w*p[1])  )**2 )
+
 def myfunc(p, w):
-	return p[0] / (1 + (  (w**2-(p[2])**2)/(w*p[1])  )**2 )
+	return p[0] / (1 + ( (w-p[2]) / p[1] )**2 )**(3./2.)
 
 # Parameters:
 #   params[k,0] = K/nu
@@ -74,7 +87,7 @@ def plotfitfuncs(params, xvals, scalefac):
 	p   = np.reshape(params, (-1,3))
 
 	for k in range(len(p[:,0])):
-	        plot(xvals/scalefac, myfunc(p[k,:], xvals), "-",  cm.prism(k), linewidth=1.5, alpha=0.65)
+	        plot(xvals/scalefac, myfunc(p[k,:], xvals), "-",  color='0.3', linewidth=1.5, alpha=0.65)
 
 def do_fit(filename, col, lims, p0):
   raw    = loadtxt("%s_jackknife.dat"        % filename)
@@ -132,30 +145,43 @@ def plotfile_momentum_electrons(filename, col, lims, ylabel, frequencies, params
   rawx  = raw[   :,  0]
   rawy  = raw[   :,col]
   raws  = rawstd[:,col]
+
+  xlims = lims[0]/scalefac
+  ylims = lims[1]
+  
+  if (not noscale):
+    datamask  = (rawx < xlims[0]*scalefac) | (rawx > xlims[1]*scalefac)
+    rawx     = ma.compressed(ma.array(rawx, mask=datamask))
+    rawy     = ma.compressed(ma.array(rawy, mask=datamask))
+    raws     = ma.compressed(ma.array(raws, mask=datamask))    
+  
   rawyl = rawy - tau*raws
   rawyu = rawy + tau*raws
 
-  xlims = lims[0]
-  ylims = lims[1]
-  
   fig = plt.figure(figsize=[11,8])
 
+  if (raitza):
+    raitzadata = np.loadtxt('./raitza_ReKt.dat')
+    raitzawpl  = np.loadtxt('./raitza_wpl.dat')
+    rxscale    = wpl/raitzawpl
+    ryscale    = max(rawy)/max(raitzadata[:,1]) / 2.
+    plot(raitzadata[:,0]*rxscale, raitzadata[:,1]*ryscale, "-", color='black',  label='Raitza', linewidth=2.0, alpha=1.0)
+    
   # plot min-max value of confidence region
-  fill_between(rawx, rawyl.clip(min=ylims[0]), rawyu, color='blue', alpha=0.3)
+  fill_between(rawx/scalefac, rawyl.clip(min=ylims[0]), rawyu, color='blue', alpha=0.3)
   # plot raw data
-  plot(rawx, rawy, "o",  color='blue', label='raw data and 95% conf. int.', markersize=4)
+  plot(rawx/scalefac, rawy, "o",  color='blue', label='raw data and 95% conf. int.', markersize=2)
     
   for ifreq in range(numfreqs):
     frequency = frequencies[ifreq]
-    freqidx   = numpy.nonzero(rawx >= frequency)[0][0]
+    freqidx   = np.nonzero(rawx >= frequency)[0][0]
     realfreq  = rawx[freqidx]
     yval      = ylims[1]
     
     gca().annotate("",
             xy    = (realfreq, yval), xycoords='data',
             xytext= (realfreq, 0.2*yval), textcoords='data',
-            arrowprops=dict(color="0.5", arrowstyle="->",
-                            connectionstyle="arc3"),
+            arrowprops=dict(arrowstyle="->",connectionstyle="arc3",color='0.5'),
             )
 
   gca().set_yscale('log')
@@ -169,8 +195,9 @@ def plotfile_momentum_electrons(filename, col, lims, ylabel, frequencies, params
 
   gca().set_xticks(range(1,100))
 
-  gca().set_xlim(xlims)
-  gca().set_ylim(ylims)
+  if (not noscale):
+    gca().set_xlim(xlims)
+    gca().set_ylim(ylims)
   
   gca().set_ylabel(ylabel, fontsize=25)
   gca().set_xlabel(r'$\omega\,[\mathrm{fs}^{-1}]$', fontsize=23)
@@ -181,15 +208,16 @@ def plotfile_momentum_electrons(filename, col, lims, ylabel, frequencies, params
   gca().plot([wMie,  wMie],  lims[1], '--', linewidth=2.0, color='#555555', alpha=0.75)
   gca().text(1.05*wMie, 1.075*lims[1][0], r'$\omega_\mathrm{Mie}$', fontsize=23, horizontalalignment='left', verticalalignment='bottom', color='#555555')
 
+  if (showsep):
+    plotfitfuncs(params2, rawx, scalefac)
+
   # plot start parameters of fitting process
-  if (True):
-    plot(rawx, fitfunc(params1, rawx), "-", color='0.8', label=text1)
+  if (nofit):
+    plot(rawx/scalefac, fitfunc(params1, rawx), "-", color='green', label=text1, linewidth=2.5, alpha=0.65)
+  else:
+    plot(rawx/scalefac, fitfunc(params2, rawx), "-", color='red',  label=text2, linewidth=3.5, alpha=0.65)
 
-  plotfitfuncs(params2, rawx, 1.)
-  plot(rawx, fitfunc(params2, rawx), "-",  color='red',  label=text2, linewidth=3.5, alpha=0.65)
-
-
-  gca().legend(loc='upper right',scatterpoints=4,frameon=False,ncol=1,prop={'size':16})
+  gca().legend(loc='lower left',scatterpoints=4,ncol=1,prop={'size':16},frameon=False)
   
   enlargeticks()
 
@@ -203,7 +231,7 @@ def plotfile_momentum_electrons(filename, col, lims, ylabel, frequencies, params
 if os.path.exists("./in_fitstartvalues.dat"):
   p0 = np.reshape(np.loadtxt("./in_fitstartvalues.dat", comments='#'),(-1))
 else:
-  p0 = [[1., 1., wpl], [1., 1., wMie]]
+  p0 = [[1., 1., scalefac*wMie], [1., 1., scalefac*wpl]]
   np.savetxt("./in_fitstartvalues.dat", p0)
   
 
@@ -218,7 +246,10 @@ if os.path.exists("./in_frequencies.dat"):
 else:
   frequencies = []
 
-p1 = p0#do_fit("momentum_electrons_acf", 4, fitlims, p0)
+if (nofit):
+  p1 = p0
+else:
+  p1 = do_fit("momentum_electrons_acf", 4, fitlims, p0)
 
 plotfile_momentum_electrons("momentum_electrons_acf", 4, fitlims, "$\\log(\\mathrm{Re}\\{K(\\omega)\\})$", frequencies, p0, 'initial params', p1, "fit function")
 
