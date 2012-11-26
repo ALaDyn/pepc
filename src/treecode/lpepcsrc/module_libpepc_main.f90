@@ -288,7 +288,7 @@ module module_libpepc_main
         call timer_start(t_lattice)
         ! add lattice contribution and other per-particle-forces
         ! TODO: do not call calc_force_per_particle here!
-        call calc_force_per_particle(particles, npp)
+        call calc_force_per_particle(particles, nparticles)
         call timer_stop(t_lattice)
 
         call timer_stop(t_fields_passes)
