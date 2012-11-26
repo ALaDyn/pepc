@@ -80,7 +80,7 @@ def fitfunc(params, w):
 	for k in range(len(p[:,0])):
 		res = res + myfunc(p[k,:],w)
 
-	return res
+	return log(res)
 
 def plotfitfuncs(params, xvals, scalefac):
         # make a rectangular array from linear param storage
@@ -96,11 +96,19 @@ def do_fit(filename, col, lims, p0):
   rawy  = raw[   :,col]
   raws  = rawstd[:,col]
 
+  xlims = lims[0]/scalefac
+  
+  datamask  = (rawx < xlims[0]*scalefac) | (rawx > xlims[1]*scalefac)
+  rawx     = ma.compressed(ma.array(rawx, mask=datamask))
+  rawy     = ma.compressed(ma.array(rawy, mask=datamask))
+  raws     = ma.compressed(ma.array(raws, mask=datamask))    
+
   # actually perform the fitting process
-  d = odr.RealData(rawx, rawy, sy=raws)
+  d = odr.RealData(rawx, log(rawy), sy=log(raws/rawx))
   m = odr.Model(fitfunc)
   o = odr.ODR(d, m, p0, maxit=10000)
   o.set_job(fit_type=2)
+  o.set_iprint(init=2, iter=2, final=2)
   out = o.run()
 
   p1       = out.beta
@@ -211,11 +219,17 @@ def plotfile_momentum_electrons(filename, col, lims, ylabel, frequencies, params
   if (showsep):
     plotfitfuncs(params2, rawx, scalefac)
 
+  if (noscale):
+    datamask  = (rawx < xlims[0]*scalefac) | (rawx > xlims[1]*scalefac)
+    rawx     = ma.compressed(ma.array(rawx, mask=datamask))
+    rawy     = ma.compressed(ma.array(rawy, mask=datamask))
+    raws     = ma.compressed(ma.array(raws, mask=datamask))    
+
   # plot start parameters of fitting process
   if (nofit):
-    plot(rawx/scalefac, fitfunc(params1, rawx), "-", color='green', label=text1, linewidth=2.5, alpha=0.65)
+    plot(rawx/scalefac, exp(fitfunc(params1, rawx)), "-", color='green', label=text1, linewidth=2.5, alpha=0.65)
   else:
-    plot(rawx/scalefac, fitfunc(params2, rawx), "-", color='red',  label=text2, linewidth=3.5, alpha=0.65)
+    plot(rawx/scalefac, exp(fitfunc(params2, rawx)), "-", color='red',  label=text2, linewidth=3.5, alpha=0.65)
 
   gca().legend(loc='lower left',scatterpoints=4,ncol=1,prop={'size':16},frameon=False)
   
@@ -235,10 +249,12 @@ else:
   np.savetxt("./in_fitstartvalues.dat", p0)
   
 
+plotlims=np.loadtxt('./in_plotlims.dat')
+
 if os.path.exists('./in_fitlims.dat'):
   fitlims=np.loadtxt('./in_fitlims.dat')
 else:
-  fitlims=np.loadtxt('./in_plotlims.dat')
+  fitlims=plotlims
   np.savetxt('./in_fitlims.dat', fitlims)
 
 if os.path.exists("./in_frequencies.dat"):
@@ -251,7 +267,7 @@ if (nofit):
 else:
   p1 = do_fit("momentum_electrons_acf", 4, fitlims, p0)
 
-plotfile_momentum_electrons("momentum_electrons_acf", 4, fitlims, "$\\log(\\mathrm{Re}\\{K(\\omega)\\})$", frequencies, p0, 'initial params', p1, "fit function")
+plotfile_momentum_electrons("momentum_electrons_acf", 4, [plotlims[0]*scalefac, fitlims[1]], "$\\log(\\mathrm{Re}\\{K(\\omega)\\})$", frequencies, p0, 'initial params', p1, "fit function")
 
 plt.show()
 

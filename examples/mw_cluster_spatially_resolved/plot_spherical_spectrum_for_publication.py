@@ -106,8 +106,8 @@ def plotfile_spherical_spectrum(filename, NR_NTheta_NPhi, lims, ylabel, frequenc
     gca().xaxis.set_major_formatter(formatter)
   #gca().yaxis.set_major_formatter(formatter)
 
-  gca().set_yticklabels([])
-  gca().set_xticks(range(1,100))
+    gca().set_yticklabels([])
+    gca().set_xticks(range(1,100))
 
   gca().set_xlim(lims[0])
   gca().set_ylim(lims[1])
@@ -368,5 +368,5 @@ if os.path.exists("./in_frequencies.dat") and (not freqsonly):
   plotfile_smooth_excitation_image_at_frequency_slice_phi(frequencies, "field_spherical_spectrum_phi", NR_NTheta_NPhi)
   plotfile_excitation_image_at_frequency_radial_dependence(frequencies, "field_spherical_spectrum_phi", NR_NTheta_NPhi, frequencies[-1])
 
-
-#plt.show()
+if (freqsonly):
+  plt.show()

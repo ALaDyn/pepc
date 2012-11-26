@@ -82,26 +82,28 @@ module data
       integer :: ios
       integer :: datindex
 
-      open(87,file=trim(filename),status='old',position='rewind',action='read')
-            
-      write(formatstring,'("(g25.12,",I5.5,"(x,g25.12))")') Nev
-            
-      datindex = 0
+      open(87,file=trim(filename),status='old',position='rewind',action='read', iostat=ios)
       
-      do
-        datindex = datindex + 1
-	
-        read(87,formatstring,iostat=ios) rawdata_all(index, datindex, :)
-	
-	if (ios .ne. 0) exit
-	
-      end do
+      if (ios == 0) then
       
-      close(87)
-
+        write(formatstring,'("(g25.12,",I5.5,"(x,g25.12))")') Nev
+            
+        datindex = 0
+      
+        do
+          datindex = datindex + 1
+	
+          read(87,formatstring,iostat=ios) rawdata_all(index, datindex, :)
+	
+          if (ios .ne. 0) exit
+	
+        end do
+      
+        close(87)
+      endif
+      
       valid(index)   = (datindex == Nt) ! TODO: validity is only checked through comparing the number of lines in data tables
       nvalues(index) = datindex
-      
     end subroutine
     
     subroutine write_data(filename_avg, filename_stddev)
