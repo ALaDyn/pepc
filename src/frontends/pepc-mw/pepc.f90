@@ -172,7 +172,7 @@ program pepc
        call pepc_restore_particles(np_local, particles)
        call pepc_timber_tree()
        
-       call dump_grid_particles(my_rank, 'field_spherical.dat', particles, itime, trun*unit_t0_in_fs)
+       if (ispecial ==12) call dump_grid_particles(my_rank, 'field_spherical.dat', particles, itime, trun*unit_t0_in_fs)
 
      else
 
