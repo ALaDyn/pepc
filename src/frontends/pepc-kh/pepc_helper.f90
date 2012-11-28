@@ -6,8 +6,12 @@ module pepc_helper
       integer :: np = 0
       integer :: pdump = 0
       integer :: fdump = 0
-      real(kind=8) :: theta = 0.3D0
+      integer :: cdump = 0
+      !real(kind=8) :: theta = 0.3D0
    end type pepc_nml_t
+
+   logical :: para_file_available
+   character(len = 255) :: para_file_name
 
 contains
 
@@ -21,7 +25,7 @@ contains
       type(pepc_nml_t), intent(out) :: pepc_nml
       integer, intent(in) :: MPI_COMM_SPACE
 
-      logical, dimension(1:3) :: mpi_periods
+      !logical, dimension(1:3) :: mpi_periods
       integer :: mpi_err
 
       pepc_comm%mpi_comm = MPI_COMM_SPACE
@@ -29,9 +33,10 @@ contains
       call MPI_COMM_RANK(pepc_comm%mpi_comm, pepc_comm%mpi_rank, mpi_err)
       call MPI_COMM_SIZE(pepc_comm%mpi_comm, pepc_comm%mpi_size, mpi_err)
 
-      call read_in_pepc_params(pepc_nml, pepc_comm%mpi_rank, pepc_comm%mpi_comm)
+      call pepc_initialize("pepc-kh" ,pepc_comm%mpi_rank, pepc_comm%mpi_size, .false., 0, pepc_comm%mpi_comm, idim = 2)
+      call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)
 
-      call pepc_initialize("pepc-kh" ,pepc_comm%mpi_rank, pepc_comm%mpi_size, .false., 0, pepc_comm%mpi_comm)
+      call read_in_params(pepc_nml, para_file_available, para_file_name)
 
    end subroutine init_pepc
 
@@ -48,106 +53,192 @@ contains
       type(pepc_comm_t), intent(in)  :: pepc_comm
       type(pepc_nml_t),  intent(in)  :: pepc_nml
 
-      integer :: i
-      !double precision, parameter :: pi = 3.1415926535897932384626434D0
-
-
       ! Pass MPI stuff to parameters
       pepc_pars%pepc_comm = pepc_comm
-      pepc_pars%idump = pepc_nml%idump
-
       pepc_pars%np = pepc_nml%np
-      pepc_pars%npp = ceiling(1.0*pepc_pars(i)%np/pepc_comm%mpi_size) !PRELIMINARY
-      pepc_pars%theta = pepc_nml%theta
+      pepc_pars%npp = pepc_pars%np / pepc_comm%mpi_size
+      if (pepc_pars%pepc_comm%mpi_rank < mod(pepc_pars%np, pepc_pars%pepc_comm%mpi_size)) then
+        pepc_pars%npp = pepc_pars%npp + 1
+      end if
+      !pepc_pars%theta = pepc_nml%theta
       pepc_pars%pdump = pepc_nml%pdump
       pepc_pars%fdump = pepc_nml%fdump
-
+      pepc_pars%cdump = pepc_nml%cdump
 
       allocate(p(1:pepc_pars%npp))
-      call particleresults_clear(p, pepc_pars%npp)
 
-      call special_start(p,pepc_pars)
-
-      call pepc_prepare(3)
+      call pepc_prepare(2)
 
    end subroutine pepc_setup
 
 
-   subroutine special_start(p,pepc_pars)
+   subroutine read_in_params(pepc_namelist, file_available, file_name)
       use encap
-      implicit none
-
-      type(pepc_pars_t), intent(in) :: pepc_pars
-      type(t_particle), dimension(pepc_pars%npp), intent(inout) :: p
-
-      ! TODO
-
-   end subroutine
-
-
-   subroutine read_in_pepc_params(pepc_namelist, mpi_rank, mpi_comm)
       use mpi
-      use module_walk
-      use module_pepc
-      use module_domains, only: weighted
-      use treevars, only: interaction_list_length_factor
-      use module_walk, only: num_walk_threads
-      use module_libpepc_main, only: libpepc_read_parameters
+      use module_mirror_boxes, only: t_lattice_1, t_lattice_2, t_lattice_3, &
+        periodicity, mirror_box_layers
       implicit none
 
-      integer, intent(in) :: mpi_rank, mpi_comm
       type(pepc_nml_t), intent(out) :: pepc_namelist
+      logical, intent(in) :: file_available
+      character(len = 255), intent(in) :: file_name
 
-      logical :: available
-      character(len=255) :: file_name
-      integer :: ierr
       integer, parameter :: para_file_id = 10
 
       ! variables for pepc namelist
       integer :: np = 0
       integer :: pdump = 0
       integer :: fdump = 0
-      real(kind=8) :: theta = 0.3D0
+      integer :: cdump = 0
+      !real(kind=8) :: theta = 0.3D0
 
-      namelist /pepc_nml/ np, theta, pdump, fdump
+      namelist /pepc_nml/ np, pdump, fdump, cdump, &
+        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, mirror_box_layers ! ,theta
 
-      ! rank 0 reads in first command line argument
-      available = .false.
-      if (mpi_rank .eq. 0) then
-         if( COMMAND_ARGUMENT_COUNT() .ne. 0 ) then
-            call GET_COMMAND_ARGUMENT(1, file_name)
-            available = .true.
-             !if(mpi_rank .eq. 0) write(*,*) "found parameter file: ", file_name
-         end if
+      if (file_available) then
+        open(para_file_id,file=trim(file_name),action='read')
+        rewind(para_file_id)
+        read(para_file_id, NML=pepc_nml)
+        close(para_file_id)
       end if
 
-      ! broadcast file name, read actual inputs from namelist file (name ist fixed, sorry!)
-      call MPI_BCAST( available, 1, MPI_LOGICAL, 0, mpi_comm, ierr )
-      if (available) then
-         call MPI_BCAST( file_name, 255, MPI_CHARACTER, 0, mpi_comm, ierr )
-         open(para_file_id,file=trim(file_name),action='read')
-         rewind(para_file_id)
-         read(para_file_id, NML=pepc_nml)
+      pepc_namelist%np = np
+      !pepc_namelist%theta = theta
+      pepc_namelist%pdump = pdump
+      pepc_namelist%fdump = fdump
+      pepc_namelist%cdump = cdump
 
-         pepc_namelist%np = np
-         pepc_namelist%theta = theta
-         pepc_namelist%pdump = pdump
-         pepc_namelist%fdump = fdump
+   end subroutine read_in_params
 
-         interaction_list_length_factor = 4
-         weighted = 0
-         num_walk_threads = 4
 
-         rewind(para_file_id)
-         call tree_walk_read_parameters(para_file_id)
-         rewind(para_file_id)
-         call libpepc_read_parameters(para_file_id)
+   subroutine write_params(pepc_pars, file_name)
+      use encap
+      use module_mirror_boxes, only: t_lattice_1, t_lattice_2, t_lattice_3, &
+        periodicity, mirror_box_layers
+      implicit none
 
-         close(para_file_id)
+      type(pepc_pars_t), intent(in) :: pepc_pars
+      character(len = 255), intent(in) :: file_name
 
-      end if
+      integer, parameter :: para_file_id = 10
 
-   end subroutine read_in_pepc_params
+      ! variables for pepc namelist
+      integer :: np = 0
+      integer :: pdump = 0
+      integer :: fdump = 0
+      integer :: cdump = 0
+      !real(kind=8) :: theta = 0.3D0
 
+      namelist /pepc_nml/ np, pdump, fdump, cdump,&
+        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, mirror_box_layers ! ,theta
+
+      np = pepc_pars%np
+      pdump = pepc_pars%pdump
+      fdump = pepc_pars%fdump
+      cdump = pepc_pars%cdump
+
+      open(para_file_id, file = trim(file_name), status = 'old', position = &
+        'append', action = 'write')
+      write(para_file_id, NML=pepc_nml)
+      close(para_file_id)
+
+   end subroutine write_params
+
+
+  function get_time()
+    use mpi
+    implicit none
+
+    real(kind = 8) :: get_time
+
+    get_time = MPI_WTIME()
+  end function
+
+
+  subroutine write_particles(pepc_pars, time_pars, step, p)
+    use module_pepc_types
+    use module_vtk
+    use encap
+    implicit none
+    
+    type(pepc_pars_t), intent(in) :: pepc_pars
+    type(time_pars_t), intent(in) :: time_pars
+    type(t_particle), allocatable, intent(in) :: p(:)
+    integer, intent(in) :: step
+
+    integer :: i
+    type(vtkfile_unstructured_grid) :: vtk
+    integer :: vtk_step
+    real*8 :: time
+    real*8 :: ta, tb
+    
+    ta = get_time()
+    
+    time = time_pars%dt * step
+
+    if (step .eq. 0) then
+      vtk_step = VTK_STEP_FIRST
+    else if (step .eq. time_pars%nsteps) then
+      vtk_step = VTK_STEP_LAST
+    else
+      vtk_step = VTK_STEP_NORMAL
+    endif
+
+    call vtk%create_parallel("particles", step, pepc_pars%pepc_comm%mpi_rank, &
+      pepc_pars%pepc_comm%mpi_size, time, vtk_step)
+    call vtk%write_headers(pepc_pars%npp, 0)
+    call vtk%startpoints()
+    call vtk%write_data_array("xyz", pepc_pars%npp, p(:)%x(1), p(:)%x(2), p(:)%x(3))
+    call vtk%finishpoints()
+    call vtk%startpointdata()
+    call vtk%write_data_array("velocity", pepc_pars%npp, p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
+    call vtk%write_data_array("el_field", pepc_pars%npp, p(:)%results%e(1), \
+                              p(:)%results%e(2), p(:)%results%e(3))
+    call vtk%write_data_array("el_pot", pepc_pars%npp, p(:)%results%pot)
+    call vtk%write_data_array("charge", pepc_pars%npp, p(:)%data%q)
+    call vtk%write_data_array("mass", pepc_pars%npp, p(:)%data%m)
+    call vtk%write_data_array("work", pepc_pars%npp, p(:)%work)
+    call vtk%write_data_array("pelabel", pepc_pars%npp, p(:)%label)
+    call vtk%write_data_array("local index", pepc_pars%npp, [(i,i=1,pepc_pars%npp)])
+    call vtk%write_data_array("processor", pepc_pars%npp, p(:)%pid)
+    call vtk%finishpointdata()
+    call vtk%dont_write_cells()
+    call vtk%write_final()
+    call vtk%close()
+
+    tb = get_time()
+
+    if(pepc_pars%pepc_comm%mpi_rank == 0) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
+
+  end subroutine write_particles
+
+
+  subroutine write_domain(time_pars, step, p)
+    use module_pepc_types
+    use module_vtk
+    use module_treediags
+
+    use encap
+    implicit none
+  
+    type(time_pars_t), intent(in) :: time_pars
+    integer, intent(in) :: step
+    type(t_particle), allocatable, intent(in) :: p(:)
+
+    integer :: vtk_step
+  
+    ! output of tree diagnostics
+    if (step .eq. 0) then
+      vtk_step = VTK_STEP_FIRST
+    else if (step .eq. time_pars%nsteps) then
+      vtk_step = VTK_STEP_LAST
+    else
+      vtk_step = VTK_STEP_NORMAL
+    endif
+
+    call write_branches_to_vtk(step,  time_pars%dt * step, vtk_step)
+    call write_spacecurve_to_vtk(step, time_pars%dt * step, vtk_step, p)
+    
+  end subroutine write_domain
 
 end module pepc_helper
