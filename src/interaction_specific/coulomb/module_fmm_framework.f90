@@ -150,11 +150,17 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_framework_timestep(particles, nparticles)
           use module_pepc_types
+          use module_mirror_boxes
+          use module_debug
           implicit none
           integer, intent(in) :: nparticles
           type(t_particle), intent(in) :: particles(:)
 
           if (do_periodic) then
+            if (.not. check_lattice_boundaries(particles, nparticles)) then
+              DEBUG_ERROR(*, 'Lattice contribution will be wrong. Aborting.')
+            endif
+            
             call calc_omega_tilde(particles, nparticles)
             call calc_mu_cent(omega_tilde, mu_cent)
             call calc_extrinsic_correction(particles, nparticles)

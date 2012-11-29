@@ -76,6 +76,8 @@ module module_mirror_boxes
       public lattice_indices
       public system_is_unit_cube
       public system_uses_principal_axes
+      public check_lattice_boundaries
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -238,13 +240,13 @@ module module_mirror_boxes
               ! the lattice axes are not parallel to the outer cartesian axes
                 do p = 1,np_local
 
-                    lattice_coord = matmul(particles(p)%x, LatticeInv)
+                    lattice_coord = matmul(particles(p)%x-LatticeOrigin, LatticeInv)
 
                     if (any(lattice_coord > 1.D+0) .or. any(lattice_coord < 0.D+0)) then
 
                       lattice_coord = modulo(lattice_coord, 1.D+0)
 
-                      real_coord = matmul(lattice_coord, Lattice)
+                      real_coord = matmul(lattice_coord, Lattice) + LatticeOrigin
 
                       where (periodicity) particles(p)%x = real_coord
 
@@ -303,6 +305,36 @@ module module_mirror_boxes
                                 (normsq(t_lattice_3) == 1.0)
 
         end function
+        
+        
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !>  Verifies, if all particles lie inside the central box,
+        !>  otherweise LatticeOrigin or LatticeCenter are invalid
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        logical function check_lattice_boundaries(particles, nparticles)
+          use module_pepc_types
+          use module_debug
+          implicit none
+          type (t_particle), dimension(:), intent(in) :: particles
+          integer, intent(in) :: nparticles
+          integer :: p
+          real*8 :: lattice_coord(3)
+          
+          check_lattice_boundaries = .true.
+          
+          do p = 1,nparticles
+
+            lattice_coord = matmul(particles(p)%x-LatticeOrigin, LatticeInv)
+
+            if (any(lattice_coord > 1.D+0) .or. any(lattice_coord < 0.D+0)) then
+              DEBUG_WARNING_ALL('("Particle ", I0, " at coords", 3(X,G12.3), " lies outside the central box. Maybe, LatticeCenter or LatticeOrigin is wrong." )', p, particles(p)%x)
+            end if
+          end do
+        end function
+
 
 
 end module module_mirror_boxes
