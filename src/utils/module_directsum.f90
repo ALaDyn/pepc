@@ -96,6 +96,7 @@ module module_directsum
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real*8 :: delta(3)
           integer :: ibox
+          type(t_particle) :: latticeparticles(ntest)
 
           real*8 :: t1
           integer :: omp_thread_num
@@ -191,12 +192,15 @@ module module_directsum
           ! Reset the number of openmp threads to 1.
           !$ call omp_set_num_threads(1)
 
-          !TODO: call calc_force_per_particle here: add lattice contribution, compare module_libpepc_main
-          !call timer_start(t_lattice)
+          !call calc_force_per_particle here: add lattice contribution, compare module_libpepc_main
+          call timer_start(t_lattice)
           ! add lattice contribution and other per-particle-forces
-          ! TODO: do not call calc_force_per_particle here!
-          !call calc_force_per_particle(particles, npp)
-          !call timer_stop(t_lattice)
+          call calc_force_after_grow(particles, np_local)
+          latticeparticles(1:ntest)         = particles(testidx)
+          latticeparticles(1:ntest)%results = directresults(1:ntest)
+          call calc_force_per_particle(latticeparticles, ntest)
+          directresults(1:ntest) = latticeparticles(1:ntest)%results
+          call timer_stop(t_lattice)
 
         end subroutine
 
