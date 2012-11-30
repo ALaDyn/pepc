@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys
+import os, sys
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -34,19 +34,23 @@ def plot_fieldblob(arg):
   ax.set_xticks([])
   ax.set_yticks([])
 
-  fig.savefig(fname + '.png', dpi = dpi)
-
-def maxabs_of_fieldblob(fname):
-  return np.max(
-    np.abs(fb.max_of_fieldblob(fname)),
-    np.abs(fb.min_of_fieldblob(fname))
+  fig.savefig(
+    os.path.join(os.path.dirname(fname),
+      'heatmap_' + os.path.basename(fname) + '.png'),
+    dpi = dpi
   )
 
+def maxabs_of_fieldblob(fname):
+  return np.max((
+    np.abs(fb.max_of_fieldblob(fname)),
+    np.abs(fb.min_of_fieldblob(fname))
+  ))
+
 def print_usage():
-  print "Usage: plot_fieldblob.py fieldtype colormap fieldblob1 fieldblob2"
+  print "Usage: movie_heatmap.py fieldtype colormap fieldblob1 [fieldblob2 ...]"
   print ""
   print "fieldtype: { density | potential }"
-  print "colormap : any color map known to matplotlib, try 'Blues'/'Reds' or 'RdBu'"
+  print "colormap : any color map known to matplotlib, try 'Blues'/'Reds' or 'RdBu_r'"
 
 if __name__ == '__main__':
   import multiprocessing as mp

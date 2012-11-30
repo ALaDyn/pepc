@@ -130,6 +130,7 @@ contains
 
    subroutine special_start(pepc_pars, physics_pars, p)
       use module_pepc_types, only: t_particle
+      use module_mirror_boxes, only: constrain_periodic
       use module_debug
       use module_rng
       use encap
@@ -140,8 +141,7 @@ contains
       type(t_particle), dimension(pepc_pars%npp), intent(inout) :: p
 
       integer :: nx, ny, ipl, ipg, ix, iy, np, npp, mpi_rank, mpi_size, mpi_err
-      real(kind = 8) :: dx, dy, lx, ly, qi, qe, mi, me, vti, vte, xi
-      real(kind = 8), dimension(2) :: vtot
+      real(kind = 8) :: dx, dy, lx, ly, qi, qe, mi, me, vti, vte, xi, xgc, ygc, B0, rwce, rwci
 
       lx = physics_pars%l_plasma(1)
       ly = physics_pars%l_plasma(2)
@@ -151,6 +151,10 @@ contains
       mi = physics_pars%mi
       vte = physics_pars%vte
       vti = physics_pars%vti
+      B0 = physics_pars%B0
+
+      rwce = abs(me / (qe * B0))
+      rwci = abs(mi / (qi * B0))
 
       ! place ions on a regular grid, np = 2 x ni = 2 x nx x ny
       ! nx / ny = Lx / Ly
@@ -179,8 +183,6 @@ contains
       dx = lx / nx
       dy = ly / ny
 
-      vtot = 0.0D0
-
       do ipl = 1, npp
         ipg = ipl + min(mpi_rank, mod(np, mpi_size)) * (np / mpi_size + 1) + &
           max(0, mpi_rank - mod(np, mpi_size)) * (np / mpi_size)
@@ -189,9 +191,8 @@ contains
         ix = mod((ipg - 1) / 2, nx) + 1
         iy = (ipg - 1) / (2 * nx) + 1
 
-        p(ipl)%x(1) = (ix - 0.5D0) * dx
-        p(ipl)%x(2) = (iy - 0.5D0) * dy
-        p(ipl)%x(3) = 0.0D0
+        xgc = (ix - 0.5D0) * dx
+        ygc = (iy - 0.5D0) * dy
 
         p(ipl)%work = 1.0D0
         p(ipl)%label = ipg
@@ -202,11 +203,9 @@ contains
 
           p(ipl)%data%v = velocity_2d_maxwell(vte)
 
-          ! displace electrons from exact lattice points by 0.1 * dx * xi
-          xi = rng_next_real()
-          p(ipl)%x(1) = p(ipl)%x(1) + 0.1D0 * dx * (xi - 0.5D0)
-          xi = rng_next_real()
-          p(ipl)%x(2) = p(ipl)%x(2) + 0.1D0 * dx * (xi - 0.5D0)
+          p(ipl)%x(1) = xgc + p(ipl)%data%v(2) * rwce
+          p(ipl)%x(2) = ygc - p(ipl)%data%v(1) * rwce
+          p(ipl)%x(3) = 0.0D0
 
         else ! this is an ion
           p(ipl)%data%q = qi
@@ -214,11 +213,20 @@ contains
 
           p(ipl)%data%v = velocity_2d_maxwell(vti)
 
+          p(ipl)%x(1) = xgc - p(ipl)%data%v(2) * rwci
+          p(ipl)%x(2) = ygc + p(ipl)%data%v(1) * rwci
+          p(ipl)%x(3) = 0.0D0
+
         end if
 
-        vtot = vtot + p(ipl)%data%v(1:2)
+        if (p(ipl)%x(1) > lx) then
+          p(ipl)%x(1) = 2.0D0 * lx - p(ipl)%x(1)
+          p(ipl)%data%v(2) = -p(ipl)%data%v(2)
+        end if
 
       end do
+
+      call constrain_periodic(p, pepc_pars%npp)
 
    end subroutine special_start
 

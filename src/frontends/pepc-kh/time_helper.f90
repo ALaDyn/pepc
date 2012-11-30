@@ -177,14 +177,8 @@ contains
 
         e_constraint = e_constraint + e_kin_of_particle(p(ip))
 
-        if (p(ip)%data%q < 0) then ! electron
-          p(ip)%data%v = velocity_2d_maxwell(vte)
-        else ! ion
-          p(ip)%data%v = velocity_2d_maxwell(vti)
-        end if
-
-        p(ip)%data%v(1) = -1.0D0 * abs(p(ip)%data%v(1))
-        p(ip)%x(1) = physics_pars%l_plasma(1) + time_pars%dt * p(ip)%data%v(1)
+        p(ip)%x(1) = 2.0D0 * physics_pars%l_plasma(1) - p(ip)%x(1)
+        p(ip)%data%v(1) = -p(ip)%data%v(1)
 
         e_constraint = e_constraint - e_kin_of_particle(p(ip))
 
