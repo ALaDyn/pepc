@@ -74,6 +74,7 @@ module module_interaction_specific
       public calc_force_write_parameters
       public calc_force_finalize
       public calc_force_prepare
+      public calc_force_after_grow
       public get_number_of_interactions_per_particle
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -234,6 +235,31 @@ module module_interaction_specific
         call fmm_framework_init(me, MPI_COMM_lpepc)
 
       end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> initializes static variables of calc force module that depend 
+      !> on particle data and might be reused on subsequent traversals
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_after_grow(particles, nparticles)
+        use module_pepc_types
+        use module_fmm_framework, only : fmm_framework_timestep
+        use module_mirror_boxes, only : do_periodic
+        implicit none
+        type(t_particle), dimension(:), intent(in) :: particles
+        integer, intent(in) :: nparticles
+
+        ! calculate spherical multipole expansion of central box
+        ! this cannot be done in calc_force_per_particle() since there, possibly
+        ! other particles are used than we need for the multipoles
+        ! e.g. in the case of a second traverse for test/grid particles
+        if ((do_periodic) .and. (include_far_field_if_periodic)) then
+          call fmm_framework_timestep(particles, nparticles)
+        end if
+
+      end subroutine      
 
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -418,9 +444,6 @@ module module_interaction_specific
           integer :: p
 
           call pepc_status('CALC FORCE PER PARTICLE')
-
-          ! calculate spherical multipole expansion of central box
-          if (include_far_field_if_periodic) call fmm_framework_timestep(particles, nparticles)
 
           potfarfield  = 0.
           potnearfield = 0.

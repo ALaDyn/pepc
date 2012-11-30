@@ -73,6 +73,7 @@ module module_interaction_specific
   public calc_force_write_parameters
   public calc_force_finalize
   public calc_force_prepare
+  public calc_force_after_grow
   public get_number_of_interactions_per_particle
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -254,6 +255,23 @@ contains
     ! TODO: what ist that good for?
     ! currently no periodic gravity
   end subroutine calc_force_prepare
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> initializes static variables of calc force module that depend 
+  !> on particle data and might be reused on subsequent traversals
+  !>
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine calc_force_after_grow(particles, nparticles)
+    use module_pepc_types
+    implicit none
+    type(t_particle), dimension(:), intent(in) :: particles
+    integer, intent(in) :: nparticles
+
+    ! nothing to be done here for now
+
+  end subroutine      
 
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

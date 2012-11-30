@@ -443,12 +443,20 @@ module module_pepc
     subroutine pepc_grow_tree(np_local, npart_total, particles)
       use module_pepc_types
       use module_libpepc_main
+      use module_debug, only : pepc_status
+      use module_interaction_specific, only : calc_force_after_grow
       implicit none
       integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
       call libpepc_grow_tree(np_local, npart_total, particles)
+      
+      call pepc_status('AFTER GROW: CALC FORCE')
+      call calc_force_after_grow(particles, np_local)
+      ! call pepc_status('AFTER GROW: TRAVERSE')
+      ! TODO: invoke global comm thread here
+      call pepc_status('AFTER GROW DONE')
 
     end subroutine
 
