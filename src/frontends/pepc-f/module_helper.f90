@@ -118,8 +118,6 @@ module helper
         l_debye=sqrt(eps0*te_ev/e/ne)
         omega_p=sqrt(ne*e*e/eps0/me)
         tfpp=0
-    ELSE
-        tnpp=tfpp*300
     END IF
 
     startstep=0
