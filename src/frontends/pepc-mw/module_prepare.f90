@@ -96,8 +96,8 @@ subroutine pepcmw_prepare()
   LatticeOrigin = LatticeOrigin*[x_plasma, y_plasma, z_plasma]
 
   if (periodicity_nearest_image) then
-    include_far_field_if_periodic = .false.
-    spatial_interaction_cutoff = [x_plasma, y_plasma, z_plasma]
+    !include_far_field_if_periodic = .false.
+    spatial_interaction_cutoff = [x_plasma, y_plasma, z_plasma] * mirror_box_layers
   endif
 
   a_i       = (4.*pi/3. * ni/Vplas)**(-1./3.)
