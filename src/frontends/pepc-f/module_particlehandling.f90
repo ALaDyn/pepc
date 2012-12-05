@@ -564,7 +564,7 @@ module particlehandling
         call get_total_wall_charge(p,q_l_glob,q_r_glob)
 
         call MPI_ALLREDUCE(np, tnp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-
+        tnpp=tnp-tnwp
 
         if(root) open(unit=99,file='current_on_wall.dat',status='UNKNOWN',position='APPEND')
         if(root) write(99,'(i6,a,i6,a,i6,a,i6,a,es12.4,a,es12.4)')e_hits_l_glob,",",i_hits_l_glob,",",e_hits_r_glob,",",i_hits_r_glob,",",dq_r_glob,",",q_r_glob
