@@ -204,7 +204,6 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine shift_nodes_up(parent, children, childnumber, parent_owner)
-      use treevars, only: idim
       use module_pepc_types
       use module_htable, only : CHILDCODE_BIT_CHILDREN_AVAILABLE
       use module_interaction_specific, only : shift_multipoles_up
@@ -367,7 +366,7 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_upwards(start_keys, numkeys)
 
-        use treevars, only : idim, me
+        use treevars, only : me
         use module_debug, only : pepc_status, DBG_TREE, dbg
         use module_timings
         use module_utils
@@ -474,7 +473,7 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_build_from_particles(particle_list, nparticles, leaf_keys)
-      use treevars, only : idim, nleaf, ntwig, nlev, me, tree_nodes, nleaf_me, ntwig_me
+      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, nleaf_me, ntwig_me
       use module_pepc_types
       use module_spacefilling
       use module_htable

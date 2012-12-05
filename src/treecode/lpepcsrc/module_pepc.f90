@@ -92,7 +92,7 @@ module module_pepc
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi, db_level_in, comm, idim)
-      use treevars, only : np_mult, me, num_pe, treevars_idim => idim, MPI_COMM_lpepc
+      use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
       use module_domains

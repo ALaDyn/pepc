@@ -111,7 +111,7 @@ module module_spacefilling
           integer*8, intent(in) :: key
           integer :: child_number_from_key
 
-          child_number_from_key = ibits(key, 0, idim)
+          child_number_from_key = int(ibits(key, 0, idim))
         end function child_number_from_key
 
 
@@ -139,7 +139,6 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         pure function child_key_from_parent_key(key, n)
-          use treevars, only: idim
           implicit none
 
           integer*8, intent(in) :: key
@@ -156,7 +155,7 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         pure function is_ancestor_of_particle_nolevel(key_c,key_a)
-          use treevars, only: idim, nlev
+          use treevars, only: nlev
           implicit none
           logical :: is_ancestor_of_particle_nolevel
           integer*8, intent(in) :: key_a, key_c
@@ -173,7 +172,7 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         pure function is_ancestor_of_particle_withlevel(key_c,key_a,level_a)
-          use treevars, only: idim, nlev
+          use treevars, only: nlev
           implicit none
           logical :: is_ancestor_of_particle_withlevel
           integer*8, intent(in) :: key_a, key_c
@@ -280,6 +279,8 @@ module module_spacefilling
                   veccoord_to_key_lastlevel = intcoord_to_key_hilbert2D(ic)
                 case (3) ! 3D hilbert curve
                   veccoord_to_key_lastlevel = intcoord_to_key_hilbert3D(ic)
+                case default
+                  veccoord_to_key_lastlevel = 0
               end select
             case default
               veccoord_to_key_lastlevel = 0
@@ -310,14 +311,13 @@ module module_spacefilling
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function veccoord_to_key_level(x, level)
-          use treevars, only : idim, nlev
+          use treevars, only : nlev
           implicit none
           integer*8 :: veccoord_to_key_level
           real*8, intent(in) :: x(3)
           integer, intent(in) :: level
 
           veccoord_to_key_level = shift_key_by_level(veccoord_to_key_lastlevel(x), level-nlev)
-
         end function veccoord_to_key_level
 
 
@@ -467,7 +467,7 @@ module module_spacefilling
           implicit none
           integer*8, intent(in) :: ic(2)
           integer*8 :: intcoord_to_key_hilbert2D
-          integer :: i, j, k
+          integer :: i, j
 
           integer*8, parameter :: CI2(0:3)    = [0,3,1,2] ! 2D - inverse hilbert cell
           integer*8, parameter :: G2(0:3,0:1) = reshape([3,0,0,3,0,0,0,3],shape(G2))
@@ -523,7 +523,7 @@ module module_spacefilling
           implicit none
           integer*8, intent(in) :: ic(3)
           integer*8 :: intcoord_to_key_hilbert3D
-          integer :: i, j, k
+          integer :: i, j
 
           integer*8, parameter :: CI3(0:7)    = [0,1,3,2,7,6,4,5] ! 3D - inverse hilbert cell
           integer*8, parameter :: G3(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G3))     ! 3D - hilbert gene

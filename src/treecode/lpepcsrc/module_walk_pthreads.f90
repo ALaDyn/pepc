@@ -731,7 +731,7 @@ module module_walk
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine tree_walk_prepare()
         use module_walk_pthreads_commutils
-        use treevars, only: me
+        !use treevars, only: me
         implicit none
         ! nothing to do here
 
