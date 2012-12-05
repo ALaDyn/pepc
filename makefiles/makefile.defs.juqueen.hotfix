@@ -1,0 +1,82 @@
+HELP = "\
+\# Makefile for JuQueen\n\
+\# \n\
+\# for sionlib support in pepcb, call\n\nmodule load sionlib\n\n\# before compiling and running\
+"
+
+MACH     = IBM-BGQ-juqueen
+
+DEBUG      = 0
+VAMPIR     = 0
+SION       = 0
+RANLIB     = ranlib
+# for HPCTOOLKIT usage see end of this file
+# do not name the following variable to HPCTOOLKIT since this is already used externally
+HPCTOOLKT  = 0
+
+MAKE     = gmake
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C -DLITTLEENDIAN -DSVNREVISION="\"$(SVNREVISION)\""
+
+OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck -qkeepparm -qflttrap -qnosmp -qxflag=dvz -Q! -qnounwind -qnounroll
+OPTIMIZATIONFLAGS       = -g -O5 -qhot -qipa=level=0 -qreport -qlistfmt=html=all -qstrict \
+                                 -qinline \
+                                 -qinline+__module_walk_pthreads_commutils_NMOD_run_communication_loop_inner:__module_walk_NMOD_walk_single_particle:__module_htable_NMOD_get_next_node_key:__module_htable_NMOD_key2addr:__module_htable_NMOD_make_hashentry:__module_interaction_specific_NMOD_calc_force_per_particle:__module_interaction_specific_NMOD_calc_force_per_interaction:__module_walk_communicator_NMOD_unpack_data:__module_walk_NMOD_get_first_unassigned_particle:__module_walk_pthreads_commutils_NMOD_send_requests:__module_walk_communicator_NMOD_send_data:__module_htable_NMOD_testaddr:__module_htable_NMOD_htable_entry_is_valid:__module_htable_NMOD_htable_entry_is_leaf:__module_htable_NMOD_children_available:__module_htable_NMOD_get_childkeys:__module_interaction_specific_NMOD_calc_force_coulomb_3d:__module_interaction_specific_NMOD_mac:__module_spacefilling_NMOD_level_from_key:__module_spacefilling_NMOD_is_ancestor_of_particle_withlevel
+
+STANDARDFLAGS           = -qthreaded -qsmp=noauto -qsmp=omp
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -qxlf2003=polymorphic -qddim
+  CFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
+  LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG)
+else
+  FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS) -qxlf2003=polymorphic
+  CFLAGS   = $(STANDARDFLAGS) -O3 -I/bgsys/drivers/ppcfloor/arch/include
+  LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS)
+endif
+
+ifeq ($(VAMPIR), 1)
+  FCPRE    = bgvtf90 -vt:f90
+  CCPRE    = bgvtcc  -vt:cc
+  LDPRE    = bgvtf90 -vt:f90
+endif
+
+ifeq ($(HPCTOOLKT), 1)
+  LDPRE    = hpclink
+  LDFLAGS += -qnoipa
+endif
+
+FC       = mpixlf90_r
+CC       = mpixlc_r
+LD       = mpixlf90_r
+
+LDLIBS   = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc
+
+#  Flags for sionlib I/O option
+ifeq ($(SION),1)
+  CPPFLAGS += -DSION  # Preprocessor
+  LDLIBS += `sionconfig --libs --mpi -be`
+  CFLAGS += `sionconfig --cflags --for --mpi -be`
+endif
+
+RM       = rm -rf
+
+
+# HPCTOOLKIT USAGE
+# Call 
+# $>  module load UNITE hpctoolkit papi
+# Before compiling and execution. You should include those modules into your ~/.bashrc to also have them on the compute nodes.
+# After (re)compiling the application (e.g. pepc-mini) start it with
+# $>  runjob --envs  HPCRUN_EVENT_LIST="WALLCLOCK@10000" HPCRUN_TRACE=1 --label : ./pepc-mini ./params
+# Then generate the structure info (on the frontend node) using
+# $>  hpcstruct  ./pepc-mini
+# Build the measurement database from the measurements:
+# $>  hpcprof -S pepc-mini.hpcstruct -I ../build/IBM-BGQ-juqueen/pepc-mini/ hpctoolkit-pepc-mini-measurements
+# 
+#
+
+
