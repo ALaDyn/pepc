@@ -254,7 +254,33 @@ module module_particle_setup
                 write(*,*) "Total particle number must be representable by 8*k^3. Set npart_total =", npart_total
               endif
 
-              call particle_setup_madelung()
+              call particle_setup_madelung(0)
+              !call rescale_coordinates_cuboid()
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
+              call init_fields_zero()
+
+            case(71)
+              call update_particle_numbers((nint((npart_total/8)**(1./3.))**3)*8)
+
+              if (my_rank == 0) then
+                write(*,*) "Using special start... case 7 (3D Madelung Dipole Setup)"
+                write(*,*) "Total particle number must be representable by 8*k^3. Set npart_total =", npart_total
+              endif
+
+              call particle_setup_madelung(1)
+              !call rescale_coordinates_cuboid()
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
+              call init_fields_zero()
+
+            case(72)
+              call update_particle_numbers((nint((npart_total/8)**(1./3.))**3)*8)
+
+              if (my_rank == 0) then
+                write(*,*) "Using special start... case 7 (3D Madelung Monocharged Setup)"
+                write(*,*) "Total particle number must be representable by 8*k^3. Set npart_total =", npart_total
+              endif
+
+              call particle_setup_madelung(2)
               !call rescale_coordinates_cuboid()
               call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
               call init_fields_zero()
@@ -631,11 +657,12 @@ module module_particle_setup
         !>
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine particle_setup_madelung()
+        subroutine particle_setup_madelung(which)
           use module_mirror_boxes
           implicit none
+          integer, intent(in) :: which
           real*8 :: delta(3)
-          integer :: i,j,k,n(3), myidx, globalidx
+          integer :: i,j,k,n(3), myidx, globalidx, selector
 
           n(1) = NINT((npart_total/8)**(1./3.))*2
           n(2) = NINT((npart_total/n(1)/4)**(1./2.))*2
@@ -665,8 +692,17 @@ module module_particle_setup
                     particles(myidx)%data%v(1) = 0
                     particles(myidx)%data%v(2) = 0
                     particles(myidx)%data%v(3) = 0
+                    
+                    select case (which)
+                      case(0)
+                        selector = mod(i+j+k,2)
+                      case(1)
+                        selector = floor((1.*n(1)) / (1.*i + 1.) + 0.5)
+                      case(2)
+                        selector = 0
+                    end select
 
-                    if (mod(i+j+k, 2) == 0) then
+                    if (selector == 0) then
                       particles(myidx)%data%q       = qe
                       particles(myidx)%data%m       = mass_e
                       particles(myidx)%label = -globalidx
