@@ -50,6 +50,7 @@ module module_mirror_boxes
       real*8, public :: LatticeOrigin(3) = [0., 0., 0.] !< holds the lattice origin - can be modified by calling program
       logical, public :: periodicity(3) = [.false., .false., .false.]  !< boolean switches for determining periodicity directions
       integer, public :: mirror_box_layers = 1 !< size of near-field layer (nmber of shells)
+      real*8, public :: unit_box_volume = 1.0 !< volume box that is spanned by t_lattice_1..3, is initialized in calc_neighour_boxes()
       !> variables that should not be written to
       integer, public :: num_neighbour_boxes = 1
       integer, dimension(:,:), allocatable, public :: neighbour_boxes !dimensions in 3D case (3,27)
@@ -136,6 +137,7 @@ module module_mirror_boxes
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_neighbour_boxes()
+        use module_math_tools, only : cross_product
         implicit none
         integer :: i,j,k,idx
 
@@ -185,6 +187,8 @@ module module_mirror_boxes
           end do
 
           neighbour_boxes(:,idx+1) = [0, 0, 0] ! center box is put to the back of the boxlist for easier iteration
+          
+          unit_box_volume = abs(dot_product(cross_product(t_lattice_1, t_lattice_2),t_lattice_3))
 
           call init_movement_constraint()
 

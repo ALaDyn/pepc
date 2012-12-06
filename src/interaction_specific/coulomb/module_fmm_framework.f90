@@ -552,11 +552,14 @@ module module_fmm_framework
         !> \f$\frac{2\pi}{3}\sum_p q(p){\vec r}_p\cdot{\vec r}_p\f$
         !> for performing the extrinsic-to-intrinsic correction
         !> (see [J.Chem.Phys. 107, 10131, eqn.(19,20)] for details
+        !>       ^ inside this publication, the volume factor is missing
+        !>  [J. Chem. Phys. 101, 5024, eqn (5)] contains this volume
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_extrinsic_correction(particles, nparticles)
           use module_debug
           use module_pepc_types
+          use module_mirror_boxes, only : unit_box_volume
           implicit none
 
           type(t_particle), intent(in) :: particles(:)
@@ -585,8 +588,8 @@ module module_fmm_framework
               call MPI_ALLREDUCE(MPI_IN_PLACE, box_dipole, 3, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
               call MPI_ALLREDUCE(MPI_IN_PLACE, quad_trace, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
 
-              box_dipole = 4.*pi/3. * box_dipole
-              quad_trace = 2.*pi/3. * quad_trace
+              box_dipole = 4.*pi/(3.*unit_box_volume) * box_dipole
+              quad_trace = 2.*pi/(3.*unit_box_volume) * quad_trace
 
           end if
 
