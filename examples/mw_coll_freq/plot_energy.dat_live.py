@@ -1,13 +1,13 @@
 #! /lustre/jhome2/jzam04/jzam0415/programs/python/bin/python
 
+import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import rc
-from numpy import *
-import matplotlib.font_manager
-import matplotlib.cm as cm
+import matplotlib.animation as animation
 import locale
 import os
 import sys
+import matplotlib.font_manager
+import matplotlib.cm as cm
 
 print "Usage: %s [datafilename]" % sys.argv[0]
 
@@ -16,12 +16,6 @@ print "optimized for pepc-mw frontend"
 print "Creating energy.dat.pdf in current directory"
 
 locale.setlocale(locale.LC_ALL, "en_US") # fuer tausendertrennzeichen im format
-
-#rc('text', usetex=True)
-rc('font', family='serif', size=28)
-rc('legend', fontsize='small')
-rc('xtick', labelsize='small')
-rc('ytick', labelsize='small')
 
 filename='energy.dat'
 
@@ -32,9 +26,7 @@ print "Adding information from files ", additionalfiles
 #markers=['+','*','.','1','2','3','4','<','>','D','H','^','_','d','h','o','p','s','v','x','|','None',' ','']
 markers=['*','<','>','D','H','^','d','h','o','p','s','v','x','|','None',' ','']
 
-data=loadtxt(filename)
-numlines=data.shape[0]
-numcols=data.shape[1]
+numlinesold = 0
 
 datanames=['$t [\mathrm{fs}]$',
            '$U_{\mathrm{pot}}^{\mathrm{(total)}}$',
@@ -56,34 +48,75 @@ datanames=['$t [\mathrm{fs}]$',
            '$\Delta T_{\mathrm{i}}$'
           ]
 
+
+####################################
+
 fig = plt.figure(figsize=(12,8))
 fig.suptitle(filename, fontsize=26)
 fig.subplots_adjust(right=0.8) # http://matplotlib.sourceforge.net/faq/howto_faq.html#move-the-edge-of-an-axes-to-make-room-for-tick-labels
 prop = matplotlib.font_manager.FontProperties(size=16)
 
+pltlist = list()
 
-####################################
-ax=fig.add_subplot(111)
-plt.xlabel(datanames[0])
-plt.ylabel("Energy [Ry]")
-plt.grid(True, which='both')
-#ax.set_yscale('log')
+initialized = False
 
-for colidx in range(1,10):
-	plt.plot(data[:,0],data[:,colidx],label=datanames[colidx], linewidth=1.0,color=cm.hsv(24*colidx))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
+def initfig(*args):
+    global numlinesold
+    global pltlist
+    global initialized
+    global ax
+    
+    if (initialized): # seltsamerweise wird die Funktion zweimal aufgerufen - das fangen wir hier ab
+      return ax,
+      
+    initialized = True
 
-for f in additionalfiles:
+    ax = fig.add_subplot(111)
+    plt.xlabel(datanames[0])
+    plt.ylabel("Energy [Ry]")
+    plt.grid(True, which='both')
+    #ax.set_yscale('log')
+    plt.minorticks_on()
+
+    data     = np.loadtxt(filename)
+    numlines = data.shape[0]
+    numcols  = data.shape[1]
+    numlinesold = numlines
+
+    for colidx in range(1,10):
+	pltlist.extend(ax.plot(data[:,0],data[:,colidx],label=datanames[colidx], linewidth=1.0,color=cm.hsv(24*colidx)))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
+
+    for f in additionalfiles:
 	raw = loadtxt(f)
-	plt.plot(raw[:,0],raw[:,1],label="\\verb+%s+" % f, linewidth=1.0)#,color=cm.hsv(24*colidx))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
+        ax.plot(raw[:,0],raw[:,1],label="\\verb+%s+" % f, linewidth=1.0)#,color=cm.hsv(24*colidx))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
 
+    plt.legend(numpoints=1, prop=prop, ncol=1, frameon=True, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    
+    return ax,
+    
+    
+def updatefig(*args):
+    global numlinesold
+    global pltlist
+    
+    data     = np.loadtxt(filename)
+    numlines = data.shape[0]
+    numcols  = data.shape[1]
+    
+    if (numlines <> numlinesold):
+      numlinesold = numlines
+    
+      for colidx in range(1,10):
+        pltlist[colidx-1].set_data(data[:,0],data[:,colidx])
 
-plt.legend(numpoints=1, prop=prop, ncol=1, frameon=True, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    ax.relim()
+    ax.autoscale_view()
+    return tuple(pltlist)
 
 ####################################
 
-lims=plt.axis()
-#plt.xticks(arange(lims[0],lims[1],2.0)) 
-plt.minorticks_on()
-	
-plt.savefig(filename +'.pdf') # Must occure before show()
-#plt.show()
+ani = animation.FuncAnimation(fig, updatefig, interval=500, blit=False, init_func=initfig)
+plt.show()
+
+
+

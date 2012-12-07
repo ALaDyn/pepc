@@ -3,7 +3,7 @@
 ! setup follows Figure 2 in [PRE 7, 056408]
 
 ! number of particles, here electrons
- ne = 5000
+ ne = 500
 
 ! initial particle distribution
  ispecial = 1
@@ -25,8 +25,9 @@
   do_extrinsic_correction = .false.
 ! only perform nearest-image-periodicity
 !  periodicity_nearest_image = .true.
+  directforce = .true.
 
- beam_config_in = 0121
+ beam_config_in = 0000
  I0_Wpercm2     = 1.0E16
 ! lambda_nm      = 436.0 ! is automatically set since omega_wpl is given
 ! t_pulse_fs     = 100.0 ! does not apply here
@@ -56,9 +57,7 @@
 
 workflow_setup = 2 ! [PRE 71, 056408 (2005)] P. Hilse et al: "Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation."
 
-! determies the particle dump interval
-! 0: never write anything
-! n: each n-th step, plus first and last step
+! determies the particle dump interval (0: never write anything, n: each n-th step, plus first and last step)
  idump = 0
 ! dito for vtk, binary and checkpoint-output
  idump_vtk = 0
@@ -86,5 +85,6 @@ workflow_setup = 2 ! [PRE 71, 056408 (2005)] P. Hilse et al: "Collisional absorp
 &walk_para_pthreads
  num_walk_threads         = 4
  max_particles_per_thread = 2000
+ min_level = 7
 /
 
