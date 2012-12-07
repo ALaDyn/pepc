@@ -3,7 +3,7 @@
 ! setup follows Figure 2 in [PRE 7, 056408]
 
 ! number of particles, here electrons
- ne = 500
+ ne = 5000
 
 ! initial particle distribution
  ispecial = 1
@@ -11,7 +11,7 @@
  itime_in = 5
 
 ! number of timesteps
- nt = 300
+ nt = 60
  dt = 2.0
 
 ! fmm-periodicity framework
@@ -22,19 +22,18 @@
 ! periodicity in x-, y-, and z-direction
   periodicity = .true.  .true.  .true.
 ! extrinsic-to-intrinsic correction
-  do_extrinsic_correction = .false.
+  do_extrinsic_correction = .true.
 ! only perform nearest-image-periodicity
 !  periodicity_nearest_image = .true.
-  directforce = .true.
 
- beam_config_in = 0000
+ beam_config_in = 0121
  I0_Wpercm2     = 1.0E16
 ! lambda_nm      = 436.0 ! is automatically set since omega_wpl is given
 ! t_pulse_fs     = 100.0 ! does not apply here
  omega_wpl      = 3.
 
- Te_eV    = 15.0
- Ti_eV    = 15.0
+ Te_eV    = 22.56
+ Ti_eV    = 22.56
  rhoe_nm3 = 10.0 ! 1.0e21cm^-3 = 1.0nm^-3
  Zion     =  1
  Aion     =  1
@@ -57,12 +56,12 @@
 
 workflow_setup = 2 ! [PRE 71, 056408 (2005)] P. Hilse et al: "Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation."
 
-! determies the particle dump interval (0: never write anything, n: each n-th step, plus first and last step)
+! determies the particle dump interval - 0: never write anything, n: each n-th step, plus first and last step
  idump = 0
 ! dito for vtk, binary and checkpoint-output
  idump_vtk = 0
  idump_binary = 0
- idump_checkpoint = 100
+ idump_checkpoint = 1000
 ! activate output of branch nodes and space-filling curve as vtk-file
 !  treediags = .true.
 
@@ -85,6 +84,5 @@ workflow_setup = 2 ! [PRE 71, 056408 (2005)] P. Hilse et al: "Collisional absorp
 &walk_para_pthreads
  num_walk_threads         = 4
  max_particles_per_thread = 2000
- min_level = 7
 /
 

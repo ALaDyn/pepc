@@ -26,7 +26,7 @@
 ! only perform nearest-image-periodicity
 !  periodicity_nearest_image = .true.
 
- beam_config_in = 0121
+ beam_config_in = 0000
  I0_Wpercm2     = 4.3E16
 ! lambda_nm      = 436.0 ! is automatically set since omega_wpl is given
 ! t_pulse_fs     = 100.0 ! does not apply here

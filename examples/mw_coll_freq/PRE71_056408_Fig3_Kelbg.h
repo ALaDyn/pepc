@@ -22,7 +22,7 @@
 ! periodicity in x-, y-, and z-direction
   periodicity = .true.  .true.  .true.
 ! extrinsic-to-intrinsic correction
-  do_extrinsic_correction = .false.
+  do_extrinsic_correction = .true.
 ! only perform nearest-image-periodicity
 !  periodicity_nearest_image = .true.
 
@@ -32,8 +32,8 @@
 ! t_pulse_fs     = 100.0 ! does not apply here
  omega_wpl      = 3.
 
- Te_eV    = 5.0
- Ti_eV    = 5.0
+ Te_eV    = 7.1
+ Ti_eV    = 7.1
  rhoe_nm3 = 10.0 ! 1.0e21cm^-3 = 1.0nm^-3
  Zion     =  1
  Aion     =  1
@@ -56,21 +56,19 @@
 
 workflow_setup = 2 ! [PRE 71, 056408 (2005)] P. Hilse et al: "Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation."
 
-! determies the particle dump interval
-! 0: never write anything
-! n: each n-th step, plus first and last step
+! determies the particle dump interval - 0: never write anything, n: each n-th step, plus first and last step
  idump = 0
 ! dito for vtk, binary and checkpoint-output
  idump_vtk = 0
  idump_binary = 0
- idump_checkpoint = 100
+ idump_checkpoint = 1000
 ! activate output of branch nodes and space-filling curve as vtk-file
 !  treediags = .true.
 
 /
 
 &calc_force_coulomb
-  ! Kelbg interaction for near field, Coulomb for far collisions
+  ! 3D coulomb
   force_law  = 5
   ! BH-mac
   mac_select = 0
@@ -84,7 +82,7 @@ workflow_setup = 2 ! [PRE 71, 056408 (2005)] P. Hilse et al: "Collisional absorp
 /
 
 &walk_para_pthreads
- num_walk_threads         = 4
+ num_walk_threads         = 8
  max_particles_per_thread = 2000
 /
 

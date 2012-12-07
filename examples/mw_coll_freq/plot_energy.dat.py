@@ -86,4 +86,4 @@ lims=plt.axis()
 plt.minorticks_on()
 	
 plt.savefig(filename +'.pdf') # Must occure before show()
-#plt.show()
+plt.show()
