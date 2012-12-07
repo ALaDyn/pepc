@@ -30,7 +30,7 @@ itime_in = 5
 ! 1D
 !  periodicity = .false.  .false. .true.
 ! extrinsic-to-intrinsic correction
-  do_extrinsic_correction = .false.
+  do_extrinsic_correction = .true.
 
  beam_config_in = 0
 
