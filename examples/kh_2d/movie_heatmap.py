@@ -3,6 +3,8 @@
 import os, sys
 
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 
@@ -14,6 +16,7 @@ def plot_fieldblob(arg):
   dpi = 80.
   
   n   = fb.n_of_fieldblob(fname)
+  t   = fb.t_of_fieldblob(fname)
   y   = fb.field_of_fieldblob(fname)
   if (ftype == 'density'): y = np.abs(y)
   fig = plt.figure(figsize = (n[0] / dpi, n[1] / dpi))
@@ -33,6 +36,8 @@ def plot_fieldblob(arg):
 
   ax.set_xticks([])
   ax.set_yticks([])
+
+  ax.text(0.05, 0.95, 'w_{p,e} t = ' + str(t), transform = ax.transAxes)
 
   fig.savefig(
     os.path.join(os.path.dirname(fname),
