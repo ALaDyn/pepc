@@ -151,6 +151,7 @@ contains
     subroutine energy_kin(ekine,ekini,ltempe,ltempi, totalmomentum)
         use physvars
         use module_units
+        use module_pusher
 
         implicit none
         include 'mpif.h'
@@ -171,13 +172,37 @@ contains
         integer, parameter :: KINI = 10
 
         real*8 :: sums(1:10)
+        real*8 :: betae, betai
 
         sums = 0.0
         totalmomentum = 0.0
+        
+        betae = chie/(2*chie-1.)
+        betai = chii/(2*chii-1.)
 
         do p=1, np_local
-            ! Velocities at next 1/2-step to synch with P.E.
-            uh(1:3) = particles(p)%data%v(1:3) + dt*particles(p)%data%q * particles(p)%results%e(1:3) / particles(p)%data%m / 2.
+            ! Velocities at prev. 1/2-step to synch with P.E.
+            select case(integrator_scheme)
+
+              case(INTEGRATOR_SCHEME_NVT)
+                if (particles(p)%data%q < 0.) then
+                    uh(1:3) = betae*(particles(p)%data%v(1:3) - dt*particles(p)%data%q * particles(p)%results%e(1:3) / particles(p)%data%m / 2.)
+                elseif (particles(p)%data%q > 0.) then
+                    uh(1:3) = betai*(particles(p)%data%v(1:3) - dt*particles(p)%data%q * particles(p)%results%e(1:3) / particles(p)%data%m / 2.)
+                endif
+                
+              case (INTEGRATOR_SCHEME_NVE_IONS_FROZEN)
+                ! unconstrained motion for negatively charged particles, frozen positively charged particles
+                if (particles(p)%data%q<0.) then
+                    uh(1:3) = particles(p)%data%v(1:3) - dt*particles(p)%data%q * particles(p)%results%e(1:3) / particles(p)%data%m / 2.
+                else
+                    uh(1:3) = 0.
+                endif
+                
+              case default
+                uh(1:3) = particles(p)%data%v(1:3) - dt*particles(p)%data%q * particles(p)%results%e(1:3) / particles(p)%data%m / 2.
+            end select
+            
             uh2   = dot_product(uh,uh)
             gamma = sqrt(1.0 + uh2/unit_c2)
 

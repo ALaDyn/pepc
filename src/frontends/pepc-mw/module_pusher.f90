@@ -207,7 +207,7 @@ module module_pusher
 
         delta_u = acmax*dt
 
-        pusher: select case(scheme)
+        pusher: select case(scheme)  ! be careful: there is another select-case block in module_energies::energy_kin()
 
             case(INTEGRATOR_SCHEME_NVT)
                 ! Conserve kinetic energies of electrons and ions (initial Te const)
