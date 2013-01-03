@@ -74,6 +74,8 @@ contains
         call energy_pot(epot)
 
         call energy_kin(ekine, ekini, tempe, tempi, totalmomentum)
+        vte = sqrt(3*unit_kB*tempe/mass_e)
+        vti = sqrt(3*unit_kB*tempi/mass_i)
 
         ! rescale total potential and kinetic energy by energy per particle
         ekine        = ekine        / ne

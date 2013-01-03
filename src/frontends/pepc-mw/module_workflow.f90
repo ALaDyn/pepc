@@ -54,23 +54,23 @@ module module_workflow
 
       contains
 
-		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		!>
-		!> Sets up/modifies configuration according to current simulation time
-		!> by calling different
-		!> workflows are defined via workflow_setup variable
-		!>
-		!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		subroutine workflow(my_rank, itime, trun, dt, workflow_step)
-		  use physvars, only: workflow_setup
-		  implicit none
-		  integer, intent(in) :: my_rank, itime, workflow_step
-		  real*8, intent(in) :: trun, dt
-		  character(150) :: setup_name
-		  integer :: stage = -1
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!>
+	!> Sets up/modifies configuration according to current simulation time
+	!> by calling different
+	!> workflows are defined via workflow_setup variable
+	!>
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	subroutine workflow(my_rank, itime, trun, dt, workflow_step)
+	  use physvars, only: workflow_setup
+	  implicit none
+	  integer, intent(in) :: my_rank, itime, workflow_step
+	  real*8, intent(in) :: trun, dt
+	  character(200) :: setup_name
+	  integer :: stage = -1
 
-		  select case(workflow_setup)
-		    case(0) ! no time variation
+	  select case(workflow_setup)
+	    case(0) ! no time variation
               setup_name = 'no time variation'
 
             case(1) ! temperature rescaling incl drift after every full laser cycle
@@ -85,7 +85,16 @@ module module_workflow
               setup_name = '[J. Phys. A: Math. Theor 42 (2009), 214048] Th. Raitza et al: Collision frequency of electrons in laser excited small clusters'
               call workflow_JPhysA_42_214048(itime, trun, dt, workflow_step, stage)
 
-		  end select
+            case(4) ! [PRE 71, 056408 (2005)] P. Hilse et al: Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation.
+              setup_name = '[PRE 71, 056408 (2005)] P. Hilse et al: Collisional absorption of dense plasmas in strong laser fields: quantum statistical results and simulation; Fixed vo/vte'
+              call workflow_PRE_71_056408_fixed_v0_vte(itime, trun, dt, workflow_step, stage)
+
+            case(5) ! [PRE 57, 4698 (1998)] Pfalzner & Gibbon: Direct calculation of inverse-bremsstrahlung absoprtion...
+                    ! similar to [PRE 71, 056408 (2005)] but with permanent temperature rescaling
+              setup_name = '[PRE 57, 4698 (1998)] Pfalzner & Gibbon: Direct calculation of inverse-bremsstrahlung absoprtion...'
+              call workflow_PRE_57_4698(itime, trun, dt, workflow_step, stage)
+
+	  end select
 
           if (my_rank == 0) write( *,'(/"-- WORKFLOW --"/a20,i8," ", a/a20,i8/)') 'workflow_setup = ', workflow_setup, setup_name, 'stage = ', stage
 
@@ -192,6 +201,120 @@ module module_workflow
 
 
         end subroutine workflow_PRE_71_056408
+
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Workflow from [PRE 71, 056408 (2005)]
+        !> Hilse et al.:
+        !> Collisional absorption of dense plasmas in strong laser
+        !> fields: Quantum statistical results and simulation
+        !>
+        !> Additionally, v0/vte is kept at its initial value by adjusting 
+        !> the laser intensity accordingly
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine workflow_PRE_71_056408_fixed_v0_vte(itime, trun, dt, workflow_step, stage)
+          use module_laser
+          use module_pusher
+          use module_units
+          use module_interaction_specific, only : kelbg_invsqrttemp
+          use physvars, only : mass_e, mass_i, qe, tempe, tempi
+          use physvars, only : vte
+          implicit none
+          integer, intent(in) :: itime, workflow_step
+          real*8, intent(in) :: trun, dt
+          integer, intent(out) :: stage
+
+          call workflow_PRE_71_056408(itime, trun, dt, workflow_step, stage)
+          
+          if (stage == 4) then
+            vosc = vosc_vte * vte
+            E0   = vosc*mass_e*omega/abs(qe)
+            I0_Wpercm2 = (unit_epsilon0 * unit_c * E0**2 / 2. ) * unit_P0_in_W / (100*unit_abohr_in_m)**2
+
+            call laser_setup()
+          endif
+
+        end subroutine workflow_PRE_71_056408_fixed_v0_vte
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Workflow from [PRE 57, 4698 (1998)]
+        !> Pfalzner & Gibbon:
+        !> Direct calculation of inverse-bremsstrahlung absorption in ...
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine workflow_PRE_57_4698(itime, trun, dt, workflow_step, stage)
+          use module_laser
+          use module_pusher
+          use module_units
+          use module_interaction_specific, only : kelbg_invsqrttemp
+          use physvars, only : Te
+          implicit none
+          integer, intent(in) :: itime, workflow_step
+          real*8, intent(in) :: trun, dt
+          integer, intent(out) :: stage
+          logical, save :: firstcall = .true.
+          integer, save :: origbeamconfig
+
+          real*8 :: time_fs
+
+          if (firstcall) then
+            firstcall = .false.
+            origbeamconfig = beam_config_in
+          endif
+
+          time_fs = trun*unit_t0_in_fs
+
+          select case (workflow_step)
+
+            case (WORKFLOW_STEP_PRE)
+
+              if      (time_fs <= 1.25) then        ! phase of 'establishment of correlations':
+                beam_config_in = 0                   ! relaxation (not into equilibrium due to large ion mass)
+                call laser_setup()                   ! ==> 2-temp. plasma
+                integrator_scheme = INTEGRATOR_SCHEME_NVE
+                stage = 1
+
+                ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
+                ! to avoid problems due to invalid rescaling in next stage
+                kelbg_invsqrttemp = 1._8/sqrt(Te)
+
+              elseif (time_fs <= 2.25) then        ! 'thermalization':
+                beam_config_in = 0                   ! velocity rescaling ==> coupling to heat bath
+                call laser_setup()
+                integrator_scheme = INTEGRATOR_SCHEME_NVT
+                enable_drift_elimination = .true.
+                stage = 2
+
+                ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
+                ! to avoid problems due to invalid rescaling in this stage
+                kelbg_invsqrttemp = 1._8/sqrt(Te)
+
+              elseif (time_fs <= 3.50) then        ! we still keep the heat bath on and will later measure the amount of removed energy during laser heating
+                beam_config_in = 0                   ! (pot. and kin. energy constant)
+                call laser_setup()
+                integrator_scheme = INTEGRATOR_SCHEME_NVT
+                enable_drift_elimination = .false.
+                stage = 3
+
+              else                                 ! laser switched on
+                beam_config_in = origbeamconfig
+                call laser_setup()
+                integrator_scheme = INTEGRATOR_SCHEME_NVT
+                stage = 4
+
+              endif
+
+          case (WORKFLOW_STEP_POST)
+            ! no special diagnostics here
+          end select
+
+
+        end subroutine workflow_PRE_57_4698
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

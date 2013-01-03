@@ -35,7 +35,7 @@ module module_namelist
        ispecial, rhoe_nm3, Zion, Aion, Te_eV, Ti_eV, Te_K, Ti_K, rngseed, particle_shift, periodicity_nearest_image, &   ! experimental setup
        workflow_setup, &                                             ! workflow
        integrator_scheme, enable_drift_elimination, &                ! pusher configuration
-       beam_config_in, vosc,omega, sigma, t_pulse_fs, theta_inc, rho_track, omega_wpl, I0_Wpercm2, lambda_nm, t_laser, & ! laser config
+       beam_config_in, vosc,omega, sigma, t_pulse_fs, theta_inc, rho_track, omega_wpl, I0_Wpercm2, lambda_nm, t_laser, vosc_vte, & ! laser config
        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction, &            ! periodicity config
        field_dump_ncells, ngx, ngy, ngz, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi     ! diagnostics config
 

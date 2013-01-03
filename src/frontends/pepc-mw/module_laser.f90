@@ -73,6 +73,7 @@ module module_laser
     real*8, public :: I0_Wpercm2 = 0.   !< initial intensity in W/cm^2
     real*8, public :: E0 = 0.   !< laser field strength amplitude
     real*8, public :: vosc      =  0.1    !< pump strength
+    real*8, public :: vosc_vte  =  0.0    !< relative pump strength
 
     real*8, public :: I_laser           !< Laser intensity (= amplitude**2), updated by each call to laser_update()
     real*8, public :: E_laser           !< Laser amplitude (= intensity**1/2), updated by each call to laser_update()

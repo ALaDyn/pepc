@@ -344,6 +344,7 @@ module module_param_dump
       use module_io
       use module_laser
       use module_units
+      use physvars, only : vte
       implicit none
       integer :: ifile
 
@@ -358,6 +359,8 @@ module module_param_dump
         call WriteParameter(ifile, "Laser amplitude (max)", E_laser)
         call WriteParameter(ifile, "Laser amplitude (cur)", E_laser * sin(omega*t_laser))
         call WriteParameter(ifile, "Laser intensity", I_laser)
+        call WriteParameter(ifile, "vosc (abohr/t0)", 1._8*vosc)
+        call WriteParameter(ifile, "vosc / vtherm_e", vosc/vte)
         call WriteParameter(ifile, "x_crit",            x_crit)
         call WriteParameter(ifile, "spot size",         sigma)
         call WriteParameter(ifile, "theta",             theta_beam)
