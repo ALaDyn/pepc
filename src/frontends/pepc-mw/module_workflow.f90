@@ -191,6 +191,7 @@ module module_workflow
                 beam_config_in = origbeamconfig
                 call laser_setup()
                 integrator_scheme = INTEGRATOR_SCHEME_NVE
+                enable_drift_elimination = .false.
                 stage = 4
 
               endif
@@ -297,14 +298,14 @@ module module_workflow
               elseif (time_fs <= 3.50) then        ! we still keep the heat bath on and will later measure the amount of removed energy during laser heating
                 beam_config_in = 0                   ! (pot. and kin. energy constant)
                 call laser_setup()
-                integrator_scheme = INTEGRATOR_SCHEME_NVT
+                integrator_scheme = INTEGRATOR_SCHEME_NVE
                 enable_drift_elimination = .false.
                 stage = 3
 
               else                                 ! laser switched on
                 beam_config_in = origbeamconfig
                 call laser_setup()
-                integrator_scheme = INTEGRATOR_SCHEME_NVT
+                integrator_scheme = INTEGRATOR_SCHEME_NVT_NOSE_HOOVER
                 stage = 4
 
               endif

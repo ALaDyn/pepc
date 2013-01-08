@@ -166,6 +166,10 @@ subroutine pepcmw_prepare()
   endif
 
   trun = itime * dt
+  
+  tau_temp_relaxation = tau_temp_relaxation*dt
+  if (nose_hoover_Q_e < 0) nose_Hoover_Q_e = tau_temp_relaxation*tau_temp_relaxation*3./2.*ne*unit_kB*Te
+  if (nose_hoover_Q_i < 0) nose_Hoover_Q_i = tau_temp_relaxation*tau_temp_relaxation*3./2.*ni*unit_kB*Ti
 
 
 end subroutine pepcmw_prepare
