@@ -17,23 +17,6 @@ MODULE diagnostics
 
 !===============================================================================
 
-    subroutine write_wallpotential(p)
-
-        implicit none 
-
-        type(t_particle), allocatable, intent(in) :: p(:)
-        integer                                   :: n,ip
-
-        n=size(p)
-
-        DO ip=1,n
-            IF (p(ip)%label<0) THEN                  !only wall particles            
-                write(my_rank,'(i8,4es8.2)')p(ip)%label,p(ip)%x,p(ip)%results%pot
-            END IF
-        END DO 
-
-    end subroutine 
-
 
 !===============================================================================
 
@@ -42,7 +25,7 @@ MODULE diagnostics
         implicit none 
 
         type(t_particle), allocatable, intent(in) :: p(:)
-        integer                                   :: n,ip
+        integer                                     :: n,ip
 
         n=size(p)
 

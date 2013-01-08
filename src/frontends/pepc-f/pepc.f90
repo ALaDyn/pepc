@@ -44,7 +44,9 @@ program pepc
     include 'mpif.h'
 
     ! timing variables
-    real*8 :: timer(10)
+    real*8 :: timer(20)
+    real*8 :: davor,danach
+    integer :: j
 
     !!! initialize pepc library and MPI
     call pepc_initialize("pepc-f", my_rank, n_ranks, .true.)
@@ -60,6 +62,8 @@ program pepc
     timer(1) = get_time()
 
     call read_args()
+
+    call init_files()
 
     if (do_resume)then
         call init_after_resume()
@@ -97,29 +101,48 @@ program pepc
 
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
+    if(root) write(*,*)""
+
 
     !MAIN LOOP ====================================================================================================
     DO step=startstep+1, nt+startstep
         timer(3) = get_time()
 
+
         ! Move particles according to electric field configuration
         call boris_nonrel(particles)
         timer(4) = get_time()
+
 
         ! Remove particles that left the simulation domain and reflux particles
         call hits_on_boundaries(particles)
         timer(5) = get_time()
 
-        !pepc routines and timing
+
+        !pepc routines and timing"        
         call pepc_particleresults_clear(particles, np)
+        if(root) write(*,'(a)') " == [main loop] grow tree"
         call pepc_grow_tree(np, tnp, particles)
+        timer(6)=get_time() !6-5: grow_tree
+
+        !davor=get_time()
+        !call sort_particles(particles)
+        !danach=get_time()
+        !if(root) write(out,'(a,es16.8)') " == time in other sorting routine [s]    : ", danach-davor
+
+
+        if(root) write(*,'(a)') " == [main loop] traverse tree"
         call pepc_traverse_tree(np, particles)
+        timer(7)=get_time() !7-6: traverse_tree
+
         if (diags) call pepc_tree_diagnostics()
         if (do_restore_particles) call pepc_restore_particles(np, particles)
         if (interaction_partner_diags) call get_interaction_partners(5)
+        if(root) write(*,'(a)') " == [main loop] timber tree"
         call pepc_timber_tree()
         if (diags) call timings_GatherAndOutput(step)
-        timer(6)=get_time()
+        timer(8)=get_time() !8-7: timber+diag
+
 
         !diagnostics and checkpoints (positions and fields after current timestep)
         if(checkp_interval.ne.0) then
@@ -132,37 +155,43 @@ program pepc
                 call write_particles(particles)
             end if
         end if
-        timer(7)=get_time()
+        timer(9)=get_time()
+
+
 
         !output for root
         if(root) then
             write(*,*) " "
             write(*,'(a,i12)')    " ====== finished computing step  : ", step
-            write(*,'(a,es12.4)') " == time in integrator [s]       : ", timer(4) - timer(3)
-            write(*,'(a,es12.4)') " == time in particlehandling [s] : ", timer(5) - timer(4)
-            write(*,'(a,es12.4)') " == time in pepc routines [s]    : ", timer(6) - timer(5)
-            write(*,'(a,es12.4)') " == time in output routines [s]  : ", timer(7) - timer(6)
             write(*,'(a,es12.4)') " ====== simulation time          : ", step * dt
             write(*,'(a,es12.4)') " ====== run time                 : ", timer(3)-timer(1)
             write(*,*) " "
-            write(*,*) " ================================================================================== "
-            write(*,*) " ================================================================================== "
+            write(*,'(a)') " ================================================================================== "
             write(*,*) " "
             write(*,*) " "
+            call timing_output(timer(4) - timer(3),timer(5) - timer(4),timer(6) - timer(5),timer(7) - timer(6),timer(8) - timer(7),timer(9) - timer(8),out)
+            call end_of_ts_output(step,out)
+
         end if
+
+        if (MOD(step-startstep,10)==0) call flush_files()
 
 
     end do
     !END OF MAIN LOOP ====================================================================================================
 
     deallocate(particles)
-    timer(8) = get_time()
+    deallocate(wall_particles)
+    deallocate(plasma_particles)
+    timer(10) = get_time()
 
     if(root) then
         write(*,*)            " "
         write(*,'(a)')        " ===== finished pepc simulation"
-        write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(8) - timer(1)
+        write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(10) - timer(1)
     end if
+
+    call close_files()
 
     !!! cleanup pepc and MPI
     call pepc_finalize()

@@ -33,6 +33,11 @@ module variables
   logical :: root
   integer :: ierr
 
+  ! filehandles
+  integer :: out=199
+  integer :: timing_out=200
+  integer :: recycling_out=201
+
   ! time variables
   real*8 :: dt
   integer :: step,startstep
@@ -94,6 +99,7 @@ module variables
   !variables for reflux in every 2nd timestep
   integer                        :: new_e_r_last_ts=0
   integer                        :: new_i_r_last_ts=0
+  integer                        :: last_reflux_step=0
   logical                        :: need_to_reflux=.false.
 
   !wall particles

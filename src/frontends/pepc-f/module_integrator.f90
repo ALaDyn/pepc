@@ -24,6 +24,8 @@ MODULE integrator
         integer               :: ip
 
 
+        if(root) write(*,'(a)') " == [boris_nonrel] calculate velocities "
+
         IF (step==0) THEN
             fact=dt/2.0
         ELSE

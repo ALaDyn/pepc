@@ -2,236 +2,10 @@ module particlehandling
 
     use module_pepc_types
     use helper
+    use output
     implicit none
 
     contains
-
-!================================== hits_on_boundaries ========================================================
-!hits_on_boundaries identifies the particles that hit the target or that left the simulation domain at 
-!x(1)==0 (source)
-!those particles are placed in the plasma again, according to the chosen source distribution
-!the total charge that hit the target is also determined and the wall is charged
-! Christian Salmagne 15.05.2012
-
-    subroutine hits_on_boundaries_with_open_sides(p)
-        implicit none
-        include 'mpif.h'
-
-        type(t_particle), allocatable, intent(inout) :: p(:)
-        type(t_particle), allocatable                :: p_new_e(:)
-        type(t_particle), allocatable                :: p_new_i(:)
-
-        integer :: ip, rp, rc, local_ihits,global_ihits,local_ehits,global_ehits
-        integer :: local_ihits_side, local_ehits_side, global_ihits_side, global_ehits_side
-        integer :: local_ihits_src,global_ihits_src,local_ehits_src,global_ehits_src
-        real*8 :: local_q, global_q,local_wall_q,global_wall_q                             !q transfered on target on local proc and total in this timestep, total q on wall at this moment
-        integer :: new_e,new_i,new_e_global,new_i_global
-        
-        local_q=0.0_8
-        global_q=0.0_8
-        local_wall_q=0.0_8
-        global_wall_q=0.0_8
-        local_ihits=0
-        global_ihits=0
-        local_ehits=0
-        global_ehits=0
-        local_ihits_src=0
-        global_ihits_src=0
-        local_ehits_src=0
-        global_ehits_src=0
-        local_ihits_side=0
-        global_ihits_side=0
-        local_ehits_side=0
-        global_ehits_side=0
-
-        rp = 1
-        DO WHILE (rp <= np)
-            IF( hit_r(p(rp)) ) THEN                     !hit target
-                if (p(rp)%data%q > 0.) local_ihits=local_ihits+1
-                if (p(rp)%data%q < 0.) local_ehits=local_ehits+1
-                local_q=local_q+p(rp)%data%q
-                IF(rp .ne. np) THEN
-                    DO
-                        IF ( hit_r(p(np)) .or. hit_l(p(np)).or. hit_side(p(np)) ) THEN !third condition for open walls
-                            IF (np==rp) EXIT
-                            IF ( hit_r(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits=local_ihits+1  
-                                IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
-                                local_q=local_q+p(np)%data%q
-                            ELSE IF ( hit_l(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1  
-                                IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1 
-                            ! new part for open walls
-                            ELSE IF ( hit_side(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits_side=local_ihits_side+1
-                                IF (p(np)%data%q < 0.) local_ehits_side=local_ehits_side+1
-                            ! end of new part
-                            END IF
-                            np = np - 1
-                        ELSE
-                            p(rp) = p(np)
-                            EXIT
-                        END IF
-                    END DO
-                END IF
-
-                np = np - 1
-            ELSE IF( hit_l(p(rp)) ) THEN               !hit source wall
-                if (p(rp)%data%q > 0.) local_ihits_src=local_ihits_src+1
-                if (p(rp)%data%q < 0.) local_ehits_src=local_ehits_src+1
-                IF(rp .ne. np) THEN
-                    DO
-                        IF ( hit_r(p(np)) .or. hit_l(p(np)).or. hit_side(p(np)) ) THEN !third condition for open walls
-                            IF (np==rp) EXIT
-                            IF ( hit_r(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits=local_ihits+1  
-                                IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
-                                local_q=local_q+p(np)%data%q
-                            ELSE IF ( hit_l(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1  
-                                IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1
-                            ! new part for open walls
-                            ELSE IF ( hit_side(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits_side=local_ihits_side+1
-                                IF (p(np)%data%q < 0.) local_ehits_side=local_ehits_side+1
-                            ! end of new part
-                            END IF
-                            np = np - 1
-                        ELSE
-                            p(rp) = p(np)
-                            EXIT
-                        END IF
-                    END DO
-                END IF
-
-                np = np - 1
-
-            !open walls, if particles hit side walls, they are gone and will be recreated
-            ELSE IF (hit_side(p(rp))) THEN
-                if (p(rp)%data%q > 0.) local_ihits_side=local_ihits_side+1
-                if (p(rp)%data%q < 0.) local_ehits_side=local_ehits_side+1
-                IF(rp .ne. np) THEN
-                    DO
-                        IF ( hit_r(p(np)) .or. hit_l(p(np)) .or. hit_side(p(np)) ) THEN
-                            IF (np==rp) EXIT
-                            IF ( hit_r(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits=local_ihits+1
-                                IF (p(np)%data%q < 0.) local_ehits=local_ehits+1
-                                local_q=local_q+p(np)%data%q
-                            ELSE IF ( hit_l(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits_src=local_ihits_src+1
-                                IF (p(np)%data%q < 0.) local_ehits_src=local_ehits_src+1
-                            ELSE IF ( hit_side(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) local_ihits_side=local_ihits_side+1
-                                IF (p(np)%data%q < 0.) local_ehits_side=local_ehits_side+1
-                            END IF
-                            np = np - 1
-                        ELSE
-                            p(rp) = p(np)
-                            EXIT
-                        END IF
-                    END DO
-                END IF
-
-                np = np - 1
-            END IF
-
-            rp = rp + 1
-      
-        END DO
-
-        call MPI_ALLREDUCE(local_ehits, global_ehits, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(local_ihits, global_ihits, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(local_ehits_src, global_ehits_src, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(local_ihits_src, global_ihits_src, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(local_ehits_side, global_ehits_side, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(local_ihits_side, global_ihits_side, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-       
-        local_q = (local_ihits-local_ehits)*e*fsup
-        global_q = (global_ihits-global_ehits)*e*fsup
-
-        new_e_global = global_ehits + global_ehits_src + global_ehits_side
-        new_i_global = global_ihits + global_ihits_src + global_ihits_side
-
-        new_e = new_e_global / n_ranks
-        new_i = new_i_global / n_ranks
-        if (my_rank .eq. (n_ranks-1)) then
-            new_e = new_e + MOD(new_e_global, n_ranks)
-            new_i = new_i + MOD(new_i_global, n_ranks)
-        end if
-
-        next_label = next_label + my_rank * (new_e_global/n_ranks + new_i_global/n_ranks) 
-
-        allocate(p_new_e(new_e),stat=rc)
-        allocate(p_new_i(new_i),stat=rc)
-
-        call reallocate_particles(particles,np, np+new_e+new_i)
-      
-        DO ip=1, new_e   !electrons first
-            p_new_e(ip)%label       = next_label
-            next_label        = next_label + 1
-            p_new_e(ip)%data%q      = -e*fsup
-            p_new_e(ip)%data%m      = me*fsup
-
-            p_new_e(ip)%results%e   = 0.0_8
-            p_new_e(ip)%results%pot = 0.0_8
-            p_new_e(ip)%work        = 1.0_8
-            p_new_e(ip)%data%species= -1
-
-            p_new_e(ip)%data%B(1)=Bx
-            p_new_e(ip)%data%B(2)=By
-            p_new_e(ip)%data%B(3)=Bz
-        END DO
-        call source(p_new_e,quelltyp)
-
-        DO ip=1, new_i   !ions
-            p_new_i(ip)%label       = next_label
-            next_label        = next_label + 1  
-            p_new_i(ip)%data%q      = e*fsup
-            p_new_i(ip)%data%m      = mp*fsup
-
-            p_new_i(ip)%results%e   = 0.0_8
-            p_new_i(ip)%results%pot = 0.0_8
-            p_new_i(ip)%work        = 1.0_8
-            p_new_i(ip)%data%species= 1
-
-            p_new_i(ip)%data%B(1)=Bx
-            p_new_i(ip)%data%B(2)=By
-            p_new_i(ip)%data%B(3)=Bz
-        END DO
-        call source(p_new_i,quelltyp)
- 
-
-        p(np+1:np+new_e)=p_new_e(:)
-        p(np+new_e+1:np+new_e+new_i)=p_new_i(:)
-        np = np + new_e + new_i
-
-        call MPI_ALLREDUCE(np, tnp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
-
-        deallocate(p_new_e)
-        deallocate(p_new_i)
-
-        DO ip=1, np                                         ! charge wall by adding charge to the wall particles
-            IF (p(ip)%label<0) THEN                           ! wall particles have negative labels
-                p(ip)%data%q = p(ip)%data%q + global_q/tnwp   
-                local_wall_q=local_wall_q+p(ip)%data%q
-            END IF
-        END DO
-        call MPI_ALLREDUCE(local_wall_q, global_wall_q, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        
-        if(root) open(unit=99,file='current_on_wall.dat',status='UNKNOWN',position='APPEND')   
-        if(root) write(99,*)global_ehits_src,",",global_ihits_src,",",global_ehits,",",global_ihits,",",global_q,",",global_wall_q
-        if(root)close(99)
-        if(root) write(*,'(a,i12)')    " == [filter] total number of particles            : ", tnp
-        if(root) write(*,'(a,i12)')    " == [target_hits] number of ion hits              : ", global_ihits
-        if(root) write(*,'(a,i12)')    " == [target_hits] number of electron hits         : ", global_ehits
-        if(root) write(*,'(a,i12)')    " == [source_hits] number of ion hits              : ", global_ihits_src
-        if(root) write(*,'(a,i12)')    " == [source_hits] number of electron hits         : ", global_ehits_src
-        if(root) write(*,'(a,i12)')    " == [side_hits] number of ion hits                : ", global_ihits_side
-        if(root) write(*,'(a,i12)')    " == [side_hits] number of electron hits           : ", global_ehits_side
-
-    END SUBROUTINE
 
 !======================================================================================
     SUBROUTINE count_hits_and_remove_particles(p,e_hits_l, e_hits_r, i_hits_l, i_hits_r)
@@ -337,16 +111,10 @@ module particlehandling
             call reflux_particles(p,new_e_l,new_i_l)
             call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
 
-            !if (MOD(step-startstep,2)==0) then
             if (.not. need_to_reflux) then
-                new_e_r_last_ts=e_hits_r
-                new_i_r_last_ts=i_hits_r
-                need_to_reflux=.true.
+                new_e_r_last_ts=new_e_r_last_ts+e_hits_r
+                new_i_r_last_ts=new_i_r_last_ts+i_hits_r
 
-                if(root) write(*,'(a,i12)')    " == [reflux] ions                             : ", i_hits_l
-                if(root) write(*,'(a,i12)')    " == [reflux] electrons                        : ", e_hits_l
-
-            !else if (MOD(step-startstep,2)==1) then
             else
                 new_e_r = (e_hits_r+new_e_r_last_ts) / n_ranks
                 new_i_r = (i_hits_r+new_i_r_last_ts) / n_ranks
@@ -361,22 +129,8 @@ module particlehandling
                 call reflux_particles(p,new_e_r,new_i_r)
                 call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
 
-                if(root) write(*,'(a,i12)')    " == [reflux] ions                             : ", i_hits_l+i_hits_r+new_i_r_last_ts
-                if(root) write(*,'(a,i12)')    " == [reflux] electrons                        : ", e_hits_l+e_hits_r+new_e_r_last_ts
-
                 new_i_r_last_ts=0
                 new_e_r_last_ts=0
-                need_to_reflux=.false.
-                if(checkp_interval.ne.0) then
-                    if ((MOD(step+1,checkp_interval)==0).or.(step+1==nt+startstep)) then
-                        need_to_reflux=.true.
-                    end if
-                end if
-                if(diag_interval.ne.0) then
-                    if ((MOD(step+1,diag_interval)==0).or.(step+1==nt+startstep)) THEN
-                        need_to_reflux=.true.
-                    end if
-                end if
 
             end if
         else
@@ -405,9 +159,6 @@ module particlehandling
 
             call reflux_particles(p,new_e,new_i)
             call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
-
-            if(root) write(*,'(a,i12)')    " == [reflux] ions                             : ", i_hits_l+tfpp/2
-            if(root) write(*,'(a,i12)')    " == [reflux] electrons                        : ", e_hits_l+tfpp/2
 
         end if
     END SUBROUTINE recycling
@@ -519,6 +270,33 @@ module particlehandling
         call MPI_ALLREDUCE(q_l_loc, q_l, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 
     END SUBROUTINE get_total_wall_charge
+
+!======================================================================================
+    SUBROUTINE set_need_to_reflux()
+
+        implicit none
+
+        need_to_reflux=.false.
+
+        if (MOD(step-last_reflux_step,1)==0)then
+            need_to_reflux=.true.
+            last_reflux_step=step
+        end if
+
+        if(checkp_interval.ne.0) then
+            if ((MOD(step,checkp_interval)==0).or.(step==nt+startstep)) then
+                need_to_reflux=.true.
+                last_reflux_step=step
+            end if
+        end if
+        if(diag_interval.ne.0) then
+            if ((MOD(step,diag_interval)==0).or.(step==nt+startstep)) THEN
+                need_to_reflux=.true.
+                last_reflux_step=step
+            end if
+        end if
+
+    END SUBROUTINE set_need_to_reflux
 !======================================================================================
 
     subroutine hits_on_boundaries(p)
@@ -529,14 +307,12 @@ module particlehandling
 
         integer      :: ip,rc
         real(kind=8) :: dq_r_glob,dq_l_glob
-        real(kind=8) :: q_r_loc,q_r_glob,q_l_loc,q_l_glob
+        real(kind=8) :: q_r_glob,q_l_glob
         integer      :: e_hits_r_loc,e_hits_r_glob,e_hits_l_loc,e_hits_l_glob
         integer      :: i_hits_r_loc,i_hits_r_glob,i_hits_l_loc,i_hits_l_glob
 
         dq_r_glob=0.0_8
         dq_l_glob=0.0_8
-        q_r_loc=0.0_8
-        q_l_loc=0.0_8
         q_r_glob=0.0_8
         q_l_glob=0.0_8
         e_hits_r_loc=0
@@ -548,7 +324,9 @@ module particlehandling
         i_hits_r_glob=0
         i_hits_l_glob=0
 
+        if(root) write(*,'(a)') " == [hits_on_boundaries] count hits and recycle "
 
+        if (fixed_npp) call set_need_to_reflux()
         call count_hits_and_remove_particles(p,e_hits_l_loc, e_hits_r_loc, i_hits_l_loc, i_hits_r_loc)
 
         call MPI_ALLREDUCE(i_hits_l_loc, i_hits_l_glob, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
@@ -566,14 +344,7 @@ module particlehandling
         call MPI_ALLREDUCE(np, tnp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         tnpp=tnp-tnwp
 
-        if(root) open(unit=99,file='current_on_wall.dat',status='UNKNOWN',position='APPEND')
-        if(root) write(99,'(i6,a,i6,a,i6,a,i6,a,es12.4,a,es12.4)')e_hits_l_glob,",",i_hits_l_glob,",",e_hits_r_glob,",",i_hits_r_glob,",",dq_r_glob,",",q_r_glob
-        if(root)close(99)
-        if(root) write(*,'(a,i12)')    " == [target_hits] ion hits on right wall      : ", i_hits_r_glob
-        if(root) write(*,'(a,i12)')    " == [target_hits] electron hits on right wall : ", e_hits_r_glob
-        if(root) write(*,'(a,i12)')    " == [source_hits] ion hits on left wall       : ", i_hits_l_glob
-        if(root) write(*,'(a,i12)')    " == [source_hits] electron hits on left wall  : ", e_hits_l_glob
-        if(root) write(*,'(a,i12)')    " == [filter] total number of particles        : ", tnp
+        call recycling_output(i_hits_r_glob,e_hits_r_glob,i_hits_l_glob,e_hits_l_glob,q_r_glob,q_l_glob,out)
 
     END SUBROUTINE
 

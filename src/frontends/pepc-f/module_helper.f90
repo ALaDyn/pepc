@@ -33,6 +33,35 @@ module helper
   contains
 
 !======================================================================================
+  subroutine init_files()
+      implicit none
+
+      !if(root) open(unit=timing_out,file='timing.out',status='UNKNOWN',position='APPEND')
+      !if(root) open(unit=recycling_out,file='recycling.out',status='UNKNOWN',position='APPEND')
+      if(root) open(unit=out,file='pepcf.out',status='UNKNOWN',position='APPEND')
+
+  end subroutine init_files
+
+!======================================================================================
+  subroutine close_files()
+      implicit none
+
+      !if(root) close(timing_out)
+      !if(root) close(recycling_out)
+      if(root) close(out)
+
+  end subroutine close_files
+
+!======================================================================================
+  subroutine flush_files()
+      implicit none
+
+      call close_files()
+      call init_files()
+
+  end subroutine flush_files
+
+!======================================================================================
   subroutine set_default_parameters()
       implicit none
 
@@ -148,9 +177,9 @@ module helper
       write(*,'(a,es12.4)') " == superparticle factor             : ", fsup
       if (fixed_npp) write(*,'(a,es12.4)') " == particles / debye spehere        : ", 0.5*tnpp/(dx*dy*dz)*l_debye**3
       write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
-      write(*,'(a,l)')      " == open side walls                  : ", open_sides
-      write(*,'(a,l)')      " == far_field_if_periodic            : ", include_far_field_if_periodic
-      write(*,'(a,l)')      " == do_restore_particles             : ", do_restore_particles
+      write(*,'(a,l6)')     " == open side walls                  : ", open_sides
+      write(*,'(a,l6)')     " == far_field_if_periodic            : ", include_far_field_if_periodic
+      write(*,'(a,l6)')     " == do_restore_particles             : ", do_restore_particles
       write(*,'(a,i12)')    " == mirror_layers                    : ", mirror_layers
       write(*,*)
       write(*,*) "========== Magnetic Field ========="
@@ -290,6 +319,10 @@ module helper
             npp=npp+1
         END IF
     END DO
+
+    allocate(wall_particles(nwp))
+    allocate(plasma_particles(npp))
+
     call MPI_ALLREDUCE(nwp, tnwp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
     call MPI_ALLREDUCE(npp, tnpp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
@@ -367,11 +400,8 @@ module helper
 
         endif
 
-        if (root) write(*,*)
-        if (root) write(*,*)"====================================================="
-        if (root) write(*,'(a,i6)')" Writing particle data: checkpoint at timestep",step
-        if (root) write(*,*)"====================================================="
-        if (root) write(*,*)
+        if(root) write(*,'(a,i6)') " == [set_checkpoint] checkpoint at timestep",step
+
     end subroutine
 
 
@@ -463,6 +493,33 @@ module helper
     allocate(list(newn))
     list(1:oldn) = tmp_p
   
+  end subroutine
+
+
+!======================================================================================
+!sortiert wallparticles nach hinten
+  subroutine sort_particles(p)
+    implicit none
+
+    type(t_particle), allocatable, intent(inout) :: p(:)
+    type(t_particle)                               :: p_help_vorn
+
+
+    integer :: i,iback
+
+    iback=np
+
+    DO i=1,np
+        if (p(i)%data%species == 0) then
+            p_help_vorn=p(i)
+            do while (p(iback)%data%species==0)
+                iback=iback-1
+            end do
+            if (iback<=i) exit
+            p(i)=p(iback)
+            p(iback)=p_help_vorn
+        end if
+    END DO
   end subroutine
 
 !=======================================================================================
