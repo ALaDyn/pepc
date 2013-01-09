@@ -333,7 +333,7 @@ module module_mirror_boxes
 
             lattice_coord = matmul(particles(p)%x-LatticeOrigin, LatticeInv)
 
-            if (any(lattice_coord > 1.D+0) .or. any(lattice_coord < 0.D+0)) then
+            if (any(((lattice_coord > 1.D+0) .or. (lattice_coord < 0.D+0)) .and. periodicity)) then
               DEBUG_WARNING_ALL('("Particle ", I0, " at coords", 3(X,G12.3), " lies outside the central box. Maybe, LatticeCenter or LatticeOrigin is wrong." )', p, particles(p)%x)
             end if
           end do

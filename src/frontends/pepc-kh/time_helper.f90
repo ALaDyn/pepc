@@ -118,7 +118,8 @@ contains
         ! charge/mass*time-constant
         beta   = p(ip)%data%q / (2. * p(ip)%data%m) * time_pars%dt
         ! first half step with electric field
-        uminus = p(ip)%data%v + beta * p(ip)%results%e
+        uminus(1:2) = p(ip)%data%v(1:2) + beta * p(ip)%results%e(1:2)
+        uminus(3)   = 0
         ! gamma factor
         !gam    = sqrt( 1.0 + ( dot_product(uminus, uminus) ) / unit_c2 )
         gam    = 1.0D0
@@ -128,7 +129,8 @@ contains
         s      = 2. * t / (1 + dot_product(t, t))
         uplus  = uminus + cross_product(uprime, s)
         ! second half step with electric field
-        p(ip)%data%v = uplus + beta * p(ip)%results%e
+        p(ip)%data%v(1:2) = uplus(1:2) + beta * p(ip)%results%e(1:2)
+        p(ip)%data%v(3)   = 0
 
         ! gam = sqrt(1.0D0 + dot_product(p(ip)%data%v * p(ip)%data%v) / unit_c2)
         gam = 1.0D0

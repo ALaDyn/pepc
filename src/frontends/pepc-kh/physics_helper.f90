@@ -140,8 +140,8 @@ contains
       type(physics_pars_t), intent(in) :: physics_pars
       type(t_particle), dimension(pepc_pars%npp), intent(inout) :: p
 
-      integer :: nx, ny, ipl, ipg, ix, iy, np, npp, mpi_rank, mpi_size, mpi_err
-      real(kind = 8) :: dx, dy, lx, ly, qi, qe, mi, me, vti, vte, xi, xgc, ygc, B0, rwce, rwci
+      integer :: nx, ny, ipl, ipg, ix, iy, np, npp, mpi_rank, mpi_size
+      real(kind = 8) :: dx, dy, lx, ly, qi, qe, mi, me, vti, vte, xgc, ygc, B0, rwce, rwci
 
       lx = physics_pars%l_plasma(1)
       ly = physics_pars%l_plasma(2)
@@ -216,6 +216,11 @@ contains
           p(ipl)%x(1) = xgc - p(ipl)%data%v(2) * rwci
           p(ipl)%x(2) = ygc + p(ipl)%data%v(1) * rwci
           p(ipl)%x(3) = 0.0D0
+
+          if (p(ipl)%x(1) < 0) then
+            p(ipl)%x(1) = -p(ipl)%x(1)
+            p(ipl)%data%v(2) = -p(ipl)%data%v(2)
+          end if
 
         end if
 

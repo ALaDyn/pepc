@@ -63,7 +63,7 @@ contains
         (field_grid%ntot / mpi_size)
 
       ix = mod(ipg - 1, field_grid%n(1)) + 1
-      iy = (ipg - 1) / field_grid%n(2) + 1
+      iy = (ipg - 1) / field_grid%n(1) + 1
 
       field_grid%p(ipl)%x(1) = (ix - 0.5D0) * field_grid%dx(1) + field_grid%offset(1)
       field_grid%p(ipl)%x(2) = (iy - 0.5D0) * field_grid%dx(2) + field_grid%offset(2)
@@ -157,7 +157,6 @@ contains
     call pepc_traverse_tree(int(field_grid%nl), field_grid%p)
     field_grid%p(:)%results%e(1) = field_grid%p(:)%results%e(1) * force_const
     field_grid%p(:)%results%e(2) = field_grid%p(:)%results%e(2) * force_const
-    field_grid%p(:)%results%e(3) = field_grid%p(:)%results%e(3) * force_const
     field_grid%p(:)%results%pot  = field_grid%p(:)%results%pot  * force_const
 
     field_grid%ne = 0.0D0

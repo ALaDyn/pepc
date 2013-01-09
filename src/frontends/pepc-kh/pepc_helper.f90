@@ -171,9 +171,13 @@ contains
     integer :: vtk_step
     real*8 :: time
     real*8 :: ta, tb
+    real*8, allocatable :: dummy_ez(:)
     
     ta = get_time()
     
+    allocate(dummy_ez(pepc_pars%npp))
+    dummy_ez = 0
+
     time = time_pars%dt * step
 
     if (step .eq. 0) then
@@ -193,7 +197,7 @@ contains
     call vtk%startpointdata()
     call vtk%write_data_array("velocity", pepc_pars%npp, p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
     call vtk%write_data_array("el_field", pepc_pars%npp, p(:)%results%e(1), \
-                              p(:)%results%e(2), p(:)%results%e(3))
+                              p(:)%results%e(2), dummy_ez)
     call vtk%write_data_array("el_pot", pepc_pars%npp, p(:)%results%pot)
     call vtk%write_data_array("charge", pepc_pars%npp, p(:)%data%q)
     call vtk%write_data_array("mass", pepc_pars%npp, p(:)%data%m)
@@ -205,6 +209,8 @@ contains
     call vtk%dont_write_cells()
     call vtk%write_final()
     call vtk%close()
+
+    deallocate(dummy_ez)
 
     tb = get_time()
 

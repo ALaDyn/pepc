@@ -19,11 +19,13 @@
 !
 
 program pepc
+  use, intrinsic :: iso_fortran_env
 
   ! pepc modules
    use module_pepc
    use module_pepc_types
    use module_timings
+   !use module_fmm_periodicity, only: fmm_framework_param_dump
   
    use encap
    use pepc_helper
@@ -80,6 +82,8 @@ program pepc
    call setup_physics(physics_pars, time_pars, p, pepc_pars)
    call setup_field_grid(field_grid, pepc_comm)
 
+   !call fmm_framework_param_dump(output_unit)
+
    call t_stop(timer_init)
 
    if (root) write(*,'(a,es12.4)') " == time in setup (s)                            : ", timer_init
@@ -112,7 +116,6 @@ program pepc
     call pepc_traverse_tree(pepc_pars%npp, p)
     p(:)%results%e(1) = p(:)%results%e(1) * force_const
     p(:)%results%e(2) = p(:)%results%e(2) * force_const
-    p(:)%results%e(3) = p(:)%results%e(3) * force_const
     p(:)%results%pot  = p(:)%results%pot  * force_const
 
     call apply_external_field()
