@@ -63,6 +63,7 @@ module module_workflow
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	subroutine workflow(my_rank, itime, trun, dt, workflow_step)
 	  use physvars, only: workflow_setup
+          use module_pusher
 	  implicit none
 	  integer, intent(in) :: my_rank, itime, workflow_step
 	  real*8, intent(in) :: trun, dt
@@ -91,8 +92,18 @@ module module_workflow
 
             case(5) ! [PRE 57, 4698 (1998)] Pfalzner & Gibbon: Direct calculation of inverse-bremsstrahlung absoprtion...
                     ! similar to [PRE 71, 056408 (2005)] but with permanent temperature rescaling
-              setup_name = '[PRE 57, 4698 (1998)] Pfalzner & Gibbon: Direct calculation of inverse-bremsstrahlung absoprtion...'
-              call workflow_PRE_57_4698(itime, trun, dt, workflow_step, stage)
+              setup_name = '[PRE 57, 4698 (1998)] Pfalzner & Gibbon: Direct calculation of inverse-bremsstrahlung absoprtion... with Nose-Hoover thermostat'
+              call workflow_PRE_57_4698_generic(itime, trun, dt, workflow_step, stage, INTEGRATOR_SCHEME_NVT_NOSE_HOOVER)
+
+            case(6) ! [PRE 57, 4698 (1998)] Pfalzner & Gibbon: Direct calculation of inverse-bremsstrahlung absoprtion...
+                    ! similar to [PRE 71, 056408 (2005)] but with permanent temperature rescaling
+              setup_name = '[PRE 57, 4698 (1998)] Pfalzner & Gibbon: Direct calculation of inverse-bremsstrahlung absoprtion... with Berendsen thermostat'
+              call workflow_PRE_57_4698_generic(itime, trun, dt, workflow_step, stage, INTEGRATOR_SCHEME_NVT_BERENDSEN)
+
+            case(7) ! [PRE 57, 4698 (1998)] Pfalzner & Gibbon: Direct calculation of inverse-bremsstrahlung absoprtion...
+                    ! similar to [PRE 71, 056408 (2005)] but with permanent temperature rescaling
+              setup_name = '[PRE 57, 4698 (1998)] Pfalzner & Gibbon: Direct calculation of inverse-bremsstrahlung absoprtion... with brute-force velocity scaling thermostat'
+              call workflow_PRE_57_4698_generic(itime, trun, dt, workflow_step, stage, INTEGRATOR_SCHEME_NVT)
 
 	  end select
 
@@ -247,8 +258,10 @@ module module_workflow
         !> Pfalzner & Gibbon:
         !> Direct calculation of inverse-bremsstrahlung absorption in ...
         !>
+        !> with possibility to choose thermostat during final simulation stage
+        !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine workflow_PRE_57_4698(itime, trun, dt, workflow_step, stage)
+        subroutine workflow_PRE_57_4698_generic(itime, trun, dt, workflow_step, stage, thermostat)
           use module_laser
           use module_pusher
           use module_units
@@ -258,6 +271,7 @@ module module_workflow
           integer, intent(in) :: itime, workflow_step
           real*8, intent(in) :: trun, dt
           integer, intent(out) :: stage
+          integer, intent(in) :: thermostat
           logical, save :: firstcall = .true.
           integer, save :: origbeamconfig
 
@@ -305,7 +319,7 @@ module module_workflow
               else                                 ! laser switched on
                 beam_config_in = origbeamconfig
                 call laser_setup()
-                integrator_scheme = INTEGRATOR_SCHEME_NVT_NOSE_HOOVER
+                integrator_scheme = thermostat
                 stage = 4
 
               endif
@@ -315,7 +329,7 @@ module module_workflow
           end select
 
 
-        end subroutine workflow_PRE_57_4698
+        end subroutine workflow_PRE_57_4698_generic
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

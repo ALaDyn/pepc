@@ -60,7 +60,7 @@ module module_pusher
     integer, public, parameter :: NH_VETA = 2
     integer, public, parameter :: NH_AETA = 3
     
-    real*8, public :: tau_temp_relaxation = 5.0
+    real*8, public :: tau_temp_relaxation = 5.0 !< temperature relaxation time in units of the (finally determined) simulation timestep dt
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -319,6 +319,8 @@ module module_pusher
                     write (*,*) ''
                 endif
 
+                call NVT_diagnostics(p_start, p_finish, Te_uncor, Ti_uncor)
+                
 !            case(INTEGRATOR_SCHEME_NVT_IONS_FROZEN)
 !
 !                ! electrons clamped, ions frozen
@@ -558,9 +560,6 @@ module module_pusher
                     endif
                 end do
                 
-                write(57, *) trun*unit_t0_in_fs, '|', Ue_uncor, 3./2.*ne*unit_kB*Te0, nose_hoover_Q_e, ex_e, nose_hoover_e, &
-                                                 '|', Ui_uncor, 3./2.*ni*unit_kB*Ti0, nose_hoover_Q_i, ex_i, nose_hoover_i
-                
                 call nose_hoover_diagnostics(p_start, p_finish)
 
             case default
@@ -673,7 +672,7 @@ module module_pusher
       integer :: p, ierr
       integer, parameter :: file_nose_hoover_dat = 93
       
-      logical :: firstcall = .true.
+      logical,save :: firstcall = .true.
 
       integer, parameter :: V2E = 1
       integer, parameter :: VEX = 2
@@ -796,5 +795,149 @@ module module_pusher
     
     end subroutine
 
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Computes removed energy etc. and prints it
+    !> (and some other diagnostics) to a file
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine NVT_diagnostics(p_start,p_finish,Te_before,Ti_before)
+      use module_units
+      use physvars
+      implicit none
+      include 'mpif.h'
+      integer, intent(in) :: p_start, p_finish
+      real*8, intent(in) :: Te_before, Ti_before
+      real*8 :: betae, betai
+      real*8 :: epot_e, epot_i, H_e, H_i
+      real*8 :: Ue_uncor, Ui_uncor, delta_Ue, delta_Ui
+      real*8 :: uprime(1:3), uprime2, gammah, acc(1:3)
+      integer :: p, ierr
+      integer, parameter :: file_thermostat_dat = 93
+      
+      real*8, save :: delta_Ue_cum = 0.
+      real*8, save :: delta_Ui_cum = 0.
+      
+      logical, save :: firstcall = .true.
+
+      integer, parameter :: V2E = 1
+      integer, parameter :: VEX = 2
+      integer, parameter :: VEY = 3
+      integer, parameter :: VEZ = 4
+      integer, parameter :: V2I = 5
+      integer, parameter :: VIX = 6
+      integer, parameter :: VIY = 7
+      integer, parameter :: VIZ = 8
+
+      real*8 :: sums(1:8)
+      
+      ! determine current temperatures
+      sums = 0.0
+      
+      betae = chie/(2*chie-1.)
+      betai = chii/(2*chii-1.)
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Kinetic energy
+      ! Find local KE sums
+      do p=p_start,p_finish
+      
+        acc(1:3) = particles(p)%data%q * particles(p)%results%e(1:3) / particles(p)%data%m
+        
+        if (particles(p)%data%q < 0.) then
+          ! electrons
+
+          ! perform one half step backwards
+          uprime(1:3) = betae*(particles(p)%data%v(1:3) - acc(1:3) * dt/2.)
+          uprime2     = dot_product(uprime,uprime)
+          gammah      = sqrt(1.0 + uprime2/unit_c2)
+
+          sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
+          sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
+        else if (particles(p)%data%q > 0.) then
+          ! ions
+
+          ! perform one half step backwards
+          uprime(1:3) = betai*(particles(p)%data%v(1:3) - acc(1:3) * dt/2.)
+          uprime2     = dot_product(uprime,uprime)
+          gammah      = sqrt(1.0 + uprime2/unit_c2)
+
+          sums(V2I)     = sums(V2I)     + uprime2 / gammah**2.
+          sums(VIX:VIZ) = sums(VIX:VIZ) + uprime  / gammah
+        endif
+      end do
+      
+      ! Find global KE sums
+      call MPI_ALLREDUCE(MPI_IN_PLACE, sums, size(sums), MPI_REAL8, MPI_SUM, MPI_COMM_PEPC, ierr)
+
+      ! drift is averaged cumulative velocity
+      sums(V2E:VEZ) = sums(V2E:VEZ) / ne
+      sums(V2I:VIZ) = sums(V2I:VIZ) / ni
+
+      if (.not. enable_drift_elimination) then
+        Ue_uncor = mass_e/2.*ne*(sums(V2E) - dot_product(sums(VEX:VEZ),sums(VEX:VEZ))) ! This should equal 3/2NkT
+        Ui_uncor = mass_i/2.*ni*(sums(V2I) - dot_product(sums(VIX:VIZ),sums(VIX:VIZ)))
+      else
+        Ue_uncor = mass_e/2.*ne*sums(V2E)  ! This should equal 3/2NkT
+        Ui_uncor = mass_i/2.*ni*sums(V2I)
+      endif
+      
+      
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Potential energy
+      epot_e = 0.
+      epot_i = 0.
+      
+      ! Find local PE sums
+      do p=p_start,p_finish
+      
+        if (particles(p)%data%q < 0.) then
+          ! electrons
+          epot_e = epot_e + 0.5 * particles(p)%data%q * particles(p)%results%pot
+        else if (particles(p)%data%q > 0.) then
+          ! ions
+          epot_i = epot_i + 0.5 * particles(p)%data%q * particles(p)%results%pot
+        endif
+      end do
+      
+      ! Find global PE sums
+      call MPI_ALLREDUCE(MPI_IN_PLACE, epot_e, 1, MPI_REAL8, MPI_SUM, MPI_COMM_PEPC, ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, epot_i, 1, MPI_REAL8, MPI_SUM, MPI_COMM_PEPC, ierr)
+      
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Hamiltonian    
+      
+      H_e = Ue_uncor + epot_e
+      H_i = Ui_uncor + epot_i
+      
+      
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! removed energy
+      
+      delta_Ue     = 3./2.*ne*unit_kB*Te_before - Ue_uncor
+      delta_Ue_cum = delta_Ue_cum + delta_Ue
+
+      delta_Ui     = 3./2.*ni*unit_kB*Ti_before - Ui_uncor
+      delta_Ui_cum = delta_Ui_cum + delta_Ui
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! output  
+      if (firstcall .and. .not. restart) then
+        firstcall = .false.
+        open(file_thermostat_dat, FILE='thermostat.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
+        write(file_thermostat_dat,'("#",18(1x,a20))') "time", &
+                                                       "epot_e",   "Ue_before", "Ue_now", "Ue_target", "delta_Ue", "delta_Ue_cum", "H_e",  &
+                                                       "epot_i",   "Ui_before", "Ui_now", "Ui_target", "delta_Ui", "delta_Ui_cum", "H_i",  &
+                                                       "delta_Ue+i", "delta_Ue+i_cum", "H_e + H_i"
+      else
+        open(file_thermostat_dat, FILE='thermostat.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
+      endif
+
+      write(file_thermostat_dat,'(" ",1(1x,f20.6),17(1x,1pe20.10))') trun*unit_t0_in_fs, &
+                                                       epot_e, 3./2.*ne*unit_kB*Te_before, Ue_uncor, 3./2.*ne*unit_kB*Te, delta_Ue, delta_Ue_cum, H_e, &
+                                                       epot_i, 3./2.*ni*unit_kB*Ti_before, Ui_uncor, 3./2.*ni*unit_kB*Ti, delta_Ui, delta_Ui_cum, H_i, &
+                                                       delta_Ue + delta_Ui, delta_Ue_cum+delta_Ui_cum, H_e + H_i
+      close(file_thermostat_dat)
+
+    
+    end subroutine
 
 end module module_pusher
