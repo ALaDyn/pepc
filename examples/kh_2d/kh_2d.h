@@ -17,7 +17,7 @@ cdump = 1
 ! theta = 0.3
 
 ! periodicity
-t_lattice_1 = 1.0  0.0  0.0
+t_lattice_1 = 50.0  0.0  0.0
 t_lattice_2 = 0.0  125.0  0.0
 t_lattice_3 = 0.0  0.0  1.0
 
@@ -70,7 +70,7 @@ extent = 100.0 125.0
 
 &calc_force_coulomb
 
-! 3D coulomb
+! 2D coulomb
 force_law  = 2
 
 ! BH-mac
@@ -83,6 +83,17 @@ theta2     = 0.09
 eps2 = 0.04
 
 include_far_field_if_periodic = .false.
+/
+
+&calc_force_log2d
+
+mac_select = 0
+
+theta2 = 0.25
+
+eps2 = 0.04
+
+include_far_field_if_periodic = .true.
 /
 
 &libpepc

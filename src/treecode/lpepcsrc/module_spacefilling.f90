@@ -117,7 +117,7 @@ module module_spacefilling
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
-        !> returns `key` shifted up (positive argument) or down by a number
+        !> returns `key` shifted up (negative argument) or down by a number
         !> of levels
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
