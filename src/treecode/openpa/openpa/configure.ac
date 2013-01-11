@@ -6,13 +6,17 @@
 
 AC_PREREQ(2.62)
 
-AC_INIT([OpenPA], [1.0.3], [https://trac.mcs.anl.gov/projects/openpa/newticket])
+AC_INIT([OpenPA], [1.0.4], [https://trac.mcs.anl.gov/projects/openpa/newticket])
 dnl Set the directory that contains support scripts such as install-sh and
 dnl config.guess.  It also contains autoconf macro files.
 AC_CONFIG_AUX_DIR(confdb)
 AC_CONFIG_MACRO_DIR([confdb])
 
-AM_INIT_AUTOMAKE([-Wall -Werror foreign color-tests])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign color-tests 1.12.3])
+
+# automake 1.12 seems to require this, but automake 1.11 doesn't recognize it
+# must come before LT_INIT
+m4_ifdef([AM_PROG_AR],[AM_PROG_AR])
 
 LT_PREREQ([2.2.6])
 
@@ -184,7 +188,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[
   AC_MSG_RESULT([yes])
 )
 
-AC_ARG_WITH(atomic-primitives, AC_HELP_STRING([--with-atomic-primitives],
+AC_ARG_WITH([atomic-primitives], [AC_HELP_STRING([--with-atomic-primitives],
     [Force OPA to use a specific atomic primitives implementation file (default
      is auto).  A value of 'no' forces the use of locks to implement atomic
      primitives.  A value of 'auto_allow_emulation' will attempt to detect
@@ -192,8 +196,8 @@ AC_ARG_WITH(atomic-primitives, AC_HELP_STRING([--with-atomic-primitives],
      available.  Note that using locks to implement atomic primitives will have
      a substantial impact on performance and is intended for testing only.  A
      value of 'unsafe' will use a non-atomic version of the primitives for performance
-     in single-threaded code and meta-testing.]),
-    AS_IF([test "$with_atomic_primitives" = "yes"], [with_atomic_primitives=auto]),
+     in single-threaded code and meta-testing.])],
+    [AS_IF([test "$with_atomic_primitives" = "yes"], [with_atomic_primitives=auto])],
     [with_atomic_primitives=auto]
 )
 
@@ -250,20 +254,20 @@ AC_DEFUN([OPA_PRIMITIVE_TEST_PGM], [AC_LANG_PROGRAM([[
 dnl OPA_TRY_PRIMITIVE_HEADER([header file from src/ dir], [HAVE_ macro suffix], [feature description])
 dnl Does an AC_LINK_IFELSE() to see if the header file works
 AC_DEFUN([OPA_TRY_PRIMITIVE_HEADER],[
-if test     "$with_atomic_primitives" = "auto"                 \
-         -o "$with_atomic_primitives" = "auto_allow_emulation" \
-         -o "$with_atomic_primitives" = "$1"
-    then
+if test "$with_atomic_primitives" = "auto"                 || \
+   test "$with_atomic_primitives" = "auto_allow_emulation" || \
+   test "$with_atomic_primitives" = "$1"
+then
     checked_specified_primitive=yes
     AC_MSG_CHECKING([for support for $3])
     SAVE_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS -I${srcdir}/src"
-    AC_LINK_IFELSE(OPA_PRIMITIVE_TEST_PGM($1),
-        AC_DEFINE(HAVE_$2, 1, [define to 1 if we have support for $3])
-        non_emulated_primitives_available=yes
-        AC_MSG_RESULT([yes])
+    AC_LINK_IFELSE([OPA_PRIMITIVE_TEST_PGM([$1])],
+        [AC_DEFINE([HAVE_$2], [1], [define to 1 if we have support for $3])
+        non_emulated_primitives_available=yes]
+        [AC_MSG_RESULT([yes])]
     ,
-        AC_MSG_RESULT([no])
+        [AC_MSG_RESULT([no])]
     )
     CFLAGS="$SAVE_CFLAGS"
 fi
@@ -273,27 +277,27 @@ dnl OPA_TRY_RUN_PRIMITIVE_HEADER([header file from src/ dir], [HAVE_ macro suffi
 dnl Does an AC_RUN_IFELSE() to see if the header file works, but falls back to AC_LINK_IFELSE() 
 dnl if we're cross-compiling
 AC_DEFUN([OPA_TRY_RUN_PRIMITIVE_HEADER],[
-if test     "$with_atomic_primitives" = "auto"                 \
-         -o "$with_atomic_primitives" = "auto_allow_emulation" \
-         -o "$with_atomic_primitives" = "$1"
+if test "$with_atomic_primitives" = "auto"                 || \
+   test "$with_atomic_primitives" = "auto_allow_emulation" || \
+   test "$with_atomic_primitives" = "$1"
 then
     checked_specified_primitive=yes
     AC_MSG_CHECKING([for support for $3])
     SAVE_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS -I${srcdir}/src"
-    AC_RUN_IFELSE(OPA_PRIMITIVE_TEST_PGM($1),
-        AC_DEFINE(HAVE_$2, 1, [define to 1 if we have support for $3])
+    AC_RUN_IFELSE([OPA_PRIMITIVE_TEST_PGM([$1])],[
+        AC_DEFINE([HAVE_$2], [1], [define to 1 if we have support for $3])
         non_emulated_primitives_available=yes
-        AC_MSG_RESULT([yes])
+        AC_MSG_RESULT([yes])]
     ,
-        AC_MSG_RESULT([no])
+        [AC_MSG_RESULT([no])]
     ,
-        [AC_LINK_IFELSE(OPA_PRIMITIVE_TEST_PGM($1),
-            AC_DEFINE(HAVE_$2, 1, [define to 1 if we have support for $3])
+        [AC_LINK_IFELSE([OPA_PRIMITIVE_TEST_PGM([$1])],[
+            AC_DEFINE([HAVE_$2], [1], [define to 1 if we have support for $3])
             non_emulated_primitives_available=yes
-            AC_MSG_RESULT([yes])
+            AC_MSG_RESULT([yes])]
         ,
-            AC_MSG_RESULT([no])
+            [AC_MSG_RESULT([no])]
         )]
     )
     CFLAGS="$SAVE_CFLAGS"
@@ -333,6 +337,7 @@ dnl without AC_TRY_RUN().
         OPA_TRY_RUN_PRIMITIVE_HEADER([opa_gcc_intel_32_64_p3.h], [GCC_X86_32_64_P3], [gcc x86 primitives for pre-Pentium 4])
         OPA_TRY_PRIMITIVE_HEADER([opa_gcc_ia64.h], [GCC_AND_IA64_ASM], [gcc ia64 primitives])
         OPA_TRY_PRIMITIVE_HEADER([opa_gcc_ppc.h], [GCC_AND_POWERPC_ASM], [gcc PowerPC atomics])
+        OPA_TRY_PRIMITIVE_HEADER([opa_gcc_arm.h], [GCC_AND_ARM_ASM], [gcc ARM atomics])
         OPA_TRY_PRIMITIVE_HEADER([opa_gcc_sicortex.h], [GCC_AND_SICORTEX_ASM], [gcc SiCortex atomics])
     fi
 
@@ -405,6 +410,19 @@ if test "${strict_fairness_checks}" = "yes"; then
 else
     AC_MSG_RESULT([no])
 fi
+
+## Enable creation of libtool-style versioning or no versioning
+AC_ARG_ENABLE(versioning,
+        [AC_HELP_STRING([--enable-versioning],[Enable library versioning])],,
+        [enable_versioning=yes])
+
+if test "$enable_versioning" = "yes" ; then
+   libopa_so_versionflags="-version-info \$(libopa_so_version)"
+else
+   libopa_so_versionflags="-avoid-version"
+fi
+export libopa_so_versionflags
+AC_SUBST(libopa_so_versionflags)
 
 
 AC_CONFIG_FILES([Makefile src/Makefile test/Makefile openpa.pc])
