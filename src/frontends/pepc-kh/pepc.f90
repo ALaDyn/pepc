@@ -88,6 +88,10 @@ program pepc
 
    if (root) write(*,'(a,es12.4)') " == time in setup (s)                            : ", timer_init
 
+   do_pdump = .false.
+   do_fdump = .false.
+   do_cdump = .false.
+
    do step = time_pars%nresume, time_pars%nsteps
     if(root) then
       write(*,*) " "
@@ -98,9 +102,9 @@ program pepc
     
     call t_start(timer_step)
 
-    do_pdump = pepc_pars%pdump .ne. 0 .and. mod(step, pepc_pars%pdump) .eq. 0
-    do_fdump = pepc_pars%fdump .ne. 0 .and. mod(step, pepc_pars%fdump) .eq. 0
-    do_cdump = pepc_pars%cdump .ne. 0 .and. mod(step, pepc_pars%cdump) .eq. 0
+    if (pepc_pars%pdump .ne. 0) do_pdump = mod(step, pepc_pars%pdump) .eq. 0
+    if (pepc_pars%fdump .ne. 0) do_fdump = mod(step, pepc_pars%fdump) .eq. 0
+    if (pepc_pars%cdump .ne. 0) do_cdump = mod(step, pepc_pars%cdump) .eq. 0
 
     if (do_cdump) then
       call t_start(timer_chkpt)
