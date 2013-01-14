@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2012 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -89,7 +89,7 @@ module module_fmm_framework
       !> variables for extrinsic to intrinsic correction
       real(kfp) :: box_dipole(3) = zero
       real(kfp) :: quad_trace    = zero
-
+      
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -213,10 +213,14 @@ module module_fmm_framework
 
           ! zeroth step of iteration
           ML = Lstar
+          
+          ! FIXME untested : call zero_terms_taylor(ML)
 
           do iter = 1,MaxIter
 
             ML = M2L( UL( ML ) , MStar ) + Lstar
+
+            ! FIXME untested : call zero_terms_taylor(ML)
 
             if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
               write(fn,'("MLattice.", I2.2, ".tab")') iter
@@ -231,6 +235,51 @@ module module_fmm_framework
 
         end subroutine calc_lattice_coefficients
 
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Sets those elements in a Taylor expansion to zero that vanish
+        !> anyway, see J. Chem. Phys 121, 2886, Section V
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine zero_terms_taylor(M)
+          use module_mirror_boxes, only : periodicity
+          implicit none
+          complex(kfp), intent(inout) :: M(1:fmm_array_length_taylor)
+          
+          ! 1D, 2D, and 3D periodicity
+          M(tblinv(0, 0, Lmax_taylor)) = (zero, zero)
+          
+          if (count(periodicity) > 2) then
+            ! only for 3D-periodic case
+            M(tblinv(1, 0, Lmax_taylor)) = (zero, zero)
+            M(tblinv(1, 1, Lmax_taylor)) = (zero, zero)
+          endif
+
+        end subroutine
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Sets those elements in a Multipole expansion to zero that vanish
+        !> anyway, see J. Chem. Phys 121, 2886, Section V
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine zero_terms_multipole(O)
+          use module_mirror_boxes, only : periodicity
+          implicit none
+          complex(kfp), intent(inout) :: O(1:fmm_array_length_multipole)
+          
+          ! 1D, 2D, and 3D periodicity
+          O(tblinv(0, 0, Lmax_multipole)) = (zero, zero)
+          
+          if (count(periodicity) > 2) then
+            ! only for 3D-periodic case
+            O(tblinv(1, 0, Lmax_multipole)) = (zero, zero)
+            O(tblinv(1, 1, Lmax_multipole)) = (zero, zero)
+          endif
+
+        end subroutine
+         
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
@@ -538,8 +587,10 @@ module module_fmm_framework
 
           if (abs(omega_tilde( tblinv(0, 0, Lmax_multipole))) > 0.) then
             DEBUG_WARNING(*, 'The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0, Lmax_multipole)), ' Setting to zero, resulting potentials might be wrong.' )
-            omega_tilde( tblinv(0, 0, Lmax_multipole)) = (zero, zero)
+            omega_tilde( tblinv(0, 0, Lmax_multipole)) = (zero, zero) ! FIXME this line should be removed if zer_terms functions are used
           end if
+          
+          ! FIXME untested: call zero_terms_multipole(omega_tilde)
 
         end subroutine calc_omega_tilde
 
@@ -596,6 +647,7 @@ module module_fmm_framework
         end subroutine calc_extrinsic_correction
 
 
+         
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the lattice contribution with respect to the

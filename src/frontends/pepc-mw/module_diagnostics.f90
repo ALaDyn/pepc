@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2012 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -37,10 +37,85 @@ module module_diagnostics
     public fields_on_spherical_grid
     public add_grid_particles
     public dump_grid_particles
+    public lattice_diagnostics
 
 
 
 contains
+
+    subroutine lattice_diagnostics()
+      use module_fmm_framework
+      use module_interaction_specific
+      use module_mirror_boxes
+      use physvars
+      use module_pepc_types
+      implicit none
+      
+      integer, parameter :: ntest = 15
+      integer :: i
+      real*8 :: mypos(3), e(3), p
+      integer, parameter :: mynp = 8
+      type(t_particle), allocatable, dimension(:) :: myp
+      real*8, parameter, dimension(3,ntest) :: pos = reshape([&
+                                0. ,  0. ,  0. , &
+                               -0.5,  0. ,  0. , &
+                                0. , -0.5,  0. , &
+                                0. ,  0. , -0.5, &
+                               +0.5,  0. ,  0. , &
+                                0. , +0.5,  0. , &
+                                0. ,  0. , +0.5, &
+                               -0.5, -0.5, -0.5, &
+                                0.5, -0.5, -0.5, &
+                               -0.5,  0.5, -0.5, &
+                                0.5,  0.5, -0.5, &
+                               -0.5, -0.5,  0.5, &
+                                0.5, -0.5,  0.5, &
+                               -0.5,  0.5,  0.5, &
+                                0.5,  0.5,  0.5 &
+                              ], shape(pos))
+
+      ! Defined with origin as lattice center (will shift correctly later)
+      real*8, parameter, dimension(3,mynp) :: partpos = reshape([&
+                               -0.25, -0.25, -0.25, &
+                                0.25, -0.25, -0.25, &
+                               -0.25,  0.25, -0.25, &
+                                0.25,  0.25, -0.25, &
+                               -0.25, -0.25,  0.25, &
+                                0.25, -0.25,  0.25, &
+                               -0.25,  0.25,  0.25, &
+                                0.25,  0.25,  0.25 &
+                              ], shape(partpos))
+      allocate(myp(mynp))
+      
+      do i=1,mynp
+        myp(i)%x   = partpos(1:3,i) + LatticeCenter
+        if (i > mynp/2) then
+          myp(i)%data%q =  1.
+        else
+          myp(i)%data%q = -1.
+        endif
+      end do
+
+      ! we first output the lattice contribution from the original particles
+      write(*,*) 'Lattice contribution from original particles onto test particles'      
+      do i=1,ntest 
+        mypos = LatticeCenter + pos(1:3,i) * [x_plasma, y_plasma, z_plasma]                                  
+        call fmm_sum_lattice_force(mypos, e, p)
+        write(*,*) mypos, "|", e
+      end do
+      
+      ! and afterwards the lattice contribution that results from the artificial test case above
+      write(*,*) 'Lattice contribution from artificial test case onto test particles'      
+      call fmm_framework_timestep(myp, mynp)
+                              
+       do i=1,ntest 
+        call fmm_sum_lattice_force(mypos, e, p)
+        mypos = LatticeCenter + pos(1:3,i) * [x_plasma, y_plasma, z_plasma]                                  
+        write(*,*) mypos, "|", e
+      end do
+      stop
+    end subroutine
+
 
     subroutine compute_force_direct(nparticles, particles, nforceparticles)
         use physvars, only : my_rank, n_cpu, MPI_COMM_PEPC
