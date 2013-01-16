@@ -166,6 +166,7 @@ module module_histogram
       write(filept,*) '# nvals_tot', nvals_tot
       write(filept,*) '# nbins', nbins
       write(filept,*) '# ncols', ncols
+      write(filept,*) '# binwidth', binwidth
       write(filept,*) '#'
         
       do i=1,nbins
@@ -189,6 +190,7 @@ module module_histogram
       write(filept,*) nvals_tot
       write(filept,*) nbins
       write(filept,*) ncols
+      write(filept,*) binwidth
       close(filept)
     endif
 

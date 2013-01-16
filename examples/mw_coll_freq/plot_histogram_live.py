@@ -32,7 +32,7 @@ prop      = matplotlib.font_manager.FontProperties(size=16)
 
 pltlist     = list()
 initialized = False
-numcols     = 4
+numcols     = 3 # set this value to 4 to include distribution function for magnitude of v, but: it is computed without drift correction in the code and hence cannot comply with the theoretical curve
 
 if len(sys.argv[:]) > 1:
   currstep = int(sys.argv[1])
@@ -60,6 +60,7 @@ def readparams(filename):
     res["nvals_tot"] = int(lines[6])
     res["mbins"]     = int(lines[7])
     res["ncols"]     = int(lines[8])
+    res["binwidth"]  = np.array(re.split('\s*', lines[9])[1:-1], dtype=float)
         
     f.close()
     
@@ -98,16 +99,16 @@ def initfig(*args):
     #ax.set_yscale('log')
     plt.minorticks_on()
 
-    data     = np.loadtxt(filename % currstep)
-
-    for colidx in range(0,numcols):
-	pltlist.extend( ax.plot(data[:,2*colidx+1],data[:,2*colidx+2],label=datanames[colidx], linewidth=1.5,color=cm.jet(1./numcols*colidx)))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
-
+    data   = np.loadtxt(filename % currstep)
     params = readparams( "%s.params" % (filename % currstep))
 
     for colidx in range(0,numcols):
+	pltlist.extend( ax.plot(data[:,2*colidx+1],data[:,2*colidx+2],label=datanames[colidx], linewidth=0.,color=cm.jet(1./numcols*colidx), markersize=10.0, markeredgewidth=1.0,marker=markers[colidx]))
+
+
+    for colidx in range(0,numcols):
         xvals, yvals = maxwell(minx, maxx, params['sigma'][colidx], colidx)
-	pltlist.extend( ax.plot(xvals,yvals, '--', label='Maxwell %s' % datanames[colidx], linewidth=1.0,color=cm.jet(1./numcols*colidx)))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
+	pltlist.extend( ax.plot(xvals,yvals, '--', label='Maxwell %s' % datanames[colidx], linewidth=2.5,color=cm.jet(1./numcols*colidx)))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
 
     plt.legend(numpoints=1, prop=prop, ncol=1, frameon=True, loc=2, borderaxespad=0.)#, bbox_to_anchor=(1.05, 1))
     
