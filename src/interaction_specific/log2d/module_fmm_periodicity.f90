@@ -41,7 +41,7 @@ module module_fmm_periodicity
       !> far- and near-field contribution to potential energy (has to be calculated in fields.p90)
       real*8, public :: potfarfield, potnearfield
       !> whether to do dipole correction or not, see [J.Chem.Phys. 107, 10131, eq. (19,20)]
-      logical, public :: do_extrinsic_correction = .false.
+      logical, public :: do_extrinsic_correction = .true.
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -73,7 +73,7 @@ module module_fmm_periodicity
       real(kfp), parameter :: one  = 1._kfp
       real(kfp), parameter :: two  = 2._kfp
       ! FMM-PARAMETERS
-      integer, parameter :: pMultipoleFMMP = 20
+      integer, parameter :: pMultipoleFMMP = 30
       integer, parameter :: qTaylorFMMP    = pMultipoleFMMP * 2
       integer, parameter :: MaxIter        = 32
       integer :: ws = 1
@@ -82,7 +82,7 @@ module module_fmm_periodicity
       complex(kfp) :: omega_tilde(1:pMultipoleFMMP)
       complex(kfp) :: BLattice(0:qTaylorFMMP, 1:pMultipoleFMMP)
       !> variables for extrinsic to intrinsic correction
-      real(kfp) :: box_dipole(3) = zero
+      real(kfp) :: box_dipole(2) = zero
       real(kfp) :: quad_trace    = zero
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -114,8 +114,7 @@ module module_fmm_periodicity
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_periodicity_init(mpi_rank, mpi_comm)
           use module_debug
-          use module_mirror_boxes, only : periodicity, mirror_box_layers, &
-            LatticeCenter, do_periodic
+          use module_mirror_boxes
           implicit none
           integer, intent(in) :: mpi_rank
           integer, intent(in) :: mpi_comm
@@ -126,10 +125,14 @@ module module_fmm_periodicity
 
           do_periodic = any(periodicity(1:3))
 
-          ! anything above has to be done in any case
           if (do_periodic) then
             if (periodicity(3)) then
-              DEBUG_ERROR(*, 'Periodicity along the z-axis with 2D backend.')
+              DEBUG_ERROR(*, 'Periodicity in the third coordinate with 2D backend.')
+            end if
+            if (.not. all(t_lattice_3 == [0,0,1])) then
+              DEBUG_WARNING(*, 't_lattice_3 should be [0,0,1], resetting.')
+              t_lattice_3 = [0,0,1]
+              call calc_neighbour_boxes()
             end if
             LatticeCenter(3) = 0
 
@@ -304,13 +307,28 @@ module module_fmm_periodicity
         subroutine calc_extrinsic_correction(particles, nparticles)
           use module_debug
           use module_pepc_types
-          use module_mirror_boxes, only : unit_box_volume
+          use module_mirror_boxes, only : unit_box_volume, LatticeCenter
           implicit none
 
           type(t_particle), intent(in) :: particles(:)
           integer, intent(in) :: nparticles
 
-          ! TODO: implement this
+          real(kfp), parameter :: pi = acos(-one)
+          real*8 :: r(2)
+          integer :: p, ierr
+
+          if (do_extrinsic_correction) then
+            quad_trace = zero
+            do p=1,nparticles
+              r = particles(p)%x(1:2) - LatticeCenter(1:2)
+              quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)
+            end do
+
+            call MPI_ALLREDUCE(MPI_IN_PLACE, quad_trace, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+
+            box_dipole = -pi / unit_box_volume * [ real(omega_tilde(1), kind = kfp), real(aimag(omega_tilde(1)), kind = kfp) ]
+            quad_trace = pi / (2 * unit_box_volume) * quad_trace
+          end if
 
         end subroutine calc_extrinsic_correction
 
@@ -382,8 +400,8 @@ module module_fmm_periodicity
             e_lattice   = 0
             phi_lattice = 0
           else
-            x0        = pos - LatticeCenter
-            z0        = x0(1) + ic * x0(2)
+            x0 = pos - LatticeCenter
+            z0 = x0(1) + ic * x0(2)
 
             cphi = -mu_cent(0) ! OMultipole(0, z0) = 1
             ce   = 0           ! OmultipolePrime(0, z0) = 0
@@ -398,10 +416,8 @@ module module_fmm_periodicity
             phi_lattice = real(cphi, kind = 8)
 
             if (do_extrinsic_correction) then    ! extrinsic correction
-              ! TODO: implement
-              DEBUG_WARNING(*, 'Extrinsic correction is not yet implemented.')
-              !e_lattice   = e_lattice   + box_dipole
-              !phi_lattice = phi_lattice - dot_product(R, box_dipole) + quad_trace
+              e_lattice   = e_lattice   + box_dipole
+              phi_lattice = phi_lattice - dot_product(x0(1:2), box_dipole) + quad_trace
             end if
 
           end if
