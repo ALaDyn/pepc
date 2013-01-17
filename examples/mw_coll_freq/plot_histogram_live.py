@@ -17,11 +17,12 @@ print "Usage: %s [startstep]" % sys.argv[0]
 
 locale.setlocale(locale.LC_ALL, "en_US") # fuer tausendertrennzeichen im format
 
-filename='hist/histogram_ve.%6.6d'
+filename       = 'hist/histogram_ve.%6.6d'
+filename_laser = 'hist/histogram_ve_laseravg.%6.6d'
 
 markers=['*','<','>','D','H','^','d','h','o','p','s','v','x','|','None',' ','']
-
 datanames=[r'$v_x$', r'$v_y$', r'$v_z$', r'$|\vec{v}|$']
+mycolormap=cm.spectral
 
 ####################################
 
@@ -43,8 +44,6 @@ else:
 
 maxx        = 1.
 maxy        = 0.1
-minx        = 0.
-miny        = 0.
 
 def readparams(filename):
     f=open(filename,'r')
@@ -67,10 +66,10 @@ def readparams(filename):
     return res
     
     
-def maxwell(minx, maxx, sigma, idx):
+def maxwell(maxx, sigma, idx):
 
     if (idx < 3):
-      xvals = np.linspace(minx,maxx)
+      xvals = np.linspace(-maxx,maxx)
       yvals = 1./(np.sqrt(2.*np.pi)*sigma)            * np.exp( -0.5*(xvals/sigma)**2 )
     else:
       xvals = np.linspace(0,maxx)
@@ -84,7 +83,6 @@ def initfig(*args):
     global pltlist
     global initialized
     global ax
-    global minx
     global maxx
     
     if (initialized): # seltsamerweise wird die Funktion zweimal aufgerufen - das fangen wir hier ab
@@ -103,14 +101,16 @@ def initfig(*args):
     params = readparams( "%s.params" % (filename % currstep))
 
     for colidx in range(0,numcols):
-	pltlist.extend( ax.plot(data[:,2*colidx+1],data[:,2*colidx+2],label=datanames[colidx], linewidth=0.,color=cm.jet(1./numcols*colidx), markersize=10.0, markeredgewidth=1.0,marker=markers[colidx]))
-
+	pltlist.extend( ax.plot(data[:,2*colidx+1],data[:,2*colidx+2],label=datanames[colidx], linewidth=0.,color=mycolormap(1./numcols*colidx), markersize=10.0, markeredgewidth=1.0,marker=markers[colidx]))
 
     for colidx in range(0,numcols):
-        xvals, yvals = maxwell(minx, maxx, params['sigma'][colidx], colidx)
-	pltlist.extend( ax.plot(xvals,yvals, '--', label='Maxwell %s' % datanames[colidx], linewidth=2.5,color=cm.jet(1./numcols*colidx)))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
+	pltlist.extend( ax.plot([0],[0],label='Cycle avg: %s' % datanames[colidx], linewidth=1.0,color=mycolormap(1./numcols*colidx)))#, markersize=10.0, markeredgewidth=1.0,marker=markers[colidx]))
 
-    plt.legend(numpoints=1, prop=prop, ncol=1, frameon=True, loc=2, borderaxespad=0.)#, bbox_to_anchor=(1.05, 1))
+    for colidx in range(0,numcols):
+        xvals, yvals = maxwell(maxx, params['sigma'][colidx], colidx)
+	pltlist.extend( ax.plot(xvals,yvals, '--', label='Maxwell %s' % datanames[colidx], linewidth=2.5,color=mycolormap(1./numcols*colidx)))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
+
+    plt.legend(numpoints=1, prop=prop, ncol=1, frameon=True, loc='upper right', borderaxespad=0.)#, bbox_to_anchor=(1.05, 1))
     
     return ax,
     
@@ -120,8 +120,6 @@ def updatefig(*args):
     global pltlist
     global maxx
     global maxy
-    global minx
-    global miny
     global titletext
     
     if (os.path.exists(filename % (currstep+1))):
@@ -132,25 +130,34 @@ def updatefig(*args):
       for colidx in range(numcols):
         pltlist[colidx].set_data(data[:,2*colidx+1],data[:,2*colidx+2])
         
-        localmaxx = data[:,2*colidx+1].max()
+        localmaxx = abs(data[:,2*colidx+1]).max()
         localmaxy = data[:,2*colidx+2].max()
-        localminx = data[:,2*colidx+1].min()
-        localminy = data[:,2*colidx+2].min()
         
         maxx = max(localmaxx,maxx)
         maxy = max(localmaxy,maxy)
-        minx = min(localminx,minx)
-        miny = min(localminy,miny)
+        
+      if (os.path.exists(filename_laser % (currstep))):
+        laserdata = np.loadtxt(filename_laser % currstep)
+        
+        for colidx in range(numcols):
+          pltlist[colidx+numcols].set_data(laserdata[:,2*colidx+1],laserdata[:,2*colidx+2])
+        
+          localmaxx = abs(data[:,2*colidx+1]).max()
+          localmaxy = data[:,2*colidx+2].max()
+        
+          maxx = max(localmaxx,maxx)
+          maxy = max(localmaxy,maxy)
+        
 
       params = readparams( "%s.params" % (filename % currstep))
       titletext.set_text("%6.6d  - %s" % (currstep, params['state']))
 
       for colidx in range(0,numcols):
-          xvals, yvals = maxwell(minx, maxx, params['sigma'][colidx], colidx)
-          pltlist[colidx+numcols].set_data(xvals, yvals)
+          xvals, yvals = maxwell(maxx, params['sigma'][colidx], colidx)
+          pltlist[colidx+2*numcols].set_data(xvals, yvals)
 
-      ax.set_xlim([minx,maxx])
-      ax.set_ylim([miny,maxy])
+      ax.set_xlim([-maxx,maxx])
+      ax.set_ylim([    0,maxy])
     return tuple(pltlist)
 
 ####################################

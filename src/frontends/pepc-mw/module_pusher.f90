@@ -25,6 +25,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pusher
     use module_units
+    use module_histogram
     implicit none
     save
     private
@@ -77,6 +78,8 @@ module module_pusher
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    type(t_fourdhist) :: velhist
+    type(t_fourdhist) :: velhist_laseravg
 
   contains
 
@@ -663,8 +666,6 @@ module module_pusher
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine nose_hoover_diagnostics(p_start,p_finish)
       use module_units
-      use module_utils
-      use module_histogram
       use physvars
       implicit none
       include 'mpif.h'
@@ -675,8 +676,6 @@ module module_pusher
       real*8 :: uprime(1:3), uprime2, gammah, acc(1:3)
       integer :: p, ierr
       integer, parameter :: file_nose_hoover_dat = 93
-      character(25) :: histfile
-      type(t_fourdhist) :: velhist
       
       logical,save :: firstcall = .true.
 
@@ -692,7 +691,7 @@ module module_pusher
       real*8 :: sums(1:8)
       
       ! initialize velocity histogram
-      call velhist%init(p_finish-p_start)
+      call histograms_init(p_finish-p_start)
       
       ! determine current temperatures
       sums = 0.0
@@ -716,7 +715,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
 
           ! add values to velocity histogram (only for electrons)
-          call velhist%add(uprime(1:3), uprime2)
+          call histograms_add(uprime(1:3), uprime2)
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -806,10 +805,7 @@ module module_pusher
 
     
       ! write velocity histogram
-      call create_directory('hist')
-      write(histfile,'("hist/histogram_ve.",I6.6)') itime
-      call velhist%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, 'NVE thermostat')
-      call velhist%finalize()
+      call histograms_finalize(Ue_uncor, 'NVT Nose-Hoover thermostat')
     end subroutine
 
 
@@ -822,9 +818,7 @@ module module_pusher
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine NVT_diagnostics(p_start,p_finish,Te_before,Ti_before)
       use module_units
-      use module_utils
       use physvars
-      use module_histogram
       implicit none
       include 'mpif.h'
       integer, intent(in) :: p_start, p_finish
@@ -835,8 +829,6 @@ module module_pusher
       real*8 :: uprime(1:3), uprime2, gammah, acc(1:3)
       integer :: p, ierr
       integer, parameter :: file_thermostat_dat = 93
-      character(25) :: histfile
-      type(t_fourdhist) :: velhist
       
       real*8, save :: delta_Ue_cum = 0.
       real*8, save :: delta_Ui_cum = 0.
@@ -855,7 +847,7 @@ module module_pusher
       real*8 :: sums(1:8)
       
       ! initialize velocity histogram
-      call velhist%init(p_finish-p_start)
+      call histograms_init(p_finish-p_start)
       
       ! determine current temperatures
       sums = 0.0
@@ -878,7 +870,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
           
           ! add values to velocity histogram (only for electrons)
-          call velhist%add(uprime(1:3), uprime2)
+          call histograms_add(uprime(1:3), uprime2)
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -967,10 +959,7 @@ module module_pusher
     
 
       ! write velocity histogram
-      call create_directory('hist')
-      write(histfile,'("hist/histogram_ve.",I6.6)') itime
-      call velhist%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, 'NVT thermostat')
-      call velhist%finalize()
+      call histograms_finalize(Ue_uncor, 'NVT thermostat')
     end subroutine
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -981,9 +970,7 @@ module module_pusher
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine NVE_diagnostics(p_start,p_finish)
       use module_units
-      use module_utils
       use physvars
-      use module_histogram
       implicit none
       include 'mpif.h'
       integer, intent(in) :: p_start, p_finish
@@ -992,8 +979,6 @@ module module_pusher
       real*8 :: uprime(1:3), uprime2, gammah, acc(1:3)
       integer :: p, ierr
       integer, parameter :: file_nve_dat = 93
-      character(25) :: histfile
-      type(t_fourdhist) :: velhist
       
       logical, save :: firstcall = .true.
 
@@ -1008,8 +993,8 @@ module module_pusher
 
       real*8 :: sums(1:8)
       
-      ! initialize velocity histogram
-      call velhist%init(p_finish-p_start)
+      ! initialize velocity histograms
+      call histograms_init(p_finish-p_start)
       
       ! determine current temperatures
       sums = 0.0
@@ -1029,7 +1014,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
           
           ! add values to velocity histogram (only for electrons)
-          call velhist%add(uprime(1:3), uprime2)
+          call histograms_add(uprime(1:3), uprime2)
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -1109,10 +1094,66 @@ module module_pusher
     
 
       ! write velocity histogram
+      call histograms_finalize(Ue_uncor, 'NVE dynamics')
+    end subroutine
+    
+    
+    
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine histograms_init(nvals)
+      use module_laser
+      use physvars
+      implicit none
+      integer, intent(in) :: nvals
+      integer :: oldcycle, currcycle
+      
+      call velhist%init(nvals)
+      
+      currcycle = floor((t_laser/dt   )/navcycle)
+      oldcycle  = floor((t_laser/dt-1.)/navcycle)
+      if ((t_laser > 0.) .and. (currcycle.ne.oldcycle)) then
+        call velhist_laseravg%init(ceiling(navcycle)*nvals) ! FIXME: this is in priciple just an estimate, since particle number per processor could vary during the laser cycle
+      endif
+    end subroutine
+    
+
+    subroutine histograms_add(vel, mag)
+      implicit none
+      real*8, intent(in) :: vel(3), mag
+      
+      call velhist%add(vel, mag)
+      
+      if (velhist_laseravg%initialized) then
+        call velhist_laseravg%add(vel, mag)
+      endif
+    end subroutine
+    
+
+    subroutine histograms_finalize(Ue_uncor, status)
+      use module_units
+      use module_laser
+      use module_utils
+      use physvars
+      implicit none
+      real*8, intent(in) :: Ue_uncor
+      character(*), intent(in) :: status
+      character(50) :: histfile
+      integer :: newcycle, currcycle
+      
       call create_directory('hist')
+      
       write(histfile,'("hist/histogram_ve.",I6.6)') itime
-      call velhist%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, 'NVE dynamics')
+      call velhist%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, status)
       call velhist%finalize()
+      
+      currcycle = floor((t_laser/dt   )/navcycle)
+      newcycle  = floor((t_laser/dt+1.)/navcycle)
+      if ((currcycle > 0) .and. (currcycle.ne.newcycle)) then
+        write(histfile,'("hist/histogram_ve_laseravg.",I6.6)') itime
+        call velhist_laseravg%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, status)
+        call velhist_laseravg%finalize()
+      endif
+    
     end subroutine
 
 end module module_pusher

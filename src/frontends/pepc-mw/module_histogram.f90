@@ -12,9 +12,10 @@ module module_histogram
   public t_fourdhist  
   
   type t_fourdhist
-    real*8, allocatable :: raw(:,:)
-    integer :: counter
-    integer :: vals
+    real*8, private, allocatable :: raw(:,:)
+    integer, private :: counter
+    integer, private :: vals
+    logical, public :: initialized = .false.
   contains
     procedure :: init     => fourdhist_init
     procedure :: add      => fourdhist_add
@@ -35,6 +36,8 @@ module module_histogram
     self%counter = 0
     
     allocate(self%raw(1:self%vals,1:4))
+    
+    self%initialized = .true.
   end subroutine
   
   subroutine fourdhist_add(self, vec, mag2)
@@ -42,6 +45,10 @@ module module_histogram
     implicit none
     class(t_fourdhist) :: self
     real*8, intent(in) :: vec(1:3), mag2
+    
+    if (.not. self%initialized) then
+      DEBUG_ERROR(*,'Histogram is not initialized.')
+    endif
     
     self%counter = self%counter + 1
     
@@ -54,12 +61,17 @@ module module_histogram
   end subroutine
   
   subroutine fourdhist_dump(self, sigma, filename, my_rank, comm, state)
+    use module_debug
     implicit none
     class(t_fourdhist) :: self
     character(*), intent(in) :: filename, state
     integer, intent(in) :: comm, my_rank
     real*8, intent(in) :: sigma
     
+    if (.not. self%initialized) then
+      DEBUG_ERROR(*,'Histogram is not initialized.')
+    endif
+
     call write_histogram(self%raw(1:self%counter,1:4), sigma*[1., 1., 1., 1.], 4, self%counter, [.True., .True., .True., .False.], filename, my_rank, comm, state)
   end subroutine
  
@@ -67,7 +79,11 @@ module module_histogram
     implicit none
     class(t_fourdhist) :: self
 
-    deallocate(self%raw)    
+    if (self%initialized) then
+      self%initialized = .false.
+      deallocate(self%raw)
+    endif
+    
   end subroutine
  
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
