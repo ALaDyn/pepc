@@ -153,6 +153,17 @@ subroutine pepcmw_prepare()
     maxdt(3:4) = 1./epsilon(maxdt(3))
   endif
 
+  if (vosc>0.) then
+    maxdt(5) = lambdaD_e/10./vosc
+    if (eps > 0.) then
+      maxdt(6) = abs(mass_e/qe * eps*eps / (10.*qe) * vosc/10.)
+    else
+      maxdt(6) = huge(maxdt(6))
+    endif
+  else
+    maxdt(5:6) = huge(maxdt(6))
+  endif
+
   if (any(maxdt < dt)) then
     if (my_rank == 0) then
       do ifile = file_stdout,file_pepc_out,file_pepc_out-file_stdout

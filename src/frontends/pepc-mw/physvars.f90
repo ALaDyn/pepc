@@ -37,7 +37,7 @@ module physvars
   integer :: rngseed = 13
   integer :: ne = 200     !  # electrons
   integer :: ni = 0       !  # ions
-  real*8 :: maxdt(4)       ! maximum allowed dt from different constraints
+  real*8 :: maxdt(6)       ! maximum allowed dt from different constraints
   real*8 :: xl = 1.      ! box size
   real*8 :: yl = 1.      ! box size
   real*8 :: zl = 1.      ! box size

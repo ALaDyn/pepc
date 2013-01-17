@@ -27,8 +27,8 @@ mycolormap=cm.spectral
 ####################################
 
 fig       = plt.figure(figsize=(12,8))
-titletext = fig.suptitle(filename, fontsize=26)
-#fig.subplots_adjust(right=0.8) # http://matplotlib.sourceforge.net/faq/howto_faq.html#move-the-edge-of-an-axes-to-make-room-for-tick-labels
+titletext = fig.suptitle(filename, fontsize=24)
+#fig.subplots_adjust(right=0.9, top=0.85) # http://matplotlib.sourceforge.net/faq/howto_faq.html#move-the-edge-of-an-axes-to-make-room-for-tick-labels
 prop      = matplotlib.font_manager.FontProperties(size=16)
 
 pltlist     = list()
@@ -44,6 +44,9 @@ else:
 
 maxx        = 1.
 maxy        = 0.1
+mass_e      = 1./2.
+kB          = 1.
+eVRy        = 13.60569193
 
 def readparams(filename):
     f=open(filename,'r')
@@ -150,7 +153,7 @@ def updatefig(*args):
         
 
       params = readparams( "%s.params" % (filename % currstep))
-      titletext.set_text("%6.6d  - %s" % (currstep, params['state']))
+      titletext.set_text(r'%6.6d  - %s, $T_e = %6.3f\,\mathrm{eV}$' % (currstep, params['state'][:-1], params['sigma'][0]**2*mass_e/kB*eVRy))
 
       for colidx in range(0,numcols):
           xvals, yvals = maxwell(maxx, params['sigma'][colidx], colidx)
