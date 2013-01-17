@@ -8,51 +8,66 @@ module module_histogram
   private
   
   public write_histogram
-  public fourdhist_init
-  public fourdhist_add
-  public fourdhist_finalize
   
-  real*8, allocatable :: fourdhist(:,:)
-  integer :: fourdhist_counter
-  integer :: fourdhist_nvals
+  public t_fourdhist  
+  
+  type t_fourdhist
+    real*8, allocatable :: raw(:,:)
+    integer :: counter
+    integer :: vals
+  contains
+    procedure :: init     => fourdhist_init
+    procedure :: add      => fourdhist_add
+    procedure :: dump     => fourdhist_dump
+    procedure :: finalize => fourdhist_finalize
+  end type
   
   contains
   
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine fourdhist_init(nvals)
+  subroutine fourdhist_init(self, nvals)
     use module_debug
     implicit none
+    class(t_fourdhist) :: self
     integer, intent(in) :: nvals
     
-    fourdhist_nvals = nvals
+    self%vals = nvals
+    self%counter = 0
     
-    allocate(fourdhist(1:fourdhist_nvals,1:4))
-    fourdhist_counter = 0
+    allocate(self%raw(1:self%vals,1:4))
   end subroutine
   
-  subroutine fourdhist_add(vec, mag2)
+  subroutine fourdhist_add(self, vec, mag2)
     use module_debug
     implicit none
+    class(t_fourdhist) :: self
     real*8, intent(in) :: vec(1:3), mag2
     
-    fourdhist_counter = fourdhist_counter + 1
+    self%counter = self%counter + 1
     
-    if (fourdhist_counter <= fourdhist_nvals) then
-      fourdhist(fourdhist_counter,1:3) = vec(1:3)
-      fourdhist(fourdhist_counter,  4) = sqrt(mag2)
+    if (self%counter <= self%vals) then
+      self%raw(self%counter,1:3) = vec(1:3)
+      self%raw(self%counter,  4) = sqrt(mag2)
     else
       DEBUG_ERROR(*,'Added too many entries to histogram')
     endif
   end subroutine
   
-  subroutine fourdhist_finalize(sigma, filename, my_rank, comm, state)
+  subroutine fourdhist_dump(self, sigma, filename, my_rank, comm, state)
     implicit none
+    class(t_fourdhist) :: self
     character(*), intent(in) :: filename, state
     integer, intent(in) :: comm, my_rank
     real*8, intent(in) :: sigma
     
-    call write_histogram(fourdhist(1:fourdhist_counter,1:4), sigma*[1., 1., 1., 1.], 4, fourdhist_counter, [.True., .True., .True., .False.], filename, my_rank, comm, state)
-    deallocate(fourdhist)    
+    call write_histogram(self%raw(1:self%counter,1:4), sigma*[1., 1., 1., 1.], 4, self%counter, [.True., .True., .True., .False.], filename, my_rank, comm, state)
+  end subroutine
+ 
+  subroutine fourdhist_finalize(self)
+    implicit none
+    class(t_fourdhist) :: self
+
+    deallocate(self%raw)    
   end subroutine
  
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

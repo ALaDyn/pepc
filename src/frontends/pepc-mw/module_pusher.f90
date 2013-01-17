@@ -676,6 +676,7 @@ module module_pusher
       integer :: p, ierr
       integer, parameter :: file_nose_hoover_dat = 93
       character(25) :: histfile
+      type(t_fourdhist) :: velhist
       
       logical,save :: firstcall = .true.
 
@@ -691,7 +692,7 @@ module module_pusher
       real*8 :: sums(1:8)
       
       ! initialize velocity histogram
-      call fourdhist_init(p_finish-p_start)
+      call velhist%init(p_finish-p_start)
       
       ! determine current temperatures
       sums = 0.0
@@ -715,7 +716,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
 
           ! add values to velocity histogram (only for electrons)
-          call fourdhist_add(uprime(1:3), uprime2)
+          call velhist%add(uprime(1:3), uprime2)
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -807,7 +808,8 @@ module module_pusher
       ! write velocity histogram
       call create_directory('hist')
       write(histfile,'("hist/histogram_ve.",I6.6)') itime
-      call fourdhist_finalize(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, 'NVE thermostat')
+      call velhist%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, 'NVE thermostat')
+      call velhist%finalize()
     end subroutine
 
 
@@ -834,6 +836,7 @@ module module_pusher
       integer :: p, ierr
       integer, parameter :: file_thermostat_dat = 93
       character(25) :: histfile
+      type(t_fourdhist) :: velhist
       
       real*8, save :: delta_Ue_cum = 0.
       real*8, save :: delta_Ui_cum = 0.
@@ -852,7 +855,7 @@ module module_pusher
       real*8 :: sums(1:8)
       
       ! initialize velocity histogram
-      call fourdhist_init(p_finish-p_start)
+      call velhist%init(p_finish-p_start)
       
       ! determine current temperatures
       sums = 0.0
@@ -875,7 +878,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
           
           ! add values to velocity histogram (only for electrons)
-          call fourdhist_add(uprime(1:3), uprime2)
+          call velhist%add(uprime(1:3), uprime2)
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -966,7 +969,8 @@ module module_pusher
       ! write velocity histogram
       call create_directory('hist')
       write(histfile,'("hist/histogram_ve.",I6.6)') itime
-      call fourdhist_finalize(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, 'NVT thermostat')
+      call velhist%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, 'NVT thermostat')
+      call velhist%finalize()
     end subroutine
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -989,6 +993,7 @@ module module_pusher
       integer :: p, ierr
       integer, parameter :: file_nve_dat = 93
       character(25) :: histfile
+      type(t_fourdhist) :: velhist
       
       logical, save :: firstcall = .true.
 
@@ -1004,7 +1009,7 @@ module module_pusher
       real*8 :: sums(1:8)
       
       ! initialize velocity histogram
-      call fourdhist_init(p_finish-p_start)
+      call velhist%init(p_finish-p_start)
       
       ! determine current temperatures
       sums = 0.0
@@ -1024,7 +1029,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
           
           ! add values to velocity histogram (only for electrons)
-          call fourdhist_add(uprime(1:3), uprime2)
+          call velhist%add(uprime(1:3), uprime2)
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -1106,7 +1111,8 @@ module module_pusher
       ! write velocity histogram
       call create_directory('hist')
       write(histfile,'("hist/histogram_ve.",I6.6)') itime
-      call fourdhist_finalize(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, 'NVE dynamics')
+      call velhist%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, 'NVE dynamics')
+      call velhist%finalize()
     end subroutine
 
 end module module_pusher
