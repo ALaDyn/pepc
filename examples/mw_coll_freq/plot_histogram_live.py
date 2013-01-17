@@ -58,11 +58,12 @@ def readparams(filename):
     res["maxvals"]   = np.array(re.split('\s*', lines[2])[1:-1], dtype=float)
     res["mean"]      = np.array(re.split('\s*', lines[3])[1:-1], dtype=float)
     res["numbins"]   = np.array(re.split('\s*', lines[4])[1:-1], dtype=int)
-    res["sigma"]     = np.array(re.split('\s*', lines[5])[1:-1], dtype=float)
+    res["sigma"]     = float(lines[5])
     res["nvals_tot"] = int(lines[6])
     res["mbins"]     = int(lines[7])
     res["ncols"]     = int(lines[8])
     res["binwidth"]  = np.array(re.split('\s*', lines[9])[1:-1], dtype=float)
+    res["sigmabins"] = float(lines[10])
         
     f.close()
     
@@ -110,7 +111,7 @@ def initfig(*args):
 	pltlist.extend( ax.plot([0],[0],label='Cycle avg: %s' % datanames[colidx], linewidth=1.0,color=mycolormap(1./numcols*colidx)))#, markersize=10.0, markeredgewidth=1.0,marker=markers[colidx]))
 
     for colidx in range(0,numcols):
-        xvals, yvals = maxwell(maxx, params['sigma'][colidx], colidx)
+        xvals, yvals = maxwell(maxx, params['sigma'], colidx)
 	pltlist.extend( ax.plot(xvals,yvals, '--', label='Maxwell %s' % datanames[colidx], linewidth=2.5,color=mycolormap(1./numcols*colidx)))#, markersize=1.0, markeredgewidth=1.0,marker=markers[colidx])
 
     plt.legend(numpoints=1, prop=prop, ncol=1, frameon=True, loc='upper right', borderaxespad=0.)#, bbox_to_anchor=(1.05, 1))
@@ -153,10 +154,10 @@ def updatefig(*args):
         
 
       params = readparams( "%s.params" % (filename % currstep))
-      titletext.set_text(r'%6.6d  - %s, $T_e = %6.3f\,\mathrm{eV}$' % (currstep, params['state'][:-1], params['sigma'][0]**2*mass_e/kB*eVRy))
+      titletext.set_text(r'%6.6d  - %s, $T_e = %6.3f\,\mathrm{eV}$' % (currstep, params['state'][:-1], params['sigma']**2*mass_e/kB*eVRy))
 
       for colidx in range(0,numcols):
-          xvals, yvals = maxwell(maxx, params['sigma'][colidx], colidx)
+          xvals, yvals = maxwell(maxx, params['sigma'], colidx)
           pltlist[colidx+2*numcols].set_data(xvals, yvals)
 
       ax.set_xlim([-maxx,maxx])

@@ -78,8 +78,8 @@ module module_pusher
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    type(t_fourdhist) :: velhist
-    type(t_fourdhist) :: velhist_laseravg
+    type(t_threedhist) :: velhist
+    type(t_threedhist) :: velhist_laseravg
 
   contains
 
@@ -715,7 +715,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
 
           ! add values to velocity histogram (only for electrons)
-          call histograms_add(uprime(1:3), uprime2)
+          call histograms_add(uprime(1:3))
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -870,7 +870,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
           
           ! add values to velocity histogram (only for electrons)
-          call histograms_add(uprime(1:3), uprime2)
+          call histograms_add(uprime(1:3))
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -1014,7 +1014,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
           
           ! add values to velocity histogram (only for electrons)
-          call histograms_add(uprime(1:3), uprime2)
+          call histograms_add(uprime(1:3))
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -1117,14 +1117,14 @@ module module_pusher
     end subroutine
     
 
-    subroutine histograms_add(vel, mag)
+    subroutine histograms_add(vel)
       implicit none
-      real*8, intent(in) :: vel(3), mag
+      real*8, intent(in) :: vel(3)
       
-      call velhist%add(vel, mag)
+      call velhist%add(vel)
       
       if (velhist_laseravg%initialized) then
-        call velhist_laseravg%add(vel, mag)
+        call velhist_laseravg%add(vel)
       endif
     end subroutine
     
@@ -1140,17 +1140,23 @@ module module_pusher
       character(50) :: histfile
       integer :: newcycle, currcycle
       
+      ! these may not change during simulation run since it affects bin position and widthin histogram
+      real*8, save :: sigmabins     = -1.
+      real*8, save :: sigmabins_avg = -1.      
+      
       call create_directory('hist')
       
       write(histfile,'("hist/histogram_ve.",I6.6)') itime
-      call velhist%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, status)
+        if (sigmabins < 0.) sigmabins = sqrt(2./3.*Ue_uncor/mass_e/ne)
+      call velhist%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), sigmabins, trim(histfile), my_rank, MPI_COMM_PEPC, status)
       call velhist%finalize()
       
       currcycle = floor((t_laser/dt   )/navcycle)
       newcycle  = floor((t_laser/dt+1.)/navcycle)
       if ((currcycle > 0) .and. (currcycle.ne.newcycle)) then
         write(histfile,'("hist/histogram_ve_laseravg.",I6.6)') itime
-        call velhist_laseravg%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), trim(histfile), my_rank, MPI_COMM_PEPC, status)
+        if (sigmabins_avg < 0.) sigmabins_avg = sqrt(2./3.*Ue_uncor/mass_e/ne)
+        call velhist_laseravg%dump(sqrt(2./3.*Ue_uncor/mass_e/ne), sigmabins_avg, trim(histfile), my_rank, MPI_COMM_PEPC, status)
         call velhist_laseravg%finalize()
       endif
     
