@@ -145,7 +145,7 @@ subroutine pepcmw_prepare()
   if (vte>0.) then
     maxdt(3) = lambdaD_e/10./vte
     if (eps > 0.) then
-      maxdt(4) = abs(mass_e/qe * eps*eps / (10.*qe) * vte/10.)
+      maxdt(4) = abs(mass_e/qe * eps*eps / (qe) * vte/10.)
     else
       maxdt(4) = huge(maxdt(4))
     endif

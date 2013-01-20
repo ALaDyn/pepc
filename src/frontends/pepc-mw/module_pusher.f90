@@ -785,23 +785,25 @@ module module_pusher
       H_i = Ui_uncor + epot_i + nose_hoover_Q_i * veta_i*veta_i/2. + 3.*unit_kB*ni*Ti0*eta_i
       
       
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! output  
-      if (firstcall .and. .not. restart) then
-        firstcall = .false.
-        open(file_nose_hoover_dat, FILE='nose_hoover.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
-        write(file_nose_hoover_dat,'("#",16(1x,a20))') "time", &
-                                                       "epot_e",   "Te_uncor",   "Te0", "eta_e", "v_eta_e", "nose_hoover_Q_e", "H_e",  &
-                                                       "epot_i",   "Ti_uncor",   "Ti0", "eta_i", "v_eta_i", "nose_hoover_Q_i", "H_i",  &
-                                                       "H_e + H_i"
-      else
-        open(file_nose_hoover_dat, FILE='nose_hoover.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
-      endif
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! output
+      if (my_rank == 0) then
+        if (firstcall .and. .not. restart) then
+          firstcall = .false.
+          open(file_nose_hoover_dat, FILE='nose_hoover.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
+          write(file_nose_hoover_dat,'("#",16(1x,a20))') "time", &
+                                                         "epot_e",   "Te_uncor",   "Te0", "eta_e", "v_eta_e", "nose_hoover_Q_e", "H_e",  &
+                                                         "epot_i",   "Ti_uncor",   "Ti0", "eta_i", "v_eta_i", "nose_hoover_Q_i", "H_i",  &
+                                                         "H_e + H_i"
+        else
+          open(file_nose_hoover_dat, FILE='nose_hoover.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
+        endif
 
-      write(file_nose_hoover_dat,'(" ",1(1x,f20.6),15(1x,1pe20.10))') trun*unit_t0_in_fs, &
-                                                       epot_e,   Te_uncor,   Te0, eta_e, veta_e, nose_hoover_Q_e, H_e, &
-                                                       epot_i,   Ti_uncor,   Ti0, eta_i, veta_i, nose_hoover_Q_i, H_i, &
-                                                       H_e + H_i
-      close(file_nose_hoover_dat)
+        write(file_nose_hoover_dat,'(" ",1(1x,f20.6),15(1x,1pe20.10))') trun*unit_t0_in_fs, &
+                                                         epot_e,   Te_uncor,   Te0, eta_e, veta_e, nose_hoover_Q_e, H_e, &
+                                                         epot_i,   Ti_uncor,   Ti0, eta_i, veta_i, nose_hoover_Q_i, H_i, &
+                                                         H_e + H_i
+        close(file_nose_hoover_dat)
+      endif
 
     
       ! write velocity histogram
@@ -939,22 +941,24 @@ module module_pusher
       delta_Ui_cum = delta_Ui_cum + delta_Ui
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! output
-      if (firstcall .and. .not. restart) then
-        firstcall = .false.
-        open(file_thermostat_dat, FILE='thermostat.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
-        write(file_thermostat_dat,'("#",18(1x,a20))') "time", &
-                                                       "epot_e",   "Ue_before", "Ue_now", "Ue_target", "delta_Ue", "delta_Ue_cum", "H_e",  &
-                                                       "epot_i",   "Ui_before", "Ui_now", "Ui_target", "delta_Ui", "delta_Ui_cum", "H_i",  &
-                                                       "delta_Ue+i", "delta_Ue+i_cum", "H_e + H_i"
-      else
-        open(file_thermostat_dat, FILE='thermostat.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
-      endif
+      if (my_rank == 0) then
+        if (firstcall .and. .not. restart) then
+          firstcall = .false.
+          open(file_thermostat_dat, FILE='thermostat.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
+          write(file_thermostat_dat,'("#",18(1x,a20))') "time", &
+                                                         "epot_e",   "Ue_before", "Ue_now", "Ue_target", "delta_Ue", "delta_Ue_cum", "H_e",  &
+                                                         "epot_i",   "Ui_before", "Ui_now", "Ui_target", "delta_Ui", "delta_Ui_cum", "H_i",  &
+                                                         "delta_Ue+i", "delta_Ue+i_cum", "H_e + H_i"
+        else
+          open(file_thermostat_dat, FILE='thermostat.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
+        endif
 
-      write(file_thermostat_dat,'(" ",1(1x,f20.6),17(1x,1pe20.10))') trun*unit_t0_in_fs, &
-                                                       epot_e, 3./2.*ne*unit_kB*Te_before, Ue_uncor, 3./2.*ne*unit_kB*Te, delta_Ue, delta_Ue_cum, H_e, &
-                                                       epot_i, 3./2.*ni*unit_kB*Ti_before, Ui_uncor, 3./2.*ni*unit_kB*Ti, delta_Ui, delta_Ui_cum, H_i, &
-                                                       delta_Ue + delta_Ui, delta_Ue_cum+delta_Ui_cum, H_e + H_i
-      close(file_thermostat_dat)
+        write(file_thermostat_dat,'(" ",1(1x,f20.6),17(1x,1pe20.10))') trun*unit_t0_in_fs, &
+                                                         epot_e, 3./2.*ne*unit_kB*Te_before, Ue_uncor, 3./2.*ne*unit_kB*Te, delta_Ue, delta_Ue_cum, H_e, &
+                                                         epot_i, 3./2.*ni*unit_kB*Ti_before, Ui_uncor, 3./2.*ni*unit_kB*Ti, delta_Ui, delta_Ui_cum, H_i, &
+                                                         delta_Ue + delta_Ui, delta_Ue_cum+delta_Ui_cum, H_e + H_i
+        close(file_thermostat_dat)
+      endif
 
     
 
@@ -1074,22 +1078,24 @@ module module_pusher
       H_i = Ui_uncor + epot_i
       
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! output
-      if (firstcall .and. .not. restart) then
-        firstcall = .false.
-        open(file_nve_dat, FILE='nve.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
-        write(file_nve_dat,'("#",8(1x,a20))')   "time", &
-                                                       "epot_e",   "Ue_now", "H_e",  &
-                                                       "epot_i",   "Ui_now", "H_i",  &
-                                                       "H_e + H_i"
-      else
-        open(file_nve_dat, FILE='nve.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
-      endif
+      if (my_rank == 0) then
+        if (firstcall .and. .not. restart) then
+          firstcall = .false.
+          open(file_nve_dat, FILE='nve.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
+          write(file_nve_dat,'("#",8(1x,a20))')   "time", &
+                                                         "epot_e",   "Ue_now", "H_e",  &
+                                                         "epot_i",   "Ui_now", "H_i",  &
+                                                         "H_e + H_i"
+        else
+          open(file_nve_dat, FILE='nve.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
+        endif
 
-      write(file_nve_dat,'(" ",1(1x,f20.6),7(1x,1pe20.10))') trun*unit_t0_in_fs, &
-                                                       epot_e, Ue_uncor, H_e, &
-                                                       epot_i, Ui_uncor, H_i, &
-                                                       H_e + H_i
-      close(file_nve_dat)
+        write(file_nve_dat,'(" ",1(1x,f20.6),7(1x,1pe20.10))') trun*unit_t0_in_fs, &
+                                                         epot_e, Ue_uncor, H_e, &
+                                                         epot_i, Ui_uncor, H_i, &
+                                                         H_e + H_i
+        close(file_nve_dat)
+      endif
 
     
 
