@@ -80,7 +80,7 @@ module module_spacefilling
           ! using log_{2**idim}(key):
           ! level_from_key = int( log(1._8*key) / log((2._8)**idim))
           ! counting leading zeros (faster):
-          level_from_key = int((bit_size(key) - leadz(key) - 1) / idim)
+          level_from_key = int((bit_size(key) - leadz(key) - 1) / idim, kind = 8)
 
         end function
 
@@ -111,7 +111,7 @@ module module_spacefilling
           integer*8, intent(in) :: key
           integer :: child_number_from_key
 
-          child_number_from_key = int(ibits(key, 0, idim))
+          child_number_from_key = int(ibits(key, 0, idim), kind = 8)
         end function child_number_from_key
 
 
@@ -198,11 +198,11 @@ module module_spacefilling
 
           allocate(intcoord(idim, npp))
 
-          s=boxsize(1:idim)/2**nlev       ! refinement length
+          s=boxsize(1:idim)/2_8**nlev       ! refinement length
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
           do j = 1,npp
-            intcoord(:,j) = int(( particles(j)%x(1:idim) - boxmin(1:idim) )/s) ! partial keys
+            intcoord(:,j) = int(( particles(j)%x(1:idim) - boxmin(1:idim) )/s, kind = 8) ! partial keys
           end do
 
           ! construct particle keys
@@ -262,10 +262,10 @@ module module_spacefilling
           integer*8 :: ic(idim)
           real*8 :: s(idim)
 
-          s=boxsize(1:idim)/2**nlev       ! refinement length
+          s=boxsize(1:idim)/2_8**nlev       ! refinement length
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
-          ic = int((x(1:idim) - boxmin(1:idim))/s)           ! partial keys
+          ic = int((x(1:idim) - boxmin(1:idim))/s, kind = 8)           ! partial keys
 
           ! construct particle keys
           select case (curve_type)
@@ -364,7 +364,7 @@ module module_spacefilling
               ic = 0
           end select
 
-          s=boxsize(1:idim)/2**nlev       ! refinement length
+          s=boxsize(1:idim)/2_8**nlev       ! refinement length
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
           x(1:idim) = (real(ic,kind(1._8)) + 0.5_8) * s + boxmin(1:idim)
