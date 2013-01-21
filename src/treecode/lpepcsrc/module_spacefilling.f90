@@ -80,7 +80,7 @@ module module_spacefilling
           ! using log_{2**idim}(key):
           ! level_from_key = int( log(1._8*key) / log((2._8)**idim))
           ! counting leading zeros (faster):
-          level_from_key = int((bit_size(key) - leadz(key) - 1) / idim, kind = 8)
+          level_from_key = int((bit_size(key) - leadz(key) - 1) / idim)
 
         end function
 
@@ -111,7 +111,7 @@ module module_spacefilling
           integer*8, intent(in) :: key
           integer :: child_number_from_key
 
-          child_number_from_key = int(ibits(key, 0, idim), kind = 8)
+          child_number_from_key = int(ibits(key, 0, idim))
         end function child_number_from_key
 
 
