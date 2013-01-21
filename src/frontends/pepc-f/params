@@ -1,0 +1,122 @@
+&pepcf
+tnwpz = 10
+bx = 2
+tfpp = 70
+tnpp = 50000
+quelltyp = 1
+diag_interval = 10
+nt = 100
+open_sides = .false.
+fsup=1859
+guiding_centre_electrons = .false.
+dy = 1.05e-3
+!dx=1.
+!dy=0.1
+!dz=0.1
+mirror_layers = 2
+checkp_interval = 50
+te_ev = 80
+dx = 1.6e-2
+dt = 1.000000000000e-11
+dz = 1.05e-3
+ti_ev = 80
+by = 0
+bz = 0
+tnwpy = 10
+periodicity_in(2)=.true.
+periodicity_in(3)=.true.
+fixed_npp=.true.
+/
+
+&species_nml
+
+ns=3
+name(0)="wall"
+mass(0)=10.
+charge(0)=0.
+physical_particle(0)=.false.
+
+name(1)="electrons"
+mass(1)=9.1093829e-31
+charge(1)=-1.602176565e-19
+physical_particle(1)=.true.
+nfp(1)=5
+nip(1)=22000
+
+name(2)="h-ions"
+mass(2)=1.67262177e-27
+charge(2)=1.602176565e-19
+physical_particle(2)=.true.
+nfp(2)=5
+nip(2)=22000
+/
+
+&geometry
+nbnd=6
+x0(1,1:3)=0.0, 0.0, 0.0
+e1(1,1:3)=0.0, 0.0, 1.05e-3
+e2(1,1:3)=0.0, 1.05e-3, 0.0
+n(1,1:3)=1., 0., 0.
+type(1)=0
+nwp(1)=5000
+reflux_particles(1)=.true.
+
+x0(2,1:3)=1.6e-2, 0.0, 0.0
+e1(2,1:3)=0.0, 0.0, 1.05e-3
+e2(2,1:3)=0.0, 1.05e-3, 0.0
+n(2,1:3)=-1.,0.,0.
+type(2)=0
+nwp(2)=5000
+reflux_particles(2)=.true.
+
+x0(3,1:3)=0.0, 0.0, 0.0
+e1(3,1:3)=1.6e-2, 0.0, 0.0
+e2(3,1:3)=0.0, 0.0, 1.05e-3
+n(3,1:3)=0.,1.,0.
+type(3)=2
+opposite_bnd(3)=4
+
+x0(4,1:3)=0.0, 1.05e-3, 0.0
+e1(4,1:3)=1.6e-2, 0.0, 0.0
+e2(4,1:3)=0.0, 0.0, 1.05e-3
+n(4,1:3)=0.,-1.,0.
+type(4)=2
+opposite_bnd(4)=3
+
+x0(5,1:3)=0.0, 0.0, 0.0
+e1(5,1:3)=1.6e-2, 0.0, 0.0
+e2(5,1:3)=0.0, 1.05e-3, 0.0
+n(5,1:3)=0.,0.,1.
+type(5)=2
+opposite_bnd(5)=6
+
+x0(6,1:3)=0.0, 0.0, 1.05e-3
+e1(6,1:3)=1.6e-2, 0.0, 0.0
+e2(6,1:3)=0.0, 1.05e-3, 0.0
+n(6,1:3)=0.,0.,-1.
+type(6)=2
+opposite_bnd(6)=5
+/
+
+&walk_para_pthreads
+max_particles_per_thread = 1000
+num_walk_threads = 3
+/
+&walk_para_smpss
+chunk_size_default = 21
+/
+&calc_force_coulomb
+theta2 = 4.900000000000e-01
+include_far_field_if_periodic = .false.
+eps2 = 1.000000000000e-12
+force_law = 3
+mac_select = 0
+/
+&libpepc
+weighted = 1
+curve_type = 1
+interaction_list_length_factor = 8
+np_mult = -150
+debug_level = 0
+force_cubic_domain = .true.
+/
