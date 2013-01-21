@@ -5,8 +5,8 @@
 !!!!!!!!!!!!!!!!!!!!
 
 MODULE output
-    use helper
     use variables
+    use helper
 
 
     implicit none
@@ -44,46 +44,109 @@ MODULE output
 
         if(root) write(filehandle,'(a,i6)') " == finished computing step              : ",timestep
         if(root) write(filehandle,'(a)') " "
+        if(root) write(filehandle,'(a)') "#############################################################################"
+        if(root) write(filehandle,'(a)') " "
 
     END SUBROUTINE end_of_ts_output
 
 !===============================================================================
 
-    SUBROUTINE recycling_output(i_hits_r,e_hits_r,i_hits_l,e_hits_l,q_r,q_l,filehandle)
+    SUBROUTINE recycling_output(thits,treflux,filehandle)
 
         implicit none
 
-        integer,intent(in)      :: i_hits_r,e_hits_r,i_hits_l,e_hits_l,filehandle
-        real(kind=8),intent(in) :: q_r,q_l
+        integer,intent(in)      :: thits(0:,:),treflux(0:,:),filehandle
+        integer :: ib,ispecies
 
-        if(root) write(filehandle,'(a,i16)')    " == ion hits on right wall               : ", i_hits_r
-        if(root) write(filehandle,'(a,i16)')    " == electron hits on right wall          : ", e_hits_r
-        if(root) write(filehandle,'(a,es16.8)') " == incoming charge on right wall        : ", (i_hits_r-e_hits_r)*e*fsup
-        if(root) write(filehandle,'(a,es16.8)') " == total charge on right wall           : ", q_r
-        if(root) write(filehandle,'(a,i16)')    " == ion hits on left wall                : ", i_hits_l
-        if(root) write(filehandle,'(a,i16)')    " == electron hits on left wall           : ", e_hits_l
-        if(root) write(filehandle,'(a,es16.8)') " == incoming charge on left wall         : ", (i_hits_l-e_hits_l)*e*fsup
-        !if(root) write(filehandle,'(a,es18.6)') " == total charge on left wall            : ", q_l
+        IF(root) THEN
+            write(filehandle,'(a)')"========================= Info on particle-species ========================="
+            DO ispecies=0,nspecies-1
+                write(filehandle,'(a,i2,a)')"========================= Species ",ispecies," ========================="
+                write(filehandle,'(a,a)')"Name: ",TRIM(species(ispecies)%name)
+                IF (.not. species(ispecies)%physical_particle) write(filehandle,'(a)')"(no physical species)"
+                write(filehandle,*)
+                IF (species(ispecies)%physical_particle) THEN
+                    DO ib=1,nb
+                        write(filehandle,'(a,i2,a,i10)') "Hits on boundary ",ib," :",thits(ispecies,ib)
+                    END DO
+                    write(filehandle,*)
+                    write(filehandle,'(a,i10)') "Refluxed particles  :",SUM(treflux(ispecies,1:nb))+species(ispecies)%nfp
+                    write(filehandle,*)
+                END IF
+                write(filehandle,'(a)')"=============================================================="
+                write(filehandle,*)
+            END DO
 
-        if (fixed_npp) then
-            if (root) write(filehandle,'(a,l16)')   " == refluxing in this timestep           : ", need_to_reflux
-            if (need_to_reflux) then
-                if(root) write(filehandle,'(a,i16)')    " == influxed ions                        : ", i_hits_l+i_hits_r+new_i_r_last_ts
-                if(root) write(filehandle,'(a,i16)')    " == influxed electrons                   : ", e_hits_l+e_hits_r+new_e_r_last_ts
-            else
-                if(root) write(filehandle,'(a,i16)')    " == influxed ions                        : ", i_hits_l
-                if(root) write(filehandle,'(a,i16)')    " == influxed electrons                   : ", e_hits_l
-            end if
-        else
-            if(root) write(filehandle,'(a,i16)')    " == influxed ions                        : ", i_hits_l+tfpp/2
-            if(root) write(filehandle,'(a,i16)')    " == influxed electrons                   : ", e_hits_l+tfpp/2
-        end if
-        if(root) write(filehandle,'(a,i16)')    " == total number of particles            : ", tnp
-        if(root) write(filehandle,'(a,i16)')    " == total number of plasma particles     : ", tnpp
+            write(filehandle,'(a)')"========================= Info on boundaries ========================="
+            DO ib=1,nb
+                IF (boundaries(ib)%nwp/=0) THEN
+                    write(filehandle,'(a,i2,a,es16.8)') "Total charge on boundary ",ib," :",boundaries(ib)%q_tot
+                END IF
+            END DO
+
+            write(filehandle,*)
+            write(filehandle,'(a,i16)')    " == Total number of particles            : ", tnp
+            write(filehandle,'(a,i16)')    " == Total number of plasma particles     : ", tnpp
+        END IF
 
     END SUBROUTINE recycling_output
 
 !===============================================================================
+
+  SUBROUTINE write_parameters()
+      use module_interaction_specific
+
+      implicit none
+
+      IF (root) THEN
+          write(*,'(a,i12)')       " == total number of simulated plasma particles: ", tnpp
+          write(*,'(a,i12)') " == simulated plasma-particleflux per timestep: ", tfpp
+          write(*,'(a,i12)')    " == number of time steps             : ", nt
+          write(*,'(a,es12.4)') " == time step                        : ", dt
+          !write(*,'(a,es12.4)') " == timestep * omega_p               : ", dt*omega_p
+          write(*,'(a,es12.4)') " == simulation volume                : ", dx*dy*dz
+          write(*,'(a,es12.4)') " == superparticle factor             : ", fsup
+          !write(*,'(a,es12.4)') " == particles / debye spehere        : ", 0.5*tnpp/(dx*dy*dz)*l_debye**3
+          write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
+          write(*,'(a,l6)')     " == open side walls                  : ", open_sides
+          write(*,'(a,l6)')     " == far_field_if_periodic            : ", include_far_field_if_periodic
+          write(*,'(a,l6)')     " == do_restore_particles             : ", do_restore_particles
+          write(*,'(a,i12)')    " == mirror_layers                    : ", mirror_layers
+          write(*,*)
+          write(*,*) "========== Magnetic Field ========="
+          write(*,'(a,f12.4)')  " == Bx                               : ", Bx
+          write(*,'(a,f12.4)')  " == By                               : ", By
+          write(*,'(a,f12.4)')  " == Bz                               : ", Bz
+          write(*,*)
+          write(*,*) "========== Simulation Domain ========="
+          if (B.ne.0.) then
+              write(*,'(a,12X,es10.2)')  " == dx (m)             : ", dx
+              write(*,'(a,es10.2,a,es10.2)')  " == dy (gyro_radii, m) : ", dy/r_lamor,", ",dy
+              write(*,'(a,es10.2,a,es10.2)')  " == dz (gyro_radii, m) : ", dz/r_lamor,", ",dz
+          else
+              write(*,'(a,es10.2)')  " == dx (m)             : ", dx
+              write(*,'(a,es10.2)')  " == dy (m)             : ", dy
+              write(*,'(a,es10.2)')  " == dz (m)             : ", dz
+          end if
+          write(*,*)
+          write(*,*) "========== Plasmaparameters ========="
+          write(*,'(a,f12.4)')  " == TE [eV] (sourcetemperature)      : ", te_ev
+          write(*,'(a,f12.4)')  " == TI [eV] (sourcetemperature)      : ", ti_ev
+          write(*,'(a,es12.4)') " == Gyro radius [m]                  : ", r_lamor
+          !write(*,'(a,es12.4)') " == Debye length [m]                 : ", l_debye
+          !write(*,'(a,es12.4)') " == Plasmafrequency [s^-1]           : ", omega_p
+          write(*,*)
+          write(*,*) "========== Wall Particles ========="
+          write(*,'(a,i12)')    " == number of wall partiles          : ", tnwp
+          !write(*,'(a,es12.4)') " == wall particles / l_debye in y    : ", tnwpy/dy*l_debye
+          !write(*,'(a,es12.4)') " == wall particles / l_debye in z    : ", tnwpz/dz*l_debye
+          write(*,*) "========== Random Number Generator ========="
+          write(*,'(a,i12)') " == Random Number Generator          : ", rng
+      END IF
+
+  END SUBROUTINE write_parameters
+
+!======================================================================================
 
     subroutine write_particles(p)
         use module_vtk
@@ -135,5 +198,34 @@ MODULE output
         if(root) write(*,'(a,i6)') " == [write_particles] vtk output at timestep",step
 
     end subroutine write_particles  
+
+!======================================================================================
+
+    subroutine set_checkpoint()
+        use module_checkpoint
+
+        implicit none
+        include 'mpif.h'
+
+        integer, parameter :: fid = 666
+
+        npart=tnp
+        !call write_particles_ascii(my_rank,step,np,particles,filename)
+        call write_particles_mpiio(MPI_COMM_WORLD,my_rank,step,np,npart,particles,filename)
+
+        if (root) then
+            open(fid,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
+            write(fid,NML=pepcf)
+            write(fid,NML=walk_para_smpss)
+            close(fid)
+
+        endif
+
+        if(root) write(*,'(a,i6)') " == [set_checkpoint] checkpoint at timestep",step
+
+    end subroutine
+
+!======================================================================================
+
 
 END MODULE

@@ -24,6 +24,8 @@
 
 module variables
   use module_pepc_types
+  use module_geometry_types
+  use module_species_types
   implicit none
 
   integer,parameter :: err_output_id=666
@@ -65,6 +67,7 @@ module variables
   logical :: guiding_centre_electrons
 
 
+
   
   real*8  :: dx,dy,dz           ! lenght/width in m
   real*8  :: xmin,ymin,zmin     ! used if the domain does not start at (0,0,0)
@@ -94,7 +97,7 @@ module variables
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
-  integer                        :: next_label
+  integer                       :: next_label
 
   !variables for reflux in every 2nd timestep
   integer                        :: new_e_r_last_ts=0
@@ -114,7 +117,8 @@ module variables
   type(t_particle), allocatable :: plasma_particles(:)
   integer :: tnpp              ! total number of plasma particles 
   integer :: npp               ! local number of plasma particles 
-  integer :: tfpp              ! total flux of plasma particles per timestep (even number, 50% electrons)
+  integer :: tfpp
+
 
   !aux strings
   character(255) :: filename
@@ -124,7 +128,14 @@ module variables
   !other
   integer :: chunk_size_default
 
-  namelist /pepcf/ fsup,tfpp,fixed_npp,periodicity_in,mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  !test
+  type(t_boundary), allocatable :: boundaries(:)
+  integer :: nb=6          ! number of boundaries
+  type(t_species), allocatable :: species(:)
+  integer :: nspecies=3    ! number of species
+  integer :: left_bc=1     ! boundary at left wall(0=absorb and reflux according to source, 1=reflect (invert vx), 2=wall)
+
+  namelist /pepcf/ tfpp,fsup,fixed_npp,periodicity_in,mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 

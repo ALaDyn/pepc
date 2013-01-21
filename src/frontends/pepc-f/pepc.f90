@@ -32,21 +32,23 @@ program pepc
     ! frontend helper routines
     use helper
     use variables
+    use module_initialization
     use particlehandling
     use integrator
     use output
     use diagnostics
     use module_cmdline
     use module_interaction_partners
-
+    use module_geometry
+    use module_species
 
     implicit none
     include 'mpif.h'
 
     ! timing variables
     real*8 :: timer(20)
-    real*8 :: davor,danach
-    integer :: j
+    !real*8 :: davor,danach
+
 
     !!! initialize pepc library and MPI
     call pepc_initialize("pepc-f", my_rank, n_ranks, .true.)
@@ -65,19 +67,30 @@ program pepc
 
     call init_files()
 
+
+    call set_default_parameters()
+    call set_parameters()
+    call init_boundaries()
+    call init_species()
+
     if (do_resume)then
         call init_after_resume()
     else
-        call set_default_parameters()
-        call set_parameters()
+        !call set_parameters()
+        !call init_boundaries()
+        !call init_species()
         call init()
 
-        call init_particles(plasma_particles)
-        call init_wall_particles(wall_particles)          !wall particles and plasma particles are initialized seperately
+        !call write_parameters()
 
-        particles(1:npp)=plasma_particles(:)              !and than combined in one array for the pepc routines
-        particles(npp+1:npp+nwp)=wall_particles(:)
+        !call init_particles(plasma_particles)
+        !call init_wall_particles(wall_particles)          !wall particles and plasma particles are initialized seperately
+
+        !particles(1:npp)=plasma_particles(:)              !and than combined in one array for the pepc routines
+        !particles(npp+1:npp+nwp)=wall_particles(:)
     end if
+
+    call write_parameters()
 
     !probes for analysing interaction partner diags
     if (interaction_partner_diags) call init_probes(5)
@@ -181,8 +194,9 @@ program pepc
     !END OF MAIN LOOP ====================================================================================================
 
     deallocate(particles)
-    deallocate(wall_particles)
-    deallocate(plasma_particles)
+    IF (allocated(wall_particles))deallocate(wall_particles)
+    IF (allocated(plasma_particles))deallocate(plasma_particles)
+
     timer(10) = get_time()
 
     if(root) then

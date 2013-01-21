@@ -2,274 +2,196 @@ module particlehandling
 
     use module_pepc_types
     use helper
+    use module_geometry
     use output
     implicit none
 
     contains
 
 !======================================================================================
-    SUBROUTINE count_hits_and_remove_particles(p,e_hits_l, e_hits_r, i_hits_l, i_hits_r)
+    SUBROUTINE count_hits_and_remove_particles(p,hits,reflux)
         implicit none
 
-        integer rp
+        logical :: hit
+        integer rp,ib
         type(t_particle), allocatable, intent(inout) :: p(:)
-        integer, intent(inout) :: e_hits_l, e_hits_r, i_hits_l, i_hits_r
+        integer, intent(inout) :: hits(0:,:),reflux(0:,:)
+        real*8 :: xp(3)
 
-        rp=1
-        DO WHILE (rp <= np)
-            IF( hit_r(p(rp)) ) THEN                     !hit right wall
-                if (p(rp)%data%q > 0.) i_hits_r=i_hits_r+1
-                if (p(rp)%data%q < 0.) e_hits_r=e_hits_r+1
-                IF(rp .ne. np) THEN
-                    DO
-                        IF ( hit_r(p(np)) .or. hit_l(p(np)) ) THEN
-                            IF (np==rp) EXIT
-                            IF ( hit_r(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) i_hits_r=i_hits_r+1
-                                IF (p(np)%data%q < 0.) e_hits_r=e_hits_r+1
-                            ELSE IF ( hit_l(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) i_hits_l=i_hits_l+1
-                                IF (p(np)%data%q < 0.) e_hits_l=e_hits_l+1
-                            END IF
-                            np = np - 1
-                        ELSE
+        rp=np
+        ib=1
+        DO WHILE (rp >= 1)
+            ib = 1
+            DO WHILE (ib <= nb)
+                call hit_wall(p(rp),boundaries(ib),hit)
+
+                IF (hit) THEN
+                    hits(p(rp)%data%species,ib)=hits(p(rp)%data%species,ib)+1
+                    IF (boundaries(ib)%type==3) THEN                                   !Open BC
+                        reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
+                        IF(rp .ne. np) THEN
                             p(rp) = p(np)
-                            EXIT
                         END IF
-                    END DO
-                END IF
-
-                np = np - 1
-            ELSE IF( hit_l(p(rp)) ) THEN               !hit left wall
-                if (p(rp)%data%q > 0.) i_hits_l=i_hits_l+1
-                if (p(rp)%data%q < 0.) e_hits_l=e_hits_l+1
-                IF(rp .ne. np) THEN
-                    DO
-                        IF ( hit_r(p(np)) .or. hit_l(p(np))) THEN
-                            IF (np==rp) EXIT
-                            IF ( hit_r(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) i_hits_r=i_hits_r+1
-                                IF (p(np)%data%q < 0.) e_hits_r=e_hits_r+1
-                            ELSE IF ( hit_l(p(np)) ) THEN
-                                IF (p(np)%data%q > 0.) i_hits_l=i_hits_l+1
-                                IF (p(np)%data%q < 0.) e_hits_l=e_hits_l+1
-                            END IF
-                            np = np - 1
-                        ELSE
+                        np = np - 1
+                        ib = 0
+                        rp = rp - 1
+                    ELSE IF (boundaries(ib)%type==2) THEN                              !Periodic BC
+                        p(rp)%x = p(rp)%x + boundaries(ib)%n*boundaries(ib)%dist       !Particle re-enters at opposite boundary
+                        ib = 0
+                    ELSE IF (boundaries(ib)%type==1) THEN                              !Reflecting BC
+                        xp = p(rp)%x - boundaries(ib)%x0
+                        p(rp)%x = p(rp)%x - 2.*dotproduct(xp,boundaries(ib)%n)*boundaries(ib)%n
+                        p(rp)%data%v = p(rp)%data%v - 2.*dotproduct(p(rp)%data%v,boundaries(ib)%n)*boundaries(ib)%n
+                        ib = 0
+                    ELSE IF (boundaries(ib)%type==0) THEN                              !Absorbing Wall BC
+                        reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
+                        IF(rp .ne. np) THEN
                             p(rp) = p(np)
-                            EXIT
                         END IF
-                    END DO
+                        np = np - 1
+                        ib = 0
+                        rp = rp - 1
+                    END IF
                 END IF
-
-                np = np - 1
-            END IF
-
-            DO WHILE (hit_side(p(rp)).eqv. .true.)
-                IF(p(rp)%x(2) < ymin) THEN
-                    p(rp)%x(2) = p(rp)%x(2) + dy
-                ELSE IF(p(rp)%x(2) > ymax) THEN
-                    p(rp)%x(2) = p(rp)%x(2) - dy
-                END IF
-
-                IF(p(rp)%x(3) < zmin) THEN
-                    p(rp)%x(3) = p(rp)%x(3) + dz
-                ELSE IF(p(rp)%x(3) > zmax) THEN
-                    p(rp)%x(3) = p(rp)%x(3) - dz
-                END IF
+                ib = ib+1
             END DO
-            rp = rp + 1
-
+            rp = rp-1
         END DO
+
+
     END SUBROUTINE
 
-
 !======================================================================================
-! recycling of particles hitting the wall is done every second timestep, particles hitting the
-! source are immediately refluxed
-    SUBROUTINE recycling(p,e_hits_l,i_hits_l,e_hits_r,i_hits_r)
+
+    SUBROUTINE recycling(p,treflux,treflux_next_ts)
 
         implicit none
         include 'mpif.h'
 
         type(t_particle), allocatable, intent(inout) :: p(:)
-        integer, intent(in) :: e_hits_l,i_hits_l,e_hits_r,i_hits_r
-        integer :: new_e_l,new_i_l,new_e_r,new_i_r,new_e,new_i
-        integer :: rc
+        integer, intent(in) :: treflux(0:,:)
+        integer, intent(inout) :: treflux_next_ts(0:,:)
+        integer :: reflux(0:nspecies-1,1:nb)
+        integer :: rc,ispecies,ib,new_particles
 
-        if (fixed_npp) then
-            new_e_l = (e_hits_l) / n_ranks
-            new_i_l = (i_hits_l) / n_ranks
 
-            next_label = next_label + my_rank * (new_e_l + new_i_l)
+        reflux=0
 
-            if (my_rank .eq. (n_ranks-1)) then
-                new_e_l = new_e_l + MOD((e_hits_l), n_ranks)
-                new_i_l = new_i_l + MOD((i_hits_l), n_ranks)
-            end if
+        DO ispecies=0,nspecies-1
+            DO ib=1,nb
+                IF (treflux(ispecies,ib)/=0) THEN
+                    reflux(ispecies,ib) = treflux(ispecies,ib) / n_ranks
+                    next_label = next_label + my_rank*reflux(ispecies,ib)
+                    IF (my_rank .eq. (n_ranks-1)) THEN
+                        reflux(ispecies,ib) = reflux(ispecies,ib) + MOD(treflux(ispecies,ib), n_ranks)
+                    END IF
 
-            call reflux_particles(p,new_e_l,new_i_l)
-            call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
+                    call reflux_particles(p,reflux(ispecies,ib),ispecies,ib)
+                    call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
+                END IF
 
-            if (.not. need_to_reflux) then
-                new_e_r_last_ts=new_e_r_last_ts+e_hits_r
-                new_i_r_last_ts=new_i_r_last_ts+i_hits_r
-
-            else
-                new_e_r = (e_hits_r+new_e_r_last_ts) / n_ranks
-                new_i_r = (i_hits_r+new_i_r_last_ts) / n_ranks
-
-                next_label = next_label + my_rank * (new_e_r + new_i_r)
-
-                if (my_rank .eq. (n_ranks-1)) then
-                    new_e_r = new_e_r + MOD((e_hits_r+new_e_r_last_ts), n_ranks)
-                    new_i_r = new_i_r + MOD((i_hits_r+new_i_r_last_ts), n_ranks)
-                end if
-
-                call reflux_particles(p,new_e_r,new_i_r)
-                call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
-
-                new_i_r_last_ts=0
-                new_e_r_last_ts=0
-
-            end if
-        else
-            new_e_l = (e_hits_l) / n_ranks
-            new_i_l = (i_hits_l) / n_ranks
-
-            next_label = next_label + my_rank * (new_e_l + new_i_l)
-
-            if (my_rank .eq. (n_ranks-1)) then
-                new_e_l = new_e_l + MOD((e_hits_l), n_ranks)
-                new_i_l = new_i_l + MOD((i_hits_l), n_ranks)
-            end if
-
-            call reflux_particles(p,new_e_l,new_i_l)
-            call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
-
-            new_e=tfpp/2/n_ranks
-            new_i=tfpp/2/n_ranks
-
-            next_label = next_label + my_rank * (new_e + new_i)
-
-            if (my_rank .eq. (n_ranks-1)) then
-                new_e = new_e + MOD((tfpp/2), n_ranks)
-                new_i = new_i + MOD((tfpp/2), n_ranks)
-            end if
-
-            call reflux_particles(p,new_e,new_i)
-            call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
-
-        end if
-    END SUBROUTINE recycling
-!======================================================================================
-
-    SUBROUTINE reflux_particles(p,new_e,new_i)
-
-        implicit none
-
-        type(t_particle), allocatable, intent(inout) :: p(:)
-        integer, intent(in) :: new_e,new_i
-
-        integer rc,ip
-        type(t_particle), allocatable                :: p_new_e(:)
-        type(t_particle), allocatable                :: p_new_i(:)
-
-        allocate(p_new_e(new_e),stat=rc)
-        allocate(p_new_i(new_i),stat=rc)
-
-        call reallocate_particles(p,np, np+new_e+new_i)
-
-        DO ip=1, new_e   !electrons first
-            p_new_e(ip)%label       = next_label
-            next_label              = next_label + 1
-            p_new_e(ip)%data%q      = -e*fsup
-            p_new_e(ip)%data%m      = me*fsup
-
-            p_new_e(ip)%results%e   = 0.0_8
-            p_new_e(ip)%results%pot = 0.0_8
-            p_new_e(ip)%work        = 1.0_8
-            p_new_e(ip)%data%species= -1
-
-            p_new_e(ip)%data%B(1)=Bx
-            p_new_e(ip)%data%B(2)=By
-            p_new_e(ip)%data%B(3)=Bz
+            END DO
         END DO
-        call source(p_new_e,quelltyp)
 
-        DO ip=1, new_i   !ions
-            p_new_i(ip)%label       = next_label
-            next_label              = next_label + 1
-            p_new_i(ip)%data%q      = e*fsup
-            p_new_i(ip)%data%m      = mp*fsup
 
-            p_new_i(ip)%results%e   = 0.0_8
-            p_new_i(ip)%results%pot = 0.0_8
-            p_new_i(ip)%work        = 1.0_8
-            p_new_i(ip)%data%species= 1
+        DO ispecies=0,nspecies-1
+            IF (tfpp/=0) THEN
+                IF (species(ispecies)%physical_particle) THEN
+                    new_particles=species(ispecies)%nfp / n_ranks
+                    next_label = next_label + my_rank * (new_particles)
+                    IF (my_rank .eq. (n_ranks-1)) THEN
+                        new_particles = new_particles + MOD((species(ispecies)%nfp), n_ranks)
+                    END IF
 
-            p_new_i(ip)%data%B(1)=Bx
-            p_new_i(ip)%data%B(2)=By
-            p_new_i(ip)%data%B(3)=Bz
-        END DO
-        call source(p_new_i,quelltyp)
-
-        p(np+1:np+new_e)=p_new_e(:)
-        p(np+new_e+1:np+new_e+new_i)=p_new_i(:)
-        np = np + new_e + new_i
-
-        deallocate(p_new_e)
-        deallocate(p_new_i)
-
-    END SUBROUTINE reflux_particles
-!======================================================================================
-    SUBROUTINE charge_wall(p,dq_l,dq_r)
-        implicit none
-
-        type(t_particle), allocatable, intent(inout) :: p(:)
-        real(kind=8), intent(in) :: dq_l,dq_r
-        integer :: ip
-
-        DO ip=1, np                                            ! charge wall by adding charge to the wall particles
-            IF (p(ip)%data%species==0) THEN
-                IF(p(ip)%x(1)>xmin+0.999*dx) THEN
-                    p(ip)%data%q = p(ip)%data%q + dq_r / tnwp          !has to be modified to work with 2 walls
-                ELSE IF (p(ip)%x(1)<xmin+0.001*dx) THEN
-                    p(ip)%data%q = p(ip)%data%q + dq_l / tnwp          !has to be modified to work with 2 walls
+                    call reflux_particles(p,new_particles,ispecies,0)
+                    call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
                 END IF
             END IF
+        END DO
+
+    END SUBROUTINE recycling
+
+!======================================================================================
+
+    SUBROUTINE reflux_particles(p,new_particles,ispecies,ib)
+
+        implicit none
+
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        integer, intent(in) :: new_particles,ispecies,ib
+
+        integer rc,ip
+        type(t_particle), allocatable                :: p_new(:)
+
+
+        write(*,*)"Refluxing",new_particles," ",TRIM(species(ispecies)%name)," from boundary",ib
+
+        IF (new_particles==0) return
+
+        allocate(p_new(new_particles),stat=rc)
+        call reallocate_particles(p,np, np+new_particles)
+
+        DO ip=1, new_particles
+            p_new(ip)%label       = next_label
+            next_label            = next_label + 1
+            p_new(ip)%data%q      = species(ispecies)%q*fsup
+            p_new(ip)%data%m      = species(ispecies)%m*fsup
+
+            p_new(ip)%results%e   = 0.0_8
+            p_new(ip)%results%pot = 0.0_8
+            p_new(ip)%work        = 1.0_8
+            p_new(ip)%data%species= ispecies
+
+            p_new(ip)%data%B(1)=Bx
+            p_new(ip)%data%B(2)=By
+            p_new(ip)%data%B(3)=Bz
+        END DO
+        call source(p_new,quelltyp)
+
+        p(np+1:np+new_particles)=p_new(:)
+        np = np + new_particles
+
+        deallocate(p_new)
+
+    END SUBROUTINE reflux_particles
+
+
+!======================================================================================
+
+    SUBROUTINE charge_wall(p,thits)
+        implicit none
+
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        integer, intent(inout) :: thits(0:,:)
+        integer :: ip,ispecies,ib
+        real*8  :: dq(nb)
+        logical :: hit
+
+        dq=0.0_8
+
+        DO ib=1,nb
+            DO ispecies=0,nspecies-1
+                IF (species(ispecies)%physical_particle) THEN
+                    dq(ib) = dq(ib) + thits(ispecies,ib)*species(ispecies)%q*fsup
+                END IF
+            END DO
+            boundaries(ib)%q_tot = boundaries(ib)%q_tot + dq(ib)
+        END DO
+
+        DO ip=1, np                                            ! charge wall by adding charge to the wall particles
+            IF (p(ip)%data%species/=0) CYCLE
+            DO ib=1,nb
+                !IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
+                !    p(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
+                !END IF
+                call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit)
+                IF(hit) THEN
+                    p(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
+                END IF
+            END DO
         END DO
     END SUBROUTINE charge_wall
 
-!======================================================================================
-    SUBROUTINE get_total_wall_charge(p,q_l,q_r)
-        implicit none
-        include 'mpif.h'
-
-        type(t_particle), allocatable, intent(inout) :: p(:)
-        real(kind=8), intent(out) :: q_l,q_r
-        real(kind=8) :: q_l_loc,q_r_loc
-        integer :: ip,rc
-
-        q_l_loc=0.
-        q_r_loc=0.
-        q_l=0.
-        q_r=0.
-
-        DO ip=1, np
-            IF (p(ip)%data%species==0) THEN
-                IF(p(ip)%x(1)>xmin+0.999*dx) THEN
-                    q_r_loc=q_r_loc+p(ip)%data%q
-                ELSE IF (p(ip)%x(1)<xmin+0.001*dx) THEN
-                    q_l_loc=q_l_loc+p(ip)%data%q
-                END IF
-            END IF
-        END DO
-
-        call MPI_ALLREDUCE(q_r_loc, q_r, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(q_l_loc, q_l, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-
-    END SUBROUTINE get_total_wall_charge
 
 !======================================================================================
     SUBROUTINE set_need_to_reflux()
@@ -297,54 +219,50 @@ module particlehandling
         end if
 
     END SUBROUTINE set_need_to_reflux
-!======================================================================================
 
+
+!======================================================================================
     subroutine hits_on_boundaries(p)
         implicit none
         include 'mpif.h'
 
         type(t_particle), allocatable, intent(inout) :: p(:)
 
-        integer      :: ip,rc
-        real(kind=8) :: dq_r_glob,dq_l_glob
-        real(kind=8) :: q_r_glob,q_l_glob
-        integer      :: e_hits_r_loc,e_hits_r_glob,e_hits_l_loc,e_hits_l_glob
-        integer      :: i_hits_r_loc,i_hits_r_glob,i_hits_l_loc,i_hits_l_glob
+        integer      :: rc
 
-        dq_r_glob=0.0_8
-        dq_l_glob=0.0_8
-        q_r_glob=0.0_8
-        q_l_glob=0.0_8
-        e_hits_r_loc=0
-        e_hits_l_loc=0
-        e_hits_r_glob=0
-        e_hits_l_glob=0
-        i_hits_r_loc=0
-        i_hits_l_loc=0
-        i_hits_r_glob=0
-        i_hits_l_glob=0
+        integer      :: hits(0:nspecies-1,1:nb),thits(0:nspecies-1,1:nb)
+        integer      :: reflux(0:nspecies-1,1:nb),treflux(0:nspecies-1,1:nb),treflux_next_ts(0:nspecies-1,1:nb)
+        integer      :: ispecies,ib
+
+
+        hits=0
+        reflux=0
+        thits=0
+        treflux=0
+        treflux_next_ts=0
 
         if(root) write(*,'(a)') " == [hits_on_boundaries] count hits and recycle "
 
-        if (fixed_npp) call set_need_to_reflux()
-        call count_hits_and_remove_particles(p,e_hits_l_loc, e_hits_r_loc, i_hits_l_loc, i_hits_r_loc)
+        call set_need_to_reflux()
+        call count_hits_and_remove_particles(p,hits,reflux)
 
-        call MPI_ALLREDUCE(i_hits_l_loc, i_hits_l_glob, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(e_hits_l_loc, e_hits_l_glob, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(i_hits_r_loc, i_hits_r_glob, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(e_hits_r_loc, e_hits_r_glob, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
 
-        dq_r_glob= (i_hits_r_glob-e_hits_r_glob)*e*fsup
-        dq_l_glob= (i_hits_l_glob-e_hits_l_glob)*e*fsup
+        DO ispecies=0,nspecies-1
+            DO ib=1,nb
+                call MPI_ALLREDUCE(hits(ispecies,ib), thits(ispecies,ib), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+                call MPI_ALLREDUCE(reflux(ispecies,ib), treflux(ispecies,ib), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+            END DO
+        END DO
 
-        call recycling(p,e_hits_l_glob,i_hits_l_glob,e_hits_r_glob,i_hits_r_glob)
-        call charge_wall(p,dq_l_glob,dq_r_glob)
-        call get_total_wall_charge(p,q_l_glob,q_r_glob)
+
+        call recycling(p,treflux,treflux_next_ts)
+
+        call charge_wall(p,thits)
 
         call MPI_ALLREDUCE(np, tnp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         tnpp=tnp-tnwp
 
-        call recycling_output(i_hits_r_glob,e_hits_r_glob,i_hits_l_glob,e_hits_l_glob,q_r_glob,q_l_glob,out)
+        call recycling_output(thits,treflux,out)
 
     END SUBROUTINE
 
@@ -364,9 +282,9 @@ module particlehandling
             p(ip)%label       = my_rank * (tnpp / n_ranks) + ip
             p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2))*e*fsup
             p(ip)%data%m      = me*fsup
-            p(ip)%data%species=-1
+            p(ip)%data%species=1
             if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = mp*fsup
-            if(p(ip)%data%q .gt. 0.0) p(ip)%data%species=1
+            if(p(ip)%data%q .gt. 0.0) p(ip)%data%species=2
             p(ip)%results%e   = 0.0_8
             p(ip)%results%pot = 0.0_8
             p(ip)%work        = 1.0_8
@@ -379,13 +297,37 @@ module particlehandling
   
     END SUBROUTINE init_particles
 
+!======================================================================================
+    subroutine redistribute_wall_particles(p)
+        implicit none
+
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        type(t_boundary) :: wall
+        real :: ran1,ran2
+        integer :: ip,ib
+
+        DO ip=1, np
+            IF (p(ip)%data%species/=0) CYCLE
+            DO ib=1,nb
+                IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
+                    wall=boundaries(ib)
+                    ran1=rnd_num()
+                    ran2=rnd_num()
+                    p(ip)%x = wall%x0 + ran1*wall%e1 +ran2*wall%e2
+                END IF
+            END DO
+        END DO
+
+    end subroutine redistribute_wall_particles
 
 !======================================================================================
     subroutine init_wall_particles(p)
         implicit none
     
         type(t_particle), allocatable, intent(inout) :: p(:)
-        integer :: ip
+        type(t_boundary) :: wall
+        real :: ran1,ran2
+        integer :: ip,ib
 
         DO ip=1, nwp
             p(ip)%data%B=0.0_8
@@ -400,10 +342,19 @@ module particlehandling
             p(ip)%data%species= 0
 
             p(ip)%data%v      =0.0_8
-            p(ip)%x(1)        =xmax
-            p(ip)%x(2)        =wall_pos(-p(ip)%label,1)
-            p(ip)%x(3)        =wall_pos(-p(ip)%label,2)
 
+            !noch auskommentieren test
+            !p(ip)%x(1)        =xmax
+            !p(ip)%x(2)        =wall_pos(-p(ip)%label,1)
+            !p(ip)%x(3)        =wall_pos(-p(ip)%label,2)
+            DO ib=1,nb
+                IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
+                    wall=boundaries(ib)
+                    ran1=rnd_num()
+                    ran2=rnd_num()
+                    p(ip)%x = wall%x0 + ran1*wall%e1 +ran2*wall%e2
+                END IF
+            END DO
         END DO
  
     end subroutine init_wall_particles
@@ -490,17 +441,17 @@ module particlehandling
             p(ip)%x(2)=rnd_num()
             p(ip)%x(3)=rnd_num()
             !call random_number(p(ip)%x)
-            p(ip)%x(1)         = p(ip)%x(1)*0.5*dx + xmin 
+            p(ip)%x(1)         = p(ip)%x(1)*0.5*dx + xmin +0.25*xmax  !test
             p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
             p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
 
-            IF (p(ip)%data%q>0) THEN
+            IF (p(ip)%data%species==2) THEN
                 call random_gauss_list(p(ip)%data%v(2:3),mu,sigma) 
                 call random_gaussian_flux(p(ip)%data%v(1),sigma)
                 ran=rnd_num()
                 !call random_number(ran)
                 IF (ran>0.5) p(ip)%data%v(1)=-p(ip)%data%v(1)
-            ELSE
+            ELSE IF (p(ip)%data%species==1) THEN
                 call random_gauss_list(p(ip)%data%v(1:3),mu,sigma) 
             END IF
 
