@@ -70,24 +70,13 @@ program pepc
 
     call set_default_parameters()
     call set_parameters()
-    call init_boundaries()
     call init_species()
+    call init_boundaries()
 
     if (do_resume)then
         call init_after_resume()
     else
-        !call set_parameters()
-        !call init_boundaries()
-        !call init_species()
         call init()
-
-        !call write_parameters()
-
-        !call init_particles(plasma_particles)
-        !call init_wall_particles(wall_particles)          !wall particles and plasma particles are initialized seperately
-
-        !particles(1:npp)=plasma_particles(:)              !and than combined in one array for the pepc routines
-        !particles(npp+1:npp+nwp)=wall_particles(:)
     end if
 
     call write_parameters()
@@ -194,8 +183,7 @@ program pepc
     !END OF MAIN LOOP ====================================================================================================
 
     deallocate(particles)
-    IF (allocated(wall_particles))deallocate(wall_particles)
-    IF (allocated(plasma_particles))deallocate(plasma_particles)
+
 
     timer(10) = get_time()
 

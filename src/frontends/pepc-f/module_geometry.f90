@@ -101,7 +101,7 @@ module module_geometry
         END DO
 
         call check_boundaries()
-        tnwp=count_wallparticles()
+        tnpps(0)=count_wallparticles()
         call add_wallparticles_to_boundaries()
 
         deallocate(x0)

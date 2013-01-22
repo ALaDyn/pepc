@@ -1,18 +1,11 @@
 &pepcf
-tnwpz = 10
 bx = 2
-tfpp = 70
-tnpp = 50000
 quelltyp = 1
 diag_interval = 10
 nt = 100
-open_sides = .false.
 fsup=1859
 guiding_centre_electrons = .false.
 dy = 1.05e-3
-!dx=1.
-!dy=0.1
-!dz=0.1
 mirror_layers = 2
 checkp_interval = 50
 te_ev = 80
@@ -22,7 +15,6 @@ dz = 1.05e-3
 ti_ev = 80
 by = 0
 bz = 0
-tnwpy = 10
 periodicity_in(2)=.true.
 periodicity_in(3)=.true.
 fixed_npp=.true.

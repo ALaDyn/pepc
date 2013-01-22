@@ -45,10 +45,8 @@ module module_initialization
       fc = 0.25_8/eps0/pi
 
       !set default parameter values
-      fixed_npp=.true.
       diag_interval   =0
       checkp_interval =0
-      open_sides =.false.
       guiding_centre_electrons=.false.
       mirror_layers=1
       Bx              = 0.
@@ -59,11 +57,7 @@ module module_initialization
       te_ev           = 80.
       ti_ev           = 80.
       quelltyp        = 0
-      tnwpy           = 0
-      tnwpz           = 0
       fsup            = 1859.
-      tnpp            = 12345
-      tfpp            = 0
       dx              = 0.
       dy              = 0.
       dz              = 0.
@@ -74,54 +68,20 @@ module module_initialization
 
    subroutine init()
         implicit none
-        integer :: rc,i,iy,iz
-        !integer :: rsize
-        !integer, allocatable :: rseed(:)
-        real*8  :: dist_wpz,dist_wpy
-
-        dist_wpz=dz/tnwpz
-        dist_wpy=dy/tnwpy
+        integer :: rc,ispecies
 
         ! set initially number of local wall particles
-        nwp = tnwp / n_ranks
-        if(my_rank.eq.(n_ranks-1)) nwp = nwp + MOD(tnwp, n_ranks)
-        allocate(wall_particles(nwp), stat=rc)
-        if(rc.ne.0) write(*,*) " === wall particle allocation error!"
-        ! set possible wall_particle positions
-        allocate(wall_pos(tnwp,2), stat=rc)
-        if(rc.ne.0) write(*,*) " === wallpos allocation error!"
-
-        iz=1
-        iy=1
-        DO i=1,tnwp
-            wall_pos(i,1) = iy*dist_wpy-dist_wpy/2.
-            wall_pos(i,2) = iz*dist_wpz-dist_wpz/2.
-
-            IF (iy==tnwpy) THEN
-                iy=0
-                iz=iz+1
-            END IF
-            iy=iy+1
+        DO ispecies=0,nspecies-1
+            npps(ispecies) = tnpps(ispecies) / n_ranks
+            if(my_rank.eq.(n_ranks-1)) npps(ispecies) = npps(ispecies) + MOD(tnpps(ispecies), n_ranks)
         END DO
 
-        ! set initial number of local plasma particles
-        npp = tnpp / n_ranks
-        if(my_rank.eq.(n_ranks-1)) npp = npp + MOD(tnpp, n_ranks)
-        allocate(plasma_particles(npp), stat=rc)
-        if(rc.ne.0) write(*,*) " === plasma particle allocation error!"
-
-        ! set initial number of local particles (wall+plasma)
-        tnp=tnwp+tnpp
-        np = npp + nwp
+        tnp= SUM(tnpps)
+        np = SUM(npps)
         allocate(particles(np), stat=rc)
         if(rc.ne.0) write(*,*) " === particle allocation error!"
 
-
-        call init_particles(plasma_particles)
-        call init_wall_particles(wall_particles)          !wall particles and plasma particles are initialized seperately
-
-        particles(1:npp)=plasma_particles(:)              !and than combined in one array for the pepc routines
-        particles(npp+1:npp+nwp)=wall_particles(:)
+        call init_particles(particles)
 
     end subroutine init
 
@@ -206,29 +166,29 @@ module module_initialization
       
     integer, parameter :: fid = 666
     integer :: global_max_label,local_max_label,ip,ib
-    integer :: nwp=0,npp=0
     real(KIND=8) :: q_loc(nb),q_glob(nb)
     logical :: hit
 
 
     tnp=npart
+    npps=0
+    tnpps=0
 
     DO ip=1,np
-        IF (particles(ip)%data%species==0) THEN
-            nwp=nwp+1
-        ELSE
-            npp=npp+1
-        END IF
+        npps(particles(ip)%data%species)=npps(particles(ip)%data%species)+1
     END DO
 
-    call MPI_ALLREDUCE(nwp, tnwp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-    call MPI_ALLREDUCE(npp, tnpp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-    IF (tnwp/=count_wallparticles()) THEN
+    write(*,*)my_rank,npps,tnpps
+
+    IF (tnpps(0)/=count_wallparticles()) THEN
         IF (root) write(*,*) "Number of Wallparticles in checkpoint does not match number in input."
         IF (root) write(*,*) "You can't change the number of Wallparticles when resuming"
         STOP
     END IF
+
+
 
     q_loc=0.
     q_glob=0.

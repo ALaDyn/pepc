@@ -46,29 +46,24 @@ module variables
 
   ! control variables
   integer :: nt               ! number of timesteps
-  integer :: tnp              ! total number of particles (wall +plasma)
+  integer :: tnp              ! total number of particles (all species)
   integer*8 :: npart          ! total number of particles, needed as int8 for checkpoints
-  integer :: np               ! local number of particles (wall +plasma)
+  integer :: np               ! local number of particles (all species)
   integer :: diag_interval    
   integer :: checkp_interval
   logical :: diags
   logical :: interaction_partner_diags
   integer :: mirror_layers    ! input variable. Is copied to mirror_box_layers (module_mirror_boxes)
-  logical :: fixed_npp        ! if .true. number of particles is fixed (tnpp), else number of particles fluxed into the sim domain is fixed
 
   ! type of source
   integer :: quelltyp
   ! type of rng (0=standard fortran,1=par_rand from module_zufall)
   integer :: rng
   logical, public :: periodicity_in(3) = [.false., .false., .false.]
-  ! open sides or periodic sides
-  logical :: open_sides
   ! treat electrons in guiding centre approximation
   logical :: guiding_centre_electrons
 
 
-
-  
   real*8  :: dx,dy,dz           ! lenght/width in m
   real*8  :: xmin,ymin,zmin     ! used if the domain does not start at (0,0,0)
   real*8  :: xmax,ymax,zmax     ! 
@@ -107,17 +102,11 @@ module variables
 
   !wall particles
   type(t_particle), allocatable :: wall_particles(:)
-  integer                       :: tnwpy                          !total number of wall particles in y dir
-  integer                       :: tnwpz                          !total number of wall particles in z dir
-  integer                       :: nwp                            !local number of wall particles
-  integer                       :: tnwp
-  real*8,allocatable            :: wall_pos(:,:)
 
   !plasma particles
-  type(t_particle), allocatable :: plasma_particles(:)
-  integer :: tnpp              ! total number of plasma particles 
-  integer :: npp               ! local number of plasma particles 
-  integer :: tfpp
+  type(t_particle), allocatable :: physical_particles(:)
+  integer,allocatable  :: tnpps(:)  !total number of particles per species
+  integer,allocatable  :: npps(:)   !local number of particles per species
 
 
   !aux strings
@@ -135,7 +124,7 @@ module variables
   integer :: nspecies=3    ! number of species
   integer :: left_bc=1     ! boundary at left wall(0=absorb and reflux according to source, 1=reflect (invert vx), 2=wall)
 
-  namelist /pepcf/ tfpp,fsup,fixed_npp,periodicity_in,mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /pepcf/ fsup,periodicity_in,mirror_layers,guiding_centre_electrons, nt, dt, Bx, By, Bz, te_ev, ti_ev, quelltyp, dx ,dy, dz,diag_interval, checkp_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 

@@ -80,6 +80,11 @@ module module_species
         nspecies=ns
         allocate(species(0:nspecies-1),stat=rc)
 
+        allocate(tnpps(0:nspecies-1),stat=rc)
+        allocate(npps(0:nspecies-1),stat=rc)
+        tnpps=0
+        npps=0
+
         DO ispecies=0,nspecies-1
             species(ispecies)%name=trim(name(ispecies))
             species(ispecies)%m=mass(ispecies)
@@ -88,10 +93,10 @@ module module_species
             species(ispecies)%physical_particle=physical_particle(ispecies)
             species(ispecies)%nfp=nfp(ispecies)
             species(ispecies)%nip=nip(ispecies)
+            tnpps(ispecies)=nip(ispecies)
         END DO
 
         call check_species()
-        tnpp=count_initial_physical_particles()
 
         deallocate(nfp)
         deallocate(mass)
@@ -101,20 +106,6 @@ module module_species
 
     end subroutine init_species
 
-!======================================================================================
-
-    integer function count_initial_physical_particles()
-        implicit none
-
-        integer :: ispecies,nip_aux
-
-        nip_aux=0
-        DO ispecies=0,nspecies-1
-            IF(species(ispecies)%physical_particle) nip_aux=nip_aux+species(ispecies)%nip
-        END DO
-
-        count_initial_physical_particles=nip_aux
-   end function count_initial_physical_particles
 
 !======================================================================================
 

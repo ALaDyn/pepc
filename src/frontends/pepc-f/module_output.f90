@@ -72,6 +72,12 @@ MODULE output
                     write(filehandle,*)
                     write(filehandle,'(a,i10)') "Refluxed particles  :",SUM(treflux(ispecies,1:nb))+species(ispecies)%nfp
                     write(filehandle,*)
+                    write(filehandle,'(a,i10)') "Number of particles  :",tnpps(ispecies)
+                    write(filehandle,*)
+                ELSE
+                    write(filehandle,*)
+                    write(filehandle,'(a,i10)') "Number of particles  :",tnpps(ispecies)
+                    write(filehandle,*)
                 END IF
                 write(filehandle,'(a)')"=============================================================="
                 write(filehandle,*)
@@ -86,7 +92,6 @@ MODULE output
 
             write(filehandle,*)
             write(filehandle,'(a,i16)')    " == Total number of particles            : ", tnp
-            write(filehandle,'(a,i16)')    " == Total number of plasma particles     : ", tnpp
         END IF
 
     END SUBROUTINE recycling_output
@@ -99,16 +104,16 @@ MODULE output
       implicit none
 
       IF (root) THEN
-          write(*,'(a,i12)')       " == total number of simulated plasma particles: ", tnpp
-          write(*,'(a,i12)') " == simulated plasma-particleflux per timestep: ", tfpp
+          write(*,'(a,i12)')    " == total number of simulated plasma particles: ", SUM(tnpps(1:nspecies-1))
           write(*,'(a,i12)')    " == number of time steps             : ", nt
+          write(*,'(a,i12)')    " == number of species                : ", nspecies
+          write(*,'(a,i12)')    " == number of of boundaries          : ", nb
           write(*,'(a,es12.4)') " == time step                        : ", dt
           !write(*,'(a,es12.4)') " == timestep * omega_p               : ", dt*omega_p
           write(*,'(a,es12.4)') " == simulation volume                : ", dx*dy*dz
           write(*,'(a,es12.4)') " == superparticle factor             : ", fsup
           !write(*,'(a,es12.4)') " == particles / debye spehere        : ", 0.5*tnpp/(dx*dy*dz)*l_debye**3
           write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
-          write(*,'(a,l6)')     " == open side walls                  : ", open_sides
           write(*,'(a,l6)')     " == far_field_if_periodic            : ", include_far_field_if_periodic
           write(*,'(a,l6)')     " == do_restore_particles             : ", do_restore_particles
           write(*,'(a,i12)')    " == mirror_layers                    : ", mirror_layers
@@ -137,9 +142,7 @@ MODULE output
           !write(*,'(a,es12.4)') " == Plasmafrequency [s^-1]           : ", omega_p
           write(*,*)
           write(*,*) "========== Wall Particles ========="
-          write(*,'(a,i12)')    " == number of wall partiles          : ", tnwp
-          !write(*,'(a,es12.4)') " == wall particles / l_debye in y    : ", tnwpy/dy*l_debye
-          !write(*,'(a,es12.4)') " == wall particles / l_debye in z    : ", tnwpz/dz*l_debye
+          write(*,'(a,i12)')    " == total number of wall particles   : ", tnpps(0)
           write(*,*) "========== Random Number Generator ========="
           write(*,'(a,i12)') " == Random Number Generator          : ", rng
       END IF
@@ -207,6 +210,27 @@ MODULE output
         implicit none
         include 'mpif.h'
 
+        real(KIND=8) :: x0(nb,3)
+        real(KIND=8) :: e1(nb,3)
+        real(KIND=8) :: e2(nb,3)
+        real(KIND=8) :: n(nb,3)
+        integer :: type(nb)
+        integer :: opposite_bnd(nb)
+        logical :: reflux_particles(nb)
+        integer :: nwp(nb)
+        integer :: ib,nbnd
+
+        integer :: nfp(0:nspecies-1)
+        integer :: nip(0:nspecies-1)
+        real(KIND=8) :: mass(0:nspecies-1)
+        real(KIND=8) :: charge(0:nspecies-1)
+        logical :: physical_particle(0:nspecies-1)
+        character(255) :: name(0:nspecies-1)
+        integer :: ispecies,ns
+
+        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
+        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name
+
         integer, parameter :: fid = 666
 
         npart=tnp
@@ -216,6 +240,32 @@ MODULE output
         if (root) then
             open(fid,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
             write(fid,NML=pepcf)
+
+            nbnd=nb
+            DO ib=1,nbnd
+                x0(ib,1:3)=boundaries(ib)%x0
+                e1(ib,1:3)=boundaries(ib)%e1
+                e2(ib,1:3)=boundaries(ib)%e2
+                n(ib,1:3)=boundaries(ib)%n
+                type(ib)=boundaries(ib)%type
+                opposite_bnd(ib)=boundaries(ib)%opp_bnd
+                nwp(ib)=boundaries(ib)%nwp
+                reflux_particles(ib)=boundaries(ib)%reflux_particles
+            END DO
+            write(fid,NML=geometry)
+
+
+            ns=nspecies
+            DO ispecies=0,ns-1
+                name(ispecies)=trim(species(ispecies)%name)
+                mass(ispecies)=species(ispecies)%m
+                charge(ispecies)=species(ispecies)%q
+                physical_particle(ispecies)=species(ispecies)%physical_particle
+                nfp(ispecies)=species(ispecies)%nfp
+                nip(ispecies)=species(ispecies)%nip
+            END DO
+            write(fid,NML=species_nml)
+
             write(fid,NML=walk_para_smpss)
             close(fid)
 
