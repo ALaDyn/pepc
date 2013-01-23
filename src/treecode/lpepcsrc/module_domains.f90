@@ -333,7 +333,8 @@ module module_domains
         next = me + 1
         if (me == 0) then
             prev = MPI_PROC_NULL
-        else if (me == num_pe - 1) then
+        end if
+        if (me == num_pe - 1) then
             next = MPI_PROC_NULL
         end if
 
