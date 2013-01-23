@@ -421,7 +421,9 @@ module module_htable
           DEBUG_WARNING_ALL('("key                  (oct) = ", o22)', keyin)
           DEBUG_WARNING_ALL('("initial address      (dez) = ", i22)', int(IAND( keyin, hashconst)))
           DEBUG_WARNING_ALL('("   last address      (dez) = ", i22)', key2addr)
-          DEBUG_WARNING_ALL('("htable(lastaddr)%key (oct) = ", o22)', htable(key2addr)%key)
+          if (.not. (key2addr == -1)) then
+            DEBUG_WARNING_ALL('("htable(lastaddr)%key (oct) = ", o22)', htable(key2addr)%key)
+          end if
           DEBUG_WARNING_ALL('("# const              (dez) = ", i22)', hashconst)
           DEBUG_WARNING_ALL('("     maxaddress      (dez) = ", i22)', maxaddress)
           call diagnose_tree()

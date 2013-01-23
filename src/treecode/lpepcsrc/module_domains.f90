@@ -326,47 +326,37 @@ module module_domains
       integer, intent(in) :: me, num_pe, npp
       type(t_particle), intent(inout) :: particles(1:npp+2)
 
-      integer :: prev, next, ierr, reqhandle, state(MPI_STATUS_SIZE)
+      integer :: prev, next, ierr, state(MPI_STATUS_SIZE)
 
-
-        ! Define wraps for ring network  0 -> 1 -> 2 -> ... ... -> num_pe-1 -> 0 ...
+        ! Define neighbours for non-circular shift
+        prev = me - 1
+        next = me + 1
         if (me == 0) then
-            prev = num_pe - 1
-        else
-            prev = me-1
-        endif
-
-        if (me == num_pe-1 ) then
-            next = 0
-        else
-            next = me+1
-        endif
+            prev = MPI_PROC_NULL
+        else if (me == num_pe - 1) then
+            next = MPI_PROC_NULL
+        end if
 
         ! Copy boundary particles to adjacent PEs to ensure proper tree construction
         !  - if we do not do this, can get two particles on separate PEs 'sharing' a leaf
         neighbour_pe_particles = 0
 
         ! Ship 1st particle data to end of list of LH neighbour PE
-        if (me /= 0 ) then
-            call MPI_ISEND(  particles( 1 ),                          1, mpi_type_particle, prev, 1990, MPI_COMM_lpepc, reqhandle, ierr )
-            call MPI_REQUEST_FREE(reqhandle,ierr)
-        endif
-        ! Place incoming data at end of array
         if ( me /= num_pe-1) then
             neighbour_pe_particles = neighbour_pe_particles + 1
-            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, next, 1990, MPI_COMM_lpepc, state, ierr )
-        endif
+        end if
+        call MPI_SENDRECV(particles(1), 1, mpi_type_particle, prev, 1990, &
+          particles(npp + neighbour_pe_particles), 1, mpi_type_particle, next, 1990, &
+          MPI_COMM_lpepc, state, ierr)
 
-        ! Ship  end particle data to end of list of RH neighbour PE
-        if (me /= num_pe-1 ) then
-            call MPI_ISEND(  particles( npp ),                        1, mpi_type_particle, next, 2990, MPI_COMM_lpepc, reqhandle, ierr )
-            call MPI_REQUEST_FREE(reqhandle,ierr)
-        endif
-        ! Place incoming data at end of array
-        if ( me /= 0) then
+        ! Ship end particle data to end of list of RH neighbour PE
+        if (me /= 0) then
             neighbour_pe_particles = neighbour_pe_particles + 1
-            call MPI_RECV(   particles(npp+neighbour_pe_particles),   1, mpi_type_particle, prev, 2990, MPI_COMM_lpepc, state, ierr )
-        endif
+        end if
+        call MPI_SENDRECV(particles(npp), 1, mpi_type_particle, next, 2990, &
+          particles(npp + neighbour_pe_particles), 1, mpi_type_particle, prev, 2990, &
+          MPI_COMM_lpepc, state, ierr)
+
     end subroutine
 
 

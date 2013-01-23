@@ -144,12 +144,10 @@ module module_walk_communicator
         implicit none
         include 'mpif.h'
         integer :: ierr
-        integer :: reqhandle
 
         ! notify rank 0 that we are finished with our walk
-        call MPI_IBSEND(comm_dummy, 1, MPI_INTEGER, 0, TAG_FINISHED_PE, &
-                        MPI_COMM_lpepc, reqhandle, ierr )
-        call MPI_REQUEST_FREE( reqhandle, ierr)
+        call MPI_BSEND(comm_dummy, 1, MPI_INTEGER, 0, TAG_FINISHED_PE, &
+          MPI_COMM_lpepc, ierr)
 
         walk_status = WALK_I_NOTIFIED_0
 
@@ -161,7 +159,7 @@ module module_walk_communicator
         use module_debug
         implicit none
         include 'mpif.h'
-        integer :: i, reqhandle, ierr
+        integer :: i, ierr
 
          ! all PEs have to be informed
          ! TODO: need better idea here...
@@ -170,9 +168,8 @@ module module_walk_communicator
          end if
 
          do i=0,num_pe-1
-           call MPI_IBSEND(comm_dummy, 1, MPI_INTEGER, i, TAG_FINISHED_ALL, &
-               MPI_COMM_lpepc, reqhandle, ierr )
-           call MPI_REQUEST_FREE( reqhandle, ierr)
+           call MPI_BSEND(comm_dummy, 1, MPI_INTEGER, i, TAG_FINISHED_ALL, &
+             MPI_COMM_lpepc, ierr)
          end do
 
 
@@ -190,7 +187,6 @@ module module_walk_communicator
       integer :: process_addr
       type(t_tree_node_transport_package), target :: children_to_send(8)
       type(t_tree_node_transport_package), pointer :: c
-      integer :: reqhandle
       integer*8, dimension(8) :: key_child
       integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child, owner_child, level_child
       integer :: j, ic, ierr, nchild
@@ -223,9 +219,8 @@ module module_walk_communicator
       end do
       
       ! Ship child data back to PE that requested it
-      call MPI_IBSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node_transport_package, ipe_sender, TAG_REQUESTED_DATA, &
-              MPI_COMM_lpepc, reqhandle, ierr )
-      call MPI_REQUEST_FREE(reqhandle, ierr)
+      call MPI_BSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node_transport_package, &
+        ipe_sender, TAG_REQUESTED_DATA, MPI_COMM_lpepc, ierr)
 
       ! statistics on number of sent children-packages
       sum_ships = sum_ships + 1
@@ -239,13 +234,13 @@ module module_walk_communicator
       include 'mpif.h'
       logical :: send_request
       type(t_request_queue_entry), intent(in) :: req
-      integer :: reqhandle, ierr
+      integer :: ierr
 
       if (.not. BTEST( htable(req%addr)%childcode, CHILDCODE_BIT_REQUEST_SENT ) ) then
         ! send a request to PE req_queue_owners(req_queue_top)
         ! telling, that we need child data for particle request_key(req_queue_top)
-        call MPI_IBSEND(req%key, 1, MPI_INTEGER8, req%owner, TAG_REQUEST_KEY, MPI_COMM_lpepc, reqhandle, ierr )
-        call MPI_REQUEST_FREE( reqhandle, ierr)
+        call MPI_BSEND(req%key, 1, MPI_INTEGER8, req%owner, TAG_REQUEST_KEY, &
+          MPI_COMM_lpepc, ierr)
 
         htable(req%addr)%childcode = ibset(htable(req%addr)%childcode, CHILDCODE_BIT_REQUEST_SENT )
 
