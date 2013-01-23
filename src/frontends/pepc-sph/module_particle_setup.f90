@@ -258,6 +258,7 @@ contains
 
     use physvars, only: &
          dt, &
+         nt, &
          n_cpu, &
          thermal_constant, &
          initialized_v_minus_half
@@ -309,10 +310,12 @@ contains
     thermal_constant = sound_speed**2 /medium_temperature
     
     ! n_nn = 6 does not work! try shepard correction rho = (sum m_i *W )/(sum W)
-    ! num_neighbour_particles = 8
+     num_neighbour_particles = 20
 
     ! timestep length
-    dt = 0.0001
+    dt = 0.001
+    nt = 1000
+
     !* sqrt(thermal_constant * medium_temperature /10.)
 
     all_part = fences(n_cpu-1)
@@ -539,6 +542,7 @@ contains
     
     use physvars, only: &
          dt, &
+         nt, &
          n_cpu, &
          my_rank, &
          thermal_constant, &
@@ -603,7 +607,14 @@ contains
     initialized_v_minus_half = .true.
     
     ! timestep length
-    dt = 0.0002
+    dt = 0.0001
+
+    ! num timesteps for comparison with analytical results
+    nt = 2500
+    
+    ! number of neighbour particles known to produce reasonable results
+    num_neighbour_particles = 8
+
 
   end subroutine particle_setup_1d_shock_2
 
@@ -624,6 +635,7 @@ contains
     
     use physvars, only: &
          dt, &
+         nt, &
          n_cpu, &
          my_rank, &
          thermal_constant, &
@@ -693,6 +705,12 @@ contains
 
     ! timestep length
     dt = 0.00001
+
+    ! num timesteps for comparison with analytical results
+    nt = 2500
+
+    ! number of neighbour particles known to produce reasonable results
+    num_neighbour_particles = 8
     
   end subroutine particle_setup_1d_shock_3
 
