@@ -408,7 +408,7 @@ contains
              endif
           endif
 
-          key = ishft(key, -3)
+          key = parent_key_from_key(key)
           if (key.eq.0) then
              write(*,*) particles(i)
           endif
