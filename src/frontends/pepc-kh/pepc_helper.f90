@@ -15,52 +15,31 @@ module pepc_helper
 
 contains
 
-   subroutine init_pepc(pepc_comm, pepc_nml, MPI_COMM_SPACE)
-      use mpi
+
+   subroutine pepc_setup(p, pepc_pars, pepc_comm)
       use encap
       use module_pepc
-      implicit none
-
-      type(pepc_comm_t), intent(out) :: pepc_comm
-      type(pepc_nml_t), intent(out) :: pepc_nml
-      integer, intent(in) :: MPI_COMM_SPACE
-
-      !logical, dimension(1:3) :: mpi_periods
-      integer :: mpi_err
-
-      pepc_comm%mpi_comm = MPI_COMM_SPACE
-
-      call MPI_COMM_RANK(pepc_comm%mpi_comm, pepc_comm%mpi_rank, mpi_err)
-      call MPI_COMM_SIZE(pepc_comm%mpi_comm, pepc_comm%mpi_size, mpi_err)
-
-      call pepc_initialize("pepc-kh" ,pepc_comm%mpi_rank, pepc_comm%mpi_size, .false., 0, pepc_comm%mpi_comm, idim = 2)
-      call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)
-
-      call read_in_params(pepc_nml, para_file_available, para_file_name)
-
-   end subroutine init_pepc
-
-
-   subroutine pepc_setup(p, pepc_pars, pepc_comm, pepc_nml)
-      use encap
-      use module_pepc, only: pepc_prepare
       use module_pepc_types, only: t_particle
-      use module_interaction_specific, only: particleresults_clear
       implicit none
 
       type(t_particle), dimension(:), allocatable, intent(out) :: p
       type(pepc_pars_t), intent(out) :: pepc_pars
-      type(pepc_comm_t), intent(in)  :: pepc_comm
-      type(pepc_nml_t),  intent(in)  :: pepc_nml
+      type(pepc_comm_t), intent(out)  :: pepc_comm
+
+      type(pepc_nml_t) :: pepc_nml
+
+      call pepc_initialize("pepc-kh", pepc_comm%mpi_rank, pepc_comm%mpi_size, .true., &
+        comm = pepc_comm%mpi_comm, idim = 2)
+
+      call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)
+      call read_in_params(pepc_nml, para_file_available, para_file_name)
 
       ! Pass MPI stuff to parameters
-      pepc_pars%pepc_comm = pepc_comm
       pepc_pars%np = pepc_nml%np
       pepc_pars%npp = pepc_pars%np / pepc_comm%mpi_size
       if (pepc_pars%pepc_comm%mpi_rank < mod(pepc_pars%np, pepc_pars%pepc_comm%mpi_size)) then
         pepc_pars%npp = pepc_pars%npp + 1
       end if
-      !pepc_pars%theta = pepc_nml%theta
       pepc_pars%pdump = pepc_nml%pdump
       pepc_pars%fdump = pepc_nml%fdump
       pepc_pars%cdump = pepc_nml%cdump
@@ -77,6 +56,7 @@ contains
       use mpi
       use module_mirror_boxes, only: t_lattice_1, t_lattice_2, t_lattice_3, &
         periodicity, mirror_box_layers
+      use module_fmm_periodicity, only: do_extrinsic_correction
       implicit none
 
       type(pepc_nml_t), intent(out) :: pepc_namelist
@@ -90,10 +70,10 @@ contains
       integer :: pdump = 0
       integer :: fdump = 0
       integer :: cdump = 0
-      !real(kind=8) :: theta = 0.3D0
 
       namelist /pepc_nml/ np, pdump, fdump, cdump, &
-        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, mirror_box_layers ! ,theta
+        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, mirror_box_layers, &
+        do_extrinsic_correction
 
       if (file_available) then
         open(para_file_id,file=trim(file_name),action='read')
@@ -103,7 +83,6 @@ contains
       end if
 
       pepc_namelist%np = np
-      !pepc_namelist%theta = theta
       pepc_namelist%pdump = pdump
       pepc_namelist%fdump = fdump
       pepc_namelist%cdump = cdump

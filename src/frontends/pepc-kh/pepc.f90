@@ -19,13 +19,10 @@
 !
 
 program pepc
-  use, intrinsic :: iso_fortran_env
-
   ! pepc modules
    use module_pepc
    use module_pepc_types
    use module_timings
-   !use module_fmm_periodicity, only: fmm_framework_param_dump
   
    use encap
    use pepc_helper
@@ -35,39 +32,29 @@ program pepc
    use checkpoint_helper
    use module_rng
 
-   use mpi
-
    implicit none
 
-   type(pepc_comm_t) :: pepc_comm
-   type(pepc_nml_t)  :: pepc_nml
    type(pepc_pars_t) :: pepc_pars
    type(time_pars_t) :: time_pars
    type(physics_pars_t) :: physics_pars
    type(field_grid_t) :: field_grid
    type(t_particle), dimension(:), allocatable :: p
 
-   integer :: mpi_err, MPI_COMM_SPACE
    integer(kind = 4) :: step
    real(kind = 8) :: timer_total, timer_init, timer_step, timer_pcomp, &
       timer_pio, timer_fcomp, timer_fio, timer_dynamics, timer_chkpt
 
    logical :: root, do_pdump, do_fdump, do_cdump
 
-   ! global MPI initialization
-   call MPI_Init( mpi_err )
-   call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_SPACE, mpi_err)
-
    call t_start(timer_total)
    call t_start(timer_init)
 
-   call rng_init(1)
-
    ! initialize pepc library and MPI
-   call init_pepc(pepc_comm, pepc_nml, MPI_COMM_SPACE)
-   call pepc_setup(p, pepc_pars, pepc_comm, pepc_nml)
+   call pepc_setup(p, pepc_pars, pepc_pars%pepc_comm)
 
    root = pepc_pars%pepc_comm%mpi_rank.eq.0
+
+   call rng_init(pepc_pars%pepc_comm%mpi_rank + 1)
 
    if (root) then
       print *, "== [pepc-kh]"
@@ -80,7 +67,7 @@ program pepc
 
    call setup_time(time_pars, pepc_pars%pepc_comm)
    call setup_physics(physics_pars, time_pars, p, pepc_pars)
-   call setup_field_grid(field_grid, pepc_comm)
+   call setup_field_grid(field_grid, pepc_pars%pepc_comm)
 
    !call fmm_framework_param_dump(output_unit)
 
@@ -187,7 +174,6 @@ program pepc
 
   !!! cleanup pepc and MPI
   call pepc_finalize()
-  call MPI_FINALIZE(mpi_err)
 
 contains
 

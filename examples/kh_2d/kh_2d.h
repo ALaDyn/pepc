@@ -24,6 +24,8 @@ t_lattice_3 = 0.0  0.0  1.0
 periodicity = .false.  .true.  .false.
 
 mirror_box_layers = 1
+
+do_extrinsic_correction = .false.
 /
 
 &time_nml
