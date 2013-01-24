@@ -446,7 +446,8 @@ contains
          my_rank, &
          thermal_constant, &
          nt, &
-         initialized_v_minus_half
+         initialized_v_minus_half, &
+         do_gravity
     
     use module_mirror_boxes, only: &
          periodicity
@@ -482,6 +483,9 @@ contains
 
     ! set number of dimension. important for factor for sph kernel
     idim = 1
+
+    ! switch gravity off
+    do_gravity = .false.
     
     ! set periodicity
     periodicity = [.false., .false., .false.]
@@ -582,10 +586,12 @@ contains
     
     use physvars, only: &
          dt, &
+         nt, &
          n_cpu, &
          my_rank, &
          thermal_constant, &
-         initialized_v_minus_half
+         initialized_v_minus_half, &
+         do_gravity
     
     use module_mirror_boxes, only: &
          periodicity
@@ -616,6 +622,9 @@ contains
     ! set number of dimension. important for factor for sph kernel
     idim = 1
     
+    ! switch gravity off
+    do_gravity = .false.
+
     ! set periodicity
     periodicity = [.false., .false., .false.]
     
@@ -646,7 +655,13 @@ contains
     initialized_v_minus_half = .true.
     
     ! timestep length
-    dt = 0.0002
+    dt = 0.0001
+
+    ! num timesteps for comparison with analytical results
+    nt = 2500
+
+    ! number of neighbour particles known to produce reasonable results
+    num_neighbour_particles = 8
 
   end subroutine particle_setup_1d_shock_2
 
@@ -667,10 +682,12 @@ contains
     
     use physvars, only: &
          dt, &
+         nt, &
          n_cpu, &
          my_rank, &
          thermal_constant, &
-         initialized_v_minus_half
+         initialized_v_minus_half, &
+         do_gravity
    
     use module_mirror_boxes, only: &
          periodicity
@@ -701,6 +718,9 @@ contains
     ! set number of dimension. important for factor for sph kernel
     idim = 1
     
+    ! switch gravity off
+    do_gravity = .false.
+
     ! set periodicity
     periodicity = [.false., .false., .false.]
     
@@ -736,6 +756,12 @@ contains
 
     ! timestep length
     dt = 0.00001
+
+    ! num timesteps for comparison with analytical results
+    nt = 2500
+
+    ! number of neighbour particles known to produce reasonable results
+    num_neighbour_particles = 8
     
   end subroutine particle_setup_1d_shock_3
 

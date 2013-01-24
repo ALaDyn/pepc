@@ -1,7 +1,8 @@
 
 Sod shock tests as described in Sod (1978) or Toro (1997).
 
-The _for_sph_frontend files work only with the sph frontend. (_for_grav_sph_frontend files will be included later.)
+The _for_sph_frontend files work only with the sph frontend, the _for_grav_sph_frontend files only with the grav_sph frontend due to some incompatible changes.
 
-Tests seem to work (at least with sph_frontend).
+Tests seem to work (with both frontends and this commit).
+Tests for the tests will be provided later.
 
