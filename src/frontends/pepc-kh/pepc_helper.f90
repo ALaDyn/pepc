@@ -7,7 +7,6 @@ module pepc_helper
       integer :: pdump = 0
       integer :: fdump = 0
       integer :: cdump = 0
-      !real(kind=8) :: theta = 0.3D0
    end type pepc_nml_t
 
    logical :: para_file_available
@@ -16,7 +15,7 @@ module pepc_helper
 contains
 
 
-   subroutine pepc_setup(p, pepc_pars, pepc_comm)
+   subroutine pepc_setup(p, pepc_pars)
       use encap
       use module_pepc
       use module_pepc_types, only: t_particle
@@ -24,19 +23,19 @@ contains
 
       type(t_particle), dimension(:), allocatable, intent(out) :: p
       type(pepc_pars_t), intent(out) :: pepc_pars
-      type(pepc_comm_t), intent(out)  :: pepc_comm
 
       type(pepc_nml_t) :: pepc_nml
 
-      call pepc_initialize("pepc-kh", pepc_comm%mpi_rank, pepc_comm%mpi_size, .true., &
-        comm = pepc_comm%mpi_comm, idim = 2)
+      call pepc_initialize("pepc-kh", pepc_pars%pepc_comm%mpi_rank, &
+        pepc_pars%pepc_comm%mpi_size, .true., comm = pepc_pars%pepc_comm%mpi_comm, &
+        idim = 2)
 
       call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)
       call read_in_params(pepc_nml, para_file_available, para_file_name)
 
       ! Pass MPI stuff to parameters
       pepc_pars%np = pepc_nml%np
-      pepc_pars%npp = pepc_pars%np / pepc_comm%mpi_size
+      pepc_pars%npp = pepc_pars%np / pepc_pars%pepc_comm%mpi_size
       if (pepc_pars%pepc_comm%mpi_rank < mod(pepc_pars%np, pepc_pars%pepc_comm%mpi_size)) then
         pepc_pars%npp = pepc_pars%npp + 1
       end if
@@ -106,10 +105,9 @@ contains
       integer :: pdump = 0
       integer :: fdump = 0
       integer :: cdump = 0
-      !real(kind=8) :: theta = 0.3D0
 
       namelist /pepc_nml/ np, pdump, fdump, cdump,&
-        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, mirror_box_layers ! ,theta
+        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, mirror_box_layers
 
       np = pepc_pars%np
       pdump = pepc_pars%pdump

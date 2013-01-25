@@ -50,7 +50,7 @@ program pepc
    call t_start(timer_init)
 
    ! initialize pepc library and MPI
-   call pepc_setup(p, pepc_pars, pepc_pars%pepc_comm)
+   call pepc_setup(p, pepc_pars)
 
    root = pepc_pars%pepc_comm%mpi_rank.eq.0
 
@@ -68,8 +68,6 @@ program pepc
    call setup_time(time_pars, pepc_pars%pepc_comm)
    call setup_physics(physics_pars, time_pars, p, pepc_pars)
    call setup_field_grid(field_grid, pepc_pars%pepc_comm)
-
-   !call fmm_framework_param_dump(output_unit)
 
    call t_stop(timer_init)
 

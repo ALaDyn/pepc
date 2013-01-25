@@ -10,7 +10,6 @@ module encap
 
    type, bind(c) :: pepc_pars_t
       integer(c_int) :: np, npp, pdump, fdump, cdump
-      real(c_double) :: theta
       type(pepc_comm_t) :: pepc_comm
    end type pepc_pars_t
 
