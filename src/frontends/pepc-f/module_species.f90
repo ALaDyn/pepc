@@ -38,6 +38,7 @@ module module_species
         integer, allocatable :: nfp(:)
         integer, allocatable :: nip(:)
         real(KIND=8), allocatable :: mass(:)
+        real(KIND=8), allocatable :: t_src(:)
         real(KIND=8), allocatable :: charge(:)
         logical,allocatable :: physical_particle(:)
         character(255),allocatable :: name(:)
@@ -45,13 +46,14 @@ module module_species
         integer :: ns,ns_max
         integer :: rc,ispecies,fid=12
 
-        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name
+        namelist /species_nml/ t_src,ns,nip,nfp,mass,charge,physical_particle,name
 
         ns_max=100
 
         allocate(nfp(0:ns_max),stat=rc)
         allocate(nip(0:ns_max),stat=rc)
         allocate(mass(0:ns_max),stat=rc)
+        allocate(t_src(0:ns_max),stat=rc)
         allocate(charge(0:ns_max),stat=rc)
         allocate(physical_particle(0:ns_max),stat=rc)
         allocate(name(0:ns_max),stat=rc)
@@ -63,7 +65,7 @@ module module_species
         charge=0.
         physical_particle=.false.
         name=""
-
+        t_src=0.
 
         IF(root) write(*,'(a,a)') " == reading parameter file, section species: ", trim(input_file)
         open(fid,file=trim(input_file))
@@ -88,6 +90,7 @@ module module_species
         DO ispecies=0,nspecies-1
             species(ispecies)%name=trim(name(ispecies))
             species(ispecies)%m=mass(ispecies)
+            species(ispecies)%t_src=t_src(ispecies)
             species(ispecies)%q=charge(ispecies)
             species(ispecies)%indx=ispecies
             species(ispecies)%physical_particle=physical_particle(ispecies)
@@ -128,6 +131,10 @@ module module_species
         DO ispecies=0,nspecies-1
             IF ((species(ispecies)%physical_particle .eqv. .false.) .and. (species(ispecies)%nfp/=0)) THEN
                 IF (root) write(*,'(a,i3,a)') " A flux cannot be set for a nonphysical species (species ",ispecies," )."
+                STOP
+            END IF
+        IF ((species(ispecies)%physical_particle .eqv. .false.) .and. (species(ispecies)%t_src/=0.)) THEN
+                IF (root) write(*,'(a,i3,a)') " Source Temperature cannot be set for a nonphysical species (species ",ispecies," )."
                 STOP
             END IF
         END DO

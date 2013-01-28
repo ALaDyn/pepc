@@ -276,7 +276,7 @@ module particlehandling
         call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         tnp=SUM(tnpps)
 
-        call recycling_output(thits,treflux,out)
+        call set_recycling_output_values(thits,treflux)
 
     END SUBROUTINE
 
@@ -442,14 +442,21 @@ module particlehandling
                     END IF
                 END DO
             ELSE
-                sigma=sqrt(ti_ev*e/(p(ip)%data%m/fsup))
-                p(ip)%x(2)=rnd_num()*dy + ymin
-                p(ip)%x(3)=rnd_num()*dz + zmin
-
+                sigma=sqrt(species(p(ip)%data%species)%t_src*e/(p(ip)%data%m/fsup))
                 call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
                 call random_gaussian_flux(p(ip)%data%v(1),sigma)
                 ran=rnd_num()
-                p(ip)%x(1)=p(ip)%data%v(1)*dt*ran + xmin
+
+                !p(ip)%x(2)=rnd_num()*dy + ymin
+                !p(ip)%x(3)=rnd_num()*dz + zmin
+                !p(ip)%x(1)=p(ip)%data%v(1)*dt*ran + xmin
+
+                ran1=rnd_num()
+                ran2=rnd_num()
+                p(ip)%x = (boundaries(src_boundary)%x0 + ran1*boundaries(src_boundary)%e1 + ran2*boundaries(src_boundary)%e2)
+                p(ip)%x = p(ip)%x + boundaries(src_boundary)%n*dotproduct(boundaries(src_boundary)%n,p(ip)%data%v)*dt*ran
+
+
 
                 !If treated in guding centre approximation, electrons just need other startign values in
                 !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
@@ -484,13 +491,7 @@ module particlehandling
                     END IF
                 END DO
             ELSE
-                sigma=sqrt(ti_ev*e / (p(ip)%data%m/fsup))
-                p(ip)%x(1)=rnd_num()
-                p(ip)%x(2)=rnd_num()
-                p(ip)%x(3)=rnd_num()
-                p(ip)%x(1)         = p(ip)%x(1)*0.2*dx + xmin +0.4*dx  !test
-                p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
-                p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
+                sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
 
                 IF (p(ip)%data%species==2) THEN    !ions
                     call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
@@ -500,6 +501,16 @@ module particlehandling
                 ELSE IF (p(ip)%data%species==1) THEN   !electrons
                     call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
                 END IF
+
+                !p(ip)%x(1)=rnd_num()
+                !p(ip)%x(2)=rnd_num()
+                !p(ip)%x(3)=rnd_num()
+                !p(ip)%x(1)         = p(ip)%x(1)*0.2*dx + xmin +0.4*dx  !test
+                !p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
+                !p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
+
+                p(ip)%x=x0_src + rnd_num()*e1_src + rnd_num()*e2_src + rnd_num()*e3_src
+
 
                 !If treated in guding centre approximation, electrons just need other startign values in
                 !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
@@ -531,15 +542,17 @@ module particlehandling
                     END IF
                 END DO
             ELSE
-                sigma=sqrt(ti_ev*e / (p(ip)%data%m/fsup))
-                p(ip)%x(1)=rnd_num()
-                p(ip)%x(2)=rnd_num()
-                p(ip)%x(3)=rnd_num()
-                p(ip)%x(1)         = p(ip)%x(1)*0.5*dx + xmin
-                p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
-                p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
-
+                sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
                 call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
+                !p(ip)%x(1)=rnd_num()
+                !p(ip)%x(2)=rnd_num()
+                !p(ip)%x(3)=rnd_num()
+                !p(ip)%x(1)         = p(ip)%x(1)*0.5*dx + xmin
+                !p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
+                !p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
+
+                p(ip)%x=x0_src + rnd_num()*e1_src + rnd_num()*e2_src + rnd_num()*e3_src
+
 
                 !If treated in guding centre approximation, electrons just need other startign values in
                 !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
@@ -571,7 +584,7 @@ module particlehandling
                     END IF
                 END DO
             ELSE
-                sigma=sqrt(ti_ev*e / (p(ip)%data%m/fsup))
+                sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
                 p(ip)%x(1)=rnd_num()
                 p(ip)%x(2)=rnd_num()
                 p(ip)%x(3)=rnd_num()

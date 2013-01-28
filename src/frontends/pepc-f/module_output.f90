@@ -10,8 +10,66 @@ MODULE output
 
 
     implicit none
+    integer,allocatable      :: thits_out(:,:),treflux_out(:,:)
 
     CONTAINS
+
+!===============================================================================
+
+    SUBROUTINE init_output_arrays()
+        implicit none
+        integer rc
+
+        allocate(thits_out(0:nspecies-1,1:nb),stat=rc)
+        allocate(treflux_out(0:nspecies-1,1:nb),stat=rc)
+        thits_out=0
+        treflux_out=0
+
+
+    END SUBROUTINE init_output_arrays
+
+!===============================================================================
+
+    SUBROUTINE velocity_output(ispecies,filehandle)
+        use diagnostics
+        implicit none
+        include 'mpif.h'
+
+        integer,intent(in)      :: filehandle,ispecies
+        real(KIND=8) :: v_mean(3)
+
+
+        !if(root) write(filehandle,'(a,es16.8)') " == total time in timestep [s]           : ", timestep
+        v_mean=get_v_mean(particles,ispecies)
+        if(root) write(filehandle,'(a,3es16.8)') "Average velocity (1,2,3)        : ",v_mean
+
+        !v_mean=get_v_mean(particles,2)
+        !if(root) write(filehandle,*) " == vmean, ions           : ", v_mean
+
+
+    END SUBROUTINE  velocity_output
+
+!===============================================================================
+
+    SUBROUTINE energy_output(ispecies,filehandle)
+        use diagnostics
+        implicit none
+        include 'mpif.h'
+
+        integer,intent(in)      :: filehandle,ispecies
+        real(KIND=8) :: v2_mean(3),energy(3)
+
+
+        !if(root) write(filehandle,'(a,es16.8)') " == total time in timestep [s]           : ", timestep
+        v2_mean=get_v2_mean(particles,ispecies)
+        energy=v2_mean*0.5*species(ispecies)%m/e
+        if(root) write(filehandle,'(a,3es16.8)') "Average energy (1,2,3) [eV]: ",energy
+
+        !v_mean=get_v_mean(particles,2)
+        !if(root) write(filehandle,*) " == vmean, ions           : ", v_mean
+
+
+    END SUBROUTINE  energy_output
 
 !===============================================================================
 
@@ -51,50 +109,70 @@ MODULE output
 
 !===============================================================================
 
-    SUBROUTINE recycling_output(thits,treflux,filehandle)
+    SUBROUTINE main_output(filehandle)
 
         implicit none
 
-        integer,intent(in)      :: thits(0:,:),treflux(0:,:),filehandle
+        integer,intent(in)      :: filehandle
         integer :: ib,ispecies
 
-        IF(root) THEN
-            write(filehandle,'(a)')"========================= Info on particle-species ========================="
-            DO ispecies=0,nspecies-1
+        IF(root) write(filehandle,'(a)')"========================= Info on particle-species ========================="
+        DO ispecies=0,nspecies-1
+            IF(root) THEN
                 write(filehandle,'(a,i2,a)')"========================= Species ",ispecies," ========================="
                 write(filehandle,'(a,a)')"Name: ",TRIM(species(ispecies)%name)
                 IF (.not. species(ispecies)%physical_particle) write(filehandle,'(a)')"(no physical species)"
                 write(filehandle,*)
-                IF (species(ispecies)%physical_particle) THEN
-                    DO ib=1,nb
-                        write(filehandle,'(a,i2,a,i10)') "Hits on boundary ",ib," :",thits(ispecies,ib)
-                    END DO
-                    write(filehandle,*)
-                    write(filehandle,'(a,i10)') "Refluxed particles  :",SUM(treflux(ispecies,1:nb))+species(ispecies)%nfp
-                    write(filehandle,*)
-                    write(filehandle,'(a,i10)') "Number of particles  :",tnpps(ispecies)
-                    write(filehandle,*)
-                ELSE
-                    write(filehandle,*)
-                    write(filehandle,'(a,i10)') "Number of particles  :",tnpps(ispecies)
-                    write(filehandle,*)
-                END IF
-                write(filehandle,'(a)')"=============================================================="
-                write(filehandle,*)
-            END DO
+            END IF
+            IF (species(ispecies)%physical_particle) THEN
+                call velocity_output(ispecies,filehandle)
+                call energy_output(ispecies,filehandle)
+                IF(root) write(filehandle,*)
+                DO ib=1,nb
+                    IF(root) write(filehandle,'(a,i2,a,i10)') "Hits on boundary ",ib," :",thits_out(ispecies,ib)
+                END DO
+                IF(root) write(filehandle,*)
+                IF(root) write(filehandle,'(a,i10)') "Refluxed particles  :",SUM(treflux_out(ispecies,1:nb))+species(ispecies)%nfp
+                IF(root) write(filehandle,*)
+                IF(root) write(filehandle,'(a,i10)') "Number of particles  :",tnpps(ispecies)
+                IF(root) write(filehandle,*)
+            ELSE
+                IF(root) write(filehandle,*)
+                IF(root) write(filehandle,'(a,i10)') "Number of particles  :",tnpps(ispecies)
+                IF(root) write(filehandle,*)
+            END IF
+            IF(root) write(filehandle,'(a)')"=============================================================="
+            IF(root) write(filehandle,*)
+        END DO
 
-            write(filehandle,'(a)')"========================= Info on boundaries ========================="
-            DO ib=1,nb
-                IF (boundaries(ib)%nwp/=0) THEN
-                    write(filehandle,'(a,i2,a,es16.8)') "Total charge on boundary ",ib," :",boundaries(ib)%q_tot
-                END IF
-            END DO
+        IF(root) write(filehandle,'(a)')"========================= Info on boundaries ========================="
+        DO ib=1,nb
+            IF (boundaries(ib)%nwp/=0) THEN
+                IF(root) write(filehandle,'(a,i2,a,es16.8)') "Total charge on boundary ",ib," :",boundaries(ib)%q_tot
+            END IF
+        END DO
 
-            write(filehandle,*)
-            write(filehandle,'(a,i16)')    " == Total number of particles            : ", tnp
-        END IF
+        IF(root) write(filehandle,*)
+        IF(root) write(filehandle,'(a,i16)')    " == Total number of particles            : ", tnp
 
-    END SUBROUTINE recycling_output
+        thits_out=0
+        treflux_out=0
+
+    END SUBROUTINE main_output
+
+!===============================================================================
+
+    SUBROUTINE set_recycling_output_values(thits,treflux)
+
+        implicit none
+
+        integer,intent(in)      :: thits(0:,:),treflux(0:,:)
+
+        thits_out=thits
+        treflux_out=treflux
+
+
+    END SUBROUTINE set_recycling_output_values
 
 !===============================================================================
 
@@ -135,8 +213,6 @@ MODULE output
           end if
           write(*,*)
           write(*,*) "========== Plasmaparameters ========="
-          write(*,'(a,f12.4)')  " == TE [eV] (sourcetemperature)      : ", te_ev
-          write(*,'(a,f12.4)')  " == TI [eV] (sourcetemperature)      : ", ti_ev
           write(*,'(a,es12.4)') " == Gyro radius [m]                  : ", r_lamor
           !write(*,'(a,es12.4)') " == Debye length [m]                 : ", l_debye
           !write(*,'(a,es12.4)') " == Plasmafrequency [s^-1]           : ", omega_p

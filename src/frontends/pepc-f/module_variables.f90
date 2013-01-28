@@ -55,8 +55,6 @@ module variables
   logical :: interaction_partner_diags
   integer :: mirror_layers    ! input variable. Is copied to mirror_box_layers (module_mirror_boxes)
 
-  ! type of source
-  integer :: quelltyp
   ! type of rng (0=standard fortran,1=par_rand from module_zufall)
   integer :: rng
   logical, public :: periodicity_in(3) = [.false., .false., .false.]
@@ -79,8 +77,6 @@ module variables
   real*8             ::  fc                  !force constant: SI: 1/4/Pi/eps0
 
   ! Parameters
-  real*8 :: ti_ev  
-  real*8 :: te_ev 
   real*8 :: Bx               !für räumlich
   real*8 :: By               !konstantes
   real*8 :: Bz               !Magnetfeld
@@ -100,11 +96,7 @@ module variables
   integer                        :: last_reflux_step=0
   logical                        :: need_to_reflux=.false.
 
-  !wall particles
-  type(t_particle), allocatable :: wall_particles(:)
 
-  !plasma particles
-  type(t_particle), allocatable :: physical_particles(:)
   integer,allocatable  :: tnpps(:)  !total number of particles per species
   integer,allocatable  :: npps(:)   !local number of particles per species
 
@@ -119,12 +111,20 @@ module variables
 
   !test
   type(t_boundary), allocatable :: boundaries(:)
-  integer :: nb=6          ! number of boundaries
+  integer :: nb          ! number of boundaries
   type(t_species), allocatable :: species(:)
-  integer :: nspecies=3    ! number of species
-  integer :: left_bc=1     ! boundary at left wall(0=absorb and reflux according to source, 1=reflect (invert vx), 2=wall)
+  integer :: nspecies    ! number of species
 
-  namelist /pepcf/ fsup,periodicity_in,mirror_layers,guiding_centre_electrons, nt, dt, Bx, By, Bz, te_ev, ti_ev, quelltyp, dx ,dy, dz,diag_interval, checkp_interval
+  !source
+  real(KIND=8) :: x0_src(3)
+  real(KIND=8) :: e1_src(3),e2_src(3),e3_src(3)
+  integer :: quelltyp
+  integer :: src_boundary     ! if quelltyp==0 or 3 (surface sources) the boundary has to be specified (x0,e1,e2,e3 will be ignored)
+                              ! if quelltyp==1 or 2 (volume sources) this value will be set to 0 and ignored
+
+
+  namelist /source_nml/ x0_src,e1_src,e2_src,e3_src,quelltyp,src_boundary
+  namelist /pepcf/ fsup,periodicity_in,mirror_layers,guiding_centre_electrons, nt, dt, Bx, By, Bz, dx ,dy, dz,diag_interval, checkp_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 

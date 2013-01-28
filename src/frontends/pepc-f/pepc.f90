@@ -72,6 +72,7 @@ program pepc
     call set_parameters()
     call init_species()
     call init_boundaries()
+    call init_source()
 
     if (do_resume)then
         call init_after_resume()
@@ -79,6 +80,7 @@ program pepc
         call init()
     end if
 
+    call init_output_arrays()
     call write_parameters()
 
     !probes for analysing interaction partner diags
@@ -161,6 +163,7 @@ program pepc
 
 
 
+        call main_output(out)
         !output for root
         if(root) then
             write(*,*) " "
