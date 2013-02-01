@@ -46,10 +46,7 @@ def plot_fieldblob(arg):
   )
 
 def maxabs_of_fieldblob(fname):
-  return np.max((
-    np.abs(fb.max_of_fieldblob(fname)),
-    np.abs(fb.min_of_fieldblob(fname))
-  ))  
+  return np.max(np.abs(np.mean(fb.field_of_fieldblob(fname), axis = 1)))  
 
 def print_usage():
   print "Usage: movie_yaverage.py fieldtype fieldblob1 [fieldblob2 ...]"

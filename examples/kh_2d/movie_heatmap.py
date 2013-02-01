@@ -46,10 +46,7 @@ def plot_fieldblob(arg):
   )
 
 def maxabs_of_fieldblob(fname):
-  return np.max((
-    np.abs(fb.max_of_fieldblob(fname)),
-    np.abs(fb.min_of_fieldblob(fname))
-  ))
+  return np.max(np.abs(fb.field_of_fieldblob(fname)))
 
 def print_usage():
   print "Usage: movie_heatmap.py fieldtype colormap fieldblob1 [fieldblob2 ...]"
