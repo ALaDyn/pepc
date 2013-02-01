@@ -126,8 +126,8 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 2 * pMultipole, 1]
-        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, pMultipole, 1]
+        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_COMPLEX16, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,            address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,        address(1), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,     address(2), ierr )

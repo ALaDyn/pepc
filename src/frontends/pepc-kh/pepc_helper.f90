@@ -45,16 +45,13 @@ contains
 
       allocate(p(1:pepc_pars%npp))
 
-      call pepc_prepare(2)
-
    end subroutine pepc_setup
 
 
    subroutine read_in_params(pepc_namelist, file_available, file_name)
       use encap
       use mpi
-      use module_mirror_boxes, only: t_lattice_1, t_lattice_2, t_lattice_3, &
-        periodicity, mirror_box_layers
+      use module_mirror_boxes, only: mirror_box_layers
       use module_fmm_periodicity, only: do_extrinsic_correction
       implicit none
 
@@ -70,9 +67,7 @@ contains
       integer :: fdump = 0
       integer :: cdump = 0
 
-      namelist /pepc_nml/ np, pdump, fdump, cdump, &
-        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, mirror_box_layers, &
-        do_extrinsic_correction
+      namelist /pepc_nml/ np, pdump, fdump, cdump, mirror_box_layers, do_extrinsic_correction
 
       if (file_available) then
         open(para_file_id,file=trim(file_name),action='read')

@@ -169,17 +169,18 @@ contains
     type(t_particle), intent(inout) :: p(:)
 
     integer :: ip
-    real(kind=8) :: vte, vti
+    real(kind=8) :: vte, vti, lx
 
     vte = physics_pars%vte
     vti = physics_pars%vti
+    lx  = physics_pars%l_plasma(1)
 
     do ip = 1, pepc_pars%npp
-      if (p(ip)%x(1) .gt. physics_pars%l_plasma(1)) then
+      if (p(ip)%x(1) .gt. lx) then
 
         e_constraint = e_constraint + e_kin_of_particle(p(ip))
 
-        p(ip)%x(1) = 2.0D0 * physics_pars%l_plasma(1) - p(ip)%x(1)
+        p(ip)%x(1) = lx - modulo(p(ip)%x(1), lx)
         p(ip)%data%v(1) = -p(ip)%data%v(1)
 
         e_constraint = e_constraint - e_kin_of_particle(p(ip))

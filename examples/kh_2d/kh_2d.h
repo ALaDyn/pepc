@@ -8,21 +8,12 @@ np = 5000000
 pdump = 0
 
 ! output fields every ... steps (no output if 0)
-fdump = 1
+fdump = 5
 
 ! output checkpoints every ... steps (no output if 0)
-cdump = 1
-
-! BH opening angle
-! theta = 0.3
+cdump = 100
 
 ! periodicity
-t_lattice_1 = 50.0  0.0  0.0
-t_lattice_2 = 0.0  125.0  0.0
-t_lattice_3 = 0.0  0.0  1.0
-
-periodicity = .false.  .true.  .false.
-
 mirror_box_layers = 1
 
 do_extrinsic_correction = .false.
@@ -31,10 +22,10 @@ do_extrinsic_correction = .false.
 &time_nml
 
 ! time at end of simulation
-te = 450.0
+te = 200.0
 
 ! number of steps from t = 0 to t = te
-nsteps = 4500
+nsteps = 4000
 
 ! resume from this step
 nresume = 0
@@ -95,7 +86,7 @@ theta2 = 0.25
 
 eps2 = 0.04
 
-include_far_field_if_periodic = .true.
+include_far_field_if_periodic = .false.
 /
 
 &libpepc

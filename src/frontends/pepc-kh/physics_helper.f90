@@ -16,9 +16,13 @@ contains
 
 
    subroutine setup_physics(physics_pars, time_pars, p, pepc_pars)
+      use module_pepc, only: pepc_prepare
       use module_pepc_types, only: t_particle
       use module_checkpoint
       use module_debug
+      use module_mirror_boxes, only: mirror_box_layers, t_lattice_1, t_lattice_2, t_lattice_3, &
+        periodicity, spatial_interaction_cutoff
+      use module_interaction_specific, only: include_far_field_if_periodic
       use encap
       use pepc_helper, only: para_file_available, para_file_name
 
@@ -42,6 +46,17 @@ contains
       physics_pars%qi  = abs(physics_pars%qe)
       physics_pars%me  = physics_pars%qi
       physics_pars%mi  = physics_nml%m_ratio * physics_pars%qi
+
+      t_lattice_1 = [ physics_pars%l_plasma(1), 0.0D0, 0.0D0 ]
+      t_lattice_2 = [ 0.0D0, physics_pars%l_plasma(2), 0.0D0 ]
+      t_lattice_3 = [ 0.0D0, 0.0D0, 1.0D0 ]
+      if (.not. include_far_field_if_periodic) then
+        !spatial_interaction_cutoff = [ huge(0.0D0), mirror_box_layers * physics_pars%l_plasma(2), huge(0.0D0) ]
+        spatial_interaction_cutoff = [ huge(0.0D0), physics_pars%l_plasma(2), huge(0.0D0) ]
+      end if
+      periodicity = [ .false., .true., .false. ]
+
+      call pepc_prepare(2)
 
       if (time_pars%nresume > 0) then
         call read_particles_mpiio(time_pars%nresume, pepc_pars%pepc_comm%mpi_comm, &
@@ -218,14 +233,14 @@ contains
           p(ipl)%x(3) = 0.0D0
 
           if (p(ipl)%x(1) < 0) then
-            p(ipl)%x(1) = -p(ipl)%x(1)
+            p(ipl)%x(1) = modulo(-p(ipl)%x(1), lx)
             p(ipl)%data%v(2) = -p(ipl)%data%v(2)
           end if
 
         end if
 
         if (p(ipl)%x(1) > lx) then
-          p(ipl)%x(1) = 2.0D0 * lx - p(ipl)%x(1)
+          p(ipl)%x(1) = lx - modulo(p(ipl)%x(1), lx)
           p(ipl)%data%v(2) = -p(ipl)%data%v(2)
         end if
 
@@ -247,7 +262,7 @@ contains
     real(kind=8), parameter :: pi = 3.1415926535897932384626434D0
 
     xi = rng_next_real()
-    v0 = vt * sqrt(-2.0D0 * log(xi))
+    v0 = vt * sqrt(-2.0D0 * log(max(xi, 10.0_8**(-15))))
     xi = rng_next_real()
     v(1) = v0 * cos(2 * pi * xi)
     v(2) = v0 * sin(2 * pi * xi)

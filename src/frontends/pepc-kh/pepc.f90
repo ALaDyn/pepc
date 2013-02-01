@@ -69,6 +69,8 @@ program pepc
    call setup_physics(physics_pars, time_pars, p, pepc_pars)
    call setup_field_grid(field_grid, pepc_pars%pepc_comm)
 
+   call pepc_prepare(2)
+
    call t_stop(timer_init)
 
    if (root) write(*,'(a,es12.4)') " == time in setup (s)                            : ", timer_init
