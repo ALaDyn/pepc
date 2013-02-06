@@ -35,8 +35,10 @@ subroutine pepcmw_prepare()
   use module_interaction_specific, only : eps2, include_far_field_if_periodic
   use module_namelist
   use module_io
+  use module_interaction_specific, only : force_law
   implicit none
   integer :: ifile
+  real*8 :: maxF
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  derived parameters (physics)  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -139,29 +141,32 @@ subroutine pepcmw_prepare()
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  parameters (simulation generic)   !!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  maxdt(1) = 2*pi/max(omega,1.e-10_8) * 1./50.
-  maxdt(2) = 2*pi/max(wpl_e,1.e-10_8) * 1./50.
+  maxdt(:) = huge(maxdt(1))
+  
+  maxdt(1) = 2./max(omega,1.e-10_8) * 1./19.
+  maxdt(2) = 2./max(wpl_e,1.e-10_8) * 1./19.
 
-  if (vte>0.) then
-    maxdt(3) = lambdaD_e/10./vte
-    if (eps > 0.) then
-      maxdt(4) = abs(mass_e/qe * eps*eps / (qe) * vte/10.)
-    else
-      maxdt(4) = huge(maxdt(4))
-    endif
+  if (force_law == 5) then
+    ! Kelbg
+    maxF = sqrt(pi) * qe*qi/unit_4piepsilon0 / (unit_hbar / sqrt(mass_e*unit_kB*Te))
   else
-    maxdt(3:4) = 1./epsilon(maxdt(3))
+    ! Coulomb
+    if (eps > 0.) then
+      maxF = qe*qi/unit_4piepsilon0 / eps
+    else
+      maxF = epsilon(maxF)
+    endif
   endif
 
+
+  if (vte>0.) then
+    maxdt(3) = a_ee / vte          / 10.
+    maxdt(4) = mass_e * vte / maxF / 10.
+  endif
+  
   if (vosc>0.) then
-    maxdt(5) = lambdaD_e/10./vosc
-    if (eps > 0.) then
-      maxdt(6) = abs(mass_e/qe * eps*eps / (10.*qe) * vosc/10.)
-    else
-      maxdt(6) = huge(maxdt(6))
-    endif
-  else
-    maxdt(5:6) = huge(maxdt(6))
+    maxdt(3) = a_ee / vosc          / 10.
+    maxdt(4) = mass_e * vosc / maxF / 10.
   endif
 
   if (any(maxdt < dt)) then
