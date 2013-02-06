@@ -62,6 +62,10 @@ module module_pusher
     integer, public, parameter :: NH_AETA = 3
     
     real*8, public :: tau_temp_relaxation = 5.0 !< temperature relaxation time in units of the (finally determined) simulation timestep dt
+    
+    logical :: nh_firstcall = .true.
+    logical :: nvt_firstcall = .true.
+    logical :: nve_firstcall = .true.
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -677,8 +681,6 @@ module module_pusher
       integer :: p, ierr
       integer, parameter :: file_nose_hoover_dat = 93
       
-      logical,save :: firstcall = .true.
-
       integer, parameter :: V2E = 1
       integer, parameter :: VEX = 2
       integer, parameter :: VEY = 3
@@ -787,8 +789,8 @@ module module_pusher
       
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! output
       if (my_rank == 0) then
-        if (firstcall .and. .not. restart) then
-          firstcall = .false.
+        if (nh_firstcall .and. .not. restart) then
+          nh_firstcall = .false.
           open(file_nose_hoover_dat, FILE='nose_hoover.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
           write(file_nose_hoover_dat,'("#",16(1x,a20))') "time", &
                                                          "epot_e",   "Te_uncor",   "Te0", "eta_e", "v_eta_e", "nose_hoover_Q_e", "H_e",  &
@@ -835,8 +837,6 @@ module module_pusher
       real*8, save :: delta_Ue_cum = 0.
       real*8, save :: delta_Ui_cum = 0.
       
-      logical, save :: firstcall = .true.
-
       integer, parameter :: V2E = 1
       integer, parameter :: VEX = 2
       integer, parameter :: VEY = 3
@@ -942,8 +942,8 @@ module module_pusher
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! output
       if (my_rank == 0) then
-        if (firstcall .and. .not. restart) then
-          firstcall = .false.
+        if (nvt_firstcall .and. .not. restart) then
+          nvt_firstcall = .false.
           open(file_thermostat_dat, FILE='thermostat.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
           write(file_thermostat_dat,'("#",18(1x,a20))') "time", &
                                                          "epot_e",   "Ue_before", "Ue_now", "Ue_target", "delta_Ue", "delta_Ue_cum", "H_e",  &
@@ -984,8 +984,6 @@ module module_pusher
       integer :: p, ierr
       integer, parameter :: file_nve_dat = 93
       
-      logical, save :: firstcall = .true.
-
       integer, parameter :: V2E = 1
       integer, parameter :: VEX = 2
       integer, parameter :: VEY = 3
@@ -1079,8 +1077,8 @@ module module_pusher
       
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! output
       if (my_rank == 0) then
-        if (firstcall .and. .not. restart) then
-          firstcall = .false.
+        if (nve_firstcall .and. .not. restart) then
+          nve_firstcall = .false.
           open(file_nve_dat, FILE='nve.dat',STATUS='UNKNOWN', POSITION = 'REWIND')
           write(file_nve_dat,'("#",8(1x,a20))')   "time", &
                                                          "epot_e",   "Ue_now", "H_e",  &
