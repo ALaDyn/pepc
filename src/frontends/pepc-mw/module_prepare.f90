@@ -147,26 +147,25 @@ subroutine pepcmw_prepare()
   maxdt(2) = 2./max(wpl_e,1.e-10_8) * 1./19.
 
   if (force_law == 5) then
-    ! Kelbg
-    maxF = sqrt(pi) * qe*qi/unit_4piepsilon0 / (unit_hbar / sqrt(mass_e*unit_kB*Te))
+    ! in r->0 Kelbg is like Plummer with eps = lambda
+    eps = unit_hbar / sqrt(mass_e*unit_kB*Te)
+  endif
+  
+  if (eps > 0.) then
+    maxF = abs(qe*qi/unit_4piepsilon0 / (eps*eps))
   else
-    ! Coulomb
-    if (eps > 0.) then
-      maxF = qe*qi/unit_4piepsilon0 / eps
-    else
-      maxF = epsilon(maxF)
-    endif
+    maxF = epsilon(maxF)
   endif
 
 
   if (vte>0.) then
     maxdt(3) = a_ee / vte          / 10.
-    maxdt(4) = mass_e * vte / maxF / 10.
+    maxdt(4) = mass_e * vte / maxF !/ 10. ! here we assume that particles never approach each other too close, so that maxF = maxF/10.
   endif
   
   if (vosc>0.) then
-    maxdt(3) = a_ee / vosc          / 10.
-    maxdt(4) = mass_e * vosc / maxF / 10.
+    maxdt(5) = a_ee / vosc          / 10.
+    maxdt(6) = mass_e * vosc / maxF !/ 10. ! here we assume that particles never approach each other too close
   endif
 
   if (any(maxdt < dt)) then
