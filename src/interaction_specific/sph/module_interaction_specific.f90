@@ -251,7 +251,7 @@ module module_interaction_specific
         implicit none
 
         logical :: mac
-        integer, intent(in) :: node
+        type(t_tree_node_interaction_data), intent(in) :: node
         type(t_particle), intent(in) :: particle
         real*8, intent(in) :: dist2
         real*8, intent(in) :: boxlength2
@@ -293,8 +293,9 @@ module module_interaction_specific
         integer, intent(in) :: nparticles
 
         integer*8 :: key
-        integer :: addr, i
+        integer :: i
         real*8, dimension(:), allocatable :: boxdiag2
+        type(t_tree_node), pointer :: node
 
         allocate(boxdiag2(0:nlev))
         boxdiag2(0) = 3.*dot_product(boxsize, boxsize)
@@ -314,8 +315,8 @@ module module_interaction_specific
             particles(i)%results%maxidx             = 1
 
             do while (key .ne. 0)
-              if (testaddr(key, addr)) then
-                if (htable(addr)%leaves > num_neighbour_particles) then
+              if (htable_lookup(global_htable, key, node)) then
+                if (node%leaves > num_neighbour_particles) then
                   ! this twig contains enough particles --> we use its diameter as search radius
                   particles(i)%results%maxdist2 = boxdiag2(level_from_key(key))
                   particles(i)%results%neighbour_keys(1:num_neighbour_particles) = key

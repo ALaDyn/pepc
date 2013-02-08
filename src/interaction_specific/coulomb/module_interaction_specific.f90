@@ -301,12 +301,10 @@ module module_interaction_specific
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       function mac(particle, node, dist2, boxlength2)
-
-        use treevars, only : tree_nodes
         implicit none
 
         logical :: mac
-        integer, intent(in) :: node
+        type(t_tree_node_interaction_data), intent(in) :: node
         type(t_particle), intent(in) :: particle
         real*8, intent(in) :: dist2
         real*8, intent(in) :: boxlength2
@@ -317,7 +315,7 @@ module module_interaction_specific
               mac = (theta2 * dist2 > boxlength2)
             case (1)
                ! Bmax-MAC
-              mac = (theta2 * dist2 > min(tree_nodes(node)%bmax**2,3.0*boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
+              mac = (theta2 * dist2 > min(node%bmax**2,3.0*boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
             case default
               ! N^2 code
               mac = .false.
