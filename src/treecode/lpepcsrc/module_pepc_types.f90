@@ -37,7 +37,7 @@ module module_pepc_types
                  MPI_TYPE_tree_node_interaction_data,   &
                  MPI_TYPE_particle_results, &
                  MPI_TYPE_particle,         &
-                 MPI_TYPE_tree_node_transport_package
+                 MPI_TYPE_tree_node
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -58,17 +58,15 @@ module module_pepc_types
          type(t_particle_results) :: results !< results of calc_force_etc and companions
       end type t_particle
 
-      ! Data structure for shipping multiple moments of child nodes
-      integer, private, parameter :: nprops_tree_node_transport_package = 6! Number of multipole properties to ship
-      type t_tree_node_transport_package
-         integer*8 :: key     ! key
-         integer   :: byte    ! byte code
-         integer   :: leaves  ! # leaves contained
-         integer   :: owner   ! owner where multipole resides
-	 integer   :: level   ! level_from_key(key)
-         type(t_tree_node_interaction_data) :: m ! real physics
-      end type t_tree_node_transport_package
-
+      integer, private, parameter :: nprops_tree_node = 6
+      type, public :: t_tree_node
+        integer*8 :: key      =  0
+        integer :: info_field =  0
+        integer :: leaves     =  0
+        integer :: owner      = -1
+        integer :: level      = -1
+        type(t_tree_node_interaction_data) :: interaction_data
+      end type t_tree_node
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -94,7 +92,7 @@ module module_pepc_types
         implicit none
         include 'mpif.h'
 
-        integer, parameter :: max_props = nprops_particle + nprops_tree_node_transport_package
+        integer, parameter :: max_props = nprops_particle + nprops_tree_node
 
         integer :: ierr
         ! address calculation
@@ -102,7 +100,7 @@ module module_pepc_types
         integer(KIND=MPI_ADDRESS_KIND), dimension(0:max_props) :: address
         ! dummies for address calculation
         type(t_particle)  :: dummy_particle
-        type(t_tree_node_transport_package) :: dummy_tree_node
+        type(t_tree_node) :: dummy_tree_node
 
         ! first register the interaction-specific MPI types since they are embedded into the lpepc-datatypes
         call register_interaction_specific_mpi_types(MPI_TYPE_particle_data, MPI_TYPE_tree_node_interaction_data, MPI_TYPE_particle_results)
@@ -124,18 +122,18 @@ module module_pepc_types
         call MPI_TYPE_COMMIT( MPI_TYPE_particle, ierr)
 
         ! register tree_node type
-        blocklengths(1:nprops_tree_node_transport_package)  = [1, 1, 1, 1, 1, 1]
-        types(1:nprops_tree_node_transport_package)         = [MPI_INTEGER8, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_TYPE_tree_node_interaction_data]
-        call MPI_GET_ADDRESS( dummy_tree_node,        address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node%key,    address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node%byte,   address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node%leaves, address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node%owner,  address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node%level,  address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node%m    ,  address(6), ierr )
-        displacements(1:nprops_tree_node_transport_package) = int(address(1:nprops_tree_node_transport_package) - address(0))
-        call MPI_TYPE_STRUCT( nprops_tree_node_transport_package, blocklengths, displacements, types, MPI_TYPE_tree_node_transport_package, ierr )
-        call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_transport_package, ierr)
+        blocklengths(1:nprops_tree_node)  = [1, 1, 1, 1, 1, 1]
+        types(1:nprops_tree_node)         = [MPI_INTEGER8, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_TYPE_tree_node_interaction_data]
+        call MPI_GET_ADDRESS( dummy_tree_node,                  address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node%key,              address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node%info_field,       address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node%leaves,           address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node%owner,            address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node%level,            address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node%interaction_data, address(6), ierr )
+        displacements(1:nprops_tree_node) = int(address(1:nprops_tree_node) - address(0))
+        call MPI_TYPE_STRUCT( nprops_tree_node, blocklengths, displacements, types, MPI_TYPE_tree_node, ierr )
+        call MPI_TYPE_COMMIT( MPI_TYPE_tree_node, ierr )
 
     end subroutine register_lpepc_mpi_types
 
@@ -150,11 +148,11 @@ module module_pepc_types
         include 'mpif.h'
         integer :: ierr
 
-        call MPI_TYPE_FREE( MPI_TYPE_tree_node_transport_package,        ierr)
-        call MPI_TYPE_FREE( MPI_TYPE_particle,         ierr)
-        call MPI_TYPE_FREE( MPI_TYPE_particle_results, ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_tree_node,                    ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_particle,                     ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_particle_results,             ierr)
         call MPI_TYPE_FREE( MPI_TYPE_tree_node_interaction_data,   ierr)
-        call MPI_TYPE_FREE( MPI_TYPE_particle_data,    ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_particle_data,                ierr)
 
       end subroutine free_lpepc_mpi_types
 

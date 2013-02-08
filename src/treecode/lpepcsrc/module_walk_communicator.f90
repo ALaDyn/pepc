@@ -25,6 +25,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_walk_communicator
   use treevars
+  use module_pepc_types
   implicit none
 
   private
@@ -63,8 +64,8 @@ module module_walk_communicator
     !> data type for internal request queue
     type, public :: t_request_queue_entry
       integer*8 :: key
-      integer   :: addr
       integer   :: owner
+      type(t_tree_node), pointer :: node
     end type
 
 
@@ -95,7 +96,7 @@ module module_walk_communicator
         call MPI_PACK_SIZE(1, MPI_INTEGER8, MPI_COMM_lpepc, msg_size_request, ierr)
         msg_size_request = msg_size_request + MPI_BSEND_OVERHEAD
 
-        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node_transport_package, MPI_COMM_lpepc, msg_size_data, ierr)
+        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node, MPI_COMM_lpepc, msg_size_data, ierr)
         msg_size_data = msg_size_data + MPI_BSEND_OVERHEAD
 
         buffsize = (REQUEST_QUEUE_LENGTH * msg_size_request + ANSWER_BUFF_LENGTH * msg_size_data)
@@ -180,15 +181,14 @@ module module_walk_communicator
       use module_pepc_types
       use module_debug
       use module_htable
+      use module_tree_node
       implicit none
       include 'mpif.h'
       integer*8, intent(in) :: requested_key
       integer, intent(in) :: ipe_sender
-      integer :: process_addr
-      type(t_tree_node_transport_package), target :: children_to_send(8)
-      type(t_tree_node_transport_package), pointer :: c
+      type(t_tree_node), target :: children_to_send(8)
+      type(t_tree_node), pointer :: n
       integer*8, dimension(8) :: key_child
-      integer, dimension(8) :: addr_child, node_child, byte_child, leaves_child, owner_child, level_child
       integer :: j, ic, ierr, nchild
 
       if (walk_comm_debug) then
@@ -197,29 +197,17 @@ module module_walk_communicator
       end if
 
       j = 0
-      process_addr = key2addr( requested_key,'WALK:send_data:parentkey')       ! get htable addresses
+      call htable_lookup_critical(global_htable, requested_key, n, 'WALK:send_data:parentkey')
+      call tree_node_get_childkeys(n, nchild, key_child)
 
-      call get_childkeys(process_addr, nchild, key_child)
-
-      addr_child(1:nchild)   = (/( key2addr( key_child(j),'WALK:send_data:childkey' ),j=1,nchild)/)  ! Table address of children
-      node_child(1:nchild)   = htable( addr_child(1:nchild) )%node                        ! Child node index
-      byte_child(1:nchild)   = int(IAND( htable( addr_child(1:nchild) )%childcode, CHILDCODE_CHILDBYTE ))! Catch lowest 8 bits of childbyte - filter off requested and here flags
-      leaves_child(1:nchild) = htable( addr_child(1:nchild) )%leaves                      ! # contained leaves
-      owner_child(1:nchild)  = htable( addr_child(1:nchild) )%owner                       ! real owner of child (does not necessarily have to be identical to me, at least after futural modifications)
-      level_child(1:nchild)  = htable( addr_child(1:nchild) )%level                       ! level of child node
-      ! Package children properties into user-defined multipole array for shipping
       do ic = 1,nchild
-         c=>children_to_send(ic)
-           c%m      = tree_nodes(node_child(ic))
-           c%key    = key_child(ic)
-           c%byte   = byte_child(ic)
-           c%leaves = leaves_child(ic)
-           c%owner  = owner_child(ic)
-	   c%level  = level_child(ic)
+        call htable_lookup_critical(global_htable, key_child(ic), n, 'WALK:send_data:childkey')
+        children_to_send(ic) = n
+        children_to_send(ic)%info_field = int(iand( children_to_send(ic)%info_field, CHILDCODE_CHILDBYTE ))! Catch lowest 8 bits of childbyte - filter off requested and here flags
       end do
       
       ! Ship child data back to PE that requested it
-      call MPI_BSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node_transport_package, &
+      call MPI_BSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node, &
         ipe_sender, TAG_REQUESTED_DATA, MPI_COMM_lpepc, ierr)
 
       ! statistics on number of sent children-packages
@@ -230,19 +218,20 @@ module module_walk_communicator
 
     function send_request(req)
       use module_htable
+      use module_tree_node
       implicit none
       include 'mpif.h'
       logical :: send_request
       type(t_request_queue_entry), intent(in) :: req
       integer :: ierr
 
-      if (.not. BTEST( htable(req%addr)%childcode, CHILDCODE_BIT_REQUEST_SENT ) ) then
+      if (.not. btest( req%node%info_field, CHILDCODE_BIT_REQUEST_SENT ) ) then
         ! send a request to PE req_queue_owners(req_queue_top)
         ! telling, that we need child data for particle request_key(req_queue_top)
         call MPI_BSEND(req%key, 1, MPI_INTEGER8, req%owner, TAG_REQUEST_KEY, &
           MPI_COMM_lpepc, ierr)
 
-        htable(req%addr)%childcode = ibset(htable(req%addr)%childcode, CHILDCODE_BIT_REQUEST_SENT )
+        req%node%info_field = ibset(req%node%info_field, CHILDCODE_BIT_REQUEST_SENT )
 
         send_request = .true.
       else
@@ -252,40 +241,42 @@ module module_walk_communicator
     end function
 
 
-
     subroutine unpack_data(child_data, num_children, ipe_sender)
       use module_htable
       use module_tree
+      use module_tree_node
       use module_spacefilling
       use module_debug
       use module_atomic_ops
       implicit none
       include 'mpif.h'
-      type (t_tree_node_transport_package) :: child_data(num_children) !< child data that has been received
+      type(t_tree_node) :: child_data(num_children) !< child data that has been received
+      type(t_tree_node), pointer :: parent
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
-      integer*8 :: kparent
-      integer :: ownerchild, parent_addr(0:num_children), num_parents
+
+      integer*8 :: parent_key(0:num_children)
+      integer :: num_parents
       integer :: ic
 
       num_parents = 0
-      parent_addr(0) = maxaddress + 1
+      parent_key(0) = 0_8 ! TODO: use named constant
 
       do ic = 1, num_children
-        ! save parent address - after (!) inserting all (!) children we can flag it: it`s children are then accessible
-        kparent     = parent_key_from_key( child_data(ic)%key )
-        parent_addr(num_parents + 1) = key2addr( kparent, 'WALK:unpack_data() - get parent address' )
-        if (parent_addr(num_parents) .ne. parent_addr(num_parents + 1)) then
+        ! save parent key - after (!) inserting all (!) children we can flag it: it`s children are then accessible
+        parent_key(num_parents + 1) = parent_key_from_key( child_data(ic)%key )
+        !parent_addr(num_parents + 1) = key2addr( kparent, 'WALK:unpack_data() - get parent address' )
+        if (parent_key(num_parents) .ne. parent_key(num_parents + 1)) then
           num_parents = num_parents + 1
         end if
 
         if (walk_comm_debug) then
           DEBUG_INFO('("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ",        owner=", I6, ", kchild=", O22)',
-                         me, kparent, ipe_sender, ownerchild, child_data(ic)%key)
+                         me, parent_key(num_parents), ipe_sender, child_data(ic)%owner, child_data(ic)%key)
         end if
 
         ! tree nodes coming from remote PEs are flagged for easier identification
-        child_data(ic)%byte = ibset(child_data(ic)%byte, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)
+        child_data(ic)%info_field = ibset(child_data(ic)%info_field, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)
 
         call tree_insert_node(child_data(ic))
         ! count number of fetched nodes
@@ -297,7 +288,8 @@ module module_walk_communicator
      ! set 'children-here'-flag for all parent addresses
      ! may only be done *after inserting all* children, hence not(!) during the loop above
      do ic=1,num_parents
-         htable( parent_addr(ic) )%childcode = IBSET(  htable( parent_addr(ic) )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
+         call htable_lookup_critical(global_htable, parent_key(ic), parent, 'WALK:unpack_data() - get parent node')
+         parent%info_field = ibset(parent%info_field, CHILDCODE_BIT_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
      end do
 
 

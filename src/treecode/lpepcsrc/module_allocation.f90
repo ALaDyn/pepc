@@ -63,16 +63,16 @@ module module_allocation
         use treevars
         use module_timings
         use module_debug
-        use module_htable
+        use module_htable, only: htable_allocated, htable_init, global_htable
         use module_branching
         use module_interaction_specific, only : get_number_of_interactions_per_particle
         implicit none
 
-        integer :: nbaddr ! number of bits in the hashing function
+        integer :: nbaddr, maxaddress ! number of bits in the hashing function
 
         call timer_start(t_allocate)
 
-        if (allocated(htable)) call deallocate_tree()
+        if (htable_allocated(global_htable)) call deallocate_tree()
 
         call pepc_status('ALLOCATE TREE')
 
@@ -86,34 +86,14 @@ module module_allocation
             maxaddress = int(abs(np_mult)*10000)
         endif
 
-        if (num_pe==1) then
-            maxleaf = npart
-            maxtwig = maxaddress/2
-        else if (num_pe.lt.1024) then
-            maxleaf = maxaddress/3
-            maxtwig = 2*maxleaf
-        else
-            !  required # twigs increases with P because of branches
-            maxleaf = int(maxaddress/(1.+log(1.*num_pe)/3.))
-            maxtwig = maxaddress-maxleaf
+        call htable_init(global_htable, maxaddress)
+
+        if (maxaddress < npp + 2) then
+          DEBUG_ERROR('("maxaddress = ", I0, " < npp+2 = ", I0, ".",/,"You should increase np_mult.")',maxaddress, npp + 2)
         endif
 
-        ! TODO: at this stage, maxleaf should not be larger than npart_total and maxtwig should not be larger than maxleaf
-        ! in some cases, this is not fulfilled currently
+        allocate ( branch_owner(branch_max_global), pebranch(branch_max_global) )
 
-        if (maxleaf < npp) then
-          DEBUG_WARNING('("maxleaf = ", I0, " < npp+2 = ", I0, ".",/,"Setting maxleaf = npp+2 for now, but expect that to fail during walk. You should increase np_mult.")',maxleaf, npp+2)
-          maxleaf = npp + 2
-        endif
-
-        nbaddr    = int(max(log(1.*maxaddress)/log(2.), 15.))
-        hashconst = 2**nbaddr-1
-
-        allocate ( htable(0:maxaddress), free_addr(maxaddress), point_free(0:maxaddress), &
-        branch_owner(branch_max_global), pebranch(branch_max_global) )
-
-        ! Allocate memory for tree node properties
-        allocate ( tree_nodes(-maxtwig:maxleaf) )
         ! allocate memory for storing number of branches per PE
         allocate ( nbranches(num_pe+2) )
 
@@ -131,15 +111,14 @@ module module_allocation
     subroutine deallocate_tree()
         use treevars
         use module_debug
-        use module_htable
+        use module_htable, only: htable_destroy, global_htable
         implicit none
 
         call pepc_status('DEALLOCATE TREE')
 
-        deallocate ( htable, free_addr, point_free, branch_key, branch_owner, pebranch )
+        call htable_destroy(global_htable)
+        deallocate ( branch_key, branch_owner, pebranch )
 
-        ! multipole moments
-        deallocate ( tree_nodes )
         ! number of branches per PE
         deallocate ( nbranches )
 

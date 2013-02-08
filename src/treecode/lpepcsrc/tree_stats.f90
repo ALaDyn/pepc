@@ -35,7 +35,7 @@ subroutine tree_stats(timestamp)
   use module_walk, only : tree_walk_statistics
   use module_branching
   use module_debug, only : pepc_status
-  use module_htable, only : maxaddress
+  use module_htable
   use module_utils, only : create_directory
   implicit none
   include 'mpif.h'
@@ -44,7 +44,7 @@ subroutine tree_stats(timestamp)
   integer, dimension(num_pe) :: nparticles, fetches, ships, total_keys, tot_nleaf, tot_ntwig
   real*8, dimension(num_pe) ::  num_interactions, num_mac_evaluations  ! Load balance arrays
   character*40 :: cfile
-  integer :: max_nbranch,min_nbranch, gmax_leaves, gmax_twigs, total_part
+  integer :: max_nbranch,min_nbranch, gmax_keys, total_part
   real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, max_mac_evaluations
   real :: part_imbal=0.
   real*8 :: work_imbal=0.
@@ -68,8 +68,7 @@ subroutine tree_stats(timestamp)
   call MPI_GATHER(mac_evaluations_local, 1, MPI_REAL8, num_mac_evaluations,   1, MPI_REAL8,   0,  MPI_COMM_lpepc, ierr )
   call MPI_REDUCE(nbranch, max_nbranch,     1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
   call MPI_REDUCE(nbranch, min_nbranch,     1, MPI_INTEGER, MPI_MIN, 0, MPI_COMM_lpepc, ierr )
-  call MPI_REDUCE(nleaf, gmax_leaves, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
-  call MPI_REDUCE(ntwig, gmax_twigs,  1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
+  call MPI_REDUCE(global_htable%nvalues, gmax_keys, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
 
   part_imbal_max = MAXVAL(nparticles)
   part_imbal_min = MINVAL(nparticles)
@@ -103,17 +102,15 @@ subroutine tree_stats(timestamp)
     write (60,'(a20,i7,a22)') 'Tree stats for CPU ', me, ' and global statistics'
     write (60,*) '######## GENERAL DATA #####################################################################'
     write (60,'(a50,1i12)') '# procs', num_pe
-    write (60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, maxaddress: ',nintmax, np_mult,maxaddress
+    write (60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, maxaddress: ',nintmax, np_mult,htable_size(global_htable)
     write (60,'(a50,2i12)') 'npp, npart: ',npp,npart
     write (60,'(a50,2i12)') 'total # nparticles, N/P: ',total_part,int(npart/num_pe)
     write (60,*) '######## TREE STRUCTURES ##################################################################'
     write (60,'(a50,3i12)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
     write (60,'(a50,3i12)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
     write (60,'(a50,3i12,f12.1,a6,i12)') 'final # leaves, twigs, keys, (max): ',nleaf,ntwig,nleaf+ntwig, &
-              (nleaf+ntwig)/(.01*maxaddress),' % of ',maxaddress
-    write (60,'(a50,3i12)') 'maximum # leaves, twigs, keys(=maxaddress): ',maxleaf, maxtwig, maxaddress
-    write (60,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # leaves: ',gmax_leaves, gmax_leaves/(.01*maxleaf), ' % of  ', maxleaf
-    write (60,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # twigs: ', gmax_twigs, gmax_twigs/(.01*maxtwig), ' % of  ', maxtwig
+              (nleaf+ntwig)/(.01*global_htable%maxvalues),' % of ',global_htable%maxvalues
+    write (60,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # keys: ',gmax_keys, gmax_keys/(.01*global_htable%maxvalues), ' % of  ', global_htable%maxvalues
     write (60,*) '######## BRANCHES #########################################################################'
     write (60,'(a50,3i12)') '#branches local, max_global, min_global: ', nbranch,max_nbranch,min_nbranch
     write (60,'(a50,2i12)') '#branches global sum estimated, sum actual: ',branch_max_global,nbranch_sum

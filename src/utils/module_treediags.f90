@@ -70,6 +70,7 @@ module module_treediags
           use module_vtk
           use module_spacefilling
           use module_htable
+          use module_tree_node
           use module_mirror_boxes
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
@@ -81,7 +82,8 @@ module module_treediags
           real*8, dimension(:,:), intent(in), optional :: node_vbox
           
 
-          integer :: i,j, baddr, bnode
+          type(t_tree_node), pointer :: bnode
+          integer :: i,j
           integer*8 :: bkey
           real*8 :: bsize(3)
           real*8, dimension(:), allocatable  :: bcocx, bcocy, bcocz, bq, &
@@ -116,9 +118,8 @@ module module_treediags
 
           do i = 1, num_nodes
             bkey      = node_keys(i)
-            baddr     = key2addr(bkey, "write_nodes_to_vtk")
-            bnode     = htable(baddr)%node
-            bowner(i) = htable(baddr)%owner
+            call htable_lookup_critical(global_htable, bkey, bnode, "write_nodes_to_vtk")
+            bowner(i) = bnode%owner
             blevel(i) = level_from_key(bkey)
             bsize     = boxsize / 2**blevel(i)
             !write(*,'(O10, Z8, I12, I8, I8, 1G12.3, " | ", 3G12.3)') bkey, baddr, bnode, bowner, blevel, bsize, bcoc
@@ -126,10 +127,10 @@ module module_treediags
             ! prepare voxel data structure
             bcornerstypes(i)   = VTK_VOXEL
             bcornersoffsets(i) = 8*i
-            bq(i)              = tree_nodes(bnode)%charge
-            bcocx(i)           = tree_nodes(bnode)%coc(1)
-            bcocy(i)           = tree_nodes(bnode)%coc(2)
-            bcocz(i)           = tree_nodes(bnode)%coc(3)
+            bq(i)              = bnode%interaction_data%charge
+            bcocx(i)           = bnode%interaction_data%coc(1)
+            bcocy(i)           = bnode%interaction_data%coc(2)
+            bcocz(i)           = bnode%interaction_data%coc(3)
 
             if ( present(node_vbox) ) then
               bcocx(i) = bcocx(i) + node_vbox(i, 1)
@@ -263,7 +264,7 @@ module module_treediags
 
           if (me .ne. 0) return
 
-          if (.not. (allocated(htable) .and. allocated(branch_key) .and. allocated(tree_nodes))) then
+          if (.not. (htable_allocated(global_htable) .and. allocated(branch_key))) then
             write(*,*) 'write_branches_to_vtk(): pepc_fields() must have been called with no_dealloc=.true. before'
             return
           endif

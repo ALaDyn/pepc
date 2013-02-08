@@ -303,7 +303,7 @@ contains
                 ! otherwise branch does not exists
                 ! if entry exists it is counted as branch
                 ! otherwise discarded
-                if(testaddr(possible_branch))then ! entry exists
+                if (htable_contains(global_htable, possible_branch)) then ! entry exists
                     nbranch = nbranch + 1
                     pebranch(nbranch) = possible_branch
                 end if
@@ -321,7 +321,7 @@ contains
                 ! otherwise branch does not exists
                 ! if entry exists it is counted as branch
                 ! otherwise discarded
-                if(testaddr(possible_branch))then ! entry exists
+                if (htable_contains(global_htable, possible_branch)) then ! entry exists
                     nbranch = nbranch + 1
                     pebranch(nbranch) = possible_branch
                 end if

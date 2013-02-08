@@ -33,7 +33,7 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    ! TODO: move tree_nodes array here
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -54,8 +54,8 @@ module module_tree
 
     !> type for storing key and nideindex together in tree_build_from_particles
     type t_keyidx
-      integer :: idx
       integer*8 :: key
+      integer :: idx
     end type
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -80,29 +80,30 @@ module module_tree
         use treevars
         use module_pepc_types
         use module_htable
+        use module_tree_node
         implicit none
         include 'mpif.h'
 
-        type(t_tree_node_transport_package), intent(in) :: tree_node
-        integer :: addr
+        type(t_tree_node), intent(in) :: tree_node
 
-        if (testaddr(tree_node%key, addr)) then
+        type(t_tree_node), pointer :: preexisting_node
+
+        if (htable_lookup(global_htable, tree_node%key, preexisting_node)) then
           ! the htable-entry and node already exist --> update
 
           ! if we change the owner from someting else to 'me', we have to keep track of the leaf/twig counters
-          if ((htable(addr)%owner .ne. me) .and. (tree_node%owner .eq. me)) then
-            if (htable_entry_is_leaf(addr)) then
+          if ((preexisting_node%owner .ne. me) .and. (tree_node%owner .eq. me)) then
+            if (tree_node_is_leaf(preexisting_node)) then
               nleaf_me = nleaf_me + 1
             else
               ntwig_me = ntwig_me + 1
             endif
           endif
 
-          htable( addr )%leaves    = tree_node%leaves
-          htable( addr )%childcode = tree_node%byte
-          htable( addr )%owner     = tree_node%owner
-
-          tree_nodes(htable(addr)%node) = tree_node%m
+          preexisting_node%leaves           = tree_node%leaves
+          preexisting_node%info_field       = tree_node%info_field
+          preexisting_node%owner            = tree_node%owner
+          preexisting_node%interaction_data = tree_node%interaction_data
         else
           ! create new htable and nodelist entry
           call tree_insert_node(tree_node)
@@ -117,47 +118,35 @@ module module_tree
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_insert_node(tree_node)
-        use treevars
-        use module_pepc_types
-        use module_htable
-        use module_debug
-        implicit none
+      use treevars
+      use module_pepc_types
+      use module_htable
+      use module_debug
+      implicit none
 
-        type(t_tree_node_transport_package), intent(in) :: tree_node
-        integer :: hashaddr, lnode
+      type(t_tree_node), intent(in) :: tree_node
+      type(t_tree_node), pointer :: preexisting_entry
 
-
-        if (make_hashentry( t_hash(tree_node%key, 0, -1, tree_node%leaves, tree_node%byte, tree_node%owner, tree_node%level), hashaddr)) then
-            ! anything is fine - we will have to assign a node number now
-            if ( tree_node%leaves == 1 ) then
-               nleaf =  nleaf + 1
-               lnode =  nleaf
-               if (tree_node%owner == me) nleaf_me = nleaf_me+1
-            else if ( tree_node%leaves > 1 ) then
-               ! twig
-               ntwig =  ntwig + 1
-               lnode = -ntwig
-               if (tree_node%owner == me) ntwig_me = ntwig_me+1
-            else
-               DEBUG_ERROR(*, "Found a tree node with less than 1 leaf.")
-            endif
-
-            ! check for array bound overrun
-            if ((ntwig >= maxtwig) .or. (nleaf >= maxleaf)) then
-              DEBUG_ERROR('("Tree arrays full. Twigs: ", I0,"/",I0 ,"; Leaves: ", I0,"/",I0)', ntwig, maxtwig, nleaf, maxleaf)
-            end if
-
-             htable( hashaddr )%node = lnode
-
+      if (htable_add(global_htable, tree_node%key, tree_node, preexisting_entry)) then
+        ! anything is fine - we will have to assign a node number now
+        if ( tree_node%leaves == 1 ) then ! TODO: this should be replaced by tree_node_is_leaf()
+          nleaf =  nleaf + 1
+          if (tree_node%owner == me) nleaf_me = nleaf_me+1
+        else if ( tree_node%leaves > 1 ) then
+          ! twig
+          ntwig =  ntwig + 1
+          if (tree_node%owner == me) ntwig_me = ntwig_me+1
         else
-           ! entry with the same key is already existing, so we just overwrite it
-           lnode = htable( hashaddr )%node
-
-           DEBUG_WARNING_ALL(*, "PE", me, "has found an already inserted entry while calling make_hashentry(", tree_node%key, lnode, tree_node%leaves, tree_node%byte, tree_node%owner, tree_node%level, hashaddr,") - overwriting it")
+          DEBUG_ERROR(*, "Found a tree node with less than 1 leaf.")
         endif
 
-        !insert multipole data into local tree
-        tree_nodes( lnode ) = tree_node%m
+      else
+        ! entry with the same key is already existing, so we just overwrite it
+        preexisting_entry%interaction_data = tree_node%interaction_data
+
+        ! TODO: cleanup
+        DEBUG_WARNING_ALL(*, "PE", me, "has found an already inserted entry while calling make_hashentry(", tree_node%key, tree_node%leaves, tree_node%info_field, tree_node%owner, tree_node%level, ") - overwriting it")
+      endif
 
     end subroutine tree_insert_node
 
@@ -168,29 +157,24 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine shift_nodes_up_key(parent, childkeys, parent_owner)
       use module_pepc_types
-      use treevars, only : tree_nodes
       use module_htable
       use module_spacefilling
       implicit none
-      type(t_tree_node_transport_package), intent(inout) :: parent
+      type(t_tree_node), intent(inout) :: parent
       integer*8, intent(in) :: childkeys(:)
       integer, intent(in) :: parent_owner
 
       integer :: nchild, i
-      type(t_tree_node_transport_package) :: child_nodes(1:8)
-      integer :: child_addr, childnumber(1:8)
+      type(t_tree_node) :: child_nodes(1:8)
+      type(t_tree_node), pointer :: p
+      integer :: childnumber(1:8)
 
       nchild = size(childkeys)
 
       do i=1,nchild
-        child_addr     = key2addr(childkeys(i), 'shift_nodes_up_key')
         childnumber(i) = child_number_from_key(childkeys(i))
-        child_nodes(i) = t_tree_node_transport_package(childkeys(i),                   &
-                                     htable( child_addr )%childcode, &
-                                     htable( child_addr )%leaves,    &
-                                     htable( child_addr )%owner,     &
-                                     htable( child_addr )%level,     &
-                         tree_nodes( htable( child_addr )%node ) )
+        call htable_lookup_critical(global_htable, childkeys(i), p, 'shift_nodes_up_key')
+        child_nodes(i) = p
       end do
 
       call shift_nodes_up(parent, child_nodes(1:nchild), childnumber(1:nchild), parent_owner)
@@ -205,19 +189,19 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine shift_nodes_up(parent, children, childnumber, parent_owner)
       use module_pepc_types
-      use module_htable, only : CHILDCODE_BIT_CHILDREN_AVAILABLE
+      use module_tree_node
       use module_interaction_specific, only : shift_multipoles_up
       use module_spacefilling
       use module_debug
       use module_htable
       implicit none
-        type(t_tree_node_transport_package), intent(inout) :: parent
-        type(t_tree_node_transport_package), intent(in) :: children(:)
+        type(t_tree_node), intent(inout) :: parent
+        type(t_tree_node), intent(in) :: children(:)
         integer, intent(in) :: childnumber(:)
         integer, intent(in) :: parent_owner
         integer*8 :: parent_keys(1:8)
 
-        integer :: nchild, i, byte
+        integer :: nchild, i, info_field
 
         nchild = size(children)
 
@@ -228,32 +212,31 @@ module module_tree
           DEBUG_ERROR(*,"Error in shift nodes up: not all supplied children contribute to the same parent node")
         endif
 
-        byte = 0
+        info_field = 0
         do i = 1,nchild
           ! set bits for available children
-          byte = IBSET(byte, childnumber(i))
+          info_field = IBSET(info_field, childnumber(i))
           ! parents of nodes with local contributions also contain local contributions
-          if (btest(children(i)%byte, CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS)) byte = ibset(byte, CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS)
+          if (btest(children(i)%info_field, CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS)) info_field = ibset(info_field, CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS)
           ! parents of nodes with remote contributions also contain remote contributions
-          if (btest(children(i)%byte, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)) byte = ibset(byte, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)
+          if (btest(children(i)%info_field, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)) info_field = ibset(info_field, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)
           ! parents of branch and fill nodes will also be fill nodes
-          if (btest(children(i)%byte, CHILDCODE_BIT_IS_FILL_NODE) .or. btest(children(i)%byte, CHILDCODE_BIT_IS_BRANCH_NODE)) byte = ibset(byte, CHILDCODE_BIT_IS_FILL_NODE)
+          if (btest(children(i)%info_field, CHILDCODE_BIT_IS_FILL_NODE) .or. btest(children(i)%info_field, CHILDCODE_BIT_IS_BRANCH_NODE)) info_field = ibset(info_field, CHILDCODE_BIT_IS_FILL_NODE)
         end do
 
 
         ! Set children_HERE flag parent since we just built it from its children
-        byte =  IBSET( byte, CHILDCODE_BIT_CHILDREN_AVAILABLE )
+        info_field =  IBSET( info_field, CHILDCODE_BIT_CHILDREN_AVAILABLE )
 
-        parent%key    = parent_keys(1)
-        parent%byte   = byte
-        parent%leaves = sum(children(1:nchild)%leaves)
-        parent%owner  = parent_owner
-	parent%level  = level_from_key( parent_keys(1) )
+        parent%key        = parent_keys(1)
+        parent%info_field = info_field
+        parent%leaves     = sum(children(1:nchild)%leaves)
+        parent%owner      = parent_owner
+        parent%level      = level_from_key( parent_keys(1) )
 
-        call shift_multipoles_up(parent%m, children(1:nchild)%m)
+        call shift_multipoles_up(parent%interaction_data, children(1:nchild)%interaction_data)
 
     end subroutine
-
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -266,11 +249,12 @@ module module_tree
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tree_exchange(local_branch_keys, nbranch, branch_keys, nbranch_sum)
 
-        use treevars, only : me, num_pe, tree_nodes, nbranches, MPI_COMM_lpepc
+        use treevars, only : me, num_pe, nbranches, MPI_COMM_lpepc
         use module_debug, only : pepc_status
         use module_pepc_types
         use module_timings
         use module_htable
+        use module_tree_node
         implicit none
         include 'mpif.h'
 
@@ -280,8 +264,8 @@ module module_tree
         integer, intent(out) :: nbranch_sum
 
         integer :: i,ierr
-        type( t_hash ), pointer :: hbranch
-        type (t_tree_node_transport_package),allocatable :: pack_mult(:), get_mult(:)
+        type(t_tree_node), pointer :: branch_node
+        type(t_tree_node), allocatable :: pack_mult(:), get_mult(:)
         integer, allocatable :: igap(:)    !  stride lengths of local branch arrays
 
         if (allocated(branch_keys)) deallocate(branch_keys)
@@ -293,12 +277,11 @@ module module_tree
         ! Pack local branches for shipping
         allocate(pack_mult(nbranch))
         do i=1,nbranch
-            hbranch      => htable( key2addr( local_branch_keys(i),'EXCHANGE: info' ) )
+            call htable_lookup_critical(global_htable, local_branch_keys(i), branch_node, 'EXCHANGE: info')
 
             ! additionally, we mark all local branches as branches since this is only done for remote branches during unpack (is used for fill node identification)
-            hbranch%childcode = ibset(hbranch%childcode, CHILDCODE_BIT_IS_BRANCH_NODE)
-
-            pack_mult(i) =  t_tree_node_transport_package( local_branch_keys(i), hbranch%childcode, hbranch%leaves, me, hbranch%level, tree_nodes(hbranch%node) )
+            branch_node%info_field = ibset(branch_node%info_field, CHILDCODE_BIT_IS_BRANCH_NODE)
+            pack_mult(i) = branch_node
         end do
 
         call timer_stop(t_exchange_branches_pack)
@@ -322,7 +305,8 @@ module module_tree
         call timer_start(t_exchange_branches_allgatherv)
 
         ! actually exchange the branch nodes
-        call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node_transport_package, get_mult, nbranches, igap, MPI_TYPE_tree_node_transport_package, MPI_COMM_lpepc, ierr)
+        call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node, get_mult, nbranches, igap, MPI_TYPE_tree_node, &
+          MPI_COMM_lpepc, ierr)
 
         deallocate(pack_mult)
         deallocate (igap)
@@ -336,18 +320,18 @@ module module_tree
             ! insert all remote branches into local data structures (this does *not* prepare the internal tree connections, but only copies multipole properties and creates the htable-entries)
             if (get_mult(i)%owner /= me) then
               ! delete all custom flags from incoming nodes (e.g. CHILDCODE_BIT_CHILDREN_AVAILABLE)
-              get_mult(i)%byte = IAND(get_mult(i)%byte, CHILDCODE_CHILDBYTE)
+              get_mult(i)%info_field = IAND(get_mult(i)%info_field, CHILDCODE_CHILDBYTE)
               ! after clearing all bits we have to set the flag for branches again to propagate this property upwards during global buildup
-              get_mult(i)%byte = ibset(get_mult(i)%byte, CHILDCODE_BIT_IS_BRANCH_NODE)
+              get_mult(i)%info_field = ibset(get_mult(i)%info_field, CHILDCODE_BIT_IS_BRANCH_NODE)
               ! additionally, we mark all remote branches as remote nodes (this information is propagated upwards later)
-              get_mult(i)%byte = ibset(get_mult(i)%byte, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)
+              get_mult(i)%info_field = ibset(get_mult(i)%info_field, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)
 
               call tree_insert_node(get_mult(i))
             endif
             ! store branch key for later (global tree buildup)
             branch_keys(i) = get_mult(i)%key
         end do
-	
+
         deallocate(get_mult)
 
         call timer_stop(t_exchange_branches_integrate)
@@ -380,14 +364,14 @@ module module_tree
         integer, intent(in) :: numkeys
         integer, dimension(1:numkeys) :: branch_level
         integer*8, dimension(0:numkeys+1) :: sub_key, parent_key
-        type(t_tree_node_transport_package) :: parent_node
+        type(t_tree_node) :: parent_node
 
         integer :: ilevel, maxlevel, nsub, groupstart, groupend, i, nparent, nuniq
         integer*8 :: current_parent_key
 
         call pepc_status('BUILD TOWARDS ROOT')
 
-        if (dbg(DBG_TREE)) call check_table('after make_branches ')
+        if (dbg(DBG_TREE)) call check_table(global_htable, 'after make_branches ')
 
         ! get levels of branch nodes
         branch_level(1:numkeys) = level_from_key(start_keys(1:numkeys))
@@ -472,133 +456,131 @@ module module_tree
     !> be called several times to add further particles etc.
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine tree_build_from_particles(particle_list, nparticles, leaf_keys)
-      use treevars, only : nleaf, ntwig, nlev, me, tree_nodes, nleaf_me, ntwig_me
+    subroutine tree_build_from_particles(particle_list, nparticles, neighbour_particles, leaf_keys)
+      use treevars, only : nleaf, ntwig, nlev, me, nleaf_me, ntwig_me, idim, num_pe
       use module_pepc_types
       use module_spacefilling
       use module_htable
       use module_interaction_specific, only : multipole_from_particle
       use module_timings
       use module_debug
+      use module_tree_node
       implicit none
-      type(t_particle), intent(inout) :: particle_list(1:nparticles)
+      type(t_particle), intent(inout) :: particle_list(1:nparticles + neighbour_particles)
       integer, intent(in) :: nparticles
-      integer*8, intent(out) :: leaf_keys(1:nparticles)
+      integer, intent(in) :: neighbour_particles
+      integer*8, intent(out) :: leaf_keys(1:nparticles + neighbour_particles)
 
-      type(t_keyidx) :: particles_left(1:2*nparticles) ! each particle might produce one twig --> we need 2*nparticles as storage space
-      integer :: i, k, nremaining, nreinserted, level, ibit, hashaddr, nremoved
-      integer*8 :: lvlkey
+      type(t_keyidx), allocatable :: keyidx(:)
+      integer :: i, j, numkeys
 
       call pepc_status('INSERT PARTICLES')
 
-      leaf_keys(1:nparticles) = 0_8
-
-      nremaining = nparticles
-
-      do i=1,nparticles
-        particles_left(i)%key = particle_list(i)%key
-        particles_left(i)%idx = i
-      end do
-
-      ! The following code works as follows:
-      ! - starting from coarsest level, each particle's key on
-      !   that level is computed and inserted into the htable as a leaf
-      ! - in case of a collision, the respective htable-entry is turned
-      !   into a twig and the former leaf as well as the additional
-      !   particle are put onto a list for later processing at the next level
-      !
-      ! For simplicity, this code makes heavy use of a correspondence between
-      ! the index in the particles(:)-array and the node list. This leads to
-      ! the construction, that
-      !     htable(key2addr(particles(i)%key))%node == i
-      ! which is also desirable for later access
       call timer_start(t_build_pure)
 
-      nleaf = nparticles
-      level = 0
+      numkeys = nparticles + neighbour_particles
+      allocate(keyidx(numkeys))
+      i = 1
 
-      do while (nremaining > 0)
+      if (me /= 0) then
+        keyidx(i) = t_keyidx( particle_list(nparticles + neighbour_particles)%key, nparticles + neighbour_particles )
+        i = i + 1
+      end if
 
-        level = level + 1
-        nreinserted = 0
-        nremoved    = 0
-
-        if (level>nlev) then
-           DEBUG_WARNING_ALL('("Problem with tree: No more levels. Remaining particles 1..",I0,"  [i, local index, key, label, x, y, z]:")', nremaining)
-           DEBUG_ERROR_NO_HEADER('(2(I6,x),O22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)' , (i, particles_left(i)%idx, particle_list(particles_left(i)%idx)%key, particle_list(particles_left(i)%idx)%label, particle_list(particles_left(i)%idx)%x(1:3), i=1,nremaining ) )
-         endif
-
-         ibit = nlev - level ! bit shift factor (0=highest leaf node, nlev-1 = root)
-
-         ! Determine subcell # from key
-         ! At a given level, these will be unique
-         do i=1,nremaining
-           lvlkey = shift_key_by_level( particles_left(i)%key, - ibit )
-
-                                             ! V nodeindex for leaves is identical to original particle index
-           if (make_hashentry( t_hash(lvlkey, particles_left(i)%idx, -1, 1, 0, me, level), hashaddr)) then
-             ! this key does not exist until now --> has been inserted as leaf
-             leaf_keys(particles_left(i)%idx) = lvlkey
-             htable(hashaddr)%childcode = ibset(htable(hashaddr)%childcode, CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS) ! we mark this node as having local contributions since it is a leaf, i.e. a node for some local particle
-             particles_left(i) = t_keyidx(0, 0_8)
-             nremoved = nremoved + 1
-           else
-             ! the key already exists
-             ! do not remove particle from list - we will retry on next level
-
-             ! if current entry at hashaddr is a leaf
-             if (htable(hashaddr)%node > 0) then
-               ! put it onto our list of unfinished particles again
-               nreinserted                              = nreinserted + 1
-               particles_left(nremaining + nreinserted) = t_keyidx(htable(hashaddr)%node, particle_list(htable(hashaddr)%node)%key)
-               ! remove this entry from leaf_keys array
-               leaf_keys(htable(hashaddr)%node) = 0_8
-               ! and turn the current entry into a twig
-               ntwig                 =  ntwig + 1
-               htable(hashaddr)%node = -ntwig
-             else
-               ! the entry already was a twig --> nothing to do
-             endif
-           endif
-
-         end do
-
-         ! compact list of remaining particles
-         k = 0
-         do i=1,nremaining + nreinserted
-           if (particles_left(i)%key .ne. 0) then
-             k = k + 1
-             particles_left(k) = particles_left(i)
-           endif
-         end do
-
-         nremaining = nremaining + nreinserted - nremoved
-
-         if (nremaining .ne. k) then
-           DEBUG_ERROR(*,"Error in bookkeeping in local tree buildup. nremaining = ", nremaining, " but k = ", k)
-         endif
+      do j = 1, nparticles
+        keyidx(i) = t_keyidx( particle_list(j)%key, j )
+        i = i + 1
       end do
 
-      call timer_stop(t_build_pure)
-      call timer_start(t_props_leafs)
+      if (me /= num_pe - 1) then
+        keyidx(i) = t_keyidx( particle_list(nparticles + 1)%key, nparticles + 1 )
+      end if
 
-      ! now we can use the correspondence between particle list index and tree_node index for setting the multipole properties
-      do i=1,nparticles
-        call multipole_from_particle(particle_list(i)%x, particle_list(i)%data, tree_nodes(i) )
-      end do
+      particle_list(1:numkeys)%key_leaf = 0_8
+      nleaf = numkeys
 
+      call timer_start(t_props_leafs) ! TODO: this timer does not make sense like this
+      call insert_helper(1_8, level_from_key(1_8), keyidx(1:numkeys))
       call timer_stop(t_props_leafs)
+
+      deallocate(keyidx)
+      call timer_stop(t_build_pure)
 
       nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
       ntwig_me = ntwig
 
-      ! copy leaf keys to particle datafield
-      particle_list(1:nparticles)%key_leaf = leaf_keys(1:nparticles)
+      ! copy leaf keys
+      leaf_keys(1:numkeys) = particle_list(1:numkeys)%key_leaf
 
       ! check if we did not miss any particles
-      if (any(leaf_keys(1:nparticles) == 0_8)) then
+      if (any(leaf_keys(1:numkeys) == 0_8)) then
         DEBUG_WARNING_ALL(*, ' did not incorporate all particles into its leaf_keys array')
       endif
+
+      contains
+
+
+      recursive subroutine insert_helper(k, l, ki)
+        implicit none
+
+        integer*8, intent(in) :: k
+        integer, intent(in) :: l
+        type(t_keyidx), intent(inout) :: ki(:)
+
+        type(t_tree_node) :: this_node
+        integer*8 :: childkey
+        integer :: ip, ichild, childlevel, pstart, pend
+
+        this_node%info_field = ibset(0, CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS)
+        this_node%owner      = me
+        this_node%key        = k
+        this_node%level      = l
+
+        if (size(ki) == 1) then ! we have arrived at a leaf
+          this_node%leaves     = 1
+          call multipole_from_particle(particle_list(ki(1)%idx)%x, particle_list(ki(1)%idx)%data, this_node%interaction_data)
+          particle_list(ki(1)%idx)%key_leaf = k
+          if (.not. htable_add(global_htable, k, this_node)) then
+            DEBUG_ERROR(*, "Leaf allready inserted, aborting.") ! TODO: tell me more!
+          end if
+
+        else ! more particles left, split twig
+          if (l >= nlev) then ! no more levels left, cannot split
+            DEBUG_WARNING_ALL('("Problem with tree: No more levels. Remaining particles 1..",I0,"  [i, key, label, x, y, z]:")', size(ki))
+            DEBUG_ERROR_NO_HEADER('(I6,x,O22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, particle_list(ki(ip)%idx)%key, particle_list(ki(ip)%idx)%label, particle_list(ki(ip)%idx)%x(1:3), ip=1,size(ki) ) )
+          end if
+
+          pstart = lbound(ki, dim = 1)
+          do ichild = 0, 2**idim - 1
+            childkey   = child_key_from_parent_key(k, ichild)
+            childlevel = l + 1
+
+            pend = pstart - 1
+            do while (pend < ubound(ki, dim = 1))
+              if (.not. is_ancestor_of_particle(ki(pend + 1)%key, childkey, childlevel)) exit
+              pend = pend + 1
+            end do
+            
+            if (pend >= pstart) then
+              call insert_helper(childkey, childlevel, ki(pstart:pend))
+              ! TODO: could shift up childrens' properties here
+            end if
+
+            pstart = pend + 1
+          end do
+
+          if (.not. pend == ubound(ki, dim = 1)) then
+            DEBUG_WARNING_ALL('("Problem with tree: Could not distribute particles among children of ", I0, ". Remaining particles ",I0,"..",I0,"  [i, key, label, x, y, z]:")', k, pend + 1, ubound(ki, dim = 1) )
+            DEBUG_ERROR_NO_HEADER('(I6,x,I22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, particle_list(ki(ip)%idx)%key, particle_list(ki(ip)%idx)%label, particle_list(ki(ip)%idx)%x(1:3), ip=pend + 1, ubound(ki, dim = 1) ) )
+          end if
+
+          if (.not. htable_add(global_htable, k, this_node)) then
+            DEBUG_ERROR(*, "Twig allready inserted, aborting.") ! TODO: tell me more!
+          end if
+          ntwig = ntwig + 1
+        end if
+
+      end subroutine insert_helper
 
     end subroutine
 

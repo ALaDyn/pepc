@@ -222,16 +222,16 @@ module module_walk_pthreads_commutils
           call atomic_allocate_int(next_unassigned_particle)
           call atomic_allocate_int(req_queue_bottom)
           call atomic_allocate_int(threads_finished)
-	  
+
           if (.not. (associated(next_unassigned_particle) .and. &
-	             associated(req_queue_bottom)         .and. &
-	             associated(threads_finished)))            then
+                     associated(req_queue_bottom)         .and. &
+                     associated(threads_finished)))            then
             DEBUG_ERROR('("atomic_allocate_int(): could not allocate atomic storage!")')
           end if
 
           req_queue_top      =  0
           request_balance    =  0
-	  req_queue(:)%owner = -1 ! used in send_requests() to ensure that only completely stored entries are sent form the list
+          req_queue(:)%owner = -1 ! used in send_requests() to ensure that only completely stored entries are sent form the list
 
           call atomic_store_int(next_unassigned_particle, 1)
           call atomic_store_int(req_queue_bottom,         0)
@@ -252,7 +252,7 @@ module module_walk_pthreads_commutils
         initialized = .false.
 
         call uninit_comm_data
-	
+
         call atomic_deallocate_int(threads_finished)
         call atomic_deallocate_int(req_queue_bottom)
         call atomic_deallocate_int(next_unassigned_particle)
@@ -287,7 +287,6 @@ module module_walk_pthreads_commutils
       subroutine retval(iret, msg)
         use module_debug
         use, intrinsic :: iso_c_binding
-        use module_debug
         implicit none
         integer( kind= c_int) :: iret
         character(*), intent(in) :: msg
@@ -301,27 +300,29 @@ module module_walk_pthreads_commutils
 
 
       ! this routine is thread-safe to prevent concurrent write access to the queue
-      subroutine post_request(request_key, request_addr)
+      subroutine post_request(request_key, request_node)
         use treevars
         use module_htable
+        use module_tree_node
         use module_walk_communicator
         use module_debug
         implicit none
         include 'mpif.h'
         integer*8, intent(in) :: request_key
-        integer, intent(in) :: request_addr
+        type(t_tree_node), pointer, intent(in) :: request_node
         integer :: local_queue_bottom
+        type(t_request_queue_entry) :: req
 
         ! check wether the node has already been requested
         ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
         ! otherwise it will be possible that two walk threads can synchronously post a particle to the request queue
-        if (BTEST( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ) then
+        if (btest( request_node%info_field, CHILDCODE_BIT_REQUEST_POSTED ) ) then
           return
         endif
 
         ! we first flag the particle as having been already requested to prevent other threads from doing it while
         ! we are inside this function
-        htable(request_addr)%childcode   =  IBSET( htable(request_addr)%childcode, CHILDCODE_BIT_REQUEST_POSTED ) ! Set requested flag
+        request_node%info_field = ibset( request_node%info_field, CHILDCODE_BIT_REQUEST_POSTED ) ! Set requested flag
 
         ! thread-safe way of reserving storage for our request
         local_queue_bottom = atomic_mod_increment_and_fetch_int(req_queue_bottom, REQUEST_QUEUE_LENGTH)
@@ -331,11 +332,15 @@ module module_walk_pthreads_commutils
         end if
 
         ! the communicator will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
-        req_queue(local_queue_bottom)   = t_request_queue_entry( request_key, request_addr, htable( request_addr )%owner )
+        req%key   =  request_key
+        req%owner =  request_node%owner
+        req%node  => request_node
+
+        req_queue(local_queue_bottom) = req
 
         if (walk_comm_debug) then
-          DEBUG_INFO('("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6, " request_addr=", I12)',
-                         me, local_queue_bottom, request_key, htable( request_addr )%owner, request_addr )
+          DEBUG_INFO('("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6)',
+                         me, local_queue_bottom, request_key, request_node%owner)
         end if
 
     end subroutine post_request
@@ -357,10 +362,10 @@ module module_walk_pthreads_commutils
       do while (req_queue_top .ne. atomic_load_int(req_queue_bottom))
 
           tmp_top = mod(req_queue_top, REQUEST_QUEUE_LENGTH) + 1
-	  
+
           ! first check whether the entry is actually valid	  
-	  if (req_queue(tmp_top)%owner >= 0) then
-	    req_queue_top = tmp_top
+          if (req_queue(tmp_top)%owner >= 0) then
+            req_queue_top = tmp_top
 
             if (walk_comm_debug) then
                 DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)',
@@ -370,13 +375,13 @@ module module_walk_pthreads_commutils
             if (send_request(req_queue(req_queue_top))) then
               request_balance = request_balance + 1
             endif
-	    
-	    ! we have to invalidate this request queue entry. this shows that we actually processed it and prevents it from accidentially being resent after the req_queue wrapped around
-	    req_queue(req_queue_top)%owner = -1
-	  else
-	    ! the next entry is not valid (obviously it has not been stored completely until now -> we abort here and try again later
-	    exit
-	  endif
+
+            ! we have to invalidate this request queue entry. this shows that we actually processed it and prevents it from accidentially being resent after the req_queue wrapped around
+            req_queue(req_queue_top)%owner = -1
+          else
+            ! the next entry is not valid (obviously it has not been stored completely until now -> we abort here and try again later
+            exit
+          endif
 
       end do
 
@@ -400,7 +405,7 @@ module module_walk_pthreads_commutils
                                           ! is still working and which ones are finished
                                           ! to emulate a non-blocking barrier
         nummessages            = 0
-	messages_per_iteration = 0
+        messages_per_iteration = 0
 
         if (me==0) walk_finished = .false.
 
@@ -473,7 +478,7 @@ module module_walk_pthreads_commutils
         integer :: ierr
         integer :: stat(MPI_STATUS_SIZE)
         integer*8 :: requested_key
-        type (t_tree_node_transport_package), allocatable :: child_data(:) ! child data to be received - maximum up to eight children per particle
+        type (t_tree_node), allocatable :: child_data(:) ! child data to be received - maximum up to eight children per particle
         integer :: num_children
         integer :: ipe_sender, msg_tag
         integer, intent(inout), dimension(mintag:maxtag) :: nummessages
@@ -520,9 +525,9 @@ module module_walk_pthreads_commutils
              ! some PE answered our request and sends
              case (TAG_REQUESTED_DATA)
                 ! actually receive the data... ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
-                call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_transport_package, num_children, ierr)
+                call MPI_GET_COUNT(stat, MPI_TYPE_tree_node, num_children, ierr)
                 allocate(child_data(num_children))
-                call MPI_RECV( child_data, num_children, MPI_TYPE_tree_node_transport_package, ipe_sender, TAG_REQUESTED_DATA, &
+                call MPI_RECV( child_data, num_children, MPI_TYPE_tree_node, ipe_sender, TAG_REQUESTED_DATA, &
                         MPI_COMM_lpepc, MPI_STATUS_IGNORE, ierr)
                 ! ... and put it into the tree and all other data structures
                 call unpack_data(child_data, num_children, ipe_sender)
@@ -546,14 +551,14 @@ module module_walk_pthreads_commutils
 
                   if ( all(walk_finished) ) then
                     call broadcast_walk_finished()
-		    if (walk_comm_debug) then
+                    if (walk_comm_debug) then
                       DEBUG_INFO(*, 'BCWF: walk_finished = ', walk_finished)
                       DEBUG_INFO('("BCWF: nummessages(TAG_FINISHED_PE) = ", I6, ", count(walk_finished) = ", I6)', nummessages(TAG_FINISHED_PE), count(walk_finished))
-		    endif
+                    endif
                   end if
-		else
+                else
                   DEBUG_WARNING_ALL('("PE", I6, " has been told that PE", I6, " has finished walking, but already knew that. Obviously received duplicate TAG_FINISHED_PE, ignoring.")', me, ipe_sender)
-		endif
+                endif
 
 
              ! all PEs have finished their walk
@@ -599,6 +604,7 @@ module module_walk
   use module_interaction_specific
   use treevars
   use pthreads_stuff
+  use module_pepc_types
   implicit none
 
   private
@@ -618,7 +624,7 @@ module module_walk
     type(t_particle), pointer, dimension(:) :: particle_data
 
     type t_defer_list_entry
-      integer  :: addr
+      type(t_tree_node), pointer :: node
       integer*8 :: key
     end type t_defer_list_entry
     
@@ -952,6 +958,7 @@ module module_walk
       use module_interaction_specific
       use module_debug
       use module_atomic_ops
+      use module_htable
       implicit none
       include 'mpif.h'
       type(c_ptr) :: walk_worker_thread
@@ -976,7 +983,9 @@ module module_walk
       logical :: particle_has_finished
       real*8  :: t_get_new_particle, t_walk_single_particle
 
-      type(t_defer_list_entry), dimension(1), target :: defer_list_root_only = t_defer_list_entry(1, 1_8) ! start at root node (addr, and key)
+      type(t_defer_list_entry), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
+      defer_list_root_only(1)%key = 1_8
+      call htable_lookup_critical(global_htable, 1_8, defer_list_root_only(1)%node, 'walk_worker_thread:root node')
 
       t_get_new_particle = 0._8
       t_walk_single_particle = 0._8
@@ -1011,7 +1020,7 @@ module module_walk
 
           thread_particle_indices(:) = -1     ! no particles assigned to this thread
           particles_available        = .true. ! but there might be particles to be picked by the thread
-	  particles_active           = .false.
+          particles_active           = .false.
           particles_since_last_yield =  0
 
           do while (particles_active .or. particles_available)
@@ -1184,6 +1193,7 @@ module module_walk
                                            todo_list, partner_leaves, my_threaddata)
       use module_walk_pthreads_commutils
       use module_htable
+      use module_tree_node
       use module_interaction_specific
       use module_spacefilling, only : is_ancestor_of_particle
       use module_debug
@@ -1203,7 +1213,8 @@ module module_walk
 
       integer :: todo_list_entries
       integer*8 :: walk_key, childlist(8)
-      integer :: walk_addr, walk_node, childnum, walk_level
+      integer :: childnum, walk_level
+      type(t_tree_node), pointer :: walk_node
       real*8 :: dist2
       real*8 :: delta(3), shifted_particle_position(3)
       logical :: same_particle, same_particle_or_parent_node, mac_ok, ignore_node
@@ -1227,17 +1238,16 @@ module module_walk
       do while (todo_list_pop(walk_key))
 
           call atomic_read_write_barrier()
-          walk_addr  = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
-          walk_node  = htable( walk_addr )%node            ! Walk node index - points to multipole moments
-          walk_level = htable( walk_addr )%level
+          call htable_lookup_critical(global_htable, walk_key, walk_node, 'WALK:walk_single_particle')
+          walk_level = walk_node%level
 
-          delta = shifted_particle_position - tree_nodes(walk_node)%coc  ! Separation vector
+          delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
           dist2 = DOT_PRODUCT(delta, delta)
 
-          if (walk_node > 0) then
+          if (tree_node_is_leaf(walk_node)) then
               mac_ok = .true.
           else
-              mac_ok = mac(particle, walk_node, dist2, boxlength2(walk_level))
+              mac_ok = mac(particle, walk_node%interaction_data, dist2, boxlength2(walk_level))
               num_mac_evaluations = num_mac_evaluations + 1
           end if
 
@@ -1248,7 +1258,7 @@ module module_walk
           ! been modified due to 'duplicate keys'-error)
           same_particle_or_parent_node  = (in_central_box) .and. ( is_ancestor_of_particle(particle%key, walk_key, walk_level))
           ! set ignore flag if leaf node corresponds to particle itself
-          same_particle = same_particle_or_parent_node .and. (walk_node > 0)
+          same_particle = same_particle_or_parent_node .and. tree_node_is_leaf(walk_node)
 
           ! ignore interactions with the particle itself (this is the place for possible other exclusion options)
           ignore_node = same_particle
@@ -1256,39 +1266,39 @@ module module_walk
           if (.not. ignore_node) then
               !  always accept leaf-nodes since they cannot be refined any further
               !  further resolve ancestor nodes if we are in the central box
-              mac_ok = (walk_node > 0) .or. ( mac_ok .and. (.not. same_particle_or_parent_node))
+              mac_ok = tree_node_is_leaf(walk_node) .or. ( mac_ok .and. (.not. same_particle_or_parent_node))
 
               ! ========= Possible courses of action:
               if (mac_ok) then
                   ! 1) leaf node or MAC test OK ===========
                   !    --> interact with cell if it does not lie outside the cutoff box
                   if (all(abs(delta) < spatial_interaction_cutoff)) then
-                      call calc_force_per_interaction(particle, tree_nodes(walk_node), walk_key, delta, dist2, vbox, walk_node > 0)
+                      call calc_force_per_interaction(particle, walk_node%interaction_data, walk_key, delta, dist2, vbox, tree_node_is_leaf(walk_node))
 
                       num_interactions = num_interactions + 1
                   endif
 
-                  partner_leaves = partner_leaves + htable(walk_addr)%leaves
+                  partner_leaves = partner_leaves + walk_node%leaves
               else
                   ! 2) MAC fails for twig node ============
-                  if ( children_available(walk_addr) ) then
+                  if ( tree_node_children_available(walk_node) ) then
                       ! 2a) children for twig are present --------
                       ! --> resolve cell & put all children in front of todo_list
-                      call get_childkeys(walk_addr, childnum, childlist)
+                      call tree_node_get_childkeys(walk_node, childnum, childlist)
                       if (.not. todo_list_push(childnum, childlist)) then
                         ! the todo_list is full --> put parent back onto defer_list
-                        call defer_list_push(walk_key, walk_addr)
+                        call defer_list_push(walk_key, walk_node)
                       endif
                   else
                       ! 2b) children for twig are _absent_ --------
                       ! --> put node on REQUEST list and put walk_key on bottom of todo_list
                       t_post_request = t_post_request - MPI_WTIME()
-                      call post_request(walk_key, walk_addr)        ! tell the communicator about our needs
+                      call post_request(walk_key, walk_node)        ! tell the communicator about our needs
                       t_post_request = t_post_request + MPI_WTIME()
                       num_post_request = num_post_request + 1
                       ! if posting the request failed, this is not a problem, since we defer the particle anyway
                       ! since it will not be available then, the request will simply be repeated
-                      call defer_list_push(walk_key, walk_addr) ! Deferred list of nodes to search, pending request
+                      call defer_list_push(walk_key, walk_node) ! Deferred list of nodes to search, pending request
                                                                      ! for data from nonlocal PEs
                       if (walk_debug) then
                           DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  me, defer_list_entries_new)
@@ -1296,7 +1306,7 @@ module module_walk
                   end if
               endif
           else !(ignore_node)
-            partner_leaves = partner_leaves + htable(walk_addr)%leaves
+            partner_leaves = partner_leaves + walk_node%leaves
           endif !(.not. ignore_node)
       end do ! (while (todo_list_pop(walk_key)))
 
@@ -1346,14 +1356,14 @@ module module_walk
      end function
 
      ! helper routines for defer_list manipulation
-     subroutine defer_list_push(key_, addr_)
+     subroutine defer_list_push(key_, node_)
        use module_debug
        implicit none
-       integer, intent(in) :: addr_
        integer*8, intent(in) :: key_
+       type(t_tree_node), pointer, intent(in) :: node_
 
        defer_list_entries_new                 = defer_list_entries_new + 1
-       defer_list_new(defer_list_entries_new) = t_defer_list_entry(addr_, key_)
+       defer_list_new(defer_list_entries_new) = t_defer_list_entry( node_, key_ )
      end subroutine
 
      subroutine defer_list_parse_and_compact()
@@ -1364,9 +1374,9 @@ module module_walk
 
        defer_list_entries_new = 0
        do iold = 1,defer_list_entries_old
-         if ( children_available(defer_list_old(iold)%addr) ) then
+         if ( tree_node_children_available(defer_list_old(iold)%node) ) then
            ! children for deferred node have arrived --> put children onto todo_list
-           call get_childkeys(defer_list_old(iold)%addr, cnum, clist)
+           call tree_node_get_childkeys(defer_list_old(iold)%node, cnum, clist)
            if (.not. todo_list_push(cnum, clist)) then
              ! the todo_list is full --> put parent back onto defer_list
              defer_list_entries_new                 = defer_list_entries_new + 1
