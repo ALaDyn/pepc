@@ -1,0 +1,98 @@
+! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
+! 
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!                         Forschungszentrum Juelich GmbH,
+!                         Germany
+! 
+! PEPC is free software: you can redistribute it and/or modify
+! it under the terms of the GNU Lesser General Public License as published by
+! the Free Software Foundation, either version 3 of the License, or
+! (at your option) any later version.
+! 
+! PEPC is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU Lesser General Public License for more details.
+! 
+! You should have received a copy of the GNU Lesser General Public License
+! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
+!
+
+!>
+!>  Encapsulates functions for accessing, manipulating, and verifying hash table data
+!>
+module module_tree_node
+    use module_pepc_types
+    implicit none
+    private
+
+    ! bits in childcode to be set when children are requested, the request has been sent, and they have arrived
+    integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED           =  8 !< this bit is used inside the childcode to denote that a request for children information is already in the request queue
+    integer, public, parameter :: CHILDCODE_BIT_CHILDREN_AVAILABLE       =  9 !< this bit is used inside the childcode to denote that children information for the node is available in the local hashtable
+    integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT             = 10 !< this bit is used inside the childcode to denote that children information has already been requested from the owner
+    integer, public, parameter :: CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS  = 11 !< this bit is set for all nodes that contain some local nodes beneath them
+    integer, public, parameter :: CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS = 12 !< this bit is set for all nodes that contain some remote nodes beneath them
+    integer, public, parameter :: CHILDCODE_BIT_IS_BRANCH_NODE           = 13 !< this bit is set for all branch nodes (set in tree_exchange)
+    integer, public, parameter :: CHILDCODE_BIT_IS_FILL_NODE             = 14 !< this bit is set for all nodes that are above (towards root) branch nodes
+    integer, public, parameter :: CHILDCODE_CHILDBYTE                    = maskr(8) !< bits that contain the children information for this node
+
+    public tree_node_is_leaf
+    public tree_node_children_available
+    public tree_node_get_childkeys
+
+    contains
+
+
+    !>
+    !> checks whether `n` is a leaf or twig node
+    !>
+    function tree_node_is_leaf(n)
+      implicit none
+      type(t_tree_node), intent(in) :: n
+      logical :: tree_node_is_leaf
+
+      tree_node_is_leaf = n%leaves == 1
+    end function tree_node_is_leaf
+
+
+    !>
+    !> checks whether the children of `n` are locally available or have
+    !> to be requested from remote ranks
+    !>
+    function tree_node_children_available(n)
+      implicit none
+      type(t_tree_node), intent(in) :: n
+      logical :: tree_node_children_available
+
+      tree_node_children_available = btest(n%info_field, CHILDCODE_BIT_CHILDREN_AVAILABLE)
+    end function tree_node_children_available
+
+
+    !>
+    !> returns the keys of all children, that are attached to the
+    !> node `n`
+    !>
+    subroutine tree_node_get_childkeys(n, childnum, childkeys)
+      use treevars, only: idim
+      use module_spacefilling, only: shift_key_by_level
+      implicit none
+      type(t_tree_node), intent(in) :: n
+      integer, intent(out) :: childnum
+      integer*8, dimension(:), intent(out) :: childkeys
+
+      integer   :: i
+      integer*8 :: keyhead
+
+      keyhead   = shift_key_by_level(n%key, 1)
+      childnum = 0
+
+      do i=0,2**idim - 1
+        if (btest(n%info_field, i)) then
+          childnum            = childnum + 1
+          childkeys(childnum) = ior(keyhead, 1_8*i)
+        end if
+      end do
+
+    end subroutine tree_node_get_childkeys
+
+end module module_tree_node
