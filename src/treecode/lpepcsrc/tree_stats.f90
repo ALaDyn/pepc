@@ -50,7 +50,7 @@ subroutine tree_stats(timestamp)
   real*8 :: work_imbal=0.
   real*8 :: work_imbal_max, work_imbal_min  ! load stats
   integer ::  part_imbal_max, part_imbal_min
-  integer :: nkeys_total ! total # keys in local tree
+  integer :: nkeys_total, nhashentries ! total # keys in local tree
 
   logical :: firstcall = .true.
 
@@ -68,7 +68,8 @@ subroutine tree_stats(timestamp)
   call MPI_GATHER(mac_evaluations_local, 1, MPI_REAL8, num_mac_evaluations,   1, MPI_REAL8,   0,  MPI_COMM_lpepc, ierr )
   call MPI_REDUCE(nbranch, max_nbranch,     1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
   call MPI_REDUCE(nbranch, min_nbranch,     1, MPI_INTEGER, MPI_MIN, 0, MPI_COMM_lpepc, ierr )
-  call MPI_REDUCE(global_htable%nvalues, gmax_keys, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
+  nhashentries = htable_entries(global_htable)
+  call MPI_REDUCE(nhashentries, gmax_keys, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_lpepc, ierr )
 
   part_imbal_max = MAXVAL(nparticles)
   part_imbal_min = MINVAL(nparticles)
@@ -102,15 +103,15 @@ subroutine tree_stats(timestamp)
     write (60,'(a20,i7,a22)') 'Tree stats for CPU ', me, ' and global statistics'
     write (60,*) '######## GENERAL DATA #####################################################################'
     write (60,'(a50,1i12)') '# procs', num_pe
-    write (60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, maxaddress: ',nintmax, np_mult,htable_size(global_htable)
+    write (60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, maxaddress: ',nintmax, np_mult,htable_maxentries(global_htable)
     write (60,'(a50,2i12)') 'npp, npart: ',npp,npart
     write (60,'(a50,2i12)') 'total # nparticles, N/P: ',total_part,int(npart/num_pe)
     write (60,*) '######## TREE STRUCTURES ##################################################################'
     write (60,'(a50,3i12)') 'local # leaves, twigs, keys: ',nleaf_me,ntwig_me,nleaf_me+ntwig_me
     write (60,'(a50,3i12)') 'non-local # leaves, twigs, keys: ',nleaf-nleaf_me,ntwig-ntwig_me,nleaf+ntwig-nleaf_me-ntwig_me
     write (60,'(a50,3i12,f12.1,a6,i12)') 'final # leaves, twigs, keys, (max): ',nleaf,ntwig,nleaf+ntwig, &
-              (nleaf+ntwig)/(.01*global_htable%maxvalues),' % of ',global_htable%maxvalues
-    write (60,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # keys: ',gmax_keys, gmax_keys/(.01*global_htable%maxvalues), ' % of  ', global_htable%maxvalues
+              (nleaf+ntwig)/(.01*htable_maxentries(global_htable)),' % of ',htable_maxentries(global_htable)
+    write (60,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # keys: ',gmax_keys, gmax_keys/(.01*htable_maxentries(global_htable)), ' % of  ', htable_maxentries(global_htable)
     write (60,*) '######## BRANCHES #########################################################################'
     write (60,'(a50,3i12)') '#branches local, max_global, min_global: ', nbranch,max_nbranch,min_nbranch
     write (60,'(a50,2i12)') '#branches global sum estimated, sum actual: ',branch_max_global,nbranch_sum
