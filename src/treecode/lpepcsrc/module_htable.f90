@@ -35,17 +35,15 @@ module module_htable
 
     type :: t_htable_bucket
       integer*8                  :: key = HTABLE_KEY_EMPTY  !< the entry key
-      type(t_tree_node), pointer :: value_pointer => null() !< index into the values array
       integer                    :: link = -1               !< link for collision resolution
     end type t_htable_bucket
-    type (t_htable_bucket), parameter :: HTABLE_EMPTY_BUCKET = t_htable_bucket(HTABLE_KEY_EMPTY, null(), -1) !< constant for empty hashentry
+    type (t_htable_bucket), parameter :: HTABLE_EMPTY_BUCKET = t_htable_bucket(HTABLE_KEY_EMPTY, -1) !< constant for empty hashentry
 
     type, public :: t_htable
       private
       integer*8                          :: hashconst     !< bitmask for hashfunction
       integer                            :: maxentries    !< max number of entries
       integer                            :: nentries      !< number of entries present
-      integer                            :: iused         !< counter for collision resolution array free_addr()
       integer                            :: sum_unused    !< number of free addresses
       type(t_htable_bucket), allocatable :: buckets(:)    !< hashtable buckets
       integer, allocatable               :: free_addr(:)  !< list of free hash table addresses
@@ -82,11 +80,16 @@ module module_htable
       type(t_htable), intent(inout) :: t
       integer :: n
 
-      t%maxentries = n
+      t%maxentries = max(n, 2**15)
       t%nentries   = 0
-      t%hashconst  = 2**int(max(log(1. * n) / log(2.), 15.)) - 1
+      t%hashconst  = 2**int(log(1. * t%maxentries) / log(2.)) - 1
 
-      allocate(t%buckets(0:n), t%free_addr(0:n), t%point_free(0:n), t%values(n+1))
+      allocate( &
+        t%buckets(0:t%maxentries - 1), &
+        t%free_addr(0:t%maxentries - 1), &
+        t%point_free(0:t%maxentries - 1), &
+        t%values(0:t%maxentries - 1) &
+      )
 
       call htable_clear(t)
     end subroutine htable_init
@@ -182,17 +185,15 @@ module module_htable
 
       ! build list of free addresses for faster collision resolution on insertion into htable
       t%sum_unused = 0
-      t%iused      = 1   ! reset used-address counter
-      do i=0, t%maxentries
-        if ((.not. associated(t%buckets(i)%value_pointer)) .and. t%buckets(i)%key /=-1 .and. i > HTABLE_FREE_LO) then
-          t%sum_unused              = t%sum_unused + 1
+      do i=lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
+        if (t%buckets(i)%key == HTABLE_KEY_EMPTY .and. i >= HTABLE_FREE_LO) then
           t%free_addr(t%sum_unused) = i                ! Free address list for resolving collisions
           t%point_free(i)           = t%sum_unused     ! Index
+          t%sum_unused              = t%sum_unused + 1
         else
-          t%point_free(i)           = 0
+          t%point_free(i)           = -1
         end if
       end do
-
     end subroutine htable_prepare_address_list
 
 
@@ -230,39 +231,44 @@ module module_htable
           ! the first entry is already empty
           hashaddr = int(iand(k, t%hashconst))
 
-          if (t%point_free(hashaddr) /= 0) then     ! Check if new address in collision res. list
-            t%free_addr( t%point_free(hashaddr) ) = t%free_addr(t%sum_unused)  ! Replace free address with last on list
-            t%point_free(t%free_addr(t%sum_unused)) = t%point_free(hashaddr)   ! Reset pointer
-            t%point_free(hashaddr)              = 0
-            t%sum_unused = t%sum_unused - 1
+          if (t%point_free(hashaddr) /= -1) then ! Check if new address in collision res. list
+            if (t%sum_unused <= 0) then
+              DEBUG_ERROR(*, "Hash table collision resolution list exhausted. ", t%nentries, " / ", t%maxentries, " entries")
+            end if
+            t%sum_unused                            = t%sum_unused - 1
+            t%free_addr(t%point_free(hashaddr))     = t%free_addr(t%sum_unused) ! Replace free address with last on list
+            t%point_free(t%free_addr(t%sum_unused)) = t%point_free(hashaddr)    ! Reset pointer
+            t%point_free(hashaddr)                  = -1
           end if
         else
           ! we are at the end of a linked list --> create new entry
-          t%buckets( hashaddr )%link = t%free_addr(t%iused)
-          hashaddr                   = t%buckets( hashaddr )%link
-          t%iused                    = t%iused + 1
+          if (t%sum_unused <= 0) then
+            DEBUG_ERROR(*, "Hash table collision resolution list exhausted. ", t%nentries, " / ", t%maxentries, " entries")
+          end if
+          t%sum_unused             = t%sum_unused - 1
+          t%buckets(hashaddr)%link = t%free_addr(t%sum_unused)
+          hashaddr                 = t%buckets( hashaddr )%link
+          t%point_free(hashaddr)   = -1
         end if
 
         ! check if new entry is really empty
-        if (associated(t%buckets(hashaddr)%value_pointer) .or. (t%buckets( hashaddr )%key/=0)) then
+        if (t%buckets(hashaddr)%key /= HTABLE_KEY_EMPTY) then
           write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
-          write (*,*) 'PE ',me,' key ',k,' entry',hashaddr,' used ',t%iused,'/',t%sum_unused
-          !write (*,*) "htable(hashaddr):  ", t%buckets(hashaddr)
+          write (*,*) 'PE ',me,' key ',k,' entry',hashaddr,' unused ',t%sum_unused
           write (*,*) "desired entry:     ", v
           call debug_mpi_abort()
         end if
 
         t%buckets(hashaddr)%key = k
         t%nentries = t%nentries + 1
-        t%values(t%nentries) = v
-        t%buckets(hashaddr)%value_pointer => t%values(t%nentries)
+        t%values(hashaddr) = v
       else
         ! this key does already exists in the htable - as 'hashaddr' we return its current address
         htable_add = .false.
       end if
 
       if (present(entry_pointer)) then
-        entry_pointer => t%buckets(hashaddr)%value_pointer
+        entry_pointer => t%values(hashaddr)
       end if
 
     end function htable_add
@@ -279,9 +285,8 @@ module module_htable
       integer*8, intent(in) :: k
 
       logical :: htable_contains
-      integer :: dummy
 
-      htable_contains = testaddr(t, k, dummy)
+      htable_contains = testaddr(t, k)
 
     end function htable_contains
 
@@ -303,7 +308,7 @@ module module_htable
 
       htable_lookup = testaddr(t, k, addr)
       if (htable_lookup) then
-        v => t%buckets(addr)%value_pointer
+        v => t%values(addr)
       else
         v => null()
       end if
@@ -344,18 +349,17 @@ module module_htable
         call debug_mpi_abort()
       end if
 
-      v => t%buckets(addr)%value_pointer
+      v => t%values(addr)
 
     end subroutine htable_lookup_critical
 
 
     !>
-    !> Invalidates entries in the hash table `t`, i.e. sets their key to KEY_INVALID
-    !> TODO: this function does not free the nodelist-storage and does
-    !> not fix any connections inside the hash table, esp. concerning the
-    !> children-available-flag (it even does not care for them)
-    !> additionally, it does not modify `nleaf` or `ntwig` which would be
-    !> necessary to survive `check_table()` if the entry really was removed
+    !> Removes the entry for `keys` form `t`, i.e. `htable_contains(t, k) == .false.`
+    !> for any `k` in `keys` afterwards
+    !>
+    !> \note Entries are actually only invalidated. This means that no space in
+    !> the hash table is freed and `htable_entries(t)` remains unchanged.
     !>
     subroutine htable_remove_keys(t, keys, num_keys)
       implicit none
@@ -401,7 +405,7 @@ module module_htable
         testaddr                = .false.  ! key does not exist in htable
         if (present(addr)) addr = -1       ! we return -1
         return
-      endif
+      end if
 
       ires     =  1 ! counter for number of htable lookups
 
@@ -416,7 +420,7 @@ module module_htable
             testaddr                = .false.  ! key does not exist in htable
             if (present(addr)) addr = lastaddr ! we return last entry in the linked list
             return
-        endif
+        end if
 
       end do
 
@@ -452,14 +456,14 @@ module module_htable
       ntwig_me_check = 0
       do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1) 
       if (htable_entry_is_valid(t%buckets(i))) then
-        if (tree_node_is_leaf(t%buckets(i)%value_pointer)) then
+        if (tree_node_is_leaf(t%values(i))) then
           nleaf_check = nleaf_check + 1
-          if (t%buckets(i)%value_pointer%owner == me) then
+          if (t%values(i)%owner == me) then
             nleaf_me_check = nleaf_me_check + 1
           end if
         else
           ntwig_check = ntwig_check + 1
-          if (t%buckets(i)%value_pointer%owner == me) then
+          if (t%values(i)%owner == me) then
             ntwig_me_check = ntwig_me_check + 1
           end if
         end if
@@ -472,7 +476,7 @@ module module_htable
         'Fixing and continuing for now..')
         !     nleaf = nleaf_check
         error = .true.
-      endif
+      end if
 
       if (ntwig /= ntwig_check) then
         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
@@ -480,7 +484,7 @@ module module_htable
         'Fixing and continuing for now..')
         !     ntwig = ntwig_check
         error = .true.
-      endif
+      end if
 
       if (nleaf_me /= nleaf_me_check) then
         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
@@ -488,7 +492,7 @@ module module_htable
         'Fixing and continuing for now..')
         nleaf_me = nleaf_me_check
         error = .true.
-      endif
+      end if
       if (ntwig_me /= ntwig_me_check) then
         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
         '# own twigs in table = ',ntwig_me_check,' vs ',ntwig_me,' accumulated',
@@ -496,11 +500,11 @@ module module_htable
 
         ntwig_me = ntwig_me_check
         error = .true.
-      endif
+      end if
 
       if (error) then
-        call diagnose_tree(t)
-      endif
+        !call diagnose_tree(t)
+      end if
 
     end subroutine check_table
 
@@ -563,23 +567,23 @@ module module_htable
               collision="C"
             else
               collision=" "
-            endif
+            end if
 
             write (debug_ipefile,'(x,i10,x,o10,2(x,i10),x,o22,x,i22,x,o22,x,a1,x,i12,x,i10,4x,3(b8.8,"."),b8.8)') &
-                    i,                   &
-                    i,                   &
-                    t%buckets(i)%value_pointer%owner,     &
+                    i, &
+                    i, &
+                    t%values(i)%owner, &
                     level_from_key(t%buckets(i)%key), &
-                    t%buckets(i)%key,       &
-                    t%buckets(i)%key,       &
+                    t%buckets(i)%key, &
+                    t%buckets(i)%key, &
                     parent_key_from_key(t%buckets(i)%key), &
-                    collision,           &
-                    t%buckets(i)%link,      &
-                    t%buckets(i)%value_pointer%leaves,    &
-                    ishft(iand(t%buckets(i)%value_pointer%info_field, Z'FF000000'), -24), &
-                    ishft(iand(t%buckets(i)%value_pointer%info_field, Z'00FF0000'), -16), &
-                    ishft(iand(t%buckets(i)%value_pointer%info_field, Z'0000FF00'), -08), &
-                    ishft(iand(t%buckets(i)%value_pointer%info_field, Z'000000FF'), -00)
+                    collision, &
+                    t%buckets(i)%link, &
+                    t%values(i)%leaves, &
+                    ishft(iand(t%values(i)%info_field, Z'FF000000'), -24), &
+                    ishft(iand(t%values(i)%info_field, Z'00FF0000'), -16), &
+                    ishft(iand(t%values(i)%info_field, Z'0000FF00'), -08), &
+                    ishft(iand(t%values(i)%info_field, Z'000000FF'), -00)
           end if
         end do
 
@@ -589,7 +593,7 @@ module module_htable
 
         do i=lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
           if (htable_entry_is_valid(t%buckets(i))) then
-            write(debug_ipefile,*) t%buckets(i)%value_pointer%interaction_data
+            write(debug_ipefile,*) t%values(i)%interaction_data
           end if
         end do
 
@@ -597,7 +601,7 @@ module module_htable
 
         do i=lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
           if (htable_entry_is_valid(t%buckets(i))) then
-            write(debug_ipefile,*) t%buckets(i)%value_pointer%interaction_data
+            write(debug_ipefile,*) t%values(i)%interaction_data
           end if
         end do
 
@@ -609,7 +613,7 @@ module module_htable
             write(debug_ipefile,'(x,i10,x)',advance='no') i
             write(debug_ipefile,*) particles(i)
           end do
-        endif
+        end if
 
         call debug_ipefile_close()
 

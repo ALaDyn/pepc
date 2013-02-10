@@ -189,7 +189,7 @@ module module_libpepc_main
         call htable_lookup_critical(global_htable, 1_8, root_node, 'libpepc_grow_tree:root node')
         if (root_node%leaves .ne. npp) then
             call diagnose_tree(global_htable, particles)
-            DEBUG_ERROR(*, 'did not find all its particles inside the htable after local tree buildup: htable(1)%leaves =', root_node%leaves, ' but npp =', npp)
+            DEBUG_ERROR(*, 'did not find all its particles inside the htable after local tree buildup: root_node%leaves =', root_node%leaves, ' but npp =', npp)
         endif
         call timer_stop(t_local)
 
@@ -218,7 +218,7 @@ module module_libpepc_main
         call htable_lookup_critical(global_htable, 1_8, root_node, 'libpepc_grow_tree:root node')
         if (root_node%leaves .ne. npart_total) then
             call diagnose_tree(global_htable, particles)
-            DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: htable(1)%leaves =', root_node%leaves, ' but npart_total =', npart_total)
+            DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: root_node%leaves =', root_node%leaves, ' but npart_total =', npart_total)
         endif
 
         call timer_stop(t_fields_tree)
