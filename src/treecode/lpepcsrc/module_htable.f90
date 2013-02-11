@@ -51,7 +51,13 @@ module module_htable
       type(t_tree_node), pointer         :: values(:)     !< array of entry values
     end type t_htable
 
-    type(t_htable), save, public :: global_htable !< global singleton hash table for gradual transition
+    type, public :: t_htable_iterator
+      private
+      type(t_htable), pointer :: t => null()
+      integer                 :: i =  0
+    end type t_htable_iterator
+
+    type(t_htable), save, target, public :: global_htable !< global singleton hash table for gradual transition
 
     public htable_init
     public htable_allocated
@@ -431,6 +437,55 @@ module module_htable
 
 
     !>
+    !> returns an iterator for traversing the entries in hash table `t` linearly
+    !>
+    function htable_iterator(t)
+      implicit none
+
+      type(t_htable), target, intent(in) :: t
+
+      type(t_htable_iterator) :: htable_iterator
+
+      htable_iterator = t_htable_iterator(t, lbound(t%buckets, dim = 1))
+    end function htable_iterator
+
+
+    !>
+    !> Returns the next entry in the hash table associated with iterator `it` as 
+    !> a pair of key and tree node in `k` and `v` and returns `.true.`.
+    !> Once the iterator is exhausted, `.false.` is returned.
+    !>
+    !> \note If the associated hash table is modified during traversal,
+    !> behaviour is undefined.
+    !>
+    function htable_iterator_next(it, k, v)
+      implicit none
+
+      type(t_htable_iterator), intent(inout) :: it
+      integer*8, intent(out) :: k
+      type(t_tree_node), pointer, intent(out) :: v
+
+      logical htable_iterator_next
+
+      do while (it%i <= ubound(it%t%buckets, dim = 1))
+        if (htable_entry_is_valid(it%t%buckets(it%i))) then 
+          htable_iterator_next = .true.
+          k    =  it%t%buckets(it%i)%key
+          v    => it%t%values(it%i)
+          it%i =  it%i + 1
+          return
+        end if
+
+        it%i = it%i + 1
+      end do
+
+      htable_iterator_next = .false.
+      k =  HTABLE_KEY_EMPTY
+      v => null()
+    end function htable_iterator_next
+
+
+    !>
     !> Do some quick checks on the tree structure
     !>
     ! TODO: Check nleaf, ntwig somewhere else.
@@ -443,7 +498,10 @@ module module_htable
       type(t_htable), intent(in) :: t
       character(*), intent(in) :: callpoint
 
-      integer :: i, nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
+      type(t_htable_iterator) :: it
+      integer*8 :: key
+      type(t_tree_node), pointer :: node
+      integer :: nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
       logical :: error
 
       call pepc_status('CHECK TABLE')
@@ -454,20 +512,19 @@ module module_htable
       nleaf_me_check = 0
       ntwig_check = 0
       ntwig_me_check = 0
-      do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1) 
-      if (htable_entry_is_valid(t%buckets(i))) then
-        if (tree_node_is_leaf(t%values(i))) then
+      it = htable_iterator(t)
+      do while (htable_iterator_next(it, key, node))
+        if (tree_node_is_leaf(node)) then
           nleaf_check = nleaf_check + 1
-          if (t%values(i)%owner == me) then
+          if (node%owner == me) then
             nleaf_me_check = nleaf_me_check + 1
           end if
         else
           ntwig_check = ntwig_check + 1
-          if (t%values(i)%owner == me) then
+          if (node%owner == me) then
             ntwig_me_check = ntwig_me_check + 1
           end if
         end if
-      end if
       end do
 
       if (nleaf /= nleaf_check) then
