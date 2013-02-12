@@ -371,7 +371,7 @@ module module_tree
 
         call pepc_status('BUILD TOWARDS ROOT')
 
-        if (dbg(DBG_TREE)) call check_table(global_htable, 'after make_branches ')
+        if (dbg(DBG_TREE)) call htable_check(global_htable, 'after make_branches ')
 
         ! get levels of branch nodes
         branch_level(1:numkeys) = level_from_key(start_keys(1:numkeys))
