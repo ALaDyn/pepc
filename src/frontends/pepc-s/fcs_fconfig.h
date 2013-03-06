@@ -11,7 +11,7 @@
 #define FCS_MPI_INTEGER MPI_INTEGER
 
 ! Define to the Fortran floating type to use for FCS.
-#define fcs_real real*8
+#define fcs_real real(c_double)
 
 ! Define to the Fortran integer type to use for FCS.
-#define fcs_integer integer
+#define fcs_integer integer(c_int)

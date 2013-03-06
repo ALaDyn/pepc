@@ -47,6 +47,8 @@ module module_pepcs
         use module_pepc
         use treevars
         use module_interaction_specific, only : theta2, eps2, mac_select, force_law
+        use module_debug, only : debug_level
+        use, intrinsic :: iso_c_binding
         implicit none
         include 'mpif.h'
 
@@ -65,7 +67,6 @@ module module_pepcs
 
         type(t_particle), allocatable :: particles(:)
         integer :: i
-        integer :: my_rank, n_cpu, ierr
 
         np_mult = np_mult_
 
@@ -94,6 +95,7 @@ module module_pepcs
         t_lattice_3 = lat_z
         periodicity(1:3) = (lat_period(1:3) == 1)
         do_extrinsic_correction = (lat_corr == 1)
+        debug_level = db_level
         call pepc_prepare(3)
         ! =============================================================
 
@@ -107,7 +109,7 @@ module module_pepcs
         end do
 
         virial_tensor = 0. !TODO
-        if (my_rank==0) write(*,*) "TODO: Virial unsupported in this version of pepc"
+        if (me==0) write(*,*) "TODO: Virial unsupported in this version of pepc"
 
         deallocate(particles)
 
