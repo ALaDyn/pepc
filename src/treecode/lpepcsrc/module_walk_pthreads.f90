@@ -708,7 +708,7 @@ module module_walk
         read(filehandle, NML=walk_para_pthreads)
         
         if (num_walk_threads > 0) then ! it has been set through the namelist
-          DEBUG_WARNING(*,  'Setting num_walk_threads through the walk_para_pthreads namelist directly is deprecated and will be removed soon. Please use parameter num_threads in namelist libpepc in your parameter files.')
+          DEBUG_WARNING(*,  'Setting num_walk_threads through the walk_para_pthreads namelist directly is deprecated and will be removed soon. Please switch to parameter num_threads in namelist libpepc in your parameter files.')
           num_threads = num_walk_threads
         else          
           num_walk_threads = num_threads
