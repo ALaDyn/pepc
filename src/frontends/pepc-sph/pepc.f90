@@ -43,8 +43,8 @@ program pepce
   ! TODO: use omp_lib, only: ...
   use omp_lib
 
-  use module_walk, only: &
-       num_walk_threads
+  use treevars, only: &
+       num_threads
 
   use module_interaction_specific, only: &
        mac_select, force_law
@@ -134,7 +134,7 @@ program pepce
   ! Set the number of openmp threads.
   ! Set this only, when compiling with openmp (with !$)
   ! Set number of openmp threads to the same number as pthreads used in the walk
-  !$ call omp_set_num_threads(num_walk_threads)
+  !$ call omp_set_num_threads(num_threads)
 
   ! Inform the user that openmp is used, and with how many threads
   !$OMP PARALLEL PRIVATE(omp_thread_num)
