@@ -831,7 +831,7 @@ module module_walk
                  "walk_schedule_thread_inner:pthread_create. Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
       end do
 
-      call run_communication_loop(num_walk_threads)
+      call run_communication_loop(max_particles_per_thread)
 
       ! ... and wait for work thread completion
 
