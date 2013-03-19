@@ -48,7 +48,8 @@ module module_species
 
         namelist /species_nml/ t_src,ns,nip,nfp,mass,charge,physical_particle,name
 
-        ns_max=100
+        ns=0
+        ns_max=1000
 
         allocate(nfp(0:ns_max),stat=rc)
         allocate(nip(0:ns_max),stat=rc)
@@ -58,7 +59,26 @@ module module_species
         allocate(physical_particle(0:ns_max),stat=rc)
         allocate(name(0:ns_max),stat=rc)
 
-        ns=0
+
+        IF(root) write(*,'(a,a)') " == reading parameter file, section species: ", trim(input_file)
+        open(fid,file=trim(input_file))
+        read(fid,NML=species_nml)
+        rewind(fid)
+
+        deallocate(nfp)
+        deallocate(mass)
+        deallocate(charge)
+        deallocate(physical_particle)
+        deallocate(name)
+
+        allocate(nfp(0:ns),stat=rc)
+        allocate(nip(0:ns),stat=rc)
+        allocate(mass(0:ns),stat=rc)
+        allocate(t_src(0:ns),stat=rc)
+        allocate(charge(0:ns),stat=rc)
+        allocate(physical_particle(0:ns),stat=rc)
+        allocate(name(0:ns),stat=rc)
+
         nfp=0
         nip=0
         mass=0.
@@ -67,8 +87,6 @@ module module_species
         name=""
         t_src=0.
 
-        IF(root) write(*,'(a,a)') " == reading parameter file, section species: ", trim(input_file)
-        open(fid,file=trim(input_file))
         read(fid,NML=species_nml)
         close(fid)
 

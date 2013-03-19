@@ -115,6 +115,7 @@ program pepc
 
         ! Move particles according to electric field configuration
         call boris_nonrel(particles)
+        !call standard_integrator(particles)
         timer(4) = get_time()
 
 
@@ -128,12 +129,6 @@ program pepc
         if(root) write(*,'(a)') " == [main loop] grow tree"
         call pepc_grow_tree(np, tnp, particles)
         timer(6)=get_time() !6-5: grow_tree
-
-        !davor=get_time()
-        !call sort_particles(particles)
-        !danach=get_time()
-        !if(root) write(out,'(a,es16.8)') " == time in other sorting routine [s]    : ", danach-davor
-
 
         if(root) write(*,'(a)') " == [main loop] traverse tree"
         call pepc_traverse_tree(np, particles)

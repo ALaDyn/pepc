@@ -82,13 +82,13 @@ module module_initialization
         read(fid,NML=source_nml)
         close(fid)
 
-        IF ((quelltyp==0).or.(quelltyp==3)) THEN !surface source
+        IF ((quelltyp==0)) THEN !surface source
             x0_src=0.
             e1_src=0.
             e2_src=0.
             e3_src=0.
             IF ((src_boundary<=0).or.(src_boundary>nb)) THEN
-                IF (root) write(*,'(a)') "You have to select one of the set boundaries as surface source"
+                IF (root) write(*,'(a)') "You have to select one of the boundaries as surface source"
                 STOP
             ELSE
                 IF(boundaries(src_boundary)%type==2) THEN
@@ -100,13 +100,13 @@ module module_initialization
                 END IF
                 IF (root) write(*,'(a,i3,a,i3)') "Boundary ",src_boundary," chosen as surface source of type ",quelltyp
             END IF
-        ELSE IF ((quelltyp==1).or.(quelltyp==2)) THEN
+        ELSE IF ((quelltyp==1).or.(quelltyp==2).or.(quelltyp==3)) THEN
             src_boundary=0
-            IF (root) write(*,'(a,i3,a)') "Volume source of type ",quelltyp," set. Parameters:"
-            IF (root) write(*,'(a,3es12.8)') "x0: ",x0_src
-            IF (root) write(*,'(a,3es12.8)') "e1: ",e1_src
-            IF (root) write(*,'(a,3es12.8)') "e2: ",e2_src
-            IF (root) write(*,'(a,3es12.8)') "e3: ",e3_src
+            IF (root) write(*,'(a,i2,a)') " == Volume source of type ",quelltyp," set. Parameters:"
+            IF (root) write(*,'(a,3(1pe14.5E3))') " == x0: ",x0_src
+            IF (root) write(*,'(a,3(1pe14.5E3))') " == e1: ",e1_src
+            IF (root) write(*,'(a,3(1pe14.5E3))') " == e2: ",e2_src
+            IF (root) write(*,'(a,3(1pe14.5E3))') " == e3: ",e3_src
         ELSE
             IF (root) write(*,'(a,i3,a)') " Source cannot be set. Type ",quelltyp," not available."
             STOP

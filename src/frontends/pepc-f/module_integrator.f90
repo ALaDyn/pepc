@@ -82,6 +82,9 @@ MODULE integrator
 
         fact=dt
 
+        if(root) write(*,'(a)') " == [standard_integrator] calculate velocities "
+
+
         DO ip=1, np
             IF (p(ip)%label>0) THEN
                 p(ip)%data%v = p(ip)%data%v + fact * p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * fc
