@@ -343,7 +343,7 @@ MODULE output
                 physical_particle(ispecies)=species(ispecies)%physical_particle
                 nfp(ispecies)=species(ispecies)%nfp
                 nip(ispecies)=species(ispecies)%nip
-                t_src(ispeces)=species(ispecies)%t_src
+                t_src(ispecies)=species(ispecies)%t_src
             END DO
             write(fid,NML=species_nml)
             write(fid,NML=source_nml)
