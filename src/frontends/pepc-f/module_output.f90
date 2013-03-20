@@ -303,12 +303,13 @@ MODULE output
         integer :: nip(0:nspecies-1)
         real(KIND=8) :: mass(0:nspecies-1)
         real(KIND=8) :: charge(0:nspecies-1)
+        real(KIND=8) :: t_src(0:nspecies-1)
         logical :: physical_particle(0:nspecies-1)
         character(255) :: name(0:nspecies-1)
         integer :: ispecies,ns
 
         namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
-        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name
+        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,t_src
 
         integer, parameter :: fid = 666
 
@@ -342,6 +343,7 @@ MODULE output
                 physical_particle(ispecies)=species(ispecies)%physical_particle
                 nfp(ispecies)=species(ispecies)%nfp
                 nip(ispecies)=species(ispecies)%nip
+                t_src(ispeces)=species(ispecies)%t_src
             END DO
             write(fid,NML=species_nml)
             write(fid,NML=source_nml)
