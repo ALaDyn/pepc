@@ -198,7 +198,6 @@ MODULE output
           write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
           write(*,'(a,l6)')     " == far_field_if_periodic            : ", include_far_field_if_periodic
           write(*,'(a,l6)')     " == do_restore_particles             : ", do_restore_particles
-          write(*,'(a,i12)')    " == mirror_layers                    : ", mirror_layers
           write(*,*)
           write(*,*) "========== Magnetic Field ========="
           write(*,'(a,f12.4)')  " == Bx                               : ", Bx

@@ -48,7 +48,6 @@ module module_initialization
       diag_interval   =0
       checkp_interval =0
       guiding_centre_electrons=.false.
-      mirror_layers=1
       Bx              = 0.
       By              = 0.
       Bz              = 0.
@@ -275,7 +274,6 @@ module module_initialization
         use module_mirror_boxes
 
         implicit none
-        mirror_box_layers=mirror_layers
         periodicity=periodicity_in
          
         t_lattice_1=[dx,0.0_8,0.0_8]
@@ -283,11 +281,6 @@ module module_initialization
         t_lattice_3=[0.0_8,0.0_8,dz]
 
         LatticeOrigin=[xmin,ymin,zmin]
-
-        !used to check if problem with potential is due to asymmetries when using mirror_layers
-        !basically switches from nearest box to nearest image method
-        !spatial_interaction_cutoff(2)=0.5*dy
-        !spatial_interaction_cutoff(3)=0.5*dz
 
 
     end subroutine
