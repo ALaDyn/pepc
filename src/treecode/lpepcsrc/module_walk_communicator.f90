@@ -24,8 +24,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_walk_communicator
-  use treevars
-  use module_pepc_types
+  use module_pepc_types, only: t_tree_node
   implicit none
 
   private
@@ -81,22 +80,24 @@ module module_walk_communicator
   contains
 
 
-      ! initializes bsend buffer and rwlock objects
-      ! returns size of bsend buffer in buffsize in bytes
-      subroutine init_comm_data(REQUEST_QUEUE_LENGTH, ANSWER_BUFF_LENGTH)
-        use module_pepc_types
+      subroutine init_comm_data(t, REQUEST_QUEUE_LENGTH, ANSWER_BUFF_LENGTH)
+        use module_tree, only: t_tree
+        use module_pepc_types, only: mpi_type_tree_node
         implicit none
         include 'mpif.h'
+
+        type(t_tree), intent(in) :: t
         integer, intent(in) :: REQUEST_QUEUE_LENGTH, ANSWER_BUFF_LENGTH
+
         integer :: msg_size_request, msg_size_data
         integer :: buffsize !< size of bsend buffer in bytes
         integer :: ierr
 
         ! compute upper bounds for request and data message size
-        call MPI_PACK_SIZE(1, MPI_INTEGER8, MPI_COMM_lpepc, msg_size_request, ierr)
+        call MPI_PACK_SIZE(1, MPI_INTEGER8, t%comm_data%comm, msg_size_request, ierr)
         msg_size_request = msg_size_request + MPI_BSEND_OVERHEAD
 
-        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node, MPI_COMM_lpepc, msg_size_data, ierr)
+        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node, t%comm_data%comm, msg_size_data, ierr)
         msg_size_data = msg_size_data + MPI_BSEND_OVERHEAD
 
         buffsize = (REQUEST_QUEUE_LENGTH * msg_size_request + ANSWER_BUFF_LENGTH * msg_size_data)
@@ -123,9 +124,7 @@ module module_walk_communicator
         ! free our buffer that was reserved for buffered communication
         call MPI_BUFFER_DETACH(dummy, buffsize, ierr) ! FIXME: what is the dummy thought for?
         deallocate(bsend_buffer)
-
       end subroutine uninit_comm_data
-
 
 
       subroutine notify_walk_finished()
@@ -133,59 +132,60 @@ module module_walk_communicator
         implicit none
 
         walk_status = max(walk_status, WALK_IAM_FINISHED)
-
       end subroutine notify_walk_finished
 
 
-
-
-
-      subroutine send_walk_finished()
-        use treevars
+      subroutine send_walk_finished(t)
+        use module_tree, only: t_tree
         implicit none
         include 'mpif.h'
+
+        type(t_tree), intent(in) :: t
+
         integer :: ierr
 
         ! notify rank 0 that we are finished with our walk
         call MPI_BSEND(comm_dummy, 1, MPI_INTEGER, 0, TAG_FINISHED_PE, &
-          MPI_COMM_lpepc, ierr)
+          t%comm_data%comm, ierr)
 
         walk_status = WALK_I_NOTIFIED_0
-
       end subroutine send_walk_finished
 
 
-      subroutine broadcast_walk_finished()
-        use treevars, only : num_pe, MPI_COMM_lpepc
+      subroutine broadcast_walk_finished(t)
+        use module_tree, only: t_tree
         use module_debug
         implicit none
         include 'mpif.h'
+
+        type(t_tree), intent(in) :: t
         integer :: i, ierr
 
          ! all PEs have to be informed
          ! TODO: need better idea here...
          if (walk_comm_debug) then
-           DEBUG_INFO('("PE", I6, " has found out that all PEs have finished walking - telling them to exit now")', me)
+           DEBUG_INFO('("PE", I6, " has found out that all PEs have finished walking - telling them to exit now")', t%comm_data%rank)
          end if
 
-         do i=0,num_pe-1
+         do i = 0, t%comm_data%size - 1
            call MPI_BSEND(comm_dummy, 1, MPI_INTEGER, i, TAG_FINISHED_ALL, &
-             MPI_COMM_lpepc, ierr)
+             t%comm_data%comm, ierr)
          end do
-
-
       end subroutine
 
 
-    subroutine send_data(requested_key, ipe_sender)
-      use module_pepc_types
+    subroutine send_data(t, requested_key, ipe_sender)
+      use module_tree, only: t_tree, tree_lookup_node_critical
+      use module_pepc_types, only: t_tree_node, MPI_TYPE_tree_node
       use module_debug
-      use module_htable
       use module_tree_node
       implicit none
       include 'mpif.h'
+
+      type(t_tree), intent(inout) :: t
       integer*8, intent(in) :: requested_key
       integer, intent(in) :: ipe_sender
+
       type(t_tree_node), target :: children_to_send(8)
       type(t_tree_node), pointer :: n
       integer*8, dimension(8) :: key_child
@@ -193,45 +193,48 @@ module module_walk_communicator
 
       if (walk_comm_debug) then
         DEBUG_INFO('("PE", I6, " answering request.                         request_key=", O22, ",        sender=", I6)',
-                       me, requested_key, ipe_sender )
+                       t%comm_data%rank, requested_key, ipe_sender )
       end if
 
       j = 0
-      call htable_lookup_critical(global_htable, requested_key, n, 'WALK:send_data:parentkey')
+      call tree_lookup_node_critical(t, requested_key, n, 'WALK:send_data:parentkey')
       call tree_node_get_childkeys(n, nchild, key_child)
 
       do ic = 1,nchild
-        call htable_lookup_critical(global_htable, key_child(ic), n, 'WALK:send_data:childkey')
+        call tree_lookup_node_critical(t, key_child(ic), n, 'WALK:send_data:childkey')
         children_to_send(ic) = n
-        children_to_send(ic)%info_field = int(iand( children_to_send(ic)%info_field, CHILDCODE_CHILDBYTE ))! Catch lowest 8 bits of childbyte - filter off requested and here flags
+        children_to_send(ic)%flags = int(iand( children_to_send(ic)%flags, TREE_NODE_CHILDBYTE ))! Catch lowest 8 bits of childbyte - filter off requested and here flags
       end do
       
       ! Ship child data back to PE that requested it
       call MPI_BSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node, &
-        ipe_sender, TAG_REQUESTED_DATA, MPI_COMM_lpepc, ierr)
+        ipe_sender, TAG_REQUESTED_DATA, t%comm_data%comm, ierr)
 
       ! statistics on number of sent children-packages
-      sum_ships = sum_ships + 1
+      t%sum_ships = t%sum_ships + 1
 
     end subroutine send_data
 
 
-    function send_request(req)
-      use module_htable
+    function send_request(t, req)
+      use module_tree, only: t_tree
       use module_tree_node
       implicit none
       include 'mpif.h'
+      
       logical :: send_request
+      type(t_tree), intent(inout) :: t
       type(t_request_queue_entry), intent(in) :: req
+
       integer :: ierr
 
-      if (.not. btest( req%node%info_field, CHILDCODE_BIT_REQUEST_SENT ) ) then
+      if (.not. btest( req%node%flags, TREE_NODE_FLAG_REQUEST_SENT ) ) then
         ! send a request to PE req_queue_owners(req_queue_top)
         ! telling, that we need child data for particle request_key(req_queue_top)
         call MPI_BSEND(req%key, 1, MPI_INTEGER8, req%owner, TAG_REQUEST_KEY, &
-          MPI_COMM_lpepc, ierr)
+          t%comm_data%comm, ierr)
 
-        req%node%info_field = ibset(req%node%info_field, CHILDCODE_BIT_REQUEST_SENT )
+        req%node%flags = ibset(req%node%flags, TREE_NODE_FLAG_REQUEST_SENT )
 
         send_request = .true.
       else
@@ -241,20 +244,21 @@ module module_walk_communicator
     end function
 
 
-    subroutine unpack_data(child_data, num_children, ipe_sender)
-      use module_htable
-      use module_tree
+    subroutine unpack_data(t, child_data, num_children, ipe_sender)
+      use module_tree, only: t_tree, tree_insert_node, tree_lookup_node_critical
       use module_tree_node
       use module_spacefilling
       use module_debug
       use module_atomic_ops
       implicit none
       include 'mpif.h'
+
+      type(t_tree), intent(inout) :: t
       type(t_tree_node) :: child_data(num_children) !< child data that has been received
-      type(t_tree_node), pointer :: parent
       integer :: num_children !< actual number of valid children in dataset
       integer, intent(in) :: ipe_sender
 
+      type(t_tree_node), pointer :: parent
       integer*8 :: parent_key(0:num_children)
       integer :: num_parents
       integer :: ic
@@ -272,15 +276,15 @@ module module_walk_communicator
 
         if (walk_comm_debug) then
           DEBUG_INFO('("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ",        owner=", I6, ", kchild=", O22)',
-                         me, parent_key(num_parents), ipe_sender, child_data(ic)%owner, child_data(ic)%key)
+                         t%comm_data%rank, parent_key(num_parents), ipe_sender, child_data(ic)%owner, child_data(ic)%key)
         end if
 
         ! tree nodes coming from remote PEs are flagged for easier identification
-        child_data(ic)%info_field = ibset(child_data(ic)%info_field, CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS)
+        child_data(ic)%flags = ibset(child_data(ic)%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
 
-        call tree_insert_node(child_data(ic))
+        call tree_insert_node(t, child_data(ic))
         ! count number of fetched nodes
-        sum_fetches = sum_fetches+1
+        t%sum_fetches = t%sum_fetches+1
      end do
 
      call atomic_read_write_barrier()
@@ -288,8 +292,8 @@ module module_walk_communicator
      ! set 'children-here'-flag for all parent addresses
      ! may only be done *after inserting all* children, hence not(!) during the loop above
      do ic=1,num_parents
-         call htable_lookup_critical(global_htable, parent_key(ic), parent, 'WALK:unpack_data() - get parent node')
-         parent%info_field = ibset(parent%info_field, CHILDCODE_BIT_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
+         call tree_lookup_node_critical(t, parent_key(ic), parent, 'WALK:unpack_data() - get parent node')
+         parent%flags = ibset(parent%flags, TREE_NODE_FLAG_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
      end do
 
 

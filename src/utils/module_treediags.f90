@@ -18,60 +18,33 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Helper functions for checkpointing and restarting purposes
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_treediags
       implicit none
       private
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       public write_branches_to_vtk
       public write_spacecurve_to_vtk
       public write_interaction_partners_to_vtk
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Writes a collection of nodes into vtk files, once as boxes, once
         !> as points
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine write_nodes_to_vtk(step, tsim, vtk_step, num_nodes, &
           node_keys, filename_box, filename_point, node_vbox)
           use treevars
           use module_vtk
           use module_spacefilling
-          use module_htable
-          use module_tree_node
           use module_mirror_boxes
+          use module_pepc_types, only: t_tree_node
+          use module_tree, only: t_tree, tree_lookup_node_critical
+          use module_tree_node
+          use module_pepc, only: global_tree
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
@@ -83,6 +56,7 @@ module module_treediags
           
 
           type(t_tree_node), pointer :: bnode
+          type(t_tree), pointer :: t
           integer :: i,j
           integer*8 :: bkey
           real*8 :: bsize(3)
@@ -105,7 +79,10 @@ module module_treediags
           real*8, dimension(3) :: bshift
           type(vtkfile_unstructured_grid) :: vtk_box, vtk_point
 
-          if (me .ne. 0) return
+          ! TODO: generalize!
+          t => global_tree
+
+          if (.not. t%comm_data%first) return
 
           allocate(bcocx(num_nodes), bcocy(num_nodes), bcocz(num_nodes), &
             bq(num_nodes))
@@ -118,10 +95,10 @@ module module_treediags
 
           do i = 1, num_nodes
             bkey      = node_keys(i)
-            call htable_lookup_critical(global_htable, bkey, bnode, "write_nodes_to_vtk")
+            call tree_lookup_node_critical(t, bkey, bnode, 'write_nodes_to_vtk')
             bowner(i) = bnode%owner
             blevel(i) = level_from_key(bkey)
-            bsize     = boxsize / 2**blevel(i)
+            bsize     = t%bounding_box%boxsize / 2**blevel(i)
             !write(*,'(O10, Z8, I12, I8, I8, 1G12.3, " | ", 3G12.3)') bkey, baddr, bnode, bowner, blevel, bsize, bcoc
 
             ! prepare voxel data structure
@@ -143,7 +120,7 @@ module module_treediags
             !write(*,*) node_vbox(i,1:3),mirror_indices(i, 1:3),mirror_level(i)
 
             ! compute real center coordinate
-            call key_to_coord(bkey, bx, by, bz)
+            call key_to_coord(t%bounding_box, bkey, bx, by, bz)
             
             if ( present(node_vbox) ) then
               bx = bx + node_vbox(i, 1)
@@ -257,21 +234,67 @@ module module_treediags
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine write_branches_to_vtk(step, tsim, vtk_step)
           use treevars
-          use module_htable
+          use module_pepc, only: global_tree
+          use module_pepc_types, only: t_tree_node
+          use module_tree, only: t_tree, tree_get_root
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
 
-          if (me .ne. 0) return
+          type(t_tree), pointer :: t
+          type(t_tree_node), pointer :: r
+          integer*8, allocatable :: branch_keys(:)
+          integer*8 :: i
 
-          if (.not. (htable_allocated(global_htable) .and. allocated(branch_key))) then
-            write(*,*) 'write_branches_to_vtk(): pepc_fields() must have been called with no_dealloc=.true. before'
-            return
-          endif
+          t => global_tree
 
-          call write_nodes_to_vtk(step, tsim, vtk_step, nbranch_sum, &
-            branch_key, filename_box = "branches")
+          if (.not. t%comm_data%first) return
 
+          ! TODO: use tree_allocated
+          !if (.not. (htable_allocated(global_htable) .and. allocated(branch_key))) then
+          !  write(*,*) 'write_branches_to_vtk(): pepc_fields() must have been called with no_dealloc=.true. before'
+          !  return
+          !endif
+
+          allocate(branch_keys(t%nbranch))
+          i = 0
+          call tree_get_root(t, r)
+          call collect_branches(r)
+          ! TODO assert i == t%nbranch
+
+          call write_nodes_to_vtk(step, tsim, vtk_step, int(t%nbranch), &
+            branch_keys, filename_box = "branches")
+
+
+          deallocate(branch_keys)
+
+          contains
+
+          recursive subroutine collect_branches(n)
+            use module_tree_node
+            use module_tree, only: tree_lookup_node_critical
+            implicit none
+
+            type(t_tree_node), intent(in) :: n
+
+            type(t_tree_node), pointer :: c
+            integer :: ic, nc
+            integer*8 :: ck(8)
+
+            c => null()
+
+            if (btest(n%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)) then
+              i = i + 1
+              branch_keys(i) = n%key
+            else
+              call tree_node_get_childkeys(n, nc, ck)
+
+              do ic = 1, nc
+                call tree_lookup_node_critical(t, ck(ic), c, 'write_branches_to_vtk')
+                call collect_branches(c)
+              end do
+            end if
+          end subroutine collect_branches
         end subroutine
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -281,17 +304,25 @@ module module_treediags
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine write_spacecurve_to_vtk(step, tsim, vtk_step, particles)
-          use treevars, only : npp, me, num_pe
           use module_vtk
-          use module_pepc_types
+          use module_pepc_types, only: t_particle
+          use module_pepc, only: global_tree
+          use module_tree, only: t_tree
+          implicit none
+
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
           type(t_particle), intent(in) :: particles(:)
-          type(vtkfile_unstructured_grid) :: vtk
-          integer :: i
 
-            call vtk%create_parallel("spacecurve", step, me, num_pe, tsim, vtk_step)
+          type(t_tree), pointer :: t
+          type(vtkfile_unstructured_grid) :: vtk
+          integer :: i, npp
+
+          t => global_tree
+          npp = int(t%npart_local)
+
+            call vtk%create_parallel("spacecurve", step, t%comm_data%rank, t%comm_data%size, tsim, vtk_step)
               call vtk%write_headers(npp, 1)
                 call vtk%startpoints()
                   call vtk%write_data_array("xyz", npp, particles(1:npp)%x(1), particles(1:npp)%x(2), particles(1:npp)%x(3))
@@ -305,7 +336,7 @@ module module_treediags
                   call vtk%write_data_array("types", VTK_POLY_LINE)
                 call vtk%finishcells()
                 call vtk%startcelldata()
-                  call vtk%write_data_array("processor", me)
+                  call vtk%write_data_array("processor", t%comm_data%rank)
                 call vtk%finishcelldata()
               call vtk%write_final()
             call vtk%close()

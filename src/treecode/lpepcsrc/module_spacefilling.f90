@@ -187,43 +187,49 @@ module module_spacefilling
         !> calculates keys from local particles (faster than per-particle call to coord_to_key())
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine compute_particle_keys(particles)
-          use treevars
+        subroutine compute_particle_keys(b, particles)
+          use treevars, only: idim, nlev
+          use module_pepc_types, only: t_particle
+          use module_box, only: t_box
           use module_debug
           implicit none
-          type(t_particle), intent(inout) :: particles(1:npp)
+
+          type(t_box), intent(in) :: b
+          type(t_particle), intent(inout) :: particles(:)
+
           integer*8, dimension(:,:), allocatable :: intcoord
           real*8 :: s(idim)
-          integer :: j
+          integer :: j, nl
 
-          allocate(intcoord(idim, npp))
+          nl = ubound(particles, 1)
 
-          s=boxsize(1:idim)/2_8**nlev       ! refinement length
+          allocate(intcoord(idim, nl))
 
-          ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
-          do j = 1,npp
-            intcoord(:,j) = int(( particles(j)%x(1:idim) - boxmin(1:idim) )/s, kind = 8) ! partial keys
+          s = b%boxsize(1:idim) / 2_8**nlev       ! refinement length
+
+          do j = 1, nl
+            intcoord(:,j) = int(( particles(j)%x(1:idim) - b%boxmin(1:idim) ) / s, kind = 8) ! partial keys
           end do
 
           ! construct particle keys
           select case (curve_type)
             case (0) ! Z-curve
-              do j = 1,npp
+              do j = 1, nl
                 particles(j)%key = intcoord_to_key_morton(intcoord(:,j))
               end do
 
             case (1) ! Hilbert curve (original pattern)
               select case (idim)
                 case (1) ! fallback to Z-curve
-                  do j=1,npp
+                  do j = 1, nl
                     particles(j)%key = intcoord_to_key_morton(intcoord(:,j))
                   end do
                 case (2) ! 2D hilbert curve
-                  do j=1,npp
+                  do j = 1, nl
                     particles(j)%key = intcoord_to_key_hilbert2D(intcoord(:,j))
                   end do
                 case (3) ! 3D hilbert curve
-                  do j=1,npp
+                  do j = 1, nl
                     particles(j)%key = intcoord_to_key_hilbert3D(intcoord(:,j))
                   end do
               end select
@@ -239,13 +245,15 @@ module module_spacefilling
         !> calculates key from particle coordinate on top level
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function coord_to_key_lastlevel(x, y, z)
+        function coord_to_key_lastlevel(b, x, y, z)
+          use module_box
           implicit none
 
           integer*8 :: coord_to_key_lastlevel
+          type(t_box), intent(in) :: b
           real*8, intent(in) :: x, y, z
 
-          coord_to_key_lastlevel = veccoord_to_key_lastlevel([x, y, z])
+          coord_to_key_lastlevel = veccoord_to_key_lastlevel(b, [x, y, z])
         end function coord_to_key_lastlevel
 
 
@@ -254,18 +262,20 @@ module module_spacefilling
         !> calculates key from particle coordinate as vector on top level
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function veccoord_to_key_lastlevel(x)
-          use treevars, only : idim, nlev, boxsize, boxmin
+        function veccoord_to_key_lastlevel(b, x)
+          use treevars, only : idim, nlev
+          use module_box
           implicit none
+
           integer*8 :: veccoord_to_key_lastlevel
+          type(t_box), intent(in) :: b
           real*8, intent(in) :: x(3)
+
           integer*8 :: ic(idim)
           real*8 :: s(idim)
 
-          s=boxsize(1:idim)/2_8**nlev       ! refinement length
-
-          ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
-          ic = int((x(1:idim) - boxmin(1:idim))/s, kind = 8)           ! partial keys
+          s = b%boxsize(1:idim) / 2_8**nlev       ! refinement length
+          ic = int((x(1:idim) - b%boxmin(1:idim)) / s, kind = 8)           ! partial keys
 
           ! construct particle keys
           select case (curve_type)
@@ -294,14 +304,16 @@ module module_spacefilling
         !> calculates key from particle coordinate on certain tree level
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function coord_to_key_level(x, y, z, level)
+        function coord_to_key_level(b, x, y, z, level)
+          use module_box
           implicit none
 
           integer*8 :: coord_to_key_level
+          type(t_box), intent(in) :: b
           real*8, intent(in) :: x, y, z
           integer, intent(in) :: level
 
-          coord_to_key_level = veccoord_to_key_level([x, y, z], level)
+          coord_to_key_level = veccoord_to_key_level(b, [x, y, z], level)
         end function coord_to_key_level
 
 
@@ -310,14 +322,17 @@ module module_spacefilling
         !> calculates key from particle coordinate as vector on certain tree level
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        function veccoord_to_key_level(x, level)
+        function veccoord_to_key_level(b, x, level)
           use treevars, only : nlev
+          use module_box
           implicit none
+
           integer*8 :: veccoord_to_key_level
+          type(t_box), intent(in) :: b
           real*8, intent(in) :: x(3)
           integer, intent(in) :: level
 
-          veccoord_to_key_level = shift_key_by_level(veccoord_to_key_lastlevel(x), level-nlev)
+          veccoord_to_key_level = shift_key_by_level(veccoord_to_key_lastlevel(b, x), level-nlev)
         end function veccoord_to_key_level
 
 
@@ -326,15 +341,17 @@ module module_spacefilling
         !> calculates particle coordinate from key
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine key_to_coord(key, x, y, z)
+        subroutine key_to_coord(b, key, x, y, z)
+          use module_box
           implicit none
 
+          type(t_box), intent(in) :: b
           integer*8, intent(in) :: key
           real*8, intent(out) :: x, y, z
 
           real*8 :: xv(3)
 
-          call key_to_veccoord(key, xv)
+          call key_to_veccoord(b, key, xv)
           x = xv(1)
           y = xv(2)
           z = xv(3)
@@ -346,11 +363,15 @@ module module_spacefilling
         !> calculates particle coordinate as vector from key
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine key_to_veccoord(key, x)
-          use treevars, only : idim, nlev, boxsize, boxmin
+        subroutine key_to_veccoord(b, key, x)
+          use treevars, only : idim, nlev
+          use module_box
           implicit none
+
+          type(t_box), intent(in) :: b
           integer*8, intent(in) :: key
           real*8, intent(inout) :: x(3)
+
           integer*8 :: ic(idim)
           real*8 :: s(idim)
 
@@ -364,10 +385,10 @@ module module_spacefilling
               ic = 0
           end select
 
-          s=boxsize(1:idim)/2_8**nlev       ! refinement length
+          s = b%boxsize(1:idim) / 2_8**nlev       ! refinement length
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
-          x(1:idim) = (real(ic,kind(1._8)) + 0.5_8) * s + boxmin(1:idim)
+          x(1:idim) = (real(ic, kind(1._8)) + 0.5_8) * s + b%boxmin(1:idim)
 
         end subroutine key_to_veccoord
 

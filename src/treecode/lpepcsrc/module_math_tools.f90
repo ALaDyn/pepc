@@ -212,7 +212,7 @@ module module_math_tools
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the biggest power to \a base in a given interval with the limits \a a and \a b. In this
-        !> routine it is done by a more direct expression. Be careful, that \f$a<b\f$ !!!
+        !> routine it is done by a more direct expression. Be careful, that \f$a<b\f$!
         !>
         !> @param[in] a First Limit of interval.
         !> @param[in] b Second Limit of interval.

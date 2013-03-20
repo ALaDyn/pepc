@@ -270,14 +270,14 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
         implicit none
-        integer, intent(in) :: npart_total !< total number of particles
-        integer, intent(out) :: nintmax !< maximum number of interactions per particle
+        integer*8, intent(in) :: npart_total !< total number of particles
+        integer*8, intent(out) :: nintmax !< maximum number of interactions per particle
 
         real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
 
         ! Estimate of interaction list length - Hernquist expression
         ! applies for BH-MAC
-        invnintmax = max(theta2 / (35.*log(1.*npart_total)) , 1._8/npart_total)
+        invnintmax = max(theta2 / (35._8*log(1._8*npart_total)) , 1._8/npart_total)
         nintmax    = int(1._8/invnintmax)
 
       end subroutine

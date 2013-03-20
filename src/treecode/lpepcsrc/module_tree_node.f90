@@ -26,22 +26,21 @@ module module_tree_node
     implicit none
     private
 
-    ! bits in childcode to be set when children are requested, the request has been sent, and they have arrived
-    integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED           =  8 !< this bit is used inside the childcode to denote that a request for children information is already in the request queue
-    integer, public, parameter :: CHILDCODE_BIT_CHILDREN_AVAILABLE       =  9 !< this bit is used inside the childcode to denote that children information for the node is available in the local hashtable
-    integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT             = 10 !< this bit is used inside the childcode to denote that children information has already been requested from the owner
-    integer, public, parameter :: CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS  = 11 !< this bit is set for all nodes that contain some local nodes beneath them
-    integer, public, parameter :: CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS = 12 !< this bit is set for all nodes that contain some remote nodes beneath them
-    integer, public, parameter :: CHILDCODE_BIT_IS_BRANCH_NODE           = 13 !< this bit is set for all branch nodes (set in tree_exchange)
-    integer, public, parameter :: CHILDCODE_BIT_IS_FILL_NODE             = 14 !< this bit is set for all nodes that are above (towards root) branch nodes
-    integer, public, parameter :: CHILDCODE_CHILDBYTE                    = maskr(8) !< bits that contain the children information for this node
+    ! bits in flags to be set when children are requested, the request has been sent, and they have arrived
+    integer, public, parameter :: TREE_NODE_FLAG_REQUEST_POSTED           =  8 !< this bit is used inside the flags to denote that a request for children information is already in the request queue
+    integer, public, parameter :: TREE_NODE_FLAG_CHILDREN_AVAILABLE       =  9 !< this bit is used inside the flags to denote that children information for the node is available in the local hashtable
+    integer, public, parameter :: TREE_NODE_FLAG_REQUEST_SENT             = 10 !< this bit is used inside the flags to denote that children information has already been requested from the owner
+    integer, public, parameter :: TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS  = 11 !< this bit is set for all nodes that contain some local nodes beneath them
+    integer, public, parameter :: TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS = 12 !< this bit is set for all nodes that contain some remote nodes beneath them
+    integer, public, parameter :: TREE_NODE_FLAG_IS_BRANCH_NODE           = 13 !< this bit is set for all branch nodes (set in tree_exchange)
+    integer, public, parameter :: TREE_NODE_FLAG_IS_FILL_NODE             = 14 !< this bit is set for all nodes that are above (towards root) branch nodes
+    integer, public, parameter :: TREE_NODE_CHILDBYTE                     = maskr(8) !< bits that contain the children information for this node
 
     public tree_node_is_leaf
     public tree_node_children_available
     public tree_node_get_childkeys
 
     contains
-
 
     !>
     !> checks whether `n` is a leaf or twig node
@@ -64,7 +63,7 @@ module module_tree_node
       type(t_tree_node), intent(in) :: n
       logical :: tree_node_children_available
 
-      tree_node_children_available = btest(n%info_field, CHILDCODE_BIT_CHILDREN_AVAILABLE)
+      tree_node_children_available = btest(n%flags, TREE_NODE_FLAG_CHILDREN_AVAILABLE)
     end function tree_node_children_available
 
 
@@ -86,13 +85,11 @@ module module_tree_node
       keyhead   = shift_key_by_level(n%key, 1)
       childnum = 0
 
-      do i=0,2**idim - 1
-        if (btest(n%info_field, i)) then
+      do i = 0, 2**idim - 1
+        if (btest(n%flags, i)) then
           childnum            = childnum + 1
           childkeys(childnum) = ior(keyhead, 1_8*i)
         end if
       end do
-
     end subroutine tree_node_get_childkeys
-
 end module module_tree_node

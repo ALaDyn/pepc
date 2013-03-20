@@ -18,32 +18,18 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> main internal pepc routines
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_libpepc_main
     use module_debug, only : debug_level
     use treevars, only : np_mult, interaction_list_length_factor
     use module_spacefilling, only : curve_type
-    use module_domains, only : weighted, force_cubic_domain
+    use module_domains, only: weighted, force_cubic_domain
     use module_mirror_boxes, only: mirror_box_layers
 
     implicit none
     private
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     public libpepc_restore_particles
     public libpepc_traverse_tree
@@ -51,35 +37,14 @@ module module_libpepc_main
     public libpepc_read_parameters
     public libpepc_write_parameters
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    integer, allocatable ::  indxl(:),  irnkl(:)
-    integer, allocatable :: fposts(:), gposts(:)
-    integer, allocatable ::  islen(:),  irlen(:)
-    integer :: nppmax
-    integer :: npnew !> particle number after domain decomposition
-    integer :: npold !< original particle number (before domain decomposition)
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     namelist /libpepc/ debug_level, np_mult, curve_type, force_cubic_domain, weighted, interaction_list_length_factor, mirror_box_layers
 
     contains
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> reads libpepc-specific parameters from file
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine libpepc_read_parameters(filehandle)
         use module_debug, only: pepc_status
         implicit none
@@ -90,11 +55,9 @@ module module_libpepc_main
 
     end subroutine libpepc_read_parameters
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> writes libpepc-specific parameters to file
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine libpepc_write_parameters(filehandle)
         use module_debug, only: pepc_status
         implicit none
@@ -104,129 +67,95 @@ module module_libpepc_main
 
     end subroutine
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Builds the tree from the given particles, redistributes particles
     !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine libpepc_grow_tree(np_local, npart_total, particles)
-        use module_htable
-        use module_tree_node
-        use module_branching
-        use treevars
-        use module_pepc_types
+    subroutine libpepc_grow_tree(t, n, p, npl)
+        use module_htable, only: htable_dump
+        use module_pepc_types, only: t_particle, t_tree_node
         use module_timings
         use module_tree
         use module_domains
-        use module_debug, only : pepc_status
-        use module_allocation, only : allocate_tree
         use module_debug
+        use module_comm_data, only: t_comm_data, comm_data_create
+        use module_box, only: t_box, box_create
+        use treevars, only: MPI_COMM_lpepc
+        use module_spacefilling, only: compute_particle_keys
         implicit none
         include 'mpif.h'
 
-        integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
-        integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
-        type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
+        type(t_tree), intent(inout) :: t
+        integer*8, intent(in) :: n !< total number of simulation particles (across all MPI ranks)
+        type(t_particle), allocatable, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
+        integer, optional, intent(in) :: npl !< number of valid entries in p (local particles)
 
-        integer*8, allocatable :: leaf_keys(:)
-        integer :: neighbour_pe_particles !< number of particles that have been fetched from neighbouring PEs durin tree_domains
-        integer :: i, ierr
+        type(t_particle) :: bp(2) 
         type(t_tree_node), pointer :: root_node
+        type(t_comm_data) :: tree_comm_data
+        integer*8, allocatable :: branch_keys(:)
 
         call pepc_status('GROW TREE')
-
-        call MPI_BARRIER( MPI_COMM_lpepc, ierr)  ! Wait for everyone to catch up
-
-        ! copy call parameters to treevars module
-        npart      = npart_total
-        npp        = np_local
-
+        !call MPI_BARRIER( MPI_COMM_lpepc, ierr)  ! Wait for everyone to catch up
         call timer_start(t_all)
-
-        ! workload per particle must be nonzero
-        do i=1,np_local
-          particles(i)%work = max(particles(i)%work, 1._8)
-        end do
-
         call timer_start(t_fields_tree)
 
-        !TODO: make adjustable by user or find a good estimation. Additional Question: Does this value have to be globally constant?
-        nppmax = int(1.25 * max(npart/num_pe,1000)) ! allow 25% fluctuation around average particle number per PE in sorting library for load balancing
+        call comm_data_create(tree_comm_data, MPI_COMM_lpepc)
 
-        if (nppmax-2 .lt. np_local) then
-            DEBUG_WARNING_ALL(*, 'nppmax-2=',nppmax-2, 'is smaller than np_local=',np_local,' - fixing and continuing. This could lead to load balancing issues. See ticket no. 10')
-            nppmax = max(nppmax, np_local) + 2
-         end if
-
-        ! fields for sorting library results, we have to deallocate them in case someone did not call restore()
-        if (allocated(indxl)) deallocate(indxl, irnkl, fposts, gposts, islen, irlen)
-        allocate(indxl(nppmax), irnkl(nppmax), fposts(num_pe+1), gposts(num_pe+1), islen(num_pe), irlen(num_pe))
+        ! determine the bounding box of the particle configuration
+        call box_create(t%bounding_box, p, tree_comm_data)
+        call timer_start(t_domains_keys)
+        ! assign SFC coordinate to each particle
+        call compute_particle_keys(t%bounding_box, p)
+        call timer_stop(t_domains_keys)
 
         ! Domain decomposition: allocate particle keys to PEs
-        call tree_domains(particles, nppmax,indxl,irnkl,islen,irlen,fposts,gposts,npnew,npold, neighbour_pe_particles)
-        np_local = npnew ! == npp, just to inform the calling routine about the current size of the particles-field
+        if (present(npl)) then
+          call domain_decompose(t%decomposition, t%bounding_box, n, p, bp, tree_comm_data, npl = npl)
+        else
+          call domain_decompose(t%decomposition, t%bounding_box, n, p, bp, tree_comm_data)
+        end if
 
-        ! reset work load, do not need a (overflowing) history of all my sins...
-        particles(1:np_local)%work = 1.
-
-        call allocate_tree()
+        ! allocate the tree structure
+        call tree_create(t, size(p), n, comm_data = tree_comm_data)
 
         ! build local part of tree
         call timer_start(t_local)
-        call htable_clear(global_htable)
-        allocate(leaf_keys(npp+neighbour_pe_particles))
-        call tree_build_from_particles(particles, npp, neighbour_pe_particles, leaf_keys)
-        ! remove the boundary particles from the htable - we are not interested in them any more
-        if (neighbour_pe_particles > 0) then
-          call htable_remove_keys(global_htable, leaf_keys(npp+1:npp+neighbour_pe_particles), neighbour_pe_particles)
-        end if
-        neighbour_pe_particles = 0
-        ! build tree from local particle keys up to root (the boundary particles are not included in the tree construction)
-        call tree_build_upwards(leaf_keys(1:npp), npp)
-        deallocate(leaf_keys)
+        call tree_build_from_particles(t, p, bp)
+        ! build tree from local particle keys up to root
+        call tree_build_upwards(t, p(:)%key_leaf)
 
-        call htable_lookup_critical(global_htable, 1_8, root_node, 'libpepc_grow_tree:root node')
-        if (root_node%leaves .ne. npp) then
-            call htable_dump(global_htable, particles)
-            DEBUG_ERROR(*, 'did not find all its particles inside the htable after local tree buildup: root_node%leaves =', root_node%leaves, ' but npp =', npp)
-        endif
+        call tree_get_root(t, root_node, 'libpepc_grow_tree:root node')
+        if (root_node%leaves .ne. size(p)) then
+          call htable_dump(t%node_storage, p)
+          DEBUG_ERROR(*, 'did not find all its particles inside the tree after local tree buildup: root_node%leaves =', root_node%leaves, ' but size(particles) =', size(p))
+        end if
         call timer_stop(t_local)
 
         ! Should now have multipole information up to root list level(s) (only up to branch level, the information is correct)
         ! By definition, this is complete: each branch node is self-contained.
         ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
 
-        ! identification of branch nodes
-        call timer_start(t_branches_find)
-        call find_branches()
-        call timer_stop(t_branches_find)
-
-        ! exchange branch nodes
-        nleaf_me = nleaf       !  Retain leaves and twigs belonging to local PE
-        ntwig_me = ntwig
-
         call timer_start(t_exchange_branches)
-        call tree_exchange(pebranch, nbranch, branch_key, nbranch_sum)
+        call tree_exchange_branches(t, p, bp, branch_keys)
         call timer_stop(t_exchange_branches)
 
         ! build global part of tree
         call timer_start(t_global)
-        call tree_build_upwards(branch_key, nbranch_sum)
+        call tree_build_upwards(t, branch_keys)
         call timer_stop(t_global)
+        deallocate(branch_keys)
 
-        call htable_lookup_critical(global_htable, 1_8, root_node, 'libpepc_grow_tree:root node')
-        if (root_node%leaves .ne. npart_total) then
-            call htable_dump(global_htable, particles)
-            DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: root_node%leaves =', root_node%leaves, ' but npart_total =', npart_total)
+        call tree_get_root(t, root_node, 'libpepc_grow_tree:root node')
+        if (root_node%leaves .ne. t%npart) then
+          call htable_dump(t%node_storage, p)
+          DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: root_node%leaves =', root_node%leaves, ' but npart_total =', t%npart)
         endif
 
         call timer_stop(t_fields_tree)
-
         call pepc_status('TREE GROWN')
 
     end subroutine
-
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -242,7 +171,7 @@ module module_libpepc_main
     !> from to pepc_grow_tree()
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine libpepc_traverse_tree(nparticles, particles)
+    subroutine libpepc_traverse_tree(t, p)
         use module_pepc_types
         use treevars
         use module_walk
@@ -251,9 +180,11 @@ module module_libpepc_main
         use module_timings
         use module_interaction_specific
         use module_debug
+        use module_tree, only: t_tree
         implicit none
-        integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
-        type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
+
+        type(t_tree), target, intent(inout) :: t
+        type(t_particle), target, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
         integer :: ibox
         real*8 :: ttrav, ttrav_loc, tcomm(3) ! timing integrals
@@ -267,8 +198,6 @@ module module_libpepc_main
         call timer_reset(t_comm_sendreqs)
 
         comm_loop_iterations = 0
-        sum_fetches          = 0 ! total # multipole fetches/iteration
-        sum_ships            = 0 ! total # multipole shipments/iteration
 
         call timer_start(t_fields_passes)
 
@@ -279,7 +208,7 @@ module module_libpepc_main
                                  ! synchronized individually - hence in any case there must be a barrier here
 
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
-            call tree_walk(nparticles,particles,ttrav,ttrav_loc, lattice_vect(neighbour_boxes(:,ibox)), tcomm)
+            call tree_walk(t, p, ttrav, ttrav_loc, lattice_vect(neighbour_boxes(:,ibox)), tcomm)
 
             call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
             call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
@@ -293,14 +222,13 @@ module module_libpepc_main
         call timer_start(t_lattice)
         ! add lattice contribution and other per-particle-forces
         ! TODO: do not call calc_force_per_particle here!
-        call calc_force_per_particle(particles, nparticles)
+        call calc_force_per_particle(p, size(p))
         call timer_stop(t_lattice)
 
         call timer_stop(t_fields_passes)
 
         call pepc_status('TRAVERSAL DONE')
-
-    end subroutine
+    end subroutine libpepc_traverse_tree
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -308,37 +236,29 @@ module module_libpepc_main
     !> Restores the initial particle distribution (before calling pepc_grow_tree() ).
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine libpepc_restore_particles(np_local, particles)
-        use module_pepc_types
+    subroutine libpepc_restore_particles(t, np_local, particles)
+        use module_pepc_types, only: t_particle
         use module_timings
         use module_debug, only : pepc_status
-        use module_domains, only : restore
+        use module_domains, only : domain_restore
+        use module_tree, only: t_tree
         implicit none
+
+        type(t_tree), intent(inout) :: t
         integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
         type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data on local MPI rank - is replaced by original particle data that was given before calling pepc_grow_tree()
 
         call pepc_status('RESTORE PARTICLES')
 
         ! restore initial particle order specified by calling routine to reassign computed forces
-        ! notice the swapped order of the index-fields -> less changes in restore() compared to tree_domains()
         call timer_start(t_restore)
-        call restore(npnew,npold,nppmax,irnkl,indxl,irlen,islen,gposts,fposts, particles)
+        call domain_restore(t%decomposition, particles)
         call timer_stop(t_restore)
       
-        np_local = npold ! we have got the original particle order again
-
-        deallocate(indxl, irnkl, fposts, gposts, islen, irlen)
+        np_local = size(particles) ! we have got the original particle order again
 
         call pepc_status('RESTORATION DONE')
-
-    end subroutine
+    end subroutine libpepc_restore_particles
 
 
 end module module_libpepc_main
-
-
-
-
-
-
-
