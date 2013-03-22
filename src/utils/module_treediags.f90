@@ -82,7 +82,7 @@ module module_treediags
           ! TODO: generalize!
           t => global_tree
 
-          if (.not. t%comm_data%first) return
+          if (.not. t%comm_env%first) return
 
           allocate(bcocx(num_nodes), bcocy(num_nodes), bcocz(num_nodes), &
             bq(num_nodes))
@@ -236,7 +236,7 @@ module module_treediags
           use treevars
           use module_pepc, only: global_tree
           use module_pepc_types, only: t_tree_node
-          use module_tree, only: t_tree, tree_get_root
+          use module_tree, only: t_tree, tree_lookup_root
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
@@ -248,7 +248,7 @@ module module_treediags
 
           t => global_tree
 
-          if (.not. t%comm_data%first) return
+          if (.not. t%comm_env%first) return
 
           ! TODO: use tree_allocated
           !if (.not. (htable_allocated(global_htable) .and. allocated(branch_key))) then
@@ -258,7 +258,7 @@ module module_treediags
 
           allocate(branch_keys(t%nbranch))
           i = 0
-          call tree_get_root(t, r)
+          call tree_lookup_root(t, r)
           call collect_branches(r)
           ! TODO assert i == t%nbranch
 
@@ -320,9 +320,9 @@ module module_treediags
           integer :: i, npp
 
           t => global_tree
-          npp = int(t%npart_local)
+          npp = int(t%npart_me)
 
-            call vtk%create_parallel("spacecurve", step, t%comm_data%rank, t%comm_data%size, tsim, vtk_step)
+            call vtk%create_parallel("spacecurve", step, t%comm_env%rank, t%comm_env%size, tsim, vtk_step)
               call vtk%write_headers(npp, 1)
                 call vtk%startpoints()
                   call vtk%write_data_array("xyz", npp, particles(1:npp)%x(1), particles(1:npp)%x(2), particles(1:npp)%x(3))
@@ -336,7 +336,7 @@ module module_treediags
                   call vtk%write_data_array("types", VTK_POLY_LINE)
                 call vtk%finishcells()
                 call vtk%startcelldata()
-                  call vtk%write_data_array("processor", t%comm_data%rank)
+                  call vtk%write_data_array("processor", t%comm_env%rank)
                 call vtk%finishcelldata()
               call vtk%write_final()
             call vtk%close()

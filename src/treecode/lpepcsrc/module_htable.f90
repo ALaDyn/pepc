@@ -350,6 +350,7 @@ module module_htable
         DEBUG_WARNING_ALL('("# const              (dez) = ", i22)', t%hashconst)
         DEBUG_WARNING_ALL('("     maxentries      (dez) = ", i22)', t%maxentries)
         call htable_dump(t)
+        ! TODO: this goes in module_tree, htables are not distributed!
         call debug_mpi_abort()
       end if
 

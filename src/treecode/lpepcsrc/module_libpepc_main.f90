@@ -72,89 +72,17 @@ module module_libpepc_main
     !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
     !>
     subroutine libpepc_grow_tree(t, n, p, npl)
-        use module_htable, only: htable_dump
-        use module_pepc_types, only: t_particle, t_tree_node
-        use module_timings
-        use module_tree
-        use module_domains
-        use module_debug
-        use module_comm_data, only: t_comm_data, comm_data_create
-        use module_box, only: t_box, box_create
-        use treevars, only: MPI_COMM_lpepc
-        use module_spacefilling, only: compute_particle_keys
-        implicit none
-        include 'mpif.h'
+      use module_pepc_types, only: t_particle
+      use module_tree, only: t_tree
+      use module_tree_grow, only: tree_grow
+      implicit none
 
-        type(t_tree), intent(inout) :: t
-        integer*8, intent(in) :: n !< total number of simulation particles (across all MPI ranks)
-        type(t_particle), allocatable, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
-        integer, optional, intent(in) :: npl !< number of valid entries in p (local particles)
+      type(t_tree), intent(inout) :: t
+      integer*8, intent(in) :: n !< total number of simulation particles (across all MPI ranks)
+      type(t_particle), allocatable, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
+      integer, optional, intent(in) :: npl !< number of valid entries in p (local particles)
 
-        type(t_particle) :: bp(2) 
-        type(t_tree_node), pointer :: root_node
-        type(t_comm_data) :: tree_comm_data
-        integer*8, allocatable :: branch_keys(:)
-
-        call pepc_status('GROW TREE')
-        !call MPI_BARRIER( MPI_COMM_lpepc, ierr)  ! Wait for everyone to catch up
-        call timer_start(t_all)
-        call timer_start(t_fields_tree)
-
-        call comm_data_create(tree_comm_data, MPI_COMM_lpepc)
-
-        ! determine the bounding box of the particle configuration
-        call box_create(t%bounding_box, p, tree_comm_data)
-        call timer_start(t_domains_keys)
-        ! assign SFC coordinate to each particle
-        call compute_particle_keys(t%bounding_box, p)
-        call timer_stop(t_domains_keys)
-
-        ! Domain decomposition: allocate particle keys to PEs
-        if (present(npl)) then
-          call domain_decompose(t%decomposition, t%bounding_box, n, p, bp, tree_comm_data, npl = npl)
-        else
-          call domain_decompose(t%decomposition, t%bounding_box, n, p, bp, tree_comm_data)
-        end if
-
-        ! allocate the tree structure
-        call tree_create(t, size(p), n, comm_data = tree_comm_data)
-
-        ! build local part of tree
-        call timer_start(t_local)
-        call tree_build_from_particles(t, p, bp)
-        ! build tree from local particle keys up to root
-        call tree_build_upwards(t, p(:)%key_leaf)
-
-        call tree_get_root(t, root_node, 'libpepc_grow_tree:root node')
-        if (root_node%leaves .ne. size(p)) then
-          call htable_dump(t%node_storage, p)
-          DEBUG_ERROR(*, 'did not find all its particles inside the tree after local tree buildup: root_node%leaves =', root_node%leaves, ' but size(particles) =', size(p))
-        end if
-        call timer_stop(t_local)
-
-        ! Should now have multipole information up to root list level(s) (only up to branch level, the information is correct)
-        ! By definition, this is complete: each branch node is self-contained.
-        ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
-
-        call timer_start(t_exchange_branches)
-        call tree_exchange_branches(t, p, bp, branch_keys)
-        call timer_stop(t_exchange_branches)
-
-        ! build global part of tree
-        call timer_start(t_global)
-        call tree_build_upwards(t, branch_keys)
-        call timer_stop(t_global)
-        deallocate(branch_keys)
-
-        call tree_get_root(t, root_node, 'libpepc_grow_tree:root node')
-        if (root_node%leaves .ne. t%npart) then
-          call htable_dump(t%node_storage, p)
-          DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: root_node%leaves =', root_node%leaves, ' but npart_total =', t%npart)
-        endif
-
-        call timer_stop(t_fields_tree)
-        call pepc_status('TREE GROWN')
-
+      call tree_grow(t, n, p, npl)
     end subroutine
 
 

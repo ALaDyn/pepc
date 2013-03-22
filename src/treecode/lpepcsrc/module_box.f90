@@ -18,32 +18,42 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
+!>
+!> Defines a derived type that represents boxes and associated procedures.
+!>
 module module_box
   implicit none
   private
 
   logical, public :: force_cubic_domain = .false. !< if set to .true., pepc uses an overall cubic enclosure of the particle cloud instead of the cuboid (closer) one
 
+  !>
+  !> Derived type that represents a rectangular cuboid.
+  !>
   type, public :: t_box
-    real*8 :: boxmin(3)
-    real*8 :: boxmax(3)
-    real*8 :: boxsize(3)
+    real*8 :: boxmin(3) !< front lower left corner of the box
+    real*8 :: boxmax(3) !< back upper right corner of the box
+    real*8 :: boxsize(3) !< the box diagonal connecting `boxmin` to `boxmax`
   end type t_box
 
   public :: box_create
 
   contains
 
+  !>
+  !> Determines the bounding box `b` that contains the coordinates of all
+  !> particles in `p` on all ranks in the communication environment `c`.
+  !>
   subroutine box_create(b, p, c)
     use mpi
-    use module_comm_data, only: t_comm_data
+    use module_comm_env, only: t_comm_env
     use module_pepc_types, only: t_particle
     use module_debug
     implicit none
 
-    type(t_box), intent(out) :: b
-    type(t_particle), intent(in) :: p(:)
-    type(t_comm_data), intent(in) :: c
+    type(t_box), intent(out) :: b !< the bounding box that contains all `p`
+    type(t_particle), intent(in) :: p(:) !< particles to embed in the bounding box
+    type(t_comm_env), intent(in) :: c !< communication environment
 
     integer :: ierr
     real*8 :: min_local(3), max_local(3)

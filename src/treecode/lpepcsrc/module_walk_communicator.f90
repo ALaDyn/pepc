@@ -94,10 +94,10 @@ module module_walk_communicator
         integer :: ierr
 
         ! compute upper bounds for request and data message size
-        call MPI_PACK_SIZE(1, MPI_INTEGER8, t%comm_data%comm, msg_size_request, ierr)
+        call MPI_PACK_SIZE(1, MPI_INTEGER8, t%comm_env%comm, msg_size_request, ierr)
         msg_size_request = msg_size_request + MPI_BSEND_OVERHEAD
 
-        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node, t%comm_data%comm, msg_size_data, ierr)
+        call MPI_PACK_SIZE(8, MPI_TYPE_tree_node, t%comm_env%comm, msg_size_data, ierr)
         msg_size_data = msg_size_data + MPI_BSEND_OVERHEAD
 
         buffsize = (REQUEST_QUEUE_LENGTH * msg_size_request + ANSWER_BUFF_LENGTH * msg_size_data)
@@ -146,7 +146,7 @@ module module_walk_communicator
 
         ! notify rank 0 that we are finished with our walk
         call MPI_BSEND(comm_dummy, 1, MPI_INTEGER, 0, TAG_FINISHED_PE, &
-          t%comm_data%comm, ierr)
+          t%comm_env%comm, ierr)
 
         walk_status = WALK_I_NOTIFIED_0
       end subroutine send_walk_finished
@@ -164,12 +164,12 @@ module module_walk_communicator
          ! all PEs have to be informed
          ! TODO: need better idea here...
          if (walk_comm_debug) then
-           DEBUG_INFO('("PE", I6, " has found out that all PEs have finished walking - telling them to exit now")', t%comm_data%rank)
+           DEBUG_INFO('("PE", I6, " has found out that all PEs have finished walking - telling them to exit now")', t%comm_env%rank)
          end if
 
-         do i = 0, t%comm_data%size - 1
+         do i = 0, t%comm_env%size - 1
            call MPI_BSEND(comm_dummy, 1, MPI_INTEGER, i, TAG_FINISHED_ALL, &
-             t%comm_data%comm, ierr)
+             t%comm_env%comm, ierr)
          end do
       end subroutine
 
@@ -193,7 +193,7 @@ module module_walk_communicator
 
       if (walk_comm_debug) then
         DEBUG_INFO('("PE", I6, " answering request.                         request_key=", O22, ",        sender=", I6)',
-                       t%comm_data%rank, requested_key, ipe_sender )
+                       t%comm_env%rank, requested_key, ipe_sender )
       end if
 
       j = 0
@@ -208,7 +208,7 @@ module module_walk_communicator
       
       ! Ship child data back to PE that requested it
       call MPI_BSEND( children_to_send(1:nchild), nchild, MPI_TYPE_tree_node, &
-        ipe_sender, TAG_REQUESTED_DATA, t%comm_data%comm, ierr)
+        ipe_sender, TAG_REQUESTED_DATA, t%comm_env%comm, ierr)
 
       ! statistics on number of sent children-packages
       t%sum_ships = t%sum_ships + 1
@@ -232,7 +232,7 @@ module module_walk_communicator
         ! send a request to PE req_queue_owners(req_queue_top)
         ! telling, that we need child data for particle request_key(req_queue_top)
         call MPI_BSEND(req%key, 1, MPI_INTEGER8, req%owner, TAG_REQUEST_KEY, &
-          t%comm_data%comm, ierr)
+          t%comm_env%comm, ierr)
 
         req%node%flags = ibset(req%node%flags, TREE_NODE_FLAG_REQUEST_SENT )
 
@@ -245,7 +245,7 @@ module module_walk_communicator
 
 
     subroutine unpack_data(t, child_data, num_children, ipe_sender)
-      use module_tree, only: t_tree, tree_insert_node, tree_lookup_node_critical
+      use module_tree, only: t_tree, tree_insert_or_update_node, tree_lookup_node_critical
       use module_tree_node
       use module_spacefilling
       use module_debug
@@ -276,18 +276,19 @@ module module_walk_communicator
 
         if (walk_comm_debug) then
           DEBUG_INFO('("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ",        owner=", I6, ", kchild=", O22)',
-                         t%comm_data%rank, parent_key(num_parents), ipe_sender, child_data(ic)%owner, child_data(ic)%key)
+                         t%comm_env%rank, parent_key(num_parents), ipe_sender, child_data(ic)%owner, child_data(ic)%key)
         end if
 
         ! tree nodes coming from remote PEs are flagged for easier identification
         child_data(ic)%flags = ibset(child_data(ic)%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
 
-        call tree_insert_node(t, child_data(ic))
+        ! TODO: print message if node exists, i.e., use tree_insert_node()
+        call tree_insert_or_update_node(t, child_data(ic))
         ! count number of fetched nodes
         t%sum_fetches = t%sum_fetches+1
      end do
 
-     call atomic_read_write_barrier()
+     call atomic_write_barrier()
 
      ! set 'children-here'-flag for all parent addresses
      ! may only be done *after inserting all* children, hence not(!) during the loop above

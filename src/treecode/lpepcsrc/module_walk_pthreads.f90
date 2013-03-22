@@ -270,11 +270,11 @@ module module_walk_pthreads_commutils
       ! negative values denote more received datasets than requested, which implies
       ! a bug in bookkeeping on the sender`s side
         if (req_queue_top .ne. atomic_load_int(req_queue_bottom)) then
-           DEBUG_WARNING_ALL('(a,I0,a,/,a,/,a)', "PE ", t%comm_data%rank, " has finished its walk, but the request list is not empty",
+           DEBUG_WARNING_ALL('(a,I0,a,/,a,/,a)', "PE ", t%comm_env%rank, " has finished its walk, but the request list is not empty",
                                                  "obviously, there is an error in the todo_list bookkeeping",
                                                  "Trying to recover from that")
         elseif (request_balance .ne. 0) then
-           DEBUG_WARNING_ALL('(a,I0,a,I0,/,a,/,a)', "PE ", t%comm_data%rank, " finished walking but is are still waiting for requested data: request_balance =", request_balance,
+           DEBUG_WARNING_ALL('(a,I0,a,I0,/,a,/,a)', "PE ", t%comm_env%rank, " finished walking but is are still waiting for requested data: request_balance =", request_balance,
                                                     "This should never happen - obviously, the request_queue or some todo_list is corrupt",
                                                     "Trying to recover from this situation anyway: Waiting until everything arrived although we will not interact with it.")
         else
@@ -315,7 +315,6 @@ module module_walk_pthreads_commutils
         type(t_tree_node), pointer, intent(in) :: request_node
         
         integer :: local_queue_bottom
-        type(t_request_queue_entry) :: req
 
         ! check wether the node has already been requested
         ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
@@ -336,14 +335,13 @@ module module_walk_pthreads_commutils
         end if
 
         ! the communicator will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
-        req%key   =  request_key
-        req%owner =  request_node%owner
-        req%node  => request_node
-
-        req_queue(local_queue_bottom) = req
+        req_queue(local_queue_bottom)%key = request_key
+        req_queue(local_queue_bottom)%node => request_node
+        call atomic_write_barrier()
+        req_queue(local_queue_bottom)%owner = request_node%owner
 
         if (walk_comm_debug) then
-          DEBUG_INFO('("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6)', t%comm_data%rank, local_queue_bottom, request_key, request_node%owner)
+          DEBUG_INFO('("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6)', t%comm_env%rank, local_queue_bottom, request_key, request_node%owner)
         end if
 
     end subroutine post_request
@@ -371,10 +369,11 @@ module module_walk_pthreads_commutils
           ! first check whether the entry is actually valid	  
           if (req_queue(tmp_top)%owner >= 0) then
             req_queue_top = tmp_top
+            call atomic_read_barrier()
 
             if (walk_comm_debug) then
                 DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)',
-                           t%comm_data%rank, req_queue_top, req_queue(req_queue_top)%key, req_queue(req_queue_top)%owner)
+                           t%comm_env%rank, req_queue_top, req_queue(req_queue_top)%key, req_queue(req_queue_top)%owner)
             end if
 
             if (send_request(t, req_queue(req_queue_top))) then
@@ -412,12 +411,12 @@ module module_walk_pthreads_commutils
                                                  ! is still working and which ones are finished
                                                  ! to emulate a non-blocking barrier
 
-        allocate(walk_finished(t%comm_data%size))
+        allocate(walk_finished(t%comm_env%size))
 
         nummessages            = 0
         messages_per_iteration = 0
 
-        if ( t%comm_data%first ) walk_finished = .false.
+        if ( t%comm_env%first ) walk_finished = .false.
 
         twalk_loc = MPI_WTIME()
 
@@ -427,7 +426,7 @@ module module_walk_pthreads_commutils
         endif
 
         if (walk_comm_debug) then
-          DEBUG_INFO('("PE", I6, " run_communication_loop start. walk_status = ", I6)', t%comm_data%rank, walk_status)
+          DEBUG_INFO('("PE", I6, " run_communication_loop start. walk_status = ", I6)', t%comm_env%rank, walk_status)
         end if
 
         timings_comm(TIMING_COMMLOOP) = MPI_WTIME()
@@ -468,7 +467,7 @@ module module_walk_pthreads_commutils
         end do ! while (walk_status .ne. WALK_ALL_FINISHED)
 
         if (walk_comm_debug) then
-          DEBUG_INFO('("PE", I6, " run_communication_loop end.   walk_status = ", I6)', t%comm_data%rank, walk_status)
+          DEBUG_INFO('("PE", I6, " run_communication_loop end.   walk_status = ", I6)', t%comm_env%rank, walk_status)
         endif
 
         timings_comm(TIMING_COMMLOOP) = MPI_WTIME() - timings_comm(TIMING_COMMLOOP)
@@ -514,7 +513,7 @@ module module_walk_pthreads_commutils
           ! if a blocking probe is used,
           ! the calls to send_requests() and send_walk_finished() have
           ! to be performed asynchonously (i.e. from the walk threads)
-          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_data%comm, msg_avail, stat, ierr)
+          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_env%comm, msg_avail, stat, ierr)
           if (msg_avail) then
 
             comm_loop_iterations(3) = comm_loop_iterations(3) + 1
@@ -533,7 +532,7 @@ module module_walk_pthreads_commutils
              case (TAG_REQUEST_KEY)
                 ! actually receive this request... ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
                 call MPI_RECV( requested_key, 1, MPI_INTEGER8, ipe_sender, TAG_REQUEST_KEY, &
-                        t%comm_data%comm, MPI_STATUS_IGNORE, ierr)
+                        t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
                 ! ... and answer it
                 call send_data(t, requested_key, ipe_sender)
 
@@ -544,7 +543,7 @@ module module_walk_pthreads_commutils
                 ! TODO: this allocate should go away!
                 allocate(child_data(num_children))
                 call MPI_RECV( child_data, num_children, MPI_TYPE_tree_node, ipe_sender, TAG_REQUESTED_DATA, &
-                        t%comm_data%comm, MPI_STATUS_IGNORE, ierr)
+                        t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
                 ! ... and put it into the tree and all other data structures
                 call unpack_data(t, child_data, num_children, ipe_sender)
                 deallocate(child_data)
@@ -554,10 +553,10 @@ module module_walk_pthreads_commutils
              case (TAG_FINISHED_PE)
                 ! actually receive the data (however, we are not interested in it here) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
                 call MPI_RECV( dummy, 1, MPI_INTEGER, ipe_sender, TAG_FINISHED_PE, &
-                        t%comm_data%comm, MPI_STATUS_IGNORE, ierr)
+                        t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
 
                 if (walk_comm_debug) then
-                  DEBUG_INFO('("PE", I6, " has been told that PE", I6, " has finished walking")', t%comm_data%rank, ipe_sender)
+                  DEBUG_INFO('("PE", I6, " has been told that PE", I6, " has finished walking")', t%comm_env%rank, ipe_sender)
                   DEBUG_INFO(*, 'walk_finished = ', walk_finished)
                   DEBUG_INFO('("nummessages(TAG_FINISHED_PE) = ", I6, ", count(walk_finished) = ", I6)', nummessages(TAG_FINISHED_PE), count(walk_finished))
                 end if
@@ -573,24 +572,24 @@ module module_walk_pthreads_commutils
                     endif
                   end if
                 else
-                  DEBUG_WARNING_ALL('("PE", I6, " has been told that PE", I6, " has finished walking, but already knew that. Obviously received duplicate TAG_FINISHED_PE, ignoring.")', t%comm_data%rank, ipe_sender)
+                  DEBUG_WARNING_ALL('("PE", I6, " has been told that PE", I6, " has finished walking, but already knew that. Obviously received duplicate TAG_FINISHED_PE, ignoring.")', t%comm_env%rank, ipe_sender)
                 endif
 
 
              ! all PEs have finished their walk
              case (TAG_FINISHED_ALL)
                 call MPI_RECV( dummy, 1, MPI_INTEGER, ipe_sender, TAG_FINISHED_ALL, &
-                            t%comm_data%comm, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
+                            t%comm_env%comm, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
 
                 if (walk_comm_debug) then
-                  DEBUG_INFO('("PE", I6, " has been told to terminate by PE", I6, " since all walks on all PEs are finished")', t%comm_data%rank, ipe_sender)
+                  DEBUG_INFO('("PE", I6, " has been told to terminate by PE", I6, " since all walks on all PEs are finished")', t%comm_env%rank, ipe_sender)
                 end if
 
                 walk_status = WALK_ALL_FINISHED
 
           end select
 
-          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_data%comm, msg_avail, stat, ierr)
+          call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_env%comm, msg_avail, stat, ierr)
 
         end do ! while (msg_avail)
 
@@ -682,19 +681,19 @@ module module_walk
         real*8 :: global_thread_counters_shared_avg(NUM_THREAD_COUNTERS)
         real*8 :: global_thread_counters_shared_dev(NUM_THREAD_COUNTERS)
 
-        call MPI_REDUCE(thread_timers_nonshared_avg(:), global_thread_timers_nonshared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, t%comm_data%comm, ierr)
-        call MPI_REDUCE(thread_timers_shared_avg(:), global_thread_timers_shared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, t%comm_data%comm, ierr)
-        call MPI_REDUCE(thread_counters_nonshared_avg(:), global_thread_counters_nonshared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, t%comm_data%comm, ierr)
-        call MPI_REDUCE(thread_counters_shared_avg(:), global_thread_counters_shared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, t%comm_data%comm, ierr)
-        call MPI_REDUCE(thread_timers_nonshared_dev(:), global_thread_timers_nonshared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, t%comm_data%comm, ierr)
-        call MPI_REDUCE(thread_timers_shared_dev(:), global_thread_timers_shared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, t%comm_data%comm, ierr)
-        call MPI_REDUCE(thread_counters_nonshared_dev(:), global_thread_counters_nonshared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, t%comm_data%comm, ierr)
-        call MPI_REDUCE(thread_counters_shared_dev(:), global_thread_counters_shared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, t%comm_data%comm, ierr)
+        call MPI_REDUCE(thread_timers_nonshared_avg(:), global_thread_timers_nonshared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, t%comm_env%comm, ierr)
+        call MPI_REDUCE(thread_timers_shared_avg(:), global_thread_timers_shared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, t%comm_env%comm, ierr)
+        call MPI_REDUCE(thread_counters_nonshared_avg(:), global_thread_counters_nonshared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, t%comm_env%comm, ierr)
+        call MPI_REDUCE(thread_counters_shared_avg(:), global_thread_counters_shared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, t%comm_env%comm, ierr)
+        call MPI_REDUCE(thread_timers_nonshared_dev(:), global_thread_timers_nonshared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, t%comm_env%comm, ierr)
+        call MPI_REDUCE(thread_timers_shared_dev(:), global_thread_timers_shared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, t%comm_env%comm, ierr)
+        call MPI_REDUCE(thread_counters_nonshared_dev(:), global_thread_counters_nonshared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, t%comm_env%comm, ierr)
+        call MPI_REDUCE(thread_counters_shared_dev(:), global_thread_counters_shared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, t%comm_env%comm, ierr)
 
-        global_thread_timers_nonshared_avg   = global_thread_timers_nonshared_avg / t%comm_data%size
-        global_thread_timers_shared_avg      = global_thread_timers_shared_avg / t%comm_data%size
-        global_thread_counters_nonshared_avg = global_thread_counters_nonshared_avg / t%comm_data%size
-        global_thread_counters_shared_avg    = global_thread_counters_shared_avg / t%comm_data%size
+        global_thread_timers_nonshared_avg   = global_thread_timers_nonshared_avg / t%comm_env%size
+        global_thread_timers_shared_avg      = global_thread_timers_shared_avg / t%comm_env%size
+        global_thread_counters_nonshared_avg = global_thread_counters_nonshared_avg / t%comm_env%size
+        global_thread_counters_shared_avg    = global_thread_counters_shared_avg / t%comm_env%size
 
         if (perform_output) then
           write (ifile,'(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_particles_per_thread
@@ -868,7 +867,7 @@ module module_walk
       ! check wether all particles really have been processed
       num_processed_particles = sum(threaddata(:)%counters(THREAD_COUNTER_PROCESSED_PARTICLES))
       if (num_processed_particles .ne. num_particles) then
-        DEBUG_ERROR(*, "Serious issue on PE", walk_tree%comm_data%rank, ": all walk threads have terminated, but obviously not all particles are finished with walking: num_processed_particles =",
+        DEBUG_ERROR(*, "Serious issue on PE", walk_tree%comm_env%rank, ": all walk threads have terminated, but obviously not all particles are finished with walking: num_processed_particles =",
                             num_processed_particles, " num_particles =", num_particles )
       end if
 
@@ -983,7 +982,7 @@ module module_walk
       use module_interaction_specific
       use module_debug
       use module_atomic_ops
-      use module_tree, only: tree_get_root
+      use module_tree, only: tree_lookup_root
       implicit none
       include 'mpif.h'
       type(c_ptr) :: walk_worker_thread
@@ -1010,7 +1009,7 @@ module module_walk
 
       type(t_defer_list_entry), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
       defer_list_root_only(1)%key = 1_8
-      call tree_get_root(walk_tree, defer_list_root_only(1)%node, 'walk_worker_thread:root node')
+      call tree_lookup_root(walk_tree, defer_list_root_only(1)%node, 'walk_worker_thread:root node')
 
       t_get_new_particle = 0._8
       t_walk_single_particle = 0._8
@@ -1083,12 +1082,12 @@ module module_walk
                 if (particle_has_finished) then
                   ! walk for particle i has finished
                   if (walk_debug) then
-                      DEBUG_INFO('("PE", I6, " particle ", I12, " obviously finished walking around :-)")', walk_tree%comm_data%rank, i)
+                      DEBUG_INFO('("PE", I6, " particle ", I12, " obviously finished walking around :-)")', walk_tree%comm_env%rank, i)
                   end if
 
                   ! check whether the particle really interacted with all other particles
                   if (partner_leaves(i) .ne. num_interaction_leaves) then
-                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') walk_tree%comm_data%rank, thread_particle_indices(i), thread_particle_data(i)%label
+                    write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') walk_tree%comm_env%rank, thread_particle_indices(i), thread_particle_data(i)%label
                     write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
                     write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
                     call debug_mpi_abort()
@@ -1140,7 +1139,7 @@ module module_walk
         twalk_loc = MPI_WTIME() - twalk_loc
 
         if (walk_debug) then
-          DEBUG_INFO(*, "PE", walk_tree%comm_data%rank, "has finished walking")
+          DEBUG_INFO(*, "PE", walk_tree%comm_env%rank, "has finished walking")
         endif
 
       endif
@@ -1260,11 +1259,11 @@ module module_walk
       ! that the node has to be resolved
       ! if the defer_list is empty, the call reurns without doing anything
       call defer_list_parse_and_compact()
+      call atomic_read_barrier()
 
       ! read all todo_list-entries and start further traversals there
       do while (todo_list_pop(walk_key))
 
-          call atomic_read_write_barrier()
           call tree_lookup_node_critical(walk_tree, walk_key, walk_node, 'WALK:walk_single_particle')
           walk_level = walk_node%level
 
@@ -1328,7 +1327,7 @@ module module_walk
                       call defer_list_push(walk_key, walk_node) ! Deferred list of nodes to search, pending request
                                                                      ! for data from nonlocal PEs
                       if (walk_debug) then
-                          DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  walk_tree%comm_data%rank, defer_list_entries_new)
+                          DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  walk_tree%comm_env%rank, defer_list_entries_new)
                       end if
                   end if
               endif

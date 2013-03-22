@@ -22,7 +22,7 @@
 !> Encapsulates domain decomposition and restoration of original particle order
 !>
 module module_domains
-  use module_comm_data, only: t_comm_data
+  use module_comm_env, only: t_comm_env
   implicit none
   save
   private
@@ -39,7 +39,7 @@ module module_domains
     integer, allocatable :: islen(:)  !< input to the sorting routine
     integer, allocatable :: irlen(:)  !< input to the sorting routine
 
-    type(t_comm_data) :: comm_data !< the communication topology over which the domain is decomposed
+    type(t_comm_env) :: comm_env !< the communication topology over which the domain is decomposed
   end type t_decomposition
 
   integer, public :: weighted = 1 !< set to 0 to disable load balancing, 1 to enable load balancing
@@ -53,20 +53,20 @@ module module_domains
   contains
 
   subroutine decomposition_create(d, nl, n, c)
-    use module_comm_data, only: comm_data_dup
+    use module_comm_env, only: comm_env_dup
     use module_debug
     implicit none
 
     type(t_decomposition), intent(inout) :: d
     integer, intent(in) :: nl
     integer*8, intent(in) :: n
-    type(t_comm_data), intent(in) :: c
+    type(t_comm_env), intent(in) :: c
 
-    call comm_data_dup(c, d%comm_data)
+    call comm_env_dup(c, d%comm_env)
     
     !TODO: make adjustable by user or find a good estimation. Additional Question: Does this value have to be globally constant?
     ! allow 25% fluctuation around average particle number per PE in sorting library for load balancing
-    d%nppmax = int(1.25 * max(int(n / d%comm_data%size), 1000))
+    d%nppmax = int(1.25 * max(int(n / d%comm_env%size), 1000))
 
     if (d%nppmax - 2 .lt. nl) then
       DEBUG_WARNING_ALL(*, 'nppmax-2=', d%nppmax - 2, 'is smaller than np_local=', nl, ' - fixing and continuing. This could lead to load balancing issues. See ticket no. 10')
@@ -74,13 +74,13 @@ module module_domains
     end if
 
     ! fields for sorting library results
-    allocate(d%indxl(d%nppmax), d%irnkl(d%nppmax), d%fposts(d%comm_data%size + 1), &
-      d%gposts(d%comm_data%size + 1), d%islen(d%comm_data%size), d%irlen(d%comm_data%size))
+    allocate(d%indxl(d%nppmax), d%irnkl(d%nppmax), d%fposts(d%comm_env%size + 1), &
+      d%gposts(d%comm_env%size + 1), d%islen(d%comm_env%size), d%irlen(d%comm_env%size))
   end subroutine decomposition_create
 
 
   subroutine decomposition_destroy(d)
-    use module_comm_data, only: comm_data_destroy
+    use module_comm_env, only: comm_env_destroy
     implicit none
 
     type(t_decomposition), intent(inout) :: d
@@ -91,7 +91,7 @@ module module_domains
 
     deallocate(d%indxl, d%irnkl, d%fposts, d%gposts, d%islen, d%irlen)
 
-    call comm_data_destroy(d%comm_data)
+    call comm_env_destroy(d%comm_env)
   end subroutine decomposition_destroy
 
 
@@ -126,7 +126,7 @@ module module_domains
     integer*8, intent(in) :: n
     type(t_particle), allocatable, intent(inout) :: particles(:)
     type(t_particle), intent(out) :: bp(2)
-    type(t_comm_data), intent(in) :: c
+    type(t_comm_env), intent(in) :: c
     integer, optional, intent(in) :: npl
 
     integer :: i, j, ierr
@@ -180,8 +180,8 @@ module module_domains
 
     ! perform index sort on keys !TODO: remove the "-2", compare other cases with "+2" and "npp+1" etc.
     call slsort_keys(d%npold, d%nppmax - 2, local_keys, work2, weighted, imba, d%npnew, d%indxl, d%irnkl, &
-      d%islen, d%irlen, d%fposts, d%gposts, w1, irnkl2, d%comm_data%size, d%comm_data%rank , &
-      d%comm_data%comm)
+      d%islen, d%irlen, d%fposts, d%gposts, w1, irnkl2, d%comm_env%size, d%comm_env%rank , &
+      d%comm_env%comm)
 
     ! FIXME: every processor has to have at least one particle
     if (d%npnew < 2) then
@@ -210,7 +210,7 @@ module module_domains
     ! perform permute
     call MPI_alltoallv(ship_parts, d%islen, d%fposts, mpi_type_particle, &
       get_parts, d%irlen, d%gposts, mpi_type_particle, &
-      d%comm_data%comm, ierr)
+      d%comm_env%comm, ierr)
 
     call timer_stop(t_domains_add_alltoallv)
 
@@ -235,7 +235,7 @@ module module_domains
     if (dbg(DBG_DOMAIN)) call print_particle_list(particles, d%npnew, &
       'Particle list after key sort (see t_particle in module_pepc_types.f90 for meaning of the columns)')
 
-    particles(:)%pid = d%comm_data%rank  ! new owner
+    particles(:)%pid = d%comm_env%rank  ! new owner
 
     ! Each PE now has sorted segment of particles of length npp
     ! Note that now npp /= npart/num_pe, only approx depending on key distribution, or target shape.
@@ -257,7 +257,7 @@ module module_domains
     ! key differences for identifiying duplicates and/or overlap, be aware of the problem, that for me==num_pe-1, key_diffs(npp) is invalid since there is no right neighbour
     allocate(key_diffs(d%npnew))
     key_diffs(1:d%npnew - 1) = local_keys(2:d%npnew) - local_keys(1:d%npnew - 1) ! key_diffs(i) = local_keys(i+1) - local_keys(i)
-    if (d%comm_data%last) then
+    if (d%comm_env%last) then
       key_diffs(d%npnew) = 1
     else
       key_diffs(d%npnew) = bp(2)%key - local_keys(d%npnew)
@@ -327,15 +327,15 @@ module module_domains
       npp = d%npnew
 
       ! Define neighbours for non-circular shift
-      if (d%comm_data%first) then
+      if (d%comm_env%first) then
         prev = MPI_PROC_NULL
       else
-        prev = d%comm_data%rank - 1
+        prev = d%comm_env%rank - 1
       end if
-      if (d%comm_data%last) then
+      if (d%comm_env%last) then
         next = MPI_PROC_NULL
       else
-        next = d%comm_data%rank + 1
+        next = d%comm_env%rank + 1
       end if
 
       ! Copy boundary particles to adjacent PEs to ensure proper tree construction
@@ -344,12 +344,12 @@ module module_domains
       ! Ship 1st particle data to LH neighbour PE
       call MPI_SENDRECV(particles(1), 1, mpi_type_particle, prev, 1990, &
         bp(2), 1, mpi_type_particle, next, 1990, &
-        d%comm_data%comm, state, ierr)
+        d%comm_env%comm, state, ierr)
 
       ! Ship end particle data to RH neighbour PE
       call MPI_SENDRECV(particles(npp), 1, mpi_type_particle, next, 2990, &
         bp(1), 1, mpi_type_particle, prev, 2990, &
-        d%comm_data%comm, state, ierr)
+        d%comm_env%comm, state, ierr)
 
     end subroutine exchange_boundary_particles
   end subroutine domain_decompose
@@ -382,7 +382,7 @@ module module_domains
       ! perform permute
       call MPI_alltoallv(ship_parts, d%islen, d%fposts, MPI_TYPE_particle, &
             get_parts, d%irlen, d%gposts, MPI_TYPE_particle, &
-            d%comm_data%comm, ierr)
+            d%comm_env%comm, ierr)
 
       allocate(p(d%npold))
 
