@@ -331,7 +331,10 @@ module module_walk_pthreads_commutils
         end if
 
         ! the communicator will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
-        req_queue(local_queue_bottom)   = t_request_queue_entry( request_key, request_addr, htable( request_addr )%owner )
+        req_queue(local_queue_bottom)%key = request_key
+        req_queue(local_queue_bottom)%addr = request_addr 
+        call atomic_write_barrier()
+        req_queue(local_queue_bottom)%owner = htable(request_addr)%owner
 
         if (walk_comm_debug) then
           DEBUG_INFO('("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6, " request_addr=", I12)',
@@ -361,6 +364,7 @@ module module_walk_pthreads_commutils
           ! first check whether the entry is actually valid	  
 	  if (req_queue(tmp_top)%owner >= 0) then
 	    req_queue_top = tmp_top
+            call atomic_read_barrier()
 
             if (walk_comm_debug) then
                 DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)',
@@ -1230,11 +1234,11 @@ module module_walk
       ! that the node has to be resolved
       ! if the defer_list is empty, the call reurns without doing anything
       call defer_list_parse_and_compact()
+      call atomic_read_barrier()
 
       ! read all todo_list-entries and start further traversals there
       do while (todo_list_pop(walk_key))
 
-          call atomic_read_write_barrier()
           walk_addr  = key2addr( walk_key, 'WALK:walk_single_particle' )  ! get htable address
           walk_node  = htable( walk_addr )%node            ! Walk node index - points to multipole moments
           walk_level = htable( walk_addr )%level

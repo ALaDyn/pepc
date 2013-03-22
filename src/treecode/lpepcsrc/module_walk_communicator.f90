@@ -292,7 +292,7 @@ module module_walk_communicator
         sum_fetches = sum_fetches+1
      end do
 
-     call atomic_read_write_barrier()
+     call atomic_write_barrier()
 
      ! set 'children-here'-flag for all parent addresses
      ! may only be done *after inserting all* children, hence not(!) during the loop above
