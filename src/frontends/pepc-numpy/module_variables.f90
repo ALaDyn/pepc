@@ -54,7 +54,6 @@ module variables
   logical :: open_sides
   ! treat electrons in guiding centre approximation
   logical :: guiding_centre_electrons
-  integer :: mirror_layers    ! input variable. Is copied to mirror_box_layers (module_mirror_boxes)
   logical, public :: periodicity_in(3) = [.false., .false., .false.]
   logical :: fixed_npp        ! if .true. number of particles is fixed (tnpp), else number of particles fluxed into the sim domain is fixed
 
@@ -114,7 +113,7 @@ module variables
   !aux strings
   character(255) :: file_in,file_out,filenameh
 
-  namelist /pepcf/ fsup,tfpp,fixed_npp,periodicity_in,mirror_layers,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /pepcf/ fsup,tfpp,fixed_npp,periodicity_in,guiding_centre_electrons,open_sides,tnpp, nt, dt, Bx, By, Bz, te_ev, ti_ev, quelltyp, tnwpy, tnwpz, dx ,dy, dz,diag_interval, checkp_interval
 
 
 end module

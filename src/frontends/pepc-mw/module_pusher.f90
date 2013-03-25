@@ -693,7 +693,7 @@ module module_pusher
       real*8 :: sums(1:8)
       
       ! initialize velocity histogram
-      call histograms_init(p_finish-p_start)
+      !call histograms_init(p_finish-p_start)
       
       ! determine current temperatures
       sums = 0.0
@@ -717,7 +717,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
 
           ! add values to velocity histogram (only for electrons)
-          call histograms_add(uprime(1:3))
+          !call histograms_add(uprime(1:3))
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -809,7 +809,7 @@ module module_pusher
 
     
       ! write velocity histogram
-      call histograms_finalize(Ue_uncor, 'NVT Nose-Hoover thermostat')
+      !call histograms_finalize(Ue_uncor, 'NVT Nose-Hoover thermostat')
     end subroutine
 
 
@@ -849,7 +849,7 @@ module module_pusher
       real*8 :: sums(1:8)
       
       ! initialize velocity histogram
-      call histograms_init(p_finish-p_start)
+      !call histograms_init(p_finish-p_start)
       
       ! determine current temperatures
       sums = 0.0
@@ -872,7 +872,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
           
           ! add values to velocity histogram (only for electrons)
-          call histograms_add(uprime(1:3))
+          !call histograms_add(uprime(1:3))
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -963,7 +963,7 @@ module module_pusher
     
 
       ! write velocity histogram
-      call histograms_finalize(Ue_uncor, 'NVT thermostat')
+      !call histograms_finalize(Ue_uncor, 'NVT thermostat')
     end subroutine
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -996,7 +996,7 @@ module module_pusher
       real*8 :: sums(1:8)
       
       ! initialize velocity histograms
-      call histograms_init(p_finish-p_start)
+      !call histograms_init(p_finish-p_start)
       
       ! determine current temperatures
       sums = 0.0
@@ -1016,7 +1016,7 @@ module module_pusher
           gammah      = sqrt(1.0 + uprime2/unit_c2)
           
           ! add values to velocity histogram (only for electrons)
-          call histograms_add(uprime(1:3))
+          !call histograms_add(uprime(1:3))
 
           sums(V2E)     = sums(V2E)     + uprime2 / gammah**2.
           sums(VEX:VEZ) = sums(VEX:VEZ) + uprime  / gammah
@@ -1098,7 +1098,7 @@ module module_pusher
     
 
       ! write velocity histogram
-      call histograms_finalize(Ue_uncor, 'NVE dynamics')
+      !call histograms_finalize(Ue_uncor, 'NVE dynamics')
     end subroutine
     
     

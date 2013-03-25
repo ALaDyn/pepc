@@ -78,9 +78,7 @@ program pepce
        openfiles, &
        closefiles
 
-  use module_walk, only: &
-       num_walk_threads
-  use treevars, only : nleaf, nleaf_me, ntwig, ntwig_me
+  use treevars, only : nleaf, nleaf_me, ntwig, ntwig_me, num_threads
 
   implicit none
 
@@ -106,7 +104,7 @@ program pepce
   ! Set the number of openmp threads.
   ! Set this only, when compiling with openmp (with !$)
   ! Set number of openmp threads to the same number as pthreads used in the walk
-  !$ call omp_set_num_threads(num_walk_threads)
+  !$ call omp_set_num_threads(num_threads)
 
   !$ omp_thread_num = OMP_GET_THREAD_NUM()
   

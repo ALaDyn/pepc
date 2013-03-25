@@ -431,7 +431,7 @@ module module_interaction_specific
         subroutine calc_force_per_particle(particles, nparticles)
           use module_debug, only : pepc_status
           use module_pepc_types
-          use treevars, only : me
+          use treevars, only: me, num_threads
           use module_fmm_framework
           use module_mirror_boxes
           implicit none
@@ -450,6 +450,8 @@ module module_interaction_specific
 
              if ((me==0) .and. (force_law .ne. 3)) write(*,*) "Warning: far-field lattice contribution is currently only supported for force_law==3"
 
+             !$ call omp_set_num_threads(num_threads)
+             !$OMP PARALLEL DO DEFAULT(PRIVATE) SHARED(particles) SCHEDULE(RUNTIME)
              do p=1,nparticles
                 call fmm_sum_lattice_force(particles(p)%x, e_lattice, phi_lattice)
 
@@ -459,6 +461,8 @@ module module_interaction_specific
                 particles(p)%results%e     = particles(p)%results%e     + e_lattice
                 particles(p)%results%pot   = particles(p)%results%pot   +  phi_lattice
              end do
+             !$OMP END PARALLEL DO
+             !$ call omp_set_num_threads(1)
 
           end if
 

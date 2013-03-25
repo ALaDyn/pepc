@@ -10,7 +10,9 @@ MODULE output
 
 
     implicit none
+
     integer,allocatable      :: thits_out(:,:),treflux_out(:,:)
+    real(KIND=8) :: energy_0(2,3)
 
     CONTAINS
 
@@ -37,14 +39,15 @@ MODULE output
 
         integer,intent(in)      :: filehandle,ispecies
         real(KIND=8) :: v_mean(3)
+        real(KIND=8) :: v_th
 
 
-        !if(root) write(filehandle,'(a,es16.8)') " == total time in timestep [s]           : ", timestep
-        v_mean=get_v_mean(particles,ispecies)
-        if(root) write(filehandle,'(a,3es16.8)') "Average velocity (1,2,3)        : ",v_mean
+        v_mean=get_v_mean(particles,np,ispecies)
+        v_th=sqrt(2*species(ispecies)%t_src*e/species(ispecies)%m)
+        if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity (1,2,3) [m/s]  : ",v_mean
+        if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity/v_th (1,2,3)   : ",v_mean/v_th
 
-        !v_mean=get_v_mean(particles,2)
-        !if(root) write(filehandle,*) " == vmean, ions           : ", v_mean
+
 
 
     END SUBROUTINE  velocity_output
@@ -57,16 +60,16 @@ MODULE output
         include 'mpif.h'
 
         integer,intent(in)      :: filehandle,ispecies
-        real(KIND=8) :: v2_mean(3),energy(3)
+        real(KIND=8) :: v2_mean(3),ekin(3),epot(3)
 
 
-        !if(root) write(filehandle,'(a,es16.8)') " == total time in timestep [s]           : ", timestep
-        v2_mean=get_v2_mean(particles,ispecies)
-        energy=v2_mean*0.5*species(ispecies)%m/e
-        if(root) write(filehandle,'(a,3es16.8)') "Average energy (1,2,3) [eV]: ",energy
+        v2_mean=get_v2_mean(particles,np,ispecies)
+        ekin=v2_mean*0.5*species(ispecies)%m/e
+        if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average kinetic energy (1,2,3) [eV]: ",ekin
+        epot=get_epot(particles,np,ispecies)
+        if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average potential energy (1,2,3) [eV]: ",epot
 
-        !v_mean=get_v_mean(particles,2)
-        !if(root) write(filehandle,*) " == vmean, ions           : ", v_mean
+
 
 
     END SUBROUTINE  energy_output
@@ -100,6 +103,7 @@ MODULE output
 
         integer,intent(in)      :: timestep,filehandle
 
+        if(root) write(filehandle,'(a,es16.8)') " == timestep                      : ",dt
         if(root) write(filehandle,'(a,i6)') " == finished computing step              : ",timestep
         if(root) write(filehandle,'(a)') " "
         if(root) write(filehandle,'(a)') "#############################################################################"
@@ -194,7 +198,6 @@ MODULE output
           write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
           write(*,'(a,l6)')     " == far_field_if_periodic            : ", include_far_field_if_periodic
           write(*,'(a,l6)')     " == do_restore_particles             : ", do_restore_particles
-          write(*,'(a,i12)')    " == mirror_layers                    : ", mirror_layers
           write(*,*)
           write(*,*) "========== Magnetic Field ========="
           write(*,'(a,f12.4)')  " == Bx                               : ", Bx
@@ -300,12 +303,13 @@ MODULE output
         integer :: nip(0:nspecies-1)
         real(KIND=8) :: mass(0:nspecies-1)
         real(KIND=8) :: charge(0:nspecies-1)
+        real(KIND=8) :: t_src(0:nspecies-1)
         logical :: physical_particle(0:nspecies-1)
         character(255) :: name(0:nspecies-1)
         integer :: ispecies,ns
 
         namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
-        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name
+        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,t_src
 
         integer, parameter :: fid = 666
 
@@ -339,9 +343,10 @@ MODULE output
                 physical_particle(ispecies)=species(ispecies)%physical_particle
                 nfp(ispecies)=species(ispecies)%nfp
                 nip(ispecies)=species(ispecies)%nip
+                t_src(ispecies)=species(ispecies)%t_src
             END DO
             write(fid,NML=species_nml)
-
+            write(fid,NML=source_nml)
             write(fid,NML=walk_para_smpss)
             close(fid)
 

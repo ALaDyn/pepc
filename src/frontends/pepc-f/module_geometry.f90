@@ -63,7 +63,29 @@ module module_geometry
         allocate(reflux_particles(nbnd_max),stat=rc)
         allocate(nwp(nbnd_max),stat=rc)
 
-        nbnd=0
+        IF(root) write(*,'(a,a)') " == reading parameter file, section geometry: ", trim(input_file)
+        open(fid,file=trim(input_file))
+        read(fid,NML=geometry)
+        rewind(fid)
+
+        deallocate(x0)
+        deallocate(e1)
+        deallocate(e2)
+        deallocate(n)
+        deallocate(type)
+        deallocate(opposite_bnd)
+        deallocate(reflux_particles)
+        deallocate(nwp)
+
+        allocate(x0(nbnd,3),stat=rc)
+        allocate(e1(nbnd,3),stat=rc)
+        allocate(e2(nbnd,3),stat=rc)
+        allocate(n(nbnd,3),stat=rc)
+        allocate(type(nbnd),stat=rc)
+        allocate(opposite_bnd(nbnd),stat=rc)
+        allocate(reflux_particles(nbnd),stat=rc)
+        allocate(nwp(nbnd),stat=rc)
+
         nwp=0
         reflux_particles=.false.
         opposite_bnd=0
@@ -73,8 +95,6 @@ module module_geometry
         e2=0.
         n=0.
 
-        IF(root) write(*,'(a,a)') " == reading parameter file, section geometry: ", trim(input_file)
-        open(fid,file=trim(input_file))
         read(fid,NML=geometry)
         close(fid)
 

@@ -53,11 +53,9 @@ module variables
   integer :: checkp_interval
   logical :: diags
   logical :: interaction_partner_diags
-  integer :: mirror_layers    ! input variable. Is copied to mirror_box_layers (module_mirror_boxes)
 
   ! type of rng (0=standard fortran,1=par_rand from module_zufall)
   integer :: rng
-  logical, public :: periodicity_in(3) = [.false., .false., .false.]
   ! treat electrons in guiding centre approximation
   logical :: guiding_centre_electrons
 
@@ -124,7 +122,7 @@ module variables
 
 
   namelist /source_nml/ x0_src,e1_src,e2_src,e3_src,quelltyp,src_boundary
-  namelist /pepcf/ fsup,periodicity_in,mirror_layers,guiding_centre_electrons, nt, dt, Bx, By, Bz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, dx ,dy, dz,diag_interval, checkp_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 

@@ -41,7 +41,7 @@ program pepcs
   integer :: it, ip
 
   call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
-  call pepc_initialize("pepc-s", my_rank, n_cpu, .false.) ! this forntend cares for mpi initilization by itself
+  call pepc_initialize("pepc-s", my_rank, n_cpu, .false.) ! this frontend cares for mpi initilization by itself
 
   lx = [1, 0, 0]
   ly = [0, 1, 0]

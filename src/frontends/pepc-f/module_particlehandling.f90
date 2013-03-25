@@ -29,7 +29,7 @@ module particlehandling
                 IF (hit) THEN
                     hits(p(rp)%data%species,ib)=hits(p(rp)%data%species,ib)+1
                     IF (boundaries(ib)%type==3) THEN                                   !Open BC
-                        reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
+                        IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
                         IF(rp .ne. np) THEN
                             p(rp) = p(np)
                         END IF
@@ -45,7 +45,7 @@ module particlehandling
                         p(rp)%data%v = p(rp)%data%v - 2.*dotproduct(p(rp)%data%v,boundaries(ib)%n)*boundaries(ib)%n
                         ib = 0
                     ELSE IF (boundaries(ib)%type==0) THEN                              !Absorbing Wall BC
-                        reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
+                        IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
                         IF(rp .ne. np) THEN
                             p(rp) = p(np)
                         END IF
@@ -399,21 +399,12 @@ module particlehandling
         quelle: SELECT case(i)
             case(0)
                 call source_berberich(p) 
-                !write(*,*)"BERBERICH"
             case(1)
                 call source_emmert(p)
-                !write(*,*)"EMMERT"
             case(2)
                 call source_bissel_johnson(p)
-                !write(*,*)"BISSEL JOHNSON"
-            case(3)  !test case with uniform plasma in timestep 0 and afterwards berberichs source
-                if (step==0) then
-                    call source_uniform_gaussian_plasma(p)
-                    !write(*,*)"UNIFORM"
-                else
-                    call source_berberich(p)
-                    !write(*,*)"BERBERICH"
-                end if
+            case(3)  !test case with uniform plasma
+                call source_uniform_gaussian_plasma(p)
             case default
                 !do nothing
         END SELECT quelle
@@ -502,15 +493,7 @@ module particlehandling
                     call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
                 END IF
 
-                !p(ip)%x(1)=rnd_num()
-                !p(ip)%x(2)=rnd_num()
-                !p(ip)%x(3)=rnd_num()
-                !p(ip)%x(1)         = p(ip)%x(1)*0.2*dx + xmin +0.4*dx  !test
-                !p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
-                !p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
-
                 p(ip)%x=x0_src + rnd_num()*e1_src + rnd_num()*e2_src + rnd_num()*e3_src
-
 
                 !If treated in guding centre approximation, electrons just need other startign values in
                 !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
@@ -585,13 +568,7 @@ module particlehandling
                 END DO
             ELSE
                 sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
-                p(ip)%x(1)=rnd_num()
-                p(ip)%x(2)=rnd_num()
-                p(ip)%x(3)=rnd_num()
-
-                p(ip)%x(1)         = p(ip)%x(1)*dx + xmin
-                p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
-                p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
+                p(ip)%x=x0_src + rnd_num()*e1_src + rnd_num()*e2_src + rnd_num()*e3_src
 
                 call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
 

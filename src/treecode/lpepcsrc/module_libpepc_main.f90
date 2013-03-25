@@ -23,10 +23,10 @@
 !>
 module module_libpepc_main
     use module_debug, only : debug_level
-    use treevars, only : np_mult, interaction_list_length_factor
+    use treevars, only : np_mult, interaction_list_length_factor, num_threads
     use module_spacefilling, only : curve_type
     use module_domains, only: weighted, force_cubic_domain
-    use module_mirror_boxes, only: mirror_box_layers
+    use module_mirror_boxes, only: mirror_box_layers, periodicity
 
     implicit none
     private
@@ -37,7 +37,7 @@ module module_libpepc_main
     public libpepc_read_parameters
     public libpepc_write_parameters
 
-    namelist /libpepc/ debug_level, np_mult, curve_type, force_cubic_domain, weighted, interaction_list_length_factor, mirror_box_layers
+    namelist /libpepc/ debug_level, periodicity, np_mult, curve_type, force_cubic_domain, weighted, interaction_list_length_factor, mirror_box_layers, num_threads
 
     contains
 

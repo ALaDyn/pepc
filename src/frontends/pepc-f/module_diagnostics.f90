@@ -14,25 +14,52 @@ MODULE diagnostics
     implicit none
 
     CONTAINS
-
 !===============================================================================
 
-    function get_v2_mean(p,ispecies)
+    function get_epot(p,nparticles,ispecies)
         implicit none
         include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
-        integer, intent(in) :: ispecies
+        integer, intent(in) :: ispecies,nparticles
+        real(KIND=8),dimension(3) :: get_epot
+
+        integer :: ip,rc
+        real(KIND=8) :: esum(3),tesum(3)
+
+        esum=0.0
+        tesum=0.0
+
+        DO ip=1,nparticles
+            IF(p(ip)%data%species==ispecies) THEN
+                esum=esum+0.5*p(ip)%results%pot*fc*species(ispecies)%q/e
+            END IF
+        END DO
+        esum=esum/tnpps(ispecies)
+
+        call MPI_ALLREDUCE(esum, tesum, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+
+        get_epot=tesum
+        return
+
+    end function get_epot
+!===============================================================================
+
+    function get_v2_mean(p,nparticles,ispecies)
+        implicit none
+        include 'mpif.h'
+
+        type(t_particle),  intent(in) :: p(:)
+        integer, intent(in) :: ispecies,nparticles
         real(KIND=8),dimension(3) :: get_v2_mean
 
-        integer :: n,ip,rc
+        integer :: ip,rc
         real(KIND=8) :: v2sum(3),tv2sum(3)
 
-        n=size(p)
         v2sum=0.0
         tv2sum=0.0
 
-        DO ip=1,n
+        DO ip=1,nparticles
             IF(p(ip)%data%species==ispecies) THEN
                 v2sum=v2sum+p(ip)%data%v*p(ip)%data%v
             END IF
@@ -48,22 +75,21 @@ MODULE diagnostics
 
 !===============================================================================
 
-    function get_v_mean(p,ispecies)
+    function get_v_mean(p,nparticles,ispecies)
         implicit none
         include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
-        integer, intent(in) :: ispecies
+        integer, intent(in) :: ispecies,nparticles
         real(KIND=8),dimension(3) :: get_v_mean
 
-        integer :: n,ip,rc
+        integer :: ip,rc
         real(KIND=8) :: vsum(3),tvsum(3)
 
-        n=size(p)
         vsum=0.0
         tvsum=0.0
 
-        DO ip=1,n
+        DO ip=1,nparticles
             IF(p(ip)%data%species==ispecies) THEN
                 vsum=vsum+p(ip)%data%v
             END IF

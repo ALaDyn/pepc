@@ -34,6 +34,9 @@ program pepc
     implicit none
     include 'mpif.h'
 
+    real(KIND=8) :: v2sum(3),vsum(3)
+
+
     !!! initialize pepc library and MPI
     call pepc_initialize("pepc-numpy", my_rank, n_ranks, .true.)
 
@@ -56,6 +59,22 @@ program pepc
         if (root) allocate(particles_npy_reshaped(0:18,0:npart-1))
 
         call MPI_GATHER(particles,np,MPI_TYPE_PARTICLE,all_particles,npart,MPI_TYPE_PARTICLE,0,MPI_COMM_WORLD,ierr)
+
+
+
+        v2sum=0.0
+        vsum=0.0
+        DO j=1,npart
+            IF(particles(j)%data%species==2) THEN
+                v2sum=v2sum+particles(j)%data%v*particles(j)%data%v
+                vsum=vsum+particles(j)%data%v
+            END IF
+        END DO
+        v2sum=v2sum/1000000
+        vsum=vsum/1000000
+        write(*,*)v2sum*0.5*mp/e
+        write(*,*)vsum
+
 
         if (root) then
         do j=0,npart-1

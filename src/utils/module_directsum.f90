@@ -76,7 +76,7 @@ module module_directsum
           use module_interaction_specific_types
           use module_interaction_specific
           use omp_lib
-          use module_walk, only: num_walk_threads
+          use treevars, only: num_threads
           use module_timings
           use module_mirror_boxes
           implicit none
@@ -109,12 +109,12 @@ module module_directsum
           call timer_reset(t_direct_comm)
 
           ! Set number of openmp threads to the same number as pthreads used in the walk
-          !$ call omp_set_num_threads(num_walk_threads)
+          !$ call omp_set_num_threads(num_threads)
 
           ! Inform the user that openmp is used, and with how many threads
           !$OMP PARALLEL PRIVATE(omp_thread_num)
           !$ omp_thread_num = OMP_GET_THREAD_NUM()
-          !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_walk_threads parameter.'
+          !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_threads parameter.'
           !$OMP END PARALLEL
 
           ! determine right and left neighbour
