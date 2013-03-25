@@ -22,7 +22,7 @@
 !>  Encapsulates functions for accessing, manipulating, and verifying hash table data
 !>
 module module_tree_node
-    use module_pepc_types
+    use module_pepc_types, only: t_tree_node
     implicit none
     private
 
@@ -39,6 +39,7 @@ module module_tree_node
     public tree_node_is_leaf
     public tree_node_children_available
     public tree_node_get_childkeys
+    public tree_node_has_child
 
     contains
 
@@ -68,6 +69,22 @@ module module_tree_node
 
 
     !>
+    !> Returns `.true.` if tree node `n` has a child with number `i`.
+    !>
+    !> Child number as defined by `child_number_from_key()`.
+    !>
+    function tree_node_has_child(n, i)
+      implicit none
+
+      logical :: tree_node_has_child
+      type(t_tree_node), intent(in) :: n
+      integer, intent(in) :: i
+
+      tree_node_has_child = btest(n%flags, i)
+    end function tree_node_has_child
+
+
+    !>
     !> returns the keys of all children, that are attached to the
     !> node `n`
     !>
@@ -86,7 +103,7 @@ module module_tree_node
       childnum = 0
 
       do i = 0, 2**idim - 1
-        if (btest(n%flags, i)) then
+        if (tree_node_has_child(n, i)) then
           childnum            = childnum + 1
           childkeys(childnum) = ior(keyhead, 1_8*i)
         end if

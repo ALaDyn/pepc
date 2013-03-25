@@ -196,12 +196,10 @@ module module_treediags
         end subroutine
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Writes the interaction partners of the particle with the 
         !> specified label into vtk files, once as boxes, once as points
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine write_interaction_partners_to_vtk(step, label,tsim, vtk_step)
           use treevars
           use module_interaction_specific
@@ -225,18 +223,16 @@ module module_treediags
         end subroutine
 
 
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Writes the tree branches structure into a vtk file
         !> pepc_fields must have been called with no_dealloc=.true. before
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine write_branches_to_vtk(step, tsim, vtk_step)
           use treevars
           use module_pepc, only: global_tree
           use module_pepc_types, only: t_tree_node
           use module_tree, only: t_tree, tree_lookup_root
+          use module_debug
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
@@ -260,11 +256,10 @@ module module_treediags
           i = 0
           call tree_lookup_root(t, r)
           call collect_branches(r)
-          ! TODO assert i == t%nbranch
+          DEBUG_ASSERT(i == t%nbranch)
 
           call write_nodes_to_vtk(step, tsim, vtk_step, int(t%nbranch), &
             branch_keys, filename_box = "branches")
-
 
           deallocate(branch_keys)
 
@@ -272,37 +267,35 @@ module module_treediags
 
           recursive subroutine collect_branches(n)
             use module_tree_node
-            use module_tree, only: tree_lookup_node_critical
+            use module_tree, only: tree_node_get_first_child, tree_node_get_next_sibling
             implicit none
 
             type(t_tree_node), intent(in) :: n
 
-            type(t_tree_node), pointer :: c
-            integer :: ic, nc
-            integer*8 :: ck(8)
+            type(t_tree_node), pointer :: s, ns
 
-            c => null()
+            s => null()
+            ns => null()
 
             if (btest(n%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)) then
               i = i + 1
               branch_keys(i) = n%key
-            else
-              call tree_node_get_childkeys(n, nc, ck)
-
-              do ic = 1, nc
-                call tree_lookup_node_critical(t, ck(ic), c, 'write_branches_to_vtk')
-                call collect_branches(c)
+            else if (tree_node_get_first_child(t, n, s)) then
+              do
+                call collect_branches(s)
+                if (.not. tree_node_get_next_sibling(t, s, ns)) then
+                  exit
+                end if
+                s => ns
               end do
             end if
           end subroutine collect_branches
         end subroutine
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Writes the space filling curve into a parallel set of vtk files
         !> pepc_fields must have been called with no_dealloc=.true. before
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine write_spacecurve_to_vtk(step, tsim, vtk_step, particles)
           use module_vtk
           use module_pepc_types, only: t_particle

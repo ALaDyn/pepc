@@ -48,7 +48,7 @@ module module_tree_grow
     implicit none
     include 'mpif.h'
 
-    type(t_tree), intent(inout) :: t
+    type(t_tree), intent(inout) :: t !< the tree
     integer*8, intent(in) :: n !< total number of simulation particles (across all MPI ranks)
     type(t_particle), allocatable, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
     integer, optional, intent(in) :: npl !< number of valid entries in p (local particles)

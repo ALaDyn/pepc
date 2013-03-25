@@ -50,4 +50,11 @@
           write(debug_ipefile, format) __VA_ARGS__; \
         call debug_ipefile_close();
 
+#define DEBUG_STRINGIFY_HELPER(s) #s
 
+#define DEBUG_STRINGIFY(s) DEBUG_STRINGIFY_HELPER(s)
+
+#define DEBUG_ASSERT(cond) \
+        if (.not. (cond)) then; \
+          DEBUG_ERROR('("Assertion failed: ", a)', DEBUG_STRINGIFY(cond)); \
+        end if;

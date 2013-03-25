@@ -67,6 +67,8 @@ module module_tree
     public tree_lookup_root
     public tree_lookup_node
     public tree_lookup_node_critical
+    public tree_node_get_first_child
+    public tree_node_get_next_sibling
     public tree_stats
     public tree_destroy
 
@@ -267,7 +269,7 @@ module module_tree
     !> look up the root node `r` of tree `t`
     !>
     subroutine tree_lookup_root(t, r, caller)
-      use module_pepc_types
+      use module_pepc_types, only: t_tree_node
       implicit none
 
       type(t_tree), intent(in) :: t !< the tree
@@ -288,8 +290,8 @@ module module_tree
     !> `.false.` is returned otherwise
     !>
     function tree_lookup_node(t, k, n)
-      use module_pepc_types
-      use module_htable
+      use module_pepc_types, only: t_tree_node
+      use module_htable, only: htable_lookup
       implicit none
 
       logical :: tree_lookup_node
@@ -307,8 +309,8 @@ module module_tree
     !> is found, otherwise debug information is dumped and program execution is aborted
     !>
     subroutine tree_lookup_node_critical(t, k, n, caller)
-      use module_pepc_types
-      use module_htable
+      use module_pepc_types, only: t_tree_node
+      use module_htable, only: htable_lookup_critical
       implicit none
 
       type(t_tree), intent(in) :: t !< the tree
@@ -320,12 +322,93 @@ module module_tree
       call htable_lookup_critical(t%node_storage, k, n, caller)
     end subroutine tree_lookup_node_critical
 
+    !>
+    !> Returns the first child of node `p` in tree `t`.
+    !>
+    !> If `p` has children that are locally available, returns `.true.` and `fc`
+    !> points to the child.
+    !> Otherwise, `.false.` is returned and `fc` points to `null()`.
+    !>
+    !> @todo Currently implemented via hash table lookups which could be replaced by
+    !> pointers.
+    function tree_node_get_first_child(t, p, fc)
+      use module_pepc_types, only: t_tree_node
+      use module_tree_node, only: tree_node_is_leaf, &
+        tree_node_children_available, tree_node_has_child
+      use module_spacefilling, only: child_key_from_parent_key
+      use treevars, only: idim
+      implicit none
+
+      logical :: tree_node_get_first_child
+      type(t_tree), intent(in) :: t
+      type(t_tree_node), intent(in) :: p
+      type(t_tree_node), pointer, intent(out) :: fc
+
+      integer :: ic
+
+      tree_node_get_first_child = .false.
+      fc => null()
+
+      if (.not. tree_node_is_leaf(p) .and. tree_node_children_available(p)) then
+        do ic = 0, 2**idim - 1
+          if (tree_node_has_child(p, ic)) then
+            tree_node_get_first_child = .true.
+            call tree_lookup_node_critical(t, child_key_from_parent_key(p%key, ic), &
+              fc, "tree_node_get_first_child")
+            exit
+          end if
+        end do
+      end if
+    end function tree_node_get_first_child
+
+
+    !>
+    !> Returns the next sibling of node `p` in tree `t`.
+    !>
+    !> If there is a next sibling to `n` in `t` returns `.true.` and `s` points
+    !> to the sibling node.
+    !> Otherwise `.false.` is returned and `s` points to `null()`.
+    !>
+    !> @todo Currently implemented via hash table lookups which could be replaced by
+    !> pointers.
+    function tree_node_get_next_sibling(t, n, s)
+      use module_pepc_types, only: t_tree_node
+      use module_tree_node, only: tree_node_has_child
+      use module_spacefilling, only: parent_key_from_key, &
+        child_key_from_parent_key, child_number_from_key
+      use treevars, only: idim
+      implicit none
+
+      logical :: tree_node_get_next_sibling
+      type(t_tree), intent(in) :: t
+      type(t_tree_node), intent(in) :: n
+      type(t_tree_node), pointer, intent(out) :: s
+
+      type(t_tree_node), pointer :: p
+      integer :: is
+
+      tree_node_get_next_sibling = .false.
+      s => null()
+
+      call tree_lookup_node_critical(t, parent_key_from_key(n%key), p, &
+        "tree_node_get_next_sibling: parent node")
+
+      do is = child_number_from_key(n%key) + 1, 2**idim - 1    
+        if (tree_node_has_child(p, is)) then
+          tree_node_get_next_sibling = .true.
+          call tree_lookup_node_critical(t, child_key_from_parent_key(p%key, is), &
+            s, "tree_node_get_next_sibling: sibling")
+          exit
+        end if
+      end do
+    end function tree_node_get_next_sibling
+
 
     !>
     !> gather statistics on the tree structure (and also communication and also
     !> the last traversal) and dump them to a file
     !>
-    ! TODO: split this up!
+    !> @todo split this up!
     subroutine tree_stats(t, timestamp)
       use treevars
       !use module_walk, only : tree_walk_statistics
