@@ -332,7 +332,6 @@ module module_tree
       type(t_tree_node), pointer, intent(out) :: n !< node that is identified by `k`
       character(LEN = *), intent(in) :: caller
 
-      ! TODO: move mpi_abort here!
       call htable_lookup_critical(t%node_storage, k, n, caller)
     end subroutine tree_lookup_node_critical
 

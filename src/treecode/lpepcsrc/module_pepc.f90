@@ -127,13 +127,6 @@ module module_pepc
         end if
       endif
 
-      ! create all necessary directories
-      if (my_rank == 0) then
-        call create_directory("diag")
-        if( dbg(DBG_LOADFILE) )    call create_directory("load")
-        if ( dbg(DBG_TIMINGFILE) ) call create_directory("timing")
-      endif
-
       ! copy call parameters to treevars module
       me     = my_rank
       num_pe = n_cpu
@@ -429,14 +422,21 @@ module module_pepc
         use treevars
         use module_timings
         use module_tree, only: tree_stats
+        use module_utils, only: create_directory
         implicit none
         integer, intent(in) :: itime !< current timestep (used as file suffix)
+
+        logical, save :: firstcall = .true.
         character(30) :: cfile
 
         call timer_start(t_fields_stats)
         call tree_stats(global_tree, itime)
 
         if( dbg(DBG_LOADFILE) ) then
+            if (firstcall) then
+              call create_directory("load")
+              firstcall = .false.
+            end if
             write(cfile,'("load/load_",i6.6,".dat")') me
             open(60, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
             write(60,'(i5,2f20.10, i12)') itime, interactions_local, mac_evaluations_local, global_tree%npart_me

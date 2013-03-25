@@ -90,6 +90,7 @@ module module_debug
      !>
      subroutine debug_initialize()
        use treevars
+       use module_utils, only: create_directory
        implicit none
        include 'mpif.h'
 
@@ -100,6 +101,7 @@ module module_debug
        call MPI_GET_PROCESSOR_NAME( procname, resultlen, ierr )
 
        write(debug_ipefile_name,'("diag/diag_",i6.6,".dat")') me
+       call create_directory("diag")
 
        open(debug_ipefile, file=trim(debug_ipefile_name),STATUS='UNKNOWN', POSITION = 'REWIND')
        call timstamp(debug_ipefile, "PEPC on ["//procname(1:resultlen)//"]")

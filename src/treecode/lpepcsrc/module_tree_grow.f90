@@ -378,7 +378,7 @@ module module_tree_grow
     use module_tree, only: t_tree, tree_insert_or_update_node
     use module_debug, only: pepc_status, DBG_TREE, dbg
     use module_timings
-    use module_utils, only: sort
+    use module_sort, only: sort
     use module_htable, only: htable_check
     use module_spacefilling, only: level_from_key, parent_key_from_key
     use module_pepc_types, only: t_tree_node

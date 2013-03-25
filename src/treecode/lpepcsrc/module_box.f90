@@ -81,9 +81,8 @@ module module_box
     b%boxmax  = b%boxmax + b%boxsize / 10000.0
     b%boxsize = b%boxmax - b%boxmin
 
-
     if (dbg(DBG_DOMAIN)) then
-      DEBUG_WARNING('(4(a15,f12.4/))',
+      DEBUG_WARNING('(6(a15,f12.4/),a15,3f12.4)',
       'xmin = ',b%boxmin(1),'xmax = ',b%boxmax(1),
       'ymin = ',b%boxmin(2),'ymax = ',b%boxmax(2),
       'zmin = ',b%boxmin(3),'zmax = ',b%boxmax(3),

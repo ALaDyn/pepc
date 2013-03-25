@@ -114,7 +114,6 @@ module module_domains
   subroutine domain_decompose(d, b, n, particles, bp, c, npl)
     use module_pepc_types, only: t_particle, mpi_type_particle
     use module_box, only: t_box
-    use module_utils, only: sort
     use module_timings
     use module_spacefilling, only: key_to_coord
     use module_debug
@@ -214,7 +213,7 @@ module module_domains
 
     call timer_stop(t_domains_add_alltoallv)
 
-    allocate(particles(d%npnew)) ! TODO: the limit particles from neighbouring PEs are put into the final two places - this is for branching and correct insertion into the tree and should be done there with local variables instead
+    allocate(particles(d%npnew))
 
     call timer_start(t_domains_add_unpack)
 
@@ -410,7 +409,6 @@ module module_domains
     do j=1,npart
       write(debug_ipefile,'(i10)',advance='no') j
       write(debug_ipefile,*)                     particles(j)
-      write(debug_ipefile,'(/)')
     end do
     write(debug_ipefile,'(/)')
     call debug_ipefile_close()
