@@ -38,7 +38,7 @@ module module_tree_grow
     use module_pepc_types, only: t_particle, t_tree_node
     use module_htable, only: htable_dump
     use module_timings
-    use module_tree, only: t_tree, tree_create, tree_lookup_root
+    use module_tree, only: t_tree, tree_create, tree_lookup_root, tree_check
     use module_domains, only: domain_decompose
     use module_debug
     use module_comm_env, only: t_comm_env, comm_env_dup
@@ -102,6 +102,8 @@ module module_tree_grow
     call tree_build_upwards(t, branch_keys)
     call timer_stop(t_global)
     deallocate(branch_keys)
+
+    call tree_check(t, "tree_grow")
 
     if (root_node%leaves .ne. t%npart) then
       call htable_dump(t%node_storage, p)

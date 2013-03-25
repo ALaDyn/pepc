@@ -45,6 +45,8 @@ module module_treediags
           use module_tree, only: t_tree, tree_lookup_node_critical
           use module_tree_node
           use module_pepc, only: global_tree
+          implicit none
+
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
@@ -54,7 +56,6 @@ module module_treediags
           character(*), intent(in), optional :: filename_point
           real*8, dimension(:,:), intent(in), optional :: node_vbox
           
-
           type(t_tree_node), pointer :: bnode
           type(t_tree), pointer :: t
           integer :: i,j
@@ -224,15 +225,16 @@ module module_treediags
 
 
         !>
-        !> Writes the tree branches structure into a vtk file
-        !> pepc_fields must have been called with no_dealloc=.true. before
+        !> Writes the tree branches structure into a vtk file.
         !>
         subroutine write_branches_to_vtk(step, tsim, vtk_step)
           use treevars
           use module_pepc, only: global_tree
           use module_pepc_types, only: t_tree_node
-          use module_tree, only: t_tree, tree_lookup_root
+          use module_tree, only: t_tree, tree_lookup_root, tree_allocated
           use module_debug
+          implicit none
+
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
@@ -242,15 +244,15 @@ module module_treediags
           integer*8, allocatable :: branch_keys(:)
           integer*8 :: i
 
+          ! TODO: generalize!
           t => global_tree
 
           if (.not. t%comm_env%first) return
 
-          ! TODO: use tree_allocated
-          !if (.not. (htable_allocated(global_htable) .and. allocated(branch_key))) then
-          !  write(*,*) 'write_branches_to_vtk(): pepc_fields() must have been called with no_dealloc=.true. before'
-          !  return
-          !endif
+          if (.not. tree_allocated(t)) then
+            write(*,*) 'write_branches_to_vtk(): tree is not allocated, aborting branch output.'
+            return
+          endif
 
           allocate(branch_keys(t%nbranch))
           i = 0

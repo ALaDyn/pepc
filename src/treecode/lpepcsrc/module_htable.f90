@@ -350,12 +350,10 @@ module module_htable
         DEBUG_WARNING_ALL('("# const              (dez) = ", i22)', t%hashconst)
         DEBUG_WARNING_ALL('("     maxentries      (dez) = ", i22)', t%maxentries)
         call htable_dump(t)
-        ! TODO: this goes in module_tree, htables are not distributed!
         call debug_mpi_abort()
       end if
 
       v => t%values(addr)
-
     end subroutine htable_lookup_critical
 
 
@@ -472,7 +470,7 @@ module module_htable
     !> a pair of key and tree node in `k` and `v` and returns `.true.`.
     !> Once the iterator is exhausted, `.false.` is returned.
     !>
-    !> \note If the associated hash table is modified during traversal,
+    !> @note If the associated hash table is modified during traversal,
     !> behaviour is undefined.
     !>
     function htable_iterator_next(it, k, v)
@@ -552,87 +550,6 @@ module module_htable
       end if
 
     end subroutine htable_check
-
-
-    !>
-    !> Do some quick checks on the tree structure
-    !>
-    ! TODO: Check nleaf, ntwig somewhere else.
-    !subroutine check_table(t, callpoint)
-    !  use treevars
-    !  use module_debug
-    !  use module_tree_node
-    !  implicit none
-
-    !  type(t_htable), intent(in) :: t
-    !  character(*), intent(in) :: callpoint
-
-    !  type(t_htable_iterator) :: it
-    !  integer*8 :: key
-    !  type(t_tree_node), pointer :: node
-    !  integer :: nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
-    !  logical :: error
-
-    !  call pepc_status('CHECK TABLE')
-
-    !  error = .false.
-
-    !  nleaf_check = 0
-    !  nleaf_me_check = 0
-    !  ntwig_check = 0
-    !  ntwig_me_check = 0
-    !  it = htable_iterator(t)
-    !  do while (htable_iterator_next(it, key, node))
-    !    if (tree_node_is_leaf(node)) then
-    !      nleaf_check = nleaf_check + 1
-    !      if (node%owner == me) then
-    !        nleaf_me_check = nleaf_me_check + 1
-    !      end if
-    !    else
-    !      ntwig_check = ntwig_check + 1
-    !      if (node%owner == me) then
-    !        ntwig_me_check = ntwig_me_check + 1
-    !      end if
-    !    end if
-    !  end do
-
-    !  if (nleaf /= nleaf_check) then
-    !    DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
-    !    '# leaves in table = ',nleaf_check,' vs ',nleaf,' accumulated',
-    !    'Fixing and continuing for now..')
-    !    !     nleaf = nleaf_check
-    !    error = .true.
-    !  end if
-
-    !  if (ntwig /= ntwig_check) then
-    !    DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
-    !    '# twigs in table = ',ntwig_check,' vs ',ntwig,' accumulated',
-    !    'Fixing and continuing for now..')
-    !    !     ntwig = ntwig_check
-    !    error = .true.
-    !  end if
-
-    !  if (nleaf_me /= nleaf_me_check) then
-    !    DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
-    !    '# own leaves in table = ',nleaf_me_check,' vs ',nleaf_me,' accumulated',
-    !    'Fixing and continuing for now..')
-    !    nleaf_me = nleaf_me_check
-    !    error = .true.
-    !  end if
-    !  if (ntwig_me /= ntwig_me_check) then
-    !    DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
-    !    '# own twigs in table = ',ntwig_me_check,' vs ',ntwig_me,' accumulated',
-    !    'Fixing and continuing for now..')
-
-    !    ntwig_me = ntwig_me_check
-    !    error = .true.
-    !  end if
-
-    !  if (error) then
-    !    !call diagnose_tree(t)
-    !  end if
-
-    !end subroutine check_table
 
 
     !>
@@ -741,8 +658,5 @@ module module_htable
         end if
 
         call debug_ipefile_close()
-
     end subroutine htable_dump
-
-
 end module module_htable

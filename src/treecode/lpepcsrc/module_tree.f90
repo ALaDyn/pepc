@@ -61,6 +61,7 @@ module module_tree
     end type t_tree
 
     public tree_create
+    public tree_allocated
     public tree_insert_node
     public tree_insert_or_update_node
     public tree_contains_key
@@ -69,6 +70,8 @@ module module_tree
     public tree_lookup_node_critical
     public tree_node_get_first_child
     public tree_node_get_next_sibling
+    public tree_node_get_parent
+    public tree_check
     public tree_stats
     public tree_destroy
 
@@ -179,6 +182,17 @@ module module_tree
         call decomposition_destroy(t%decomposition)
       end if
     end subroutine tree_destroy
+
+
+    function tree_allocated(t)
+      use module_htable, only: htable_allocated
+      implicit none
+
+      logical :: tree_allocated
+      type(t_tree), intent(in) :: t
+
+      tree_allocated = htable_allocated(t%node_storage)
+    end function tree_allocated
 
 
     !>
@@ -369,6 +383,8 @@ module module_tree
     !> to the sibling node.
     !> Otherwise `.false.` is returned and `s` points to `null()`.
     !>
+    !> In this context, "next" is defined by the ordering of the node keys.
+    !>
     !> @todo Currently implemented via hash table lookups which could be replaced by
     !> pointers.
     function tree_node_get_next_sibling(t, n, s)
@@ -390,18 +406,148 @@ module module_tree
       tree_node_get_next_sibling = .false.
       s => null()
 
-      call tree_lookup_node_critical(t, parent_key_from_key(n%key), p, &
-        "tree_node_get_next_sibling: parent node")
-
-      do is = child_number_from_key(n%key) + 1, 2**idim - 1    
-        if (tree_node_has_child(p, is)) then
-          tree_node_get_next_sibling = .true.
-          call tree_lookup_node_critical(t, child_key_from_parent_key(p%key, is), &
-            s, "tree_node_get_next_sibling: sibling")
-          exit
-        end if
-      end do
+      if (tree_node_get_parent(t, n, p)) then
+        do is = child_number_from_key(n%key) + 1, 2**idim - 1    
+          if (tree_node_has_child(p, is)) then
+            tree_node_get_next_sibling = .true.
+            call tree_lookup_node_critical(t, child_key_from_parent_key(p%key, is), &
+              s, "tree_node_get_next_sibling: sibling")
+            exit
+          end if
+        end do
+      end if
     end function tree_node_get_next_sibling
+
+
+    !>
+    !> Returns the parent `p` of node `n` in tree `t`.
+    !>
+    !> If a parent exists, `.true.` is returned and `p` points to the parent.
+    !> If `n` is the root node, no parent exists and `.false.` is returned and
+    !> `p` points to `null()`.
+    !>
+    !> @todo Currently implemented via hash table lookups which could be replaced by
+    !> pointers.
+    function tree_node_get_parent(t, n, p)
+      use module_pepc_types, only: t_tree_node
+      use module_tree_node, only: tree_node_is_root
+      use module_spacefilling, only: parent_key_from_key
+      implicit none
+
+      logical tree_node_get_parent
+      type(t_tree), intent(in) :: t
+      type(t_tree_node), intent(in) :: n
+      type(t_tree_node), pointer, intent(out) :: p
+
+      tree_node_get_parent = .false.
+      p => null()
+
+      if (.not. tree_node_is_root(n)) then
+        tree_node_get_parent = .true.
+        call tree_lookup_node_critical(t, parent_key_from_key(n%key), p, &
+          "tree_node_get_parent")
+      end if
+    end function tree_node_get_parent      
+
+
+    !>
+    !> Do some quick checks on the tree structure
+    !>
+    subroutine tree_check(t, callpoint)
+      use treevars, only: me
+      use module_debug
+      use module_pepc_types, only: t_tree_node
+      use module_htable, only: htable_dump
+      implicit none
+
+      type(t_tree), intent(inout) :: t !< the tree
+      character(*), intent(in) :: callpoint !< caller
+
+      type(t_tree_node), pointer :: r
+      integer :: nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
+      logical :: error
+
+      call pepc_status('CHECK TREE')
+
+      error = .false.
+      nleaf_check = 0
+      nleaf_me_check = 0
+      ntwig_check = 0
+      ntwig_me_check = 0
+
+      call tree_lookup_root(t, r)
+      call tree_check_helper(r)
+
+      if (t%nleaf /= nleaf_check) then
+        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
+        '# leaves in table = ',nleaf_check,' vs ',t%nleaf,' accumulated',
+        'Fixing and continuing for now..')
+        t%nleaf = nleaf_check ! TODO: does this really help anyone?
+        error = .true.
+      end if
+
+      if (t%ntwig /= ntwig_check) then
+        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
+        '# twigs in table = ',ntwig_check,' vs ',t%ntwig,' accumulated',
+        'Fixing and continuing for now..')
+        t%ntwig = ntwig_check
+        error = .true.
+      end if
+
+      if (t%nleaf_me /= nleaf_me_check) then
+        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
+        '# own leaves in table = ',nleaf_me_check,' vs ',t%nleaf_me,' accumulated',
+        'Fixing and continuing for now..')
+        t%nleaf_me = nleaf_me_check
+        error = .true.
+      end if
+
+      if (t%ntwig_me /= ntwig_me_check) then
+        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
+        '# own twigs in table = ',ntwig_me_check,' vs ',t%ntwig_me,' accumulated',
+        'Fixing and continuing for now..')
+        t%ntwig_me = ntwig_me_check
+        error = .true.
+      end if
+
+      if (error) then
+        call htable_dump(t%node_storage)
+      end if
+
+      contains
+
+      recursive subroutine tree_check_helper(n)
+        use module_tree_node, only: tree_node_is_leaf
+        implicit none
+
+        type(t_tree_node), intent(in) :: n
+
+        type(t_tree_node), pointer :: s, ns
+
+        if (tree_node_is_leaf(n)) then
+          nleaf_check = nleaf_check + 1
+          if (n%owner == t%comm_env%rank) then
+            nleaf_me_check = nleaf_me_check + 1
+          end if
+          return
+        else
+          ntwig_check = ntwig_check + 1
+          if (n%owner == t%comm_env%rank) then
+            ntwig_me_check = ntwig_me_check + 1
+          end if
+        end if
+
+        if (tree_node_get_first_child(t, n, s)) then
+          do
+            call tree_check_helper(s)
+            if (.not. tree_node_get_next_sibling(t, s, ns)) then
+              exit
+            end if
+            s => ns
+          end do
+        end if
+      end subroutine tree_check_helper
+    end subroutine tree_check
 
 
     !>

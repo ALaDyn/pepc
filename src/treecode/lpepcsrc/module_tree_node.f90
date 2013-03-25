@@ -37,6 +37,7 @@ module module_tree_node
     integer, public, parameter :: TREE_NODE_CHILDBYTE                     = maskr(8) !< bits that contain the children information for this node
 
     public tree_node_is_leaf
+    public tree_node_is_root
     public tree_node_children_available
     public tree_node_get_childkeys
     public tree_node_has_child
@@ -53,6 +54,19 @@ module module_tree_node
 
       tree_node_is_leaf = n%leaves == 1
     end function tree_node_is_leaf
+
+
+    !>
+    !> checks whether `n` is a root node
+    !>
+    function tree_node_is_root(n)
+      implicit none
+      type(t_tree_node), intent(in) :: n
+
+      logical :: tree_node_is_root
+
+      tree_node_is_root = n%level == 0
+    end function tree_node_is_root
 
 
     !>
