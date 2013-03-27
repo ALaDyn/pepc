@@ -27,8 +27,41 @@ module module_tree
     use module_box, only: t_box
     use module_comm_env, only: t_comm_env
     use module_domains, only: t_decomposition
+    use module_atomic_ops, only: t_atomic_int
+    use module_pepc_types, only: t_tree_node
+    use, intrinsic :: iso_c_binding
     implicit none
     private
+
+    !> data type for communicator request queue
+    type, public :: t_request_queue_entry
+      integer*8 :: key
+      integer   :: owner
+      type(t_tree_node), pointer :: node
+    end type
+
+    integer, public, parameter :: TREE_COMM_ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
+    integer, public, parameter :: TREE_COMM_REQUEST_QUEUE_LENGTH = 400000 !< maximum length of request queue
+
+    !> data type for tree communicator
+    type, public :: t_tree_communicator
+      ! request queue
+      ! TODO: this used to be volatile, but that is not allowed for derived type components
+      type(t_request_queue_entry) :: req_queue(TREE_COMM_REQUEST_QUEUE_LENGTH)
+      integer :: req_queue_top !< position of queue top in array; pushed towards bottom by communicator only when sending
+      type(t_atomic_int), pointer :: req_queue_bottom !< position of queue bottom in array; pushed away from top by tree users
+
+      ! counters and timers
+      integer*8 :: comm_loop_iterations(3) !< number of comm loop iterations (total, sending, receiving)
+      real*8 :: timings_comm(3) !< array for storing internal timing information
+      integer :: request_balance !< total (#requests - #answers), should be zero after complete traversal
+
+      ! thread data
+      type(c_ptr) :: comm_thread
+      logical :: comm_thread_running
+      logical :: comm_thread_stopping
+      logical :: comm_thread_stop_requested
+    end type t_tree_communicator
 
     !>
     !> A derived type representing a distributed hashed octree over a collection
@@ -50,14 +83,15 @@ module module_tree
       !TODO: do we need to keep this?
       integer*8 :: nintmax     !< maximum number of interactions
       
-      !TODO: factor these out into tree comm statistics?
+      !TODO: factor these out into tree comm statistics!
       integer*8 :: sum_ships   !< total number of node ships
       integer*8 :: sum_fetches !< total number of node fetches
 
-      type(t_box) :: bounding_box            !< bounding box enclosing all particles contained in the tree
-      type(t_htable) :: node_storage         !< hash table in which tree nodes are stored for rapid retrieval
-      type(t_comm_env) :: comm_env         !< communication environment over which the tree is distributed
-      type(t_decomposition) :: decomposition !< permutation of particles inserted into the tree
+      type(t_box) :: bounding_box               !< bounding box enclosing all particles contained in the tree
+      type(t_htable) :: node_storage            !< hash table in which tree nodes are stored for rapid retrieval
+      type(t_comm_env) :: comm_env              !< communication environment over which the tree is distributed
+      type(t_decomposition) :: decomposition    !< permutation of particles inserted into the tree
+      type(t_tree_communicator) :: communicator !< associated communicator structure
     end type t_tree
 
     public tree_create
@@ -145,6 +179,8 @@ module module_tree
         DEBUG_ERROR('("maxaddress = ", I0, " < npp + 2 = ", I0 ".", / , "You should increase np_mult.")', maxaddress, t%npart_me + 2)
       end if
 
+      call tree_communicator_create(t%communicator)
+
       call timer_stop(t_allocate)
     end subroutine tree_create
 
@@ -176,6 +212,7 @@ module module_tree
       t%sum_ships = 0
       t%sum_fetches = 0
 
+      call tree_communicator_destroy(t%communicator)
       call htable_destroy(t%node_storage)
       call comm_env_destroy(t%comm_env)
       if (decomposition_allocated(t%decomposition)) then
@@ -193,6 +230,50 @@ module module_tree
 
       tree_allocated = htable_allocated(t%node_storage)
     end function tree_allocated
+
+
+    subroutine tree_communicator_create(c)
+      use, intrinsic :: iso_c_binding
+      use module_pepc_types, only: mpi_type_tree_node
+      use pthreads_stuff, only: pthreads_alloc_thread
+      use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
+      use module_debug
+      implicit none
+
+      type(t_tree_communicator), intent(inout) :: c
+
+      c%timings_comm = 0.
+      
+      call atomic_allocate_int(c%req_queue_bottom)
+      DEBUG_ASSERT_MSG(associated(c%req_queue_bottom), "could not allocate atomic storage!")
+      call atomic_store_int(c%req_queue_bottom, 0)
+
+      c%req_queue_top =  0
+      c%request_balance =  0
+      c%req_queue(:)%owner = -1 ! used in send_requests() to ensure that only completely stored entries are sent form the list
+      c%comm_thread = c_null_ptr
+      c%comm_thread = pthreads_alloc_thread()
+      DEBUG_ASSERT(c_associated(c%comm_thread))
+      c%comm_thread_running = .false.
+      c%comm_thread_stopping = .false.
+      c%comm_thread_stop_requested = .false.
+    end subroutine tree_communicator_create
+
+
+    subroutine tree_communicator_destroy(c)
+      use module_atomic_ops, only: atomic_deallocate_int 
+      use pthreads_stuff, only: pthreads_free_thread
+      use module_debug
+      implicit none
+
+      type(t_tree_communicator), intent(inout) :: c
+
+      ! TODO: we could just stop the running thread, if only it was not in another module
+      DEBUG_ASSERT(.not. c%comm_thread_running)
+
+      call pthreads_free_thread(c%comm_thread)
+      call atomic_deallocate_int(c%req_queue_bottom)
+    end subroutine tree_communicator_destroy
 
 
     !>
@@ -334,6 +415,7 @@ module module_tree
 
       call htable_lookup_critical(t%node_storage, k, n, caller)
     end subroutine tree_lookup_node_critical
+
 
     !>
     !> Returns the first child of node `p` in tree `t`.
@@ -522,6 +604,9 @@ module module_tree
         type(t_tree_node), intent(in) :: n
 
         type(t_tree_node), pointer :: s, ns
+
+        s => null()
+        ns => null()
 
         if (tree_node_is_leaf(n)) then
           nleaf_check = nleaf_check + 1

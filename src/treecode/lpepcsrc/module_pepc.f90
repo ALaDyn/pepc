@@ -68,7 +68,7 @@ module module_pepc
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_walk
       use module_domains
-      use module_debug, only : pepc_status, debug_level, dbg, DBG_LOADFILE, DBG_TIMINGFILE
+      use module_debug
       use module_utils, only : create_directory, MPI_IN_PLACE_test
       implicit none
       include 'mpif.h'
@@ -147,6 +147,7 @@ module module_pepc
       else
         call pepc_prepare(3)
       end if
+
     end subroutine
 
 
@@ -248,16 +249,21 @@ module module_pepc
     !>
     subroutine pepc_prepare(idim)
       use treevars, only : treevars_prepare
-      use module_walk
-      use module_interaction_specific
-      use module_mirror_boxes
+      use module_walk, only: tree_walk_prepare
+      use module_interaction_specific, only: calc_force_prepare
+      use module_mirror_boxes, only: calc_neighbour_boxes
+      use pthreads_stuff, only: pthreads_init
+      use module_tree_communicator, only: tree_communicator_prepare
+      use module_debug
       implicit none
       integer, intent(in) :: idim
 
+      DEBUG_ASSERT(pthreads_init() == 0)
       call treevars_prepare(idim)
       call calc_neighbour_boxes() ! initialize mirror boxes
       call calc_force_prepare() ! prepare interaction-specific routines
       call tree_walk_prepare()
+      call tree_communicator_prepare()
     end subroutine
 
 
@@ -266,11 +272,13 @@ module module_pepc
     !> Call this function at program termination after all MPI calls
     !>
     subroutine pepc_finalize()
-      use module_debug, only : pepc_status
+      use module_debug
       use module_pepc_types, only : free_lpepc_mpi_types
       use module_walk, only : tree_walk_finalize 
       use module_interaction_specific, only : calc_force_finalize
       use treevars, only : treevars_finalize
+      use pthreads_stuff, only: pthreads_uninit
+      use module_tree_communicator, only: tree_communicator_finalize
       implicit none
       include 'mpif.h'
       integer :: ierr
@@ -278,11 +286,13 @@ module module_pepc
       call pepc_status('FINALIZE')
       ! finalize internal data structures
       call calc_force_finalize()
+      call tree_communicator_finalize()
       call tree_walk_finalize()
       ! deregister mpi types
       call free_lpepc_mpi_types()
 
       call treevars_finalize()
+      DEBUG_ASSERT(pthreads_uninit() == 0)
 
       if (pepc_initializes_mpi) call MPI_FINALIZE(ierr)
     end subroutine
@@ -462,23 +472,13 @@ module module_pepc
 
 
     !>
-    !> Frees all tree_specific data fields that were allocated in pepc_groe_tree().
+    !> Frees all tree specific data fields that were allocated in pepc_grow_tree().
     !>
     subroutine pepc_timber_tree()
-      use module_timings
-      use module_debug, only : pepc_status
-      use module_tree, only: tree_destroy
+      use module_libpepc_main, only: libpepc_timber_tree
       implicit none
 
-      call pepc_status('TIMBER TREE')
-
-     ! deallocate particle and result arrays
-      call timer_start(t_deallocate)
-      call tree_destroy(global_tree)
-      call timer_stop(t_deallocate)
-      call timer_stop(t_all)
-
-      call pepc_status('TREE HAS FALLEN')
+      call libpepc_timber_tree(global_tree)
     end subroutine
 
 

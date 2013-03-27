@@ -58,3 +58,8 @@
         if (.not. (cond)) then; \
           DEBUG_ERROR('("Assertion failed: ", a)', DEBUG_STRINGIFY(cond)); \
         end if;
+
+#define DEBUG_ASSERT_MSG(cond, msg) \
+        if (.not. (cond)) then; \
+          DEBUG_ERROR('("Assertion failed: ", a, ": ", a)', DEBUG_STRINGIFY(cond), msg); \
+        end if;

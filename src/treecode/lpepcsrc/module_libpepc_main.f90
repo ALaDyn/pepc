@@ -34,6 +34,7 @@ module module_libpepc_main
     public libpepc_restore_particles
     public libpepc_traverse_tree
     public libpepc_grow_tree
+    public libpepc_timber_tree
     public libpepc_read_parameters
     public libpepc_write_parameters
 
@@ -86,6 +87,29 @@ module module_libpepc_main
     end subroutine
 
 
+    !>
+    !> Frees all resources allocated for the tree `t`
+    !>
+    subroutine libpepc_timber_tree(t)
+      use module_timings
+      use module_debug, only : pepc_status
+      use module_tree, only: t_tree, tree_destroy
+      implicit none
+
+      type(t_tree), intent(inout) :: t
+
+      call pepc_status('TIMBER TREE')
+
+      ! deallocate particle and result arrays
+      call timer_start(t_deallocate)
+      call tree_destroy(t)
+      call timer_stop(t_deallocate)
+      call timer_stop(t_all)
+
+      call pepc_status('TREE HAS FALLEN')
+    end subroutine libpepc_timber_tree
+
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Traverses the complete tree for the given particles, i.e. computes
@@ -104,18 +128,19 @@ module module_libpepc_main
         use treevars
         use module_walk
         use module_mirror_boxes
-        use module_walk_communicator
         use module_timings
         use module_interaction_specific
         use module_debug
         use module_tree, only: t_tree
+        use module_tree_communicator, only: tree_communicator_start, &
+          tree_communicator_stop
         implicit none
 
         type(t_tree), target, intent(inout) :: t
         type(t_particle), target, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
         integer :: ibox
-        real*8 :: ttrav, ttrav_loc, tcomm(3) ! timing integrals
+        real*8 :: ttrav, ttrav_loc ! timing integrals
 
         call pepc_status('TRAVERSE TREE')
 
@@ -125,27 +150,28 @@ module module_libpepc_main
         call timer_reset(t_comm_recv)
         call timer_reset(t_comm_sendreqs)
 
-        comm_loop_iterations = 0
-
         call timer_start(t_fields_passes)
+        call tree_communicator_start(t)
 
         do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
 
-            call debug_barrier() ! we have to synchronize the different walks to prevent problems with recognition of finished ranks by rank 0
+            !call debug_barrier() ! we have to synchronize the different walks to prevent problems with recognition of finished ranks by rank 0
                                  ! just for the case that some frontend calls traverse_tree() several times, all of them have to be
                                  ! synchronized individually - hence in any case there must be a barrier here
 
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
-            call tree_walk(t, p, ttrav, ttrav_loc, lattice_vect(neighbour_boxes(:,ibox)), tcomm)
+            call tree_walk(t, p, ttrav, ttrav_loc, lattice_vect(neighbour_boxes(:,ibox)))
 
             call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
             call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
-            call timer_add(t_comm_total,    tcomm(TIMING_COMMLOOP))
-            call timer_add(t_comm_recv,     tcomm(TIMING_RECEIVE))
-            call timer_add(t_comm_sendreqs, tcomm(TIMING_SENDREQS))
+            ! TODO: these go somewhere else
+            !call timer_add(t_comm_total,    tcomm(TIMING_COMMLOOP))
+            !call timer_add(t_comm_recv,     tcomm(TIMING_RECEIVE))
+            !call timer_add(t_comm_sendreqs, tcomm(TIMING_SENDREQS))
 
         end do ! ibox = 1,num_neighbour_boxes
 
+        call tree_communicator_stop(t)
         ! add lattice contribution
         call timer_start(t_lattice)
         ! add lattice contribution and other per-particle-forces

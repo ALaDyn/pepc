@@ -33,32 +33,45 @@ module pthreads_stuff
 
 
   interface
-
-    integer(c_int) function pthreads_init(numthreads) bind(C, name='pthreads_init')
+    integer(c_int) function pthreads_init() bind(C, name='pthreads_init')
       use, intrinsic :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: numthreads
     end function
 
-     integer(c_int) function pthreads_uninit() bind(C, name='pthreads_uninit')
+    integer(c_int) function pthreads_uninit() bind(C, name='pthreads_uninit')
       use, intrinsic :: iso_c_binding
       implicit none
     end function
   end interface
 
+
   interface
-    integer(c_int) function pthreads_createthread(id, start_routine, arg) bind(C, name='pthreads_createthread')
+    type(c_ptr) function pthreads_alloc_thread() bind(C, name='pthreads_alloc_thread')
       use, intrinsic :: iso_c_binding
       implicit none
-      integer(c_int),   intent(in), value :: id
-      type( c_funptr ), intent(in), value :: start_routine
-      type( c_ptr ),    intent(in), value :: arg
     end function
 
-    integer(c_int) function pthreads_jointhread(id) bind(C, name='pthreads_jointhread')
+    subroutine pthreads_free_thread(storage) bind(C, name='pthreads_free_thread')
       use, intrinsic :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: id
+      type(c_ptr), intent(in), value :: storage
+    end subroutine
+  end interface
+
+
+  interface
+    integer(c_int) function pthreads_createthread(thread, start_routine, arg) bind(C, name='pthreads_createthread')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr),    intent(in), value :: thread
+      type(c_funptr), intent(in), value :: start_routine
+      type(c_ptr),    intent(in), value :: arg
+    end function
+
+    integer(c_int) function pthreads_jointhread(thread) bind(C, name='pthreads_jointhread')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), intent(in), value :: thread
     end function
 
     integer(c_int) function pthreads_exitthread() bind(C, name='pthreads_exitthread')
@@ -70,14 +83,10 @@ module pthreads_stuff
       use, intrinsic :: iso_c_binding
       implicit none
     end function
-
   end interface
 
 
-
-
   interface
-
     integer(c_int) function rwlocks_init(numlocks) bind(C, name='rwlocks_init')
       use, intrinsic :: iso_c_binding
       implicit none
@@ -118,12 +127,10 @@ module pthreads_stuff
       implicit none
       integer(c_int), intent(in), value :: id
     end function
-
   end interface
 
 
   interface
-
     integer(c_int) function get_my_tid() bind(C, name='get_my_tid')
       use, intrinsic :: iso_c_binding
       implicit none
@@ -133,7 +140,6 @@ module pthreads_stuff
       use, intrinsic :: iso_c_binding
       implicit none
     end function
-
   end interface
 
 

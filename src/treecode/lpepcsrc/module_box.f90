@@ -45,11 +45,11 @@ module module_box
   !> particles in `p` on all ranks in the communication environment `c`.
   !>
   subroutine box_create(b, p, c)
-    use mpi
     use module_comm_env, only: t_comm_env
     use module_pepc_types, only: t_particle
     use module_debug
     implicit none
+    include 'mpif.h'
 
     type(t_box), intent(out) :: b !< the bounding box that contains all `p`
     type(t_particle), intent(in) :: p(:) !< particles to embed in the bounding box
