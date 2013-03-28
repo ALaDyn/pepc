@@ -55,6 +55,8 @@ module module_tree
       integer*8 :: comm_loop_iterations(3) !< number of comm loop iterations (total, sending, receiving)
       real*8 :: timings_comm(3) !< array for storing internal timing information
       integer :: request_balance !< total (#requests - #answers), should be zero after complete traversal
+      integer*8 :: sum_ships   !< total number of node ships
+      integer*8 :: sum_fetches !< total number of node fetches
 
       ! thread data
       type(c_ptr) :: comm_thread
@@ -83,10 +85,6 @@ module module_tree
       !TODO: do we need to keep this?
       integer*8 :: nintmax     !< maximum number of interactions
       
-      !TODO: factor these out into tree comm statistics!
-      integer*8 :: sum_ships   !< total number of node ships
-      integer*8 :: sum_fetches !< total number of node fetches
-
       type(t_box) :: bounding_box               !< bounding box enclosing all particles contained in the tree
       type(t_htable) :: node_storage            !< hash table in which tree nodes are stored for rapid retrieval
       type(t_comm_env) :: comm_env              !< communication environment over which the tree is distributed
@@ -157,8 +155,6 @@ module module_tree
       t%nbranch_me = 0
       t%nbranch_max_me = 0
       t%nintmax = 0
-      t%sum_ships = 0
-      t%sum_fetches = 0
 
       call timer_start(t_allocate)
       call pepc_status('ALLOCATE TREE')
@@ -195,22 +191,9 @@ module module_tree
       use module_comm_env, only: comm_env_destroy
       implicit none
 
-      type(t_tree), intent(inout) :: t
+      type(t_tree), intent(inout) :: t !< the tree
 
       call pepc_status('DEALLOCATE TREE')
-
-      t%npart = 0
-      t%npart_me = 0
-      t%nleaf = 0
-      t%ntwig = 0
-      t%nleaf_me = 0
-      t%ntwig_me = 0
-      t%nbranch = 0
-      t%nbranch_me = 0
-      t%nbranch_max_me = 0
-      t%nintmax = 0
-      t%sum_ships = 0
-      t%sum_fetches = 0
 
       call tree_communicator_destroy(t%communicator)
       call htable_destroy(t%node_storage)
@@ -221,6 +204,9 @@ module module_tree
     end subroutine tree_destroy
 
 
+    !>
+    !> returns `.true.` if resources have been allocated for the tree `t`
+    !>
     function tree_allocated(t)
       use module_htable, only: htable_allocated
       implicit none
@@ -232,6 +218,9 @@ module module_tree
     end function tree_allocated
 
 
+    !>
+    !> allocates resouces for the tree communicator `c` and initializes its fields
+    !>
     subroutine tree_communicator_create(c)
       use, intrinsic :: iso_c_binding
       use module_pepc_types, only: mpi_type_tree_node
@@ -251,6 +240,9 @@ module module_tree
       c%req_queue_top =  0
       c%request_balance =  0
       c%req_queue(:)%owner = -1 ! used in send_requests() to ensure that only completely stored entries are sent form the list
+      c%sum_ships = 0
+      c%sum_fetches = 0
+
       c%comm_thread = c_null_ptr
       c%comm_thread = pthreads_alloc_thread()
       DEBUG_ASSERT(c_associated(c%comm_thread))
@@ -260,6 +252,9 @@ module module_tree
     end subroutine tree_communicator_create
 
 
+    !>
+    !> deallocates the resources of the tree communicator `c`
+    !>
     subroutine tree_communicator_destroy(c)
       use module_atomic_ops, only: atomic_deallocate_int 
       use pthreads_stuff, only: pthreads_free_thread
@@ -678,8 +673,8 @@ module module_tree
       call MPI_GATHER(t%nleaf_me,    1, MPI_INTEGER8, tot_nleaf,  1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
       nkeys_total = t%nleaf + t%ntwig
       call MPI_GATHER(nkeys_total,   1, MPI_INTEGER8, total_keys, 1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
-      call MPI_GATHER(t%sum_fetches, 1, MPI_INTEGER8, fetches,    1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
-      call MPI_GATHER(t%sum_ships,   1, MPI_INTEGER8, ships,      1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
+      call MPI_GATHER(t%communicator%sum_fetches, 1, MPI_INTEGER8, fetches,    1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
+      call MPI_GATHER(t%communicator%sum_ships,   1, MPI_INTEGER8, ships,      1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
       call MPI_GATHER(interactions_local,    1, MPI_REAL8, num_interactions,      1, MPI_REAL8,   0,  t%comm_env%comm, ierr )
       call MPI_GATHER(mac_evaluations_local, 1, MPI_REAL8, num_mac_evaluations,   1, MPI_REAL8,   0,  t%comm_env%comm, ierr )
       call MPI_REDUCE(t%nbranch_me, max_nbranch,     1, MPI_INTEGER, MPI_MAX, 0, t%comm_env%comm, ierr )
@@ -744,7 +739,7 @@ module module_tree
         write (60,*) '######## WALK-COMMUNICATION ###############################################################'
         write (60,'(a50,2i12)') 'Max # multipole fetches/ships per cpu: ',maxval(fetches), maxval(ships)
         write (60,'(a50,2i12)') 'Min # multipole fetches/ships per cpu: ',minval(fetches), minval(ships)
-        write (60,'(a50,2i12)') 'Local #  multipole fetches & ships: ', t%sum_fetches, t%sum_ships
+        write (60,'(a50,2i12)') 'Local #  multipole fetches & ships: ', t%communicator%sum_fetches, t%communicator%sum_ships
         write (60,*) '######## WORKLOAD AND WALK ################################################################'
         write (60,'(a50,3e12.4)')       'total/ave/max_local # interactions(work): ', total_interactions, average_interactions, max_interactions
         write (60,'(a50,3e12.4)')       'total/ave/max_local # mac evaluations: ', total_mac_evaluations, average_mac_evaluations, max_mac_evaluations

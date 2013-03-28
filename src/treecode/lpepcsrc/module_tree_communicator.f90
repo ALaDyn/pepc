@@ -80,7 +80,11 @@ module module_tree_communicator
 
   contains
 
-  ! TODO: need more space for multiple communicators?
+  !>
+  !> One time initialization of MPI communication buffers to be called from
+  !> pepc_prepare.
+  !>
+  !> @todo need more space for multiple communicators?
   subroutine tree_communicator_prepare()
     use treevars, only: mpi_comm_lpepc
     use module_pepc_types, only: mpi_type_tree_node
@@ -106,6 +110,9 @@ module module_tree_communicator
   end subroutine tree_communicator_prepare
     
 
+  !>
+  !> Deallocate MPI communication buffers in pepc_finalize.
+  !>
   subroutine tree_communicator_finalize()
     implicit none
     include 'mpif.h'
@@ -120,6 +127,19 @@ module module_tree_communicator
   end subroutine tree_communicator_finalize
 
 
+  !>
+  !> Starts the communication thread associated with tree `t`.
+  !>
+  !> The thread answers incoming requests for tree nodes on the communicator in
+  !> `t%comm_env` and sends out requests accumulated in the associated request
+  !> queue.
+  !>
+  !> @note Smooth sailing is only expected as long as `t%comm_env` is not used
+  !> concurrently by any other thread due to varying levels of thread safeness
+  !> of MPI implementations.
+  !>
+  !> @todo Add an MPI barrier here for symmetry with `tree_communicator_stop()`?
+  !>
   subroutine tree_communicator_start(t)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
@@ -140,6 +160,14 @@ module module_tree_communicator
   end subroutine tree_communicator_start
 
 
+  !>
+  !> Stops the communication thread associated with tree `t`.
+  !>
+  !> Stopping tree communication is a global action across all ranks owning
+  !> parts of the tree and can only complete once everyone has agreed that
+  !> communications should come to an end. This routine blocks until consensus
+  !> achieved an the communicator thread can actually be stopped.
+  !>
   subroutine tree_communicator_stop(t)
     use module_tree, only: t_tree
     use pthreads_stuff, only: pthreads_jointhread
@@ -160,6 +188,15 @@ module module_tree_communicator
   end subroutine tree_communicator_stop
 
 
+  !>
+  !> Request children of node `n` in tree `t` from the responsible remote rank.
+  !>
+  !> This routine returns immediately as the actual communication with the
+  !> remote rank is handled by the communicator thread. The caller is then free
+  !> to continue working on something different. Later on, `tree_node_children_available`
+  !> can be used to check whether the requested data has arrived in the
+  !> meantime.
+  !>
   subroutine tree_node_fetch_children(t, n)
     use module_tree, only: t_tree
     use module_pepc_types, only: t_tree_node
@@ -196,7 +233,7 @@ module module_tree_communicator
     ! the communicator will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
     t%communicator%req_queue(local_queue_bottom)%key = n%key
     t%communicator%req_queue(local_queue_bottom)%node => n
-    call atomic_write_barrier()
+    call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
     t%communicator%req_queue(local_queue_bottom)%owner = n%owner
 
     if (tree_comm_debug) then
@@ -205,7 +242,10 @@ module module_tree_communicator
   end subroutine tree_node_fetch_children
 
 
-  subroutine broadcast_walk_finished(t)
+  !>
+  !> Notify all ranks about a communication shutdown.
+  !>
+  subroutine broadcast_comm_finished(t)
     use module_tree, only: t_tree
     use module_debug
     implicit none
@@ -227,8 +267,12 @@ module module_tree_communicator
   end subroutine
 
 
+  !>
+  !> Answer a request for node data.
+  !>
   subroutine send_data(t, requested_key, ipe_sender)
-    use module_tree, only: t_tree, tree_lookup_node_critical
+    use module_tree, only: t_tree, tree_node_get_first_child, &
+      tree_lookup_node_critical, tree_node_get_next_sibling
     use module_pepc_types, only: t_tree_node, MPI_TYPE_tree_node
     use module_debug
     use module_tree_node
@@ -240,34 +284,42 @@ module module_tree_communicator
     integer, intent(in) :: ipe_sender
 
     type(t_tree_node), target :: children_to_send(8)
-    type(t_tree_node), pointer :: n
-    integer*8, dimension(8) :: key_child
-    integer :: j, ic, ierr, nchild
+    type(t_tree_node), pointer :: n, nn
+    integer :: nchild, ierr
 
     if (tree_comm_debug) then
       DEBUG_INFO('("PE", I6, " answering request.                         request_key=", O22, ",        sender=", I6)', t%comm_env%rank, requested_key, ipe_sender )
     end if
 
-    j = 0
-    ! TODO: switch to traversal primitives?
     call tree_lookup_node_critical(t, requested_key, n, 'WALK:send_data:parentkey')
-    call tree_node_get_childkeys(n, nchild, key_child)
+    if (tree_node_get_first_child(t, n, nn)) then
+      nchild = 0
 
-    do ic = 1,nchild
-      call tree_lookup_node_critical(t, key_child(ic), n, 'WALK:send_data:childkey')
-      children_to_send(ic) = n
-      children_to_send(ic)%flags = int(iand( children_to_send(ic)%flags, TREE_NODE_CHILDBYTE ))! Catch lowest 8 bits of childbyte - filter off requested and here flags
-    end do
-    
-    ! Ship child data back to PE that requested it
-    call MPI_BSEND(children_to_send(1:nchild), nchild, MPI_TYPE_tree_node, &
-      ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, t%comm_env%comm, ierr)
+      do
+        n => nn
+        nchild = nchild + 1
 
-    ! statistics on number of sent children-packages
-    t%sum_ships = t%sum_ships + 1
+        children_to_send(nchild) = n
+        children_to_send(nchild)%flags = int(iand( children_to_send(nchild)%flags, TREE_NODE_CHILDBYTE ))! Catch lowest 8 bits of childbyte - filter off requested and here flags
+
+        if (.not. tree_node_get_next_sibling(t, n, nn)) then
+          exit
+        end if
+      end do
+      
+      ! Ship child data back to PE that requested it
+      call MPI_BSEND(children_to_send(1:nchild), nchild, MPI_TYPE_tree_node, &
+        ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, t%comm_env%comm, ierr)
+
+      ! statistics on number of sent children-packages
+      t%communicator%sum_ships = t%communicator%sum_ships + 1
+    end if
   end subroutine send_data
 
 
+  !>
+  !> Send a request for data
+  !>
   function send_request(t, req)
     use module_tree, only: t_tree
     use module_tree_node
@@ -295,6 +347,9 @@ module module_tree_communicator
   end function
 
 
+  !>
+  !> Insert incoming data into the tree.
+  !>
   subroutine unpack_data(t, child_data, num_children, ipe_sender)
     use module_tree, only: t_tree, tree_insert_or_update_node, tree_lookup_node_critical
     use module_pepc_types, only: t_tree_node
@@ -335,10 +390,10 @@ module module_tree_communicator
       ! TODO: print message if node exists, i.e., use tree_insert_node()
       call tree_insert_or_update_node(t, child_data(ic))
       ! count number of fetched nodes
-      t%sum_fetches = t%sum_fetches+1
+      t%communicator%sum_fetches = t%communicator%sum_fetches+1
     end do
 
-    call atomic_write_barrier()
+    call atomic_write_barrier() ! make sure children are actually inserted before indicating their presence
 
     ! set 'children-here'-flag for all parent addresses
     ! may only be done *after inserting all* children, hence not(!) during the loop above
@@ -371,7 +426,9 @@ module module_tree_communicator
 !  end subroutine
 
 
+  !>
   !> send all requests from our thread-safe list until we find an invalid one
+  !>
   subroutine send_requests(t)
     use module_tree, only: t_tree
     use module_atomic_ops, only: atomic_load_int, atomic_read_barrier
@@ -392,7 +449,7 @@ module module_tree_communicator
       ! first check whether the entry is actually valid	  
       if (t%communicator%req_queue(tmp_top)%owner >= 0) then
         t%communicator%req_queue_top = tmp_top
-        call atomic_read_barrier()
+        call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
         if (tree_comm_debug) then
           DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)', t%comm_env%rank, t%communicator%req_queue_top, t%communicator%req_queue(t%communicator%req_queue_top)%key, t%communicator%req_queue(t%communicator%req_queue_top)%owner)
@@ -415,7 +472,15 @@ module module_tree_communicator
   end subroutine send_requests
 
 
-  !subroutine run_communication_loop(t, max_particles_per_thread) bind(c)
+  !>
+  !> main routine of the communicator thread.
+  !>
+  !> Repeatedly checks the request queue for new requests to send out
+  !> and calls MPI_IPROBE to check for requests to answer, then relinquishes the
+  !> CPU.
+  !>
+  !> @todo Factor out thread scheduling code below and reactivate it.
+  !>
   function run_communication_loop(arg) bind(c)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
@@ -473,7 +538,6 @@ module module_tree_communicator
       t%communicator%request_balance = t%communicator%request_balance - nummessages(TREE_COMM_TAG_REQUESTED_DATA)
       nummessages(TREE_COMM_TAG_REQUESTED_DATA) = 0
 
-      ! TODO: move and reactivate this!
       ! adjust the sched_yield()-timeout for the thread that shares its processor with the communicator
       !if (messages_per_iteration > MAX_MESSAGES_PER_ITERATION) then
       !  particles_per_yield = int(max(0.75 * particles_per_yield, 0.01*max_particles_per_thread))
@@ -505,6 +569,9 @@ module module_tree_communicator
   end function run_communication_loop
 
 
+  !>
+  !> Checks for incoming MPI messages and acts on them.
+  !>
   subroutine run_communication_loop_inner(t, comm_finished, nummessages)
     use module_tree, only: t_tree
     use module_pepc_types
@@ -589,7 +656,7 @@ module module_tree_communicator
               comm_finished(ipe_sender + 1) = .true.
 
               if (all(comm_finished)) then
-                call broadcast_walk_finished(t)
+                call broadcast_comm_finished(t)
                 if (tree_comm_debug) then
                   DEBUG_INFO(*, 'BCWF: comm_finished = ', comm_finished)
                   DEBUG_INFO('("BCWF: nummessages(TREE_COMM_TAG_FINISHED_PE) = ", I6, ", count(comm_finished) = ", I6)', nummessages(TREE_COMM_TAG_FINISHED_PE), count(comm_finished))
@@ -609,15 +676,12 @@ module module_tree_communicator
             end if
 
             t%communicator%comm_thread_stopping = .true.
-
         end select
 
         call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_env%comm, msg_avail, stat, ierr)
-
       end do ! while (msg_avail)
 
       t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE) = t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE) +  (MPI_WTIME() - tcomm)
-
     end if ! msg_avail
   end subroutine run_communication_loop_inner
 end module module_tree_communicator
