@@ -30,7 +30,58 @@ module helper
   use zufall
   use module_cmdline
 
+  public :: QsortC
+  private :: Partition
+
   contains
+
+    recursive subroutine QsortC(A)
+        real*8, intent(in out), dimension(:) :: A
+        integer :: iq
+
+        if(size(A) > 1) then
+            call Partition(A, iq)
+            call QsortC(A(:iq-1))
+            call QsortC(A(iq:))
+        endif
+    end subroutine QsortC
+
+    subroutine Partition(A, marker)
+        real*8, intent(in out), dimension(:) :: A
+        integer, intent(out) :: marker
+        integer :: i, j
+        real*8 :: temp
+        real*8 :: x      ! pivot point
+        x = A(1)
+        i= 0
+        j= size(A) + 1
+
+        DO
+            j = j-1
+            DO
+                IF (A(j) <= x) exit
+                j = j-1
+            END DO
+            i = i+1
+            DO
+                IF (A(i) >= x) exit
+                i = i+1
+            END DO
+            IF (i < j) THEN
+            ! exchange A(i) and A(j)
+                temp = A(i)
+                A(i) = A(j)
+                A(j) = temp
+            ELSEIF (i == j) THEN
+                marker = i+1
+                return
+            ELSE
+                marker = i
+                return
+            ENDIF
+        END DO
+
+    end subroutine Partition
 
 !======================================================================================
 

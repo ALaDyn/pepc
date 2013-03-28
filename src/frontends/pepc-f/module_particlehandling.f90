@@ -11,12 +11,24 @@ module particlehandling
 !======================================================================================
     SUBROUTINE count_hits_and_remove_particles(p,hits,reflux)
         implicit none
+        include 'mpif.h'
 
         logical :: hit
-        integer rp,ib
+        integer :: rp,ib,ip,ispecies,i
+        integer :: rc
         type(t_particle), allocatable, intent(inout) :: p(:)
+        type(t_particle), allocatable :: p_hits_logical_sheath(:,:,:)
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
-        real*8 :: xp(3)
+        real*8 :: xp(3),v_perp_logical_sheath(0:nspecies-1,nb,np)
+
+
+        integer :: thits(0:nspecies-1,nb,0:n_ranks-1),displs(0:n_ranks-1)
+        real*8 :: t_v_perp_logical_sheath(0:nspecies-1,nb,tnp)
+        real*8,allocatable :: v_perp_temp(:)
+        real*8 :: vcut_el(nb)
+        integer :: ihits,ehits
+
+        allocate(p_hits_logical_sheath(0:nspecies-1,nb,np),stat=rc)
 
         rp=np
         ib=1
@@ -30,10 +42,15 @@ module particlehandling
                     hits(p(rp)%data%species,ib)=hits(p(rp)%data%species,ib)+1
                     IF (boundaries(ib)%type==3) THEN                                   !Open BC
                         IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
-                        IF(rp .ne. np) THEN
-                            p(rp) = p(np)
-                        END IF
+                        p(rp) = p(np)
                         np = np - 1
+                        ib = 0
+                        rp = rp - 1
+                    ELSE IF (boundaries(ib)%type==4) THEN                              !logical sheath
+                        IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
+                        p_hits_logical_sheath(p(rp)%data%species,ib,hits(p(rp)%data%species,ib)) = p(rp)
+                        p(rp) = p(np)
+                        np = np-1
                         ib = 0
                         rp = rp - 1
                     ELSE IF (boundaries(ib)%type==2) THEN                              !Periodic BC
@@ -46,9 +63,7 @@ module particlehandling
                         ib = 0
                     ELSE IF (boundaries(ib)%type==0) THEN                              !Absorbing Wall BC
                         IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
-                        IF(rp .ne. np) THEN
-                            p(rp) = p(np)
-                        END IF
+                        p(rp) = p(np)
                         np = np - 1
                         ib = 0
                         rp = rp - 1
@@ -59,8 +74,103 @@ module particlehandling
             rp = rp-1
         END DO
 
+        thits=0
+        vcut_el=0
+        DO ib = 1,nb
+            IF (boundaries(ib)%type==4) THEN
+                DO ispecies = 0,nspecies-1
+                    IF (species(ispecies)%physical_particle) THEN
+                        call MPI_GATHER(hits(ispecies,ib),1,MPI_INTEGER, thits(ispecies,ib,:), 1, MPI_INTEGER, 0,MPI_COMM_WORLD, rc)
+                    END IF
+                END DO
+            END IF
+        END DO
+
+        DO ib = 1,nb
+            IF (boundaries(ib)%type==4) THEN
+                DO ispecies = 0,nspecies-1
+                    IF (species(ispecies)%physical_particle) THEN
+                        IF (root) THEN
+                            displs(0)=0
+                            DO i=1,n_ranks-1
+                                displs(i)=displs(i-1)+thits(ispecies,ib,i-1)
+                            END DO
+                        END IF
+                        DO ip = 1,hits(ispecies,ib)
+                            v_perp_logical_sheath(ispecies,ib,ip)=-dotproduct(p_hits_logical_sheath(ispecies,ib,ip)%data%v &
+                                                                              ,boundaries(ib)%n)
+                        END DO
+                        IF (species(ispecies)%indx==1) THEN !sorting only for electrons
+                            call MPI_GATHERV(v_perp_logical_sheath(ispecies,ib,:),hits(ispecies,ib),&
+                                             MPI_DOUBLE_PRECISION,t_v_perp_logical_sheath(ispecies,ib,:),&
+                                             thits(ispecies,ib,:),displs,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD, rc)
+                            IF (root) THEN
+                                allocate(v_perp_temp(sum(thits(ispecies,ib,:))),stat=rc)
+                                v_perp_temp=t_v_perp_logical_sheath(ispecies,ib,1:sum(thits(ispecies,ib,:)))
+                                call QsortC(v_perp_temp)
+                                t_v_perp_logical_sheath(ispecies,ib,1:sum(thits(ispecies,ib,:)))=v_perp_temp
+                                ehits=sum(thits(ispecies,ib,:))
+                                ihits=0
+                                DO i=0,nspecies-1
+                                    IF (species(i)%physical_particle .and. species(i)%q > 0) THEN
+                                        ihits=ihits+sum(thits(i,ib,:))
+                                    END IF
+                                END DO
+                                vcut_el(ib)=v_perp_temp(ehits-ihits)
+                                deallocate(v_perp_temp)
+                            END IF
+                            call MPI_BCAST(vcut_el(ib),1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,rc)
+                        END IF
+                    END IF
+                END DO
+            END IF
+        END DO
+
+        DO ib = 1,nb
+            IF (boundaries(ib)%type==4) THEN
+                DO ispecies = 0,nspecies-1
+                    IF (species(ispecies)%physical_particle .and. species(ispecies)%indx==1) THEN
+                        call repell_electrons(p,hits,reflux,vcut_el(ib),p_hits_logical_sheath,ib,ispecies)
+                    END IF
+                END DO
+            END IF
+        END DO
+
+        deallocate(p_hits_logical_sheath)
 
     END SUBROUTINE
+
+!======================================================================================
+
+    SUBROUTINE repell_electrons(p,hits,reflux,vcut_el,p_hits_logical_sheath,ib,ispecies)
+
+        implicit none
+        include 'mpif.h'
+
+        type(t_particle), allocatable, intent(inout) :: p(:),p_hits_logical_sheath(:,:,:)
+        integer, intent(inout) :: hits(0:,:),reflux(0:,:)
+        real(KIND=8),intent(in) :: vcut_el
+        integer, intent(in) :: ib,ispecies
+
+        integer :: ip
+        real(KIND=8) :: v_perp,xp(3)
+
+        DO ip=1,hits(ispecies,ib)
+            v_perp=-dotproduct(p_hits_logical_sheath(ispecies,ib,ip)%data%v,boundaries(ib)%n)
+            IF (v_perp <= vcut_el) THEN !reflect electrons
+                np=np+1
+                p(np)=p_hits_logical_sheath(ispecies,ib,ip)
+                xp = p(np)%x - boundaries(ib)%x0
+                p(np)%x = p(np)%x - 2.*dotproduct(xp,boundaries(ib)%n)*boundaries(ib)%n
+                p(np)%data%v = p(np)%data%v - 2.*dotproduct(p(np)%data%v,boundaries(ib)%n)*boundaries(ib)%n
+                hits(ispecies,ib) = hits(ispecies,ib) - 1
+                IF (reflux(ispecies,ib)>0) reflux(ispecies,ib) = reflux(ispecies,ib) - 1
+            END IF
+        END DO
+
+
+
+    END SUBROUTINE repell_electrons
 
 !======================================================================================
 

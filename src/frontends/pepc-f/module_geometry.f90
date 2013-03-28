@@ -183,7 +183,7 @@ module module_geometry
         end do
 
         count_wallparticles=tnwp_aux
-        !write(*,*)"Wallparticles:",tnwp_aux
+
    end function count_wallparticles
 
  !======================================================================================
@@ -294,11 +294,11 @@ module module_geometry
         IF (reflux_particles .eqv. .false.) THEN
             boundary%reflux_particles=reflux_particles
         ELSE
-            IF ((boundary%type==0) .or. (boundary%type==3)) THEN
+            IF ((boundary%type==0) .or. (boundary%type==3) .or. (boundary%type==4)) THEN
                 boundary%reflux_particles=reflux_particles
             ELSE
                 write(*,*) "Problem with boundary",boundary%indx
-                write(*,*) "Refluxing conditions can only be set for absorbing boundaries (type=0 or type=3)."
+                write(*,*) "Refluxing conditions can only be set for absorbing boundaries (type=0, type=4 or type=3)."
                 STOP
             END IF
         END IF

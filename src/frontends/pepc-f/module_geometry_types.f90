@@ -45,7 +45,7 @@ module module_geometry_types
          real*8 :: e1(3)                !< edge1: vector to adjacent corner
          real*8 :: e2(3)                !< edge2: vector to other adjacent corner; adjacent and opposite corner are computed
          real*8 :: n(3)                 !< surface normal
-         integer :: type                !< surface type (0=absorbing wall,1=reflect,2=periodic,3=open)
+         integer :: type                !< surface type (0=absorbing wall,1=reflect,2=periodic,3=open,4=logical sheath)
          logical :: reflux_particles    !< if true, particles hitting the boundary will be refluxed according to chosen source
          integer :: indx                !< index (should be the same as in the boundary array)
          integer :: opp_bnd=0           !< opposite boundary if periodic bc's
