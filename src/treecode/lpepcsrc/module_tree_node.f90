@@ -52,7 +52,7 @@ module module_tree_node
       type(t_tree_node), intent(in) :: n
       logical :: tree_node_is_leaf
 
-      tree_node_is_leaf = n%leaves == 1
+      tree_node_is_leaf = 0 == iand(n%flags, TREE_NODE_CHILDBYTE)
     end function tree_node_is_leaf
 
 

@@ -89,6 +89,8 @@ module module_tree_grow
     end if
     call timer_stop(t_local)
 
+    call tree_check(t, "tree_grow: after local")
+
     ! Should now have multipole information up to root list level(s) (only up to branch level, the information is correct)
     ! By definition, this is complete: each branch node is self-contained.
     ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
@@ -103,7 +105,7 @@ module module_tree_grow
     call timer_stop(t_global)
     deallocate(branch_keys)
 
-    call tree_check(t, "tree_grow")
+    call tree_check(t, "tree_grow: after exchange")
 
     if (root_node%leaves .ne. t%npart) then
       call htable_dump(t%node_storage, p)
@@ -575,6 +577,7 @@ module module_tree_grow
         ! do nothing
       else if (size(ki) == 1) then ! we have arrived at a leaf
         if (ki(1)%idx /= 0) then ! boundary particles have idx == 0, do not really need to be inserted
+          ! TODO: put the following in tree_node_from_particle
           this_node%flags      = ibset(0, TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS)
           this_node%owner      = t%comm_env%rank
           this_node%key        = k

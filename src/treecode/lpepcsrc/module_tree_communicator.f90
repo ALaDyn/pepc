@@ -28,8 +28,8 @@
 !        if (requests have been posted)
 !            send all requests
 !
-!        if (all my walks finished)
-!            send_walk_finished(to rank 0)
+!        if (shutdown requested)
+!            send_comm_finished(to rank 0)
 !
 !        while (received MPI-message)
 !          case (message tag) of
@@ -70,7 +70,6 @@ module module_tree_communicator
 
   ! MPI buffer
   integer*1, allocatable, target :: tree_comm_bsend_buffer(:) !< buffer for bsend-calls
-
   
   public :: tree_communicator_start
   public :: tree_communicator_stop
@@ -85,6 +84,7 @@ module module_tree_communicator
   !> pepc_prepare.
   !>
   !> @todo need more space for multiple communicators?
+  !>
   subroutine tree_communicator_prepare()
     use treevars, only: mpi_comm_lpepc
     use module_pepc_types, only: mpi_type_tree_node

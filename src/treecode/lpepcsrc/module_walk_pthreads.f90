@@ -18,96 +18,79 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-! ===========================================
-!
-!           TREE_WALK
-!
-!  Perform tree walk for all local particles
-!  in a hybrid parallelization scheme using
-!  linux pthreads
-!
-!  Algorithm follows the implementation of
-!  Warren & Salmon`s 'latency-hiding' concept,
-!  retaining list-based tree-walk from vectorised
-!  code by Pfalzner & Gibbon.
-!
-!
-!  Structure:
-!    * primary thread (aka 'do_communication_loop')
-!      performs any MPI-communication with other
-!      compute nodes and inserts all received multipole
-!      information into the local tree structure
-!    * secondary threads ('walk_worker_thread')
-!      grab a number of particles and perform their
-!      individual walks. as soon as one particle has
-!      finished walking, the worker_thread takes an
-!      additional particle as long as there are still
-!      unprocessed particles available
-!    * communication requests are inhibited from the
-!      schedule- and work-threads via
-!           - post_request (req. child data for some parent key)
-!           - notify_walk_finished (notify MPI-rank 0, that
-!                this PE has finished)
-!    * while the worker threads simply exit
-!      after their work is finished, the communicator stays
-!      active until the walks on all MPI ranks have been
-!      completed. the information about this status
-!      is distributed by MPI rank 0 to all other PEs
-!      using a special MPI message
-!    * this results in having effectively only one pass of tree_walk.
-!      the communicator can stay active until anything is
-!      finished on all PEs and the workload distribution is much easier.
-!    * additionally, this allows to initialize all walk data only
-!      once per run instead of once per chunk. we just use
-!      nintmax and max_particles_per_thread as limits for maximum
-!      number of interactions and maximum chunk length
-!
-!
-!  Structure of individual walk_work_threads:
-!  ------------------------------------------
-!      do while (particles_active .or. particles_available)
-!
-!        particles_active = .false.
-!
-!        do i=1,max_particles_per_thread
-!
-!          if ( (my_particles(i) == -1) .and. (particles_available)) then         ! i.e. the place for a particle is unassigned
-!            my_particles(i) = get_first_unassigned_particle()
-!          end if
-!
-!          call walk_single_particle(my_particles(i))
-!
-!        end do
-!      end do
-!
-!
-!  Structure of walk_single_particle(particle):
-!  ------------------------------------------
-!
-!     if (.not.finished(particle)) then
-!       num_unfinished = num_unfinished + 1
-!
-!       check defer_list entries:
-!         if (requested children available)
-!            put them onto todo_list
-!
-!       do while (can take entry form todo_list)
-!           if (MAC OK)
-!                immedeately interact with node
-!           else
-!                if (node locally available)
-!                    resolve node
-!                    put all children to front of todo_list
-!                else
-!                    post_request(parentkey, owner)
-!                    put node on defer_list
-!                end if
-!           end if
-!       end do
-!     end if
-!
-!
-! ===========================================
+!>
+!>  Perform tree walk for all local particles
+!>  in a hybrid parallelization scheme using
+!>  linux pthreads
+!>
+!>  Algorithm follows the implementation of
+!>  Warren & Salmon`s 'latency-hiding' concept,
+!>  retaining list-based tree-walk from vectorised
+!>  code by Pfalzner & Gibbon.
+!>
+!>
+!>  Structure:
+!>    * the main thread upon entering `tree_walk` spawns a number of
+!>      worker threads and waits for them to complete.
+!>    * each worker thread (`walk_worker_thread`)
+!>      grabs a number of particles and performs their
+!>      individual walks. 
+!>    * if a potential interaction partner of a particle is not available
+!>      locally, it is requested via `tree_node_fetch_children()`
+!>      and the walk for that particle is deferred until later
+!>    * as soon as one particle has
+!>      finished walking, the worker thread takes an
+!>      additional particle as long as there are still
+!>      unprocessed particles available
+!>    * when all walks of all particles are finished, the
+!>      worker threads are terminated and the main thread
+!>      continues execution
+!>
+!>
+!>  Structure of individual walk_work_threads:
+!>  ------------------------------------------
+!>      do while (particles_active .or. particles_available)
+!>
+!>        particles_active = .false.
+!>
+!>        do i=1,max_particles_per_thread
+!>
+!>          if ( (my_particles(i) == -1) .and. (particles_available)) then         ! i.e. the place for a particle is unassigned
+!>            my_particles(i) = get_first_unassigned_particle()
+!>          end if
+!>
+!>          call walk_single_particle(my_particles(i))
+!>
+!>        end do
+!>      end do
+!>
+!>
+!>  Structure of walk_single_particle(particle):
+!>  ------------------------------------------
+!>
+!>     if (.not.finished(particle)) then
+!>       num_unfinished = num_unfinished + 1
+!>
+!>       check defer_list entries:
+!>         if (requested children available)
+!>            put them onto todo_list
+!>
+!>       do while (can take entry form todo_list)
+!>           if (MAC OK)
+!>                immedeately interact with node
+!>           else
+!>                if (node locally available)
+!>                    resolve node
+!>                    put all children to front of todo_list
+!>                else
+!>                    post_request(parentkey, owner)
+!>                    put node on defer_list
+!>                end if
+!>           end if
+!>       end do
+!>     end if
+!>
+!>
 module module_walk_pthreads_commutils
   use module_atomic_ops, only: t_atomic_int
   implicit none
@@ -446,8 +429,6 @@ module module_walk
         "walk_schedule_thread_inner:pthread_create. Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
     end do
 
-    !call run_communication_loop(walk_tree, max_particles_per_thread)
-
     ! ... and wait for work thread completion
     do ith = 1, num_walk_threads
       call retval(pthreads_jointhread(thread_handles(ith)), "walk_schedule_thread_inner:pthread_join")
@@ -733,12 +714,8 @@ module module_walk
     num_finished = atomic_fetch_and_increment_int(threads_finished) + 1
 
     ! tell rank 0 that we are finished with our walk
-    if (num_finished == num_walk_threads) then
-      !call notify_walk_finished()
-
-      if (walk_debug) then
-        DEBUG_INFO(*, "PE", walk_tree%comm_env%rank, "has finished walking")
-      end if
+    if (num_finished == num_walk_threads .and. walk_debug) then
+      DEBUG_INFO(*, "PE", walk_tree%comm_env%rank, "has finished walking")
     end if
 
     walk_worker_thread = c_null_ptr
