@@ -14,21 +14,15 @@ module particlehandling
         include 'mpif.h'
 
         logical :: hit
-        integer :: rp,ib,ip,ispecies,i
+        integer :: rp,ib
         integer :: rc
         type(t_particle), allocatable, intent(inout) :: p(:)
         type(t_particle), allocatable :: p_hits_logical_sheath(:,:,:)
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
-        real*8 :: xp(3),v_perp_logical_sheath(0:nspecies-1,nb,np)
+        real*8 :: xp(3)
 
 
-        integer :: thits(0:nspecies-1,nb,0:n_ranks-1),displs(0:n_ranks-1)
-        real*8 :: t_v_perp_logical_sheath(0:nspecies-1,nb,tnp)
-        real*8,allocatable :: v_perp_temp(:)
-        real*8 :: vcut_el(nb)
-        integer :: ihits,ehits
-
-        allocate(p_hits_logical_sheath(0:nspecies-1,nb,np),stat=rc)
+        IF (ANY(boundaries(1:nb)%type==4)) allocate(p_hits_logical_sheath(0:nspecies-1,nb,np),stat=rc)
 
         rp=np
         ib=1
@@ -73,6 +67,29 @@ module particlehandling
             END DO
             rp = rp-1
         END DO
+
+        IF (ANY(boundaries(1:nb)%type==4)) call treat_logical_sheath_boundaries(p,hits,reflux,p_hits_logical_sheath)
+        IF (ANY(boundaries(1:nb)%type==4)) deallocate(p_hits_logical_sheath)
+
+    END SUBROUTINE
+
+!======================================================================================
+
+    SUBROUTINE treat_logical_sheath_boundaries(p,hits,reflux,p_hits_logical_sheath)
+        implicit none
+        include 'mpif.h'
+
+        type(t_particle), allocatable, intent(inout) :: p(:),p_hits_logical_sheath(:,:,:)
+        integer, intent(inout) :: hits(0:,:),reflux(0:,:)
+
+        integer ib,ispecies,i,ip,rc
+        integer :: thits(0:nspecies-1,nb,0:n_ranks-1),displs(0:n_ranks-1)
+        real*8 :: v_perp_logical_sheath(0:nspecies-1,nb,np)
+        real*8 :: t_v_perp_logical_sheath(0:nspecies-1,nb,tnp)
+        real*8,allocatable :: v_perp_temp(:)
+        real*8 :: vcut_el(nb)
+        integer :: ihits,ehits
+
 
         thits=0
         vcut_el=0
@@ -130,19 +147,18 @@ module particlehandling
             IF (boundaries(ib)%type==4) THEN
                 DO ispecies = 0,nspecies-1
                     IF (species(ispecies)%physical_particle .and. species(ispecies)%indx==1) THEN
-                        call repell_electrons(p,hits,reflux,vcut_el(ib),p_hits_logical_sheath,ib,ispecies)
+                        call repell_electrons_at_logical_sheath(p,hits,reflux,vcut_el(ib),p_hits_logical_sheath,ib,ispecies)
                     END IF
                 END DO
             END IF
         END DO
 
-        deallocate(p_hits_logical_sheath)
 
-    END SUBROUTINE
+    END SUBROUTINE treat_logical_sheath_boundaries
 
 !======================================================================================
 
-    SUBROUTINE repell_electrons(p,hits,reflux,vcut_el,p_hits_logical_sheath,ib,ispecies)
+    SUBROUTINE repell_electrons_at_logical_sheath(p,hits,reflux,vcut_el,p_hits_logical_sheath,ib,ispecies)
 
         implicit none
         include 'mpif.h'
@@ -157,7 +173,7 @@ module particlehandling
 
         DO ip=1,hits(ispecies,ib)
             v_perp=-dotproduct(p_hits_logical_sheath(ispecies,ib,ip)%data%v,boundaries(ib)%n)
-            IF (v_perp <= vcut_el) THEN !reflect electrons
+            IF (v_perp <= vcut_el) THEN !reflect electrons to get ambipolar flux
                 np=np+1
                 p(np)=p_hits_logical_sheath(ispecies,ib,ip)
                 xp = p(np)%x - boundaries(ib)%x0
@@ -168,9 +184,7 @@ module particlehandling
             END IF
         END DO
 
-
-
-    END SUBROUTINE repell_electrons
+    END SUBROUTINE repell_electrons_at_logical_sheath
 
 !======================================================================================
 
@@ -234,8 +248,6 @@ module particlehandling
         integer rc,ip
         type(t_particle), allocatable                :: p_new(:)
 
-
-        write(*,*)"Refluxing",new_particles," ",TRIM(species(ispecies)%name)," from boundary",ib
 
         IF (new_particles==0) return
 
