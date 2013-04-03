@@ -258,7 +258,9 @@ module module_pepc
       implicit none
       integer, intent(in) :: idim
 
-      DEBUG_ASSERT(pthreads_init() == 0)
+      if (0 /= pthreads_init()) then
+        DEBUG_ERROR(*, "pthreads_init() failed!")
+      end if
       call treevars_prepare(idim)
       call calc_neighbour_boxes() ! initialize mirror boxes
       call calc_force_prepare() ! prepare interaction-specific routines
@@ -292,7 +294,9 @@ module module_pepc
       call free_lpepc_mpi_types()
 
       call treevars_finalize()
-      DEBUG_ASSERT(pthreads_uninit() == 0)
+      if (0 /= pthreads_uninit()) then
+        DEBUG_INFO(*, "pthreads_uninit() failed!")
+      end if
 
       if (pepc_initializes_mpi) call MPI_FINALIZE(ierr)
     end subroutine

@@ -234,7 +234,9 @@ module module_tree
       c%timings_comm = 0.
       
       call atomic_allocate_int(c%req_queue_bottom)
-      DEBUG_ASSERT_MSG(associated(c%req_queue_bottom), "could not allocate atomic storage!")
+      if (.not. associated(c%req_queue_bottom)) then
+        DEBUG_ERROR(*, "atomic_allocate_int() failed!")
+      end if
       call atomic_store_int(c%req_queue_bottom, 0)
 
       c%req_queue_top =  0
@@ -245,7 +247,9 @@ module module_tree
 
       c%comm_thread = c_null_ptr
       c%comm_thread = pthreads_alloc_thread()
-      DEBUG_ASSERT(c_associated(c%comm_thread))
+      if (.not. c_associated(c%comm_thread)) then
+        DEBUG_ERROR(*, "pthreads_alloc_thread() failed!")
+      end if
       c%comm_thread_running = .false.
       c%comm_thread_stopping = .false.
       c%comm_thread_stop_requested = .false.
@@ -264,7 +268,9 @@ module module_tree
       type(t_tree_communicator), intent(inout) :: c
 
       ! TODO: we could just stop the running thread, if only it was not in another module
-      DEBUG_ASSERT(.not. c%comm_thread_running)
+      if (c%comm_thread_running) then
+        DEBUG_ERROR(*, "tree_communicator_destroy() called with comm thread still running!")
+      end if
 
       call pthreads_free_thread(c%comm_thread)
       call atomic_deallocate_int(c%req_queue_bottom)

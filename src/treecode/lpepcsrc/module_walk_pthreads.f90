@@ -159,7 +159,9 @@ module module_walk_pthreads_commutils
     ! initialize atomic variables
     call atomic_allocate_int(next_unassigned_particle)
     call atomic_allocate_int(threads_finished)
-    DEBUG_ASSERT_MSG(associated(next_unassigned_particle) .and. associated(threads_finished), "could not allocate atomic storage!")
+    if (.not. (associated(next_unassigned_particle) .and. associated(threads_finished))) then
+      DEBUG_ERROR(*, "atomic_allocate_int() failed!")
+    end if
 
     call atomic_store_int(next_unassigned_particle, 1)
     call atomic_store_int(threads_finished,         0)
@@ -506,7 +508,9 @@ module module_walk
     thread_handles = c_null_ptr
     do i = 1, num_walk_threads
       thread_handles(i) = pthreads_alloc_thread()
-      DEBUG_ASSERT(c_associated(thread_handles(i)))
+      if (.not. c_associated(thread_handles(i))) then
+        DEBUG_ERROR(*, "pthreads_alloc_thread() failed!")
+      end if
     end do
 
     ! we will only want to reject the root node and the particle itself if we are in the central box

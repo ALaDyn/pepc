@@ -160,7 +160,7 @@ module module_tree_communicator
     tp = c_loc(t)
     res = pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp)
     if (0 /= res) then
-      DEBUG_ERROR(*, "could not start communicator thread, return value: ", res)
+      DEBUG_ERROR(*, "pthreads_createthread() failed with return value: ", res)
     end if
     t%communicator%comm_thread_running = .true.
   end subroutine tree_communicator_start
@@ -184,7 +184,9 @@ module module_tree_communicator
     type(t_tree), intent(inout) :: t
 
     t%communicator%comm_thread_stop_requested = .true.
-    DEBUG_ASSERT(pthreads_jointhread(t%communicator%comm_thread) == 0)
+    if (0 /= pthreads_jointhread(t%communicator%comm_thread)) then
+      DEBUG_ERROR(*, "pthreads_jointhread() failed!")
+    end if
     t%communicator%comm_thread_stopping = .false.
     t%communicator%comm_thread_running = .false.
 
