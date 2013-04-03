@@ -79,10 +79,13 @@ module module_htable
     !> collision resolution lists
     !>
     subroutine htable_create(t, n)
+      use module_debug
       implicit none
 
       type(t_htable), intent(inout) :: t
       integer*8 :: n
+
+      DEBUG_ASSERT(.not. htable_allocated(t))
 
       t%maxentries = max(n, 2_8**15)
       t%nentries   = 0_8
@@ -115,12 +118,14 @@ module module_htable
     !> empties the hash table `t`
     !>
     subroutine htable_clear(t)
+      use module_debug
       implicit none
       type(t_htable), intent(inout) :: t
 
       t%nentries = 0_8
       t%buckets  = HTABLE_EMPTY_BUCKET
 
+      DEBUG_ASSERT(htable_allocated(t))
       call htable_prepare_address_list(t)
     end subroutine
 
@@ -168,8 +173,11 @@ module module_htable
     !> deallocates the hash table `t`
     !>
     subroutine htable_destroy(t)
+      use module_debug
       implicit none
       type(t_htable), intent(inout) :: t
+
+      DEBUG_ASSERT(htable_allocated(t))
 
       deallocate(t%buckets, t%free_addr, t%point_free, t%values)
       t%maxentries = 0_8
@@ -183,11 +191,13 @@ module module_htable
     !> hash table
     !>
     subroutine htable_prepare_address_list(t)
+      use module_debug
       implicit none
       type(t_htable), intent(inout) :: t
       integer*8 :: i
 
       ! build list of free addresses for faster collision resolution on insertion into htable
+      DEBUG_ASSERT(htable_allocated(t))
       t%sum_unused = 0_8
       do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
         if (t%buckets(i)%key == HTABLE_KEY_EMPTY .and. i >= HTABLE_FREE_LO) then
@@ -223,6 +233,7 @@ module module_htable
 
       integer*8 :: hashaddr
 
+      DEBUG_ASSERT(htable_allocated(t))
       if (t%nentries >= t%maxentries) then
         DEBUG_ERROR('("Tree arrays full. # Entries: ", I0,"/",I0)', t%nentries, t%maxentries)
       end if
@@ -283,6 +294,7 @@ module module_htable
     !> `.false.` otherwise
     !>
     function htable_contains(t, k)
+      use module_debug
       implicit none
 
       type(t_htable), intent(in) :: t
@@ -290,6 +302,7 @@ module module_htable
 
       logical :: htable_contains
 
+      DEBUG_ASSERT(htable_allocated(t))
       htable_contains = testaddr(t, k)
 
     end function htable_contains
@@ -301,6 +314,7 @@ module module_htable
     !> `null()` otherwise
     !>
     function htable_lookup(t, k, v)
+      use module_debug
       implicit none
 
       type(t_htable), intent(in) :: t
@@ -310,6 +324,7 @@ module module_htable
       logical :: htable_lookup
       integer*8 :: addr
 
+      DEBUG_ASSERT(htable_allocated(t))
       htable_lookup = testaddr(t, k, addr)
       if (htable_lookup) then
         v => t%values(addr)
@@ -337,6 +352,7 @@ module module_htable
 
       integer*8 :: addr
 
+      DEBUG_ASSERT(htable_allocated(t))
       if (.not. testaddr(t, k, addr)) then
         ! could not find key
         DEBUG_WARNING_ALL('("Key not resolved in htable_lookup_critical at ",a)', caller)
@@ -365,11 +381,13 @@ module module_htable
     !> the hash table is freed and `htable_entries(t)` remains unchanged.
     !>
     subroutine htable_remove_key(t, key)
+      use module_debug
       implicit none
 
       type(t_htable), intent(inout) :: t
       integer*8, intent(in) :: key
 
+      DEBUG_ASSERT(htable_allocated(t))
       call htable_remove_keys(t, (/ key /), 1)
     end subroutine htable_remove_key
 
@@ -382,6 +400,7 @@ module module_htable
     !> the hash table is freed and `htable_entries(t)` remains unchanged.
     !>
     subroutine htable_remove_keys(t, keys, num_keys)
+      use module_debug
       implicit none
 
       type(t_htable), intent(inout) :: t
@@ -391,6 +410,7 @@ module module_htable
       integer :: i
       integer*8 :: addr
 
+      DEBUG_ASSERT(htable_allocated(t))
       do i = 1, num_keys
         if (testaddr(t, keys(i), addr)) then
           t%buckets( addr )%key = HTABLE_KEY_INVALID
@@ -455,12 +475,14 @@ module module_htable
     !> returns an iterator for traversing the entries in hash table `t` linearly
     !>
     function htable_iterator(t)
+      use module_debug
       implicit none
 
       type(t_htable), target, intent(in) :: t
 
       type(t_htable_iterator) :: htable_iterator
 
+      DEBUG_ASSERT(htable_allocated(t))
       htable_iterator = t_htable_iterator(t, lbound(t%buckets, dim = 1))
     end function htable_iterator
 
@@ -474,6 +496,7 @@ module module_htable
     !> behaviour is undefined.
     !>
     function htable_iterator_next(it, k, v)
+      use module_debug
       implicit none
 
       type(t_htable_iterator), intent(inout) :: it
@@ -482,6 +505,8 @@ module module_htable
 
       logical htable_iterator_next
 
+      DEBUG_ASSERT(associated(it%t))
+      DEBUG_ASSERT(htable_allocated(it%t))
       do while (it%i <= ubound(it%t%buckets, dim = 1))
         if (htable_entry_is_valid(it%t%buckets(it%i))) then 
           htable_iterator_next = .true.
@@ -516,6 +541,7 @@ module module_htable
       integer*8 :: i, nentries_check, sum_unused_check
 
       call pepc_status('CHECK TABLE')
+      DEBUG_ASSERT(htable_allocated(t))
 
       htable_check = .true.
       nentries_check   = count(t%buckets(:)%key /= HTABLE_KEY_EMPTY)
@@ -555,7 +581,7 @@ module module_htable
         use module_pepc_types
         use module_spacefilling
         use module_utils
-        use module_debug, only : debug_ipefile_open, debug_ipefile_close, debug_ipefile, pepc_status
+        use module_debug
         use module_tree_node
         implicit none
 
@@ -566,6 +592,7 @@ module module_htable
         integer*8 :: i
 
         call pepc_status('DIAGNOSE')
+        DEBUG_ASSERT(htable_allocated(t))
         call debug_ipefile_open()
 
         ! output hash table

@@ -145,16 +145,22 @@ module module_tree_communicator
     use module_tree, only: t_tree
     use pthreads_stuff, only: pthreads_createthread
     use module_debug
+    use module_timings
     implicit none
 
     type(t_tree), target, intent(inout) :: t
     type(c_ptr) :: tp
     integer(c_int) :: res
 
+    DEBUG_ASSERT(.not. t%communicator%comm_thread_running)
     if (tree_comm_debug) then
       DEBUG_INFO('("PE", I6, " run_communication_loop start.")', t%comm_env%rank)
     end if
-
+    ! TODO: in future, need to handle multiple communicators.
+    call timer_reset(t_comm_total)
+    call timer_reset(t_comm_recv)
+    call timer_reset(t_comm_sendreqs)
+    
     t%communicator%comm_thread_stopping = .false.
     t%communicator%comm_thread_stop_requested = .false.
     tp = c_loc(t)
@@ -178,17 +184,23 @@ module module_tree_communicator
     use module_tree, only: t_tree
     use pthreads_stuff, only: pthreads_jointhread
     use module_debug
+    use module_timings
     implicit none
     include 'mpif.h'
 
     type(t_tree), intent(inout) :: t
 
+    DEBUG_ASSERT(t%communicator%comm_thread_running)
     t%communicator%comm_thread_stop_requested = .true.
     if (0 /= pthreads_jointhread(t%communicator%comm_thread)) then
       DEBUG_ERROR(*, "pthreads_jointhread() failed!")
     end if
     t%communicator%comm_thread_stopping = .false.
     t%communicator%comm_thread_running = .false.
+
+    call timer_add(t_comm_total,    t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP))
+    call timer_add(t_comm_recv,     t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE))
+    call timer_add(t_comm_sendreqs, t%communicator%timings_comm(TREE_COMM_TIMING_SENDREQS))
 
     if (tree_comm_debug) then
       DEBUG_INFO('("PE", I6, " run_communication_loop end.")', t%comm_env%rank)

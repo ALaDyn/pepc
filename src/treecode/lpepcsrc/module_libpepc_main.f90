@@ -53,20 +53,19 @@ module module_libpepc_main
 
         call pepc_status("READ PARAMETERS, section libpepc")
         read(filehandle,NML=libpepc)
-
     end subroutine libpepc_read_parameters
+
 
     !>
     !> writes libpepc-specific parameters to file
     !>
     subroutine libpepc_write_parameters(filehandle)
-        use module_debug, only: pepc_status
         implicit none
         integer, intent(in) :: filehandle
 
         write(filehandle, NML=libpepc)
-
     end subroutine
+
 
     !>
     !> Builds the tree from the given particles, redistributes particles
@@ -76,6 +75,9 @@ module module_libpepc_main
       use module_pepc_types, only: t_particle
       use module_tree, only: t_tree
       use module_tree_grow, only: tree_grow
+      use module_tree_communicator, only: tree_communicator_start
+      use module_debug, only: pepc_status
+      use module_interaction_specific, only : calc_force_after_grow
       implicit none
 
       type(t_tree), intent(inout) :: t
@@ -84,6 +86,12 @@ module module_libpepc_main
       integer, optional, intent(in) :: npl !< number of valid entries in p (local particles)
 
       call tree_grow(t, n, p, npl)
+      call tree_communicator_start(t)
+ 
+      call pepc_status('AFTER GROW: CALC FORCE')
+      call calc_force_after_grow(p, size(p))
+      ! call pepc_status('AFTER GROW: TRAVERSE')
+      call pepc_status('AFTER GROW DONE')
     end subroutine
 
 
@@ -94,6 +102,7 @@ module module_libpepc_main
       use module_timings
       use module_debug, only : pepc_status
       use module_tree, only: t_tree, tree_destroy
+      use module_tree_communicator, only: tree_communicator_stop
       implicit none
 
       type(t_tree), intent(inout) :: t
@@ -101,6 +110,7 @@ module module_libpepc_main
       call pepc_status('TIMBER TREE')
 
       ! deallocate particle and result arrays
+      call tree_communicator_stop(t)
       call timer_start(t_deallocate)
       call tree_destroy(t)
       call timer_stop(t_deallocate)
@@ -110,7 +120,6 @@ module module_libpepc_main
     end subroutine libpepc_timber_tree
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Traverses the complete tree for the given particles, i.e. computes
     !> the field values at their positions. Although missing information
@@ -122,7 +131,6 @@ module module_libpepc_main
     !> Otherwise, it makes sense to provide the same particles as given/returned
     !> from to pepc_grow_tree()
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine libpepc_traverse_tree(t, p)
         use module_pepc_types
         use treevars
@@ -130,10 +138,8 @@ module module_libpepc_main
         use module_mirror_boxes
         use module_timings
         use module_interaction_specific
-        use module_debug
+        use module_debug, only: pepc_status
         use module_tree, only: t_tree
-        use module_tree_communicator, only: tree_communicator_start, &
-          tree_communicator_stop
         implicit none
 
         type(t_tree), target, intent(inout) :: t
@@ -143,15 +149,9 @@ module module_libpepc_main
         real*8 :: ttrav, ttrav_loc ! timing integrals
 
         call pepc_status('TRAVERSE TREE')
-
         call timer_reset(t_walk)
         call timer_reset(t_walk_local)
-        call timer_reset(t_comm_total)
-        call timer_reset(t_comm_recv)
-        call timer_reset(t_comm_sendreqs)
-
         call timer_start(t_fields_passes)
-        call tree_communicator_start(t)
 
         do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
 
@@ -164,32 +164,22 @@ module module_libpepc_main
 
             call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
             call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
-            ! TODO: these go somewhere else
-            !call timer_add(t_comm_total,    tcomm(TIMING_COMMLOOP))
-            !call timer_add(t_comm_recv,     tcomm(TIMING_RECEIVE))
-            !call timer_add(t_comm_sendreqs, tcomm(TIMING_SENDREQS))
-
         end do ! ibox = 1,num_neighbour_boxes
 
-        call tree_communicator_stop(t)
         ! add lattice contribution
         call timer_start(t_lattice)
         ! add lattice contribution and other per-particle-forces
         ! TODO: do not call calc_force_per_particle here!
         call calc_force_per_particle(p, size(p))
         call timer_stop(t_lattice)
-
         call timer_stop(t_fields_passes)
-
         call pepc_status('TRAVERSAL DONE')
     end subroutine libpepc_traverse_tree
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Restores the initial particle distribution (before calling pepc_grow_tree() ).
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine libpepc_restore_particles(t, np_local, particles)
         use module_pepc_types, only: t_particle
         use module_timings
@@ -213,6 +203,4 @@ module module_libpepc_main
 
         call pepc_status('RESTORATION DONE')
     end subroutine libpepc_restore_particles
-
-
 end module module_libpepc_main

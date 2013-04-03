@@ -67,10 +67,10 @@ module module_pepc
     subroutine pepc_initialize(frontendname, my_rank, n_cpu, init_mpi, db_level_in, comm, idim)
       use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc
       use module_pepc_types, only : register_lpepc_mpi_types
+      use module_utils, only : create_directory, MPI_IN_PLACE_test
       use module_walk
       use module_domains
       use module_debug
-      use module_utils, only : create_directory, MPI_IN_PLACE_test
       implicit none
       include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
@@ -78,7 +78,7 @@ module module_pepc
       integer, intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
       logical, intent(in) :: init_mpi !< if set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
       integer, intent(in), optional :: db_level_in !< sets debug level for treecode kernel (overrides settings, that may be read from libpepc-section in input file)
-      integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator; otherwise, it uses an MPI_COMM_DUP copy of the given comm
+      integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator (the frontend is responsible for calling MPI_COMM_FREE(comm) prior to calling pepc_finalize() in this case); otherwise, it uses an MPI_COMM_DUP copy of the given comm
       integer, intent(in), optional :: idim
       integer :: ierr, provided
 
@@ -153,7 +153,7 @@ module module_pepc
 
 
     !>
-    !> Initializes internal variables by reading them from the given a file
+    !> Initializes internal variables by reading them from a file
     !> that is given as first argument to the actual executable
     !> the optional parameters file_available and filename return
     !> whether and which file was used
@@ -279,7 +279,7 @@ module module_pepc
       use module_pepc_types, only : free_lpepc_mpi_types
       use module_walk, only : tree_walk_finalize 
       use module_interaction_specific, only : calc_force_finalize
-      use treevars, only : treevars_finalize
+      use treevars, only : treevars_finalize, MPI_COMM_lpepc
       use pthreads_stuff, only: pthreads_uninit
       use module_tree_communicator, only: tree_communicator_finalize
       implicit none
@@ -299,6 +299,7 @@ module module_pepc
         DEBUG_INFO(*, "pthreads_uninit() failed!")
       end if
 
+      call MPI_COMM_FREE(MPI_COMM_lpepc, ierr)
       if (pepc_initializes_mpi) call MPI_FINALIZE(ierr)
     end subroutine
 
@@ -349,10 +350,8 @@ module module_pepc
     !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
     !>
     subroutine pepc_grow_and_traverse(np_local, npart_total, particles, itime, no_dealloc, no_restore)
-      use module_pepc_types
-      use module_libpepc_main
+      use module_pepc_types, only: t_particle
       use module_debug
-      use module_timings, only: timer_stop, t_all
       implicit none
       integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
@@ -384,10 +383,8 @@ module module_pepc
     !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
     !>
     subroutine pepc_grow_tree(np_local, npart_total, particles)
-      use module_pepc_types
-      use module_libpepc_main
-      use module_debug, only : pepc_status
-      use module_interaction_specific, only : calc_force_after_grow
+      use module_pepc_types, only: t_particle
+      use module_libpepc_main, only: libpepc_grow_tree
       implicit none
       integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
@@ -395,12 +392,6 @@ module module_pepc
 
       call libpepc_grow_tree(global_tree, int(npart_total, 8), particles, npl = np_local)
       np_local = size(particles)
-      
-      call pepc_status('AFTER GROW: CALC FORCE')
-      call calc_force_after_grow(particles, np_local)
-      ! call pepc_status('AFTER GROW: TRAVERSE')
-      ! TODO: invoke global comm thread here
-      call pepc_status('AFTER GROW DONE')
     end subroutine
 
 

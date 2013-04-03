@@ -137,7 +137,7 @@ module module_tree
       integer*8 :: maxaddress
 
       call pepc_status('ALLOCATE TREE')
-      DEBUG_ASSERT_MSG(.not. tree_allocated(t), "tree_create(): tree is allready allocated!")
+      DEBUG_ASSERT(.not. tree_allocated(t))
 
       ! initialize tree communication environment
       if (present(comm_env)) then
@@ -196,6 +196,7 @@ module module_tree
       type(t_tree), intent(inout) :: t !< the tree
 
       call pepc_status('DEALLOCATE TREE')
+      DEBUG_ASSERT(tree_allocated(t))
 
       call tree_communicator_destroy(t%communicator)
       call htable_destroy(t%node_storage)
@@ -216,7 +217,7 @@ module module_tree
       logical :: tree_allocated
       type(t_tree), intent(in) :: t
 
-      tree_allocated = htable_allocated(t%node_storage)
+      tree_allocated = htable_allocated(t%node_storage) .or. tree_communicator_allocated(t%communicator)
     end function tree_allocated
 
 
@@ -233,6 +234,7 @@ module module_tree
 
       type(t_tree_communicator), intent(inout) :: c
 
+      DEBUG_ASSERT(.not. tree_communicator_allocated(c))
       c%timings_comm = 0.
       
       call atomic_allocate_int(c%req_queue_bottom)
@@ -262,6 +264,7 @@ module module_tree
     !> deallocates the resources of the tree communicator `c`
     !>
     subroutine tree_communicator_destroy(c)
+      use, intrinsic :: iso_c_binding
       use module_atomic_ops, only: atomic_deallocate_int 
       use pthreads_stuff, only: pthreads_free_thread
       use module_debug
@@ -269,14 +272,30 @@ module module_tree
 
       type(t_tree_communicator), intent(inout) :: c
 
+      DEBUG_ASSERT(tree_communicator_allocated(c))
       ! TODO: we could just stop the running thread, if only it was not in another module
       if (c%comm_thread_running) then
         DEBUG_ERROR(*, "tree_communicator_destroy() called with comm thread still running!")
       end if
 
       call pthreads_free_thread(c%comm_thread)
+      c%comm_thread = c_null_ptr
       call atomic_deallocate_int(c%req_queue_bottom)
     end subroutine tree_communicator_destroy
+
+
+    !>
+    !> returns `.true.` if resources have been allocated for tree communicator `c`
+    !>
+    function tree_communicator_allocated(c)
+      use, intrinsic :: iso_c_binding
+      implicit none
+
+      logical :: tree_communicator_allocated
+      type(t_tree_communicator), intent(in) :: c
+
+      tree_communicator_allocated = associated(c%req_queue_bottom) .or. c_associated(c%comm_thread)
+    end function tree_communicator_allocated
 
 
     !>
@@ -296,6 +315,7 @@ module module_tree
       type(t_tree_node), intent(in) :: n !< The tree node to insert
       type(t_tree_node), optional, pointer, intent(out) :: preexisting_node !< points to preexisting node
 
+      DEBUG_ASSERT(tree_allocated(t))
       tree_insert_node = htable_add(t%node_storage, n%key, n, preexisting_node)
       if (tree_insert_node) then
         ! everything is fine - keep count of leaves / twigs
@@ -319,14 +339,15 @@ module module_tree
     subroutine tree_insert_or_update_node(t, n)
         use module_pepc_types, only: t_tree_node
         use module_tree_node, only: tree_node_is_leaf
+        use module_debug
         implicit none
-        include 'mpif.h'
 
         type(t_tree), intent(inout) :: t !< Tree into which to insert the node
         type(t_tree_node), intent(in) :: n !< The tree node to insert
 
         type(t_tree_node), pointer :: preexisting_node
 
+        DEBUG_ASSERT(tree_allocated(t))
         if (.not. tree_insert_node(t, n, preexisting_node)) then
           ! the node already exist --> update
 
@@ -353,12 +374,14 @@ module module_tree
     !>
     function tree_contains_key(t, k)
       use module_htable, only: htable_contains
+      use module_debug
       implicit none
 
       logical :: tree_contains_key
       type(t_tree), intent(in) :: t !< the tree
       integer*8, intent(in) :: k !< key to look up
 
+      DEBUG_ASSERT(tree_allocated(t))
       tree_contains_key = htable_contains(t%node_storage, k)
     end function tree_contains_key
 
@@ -368,12 +391,14 @@ module module_tree
     !>
     subroutine tree_lookup_root(t, r, caller)
       use module_pepc_types, only: t_tree_node
+      use module_debug
       implicit none
 
       type(t_tree), intent(in) :: t !< the tree
       type(t_tree_node), pointer, intent(out) :: r !< root node
       character(len = *), optional, intent(in) :: caller !< identifies the caller in case an error message is printed
 
+      DEBUG_ASSERT(tree_allocated(t))
       if (present(caller)) then
         call tree_lookup_node_critical(t, 1_8, r, caller)
       else 
@@ -390,6 +415,7 @@ module module_tree
     function tree_lookup_node(t, k, n)
       use module_pepc_types, only: t_tree_node
       use module_htable, only: htable_lookup
+      use module_debug
       implicit none
 
       logical :: tree_lookup_node
@@ -398,6 +424,7 @@ module module_tree
       integer*8, intent(in) :: k !< key to look up
       type(t_tree_node), pointer, intent(out) :: n !< node that is identified by `k`
 
+      DEBUG_ASSERT(tree_allocated(t))
       tree_lookup_node = htable_lookup(t%node_storage, k, n)
     end function tree_lookup_node
 
@@ -409,6 +436,7 @@ module module_tree
     subroutine tree_lookup_node_critical(t, k, n, caller)
       use module_pepc_types, only: t_tree_node
       use module_htable, only: htable_lookup_critical
+      use module_debug
       implicit none
 
       type(t_tree), intent(in) :: t !< the tree
@@ -416,6 +444,7 @@ module module_tree
       type(t_tree_node), pointer, intent(out) :: n !< node that is identified by `k`
       character(LEN = *), intent(in) :: caller
 
+      DEBUG_ASSERT(tree_allocated(t))
       call htable_lookup_critical(t%node_storage, k, n, caller)
     end subroutine tree_lookup_node_critical
 
@@ -435,6 +464,7 @@ module module_tree
         tree_node_children_available, tree_node_has_child
       use module_spacefilling, only: child_key_from_parent_key
       use treevars, only: idim
+      use module_debug
       implicit none
 
       logical :: tree_node_get_first_child
@@ -444,6 +474,7 @@ module module_tree
 
       integer :: ic
 
+      DEBUG_ASSERT(tree_allocated(t))
       tree_node_get_first_child = .false.
       fc => null()
 
@@ -477,6 +508,7 @@ module module_tree
       use module_spacefilling, only: parent_key_from_key, &
         child_key_from_parent_key, child_number_from_key
       use treevars, only: idim
+      use module_debug
       implicit none
 
       logical :: tree_node_get_next_sibling
@@ -487,6 +519,7 @@ module module_tree
       type(t_tree_node), pointer :: p
       integer :: is
 
+      DEBUG_ASSERT(tree_allocated(t))
       tree_node_get_next_sibling = .false.
       s => null()
 
@@ -516,6 +549,7 @@ module module_tree
       use module_pepc_types, only: t_tree_node
       use module_tree_node, only: tree_node_is_root
       use module_spacefilling, only: parent_key_from_key
+      use module_debug
       implicit none
 
       logical tree_node_get_parent
@@ -523,6 +557,7 @@ module module_tree
       type(t_tree_node), intent(in) :: n
       type(t_tree_node), pointer, intent(out) :: p
 
+      DEBUG_ASSERT(tree_allocated(t))
       tree_node_get_parent = .false.
       p => null()
 
@@ -542,6 +577,7 @@ module module_tree
       use module_debug
       use module_pepc_types, only: t_tree_node
       use module_htable, only: htable_dump
+      use module_debug
       implicit none
 
       logical :: tree_check
@@ -559,6 +595,7 @@ module module_tree
       ntwig_check = 0
       ntwig_me_check = 0
 
+      DEBUG_ASSERT(tree_allocated(t))
       call tree_lookup_root(t, r)
       call tree_check_helper(r)
 
@@ -641,9 +678,9 @@ module module_tree
     subroutine tree_stats(t, timestamp)
       use treevars
       !use module_walk, only : tree_walk_statistics
-      use module_debug, only : pepc_status
       use module_htable, only: htable_entries, htable_maxentries
       use module_utils, only : create_directory
+      use module_debug
       implicit none
       include 'mpif.h'
 
@@ -666,6 +703,7 @@ module module_tree
       logical, save :: firstcall = .true.
 
       call pepc_status('STATISTICS')
+      DEBUG_ASSERT(tree_allocated(t))
 
       s = t%comm_env%size
       allocate(nparticles(s), fetches(s), ships(s), total_keys(s), tot_nleaf(s), &
