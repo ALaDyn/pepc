@@ -77,21 +77,19 @@ int pthreads_uninit()
 
 pthread_t* pthreads_alloc_thread()
 {
-  return (pthread_t*)malloc(sizeof(pthread_t));
+    return (pthread_t*)malloc(sizeof(pthread_t));
 }
 
 
 void pthreads_free_thread(pthread_t *storage)
 {
-  free(storage);
+    free(storage);
 }
 
 
-int pthreads_createthread(pthread_t *thread, void *(*start_routine) (void *), void *arg, int relative_priority)
+int pthreads_createthread(pthread_t *thread, void *(*start_routine) (void *), void *arg)
 {
     // prepare a copy of the argument pointer to prevent it from being inaccessible when the thread actually starts
-    // my_thread_args[id] = arg;
-    //return pthread_create(thread, &thread_attr, start_routine, my_thread_args[id]);
     return pthread_create(thread, &thread_attr, start_routine, arg);
 }
 

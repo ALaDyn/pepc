@@ -172,7 +172,7 @@ module module_tree
       call htable_create(t%node_storage, maxaddress)
 
       if (maxaddress < t%npart_me + 2) then
-        DEBUG_ERROR('("maxaddress = ", I0, " < npp + 2 = ", I0 ".", / , "You should increase np_mult.")', maxaddress, t%npart_me + 2)
+        DEBUG_ERROR('("maxaddress = ", I0, " < npp + 2 = ", I0, ".", / , "You should increase np_mult.")', maxaddress, t%npart_me + 2)
       end if
 
       call tree_communicator_create(t%communicator)

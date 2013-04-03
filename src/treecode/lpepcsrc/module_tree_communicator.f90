@@ -148,6 +148,8 @@ module module_tree_communicator
     implicit none
 
     type(t_tree), target, intent(inout) :: t
+    type(c_ptr) :: tp
+    integer(c_int) :: res
 
     if (tree_comm_debug) then
       DEBUG_INFO('("PE", I6, " run_communication_loop start.")', t%comm_env%rank)
@@ -155,7 +157,11 @@ module module_tree_communicator
 
     t%communicator%comm_thread_stopping = .false.
     t%communicator%comm_thread_stop_requested = .false.
-    DEBUG_ASSERT(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), c_loc(t)) == 0)
+    tp = c_loc(t)
+    res = pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp)
+    if (0 /= res) then
+      DEBUG_ERROR(*, "could not start communicator thread, return value: ", res)
+    end if
     t%communicator%comm_thread_running = .true.
   end subroutine tree_communicator_start
 

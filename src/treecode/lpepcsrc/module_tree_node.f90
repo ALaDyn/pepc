@@ -34,7 +34,7 @@ module module_tree_node
     integer, public, parameter :: TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS = 12 !< this bit is set for all nodes that contain some remote nodes beneath them
     integer, public, parameter :: TREE_NODE_FLAG_IS_BRANCH_NODE           = 13 !< this bit is set for all branch nodes (set in tree_exchange)
     integer, public, parameter :: TREE_NODE_FLAG_IS_FILL_NODE             = 14 !< this bit is set for all nodes that are above (towards root) branch nodes
-    integer, public, parameter :: TREE_NODE_CHILDBYTE                     = maskr(8) !< bits that contain the children information for this node
+    integer, public, parameter :: TREE_NODE_CHILDBYTE                     = b'11111111' !< bits that contain the children information for this node
 
     public tree_node_is_leaf
     public tree_node_is_root
