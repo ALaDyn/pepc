@@ -83,11 +83,11 @@ int pthreads_uninit()
 }
 
 
-int pthreads_createthread(int id, void *(*start_routine) (void *), void *arg, int relative_priority)
+int pthreads_createthread(int id, void *(*start_routine) (void *), void *arg)
 {
     // prepare a copy of the argument pointer to prevent it from being inaccessible when the thread actually starts
-    my_thread_args[id] = arg;
-    return pthread_create(&(my_threads[id-1]), &thread_attr, start_routine, my_thread_args[id]);
+    my_thread_args[id-1] = arg;
+    return pthread_create(&(my_threads[id-1]), &thread_attr, start_routine, my_thread_args[id-1]);
 }
 
 
