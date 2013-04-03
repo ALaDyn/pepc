@@ -121,11 +121,11 @@ module module_tree
     !>
     subroutine tree_create(t, nl, n, comm, comm_env)
       use treevars, only: interaction_list_length_factor, MPI_COMM_lpepc, np_mult
-      use module_timings
-      use module_debug
       use module_htable, only: htable_create
       use module_interaction_specific, only: get_number_of_interactions_per_particle
       use module_comm_env, only: comm_env_dup, comm_env_mirror
+      use module_timings
+      use module_debug
       implicit none
 
       type(t_tree), intent(inout) :: t !< The tree
@@ -135,6 +135,9 @@ module module_tree
       type(t_comm_env), optional, intent(in) :: comm_env !< A communication environment
 
       integer*8 :: maxaddress
+
+      call pepc_status('ALLOCATE TREE')
+      DEBUG_ASSERT_MSG(.not. tree_allocated(t), "tree_create(): tree is allready allocated!")
 
       ! initialize tree communication environment
       if (present(comm_env)) then
@@ -157,7 +160,6 @@ module module_tree
       t%nintmax = 0
 
       call timer_start(t_allocate)
-      call pepc_status('ALLOCATE TREE')
 
       call get_number_of_interactions_per_particle(t%npart, t%nintmax)
       t%nintmax = interaction_list_length_factor * t%nintmax
@@ -187,8 +189,8 @@ module module_tree
     subroutine tree_destroy(t)
       use module_htable, only: htable_destroy
       use module_domains, only: decomposition_allocated, decomposition_destroy
-      use module_debug, only: pepc_status
       use module_comm_env, only: comm_env_destroy
+      use module_debug
       implicit none
 
       type(t_tree), intent(inout) :: t !< the tree
@@ -535,23 +537,23 @@ module module_tree
     !>
     !> Do some quick checks on the tree structure
     !>
-    subroutine tree_check(t, callpoint)
+    function tree_check(t, callpoint)
       use treevars, only: me
       use module_debug
       use module_pepc_types, only: t_tree_node
       use module_htable, only: htable_dump
       implicit none
 
+      logical :: tree_check
       type(t_tree), intent(inout) :: t !< the tree
       character(*), intent(in) :: callpoint !< caller
 
       type(t_tree_node), pointer :: r
       integer :: nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
-      logical :: error
 
       call pepc_status('CHECK TREE')
 
-      error = .false.
+      tree_check = .true.
       nleaf_check = 0
       nleaf_me_check = 0
       ntwig_check = 0
@@ -565,7 +567,7 @@ module module_tree
         '# leaves in table = ',nleaf_check,' vs ',t%nleaf,' accumulated',
         'Fixing and continuing for now..')
         t%nleaf = nleaf_check ! TODO: does this really help anyone?
-        error = .true.
+        tree_check = .false.
       end if
 
       if (t%ntwig /= ntwig_check) then
@@ -573,7 +575,7 @@ module module_tree
         '# twigs in table = ',ntwig_check,' vs ',t%ntwig,' accumulated',
         'Fixing and continuing for now..')
         t%ntwig = ntwig_check
-        error = .true.
+        tree_check = .false.
       end if
 
       if (t%nleaf_me /= nleaf_me_check) then
@@ -581,7 +583,7 @@ module module_tree
         '# own leaves in table = ',nleaf_me_check,' vs ',t%nleaf_me,' accumulated',
         'Fixing and continuing for now..')
         t%nleaf_me = nleaf_me_check
-        error = .true.
+        tree_check = .false.
       end if
 
       if (t%ntwig_me /= ntwig_me_check) then
@@ -589,11 +591,7 @@ module module_tree
         '# own twigs in table = ',ntwig_me_check,' vs ',t%ntwig_me,' accumulated',
         'Fixing and continuing for now..')
         t%ntwig_me = ntwig_me_check
-        error = .true.
-      end if
-
-      if (error) then
-        call htable_dump(t%node_storage)
+        tree_check = .false.
       end if
 
       contains
@@ -632,7 +630,7 @@ module module_tree
           end do
         end if
       end subroutine tree_check_helper
-    end subroutine tree_check
+    end function tree_check
 
 
     !>

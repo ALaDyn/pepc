@@ -504,20 +504,20 @@ module module_htable
     !> performs a sanity check of the internals of hash table `t`. if an error is
     !> encountered, the whole hash table is dumped to disk.
     !>
-    subroutine htable_check(t, caller)
+    function htable_check(t, caller)
       use module_debug
       use module_tree_node
       implicit none
 
+      logical :: htable_check
       type(t_htable), intent(in) :: t
       character(*), intent(in) :: caller
 
       integer*8 :: i, nentries_check, sum_unused_check
-      logical :: error
 
       call pepc_status('CHECK TABLE')
 
-      error = .false.
+      htable_check = .true.
       nentries_check   = count(t%buckets(:)%key /= HTABLE_KEY_EMPTY)
       sum_unused_check = t%maxentries - HTABLE_FREE_LO - &
         count(t%buckets(HTABLE_FREE_LO:)%key /= HTABLE_KEY_EMPTY)
@@ -527,29 +527,24 @@ module module_htable
           if (t%point_free(i) < lbound(t%free_addr, dim = 1) .or. &
               t%point_free(i) > ubound(t%free_addr, dim = 1)) then
             DEBUG_WARNING("(2a,/,a,i0,a,i0,a,i0)", "htable_check() called from ", caller, " point_free(", i, ") out of bounds of free_addr(", lbound(t%free_addr, dim = 1), ":", ubound(t%free_addr, dim = 1),")")
-            error = .true.
+            htable_check = .false.
           else if (t%free_addr(t%point_free(i)) /= i) then
             DEBUG_WARNING("(2a,/,a,i0,a,i0)", "htable_check() called from ", caller, " free_addr(point_free(", i, ")) is ", t%free_addr(t%point_free(i)))
-            error = .true.
+            htable_check = .false.
           end if
         end if
       end do
 
       if (nentries_check /= t%nentries) then
         DEBUG_WARNING("(2a,/,a,i0,a,i0)", "htable_check() called from ", caller, "nentries is ", t%nentries, " should be ", nentries_check)
-        error = .true.
+        htable_check = .false.
       end if
 
       if (sum_unused_check /= t%sum_unused) then
         DEBUG_WARNING("(2a,/,a,i0,a,i0)", "htable_check() called from ", caller, "sum_unused is ", t%sum_unused, " should be ", sum_unused_check)
-        error = .true.
+        htable_check = .false.
       end if
-
-      if (error) then
-        call htable_dump(t)
-      end if
-
-    end subroutine htable_check
+    end function htable_check
 
 
     !>

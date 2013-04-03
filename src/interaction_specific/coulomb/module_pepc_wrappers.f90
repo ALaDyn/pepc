@@ -92,6 +92,7 @@ module module_pepc_wrappers
                     p_Ex, p_Ey, p_Ez, p_pot, itime, no_dealloc, no_restore, force_const)
         use treevars
         use module_pepc
+        use module_tree, only: tree_allocated
         implicit none
         integer, intent(inout) :: np_local  ! # particles on this CPU
         integer, intent(in) :: npart_total ! total # simulation particles
@@ -108,6 +109,10 @@ module module_pepc_wrappers
 
         if (allocated(particles))        deallocate(particles)
         allocate(particles(1:np_local))
+
+        if (tree_allocated(global_tree)) then
+          call pepc_timber_tree()
+        end if
 
         do i=1,np_local
             particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)],       &  ! position

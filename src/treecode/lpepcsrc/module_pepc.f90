@@ -41,8 +41,9 @@ module module_pepc
     public pepc_grow_tree                 !< mandatory, once per timestep
     public pepc_traverse_tree             !< mandatory, several times per timestep with different particles possible
     public pepc_statistics                !< once or never per timestep
+    public pepc_check_sanity              !< as often as necessary
     public pepc_restore_particles         !< once or never per timestep
-    public pepc_timber_tree               !< once or never per timestep
+    public pepc_timber_tree               !< mandatory, once per timestep
 
     public pepc_grow_and_traverse         !< once per timestep, calls pepc_grow_tree, pepc_traverse_tree, pepc_statistics, pepc_restore_particles, pepc_timber_tree
 
@@ -374,8 +375,6 @@ module module_pepc
       if (restore)        call pepc_restore_particles(np_local, particles)
       if (dealloc) then
         call pepc_timber_tree()
-      else ! t_all should be stopped, do it either in pepc_timber_tree or here
-        call timer_stop(t_all)
       end if
     end subroutine
 
@@ -459,6 +458,26 @@ module module_pepc
 
         call timer_stop(t_fields_stats)
     end subroutine
+
+
+    !>
+    !> Checks the internal state of PEPC and dumps the hash table if requested.
+    !>
+    subroutine pepc_check_sanity(caller, dump, particles)
+      use module_pepc_types, only: t_particle
+      use module_tree, only: tree_check
+      use module_htable, only: htable_check, htable_dump
+      implicit none
+
+      character(*), intent(in) :: caller !< describes the caller
+      logical, optional, intent(in) :: dump !< whether to dump the hash table
+      type(t_particle), optional, intent(in) :: particles(:) !< list of particles to dump along with the hash table
+
+      if ((.not. (htable_check(global_tree%node_storage, caller) &
+        .and. tree_check(global_tree, caller))) .or. dump) then
+        call htable_dump(global_tree%node_storage, particles)
+      end if
+    end subroutine pepc_check_sanity
 
 
     !>
