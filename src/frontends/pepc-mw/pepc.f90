@@ -56,7 +56,7 @@ program pepc
   implicit none
   include 'mpif.h'
 
-  integer :: vtk_step, ierr, num_force_particles
+  integer :: vtk_step, num_force_particles
   logical :: para_file_available
   character(255) :: para_file_name
 
@@ -66,11 +66,8 @@ program pepc
   !call InitSignalHandler()
 
   ! Allocate array space for tree
-  call pepc_initialize("pepc-mw", my_rank, n_cpu, .true.)
+  call pepc_initialize("pepc-mw", my_rank, n_cpu, .true., comm=MPI_COMM_PEPC)
   call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)
-
-  ! prepare a copy of the MPI-communicator
-  call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_PEPC, ierr)
 
 !  call benchmark_pre
 
@@ -240,6 +237,6 @@ program pepc
  ! call benchmark_end
 
   ! cleanup of lpepc static data
-  call pepc_finalize()
+  call pepc_finalize(MPI_COMM_PEPC)
 
 end program pepc
