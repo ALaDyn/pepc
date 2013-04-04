@@ -373,20 +373,20 @@ module module_domains
       allocate(get_parts(d%npold), ship_parts(d%npnew))
 
       do i = 1, d%npnew
-        ship_parts(i) = p(d%indxl(i))
+        ship_parts(i) = p(d%irnkl(i))
       end do
 
       deallocate(p) ! had size npnew
 
       ! perform permute
-      call MPI_alltoallv(ship_parts, d%islen, d%fposts, MPI_TYPE_particle, &
-            get_parts, d%irlen, d%gposts, MPI_TYPE_particle, &
+      call MPI_alltoallv(ship_parts, d%irlen, d%gposts, MPI_TYPE_particle, &
+            get_parts, d%islen, d%fposts, MPI_TYPE_particle, &
             d%comm_env%comm, ierr)
 
       allocate(p(d%npold))
 
       do i = 1, d%npold
-          p(d%irnkl(i)) = get_parts(i)
+          p(d%indxl(i)) = get_parts(i)
       end do
 
       deallocate(get_parts, ship_parts)

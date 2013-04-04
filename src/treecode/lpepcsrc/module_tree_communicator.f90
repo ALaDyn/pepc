@@ -528,10 +528,8 @@ module module_tree_communicator
     nummessages            = 0
     messages_per_iteration = 0
 
-    if (t%comm_env%first) then
-      allocate(comm_finished(t%comm_env%size))
-      comm_finished = .false.
-    end if
+    allocate(comm_finished(t%comm_env%size))
+    comm_finished = .false.
 
     t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP) = MPI_WTIME()
 
@@ -579,9 +577,7 @@ module module_tree_communicator
 
     end do ! while (.not. t%communicator%comm_thread_stopping)
 
-    if (t%comm_env%first) then
-      deallocate(comm_finished)
-    end if
+    deallocate(comm_finished)
 
     t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP) = MPI_WTIME() - t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP)
 
