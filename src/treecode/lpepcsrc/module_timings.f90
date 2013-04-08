@@ -74,8 +74,9 @@
 !  |   |   +
 !  |   |   |
 !  |   |   +-> t_build_pure
-!  |   |   |
-!  |   |   +-> t_props_leafs
+!  |   |       +
+!  |   |       |
+!  |   |       +-> t_props_leaves
 !  |   |
 !  |   +-> t_branches_find
 !  |   |
@@ -146,7 +147,7 @@ module module_timings
     integer, parameter :: t_walk_grid          = 35
     integer, parameter :: t_lattice_grid       = 36
     ! tree_props
-    integer, parameter :: t_props_leafs        = 37
+    integer, parameter :: t_props_leaves       = 37
     integer, parameter :: t_unused_38          = 38
     integer, parameter :: t_unused_39          = 39
     integer, parameter :: t_unused_40          = 40
@@ -200,11 +201,9 @@ module module_timings
       tim(id) = 0.
     end subroutine timer_reset
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Resets all timers to zero
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine timer_reset_all()
       implicit none
 

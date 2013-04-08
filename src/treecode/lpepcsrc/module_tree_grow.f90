@@ -529,9 +529,8 @@ module module_tree_grow
 
     p(:)%key_leaf = 0_8
 
-    call timer_start(t_props_leafs) ! TODO: this timer does not make sense like this
+    call timer_reset(t_props_leaves)
     call insert_helper(1_8, level_from_key(1_8), kidx(1:i))
-    call timer_stop(t_props_leafs)
 
     deallocate(kidx)
     call timer_stop(t_build_pure)
@@ -582,7 +581,9 @@ module module_tree_grow
           this_node%key        = k
           this_node%level      = l
           this_node%leaves     = 1
+          call timer_resume(t_props_leaves)
           call multipole_from_particle(p(ki(1)%idx)%x, p(ki(1)%idx)%data, this_node%interaction_data)
+          call timer_stop(t_props_leaves)
           p(ki(1)%idx)%key_leaf = k
           if (.not. tree_insert_node(t, this_node, pi)) then
             DEBUG_ERROR(*, "Leaf allready inserted, aborting.") ! TODO: tell me more!
