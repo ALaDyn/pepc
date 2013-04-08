@@ -423,7 +423,7 @@ module module_param_dump
     subroutine PrintPeriodicityParameters(ifile)
       use physvars
       use module_units
-      use module_fmm_framework
+      use module_fmm_framework, only : fmm_extrinsic_correction
       use module_mirror_boxes
       implicit none
       integer, intent(in) :: ifile
@@ -440,6 +440,7 @@ module module_param_dump
       call WriteParameter(ifile, "periodicity_nearest_image", periodicity_nearest_image)
       call WriteParameter(ifile, "mirror_box_layers", mirror_box_layers)
       call WriteParameter(ifile, "num_neighbour_boxes", num_neighbour_boxes)
+      call WriteParameter(ifile, "fmm_extrinsic_correction", fmm_extrinsic_correction)
       call WriteTopline(  ifile, "")
 
    end subroutine PrintPeriodicityParameters

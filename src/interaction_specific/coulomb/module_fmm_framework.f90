@@ -27,6 +27,7 @@
 module module_fmm_framework
       use module_debug
       use module_mirror_boxes
+      use module_interaction_specific_types, only : t_tree_node_interaction_data
       implicit none
       include 'mpif.h'
       private
@@ -41,8 +42,15 @@ module module_fmm_framework
 
       !> far- and near-field contribution to potential energy (has to be calculated in fields.p90)
       real*8, public :: potfarfield, potnearfield
-      !> whether to do dipole correction or not, see [J.Chem.Phys. 107, 10131, eq. (19,20)]
-      logical, public :: do_extrinsic_correction = .false.
+
+      integer, public, parameter :: FMM_EXTRINSIC_CORRECTION_NONE        =  0 !< no extrinsic-to-intrinsic correction
+      integer, public, parameter :: FMM_EXTRINSIC_CORRECTION_REDLACK     =  1 !< correction expression as given by Redlack and Grindlay (only for cubic boxes)
+                                                                              !< (see [J.Chem.Phys. 107, 10131, eqn.(19,20)] for details, inside this publication, the volume factor is missing;
+                                                                              !<      [J. Chem. Phys. 101, 5024, eqn (5)] contains it) -- this is the method that was used if do_extrinsic_correction=.true. before
+      integer, public, parameter :: FMM_EXTRINSIC_CORRECTION_FICTCHARGE  =  2 !< fictitious charges as given by Kudin (should work for all unit chell shapes) [Kudin 1998, eq. (2.8)]
+      integer, public, parameter :: FMM_EXTRINSIC_CORRECTION_MEASUREMENT =  3 !< measurement of correction value [Kudin 1998, eq. (2.6,, 2.7)], FIXME: currently not implemented
+      !> type of dipole correction, see [J.Chem.Phys. 107, 10131, eq. (19,20)]
+      integer, public :: fmm_extrinsic_correction = FMM_EXTRINSIC_CORRECTION_FICTCHARGE
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -73,6 +81,7 @@ module module_fmm_framework
       real(kfp), parameter :: zero = 0._kfp
       real(kfp), parameter :: one  = 1._kfp
       real(kfp), parameter :: two  = 2._kfp
+      real(kfp), parameter :: three= 3._kfp
       ! FMM-PARAMETERS
       integer, parameter :: Lmax_multipole = 20
       integer, parameter :: Lmax_taylor    = Lmax_multipole * 2
@@ -89,6 +98,9 @@ module module_fmm_framework
       !> variables for extrinsic to intrinsic correction
       real(kfp) :: box_dipole(3) = zero
       real(kfp) :: quad_trace    = zero
+      !> fictitious charges and their position: fictcharge(0,i)=q_i, fictcharge(1:3,i)=r_i
+      type(t_tree_node_interaction_data) :: fictcharge(1:4)
+      integer :: nfictcharge = 0
       
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -161,9 +173,12 @@ module module_fmm_framework
               DEBUG_ERROR(*, 'Lattice contribution will be wrong. Aborting.')
             endif
             
+            if (      (fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_REDLACK) &
+                 .or. (fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_FICTCHARGE)) then
+              call calc_box_dipole(particles, nparticles)
+            endif
             call calc_omega_tilde(particles, nparticles)
             call calc_mu_cent(omega_tilde, mu_cent)
-            call calc_extrinsic_correction(particles, nparticles)
           endif
         end subroutine fmm_framework_timestep
 
@@ -557,30 +572,46 @@ module module_fmm_framework
           type(t_particle), intent(in) :: particles(:)
           integer, intent(in) :: nparticles
 
-          integer :: ll, mm, p
+          integer :: p
           integer :: ierr
-          real(kfp) :: S(3)
-          real*8 :: R(3)
-
-          omega_tilde = 0
+          
+          omega_tilde = zero
 
           ! calculate multipole contributions of all local particles
 
           !$ call omp_set_num_threads(num_threads)
           !$OMP  PARALLEL DO DEFAULT(PRIVATE) SHARED(particles,LatticeCenter) SCHEDULE(RUNTIME) REDUCTION(+:omega_tilde)
           do p=1,nparticles
-            R   = particles(p)%x - LatticeCenter
-            S   = cartesian_to_spherical(R)
-
-            do ll=0,Lmax_multipole
-              do mm=0,ll
-                omega_tilde( tblinv(ll, mm, Lmax_multipole) ) = omega_tilde( tblinv(ll, mm, Lmax_multipole) ) + omega(ll, mm, S, particles(p)%data%q)
-              end do
-            end do
-
+            call addparticle(omega_tilde, particles(p)%x, particles(p)%data%q)
           end do
           !$OMP  END PARALLEL DO          
           !$ call omp_set_num_threads(1)
+          
+          ! extrinsic correction via fictitious charges according to [Kudin & Scuseria, ChemPhysLet 283, 61 (1998)] on rank 0
+          if (fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_FICTCHARGE) then
+            ! the fictitious charges are needed on all ranks for central-cell interaction
+            ! but will only be added to the cell multipole expansion on rank 0
+            
+            nfictcharge = 0
+            
+            do p=1,3
+              if (periodicity(p)) then
+                nfictcharge = nfictcharge + 1
+                fictcharge(nfictcharge)%coc(1:3) =   LatticeOrigin + Lattice(p, :)                                ! position
+                fictcharge(nfictcharge)%charge   = - box_dipole(p) / sqrt(dot_product(Lattice(p,:),Lattice(p,:))) ! charge
+              end if
+            end do
+            
+            nfictcharge = nfictcharge + 1
+            fictcharge(nfictcharge)%coc(1:3)     =  LatticeOrigin                                                 ! position
+            fictcharge(nfictcharge)%charge       = -sum(fictcharge(1:nfictcharge-1)%charge)                       ! charge
+            
+            if (myrank==0) then
+              do p=1,nfictcharge
+                 call addparticle(omega_tilde, fictcharge(p)%coc, fictcharge(p)%charge)
+              end do
+            end if
+          endif
 
           call chop(omega_tilde)
 
@@ -593,10 +624,31 @@ module module_fmm_framework
 
           if (abs(omega_tilde( tblinv(0, 0, Lmax_multipole))) > 0.) then
             DEBUG_WARNING(*, 'The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0, Lmax_multipole)), ' Setting to zero, resulting potentials might be wrong.' )
-            omega_tilde( tblinv(0, 0, Lmax_multipole)) = (zero, zero) ! FIXME this line should be removed if zer_terms functions are used
+            omega_tilde( tblinv(0, 0, Lmax_multipole)) = (zero, zero) ! FIXME this line should be removed if zero_terms_..() functions are used
           end if
           
-          ! FIXME untested: call zero_terms_multipole(omega_tilde)
+          ! FIXME untested : call zero_terms_multipole(omega_tilde)
+          
+          ! sum contributions from all processors
+
+        contains
+          subroutine addparticle(om, R, q)
+            implicit none
+            complex(kfp), intent(inout) :: om(1:fmm_array_length_multipole)
+            real*8, intent(in) :: R(3)
+            real*8, intent(in) :: q
+            real(kfp) :: S(3)
+            integer :: ll, mm
+             
+            S   = cartesian_to_spherical(R - LatticeCenter)
+
+            do ll=0,Lmax_multipole
+              do mm=0,ll
+                om( tblinv(ll, mm, Lmax_multipole) ) = om( tblinv(ll, mm, Lmax_multipole) ) + omega(ll, mm, S, q)
+              end do
+            end do
+            
+          end subroutine
 
         end subroutine calc_omega_tilde
 
@@ -604,53 +656,40 @@ module module_fmm_framework
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the (cartesian) overall dipole moment
-        !> \f$\frac{4\pi}{3}\sum_p q(p){\vec r}_p\f$ and the
+        !> \f$\sum_p q(p){\vec r}_p\f$ and the
         !> trace of the quadrupole matrix
         !> \f$\frac{2\pi}{3}\sum_p q(p){\vec r}_p\cdot{\vec r}_p\f$
         !> for performing the extrinsic-to-intrinsic correction
-        !> (see [J.Chem.Phys. 107, 10131, eqn.(19,20)] for details
-        !>       ^ inside this publication, the volume factor is missing
-        !>  [J. Chem. Phys. 101, 5024, eqn (5)] contains this volume
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_extrinsic_correction(particles, nparticles)
+        subroutine calc_box_dipole(particles, nparticles)
           use module_debug
           use module_pepc_types
-          use module_mirror_boxes, only : unit_box_volume
           implicit none
 
           type(t_particle), intent(in) :: particles(:)
           integer, intent(in) :: nparticles
 
-          real(kfp), parameter :: pi=acos(-one)
           real*8 :: r(3)
 
           integer :: p
           integer :: ierr
 
-          box_dipole = 0.
-          quad_trace = 0.
+          box_dipole = zero
+          quad_trace = zero
 
-          if (do_extrinsic_correction) then
+          ! calculate dipole contributions of all local particles
+          do p=1,nparticles
+            r = particles(p)%x - LatticeCenter
+            box_dipole = box_dipole + particles(p)%data%q * r
+            quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)
+          end do
+          
+          ! sum contributions from all processors
+          call MPI_ALLREDUCE(MPI_IN_PLACE, box_dipole, 3, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, quad_trace, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
 
-              ! calculate multipole contributions of all local particles
-              do p=1,nparticles
-                r = particles(p)%x - LatticeCenter
-
-                box_dipole = box_dipole + particles(p)%data%q * r
-                quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)
-              end do
-
-              ! sum contributions from all processors
-              call MPI_ALLREDUCE(MPI_IN_PLACE, box_dipole, 3, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
-              call MPI_ALLREDUCE(MPI_IN_PLACE, quad_trace, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
-
-              box_dipole = 4.*pi/(3.*unit_box_volume) * box_dipole
-              quad_trace = 2.*pi/(3.*unit_box_volume) * quad_trace
-
-          end if
-
-        end subroutine calc_extrinsic_correction
+        end subroutine calc_box_dipole
 
 
          
@@ -814,6 +853,8 @@ module module_fmm_framework
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_sum_lattice_force(pos, e_lattice, phi_lattice)
+          use module_mirror_boxes, only : num_neighbour_boxes, lattice_vect, neighbour_boxes
+          use module_coulomb_kernels, only : calc_force_coulomb_3D_direct
           implicit none
 
           real*8, intent(in) :: pos(3)
@@ -823,6 +864,12 @@ module module_fmm_framework
           integer :: l, m
           real*8 :: R(3)
           real(kfp) :: S(3)
+          real(kfp) :: prefact
+          integer :: p, ibox
+          real(kfp), parameter :: pi=acos(-one)
+          real*8 :: etmp(3), phitmp, delta(3)
+          
+          prefact = two*pi/(three*unit_box_volume)
 
           if (.not. do_periodic) then
               e_lattice   = 0
@@ -841,13 +888,34 @@ module module_fmm_framework
               mu_shift = L2L(O_R, mu_cent, 1)
 
               ! E = -grad(Phi)
-              e_lattice  = -[  real(tbl(mu_shift,1,1, Lmax_taylor)), aimag(tbl(mu_shift,1,1, Lmax_taylor)), real(tbl(mu_shift,1,0, Lmax_taylor)) ]
-              phi_lattice =    real(tbl(mu_shift,0,0, Lmax_taylor))
+              e_lattice(1) = - real(tbl(mu_shift, 1, 1, Lmax_taylor))
+              e_lattice(2) = -aimag(tbl(mu_shift, 1, 1, Lmax_taylor))
+              e_lattice(3) = - real(tbl(mu_shift, 1, 0, Lmax_taylor))                            
+              phi_lattice  =   real(tbl(mu_shift, 0, 0, Lmax_taylor))
 
-              if (do_extrinsic_correction) then    ! extrinsic correction
-                e_lattice   = e_lattice   + box_dipole
-                phi_lattice = phi_lattice - dot_product(R, box_dipole) + quad_trace
-              endif
+              select case (fmm_extrinsic_correction)
+                case (FMM_EXTRINSIC_CORRECTION_NONE)
+                  ! nothing to do here
+                case (FMM_EXTRINSIC_CORRECTION_REDLACK)
+                  e_lattice   = e_lattice   + two*prefact * box_dipole
+                  phi_lattice = phi_lattice - two*prefact * dot_product(R, box_dipole) + prefact * quad_trace
+                case (FMM_EXTRINSIC_CORRECTION_FICTCHARGE)
+                  do p=1,nfictcharge
+                    ! interact with fictcharge(p)
+                    ! we loop over all vbox-vectors, in fact we are only interested in the surface charges since the others cancel anyway, but
+                    ! the exception for this is too complicated for now - FIXME: correct this
+                    do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
+                      delta = pos - lattice_vect(neighbour_boxes(:,ibox)) - fictcharge(p)%coc
+                      call calc_force_coulomb_3D_direct(fictcharge(p), delta, dot_product(delta, delta), etmp, phitmp)
+                      e_lattice   = e_lattice   + etmp
+                      phi_lattice = phi_lattice + phitmp
+                    end do
+                  end do
+                case (FMM_EXTRINSIC_CORRECTION_MEASUREMENT)
+                  DEBUG_ERROR('("fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_MEASUREMENT currently not supported")')
+                case default
+                  DEBUG_ERROR('("fmm_extrinsic_correction == ", I0, " not supported")', fmm_extrinsic_correction)
+              end select
 
           end if
 
