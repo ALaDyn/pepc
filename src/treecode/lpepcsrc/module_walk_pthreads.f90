@@ -217,6 +217,7 @@ module module_walk
 
   real*8, dimension(:), allocatable :: boxlength2
   real*8 :: vbox(3)
+  real*8, public :: interactions_local, mac_evaluations_local
   logical :: in_central_box
   integer*8 :: num_interaction_leaves
   integer :: todo_list_length, defer_list_length
@@ -244,19 +245,22 @@ module module_walk
   contains
 
   !>
-  !> writes walk-specific data to file steam ifile
+  !> writes walk-specific data to I/O unit `u`
   !>
-  subroutine tree_walk_statistics(t, ifile, perform_output)
+  subroutine tree_walk_statistics(u)
     use module_walk_pthreads_commutils
-    use module_tree, only: t_tree
+    use treevars, only: me, num_pe, MPI_COMM_lpepc
     implicit none
     include 'mpif.h'
 
-    type(t_tree), intent(in) :: t
-    integer, intent(in) :: ifile !< file stream to write to
-    logical, intent(in) :: perform_output !< if set to false, output is disabled (e.g. for MPI ranks that shall not print anything)
+    integer, intent(in) :: u
 
-    integer :: ierr
+    integer :: i, ierr
+    real*8, allocatable ::  num_interactions(:), num_mac_evaluations(:)  ! Load balance arrays
+    real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, &
+      max_mac_evaluations
+    real*8 :: work_imbal = 0.
+    real*8 :: work_imbal_max, work_imbal_min  ! load stats
     real*8 :: global_thread_timers_nonshared_avg(NUM_THREAD_TIMERS)
     real*8 :: global_thread_timers_nonshared_dev(NUM_THREAD_TIMERS)
     real*8 :: global_thread_timers_shared_avg(NUM_THREAD_TIMERS)
@@ -266,42 +270,67 @@ module module_walk
     real*8 :: global_thread_counters_shared_avg(NUM_THREAD_COUNTERS)
     real*8 :: global_thread_counters_shared_dev(NUM_THREAD_COUNTERS)
 
-    call MPI_REDUCE(thread_timers_nonshared_avg(:), global_thread_timers_nonshared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, t%comm_env%comm, ierr)
-    call MPI_REDUCE(thread_timers_shared_avg(:), global_thread_timers_shared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, t%comm_env%comm, ierr)
-    call MPI_REDUCE(thread_counters_nonshared_avg(:), global_thread_counters_nonshared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, t%comm_env%comm, ierr)
-    call MPI_REDUCE(thread_counters_shared_avg(:), global_thread_counters_shared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, t%comm_env%comm, ierr)
-    call MPI_REDUCE(thread_timers_nonshared_dev(:), global_thread_timers_nonshared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, t%comm_env%comm, ierr)
-    call MPI_REDUCE(thread_timers_shared_dev(:), global_thread_timers_shared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, t%comm_env%comm, ierr)
-    call MPI_REDUCE(thread_counters_nonshared_dev(:), global_thread_counters_nonshared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, t%comm_env%comm, ierr)
-    call MPI_REDUCE(thread_counters_shared_dev(:), global_thread_counters_shared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, t%comm_env%comm, ierr)
+    allocate(num_interactions(num_pe), num_mac_evaluations(num_pe))
+    call MPI_GATHER(interactions_local,    1, MPI_REAL8, num_interactions,      1, MPI_REAL8,   0,  MPI_COMM_lpepc, ierr)
+    call MPI_GATHER(mac_evaluations_local, 1, MPI_REAL8, num_mac_evaluations,   1, MPI_REAL8,   0,  MPI_COMM_lpepc, ierr)
 
-    global_thread_timers_nonshared_avg   = global_thread_timers_nonshared_avg / t%comm_env%size
-    global_thread_timers_shared_avg      = global_thread_timers_shared_avg / t%comm_env%size
-    global_thread_counters_nonshared_avg = global_thread_counters_nonshared_avg / t%comm_env%size
-    global_thread_counters_shared_avg    = global_thread_counters_shared_avg / t%comm_env%size
+    total_interactions       = SUM(num_interactions)
+    total_mac_evaluations    = SUM(num_mac_evaluations)
+    max_interactions         = MAXVAL(num_interactions)
+    max_mac_evaluations      = MAXVAL(num_mac_evaluations)
+    average_interactions     = total_interactions    / num_pe
+    average_mac_evaluations  = total_mac_evaluations / num_pe
+    work_imbal_max = max_interactions / average_interactions
+    work_imbal_min = MINVAL(num_interactions) / average_interactions
+    work_imbal = 0.
+    do i = 1, num_pe
+      work_imbal = work_imbal + abs(num_interactions(i) - average_interactions) / average_interactions / num_pe
+    end do
+    
+    call MPI_REDUCE(thread_timers_nonshared_avg(:), global_thread_timers_nonshared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
+    call MPI_REDUCE(thread_timers_shared_avg(:), global_thread_timers_shared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
+    call MPI_REDUCE(thread_counters_nonshared_avg(:), global_thread_counters_nonshared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
+    call MPI_REDUCE(thread_counters_shared_avg(:), global_thread_counters_shared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
+    call MPI_REDUCE(thread_timers_nonshared_dev(:), global_thread_timers_nonshared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
+    call MPI_REDUCE(thread_timers_shared_dev(:), global_thread_timers_shared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
+    call MPI_REDUCE(thread_counters_nonshared_dev(:), global_thread_counters_nonshared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
+    call MPI_REDUCE(thread_counters_shared_dev(:), global_thread_counters_shared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
 
-    if (perform_output) then
-      write (ifile,'(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_particles_per_thread
-      ! TODO: this goes somewhere else
-      !write (ifile,'(a50,3i12)') '# of comm-loop iterations (tot,send,recv): ', comm_loop_iterations(:)
-      write (ifile,*) '######## WALK-WORKER-THREAD WORKLOAD ######################################################'
-      write (ifile,'(a50)')              'average # processed nparticles per thread    '
-      write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', &
+    global_thread_timers_nonshared_avg   = global_thread_timers_nonshared_avg / num_pe
+    global_thread_timers_shared_avg      = global_thread_timers_shared_avg / num_pe
+    global_thread_counters_nonshared_avg = global_thread_counters_nonshared_avg / num_pe
+    global_thread_counters_shared_avg    = global_thread_counters_shared_avg / num_pe
+
+    if (0 == me) then
+      write (u,*) '######## WORKLOAD AND WALK ################################################################'
+      write (u,'(a50,3e12.4)')       'total/ave/max_local # interactions(work): ', total_interactions, average_interactions, max_interactions
+      write (u,'(a50,3e12.4)')       'total/ave/max_local # mac evaluations: ', total_mac_evaluations, average_mac_evaluations, max_mac_evaluations
+      write (u,'(a50,3f12.3)')       'Load imbalance percent,min,max: ',work_imbal,work_imbal_min,work_imbal_max
+      write (u,*) '######## TREE TRAVERSAL MODULE ############################################################'
+      write (u,'(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_particles_per_thread
+      write (u,*) '######## WALK-WORKER-THREAD WORKLOAD ######################################################'
+      write (u,'(a50)')              'average # processed nparticles per thread    '
+      write (u,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', &
                                           thread_counters_nonshared_avg(THREAD_COUNTER_PROCESSED_PARTICLES), &
                                           thread_counters_shared_avg(THREAD_COUNTER_PROCESSED_PARTICLES)
-      write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', &
+      write (u,'(a50,3f12.3)')       '  maximum relative deviation: ', &
                                           thread_counters_nonshared_dev(THREAD_COUNTER_PROCESSED_PARTICLES), &
                                           thread_counters_shared_dev(THREAD_COUNTER_PROCESSED_PARTICLES)
-      write (ifile,'(a50)')              'average wallclocktime per thread    '
-      write (ifile,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', &
+      write (u,'(a50)')              'average wallclocktime per thread    '
+      write (u,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', &
                                           thread_timers_nonshared_avg(THREAD_TIMER_TOTAL), &
                                           thread_timers_shared_avg(THREAD_TIMER_TOTAL)
-      write (ifile,'(a50,3f12.3)')       '  maximum relative deviation: ', &
+      write (u,'(a50,3f12.3)')       '  maximum relative deviation: ', &
                                           thread_timers_nonshared_dev(THREAD_TIMER_TOTAL), &
                                           thread_timers_shared_dev(THREAD_TIMER_TOTAL)
+      write (u,*) '######## DETAILED DATA ####################################################################'
+      write (u,'(a/(i10,2i15,F10.4))') '        PE  #interactions     #mac_evals  rel.work', &
+        (i-1, int(num_interactions(i)), int(num_mac_evaluations(i)), num_interactions(i) / average_interactions, i = 1, num_pe)
+                                          
     end if
 
-  end subroutine
+    deallocate(num_interactions, num_mac_evaluations)
+  end subroutine tree_walk_statistics
 
 
   !>
@@ -410,7 +439,6 @@ module module_walk
     use module_debug
     use module_walk_pthreads_commutils
     use module_atomic_ops
-    use treevars, only: interactions_local, mac_evaluations_local
     use, intrinsic :: iso_c_binding
     implicit none
     include 'mpif.h'

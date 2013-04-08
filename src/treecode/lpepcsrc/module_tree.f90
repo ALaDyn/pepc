@@ -671,43 +671,32 @@ module module_tree
 
 
     !>
-    !> gather statistics on the tree structure (and also communication and also
-    !> the last traversal) and dump them to a file
+    !> gather statistics on the tree structure and dump them to a file
     !>
-    !> @todo split this up!
-    subroutine tree_stats(t, timestamp)
-      use treevars
-      !use module_walk, only : tree_walk_statistics
+    subroutine tree_stats(t, u)
       use module_htable, only: htable_entries, htable_maxentries
-      use module_utils, only : create_directory
+      use treevars, only: np_mult
       use module_debug
       implicit none
       include 'mpif.h'
 
       type(t_tree), intent(in) :: t
-      integer, intent(in) :: timestamp
+      integer, intent(in) :: u
 
       integer :: i, s, ierr
       integer, allocatable :: nparticles(:)
       integer*8, allocatable :: fetches(:), ships(:), total_keys(:), tot_nleaf(:), tot_ntwig(:)
-      real*8, allocatable ::  num_interactions(:), num_mac_evaluations(:)  ! Load balance arrays
-      character*40 :: cfile
       integer :: total_part, max_nbranch, min_nbranch, nbranch, branch_max_global
       integer*8 :: nhashentries, gmax_keys
-      real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, max_mac_evaluations
       real, save :: part_imbal = 0.
-      real*8, save :: work_imbal = 0.
-      real*8 :: work_imbal_max, work_imbal_min  ! load stats
       integer ::  part_imbal_max, part_imbal_min
       integer*8 :: nkeys_total
-      logical, save :: firstcall = .true.
 
       call pepc_status('STATISTICS')
       DEBUG_ASSERT(tree_allocated(t))
 
       s = t%comm_env%size
-      allocate(nparticles(s), fetches(s), ships(s), total_keys(s), tot_nleaf(s), &
-        tot_ntwig(s), num_interactions(s), num_mac_evaluations(s))
+      allocate(nparticles(s), fetches(s), ships(s), total_keys(s), tot_nleaf(s), tot_ntwig(s))
 
       ! particle distrib
       call MPI_GATHER(t%npart_me, 1, MPI_INTEGER, nparticles, 1, MPI_INTEGER, 0,  t%comm_env%comm, ierr )
@@ -717,8 +706,6 @@ module module_tree
       call MPI_GATHER(nkeys_total,   1, MPI_INTEGER8, total_keys, 1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
       call MPI_GATHER(t%communicator%sum_fetches, 1, MPI_INTEGER8, fetches,    1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
       call MPI_GATHER(t%communicator%sum_ships,   1, MPI_INTEGER8, ships,      1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
-      call MPI_GATHER(interactions_local,    1, MPI_REAL8, num_interactions,      1, MPI_REAL8,   0,  t%comm_env%comm, ierr )
-      call MPI_GATHER(mac_evaluations_local, 1, MPI_REAL8, num_mac_evaluations,   1, MPI_REAL8,   0,  t%comm_env%comm, ierr )
       call MPI_REDUCE(t%nbranch_me, max_nbranch,     1, MPI_INTEGER, MPI_MAX, 0, t%comm_env%comm, ierr )
       call MPI_REDUCE(t%nbranch_me, min_nbranch,     1, MPI_INTEGER, MPI_MIN, 0, t%comm_env%comm, ierr )
       call MPI_REDUCE(t%nbranch_me, nbranch,         1, MPI_INTEGER, MPI_SUM, 0, t%comm_env%comm, ierr)
@@ -728,76 +715,39 @@ module module_tree
 
       part_imbal_max = MAXVAL(nparticles)
       part_imbal_min = MINVAL(nparticles)
-      part_imbal = (part_imbal_max-part_imbal_min)/1.0/t%npart*s
-
-      total_interactions       = SUM(num_interactions)
-      total_mac_evaluations    = SUM(num_mac_evaluations)
-      max_interactions         = MAXVAL(num_interactions)
-      max_mac_evaluations      = MAXVAL(num_mac_evaluations)
-      average_interactions     = total_interactions    / s
-      average_mac_evaluations  = total_mac_evaluations / s
-      work_imbal_max = max_interactions/average_interactions
-      work_imbal_min = MINVAL(num_interactions)/average_interactions
-      work_imbal = 0.
-      do i = 1, s
-        work_imbal = work_imbal + abs(num_interactions(i) - average_interactions)/average_interactions/s
-      end do
-
+      part_imbal = (part_imbal_max - part_imbal_min) / 1.0 / t%npart * s
       total_part = sum(nparticles)
 
       if (t%comm_env%first) then
-        if (firstcall) then
-          call create_directory("stats")
-          firstcall = .false.
-        end if
-
-        write(cfile,'("stats/stats.",i6.6)') timestamp
-      
-        open (60,file=trim(cfile))
-
-        write (60,'(a20,i7,a22)') 'Tree stats for CPU ', t%comm_env%rank, ' and global statistics'
-        write (60,*) '######## GENERAL DATA #####################################################################'
-        write (60,'(a50,1i12)') '# procs', s
-        write (60,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, maxaddress: ',t%nintmax, np_mult, htable_maxentries(t%node_storage)
-        write (60,'(a50,2i12)') 'npp, npart: ', t%npart_me, t%npart
-        write (60,'(a50,2i12)') 'total # nparticles, N/P: ', total_part, int(t%npart/s)
-        write (60,*) '######## TREE STRUCTURES ##################################################################'
-        write (60,'(a50,3i12)') 'local # leaves, twigs, keys: ', t%nleaf_me, t%ntwig_me, t%nleaf_me + t%ntwig_me
-        write (60,'(a50,3i12)') 'non-local # leaves, twigs, keys: ',t%nleaf - t%nleaf_me, t%ntwig - t%ntwig_me, t%nleaf + t%ntwig - t%nleaf_me - t%ntwig_me
-        write (60,'(a50,3i12,f12.1,a6,i12)') 'final # leaves, twigs, keys, (max): ', t%nleaf, t%ntwig, t%nleaf + t%ntwig, &
+        write (u,'(a20,i7,a22)') 'Tree stats for CPU ', t%comm_env%rank, ' and global statistics'
+        write (u,*) '######## GENERAL DATA #####################################################################'
+        write (u,'(a50,1i12)') '# procs', s
+        write (u,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, maxaddress: ',t%nintmax, np_mult, htable_maxentries(t%node_storage)
+        write (u,'(a50,2i12)') 'npp, npart: ', t%npart_me, t%npart
+        write (u,'(a50,2i12)') 'total # nparticles, N/P: ', total_part, int(t%npart/s)
+        write (u,'(a50,f12.3,2i12)')   'Particle imbalance ave,min,max: ',part_imbal,part_imbal_min,part_imbal_max
+        write (u,*) '######## TREE STRUCTURES ##################################################################'
+        write (u,'(a50,3i12)') 'local # leaves, twigs, keys: ', t%nleaf_me, t%ntwig_me, t%nleaf_me + t%ntwig_me
+        write (u,'(a50,3i12)') 'non-local # leaves, twigs, keys: ',t%nleaf - t%nleaf_me, t%ntwig - t%ntwig_me, t%nleaf + t%ntwig - t%nleaf_me - t%ntwig_me
+        write (u,'(a50,3i12,f12.1,a6,i12)') 'final # leaves, twigs, keys, (max): ', t%nleaf, t%ntwig, t%nleaf + t%ntwig, &
                   (t%nleaf + t%ntwig) / (.01 * htable_maxentries(t%node_storage)), ' % of ', htable_maxentries(t%node_storage)
-        write (60,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # keys: ',gmax_keys, gmax_keys/(.01 * htable_maxentries(t%node_storage)), ' % of  ', htable_maxentries(t%node_storage)
-        write (60,*) '######## BRANCHES #########################################################################'
-        write (60,'(a50,3i12)') '#branches local, max_global, min_global: ', t%nbranch_me, max_nbranch, min_nbranch
-        write (60,'(a50,2i12)') '#branches global sum estimated, sum actual: ', branch_max_global, nbranch
-        write (60,'(a50,2i12)') 'max res.space for local branches, global br.: ', t%nbranch_max_me, branch_max_global
-        write (60,*) '######## TREE TRAVERSAL MODULE ############################################################'
-      end if
-
-      ! TODO: cannot call this from here!
-      !call tree_walk_statistics(60, t%comm_env%first)
-
-      if (t%comm_env%first) then
-        write (60,*) '######## WALK-COMMUNICATION ###############################################################'
-        write (60,'(a50,2i12)') 'Max # multipole fetches/ships per cpu: ',maxval(fetches), maxval(ships)
-        write (60,'(a50,2i12)') 'Min # multipole fetches/ships per cpu: ',minval(fetches), minval(ships)
-        write (60,'(a50,2i12)') 'Local #  multipole fetches & ships: ', t%communicator%sum_fetches, t%communicator%sum_ships
-        write (60,*) '######## WORKLOAD AND WALK ################################################################'
-        write (60,'(a50,3e12.4)')       'total/ave/max_local # interactions(work): ', total_interactions, average_interactions, max_interactions
-        write (60,'(a50,3e12.4)')       'total/ave/max_local # mac evaluations: ', total_mac_evaluations, average_mac_evaluations, max_mac_evaluations
-        write (60,'(a50,3f12.3)')       'Load imbalance percent,min,max: ',work_imbal,work_imbal_min,work_imbal_max
-        write (60,'(a50,f12.3,2i12)')   'Particle imbalance ave,min,max: ',part_imbal,part_imbal_min,part_imbal_max
-        write (60,*) '###########################################################################################'
-        write (60,*) '######## DETAILED DATA ####################################################################'
-        write (60,'(2a/(4i10,F8.4,6i15,F8.4))') '         PE     parts    nleaf     ntwig   ratio    nl_keys', &
-                  '   tot_keys   fetches    ships    #interactions(work)   #mac_evals   rel.work*ncpu', &
+        write (u,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # keys: ',gmax_keys, gmax_keys/(.01 * htable_maxentries(t%node_storage)), ' % of  ', htable_maxentries(t%node_storage)
+        write (u,*) '######## BRANCHES #########################################################################'
+        write (u,'(a50,3i12)') '#branches local, max_global, min_global: ', t%nbranch_me, max_nbranch, min_nbranch
+        write (u,'(a50,2i12)') '#branches global sum estimated, sum actual: ', branch_max_global, nbranch
+        write (u,'(a50,2i12)') 'max res.space for local branches, global br.: ', t%nbranch_max_me, branch_max_global
+        write (u,*) '######## WALK-COMMUNICATION ###############################################################'
+        write (u,'(a50,2i12)') 'Max # multipole fetches/ships per cpu: ',maxval(fetches), maxval(ships)
+        write (u,'(a50,2i12)') 'Min # multipole fetches/ships per cpu: ',minval(fetches), minval(ships)
+        write (u,'(a50,2i12)') 'Local #  multipole fetches & ships: ', t%communicator%sum_fetches, t%communicator%sum_ships
+        write (u,'(a50,3i12)') '# of comm-loop iterations (tot,send,recv): ', t%communicator%comm_loop_iterations(:)
+        write (u,*) '######## DETAILED DATA ####################################################################'
+        write (u,'(2a/(4i10,F8.4,4i15))') '        PE     parts     nleaf     ntwig   ratio        nl_keys', &
+                  '       tot_keys        fetches          ships', &
                   (i-1,nparticles(i),tot_nleaf(i),tot_ntwig(i),1.0*tot_nleaf(i)/(1.0*tot_ntwig(i)), &
-                  total_keys(i)-(tot_nleaf(i)+tot_ntwig(i)),total_keys(i),fetches(i),ships(i),int(num_interactions(i)),int(num_mac_evaluations(i)),&
-                  num_interactions(i)/average_interactions,i=1,s)
-        close(60)
-
+                  total_keys(i)-(tot_nleaf(i)+tot_ntwig(i)),total_keys(i),fetches(i),ships(i),i=1,s)
       end if
 
-      deallocate(nparticles, fetches, ships, total_keys, tot_nleaf, tot_ntwig, num_interactions, num_mac_evaluations)
+      deallocate(nparticles, fetches, ships, total_keys, tot_nleaf, tot_ntwig)
     end subroutine tree_stats
 end module module_tree

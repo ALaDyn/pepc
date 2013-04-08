@@ -422,11 +422,12 @@ module module_pepc
     !> Writes detailed statistics on the treecode into stats/stats.ITIME.
     !>
     subroutine pepc_statistics(itime)
-        use module_debug
-        use treevars
-        use module_timings
         use module_tree, only: tree_stats
+        use module_walk, only: tree_walk_statistics, interactions_local, mac_evaluations_local
         use module_utils, only: create_directory
+        use treevars, only: me, stats_u
+        use module_debug
+        use module_timings
         implicit none
         integer, intent(in) :: itime !< current timestep (used as file suffix)
 
@@ -434,13 +435,21 @@ module module_pepc
         character(30) :: cfile
 
         call timer_start(t_fields_stats)
-        call tree_stats(global_tree, itime)
+        if (firstcall) then
+          call create_directory("stats")
+          if (dbg(DBG_LOADFILE)) then
+            call create_directory("load")
+          end if
+          firstcall = .false.
+        end if
+
+        write (cfile, '("stats/stats.",i6.6)') itime
+        if (0 == me) then; open (stats_u, file = trim(cfile)); end if
+        call tree_stats(global_tree, stats_u)
+        call tree_walk_statistics(stats_u)
+        if (0 == me) then; close (stats_u); end if
 
         if( dbg(DBG_LOADFILE) ) then
-            if (firstcall) then
-              call create_directory("load")
-              firstcall = .false.
-            end if
             write(cfile,'("load/load_",i6.6,".dat")') me
             open(60, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
             write(60,'(i5,2f20.10, i12)') itime, interactions_local, mac_evaluations_local, global_tree%npart_me

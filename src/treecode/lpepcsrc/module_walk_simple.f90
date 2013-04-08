@@ -28,6 +28,8 @@ module module_walk
   implicit none
   private
 
+  real*8, public :: interactions_local, mac_evaluations_local
+
   public :: tree_walk
   public :: tree_walk_prepare
   public :: tree_walk_finalize
@@ -37,17 +39,13 @@ module module_walk
 
   contains
 
-  subroutine tree_walk_statistics(t, fh, perform_output)
-    use module_tree, only: t_tree
+  subroutine tree_walk_statistics(u)
+    use treevars, only: me
     implicit none
     
-    type(t_tree), intent(in) :: t
-    integer, intent(in) :: fh
-    logical, intent(in) :: perform_output
+    integer, intent(in) :: u
 
-    if (perform_output) then
-      write (20, *) "module_walk_simple: no statistics available."
-    end if
+    if (0 == me) then; write (u, *) "module_walk_simple: no statistics for now."; end if
   end subroutine tree_walk_statistics
 
 
@@ -97,6 +95,8 @@ module module_walk
     call pepc_status('WALK SIMPLE')
 
     twalk = - MPI_WTIME()
+    interactions_local = 0.0_8
+    mac_evaluations_local = 0.0_8
     in_central_box = dot_product(vbox, vbox) == 0.0_8
 
     b2(0) = maxval(t%bounding_box%boxsize)**2
@@ -144,9 +144,12 @@ module module_walk
       if (is_same_particle) then ! ignore same particle
         ni = ni + 1
       else if ((.not. is_ancestor) .and. (is_leaf .or. mac(p, n%interaction_data, d2, b2(n%level)))) then ! mac ok -> interact
+        mac_evaluations_local = mac_evaluations_local + 1.0_8
+        interactions_local = interactions_local + 1.0_8
         call calc_force_per_interaction(p, n%interaction_data, n%key, d, d2, vbox, is_leaf)
         ni = ni + n%leaves
       else ! mac fails -> resolve
+        mac_evaluations_local = mac_evaluations_local + 1.0_8
         if (.not. tree_node_children_available(n)) then
           call tree_node_fetch_children(t, n)
           do

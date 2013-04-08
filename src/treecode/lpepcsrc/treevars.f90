@@ -18,14 +18,14 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !>  Encapsulates all global variables for lpepc
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 module treevars
   implicit none
+
+  ! I/O units
+  integer, parameter :: stats_u = 60 !< statistics
 
   !  Associated parallelization stuff
   integer :: me       !< Rank of current task
@@ -63,8 +63,8 @@ module treevars
   !real*8 :: boxmin(3)  ! box min limits
   !real*8 :: boxmax(3)  ! box max limits
   !real*8 :: boxsize(3) ! box extension
-  real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
-  real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
+  !real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
+  !real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
 
 ! Memory control
   real    :: np_mult = 1.5
