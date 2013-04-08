@@ -94,7 +94,11 @@ module module_pepcs
         t_lattice_2 = lat_y
         t_lattice_3 = lat_z
         periodicity(1:3) = (lat_period(1:3) == 1)
-        do_extrinsic_correction = (lat_corr == 1)
+        if (lat_corr == 1) then
+          fmm_extrinsic_correction = FMM_EXTRINSIC_CORRECTION_NONE
+        else
+          fmm_extrinsic_correction = FMM_EXTRINSIC_CORRECTION_REDLACK
+        endif
         debug_level = db_level
         call pepc_prepare(3)
         ! =============================================================
