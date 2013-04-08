@@ -31,13 +31,12 @@ module module_domains
     integer :: npold  !< original particle number
     integer :: npnew  !< particle number after domain decomposition
     integer :: nppmax !< maximum number of local particles after domain decomposition
-    !TODO: these could use better documentation!
-    integer, allocatable :: indxl(:)  !< input to the sorting routine
-    integer, allocatable :: irnkl(:)  !< input to the sorting routine
-    integer, allocatable :: fposts(:) !< input to the sorting routine
-    integer, allocatable :: gposts(:) !< input to the sorting routine
-    integer, allocatable :: islen(:)  !< input to the sorting routine
-    integer, allocatable :: irlen(:)  !< input to the sorting routine
+    integer, allocatable :: indxl(:)  !< permutes `particles(:)` into the MPI buffer to be use for shipping
+    integer, allocatable :: irnkl(:)  !< permutes receiving MPI buffer into `particles(:)`
+    integer, allocatable :: fposts(:) !< send displacements
+    integer, allocatable :: gposts(:) !< receive displacements
+    integer, allocatable :: islen(:)  !< send counts
+    integer, allocatable :: irlen(:)  !< receive counts
 
     type(t_comm_env) :: comm_env !< the communication topology over which the domain is decomposed
   end type t_decomposition
@@ -68,9 +67,9 @@ module module_domains
     ! allow 25% fluctuation around average particle number per PE in sorting library for load balancing
     d%nppmax = int(1.25 * max(int(n / d%comm_env%size), 1000))
 
-    if (d%nppmax - 2 .lt. nl) then
-      DEBUG_WARNING_ALL(*, 'nppmax-2=', d%nppmax - 2, 'is smaller than np_local=', nl, ' - fixing and continuing. This could lead to load balancing issues. See ticket no. 10')
-      d%nppmax = max(d%nppmax, nl) + 2
+    if (d%nppmax .lt. nl) then
+      DEBUG_WARNING_ALL(*, 'nppmax = ', d%nppmax, 'is smaller than np_local = ', nl, ' - fixing and continuing. This could lead to load balancing issues. See ticket no. 10')
+      d%nppmax = max(d%nppmax, nl)
     end if
 
     ! fields for sorting library results
@@ -177,8 +176,8 @@ module module_domains
     work2(1:d%npold) = particles(1:d%npold)%work
     local_keys(1:d%npold) = particles(1:d%npold)%key
 
-    ! perform index sort on keys !TODO: remove the "-2", compare other cases with "+2" and "npp+1" etc.
-    call slsort_keys(d%npold, d%nppmax - 2, local_keys, work2, weighted, imba, d%npnew, d%indxl, d%irnkl, &
+    ! perform index sort on keys
+    call slsort_keys(d%npold, d%nppmax, local_keys, work2, weighted, imba, d%npnew, d%indxl, d%irnkl, &
       d%islen, d%irlen, d%fposts, d%gposts, w1, irnkl2, d%comm_env%size, d%comm_env%rank , &
       d%comm_env%comm)
 
@@ -412,7 +411,5 @@ module module_domains
     end do
     write(debug_ipefile,'(/)')
     call debug_ipefile_close()
-
   end subroutine
-
 end module module_domains
