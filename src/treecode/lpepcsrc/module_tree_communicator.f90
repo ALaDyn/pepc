@@ -371,7 +371,7 @@ module module_tree_communicator
   !> Insert incoming data into the tree.
   !>
   subroutine unpack_data(t, child_data, num_children, ipe_sender)
-    use module_tree, only: t_tree, tree_insert_or_update_node, tree_lookup_node_critical
+    use module_tree, only: t_tree, tree_insert_node, tree_lookup_node_critical
     use module_pepc_types, only: t_tree_node
     use module_tree_node
     use module_spacefilling, only: parent_key_from_key
@@ -407,8 +407,9 @@ module module_tree_communicator
       ! tree nodes coming from remote PEs are flagged for easier identification
       child_data(ic)%flags = ibset(child_data(ic)%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
 
-      ! TODO: print message if node exists, i.e., use tree_insert_node()
-      call tree_insert_or_update_node(t, child_data(ic))
+      if (.not. tree_insert_node(t, child_data(ic))) then
+        DEBUG_ERROR(*, "Received a node that is already present.")
+      end if
       ! count number of fetched nodes
       t%communicator%sum_fetches = t%communicator%sum_fetches+1
     end do
@@ -422,28 +423,6 @@ module module_tree_communicator
       parent%flags = ibset(parent%flags, TREE_NODE_FLAG_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
     end do
   end subroutine unpack_data
-
-
-  ! TODO: is this still needed?
-!  subroutine check_comm_finished(t)
-!    use module_tree, only: t_tree
-!    use module_debug
-!    implicit none
-!
-!    type(t_tree), intent(in) :: t
-!
-!    ! if request_balance contains positive values, not all requested data has arrived
-!    ! this means, that there were algorithmically unnecessary requests, which would be a bug
-!    ! negative values denote more received datasets than requested, which implies
-!    ! a bug in bookkeeping on the sender`s side
-!    if (req_queue_top .ne. atomic_load_int(req_queue_bottom)) then
-!      DEBUG_WARNING_ALL('(a,I0,a,/,a,/,a)', "PE ", t%comm_env%rank, " has finished its walk, but the request list is not empty", "obviously, there is an error in the todo_list bookkeeping", "Trying to recover from that")
-!    else if (request_balance .ne. 0) then
-!        DEBUG_WARNING_ALL('(a,I0,a,I0,/,a,/,a)', "PE ", t%comm_env%rank, " finished walking but is are still waiting for requested data: request_balance =", request_balance, "This should never happen - obviously, the request_queue or some todo_list is corrupt", "Trying to recover from this situation anyway: Waiting until everything arrived although we will not interact with it.")
-!    else
-!        walk_status = WALK_ALL_MSG_DONE
-!    end if
-!  end subroutine
 
 
   !>

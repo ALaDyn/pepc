@@ -46,7 +46,6 @@ module module_tree
     !> data type for tree communicator
     type, public :: t_tree_communicator
       ! request queue
-      ! TODO: this used to be volatile, but that is not allowed for derived type components
       type(t_request_queue_entry) :: req_queue(TREE_COMM_REQUEST_QUEUE_LENGTH)
       integer :: req_queue_top !< position of queue top in array; pushed towards bottom by communicator only when sending
       type(t_atomic_int), pointer :: req_queue_bottom !< position of queue bottom in array; pushed away from top by tree users
@@ -82,7 +81,6 @@ module module_tree
       integer   :: nbranch_me  !< number of branch nodes that originated on this rank
       integer   :: nbranch_max_me !< upper limit estimate for number of local branch nodes
 
-      !TODO: do we need to keep this?
       integer*8 :: nintmax     !< maximum number of interactions
       
       type(t_box) :: bounding_box               !< bounding box enclosing all particles contained in the tree
@@ -581,7 +579,7 @@ module module_tree
       implicit none
 
       logical :: tree_check
-      type(t_tree), intent(inout) :: t !< the tree
+      type(t_tree), intent(in) :: t !< the tree
       character(*), intent(in) :: callpoint !< caller
 
       type(t_tree_node), pointer :: r
@@ -603,7 +601,6 @@ module module_tree
         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
         '# leaves in table = ',nleaf_check,' vs ',t%nleaf,' accumulated',
         'Fixing and continuing for now..')
-        t%nleaf = nleaf_check ! TODO: does this really help anyone?
         tree_check = .false.
       end if
 
@@ -611,7 +608,6 @@ module module_tree
         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
         '# twigs in table = ',ntwig_check,' vs ',t%ntwig,' accumulated',
         'Fixing and continuing for now..')
-        t%ntwig = ntwig_check
         tree_check = .false.
       end if
 
@@ -619,7 +615,6 @@ module module_tree
         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
         '# own leaves in table = ',nleaf_me_check,' vs ',t%nleaf_me,' accumulated',
         'Fixing and continuing for now..')
-        t%nleaf_me = nleaf_me_check
         tree_check = .false.
       end if
 
@@ -627,7 +622,6 @@ module module_tree
         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
         '# own twigs in table = ',ntwig_me_check,' vs ',t%ntwig_me,' accumulated',
         'Fixing and continuing for now..')
-        t%ntwig_me = ntwig_me_check
         tree_check = .false.
       end if
 
