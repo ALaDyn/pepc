@@ -33,38 +33,8 @@ module treevars
   integer :: MPI_COMM_lpepc !< communicator that has been supplied to or created by pepc_initialize
   integer :: num_threads = 3 !< number of threads to be used for hybrid parallelization (Pthreads, OpenMP, etc.), for compatibility, we set it to num_walk_threads in tree_walk_read_parameters() for now
 
-  !  tree variables
-!  integer*8, allocatable :: &
-!                                branch_key(:), &    !< keys of branch nodes covering all domains
-!                                pebranch(:)         !< keys of branch nodes covering local domain
-!
-!  integer, allocatable :: &
-!                                nbranches(:), &       !< # branches in local domain
-!                                branch_owner(:)       !< owners of branch nodes covering all domains
-
-  integer   :: nlev !< max refinement level
-
-  integer :: &
-             !nleaf, &          ! total # leaf nodes in local #table 
-             !ntwig, &          ! total # twig nodes in local #table
-             !nleaf_me, &       ! total # leaves in local domain
-             !ntwig_me, &       ! total # twigs in local domain
-             !nlist, &          ! # particles/PE + boundary bodies (1 or 2)
-             !nbranch, &        ! min # branch nodes covering local domain
-             !nbranch_sum, &    ! total # branch nodes covering all domains
-             !nintmax, &        ! max # terms allowed in interaction list
-             !maxships, &       ! max # multipole ships per traversal 
-             !sum_ships, &      ! total # multipole ships per iteration  
-             !sum_fetches, &    ! total # key fetches  per iteration  
-             !npart, &          ! actual # particles (total)
-             !npp, &            ! actual  # particles/PE
-             idim              ! dimension of the system
-
-  !real*8 :: boxmin(3)  ! box min limits
-  !real*8 :: boxmax(3)  ! box max limits
-  !real*8 :: boxsize(3) ! box extension
-  !real*8 :: interactions_local = 0. !< number of interactions that have been processed locally
-  !real*8 :: mac_evaluations_local = 0.!< number of mac evaluations that have been processed locally
+  integer :: nlev, & !< max refinement level
+             idim !< dimension of the system
 
 ! Memory control
   real    :: np_mult = 1.5
@@ -80,11 +50,10 @@ module treevars
     nlev = 60 / idim
   end subroutine treevars_prepare
 
+
   subroutine treevars_finalize()
     implicit none
-
   end subroutine treevars_finalize
-
 end module treevars
 
 
