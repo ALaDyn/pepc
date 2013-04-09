@@ -90,149 +90,77 @@
 !>       end do
 !>     end if
 !>
-!>
-module module_walk_pthreads_commutils
+module module_walk
+  use, intrinsic :: iso_c_binding
+  use module_tree, only: t_tree
+  use module_pepc_types, only: t_tree_node, t_particle
   use module_atomic_ops, only: t_atomic_int
   implicit none
   private
-
+  
   !> debug flags - cannot be modified at runtime due to performance reasons
-  logical, parameter, public  :: walk_debug     = .false.
+  logical, parameter, public :: walk_debug = .false.
 
-  ! variables for adjusting the thread's workload
-  real, public :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
-  integer, public :: particles_per_yield = 500 !< number of particles to process in a work_thread before it shall call sched_yield to hand the processor over to some other thread
-  ! atomic variables for regulating concurrent access
-  type(t_atomic_int), pointer, public :: next_unassigned_particle
-  type(t_atomic_int), pointer, public :: threads_finished
+  integer, parameter :: NUM_THREAD_TIMERS                 = 4
+  integer, parameter :: THREAD_TIMER_TOTAL                = 1
+  integer, parameter :: THREAD_TIMER_POST_REQUEST         = 2
+  integer, parameter :: THREAD_TIMER_GET_NEW_PARTICLE     = 3
+  integer, parameter :: THREAD_TIMER_WALK_SINGLE_PARTICLE = 4
 
-  ! local walktime (i.e. from comm_loop start until send_walk_finished() )
-  real*8, public, pointer :: twalk_loc
+  integer, parameter :: NUM_THREAD_COUNTERS                = 4
+  integer, parameter :: THREAD_COUNTER_PROCESSED_PARTICLES = 1
+  integer, parameter :: THREAD_COUNTER_INTERACTIONS        = 2
+  integer, parameter :: THREAD_COUNTER_MAC_EVALUATIONS     = 3
+  integer, parameter :: THREAD_COUNTER_POST_REQUEST        = 4
 
-  integer, public, parameter :: NUM_THREAD_TIMERS                 = 4
-  integer, public, parameter :: THREAD_TIMER_TOTAL                = 1
-  integer, public, parameter :: THREAD_TIMER_POST_REQUEST         = 2
-  integer, public, parameter :: THREAD_TIMER_GET_NEW_PARTICLE     = 3
-  integer, public, parameter :: THREAD_TIMER_WALK_SINGLE_PARTICLE = 4
-
-  integer, public, parameter :: NUM_THREAD_COUNTERS                = 4
-  integer, public, parameter :: THREAD_COUNTER_PROCESSED_PARTICLES = 1
-  integer, public, parameter :: THREAD_COUNTER_INTERACTIONS        = 2
-  integer, public, parameter :: THREAD_COUNTER_MAC_EVALUATIONS     = 3
-  integer, public, parameter :: THREAD_COUNTER_POST_REQUEST        = 4
-
+  !> pointer to a tree node, used in todo and defer lists
+  type t_tree_node_ptr
+    type(t_tree_node), pointer :: p
+  end type t_tree_node_ptr
+  
   !> type for input and return values of walk_threads
   type, public :: t_threaddata
-    integer :: id                         !< just a running number to distinguish the threads, currently unused
+    integer :: id !< just a running number to distinguish the threads, currently unused
     logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
-    integer :: coreid !< thread output value: id of thread`s processor
+    integer :: coreid !< thread output value: id of thread's processor
     logical :: finished !< will be set to .true. when the thread has finished
     real*8 :: timers(NUM_THREAD_TIMERS)
     integer*8 :: counters(NUM_THREAD_COUNTERS)
   end type t_threaddata
 
-  type(t_threaddata), public, allocatable, target :: threaddata(:)
-
-  real*8, public :: thread_timers_nonshared_avg(NUM_THREAD_TIMERS)
-  real*8, public :: thread_timers_nonshared_dev(NUM_THREAD_TIMERS)
-  real*8, public :: thread_timers_shared_avg(NUM_THREAD_TIMERS)
-  real*8, public :: thread_timers_shared_dev(NUM_THREAD_TIMERS)
-  real*8, public :: thread_counters_nonshared_avg(NUM_THREAD_COUNTERS)
-  real*8, public :: thread_counters_nonshared_dev(NUM_THREAD_COUNTERS)
-  real*8, public :: thread_counters_shared_avg(NUM_THREAD_COUNTERS)
-  real*8, public :: thread_counters_shared_dev(NUM_THREAD_COUNTERS)
-
-  integer, public :: num_nonshared_threads, num_shared_threads
-
-  public comm_sched_yield
-  public retval
-  public init_commutils
-  public uninit_commutils
-
-  contains
-  
-  subroutine init_commutils()
-    use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
-    use module_debug
-    implicit none
-
-    ! initialize atomic variables
-    call atomic_allocate_int(next_unassigned_particle)
-    call atomic_allocate_int(threads_finished)
-    if (.not. (associated(next_unassigned_particle) .and. associated(threads_finished))) then
-      DEBUG_ERROR(*, "atomic_allocate_int() failed!")
-    end if
-
-    call atomic_store_int(next_unassigned_particle, 1)
-    call atomic_store_int(threads_finished,         0)
-  end subroutine init_commutils
-
-
-  subroutine uninit_commutils
-    use module_atomic_ops, only: atomic_deallocate_int
-    implicit none
-
-    call atomic_deallocate_int(threads_finished)
-    call atomic_deallocate_int(next_unassigned_particle)
-  end subroutine uninit_commutils
-
-
-  subroutine retval(iret, msg)
-    use module_debug
-    use, intrinsic :: iso_c_binding
-    implicit none
-    integer( kind= c_int) :: iret
-    character(*), intent(in) :: msg
-
-    if (iret .ne. 0) then
-      DEBUG_ERROR('("[",a,"] iret = ", I0)',msg, iret)
-    end if
-  end subroutine retval
-
-
-  subroutine comm_sched_yield()
-    use pthreads_stuff
-    implicit none
-
-    call retval(pthreads_sched_yield(), "pthreads_sched_yield()")
-  end subroutine comm_sched_yield
-end module module_walk_pthreads_commutils
-
-
-
-module module_walk
-  use, intrinsic :: iso_c_binding
-  use module_tree, only: t_tree
-  use module_interaction_specific
-  use pthreads_stuff
-  use module_pepc_types
-  implicit none
-
-  private
-  
-  integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
-
+  type(c_ptr), allocatable :: thread_handles(:)
+  type(t_threaddata), allocatable, target :: threaddata(:)
   integer, public :: num_walk_threads = -1 !< number of worker threads, default value is set to treevars%num_threads in tree_walk_read_parameters()
-  integer, private :: primary_processor_id = 0
+  integer :: primary_processor_id = 0
+  real :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
+  ! variables for adjusting the thread's workload
+  integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
+  integer :: particles_per_yield = 500 !< number of particles to process in a work_thread before it shall call sched_yield to hand the processor over to some other thread
+  integer :: num_nonshared_threads, num_shared_threads
 
   real*8, dimension(:), allocatable :: boxlength2
   real*8 :: vbox(3)
-  real*8, public :: interactions_local, mac_evaluations_local
   logical :: in_central_box
-  integer*8 :: num_interaction_leaves
-  integer :: todo_list_length, defer_list_length
 
-  integer :: num_particles
+  integer :: todo_list_length, defer_list_length, num_particles
   type(t_particle), pointer, dimension(:) :: particle_data
   type(t_tree), pointer :: walk_tree
 
-  type(c_ptr), allocatable :: thread_handles(:)
+  type(t_atomic_int), pointer :: next_unassigned_particle
 
-  type t_defer_list_entry
-    type(t_tree_node), pointer :: node
-    integer*8 :: key
-  end type t_defer_list_entry
-  
+  ! local walktime (i.e. from comm_loop start until send_walk_finished() )
+  real*8, pointer :: twalk_loc
+  real*8, public :: interactions_local, mac_evaluations_local
+
+  real*8 :: thread_timers_nonshared_avg(NUM_THREAD_TIMERS)
+  real*8 :: thread_timers_nonshared_dev(NUM_THREAD_TIMERS)
+  real*8 :: thread_timers_shared_avg(NUM_THREAD_TIMERS)
+  real*8 :: thread_timers_shared_dev(NUM_THREAD_TIMERS)
+  real*8 :: thread_counters_nonshared_avg(NUM_THREAD_COUNTERS)
+  real*8 :: thread_counters_nonshared_dev(NUM_THREAD_COUNTERS)
+  real*8 :: thread_counters_shared_avg(NUM_THREAD_COUNTERS)
+  real*8 :: thread_counters_shared_dev(NUM_THREAD_COUNTERS)
+
   namelist /walk_para_pthreads/ num_walk_threads, max_particles_per_thread
 
   public tree_walk
@@ -248,7 +176,6 @@ module module_walk
   !> writes walk-specific data to I/O unit `u`
   !>
   subroutine tree_walk_statistics(u)
-    use module_walk_pthreads_commutils
     use treevars, only: me, num_pe, MPI_COMM_lpepc
     implicit none
     include 'mpif.h'
@@ -370,9 +297,15 @@ module module_walk
   !> computes derived parameters for tree walk
   !>
   subroutine tree_walk_prepare()
-    use module_walk_pthreads_commutils
+    use module_atomic_ops, only: atomic_allocate_int
+    use module_debug
     implicit none
     ! nothing to do here
+
+    call atomic_allocate_int(next_unassigned_particle)
+    if (.not. associated(next_unassigned_particle)) then
+      DEBUG_ERROR(*, "atomic_allocate_int() failed!")
+    end if
 
     !if (me == 0) then
     !  write(*,'("MPI-PThreads walk: Using ", I0," worker-threads in treewalk on each processor (i.e. per MPI rank)")') num_walk_threads
@@ -382,25 +315,31 @@ module module_walk
 
 
   !>
-  !> finilizes walk, currently this is not needed by this walk-type,
+  !> finalizes walk, currently this is not needed by this walk-type,
   !> but needs to be implemented in the module_walk
   !>
   subroutine tree_walk_finalize()
+    use module_atomic_ops, only: atomic_deallocate_int
     implicit none
+
+    call atomic_deallocate_int(next_unassigned_particle)
   end subroutine tree_walk_finalize
 
 
+  !>
+  !> calculates forces due to the sources contained in tree `t` on the particles
+  !> `p` by performing a B-H tree traversal
+  !>
   subroutine tree_walk(t, p, twalk, twalk_loc_, vbox_)
     use, intrinsic :: iso_c_binding
     use module_pepc_types
     use module_timings
-    use module_walk_pthreads_commutils
     use module_debug, only : pepc_status
     implicit none
     include 'mpif.h'
 
-    type(t_tree), target, intent(inout) :: t
-    type(t_particle), target, intent(in) :: p(:)
+    type(t_tree), target, intent(inout) :: t !< a B-H tree
+    type(t_particle), target, intent(in) :: p(:) !< a list of particles
     real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
     real*8, target, intent(inout) :: twalk, twalk_loc_
 
@@ -422,13 +361,7 @@ module module_walk
     twalk  = MPI_WTIME()
 
     call init_walk_data(t)
-
-    call init_commutils()
-
     call walk_hybrid()
-
-    call uninit_commutils()
-
     call uninit_walk_data()
 
     twalk = MPI_WTIME() - twalk
@@ -436,9 +369,8 @@ module module_walk
 
 
   subroutine walk_hybrid()
+    use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread
     use module_debug
-    use module_walk_pthreads_commutils
-    use module_atomic_ops
     use, intrinsic :: iso_c_binding
     implicit none
     include 'mpif.h'
@@ -467,6 +399,10 @@ module module_walk
         DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith))
       end if
     end do
+
+    if (walk_debug) then
+      DEBUG_INFO(*, "PE", walk_tree%comm_env%rank, "has finished walking")
+    end if
 
     twalk_loc = MPI_WTIME() - twalk_loc
 
@@ -516,11 +452,11 @@ module module_walk
 
   subroutine init_walk_data(t)
     use, intrinsic :: iso_c_binding
-    use module_walk_pthreads_commutils
     use module_tree, only: t_tree
-    use module_debug
     use treevars, only: nlev
-    use pthreads_stuff, only: pthreads_alloc_thread
+    use pthreads_stuff, only: pthreads_alloc_thread, get_my_core
+    use module_atomic_ops, only: atomic_store_int
+    use module_debug
     implicit none
 
     type(t_tree), intent(in) :: t
@@ -543,8 +479,6 @@ module module_walk
 
     ! we will only want to reject the root node and the particle itself if we are in the central box
     in_central_box = (dot_product(vbox,vbox) == 0)
-    ! every particle has directly or indirectly interact with each other, and outside the central box even with itself
-    num_interaction_leaves = walk_tree%npart
     ! Preprocessed box sizes for each level
     allocate(boxlength2(0:nlev))
     boxlength2(0)=maxval(t%bounding_box%boxsize)**2
@@ -552,13 +486,15 @@ module module_walk
       boxlength2(i) =  boxlength2(i-1)/4.
     end do
 
+    ! initialize atomic variables
+    call atomic_store_int(next_unassigned_particle, 1)
+
     ! store ID of primary (comm-thread) processor
     primary_processor_id = get_my_core()
   end subroutine init_walk_data
 
 
   subroutine uninit_walk_data()
-    use module_walk_pthreads_commutils
     use pthreads_stuff, only: pthreads_free_thread
     implicit none
 
@@ -572,28 +508,29 @@ module module_walk
   end subroutine uninit_walk_data
 
 
-  function get_first_unassigned_particle()
-    use module_walk_pthreads_commutils
-    use module_atomic_ops
+  subroutine retval(iret, msg)
+    use module_debug
+    use, intrinsic :: iso_c_binding
     implicit none
-    integer :: get_first_unassigned_particle
+    integer( kind= c_int) :: iret
+    character(*), intent(in) :: msg
 
-    integer :: next_unassigned_particle_local
-
-    next_unassigned_particle_local = atomic_fetch_and_increment_int(next_unassigned_particle)
-
-    if (next_unassigned_particle_local < num_particles + 1) then
-      get_first_unassigned_particle = next_unassigned_particle_local
-    else
-      call atomic_store_int(next_unassigned_particle, num_particles + 1)
-      get_first_unassigned_particle = -1
+    if (iret .ne. 0) then
+      DEBUG_ERROR('("[",a,"] iret = ", I0)',msg, iret)
     end if
-  end function get_first_unassigned_particle
+  end subroutine retval
+
+
+  subroutine comm_sched_yield()
+    use pthreads_stuff
+    implicit none
+
+    call retval(pthreads_sched_yield(), "pthreads_sched_yield()")
+  end subroutine comm_sched_yield
 
 
   function walk_worker_thread(arg) bind(c)
     use, intrinsic :: iso_c_binding
-    use module_walk_pthreads_commutils
     use pthreads_stuff
     use module_interaction_specific
     use module_debug
@@ -608,11 +545,11 @@ module module_walk
     integer, dimension(:), allocatable :: thread_particle_indices
     type(t_particle), dimension(:), allocatable :: thread_particle_data
     integer*8, dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
-    type(t_defer_list_entry), dimension(:), pointer :: defer_list_old,           defer_list_new, ptr_defer_list_old, ptr_defer_list_new
+    type(t_tree_node_ptr), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
     integer, dimension(:), allocatable :: defer_list_start_pos
     integer :: defer_list_entries_new, defer_list_entries_old, total_defer_list_length
     integer :: defer_list_new_tail
-    integer*8, dimension(:), allocatable :: todo_list
+    type(t_tree_node_ptr), dimension(:), allocatable :: todo_list
     integer :: i
     logical :: particles_available
     logical :: particles_active
@@ -620,13 +557,12 @@ module module_walk
     integer :: particles_since_last_yield
     logical :: same_core_as_communicator
     integer :: my_max_particles_per_thread
-    integer :: my_processor_id, num_finished
+    integer :: my_processor_id
     logical :: particle_has_finished
     real*8  :: t_get_new_particle, t_walk_single_particle
 
-    type(t_defer_list_entry), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
-    defer_list_root_only(1)%key = 1_8
-    call tree_lookup_root(walk_tree, defer_list_root_only(1)%node, 'walk_worker_thread:root node')
+    type(t_tree_node_ptr), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
+    call tree_lookup_root(walk_tree, defer_list_root_only(1)%p, 'walk_worker_thread:root node')
 
     t_get_new_particle = 0._8
     t_walk_single_particle = 0._8
@@ -702,9 +638,9 @@ module module_walk
               end if
 
               ! check whether the particle really interacted with all other particles
-              if (partner_leaves(i) .ne. num_interaction_leaves) then
+              if (partner_leaves(i) .ne. walk_tree%npart) then
                 write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') walk_tree%comm_env%rank, thread_particle_indices(i), thread_particle_data(i)%label
-                write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') num_interaction_leaves, partner_leaves(i)
+                write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') walk_tree%npart, partner_leaves(i)
                 write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
                 call debug_mpi_abort()
               end if
@@ -743,12 +679,6 @@ module module_walk
     my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
 
     my_threaddata%finished = .true.
-    num_finished = atomic_fetch_and_increment_int(threads_finished) + 1
-
-    ! tell rank 0 that we are finished with our walk
-    if (num_finished == num_walk_threads .and. walk_debug) then
-      DEBUG_INFO(*, "PE", walk_tree%comm_env%rank, "has finished walking")
-    end if
 
     walk_worker_thread = c_null_ptr
     call retval(pthreads_exitthread(), "walk_worker_thread:pthread_exit")
@@ -757,7 +687,7 @@ module module_walk
   
     subroutine swap_defer_lists()
       implicit none
-      type(t_defer_list_entry), dimension(:), pointer :: tmp_list
+      type(t_tree_node_ptr), dimension(:), pointer :: tmp_list
 
       tmp_list       => defer_list_old
       defer_list_old => defer_list_new
@@ -773,6 +703,24 @@ module module_walk
 
       contains_particle = ( thread_particle_indices(idx) .ge. 0 )
     end function contains_particle
+
+
+    function get_first_unassigned_particle()
+      use module_atomic_ops, only: atomic_fetch_and_increment_int, atomic_store_int
+      implicit none
+      integer :: get_first_unassigned_particle
+
+      integer :: next_unassigned_particle_local
+
+      next_unassigned_particle_local = atomic_fetch_and_increment_int(next_unassigned_particle)
+
+      if (next_unassigned_particle_local < num_particles + 1) then
+        get_first_unassigned_particle = next_unassigned_particle_local
+      else
+        call atomic_store_int(next_unassigned_particle, num_particles + 1)
+        get_first_unassigned_particle = -1
+      end if
+    end function get_first_unassigned_particle
 
 
     subroutine get_new_particle_and_setup_defer_list(idx)
@@ -804,6 +752,7 @@ module module_walk
       defer_list_entries_old =  defer_list_start_pos(idx+1) - defer_list_start_pos(idx)
     end subroutine setup_defer_list
 
+
     subroutine do_sched_yield_if_necessary()
       implicit none
       ! after processing a number of particles: handle control to other (possibly comm) thread
@@ -822,7 +771,6 @@ module module_walk
   function walk_single_particle(particle, defer_list_old, defer_list_entries_old, &
                                           defer_list_new, defer_list_entries_new, &
                                           todo_list, partner_leaves, my_threaddata)
-    use module_walk_pthreads_commutils
     use module_tree_node
     use module_tree, only: tree_lookup_node_critical
     use module_tree_communicator, only: tree_node_fetch_children
@@ -835,18 +783,16 @@ module module_walk
     include 'mpif.h'
 
     type(t_particle), intent(inout) :: particle
-    type(t_defer_list_entry), dimension(:), pointer, intent(in) :: defer_list_old
+    type(t_tree_node_ptr), dimension(:), pointer, intent(in) :: defer_list_old
     integer, intent(in) :: defer_list_entries_old
-    type(t_defer_list_entry), dimension(:), pointer, intent(out) :: defer_list_new
+    type(t_tree_node_ptr), dimension(:), pointer, intent(out) :: defer_list_new
     integer, intent(out) :: defer_list_entries_new
-    integer*8, intent(inout) :: todo_list(0:todo_list_length-1) 
+    type(t_tree_node_ptr), intent(inout) :: todo_list(0:todo_list_length-1) 
     integer*8, intent(inout) :: partner_leaves
     type(t_threaddata), intent(inout) :: my_threaddata
     logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
 
     integer :: todo_list_entries
-    integer*8 :: walk_key, childlist(8)
-    integer :: childnum, walk_level
     type(t_tree_node), pointer :: walk_node
     real*8 :: dist2
     real*8 :: delta(3), shifted_particle_position(3)
@@ -870,17 +816,14 @@ module module_walk
     call atomic_read_barrier()
 
     ! read all todo_list-entries and start further traversals there
-    do while (todo_list_pop(walk_key))
-      call tree_lookup_node_critical(walk_tree, walk_key, walk_node, 'WALK:walk_single_particle')
-      walk_level = walk_node%level
-
+    do while (todo_list_pop(walk_node))
       delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
       dist2 = DOT_PRODUCT(delta, delta)
 
       if (tree_node_is_leaf(walk_node)) then
         mac_ok = .true.
       else
-        mac_ok = mac(particle, walk_node%interaction_data, dist2, boxlength2(walk_level))
+        mac_ok = mac(particle, walk_node%interaction_data, dist2, boxlength2(walk_node%level))
         num_mac_evaluations = num_mac_evaluations + 1
       end if
 
@@ -889,7 +832,7 @@ module module_walk
       ! interaction with ancestor nodes should be prevented by the MAC
       ! but this does not always work (i.e. if theta > 0.7 or if keys and/or coordinates have
       ! been modified due to 'duplicate keys'-error)
-      same_particle_or_parent_node  = (in_central_box) .and. ( is_ancestor_of_particle(particle%key, walk_key, walk_level))
+      same_particle_or_parent_node  = (in_central_box) .and. is_ancestor_of_particle(particle%key, walk_node%key, walk_node%level)
       ! set ignore flag if leaf node corresponds to particle itself
       same_particle = same_particle_or_parent_node .and. tree_node_is_leaf(walk_node)
 
@@ -899,14 +842,14 @@ module module_walk
       if (.not. ignore_node) then
         !  always accept leaf-nodes since they cannot be refined any further
         !  further resolve ancestor nodes if we are in the central box
-        mac_ok = tree_node_is_leaf(walk_node) .or. ( mac_ok .and. (.not. same_particle_or_parent_node))
+        mac_ok = tree_node_is_leaf(walk_node) .or. (mac_ok .and. (.not. same_particle_or_parent_node))
 
         ! ========= Possible courses of action:
         if (mac_ok) then
           ! 1) leaf node or MAC test OK ===========
           !    --> interact with cell if it does not lie outside the cutoff box
           if (all(abs(delta) < spatial_interaction_cutoff)) then
-            call calc_force_per_interaction(particle, walk_node%interaction_data, walk_key, delta, dist2, vbox, tree_node_is_leaf(walk_node))
+            call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node%key, delta, dist2, vbox, tree_node_is_leaf(walk_node))
 
             num_interactions = num_interactions + 1
           end if
@@ -917,10 +860,9 @@ module module_walk
           if ( tree_node_children_available(walk_node) ) then
             ! 2a) children for twig are present --------
             ! --> resolve cell & put all children in front of todo_list
-            call tree_node_get_childkeys(walk_node, childnum, childlist)
-            if (.not. todo_list_push(childnum, childlist)) then
+            if (.not. todo_list_push_children(walk_node)) then
               ! the todo_list is full --> put parent back onto defer_list
-              call defer_list_push(walk_key, walk_node)
+              call defer_list_push(walk_node)
             end if
           else
             ! 2b) children for twig are _absent_ --------
@@ -931,7 +873,7 @@ module module_walk
             num_post_request = num_post_request + 1
             ! if posting the request failed, this is not a problem, since we defer the particle anyway
             ! since it will not be available then, the request will simply be repeated
-            call defer_list_push(walk_key, walk_node) ! Deferred list of nodes to search, pending request
+            call defer_list_push(walk_node) ! Deferred list of nodes to search, pending request
                                                       ! for data from nonlocal PEs
             if (walk_debug) then
               DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  walk_tree%comm_env%rank, defer_list_entries_new)
@@ -954,77 +896,85 @@ module module_walk
     contains
 
     ! helper routines for todo_list manipulation
-    function todo_list_pop(key)
+    function todo_list_pop(node)
       implicit none
+
       logical :: todo_list_pop
-      integer*8, intent(out) :: key
+      type(t_tree_node), pointer, intent(out) :: node
 
       todo_list_pop = (todo_list_entries > 0)
 
       if (todo_list_pop) then
         todo_list_entries = todo_list_entries - 1
-        key               = todo_list(todo_list_entries)
+        node => todo_list(todo_list_entries)%p
       end if
     end function
 
 
-    function todo_list_push(numkeys, keys)
+    function todo_list_push_children(node) result(res)
+      use module_tree_node, only: tree_node_get_num_children
+      use module_tree, only: tree_node_get_first_child, tree_node_get_next_sibling
       use module_debug
       implicit none
-      integer, intent(in) :: numkeys
-      integer*8, dimension(numkeys), intent(in) :: keys
-      logical :: todo_list_push
-      integer :: i
 
-      if (todo_list_entries + numkeys > todo_list_length) then
+      logical :: res, dummy
+      type(t_tree_node), intent(in) :: node
+      integer :: ic, nc
+
+      nc = tree_node_get_num_children(node)
+
+      if (todo_list_entries + nc > todo_list_length) then
         DEBUG_WARNING_ALL('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor). Putting particles back onto defer_list. Programme will continue without errors.")', particle%label, todo_list_length)
-        todo_list_push = .false.
+        res = .false.
       else
-        do i=1,numkeys
-          todo_list(todo_list_entries) = keys(i)
-          todo_list_entries            = todo_list_entries + 1
+        dummy = tree_node_get_first_child(walk_tree, node, todo_list(todo_list_entries)%p)
+        todo_list_entries = todo_list_entries + 1
+        do ic = 2, nc
+          dummy = tree_node_get_next_sibling(walk_tree, todo_list(todo_list_entries - 1)%p, todo_list(todo_list_entries)%p)
+          todo_list_entries = todo_list_entries + 1
         end do
 
-        todo_list_push = .true.
+        res = .true.
       end if
     end function
 
 
-    ! helper routines for defer_list manipulation
-    subroutine defer_list_push(key_, node_)
-      use module_debug
+    subroutine defer_list_push(node)
       implicit none
-      integer*8, intent(in) :: key_
-      type(t_tree_node), pointer, intent(in) :: node_
 
-      defer_list_entries_new                 = defer_list_entries_new + 1
-      defer_list_new(defer_list_entries_new) = t_defer_list_entry( node_, key_ )
+      type(t_tree_node), target, intent(in) :: node
+
+      defer_list_entries_new = defer_list_entries_new + 1
+      defer_list_new(defer_list_entries_new)%p => node
     end subroutine
 
 
     subroutine defer_list_parse_and_compact()
-      use module_htable
+      use module_tree_node, only: tree_node_children_available
       implicit none
-      integer :: iold, cnum
-      integer*8 :: clist(8)
+      integer :: iold
 
       defer_list_entries_new = 0
-      do iold = 1,defer_list_entries_old
-        if ( tree_node_children_available(defer_list_old(iold)%node) ) then
+      iold = 1
+      do
+        if (iold > defer_list_entries_old) then; return; end if
+        if ( tree_node_children_available(defer_list_old(iold)%p) ) then
           ! children for deferred node have arrived --> put children onto todo_list
-          call tree_node_get_childkeys(defer_list_old(iold)%node, cnum, clist)
-          if (.not. todo_list_push(cnum, clist)) then
-            ! the todo_list is full --> put parent back onto defer_list
-            defer_list_entries_new                 = defer_list_entries_new + 1
-            defer_list_new(defer_list_entries_new) = defer_list_old(iold)
-          end if
+          if (.not. todo_list_push_children(defer_list_old(iold)%p)) then; exit; end if
         else
           ! children for deferred node are still unavailable - put onto defer_list_new (do not use defer_list_push for performance reasons)
           defer_list_entries_new                 = defer_list_entries_new + 1
           defer_list_new(defer_list_entries_new) = defer_list_old(iold)
         end if
+        iold = iold + 1
+      end do
+
+      do
+        if (iold > defer_list_entries_old) then; return; end if
+        defer_list_entries_new                 = defer_list_entries_new + 1
+        defer_list_new(defer_list_entries_new) = defer_list_old(iold)
+        iold = iold + 1
       end do
     end subroutine
   end function walk_single_particle
 end module module_walk
-

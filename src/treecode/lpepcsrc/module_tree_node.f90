@@ -39,6 +39,7 @@ module module_tree_node
     public tree_node_is_leaf
     public tree_node_is_root
     public tree_node_children_available
+    public tree_node_get_num_children
     public tree_node_get_childkeys
     public tree_node_has_child
 
@@ -96,6 +97,19 @@ module module_tree_node
 
       tree_node_has_child = btest(n%flags, i)
     end function tree_node_has_child
+
+
+    !>
+    !> returns the number of children of node `n`
+    !>
+    function tree_node_get_num_children(n) result(res)
+      implicit none
+
+      integer :: res
+      type(t_tree_node), intent(in) :: n
+
+      res = popcnt(iand(n%flags, TREE_NODE_CHILDBYTE))
+    end function
 
 
     !>
