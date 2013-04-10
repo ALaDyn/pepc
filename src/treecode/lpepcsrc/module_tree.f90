@@ -224,7 +224,6 @@ module module_tree
     !>
     subroutine tree_communicator_create(c)
       use, intrinsic :: iso_c_binding
-      use module_pepc_types, only: mpi_type_tree_node
       use pthreads_stuff, only: pthreads_alloc_thread
       use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
       use module_debug
@@ -363,6 +362,8 @@ module module_tree
           preexisting_node%flags            = n%flags     
           preexisting_node%owner            = n%owner
           preexisting_node%interaction_data = n%interaction_data
+          preexisting_node%first_child      => n%first_child
+          preexisting_node%next_sibling     => n%next_sibling
         end if
     end subroutine
 
@@ -454,8 +455,6 @@ module module_tree
     !> points to the child.
     !> Otherwise, `.false.` is returned and `fc` points to `null()`.
     !>
-    !> @todo Currently implemented via hash table lookups which could be replaced by
-    !> pointers.
     function tree_node_get_first_child(t, p, fc)
       use module_pepc_types, only: t_tree_node
       use module_tree_node, only: tree_node_is_leaf, &
@@ -470,22 +469,9 @@ module module_tree
       type(t_tree_node), intent(in) :: p
       type(t_tree_node), pointer, intent(out) :: fc
 
-      integer :: ic
-
       DEBUG_ASSERT(tree_allocated(t))
-      tree_node_get_first_child = .false.
-      fc => null()
-
-      if (.not. tree_node_is_leaf(p) .and. tree_node_children_available(p)) then
-        do ic = 0, 2**idim - 1
-          if (tree_node_has_child(p, ic)) then
-            tree_node_get_first_child = .true.
-            call tree_lookup_node_critical(t, child_key_from_parent_key(p%key, ic), &
-              fc, "tree_node_get_first_child")
-            exit
-          end if
-        end do
-      end if
+      fc => p%first_child
+      tree_node_get_first_child = associated(fc)
     end function tree_node_get_first_child
 
 
@@ -498,8 +484,6 @@ module module_tree
     !>
     !> In this context, "next" is defined by the ordering of the node keys.
     !>
-    !> @todo Currently implemented via hash table lookups which could be replaced by
-    !> pointers.
     function tree_node_get_next_sibling(t, n, s)
       use module_pepc_types, only: t_tree_node
       use module_tree_node, only: tree_node_has_child
@@ -514,23 +498,9 @@ module module_tree
       type(t_tree_node), intent(in) :: n
       type(t_tree_node), pointer, intent(out) :: s
 
-      type(t_tree_node), pointer :: p
-      integer :: is
-
       DEBUG_ASSERT(tree_allocated(t))
-      tree_node_get_next_sibling = .false.
-      s => null()
-
-      if (tree_node_get_parent(t, n, p)) then
-        do is = child_number_from_key(n%key) + 1, 2**idim - 1    
-          if (tree_node_has_child(p, is)) then
-            tree_node_get_next_sibling = .true.
-            call tree_lookup_node_critical(t, child_key_from_parent_key(p%key, is), &
-              s, "tree_node_get_next_sibling: sibling")
-            exit
-          end if
-        end do
-      end if
+      s => n%next_sibling
+      tree_node_get_next_sibling = associated(s)
     end function tree_node_get_next_sibling
 
 

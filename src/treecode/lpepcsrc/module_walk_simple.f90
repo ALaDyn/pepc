@@ -125,6 +125,7 @@ module module_walk
       use module_tree_communicator, only: tree_node_fetch_children
       use module_tree, only: tree_node_get_first_child, tree_node_get_next_sibling
       use module_tree_node, only: tree_node_children_available, tree_node_is_leaf
+      use pthreads_stuff, only: pthreads_sched_yield
       implicit none
 
       type(t_tree_node), intent(inout) :: n
@@ -132,6 +133,7 @@ module module_walk
       type(t_tree_node), pointer :: s, ns
       real*8 :: d2, d(3)
       logical :: is_leaf, is_same_particle, is_ancestor
+      integer :: ierr
 
       d = (p%x - vbox) - n%interaction_data%coc
       d2 = dot_product(d, d)
@@ -153,6 +155,7 @@ module module_walk
         if (.not. tree_node_children_available(n)) then
           call tree_node_fetch_children(t, n)
           do
+            ierr = pthreads_sched_yield()
             if (tree_node_children_available(n)) then
               call atomic_read_barrier()
               exit

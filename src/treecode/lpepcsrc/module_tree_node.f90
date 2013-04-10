@@ -22,7 +22,7 @@
 !>  Encapsulates functions for accessing, manipulating, and verifying hash table data
 !>
 module module_tree_node
-    use module_pepc_types, only: t_tree_node
+    use module_pepc_types, only: t_tree_node, t_tree_node_ptr
     implicit none
     private
 
@@ -42,6 +42,9 @@ module module_tree_node
     public tree_node_get_num_children
     public tree_node_get_childkeys
     public tree_node_has_child
+    public tree_node_pack
+    public tree_node_unpack
+    public tree_node_connect_children
 
     contains
 
@@ -137,4 +140,61 @@ module module_tree_node
         end if
       end do
     end subroutine tree_node_get_childkeys
+
+
+    subroutine tree_node_pack(n, p)
+      use module_pepc_types, only: t_tree_node_package
+      implicit none
+
+      type(t_tree_node), intent(in) :: n
+      type(t_tree_node_package), intent(out) :: p
+
+      p%key = n%key
+      p%flags = n%flags
+      p%leaves = n%leaves
+      p%owner = n%owner
+      p%level = n%level
+      p%interaction_data = n%interaction_data
+    end subroutine tree_node_pack
+
+
+    subroutine tree_node_unpack(p, n)
+      use module_pepc_types, only: t_tree_node_package
+      implicit none
+
+      type(t_tree_node_package), intent(in) :: p
+      type(t_tree_node), intent(out) :: n
+
+      n%key = p%key
+      n%flags = p%flags
+      n%leaves = p%leaves
+      n%owner = p%owner
+      n%level = p%level
+      n%interaction_data = p%interaction_data
+      n%first_child => null()
+      n%next_sibling => null()
+    end subroutine tree_node_unpack
+
+
+    subroutine tree_node_connect_children(n, c)
+      use module_pepc_types, only: t_tree_node_ptr
+      use treevars, only: idim
+      use module_debug
+      implicit none
+
+      type(t_tree_node), intent(inout) :: n
+      type(t_tree_node_ptr), intent(inout) :: c(:)
+
+      integer :: ic, nc
+
+      nc = size(c); DEBUG_ASSERT(nc > 0)
+      ! // DEBUG_ASSERT_MSG(all((c(2:nc)%p%key - c(1:nc - 1)%p%key) >= 1), "children are not arranged as expected.")
+      DEBUG_ASSERT_MSG(c(nc)%p%key - c(1)%p%key <= 2**idim, "children do not all belong to the same parent.")
+
+      n%first_child => c(1)%p
+      do ic = 1, nc - 1
+        c(ic)%p%next_sibling => c(ic + 1)%p
+      end do
+      c(nc)%p%next_sibling => null()
+    end subroutine tree_node_connect_children
 end module module_tree_node

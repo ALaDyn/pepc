@@ -270,7 +270,8 @@ module module_htable
         if (t%buckets(hashaddr)%key /= HTABLE_KEY_EMPTY) then
           write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
           write (*,*) 'PE ',me,' key ',k,' entry',hashaddr,' unused ',t%sum_unused
-          write (*,*) "desired entry:     ", v
+          ! TODO: re-enable this
+          !write (*,*) "desired entry:     ", v
           call debug_mpi_abort()
         end if
 

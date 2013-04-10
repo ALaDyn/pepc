@@ -87,7 +87,7 @@ module module_tree_communicator
   !>
   subroutine tree_communicator_prepare()
     use treevars, only: mpi_comm_lpepc
-    use module_pepc_types, only: mpi_type_tree_node
+    use module_pepc_types, only: mpi_type_tree_node_package
     implicit none
     include 'mpif.h'
 
@@ -98,7 +98,7 @@ module module_tree_communicator
       call MPI_PACK_SIZE(1, MPI_INTEGER8, mpi_comm_lpepc, msg_size_request, ierr)
       msg_size_request = msg_size_request + MPI_BSEND_OVERHEAD
 
-      call MPI_PACK_SIZE(8, MPI_TYPE_tree_node, mpi_comm_lpepc, msg_size_data, ierr)
+      call MPI_PACK_SIZE(8, MPI_TYPE_tree_node_package, mpi_comm_lpepc, msg_size_data, ierr)
       msg_size_data = msg_size_data + MPI_BSEND_OVERHEAD
 
       buffsize = (TREE_COMM_REQUEST_QUEUE_LENGTH * msg_size_request + TREE_COMM_ANSWER_BUFF_LENGTH * msg_size_data)
@@ -293,7 +293,8 @@ module module_tree_communicator
   subroutine send_data(t, requested_key, ipe_sender)
     use module_tree, only: t_tree, tree_node_get_first_child, &
       tree_lookup_node_critical, tree_node_get_next_sibling
-    use module_pepc_types, only: t_tree_node, MPI_TYPE_tree_node
+    use module_tree_node, only: tree_node_pack
+    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package
     use module_debug
     use module_tree_node
     implicit none
@@ -303,7 +304,7 @@ module module_tree_communicator
     integer*8, intent(in) :: requested_key
     integer, intent(in) :: ipe_sender
 
-    type(t_tree_node), target :: children_to_send(8)
+    type(t_tree_node_package) :: children_to_send(8)
     type(t_tree_node), pointer :: n, nn
     integer :: nchild, ierr
 
@@ -319,16 +320,14 @@ module module_tree_communicator
         n => nn
         nchild = nchild + 1
 
-        children_to_send(nchild) = n
+        call tree_node_pack(n, children_to_send(nchild))
         children_to_send(nchild)%flags = int(iand( children_to_send(nchild)%flags, TREE_NODE_CHILDBYTE ))! Catch lowest 8 bits of childbyte - filter off requested and here flags
 
-        if (.not. tree_node_get_next_sibling(t, n, nn)) then
-          exit
-        end if
+        if (.not. tree_node_get_next_sibling(t, n, nn)) then; exit; end if
       end do
       
       ! Ship child data back to PE that requested it
-      call MPI_BSEND(children_to_send(1:nchild), nchild, MPI_TYPE_tree_node, &
+      call MPI_BSEND(children_to_send(1:nchild), nchild, MPI_TYPE_tree_node_package, &
         ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, t%comm_env%comm, ierr)
 
       ! statistics on number of sent children-packages
@@ -372,7 +371,7 @@ module module_tree_communicator
   !>
   subroutine unpack_data(t, child_data, num_children, ipe_sender)
     use module_tree, only: t_tree, tree_insert_node, tree_lookup_node_critical
-    use module_pepc_types, only: t_tree_node
+    use module_pepc_types, only: t_tree_node, t_tree_node_ptr, t_tree_node_package
     use module_tree_node
     use module_spacefilling, only: parent_key_from_key
     use module_atomic_ops, only: atomic_write_barrier
@@ -381,47 +380,44 @@ module module_tree_communicator
     include 'mpif.h'
 
     type(t_tree), intent(inout) :: t
-    type(t_tree_node) :: child_data(num_children) !< child data that has been received
+    type(t_tree_node_package) :: child_data(num_children) !< child data that has been received
     integer :: num_children !< actual number of valid children in dataset
     integer, intent(in) :: ipe_sender
 
-    type(t_tree_node), pointer :: parent
-    integer*8 :: parent_key(0:num_children)
-    integer :: num_parents
+    type(t_tree_node), pointer :: parent_node
+    type(t_tree_node_ptr) :: child_nodes(num_children)
+    type(t_tree_node) :: unpack_node
     integer :: ic
 
-    num_parents = 0
-    parent_key(0) = 0_8 ! TODO: use named constant
+    DEBUG_ASSERT(num_children > 0)
+
+    call tree_lookup_node_critical(t, parent_key_from_key(child_data(1)%key), parent_node, &
+        'TREE_COMMUNICATOR:unpack_data(): - get parent node')
 
     do ic = 1, num_children
-      ! save parent key - after (!) inserting all (!) children we can flag it: it's children are then accessible
-      parent_key(num_parents + 1) = parent_key_from_key(child_data(ic)%key)
-      if (parent_key(num_parents) .ne. parent_key(num_parents + 1)) then
-        num_parents = num_parents + 1
-      end if
+      call tree_node_unpack(child_data(ic), unpack_node)
+      unpack_node%first_child => null()
+      ! tree nodes coming from remote PEs are flagged for easier identification
+      unpack_node%flags = ibset(unpack_node%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
 
       if (tree_comm_debug) then
-        DEBUG_INFO('("PE", I6, " received answer.                            parent_key=", O22, ",        sender=", I6, ",        owner=", I6, ", kchild=", O22)', t%comm_env%rank, parent_key(num_parents), ipe_sender, child_data(ic)%owner, child_data(ic)%key)
+        DEBUG_INFO('("PE", I6, " received answer. parent_key=", O22, ",  sender=", I6, ",  owner=", I6, ",  kchild=", O22)', t%comm_env%rank, parent_node%key, ipe_sender, unpack_node%owner, unpack_node%key)
       end if
 
-      ! tree nodes coming from remote PEs are flagged for easier identification
-      child_data(ic)%flags = ibset(child_data(ic)%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
-
-      if (.not. tree_insert_node(t, child_data(ic))) then
+      if (.not. tree_insert_node(t, unpack_node, child_nodes(ic)%p)) then
         DEBUG_ERROR(*, "Received a node that is already present.")
       end if
+
       ! count number of fetched nodes
       t%communicator%sum_fetches = t%communicator%sum_fetches+1
     end do
 
-    call atomic_write_barrier() ! make sure children are actually inserted before indicating their presence
+    call tree_node_connect_children(parent_node, child_nodes)
 
+    call atomic_write_barrier() ! make sure children are actually inserted before indicating their presence
     ! set 'children-here'-flag for all parent addresses
     ! may only be done *after inserting all* children, hence not(!) during the loop above
-    do ic=1,num_parents
-      call tree_lookup_node_critical(t, parent_key(ic), parent, 'WALK:unpack_data() - get parent node')
-      parent%flags = ibset(parent%flags, TREE_NODE_FLAG_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
-    end do
+    parent_node%flags = ibset(parent_node%flags, TREE_NODE_FLAG_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
   end subroutine unpack_data
 
 
@@ -569,7 +565,7 @@ module module_tree_communicator
   !>
   subroutine run_communication_loop_inner(t, comm_finished, nummessages)
     use module_tree, only: t_tree
-    use module_pepc_types
+    use module_pepc_types, only: t_tree_node_package, MPI_TYPE_tree_node_package
     use module_debug
     implicit none
     include 'mpif.h'
@@ -582,7 +578,7 @@ module module_tree_communicator
     integer :: ierr
     integer :: stat(MPI_STATUS_SIZE)
     integer*8 :: requested_key
-    type (t_tree_node) :: child_data(8) ! child data to be received - maximum up to eight children per particle
+    type (t_tree_node_package) :: child_data(8) ! child data to be received - maximum up to eight children per particle
     integer :: num_children
     integer :: ipe_sender, msg_tag
     integer :: dummy
@@ -625,9 +621,9 @@ module module_tree_communicator
           case (TREE_COMM_TAG_REQUESTED_DATA)
             ! actually receive the data...
             ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
-            call MPI_GET_COUNT(stat, MPI_TYPE_tree_node, num_children, ierr)
+            call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_package, num_children, ierr)
             DEBUG_ASSERT_MSG(num_children <= 8, "unexpectedly received more than eight children.")
-            call MPI_RECV(child_data, num_children, MPI_TYPE_tree_node, ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, &
+            call MPI_RECV(child_data, num_children, MPI_TYPE_tree_node_package, ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, &
                     t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
             ! ... and put it into the tree and all other data structures
             call unpack_data(t, child_data, num_children, ipe_sender)
