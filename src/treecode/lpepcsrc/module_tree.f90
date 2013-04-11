@@ -333,7 +333,7 @@ module module_tree
     !>
     !> this routine cannot be used to change a tree_node from leaf to twig or similar
     !>
-    subroutine tree_insert_or_update_node(t, n)
+    subroutine tree_insert_or_update_node(t, n, ptr)
         use module_pepc_types, only: t_tree_node
         use module_tree_node, only: tree_node_is_leaf
         use module_debug
@@ -341,30 +341,33 @@ module module_tree
 
         type(t_tree), intent(inout) :: t !< Tree into which to insert the node
         type(t_tree_node), intent(in) :: n !< The tree node to insert
+        type(t_tree_node), optional, pointer, intent(out) :: ptr
 
-        type(t_tree_node), pointer :: preexisting_node
+        type(t_tree_node), pointer :: node_entry
 
         DEBUG_ASSERT(tree_allocated(t))
-        if (.not. tree_insert_node(t, n, preexisting_node)) then
+        if (.not. tree_insert_node(t, n, node_entry)) then
           ! the node already exist --> update
 
           ! if we change the owner from someting else to 'me', we have to keep track of the leaf/twig counters
-          if ((preexisting_node%owner .ne. t%comm_env%rank) .and. &
+          if ((node_entry%owner .ne. t%comm_env%rank) .and. &
             (n%owner .eq. t%comm_env%rank)) then
-            if (tree_node_is_leaf(preexisting_node)) then
+            if (tree_node_is_leaf(node_entry)) then
               t%nleaf_me = t%nleaf_me + 1
             else
               t%ntwig_me = t%ntwig_me + 1
             end if
           end if
 
-          preexisting_node%leaves           = n%leaves
-          preexisting_node%flags            = n%flags     
-          preexisting_node%owner            = n%owner
-          preexisting_node%interaction_data = n%interaction_data
-          preexisting_node%first_child      => n%first_child
-          preexisting_node%next_sibling     => n%next_sibling
+          node_entry%leaves           = n%leaves
+          node_entry%flags            = n%flags     
+          node_entry%owner            = n%owner
+          node_entry%interaction_data = n%interaction_data
+          node_entry%first_child      => n%first_child
+          node_entry%next_sibling     => n%next_sibling
         end if
+
+        if (present(ptr)) then; ptr => node_entry; end if
     end subroutine
 
 

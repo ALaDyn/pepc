@@ -416,22 +416,23 @@ module module_tree_grow
     type(t_tree), intent(inout) :: t !< the tree
     type(t_tree_node_ptr), intent(in) :: nodes(:) !< nodes at which to start the build upwards
 
-    integer, allocatable :: key_level(:)
+    integer, allocatable :: key_level(:), sort_map(:)
     integer*8, allocatable :: sub_key(:), parent_key(:)
+    type(t_tree_node_ptr), allocatable :: sub_nodes(:), sorted_sub_nodes(:), parent_nodes(:)
     type(t_tree_node) :: parent_node
-    type(t_tree_node_ptr) :: children(8)
 
-    integer :: numkeys, ilevel, maxlevel, nsub, groupstart, groupend, i, j, nparent, nuniq
+    integer :: numnodes, ilevel, maxlevel, nsub, groupstart, groupend, i, j, nparent, nuniq
     integer*8 :: current_parent_key
 
     call pepc_status('BUILD TOWARDS ROOT')
 
-    numkeys = size(nodes)
-    allocate(key_level(numkeys))
-    allocate(sub_key(0:numkeys + 1), parent_key(0:numkeys + 1))
+    numnodes = size(nodes)
+    allocate(key_level(numnodes))
+    allocate(sub_key(0:numnodes + 1), sub_nodes(1:numnodes + 1), parent_key(0:numnodes + 1), parent_nodes(1:numnodes + 1))
+    allocate(sorted_sub_nodes(1:numnodes + 1), sort_map(1:numnodes + 1))
 
     ! get levels of branch nodes
-    do i = 1, numkeys
+    do i = 1, numnodes
       key_level(i) = level_from_key(nodes(i)%p%key)
     end do
     maxlevel = maxval( key_level(:) ) ! Find maximum level
@@ -441,18 +442,26 @@ module module_tree_grow
     do ilevel = maxlevel,1,-1 ! Start at finest level
       ! Collect all keys at this level
       nsub = 0
-      do i = 1, numkeys
+      do i = 1, numnodes
         if (key_level(i) == ilevel) then
           nsub          = nsub + 1
           sub_key(nsub) = nodes(i)%p%key
+          sub_nodes(nsub)%p => nodes(i)%p
         end if
       end do
 
       ! Augment list with parent keys checked at previous level
-      sub_key(nsub+1:nsub+nparent) = parent_key(1:nparent)
-      nsub                         = nsub + nparent
+      do i = 1, nparent
+        sub_key(nsub + i) = parent_key(i)
+        sub_nodes(nsub + i)%p => parent_nodes(i)%p
+      end do
+      nsub = nsub + nparent
 
-      call sort(sub_key(1:nsub)) ! Sort keys
+      call sort(sub_key(1:nsub), sort_map(1:nsub)) ! Sort keys
+
+      do i = 1, nsub
+        sorted_sub_nodes(i)%p => sub_nodes(sort_map(i))%p
+      end do
 
       sub_key(0) = 0 ! remove all duplicates from the list
       nuniq = 0
@@ -460,6 +469,7 @@ module module_tree_grow
         if (sub_key(i) .ne. sub_key(i-1)) then
           nuniq          = nuniq + 1
           sub_key(nuniq) = sub_key(i)
+          sorted_sub_nodes(nuniq)%p => sorted_sub_nodes(i)%p
         end if
       end do
 
@@ -484,23 +494,16 @@ module module_tree_grow
         end do
         groupend   = i
 
-        ! TODO: this routine should actually use the list of pointers passed to
-        ! it. think some more about this tomorrow
-        do j = 0, groupend - groupstart
-          call tree_lookup_node_critical(t, sub_key(groupstart + j), children(j + 1)%p, 'tree_build_upwards()')
-        end do
-
-        call shift_nodes_up(parent_node, children(1:groupend - groupstart + 1), t%comm_env%rank)
-        call tree_node_connect_children(parent_node, children(1:groupend - groupstart + 1))
-        call tree_insert_or_update_node(t, parent_node)
-
         nparent             = nparent + 1
         parent_key(nparent) = current_parent_key
+
+        call shift_nodes_up(parent_node, sorted_sub_nodes(groupstart:groupend), t%comm_env%rank)
+        call tree_node_connect_children(parent_node, sorted_sub_nodes(groupstart:groupend))
+        call tree_insert_or_update_node(t, parent_node, parent_nodes(nparent)%p)
 
         ! go on with next group
         i = i + 1
         end do
-
     end do
 
     deallocate(key_level, sub_key, parent_key)
@@ -645,7 +648,7 @@ module module_tree_grow
 
           pend = pstart - 1
           do while (pend < ubound(ki, dim = 1))
-            if (.not. is_ancestor_of_particle(ki(pend + 1)%key, childkey, childlevel)) exit
+            if (.not. is_ancestor_of_particle(ki(pend + 1)%key, childkey, childlevel)) then; exit; end if
             pend = pend + 1
           end do
           
