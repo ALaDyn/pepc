@@ -54,6 +54,10 @@
 
 #define DEBUG_STRINGIFY(s) DEBUG_STRINGIFY_HELPER(s)
 
+#ifdef NDEBUG
+#define DEBUG_ASSERT(cond) ! DEBUG_ASSERT(cond)
+#define DEBUG_ASSERT_MSG(cond, msg) ! DEBUG_ASSERT_MSG(cond, msg)
+#else
 #define DEBUG_ASSERT(cond) \
         if (.not. (cond)) then; \
           DEBUG_ERROR('("Assertion failed: ", a)', DEBUG_STRINGIFY(cond)); \
@@ -63,3 +67,4 @@
         if (.not. (cond)) then; \
           DEBUG_ERROR('("Assertion failed: ", a, ": ", a)', DEBUG_STRINGIFY(cond), msg); \
         end if;
+#endif
