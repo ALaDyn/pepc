@@ -285,6 +285,7 @@ MODULE output
 
     subroutine set_checkpoint()
         use module_checkpoint
+        use module_mirror_boxes, only: mirror_box_layers,periodicity
 
         implicit none
         include 'mpif.h'
@@ -308,7 +309,7 @@ MODULE output
         character(255) :: name(0:nspecies-1)
         integer :: ispecies,ns
 
-        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
+        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd,mirror_box_layers,periodicity
         namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,t_src
 
         integer, parameter :: fid = 666

@@ -140,7 +140,7 @@ subroutine setup
   t_lattice_2(1:3)=(/0.,1.,0./)
   t_lattice_3(1:3)=(/0.,0.,1./)
   periodicity(1:3) = (/.false., .false., .false./)  !< boolean switches for determining periodicity directions
-  do_extrinsic_correction = .false.
+  fmm_extrinsic_correction = .false.
 
  ! read in first command line argument
   call pepc_get_para_file(read_param_file, parameterfile, my_rank)

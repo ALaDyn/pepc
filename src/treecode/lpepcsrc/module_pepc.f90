@@ -78,7 +78,7 @@ module module_pepc
       integer, intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
       logical, intent(in) :: init_mpi !< if set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
       integer, intent(in), optional :: db_level_in !< sets debug level for treecode kernel (overrides settings, that may be read from libpepc-section in input file)
-      integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator (the frontend is responsible for calling MPI_COMM_FREE(comm) prior to calling pepc_finalize() in this case); otherwise, it uses an MPI_COMM_DUP copy of the given comm
+      integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator (the frontend is responsible for calling MPI_COMM_FREE(comm) prior to calling pepc_finalize() or supply it as argument to pepc_finalize() in this case); otherwise, it uses an MPI_COMM_DUP copy of the given comm
       integer, intent(in), optional :: idim
       integer :: ierr, provided
 
@@ -274,7 +274,7 @@ module module_pepc
     !> Finalizes MPI library and reverses all initialization from pepc_initialize
     !> Call this function at program termination after all MPI calls
     !>
-    subroutine pepc_finalize()
+    subroutine pepc_finalize(comm)
       use module_debug
       use module_pepc_types, only : free_lpepc_mpi_types
       use module_walk, only : tree_walk_finalize 
@@ -285,6 +285,8 @@ module module_pepc
       implicit none
       include 'mpif.h'
       integer :: ierr
+
+      integer, intent(inout), optional :: comm !< communicator. if pepc_initialize() initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator in comm, that can be given here to be freed automatically
 
       call pepc_status('FINALIZE')
       ! finalize internal data structures
@@ -300,7 +302,10 @@ module module_pepc
       end if
 
       call MPI_COMM_FREE(MPI_COMM_lpepc, ierr)
-      if (pepc_initializes_mpi) call MPI_FINALIZE(ierr)
+      if (pepc_initializes_mpi) then
+        if (present(comm)) then; call MPI_COMM_FREE(comm, ierr); end if 
+        call MPI_FINALIZE(ierr)
+      end if
     end subroutine
 
 

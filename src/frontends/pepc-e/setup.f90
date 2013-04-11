@@ -54,7 +54,7 @@ subroutine pepc_setup()
        idim, &
        nt, dt, idump, &
        itime_in, idump_vtk, idump_checkpoint, idump_binary, &
-       t_lattice_1, t_lattice_2, t_lattice_3, periodicity, do_extrinsic_correction
+       t_lattice_1, t_lattice_2, t_lattice_3, periodicity, fmm_extrinsic_correction
 
 
   !  Default input set

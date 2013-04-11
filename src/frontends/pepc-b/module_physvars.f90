@@ -283,7 +283,7 @@ module module_physvars
        xh_start, xh_end, nxh, xgav_start, xgav_end, ngav, xgav_pos, &
        particle_wrap, periodicity,t_lattice_1,t_lattice_2,t_lattice_3
 
-!       t1, t2, t3, periodicity, do_extrinsic_correction              ! periodicity config
+!       t1, t2, t3, periodicity, fmm_extrinsic_correction              ! periodicity config
  
 end module module_physvars
 

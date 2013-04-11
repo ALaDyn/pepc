@@ -274,7 +274,6 @@ module module_initialization
         use module_mirror_boxes
 
         implicit none
-        !periodicity=periodicity_in
          
         t_lattice_1=[dx,0.0_8,0.0_8]
         t_lattice_2=[0.0_8,dy,0.0_8]
