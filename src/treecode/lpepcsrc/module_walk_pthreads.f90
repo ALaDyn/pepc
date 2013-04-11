@@ -868,7 +868,7 @@ module module_walk
             ! 2b) children for twig are _absent_ --------
             ! --> put node on REQUEST list and put walk_key on bottom of todo_list
             t_post_request = t_post_request - MPI_WTIME()
-            call tree_node_fetch_children(walk_tree, walk_node) ! fetch children from remote
+            call tree_node_fetch_children(walk_tree, walk_node, shifted_particle_position) ! fetch children from remote
             t_post_request = t_post_request + MPI_WTIME()
             num_post_request = num_post_request + 1
             ! if posting the request failed, this is not a problem, since we defer the particle anyway

@@ -25,11 +25,13 @@ module module_pepc_types
   use module_interaction_specific_types
   implicit none
 
-      integer :: MPI_TYPE_particle_data,   &
+      integer :: MPI_TYPE_particle_data,     &
                  MPI_TYPE_tree_node_interaction_data,   &
-                 MPI_TYPE_particle_results, &
-                 MPI_TYPE_particle,         &
-                 MPI_TYPE_tree_node_package
+                 MPI_TYPE_particle_results,  &
+                 MPI_TYPE_particle,          &
+                 MPI_TYPE_tree_node,         &
+                 MPI_TYPE_tree_node_package, &
+                 MPI_TYPE_request
 
       !> Data structure for shipping single particles
       integer, private, parameter :: nprops_particle = 8 ! # particle properties to ship
@@ -55,7 +57,7 @@ module module_pepc_types
         type(t_tree_node), pointer :: first_child
         type(t_tree_node), pointer :: next_sibling
       end type t_tree_node
-
+ 
       !> A pointer to a tree node. Ah, Fortran!
       type, public :: t_tree_node_ptr
         type(t_tree_node), pointer :: p
@@ -72,6 +74,14 @@ module module_pepc_types
         type(t_tree_node_interaction_data) :: interaction_data
       end type t_tree_node_package
 
+      !> Data structure for requesting tree nodes with eager send algorithm
+      integer, private, parameter :: nprops_request = 3
+      type, public :: t_request
+        integer*8 :: key           =  0
+        real*8    :: pos_target(3) = [0., 0., 0.]
+	logical   :: eager_request = .false.
+      end type t_request
+
       contains
 
       !>
@@ -82,7 +92,7 @@ module module_pepc_types
         implicit none
         include 'mpif.h'
 
-        integer, parameter :: max_props = nprops_particle + nprops_tree_node_package
+        integer, parameter :: max_props = nprops_particle + nprops_tree_node_package + nprops_request
 
         integer :: ierr
         ! address calculation
@@ -91,6 +101,7 @@ module module_pepc_types
         ! dummies for address calculation
         type(t_particle)  :: dummy_particle
         type(t_tree_node_package) :: dummy_tree_node_package
+        type(t_request  ) :: dummy_request
 
         ! first register the interaction-specific MPI types since they are embedded into the lpepc-datatypes
         call register_interaction_specific_mpi_types(MPI_TYPE_particle_data, MPI_TYPE_tree_node_interaction_data, MPI_TYPE_particle_results)
@@ -126,6 +137,17 @@ module module_pepc_types
         call MPI_TYPE_STRUCT( nprops_tree_node_package, blocklengths, displacements, types, MPI_TYPE_tree_node_package, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_package, ierr )
 
+        ! register request type
+        blocklengths(1:nprops_request)  = [1, 3, 1]
+        types(1:nprops_request)         = [MPI_INTEGER8, MPI_REAL8, MPI_LOGICAL]
+        call MPI_GET_ADDRESS( dummy_request,                  address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_request%key,              address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_request%pos_target,       address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_request%eager_request,    address(3), ierr )
+        displacements(1:nprops_request) = int(address(1:nprops_request) - address(0))
+        call MPI_TYPE_STRUCT( nprops_request, blocklengths, displacements, types, MPI_TYPE_request, ierr )
+        call MPI_TYPE_COMMIT( MPI_TYPE_request, ierr )
+
     end subroutine register_lpepc_mpi_types
 
 
@@ -137,11 +159,12 @@ module module_pepc_types
         include 'mpif.h'
         integer :: ierr
 
-        call MPI_TYPE_FREE( MPI_TYPE_tree_node_package,          ierr)
-        call MPI_TYPE_FREE( MPI_TYPE_particle,                   ierr)
-        call MPI_TYPE_FREE( MPI_TYPE_particle_results,           ierr)
-        call MPI_TYPE_FREE( MPI_TYPE_tree_node_interaction_data, ierr)
-        call MPI_TYPE_FREE( MPI_TYPE_particle_data,              ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_tree_node_package,            ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_particle,                     ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_particle_results,             ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_request,                      ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_tree_node_interaction_data,   ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_particle_data,                ierr)
 
       end subroutine free_lpepc_mpi_types
 

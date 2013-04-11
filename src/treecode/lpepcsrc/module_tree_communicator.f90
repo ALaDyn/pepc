@@ -210,14 +210,17 @@ module module_tree_communicator
 
   !>
   !> Request children of node `n` in tree `t` from the responsible remote rank.
+  !> The local node that actually needs the remote node is `n_targ`.
   !>
   !> This routine returns immediately as the actual communication with the
   !> remote rank is handled by the communicator thread. The caller is then free
   !> to continue working on something different. Later on, `tree_node_children_available`
   !> can be used to check whether the requested data has arrived in the
   !> meantime.
+  !> Information from `n_targ` will be used for the eager send algorithm.
+  !> If `n_targ` is omitted, no eager sending will be requested.
   !>
-  subroutine tree_node_fetch_children(t, n)
+  subroutine tree_node_fetch_children(t, n, pos_targ)
     use module_tree, only: t_tree
     use module_pepc_types, only: t_tree_node
     use module_atomic_ops, only: atomic_mod_increment_and_fetch_int, &
@@ -229,6 +232,7 @@ module module_tree_communicator
 
     type(t_tree), intent(inout) :: t
     type(t_tree_node), target, intent(inout) :: n
+    real*8, optional, intent(in) :: pos_targ(3)
     
     integer :: local_queue_bottom
 
@@ -251,7 +255,13 @@ module module_tree_communicator
     end if
 
     ! the communicator will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
-    t%communicator%req_queue(local_queue_bottom)%key = n%key
+    t%communicator%req_queue(local_queue_bottom)%request%key             =  n%key
+    if (present(pos_targ)) then
+      t%communicator%req_queue(local_queue_bottom)%request%pos_target    = pos_targ
+      t%communicator%req_queue(local_queue_bottom)%request%eager_request = .true.
+    else
+      t%communicator%req_queue(local_queue_bottom)%request%eager_request = .false.
+    endif
     t%communicator%req_queue(local_queue_bottom)%node => n
     call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
     t%communicator%req_queue(local_queue_bottom)%owner = n%owner
@@ -290,18 +300,18 @@ module module_tree_communicator
   !>
   !> Answer a request for node data.
   !>
-  subroutine send_data(t, requested_key, ipe_sender)
+  subroutine answer_request(t, request, ipe_sender)
     use module_tree, only: t_tree, tree_node_get_first_child, &
       tree_lookup_node_critical, tree_node_get_next_sibling
     use module_tree_node, only: tree_node_pack
-    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package
+    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, t_request
     use module_debug
     use module_tree_node
     implicit none
     include 'mpif.h'
 
     type(t_tree), intent(inout) :: t
-    integer*8, intent(in) :: requested_key
+    type(t_Request), intent(in) :: request
     integer, intent(in) :: ipe_sender
 
     type(t_tree_node_package) :: children_to_send(8)
@@ -309,10 +319,10 @@ module module_tree_communicator
     integer :: nchild, ierr
 
     if (tree_comm_debug) then
-      DEBUG_INFO('("PE", I6, " answering request.                         request_key=", O22, ",        sender=", I6)', t%comm_env%rank, requested_key, ipe_sender )
+      DEBUG_INFO('("PE", I6, " answering request.                         request%key=", O22, ",        sender=", I6)', t%comm_env%rank, request%key, ipe_sender )
     end if
 
-    call tree_lookup_node_critical(t, requested_key, n, 'WALK:send_data:parentkey')
+    call tree_lookup_node_critical(t, request%key, n, 'WALK:answer_request_simple:parentkey')
     if (tree_node_get_first_child(t, n, nn)) then
       nchild = 0
 
@@ -333,7 +343,7 @@ module module_tree_communicator
       ! statistics on number of sent children-packages
       t%communicator%sum_ships = t%communicator%sum_ships + 1
     end if
-  end subroutine send_data
+  end subroutine answer_request
 
 
   !>
@@ -342,6 +352,7 @@ module module_tree_communicator
   function send_request(t, req)
     use module_tree, only: t_tree
     use module_tree_node
+    use module_pepc_types, only : t_request, MPI_TYPE_request
     implicit none
     include 'mpif.h'
     
@@ -354,7 +365,7 @@ module module_tree_communicator
     if (.not. btest( req%node%flags, TREE_NODE_FLAG_REQUEST_SENT ) ) then
       ! send a request to PE req_queue_owners(req_queue_top)
       ! telling, that we need child data for particle request_key(req_queue_top)
-      call MPI_BSEND(req%key, 1, MPI_INTEGER8, req%owner, TREE_COMM_TAG_REQUEST_KEY, &
+      call MPI_BSEND(req%request, 1, MPI_TYPE_REQUEST, req%owner, TREE_COMM_TAG_REQUEST_KEY, &
         t%comm_env%comm, ierr)
 
       req%node%flags = ibset(req%node%flags, TREE_NODE_FLAG_REQUEST_SENT)
@@ -447,7 +458,7 @@ module module_tree_communicator
         call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
         if (tree_comm_debug) then
-          DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)', t%comm_env%rank, t%communicator%req_queue_top, t%communicator%req_queue(t%communicator%req_queue_top)%key, t%communicator%req_queue(t%communicator%req_queue_top)%owner)
+          DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)', t%comm_env%rank, t%communicator%req_queue_top, t%communicator%req_queue(t%communicator%req_queue_top)%request% key, t%communicator%req_queue(t%communicator%req_queue_top)%owner)
         end if
 
         if (send_request(t, t%communicator%req_queue(t%communicator%req_queue_top))) then
@@ -565,7 +576,7 @@ module module_tree_communicator
   !>
   subroutine run_communication_loop_inner(t, comm_finished, nummessages)
     use module_tree, only: t_tree
-    use module_pepc_types, only: t_tree_node_package, MPI_TYPE_tree_node_package
+    use module_pepc_types, only: t_tree_node_package, MPI_TYPE_tree_node_package, t_request, MPI_TYPE_REQUEST
     use module_debug
     implicit none
     include 'mpif.h'
@@ -577,8 +588,8 @@ module module_tree_communicator
     logical :: msg_avail
     integer :: ierr
     integer :: stat(MPI_STATUS_SIZE)
-    integer*8 :: requested_key
-    type (t_tree_node_package) :: child_data(8) ! child data to be received - maximum up to eight children per particle
+    type(t_request) :: request
+    type (t_tree_node_package) :: child_data(8) ! child data to be received
     integer :: num_children
     integer :: ipe_sender, msg_tag
     integer :: dummy
@@ -612,17 +623,16 @@ module module_tree_communicator
           case (TREE_COMM_TAG_REQUEST_KEY)
             ! actually receive this request...
             ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
-            call MPI_RECV(requested_key, 1, MPI_INTEGER8, ipe_sender, TREE_COMM_TAG_REQUEST_KEY, &
+            call MPI_RECV(request, 1, MPI_TYPE_request, ipe_sender, TREE_COMM_TAG_REQUEST_KEY, &
                     t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
             ! ... and answer it
-            call send_data(t, requested_key, ipe_sender)
+            call answer_request(t, request, ipe_sender)
 
           ! some PE answered our request and sends
           case (TREE_COMM_TAG_REQUESTED_DATA)
             ! actually receive the data...
             ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
             call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_package, num_children, ierr)
-            DEBUG_ASSERT_MSG(num_children <= 8, "unexpectedly received more than eight children.")
             call MPI_RECV(child_data, num_children, MPI_TYPE_tree_node_package, ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, &
                     t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
             ! ... and put it into the tree and all other data structures

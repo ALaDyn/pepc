@@ -28,16 +28,16 @@ module module_tree
     use module_comm_env, only: t_comm_env
     use module_domains, only: t_decomposition
     use module_atomic_ops, only: t_atomic_int
-    use module_pepc_types, only: t_tree_node
+    use module_pepc_types, only: t_tree_node, t_request
     use, intrinsic :: iso_c_binding
     implicit none
     private
 
     !> data type for communicator request queue
     type, public :: t_request_queue_entry
-      integer*8 :: key
-      integer   :: owner
+      type(t_request) :: request
       type(t_tree_node), pointer :: node
+      integer   :: owner
     end type
 
     integer, public, parameter :: TREE_COMM_ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
