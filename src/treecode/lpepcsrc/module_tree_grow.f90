@@ -506,7 +506,9 @@ module module_tree_grow
         end do
     end do
 
-    deallocate(key_level, sub_key, parent_key)
+    deallocate(key_level)
+    deallocate(sub_key, sub_nodes, parent_key, parent_nodes)
+    deallocate(sorted_sub_nodes, sort_map)
   end subroutine tree_build_upwards
 
 
