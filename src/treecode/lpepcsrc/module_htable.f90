@@ -70,6 +70,8 @@ module module_htable
     public htable_destroy
     public htable_check
     public htable_dump
+    public htable_iterator
+    public htable_iterator_next
 
     contains
 

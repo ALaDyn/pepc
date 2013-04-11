@@ -282,8 +282,8 @@ contains
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
     implicit none
-    integer, intent(in) :: npart_total !< total number of particles
-    integer, intent(out) :: nintmax !< maximum number of interactions per particle
+    integer*8, intent(in) :: npart_total !< total number of particles
+    integer*8, intent(out) :: nintmax !< maximum number of interactions per particle
 
     real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
 
@@ -291,7 +291,7 @@ contains
 
     ! Estimate of interaction list length - Hernquist expression
     ! applies for BH-MAC
-    invnintmax = max(theta2 / (35.*log(1.*npart_total)) , 1._8/npart_total)
+    invnintmax = max(theta2 / (35._8*log(1._8*npart_total)) , 1._8/npart_total)
     nintmax    = int(1._8/invnintmax)
 
   end subroutine get_number_of_interactions_per_particle
@@ -314,14 +314,10 @@ contains
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   function mac(particle, node, dist2, boxlength2)
-
-    use treevars, only: &
-         tree_nodes
-
     implicit none
 
     logical :: mac
-    integer, intent(in) :: node
+    type(t_tree_node_interaction_data), intent(in) :: node
     type(t_particle), intent(in) :: particle
     real*8, intent(in) :: dist2
     real*8, intent(in) :: boxlength2
@@ -332,7 +328,7 @@ contains
        ! mac = (theta2 * dist2 > boxlength2)
     case(1)
        ! Bmax-MAC
-       mac = (theta2 * dist2 > min(tree_nodes(node)%bmax**2,3.0*boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
+       mac = (theta2 * dist2 > min(node%bmax**2,3.0*boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
     case(2)
        ! N^2 code
        mac = .false.
@@ -352,7 +348,7 @@ contains
        ! dist2 > results%maxdist2 + 2.*sqrt(results%maxdist2*3.*boxlength2) + 3.*boxlength2 .OR. dist2 > 4.*tree_nodes(node)%h**2 + 2.*sqrt(2.*tree_nodes(node)%h*3.*boxlength2) + 3. *boxlength2
        ! 
        mac = ( (dist2 > particle%results%maxdist2 + sqrt(12.*particle%results%maxdist2*boxlength2) + 3.*boxlength2) .or. &
-            (   dist2 > 4.*tree_nodes(node)%h**2 + sqrt(24.*tree_nodes(node)%h *boxlength2) + 3.*boxlength2) )
+            (   dist2 > 4.*node%h**2 + sqrt(24.*node%h *boxlength2) + 3.*boxlength2) )
 
     case default
        write(*,*) "!!! value of mac_select is not allowed in mac:", mac_select
@@ -368,62 +364,10 @@ contains
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine particleresults_clear(particles, nparticles)
-    use module_pepc_types
-    use module_htable
-    use treevars
-    use module_spacefilling
+    use module_pepc_types, only: t_particle
     implicit none
     type(t_particle), intent(inout) :: particles(nparticles)
     integer, intent(in) :: nparticles
-
-    integer*8 :: key
-    integer :: addr, i
-    real*8, dimension(:), allocatable :: boxdiag2
-
-    allocate(boxdiag2(0:nlev))
-    boxdiag2(0) = 3.*dot_product(boxsize,boxsize)
-    do i=1,nlev
-       boxdiag2(i) =  boxdiag2(i-1)/4.
-    end do
-
-
-    ! for each particle, we traverse the tree upwards, until the current twig
-    ! contains more leaves than number of necessary neighbours - as a first guess for the
-    ! search radius, we use its diameter
-    do i=1,nparticles
-       key = particles(i)%key_leaf
-
-       particles(i)%results%maxdist2 = huge(0._8)
-       particles(i)%results%neighbour_keys(:)  = 0_8
-       particles(i)%results%maxidx             = 1
-
-       do while (key .ne. 0)
-          if (testaddr(key, addr)) then
-             if (htable(addr)%leaves > num_neighbour_particles) then
-                ! this twig contains enough particles --> we use its diameter as search radius
-                particles(i)%results%maxdist2 = boxdiag2(level_from_key(key))
-                particles(i)%results%neighbour_keys(1:num_neighbour_particles) = key
-
-                exit ! from this loop
-             endif
-          endif
-
-          key = parent_key_from_key(key)
-          if (key.eq.0) then
-             write(*,*) particles(i)
-          endif
-       end do
-
-       particles(i)%results%dist2(1:num_neighbour_particles) = particles(i)%results%maxdist2
-       particles(i)%results%dist_vector(:,1:num_neighbour_particles) = -13._8 
-
-       particles(i)%results%h         = 0._8
-       particles(i)%results%rho       = 0._8
-       particles(i)%results%sph_force = [0._8, 0._8, 0._8]
-       particles(i)%results%e         = [0._8, 0._8, 0._8]
-       particles(i)%results%pot       = 0._8
-
-    end do
 
   end subroutine particleresults_clear
 

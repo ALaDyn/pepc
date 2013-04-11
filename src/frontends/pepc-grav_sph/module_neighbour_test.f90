@@ -83,28 +83,25 @@ contains
     use omp_lib
     
     use module_pepc_types, only: &
-         t_particle
+         t_particle, &
+         t_tree_node
 
-    use treevars, only: &
-         boxmin, &
-         boxsize, &
-         tree_nodes, &
-         npart
+    use module_pepc, only: &
+         t => global_tree
     
     use physvars, only: &
          n_cpu, &
          my_rank
     
-    use module_htable, only: & 
-         key2addr, &
-         htable
-    
     use module_spacefilling, only: &
-         coord_to_key_lastlevel, &
+         veccoord_to_key_lastlevel, &
          key_to_coord
 
     use module_mirror_boxes, only: &
          lattice_vect
+
+    use module_tree, only: &
+         tree_lookup_node_critical
 
     implicit none
     include 'mpif.h'
@@ -140,7 +137,7 @@ contains
     integer :: index_in_test_neighbour_list
     integer :: index_in_result_neighbour_list
     real*8 :: dist2
-    integer*8 :: actual_node
+    type(t_tree_node), pointer :: actual_node
     integer*8 :: node_key
     integer*8 :: neighbour_key
 
@@ -292,7 +289,7 @@ contains
        
           write( 99, '(i6.6,3(E12.5),i6,O30)' ) local_particle_index, particles(local_particle_index)%x(1), particles(local_particle_index)%x(2), particles(local_particle_index)%x(3), particles(local_particle_index)%label, particles(local_particle_index)%key
           do actual_neighbour = 1, num_neighbour_particles
-             write(99,*) coord_to_key_lastlevel(positions( 1, actual_neighbour, local_particle_index), positions( 2, actual_neighbour, local_particle_index), positions( 3, actual_neighbour, local_particle_index) )
+             write(99,*) veccoord_to_key_lastlevel(t%bounding_box, positions( 1:3, actual_neighbour, local_particle_index))
           end do
           
        end do
@@ -331,8 +328,8 @@ contains
                'set lwidth 0.001 lstyle 1', &
                'psize=0.005', &
                'begin translate 0.5 0.5', &
-               'begin scale ', 17./boxsize(1), 17./boxsize(2), &
-               'begin translate ', -boxmin(1), -boxmin(2)
+               'begin scale ', 17./t%bounding_box%boxsize(1),17./t%bounding_box%boxsize(2), &
+               'begin translate ', -t%bounding_box%boxmin(1), -t%bounding_box%boxmin(2)
           
           !     write (60,'(a,2f13.4)') 'amove', boxmin(1), boxmin(2)
           !     write (60,'(a,2f13.4)') 'box ',boxsize(1),boxsize(2)
@@ -415,16 +412,15 @@ contains
     do local_particle_index = 1, np_local
        do index_in_result_neighbour_list = 1, num_neighbour_particles
 
-          actual_node = htable( key2addr(particles(local_particle_index)%results%neighbour_keys(index_in_result_neighbour_list), "validate_n_nearest_neighbour_list()") )%node
-          node_key = coord_to_key_lastlevel(tree_nodes(actual_node)%coc(1), tree_nodes(actual_node)%coc(2), tree_nodes(actual_node)%coc(3))
+          call tree_lookup_node_critical(t, particles(local_particle_index)%results%neighbour_keys(index_in_result_neighbour_list), &
+            actual_node, "validate_n_nearest_neighbour_list()")
+          node_key = veccoord_to_key_lastlevel(t%bounding_box, actual_node%interaction_data%coc)
 
           found = .false.
           
           do index_in_test_neighbour_list = 1, num_neighbour_particles   ! ignore particle self (num_neighbour_particles+1)
              
-             neighbour_key = coord_to_key_lastlevel( positions( 1, index_in_test_neighbour_list, local_particle_index), &
-                  positions( 2, index_in_test_neighbour_list, local_particle_index), &
-                  positions( 3, index_in_test_neighbour_list, local_particle_index) )
+             neighbour_key = veccoord_to_key_lastlevel(t%bounding_box, positions( 1:3, index_in_test_neighbour_list, local_particle_index))
 
              if( node_key .eq. neighbour_key ) then
                 found = .true.
@@ -471,8 +467,8 @@ contains
        
        open( 55 , file='nn_validation_results.dat', status='UNKNOWN', position = 'APPEND')
        
-       write( 55 ,* ) itime, "nn_validate found ", all_not_found, "differences in nn-lists (", (npart * num_neighbour_particles), "neighbours total, ~ ", &
-            int(all_not_found*100./(npart * num_neighbour_particles)), "% )"
+       write( 55 ,* ) itime, "nn_validate found ", all_not_found, "differences in nn-lists (", (t%npart * num_neighbour_particles), "neighbours total, ~ ", &
+            int(all_not_found*100./(t%npart * num_neighbour_particles)), "% )"
        
        close( 55 )
        
@@ -496,25 +492,24 @@ contains
 
   subroutine draw_neighbours(np_local, particles, itime)
     
-    use module_pepc_types
-    
-    use treevars, only: &
-         boxmin, &
-         boxsize, &
-         tree_nodes
-    
+    use module_pepc, only: &
+         t => global_tree
+
+    use module_pepc_types, only: &
+         t_particle, &
+         t_tree_node
+
     use physvars, only: &
          n_cpu, &
          my_rank
     
-    use module_htable, only: &
-         key2addr, &
-         htable
-
     use module_mirror_boxes, only: &
          num_neighbour_boxes, &
          neighbour_boxes, &
          lattice_vect
+
+    use module_tree, only: &
+         tree_lookup_node_critical
 
     implicit none
     include 'mpif.h'
@@ -529,7 +524,7 @@ contains
     integer :: actual_pe
     integer :: local_particle_index
     integer :: actual_neighbour
-    integer*8 :: actual_node
+    type(t_tree_node), pointer :: actual_node
     integer :: ibox
     real*8, dimension(3) :: vbox
 
@@ -553,8 +548,8 @@ contains
             'set lwidth 0.001 lstyle 1', &
             'psize=0.005', &
             'begin translate 0.5 0.5', &
-            'begin scale ', 17./boxsize(1), 17./boxsize(2), &
-            'begin translate ', -boxmin(1), -boxmin(2)
+            'begin scale ', 17./t%bounding_box%boxsize(1), 17./t%bounding_box%boxsize(2), &
+            'begin translate ', -t%bounding_box%boxmin(1), -t%bounding_box%boxmin(2)
        
        !     write (60,'(a,2f13.4)') 'amove', boxmin(1), boxmin(2)
        !     write (60,'(a,2f13.4)') 'box ',boxsize(1),boxsize(2)
@@ -605,10 +600,10 @@ contains
 
        ! overplot neighbours with a black circle
        do actual_neighbour = 1, num_neighbour_particles
-          actual_node = htable( key2addr(particles(local_particle_index)%results%neighbour_keys(actual_neighbour), "draw_neighbours()") )%node
+          call tree_lookup_node_critical(t, particles(local_particle_index)%results%neighbour_keys(actual_neighbour), actual_node, "draw_neighbours()")
           
           write (60, '(a)') 'set color black'
-          write (60, '(a,2f13.4)') 'amove ', tree_nodes(actual_node)%coc(1), tree_nodes(actual_node)%coc(2)
+          write (60, '(a,2f13.4)') 'amove ', actual_node%interaction_data%coc(1), actual_node%interaction_data%coc(2)
           !        write (60, '(a,2f13.4)') 'amove ', xcoc(next_neighbours(j,p)), ycoc(next_neighbours(j,i))
           write (60, '(a)') 'circle psize'
        end do
