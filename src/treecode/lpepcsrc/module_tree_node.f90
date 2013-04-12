@@ -188,8 +188,8 @@ module module_tree_node
       integer :: ic, nc
 
       nc = size(c); DEBUG_ASSERT(nc > 0)
-      ! // DEBUG_ASSERT_MSG(all((c(2:nc)%p%key - c(1:nc - 1)%p%key) >= 1), "children are not arranged as expected.")
-      DEBUG_ASSERT_MSG(c(nc)%p%key - c(1)%p%key <= 2**idim, "children do not all belong to the same parent.")
+      ! // DEBUG_ASSERT_MSG(all((c(2:nc)%p%key - c(1:nc - 1)%p%key) >= 1), *, "children are not arranged as expected.")
+      DEBUG_ASSERT_MSG(2**idim >= c(nc)%p%key - c(1)%p%key, '("= ", I3, ". Children do not all belong to the same parent.")', c(nc)%p%key - c(1)%p%key)
 
       n%first_child => c(1)%p
       do ic = 1, nc - 1

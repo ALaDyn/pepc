@@ -749,7 +749,7 @@ module module_tree_grow
     end do
 
     ! check if all keys fit to the same parent
-    DEBUG_ASSERT_MSG(all(parent_keys(2:nchild) == parent_keys(1)), "Error in shift nodes up: not all supplied children contribute to the same parent node")
+    DEBUG_ASSERT_MSG(all(parent_keys(2:nchild) == parent_keys(1)), *, "Error in shift nodes up: not all supplied children contribute to the same parent node")
 
     ! Set children_HERE flag parent since we just built it from its children
     flags =  ibset(flags, TREE_NODE_FLAG_CHILDREN_AVAILABLE)

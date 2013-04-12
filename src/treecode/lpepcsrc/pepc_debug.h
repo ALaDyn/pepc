@@ -55,16 +55,29 @@
 #define DEBUG_STRINGIFY(s) DEBUG_STRINGIFY_HELPER(s)
 
 #ifdef NDEBUG
-#define DEBUG_ASSERT(cond) ! DEBUG_ASSERT(cond)
-#define DEBUG_ASSERT_MSG(cond, msg) ! DEBUG_ASSERT_MSG(cond, msg)
+
+#define DEBUG_ASSERT(cond) ! Assertion: cond
+
+#define DEBUG_ASSERT_MSG(cond, fmt, ...) ! Assertion: cond
+
 #else
+
+#define DEBUG_ASSERT_MSG(cond, fmt, ...) \
+        if (.not. (cond)) then; \
+          call debug_ipefile_open(); \
+            DEBUG_HEADER(debug_ipefile); \
+            write(debug_ipefile, '("Assertion failed: ", a, " ")', advance='no') DEBUG_STRINGIFY(cond); \
+            write(debug_ipefile, fmt) __VA_ARGS__; \
+          call debug_ipefile_close(); \
+          DEBUG_HEADER(debug_stdout); \
+          write(debug_stdout, '("Assertion failed: ", a, " ")', advance='no') DEBUG_STRINGIFY(cond); \
+          write(debug_stdout, fmt) __VA_ARGS__; \
+          call debug_mpi_abort(); \
+        end if;
+
 #define DEBUG_ASSERT(cond) \
         if (.not. (cond)) then; \
           DEBUG_ERROR('("Assertion failed: ", a)', DEBUG_STRINGIFY(cond)); \
         end if;
 
-#define DEBUG_ASSERT_MSG(cond, msg) \
-        if (.not. (cond)) then; \
-          DEBUG_ERROR('("Assertion failed: ", a, ": ", a)', DEBUG_STRINGIFY(cond), msg); \
-        end if;
 #endif

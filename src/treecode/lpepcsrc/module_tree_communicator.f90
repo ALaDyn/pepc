@@ -654,7 +654,7 @@ module module_tree_communicator
             call MPI_RECV(dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_FINISHED_PE, &
                     t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
 
-            DEBUG_ASSERT_MSG(t%comm_env%rank == 0, "this kind of message is only expected at rank 0!")
+            DEBUG_ASSERT_MSG(t%comm_env%rank == 0, *, "this kind of message is only expected at rank 0!")
             if (tree_comm_debug) then
               DEBUG_INFO('("PE", I6, " has been told that PE", I6, " has finished walking")', t%comm_env%rank, ipe_sender)
               DEBUG_INFO(*, 'comm_finished = ', comm_finished)
