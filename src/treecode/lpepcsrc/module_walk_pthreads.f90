@@ -100,6 +100,7 @@ module module_walk
   
   !> debug flags - cannot be modified at runtime due to performance reasons
   logical, parameter, public :: walk_debug = .false.
+  logical, parameter, public :: walk_profile = .false.
 
   integer, parameter :: NUM_THREAD_TIMERS                 = 4
   integer, parameter :: THREAD_TIMER_TOTAL                = 1
@@ -214,19 +215,23 @@ module module_walk
       work_imbal = work_imbal + abs(num_interactions(i) - average_interactions) / average_interactions / num_pe
     end do
     
-    call MPI_REDUCE(thread_timers_nonshared_avg(:), global_thread_timers_nonshared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
-    call MPI_REDUCE(thread_timers_shared_avg(:), global_thread_timers_shared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
     call MPI_REDUCE(thread_counters_nonshared_avg(:), global_thread_counters_nonshared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
     call MPI_REDUCE(thread_counters_shared_avg(:), global_thread_counters_shared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
-    call MPI_REDUCE(thread_timers_nonshared_dev(:), global_thread_timers_nonshared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
-    call MPI_REDUCE(thread_timers_shared_dev(:), global_thread_timers_shared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
     call MPI_REDUCE(thread_counters_nonshared_dev(:), global_thread_counters_nonshared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
     call MPI_REDUCE(thread_counters_shared_dev(:), global_thread_counters_shared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
 
-    global_thread_timers_nonshared_avg   = global_thread_timers_nonshared_avg / num_pe
-    global_thread_timers_shared_avg      = global_thread_timers_shared_avg / num_pe
     global_thread_counters_nonshared_avg = global_thread_counters_nonshared_avg / num_pe
     global_thread_counters_shared_avg    = global_thread_counters_shared_avg / num_pe
+
+    if (walk_profile) then
+      call MPI_REDUCE(thread_timers_nonshared_avg(:), global_thread_timers_nonshared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
+      call MPI_REDUCE(thread_timers_shared_avg(:), global_thread_timers_shared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
+      call MPI_REDUCE(thread_timers_nonshared_dev(:), global_thread_timers_nonshared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
+      call MPI_REDUCE(thread_timers_shared_dev(:), global_thread_timers_shared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
+
+      global_thread_timers_nonshared_avg   = global_thread_timers_nonshared_avg / num_pe
+      global_thread_timers_shared_avg      = global_thread_timers_shared_avg / num_pe
+    end if
 
     if (0 == me) then
       write (u,*) '######## WORKLOAD AND WALK ################################################################'
@@ -243,13 +248,15 @@ module module_walk
       write (u,'(a50,3f12.3)')       '  maximum relative deviation: ', &
                                           thread_counters_nonshared_dev(THREAD_COUNTER_PROCESSED_PARTICLES), &
                                           thread_counters_shared_dev(THREAD_COUNTER_PROCESSED_PARTICLES)
-      write (u,'(a50)')              'average wallclocktime per thread    '
-      write (u,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', &
-                                          thread_timers_nonshared_avg(THREAD_TIMER_TOTAL), &
-                                          thread_timers_shared_avg(THREAD_TIMER_TOTAL)
-      write (u,'(a50,3f12.3)')       '  maximum relative deviation: ', &
-                                          thread_timers_nonshared_dev(THREAD_TIMER_TOTAL), &
-                                          thread_timers_shared_dev(THREAD_TIMER_TOTAL)
+      if (walk_profile) then
+        write (u,'(a50)')              'average wallclocktime per thread    '
+        write (u,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', &
+                                            thread_timers_nonshared_avg(THREAD_TIMER_TOTAL), &
+                                            thread_timers_shared_avg(THREAD_TIMER_TOTAL)
+        write (u,'(a50,3f12.3)')       '  maximum relative deviation: ', &
+                                            thread_timers_nonshared_dev(THREAD_TIMER_TOTAL), &
+                                            thread_timers_shared_dev(THREAD_TIMER_TOTAL)
+      end if
       write (u,*) '######## DETAILED DATA ####################################################################'
       write (u,'(a/(i10,2i15,F10.4))') '        PE  #interactions     #mac_evals  rel.work', &
         (i-1, int(num_interactions(i)), int(num_mac_evaluations(i)), num_interactions(i) / average_interactions, i = 1, num_pe)
@@ -428,13 +435,15 @@ module module_walk
       num_shared_threads = count(threaddata(:)%is_on_shared_core)
       num_nonshared_threads = num_walk_threads - num_shared_threads
 
-      do itimer = 1,NUM_THREAD_TIMERS
-        thread_timers_shared_avg(itimer)    =  sum(threaddata(:)%timers(itimer), mask =       threaddata(:)%is_on_shared_core) / num_shared_threads
-        thread_timers_nonshared_avg(itimer) =  sum(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) / num_nonshared_threads
+      if (walk_profile) then
+        do itimer = 1,NUM_THREAD_TIMERS
+          thread_timers_shared_avg(itimer)    =  sum(threaddata(:)%timers(itimer), mask =       threaddata(:)%is_on_shared_core) / num_shared_threads
+          thread_timers_nonshared_avg(itimer) =  sum(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) / num_nonshared_threads
 
-        thread_timers_shared_dev(itimer)    = (maxval(threaddata(:)%timers(itimer), mask =       threaddata(:)%is_on_shared_core) - thread_timers_shared_avg(itimer))    / thread_timers_shared_avg(itimer)
-        thread_timers_nonshared_dev(itimer) = (maxval(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) - thread_timers_nonshared_avg(itimer)) / thread_timers_nonshared_avg(itimer)
-      end do
+          thread_timers_shared_dev(itimer)    = (maxval(threaddata(:)%timers(itimer), mask =       threaddata(:)%is_on_shared_core) - thread_timers_shared_avg(itimer))    / thread_timers_shared_avg(itimer)
+          thread_timers_nonshared_dev(itimer) = (maxval(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) - thread_timers_nonshared_avg(itimer)) / thread_timers_nonshared_avg(itimer)
+        end do
+      end if
 
       do icounter = 1,NUM_THREAD_COUNTERS
         thread_counters_shared_avg(icounter) = sum(threaddata(:)%counters(icounter), mask = threaddata(:)%is_on_shared_core) / real(num_shared_threads, kind = 8)
@@ -564,9 +573,6 @@ module module_walk
     type(t_tree_node_ptr), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
     call tree_lookup_root(walk_tree, defer_list_root_only(1)%p, 'walk_worker_thread:root node')
 
-    t_get_new_particle = 0._8
-    t_walk_single_particle = 0._8
-
     my_processor_id = get_my_core()
     same_core_as_communicator = (my_processor_id == primary_processor_id)
 
@@ -580,8 +586,13 @@ module module_walk
     my_threaddata%is_on_shared_core = same_core_as_communicator
     my_threaddata%coreid = my_processor_id
     my_threaddata%finished = .false.
-    my_threaddata%timers(THREAD_TIMER_TOTAL) = - MPI_WTIME()
-    my_threaddata%timers(THREAD_TIMER_POST_REQUEST) = 0
+    if (walk_profile) then
+      t_get_new_particle = 0._8
+      t_walk_single_particle = 0._8
+
+      my_threaddata%timers(THREAD_TIMER_TOTAL) = - MPI_WTIME()
+      my_threaddata%timers(THREAD_TIMER_POST_REQUEST) = 0
+    end if
     my_threaddata%counters = 0
 
     if (my_max_particles_per_thread > 0) then
@@ -612,9 +623,9 @@ module module_walk
           if (contains_particle(i)) then
             call setup_defer_list(i)
           else
-            t_get_new_particle = t_get_new_particle - MPI_WTIME()
+            if (walk_profile) then; t_get_new_particle = t_get_new_particle - MPI_WTIME(); end if
             call get_new_particle_and_setup_defer_list(i)
-            t_get_new_particle = t_get_new_particle + MPI_WTIME()
+            if (walk_profile) then; t_get_new_particle = t_get_new_particle + MPI_WTIME(); end if
           end if
 
           if (contains_particle(i)) then
@@ -624,12 +635,12 @@ module module_walk
             ptr_defer_list_new      => defer_list_new(defer_list_new_tail:total_defer_list_length)
             defer_list_start_pos(i) =  defer_list_new_tail
 
-            t_walk_single_particle = t_walk_single_particle - MPI_WTIME()
+            if (walk_profile) then; t_walk_single_particle = t_walk_single_particle - MPI_WTIME(); end if
             particle_has_finished  = walk_single_particle(thread_particle_data(i), &
                                       ptr_defer_list_old, defer_list_entries_old, &
                                       ptr_defer_list_new, defer_list_entries_new, &
                                       todo_list, partner_leaves(i), my_threaddata)
-            t_walk_single_particle = t_walk_single_particle + MPI_WTIME()
+            if (walk_profile) then; t_walk_single_particle = t_walk_single_particle + MPI_WTIME(); end if
 
             if (particle_has_finished) then
               ! walk for particle i has finished
@@ -674,9 +685,11 @@ module module_walk
       deallocate(todo_list)
     end if
 
-    my_threaddata%timers(THREAD_TIMER_TOTAL) = my_threaddata%timers(THREAD_TIMER_TOTAL) + MPI_WTIME()
-    my_threaddata%timers(THREAD_TIMER_GET_NEW_PARTICLE) = t_get_new_particle
-    my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
+    if (walk_profile) then
+      my_threaddata%timers(THREAD_TIMER_TOTAL) = my_threaddata%timers(THREAD_TIMER_TOTAL) + MPI_WTIME()
+      my_threaddata%timers(THREAD_TIMER_GET_NEW_PARTICLE) = t_get_new_particle
+      my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
+    end if
 
     my_threaddata%finished = .true.
 
@@ -796,14 +809,14 @@ module module_walk
     type(t_tree_node), pointer :: walk_node
     real*8 :: dist2
     real*8 :: delta(3), shifted_particle_position(3)
-    logical :: same_particle, same_particle_or_parent_node, mac_ok, ignore_node
+    logical :: same_particle, same_particle_or_parent_node, mac_ok, is_leaf, ignore_node
     integer*8 :: num_interactions, num_mac_evaluations, num_post_request
     real*8 :: t_post_request
 
     todo_list_entries      = 0
     num_interactions       = 0
     num_mac_evaluations    = 0
-    t_post_request         = 0._8
+    if (walk_profile) then; t_post_request = 0._8; end if
     num_post_request       = 0
     walk_node              => null()
     shifted_particle_position = particle%x - vbox ! precompute shifted particle position to avoid subtracting vbox in every loop iteration below
@@ -813,44 +826,43 @@ module module_walk
     ! that the node has to be resolved
     ! if the defer_list is empty, the call reurns without doing anything
     call defer_list_parse_and_compact()
-    call atomic_read_barrier()
 
     ! read all todo_list-entries and start further traversals there
     do while (todo_list_pop(walk_node))
-      delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
-      dist2 = DOT_PRODUCT(delta, delta)
-
-      if (tree_node_is_leaf(walk_node)) then
-        mac_ok = .true.
-      else
-        mac_ok = mac(particle, walk_node%interaction_data, dist2, boxlength2(walk_node%level))
-        num_mac_evaluations = num_mac_evaluations + 1
-      end if
-
       ! we may not interact with the particle itself or its ancestors
       ! if we are in the central box
       ! interaction with ancestor nodes should be prevented by the MAC
       ! but this does not always work (i.e. if theta > 0.7 or if keys and/or coordinates have
       ! been modified due to 'duplicate keys'-error)
+      is_leaf = tree_node_is_leaf(walk_node)
       same_particle_or_parent_node  = (in_central_box) .and. is_ancestor_of_particle(particle%key, walk_node%key, walk_node%level)
       ! set ignore flag if leaf node corresponds to particle itself
-      same_particle = same_particle_or_parent_node .and. tree_node_is_leaf(walk_node)
+      same_particle = same_particle_or_parent_node .and. is_leaf
 
       ! ignore interactions with the particle itself (this is the place for possible other exclusion options)
       ignore_node = same_particle
 
       if (.not. ignore_node) then
+        delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
+        dist2 = DOT_PRODUCT(delta, delta)
+
+        if (is_leaf) then
+          mac_ok = .true.
+        else
+          mac_ok = mac(particle, walk_node%interaction_data, dist2, boxlength2(walk_node%level))
+          num_mac_evaluations = num_mac_evaluations + 1
+        end if
+
         !  always accept leaf-nodes since they cannot be refined any further
         !  further resolve ancestor nodes if we are in the central box
-        mac_ok = tree_node_is_leaf(walk_node) .or. (mac_ok .and. (.not. same_particle_or_parent_node))
+        mac_ok = is_leaf .or. (mac_ok .and. (.not. same_particle_or_parent_node))
 
         ! ========= Possible courses of action:
         if (mac_ok) then
           ! 1) leaf node or MAC test OK ===========
           !    --> interact with cell if it does not lie outside the cutoff box
           if (all(abs(delta) < spatial_interaction_cutoff)) then
-            call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node%key, delta, dist2, vbox, tree_node_is_leaf(walk_node))
-
+            call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node%key, delta, dist2, vbox, is_leaf)
             num_interactions = num_interactions + 1
           end if
 
@@ -860,6 +872,7 @@ module module_walk
           if ( tree_node_children_available(walk_node) ) then
             ! 2a) children for twig are present --------
             ! --> resolve cell & put all children in front of todo_list
+            call atomic_read_barrier()
             if (.not. todo_list_push_children(walk_node)) then
               ! the todo_list is full --> put parent back onto defer_list
               call defer_list_push(walk_node)
@@ -867,14 +880,14 @@ module module_walk
           else
             ! 2b) children for twig are _absent_ --------
             ! --> put node on REQUEST list and put walk_key on bottom of todo_list
-            t_post_request = t_post_request - MPI_WTIME()
+            if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
             call tree_node_fetch_children(walk_tree, walk_node, shifted_particle_position) ! fetch children from remote
-            t_post_request = t_post_request + MPI_WTIME()
+            if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
             num_post_request = num_post_request + 1
             ! if posting the request failed, this is not a problem, since we defer the particle anyway
             ! since it will not be available then, the request will simply be repeated
             call defer_list_push(walk_node) ! Deferred list of nodes to search, pending request
-                                                      ! for data from nonlocal PEs
+                                            ! for data from nonlocal PEs
             if (walk_debug) then
               DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  walk_tree%comm_env%rank, defer_list_entries_new)
             end if
@@ -890,8 +903,11 @@ module module_walk
 
     my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) = my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) + num_interactions
     my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) = my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) + num_mac_evaluations
-    my_threaddata%timers(THREAD_TIMER_POST_REQUEST) = my_threaddata%timers(THREAD_TIMER_POST_REQUEST) + t_post_request
     my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) = my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) + num_post_request
+
+    if (walk_profile) then
+      my_threaddata%timers(THREAD_TIMER_POST_REQUEST) = my_threaddata%timers(THREAD_TIMER_POST_REQUEST) + t_post_request
+    end if
 
     contains
 
@@ -927,11 +943,10 @@ module module_walk
         DEBUG_WARNING_ALL('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor). Putting particles back onto defer_list. Programme will continue without errors.")', particle%label, todo_list_length)
         res = .false.
       else
-        dummy = tree_node_get_first_child(walk_tree, node, todo_list(todo_list_entries)%p)
-        todo_list_entries = todo_list_entries + 1
+        todo_list_entries = todo_list_entries + nc
+        dummy = tree_node_get_first_child(walk_tree, node, todo_list(todo_list_entries - 1)%p)
         do ic = 2, nc
-          dummy = tree_node_get_next_sibling(walk_tree, todo_list(todo_list_entries - 1)%p, todo_list(todo_list_entries)%p)
-          todo_list_entries = todo_list_entries + 1
+          dummy = tree_node_get_next_sibling(walk_tree, todo_list(todo_list_entries - ic + 1)%p, todo_list(todo_list_entries - ic)%p)
         end do
 
         res = .true.
@@ -959,6 +974,7 @@ module module_walk
       do
         if (iold > defer_list_entries_old) then; return; end if
         if ( tree_node_children_available(defer_list_old(iold)%p) ) then
+          call atomic_read_barrier()
           ! children for deferred node have arrived --> put children onto todo_list
           if (.not. todo_list_push_children(defer_list_old(iold)%p)) then; exit; end if
         else

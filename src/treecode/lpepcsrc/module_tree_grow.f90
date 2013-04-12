@@ -608,13 +608,12 @@ module module_tree_grow
       type(t_tree_node), optional, pointer, intent(out) :: pi
 
       type(t_tree_node) :: this_node
+      type(t_tree_node), pointer :: inserted_node
       type(t_tree_node_ptr) :: child_nodes(8)
       integer*8 :: childkey
       integer :: ip, ichild, childlevel, pstart, pend, nchild, child_number(8)
 
-      if (present(pi)) then
-        pi => null()
-      end if
+      inserted_node => null()
 
       if (size(ki) < 1) then ! no particles below this key
         ! do nothing
@@ -632,7 +631,7 @@ module module_tree_grow
           call multipole_from_particle(p(ki(1)%idx)%x, p(ki(1)%idx)%data, this_node%interaction_data)
           call timer_stop(t_props_leaves)
           p(ki(1)%idx)%key_leaf = k
-          if (.not. tree_insert_node(t, this_node, pi)) then
+          if (.not. tree_insert_node(t, this_node, inserted_node)) then
             DEBUG_ERROR(*, "Leaf allready inserted, aborting.") ! TODO: tell me more!
           end if
         end if
@@ -640,6 +639,17 @@ module module_tree_grow
         if (l >= nlev) then ! no more levels left, cannot split
           DEBUG_WARNING_ALL('("Problem with tree: No more levels. Remaining particles 1..",I0,"  [i, key, label, x, y, z]:")', size(ki))
           DEBUG_ERROR_NO_HEADER('(I6,x,O22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip=1,size(ki) ) )
+        end if
+
+        this_node%flags        = ibset(2**idim - 1, TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS)
+        this_node%owner        = t%comm_env%rank
+        this_node%key          = k
+        this_node%level        = l
+        this_node%leaves       = 2**idim
+        this_node%first_child  => null()
+        this_node%next_sibling => null()
+        if (.not. tree_insert_node(t, this_node, inserted_node)) then
+          DEBUG_ERROR(*, "Twig allready inserted, aborting.") ! TODO: tell me more!
         end if
 
         nchild = 0
@@ -665,14 +675,13 @@ module module_tree_grow
           DEBUG_ERROR_NO_HEADER('(I6,x,I22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip=pend + 1, ubound(ki, dim = 1) ) )
         end if
 
-        call shift_nodes_up(this_node, child_nodes(1:nchild), t%comm_env%rank)
+        call shift_nodes_up(inserted_node, child_nodes(1:nchild), t%comm_env%rank)
         ! wire up pointers
-        call tree_node_connect_children(this_node, child_nodes(1:nchild))
-        this_node%next_sibling => null()
+        call tree_node_connect_children(inserted_node, child_nodes(1:nchild))
+      end if
 
-        if (.not. tree_insert_node(t, this_node, pi)) then
-          DEBUG_ERROR(*, "Twig allready inserted, aborting.") ! TODO: tell me more!
-        end if
+      if (present(pi)) then
+        pi => inserted_node
       end if
     end subroutine insert_helper
   end subroutine tree_build_from_particles
