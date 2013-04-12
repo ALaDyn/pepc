@@ -51,9 +51,6 @@ module module_nn
     ! contains more leaves than number of necessary neighbours - as a first guess for the
     ! search radius, we use its diameter
     do i=1,nparticles
-       particles(i)%results%maxdist2 = huge(0._8)
-       particles(i)%results%neighbour_keys(:)  = 0_8
-       particles(i)%results%maxidx             = 1
 
        call tree_lookup_node_critical(t, particles(i)%key_leaf, node, 'nn_prepare_particleresults()')
 
@@ -75,12 +72,6 @@ module module_nn
 
        particles(i)%results%dist2(1:num_neighbour_particles) = particles(i)%results%maxdist2
        particles(i)%results%dist_vector(:,1:num_neighbour_particles) = -13._8 
-
-       particles(i)%results%h         = 0._8
-       particles(i)%results%rho       = 0._8
-       particles(i)%results%sph_force = [0._8, 0._8, 0._8]
-       particles(i)%results%e         = [0._8, 0._8, 0._8]
-       particles(i)%results%pot       = 0._8
 
     end do
   end subroutine nn_prepare_particleresults

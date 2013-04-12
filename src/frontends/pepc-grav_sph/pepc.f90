@@ -99,7 +99,8 @@ program pepce
        pepc_traverse_tree, &
        pepc_prepare, &
        pepc_timber_tree, &
-       global_tree
+       global_tree, &
+       pepc_particleresults_clear
 
 
   use files, only: &
@@ -198,7 +199,9 @@ program pepce
         
         call pepc_grow_tree(np_local, npart_total, particles)
         
-        call nn_prepare_particleresults(global_tree, particles, np_local)
+
+        call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
+        call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
 
         if (do_gravity) then
            ! summing gravitational forces
@@ -287,7 +290,8 @@ program pepce
      ! write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
      ! write(*,*) 'neigbour_boxes:', neighbour_boxes
 
-     call nn_prepare_particleresults(global_tree, particles, np_local)
+     call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
+     call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
 
      if (do_gravity) then
         ! summing gravitational forces

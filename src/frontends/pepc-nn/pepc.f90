@@ -36,7 +36,7 @@
 !   See README.compile for summary of program units
 !  ==============================================================
 
-program pepce
+program pepcnn
 
   ! TODO: use the openmp module only, when compiling with openmp: !$ use omp_lib
   ! module_deps has to be changed to remove "!$" when using openmp
@@ -44,6 +44,8 @@ program pepce
   use omp_lib
 
   use module_pepc
+  
+  use module_nn
 
   use module_interaction_specific, only : mac_select, force_law
 
@@ -78,12 +80,12 @@ program pepce
        openfiles, &
        closefiles
 
-  use treevars, only : nleaf, nleaf_me, ntwig, ntwig_me, num_threads
+  use treevars, only : num_threads
 
   implicit none
 
   integer :: omp_thread_num
-  integer :: ierr, ifile
+  integer :: ifile
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-nn", my_rank, n_cpu, .true.)
@@ -138,19 +140,18 @@ program pepce
      
      call timer_start(t_tot)
      
-     call pepc_particleresults_clear(particles, np_local)
-     call pepc_grow_and_traverse(np_local, npart_total, particles, itime, .true., .true.)
+     call pepc_grow_tree(np_local, npart_total, particles)
 
-write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nleaf_me
+     call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
+     call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
 
-     ! timings dump
+     call pepc_traverse_tree(np_local, particles)
+
+write(*,*) my_rank, np_local, npart_total, global_tree%nleaf_me, global_tree%nleaf, 'fetched:', global_tree%nleaf-global_tree%nleaf_me
+
      call timer_stop(t_tot) ! total loop time without diags
 
-     call timings_LocalOutput(itime)
-     call timings_GatherAndOutput(itime)
-
 !     call draw_neighbours(np_local, particles, itime)
-
 
      ! do i=1, np_local
      !   write(37+my_rank,*) i, "|", particle_results(i)%neighbour_keys(:)
@@ -160,6 +161,11 @@ write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nl
      call validate_n_nearest_neighbour_list(np_local, particles, &
           itime, num_neighbour_boxes, neighbour_boxes)
      
+     call pepc_timber_tree()
+
+     ! timings dump
+     call timings_LocalOutput(itime)
+     call timings_GatherAndOutput(itime)
   end do
 
   ! deallocate array space for particles
@@ -175,4 +181,4 @@ write(*,*) my_rank, np_local, npart_total, nleaf_me, nleaf, 'fetched:', nleaf-nl
   ! cleanup of lpepc static data
   call pepc_finalize()
 
-end program pepce
+end program pepcnn

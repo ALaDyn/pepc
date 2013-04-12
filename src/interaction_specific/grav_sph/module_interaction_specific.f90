@@ -368,7 +368,20 @@ contains
     implicit none
     type(t_particle), intent(inout) :: particles(nparticles)
     integer, intent(in) :: nparticles
+    
+    integer :: i
 
+    do i=1,nparticles
+       particles(i)%results%h         = 0._8
+       particles(i)%results%rho       = 0._8
+       particles(i)%results%sph_force = [0._8, 0._8, 0._8]
+       particles(i)%results%e         = [0._8, 0._8, 0._8]
+       particles(i)%results%pot       = 0._8
+
+       particles(i)%results%maxdist2           = huge(0._8)
+       particles(i)%results%neighbour_keys(:)  = 0_8
+       particles(i)%results%maxidx             = 1
+    end do
   end subroutine particleresults_clear
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

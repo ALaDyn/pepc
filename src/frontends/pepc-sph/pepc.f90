@@ -49,6 +49,9 @@ program pepce
   use module_interaction_specific, only: &
        mac_select, force_law
 
+  use module_nn, only: &
+       nn_prepare_particleresults
+
   use module_interaction_specific_types, only: &
        PARTICLE_TYPE_FIXED
   
@@ -95,7 +98,9 @@ program pepce
        pepc_grow_tree, &
        pepc_traverse_tree, &
        pepc_prepare, &
-       pepc_particleresults_clear
+       pepc_particleresults_clear, &
+       global_tree, &
+       pepc_timber_tree
 
 
   use files, only: &
@@ -184,7 +189,8 @@ program pepce
      mac_select = 1 ! nn-mac
      force_law = 5  ! neighbour list force law
      
-     call pepc_particleresults_clear(particles, np_local)
+     call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
+     call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
      
      call pepc_traverse_tree(np_local, particles)
 
@@ -212,7 +218,8 @@ program pepce
      ! TODO: calculate work for sph
      particles(:)%work = 1._8
 
-     
+     call pepc_timber_tree()
+    
   end if
 
 
@@ -239,7 +246,8 @@ program pepce
      ! write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
      ! write(*,*) 'neigbour_boxes:', neighbour_boxes
 
-     call pepc_particleresults_clear(particles, np_local)
+     call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
+     call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
 
      call pepc_traverse_tree(np_local, particles)
 
@@ -281,7 +289,7 @@ program pepce
      ! periodic systems demand periodic boundary conditions
      if (do_periodic) call constrain_periodic(particles(1:np_local),np_local)
 
-
+     call pepc_timber_tree()
      
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
