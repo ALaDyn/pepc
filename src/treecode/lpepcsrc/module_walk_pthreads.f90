@@ -809,7 +809,7 @@ module module_walk
     type(t_tree_node), pointer :: walk_node
     real*8 :: dist2
     real*8 :: delta(3), shifted_particle_position(3)
-    logical :: same_particle, same_particle_or_parent_node, mac_ok, is_leaf, ignore_node
+    logical :: is_leaf, maybe_parent
     integer*8 :: num_interactions, num_mac_evaluations, num_post_request
     real*8 :: t_post_request
 
@@ -835,67 +835,61 @@ module module_walk
       ! but this does not always work (i.e. if theta > 0.7 or if keys and/or coordinates have
       ! been modified due to 'duplicate keys'-error)
       is_leaf = tree_node_is_leaf(walk_node)
-      same_particle_or_parent_node  = (in_central_box) .and. is_ancestor_of_particle(particle%key, walk_node%key, walk_node%level)
-      ! set ignore flag if leaf node corresponds to particle itself
-      same_particle = same_particle_or_parent_node .and. is_leaf
+      maybe_parent = (in_central_box) .and. is_ancestor_of_particle(particle%key, walk_node%key, walk_node%level)
 
-      ! ignore interactions with the particle itself (this is the place for possible other exclusion options)
-      ignore_node = same_particle
-
-      if (.not. ignore_node) then
-        delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
-        dist2 = DOT_PRODUCT(delta, delta)
-
-        if (is_leaf) then
-          mac_ok = .true.
-        else
-          mac_ok = mac(particle, walk_node%interaction_data, dist2, boxlength2(walk_node%level))
-          num_mac_evaluations = num_mac_evaluations + 1
+      if (.not. (is_leaf .or. maybe_parent)) then ! A twig thas is not an ancestor
+        num_mac_evaluations = num_mac_evaluations + 1
+        if (mac(particle, walk_node%interaction_data, dist2, boxlength2(walk_node%level))) then ! MAC OK: interact
+          go to 1 ! interact
+        else ! MAC fails: resolve
+          go to 2 ! resolve
         end if
-
-        !  always accept leaf-nodes since they cannot be refined any further
-        !  further resolve ancestor nodes if we are in the central box
-        mac_ok = is_leaf .or. (mac_ok .and. (.not. same_particle_or_parent_node))
-
-        ! ========= Possible courses of action:
-        if (mac_ok) then
-          ! 1) leaf node or MAC test OK ===========
-          !    --> interact with cell if it does not lie outside the cutoff box
-          if (all(abs(delta) < spatial_interaction_cutoff)) then
-            call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node%key, delta, dist2, vbox, is_leaf)
-            num_interactions = num_interactions + 1
-          end if
-
-          partner_leaves = partner_leaves + walk_node%leaves
-        else
-          ! 2) MAC fails for twig node ============
-          if ( tree_node_children_available(walk_node) ) then
-            ! 2a) children for twig are present --------
-            ! --> resolve cell & put all children in front of todo_list
-            call atomic_read_barrier()
-            if (.not. todo_list_push_children(walk_node)) then
-              ! the todo_list is full --> put parent back onto defer_list
-              call defer_list_push(walk_node)
-            end if
-          else
-            ! 2b) children for twig are _absent_ --------
-            ! --> put node on REQUEST list and put walk_key on bottom of todo_list
-            if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
-            call tree_node_fetch_children(walk_tree, walk_node, shifted_particle_position) ! fetch children from remote
-            if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
-            num_post_request = num_post_request + 1
-            ! if posting the request failed, this is not a problem, since we defer the particle anyway
-            ! since it will not be available then, the request will simply be repeated
-            call defer_list_push(walk_node) ! Deferred list of nodes to search, pending request
-                                            ! for data from nonlocal PEs
-            if (walk_debug) then
-              DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  walk_tree%comm_env%rank, defer_list_entries_new)
-            end if
-          end if
-        end if
-      else !(ignore_node)
+      else if (is_leaf .and. (.not. maybe_parent)) then ! Always interact with leaves
+        go to 1 ! interact
+      else if ((.not. maybe_parent) .and. is_leaf) then ! This is a parent: resolve
+        go to 2 ! resolve
+      else ! self
         partner_leaves = partner_leaves + walk_node%leaves
-      end if !(.not. ignore_node)
+        cycle
+      end if
+
+      ! interact
+1     delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
+      dist2 = DOT_PRODUCT(delta, delta)
+
+      ! Check cutoff
+      if (all(abs(delta) < spatial_interaction_cutoff)) then
+        call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node%key, delta, dist2, vbox, is_leaf)
+        num_interactions = num_interactions + 1
+      end if
+      ! Interaction was considered, count partner leaves
+      partner_leaves = partner_leaves + walk_node%leaves
+      cycle
+
+      ! resolve
+2     if ( tree_node_children_available(walk_node) ) then
+        ! children for twig are present
+        ! --> resolve cell & put all children in front of todo_list
+        call atomic_read_barrier()
+        if (.not. todo_list_push_children(walk_node)) then
+          ! the todo_list is full --> put parent back onto defer_list
+          call defer_list_push(walk_node)
+        end if
+      else
+        ! children for twig are _absent_
+        ! --> put node on REQUEST list and put walk_key on bottom of todo_list
+        if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
+        call tree_node_fetch_children(walk_tree, walk_node, shifted_particle_position) ! fetch children from remote
+        if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
+        num_post_request = num_post_request + 1
+        ! if posting the request failed, this is not a problem, since we defer the particle anyway
+        ! since it will not be available then, the request will simply be repeated
+        call defer_list_push(walk_node) ! Deferred list of nodes to search, pending request
+                                        ! for data from nonlocal PEs
+        if (walk_debug) then
+          DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  walk_tree%comm_env%rank, defer_list_entries_new)
+        end if
+      end if
     end do ! (while (todo_list_pop(walk_key)))
 
     ! if todo_list and defer_list are now empty, the walk has finished
