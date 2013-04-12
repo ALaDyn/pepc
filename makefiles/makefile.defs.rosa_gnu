@@ -40,12 +40,14 @@ ifeq ($(OPTLEV), 3)
   FFLAGS   =  -Wall -O3 -ffree-line-length-none -fsign-zero -pthread 
   CFLAGS   =  -Wall -O3 
   LDFLAGS   =       -O3 -pthread  
+  CPPFLAGS += -DNDEBUG
 endif  
 
 ifeq ($(OPTLEV), 5)
   FFLAGS   =  -Wall -Ofast -ffree-line-length-none -fsign-zero -pthread $(INLINING)
   CFLAGS   =  -Wall -Ofast 
   LDFLAGS   =       -Ofast -pthread $(INLINING) -fwhole-program  
+  CPPFLAGS += -DNDEBUG
 endif  
 
 ifeq ($(OMP), 1)

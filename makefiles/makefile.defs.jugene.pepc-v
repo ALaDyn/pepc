@@ -38,6 +38,7 @@ ifeq ($(OPTLEV), 0)
   FFLAGS   = $(STANDARDFLAGS) -qxlf2003=polymorphic -O0
   CFLAGS   = $(STANDARDFLAGS) -O0 -I/bgsys/drivers/ppcfloor/arch/include
   LDFLAGS  = $(STANDARDFLAGS) -O0
+  CPPFLAGS += -DNDEBUG
 endif
 
 ifeq ($(OPTLEV), 3)

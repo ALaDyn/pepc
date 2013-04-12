@@ -39,12 +39,14 @@ ifeq ($(OPTLEV), 3)
   FFLAGS   = -warn all -O3 -reentrancy threaded -openmp
   CFLAGS   = -O3
   LDFLAGS  = -warn all -O3 -reentrancy threaded -openmp
+  CPPFLAGS += -DNDEBUG
 endif
 
 ifeq ($(OPTLEV), 5)
   FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
   CFLAGS   =           $(OPTIMIZATION)
   LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  CPPFLAGS += -DNDEBUG
 endif
 
 FCPRE    = 

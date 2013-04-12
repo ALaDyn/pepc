@@ -43,6 +43,7 @@ else
   FFLAGS   = -Wall -O3        -ffree-line-length-none $(INLINING)
   CFLAGS   = -Wall -O3
   LDFLAGS  = -pthread -O3 $(INLINING) -fwhole-program 
+  CPPFLAGS += -DNDEBUG
 endif
 
 FCPRE    = 
