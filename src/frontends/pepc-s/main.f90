@@ -35,7 +35,7 @@ program pepcs
   real*8, parameter :: theta = 0.30
   integer, parameter :: db_level = 2
 
-  integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED
+  integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE
   integer :: my_rank, n_cpu, ierr, provided
 
   integer :: it, ip

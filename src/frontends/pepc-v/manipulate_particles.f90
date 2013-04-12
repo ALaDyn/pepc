@@ -783,8 +783,8 @@ contains
     subroutine sort_remesh(particles, m_np, m_nppm)
 
         use physvars
-        use module_utils
-        use treevars, only : iplace, nlev
+        use treevars, only : nlev, idim
+        use module_sort, only : sort
         implicit none
         include 'mpif.h'
 
@@ -801,7 +801,9 @@ contains
         integer*8 :: ix(m_np), iy(m_np), iz(m_np), sorted_keys(m_nppm), local_keys(m_nppm)
         integer :: fposts(n_cpu+1),gposts(n_cpu+1),islen(n_cpu),irlen(n_cpu)
         integer :: npnew, npold
-
+        
+        integer*8 :: iplace
+        
         interface
             subroutine slsort_keys(nin,nmax,keys,workload,balance_weight,max_imbalance,nout,indxl,irnkl,scounts,rcounts,sdispls,rdispls,keys2,irnkl2,size,rank)
                 integer,intent(in) :: nin,nmax,balance_weight,size,rank
@@ -812,6 +814,8 @@ contains
                 real*8,intent(inout) :: workload(*)
             end subroutine slsort_keys
         end interface
+        
+        iplace = 2_8**(idim * nlev)
 
         indxl = 0
         irnkl = 0
