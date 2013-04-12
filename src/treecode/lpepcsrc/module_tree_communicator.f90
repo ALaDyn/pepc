@@ -396,18 +396,25 @@ module module_tree_communicator
     integer, intent(in) :: ipe_sender
 
     type(t_tree_node), pointer :: parent_node
-    type(t_tree_node_ptr) :: child_nodes(num_children)
+    type(t_tree_node), pointer :: prev_sibling
     type(t_tree_node) :: unpack_node
     integer :: ic
 
     DEBUG_ASSERT(num_children > 0)
+    
+    prev_sibling => null()
 
     call tree_lookup_node_critical(t, parent_key_from_key(child_data(1)%key), parent_node, &
         'TREE_COMMUNICATOR:unpack_data(): - get parent node')
 
-    do ic = 1, num_children
+    do ic = num_children,1,-1
       call tree_node_unpack(child_data(ic), unpack_node)
-      unpack_node%first_child => null()
+      unpack_node%first_child  => null()
+      ! FIXME: originallz, we should have been using tree_node_connect_children() but
+      ! for the sake of nonsense, bg_xlf produces a relieably segfaulting code
+      ! if an array of t_tree_node_ptr is onvolved here :-(
+      unpack_node%next_sibling => prev_sibling
+      
       ! tree nodes coming from remote PEs are flagged for easier identification
       unpack_node%flags = ibset(unpack_node%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
 
@@ -415,15 +422,16 @@ module module_tree_communicator
         DEBUG_INFO('("PE", I6, " received answer. parent_key=", O22, ",  sender=", I6, ",  owner=", I6, ",  kchild=", O22)', t%comm_env%rank, parent_node%key, ipe_sender, unpack_node%owner, unpack_node%key)
       end if
 
-      if (.not. tree_insert_node(t, unpack_node, child_nodes(ic)%p)) then
+      if (.not. tree_insert_node(t, unpack_node, prev_sibling)) then
         DEBUG_ERROR(*, "Received a node that is already present.")
       end if
 
       ! count number of fetched nodes
       t%communicator%sum_fetches = t%communicator%sum_fetches+1
+      
     end do
 
-    call tree_node_connect_children(parent_node, child_nodes)
+    parent_node%first_child => prev_sibling
 
     call atomic_write_barrier() ! make sure children are actually inserted before indicating their presence
     ! set 'children-here'-flag for all parent addresses
