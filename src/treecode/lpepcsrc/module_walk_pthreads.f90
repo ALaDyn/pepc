@@ -837,21 +837,22 @@ module module_walk
       is_leaf = tree_node_is_leaf(walk_node)
       maybe_parent = (in_central_box) .and. is_ancestor_of_particle(particle%key, walk_node%key, walk_node%level)
 
-      if (.not. (is_leaf .or. maybe_parent)) then ! A twig thas is not an ancestor
+      if (.not. (is_leaf .or. maybe_parent)) then ! A twig that is not an ancestor
         num_mac_evaluations = num_mac_evaluations + 1
         if (mac(particle, walk_node%interaction_data, dist2, boxlength2(walk_node%level))) then ! MAC OK: interact
           go to 1 ! interact
         else ! MAC fails: resolve
-          go to 2 ! resolve
+          go to 3 ! resolve
         end if
       else if (is_leaf .and. (.not. maybe_parent)) then ! Always interact with leaves
         go to 1 ! interact
-      else if ((.not. maybe_parent) .and. is_leaf) then ! This is a parent: resolve
-        go to 2 ! resolve
-      else ! self
-        partner_leaves = partner_leaves + walk_node%leaves
-        cycle
+      else if ((.not. is_leaf) .and. maybe_parent) then ! This is a parent: resolve
+        go to 3 ! resolve
+      else if (is_leaf .and. maybe_parent) then ! self
+        go to 2 ! ignore, but count
       end if
+
+      DEBUG_ASSERT_MSG(.false., *, "The block of ifs above should be exhaustive!")
 
       ! interact
 1     delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
@@ -863,11 +864,11 @@ module module_walk
         num_interactions = num_interactions + 1
       end if
       ! Interaction was considered, count partner leaves
-      partner_leaves = partner_leaves + walk_node%leaves
-      cycle
+2     partner_leaves = partner_leaves + walk_node%leaves
+      cycle ! next particle
 
       ! resolve
-2     if ( tree_node_children_available(walk_node) ) then
+3     if ( tree_node_children_available(walk_node) ) then
         ! children for twig are present
         ! --> resolve cell & put all children in front of todo_list
         call atomic_read_barrier()
