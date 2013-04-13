@@ -838,6 +838,8 @@ module module_walk
       maybe_parent = (in_central_box) .and. is_ancestor_of_particle(particle%key, walk_node%key, walk_node%level)
 
       if (.not. (is_leaf .or. maybe_parent)) then ! A twig that is not an ancestor
+        delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
+        dist2 = DOT_PRODUCT(delta, delta)
         num_mac_evaluations = num_mac_evaluations + 1
         if (mac(particle, walk_node%interaction_data, dist2, boxlength2(walk_node%level))) then ! MAC OK: interact
           go to 1 ! interact
@@ -845,6 +847,8 @@ module module_walk
           go to 3 ! resolve
         end if
       else if (is_leaf .and. (.not. maybe_parent)) then ! Always interact with leaves
+        delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
+        dist2 = DOT_PRODUCT(delta, delta)
         go to 1 ! interact
       else if ((.not. is_leaf) .and. maybe_parent) then ! This is a parent: resolve
         go to 3 ! resolve
@@ -853,13 +857,11 @@ module module_walk
       end if
 
       DEBUG_ASSERT_MSG(.false., *, "The block of ifs above should be exhaustive!")
+      cycle
 
       ! interact
-1     delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
-      dist2 = DOT_PRODUCT(delta, delta)
-
       ! Check cutoff
-      if (all(abs(delta) < spatial_interaction_cutoff)) then
+1     if (all(abs(delta) < spatial_interaction_cutoff)) then
         call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node%key, delta, dist2, vbox, is_leaf)
         num_interactions = num_interactions + 1
       end if
