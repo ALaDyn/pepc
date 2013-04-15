@@ -423,7 +423,7 @@ module module_tree_communicator
       end if
 
       if (.not. tree_insert_node(t, unpack_node, prev_sibling)) then
-        DEBUG_ERROR(*, "Received a node that is already present.")
+        DEBUG_WARNING_ALL(*, "Received a node that is already present.")
       end if
 
       ! count number of fetched nodes
