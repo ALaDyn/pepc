@@ -132,7 +132,6 @@ module module_walk
   type(c_ptr), allocatable :: thread_handles(:)
   type(t_threaddata), allocatable, target :: threaddata(:)
   integer, public :: num_walk_threads = -1 !< number of worker threads, default value is set to treevars%num_threads in tree_walk_read_parameters()
-  integer :: primary_processor_id = 0
   real :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
   ! variables for adjusting the thread's workload
   integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
@@ -463,7 +462,7 @@ module module_walk
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
     use treevars, only: nlev
-    use pthreads_stuff, only: pthreads_alloc_thread, get_my_core
+    use pthreads_stuff, only: pthreads_alloc_thread
     use module_atomic_ops, only: atomic_store_int
     use module_debug
     implicit none
@@ -498,8 +497,6 @@ module module_walk
     ! initialize atomic variables
     call atomic_store_int(next_unassigned_particle, 1)
 
-    ! store ID of primary (comm-thread) processor
-    primary_processor_id = get_my_core()
   end subroutine init_walk_data
 
 
@@ -574,7 +571,7 @@ module module_walk
     call tree_lookup_root(walk_tree, defer_list_root_only(1)%p, 'walk_worker_thread:root node')
 
     my_processor_id = get_my_core()
-    same_core_as_communicator = (my_processor_id == primary_processor_id)
+    same_core_as_communicator = (my_processor_id == walk_tree%communicator%processor_id)
 
     if ((same_core_as_communicator) .and. (num_walk_threads > 1)) then
           my_max_particles_per_thread = max(int(work_on_communicator_particle_number_factor * max_particles_per_thread), 1)

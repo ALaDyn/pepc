@@ -498,7 +498,7 @@ module module_tree_communicator
   function run_communication_loop(arg) bind(c)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_sched_yield
+    use pthreads_stuff, only: pthreads_sched_yield, get_my_core
     use module_debug
     implicit none
     include 'mpif.h'
@@ -518,6 +518,9 @@ module module_tree_communicator
     t => null()
     call c_f_pointer(arg, t)
     DEBUG_ASSERT(associated(t))
+    
+    ! store ID of comm-thread processor
+    t%communicator%processor_id = get_my_core()
 
     nummessages            = 0
     messages_per_iteration = 0

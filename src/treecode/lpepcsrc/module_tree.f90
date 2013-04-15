@@ -62,6 +62,7 @@ module module_tree
       logical :: comm_thread_running
       logical :: comm_thread_stopping
       logical :: comm_thread_stop_requested
+      integer :: processor_id
     end type t_tree_communicator
 
     !>
