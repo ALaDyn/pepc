@@ -135,7 +135,6 @@ module module_walk
   real :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
   ! variables for adjusting the thread's workload
   integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
-  integer :: particles_per_yield = 500 !< number of particles to process in a work_thread before it shall call sched_yield to hand the processor over to some other thread
   integer :: num_nonshared_threads, num_shared_threads
 
   real*8, dimension(:), allocatable :: boxlength2
@@ -560,7 +559,6 @@ module module_walk
     logical :: particles_available
     logical :: particles_active
     type(t_threaddata), pointer :: my_threaddata
-    integer :: particles_since_last_yield
     logical :: same_core_as_communicator
     integer :: my_max_particles_per_thread
     integer :: my_processor_id
@@ -606,7 +604,6 @@ module module_walk
       thread_particle_indices(:) = -1     ! no particles assigned to this thread
       particles_available        = .true. ! but there might be particles to be picked by the thread
       particles_active           = .false.
-      particles_since_last_yield =  0
 
       do while (particles_active .or. particles_available)
 
@@ -614,6 +611,8 @@ module module_walk
                                 ! we will always read entries from _old and write/copy entries to _new and swap again later
 
         particles_active = .false.
+
+        call do_sched_yield_if_necessary()
 
         do i=1,my_max_particles_per_thread
 
@@ -626,8 +625,6 @@ module module_walk
           end if
 
           if (contains_particle(i)) then
-
-            call do_sched_yield_if_necessary()
 
             ptr_defer_list_new      => defer_list_new(defer_list_new_tail:total_defer_list_length)
             defer_list_start_pos(i) =  defer_list_new_tail
@@ -767,12 +764,7 @@ module module_walk
       implicit none
       ! after processing a number of particles: handle control to other (possibly comm) thread
       if (same_core_as_communicator) then
-        if (particles_since_last_yield >= particles_per_yield) then
           call comm_sched_yield()
-          particles_since_last_yield = 0
-        else
-          particles_since_last_yield = particles_since_last_yield + 1
-        end if
       end if
     end subroutine
   end function walk_worker_thread
