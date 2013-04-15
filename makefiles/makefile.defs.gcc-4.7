@@ -40,7 +40,8 @@ ifeq ($(DEBUG), 1)
 else
   FFLAGS   = -Wall -O5 -pg    -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
   CFLAGS   = -Wall -O5 -pg
-  LDFLAGS   = -pthread -pg -O5 $(INLINING) -fwhole-program  
+  LDFLAGS  = -pthread -pg -O5 $(INLINING) -fwhole-program  
+  CPPFLAGS += -DNDEBUG
 #-Wl,--threads
 #-fuse-linker-plugin
 endif

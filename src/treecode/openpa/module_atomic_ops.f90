@@ -24,7 +24,6 @@ module module_atomic_ops
 
   private
 
-  public t_atomic_int
   public atomic_allocate_int
   public atomic_deallocate_int
   public atomic_store_int
@@ -35,12 +34,11 @@ module module_atomic_ops
   public atomic_read_barrier
   public atomic_read_write_barrier
 
-  type t_atomic_int
+  type, public :: t_atomic_int
     type(c_ptr) :: p
   end type t_atomic_int
 
   interface
-
     type(c_ptr) function c_atomic_alloc_int() bind(C, name='_atomic_alloc_int')
       use, intrinsic :: iso_c_binding
       implicit none
@@ -92,11 +90,9 @@ module module_atomic_ops
       use, intrinsic :: iso_c_binding
       implicit none
     end subroutine atomic_read_write_barrier
-
   end interface
 
   contains
-
 
   subroutine atomic_allocate_int(storage)
     implicit none

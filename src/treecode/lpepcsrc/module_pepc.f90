@@ -18,28 +18,14 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Contains all routines that should be callable from the frontend
 !> in most cases
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pepc
-
+    use module_tree, only: t_tree
     implicit none
     private
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     public pepc_initialize                !< mandatory, once per simulation
 
@@ -55,8 +41,9 @@ module module_pepc
     public pepc_grow_tree                 !< mandatory, once per timestep
     public pepc_traverse_tree             !< mandatory, several times per timestep with different particles possible
     public pepc_statistics                !< once or never per timestep
+    public pepc_check_sanity              !< as often as necessary
     public pepc_restore_particles         !< once or never per timestep
-    public pepc_timber_tree               !< once or never per timestep
+    public pepc_timber_tree               !< mandatory, once per timestep
 
     public pepc_grow_and_traverse         !< once per timestep, calls pepc_grow_tree, pepc_traverse_tree, pepc_statistics, pepc_restore_particles, pepc_timber_tree
 
@@ -65,24 +52,11 @@ module module_pepc
     public pepc_get_para_file
     public pepc_write_parameters
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     logical :: pepc_initializes_mpi !< is set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    type(t_tree), public, target, save :: global_tree
 
     contains
 
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Initializes MPI library and data structures for treecode kernel,
     !> reads several parameters from file, that is given as first parameter
@@ -90,14 +64,13 @@ module module_pepc
     !> 
     !> Call this function at program startup before any MPI calls
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_initialize(frontendname, my_rank,n_cpu,init_mpi, db_level_in, comm, idim)
+    subroutine pepc_initialize(frontendname, my_rank, n_cpu, init_mpi, db_level_in, comm, idim)
       use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc
       use module_pepc_types, only : register_lpepc_mpi_types
+      use module_utils, only : create_directory, MPI_IN_PLACE_test
       use module_walk
       use module_domains
-      use module_debug, only : pepc_status, debug_level, dbg, DBG_LOADFILE, DBG_TIMINGFILE
-      use module_utils, only : create_directory, MPI_IN_PLACE_test
+      use module_debug
       implicit none
       include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
@@ -130,7 +103,6 @@ module module_pepc
 
       call MPI_IN_PLACE_test()
 
-
       ! Get the id number of the current task
       call MPI_COMM_RANK(MPI_COMM_lpepc, my_rank, ierr)
       ! Get the number of MPI tasks
@@ -154,13 +126,6 @@ module module_pepc
                          MPI_THREAD_LEVEL, provided
           write(*,'(a/)') "Initializing with provided level of multithreading. Usually, this is no problem."
         end if
-      endif
-
-      ! create all necessary directories
-      if (my_rank == 0) then
-        call create_directory("diag")
-        if( dbg(DBG_LOADFILE) )    call create_directory("load")
-        if ( dbg(DBG_TIMINGFILE) ) call create_directory("timing")
       endif
 
       ! copy call parameters to treevars module
@@ -187,14 +152,12 @@ module module_pepc
     end subroutine
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !> Initializes internal variables by reading them from the given a file
+    !> Initializes internal variables by reading them from a file
     !> that is given as first argument to the actual executable
     !> the optional parameters file_available and filename return
     !> whether and which file was used
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_read_parameters_from_first_argument(file_available, filename)
       use module_debug, only : pepc_status
       use treevars, only : me
@@ -222,14 +185,12 @@ module module_pepc
     end subroutine
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Initializes internal variables by reading them from the given
     !> filename using several namelists and initializes derived variables
     !> if you just want to pass a handle of an open file,
     !> consider using pepc_read_parameters()
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_read_parameters_from_file_name(filename)
       implicit none
       character(*), intent(in) :: filename
@@ -241,13 +202,11 @@ module module_pepc
     end subroutine
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Initializes internal variables by reading them from the given
     !> filehandle using several namelists and initializes derived variables
     !> if you just want to pass a filename, consider using pepc_read_parameters_from_file_name()
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_read_parameters(filehandle)
       use module_debug, only : pepc_status
       use module_interaction_specific, only : calc_force_read_parameters
@@ -263,15 +222,12 @@ module module_pepc
       call calc_force_read_parameters(filehandle)
       rewind(filehandle)
       call tree_walk_read_parameters(filehandle)
-
     end subroutine
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Writes internal variables to the given filehandle
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_write_parameters(filehandle)
       use module_debug, only : pepc_status
       use module_interaction_specific, only : calc_force_write_parameters
@@ -284,83 +240,79 @@ module module_pepc
       call calc_force_write_parameters(filehandle)
       call tree_walk_write_parameters(filehandle)
       call libpepc_write_parameters(filehandle)
-
     end subroutine
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Initializes derived variables in pepc, walk, and calc_force
     !> should be called after changing those module`s variables and
     !> before performing tree buildup
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_prepare(idim)
       use treevars, only : treevars_prepare
-      use module_walk
-      use module_branching, only : branches_initialize
-      use module_interaction_specific
-      use module_mirror_boxes
+      use module_walk, only: tree_walk_prepare
+      use module_interaction_specific, only: calc_force_prepare
+      use module_mirror_boxes, only: calc_neighbour_boxes
+      use pthreads_stuff, only: pthreads_init
+      use module_tree_communicator, only: tree_communicator_prepare
+      use module_debug
       implicit none
       integer, intent(in) :: idim
 
+      if (0 /= pthreads_init()) then
+        DEBUG_ERROR(*, "pthreads_init() failed!")
+      end if
       call treevars_prepare(idim)
-
-      ! initialize mirror boxes
-      call calc_neighbour_boxes()
-      ! prepare interaction-specific routines
-      call calc_force_prepare()
-
+      call calc_neighbour_boxes() ! initialize mirror boxes
+      call calc_force_prepare() ! prepare interaction-specific routines
       call tree_walk_prepare()
-      ! initialize data structures in module_branches
-      call branches_initialize()
-
+      call tree_communicator_prepare()
     end subroutine
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Finalizes MPI library and reverses all initialization from pepc_initialize
     !> Call this function at program termination after all MPI calls
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_finalize(comm)
-      use module_branching
-      use module_debug, only : pepc_status
+      use module_debug
       use module_pepc_types, only : free_lpepc_mpi_types
       use module_walk, only : tree_walk_finalize 
       use module_interaction_specific, only : calc_force_finalize
       use treevars, only : treevars_finalize, MPI_COMM_lpepc
+      use pthreads_stuff, only: pthreads_uninit
+      use module_tree_communicator, only: tree_communicator_finalize
       implicit none
       include 'mpif.h'
       integer :: ierr
-      
-      integer, intent(inout), optional :: comm !< communicator. if pepc_initialize() initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator in comm, that can be given here to be free automatically
+
+      integer, intent(inout), optional :: comm !< communicator. if pepc_initialize() initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator in comm, that can be given here to be freed automatically
 
       call pepc_status('FINALIZE')
       ! finalize internal data structures
-      call branches_finalize()
       call calc_force_finalize()
+      call tree_communicator_finalize()
       call tree_walk_finalize()
       ! deregister mpi types
       call free_lpepc_mpi_types()
 
       call treevars_finalize()
+      if (0 /= pthreads_uninit()) then
+        DEBUG_INFO(*, "pthreads_uninit() failed!")
+      end if
 
       call MPI_COMM_FREE(MPI_COMM_lpepc, ierr)
       if (pepc_initializes_mpi) then
-        if (present(comm)) call MPI_COMM_FREE(comm, ierr)
+        if (present(comm)) then; call MPI_COMM_FREE(comm, ierr); end if 
         call MPI_FINALIZE(ierr)
-      endif
+      end if
     end subroutine
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> checks if the first application argument was set
     !> broadcasts the filename to all mpi processes
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_get_para_file(available, file_name, my_rank, comm)
         use treevars, only : MPI_COMM_lpepc
         implicit none
@@ -395,21 +347,16 @@ module module_pepc
         if (available) then
             call MPI_BCAST( file_name, 255, MPI_CHARACTER, 0, MPI_COMM_local, ierr )
         end if
-
     end subroutine pepc_get_para_file
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Builds the tree from the given particles, redistributes particles
     !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_grow_and_traverse(np_local, npart_total, particles, itime, no_dealloc, no_restore)
-      use module_pepc_types
-      use module_libpepc_main
+      use module_pepc_types, only: t_particle
       use module_debug
-      use module_timings, only: timer_stop, t_all
       implicit none
       integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
@@ -432,42 +379,27 @@ module module_pepc
       if (restore)        call pepc_restore_particles(np_local, particles)
       if (dealloc) then
         call pepc_timber_tree()
-      else ! t_all should be stopped, do it either in pepc_timber_tree or here
-        call timer_stop(t_all)
       end if
-
     end subroutine
 
 
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Builds the tree from the given particles, redistributes particles
     !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_grow_tree(np_local, npart_total, particles)
-      use module_pepc_types
-      use module_libpepc_main
-      use module_debug, only : pepc_status
-      use module_interaction_specific, only : calc_force_after_grow
+      use module_pepc_types, only: t_particle
+      use module_libpepc_main, only: libpepc_grow_tree
       implicit none
       integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
-      call libpepc_grow_tree(np_local, npart_total, particles)
-      
-      call pepc_status('AFTER GROW: CALC FORCE')
-      call calc_force_after_grow(particles, np_local)
-      ! call pepc_status('AFTER GROW: TRAVERSE')
-      ! TODO: invoke global comm thread here
-      call pepc_status('AFTER GROW DONE')
-
+      call libpepc_grow_tree(global_tree, int(npart_total, 8), particles, npl = np_local)
+      np_local = size(particles)
     end subroutine
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Traverses the complete tree for the given particles, i.e. computes
     !> the field values at their positions. Although missing information
@@ -479,53 +411,87 @@ module module_pepc
     !> Otherwise, it makes sense to provide the same particles as given/returned
     !> from to pepc_grow_tree()
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_traverse_tree(nparticles, particles)
       use module_pepc_types
       use module_libpepc_main
       implicit none
+
       integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
-      type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
+      type(t_particle), target, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
-      call libpepc_traverse_tree(nparticles, particles)
-
+      call libpepc_traverse_tree(global_tree, particles(1:nparticles))
     end subroutine
 
 
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Writes detailed statistics on the treecode into stats/stats.ITIME.
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_statistics(itime)
+        use module_tree, only: tree_stats
+        use module_walk, only: tree_walk_statistics, interactions_local, mac_evaluations_local
+        use module_utils, only: create_directory
+        use treevars, only: me, stats_u
         use module_debug
-        use treevars
         use module_timings
         implicit none
         integer, intent(in) :: itime !< current timestep (used as file suffix)
+
+        logical, save :: firstcall = .true.
         character(30) :: cfile
 
         call timer_start(t_fields_stats)
-        call tree_stats(itime)
+        if (firstcall) then
+          call create_directory("stats")
+          if (dbg(DBG_LOADFILE)) then
+            call create_directory("load")
+          end if
+          firstcall = .false.
+        end if
+
+        write (cfile, '("stats/stats.",i6.6)') itime
+        if (0 == me) then; open (stats_u, file = trim(cfile)); end if
+        call tree_stats(global_tree, stats_u)
+        call tree_walk_statistics(stats_u)
+        if (0 == me) then; close (stats_u); end if
 
         if( dbg(DBG_LOADFILE) ) then
             write(cfile,'("load/load_",i6.6,".dat")') me
             open(60, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
-            write(60,'(i5,2f20.10, i12)') itime,interactions_local, mac_evaluations_local,npp
+            write(60,'(i5,2f20.10, i12)') itime, interactions_local, mac_evaluations_local, global_tree%npart_me
             close(60)
         end if
 
         call timer_stop(t_fields_stats)
-
     end subroutine
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Checks the internal state of PEPC and dumps the hash table if requested.
+    !>
+    subroutine pepc_check_sanity(caller, dump, particles)
+      use module_pepc_types, only: t_particle
+      use module_tree, only: tree_check
+      use module_htable, only: htable_check, htable_dump
+      use module_debug
+      implicit none
+
+      character(*), intent(in) :: caller !< describes the caller
+      logical, optional, intent(in) :: dump !< whether to dump the hash table
+      type(t_particle), optional, intent(in) :: particles(:) !< list of particles to dump along with the hash table
+
+      if ((.not. (htable_check(global_tree%node_storage, caller) &
+        .and. tree_check(global_tree, caller)))) then
+        call htable_dump(global_tree%node_storage, particles)
+        DEBUG_ERROR(*, "Sanity check failed, aborting!")
+      else if (dump) then
+        call htable_dump(global_tree%node_storage, particles)
+      end if
+    end subroutine pepc_check_sanity
+
+
     !>
     !> Restores the initial particle distribution (before calling pepc_grow_tree() ).
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_restore_particles(np_local, particles)
       use module_pepc_types
       use module_libpepc_main
@@ -533,40 +499,24 @@ module module_pepc
       integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data on local MPI rank - is replaced by original particle data that was given before calling pepc_grow_tree()
 
-      call libpepc_restore_particles(np_local, particles)
-
+      call libpepc_restore_particles(global_tree, np_local, particles)
     end subroutine
 
 
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !> Frees all tree_specific data fields that were allocated in pepc_groe_tree().
+    !> Frees all tree specific data fields that were allocated in pepc_grow_tree().
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_timber_tree()
-      use module_timings
-      use module_debug, only : pepc_status
-      use module_allocation, only : deallocate_tree
+      use module_libpepc_main, only: libpepc_timber_tree
       implicit none
 
-      call pepc_status('TIMBER TREE')
-
-     ! deallocate particle and result arrays
-      call timer_start(t_deallocate)
-      call deallocate_tree()
-      call timer_stop(t_deallocate)
-      call timer_stop(t_all)
-
-      call pepc_status('TREE HAS FALLEN')
-
+      call libpepc_timber_tree(global_tree)
     end subroutine
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     !>
     !> clears result in t_particle datatype
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine pepc_particleresults_clear(particles, nparticles)
       use module_pepc_types
       use module_interaction_specific
@@ -575,8 +525,6 @@ module module_pepc
       integer, intent(in) :: nparticles
 
       call particleresults_clear(particles, nparticles)
-
     end subroutine
-
 
 end module module_pepc

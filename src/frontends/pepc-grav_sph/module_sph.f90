@@ -240,15 +240,15 @@ contains
 
   subroutine sph_density(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
+    use module_pepc, only: &
+         t => global_tree
+
     use module_pepc_types, only: &
-         t_particle
+         t_particle, &
+         t_tree_node
 
-    use treevars, only: &
-         tree_nodes
-
-    use module_htable, only: &
-         htable, &
-         key2addr
+    use module_tree, only: &
+         tree_lookup_node_critical
     
     implicit none
     include 'mpif.h'
@@ -266,7 +266,7 @@ contains
     integer :: actual_neighbour
     real*8 :: h
     real*8 :: kernel
-    integer*8 :: actual_node
+    type(t_tree_node), pointer :: actual_node
     
 !     IF( me == 0) then 
        
@@ -303,12 +303,13 @@ contains
        particles(local_particle_index)%results%rho = particles(local_particle_index)%data%q *kernel
 
        do actual_neighbour = 1, num_neighbour_particles
-          actual_node = htable( key2addr(particles(local_particle_index)%results%neighbour_keys(actual_neighbour), "sph_density()") )%node
+          call tree_lookup_node_critical(t, particles(local_particle_index)%results%neighbour_keys(actual_neighbour), actual_node, &
+             "sph_density()")
 
           call sph_kernel(  sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) ), h, kernel)
 
           particles(local_particle_index)%results%rho = particles(local_particle_index)%results%rho + &
-               tree_nodes(actual_node)%charge *kernel
+               actual_node%interaction_data%charge *kernel
 
        end do
 
@@ -391,19 +392,18 @@ contains
 
   subroutine sph_sum_force(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
+    use module_pepc, only: &
+         t => global_tree
     
     use module_pepc_types, only: &
-         t_particle
-
-    use treevars, only: &
-         tree_nodes
+         t_particle, &
+         t_tree_node
 
     use physvars, only: &
          my_rank
 
-    use module_htable, only: &
-        htable, &
-        key2addr
+    use module_tree, only: &
+         tree_lookup_node_critical
 
     implicit none
     include 'mpif.h'
@@ -421,7 +421,7 @@ contains
     integer :: actual_neighbour
     real*8 :: h1, h2                          !< smoothing length of particle and current interaction partner
     real*8 :: grad_kernel_1, grad_kernel_2    !< kernel gradient for particle and current interaction partner with h1 and h2
-    integer*8 :: actual_node
+    type(t_tree_node), pointer :: actual_node
 
     real*8 :: const
     real*8, dimension(3) :: dist              !< distance vector from particle to current interaction partner
@@ -485,12 +485,13 @@ contains
 
        do actual_neighbour = 1, num_neighbour_particles
           
-          actual_node = htable( key2addr(particles(local_particle_index)%results%neighbour_keys(actual_neighbour), "sph_sum_force()") )%node
+          call tree_lookup_node_critical(t, particles(local_particle_index)%results%neighbour_keys(actual_neighbour), actual_node, &
+               "sph_sum_force()")
           
           ! scalar distance
           distance = sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) )
 
-          h2 = tree_nodes(actual_node)%h
+          h2 = actual_node%interaction_data%h
           
           call sph_grad_kernel( distance , h1, grad_kernel_1 )
           !          call sph_grad_kernel( distance , h2, grad_kernel_2 )
@@ -518,7 +519,7 @@ contains
 
           ! for all dimension
           do dim = 1, idim
-             dv(dim) = tree_nodes(actual_node)%v(dim) - particles(local_particle_index)%data%v(dim)
+             dv(dim) = actual_node%interaction_data%v(dim) - particles(local_particle_index)%data%v(dim)
              
              ! vr: art_vis, scalar product of velocity difference and distance
              vr =  vr + dist(dim) * dv(dim)
@@ -532,14 +533,14 @@ contains
 
           ! TODO: make this a bit faster
           sound_speed = ( sqrt( const * particles(local_particle_index)%data%temperature )  &
-               + sqrt( const * tree_nodes(actual_node)%temperature ) )/ 2. ! mean sound_speed 
+               + sqrt( const * actual_node%interaction_data%temperature ) )/ 2. ! mean sound_speed 
           
           if ( use_artificial_viscosity .and. (vr < 0._8) ) then
              
              mu = ( h1 * vr ) / ( rr + eta * eta )                        ! art_vis
              
              artificial_viscosity = ( - art_vis_alpha * sound_speed * mu + art_vis_beta * mu * mu ) / &
-                  ( ( tree_nodes(actual_node)%rho +  particles(local_particle_index)%results%rho )/2. )
+                  ( ( actual_node%interaction_data%rho +  particles(local_particle_index)%results%rho )/2. )
              
           else 
              
@@ -548,9 +549,9 @@ contains
           
           
           ! compute scalar part of the force: mass * ( p1/rho1^2 + p2/rho2^2 + art_vis ) * grad_kernel
-          scalar_force = tree_nodes(actual_node)%charge * &
+          scalar_force = actual_node%interaction_data%charge * &
                ( &
-               const * tree_nodes(actual_node)%temperature / tree_nodes(actual_node)%rho + &
+               const * actual_node%interaction_data%temperature / actual_node%interaction_data%rho + &
                const * particles(local_particle_index)%data%temperature / particles(local_particle_index)%results%rho + &
                artificial_viscosity &
                ) * grad_kernel_1
@@ -563,8 +564,8 @@ contains
           if( sph_debug ) then
              write(50, *) my_rank, local_particle_index, particles(local_particle_index)%x(1), h1, &
                   particles(local_particle_index)%data%temperature, particles(local_particle_index)%results%rho, &
-                  actual_neighbour, tree_nodes(actual_node)%coc(1), distance, dist(1), grad_kernel_1, tree_nodes(actual_node)%charge, & 
-                  tree_nodes(actual_node)%temperature, tree_nodes(actual_node)%h, tree_nodes(actual_node)%rho, &
+                  actual_neighbour, actual_node%interaction_data%coc(1), distance, dist(1), grad_kernel_1, actual_node%interaction_data%charge, & 
+                  actual_node%interaction_data%temperature, actual_node%interaction_data%h, actual_node%interaction_data%rho, &
                   scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
           end if
           
@@ -599,12 +600,6 @@ contains
     use module_pepc_types, only: &
          t_particle
     
-    use module_tree, only: &
-         tree_build_upwards
-
-    use treevars, only: &
-         tree_nodes
-
     use physvars, only: &
          thermal_constant
 
@@ -650,22 +645,30 @@ contains
 
   subroutine update_particle_props(np_local, particles)
     
+    use module_pepc, only: &
+         t => global_tree
+
     use module_pepc_types, only: &
-         t_particle
-    
-    use treevars, only: &
-         tree_nodes, &
-         nleaf, &
-         nleaf_me
-    
-    use module_htable
+         t_particle, &
+         t_tree_node
+
+    use module_htable, only: &
+         t_htable_iterator, &
+         htable_iterator, &
+         htable_iterator_next
     
     ! only for sort test
-    use module_utils
+    use module_sort
 
     use physvars, only: &
          my_rank, &
          n_cpu
+
+    use module_tree, only: &
+         tree_lookup_node_critical
+
+    use module_tree_node, only: &
+         tree_node_is_leaf
 
     implicit none
     include 'mpif.h'
@@ -691,11 +694,10 @@ contains
     integer*8, allocatable :: non_local_node_keys(:)
     integer*8, allocatable :: key_arr_cp(:)
     integer*8, allocatable :: non_local_node_owner(:)
-    integer, allocatable :: non_local_node_node(:)
     integer, allocatable :: node_arr_cp(:)
     integer, allocatable :: int_arr(:)
     integer :: num_request
-    integer :: i
+    integer :: i, j
     integer :: ierr
     integer, allocatable :: requests_per_process(:)
     integer, allocatable :: requests_from_process(:)
@@ -705,7 +707,8 @@ contains
     integer :: total_num_requests_from_others
     integer :: disp
     integer :: actual_address
-    integer :: actual_node
+    integer*8 :: actual_key
+    type(t_tree_node), pointer :: actual_node
 
     type(t_property_update), allocatable :: packed_updates(:)
     type(t_property_update), allocatable :: received_updates(:)
@@ -716,11 +719,13 @@ contains
     ! address calculation
     integer, dimension(1:max_props) :: blocklengths, displacements, types
     integer(KIND=MPI_ADDRESS_KIND), dimension(0:max_props) :: address
+
+    type(t_htable_iterator) :: it
         
    
-    nleaf_non_local = nleaf - nleaf_me ! bigger than necessary, TODO: find a better estimation for this
+    nleaf_non_local = t%nleaf - t%nleaf_me ! bigger than necessary, TODO: find a better estimation for this
 
-    allocate( non_local_node_node(nleaf_non_local), non_local_node_keys(nleaf_non_local), non_local_node_owner(nleaf_non_local), requests_per_process(n_cpu), &
+    allocate( non_local_node_keys(nleaf_non_local), non_local_node_owner(nleaf_non_local), requests_per_process(n_cpu), &
          key_arr_cp(nleaf_non_local), node_arr_cp(nleaf_non_local), int_arr(nleaf_non_local), requests_from_process(n_cpu), &
          sdispls(n_cpu), rdispls(n_cpu), STAT=ierr )
     ! TODO: remove key_arr_cp and int_arr after sort test
@@ -730,16 +735,18 @@ contains
 
     ! get leafs from hashtabel with owner .ne. my_rank
     ! TODO: do not search in htable, but in array containing nodes ? (Idee von Lukas)
-    do i = 1, maxaddress
-       if( htable_entry_is_valid(i) ) then
-          if( (htable(i)%owner .ne. my_rank) .and. htable(i)%node>0 ) then
-             if( htable(i)%owner > n_cpu-1) write(*,*) 'strange owner:', my_rank, htable(i)%owner, htable(i)%key
+    it = htable_iterator(t%node_storage)
+    do
+       if( htable_iterator_next(it, actual_key, actual_node) ) then
+          if( (actual_node%owner .ne. my_rank) .and. tree_node_is_leaf(actual_node) ) then
+             if( actual_node%owner > n_cpu-1) write(*,*) 'strange owner:', my_rank, actual_node%owner, actual_node%key
 
              num_request = num_request + 1
-             non_local_node_keys(num_request) = htable(i)%key
-             non_local_node_owner(num_request) = htable(i)%owner
-             non_local_node_node(num_request) = htable(i)%node
+             non_local_node_keys(num_request) = actual_node%key
+             non_local_node_owner(num_request) = actual_node%owner
           end if
+        else
+          exit
        end if
     end do
     
@@ -791,15 +798,6 @@ contains
        non_local_node_keys(i) = key_arr_cp(int_arr(i))
     end do
 
-    ! TODO: remove this debugging stuff
-    ! sort nodes according to owners
-    node_arr_cp(1:num_request) = non_local_node_node(1:num_request)
-    do i= 1, num_request
-       non_local_node_node(i) = node_arr_cp(int_arr(i))
-    end do
-
-
-
     requests_per_process = 0
 
     do i = 1, num_request
@@ -844,7 +842,7 @@ contains
 
     ! test whether requested keys are locally known
     do i = 1, total_num_requests_from_others
-       actual_address = key2addr(requested_keys(i), 'update properties: test requested keys')
+       call tree_lookup_node_critical(t, requested_keys(i), actual_node, 'update properties: test requested keys')
     end do
 
     
@@ -867,12 +865,14 @@ contains
 
     ! pack everything together
     do i = 1, total_num_requests_from_others
-       actual_address = key2addr(requested_keys(i), 'update properties: packaging particles')
+       call tree_lookup_node_critical(t, requested_keys(i), actual_node, 'update properties: packaging particles')
 
-       actual_node = htable(actual_address)%node
+       do j = 1, np_local
+          if (particles(j)%key_leaf == requested_keys(i)) then; exit; end if
+       end do
 
-       packed_updates(i) = t_property_update( htable(actual_address)%key, htable(actual_address)%owner, particles(actual_node)%results%h, &
-            particles(actual_node)%results%rho, tree_nodes(actual_node)%v, tree_nodes(actual_node)%temperature )
+       packed_updates(i) = t_property_update( actual_node%key, actual_node%owner, particles(j)%results%h, &
+            particles(j)%results%rho, actual_node%interaction_data%v, actual_node%interaction_data%temperature )
 
        ! test whether requested key is parent of particle key
        ! TODO: write a test funciton for this?
@@ -902,29 +902,23 @@ contains
     end do
 
     do i= 1, num_request
-       actual_address = key2addr( received_updates(i)%key, 'update properties: updating properties of remote nodes' )
-       actual_node = htable( actual_address )%node
+       call tree_lookup_node_critical(t, received_updates(i)%key, actual_node, &
+            'update properties: updating properties of remote nodes' )
        
-       ! TODO: remove this debugging stuff
-       !       if(actual_node .ne. non_local_node_node(i) ) then 
-       !          write(76, *) my_rank, i, received_updates(i)%key, actual_node, non_local_node_node(i)
-       !       end if
-
-
-       tree_nodes(actual_node)%rho         = received_updates(i)%rho
-       tree_nodes(actual_node)%temperature = received_updates(i)%temperature
-       tree_nodes(actual_node)%v           = received_updates(i)%v
-       tree_nodes(actual_node)%h           = received_updates(i)%smoothing_length
+       actual_node%interaction_data%rho         = received_updates(i)%rho
+       actual_node%interaction_data%temperature = received_updates(i)%temperature
+       actual_node%interaction_data%v           = received_updates(i)%v
+       actual_node%interaction_data%h           = received_updates(i)%smoothing_length
        
     end do
 
 
     do i = 1, np_local
+       call tree_lookup_node_critical(t, particles(i)%key_leaf, actual_node, 'update tree node properties')
        
-       tree_nodes(i)%rho         = particles(i)%results%rho
-       tree_nodes(i)%temperature = particles(i)%data%temperature
-       tree_nodes(i)%h           = particles(i)%results%h
-
+       actual_node%interaction_data%rho         = particles(i)%results%rho
+       actual_node%interaction_data%temperature = particles(i)%data%temperature
+       actual_node%interaction_data%h           = particles(i)%results%h
     end do
 
 
@@ -935,7 +929,7 @@ contains
     ! TODO: update tree_nodes%h for all parents
 
 
-    deallocate( non_local_node_node, non_local_node_keys, non_local_node_owner, requests_per_process, key_arr_cp, int_arr, node_arr_cp, STAT=ierr )
+    deallocate( non_local_node_keys, non_local_node_owner, requests_per_process, key_arr_cp, int_arr, node_arr_cp, STAT=ierr )
 
     
     deallocate( requested_keys, STAT=ierr ) 

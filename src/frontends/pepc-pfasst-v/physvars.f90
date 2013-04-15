@@ -85,8 +85,7 @@ contains
         integer :: my_rank       !  Global rank of current task
         integer :: n_cpu         ! global #cpus used by program
 
-        integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_FUNNELED ! "The process may be multi-threaded, but the application
-                                                                       !  must ensure that only the main thread makes MPI calls."
+        integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE ! "The process may be multi-threaded, and every thread may perform MPI calls."
          call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, ierr)
 
         call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)

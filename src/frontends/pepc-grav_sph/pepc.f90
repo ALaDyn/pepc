@@ -49,6 +49,9 @@ program pepce
   use module_interaction_specific, only: &
        mac_select, force_law
 
+  use module_nn, only: &
+       nn_prepare_particleresults
+
   use module_interaction_specific_types, only: &
        PARTICLE_TYPE_FIXED
   
@@ -95,6 +98,8 @@ program pepce
        pepc_grow_tree, &
        pepc_traverse_tree, &
        pepc_prepare, &
+       pepc_timber_tree, &
+       global_tree, &
        pepc_particleresults_clear
 
 
@@ -194,7 +199,9 @@ program pepce
         
         call pepc_grow_tree(np_local, npart_total, particles)
         
-        call pepc_particleresults_clear(particles, np_local)
+
+        call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
+        call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
 
         if (do_gravity) then
            ! summing gravitational forces
@@ -247,6 +254,7 @@ program pepce
         particles(:)%work = 1._8
 
 
+        call pepc_timber_tree()
      end if
      
   else if( run_type .eq. 2) then 
@@ -282,7 +290,8 @@ program pepce
      ! write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
      ! write(*,*) 'neigbour_boxes:', neighbour_boxes
 
-     call pepc_particleresults_clear(particles, np_local)
+     call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
+     call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
 
      if (do_gravity) then
         ! summing gravitational forces
@@ -349,13 +358,13 @@ program pepce
      ! timings dump
      call timer_stop(t_tot) ! total loop time without diags
 
+     call pepc_timber_tree()
      call timings_LocalOutput(itime)
      call timings_GatherAndOutput(itime)
 
 
      ! TODO: calculate work for sph
      particles(:)%work = 1._8
-
 
 
   end do

@@ -286,8 +286,8 @@ module module_interaction_specific
       subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
         implicit none
 
-        integer, intent(in) :: npart_total !< total number of particles
-        integer, intent(out) :: nintmax !< maximum number of interactions per particle
+        integer*8, intent(in) :: npart_total !< total number of particles
+        integer*8, intent(out) :: nintmax !< maximum number of interactions per particle
 
         real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
 
@@ -317,11 +317,10 @@ module module_interaction_specific
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function mac(particle, node, dist2, boxlength2)
             use module_pepc_types
-            use treevars, only : tree_nodes
             implicit none
 
             logical :: mac
-            integer, intent(in) :: node
+            type(t_tree_node_interaction_data), intent(in) :: node
             real*8, intent(in) :: dist2
             real*8, intent(in) :: boxlength2
             type(t_particle), intent(in) :: particle
@@ -332,7 +331,7 @@ module module_interaction_specific
                     mac = (theta2 * dist2 > boxlength2)
                 case (1)
                     ! Bmax-MAC
-                    mac = (theta2 * dist2 > min(tree_nodes(node)%bmax**2,3.0*boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
+                    mac = (theta2 * dist2 > min(node%bmax**2,3.0*boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
                 case default
                     ! N^2 code
                     mac = .false.
@@ -732,7 +731,6 @@ module module_interaction_specific
         subroutine calc_2nd_algebraic_transposed_direct(particle, t, d, dist2, u, af, div)
 
             use module_pepc_types
-            use treevars, only : tree_nodes
             implicit none
 
             type(t_tree_node_interaction_data), intent(in) :: t
@@ -854,7 +852,6 @@ module module_interaction_specific
         subroutine calc_2nd_gaussian_transposed_direct(particle, t, d, dist2, u, af, div)
 
             use module_pepc_types
-            use treevars, only : tree_nodes
             implicit none
 
             type(t_tree_node_interaction_data), intent(in) :: t

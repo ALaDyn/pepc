@@ -4,7 +4,7 @@ HELP = "\
 
 MACH     = gcc-4.9
 
-DEBUG    = 0
+DEBUG    = 1
 OMP      = 1
 
 RANLIB   = ranlib
@@ -22,13 +22,14 @@ INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -fi
 FCPRE    = 
 FC       = mpif90
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wunused-parameter -Wextra -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all
+  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all
   CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g 
   LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -g 
 else
   FFLAGS   = -Wall -O5 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
   CFLAGS   = -Wall -O5 -g
   LDFLAGS   = -pthread -g -O5 $(INLINING) -fwhole-program  
+  CPPFLAGS += -DNDEBUG
 #-Wl,--threads
 #-fuse-linker-plugin
 endif

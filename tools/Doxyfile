@@ -92,7 +92,7 @@ WARN_LOGFILE           = ./doxygen.warnings
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = ./src
+INPUT                  = ./src/treecode ./src/utils
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.c \
                          *.cc \

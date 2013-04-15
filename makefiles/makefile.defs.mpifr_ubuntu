@@ -37,6 +37,7 @@ else
   FFLAGS   = $(OPENMPFLAG) -I/usr/lib/mpich-shmem/include -Wall -O3        -ffree-line-length-none $(INLINING)
   CFLAGS   = -I/usr/lib/mpich-shmem/include -Wall -O3
   LDFLAGS  = $(OPENMPFLAG) -pthread -O3 $(INLINING)
+  CPPFLAGS += -DNDEBUG
 # -fwhole-program 
 #-fuse-linker-plugin
 endif

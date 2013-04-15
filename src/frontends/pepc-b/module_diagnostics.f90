@@ -363,9 +363,10 @@ end subroutine kinenergy
       use module_physvars
       use module_particle_props
       use module_utilities
-      use module_gle
+      !use module_gle
       use module_htable
       use module_pepc_wrappers
+      use module_pepc, only: pepc_check_sanity
 
       implicit none
 !      integer, parameter :: ntest = 3
@@ -481,10 +482,10 @@ end subroutine kinenergy
 ! If interaction lists needed, must ensure that intlist() is large enough to contain all lists
 ! - will otherwise just get last pass of tree walk
 
-        call diagnose_tree(particles)   ! Printed tree info (htable etc)
-        call draw_tree2d(xl)     ! Draw PE-trees
+        call pepc_check_sanity('PEPC-B: error_test()', particles = particles, dump = .true.) ! Printed tree info (htable etc)
+        !call draw_tree2d(xl)     ! Draw PE-trees
 !        call draw_lists      ! Draw interaction lists
-        call draw_domains()   ! Domains
+        !call draw_domains()   ! Domains
        
 
       end subroutine error_test

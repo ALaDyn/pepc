@@ -34,6 +34,7 @@ else
   FFLAGS   = $(OPTIMIZATIONFLAGS) -qxlf2003=polymorphic $(STANDARDFLAGS)
   CFLAGS   = -O3 -I/bgsys/drivers/ppcfloor/arch/include $(STANDARDFLAGS)
   LDFLAGS  = $(OPTIMIZATIONFLAGS) $(STANDARDFLAGS) 
+  CPPFLAGS += -DNDEBUG
 endif
 
 ifeq ($(VAMPIR), 1)

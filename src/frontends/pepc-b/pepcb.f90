@@ -158,12 +158,12 @@ open(70,file='orbit.dat')
 
 ! Static error test mode
   if (np_error>0) then
-	write(6,*) 'Entering error test mode'
-	call error_test(np_error)
+    write(6,*) 'Entering error test mode'
+    call error_test(np_error)
   endif
 
   if (debug_level > 1) then
-	  write (ipefile,'(/a/a/(i6,5f12.4))') 'Particle list after configure:', &
+    write (ipefile,'(/a/a/(i6,5f12.4))') 'Particle list after configure:', &
           '  key,   , label  coords, ux, ex', &
           (pelabel(i),x(i),y(i),z(i),ux(i),ex(i),i=1,np_local) 
 
@@ -209,6 +209,7 @@ open(70,file='orbit.dat')
 !POMP$ INST BEGIN(fields)
 
 
+    call pepc_timber_tree()
     call pepc_fields_coulomb_wrapper(np_local,npart_total,x(1:np_local),y(1:np_local),z(1:np_local), &
                   q(1:np_local),work(1:np_local),pelabel(1:np_local), &
                   ex(1:np_local),ey(1:np_local),ez(1:np_local),pot(1:np_local), &
@@ -338,6 +339,7 @@ endif
   endif 
 
   ! cleanup of lpepc static data
+  call pepc_timber_tree()
   call pepc_finalize()
 
 !POMP$ INST END(pepcb)

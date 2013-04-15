@@ -94,6 +94,7 @@ module module_io
 	subroutine openfiles
 	  use module_physvars
 	  use module_utils
+          use module_debug, only: debug_barrier
 	  implicit none
 	  character(30) :: cfile
 
@@ -111,6 +112,7 @@ module module_io
 	  !  stdout for PE my_rank
 	  if (debug_level > 0) then
             if (my_rank==0) call create_directory("diag")
+            call debug_barrier()
 	    write(cfile,'("diag/frontend_diag_",i6.6,".dat")') my_rank
 	    open(file_ipefile, file=cfile,STATUS='UNKNOWN', POSITION = 'APPEND')
 	  endif

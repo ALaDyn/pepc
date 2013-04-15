@@ -216,8 +216,8 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
         implicit none
-        integer, intent(in) :: npart_total !< total number of particles
-        integer, intent(out) :: nintmax !< maximum number of interactions per particle
+        integer*8, intent(in) :: npart_total !< total number of particles
+        integer*8, intent(out) :: nintmax !< maximum number of interactions per particle
 
         real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
 
@@ -251,7 +251,7 @@ module module_interaction_specific
         implicit none
 
         logical :: mac
-        integer, intent(in) :: node
+        type(t_tree_node_interaction_data), intent(in) :: node
         type(t_particle), intent(in) :: particle
         real*8, intent(in) :: dist2
         real*8, intent(in) :: boxlength2
@@ -284,58 +284,19 @@ module module_interaction_specific
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine particleresults_clear(particles, nparticles)
-        use module_pepc_types
-        use module_htable
-        use treevars
-        use module_spacefilling
-        implicit none
-        type(t_particle), intent(inout) :: particles(nparticles)
-        integer, intent(in) :: nparticles
+         use module_pepc_types, only: t_particle
+         implicit none
+         type(t_particle), intent(inout) :: particles(nparticles)
+         integer, intent(in) :: nparticles
+    
+         integer :: i
 
-        integer*8 :: key
-        integer :: addr, i
-        real*8, dimension(:), allocatable :: boxdiag2
-
-        allocate(boxdiag2(0:nlev))
-        boxdiag2(0) = 3.*dot_product(boxsize, boxsize)
-        do i=1,nlev
-           boxdiag2(i) =  boxdiag2(i-1)/4.
-        end do
-
-
-        ! for each particle, we traverse the tree upwards, until the current twig
-        ! contains more leaves than number of necessary neighbours - as a first guess for the
-        ! search radius, we use its diameter
-        do i=1,nparticles
-            key = particles(i)%key_leaf
-
-            particles(i)%results%maxdist2 = huge(0._8)
+         do i=1,nparticles
+            particles(i)%results%maxdist2           = huge(0._8)
             particles(i)%results%neighbour_keys(:)  = 0_8
             particles(i)%results%maxidx             = 1
-
-            do while (key .ne. 0)
-              if (testaddr(key, addr)) then
-                if (htable(addr)%leaves > num_neighbour_particles) then
-                  ! this twig contains enough particles --> we use its diameter as search radius
-                  particles(i)%results%maxdist2 = boxdiag2(level_from_key(key))
-                  particles(i)%results%neighbour_keys(1:num_neighbour_particles) = key
-
-                  exit ! from this loop
-                endif
-              endif
-
-              key = parent_key_from_key(key)
-              if (key.eq.0) then
-               write(*,*) particles(i)
-              endif
-            end do
-
-            particles(i)%results%dist2(1:num_neighbour_particles) = particles(i)%results%maxdist2
-            particles(i)%results%dist_vector(:,1:num_neighbour_particles) = -13._8 
-        end do
-
-
-      end subroutine
+         end do
+       end subroutine particleresults_clear
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>

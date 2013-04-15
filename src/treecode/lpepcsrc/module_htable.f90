@@ -18,564 +18,593 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
-!>  Encapsulates functions for accessing, manipulating, and verifying hash table data
+!> Encapsulates functions for accessing, manipulating, and verifying hash
+!> table data. This implements Coalesced Hashing [ch].
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+!> [ch]: http://en.wikipedia.org/wiki/Coalesced_hashing
+!>
 module module_htable
+    use module_pepc_types, only: t_tree_node
     implicit none
+    private
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  type declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    integer*8, public, parameter :: HTABLE_KEY_INVALID = -1_8
+    integer*8, public, parameter :: HTABLE_KEY_EMPTY   =  0_8
+    integer*8, parameter :: HTABLE_FREE_LO = 1024_8 !< min address allowed for resolving collisions (from 4th level up)
 
-    ! Hash table datatype - 36 bytes per entry
-    type :: t_hash
-        integer*8 :: key           !< Key
-        integer   :: node          !< Address of particle/pseudoparticle data
-        integer   :: link          !< Pointer to next empty address in table in case of collision
-        integer   :: leaves        !< # leaves contained within twig (=1 for leaf, npart for root)
-        integer   :: childcode     !< Byte code indicating position of children (twig node); particle label (leaf node)
-        integer   :: owner         !< Node owner (for branches)
-	integer   :: level         !< level_from_key(key)
-    end type t_hash
+    type :: t_htable_bucket
+      integer*8                  :: key = HTABLE_KEY_EMPTY  !< the entry key
+      integer*8                  :: link = -1_8             !< link for collision resolution
+      type(t_tree_node), pointer :: val                     !< the entry value
+    end type t_htable_bucket
+    type (t_htable_bucket), parameter :: HTABLE_EMPTY_BUCKET = t_htable_bucket(HTABLE_KEY_EMPTY, -1_8, null()) !< constant for empty hashentry
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    type, public :: t_htable
+      private
+      integer*8                          :: hashconst     !< bitmask for hashfunction
+      integer*8                          :: maxentries    !< max number of entries
+      integer*8                          :: nentries      !< number of entries present
+      integer*8                          :: sum_unused    !< number of free addresses
+      type(t_htable_bucket), allocatable :: buckets(:)    !< hashtable buckets
+      integer*8, allocatable             :: free_addr(:)  !< list of free hash table addresses
+      integer*8, allocatable             :: point_free(:) !< pointer to free address index
+      type(t_tree_node), pointer         :: values(:)     !< array of entry values
+    end type t_htable
 
-    type (t_hash), public, target, allocatable :: htable(:) !< hash table
-    integer*8,     public ::  hashconst  !< hashing constants
+    type, public :: t_htable_iterator
+      private
+      type(t_htable), pointer :: t => null()
+      integer*8               :: i =  0_8
+    end type t_htable_iterator
 
-    integer*8, public, parameter :: KEY_INVALID = -1
-    integer*8, public, parameter :: KEY_EMPTY   =  0
-
-    ! bits in childcode to be set when children are requested, the request has been sent, and they have arrived
-    integer, public, parameter :: CHILDCODE_BIT_REQUEST_POSTED           =  8 !< this bit is used inside the childcode to denote that a request for children information is already in the request queue
-    integer, public, parameter :: CHILDCODE_BIT_CHILDREN_AVAILABLE       =  9 !< this bit is used inside the childcode to denote that children information for the node is available in the local hashtable
-    integer, public, parameter :: CHILDCODE_BIT_REQUEST_SENT             = 10 !< this bit is used inside the childcode to denote that children information has already been requested from the owner
-    integer, public, parameter :: CHILDCODE_BIT_HAS_LOCAL_CONTRIBUTIONS  = 11 !< this bit is set for all nodes that contain some local nodes beneath them
-    integer, public, parameter :: CHILDCODE_BIT_HAS_REMOTE_CONTRIBUTIONS = 12 !< this bit is set for all nodes that contain some remote nodes beneath them
-    integer, public, parameter :: CHILDCODE_BIT_IS_BRANCH_NODE           = 13 !< this bit is set for all branch nodes (set in tree_exchange)
-    integer, public, parameter :: CHILDCODE_BIT_IS_FILL_NODE             = 14 !< this bit is set for all nodes that are above (towards root) branch nodes
-    integer, public, parameter :: CHILDCODE_CHILDBYTE                    = b'11111111' !< bits that contain the children information for this node
-
-    integer, public :: maxaddress                    !< max address allowed in #table
-
-    integer, public, allocatable :: free_addr(:)    !< List of free #table addresses (for HASHENTRY routine)
-    integer, public, allocatable :: point_free(:)   !< Pointer to free address index
-    integer, parameter :: free_lo = 1024             !< min address allowed for resolving collisions (from 4th level up)
-    integer :: iused                                  !< counter for collision resolution array free_addr()
-    integer :: sum_unused                             !< # free addresses
-
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    public children_available
-    public get_next_node_key
-    public get_childkeys
-    public make_hashentry
-    public key2addr
-    public testaddr
-    public htable_clear
-    public htable_clear_and_insert_root
-    public htable_prepare_address_list
-    public check_table
-    public diagnose_tree
+    public htable_create
+    public htable_allocated
+    public htable_entries
+    public htable_maxentries
+    public htable_add
+    public htable_contains
+    public htable_lookup
+    public htable_lookup_critical
     public htable_remove_keys
-    public htable_entry_is_valid
-    public htable_entry_is_leaf
+    public htable_clear
+    public htable_destroy
+    public htable_check
+    public htable_dump
+    public htable_iterator
+    public htable_iterator_next
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    integer, private, parameter :: start_child_idx = 0 !< index of first child to be used in traversal - do not change, currently not completely implemented
-    type (t_hash), private, parameter :: HASHENTRY_EMPTY = t_hash(KEY_EMPTY,0,-1,0,0,0, 0) !< constant for empty hashentry
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     contains
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !> checks whether the given htable-entry is a leaf or a twig
+    !> allocates a hash table `t` of size `n` and initializes the 
+    !> collision resolution lists
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! TODO: use this function everywhere consistently
-    function htable_entry_is_leaf(hashaddr)
+    subroutine htable_create(t, n)
+      use module_debug
       implicit none
-      integer, intent(in) :: hashaddr
-      logical:: htable_entry_is_leaf
-      ! TODO: this way of identifying leaves/twigs is not good -- use number of leaves or (even better) a flag in the childcode, instead
-      htable_entry_is_leaf = (htable(hashaddr)%node > 0)
-    end function
+
+      type(t_htable), intent(inout) :: t
+      integer*8 :: n
+
+      DEBUG_ASSERT(.not. htable_allocated(t))
+
+      t%maxentries = max(n, 2_8**15)
+      t%nentries   = 0_8
+      t%hashconst  = 2_8**int(log(1. * t%maxentries) / log(2.)) - 1_8
+
+      allocate( &
+        t%buckets(0:t%maxentries - 1), &
+        t%free_addr(0:t%maxentries - 1), &
+        t%point_free(0:t%maxentries - 1), &
+        t%values(0:t%maxentries - 1) &
+      )
+
+      call htable_clear(t)
+    end subroutine htable_create
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> checks whether the given htable-entry is valid and not empty
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! TODO: use this function everywhere consistently
-    function htable_entry_is_valid(hashaddr)
+    elemental function htable_entry_is_valid(e)
       implicit none
-      integer, intent(in) :: hashaddr
+      type(t_htable_bucket), intent(in) :: e
       logical:: htable_entry_is_valid
-      integer*8 :: key
 
-      key = htable(hashaddr)%key
-
-      htable_entry_is_valid = (key .ne. KEY_EMPTY) .and. (key .ne. KEY_INVALID)
+      htable_entry_is_valid = (e%key .ne. HTABLE_KEY_EMPTY) .and. (e%key .ne. HTABLE_KEY_INVALID)
     end function
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !> empties the htable
+    !> empties the hash table `t`
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine htable_clear()
-        implicit none
-
-        htable = HASHENTRY_EMPTY ! TODO: need list of 'live' adresses to speed this up
-                                 ! possible solution: use a "bitmap" of occupied addresses in htable
-                                 ! then, only this bitmap has to be cleared upon startup
-                                 ! and every test for occupancy of a htable entry is done in this bitmap
-
-    end subroutine
-
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !>
-    !> empties the htable, inserts the root node and prepares the
-    !> collision resolution list
-    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine htable_clear_and_insert_root()
-        use treevars, only : ntwig, me
-	use module_spacefilling, only : level_from_key
-        implicit none
-
-        call htable_clear()
-
-        ntwig = 1
-
-        htable(1) = t_hash(1_8, -1, -1, 0, IBSET(0, CHILDCODE_BIT_CHILDREN_AVAILABLE), me, level_from_key(1_8))
-
-        call htable_prepare_address_list()
-
-    end subroutine
-
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !>
-    !> prepares the collision resolution list by traversing the full htable
-    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine htable_prepare_address_list()
-        implicit none
-        integer :: i
-
-        ! build list of free addresses for faster collision resolution on insertion into htable
-        sum_unused = 0
-        iused      = 1   ! reset used-address counter
-        do i=0, maxaddress
-           if (htable(i)%node == 0 .and. htable(i)%key /=-1 .and. i > free_lo) then
-              sum_unused            = sum_unused + 1
-              free_addr(sum_unused) = i            ! Free address list for resolving collisions
-              point_free(i)         = sum_unused   ! Index
-           else
-              point_free(i)         = 0
-           endif
-        enddo
-
-    end subroutine
-
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !>
-    !> checks whether children for certain htable-address are locally available
-    !> or have to be requested
-    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    pure function children_available(addr)
+    subroutine htable_clear(t)
+      use module_debug
       implicit none
-      logical :: children_available
-      integer, intent(in) :: addr
+      type(t_htable), intent(inout) :: t
 
-      children_available = btest(htable( addr )%childcode, CHILDCODE_BIT_CHILDREN_AVAILABLE)
+      t%nentries = 0_8
+      t%buckets  = HTABLE_EMPTY_BUCKET
 
-    end function
-
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !>
-    !> Function to return key of next node in local tree-walk,
-    !> i.e. search for next sibling, uncle, great-uncle etc
-    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    function get_next_node_key(keyin)
-
-        use treevars
-        use module_spacefilling
-
-        implicit none
-        integer*8 :: get_next_node_key
-        integer*8, intent(in) :: keyin
-
-        integer*8 :: search_key, parent_key
-        integer   :: parent_addr
-        integer   :: parent_child_byte 
-        integer   :: search_child_idx
-
-        search_key = keyin
-
-        ! search for next sibling, uncle, great-uncle etc
-        do while (search_key > 1) ! loop through parent nodes up to root
-            parent_key        = parent_key_from_key(search_key)
-            parent_addr       = key2addr( parent_key ,"next_node(), get parent_addr" )
-            parent_child_byte = ibits( htable( parent_addr ) % childcode, 0, 2**idim)
-
-            search_child_idx  = child_number_from_key(search_key) ! lower three bits of key
-
-            do ! loop over all siblings
-                search_child_idx   = modulo(search_child_idx + 1, 2**idim) ! get next sibling, possibly starting again from first one
-
-                ! if sibling-loop wrapped and reached starting point again --> go up one level
-                if ( search_child_idx == start_child_idx ) then
-                    search_key = parent_key      ! go up one level
-                    exit
-                endif
-
-                ! if sibling exists: next_node has been found
-                if ( btest(parent_child_byte, search_child_idx) ) then
-                    get_next_node_key = child_key_from_parent_key(parent_key, search_child_idx) ! assemble next_node out of parent-key and new sibling-index
-                    return
-                endif
-            end do
-        end do
-
-        get_next_node_key  = 1 ! nothing has been found, i.e. top-right corner reached: set pointer=root
-
-    end function get_next_node_key
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !>
-    !> returns the keys of all children, that are attached to the
-    !> node at a particular htable address
-    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine get_childkeys(addr, childnum, childkeys)
-        use treevars, only: idim
-        use module_spacefilling
-        implicit none
-        integer, intent(in) :: addr
-        integer, intent(out) :: childnum
-        integer*8, dimension(:), intent(out) :: childkeys
-        integer :: i
-
-        integer*8 :: keyhead
-        integer :: childcode
-
-        keyhead   = shift_key_by_level(htable(addr)%key, 1)
-        childcode = htable(addr)%childcode
-        childnum = 0
-
-        do i=0,2**idim - 1
-          if (btest(childcode, i)) then
-            childnum            = childnum + 1
-            childkeys(childnum) = ior(keyhead, 1_8*i)
-          end if
-        end do
-
+      DEBUG_ASSERT(htable_allocated(t))
+      call htable_prepare_address_list(t)
     end subroutine
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !> Make entry in hash-table - returns address 'hashaddr'
-    !> Resolve collision if necessary
-    !> make_hashentry == .true. if anything went fine
-    !> make_hashentry == .false. if key already exists in htable, hashaddr is set to
-    !> return current address, but the htable-entry itself is *not* modified
+    !> returns .true. if memory has been allocated for hash table `t`
     !>
-    !> value of hashentry%link is ignored
+    pure function htable_allocated(t)
+      implicit none
+      type(t_htable), intent(in) :: t
+
+      logical :: htable_allocated
+
+      htable_allocated = allocated(t%buckets)
+    end function htable_allocated
+
+
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    function make_hashentry(hashentry, hashaddr)
+    !> returns the number of entries contained in `t`
+    !>
+    pure function htable_entries(t)
+      implicit none
+      type(t_htable), intent(in) :: t
 
-        use treevars
-        use module_debug
-        implicit none
+      integer*8 :: htable_entries
 
-        logical :: make_hashentry
-        type(t_hash), intent(in) :: hashentry
-        integer, intent(out) :: hashaddr ! address in # table returned to calling routine
+      htable_entries = t%nentries
+    end function htable_entries
 
-        integer :: link
 
-        if (.not. testaddr(hashentry%key, hashaddr)) then
-          ! this key does not exist in the htable 
-          make_hashentry = .true.
+    !>
+    !> returns the maximum number of entries that will fit in hash table `t`
+    !>
+    pure function htable_maxentries(t)
+      implicit none
+      type(t_htable), intent(in) :: t
 
-          if (hashaddr .eq. -1) then
-            ! the first entry is already empty
-            hashaddr = int(IAND( hashentry%key, hashconst))
+      integer*8 :: htable_maxentries
 
-            if (point_free(hashaddr) /= 0) then     ! Check if new address in collision res. list
-                free_addr( point_free(hashaddr) ) = free_addr(sum_unused)  ! Replace free address with last on list
-                point_free(free_addr(sum_unused)) = point_free(hashaddr)   ! Reset pointer
-                point_free(hashaddr)              = 0
-                sum_unused = sum_unused - 1
-            endif
-          else
-            ! we are at the end of a linked list --> create new entry
-            htable( hashaddr )%link = free_addr(iused)
-            hashaddr                = htable( hashaddr )%link
-            iused                   = iused + 1
-          endif
+      htable_maxentries = t%maxentries
+    end function htable_maxentries
 
-          ! check if new entry is really empty
-          if ((htable(hashaddr)%node /= 0 ) .or. (htable( hashaddr )%key/=0)) then
-            write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
-            write (*,*) 'PE ',me,' key ',hashentry%key,' entry',hashaddr,' used ',iused,'/',sum_unused
-            write (*,*) "htable(hashaddr):  ", htable(hashaddr)
-            write (*,*) "desired entry:     ", hashentry
-            call debug_mpi_abort()
-          endif
 
-          link = htable( hashaddr )%link ! would be overwritten by the next code line
-          htable( hashaddr ) = hashentry
-          htable( hashaddr )%link = link
+    !>
+    !> deallocates the hash table `t`
+    !>
+    subroutine htable_destroy(t)
+      use module_debug
+      implicit none
+      type(t_htable), intent(inout) :: t
+
+      DEBUG_ASSERT(htable_allocated(t))
+
+      deallocate(t%buckets, t%free_addr, t%point_free, t%values)
+      t%maxentries = 0_8
+      t%nentries   = 0_8
+      t%hashconst  = 0_8
+    end subroutine htable_destroy
+
+
+    !>
+    !> prepares the collision resolution list by traversing the full
+    !> hash table
+    !>
+    subroutine htable_prepare_address_list(t)
+      use module_debug
+      implicit none
+      type(t_htable), intent(inout) :: t
+      integer*8 :: i
+
+      ! build list of free addresses for faster collision resolution on insertion into htable
+      DEBUG_ASSERT(htable_allocated(t))
+      t%sum_unused = 0_8
+      do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
+        if (t%buckets(i)%key == HTABLE_KEY_EMPTY .and. i >= HTABLE_FREE_LO) then
+          t%free_addr(t%sum_unused) = i                ! Free address list for resolving collisions
+          t%point_free(i)           = t%sum_unused     ! Index
+          t%sum_unused              = t%sum_unused + 1_8
         else
-          ! this key does already exists in the htable - as 'hashaddr' we return its current address
-          make_hashentry = .false.
-        endif
+          t%point_free(i)           = -1_8
+        end if
+      end do
+    end subroutine htable_prepare_address_list
 
-    end function
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !> Invalidates entries in the htable, i.e. sets their key to KEY_INVALID
-    !> TODO: this function does not free the nodelist-storage and does
-    !> not fix any connections inside the tree, esp. concerning the
-    !> children-available-flag (it even does not care for them)
-    !> additionally, it does not modify nleaf or ntwig which would be
-    !> necessary to survive check_table() if the entry really was removed
+    !> Add an entry (`k`, `v`) to the hash table `t`.
+    !> If present, `entry_pointer` points to the inserted value `v`.
+    !> Resolve collision if necessary
+    !> `htable_add == .true.` if everything went fine
+    !> `htable_add == .false.` if the key already exists in `t` and
+    !> `entry_pointer` points to the current value, but the entry 
+    !> itself is _not_ modified
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine htable_remove_keys(keys, num_keys)
+    function htable_add(t, k, v, entry_pointer)
+      use treevars
+      use module_debug
       implicit none
+
+      type(t_htable), intent(inout) :: t
+      integer*8, intent(in) :: k
+      type(t_tree_node), intent(in) :: v
+      type(t_tree_node), intent(out), pointer, optional :: entry_pointer
+      logical :: htable_add
+
+      integer*8 :: hashaddr
+
+      DEBUG_ASSERT(htable_allocated(t))
+      if (t%nentries >= t%maxentries) then
+        DEBUG_ERROR('("Tree arrays full. # Entries: ", I0,"/",I0)', t%nentries, t%maxentries)
+      end if
+
+      if (.not. testaddr(t, k, hashaddr)) then
+        ! this key does not exist in the htable 
+        htable_add = .true.
+
+        if (hashaddr .eq. -1_8) then
+          ! the first entry is already empty
+          hashaddr = iand(k, t%hashconst)
+
+          if (t%point_free(hashaddr) /= -1_8) then ! Check if new address in collision res. list
+            if (t%sum_unused <= 0_8) then
+              DEBUG_ERROR(*, "Hash table collision resolution list exhausted. ", t%nentries, " / ", t%maxentries, " entries")
+            end if
+            t%sum_unused                            = t%sum_unused - 1_8
+            t%free_addr(t%point_free(hashaddr))     = t%free_addr(t%sum_unused) ! Replace free address with last on list
+            t%point_free(t%free_addr(t%sum_unused)) = t%point_free(hashaddr)    ! Reset pointer
+            t%point_free(hashaddr)                  = -1_8
+          end if
+        else
+          ! we are at the end of a linked list --> create new entry
+          if (t%sum_unused <= 0_8) then
+            DEBUG_ERROR(*, "Hash table collision resolution list exhausted. ", t%nentries, " / ", t%maxentries, " entries")
+          end if
+          t%sum_unused             = t%sum_unused - 1_8
+          t%buckets(hashaddr)%link = t%free_addr(t%sum_unused)
+          hashaddr                 = t%buckets( hashaddr )%link
+          t%point_free(hashaddr)   = -1_8
+        end if
+
+        ! check if new entry is really empty
+        if (t%buckets(hashaddr)%key /= HTABLE_KEY_EMPTY) then
+          write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
+          write (*,*) 'PE ',me,' key ',k,' entry',hashaddr,' unused ',t%sum_unused
+          ! TODO: re-enable this
+          !write (*,*) "desired entry:     ", v
+          call debug_mpi_abort()
+        end if
+
+        t%buckets(hashaddr)%key = k
+        t%values(t%nentries) = v
+        t%buckets(hashaddr)%val => t%values(t%nentries)
+        t%nentries = t%nentries + 1_8
+      else
+        ! this key does already exists in the htable - as 'hashaddr' we return its current address
+        htable_add = .false.
+      end if
+
+      if (present(entry_pointer)) then
+        entry_pointer => t%buckets(hashaddr)%val
+      end if
+
+    end function htable_add
+
+
+    !>
+    !> returns `.true.` if hash table `t` contains a value for key `k`,
+    !> `.false.` otherwise
+    !>
+    function htable_contains(t, k)
+      use module_debug
+      implicit none
+
+      type(t_htable), intent(in) :: t
+      integer*8, intent(in) :: k
+
+      logical :: htable_contains
+
+      DEBUG_ASSERT(htable_allocated(t))
+      htable_contains = testaddr(t, k)
+
+    end function htable_contains
+
+
+    !>
+    !> returns `.true.` if hash table `t` contains a value for key `k`
+    !> and makes `v` point to the corresponding value, `.false.` and 
+    !> `null()` otherwise
+    !>
+    function htable_lookup(t, k, v)
+      use module_debug
+      implicit none
+
+      type(t_htable), intent(in) :: t
+      integer*8, intent(in) :: k
+      type(t_tree_node), pointer, intent(out) :: v
+
+      logical :: htable_lookup
+      integer*8 :: addr
+
+      DEBUG_ASSERT(htable_allocated(t))
+      htable_lookup = testaddr(t, k, addr)
+      if (htable_lookup) then
+        v => t%buckets(addr)%val
+      else
+        v => null()
+      end if
+    end function htable_lookup
+
+
+    !>
+    !> makes `v` point to the entry corresponding to `k` if there is
+    !> one, otherwise halts the whole program
+    !>
+    !> @exception if key does not exist, the whole program is aborted
+    !>
+    subroutine htable_lookup_critical(t, k, v, caller)
+      use treevars, only: me
+      use module_debug
+      implicit none
+
+      type(t_htable), intent(in) :: t
+      integer*8, intent(in) :: k
+      type(t_tree_node), pointer, intent(out) :: v
+      character(LEN=*), intent(in) :: caller
+
+      integer*8 :: addr
+
+      DEBUG_ASSERT(htable_allocated(t))
+      if (.not. testaddr(t, k, addr)) then
+        ! could not find key
+        DEBUG_WARNING_ALL('("Key not resolved in htable_lookup_critical at ",a)', caller)
+        DEBUG_WARNING_ALL('("Bad address, check hash table and key list for PE", I7)', me)
+        DEBUG_WARNING_ALL('("key                  (oct) = ", o22)', k)
+        DEBUG_WARNING_ALL('("initial address      (dez) = ", i22)', iand( k, t%hashconst))
+        DEBUG_WARNING_ALL('("   last address      (dez) = ", i22)', addr)
+        if (.not. (addr == -1)) then
+          DEBUG_WARNING_ALL('("htable(lastaddr)%key (oct) = ", o22)', t%buckets(addr)%key)
+        end if
+        DEBUG_WARNING_ALL('("# const              (dez) = ", i22)', t%hashconst)
+        DEBUG_WARNING_ALL('("     maxentries      (dez) = ", i22)', t%maxentries)
+        call htable_dump(t)
+        call debug_mpi_abort()
+      end if
+
+      v => t%buckets(addr)%val
+    end subroutine htable_lookup_critical
+
+
+    !>
+    !> Removes the entry for `key` from `t`, i.e., `htable_contains(t, key) == .false.`
+    !> afterwards
+    !>
+    !> \note Entries are actually only invalidated. This means that no space in
+    !> the hash table is freed and `htable_entries(t)` remains unchanged.
+    !>
+    subroutine htable_remove_key(t, key)
+      use module_debug
+      implicit none
+
+      type(t_htable), intent(inout) :: t
+      integer*8, intent(in) :: key
+
+      DEBUG_ASSERT(htable_allocated(t))
+      call htable_remove_keys(t, (/ key /), 1)
+    end subroutine htable_remove_key
+
+
+    !>
+    !> Removes the entry for `keys` from `t`, i.e., `htable_contains(t, k) == .false.`
+    !> for any `k` in `keys` afterwards
+    !>
+    !> \note Entries are actually only invalidated. This means that no space in
+    !> the hash table is freed and `htable_entries(t)` remains unchanged.
+    !>
+    subroutine htable_remove_keys(t, keys, num_keys)
+      use module_debug
+      implicit none
+
+      type(t_htable), intent(inout) :: t
       integer*8, intent(in) :: keys(num_keys)
       integer, intent(in) :: num_keys
 
       integer :: i
+      integer*8 :: addr
 
-      do i=1,num_keys
-        htable(  key2addr(keys(i), 'htable_remove_keys')  )%key = KEY_INVALID
+      DEBUG_ASSERT(htable_allocated(t))
+      do i = 1, num_keys
+        if (testaddr(t, keys(i), addr)) then
+          t%buckets( addr )%key = HTABLE_KEY_INVALID
+        end if
       end do
 
     end subroutine
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     !>
     !> Calculates inverse mapping from the hash-key to the hash-address.
     !>
+    !> @param[in] t hash table
     !> @param[in] keyin inverse mapping candidate.
-    !> @param[in] cmark a description.
-    !> @param[out] key2addr the adress if the key exists
-    !> @exception if key does not exist, the whole program is aborted
-    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    function key2addr(keyin,cmark)
-
-        use treevars
-        use module_debug
-        implicit none
-
-        integer*8, intent(in)  :: keyin
-        character(LEN=*) :: cmark
-        integer :: key2addr
-
-        if (.not. testaddr(keyin, key2addr)) then
-          ! could not find key
-          DEBUG_WARNING_ALL('("Key not resolved in KEY2ADDR at ",a)', cmark)
-          DEBUG_WARNING_ALL('("Bad address, check #-table and key list for PE", I7)', me)
-          DEBUG_WARNING_ALL('("key                  (oct) = ", o22)', keyin)
-          DEBUG_WARNING_ALL('("initial address      (dez) = ", i22)', int(IAND( keyin, hashconst)))
-          DEBUG_WARNING_ALL('("   last address      (dez) = ", i22)', key2addr)
-          if (.not. (key2addr == -1)) then
-            DEBUG_WARNING_ALL('("htable(lastaddr)%key (oct) = ", o22)', htable(key2addr)%key)
-          end if
-          DEBUG_WARNING_ALL('("# const              (dez) = ", i22)', hashconst)
-          DEBUG_WARNING_ALL('("     maxaddress      (dez) = ", i22)', maxaddress)
-          call diagnose_tree()
-          call debug_mpi_abort()
-        endif
-
-    end function key2addr
-
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !>
-    !> Calculates inverse mapping from the hash-key to the hash-address.
-    !>
-    !> @param[in] keyin inverse mapping candidate.
-    !> @return .true. if the key has been found, .false. otherwise
+    !> @return `.true.` if the key has been found, `.false.` otherwise
     !> @param[out] addr address if candidate exists, address of last entry in linked list otherwise, -1 if already the first lookup failed
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    function testaddr(keyin, addr)
+    function testaddr(t, keyin, addr)
+      use treevars
+      implicit none
 
-        use treevars
-        implicit none
-        include 'mpif.h'
+      type(t_htable), intent(in) :: t
+      integer*8, intent(in)  :: keyin
+      integer*8, intent(out), optional :: addr
+      logical :: testaddr
 
-        integer*8, intent(in)  :: keyin
-        integer :: ires
-        logical :: testaddr
-        integer, intent(out), optional :: addr
-        integer :: nextaddr, lastaddr
+      integer :: ires
+      integer*8 :: nextaddr, lastaddr
 
-        nextaddr = int(IAND( keyin, hashconst))     ! cell address hash function
+      nextaddr = iand( keyin, t%hashconst) ! cell address hash function
 
-        if (htable( nextaddr )%key == KEY_EMPTY) then ! already the first entry is empty
-           testaddr                = .false.  ! key does not exist in htable
-           if (present(addr)) addr = -1       ! we return -1
-           return
-        endif
+      if (t%buckets( nextaddr )%key == HTABLE_KEY_EMPTY) then ! already the first entry is empty
+        testaddr                = .false.  ! key does not exist in htable
+        if (present(addr)) addr = -1_8     ! we return -1
+        return
+      end if
 
-        ires     =  1 ! counter for number of htable lookups
+      ires     =  1 ! counter for number of htable lookups
 
-        do while ( htable( nextaddr )%key .ne. keyin )
-          lastaddr = nextaddr
-          nextaddr = htable( nextaddr )%link    ! look at next linked entry
-          ires     = ires + 1
+      do while ( t%buckets( nextaddr )%key .ne. keyin )
+        lastaddr = nextaddr
+        nextaddr = t%buckets( nextaddr )%link    ! look at next linked entry
+        ires     = ires + 1
 
-          if (   (nextaddr == -1) & ! reached end of linked list without finding the key --> node is not in htable or htable is corrupt
-            .or. (ires >= maxaddress) ) & ! we probed at as many positions as the htable has entries --> circular linked list or htable corrupt
-            then
-              testaddr                = .false.  ! key does not exist in htable
-              if (present(addr)) addr = lastaddr ! we return last entry in the linked list
-              return
-          endif
+        if (   (nextaddr == -1_8) & ! reached end of linked list without finding the key --> node is not in htable or htable is corrupt
+          .or. (ires >= t%maxentries) ) & ! we probed at as many positions as the htable has entries --> circular linked list or htable corrupt
+          then
+            testaddr                = .false.  ! key does not exist in htable
+            if (present(addr)) addr = lastaddr ! we return last entry in the linked list
+            return
+        end if
 
-        end do
+      end do
 
-        testaddr                = .true.   ! key has been found in htable
-        if (present(addr)) addr = nextaddr ! we return its address
+      testaddr                = .true.   ! key has been found in htable
+      if (present(addr)) addr = nextaddr ! we return its address
 
     end function testaddr
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !> Do some quick checks on the tree structure
+    !> returns an iterator for traversing the entries in hash table `t` linearly
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine check_table(callpoint)
-        use treevars
-        use module_debug
-        implicit none
-        character(*) :: callpoint
-        integer :: nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
-        logical :: error
+    function htable_iterator(t)
+      use module_debug
+      implicit none
 
-        call pepc_status('CHECK TABLE')
+      type(t_htable), target, intent(in) :: t
 
-        error = .false.
+      type(t_htable_iterator) :: htable_iterator
 
-        ntwig_check = count(mask =  htable%node <0 )
-        nleaf_check = count(mask =  htable%node >0 )
-        nleaf_me_check = count(mask = htable%owner==me .and. htable%node >0 )
-        ntwig_me_check = count(mask = htable%owner==me .and. htable%node <0 )
-
-        if (nleaf /= nleaf_check) then
-            DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
-                                                       '# leaves in table = ',nleaf_check,'vs ',nleaf,'accumulated',
-                                                       'Fixing and continuing for now..')
-        !     nleaf = nleaf_check
-            error = .true.
-        endif
-
-        if (ntwig /= ntwig_check) then
-            DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
-                                                       '# twigs in table = ',ntwig_check,'vs ',ntwig,'accumulated',
-                                                       'Fixing and continuing for now..')
-        !     ntwig = ntwig_check
-            error = .true.
-        endif
-
-        if (nleaf_me /= nleaf_me_check) then
-            DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
-                                                       '# own leaves in table = ',nleaf_me_check,'vs ',nleaf_me,'accumulated',
-                                                       'Fixing and continuing for now..')
-            nleaf_me = nleaf_me_check
-            error = .true.
-        endif
-        if (ntwig_me /= ntwig_me_check) then
-            DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',me,
-                                                       '# own twigs in table = ',ntwig_me_check,'vs ',ntwig_me,'accumulated',
-                                                       'Fixing and continuing for now..')
-
-            ntwig_me = ntwig_me_check
-            error = .true.
-        endif
-
-        if (error) then
-          call diagnose_tree()
-        endif
-
-    end subroutine check_table
+      DEBUG_ASSERT(htable_allocated(t))
+      htable_iterator = t_htable_iterator(t, lbound(t%buckets, dim = 1))
+    end function htable_iterator
 
 
+    !>
+    !> Returns the next entry in the hash table associated with iterator `it` as 
+    !> a pair of key and tree node in `k` and `v` and returns `.true.`.
+    !> Once the iterator is exhausted, `.false.` is returned.
+    !>
+    !> @note If the associated hash table is modified during traversal,
+    !> behaviour is undefined.
+    !>
+    function htable_iterator_next(it, k, v)
+      use module_debug
+      implicit none
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      type(t_htable_iterator), intent(inout) :: it
+      integer*8, intent(out) :: k
+      type(t_tree_node), pointer, intent(out) :: v
+
+      logical htable_iterator_next
+
+      DEBUG_ASSERT(associated(it%t))
+      DEBUG_ASSERT(htable_allocated(it%t))
+      do while (it%i <= ubound(it%t%buckets, dim = 1))
+        if (htable_entry_is_valid(it%t%buckets(it%i))) then 
+          htable_iterator_next = .true.
+          k    =  it%t%buckets(it%i)%key
+          v    => it%t%buckets(it%i)%val
+          it%i =  it%i + 1_8
+          return
+        end if
+
+        it%i = it%i + 1_8
+      end do
+
+      htable_iterator_next = .false.
+      k =  HTABLE_KEY_EMPTY
+      v => null()
+    end function htable_iterator_next
+
+
+    !>
+    !> performs a sanity check of the internals of hash table `t`. if an error is
+    !> encountered, the whole hash table is dumped to disk.
+    !>
+    function htable_check(t, caller)
+      use module_debug
+      use module_tree_node
+      implicit none
+
+      logical :: htable_check
+      type(t_htable), intent(in) :: t
+      character(*), intent(in) :: caller
+
+      integer*8 :: i, nentries_check, sum_unused_check
+
+      call pepc_status('CHECK TABLE')
+      DEBUG_ASSERT(htable_allocated(t))
+
+      htable_check = .true.
+      nentries_check   = count(t%buckets(:)%key /= HTABLE_KEY_EMPTY)
+      sum_unused_check = t%maxentries - HTABLE_FREE_LO - &
+        count(t%buckets(HTABLE_FREE_LO:)%key /= HTABLE_KEY_EMPTY)
+      
+      do i = lbound(t%point_free, dim = 1), ubound(t%point_free, dim = 1)
+        if (t%point_free(i) /= -1_8) then
+          if (t%point_free(i) < lbound(t%free_addr, dim = 1) .or. &
+              t%point_free(i) > ubound(t%free_addr, dim = 1)) then
+            DEBUG_WARNING("(2a,/,a,i0,a,i0,a,i0)", "htable_check() called from ", caller, " point_free(", i, ") out of bounds of free_addr(", lbound(t%free_addr, dim = 1), ":", ubound(t%free_addr, dim = 1),")")
+            htable_check = .false.
+          else if (t%free_addr(t%point_free(i)) /= i) then
+            DEBUG_WARNING("(2a,/,a,i0,a,i0)", "htable_check() called from ", caller, " free_addr(point_free(", i, ")) is ", t%free_addr(t%point_free(i)))
+            htable_check = .false.
+          end if
+        end if
+      end do
+
+      if (nentries_check /= t%nentries) then
+        DEBUG_WARNING("(2a,/,a,i0,a,i0)", "htable_check() called from ", caller, "nentries is ", t%nentries, " should be ", nentries_check)
+        htable_check = .false.
+      end if
+
+      if (sum_unused_check /= t%sum_unused) then
+        DEBUG_WARNING("(2a,/,a,i0,a,i0)", "htable_check() called from ", caller, "sum_unused is ", t%sum_unused, " should be ", sum_unused_check)
+        htable_check = .false.
+      end if
+    end function htable_check
+
+
     !>
     !> Print tree structure from hash table to ipefile
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine diagnose_tree(particles)
+    subroutine htable_dump(t, particles)
         use treevars
         use module_pepc_types
         use module_spacefilling
         use module_utils
-        use module_debug, only : debug_ipefile_open, debug_ipefile_close, debug_ipefile, pepc_status
+        use module_debug
+        use module_tree_node
         implicit none
 
-        type(t_particle), optional, intent(in) :: particles(1:npp)
-        integer*8, dimension(ntwig) :: node_twig      ! twig-nodes
-        integer*8, dimension(nleaf) :: node_leaf      ! leaf-nodes
+        type(t_htable), intent(in) :: t
+        type(t_particle), optional, intent(in) :: particles(:)
 
         character(1) :: collision
-        integer :: i
+        integer*8 :: i
 
         call pepc_status('DIAGNOSE')
-
+        DEBUG_ASSERT(htable_allocated(t))
         call debug_ipefile_open()
 
         ! output hash table
 
         write(debug_ipefile,'(/a)') 'Hash table'
 
-        write(debug_ipefile,'(164x,a35)') &
+        write(debug_ipefile,'(153x,a35)') &
                     "IS_FILL_NODE              ", &
                     "|IS_BRANCH_NODE           ", &
                     "||HAS_REMOTE_CONTRIBUTIONS", &
@@ -584,12 +613,11 @@ module module_htable
                     "|||||CHILDREN_AVAILABLE   ", &
                     "||||||REQUEST_POSTED      "
 
-        write(debug_ipefile,'(5(x,a10),3(x,a22),x,a14,x,a10,4x,a5,a30,/,173("-"),7("V")," 76543210")') &
+        write(debug_ipefile,'(4(x,a10),3(x,a22),x,a14,x,a10,4x,a5,a30,/,162("-"),7("V")," 76543210")') &
                      'entry_10', &
                      'entry_8', &
                      'owner', &
                      'level', &
-                     'node',  &
                      'key_8', &
                      'key_10', &
                      'parent_8', &
@@ -601,71 +629,61 @@ module module_htable
         ! write(debug_ipefile,'(154x,a)') " 3      .   2    .     1  .        "
         ! write(debug_ipefile,'(154x,a)') "10987654.32109876.54321098.76543210"
 
-        do i=0,maxaddress
-            if (htable_entry_is_valid(i)) then
-              ! flag  collisions
-              if (htable(i)%link/= -1 ) then
-                collision="C"
-              else
-                collision=" "
-              endif
+        do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
+          if (htable_entry_is_valid(t%buckets(i))) then
+            ! flag  collisions
+            if (t%buckets(i)%link /= -1_8 ) then
+              collision="C"
+            else
+              collision=" "
+            end if
 
-              write (debug_ipefile,'(x,i10,x,o10,3(x,i10),x,o22,x,i22,x,o22,x,a1,x,i12,x,i10,4x,3(b8.8,"."),b8.8)') &
-                      i,                   &
-                      i,                   &
-                      htable(i)%owner,     &
-                      level_from_key(htable(i)%key), &
-                      htable(i)%node,      &
-                      htable(i)%key,       &
-                      htable(i)%key,       &
-                      parent_key_from_key(htable(i)%key), &
-                      collision,           &
-                      htable(i)%link,      &
-                      htable(i)%leaves,    &
-                      ishft(iand(htable(i)%childcode, Z'FF000000'), -24), &
-                      ishft(iand(htable(i)%childcode, Z'00FF0000'), -16), &
-                      ishft(iand(htable(i)%childcode, Z'0000FF00'), -08), &
-                      ishft(iand(htable(i)%childcode, Z'000000FF'), -00)
-           end if
+            write (debug_ipefile,'(x,i10,x,o10,2(x,i10),x,o22,x,i22,x,o22,x,a1,x,i12,x,i10,4x,3(b8.8,"."),b8.8)') &
+                    i, &
+                    i, &
+                    t%buckets(i)%val%owner, &
+                    level_from_key(t%buckets(i)%key), &
+                    t%buckets(i)%key, &
+                    t%buckets(i)%key, &
+                    parent_key_from_key(t%buckets(i)%key), &
+                    collision, &
+                    t%buckets(i)%link, &
+                    t%buckets(i)%val%leaves, &
+                    ishft(iand(t%buckets(i)%val%flags, Z'FF000000'), -24), &
+                    ishft(iand(t%buckets(i)%val%flags, Z'00FF0000'), -16), &
+                    ishft(iand(t%buckets(i)%val%flags, Z'0000FF00'), -08), &
+                    ishft(iand(t%buckets(i)%val%flags, Z'000000FF'), -00)
+          end if
         end do
 
         write (debug_ipefile,'(///a)') 'Tree structure'
 
-        ! get node indices of twig nodes from hash table
-        node_twig(  1:ntwig)   = pack(htable(0:maxaddress)%node,mask=htable(0:maxaddress)%node<0)
-        call sort(node_twig(:))
+        write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Twigs from hash-table', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
-        write(debug_ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Twigs from hash-table', 'node', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
-
-        do i=ntwig,1,-1
-          write(debug_ipefile,'(x,i10,x)',advance='no') node_twig(i)
-          write(debug_ipefile,*) tree_nodes(node_twig(i))
+        do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
+          if (htable_entry_is_valid(t%buckets(i)) .and. .not. tree_node_is_leaf(t%buckets(i)%val)) then
+            write(debug_ipefile,*) t%buckets(i)%val%interaction_data
+          end if
         end do
 
-        ! get node indices of leaf nodes from hash table
-        node_leaf(  1:nleaf)   = pack(htable(0:maxaddress)%node,mask=htable(0:maxaddress)%node>0)
-        call sort(node_leaf(:))
+        write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Leaves from hash-table', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
-        write(debug_ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Leaves from hash-table', 'node', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
-
-        do i=1,nleaf
-          write(debug_ipefile,'(x,i10,x)',advance='no') node_leaf(i)
-          write(debug_ipefile,*) tree_nodes(node_leaf(i))
+        do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
+          if (htable_entry_is_valid(t%buckets(i)) .and. tree_node_is_leaf(t%buckets(i)%val)) then
+            write(debug_ipefile,*) t%buckets(i)%val%interaction_data
+          end if
         end do
 
         if (present(particles)) then
           ! local particles
           write(debug_ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Local particles', 'index', 'data (see module_module_pepc_types::t_particle for meaning of the columns)'
 
-          do i=1,npp
+          do i = 1_8, ubound(particles, 1)
             write(debug_ipefile,'(x,i10,x)',advance='no') i
             write(debug_ipefile,*) particles(i)
           end do
-        endif
+        end if
 
         call debug_ipefile_close()
-
-    end subroutine diagnose_tree
-
-
+    end subroutine htable_dump
 end module module_htable

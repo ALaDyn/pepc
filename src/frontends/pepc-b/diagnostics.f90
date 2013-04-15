@@ -36,7 +36,6 @@ subroutine diagnostics
   use module_laser
   use module_diagnostics
   use module_io
-  use module_gle
 
   implicit none
   include 'mpif.h'
