@@ -150,11 +150,12 @@ module module_tree_node
       type(t_tree_node_package), intent(out) :: p
 
       p%key = n%key
-      p%flags = n%flags
+      p%flags = iand(n%flags, TREE_NODE_CHILDBYTE)! Catch lowest 8 bits of childbyte - filter off REQUESTED and HERE flags etc.
       p%leaves = n%leaves
       p%owner = n%owner
       p%level = n%level
       p%interaction_data = n%interaction_data
+      
     end subroutine tree_node_pack
 
 

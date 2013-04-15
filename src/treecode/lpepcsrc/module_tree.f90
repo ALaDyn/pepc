@@ -28,16 +28,17 @@ module module_tree
     use module_comm_env, only: t_comm_env
     use module_domains, only: t_decomposition
     use module_atomic_ops, only: t_atomic_int
-    use module_pepc_types, only: t_tree_node, t_request
+    use module_pepc_types, only: t_tree_node, t_request_eager
     use, intrinsic :: iso_c_binding
     implicit none
     private
 
     !> data type for communicator request queue
     type, public :: t_request_queue_entry
-      type(t_request) :: request
       type(t_tree_node), pointer :: node
-      integer   :: owner
+      integer :: owner
+      logical :: eager_request
+      type(t_request_eager) :: request
     end type
 
     integer, public, parameter :: TREE_COMM_ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
@@ -83,6 +84,8 @@ module module_tree
 
       integer*8 :: nintmax     !< maximum number of interactions
       
+      real*8, allocatable :: boxlength2(:) !< precomputed square of maximum edge length of boxes for different levels - used for MAC evaluation
+      
       type(t_box) :: bounding_box               !< bounding box enclosing all particles contained in the tree
       type(t_htable) :: node_storage            !< hash table in which tree nodes are stored for rapid retrieval
       type(t_comm_env) :: comm_env              !< communication environment over which the tree is distributed
@@ -118,7 +121,7 @@ module module_tree
     !> is used.
     !>
     subroutine tree_create(t, nl, n, comm, comm_env)
-      use treevars, only: interaction_list_length_factor, MPI_COMM_lpepc, np_mult
+      use treevars, only: interaction_list_length_factor, MPI_COMM_lpepc, np_mult, nlev
       use module_htable, only: htable_create
       use module_interaction_specific, only: get_number_of_interactions_per_particle
       use module_comm_env, only: comm_env_dup, comm_env_mirror
@@ -133,6 +136,7 @@ module module_tree
       type(t_comm_env), optional, intent(in) :: comm_env !< A communication environment
 
       integer*8 :: maxaddress
+      integer :: i
 
       call pepc_status('ALLOCATE TREE')
       DEBUG_ASSERT(.not. tree_allocated(t))
@@ -176,6 +180,13 @@ module module_tree
       end if
 
       call tree_communicator_create(t%communicator)
+      
+      ! Preprocessed box sizes for each level
+      allocate(t%boxlength2(0:nlev))
+      t%boxlength2(0) = maxval(t%bounding_box%boxsize)**2
+      do i = 1, nlev
+        t%boxlength2(i) =  t%boxlength2(i-1)/4._8
+      end do
 
       call timer_stop(t_allocate)
     end subroutine tree_create
@@ -196,6 +207,7 @@ module module_tree
       call pepc_status('DEALLOCATE TREE')
       DEBUG_ASSERT(tree_allocated(t))
 
+      deallocate(t%boxlength2)
       call tree_communicator_destroy(t%communicator)
       call htable_destroy(t%node_storage)
       call comm_env_destroy(t%comm_env)

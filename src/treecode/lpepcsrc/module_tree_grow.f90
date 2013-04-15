@@ -247,9 +247,6 @@ module module_tree_grow
 
     do i = 1, num_local_branch_keys
       call tree_lookup_node_critical(t, local_branch_keys(i), local_branch_nodes(i)%p, 'tree_exchange_branches()')
-      ! additionally, we mark all local branches as branches since this is only done for remote branches during unpack
-      ! (is used for fill node identification)
-      local_branch_nodes(i)%p%flags = ibset(local_branch_nodes(i)%p%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)
     end do
 
     call tree_exchange(t, local_branch_nodes, bn)
@@ -258,11 +255,10 @@ module module_tree_grow
     deallocate(local_branch_keys, local_branch_nodes)
 
     do i = 1, t%nbranch
+      ! after clearing all bits we have to set the flag for branches again to propagate this property upwards during global buildup
+      bn(i)%p%flags = ibset(bn(i)%p%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)
+      
       if (bn(i)%p%owner /= t%comm_env%rank) then
-        ! delete all custom flags from incoming nodes (e.g. TREE_NODE_FLAG_CHILDREN_AVAILABLE)
-        bn(i)%p%flags = IAND(bn(i)%p%flags, TREE_NODE_CHILDBYTE)
-        ! after clearing all bits we have to set the flag for branches again to propagate this property upwards during global buildup
-        bn(i)%p%flags = ibset(bn(i)%p%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)
         ! additionally, we mark all remote branches as remote nodes (this information is propagated upwards later)
         bn(i)%p%flags = ibset(bn(i)%p%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
       end if
