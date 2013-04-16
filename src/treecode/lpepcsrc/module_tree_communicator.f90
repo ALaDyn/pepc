@@ -220,7 +220,7 @@ module module_tree_communicator
     use module_tree, only: t_tree
     use module_pepc_types, only: t_tree_node
     use module_atomic_ops, only: atomic_mod_increment_and_fetch_int, &
-      atomic_write_barrier
+      atomic_write_barrier, atomic_load_int
     use module_tree_node
     use module_debug
     implicit none
@@ -246,7 +246,7 @@ module module_tree_communicator
     ! thread-safe way of reserving storage for our request
     local_queue_bottom = atomic_mod_increment_and_fetch_int(t%communicator%req_queue_bottom, TREE_COMM_REQUEST_QUEUE_LENGTH)
 
-    if (local_queue_bottom == t%communicator%req_queue_top) then
+    if (local_queue_bottom == atomic_load_int(t%communicator%req_queue_top)) then
       DEBUG_ERROR(*, "Issue with request sending queue: TREE_COMM_REQUEST_QUEUE_LENGTH is too small: ", TREE_COMM_REQUEST_QUEUE_LENGTH)
     end if
 
@@ -440,7 +440,7 @@ module module_tree_communicator
   !>
   subroutine send_requests(t)
     use module_tree, only: t_tree
-    use module_atomic_ops, only: atomic_load_int, atomic_read_barrier
+    use module_atomic_ops, only: atomic_load_int, atomic_store_int, atomic_read_barrier
     use module_debug
     implicit none
     include 'mpif.h'
@@ -452,24 +452,24 @@ module module_tree_communicator
 
     tsend = MPI_WTIME()
 
-    do while (t%communicator%req_queue_top .ne. atomic_load_int(t%communicator%req_queue_bottom))
-      tmp_top = mod(t%communicator%req_queue_top, TREE_COMM_REQUEST_QUEUE_LENGTH) + 1
+    do while (atomic_load_int(t%communicator%req_queue_top) .ne. atomic_load_int(t%communicator%req_queue_bottom))
+      tmp_top = mod(atomic_load_int(t%communicator%req_queue_top), TREE_COMM_REQUEST_QUEUE_LENGTH) + 1
 
       ! first check whether the entry is actually valid	  
       if (t%communicator%req_queue(tmp_top)%owner >= 0) then
-        t%communicator%req_queue_top = tmp_top
         call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
         if (tree_comm_debug) then
-          DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)', t%comm_env%rank, t%communicator%req_queue_top, t%communicator%req_queue(t%communicator%req_queue_top)%request% key, t%communicator%req_queue(t%communicator%req_queue_top)%owner)
+          DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)', t%comm_env%rank, tmp_top, t%communicator%req_queue(tmp_top)%request% key, t%communicator%req_queue(tmp_top)%owner)
         end if
 
-        if (send_request(t, t%communicator%req_queue(t%communicator%req_queue_top))) then
+        if (send_request(t, t%communicator%req_queue(tmp_top))) then
           t%communicator%request_balance = t%communicator%request_balance + 1
         end if
 
         ! we have to invalidate this request queue entry. this shows that we actually processed it and prevents it from accidentially being resent after the req_queue wrapped around
-        t%communicator%req_queue(t%communicator%req_queue_top)%owner = -1
+        t%communicator%req_queue(tmp_top)%owner = -1
+        call atomic_store_int(t%communicator%req_queue_top, tmp_top)
       else
         ! the next entry is not valid (obviously it has not been stored completely until now -> we abort here and try again later
         exit

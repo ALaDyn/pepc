@@ -47,8 +47,8 @@ module module_tree
     type, public :: t_tree_communicator
       ! request queue
       type(t_request_queue_entry) :: req_queue(TREE_COMM_REQUEST_QUEUE_LENGTH)
-      integer :: req_queue_top !< position of queue top in array; pushed towards bottom by communicator only when sending
       type(t_atomic_int), pointer :: req_queue_bottom !< position of queue bottom in array; pushed away from top by tree users
+      type(t_atomic_int), pointer :: req_queue_top !< position of queue top in array; pushed towards bottom by communicator only when sending
 
       ! counters and timers
       integer*8 :: comm_loop_iterations(3) !< number of comm loop iterations (total, sending, receiving)
@@ -234,12 +234,13 @@ module module_tree
       c%timings_comm = 0.
       
       call atomic_allocate_int(c%req_queue_bottom)
-      if (.not. associated(c%req_queue_bottom)) then
+      call atomic_allocate_int(c%req_queue_top)
+      if (.not. (associated(c%req_queue_bottom) .and. associated(c%req_queue_top))) then
         DEBUG_ERROR(*, "atomic_allocate_int() failed!")
       end if
       call atomic_store_int(c%req_queue_bottom, 0)
+      call atomic_store_int(c%req_queue_top, 0)
 
-      c%req_queue_top =  0
       c%request_balance =  0
       c%req_queue(:)%owner = -1 ! used in send_requests() to ensure that only completely stored entries are sent form the list
       c%sum_ships = 0
@@ -277,6 +278,7 @@ module module_tree
       call pthreads_free_thread(c%comm_thread)
       c%comm_thread = c_null_ptr
       call atomic_deallocate_int(c%req_queue_bottom)
+      call atomic_deallocate_int(c%req_queue_top)
     end subroutine tree_communicator_destroy
 
 
