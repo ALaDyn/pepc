@@ -151,18 +151,4 @@ module pthreads_stuff
 
     write(getfullid,'("{", I8, ".", I8, "}")') get_my_pid(), get_my_tid()
   end function
-
-
-  subroutine error_on_fail(iret, msg)
-    use module_debug
-    use, intrinsic :: iso_c_binding
-    implicit none
-    integer( kind= c_int) :: iret
-    character(*), intent(in) :: msg
-
-    if (iret .ne. 0) then
-      DEBUG_ERROR('("[",a,"] iret = ", I0)', msg, iret)
-    end if
-  end subroutine error_on_fail
-
 end module pthreads_stuff

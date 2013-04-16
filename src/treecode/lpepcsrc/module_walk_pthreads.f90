@@ -369,7 +369,7 @@ module module_walk
 
 
   subroutine walk_hybrid()
-    use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread, error_on_fail
+    use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread
     use module_debug
     use, intrinsic :: iso_c_binding
     implicit none
@@ -387,13 +387,12 @@ module module_walk
     ! start the worker threads...
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
-      call error_on_fail(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith))), &
-        "walk_hybrid:pthread_create. Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
+      DEBUG_ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith))), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
     end do
 
     ! ... and wait for work thread completion
     do ith = 1, num_walk_threads
-      call error_on_fail(pthreads_jointhread(thread_handles(ith)), "walk_schedule_thread_inner:pthread_join")
+      DEBUG_ERROR_ON_FAIL(pthreads_jointhread(thread_handles(ith)))
 
       if (dbg(DBG_WALKSUMMARY)) then
         DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith))
@@ -506,14 +505,6 @@ module module_walk
     end do
     deallocate(thread_handles)
   end subroutine uninit_walk_data
-
-
-  subroutine comm_sched_yield()
-    use pthreads_stuff
-    implicit none
-
-    call error_on_fail(pthreads_sched_yield(), "pthreads_sched_yield()")
-  end subroutine comm_sched_yield
 
 
   function walk_worker_thread(arg) bind(c)
@@ -671,7 +662,7 @@ module module_walk
     my_threaddata%finished = .true.
 
     walk_worker_thread = c_null_ptr
-    call error_on_fail(pthreads_exitthread(), "walk_worker_thread:pthread_exit")
+    DEBUG_ERROR_ON_FAIL(pthreads_exitthread())
 
     contains
   
@@ -748,7 +739,7 @@ module module_walk
       implicit none
       ! after processing a number of particles: handle control to other (possibly comm) thread
       if (same_core_as_communicator) then
-          call comm_sched_yield()
+        DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
       end if
     end subroutine
   end function walk_worker_thread
