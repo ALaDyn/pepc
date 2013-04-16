@@ -469,9 +469,8 @@ module module_tree
     !> pointers.
     function tree_node_get_parent(t, n, p)
       use module_pepc_types, only: t_tree_node, kind_node
-      use module_tree_node, only: tree_node_is_root
+      use module_tree_node, only: tree_node_is_root, NODE_INVALID
       use module_spacefilling, only: parent_key_from_key
-      use module_htable, only: NODE_INVALID
       use module_debug
       implicit none
 
@@ -501,7 +500,7 @@ module module_tree
       use module_pepc_types, only: kind_node
       use treevars, only: idim
       use module_debug
-      use module_htable, only: NODE_INVALID
+      use module_tree_node, only: NODE_INVALID
       implicit none
 
       type(t_tree), intent(inout) :: t
@@ -585,9 +584,9 @@ module module_tree
       contains
 
       recursive subroutine tree_check_helper(nid)
-        use module_tree_node, only: tree_node_is_leaf, tree_node_get_first_child, tree_node_get_next_sibling
+        use module_tree_node, only: tree_node_is_leaf, tree_node_get_first_child, &
+          tree_node_get_next_sibling, NODE_INVALID
         use module_pepc_types, only: t_tree_node
-        use module_htable, only: NODE_INVALID
         implicit none
 
         integer(kind_node), intent(in) :: nid

@@ -382,7 +382,6 @@ module module_tree_communicator
     use module_spacefilling, only: parent_key_from_key
     use module_atomic_ops, only: atomic_write_barrier
     use module_debug
-    use module_htable, only: NODE_INVALID
     implicit none
     include 'mpif.h'
 

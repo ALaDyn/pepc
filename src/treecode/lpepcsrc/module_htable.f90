@@ -26,13 +26,13 @@
 !>
 module module_htable
     use module_pepc_types, only: t_tree_node, kind_node
+    use module_tree_node, only: NODE_INVALID
     implicit none
     private
 
     integer*8, public, parameter :: HTABLE_KEY_INVALID = -1_8
     integer*8, public, parameter :: HTABLE_KEY_EMPTY   =  0_8
     integer*8, parameter :: HTABLE_FREE_LO = 1024_8 !< min address allowed for resolving collisions (from 4th level up)
-    integer(kind_node), public, parameter :: NODE_INVALID = -1
 
     type :: t_htable_bucket
       integer*8                  :: key = HTABLE_KEY_EMPTY  !< the entry key
@@ -322,6 +322,7 @@ module module_htable
     !>
     function htable_lookup(t, k, v)
       use module_debug
+      use module_tree_node, only: NODE_INVALID
       implicit none
 
       type(t_htable), intent(in) :: t
@@ -508,6 +509,7 @@ module module_htable
     !>
     function htable_iterator_next(it, k, v)
       use module_debug
+      use module_tree_node, only: NODE_INVALID
       implicit none
 
       type(t_htable_iterator), intent(inout) :: it

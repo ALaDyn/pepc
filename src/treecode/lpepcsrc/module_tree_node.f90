@@ -22,7 +22,7 @@
 !>  Encapsulates functions for accessing, manipulating, and verifying hash table data
 !>
 module module_tree_node
-    use module_pepc_types, only: t_tree_node
+    use module_pepc_types, only: t_tree_node, kind_node
     implicit none
     private
 
@@ -35,6 +35,8 @@ module module_tree_node
     integer, public, parameter :: TREE_NODE_FLAG_IS_BRANCH_NODE           = 13 !< this bit is set for all branch nodes (set in tree_exchange)
     integer, public, parameter :: TREE_NODE_FLAG_IS_FILL_NODE             = 14 !< this bit is set for all nodes that are above (towards root) branch nodes
     integer, public, parameter :: TREE_NODE_CHILDBYTE                     = b'11111111' !< bits that contain the children information for this node
+
+    integer(kind_node), public, parameter :: NODE_INVALID = -1
 
     public tree_node_get_first_child
     public tree_node_get_next_sibling
@@ -59,7 +61,6 @@ module module_tree_node
     function tree_node_get_first_child(p, fc)
       use module_pepc_types, only: t_tree_node, kind_node
       use module_spacefilling, only: child_key_from_parent_key
-      use module_htable, only: NODE_INVALID
       use module_debug
       implicit none
 
@@ -84,7 +85,6 @@ module module_tree_node
     function tree_node_get_next_sibling(n, s)
       use module_pepc_types, only: t_tree_node, kind_node
       use module_debug
-      use module_htable, only: NODE_INVALID
       implicit none
 
       logical :: tree_node_get_next_sibling
@@ -208,7 +208,6 @@ module module_tree_node
 
     subroutine tree_node_unpack(p, n)
       use module_pepc_types, only: t_tree_node_package
-      use module_htable, only: NODE_INVALID
       implicit none
 
       type(t_tree_node_package), intent(in) :: p
@@ -220,7 +219,7 @@ module module_tree_node
       n%owner = p%owner
       n%level = p%level
       n%interaction_data = p%interaction_data
-      n%first_child = NODE_INVALID
+      n%first_child  = NODE_INVALID
       n%next_sibling = NODE_INVALID
     end subroutine tree_node_unpack
 

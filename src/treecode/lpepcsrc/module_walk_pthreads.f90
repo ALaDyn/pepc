@@ -757,7 +757,6 @@ module module_walk
     use module_mirror_boxes, only : spatial_interaction_cutoff
     use module_atomic_ops
     use module_pepc_types, only: t_tree_node, kind_node
-    use module_htable, only: NODE_INVALID
     implicit none
     include 'mpif.h'
 

@@ -274,7 +274,6 @@ module module_treediags
             use module_tree_node
             use module_tree, only: t_tree
             use module_pepc_types, only: kind_node
-            use module_htable, only: NODE_INVALID
             implicit none
 
             type(t_tree), intent(in) :: t

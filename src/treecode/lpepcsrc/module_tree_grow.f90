@@ -608,7 +608,6 @@ module module_tree_grow
       use module_tree_node
       use module_spacefilling, only: child_key_from_parent_key, is_ancestor_of_particle
       use module_interaction_specific, only: multipole_from_particle
-      use module_htable, only: NODE_INVALID
       implicit none
 
       type(t_tree), intent(inout) :: t !< tree in which to find the nodes
