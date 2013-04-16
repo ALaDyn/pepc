@@ -803,9 +803,9 @@ module module_walk
       ! but this does not always work (i.e. if theta > 0.7 or if keys and/or coordinates have
       ! been modified due to 'duplicate keys'-error)
       is_leaf = tree_node_is_leaf(walk_node)
-      maybe_parent = (in_central_box) .and. is_ancestor_of_particle(particle%key, walk_node%key, walk_node%level)
+      is_related = (in_central_box) .and. is_ancestor_of_particle(particle%key, walk_node%key, walk_node%level)
 
-      if (.not. (is_leaf .or. maybe_parent)) then ! A twig that is not an ancestor
+      if (.not. (is_leaf .or. is_related)) then ! A twig that is not an ancestor
         delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
         dist2 = DOT_PRODUCT(delta, delta)
         num_mac_evaluations = num_mac_evaluations + 1
@@ -814,13 +814,13 @@ module module_walk
         else ! MAC fails: resolve
           go to 3 ! resolve
         end if
-      else if (is_leaf .and. (.not. maybe_parent)) then ! Always interact with leaves
+      else if (is_leaf .and. (.not. is_related)) then ! Always interact with leaves
         delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
         dist2 = DOT_PRODUCT(delta, delta)
         go to 1 ! interact
-      else if ((.not. is_leaf) .and. maybe_parent) then ! This is a parent: resolve
+      else if ((.not. is_leaf) .and. is_related) then ! This is a parent: resolve
         go to 3 ! resolve
-      else if (is_leaf .and. maybe_parent) then ! self
+      else if (is_leaf .and. is_related) then ! self
         go to 2 ! ignore, but count
       end if
 

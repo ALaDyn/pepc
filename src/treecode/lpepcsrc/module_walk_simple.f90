@@ -72,7 +72,7 @@ module module_walk
 
 
   subroutine tree_walk(t, ps, twalk, twalk_loc, vbox)
-    use module_pepc_types, only: t_particle, t_tree_node
+    use module_pepc_types, only: t_particle, kind_node
     use module_tree, only: t_tree, tree_lookup_root
     use treevars, only: nlev
     use module_debug
@@ -85,7 +85,7 @@ module module_walk
     real*8, intent(inout) :: twalk_loc !< also time until completion
     real*8, intent(in) :: vbox(3) !< lattice vector
 
-    type(t_tree_node), pointer :: r
+    integer(kind_node) :: r
     type(t_particle), pointer :: p
     integer :: i
     integer*8 :: ni
@@ -126,55 +126,73 @@ module module_walk
       use module_tree_node, only: tree_node_children_available, tree_node_is_leaf, &
         tree_node_get_first_child, tree_node_get_next_sibling
       use pthreads_stuff, only: pthreads_sched_yield
+      use module_mirror_boxes, only: spatial_interaction_cutoff
       implicit none
 
-      type(t_tree_node), intent(inout) :: n
+      integer(kind_node), intent(in) :: n
 
-      type(t_tree_node), pointer :: s, ns
+      integer(kind_node) :: s, ns
       real*8 :: d2, d(3)
-      logical :: is_leaf, is_same_particle, is_ancestor
-      integer :: ierr
+      logical :: is_leaf, is_related
 
-      d = (p%x - vbox) - n%interaction_data%coc
-      d2 = dot_product(d, d)
+      is_leaf = tree_node_is_leaf(t%nodes(n))
+      is_related = in_central_box .and. is_ancestor_of_particle(p%key, t%nodes(n)%key, t%nodes(n)%level)
 
-      is_leaf = tree_node_is_leaf(n)
-      is_ancestor = in_central_box .and. is_ancestor_of_particle(p%key, n%key, n%level)
-      is_same_particle = is_ancestor .and. is_leaf
-      is_ancestor = is_ancestor .and. (.not. is_leaf)
-
-      if (is_same_particle) then ! ignore same particle
-        ni = ni + 1
-      else if ((.not. is_ancestor) .and. (is_leaf .or. mac(p, n%interaction_data, d2, b2(n%level)))) then ! mac ok -> interact
+      if (.not. (is_leaf .or. is_related)) then ! A twig that is not an ancestor
+        d = (p%x - vbox) - t%nodes(n)%interaction_data%coc
+        d2 = dot_product(d, d)
         mac_evaluations_local = mac_evaluations_local + 1.0_8
-        interactions_local = interactions_local + 1.0_8
-        call calc_force_per_interaction(p, n%interaction_data, n%key, d, d2, vbox, is_leaf)
-        ni = ni + n%leaves
-      else ! mac fails -> resolve
-        mac_evaluations_local = mac_evaluations_local + 1.0_8
-        if (.not. tree_node_children_available(n)) then
-          call tree_node_fetch_children(t, n)
-          do
-            ierr = pthreads_sched_yield()
-            if (tree_node_children_available(n)) then
-              call atomic_read_barrier()
-              exit
-            end if
-          end do
+        if (mac(p, t%nodes(n)%interaction_data, d2, b2(t%nodes(n)%level))) then ! MAC OK: interact
+          go to 1 ! interact
+        else ! MAC fails: resolve
+          go to 3 ! resolve
         end if
-
-        if (tree_node_get_first_child(n, ns)) then
-          do
-            s => ns
-            call tree_walk_single(s)
-            if (.not. tree_node_get_next_sibling(s, ns)) then
-              exit
-            end if
-          end do
-        else
-          DEBUG_ERROR(*, "walk_simple: unexpectedly, this twig had no children")
-        end if
+      else if (is_leaf .and. (.not. is_related)) then ! Always interact with leaves
+        d = (p%x - vbox) - t%nodes(n)%interaction_data%coc
+        d2 = dot_product(d, d)
+        go to 1 ! interact
+      else if ((.not. is_leaf) .and. is_related) then ! This is a parent: resolve
+        go to 3 ! resolve
+      else if (is_leaf .and. is_related) then ! self
+        go to 2 ! ignore, but count
       end if
+
+      DEBUG_ASSERT_MSG(.false., *, "The block of ifs above should be exhaustive!")
+      return
+
+      ! interact
+1     if (all(abs(d) < spatial_interaction_cutoff)) then
+        call calc_force_per_interaction(p, t%nodes(n)%interaction_data, t%nodes(n)%key, d, d2, vbox, is_leaf)
+        interactions_local = interactions_local + 1.0_8
+      end if
+      ! count partner
+2     ni = ni + t%nodes(n)%leaves
+      return
+
+      ! resolve
+3     if (.not. tree_node_children_available(t%nodes(n))) then
+        call tree_node_fetch_children(t, t%nodes(n))
+        do
+          DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+          if (tree_node_children_available(t%nodes(n))) then
+            call atomic_read_barrier()
+            exit
+          end if
+        end do
+      end if
+
+      if (tree_node_get_first_child(t%nodes(n), ns)) then
+        do
+          s = ns
+          call tree_walk_single(s)
+          if (.not. tree_node_get_next_sibling(t%nodes(s), ns)) then
+            exit
+          end if
+        end do
+      else
+        DEBUG_ERROR(*, "walk_simple: unexpectedly, this twig had no children")
+      end if
+      return
     end subroutine tree_walk_single
   end subroutine tree_walk
 end module module_walk
