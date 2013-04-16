@@ -143,7 +143,7 @@ module module_tree_communicator
   subroutine tree_communicator_start(t)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_createthread
+    use pthreads_stuff, only: pthreads_createthread, error_on_fail
     use module_debug
     use module_timings
     implicit none
@@ -164,10 +164,8 @@ module module_tree_communicator
     t%communicator%comm_thread_stopping = .false.
     t%communicator%comm_thread_stop_requested = .false.
     tp = c_loc(t)
-    res = pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp)
-    if (0 /= res) then
-      DEBUG_ERROR(*, "pthreads_createthread() failed with return value: ", res)
-    end if
+    call error_on_fail(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp), &
+           'tree_communicator_start:pthreads_createthread()')
     t%communicator%comm_thread_running = .true.
   end subroutine tree_communicator_start
 
@@ -182,7 +180,7 @@ module module_tree_communicator
   !>
   subroutine tree_communicator_stop(t)
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_jointhread
+    use pthreads_stuff, only: pthreads_jointhread, error_on_fail
     use module_debug
     use module_timings
     implicit none
@@ -192,9 +190,7 @@ module module_tree_communicator
 
     DEBUG_ASSERT(t%communicator%comm_thread_running)
     t%communicator%comm_thread_stop_requested = .true.
-    if (0 /= pthreads_jointhread(t%communicator%comm_thread)) then
-      DEBUG_ERROR(*, "pthreads_jointhread() failed!")
-    end if
+    call error_on_fail(pthreads_jointhread(t%communicator%comm_thread), 'tree_communicator_stop:pthreads_jointhread()')
     t%communicator%comm_thread_stopping = .false.
     t%communicator%comm_thread_running = .false.
 
@@ -497,7 +493,7 @@ module module_tree_communicator
   function run_communication_loop(arg) bind(c)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_sched_yield, get_my_core
+    use pthreads_stuff, only: pthreads_sched_yield, get_my_core, error_on_fail, pthreads_exitthread
     use module_debug
     implicit none
     include 'mpif.h'
@@ -566,10 +562,7 @@ module module_tree_communicator
       !end if
 
       ! currently, there is no further communication request --> other threads may do something interesting
-      ierr = pthreads_sched_yield()
-      if (.not. ierr == 0) then
-        DEBUG_ERROR(*, "pthreads_sched_yield failed with status: ", ierr)
-      end if
+      call error_on_fail(pthreads_sched_yield(), 'run_communication_loop:pthreads_sched_yield')
 
     end do ! while (.not. t%communicator%comm_thread_stopping)
 
@@ -578,6 +571,8 @@ module module_tree_communicator
     t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP) = MPI_WTIME() - t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP)
 
     run_communication_loop = c_null_ptr
+    call error_on_fail(pthreads_exitthread(), "run_communication_loop:pthread_exit")
+    
   end function run_communication_loop
 
 
