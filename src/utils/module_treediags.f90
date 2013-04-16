@@ -269,7 +269,6 @@ module module_treediags
 
           recursive subroutine collect_branches(n)
             use module_tree_node
-            use module_tree, only: tree_node_get_first_child, tree_node_get_next_sibling
             implicit none
 
             type(t_tree_node), intent(in) :: n
@@ -282,10 +281,10 @@ module module_treediags
             if (btest(n%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)) then
               i = i + 1
               branch_keys(i) = n%key
-            else if (tree_node_get_first_child(t, n, s)) then
+            else if (tree_node_get_first_child(n, s)) then
               do
                 call collect_branches(s)
-                if (.not. tree_node_get_next_sibling(t, s, ns)) then
+                if (.not. tree_node_get_next_sibling(s, ns)) then
                   exit
                 end if
                 s => ns

@@ -301,9 +301,8 @@ module module_tree_communicator
   !> Answer a request for node data.
   !>
   subroutine answer_request(t, request, ipe_sender)
-    use module_tree, only: t_tree, tree_node_get_first_child, &
-      tree_lookup_node_critical, tree_node_get_next_sibling
-    use module_tree_node, only: tree_node_pack
+    use module_tree, only: t_tree, tree_lookup_node_critical
+    use module_tree_node, only: tree_node_pack, tree_node_get_first_child, tree_node_get_next_sibling
     use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, t_request
     use module_debug
     use module_tree_node
@@ -323,7 +322,7 @@ module module_tree_communicator
     end if
 
     call tree_lookup_node_critical(t, request%key, n, 'WALK:answer_request_simple:parentkey')
-    if (tree_node_get_first_child(t, n, nn)) then
+    if (tree_node_get_first_child(n, nn)) then
       nchild = 0
 
       do
@@ -333,7 +332,7 @@ module module_tree_communicator
         call tree_node_pack(n, children_to_send(nchild))
         children_to_send(nchild)%flags = int(iand( children_to_send(nchild)%flags, TREE_NODE_CHILDBYTE ))! Catch lowest 8 bits of childbyte - filter off requested and here flags
 
-        if (.not. tree_node_get_next_sibling(t, n, nn)) then; exit; end if
+        if (.not. tree_node_get_next_sibling(n, nn)) then; exit; end if
       end do
       
       ! Ship child data back to PE that requested it

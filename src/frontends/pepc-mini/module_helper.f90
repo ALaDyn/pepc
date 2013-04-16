@@ -85,7 +85,8 @@ module helper
     character(255)     :: para_file
     logical            :: read_para_file
 
-    namelist /pepcmini/ tnp, nt, dt, particle_output, domain_output, particle_filter, particle_test, particle_probe, diag_interval, vessel_ez
+    namelist /pepcmini/ tnp, nt, dt, particle_output, domain_output, particle_filter, particle_test, &
+      particle_probe, diag_interval, vessel_ez, periodicity, spatial_interaction_cutoff
     
     ! set default parameter values
     tnp             = 1441
@@ -356,7 +357,7 @@ module helper
   
     call random(trnd)
   
-    tindx = int(trnd * (np-1)) + 1
+    tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
   
     call directforce(particles, np, tindx, tn, trslt, my_rank, n_ranks, MPI_COMM_WORLD)
   

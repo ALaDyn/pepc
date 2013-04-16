@@ -123,8 +123,8 @@ module module_walk
       use module_spacefilling, only: is_ancestor_of_particle
       use module_interaction_specific, only: mac, calc_force_per_interaction
       use module_tree_communicator, only: tree_node_fetch_children
-      use module_tree, only: tree_node_get_first_child, tree_node_get_next_sibling
-      use module_tree_node, only: tree_node_children_available, tree_node_is_leaf
+      use module_tree_node, only: tree_node_children_available, tree_node_is_leaf, &
+        tree_node_get_first_child, tree_node_get_next_sibling
       use pthreads_stuff, only: pthreads_sched_yield
       implicit none
 
@@ -163,11 +163,11 @@ module module_walk
           end do
         end if
 
-        if (tree_node_get_first_child(t, n, ns)) then
+        if (tree_node_get_first_child(n, ns)) then
           do
             s => ns
             call tree_walk_single(s)
-            if (.not. tree_node_get_next_sibling(t, s, ns)) then
+            if (.not. tree_node_get_next_sibling(s, ns)) then
               exit
             end if
           end do

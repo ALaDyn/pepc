@@ -99,8 +99,6 @@ module module_tree
     public tree_lookup_root
     public tree_lookup_node
     public tree_lookup_node_critical
-    public tree_node_get_first_child
-    public tree_node_get_next_sibling
     public tree_node_get_parent
     public tree_check
     public tree_stats
@@ -167,7 +165,7 @@ module module_tree
       if (np_mult > 0) then
         maxaddress = max(30_8 * t%nintmax + 4_8 * t%npart_me, 10000_8)
       else
-        maxaddress = int(abs(np_mult) * 10000_8, kind = 8)
+        maxaddress = int(abs(np_mult) * 10000._8, kind(1_8))
       end if
 
       call htable_create(t%node_storage, maxaddress)
@@ -453,62 +451,6 @@ module module_tree
 
 
     !>
-    !> Returns the first child of node `p` in tree `t`.
-    !>
-    !> If `p` has children that are locally available, returns `.true.` and `fc`
-    !> points to the child.
-    !> Otherwise, `.false.` is returned and `fc` points to `null()`.
-    !>
-    function tree_node_get_first_child(t, p, fc)
-      use module_pepc_types, only: t_tree_node
-      use module_tree_node, only: tree_node_is_leaf, &
-        tree_node_children_available, tree_node_has_child
-      use module_spacefilling, only: child_key_from_parent_key
-      use treevars, only: idim
-      use module_debug
-      implicit none
-
-      logical :: tree_node_get_first_child
-      type(t_tree), intent(in) :: t
-      type(t_tree_node), intent(in) :: p
-      type(t_tree_node), pointer, intent(out) :: fc
-
-      DEBUG_ASSERT(tree_allocated(t))
-      fc => p%first_child
-      tree_node_get_first_child = associated(fc)
-    end function tree_node_get_first_child
-
-
-    !>
-    !> Returns the next sibling of node `p` in tree `t`.
-    !>
-    !> If there is a next sibling to `n` in `t` returns `.true.` and `s` points
-    !> to the sibling node.
-    !> Otherwise `.false.` is returned and `s` points to `null()`.
-    !>
-    !> In this context, "next" is defined by the ordering of the node keys.
-    !>
-    function tree_node_get_next_sibling(t, n, s)
-      use module_pepc_types, only: t_tree_node
-      use module_tree_node, only: tree_node_has_child
-      use module_spacefilling, only: parent_key_from_key, &
-        child_key_from_parent_key, child_number_from_key
-      use treevars, only: idim
-      use module_debug
-      implicit none
-
-      logical :: tree_node_get_next_sibling
-      type(t_tree), intent(in) :: t
-      type(t_tree_node), intent(in) :: n
-      type(t_tree_node), pointer, intent(out) :: s
-
-      DEBUG_ASSERT(tree_allocated(t))
-      s => n%next_sibling
-      tree_node_get_next_sibling = associated(s)
-    end function tree_node_get_next_sibling
-
-
-    !>
     !> Returns the parent `p` of node `n` in tree `t`.
     !>
     !> If a parent exists, `.true.` is returned and `p` points to the parent.
@@ -545,7 +487,6 @@ module module_tree
     !> Do some quick checks on the tree structure
     !>
     function tree_check(t, callpoint)
-      use treevars, only: me
       use module_debug
       use module_pepc_types, only: t_tree_node
       use module_htable, only: htable_dump
@@ -602,7 +543,7 @@ module module_tree
       contains
 
       recursive subroutine tree_check_helper(n)
-        use module_tree_node, only: tree_node_is_leaf
+        use module_tree_node, only: tree_node_is_leaf, tree_node_get_first_child, tree_node_get_next_sibling
         implicit none
 
         type(t_tree_node), intent(in) :: n
@@ -625,10 +566,10 @@ module module_tree
           end if
         end if
 
-        if (tree_node_get_first_child(t, n, s)) then
+        if (tree_node_get_first_child(n, s)) then
           do
             call tree_check_helper(s)
-            if (.not. tree_node_get_next_sibling(t, s, ns)) then
+            if (.not. tree_node_get_next_sibling(s, ns)) then
               exit
             end if
             s => ns
@@ -698,8 +639,8 @@ module module_tree
         write (u,'(a50,3i12)') 'local # leaves, twigs, keys: ', t%nleaf_me, t%ntwig_me, t%nleaf_me + t%ntwig_me
         write (u,'(a50,3i12)') 'non-local # leaves, twigs, keys: ',t%nleaf - t%nleaf_me, t%ntwig - t%ntwig_me, t%nleaf + t%ntwig - t%nleaf_me - t%ntwig_me
         write (u,'(a50,3i12,f12.1,a6,i12)') 'final # leaves, twigs, keys, (max): ', t%nleaf, t%ntwig, t%nleaf + t%ntwig, &
-                  (t%nleaf + t%ntwig) / (.01 * htable_maxentries(t%node_storage)), ' % of ', htable_maxentries(t%node_storage)
-        write (u,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # keys: ',gmax_keys, gmax_keys/(.01 * htable_maxentries(t%node_storage)), ' % of  ', htable_maxentries(t%node_storage)
+                  real((t%nleaf + t%ntwig), kind(0._8)) / (.01 * real(htable_maxentries(t%node_storage), kind(0._8))), ' % of ', htable_maxentries(t%node_storage)
+        write (u,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # keys: ',gmax_keys, real(gmax_keys, kind(0._8))/(.01 * real(htable_maxentries(t%node_storage), kind(0._8))), ' % of  ', htable_maxentries(t%node_storage)
         write (u,*) '######## BRANCHES #########################################################################'
         write (u,'(a50,3i12)') '#branches local, max_global, min_global: ', t%nbranch_me, max_nbranch, min_nbranch
         write (u,'(a50,2i12)') '#branches global sum estimated, sum actual: ', branch_max_global, nbranch

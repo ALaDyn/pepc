@@ -67,6 +67,7 @@ module module_htable
     public htable_lookup
     public htable_lookup_critical
     public htable_remove_keys
+    public htable_remove_key
     public htable_clear
     public htable_destroy
     public htable_check
@@ -392,8 +393,15 @@ module module_htable
       type(t_htable), intent(inout) :: t
       integer*8, intent(in) :: key
 
+      integer*8 :: addr
+
       DEBUG_ASSERT(htable_allocated(t))
-      call htable_remove_keys(t, (/ key /), 1)
+      if (testaddr(t, key, addr)) then
+        t%buckets( addr )%key = HTABLE_KEY_INVALID
+      end if
+      
+      
+      
     end subroutine htable_remove_key
 
 
@@ -413,13 +421,10 @@ module module_htable
       integer, intent(in) :: num_keys
 
       integer :: i
-      integer*8 :: addr
 
       DEBUG_ASSERT(htable_allocated(t))
       do i = 1, num_keys
-        if (testaddr(t, keys(i), addr)) then
-          t%buckets( addr )%key = HTABLE_KEY_INVALID
-        end if
+        call htable_remove_key(t, keys(i))
       end do
 
     end subroutine

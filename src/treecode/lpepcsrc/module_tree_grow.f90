@@ -421,7 +421,7 @@ module module_tree_grow
     type(t_tree_node_ptr), allocatable :: sub_nodes(:), sorted_sub_nodes(:), parent_nodes(:)
     type(t_tree_node) :: parent_node
 
-    integer :: numnodes, ilevel, maxlevel, nsub, groupstart, groupend, i, j, nparent, nuniq
+    integer :: numnodes, ilevel, maxlevel, nsub, groupstart, groupend, i, nparent, nuniq
     integer*8 :: current_parent_key
 
     call pepc_status('BUILD TOWARDS ROOT')
@@ -611,7 +611,7 @@ module module_tree_grow
       type(t_tree_node), pointer :: inserted_node
       type(t_tree_node_ptr) :: child_nodes(8)
       integer*8 :: childkey
-      integer :: ip, ichild, childlevel, pstart, pend, nchild, child_number(8)
+      integer :: ip, ichild, childlevel, pstart, pend, nchild
 
       inserted_node => null()
 

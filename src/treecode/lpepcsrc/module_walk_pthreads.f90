@@ -914,8 +914,7 @@ module module_walk
 
 
     function todo_list_push_children(node) result(res)
-      use module_tree_node, only: tree_node_get_num_children
-      use module_tree, only: tree_node_get_first_child, tree_node_get_next_sibling
+      use module_tree_node, only: tree_node_get_num_children, tree_node_get_first_child, tree_node_get_next_sibling
       use module_debug
       implicit none
 
@@ -930,9 +929,9 @@ module module_walk
         res = .false.
       else
         todo_list_entries = todo_list_entries + nc
-        dummy = tree_node_get_first_child(walk_tree, node, todo_list(todo_list_entries - 1)%p)
+        dummy = tree_node_get_first_child(node, todo_list(todo_list_entries - 1)%p)
         do ic = 2, nc
-          dummy = tree_node_get_next_sibling(walk_tree, todo_list(todo_list_entries - ic + 1)%p, todo_list(todo_list_entries - ic)%p)
+          dummy = tree_node_get_next_sibling(todo_list(todo_list_entries - ic + 1)%p, todo_list(todo_list_entries - ic)%p)
         end do
 
         res = .true.

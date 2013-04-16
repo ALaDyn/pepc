@@ -36,6 +36,8 @@ module module_tree_node
     integer, public, parameter :: TREE_NODE_FLAG_IS_FILL_NODE             = 14 !< this bit is set for all nodes that are above (towards root) branch nodes
     integer, public, parameter :: TREE_NODE_CHILDBYTE                     = b'11111111' !< bits that contain the children information for this node
 
+    public tree_node_get_first_child
+    public tree_node_get_next_sibling
     public tree_node_is_leaf
     public tree_node_is_root
     public tree_node_children_available
@@ -47,6 +49,51 @@ module module_tree_node
     public tree_node_connect_children
 
     contains
+
+    !>
+    !> Returns the first child of node `p`.
+    !>
+    !> If `p` has children that are locally available, returns `.true.` and `fc`
+    !> points to the child.
+    !> Otherwise, `.false.` is returned and `fc` points to `null()`.
+    !>
+    function tree_node_get_first_child(p, fc)
+      use module_pepc_types, only: t_tree_node
+      use module_spacefilling, only: child_key_from_parent_key
+      use module_debug
+      implicit none
+
+      logical :: tree_node_get_first_child
+      type(t_tree_node), intent(in) :: p
+      type(t_tree_node), pointer, intent(out) :: fc
+
+      fc => p%first_child
+      tree_node_get_first_child = associated(fc)
+    end function tree_node_get_first_child
+
+
+    !>
+    !> Returns the next sibling of node `p`.
+    !>
+    !> If there is a next sibling to `n` returns `.true.` and `s` points
+    !> to the sibling node.
+    !> Otherwise `.false.` is returned and `s` points to `null()`.
+    !>
+    !> In this context, "next" is defined by the ordering of the node keys.
+    !>
+    function tree_node_get_next_sibling(n, s)
+      use module_pepc_types, only: t_tree_node
+      use module_debug
+      implicit none
+
+      logical :: tree_node_get_next_sibling
+      type(t_tree_node), intent(in) :: n
+      type(t_tree_node), pointer, intent(out) :: s
+
+      s => n%next_sibling
+      tree_node_get_next_sibling = associated(s)
+    end function tree_node_get_next_sibling
+
 
     !>
     !> checks whether `n` is a leaf or twig node
