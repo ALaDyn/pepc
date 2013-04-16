@@ -24,6 +24,7 @@
 module module_pepc_types
   use module_interaction_specific_types
   implicit none
+      integer, parameter :: kind_node = kind(1_4)
 
       integer :: MPI_TYPE_particle_data,     &
                  MPI_TYPE_tree_node_interaction_data,   &
@@ -54,15 +55,10 @@ module module_pepc_types
         integer :: owner  = -1
         integer :: level  = -1
         type(t_tree_node_interaction_data) :: interaction_data
-        type(t_tree_node), pointer :: first_child
-        type(t_tree_node), pointer :: next_sibling
+        integer(kind_node) :: first_child
+        integer(kind_node) :: next_sibling
       end type t_tree_node
  
-      !> A pointer to a tree node. Ah, Fortran!
-      type, public :: t_tree_node_ptr
-        type(t_tree_node), pointer :: p
-      end type t_tree_node_ptr
-
       !> Data structure for shipping tree nodes
       integer, private, parameter :: nprops_tree_node_package = 6
       type, public :: t_tree_node_package

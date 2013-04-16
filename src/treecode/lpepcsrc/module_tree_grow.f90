@@ -36,7 +36,7 @@ module module_tree_grow
   !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
   !>
   subroutine tree_grow(t, n, p, npl)
-    use module_pepc_types, only: t_particle, t_tree_node, t_tree_node_ptr
+    use module_pepc_types, only: t_particle, t_tree_node, kind_node
     use module_htable, only: htable_dump
     use module_timings
     use module_tree, only: t_tree, tree_create, tree_lookup_root, tree_check
@@ -56,9 +56,10 @@ module module_tree_grow
     integer, optional, intent(in) :: npl !< number of valid entries in p (local particles)
 
     type(t_particle) :: bp(2) 
-    type(t_tree_node), pointer :: root_node
+    integer(kind_node) :: root_node
+    type(t_tree_node), pointer :: root
     type(t_comm_env) :: tree_comm_env
-    type(t_tree_node_ptr), allocatable :: branch_nodes(:)
+    integer(kind_node), allocatable :: branch_nodes(:)
 
     call pepc_status('GROW TREE')
     !call MPI_BARRIER( MPI_COMM_lpepc, ierr)  ! Wait for everyone to catch up
@@ -85,9 +86,11 @@ module module_tree_grow
     call tree_build_from_particles(t, p, bp)
 
     call tree_lookup_root(t, root_node, 'libpepc_grow_tree:root node')
-    if (root_node%leaves .ne. size(p)) then
+    
+    root => t%nodes(root_node)
+    if (root%leaves .ne. size(p)) then
       call htable_dump(t%node_storage, p)
-      DEBUG_ERROR(*, 'did not find all its particles inside the tree after local tree buildup: root_node%leaves =', root_node%leaves, ' but size(particles) =', size(p))
+      DEBUG_ERROR(*, 'did not find all its particles inside the tree after local tree buildup: root_node%leaves =', root%leaves, ' but size(particles) =', size(p))
     end if
     call timer_stop(t_local)
 
@@ -113,9 +116,10 @@ module module_tree_grow
       call htable_dump(t%node_storage, p)
     end if
 
-    if (root_node%leaves .ne. t%npart) then
+    root => t%nodes(root_node)
+    if (root%leaves .ne. t%npart) then
       call htable_dump(t%node_storage, p)
-      DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: root_node%leaves =', root_node%leaves, ' but npart_total =', t%npart)
+      DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: root_node%leaves =', root%leaves, ' but npart_total =', t%npart)
     endif
 
     call timer_stop(t_fields_tree)
@@ -132,7 +136,7 @@ module module_tree_grow
   subroutine tree_exchange(t, local_branch_nodes, branch_nodes)
     use module_tree, only: t_tree, tree_lookup_node_critical, tree_insert_node
     use module_tree_node, only: tree_node_pack, tree_node_unpack
-    use module_pepc_types, only: t_tree_node, t_tree_node_ptr, t_tree_node_package, MPI_TYPE_tree_node_package
+    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, kind_node
     use module_debug, only : pepc_status
     use module_timings
     use module_debug
@@ -140,8 +144,8 @@ module module_tree_grow
     include 'mpif.h'
 
     type(t_tree), intent(inout) :: t !< the tree
-    type(t_tree_node_ptr), intent(in) :: local_branch_nodes(:) !< all local branch nodes
-    type(t_tree_node_ptr), intent(inout), allocatable :: branch_nodes(:) !< all branch nodes in the tree
+    integer(kind_node), intent(in) :: local_branch_nodes(:) !< all local branch nodes
+    integer(kind_node), intent(inout), allocatable :: branch_nodes(:) !< all branch nodes in the tree
 
     integer :: ierr
     integer :: i, j, nbranch, nbranch_sum
@@ -155,7 +159,7 @@ module module_tree_grow
     ! Pack local branches for shipping
     allocate(pack_mult(nbranch))
     do i = 1, nbranch
-      call tree_node_pack(local_branch_nodes(i)%p, pack_mult(i))
+      call tree_node_pack(t%nodes(local_branch_nodes(i)), pack_mult(i))
     end do
 
     call timer_stop(t_exchange_branches_pack)
@@ -194,12 +198,12 @@ module module_tree_grow
       if (get_mult(i)%owner /= t%comm_env%rank) then
         call tree_node_unpack(get_mult(i), unpack_node)
 
-        if (.not. tree_insert_node(t, unpack_node, branch_nodes(i)%p)) then
+        if (.not. tree_insert_node(t, unpack_node, branch_nodes(i))) then
           DEBUG_ERROR(*, "exchanged a node that is already in the local tree.")
         end if
       else
         j = j + 1
-        branch_nodes(i)%p => local_branch_nodes(j)%p
+        branch_nodes(i) = local_branch_nodes(j)
       end if
     end do
 
@@ -220,7 +224,7 @@ module module_tree_grow
   !>
   subroutine tree_exchange_branches(t, p, bp, bn)
     use module_tree, only: t_tree, tree_lookup_node_critical
-    use module_pepc_types, only: t_particle, t_tree_node_ptr
+    use module_pepc_types, only: t_particle, kind_node
     use module_debug, only: pepc_status
     use module_tree_node
     use module_timings
@@ -229,11 +233,12 @@ module module_tree_grow
     type(t_tree), intent(inout) :: t !< the tree
     type(t_particle), intent(in) :: p(:) !< list of local particles
     type(t_particle), intent(in) :: bp(2) !< boundary particles
-    type(t_tree_node_ptr), allocatable, intent(inout) :: bn(:) !< keys of all branch nodes
+    integer(kind_node), allocatable, intent(inout) :: bn(:) !< keys of all branch nodes
 
     integer :: i, num_local_branch_keys
     integer*8, allocatable :: local_branch_keys(:)
-    type(t_tree_node_ptr), allocatable :: local_branch_nodes(:)
+    type(t_tree_node), pointer :: branch
+    integer(kind_node), allocatable :: local_branch_nodes(:)
 
     ! identification of branch nodes
     call timer_start(t_branches_find)
@@ -246,10 +251,11 @@ module module_tree_grow
     allocate(local_branch_nodes(num_local_branch_keys))
 
     do i = 1, num_local_branch_keys
-      call tree_lookup_node_critical(t, local_branch_keys(i), local_branch_nodes(i)%p, 'tree_exchange_branches()')
+      call tree_lookup_node_critical(t, local_branch_keys(i), local_branch_nodes(i), 'tree_exchange_branches()')
       ! additionally, we mark all local branches as branches since this is only done for remote branches during unpack
       ! (is used for fill node identification)
-      local_branch_nodes(i)%p%flags = ibset(local_branch_nodes(i)%p%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)
+      branch => t%nodes(local_branch_nodes(i))
+      branch%flags = ibset(branch%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)
     end do
 
     call tree_exchange(t, local_branch_nodes, bn)
@@ -258,13 +264,15 @@ module module_tree_grow
     deallocate(local_branch_keys, local_branch_nodes)
 
     do i = 1, t%nbranch
-      if (bn(i)%p%owner /= t%comm_env%rank) then
+      branch => t%nodes(bn(i))
+
+      if (branch%owner /= t%comm_env%rank) then
         ! delete all custom flags from incoming nodes (e.g. TREE_NODE_FLAG_CHILDREN_AVAILABLE)
-        bn(i)%p%flags = IAND(bn(i)%p%flags, TREE_NODE_CHILDBYTE)
+        branch%flags = IAND(branch%flags, TREE_NODE_CHILDBYTE)
         ! after clearing all bits we have to set the flag for branches again to propagate this property upwards during global buildup
-        bn(i)%p%flags = ibset(bn(i)%p%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)
+        branch%flags = ibset(branch%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)
         ! additionally, we mark all remote branches as remote nodes (this information is propagated upwards later)
-        bn(i)%p%flags = ibset(bn(i)%p%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
+        branch%flags = ibset(branch%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
       end if
     end do
 
@@ -403,22 +411,22 @@ module module_tree_grow
   !>  - already existing nodes are updated
   !>
   subroutine tree_build_upwards(t, nodes)
-    use module_tree, only: t_tree, tree_insert_or_update_node, tree_lookup_node_critical
-    use module_tree_node, only: tree_node_connect_children
+    use module_tree, only: t_tree, tree_insert_or_update_node, tree_lookup_node_critical, &
+      tree_node_connect_children
     use module_debug, only: pepc_status, DBG_TREE, dbg
     use module_timings
     use module_sort, only: sort
     use module_htable, only: htable_check
     use module_spacefilling, only: level_from_key, parent_key_from_key
-    use module_pepc_types, only: t_tree_node, t_tree_node_ptr
+    use module_pepc_types, only: t_tree_node, kind_node
     implicit none
 
     type(t_tree), intent(inout) :: t !< the tree
-    type(t_tree_node_ptr), intent(in) :: nodes(:) !< nodes at which to start the build upwards
+    integer(kind_node), intent(in) :: nodes(:) !< nodes at which to start the build upwards
 
     integer, allocatable :: key_level(:), sort_map(:)
     integer*8, allocatable :: sub_key(:), parent_key(:)
-    type(t_tree_node_ptr), allocatable :: sub_nodes(:), sorted_sub_nodes(:), parent_nodes(:)
+    integer(kind_node), allocatable :: sub_nodes(:), sorted_sub_nodes(:), parent_nodes(:)
     type(t_tree_node) :: parent_node
 
     integer :: numnodes, ilevel, maxlevel, nsub, groupstart, groupend, i, nparent, nuniq
@@ -433,7 +441,7 @@ module module_tree_grow
 
     ! get levels of branch nodes
     do i = 1, numnodes
-      key_level(i) = level_from_key(nodes(i)%p%key)
+      key_level(i) = level_from_key(t%nodes(nodes(i))%key)
     end do
     maxlevel = maxval( key_level(:) ) ! Find maximum level
 
@@ -444,23 +452,23 @@ module module_tree_grow
       nsub = 0
       do i = 1, numnodes
         if (key_level(i) == ilevel) then
-          nsub          = nsub + 1
-          sub_key(nsub) = nodes(i)%p%key
-          sub_nodes(nsub)%p => nodes(i)%p
+          nsub            = nsub + 1
+          sub_key(nsub)   = t%nodes(nodes(i))%key
+          sub_nodes(nsub) = nodes(i)
         end if
       end do
 
       ! Augment list with parent keys checked at previous level
       do i = 1, nparent
-        sub_key(nsub + i) = parent_key(i)
-        sub_nodes(nsub + i)%p => parent_nodes(i)%p
+        sub_key(nsub + i)   = parent_key(i)
+        sub_nodes(nsub + i) = parent_nodes(i)
       end do
       nsub = nsub + nparent
 
       call sort(sub_key(1:nsub), sort_map(1:nsub)) ! Sort keys
 
       do i = 1, nsub
-        sorted_sub_nodes(i)%p => sub_nodes(sort_map(i))%p
+        sorted_sub_nodes(i) = sub_nodes(sort_map(i))
       end do
 
       sub_key(0) = 0 ! remove all duplicates from the list
@@ -469,7 +477,7 @@ module module_tree_grow
         if (sub_key(i) .ne. sub_key(i-1)) then
           nuniq          = nuniq + 1
           sub_key(nuniq) = sub_key(i)
-          sorted_sub_nodes(nuniq)%p => sorted_sub_nodes(i)%p
+          sorted_sub_nodes(nuniq) = sorted_sub_nodes(i)
         end if
       end do
 
@@ -497,9 +505,9 @@ module module_tree_grow
         nparent             = nparent + 1
         parent_key(nparent) = current_parent_key
 
-        call shift_nodes_up(parent_node, sorted_sub_nodes(groupstart:groupend), t%comm_env%rank)
-        call tree_node_connect_children(parent_node, sorted_sub_nodes(groupstart:groupend))
-        call tree_insert_or_update_node(t, parent_node, parent_nodes(nparent)%p)
+        call shift_nodes_up(t, parent_node, sorted_sub_nodes(groupstart:groupend), t%comm_env%rank)
+        call tree_insert_or_update_node(t, parent_node, parent_nodes(nparent))
+        call tree_node_connect_children(t, parent_nodes(nparent), sorted_sub_nodes(groupstart:groupend))
 
         ! go on with next group
         i = i + 1
@@ -576,7 +584,7 @@ module module_tree_grow
     p(:)%key_leaf = 0_8
 
     call timer_reset(t_props_leaves)
-    call insert_helper(1_8, level_from_key(1_8), kidx(1:i))
+    call insert_helper(t, 1_8, level_from_key(1_8), kidx(1:i))
 
     deallocate(kidx)
     call timer_stop(t_build_pure)
@@ -594,26 +602,28 @@ module module_tree_grow
     !>
     !> Inserts the keys in `ki` below the key `k`.
     !>
-    recursive subroutine insert_helper(k, l, ki, pi)
-      use module_tree, only: tree_insert_node
-      use module_pepc_types, only: t_tree_node, t_tree_node_ptr
+    recursive subroutine insert_helper(t, k, l, ki, pi)
+      use module_tree, only: t_tree, tree_insert_node, tree_node_connect_children
+      use module_pepc_types, only: t_tree_node, kind_node
       use module_tree_node
       use module_spacefilling, only: child_key_from_parent_key, is_ancestor_of_particle
       use module_interaction_specific, only: multipole_from_particle
+      use module_htable, only: NODE_INVALID
       implicit none
 
+      type(t_tree), intent(inout) :: t !< tree in which to find the nodes
       integer*8, intent(in) :: k !< key blow which the `ki` are inserted
       integer, intent(in) :: l !< precomputed `level_from_key(k)`
       type(t_keyidx), intent(in) :: ki(:) !< keys (with particles) to be inserted
-      type(t_tree_node), optional, pointer, intent(out) :: pi
+      integer(kind_node), optional, intent(out) :: pi
 
       type(t_tree_node) :: this_node
-      type(t_tree_node), pointer :: inserted_node
-      type(t_tree_node_ptr) :: child_nodes(8)
+      integer(kind_node) :: inserted_node_idx
+      integer(kind_node) :: child_nodes(8)
       integer*8 :: childkey
       integer :: ip, ichild, childlevel, pstart, pend, nchild
 
-      inserted_node => null()
+      inserted_node_idx = NODE_INVALID
 
       if (size(ki) < 1) then ! no particles below this key
         ! do nothing
@@ -625,13 +635,13 @@ module module_tree_grow
           this_node%key          = k
           this_node%level        = l
           this_node%leaves       = 1
-          this_node%first_child  => null()
-          this_node%next_sibling => null()
+          this_node%first_child  = NODE_INVALID
+          this_node%next_sibling = NODE_INVALID
           call timer_resume(t_props_leaves)
           call multipole_from_particle(p(ki(1)%idx)%x, p(ki(1)%idx)%data, this_node%interaction_data)
           call timer_stop(t_props_leaves)
           p(ki(1)%idx)%key_leaf = k
-          if (.not. tree_insert_node(t, this_node, inserted_node)) then
+          if (.not. tree_insert_node(t, this_node, inserted_node_idx)) then
             DEBUG_ERROR(*, "Leaf allready inserted, aborting.") ! TODO: tell me more!
           end if
         end if
@@ -646,9 +656,9 @@ module module_tree_grow
         this_node%key          = k
         this_node%level        = l
         this_node%leaves       = 2**idim
-        this_node%first_child  => null()
-        this_node%next_sibling => null()
-        if (.not. tree_insert_node(t, this_node, inserted_node)) then
+        this_node%first_child  = NODE_INVALID
+        this_node%next_sibling = NODE_INVALID
+        if (.not. tree_insert_node(t, this_node, inserted_node_idx)) then
           DEBUG_ERROR(*, "Twig allready inserted, aborting.") ! TODO: tell me more!
         end if
 
@@ -664,8 +674,8 @@ module module_tree_grow
             pend = pend + 1
           end do
           
-          call insert_helper(childkey, childlevel, ki(pstart:pend), child_nodes(nchild + 1)%p)
-          if (associated(child_nodes(nchild + 1)%p)) then; nchild = nchild + 1; end if
+          call insert_helper(t, childkey, childlevel, ki(pstart:pend), child_nodes(nchild + 1))
+          if (child_nodes(nchild + 1) .ne. NODE_INVALID) then; nchild = nchild + 1; end if
           pstart = pend + 1
         end do
 
@@ -675,13 +685,13 @@ module module_tree_grow
           DEBUG_ERROR_NO_HEADER('(I6,x,I22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip=pend + 1, ubound(ki, dim = 1) ) )
         end if
 
-        call shift_nodes_up(inserted_node, child_nodes(1:nchild), t%comm_env%rank)
+        call shift_nodes_up(t, t%nodes(inserted_node_idx), child_nodes(1:nchild), t%comm_env%rank)
         ! wire up pointers
-        call tree_node_connect_children(inserted_node, child_nodes(1:nchild))
+        call tree_node_connect_children(t, inserted_node_idx, child_nodes(1:nchild))
       end if
 
       if (present(pi)) then
-        pi => inserted_node
+        pi = inserted_node_idx
       end if
     end subroutine insert_helper
   end subroutine tree_build_from_particles
@@ -721,40 +731,45 @@ module module_tree_grow
   !>
   !> accumulates properties of child nodes to parent node
   !>
-  subroutine shift_nodes_up(parent, children, parent_owner)
-    use module_pepc_types, only: t_tree_node, t_tree_node_ptr
+  subroutine shift_nodes_up(t, parent, children, parent_owner)
+    use module_pepc_types, only: t_tree_node, kind_node
     use module_interaction_specific_types, only: t_tree_node_interaction_data
     use module_tree_node
     use module_interaction_specific, only : shift_multipoles_up
     use module_spacefilling, only: parent_key_from_key, level_from_key, child_number_from_key
     use module_debug
+    use module_tree, only: t_tree
     implicit none
 
+    type(t_tree), intent(inout) :: t !< tree in which to find the nodes
     type(t_tree_node), intent(inout) :: parent !< parent node
-    type(t_tree_node_ptr), intent(in) :: children(:) !< child nodes
+    integer(kind_node), intent(in) :: children(:) !< child nodes
     integer, intent(in) :: parent_owner !< communication rank that owns the parent
 
     type(t_tree_node_interaction_data) :: interaction_data(1:8)
     integer*8 :: parent_keys(1:8)
     integer :: nleaves, nchild, i, flags
+    type(t_tree_node), pointer :: child
 
     nchild = size(children)
 
-    flags = 0
+    flags   = 0
     nleaves = 0
     do i = 1, nchild
-      parent_keys(i) = parent_key_from_key(children(i)%p%key)
-      interaction_data(i) = children(i)%p%interaction_data
+      child => t%nodes(children(i))
+
+      parent_keys(i) = parent_key_from_key(child%key)
+      interaction_data(i) = child%interaction_data
 
       ! set bits for available children
-      flags = ibset(flags, child_number_from_key(children(i)%p%key))
+      flags = ibset(flags, child_number_from_key(child%key))
       ! parents of nodes with local contributions also contain local contributions
-      if (btest(children(i)%p%flags, TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS)) flags = ibset(flags, TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS)
+      if (btest(child%flags, TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS)) flags = ibset(flags, TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS)
       ! parents of nodes with remote contributions also contain remote contributions
-      if (btest(children(i)%p%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)) flags = ibset(flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
+      if (btest(child%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)) flags = ibset(flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
       ! parents of branch and fill nodes will also be fill nodes
-      if (btest(children(i)%p%flags, TREE_NODE_FLAG_IS_FILL_NODE) .or. btest(children(i)%p%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)) flags = ibset(flags, TREE_NODE_FLAG_IS_FILL_NODE)
-      nleaves = nleaves + children(i)%p%leaves
+      if (btest(child%flags, TREE_NODE_FLAG_IS_FILL_NODE) .or. btest(child%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)) flags = ibset(flags, TREE_NODE_FLAG_IS_FILL_NODE)
+      nleaves = nleaves + child%leaves
     end do
 
     ! check if all keys fit to the same parent

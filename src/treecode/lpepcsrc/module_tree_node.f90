@@ -22,7 +22,7 @@
 !>  Encapsulates functions for accessing, manipulating, and verifying hash table data
 !>
 module module_tree_node
-    use module_pepc_types, only: t_tree_node, t_tree_node_ptr
+    use module_pepc_types, only: t_tree_node
     implicit none
     private
 
@@ -46,7 +46,6 @@ module module_tree_node
     public tree_node_has_child
     public tree_node_pack
     public tree_node_unpack
-    public tree_node_connect_children
 
     contains
 
@@ -58,17 +57,18 @@ module module_tree_node
     !> Otherwise, `.false.` is returned and `fc` points to `null()`.
     !>
     function tree_node_get_first_child(p, fc)
-      use module_pepc_types, only: t_tree_node
+      use module_pepc_types, only: t_tree_node, kind_node
       use module_spacefilling, only: child_key_from_parent_key
+      use module_htable, only: NODE_INVALID
       use module_debug
       implicit none
 
       logical :: tree_node_get_first_child
       type(t_tree_node), intent(in) :: p
-      type(t_tree_node), pointer, intent(out) :: fc
+      integer(kind_node), intent(out) :: fc
 
-      fc => p%first_child
-      tree_node_get_first_child = associated(fc)
+      fc = p%first_child
+      tree_node_get_first_child = (fc .ne. NODE_INVALID)
     end function tree_node_get_first_child
 
 
@@ -82,16 +82,17 @@ module module_tree_node
     !> In this context, "next" is defined by the ordering of the node keys.
     !>
     function tree_node_get_next_sibling(n, s)
-      use module_pepc_types, only: t_tree_node
+      use module_pepc_types, only: t_tree_node, kind_node
       use module_debug
+      use module_htable, only: NODE_INVALID
       implicit none
 
       logical :: tree_node_get_next_sibling
       type(t_tree_node), intent(in) :: n
-      type(t_tree_node), pointer, intent(out) :: s
+      integer(kind_node), intent(out) :: s
 
-      s => n%next_sibling
-      tree_node_get_next_sibling = associated(s)
+      s = n%next_sibling
+      tree_node_get_next_sibling = (s .ne. NODE_INVALID)
     end function tree_node_get_next_sibling
 
 
@@ -207,6 +208,7 @@ module module_tree_node
 
     subroutine tree_node_unpack(p, n)
       use module_pepc_types, only: t_tree_node_package
+      use module_htable, only: NODE_INVALID
       implicit none
 
       type(t_tree_node_package), intent(in) :: p
@@ -218,30 +220,9 @@ module module_tree_node
       n%owner = p%owner
       n%level = p%level
       n%interaction_data = p%interaction_data
-      n%first_child => null()
-      n%next_sibling => null()
+      n%first_child = NODE_INVALID
+      n%next_sibling = NODE_INVALID
     end subroutine tree_node_unpack
 
 
-    subroutine tree_node_connect_children(n, c)
-      use module_pepc_types, only: t_tree_node_ptr
-      use treevars, only: idim
-      use module_debug
-      implicit none
-
-      type(t_tree_node), intent(inout) :: n
-      type(t_tree_node_ptr), intent(inout) :: c(:)
-
-      integer :: ic, nc
-
-      nc = size(c); DEBUG_ASSERT(nc > 0)
-      ! // DEBUG_ASSERT_MSG(all((c(2:nc)%p%key - c(1:nc - 1)%p%key) >= 1), *, "children are not arranged as expected.")
-      DEBUG_ASSERT_MSG(2**idim >= c(nc)%p%key - c(1)%p%key, '("= ", I3, ". Children do not all belong to the same parent.")', c(nc)%p%key - c(1)%p%key)
-
-      n%first_child => c(1)%p
-      do ic = 1, nc - 1
-        c(ic)%p%next_sibling => c(ic + 1)%p
-      end do
-      c(nc)%p%next_sibling => null()
-    end subroutine tree_node_connect_children
 end module module_tree_node

@@ -299,7 +299,7 @@ module module_tree_communicator
   subroutine answer_request(t, request, ipe_sender)
     use module_tree, only: t_tree, tree_lookup_node_critical
     use module_tree_node, only: tree_node_pack, tree_node_get_first_child, tree_node_get_next_sibling
-    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, t_request
+    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, t_request, kind_node
     use module_debug
     use module_tree_node
     implicit none
@@ -310,7 +310,7 @@ module module_tree_communicator
     integer, intent(in) :: ipe_sender
 
     type(t_tree_node_package) :: children_to_send(8)
-    type(t_tree_node), pointer :: n, nn
+    integer(kind_node) :: n, nn
     integer :: nchild, ierr
 
     if (tree_comm_debug) then
@@ -318,17 +318,17 @@ module module_tree_communicator
     end if
 
     call tree_lookup_node_critical(t, request%key, n, 'WALK:answer_request_simple:parentkey')
-    if (tree_node_get_first_child(n, nn)) then
+    if (tree_node_get_first_child(t%nodes(n), nn)) then
       nchild = 0
 
       do
-        n => nn
+        n = nn
         nchild = nchild + 1
 
-        call tree_node_pack(n, children_to_send(nchild))
+        call tree_node_pack(t%nodes(n), children_to_send(nchild))
         children_to_send(nchild)%flags = int(iand( children_to_send(nchild)%flags, TREE_NODE_CHILDBYTE ))! Catch lowest 8 bits of childbyte - filter off requested and here flags
 
-        if (.not. tree_node_get_next_sibling(n, nn)) then; exit; end if
+        if (.not. tree_node_get_next_sibling(t%nodes(n), nn)) then; exit; end if
       end do
       
       ! Ship child data back to PE that requested it
@@ -376,12 +376,14 @@ module module_tree_communicator
   !> Insert incoming data into the tree.
   !>
   subroutine unpack_data(t, child_data, num_children, ipe_sender)
-    use module_tree, only: t_tree, tree_insert_node, tree_lookup_node_critical
-    use module_pepc_types, only: t_tree_node, t_tree_node_ptr, t_tree_node_package
+    use module_tree, only: t_tree, tree_insert_node, tree_lookup_node_critical, &
+      tree_node_connect_children
+    use module_pepc_types, only: t_tree_node, t_tree_node_package, kind_node
     use module_tree_node
     use module_spacefilling, only: parent_key_from_key
     use module_atomic_ops, only: atomic_write_barrier
     use module_debug
+    use module_htable, only: NODE_INVALID
     implicit none
     include 'mpif.h'
 
@@ -390,25 +392,26 @@ module module_tree_communicator
     integer :: num_children !< actual number of valid children in dataset
     integer, intent(in) :: ipe_sender
 
+    integer(kind_node) :: parent, inserted_node
     type(t_tree_node), pointer :: parent_node
-    type(t_tree_node), pointer :: prev_sibling
+    integer(kind_node) :: child_nodes(1:8)
+    integer :: nchild
     type(t_tree_node) :: unpack_node
     integer :: ic
 
     DEBUG_ASSERT(num_children > 0)
     
-    prev_sibling => null()
+    nchild = 0
 
-    call tree_lookup_node_critical(t, parent_key_from_key(child_data(1)%key), parent_node, &
+    call tree_lookup_node_critical(t, parent_key_from_key(child_data(1)%key), parent, &
         'TREE_COMMUNICATOR:unpack_data(): - get parent node')
+        
+    parent_node => t%nodes(parent)
 
     do ic = num_children,1,-1
       call tree_node_unpack(child_data(ic), unpack_node)
-      unpack_node%first_child  => null()
-      ! FIXME: originallz, we should have been using tree_node_connect_children() but
-      ! for the sake of nonsense, bg_xlf produces a relieably segfaulting code
-      ! if an array of t_tree_node_ptr is onvolved here :-(
-      unpack_node%next_sibling => prev_sibling
+        
+      unpack_node%first_child  = NODE_INVALID
       
       ! tree nodes coming from remote PEs are flagged for easier identification
       unpack_node%flags = ibset(unpack_node%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
@@ -417,16 +420,19 @@ module module_tree_communicator
         DEBUG_INFO('("PE", I6, " received answer. parent_key=", O22, ",  sender=", I6, ",  owner=", I6, ",  kchild=", O22)', t%comm_env%rank, parent_node%key, ipe_sender, unpack_node%owner, unpack_node%key)
       end if
 
-      if (.not. tree_insert_node(t, unpack_node, prev_sibling)) then
+      if (.not. tree_insert_node(t, unpack_node, inserted_node)) then
         DEBUG_WARNING_ALL(*, "Received a node that is already present.")
       end if
+
+      nchild = nchild + 1
+      child_nodes(nchild) = inserted_node
 
       ! count number of fetched nodes
       t%communicator%sum_fetches = t%communicator%sum_fetches+1
       
     end do
 
-    parent_node%first_child => prev_sibling
+    call tree_node_connect_children(t, parent, child_nodes(1:nchild))
 
     call atomic_write_barrier() ! make sure children are actually inserted before indicating their presence
     ! set 'children-here'-flag for all parent addresses

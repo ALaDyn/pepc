@@ -45,6 +45,7 @@ module module_treediags
           use module_tree, only: t_tree, tree_lookup_node_critical
           use module_tree_node
           use module_pepc, only: global_tree
+          use module_pepc_types, only: kind_node
           implicit none
 
           integer, intent(in) :: step
@@ -55,8 +56,9 @@ module module_treediags
           character(*), intent(in), optional :: filename_box
           character(*), intent(in), optional :: filename_point
           real*8, dimension(:,:), intent(in), optional :: node_vbox
-          
+
           type(t_tree_node), pointer :: bnode
+          integer(kind_node) :: bnode_idx
           type(t_tree), pointer :: t
           integer :: i,j
           integer*8 :: bkey
@@ -96,7 +98,8 @@ module module_treediags
 
           do i = 1, num_nodes
             bkey      = node_keys(i)
-            call tree_lookup_node_critical(t, bkey, bnode, 'write_nodes_to_vtk')
+            call tree_lookup_node_critical(t, bkey, bnode_idx, 'write_nodes_to_vtk')
+            bnode => t%nodes(bnode_idx)
             bowner(i) = bnode%owner
             blevel(i) = level_from_key(bkey)
             bsize     = t%bounding_box%boxsize / 2**blevel(i)
@@ -230,7 +233,7 @@ module module_treediags
         subroutine write_branches_to_vtk(step, tsim, vtk_step)
           use treevars
           use module_pepc, only: global_tree
-          use module_pepc_types, only: t_tree_node
+          use module_pepc_types, only: t_tree_node, kind_node
           use module_tree, only: t_tree, tree_lookup_root, tree_allocated
           use module_debug
           implicit none
@@ -240,7 +243,7 @@ module module_treediags
           real*8, intent(in) :: tsim
 
           type(t_tree), pointer :: t
-          type(t_tree_node), pointer :: r
+          integer(kind_node) :: r
           integer*8, allocatable :: branch_keys(:)
           integer*8 :: i
 
@@ -257,7 +260,7 @@ module module_treediags
           allocate(branch_keys(t%nbranch))
           i = 0
           call tree_lookup_root(t, r)
-          call collect_branches(r)
+          call collect_branches(t, r)
           DEBUG_ASSERT(i == t%nbranch)
 
           call write_nodes_to_vtk(step, tsim, vtk_step, int(t%nbranch), &
@@ -267,29 +270,35 @@ module module_treediags
 
           contains
 
-          recursive subroutine collect_branches(n)
+          recursive subroutine collect_branches(t, nidx)
             use module_tree_node
+            use module_tree, only: t_tree
+            use module_pepc_types, only: kind_node
+            use module_htable, only: NODE_INVALID
             implicit none
 
-            type(t_tree_node), intent(in) :: n
+            type(t_tree), intent(in) :: t
+            integer(kind_node), intent(in) :: nidx
 
-            type(t_tree_node), pointer :: s, ns
+            integer(kind_node) :: s, ns
 
-            s => null()
-            ns => null()
+            s  = NODE_INVALID
+            ns = NODE_INVALID
 
-            if (btest(n%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)) then
-              i = i + 1
-              branch_keys(i) = n%key
-            else if (tree_node_get_first_child(n, s)) then
-              do
-                call collect_branches(s)
-                if (.not. tree_node_get_next_sibling(s, ns)) then
-                  exit
-                end if
-                s => ns
-              end do
-            end if
+            associate (n => t%nodes(nidx))
+              if (btest(n%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)) then
+                i = i + 1
+                branch_keys(i) = n%key
+              else if (tree_node_get_first_child(n, s)) then
+                do
+                  call collect_branches(t, s)
+                  if (.not. tree_node_get_next_sibling(t%nodes(s), ns)) then
+                    exit
+                  end if
+                  s = ns
+                end do
+              end if
+            end associate
           end subroutine collect_branches
         end subroutine
 

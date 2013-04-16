@@ -86,6 +86,7 @@ module module_tree
       
       type(t_box) :: bounding_box               !< bounding box enclosing all particles contained in the tree
       type(t_htable) :: node_storage            !< hash table in which tree nodes are stored for rapid retrieval
+      type(t_tree_node), pointer :: nodes(:)    !< array of tree nodes, shorthand to node_sorage%values
       type(t_comm_env) :: comm_env              !< communication environment over which the tree is distributed
       type(t_decomposition) :: decomposition    !< permutation of particles inserted into the tree
       type(t_tree_communicator) :: communicator !< associated communicator structure
@@ -100,6 +101,7 @@ module module_tree
     public tree_lookup_node
     public tree_lookup_node_critical
     public tree_node_get_parent
+    public tree_node_connect_children
     public tree_check
     public tree_stats
     public tree_destroy
@@ -169,6 +171,7 @@ module module_tree
       end if
 
       call htable_create(t%node_storage, maxaddress)
+      t%nodes => t%node_storage%values
 
       if (maxaddress < t%npart_me + 2) then
         DEBUG_ERROR('("maxaddress = ", I0, " < npp + 2 = ", I0, ".", / , "You should increase np_mult.")', maxaddress, t%npart_me + 2)
@@ -196,6 +199,7 @@ module module_tree
       DEBUG_ASSERT(tree_allocated(t))
 
       call tree_communicator_destroy(t%communicator)
+      t%nodes => null()
       call htable_destroy(t%node_storage)
       call comm_env_destroy(t%comm_env)
       if (decomposition_allocated(t%decomposition)) then
@@ -302,7 +306,7 @@ module module_tree
     !> returns `.true.` if successfull, `.false.` if `n` exists in `t` allready.
     !>
     function tree_insert_node(t, n, preexisting_node)
-      use module_pepc_types, only: t_tree_node
+      use module_pepc_types, only: t_tree_node, kind_node
       use module_htable, only: htable_add
       use module_tree_node, only: tree_node_is_leaf
       use module_debug
@@ -311,7 +315,7 @@ module module_tree
       logical :: tree_insert_node
       type(t_tree), intent(inout) :: t !< Tree into which to insert the node
       type(t_tree_node), intent(in) :: n !< The tree node to insert
-      type(t_tree_node), optional, pointer, intent(out) :: preexisting_node !< points to preexisting node
+      integer(kind_node), optional, intent(out) :: preexisting_node !< points to preexisting node
 
       DEBUG_ASSERT(tree_allocated(t))
       tree_insert_node = htable_add(t%node_storage, n%key, n, preexisting_node)
@@ -326,8 +330,8 @@ module module_tree
         end if
       end if
     end function tree_insert_node
-
-
+    
+    
     !>
     !> inserts the node `n` into the tree `t` or, if a node with the same key
     !> exists allready, updates that node's entry
@@ -335,40 +339,42 @@ module module_tree
     !> this routine cannot be used to change a tree_node from leaf to twig or similar
     !>
     subroutine tree_insert_or_update_node(t, n, ptr)
-        use module_pepc_types, only: t_tree_node
+        use module_pepc_types, only: t_tree_node, kind_node
         use module_tree_node, only: tree_node_is_leaf
         use module_debug
         implicit none
 
         type(t_tree), intent(inout) :: t !< Tree into which to insert the node
         type(t_tree_node), intent(in) :: n !< The tree node to insert
-        type(t_tree_node), optional, pointer, intent(out) :: ptr
+        integer(kind_node), optional, intent(out) :: ptr
 
-        type(t_tree_node), pointer :: node_entry
+        integer(kind_node) :: node_entry
+        type(t_tree_node), pointer :: node
 
         DEBUG_ASSERT(tree_allocated(t))
         if (.not. tree_insert_node(t, n, node_entry)) then
           ! the node already exist --> update
 
-          ! if we change the owner from someting else to 'me', we have to keep track of the leaf/twig counters
-          if ((node_entry%owner .ne. t%comm_env%rank) .and. &
+          node => t%nodes(node_entry)
+          ! if we change the owner from something else to 'me', we have to keep track of the leaf/twig counters
+          if ((node%owner .ne. t%comm_env%rank) .and. &
             (n%owner .eq. t%comm_env%rank)) then
-            if (tree_node_is_leaf(node_entry)) then
+            if (tree_node_is_leaf(node)) then
               t%nleaf_me = t%nleaf_me + 1
             else
               t%ntwig_me = t%ntwig_me + 1
             end if
           end if
 
-          node_entry%leaves           = n%leaves
-          node_entry%flags            = n%flags     
-          node_entry%owner            = n%owner
-          node_entry%interaction_data = n%interaction_data
-          node_entry%first_child      => n%first_child
-          node_entry%next_sibling     => n%next_sibling
+          node%leaves           = n%leaves
+          node%flags            = n%flags     
+          node%owner            = n%owner
+          node%interaction_data = n%interaction_data
+          node%first_child      = n%first_child
+          node%next_sibling     = n%next_sibling
         end if
 
-        if (present(ptr)) then; ptr => node_entry; end if
+        if (present(ptr)) then; ptr = node_entry; end if
     end subroutine
 
 
@@ -393,12 +399,12 @@ module module_tree
     !> look up the root node `r` of tree `t`
     !>
     subroutine tree_lookup_root(t, r, caller)
-      use module_pepc_types, only: t_tree_node
+      use module_pepc_types, only: t_tree_node, kind_node
       use module_debug
       implicit none
 
       type(t_tree), intent(in) :: t !< the tree
-      type(t_tree_node), pointer, intent(out) :: r !< root node
+      integer(kind_node), intent(out) :: r !< root node
       character(len = *), optional, intent(in) :: caller !< identifies the caller in case an error message is printed
 
       DEBUG_ASSERT(tree_allocated(t))
@@ -416,7 +422,7 @@ module module_tree
     !> `.false.` is returned otherwise
     !>
     function tree_lookup_node(t, k, n)
-      use module_pepc_types, only: t_tree_node
+      use module_pepc_types, only: t_tree_node, kind_node
       use module_htable, only: htable_lookup
       use module_debug
       implicit none
@@ -425,7 +431,7 @@ module module_tree
 
       type(t_tree), intent(in) :: t !< the tree
       integer*8, intent(in) :: k !< key to look up
-      type(t_tree_node), pointer, intent(out) :: n !< node that is identified by `k`
+      integer(kind_node), intent(out) :: n !< node that is identified by `k`
 
       DEBUG_ASSERT(tree_allocated(t))
       tree_lookup_node = htable_lookup(t%node_storage, k, n)
@@ -437,14 +443,14 @@ module module_tree
     !> is found, otherwise debug information is dumped and program execution is aborted
     !>
     subroutine tree_lookup_node_critical(t, k, n, caller)
-      use module_pepc_types, only: t_tree_node
+      use module_pepc_types, only: t_tree_node, kind_node
       use module_htable, only: htable_lookup_critical
       use module_debug
       implicit none
 
       type(t_tree), intent(in) :: t !< the tree
       integer*8, intent(in) :: k !< key to look up
-      type(t_tree_node), pointer, intent(out) :: n !< node that is identified by `k`
+      integer(kind_node), intent(out) :: n !< node that is identified by `k`
       character(LEN = *), intent(in) :: caller
 
       DEBUG_ASSERT(tree_allocated(t))
@@ -462,20 +468,21 @@ module module_tree
     !> @todo Currently implemented via hash table lookups which could be replaced by
     !> pointers.
     function tree_node_get_parent(t, n, p)
-      use module_pepc_types, only: t_tree_node
+      use module_pepc_types, only: t_tree_node, kind_node
       use module_tree_node, only: tree_node_is_root
       use module_spacefilling, only: parent_key_from_key
+      use module_htable, only: NODE_INVALID
       use module_debug
       implicit none
 
       logical tree_node_get_parent
       type(t_tree), intent(in) :: t
       type(t_tree_node), intent(in) :: n
-      type(t_tree_node), pointer, intent(out) :: p
+      integer(kind_node), intent(out) :: p
 
       DEBUG_ASSERT(tree_allocated(t))
       tree_node_get_parent = .false.
-      p => null()
+      p = NODE_INVALID
 
       if (.not. tree_node_is_root(n)) then
         tree_node_get_parent = .true.
@@ -486,11 +493,44 @@ module module_tree
 
 
     !>
+    !> connects `next_sibling` pointers in list of
+    !> given nodes `c` and attaches the first of them to
+    !> `n` via `first_child` within tree `t`
+    !>
+    subroutine tree_node_connect_children(t, n, c)
+      use module_pepc_types, only: kind_node
+      use treevars, only: idim
+      use module_debug
+      use module_htable, only: NODE_INVALID
+      implicit none
+
+      type(t_tree), intent(inout) :: t
+      integer(kind_node), intent(in) :: n
+      integer(kind_node), intent(in) :: c(:)
+      
+      integer :: ic, nc
+
+      nc = size(c); DEBUG_ASSERT(nc > 0)
+      ! // DEBUG_ASSERT_MSG(all((c(2:nc)%p%key - c(1:nc - 1)%p%key) >= 1), *, "children are not arranged as expected.")
+      ! // DEBUG_ASSERT_MSG(2**idim >= c(nc)%p%key - c(1)%p%key, '("= ", I3, ". Children do not all belong to the same parent.")', c(nc)%p%key - c(1)%p%key)
+
+      t%nodes(n)%first_child = c(1)
+      
+      do ic = 1, nc - 1
+        t%nodes(c(ic))%next_sibling = c(ic + 1)
+      end do
+      
+      t%nodes(c(nc))%next_sibling = NODE_INVALID
+
+    end subroutine tree_node_connect_children
+
+
+    !>
     !> Do some quick checks on the tree structure
     !>
     function tree_check(t, callpoint)
       use module_debug
-      use module_pepc_types, only: t_tree_node
+      use module_pepc_types, only: t_tree_node, kind_node
       use module_htable, only: htable_dump
       use module_debug
       implicit none
@@ -499,7 +539,7 @@ module module_tree
       type(t_tree), intent(in) :: t !< the tree
       character(*), intent(in) :: callpoint !< caller
 
-      type(t_tree_node), pointer :: r
+      integer(kind_node) :: r
       integer :: nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
 
       call pepc_status('CHECK TREE')
@@ -544,17 +584,21 @@ module module_tree
 
       contains
 
-      recursive subroutine tree_check_helper(n)
+      recursive subroutine tree_check_helper(nid)
         use module_tree_node, only: tree_node_is_leaf, tree_node_get_first_child, tree_node_get_next_sibling
+        use module_pepc_types, only: t_tree_node
+        use module_htable, only: NODE_INVALID
         implicit none
 
-        type(t_tree_node), intent(in) :: n
+        integer(kind_node), intent(in) :: nid
+        type(t_tree_node), pointer :: n
 
-        type(t_tree_node), pointer :: s, ns
+        integer(kind_node) :: s, ns
 
-        s => null()
-        ns => null()
+        s  = NODE_INVALID
+        ns = NODE_INVALID
 
+        n => t%nodes(nid)
         if (tree_node_is_leaf(n)) then
           nleaf_check = nleaf_check + 1
           if (n%owner == t%comm_env%rank) then
@@ -571,10 +615,10 @@ module module_tree
         if (tree_node_get_first_child(n, s)) then
           do
             call tree_check_helper(s)
-            if (.not. tree_node_get_next_sibling(s, ns)) then
+            if (.not. tree_node_get_next_sibling(t%nodes(s), ns)) then
               exit
             end if
-            s => ns
+            s = ns
           end do
         end if
       end subroutine tree_check_helper

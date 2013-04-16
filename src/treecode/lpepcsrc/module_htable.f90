@@ -25,20 +25,21 @@
 !> [ch]: http://en.wikipedia.org/wiki/Coalesced_hashing
 !>
 module module_htable
-    use module_pepc_types, only: t_tree_node
+    use module_pepc_types, only: t_tree_node, kind_node
     implicit none
     private
 
     integer*8, public, parameter :: HTABLE_KEY_INVALID = -1_8
     integer*8, public, parameter :: HTABLE_KEY_EMPTY   =  0_8
     integer*8, parameter :: HTABLE_FREE_LO = 1024_8 !< min address allowed for resolving collisions (from 4th level up)
+    integer(kind_node), public, parameter :: NODE_INVALID = -1
 
     type :: t_htable_bucket
       integer*8                  :: key = HTABLE_KEY_EMPTY  !< the entry key
       integer*8                  :: link = -1_8             !< link for collision resolution
-      type(t_tree_node), pointer :: val                     !< the entry value
+      integer(kind_node)         :: val                     !< the entry index
     end type t_htable_bucket
-    type (t_htable_bucket), parameter :: HTABLE_EMPTY_BUCKET = t_htable_bucket(HTABLE_KEY_EMPTY, -1_8, null()) !< constant for empty hashentry
+    type (t_htable_bucket), parameter :: HTABLE_EMPTY_BUCKET = t_htable_bucket(HTABLE_KEY_EMPTY, -1_8, NODE_INVALID) !< constant for empty hashentry
 
     type, public :: t_htable
       private
@@ -49,7 +50,7 @@ module module_htable
       type(t_htable_bucket), allocatable :: buckets(:)    !< hashtable buckets
       integer*8, allocatable             :: free_addr(:)  !< list of free hash table addresses
       integer*8, allocatable             :: point_free(:) !< pointer to free address index
-      type(t_tree_node), pointer         :: values(:)     !< array of entry values
+      type(t_tree_node), public, pointer :: values(:)     !< array of entry values
     end type t_htable
 
     type, public :: t_htable_iterator
@@ -232,7 +233,7 @@ module module_htable
       type(t_htable), intent(inout) :: t
       integer*8, intent(in) :: k
       type(t_tree_node), intent(in) :: v
-      type(t_tree_node), intent(out), pointer, optional :: entry_pointer
+      integer(kind_node), intent(out), optional :: entry_pointer
       logical :: htable_add
 
       integer*8 :: hashaddr
@@ -281,7 +282,7 @@ module module_htable
 
         t%buckets(hashaddr)%key = k
         t%values(t%nentries) = v
-        t%buckets(hashaddr)%val => t%values(t%nentries)
+        t%buckets(hashaddr)%val = t%nentries
         t%nentries = t%nentries + 1_8
       else
         ! this key does already exists in the htable - as 'hashaddr' we return its current address
@@ -289,7 +290,7 @@ module module_htable
       end if
 
       if (present(entry_pointer)) then
-        entry_pointer => t%buckets(hashaddr)%val
+        entry_pointer = t%buckets(hashaddr)%val
       end if
 
     end function htable_add
@@ -325,7 +326,7 @@ module module_htable
 
       type(t_htable), intent(in) :: t
       integer*8, intent(in) :: k
-      type(t_tree_node), pointer, intent(out) :: v
+      integer(kind_node), intent(out) :: v
 
       logical :: htable_lookup
       integer*8 :: addr
@@ -333,9 +334,9 @@ module module_htable
       DEBUG_ASSERT(htable_allocated(t))
       htable_lookup = testaddr(t, k, addr)
       if (htable_lookup) then
-        v => t%buckets(addr)%val
+        v = t%buckets(addr)%val
       else
-        v => null()
+        v = NODE_INVALID
       end if
     end function htable_lookup
 
@@ -353,7 +354,7 @@ module module_htable
 
       type(t_htable), intent(in) :: t
       integer*8, intent(in) :: k
-      type(t_tree_node), pointer, intent(out) :: v
+      integer(kind_node), intent(out) :: v
       character(LEN=*), intent(in) :: caller
 
       integer*8 :: addr
@@ -375,7 +376,7 @@ module module_htable
         call debug_mpi_abort()
       end if
 
-      v => t%buckets(addr)%val
+      v = t%buckets(addr)%val
     end subroutine htable_lookup_critical
 
 
@@ -511,7 +512,7 @@ module module_htable
 
       type(t_htable_iterator), intent(inout) :: it
       integer*8, intent(out) :: k
-      type(t_tree_node), pointer, intent(out) :: v
+      integer(kind_node), intent(out) :: v
 
       logical htable_iterator_next
 
@@ -521,7 +522,7 @@ module module_htable
         if (htable_entry_is_valid(it%t%buckets(it%i))) then 
           htable_iterator_next = .true.
           k    =  it%t%buckets(it%i)%key
-          v    => it%t%buckets(it%i)%val
+          v    =  it%t%buckets(it%i)%val
           it%i =  it%i + 1_8
           return
         end if
@@ -530,8 +531,8 @@ module module_htable
       end do
 
       htable_iterator_next = .false.
-      k =  HTABLE_KEY_EMPTY
-      v => null()
+      k = HTABLE_KEY_EMPTY
+      v = NODE_INVALID
     end function htable_iterator_next
 
 
@@ -646,18 +647,18 @@ module module_htable
             write (debug_ipefile,'(x,i10,x,o10,2(x,i10),x,o22,x,i22,x,o22,x,a1,x,i12,x,i10,4x,3(b8.8,"."),b8.8)') &
                     i, &
                     i, &
-                    t%buckets(i)%val%owner, &
+                    t%values(t%buckets(i)%val)%owner, &
                     level_from_key(t%buckets(i)%key), &
                     t%buckets(i)%key, &
                     t%buckets(i)%key, &
                     parent_key_from_key(t%buckets(i)%key), &
                     collision, &
                     t%buckets(i)%link, &
-                    t%buckets(i)%val%leaves, &
-                    ishft(iand(t%buckets(i)%val%flags, Z'FF000000'), -24), &
-                    ishft(iand(t%buckets(i)%val%flags, Z'00FF0000'), -16), &
-                    ishft(iand(t%buckets(i)%val%flags, Z'0000FF00'), -08), &
-                    ishft(iand(t%buckets(i)%val%flags, Z'000000FF'), -00)
+                    t%values(t%buckets(i)%val)%leaves, &
+                    ishft(iand(t%values(t%buckets(i)%val)%flags, Z'FF000000'), -24), &
+                    ishft(iand(t%values(t%buckets(i)%val)%flags, Z'00FF0000'), -16), &
+                    ishft(iand(t%values(t%buckets(i)%val)%flags, Z'0000FF00'), -08), &
+                    ishft(iand(t%values(t%buckets(i)%val)%flags, Z'000000FF'), -00)
           end if
         end do
 
@@ -666,16 +667,16 @@ module module_htable
         write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Twigs from hash-table', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
         do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
-          if (htable_entry_is_valid(t%buckets(i)) .and. .not. tree_node_is_leaf(t%buckets(i)%val)) then
-            write(debug_ipefile,*) t%buckets(i)%val%interaction_data
+          if (htable_entry_is_valid(t%buckets(i)) .and. .not. tree_node_is_leaf(t%values(t%buckets(i)%val))) then
+            write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
           end if
         end do
 
         write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Leaves from hash-table', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
         do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
-          if (htable_entry_is_valid(t%buckets(i)) .and. tree_node_is_leaf(t%buckets(i)%val)) then
-            write(debug_ipefile,*) t%buckets(i)%val%interaction_data
+          if (htable_entry_is_valid(t%buckets(i)) .and. tree_node_is_leaf(t%values(t%buckets(i)%val))) then
+            write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
           end if
         end do
 

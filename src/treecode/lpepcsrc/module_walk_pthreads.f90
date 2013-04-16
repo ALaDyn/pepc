@@ -114,11 +114,6 @@ module module_walk
   integer, parameter :: THREAD_COUNTER_MAC_EVALUATIONS     = 3
   integer, parameter :: THREAD_COUNTER_POST_REQUEST        = 4
 
-  !> pointer to a tree node, used in todo and defer lists
-  type t_tree_node_ptr
-    type(t_tree_node), pointer :: p
-  end type t_tree_node_ptr
-  
   !> type for input and return values of walk_threads
   type, public :: t_threaddata
     integer :: id !< just a running number to distinguish the threads, currently unused
@@ -528,6 +523,7 @@ module module_walk
     use module_debug
     use module_atomic_ops
     use module_tree, only: tree_lookup_root
+    use module_pepc_types, only: kind_node
     implicit none
     include 'mpif.h'
 
@@ -537,11 +533,11 @@ module module_walk
     integer, dimension(:), allocatable :: thread_particle_indices
     type(t_particle), dimension(:), allocatable :: thread_particle_data
     integer*8, dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
-    type(t_tree_node_ptr), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
+    integer(kind_node), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
     integer, dimension(:), allocatable :: defer_list_start_pos
     integer :: defer_list_entries_new, defer_list_entries_old, total_defer_list_length
     integer :: defer_list_new_tail
-    type(t_tree_node_ptr), dimension(:), allocatable :: todo_list
+    integer(kind_node), dimension(:), allocatable :: todo_list
     integer :: i
     logical :: particles_available
     logical :: particles_active
@@ -552,8 +548,8 @@ module module_walk
     logical :: particle_has_finished
     real*8  :: t_get_new_particle, t_walk_single_particle
 
-    type(t_tree_node_ptr), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
-    call tree_lookup_root(walk_tree, defer_list_root_only(1)%p, 'walk_worker_thread:root node')
+    integer(kind_node), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
+    call tree_lookup_root(walk_tree, defer_list_root_only(1), 'walk_worker_thread:root node')
 
     my_processor_id = get_my_core()
     same_core_as_communicator = (my_processor_id == walk_tree%communicator%processor_id)
@@ -680,8 +676,9 @@ module module_walk
     contains
   
     subroutine swap_defer_lists()
+      use module_pepc_types, only: kind_node
       implicit none
-      type(t_tree_node_ptr), dimension(:), pointer :: tmp_list
+      integer(kind_node), dimension(:), pointer :: tmp_list
 
       tmp_list       => defer_list_old
       defer_list_old => defer_list_new
@@ -768,21 +765,24 @@ module module_walk
     use module_debug
     use module_mirror_boxes, only : spatial_interaction_cutoff
     use module_atomic_ops
+    use module_pepc_types, only: t_tree_node, kind_node
+    use module_htable, only: NODE_INVALID
     implicit none
     include 'mpif.h'
 
     type(t_particle), intent(inout) :: particle
-    type(t_tree_node_ptr), dimension(:), pointer, intent(in) :: defer_list_old
+    integer(kind_node), dimension(:), pointer, intent(in) :: defer_list_old
     integer, intent(in) :: defer_list_entries_old
-    type(t_tree_node_ptr), dimension(:), pointer, intent(out) :: defer_list_new
+    integer(kind_node), dimension(:), pointer, intent(out) :: defer_list_new
     integer, intent(out) :: defer_list_entries_new
-    type(t_tree_node_ptr), intent(inout) :: todo_list(0:todo_list_length-1) 
+    integer(kind_node), intent(inout) :: todo_list(0:todo_list_length-1) 
     integer*8, intent(inout) :: partner_leaves
     type(t_threaddata), intent(inout) :: my_threaddata
     logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
 
     integer :: todo_list_entries
     type(t_tree_node), pointer :: walk_node
+    integer(kind_node) :: walk_node_idx
     real*8 :: dist2
     real*8 :: delta(3), shifted_particle_position(3)
     logical :: is_leaf, maybe_parent
@@ -794,7 +794,7 @@ module module_walk
     num_mac_evaluations    = 0
     if (walk_profile) then; t_post_request = 0._8; end if
     num_post_request       = 0
-    walk_node              => null()
+    walk_node_idx          = NODE_INVALID
     shifted_particle_position = particle%x - vbox ! precompute shifted particle position to avoid subtracting vbox in every loop iteration below
 
     ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
@@ -804,7 +804,9 @@ module module_walk
     call defer_list_parse_and_compact()
 
     ! read all todo_list-entries and start further traversals there
-    do while (todo_list_pop(walk_node))
+    do while (todo_list_pop(walk_node_idx))
+      walk_node => walk_tree%nodes(walk_node_idx)
+      
       ! we may not interact with the particle itself or its ancestors
       ! if we are in the central box
       ! interaction with ancestor nodes should be prevented by the MAC
@@ -848,11 +850,12 @@ module module_walk
       ! resolve
 3     if ( tree_node_children_available(walk_node) ) then
         ! children for twig are present
+  
         ! --> resolve cell & put all children in front of todo_list
         call atomic_read_barrier()
-        if (.not. todo_list_push_children(walk_node)) then
+        if (.not. todo_list_push_children(walk_node_idx)) then
           ! the todo_list is full --> put parent back onto defer_list
-          call defer_list_push(walk_node)
+          call defer_list_push(walk_node_idx)
         end if
       else
         ! children for twig are _absent_
@@ -863,8 +866,8 @@ module module_walk
         num_post_request = num_post_request + 1
         ! if posting the request failed, this is not a problem, since we defer the particle anyway
         ! since it will not be available then, the request will simply be repeated
-        call defer_list_push(walk_node) ! Deferred list of nodes to search, pending request
-                                        ! for data from nonlocal PEs
+        call defer_list_push(walk_node_idx) ! Deferred list of nodes to search, pending request
+                                            ! for data from nonlocal PEs
         if (walk_debug) then
           DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  walk_tree%comm_env%rank, defer_list_entries_new)
         end if
@@ -889,36 +892,37 @@ module module_walk
       implicit none
 
       logical :: todo_list_pop
-      type(t_tree_node), pointer, intent(out) :: node
+      integer(kind_node), intent(out) :: node
 
       todo_list_pop = (todo_list_entries > 0)
 
       if (todo_list_pop) then
         todo_list_entries = todo_list_entries - 1
-        node => todo_list(todo_list_entries)%p
+        node = todo_list(todo_list_entries)
       end if
     end function
 
 
     function todo_list_push_children(node) result(res)
+      use module_pepc_types, only: kind_node
       use module_tree_node, only: tree_node_get_num_children, tree_node_get_first_child, tree_node_get_next_sibling
       use module_debug
       implicit none
 
       logical :: res, dummy
-      type(t_tree_node), intent(in) :: node
+      integer(kind_node), intent(in) :: node
       integer :: ic, nc
 
-      nc = tree_node_get_num_children(node)
+      nc = tree_node_get_num_children(walk_tree%nodes(node))
 
       if (todo_list_entries + nc > todo_list_length) then
         DEBUG_WARNING_ALL('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor). Putting particles back onto defer_list. Programme will continue without errors.")', particle%label, todo_list_length)
         res = .false.
       else
         todo_list_entries = todo_list_entries + nc
-        dummy = tree_node_get_first_child(node, todo_list(todo_list_entries - 1)%p)
+        dummy = tree_node_get_first_child(walk_tree%nodes(node), todo_list(todo_list_entries - 1))
         do ic = 2, nc
-          dummy = tree_node_get_next_sibling(todo_list(todo_list_entries - ic + 1)%p, todo_list(todo_list_entries - ic)%p)
+          dummy = tree_node_get_next_sibling(walk_tree%nodes(todo_list(todo_list_entries - ic + 1)), todo_list(todo_list_entries - ic))
         end do
 
         res = .true.
@@ -927,12 +931,13 @@ module module_walk
 
 
     subroutine defer_list_push(node)
+      use module_pepc_types, only: kind_node
       implicit none
 
-      type(t_tree_node), target, intent(in) :: node
+      integer(kind_node), intent(in) :: node
 
       defer_list_entries_new = defer_list_entries_new + 1
-      defer_list_new(defer_list_entries_new)%p => node
+      defer_list_new(defer_list_entries_new) = node
     end subroutine
 
 
@@ -945,10 +950,10 @@ module module_walk
       iold = 1
       do
         if (iold > defer_list_entries_old) then; return; end if
-        if ( tree_node_children_available(defer_list_old(iold)%p) ) then
+        if ( tree_node_children_available(walk_tree%nodes(defer_list_old(iold)))) then
           call atomic_read_barrier()
           ! children for deferred node have arrived --> put children onto todo_list
-          if (.not. todo_list_push_children(defer_list_old(iold)%p)) then; exit; end if
+          if (.not. todo_list_push_children(defer_list_old(iold))) then; exit; end if
         else
           ! children for deferred node are still unavailable - put onto defer_list_new (do not use defer_list_push for performance reasons)
           defer_list_entries_new                 = defer_list_entries_new + 1
