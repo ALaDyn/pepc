@@ -148,6 +148,8 @@ module helper
 
       call random_gauss(p(ip)%data%v) 
       p(ip)%data%v      = p(ip)%data%v / sqrt(p(ip)%data%m)
+
+      p(ip)%work        = 1.0_8
     end do  
   end subroutine init_particles
 

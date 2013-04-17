@@ -183,7 +183,7 @@ module module_domains
 
     ! FIXME: every processor has to have at least one particle
     if (d%npnew < 2) then
-        DEBUG_ERROR('("rank less than two particles after sorting (had ", I8, " before) - currently this can lead to errors --> aborting")', d%npold)
+        DEBUG_ERROR('("rank less than two particles after sorting (had ", I8, " before). Did you initialise particle field %work correctly? --> aborting")', d%npold)
     end if
 
     call timer_stop(t_domains_sort_pure)
