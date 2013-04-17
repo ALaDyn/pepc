@@ -296,8 +296,8 @@ module module_tree_grow
       integer*8, allocatable, intent(out) :: bk(:) !< list of keys of local branch nodes
 
       integer :: ilevel
-      integer*8 :: vld_llim, vld_rlim, L, D1, D2, pos, j, possible_branch, &
-        branch_level(0:nlev), branch_level_D1(0:nlev), branch_level_D2(0:nlev)
+      integer*8 :: vld_llim, vld_rlim, L, D1, D2, pos, j, possible_branch
+      integer :: branch_level(0:nlev), branch_level_D1(0:nlev), branch_level_D2(0:nlev)
 
       call pepc_status('FIND BRANCHES')
       call find_vld_limits(t, p, bp, vld_llim, vld_rlim)
@@ -316,8 +316,8 @@ module module_tree_grow
       ! get estimate for number of local branches per level and total
       do ilevel = 0, nlev
         pos = idim * (nlev - ilevel)
-        branch_level_D1(ilevel) = ibits(D1, pos, idim)
-        branch_level_D2(ilevel) = ibits(D2, pos, idim)
+        branch_level_D1(ilevel) = int(ibits(D1, pos, idim), kind(branch_level_D1))
+        branch_level_D2(ilevel) = int(ibits(D2, pos, idim), kind(branch_level_D2))
         branch_level(ilevel) = branch_level_D1(ilevel) + branch_level_D2(ilevel)
       end do
       t%nbranch_max_me = sum(branch_level(:))

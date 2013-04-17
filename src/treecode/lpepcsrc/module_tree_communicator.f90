@@ -151,7 +151,6 @@ module module_tree_communicator
 
     type(t_tree), target, intent(inout) :: t
     type(c_ptr) :: tp
-    integer(c_int) :: res
 
     DEBUG_ASSERT(.not. t%communicator%comm_thread_running)
     if (tree_comm_debug) then
@@ -326,7 +325,7 @@ module module_tree_communicator
 
   
   !>
-  !> Simply collect all child nodes for `parent`
+  !> Simply collect all child nodes for node with `key`
   !>
   subroutine answer_request_simple(t, key, ipe_sender)
     use module_tree, only: t_tree, tree_lookup_node_critical 
@@ -338,7 +337,6 @@ module module_tree_communicator
     integer*8, intent(in) :: key
     integer, intent(in) :: ipe_sender
     
-    type(t_tree_node), pointer :: parent
     type(t_tree_node_package) :: children_to_send(8) ! for an octtree, there will never be more than 8 direct children - no need for counting in advance
     integer :: nchild
     

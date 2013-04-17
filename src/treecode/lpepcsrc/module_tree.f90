@@ -510,7 +510,6 @@ module module_tree
     !>
     subroutine tree_node_connect_children(t, n, c)
       use module_pepc_types, only: kind_node
-      use treevars, only: idim
       use module_debug
       use module_tree_node, only: NODE_INVALID
       implicit none

@@ -359,7 +359,7 @@ module module_walk
 
     twalk  = MPI_WTIME()
 
-    call init_walk_data(t)
+    call init_walk_data()
     call walk_hybrid()
     call uninit_walk_data()
 
@@ -450,15 +450,12 @@ module module_walk
   end subroutine walk_hybrid
 
 
-  subroutine init_walk_data(t)
+  subroutine init_walk_data()
     use, intrinsic :: iso_c_binding
-    use module_tree, only: t_tree
     use pthreads_stuff, only: pthreads_alloc_thread
     use module_atomic_ops, only: atomic_store_int
     use module_debug
     implicit none
-
-    type(t_tree), intent(in) :: t
 
     integer :: i
 
