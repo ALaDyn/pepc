@@ -252,10 +252,6 @@ module module_tree_grow
 
     do i = 1, num_local_branch_keys
       call tree_lookup_node_critical(t, local_branch_keys(i), local_branch_nodes(i), 'tree_exchange_branches()')
-      ! additionally, we mark all local branches as branches since this is only done for remote branches during unpack
-      ! (is used for fill node identification)
-      branch => t%nodes(local_branch_nodes(i))
-      branch%flags = ibset(branch%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)
     end do
 
     call tree_exchange(t, local_branch_nodes, bn)
@@ -265,6 +261,9 @@ module module_tree_grow
 
     do i = 1, t%nbranch
       branch => t%nodes(bn(i))
+
+      ! after clearing all bits we have to set the flag for branches again
+      branch%flags = ibset(branch%flags, TREE_NODE_FLAG_IS_BRANCH_NODE) 
 
       if (branch%owner /= t%comm_env%rank) then
         ! delete all custom flags from incoming nodes (e.g. TREE_NODE_FLAG_CHILDREN_AVAILABLE)

@@ -132,7 +132,6 @@ module module_walk
   integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
   integer :: num_nonshared_threads, num_shared_threads
 
-  real*8, dimension(:), allocatable :: boxlength2
   real*8 :: vbox(3)
   logical :: in_central_box
 
@@ -273,7 +272,7 @@ module module_walk
     read(filehandle, NML=walk_para_pthreads)
 
     if (num_walk_threads > 0) then ! it has been set through the namelist
-      DEBUG_WARNING(*,  'Setting num_walk_threads through the walk_para_pthreads namelist directly is deprecated and will be removed soon. Please switch to parameter num_threads in namelist libpepc in your parameter files.')
+      DEBUG_INFO(*,  'Setting num_walk_threads through the walk_para_pthreads namelist directly is deprecated and will be removed soon. Please switch to parameter num_threads in namelist libpepc in your parameter files.')
       num_threads = num_walk_threads
     else          
       num_walk_threads = num_threads
@@ -454,7 +453,6 @@ module module_walk
   subroutine init_walk_data(t)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use treevars, only: nlev
     use pthreads_stuff, only: pthreads_alloc_thread
     use module_atomic_ops, only: atomic_store_int
     use module_debug
@@ -480,12 +478,6 @@ module module_walk
 
     ! we will only want to reject the root node and the particle itself if we are in the central box
     in_central_box = (dot_product(vbox,vbox) == 0)
-    ! Preprocessed box sizes for each level
-    allocate(boxlength2(0:nlev))
-    boxlength2(0)=maxval(t%bounding_box%boxsize)**2
-    do i = 1, nlev
-      boxlength2(i) =  boxlength2(i-1)/4.
-    end do
 
     ! initialize atomic variables
     call atomic_store_int(next_unassigned_particle, 1)
@@ -498,7 +490,6 @@ module module_walk
     implicit none
 
     integer :: i
-    deallocate(boxlength2)
 
     do i = 1, num_walk_threads
       call pthreads_free_thread(thread_handles(i))
@@ -775,7 +766,7 @@ module module_walk
     integer(kind_node) :: walk_node_idx
     real*8 :: dist2
     real*8 :: delta(3), shifted_particle_position(3)
-    logical :: is_leaf, maybe_parent
+    logical :: is_leaf, is_related
     integer*8 :: num_interactions, num_mac_evaluations, num_post_request
     real*8 :: t_post_request
 
@@ -809,7 +800,7 @@ module module_walk
         delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
         dist2 = DOT_PRODUCT(delta, delta)
         num_mac_evaluations = num_mac_evaluations + 1
-        if (mac(particle, walk_node%interaction_data, dist2, boxlength2(walk_node%level))) then ! MAC OK: interact
+        if (mac(particle, walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC OK: interact
           go to 1 ! interact
         else ! MAC fails: resolve
           go to 3 ! resolve
@@ -851,7 +842,7 @@ module module_walk
         ! children for twig are _absent_
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
-        call tree_node_fetch_children(walk_tree, walk_node, shifted_particle_position) ! fetch children from remote
+        call tree_node_fetch_children(walk_tree, walk_node, particle, shifted_particle_position) ! fetch children from remote
         if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
         num_post_request = num_post_request + 1
         ! if posting the request failed, this is not a problem, since we defer the particle anyway
