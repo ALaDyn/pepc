@@ -49,11 +49,11 @@ module module_pepc_types
 
       !> Data structure for tree nodes
       type, public :: t_tree_node
-        integer*8 :: key  =  0
-        integer :: flags  =  0
-        integer :: leaves =  0
-        integer :: owner  = -1
-        integer :: level  = -1
+        integer*8 :: key
+        integer :: flags
+        integer :: leaves
+        integer :: owner
+        integer :: level
         type(t_tree_node_interaction_data) :: interaction_data
         integer(kind_node) :: first_child
         integer(kind_node) :: next_sibling
@@ -62,18 +62,18 @@ module module_pepc_types
       !> Data structure for shipping tree nodes
       integer, private, parameter :: nprops_tree_node_package = 6
       type, public :: t_tree_node_package
-        integer*8 :: key  =  0
-        integer :: flags  =  0
-        integer :: leaves =  0
-        integer :: owner  = -1
-        integer :: level  = -1
+        integer*8 :: key
+        integer :: flags
+        integer :: leaves
+        integer :: owner
+        integer :: level
         type(t_tree_node_interaction_data) :: interaction_data
       end type t_tree_node_package
 
       !> Data structure for requesting tree nodes with eager send algorithm
       integer, private, parameter :: nprops_request_eager = 2
       type, public :: t_request_eager
-        integer*8 :: key =  0
+        integer*8 :: key
         type(t_particle) :: particle
       end type t_request_eager
 
