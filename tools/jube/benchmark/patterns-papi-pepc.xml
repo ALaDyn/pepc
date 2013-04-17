@@ -1,7 +1,0 @@
-<patterns>
-
-    <parm name="PAPI_FMA_INS" unit="" mode="line,statistics" type="int">PAPI: counter PAPI_FMA_INS\s+; value\s+$patint</parm>
-    <parm name="PAPI_FP_OPS" unit="" mode="line,statistics" type="int">PAPI: counter PAPI_FP_OPS\s+; value\s+$patint</parm>
-    <parm name="PAPI_PERF" unit="" mode="line,statistics"  type="float">PAPI: performance \[MF\/s\]\s+$patfp</parm>
-
-</patterns>
