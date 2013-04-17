@@ -32,6 +32,7 @@ module treevars
   integer :: num_pe   !< # cpus used by program
   integer :: MPI_COMM_lpepc !< communicator that has been supplied to or created by pepc_initialize
   integer :: num_threads = 3 !< number of threads to be used for hybrid parallelization (Pthreads, OpenMP, etc.), for compatibility, we set it to num_walk_threads in tree_walk_read_parameters() for now
+  integer :: main_thread_processor_id !< id of processor that runs the applications main thread
 
   integer :: nlev, & !< max refinement level
              idim !< dimension of the system

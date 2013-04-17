@@ -503,6 +503,7 @@ module module_walk
     use module_atomic_ops
     use module_tree, only: tree_lookup_root
     use module_pepc_types, only: kind_node
+    use treevars, only: main_thread_processor_id
     implicit none
     include 'mpif.h'
 
@@ -521,7 +522,7 @@ module module_walk
     logical :: particles_available
     logical :: particles_active
     type(t_threaddata), pointer :: my_threaddata
-    logical :: same_core_as_communicator
+    logical :: shared_core
     integer :: my_max_particles_per_thread
     integer :: my_processor_id
     logical :: particle_has_finished
@@ -531,16 +532,17 @@ module module_walk
     call tree_lookup_root(walk_tree, defer_list_root_only(1), 'walk_worker_thread:root node')
 
     my_processor_id = get_my_core()
-    same_core_as_communicator = (my_processor_id == walk_tree%communicator%processor_id)
+    shared_core = (my_processor_id == walk_tree%communicator%processor_id) .or. &
+                  (my_processor_id == main_thread_processor_id)
 
-    if ((same_core_as_communicator) .and. (num_walk_threads > 1)) then
+    if ((shared_core) .and. (num_walk_threads > 1)) then
           my_max_particles_per_thread = max(int(work_on_communicator_particle_number_factor * max_particles_per_thread), 1)
     else
           my_max_particles_per_thread = max_particles_per_thread
     end if
 
     call c_f_pointer(arg, my_threaddata)
-    my_threaddata%is_on_shared_core = same_core_as_communicator
+    my_threaddata%is_on_shared_core = shared_core
     my_threaddata%coreid = my_processor_id
     my_threaddata%finished = .false.
     if (walk_profile) then
@@ -574,7 +576,10 @@ module module_walk
 
         particles_active = .false.
 
-        call do_sched_yield_if_necessary()
+        ! after processing a number of particles: handle control to other (possibly comm) thread
+        if (shared_core) then
+          DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+        end if
 
         do i=1,my_max_particles_per_thread
 
@@ -723,13 +728,6 @@ module module_walk
     end subroutine setup_defer_list
 
 
-    subroutine do_sched_yield_if_necessary()
-      implicit none
-      ! after processing a number of particles: handle control to other (possibly comm) thread
-      if (same_core_as_communicator) then
-        DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
-      end if
-    end subroutine
   end function walk_worker_thread
 
 

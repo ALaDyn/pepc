@@ -65,12 +65,13 @@ module module_pepc
     !> Call this function at program startup before any MPI calls
     !>
     subroutine pepc_initialize(frontendname, my_rank, n_cpu, init_mpi, db_level_in, comm, idim)
-      use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc
+      use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc, main_thread_processor_id
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_utils, only : create_directory, MPI_IN_PLACE_test
       use module_walk
       use module_domains
       use module_debug
+      use pthreads_stuff, only: get_my_core
       implicit none
       include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
@@ -107,6 +108,8 @@ module module_pepc
       call MPI_COMM_RANK(MPI_COMM_lpepc, my_rank, ierr)
       ! Get the number of MPI tasks
       call MPI_COMM_size(MPI_COMM_lpepc, n_cpu, ierr)
+      ! Get the processor ID of the main thread
+      main_thread_processor_id = get_my_core()
 
       if (my_rank == 0 .and. pepc_initializes_mpi) then
         ! verbose startup-output
