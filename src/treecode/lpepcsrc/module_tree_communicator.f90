@@ -253,24 +253,52 @@ module module_tree_communicator
     end if
 
     ! the communicator will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
-    t%communicator%req_queue(local_queue_bottom)%request%key        = n%key
     if (present(particle)) then
-      t%communicator%req_queue(local_queue_bottom)%request%particle = particle
-      t%communicator%req_queue(local_queue_bottom)%eager_request    = .true.
-      
-      if (present(pos)) then
-        t%communicator%req_queue(local_queue_bottom)%request%particle%x = pos
-      endif
+      call enqueue_eager(t%communicator%req_queue, n, particle, pos)
     else
-      t%communicator%req_queue(local_queue_bottom)%eager_request = .false.
-    endif
-    t%communicator%req_queue(local_queue_bottom)%node => n
-    call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
-    t%communicator%req_queue(local_queue_bottom)%owner = n%owner
+      call enqueue_simple(t%communicator%req_queue, n)
+    end if
 
     if (tree_comm_debug) then
       DEBUG_INFO('("PE", I6, " posting request. local_queue_bottom=", I5, ", request_key=", O22, ", request_owner=", I6)', t%comm_env%rank, local_queue_bottom, n%key, n%owner)
     end if
+
+    contains
+
+    subroutine enqueue_simple(q, n)
+      implicit none
+
+      type(t_request_queue_entry), volatile, intent(inout) :: q(1:)
+      type(t_tree_node), target, intent(in) :: n
+
+      q(local_queue_bottom)%request%key   = n%key
+      q(local_queue_bottom)%eager_request = .false.
+      q(local_queue_bottom)%node          => n
+      call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
+      q(local_queue_bottom)%owner         = n%owner
+    end subroutine
+
+
+    subroutine enqueue_eager(q, n, p, pos)
+      implicit none
+
+      type(t_request_queue_entry), volatile, intent(inout) :: q(1:)
+      type(t_tree_node), target, intent(in) :: n
+      type(t_particle), intent(in) :: p
+      real*8, optional, intent(in) :: pos(3)
+
+      q(local_queue_bottom)%request%key      = n%key
+      q(local_queue_bottom)%request%particle = particle
+      q(local_queue_bottom)%eager_request    = .true.
+      
+      if (present(pos)) then
+        q(local_queue_bottom)%request%particle%x = pos
+      end if
+
+      q(local_queue_bottom)%node             => n
+      call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
+      q(local_queue_bottom)%owner            = n%owner
+    end subroutine enqueue_eager
   end subroutine tree_node_fetch_children
 
 
@@ -465,43 +493,6 @@ module module_tree_communicator
   
 
   !>
-  !> Send a request for data
-  !>
-  function send_request(t, req)
-    use module_tree, only: t_tree
-    use module_tree_node
-    use module_pepc_types, only : MPI_TYPE_request_eager
-    implicit none
-    include 'mpif.h'
-    
-    logical :: send_request
-    type(t_tree), intent(inout) :: t
-    type(t_request_queue_entry), intent(in) :: req
-
-    integer :: ierr
-
-    if (.not. btest( req%node%flags, TREE_NODE_FLAG_REQUEST_SENT ) ) then
-      ! send a request to PE req_queue_owners(req_queue_top)
-      ! telling, that we need child data for particle request_key(req_queue_top)
-      
-      if (req%eager_request) then
-        call MPI_BSEND(req%request, 1, MPI_TYPE_request_eager, req%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
-          t%comm_env%comm, ierr)
-      else
-        call MPI_BSEND(req%request%key, 1, MPI_INTEGER8, req%owner, TREE_COMM_TAG_REQUEST_KEY, &
-          t%comm_env%comm, ierr)
-      endif
-
-      req%node%flags = ibset(req%node%flags, TREE_NODE_FLAG_REQUEST_SENT)
-
-      send_request = .true.
-    else
-      send_request = .false.
-    end if
-  end function
-
-
-  !>
   !> Insert incoming data into the tree.
   !>
   subroutine unpack_data(t, child_data, num_children, ipe_sender)
@@ -607,46 +598,83 @@ module module_tree_communicator
   !>
   !> send all requests from our thread-safe list until we find an invalid one
   !>
-  subroutine send_requests(t)
-    use module_tree, only: t_tree
-    use module_atomic_ops, only: atomic_load_int, atomic_store_int, atomic_read_barrier
+  subroutine send_requests(q, b, t, rb, tsend, comm_env)
+    use module_tree, only: t_request_queue_entry
+    use module_comm_env, only: t_comm_env
+    use module_atomic_ops, only: t_atomic_int, atomic_load_int, atomic_store_int, atomic_read_barrier
     use module_debug
     implicit none
     include 'mpif.h'
 
-    type(t_tree), intent(inout) :: t
+    type(t_request_queue_entry), volatile, intent(inout) :: q(1:) !< request queue
+    type(t_atomic_int), intent(inout) :: b !< queue bottom
+    type(t_atomic_int), intent(inout) :: t !< queue top
+    integer, intent(inout) :: rb !< request balance
+    real*8, intent(inout) :: tsend !< time measurement
+    type(t_comm_env), intent(inout) :: comm_env !< communication environment for sending
 
-    real*8 :: tsend
     integer :: tmp_top
 
-    tsend = MPI_WTIME()
+    tsend = tsend - MPI_WTIME()
 
-    do while (atomic_load_int(t%communicator%req_queue_top) .ne. atomic_load_int(t%communicator%req_queue_bottom))
-      tmp_top = mod(atomic_load_int(t%communicator%req_queue_top), TREE_COMM_REQUEST_QUEUE_LENGTH) + 1
+    do while (atomic_load_int(t) .ne. atomic_load_int(b))
+      tmp_top = mod(atomic_load_int(t), TREE_COMM_REQUEST_QUEUE_LENGTH) + 1
 
       ! first check whether the entry is actually valid	  
-      if (t%communicator%req_queue(tmp_top)%owner >= 0) then
+      if (q(tmp_top)%owner >= 0) then
         call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
         if (tree_comm_debug) then
-          DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)', t%comm_env%rank, tmp_top, t%communicator%req_queue(tmp_top)%request% key, t%communicator%req_queue(tmp_top)%owner)
+          DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)', comm_env%rank, tmp_top, q(tmp_top)%request%key, q(tmp_top)%owner)
         end if
 
-        if (send_request(t, t%communicator%req_queue(tmp_top))) then
-          t%communicator%request_balance = t%communicator%request_balance + 1
+        if (send_request(q(tmp_top), comm_env)) then
+          rb = rb + 1
         end if
 
         ! we have to invalidate this request queue entry. this shows that we actually processed it and prevents it from accidentially being resent after the req_queue wrapped around
-        t%communicator%req_queue(tmp_top)%owner = -1
-        call atomic_store_int(t%communicator%req_queue_top, tmp_top)
+        q(tmp_top)%owner = -1
+        call atomic_store_int(t, tmp_top)
       else
         ! the next entry is not valid (obviously it has not been stored completely until now -> we abort here and try again later
         exit
       end if
     end do
 
-    t%communicator%timings_comm(TREE_COMM_TIMING_SENDREQS) = t%communicator%timings_comm(TREE_COMM_TIMING_SENDREQS) &
-      + ( MPI_WTIME() - tsend )
+    tsend = tsend + MPI_WTIME()
+
+    contains
+
+    function send_request(req, comm_env)
+      use module_tree_node
+      use module_pepc_types, only : MPI_TYPE_request_eager
+      implicit none
+      include 'mpif.h'
+      
+      logical :: send_request
+      type(t_request_queue_entry), volatile, intent(in) :: req
+      type(t_comm_env), intent(inout) :: comm_env
+
+      integer :: ierr
+
+      if (.not. btest( req%node%flags, TREE_NODE_FLAG_REQUEST_SENT ) ) then
+        ! send a request to PE req_queue_owners(req_queue_top)
+        ! telling, that we need child data for particle request_key(req_queue_top)
+        
+        if (req%eager_request) then
+          call MPI_BSEND(req%request, 1, MPI_TYPE_request_eager, req%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
+            comm_env%comm, ierr)
+        else
+          call MPI_BSEND(req%request%key, 1, MPI_INTEGER8, req%owner, TREE_COMM_TAG_REQUEST_KEY, &
+            comm_env%comm, ierr)
+        endif
+
+        req%node%flags = ibset(req%node%flags, TREE_NODE_FLAG_REQUEST_SENT)
+        send_request = .true.
+      else
+        send_request = .false.
+      end if
+    end function
   end subroutine send_requests
 
 
@@ -698,7 +726,12 @@ module module_tree_communicator
       t%communicator%comm_loop_iterations(1) = t%communicator%comm_loop_iterations(1) + 1
 
       ! send our requested keys
-      call send_requests(t)
+      call send_requests(t%communicator%req_queue, &
+                         t%communicator%req_queue_bottom, &
+                         t%communicator%req_queue_top, &
+                         t%communicator%request_balance, &
+                         t%communicator%timings_comm(TREE_COMM_TIMING_SENDREQS), &
+                         t%comm_env)
 
       if (t%communicator%comm_thread_stop_requested) then
         t%communicator%comm_thread_stop_requested = .false.
