@@ -44,8 +44,7 @@ all:
 	-$(MAKE) $(MFLAGS) $(ALLFRONTENDS)
 	@echo ""
 	@echo "======== build all results:"
-	@echo "== available: " $(ALLFRONTENDS)
-	@echo "== build    : " `cd $(BINDIR) && ls $(ALLFRONTENDS) 2>/dev/null`
+	@for f in $(ALLFRONTENDS); do if [ -e ${BINDIR}/$$f ]; then printf "== %-20s OK\n" $$f ; else printf "== %-20s FAILED\n" $$f; fi; done
 	@echo ""
 
 libsl: $(LIBDIR)/libsl.a
