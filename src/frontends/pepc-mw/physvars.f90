@@ -45,6 +45,7 @@ module physvars
   real*8 :: vte, vti       ! electron, ion thermal velocities
   real*8 :: Te = 0., Ti = 0. ! electron, ion emperatures in program units
   real*8 :: Te_eV = 50., Ti_eV = 10. ! electron, ion emperatures in electron Volts
+  real*8 :: Te_initial_eV = -1., Ti_initial_eV = -1. ! electron, ion emperatures in electron Volts
   real*8 :: Te_K = 0., Ti_K = 0. ! electron, ion emperatures in Kelvin
   real*8 :: force_const = 1.   ! force constant depending on unit system
   real*8 :: rhoe_nm3 = 1., rhoi_nm3 = 0.       ! number of electrons and ions per nm^3
@@ -103,9 +104,9 @@ module physvars
 
    logical :: directforce = .false. !< if set to true, the frontend only performs a direct force computation instead of utilizing the treecode
 
-    integer, public :: spherical_grid_Nr     = 64
-    integer, public :: spherical_grid_Ntheta = 12
-    integer, public :: spherical_grid_Nphi   = 12
+    integer, public :: spherical_grid_Nr     = 24
+    integer, public :: spherical_grid_Ntheta = 6
+    integer, public :: spherical_grid_Nphi   = 6
     integer :: ngrid_local, ngrid_global
     real*8 :: grid_rmax
     

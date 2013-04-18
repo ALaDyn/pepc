@@ -270,6 +270,7 @@ module module_param_dump
       call WriteParameter(ifile, "Temp (K)",  Te_K,  Ti_K)
       call WriteParameter(ifile, "Temp (eV)", Te_eV, Ti_eV)
       call WriteParameter(ifile, "Temp (Ry)", Te,    Ti)
+      call WriteParameter(ifile, "intial Temp (eV)", Te_initial_eV,    Ti_initial_eV)
       call WriteParameter(ifile, "Theta (degen. param.)", &
                                    unit_kB*Te / (unit_hbar**2/(2.*unit_me)                 * (3.*pi**2*rhoe_nm3*unit_abohr_in_nm**3.)**(2./3.)), &
                                    unit_kB*Ti / (unit_hbar**2/(2.*unit_mp_over_me*unit_me) * (3.*pi**2*rhoi_nm3*unit_abohr_in_nm**3.)**(2./3.))  )

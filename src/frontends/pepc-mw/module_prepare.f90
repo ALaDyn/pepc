@@ -39,6 +39,7 @@ subroutine pepcmw_prepare()
   implicit none
   integer :: ifile
   real*8 :: maxF
+  real*8 :: vte_init
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  derived parameters (physics)  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -145,6 +146,8 @@ subroutine pepcmw_prepare()
   
   maxdt(1) = 2./max(omega,1.e-10_8) * 1./19.
   maxdt(2) = 2./max(wpl_e,1.e-10_8) * 1./19.
+  
+  vte_init = max(vte, sqrt(3.*unit_kB*Te_initial_eV/unit_Ryd_in_eV/mass_e))
 
   if (force_law == 5) then
     ! in r->0 Kelbg is like Plummer with eps = lambda
@@ -158,9 +161,9 @@ subroutine pepcmw_prepare()
   endif
 
 
-  if (vte>0.) then
-    maxdt(3) = a_ee / vte          / 10.
-    maxdt(4) = mass_e * vte / maxF !/ 10. ! here we assume that particles never approach each other too close, so that maxF = maxF/10.
+  if (vte_init>0.) then
+    maxdt(3) = a_ee / vte_init          / 10.
+    maxdt(4) = mass_e * vte_init / maxF !/ 10. ! here we assume that particles never approach each other too close, so that maxF = maxF/10.
   endif
   
   if (vosc>0.) then

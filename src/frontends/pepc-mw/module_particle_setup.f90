@@ -903,11 +903,13 @@ module module_particle_setup
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine init_generic(fences)
           use module_velocity_setup
+	  use module_units
           implicit none
           integer, intent(in) :: fences(-1:n_cpu-1)
           integer :: nep, nip
           integer :: i
           real*8, dimension(1:np_local) :: tmp1, tmp2, tmp3
+	  real*8 :: vte_real, vti_real
 
           ! electrons and ions are distributed pairwise onto the mpi ranks
           nep = np_local / 2
@@ -920,17 +922,22 @@ module module_particle_setup
           particles(1:np_local-1:2)%label   = -fences(my_rank-1) - (/(i, i = 1, nep)/)      ! Electron labels
           particles(2:np_local:2)%label     =  fences(my_rank-1) + (/(i, i = 1, nep)/)      ! Ion labels
 
-          if (my_rank==0) write(*,*) 'INIT_GENERIC: Initializing particle velocities to vte =',vte,' vti =',vti
+          vte_real = vte
+	  if (Te_initial_eV > 0.) vte_real = sqrt(3.*unit_kB*Te_initial_eV/unit_Ryd_in_eV/mass_e)
+	  vti_real = vti
+	  if (Ti_initial_eV > 0.) vti_real = sqrt(3.*unit_kB*Ti_initial_eV/unit_Ryd_in_eV/mass_i)
+
+          if (my_rank==0) write(*,*) 'INIT_GENERIC: Initializing particle velocities to vte =',vte_real,' vti =',vti_real
 
           ! The following routines distribute their results to array slices
-          if (vte > 0) then
-             call maxwell3(tmp1,tmp2,tmp3,np_local,1,nep,vte)
+          if (vte_real > 0) then
+             call maxwell3(tmp1,tmp2,tmp3,np_local,1,nep,vte_real)
           else
              call cold_start(tmp1,tmp2,tmp3,np_local,1,nep)
           endif
 
-          if (vti > 0) then
-             call maxwell3(tmp1,tmp2,tmp3,np_local,nep+1,nip,vti)
+          if (vti_real > 0) then
+             call maxwell3(tmp1,tmp2,tmp3,np_local,nep+1,nip,vti_real)
           else
              call cold_start(tmp1,tmp2,tmp3,np_local,nep+1,nip)
           endif

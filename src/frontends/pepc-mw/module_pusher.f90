@@ -1111,6 +1111,8 @@ module module_pusher
       integer, intent(in) :: nvals
       integer :: oldcycle, currcycle
       
+      return
+      
       call velhist%init(nvals)
       
       currcycle = floor((t_laser/dt   )/navcycle)
@@ -1124,6 +1126,8 @@ module module_pusher
     subroutine histograms_add(vel)
       implicit none
       real*8, intent(in) :: vel(3)
+      
+      return
       
       call velhist%add(vel)
       
@@ -1143,11 +1147,13 @@ module module_pusher
       character(*), intent(in) :: status
       character(50) :: histfile
       integer :: newcycle, currcycle
-      
+           
       ! these may not change during simulation run since it affects bin position and widthin histogram
       real*8, save :: sigmabins     = -1.
       real*8, save :: sigmabins_avg = -1.      
       
+      return
+
       call create_directory('hist')
       
       write(histfile,'("hist/histogram_ve.",I6.6)') itime
