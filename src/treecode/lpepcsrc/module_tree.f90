@@ -44,6 +44,12 @@ module module_tree
     integer, public, parameter :: TREE_COMM_ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
     integer, public, parameter :: TREE_COMM_REQUEST_QUEUE_LENGTH = 400000 !< maximum length of request queue
 
+    integer, public, parameter :: TREE_COMM_THREAD_STATUS_STOPPED  = 1 !< maximum length of request queue
+    integer, public, parameter :: TREE_COMM_THREAD_STATUS_STARTING = 2 !< maximum length of request queue
+    integer, public, parameter :: TREE_COMM_THREAD_STATUS_STARTED  = 3 !< maximum length of request queue
+    integer, public, parameter :: TREE_COMM_THREAD_STATUS_STOPPING = 4 !< maximum length of request queue
+    integer, public, parameter :: TREE_COMM_THREAD_STATUS_WAITING  = 5 !< maximum length of request queue
+
     !> data type for tree communicator
     type, public :: t_tree_communicator
       ! request queue
@@ -60,9 +66,7 @@ module module_tree
 
       ! thread data
       type(c_ptr) :: comm_thread
-      logical :: comm_thread_running
-      logical :: comm_thread_stopping
-      logical :: comm_thread_stop_requested
+      type(t_atomic_int), pointer :: thread_status
       integer :: processor_id
     end type t_tree_communicator
 
@@ -251,11 +255,14 @@ module module_tree
       
       call atomic_allocate_int(c%req_queue_bottom)
       call atomic_allocate_int(c%req_queue_top)
-      if (.not. (associated(c%req_queue_bottom) .and. associated(c%req_queue_top))) then
+      call atomic_allocate_int(c%thread_status)
+      if (.not. (associated(c%req_queue_bottom) .and. associated(c%req_queue_top) &
+                 .and. associated(c%thread_status))) then
         DEBUG_ERROR(*, "atomic_allocate_int() failed!")
       end if
       call atomic_store_int(c%req_queue_bottom, 0)
       call atomic_store_int(c%req_queue_top, 0)
+      call atomic_store_int(c%thread_status, 0)
 
       c%request_balance =  0
       c%req_queue(:)%owner = -1 ! used in send_requests() to ensure that only completely stored entries are sent form the list
@@ -267,9 +274,6 @@ module module_tree
       if (.not. c_associated(c%comm_thread)) then
         DEBUG_ERROR(*, "pthreads_alloc_thread() failed!")
       end if
-      c%comm_thread_running = .false.
-      c%comm_thread_stopping = .false.
-      c%comm_thread_stop_requested = .false.
     end subroutine tree_communicator_create
 
 
@@ -280,6 +284,7 @@ module module_tree
       use, intrinsic :: iso_c_binding
       use module_atomic_ops, only: atomic_deallocate_int 
       use pthreads_stuff, only: pthreads_free_thread
+      use module_atomic_ops, only: atomic_load_int
       use module_debug
       implicit none
 
@@ -287,7 +292,7 @@ module module_tree
 
       DEBUG_ASSERT(tree_communicator_allocated(c))
       ! TODO: we could just stop the running thread, if only it was not in another module
-      if (c%comm_thread_running) then
+      if (atomic_load_int(c%thread_status) == TREE_COMM_THREAD_STATUS_STARTED) then
         DEBUG_ERROR(*, "tree_communicator_destroy() called with comm thread still running!")
       end if
 
@@ -295,6 +300,7 @@ module module_tree
       c%comm_thread = c_null_ptr
       call atomic_deallocate_int(c%req_queue_bottom)
       call atomic_deallocate_int(c%req_queue_top)
+      call atomic_deallocate_int(c%thread_status)
     end subroutine tree_communicator_destroy
 
 

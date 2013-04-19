@@ -42,8 +42,9 @@
 !    end while
 !
 module module_tree_communicator
-  use module_tree, only: t_request_queue_entry, t_tree_communicator, &
-    TREE_COMM_REQUEST_QUEUE_LENGTH, TREE_COMM_ANSWER_BUFF_LENGTH
+  use module_tree, only: t_request_queue_entry, t_tree_communicator, TREE_COMM_REQUEST_QUEUE_LENGTH, TREE_COMM_ANSWER_BUFF_LENGTH, &
+    TREE_COMM_THREAD_STATUS_STOPPED, TREE_COMM_THREAD_STATUS_STARTING, TREE_COMM_THREAD_STATUS_STARTED, &
+    TREE_COMM_THREAD_STATUS_STOPPING, TREE_COMM_THREAD_STATUS_WAITING
   implicit none
   private
 
@@ -145,6 +146,7 @@ module module_tree_communicator
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
     use pthreads_stuff, only: pthreads_createthread
+    use module_atomic_ops, only: atomic_load_int, atomic_store_int
     use module_debug
     use module_timings
     implicit none
@@ -152,7 +154,7 @@ module module_tree_communicator
     type(t_tree), target, intent(inout) :: t
     type(c_ptr) :: tp
 
-    DEBUG_ASSERT(.not. t%communicator%comm_thread_running)
+    DEBUG_ASSERT(atomic_load_int(t%communicator%thread_status) == TREE_COMM_THREAD_STATUS_STOPPED)
     if (tree_comm_debug) then
       DEBUG_INFO('("PE", I6, " run_communication_loop start.")', t%comm_env%rank)
     end if
@@ -161,11 +163,9 @@ module module_tree_communicator
     call timer_reset(t_comm_recv)
     call timer_reset(t_comm_sendreqs)
     
-    t%communicator%comm_thread_stopping = .false.
-    t%communicator%comm_thread_stop_requested = .false.
     tp = c_loc(t)
+    call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTING)
     DEBUG_ERROR_ON_FAIL(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp))
-    t%communicator%comm_thread_running = .true.
   end subroutine tree_communicator_start
 
 
@@ -180,6 +180,7 @@ module module_tree_communicator
   subroutine tree_communicator_stop(t)
     use module_tree, only: t_tree
     use pthreads_stuff, only: pthreads_jointhread
+    use module_atomic_ops, only: atomic_load_int, atomic_store_int
     use module_debug
     use module_timings
     implicit none
@@ -187,11 +188,9 @@ module module_tree_communicator
 
     type(t_tree), intent(inout) :: t
 
-    DEBUG_ASSERT(t%communicator%comm_thread_running)
-    t%communicator%comm_thread_stop_requested = .true.
+    DEBUG_ASSERT(atomic_load_int(t%communicator%thread_status) == TREE_COMM_THREAD_STATUS_STARTED .or. atomic_load_int(t%communicator%thread_status) == TREE_COMM_THREAD_STATUS_STARTING)
+    call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STOPPING)
     DEBUG_ERROR_ON_FAIL(pthreads_jointhread(t%communicator%comm_thread))
-    t%communicator%comm_thread_stopping = .false.
-    t%communicator%comm_thread_running = .false.
 
     call timer_add(t_comm_total,    t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP))
     call timer_add(t_comm_recv,     t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE))
@@ -268,7 +267,7 @@ module module_tree_communicator
     subroutine enqueue_simple(q, n)
       implicit none
 
-      type(t_request_queue_entry), volatile, intent(inout) :: q(1:)
+      type(t_request_queue_entry), volatile, intent(inout) :: q(TREE_COMM_REQUEST_QUEUE_LENGTH)
       type(t_tree_node), target, intent(in) :: n
 
       q(local_queue_bottom)%request%key   = n%key
@@ -282,7 +281,7 @@ module module_tree_communicator
     subroutine enqueue_eager(q, n, p, pos)
       implicit none
 
-      type(t_request_queue_entry), volatile, intent(inout) :: q(1:)
+      type(t_request_queue_entry), volatile, intent(inout) :: q(TREE_COMM_REQUEST_QUEUE_LENGTH)
       type(t_tree_node), target, intent(in) :: n
       type(t_particle), intent(in) :: p
       real*8, optional, intent(in) :: pos(3)
@@ -606,7 +605,7 @@ module module_tree_communicator
     implicit none
     include 'mpif.h'
 
-    type(t_request_queue_entry), volatile, intent(inout) :: q(1:) !< request queue
+    type(t_request_queue_entry), volatile, intent(inout) :: q(TREE_COMM_REQUEST_QUEUE_LENGTH) !< request queue
     type(t_atomic_int), intent(inout) :: b !< queue bottom
     type(t_atomic_int), intent(inout) :: t !< queue top
     integer, intent(inout) :: rb !< request balance
@@ -652,7 +651,7 @@ module module_tree_communicator
       include 'mpif.h'
       
       logical :: send_request
-      type(t_request_queue_entry), volatile, intent(in) :: req
+      type(t_request_queue_entry), volatile, intent(inout) :: req
       type(t_comm_env), intent(inout) :: comm_env
 
       integer :: ierr
@@ -691,6 +690,7 @@ module module_tree_communicator
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
     use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread
+    use module_atomic_ops, only: atomic_load_int, atomic_store_int
     use module_debug
     implicit none
     include 'mpif.h'
@@ -711,6 +711,8 @@ module module_tree_communicator
     call c_f_pointer(arg, t)
     DEBUG_ASSERT(associated(t))
     
+    ! signal successfull start
+    call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTED)
     ! store ID of comm-thread processor
     t%communicator%processor_id = get_my_core()
 
@@ -722,7 +724,7 @@ module module_tree_communicator
 
     t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP) = MPI_WTIME()
 
-    do while (.not. t%communicator%comm_thread_stopping)
+    do while (atomic_load_int(t%communicator%thread_status) /= TREE_COMM_THREAD_STATUS_STOPPED)
       t%communicator%comm_loop_iterations(1) = t%communicator%comm_loop_iterations(1) + 1
 
       ! send our requested keys
@@ -733,11 +735,11 @@ module module_tree_communicator
                          t%communicator%timings_comm(TREE_COMM_TIMING_SENDREQS), &
                          t%comm_env)
 
-      if (t%communicator%comm_thread_stop_requested) then
-        t%communicator%comm_thread_stop_requested = .false.
+      if (atomic_load_int(t%communicator%thread_status) == TREE_COMM_THREAD_STATUS_STOPPING) then
         ! notify rank 0 that we are finished with our walk
         call MPI_BSEND(tree_comm_dummy, 1, MPI_INTEGER, 0, TREE_COMM_TAG_FINISHED_PE, &
           t%comm_env%comm, ierr)
+        call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_WAITING)
       end if
 
       ! check whether we are still waiting for data or some other communication
@@ -774,7 +776,6 @@ module module_tree_communicator
 
     run_communication_loop = c_null_ptr
     DEBUG_ERROR_ON_FAIL(pthreads_exitthread())
-    
   end function run_communication_loop
 
 
@@ -784,6 +785,7 @@ module module_tree_communicator
   subroutine run_communication_loop_inner(t, comm_finished, nummessages)
     use module_tree, only: t_tree
     use module_pepc_types, only: t_tree_node_package, MPI_TYPE_tree_node_package, t_request_eager, MPI_TYPE_request_eager
+    use module_atomic_ops, only: atomic_store_int
     use module_debug
     implicit none
     include 'mpif.h'
@@ -894,7 +896,7 @@ module module_tree_communicator
               DEBUG_INFO('("PE", I6, " has been told to terminate by PE", I6, " since all walks on all PEs are finished")', t%comm_env%rank, ipe_sender)
             end if
 
-            t%communicator%comm_thread_stopping = .true.
+            call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STOPPED)
         end select
 
         call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_env%comm, msg_avail, stat, ierr)
