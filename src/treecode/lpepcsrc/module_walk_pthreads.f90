@@ -791,40 +791,63 @@ module module_walk
       is_leaf = tree_node_is_leaf(walk_node)
       is_related = (in_central_box) .and. is_ancestor_of_particle(particle%key, walk_node%key, walk_node%level)
 
-      if (.not. (is_leaf .or. is_related)) then ! A twig that is not an ancestor
-        delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
+      if (.not. is_related) then
+        ! walk_node is not a relative, distance vector is needed for interaction
+        ! and/or MAC evaluation
+        delta = shifted_particle_position - walk_node%interaction_data%coc ! Separation vector
         dist2 = DOT_PRODUCT(delta, delta)
-        num_mac_evaluations = num_mac_evaluations + 1
-        if (mac(particle, walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC OK: interact
-          go to 1 ! interact
-        else ! MAC fails: resolve
-          go to 3 ! resolve
+        if (is_leaf) then ! leaves cannot be resolved further so interact
+          call interact()
+        else ! for twigs, evaluate MAC
+          num_mac_evaluations = num_mac_evaluations + 1
+          if (mac(particle, walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC OK: interact
+            call interact()
+          else ! MAC fails: resolve
+            call resolve()
+          end if
         end if
-      else if (is_leaf .and. (.not. is_related)) then ! Always interact with leaves
-        delta = shifted_particle_position - walk_node%interaction_data%coc  ! Separation vector
-        dist2 = DOT_PRODUCT(delta, delta)
-        go to 1 ! interact
-      else if ((.not. is_leaf) .and. is_related) then ! This is a parent: resolve
-        go to 3 ! resolve
-      else if (is_leaf .and. is_related) then ! self
-        go to 2 ! ignore, but count
+      else
+        ! this is a relative, possibly the particle itself
+        if (.not. is_leaf) then ! this is an ancestor, resolve further
+          call resolve()
+        else ! no self interaction, but count for consistency
+          partner_leaves = partner_leaves + walk_node%leaves
+        end if
       end if
+    end do ! (while (todo_list_pop(walk_key)))
 
-      DEBUG_ASSERT_MSG(.false., *, "The block of ifs above should be exhaustive!")
-      cycle
+    ! if todo_list and defer_list are now empty, the walk has finished
+    walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries_new == 0)
+
+    my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) = my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) + num_interactions
+    my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) = my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) + num_mac_evaluations
+    my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) = my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) + num_post_request
+
+    if (walk_profile) then
+      my_threaddata%timers(THREAD_TIMER_POST_REQUEST) = my_threaddata%timers(THREAD_TIMER_POST_REQUEST) + t_post_request
+    end if
+
+    contains
+
+    subroutine interact()
+      implicit none
 
       ! interact
       ! Check cutoff
-1     if (all(abs(delta) < spatial_interaction_cutoff)) then
+      if (all(abs(delta) < spatial_interaction_cutoff)) then
         call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node%key, delta, dist2, vbox, is_leaf)
         num_interactions = num_interactions + 1
       end if
       ! Interaction was considered, count partner leaves
-2     partner_leaves = partner_leaves + walk_node%leaves
-      cycle ! next particle
+      partner_leaves = partner_leaves + walk_node%leaves
+    end subroutine interact
+
+
+    subroutine resolve()
+      implicit none
 
       ! resolve
-3     if ( tree_node_children_available(walk_node) ) then
+      if ( tree_node_children_available(walk_node) ) then
         ! children for twig are present
   
         ! --> resolve cell & put all children in front of todo_list
@@ -848,20 +871,8 @@ module module_walk
           DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  walk_tree%comm_env%rank, defer_list_entries_new)
         end if
       end if
-    end do ! (while (todo_list_pop(walk_key)))
+    end subroutine resolve
 
-    ! if todo_list and defer_list are now empty, the walk has finished
-    walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries_new == 0)
-
-    my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) = my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) + num_interactions
-    my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) = my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) + num_mac_evaluations
-    my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) = my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) + num_post_request
-
-    if (walk_profile) then
-      my_threaddata%timers(THREAD_TIMER_POST_REQUEST) = my_threaddata%timers(THREAD_TIMER_POST_REQUEST) + t_post_request
-    end if
-
-    contains
 
     ! helper routines for todo_list manipulation
     function todo_list_pop(node)
