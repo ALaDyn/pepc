@@ -32,7 +32,13 @@
 
 OPA_int_t* _atomic_alloc_int()
 {
-  return (OPA_int_t*)malloc(sizeof(OPA_int_t));
+  void* ret;
+  if (0 != posix_memalign(&ret, (size_t)8, sizeof(OPA_int_t)))
+  {
+    ret = NULL;
+  }
+  
+  return (OPA_int_t*)ret;
 }
 
 void _atomic_free_int(OPA_int_t* storage)
