@@ -262,7 +262,7 @@ module module_tree
       end if
       call atomic_store_int(c%req_queue_bottom, 0)
       call atomic_store_int(c%req_queue_top, 0)
-      call atomic_store_int(c%thread_status, 0)
+      call atomic_store_int(c%thread_status, TREE_COMM_THREAD_STATUS_STOPPED)
 
       c%request_balance =  0
       c%req_queue(:)%owner = -1 ! used in send_requests() to ensure that only completely stored entries are sent form the list
