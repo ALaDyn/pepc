@@ -135,7 +135,7 @@ module module_tree_grow
   !>
   subroutine tree_exchange(t, local_branch_nodes, branch_nodes)
     use module_tree, only: t_tree, tree_lookup_node_critical, tree_insert_node
-    use module_tree_node, only: tree_node_pack, tree_node_unpack
+    use module_tree_node, only: tree_node_pack, tree_node_unpack, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE
     use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, kind_node
     use module_debug, only : pepc_status
     use module_timings
@@ -197,7 +197,7 @@ module module_tree_grow
       ! insert all remote branches into local data structures (this does *not* prepare the internal tree connections, but only copies multipole properties and creates the htable-entries)
       if (get_mult(i)%owner /= t%comm_env%rank) then
         call tree_node_unpack(get_mult(i), unpack_node)
-
+        
         if (.not. tree_insert_node(t, unpack_node, branch_nodes(i))) then
           DEBUG_ERROR(*, "exchanged a node that is already in the local tree.")
         end if
@@ -262,16 +262,12 @@ module module_tree_grow
     do i = 1, t%nbranch
       branch => t%nodes(bn(i))
 
-      ! after clearing all bits we have to set the flag for branches again
-      branch%flags = ibset(branch%flags, TREE_NODE_FLAG_IS_BRANCH_NODE) 
+      ! flag all branch nodes for later identification
+      branch%flags_global = ibset(branch%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)
 
       if (branch%owner /= t%comm_env%rank) then
-        ! delete all custom flags from incoming nodes (e.g. TREE_NODE_FLAG_CHILDREN_AVAILABLE)
-        branch%flags = IAND(branch%flags, TREE_NODE_CHILDBYTE)
-        ! after clearing all bits we have to set the flag for branches again to propagate this property upwards during global buildup
-        branch%flags = ibset(branch%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)
         ! additionally, we mark all remote branches as remote nodes (this information is propagated upwards later)
-        branch%flags = ibset(branch%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
+        branch%flags_local1 = ibset(branch%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_REMOTE_CONTRIBUTIONS)
       end if
     end do
 
@@ -628,7 +624,10 @@ module module_tree_grow
       else if (size(ki) == 1) then ! we have arrived at a leaf
         if (ki(1)%idx /= 0) then ! boundary particles have idx == 0, do not really need to be inserted
           ! TODO: put the following in tree_node_from_particle
-          this_node%flags        = ibset(0, TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS)
+          this_node%childcode    = 0
+          this_node%flags_global = 0
+          this_node%flags_local1 = ibset(this_node%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_LOCAL_CONTRIBUTIONS)
+          this_node%flags_local2 = 0
           this_node%owner        = t%comm_env%rank
           this_node%key          = k
           this_node%level        = l
@@ -649,13 +648,11 @@ module module_tree_grow
           DEBUG_ERROR_NO_HEADER('(I6,x,O22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip=1,size(ki) ) )
         end if
 
-        this_node%flags        = ibset(2**idim - 1, TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS)
-        this_node%owner        = t%comm_env%rank
+        this_node%childcode    = 1 ! we have to set some value > 0 here, to pretend that this is not a leaf node (used in tree_node_is_leaf() in tree_insert_node() )
+        this_node%owner        = t%comm_env%rank ! dito for owner - this one has to be valid to keep the nXX_me-counters in tree_indert_node) correct
         this_node%key          = k
-        this_node%level        = l
         this_node%leaves       = 2**idim
-        this_node%first_child  = NODE_INVALID
-        this_node%next_sibling = NODE_INVALID
+
         if (.not. tree_insert_node(t, this_node, inserted_node_idx)) then
           DEBUG_ERROR(*, "Twig allready inserted, aborting.") ! TODO: tell me more!
         end if
@@ -696,37 +693,6 @@ module module_tree_grow
 
 
   !>
-  !> accumulates properties of child nodes (given by keys) to parent node
-  !>
-!  subroutine shift_nodes_up_key(t, parent, childkeys, parent_owner)
-!    use module_tree, only: t_tree, tree_lookup_node_critical
-!    use module_pepc_types, only: t_tree_node
-!    use module_spacefilling, only: child_number_from_key
-!    implicit none
-!
-!    type(t_tree), intent(inout) :: t !< tree in which to find the nodes
-!    type(t_tree_node), intent(inout) :: parent !< parent node
-!    integer*8, intent(in) :: childkeys(:) !< keys of child nodes
-!    integer, intent(in) :: parent_owner !< communication rank that owns the parent
-!
-!    integer :: nchild, i
-!    type(t_tree_node) :: child_nodes(1:8)
-!    type(t_tree_node), pointer :: p
-!    integer :: childnumber(1:8)
-!
-!    nchild = size(childkeys)
-!
-!    do i = 1, nchild
-!      childnumber(i) = child_number_from_key(childkeys(i))
-!      call tree_lookup_node_critical(t, childkeys(i), p, 'shift_nodes_up_key')
-!      child_nodes(i) = p
-!    end do
-!
-!    call shift_nodes_up(parent, child_nodes(1:nchild), childnumber(1:nchild), parent_owner)
-!  end subroutine shift_nodes_up_key
-
-
-  !>
   !> accumulates properties of child nodes to parent node
   !>
   subroutine shift_nodes_up(t, parent, children, parent_owner)
@@ -746,13 +712,18 @@ module module_tree_grow
 
     type(t_tree_node_interaction_data) :: interaction_data(1:8)
     integer*8 :: parent_keys(1:8)
-    integer :: nleaves, nchild, i, flags
+    integer :: nleaves, nchild, i
+    integer*1 :: flags_local1, flags_local2, flags_global, childcode
     type(t_tree_node), pointer :: child
 
     nchild = size(children)
 
-    flags   = 0
-    nleaves = 0
+    childcode    = 0
+    flags_global = 0
+    flags_local1 = 0
+    flags_local2 = 0
+    nleaves      = 0
+    
     do i = 1, nchild
       child => t%nodes(children(i))
 
@@ -760,13 +731,19 @@ module module_tree_grow
       interaction_data(i) = child%interaction_data
 
       ! set bits for available children
-      flags = ibset(flags, child_number_from_key(child%key))
+      childcode = ibset(childcode, child_number_from_key(child%key))
       ! parents of nodes with local contributions also contain local contributions
-      if (btest(child%flags, TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS)) flags = ibset(flags, TREE_NODE_FLAG_HAS_LOCAL_CONTRIBUTIONS)
+      if (btest(child%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_LOCAL_CONTRIBUTIONS)) then
+        flags_local1 = ibset(flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_LOCAL_CONTRIBUTIONS)
+      endif
       ! parents of nodes with remote contributions also contain remote contributions
-      if (btest(child%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)) flags = ibset(flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
+      if (btest(child%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_REMOTE_CONTRIBUTIONS)) then
+        flags_local1 = ibset(flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_REMOTE_CONTRIBUTIONS)
+      endif
       ! parents of branch and fill nodes will also be fill nodes
-      if (btest(child%flags, TREE_NODE_FLAG_IS_FILL_NODE) .or. btest(child%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)) flags = ibset(flags, TREE_NODE_FLAG_IS_FILL_NODE)
+      if (btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE) .or. btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
+        flags_global = ibset(flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE)
+      endif
       nleaves = nleaves + child%leaves
     end do
 
@@ -774,14 +751,18 @@ module module_tree_grow
     DEBUG_ASSERT_MSG(all(parent_keys(2:nchild) == parent_keys(1)), *, "Error in shift nodes up: not all supplied children contribute to the same parent node")
 
     ! Set children_HERE flag parent since we just built it from its children
-    flags =  ibset(flags, TREE_NODE_FLAG_CHILDREN_AVAILABLE)
+    flags_local1 = ibset(flags_local1, TREE_NODE_FLAG_LOCAL1_CHILDREN_AVAILABLE)
 
-    parent%key        = parent_keys(1)
-    parent%flags      = flags
-    parent%leaves     = nleaves
-    parent%owner      = parent_owner
-    parent%level      = level_from_key( parent_keys(1) )
+    parent%key          = parent_keys(1)
+    parent%childcode    = childcode
+    parent%flags_global = flags_global
+    parent%flags_local1 = flags_local1
+    parent%flags_local2 = flags_local2
+    parent%leaves       = nleaves
+    parent%owner        = parent_owner
+    parent%level        = level_from_key( parent_keys(1) )
 
     call shift_multipoles_up(parent%interaction_data, interaction_data(1:nchild))
+
   end subroutine shift_nodes_up
 end module module_tree_grow

@@ -239,7 +239,7 @@ module module_tree
 
 
     !>
-    !> allocates resouces for the tree communicator `c` and initializes its fields
+    !> allocates resources for the tree communicator `c` and initializes its fields
     !>
     subroutine tree_communicator_create(c)
       use, intrinsic :: iso_c_binding
@@ -384,12 +384,8 @@ module module_tree
             end if
           end if
 
-          node%leaves           = n%leaves
-          node%flags            = n%flags     
-          node%owner            = n%owner
-          node%interaction_data = n%interaction_data
-          node%first_child      = n%first_child
-          node%next_sibling     = n%next_sibling
+          ! copy all data
+          node = n
         end if
 
         if (present(ptr)) then; ptr = node_entry; end if

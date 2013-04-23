@@ -285,7 +285,7 @@ module module_treediags
             ns = NODE_INVALID
 
             associate (n => t%nodes(nidx))
-              if (btest(n%flags, TREE_NODE_FLAG_IS_BRANCH_NODE)) then
+              if (btest(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
                 i = i + 1
                 branch_keys(i) = n%key
               else if (tree_node_get_first_child(n, s)) then

@@ -609,19 +609,19 @@ module module_htable
         call debug_ipefile_open()
 
         ! output hash table
-
         write(debug_ipefile,'(/a)') 'Hash table'
 
-        write(debug_ipefile,'(153x,a35)') &
-                    "IS_FILL_NODE              ", &
-                    "|IS_BRANCH_NODE           ", &
-                    "||HAS_REMOTE_CONTRIBUTIONS", &
-                    "|||HAS_LOCAL_CONTRIBUTIONS", &
-                    "||||REQUEST_SENT          ", &
-                    "|||||CHILDREN_AVAILABLE   ", &
-                    "||||||REQUEST_POSTED      "
+        write(debug_ipefile,'(134x,a48)') &
+                    "       REQUEST_POSTED                  ", &
+                    "       |     HAS_REMOTE_CONTRIBUTIONS  ", &
+                    "       |     |HAS_LOCAL_CONTRIBUTIONS  ", &
+                    "       |     ||REQUEST_SENT            ", &
+                    "       |     |||CHILDREN_AVAILABLE     ", &
+                    "       |     ||||       IS_FILL_NODE   ", &
+                    "       |     ||||       |IS_BRANCH_NODE", &
+                    "flags  |     ||||       ||             "
 
-        write(debug_ipefile,'(4(x,a10),3(x,a22),x,a14,x,a10,4x,a5,a30,/,162("-"),7("V")," 76543210")') &
+        write(debug_ipefile,'(4(x,a10),3(x,a22),x,a14,x,a10,4x,3(a8,x),a8,/,143("-"),a35)') &
                      'entry_10', &
                      'entry_8', &
                      'owner', &
@@ -631,8 +631,11 @@ module module_htable
                      'parent_8', &
                      'collision link', &
                      'leaves', &
-                     'flags', &
-                     '||||||| childcod'
+                     'l2     |', &
+                     'l1  ||||', &
+                     'g     ||', &
+                     'childcod', &
+                     '-------V-----VVVV-------VV-76543210'
 
         ! write(debug_ipefile,'(154x,a)') " 3      .   2    .     1  .        "
         ! write(debug_ipefile,'(154x,a)') "10987654.32109876.54321098.76543210"
@@ -657,10 +660,10 @@ module module_htable
                     collision, &
                     t%buckets(i)%link, &
                     t%values(t%buckets(i)%val)%leaves, &
-                    ishft(iand(t%values(t%buckets(i)%val)%flags, Z'FF000000'), -24), &
-                    ishft(iand(t%values(t%buckets(i)%val)%flags, Z'00FF0000'), -16), &
-                    ishft(iand(t%values(t%buckets(i)%val)%flags, Z'0000FF00'), -08), &
-                    ishft(iand(t%values(t%buckets(i)%val)%flags, Z'000000FF'), -00)
+                    t%values(t%buckets(i)%val)%flags_local2, &
+                    t%values(t%buckets(i)%val)%flags_local1, &
+                    t%values(t%buckets(i)%val)%flags_global, &
+                    t%values(t%buckets(i)%val)%childcode
           end if
         end do
 

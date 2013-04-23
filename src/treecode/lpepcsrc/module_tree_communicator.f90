@@ -236,13 +236,13 @@ module module_tree_communicator
     ! check wether the node has already been requested
     ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
     ! otherwise it will be possible that two walk threads can synchronously post a particle to the request queue
-    if (btest(n%flags, TREE_NODE_FLAG_REQUEST_POSTED)) then
+    if (btest(n%flags_local2, TREE_NODE_FLAG_LOCAL2_REQUEST_POSTED)) then
       return
     end if
 
     ! we first flag the particle as having been already requested to prevent other threads from doing it while
     ! we are inside this function
-    n%flags = ibset(n%flags, TREE_NODE_FLAG_REQUEST_POSTED) ! Set requested flag
+    n%flags_local2 = ibset(n%flags_local2, TREE_NODE_FLAG_LOCAL2_REQUEST_POSTED) ! Set requested flag
 
     ! thread-safe way of reserving storage for our request
     local_queue_bottom = atomic_mod_increment_and_fetch_int(t%communicator%req_queue_bottom, TREE_COMM_REQUEST_QUEUE_LENGTH)
@@ -287,7 +287,7 @@ module module_tree_communicator
       real*8, optional, intent(in) :: pos(3)
 
       q(local_queue_bottom)%request%key      = n%key
-      q(local_queue_bottom)%request%particle = particle
+      q(local_queue_bottom)%request%particle = p
       q(local_queue_bottom)%eager_request    = .true.
       
       if (present(pos)) then
@@ -559,7 +559,7 @@ module module_tree_communicator
           call tree_node_unpack(child_data(ic), unpack_node)
           unpack_node%first_child = NODE_INVALID
           ! tree nodes coming from remote PEs are flagged for easier identification
-          unpack_node%flags = ibset(unpack_node%flags, TREE_NODE_FLAG_HAS_REMOTE_CONTRIBUTIONS)
+          unpack_node%flags_local1 = ibset(unpack_node%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_REMOTE_CONTRIBUTIONS)
           
           if (.not. tree_insert_node(t, unpack_node, newnode)) then
             DEBUG_WARNING_ALL(*, "Received a node that is already present.")
@@ -587,7 +587,7 @@ module module_tree_communicator
       endif
       ! set 'children-here'-flag for all parent addresses
       ! may only be done *after inserting all* children, hence not(!) during the loop above
-      parent%flags = ibset(parent%flags, TREE_NODE_FLAG_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
+      parent%flags_local1 = ibset(parent%flags_local1, TREE_NODE_FLAG_LOCAL1_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
       
     end subroutine
     
@@ -656,7 +656,7 @@ module module_tree_communicator
 
       integer :: ierr
 
-      if (.not. btest( req%node%flags, TREE_NODE_FLAG_REQUEST_SENT ) ) then
+      if (.not. btest( req%node%flags_local1, TREE_NODE_FLAG_LOCAL1_REQUEST_SENT ) ) then
         ! send a request to PE req_queue_owners(req_queue_top)
         ! telling, that we need child data for particle request_key(req_queue_top)
         
@@ -668,7 +668,7 @@ module module_tree_communicator
             comm_env%comm, ierr)
         endif
 
-        req%node%flags = ibset(req%node%flags, TREE_NODE_FLAG_REQUEST_SENT)
+        req%node%flags_local1 = ibset(req%node%flags_local1, TREE_NODE_FLAG_LOCAL1_REQUEST_SENT)
         send_request = .true.
       else
         send_request = .false.
