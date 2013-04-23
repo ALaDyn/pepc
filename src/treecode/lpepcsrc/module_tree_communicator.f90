@@ -271,11 +271,13 @@ module module_tree_communicator
       type(t_request_queue_entry), volatile, intent(inout) :: q(TREE_COMM_REQUEST_QUEUE_LENGTH)
       type(t_tree_node), target, intent(in) :: n
 
+      DEBUG_ASSERT(.not. q(local_queue_bottom)%entry_valid)
+
       q(local_queue_bottom)%request%key   = n%key
       q(local_queue_bottom)%eager_request = .false.
       q(local_queue_bottom)%node          => n
       call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
-      q(local_queue_bottom)%owner         = n%owner
+      q(local_queue_bottom)%entry_valid   = .true.
     end subroutine
 
 
@@ -287,6 +289,8 @@ module module_tree_communicator
       type(t_particle), intent(in) :: p
       real*8, optional, intent(in) :: pos(3)
 
+      DEBUG_ASSERT(.not. q(local_queue_bottom)%entry_valid)
+
       q(local_queue_bottom)%request%key      = n%key
       q(local_queue_bottom)%request%particle = p
       q(local_queue_bottom)%eager_request    = .true.
@@ -297,7 +301,7 @@ module module_tree_communicator
 
       q(local_queue_bottom)%node             => n
       call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
-      q(local_queue_bottom)%owner            = n%owner
+      q(local_queue_bottom)%entry_valid      = .true.
     end subroutine enqueue_eager
   end subroutine tree_node_fetch_children
 
@@ -675,11 +679,11 @@ module module_tree_communicator
       tmp_top = mod(atomic_load_int(t), TREE_COMM_REQUEST_QUEUE_LENGTH) + 1
 
       ! first check whether the entry is actually valid	  
-      if (q(tmp_top)%owner >= 0) then
+      if (q(tmp_top)%entry_valid) then
         call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
         if (tree_comm_debug) then
-          DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)', comm_env%rank, tmp_top, q(tmp_top)%request%key, q(tmp_top)%owner)
+          DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)', comm_env%rank, tmp_top, q(tmp_top)%request%key, q(tmp_top)%node%owner)
         end if
 
         if (send_request(q(tmp_top), comm_env)) then
@@ -687,7 +691,7 @@ module module_tree_communicator
         end if
 
         ! we have to invalidate this request queue entry. this shows that we actually processed it and prevents it from accidentially being resent after the req_queue wrapped around
-        q(tmp_top)%owner = -1
+        q(tmp_top)%entry_valid = .false.
         call atomic_store_int(t, tmp_top)
       else
         ! the next entry is not valid (obviously it has not been stored completely until now -> we abort here and try again later
@@ -716,10 +720,10 @@ module module_tree_communicator
         ! telling, that we need child data for particle request_key(req_queue_top)
         
         if (req%eager_request) then
-          call MPI_BSEND(req%request, 1, MPI_TYPE_request_eager, req%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
+          call MPI_BSEND(req%request, 1, MPI_TYPE_request_eager, req%node%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
             comm_env%comm, ierr)
         else
-          call MPI_BSEND(req%request%key, 1, MPI_INTEGER8, req%owner, TREE_COMM_TAG_REQUEST_KEY, &
+          call MPI_BSEND(req%request%key, 1, MPI_INTEGER8, req%node%owner, TREE_COMM_TAG_REQUEST_KEY, &
             comm_env%comm, ierr)
         endif
 

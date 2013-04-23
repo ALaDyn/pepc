@@ -36,9 +36,9 @@ module module_tree
     !> data type for communicator request queue
     type, public :: t_request_queue_entry
       type(t_tree_node), pointer :: node
-      integer :: owner
       logical :: eager_request
       type(t_request_eager) :: request
+      logical :: entry_valid
     end type
 
     integer, public, parameter :: TREE_COMM_ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
@@ -266,7 +266,7 @@ module module_tree
       call atomic_store_int(c%thread_status, TREE_COMM_THREAD_STATUS_STOPPED)
 
       c%request_balance =  0
-      c%req_queue(:)%owner = -1 ! used in send_requests() to ensure that only completely stored entries are sent form the list
+      c%req_queue(:)%entry_valid = .false. ! used in send_requests() to ensure that only completely stored entries are sent form the list
       c%sum_ships = 0
       c%sum_fetches = 0
 
