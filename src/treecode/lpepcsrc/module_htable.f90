@@ -320,7 +320,7 @@ module module_htable
     !> and makes `v` point to the corresponding value, `.false.` and 
     !> `null()` otherwise
     !>
-    function htable_lookup(t, k, v)
+    function htable_lookup(t, k, v, caller)
       use module_debug
       use module_tree_node, only: NODE_INVALID
       implicit none
@@ -328,6 +328,7 @@ module module_htable
       type(t_htable), intent(in) :: t
       integer*8, intent(in) :: k
       integer(kind_node), intent(out) :: v
+      character(LEN=*), optional, intent(in) :: caller
 
       logical :: htable_lookup
       integer*8 :: addr
@@ -337,6 +338,18 @@ module module_htable
       if (htable_lookup) then
         v = t%buckets(addr)%val
       else
+        ! could not find key
+        if (present(caller)) then
+          DEBUG_WARNING_ALL('("Key not resolved in htable_lookup_critical at ",a)', caller)
+          DEBUG_WARNING_ALL('("key                  (oct) = ", o22)', k)
+          DEBUG_WARNING_ALL('("initial address      (dez) = ", i22)', iand( k, t%hashconst))
+          DEBUG_WARNING_ALL('("   last address      (dez) = ", i22)', addr)
+          if (.not. (addr == -1)) then
+            DEBUG_WARNING_ALL('("htable(lastaddr)%key (oct) = ", o22)', t%buckets(addr)%key)
+          end if
+          DEBUG_WARNING_ALL('("# const              (dez) = ", i22)', t%hashconst)
+          DEBUG_WARNING_ALL('("     maxentries      (dez) = ", i22)', t%maxentries)
+        end if
         v = NODE_INVALID
       end if
     end function htable_lookup
@@ -349,7 +362,6 @@ module module_htable
     !> @exception if key does not exist, the whole program is aborted
     !>
     subroutine htable_lookup_critical(t, k, v, caller)
-      use treevars, only: me
       use module_debug
       implicit none
 
@@ -358,26 +370,12 @@ module module_htable
       integer(kind_node), intent(out) :: v
       character(LEN=*), intent(in) :: caller
 
-      integer*8 :: addr
-
       DEBUG_ASSERT(htable_allocated(t))
-      if (.not. testaddr(t, k, addr)) then
-        ! could not find key
-        DEBUG_WARNING_ALL('("Key not resolved in htable_lookup_critical at ",a)', caller)
-        DEBUG_WARNING_ALL('("Bad address, check hash table and key list for PE", I7)', me)
-        DEBUG_WARNING_ALL('("key                  (oct) = ", o22)', k)
-        DEBUG_WARNING_ALL('("initial address      (dez) = ", i22)', iand( k, t%hashconst))
-        DEBUG_WARNING_ALL('("   last address      (dez) = ", i22)', addr)
-        if (.not. (addr == -1)) then
-          DEBUG_WARNING_ALL('("htable(lastaddr)%key (oct) = ", o22)', t%buckets(addr)%key)
-        end if
-        DEBUG_WARNING_ALL('("# const              (dez) = ", i22)', t%hashconst)
-        DEBUG_WARNING_ALL('("     maxentries      (dez) = ", i22)', t%maxentries)
+      if (.not. htable_lookup(t, k, v, caller) ) then
         call htable_dump(t)
         call debug_mpi_abort()
       end if
 
-      v = t%buckets(addr)%val
     end subroutine htable_lookup_critical
 
 

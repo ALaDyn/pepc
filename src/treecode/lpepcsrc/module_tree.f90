@@ -110,6 +110,7 @@ module module_tree
     public tree_node_get_parent
     public tree_node_connect_children
     public tree_check
+    public tree_dump
     public tree_stats
     public tree_destroy
 
@@ -435,7 +436,7 @@ module module_tree
     !> returns `.true.` in case a node is found and makes `n` point to it,
     !> `.false.` is returned otherwise
     !>
-    function tree_lookup_node(t, k, n)
+    function tree_lookup_node(t, k, n, caller)
       use module_pepc_types, only: t_tree_node, kind_node
       use module_htable, only: htable_lookup
       use module_debug
@@ -446,9 +447,10 @@ module module_tree
       type(t_tree), intent(in) :: t !< the tree
       integer*8, intent(in) :: k !< key to look up
       integer(kind_node), intent(out) :: n !< node that is identified by `k`
+      character(LEN = *), optional, intent(in) :: caller
 
       DEBUG_ASSERT(tree_allocated(t))
-      tree_lookup_node = htable_lookup(t%node_storage, k, n)
+      tree_lookup_node = htable_lookup(t%node_storage, k, n, caller)
     end function tree_lookup_node
 
 
@@ -543,7 +545,6 @@ module module_tree
     function tree_check(t, callpoint)
       use module_debug
       use module_pepc_types, only: t_tree_node, kind_node
-      use module_htable, only: htable_dump
       use module_debug
       implicit none
 
@@ -636,6 +637,20 @@ module module_tree
       end subroutine tree_check_helper
     end function tree_check
 
+
+    !>
+    !> Print tree structure from hash table to ipefile
+    !>
+    subroutine tree_dump(t, particles)
+      use module_pepc_types
+      use module_htable
+      implicit none
+      type(t_tree), intent(in) :: t
+      type(t_particle), optional, intent(in) :: particles(:)
+      
+      call htable_dump(t%node_storage, particles)
+
+    end subroutine
 
     !>
     !> gather statistics on the tree structure and dump them to a file

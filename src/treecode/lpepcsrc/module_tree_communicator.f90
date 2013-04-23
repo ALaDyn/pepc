@@ -54,13 +54,14 @@ module module_tree_communicator
   integer, private :: tree_comm_dummy = 123456 !< dummy variable for sending "empty" messages (those, where we are only interested in the tag)
 
   ! tags to be used in communication
-  integer, public, parameter :: TREE_COMM_TAG_REQUEST_KEY       = 1257 !< message requesting child data for a certain key
-  integer, public, parameter :: TREE_COMM_TAG_REQUEST_KEY_EAGER = 1258 !< message requesting child and grnadchild data for a certain key using the eager send algorithm
-  integer, public, parameter :: TREE_COMM_TAG_REQUESTED_DATA    = 1259 !< message that contains requested child data
-  integer, public, parameter :: TREE_COMM_TAG_FINISHED_PE       = 1260 !< message to rank 0, to announce requested stop of communicator
-  integer, public, parameter :: TREE_COMM_TAG_FINISHED_ALL      = 1261 !< message from rank 0, that communication has finished
-  integer, public, parameter :: mintag = TREE_COMM_TAG_REQUEST_KEY
-  integer, public, parameter :: maxtag = TREE_COMM_TAG_FINISHED_ALL
+  integer, private, parameter :: TREE_COMM_TAG_REQUEST_KEY         = 1257 !< message requesting child data for a certain key
+  integer, private, parameter :: TREE_COMM_TAG_REQUEST_KEY_EAGER   = 1258 !< message requesting child and grnadchild data for a certain key using the eager send algorithm
+  integer, private, parameter :: TREE_COMM_TAG_REQUESTED_DATA      = 1259 !< message that contains requested child data
+  integer, private, parameter :: TREE_COMM_TAG_FINISHED_PE         = 1260 !< message to rank 0, to announce requested stop of communicator
+  integer, private, parameter :: TREE_COMM_TAG_FINISHED_ALL        = 1261 !< message from rank 0, that communication has finished
+  integer, private, parameter :: TREE_COMM_TAG_DUMP_TREE_AND_ABORT = 1262 !< message from some rank telling us, that we shall dump the tree and abort
+  integer, private, parameter :: mintag = TREE_COMM_TAG_REQUEST_KEY
+  integer, private, parameter :: maxtag = TREE_COMM_TAG_DUMP_TREE_AND_ABORT
 
   ! IDs for internal timing measurement
   integer, public, parameter :: TREE_COMM_TIMING_COMMLOOP = 1
@@ -327,6 +328,54 @@ module module_tree_communicator
 
 
   !>
+  !> Notify all ranks about a serious error:
+  !> they shall dump their tree and abort
+  !>
+  subroutine broadcast_dump_tree_and_abort(t)
+    use module_tree, only: t_tree
+    use module_debug
+    implicit none
+    include 'mpif.h'
+
+    type(t_tree), intent(in) :: t
+    integer :: i, ierr
+
+    ! all PEs have to be informed
+    ! TODO: need better idea here...
+    if (tree_comm_debug) then
+      DEBUG_INFO('("PE", I6, " is telling all ranks to dump their tree and exit now")', t%comm_env%rank)
+    end if
+
+    do i = 0, t%comm_env%size - 1
+      call MPI_BSEND(tree_comm_dummy, 1, MPI_INTEGER, i, TREE_COMM_TAG_DUMP_TREE_AND_ABORT, &
+        t%comm_env%comm, ierr)
+    end do
+  end subroutine
+
+
+  !>
+  !> Notify all ranks about a serious error:
+  !> they shall dump their tree and abort
+  !>
+  subroutine dump_tree_and_abort(t, sender)
+    use module_tree, only: t_tree, tree_check, tree_dump
+    use module_debug
+    implicit none
+
+    type(t_tree), intent(in) :: t
+    integer, intent(in) :: sender
+    logical :: ret
+
+    DEBUG_INFO('("PE", I6, " has told us to dump our tree and exit now")', sender)
+    ret = tree_check(t, 'dump_tree_and_abort()')
+    call tree_dump(t)
+    call debug_barrier() ! make sure that every rank completed its dump
+    call debug_mpi_abort() ! usually, continuing would not make any sense at this stage
+
+  end subroutine
+
+
+  !>
   !> send node data
   !>
   subroutine send_data(t, nodes, numnodes, adressee) 
@@ -355,7 +404,7 @@ module module_tree_communicator
   !> Simply collect all child nodes for node with `key`
   !>
   subroutine answer_request_simple(t, key, ipe_sender)
-    use module_tree, only: t_tree, tree_lookup_node_critical 
+    use module_tree, only: t_tree, tree_lookup_node
     use module_pepc_types, only : t_tree_node, t_tree_node_package, kind_node
     use module_tree_node
     use module_debug
@@ -373,7 +422,10 @@ module module_tree_communicator
       DEBUG_INFO('("PE", I6, " answering request.                         key=", O22, ",        sender=", I6)', t%comm_env%rank, key, ipe_sender )
     end if
 
-    call tree_lookup_node_critical(t, key, n, 'WALK:answer_request_simple:parentkey')
+    if (.not. tree_lookup_node(t, key, n, 'WALK:answer_request_simple:parentkey')) then
+      call broadcast_dump_tree_and_abort(t)
+      return
+    endif
 
     nchild = 0
     if (tree_node_get_first_child(t%nodes(n), n)) then
@@ -398,7 +450,7 @@ module module_tree_communicator
   !> are needed to fulfill the mac() from given position `pos`
   !>
   subroutine answer_request_eager(t, request, ipe_sender)
-    use module_tree, only: t_tree, tree_lookup_node_critical
+    use module_tree, only: t_tree, tree_lookup_node
     use module_pepc_types, only : t_tree_node, &
       t_tree_node_package, t_request_eager, kind_node
     use module_tree_node
@@ -419,7 +471,10 @@ module module_tree_communicator
       DEBUG_INFO('("PE", I6, " answering eager request.                   key=", O22, ",        sender=", I6)', t%comm_env%rank, request%key, ipe_sender )
     end if
 
-    call tree_lookup_node_critical(t, request%key, parent_idx, 'WALK:answer_request_eager:parentkey')
+    if (.not. tree_lookup_node(t, request%key, parent_idx, 'WALK:answer_request_eager:parentkey')) then
+      call broadcast_dump_tree_and_abort(t)
+      return
+    endif
     parent => t%nodes(parent_idx)
 
     nchild = 0
@@ -897,6 +952,19 @@ module module_tree_communicator
             end if
 
             call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STOPPED)
+          
+          ! on some rank something went wrong - we shall dump our tree  
+          case (TREE_COMM_TAG_DUMP_TREE_AND_ABORT)
+            
+            call MPI_RECV( dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_DUMP_TREE_AND_ABORT, &
+                        t%comm_env%comm, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
+
+            if (tree_comm_debug) then
+              DEBUG_INFO('("PE", I6, " has been told to dump its tree and abort by PE", I6)', t%comm_env%rank, ipe_sender)
+            end if
+
+            call dump_tree_and_abort(t, ipe_sender)
+
         end select
 
         call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_env%comm, msg_avail, stat, ierr)
