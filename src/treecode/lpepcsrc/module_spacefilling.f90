@@ -496,7 +496,7 @@ module module_spacefilling
 
           integer, parameter :: CI2(0:3)    = [0,3,1,2] ! 2D - inverse hilbert cell
           integer, parameter :: G2(0:3,0:1) = reshape([3,0,0,3,0,0,0,3],shape(G2))
-          integer :: horder           ! order of the hilbert cell C
+          integer(kind_key) :: horder ! order of the hilbert cell C, has to be kind_key to assuage xlf s strict interpretation of ior-parameter
           integer :: exchange, reverse
           integer(kind_key) :: itemp(2), change
           integer(kind_key) :: cval
@@ -553,7 +553,7 @@ module module_spacefilling
 
           integer, parameter :: CI3(0:7)    = [0,1,3,2,7,6,4,5] ! 3D - inverse hilbert cell
           integer, parameter :: G3(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G3))     ! 3D - hilbert gene
-          integer :: horder           ! order of the hilbert cell C
+          integer(kind_key) :: horder ! order of the hilbert cell C, has to be kind_key to assuage xlf s strict interpretation of ior-parameter
           integer :: exchange, reverse
           integer(kind_key) :: itemp(3), change
           integer(kind_key) :: cval

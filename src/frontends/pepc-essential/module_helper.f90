@@ -124,7 +124,7 @@ module helper
     
     ! set initially number of local particles
     np = tnp / n_ranks
-    if (my_rank < MOD(tnp, n_ranks)) np = np + 1
+    if (my_rank < MOD(tnp, 1_kind_particle*n_ranks)) np = np + 1
 
     allocate(particles(np), stat=rc)
     if (rc.ne.0) write(*,*) " === particle allocation error!"
@@ -139,7 +139,7 @@ module helper
     ! setup random qubic particle cloud
     do ip=1, np
       p(ip)%label       = my_rank * (tnp / n_ranks) + ip - 1
-      p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2)) * 2.0_8 * &
+      p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2_kind_particle)) * 2.0_8 * &
                             plasma_dimensions(1) * plasma_dimensions(2) * &
                             plasma_dimensions(3) / tnp
       p(ip)%data%m      = 1.0_8

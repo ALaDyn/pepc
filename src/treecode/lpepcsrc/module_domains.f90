@@ -272,7 +272,7 @@ module module_domains
 
         ! looking upwards and downwards synchronously, we try to find the nearest gap
         do j = 1, max(d%npnew - i, i)
-          if (key_diffs(max(1, i - j)) > 1) then
+          if (key_diffs(max(1_kind_particle, i - j)) > 1) then
             ! there is a near gap below the current keys --> shift keys downwards
             DEBUG_INFO('("Fixing by shifting keys of section ", I0,":",I0," downwards")', i-j+1, i)
             local_keys(i-j+1:i) = local_keys(i-j+1:i) - 1
