@@ -140,16 +140,18 @@ module module_domains
       subroutine slsort_keys(nin, nmax, keys, workload, balance_weight, max_imbalance, nout, indxl, &
         irnkl, scounts, rcounts, sdispls, rdispls, keys2, irnkl2, size, rank, comm)
         use module_pepc_types
-        integer(kind_particle), intent(in) :: nin, nmax
-        integer(kind_default), intent(in) :: balance_weight
-        integer(kind_pe), intent(in) :: size, rank
-        integer, intent(in) :: comm
-        real*8,intent(in) :: max_imbalance
-        integer(kind_particle), intent(out) :: nout
-        integer(kind_default), intent(out) :: indxl(*), irnkl(*), scounts(*), rcounts(*), sdispls(*), rdispls(*), irnkl2(*)
-        integer(kind_key), intent(out) :: keys2(*)
+        integer(kind_particle), intent(in) :: nin
+        integer(kind_particle), intent(in) :: nmax
         integer(kind_key), intent(inout) :: keys(*)
         real*8,intent(inout) :: workload(*)
+        integer(kind_default), intent(in) :: balance_weight
+        real*8,intent(in) :: max_imbalance
+        integer(kind_particle), intent(out) :: nout
+        integer(kind_default), intent(out) :: indxl(*), irnkl(*), scounts(*), rcounts(*), sdispls(*), rdispls(*)
+        integer(kind_key), intent(out) :: keys2(*)
+        integer(kind_default), intent(out) :: irnkl2(*)
+        integer(kind_pe), intent(in) :: size, rank
+        integer(kind_default), intent(in) :: comm
       end subroutine slsort_keys
     end interface
 
