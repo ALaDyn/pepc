@@ -29,12 +29,7 @@ module module_sort
      module procedure sort_i
   end interface
 
-  interface swap
-     module procedure swap_ab
-  end interface
-
   public sort
-  public swap
 
   contains
 
@@ -45,19 +40,18 @@ module module_sort
   !> This can be used by the calling code to sort several other arrays according to iarr.
   !>
   subroutine sort_i(iarr, map)
+    use module_pepc_types
     use module_debug
     implicit none
-    integer*8, intent(inout) :: iarr(:)
-    integer, optional, intent(out) :: map(:) !< the optional integer array filled with positions for sorting other arrays according to iarr
-    integer :: i,n
+    integer(kind_key), intent(inout) :: iarr(:)
+    integer(kind_particle), optional, intent(out) :: map(:) !< the optional integer array filled with positions for sorting other arrays according to iarr
+    integer(kind_particle) :: i,n
 
     if (present(map)) then
-      if (size(map) .ne. size(iarr)) then
-         DEBUG_ERROR(*, "Error in tree_utils sort_i: optional second parameter has not the same size as first argument. Ignoring second argument.")
-      endif
+      DEBUG_ASSERT_MSG(size(map)==size(iarr), *, "Error in tree_utils sort_i: optional second parameter has not the same size as first argument. Ignoring second argument.")
     end if
 
-    n = size(iarr)
+    n = size(iarr, kind=kind(n))
 
     ! only sort map, if map present
     if(present(map)) map = [ (i, i=1,n) ]
@@ -68,18 +62,18 @@ module module_sort
 
     do i=n,2,-1                        ! Right range of sift-down is decr. from n-1 ->1
        ! during retirement/promotion (heap selection) phase.
-       call sort_swap_ab( 1,i )      ! Clear space at end of array and retire top of heap into it
-       call sift_down( 1,i-1)
+       call sort_swap_ab( 1_kind_particle, i )      ! Clear space at end of array and retire top of heap into it
+       call sift_down(    1_kind_particle, i-1_kind_particle)
     end do
 
     contains
 
     subroutine sift_down(l,r)        ! Carry out the sift-down on element arr(l) to maintain the heap structure
       ! Modified 2011.12.02 by Andreas Breslau to sort the map array according to iarr (see above description)
-      integer, intent(in) :: l,r
-      integer :: j,jold    ! index
-      integer*8 :: a
-      integer :: b
+      integer(kind_particle), intent(in) :: l,r
+      integer(kind_particle) :: j,jold    ! index
+      integer(kind_key) :: a
+      integer(kind_particle) :: b
       
       a = iarr(l)
 
@@ -110,8 +104,8 @@ module module_sort
 
 
     subroutine sort_swap_ab(p,q)
-      integer :: p,q, dum
-      integer*8 dum8
+      integer(kind_particle) :: p,q,dum
+      integer(kind_key) ::  dum8
 
       dum8 = iarr(p)
       iarr(p)=iarr(q)
@@ -126,11 +120,4 @@ module module_sort
     end subroutine sort_swap_ab
   end subroutine sort_i
 
-
-  subroutine swap_ab(p,q)
-    integer*8 :: p,q, dum
-    dum = p
-    p=q
-    q = dum
-  end subroutine swap_ab
 end module module_sort

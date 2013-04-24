@@ -367,7 +367,7 @@ module helper
       L2          = &
                     (particles(tindx(ti))%results%e(1) - trslt(ti)%e(1))**2+ &
                     (particles(tindx(ti))%results%e(2) - trslt(ti)%e(2))**2+ &
-                    (particles(tindx(ti))%results%e(3) - trslt(ti)%e(3))**2 
+                    (particles(tindx(ti))%results%e(3) - trslt(ti)%e(3) - vessel_ez)**2 
       L2sum_local = L2sum_local + L2
       direct_L2(tindx(ti)) = L2
     end do

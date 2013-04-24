@@ -22,7 +22,7 @@
 !>  Encapsulates functions for accessing, manipulating, and verifying hash table data
 !>
 module module_tree_node
-    use module_pepc_types, only: t_tree_node, kind_node
+    use module_pepc_types
     implicit none
     private
 
@@ -172,18 +172,18 @@ module module_tree_node
       implicit none
       type(t_tree_node), intent(in) :: n
       integer, intent(out) :: childnum
-      integer*8, dimension(:), intent(out) :: childkeys
+      integer(kind_key), dimension(:), intent(out) :: childkeys
 
       integer   :: i
-      integer*8 :: keyhead
+      integer(kind_key) :: keyhead
 
-      keyhead   = shift_key_by_level(n%key, 1)
+      keyhead   = shift_key_by_level(n%key, 1_kind_level)
       childnum = 0
 
       do i = 0, 2**idim - 1
         if (tree_node_has_child(n, i)) then
           childnum            = childnum + 1
-          childkeys(childnum) = ior(keyhead, 1_8*i)
+          childkeys(childnum) = ior(keyhead, 1_kind_key*i)
         end if
       end do
     end subroutine tree_node_get_childkeys

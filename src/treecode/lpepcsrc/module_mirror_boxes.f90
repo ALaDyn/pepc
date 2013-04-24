@@ -318,18 +318,17 @@ module module_mirror_boxes
         !>  otherweise LatticeOrigin or LatticeCenter are invalid
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        logical function check_lattice_boundaries(particles, nparticles)
+        logical function check_lattice_boundaries(particles)
           use module_pepc_types
           use module_debug
           implicit none
           type (t_particle), dimension(:), intent(in) :: particles
-          integer, intent(in) :: nparticles
-          integer :: p
+          integer(kind_particle) :: p
           real*8 :: lattice_coord(3)
           
           check_lattice_boundaries = .true.
           
-          do p = 1,nparticles
+          do p = 1,size(particles)
 
             lattice_coord = matmul(particles(p)%x-LatticeOrigin, LatticeInv)
 

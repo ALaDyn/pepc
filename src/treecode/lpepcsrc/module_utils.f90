@@ -51,15 +51,17 @@ module module_utils
   !> checks if MPI_IN_PLACE might be damaged and aborts the application if necessary
   subroutine MPI_IN_PLACE_test()
     use treevars, only : MPI_COMM_lpepc
+    use module_pepc_types
     implicit none
     include 'mpif.h'
 
-    integer :: ierr, n_cpu
+    integer(kind_default) :: ierr
+    integer(kind_pe) :: n_cpu
     integer, parameter :: initval = 47
     integer :: data = initval
 
     ! Get the number of MPI tasks
-    call MPI_COMM_size(MPI_COMM_lpepc, n_cpu, ierr)
+    call MPI_COMM_SIZE(MPI_COMM_lpepc, n_cpu, ierr)
 
     call MPI_ALLREDUCE(MPI_IN_PLACE, data, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_lpepc, ierr)
 

@@ -24,6 +24,7 @@
 !>
 module module_pepc
     use module_tree, only: t_tree
+    use module_pepc_types
     implicit none
     private
 
@@ -65,7 +66,7 @@ module module_pepc
     !> Call this function at program startup before any MPI calls
     !>
     subroutine pepc_initialize(frontendname, my_rank, n_cpu, init_mpi, db_level_in, comm, idim)
-      use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc, main_thread_processor_id
+      use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc, main_thread_processor_id, num_threads
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_utils, only : create_directory, MPI_IN_PLACE_test
       use module_walk
@@ -75,15 +76,15 @@ module module_pepc
       implicit none
       include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
-      integer, intent(out) :: my_rank !< MPI rank of this instance as returned from MPI
-      integer, intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
+      integer(kind_pe), intent(out) :: my_rank !< MPI rank of this instance as returned from MPI
+      integer(kind_pe), intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
       logical, intent(in) :: init_mpi !< if set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
       integer, intent(in), optional :: db_level_in !< sets debug level for treecode kernel (overrides settings, that may be read from libpepc-section in input file)
       integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator (the frontend is responsible for calling MPI_COMM_FREE(comm) prior to calling pepc_finalize() or supply it as argument to pepc_finalize() in this case); otherwise, it uses an MPI_COMM_DUP copy of the given comm
-      integer, intent(in), optional :: idim
-      integer :: ierr, provided
+      integer(kind_dim), intent(in), optional :: idim
+      integer(kind_default) :: ierr, provided
 
-      integer, parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE ! " If the process is multithreaded, multiple threads may call MPI at once with no restrictions."
+      integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE ! " If the process is multithreaded, multiple threads may call MPI at once with no restrictions."
 
       call pepc_status('SETUP')
 
@@ -107,7 +108,7 @@ module module_pepc
       ! Get the id number of the current task
       call MPI_COMM_RANK(MPI_COMM_lpepc, my_rank, ierr)
       ! Get the number of MPI tasks
-      call MPI_COMM_size(MPI_COMM_lpepc, n_cpu, ierr)
+      call MPI_COMM_SIZE(MPI_COMM_lpepc, n_cpu, ierr)
       ! Get the processor ID of the main thread
       main_thread_processor_id = get_my_core()
 
@@ -120,8 +121,8 @@ module module_pepc
         write(*,'(a)') "    \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \  "
         write(*,'(a)') "     \ \_\   \ \____/\ \_\   \ \____/           pepc@fz-juelich.de"
         write(*,'(a)') "      \/_/    \/___/  \/_/    \/___/   "
-        write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."//)') &
-                       SVNREVISION, frontendname, n_cpu
+        write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks with ", I0, " threads per rank."//)') &
+                       SVNREVISION, frontendname, n_cpu, num_threads
 
         if ((pepc_initializes_mpi) .and. (provided < MPI_THREAD_LEVEL)) then
           !inform the user about possible issues concerning MPI thread safety
@@ -149,7 +150,7 @@ module module_pepc
       if (present(idim)) then
         call pepc_prepare(idim)
       else
-        call pepc_prepare(3)
+        call pepc_prepare(3_kind_dim)
       end if
 
     end subroutine
@@ -260,7 +261,7 @@ module module_pepc
       use module_tree_communicator, only: tree_communicator_prepare
       use module_debug
       implicit none
-      integer, intent(in) :: idim
+      integer(kind_dim), intent(in) :: idim
 
       if (0 /= pthreads_init()) then
         DEBUG_ERROR(*, "pthreads_init() failed!")
@@ -287,7 +288,7 @@ module module_pepc
       use module_tree_communicator, only: tree_communicator_finalize
       implicit none
       include 'mpif.h'
-      integer :: ierr
+      integer(kind_default) :: ierr
 
       integer, intent(inout), optional :: comm !< communicator. if pepc_initialize() initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator in comm, that can be given here to be freed automatically
 
@@ -321,10 +322,10 @@ module module_pepc
         implicit none
         include 'mpif.h'
 
-        logical,   intent(out)          :: available
+        logical, intent(out)          :: available
         character(len=255), intent(out) :: file_name
-        integer,   intent(in)           :: my_rank
-        integer,   intent(in), optional :: comm
+        integer(kind_pe), intent(in)           :: my_rank
+        integer, intent(in), optional :: comm
 
         integer :: ierr, MPI_COMM_local
 
@@ -361,8 +362,8 @@ module module_pepc
       use module_pepc_types, only: t_particle
       use module_debug
       implicit none
-      integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
-      integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
+      integer(kind_particle), intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array !FIXME: make optional
+      integer(kind_particle), intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)!FIXME: make optional
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
       integer, intent(in) :: itime !> current timestep (used as filename suffix for statistics output)
       logical, optional, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
@@ -394,12 +395,12 @@ module module_pepc
       use module_pepc_types, only: t_particle
       use module_libpepc_main, only: libpepc_grow_tree
       implicit none
-      integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
-      integer, intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)
+      integer(kind_particle), intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array !FIXME: make optional
+      integer(kind_particle), intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks) !FIXME: make optional - pepc should find this out by itself via mpi_allreduce(np_local, MPI_SUM)
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
-      call libpepc_grow_tree(global_tree, int(npart_total, 8), particles, npl = np_local)
-      np_local = size(particles)
+      call libpepc_grow_tree(global_tree, npart_total, particles)
+      np_local = size(particles, kind=kind(np_local))
     end subroutine
 
 
@@ -419,7 +420,7 @@ module module_pepc
       use module_libpepc_main
       implicit none
 
-      integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
+      integer(kind_particle), intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
       type(t_particle), target, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
       call libpepc_traverse_tree(global_tree, particles(1:nparticles))
@@ -499,10 +500,14 @@ module module_pepc
       use module_pepc_types
       use module_libpepc_main
       implicit none
-      integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
+      integer(kind_particle), optional, intent(out) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data on local MPI rank - is replaced by original particle data that was given before calling pepc_grow_tree()
 
-      call libpepc_restore_particles(global_tree, np_local, particles)
+      call libpepc_restore_particles(global_tree, particles)
+      if (present(np_local)) then
+        np_local = size(particles, kind=kind(np_local)) ! we have got the original particle order again
+      endif
+
     end subroutine
 
 
@@ -525,7 +530,7 @@ module module_pepc
       use module_interaction_specific
       implicit none
       type(t_particle), intent(inout) :: particles(nparticles)
-      integer, intent(in) :: nparticles
+      integer(kind_particle), intent(in) :: nparticles
 
       call particleresults_clear(particles, nparticles)
     end subroutine

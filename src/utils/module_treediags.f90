@@ -51,8 +51,8 @@ module module_treediags
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           real*8, intent(in) :: tsim
-          integer, intent(in) :: num_nodes
-          integer*8, dimension(:), intent(in) :: node_keys
+          integer(kind_node), intent(in) :: num_nodes
+          integer(kind_key), dimension(:), intent(in) :: node_keys
           character(*), intent(in), optional :: filename_box
           character(*), intent(in), optional :: filename_point
           real*8, dimension(:,:), intent(in), optional :: node_vbox
@@ -60,13 +60,14 @@ module module_treediags
           type(t_tree_node), pointer :: bnode
           integer(kind_node) :: bnode_idx
           type(t_tree), pointer :: t
-          integer :: i,j
-          integer*8 :: bkey
+          integer(kind_node) :: i
+          integer :: j
+          integer(kind_key) :: bkey
           real*8 :: bsize(3)
           real*8, dimension(:), allocatable  :: bcocx, bcocy, bcocz, bq, &
                                                 bcornersx, bcornersy, bcornersz
-          integer, dimension(:), allocatable :: bcornersidx, bcornersoffsets, &
-                                                bcornerstypes, bowner, blevel, &
+          integer(kind_node), dimension(:), allocatable :: bcornersidx, bcornersoffsets
+          integer, dimension(:), allocatable :: bcornerstypes, bowner, blevel, &
                                                 mirror_level
           integer, dimension(:, :), allocatable :: mirror_indices
           real*8 :: bx, by, bz
@@ -143,18 +144,18 @@ module module_treediags
 
           if ( present(filename_point) ) then
             call vtk_point%create(filename_point, step, tsim, vtk_step)
-            call vtk_point%write_headers(num_nodes, 0)
+            call vtk_point%write_headers(num_nodes, 0_kind_node)
             call vtk_point%startpoints()
-              call vtk_point%write_data_array("xyz", num_nodes, bcocx, bcocy, bcocz)
+              call vtk_point%write_data_array("xyz", bcocx, bcocy, bcocz)
             call vtk_point%finishpoints()
             call vtk_point%startpointdata()
-              call vtk_point%write_data_array("level", num_nodes, blevel)
+              call vtk_point%write_data_array("level", blevel)
               if ( present(node_vbox) ) then
-                call vtk_point%write_data_array("mirror_level", num_nodes, mirror_level)
-                call vtk_point%write_data_array("mirror_indices", num_nodes, &
+                call vtk_point%write_data_array("mirror_level", mirror_level)
+                call vtk_point%write_data_array("mirror_indices", &
                   mirror_indices(:, 1), mirror_indices(:, 2), mirror_indices(:, 3))
               end if
-              call vtk_point%write_data_array("charge", num_nodes, bq)
+              call vtk_point%write_data_array("charge", bq)
             call vtk_point%finishpointdata()
             call vtk_point%dont_write_cells()
             call vtk_point%write_final()
@@ -165,26 +166,26 @@ module module_treediags
             call vtk_box%create(filename_box, step, tsim, vtk_step)
             call vtk_box%write_headers(num_nodes*8, num_nodes)
             call vtk_box%startpoints()
-              call vtk_box%write_data_array("corners", 8*num_nodes, bcornersx, bcornersy, bcornersz)
+              call vtk_box%write_data_array("corners", bcornersx, bcornersy, bcornersz)
             call vtk_box%finishpoints()
             call vtk_box%startpointdata()
               ! no point data here
             call vtk_box%finishpointdata()
             call vtk_box%startcells()
-              call vtk_box%write_data_array("connectivity", num_nodes*8, bcornersidx)
-              call vtk_box%write_data_array("offsets", num_nodes, bcornersoffsets)
-              call vtk_box%write_data_array("types", num_nodes, bcornerstypes)
+              call vtk_box%write_data_array("connectivity", bcornersidx)
+              call vtk_box%write_data_array("offsets", bcornersoffsets)
+              call vtk_box%write_data_array("types", bcornerstypes)
             call vtk_box%finishcells()
             call vtk_box%startcelldata()
-              call vtk_box%write_data_array("processor", num_nodes, bowner)
-              call vtk_box%write_data_array("level", num_nodes, blevel)
+              call vtk_box%write_data_array("processor", bowner)
+              call vtk_box%write_data_array("level", blevel)
               if ( present(node_vbox) ) then
-                call vtk_box%write_data_array("mirror_level", num_nodes, mirror_level)
-                call vtk_point%write_data_array("mirror_indices", num_nodes, &
+                call vtk_box%write_data_array("mirror_level", mirror_level)
+                call vtk_point%write_data_array("mirror_indices", &
                   mirror_indices(:, 1), mirror_indices(:, 2), mirror_indices(:, 3))
               end if
-              call vtk_box%write_data_array("center_of_charge", num_nodes, bcocx, bcocy, bcocz)
-              call vtk_box%write_data_array("total_charge", num_nodes, bq)
+              call vtk_box%write_data_array("center_of_charge", bcocx, bcocy, bcocz)
+              call vtk_box%write_data_array("total_charge", bq)
             call vtk_box%finishcelldata()
             call vtk_box%write_final()
             call vtk_box%close()
@@ -244,8 +245,8 @@ module module_treediags
 
           type(t_tree), pointer :: t
           integer(kind_node) :: r
-          integer*8, allocatable :: branch_keys(:)
-          integer*8 :: i
+          integer(kind_key), allocatable :: branch_keys(:)
+          integer(kind_node) :: i
 
           ! TODO: generalize!
           t => global_tree
@@ -263,7 +264,7 @@ module module_treediags
           call collect_branches(t, r)
           DEBUG_ASSERT(i == t%nbranch)
 
-          call write_nodes_to_vtk(step, tsim, vtk_step, int(t%nbranch), &
+          call write_nodes_to_vtk(step, tsim, vtk_step, t%nbranch, &
             branch_keys, filename_box = "branches")
 
           deallocate(branch_keys)
@@ -307,7 +308,7 @@ module module_treediags
         !>
         subroutine write_spacecurve_to_vtk(step, tsim, vtk_step, particles)
           use module_vtk
-          use module_pepc_types, only: t_particle
+          use module_pepc_types
           use module_pepc, only: global_tree
           use module_tree, only: t_tree
           implicit none
@@ -319,21 +320,21 @@ module module_treediags
 
           type(t_tree), pointer :: t
           type(vtkfile_unstructured_grid) :: vtk
-          integer :: i, npp
+          integer(kind_particle) :: i, npp
 
           t => global_tree
-          npp = int(t%npart_me)
+          npp = t%npart_me
 
             call vtk%create_parallel("spacecurve", step, t%comm_env%rank, t%comm_env%size, tsim, vtk_step)
-              call vtk%write_headers(npp, 1)
+              call vtk%write_headers(npp, 1_kind_particle)
                 call vtk%startpoints()
-                  call vtk%write_data_array("xyz", npp, particles(1:npp)%x(1), particles(1:npp)%x(2), particles(1:npp)%x(3))
+                  call vtk%write_data_array("xyz", particles(1:npp)%x(1), particles(1:npp)%x(2), particles(1:npp)%x(3))
                 call vtk%finishpoints()
                 call vtk%startpointdata()
                   ! no point data here
                 call vtk%finishpointdata()
                 call vtk%startcells()
-                  call vtk%write_data_array("connectivity", npp, [(i,i=0, npp-1)])
+                  call vtk%write_data_array("connectivity", [(i,i=0, npp-1)])
                   call vtk%write_data_array("offsets", npp)
                   call vtk%write_data_array("types", VTK_POLY_LINE)
                 call vtk%finishcells()

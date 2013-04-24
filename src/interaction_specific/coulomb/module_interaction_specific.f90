@@ -49,8 +49,8 @@ module module_interaction_specific
       real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
 ! CS DEBUG STUFF FOR INTERACTION PARTNERS
-      integer*8, allocatable,public :: interaction_keylist(:,:)
-      integer, allocatable,public :: no_interaction_partners(:)
+      integer(kind_key), allocatable,public :: interaction_keylist(:,:)
+      integer(kind_node), allocatable,public :: no_interaction_partners(:)
       real*8, allocatable,public :: interaction_vbox(:,:,:)
 ! ENDE CS
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
@@ -243,20 +243,19 @@ module module_interaction_specific
       !> on particle data and might be reused on subsequent traversals
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine calc_force_after_grow(particles, nparticles)
+      subroutine calc_force_after_grow(particles)
         use module_pepc_types
         use module_fmm_framework, only : fmm_framework_timestep
         use module_mirror_boxes, only : do_periodic
         implicit none
         type(t_particle), dimension(:), intent(in) :: particles
-        integer, intent(in) :: nparticles
 
         ! calculate spherical multipole expansion of central box
         ! this cannot be done in calc_force_per_particle() since there, possibly
         ! other particles are used than we need for the multipoles
         ! e.g. in the case of a second traverse for test/grid particles
         if ((do_periodic) .and. (include_far_field_if_periodic)) then
-          call fmm_framework_timestep(particles, nparticles)
+          call fmm_framework_timestep(particles)
         end if
 
       end subroutine      
@@ -269,9 +268,10 @@ module module_interaction_specific
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
+        use module_pepc_types
         implicit none
-        integer*8, intent(in) :: npart_total !< total number of particles
-        integer*8, intent(out) :: nintmax !< maximum number of interactions per particle
+        integer(kind_particle), intent(in) :: npart_total !< total number of particles
+        integer(kind_particle), intent(out) :: nintmax !< maximum number of interactions per particle
 
         real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
 
@@ -334,7 +334,7 @@ module module_interaction_specific
         use module_pepc_types
         implicit none
         type(t_particle), intent(inout) :: particles(nparticles)
-        integer, intent(in) :: nparticles
+        integer(kind_particle), intent(in) :: nparticles
 
         particles(1:nparticles)%results = EMPTY_PARTICLE_RESULTS
 
@@ -356,7 +356,7 @@ module module_interaction_specific
           implicit none
 
           type(t_tree_node_interaction_data), intent(in) :: node
-          integer*8, intent(in) :: key
+          integer(kind_key), intent(in) :: key
           type(t_particle), intent(inout) :: particle
           logical, intent(in) :: node_is_leaf
           real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -418,7 +418,7 @@ module module_interaction_specific
         !> to be added once per particle
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_particle(particles, nparticles)
+        subroutine calc_force_per_particle(particles)
           use treevars, only: num_threads
           use module_debug, only : pepc_status
           use module_pepc_types
@@ -427,10 +427,9 @@ module module_interaction_specific
           use module_mirror_boxes
           implicit none
 
-          integer, intent(in) :: nparticles
           type(t_particle), intent(inout) :: particles(:)
           real*8 :: e_lattice(3), phi_lattice
-          integer :: p
+          integer(kind_particle) :: p
 
           call pepc_status('CALC FORCE PER PARTICLE')
 
@@ -442,7 +441,7 @@ module module_interaction_specific
              if ((me==0) .and. (force_law .ne. 3)) write(*,*) "Warning: far-field lattice contribution is currently only supported for force_law==3"
           !$ call omp_set_num_threads(num_threads)
           !$OMP  PARALLEL DO DEFAULT(PRIVATE) SHARED(particles) SCHEDULE(RUNTIME) REDUCTION(+:potfarfield,potnearfield)
-             do p=1,nparticles
+             do p=1,size(particles)
                 call fmm_sum_lattice_force(particles(p)%x, e_lattice, phi_lattice)
 
                 potfarfield  = potfarfield  + phi_lattice               * particles(p)%data%q
