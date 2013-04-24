@@ -171,7 +171,7 @@ module module_tree_grow
 
     ! work out stride lengths so that partial arrays placed sequentially in global array
     allocate (nbranches(t%comm_env%size), igap(t%comm_env%size + 1))
-    call MPI_ALLGATHER(nbranch, 1, MPI_KIND_DEFAULT, nbranches, 1, MPI_KIND_NODE, t%comm_env%comm, ierr)
+    call MPI_ALLGATHER(nbranch, 1, MPI_KIND_DEFAULT, nbranches, 1, MPI_KIND_DEFAULT, t%comm_env%comm, ierr)
 
     igap(1) = 0
     do ip = 2, t%comm_env%size + 1_kind_pe
