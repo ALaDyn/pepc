@@ -29,18 +29,19 @@ module module_pepc_types
   
   include 'mpif.h'
   
-      integer, public, parameter :: kind_particle     = kind(1_4)
-      integer, public, parameter :: MPI_KIND_PARTICLE = MPI_INTEGER4
+      ! ATTENTION: if kind_particle, kind_default, or kind_key are modified, respective adaptions have to be performed in the first 50 lines of sl_pepckeys.h (just grep for the modified kind_XX values)
+      integer, public, parameter :: kind_particle     = kind(1_8) ! ATTENTION, see above
+      integer, public, parameter :: MPI_KIND_PARTICLE = MPI_INTEGER8
       integer, public, parameter :: kind_node         = kind_particle
       integer, public, parameter :: MPI_KIND_NODE     = MPI_KIND_PARTICLE
-      integer, public, parameter :: kind_key          = kind(1_8)
+      integer, public, parameter :: kind_key          = kind(1_8) ! ATTENTION, see above
       integer, public, parameter :: MPI_KIND_KEY      = MPI_INTEGER8
       integer, public, parameter :: kind_byte         = kind(1_1)
       integer, public, parameter :: MPI_KIND_BYTE     = MPI_BYTE
       integer, public, parameter :: kind_level        = kind(1_1)
       integer, public, parameter :: MPI_KIND_LEVEL    = MPI_BYTE
       
-      integer, public, parameter :: kind_default      = kind(1_4) !< default integer kind as the MPI standard calls it. This should be kind(1). We use kind(1_4) instead to allow for switching the default integer kind with certain compiler command line parameters
+      integer, public, parameter :: kind_default      = kind(1_4) !< default integer kind as the MPI standard calls it. This should be kind(1). We use kind(1_4) instead to allow for switching the default integer kind with certain compiler command line parameters  ! ATTENTION, see above
       integer, public, parameter :: MPI_KIND_DEFAULT  = MPI_INTEGER
       integer, public, parameter :: kind_pe           = kind_default !< this has to be of default integer kind - otherwise MPI gets angry if we use an owner as target rank of an MPI operation
       integer, public, parameter :: MPI_KIND_PE       = MPI_INTEGER
