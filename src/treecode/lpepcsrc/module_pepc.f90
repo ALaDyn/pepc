@@ -358,13 +358,12 @@ module module_pepc
     !> Builds the tree from the given particles, redistributes particles
     !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
     !>
-    subroutine pepc_grow_and_traverse(np_local, npart_total, particles, itime, no_dealloc, no_restore)
+    subroutine pepc_grow_and_traverse(particles, np_local, itime, no_dealloc, no_restore)
       use module_pepc_types, only: t_particle
       use module_debug
       implicit none
-      integer(kind_particle), intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array !FIXME: make optional
-      integer(kind_particle), intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks)!FIXME: make optional
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
+      integer(kind_particle), intent(out) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       integer, intent(in) :: itime !> current timestep (used as filename suffix for statistics output)
       logical, optional, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
       logical, optional, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
@@ -377,10 +376,11 @@ module module_pepc
       if (present(no_dealloc)) dealloc = .not. no_dealloc
       if (present(no_restore)) restore = .not. no_restore
 
-      call pepc_grow_tree(np_local, npart_total, particles)
-      call pepc_traverse_tree(np_local, particles)
+      call pepc_grow_tree(particles, np_local)
+      call pepc_traverse_tree(particles, np_local)
+
       if (dbg(DBG_STATS)) call pepc_statistics(itime)
-      if (restore)        call pepc_restore_particles(np_local, particles)
+      if (restore)        call pepc_restore_particles(particles, np_local)
       if (dealloc) then
         call pepc_timber_tree()
       end if
@@ -391,16 +391,18 @@ module module_pepc
     !> Builds the tree from the given particles, redistributes particles
     !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
     !>
-    subroutine pepc_grow_tree(np_local, npart_total, particles)
+    subroutine pepc_grow_tree(particles, np_local)
       use module_pepc_types, only: t_particle
       use module_libpepc_main, only: libpepc_grow_tree
       implicit none
-      integer(kind_particle), intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array !FIXME: make optional
-      integer(kind_particle), intent(in) :: npart_total !< total number of simulation particles (sum over np_local over all MPI ranks) !FIXME: make optional - pepc should find this out by itself via mpi_allreduce(np_local, MPI_SUM)
+      integer(kind_particle), optional, intent(out) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
-      call libpepc_grow_tree(global_tree, npart_total, particles)
-      np_local = size(particles, kind=kind(np_local))
+      call libpepc_grow_tree(global_tree, particles)
+      
+      if (present(np_local)) then
+        np_local = size(particles, kind=kind(np_local))
+      endif
     end subroutine
 
 
@@ -415,15 +417,23 @@ module module_pepc
     !> Otherwise, it makes sense to provide the same particles as given/returned
     !> from to pepc_grow_tree()
     !>
-    subroutine pepc_traverse_tree(nparticles, particles)
+    subroutine pepc_traverse_tree(particles, np_local)
       use module_pepc_types
       use module_libpepc_main
       implicit none
 
-      integer(kind_particle), intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
-      type(t_particle), target, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
+      integer(kind_particle), optional, intent(in) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array (can be smaller than size(particles) to only compute force on a subset
+      type(t_particle), target, intent(inout) :: particles(:) !< input particle data, initialize %x, %data, %work appropriately (and optionally set %label) before calling this function
+      
+      integer(kind_particle) :: np
+      
+      if (present(np_local)) then
+        np = np_local
+      else
+        np = size(particles, kind=kind(np))
+      endif
 
-      call libpepc_traverse_tree(global_tree, particles(1:nparticles))
+      call libpepc_traverse_tree(global_tree, particles(1:np))
     end subroutine
 
 
@@ -496,7 +506,7 @@ module module_pepc
     !>
     !> Restores the initial particle distribution (before calling pepc_grow_tree() ).
     !>
-    subroutine pepc_restore_particles(np_local, particles)
+    subroutine pepc_restore_particles(particles, np_local)
       use module_pepc_types
       use module_libpepc_main
       implicit none
@@ -525,14 +535,14 @@ module module_pepc
     !>
     !> clears result in t_particle datatype
     !>
-    subroutine pepc_particleresults_clear(particles, nparticles)
+    subroutine pepc_particleresults_clear(particles, np_local)
       use module_pepc_types
       use module_interaction_specific
       implicit none
-      type(t_particle), intent(inout) :: particles(nparticles)
-      integer(kind_particle), intent(in) :: nparticles
+      type(t_particle), intent(inout) :: particles(:)
+      integer(kind_particle), intent(in) :: np_local
 
-      call particleresults_clear(particles, nparticles)
+      call particleresults_clear(particles, np_local)
     end subroutine
 
 end module module_pepc

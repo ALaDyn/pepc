@@ -72,7 +72,7 @@ module module_libpepc_main
     !> Builds the tree from the given particles, redistributes particles
     !> to other MPI ranks if necessary (i.e. reallocates particles changing size(p))
     !>
-    subroutine libpepc_grow_tree(t, n, p)
+    subroutine libpepc_grow_tree(t, p)
       use module_pepc_types, only: t_particle
       use module_tree, only: t_tree
       use module_tree_grow, only: tree_grow
@@ -82,10 +82,9 @@ module module_libpepc_main
       implicit none
 
       type(t_tree), intent(inout) :: t
-      integer(kind_particle), intent(in) :: n !< total number of simulation particles (across all MPI ranks)
       type(t_particle), allocatable, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
       
-      call tree_grow(t, n, p)
+      call tree_grow(t, p)
       call tree_communicator_start(t)
  
       call pepc_status('AFTER GROW: CALC FORCE')

@@ -35,7 +35,7 @@ module module_tree_grow
   !> Builds the tree from the given particles, redistributes particles
   !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
   !>
-  subroutine tree_grow(t, n, p)
+  subroutine tree_grow(t, p)
     use module_pepc_types, only: t_particle, t_tree_node, kind_node
     use module_htable, only: htable_dump
     use module_timings
@@ -51,7 +51,6 @@ module module_tree_grow
     include 'mpif.h'
 
     type(t_tree), intent(inout) :: t !< the tree
-    integer(kind_particle), intent(in) :: n !< total number of simulation particles (across all MPI ranks)
     type(t_particle), allocatable, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
     type(t_particle) :: bp(2)
@@ -59,7 +58,9 @@ module module_tree_grow
     type(t_tree_node), pointer :: root
     type(t_comm_env) :: tree_comm_env
     integer(kind_node), allocatable :: branch_nodes(:)
-    integer(kind_particle) :: nl
+    integer(kind_particle) :: nl!< local number of simulation particles
+    integer(kind_particle) :: n !< total number of simulation particles (across all MPI ranks)
+    integer(kind_default) :: ierr
 
     call pepc_status('GROW TREE')
     !call MPI_BARRIER( MPI_COMM_lpepc, ierr)  ! Wait for everyone to catch up
@@ -74,12 +75,20 @@ module module_tree_grow
     ! assign SFC coordinate to each particle
     call compute_particle_keys(t%bounding_box, p)
     call timer_stop(t_domains_keys)
+    
+    ! determine local number of particles
+    nl = size(p, kind=kind(nl))
+
+    ! determine total number of particles
+    call MPI_ALLREDUCE(nl, n, 1, MPI_KIND_PARTICLE, MPI_SUM, tree_comm_env%comm, ierr)
 
     ! Domain decomposition: allocate particle keys to PEs
     call domain_decompose(t%decomposition, t%bounding_box, n, p, bp, tree_comm_env)
 
-    ! allocate the tree structure
+    ! the local number of particles has changed
     nl = size(p, kind=kind(nl))
+
+    ! allocate the tree structure
     call tree_create(t, nl, n, comm_env = tree_comm_env)
 
     ! build local part of tree
