@@ -35,7 +35,7 @@ itime_in = 5
   /
 
 &libpepc
- db_level = 2
+ debug_level = 2
  np_mult = -300
 
 ! Choose sorting routine and load balancing

@@ -150,10 +150,10 @@ module module_directsum
                     do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
                       ! if we use our own particles, test for equality; exclude particle itself if we are in central box
                       if ((currank .ne. 0) .or. (ibox < num_neighbour_boxes) .or. (testidx(j).ne.i)) then
-                          delta = received(j)%x - (local_nodes(i)%coc - lattice_vect(neighbour_boxes(:,ibox)))
+                          delta = received(j)%x - lattice_vect(neighbour_boxes(:,ibox)) - local_nodes(i)%coc
 
                           if (all(abs(delta) < spatial_interaction_cutoff)) then
-                              call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), [0._8, 0._8, 0._8], .true.)
+                              call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)), .true.)
                           endif
 
                       endif

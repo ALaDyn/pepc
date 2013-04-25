@@ -349,15 +349,24 @@ module helper
     end if
     allocate(direct_L2(np))
     direct_L2 = -1.0_8
-  
+ 
+    ! to test a fraction of the global particles 
     tn = particle_direct / n_ranks
     if(my_rank.eq.(n_ranks-1)) tn = tn + MOD(particle_direct, n_ranks)
+
+    ! to test all local particles
+    tn = np
   
     allocate(tindx(tn), trnd(tn), trslt(tn))
-  
+ 
+    ! randomise selection of <tn> particles out of the <np> local particles (good idea if unsure how many particles are local?)
     call random(trnd)
-  
     tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
+
+    ! take all local particles
+    do ti = 1, np
+       tindx(ti) = ti
+    end do
   
     call directforce(particles, np, tindx, tn, trslt, my_rank, n_ranks, MPI_COMM_WORLD)
   
@@ -367,7 +376,7 @@ module helper
       L2          = &
                     (particles(tindx(ti))%results%e(1) - trslt(ti)%e(1))**2+ &
                     (particles(tindx(ti))%results%e(2) - trslt(ti)%e(2))**2+ &
-                    (particles(tindx(ti))%results%e(3) - trslt(ti)%e(3))**2 
+                    (particles(tindx(ti))%results%e(3) - (trslt(ti)%e(3) + vessel_ez) )**2 
       L2sum_local = L2sum_local + L2
       direct_L2(tindx(ti)) = L2
     end do
@@ -379,7 +388,7 @@ module helper
     
     tb = get_time()
     if(root) then
-      write(*,'(a,i12)')    " == [direct test] number tested particles         : ", tn_global
+      write(*,'(a,i12)')    " == [direct test] number of tested particles      : ", tn_global
       write(*,'(a,es12.4)') " == [direct test] L2 error in probed particles    : ", L2sum_global
       write(*,'(a,es12.4)') " == [direct test] time in test [s]                : ", tb - ta
     end if
