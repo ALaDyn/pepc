@@ -268,7 +268,7 @@ module module_domains
 
     do i = 1, d%npnew
       if (key_diffs(i) < 1) then
-        DEBUG_INFO('("Identical keys found for i = ", I0, " and its successor, key = ", O0, ", labels = ", I0,x,I0)', i, local_keys(i), particles(i)%label, particles(i+1)%label)
+        DEBUG_INFO('("Identical keys found for i = ", I0, " of ", I0, " and its successor, key = ", O0, ", label(i) = ", I0)', i, d%npnew, local_keys(i), particles(i)%label)
 
         ! looking upwards and downwards synchronously, we try to find the nearest gap
         do j = 1, max(d%npnew - i, i)
