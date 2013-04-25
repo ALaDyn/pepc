@@ -75,7 +75,8 @@ module module_pepc_types
         integer(kind_byte) :: flags_global !< flags which are globally valid (and have to be shipped to other ranks)
         integer(kind_byte) :: flags_local1 !< flags which are only locally valid (may not be shipped), used for flags written by communicator thread
         integer(kind_byte) :: flags_local2 !< flags which are only locally valid (may not be shipped), used for flags written by traversal threads
-        integer(kind_node) :: leaves
+        integer(kind_node) :: leaves       !< total number of leaf nodes below this node
+        integer(kind_node) :: descendants  !< total number of descendants (tree nodes and leaves) below this node
         integer(kind_pe) :: owner
         integer(kind_level) :: level
         type(t_tree_node_interaction_data) :: interaction_data
@@ -84,14 +85,15 @@ module module_pepc_types
       end type t_tree_node
  
       !> Data structure for shipping tree nodes
-      integer, private, parameter :: nprops_tree_node_package = 8
+      integer, private, parameter :: nprops_tree_node_package = 9
       type, public :: t_tree_node_package
         integer(kind_key) :: key
         integer(kind_byte) :: childcode
         integer(kind_byte) :: flags_global
         integer(kind_level) :: level ! an integer*1 is sufficient. we place it here, to avoid excessive padding
         integer(kind_byte) :: dummy ! manual padding - so we know what exactly is happening here
-        integer(kind_node) :: leaves
+        integer(kind_node) :: leaves !< total number of leaf nodes below this node
+        integer(kind_node) :: descendants  !< total number of descendants (tree nodes and leaves) below this node
         integer(kind_pe) :: owner
         type(t_tree_node_interaction_data) :: interaction_data
       end type t_tree_node_package
@@ -148,9 +150,9 @@ module module_pepc_types
         call MPI_TYPE_COMMIT( MPI_TYPE_particle, ierr)
 
         ! register tree_node type
-        blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 1, 1, 1, 1, 1]
+        blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 1, 1, 1, 1, 1, 1]
         types(1:nprops_tree_node_package)         = [MPI_KIND_KEY, MPI_KIND_BYTE, MPI_KIND_BYTE, MPI_KIND_LEVEL, MPI_KIND_BYTE, &
-          MPI_KIND_NODE, MPI_KIND_PE, MPI_TYPE_tree_node_interaction_data]
+          MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_PE, MPI_TYPE_tree_node_interaction_data]
         call MPI_GET_ADDRESS( dummy_tree_node_package,                  address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%key,              address(1), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%childcode,        address(2), ierr )
@@ -158,8 +160,9 @@ module module_pepc_types
         call MPI_GET_ADDRESS( dummy_tree_node_package%level,            address(4), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%dummy,            address(5), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%leaves,           address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%owner,            address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%interaction_data, address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%descendants,      address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%owner,            address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%interaction_data, address(9), ierr )
         displacements(1:nprops_tree_node_package) = int(address(1:nprops_tree_node_package) - address(0))
         call MPI_TYPE_STRUCT( nprops_tree_node_package, blocklengths, displacements, types, MPI_TYPE_tree_node_package, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_package, ierr )

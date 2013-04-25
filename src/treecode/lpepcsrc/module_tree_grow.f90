@@ -96,12 +96,18 @@ module module_tree_grow
     call tree_build_from_particles(t, p, bp)
 
     call tree_lookup_root(t, root_node, 'libpepc_grow_tree:root node')
-    
     root => t%nodes(root_node)
+
     if (root%leaves .ne. nl) then
       call htable_dump(t%node_storage, p)
       DEBUG_ERROR(*, 'did not find all its particles inside the tree after local tree buildup: root_node%leaves =', root%leaves, ' but size(particles) =', nl)
     end if
+
+    if (root%descendants+1 .ne. t%nleaf+t%ntwig) then
+      call htable_dump(t%node_storage, p)
+      DEBUG_ERROR(*, '(root%descendants+1 .ne. t%nleaf+t%ntwig) after local tree buildup - some nodes got lost: root_node%descendants =', root%descendants, ' nleaf =', t%nleaf, ' ntwig =', t%ntwig)
+    end if
+
     call timer_stop(t_local)
 
     if (.not. tree_check(t, "tree_grow: before exchange")) then
@@ -126,7 +132,6 @@ module module_tree_grow
       call htable_dump(t%node_storage, p)
     end if
 
-    root => t%nodes(root_node)
     if (root%leaves .ne. t%npart) then
       call htable_dump(t%node_storage, p)
       DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: root_node%leaves =', root%leaves, ' but npart_total =', t%npart)
@@ -648,6 +653,7 @@ module module_tree_grow
           this_node%key          = k
           this_node%level        = l
           this_node%leaves       = 1
+          this_node%descendants  = 0
           this_node%first_child  = NODE_INVALID
           this_node%next_sibling = NODE_INVALID
           call timer_resume(t_props_leaves)
@@ -665,9 +671,8 @@ module module_tree_grow
         end if
 
         this_node%childcode    = 1 ! we have to set some value > 0 here, to pretend that this is not a leaf node (used in tree_node_is_leaf() in tree_insert_node() )
-        this_node%owner        = t%comm_env%rank ! dito for owner - this one has to be valid to keep the nXX_me-counters in tree_indert_node) correct
+        this_node%owner        = t%comm_env%rank ! dito for owner - this one has to be valid to keep the nXX_me-counters in tree_insert_node) correct
         this_node%key          = k
-        this_node%leaves       = 2**idim
 
         if (.not. tree_insert_node(t, this_node, inserted_node_idx)) then
           DEBUG_ERROR(*, "Twig already inserted, aborting.") ! TODO: tell me more!
@@ -730,6 +735,7 @@ module module_tree_grow
     integer(kind_key) :: parent_keys(1:8)
     integer :: nchild, i
     integer(kind_node) :: nleaves
+    integer(kind_node) :: ndescendants
     integer(kind_byte) :: flags_local1, flags_local2, flags_global, childcode
     type(t_tree_node), pointer :: child
 
@@ -740,6 +746,7 @@ module module_tree_grow
     flags_local1 = 0
     flags_local2 = 0
     nleaves      = 0
+    ndescendants = nchild
     
     do i = 1, nchild
       child => t%nodes(children(i))
@@ -761,7 +768,8 @@ module module_tree_grow
       if (btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE) .or. btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
         flags_global = ibset(flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE)
       endif
-      nleaves = nleaves + child%leaves
+      nleaves      = nleaves      + child%leaves
+      ndescendants = ndescendants + child%descendants
     end do
 
     ! check if all keys fit to the same parent
@@ -776,6 +784,7 @@ module module_tree_grow
     parent%flags_local1 = flags_local1
     parent%flags_local2 = flags_local2
     parent%leaves       = nleaves
+    parent%descendants  = ndescendants
     parent%owner        = parent_owner
     parent%level        = level_from_key( parent_keys(1) )
 

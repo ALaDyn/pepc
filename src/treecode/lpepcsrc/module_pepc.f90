@@ -363,7 +363,7 @@ module module_pepc
       use module_debug
       implicit none
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
-      integer(kind_particle), intent(out) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
+      integer(kind_particle), optional, intent(out) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
       integer, intent(in) :: itime !> current timestep (used as filename suffix for statistics output)
       logical, optional, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
       logical, optional, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
@@ -384,6 +384,7 @@ module module_pepc
       if (dealloc) then
         call pepc_timber_tree()
       end if
+      
     end subroutine
 
 
@@ -540,9 +541,17 @@ module module_pepc
       use module_interaction_specific
       implicit none
       type(t_particle), intent(inout) :: particles(:)
-      integer(kind_particle), intent(in) :: np_local
+      integer(kind_particle), optional, intent(in) :: np_local
+      
+      integer(kind_particle) :: np
+      
+      if (present(np_local)) then
+        np = np_local
+      else
+        np = size(particles, kind=kind(np))
+      end if
 
-      call particleresults_clear(particles, np_local)
+      call particleresults_clear(particles, np)
     end subroutine
 
 end module module_pepc

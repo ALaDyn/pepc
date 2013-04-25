@@ -489,7 +489,7 @@ module module_tree_communicator
     if (tree_node_get_first_child(parent, firstchild)) then
       ! first, we only collect pointers to all children that have to be sent and count them
     
-      allocate(child_nodes(2*parent%leaves)) ! this should be sufficient for completely balanced and unbalanced trees
+      allocate(child_nodes(parent%descendants)) ! enough space to keep all descendants in this array
       
       call eager_collect_traverse(firstchild)
 

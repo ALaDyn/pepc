@@ -200,6 +200,7 @@ module module_tree_node
       p%childcode = n%childcode
       p%flags_global = n%flags_global
       p%leaves = n%leaves
+      p%descendants = n%descendants
       p%owner = n%owner
       p%level = int(n%level,kind(p%level))
       p%interaction_data = n%interaction_data
@@ -220,6 +221,7 @@ module module_tree_node
       n%flags_local1 = 0
       n%flags_local2 = 0
       n%leaves = p%leaves
+      n%descendants = p%descendants
       n%owner = p%owner
       n%level = p%level
       n%interaction_data = p%interaction_data
