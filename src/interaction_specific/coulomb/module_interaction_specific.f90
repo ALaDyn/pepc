@@ -333,7 +333,7 @@ module module_interaction_specific
       subroutine particleresults_clear(particles, nparticles)
         use module_pepc_types
         implicit none
-        type(t_particle), intent(inout) :: particles(nparticles)
+        type(t_particle), intent(inout) :: particles(:)
         integer(kind_particle), intent(in) :: nparticles
 
         particles(1:nparticles)%results = EMPTY_PARTICLE_RESULTS
