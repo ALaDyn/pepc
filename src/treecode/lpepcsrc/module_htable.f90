@@ -683,16 +683,20 @@ module module_htable
         write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Twigs from hash-table', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
         do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
-          if (htable_entry_is_valid(t%buckets(i)) .and. .not. tree_node_is_leaf(t%values(t%buckets(i)%val))) then
-            write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
+          if (htable_entry_is_valid(t%buckets(i))) then
+            if (.not. tree_node_is_leaf(t%values(t%buckets(i)%val))) then
+              write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
+            end if
           end if
         end do
 
         write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Leaves from hash-table', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
         do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
-          if (htable_entry_is_valid(t%buckets(i)) .and. tree_node_is_leaf(t%values(t%buckets(i)%val))) then
-            write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
+          if (htable_entry_is_valid(t%buckets(i))) then
+            if (tree_node_is_leaf(t%values(t%buckets(i)%val))) then
+              write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
+            endif
           end if
         end do
 
