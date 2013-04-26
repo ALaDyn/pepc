@@ -23,7 +23,6 @@
 !>
 module helper
   use module_pepc_types
-  use module_interaction_specific_types
   use module_timings
   implicit none
 

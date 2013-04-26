@@ -106,7 +106,7 @@ contains
       
       ! and afterwards the lattice contribution that results from the artificial test case above
       write(*,*) 'Lattice contribution from artificial test case onto test particles'      
-      call fmm_framework_timestep(myp, mynp)
+      call fmm_framework_timestep(myp(1:mynp))
                               
        do i=1,ntest 
         call fmm_sum_lattice_force(mypos, e, p)
@@ -125,11 +125,11 @@ contains
         use module_debug, only : pepc_status
         use module_interaction_specific_types, only: t_particle_results
         implicit none
-        integer, intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
-        integer, intent(in) :: nforceparticles    !< number of particles to compute the force for, i.e. force is computed for particles(1:nforceparticles)
+        integer(kind_particle), intent(in) :: nparticles    !< number of particles on this CPU, i.e. number of particles in particles-array
+        integer(kind_particle), intent(in) :: nforceparticles    !< number of particles to compute the force for, i.e. force is computed for particles(1:nforceparticles)
         type(t_particle), intent(inout) :: particles(:) !< input particle data, initializes %x, %data appropriately (and optionally set %label) before calling this function
 
-        integer :: i
+        integer(kind_particle) :: i
         type(t_particle_results), allocatable :: directresults(:)
 
         call pepc_status('PEPC-MW: DIRECTSUM')
@@ -151,13 +151,15 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine cluster_diagnostics(itime, time_fs)
+        use module_pepc_types
         use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, my_rank, restart, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, rioncluster, relectroncluster
         implicit none
         include 'mpif.h'
         integer, intent(in) :: itime
         real*8, intent(in) :: time_fs
         real*8 :: rsq, rclustersq
-        integer :: nion, nboundelectrons, p, crit(2)
+        integer :: nion, nboundelectrons, crit(2)
+        integer(kind_particle) :: p
         logical, dimension(1:np_local) :: criterion
         real*8, dimension(1:np_local) :: distsq
         integer :: ierr
@@ -288,6 +290,7 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine write_particles_type(binary, ascii, mpiio, vtk, final)
+        use module_pepc_types
         use physvars
         use module_checkpoint
         use module_namelist
@@ -303,19 +306,19 @@ contains
 
             !!! write particle date as a binary file
             if (binary) then
-                call write_particles_binary(my_rank, itime, np_local, particles, filename)
+                call write_particles_binary(my_rank, itime, int(np_local, kind_default), particles, filename)
                 call write_frontend_parameters_to_file(filename)
             endif
 
             !!! write particle date as a text file
             if (ascii) then
-                call write_particles_ascii(my_rank, itime, np_local, particles, filename)
+                call write_particles_ascii(my_rank, itime, int(np_local, kind_default), particles, filename)
                 call write_frontend_parameters_to_file(filename)
             endif
 
             !!! write particle checkpoint data using mpi-io
             if (mpiio) then
-                call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, np_local, npart, particles, filename)
+                call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, int(np_local, kind_default), npart, particles, filename)
                 call write_frontend_parameters_to_file(filename)
             endif
 
@@ -352,12 +355,13 @@ contains
         use module_checkpoint
         use module_namelist
         use module_prepare
+        use module_pepc_types
         implicit none
-            include 'mpif.h'
+        include 'mpif.h'
         logical, intent(in) :: binary, ascii, mpiio
         integer, intent(in) :: itime_in_
-        integer*8 :: npart
         character(255) :: filename
+        integer(kind_default) :: nl
 
         if (binary .or. ascii .or. mpiio) then
 
@@ -369,11 +373,10 @@ contains
 
             !!! read particle checkpoint data using mpi-io
             if (mpiio) then
-                call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, np_local, npart, particles, filename)
+                call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, nl, npart_total, particles, filename)
+                np_local = nl
                 call read_frontend_parameters_from_file(filename)
             endif
-
-            npart_total = npart
 
             call pepcmw_prepare()
 
@@ -395,7 +398,7 @@ contains
         implicit none
         integer, intent(in) :: step
         logical, intent(in) :: final
-        integer :: i
+        integer(kind_particle) :: i
         type(vtkfile_unstructured_grid) :: vtk
         integer :: vtk_step
 
@@ -408,27 +411,27 @@ contains
         endif
 
         call vtk%create_parallel("particles", step, my_rank, n_cpu, trun*unit_t0_in_fs, vtk_step)
-        call vtk%write_headers(np_local, 0)
+        call vtk%write_headers(np_local, 0_kind_particle)
         call vtk%startpoints()
-        call vtk%write_data_array("xyz", np_local, particles(:)%x(1), particles(:)%x(2), particles(:)%x(3))
+        call vtk%write_data_array("xyz", particles(:)%x(1), particles(:)%x(2), particles(:)%x(3))
         call vtk%finishpoints()
         call vtk%startpointdata()
-        call vtk%write_data_array("velocity", np_local, particles(:)%data%v(1),    particles(:)%data%v(2),    particles(:)%data%v(3))
-        call vtk%write_data_array("el_field", np_local, particles(:)%results%e(1), particles(:)%results%e(2), particles(:)%results%e(3))
-!        call vtk%write_data_array("el_field_near", np_local, particles(:)%results%e_near(1), particles(:)%results%e_near(2), particles(:)%results%e_near(3))
-!        call vtk%write_data_array("el_field_far", np_local, particles(:)%results%e_far(1), particles(:)%results%e_far(2), particles(:)%results%e_far(3))
-        call vtk%write_data_array("el_pot", np_local, particles(:)%results%pot)
-!        call vtk%write_data_array("el_pot_near", np_local, particles(:)%results%pot_near)
-!        call vtk%write_data_array("el_pot_far", np_local, particles(:)%results%pot_far)
-        call vtk%write_data_array("charge", np_local, particles(:)%data%q)
-        call vtk%write_data_array("mass", np_local, particles(:)%data%m)
-        call vtk%write_data_array("pelabel", np_local, particles(:)%label)
-        call vtk%write_data_array("local index", np_local, [(i,i=1,np_local)])
-        call vtk%write_data_array("processor", np_local, [(my_rank,i=1,np_local)])
-        call vtk%write_data_array("work", np_local, particles(:)%work)
-        call vtk%write_data_array("Epot", np_local, energy(1,1:np_local))
-        call vtk%write_data_array("Ekin", np_local, energy(2,1:np_local))
-        call vtk%write_data_array("Etot", np_local, energy(3,1:np_local))
+        call vtk%write_data_array("velocity", particles(:)%data%v(1),    particles(:)%data%v(2),    particles(:)%data%v(3))
+        call vtk%write_data_array("el_field", particles(:)%results%e(1), particles(:)%results%e(2), particles(:)%results%e(3))
+!        call vtk%write_data_array("el_field_near", particles(:)%results%e_near(1), particles(:)%results%e_near(2), particles(:)%results%e_near(3))
+!        call vtk%write_data_array("el_field_far", particles(:)%results%e_far(1), particles(:)%results%e_far(2), particles(:)%results%e_far(3))
+        call vtk%write_data_array("el_pot", particles(:)%results%pot)
+!        call vtk%write_data_array("el_pot_near", particles(:)%results%pot_near)
+!        call vtk%write_data_array("el_pot_far", particles(:)%results%pot_far)
+        call vtk%write_data_array("charge", particles(:)%data%q)
+        call vtk%write_data_array("mass", particles(:)%data%m)
+        call vtk%write_data_array("pelabel", particles(:)%label)
+        call vtk%write_data_array("local index", [(i,i=1,np_local)])
+        call vtk%write_data_array("processor", [(my_rank,i=1,np_local)])
+        call vtk%write_data_array("work", particles(:)%work)
+        call vtk%write_data_array("Epot", energy(1,1:np_local))
+        call vtk%write_data_array("Ekin", energy(2,1:np_local))
+        call vtk%write_data_array("Etot", energy(3,1:np_local))
         call vtk%finishpointdata()
         call vtk%dont_write_cells()
         call vtk%write_final()
@@ -456,7 +459,8 @@ contains
         integer, intent(out) :: ncontributions
         real*8 :: tmp(4)
         real*8 :: r(4)
-        integer :: p, ierr
+        integer(kind_particle) :: p
+        integer(kind_default) :: ierr
 
         tmp = 0.
         ncontributions = 0
@@ -514,7 +518,8 @@ contains
         real*8,  dimension(RAWDATA_PX:RAWDATA_N, 1:NR, 1:NTheta, 1:NPhi) :: rawdata
         character*50, parameter :: filename = 'spatially_resolved.dat'
        
-        integer :: p, ierr, iR, iTheta, iPhi, idata
+        integer(kind_particle) :: p
+        integer :: ierr, iR, iTheta, iPhi, idata
         real*8 :: rspherical(3), deltaR, deltaPhi, deltaTheta
 
         rawdata = 0.
@@ -623,17 +628,17 @@ contains
 
         type(t_particle), intent(inout) :: particles(1:np_local)
         integer, intent(in) :: verbosity !< verbosity level: 0 - only print max. relative deviations, 1 - additionally print all. relative deviations, 2 - additionally print all. calculated forces
-        integer, intent(in) :: np_local !< number of local particles
-        integer, dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
-        integer :: ntest !< number of particles in testidx
+        integer(kind_particle), intent(in) :: np_local !< number of local particles
+        integer(kind_particle), dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
+        integer(kind_particle) :: ntest !< number of particles in testidx
         integer, intent(in) :: my_rank, n_cpu, comm
         real*8 :: deviation(4), deviation_max(4)
         real*8 :: field_abssum(4), field_average(4)
 
-        integer :: i, ntest_total, ierr
+        integer :: ntest_total, ierr
         type(t_particle_results), target, dimension(:), allocatable :: res !< test results
         type(t_particle_results), pointer :: re
-        integer :: p
+        integer(kind_particle) :: p, i
 
         ntest = size(testidx)
 
@@ -685,7 +690,7 @@ contains
       use module_pepc_types
       use physvars, only : spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, ngrid_local, ngrid_global, grid_rmax
       implicit none
-      integer, intent(inout) :: np_local, npart_total
+      integer(kind_particle), intent(inout) :: np_local, npart_total
       type(t_particle), allocatable, intent(inout), dimension(:) :: particles
       real*8, intent(in) :: rmax
       integer, intent(in) :: my_rank, num_pe
@@ -795,8 +800,8 @@ contains
       integer :: ngrid_local, ngrid_global
       
       call create_spherical_grid(grid, ngrid_local, ngrid_global, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, my_rank, num_pe) 
-      call pepc_particleresults_clear(grid, ngrid_local)
-      call pepc_traverse_tree(ngrid_local, grid)
+      call pepc_particleresults_clear(grid)
+      call pepc_traverse_tree(grid)
       call dump_spherical_grid(my_rank, filename_dump, itime, time_fs, grid, ngrid_local, rmax, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi)
       
       deallocate(grid)   

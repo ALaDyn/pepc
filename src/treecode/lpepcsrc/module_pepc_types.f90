@@ -29,6 +29,10 @@ module module_pepc_types
   
   include 'mpif.h'
   
+      public :: t_particle_data
+      public :: t_particle_results
+      public :: t_tree_node_interaction_data
+  
       ! ATTENTION: if kind_particle, kind_default, or kind_key are modified, respective adaptions have to be performed in the first 50 lines of sl_pepckeys.h (just grep for the modified kind_XX values)
       integer, public, parameter :: kind_particle     = kind(1_8) ! ATTENTION, see above
       integer, public, parameter :: MPI_KIND_PARTICLE = MPI_INTEGER8

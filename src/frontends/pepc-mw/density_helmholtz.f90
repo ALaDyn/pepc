@@ -29,6 +29,7 @@ subroutine density_helmholtz
 
   use physvars
   use module_laser
+  use module_pepc_types
 
   implicit none
   include 'mpif.h'
@@ -38,7 +39,8 @@ subroutine density_helmholtz
   real*8 :: xa, ya, za
   real :: yh_start, zh_start ! Start of HH grid in transverse directions
   integer, parameter :: nyh=4 ! # additional points in transverse direction
-  integer :: i, ng, i1, i2, j1, j2, k1, k2
+  integer :: ng, i1, i2, j1, j2, k1, k2
+  integer(kind_particle) :: i
   integer :: ierr
  real*4 :: rho_loc(0:nxh+1,0:nyh,0:nyh), rho_glob(0:nxh+1,0:nyh,0:nyh)
   real*4 :: charge_sum, charge_tot

@@ -25,6 +25,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_velocity_setup
       use physvars
+      use module_pepc_types
       implicit none
       private
 
@@ -70,7 +71,7 @@ module module_velocity_setup
         subroutine cold_start(ux,uy,uz,nmax,i1,n)
 
           implicit none
-          integer, intent(in) :: i1,n,nmax
+          integer(kind_particle), intent(in) :: i1,n,nmax
           real*8 :: ux(nmax), uy(nmax), uz(nmax)
 
           ux(i1:i1+n-1) = 0.
@@ -93,12 +94,12 @@ module module_velocity_setup
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine maxwell1(u,nmax,i1,n,vt)
           implicit none
-          integer, intent(in) ::  nmax, i1, n
+          integer(kind_particle), intent(in) ::  nmax, i1, n
           real*8, intent(in) :: vt
           real*8 :: u(nmax)
           real, parameter :: pi=3.141592654
 
-          integer :: ip1, ip2, i, cntr, nv
+          integer(kind_particle) :: ip1, ip2, i, cntr, nv
           real :: f0 ,df, v, dv, vmax, finf, deltv
           real*8 :: vip
 
@@ -146,12 +147,12 @@ module module_velocity_setup
 		subroutine maxwell2(u1,u2,n,vt)
 
 		  implicit none
-		  integer, intent(in) :: n
+		  integer(kind_particle), intent(in) :: n
 		  real, intent(in) :: vt
 		  real*8 :: u1(n),u2(n)
 		  real, parameter :: pi=3.141592654
 
-		  integer :: i
+		  integer(kind_particle) :: i
 		  real*8 :: theta, u0
 		  integer :: dum1=-319
 
@@ -180,7 +181,7 @@ module module_velocity_setup
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine maxwell3(ux,uy,uz,nmax,i1,n,vt)
           implicit none
-          integer, intent(in) ::  nmax, i1, n
+          integer(kind_particle), intent(in) ::  nmax, i1, n
           real*8, intent(in) :: vt
           real*8 :: ux(nmax),uy(nmax),uz(nmax), vc
 
@@ -206,7 +207,7 @@ module module_velocity_setup
           integer :: dum1, dum2, dum3
           real*8 :: uxt, uyt, uzt
           real*8 :: ux(nmax), uy(nmax), uz(nmax)
-          integer :: i, j, k, kk, p, i1, n, n1,nmax
+          integer(kind_particle) :: i, j, k, kk, p, i1, n, n1,nmax
 
           dum1 = -71 - 10*my_rank
           dum2 = -113301 - 10*my_rank

@@ -221,18 +221,19 @@ module module_mirror_boxes
         !> back into it
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine constrain_periodic(particles, np_local)
+        subroutine constrain_periodic(particles)
             use module_math_tools
             use module_pepc_types
 
             implicit none
 
             type(t_particle), intent(inout) :: particles(:)
-            integer, intent(in) :: np_local
-
-            integer :: p !< loop variable
+            
+            integer(kind_particle) :: np_local, p
             real*8 :: lattice_coord(3), real_coord(3), latticewalls(3)
 
+            np_local = size(particles, kind=kind_particle)
+            
             if (simplelattice) then
                 latticewalls(1:3) = [t_lattice_1(1), t_lattice_2(2), t_lattice_3(3)]
 

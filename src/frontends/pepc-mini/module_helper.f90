@@ -25,6 +25,7 @@
 module helper
 
   use module_pepc_types
+  use module_interaction_Specific_types
   implicit none
 
   ! MPI variables
@@ -37,8 +38,8 @@ module helper
 
   ! control variables
   integer :: nt               ! number of timesteps
-  integer :: tnp              ! total number of particles
-  integer :: np               ! local number of particles
+  integer(kind_particle) :: tnp ! total number of particles
+  integer(kind_particle) :: np  ! local number of particles
   logical :: particle_output  ! turn vtk output on/off
   logical :: domain_output    ! turn vtk output on/off
   logical :: particle_filter  ! filter particles leaving simulation domain
@@ -50,7 +51,7 @@ module helper
   real*8, parameter  :: vessel_width = 5.0_8      ! distance between walls
   real*8             :: vessel_ez                 ! electrical field in vessel in z-direction
   
-  integer, parameter :: nprobes    = 200           ! number of probes
+  integer(kind_default), parameter :: nprobes    = 200           ! number of probes
   real*8, parameter  :: min_probes = -vessel_width ! min z-pos of probes
   real*8, parameter  :: max_probes =  vessel_width ! max z-pos of probes
 
@@ -64,7 +65,7 @@ module helper
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
   real*8, allocatable           :: direct_L2(:)
-  integer                       :: next_label
+  integer(kind_particle)        :: next_label
 
   ! probe data
   ! first dimension: probe id
@@ -127,7 +128,7 @@ module helper
       write(*,'(a,l12)')    " == field probes              : ", particle_probe    
     end if
 
-    call pepc_prepare(3)
+    call pepc_prepare(3_kind_dim)
 
     ! reste current measurement
     current_q = 0.0_8
@@ -140,7 +141,8 @@ module helper
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer :: ip, rc
+    integer(kind_particle) :: ip
+    integer :: rc
     real*8 :: dummy
 
     real,parameter :: Tkb=1e-9
@@ -202,7 +204,7 @@ module helper
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer :: ip
+    integer(kind_particle) :: ip
     real*8  :: fact
 
     if(root) write(*,'(a)') " == [pusher] push particles "
@@ -221,7 +223,8 @@ module helper
     include 'mpif.h'
     
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer :: ip, rp, rc
+    integer(kind_particle) :: ip, rp
+    integer(kind_default) :: rc
     integer :: new_particles
     real*8 :: local_q, global_q
 
@@ -287,7 +290,7 @@ module helper
     end if
     
 
-    call MPI_ALLREDUCE(np, tnp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+    call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, rc)
     call MPI_ALLREDUCE(local_q, global_q, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 
     current_q = current_q + global_q
@@ -317,7 +320,7 @@ module helper
   
     implicit none
     
-    integer :: ip
+    integer(kind_particle) :: ip
   
     do ip=1, np
     
@@ -335,10 +338,11 @@ module helper
     implicit none
     include 'mpif.h'
   
-    integer, allocatable                  :: tindx(:)
+    integer(kind_particle), allocatable   :: tindx(:)
     real*8, allocatable                   :: trnd(:)
     type(t_particle_results), allocatable :: trslt(:)
-    integer                               :: tn, tn_global, ti, rc
+    integer(kind_particle)                :: tn, tn_global, ti
+    integer                               :: rc
     real*8                                :: L2sum_local, L2sum_global, L2
     real*8                                :: ta, tb
     
@@ -372,7 +376,7 @@ module helper
       direct_L2(tindx(ti)) = L2
     end do
         
-    call MPI_ALLREDUCE(tn, tn_global, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+    call MPI_ALLREDUCE(tn, tn_global, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, rc)
     call MPI_ALLREDUCE(L2sum_local, L2sum_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
     
     L2sum_global = sqrt(L2sum_global) / tn_global
@@ -398,7 +402,8 @@ module helper
   
     real*8             :: ta, tb
     integer, parameter :: fid = 12
-    integer            :: ip, rc
+    integer(kind_particle) :: ip
+    integer            :: rc
     character(255)     :: fname
     integer            :: pos
     real*8             :: dz, dmin, dsize
@@ -453,7 +458,7 @@ module helper
     
     type(t_particle), allocatable, intent(in) :: p(:)
 
-    integer :: i
+    integer(kind_particle) :: i
     type(vtkfile_unstructured_grid) :: vtk
     integer :: vtk_step
     real*8 :: time
@@ -472,22 +477,25 @@ module helper
     endif
 
     call vtk%create_parallel("particles", step, my_rank, n_ranks, time, vtk_step)
-    call vtk%write_headers(np, 0)
+    call vtk%write_headers(np, 0_kind_particle)
     call vtk%startpoints()
-    call vtk%write_data_array("xyz", np, p(:)%x(1), p(:)%x(2), p(:)%x(3))
+    call vtk%write_data_array("xyz", p(1:np)%x(1), p(1:np)%x(2), p(1:np)%x(3))
     call vtk%finishpoints()
     call vtk%startpointdata()
-    call vtk%write_data_array("velocity", np, p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
-    call vtk%write_data_array("el_field", np, p(:)%results%e(1), \
-                              p(:)%results%e(2), p(:)%results%e(3))
-    call vtk%write_data_array("el_pot", np, p(:)%results%pot)
-    call vtk%write_data_array("charge", np, p(:)%data%q)
-    call vtk%write_data_array("mass", np, p(:)%data%m)
-    call vtk%write_data_array("work", np, p(:)%work)
-    call vtk%write_data_array("pelabel", np, p(:)%label)
-    call vtk%write_data_array("local index", np, [(i,i=1,np)])
-    call vtk%write_data_array("processor", np, p(:)%pid)
-    if(particle_test) call vtk%write_data_array("L2 error", np, direct_L2(:))
+    call vtk%write_data_array("velocity", p(1:np)%data%v(1), &
+                                          p(1:np)%data%v(2), &
+                                          p(1:np)%data%v(3))
+    call vtk%write_data_array("el_field", p(1:np)%results%e(1), &
+                                          p(1:np)%results%e(2), &
+                                          p(1:np)%results%e(3))
+    call vtk%write_data_array("el_pot", p(1:np)%results%pot)
+    call vtk%write_data_array("charge", p(1:np)%data%q)
+    call vtk%write_data_array("mass", p(1:np)%data%m)
+    call vtk%write_data_array("work", p(1:np)%work)
+    call vtk%write_data_array("pelabel", p(1:np)%label)
+    call vtk%write_data_array("local index", [(i,i=1,np)])
+    call vtk%write_data_array("processor", p(1:np)%pid)
+    if(particle_test) call vtk%write_data_array("L2 error", direct_L2(1:np))
     call vtk%finishpointdata()
     call vtk%dont_write_cells()
     call vtk%write_final()
@@ -559,7 +567,7 @@ module helper
     implicit none
   
     type(t_particle), allocatable, intent(inout) :: list(:)
-    integer, intent(in) :: oldn, newn
+    integer(kind_particle), intent(in) :: oldn, newn
     
     type(t_particle) :: tmp_p(oldn)
     

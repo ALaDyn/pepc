@@ -152,11 +152,13 @@ contains
         use physvars
         use module_units
         use module_pusher
+        use module_pepc_types
 
         implicit none
         include 'mpif.h'
 
-        integer :: p,ierr
+        integer(kind_particle) :: p
+        integer(kind_default) :: ierr
         real*8 :: ekine, ekini,ltempe,ltempi, gamma, totalmomentum(3)
         real*8 :: uh(3), uh2
 
