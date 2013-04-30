@@ -4,6 +4,7 @@
 include makefile.envs
 include makefile.paths
 include makefile.defs
+include makefile.include.frontend
 
 FSRC = $(filter %.f90, $(SRC))
 FOBJ = $(FSRC:%.f90=%.o)
