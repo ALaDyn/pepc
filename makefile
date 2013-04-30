@@ -43,6 +43,9 @@ readme:
 all:
 	-$(MAKE) $(MFLAGS) $(ALLFRONTENDS)
 	@echo ""
+	-$(MAKE) $(MFLAGS) allresult
+
+allresult:
 	@echo "======== build all results:"
 	@for f in $(ALLFRONTENDS); do if [ -e ${BINDIR}/$$f ]; then printf "== %-20s OK\n" $$f ; else printf "== %-20s FAILED\n" $$f; fi; done
 	@echo ""
