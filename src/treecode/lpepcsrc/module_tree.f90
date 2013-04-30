@@ -107,14 +107,27 @@ module module_tree
     public tree_insert_or_update_node
     public tree_contains_key
     public tree_lookup_root
-    public tree_lookup_node
-    public tree_lookup_node_critical
     public tree_node_get_parent
     public tree_node_connect_children
     public tree_check
     public tree_dump
     public tree_stats
     public tree_destroy
+
+    public tree_lookup_node
+    public tree_lookup_node_i
+    public tree_lookup_node_critical_i
+    public tree_lookup_node_critical
+    public tree_lookup_node_p
+    public tree_lookup_node_critical_p
+
+    interface tree_lookup_node
+      module procedure tree_lookup_node_i, tree_lookup_node_p
+    end interface
+
+    interface tree_lookup_node_critical
+      module procedure tree_lookup_node_critical_i, tree_lookup_node_critical_p
+    end interface
 
     contains
 
@@ -438,13 +451,13 @@ module module_tree
     !> returns `.true.` in case a node is found and makes `n` point to it,
     !> `.false.` is returned otherwise
     !>
-    function tree_lookup_node(t, k, n, caller)
+    function tree_lookup_node_i(t, k, n, caller)
       use module_pepc_types, only: t_tree_node, kind_node
       use module_htable, only: htable_lookup
       use module_debug
       implicit none
 
-      logical :: tree_lookup_node
+      logical :: tree_lookup_node_i
 
       type(t_tree), intent(in) :: t !< the tree
       integer(kind_key), intent(in) :: k !< key to look up
@@ -452,15 +465,15 @@ module module_tree
       character(LEN = *), optional, intent(in) :: caller
 
       DEBUG_ASSERT(tree_allocated(t))
-      tree_lookup_node = htable_lookup(t%node_storage, k, n, caller)
-    end function tree_lookup_node
+      tree_lookup_node_i = htable_lookup(t%node_storage, k, n, caller)
+    end function tree_lookup_node_i
 
 
     !>
     !> looks up a node for key `k` in tree `t` and makes `n` point to it if one
     !> is found, otherwise debug information is dumped and program execution is aborted
     !>
-    subroutine tree_lookup_node_critical(t, k, n, caller)
+    subroutine tree_lookup_node_critical_i(t, k, n, caller)
       use module_pepc_types, only: t_tree_node, kind_node
       use module_htable, only: htable_lookup_critical
       use module_debug
@@ -473,7 +486,60 @@ module module_tree
 
       DEBUG_ASSERT(tree_allocated(t))
       call htable_lookup_critical(t%node_storage, k, n, caller)
-    end subroutine tree_lookup_node_critical
+    end subroutine tree_lookup_node_critical_i
+
+
+    !>
+    !> looks up a node for key `k` in tree `t`,
+    !> returns `.true.` in case a node is found and makes `n` point to it,
+    !> `.false.` is returned otherwise
+    !>
+    function tree_lookup_node_p(t, k, n, caller)
+      use module_pepc_types, only: t_tree_node, kind_node
+      use module_htable, only: htable_lookup
+      use module_debug
+      implicit none
+
+      logical :: tree_lookup_node_p
+
+      type(t_tree), intent(in) :: t !< the tree
+      integer(kind_key), intent(in) :: k !< key to look up
+      type(t_tree_node), pointer, intent(out) :: n !< node that is identified by `k`
+      character(LEN = *), optional, intent(in) :: caller
+
+      integer(kind_node) :: in
+
+      tree_lookup_node_p = tree_lookup_node_i(t, k, in, caller)
+      if (tree_lookup_node_p) then
+        n => t%nodes(in)
+      else
+        n => null()
+      end if
+      
+    end function tree_lookup_node_p
+
+
+    !>
+    !> looks up a node for key `k` in tree `t` and makes `n` point to it if one
+    !> is found, otherwise debug information is dumped and program execution is aborted
+    !>
+    subroutine tree_lookup_node_critical_p(t, k, n, caller)
+      use module_pepc_types, only: t_tree_node, kind_node
+      use module_htable, only: htable_lookup_critical
+      use module_debug
+      implicit none
+
+      type(t_tree), intent(in) :: t !< the tree
+      integer(kind_key), intent(in) :: k !< key to look up
+      type(t_tree_node), pointer, intent(out) :: n !< node that is identified by `k`
+      character(LEN = *), intent(in) :: caller
+      
+      integer(kind_node) :: in
+
+      call tree_lookup_node_critical_i(t, k, in, caller)
+      n => t%nodes(in)
+      
+    end subroutine tree_lookup_node_critical_p
 
 
     !>
