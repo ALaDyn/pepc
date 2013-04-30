@@ -25,7 +25,7 @@
 #define pepckeys_sl_int_type_fmt        "lld"
 
 
-/* index data type */
+/* index data type, corresponds to kind_default */
 #define pepckeys_sl_index_type_c        FINT_TYPE_C
 #define pepckeys_sl_index_type_mpi      FINT_TYPE_MPI
 #define pepckeys_sl_index_size_mpi      1
@@ -34,8 +34,13 @@
 /* use indices */
 #define pepckeys_SL_INDEX
 
+/* global key number data type, corresponds to kind_particle */
+#define pepckeys_sl_globalcount_type_c        FINT8_TYPE_C
+#define pepckeys_sl_globalcount_type_mpi      FINT8_TYPE_MPI
+#define pepckeys_sl_globalcount_size_mpi      1
+#define pepckeys_sl_globalcount_type_fmt      FINT8_TYPE_FMT
 
-/* keys */
+/* keys, corresponds to kind_key */
 #define pepckeys_sl_key_type_c          FINT8_TYPE_C
 #define pepckeys_sl_key_type_mpi        FINT8_TYPE_MPI
 #define pepckeys_sl_key_size_mpi        1
@@ -607,6 +612,9 @@ typedef pepckeys_sl_index_type_c pepckeys_slindex_t;
 
 /* sl_type pepckeys_slkey_t */
 typedef pepckeys_sl_key_type_c pepckeys_slkey_t;
+
+/* sl_type pepckeys_sl_globalcount */
+typedef pepckeys_sl_globalcount_type_c pepckeys_sl_globalcount_t;
 
 /* sl_type pepckeys_slkey_pure_t pepckeys_slpkey_t */
 typedef pepckeys_sl_key_pure_type_c pepckeys_slkey_pure_t, pepckeys_slpkey_t;

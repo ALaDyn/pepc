@@ -56,7 +56,8 @@ program pepc
   implicit none
   include 'mpif.h'
 
-  integer :: vtk_step, num_force_particles
+  integer :: vtk_step
+  integer(kind_particle) :: num_force_particles
   logical :: para_file_available
   character(255) :: para_file_name
 
@@ -134,10 +135,11 @@ program pepc
      call laser_update()
      call PrintLaserParameters()
 
-     call pepc_particleresults_clear(particles, np_local)
+     call pepc_particleresults_clear(particles)
 
      if (.not. directforce) then
-       call pepc_grow_tree(np_local, npart_total, particles)
+       call pepc_grow_tree(particles)
+       np_local = size(particles, kind=kind(np_local))
      endif
 
      ! if necessary, reorder particles here: particles(1:nep) - electrons, particles(nep+1:nep*nip)) - ions
@@ -145,7 +147,7 @@ program pepc
      call reorder_particles(np_local, particles, num_force_particles)
 
      if (.not. directforce) then
-       call pepc_traverse_tree(num_force_particles, particles)
+       call pepc_traverse_tree(particles(1:num_force_particles))
        if (dbg(DBG_STATS)) call pepc_statistics(itime)
        
        !call fields_on_spherical_grid(itime, trun*unit_t0_in_fs, 'field_spherical.dat', r_sphere, my_rank, n_cpu)
@@ -166,7 +168,8 @@ program pepc
          call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, vtk_step, particles)
        endif
 
-       call pepc_restore_particles(np_local, particles)
+       call pepc_restore_particles(particles)
+       np_local = size(particles, kind=kind(np_local))
        call pepc_timber_tree()
        
        if (ispecial ==12) call dump_grid_particles(my_rank, 'field_spherical.dat', particles, itime, trun*unit_t0_in_fs)
@@ -183,7 +186,7 @@ program pepc
      particles(1:np_local)%results%pot  = particles(1:np_local)%results%pot  * force_const
 
      ! add any external forces (laser field etc)
-     call force_laser(1, np_local)
+     call force_laser(1_kind_particle, np_local)
 
 !     if (itime == nt) call gather_particle_diag()
 
@@ -199,10 +202,10 @@ program pepc
      endif
 
      ! Velocity and position update - explicit schemes only
-     call integrator(1, np_local, integrator_scheme)
+     call integrator(1_kind_particle, np_local, integrator_scheme)
 
      ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(particles,np_local)
+     if (do_periodic) call constrain_periodic(particles)
 
      call energies(Ukine,Ukini)
 

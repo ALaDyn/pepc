@@ -42,6 +42,8 @@ program pepce
   ! module_deps has to be changed to remove "!$" when using openmp
   ! TODO: use omp_lib, only: ...
   use omp_lib
+  
+  use module_pepc_types
 
   use treevars, only: &
        num_threads
@@ -161,7 +163,7 @@ program pepce
   call write_particles(itime-1, -0.1)
 
 
-  call pepc_prepare(idim)
+  call pepc_prepare(int(idim, kind_dim))
 
   ! TODO: where should do_periodic be set?
   do_periodic = periodicity(1) .or. periodicity(2) .or. periodicity(3)
@@ -184,15 +186,16 @@ program pepce
   ! 
   if( .not. initialized_v_minus_half ) then
 
-     call pepc_grow_tree(np_local, npart_total, particles)
+     call pepc_grow_tree(particles)
+     np_local = size(particles, kind=kind(np_local))
 
      mac_select = 1 ! nn-mac
      force_law = 5  ! neighbour list force law
      
-     call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
-     call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
+     call pepc_particleresults_clear(particles) ! initialize neighbour lists etc
+     call nn_prepare_particleresults(global_tree, particles) ! improve neighbour list to speedup neighbour search
      
-     call pepc_traverse_tree(np_local, particles)
+     call pepc_traverse_tree(particles)
 
      call sph(np_local, particles, -1, num_neighbour_boxes, neighbour_boxes, idim)
 
@@ -236,7 +239,8 @@ program pepce
      
      call timer_start(t_tot)
      
-     call pepc_grow_tree(np_local, npart_total, particles)
+     call pepc_grow_tree(particles)
+     np_local = size(particles, kind=kind(np_local))
 
 
      mac_select = 1 ! nn-mac
@@ -246,10 +250,10 @@ program pepce
      ! write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
      ! write(*,*) 'neigbour_boxes:', neighbour_boxes
 
-     call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
-     call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
+     call pepc_particleresults_clear(particles) ! initialize neighbour lists etc
+     call nn_prepare_particleresults(global_tree, particles) ! improve neighbour list to speedup neighbour search
 
-     call pepc_traverse_tree(np_local, particles)
+     call pepc_traverse_tree(particles)
 
      call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
@@ -287,7 +291,7 @@ program pepce
      write(*,*) "do_periodic:", do_periodic
      
      ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(particles(1:np_local),np_local)
+     if (do_periodic) call constrain_periodic(particles(1:np_local))
 
      call pepc_timber_tree()
      

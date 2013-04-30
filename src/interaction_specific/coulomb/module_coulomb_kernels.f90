@@ -24,6 +24,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_coulomb_kernels
+  use module_pepc_types
   implicit none
   save
   private
@@ -57,7 +58,6 @@ module module_coulomb_kernels
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calc_force_coulomb_3D(t, d, dist2, exyz, phi)
-      use module_pepc_types
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
@@ -147,7 +147,6 @@ module module_coulomb_kernels
     !>   Ex = -dPhi/dx = 2 q x/R^2 etc 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calc_force_coulomb_2D(t, d, d2, exy, phi)
-      use module_pepc_types
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
@@ -200,7 +199,6 @@ module module_coulomb_kernels
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calc_force_LJ(t, d, r2, aii2, exyz, phi)
-      use module_pepc_types
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
@@ -242,7 +240,6 @@ module module_coulomb_kernels
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calc_force_coulomb_3D_direct(t, d, dist2, exyz, phi)
-      use module_pepc_types
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
@@ -270,7 +267,6 @@ module module_coulomb_kernels
     !>   Ex = -dPhi/dx = 2 q x/R^2 etc
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calc_force_coulomb_2D_direct(t, d, d2, exy, phi)
-      use module_pepc_types
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
@@ -293,7 +289,6 @@ module module_coulomb_kernels
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calc_force_kelbg_3D_direct(particle, t, d, dist2, kelbg_invsqrttemp, exyz, phi)
-      use module_pepc_types
       implicit none
 
       type(t_particle), intent(inout) :: particle

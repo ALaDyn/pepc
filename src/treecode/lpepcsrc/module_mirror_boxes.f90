@@ -221,18 +221,19 @@ module module_mirror_boxes
         !> back into it
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine constrain_periodic(particles, np_local)
+        subroutine constrain_periodic(particles)
             use module_math_tools
             use module_pepc_types
 
             implicit none
 
             type(t_particle), intent(inout) :: particles(:)
-            integer, intent(in) :: np_local
-
-            integer :: p !< loop variable
+            
+            integer(kind_particle) :: np_local, p
             real*8 :: lattice_coord(3), real_coord(3), latticewalls(3)
 
+            np_local = size(particles, kind=kind_particle)
+            
             if (simplelattice) then
                 latticewalls(1:3) = [t_lattice_1(1), t_lattice_2(2), t_lattice_3(3)]
 
@@ -318,18 +319,17 @@ module module_mirror_boxes
         !>  otherweise LatticeOrigin or LatticeCenter are invalid
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        logical function check_lattice_boundaries(particles, nparticles)
+        logical function check_lattice_boundaries(particles)
           use module_pepc_types
           use module_debug
           implicit none
           type (t_particle), dimension(:), intent(in) :: particles
-          integer, intent(in) :: nparticles
-          integer :: p
+          integer(kind_particle) :: p
           real*8 :: lattice_coord(3)
           
           check_lattice_boundaries = .true.
           
-          do p = 1,nparticles
+          do p = 1,size(particles)
 
             lattice_coord = matmul(particles(p)%x-LatticeOrigin, LatticeInv)
 

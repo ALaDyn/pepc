@@ -93,7 +93,7 @@
 module module_walk
   use, intrinsic :: iso_c_binding
   use module_tree, only: t_tree
-  use module_pepc_types, only: t_tree_node, t_particle
+  use module_pepc_types
   use module_atomic_ops, only: t_atomic_int
   implicit none
   private
@@ -121,7 +121,7 @@ module module_walk
     integer :: coreid !< thread output value: id of thread's processor
     logical :: finished !< will be set to .true. when the thread has finished
     real*8 :: timers(NUM_THREAD_TIMERS)
-    integer*8 :: counters(NUM_THREAD_COUNTERS)
+    integer(kind_node) :: counters(NUM_THREAD_COUNTERS)
   end type t_threaddata
 
   type(c_ptr), allocatable :: thread_handles(:)
@@ -175,7 +175,8 @@ module module_walk
 
     integer, intent(in) :: u
 
-    integer :: i, ierr
+    integer :: i
+    integer(kind_default) :: ierr
     real*8, allocatable ::  num_interactions(:), num_mac_evaluations(:)  ! Load balance arrays
     real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, &
       max_mac_evaluations
@@ -344,7 +345,7 @@ module module_walk
 
     call pepc_status('WALK HYBRID')
 
-    num_particles = size(p)
+    num_particles = size(p, kind=kind(num_particles))
     particle_data => p
     walk_tree => t
     ! box shift vector
@@ -375,7 +376,7 @@ module module_walk
     include 'mpif.h'
 
     integer :: ith
-    integer*8 :: num_processed_particles
+    integer(kind_particle) :: num_processed_particles
 
     allocate(threaddata(num_walk_threads))
 
@@ -410,8 +411,7 @@ module module_walk
     ! check wether all particles really have been processed
     num_processed_particles = sum(threaddata(:)%counters(THREAD_COUNTER_PROCESSED_PARTICLES))
     if (num_processed_particles .ne. num_particles) then
-      DEBUG_ERROR(*, "Serious issue on PE", walk_tree%comm_env%rank, ": all walk threads have terminated, but obviously not all particles are finished with walking: num_processed_particles =",
-                          num_processed_particles, " num_particles =", num_particles)
+      DEBUG_ERROR(*, "Serious issue on PE", walk_tree%comm_env%rank, ": all walk threads have terminated, but obviously not all particles are finished with walking: num_processed_particles =", num_processed_particles, " num_particles =", num_particles)
     end if
 
     deallocate(threaddata)
@@ -502,7 +502,7 @@ module module_walk
     use module_debug
     use module_atomic_ops
     use module_tree, only: tree_lookup_root
-    use module_pepc_types, only: kind_node
+    use module_pepc_types
     use treevars, only: main_thread_processor_id
     implicit none
     include 'mpif.h'
@@ -512,7 +512,7 @@ module module_walk
 
     integer, dimension(:), allocatable :: thread_particle_indices
     type(t_particle), dimension(:), allocatable :: thread_particle_data
-    integer*8, dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
+    integer(kind_node), dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
     integer(kind_node), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
     integer, dimension(:), allocatable :: defer_list_start_pos
     integer :: defer_list_entries_new, defer_list_entries_old, total_defer_list_length
@@ -742,7 +742,7 @@ module module_walk
     use module_debug
     use module_mirror_boxes, only : spatial_interaction_cutoff
     use module_atomic_ops
-    use module_pepc_types, only: t_tree_node, kind_node
+    use module_pepc_types
     implicit none
     include 'mpif.h'
 
@@ -752,17 +752,16 @@ module module_walk
     integer(kind_node), dimension(:), pointer, intent(out) :: defer_list_new
     integer, intent(out) :: defer_list_entries_new
     integer(kind_node), intent(inout) :: todo_list(0:todo_list_length-1) 
-    integer*8, intent(inout) :: partner_leaves
+    integer(kind_node), intent(inout) :: partner_leaves
     type(t_threaddata), intent(inout) :: my_threaddata
     logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
 
     integer :: todo_list_entries
     type(t_tree_node), pointer :: walk_node
     integer(kind_node) :: walk_node_idx
-    real*8 :: dist2
-    real*8 :: delta(3), shifted_particle_position(3)
+    real*8 :: dist2, delta(3), shifted_particle_position(3)
     logical :: is_leaf, is_related
-    integer*8 :: num_interactions, num_mac_evaluations, num_post_request
+    integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
     real*8 :: t_post_request
 
     todo_list_entries      = 0

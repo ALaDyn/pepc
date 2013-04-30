@@ -28,10 +28,12 @@ module module_tree
     use module_comm_env, only: t_comm_env
     use module_domains, only: t_decomposition
     use module_atomic_ops, only: t_atomic_int
-    use module_pepc_types, only: t_tree_node, t_request_eager
+    use module_pepc_types
     use, intrinsic :: iso_c_binding
     implicit none
     private
+
+    integer(kind_key), public, parameter :: TREE_KEY_ROOT    =  1_kind_key
 
     !> data type for communicator request queue
     type, public :: t_request_queue_entry
@@ -61,8 +63,8 @@ module module_tree
       integer*8 :: comm_loop_iterations(3) !< number of comm loop iterations (total, sending, receiving)
       real*8 :: timings_comm(3) !< array for storing internal timing information
       integer :: request_balance !< total (#requests - #answers), should be zero after complete traversal
-      integer*8 :: sum_ships   !< total number of node ships
-      integer*8 :: sum_fetches !< total number of node fetches
+      integer(kind_node) :: sum_ships   !< total number of node ships
+      integer(kind_node) :: sum_fetches !< total number of node fetches
 
       ! thread data
       type(c_ptr) :: comm_thread
@@ -75,19 +77,19 @@ module module_tree
     !> of particles.
     !>
     type, public :: t_tree
-      integer*8 :: npart       !< number of particles across all ranks
-      integer*8 :: npart_me    !< number of particles on local rank
+      integer(kind_particle) :: npart       !< number of particles across all ranks
+      integer(kind_particle) :: npart_me    !< number of particles on local rank
 
-      integer*8 :: nleaf       !< number of leaves stored locally
-      integer*8 :: ntwig       !< number of twigs stored locally
-      integer*8 :: nleaf_me    !< number of leaves that originated on this rank
-      integer*8 :: ntwig_me    !< number of twigs that originated on this rank
+      integer(kind_node) :: nleaf       !< number of leaves stored locally
+      integer(kind_node) :: ntwig       !< number of twigs stored locally
+      integer(kind_node) :: nleaf_me    !< number of leaves that originated on this rank
+      integer(kind_node) :: ntwig_me    !< number of twigs that originated on this rank
       
-      integer   :: nbranch     !< number of branch nodes in tree
-      integer   :: nbranch_me  !< number of branch nodes that originated on this rank
-      integer   :: nbranch_max_me !< upper limit estimate for number of local branch nodes
+      integer(kind_node)   :: nbranch     !< number of branch nodes in tree
+      integer(kind_node)   :: nbranch_me  !< number of branch nodes that originated on this rank
+      integer(kind_node)   :: nbranch_max_me !< upper limit estimate for number of local branch nodes
 
-      integer*8 :: nintmax     !< maximum number of interactions
+      integer(kind_particle) :: nintmax     !< maximum number of interactions
       
       real*8, allocatable :: boxlength2(:) !< precomputed square of maximum edge length of boxes for different levels - used for MAC evaluation
       
@@ -105,14 +107,27 @@ module module_tree
     public tree_insert_or_update_node
     public tree_contains_key
     public tree_lookup_root
-    public tree_lookup_node
-    public tree_lookup_node_critical
     public tree_node_get_parent
     public tree_node_connect_children
     public tree_check
     public tree_dump
     public tree_stats
     public tree_destroy
+
+    public tree_lookup_node
+    public tree_lookup_node_i
+    public tree_lookup_node_critical_i
+    public tree_lookup_node_critical
+    public tree_lookup_node_p
+    public tree_lookup_node_critical_p
+
+    interface tree_lookup_node
+      module procedure tree_lookup_node_i, tree_lookup_node_p
+    end interface
+
+    interface tree_lookup_node_critical
+      module procedure tree_lookup_node_critical_i, tree_lookup_node_critical_p
+    end interface
 
     contains
 
@@ -136,12 +151,12 @@ module module_tree
       implicit none
 
       type(t_tree), intent(inout) :: t !< The tree
-      integer, intent(in) :: nl !< Number of local particles to be inserted into the tree
-      integer*8, intent(in) :: n !< Total number of particles across communication ranks
+      integer(kind_particle), intent(in) :: nl !< Number of local particles to be inserted into the tree
+      integer(kind_particle), intent(in) :: n !< Total number of particles across communication ranks
       integer, optional, intent(in) :: comm !< An MPI communicator
       type(t_comm_env), optional, intent(in) :: comm_env !< A communication environment
 
-      integer*8 :: maxaddress
+      integer(kind_node) :: maxaddress
       integer :: i
 
       call pepc_status('ALLOCATE TREE')
@@ -174,9 +189,9 @@ module module_tree
 
       ! Space for hash table
       if (np_mult > 0) then
-        maxaddress = max(30_8 * t%nintmax + 4_8 * t%npart_me, 10000_8)
+        maxaddress = max(30_kind_node * t%nintmax + 4_kind_node * t%npart_me, 10000_kind_node)
       else
-        maxaddress = int(abs(np_mult) * 10000._8, kind(1_8))
+        maxaddress = int(abs(np_mult) * 10000._8, kind_node)
       end if
 
       call htable_create(t%node_storage, maxaddress)
@@ -403,7 +418,7 @@ module module_tree
 
       logical :: tree_contains_key
       type(t_tree), intent(in) :: t !< the tree
-      integer*8, intent(in) :: k !< key to look up
+      integer(kind_key), intent(in) :: k !< key to look up
 
       DEBUG_ASSERT(tree_allocated(t))
       tree_contains_key = htable_contains(t%node_storage, k)
@@ -424,9 +439,9 @@ module module_tree
 
       DEBUG_ASSERT(tree_allocated(t))
       if (present(caller)) then
-        call tree_lookup_node_critical(t, 1_8, r, caller)
+        call tree_lookup_node_critical(t, TREE_KEY_ROOT, r, caller)
       else 
-        call tree_lookup_node_critical(t, 1_8, r, 'tree_lookup_root')
+        call tree_lookup_node_critical(t, TREE_KEY_ROOT, r, 'tree_lookup_root')
       end if
     end subroutine tree_lookup_root
 
@@ -436,42 +451,95 @@ module module_tree
     !> returns `.true.` in case a node is found and makes `n` point to it,
     !> `.false.` is returned otherwise
     !>
-    function tree_lookup_node(t, k, n, caller)
+    function tree_lookup_node_i(t, k, n, caller)
       use module_pepc_types, only: t_tree_node, kind_node
       use module_htable, only: htable_lookup
       use module_debug
       implicit none
 
-      logical :: tree_lookup_node
+      logical :: tree_lookup_node_i
 
       type(t_tree), intent(in) :: t !< the tree
-      integer*8, intent(in) :: k !< key to look up
+      integer(kind_key), intent(in) :: k !< key to look up
       integer(kind_node), intent(out) :: n !< node that is identified by `k`
       character(LEN = *), optional, intent(in) :: caller
 
       DEBUG_ASSERT(tree_allocated(t))
-      tree_lookup_node = htable_lookup(t%node_storage, k, n, caller)
-    end function tree_lookup_node
+      tree_lookup_node_i = htable_lookup(t%node_storage, k, n, caller)
+    end function tree_lookup_node_i
 
 
     !>
     !> looks up a node for key `k` in tree `t` and makes `n` point to it if one
     !> is found, otherwise debug information is dumped and program execution is aborted
     !>
-    subroutine tree_lookup_node_critical(t, k, n, caller)
+    subroutine tree_lookup_node_critical_i(t, k, n, caller)
       use module_pepc_types, only: t_tree_node, kind_node
       use module_htable, only: htable_lookup_critical
       use module_debug
       implicit none
 
       type(t_tree), intent(in) :: t !< the tree
-      integer*8, intent(in) :: k !< key to look up
+      integer(kind_key), intent(in) :: k !< key to look up
       integer(kind_node), intent(out) :: n !< node that is identified by `k`
       character(LEN = *), intent(in) :: caller
 
       DEBUG_ASSERT(tree_allocated(t))
       call htable_lookup_critical(t%node_storage, k, n, caller)
-    end subroutine tree_lookup_node_critical
+    end subroutine tree_lookup_node_critical_i
+
+
+    !>
+    !> looks up a node for key `k` in tree `t`,
+    !> returns `.true.` in case a node is found and makes `n` point to it,
+    !> `.false.` is returned otherwise
+    !>
+    function tree_lookup_node_p(t, k, n, caller)
+      use module_pepc_types, only: t_tree_node, kind_node
+      use module_htable, only: htable_lookup
+      use module_debug
+      implicit none
+
+      logical :: tree_lookup_node_p
+
+      type(t_tree), intent(in) :: t !< the tree
+      integer(kind_key), intent(in) :: k !< key to look up
+      type(t_tree_node), pointer, intent(out) :: n !< node that is identified by `k`
+      character(LEN = *), optional, intent(in) :: caller
+
+      integer(kind_node) :: in
+
+      tree_lookup_node_p = tree_lookup_node_i(t, k, in, caller)
+      if (tree_lookup_node_p) then
+        n => t%nodes(in)
+      else
+        n => null()
+      end if
+      
+    end function tree_lookup_node_p
+
+
+    !>
+    !> looks up a node for key `k` in tree `t` and makes `n` point to it if one
+    !> is found, otherwise debug information is dumped and program execution is aborted
+    !>
+    subroutine tree_lookup_node_critical_p(t, k, n, caller)
+      use module_pepc_types, only: t_tree_node, kind_node
+      use module_htable, only: htable_lookup_critical
+      use module_debug
+      implicit none
+
+      type(t_tree), intent(in) :: t !< the tree
+      integer(kind_key), intent(in) :: k !< key to look up
+      type(t_tree_node), pointer, intent(out) :: n !< node that is identified by `k`
+      character(LEN = *), intent(in) :: caller
+      
+      integer(kind_node) :: in
+
+      call tree_lookup_node_critical_i(t, k, in, caller)
+      n => t%nodes(in)
+      
+    end subroutine tree_lookup_node_critical_p
 
 
     !>
@@ -524,7 +592,7 @@ module module_tree
       
       integer :: ic, nc
 
-      nc = size(c); DEBUG_ASSERT(nc > 0)
+      nc = size(c, kind=kind(nc)); DEBUG_ASSERT(nc > 0)
       ! // DEBUG_ASSERT_MSG(all((c(2:nc)%p%key - c(1:nc - 1)%p%key) >= 1), *, "children are not arranged as expected.")
       ! // DEBUG_ASSERT_MSG(2**idim >= c(nc)%p%key - c(1)%p%key, '("= ", I3, ". Children do not all belong to the same parent.")', c(nc)%p%key - c(1)%p%key)
 
@@ -568,30 +636,22 @@ module module_tree
       call tree_check_helper(r)
 
       if (t%nleaf /= nleaf_check) then
-        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
-        '# leaves in table = ',nleaf_check,' vs ',t%nleaf,' accumulated',
-        'Fixing and continuing for now..')
+        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank, '# leaves in table = ',nleaf_check,' vs ',t%nleaf,' accumulated', 'Fixing and continuing for now..')
         tree_check = .false.
       end if
 
       if (t%ntwig /= ntwig_check) then
-        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
-        '# twigs in table = ',ntwig_check,' vs ',t%ntwig,' accumulated',
-        'Fixing and continuing for now..')
+        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank, '# twigs in table = ',ntwig_check,' vs ',t%ntwig,' accumulated', 'Fixing and continuing for now..')
         tree_check = .false.
       end if
 
       if (t%nleaf_me /= nleaf_me_check) then
-        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
-        '# own leaves in table = ',nleaf_me_check,' vs ',t%nleaf_me,' accumulated',
-        'Fixing and continuing for now..')
+        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank, '# own leaves in table = ',nleaf_me_check,' vs ',t%nleaf_me,' accumulated', 'Fixing and continuing for now..')
         tree_check = .false.
       end if
 
       if (t%ntwig_me /= ntwig_me_check) then
-        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank,
-        '# own twigs in table = ',ntwig_me_check,' vs ',t%ntwig_me,' accumulated',
-        'Fixing and continuing for now..')
+        DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank, '# own twigs in table = ',ntwig_me_check,' vs ',t%ntwig_me,' accumulated', 'Fixing and continuing for now..')
         tree_check = .false.
       end if
 
@@ -665,14 +725,17 @@ module module_tree
       type(t_tree), intent(in) :: t
       integer, intent(in) :: u
 
-      integer :: i, s, ierr
-      integer, allocatable :: nparticles(:)
-      integer*8, allocatable :: fetches(:), ships(:), total_keys(:), tot_nleaf(:), tot_ntwig(:)
-      integer :: total_part, max_nbranch, min_nbranch, nbranch, branch_max_global
-      integer*8 :: nhashentries, gmax_keys
+      integer :: i, s
+      integer(kind_default) :: ierr
+      integer(kind_particle), allocatable :: nparticles(:)
+      integer(kind_node), allocatable :: fetches(:), ships(:)
+      integer(kind_node), allocatable :: total_keys(:), tot_nleaf(:), tot_ntwig(:)
+      integer(kind_particle) :: total_part
+      integer(kind_node) :: max_nbranch, min_nbranch, nbranch, branch_max_global
+      integer(kind_node) :: nhashentries, gmax_keys
       real, save :: part_imbal = 0.
-      integer ::  part_imbal_max, part_imbal_min
-      integer*8 :: nkeys_total
+      integer(kind_particle) ::  part_imbal_max, part_imbal_min
+      integer(kind_node) :: nkeys_total
 
       call pepc_status('STATISTICS')
       DEBUG_ASSERT(tree_allocated(t))
@@ -681,19 +744,19 @@ module module_tree
       allocate(nparticles(s), fetches(s), ships(s), total_keys(s), tot_nleaf(s), tot_ntwig(s))
 
       ! particle distrib
-      call MPI_GATHER(t%npart_me, 1, MPI_INTEGER, nparticles, 1, MPI_INTEGER, 0,  t%comm_env%comm, ierr )
-      call MPI_GATHER(t%ntwig_me,    1, MPI_INTEGER8, tot_ntwig,  1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
-      call MPI_GATHER(t%nleaf_me,    1, MPI_INTEGER8, tot_nleaf,  1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
+      call MPI_GATHER(t%npart_me,    1, MPI_KIND_PARTICLE, nparticles, 1, MPI_KIND_PARTICLE, 0,  t%comm_env%comm, ierr )
+      call MPI_GATHER(t%ntwig_me,    1, MPI_KIND_NODE,     tot_ntwig,  1, MPI_KIND_NODE,     0,  t%comm_env%comm, ierr )
+      call MPI_GATHER(t%nleaf_me,    1, MPI_KIND_NODE,     tot_nleaf,  1, MPI_KIND_NODE,     0,  t%comm_env%comm, ierr )
       nkeys_total = t%nleaf + t%ntwig
-      call MPI_GATHER(nkeys_total,   1, MPI_INTEGER8, total_keys, 1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
-      call MPI_GATHER(t%communicator%sum_fetches, 1, MPI_INTEGER8, fetches,    1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
-      call MPI_GATHER(t%communicator%sum_ships,   1, MPI_INTEGER8, ships,      1, MPI_INTEGER8, 0,  t%comm_env%comm, ierr )
-      call MPI_REDUCE(t%nbranch_me, max_nbranch,     1, MPI_INTEGER, MPI_MAX, 0, t%comm_env%comm, ierr )
-      call MPI_REDUCE(t%nbranch_me, min_nbranch,     1, MPI_INTEGER, MPI_MIN, 0, t%comm_env%comm, ierr )
-      call MPI_REDUCE(t%nbranch_me, nbranch,         1, MPI_INTEGER, MPI_SUM, 0, t%comm_env%comm, ierr)
-      call MPI_REDUCE(t%nbranch_max_me, branch_max_global, 1, MPI_INTEGER, MPI_MAX, 0, t%comm_env%comm, ierr)
+      call MPI_GATHER(nkeys_total,                         1, MPI_KIND_NODE, total_keys, 1, MPI_KIND_NODE,  0,  t%comm_env%comm, ierr )
+      call MPI_GATHER(t%communicator%sum_fetches,          1, MPI_KIND_NODE, fetches,    1, MPI_KIND_NODE,  0,  t%comm_env%comm, ierr )
+      call MPI_GATHER(t%communicator%sum_ships,            1, MPI_KIND_NODE, ships,      1, MPI_KIND_NODE,  0,  t%comm_env%comm, ierr )
+      call MPI_REDUCE(t%nbranch_me, max_nbranch,           1, MPI_KIND_NODE, MPI_MAX,    0, t%comm_env%comm, ierr )
+      call MPI_REDUCE(t%nbranch_me, min_nbranch,           1, MPI_KIND_NODE, MPI_MIN,    0, t%comm_env%comm, ierr )
+      call MPI_REDUCE(t%nbranch_me, nbranch,               1, MPI_KIND_NODE, MPI_SUM,    0, t%comm_env%comm, ierr)
+      call MPI_REDUCE(t%nbranch_max_me, branch_max_global, 1, MPI_KIND_NODE, MPI_MAX,    0, t%comm_env%comm, ierr)
       nhashentries = htable_entries(t%node_storage)
-      call MPI_REDUCE(nhashentries, gmax_keys, 1, MPI_INTEGER8, MPI_MAX, 0, t%comm_env%comm, ierr )
+      call MPI_REDUCE(nhashentries, gmax_keys,             1, MPI_KIND_NODE, MPI_MAX,    0, t%comm_env%comm, ierr )
 
       part_imbal_max = MAXVAL(nparticles)
       part_imbal_min = MINVAL(nparticles)

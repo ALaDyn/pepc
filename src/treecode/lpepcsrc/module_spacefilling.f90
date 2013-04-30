@@ -24,6 +24,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_spacefilling
+      use module_pepc_types
       implicit none
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -74,13 +75,13 @@ module module_spacefilling
         elemental function level_from_key(key)
           use treevars, only: idim
           implicit none
-          integer*8, intent(in) :: key
-          integer :: level_from_key
+          integer(kind_key), intent(in) :: key
+          integer(kind_level) :: level_from_key
 
           ! using log_{2**idim}(key):
           ! level_from_key = int( log(1._8*key) / log((2._8)**idim))
           ! counting leading zeros (faster):
-          level_from_key = int((bit_size(key) - leadz(key) - 1) / idim)
+          level_from_key = int((bit_size(key) - leadz(key) - 1_kind_key) / idim, kind_level)
 
         end function
 
@@ -92,10 +93,10 @@ module module_spacefilling
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         elemental function parent_key_from_key(key)
           implicit none
-          integer*8, intent(in) :: key
-          integer*8 :: parent_key_from_key
+          integer(kind_key), intent(in) :: key
+          integer(kind_key) :: parent_key_from_key
 
-          parent_key_from_key = shift_key_by_level(key, -1)
+          parent_key_from_key = shift_key_by_level(key, -1_kind_level)
         end function parent_key_from_key
 
 
@@ -108,7 +109,7 @@ module module_spacefilling
           use treevars, only: idim
           implicit none
 
-          integer*8, intent(in) :: key
+          integer(kind_key), intent(in) :: key
           integer :: child_number_from_key
 
           child_number_from_key = int(ibits(key, 0, idim))
@@ -125,9 +126,9 @@ module module_spacefilling
           use treevars, only: idim
           implicit none
 
-          integer*8, intent(in) :: key
-          integer, intent(in) :: lvl
-          integer*8 :: shift_key_by_level
+          integer(kind_key), intent(in) :: key
+          integer(kind_level), intent(in) :: lvl
+          integer(kind_key) :: shift_key_by_level
 
           shift_key_by_level = ishft(key, idim * lvl)
         end function shift_key_by_level
@@ -141,11 +142,11 @@ module module_spacefilling
         pure function child_key_from_parent_key(key, n)
           implicit none
 
-          integer*8, intent(in) :: key
+          integer(kind_key), intent(in) :: key
           integer, intent(in) :: n
-          integer*8 :: child_key_from_parent_key
+          integer(kind_key) :: child_key_from_parent_key
 
-          child_key_from_parent_key = shift_key_by_level(key, 1) + n
+          child_key_from_parent_key = shift_key_by_level(key, 1_kind_level) + n
         end function child_key_from_parent_key
 
 
@@ -158,7 +159,7 @@ module module_spacefilling
           use treevars, only: nlev
           implicit none
           logical :: is_ancestor_of_particle_nolevel
-          integer*8, intent(in) :: key_a, key_c
+          integer(kind_key), intent(in) :: key_a, key_c
  
           is_ancestor_of_particle_nolevel = &
             (shift_key_by_level(key_c, level_from_key(key_a) - nlev) == key_a)
@@ -175,8 +176,8 @@ module module_spacefilling
           use treevars, only: nlev
           implicit none
           logical :: is_ancestor_of_particle_withlevel
-          integer*8, intent(in) :: key_a, key_c
-          integer, intent(in) :: level_a
+          integer(kind_key), intent(in) :: key_a, key_c
+          integer(kind_level), intent(in) :: level_a
  
           is_ancestor_of_particle_withlevel = (shift_key_by_level(key_c, level_a - nlev) == key_a)
 
@@ -197,7 +198,7 @@ module module_spacefilling
           type(t_box), intent(in) :: b
           type(t_particle), intent(inout) :: particles(:)
 
-          integer*8, dimension(:,:), allocatable :: intcoord
+          integer(kind_key), dimension(:,:), allocatable :: intcoord
           real*8 :: s(idim)
           integer :: j, nl
 
@@ -205,10 +206,10 @@ module module_spacefilling
 
           allocate(intcoord(idim, nl))
 
-          s = b%boxsize(1:idim) / 2_8**nlev       ! refinement length
+          s = b%boxsize(1:idim) / 2_kind_key**nlev       ! refinement length
 
           do j = 1, nl
-            intcoord(:,j) = int(( particles(j)%x(1:idim) - b%boxmin(1:idim) ) / s, kind = 8) ! partial keys
+            intcoord(:,j) = int(( particles(j)%x(1:idim) - b%boxmin(1:idim) ) / s, kind = kind_key) ! partial keys
           end do
 
           ! construct particle keys
@@ -249,7 +250,7 @@ module module_spacefilling
           use module_box
           implicit none
 
-          integer*8 :: coord_to_key_lastlevel
+          integer(kind_key) :: coord_to_key_lastlevel
           type(t_box), intent(in) :: b
           real*8, intent(in) :: x, y, z
 
@@ -267,15 +268,15 @@ module module_spacefilling
           use module_box
           implicit none
 
-          integer*8 :: veccoord_to_key_lastlevel
+          integer(kind_key) :: veccoord_to_key_lastlevel
           type(t_box), intent(in) :: b
           real*8, intent(in) :: x(3)
 
-          integer*8 :: ic(idim)
+          integer(kind_key) :: ic(idim)
           real*8 :: s(idim)
 
-          s = b%boxsize(1:idim) / 2_8**nlev       ! refinement length
-          ic = int((x(1:idim) - b%boxmin(1:idim)) / s, kind = 8)           ! partial keys
+          s = b%boxsize(1:idim) / 2_kind_key**nlev       ! refinement length
+          ic = int((x(1:idim) - b%boxmin(1:idim)) / s, kind = kind_key)           ! partial keys
 
           ! construct particle keys
           select case (curve_type)
@@ -308,10 +309,10 @@ module module_spacefilling
           use module_box
           implicit none
 
-          integer*8 :: coord_to_key_level
+          integer(kind_key) :: coord_to_key_level
           type(t_box), intent(in) :: b
           real*8, intent(in) :: x, y, z
-          integer, intent(in) :: level
+          integer(kind_level), intent(in) :: level
 
           coord_to_key_level = veccoord_to_key_level(b, [x, y, z], level)
         end function coord_to_key_level
@@ -327,10 +328,10 @@ module module_spacefilling
           use module_box
           implicit none
 
-          integer*8 :: veccoord_to_key_level
+          integer(kind_key) :: veccoord_to_key_level
           type(t_box), intent(in) :: b
           real*8, intent(in) :: x(3)
-          integer, intent(in) :: level
+          integer(kind_level), intent(in) :: level
 
           veccoord_to_key_level = shift_key_by_level(veccoord_to_key_lastlevel(b, x), level-nlev)
         end function veccoord_to_key_level
@@ -346,7 +347,7 @@ module module_spacefilling
           implicit none
 
           type(t_box), intent(in) :: b
-          integer*8, intent(in) :: key
+          integer(kind_key), intent(in) :: key
           real*8, intent(out) :: x, y, z
 
           real*8 :: xv(3)
@@ -369,10 +370,10 @@ module module_spacefilling
           implicit none
 
           type(t_box), intent(in) :: b
-          integer*8, intent(in) :: key
+          integer(kind_key), intent(in) :: key
           real*8, intent(inout) :: x(3)
 
-          integer*8 :: ic(idim)
+          integer(kind_key) :: ic(idim)
           real*8 :: s(idim)
 
           ! construct particle coordiantes
@@ -385,7 +386,7 @@ module module_spacefilling
               ic = 0
           end select
 
-          s = b%boxsize(1:idim) / 2_8**nlev       ! refinement length
+          s = b%boxsize(1:idim) / 2_kind_key**nlev       ! refinement length
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
           x(1:idim) = (real(ic, kind(1._8)) + 0.5_8) * s + b%boxmin(1:idim)
@@ -403,17 +404,18 @@ module module_spacefilling
         function intcoord_to_key_morton(ic)
           use treevars, only : idim, nlev
           implicit none
-          integer*8, intent(in) :: ic(idim)
-          integer*8 :: intcoord_to_key_morton
-          integer :: i, j
+          integer(kind_key), intent(in) :: ic(idim)
+          integer(kind_key) :: intcoord_to_key_morton
+          integer(kind_level) :: i
+          integer(kind_dim) :: j
 
             ! set placeholder bit
-            intcoord_to_key_morton = 1_8
+            intcoord_to_key_morton = 1_kind_key
 
             ! key generation
-            do i=nlev-1,0,-1
-              do j=idim,1,-1
-                intcoord_to_key_morton = ior(ishft(intcoord_to_key_morton, 1), ibits(ic(j), i, 1_8))
+            do i=nlev-1_kind_level,0_kind_level,-1_kind_level
+              do j=idim,1_kind_level,-1_kind_level
+                intcoord_to_key_morton = ior(ishft(intcoord_to_key_morton, 1), ibits(ic(j), i, 1_kind_key))
               end do
             end do
 
@@ -430,10 +432,10 @@ module module_spacefilling
         subroutine key_to_intcoord_morton(key, ix, iy, iz)
           implicit none
 
-          integer*8, intent(in) :: key
-          integer*8, intent(out) :: ix, iy, iz
+          integer(kind_key), intent(in) :: key
+          integer(kind_key), intent(out) :: ix, iy, iz
 
-          integer*8 :: ic(3)
+          integer(kind_key) :: ic(3)
 
           call key_to_vecintcoord_morton(key, ic)
           ix = ic(1)
@@ -453,16 +455,17 @@ module module_spacefilling
         subroutine key_to_vecintcoord_morton(key, ic)
           use treevars, only : idim, nlev
           implicit none
-          integer*8, intent(out) :: ic(idim)
-          integer*8, intent(in) :: key
-          integer :: i, j, lev
+          integer(kind_key), intent(out) :: ic(idim)
+          integer(kind_key), intent(in) :: key
+          integer(kind_level) :: i, lev
+          integer(kind_dim) :: j
 
           lev = level_from_key(key)
 
-          ic = 0
+          ic = 0_kind_key
 
-          do i=0,lev-1
-            do j=1,idim
+          do i=0_kind_level,lev-1_kind_level
+            do j=1_kind_dim,idim
               ic(j) = ior(ic(j), ishft(ibits(key, idim*i + j - 1, 1), nlev-lev+i))
             end do
           end do
@@ -486,16 +489,17 @@ module module_spacefilling
         function intcoord_to_key_hilbert2D(ic)
           use treevars
           implicit none
-          integer*8, intent(in) :: ic(2)
-          integer*8 :: intcoord_to_key_hilbert2D
-          integer :: i, j
+          integer(kind_key), intent(in) :: ic(2)
+          integer(kind_key) :: intcoord_to_key_hilbert2D
+          integer(kind_level) :: i
+          integer :: j
 
-          integer*8, parameter :: CI2(0:3)    = [0,3,1,2] ! 2D - inverse hilbert cell
-          integer*8, parameter :: G2(0:3,0:1) = reshape([3,0,0,3,0,0,0,3],shape(G2))
-          integer*8 :: horder           ! order of the hilbert cell C
-          integer*8 :: exchange, reverse
-          integer*8 :: itemp(2), change
-          integer*8 :: cval
+          integer, parameter :: CI2(0:3)    = [0,3,1,2] ! 2D - inverse hilbert cell
+          integer, parameter :: G2(0:3,0:1) = reshape([3,0,0,3,0,0,0,3],shape(G2))
+          integer(kind_key) :: horder ! order of the hilbert cell C, has to be kind_key to assuage xlf s strict interpretation of ior-parameter
+          integer :: exchange, reverse
+          integer(kind_key) :: itemp(2), change
+          integer(kind_key) :: cval
 
           ! copy, because construction alters original values
           itemp=ic
@@ -504,12 +508,12 @@ module module_spacefilling
           intcoord_to_key_hilbert2D = 1
 
           ! key generation
-          do i=nlev-1,0,-1
+          do i=nlev-1_kind_level,0_kind_level,-1_kind_level
 
-            cval = 0_8
+            cval = 0_kind_key
 
             do j=2,1,-1
-              cval = ior(ishft(cval, 1), ibits(itemp(j), i, 1_8))
+              cval = ior(ishft(cval, 1), ibits(itemp(j), i, 1_kind_key))
               itemp(j) = ibclr(itemp(j), i)
             end do
 
@@ -532,7 +536,7 @@ module module_spacefilling
                 
             ! reverse
             do j=1,2
-              if (btest(reverse, j - 1)) itemp(j) = iand(not(itemp(j)), 2_8**(i) - 1)
+              if (btest(reverse, j - 1)) itemp(j) = iand(not(itemp(j)), 2_kind_key**(i) - 1)
             end do
           end do
 
@@ -542,16 +546,17 @@ module module_spacefilling
         function intcoord_to_key_hilbert3D(ic)
           use treevars
           implicit none
-          integer*8, intent(in) :: ic(3)
-          integer*8 :: intcoord_to_key_hilbert3D
-          integer :: i, j
+          integer(kind_key), intent(in) :: ic(3)
+          integer(kind_key) :: intcoord_to_key_hilbert3D
+          integer(kind_level) :: i
+          integer :: j
 
-          integer*8, parameter :: CI3(0:7)    = [0,1,3,2,7,6,4,5] ! 3D - inverse hilbert cell
-          integer*8, parameter :: G3(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G3))     ! 3D - hilbert gene
-          integer*8 :: horder           ! order of the hilbert cell C
-          integer*8 :: exchange, reverse
-          integer*8 :: itemp(3), change
-          integer*8 :: cval
+          integer, parameter :: CI3(0:7)    = [0,1,3,2,7,6,4,5] ! 3D - inverse hilbert cell
+          integer, parameter :: G3(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G3))     ! 3D - hilbert gene
+          integer(kind_key) :: horder ! order of the hilbert cell C, has to be kind_key to assuage xlf s strict interpretation of ior-parameter
+          integer :: exchange, reverse
+          integer(kind_key) :: itemp(3), change
+          integer(kind_key) :: cval
 
           ! copy, because construction alters original values
           itemp=ic
@@ -560,12 +565,12 @@ module module_spacefilling
           intcoord_to_key_hilbert3D = 1
 
           ! key generation
-          do i=nlev-1,0,-1
+          do i=nlev-1_kind_level,0_kind_level,-1_kind_level
 
-            cval = 0_8
+            cval = 0_kind_key
 
             do j=3,1,-1
-              cval = ior(ishft(cval, 1), ibits(itemp(j), i, 1_8))
+              cval = ior(ishft(cval, 1), ibits(itemp(j), i, 1_kind_key))
               itemp(j) = ibclr(itemp(j), i)
             end do
 
@@ -592,7 +597,7 @@ module module_spacefilling
 
             ! reverse
             do j=1,3
-              if (btest(reverse, j - 1)) itemp(j) = iand(not(itemp(j)), 2_8**(i) - 1)
+              if (btest(reverse, j - 1)) itemp(j) = iand(not(itemp(j)), 2_kind_key**(i) - 1)
             end do
           end do
 
@@ -607,10 +612,10 @@ module module_spacefilling
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_intcoord_hilbert(key, ix, iy, iz)
           implicit none
-          integer*8, intent(out) :: ix, iy, iz
-          integer*8, intent(in) :: key
+          integer(kind_key), intent(out) :: ix, iy, iz
+          integer(kind_key), intent(in) :: key
 
-          integer*8 :: ic(3)
+          integer(kind_key) :: ic(3)
 
           call key_to_vecintcoord_hilbert(key, ic)
           ix = ic(1)
@@ -629,25 +634,24 @@ module module_spacefilling
         subroutine key_to_vecintcoord_hilbert(key, ic)
           use treevars
           implicit none
-          integer*8, intent(out) :: ic(idim)
-          integer*8, intent(in) :: key
+          integer(kind_key), intent(out) :: ic(idim)
+          integer(kind_key), intent(in) :: key
 
-          integer*8 :: change, horder, cval
-          integer*8 :: exchange, reverse
-          integer*8 :: i, j, k
-          integer :: lev
+          integer(kind_key) :: change, horder, cval
+          integer :: exchange, reverse
+          integer(kind_level) :: i, lev
+          integer(kind_dim) :: j, k
 
-          integer*8, parameter :: C2(0:3) = [0,2,3,1] ! 2D - hilbert cell
-          integer*8, parameter :: G2(0:3,0:1) = reshape([3,0,0,3,0,0,0,3],shape(G2)) ! 2D - hilbert gene
-          integer*8, parameter :: C3(0:7)    = [0,1,3,2,6,7,5,4] ! 3D - hilbert cell
-          integer*8, parameter :: G3(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G3)) ! 3D - hilbert gene
-          !integer*8, parameter :: G(0:7,0:1) = reshape([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],shape(G)) ! 3D - hilbert gene
+          integer, parameter :: C2(0:3) = [0,2,3,1] ! 2D - hilbert cell
+          integer, parameter :: G2(0:3,0:1) = reshape([3,0,0,3,0,0,0,3],shape(G2)) ! 2D - hilbert gene
+          integer, parameter :: C3(0:7)    = [0,1,3,2,6,7,5,4] ! 3D - hilbert cell
+          integer, parameter :: G3(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G3)) ! 3D - hilbert gene
 
           lev = level_from_key(key)
 
-          ic = 0_8
+          ic = 0_kind_key
 
-          do i=0,lev-1
+          do i=0_kind_level,lev-1_kind_level
             horder = ibits(key,idim*i,idim)
 
             if (idim == 2) then
@@ -662,15 +666,15 @@ module module_spacefilling
 
             if (i>0) then
               ! reverse
-              do j=1,idim
-                if (btest(reverse, j - 1)) ic(j) = iand(not(ic(j)), 2_8**(i) - 1)
+              do j=1_kind_dim,idim
+                if (btest(reverse, j - 1)) ic(j) = iand(not(ic(j)), 2_kind_key**(i) - 1)
               end do
 
               ! exchange
-              do j=1,idim-1
+              do j=1_kind_dim,idim-1_kind_dim
                 if (.not. btest(exchange, j - 1)) cycle
 
-                do k=j+1,idim
+                do k=j+1_kind_dim,idim
                   if (btest(exchange, k - 1)) then
                     change = ic(j)
                     ic(j) = ic(k)
@@ -680,12 +684,12 @@ module module_spacefilling
               end do
             end if
 
-            do j=1,idim
+            do j=1_kind_dim,idim
               ic(j) = ior(ishft(ibits(cval, j-1, 1), i), ic(j))
             end do
           end do
 
-          do j=1,idim
+          do j=1_kind_dim,idim
             ic(j) = ishft(ic(j), nlev-lev)
           end do
 

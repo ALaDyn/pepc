@@ -34,7 +34,7 @@ module helper
   integer, parameter :: t_user_particleio  = t_userdefined_first + 4
   
   ! MPI variables
-  integer :: my_rank, n_ranks
+  integer(kind_pe) :: my_rank, n_ranks
   logical :: root
 
   ! time variables
@@ -43,8 +43,8 @@ module helper
 
   ! control variables
   integer :: nt                   ! number of timesteps
-  integer :: tnp                  ! total number of particles
-  integer :: np                   ! local number of particles
+  integer(kind_particle) :: tnp   ! total number of particles
+  integer(kind_particle) :: np    ! local number of particles
   logical :: particle_output      ! turn vtk output on/off
   logical :: domain_output        ! turn vtk output on/off
   logical :: particle_test        ! check tree code results against direct summation
@@ -107,7 +107,7 @@ module helper
       write(*,'(a,3(es12.4))') " == plasma dimensions         : ", plasma_dimensions
     end if
 
-    call pepc_prepare(3)
+    call pepc_prepare(3_kind_dim)
   end subroutine set_parameter
 
 
@@ -115,14 +115,15 @@ module helper
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer :: ip, rc
+    integer(kind_particle) :: ip
+    integer :: rc
     real*8 :: dummy
 
     if(root) write(*,'(a)') " == [init] init particles "
     
     ! set initially number of local particles
     np = tnp / n_ranks
-    if (my_rank < MOD(tnp, n_ranks)) np = np + 1
+    if (my_rank < MOD(tnp, 1_kind_particle*n_ranks)) np = np + 1
 
     allocate(particles(np), stat=rc)
     if (rc.ne.0) write(*,*) " === particle allocation error!"
@@ -132,12 +133,12 @@ module helper
     direct_L2 = -1.0_8
     
     ! set random seed
-    dummy = par_rand(my_rank)
+    dummy = par_rand(1*my_rank)
     
     ! setup random qubic particle cloud
     do ip=1, np
       p(ip)%label       = my_rank * (tnp / n_ranks) + ip - 1
-      p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2)) * 2.0_8 * &
+      p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2_kind_particle)) * 2.0_8 * &
                             plasma_dimensions(1) * plasma_dimensions(2) * &
                             plasma_dimensions(3) / tnp
       p(ip)%data%m      = 1.0_8
@@ -159,7 +160,7 @@ module helper
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer :: ip
+    integer(kind_particle) :: ip
     real*8  :: fact
 
     if(root) write(*,'(a)') " == [pusher] push particles "
@@ -178,7 +179,8 @@ module helper
     include 'mpif.h'
     
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer :: ip, id, ncoll, ncoll_total, ierr
+    integer(kind_particle) :: ip
+    integer :: id, ncoll, ncoll_total, ierr
 
     ncoll = 0
 
@@ -207,10 +209,11 @@ module helper
     implicit none
     include 'mpif.h'
   
-    integer, allocatable                  :: tindx(:)
+    integer(kind_particle), allocatable   :: tindx(:)
     real*8, allocatable                   :: trnd(:)
     type(t_particle_results), allocatable :: trslt(:)
-    integer                               :: tn, tn_global, ti, rc
+    integer(kind_particle)                :: tn, tn_global, ti
+    integer                               :: rc
     real*8                                :: L2sum_local, L2sum_global, L2
     
     call timer_start(t_user_directsum)
@@ -226,11 +229,11 @@ module helper
   
     allocate(tindx(tn), trnd(tn), trslt(tn))
   
-    call random(trnd)
+    call random(trnd(1:np))
   
-    tindx = int(trnd * (np-1)) + 1
+    tindx(1:np) = int(trnd(1:np) * (np-1)) + 1
   
-    call directforce(particles, np, tindx, tn, trslt, my_rank, n_ranks, MPI_COMM_WORLD)
+    call directforce(particles, tindx, tn, trslt, my_rank, n_ranks, MPI_COMM_WORLD)
   
     L2sum_local  = 0.0
     L2sum_global = 0.0
@@ -299,9 +302,9 @@ module helper
 
       type(t_particle), intent(in) :: p(:)
       type(vtkfile_unstructured_grid), intent(inout) :: vtkf
-
+      
       call vtk_write_particles_coulomb_XYZQVM_helper(p, vtkf)
-      if(particle_test) call vtkf%write_data_array("L2 error", size(p), direct_L2(:))
+      if(particle_test) call vtkf%write_data_array("L2 error", direct_L2(:))
     end subroutine
   end subroutine write_particles
 

@@ -6,7 +6,7 @@ FILES_L_U = module_vtk.f90 \
             module_directsum.f90 \
             module_checkpoint.f90
 
-LDLIBS += libnpy.a
+LDLIBS  += $(FRONTENDDIR)/pepc-numpy/libnpy-0.4/lib/libnpy.a
 
 SRC        += $(FILES_L)
 SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-numpy/, $(FILES_L))

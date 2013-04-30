@@ -88,7 +88,7 @@ module module_walk
     integer(kind_node) :: r
     type(t_particle), pointer :: p
     integer :: i
-    integer*8 :: ni
+    integer(kind_node) :: ni
     logical :: in_central_box
     real*8 :: b2(0:nlev)
 
@@ -108,7 +108,7 @@ module module_walk
 
     do i = lbound(ps, 1), ubound(ps, 1)
       p => ps(i)
-      ni = 0_8
+      ni = 0_kind_node
       call tree_walk_single(r)
       DEBUG_ASSERT(ni == t%npart)
     end do

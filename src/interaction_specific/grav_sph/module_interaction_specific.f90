@@ -127,7 +127,7 @@ contains
     type(t_tree_node_interaction_data), intent(out) :: parent
     type(t_tree_node_interaction_data), intent(in) :: children(:)
 
-    integer :: nchild, i, j
+    integer :: nchild, j
 
     real*8 :: shift(1:3)
 
@@ -263,11 +263,10 @@ contains
   !> on particle data and might be reused on subsequent traversals
   !>
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_force_after_grow(particles, nparticles)
+  subroutine calc_force_after_grow(particles)
     use module_pepc_types
     implicit none
     type(t_particle), dimension(:), intent(in) :: particles
-    integer, intent(in) :: nparticles
 
     ! nothing to be done here for now
 
@@ -282,8 +281,8 @@ contains
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
     implicit none
-    integer*8, intent(in) :: npart_total !< total number of particles
-    integer*8, intent(out) :: nintmax !< maximum number of interactions per particle
+    integer(kind_particle), intent(in) :: npart_total !< total number of particles
+    integer(kind_node), intent(out) :: nintmax !< maximum number of interactions per particle
 
     real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
 
@@ -363,15 +362,14 @@ contains
   ! > function cannot reside in module_interaction_specific that may not include module_pepc_types
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine particleresults_clear(particles, nparticles)
+  subroutine particleresults_clear(particles)
     use module_pepc_types, only: t_particle
     implicit none
-    type(t_particle), intent(inout) :: particles(nparticles)
-    integer, intent(in) :: nparticles
+    type(t_particle), intent(inout) :: particles(:)
     
-    integer :: i
+    integer(kind_particle) :: i
 
-    do i=1,nparticles
+    do i=1,size(particles, kind=kind(i))
        particles(i)%results%h         = 0._8
        particles(i)%results%rho       = 0._8
        particles(i)%results%sph_force = [0._8, 0._8, 0._8]
@@ -398,7 +396,7 @@ contains
     implicit none
 
     type(t_tree_node_interaction_data), intent(in) :: node
-    integer*8, intent(in) :: key
+    integer(kind_key), intent(in) :: key
     type(t_particle), intent(inout) :: particle
     logical, intent(in) :: node_is_leaf
     real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -460,11 +458,10 @@ contains
   ! > to be added once per particle
   ! >
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine calc_force_per_particle(particles, nparticles)
+  subroutine calc_force_per_particle(particles)
 
     implicit none
 
-    integer, intent(in) :: nparticles
     type(t_particle), intent(inout) :: particles(:)
 
     ! currently nothing to do here

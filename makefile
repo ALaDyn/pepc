@@ -10,6 +10,10 @@ include makefile.defs
 
 ALLFRONTENDS = $(shell ls $(FRONTENDDIR))
 
+RED=\e[0;31m
+GREEN=\e[0;32m
+NC=\e[0m # No Color
+
 help: info
 	@printf $(HELP)
 	@echo ""
@@ -43,8 +47,11 @@ readme:
 all:
 	-$(MAKE) $(MFLAGS) $(ALLFRONTENDS)
 	@echo ""
+	-$(MAKE) $(MFLAGS) allresult
+
+allresult:
 	@echo "======== build all results:"
-	@for f in $(ALLFRONTENDS); do if [ -e ${BINDIR}/$$f ]; then printf "== %-20s OK\n" $$f ; else printf "== %-20s FAILED\n" $$f; fi; done
+	@for f in $(ALLFRONTENDS); do if [ -e ${BINDIR}/$$f ]; then printf "== %-20s $(GREEN)OK$(NC)\n" $$f ; else printf "== %-20s $(RED)FAILED$(NC)\n" $$f; fi; done
 	@echo ""
 
 libsl: $(LIBDIR)/libsl.a

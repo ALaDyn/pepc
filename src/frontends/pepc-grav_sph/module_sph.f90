@@ -650,7 +650,10 @@ contains
 
     use module_pepc_types, only: &
          t_particle, &
-         t_tree_node
+         t_tree_node, &
+         kind_particle, &
+         kind_node, &
+         kind_pe
 
     use module_htable, only: &
          t_htable_iterator, &
@@ -690,10 +693,10 @@ contains
     integer, intent(in) :: np_local    !< # particles on this CPU
     type(t_particle), intent(inout) :: particles(:)
     
-    integer :: nleaf_non_local
+    integer(kind_node) :: nleaf_non_local
     integer*8, allocatable :: non_local_node_keys(:)
     integer*8, allocatable :: key_arr_cp(:)
-    integer*8, allocatable :: non_local_node_owner(:)
+    integer(kind_pe), allocatable :: non_local_node_owner(:)
     integer, allocatable :: node_arr_cp(:)
     integer, allocatable :: int_arr(:)
     integer :: num_request
@@ -709,6 +712,7 @@ contains
     integer :: actual_address
     integer*8 :: actual_key
     type(t_tree_node), pointer :: actual_node
+    integer(kind_node) :: iactual_node
 
     type(t_property_update), allocatable :: packed_updates(:)
     type(t_property_update), allocatable :: received_updates(:)
@@ -737,7 +741,8 @@ contains
     ! TODO: do not search in htable, but in array containing nodes ? (Idee von Lukas)
     it = htable_iterator(t%node_storage)
     do
-       if( htable_iterator_next(it, actual_key, actual_node) ) then
+       if( htable_iterator_next(it, actual_key, iactual_node) ) then
+          actual_node => t%nodes(iactual_node)
           if( (actual_node%owner .ne. my_rank) .and. tree_node_is_leaf(actual_node) ) then
              if( actual_node%owner > n_cpu-1) write(*,*) 'strange owner:', my_rank, actual_node%owner, actual_node%key
 

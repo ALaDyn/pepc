@@ -20,7 +20,8 @@ contains
     type(pepc_comm_t), intent(in) :: pepc_comm
 
     type(field_grid_nml_t) :: field_grid_nml
-    integer :: ipl, ipg, ix, iy, mpi_size, mpi_rank
+    integer(kind_default) :: mpi_size, mpi_rank
+    integer(kind_particle) :: ipl, ipg, ix, iy
 
     call create_directory(field_dir)
 
@@ -115,7 +116,7 @@ contains
 
     integer, parameter :: para_file_id = 10
     
-    integer, dimension(2) :: n
+    integer(kind_particle), dimension(2) :: n
     real(kind=8), dimension(2) :: offset
     real(kind=8), dimension(2) :: extent
 
@@ -149,12 +150,13 @@ contains
     type(field_grid_t), intent(inout) :: field_grid
     type(t_particle), dimension(:), intent(in) :: p
 
-    integer :: ipl, mpi_err
+    integer(kind_particle) :: ipl
+    integer(kind_default) :: mpi_err
     integer, dimension(2) :: ic
     real(kind=8) :: da, rda
 
-    call pepc_particleresults_clear(field_grid%p, int(field_grid%nl))
-    call pepc_traverse_tree(int(field_grid%nl), field_grid%p)
+    call pepc_particleresults_clear(field_grid%p)
+    call pepc_traverse_tree(field_grid%p)
     field_grid%p(:)%results%e(1) = field_grid%p(:)%results%e(1) * force_const
     field_grid%p(:)%results%e(2) = field_grid%p(:)%results%e(2) * force_const
     field_grid%p(:)%results%pot  = field_grid%p(:)%results%pot  * force_const
@@ -237,7 +239,7 @@ contains
     type(physics_pars_t), intent(in) :: physics_pars
     type(field_grid_t), intent(in) :: field_grid
 
-    integer :: my_count
+    integer(kind_particle) :: my_count
     integer(kind = MPI_OFFSET_KIND) :: my_offset
     real(kind = 8), dimension(:), allocatable :: fflat
 

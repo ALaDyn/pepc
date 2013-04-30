@@ -332,14 +332,14 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine force_laser(p_start, p_finish)
-
+        use module_pepc_types
         use physvars
         implicit none
 		  include 'mpif.h'
         real*8 :: E_pon(3), B_em(3), Phipon
 
-        integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
-        integer :: p
+        integer(kind_particle), intent(in) :: p_start,p_finish  ! min, max particle nos.
+        integer(kind_particle) :: p
 
         ! Include force from laser/external field on electrons
         do p = p_start, p_finish

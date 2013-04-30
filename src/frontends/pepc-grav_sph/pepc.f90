@@ -179,7 +179,7 @@ program pepce
 
 
 
-  call pepc_prepare(idim)
+  call pepc_prepare(int(idim, 1))
 
   ! TODO: where should do_periodic be set?
   do_periodic = periodicity(1) .or. periodicity(2) .or. periodicity(3)
@@ -197,17 +197,18 @@ program pepce
      ! 
      if( .not. initialized_v_minus_half ) then
         
-        call pepc_grow_tree(np_local, npart_total, particles)
+        call pepc_grow_tree(particles)
+        np_local = size(particles, kind=kind(np_local))
         
 
-        call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
-        call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
+        call pepc_particleresults_clear(particles) ! initialize neighbour lists etc
+        call nn_prepare_particleresults(global_tree, particles) ! improve neighbour list to speedup neighbour search
 
         if (do_gravity) then
            ! summing gravitational forces
            mac_select = 1 ! nn-mac
            force_law = 3  ! neighbour list force law
-           call pepc_traverse_tree(np_local, particles)
+           call pepc_traverse_tree(particles)
         end if
         
         if (do_sph) then
@@ -215,7 +216,7 @@ program pepce
            mac_select = 3 ! nn-mac
            force_law = 5  ! neighbour list force law
            
-           call pepc_traverse_tree(np_local, particles)
+           call pepc_traverse_tree(particles)
            
            !     call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
            
@@ -284,20 +285,21 @@ program pepce
      
      call timer_start(t_tot)
      
-     call pepc_grow_tree(np_local, npart_total, particles)
+     call pepc_grow_tree(particles)
+     np_local = size(particles, kind=kind(np_local))
 
      ! TODO: remove this debug output
      ! write(*,*) 'num_neighbour_boxes:', num_neighbour_boxes
      ! write(*,*) 'neigbour_boxes:', neighbour_boxes
 
-     call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
-     call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
+     call pepc_particleresults_clear(particles) ! initialize neighbour lists etc
+     call nn_prepare_particleresults(global_tree, particles) ! improve neighbour list to speedup neighbour search
 
      if (do_gravity) then
         ! summing gravitational forces
         mac_select = 1 ! nn-mac
         force_law = 3  ! neighbour list force law
-        call pepc_traverse_tree(np_local, particles)
+        call pepc_traverse_tree(particles)
      end if
 
      if (do_sph) then
@@ -305,7 +307,7 @@ program pepce
         mac_select = 3 ! nn-mac
         force_law = 5  ! neighbour list force law
         
-        call pepc_traverse_tree(np_local, particles)
+        call pepc_traverse_tree(particles)
         
         !     call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
         
@@ -351,7 +353,7 @@ program pepce
      write(*,*) "do_periodic:", do_periodic
      
      ! periodic systems demand periodic boundary conditions
-     if (do_periodic) call constrain_periodic(particles(1:np_local),np_local)
+     if (do_periodic) call constrain_periodic(particles)
 
 
      

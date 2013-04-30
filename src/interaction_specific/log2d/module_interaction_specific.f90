@@ -50,8 +50,8 @@ module module_interaction_specific
       real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential
 
       ! these are required by module_treediags, for now
-      integer*8, allocatable, public :: interaction_keylist(:,:)
-      integer, allocatable, public :: no_interaction_partners(:)
+      integer(kind_key), allocatable, public :: interaction_keylist(:,:)
+      integer(kind_node), allocatable, public :: no_interaction_partners(:)
       real*8, allocatable, public :: interaction_vbox(:,:,:)
 
       namelist /calc_force_log2d/ mac_select, include_far_field_if_periodic, theta2, eps2
@@ -254,20 +254,19 @@ module module_interaction_specific
       !> on particle data and might be reused on subsequent traversals
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine calc_force_after_grow(particles, nparticles)
+      subroutine calc_force_after_grow(particles)
         use module_pepc_types
         use module_fmm_periodicity, only : fmm_periodicity_timestep
         use module_mirror_boxes, only : do_periodic
         implicit none
         type(t_particle), dimension(:), intent(in) :: particles
-        integer, intent(in) :: nparticles
 
         ! calculate spherical multipole expansion of central box
         ! this cannot be done in calc_force_per_particle() since there, possibly
         ! other particles are used than we need for the multipoles
         ! e.g. in the case of a second traverse for test/grid particles
         if ((do_periodic) .and. (include_far_field_if_periodic)) then
-          call fmm_periodicity_timestep(particles, nparticles)
+          call fmm_periodicity_timestep(particles)
         end if
 
       end subroutine      
@@ -283,8 +282,8 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
         implicit none
-        integer*8, intent(in) :: npart_total !< total number of particles
-        integer*8, intent(out) :: nintmax !< maximum number of interactions per particle
+        integer(kind_particle), intent(in) :: npart_total !< total number of particles
+        integer(kind_node), intent(out) :: nintmax !< maximum number of interactions per particle
 
         real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
 
@@ -345,13 +344,12 @@ module module_interaction_specific
       !> function cannot reside in module_interaction_specific that may not include module_pepc_types
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine particleresults_clear(particles, nparticles)
+      subroutine particleresults_clear(particles)
         use module_pepc_types
         implicit none
-        type(t_particle), intent(inout) :: particles(nparticles)
-        integer, intent(in) :: nparticles
+        type(t_particle), intent(inout) :: particles(:)
 
-        particles(1:nparticles)%results = EMPTY_PARTICLE_RESULTS
+        particles(:)%results = EMPTY_PARTICLE_RESULTS
 
       end subroutine
 
@@ -369,7 +367,7 @@ module module_interaction_specific
           implicit none
 
           type(t_tree_node_interaction_data), intent(in) :: node
-          integer*8, intent(in) :: key
+          integer(kind_key), intent(in) :: key
           type(t_particle), intent(inout) :: particle
           logical, intent(in) :: node_is_leaf
           real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -399,7 +397,7 @@ module module_interaction_specific
         !> to be added once per particle
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_particle(particles, nparticles)
+        subroutine calc_force_per_particle(particles)
           use module_debug, only : pepc_status
           use module_pepc_types
           use treevars, only : me
@@ -407,10 +405,9 @@ module module_interaction_specific
           use module_mirror_boxes
           implicit none
 
-          integer, intent(in) :: nparticles
           type(t_particle), intent(inout) :: particles(:)
           real*8 :: e_lattice(2), phi_lattice
-          integer :: p
+          integer(kind_particle) :: p
 
           call pepc_status('CALC FORCE PER PARTICLE')
 
@@ -419,7 +416,7 @@ module module_interaction_specific
 
           if ((do_periodic) .and. (include_far_field_if_periodic)) then
 
-             do p=1,nparticles
+             do p=1,size(particles, kind=kind(p))
                 call fmm_periodicity_sum_lattice_force(particles(p)%x, e_lattice, phi_lattice)
 
                 potfarfield  = potfarfield  + phi_lattice               * particles(p)%data%q

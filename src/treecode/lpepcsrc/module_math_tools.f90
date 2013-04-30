@@ -76,9 +76,9 @@ module module_math_tools
           real*8, dimension(1:3) :: cross_product3
           real*8, dimension(1:3), intent(in) :: a, b
 
-          cross_product3 = [ a(2)*b(3) - a(3)*b(2), &
-                             a(3)*b(1) - a(1)*b(3), &
-                             a(1)*b(2) - a(2)*b(1)  ]
+          cross_product3(1) = a(2)*b(3) - a(3)*b(2)
+          cross_product3(2) = a(3)*b(1) - a(1)*b(3)
+          cross_product3(3) = a(1)*b(2) - a(2)*b(1)
 
         end function cross_product3
 
@@ -218,21 +218,21 @@ module module_math_tools
         !> @param[in] b Second Limit of interval.
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        integer*8 function bpi(a, b)
+        function bpi(a, b)
+          use module_pepc_types
           use treevars, only: idim
           use module_spacefilling
           use module_debug
           implicit none
           include 'mpif.h'
 
-          integer*8,intent(in) :: a, b
+          integer(kind_key), intent(in) :: a, b
+          integer(kind_key) :: bpi
+          
+          integer(kind_key) :: axorb, mask
+          integer(kind_level) :: bpilevel
 
-          integer*8 :: axorb, mask
-          integer :: bpilevel
-
-          if (b < a) then
-            DEBUG_ERROR('("Error: b < a in math_tools::bpi(a = ",o22,"(oct), ",i22,"(dec), b = ",o22,"(oct), ",i22,"(dec))")', a,a,b,b)
-          endif
+          DEBUG_ASSERT_MSG(a < b ,'("Error: b < a in math_tools::bpi(a = ",o22,"(oct), ",i22,"(dec), b = ",o22,"(oct), ",i22,"(dec))")', a,a,b,b)
 
           axorb             = ieor(a,b)
           bpilevel          = level_from_key(axorb)

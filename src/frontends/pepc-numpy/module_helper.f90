@@ -35,6 +35,7 @@ module helper
     use module_pepc
     use module_interaction_specific
     use module_checkpoint
+    use module_pepc_types
 
     implicit none
     include 'mpif.h'
@@ -54,7 +55,7 @@ module helper
         read(123,NML=pepcf)
         close(123)
     end if
-    call pepc_prepare(3)
+    call pepc_prepare(3_kind_dim)
 
   end subroutine
 
@@ -81,19 +82,19 @@ module helper
         call vtk%create_parallel("particles", step, my_rank, n_ranks, time, vtk_step)
         call vtk%write_headers(np, 0)
         call vtk%startpoints()
-        call vtk%write_data_array("xyz", np, p(:)%x(1), p(:)%x(2), p(:)%x(3))
+        call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3))
         call vtk%finishpoints()
         call vtk%startpointdata()
-        call vtk%write_data_array("velocity", np, p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
-        call vtk%write_data_array("el_field", np, p(:)%results%e(1),p(:)%results%e(2), p(:)%results%e(3))
-        call vtk%write_data_array("el_pot", np, p(:)%results%pot)
-        call vtk%write_data_array("charge", np, p(:)%data%q)
-        call vtk%write_data_array("mass", np, p(:)%data%m)
-        call vtk%write_data_array("work", np, p(:)%work)
-        call vtk%write_data_array("species", np, p(:)%data%species)
-        call vtk%write_data_array("pelabel", np, p(:)%label)
-        call vtk%write_data_array("local index", np, [(i,i=1,np)])
-        call vtk%write_data_array("processor", np, p(:)%pid)
+        call vtk%write_data_array("velocity", p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
+        call vtk%write_data_array("el_field", p(:)%results%e(1),p(:)%results%e(2), p(:)%results%e(3))
+        call vtk%write_data_array("el_pot", p(:)%results%pot)
+        call vtk%write_data_array("charge", p(:)%data%q)
+        call vtk%write_data_array("mass", p(:)%data%m)
+        call vtk%write_data_array("work", p(:)%work)
+        call vtk%write_data_array("species", p(:)%data%species)
+        call vtk%write_data_array("pelabel", p(:)%label)
+        call vtk%write_data_array("local index", [(i,i=1,np)])
+        call vtk%write_data_array("processor", p(:)%pid)
         call vtk%finishpointdata()
         call vtk%dont_write_cells()
         call vtk%write_final()

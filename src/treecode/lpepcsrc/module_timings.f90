@@ -351,12 +351,13 @@ module module_timings
     subroutine timings_GatherAndOutput(itime, iuserflag, printheader)
       use treevars
       use module_utils, only: create_directory
+      use module_pepc_types
       implicit none
       include 'mpif.h'
       integer, intent(in) :: itime !< current timestep
       integer, optional, intent(in) :: iuserflag !< frontend-defined flag that is passed through and output to the second column
       logical, optional, intent(in) :: printheader
-      integer :: ierr
+      integer(kind_default) :: ierr
 
       integer :: flag
       logical :: do_printheader

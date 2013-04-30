@@ -62,8 +62,10 @@ module module_param_dump
       interface WriteParameter
         module procedure WriteParameterReal
         module procedure WriteParameterInt
+        module procedure WriteParameterLong
         module procedure WriteParameterRealSingle
         module procedure WriteParameterIntSingle
+        module procedure WriteParameterLongSingle
         module procedure WriteParameterCharSingle
         module procedure WriteParameterLogicalSingle
         module procedure WriteParameterRealCoord
@@ -164,6 +166,16 @@ module module_param_dump
 
     end subroutine WriteParameterInt
 
+    subroutine WriteParameterLong(ifile,name, eval, ival)
+      implicit none
+      integer, intent(in) :: ifile
+      integer*8, intent(in) :: eval, ival
+      character(*), intent(in) :: name
+
+      write(ifile,'("| ",a28," |", 2(i20, "         |"))') name, eval, ival
+
+    end subroutine WriteParameterLong
+
     subroutine WriteParameterRealSingle(ifile,name, val)
       implicit none
       integer, intent(in) :: ifile
@@ -183,6 +195,16 @@ module module_param_dump
       write(ifile,'("| ",a28," |", 1(i20, "         |"))') name, val
 
     end subroutine WriteParameterIntSingle
+
+    subroutine WriteParameterLongSingle(ifile,name, val)
+      implicit none
+      integer, intent(in) :: ifile
+      integer*8, intent(in) :: val
+      character(*), intent(in) :: name
+
+      write(ifile,'("| ",a28," |", 1(i20, "         |"))') name, val
+
+    end subroutine WriteParameterLongSingle
 
     subroutine WriteParameterCharSingle(ifile,name, val)
       implicit none

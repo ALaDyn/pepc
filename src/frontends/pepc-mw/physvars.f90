@@ -35,8 +35,8 @@ module physvars
 
   integer, public :: workflow_setup = 0 !< time-dependent setup (0 = no time dependence of configuration, other values: see workflow()-routine)
   integer :: rngseed = 13
-  integer :: ne = 200     !  # electrons
-  integer :: ni = 0       !  # ions
+  integer(kind_particle) :: ne = 200     !  # electrons
+  integer(kind_particle) :: ni = 0       !  # ions
   real*8 :: maxdt(6)       ! maximum allowed dt from different constraints
   real*8 :: xl = 1.      ! box size
   real*8 :: yl = 1.      ! box size
@@ -77,8 +77,8 @@ module physvars
   real*8 :: tempe, tempi ! temperature of electrons and ions (drift-corrected)
 
 !  Variables needing 'copy' for tree routines
-  integer :: npart_total  ! Total # particles (npart)
-  integer :: np_local 
+  integer(kind_particle) :: npart_total  ! Total # particles (npart)
+  integer(kind_particle) :: np_local 
 
 !  Associated MPI stuff
 
@@ -87,7 +87,7 @@ module physvars
   integer :: MPI_COMM_PEPC ! MPI communicator to be used (will usually be a copy of MPI_COMM_WORLD)
 
 ! Control stuff
-  integer :: idim=3  ! # dimensions (velocity and position updates)
+  integer(kind_dim) :: idim=3_kind_dim  ! # dimensions (velocity and position updates)
   integer :: ispecial = 1      ! Switch to select special electron configs
   integer :: debug_level = 0 ! Debug level for printed O/P
   logical :: treediags = .false.
