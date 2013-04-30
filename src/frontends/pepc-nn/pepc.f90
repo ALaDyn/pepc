@@ -42,6 +42,8 @@ program pepcnn
   ! module_deps has to be changed to remove "!$" when using openmp
   ! TODO: use omp_lib, only: ...
   use omp_lib
+  
+  use module_pepc_types
 
   use module_pepc
   
@@ -124,7 +126,7 @@ program pepcnn
 
   particles(:)%work = 1._8
 
-  call pepc_prepare(3)
+  call pepc_prepare(3_kind_dim)
 
   ! Loop over all timesteps
   do while (itime < nt)
@@ -140,12 +142,14 @@ program pepcnn
      
      call timer_start(t_tot)
      
-     call pepc_grow_tree(np_local, npart_total, particles)
+     call pepc_grow_tree(particles)
+     np_local = size(particleS)
 
-     call pepc_particleresults_clear(particles, np_local) ! initialize neighbour lists etc
-     call nn_prepare_particleresults(global_tree, particles, np_local) ! improve neighbour list to speedup neighbour search
+     call pepc_particleresults_clear(particles) ! initialize neighbour lists etc
+     call nn_prepare_particleresults(global_tree, particles) ! improve neighbour list to speedup neighbour search
 
-     call pepc_traverse_tree(np_local, particles)
+
+     call pepc_traverse_tree(particles)
 
 write(*,*) my_rank, np_local, npart_total, global_tree%nleaf_me, global_tree%nleaf, 'fetched:', global_tree%nleaf-global_tree%nleaf_me
 

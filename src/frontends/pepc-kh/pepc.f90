@@ -69,7 +69,7 @@ program pepc
    call setup_physics(physics_pars, time_pars, p, pepc_pars)
    call setup_field_grid(field_grid, pepc_pars%pepc_comm)
 
-   call pepc_prepare(2)
+   call pepc_prepare(2_kind_dim)
 
    call t_stop(timer_init)
 
@@ -101,10 +101,11 @@ program pepc
 
     call t_start(timer_pcomp)
 
-    call pepc_particleresults_clear(p, pepc_pars%npp)
+    call pepc_particleresults_clear(p)
 
-    call pepc_grow_tree(pepc_pars%npp, pepc_pars%np, p)
-    call pepc_traverse_tree(pepc_pars%npp, p)
+    call pepc_grow_tree(p)
+    pepc_pars%npp = size(p)
+    call pepc_traverse_tree(p)
     p(:)%results%e(1) = p(:)%results%e(1) * force_const
     p(:)%results%e(2) = p(:)%results%e(2) * force_const
     p(:)%results%pot  = p(:)%results%pot  * force_const

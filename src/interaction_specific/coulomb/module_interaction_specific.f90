@@ -271,7 +271,7 @@ module module_interaction_specific
         use module_pepc_types
         implicit none
         integer(kind_particle), intent(in) :: npart_total !< total number of particles
-        integer(kind_particle), intent(out) :: nintmax !< maximum number of interactions per particle
+        integer(kind_node), intent(out) :: nintmax !< maximum number of interactions per particle
 
         real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
 
@@ -330,13 +330,12 @@ module module_interaction_specific
       !> function cannot reside in module_interaction_specific that may not include module_pepc_types
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      subroutine particleresults_clear(particles, nparticles)
+      subroutine particleresults_clear(particles)
         use module_pepc_types
         implicit none
         type(t_particle), intent(inout) :: particles(:)
-        integer(kind_particle), intent(in) :: nparticles
 
-        particles(1:nparticles)%results = EMPTY_PARTICLE_RESULTS
+        particles(:)%results = EMPTY_PARTICLE_RESULTS
 
       end subroutine
 

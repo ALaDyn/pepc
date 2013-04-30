@@ -106,7 +106,7 @@ contains
       type(physics_pars_t), intent(in) :: physics_pars
       type(t_particle), dimension(pepc_pars%npp), intent(inout) :: p
 
-      integer :: ip
+      integer(kind_particle) :: ip
       real*8 :: beta, gam
       real*8, dimension(3) :: uminus, uprime, uplus, t, s
 
@@ -168,7 +168,7 @@ contains
     type(physics_pars_t), intent(in) :: physics_pars
     type(t_particle), intent(inout) :: p(:)
 
-    integer :: ip
+    integer(kind_particle) :: ip
     real(kind=8) :: vte, vti, lx
 
     vte = physics_pars%vte
@@ -188,7 +188,7 @@ contains
       end if
     end do
 
-    call constrain_periodic(p, pepc_pars%npp)
+    call constrain_periodic(p)
 
   end subroutine constrain_particles
 

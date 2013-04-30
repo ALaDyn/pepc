@@ -45,17 +45,19 @@ contains
     ! reshape y to vortex_particles
     call pfasst_to_pepc(vortex_particles(1:np), np, y(1:Nvar))
 
-    call pepc_particleresults_clear(vortex_particles, np)
+    call pepc_particleresults_clear(vortex_particles)
 
     if (theta2 == 0.0) then
         call direct_sum(np, vortex_particles, vortex_particles%results, my_rank_space, n_cpu_space)
     else
         if (level == 1) then
             theta2 = 0.09 ! Fine = slow
-            call pepc_grow_and_traverse(np, n, vortex_particles, 1, .false., .false.)
+            call pepc_grow_and_traverse(vortex_particles, 1, .false., .false.)
+            np = size(vortex_particles, kind=kind(np))
         else
             theta2 = 0.2401 ! Coarse = fast
-            call pepc_grow_and_traverse(np, n, vortex_particles, 1, .false., .false.)
+            call pepc_grow_and_traverse(vortex_particles, 1, .false., .false.)
+            np = size(vortex_particles, kind=kind(np))
         end if
     end if
 

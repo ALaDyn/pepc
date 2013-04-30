@@ -25,7 +25,6 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_coulomb_kernels
   use module_pepc_types
-  use module_interaction_specific_types
   implicit none
   save
   private

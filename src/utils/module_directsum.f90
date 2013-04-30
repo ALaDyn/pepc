@@ -71,7 +71,7 @@ module module_directsum
         !> due to contributions of all (also remote) other particles
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine directforce(particles, np_local, testidx, ntest, directresults, my_rank, n_cpu, comm)
+        subroutine directforce(particles, testidx, ntest, directresults, my_rank, n_cpu, comm)
           use module_pepc_types
           use module_interaction_specific_types
           use module_interaction_specific
@@ -82,8 +82,7 @@ module module_directsum
           implicit none
           include 'mpif.h'
 
-          type(t_particle), intent(in) :: particles(1:np_local)
-          integer(kind_particle), intent(in) :: np_local !< number of local particles
+          type(t_particle), intent(in) :: particles(:)
           integer(kind_particle), dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
           integer(kind_particle), intent(in) :: ntest !< number of particles in testidx
           type(t_particle_results), dimension(:), allocatable, intent(out) :: directresults !< test results
@@ -130,11 +129,12 @@ module module_directsum
             received(i) = particles(testidx(i))
           end do
            
-          call particleresults_clear(received, ntest)
+          call particleresults_clear(received)
 
           ! we copy all local particles into a node array to be able to feed them to calc_force_per_interaction
-          allocate(local_nodes(np_local))
-          do i=1,np_local
+          allocate(local_nodes(size(particles)))
+          
+          do i=1,size(particles)
             call multipole_from_particle(particles(i)%x, particles(i)%data, local_nodes(i))
           end do
 
@@ -148,7 +148,7 @@ module module_directsum
 
             !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
             do j=1,nreceived
-                do i=1,np_local
+                do i=1,size(particles)
 
                     do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
                       ! if we use our own particles, test for equality; exclude particle itself if we are in central box
@@ -198,7 +198,7 @@ module module_directsum
           !call calc_force_per_particle here: add lattice contribution, compare module_libpepc_main
           call timer_start(t_lattice)
           ! add lattice contribution and other per-particle-forces
-          call calc_force_after_grow(particles(1:np_local))
+          call calc_force_after_grow(particles)
           latticeparticles(1:ntest)         = particles(testidx)
           latticeparticles(1:ntest)%results = directresults(1:ntest)
           call calc_force_per_particle(latticeparticles(1:ntest))

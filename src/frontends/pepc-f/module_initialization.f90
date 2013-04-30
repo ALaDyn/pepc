@@ -198,7 +198,7 @@ module module_initialization
 
     call init_rng()
     call init_periodicity()
-    call pepc_prepare(3)
+    call pepc_prepare(3_kind_dim)
 
 
   end subroutine set_parameters
@@ -214,7 +214,8 @@ module module_initialization
     include 'mpif.h'
       
     integer, parameter :: fid = 666
-    integer :: global_max_label,local_max_label,ip,ib
+    integer(kind_particle) :: global_max_label,local_max_label
+    integer :: ip,ib
     real(KIND=8) :: q_loc(nb),q_glob(nb)
     logical :: hit
 

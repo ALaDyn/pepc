@@ -135,10 +135,11 @@ program pepc
      call laser_update()
      call PrintLaserParameters()
 
-     call pepc_particleresults_clear(particles, np_local)
+     call pepc_particleresults_clear(particles)
 
      if (.not. directforce) then
-       call pepc_grow_tree(particles, np_local)
+       call pepc_grow_tree(particles)
+       np_local = size(particles)
      endif
 
      ! if necessary, reorder particles here: particles(1:nep) - electrons, particles(nep+1:nep*nip)) - ions
@@ -146,7 +147,7 @@ program pepc
      call reorder_particles(np_local, particles, num_force_particles)
 
      if (.not. directforce) then
-       call pepc_traverse_tree(particles, num_force_particles)
+       call pepc_traverse_tree(particles(1:num_force_particles))
        if (dbg(DBG_STATS)) call pepc_statistics(itime)
        
        !call fields_on_spherical_grid(itime, trun*unit_t0_in_fs, 'field_spherical.dat', r_sphere, my_rank, n_cpu)
@@ -167,7 +168,8 @@ program pepc
          call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, vtk_step, particles)
        endif
 
-       call pepc_restore_particles(particles, np_local)
+       call pepc_restore_particles(particles)
+       np_local = size(particles)
        call pepc_timber_tree()
        
        if (ispecial ==12) call dump_grid_particles(my_rank, 'field_spherical.dat', particles, itime, trun*unit_t0_in_fs)

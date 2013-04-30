@@ -18,7 +18,7 @@ contains
    subroutine pepc_setup(p, pepc_pars)
       use encap
       use module_pepc
-      use module_pepc_types, only: t_particle
+      use module_pepc_types, only: t_particle, kind_dim
       implicit none
 
       type(t_particle), dimension(:), allocatable, intent(out) :: p
@@ -28,7 +28,7 @@ contains
 
       call pepc_initialize("pepc-kh", pepc_pars%pepc_comm%mpi_rank, &
         pepc_pars%pepc_comm%mpi_size, .true., comm = pepc_pars%pepc_comm%mpi_comm, &
-        idim = 2)
+        idim = 2_kind_dim)
 
       call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)
       call read_in_params(pepc_nml, para_file_available, para_file_name)
@@ -96,7 +96,7 @@ contains
       integer, parameter :: para_file_id = 10
 
       ! variables for pepc namelist
-      integer :: np = 0
+      integer(kind_particle) :: np = 0
       integer :: pdump = 0
       integer :: fdump = 0
       integer :: cdump = 0
@@ -138,7 +138,7 @@ contains
     type(t_particle), allocatable, intent(in) :: p(:)
     integer, intent(in) :: step
 
-    integer :: i
+    integer(kind_particle) :: i
     type(vtkfile_unstructured_grid) :: vtk
     integer :: vtk_step
     real*8 :: time
@@ -162,21 +162,21 @@ contains
 
     call vtk%create_parallel("particles", step, pepc_pars%pepc_comm%mpi_rank, &
       pepc_pars%pepc_comm%mpi_size, time, vtk_step)
-    call vtk%write_headers(pepc_pars%npp, 0)
+    call vtk%write_headers(pepc_pars%npp, 0_kind_particle)
     call vtk%startpoints()
-    call vtk%write_data_array("xyz", pepc_pars%npp, p(:)%x(1), p(:)%x(2), p(:)%x(3))
+    call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3))
     call vtk%finishpoints()
     call vtk%startpointdata()
-    call vtk%write_data_array("velocity", pepc_pars%npp, p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
-    call vtk%write_data_array("el_field", pepc_pars%npp, p(:)%results%e(1), \
+    call vtk%write_data_array("velocity", p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
+    call vtk%write_data_array("el_field", p(:)%results%e(1), &
                               p(:)%results%e(2), dummy_ez)
-    call vtk%write_data_array("el_pot", pepc_pars%npp, p(:)%results%pot)
-    call vtk%write_data_array("charge", pepc_pars%npp, p(:)%data%q)
-    call vtk%write_data_array("mass", pepc_pars%npp, p(:)%data%m)
-    call vtk%write_data_array("work", pepc_pars%npp, p(:)%work)
-    call vtk%write_data_array("pelabel", pepc_pars%npp, p(:)%label)
-    call vtk%write_data_array("local index", pepc_pars%npp, [(i,i=1,pepc_pars%npp)])
-    call vtk%write_data_array("processor", pepc_pars%npp, p(:)%pid)
+    call vtk%write_data_array("el_pot", p(:)%results%pot)
+    call vtk%write_data_array("charge", p(:)%data%q)
+    call vtk%write_data_array("mass", p(:)%data%m)
+    call vtk%write_data_array("work", p(:)%work)
+    call vtk%write_data_array("pelabel", p(:)%label)
+    call vtk%write_data_array("local index", [(i,i=1,pepc_pars%npp)])
+    call vtk%write_data_array("processor", p(:)%pid)
     call vtk%finishpointdata()
     call vtk%dont_write_cells()
     call vtk%write_final()

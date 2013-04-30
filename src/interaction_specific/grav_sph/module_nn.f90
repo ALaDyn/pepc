@@ -26,17 +26,16 @@ module module_nn
 
   contains
 
-  subroutine nn_prepare_particleresults(t, particles, nparticles)
+  subroutine nn_prepare_particleresults(t, particles)
     use module_tree, only: t_tree, tree_lookup_node_critical, tree_node_get_parent
     use treevars, only: nlev
-    use module_pepc_types, only: t_particle, t_tree_node
+    use module_pepc_types, only: t_particle, t_tree_node, kind_node
     use module_interaction_specific_types, only: num_neighbour_particles
     implicit none
     type(t_tree), intent(in) :: t
-    type(t_particle), intent(inout) :: particles(nparticles)
-    integer, intent(in) :: nparticles
+    type(t_particle), intent(inout) :: particles(:)
 
-    type(t_tree_node), pointer :: node, parent
+    integer(kind_node) :: node, parent
     integer :: i
     real*8, dimension(:), allocatable :: boxdiag2
 
@@ -50,24 +49,24 @@ module module_nn
     ! for each particle, we traverse the tree upwards, until the current twig
     ! contains more leaves than number of necessary neighbours - as a first guess for the
     ! search radius, we use its diameter
-    do i=1,nparticles
+    do i=1,size(particles)
 
        call tree_lookup_node_critical(t, particles(i)%key_leaf, node, 'nn_prepare_particleresults()')
 
        do
-          if (node%leaves >= num_neighbour_particles) then
+          if (t%nodes(node)%leaves >= num_neighbour_particles) then
             ! this twig contains enough particles --> we use its diameter as search radius
-            particles(i)%results%maxdist2 = boxdiag2(node%level)
-            particles(i)%results%neighbour_keys(1:num_neighbour_particles) = node%key
+            particles(i)%results%maxdist2 = boxdiag2(t%nodes(node)%level)
+            particles(i)%results%neighbour_keys(1:num_neighbour_particles) = t%nodes(node)%key
 
             exit ! from this loop
           endif
 
-          if (.not. tree_node_get_parent(t, node, parent)) then
+          if (.not. tree_node_get_parent(t, t%nodes(node), parent)) then
              write(*,*) particles(i)
              exit
           endif
-          node => parent
+          node = parent
        end do
 
        particles(i)%results%dist2(1:num_neighbour_particles) = particles(i)%results%maxdist2

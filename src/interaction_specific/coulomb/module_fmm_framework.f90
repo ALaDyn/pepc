@@ -580,7 +580,7 @@ module module_fmm_framework
 
           !$ call omp_set_num_threads(num_threads)
           !$OMP  PARALLEL DO DEFAULT(PRIVATE) SHARED(particles,LatticeCenter) SCHEDULE(RUNTIME) REDUCTION(+:omega_tilde)
-          do p=1,size(particles)
+          do p=1,size(particles, kind=kind(p))
             call addparticle(omega_tilde, particles(p)%x, particles(p)%data%q)
           end do
           !$OMP  END PARALLEL DO          
@@ -677,7 +677,7 @@ module module_fmm_framework
           quad_trace = zero
 
           ! calculate dipole contributions of all local particles
-          do p=1,size(particles)
+          do p=1,size(particles, kind=kind(p))
             r = particles(p)%x - LatticeCenter
             box_dipole = box_dipole + particles(p)%data%q * r
             quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)

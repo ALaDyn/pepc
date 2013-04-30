@@ -17,7 +17,7 @@ contains
 
    subroutine setup_physics(physics_pars, time_pars, p, pepc_pars)
       use module_pepc, only: pepc_prepare
-      use module_pepc_types, only: t_particle
+      use module_pepc_types, only: t_particle, kind_dim
       use module_checkpoint
       use module_debug
       use module_mirror_boxes, only: mirror_box_layers, t_lattice_1, t_lattice_2, t_lattice_3, &
@@ -33,7 +33,7 @@ contains
 
       type(physics_nml_t) :: physics_nml
       integer :: dummy_nresume
-      integer(kind = 8) :: dummy_np
+      integer(kind = 4) :: dummy_npp_out
       character(len = 255) :: dummy_file_name
 
       call read_in_physics_params(physics_nml, para_file_available, para_file_name)
@@ -56,13 +56,13 @@ contains
       end if
       periodicity = [ .false., .true., .false. ]
 
-      call pepc_prepare(2)
+      call pepc_prepare(2_kind_dim)
 
       if (time_pars%nresume > 0) then
         call read_particles_mpiio(time_pars%nresume, pepc_pars%pepc_comm%mpi_comm, &
           pepc_pars%pepc_comm%mpi_rank, pepc_pars%pepc_comm%mpi_size, dummy_nresume, &
-          pepc_pars%npp, dummy_np, p, dummy_file_name)
-        pepc_pars%np = int(dummy_np, kind = 4)
+          dummy_npp_out, pepc_pars%np, p, dummy_file_name)
+        pepc_pars%npp = dummy_npp_out
 
         if (dummy_nresume .ne. time_pars%nresume) then
           DEBUG_ERROR(*, "Resume timestep mismatch, parameter file says: ", time_pars%nresume, " checkpoint file says: ", dummy_nresume)
@@ -155,7 +155,8 @@ contains
       type(physics_pars_t), intent(in) :: physics_pars
       type(t_particle), dimension(pepc_pars%npp), intent(inout) :: p
 
-      integer :: nx, ny, ipl, ipg, ix, iy, np, npp, mpi_rank, mpi_size
+      integer(kind_particle) :: nx, ny, ipl, ipg, ix, iy, np, npp
+      integer(kind_default) :: mpi_rank, mpi_size
       real(kind = 8) :: dx, dy, lx, ly, qi, qe, mi, me, vti, vte, xgc, ygc, B0, rwce, rwci
 
       lx = physics_pars%l_plasma(1)
@@ -246,7 +247,7 @@ contains
 
       end do
 
-      call constrain_periodic(p, pepc_pars%npp)
+      call constrain_periodic(p)
 
    end subroutine special_start
 
@@ -283,7 +284,8 @@ contains
     integer, intent(in) :: step
     type(t_particle), dimension(:), intent(in) :: p
 
-    integer :: ip, mpi_err
+    integer(kind_particle) :: ip
+    integer(kind_default) :: mpi_err
     real(kind = 8) :: e_kin, e_pot, e_kin_g, e_pot_g, e_constraint_g
 
     e_kin = 0.0D0

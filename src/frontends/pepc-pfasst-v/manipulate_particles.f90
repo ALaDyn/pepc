@@ -1075,7 +1075,7 @@ contains
     subroutine direct_sum(np_local,particles,results,my_rank_space,n_cpu_space)
 
         use physvars, only: MPI_COMM_SPACE
-        use module_pepc_types, only: t_particle
+        use module_pepc_types
         use module_interaction_specific_types, only: t_particle_results
         use module_directsum
         implicit none
@@ -1087,7 +1087,7 @@ contains
 
         integer :: i
         type(t_particle_results), allocatable :: directresults(:)
-        integer :: indices(1:np_local)
+        integer(kind_particle) :: indices(1:np_local)
 
         if (my_rank_space==0) write(*,'("PEPC-V | ", a)') 'Starting direct summation ...'
 
@@ -1095,7 +1095,7 @@ contains
             indices(i) = i
         end do
 
-        call directforce(particles, np_local, indices, np_local, directresults, my_rank_space, n_cpu_space, MPI_COMM_SPACE)
+        call directforce(particles, indices, int(np_local, kind=kind_particle), directresults, my_rank_space, n_cpu_space, MPI_COMM_SPACE)
         results(1:np_local) = directresults(1:np_local)
 
         deallocate(directresults)

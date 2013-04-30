@@ -63,13 +63,14 @@ program pepc
     
     doDiag = MOD(step, diag_interval) .eq. 0
     
-    call pepc_particleresults_clear(particles, np)
+    call pepc_particleresults_clear(particles)
     t1 = get_time()
-    call pepc_grow_tree(particles, np)
+    call pepc_grow_tree(particles)
+    np = size(particles)
     t2 = get_time()
     if(root) write(*,'(a,es12.4)') " ====== tree grow time  :", t2-t1
     t1 = get_time()
-    call pepc_traverse_tree(particles, np)
+    call pepc_traverse_tree(particles)
     t2 = get_time()
     if(root) write(*,'(a,es12.4)') " ====== tree walk time  :", t2-t1
 
