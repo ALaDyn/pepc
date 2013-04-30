@@ -89,11 +89,11 @@ program pepc
     !get initial field configuration
     call pepc_particleresults_clear(particles)
     call pepc_grow_tree(particles)
-    np = size(particles)
+    np = size(particles, kind=kind(np))
     call pepc_traverse_tree(particles)
     if (diags) call pepc_tree_diagnostics()
     if (do_restore_particles) call pepc_restore_particles(particles)
-    np = size(particles)
+    np = size(particles, kind=kind(np))
     call pepc_timber_tree()
 
 
@@ -130,7 +130,7 @@ program pepc
         call pepc_particleresults_clear(particles)
         if(root) write(*,'(a)') " == [main loop] grow tree"
         call pepc_grow_tree(particles)
-        np = size(particles)
+        np = size(particles, kind=kind(np))
         timer(6)=get_time() !6-5: grow_tree
 
         if(root) write(*,'(a)') " == [main loop] traverse tree"
@@ -139,7 +139,7 @@ program pepc
 
         if (diags) call pepc_tree_diagnostics()
         if (do_restore_particles) call pepc_restore_particles(particles)
-        np = size(particles)
+        np = size(particles, kind=kind(np))
         
         if (interaction_partner_diags) call get_interaction_partners(5)
         if(root) write(*,'(a)') " == [main loop] timber tree"

@@ -104,7 +104,7 @@ program pepc
     call pepc_particleresults_clear(p)
 
     call pepc_grow_tree(p)
-    pepc_pars%npp = size(p)
+    pepc_pars%npp = size(p, kind=kind(pepc_pars%npp))
     call pepc_traverse_tree(p)
     p(:)%results%e(1) = p(:)%results%e(1) * force_const
     p(:)%results%e(2) = p(:)%results%e(2) * force_const

@@ -139,7 +139,7 @@ program pepc
 
      if (.not. directforce) then
        call pepc_grow_tree(particles)
-       np_local = size(particles)
+       np_local = size(particles, kind=kind(np_local))
      endif
 
      ! if necessary, reorder particles here: particles(1:nep) - electrons, particles(nep+1:nep*nip)) - ions
@@ -169,7 +169,7 @@ program pepc
        endif
 
        call pepc_restore_particles(particles)
-       np_local = size(particles)
+       np_local = size(particles, kind=kind(np_local))
        call pepc_timber_tree()
        
        if (ispecial ==12) call dump_grid_particles(my_rank, 'field_spherical.dat', particles, itime, trun*unit_t0_in_fs)

@@ -66,7 +66,7 @@ program pepc
     call pepc_particleresults_clear(particles)
     t1 = get_time()
     call pepc_grow_tree(particles)
-    np = size(particles)
+    np = size(particles, kind=kind(np))
     t2 = get_time()
     if(root) write(*,'(a,es12.4)') " ====== tree grow time  :", t2-t1
     t1 = get_time()

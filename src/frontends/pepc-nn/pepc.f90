@@ -143,7 +143,7 @@ program pepcnn
      call timer_start(t_tot)
      
      call pepc_grow_tree(particles)
-     np_local = size(particleS)
+     np_local = size(particles, kind=kind(np_local))
 
      call pepc_particleresults_clear(particles) ! initialize neighbour lists etc
      call nn_prepare_particleresults(global_tree, particles) ! improve neighbour list to speedup neighbour search
