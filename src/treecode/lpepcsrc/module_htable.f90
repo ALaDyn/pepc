@@ -418,8 +418,8 @@ module module_htable
       implicit none
 
       type(t_htable), intent(inout) :: t
-      integer(kind_key), intent(in) :: keys(num_keys)
       integer(kind_node), intent(in) :: num_keys
+      integer(kind_key), intent(in) :: keys(num_keys)
 
       integer(kind_node) :: i
 
