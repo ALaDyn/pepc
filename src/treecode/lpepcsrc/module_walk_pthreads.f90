@@ -115,7 +115,7 @@ module module_walk
   integer, parameter :: THREAD_COUNTER_POST_REQUEST        = 4
 
   !> type for input and return values of walk_threads
-  type, public :: t_threaddata
+  type :: t_threaddata
     integer :: id !< just a running number to distinguish the threads, currently unused
     logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
     integer :: coreid !< thread output value: id of thread's processor
@@ -126,7 +126,7 @@ module module_walk
 
   type(c_ptr), allocatable :: thread_handles(:)
   type(t_threaddata), allocatable, target :: threaddata(:)
-  integer, public :: num_walk_threads = -1 !< number of worker threads, default value is set to treevars%num_threads in tree_walk_read_parameters()
+  integer :: num_walk_threads = -1 !< number of worker threads, default value is set to treevars%num_threads in tree_walk_read_parameters()
   real :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
   ! variables for adjusting the thread's workload
   integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
@@ -154,7 +154,7 @@ module module_walk
   real*8 :: thread_counters_shared_avg(NUM_THREAD_COUNTERS)
   real*8 :: thread_counters_shared_dev(NUM_THREAD_COUNTERS)
 
-  namelist /walk_para_pthreads/ num_walk_threads, max_particles_per_thread
+  namelist /walk_para_pthreads/ max_particles_per_thread
 
   public tree_walk
   public tree_walk_finalize
@@ -271,13 +271,6 @@ module module_walk
 
     call pepc_status("READ PARAMETERS, section walk_para_pthreads")
     read(filehandle, NML=walk_para_pthreads)
-
-    if (num_walk_threads > 0) then ! it has been set through the namelist
-      DEBUG_INFO(*,  'Setting num_walk_threads through the walk_para_pthreads namelist directly is deprecated and will be removed soon. Please switch to parameter num_threads in namelist libpepc in your parameter files.')
-      num_threads = num_walk_threads
-    else          
-      num_walk_threads = num_threads
-    end if
   end subroutine
 
 
@@ -297,15 +290,10 @@ module module_walk
   !> computes derived parameters for tree walk
   !>
   subroutine tree_walk_prepare()
-    use module_atomic_ops, only: atomic_allocate_int
-    use module_debug
+    use treevars, only: num_threads
     implicit none
-    ! nothing to do here
 
-    call atomic_allocate_int(next_unassigned_particle)
-    if (.not. associated(next_unassigned_particle)) then
-      DEBUG_ERROR(*, "atomic_allocate_int() failed!")
-    end if
+    num_walk_threads = max(num_threads, 1)
 
     !if (me == 0) then
     !  write(*,'("MPI-PThreads walk: Using ", I0," worker-threads in treewalk on each processor (i.e. per MPI rank)")') num_walk_threads
@@ -319,10 +307,7 @@ module module_walk
   !> but needs to be implemented in the module_walk
   !>
   subroutine tree_walk_finalize()
-    use module_atomic_ops, only: atomic_deallocate_int
     implicit none
-
-    call atomic_deallocate_int(next_unassigned_particle)
   end subroutine tree_walk_finalize
 
 
@@ -334,7 +319,7 @@ module module_walk
     use, intrinsic :: iso_c_binding
     use module_pepc_types
     use module_timings
-    use module_debug, only : pepc_status
+    use module_debug
     implicit none
     include 'mpif.h'
 
@@ -344,6 +329,9 @@ module module_walk
     real*8, target, intent(inout) :: twalk, twalk_loc_
 
     call pepc_status('WALK HYBRID')
+
+    ! we have to have at least one walk thread
+    DEBUG_ASSERT(num_walk_threads >= 1)
 
     num_particles = size(p, kind=kind(num_particles))
     particle_data => p
@@ -453,14 +441,19 @@ module module_walk
   subroutine init_walk_data()
     use, intrinsic :: iso_c_binding
     use pthreads_stuff, only: pthreads_alloc_thread
-    use module_atomic_ops, only: atomic_store_int
+    use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
     use module_debug
     implicit none
 
     integer :: i
 
-    ! we have to have at least one walk thread
-    num_walk_threads = max(num_walk_threads, 1)
+    ! initialize atomic variables
+    call atomic_allocate_int(next_unassigned_particle)
+    if (.not. associated(next_unassigned_particle)) then
+      DEBUG_ERROR(*, "atomic_allocate_int() failed!")
+    end if
+    call atomic_store_int(next_unassigned_particle, 1)
+
     ! evenly balance particles to threads if there are less than the maximum
     max_particles_per_thread = max(min(num_particles/num_walk_threads, max_particles_per_thread),1)
     ! allocate storage for thread handles
@@ -475,18 +468,17 @@ module module_walk
 
     ! we will only want to reject the root node and the particle itself if we are in the central box
     in_central_box = (dot_product(vbox,vbox) == 0)
-
-    ! initialize atomic variables
-    call atomic_store_int(next_unassigned_particle, 1)
-
   end subroutine init_walk_data
 
 
   subroutine uninit_walk_data()
+    use module_atomic_ops, only: atomic_deallocate_int
     use pthreads_stuff, only: pthreads_free_thread
     implicit none
 
     integer :: i
+
+    call atomic_deallocate_int(next_unassigned_particle)
 
     do i = 1, num_walk_threads
       call pthreads_free_thread(thread_handles(i))
