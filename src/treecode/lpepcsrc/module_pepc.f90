@@ -66,7 +66,7 @@ module module_pepc
     !> Call this function at program startup before any MPI calls
     !>
     subroutine pepc_initialize(frontendname, my_rank, n_cpu, init_mpi, db_level_in, comm, idim)
-      use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc, main_thread_processor_id, num_threads
+      use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc, main_thread_processor_id
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_utils, only : create_directory, MPI_IN_PLACE_test
       use module_walk
@@ -121,14 +121,14 @@ module module_pepc
         write(*,'(a)') "    \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \  "
         write(*,'(a)') "     \ \_\   \ \____/\ \_\   \ \____/           pepc@fz-juelich.de"
         write(*,'(a)') "      \/_/    \/___/  \/_/    \/___/   "
-        write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks with ", I0, " threads per rank."//)') &
-                       SVNREVISION, frontendname, n_cpu, num_threads
+        write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."//)') &
+                       SVNREVISION, frontendname, n_cpu
 
         if ((pepc_initializes_mpi) .and. (provided < MPI_THREAD_LEVEL)) then
           !inform the user about possible issues concerning MPI thread safety
           write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
                          MPI_THREAD_LEVEL, provided
-          write(*,'(a/)') "Initializing with provided level of multithreading. Usually, this is no problem."
+          write(*,'(a/)') "Initializing with provided level of multithreading. This can lead to incorrect results or crashes."
         end if
       endif
 
