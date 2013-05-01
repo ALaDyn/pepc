@@ -18,11 +18,9 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Helper functions for gle postprocessing
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_gle
   implicit none
   private

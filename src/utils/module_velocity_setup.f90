@@ -18,29 +18,14 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !>  Encapsulates functions for setting up particle velocities with diefferent models
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_velocity_setup
       use physvars
       use module_pepc_types
       implicit none
       private
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       public maxwell1
       public maxwell2
@@ -49,16 +34,8 @@ module module_velocity_setup
       public cold_start
       public rano
 
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
       contains
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !>   COLD_START
         !>   initialises velocity array slice to 0.
@@ -67,9 +44,7 @@ module module_velocity_setup
         !>   @param i1 minimal index in u to be used
         !>   @param n maximum index in u to be used
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine cold_start(ux,uy,uz,nmax,i1,n)
-
           implicit none
           integer(kind_particle), intent(in) :: i1,n,nmax
           real*8 :: ux(nmax), uy(nmax), uz(nmax)
@@ -77,11 +52,9 @@ module module_velocity_setup
           ux(i1:i1+n-1) = 0.
           uy(i1:i1+n-1) = 0.
           uz(i1:i1+n-1) = 0.
-
         end subroutine cold_start
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !>   MAXWELL1
         !>   initialises 1D Maxwellian velocity distribution
@@ -91,7 +64,6 @@ module module_velocity_setup
         !>   @param n maximum index in u to be used
         !>   @param vt desired average velocity of particles
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine maxwell1(u,nmax,i1,n,vt)
           implicit none
           integer(kind_particle), intent(in) ::  nmax, i1, n
@@ -134,7 +106,6 @@ module module_velocity_setup
           endif
         end subroutine maxwell1
 
-       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !>   MAXWELL2
         !>   initialises 2D Maxwellian velocity distribution by direct inversion
@@ -143,9 +114,7 @@ module module_velocity_setup
         !>   @param n maximum index in ux to be used
         !>   @param vt desired thermal velocity of particles
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		subroutine maxwell2(u1,u2,n,vt)
-
 		  implicit none
 		  integer(kind_particle), intent(in) :: n
 		  real, intent(in) :: vt
@@ -164,11 +133,9 @@ module module_velocity_setup
 		     u1(i) = u0*cos(theta)
 		     u2(i) = u0*sin(theta)
 		  end do
-
 		end subroutine maxwell2
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !>   MAXWELL3
         !>   initialises 3D Maxwellian velocity distribution
@@ -178,7 +145,6 @@ module module_velocity_setup
         !>   @param n maximum index in u to be used
         !>   @param vt desired average velocity of particles
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine maxwell3(ux,uy,uz,nmax,i1,n,vt)
           implicit none
           integer(kind_particle), intent(in) ::  nmax, i1, n
@@ -191,17 +157,13 @@ module module_velocity_setup
           call maxwell1(uy,nmax,i1,n,vc)
           call maxwell1(uz,nmax,i1,n,vc)
           call scramble_v(ux,uy,uz,nmax,i1,n)   ! remove x,y,z correlations
-
         end subroutine maxwell3
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !>   SCRAMBLE_V
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine scramble_v(ux,uy,uz,nmax,i1,n)
-
           implicit none
 
           integer :: dum1, dum2, dum3
@@ -235,7 +197,6 @@ module module_velocity_setup
              uy(j)=uyt
              uz(k)=uzt
           end do
-
         end subroutine scramble_v
 
 
@@ -323,9 +284,5 @@ module module_velocity_setup
 
             dseed = mod(16807.0*dseed,d2p31m)
             genran = dseed / d2p31
-
           end function genran
-
-
-
 end module module_velocity_setup

@@ -163,5 +163,4 @@ module module_atomic_ops
 
     atomic_mod_increment_and_fetch_int = c_atomic_mod_increment_and_fetch_int(storage%p, mod)
   end function atomic_mod_increment_and_fetch_int
-  
 end module module_atomic_ops

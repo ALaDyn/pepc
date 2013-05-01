@@ -718,8 +718,6 @@ module module_walk
       ptr_defer_list_old     => defer_list_old(defer_list_start_pos(idx):defer_list_start_pos(idx+1)-1)
       defer_list_entries_old =  defer_list_start_pos(idx+1) - defer_list_start_pos(idx)
     end subroutine setup_defer_list
-
-
   end function walk_worker_thread
 
 

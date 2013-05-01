@@ -18,11 +18,9 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Encapsulates the low-level kernels for Coulomb- and similar interactions
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_coulomb_kernels
   use module_pepc_types
   implicit none
@@ -50,13 +48,11 @@ module module_coulomb_kernels
   
   contains
   
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Calculates 3D Coulomb interaction of particle p with tree node inode
     !> that is shifted by the lattice vector vbox
     !> results are returned in exyz, phi
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calc_force_coulomb_3D(t, d, dist2, exyz, phi)
       implicit none
 
@@ -134,10 +130,9 @@ module module_coulomb_kernels
                    + ( five*dy*dz2  *rd7 - dy*rd5 )*t%yzquad        &
                    + ( five*dx*dy*dz*rd7          )*t%xyquad        &
                   )
-
     end subroutine calc_force_coulomb_3D
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     !>
     !> Calculates 2D Coulomb interaction of particle p with tree node inode
     !> that is shifted by the lattice vector vbox
@@ -145,7 +140,7 @@ module module_coulomb_kernels
     !> Unregularized force law is: 
     !>   Phi = -2q log R 
     !>   Ex = -dPhi/dx = 2 q x/R^2 etc 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
     subroutine calc_force_coulomb_2D(t, d, d2, exy, phi)
       implicit none
 
@@ -166,7 +161,7 @@ module module_coulomb_kernels
       dy2 = dy *dy
       dx3 = dx2*dx
       dy3 = dy2*dy
-	  
+
       phi = - half*t%charge*log(d2)              & !  monopole term 
            + (dx*t%dip(1) + dy*t%dip(2))*rd2     & !  dipole
            + half*(t%quad(1)*(dx2*rd4 - rd2)     & ! quadrupole
@@ -186,10 +181,9 @@ module module_coulomb_kernels
            + t%quad(2)*(four *dy3    *rd6 - three*dy*rd4) & ! quadrupole
            + t%quad(1)*(four *dy *dx2*rd6 -       dy*rd4) &
            + t%xyquad *(eight*dy2*dx *rd6 -   two*dx*rd4) 
-
     end subroutine calc_force_coulomb_2D
+
         
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> CALC_FORCE_LJ
     !>
@@ -197,7 +191,6 @@ module module_coulomb_kernels
     !> shifted by the lattice vector vbox
     !> results are returned exyz, phi
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calc_force_LJ(t, d, r2, aii2, exyz, phi)
       implicit none
 
@@ -229,16 +222,14 @@ module module_coulomb_kernels
       fljrd = flj/r
           
       exyz = d*fljrd
-
     end subroutine calc_force_LJ
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     !>
     !> Calculates 3D Coulomb interaction of particle p with particle inode
     !> that is shifted by the lattice vector vbox
     !> results are returned in exyz, phi
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calc_force_coulomb_3D_direct(t, d, dist2, exyz, phi)
       implicit none
 
@@ -254,10 +245,9 @@ module module_coulomb_kernels
 
       phi  = t%charge*rd
       exyz = rd3charge*d
-
     end subroutine calc_force_coulomb_3D_direct
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     !>
     !> Calculates 2D Coulomb interaction of particle p with tree node inode
     !> that is shifted by the lattice vector vbox
@@ -265,7 +255,7 @@ module module_coulomb_kernels
     !> Unregularized force law is:
     !>   Phi = -2q log R
     !>   Ex = -dPhi/dx = 2 q x/R^2 etc
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
     subroutine calc_force_coulomb_2D_direct(t, d, d2, exy, phi)
       implicit none
 
@@ -278,16 +268,14 @@ module module_coulomb_kernels
       phi       = - half*t%charge*log(d2)
       rd2charge = t%charge/d2
       exy       = rd2charge*d
-
     end subroutine calc_force_coulomb_2D_direct
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     !>
     !> Calculates 3D Kelbg interaction of particle p with particle inode
     !> that is shifted by the lattice vector vbox
     !> results are returned in exyz, phi
     !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine calc_force_kelbg_3D_direct(particle, t, d, dist2, kelbg_invsqrttemp, exyz, phi)
       implicit none
 
@@ -327,7 +315,5 @@ module module_coulomb_kernels
       !  forces
       fprefac = q * rd3 * ome
       exyz    = fprefac * d
-
     end subroutine calc_force_kelbg_3D_direct
-
 end module

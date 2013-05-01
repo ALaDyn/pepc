@@ -18,25 +18,17 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Encapsulates anything that is directly involved in force calculation
 !> and multipole expansion manipulation
 !> i.e. shifting along the tree, computing forces between particles and cluster, etc.
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_interaction_specific
      use module_pepc_types
      use module_interaction_specific_types
      implicit none
      save
      private
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
       real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
@@ -47,12 +39,6 @@ module module_interaction_specific
       real*8, public  :: sig2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
 
       namelist /calc_force_vortex/ force_law, mac_select, theta2, sig2
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       public multipole_from_particle
       public shift_multipoles_up
@@ -68,27 +54,11 @@ module module_interaction_specific
       public calc_force_after_grow
       public get_number_of_interactions_per_particle
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> Computes multipole properties of a single particle
       !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine multipole_from_particle(particle_pos, particle, multipole)
         implicit none
         real*8, intent(in) :: particle_pos(3)
@@ -97,15 +67,12 @@ module module_interaction_specific
 
         multipole = t_tree_node_interaction_data(particle_pos, sqrt(dot_product(particle%alpha, particle%alpha)), particle%alpha(1), particle%alpha(2), particle%alpha(3), &
                                      0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
-
       end subroutine
 
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> Accumulates multipole properties of child nodes to parent node
       !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine shift_multipoles_up(parent, children)
         implicit none
         type(t_tree_node_interaction_data), intent(out) :: parent
@@ -199,14 +166,11 @@ module module_interaction_specific
         end do
 
         parent%bmax = maxval(sqrt((parent%coc(1)-children(1:nchild)%coc(1))**2+(parent%coc(2)-children(1:nchild)%coc(2))**2+(parent%coc(3)-children(1:nchild)%coc(3))**2) + children(1:nchild)%bmax)
-
       end subroutine
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> adds res2 to res1
       !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine results_add(res1, res2)
         implicit none
         type(t_particle_results), intent(inout) :: res1
@@ -215,15 +179,12 @@ module module_interaction_specific
         res1%u    = res1%u    + res2%u
         res1%af   = res1%af   + res2%af
         res1%div  = res1%div  + res2%div
-
       end subroutine
 
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> reads interaction-specific parameters from file
       !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine calc_force_read_parameters(filehandle)
         use module_debug, only: pepc_status
         implicit none
@@ -231,57 +192,46 @@ module module_interaction_specific
 
         call pepc_status("READ PARAMETERS, section calc_force_vortex")
         read(filehandle, NML=calc_force_vortex)
-
       end subroutine
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> writes interaction-specific parameters to file
       !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine calc_force_write_parameters(filehandle)
         use module_debug, only: pepc_status
         implicit none
         integer, intent(in) :: filehandle
 
         write(filehandle, NML=calc_force_vortex)
-
       end subroutine
 
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> computes derived parameters for calc force module
       !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine calc_force_prepare()
         implicit none
         ! nothing to do here
       end subroutine
 
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> initializes static variables of calc force module that depend 
       !> on particle data and might be reused on subsequent traversals
       !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine calc_force_after_grow(particles)
         use module_pepc_types
         implicit none
         type(t_particle), dimension(:), intent(in) :: particles
 
         ! nothing to be done here for now
-
       end subroutine      
 
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> subroutine must return the estimated number of iteractions per particle
       !> for the current mac and/or parameters and the supplied total number of particles
       !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
         implicit none
 
@@ -294,26 +244,21 @@ module module_interaction_specific
         ! applies for BH-MAC
         invnintmax = max(theta2 / (35.*log(1.*npart_total)) , 1._8/npart_total)
         nintmax    = int(1._8/invnintmax)
-
       end subroutine
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> finalizes the calc force module at end of simulation
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_finalize()
           implicit none
           ! nothing to do here
         end subroutine calc_force_finalize
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> generic Multipole Acceptance Criterion
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function mac(particle, node, dist2, boxlength2)
             use module_pepc_types
             implicit none
@@ -335,34 +280,28 @@ module module_interaction_specific
                     ! N^2 code
                     mac = .false.
             end select
-
         end function
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> clears result in t_particle datatype - usually, this function does not need to be touched
         !> due to dependency on module_pepc_types and(!) on module_interaction_specific, the
         !> function cannot reside in module_interaction_specific that may not include module_pepc_types
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine particleresults_clear(particles)
           use module_pepc_types
           implicit none
           type(t_particle), intent(inout) :: particles(:)
 
           particles(:)%results = EMPTY_PARTICLE_RESULTS
-
         end subroutine
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Force calculation wrapper.
         !> This function is thought for pre- and postprocessing of
         !> calculated fields, and for being able to call several
         !> (different) force calculation routines
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_interaction(particle, node, key, delta, dist2, vbox, node_is_leaf)
           use module_pepc_types
           use treevars
@@ -437,32 +376,25 @@ module module_interaction_specific
           particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
           particle%results%div       = particle%results%div        + div
           particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
-
         end subroutine calc_force_per_interaction
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Force calculation wrapper for contributions that only have
         !> to be added once per particle (not required in vortex bubu, yet)
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_per_particle(particles)
           use module_pepc_types
           implicit none
 
           type(t_particle), intent(inout) :: particles(:)
-
         end subroutine calc_force_per_particle
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates 3D 2nd order condensed algebraic kernel interaction
         !> of particle p with tree node t, results are returned in u and af
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
         subroutine calc_2nd_algebraic_transposed(particle, t, d, dist2, u, af)
             use module_pepc_types
             use module_interaction_specific_types
@@ -574,15 +506,12 @@ module module_interaction_specific
                     + QPa1*dz - &
                         7.5D00*Gc45*( sum( (/ (sum( (/ ((CP2(i2,i1,3)+CP2(i2,3,i1)+CP2(3,i2,i1))*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) ) + dz*QPa2) + &
                         1.5D00*Gc35*( CP2(1,1,3)+CP2(2,2,3)+CP2(3,3,3)+CP2(1,3,1)+CP2(2,3,2)+CP2(3,3,3)+CP2(3,1,1)+CP2(3,2,2)+CP2(3,3,3) ) ! QUADRUPOLE
-
         end subroutine calc_2nd_algebraic_transposed
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates 3D 2nd order condensed algebraic kernel interaction
         !> of particle p with tree node t, results are returned in u and af
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_6th_algebraic_transposed(particle, t, d, dist2, u, af)
             use module_pepc_types
             use treevars
@@ -716,17 +645,14 @@ module module_interaction_specific
                     + QPa1*dz - &
                         pre4 * ( sum( (/ (sum( (/ ((CP2(i2,i1,3)+CP2(i2,3,i1)+CP2(3,i2,i1))*d(i2),i2=1,3) /) )*d(i1),i1=1,3) /) ) + dz*QPa2) + &
                         pre3 * ( CP2(1,1,3)+CP2(2,2,3)+CP2(3,3,3)+CP2(1,3,1)+CP2(2,3,2)+CP2(3,3,3)+CP2(3,1,1)+CP2(3,2,2)+CP2(3,3,3) ) ! QUADRUPOLE
-
         end subroutine calc_6th_algebraic_transposed
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         !>
         !> Calculates 3D 2nd order algebraic kernel interaction, transposed scheme
         !> of particle p with tree *particle*, results are returned in u and af
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_2nd_algebraic_transposed_direct(particle, t, d, dist2, u, af, div)
-
             use module_pepc_types
             implicit none
 
@@ -764,15 +690,13 @@ module module_interaction_specific
             af(3) = Mpa1*dz - Gc25*CP0(3)
 
             div = -52.5*nom45*sig2**2*dot_product(d,m0)
-
         end subroutine calc_2nd_algebraic_transposed_direct
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         !>
         !> Calculates 3D 2nd order algebraic kernel interaction, transposed scheme
         !> of particle p with tree node inode, results are returned in u and af
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_6th_algebraic_transposed_direct(particle, t, d, dist2, u, af, div)
             use module_pepc_types
             use treevars
@@ -836,18 +760,14 @@ module module_interaction_specific
             af(3) = pre_a2*dz - pre_u * CP0(3)                                                                                                 ! MONOPOLE
 
             div = -(D132div-D152div+D172div)*dot_product(d,m0)
-
         end subroutine calc_6th_algebraic_transposed_direct
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates 3D 2nd order algebraic kernel interaction, classical scheme
         !> of particle p with tree *particle*, results are returned in u and af
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_2nd_gaussian_transposed_direct(particle, t, d, dist2, u, af, div)
-
             use module_pepc_types
             implicit none
 
@@ -889,15 +809,13 @@ module module_interaction_specific
             af(3) = -dK2*dz - K2*CP0(3)
 
             div = -K2div*dot_product(d,m0)
-
         end subroutine calc_2nd_gaussian_transposed_direct
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         !>
         !> Calculates 3D 2nd order algebraic kernel interaction, classical scheme
         !> of particle p with tree node inode, results are returned in u and af
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_6th_gaussian_transposed_direct(particle, t, d, dist2, u, af, div)
             use module_pepc_types
             use treevars
@@ -949,20 +867,14 @@ module module_interaction_specific
             af(3) = -dK6*dz - K6 * CP0(3)                                                                                                 ! MONOPOLE
 
             div = -K6div*dot_product(d,m0)
-
         end subroutine calc_6th_gaussian_transposed_direct
 
 
-
-
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Helper functions for multipole expansion
         !> of particle p with tree node inode that is shifted by the lattice
         !> vector vbox results are returned in u and af
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function G_core(r,s,factor)
            implicit none
 
@@ -970,7 +882,6 @@ module module_interaction_specific
            real*8, intent(in) :: r,s,factor
 
            G_core = (r+factor*s)/((r+s)**factor)
-
         end function
 
 
@@ -981,7 +892,6 @@ module module_interaction_specific
            real*8, intent(in) :: r,s,tau
 
            G_decomp = 1.0/((r+s)**tau)
-
         end function
 
 
@@ -994,7 +904,5 @@ module module_interaction_specific
             cross_prod(1) = vec_a(2)*vec_b(3) - vec_a(3)*vec_b(2)
             cross_prod(2) = vec_a(3)*vec_b(1) - vec_a(1)*vec_b(3)
             cross_prod(3) = vec_a(1)*vec_b(2) - vec_a(2)*vec_b(1)
-
         end function
-
-  end module module_interaction_specific
+end module module_interaction_specific

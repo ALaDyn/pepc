@@ -18,28 +18,14 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Contains mapper functions for space-filling curves
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_spacefilling
       use module_pepc_types
       implicit none
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
       integer, public :: curve_type = 1 !(0: Morton, 1: Hilbert) 
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       interface coord_to_key
         module procedure coord_to_key_lastlevel, coord_to_key_level, &
@@ -54,24 +40,11 @@ module module_spacefilling
         module procedure is_ancestor_of_particle_nolevel, is_ancestor_of_particle_withlevel
       end interface is_ancestor_of_particle
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> calculates level from key by finding position of placeholder bit
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         elemental function level_from_key(key)
           use treevars, only: idim
           implicit none
@@ -82,15 +55,12 @@ module module_spacefilling
           ! level_from_key = int( log(1._8*key) / log((2._8)**idim))
           ! counting leading zeros (faster):
           level_from_key = int((bit_size(key) - leadz(key) - 1_kind_key) / idim, kind_level)
-
         end function
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> returns the key of a key's parent
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         elemental function parent_key_from_key(key)
           implicit none
           integer(kind_key), intent(in) :: key
@@ -100,11 +70,9 @@ module module_spacefilling
         end function parent_key_from_key
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> returns the child number of `key` with respect to its parent
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         elemental function child_number_from_key(key)
           use treevars, only: idim
           implicit none
@@ -116,12 +84,10 @@ module module_spacefilling
         end function child_number_from_key
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> returns `key` shifted up (negative argument) or down by a number
         !> of levels
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         pure function shift_key_by_level(key, lvl)
           use treevars, only: idim
           implicit none
@@ -134,11 +100,9 @@ module module_spacefilling
         end function shift_key_by_level
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> returns the key for child `n` of a node with key `key` 
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         pure function child_key_from_parent_key(key, n)
           implicit none
 
@@ -150,11 +114,9 @@ module module_spacefilling
         end function child_key_from_parent_key
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> checks whether key_a is an ancestor of key_c (which must be at highest tree level, i.e. a particle key) 
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         pure function is_ancestor_of_particle_nolevel(key_c,key_a)
           use treevars, only: nlev
           implicit none
@@ -163,15 +125,12 @@ module module_spacefilling
  
           is_ancestor_of_particle_nolevel = &
             (shift_key_by_level(key_c, level_from_key(key_a) - nlev) == key_a)
-
         end function
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> checks whether key_a is an ancestor of key_c (which must be at highest tree level, i.e. a particle key) 
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         pure function is_ancestor_of_particle_withlevel(key_c,key_a,level_a)
           use treevars, only: nlev
           implicit none
@@ -180,14 +139,11 @@ module module_spacefilling
           integer(kind_level), intent(in) :: level_a
  
           is_ancestor_of_particle_withlevel = (shift_key_by_level(key_c, level_a - nlev) == key_a)
-
         end function
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> calculates keys from local particles (faster than per-particle call to coord_to_key())
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine compute_particle_keys(b, particles)
           use treevars, only: idim, nlev
           use module_pepc_types, only: t_particle
@@ -237,15 +193,12 @@ module module_spacefilling
           end select
 
           deallocate(intcoord)
-
         end subroutine compute_particle_keys
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> calculates key from particle coordinate on top level
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function coord_to_key_lastlevel(b, x, y, z)
           use module_box
           implicit none
@@ -258,11 +211,9 @@ module module_spacefilling
         end function coord_to_key_lastlevel
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> calculates key from particle coordinate as vector on top level
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function veccoord_to_key_lastlevel(b, x)
           use treevars, only : idim, nlev
           use module_box
@@ -296,15 +247,12 @@ module module_spacefilling
             case default
               veccoord_to_key_lastlevel = 0
           end select
-
         end function veccoord_to_key_lastlevel
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> calculates key from particle coordinate on certain tree level
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function coord_to_key_level(b, x, y, z, level)
           use module_box
           implicit none
@@ -318,11 +266,9 @@ module module_spacefilling
         end function coord_to_key_level
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> calculates key from particle coordinate as vector on certain tree level
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function veccoord_to_key_level(b, x, level)
           use treevars, only : nlev
           use module_box
@@ -337,11 +283,9 @@ module module_spacefilling
         end function veccoord_to_key_level
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> calculates particle coordinate from key
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_coord(b, key, x, y, z)
           use module_box
           implicit none
@@ -359,11 +303,9 @@ module module_spacefilling
         end subroutine key_to_coord
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> calculates particle coordinate as vector from key
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_veccoord(b, key, x)
           use treevars, only : idim, nlev
           use module_box
@@ -390,17 +332,14 @@ module module_spacefilling
 
           ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
           x(1:idim) = (real(ic, kind(1._8)) + 0.5_8) * s + b%boxmin(1:idim)
-
         end subroutine key_to_veccoord
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> (Morton-)Z-curve
         !> construct keys by interleaving coord bits and add placeholder bit
         !> note use of 64-bit constants to ensure correct arithmetic
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function intcoord_to_key_morton(ic)
           use treevars, only : idim, nlev
           implicit none
@@ -418,17 +357,14 @@ module module_spacefilling
                 intcoord_to_key_morton = ior(ishft(intcoord_to_key_morton, 1), ibits(ic(j), i, 1_kind_key))
               end do
             end do
-
         end function intcoord_to_key_morton
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> (Morton-)Z-curve
         !> keys were constructed by interleaving coord bits and adding placeholder bit
         !> input key must be right-adjusted and must contain a placeholder bit
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_intcoord_morton(key, ix, iy, iz)
           implicit none
 
@@ -441,17 +377,14 @@ module module_spacefilling
           ix = ic(1)
           iy = ic(2)
           iz = ic(3)
-          
         end subroutine key_to_intcoord_morton
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> (Morton-)Z-curve
         !> keys were constructed by interleaving coord bits and adding placeholder bit
         !> input key must be right-adjusted and must contain a placeholder bit
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_vecintcoord_morton(key, ic)
           use treevars, only : idim, nlev
           implicit none
@@ -469,11 +402,9 @@ module module_spacefilling
               ic(j) = ior(ic(j), ishft(ibits(key, idim*i + j - 1, 1), nlev-lev+i))
             end do
           end do
-
         end subroutine key_to_vecintcoord_morton
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Hilbert-curve,
         !>
@@ -485,7 +416,6 @@ module module_spacefilling
         !> doi: 10.1109/83.772242
         !> http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=772242&isnumber=16772
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function intcoord_to_key_hilbert2D(ic)
           use treevars
           implicit none
@@ -600,16 +530,13 @@ module module_spacefilling
               if (btest(reverse, j - 1)) itemp(j) = iand(not(itemp(j)), 2_kind_key**(i) - 1)
             end do
           end do
-
         end function intcoord_to_key_hilbert3D
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> inverse Hilbert mapping
         !> input key must be right-adjusted and must contain a placeholder bit
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_intcoord_hilbert(key, ix, iy, iz)
           implicit none
           integer(kind_key), intent(out) :: ix, iy, iz
@@ -621,16 +548,13 @@ module module_spacefilling
           ix = ic(1)
           iy = ic(2)
           iz = ic(3)
-
         end subroutine key_to_intcoord_hilbert
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> inverse Hilbert mapping
         !> input key as vector must be right-adjusted and must contain a placeholder bit
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine key_to_vecintcoord_hilbert(key, ic)
           use treevars
           implicit none
@@ -692,7 +616,5 @@ module module_spacefilling
           do j=1_kind_dim,idim
             ic(j) = ishft(ic(j), nlev-lev)
           end do
-
         end subroutine key_to_vecintcoord_hilbert
-
 end module module_spacefilling

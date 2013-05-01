@@ -18,12 +18,10 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Encapsulates calculation of the lattice contribution by means
 !> of the FMM-approach to the lattice
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_fmm_framework
       use module_pepc_types
       use module_debug
@@ -33,13 +31,7 @@ module module_fmm_framework
       include 'mpif.h'
       private
 
-      !! TODO: set dipole- and low-order stuff in MLattice to zero
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! TODO: set dipole- and low-order stuff in MLattice to zero
 
       !> far- and near-field contribution to potential energy (has to be calculated in fields.p90)
       real*8, public :: potfarfield, potnearfield
@@ -53,22 +45,11 @@ module module_fmm_framework
       !> type of dipole correction, see [J.Chem.Phys. 107, 10131, eq. (19,20)]
       integer, public :: fmm_extrinsic_correction = FMM_EXTRINSIC_CORRECTION_FICTCHARGE
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       public fmm_framework_init
       public fmm_framework_timestep
       public fmm_sum_lattice_force
       public lattice_vect
       public fmm_framework_param_dump
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! general stuff
       integer(kind_pe) :: myrank
@@ -103,14 +84,8 @@ module module_fmm_framework
       type(t_tree_node_interaction_data) :: fictcharge(1:4)
       integer :: nfictcharge = 0
       
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Module Initialization, should be called on program startup
         !> after setting up all geometric parameters etc.
@@ -120,7 +95,6 @@ module module_fmm_framework
         !> @param[in] mpi_rank MPI rank of process for controlling debug output
         !> @param[in] mpi_comm MPI communicator to be used
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_framework_init(mpi_rank, mpi_comm)
           use module_debug
           use module_mirror_boxes, only : mirror_box_layers
@@ -151,16 +125,13 @@ module module_fmm_framework
               call WriteTableToFile('MLattice.tab', MLattice, Lmax_taylor)
             end if
           end if
-
         end subroutine fmm_framework_init
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Refreshes Multipole information and Taylor coefficients,
         !> has to be called every timestep with particles that were used in tree buildup
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_framework_timestep(particles)
           use module_pepc_types
           use module_mirror_boxes
@@ -183,11 +154,9 @@ module module_fmm_framework
         end subroutine fmm_framework_timestep
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the lattice coefficients for computing mu_cent
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_lattice_coefficients(ML)
           use module_debug
           implicit none
@@ -247,16 +216,13 @@ module module_fmm_framework
 
           ! ML(1:tblinv(3,3))=0
           call pepc_status('LATTICE COEFFICIENTS: finished calculation')
-
         end subroutine calc_lattice_coefficients
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Sets those elements in a Taylor expansion to zero that vanish
         !> anyway, see J. Chem. Phys 121, 2886, Section V
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine zero_terms_taylor(M)
           use module_mirror_boxes, only : periodicity
           implicit none
@@ -270,15 +236,13 @@ module module_fmm_framework
             M(tblinv(1, 0, Lmax_taylor)) = (zero, zero)
             M(tblinv(1, 1, Lmax_taylor)) = (zero, zero)
           endif
-
         end subroutine
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         !>
         !> Sets those elements in a Multipole expansion to zero that vanish
         !> anyway, see J. Chem. Phys 121, 2886, Section V
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine zero_terms_multipole(O)
           use module_mirror_boxes, only : periodicity
           implicit none
@@ -292,11 +256,9 @@ module module_fmm_framework
             O(tblinv(1, 0, Lmax_multipole)) = (zero, zero)
             O(tblinv(1, 1, Lmax_multipole)) = (zero, zero)
           endif
-
         end subroutine
          
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Sets the lattice coefficients for computing mu_cent
         !> data computed with this code (Lamx_multipole=50, MaxIter=32)
@@ -304,7 +266,6 @@ module module_fmm_framework
         !>  - [Challacombe, White, Head-Gordon: J. Chem. Phys. 107, 10131]
         !>  - PhD thesis of Ivo Kabadshow
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine load_lattice_coefficients(M)
           use module_debug
           implicit none
@@ -553,16 +514,13 @@ module module_fmm_framework
           endif
 
           call pepc_status('LATTICE COEFFICIENTS: finished')
-
         end subroutine load_lattice_coefficients
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the overall multipole expansion of the whole
         !> central box
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_omega_tilde(particles)
           use treevars, only: num_threads
           use module_pepc_types
@@ -646,13 +604,10 @@ module module_fmm_framework
                 om( tblinv(ll, mm, Lmax_multipole) ) = om( tblinv(ll, mm, Lmax_multipole) ) + omega(ll, mm, S, q)
               end do
             end do
-            
           end subroutine
-
         end subroutine calc_omega_tilde
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the (cartesian) overall dipole moment
         !> \f$\sum_p q(p){\vec r}_p\f$ and the
@@ -660,7 +615,6 @@ module module_fmm_framework
         !> \f$\frac{2\pi}{3}\sum_p q(p){\vec r}_p\cdot{\vec r}_p\f$
         !> for performing the extrinsic-to-intrinsic correction
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_box_dipole(particles)
           use module_debug
           use module_pepc_types
@@ -686,17 +640,13 @@ module module_fmm_framework
           ! sum contributions from all processors
           call MPI_ALLREDUCE(MPI_IN_PLACE, box_dipole, 3, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
           call MPI_ALLREDUCE(MPI_IN_PLACE, quad_trace, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
-
         end subroutine calc_box_dipole
 
-
          
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the lattice contribution with respect to the
         !> centre of the original box
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_mu_cent(omega, mu)
           implicit none
           complex(kfp), intent(in) :: omega(1:fmm_array_length_multipole)
@@ -710,11 +660,9 @@ module module_fmm_framework
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('mu_cent.tab', mu_cent, Lmax_taylor)
           end if
-
         end subroutine calc_mu_cent
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates P^~ as given by [Challacombe et al, eq. (7)]
         !> This is consistent with [Kudin, eq(2)],
@@ -723,7 +671,6 @@ module module_fmm_framework
         !> uses negative order relation as given by
         !>  http://mathworld.wolfram.com/AssociatedLegendrePolynomial.html
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         recursive real(kfp) function Ptilda(l, m, x) result(Pt)
           implicit none
           integer, intent(in) :: l, m
@@ -736,7 +683,7 @@ module module_fmm_framework
           endif
         end function Ptilda
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         !>
         !> Calculates P^~ as given by [Challocombe et al, eq. (8)]
         !> This is (almost) consistent with [Kudin, eq(3)],
@@ -745,7 +692,6 @@ module module_fmm_framework
         !> uses negative order relation as given by
         !>  http://mathworld.wolfram.com/AssociatedLegendrePolynomial.html
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         recursive real(kfp) function P2tilda(l, m, x) result(P2t)
           implicit none
           integer, intent(in) :: l, m
@@ -756,15 +702,13 @@ module module_fmm_framework
           else
             P2t = (-one)**abs(m) * P2tilda(l, abs(m), x)
           endif
-
         end function P2tilda
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         !>
         !> Calculates the chargeless moments of the multipole expansion
         !> for a certain particle (position given in spherical coordinates
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex(kfp) function OMultipole(l, m, s)
           implicit none
           integer, intent(in) :: l, m
@@ -784,15 +728,13 @@ module module_fmm_framework
               endif
 
           endif
-
         end function OMultipole
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         !>
         !> Calculates the chargeless moments of the Taylor expansion
         !> for a certain particle (coordinates given in spherical system)
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex(kfp) function MTaylor(l, m, s)
           implicit none
           integer, intent(in) :: l, m
@@ -806,15 +748,13 @@ module module_fmm_framework
               MTaylor = one/(s(1)**real(l+1,kind=kfp)) * &
                         P2tilda(l, m, s(2)) * exp( i*real(m,kind=kfp)*s(3) )
           endif
-
         end function MTaylor
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         !>
         !> Calculates the charged moments of the multipole expansion
         !> for a certain particle (position in spherical coordinates)
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex(kfp) function omega(l, m, s, q)
           implicit none
           integer, intent(in) :: l, m
@@ -822,16 +762,13 @@ module module_fmm_framework
           real*8, intent(in) :: q
 
           omega = real(q, kind=kfp) * OMultipole(l, m, s)
-
         end function omega
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the charged moments of the Taylor expansion
         !> for a certain particle (coordinates in spherical system)
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex(kfp) function mu(l, m, s, q)
           implicit none
           integer, intent(in) :: l, m
@@ -839,17 +776,14 @@ module module_fmm_framework
           real*8, intent(in) :: q
 
           mu = real(q, kind=kfp) * MTaylor(l, m, s)
-
         end function mu
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates force at individual position that results
         !> from mirror boxes beyond the near field region,
         !> i.e. the lattice contribution
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_sum_lattice_force(pos, e_lattice, phi_lattice)
           use module_mirror_boxes, only : num_neighbour_boxes, lattice_vect, neighbour_boxes
           use module_coulomb_kernels, only : calc_force_coulomb_3D_direct
@@ -916,11 +850,9 @@ module module_fmm_framework
               end select
 
           end if
-
         end subroutine fmm_sum_lattice_force
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Table access function for giving arbitrary l and m
         !>
@@ -931,7 +863,6 @@ module module_fmm_framework
         !> @param[in] m
         !> @param[in] A table
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex(kfp) function tbl(A, l, m, Lmax)
           implicit none
           integer, intent(in) :: l, m, Lmax
@@ -948,11 +879,9 @@ module module_fmm_framework
 
             if (m<0) tbl = (-one)**m * conjg(tbl)
           end if
-
         end function tbl
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Table access function for giving arbitrary l and m
         !>
@@ -962,7 +891,6 @@ module module_fmm_framework
         !> @param[in] l
         !> @param[in] m
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         integer function tblinv(l,m,Lmax)
           use module_debug
           implicit none
@@ -973,16 +901,13 @@ module module_fmm_framework
           endif
 
           tblinv = l*(l+1)/2 + 1 + m
-
         end function tblinv
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> M2M-Operator (denoted with \f$\triangleleft\f$ )
         !> eq. (6) in [Kudin]
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function M2M(O_a, O_b)
           implicit none
           complex(kfp), intent(in) :: O_a(1:fmm_array_length_multipole)
@@ -1008,16 +933,13 @@ module module_fmm_framework
           end do
 
           call chop(M2M)
-
         end function M2M
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> M2L-Operator (denoted with \f$\otimes\f$ )
         !> eq. (7) in [Kudin]
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function M2L(M_b, O_a)
           implicit none
           complex(kfp), intent(in) :: M_b(1:fmm_array_length_taylor)
@@ -1043,16 +965,13 @@ module module_fmm_framework
           end do
 
           call chop(M2L)
-
         end function M2L
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> L2L-Operator (denoted with \f$\triangleright\f$ )
         !> eq. (8) in [Kudin]
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function L2L(O_b, M_r, max_l)
           implicit none
           complex(kfp), intent(in) :: O_b(1:fmm_array_length_multipole)
@@ -1086,16 +1005,13 @@ module module_fmm_framework
           end do
 
           call chop(L2L)
-
         end function L2L
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Scaling Operator \f$\mathcal{U}_L\f$ for Taylor coefficients
         !> @param[in] L table with Taylor coefficients
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function UL(L)
           implicit none
           complex(kfp), intent(in) :: L(1:fmm_array_length_taylor)
@@ -1113,16 +1029,13 @@ module module_fmm_framework
           end do
 
           call chop(UL)
-
         end function UL
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Formal summation of \f$M\f$ over NF, ie all (27) neighbouring boxes
         !> with some overhead to avoid numerical elimination of small values
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex(kfp) function MstarFunc(l,m)
           implicit none
           integer, intent(in) :: l, m
@@ -1154,16 +1067,13 @@ module module_fmm_framework
           end do
 
           MstarFunc = rp + ic*ip ! do not use cmplx()-function since it yields wrong results with complex*32 types
-
         end function MstarFunc
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Formal summation of \f$M\f$ over FF`, ie a lot of boxes
         !> with some overhead to avoid numerical elimination of small values
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex(kfp) function LstarFunc(l,m)
           implicit none
           integer, intent(in) :: l, m
@@ -1199,16 +1109,13 @@ module module_fmm_framework
           end do
 
           LStarFunc = rp + ic*ip ! do not use cmplx()-function since it yields wrong results with complex*32 types
-
         end function LstarFunc
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Converts cartesian coordinates to spherical system
         !> @param[in]  cartesian  cartesian vector [x, y, z]
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function cartesian_to_spherical(cartesian)
           implicit none
           real*8, intent(in)  :: cartesian(3)
@@ -1232,11 +1139,9 @@ module module_fmm_framework
         end function cartesian_to_spherical
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Writes contents of table T to a output stream s in a structured way
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine PrintTable(s, T, Lmax)
           implicit none
           complex(kfp), intent(in) :: T(:)
@@ -1254,15 +1159,12 @@ module module_fmm_framework
               write(s,'(I6, I6, I6, D50.35, D50.35)') idx, ll, mm, tbl(T, ll, mm, Lmax)
             end do
           end do
-
         end subroutine PrintTable
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Writes contents of table T to file s
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine WriteTableToFile(s, T, Lmax)
           implicit none
           complex(kfp), intent(in) :: T(:)
@@ -1288,15 +1190,12 @@ module module_fmm_framework
           call PrintTable(temp_file, T, Lmax)
 
           close(temp_file)
-
         end subroutine WriteTableToFile
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Dumps all parameters to the stream ifile
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_framework_param_dump(ifile)
           implicit none
           integer, intent(in) :: ifile
@@ -1317,7 +1216,6 @@ module module_fmm_framework
         end subroutine fmm_framework_param_dump
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Computes the associated Legendre polynomial \f$P_{lm}(x)\f$.
         !> Here m and l are integers satisfying  \f$0 \leq m \leq l\f$,
@@ -1335,7 +1233,6 @@ module module_fmm_framework
         !> Abramowitz and Stegun: Handbook of Mathematical Functions
         !> Section 8. Legendre Functions (pg. 332)
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         real(kfp) function LegendreP(l,m,x)
           use module_debug
           implicit none
@@ -1382,15 +1279,12 @@ module module_fmm_framework
           endif
 
           LegendreP = (-one)**m * LegendreP
-
         end function LegendreP
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the factorial of the argument
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         real(kfp) function factorial(n)
             use module_debug
             implicit none
@@ -1461,13 +1355,11 @@ module module_fmm_framework
         end function factorial
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Sorts the given values with a heap sort approach
         !> in order of ther absolute value
         !> compare (Numerical Recipes f90, p1171)
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine sort_abs(arr)
             implicit none
             real(kfp), intent(inout) :: arr(:)
@@ -1506,7 +1398,6 @@ module module_fmm_framework
                  j         = j+j
               end do
               arr(jold) = a                  ! Put a into its slot
-
             end subroutine sift_down
 
             subroutine swap(p,q)
@@ -1515,17 +1406,14 @@ module module_fmm_framework
                 p   = q
                 q   = dum
             end subroutine swap
-
           end subroutine sort_abs
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !>  Sets all matrix entries that are smaller than 1.e-16 to 0.
         !> (separately for real and imaginary part)
         !> This is the same as Mathematicas Chop[]-function
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine chop(a)
           implicit none
           complex(kfp), intent(inout) :: a(:)
@@ -1547,8 +1435,6 @@ module module_fmm_framework
             a(i) = re + ic*im ! do not use cmplx()-function here (see above)
           end do
         end subroutine chop
-
-
 end module module_fmm_framework
 
 
