@@ -65,7 +65,7 @@ module module_pepc
     !> 
     !> Call this function at program startup before any MPI calls
     !>
-    subroutine pepc_initialize(frontendname, my_rank, n_cpu, init_mpi, db_level_in, comm, idim)
+    subroutine pepc_initialize(frontendname, my_rank, n_cpu, init_mpi, db_level_in, comm)
       use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc, main_thread_processor_id
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_utils, only : create_directory, MPI_IN_PLACE_test
@@ -81,7 +81,6 @@ module module_pepc
       logical, intent(in) :: init_mpi !< if set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
       integer, intent(in), optional :: db_level_in !< sets debug level for treecode kernel (overrides settings, that may be read from libpepc-section in input file)
       integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator (the frontend is responsible for calling MPI_COMM_FREE(comm) prior to calling pepc_finalize() or supply it as argument to pepc_finalize() in this case); otherwise, it uses an MPI_COMM_DUP copy of the given comm
-      integer(kind_dim), intent(in), optional :: idim
       integer(kind_default) :: ierr, provided
 
       integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE ! " If the process is multithreaded, multiple threads may call MPI at once with no restrictions."
@@ -147,12 +146,7 @@ module module_pepc
       ! create and register mpi types
       call register_lpepc_mpi_types()
 
-      if (present(idim)) then
-        call pepc_prepare(idim)
-      else
-        call pepc_prepare(3_kind_dim)
-      end if
-
+      call pepc_prepare()
     end subroutine
 
 
@@ -261,11 +255,10 @@ module module_pepc
       use module_tree_communicator, only: tree_communicator_prepare
       use module_debug
       implicit none
-      integer(kind_dim), intent(in) :: idim
 
-      if (0 /= pthreads_init()) then
-        DEBUG_ERROR(*, "pthreads_init() failed!")
-      end if
+      integer(kind_dim), optional, intent(in) :: idim
+
+      DEBUG_ERROR_ON_FAIL(pthreads_init())
       call treevars_prepare(idim)
       call calc_neighbour_boxes() ! initialize mirror boxes
       call calc_force_prepare() ! prepare interaction-specific routines

@@ -36,7 +36,7 @@ module treevars
   integer :: main_thread_processor_id !< id of processor that runs the applications main thread
 
   integer(kind_level) :: nlev !< max refinement level
-  integer(kind_dim)   :: idim !< dimension of the system
+  integer(kind_dim)   :: idim = 3_kind_dim !< dimension of the system
 
 ! Memory control
   real    :: np_mult = 1.5
@@ -46,9 +46,11 @@ module treevars
 
   subroutine treevars_prepare(dim)
     implicit none
-    integer(kind_dim), intent(in) :: dim
 
-    idim = dim
+    integer(kind_dim), optional, intent(in) :: dim
+
+    if (present(dim)) then; idim = dim; end if
+
                                 ! we do not use the first (sign) bit and need space for one additional placeholder-bit
     nlev = int(bit_size(1_kind_key) - 2, kind_level) / idim
   end subroutine treevars_prepare

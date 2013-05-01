@@ -27,8 +27,7 @@ contains
       type(pepc_nml_t) :: pepc_nml
 
       call pepc_initialize("pepc-kh", pepc_pars%pepc_comm%mpi_rank, &
-        pepc_pars%pepc_comm%mpi_size, .true., comm = pepc_pars%pepc_comm%mpi_comm, &
-        idim = 2_kind_dim)
+        pepc_pars%pepc_comm%mpi_size, .true., comm = pepc_pars%pepc_comm%mpi_comm)
 
       call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)
       call read_in_params(pepc_nml, para_file_available, para_file_name)
