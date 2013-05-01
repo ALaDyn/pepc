@@ -214,6 +214,7 @@ contains
     endif
 
     call write_branches_to_vtk(step,  time_pars%dt * step, vtk_step)
+    call write_leaves_to_vtk(step, time_pars%dt * step, vtk_step)
     call write_spacecurve_to_vtk(step, time_pars%dt * step, vtk_step, p)
     
   end subroutine write_domain

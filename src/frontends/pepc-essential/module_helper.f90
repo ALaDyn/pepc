@@ -323,6 +323,7 @@ module helper
     ! output of tree diagnostics
     vtk_step = vtk_step_of_step(step)
     call write_branches_to_vtk(step,  dt * step, vtk_step)
+    call write_leaves_to_vtk(step, dt * step, vtk_step)
     call write_spacecurve_to_vtk(step, dt * step, vtk_step, p)
   end subroutine write_domain
   
