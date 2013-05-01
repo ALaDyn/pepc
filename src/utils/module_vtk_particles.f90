@@ -30,11 +30,13 @@ module module_vtk_particles
 
   contains
 
-  subroutine vtk_write_particles(mpi_rank, mpi_size, step, time, vtk_step, p, helper_func)
+  subroutine vtk_write_particles(fname, mpi_comm, step, time, vtk_step, p, helper_func)
     implicit none
+
+    include 'mpif.h'
     
-    integer(kind_pe), intent(in) :: mpi_rank
-    integer(kind_pe), intent(in) :: mpi_size
+    character(*), intent(in) :: fname
+    integer(kind_default), intent(in) :: mpi_comm
     integer, intent(in) :: step
     real*8, intent(in) :: time
     integer, intent(in) :: vtk_step
@@ -53,42 +55,45 @@ module module_vtk_particles
     optional :: helper_func
 
     integer(kind_particle) :: i, np
+    integer(kind_pe) :: mpi_rank, mpi_size
+    integer(kind_default) :: ierr
     type(vtkfile_unstructured_grid) :: vtk
     
+    call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
+    call MPI_Comm_size(mpi_comm, mpi_size, ierr)
+
     np = size(p)
 
-    call vtk%create_parallel("particles", step, mpi_rank, mpi_size, time, vtk_step)
-    call vtk%write_headers(np, 0_kind_particle)
-    call vtk%startpoints()
-    call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3))
-    call vtk%finishpoints()
-    call vtk%startpointdata()
-    call vtk%write_data_array("work", p(:)%work)
-    call vtk%write_data_array("pelabel", p(:)%label)
-    call vtk%write_data_array("local index", [(i,i=1,np)])
-    call vtk%write_data_array("processor", p(:)%pid)
-    if (present(helper_func)) then; call helper_func(p, vtk); end if
-    call vtk%finishpointdata()
-    call vtk%dont_write_cells()
-    call vtk%write_final()
+    call vtk%create_parallel(fname, step, mpi_rank, mpi_size, time, vtk_step)
+      call vtk%write_headers(np, 0_kind_particle)
+      call vtk%startpoints()
+        call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3))
+      call vtk%finishpoints()
+      call vtk%startpointdata()
+        call vtk%write_data_array("work", p(:)%work)
+        call vtk%write_data_array("pelabel", p(:)%label)
+        call vtk%write_data_array("local index", [(i,i=1,np)])
+        call vtk%write_data_array("processor", p(:)%pid)
+        if (present(helper_func)) then; call helper_func(p, vtk); end if
+      call vtk%finishpointdata()
+      call vtk%dont_write_cells()
+      call vtk%write_final()
     call vtk%close()
-
   end subroutine vtk_write_particles
 
 
-  subroutine vtk_write_particles_coulomb_XYZQVM(mpi_rank, mpi_size, step, time, vtk_step, p)
+  subroutine vtk_write_particles_coulomb_XYZQVM(fname, mpi_comm, step, time, vtk_step, p)
     implicit none
     
-    integer(kind_pe), intent(in) :: mpi_rank
-    integer(kind_pe), intent(in) :: mpi_size
+    character(*), intent(in) :: fname
+    integer(kind_default), intent(in) :: mpi_comm
     integer, intent(in) :: step
     real*8, intent(in) :: time
     integer, intent(in) :: vtk_step
     type(t_particle), intent(in) :: p(:)
 
-    call vtk_write_particles(mpi_rank, mpi_size, step, time, vtk_step, p, &
+    call vtk_write_particles(fname, mpi_comm, step, time, vtk_step, p, &
       vtk_write_particles_coulomb_XYZQVM_helper)
-
   end subroutine vtk_write_particles_coulomb_XYZQVM
 
 
@@ -97,10 +102,6 @@ module module_vtk_particles
 
     type(t_particle), intent(in) :: p(:)
     type(vtkfile_unstructured_grid), intent(inout) :: vtkf
-
-    integer(kind_particle) :: np
-
-    np = size(p)
 
     call vtkf%write_data_array("charge", p(:)%data%q)
     call vtkf%write_data_array("velocity", p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
