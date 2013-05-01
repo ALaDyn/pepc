@@ -18,25 +18,17 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Encapsulates anything that is directly involved in force calculation
 !> and multipole expansion manipulation
 !> i.e. shifting along the tree, computing forces between particles and cluster, etc.
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_interaction_specific
   use module_pepc_types
   use module_interaction_specific_types
   implicit none
   save
   private
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
   real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
@@ -55,12 +47,6 @@ module module_interaction_specific
 
   namelist /calc_force_nearestneighbour/ force_law
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
   ! currently, all public functions in module_interaction_specific are obligatory
   public multipole_from_particle
   public shift_multipoles_up
@@ -76,26 +62,11 @@ module module_interaction_specific
   public calc_force_after_grow
   public get_number_of_interactions_per_particle
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 contains
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > Computes multipole properties of a single particle
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> Computes multipole properties of a single particle
+  !>
   subroutine multipole_from_particle(particle_pos, particle, multipole)
     implicit none
     real*8, intent(in) :: particle_pos(3)
@@ -113,15 +84,12 @@ contains
          particle%temperature, &                             ! particle temperature
          0., &                                               ! sph density
          0. )                                                ! sph smoothing-length
-
   end subroutine multipole_from_particle
 
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > Accumulates multipole properties of child nodes to parent node
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> Accumulates multipole properties of child nodes to parent node
+  !>
   subroutine shift_multipoles_up(parent, children)
     implicit none
     type(t_tree_node_interaction_data), intent(out) :: parent
@@ -184,15 +152,12 @@ contains
 
     ! this is stupid in the construction of the tree, because all h are zero. But it is necessary to rebuild this multipole property later for the symmetric neighbour search
     parent%h = maxval(children(1:nchild)%h)
-
   end subroutine shift_multipoles_up
 
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > adds res2 to res1
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> adds res2 to res1
+  !>
   subroutine results_add(res1, res2)
     implicit none
     type(t_particle_results), intent(inout) :: res1
@@ -208,15 +173,12 @@ contains
     else
        write(*,*) "!!! value of force_law is not allowed in results_add:", force_law
     end if
-
   end subroutine results_add
 
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> reads interaction-specific parameters from file
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine calc_force_read_parameters(filehandle)
     use module_debug, only: pepc_status
     implicit none
@@ -224,31 +186,25 @@ contains
 
     call pepc_status("READ PARAMETERS, section calc_force_nearestneighbour")
     read(filehandle, NML=calc_force_nearestneighbour)
-
   end subroutine
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   !>
   !> writes interaction-specific parameters to file
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine calc_force_write_parameters(filehandle)
     use module_debug, only: pepc_status
     implicit none
     integer, intent(in) :: filehandle
 
     write(filehandle, NML=calc_force_nearestneighbour)
-
   end subroutine
 
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > computes derived parameters for calc force module
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> computes derived parameters for calc force module
+  !>
   subroutine calc_force_prepare()
-    
     implicit none
     ! nothing to do here
     !        call fmm_framework_init(my_rank, wellsep=mirror_box_layers)
@@ -257,28 +213,23 @@ contains
   end subroutine calc_force_prepare
 
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> initializes static variables of calc force module that depend 
   !> on particle data and might be reused on subsequent traversals
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine calc_force_after_grow(particles)
     use module_pepc_types
     implicit none
     type(t_particle), dimension(:), intent(in) :: particles
 
     ! nothing to be done here for now
-
   end subroutine      
 
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > subroutine must return the estimated number of iteractions per particle
-  ! > for the current mac and/or parameters and the supplied total number of particles
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> subroutine must return the estimated number of iteractions per particle
+  !> for the current mac and/or parameters and the supplied total number of particles
+  !>
   subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
     implicit none
     integer(kind_particle), intent(in) :: npart_total !< total number of particles
@@ -292,26 +243,21 @@ contains
     ! applies for BH-MAC
     invnintmax = max(theta2 / (35._8*log(1._8*npart_total)) , 1._8/npart_total)
     nintmax    = int(1._8/invnintmax)
-
   end subroutine get_number_of_interactions_per_particle
 
   
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > finalizes the calc force module at end of simulation
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> finalizes the calc force module at end of simulation
+  !>
   subroutine calc_force_finalize()
     implicit none
     ! nothing to do here
   end subroutine calc_force_finalize
 
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > generic Multipole Acceptance Criterion
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> generic Multipole Acceptance Criterion
+  !>
   function mac(particle, node, dist2, boxlength2)
     implicit none
 
@@ -352,16 +298,14 @@ contains
     case default
        write(*,*) "!!! value of mac_select is not allowed in mac:", mac_select
     end select
-
   end function mac
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > clears result in t_particle datatype - usually, this function does not need to be touched
-  ! > due to dependency on module_pepc_types and(!) on module_interaction_specific, the
-  ! > function cannot reside in module_interaction_specific that may not include module_pepc_types
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  !>
+  !> clears result in t_particle datatype - usually, this function does not need to be touched
+  !> due to dependency on module_pepc_types and(!) on module_interaction_specific, the
+  !> function cannot reside in module_interaction_specific that may not include module_pepc_types
+  !>
   subroutine particleresults_clear(particles)
     use module_pepc_types, only: t_particle
     implicit none
@@ -382,14 +326,13 @@ contains
     end do
   end subroutine particleresults_clear
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > Force calculation wrapper.
-  ! > This function is thought for pre- and postprocessing of
-  ! > calculated fields, and for being able to call several
-  ! > (different) force calculation routines
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  !>
+  !> Force calculation wrapper.
+  !> This function is thought for pre- and postprocessing of
+  !> calculated fields, and for being able to call several
+  !> (different) force calculation routines
+  !>
   subroutine calc_force_per_interaction(particle, node, key, delta, dist2, vbox, node_is_leaf)
     use module_pepc_types
     use treevars
@@ -448,36 +391,28 @@ contains
     end select
 
     particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION          
-
   end subroutine calc_force_per_interaction
 
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! >
-  ! > Force calculation wrapper for contributions that only have
-  ! > to be added once per particle
-  ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !>
+  !> Force calculation wrapper for contributions that only have
+  !> to be added once per particle
+  !>
   subroutine calc_force_per_particle(particles)
-
     implicit none
 
     type(t_particle), intent(inout) :: particles(:)
 
     ! currently nothing to do here
-
   end subroutine calc_force_per_particle
 
 
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! >
   ! > If particle closer than the furthest of the current n closest particles
   ! > put in on the lists instead of the formerly furthest particle and update
   ! > the distance to the furthest particle.
   ! >
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine update_nn_list(particle, node, key, d, dist2)
-
     use module_interaction_specific_types, only: &
          max_neighbour_particles
 
@@ -529,16 +464,14 @@ contains
        write(*,*) "value of mac_select not allowed in update_nn_list:", mac_select
        
     end select
-    
   end subroutine update_nn_list
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         !>
         !> Calculates 3D Coulomb interaction of particle p with tree node inode
         !> that is shifted by the lattice vector vbox
         !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_coulomb_3D(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use module_pepc_types
           use treevars
@@ -625,11 +558,9 @@ contains
                   + ( 15.*dx*dy*dz*rd7 )*t%xyquad &
                   + ( 15.*dz*dy2*rd7 - 3.*dz*rd5 )*0.5*t%quad(2) &
                   + ( 15.*dz*dx2*rd7 - 3.*dz*rd5 )*0.5*t%quad(1)
-
         end subroutine calc_force_coulomb_3D
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates 2D Coulomb interaction of particle p with tree node inode
         !> that is shifted by the lattice vector vbox
@@ -637,7 +568,7 @@ contains
         !> Unregularized force law is:
         !>   Phi = -2q log R
         !>   Ex = -dPhi/dx = 2 q x/R^2 etc
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
         subroutine calc_force_coulomb_2D(t, d, dist2, sumfx, sumfy, sumphi)
           use module_pepc_types
           use treevars
@@ -692,7 +623,7 @@ contains
 
         end subroutine calc_force_coulomb_2D
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         !>
         !> CALC_FORCE_LJ
         !>
@@ -700,7 +631,6 @@ contains
         !> shifted by the lattice vector vbox
         !> results are returned sumfx, sumfy, sumfz, sumphi
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_force_LJ(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use module_pepc_types
           use treevars
@@ -748,16 +678,14 @@ contains
           sumfy = sumfy + dy/r*flj
           !       sumfz = sumfz + dz/r*flj
           sumfz=0.
-
       end subroutine calc_force_LJ
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
       !>
       !> Calculates 3D Coulomb interaction of particle p with particle inode
       !> that is shifted by the lattice vector vbox
       !> results are returned in eps, sumfx, sumfy, sumfz, sumphi
       !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine calc_force_coulomb_3D_direct(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use module_pepc_types
           use treevars
@@ -792,11 +720,9 @@ contains
           sumfy = charge*dy*rd3
 
           sumfz = charge*dz*rd3
-
       end subroutine calc_force_coulomb_3D_direct
 
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> Calculates 2D Coulomb interaction of particle p with tree node inode
       !> that is shifted by the lattice vector vbox
@@ -804,7 +730,7 @@ contains
       !> Unregularized force law is:
       !>   Phi = -2q log R
       !>   Ex = -dPhi/dx = 2 q x/R^2 etc
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
       subroutine calc_force_coulomb_2D_direct(t, d, dist2, sumfx, sumfy, sumphi)
           use module_pepc_types
           use treevars
@@ -833,7 +759,5 @@ contains
           sumfx = charge*dx*rd2
 
           sumfy = charge*dy*rd2
-
       end subroutine calc_force_coulomb_2D_direct
-
 end module module_interaction_specific
