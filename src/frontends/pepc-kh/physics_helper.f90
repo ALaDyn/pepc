@@ -200,8 +200,8 @@ contains
       dy = ly / ny
 
       do ipl = 1, npp
-        ipg = ipl + min(mpi_rank, mod(np, mpi_size)) * (np / mpi_size + 1) + &
-          max(0, mpi_rank - mod(np, mpi_size)) * (np / mpi_size)
+        ipg = ipl + min(int(mpi_rank, kind=kind_particle), mod(np, int(mpi_size, kind=kind_particle))) * (np / mpi_size + 1) + &
+          max(0_kind_particle, mpi_rank - mod(np, int(mpi_size, kind=kind_particle))) * (np / mpi_size)
 
         ! ipg = 1, 3, ... are ions, ipg = 2, 4, ... are electrons, distribute on the same lattice
         ix = mod((ipg - 1) / 2, nx) + 1
@@ -213,7 +213,7 @@ contains
         p(ipl)%work = 1.0D0
         p(ipl)%label = ipg
 
-        if (mod(ipg, 2) == 0) then ! this is an electron
+        if (mod(ipg, 2_kind_particle) == 0) then ! this is an electron
           p(ipl)%data%q = qe
           p(ipl)%data%m = me
 

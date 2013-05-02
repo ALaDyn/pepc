@@ -33,7 +33,7 @@ contains
     field_grid%n = field_grid_nml%n
     field_grid%ntot = product(field_grid%n)
     field_grid%nl = field_grid%ntot / mpi_size
-    if (mpi_rank < mod(field_grid%ntot, mpi_size)) &
+    if (mpi_rank < mod(field_grid%ntot, int(mpi_size, kind=kind_particle))) &
       field_grid%nl = field_grid%nl + 1
     field_grid%offset = field_grid_nml%offset
     field_grid%extent = field_grid_nml%extent
@@ -58,9 +58,9 @@ contains
       field_grid%viy(field_grid%n(1), field_grid%n(2)))
 
     do ipl = 1, field_grid%nl
-      ipg = ipl + min(mpi_rank, mod(field_grid%ntot, mpi_size)) * &
+      ipg = ipl + min(int(mpi_rank, kind=kind_particle), mod(field_grid%ntot, int(mpi_size, kind=kind_particle))) * &
         (field_grid%ntot / mpi_size + 1) + &
-        max(0, mpi_rank - mod(field_grid%ntot, mpi_size)) * &
+        max(0_kind_particle, mpi_rank - mod(field_grid%ntot, int(mpi_size, kind=kind_particle))) * &
         (field_grid%ntot / mpi_size)
 
       ix = mod(ipg - 1, field_grid%n(1)) + 1
@@ -246,9 +246,10 @@ contains
     allocate(fflat(field_grid%ntot))
 
     my_count = field_grid%nl
-    my_offset = min(pepc_comm%mpi_rank, mod(field_grid%ntot, pepc_comm%mpi_size)) &
+    my_offset = min(int(pepc_comm%mpi_rank, kind=kind_particle), &
+      mod(field_grid%ntot, int(pepc_comm%mpi_size, kind=kind_particle))) &
       * (field_grid%ntot / pepc_comm%mpi_size + 1) + &
-      max(0, pepc_comm%mpi_rank - mod(field_grid%ntot, pepc_comm%mpi_size)) * &
+      max(0_kind_particle, pepc_comm%mpi_rank - mod(field_grid%ntot, int(pepc_comm%mpi_size, kind=kind_particle))) * &
       field_grid%ntot / pepc_comm%mpi_size
 
     call write_quantity_on_grid("potential", field_grid%p(:)%results%pot)

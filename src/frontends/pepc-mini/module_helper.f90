@@ -151,7 +151,7 @@ module helper
     
     ! set initially number of local particles
     np = tnp / n_ranks
-    if(my_rank.eq.(n_ranks-1)) np = np + MOD(tnp, n_ranks)
+    if(my_rank.eq.(n_ranks-1)) np = np + MOD(tnp, int(n_ranks, kind=kind_particle))
 
     allocate(particles(np), stat=rc)
     if(rc.ne.0) write(*,*) " === particle allocation error!"
@@ -179,7 +179,7 @@ module helper
     do ip=1, np
 
       p(ip)%label       = my_rank * (tnp / n_ranks) + ip
-      p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2))
+      p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2_kind_particle))
       p(ip)%data%m      = 1.0_8
       if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
 

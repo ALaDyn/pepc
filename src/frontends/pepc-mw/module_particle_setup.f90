@@ -79,7 +79,7 @@ module module_particle_setup
           ! distributed pairwise
           tmp = (ni / n_cpu)
 
-          if (((tmp * n_cpu) .ne. ni) .and. (mod(ni, n_cpu) > my_rank)) then
+          if (((tmp * n_cpu) .ne. ni) .and. (mod(ni, int(n_cpu, kind=kind_particle)) > my_rank)) then
               tmp = tmp + 1
           endif
 

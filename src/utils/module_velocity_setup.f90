@@ -19,7 +19,7 @@
 !
 
 !>
-!>  Encapsulates functions for setting up particle velocities with diefferent models
+!>  Encapsulates functions for setting up particle velocities with different models
 !>
 module module_velocity_setup
       use physvars
@@ -101,7 +101,7 @@ module module_velocity_setup
           end do
 
           !  odd one out
-          if (mod(n,2).eq.1) then
+          if (mod(n,2_kind_particle).eq.1) then
              u(n)=0.
           endif
         end subroutine maxwell1
@@ -175,7 +175,7 @@ module module_velocity_setup
           dum2 = -113301 - 10*my_rank
           dum3 = -8651 - 10*my_rank
           !  exclude odd one out
-          if (mod(n,2).ne.0) then
+          if (mod(n,2_kind_particle).ne.0) then
              n1=n-1
           else
             n1 = n

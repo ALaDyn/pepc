@@ -18,7 +18,7 @@ contains
    subroutine pepc_setup(p, pepc_pars)
       use encap
       use module_pepc
-      use module_pepc_types, only: t_particle, kind_dim
+      use module_pepc_types, only: t_particle, kind_dim, kind_particle
       implicit none
 
       type(t_particle), dimension(:), allocatable, intent(out) :: p
@@ -35,7 +35,7 @@ contains
       ! Pass MPI stuff to parameters
       pepc_pars%np = pepc_nml%np
       pepc_pars%npp = pepc_pars%np / pepc_pars%pepc_comm%mpi_size
-      if (pepc_pars%pepc_comm%mpi_rank < mod(pepc_pars%np, pepc_pars%pepc_comm%mpi_size)) then
+      if (pepc_pars%pepc_comm%mpi_rank < mod(pepc_pars%np, int(pepc_pars%pepc_comm%mpi_size, kind=kind_particle))) then
         pepc_pars%npp = pepc_pars%npp + 1
       end if
       pepc_pars%pdump = pepc_nml%pdump
