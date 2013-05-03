@@ -20,7 +20,6 @@
 
 #include "multipole.h"
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Provides functions and operators used in the multipole / Taylor 
 !> expansion of the 2D logarithmic potential following [GR1987]:
@@ -43,7 +42,7 @@
 !>
 !> with the total charge Q = Sum_i q_i and the multipole moments:
 !>
-!> omega_k = - Sum_i q_i O_k(z) / k
+!> omega_k = - Sum_i q_i O_k(z_i) / k
 !>
 !> O and M are the monomials:
 !>
@@ -53,7 +52,6 @@
 !>          Simulations, Journal of Computational Physics 73, 325-348 
 !>          (1987)
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_multipole
   implicit none
 
@@ -64,11 +62,9 @@ module module_multipole
   ! multipole.h to ensure inlining.
   !
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> Monomial: O_k(z) = z^k
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !complex(kind = 8) function OMultipole(k, z)
   !  implicit none
   !  integer, intent(in) :: k
@@ -77,11 +73,9 @@ module module_multipole
   !  OMultipole = z**k
   !end function OMultipole
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> Monomial: O'_k(z) = k z^(k - 1)
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !complex(kind = 8) function OMultipolePrime(k, z)
   !  implicit none
   !  integer, intent(in) :: k
@@ -90,11 +84,9 @@ module module_multipole
   !  OMultipolePrime = k * z**(k - 1)
   !end function OMultipolePrime
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> Monomial: M_k(z) = z^(-k)
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !complex(kind = 8) function MTaylor(k, z)
   !  implicit none
   !  integer, intent(in) :: k
@@ -103,13 +95,11 @@ module module_multipole
   !  MTaylor = z**(-k)
   !end function MTaylor
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> Monomial: M'_k(z) = -k z^(-k - 1)
   !>
   !> Used to compute the force field.
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !complex(kind = 8) function MTaylorPrime(k, z)
   !  implicit none
   !  integer, intent(in) :: k
@@ -118,7 +108,6 @@ module module_multipole
   !  MTaylorPrime = -k * z**(-k-1)
   !end function MTaylorPrime
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> A is the higher order part of the M2M operator that shifts higher order
   !> multipole moments:
@@ -128,7 +117,6 @@ module module_multipole
   !> omega_k' = A_Q,k(z0) Q + Sum_l=1^k A_k,l(z0) omega_l
   !>                                    ^^^^^^^^^
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   complex(kind = 8) function ATranslate(k, l, z0)
     implicit none
     integer, intent(in) :: k, l
@@ -137,7 +125,6 @@ module module_multipole
     ATranslate = OMultipole(k - l, z0) * BinomialCoefficient(k - 1, l - 1)
   end function ATranslate
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> B is the part of the M2L operator that converts higher order multipole
   !> moments to Taylor coefficients:
@@ -147,7 +134,6 @@ module module_multipole
   !> mu_l ~= B_Q,l(z0) Q + Sum_k=1,p B_l,k(z0) omega_k
   !>                                 ^^^^^^^^^
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   complex(kind = 8) function BConvert(l, k, z0)
     implicit none
     integer, intent(in) :: k, l
@@ -156,11 +142,9 @@ module module_multipole
     BConvert = (-1)**k * BinomialCoefficient(l + k - 1, k - 1) * MTaylor(l + k, z0)
   end function BConvert
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> Binomial coefficients: BinomialCoefficient(n, k) = n! / [ k! (n - k)! ]
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   real*8 function BinomialCoefficient(n, k)
     implicit none
     integer, intent(in) :: n, k
@@ -168,11 +152,9 @@ module module_multipole
     BinomialCoefficient = factorial(n) / (factorial(k) * factorial(n - k))
   end function BinomialCoefficient
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> Factorial function: factorial(n) = n! = 1 x 2 x ... x n
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   real*8 function factorial(n)
     implicit none
     integer, intent(in) :: n
@@ -232,5 +214,4 @@ module module_multipole
         factorial = gamma(real(n+1, kind = 8))
     end select
   end function factorial
-
 end module module_multipole
