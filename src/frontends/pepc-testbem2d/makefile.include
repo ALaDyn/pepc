@@ -1,0 +1,16 @@
+FILES_L   = pepc.f90
+
+FILES_L_U = module_vtk.f90 \
+            module_base64.f90 \
+	    module_vtk_particles.f90 \
+	    module_vtk_helpers.f90 \
+	    module_treediags.f90
+
+SRC        += $(FILES_L)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-testbem2d/, $(FILES_L))
+
+SRC        += $(FILES_L_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
+
+BACKEND = log2d
+BACKENDTYPE = XYZQVM
