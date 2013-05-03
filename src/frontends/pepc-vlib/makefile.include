@@ -7,3 +7,4 @@ BACKEND = vortex
 
 LD = $(AR)
 LDFLAGS = $(ARFLAGS)
+LDLIBS =  libsl.a libopa.a
