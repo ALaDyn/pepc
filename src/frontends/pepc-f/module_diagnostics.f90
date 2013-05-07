@@ -25,7 +25,7 @@ MODULE diagnostics
         real(KIND=8),dimension(3) :: get_epot
 
         integer :: ip,rc
-        real(KIND=8) :: esum(3),tesum(3)
+        real(KIND=8) :: esum,tesum
 
         esum=0.0
         tesum=0.0
@@ -37,7 +37,7 @@ MODULE diagnostics
         END DO
         esum=esum/tnpps(ispecies)
 
-        call MPI_ALLREDUCE(esum, tesum, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(esum, tesum, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
 
         get_epot=tesum
         return

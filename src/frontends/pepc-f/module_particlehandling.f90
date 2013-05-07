@@ -623,7 +623,7 @@ module particlehandling
                     call transform_electrons_to_gc(p)
                 END IF
             END IF
-        END DO     
+        END DO
     END SUBROUTINE
 
 !======================================================================================

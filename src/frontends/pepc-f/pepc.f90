@@ -74,6 +74,10 @@ program pepc
     call init_boundaries()
     call init_source()
 
+    call init_rng()
+    call init_periodicity()
+    call pepc_prepare(3_kind_dim)
+
     if (do_resume)then
         call init_after_resume()
     else

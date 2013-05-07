@@ -190,15 +190,8 @@ module module_initialization
         r_lamor=0.
     END IF
 
-
     !ne=0.5*tnpp*fsup/(dx*dy*dz)
     !omega_p=sqrt(ne*e*e/eps0/me)
-
-
-
-    call init_rng()
-    call init_periodicity()
-    call pepc_prepare(3_kind_dim)
 
 
   end subroutine set_parameters
