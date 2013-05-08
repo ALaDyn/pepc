@@ -757,7 +757,7 @@ module module_tree_communicator
   function run_communication_loop(arg) bind(c)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread, get_num_threads_on_my_hwthread
+    use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread, i_want_to_break_free
     use module_atomic_ops, only: atomic_load_int, atomic_store_int, atomic_write_barrier
     use module_debug
     implicit none
@@ -779,16 +779,13 @@ module module_tree_communicator
     call c_f_pointer(arg, t)
     DEBUG_ASSERT(associated(t))
     
+    if (.not. i_want_to_break_free()) then
+      DEBUG_WARNING_ALL(*, "Could not place communicator on a suitable hardware thread.")
+    end if
+
     ! store ID of comm-thread processor
     t%communicator%processor_id = get_my_core()
     call atomic_write_barrier()
-
-#if defined(__TOS_BGQ__)
-          if (get_num_threads_on_my_hwthread() > 1) then
-            DEBUG_WARNING_ALL('("Hey, there is/are ", I0, " other thread(s) on my hwthread!")', get_num_threads_on_my_hwthread()-1)
-          endif
-#endif
-
 
     ! signal successfull start
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTED)

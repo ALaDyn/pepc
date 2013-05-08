@@ -152,6 +152,13 @@ module pthreads_stuff
   end interface
 
 
+  interface
+    integer(c_int) function i_want_to_break_free_c() bind(C, name='i_want_to_break_free_c')
+      use, intrinsic :: iso_c_binding
+      implicit none
+    end function
+  end interface
+
   contains
 
   function getfullid()
@@ -159,5 +166,12 @@ module pthreads_stuff
     character(20) :: getfullid
 
     write(getfullid,'("{", I8, ".", I8, "}")') get_my_pid(), get_my_tid()
+  end function
+
+  function i_want_to_break_free()
+    implicit none
+    logical i_want_to_break_free
+
+    i_want_to_break_free = 0 == i_want_to_break_free_c()
   end function
 end module pthreads_stuff
