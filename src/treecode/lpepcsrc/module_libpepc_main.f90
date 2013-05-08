@@ -25,7 +25,8 @@ module module_libpepc_main
     use module_debug, only : debug_level
     use treevars, only : np_mult, interaction_list_length_factor, num_threads, idim
     use module_spacefilling, only : curve_type
-    use module_domains, only: weighted, force_cubic_domain
+    use module_domains, only: weighted
+    use module_box, only: force_cubic_domain
     use module_mirror_boxes, only: mirror_box_layers, periodicity
     use module_pepc_types
 

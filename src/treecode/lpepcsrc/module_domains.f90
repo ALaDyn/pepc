@@ -44,7 +44,6 @@ module module_domains
   end type t_decomposition
 
   integer(kind_default), public :: weighted = 1 !< set to 0 to disable load balancing, 1 to enable load balancing
-  logical, public :: force_cubic_domain = .false. !< if set to .true., pepc uses an overall cubic enclosure of the particle cloud instead of the cuboid (closer) one
 
   public decomposition_destroy
   public decomposition_allocated
