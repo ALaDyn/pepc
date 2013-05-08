@@ -147,10 +147,11 @@ module module_tree_communicator
   subroutine tree_communicator_start(t)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_createthread
+    use pthreads_stuff, only: pthreads_createthread, pthreads_sched_yield
     use module_atomic_ops, only: atomic_load_int, atomic_store_int
     use module_debug
     use module_timings
+    use treevars, only: main_thread_processor_id
     implicit none
 
     type(t_tree), target, intent(inout) :: t
@@ -168,6 +169,11 @@ module module_tree_communicator
     tp = c_loc(t)
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTING)
     DEBUG_ERROR_ON_FAIL(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp))
+    
+    ! we have to wait here until the communicator has really started to find out its processor id
+    do while (atomic_load_int(t%communicator%thread_status) /= TREE_COMM_THREAD_STATUS_STARTED)
+      DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+    end do
   end subroutine tree_communicator_start
 
 
@@ -751,8 +757,8 @@ module module_tree_communicator
   function run_communication_loop(arg) bind(c)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread
-    use module_atomic_ops, only: atomic_load_int, atomic_store_int
+    use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread, get_num_threads_on_my_hwthread
+    use module_atomic_ops, only: atomic_load_int, atomic_store_int, atomic_write_barrier
     use module_debug
     implicit none
     include 'mpif.h'
@@ -773,10 +779,19 @@ module module_tree_communicator
     call c_f_pointer(arg, t)
     DEBUG_ASSERT(associated(t))
     
-    ! signal successfull start
-    call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTED)
     ! store ID of comm-thread processor
     t%communicator%processor_id = get_my_core()
+    call atomic_write_barrier()
+
+#if defined(__TOS_BGQ__)
+          if (get_num_threads_on_my_hwthread() > 1) then
+            DEBUG_WARNING_ALL('("Hey, there is/are ", I0, " other thread(s) on my hwthread!")', get_num_threads_on_my_hwthread()-1)
+          endif
+#endif
+
+
+    ! signal successfull start
+    call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTED)
 
     nummessages            = 0
     messages_per_iteration = 0

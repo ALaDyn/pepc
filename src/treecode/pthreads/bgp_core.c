@@ -42,6 +42,15 @@ int get_my_core()
 {
   return Kernel_ProcessorCoreID();
 }
+
+#include <spi/include/kernel/thread.h>
+
+int get_num_threads_on_my_hwthread()
+{
+  return Kernel_SnoopNumThreads();
+}
+
+
 #else /* !defined(__TOS_BGP__) && !defined(__TOS_BGQ__) */
 int get_my_core()
 {

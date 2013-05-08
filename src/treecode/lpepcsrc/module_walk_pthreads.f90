@@ -140,6 +140,7 @@ module module_walk
   type(t_tree), pointer :: walk_tree
 
   type(t_atomic_int), pointer :: next_unassigned_particle
+  type(t_atomic_int), pointer :: thread_startup_complete
 
   ! local walktime (i.e. from comm_loop start until send_walk_finished() )
   real*8, pointer :: twalk_loc
@@ -359,6 +360,7 @@ module module_walk
   subroutine walk_hybrid()
     use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread
     use module_debug
+    use module_atomic_ops, only: atomic_store_int
     use, intrinsic :: iso_c_binding
     implicit none
     include 'mpif.h'
@@ -372,11 +374,15 @@ module module_walk
 
     twalk_loc = MPI_WTIME()
 
+    call atomic_store_int(thread_startup_complete, 0)
+
     ! start the worker threads...
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
       DEBUG_ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith))), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
     end do
+    
+    call atomic_store_int(thread_startup_complete, 1)
 
     ! ... and wait for work thread completion
     do ith = 1, num_walk_threads
@@ -449,10 +455,14 @@ module module_walk
 
     ! initialize atomic variables
     call atomic_allocate_int(next_unassigned_particle)
-    if (.not. associated(next_unassigned_particle)) then
+    call atomic_allocate_int(thread_startup_complete)
+
+    if (.not. (associated(next_unassigned_particle) .and. associated(thread_startup_complete))) then
       DEBUG_ERROR(*, "atomic_allocate_int() failed!")
     end if
+
     call atomic_store_int(next_unassigned_particle, 1)
+    call atomic_store_int(thread_startup_complete, 0)
 
     ! evenly balance particles to threads if there are less than the maximum
     max_particles_per_thread = max(min(num_particles/num_walk_threads, max_particles_per_thread),1)
@@ -479,6 +489,7 @@ module module_walk
     integer :: i
 
     call atomic_deallocate_int(next_unassigned_particle)
+    call atomic_deallocate_int(thread_startup_complete)
 
     do i = 1, num_walk_threads
       call pthreads_free_thread(thread_handles(i))
@@ -529,6 +540,11 @@ module module_walk
 
     if ((shared_core) .and. (num_walk_threads > 1)) then
           my_max_particles_per_thread = max(int(work_on_communicator_particle_number_factor * max_particles_per_thread), 1)
+#if defined(__TOS_BGQ__)
+          if (get_num_threads_on_my_hwthread() > 1) then
+            my_max_particles_per_thread = 0
+          endif
+#endif
     else
           my_max_particles_per_thread = max_particles_per_thread
     end if
@@ -638,12 +654,17 @@ module module_walk
       deallocate(todo_list)
     end if
 
+    ! we have to wait here until all threads have started before some of them die again :-)
+    do while (atomic_load_int(thread_startup_complete) /= 1)
+      DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+    end do
+
     if (walk_profile) then
       my_threaddata%timers(THREAD_TIMER_TOTAL) = my_threaddata%timers(THREAD_TIMER_TOTAL) + MPI_WTIME()
       my_threaddata%timers(THREAD_TIMER_GET_NEW_PARTICLE) = t_get_new_particle
       my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
     end if
-
+    
     my_threaddata%finished = .true.
 
     walk_worker_thread = c_null_ptr

@@ -32,6 +32,15 @@ module pthreads_stuff
   end interface
 
 
+#if defined(__TOS_BGQ__)
+  interface
+    integer(c_int) function get_num_threads_on_my_hwthread() bind(C, name='get_num_threads_on_my_hwthread')
+      use, intrinsic :: iso_c_binding
+      implicit none
+    end function
+  end interface
+#endif
+
   interface
     integer(c_int) function pthreads_init() bind(C, name='pthreads_init')
       use, intrinsic :: iso_c_binding
