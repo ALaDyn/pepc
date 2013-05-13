@@ -68,6 +68,8 @@ module particlehandling
             rp = rp-1
         END DO
 
+        call reallocate_particles(p,np, np)
+
         IF (ANY(boundaries(1:nb)%type==4)) call treat_logical_sheath_boundaries(p,hits,reflux,p_hits_logical_sheath)
         IF (ANY(boundaries(1:nb)%type==4)) deallocate(p_hits_logical_sheath)
 
