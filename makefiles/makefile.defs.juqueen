@@ -6,7 +6,7 @@ HELP = "\
 
 MACH     = IBM-BGQ-juqueen
 
-DEBUG      = 1
+DEBUG      = 0
 VAMPIR     = 0
 SION       = 0
 RANLIB     = ranlib
@@ -20,10 +20,10 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DLITTLEENDIAN -DSVNREVISION="\"$(SVNREVISION)\""
+CPPFLAGS = -P -C -DLITTLEENDIAN -DSVNREVISION="\"$(SVNREVISION)\"" -D__TOS_BGQ__
 
 OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck -qkeepparm -qflttrap -qnosmp -qxflag=dvz -Q! -qnounwind -qnounroll
-OPTIMIZATIONFLAGS       = -O5 -g -qhot -qipa=level=1 -qlibmpi -qinline -qinfo=all -v -V \
+OPTIMIZATIONFLAGS       = -O5 -g -qhot -qipa=level=1 -qlibmpi -qinline -qinfo=all -v -V -qstrict \
                           -qinline+__module_tree_node_NMOD_tree_node_is_leaf:__module_spacefilling_NMOD_is_ancestor_of_particle_withlevel:__module_spacefilling_NMOD_is_ancestor_of_particle_nolevel:__module_tree_node_NMOD_tree_node_get_num_children:__module_tree_node_NMOD_tree_node_get_first_child:__module_tree_node_NMOD_tree_node_get_next_sibling:__module_tree_node_NMOD_tree_node_children_available:__module_interaction_specific_NMOD_mac:__module_interaction_specific_NMOD_calc_force_per_interaction:_atomic_fetch_and_increment_int:_atomic_load_int:_atomic_mod_increment_and_fetch_int:_atomic_read_barrier:_atomic_read_write_barrier:_atomic_store_int:_atomic_write_barrier:__module_atomic_ops_NMOD_atomic_fetch_and_increment_int:__module_atomic_ops_NMOD_atomic_load_int:__module_atomic_ops_NMOD_atomic_mod_increment_and_fetch_int:__module_atomic_ops_NMOD_atomic_store_int
 
 STANDARDFLAGS           = -qthreaded -qsmp=noauto -qsmp=omp
