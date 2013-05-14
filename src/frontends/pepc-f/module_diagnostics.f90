@@ -22,7 +22,7 @@ MODULE diagnostics
 
         type(t_particle),  intent(in) :: p(:)
         integer, intent(in) :: ispecies,nparticles
-        real(KIND=8),dimension(3) :: get_epot
+        real(KIND=8) :: get_epot
 
         integer :: ip,rc
         real(KIND=8) :: esum,tesum
@@ -43,6 +43,41 @@ MODULE diagnostics
         return
 
     end function get_epot
+
+!===============================================================================
+
+    function get_avg_wallpotential(p,ib)
+        use module_geometry
+        implicit none
+        include 'mpif.h'
+
+        type(t_particle),  intent(in) :: p(:)
+        integer, intent(in) :: ib
+        integer :: tn_wallparticles
+        integer :: n_particles
+        integer :: ip, rc
+        logical :: hit
+
+        real(KIND=8) :: get_avg_wallpotential
+        real(KIND=8) :: potsum
+
+        tn_wallparticles = tnpps(0)
+        potsum=0.
+        n_particles = size(p)
+
+
+        DO ip=1,n_particles
+            IF(p(ip)%data%species/=0) CYCLE
+            call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit)
+            IF (hit) potsum=potsum+p(ip)%results%pot*fc
+        END DO
+
+        potsum = potsum/tn_wallparticles
+
+        call MPI_ALLREDUCE(potsum, get_avg_wallpotential ,1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+
+    end function get_avg_wallpotential
+
 !===============================================================================
 
     function get_v2_mean(p,nparticles,ispecies)

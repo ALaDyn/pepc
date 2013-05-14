@@ -44,8 +44,8 @@ MODULE output
 
         v_mean=get_v_mean(particles,np,ispecies)
         v_th=sqrt(2*species(ispecies)%t_src*e/species(ispecies)%m)
-        if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity (1,2,3) [m/s]  : ",v_mean
-        if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity/v_th (1,2,3)   : ",v_mean/v_th
+        if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity (1,2,3) [m/s]     : ",v_mean
+        if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity/v_th (1,2,3)      : ",v_mean/v_th
 
 
 
@@ -60,19 +60,35 @@ MODULE output
         include 'mpif.h'
 
         integer,intent(in)      :: filehandle,ispecies
-        real(KIND=8) :: v2_mean(3),ekin(3),epot(3)
+        real(KIND=8) :: v2_mean(3),ekin(3),epot
 
 
         v2_mean=get_v2_mean(particles,np,ispecies)
         ekin=v2_mean*0.5*species(ispecies)%m/e
         if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average kinetic energy (1,2,3) [eV]: ",ekin
         epot=get_epot(particles,np,ispecies)
-        if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average potential energy (1,2,3) [eV]: ",epot
+        if(root) write(filehandle,'(a,(1pe16.7E3))') "Average potential energy [eV]      : ",epot
 
 
 
 
     END SUBROUTINE  energy_output
+
+!===============================================================================
+
+!notizen: andere quelle, andere verteilung der Wandteilchen (fixed pos, regelmäßig würfeln)
+    SUBROUTINE avg_wallpotential_output(ib,filehandle)
+        use diagnostics
+        implicit none
+        include 'mpif.h'
+
+        integer, intent(in) :: filehandle,ib
+        real(KIND=8) :: avg_potential
+
+        avg_potential = get_avg_wallpotential(particles,ib)
+        if (root)write(filehandle,'(a,i2,a,(1pe16.7E3))') "Average Potential [V] on boundary", ib,":",avg_potential
+
+    END SUBROUTINE  avg_wallpotential_output
 
 !===============================================================================
 
@@ -85,13 +101,13 @@ MODULE output
         real(kind=8)             :: timestep
 
         timestep=integrator+particlehandling+pepc_grow+output+pepc_traverse+pepc_rest
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in integrator [s], %            : ", integrator,", ",100.*integrator/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in particlehandling [s], %      : ", particlehandling,", ",100.*particlehandling/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in grow_tree routine [s], %     : ", pepc_grow,", ",100.*pepc_grow/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in traverse_tree routine [s], % : ", pepc_traverse,", ",100.*pepc_traverse/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in other pepc routines [s], %   : ", pepc_rest,", ",100.*pepc_rest/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in output routines [s], %       : ", output,", ",100.*output/timestep," %"
-        if(root) write(filehandle,'(a,es16.8)') " == total time in timestep [s]           : ", timestep
+        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in integrator [s], %            :", integrator,", ",100.*integrator/timestep," %"
+        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in particlehandling [s], %      :", particlehandling,", ",100.*particlehandling/timestep," %"
+        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in grow_tree routine [s], %     :", pepc_grow,", ",100.*pepc_grow/timestep," %"
+        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in traverse_tree routine [s], % :", pepc_traverse,", ",100.*pepc_traverse/timestep," %"
+        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in other pepc routines [s], %   :", pepc_rest,", ",100.*pepc_rest/timestep," %"
+        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in output routines [s], %       :", output,", ",100.*output/timestep," %"
+        if(root) write(filehandle,'(a,es16.8)') " == total time in timestep [s]           :", timestep
 
     END SUBROUTINE timing_output
 
@@ -103,10 +119,12 @@ MODULE output
 
         integer,intent(in)      :: timestep,filehandle
 
-        if(root) write(filehandle,'(a,es16.8)') " == timestep                      : ",dt
-        if(root) write(filehandle,'(a,i6)') " == finished computing step              : ",timestep
+        if(root) write(filehandle,'(a,es16.8)') " == timestep                             :",dt
+        if(root) write(filehandle,'(a,i16)') " == finished computing step              :",timestep
         if(root) write(filehandle,'(a)') " "
-        if(root) write(filehandle,'(a)') "#############################################################################"
+        if(root) write(filehandle,'(a)')"############################################################################################################"
+        if(root) write(filehandle,'(a)')"    ====================================================================================================    "
+        if(root) write(filehandle,'(a)')"############################################################################################################"
         if(root) write(filehandle,'(a)') " "
 
     END SUBROUTINE end_of_ts_output
@@ -120,10 +138,12 @@ MODULE output
         integer,intent(in)      :: filehandle
         integer :: ib,ispecies
 
-        IF(root) write(filehandle,'(a)')"========================= Info on particle-species ========================="
+        IF(root) write(filehandle,'(a)')"================================================================================================"
+        IF(root) write(filehandle,'(a)')"=================================== Info on particle-species ==================================="
+        IF(root) write(filehandle,'(a)')"================================================================================================"
         DO ispecies=0,nspecies-1
             IF(root) THEN
-                write(filehandle,'(a,i2,a)')"========================= Species ",ispecies," ========================="
+                write(filehandle,'(a,i2,a)')"----------------------------------- Species ",ispecies," ---------------"
                 write(filehandle,'(a,a)')"Name: ",TRIM(species(ispecies)%name)
                 IF (.not. species(ispecies)%physical_particle) write(filehandle,'(a)')"(no physical species)"
                 write(filehandle,*)
@@ -133,31 +153,37 @@ MODULE output
                 call energy_output(ispecies,filehandle)
                 IF(root) write(filehandle,*)
                 DO ib=1,nb
-                    IF(root) write(filehandle,'(a,i2,a,i10)') "Hits on boundary ",ib," :",thits_out(ispecies,ib)
+                    IF(root) write(filehandle,'(a,i2,a,i10)') "Hits on boundary ",ib,":",thits_out(ispecies,ib)
                 END DO
                 IF(root) write(filehandle,*)
-                IF(root) write(filehandle,'(a,i10)') "Refluxed particles  :",SUM(treflux_out(ispecies,1:nb))+species(ispecies)%nfp
+                IF(root) write(filehandle,'(a,i10)') "Refluxed particles :",SUM(treflux_out(ispecies,1:nb))+species(ispecies)%nfp
                 IF(root) write(filehandle,*)
-                IF(root) write(filehandle,'(a,i10)') "Number of particles  :",tnpps(ispecies)
+                IF(root) write(filehandle,'(a,i10)') "Number of particles:",tnpps(ispecies)
                 IF(root) write(filehandle,*)
             ELSE
                 IF(root) write(filehandle,*)
-                IF(root) write(filehandle,'(a,i10)') "Number of particles  :",tnpps(ispecies)
+                IF(root) write(filehandle,'(a,i10)') "Number of particles:",tnpps(ispecies)
                 IF(root) write(filehandle,*)
             END IF
-            IF(root) write(filehandle,'(a)')"=============================================================="
-            IF(root) write(filehandle,*)
+
         END DO
 
-        IF(root) write(filehandle,'(a)')"========================= Info on boundaries ========================="
+        IF(root) write(filehandle,'(a)')"================================================================================================"
+        IF(root) write(filehandle,'(a)')"=================================== Info on boundaries ========================================="
+        IF(root) write(filehandle,'(a)')"================================================================================================"
         DO ib=1,nb
             IF (boundaries(ib)%nwp/=0) THEN
-                IF(root) write(filehandle,'(a,i2,a,es16.8)') "Total charge on boundary ",ib," :",boundaries(ib)%q_tot
+                IF(root) write(filehandle,'(a,i2,a,es16.8)') "Total charge on boundary ",ib,":",boundaries(ib)%q_tot
+                call avg_wallpotential_output(ib,filehandle)
             END IF
         END DO
 
         IF(root) write(filehandle,*)
-        IF(root) write(filehandle,'(a,i16)')    " == Total number of particles            : ", tnp
+
+        IF(root) write(filehandle,'(a)')"================================================================================================"
+        IF(root) write(filehandle,'(a)')"=================================== General info ==============================================="
+        IF(root) write(filehandle,'(a)')"================================================================================================"
+        IF(root) write(filehandle,'(a,i16)')    " == Total number of particles            :", tnp
 
         thits_out=0
         treflux_out=0
