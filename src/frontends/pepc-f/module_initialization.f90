@@ -93,9 +93,6 @@ module module_initialization
                 IF(boundaries(src_boundary)%type==2) THEN
                     IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
                     STOP
-                ELSE IF (boundaries(src_boundary)%type==3) THEN
-                    IF (root) write(*,'(a)') "Open boundary cannot be used as surface source"
-                    STOP
                 END IF
                 IF (root) write(*,'(a,i3,a,i3)') "Boundary ",src_boundary," chosen as surface source of type ",quelltyp
             END IF
