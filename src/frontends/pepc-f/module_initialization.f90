@@ -187,9 +187,6 @@ module module_initialization
         r_lamor=0.
     END IF
 
-    !ne=0.5*tnpp*fsup/(dx*dy*dz)
-    !omega_p=sqrt(ne*e*e/eps0/me)
-
 
   end subroutine set_parameters
 

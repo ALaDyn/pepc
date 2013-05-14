@@ -420,11 +420,9 @@ module particlehandling
                 p(ip)%data%B(2)=By
                 p(ip)%data%B(3)=Bz
                 p(ip)%label       = my_rank * (SUM(tnpps(1:nspecies-1)) / n_ranks) + ip
-                p(ip)%data%q      = species(ispecies)%q*fsup    !(-1.0_8 + 2.0_8*MOD(p(ip)%label,2))*e*fsup
-                p(ip)%data%m      = species(ispecies)%m*fsup    !me*fsup
-                p(ip)%data%species= species(ispecies)%indx      !1
-                !if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = mp*fsup
-                !if(p(ip)%data%q .gt. 0.0) p(ip)%data%species=2
+                p(ip)%data%q      = species(ispecies)%q*fsup
+                p(ip)%data%m      = species(ispecies)%m*fsup
+                p(ip)%data%species= species(ispecies)%indx
                 p(ip)%results%e   = 0.0_8
                 p(ip)%results%pot = 0.0_8
                 p(ip)%work        = 1.0_8
@@ -451,47 +449,6 @@ module particlehandling
         next_label = SUM(tnpps)+1
   
     END SUBROUTINE init_particles
-
-
-!======================================================================================
-    subroutine init_wall_particles(p)
-        implicit none
-    
-        type(t_particle), intent(inout) :: p(:)
-        type(t_boundary) :: wall
-        real :: ran1,ran2
-        integer :: ip,ib,n
-
-        n=size(p)
-        DO ip=1, n
-            p(ip)%data%B=0.0_8
-
-            p(ip)%label       = -(my_rank * (tnpps(0) / n_ranks) + ip)
-            p(ip)%data%q      = 0.0_8
-            p(ip)%data%m      = 10.0_8
-
-            p(ip)%results%e   = 0.0_8
-            p(ip)%results%pot = 0.0_8
-            p(ip)%work        = 1.0_8
-            p(ip)%data%species= 0
-
-            p(ip)%data%v      =0.0_8
-
-            !noch auskommentieren test
-            !p(ip)%x(1)        =xmax
-            !p(ip)%x(2)        =wall_pos(-p(ip)%label,1)
-            !p(ip)%x(3)        =wall_pos(-p(ip)%label,2)
-            DO ib=1,nb
-                IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                    wall=boundaries(ib)
-                    ran1=rnd_num()
-                    ran2=rnd_num()
-                    p(ip)%x = wall%x0 + ran1*wall%e1 +ran2*wall%e2
-                END IF
-            END DO
-        END DO
- 
-    end subroutine init_wall_particles
 
 !======================================================================================
     subroutine redistribute_wall_particles(p)
@@ -561,11 +518,6 @@ module particlehandling
                 call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
                 call random_gaussian_flux(p(ip)%data%v(1),sigma)
                 ran=rnd_num()
-
-                !p(ip)%x(2)=rnd_num()*dy + ymin
-                !p(ip)%x(3)=rnd_num()*dz + zmin
-                !p(ip)%x(1)=p(ip)%data%v(1)*dt*ran + xmin
-
                 ran1=rnd_num()
                 ran2=rnd_num()
                 p(ip)%x = (boundaries(src_boundary)%x0 + ran1*boundaries(src_boundary)%e1 + ran2*boundaries(src_boundary)%e2)
@@ -651,12 +603,6 @@ module particlehandling
             ELSE
                 sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
                 call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
-                !p(ip)%x(1)=rnd_num()
-                !p(ip)%x(2)=rnd_num()
-                !p(ip)%x(3)=rnd_num()
-                !p(ip)%x(1)         = p(ip)%x(1)*0.5*dx + xmin
-                !p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
-                !p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
 
                 p(ip)%x=x0_src + rnd_num()*e1_src + rnd_num()*e2_src + rnd_num()*e3_src
 
