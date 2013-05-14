@@ -92,22 +92,24 @@ MODULE output
 
 !===============================================================================
 
-    SUBROUTINE timing_output(integrator,particlehandling,pepc_grow,pepc_traverse,pepc_rest,output,filehandle)
+    SUBROUTINE timing_output(integrator,particlehandling,pepc_grow,pepc_traverse,pepc_diag,pepc_timber,output,filehandle)
 
         implicit none
 
         integer,intent(in)      :: filehandle
-        real(kind=8),intent(in) :: integrator,particlehandling,pepc_grow,output,pepc_traverse,pepc_rest
+        real(kind=8),intent(in) :: integrator,particlehandling,pepc_grow,output,pepc_traverse,pepc_diag,pepc_timber
         real(kind=8)             :: timestep
 
-        timestep=integrator+particlehandling+pepc_grow+output+pepc_traverse+pepc_rest
+        timestep=integrator+particlehandling+pepc_grow+output+pepc_traverse+pepc_diag+pepc_timber
         if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in integrator [s], %            :", integrator,", ",100.*integrator/timestep," %"
         if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in particlehandling [s], %      :", particlehandling,", ",100.*particlehandling/timestep," %"
         if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in grow_tree routine [s], %     :", pepc_grow,", ",100.*pepc_grow/timestep," %"
         if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in traverse_tree routine [s], % :", pepc_traverse,", ",100.*pepc_traverse/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in other pepc routines [s], %   :", pepc_rest,", ",100.*pepc_rest/timestep," %"
+        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in timber_tree routine [s], %   :", pepc_timber,", ",100.*pepc_timber/timestep," %"
+        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in pepc diag routines [s], %    :", pepc_diag,", ",100.*pepc_diag/timestep," %"
         if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in output routines [s], %       :", output,", ",100.*output/timestep," %"
         if(root) write(filehandle,'(a,es16.8)') " == total time in timestep [s]           :", timestep
+        if(root) write(filehandle,*)
 
     END SUBROUTINE timing_output
 
