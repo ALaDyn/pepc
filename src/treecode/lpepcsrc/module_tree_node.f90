@@ -27,11 +27,9 @@ module module_tree_node
     private
 
     ! bits in flags to be set when children are requested, the request has been sent, and they have arrived
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL2_REQUEST_POSTED           = 0 !< bit is used in flags_local2 to denote that a request for children information is already in the request queue
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL1_CHILDREN_AVAILABLE       = 0 !< bit is used in flags_local1 to denote that children information for the node is available in the local hashtable
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL1_REQUEST_SENT             = 1 !< bit is used in flags_local1 to denote that children information has already been requested from the owner
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL1_HAS_LOCAL_CONTRIBUTIONS  = 2 !< bit is set in flags_local1 for all nodes that contain some local nodes beneath them
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL1_HAS_REMOTE_CONTRIBUTIONS = 3 !< bit is set in flags_local1 for all nodes that contain some remote nodes beneath them
+    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE       = 0 !< bit is used in flags_local to denote that children information for the node is available in the local hashtable
+    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS  = 2 !< bit is set in flags_local for all nodes that contain some local nodes beneath them
+    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS = 3 !< bit is set in flags_local for all nodes that contain some remote nodes beneath them
     integer, public, parameter :: TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE           = 0 !< bit is set in flags_global for all branch nodes (set in tree_exchange)
     integer, public, parameter :: TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE             = 1 !< bit is set in flags_global for all nodes that are above (towards root) branch nodes
 
@@ -129,7 +127,7 @@ module module_tree_node
       type(t_tree_node), intent(in) :: n
       logical :: tree_node_children_available
 
-      tree_node_children_available = btest(n%flags_local1, TREE_NODE_FLAG_LOCAL1_CHILDREN_AVAILABLE)
+      tree_node_children_available = btest(n%flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE)
     end function tree_node_children_available
 
 
@@ -218,8 +216,8 @@ module module_tree_node
       n%key = p%key
       n%childcode = p%childcode
       n%flags_global = p%flags_global
-      n%flags_local1 = 0
-      n%flags_local2 = 0
+      n%flags_local = 0
+      n%request_sent = .false.
       n%leaves = p%leaves
       n%descendants = p%descendants
       n%owner = p%owner

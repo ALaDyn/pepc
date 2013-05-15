@@ -285,7 +285,7 @@ module module_tree_grow
 
       if (branch%owner /= t%comm_env%rank) then
         ! additionally, we mark all remote branches as remote nodes (this information is propagated upwards later)
-        branch%flags_local1 = ibset(branch%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_REMOTE_CONTRIBUTIONS)
+        branch%flags_local = ibset(branch%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
       end if
     end do
 
@@ -647,8 +647,8 @@ module module_tree_grow
           ! TODO: put the following in tree_node_from_particle
           this_node%childcode    = 0
           this_node%flags_global = 0
-          this_node%flags_local1 = ibset(this_node%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_LOCAL_CONTRIBUTIONS)
-          this_node%flags_local2 = 0
+          this_node%flags_local  = ibset(this_node%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
+          this_node%request_sent = .false.
           this_node%owner        = t%comm_env%rank
           this_node%key          = k
           this_node%level        = l
@@ -736,15 +736,14 @@ module module_tree_grow
     integer :: nchild, i
     integer(kind_node) :: nleaves
     integer(kind_node) :: ndescendants
-    integer(kind_byte) :: flags_local1, flags_local2, flags_global, childcode
+    integer(kind_byte) :: flags_local, flags_global, childcode
     type(t_tree_node), pointer :: child
 
     nchild = size(children, kind=kind(nchild))
 
     childcode    = 0
     flags_global = 0
-    flags_local1 = 0
-    flags_local2 = 0
+    flags_local  = 0
     nleaves      = 0
     ndescendants = nchild
     
@@ -757,12 +756,12 @@ module module_tree_grow
       ! set bits for available children
       childcode = ibset(childcode, child_number_from_key(child%key))
       ! parents of nodes with local contributions also contain local contributions
-      if (btest(child%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_LOCAL_CONTRIBUTIONS)) then
-        flags_local1 = ibset(flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_LOCAL_CONTRIBUTIONS)
+      if (btest(child%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)) then
+        flags_local = ibset(flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
       endif
       ! parents of nodes with remote contributions also contain remote contributions
-      if (btest(child%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_REMOTE_CONTRIBUTIONS)) then
-        flags_local1 = ibset(flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_REMOTE_CONTRIBUTIONS)
+      if (btest(child%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)) then
+        flags_local = ibset(flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
       endif
       ! parents of branch and fill nodes will also be fill nodes
       if (btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE) .or. btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
@@ -776,13 +775,13 @@ module module_tree_grow
     DEBUG_ASSERT_MSG(all(parent_keys(2:nchild) == parent_keys(1)), *, "Error in shift nodes up: not all supplied children contribute to the same parent node")
 
     ! Set children_HERE flag parent since we just built it from its children
-    flags_local1 = ibset(flags_local1, TREE_NODE_FLAG_LOCAL1_CHILDREN_AVAILABLE)
+    flags_local = ibset(flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE)
 
     parent%key          = parent_keys(1)
     parent%childcode    = childcode
     parent%flags_global = flags_global
-    parent%flags_local1 = flags_local1
-    parent%flags_local2 = flags_local2
+    parent%flags_local  = flags_local
+    parent%request_sent = .false.
     parent%leaves       = nleaves
     parent%descendants  = ndescendants
     parent%owner        = parent_owner

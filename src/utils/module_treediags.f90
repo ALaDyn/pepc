@@ -345,7 +345,7 @@ module module_treediags
             ns = NODE_INVALID
 
             associate (n => t%nodes(nidx))
-              if (btest(n%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_LOCAL_CONTRIBUTIONS)) then
+              if (btest(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)) then
                 if (tree_node_is_leaf(n)) then
                   i = i + 1
                   leaves(i) = nidx

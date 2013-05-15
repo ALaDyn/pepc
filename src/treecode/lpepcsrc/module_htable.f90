@@ -623,14 +623,13 @@ module module_htable
         write(debug_ipefile,'(/a)') 'Hash table'
 
         write(debug_ipefile,'(134x,a48)') &
-                    "       REQUEST_POSTED                  ", &
+                    "       REQUEST_SENT                    ", &
                     "       |     HAS_REMOTE_CONTRIBUTIONS  ", &
                     "       |     |HAS_LOCAL_CONTRIBUTIONS  ", &
-                    "       |     ||REQUEST_SENT            ", &
-                    "       |     |||CHILDREN_AVAILABLE     ", &
-                    "       |     ||||       IS_FILL_NODE   ", &
-                    "       |     ||||       |IS_BRANCH_NODE", &
-                    "flags  |     ||||       ||             "
+                    "       |     || CHILDREN_AVAILABLE     ", &
+                    "       |     || |       IS_FILL_NODE   ", &
+                    "       |     || |       |IS_BRANCH_NODE", &
+                    "flags  |     || |       ||             "
 
         write(debug_ipefile,'(4(x,a10),3(x,a22),x,a14,x,a10,4x,3(a8,x),a8,/,143("-"),a35)') &
                      'entry_10', &
@@ -671,8 +670,8 @@ module module_htable
                     collision, &
                     t%buckets(i)%link, &
                     t%values(t%buckets(i)%val)%leaves, &
-                    t%values(t%buckets(i)%val)%flags_local2, &
-                    t%values(t%buckets(i)%val)%flags_local1, &
+                    t%values(t%buckets(i)%val)%request_sent, &
+                    t%values(t%buckets(i)%val)%flags_local, &
                     t%values(t%buckets(i)%val)%flags_global, &
                     t%values(t%buckets(i)%val)%childcode
           end if

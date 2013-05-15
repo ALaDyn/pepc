@@ -93,8 +93,6 @@
 !      |   +-> t_comm_total
 !      |       +
 !      |       |
-!      |       +-> t_comm_sendreqs
-!      |       |
 !      |       +-> t_comm_recv
 !      |
 !      +-> t_lattice
@@ -156,7 +154,7 @@ module module_timings
     ! timings for tree_walk_communicator
     integer, parameter :: t_comm_total         = 42
     integer, parameter :: t_comm_recv          = 43
-    integer, parameter :: t_comm_sendreqs      = 44
+    integer, parameter :: t_unused_44          = 44
     ! tree_domains, additional timings
     integer, parameter :: t_domains_add_sort   = 45
     integer, parameter :: t_domains_add_pack   = 46

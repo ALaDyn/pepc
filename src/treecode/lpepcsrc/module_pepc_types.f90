@@ -77,8 +77,8 @@ module module_pepc_types
         integer(kind_key) :: key
         integer(kind_byte) :: childcode
         integer(kind_byte) :: flags_global !< flags which are globally valid (and have to be shipped to other ranks)
-        integer(kind_byte) :: flags_local1 !< flags which are only locally valid (may not be shipped), used for flags written by communicator thread
-        integer(kind_byte) :: flags_local2 !< flags which are only locally valid (may not be shipped), used for flags written by traversal threads
+        integer(kind_byte) :: flags_local  !< flags which are only locally valid (may not be shipped)
+        logical(kind_byte) :: request_sent !< is set to .true. after a request for child data has been sent
         integer(kind_node) :: leaves       !< total number of leaf nodes below this node
         integer(kind_node) :: descendants  !< total number of descendants (tree nodes and leaves) below this node
         integer(kind_pe) :: owner
