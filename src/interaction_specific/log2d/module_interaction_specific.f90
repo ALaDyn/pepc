@@ -41,11 +41,6 @@ module module_interaction_specific
   real*8, public  :: theta2       = 0.36  !< square of multipole opening angle
   real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential
 
-  ! these are required by module_treediags, for now
-  integer(kind_key), allocatable, public :: interaction_keylist(:,:)
-  integer(kind_node), allocatable, public :: no_interaction_partners(:)
-  real*8, allocatable, public :: interaction_vbox(:,:,:)
-
   namelist /calc_force_log2d/ mac_select, include_far_field_if_periodic, theta2, eps2
 
   ! currently, all public functions in module_interaction_specific are obligatory

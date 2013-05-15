@@ -55,9 +55,11 @@ module module_interaction_partners
 
 
     subroutine get_interaction_partners(num_of_probes)
+      use module_interaction_specific, only: interaction_keylist, &
+        no_interaction_partners, interaction_vbox
       implicit none
 
-      integer                                   :: num_of_probes
+      integer :: num_of_probes
 
       integer :: i,help_num_of_probes
 
@@ -70,7 +72,7 @@ module module_interaction_partners
       call pepc_traverse_tree(probe_particles(1:help_num_of_probes))
       force_law=3
       do i=1,help_num_of_probes
-          call write_interaction_partners_to_vtk(step, i,0.0_8, -1)
+          call write_interaction_partners_to_vtk(step, i,0.0_8, -1, interaction_keylist, no_interaction_partners, interaction_vbox)
           write(*,*)i,no_interaction_partners(i)
       end do
       no_interaction_partners=0
