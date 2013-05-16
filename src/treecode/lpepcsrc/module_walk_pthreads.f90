@@ -843,7 +843,7 @@ module module_walk
       ! interact
       ! Check cutoff
       if (all(abs(delta) < spatial_interaction_cutoff)) then
-        call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node%key, delta, dist2, vbox, is_leaf)
+        call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox, is_leaf)
         num_interactions = num_interactions + 1
       end if
       ! Interaction was considered, count partner leaves

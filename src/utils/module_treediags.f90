@@ -248,7 +248,7 @@ module module_treediags
         !> Writes the interaction partners of the particle with the 
         !> specified label into vtk files, once as boxes, once as points
         !>
-        subroutine write_interaction_partners_to_vtk(step, label,tsim, vtk_step, interaction_keylist, no_interaction_partners, interaction_vbox)
+        subroutine write_interaction_partners_to_vtk(step, label,tsim, vtk_step, interaction_nodelist, no_interaction_partners, interaction_vbox)
           use module_pepc, only: global_tree
           use module_pepc_types
           use treevars
@@ -257,7 +257,7 @@ module module_treediags
           integer, intent(in) :: label
           real*8, intent(in) :: tsim
           
-          integer(kind_key), intent(in) :: interaction_keylist(:,:)
+          integer(kind_node), intent(in) :: interaction_nodelist(:,:)
           integer(kind_node), intent(in) :: no_interaction_partners(:)
           real*8, intent(in) :: interaction_vbox(:,:,:)
           
@@ -272,8 +272,7 @@ module module_treediags
             allocate(partner_nodes(no_interaction_partners(label)))
 
             do i = 1, no_interaction_partners(label)
- !FIXME             call tree_lookup_node_critical(global_tree, interaction_keylist(label, i), partner_nodes(i), &
- !               'write_interaction_partners_to_vtk()')
+              partner_nodes(i) = interaction_nodelist(label, i)
             end do
 
             call write_nodes_to_vtk_as_points(fn_point, MPI_Comm_lpepc, step, tsim, vtk_step, global_tree, partner_nodes, &

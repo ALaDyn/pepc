@@ -65,9 +65,6 @@ module module_htable
     public htable_entries
     public htable_maxentries
     public htable_add
-    public htable_lookup
-    public htable_remove_keys
-    public htable_remove_key
     public htable_clear
     public htable_destroy
     public htable_check
@@ -294,99 +291,6 @@ module module_htable
 
     end function htable_add
 
-
-
-    !>
-    !> returns `.true.` if hash table `t` contains a value for key `k`
-    !> and makes `v` point to the corresponding value, `.false.` and 
-    !> `null()` otherwise
-    !>
-    function htable_lookup(t, k, v, caller)
-      use module_debug
-      use module_tree_node, only: NODE_INVALID
-      implicit none
-
-      type(t_htable), intent(in) :: t
-      integer(kind_key), intent(in) :: k
-      integer(kind_node), intent(out) :: v
-      character(LEN=*), optional, intent(in) :: caller
-
-      logical :: htable_lookup
-      integer(kind_node) :: addr
-
-      DEBUG_ASSERT(htable_allocated(t))
-      htable_lookup = testaddr(t, k, addr)
-      if (htable_lookup) then
-        v = t%buckets(addr)%val
-      else
-        ! could not find key
-        if (present(caller)) then
-          DEBUG_WARNING_ALL('("Key not resolved in htable_lookup at ",a)', caller)
-          DEBUG_WARNING_ALL('("key                  (oct) = ", o22)', k)
-          DEBUG_WARNING_ALL('("initial address      (dez) = ", i22)', htable_hash_function(t, k))
-          DEBUG_WARNING_ALL('("   last address      (dez) = ", i22)', addr)
-          if (.not. (addr == -1)) then
-            DEBUG_WARNING_ALL('("htable(lastaddr)%key (oct) = ", o22)', t%buckets(addr)%key)
-          end if
-          DEBUG_WARNING_ALL('("# const              (dez) = ", i22)', t%hashconst)
-          DEBUG_WARNING_ALL('("     maxentries      (dez) = ", i22)', t%maxentries)
-        end if
-        v = NODE_INVALID
-      end if
-    end function htable_lookup
-
-
-
-    !>
-    !> Removes the entry for `key` from `t`, i.e., `htable_contains(t, key) == .false.`
-    !> afterwards
-    !>
-    !> \note Entries are actually only invalidated. This means that no space in
-    !> the hash table is freed and `htable_entries(t)` remains unchanged.
-    !>
-    subroutine htable_remove_key(t, key)
-      use module_debug
-      implicit none
-
-      type(t_htable), intent(inout) :: t
-      integer(kind_key), intent(in) :: key
-
-      integer(kind_node) :: addr
-
-      DEBUG_ASSERT(htable_allocated(t))
-      if (testaddr(t, key, addr)) then
-        t%buckets( addr )%key = HTABLE_KEY_INVALID
-      end if
-      
-      
-      
-    end subroutine htable_remove_key
-
-
-    !>
-    !> Removes the entry for `keys` from `t`, i.e., `htable_contains(t, k) == .false.`
-    !> for any `k` in `keys` afterwards
-    !>
-    !> \note Entries are actually only invalidated. This means that no space in
-    !> the hash table is freed and `htable_entries(t)` remains unchanged.
-    !>
-    subroutine htable_remove_keys(t, keys, num_keys)
-      use module_debug
-      implicit none
-
-      type(t_htable), intent(inout) :: t
-      integer(kind_node), intent(in) :: num_keys
-      integer(kind_key), intent(in) :: keys(num_keys)
-
-      integer(kind_node) :: i
-
-      DEBUG_ASSERT(htable_allocated(t))
-      do i = 1, num_keys
-        call htable_remove_key(t, keys(i))
-      end do
-
-    end subroutine
-    
     
     function htable_hash_function(t, key)
       implicit none

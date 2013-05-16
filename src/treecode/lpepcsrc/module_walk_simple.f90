@@ -159,7 +159,7 @@ module module_walk
 
       ! interact
 1     if (all(abs(d) < spatial_interaction_cutoff)) then
-        call calc_force_per_interaction(p, t%nodes(n)%interaction_data, t%nodes(n)%key, d, d2, vbox, is_leaf)
+        call calc_force_per_interaction(p, t%nodes(n)%interaction_data, n, d, d2, vbox, is_leaf)
         interactions_local = interactions_local + 1.0_8
       end if
       ! count partner

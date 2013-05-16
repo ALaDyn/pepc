@@ -99,13 +99,6 @@ module module_tree
     public tree_stats
     public tree_destroy
 
-    public tree_lookup_node
-    public tree_lookup_node_i
-
-    interface tree_lookup_node
-      module procedure tree_lookup_node_i, tree_lookup_node_p
-    end interface
-
     contains
 
     !>
@@ -435,58 +428,6 @@ module module_tree
       endif
       
     end function tree_traverse_to_key
-
-    
-    !>
-    !> looks up a node for key `k` in tree `t`,
-    !> returns `.true.` in case a node is found and makes `n` point to it,
-    !> `.false.` is returned otherwise
-    !>
-    function tree_lookup_node_i(t, k, n, caller)
-      use module_pepc_types, only: t_tree_node, kind_node
-      use module_htable, only: htable_lookup
-      use module_debug
-      implicit none
-
-      logical :: tree_lookup_node_i
-
-      type(t_tree), intent(in) :: t !< the tree
-      integer(kind_key), intent(in) :: k !< key to look up
-      integer(kind_node), intent(out) :: n !< node that is identified by `k`
-      character(LEN = *), optional, intent(in) :: caller
-
-      DEBUG_ASSERT(tree_allocated(t))
-      tree_lookup_node_i = htable_lookup(t%node_storage, k, n, caller)
-    end function tree_lookup_node_i
-
-
-    !>
-    !> looks up a node for key `k` in tree `t`,
-    !> returns `.true.` in case a node is found and makes `n` point to it,
-    !> `.false.` is returned otherwise
-    !>
-    function tree_lookup_node_p(t, k, n, caller)
-      use module_pepc_types, only: t_tree_node, kind_node
-      use module_debug
-      implicit none
-
-      logical :: tree_lookup_node_p
-
-      type(t_tree), intent(in) :: t !< the tree
-      integer(kind_key), intent(in) :: k !< key to look up
-      type(t_tree_node), pointer, intent(out) :: n !< node that is identified by `k`
-      character(LEN = *), optional, intent(in) :: caller
-
-      integer(kind_node) :: in
-
-      tree_lookup_node_p = tree_lookup_node_i(t, k, in, caller)
-      if (tree_lookup_node_p) then
-        n => t%nodes(in)
-      else
-        n => null()
-      end if
-      
-    end function tree_lookup_node_p
 
 
     !>
