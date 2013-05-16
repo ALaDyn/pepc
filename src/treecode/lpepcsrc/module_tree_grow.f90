@@ -147,7 +147,7 @@ module module_tree_grow
   !> Incoming tree nodes are inserted into tree `t`, but the tree above these nodes is not corrected.
   !> Outputs keys of new (and own) tree nodes in `branch_keys`.
   !>
-  subroutine tree_exchange(t, local_branch_nodes, branch_nodes)
+  subroutine tree_exchange(t, num_local_branch_nodes, local_branch_nodes, branch_nodes)
     use module_tree, only: t_tree, tree_lookup_node_critical, tree_insert_node
     use module_tree_node, only: tree_node_pack, tree_node_unpack, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE
     use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, kind_node
@@ -158,6 +158,7 @@ module module_tree_grow
     include 'mpif.h'
 
     type(t_tree), intent(inout) :: t !< the tree
+    integer(kind_node), intent(in) :: num_local_branch_nodes !< number of local branch nodes (valid entries in local_branch_nodes(1:num_local_branch_nodes), everything beyond is garbage
     integer(kind_node), intent(in) :: local_branch_nodes(:) !< all local branch nodes
     integer(kind_node), intent(inout), allocatable :: branch_nodes(:) !< all branch nodes in the tree
 
@@ -170,9 +171,9 @@ module module_tree_grow
     integer(kind_default), allocatable :: nbranches(:), igap(:)
 
     call timer_start(t_exchange_branches_pack)
-
-    nbranch = size(local_branch_nodes, kind=kind(nbranch))
     
+    nbranch = int(num_local_branch_nodes, kind=kind(nbranch)) ! we need this cast since MPI-strides have to be of kind_default
+
     ! Pack local branches for shipping
     allocate(pack_mult(nbranch))
     do i = 1, nbranch
@@ -224,7 +225,7 @@ module module_tree_grow
       end if
     end do
 
-    DEBUG_ASSERT(j == size(local_branch_nodes, kind=kind(j)))
+    DEBUG_ASSERT_MSG(j == nbranch,*, j, num_local_branch_nodes)
 
     deallocate(get_mult)
 
@@ -250,31 +251,24 @@ module module_tree_grow
     type(t_tree), intent(inout) :: t !< the tree
     type(t_particle), intent(in) :: p(:) !< list of local particles
     type(t_particle), intent(in) :: bp(2) !< boundary particles
-    integer(kind_node), allocatable, intent(inout) :: bn(:) !< keys of all branch nodes
+    integer(kind_node), allocatable, intent(inout) :: bn(:) !< node-indices of all branch nodes
 
-    integer(kind_node) :: i, num_local_branch_keys
-    integer(kind_key), allocatable :: local_branch_keys(:)
-    type(t_tree_node), pointer :: branch
+    integer(kind_node) :: i, num_local_branch_nodes
     integer(kind_node), allocatable :: local_branch_nodes(:)
+    type(t_tree_node), pointer :: branch
 
     ! identification of branch nodes
     call timer_start(t_branches_find)
-    call find_local_branches(t, p, bp, num_local_branch_keys, local_branch_keys)
-    t%nbranch_me = num_local_branch_keys
+    call find_local_branches(t, p, bp, num_local_branch_nodes, local_branch_nodes)
+    t%nbranch_me = num_local_branch_nodes
     call timer_stop(t_branches_find)
 
     call pepc_status('EXCHANGE BRANCHES')
 
-    allocate(local_branch_nodes(num_local_branch_keys))
-
-    do i = 1, num_local_branch_keys
-      call tree_lookup_node_critical(t, local_branch_keys(i), local_branch_nodes(i), 'tree_exchange_branches()')
-    end do
-
-    call tree_exchange(t, local_branch_nodes, bn)
+    call tree_exchange(t, num_local_branch_nodes, local_branch_nodes, bn)
     t%nbranch = size(bn, kind=kind(t%nbranch))
 
-    deallocate(local_branch_keys, local_branch_nodes)
+    deallocate(local_branch_nodes)
 
     do i = 1, t%nbranch
       branch => t%nodes(bn(i))
@@ -292,25 +286,26 @@ module module_tree_grow
 
     !>
     !> identifies all `nb` local branch nodes in tree `t` and returns their
-    !> keys in `bk`.
+    !> node indices in `bn`.
     !>
-    subroutine find_local_branches(t, p, bp, nb, bk)
+    subroutine find_local_branches(t, p, bp, nb, bn)
       use module_spacefilling, only: shift_key_by_level
       use module_math_tools, only: bpi
       use treevars, only: idim, nlev
       use module_debug, only: pepc_status
-      use module_tree, only: tree_contains_key
+      use module_tree, only: tree_lookup_node
       implicit none
 
       type(t_tree), intent(inout) :: t !< the tree
       type(t_particle), intent(in) :: p(:) !< list of local particles
       type(t_particle), intent(in) :: bp(2) !< boundary particles
       integer(kind_node), intent(out) :: nb !< number of local branch nodes
-      integer(kind_key), allocatable, intent(out) :: bk(:) !< list of keys of local branch nodes
+      integer(kind_node), allocatable, intent(out) :: bn(:) !< list of local branch node indices
 
       integer(kind_level) :: ilevel
       integer(kind_key) :: vld_llim, vld_rlim, L, D1, D2, pos, j, possible_branch
       integer(kind_level) :: branch_level(0:nlev), branch_level_D1(0:nlev), branch_level_D2(0:nlev)
+      integer(kind_node) :: found_branch
 
       call pepc_status('FIND BRANCHES')
       call find_vld_limits(t, p, bp, vld_llim, vld_rlim)
@@ -335,7 +330,7 @@ module module_tree_grow
       end do
       t%nbranch_max_me = sum(branch_level(:))
           
-      allocate(bk(1:t%nbranch_max_me))
+      allocate(bn(1:t%nbranch_max_me))
       
       nb = 0
       ! for D1
@@ -349,9 +344,9 @@ module module_tree_grow
           ! otherwise branch does not exists
           ! if entry exists it is counted as branch
           ! otherwise discarded
-          if (tree_contains_key(t, possible_branch)) then ! entry exists
+          if (tree_lookup_node(t, possible_branch, found_branch)) then ! entry exists
             nb = nb + 1
-            bk(nb) = possible_branch
+            bn(nb) = found_branch
           end if
         end do
       end do
@@ -367,9 +362,9 @@ module module_tree_grow
           ! otherwise branch does not exists
           ! if entry exists it is counted as branch
           ! otherwise discarded
-          if (tree_contains_key(t, possible_branch)) then ! entry exists
+          if (tree_lookup_node(t, possible_branch, found_branch)) then ! entry exists
             nb = nb + 1
-            bk(nb) = possible_branch
+            bn(nb) = found_branch
           end if
         end do
       end do
