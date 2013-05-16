@@ -3,6 +3,7 @@
 #
 
 BACKEND = coulomb
+BACKENDTYPE = default
 WALK    = pthreads
 
 include tools/build/makefile.paths
@@ -15,10 +16,11 @@ include $(INTSPECDIR)/$(BACKEND)/makefile.include
 MAKEENVS = $(WORKDIR)/makefile.envs
 
 prepare: $(SRC)
-	@echo "==== building frontend :" $(FRONTEND)
-	@echo "==== building walk     :" $(WALK)
-	@echo "==== building backend  :" $(BACKEND)
-	@echo "==== working directory :" $(WORKDIR)
+	@echo "==== building frontend     :" $(FRONTEND)
+	@echo "==== building walk         :" $(WALK)
+	@echo "==== building backend      :" $(BACKEND)
+	@echo "==== building backend type :" $(BACKENDTYPE)
+	@echo "==== working directory     :" $(WORKDIR)
 	@$(RM) $(MAKEENVS)
 	@echo "FRONTEND=$(FRONTEND)"       >> $(MAKEENVS)
 	@echo "ROOTDIR=$(ROOTDIR)"         >> $(MAKEENVS)

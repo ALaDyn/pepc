@@ -511,7 +511,7 @@ module module_walk
     type(c_ptr), value :: arg
 
     integer, dimension(:), allocatable :: thread_particle_indices
-    type(t_particle), dimension(:), allocatable :: thread_particle_data
+    type(t_particle_thread), dimension(:), allocatable :: thread_particle_data
     integer*8, dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
     integer(kind_node), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
     integer, dimension(:), allocatable :: defer_list_start_pos
@@ -618,7 +618,8 @@ module module_walk
               end if
 
               ! copy forces and potentials back to thread-global array
-              particle_data(thread_particle_indices(i)) = thread_particle_data(i)
+              particle_data(thread_particle_indices(i))%data = thread_particle_data(i)%data
+              particle_data(thread_particle_indices(i))%results = thread_particle_data(i)%results
               ! mark particle entry i as free
               thread_particle_indices(i)                = -1
               ! count total processed particles for this thread
@@ -707,7 +708,16 @@ module module_walk
 
         if (contains_particle(idx)) then
           ! we make a copy of all particle data to avoid thread-concurrent access to particle_data array
-          thread_particle_data(idx) = particle_data(thread_particle_indices(idx))
+          thread_particle_data(idx)%x        = particle_data(thread_particle_indices(idx))%x
+          thread_particle_data(idx)%work     = particle_data(thread_particle_indices(idx))%work
+          thread_particle_data(idx)%key      = particle_data(thread_particle_indices(idx))%key
+          thread_particle_data(idx)%key_leaf = particle_data(thread_particle_indices(idx))%key_leaf
+          thread_particle_data(idx)%label    = particle_data(thread_particle_indices(idx))%label
+          thread_particle_data(idx)%pid      = particle_data(thread_particle_indices(idx))%pid
+          thread_particle_data(idx)%data     = particle_data(thread_particle_indices(idx))%data
+          thread_particle_data(idx)%results  = particle_data(thread_particle_indices(idx))%results
+          thread_particle_data(idx)%queued   = -1
+          thread_particle_data(idx)%my_idx   = thread_particle_indices(idx)
           ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
           defer_list_entries_old  =  1
@@ -746,7 +756,7 @@ module module_walk
     implicit none
     include 'mpif.h'
 
-    type(t_particle), intent(inout) :: particle
+    type(t_particle_thread), intent(inout) :: particle
     integer(kind_node), dimension(:), pointer, intent(in) :: defer_list_old
     integer, intent(in) :: defer_list_entries_old
     integer(kind_node), dimension(:), pointer, intent(out) :: defer_list_new
@@ -818,6 +828,8 @@ module module_walk
 
     ! if todo_list and defer_list are now empty, the walk has finished
     walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries_new == 0)
+    if(walk_single_particle .and. (particle%queued .gt. 0)) call compute_iact_list(particle)
+    if(walk_single_particle .and. (particle%queued_l .gt. 0)) call compute_iact_list_leaf(particle)
 
     my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) = my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) + num_interactions
     my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) = my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) + num_mac_evaluations
@@ -860,7 +872,7 @@ module module_walk
         ! children for twig are _absent_
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
-        call tree_node_fetch_children(walk_tree, walk_node, particle, shifted_particle_position) ! fetch children from remote
+        call tree_node_fetch_children(walk_tree, walk_node, particle_data(particle%my_idx), shifted_particle_position) ! fetch children from remote
         if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
         num_post_request = num_post_request + 1
         ! if posting the request failed, this is not a problem, since we defer the particle anyway

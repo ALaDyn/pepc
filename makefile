@@ -129,11 +129,12 @@ makefile.defs:
 	@exit 1
 
 pepclogo:
-	@echo "    ____    ____    ____    ____                                       "
-	@echo "   /\  _\`\ /\  _\`\ /\  _\`\ /\  _\`\                       "
-	@echo "   \ \ \L\ \ \ \L\_\ \ \L\ \ \ \/\_\      The Pretty Efficient      "
-	@echo "    \ \ ,__/\ \  _\L\ \ ,__/\ \ \/_/_           Parallel Coulomb Solver "
-	@echo "     \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \                                 "
-	@echo "      \ \_\   \ \____/\ \_\   \ \____/           pepc@fz-juelich.de"
-	@echo "       \/_/    \/___/  \/_/    \/___/                                  "
-	@echo ""
+	@echo '    _____   ____   _____   _____                              '
+	@echo '   /\  _ `\/\  __\/\  _ `\/\  __`\       The                  '
+	@echo '   \ \ \L\ \ \ \_L\ \ \L\ \ \ \/\_\        Pretty Efficient   '
+	@echo '    \ \ ,__/\ \  _\\ \ ,__/\ \ \/_/_       Parallel Coulomb   '
+	@echo '     \ \ \/  \ \ \_L\ \ \/  \ \ \_\ \    Solver               '
+	@echo '      \ \_\   \ \____\ \_\   \ \____/                         '
+	@echo '       \/_/    \/____/\/_/    \/___/     pepc@fz-juelich.de   '
+	@echo ''
+

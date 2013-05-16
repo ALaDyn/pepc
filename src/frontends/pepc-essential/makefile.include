@@ -13,6 +13,8 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-essential/, $(FILES_L))
 SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 
+# uncomment the following line to get 'GPU' support
+BACKEND = coulomb_gpu
 BACKENDTYPE = XYZQVM
 
 #WALK = smpss

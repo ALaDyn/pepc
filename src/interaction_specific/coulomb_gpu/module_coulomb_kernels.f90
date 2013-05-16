@@ -42,9 +42,13 @@ module module_coulomb_kernels
 
     public calc_force_coulomb_3D
     public calc_force_coulomb_3D_direct
+    public calc_force_coulomb_3D_leaf
     public calc_force_coulomb_2D
     public calc_force_coulomb_2D_direct
     public calc_force_LJ
+    interface calc_force_kelbg_3D_direct
+       module procedure calc_force_kelbg_3D_direct_global, calc_force_kelbg_3D_direct_thread
+    end interface calc_force_kelbg_3D_direct
     public calc_force_kelbg_3D_direct
   
   contains
@@ -60,7 +64,7 @@ module module_coulomb_kernels
       use module_pepc_types
       implicit none
 
-      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      type(t_tree_node_interaction_data), intent(in) :: t !< node data to interact with
       real(kfp), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kfp), intent(out) ::  exyz(3), phi
 
@@ -70,7 +74,7 @@ module module_coulomb_kernels
       dy = d(2)
       dz = d(3)
 
-      r  = sqrt(dist2) ! eps2 is added in calling routine to have plummer intead of coulomb here
+      r  = sqrt(dist2) ! eps2 is added in calling routine to have plummer instead of coulomb here
       rd = one/r
       rd2 = rd *rd
       rd3 = rd *rd2
@@ -251,7 +255,7 @@ module module_coulomb_kernels
 
       real(kfp) :: rd,r,rd3charge
 
-      r         = sqrt(dist2) ! eps2 is added in calling routine to have plummer intead of coulomb here
+      r         = sqrt(dist2) ! eps2 is added in calling routine to have plummer instead of coulomb here
       rd        = one/r
       rd3charge = t%charge*rd*rd*rd
 
@@ -259,6 +263,24 @@ module module_coulomb_kernels
       exyz = rd3charge*d
 
     end subroutine calc_force_coulomb_3D_direct
+    subroutine calc_force_coulomb_3D_leaf(charge, d, dist2, exyz, phi)
+      use module_pepc_types
+      implicit none
+
+      real(kfp), intent(in) :: charge
+      real(kfp), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kfp), intent(out) ::  exyz(3), phi
+
+      real(kfp) :: rd,r,rd3charge
+
+      r         = sqrt(dist2) ! eps2 is added in calling routine to have plummer instead of coulomb here
+      rd        = one/r
+      rd3charge = charge*rd*rd*rd
+
+      phi  = charge*rd
+      exyz = rd3charge*d
+
+    end subroutine calc_force_coulomb_3D_leaf
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
@@ -292,7 +314,7 @@ module module_coulomb_kernels
     !> results are returned in exyz, phi
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine calc_force_kelbg_3D_direct(particle, t, d, dist2, kelbg_invsqrttemp, exyz, phi)
+    subroutine calc_force_kelbg_3D_direct_global(particle, t, d, dist2, kelbg_invsqrttemp, exyz, phi)
       use module_pepc_types
       implicit none
 
@@ -333,6 +355,48 @@ module module_coulomb_kernels
       fprefac = q * rd3 * ome
       exyz    = fprefac * d
 
-    end subroutine calc_force_kelbg_3D_direct
+    end subroutine calc_force_kelbg_3D_direct_global
+    subroutine calc_force_kelbg_3D_direct_thread(particle, t, d, dist2, kelbg_invsqrttemp, exyz, phi)
+      use module_pepc_types
+      implicit none
+
+      type(t_particle_thread), intent(inout) :: particle
+      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      real(kfp), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kfp), intent(out) ::  exyz(3), phi
+      real(kfp), intent(in) :: kelbg_invsqrttemp
+      real(kfp) :: rd,r,rd3
+      real(kfp), parameter :: sqrtpi = sqrt(acos(-1.0_8))
+      real(kfp) :: ome, rol, lambda, q, fprefac
+
+      q = t%charge
+
+      ! TODO: lambda must be adjusted depending on mass and temperature of interacting partners - currently it is fixed for electron-proton interactions
+      if (particle%data%q * q < 0.) then
+        ! e-i or i-e interaction
+        lambda = 1.00027227_8 * kelbg_invsqrttemp
+      else
+        if ( q > 0. ) then
+          ! i-i interaction
+          lambda = 0.03300355_8 * kelbg_invsqrttemp
+        else
+          ! e-e interaction
+          lambda = 1.41421356_8 * kelbg_invsqrttemp
+        endif
+      endif
+
+      r   = sqrt(dist2)
+      rd  = one / r
+      rd3 = rd*rd*rd
+      rol = r  / lambda        !< "r over lambda"
+      ome = 1  - exp(-rol*rol) !< "one minus exp(stuff)"
+
+      ! potential
+      phi = q * rd  * (ome + sqrtpi*rol*(1-erf(rol)))
+      !  forces
+      fprefac = q * rd3 * ome
+      exyz    = fprefac * d
+
+    end subroutine calc_force_kelbg_3D_direct_thread
 
 end module

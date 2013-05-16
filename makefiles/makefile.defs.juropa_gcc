@@ -29,6 +29,7 @@ INLINING = -ftree-vectorize -ftree-vectorizer-verbose=2 -fdump-ipa-inline -finli
 # -flto # deactivated since it lead to problems with MPI_IN_PLACE
 # -flto-partition=none
 #-fwhopr
+INLINING = -ftree-vectorize -ftree-vectorizer-verbose=2 -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop
 
 ifeq ($(DEBUG), 1)
   FFLAGS   = -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
