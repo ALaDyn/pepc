@@ -168,7 +168,7 @@ module module_walk
 
       ! resolve
 3     if (.not. tree_node_children_available(t%nodes(n))) then
-        call tree_node_fetch_children(t, t%nodes(n))
+        call tree_node_fetch_children(t, t%nodes(n), n)
         do
           DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
           if (tree_node_children_available(t%nodes(n))) then

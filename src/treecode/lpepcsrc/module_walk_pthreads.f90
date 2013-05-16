@@ -869,9 +869,9 @@ module module_walk
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
         ! eager requests
-        call tree_node_fetch_children(walk_tree, walk_node, particle, shifted_particle_position) ! fetch children from remote
+        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle, shifted_particle_position) ! fetch children from remote
         ! simpel requests
-        ! call tree_node_fetch_children(walk_tree, walk_node)
+        ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
         num_post_request = num_post_request + 1
         ! if posting the request failed, this is not a problem, since we defer the particle anyway

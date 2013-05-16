@@ -67,7 +67,6 @@ module module_htable
     public htable_add
     public htable_contains
     public htable_lookup
-    public htable_lookup_critical
     public htable_remove_keys
     public htable_remove_key
     public htable_clear
@@ -341,7 +340,7 @@ module module_htable
       else
         ! could not find key
         if (present(caller)) then
-          DEBUG_WARNING_ALL('("Key not resolved in htable_lookup_critical at ",a)', caller)
+          DEBUG_WARNING_ALL('("Key not resolved in htable_lookup at ",a)', caller)
           DEBUG_WARNING_ALL('("key                  (oct) = ", o22)', k)
           DEBUG_WARNING_ALL('("initial address      (dez) = ", i22)', htable_hash_function(t, k))
           DEBUG_WARNING_ALL('("   last address      (dez) = ", i22)', addr)
@@ -355,29 +354,6 @@ module module_htable
       end if
     end function htable_lookup
 
-
-    !>
-    !> makes `v` point to the entry corresponding to `k` if there is
-    !> one, otherwise halts the whole program
-    !>
-    !> @exception if key does not exist, the whole program is aborted
-    !>
-    subroutine htable_lookup_critical(t, k, v, caller)
-      use module_debug
-      implicit none
-
-      type(t_htable), intent(in) :: t
-      integer(kind_key), intent(in) :: k
-      integer(kind_node), intent(out) :: v
-      character(LEN=*), intent(in) :: caller
-
-      DEBUG_ASSERT(htable_allocated(t))
-      if (.not. htable_lookup(t, k, v, caller) ) then
-        call htable_dump(t)
-        call debug_mpi_abort()
-      end if
-
-    end subroutine htable_lookup_critical
 
 
     !>

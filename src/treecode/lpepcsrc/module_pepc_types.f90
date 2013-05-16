@@ -106,9 +106,10 @@ module module_pepc_types
       end type t_tree_node_package
 
       !> Data structure for requesting tree nodes with eager send algorithm
-      integer, private, parameter :: nprops_request_eager = 2
+      integer, private, parameter :: nprops_request_eager = 3
       type, public :: t_request_eager
         integer(kind_node) :: node
+        integer(kind_node) :: parent
         type(t_particle) :: particle
       end type t_request_eager
       
@@ -177,11 +178,12 @@ module module_pepc_types
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_package, ierr )
 
         ! register request type
-        blocklengths(1:nprops_request_eager)  = [1, 1]
-        types(1:nprops_request_eager)         = [MPI_KIND_NODE, MPI_TYPE_particle]
+        blocklengths(1:nprops_request_eager)  = [1, 1, 1]
+        types(1:nprops_request_eager)         = [MPI_KIND_NODE, MPI_KIND_NODE, MPI_TYPE_particle]
         call MPI_GET_ADDRESS( dummy_request,                  address(0), ierr )
         call MPI_GET_ADDRESS( dummy_request%node,             address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_request%particle,         address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_request%parent,           address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_request%particle,         address(3), ierr )
         displacements(1:nprops_request_eager) = int(address(1:nprops_request_eager) - address(0))
         call MPI_TYPE_STRUCT( nprops_request_eager, blocklengths, displacements, types, MPI_TYPE_request_eager, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_request_eager, ierr )
