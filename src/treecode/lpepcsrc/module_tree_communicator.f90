@@ -148,7 +148,6 @@ module module_tree_communicator
     use module_atomic_ops, only: atomic_load_int, atomic_store_int
     use module_debug
     use module_timings
-    use treevars, only: main_thread_processor_id
     implicit none
 
     type(t_tree), target, intent(inout) :: t
@@ -653,7 +652,6 @@ module module_tree_communicator
 
     type(t_tree), pointer :: t
     !integer, intent(in) :: max_particles_per_thread
-    integer(kind_default) :: ierr
     logical, allocatable :: comm_finished(:) ! will hold information on PE 0 about which processor
                                              ! is still communicating and which ones are finished
                                              ! to emulate a non-blocking barrier
@@ -708,7 +706,6 @@ module module_tree_communicator
     type(t_tree), intent(inout) :: t
     logical, intent(inout) :: comm_finished(:)
 
-    logical :: msg_avail
     integer(kind_default) :: ierr
     integer :: stat(MPI_STATUS_SIZE)
     type(t_request_eager) :: request

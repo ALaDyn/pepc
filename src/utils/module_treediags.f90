@@ -43,7 +43,6 @@ module module_treediags
           use module_pepc_types, only: t_tree_node
           use module_tree, only: t_tree
           use module_tree_node
-          use module_pepc, only: global_tree
           use module_pepc_types, only: kind_node
           implicit none
 
@@ -61,7 +60,6 @@ module module_treediags
           type(t_tree_node), pointer :: bnode
           integer(kind_node) :: i, num_nodes
           integer(kind_default) :: mpi_rank, mpi_size, ierr
-          integer :: j
           real*8, dimension(:), allocatable  :: bcocx, bcocy, bcocz
           integer, dimension(:), allocatable :: bowner, blevel, mirror_level
           integer, dimension(:, :), allocatable :: mirror_indices
@@ -128,7 +126,6 @@ module module_treediags
           use module_pepc_types, only: t_tree_node
           use module_tree, only: t_tree
           use module_tree_node
-          use module_pepc, only: global_tree
           use module_pepc_types, only: kind_node
           implicit none
 

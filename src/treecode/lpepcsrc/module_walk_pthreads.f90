@@ -267,7 +267,6 @@ module module_walk
   !>
   subroutine tree_walk_read_parameters(filehandle)
     use module_debug
-    use treevars, only: num_threads
     implicit none
     integer, intent(in) :: filehandle
 
@@ -451,8 +450,6 @@ module module_walk
     use module_debug
     implicit none
 
-    integer :: i
-
     ! initialize atomic variables
     call atomic_allocate_int(next_unassigned_particle)
     call atomic_allocate_int(thread_startup_complete)
@@ -477,8 +474,6 @@ module module_walk
   subroutine uninit_walk_data()
     use module_atomic_ops, only: atomic_deallocate_int
     implicit none
-
-    integer :: i
 
     call atomic_deallocate_int(next_unassigned_particle)
     call atomic_deallocate_int(thread_startup_complete)
