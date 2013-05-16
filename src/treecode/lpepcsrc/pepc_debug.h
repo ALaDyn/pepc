@@ -19,7 +19,7 @@
 
 #define DEBUG_STRINGIFY(s) DEBUG_STRINGIFY_HELPER(s)
 
-#define DEBUG_ERROR_ON_FAIL_HELPER(ret, sep, msg) write(*,*) 'DBG'
+#define DEBUG_ERROR_ON_FAIL_HELPER(ret, sep, msg) if (0/=ret) write(*,*) 'DBG'
 
 #define DEBUG_ERROR_ON_FAIL(ret) DEBUG_ERROR_ON_FAIL_HELPER(ret, "", "")
 
