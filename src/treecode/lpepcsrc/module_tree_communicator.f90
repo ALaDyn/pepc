@@ -547,13 +547,17 @@ module module_tree_communicator
     call tree_lookup_node_critical(t, parent_key_from_key(child_data(1)%key), parent_node, &
         'TREE_COMMUNICATOR:unpack_data(): - get parent node')
 
-    ic           = 1
-    call unpack_children(parent_node, .true.)
+    if (tree_node_children_available(t%nodes(parent_node))) then
+      DEBUG_WARNING_ALL(*, 'Received some node data but parent flags indicate that respective children are already present. Ignoring these nodes.')
+    else
+      ic           = 1
+      call unpack_children(parent_node, .true.)
     
-    ! count number of fetched nodes
-    t%communicator%sum_fetches = t%communicator%sum_fetches + num_children
+      ! count number of fetched nodes
+      t%communicator%sum_fetches = t%communicator%sum_fetches + num_children
 
-    DEBUG_ASSERT(num_children == ic-1) ! otherwise, the received list of children was not in appropriate traversal order
+      DEBUG_ASSERT(num_children == ic-1) ! otherwise, the received list of children was not in appropriate traversal order
+    end if
 
     contains
     
@@ -592,7 +596,7 @@ module module_tree_communicator
           unpack_node%flags_local = ibset(unpack_node%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
           
           if (.not. tree_insert_node(t, unpack_node, newnode)) then
-            DEBUG_WARNING_ALL(*, "Received a node that is already present.")
+            DEBUG_WARNING_ALL(*, 'Received a node that is already present.')
           end if
           
           ic     = ic     + 1
