@@ -578,9 +578,11 @@ module module_tree
       t%nodes(n)%first_child = c(1)
       
       do ic = 1, nc - 1
+        t%nodes(c(ic))%parent       = n
         t%nodes(c(ic))%next_sibling = c(ic + 1)
       end do
       
+      t%nodes(c(nc))%parent       = n
       t%nodes(c(nc))%next_sibling = NODE_INVALID
 
     end subroutine tree_node_connect_children

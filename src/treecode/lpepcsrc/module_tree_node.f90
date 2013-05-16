@@ -65,7 +65,11 @@ module module_tree_node
       type(t_tree_node), intent(in) :: p
       integer(kind_node), intent(out) :: fc
 
-      fc = p%first_child
+      if (tree_node_children_available(p)) then
+        fc = p%first_child
+      else
+        fc = NODE_INVALID
+      endif
       tree_node_get_first_child = (fc .ne. NODE_INVALID)
     end function tree_node_get_first_child
 
@@ -194,13 +198,15 @@ module module_tree_node
       type(t_tree_node), intent(in) :: n
       type(t_tree_node_package), intent(out) :: p
 
-      p%key = n%key
-      p%childcode = n%childcode
-      p%flags_global = n%flags_global
-      p%leaves = n%leaves
-      p%descendants = n%descendants
-      p%owner = n%owner
-      p%level = int(n%level,kind(p%level))
+      p%key              = n%key
+      p%childcode        = n%childcode
+      p%flags_global     = n%flags_global
+      p%level            = n%level
+      p%owner            = n%owner
+      p%leaves           = n%leaves
+      p%descendants      = n%descendants
+      p%parent           = NODE_INVALID ! this is to be filled by answer_request()
+      p%first_child      = n%first_child
       p%interaction_data = n%interaction_data
       
     end subroutine tree_node_pack
@@ -213,18 +219,20 @@ module module_tree_node
       type(t_tree_node_package), intent(in) :: p
       type(t_tree_node), intent(out) :: n
 
-      n%key = p%key
-      n%childcode = p%childcode
-      n%flags_global = p%flags_global
-      n%flags_local = 0
-      n%request_sent = .false.
-      n%leaves = p%leaves
-      n%descendants = p%descendants
-      n%owner = p%owner
-      n%level = p%level
+      n%key              = p%key
+      n%childcode        = p%childcode
+      n%flags_global     = p%flags_global
+      n%level            = p%level
+      n%flags_local      = 0_kind_byte
+      n%owner            = p%owner
+      n%leaves           = p%leaves
+      n%descendants      = p%descendants
+      n%parent           = p%parent
+      n%first_child      = p%first_child
+      n%next_sibling     = NODE_INVALID
+      n%request_sent     = .false.
       n%interaction_data = p%interaction_data
-      n%first_child  = NODE_INVALID
-      n%next_sibling = NODE_INVALID
+      
     end subroutine tree_node_unpack
 
 
