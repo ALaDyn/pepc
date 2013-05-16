@@ -287,7 +287,8 @@ module helper
     
     call timer_start(t_user_particleio)
     vtk_step = vtk_step_of_step(step)
-    call vtk_write_particles(my_rank, n_ranks, step, dt * step, vtk_step, p, coulomb_and_l2)
+    ! commented this line since PGI doesn't wanna play atm
+    !call vtk_write_particles(my_rank, n_ranks, step, dt * step, vtk_step, p, coulomb_and_l2)
     call timer_stop(t_user_particleio)
     if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", timer_read(t_user_particleio)
 

@@ -389,7 +389,9 @@ module module_tree_communicator
     include 'mpif.h' 
 
     type(t_tree), intent(inout) :: t 
-    type(t_tree_node_package), contiguous, intent(in) :: nodes(:) 
+    !type(t_tree_node_package), contiguous, intent(in) :: nodes(:) 
+    ! PGI issues?
+    type(t_tree_node_package), intent(in) :: nodes(:) 
     integer, intent(in) :: numnodes 
     integer, intent(in) :: adressee 
     integer :: ierr 

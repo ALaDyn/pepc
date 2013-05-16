@@ -350,7 +350,7 @@ module module_coulomb_kernels
       ome = 1  - exp(-rol*rol) !< "one minus exp(stuff)"
 
       ! potential
-      phi = q * rd  * (ome + sqrtpi*rol*(1-erf(rol)))
+      phi = q * rd  * (ome + sqrtpi*rol*(1-(rol)))
       !  forces
       fprefac = q * rd3 * ome
       exyz    = fprefac * d
@@ -392,7 +392,7 @@ module module_coulomb_kernels
       ome = 1  - exp(-rol*rol) !< "one minus exp(stuff)"
 
       ! potential
-      phi = q * rd  * (ome + sqrtpi*rol*(1-erf(rol)))
+      phi = q * rd  * (ome + sqrtpi*rol*(1-(rol)))
       !  forces
       fprefac = q * rd3 * ome
       exyz    = fprefac * d

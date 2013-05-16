@@ -501,7 +501,7 @@ module module_spacefilling
           integer :: i, j
 
           integer*8, parameter :: CI2(0:3)    = [0,3,1,2] ! 2D - inverse hilbert cell
-          integer*8, parameter :: G2(0:3,0:1) = reshape([3,0,0,3,0,0,0,3],shape(G2))
+          integer*8, parameter :: G2(0:3,0:1) = reshape([3,0,0,3,0,0,0,3],[4,2])
           integer*8 :: horder           ! order of the hilbert cell C
           integer*8 :: exchange, reverse
           integer*8 :: itemp(2), change
@@ -557,7 +557,7 @@ module module_spacefilling
           integer :: i, j
 
           integer*8, parameter :: CI3(0:7)    = [0,1,3,2,7,6,4,5] ! 3D - inverse hilbert cell
-          integer*8, parameter :: G3(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G3))     ! 3D - hilbert gene
+          integer*8, parameter :: G3(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],[8,2])     ! 3D - hilbert gene
           integer*8 :: horder           ! order of the hilbert cell C
           integer*8 :: exchange, reverse
           integer*8 :: itemp(3), change
@@ -648,9 +648,9 @@ module module_spacefilling
           integer :: lev
 
           integer*8, parameter :: C2(0:3) = [0,2,3,1] ! 2D - hilbert cell
-          integer*8, parameter :: G2(0:3,0:1) = reshape([3,0,0,3,0,0,0,3],shape(G2)) ! 2D - hilbert gene
+          integer*8, parameter :: G2(0:3,0:1) = reshape([3,0,0,3,0,0,0,3],[4,2]) ! 2D - hilbert gene
           integer*8, parameter :: C3(0:7)    = [0,1,3,2,6,7,5,4] ! 3D - hilbert cell
-          integer*8, parameter :: G3(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],shape(G3)) ! 3D - hilbert gene
+          integer*8, parameter :: G3(0:7,0:1) = reshape([5,6,0,5,5,0,6,5,0,0,0,5,0,0,6,5],[8,2]) ! 3D - hilbert gene
           !integer*8, parameter :: G(0:7,0:1) = reshape([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],shape(G)) ! 3D - hilbert gene
 
           lev = level_from_key(key)

@@ -1,0 +1,49 @@
+MOD_UNLOAD = intel parastation
+MOD_LOAD   = parastation pgi/12.10 mvapich2
+
+HELP = "\
+\# Makefile for JuHYDTA using PGI compilers\n\
+\# recommended module commands\n\
+module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
+"
+
+MACH     = JUHYDRA_pgi
+
+DEBUG    = 0
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+
+INLINING = 
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
+  CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0
+else
+  FFLAGS   = -O3 $(INLINING)
+  CFLAGS   = -O3
+  LDFLAGS  = -O3 $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+
+FCPRE    = 
+FC       = mpif90 -f90=pgf90 -mp
+
+CCPRE    = 
+CC       = mpicc
+
+LDPRE    = 
+LD       = mpif90 -f90=pgf90 -mp
+
+LDLIBS   += 
+
+RM       = rm -rf
+

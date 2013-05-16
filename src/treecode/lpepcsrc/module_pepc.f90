@@ -79,7 +79,7 @@ module module_pepc
       integer, intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
       logical, intent(in) :: init_mpi !< if set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
       integer, intent(in), optional :: db_level_in !< sets debug level for treecode kernel (overrides settings, that may be read from libpepc-section in input file)
-      integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator (the frontend is responsible for calling MPI_COMM_FREE(comm) prior to calling pepc_finalize() or supply it as argument to pepc_finalize() in this case); otherwise, it uses an MPI_COMM_DUP copy of the given comm
+      integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-co...
       integer, intent(in), optional :: idim
       integer :: ierr, provided
 
