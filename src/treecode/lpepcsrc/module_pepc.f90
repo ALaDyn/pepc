@@ -464,7 +464,7 @@ module module_pepc
     subroutine pepc_check_sanity(caller, dump, particles)
       use module_pepc_types, only: t_particle
       use module_tree, only: tree_check
-      use module_htable, only: htable_check, htable_dump
+      use module_htable, only: htable_dump
       use module_debug
       implicit none
 
@@ -472,8 +472,7 @@ module module_pepc
       logical, optional, intent(in) :: dump !< whether to dump the hash table
       type(t_particle), optional, intent(in) :: particles(:) !< list of particles to dump along with the hash table
 
-      if ((.not. (htable_check(global_tree%node_storage, caller) &
-        .and. tree_check(global_tree, caller)))) then
+      if (.not. tree_check(global_tree, caller)) then
         call htable_dump(global_tree%node_storage, particles)
         DEBUG_ERROR(*, "Sanity check failed, aborting!")
       else if (dump) then

@@ -91,7 +91,6 @@ module module_tree
     public tree_create
     public tree_allocated
     public tree_insert_node
-    public tree_insert_or_update_node
     public tree_traverse_to_key
     public tree_node_connect_children
     public tree_check
@@ -327,48 +326,6 @@ module module_tree
         end if
       end if
     end function tree_insert_node
-    
-    
-    !>
-    !> inserts the node `n` into the tree `t` or, if a node with the same key
-    !> exists allready, updates that node's entry
-    !>
-    !> this routine cannot be used to change a tree_node from leaf to twig or similar
-    !>
-    subroutine tree_insert_or_update_node(t, n, ptr)
-        use module_pepc_types, only: t_tree_node, kind_node
-        use module_tree_node, only: tree_node_is_leaf
-        use module_debug
-        implicit none
-
-        type(t_tree), intent(inout) :: t !< Tree into which to insert the node
-        type(t_tree_node), intent(in) :: n !< The tree node to insert
-        integer(kind_node), optional, intent(out) :: ptr
-
-        integer(kind_node) :: node_entry
-        type(t_tree_node), pointer :: node
-
-        DEBUG_ASSERT(tree_allocated(t))
-        if (.not. tree_insert_node(t, n, node_entry)) then
-          ! the node already exist --> update
-
-          node => t%nodes(node_entry)
-          ! if we change the owner from something else to 'me', we have to keep track of the leaf/twig counters
-          if ((node%owner .ne. t%comm_env%rank) .and. &
-            (n%owner .eq. t%comm_env%rank)) then
-            if (tree_node_is_leaf(node)) then
-              t%nleaf_me = t%nleaf_me + 1
-            else
-              t%ntwig_me = t%ntwig_me + 1
-            end if
-          end if
-
-          ! copy all data
-          node = n
-        end if
-
-        if (present(ptr)) then; ptr = node_entry; end if
-    end subroutine
 
 
     !>

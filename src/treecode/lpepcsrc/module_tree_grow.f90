@@ -418,14 +418,15 @@ module module_tree_grow
   !>  - already existing nodes are updated
   !>
   subroutine tree_build_upwards(t, nodes)
-    use module_tree, only: t_tree, tree_insert_or_update_node, &
+    use module_tree, only: t_tree, tree_insert_node, &
       tree_node_connect_children
     use module_debug, only: pepc_status, DBG_TREE, dbg
+    use module_tree_node, only: NODE_INVALID
     use module_timings
     use module_sort, only: sort
-    use module_htable, only: htable_check
     use module_spacefilling, only: level_from_key, parent_key_from_key
     use module_pepc_types, only: t_tree_node, kind_node
+    use module_debug
     implicit none
 
     type(t_tree), intent(inout) :: t !< the tree
@@ -437,7 +438,7 @@ module module_tree_grow
     integer(kind_node), allocatable :: sub_nodes(:), sorted_sub_nodes(:), parent_nodes(:)
     type(t_tree_node) :: parent_node
 
-    integer(kind_node) :: i, nparent, nuniq
+    integer(kind_node) :: i, nparent, nuniq, k
     integer(kind_node) ::  numnodes, nsub, groupstart, groupend
     integer(kind_level) :: ilevel, maxlevel
     integer(kind_key) :: current_parent_key
@@ -512,17 +513,38 @@ module module_tree_grow
         end do
         groupend   = i
 
-        nparent             = nparent + 1
-        parent_key(nparent) = current_parent_key
+        nparent               = nparent + 1
+        parent_key(nparent)   = current_parent_key
+        parent_nodes(nparent) = NODE_INVALID
+        
+        do k=groupstart,groupend
+          if (t%nodes(sorted_sub_nodes(k))%parent /= NODE_INVALID) then
+            ! a parent node is already existing
+            parent_nodes(nparent) = t%nodes(sorted_sub_nodes(k))%parent
+            exit
+          end if
+        end do
 
-        call shift_nodes_up(t, parent_node, sorted_sub_nodes(groupstart:groupend), t%comm_env%rank)
-        call tree_insert_or_update_node(t, parent_node, parent_nodes(nparent))
+        if (parent_nodes(nparent) == NODE_INVALID) then
+          ! a node has te be created from scratch
+          parent_node%childcode    = 1 ! we have to set some value > 0 here, to pretend that this is not a leaf node (used in tree_node_is_leaf() in tree_insert_node() )
+          parent_node%owner        = t%comm_env%rank ! dito for owner - this one has to be valid to keep the nXX_me-counters in tree_insert_node) correct
+          parent_node%key          = parent_key(nparent)
+          parent_node%parent       = NODE_INVALID ! these are not touched in shift_nodes_up
+          parent_node%next_sibling = NODE_INVALID ! these are not touched in shift_nodes_up
+          
+          if (.not. tree_insert_node(t, parent_node, parent_nodes(nparent))) then
+            DEBUG_ERROR(*,'This should not have been there')
+          end if
+        end if
+
+        call shift_nodes_up(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend), t%comm_env%rank)
         call tree_node_connect_children(t, parent_nodes(nparent), sorted_sub_nodes(groupstart:groupend))
 
         ! go on with next group
         i = i + 1
         end do
-    end do
+    end do ! loop over levels
 
     deallocate(key_level)
     deallocate(sub_key, sub_nodes, parent_key, parent_nodes)
@@ -668,6 +690,8 @@ module module_tree_grow
         this_node%childcode    = 1 ! we have to set some value > 0 here, to pretend that this is not a leaf node (used in tree_node_is_leaf() in tree_insert_node() )
         this_node%owner        = t%comm_env%rank ! dito for owner - this one has to be valid to keep the nXX_me-counters in tree_insert_node) correct
         this_node%key          = k
+        this_node%parent       = NODE_INVALID ! these are not touched in shift_nodes_up
+        this_node%next_sibling = NODE_INVALID ! these are not touched in shift_nodes_up
 
         if (.not. tree_insert_node(t, this_node, inserted_node_idx)) then
           DEBUG_ERROR(*, 'Twig already inserted, aborting.') ! TODO: tell me more!
@@ -780,6 +804,9 @@ module module_tree_grow
     parent%leaves       = nleaves
     parent%descendants  = ndescendants
     parent%owner        = parent_owner
+    ! parent%parent       = NODE_INVALID ! may not be overwritten since this is not a children-dependent information
+    parent%first_child  = NODE_INVALID 
+    ! parent%next_sibling = NODE_INVALID ! dito
     parent%level        = level_from_key( parent_keys(1) )
 
     call shift_multipoles_up(parent%interaction_data, interaction_data(1:nchild))

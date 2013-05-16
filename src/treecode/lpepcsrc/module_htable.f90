@@ -54,12 +54,6 @@ module module_htable
       type(t_tree_node), public, pointer :: values(:)     !< array of entry values
     end type t_htable
 
-    type, public :: t_htable_iterator
-      private
-      type(t_htable), pointer :: t => null()
-      integer(kind_key)       :: i =  0_kind_key
-    end type t_htable_iterator
-
     public htable_create
     public htable_allocated
     public htable_entries
@@ -67,10 +61,7 @@ module module_htable
     public htable_add
     public htable_clear
     public htable_destroy
-    public htable_check
     public htable_dump
-    public htable_iterator
-    public htable_iterator_next
 
     contains
 
@@ -239,55 +230,13 @@ module module_htable
         DEBUG_ERROR('("Tree arrays full. # Entries: ", I0,"/",I0)', t%nentries, t%maxentries)
       end if
 
-      if (.not. testaddr(t, k, hashaddr)) then
-        ! this key does not exist in the htable 
-        htable_add = .true.
-
-        if (hashaddr .eq. -1_8) then
-          ! the first entry is already empty
-          hashaddr = htable_hash_function(t, k)
-
-          if (t%point_free(hashaddr) /= -1_8) then ! Check if new address in collision res. list
-            if (t%sum_unused <= 0_kind_node) then
-              DEBUG_ERROR(*, "Hash table collision resolution list exhausted. ", t%nentries, " / ", t%maxentries, " entries")
-            end if
-            t%sum_unused                            = t%sum_unused - 1_kind_node
-            t%free_addr(t%point_free(hashaddr))     = t%free_addr(t%sum_unused) ! Replace free address with last on list
-            t%point_free(t%free_addr(t%sum_unused)) = t%point_free(hashaddr)    ! Reset pointer
-            t%point_free(hashaddr)                  = -1_kind_node
-          end if
-        else
-          ! we are at the end of a linked list --> create new entry
-          if (t%sum_unused <= 0_kind_node) then
-            DEBUG_ERROR(*, "Hash table collision resolution list exhausted. ", t%nentries, " / ", t%maxentries, " entries")
-          end if
-          t%sum_unused             = t%sum_unused - 1_kind_node
-          t%buckets(hashaddr)%link = t%free_addr(t%sum_unused)
-          hashaddr                 = t%buckets( hashaddr )%link
-          t%point_free(hashaddr)   = -1_kind_node
-        end if
-
-        ! check if new entry is really empty
-        if (t%buckets(hashaddr)%key /= HTABLE_KEY_EMPTY) then
-          write (*,*) 'Something wrong with address list for collision resolution (free_addr in treebuild)'
-          write (*,*) 'PE ',me,' key ',k,' entry',hashaddr,' unused ',t%sum_unused
-          ! TODO: re-enable this
-          !write (*,*) "desired entry:     ", v
-          call debug_mpi_abort()
-        end if
-
-        t%buckets(hashaddr)%key = k
-        t%values(t%nentries) = v
-        t%buckets(hashaddr)%val = t%nentries
-        t%nentries = t%nentries + 1_kind_node
-      else
-        ! this key does already exists in the htable - as 'hashaddr' we return its current address
-        htable_add = .false.
-      end if
-
       if (present(entry_pointer)) then
-        entry_pointer = t%buckets(hashaddr)%val
+        entry_pointer = t%nentries
       end if
+
+      t%values(t%nentries) = v
+      t%nentries = t%nentries + 1_kind_node
+      htable_add = .true.
 
     end function htable_add
 
@@ -353,109 +302,6 @@ module module_htable
       if (present(addr)) addr = nextaddr ! we return its address
 
     end function testaddr
-
-
-    !>
-    !> returns an iterator for traversing the entries in hash table `t` linearly
-    !>
-    function htable_iterator(t)
-      use module_debug
-      implicit none
-
-      type(t_htable), target, intent(in) :: t
-
-      type(t_htable_iterator) :: htable_iterator
-
-      DEBUG_ASSERT(htable_allocated(t))
-      htable_iterator = t_htable_iterator(t, lbound(t%buckets, dim = 1))
-    end function htable_iterator
-
-
-    !>
-    !> Returns the next entry in the hash table associated with iterator `it` as 
-    !> a pair of key and tree node in `k` and `v` and returns `.true.`.
-    !> Once the iterator is exhausted, `.false.` is returned.
-    !>
-    !> @note If the associated hash table is modified during traversal,
-    !> behaviour is undefined.
-    !>
-    function htable_iterator_next(it, k, v)
-      use module_debug
-      use module_tree_node, only: NODE_INVALID
-      implicit none
-
-      type(t_htable_iterator), intent(inout) :: it
-      integer(kind_key), intent(out) :: k
-      integer(kind_node), intent(out) :: v
-
-      logical htable_iterator_next
-
-      DEBUG_ASSERT(associated(it%t))
-      DEBUG_ASSERT(htable_allocated(it%t))
-      do while (it%i <= ubound(it%t%buckets, dim = 1))
-        if (htable_entry_is_valid(it%t%buckets(it%i))) then 
-          htable_iterator_next = .true.
-          k    =  it%t%buckets(it%i)%key
-          v    =  it%t%buckets(it%i)%val
-          it%i =  it%i + 1_kind_key
-          return
-        end if
-
-        it%i = it%i + 1_kind_key
-      end do
-
-      htable_iterator_next = .false.
-      k = HTABLE_KEY_EMPTY
-      v = NODE_INVALID
-    end function htable_iterator_next
-
-
-    !>
-    !> performs a sanity check of the internals of hash table `t`. if an error is
-    !> encountered, the whole hash table is dumped to disk.
-    !>
-    function htable_check(t, caller)
-      use module_debug
-      use module_tree_node
-      implicit none
-
-      logical :: htable_check
-      type(t_htable), intent(in) :: t
-      character(*), intent(in) :: caller
-
-      integer(kind_node) :: i, nentries_check, sum_unused_check
-
-      call pepc_status('CHECK TABLE')
-      DEBUG_ASSERT(htable_allocated(t))
-
-      htable_check = .true.
-      nentries_check   = count(t%buckets(:)%key /= HTABLE_KEY_EMPTY)
-      sum_unused_check = t%maxentries - HTABLE_FREE_LO - &
-        count(t%buckets(HTABLE_FREE_LO:)%key /= HTABLE_KEY_EMPTY)
-      
-      do i = lbound(t%point_free, dim = 1), ubound(t%point_free, dim = 1)
-        if (t%point_free(i) /= -1_8) then
-          if (t%point_free(i) < lbound(t%free_addr, dim = 1) .or. &
-              t%point_free(i) > ubound(t%free_addr, dim = 1)) then
-            DEBUG_WARNING("(2a,/,a,i0,a,i0,a,i0)", "htable_check() called from ", caller, " point_free(", i, ") out of bounds of free_addr(", lbound(t%free_addr, dim = 1), ":", ubound(t%free_addr, dim = 1),")")
-            htable_check = .false.
-          else if (t%free_addr(t%point_free(i)) /= i) then
-            DEBUG_WARNING("(2a,/,a,i0,a,i0)", "htable_check() called from ", caller, " free_addr(point_free(", i, ")) is ", t%free_addr(t%point_free(i)))
-            htable_check = .false.
-          end if
-        end if
-      end do
-
-      if (nentries_check /= t%nentries) then
-        DEBUG_WARNING("(2a,/,a,i0,a,i0)", "htable_check() called from ", caller, "nentries is ", t%nentries, " should be ", nentries_check)
-        htable_check = .false.
-      end if
-
-      if (sum_unused_check /= t%sum_unused) then
-        DEBUG_WARNING("(2a,/,a,i0,a,i0)", "htable_check() called from ", caller, "sum_unused is ", t%sum_unused, " should be ", sum_unused_check)
-        htable_check = .false.
-      end if
-    end function htable_check
 
 
     !>
