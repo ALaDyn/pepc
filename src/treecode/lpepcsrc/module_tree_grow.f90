@@ -293,7 +293,7 @@ module module_tree_grow
       use module_math_tools, only: bpi
       use treevars, only: idim, nlev
       use module_debug, only: pepc_status
-      use module_tree, only: tree_lookup_node
+      use module_tree, only: tree_traverse_to_key
       implicit none
 
       type(t_tree), intent(inout) :: t !< the tree
@@ -344,7 +344,7 @@ module module_tree_grow
           ! otherwise branch does not exists
           ! if entry exists it is counted as branch
           ! otherwise discarded
-          if (tree_lookup_node(t, possible_branch, found_branch)) then ! entry exists
+          if (tree_traverse_to_key(t, possible_branch, found_branch)) then ! entry exists
             nb = nb + 1
             bn(nb) = found_branch
           end if
@@ -362,7 +362,7 @@ module module_tree_grow
           ! otherwise branch does not exists
           ! if entry exists it is counted as branch
           ! otherwise discarded
-          if (tree_lookup_node(t, possible_branch, found_branch)) then ! entry exists
+          if (tree_traverse_to_key(t, possible_branch, found_branch)) then ! entry exists
             nb = nb + 1
             bn(nb) = found_branch
           end if

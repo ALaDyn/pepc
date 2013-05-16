@@ -65,7 +65,6 @@ module module_htable
     public htable_entries
     public htable_maxentries
     public htable_add
-    public htable_contains
     public htable_lookup
     public htable_remove_keys
     public htable_remove_key
@@ -295,24 +294,6 @@ module module_htable
 
     end function htable_add
 
-
-    !>
-    !> returns `.true.` if hash table `t` contains a value for key `k`,
-    !> `.false.` otherwise
-    !>
-    function htable_contains(t, k)
-      use module_debug
-      implicit none
-
-      type(t_htable), intent(in) :: t
-      integer(kind_key), intent(in) :: k
-
-      logical :: htable_contains
-
-      DEBUG_ASSERT(htable_allocated(t))
-      htable_contains = testaddr(t, k)
-
-    end function htable_contains
 
 
     !>

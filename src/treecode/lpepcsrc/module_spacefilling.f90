@@ -78,10 +78,36 @@ module module_spacefilling
           implicit none
 
           integer(kind_key), intent(in) :: key
-          integer :: child_number_from_key
+          integer(kind_byte) :: child_number_from_key
 
           child_number_from_key = int(ibits(key, 0, idim))
         end function child_number_from_key
+        
+
+        !>
+        !> returns a list of child numbers of `key` with respect to root
+        !> i.e. starting from root, which children have to be traversed
+        !> to reach key
+        !>
+        subroutine child_number_list_from_key(key, childnumbers)
+          use treevars, only: idim
+          integer(kind_key), intent(in) :: key
+          integer(kind_byte), allocatable, intent(out) :: childnumbers(:)
+          
+          integer(kind_level) :: level
+          integer(kind_key) :: k
+          
+          level = level_from_key(key)
+          allocate(childnumbers(level))
+          
+          k = key
+          do while(level > 0)
+            childnumbers(level) = child_number_from_key(k)
+            k = parent_key_from_key(k)
+            level=level-1
+          end do
+          
+        end subroutine child_number_list_from_key
 
 
         !>

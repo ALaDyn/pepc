@@ -92,8 +92,7 @@ module module_tree
     public tree_allocated
     public tree_insert_node
     public tree_insert_or_update_node
-    public tree_contains_key
-    public tree_node_get_parent
+    public tree_traverse_to_key
     public tree_node_connect_children
     public tree_check
     public tree_dump
@@ -381,19 +380,61 @@ module module_tree
 
     !>
     !> checks whether a node of key `k` is contained in tree `t`
+    !> and returns the node-index in `n`
     !>
-    function tree_contains_key(t, k)
-      use module_htable, only: htable_contains
+    function tree_traverse_to_key(t, k, n)
+      use module_spacefilling, only: child_number_list_from_key
+      use module_tree_node, only: NODE_INVALID, tree_node_children_available, &
+        tree_node_get_num_preceding_children
       use module_debug
       implicit none
 
-      logical :: tree_contains_key
+      logical :: tree_traverse_to_key
       type(t_tree), intent(in) :: t !< the tree
       integer(kind_key), intent(in) :: k !< key to look up
-
+      integer(kind_node), intent(out) :: n
+      
+      integer(kind_byte), allocatable :: cn(:)
+      integer(kind_level) :: i
+      integer(kind_byte) :: nchild
+      integer :: c
+      
       DEBUG_ASSERT(tree_allocated(t))
-      tree_contains_key = htable_contains(t%node_storage, k)
-    end function tree_contains_key
+      tree_traverse_to_key = .false.
+
+      n = t%node_root
+      
+      call child_number_list_from_key(k,cn)
+      
+      do i=1,size(cn,kind=kind(i))
+        ! check if node actially has children and the child we are interested in is among them
+        if (tree_node_children_available(t%nodes(n)) .and. (btest(t%nodes(n)%childcode,cn(i)))) then
+          ! we simply shift the childcode to the left and add zeros from the right until only the interesting bits are left
+          nchild = tree_node_get_num_preceding_children(t%nodes(n), cn(i))
+
+          c = 0
+          n = t%nodes(n)%first_child ! zeroth child
+          
+          do
+            if ((c >= nchild) .or. (n==NODE_INVALID)) exit
+            c = c+1
+            n = t%nodes(n)%next_sibling
+          end do
+        else
+          n = NODE_INVALID
+          exit
+        endif
+      end do
+      
+      deallocate(cn)
+      
+      tree_traverse_to_key = n /= NODE_INVALID
+      
+      if (tree_traverse_to_key) then
+        DEBUG_ASSERT_MSG(k == t%nodes(n)%key, '(" : requested key=",o18, " but found key=", o18)', k, t%nodes(n)%key)
+      endif
+      
+    end function tree_traverse_to_key
 
     
     !>
@@ -446,39 +487,6 @@ module module_tree
       end if
       
     end function tree_lookup_node_p
-
-
-    !>
-    !> Returns the parent `p` of node `n` in tree `t`.
-    !>
-    !> If a parent exists, `.true.` is returned and `p` points to the parent.
-    !> If `n` is the root node, no parent exists and `.false.` is returned and
-    !> `p` points to `null()`.
-    !>
-    !> @todo Currently implemented via hash table lookups which could be replaced by
-    !> pointers.
-    function tree_node_get_parent(t, n, p)
-      use module_pepc_types, only: t_tree_node, kind_node
-      use module_tree_node, only: tree_node_is_root, NODE_INVALID
-      use module_spacefilling, only: parent_key_from_key
-      use module_debug
-      implicit none
-
-      logical tree_node_get_parent
-      type(t_tree), intent(in) :: t
-      type(t_tree_node), intent(in) :: n
-      integer(kind_node), intent(out) :: p
-
-      DEBUG_ASSERT(tree_allocated(t))
-      tree_node_get_parent = .false.
-      p = NODE_INVALID
-
-      if (.not. tree_node_is_root(n)) then
-        tree_node_get_parent = .true.
-        call tree_lookup_node_critical(t, parent_key_from_key(n%key), p, &
-          "tree_node_get_parent")
-      end if
-    end function tree_node_get_parent      
 
 
     !>

@@ -250,7 +250,6 @@ module module_treediags
         !>
         subroutine write_interaction_partners_to_vtk(step, label,tsim, vtk_step, interaction_keylist, no_interaction_partners, interaction_vbox)
           use module_pepc, only: global_tree
-          use module_tree, only: tree_lookup_node_critical
           use module_pepc_types
           use treevars
           integer, intent(in) :: step
@@ -273,8 +272,8 @@ module module_treediags
             allocate(partner_nodes(no_interaction_partners(label)))
 
             do i = 1, no_interaction_partners(label)
-              call tree_lookup_node_critical(global_tree, interaction_keylist(label, i), partner_nodes(i), &
-                'write_interaction_partners_to_vtk()')
+ !FIXME             call tree_lookup_node_critical(global_tree, interaction_keylist(label, i), partner_nodes(i), &
+ !               'write_interaction_partners_to_vtk()')
             end do
 
             call write_nodes_to_vtk_as_points(fn_point, MPI_Comm_lpepc, step, tsim, vtk_step, global_tree, partner_nodes, &

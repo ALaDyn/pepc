@@ -523,7 +523,7 @@ module module_tree_communicator
   !> Insert incoming data into the tree.
   !>
   subroutine unpack_data(t, child_data, num_children, ipe_sender)
-    use module_tree, only: t_tree, tree_insert_node, tree_lookup_node_critical
+    use module_tree, only: t_tree, tree_insert_node
     use module_pepc_types, only: t_tree_node, t_tree_node_package, kind_node
     use module_tree_node
     use module_spacefilling, only: parent_key_from_key
