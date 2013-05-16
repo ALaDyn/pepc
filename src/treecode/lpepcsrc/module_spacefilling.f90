@@ -80,7 +80,7 @@ module module_spacefilling
           integer(kind_key), intent(in) :: key
           integer(kind_byte) :: child_number_from_key
 
-          child_number_from_key = int(ibits(key, 0, idim))
+          child_number_from_key = int(ibits(key, 0, idim), kind_byte)
         end function child_number_from_key
         
 
@@ -90,7 +90,6 @@ module module_spacefilling
         !> to reach key
         !>
         subroutine child_number_list_from_key(key, childnumbers)
-          use treevars, only: idim
           integer(kind_key), intent(in) :: key
           integer(kind_byte), allocatable, intent(out) :: childnumbers(:)
           
@@ -104,7 +103,7 @@ module module_spacefilling
           do while(level > 0)
             childnumbers(level) = child_number_from_key(k)
             k = parent_key_from_key(k)
-            level=level-1
+            level=level-1_kind_level
           end do
           
         end subroutine child_number_list_from_key

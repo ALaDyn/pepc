@@ -52,7 +52,6 @@ module module_tree_grow
     type(t_particle), allocatable, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
     type(t_particle) :: bp(2)
-    integer(kind_node) :: root_node
     type(t_tree_node), pointer :: root
     type(t_comm_env) :: tree_comm_env
     integer(kind_node), allocatable :: branch_nodes(:)

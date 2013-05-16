@@ -235,17 +235,14 @@ module module_tree
     !> Add an entry (`k`, `v`) to the node list `t%nodes`.
     !> If present, `entry_pointer` points to the inserted value `v`.
     !>
-    subroutine tree_nodelist_add(t, k, v, entry_pointer)
+    subroutine tree_nodelist_add(t, v, entry_pointer)
       use treevars
       use module_debug
       implicit none
 
       type(t_tree), intent(inout) :: t
-      integer(kind_key), intent(in) :: k
       type(t_tree_node), intent(in) :: v
       integer(kind_node), intent(out), optional :: entry_pointer
-
-      integer(kind_node) :: hashaddr
 
       DEBUG_ASSERT(associated(t%nodes))
       if (t%nodes_nentries >= t%nodes_maxentries) then
@@ -363,7 +360,7 @@ module module_tree
       integer(kind_node), optional, intent(out) :: preexisting_node !< points to preexisting node
 
       DEBUG_ASSERT(tree_allocated(t))
-      call tree_nodelist_add(t, n%key, n, preexisting_node)
+      call tree_nodelist_add(t, n, preexisting_node)
       ! keep count of leaves / twigs
       if (tree_node_is_leaf(n)) then
         t%nleaf =  t%nleaf + 1

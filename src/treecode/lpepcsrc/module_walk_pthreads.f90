@@ -266,7 +266,6 @@ module module_walk
   !>
   subroutine tree_walk_read_parameters(filehandle)
     use module_debug
-    use treevars, only: num_threads
     implicit none
     integer, intent(in) :: filehandle
 
