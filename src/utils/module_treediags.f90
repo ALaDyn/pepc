@@ -299,7 +299,7 @@ module module_treediags
         subroutine write_leaves_to_vtk(step, tsim, vtk_step, t_)
           use module_pepc, only: global_tree
           use module_pepc_types, only: t_tree_node, kind_node
-          use module_tree, only: t_tree, tree_lookup_root, tree_allocated
+          use module_tree, only: t_tree, tree_allocated
           use module_debug
           implicit none
 
@@ -309,7 +309,7 @@ module module_treediags
           type(t_tree), optional, target, intent(in) :: t_
 
           type(t_tree), pointer :: t
-          integer(kind_node) :: r, i
+          integer(kind_node) :: i
           integer(kind_node), allocatable :: leaves(:)
 
           if (present(t_)) then
@@ -325,8 +325,7 @@ module module_treediags
 
           allocate(leaves(t%nleaf_me))
           i = 0
-          call tree_lookup_root(t, r)
-          call collect_leaves(t, r)
+          call collect_leaves(t, t%node_root)
           DEBUG_ASSERT(i == t%nleaf_me)
 
           call write_nodes_to_vtk_as_boxes("leaves", t%comm_env%comm, step, tsim, vtk_step, t, leaves)
@@ -376,7 +375,7 @@ module module_treediags
         subroutine write_branches_to_vtk(step, tsim, vtk_step, t_)
           use module_pepc, only: global_tree
           use module_pepc_types, only: t_tree_node, kind_node
-          use module_tree, only: t_tree, tree_lookup_root, tree_allocated
+          use module_tree, only: t_tree, tree_allocated
           use module_debug
           implicit none
 
@@ -386,7 +385,7 @@ module module_treediags
           type(t_tree), optional, target, intent(in) :: t_
 
           type(t_tree), pointer :: t
-          integer(kind_node) :: r, i
+          integer(kind_node) :: i
           integer(kind_node), allocatable :: branch_nodes(:)
 
           if (present(t_)) then
@@ -403,8 +402,7 @@ module module_treediags
           if (t%comm_env%first) then
             allocate(branch_nodes(t%nbranch))
             i = 0
-            call tree_lookup_root(t, r)
-            call collect_branches(t, r)
+            call collect_branches(t, t%node_root)
             DEBUG_ASSERT(i == t%nbranch)
 
             call write_nodes_to_vtk_as_boxes("branches", t%comm_env%comm, step, tsim, vtk_step, t, branch_nodes)

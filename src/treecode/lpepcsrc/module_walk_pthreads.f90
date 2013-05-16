@@ -504,7 +504,6 @@ module module_walk
     use module_interaction_specific
     use module_debug
     use module_atomic_ops
-    use module_tree, only: tree_lookup_root
     use module_pepc_types
     use treevars, only: main_thread_processor_id
     implicit none
@@ -532,7 +531,7 @@ module module_walk
     real*8  :: t_get_new_particle, t_walk_single_particle
 
     integer(kind_node), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
-    call tree_lookup_root(walk_tree, defer_list_root_only(1), 'walk_worker_thread:root node')
+    defer_list_root_only(1) = walk_tree%node_root
 
     my_processor_id = get_my_core()
     shared_core = (my_processor_id == walk_tree%communicator%processor_id) .or. &

@@ -82,6 +82,7 @@ module module_tree
       type(t_box) :: bounding_box               !< bounding box enclosing all particles contained in the tree
       type(t_htable) :: node_storage            !< hash table in which tree nodes are stored for rapid retrieval
       type(t_tree_node), pointer :: nodes(:)    !< array of tree nodes, shorthand to node_sorage%values
+      integer(kind_node) :: node_root            !< index of the root node in nodes-array
       type(t_comm_env) :: comm_env              !< communication environment over which the tree is distributed
       type(t_decomposition) :: decomposition    !< permutation of particles inserted into the tree
       type(t_tree_communicator) :: communicator !< associated communicator structure
@@ -92,7 +93,6 @@ module module_tree
     public tree_insert_node
     public tree_insert_or_update_node
     public tree_contains_key
-    public tree_lookup_root
     public tree_node_get_parent
     public tree_node_connect_children
     public tree_check
@@ -403,27 +403,6 @@ module module_tree
       tree_contains_key = htable_contains(t%node_storage, k)
     end function tree_contains_key
 
-
-    !>
-    !> look up the root node `r` of tree `t`
-    !>
-    subroutine tree_lookup_root(t, r, caller)
-      use module_pepc_types, only: t_tree_node, kind_node
-      use module_debug
-      implicit none
-
-      type(t_tree), intent(in) :: t !< the tree
-      integer(kind_node), intent(out) :: r !< root node
-      character(len = *), optional, intent(in) :: caller !< identifies the caller in case an error message is printed
-
-      DEBUG_ASSERT(tree_allocated(t))
-      if (present(caller)) then
-        call tree_lookup_node_critical(t, TREE_KEY_ROOT, r, caller)
-      else 
-        call tree_lookup_node_critical(t, TREE_KEY_ROOT, r, 'tree_lookup_root')
-      end if
-    end subroutine tree_lookup_root
-
     
     !>
     !> looks up a node for key `k` in tree `t`,
@@ -601,7 +580,6 @@ module module_tree
       type(t_tree), intent(in) :: t !< the tree
       character(*), intent(in) :: callpoint !< caller
 
-      integer(kind_node) :: r
       integer :: nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
 
       call pepc_status('CHECK TREE')
@@ -613,8 +591,7 @@ module module_tree
       ntwig_me_check = 0
 
       DEBUG_ASSERT(tree_allocated(t))
-      call tree_lookup_root(t, r)
-      call tree_check_helper(r)
+      call tree_check_helper(t%node_root)
 
       if (t%nleaf /= nleaf_check) then
         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ',callpoint,' by PE',t%comm_env%rank, '# leaves in table = ',nleaf_check,' vs ',t%nleaf,' accumulated', 'Fixing and continuing for now..')

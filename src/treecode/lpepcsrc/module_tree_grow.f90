@@ -39,7 +39,7 @@ module module_tree_grow
     use module_pepc_types, only: t_particle, t_tree_node, kind_node
     use module_htable, only: htable_dump
     use module_timings
-    use module_tree, only: t_tree, tree_create, tree_lookup_root, tree_check
+    use module_tree, only: t_tree, tree_create, tree_check
     use module_htable, only: htable_dump
     use module_domains, only: domain_decompose
     use module_debug
@@ -95,8 +95,7 @@ module module_tree_grow
     call timer_start(t_local)
     call tree_build_from_particles(t, p, bp)
 
-    call tree_lookup_root(t, root_node, 'libpepc_grow_tree:root node')
-    root => t%nodes(root_node)
+    root => t%nodes(t%node_root)
 
     if (root%leaves .ne. nl) then
       call htable_dump(t%node_storage, p)
@@ -596,7 +595,7 @@ module module_tree_grow
     p(:)%key_leaf = 0_kind_key
 
     call timer_reset(t_props_leaves)
-    call insert_helper(t, TREE_KEY_ROOT, level_from_key(1_kind_key), kidx(1:i))
+    call insert_helper(t, TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), kidx(1:i), t%node_root)
 
     deallocate(kidx)
     call timer_stop(t_build_pure)
