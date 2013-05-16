@@ -591,9 +591,7 @@ module module_tree_communicator
           ! tree nodes coming from remote PEs are flagged for easier identification
           unpack_node%flags_local = ibset(unpack_node%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
           
-          if (.not. tree_insert_node(t, unpack_node, newnode)) then
-            DEBUG_WARNING_ALL(*, 'Received a node that is already present.')
-          end if
+          call tree_insert_node(t, unpack_node, newnode)
           
           ic     = ic     + 1
           nchild = nchild + 1

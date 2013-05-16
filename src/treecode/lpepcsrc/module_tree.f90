@@ -23,7 +23,6 @@
 !> and associated procedures.
 !>
 module module_tree
-    use module_htable, only: t_htable
     use module_box, only: t_box
     use module_comm_env, only: t_comm_env
     use module_domains, only: t_decomposition
@@ -77,12 +76,14 @@ module module_tree
 
       integer(kind_particle) :: nintmax     !< maximum number of interactions
       
+      type(t_tree_node), pointer :: nodes(:) !< array of tree nodes
+      integer(kind_node) :: nodes_maxentries !< max number of entries in nodes array
+      integer(kind_node) :: nodes_nentries   !< number of entries present in nodes array
+      integer(kind_node) :: node_root        !< index of the root node in nodes-array
+      
       real*8, allocatable :: boxlength2(:) !< precomputed square of maximum edge length of boxes for different levels - used for MAC evaluation
       
       type(t_box) :: bounding_box               !< bounding box enclosing all particles contained in the tree
-      type(t_htable) :: node_storage            !< hash table in which tree nodes are stored for rapid retrieval
-      type(t_tree_node), pointer :: nodes(:)    !< array of tree nodes, shorthand to node_sorage%values
-      integer(kind_node) :: node_root            !< index of the root node in nodes-array
       type(t_comm_env) :: comm_env              !< communication environment over which the tree is distributed
       type(t_decomposition) :: decomposition    !< permutation of particles inserted into the tree
       type(t_tree_communicator) :: communicator !< associated communicator structure
@@ -97,6 +98,7 @@ module module_tree
     public tree_dump
     public tree_stats
     public tree_destroy
+    public tree_nodelist_add
 
     contains
 
@@ -112,7 +114,6 @@ module module_tree
     !>
     subroutine tree_create(t, nl, n, comm, comm_env)
       use treevars, only: interaction_list_length_factor, MPI_COMM_lpepc, np_mult, nlev
-      use module_htable, only: htable_create
       use module_interaction_specific, only: get_number_of_interactions_per_particle
       use module_comm_env, only: comm_env_dup, comm_env_mirror
       use module_timings
@@ -163,11 +164,14 @@ module module_tree
         maxaddress = int(abs(np_mult) * 10000._8, kind_node)
       end if
 
-      call htable_create(t%node_storage, maxaddress)
-      t%nodes => t%node_storage%values
+      DEBUG_ASSERT(.not. associated(t%nodes))
+      t%nodes_maxentries = max(maxaddress, 2_kind_node**15)
+      allocate(t%nodes(1:t%nodes_maxentries))
+      call tree_nodelist_clear(t)
 
-      if (maxaddress < t%npart_me + 2) then
-        DEBUG_ERROR('("maxaddress = ", I0, " < npp + 2 = ", I0, ".", / , "You should increase np_mult.")', maxaddress, t%npart_me + 2)
+
+      if (maxaddress <= t%npart_me ) then
+        DEBUG_ERROR('("maxaddress = ", I0, " <= t%npart_me = ", I0, ".", / , "You should increase np_mult.")', maxaddress, t%npart_me)
       end if
 
       call tree_communicator_create(t%communicator)
@@ -187,7 +191,6 @@ module module_tree
     !> destroy a tree, freeing all memory used
     !>
     subroutine tree_destroy(t)
-      use module_htable, only: htable_destroy
       use module_domains, only: decomposition_allocated, decomposition_destroy
       use module_comm_env, only: comm_env_destroy
       use module_debug
@@ -198,28 +201,76 @@ module module_tree
       call pepc_status('DEALLOCATE TREE')
       DEBUG_ASSERT(tree_allocated(t))
 
-      deallocate(t%boxlength2)
       call tree_communicator_destroy(t%communicator)
-      t%nodes => null()
-      call htable_destroy(t%node_storage)
       call comm_env_destroy(t%comm_env)
       if (decomposition_allocated(t%decomposition)) then
         call decomposition_destroy(t%decomposition)
       end if
+
+      DEBUG_ASSERT(associated(t%nodes))
+      call tree_nodelist_clear(t)
+      t%nodes_maxentries = 0_kind_node
+      deallocate(t%nodes)
+      
+      DEBUG_ASSERT(allocated(t%boxlength2))
+      deallocate(t%boxlength2)
     end subroutine tree_destroy
+
+
+    !>
+    !> empties the node list in `t`
+    !>
+    subroutine tree_nodelist_clear(t)
+      use module_debug
+      use module_tree_node, only: NODE_INVALID
+      implicit none
+      type(t_tree), intent(inout) :: t
+
+      t%nodes_nentries   = 0_kind_node
+      t%node_root        = NODE_INVALID
+    end subroutine
+
+
+    !>
+    !> Add an entry (`k`, `v`) to the node list `t%nodes`.
+    !> If present, `entry_pointer` points to the inserted value `v`.
+    !>
+    subroutine tree_nodelist_add(t, k, v, entry_pointer)
+      use treevars
+      use module_debug
+      implicit none
+
+      type(t_tree), intent(inout) :: t
+      integer(kind_key), intent(in) :: k
+      type(t_tree_node), intent(in) :: v
+      integer(kind_node), intent(out), optional :: entry_pointer
+
+      integer(kind_node) :: hashaddr
+
+      DEBUG_ASSERT(associated(t%nodes))
+      if (t%nodes_nentries >= t%nodes_maxentries) then
+        DEBUG_ERROR('("Node array full. # Entries: ", I0,"/",I0)', t%nodes_nentries, t%nodes_maxentries)
+      end if
+
+      t%nodes_nentries = t%nodes_nentries + 1_kind_node
+      t%nodes(t%nodes_nentries) = v
+
+      if (present(entry_pointer)) then
+        entry_pointer = t%nodes_nentries
+      end if
+    end subroutine tree_nodelist_add
 
 
     !>
     !> returns `.true.` if resources have been allocated for the tree `t`
     !>
     function tree_allocated(t)
-      use module_htable, only: htable_allocated
       implicit none
 
       logical :: tree_allocated
       type(t_tree), intent(in) :: t
 
-      tree_allocated = htable_allocated(t%node_storage) .or. tree_communicator_allocated(t%communicator)
+      tree_allocated = associated(t%nodes) .and. tree_communicator_allocated(t%communicator)
     end function tree_allocated
 
 
@@ -301,31 +352,27 @@ module module_tree
     !>
     !> returns `.true.` if successfull, `.false.` if `n` exists in `t` allready.
     !>
-    function tree_insert_node(t, n, preexisting_node)
+    subroutine tree_insert_node(t, n, preexisting_node)
       use module_pepc_types, only: t_tree_node, kind_node
-      use module_htable, only: htable_add
       use module_tree_node, only: tree_node_is_leaf
       use module_debug
       implicit none
 
-      logical :: tree_insert_node
       type(t_tree), intent(inout) :: t !< Tree into which to insert the node
       type(t_tree_node), intent(in) :: n !< The tree node to insert
       integer(kind_node), optional, intent(out) :: preexisting_node !< points to preexisting node
 
       DEBUG_ASSERT(tree_allocated(t))
-      tree_insert_node = htable_add(t%node_storage, n%key, n, preexisting_node)
-      if (tree_insert_node) then
-        ! everything is fine - keep count of leaves / twigs
-        if (tree_node_is_leaf(n)) then
-          t%nleaf =  t%nleaf + 1
-          if (n%owner == t%comm_env%rank) t%nleaf_me = t%nleaf_me + 1
-        else
-          t%ntwig =  t%ntwig + 1
-          if (n%owner == t%comm_env%rank) t%ntwig_me = t%ntwig_me + 1
-        end if
+      call tree_nodelist_add(t, n%key, n, preexisting_node)
+      ! keep count of leaves / twigs
+      if (tree_node_is_leaf(n)) then
+        t%nleaf =  t%nleaf + 1
+        if (n%owner == t%comm_env%rank) t%nleaf_me = t%nleaf_me + 1
+      else
+        t%ntwig =  t%ntwig + 1
+        if (n%owner == t%comm_env%rank) t%ntwig_me = t%ntwig_me + 1
       end if
-    end function tree_insert_node
+    end subroutine tree_insert_node
 
 
     !>
@@ -334,8 +381,8 @@ module module_tree
     !>
     function tree_traverse_to_key(t, k, n)
       use module_spacefilling, only: child_number_list_from_key
-      use module_tree_node, only: NODE_INVALID, tree_node_children_available, &
-        tree_node_get_num_preceding_children
+      use module_tree_node, only: tree_node_children_available, &
+        tree_node_get_num_preceding_children, NODE_INVALID
       use module_debug
       implicit none
 
@@ -394,8 +441,8 @@ module module_tree
     !>
     subroutine tree_node_connect_children(t, n, c)
       use module_pepc_types, only: kind_node
-      use module_debug
       use module_tree_node, only: NODE_INVALID
+      use module_debug
       implicit none
 
       type(t_tree), intent(inout) :: t
@@ -561,8 +608,8 @@ module module_tree
                    '-------V-----VVVV-------VV-76543210'
 
       ! loop over valid enries in node storage
-      do i = 1,t%node_storage%nentries
-        write (debug_ipefile,'(3(x,i10),x,o22,x,i22,x,o22,3(x,i10),x,i10,4x,l8.8,".",2(b8.8,"."),b8.8)') &
+      do i = 1,t%nodes_nentries
+        write (debug_ipefile,'(3(x,i10),x,o22,x,i22,x,o22,3(x,i10),x,i10,4x,l8,".",2(b8.8,"."),b8.8)') &
                 i, &
                 t%nodes(i)%owner, &
                 level_from_key(t%nodes(i)%key), &
@@ -583,7 +630,7 @@ module module_tree
 
       write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Twigs from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
-      do i = 1,t%node_storage%nentries
+      do i = 1,t%nodes_nentries
         if (.not. tree_node_is_leaf(t%nodes(i))) then
           write(debug_ipefile,*) t%nodes(i)%interaction_data
         endif
@@ -591,7 +638,7 @@ module module_tree
 
       write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Leaves from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
-      do i = 1,t%node_storage%nentries
+      do i = 1,t%nodes_nentries
         if (tree_node_is_leaf(t%nodes(i))) then
           write(debug_ipefile,*) t%nodes(i)%interaction_data
         endif
@@ -614,7 +661,6 @@ module module_tree
     !> gather statistics on the tree structure and dump them to a file
     !>
     subroutine tree_stats(t, u)
-      use module_htable, only: htable_maxentries
       use treevars, only: np_mult
       use module_debug
       implicit none
@@ -630,7 +676,7 @@ module module_tree
       integer(kind_node), allocatable :: total_keys(:), tot_nleaf(:), tot_ntwig(:)
       integer(kind_particle) :: total_part
       integer(kind_node) :: max_nbranch, min_nbranch, nbranch, branch_max_global
-      integer(kind_node) :: nhashentries, gmax_keys
+      integer(kind_node) :: gmax_keys
       real, save :: part_imbal = 0.
       integer(kind_particle) ::  part_imbal_max, part_imbal_min
       integer(kind_node) :: nkeys_total
@@ -653,8 +699,7 @@ module module_tree
       call MPI_REDUCE(t%nbranch_me, min_nbranch,           1, MPI_KIND_NODE, MPI_MIN,    0, t%comm_env%comm, ierr )
       call MPI_REDUCE(t%nbranch_me, nbranch,               1, MPI_KIND_NODE, MPI_SUM,    0, t%comm_env%comm, ierr)
       call MPI_REDUCE(t%nbranch_max_me, branch_max_global, 1, MPI_KIND_NODE, MPI_MAX,    0, t%comm_env%comm, ierr)
-      nhashentries = t%node_storage%nentries
-      call MPI_REDUCE(nhashentries, gmax_keys,             1, MPI_KIND_NODE, MPI_MAX,    0, t%comm_env%comm, ierr )
+      call MPI_REDUCE(t%nodes_nentries, gmax_keys,             1, MPI_KIND_NODE, MPI_MAX,    0, t%comm_env%comm, ierr )
 
       part_imbal_max = MAXVAL(nparticles)
       part_imbal_min = MINVAL(nparticles)
@@ -665,7 +710,7 @@ module module_tree
         write (u,'(a20,i7,a22)') 'Tree stats for CPU ', t%comm_env%rank, ' and global statistics'
         write (u,*) '######## GENERAL DATA #####################################################################'
         write (u,'(a50,1i12)') '# procs', s
-        write (u,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, maxaddress: ',t%nintmax, np_mult, htable_maxentries(t%node_storage)
+        write (u,'(a50,i12,f12.2,i12)') 'nintmax, np_mult, maxaddress: ',t%nintmax, np_mult, t%nodes_maxentries
         write (u,'(a50,2i12)') 'npp, npart: ', t%npart_me, t%npart
         write (u,'(a50,2i12)') 'total # nparticles, N/P: ', total_part, int(t%npart/s)
         write (u,'(a50,f12.3,2i12)')   'Particle imbalance ave,min,max: ',part_imbal,part_imbal_min,part_imbal_max
@@ -673,8 +718,8 @@ module module_tree
         write (u,'(a50,3i12)') 'local # leaves, twigs, keys: ', t%nleaf_me, t%ntwig_me, t%nleaf_me + t%ntwig_me
         write (u,'(a50,3i12)') 'non-local # leaves, twigs, keys: ',t%nleaf - t%nleaf_me, t%ntwig - t%ntwig_me, t%nleaf + t%ntwig - t%nleaf_me - t%ntwig_me
         write (u,'(a50,3i12,f12.1,a6,i12)') 'final # leaves, twigs, keys, (max): ', t%nleaf, t%ntwig, t%nleaf + t%ntwig, &
-                  real((t%nleaf + t%ntwig), kind(0._8)) / (.01 * real(htable_maxentries(t%node_storage), kind(0._8))), ' % of ', htable_maxentries(t%node_storage)
-        write (u,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # keys: ',gmax_keys, real(gmax_keys, kind(0._8))/(.01 * real(htable_maxentries(t%node_storage), kind(0._8))), ' % of  ', htable_maxentries(t%node_storage)
+                  real((t%nleaf + t%ntwig), kind(0._8)) / (.01 * real(t%nodes_maxentries, kind(0._8))), ' % of ', t%nodes_maxentries
+        write (u,'(a50,1i12,1f12.1, a6,1i12)') 'Global max # keys: ',gmax_keys, real(gmax_keys, kind(0._8))/(.01 * real(t%nodes_maxentries, kind(0._8))), ' % of  ', t%nodes_maxentries
         write (u,*) '######## BRANCHES #########################################################################'
         write (u,'(a50,3i12)') '#branches local, max_global, min_global: ', t%nbranch_me, max_nbranch, min_nbranch
         write (u,'(a50,2i12)') '#branches global sum estimated, sum actual: ', branch_max_global, nbranch

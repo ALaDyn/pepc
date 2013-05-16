@@ -214,9 +214,7 @@ module module_tree_grow
       if (get_mult(i)%owner /= t%comm_env%rank) then
         call tree_node_unpack(get_mult(i), unpack_node)
         
-        if (.not. tree_insert_node(t, unpack_node, branch_nodes(i))) then
-          DEBUG_ERROR(*, "exchanged a node that is already in the local tree.")
-        end if
+        call tree_insert_node(t, unpack_node, branch_nodes(i))
       else
         j = j + 1
         branch_nodes(i) = local_branch_nodes(j)
@@ -531,9 +529,7 @@ module module_tree_grow
           parent_node%parent       = NODE_INVALID ! these are not touched in shift_nodes_up
           parent_node%next_sibling = NODE_INVALID ! these are not touched in shift_nodes_up
           
-          if (.not. tree_insert_node(t, parent_node, parent_nodes(nparent))) then
-            DEBUG_ERROR(*,'This should not have been there')
-          end if
+          call tree_insert_node(t, parent_node, parent_nodes(nparent))
         end if
 
         call shift_nodes_up(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend), t%comm_env%rank)
@@ -675,9 +671,7 @@ module module_tree_grow
           call multipole_from_particle(p(ki(1)%idx)%x, p(ki(1)%idx)%data, this_node%interaction_data)
           call timer_stop(t_props_leaves)
           p(ki(1)%idx)%key_leaf = k
-          if (.not. tree_insert_node(t, this_node, inserted_node_idx)) then
-            DEBUG_ERROR(*, "Leaf already inserted, aborting.") ! TODO: tell me more!
-          end if
+          call tree_insert_node(t, this_node, inserted_node_idx)
         end if
       else ! more particles left, split twig
         if (l >= nlev) then ! no more levels left, cannot split
@@ -691,9 +685,7 @@ module module_tree_grow
         this_node%parent       = NODE_INVALID ! these are not touched in shift_nodes_up
         this_node%next_sibling = NODE_INVALID ! these are not touched in shift_nodes_up
 
-        if (.not. tree_insert_node(t, this_node, inserted_node_idx)) then
-          DEBUG_ERROR(*, 'Twig already inserted, aborting.') ! TODO: tell me more!
-        end if
+        call tree_insert_node(t, this_node, inserted_node_idx)
 
         nchild = 0
         pstart = lbound(ki, dim = 1)
