@@ -654,6 +654,7 @@ module module_tree_grow
           this_node%level        = l
           this_node%leaves       = 1
           this_node%descendants  = 0
+          this_node%parent       = NODE_INVALID
           this_node%first_child  = NODE_INVALID
           this_node%next_sibling = NODE_INVALID
           call timer_resume(t_props_leaves)
@@ -661,7 +662,7 @@ module module_tree_grow
           call timer_stop(t_props_leaves)
           p(ki(1)%idx)%key_leaf = k
           if (.not. tree_insert_node(t, this_node, inserted_node_idx)) then
-            DEBUG_ERROR(*, "Leaf allready inserted, aborting.") ! TODO: tell me more!
+            DEBUG_ERROR(*, "Leaf already inserted, aborting.") ! TODO: tell me more!
           end if
         end if
       else ! more particles left, split twig
@@ -675,7 +676,7 @@ module module_tree_grow
         this_node%key          = k
 
         if (.not. tree_insert_node(t, this_node, inserted_node_idx)) then
-          DEBUG_ERROR(*, "Twig already inserted, aborting.") ! TODO: tell me more!
+          DEBUG_ERROR(*, 'Twig already inserted, aborting.') ! TODO: tell me more!
         end if
 
         nchild = 0

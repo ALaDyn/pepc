@@ -257,7 +257,7 @@ module module_tree_communicator
         ! send a request to PE n%owner
         ! telling, that we need child data for particle request_key(req_queue_top)
         if (present(particle)) then
-          req%key = n%key
+          req%node = n%first_child
           req%particle = particle
           if (present(pos)) then 
             req%particle%x = pos
@@ -266,7 +266,7 @@ module module_tree_communicator
           call MPI_BSEND(req, 1, MPI_TYPE_request_eager, n%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
             t%comm_env%comm, ierr)
         else
-          call MPI_BSEND(n%key, 1, MPI_KIND_KEY, n%owner, TREE_COMM_TAG_REQUEST_KEY, &
+          call MPI_BSEND(n%first_child, 1, MPI_KIND_NODE, n%owner, TREE_COMM_TAG_REQUEST_KEY, &
             t%comm_env%comm, ierr)
         endif
       end if
@@ -376,16 +376,16 @@ module module_tree_communicator
 
   
   !>
-  !> Simply collect all child nodes for node with `key`
+  !> Simply collect node and all its siblings
   !>
-  subroutine answer_request_simple(t, key, ipe_sender)
+  subroutine answer_request_simple(t, node, ipe_sender)
     use module_tree, only: t_tree, tree_lookup_node
     use module_pepc_types, only : t_tree_node, t_tree_node_package, kind_node
     use module_tree_node
     use module_debug
     implicit none
     type(t_tree), intent(inout) :: t
-    integer(kind_key), intent(in) :: key
+    integer(kind_node), intent(in) :: node
     integer(kind_pe), intent(in) :: ipe_sender
     
     type(t_tree_node_package) :: children_to_send(8) ! for an octtree, there will never be more than 8 direct children - no need for counting in advance
@@ -394,35 +394,33 @@ module module_tree_communicator
     integer(kind_node) :: n
     
     if (tree_comm_debug) then
-      DEBUG_INFO('("PE", I6, " answering request.                         key=", O22, ",        sender=", I6)', t%comm_env%rank, key, ipe_sender )
+      DEBUG_INFO('("PE", I6, " answering request.                         node=", I22, ",        sender=", I6)', t%comm_env%rank, node, ipe_sender )
     end if
 
-    if (.not. tree_lookup_node(t, key, n, 'WALK:answer_request_simple:parentkey')) then
-      call broadcast_dump_tree_and_abort(t)
+    if (node == NODE_INVALID) then
+       DEBUG_WARNING_ALL('("Received request with node == NODE_INVALID from pe ", I0, ", Its tree data might be damaged. Dumping all trees and aborting.")', ipe_sender )
+       call broadcast_dump_tree_and_abort(t)
       return
     endif
 
     nchild = 0
-    if (tree_node_get_first_child(t%nodes(n), n)) then
-      do
-        nchild = nchild + 1
+    n = node
 
-        call tree_node_pack(t%nodes(n), children_to_send(nchild))
-
-        if (.not. tree_node_get_next_sibling(t%nodes(n), n)) then; exit; end if
-      end do
+    do
+      nchild = nchild + 1
+      call tree_node_pack(t%nodes(n), children_to_send(nchild))
+      if (.not. tree_node_get_next_sibling(t%nodes(n), n)) then; exit; end if
+    end do
     
-      call send_data(t, children_to_send, nchild, ipe_sender)
-    else
-      DEBUG_WARNING_ALL('("PE", I6, " got a request from PE", I6, " for key ", O8," but did not find any children_to_send. - Will not answer.")', t%comm_env%rank, ipe_sender, key)
-    end if
+    call send_data(t, children_to_send, nchild, ipe_sender)
     
   end subroutine answer_request_simple
 
   
   !>
-  !> Collect all child and grandchild nodes for `parent` that
-  !> are needed to fulfill the mac() from given position `pos`
+  !> Collect node, child and grandchild nodes for `node`
+  !> that are needed to fulfill the mac() from given position `pos`
+  !> same for `node`s siblings
   !>
   subroutine answer_request_eager(t, request, ipe_sender)
     use module_tree, only: t_tree, tree_lookup_node
@@ -435,7 +433,6 @@ module module_tree_communicator
     type(t_request_eager), intent(in) :: request
     integer(kind_pe), intent(in) :: ipe_sender
     
-    integer(kind_node) :: parent_idx, firstchild
     type(t_tree_node), pointer :: parent
     type(t_tree_node_package), allocatable :: children_to_send(:)
     integer :: nchild, i
@@ -443,38 +440,28 @@ module module_tree_communicator
     integer(kind_node), allocatable :: child_nodes(:)
     
     if (tree_comm_debug) then
-      DEBUG_INFO('("PE", I6, " answering eager request.                   key=", O22, ",        sender=", I6)', t%comm_env%rank, request%key, ipe_sender )
+      DEBUG_INFO('("PE", I6, " answering eager request.                   node=", O22, ",        sender=", I6)', t%comm_env%rank, request%node, ipe_sender )
     end if
-
-    if (.not. tree_lookup_node(t, request%key, parent_idx, 'WALK:answer_request_eager:parentkey')) then
-      call broadcast_dump_tree_and_abort(t)
-      return
-    endif
-    parent => t%nodes(parent_idx)
 
     nchild = 0
 
-    if (tree_node_get_first_child(parent, firstchild)) then
-      ! first, we only collect pointers to all children that have to be sent and count them
-    
-      allocate(child_nodes(parent%descendants)) ! enough space to keep all descendants in this array
+    ! first, we only collect pointers to all nodes that have to be sent and count them
+    parent => t%nodes(t%nodes(request%node)%parent)
+    allocate(child_nodes(parent%descendants)) ! enough space to keep all descendants in this array
       
-      call eager_collect_traverse(firstchild)
+    call eager_collect_traverse(request%node)
 
-      ! collect real data from pointers in child_nodes
-      if (nchild > 0) then
-        allocate(children_to_send(nchild))
+    ! collect real data from pointers in child_nodes
+    if (nchild > 0) then
+      allocate(children_to_send(nchild))
         
-        do i=1,nchild
-          call tree_node_pack(t%nodes(child_nodes(i)), children_to_send(i))
-        end do
+      do i=1,nchild
+        call tree_node_pack(t%nodes(child_nodes(i)), children_to_send(i))
+      end do
       
-        call send_data(t, children_to_send, nchild, ipe_sender)
+      call send_data(t, children_to_send, nchild, ipe_sender)
         
-        deallocate(children_to_send)
-      endif
-    else
-      DEBUG_WARNING_ALL('("PE", I6, " got a request from PE", I6, " for key ", O8," but did not find any children_to_send. - Will not answer.")', t%comm_env%rank, ipe_sender, request%key)
+      deallocate(children_to_send)
     endif
 
     deallocate(child_nodes)
@@ -591,7 +578,6 @@ module module_tree_communicator
           call unpack_children(newnode, .false.)
         else
           call tree_node_unpack(child_data(ic), unpack_node)
-          unpack_node%first_child = NODE_INVALID
           ! tree nodes coming from remote PEs are flagged for easier identification
           unpack_node%flags_local = ibset(unpack_node%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
           
@@ -713,7 +699,7 @@ module module_tree_communicator
     integer(kind_default) :: ierr
     integer :: stat(MPI_STATUS_SIZE)
     type(t_request_eager) :: request
-    integer(kind_key) :: req_key
+    integer(kind_node) :: req_node
     type (t_tree_node_package), allocatable :: child_data(:) ! child data to be received
     integer :: num_children
     integer(kind_pe) :: ipe_sender
@@ -730,14 +716,14 @@ module module_tree_communicator
     msg_tag    = stat(MPI_TAG)
 
     select case (msg_tag)
-      ! another PE requested child data for a certain key
+      ! another PE requested data for a certain node and its siblings
       case (TREE_COMM_TAG_REQUEST_KEY)
         ! actually receive this request...
-        call MPI_RECV(req_key, 1, MPI_KIND_KEY, ipe_sender, TREE_COMM_TAG_REQUEST_KEY, &
+        call MPI_RECV(req_node, 1, MPI_KIND_NODE, ipe_sender, TREE_COMM_TAG_REQUEST_KEY, &
                 t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
         ! ... and answer it
-        call answer_request_simple(t, req_key, ipe_sender)
-      ! another PE requested child data for a certain key and wants us to do some additional work
+        call answer_request_simple(t, req_node, ipe_sender)
+      ! another PE requested child data for a certain node, its siblings and wants us to do some additional work
       case (TREE_COMM_TAG_REQUEST_KEY_EAGER)
         ! actually receive this request...
         call MPI_RECV(request, 1, MPI_TYPE_request_eager, ipe_sender, TREE_COMM_TAG_REQUEST_KEY_EAGER, &

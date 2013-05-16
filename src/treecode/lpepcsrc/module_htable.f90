@@ -622,7 +622,7 @@ module module_htable
         ! output hash table
         write(debug_ipefile,'(/a)') 'Hash table'
 
-        write(debug_ipefile,'(134x,a48)') &
+        write(debug_ipefile,'(1178x,a48)') &
                     "       REQUEST_SENT                    ", &
                     "       |     HAS_REMOTE_CONTRIBUTIONS  ", &
                     "       |     |HAS_LOCAL_CONTRIBUTIONS  ", &
@@ -631,14 +631,18 @@ module module_htable
                     "       |     || |       |IS_BRANCH_NODE", &
                     "flags  |     || |       ||             "
 
-        write(debug_ipefile,'(4(x,a10),3(x,a22),x,a14,x,a10,4x,3(a8,x),a8,/,143("-"),a35)') &
+        write(debug_ipefile,'(5(x,a10),3(x,a22),3(x,a10),x,a14,x,a10,4x,3(a8,x),a8,/,187("-"),a35)') &
                      'entry_10', &
                      'entry_8', &
+                     'node', &
                      'owner', &
                      'level', &
                      'key_8', &
                      'key_10', &
                      'parent_8', &
+                     'parent_node', &
+                     'first_child', &
+                     'next_sibling', &
                      'collision link', &
                      'leaves', &
                      'l2     |', &
@@ -659,14 +663,18 @@ module module_htable
               collision=" "
             end if
 
-            write (debug_ipefile,'(x,i10,x,o10,2(x,i10),x,o22,x,i22,x,o22,x,a1,x,i12,x,i10,4x,3(b8.8,"."),b8.8)') &
+            write (debug_ipefile,'(x,i10,x,o10,3(x,i10),x,o22,x,i22,x,o22,3(x,i10),x,a1,x,i12,x,i10,4x,3(b8.8,"."),b8.8)') &
                     i, &
                     i, &
+                    t%buckets(i)%val, &
                     t%values(t%buckets(i)%val)%owner, &
                     level_from_key(t%buckets(i)%key), &
                     t%buckets(i)%key, &
                     t%buckets(i)%key, &
                     parent_key_from_key(t%buckets(i)%key), &
+                    t%values(t%buckets(i)%val)%parent, &
+                    t%values(t%buckets(i)%val)%first_child, &
+                    t%values(t%buckets(i)%val)%next_sibling, &
                     collision, &
                     t%buckets(i)%link, &
                     t%values(t%buckets(i)%val)%leaves, &
