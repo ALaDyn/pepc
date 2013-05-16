@@ -120,7 +120,7 @@ module module_tree_node
       integer(kind_byte), intent(in) :: c
       integer(kind_byte) :: tree_node_get_num_preceding_children
       
-      tree_node_get_num_preceding_children = popcnt(ishft(n%childcode, bit_size(n%childcode)-(c+1)))-1
+      tree_node_get_num_preceding_children = popcnt(ishft(n%childcode, bit_size(n%childcode)-(c+1)))-1_kind_byte
     end function
       
 

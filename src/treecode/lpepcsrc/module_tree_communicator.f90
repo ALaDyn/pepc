@@ -643,7 +643,6 @@ module module_tree_communicator
 
     type(t_tree), pointer :: t
     !integer, intent(in) :: max_particles_per_thread
-    integer(kind_default) :: ierr
     logical, allocatable :: comm_finished(:) ! will hold information on PE 0 about which processor
                                              ! is still communicating and which ones are finished
                                              ! to emulate a non-blocking barrier
